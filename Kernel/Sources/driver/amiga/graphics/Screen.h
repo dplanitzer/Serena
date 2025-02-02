@@ -9,6 +9,7 @@
 #ifndef Screen_h
 #define Screen_h
 
+#include <klib/Error.h>
 #include <klib/List.h>
 #include <klib/Types.h>
 #include "CopperProgram.h"
@@ -34,6 +35,7 @@ enum {
 
 
 typedef struct Screen {
+    ListNode                            chain;
     const VideoConfiguration* _Nonnull  videoConfig;
     Sprite* _Nonnull                    nullSprite;
     Sprite* _Nonnull                    sprite[NUM_HARDWARE_SPRITES];
@@ -41,11 +43,15 @@ typedef struct Screen {
     CLUTEntry* _Nullable                clut;           // The screen color lookup table
     int16_t                             clutEntryCount;
     uint16_t                            flags;
+    int                                 id;
 } Screen;
 
 
-extern errno_t Screen_Create(const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf);
+extern errno_t Screen_Create(int id, const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf);
 extern void Screen_Destroy(Screen* _Nullable pScreen);
+
+#define Screen_GetId(__self) \
+((__self)->id)
 
 #define Screen_SetNeedsUpdate(__self) \
 ((__self)->flags |= kScreenFlag_IsNewCopperProgNeeded)

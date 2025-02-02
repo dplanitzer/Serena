@@ -22,6 +22,7 @@ errno_t GraphicsDriver_Create(DriverRef _Nullable parent, GraphicsDriverRef _Nul
     
     try(Driver_Create(GraphicsDriver, 0, parent, &self));
     self->nextSurfaceId = 1;
+    self->nextScreenId = 1;
 
 
     // Allocate the mouse painter
@@ -258,10 +259,17 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
     return EOK;
 }
 
-errno_t GraphicsDriver_SetCurrentScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr)
+errno_t GraphicsDriver_SetCurrentScreen(GraphicsDriverRef _Nonnull self, int screenId)
 {
     Driver_Lock(self);
-    const errno_t err = GraphicsDriver_SetCurrentScreen_Locked(self, scr);
+    decl_try_err();
+    Screen* scr = _GraphicsDriver_GetScreenForId(self, screenId);
+    if (scr || screenId == 0) {
+        err = GraphicsDriver_SetCurrentScreen_Locked(self, scr);
+    }
+    else {
+        err = EINVAL;
+    }
     Driver_Unlock(self);
     return err;
 }
@@ -499,15 +507,49 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id)
 // MARK: Screens
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, int surfaceId, Screen* _Nullable * _Nonnull pOutScreen)
+static int _GraphicsDriver_GetNewScreenId(GraphicsDriverRef _Nonnull _Locked self)
+{
+    bool hasCollision = true;
+    int id;
+
+    while (hasCollision) {
+        hasCollision = false;
+        id = self->nextScreenId++;
+
+        List_ForEach(&self->screens, Screen,
+            if (Screen_GetId(pCurNode) == id) {
+                hasCollision = true;
+                break;
+            }
+        );
+    }
+    return id;
+}
+
+static Screen* _Nullable _GraphicsDriver_GetScreenForId(GraphicsDriverRef _Nonnull self, int id)
+{
+    List_ForEach(&self->screens, Screen,
+        if (Screen_GetId(pCurNode) == id) {
+            return pCurNode;
+        }
+    );
+    return NULL;
+}
+
+errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, int surfaceId, int* _Nonnull pOutId)
 {
     decl_try_err();
 
     Driver_Lock(self);
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, surfaceId);
+    Screen* scr;
     
     if (srf) {
-        err = Screen_Create(vidCfg, srf, self->nullSprite, pOutScreen);
+        err = Screen_Create(_GraphicsDriver_GetNewScreenId(self), vidCfg, srf, self->nullSprite, &scr);
+        if (err == EOK) {
+            List_InsertBeforeFirst(&self->screens, &scr->chain);
+            *pOutId = Screen_GetId(scr);
+        }
     }
     else {
         err = EINVAL;
@@ -516,11 +558,12 @@ errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const Video
     return err;
 }
 
-errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr)
+errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, int id)
 {
     decl_try_err();
 
     Driver_Lock(self);
+    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
     if (scr) {
         if (!Screen_IsVisible(scr)) {
             Screen_Destroy(scr);
@@ -529,29 +572,40 @@ errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, Screen* _N
             err = EBUSY;
         }
     }
+    else {
+        err = EINVAL;
+    }
     Driver_Unlock(self);
     return err;
 }
 
-const VideoConfiguration* _Nonnull GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, Screen* _Nonnull scr)
+errno_t GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, int id, VideoConfiguration* _Nonnull pOutVidConfig)
 {
     Driver_Lock(self);
-    const VideoConfiguration* cfg = Screen_GetConfiguration(scr);
+    decl_try_err();
+    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
+    if (scr) {
+        *pOutVidConfig = *Screen_GetConfiguration(scr);
+    }
+    else {
+        err = EINVAL;
+    }
     Driver_Unlock(self);
-    return cfg;
+    return err;
 }
 
 // Writes the given RGB color to the color register at index idx
-errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, size_t idx, RGBColor32 color)
+errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, int id, size_t idx, RGBColor32 color)
 {
     decl_try_err();
 
     Driver_Lock(self);
+    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
     if (scr) {
         err = Screen_SetCLUTEntry(scr, idx, color);
     }
     else {
-        err = ENOTSUP;
+        err = EINVAL;
     }
     Driver_Unlock(self);
     return err;
@@ -559,16 +613,17 @@ errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, Screen* _Nu
 
 // Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
 // to the colors in the array 'entries'.
-errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
+errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
 {
     decl_try_err();
 
     Driver_Lock(self);
+    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
     if (scr) {
         err = Screen_SetCLUTEntries(scr, idx, count, entries);
     }
     else {
-        err = ENOTSUP;
+        err = EINVAL;
     }
     Driver_Unlock(self);
     return err;
@@ -581,64 +636,68 @@ errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, Screen* _
 ////////////////////////////////////////////////////////////////////////////////
 
 // Acquires a hardware sprite
-errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId)
+errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int id, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId)
 {
     decl_try_err();
 
     Driver_Lock(self);
+    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
     if (scr) {
         err = Screen_AcquireSprite(scr, pPlanes, x, y, width, height, priority, pOutSpriteId);
     }
     else {
-        err = ENOTSUP;
+        err = EINVAL;
     }
     Driver_Unlock(self);
     return err;
 }
 
 // Relinquishes a hardware sprite
-errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, int spriteId)
+errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int id, int spriteId)
 {
     decl_try_err();
 
     Driver_Lock(self);
+    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
     if (scr) {
         err = Screen_RelinquishSprite(scr, spriteId);
     }
     else {
-        err = ENOTSUP;
+        err = EINVAL;
     }
     Driver_Unlock(self);
     return err;
 }
 
 // Updates the position of a hardware sprite.
-errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, int spriteId, int x, int y)
+errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int id, int spriteId, int x, int y)
 {
     decl_try_err();
 
     Driver_Lock(self);
+    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
     if (scr) {
         err = Screen_SetSpritePosition(scr, spriteId, x, y);
     }
     else {
-        err = ENOTSUP;
+        err = EINVAL;
     }
     Driver_Unlock(self);
     return err;
 }
 
 // Updates the visibility of a hardware sprite.
-errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, int spriteId, bool isVisible)
+errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int id, int spriteId, bool isVisible)
 {
     decl_try_err();
 
     Driver_Lock(self);
+    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
     if (scr) {
         err = Screen_SetSpriteVisible(scr, spriteId, isVisible);
     }
     else {
-        err = ENOTSUP;
+        err = EINVAL;
     }
     Driver_Unlock(self);
     return err;

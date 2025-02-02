@@ -158,7 +158,7 @@ final_class_ivars(Console, Driver,
     RingBuffer                  reportsQueue;
 
     GraphicsDriverRef _Nonnull  gdevice;
-    Screen* _Nonnull            screen;
+    int                         screenId;
     int                         surfaceId;
     SurfaceMapping              pixels;
     int                         pixelsWidth;

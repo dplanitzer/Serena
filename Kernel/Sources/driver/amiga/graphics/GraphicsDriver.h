@@ -12,6 +12,7 @@
 #include <klib/klib.h>
 #include <driver/Driver.h>
 #include "Color.h"
+#include "PixelFormat.h"
 #include "Screen.h"
 #include "VideoConfiguration.h"
 
@@ -41,24 +42,24 @@ extern errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int 
 
 
 // Screens
-extern errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, int surfaceId, Screen* _Nullable * _Nonnull pOutScreen);
-extern errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr);
+extern errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, int surfaceId, int* _Nonnull pOutId);
+extern errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, int id);
 
-extern const VideoConfiguration* _Nonnull GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, Screen* _Nonnull scr);
+extern errno_t GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, int id, VideoConfiguration* _Nonnull pOutVidConfig);
 
-extern errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, size_t idx, RGBColor32 color);
-extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
+extern errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, int id, size_t idx, RGBColor32 color);
+extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
 
 
 // Sprites
-extern errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId);
-extern errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, int spriteId);
-extern errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, int spriteId, int x, int y);
-extern errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, int spriteId, bool isVisible);
+extern errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int id, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId);
+extern errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int id, int spriteId);
+extern errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int id, int spriteId, int x, int y);
+extern errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int id, int spriteId, bool isVisible);
 
 
 // Display
-extern errno_t GraphicsDriver_SetCurrentScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr);
+extern errno_t GraphicsDriver_SetCurrentScreen(GraphicsDriverRef _Nonnull self, int screenId);
 extern Screen* _Nullable GraphicsDriver_GetCurrentScreen(GraphicsDriverRef _Nonnull self);
 
 extern errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self);

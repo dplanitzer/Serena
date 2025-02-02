@@ -29,11 +29,14 @@ final_class_ivars(GraphicsDriver, Driver,
     Semaphore           vblank_sema;
     MousePainter        mousePainter;
     List                surfaces;
+    List                screens;
     int                 nextSurfaceId;
+    int                 nextScreenId;
     bool                isLightPenEnabled;  // Applies to all screens
 );
 
 
 extern void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self);
+static Screen* _Nullable _GraphicsDriver_GetScreenForId(GraphicsDriverRef _Nonnull self, int id);
 
 #endif /* GraphicsDriverPriv_h */

@@ -14,7 +14,7 @@
 // \param pConfig the video configuration
 // \param pixelFormat the pixel format (must be supported by the config)
 // \return the screen or null
-errno_t Screen_Create(const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf)
+errno_t Screen_Create(int id, const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Screen* self;
@@ -22,6 +22,7 @@ errno_t Screen_Create(const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnu
     try(kalloc_cleared(sizeof(Screen), (void**) &self));
 
     Surface_BeginUse(srf);
+    self->id = id;
     self->surface = srf;
     self->videoConfig = vidCfg;
     self->nullSprite = pNullSprite;
