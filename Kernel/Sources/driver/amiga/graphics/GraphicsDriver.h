@@ -12,7 +12,6 @@
 #include <klib/klib.h>
 #include <driver/Driver.h>
 #include <System/Framebuffer.h>
-#include "Color.h"
 #include "Screen.h"
 #include "VideoConfiguration.h"
 

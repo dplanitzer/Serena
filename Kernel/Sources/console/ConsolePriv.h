@@ -13,6 +13,7 @@
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/amiga/graphics/GraphicsDriver.h>
+#include "Color.h"
 #include "KeyMap.h"
 #include "vtparser.h"
 

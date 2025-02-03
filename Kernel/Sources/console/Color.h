@@ -9,7 +9,6 @@
 #ifndef Color_h
 #define Color_h
 
-#include <klib/Types.h>
 #include <System/Framebuffer.h>
 
 

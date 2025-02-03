@@ -13,7 +13,6 @@
 #include <klib/Types.h>
 #include <klib/List.h>
 #include <System/Framebuffer.h>
-#include "Color.h"
 
 
 #define MAX_PLANE_COUNT  6
