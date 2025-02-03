@@ -8,6 +8,7 @@
 
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
+#include <log/Log.h>
 
 
 // Frees all tombstones
@@ -41,7 +42,7 @@ errno_t Process_OnChildTermination(ProcessRef _Nonnull pProc, ProcessRef _Nonnul
     }
 
     if (kalloc_cleared(sizeof(ProcessTombstone), (void**) &pTombstone) != EOK) {
-        print("Broken tombstone for %d:%d\n", pProc->pid, childPid);
+        printf("Broken tombstone for %d:%d\n", pProc->pid, childPid);
         return EOK;
     }
 

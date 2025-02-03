@@ -8,6 +8,7 @@
 
 #include <krt/krt.h>
 #include <klib/klib.h>
+#include <log/Log.h>
 #include <disk/DiskCache.h>
 #include <dispatcher/VirtualProcessorScheduler.h>
 #include <dispatcher/VirtualProcessorPool.h>
@@ -192,7 +193,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
 
     // Get the root process going
-    print("Starting login...\n");
+    printf("Starting login...\n");
     try(RootProcess_Exec(pRootProc, "/System/Commands/login"));
 
     
@@ -201,7 +202,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     VirtualProcessorScheduler_Run(gVirtualProcessorScheduler);
 
 catch:
-    print("Error: unable to complete startup: %d\nHalting.\n", err);
+    printf("Error: unable to complete startup: %d\nHalting.\n", err);
     while(1);
     /* NOT REACHED */
 }

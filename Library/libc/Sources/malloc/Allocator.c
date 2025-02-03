@@ -131,7 +131,7 @@ static void mem_error(int err, const char* _Nonnull funcName, void* _Nullable pt
             break;
 
         case MERR_DOUBLE_FREE:
-            printf("** %s: ignoring double free at: %p\n", ptr);
+            printf("** %s: ignoring double free at: %p\n", funcName, ptr);
             break;
 
         default:

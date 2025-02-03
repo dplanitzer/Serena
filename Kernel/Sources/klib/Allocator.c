@@ -7,8 +7,8 @@
 //
 
 #include "Allocator.h"
-#include "Log.h"
 #include "Memory.h"
+#include <log/Log.h>
 
 
 #if defined(__ILP32__)
@@ -125,11 +125,11 @@ static void mem_error(int err, const char* _Nonnull funcName, void* _Nullable pt
 {
     switch (err) {
         case MERR_CORRUPTION:
-            print("** %s: heap corruption at %p\n", funcName, ptr);
+            printf("** %s: heap corruption at %p\n", funcName, ptr);
             break;
 
         case MERR_DOUBLE_FREE:
-            print("** %s: ignoring double free at: %p\n", ptr);
+            printf("** %s: ignoring double free at: %p\n", funcName, ptr);
             break;
 
         default:

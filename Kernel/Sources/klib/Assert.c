@@ -7,9 +7,10 @@
 //
 
 #include "Assert.h"
-#include "Formatter.h"
-#include "Log.h"
 #include "Memory.h"
+#include <log/Formatter.h>
+#include <log/Log.h>
+
 
 // Copper instructions
 typedef uint32_t  CopperInstruction;

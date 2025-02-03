@@ -8,6 +8,7 @@
 
 #include "DiskCachePriv.h"
 #include <hal/MonotonicClock.h>
+#include <log/Log.h>
 
 // Define to force all writes to be synchronous
 //#define __FORCE_WRITES_SYNC 1
@@ -185,30 +186,31 @@ static void _DiskCache_UnregisterBlock(DiskCacheRef _Nonnull _Locked self, DiskB
     List_Remove(&self->lruChain, &pBlock->lruNode);
     self->lruChainGeneration++;
 }
-
+#if 0
 static void _DiskCache_Print(DiskCacheRef _Nonnull _Locked self)
 {
-    print("{");
+    printf("{");
     for (size_t i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
         List_ForEach(&self->diskAddrHash[i], DiskBlock,
-            print("%u [%u], ", DiskBlock_GetDiskAddress(pCurNode)->lba, i);
+            printf("%u [%u], ", DiskBlock_GetDiskAddress(pCurNode)->lba, i);
         );
     }
-    print("}");
+    printf("}");
 }
 
 static void _DiskCache_PrintLruChain(DiskCacheRef _Nonnull _Locked self)
 {
-    print("{");
+    printf("{");
     List_ForEach(&self->lruChain, ListNode,
         DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
-        print("%u", DiskBlock_GetDiskAddress(pb)->lba);
+        printf("%u", DiskBlock_GetDiskAddress(pb)->lba);
         if (pCurNode->next) {
-            print(", ");
+            printf(", ");
         }
     );
-    print("}");
+    printf("}");
 }
+#endif
 
 
 static errno_t _DiskCache_CreateBlock(DiskCacheRef _Nonnull _Locked self, DiskId diskId, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutBlock)

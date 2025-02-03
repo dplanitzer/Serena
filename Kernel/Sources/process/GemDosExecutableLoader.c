@@ -9,6 +9,7 @@
 #include "GemDosExecutableLoader.h"
 #include <filesystem/Filesystem.h>
 #include <filesystem/FileChannel.h>
+#include <log/Log.h>
 
 
 static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _Nonnull self, uint8_t* _Nonnull pRelocBase, uint8_t* pTextBase)
@@ -72,12 +73,12 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, FileC
     // Read the executable header
     try(IOChannel_Read((IOChannelRef)chan, &hdr, sizeof(hdr), &nBytesRead));
 
-//    print("magic: %hx\n", hdr.magic);
-//    print("text: %d\n", hdr.text_size);
-//    print("data: %d\n", hdr.data_size);
-//    print("bss: %d\n", hdr.bss_size);
-//    print("symbols: %d\n", hdr.symbol_table_size);
-//    print("file-size: %lld\n", fileSize);
+//    printf("magic: %hx\n", hdr.magic);
+//    printf("text: %d\n", hdr.text_size);
+//    printf("data: %d\n", hdr.data_size);
+//    printf("bss: %d\n", hdr.bss_size);
+//    printf("symbols: %d\n", hdr.symbol_table_size);
+//    printf("file-size: %lld\n", fileSize);
 //    while(true);
 
 

@@ -6,7 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <klib/klib.h>
+#include "Log.h"
 #include <dispatcher/Lock.h>
 #include <driver/DriverCatalog.h>
 #include <filesystem/IOChannel.h>
@@ -35,16 +35,16 @@ void print_init(void)
 }
 
 // Print formatted
-void print(const char* _Nonnull format, ...)
+void printf(const char* _Nonnull format, ...)
 {
     va_list ap;
     
     va_start(ap, format);
-    printv(format, ap);
+    vprintf(format, ap);
     va_end(ap);
 }
 
-void printv(const char* _Nonnull format, va_list ap)
+void vprintf(const char* _Nonnull format, va_list ap)
 {
     Lock_Lock(&gLock);
     Formatter_vFormat(&gFormatter, format, ap);

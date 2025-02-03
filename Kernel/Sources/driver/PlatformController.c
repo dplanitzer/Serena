@@ -7,7 +7,7 @@
 //
 
 #include "PlatformController.h"
-#include <klib/Log.h>
+#include <log/Log.h>
 
 
 // Should be invoked by the platform specific subclass to inform the kernel that
@@ -20,7 +20,7 @@ void PlatformController_NoteConsoleAvailable(PlatformControllerRef _Nonnull self
 
 
     // Boot message
-    print("\033[36mSerena OS v0.4.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
+    printf("\033[36mSerena OS v0.4.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
 
 
     // Debug printing

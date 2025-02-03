@@ -7,6 +7,7 @@
 //
 
 #include <klib/klib.h>
+#include <log/Log.h>
 #include <driver/DriverCatalog.h>
 #include <filemanager/FileHierarchy.h>
 
@@ -21,7 +22,7 @@ FileHierarchyRef _Nonnull create_root_file_hierarchy(void)
 
     FilesystemRef bootfs = create_boot_filesystem();
     if (bootfs == NULL) {
-        print("No boot device found.\nHalting...\n");
+        printf("No boot device found.\nHalting...\n");
         while(true);
         /* NOT REACHED */
     }
@@ -42,7 +43,7 @@ FileHierarchyRef _Nonnull create_root_file_hierarchy(void)
     return fh;
 
 catch:
-    print("Unable to boot (%d).\nHalting...\n", err);
+    printf("Unable to boot (%d).\nHalting...\n", err);
     while(true);
     /* NOT REACHED */
 }

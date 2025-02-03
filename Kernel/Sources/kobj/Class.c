@@ -10,7 +10,7 @@
 #include <klib/Memory.h>
 #include <klib/Kalloc.h>
 #ifndef __DISKIMAGE__
-#include <klib/Log.h>
+#include <log/Log.h>
 
 extern char _class;
 extern char _eclass;
@@ -77,6 +77,7 @@ void RegisterClasses(void)
     }
 }
 
+#if 0
 // Prints all registered classes
 // Note that this function is not concurrency safe.
 void PrintClasses(void)
@@ -84,22 +85,23 @@ void PrintClasses(void)
     Class* pClass = (Class*)&_class;
     Class* pEndClass = (Class*)&_eclass;
 
-    print("_class: %p, _eclass: %p\n", pClass, pEndClass);
+    printf("_class: %p, _eclass: %p\n", pClass, pEndClass);
 
     while (pClass < pEndClass) {
         if (pClass->super) {
-            print("%s : %s\t\t", pClass->name, pClass->super->name);
+            printf("%s : %s\t\t", pClass->name, pClass->super->name);
         } else {
-            print("%s\t\t\t\t", pClass->name);
+            printf("%s\t\t\t\t", pClass->name);
         }
-        print("mcount: %d\tisize: %zd\n", pClass->methodCount, pClass->instanceSize);
+        printf("mcount: %d\tisize: %zd\n", pClass->methodCount, pClass->instanceSize);
 
 #if 0
         for (size_t i = 0; i < pClass->methodCount; i++) {
-            print("%zu: 0x%p\n", i, pClass->vtable[i]);
+            printf("%zu: 0x%p\n", i, pClass->vtable[i]);
         }
 #endif
         pClass++;
     }
 }
+#endif
 #endif /* __DISKIMAGE__ */

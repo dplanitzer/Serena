@@ -11,11 +11,12 @@
 #include <dispatchqueue/DispatchQueue.h>
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
+#include <log/Log.h>
 #include "mfm.h"
 
 //#define TRACE_STATE 1
 #ifdef TRACE_STATE
-#define LOG(__drive, fmt, ...) if (self->drive == (__drive)) { print(fmt, __VA_ARGS__); }
+#define LOG(__drive, fmt, ...) if (self->drive == (__drive)) { printf(fmt, __VA_ARGS__); }
 #else
 #define LOG(drive, fmt, ...)
 #endif
@@ -371,7 +372,7 @@ static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, 
     const int nSteps = __abs(diff);
     const bool change_side = (self->head != head);
 
-//    print("*** SeekTo(c: %d, h: %d)\n", cylinder, head);
+//    printf("*** SeekTo(c: %d, h: %d)\n", cylinder, head);
     
     // Wait 18 ms if we have to reverse the seek direction
     // Wait 2 ms if there was a write previously and we have to change the head
@@ -733,19 +734,19 @@ static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, uint8_t target
     self->gapSize = (pg_start && pg_end) ? pg_end - pg_start : 0;
 
 #if 0
-    print("c: %d, h: %d ---------- tb: %p, limit: %p\n", self->cylinder, self->head, self->trackBuffer, pt_limit);
+    printf("c: %d, h: %d ---------- tb: %p, limit: %p\n", self->cylinder, self->head, self->trackBuffer, pt_limit);
     for(int i = 0; i < self->sectorsPerTrack; i++) {
         const ADFSector* s = &self->sectors[i];
 
-        print(" s: %*d, sug: %*d, off: %*d, v: %c%c, addr: %p\n",
+        printf(" s: %*d, sug: %*d, off: %*d, v: %c%c, addr: %p\n",
             2, s->info.sector,
             2, s->info.sectors_until_gap,
             5, s->offsetToHeader*2,
             s->isHeaderValid ? 'H' : '-', s->isDataValid ? 'D' : '-',
             s);
     }
-    print(" gap at: %d, gap size: %d\n", (char*)pg_start - (char*)pt_start, 2*self->gapSize);
-    print("\n");
+    printf(" gap at: %d, gap size: %d\n", (char*)pg_start - (char*)pt_start, 2*self->gapSize);
+    printf("\n");
 #endif
 }
 

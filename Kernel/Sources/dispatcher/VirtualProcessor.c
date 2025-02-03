@@ -11,6 +11,7 @@
 #include "VirtualProcessorScheduler.h"
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
+#include <log/Log.h>
 
 
 // Initializes an execution stack struct. The execution stack is empty by default
@@ -320,16 +321,18 @@ catch:
     return err;
 }
 
+#if 0
 void VirtualProcessor_Dump(VirtualProcessor* _Nonnull pVP)
 {
     for (int i = 0; i < 7; i++) {
-        print("d%d: %p    a%d: %p\n", i, pVP->save_area.d[i], i, pVP->save_area.a[i]);
+        printf("d%d: %p    a%d: %p\n", i, pVP->save_area.d[i], i, pVP->save_area.a[i]);
     }
-    print("d7: %p   ssp: %p\n", pVP->save_area.d[7], pVP->save_area.a[7]);
-    print("                usp: %p\n", pVP->save_area.usp);
-    print("                 pc: %p\n", pVP->save_area.pc);
-    print("                 sr: %p\n", pVP->save_area.sr);
+    printf("d7: %p   ssp: %p\n", pVP->save_area.d[7], pVP->save_area.a[7]);
+    printf("                usp: %p\n", pVP->save_area.usp);
+    printf("                 pc: %p\n", pVP->save_area.pc);
+    printf("                 sr: %p\n", pVP->save_area.sr);
 }
+#endif
 
 // Terminates the virtual processor that is executing the caller. Does not return
 // to the caller. Note that the actual termination of the virtual processor is

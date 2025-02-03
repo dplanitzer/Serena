@@ -7,6 +7,7 @@
 //
 
 #include "InterruptControllerPriv.h"
+#include <log/Log.h>
 
 
 InterruptController     gInterruptControllerStorage;
@@ -277,35 +278,37 @@ bool InterruptController_IsInterruptHandlerEnabled(InterruptControllerRef _Nonnu
     return enabled;
 }
 
+#if 0
 void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
 {
     Lock_Lock(&pController->lock);
     
-    print("InterruptController = {\n");
+    printf("InterruptController = {\n");
     for (int i = 0; i < INTERRUPT_ID_COUNT; i++) {
         register const InterruptHandler* pHandlers = pController->handlers[i].start;
         register const int count = pController->handlers[i].count;
 
-        print("  IRQ %d = {\n", i);
+        printf("  IRQ %d = {\n", i);
         for (int h = 0; h < count; h++) {
             switch (pHandlers[h].type) {
                 case INTERRUPT_HANDLER_TYPE_DIRECT:
-                    print("    direct[%d, %d] = {0x%p, 0x%p},\n", pHandlers[h].identity, pHandlers[h].priority, pHandlers[h].closure, pHandlers[h].context);
+                    printf("    direct[%d, %d] = {0x%p, 0x%p},\n", pHandlers[h].identity, pHandlers[h].priority, pHandlers[h].closure, pHandlers[h].context);
                     break;
 
                 case INTERRUPT_HANDLER_TYPE_COUNTING_SEMAPHORE:
-                    print("    sema[%d, %d] = {0x%p},\n", pHandlers[h].identity, pHandlers[h].priority, pHandlers[h].context);
+                    printf("    sema[%d, %d] = {0x%p},\n", pHandlers[h].identity, pHandlers[h].priority, pHandlers[h].context);
                     break;
                     
                 default:
                     abort();
             }
         }
-        print("  },\n");
+        printf("  },\n");
     }
-    print("}\n");
+    printf("}\n");
     Lock_Unlock(&pController->lock);
 }
+#endif
 
 // Returns the number of uninitialized interrupts that have happened since boot.
 // An uninitialized interrupt is an interrupt request from a peripheral that does

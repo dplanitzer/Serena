@@ -10,6 +10,7 @@
 #include <hal/InterruptController.h>
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
+#include <log/Log.h>
 
 
 extern void VirtualProcessorScheduler_SwitchContext(void);
@@ -560,22 +561,24 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull pSch
     }
 }
 
+#if 0
 static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorScheduler* _Nonnull pScheduler)
 {
     for (int i = 0; i < VP_PRIORITY_COUNT; i++) {
         VirtualProcessor* pCurVP = (VirtualProcessor*)pScheduler->ready_queue.priority[i].first;
         
         while (pCurVP) {
-            print("{pri: %d}, ", pCurVP->priority);
+            printf("{pri: %d}, ", pCurVP->priority);
             pCurVP = (VirtualProcessor*)pCurVP->rewa_queue_entry.next;
         }
     }
-    print("\n");
+    printf("\n");
     for (int i = 0; i < VP_PRIORITY_POP_BYTE_COUNT; i++) {
-        print("%hhx, ", pScheduler->ready_queue.populated[i]);
+        printf("%hhx, ", pScheduler->ready_queue.populated[i]);
     }
-    print("\n");
+    printf("\n");
 }
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////

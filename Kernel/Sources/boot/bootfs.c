@@ -8,6 +8,7 @@
 
 #include <krt/krt.h>
 #include <klib/klib.h>
+#include <log/Log.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverCatalog.h>
 #include <driver/disk/DiskDriver.h>
@@ -119,14 +120,14 @@ static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry,
         }
 
         if (shouldPromptForDisk) {
-            print("Please insert a Serena boot disk...\n\n");
+            printf("Please insert a Serena boot disk...\n\n");
             shouldPromptForDisk = false;
         }
 
         VirtualProcessor_Sleep(TimeInterval_MakeSeconds(1));
     }
 
-    print("Booting from %s...\n\n", &driverPath[1]);
+    printf("Booting from %s...\n\n", &driverPath[1]);
 
     *pOutFS = fs;
     return EOK;

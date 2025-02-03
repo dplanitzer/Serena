@@ -12,7 +12,7 @@
 #include <klib/Types.h>
 
 extern void print_init(void);
-extern void print(const char* _Nonnull format, ...);
-extern void printv(const char* _Nonnull format, va_list ap);
+extern void printf(const char* _Nonnull format, ...);
+extern void vprintf(const char* _Nonnull format, va_list ap);
 
 #endif /* Log_h */

@@ -95,14 +95,14 @@ void DispatchQueue_RunTests(void)
 {
     const SystemDescription* pSysDesc = gSystemDescription;
 
-    print("CPU: %s\n", cpu_get_model_name(pSysDesc->cpu_model));
-    print("FPU: %s\n", fpu_get_model_name(pSysDesc->fpu_model));
-    print("Chipset version: $%x\n", (uint32_t) pSysDesc->chipset_version);
-    print("RAMSEY version: $%x\n", pSysDesc->chipset_ramsey_version);
-    print("\n");
+    printf("CPU: %s\n", cpu_get_model_name(pSysDesc->cpu_model));
+    printf("FPU: %s\n", fpu_get_model_name(pSysDesc->fpu_model));
+    printf("Chipset version: $%x\n", (uint32_t) pSysDesc->chipset_version);
+    printf("RAMSEY version: $%x\n", pSysDesc->chipset_ramsey_version);
+    printf("\n");
  
     //kalloc_dump();
-    //print("\n");
+    //printf("\n");
 
     /*
     RealtimeClockRef pRealtimeClock = (RealtimeClockRef) DriverManager_GetDriverForName(gDriverManager, kRealtimeClockName);
@@ -112,42 +112,42 @@ void DispatchQueue_RunTests(void)
 
         while (true) {
             RealtimeClock_GetDate(pRealtimeClock, &date);
-            print(" %d:%d:%d  %d/%d/%d  %d\n", date.hour, date.minute, date.second, date.month, date.day, date.year, date.dayOfWeek);
-            print("%d\n", i);
+            printf(" %d:%d:%d  %d/%d/%d  %d\n", date.hour, date.minute, date.second, date.month, date.day, date.year, date.dayOfWeek);
+            printf("%d\n", i);
             i++;
             VirtualProcessor_Sleep(TimeInterval_MakeSeconds(1));
-            print("\033[2J");    // clear screen
+            printf("\033[2J");    // clear screen
         }
     } else {
-        print("*** no RTC\n");
+        printf("*** no RTC\n");
     }
 
-    print("---------\n");
+    printf("---------\n");
     */
 
     for(int i = 0; i < pSysDesc->motherboard_ram.descriptor_count; i++) {
-        print("start: %p, size: %zu,  type: %s\n",
+        printf("start: %p, size: %zu,  type: %s\n",
               pSysDesc->motherboard_ram.descriptor[i].lower,
               pSysDesc->motherboard_ram.descriptor[i].upper - pSysDesc->motherboard_ram.descriptor[i].lower,
               (pSysDesc->motherboard_ram.descriptor[i].type == MEM_TYPE_UNIFIED_MEMORY) ? "Chip" : "Fast");
     }
-    print("--------\n");
+    printf("--------\n");
     
     const int boardCount = DriverManager_GetExpansionBoardCount(gDriverManager);
     if (boardCount > 0) {
         for(int i = 0; i < boardCount; i++) {
             const zorro_board_t board = DriverManager_GetExpansionBoardAtIndex(gDriverManager, i);
 
-            print("start: 0x%p, psize: %u, lsize: %u\n", board.start, board.physical_size, board.logical_size);
-            print("type: %s %s\n", board.type == BOARD_TYPE_RAM ? "RAM" : "I/O", board.bus == ZORRO_2_BUS ? "[Z2]" : "[Z3]");
-            print("slot: %d\n", board.slot);
-            print("manu: $%x, prod: $%x\n", board.manufacturer, board.product);
-            print("ser#: $%x\n", board.serial_number);
+            printf("start: 0x%p, psize: %u, lsize: %u\n", board.start, board.physical_size, board.logical_size);
+            printf("type: %s %s\n", board.type == BOARD_TYPE_RAM ? "RAM" : "I/O", board.bus == ZORRO_2_BUS ? "[Z2]" : "[Z3]");
+            printf("slot: %d\n", board.slot);
+            printf("manu: $%x, prod: $%x\n", board.manufacturer, board.product);
+            printf("ser#: $%x\n", board.serial_number);
             
-            print("---\n");
+            printf("---\n");
         }
     } else {
-        print("No expansion boards found!\n");
+        printf("No expansion boards found!\n");
     }
 
 /*
@@ -156,7 +156,7 @@ void DispatchQueue_RunTests(void)
     //VirtualProcessor_Sleep(kTimeInterval_Infinity);
     const TimeInterval t_stop = MonotonicClock_GetCurrentTime();
     const TimeInterval t_delta = TimeInterval_Subtract(t_stop, t_start);
-    print("t_delta: %dus\n", t_delta.nanoseconds / 1000);
+    printf("t_delta: %dus\n", t_delta.nanoseconds / 1000);
     */
 }
 #endif
