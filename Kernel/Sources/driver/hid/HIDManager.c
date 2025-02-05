@@ -80,12 +80,14 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
     // Open a channel to the framebuffer
     try(DriverCatalog_OpenDriver(gDriverCatalog, kFramebufferName, kOpen_ReadWrite, &self->fbChannel));
     self->fb = (GraphicsDriverRef)DriverChannel_GetDriver(self->fbChannel);
-    const Size siz = GraphicsDriver_GetDisplaySize(self->fb);
+
+    int w, h;
+    GraphicsDriver_GetDisplaySize(self->fb, &w, &h);
 
     self->screenLeft = 0;
     self->screenTop = 0;
-    self->screenRight = (int16_t) siz.width;
-    self->screenBottom = (int16_t) siz.height;
+    self->screenRight = (int16_t)w;
+    self->screenBottom = (int16_t)h;
 
 
     // Open the keyboard driver
@@ -526,15 +528,12 @@ void HIDManager_UnshieldMouseCursor(HIDManagerRef _Nonnull self)
 }
 
 // Returns the current mouse location in screen space.
-Point HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self)
+void HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self, int* _Nonnull pOutX, int* _Nonnull pOutY)
 {
-    Point loc;
-    
     const int irs = cpu_disable_irqs();
-    loc.x = self->mouseX;
-    loc.y = self->mouseY;
+    *pOutX = self->mouseX;
+    *pOutY = self->mouseY;
     cpu_restore_irqs(irs);
-    return loc;
 }
 
 // Returns a bit mask of all the mouse buttons that are currently pressed.

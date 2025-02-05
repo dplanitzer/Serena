@@ -57,7 +57,7 @@ extern errno_t GraphicsDriver_SetCurrentScreen(GraphicsDriverRef _Nonnull self, 
 extern int GraphicsDriver_GetCurrentScreen(GraphicsDriverRef _Nonnull self);
 
 extern errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self);
-extern Size GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self);
+extern void GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 
 extern void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled);
 extern bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY);

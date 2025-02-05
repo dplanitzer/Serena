@@ -348,21 +348,17 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
     return err;
 }
 
-Size GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self)
+void GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
 {
-    Size siz;
-
     Driver_Lock(self);
     if (self->screen) {
-        Screen_GetPixelSize(self->screen, &siz.width, &siz.height);
+        Screen_GetPixelSize(self->screen, pOutWidth, pOutHeight);
     }
     else {
-        siz.width = 0;
-        siz.height = 0;
+        *pOutWidth = 0;
+        *pOutHeight = 0;
     }
     Driver_Unlock(self);
-
-    return siz;
 }
 
 // Enables / disables the h/v raster position latching triggered by a light pen.

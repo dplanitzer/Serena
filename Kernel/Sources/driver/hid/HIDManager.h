@@ -9,7 +9,6 @@
 #ifndef HIDManager_h
 #define HIDManager_h
 
-#include <klib/Geometry.h>
 #include <kobj/Object.h>
 #include <System/Error.h>
 #include <System/Framebuffer.h>
@@ -54,7 +53,7 @@ extern void HIDManager_UnshieldMouseCursor(HIDManagerRef _Nonnull self);
 
 
 // Returns the mouse hardware state
-extern Point HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self);
+extern void HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self, int* _Nonnull pOutX, int* _Nonnull pOutY);
 extern uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self);
 
 
