@@ -49,7 +49,7 @@ extern errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, I
 extern errno_t HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat);
 extern errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCursorVisibility mode);
 extern MouseCursorVisibility HIDManager_GetMouseCursorVisibility(HIDManagerRef _Nonnull self);
-extern void HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, int width, int height);
+extern errno_t HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, int width, int height);
 extern void HIDManager_UnshieldMouseCursor(HIDManagerRef _Nonnull self);
 
 

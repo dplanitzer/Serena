@@ -185,18 +185,30 @@ void HIDManager_ReportMouseDeviceChange(HIDManagerRef _Nonnull self, int16_t xDe
     const bool hasPositionChange = (xDelta != 0 || yDelta != 0);
 
     if (hasPositionChange) {
-        self->mouseX += xDelta;
-        self->mouseY += yDelta;
-        self->mouseX = __min(__max(self->mouseX, self->screenLeft), self->screenRight);
-        self->mouseY = __min(__max(self->mouseY, self->screenTop), self->screenBottom);
+        int mx = self->mouseX;
+        int my = self->mouseY;
+
+        mx += xDelta;
+        my += yDelta;
+        mx = __min(__max(mx, self->screenLeft), self->screenRight);
+        my = __min(__max(my, self->screenTop), self->screenBottom);
+
+        self->mouseX = mx;
+        self->mouseY = my;
 
         // Setting the new position will automatically make the mouse cursor visible
         // again if it was hidden-until-move. The reason is that the hide-until-move
         // function simply sets the mouse cursor to a position outside the visible
         // scree area to (temporarily) hide it.
-        GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->fb, self->mouseX, self->mouseY);
-        if (self->mouseCursorVisibility == kMouseCursor_HiddenUntilMove) {
-            self->mouseCursorVisibility = kMouseCursor_Visible;
+        if (self->isMouseShieldActive
+            && mx >= self->shieldingLeft && mx < self->shieldingRight && my >= self->shieldingTop && my < self->shieldingBottom) {
+            GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->fb, INT_MAX, INT_MAX);
+        }
+        else {
+            GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->fb, mx, my);
+            if (self->mouseCursorVisibility == kMouseCursor_HiddenUntilMove) {
+                self->mouseCursorVisibility = kMouseCursor_Visible;
+            }
         }
     }
     self->mouseButtons = buttonsDown;
@@ -453,14 +465,51 @@ MouseCursorVisibility HIDManager_GetMouseCursorVisibility(HIDManagerRef _Nonnull
     return mode;
 }
 
-void HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, int width, int height)
+errno_t HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, int width, int height)
 {
-    GraphicsDriver_ShieldMouseCursor(self->fb, x, y, width, height);
+    if (width < 0 || height < 0) {
+        return EINVAL;
+    }
+
+    Lock_Lock(&self->lock);
+
+    int l = x;
+    int r = x + width;
+    int t = y;
+    int b = y + height;
+
+    self->isMouseShieldActive = (width > 0 && height > 0) ? true : false;
+    if (self->isMouseShieldActive) {
+        r += kMouseCursor_Width;
+        b += kMouseCursor_Height;
+    }
+
+    l = __max(__min(l, INT16_MAX), INT16_MIN);
+    r = __max(__min(r, INT16_MAX), INT16_MIN);
+    t = __max(__min(t, INT16_MAX), INT16_MIN);
+    b = __max(__min(b, INT16_MAX), INT16_MIN);
+
+    self->shieldingLeft = l;
+    self->shieldingTop = t;
+    self->shieldingRight = r;
+    self->shieldingBottom = b;
+
+    if (self->mouseX >= l && self->mouseX < r && self->mouseY >= t && self->mouseY < b) {
+        GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MAX, INT_MAX);
+    }
+
+    Lock_Unlock(&self->lock);
 }
 
 void HIDManager_UnshieldMouseCursor(HIDManagerRef _Nonnull self)
 {
-    GraphicsDriver_UnshieldMouseCursor(self->fb);
+    Lock_Lock(&self->lock);
+    self->isMouseShieldActive = false;
+    
+    if (self->mouseCursorVisibility == kMouseCursor_Visible) {
+        GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouseX, self->mouseY);
+    }
+    Lock_Unlock(&self->lock);
 }
 
 // Returns the current mouse location in screen space.

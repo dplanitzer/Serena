@@ -199,12 +199,12 @@ void Console_CursorDidMove_Locked(ConsoleRef _Nonnull self)
 
 void Console_BeginDrawing_Locked(ConsoleRef _Nonnull self)
 {
-    GraphicsDriver_ShieldMouseCursor(self->gdevice, 0, 0, INT_MAX, INT_MAX);
+//    HIDManager_ShieldMouseCursor(gHIDManager, 0, 0, INT_MAX, INT_MAX);
 }
 
 void Console_EndDrawing_Locked(ConsoleRef _Nonnull self)
 {
-    GraphicsDriver_UnshieldMouseCursor(self->gdevice);
+//    HIDManager_UnshieldMouseCursor(gHIDManager);
 }
 
 static void Console_DrawGlyphBitmap_Locked(ConsoleRef _Nonnull self, const uint8_t* _Nonnull pSrc, int xc, int yc, const Color* _Nonnull fgColor, const Color* _Nonnull bgColor)

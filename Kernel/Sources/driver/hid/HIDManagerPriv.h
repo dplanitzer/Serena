@@ -67,6 +67,11 @@ typedef struct HIDManager {
     int16_t                     screenTop;
     int16_t                     screenRight;
     int16_t                     screenBottom;
+    int16_t                     shieldingLeft;
+    int16_t                     shieldingTop;
+    int16_t                     shieldingRight;
+    int16_t                     shieldingBottom;
+    bool                        isMouseShieldActive;
     bool                        isMouseMoveReportingEnabled;    // true if position-change-only mouse reports should be queued; false if we only care about mouse button changes
 
 

@@ -59,8 +59,7 @@ errno_t HIDDriver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
             return HIDManager_GetMouseCursorVisibility(gHIDManager);
 
         case kHIDCommand_ShieldMouseCursor:
-            HIDManager_ShieldMouseCursor(gHIDManager, va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int));
-            return EOK;
+            return HIDManager_ShieldMouseCursor(gHIDManager, va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int));
 
         case kHIDCommand_UnshieldMouseCursor:
             HIDManager_UnshieldMouseCursor(gHIDManager);

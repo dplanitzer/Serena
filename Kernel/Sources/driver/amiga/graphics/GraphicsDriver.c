@@ -801,14 +801,6 @@ void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef
     Sprite_SetPosition(self->mouseCursor, x, y);
 }
 
-void GraphicsDriver_ShieldMouseCursor(GraphicsDriverRef _Nonnull self, int x, int y, int width, int height)
-{
-}
-
-void GraphicsDriver_UnshieldMouseCursor(GraphicsDriverRef _Nonnull self)
-{
-}
-
 
 class_func_defs(GraphicsDriver, Driver,
 override_func_def(onStart, GraphicsDriver, Driver)

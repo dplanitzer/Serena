@@ -69,7 +69,4 @@ extern void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull self
 extern void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y);
 extern void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int x, int y);
 
-extern void GraphicsDriver_ShieldMouseCursor(GraphicsDriverRef _Nonnull self, int x, int y, int width, int height);
-extern void GraphicsDriver_UnshieldMouseCursor(GraphicsDriverRef _Nonnull self);
-
 #endif /* GraphicsDriver_h */
