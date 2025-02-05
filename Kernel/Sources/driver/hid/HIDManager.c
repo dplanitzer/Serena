@@ -200,14 +200,16 @@ void HIDManager_ReportMouseDeviceChange(HIDManagerRef _Nonnull self, int16_t xDe
         // again if it was hidden-until-move. The reason is that the hide-until-move
         // function simply sets the mouse cursor to a position outside the visible
         // scree area to (temporarily) hide it.
-        if (self->isMouseShieldActive
-            && mx >= self->shieldingLeft && mx < self->shieldingRight && my >= self->shieldingTop && my < self->shieldingBottom) {
-            GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->fb, INT_MAX, INT_MAX);
-        }
-        else {
-            GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->fb, mx, my);
-            if (self->mouseCursorVisibility == kMouseCursor_HiddenUntilMove) {
-                self->mouseCursorVisibility = kMouseCursor_Visible;
+        if (self->mouseCursorVisibility != kMouseCursor_Hidden) {
+            if (self->isMouseShieldActive
+                && mx >= self->shieldingLeft && mx < self->shieldingRight && my >= self->shieldingTop && my < self->shieldingBottom) {
+                GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->fb, INT_MAX, INT_MAX);
+            }
+            else {
+                GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->fb, mx, my);
+                if (self->mouseCursorVisibility == kMouseCursor_HiddenUntilMove) {
+                    self->mouseCursorVisibility = kMouseCursor_Visible;
+                }
             }
         }
     }
@@ -430,9 +432,10 @@ errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCu
     decl_try_err();
 
     Lock_Lock(&self->lock);
+    self->mouseCursorVisibility = mode;
     switch (mode) {
         case kMouseCursor_Hidden:
-            GraphicsDriver_SetMouseCursorVisible(self->fb, false);
+            GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MAX, INT_MAX);
             break;
 
         case kMouseCursor_HiddenUntilMove:
@@ -444,14 +447,13 @@ errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCu
             break;
 
         case kMouseCursor_Visible:
-            GraphicsDriver_SetMouseCursorVisible(self->fb, true);
+            GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouseX, self->mouseY);
             break;
 
         default:
             err = EINVAL;
             break;
     }
-    self->mouseCursorVisibility = mode;
     Lock_Unlock(&self->lock);
     return err;
 }
