@@ -205,7 +205,7 @@ void HIDManager_ReportMouseDeviceChange(HIDManagerRef _Nonnull self, int16_t xDe
         if (self->mouseCursorVisibility != kMouseCursor_Hidden) {
             if (self->isMouseShieldActive
                 && mx >= self->shieldingLeft && mx < self->shieldingRight && my >= self->shieldingTop && my < self->shieldingBottom) {
-                GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->fb, INT_MAX, INT_MAX);
+                GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->fb, INT_MIN, INT_MIN);
             }
             else {
                 GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->fb, mx, my);
@@ -444,7 +444,7 @@ errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCu
     self->mouseCursorVisibility = mode;
     switch (mode) {
         case kMouseCursor_Hidden:
-            GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MAX, INT_MAX);
+            GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MIN, INT_MIN);
             break;
 
         case kMouseCursor_HiddenUntilMove:
@@ -452,7 +452,7 @@ errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCu
             // actual move will cause the mouse cursor to become visible again
             // because it will be set to a location inside the visible screen
             // bounds. 
-            GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MAX, INT_MAX);
+            GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MIN, INT_MIN);
             break;
 
         case kMouseCursor_Visible:
@@ -508,7 +508,7 @@ errno_t HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, 
     const int mx = self->mouseX - self->hotSpotX;
     const int my = self->mouseY - self->mouseY;
     if (mx >= l && mx < r && my >= t && my < b) {
-        GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MAX, INT_MAX);
+        GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MIN, INT_MIN);
     }
 
     Lock_Unlock(&self->lock);

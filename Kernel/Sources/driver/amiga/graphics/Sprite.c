@@ -78,22 +78,16 @@ static void _Sprite_StateDidChange(Sprite* _Nonnull self)
     // Hiding a sprite means to move it all the way to X max.
     const int x = (self->x) >= 0 ? self->x : 0;
     const int y = (self->y) >= 0 ? self->y : 0;
-    int hStart = (self->isVisible) ? self->hDiwStart - 1 + (x >> self->hShift) : MAX_SPRITE_HPOS;
+    int hStart = self->hDiwStart - 1 + (x >> self->hShift);
     int vStart = self->vDiwStart + (y >> self->vShift);
     int vStop = vStart + self->height;
 
-    if (vStart < 0) {
-        vStart = 0;
-    }
-    else if (vStop > MAX_SPRITE_VPOS || vStop < vStart) {
+    if (vStart < 0 || vStop > MAX_SPRITE_VPOS || vStop < vStart) {
         vStop = MAX_SPRITE_VPOS;
         vStart = vStop - self->height;
     }
 
-    if (hStart < 0) {
-        hStart = 0;
-    }
-    else if (hStart > MAX_SPRITE_HPOS) {
+    if (!self->isVisible || hStart < 0 || hStart > MAX_SPRITE_HPOS) {
         hStart = MAX_SPRITE_HPOS;
     }
 
@@ -119,7 +113,9 @@ void Sprite_SetPixels(Sprite* _Nonnull self, const uint16_t* _Nonnull planes[2])
     _Sprite_StateDidChange(self);
 }
 
-// Updates the position of a hardware sprite.
+// Updates the position of a hardware sprite. All of 'x' < 0, 'y' < 0,
+// 'x' > MAX_SPRITE_HPOS and 'y' > MAX_SPRITE_VPOS - sprite_height hide the
+// sprite.
 void Sprite_SetPosition(Sprite* _Nonnull self, int x, int y)
 {
     self->x = x;
@@ -138,10 +134,8 @@ void Sprite_SetVisible(Sprite* _Nonnull self, bool isVisible)
         if (isVisible) {
             int hStart = self->hDiwStart - 1 + (self->x >> self->hShift);
             
-            if (hStart < 0) {
-                hStart = 0;
-            }
-            else if (hStart > MAX_SPRITE_HPOS) {
+            if (hStart < 0 || hStart > MAX_SPRITE_HPOS) {
+                // hide
                 hStart = MAX_SPRITE_HPOS;
             }
 
