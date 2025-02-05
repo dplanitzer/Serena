@@ -56,7 +56,7 @@ typedef int MouseCursorVisibility;
 
 
 // Set the mouse cursor image.
-// set_mouse_cursor(const uint16_t* _Nonnull planes[2], int width int height, PixelFormat pixelFormat)
+// set_mouse_cursor(const uint16_t* _Nonnull planes[2], int width int height, PixelFormat pixelFormat, int hotSpotX, int hotSpotY)
 #define kHIDCommand_SetMouseCursor IOResourceCommand(2)
 
 // Changes the mouse cursor visibility to visible, hidden altogether or hidden

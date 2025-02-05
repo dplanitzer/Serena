@@ -195,6 +195,8 @@ void HIDManager_ReportMouseDeviceChange(HIDManagerRef _Nonnull self, int16_t xDe
 
         self->mouseX = mx;
         self->mouseY = my;
+        mx -= self->hotSpotX;
+        my -= self->hotSpotY;
 
         // Setting the new position will automatically make the mouse cursor visible
         // again if it was hidden-until-move. The reason is that the hide-until-move
@@ -418,9 +420,16 @@ errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, InputTyp
     return err;
 }
 
-errno_t HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat)
+errno_t HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat, int hotSpotX, int hotSpotY)
 {
-    return GraphicsDriver_SetMouseCursor(self->fb, planes, width, height, pixelFormat);
+    Lock_Lock(&self->lock);
+    const errno_t err = GraphicsDriver_SetMouseCursor(self->fb, planes, width, height, pixelFormat);
+    if (err == EOK) {
+        self->hotSpotX = __max(__min(hotSpotX, INT16_MAX), INT16_MIN);
+        self->hotSpotY = __max(__min(hotSpotY, INT16_MAX), INT16_MIN);
+    }
+    Lock_Unlock(&self->lock);
+    return err;
 }
 
 // Changes the mouse cursor visibility to visible, hidden altogether or hidden
@@ -496,7 +505,9 @@ errno_t HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, 
     self->shieldingRight = r;
     self->shieldingBottom = b;
 
-    if (self->mouseX >= l && self->mouseX < r && self->mouseY >= t && self->mouseY < b) {
+    const int mx = self->mouseX - self->hotSpotX;
+    const int my = self->mouseY - self->mouseY;
+    if (mx >= l && mx < r && my >= t && my < b) {
         GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MAX, INT_MAX);
     }
 

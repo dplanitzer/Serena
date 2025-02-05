@@ -49,8 +49,7 @@ errno_t HIDDriver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
             return EOK;
 
         case kHIDCommand_SetMouseCursor:
-            return HIDManager_SetMouseCursor(gHIDManager, va_arg(ap, const uint16_t**), va_arg(ap, int), va_arg(ap, int), va_arg(ap, PixelFormat));
-            break;
+            return HIDManager_SetMouseCursor(gHIDManager, va_arg(ap, const uint16_t**), va_arg(ap, int), va_arg(ap, int), va_arg(ap, PixelFormat), va_arg(ap, int), va_arg(ap, int));
 
         case kHIDCommand_SetMouseCursorVisibility:
             return HIDManager_SetMouseCursorVisibility(gHIDManager, va_arg(ap, MouseCursorVisibility));
