@@ -12,6 +12,7 @@
 #include <klib/Geometry.h>
 #include <kobj/Object.h>
 #include <System/Error.h>
+#include <System/Framebuffer.h>
 #include <System/HID.h>
 #include <System/HIDEvent.h>
 
@@ -45,10 +46,12 @@ extern errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, I
 
 
 // Mouse cursor state
-extern void HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const void* pBitmap, const void* pMask);
-extern void HIDManager_ShowMouseCursor(HIDManagerRef _Nonnull self);
-extern void HIDManager_HideMouseCursor(HIDManagerRef _Nonnull self);
-extern void HIDManager_SetMouseCursorHiddenUntilMove(HIDManagerRef _Nonnull self, bool flag);
+extern errno_t HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat);
+extern errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCursorVisibility mode);
+extern MouseCursorVisibility HIDManager_GetMouseCursorVisibility(HIDManagerRef _Nonnull self);
+extern void HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, int width, int height);
+extern void HIDManager_UnshieldMouseCursor(HIDManagerRef _Nonnull self);
+
 
 // Returns the mouse hardware state
 extern Point HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self);

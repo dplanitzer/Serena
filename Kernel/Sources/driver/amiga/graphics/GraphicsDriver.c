@@ -7,6 +7,7 @@
 //
 
 #include "GraphicsDriverPriv.h"
+#include <System/HID.h>
 
 const char* const kFramebufferName = "fb";
 
@@ -25,21 +26,13 @@ errno_t GraphicsDriver_Create(DriverRef _Nullable parent, GraphicsDriverRef _Nul
     self->nextScreenId = 1;
 
 
-    // Allocate the mouse painter
-    try(MousePainter_Init(&self->mousePainter));
-
-
     // Allocate the Copper tools
     CopperScheduler_Init(&self->copperScheduler);
 
 
-    // Allocate the null sprite
-    const uint16_t* nullSpritePlanes[2];
-    nullSpritePlanes[0] = NULL;
-    nullSpritePlanes[1] = NULL;
-    VideoConfiguration vc;
-    vc.width = 320; vc.height = 200; vc.fps = 60;
-    try(Sprite_Create(nullSpritePlanes, 0, &vc, &self->nullSprite));
+    // Allocate the null and mouse cursor sprite
+    try(Sprite_Create(MAX_SPRITE_WIDTH, 0, kPixelFormat_RGB_Indexed2, &self->nullSprite));
+    try(Sprite_Create(kMouseCursor_Width, kMouseCursor_Height, kMouseCursor_PixelFormat, &self->mouseCursor));
 
 
     // Initialize vblank tools
@@ -67,7 +60,6 @@ catch:
 void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self)
 {
     CopperScheduler_Run(&self->copperScheduler);
-    MousePainter_Paint_VerticalBlank(&self->mousePainter);
     Semaphore_RelinquishFromInterruptContext(&self->vblank_sema);
 }
 
@@ -105,10 +97,13 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, int cmd, va_list a
             return GraphicsDriver_SetCLUTEntries(self, va_arg(ap, int), va_arg(ap, size_t), va_arg(ap, size_t), va_arg(ap, const RGBColor32*));
 
         case kFBCommand_AcquireSprite:
-            return GraphicsDriver_AcquireSprite(self, va_arg(ap, int), va_arg(ap, const uint16_t**), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int*));
+            return GraphicsDriver_AcquireSprite(self, va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, PixelFormat), va_arg(ap, int), va_arg(ap, int*));
 
         case kFBCommand_RelinquishSprite:
             return GraphicsDriver_RelinquishSprite(self, va_arg(ap, int), va_arg(ap, int));
+
+        case kFBCommand_SetSpritePixels:
+            return GraphicsDriver_SetSpritePixels(self, va_arg(ap, int), va_arg(ap, int), va_arg(ap, const uint16_t**));
 
         case kFBCommand_SetSpritePosition:
             return GraphicsDriver_SetSpritePosition(self, va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int));
@@ -125,14 +120,6 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, int cmd, va_list a
 
         case kFBCommand_UpdateDisplay:
             return GraphicsDriver_UpdateDisplay(self);
-
-        case kFBCommand_ShieldMouseCursor:
-            GraphicsDriver_ShieldMouseCursor(self, va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int));
-            return EOK;
-
-        case kFBCommand_UnshieldMouseCursor:
-            GraphicsDriver_UnshieldMouseCursor(self);
-            return EOK;
 
         default:
             return super_n(ioctl, Driver, GraphicsDriver, self, cmd, ap);
@@ -216,7 +203,7 @@ static errno_t create_null_copper_prog(CopperProgram* _Nullable * _Nonnull pOutP
 
 // Compiles a Copper program to display a non-interlaced screen or a single
 // field of an interlaced screen.
-static errno_t create_screen_copper_prog(Screen* _Nonnull scr, size_t instrCount, bool isLightPenEnabled, bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg)
+static errno_t create_screen_copper_prog(Screen* _Nonnull scr, size_t instrCount, Sprite* _Nullable mouseCursor, bool isLightPenEnabled, bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     CopperProgram* prog;
@@ -225,7 +212,7 @@ static errno_t create_screen_copper_prog(Screen* _Nonnull scr, size_t instrCount
     if (err == EOK) {
         CopperInstruction* ip = prog->entry;
 
-        ip = Screen_MakeCopperProgram(scr, ip, isLightPenEnabled, isOddField);
+        ip = Screen_MakeCopperProgram(scr, ip, mouseCursor, isLightPenEnabled, isOddField);
 
         // end instruction
         *ip = COP_END();
@@ -238,16 +225,16 @@ static errno_t create_screen_copper_prog(Screen* _Nonnull scr, size_t instrCount
 // Creates the even and odd field Copper programs for the given screen. There will
 // always be at least an odd field program. The even field program will only exist
 // for an interlaced screen.
-static errno_t create_field_copper_progs(Screen* _Nonnull scr, bool isLightPenEnabled, CopperProgram* _Nullable * _Nonnull pOutOddFieldProg, CopperProgram* _Nullable * _Nonnull pOutEvenFieldProg)
+static errno_t create_field_copper_progs(Screen* _Nonnull scr, Sprite* _Nullable mouseCursor, bool isLightPenEnabled, CopperProgram* _Nullable * _Nonnull pOutOddFieldProg, CopperProgram* _Nullable * _Nonnull pOutEvenFieldProg)
 {
     decl_try_err();
     const size_t instrCount = Screen_CalcCopperProgramLength(scr) + 1;
     CopperProgram* oddFieldProg = NULL;
     CopperProgram* evenFieldProg = NULL;
 
-    err = create_screen_copper_prog(scr, instrCount, isLightPenEnabled, true, &oddFieldProg);
+    err = create_screen_copper_prog(scr, instrCount, mouseCursor, isLightPenEnabled, true, &oddFieldProg);
     if (err == EOK && Screen_IsInterlaced(scr)) {
-        err = create_screen_copper_prog(scr, instrCount, isLightPenEnabled, false, &evenFieldProg);
+        err = create_screen_copper_prog(scr, instrCount, mouseCursor, isLightPenEnabled, false, &evenFieldProg);
         if (err != EOK) {
             CopperProgram_Destroy(oddFieldProg);
             oddFieldProg = NULL;
@@ -267,7 +254,6 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
 {
     decl_try_err();
     Screen* pOldScreen = self->screen;
-    bool wasMouseCursorVisible = self->mousePainter.flags.isVisible;
     CopperProgram* oddFieldProg = NULL;
     CopperProgram* evenFieldProg = NULL;
     
@@ -280,7 +266,7 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
 
     // Compile the Copper program(s) for the new screen
     if (scr) {
-        err = create_field_copper_progs(scr, self->isLightPenEnabled, &oddFieldProg, &evenFieldProg);
+        err = create_field_copper_progs(scr, (self->flags.mouseCursorEnabled) ? self->mouseCursor : NULL, self->flags.isLightPenEnabled, &oddFieldProg, &evenFieldProg);
     }
     else {
         err = create_null_copper_prog(&oddFieldProg);
@@ -290,12 +276,9 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
     }
 
 
-    // Disassociate the mouse painter from the old screen (hides the mouse cursor)
-    MousePainter_SetSurface(&self->mousePainter, NULL);
-
-
     // Update the display configuration.
     self->screen = scr;
+    Sprite_SetVideoConfiguration(self->mouseCursor, Screen_GetVideoConfiguration(scr));
     Screen_SetVisible(scr, true);
 
 
@@ -306,13 +289,6 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
     // Wait for the vblank. Once we got a vblank we know that the DMA is no longer
     // accessing the old framebuffer
     GraphicsDriver_WaitForVerticalBlank_Locked(self);
-    
-    
-    if (scr) {
-        // Associate the mouse painter with the new screen
-        MousePainter_SetSurface(&self->mousePainter, scr->surface);
-        MousePainter_SetVisible(&self->mousePainter, wasMouseCursorVisible);
-    }
 
 
     // Free the old screen
@@ -356,14 +332,15 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
     Driver_Lock(self);
     Screen* scr = self->screen;
 
-    if (scr && (scr->flags & kScreenFlag_IsNewCopperProgNeeded) == kScreenFlag_IsNewCopperProgNeeded) {
+    if (scr && (self->flags.isNewCopperProgNeeded || Screen_NeedsUpdate(scr))) {
         CopperProgram* oddFieldProg;
         CopperProgram* evenFieldProg;
 
-        err = create_field_copper_progs(scr, self->isLightPenEnabled, &oddFieldProg, &evenFieldProg);
+        err = create_field_copper_progs(scr, (self->flags.mouseCursorEnabled) ? self->mouseCursor : NULL, self->flags.isLightPenEnabled, &oddFieldProg, &evenFieldProg);
         if (err == EOK) {
             CopperScheduler_ScheduleProgram(&self->copperScheduler, oddFieldProg, evenFieldProg);
             scr->flags &= ~kScreenFlag_IsNewCopperProgNeeded;
+            self->flags.isNewCopperProgNeeded = 0;
         }
     }
 
@@ -392,11 +369,9 @@ Size GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self)
 void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled)
 {
     Driver_Lock(self);
-    if (self->isLightPenEnabled != enabled) {
-        self->isLightPenEnabled = enabled;
-        if (self->screen) {
-            Screen_SetNeedsUpdate(self->screen);
-        }
+    if (self->flags.isLightPenEnabled != enabled) {
+        self->flags.isLightPenEnabled = enabled;
+        self->flags.isNewCopperProgNeeded = 1;
     }
     Driver_Unlock(self);
 }
@@ -705,14 +680,14 @@ errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, s
 ////////////////////////////////////////////////////////////////////////////////
 
 // Acquires a hardware sprite
-errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int screenId, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId)
+errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int screenId, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutSpriteId)
 {
     decl_try_err();
 
     Driver_Lock(self);
     Screen* scr = _GraphicsDriver_GetScreenForId(self, screenId);
     if (scr) {
-        err = Screen_AcquireSprite(scr, pPlanes, x, y, width, height, priority, pOutSpriteId);
+        err = Screen_AcquireSprite(scr, width, height, pixelFormat, priority, pOutSpriteId);
     }
     else {
         err = EINVAL;
@@ -730,6 +705,22 @@ errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int scr
     Screen* scr = _GraphicsDriver_GetScreenForId(self, screenId);
     if (scr) {
         err = Screen_RelinquishSprite(scr, spriteId);
+    }
+    else {
+        err = EINVAL;
+    }
+    Driver_Unlock(self);
+    return err;
+}
+
+errno_t GraphicsDriver_SetSpritePixels(GraphicsDriverRef _Nonnull self, int screenId, int spriteId, const uint16_t* _Nonnull planes[2])
+{
+    decl_try_err();
+
+    Driver_Lock(self);
+    Screen* scr = _GraphicsDriver_GetScreenForId(self, screenId);
+    if (scr) {
+        err = Screen_SetSpritePixels(scr, spriteId, planes);
     }
     else {
         err = EINVAL;
@@ -778,53 +769,44 @@ errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int scr
 // MARK: Mouse Cursor
 ////////////////////////////////////////////////////////////////////////////////
 
-void GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const void* pBitmap, const void* pMask)
+errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat)
 {
+    if (width != kMouseCursor_Width || height != kMouseCursor_Height || pixelFormat != kMouseCursor_PixelFormat) {
+        return ENOTSUP;
+    }
+
     Driver_Lock(self);
-    MousePainter_SetCursor(&self->mousePainter, pBitmap, pMask);
+    Sprite_SetPixels(self->mouseCursor, planes);
+    self->flags.isNewCopperProgNeeded = 1;
     Driver_Unlock(self);
+    return EOK;
 }
 
 void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull self, bool isVisible)
 {
     Driver_Lock(self);
-    MousePainter_SetVisible(&self->mousePainter, isVisible);
+    Sprite_SetVisible(self->mouseCursor, isVisible);
     Driver_Unlock(self);
 }
 
-void GraphicsDriver_SetMouseCursorHiddenUntilMove(GraphicsDriverRef _Nonnull self, bool flag)
+void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y)
 {
     Driver_Lock(self);
-    MousePainter_SetHiddenUntilMove(&self->mousePainter, flag);
+    Sprite_SetPosition(self->mouseCursor, x, y);
     Driver_Unlock(self);
 }
 
-void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, Point loc)
+void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int x, int y)
 {
-    Driver_Lock(self);
-    MousePainter_SetPosition(&self->mousePainter, loc);
-    Driver_Unlock(self);
-}
-
-void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int16_t x, int16_t y)
-{
-    MousePainter_SetPosition_VerticalBlank(&self->mousePainter, x, y);
+    Sprite_SetPosition(self->mouseCursor, x, y);
 }
 
 void GraphicsDriver_ShieldMouseCursor(GraphicsDriverRef _Nonnull self, int x, int y, int width, int height)
 {
-    Driver_Lock(self);
-    MousePainter_ShieldCursor(&self->mousePainter, Rect_Make(x, y, width, height));
-    Driver_Unlock(self);
 }
 
 void GraphicsDriver_UnshieldMouseCursor(GraphicsDriverRef _Nonnull self)
 {
-    decl_try_err();
-
-    Driver_Lock(self);
-    MousePainter_UnshieldCursor(&self->mousePainter);
-    Driver_Unlock(self);
 }
 
 

@@ -27,6 +27,19 @@ enum InputType {
 typedef int InputType;
 
 
+#define kMouseCursor_Width  16
+#define kMouseCursor_Height 16
+#define kMouseCursor_PixelFormat    kPixelFormat_RGB_Indexed2
+
+
+enum MouseCursorVisibility {
+    kMouseCursor_Hidden,
+    kMouseCursor_HiddenUntilMove,
+    kMouseCursor_Visible
+};
+typedef int MouseCursorVisibility;
+
+
 //
 // HID Manager
 //
@@ -42,28 +55,41 @@ typedef int InputType;
 #define kHIDCommand_SetKeyRepeatDelays IOResourceCommand(1)
 
 
-// Show the mouse cursor. This increments the mouse-cursor-hidden counter. The
-// cursor becomes visible once the counter reaches 0.
-// show_mouse_cursor(void)
-#define kHIDCommand_ShowMouseCursor IOResourceCommand(2)
+// Set the mouse cursor image.
+// set_mouse_cursor(const uint16_t* _Nonnull planes[2], int width int height, PixelFormat pixelFormat)
+#define kHIDCommand_SetMouseCursor IOResourceCommand(2)
 
-// Hide the mouse cursor. This decrements the mouse-cursor-hidden counter. The
-// cursor becomes invisible once the counter reaches < 0.
-// hide_mouse_cursor(void)
-#define kHIDCommand_HideMouseCursor IOResourceCommand(3)
+// Changes the mouse cursor visibility to visible, hidden altogether or hidden
+// until the user moves the mouse cursor. Note that the visibility state is
+// absolute - nesting of calls isn't supported in this sense. Also note that the
+// mouse cursor is hidden by default. You need to set a mouse cursor and then
+// make it visible before it will show up on the screen.
+// set_mouse_cursor_visibility(MouseCursorVisibility mode)
+#define kHIDCommand_SetMouseCursorVisibility    IOResourceCommand(3)
 
-// Marks the mouse cursor as hidden until the user moves the mouse.
-// set_mouse_cursor_hidden_until_move(bool flag)
-#define kHIDCommand_SetMouseCursorHiddenUntilMove IOResourceCommand(4)
+// Returns the current mouse cursor visibility status.
+// MouseCursorVisibility get_mouse_cursor_visibility(void)
+#define kHIDCommand_GetMouseCursorVisibility    IOResourceCommand(4)
+
+// Shields the mouse cursor. Call this function before drawing into the provided
+// rectangular on the screen to ensure that the mouse cursor image will be saved
+// and restored as needed.
+// shield_mouse_cursor(int x, int y, int width, int height)
+#define kHIDCommand_ShieldMouseCursor    IOResourceCommand(5)
+
+// Unshield the mouse cursor and makes it visible again if it was visible before
+// shielding. Call this function after you are done drawing to the screen.
+// int unshield_mouse_cursor()
+#define kHIDCommand_UnshieldMouseCursor  IOResourceCommand(6)
 
 
 // Returns the type of input device for a port. There are two port: 0 and 1.
 // get_port_device(int port, InputType* _Nonnull pOutType)
-#define kHIDCommand_GetPortDevice  IOResourceCommand(5)
+#define kHIDCommand_GetPortDevice  IOResourceCommand(7)
 
 // Selects the type of input device for a port. There are two port: 0 and 1.
 // set_port_device(int port, InputType type)
-#define kHIDCommand_SetPortDevice  IOResourceCommand(6)
+#define kHIDCommand_SetPortDevice  IOResourceCommand(8)
 
 
 

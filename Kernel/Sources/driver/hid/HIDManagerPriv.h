@@ -67,7 +67,6 @@ typedef struct HIDManager {
     int16_t                     screenTop;
     int16_t                     screenRight;
     int16_t                     screenBottom;
-    int                         mouseCursorHiddenCounter;
     bool                        isMouseMoveReportingEnabled;    // true if position-change-only mouse reports should be queued; false if we only care about mouse button changes
 
 
@@ -87,6 +86,7 @@ typedef struct HIDManager {
     int16_t                     mouseX;
     int16_t                     mouseY;
     uint32_t                    mouseButtons;
+    MouseCursorVisibility       mouseCursorVisibility;
 
 
     // Logical Joystick Devices

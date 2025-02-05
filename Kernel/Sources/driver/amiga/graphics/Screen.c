@@ -106,19 +106,13 @@ errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, c
     return EOK;
 }
 
-errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId)
+errno_t Screen_AcquireSprite(Screen* _Nonnull self, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutSpriteId)
 {
     decl_try_err();
-    Sprite* pSprite;
+    Sprite* spr;
 
     *pOutSpriteId = -1;
 
-    if (width < 0 || width > MAX_SPRITE_WIDTH) {
-        return E2BIG;
-    }
-    if (height < 0 || height > MAX_SPRITE_HEIGHT) {
-        return E2BIG;
-    }
     if (priority < 0 || priority >= NUM_HARDWARE_SPRITES) {
         return EINVAL;
     }
@@ -126,10 +120,9 @@ errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPl
         return EBUSY;
     }
 
-    if ((err = Sprite_Create(pPlanes, height, &self->vidConfig, &pSprite)) == EOK) {
-        Sprite_SetPosition(pSprite, x, y);
-
-        self->sprite[priority] = pSprite;
+    if ((err = Sprite_Create(width, height, pixelFormat, &spr)) == EOK) {
+        Sprite_SetVideoConfiguration(spr, &self->vidConfig);
+        self->sprite[priority] = spr;
         Screen_SetNeedsUpdate(self);
         *pOutSpriteId = priority;
     }
@@ -154,6 +147,18 @@ errno_t Screen_RelinquishSprite(Screen* _Nonnull self, int spriteId)
         self->sprite[spriteId] = self->nullSprite;
         Screen_SetNeedsUpdate(self);
     }
+    return EOK;
+}
+
+errno_t Screen_SetSpritePixels(Screen* _Nonnull self, int spriteId, const uint16_t* _Nonnull planes[2])
+{
+    decl_try_err();
+
+    if (spriteId < 0 || spriteId >= NUM_HARDWARE_SPRITES) {
+        return EINVAL;
+    }
+
+    Sprite_SetPixels(self->sprite[spriteId], planes);
     return EOK;
 }
 
@@ -203,10 +208,9 @@ size_t Screen_CalcCopperProgramLength(Screen* _Nonnull self)
 // Compiles a screen refresh Copper program into the given buffer (which must be
 // big enough to store the program).
 // \return a pointer to where the next instruction after the program would go 
-CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, CopperInstruction* _Nonnull pCode, bool isLightPenEnabled, bool isOddField)
+CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, CopperInstruction* _Nonnull ip, Sprite* _Nullable mouseCursor, bool isLightPenEnabled, bool isOddField)
 {
     Surface* fb = self->surface;
-    CopperInstruction* ip = pCode;
     const VideoConfiguration* cfg = &self->vidConfig;
     const uint16_t w = Surface_GetWidth(fb);
     const uint16_t h = Surface_GetHeight(fb);
@@ -267,23 +271,40 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
 
 
     // SPRxPT
+    Sprite* spr;
     uint16_t dmaf_sprite = 0;
-    for (int i = 0, r = SPRITE_BASE; i < NUM_HARDWARE_SPRITES; i++, r += 4) {
-        Sprite* sprite;
-
+    for (int i = 0, r = SPRITE_BASE; i < NUM_HARDWARE_SPRITES-1; i++, r += 4) {
         if (self->sprite[i]) {
-            sprite = self->sprite[i];
+            spr = self->sprite[i];
             dmaf_sprite = DMACONF_SPREN;
         }
         else {
-            sprite = self->nullSprite;
+            spr = self->nullSprite;
         }
 
 
-        const uint32_t sprpt = (uint32_t)sprite->data;
+        const uint32_t sprpt = (uint32_t)spr->data;
         *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
     }
+
+
+    // SPR7PT
+    if (mouseCursor) {
+        spr = mouseCursor;
+        dmaf_sprite = DMACONF_SPREN;
+    }
+    else if (self->sprite[NUM_HARDWARE_SPRITES-1]) {
+        spr = self->sprite[NUM_HARDWARE_SPRITES-1];
+        dmaf_sprite = DMACONF_SPREN;
+    }
+    else {
+        spr = self->nullSprite;
+    }
+
+    const uint32_t sprpt = (uint32_t)spr->data;
+    *ip++ = COP_MOVE(SPR7PTH, (sprpt >> 16) & UINT16_MAX);
+    *ip++ = COP_MOVE(SPR7PTL, sprpt & UINT16_MAX);
 
 
     // DIWSTART / DIWSTOP

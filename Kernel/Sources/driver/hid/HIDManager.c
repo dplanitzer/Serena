@@ -57,8 +57,8 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
     Lock_Init(&self->lock);
 
     self->keyFlags = gUSBHIDKeyFlags;
-    self->mouseCursorHiddenCounter = 1;
     self->isMouseMoveReportingEnabled = false;
+    self->mouseCursorVisibility = kMouseCursor_Hidden;
 
 
     // Create the HID event queue
@@ -190,7 +190,14 @@ void HIDManager_ReportMouseDeviceChange(HIDManagerRef _Nonnull self, int16_t xDe
         self->mouseX = __min(__max(self->mouseX, self->screenLeft), self->screenRight);
         self->mouseY = __min(__max(self->mouseY, self->screenTop), self->screenBottom);
 
+        // Setting the new position will automatically make the mouse cursor visible
+        // again if it was hidden-until-move. The reason is that the hide-until-move
+        // function simply sets the mouse cursor to a position outside the visible
+        // scree area to (temporarily) hide it.
         GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->fb, self->mouseX, self->mouseY);
+        if (self->mouseCursorVisibility == kMouseCursor_HiddenUntilMove) {
+            self->mouseCursorVisibility = kMouseCursor_Visible;
+        }
     }
     self->mouseButtons = buttonsDown;
 
@@ -397,43 +404,63 @@ errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, InputTyp
     return err;
 }
 
-void HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const void* pBitmap, const void* pMask)
+errno_t HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat)
 {
-    GraphicsDriver_SetMouseCursor(self->fb, pBitmap, pMask);
+    return GraphicsDriver_SetMouseCursor(self->fb, planes, width, height, pixelFormat);
 }
 
-// Show the mouse cursor. This decrements the hidden counter. The mouse cursor
-// is only shown if this counter reaches zero. The operation is carried out at
-// the next vertical blank.
-void HIDManager_ShowMouseCursor(HIDManagerRef _Nonnull self)
+// Changes the mouse cursor visibility to visible, hidden altogether or hidden
+// until the user moves the mouse cursor. Note that the visibility state is
+// absolute - nesting of calls isn't supported in this sense.
+// set_mouse_cursor_visibility(MouseCursorVisibility mode)
+errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCursorVisibility mode)
+{
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    switch (mode) {
+        case kMouseCursor_Hidden:
+            GraphicsDriver_SetMouseCursorVisible(self->fb, false);
+            break;
+
+        case kMouseCursor_HiddenUntilMove:
+            // Temporarily hide the mouse cursor. The next mouse report with an
+            // actual move will cause the mouse cursor to become visible again
+            // because it will be set to a location inside the visible screen
+            // bounds. 
+            GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MAX, INT_MAX);
+            break;
+
+        case kMouseCursor_Visible:
+            GraphicsDriver_SetMouseCursorVisible(self->fb, true);
+            break;
+
+        default:
+            err = EINVAL;
+            break;
+    }
+    self->mouseCursorVisibility = mode;
+    Lock_Unlock(&self->lock);
+    return err;
+}
+
+MouseCursorVisibility HIDManager_GetMouseCursorVisibility(HIDManagerRef _Nonnull self)
 {
     Lock_Lock(&self->lock);
-    self->mouseCursorHiddenCounter--;
-    if (self->mouseCursorHiddenCounter < 0) {
-        self->mouseCursorHiddenCounter = 0;
-    }
-    if (self->mouseCursorHiddenCounter == 0) {
-        GraphicsDriver_SetMouseCursorVisible(self->fb, true);
-    }
+    const MouseCursorVisibility mode = self->mouseCursorVisibility;
     Lock_Unlock(&self->lock);
+
+    return mode;
 }
 
-// Hides the mouse cursor. This increments the hidden counter. The mouse remains
-// hidden as long as the counter does not reach the value zero. The operation is
-// carried out at the next vertical blank.
-void HIDManager_HideMouseCursor(HIDManagerRef _Nonnull self)
+void HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, int width, int height)
 {
-    Lock_Lock(&self->lock);
-    if (self->mouseCursorHiddenCounter == 0) {
-        GraphicsDriver_SetMouseCursorVisible(self->fb, false);
-    }
-    self->mouseCursorHiddenCounter++;
-    Lock_Unlock(&self->lock);
+    GraphicsDriver_ShieldMouseCursor(self->fb, x, y, width, height);
 }
 
-void HIDManager_SetMouseCursorHiddenUntilMove(HIDManagerRef _Nonnull self, bool flag)
+void HIDManager_UnshieldMouseCursor(HIDManagerRef _Nonnull self)
 {
-    GraphicsDriver_SetMouseCursorHiddenUntilMove(self->fb, flag);
+    GraphicsDriver_UnshieldMouseCursor(self->fb);
 }
 
 // Returns the current mouse location in screen space.

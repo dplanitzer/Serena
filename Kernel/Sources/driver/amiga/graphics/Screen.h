@@ -55,6 +55,9 @@ extern void Screen_Destroy(Screen* _Nullable pScreen);
 #define Screen_SetNeedsUpdate(__self) \
 ((__self)->flags |= kScreenFlag_IsNewCopperProgNeeded)
 
+#define Screen_NeedsUpdate(__self) \
+(((__self)->flags & kScreenFlag_IsNewCopperProgNeeded) == kScreenFlag_IsNewCopperProgNeeded)
+
 #define Screen_GetVideoConfiguration(__self) \
 (&(__self)->vidConfig)
 
@@ -77,12 +80,13 @@ extern void Screen_GetPixelSize(Screen* _Nonnull self, int* _Nonnull pOutWidth, 
 extern errno_t Screen_SetCLUTEntry(Screen* _Nonnull self, size_t idx, RGBColor32 color);
 extern errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
 
-extern errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId);
+extern errno_t Screen_AcquireSprite(Screen* _Nonnull self, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutSpriteId);
 extern errno_t Screen_RelinquishSprite(Screen* _Nonnull self, int spriteId);
+extern errno_t Screen_SetSpritePixels(Screen* _Nonnull self, int spriteId, const uint16_t* _Nonnull planes[2]);
 extern errno_t Screen_SetSpritePosition(Screen* _Nonnull self, int spriteId, int x, int y);
 extern errno_t Screen_SetSpriteVisible(Screen* _Nonnull self, int spriteId, bool isVisible);
 
 extern size_t Screen_CalcCopperProgramLength(Screen* _Nonnull self);
-extern CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, CopperInstruction* _Nonnull pCode, bool isLightPenEnabled, bool isOddField);
+extern CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, CopperInstruction* _Nonnull ip, Sprite* _Nullable mouseCursor, bool isLightPenEnabled, bool isOddField);
 
 #endif /* Screen_h */

@@ -74,7 +74,8 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(GraphicsDriver_AcquireSprite(self->gdevice, self->screenId, textCursorPlanes, 0, 0, textCursorWidth, textCursorHeight, 0, &self->textCursor));
+    try(GraphicsDriver_AcquireSprite(self->gdevice, self->screenId, textCursorWidth, textCursorHeight, kPixelFormat_RGB_Indexed2, 0, &self->textCursor));
+    try(GraphicsDriver_SetSpritePixels(self->gdevice, self->screenId, self->textCursor, textCursorPlanes));
     self->flags.isTextCursorVisible = false;
 
 

@@ -17,22 +17,26 @@
 #include <klib/List.h>
 #include "CopperProgram.h"
 #include "CopperScheduler.h"
-#include "MousePainter.h"
 #include "Screen.h"
 
 
 final_class_ivars(GraphicsDriver, Driver,
     Screen* _Nonnull    screen;
     Sprite* _Nonnull    nullSprite;
+    Sprite* _Nonnull    mouseCursor;
     CopperScheduler     copperScheduler;
     InterruptHandlerID  vb_irq_handler;
     Semaphore           vblank_sema;
-    MousePainter        mousePainter;
     List                surfaces;
     List                screens;
     int                 nextSurfaceId;
     int                 nextScreenId;
-    bool                isLightPenEnabled;  // Applies to all screens
+    struct __GDFlags {
+        unsigned int        isLightPenEnabled;  // Applies to all screens
+        unsigned int        mouseCursorEnabled; // Applies to all screens
+        unsigned int        isNewCopperProgNeeded;
+        unsigned int        reserved:30;
+    }                   flags;
 );
 
 

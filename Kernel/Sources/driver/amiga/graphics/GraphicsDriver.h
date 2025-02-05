@@ -45,8 +45,9 @@ extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, in
 
 
 // Sprites
-extern errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int screenId, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId);
+extern errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int screenId, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutSpriteId);
 extern errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int screenId, int spriteId);
+extern errno_t GraphicsDriver_SetSpritePixels(GraphicsDriverRef _Nonnull self, int screenId, int spriteId, const uint16_t* _Nonnull pPlanes[2]);
 extern errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int screenId, int spriteId, int x, int y);
 extern errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int screenId, int spriteId, bool isVisible);
 
@@ -63,11 +64,10 @@ extern bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull self, 
 
 
 // Mouse Cursor
-extern void GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const void* pBitmap, const void* pMask);
+extern errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat);
 extern void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull self, bool isVisible);
-extern void GraphicsDriver_SetMouseCursorHiddenUntilMove(GraphicsDriverRef _Nonnull self, bool flag);
-extern void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, Point loc);
-extern void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int16_t x, int16_t y);
+extern void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y);
+extern void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int x, int y);
 
 extern void GraphicsDriver_ShieldMouseCursor(GraphicsDriverRef _Nonnull self, int x, int y, int width, int height);
 extern void GraphicsDriver_UnshieldMouseCursor(GraphicsDriverRef _Nonnull self);

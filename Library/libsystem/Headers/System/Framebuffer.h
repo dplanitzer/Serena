@@ -120,7 +120,7 @@ typedef uint32_t RGBColor32;
 // Creates a new screen based on the given screen configuration. The screen is
 // not visible by default. Make it visible by calling set_current_screen() with
 // the id that this function returns.
-// create_screen(const VideoConfiguration* _Nonnull cfg, int surfaceId)
+// create_screen(const VideoConfiguration* _Nonnull cfg, int surfaceId, int* _Nonnull pOutId)
 #define kFBCommand_CreateScreen     IOResourceCommand(256)
 
 // Destroys the screen with id 'id'. Returns EBUSY if the screen is currently
@@ -136,20 +136,24 @@ typedef uint32_t RGBColor32;
 
 
 // TBD.
-// acquire_sprite(int screenId, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId)
-#define kFBCommand_AcquireSprite    IOResourceCommand(259)
+// acquire_sprite(int screenId, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutId)
+#define kFBCommand_AcquireSprite        IOResourceCommand(259)
 
 // TBD.
 // relinquish_sprite(int screenId, int spriteId)
-#define kFBCommand_RelinquishSprite IOResourceCommand(260)
+#define kFBCommand_RelinquishSprite     IOResourceCommand(260)
+
+// TBD.
+// set_sprite_pixels(int screenId, int spriteId, const uint16_t* _Nonnull planes[2])
+#define kFBCommand_SetSpritePixels      IOResourceCommand(261)
 
 // TBD.
 // set_sprite_position(int screenId, int spriteId, int x, int y)
-#define kFBCommand_SetSpritePosition    IOResourceCommand(261)
+#define kFBCommand_SetSpritePosition    IOResourceCommand(262)
 
 // TBD.
 // set_sprite_visible(int screenId, int spriteId, bool isVisible)
-#define kFBCommand_SetSpriteVisible     IOResourceCommand(262)
+#define kFBCommand_SetSpriteVisible     IOResourceCommand(263)
 
 
 //
@@ -171,18 +175,6 @@ typedef uint32_t RGBColor32;
 // - CLUT entries
 // int update_display()
 #define kFBCommand_UpdateDisplay    IOResourceCommand(514)
-
-// Shields the mouse cursor. Call this function before drawing into the provided
-// rectangular region inside a screen's surface to ensure that the mouse cursor
-// image will be saved and restored as needed.
-// shield_mouse_cursor(int x, int y, int width, int height)
-#define kFBCommand_ShieldMouseCursor    IOResourceCommand(515)
-
-// Unshields the mouse cursor and makes it visible again if it was visible before
-// shielding. Call this function after you are done drawing into a screen's
-// surface.
-// int unshield_mouse_cursor()
-#define kFBCommand_UnshieldMouseCursor  IOResourceCommand(516)
 
 
 __CPP_END

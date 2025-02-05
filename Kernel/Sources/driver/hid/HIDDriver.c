@@ -48,16 +48,22 @@ errno_t HIDDriver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
             HIDManager_SetKeyRepeatDelays(gHIDManager, va_arg(ap, TimeInterval), va_arg(ap, TimeInterval));
             return EOK;
 
-        case kHIDCommand_ShowMouseCursor:
-            HIDManager_ShowMouseCursor(gHIDManager);
+        case kHIDCommand_SetMouseCursor:
+            return HIDManager_SetMouseCursor(gHIDManager, va_arg(ap, const uint16_t**), va_arg(ap, int), va_arg(ap, int), va_arg(ap, PixelFormat));
+            break;
+
+        case kHIDCommand_SetMouseCursorVisibility:
+            return HIDManager_SetMouseCursorVisibility(gHIDManager, va_arg(ap, MouseCursorVisibility));
+
+        case kHIDCommand_GetMouseCursorVisibility:
+            return HIDManager_GetMouseCursorVisibility(gHIDManager);
+
+        case kHIDCommand_ShieldMouseCursor:
+            HIDManager_ShieldMouseCursor(gHIDManager, va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int));
             return EOK;
 
-        case kHIDCommand_HideMouseCursor:
-            HIDManager_HideMouseCursor(gHIDManager);
-            return EOK;
-
-        case kHIDCommand_SetMouseCursorHiddenUntilMove:
-            HIDManager_SetMouseCursorHiddenUntilMove(gHIDManager, va_arg(ap, bool));
+        case kHIDCommand_UnshieldMouseCursor:
+            HIDManager_UnshieldMouseCursor(gHIDManager);
             return EOK;
 
         case kHIDCommand_GetPortDevice:
