@@ -58,41 +58,27 @@ void Sprite_Destroy(Sprite* _Nullable self)
     }
 }
 
-void Sprite_SetVideoConfiguration(Sprite* _Nonnull self, const VideoConfiguration* _Nonnull cfg)
-{
-    const bool isPal = VideoConfiguration_IsPAL(cfg);
-    const bool isHires = VideoConfiguration_IsHires(cfg);
-    const bool isLace = VideoConfiguration_IsInterlaced(cfg);
-    
-    self->hDiwStart = isPal ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
-    self->vDiwStart = isPal ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
-    self->hShift = isHires ? 0x01 : 0x00;
-    self->vShift = isLace ? 0x01 : 0x00;
-}
-
 // Called when the position or visibility of a hardware sprite has changed.
 // Recalculates the sprxpos and sprxctl control words and updates them in the
 // sprite DMA data block.
 static void _Sprite_StateDidChange(Sprite* _Nonnull self)
 {
     // Hiding a sprite means to move it all the way to X max.
-    const int x = (self->x) >= 0 ? self->x : 0;
-    const int y = (self->y) >= 0 ? self->y : 0;
-    int hStart = self->hDiwStart - 1 + (x >> self->hShift);
-    int vStart = self->vDiwStart + (y >> self->vShift);
-    int vStop = vStart + self->height;
+    int x = self->x;
+    int y = self->y;
+    int ye = y + self->height;
 
-    if (vStart < 0 || vStop > MAX_SPRITE_VPOS || vStop < vStart) {
-        vStop = MAX_SPRITE_VPOS;
-        vStart = vStop - self->height;
+    if (y < 0 || ye > MAX_SPRITE_VPOS || ye < y) {
+        ye = MAX_SPRITE_VPOS;
+        y = ye - self->height;
     }
 
-    if (!self->isVisible || hStart < 0 || hStart > MAX_SPRITE_HPOS) {
-        hStart = MAX_SPRITE_HPOS;
+    if (!self->isVisible || x < 0 || x > MAX_SPRITE_HPOS) {
+        x = MAX_SPRITE_HPOS;
     }
 
-    self->data[0] = ((vStart & 0x00ff) << 8) | ((hStart & 0x01fe) >> 1);
-    self->data[1] = ((vStop & 0x00ff) << 8) | (((vStart >> 8) & 0x0001) << 2) | (((vStop >> 8) & 0x0001) << 1) | (hStart & 0x0001);
+    self->data[0] = ((y & 0x00ff) << 8) | ((x & 0x01fe) >> 1);
+    self->data[1] = ((ye & 0x00ff) << 8) | (((y >> 8) & 0x0001) << 2) | (((ye >> 8) & 0x0001) << 1) | (x & 0x0001);
 }
 
 void Sprite_SetPixels(Sprite* _Nonnull self, const uint16_t* _Nonnull planes[2])
@@ -116,7 +102,7 @@ void Sprite_SetPixels(Sprite* _Nonnull self, const uint16_t* _Nonnull planes[2])
 // Updates the position of a hardware sprite. All of 'x' < 0, 'y' < 0,
 // 'x' > MAX_SPRITE_HPOS and 'y' > MAX_SPRITE_VPOS - sprite_height hide the
 // sprite.
-void Sprite_SetPosition(Sprite* _Nonnull self, int x, int y)
+void Sprite_SetPosition(Sprite* _Nonnull self, int16_t x, int16_t y)
 {
     self->x = x;
     self->y = y;
@@ -132,17 +118,17 @@ void Sprite_SetVisible(Sprite* _Nonnull self, bool isVisible)
 
         // Hiding a sprite means to move it all the way to X max.
         if (isVisible) {
-            int hStart = self->hDiwStart - 1 + (self->x >> self->hShift);
+            int x = self->x;
             
-            if (hStart < 0 || hStart > MAX_SPRITE_HPOS) {
+            if (x < 0 || x > MAX_SPRITE_HPOS) {
                 // hide
-                hStart = MAX_SPRITE_HPOS;
+                x = MAX_SPRITE_HPOS;
             }
 
             sprxpos &= 0xff00;
             sprxctl &= 0xfffe;
-            sprxpos |= (hStart & 0x01fe) >> 1;
-            sprxctl |= hStart & 0x0001;
+            sprxpos |= (x & 0x01fe) >> 1;
+            sprxctl |= x & 0x0001;
         }
         else {
             sprxpos |= 0x00ff;

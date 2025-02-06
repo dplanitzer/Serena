@@ -35,10 +35,10 @@
 #define INTPTR_WIDTH __INTPTR_WIDTH
 
 
-#define INT8_MIN  0x80
-#define INT16_MIN 0x8000
-#define INT32_MIN 0x80000000
-#define INT64_MIN 0x8000000000000000ll
+#define INT8_MIN  ((int8_t)0x80)
+#define INT16_MIN ((int16_t)0x8000)
+#define INT32_MIN ((int32_t)0x80000000)
+#define INT64_MIN ((int64_t)0x8000000000000000ll)
 
 #define INT_FAST8_MIN INT16_MIN
 #define INT_FAST16_MIN INT16_MIN
@@ -54,10 +54,10 @@
 #define INTPTR_MIN __INTPTR_MIN
 
 
-#define INT8_MAX 0x7f
-#define INT16_MAX 0x7fff
-#define INT32_MAX 0x7fffffff
-#define INT64_MAX 0x7fffffffffffffffll
+#define INT8_MAX ((int8_t)0x7f)
+#define INT16_MAX ((int16_t)0x7fff)
+#define INT32_MAX ((int32_t)0x7fffffff)
+#define INT64_MAX ((int64_t)0x7fffffffffffffffll)
 
 #define INT_FAST8_MAX INT16_MAX
 #define INT_FAST16_MAX INT16_MAX
@@ -92,10 +92,10 @@
 #define UINTPTR_WIDTH __UINTPTR_WIDTH
 
 
-#define UINT8_MAX 255
-#define UINT16_MAX 65535
-#define UINT32_MAX 4294967295u
-#define UINT64_MAX 18446744073709551615ull
+#define UINT8_MAX ((uint8_t)255)
+#define UINT16_MAX ((uint16_t)65535)
+#define UINT32_MAX ((uint32_t)4294967295u)
+#define UINT64_MAX ((uint64_t)18446744073709551615ull)
 
 #define UINT_FAST8_MAX UINT16_MAX
 #define UINT_FAST16_MAX UINT16_MAX

@@ -17,6 +17,9 @@
 errno_t Screen_Create(int id, const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
+    const bool isPal = VideoConfiguration_IsPAL(vidCfg);
+    const bool isHires = VideoConfiguration_IsHires(vidCfg);
+    const bool isLace = VideoConfiguration_IsInterlaced(vidCfg);
     Screen* self;
     
     try(kalloc_cleared(sizeof(Screen), (void**) &self));
@@ -27,7 +30,11 @@ errno_t Screen_Create(int id, const VideoConfiguration* _Nonnull vidCfg, Surface
     self->nullSprite = pNullSprite;
     self->vidConfig = *vidCfg;
     self->clutEntryCount = (int16_t)MAX_CLUT_ENTRIES;
-    self->flags = kScreenFlag_IsNewCopperProgNeeded;
+    self->flags = kScreenFlag_IsNewCopperProgNeeded;    
+    self->hDiwStart = isPal ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
+    self->vDiwStart = isPal ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
+    self->hSprScale = isHires ? 0x01 : 0x00;
+    self->vSprScale = isLace ? 0x01 : 0x00;
     
     if (self->clutEntryCount > 0) {
         try(kalloc_cleared(sizeof(CLUTEntry) * self->clutEntryCount, (void**)&self->clut));
@@ -121,7 +128,6 @@ errno_t Screen_AcquireSprite(Screen* _Nonnull self, int width, int height, Pixel
     }
 
     if ((err = Sprite_Create(width, height, pixelFormat, &spr)) == EOK) {
-        Sprite_SetVideoConfiguration(spr, &self->vidConfig);
         self->sprite[priority] = spr;
         Screen_SetNeedsUpdate(self);
         *pOutSpriteId = priority;
@@ -171,7 +177,12 @@ errno_t Screen_SetSpritePosition(Screen* _Nonnull self, int spriteId, int x, int
         return EINVAL;
     }
 
-    Sprite_SetPosition(self->sprite[spriteId], x, y);
+    const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
+    const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
+    const int16_t sprX = self->hDiwStart - 1 + (x16 >> self->hSprScale);
+    const int16_t sprY = self->vDiwStart + (y16 >> self->vSprScale);
+
+    Sprite_SetPosition(self->sprite[spriteId], sprX, sprY);
     return EOK;
 }
 

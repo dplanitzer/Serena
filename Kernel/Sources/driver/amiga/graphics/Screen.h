@@ -43,6 +43,10 @@ typedef struct Screen {
     uint16_t                flags;
     VideoConfiguration      vidConfig;
     int                     id;
+    int16_t                 hDiwStart;      // Visible screen space origin and sprite scaling
+    int16_t                 vDiwStart;
+    int16_t                 hSprScale;
+    int16_t                 vSprScale;
 } Screen;
 
 

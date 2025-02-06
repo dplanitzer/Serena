@@ -34,10 +34,6 @@ typedef struct Sprite {
     int16_t             x;
     int16_t             y;
     uint16_t            height;
-    uint8_t             hDiwStart;
-    uint8_t             vDiwStart;
-    uint8_t             hShift;
-    uint8_t             vShift;
     bool                isVisible;
 } Sprite;
 
@@ -45,10 +41,9 @@ typedef struct Sprite {
 extern errno_t Sprite_Create(int width, int height, PixelFormat pixelFormat, Sprite* _Nonnull * _Nonnull pOutSelf);
 extern void Sprite_Destroy(Sprite* _Nullable self);
 
-extern void Sprite_SetVideoConfiguration(Sprite* _Nonnull self, const VideoConfiguration* _Nonnull cfg);
 extern void Sprite_SetPixels(Sprite* _Nonnull self, const uint16_t* _Nullable planes[2]);
 
-extern void Sprite_SetPosition(Sprite* _Nonnull self, int x, int y);
+extern void Sprite_SetPosition(Sprite* _Nonnull self, int16_t x, int16_t y);
 extern void Sprite_SetVisible(Sprite* _Nonnull self, bool isVisible);
 
 #endif /* Sprite_h */

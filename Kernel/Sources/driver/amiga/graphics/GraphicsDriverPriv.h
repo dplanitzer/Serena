@@ -31,6 +31,10 @@ final_class_ivars(GraphicsDriver, Driver,
     List                screens;
     int                 nextSurfaceId;
     int                 nextScreenId;
+    int16_t             mouseCursorRectX;   // Visible screen space origin and mouse cursor scaling
+    int16_t             mouseCursorRectY;
+    int16_t             mouseCursorScaleX;
+    int16_t             mouseCursorScaleY;
     struct __GDFlags {
         unsigned int        isLightPenEnabled;  // Applies to all screens
         unsigned int        mouseCursorEnabled; // Applies to all screens

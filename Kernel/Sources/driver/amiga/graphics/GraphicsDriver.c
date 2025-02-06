@@ -278,7 +278,10 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
 
     // Update the display configuration.
     self->screen = scr;
-    Sprite_SetVideoConfiguration(self->mouseCursor, Screen_GetVideoConfiguration(scr));
+    self->mouseCursorRectX = scr->hDiwStart;
+    self->mouseCursorRectY = scr->vDiwStart;
+    self->mouseCursorScaleX = scr->hSprScale;
+    self->mouseCursorScaleY = scr->vSprScale;
     Screen_SetVisible(scr, true);
 
 
@@ -785,13 +788,18 @@ errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uin
 void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y)
 {
     Driver_Lock(self);
-    Sprite_SetPosition(self->mouseCursor, x, y);
+    GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self, x, y);
     Driver_Unlock(self);
 }
 
 void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int x, int y)
 {
-    Sprite_SetPosition(self->mouseCursor, x, y);
+    const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
+    const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
+    const int16_t sprX = self->mouseCursorRectX - 1 + (x16 >> self->mouseCursorScaleX);
+    const int16_t sprY = self->mouseCursorRectY + (y16 >> self->mouseCursorScaleY);
+
+    Sprite_SetPosition(self->mouseCursor, sprX, sprY);
 }
 
 
