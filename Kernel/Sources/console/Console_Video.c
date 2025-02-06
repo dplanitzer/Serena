@@ -75,7 +75,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
     try(GraphicsDriver_AcquireSprite(self->gdevice, self->screenId, textCursorWidth, textCursorHeight, kPixelFormat_RGB_Indexed2, 0, &self->textCursor));
-    try(GraphicsDriver_SetSpritePixels(self->gdevice, self->screenId, self->textCursor, textCursorPlanes));
+    try(GraphicsDriver_SetSpritePixels(self->gdevice, self->textCursor, textCursorPlanes));
     self->flags.isTextCursorVisible = false;
 
 
@@ -98,7 +98,7 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
 
     GraphicsDriver_SetCurrentScreen(self->gdevice, 0);
 
-    GraphicsDriver_RelinquishSprite(self->gdevice, self->screenId, self->textCursor);
+    GraphicsDriver_RelinquishSprite(self->gdevice, self->textCursor);
     GraphicsDriver_DestroyScreen(self->gdevice, self->screenId);
     GraphicsDriver_DestroySurface(self->gdevice, self->surfaceId);
     
@@ -133,7 +133,7 @@ void Console_OnTextCursorBlink(ConsoleRef _Nonnull self)
     
     self->flags.isTextCursorOn = !self->flags.isTextCursorOn;
     if (self->flags.isTextCursorVisible) {
-        GraphicsDriver_SetSpriteVisible(self->gdevice, self->screenId, self->textCursor, self->flags.isTextCursorOn || self->flags.isTextCursorSingleCycleOn);
+        GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, self->flags.isTextCursorOn || self->flags.isTextCursorSingleCycleOn);
     }
     self->flags.isTextCursorSingleCycleOn = false;
 
@@ -146,7 +146,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _
         // Changing the visibility to on should restart the blinking timer if
         // blinking is on too so that we always start out with a cursor-on phase
         DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
-        GraphicsDriver_SetSpriteVisible(self->gdevice, self->screenId, self->textCursor, true);
+        GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, true);
         self->flags.isTextCursorOn = false;
         self->flags.isTextCursorSingleCycleOn = false;
 
@@ -161,7 +161,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _
     } else {
         // Make sure that the text cursor and blinker are off
         DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
-        GraphicsDriver_SetSpriteVisible(self->gdevice, self->screenId, self->textCursor, false);
+        GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, false);
         self->flags.isTextCursorOn = false;
         self->flags.isTextCursorSingleCycleOn = false;
     }
@@ -185,14 +185,14 @@ void Console_SetCursorVisible_Locked(ConsoleRef _Nonnull self, bool isVisible)
 
 void Console_CursorDidMove_Locked(ConsoleRef _Nonnull self)
 {
-    GraphicsDriver_SetSpritePosition(self->gdevice, self->screenId, self->textCursor, self->x * self->characterWidth, self->y * self->lineHeight);
+    GraphicsDriver_SetSpritePosition(self->gdevice, self->textCursor, self->x * self->characterWidth, self->y * self->lineHeight);
     // Temporarily force the cursor to be visible, but without changing the text
     // cursor visibility state officially. We just want to make sure that the
     // cursor is on when the user types a character. This however should not
     // change anything about the blinking phase and frequency.
     if (!self->flags.isTextCursorSingleCycleOn && !self->flags.isTextCursorOn && self->flags.isTextCursorBlinkerEnabled && self->flags.isTextCursorVisible) {
         self->flags.isTextCursorSingleCycleOn = true;
-        GraphicsDriver_SetSpriteVisible(self->gdevice, self->screenId, self->textCursor, true);
+        GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, true);
     }
 }
 

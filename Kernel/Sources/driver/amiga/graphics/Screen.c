@@ -113,15 +113,15 @@ errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, c
     return EOK;
 }
 
-errno_t Screen_AcquireSprite(Screen* _Nonnull self, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutSpriteId)
+errno_t Screen_AcquireSprite(Screen* _Nonnull self, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutSpriteIdx)
 {
     decl_try_err();
     Sprite* spr;
 
-    *pOutSpriteId = -1;
+    *pOutSpriteIdx = -1;
 
     if (priority < 0 || priority >= NUM_HARDWARE_SPRITES) {
-        return EINVAL;
+        return ENOTSUP;
     }
     if (self->sprite[priority]) {
         return EBUSY;
@@ -130,19 +130,17 @@ errno_t Screen_AcquireSprite(Screen* _Nonnull self, int width, int height, Pixel
     if ((err = Sprite_Create(width, height, pixelFormat, &spr)) == EOK) {
         self->sprite[priority] = spr;
         Screen_SetNeedsUpdate(self);
-        *pOutSpriteId = priority;
+        *pOutSpriteIdx = priority;
     }
 
     return err;
 }
 
 // Relinquishes a hardware sprite
-errno_t Screen_RelinquishSprite(Screen* _Nonnull self, int spriteId)
+errno_t Screen_RelinquishSprite(Screen* _Nonnull self, int sprIdx)
 {
-    decl_try_err();
-
-    if (spriteId >= 0) {
-        if (spriteId >= NUM_HARDWARE_SPRITES) {
+    if (sprIdx >= 0) {
+        if (sprIdx >= NUM_HARDWARE_SPRITES) {
             return EINVAL;
         }
 
@@ -150,53 +148,50 @@ errno_t Screen_RelinquishSprite(Screen* _Nonnull self, int spriteId)
         // XXX actually free the old sprite instead of leaking it. Can't do this
         // XXX yet because we need to ensure that the DMA is no longer accessing
         // XXX the data before it freeing it.
-        self->sprite[spriteId] = self->nullSprite;
+        self->sprite[sprIdx] = self->nullSprite;
         Screen_SetNeedsUpdate(self);
     }
     return EOK;
 }
 
-errno_t Screen_SetSpritePixels(Screen* _Nonnull self, int spriteId, const uint16_t* _Nonnull planes[2])
+errno_t Screen_SetSpritePixels(Screen* _Nonnull self, int sprIdx, const uint16_t* _Nonnull planes[2])
 {
-    decl_try_err();
-
-    if (spriteId < 0 || spriteId >= NUM_HARDWARE_SPRITES) {
+    if (sprIdx >= 0 && sprIdx < NUM_HARDWARE_SPRITES) {
+        Sprite_SetPixels(self->sprite[sprIdx], planes);
+        return EOK;
+    }
+    else {
         return EINVAL;
     }
-
-    Sprite_SetPixels(self->sprite[spriteId], planes);
-    return EOK;
 }
 
 // Updates the position of a hardware sprite.
-errno_t Screen_SetSpritePosition(Screen* _Nonnull self, int spriteId, int x, int y)
+errno_t Screen_SetSpritePosition(Screen* _Nonnull self, int sprIdx, int x, int y)
 {
-    decl_try_err();
+    if (sprIdx >= 0 && sprIdx < NUM_HARDWARE_SPRITES) {
+        const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
+        const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
+        const int16_t sprX = self->hDiwStart - 1 + (x16 >> self->hSprScale);
+        const int16_t sprY = self->vDiwStart + (y16 >> self->vSprScale);
 
-    if (spriteId < 0 || spriteId >= NUM_HARDWARE_SPRITES) {
+        Sprite_SetPosition(self->sprite[sprIdx], sprX, sprY);
+        return EOK;
+    }
+    else {
         return EINVAL;
     }
-
-    const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
-    const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
-    const int16_t sprX = self->hDiwStart - 1 + (x16 >> self->hSprScale);
-    const int16_t sprY = self->vDiwStart + (y16 >> self->vSprScale);
-
-    Sprite_SetPosition(self->sprite[spriteId], sprX, sprY);
-    return EOK;
 }
 
 // Updates the visibility of a hardware sprite.
-errno_t Screen_SetSpriteVisible(Screen* _Nonnull self, int spriteId, bool isVisible)
+errno_t Screen_SetSpriteVisible(Screen* _Nonnull self, int sprIdx, bool isVisible)
 {
-    decl_try_err();
-
-    if (spriteId < 0 || spriteId >= NUM_HARDWARE_SPRITES) {
+    if (sprIdx >= 0 && sprIdx < NUM_HARDWARE_SPRITES) {
+        Sprite_SetVisible(self->sprite[sprIdx], isVisible);
+        return EOK;
+    }
+    else {
         return EINVAL;
     }
-
-    Sprite_SetVisible(self->sprite[spriteId], isVisible);
-    return EOK;
 }
 
 

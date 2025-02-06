@@ -135,24 +135,33 @@ typedef uint32_t RGBColor32;
 #define kFBCommand_SetCLUTEntries   IOResourceCommand(258)
 
 
-// TBD.
+// Acquires a sprite and attaches it to the screen 'screenId'. The screen does
+// not have to be the current screen. The sprite has a size of 'width' x ' height'
+// pixels and a pixel format of 'pixelFormat'. The visual priority of the sprite
+// is 'priority'. Note that a screen typically only supports a limited number of
+// sprites overall and a limited number of sprites per priority. The exact limits
+// are platform and hardware dependent. Returns ENOTSUP or EBUSY if the requested
+// sprite is not available for acquisition. 
 // acquire_sprite(int screenId, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutId)
 #define kFBCommand_AcquireSprite        IOResourceCommand(259)
 
-// TBD.
-// relinquish_sprite(int screenId, int spriteId)
+// Relinquishes a previously acquired sprite and makes it available again for
+// acquisition.
+// relinquish_sprite(int spriteId)
 #define kFBCommand_RelinquishSprite     IOResourceCommand(260)
 
-// TBD.
-// set_sprite_pixels(int screenId, int spriteId, const uint16_t* _Nonnull planes[2])
+// Replaces the pixels of a sprite with the given pixels. The given pixel map
+// must have the same size as the sprite. 
+// set_sprite_pixels(int spriteId, const uint16_t* _Nonnull planes[2])
 #define kFBCommand_SetSpritePixels      IOResourceCommand(261)
 
-// TBD.
-// set_sprite_position(int screenId, int spriteId, int x, int y)
+// Sets the position of a sprite. Note that sprites are only visible inside the
+// screen aperture rectangle.
+// set_sprite_position(int spriteId, int x, int y)
 #define kFBCommand_SetSpritePosition    IOResourceCommand(262)
 
-// TBD.
-// set_sprite_visible(int screenId, int spriteId, bool isVisible)
+// Shows or hides a sprite.
+// set_sprite_visible(int spriteId, bool isVisible)
 #define kFBCommand_SetSpriteVisible     IOResourceCommand(263)
 
 
