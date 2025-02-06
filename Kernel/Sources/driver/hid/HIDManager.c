@@ -79,7 +79,7 @@ catch:
 // Returns the current position of the light pen if the light pen triggered.
 bool HIDManager_GetLightPenPosition(HIDManagerRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY)
 {
-    return GraphicsDriver_GetLightPenPosition(self->fb, pPosX, pPosY);
+    return GraphicsDriver_GetLightPenPositionFromInterruptContext(self->fb, pPosX, pPosY);
 }
 
 // Reports a key down, repeat or up from a keyboard device. This function updates

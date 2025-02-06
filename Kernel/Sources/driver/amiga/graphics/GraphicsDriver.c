@@ -364,60 +364,6 @@ void GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self, int* _Nonnul
     Driver_Unlock(self);
 }
 
-// Enables / disables the h/v raster position latching triggered by a light pen.
-void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled)
-{
-    Driver_Lock(self);
-    if (self->flags.isLightPenEnabled != enabled) {
-        self->flags.isLightPenEnabled = enabled;
-        self->flags.isNewCopperProgNeeded = 1;
-    }
-    Driver_Unlock(self);
-}
-
-// Returns the current position of the light pen if the light pen triggered.
-bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY)
-{
-    CHIPSET_BASE_DECL(cp);
-    bool r = false;
-    
-    Driver_Lock(self);
-
-    // Read VHPOSR first time
-    const uint32_t posr0 = *CHIPSET_REG_32(cp, VPOSR);
-
-
-    // Wait for scanline microseconds
-    const uint32_t hsync0 = chipset_get_hsync_counter();
-    const uint16_t bplcon0 = *CHIPSET_REG_16(cp, BPLCON0);
-    while (chipset_get_hsync_counter() == hsync0);
-    
-
-    // Read VHPOSR a second time
-    const uint32_t posr1 = *CHIPSET_REG_32(cp, VPOSR);
-    
-
-    
-    // Check whether the light pen triggered
-    // See Amiga Reference Hardware Manual p233.
-    if (posr0 == posr1) {
-        if ((posr0 & 0x0000ffff) < 0x10500) {
-            *pPosX = (posr0 & 0x000000ff) << 1;
-            *pPosY = (posr0 & 0x1ff00) >> 8;
-            
-            if ((bplcon0 & BPLCON0F_LACE) != 0 && ((posr0 & 0x8000) != 0)) {
-                // long frame (odd field) is offset in Y by one
-                *pPosY += 1;
-            }
-            r = true;
-        }
-    }
-
-    Driver_Unlock(self);
-
-    return r;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -778,6 +724,62 @@ errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spr
     }
     Driver_Unlock(self);
     return err;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Light Pen
+////////////////////////////////////////////////////////////////////////////////
+
+// Enables / disables the h/v raster position latching triggered by a light pen.
+void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled)
+{
+    Driver_Lock(self);
+    if (self->flags.isLightPenEnabled != enabled) {
+        self->flags.isLightPenEnabled = enabled;
+        self->flags.isNewCopperProgNeeded = 1;
+    }
+    Driver_Unlock(self);
+}
+
+// Returns the current position of the light pen if the light pen triggered.
+bool GraphicsDriver_GetLightPenPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY)
+{
+    CHIPSET_BASE_DECL(cp);
+    bool r = false;
+
+    // Read VHPOSR first time
+    const uint32_t posr0 = *CHIPSET_REG_32(cp, VPOSR);
+
+
+    // Wait for scanline microseconds
+    const uint32_t hsync0 = chipset_get_hsync_counter();
+    const uint16_t bplcon0 = *CHIPSET_REG_16(cp, BPLCON0);
+    while (chipset_get_hsync_counter() == hsync0);
+    
+
+    // Read VHPOSR a second time
+    const uint32_t posr1 = *CHIPSET_REG_32(cp, VPOSR);
+    
+
+    
+    // Check whether the light pen triggered
+    // See Amiga Reference Hardware Manual p233.
+    if (posr0 == posr1) {
+        if ((posr0 & 0x0000ffff) < 0x10500) {
+            *pPosX = (posr0 & 0x000000ff) << 1;
+            *pPosY = (posr0 & 0x1ff00) >> 8;
+            
+            if ((bplcon0 & BPLCON0F_LACE) != 0 && ((posr0 & 0x8000) != 0)) {
+                // long frame (odd field) is offset in Y by one
+                *pPosY += 1;
+            }
+            r = true;
+        }
+    }
+
+    return r;
 }
 
 
