@@ -1,5 +1,5 @@
 //
-//  SpriteDefs.c
+//  sprite_defs.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 9/25/23.
@@ -16,7 +16,7 @@
 #define _ 0
 #define o 1
 
-#if 0
+#if 1
 #define ARROW_BITS_PLANE0 \
 PACK_U16( o,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
 PACK_U16( o,o,o,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
@@ -59,6 +59,7 @@ const uint16_t gArrow_Plane1[] = {
     ARROW_BITS_PLANE1
 };
 #endif
+#if 0
 // XXX designed for use by the mouse painter. Not as a sprite.
 #define ARROW_BITS \
 PACK_U16( o,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
@@ -101,6 +102,7 @@ PACK_U16( _,_,_,_,_,_,o,o,o,_,_,_,_,_,_,_ ),
 const uint16_t gArrow_Mask[] = {
     ARROW_MASK
 };
+#endif
 
 const int gArrow_Width = 16;
 const int gArrow_Height = 16;
