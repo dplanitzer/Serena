@@ -8,10 +8,8 @@
 
 #include "VideoConfiguration.h"
 
-
-// DDIWSTART = specific to mode. See hardware reference manual
-// DDIWSTOP = last 8 bits of pixel position
-static const VideoConfigurationRange gSupportedRanges[] = {
+#define NUM_RANGES  8
+static const _VideoConfigurationRange gSupportedRanges[NUM_RANGES] = {
 // NTSC 320x200 60fps
 {320, 200, 60,
     5, {kPixelFormat_RGB_Indexed1,
@@ -72,28 +70,51 @@ static const VideoConfigurationRange gSupportedRanges[] = {
         kPixelFormat_RGB_Indexed3,
         kPixelFormat_RGB_Indexed4}
 },
-// NULL
-{0, 0, 0, 0},
 };
 
 
 errno_t VideoConfiguration_Validate(const VideoConfiguration* _Nonnull vidCfg, PixelFormat pixelFormat)
 {
-    const VideoConfigurationRange* vcr = gSupportedRanges;
+    for (size_t i = 0; i < NUM_RANGES; i++) {
+        const _VideoConfigurationRange* vcr = &gSupportedRanges[i];
 
-    while (vcr->width > 0) {
         if (vcr->width == vidCfg->width
             && vcr->height == vidCfg->height
             && vcr->fps == vidCfg->fps) {
-            for (int i = 0; i < MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION; i++) {
+            for (int8_t i = 0; i < MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION; i++) {
                 if (vcr->pixelFormat[i] == pixelFormat) {
                     return EOK;
                 }
             }
         }
-
-        vcr++;
     }
 
     return ENOTSUP;
+}
+
+errno_t VideoConfiguration_GetNext(VideoConfigurationRange* _Nonnull config, size_t bufSize, size_t* _Nonnull pIter)
+{
+    size_t iter = *pIter;
+
+    if (iter >= NUM_RANGES) {
+        return ERANGE;
+    }
+
+    const _VideoConfigurationRange* vcr = &gSupportedRanges[iter++];
+    const size_t nBytesNeeded = sizeof(VideoConfigurationRange) + (vcr->pixelFormatCount - 1) * sizeof(PixelFormat);
+
+    if (nBytesNeeded > bufSize) {
+        return ENOSPC;
+    }
+
+    config->width = vcr->width;
+    config->height = vcr->height;
+    config->fps = vcr->fps;
+    config->pixelFormatCount = vcr->pixelFormatCount;
+    for (int8_t i = 0 ; i < vcr->pixelFormatCount; i++) {
+        config->pixelFormat[i] = vcr->pixelFormat[i];
+    }
+    
+    *pIter = iter;
+    return EOK;
 }

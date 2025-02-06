@@ -39,13 +39,13 @@
 #define MAX_LORES_WIDTH     368
 
 
-typedef struct VideoConfigurationRange {
+typedef struct _VideoConfigurationRange {
     int16_t     width;
     int16_t     height;
     int8_t      fps;
     int8_t      pixelFormatCount;   // Number of supported pixel formats
     PixelFormat pixelFormat[MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION];
-} VideoConfigurationRange;
+} _VideoConfigurationRange;
 
 
 
@@ -72,5 +72,6 @@ typedef struct VideoConfigurationRange {
 
 
 extern errno_t VideoConfiguration_Validate(const VideoConfiguration* _Nonnull vidCfg, PixelFormat pixelFormat);
+extern errno_t VideoConfiguration_GetNext(VideoConfigurationRange* _Nonnull config, size_t bufSize, size_t* _Nonnull pIter);
 
 #endif /* VideoConfiguration_h */

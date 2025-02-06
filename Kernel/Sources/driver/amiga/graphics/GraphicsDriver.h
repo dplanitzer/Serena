@@ -70,4 +70,8 @@ extern errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, co
 extern void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y);
 extern void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int x, int y);
 
+
+// Introspection
+extern errno_t GraphicsDriver_GetVideoConfigurationRange(GraphicsDriverRef _Nonnull self, VideoConfigurationRange* _Nonnull config, size_t bufSize, size_t* _Nonnull pIter);
+
 #endif /* GraphicsDriver_h */

@@ -121,6 +121,10 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, int cmd, va_list a
         case kFBCommand_UpdateDisplay:
             return GraphicsDriver_UpdateDisplay(self);
 
+
+        case kFBCommand_GetVideoConfigurationRange:
+            return GraphicsDriver_GetVideoConfigurationRange(self, va_arg(ap, VideoConfigurationRange*), va_arg(ap, size_t), va_arg(ap, size_t*));
+
         default:
             return super_n(ioctl, Driver, GraphicsDriver, self, cmd, ap);
     }
@@ -820,6 +824,20 @@ void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef
     const int16_t sprY = self->mouseCursorRectY + (y16 >> self->mouseCursorScaleY);
 
     Sprite_SetPosition(self->mouseCursor, sprX, sprY);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Mouse Cursor
+////////////////////////////////////////////////////////////////////////////////
+
+errno_t GraphicsDriver_GetVideoConfigurationRange(GraphicsDriverRef _Nonnull self, VideoConfigurationRange* _Nonnull config, size_t bufSize, size_t* _Nonnull pIter)
+{
+    Driver_Lock(self);
+    const errno_t err = VideoConfiguration_GetNext(config, bufSize, pIter);
+    Driver_Unlock(self);
+    return err;
 }
 
 
