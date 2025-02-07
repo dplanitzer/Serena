@@ -61,7 +61,6 @@ catch:
 errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize)
 {
     decl_try_err();
-    ResolvedPath rp_container;
     ResolvedPath rp_atDir;
     FilesystemRef fs = NULL;
 
@@ -82,9 +81,6 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const ch
         case kMount_Disk:
             // Note that this call takes ownership of the inode reference
             err = discover_and_start_disk_fs(self, containerPath, params, paramsSize, &fs);
-            if (err == EOK) {
-                rp_container.inode = NULL;
-            }
             break;
 
         case kMount_DriverCatalog:
