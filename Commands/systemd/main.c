@@ -20,14 +20,15 @@ static _Noreturn halt_machine(void)
     /* NOT REACHED */
 }
 
-static errno_t start_proc(const char* _Nonnull procPath)
+static errno_t start_proc(const char* _Nonnull procPath, const char* _Nonnull arg1)
 {
     decl_try_err();
     SpawnOptions opts = {0};
-    const char* argv[2];
+    const char* argv[3];
 
     argv[0] = procPath;
-    argv[1] = NULL;
+    argv[1] = arg1;
+    argv[2] = NULL;
 
     // Spawn the process
     try(Process_Spawn(procPath, argv, &opts, NULL));
@@ -46,12 +47,12 @@ void main_closure(int argc, char *argv[])
 
 
     // Startup login
-    err = start_proc("/System/Commands/login");
+    err = start_proc("/System/Commands/login", "/System/Devices/console");
     if (err != EOK) {
         fputs("Error: ", stdout);
         puts(strerror(err));
         halt_machine();
     }
-    puts("ab");
+
     // Don't exit
 }

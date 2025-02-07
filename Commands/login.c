@@ -133,6 +133,13 @@ void main_closure(int argc, char *argv[])
 {
     int fd;
 
+    // login <termPath>
+    if (argc < 2) {
+        exit(EXIT_FAILURE);
+        /* NOT REACHED */
+    }
+    const char* termPath = argv[1];
+
 
     // Just exit if the console channels already exist, which means that the
     // user is already logged in
@@ -143,9 +150,9 @@ void main_closure(int argc, char *argv[])
 
 
     // Open the console and initialize stdin, stdout and stderr
-    File_Open("/System/Devices/console", kOpen_Read, &fd);
-    File_Open("/System/Devices/console", kOpen_Write, &fd);
-    File_Open("/System/Devices/console", kOpen_Write, &fd);
+    File_Open(termPath, kOpen_Read, &fd);
+    File_Open(termPath, kOpen_Write, &fd);
+    File_Open(termPath, kOpen_Write, &fd);
 
     fdreopen(kIOChannel_Stdin, "r", stdin);
     fdreopen(kIOChannel_Stdout, "w", stdout);

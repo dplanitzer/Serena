@@ -11,12 +11,12 @@
 #include <System/_varargs.h>
 
 
-errno_t Mount(const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize)
+errno_t Mount(MountType type, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize)
 {
-    return (errno_t)_syscall(SC_mount, containerPath, atDirPath, params, paramsSize);
+    return (errno_t)_syscall(SC_mount, type, containerPath, atDirPath, params, paramsSize);
 }
 
-errno_t Unmount(const char* _Nonnull atDirPath, uint32_t options)
+errno_t Unmount(const char* _Nonnull atDirPath, UnmountOptions options)
 {
     return (errno_t)_syscall(SC_unmount, atDirPath, options);
 }
