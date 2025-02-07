@@ -47,7 +47,12 @@ typedef struct ProcessArguments {
 
 // The new process should use the provided group id rather than the parent process
 // group id. Parent process must be the superuser (XXX for now).
-#define kSpawn_OverrideGroupId       0x0004
+#define kSpawn_OverrideGroupId      0x0004
+
+// Tells the kernel that it should notify the parent process when the child
+// process terminates for some reason. The parent process must specify a
+// dispatch queue and closure.
+#define kSpawn_NotifyOnProcessTermination   0x0008
 
 
 // The 'envp' pointer points to a table of nul-terminated strings of the form
@@ -63,7 +68,7 @@ typedef struct SpawnOptions {
     FilePermissions                     umask;                  // Override umask
     UserId                              uid;                    // Override user ID
     GroupId                             gid;                    // Override group ID
-    int                                 notificationQueue;      // If >= 0 then this queue will receive termination notifications
+    int                                 notificationQueue;      // If kSpawn_NotifyOnProcessTermination is set, then this queue will receive termination notifications
     Dispatch_Closure _Nullable          notificationClosure;
     void* _Nullable                     notificationContext;
     uint32_t                            options;

@@ -24,7 +24,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
     }
 
 
-    if (so.notificationQueue >= 0 && so.notificationClosure) {
+    if ((so.options & kSpawn_NotifyOnProcessTermination) == kSpawn_NotifyOnProcessTermination && so.notificationQueue >= 0 && so.notificationClosure) {
         UDispatchQueueRef pQueue;
 
         if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, so.notificationQueue, UDispatchQueue, &pQueue)) == EOK) {

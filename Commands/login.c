@@ -58,7 +58,7 @@ static errno_t start_shell(const char* _Nonnull shellPath, const char* _Nonnull 
     opts.notificationQueue = kDispatchQueue_Main;
     opts.notificationClosure = (Dispatch_Closure)on_shell_termination;
     opts.notificationContext = NULL;
-    opts.options = kSpawn_OverrideUserId | kSpawn_OverrideGroupId | kSpawn_OverrideUserMask;
+    opts.options = kSpawn_OverrideUserId | kSpawn_OverrideGroupId | kSpawn_OverrideUserMask | kSpawn_NotifyOnProcessTermination;
 
 
     // Spawn the shell
