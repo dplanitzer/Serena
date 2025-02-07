@@ -44,7 +44,6 @@ static char* _Nullable env_alloc(const char* _Nonnull key, const char* _Nonnull 
 static errno_t start_shell(const char* _Nonnull shellPath, const char* _Nonnull homePath)
 {
     decl_try_err();
-    ProcessTerminationStatus pts;
     SpawnOptions opts = {0};
     char* argv[1] = { NULL };
     char* envp[2] = { NULL, NULL };
@@ -85,6 +84,8 @@ static void login_user(void)
     decl_try_err();
     const char* homePath = "/Users/admin";
     const char* shellPath = "/System/Commands/shell";
+
+    puts("Logging in...");
 
     // Make the current directory the user's home directory
     Process_SetWorkingDirectory(homePath);

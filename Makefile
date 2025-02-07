@@ -115,6 +115,11 @@ SH_OBJS_DIR := $(OBJS_DIR)/Commands/shell
 SH_FILE := $(SH_OBJS_DIR)/shell
 
 
+SYSTEMD_PROJECT_DIR := $(WORKSPACE_DIR)/Commands/systemd
+SYSTEMD_OBJS_DIR := $(OBJS_DIR)/Commands/systemd
+SYSTEMD_FILE := $(SYSTEMD_OBJS_DIR)/systemd
+
+
 CMDS_PROJECT_DIR := $(WORKSPACE_DIR)/Commands
 CMDS_OBJS_DIR := $(OBJS_DIR)/Commands
 LOGIN_FILE := $(CMDS_OBJS_DIR)/login
@@ -160,6 +165,7 @@ include $(KERNEL_PROJECT_DIR)/project.mk
 include $(KERNEL_TESTS_PROJECT_DIR)/project.mk
 
 include $(SH_PROJECT_DIR)/project.mk
+include $(SYSTEMD_PROJECT_DIR)/project.mk
 include $(CMDS_PROJECT_DIR)/project.mk
 
 
@@ -181,7 +187,7 @@ build-rom: $(ROM_FILE)
 build-boot-dmg: $(BOOT_DMG_FILE)
 
 
-$(BOOT_DMG_FILE): $(LOGIN_FILE) $(SH_FILE) $(TYPE_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
+$(BOOT_DMG_FILE): $(LOGIN_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(TYPE_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
 	@echo Making boot_disk.adf
 	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DMG_FILE)
 	$(DISKIMAGE) format sefs $(BOOT_DMG_FILE)
@@ -189,6 +195,7 @@ $(BOOT_DMG_FILE): $(LOGIN_FILE) $(SH_FILE) $(TYPE_FILE) $(KERNEL_TESTS_FILE) | $
 	$(DISKIMAGE) makedir -p /Users $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -p /System/Commands $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -p /System/Devices $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(SYSTEMD_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(LOGIN_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(SH_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/ $(BOOT_DMG_FILE)

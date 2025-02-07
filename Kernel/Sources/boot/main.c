@@ -193,8 +193,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
 
     // Get the root process going
-    printf("Starting login...\n");
-    try(RootProcess_Exec(pRootProc, "/System/Commands/login"));
+    try(RootProcess_Exec(pRootProc, "/System/Commands/systemd"));
 
     
     // The boot virtual processor now takes over the duties of running the
