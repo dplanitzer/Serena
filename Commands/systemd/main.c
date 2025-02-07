@@ -24,8 +24,10 @@ static errno_t start_proc(const char* _Nonnull procPath)
 {
     decl_try_err();
     SpawnOptions opts = {0};
-    char* argv[1] = { NULL };
+    const char* argv[2];
 
+    argv[0] = procPath;
+    argv[1] = NULL;
 
     // Spawn the process
     try(Process_Spawn(procPath, argv, &opts, NULL));

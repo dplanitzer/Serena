@@ -45,9 +45,12 @@ static errno_t start_shell(const char* _Nonnull shellPath, const char* _Nonnull 
 {
     decl_try_err();
     SpawnOptions opts = {0};
-    char* argv[1] = { NULL };
-    char* envp[2] = { NULL, NULL };
+    const char* argv[2];
+    const char* envp[2];
     
+    argv[0] = shellPath;
+    argv[1] = NULL;
+
     envp[0] = env_alloc("HOME", homePath);
     envp[1] = NULL;
 
