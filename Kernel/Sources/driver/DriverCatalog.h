@@ -16,7 +16,7 @@ extern DriverCatalogRef _Nonnull  gDriverCatalog;
 extern errno_t DriverCatalog_Create(DriverCatalogRef _Nullable * _Nonnull pOutSelf);
 extern void DriverCatalog_Destroy(DriverCatalogRef _Nullable self);
 
-extern DevFSRef _Nonnull DriverCatalog_GetDevicesFilesystem(DriverCatalogRef _Nonnull self);
+extern FilesystemRef _Nullable DriverCatalog_CopyChapterFilesystem(DriverCatalogRef _Nonnull self, const char* _Nonnull chapterName);
 
 // Publish the driver instance 'driver' with the name 'name' as a child of the
 // bus directory 'busCatalogId', in the driver catalog. The device is published

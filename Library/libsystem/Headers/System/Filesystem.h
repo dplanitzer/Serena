@@ -15,9 +15,17 @@
 
 __CPP_BEGIN
 
-enum UnmountOptions {
-    kUnmount_Forced = 1,    // Force the unmount even if there are still files open
+enum {
+    kMount_Disk,            // 'containerPath' is a disk device path
+    kMount_DriverCatalog,   // 'containerPath' is a driver catalog chapter name ("topology", ...)
 };
+typedef int MountType;
+
+
+enum {
+    kUnmount_Forced = 0x0001,   // Force the unmount even if there are still files open
+};
+typedef unsigned int UnmountOptions;
 
 
 #if !defined(__KERNEL__)
@@ -25,10 +33,10 @@ enum UnmountOptions {
 // Mounts the filesystem stored in the container at 'containerPath' at the
 // directory 'atDirPath'. 'params' are optional mount parameters that are passed
 // to the filesystem to mount.
-extern errno_t Mount(const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize);
+extern errno_t Mount(MountType type, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize);
 
 // Unmounts the filesystem mounted at the directory 'atDirPath'.
-extern errno_t Unmount(const char* _Nonnull atDirPath, uint32_t options);
+extern errno_t Unmount(const char* _Nonnull atDirPath, UnmountOptions options);
 
 #endif /* __KERNEL__ */
 

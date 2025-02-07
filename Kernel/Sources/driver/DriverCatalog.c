@@ -59,9 +59,14 @@ void DriverCatalog_Destroy(DriverCatalogRef _Nullable self)
     }
 }
 
-DevFSRef _Nonnull DriverCatalog_GetDevicesFilesystem(DriverCatalogRef _Nonnull self)
+FilesystemRef _Nullable DriverCatalog_CopyChapterFilesystem(DriverCatalogRef _Nonnull self, const char* _Nonnull chapterName)
 {
-    return self->devfs;
+    if (String_Equals(chapterName, "topology")) {
+        return Object_RetainAs(self->devfs, Filesystem);
+    }
+    else {
+        return NULL;
+    }
 }
 
 static errno_t DriverCatalog_AcquireBusDirectory(DriverCatalogRef _Nonnull self, DriverCatalogId busCatalogId, InodeRef _Nullable * _Nonnull pOutDir)

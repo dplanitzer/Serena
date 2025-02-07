@@ -19,6 +19,7 @@
 #include <System/Disk.h>
 #include <System/Error.h>
 #include <System/File.h>
+#include <System/Filesystem.h>
 #include <System/FilePermissions.h>
 #include <System/Framebuffer.h>
 #include <System/HID.h>

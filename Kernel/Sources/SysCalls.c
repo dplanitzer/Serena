@@ -13,6 +13,7 @@
 #include <hal/MonotonicClock.h>
 #include <process/Process.h>
 #include <System/Disk.h>
+#include <System/Filesystem.h>
 #include "User.h"
 
 typedef intptr_t (*SystemCall)(void* _Nonnull);
@@ -479,16 +480,16 @@ SYSCALL_2(waitpid, ProcessId pid, ProcessTerminationStatus* _Nullable pOutStatus
     return Process_WaitForTerminationOfChild(Process_GetCurrent(), pArgs->pid, pArgs->pOutStatus);
 }
 
-SYSCALL_4(mount, const char* _Nullable containerPath, const char* _Nullable atDirPath, const void* _Nullable params, size_t paramsSize)
+SYSCALL_5(mount, MountType type, const char* _Nullable containerPath, const char* _Nullable atDirPath, const void* _Nullable params, size_t paramsSize)
 {
     if (pArgs->containerPath == NULL || pArgs->atDirPath == NULL) {
         return EINVAL;
     }
 
-    return Process_Mount(Process_GetCurrent(), pArgs->containerPath, pArgs->atDirPath, pArgs->params, pArgs->paramsSize);
+    return Process_Mount(Process_GetCurrent(), pArgs->type, pArgs->containerPath, pArgs->atDirPath, pArgs->params, pArgs->paramsSize);
 }
 
-SYSCALL_2(unmount, const char* _Nullable atDirPath, uint32_t options)
+SYSCALL_2(unmount, const char* _Nullable atDirPath, UnmountOptions options)
 {
     if (pArgs->atDirPath == NULL) {
         return EINVAL;

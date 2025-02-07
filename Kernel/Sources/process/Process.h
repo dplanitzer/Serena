@@ -12,6 +12,7 @@
 #include <klib/klib.h>
 #include <kobj/Object.h>
 #include <System/File.h>
+#include <System/Filesystem.h>
 #include <System/Process.h>
 #include <User.h>
 
@@ -249,8 +250,8 @@ extern errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, c
 // Filesystems
 //
 
-extern errno_t Process_Mount(ProcessRef _Nonnull self, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize);
+extern errno_t Process_Mount(ProcessRef _Nonnull self, MountType type, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize);
 
-extern errno_t Process_Unmount(ProcessRef _Nonnull self, const char* _Nonnull atDirPath, uint32_t options);
+extern errno_t Process_Unmount(ProcessRef _Nonnull self, const char* _Nonnull atDirPath, UnmountOptions options);
 
 #endif /* Process_h */

@@ -12,6 +12,7 @@
 #include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverCatalog.h>
 #include <driver/disk/DiskDriver.h>
+#include <filemanager/FileHierarchy.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/IOChannel.h>
 
@@ -182,4 +183,28 @@ FilesystemRef _Nullable create_boot_filesystem(void)
     }
 
     return fs;
+}
+
+// Creates the root file hierarchy based on the detected boot filesystem. Halts
+// the machine if anything goes wrong.
+FileHierarchyRef _Nonnull create_root_file_hierarchy(void)
+{
+    decl_try_err();
+    FilesystemRef fs;
+    FileHierarchyRef fh;
+
+    fs = create_boot_filesystem();
+    if (fs == NULL) {
+        printf("No boot device found.\nHalting...\n");
+        while(true);
+        /* NOT REACHED */
+    }
+
+    try(FileHierarchy_Create(fs, &fh));
+    return fh;
+
+catch:
+    printf("Unable to boot (%d).\nHalting...\n", err);
+    while(true);
+    /* NOT REACHED */
 }

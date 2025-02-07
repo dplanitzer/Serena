@@ -12,6 +12,7 @@
 #include <klib/klib.h>
 #include <kobj/Object.h>
 #include <System/File.h>
+#include <System/Filesystem.h>
 #include <User.h>
 
 
@@ -125,9 +126,9 @@ extern errno_t FileManager_Rename(FileManagerRef _Nonnull self, const char* pOld
 // Filesystems
 //
 #ifndef __DISKIMAGE__
-extern errno_t FileManager_Mount(FileManagerRef _Nonnull self, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize);
+extern errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize);
 
-extern errno_t FileManager_Unmount(FileManagerRef _Nonnull self, const char* _Nonnull atDirPath, uint32_t options);
+extern errno_t FileManager_Unmount(FileManagerRef _Nonnull self, const char* _Nonnull atDirPath, UnmountOptions options);
 #endif  /* __DISKIMAGE__ */
 
 
