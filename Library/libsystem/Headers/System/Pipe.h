@@ -12,6 +12,7 @@
 #include <System/_cmndef.h>
 #include <System/_syslimits.h>
 #include <System/Error.h>
+#include <System/IOChannel.h>
 #include <System/Types.h>
 
 __CPP_BEGIN

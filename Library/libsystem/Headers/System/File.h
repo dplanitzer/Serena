@@ -13,6 +13,7 @@
 #include <System/_syslimits.h>
 #include <System/Error.h>
 #include <System/FilePermissions.h>
+#include <System/IOChannel.h>
 #include <System/TimeInterval.h>
 #include <System/Types.h>
 

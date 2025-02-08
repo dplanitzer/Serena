@@ -57,6 +57,7 @@ extern lldiv_t lldiv(long long x, long long y);
 
 extern void srand(unsigned int seed);
 extern int rand(void);
+extern int rand_r(unsigned int *seed);
 
 
 extern void* bsearch(const void *key, const void *values, size_t count, size_t size,

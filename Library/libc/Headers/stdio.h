@@ -24,6 +24,10 @@ __CPP_BEGIN
 #define FILENAME_MAX __PATH_MAX
 #define BUFSIZ  4096
 
+#define P_tmpdir "/tmp"
+#define L_tmpnam 256
+#define TMP_MAX 0x7fffffff
+
 #define _IONBF  0
 #define _IOLBF  1
 #define _IOFBF  2
@@ -177,6 +181,11 @@ extern void perror(const char *str);
 
 extern int remove(const char* path);
 extern int rename(const char* oldpath, const char* newpath);
+
+extern char *tmpnam(char *filename);
+extern char *tmpnam_r(char *filename);
+
+extern FILE *tmpfile(void);
 
 __CPP_END
 
