@@ -318,6 +318,14 @@ The variable ceases to exist at the end of the current scope.
 * `var_name`: a variable name
 * `expr`: an expression that is evaluated to calculate the value that should be assigned to the variable
 
+## `vars`
+
+Lists all variables defined in the current scope. Local (internal) variables are listed first and public (environment) variables are listed second.
+
+### Signature
+
+`vars`
+
 ## `while`
 
 Defines a while loop that executes its loop body as long as the conditional expression continues to evaluate to true. Once the conditional expression evaluates to false, the loop ends and execution continues with the first expression that follows the loop body.

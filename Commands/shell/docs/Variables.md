@@ -97,3 +97,7 @@ public var $X = "Hello"
 Note that environment variables use all uppercase letters by convention.
 
 Environment variables are scoped just like internal variables are. This means that an environment variable ceases to exist in the shell process at the point where the scope in which it is declared ends. Note however that since each child process receives a copy of all environment variables when it starts up, that the copy of the variable continues to exist inside a child process as long as the child process does not exit.
+
+## Listing Variables
+
+You can list all the variables accessible in the current scope with the help of the `vars` command. It shows the name and values of internal and public variables defined in the current scope and all parent scopes.

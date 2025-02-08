@@ -105,6 +105,11 @@ void Interpreter_Destroy(InterpreterRef _Nullable self)
     }
 }
 
+errno_t Interpreter_IterateVariables(InterpreterRef _Nonnull self, RunStackIterator _Nonnull cb, void* _Nullable context)
+{
+    return RunStack_Iterate(self->runStack, cb, context);
+}
+
 // Returns the number of entries that currently exist in the history.
 int Interpreter_GetHistoryCount(InterpreterRef _Nonnull self)
 {
@@ -141,6 +146,7 @@ static errno_t Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self)
     try(NameTable_DeclareName(self->nameTable, "save", cmd_save));
     try(NameTable_DeclareName(self->nameTable, "shutdown", cmd_shutdown));
     try(NameTable_DeclareName(self->nameTable, "uptime", cmd_uptime));
+    try(NameTable_DeclareName(self->nameTable, "vars", cmd_vars));
 
 catch:
     return err;

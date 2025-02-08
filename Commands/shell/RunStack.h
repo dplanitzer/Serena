@@ -47,7 +47,7 @@ typedef struct RunStack {
 } RunStack;
 
 
-typedef errno_t (*RunStackIterator)(void* _Nullable context, const Variable* _Nonnull value, int level, bool* _Nonnull pOutDone);
+typedef errno_t (*RunStackIterator)(void* _Nullable context, const Variable* _Nonnull v, int level, bool* _Nonnull pOutDone);
 
 
 extern errno_t RunStack_Create(RunStack* _Nullable * _Nonnull pOutSelf);

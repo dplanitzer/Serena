@@ -51,6 +51,8 @@ extern errno_t Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnul
 // For use by command callbacks
 //
 
+extern errno_t Interpreter_IterateVariables(InterpreterRef _Nonnull self, RunStackIterator _Nonnull cb, void* _Nullable context);
+
 extern int Interpreter_GetHistoryCount(InterpreterRef _Nonnull self);
 extern const char* _Nonnull Interpreter_GetHistoryAt(InterpreterRef _Nonnull self, int idx);
 

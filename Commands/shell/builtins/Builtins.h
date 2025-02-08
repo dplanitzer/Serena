@@ -41,5 +41,6 @@ extern int cmd_rename(struct Interpreter* _Nonnull ip, int argc, char** argv, ch
 extern int cmd_save(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_shutdown(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_uptime(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_vars(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 
 #endif  /* Builtins_h */
