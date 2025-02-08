@@ -42,8 +42,3 @@ int fputc(int ch, FILE *s)
 
     return r;
 }
-
-int putchar(int ch)
-{
-    return putc(ch, stdout);
-}

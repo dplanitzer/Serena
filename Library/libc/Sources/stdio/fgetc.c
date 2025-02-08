@@ -42,8 +42,3 @@ int fgetc(FILE *s)
 
     return r;
 }
-
-int getchar(void)
-{
-    return getc(stdin);
-}
