@@ -26,7 +26,7 @@ __CPP_BEGIN
 
 #define P_tmpdir "/tmp"
 #define L_tmpnam 256
-#define TMP_MAX 0x7fffffff
+#define TMP_MAX 0x7ffffffe
 
 #define _IONBF  0
 #define _IOLBF  1
