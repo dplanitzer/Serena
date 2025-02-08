@@ -42,12 +42,12 @@ void main_closure(int argc, char *argv[])
     decl_try_err();
 
     
-    // Mount devfs.topology at /System/Devices
-    Mount(kMount_DriverCatalog, "topology", "/System/Devices", NULL, 0);
+    // Mount devfs.topology at /dev
+    Mount(kMount_DriverCatalog, "topology", "/dev", NULL, 0);
 
 
     // Startup login
-    err = start_proc("/System/Commands/login", "/System/Devices/console");
+    err = start_proc("/System/Commands/login", "/dev/console");
     if (err != EOK) {
         fputs("Error: ", stdout);
         puts(strerror(err));
