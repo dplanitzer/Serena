@@ -46,15 +46,16 @@ static errno_t start_shell(const char* _Nonnull shellPath, const char* _Nonnull 
     decl_try_err();
     SpawnOptions opts = {0};
     const char* argv[2];
-    const char* envp[4];
+    const char* envp[5];
     
     argv[0] = shellPath;
     argv[1] = NULL;
 
     envp[0] = env_alloc("HOME", homePath);
-    envp[1] = env_alloc("TMPDIR", "/tmp");
+    envp[1] = env_alloc("SHELL", shellPath);
     envp[2] = env_alloc("TERM", "vt100");
-    envp[3] = NULL;
+    envp[3] = env_alloc("TMPDIR", "/tmp");
+    envp[4] = NULL;
 
     opts.envp = envp;
     opts.umask = 0022;  // XXX hardcoded for now
