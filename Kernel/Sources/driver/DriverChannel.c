@@ -39,15 +39,12 @@ errno_t DriverChannel_finalize(DriverChannelRef _Nonnull self)
 
 void DriverChannel_lock(DriverChannelRef _Nonnull self)
 {
-    // XXX disabled for now because the unlock does sometimes trap an ownership
-    // XXX violation error. Ignoring it leads to a perma locked stdin
-//  try_bang(Lock_Lock(&self->lock));
+  try_bang(Lock_Lock(&self->lock));
 }
 
 void DriverChannel_unlock(DriverChannelRef _Nonnull _Locked self)
 {
-    // XXX see above
-//  try_bang(Lock_Unlock(&self->lock));
+  try_bang(Lock_Unlock(&self->lock));
 }
 
 errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull _Locked self, int cmd, va_list ap)
