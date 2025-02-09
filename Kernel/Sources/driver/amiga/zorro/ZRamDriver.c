@@ -38,6 +38,6 @@ errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)
     return err;
 }
 
-class_func_defs(ZRamDriver, Driver,
+class_func_defs(ZRamDriver, ZorroDriver,
 override_func_def(onStart, ZRamDriver, Driver)
 );

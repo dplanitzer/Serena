@@ -12,9 +12,9 @@
 #include "ZorroDriver.h"
 
 
-open_class(ZRamDriver, Driver,
+open_class(ZRamDriver, ZorroDriver,
 );
-open_class_funcs(ZRamDriver, Driver,
+open_class_funcs(ZRamDriver, ZorroDriver,
 );
 
 extern errno_t ZRamDriver_Create(DriverRef _Nullable parent, const ZorroConfiguration* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf);
