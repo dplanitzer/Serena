@@ -156,6 +156,10 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     cpu_enable_irqs();
 
     
+    // Initialize the kernel logging package 
+    log_init();
+
+
     // Create the driver catalog
     try_bang(DriverCatalog_Create(&gDriverCatalog));
 

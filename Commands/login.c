@@ -45,11 +45,12 @@ static errno_t start_shell(const char* _Nonnull shellPath, const char* _Nonnull 
 {
     decl_try_err();
     SpawnOptions opts = {0};
-    const char* argv[2];
+    const char* argv[3];
     const char* envp[5];
     
     argv[0] = shellPath;
-    argv[1] = NULL;
+    argv[1] = "-l";
+    argv[2] = NULL;
 
     envp[0] = env_alloc("HOME", homePath);
     envp[1] = env_alloc("SHELL", shellPath);
@@ -91,7 +92,9 @@ static void login_user(void)
     const char* homePath = "/Users/admin";
     const char* shellPath = "/System/Commands/shell";
 
-    puts("Logging in...");
+    puts("Login: admin");
+    puts("Password:\n");
+    puts("Logging in...\n");
 
     // Make the current directory the user's home directory
     Process_SetWorkingDirectory(homePath);
@@ -162,6 +165,9 @@ void main_closure(int argc, char *argv[])
     fdreopen(kIOChannel_Stderr, "w", stderr);
 
 
+    printf("\033[36mSerena OS v0.4.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
+
+    
     // Log the user in and then return from our closure. Our VP will be moved
     // over to the shell and run the shell until it exits. Our 'on_shell_termination'
     // closure will get invoked when the shell exits.

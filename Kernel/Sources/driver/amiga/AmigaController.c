@@ -140,10 +140,6 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)console));
 
 
-    // Let the kernel know that the console is now available
-    PlatformController_NoteConsoleAvailable((PlatformControllerRef)self);
-
-
     // Floppy Bus
     FloppyControllerRef fdc = NULL;
     try(FloppyController_Create((DriverRef)self, &fdc));

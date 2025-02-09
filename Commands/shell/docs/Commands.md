@@ -245,11 +245,12 @@ If a string is provided as the last argument to the shell then this string is in
 
 ### Signature
 
-`shell [-c | --command] [string]`
+`shell [-c | --command] [-l | --login] [string]`
 
 ### Switches
 
 * `--command, -c`: tells the shell that it should interpret the provided string as a command and execute it
+* `--login, -l`: tells the shell that it is the login shell
 
 ### Parameters
 

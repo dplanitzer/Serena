@@ -12,14 +12,11 @@
 #include <klib/Error.h>
 #include <klib/Types.h>
 
-
 struct Formatter;
-typedef struct Formatter* FormatterRef;
 
 
-// Writes 'nbytes' bytes from 'pBuffer' to the sink. Returns one of the EXX
-// constants.
-typedef errno_t (*Formatter_SinkFunc)(FormatterRef _Nonnull self, const char * _Nonnull pBuffer, ssize_t nBytes);
+// Writes 'nbytes' bytes from 'pBuffer' to the sink.
+typedef void (*Formatter_Sink)(struct Formatter* _Nonnull self, const char * _Nonnull pBuffer, ssize_t nBytes);
 
 #define LENGTH_MODIFIER_hh      0
 #define LENGTH_MODIFIER_h       1
@@ -29,7 +26,7 @@ typedef errno_t (*Formatter_SinkFunc)(FormatterRef _Nonnull self, const char * _
 #define LENGTH_MODIFIER_z       6
 
 // <https://en.cppreference.com/w/c/io/fprintf>
-typedef struct ConversionSpec {
+struct ConversionSpec {
     int     minimumFieldWidth;
     int     precision;
     struct Flags {
@@ -38,22 +35,18 @@ typedef struct ConversionSpec {
         unsigned int hasPrecision:1;
     }       flags;
     int8_t    lengthModifier;
-} ConversionSpec;
+};
 
 
-typedef struct Formatter {
-    Formatter_SinkFunc _Nonnull sink;
-    void* _Nullable             context;
-    ssize_t                     charactersWritten;
-    ssize_t                     bufferCount;
-    ssize_t                     bufferCapacity;
-    char* _Nonnull              buffer;
-    char                        digits[DIGIT_BUFFER_CAPACITY];
-} Formatter;
+struct Formatter {
+    Formatter_Sink _Nonnull sink;
+    void* _Nullable         context;
+    ssize_t                 charactersWritten;
+    char                    digits[DIGIT_BUFFER_CAPACITY];
+};
 
 
-extern void Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSinkFunc, void * _Nullable pContext, char* _Nonnull pBuffer, int bufferCapacity);
-
-extern errno_t Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap);
+extern void Formatter_Init(struct Formatter* _Nonnull self, Formatter_Sink _Nonnull sink, void * _Nullable ctx);
+extern void Formatter_vFormat(struct Formatter* _Nonnull self, const char* _Nonnull format, va_list ap);
 
 #endif  /* Formatter_h */

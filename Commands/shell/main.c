@@ -16,6 +16,7 @@
 
 static clap_string_array_t arg_strings = {NULL, 0};
 static bool arg_isCommand = false;
+static bool arg_isLogin = false;
 
 static CLAP_DECL(params,
     CLAP_VERSION("1.0"),
@@ -23,6 +24,7 @@ static CLAP_DECL(params,
     CLAP_USAGE("shell [path ...]"),
 
     CLAP_BOOL('c', "command", &arg_isCommand, "tells the shell to interpret the provided string as a command"),
+    CLAP_BOOL('l', "login", &arg_isLogin, "tells the shell that it is the login shell"),
     CLAP_VARARG(&arg_strings)
 );
 
@@ -41,7 +43,9 @@ void main_closure(int argc, char *argv[])
             // XXX disabled insertion mode for now because the line reader doesn't support
             // XXX it properly yet
             //printf("\033[4h");  // Switch the console to insert mode
-            fputs("\n\033[36mSerena Shell v0.4.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n", stdout);
+            if (!arg_isLogin) {
+                fputs("\n\033[36mSerena Shell v0.4.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n", stdout);
+            }
 
             err = Shell_Run(sh);
         }

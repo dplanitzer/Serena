@@ -9,74 +9,41 @@
 #include "Formatter.h"
 
 
-void Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSinkFunc, void * _Nullable pContext, char* _Nonnull pBuffer, int bufferCapacity)
+void Formatter_Init(struct Formatter* _Nonnull self, Formatter_Sink _Nonnull sink, void * _Nullable ctx)
 {
-    self->sink = pSinkFunc;
-    self->context = pContext;
+    self->sink = sink;
+    self->context = ctx;
     self->charactersWritten = 0;
-    self->buffer = pBuffer;
-    self->bufferCapacity = bufferCapacity;
-    self->bufferCount = 0;
 }
 
-static errno_t Formatter_Flush(FormatterRef _Nonnull self)
+static void Formatter_WriteChar(struct Formatter* _Nonnull self, char ch)
 {
-    decl_try_err();
-
-    if (self->bufferCount > 0) {
-        try(self->sink(self, self->buffer, self->bufferCount));
-        self->bufferCount = 0;
-    }
-
-catch:
-    return err;
-}
-
-static errno_t Formatter_WriteChar(FormatterRef _Nonnull self, char ch)
-{
-    decl_try_err();
-
-    if (self->bufferCount == self->bufferCapacity) {
-        try(Formatter_Flush(self));
-    }
-    self->buffer[self->bufferCount++] = ch;
+    self->sink(self, &ch, 1);
     self->charactersWritten++;
-
-catch:
-    return err;
 }
 
-static errno_t Formatter_WriteString(FormatterRef _Nonnull self, const char * _Nonnull str, ssize_t maxChars)
+static void Formatter_WriteString(struct Formatter* _Nonnull self, const char * _Nonnull str, ssize_t maxChars)
 {
-    decl_try_err();
+    const char* p = str;
+    size_t len = 0;
 
-    while (maxChars-- > 0) {
-        const char ch = *str++;
-
-        if (ch != '\0') {
-            try(Formatter_WriteChar(self, ch));
-        } else {
-            break;
-        }
+    while (*p++ != '\0' && maxChars-- > 0) {
+        len++;
     }
 
-catch:
-    return err;
+    self->sink(self, str, len);
+    self->charactersWritten += len;
 }
 
-static errno_t Formatter_WriteRepChar(FormatterRef _Nonnull self, char ch, int count)
+static void Formatter_WriteRepChar(struct Formatter* _Nonnull self, char ch, int count)
 {
-    decl_try_err();
-
     while(count-- > 0) {
-        try(Formatter_WriteChar(self, ch));
+        self->sink(self, &ch, 1);
     }
-
-catch:
-    return err;
+    self->charactersWritten += count;
 }
 
-static const char* _Nonnull Formatter_ParseLengthModifier(FormatterRef _Nonnull self, const char* _Nonnull format, ConversionSpec* _Nonnull spec)
+static const char* _Nonnull Formatter_ParseLengthModifier(struct Formatter* _Nonnull self, const char* _Nonnull format, struct ConversionSpec* _Nonnull spec)
 {
     char ch = *format;
     
@@ -108,7 +75,7 @@ static const char* _Nonnull Formatter_ParseLengthModifier(FormatterRef _Nonnull 
 }
 
 // Expects that 'format' points to the first character after the '%'.
-static const char* _Nonnull Formatter_ParseConversionSpec(FormatterRef _Nonnull self, const char* _Nonnull format, va_list* _Nonnull ap, ConversionSpec* _Nonnull spec)
+static const char* _Nonnull Formatter_ParseConversionSpec(struct Formatter* _Nonnull self, const char* _Nonnull format, va_list* _Nonnull ap, struct ConversionSpec* _Nonnull spec)
 {
     char ch;
 
@@ -161,24 +128,19 @@ static const char* _Nonnull Formatter_ParseConversionSpec(FormatterRef _Nonnull 
     return Formatter_ParseLengthModifier(self, format, spec);
 }
 
-static errno_t Formatter_FormatStringField(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, const char* _Nonnull str, ssize_t slen)
+static void Formatter_FormatStringField(struct Formatter* _Nonnull self, const struct ConversionSpec* _Nonnull spec, const char* _Nonnull str, ssize_t slen)
 {
-    decl_try_err();
     const ssize_t nspaces = (spec->minimumFieldWidth > slen) ? spec->minimumFieldWidth - slen : 0;
 
     if (nspaces > 0) {
-        try(Formatter_WriteRepChar(self, ' ', nspaces));
+        Formatter_WriteRepChar(self, ' ', nspaces);
     }
 
-    try(Formatter_WriteString(self, str, slen));
-
-catch:
-    return err;
+    Formatter_WriteString(self, str, slen);
 }
 
-static errno_t Formatter_FormatSignedIntegerField(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, const char* _Nonnull pCanonDigits)
+static void Formatter_FormatSignedIntegerField(struct Formatter* _Nonnull self, const struct ConversionSpec* _Nonnull spec, const char* _Nonnull pCanonDigits)
 {
-    decl_try_err();
     int nSign = 1;
     int nDigits = pCanonDigits[0] - 1;
     int nLeadingZeros = (spec->flags.hasPrecision) ? __max(spec->precision - nDigits, 0) : 0;
@@ -199,26 +161,22 @@ static errno_t Formatter_FormatSignedIntegerField(FormatterRef _Nonnull self, co
     }
 
     if (nspaces > 0) {
-        try(Formatter_WriteRepChar(self, ' ', nspaces));
+        Formatter_WriteRepChar(self, ' ', nspaces);
     }
 
     if (nSign > 0) {
-        try(Formatter_WriteChar(self, *pSign));
+        Formatter_WriteChar(self, *pSign);
     }
     if (nLeadingZeros > 0) {
-        try(Formatter_WriteRepChar(self, '0', nLeadingZeros));
+        Formatter_WriteRepChar(self, '0', nLeadingZeros);
     }
     while(nDigits-- > 0) {
-        try(Formatter_WriteChar(self, *pDigits++));
+        Formatter_WriteChar(self, *pDigits++);
     }
-
-catch:
-    return err;
 }
 
-static errno_t Formatter_FormatUnsignedIntegerField(FormatterRef _Nonnull self, int radix, bool isUppercase, const ConversionSpec* _Nonnull spec, const char* _Nonnull pCanonDigits)
+static void Formatter_FormatUnsignedIntegerField(struct Formatter* _Nonnull self, int radix, bool isUppercase, const struct ConversionSpec* _Nonnull spec, const char* _Nonnull pCanonDigits)
 {
-    decl_try_err();
     int nRadixChars = 0;
     int nDigits = pCanonDigits[0] - 1;
     int nLeadingZeros = (spec->flags.hasPrecision) ? __max(spec->precision - nDigits, 0) : 0;
@@ -242,40 +200,37 @@ static errno_t Formatter_FormatUnsignedIntegerField(FormatterRef _Nonnull self, 
     }
 
     if (nspaces > 0) {
-        try(Formatter_WriteRepChar(self, ' ', nspaces));
+        Formatter_WriteRepChar(self, ' ', nspaces);
     }
 
     while (nRadixChars-- > 0) {
-        try(Formatter_WriteChar(self, *pRadixChars++));
+        Formatter_WriteChar(self, *pRadixChars++);
     }
     if (nLeadingZeros > 0) {
-        try(Formatter_WriteRepChar(self, '0', nLeadingZeros));
+        Formatter_WriteRepChar(self, '0', nLeadingZeros);
     }
     while(nDigits-- > 0) {
-        try(Formatter_WriteChar(self, *pDigits++));
+        Formatter_WriteChar(self, *pDigits++);
     }
-
-catch:
-    return err;
 }
 
-static errno_t Formatter_FormatChar(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static void Formatter_FormatChar(struct Formatter* _Nonnull self, const struct ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
     const char ch = (char) va_arg(*ap, int);
-    return Formatter_FormatStringField(self, spec, &ch, 1);
+    Formatter_FormatStringField(self, spec, &ch, 1);
 }
 
-static errno_t Formatter_FormatString(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static void Formatter_FormatString(struct Formatter* _Nonnull self, const struct ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
-    return Formatter_FormatStringField(self, spec, va_arg(*ap, const char*), (spec->flags.hasPrecision) ? spec->precision : SSIZE_MAX);
+    Formatter_FormatStringField(self, spec, va_arg(*ap, const char*), (spec->flags.hasPrecision) ? spec->precision : SSIZE_MAX);
 }
 
-static errno_t Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static void Formatter_FormatSignedInteger(struct Formatter* _Nonnull self, const struct ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
     int64_t v64;
     int32_t v32;
     int nbits;
-    char * pCanonDigits;
+    char* pCanonDigits;
 
     switch (spec->lengthModifier) {
         case LENGTH_MODIFIER_hh:    v32 = (int32_t)(signed char)va_arg(*ap, int); nbits = INT32_WIDTH;   break;
@@ -300,15 +255,15 @@ static errno_t Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const C
         pCanonDigits = __i32toa(v32, self->digits);
     }
 
-    return Formatter_FormatSignedIntegerField(self, spec, pCanonDigits);
+    Formatter_FormatSignedIntegerField(self, spec, pCanonDigits);
 }
 
-static errno_t Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, int radix, bool isUppercase, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static void Formatter_FormatUnsignedInteger(struct Formatter* _Nonnull self, int radix, bool isUppercase, const struct ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
     uint64_t v64;
     uint32_t v32;
     int nbits;
-    char * pCanonDigits;
+    char* pCanonDigits;
 
     switch (spec->lengthModifier) {
         case LENGTH_MODIFIER_hh:    v32 = (uint32_t)(unsigned char)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;     break;
@@ -333,12 +288,12 @@ static errno_t Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, int r
         pCanonDigits = __ui32toa(v32, radix, isUppercase, self->digits);
     }
 
-    return Formatter_FormatUnsignedIntegerField(self, radix, isUppercase, spec, pCanonDigits);
+    Formatter_FormatUnsignedIntegerField(self, radix, isUppercase, spec, pCanonDigits);
 }
 
-static errno_t Formatter_FormatPointer(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static void Formatter_FormatPointer(struct Formatter* _Nonnull self, const struct ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
-    ConversionSpec spec2 = *spec;
+    struct ConversionSpec spec2 = *spec;
     spec2.flags.isAlternativeForm = true;
     spec2.flags.hasPrecision = true;
     spec2.flags.padWithZeros = true;
@@ -351,47 +306,44 @@ static errno_t Formatter_FormatPointer(FormatterRef _Nonnull self, const Convers
     spec2.precision = 8;
 #endif
 
-    return Formatter_FormatUnsignedIntegerField(self, 16, false, &spec2, pCanonDigits);
+    Formatter_FormatUnsignedIntegerField(self, 16, false, &spec2, pCanonDigits);
 }
 
-static errno_t Formatter_FormatArgument(FormatterRef _Nonnull self, char conversion, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static void Formatter_FormatArgument(struct Formatter* _Nonnull self, char conversion, const struct ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
     switch (conversion) {
-        case '%':   return Formatter_WriteChar(self, '%');
-        case 'c':   return Formatter_FormatChar(self, spec, ap);
-        case 's':   return Formatter_FormatString(self, spec, ap);
-        case 'd':   return Formatter_FormatSignedInteger(self, spec, ap);
-        case 'o':   return Formatter_FormatUnsignedInteger(self, 8, false, spec, ap);
-        case 'x':   return Formatter_FormatUnsignedInteger(self, 16, false, spec, ap);
-        case 'X':   return Formatter_FormatUnsignedInteger(self, 16, true, spec, ap);
-        case 'u':   return Formatter_FormatUnsignedInteger(self, 10, false, spec, ap);
-        case 'p':   return Formatter_FormatPointer(self, spec, ap);
-        default:    return 0;
+        case '%':   Formatter_WriteChar(self, '%'); break;
+        case 'c':   Formatter_FormatChar(self, spec, ap); break;
+        case 's':   Formatter_FormatString(self, spec, ap); break;
+        case 'd':   Formatter_FormatSignedInteger(self, spec, ap); break;
+        case 'o':   Formatter_FormatUnsignedInteger(self, 8, false, spec, ap); break;
+        case 'x':   Formatter_FormatUnsignedInteger(self, 16, false, spec, ap); break;
+        case 'X':   Formatter_FormatUnsignedInteger(self, 16, true, spec, ap); break;
+        case 'u':   Formatter_FormatUnsignedInteger(self, 10, false, spec, ap); break;
+        case 'p':   Formatter_FormatPointer(self, spec, ap); break;
+        default:    break;
     }
 }
 
-errno_t Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap)
+void Formatter_vFormat(struct Formatter* _Nonnull self, const char* _Nonnull format, va_list ap)
 {
-    decl_try_err();
-    ConversionSpec spec;
+    struct ConversionSpec spec;
 
-    do {
+    for(;;) {
         const char ch = *format++;
 
         switch (ch) {
             case '\0':
-                return Formatter_Flush(self);
+                return;
 
             case '%':
                 format = Formatter_ParseConversionSpec(self, format, &ap, &spec);
-                err = Formatter_FormatArgument(self, *format++, &spec, &ap);
+                Formatter_FormatArgument(self, *format++, &spec, &ap);
                 break;
 
             default:
-                err = Formatter_WriteChar(self, ch);
+                Formatter_WriteChar(self, ch);
                 break;
         }
-    } while (err == EOK);
-    
-    return err;
+    }
 }

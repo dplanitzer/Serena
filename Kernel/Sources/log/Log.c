@@ -10,31 +10,82 @@
 #include <dispatcher/Lock.h>
 #include <driver/DriverCatalog.h>
 #include <filesystem/IOChannel.h>
+#include <klib/RingBuffer.h>
 #include "Formatter.h"
 
-#define PRINT_BUFFER_CAPACITY   80
 
-static Lock         gLock;
-static IOChannelRef gConsoleChannel;
-static Formatter    gFormatter;
-static char         gPrintBuffer[PRINT_BUFFER_CAPACITY];
+enum {
+    kSink_RingBuffer,
+    kSink_Console
+};
+
+#define LOG_BUFFER_SIZE 256
+
+static Lock             gLock;
+static IOChannelRef     gConsoleChannel;
+static struct Formatter gFormatter;
+static RingBuffer       gRingBuffer;
+static char             gLogBuffer[LOG_BUFFER_SIZE];
+static int              gCurrentSink;
 
 
-static errno_t printv_console_sink_locked(FormatterRef _Nonnull self, const char* _Nonnull pBuffer, ssize_t nBytes)
+static void log_sink(struct Formatter* _Nonnull self, const char* _Nonnull buf, ssize_t nBytes)
 {
-    ssize_t nBytesWritten;
-    return IOChannel_Write(gConsoleChannel, pBuffer, nBytes, &nBytesWritten);
+    switch (gCurrentSink) {
+        case kSink_Console: {
+            ssize_t nBytesWritten;
+            IOChannel_Write(gConsoleChannel, buf, nBytes, &nBytesWritten);
+            break;
+        }
+
+        default:
+            RingBuffer_PutBytes(&gRingBuffer, buf, nBytes);
+            break;
+    }
 }
 
-// Initializes the print subsystem.
-void print_init(void)
+
+void log_init(void)
 {
     Lock_Init(&gLock);
-    Formatter_Init(&gFormatter, printv_console_sink_locked, NULL, gPrintBuffer, PRINT_BUFFER_CAPACITY);
-    try_bang(DriverCatalog_OpenDriver(gDriverCatalog, "/console", kOpen_Write, &gConsoleChannel));
+    gCurrentSink = kSink_RingBuffer;
+    RingBuffer_InitWithBuffer(&gRingBuffer, gLogBuffer, LOG_BUFFER_SIZE);
+    Formatter_Init(&gFormatter, log_sink, NULL);
 }
 
-// Print formatted
+static errno_t log_open_console(void)
+{
+    decl_try_err();
+
+    if (gDriverCatalog) {
+        err = DriverCatalog_OpenDriver(gDriverCatalog, "/console", kOpen_Write, &gConsoleChannel);
+    }
+    else {
+        err = ENODEV;
+    }
+    return err;
+}
+
+bool log_switch_to_console(void)
+{
+    decl_try_err();
+    bool r = false;
+
+    Lock_Lock(&gLock);
+
+    if (gCurrentSink != kSink_Console) {
+        err = log_open_console();
+        if (err == EOK) {
+            gCurrentSink = kSink_Console;
+            r = true;
+        }
+    }
+
+    Lock_Unlock(&gLock);
+    return r;
+}
+
+
 void printf(const char* _Nonnull format, ...)
 {
     va_list ap;

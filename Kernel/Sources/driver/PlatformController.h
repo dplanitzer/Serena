@@ -22,10 +22,4 @@ open_class(PlatformController, Driver,
 open_class_funcs(PlatformController, Driver,
 );
 
-
-// Should be invoked by the platform specific subclass to inform the kernel that
-// the console is available now. Initializes the kernel logging services and 
-// prints the boot banner.
-extern void PlatformController_NoteConsoleAvailable(PlatformControllerRef _Nonnull self);
-
 #endif /* PlatformController_h */

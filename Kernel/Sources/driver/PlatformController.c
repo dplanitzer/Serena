@@ -7,25 +7,6 @@
 //
 
 #include "PlatformController.h"
-#include <log/Log.h>
-
-
-// Should be invoked by the platform specific subclass to inform the kernel that
-// the console is available now. Initializes the kernel logging services and 
-// prints the boot banner.
-void PlatformController_NoteConsoleAvailable(PlatformControllerRef _Nonnull self)
-{
-    // Initialize the kernel print services
-    print_init();
-
-
-    // Boot message
-    printf("\033[36mSerena OS v0.4.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
-
-
-    // Debug printing
-    //PrintClasses();
-}
 
 
 class_func_defs(PlatformController, Driver,
