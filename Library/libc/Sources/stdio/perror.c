@@ -6,15 +6,16 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Stream.h"
+#include <errno.h>
+#include <stdio.h>
 #include <string.h>
 
 
 void perror(const char *str)
 {
     if (str && *str != '\0') {
-        puts(str);
-        puts(": ");
+        fputs(str, stdout);
+        fputs(": ", stdout);
     }
 
     puts(strerror(errno));
