@@ -23,6 +23,15 @@ extern void log_init(void);
 // fatal error, so that we can print a message to the screen.
 extern bool log_switch_to_console(void);
 
+// Writes the given byte sequence to the log sink
+extern void log_write(const char* _Nonnull buf, ssize_t nbytes);
+
+// Reads 'nbytes' from the log buffer and writes the bytes to 'buf'. Returns the
+// number of bytes actually read. This number will be 0 if the log buffer is
+// empty or the log is connected to the kernel console.
+extern ssize_t log_read(void* _Nonnull buf, ssize_t nbytes);
+
+
 extern void printf(const char* _Nonnull format, ...);
 extern void vprintf(const char* _Nonnull format, va_list ap);
 

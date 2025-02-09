@@ -14,6 +14,7 @@
 #include <dispatcher/VirtualProcessorPool.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverCatalog.h>
+#include <driver/LogDriver.h>
 #include <driver/NullDriver.h>
 #include <driver/amiga/AmigaController.h>
 #include <driver/hid/HIDDriver.h>
@@ -96,6 +97,7 @@ static errno_t drivers_init(void)
 {
     static PlatformControllerRef gPlatformController;
     static DriverRef gHidDriver;
+    static DriverRef gLogDriver;
     static DriverRef gNullDriver;
     decl_try_err();
 
@@ -114,7 +116,12 @@ static errno_t drivers_init(void)
     try(HIDManager_Start(gHIDManager));
 
 
-    // Null driver
+    // 'klog' driver
+    try(LogDriver_Create(&gLogDriver));
+    try(Driver_Start(gLogDriver));
+
+        
+    // 'null' driver
     try(NullDriver_Create(&gNullDriver));
     try(Driver_Start(gNullDriver));
 
