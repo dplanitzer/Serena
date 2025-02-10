@@ -11,10 +11,13 @@
 #include <log/Log.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverCatalog.h>
+#include <driver/DriverChannel.h>
+#include <driver/amiga/graphics/GraphicsDriver.h>
 #include <driver/disk/DiskDriver.h>
 #include <filemanager/FileHierarchy.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/IOChannel.h>
+#include <hal/Platform.h>
 
 
 // Finds a RAM or ROM disk to boot from and returns the in-kernel path to the
@@ -60,11 +63,11 @@ static const char* _Nullable get_boot_floppy_driver_path(void)
     return NULL;
 }
 
-static void wait_for_disk_load_detected(const char* _Nonnull driverPath)
+static void wait_for_disk_change(const char* _Nonnull driverPath, int maxTries, MediaId* _Nonnull mediaId)
 {
     decl_try_err();
     IOChannelRef chan;
-    int tries = 10;
+    int tries = maxTries;
 
     if ((err = DriverCatalog_OpenDriver(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan)) == EOK) {
         while (tries-- > 0) {
@@ -73,7 +76,8 @@ static void wait_for_disk_load_detected(const char* _Nonnull driverPath)
             if (IOChannel_Ioctl(chan, kDiskCommand_GetInfo, &info) != EOK) {
                 break;
             }
-            if (info.mediaId != kMediaId_None) {
+            if (info.mediaId != *mediaId) {
+                *mediaId = info.mediaId;
                 break;
             }
 
@@ -83,14 +87,87 @@ static void wait_for_disk_load_detected(const char* _Nonnull driverPath)
     IOChannel_Release(chan);
 }
 
+extern const uint16_t gFloppyImg_Plane0[];
+extern const int gFloppyImg_Width;
+extern const int gFloppyImg_Height;
+
+static void ask_user_for_new_disk(const char* _Nonnull driverPath, MediaId* _Nonnull mediaId)
+{
+    decl_try_err();
+    GraphicsDriverRef gd = NULL;
+    IOChannelRef chan;
+    VideoConfiguration cfg;
+    SurfaceMapping mp;
+    int srf, scr;
+
+    if (chipset_is_ntsc()) {
+        cfg.width = 320;
+        cfg.height = 200;
+        cfg.fps = 60;
+        
+        //cfg.width = 320;
+        //cfg.height = 400;
+        //cfg.fps = 30;
+    } else {
+        cfg.width = 320;
+        cfg.height = 256;
+        cfg.fps = 50;
+
+        //cfg.width = 320;
+        //cfg.height = 512;
+        //cfg.fps = 25;
+    }
+
+    if ((err = DriverCatalog_OpenDriver(gDriverCatalog, "/fb", kOpen_ReadWrite, &chan)) == EOK) {
+        gd = DriverChannel_GetDriverAs(chan, GraphicsDriver);
+
+        // Create a surface and blit the floppy graphics in there
+        try_bang(GraphicsDriver_CreateSurface(gd, cfg.width, cfg.height, kPixelFormat_RGB_Indexed1, &srf));
+        try_bang(GraphicsDriver_MapSurface(gd, srf, kMapPixels_ReadWrite, &mp));
+
+        uint8_t* dp = mp.plane[0];
+        const size_t dbpr = mp.bytesPerRow[0];
+        const uint8_t* sp = (const uint8_t*)gFloppyImg_Plane0;
+        const size_t sbpr = gFloppyImg_Width >> 3;
+        const size_t xb = ((cfg.width - gFloppyImg_Width) >> 3) >> 1;
+        const size_t yb = (cfg.height - gFloppyImg_Height) >> 1;
+
+        memset(dp, 0, dbpr * cfg.height);
+        for (int y = 0; y < gFloppyImg_Height; y++) {
+            memcpy(dp + (y + yb) * dbpr + xb, sp + y * sbpr, sbpr);
+        }
+        try_bang(GraphicsDriver_UnmapSurface(gd, srf));
+        
+
+        // Create a screen and show it
+        try_bang(GraphicsDriver_CreateScreen(gd, &cfg, srf, &scr));
+        try_bang(GraphicsDriver_SetCLUTEntry(gd, scr, 0, RGBColor32_Make(0x00, 0x00, 0x00)));
+        try_bang(GraphicsDriver_SetCLUTEntry(gd, scr, 1, RGBColor32_Make(0x00, 0xff, 0x00)));
+
+        try_bang(GraphicsDriver_SetCurrentScreen(gd, scr));
+    }
+
+
+    // Wait for the user to insert a different disk
+    wait_for_disk_change(driverPath, INT_MAX, mediaId);
+
+
+    // Remove the screen and turn video off again
+    if (gd) {
+        GraphicsDriver_SetCurrentScreen(gd, 0);
+        GraphicsDriver_DestroyScreen(gd, scr);
+        GraphicsDriver_DestroySurface(gd, srf);
+        IOChannel_Release(chan);
+    }
+}
+
 // Tries to mount the root filesystem stored on the mass storage device
 // represented by 'pDriver'.
 static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry, FilesystemRef _Nullable * _Nonnull pOutFS)
 {
     decl_try_err();
-    errno_t lastError = EOK;
+    MediaId curMediaId = kMediaId_None;
     FilesystemRef fs;
-    bool shouldPromptForDisk = true;
 
     // Wait a bit for the disk loaded detection mechanism to actually pick up
     // that a disk is loaded. This may take a couple hundred milliseconds
@@ -98,7 +175,7 @@ static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry,
     // We do it this way because we don't want to print a bogus "insert a disk"
     // to the screen although the disk is (mechanically) already loaded, the
     // drive mechanics just hasn't picked this fact up yet.
-    wait_for_disk_load_detected(driverPath);
+    wait_for_disk_change(driverPath, 10, &curMediaId);
 
 
     // Try to boot from the disk
@@ -109,23 +186,13 @@ static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry,
         if (err == EOK) {
             break;
         }
-        else if (err != ENOMEDIUM && err != lastError) {
-            lastError = err;
-            shouldPromptForDisk = true;
-        }
-
         if (!shouldRetry) {
             // No disk or no mountable disk. We have a fallback though so bail
             // out and let the caller try another option.
             return err;
         }
 
-        if (shouldPromptForDisk) {
-            printf("Please insert a Serena boot disk...\n\n");
-            shouldPromptForDisk = false;
-        }
-
-        VirtualProcessor_Sleep(TimeInterval_MakeSeconds(1));
+        ask_user_for_new_disk(driverPath, &curMediaId);
     }
 
     printf("Booting from %s...\n\n", &driverPath[1]);

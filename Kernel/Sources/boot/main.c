@@ -9,6 +9,7 @@
 #include <krt/krt.h>
 #include <klib/klib.h>
 #include <log/Log.h>
+#include <console/Console.h>
 #include <disk/DiskCache.h>
 #include <dispatcher/VirtualProcessorScheduler.h>
 #include <dispatcher/VirtualProcessorPool.h>
@@ -201,6 +202,12 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     // Create the process manager
     try(ProcessManager_Create(pRootProc, &gProcessManager));
+
+
+    // Initialize the console
+    static ConsoleRef gConsole = NULL;
+    try(Console_Create(&gConsole));
+    try(Driver_Start((DriverRef)gConsole));
 
 
     // Get the root process going

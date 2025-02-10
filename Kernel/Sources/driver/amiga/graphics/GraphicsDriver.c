@@ -263,7 +263,7 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
     
 
     // Can't show a screen that's already being shown
-    if (Screen_IsVisible(scr)) {
+    if (scr && Screen_IsVisible(scr)) {
         return EBUSY;
     }
 
@@ -282,11 +282,19 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
 
     // Update the display configuration.
     self->screen = scr;
-    self->mouseCursorRectX = scr->hDiwStart;
-    self->mouseCursorRectY = scr->vDiwStart;
-    self->mouseCursorScaleX = scr->hSprScale;
-    self->mouseCursorScaleY = scr->vSprScale;
-    Screen_SetVisible(scr, true);
+    if (scr) {
+        Screen_SetVisible(scr, true);
+        self->mouseCursorRectX = scr->hDiwStart;
+        self->mouseCursorRectY = scr->vDiwStart;
+        self->mouseCursorScaleX = scr->hSprScale;
+        self->mouseCursorScaleY = scr->vSprScale;
+    } 
+    else {
+        self->mouseCursorRectX = 0;
+        self->mouseCursorRectY = 0;
+        self->mouseCursorScaleX = 0;
+        self->mouseCursorScaleY = 0;
+    } 
 
 
     // Schedule the new Copper programs

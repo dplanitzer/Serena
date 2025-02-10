@@ -159,7 +159,8 @@ final_class_ivars(Console, Driver,
     const KeyMap* _Nonnull      keyMap;
     RingBuffer                  reportsQueue;
 
-    GraphicsDriverRef _Nonnull  gdevice;
+    GraphicsDriverRef _Nonnull  fb;
+    IOChannelRef _Nonnull       fbChannel;
     int                         screenId;
     int                         surfaceId;
     SurfaceMapping              pixels;

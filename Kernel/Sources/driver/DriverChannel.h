@@ -25,7 +25,7 @@ extern errno_t DriverChannel_Create(Class* _Nonnull pClass, IOChannelOptions opt
 
 // Returns a weak reference to the driver at the other end of this I/O channel.
 // The driver reference remains valid as long as the I/O channel remains open.
-#define DriverChannel_GetDriver(__self) \
-((DriverRef)((DriverChannelRef)(__self))->driver)
+#define DriverChannel_GetDriverAs(__self, __class) \
+((__class##Ref)((DriverChannelRef)(__self))->driver)
 
 #endif /* DriverChannel_h */

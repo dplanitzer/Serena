@@ -48,7 +48,7 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
 
     // Open a channel to the framebuffer
     try(DriverCatalog_OpenDriver(gDriverCatalog, kFramebufferName, kOpen_ReadWrite, &self->fbChannel));
-    self->fb = (GraphicsDriverRef)DriverChannel_GetDriver(self->fbChannel);
+    self->fb = DriverChannel_GetDriverAs(self->fbChannel, GraphicsDriver);
 
     int w, h;
     GraphicsDriver_GetDisplaySize(self->fb, &w, &h);

@@ -17,7 +17,7 @@ const char* const kConsoleName = "console";
 // provided graphics device.
 // \param pGDevice the graphics device
 // \return the console; NULL on failure
-errno_t Console_Create(GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutSelf)
+errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ConsoleRef self;
@@ -31,7 +31,9 @@ errno_t Console_Create(GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable
     try(DriverCatalog_OpenDriver(gDriverCatalog, "/hid", kOpen_Read, &self->hidDriverChannel));
     try(RingBuffer_Init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
-    self->gdevice = Object_RetainAs(pGDevice, GraphicsDriver);
+    // Open a channel to the framebuffer
+    try(DriverCatalog_OpenDriver(gDriverCatalog, kFramebufferName, kOpen_ReadWrite, &self->fbChannel));
+    self->fb = DriverChannel_GetDriverAs(self->fbChannel, GraphicsDriver);
     self->keyMap = (const KeyMap*) gKeyMap_usa;
 
     self->lineHeight = GLYPH_HEIGHT;
@@ -80,8 +82,10 @@ void Console_deinit(ConsoleRef _Nonnull self)
         
     Lock_Deinit(&self->lock);
 
-    Object_Release(self->gdevice);
-    self->gdevice = NULL;
+    IOChannel_Release(self->fbChannel);
+    self->fbChannel = NULL;
+    Object_Release(self->fb);
+    self->fb = NULL;
 
     IOChannel_Release(self->hidDriverChannel);
     self->hidDriverChannel = NULL;

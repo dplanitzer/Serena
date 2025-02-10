@@ -134,12 +134,6 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)gpc));
 
 
-    // Initialize the console
-    ConsoleRef console = NULL;
-    try(Console_Create(fb, &console));
-    try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)console));
-
-
     // Floppy Bus
     FloppyControllerRef fdc = NULL;
     try(FloppyController_Create((DriverRef)self, &fdc));

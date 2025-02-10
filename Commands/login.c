@@ -92,8 +92,8 @@ static void login_user(void)
     const char* homePath = "/Users/admin";
     const char* shellPath = "/System/Commands/shell";
 
-    puts("Login: admin");
-    puts("Password:\n");
+    puts("   Login: admin");
+    puts("Password: ***\n");
     puts("Logging in...\n");
 
     // Make the current directory the user's home directory
