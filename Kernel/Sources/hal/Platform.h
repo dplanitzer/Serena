@@ -174,6 +174,7 @@ extern int cpu_guarded_read(void* _Nonnull src, void* _Nonnull buffer, int buffe
 extern int cpu_guarded_write(void* _Nonnull dst, const void* _Nonnull buffer, int buffer_size);
 
 extern void cpu_sleep(int cpu_type);
+extern void cpu_halt(void);
 
 extern void cpu_call_as_user(Cpu_UserClosure _Nonnull func, void* _Nullable context, void* _Nullable arg);
 extern void cpu_abort_call_as_user(void);

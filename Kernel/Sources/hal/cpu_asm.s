@@ -20,6 +20,7 @@
     xdef _cpu_guarded_read
     xdef _cpu_guarded_write
     xdef _cpu_sleep
+    xdef _cpu_halt
     xdef _cpu_call_as_user
     xdef _cpu_abort_call_as_user
     xdef _cpu_return_from_call_as_user
@@ -403,6 +404,16 @@ _cpu_sleep:
 .cpu_sleep_68060:
         lpstop  #$2000
         rts
+    einline
+
+
+;-------------------------------------------------------------------------------
+; void cpu_halt(void)
+; Turns interrupt recognition off and halts the CPU in an endless loop.
+_cpu_halt:
+    inline
+        stop    #$2700
+        bra.s   _cpu_halt
     einline
 
 

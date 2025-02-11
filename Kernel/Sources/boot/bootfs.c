@@ -122,8 +122,8 @@ static void ask_user_for_new_disk(const char* _Nonnull driverPath, MediaId* _Non
         gd = DriverChannel_GetDriverAs(chan, GraphicsDriver);
 
         // Create a surface and blit the floppy graphics in there
-        try_bang(GraphicsDriver_CreateSurface(gd, cfg.width, cfg.height, kPixelFormat_RGB_Indexed1, &srf));
-        try_bang(GraphicsDriver_MapSurface(gd, srf, kMapPixels_ReadWrite, &mp));
+        GraphicsDriver_CreateSurface(gd, cfg.width, cfg.height, kPixelFormat_RGB_Indexed1, &srf);
+        GraphicsDriver_MapSurface(gd, srf, kMapPixels_ReadWrite, &mp);
 
         uint8_t* dp = mp.plane[0];
         const size_t dbpr = mp.bytesPerRow[0];
@@ -136,15 +136,15 @@ static void ask_user_for_new_disk(const char* _Nonnull driverPath, MediaId* _Non
         for (int y = 0; y < gFloppyImg_Height; y++) {
             memcpy(dp + (y + yb) * dbpr + xb, sp + y * sbpr, sbpr);
         }
-        try_bang(GraphicsDriver_UnmapSurface(gd, srf));
+        GraphicsDriver_UnmapSurface(gd, srf);
         
 
         // Create a screen and show it
-        try_bang(GraphicsDriver_CreateScreen(gd, &cfg, srf, &scr));
-        try_bang(GraphicsDriver_SetCLUTEntry(gd, scr, 0, RGBColor32_Make(0x00, 0x00, 0x00)));
-        try_bang(GraphicsDriver_SetCLUTEntry(gd, scr, 1, RGBColor32_Make(0x00, 0xff, 0x00)));
+        GraphicsDriver_CreateScreen(gd, &cfg, srf, &scr);
+        GraphicsDriver_SetCLUTEntry(gd, scr, 0, RGBColor32_Make(0x00, 0x00, 0x00));
+        GraphicsDriver_SetCLUTEntry(gd, scr, 1, RGBColor32_Make(0x00, 0xff, 0x00));
 
-        try_bang(GraphicsDriver_SetCurrentScreen(gd, scr));
+        GraphicsDriver_SetCurrentScreen(gd, scr);
     }
 
 
