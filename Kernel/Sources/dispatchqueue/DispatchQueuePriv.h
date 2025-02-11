@@ -21,11 +21,10 @@
 //
 
 enum {
-    kWorkItemFlag_IsUser = 1,               // Invoke the work item function in user space
-    kWorkItemFlag_Timer = 2,                // Item is a timer
-    kWorkItemFlag_IsRepeating = 4,          // Item is a auto-repeating timer
-    kWorkItemFlag_IsSync = 8,               // Set if dispatch() wants to wait for the completion of the item
-    kWorkItemFlag_IsInterrupted = 16,       // Set if the item's execution has been interrupted
+    kWorkItemFlag_Timer = 1,                // Item is a timer
+    kWorkItemFlag_IsRepeating = 2,          // Item is a auto-repeating timer
+    kWorkItemFlag_IsSync = 4,               // Set if dispatch() wants to wait for the completion of the item
+    kWorkItemFlag_IsInterrupted = 8,        // Set if the item's execution has been interrupted
 };
 
 

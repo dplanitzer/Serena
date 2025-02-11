@@ -44,18 +44,18 @@ int Process_GetCurrentDispatchQueue(ProcessRef _Nonnull pProc)
 errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, VoidFunc_2 _Nonnull func, void* _Nullable ctx, uint32_t userOptions, uintptr_t tag)
 {
     decl_try_err();
-    const uint32_t options = (userOptions & kDispatchOptionMask_User) | kDispatchOption_User;
+    const uint32_t options = userOptions & kDispatchOptionMask_User;
     UDispatchQueueRef pQueue;
 
     if ((options & kDispatchOption_Sync) == kDispatchOption_Sync) {
         if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
-            err = DispatchQueue_DispatchClosure(pQueue->dispatchQueue, func, ctx, NULL, 0, options, tag);
+            err = DispatchQueue_DispatchClosure(pQueue->dispatchQueue, (VoidFunc_2)Process_CallUser, (void*)func, ctx, 0, options, tag);
             UResourceTable_RelinquishResource(&pProc->uResourcesTable, pQueue);
         }
     }
     else {
         if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
-            err = DispatchQueue_DispatchClosure(pQueue->dispatchQueue, func, ctx, NULL, 0, options, tag);
+            err = DispatchQueue_DispatchClosure(pQueue->dispatchQueue, (VoidFunc_2)Process_CallUser, (void*)func, ctx, 0, options, tag);
             UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
         }
     }
@@ -71,7 +71,7 @@ errno_t Process_DispatchUserTimer(ProcessRef _Nonnull pProc, int od, TimeInterva
     UDispatchQueueRef pQueue;
 
     if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
-        err = DispatchQueue_DispatchTimer(pQueue->dispatchQueue, deadline, interval, func, ctx, kDispatchOption_User, tag);
+        err = DispatchQueue_DispatchTimer(pQueue->dispatchQueue, deadline, interval, (VoidFunc_2)Process_CallUser, (void*)func, ctx, 0, 0, tag);
         UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
     }
     return err;

@@ -26,9 +26,6 @@ final_class(DispatchQueue, Object);
 // This is a uint32_t which breaks into two parts:
 // Lower 16 bits: user space controllable options (defined in libsystem)
 // Upper 16 bits: kernel space controllable options (defined here)
-enum {
-    kDispatchOption_User = 0x10000,     // The provided function should be invoked in user space context rather than kernel context
-};
 #define kDispatchOptionMask_User    0x0000ffff
 #define kDispatchOptionMask_Kernel  0xffff0000
 
@@ -131,7 +128,7 @@ extern errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull
 // Similar to 'DispatchClosure'. However the function will execute on or after
 // 'deadline'. If 'interval' is not 0 or infinity, then the function will execute
 // every 'interval' ticks until the timer is removed from the queue.
-extern errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, VoidFunc_1 _Nonnull func, void* _Nullable context, uint32_t options, uintptr_t tag);
+extern errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes, uint32_t options, uintptr_t tag);
 
 
 // Removes all scheduled instances of timers and immediate work items with tag

@@ -497,11 +497,10 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
 {
     decl_try_err();
     WorkItem* pItem = NULL;
-    const bool isUser = (options & kDispatchOption_User) == kDispatchOption_User;
     const bool isSync = (options & kDispatchOption_Sync) == kDispatchOption_Sync;
     bool isLocked = false;
 
-    if ((isUser && nArgBytes > 0) || (nArgBytes > MAX_ARG_BYTES)) {
+    if (nArgBytes > MAX_ARG_BYTES) {
         return EINVAL;
     }
 
@@ -523,9 +522,6 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
 
 
     try(DispatchQueue_AcquireWorkItem_Locked(self, func, context, args, nArgBytes, tag, &pItem));
-    if (isUser) {
-        pItem->flags |= kWorkItemFlag_IsUser;
-    }
 
 
     if (isSync) {
@@ -591,7 +587,7 @@ catch:
 // timer can be referenced with the tag 'tag'.
 errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, TimeInterval deadline, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
-    return DispatchQueue_DispatchTimer(self, deadline, kTimeInterval_Zero, func, context, 0, tag);
+    return DispatchQueue_DispatchTimer(self, deadline, kTimeInterval_Zero, (VoidFunc_2)func, context, NULL, 0, 0, tag);
 }
 
 // Asynchronously executes the given closure every 'interval' seconds, on or
@@ -599,18 +595,22 @@ errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, TimeInt
 // timer can be referenced with the tag 'tag'.
 errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
-    return DispatchQueue_DispatchTimer(self, deadline, interval, func, context, 0, tag);
+    return DispatchQueue_DispatchTimer(self, deadline, interval, (VoidFunc_2)func, context, NULL, 0, 0, tag);
 }
 
 // Similar to 'DispatchClosure'. However the function will execute on or after
 // 'deadline'. If 'interval' is not 0 or infinity, then the function will execute
 // every 'interval' ticks until the timer is removed from the queue.
-errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, VoidFunc_1 _Nonnull func, void* _Nullable context, uint32_t options, uintptr_t tag)
+errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes, uint32_t options, uintptr_t tag)
 {
     decl_try_err();
     WorkItem* pItem = NULL;
 
     if ((options & kDispatchOption_Sync) == kDispatchOption_Sync) {
+        return EINVAL;
+    }
+
+    if (nArgBytes > MAX_ARG_BYTES) {
         return EINVAL;
     }
 
@@ -629,15 +629,12 @@ errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval
     }
 
 
-    try(DispatchQueue_AcquireWorkItem_Locked(self, (VoidFunc_2)func, context, NULL, 0, tag, &pItem));
+    try(DispatchQueue_AcquireWorkItem_Locked(self, func, context, args, nArgBytes, tag, &pItem));
 
     pItem->u.timer.deadline = deadline;
     pItem->u.timer.interval = interval;
     pItem->flags |= kWorkItemFlag_Timer;
 
-    if ((options & kDispatchOption_User) == kDispatchOption_User) {
-        pItem->flags |= kWorkItemFlag_IsUser;
-    }
     if (TimeInterval_Greater(interval, kTimeInterval_Zero) && !TimeInterval_Equals(interval, kTimeInterval_Infinity)) {
         pItem->flags |= kWorkItemFlag_IsRepeating;
     }
@@ -794,11 +791,8 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
 
 
         // Execute the work item
-        if ((pItem->flags & kWorkItemFlag_IsUser) == kWorkItemFlag_IsUser) {
-            VirtualProcessor_CallAsUser(pVP, pItem->func, pItem->context, pItem->arg);
-        } else {
-            pItem->func(pItem->context, pItem->arg);
-        }
+        pItem->func(pItem->context, pItem->arg);
+
 
         // Signal the work item's completion semaphore if needed. Note that we
         // have to set pItem to NULL because the waiter for the sync item will

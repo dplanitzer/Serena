@@ -102,4 +102,6 @@ extern void Process_AbandonChild_Locked(ProcessRef _Nonnull self, ProcessId chil
 // XXX the executable format is GemDOS
 extern errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[]);
 
+extern void Process_CallUser(VoidFunc_2 _Nonnull f, void* _Nullable arg);
+
 #endif /* ProcessPriv_h */
