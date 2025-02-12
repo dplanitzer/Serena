@@ -13,24 +13,27 @@
 // - it doesn't support seeking. Thus seeking state is constant
 // - the pipe implementation protects read/write with a pipe lock anyway
  
-errno_t PipeChannel_Create(PipeRef _Nonnull pPipe, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)
+errno_t PipeChannel_Create(PipeRef _Nonnull pipe, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     PipeChannelRef self;
 
-    assert((mode & kOpen_ReadWrite) == kOpen_Read || (mode & kOpen_ReadWrite) == kOpen_Write);
+    if ((mode & kOpen_ReadWrite) == 0) {
+        return EACCESS;
+    }
 
-    try(IOChannel_Create(&kPipeChannelClass, 0, kIOChannelType_Pipe, mode, (IOChannelRef*)&self));
-    self->pipe = Object_RetainAs(pPipe, Pipe);
+    err = IOChannel_Create(&kPipeChannelClass, 0, kIOChannelType_Pipe, mode, (IOChannelRef*)&self);
+    if (err == EOK) {
+        self->pipe = Object_RetainAs(pipe, Pipe);
+    }
 
-catch:
     *pOutSelf = (IOChannelRef)self;
     return err;
 }
 
 errno_t PipeChannel_finalize(PipeChannelRef _Nonnull self)
 {
-    Pipe_Close((PipeRef)self->pipe, IOChannel_GetMode(self));
+    Pipe_Close(self->pipe, IOChannel_GetMode(self));
 
     Object_Release(self->pipe);
     self->pipe = NULL;
@@ -40,12 +43,12 @@ errno_t PipeChannel_finalize(PipeChannelRef _Nonnull self)
 
 errno_t PipeChannel_read(PipeChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    return Pipe_Read((PipeRef)self->pipe, pBuffer, nBytesToRead, nOutBytesRead);
+    return Pipe_Read(self->pipe, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
 errno_t PipeChannel_write(PipeChannelRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    return Pipe_Write((PipeRef)self->pipe, pBuffer, nBytesToWrite, nOutBytesWritten);
+    return Pipe_Write(self->pipe, pBuffer, nBytesToWrite, nOutBytesWritten);
 }
 
 

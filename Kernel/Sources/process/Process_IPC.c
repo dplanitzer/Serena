@@ -1,5 +1,5 @@
 //
-//  Process_Pipe.c
+//  Process_IPC.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 3/31/24.
@@ -7,8 +7,7 @@
 //
 
 #include "ProcessPriv.h"
-#include "Pipe.h"
-#include "PipeChannel.h"
+#include <ipc/PipeChannel.h>
 
 
 

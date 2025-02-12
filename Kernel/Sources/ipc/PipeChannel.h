@@ -10,7 +10,7 @@
 #define PipeChannel_h
 
 #include <filesystem/IOChannel.h>
-#include <kobj/Object.h>
+#include <ipc/Pipe.h>
 
 
 open_class(PipeChannel, IOChannel,
@@ -20,6 +20,6 @@ open_class_funcs(PipeChannel, IOChannel,
 );
 
 
-extern errno_t PipeChannel_Create(PipeRef _Nonnull pPipe, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf);
+extern errno_t PipeChannel_Create(PipeRef _Nonnull pipe, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* PipeChannel_h */
