@@ -16,13 +16,20 @@
 // Recommended pipe buffer size
 #define kPipe_DefaultBufferSize 256
 
+enum {
+    kPipeEnd_Read,
+    kPipeEnd_Write
+};
+
 
 final_class(Pipe, Object);
 
 
+// Creates the pipe with both ends closed
 extern errno_t Pipe_Create(size_t bufferSize, PipeRef _Nullable * _Nonnull pOutPipe);
 
-extern void Pipe_Close(PipeRef _Nonnull self, unsigned int mode);
+extern void Pipe_Open(PipeRef _Nonnull self, int end);
+extern void Pipe_Close(PipeRef _Nonnull self, int end);
 
 // Returns the number of bytes that can be read from the pipe without blocking.
 extern size_t Pipe_GetNonBlockingReadableCount(PipeRef _Nonnull pPipe);

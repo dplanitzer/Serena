@@ -18,13 +18,14 @@ errno_t PipeChannel_Create(PipeRef _Nonnull pipe, unsigned int mode, IOChannelRe
     decl_try_err();
     PipeChannelRef self;
 
-    if ((mode & kOpen_ReadWrite) == 0) {
+    if ((mode & kOpen_ReadWrite) == 0 || (mode & kOpen_ReadWrite) == kOpen_ReadWrite) {
         return EACCESS;
     }
 
     err = IOChannel_Create(&kPipeChannelClass, 0, kIOChannelType_Pipe, mode, (IOChannelRef*)&self);
     if (err == EOK) {
         self->pipe = Object_RetainAs(pipe, Pipe);
+        Pipe_Open(pipe, (mode & kOpen_Read) == kOpen_Read ? kPipeEnd_Read : kPipeEnd_Write);
     }
 
     *pOutSelf = (IOChannelRef)self;
@@ -33,7 +34,7 @@ errno_t PipeChannel_Create(PipeRef _Nonnull pipe, unsigned int mode, IOChannelRe
 
 errno_t PipeChannel_finalize(PipeChannelRef _Nonnull self)
 {
-    Pipe_Close(self->pipe, IOChannel_GetMode(self));
+    Pipe_Close(self->pipe, (IOChannel_GetMode(self) & kOpen_Read) == kOpen_Read ? kPipeEnd_Read : kPipeEnd_Write);
 
     Object_Release(self->pipe);
     self->pipe = NULL;

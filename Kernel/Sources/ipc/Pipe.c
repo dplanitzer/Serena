@@ -12,18 +12,13 @@
 #include <System/File.h>
 
 
-enum {
-    kPipeState_Open = 0,
-    kPipeState_Closed
-};
-
 final_class_ivars(Pipe, Object,
     Lock                lock;
     ConditionVariable   reader;
     ConditionVariable   writer;
+    size_t              readerCount;
+    size_t              writerCount;
     RingBuffer          buffer;
-    int8_t              readSideState;  // current state of the reader side
-    int8_t              writeSideState; // current state of the writer side
 );
 
 
@@ -39,9 +34,9 @@ errno_t Pipe_Create(size_t bufferSize, PipeRef _Nullable * _Nonnull pOutPipe)
     Lock_Init(&self->lock);
     ConditionVariable_Init(&self->reader);
     ConditionVariable_Init(&self->writer);
+    self->readerCount = 0;
+    self->writerCount = 0;
     try(RingBuffer_Init(&self->buffer, __max(bufferSize, 1)));
-    self->readSideState = kPipeState_Open;
-    self->writeSideState = kPipeState_Open;
 
     *pOutPipe = self;
     return EOK;
@@ -87,17 +82,46 @@ size_t Pipe_GetCapacity(PipeRef _Nonnull self)
     return nbytes;
 }
 
-void Pipe_Close(PipeRef _Nonnull self, unsigned int mode)
+void Pipe_Open(PipeRef _Nonnull self, int end)
 {
     Lock_Lock(&self->lock);
-    if ((mode & kOpen_ReadWrite) == kOpen_Read) {
-        self->readSideState = kPipeState_Closed;
-    } else {
-        self->writeSideState = kPipeState_Closed;
+    switch (end) {
+        case kPipeEnd_Read:
+            self->readerCount++;
+            break;
+
+        case kPipeEnd_Write:
+            self->writerCount++;
+            break;
+
+        default:
+            abort();
     }
 
-    // Always wake the reader and the writer since the close may be triggered
-    // by an unrelated 3rd process.
+    ConditionVariable_BroadcastAndUnlock(&self->reader, NULL);
+    ConditionVariable_BroadcastAndUnlock(&self->writer, &self->lock);
+}
+
+void Pipe_Close(PipeRef _Nonnull self, int end)
+{
+    Lock_Lock(&self->lock);
+    switch (end) {
+        case kPipeEnd_Read:
+            if (self->readerCount > 0) {
+                self->readerCount--;
+            }
+            break;
+
+        case kPipeEnd_Write:
+            if (self->writerCount > 0) {
+                self->writerCount--;
+            }
+            break;
+
+        default:
+            abort();
+    }
+
     ConditionVariable_BroadcastAndUnlock(&self->reader, NULL);
     ConditionVariable_BroadcastAndUnlock(&self->writer, &self->lock);
 }
@@ -114,12 +138,12 @@ errno_t Pipe_Read(PipeRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesT
     if (nBytesToRead > 0) {
         Lock_Lock(&self->lock);
 
-        while (nBytesRead < nBytesToRead && self->readSideState == kPipeState_Open) {
+        while (nBytesRead < nBytesToRead && self->readerCount > 0) {
             const int nChunkSize = RingBuffer_GetBytes(&self->buffer, &((char*)pBuffer)[nBytesRead], nBytesToRead - nBytesRead);
 
             nBytesRead += nChunkSize;
             if (nChunkSize == 0) {
-                if (self->writeSideState == kPipeState_Closed) {
+                if (self->writerCount == 0) {
                     err = EOK;
                     break;
                 }
@@ -156,12 +180,12 @@ errno_t Pipe_Write(PipeRef _Nonnull self, const void* _Nonnull pBytes, ssize_t n
     if (nBytesToWrite > 0) {
         Lock_Lock(&self->lock);
         
-        while (nBytesWritten < nBytesToWrite && self->writeSideState == kPipeState_Open) {
+        while (nBytesWritten < nBytesToWrite && self->writerCount > 0) {
             const int nChunkSize = RingBuffer_PutBytes(&self->buffer, &((char*)pBytes)[nBytesWritten], nBytesToWrite - nBytesWritten);
             
             nBytesWritten += nChunkSize;
             if (nChunkSize == 0) {
-                if (self->readSideState == kPipeState_Closed) {
+                if (self->readerCount == 0) {
                     err = (nBytesWritten == 0) ? EPIPE : EOK;
                     break;
                 }
