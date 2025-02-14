@@ -294,8 +294,14 @@ errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const char* name, Use
 {
     decl_try_err();
     DriverCatalogId parentBusCatalogId = (self->parent) ? Driver_GetBusCatalogId(self->parent) : 0;
+    // We assume for now that busses always dynamically discover devices and want to be in full control of the device names (user can't add, remove or rename entries)
+    const FilePermissions ownerPerms = FilePermissions_Get(perms, kFilePermissionsClass_User);
+    const FilePermissions groupPerms = FilePermissions_Get(perms, kFilePermissionsClass_Group) & ~kFilePermission_Write;
+    const FilePermissions otherPerms = FilePermissions_Get(perms, kFilePermissionsClass_Other) & ~kFilePermission_Write;
+    const FilePermissions dirPerms = FilePermissions_Make(ownerPerms, groupPerms, otherPerms);
 
-    if ((err = DriverCatalog_PublishBus(gDriverCatalog, parentBusCatalogId, name, uid, gid, perms, &self->busCatalogId)) == EOK) {
+    if ((err = DriverCatalog_PublishBus(gDriverCatalog, parentBusCatalogId, name, uid, gid, dirPerms, &self->busCatalogId)) == EOK) {
+        // We assume that the self device entry can not be an executable
         const FilePermissions ownerPerms = FilePermissions_Get(perms, kFilePermissionsClass_User) & ~kFilePermission_Execute;
         const FilePermissions groupPerms = FilePermissions_Get(perms, kFilePermissionsClass_Group) & ~kFilePermission_Execute;
         const FilePermissions otherPerms = FilePermissions_Get(perms, kFilePermissionsClass_Other) & ~kFilePermission_Execute;
