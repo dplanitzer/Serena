@@ -397,7 +397,12 @@ errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull pa
         }
     }
 
-    try(Filesystem_Unlink(Inode_GetFilesystem(target), target, dir, self->ruid, self->rgid));
+
+    // We must have write permissions for 'pDir'
+    try(SecurityManager_CheckNodeAccess(gSecurityManager, dir, self->ruid, self->rgid, kAccess_Writable));
+
+
+    try(Filesystem_Unlink(Inode_GetFilesystem(target), target, dir));
 
 catch:
     Inode_UnlockRelinquish(target);
@@ -521,7 +526,7 @@ errno_t FileManager_Rename(FileManagerRef _Nonnull self, const char* oldPath, co
 
     // Remove the destination node if it exists
     if (newNode) {
-        try(Filesystem_Unlink(Inode_GetFilesystem(newNode), newNode, newDir, self->ruid, self->rgid));
+        try(Filesystem_Unlink(Inode_GetFilesystem(newNode), newNode, newDir));
     }
 
 

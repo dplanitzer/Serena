@@ -159,7 +159,7 @@ errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverCatalogId 
 
         // Delete the bus directory or the driver entry
         if (err == EOK) {
-            err = Filesystem_Unlink(self->devfs, pNode, pDir, kRootUserId, kRootGroupId);
+            err = Filesystem_Unlink(self->devfs, pNode, pDir);
         }
     }
 

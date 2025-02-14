@@ -93,7 +93,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
 
 catch:
     if (isPublished) {
-        Filesystem_Unlink((FilesystemRef)self, pNode, dir, uid, gid);
+        Filesystem_Unlink((FilesystemRef)self, pNode, dir);
         Filesystem_RelinquishNode((FilesystemRef)self, pNode);
     } else {
         Inode_Destroy(pNode);

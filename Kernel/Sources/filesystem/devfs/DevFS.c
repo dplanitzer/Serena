@@ -205,23 +205,19 @@ catch:
 // node of the filesystem.
 // This function must validate that that if 'pNode' is a directory, that the
 // directory is empty (contains nothing except "." and "..").
-errno_t DevFS_unlink(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pDir, UserId uid, GroupId gid)
+errno_t DevFS_unlink(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked target, InodeRef _Nonnull _Locked dir)
 {
     decl_try_err();
 
     try_bang(SELock_LockExclusive(&self->seLock));
 
-    // We must have write permissions for 'pDir'
-    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Writable));
-
-
     // A directory must be empty in order to be allowed to unlink it
-    if (Inode_IsDirectory(pNodeToUnlink) && Inode_GetLinkCount(pNodeToUnlink) > 1 && DfsDirectoryItem_IsEmpty(Inode_GetDfsDirectoryItem(pNodeToUnlink))) {
+    if (Inode_IsDirectory(target) && Inode_GetLinkCount(target) > 1 && DfsDirectoryItem_IsEmpty(Inode_GetDfsDirectoryItem(target))) {
         throw(EBUSY);
     }
 
 
-    try(DevFS_unlinkCore(self, pNodeToUnlink, pDir));
+    try(DevFS_unlinkCore(self, target, dir));
 
 catch:
     SELock_Unlock(&self->seLock);

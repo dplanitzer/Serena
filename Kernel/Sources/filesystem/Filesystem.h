@@ -261,13 +261,13 @@ open_class_funcs(Filesystem, Object,
     // on success and NULL otherwise.
     errno_t (*createNode)(void* _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
 
-    // Unlink the node 'pNode' which is an immediate child of 'pDir'. Both nodes
-    // are guaranteed to be members of the same filesystem. 'pNode' is guaranteed
+    // Unlink the node 'target' which is an immediate child of 'dir'. Both nodes
+    // are guaranteed to be members of the same filesystem. 'target' is guaranteed
     // to exist and that it isn't a mountpoint and not the root node of the
     // filesystem.
-    // This function must validate that that if 'pNode' is a directory, that the
+    // This function must validate that that if 'target' is a directory, that the
     // directory is empty (contains nothing except "." and ".." entries).
-    errno_t (*unlink)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pDir, UserId uid, GroupId gid);
+    errno_t (*unlink)(void* _Nonnull self, InodeRef _Nonnull _Locked target, InodeRef _Nonnull _Locked dir);
 
     // Moves the node 'pSrcNode' from its current parent directory 'pSrcDir' to
     // the new parent directory 'pDstDir' and assigns it the name 'pName' in this
@@ -376,8 +376,8 @@ invoke_n(truncateFile, Filesystem, __self, __pFile, __length)
 invoke_n(readDirectory, Filesystem, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
 
-#define Filesystem_Unlink(__self, __pNode, __pDir, __uid, __gid) \
-invoke_n(unlink, Filesystem, __self, __pNode, __pDir, __uid, __gid)
+#define Filesystem_Unlink(__self, __target, __dir) \
+invoke_n(unlink, Filesystem, __self, __target, __dir)
 
 #define Filesystem_Move(__self, __pSrcNode, __pSrcDir, __pDstDir, __pNewName, __uid, __gid, __pDirInstHint) \
 invoke_n(move, Filesystem, __self, __pSrcNode, __pSrcDir, __pDstDir, __pNewName, __uid, __gid, __pDirInstHint)

@@ -173,27 +173,23 @@ catch:
     return err;
 }
 
-// Unlink the node 'pNode' which is an immediate child of 'pParentNode'.
+// Unlink the node 'target' which is an immediate child of 'dir'.
 // Both nodes are guaranteed to be members of the same filesystem. 'pNode'
 // is guaranteed to exist and that it isn't a mountpoint and not the root
 // node of the filesystem.
 // This function must validate that that if 'pNode' is a directory, that the
 // directory is empty (contains nothing except "." and "..").
-errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pDir, UserId uid, GroupId gid)
+errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked target, InodeRef _Nonnull _Locked dir)
 {
     decl_try_err();
 
-    // We must have write permissions for 'pDir'
-    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Writable));
-
-
-    // A directory must be empty in order to be allowed to unlink it
-    if (Inode_IsDirectory(pNodeToUnlink) && Inode_GetLinkCount(pNodeToUnlink) > 1 && DirectoryNode_IsNotEmpty(pNodeToUnlink)) {
+    // A directory must be empty in order to be allowed to unlink its
+    if (Inode_IsDirectory(target) && Inode_GetLinkCount(target) > 1 && DirectoryNode_IsNotEmpty(target)) {
         throw(EBUSY);
     }
 
 
-    try(SerenaFS_unlinkCore(self, pNodeToUnlink, pDir));
+    try(SerenaFS_unlinkCore(self, target, dir));
 
 catch:
     return err;

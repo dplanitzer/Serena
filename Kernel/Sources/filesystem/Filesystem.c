@@ -330,7 +330,7 @@ bool Filesystem_isReadOnly(FilesystemRef _Nonnull self)
     return true;
 }
 
-errno_t Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pDir, UserId uid, GroupId gid)
+errno_t Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked target, InodeRef _Nonnull _Locked dir)
 {
     return EACCESS;
 }
