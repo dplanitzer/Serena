@@ -103,12 +103,21 @@ static errno_t print_inode(ListContextRef _Nonnull self, const char* _Nonnull pa
     const errno_t err = File_GetInfo(path, &info);
     
     if (err == EOK) {
-        for (int i = 0; i < PERMISSIONS_STRING_LENGTH; i++) {
+        char tc;
+
+        switch (info.type) {
+            case kFileType_Device:              tc = 'h'; break;
+            case kFileType_Directory:           tc = 'd'; break;
+            case kFileType_Pipe:                tc = 'p'; break;
+            case kFileType_SymbolicLink:        tc = 'l'; break;
+            default:                            tc = '-'; break;
+        }
+        self->buf[0] = tc;
+
+        for (int i = 1; i < PERMISSIONS_STRING_LENGTH; i++) {
             self->buf[i] = '-';
         }
-        if (info.type == kFileType_Directory) {
-            self->buf[0] = 'd';
-        }
+
         file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_User), &self->buf[1]);
         file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Group), &self->buf[4]);
         file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Other), &self->buf[7]);
