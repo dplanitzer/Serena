@@ -31,10 +31,6 @@ static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef
 
     try_bang(SELock_LockExclusive(&self->seLock));
 
-    // We must have write permissions for the parent directory
-    try(SecurityManager_CheckNodeAccess(gSecurityManager, dir, uid, gid, kAccess_Writable));
-
-
     switch (type) {
         case kFileType_Directory:
             // Make sure that the parent directory is able to accept one more link

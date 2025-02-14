@@ -11,12 +11,12 @@
 #include <security/SecurityManager.h>
 
 
-errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const TimeInterval curTime = FSGetCurrentTime();
-    InodeId parentInodeId = Inode_GetId(pDir);
+    InodeId parentInodeId = Inode_GetId(dir);
     LogicalBlockAddress inodeLba = 0;
     LogicalBlockAddress dirContLba = 0;
     FileOffset fileSize = 0ll;
@@ -24,13 +24,9 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     InodeRef pNode = NULL;
     bool isPublished = false;
 
-    // We must have write permissions for the parent directory
-    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Writable));
-
-
     if (type == kFileType_Directory) {
         // Make sure that the parent directory is able to accept one more link
-        if (Inode_GetLinkCount(pDir) >= kSFSLimit_LinkMax) {
+        if (Inode_GetLinkCount(dir) >= kSFSLimit_LinkMax) {
             throw(EMLINK);
         }
     }
@@ -83,12 +79,12 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     // a second inode object representing the same inode.  
     try(Filesystem_PublishNode((FilesystemRef)self, pNode));
     isPublished = true;
-    try(SerenaFS_InsertDirectoryEntry(self, pDir, pName, Inode_GetId(pNode), pDirInsertionHint));
+    try(SerenaFS_InsertDirectoryEntry(self, dir, name, Inode_GetId(pNode), pDirInsertionHint));
 
     if (type == kFileType_Directory) {
         // Increment the parent directory link count to account for the '..' entry
         // in the just created subdirectory
-        Inode_Link(pDir);
+        Inode_Link(dir);
     }
 
     *pOutNode = pNode;
@@ -97,7 +93,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
 
 catch:
     if (isPublished) {
-        Filesystem_Unlink((FilesystemRef)self, pNode, pDir, uid, gid);
+        Filesystem_Unlink((FilesystemRef)self, pNode, dir, uid, gid);
         Filesystem_RelinquishNode((FilesystemRef)self, pNode);
     } else {
         Inode_Destroy(pNode);

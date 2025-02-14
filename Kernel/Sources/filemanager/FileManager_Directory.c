@@ -88,7 +88,11 @@ errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _N
     Inode_Lock(r.inode);
     err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(r.inode), r.inode, dirName, self->ruid, self->rgid, &dih, NULL);
     if (err == ENOENT) {
-        err = Filesystem_CreateNode(Inode_GetFilesystem(r.inode), kFileType_Directory, r.inode, dirName, &dih, self->ruid, self->rgid, dirPerms, &newDir);
+        // We must have write permissions for the parent directory
+        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, kAccess_Writable);
+        if (err == EOK) {
+            err = Filesystem_CreateNode(Inode_GetFilesystem(r.inode), kFileType_Directory, r.inode, dirName, &dih, self->ruid, self->rgid, dirPerms, &newDir);
+        }
     }
     else if (err == EOK) {
         err = EEXIST;

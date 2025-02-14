@@ -116,6 +116,10 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
         }
 
 
+        // We must have write permissions for the parent directory
+        try(SecurityManager_CheckNodeAccess(gSecurityManager, dir, self->ruid, self->rgid, kAccess_Writable));
+
+
         // Create the new file and add it to its parent directory
         try(Filesystem_CreateNode(pFS, kFileType_RegularFile, dir, name, &dih, self->ruid, self->rgid, filePerms, &filein));
     }
