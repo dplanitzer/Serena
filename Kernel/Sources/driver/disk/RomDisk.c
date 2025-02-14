@@ -54,7 +54,7 @@ void RomDisk_deinit(RomDiskRef _Nonnull self)
 
 errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
 {
-    return Driver_Publish((DriverRef)self, self->name, 0);
+    return Driver_Publish((DriverRef)self, self->name, kRootUserId, kRootGroupId, FilePermissions_MakeFromOctal(0444), 0);
 }
 
 errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, const IORequest* _Nonnull ior)

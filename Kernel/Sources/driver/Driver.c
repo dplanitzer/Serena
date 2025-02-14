@@ -269,12 +269,12 @@ errno_t Driver_onPublish(DriverRef _Nonnull _Locked self)
 }
 
 // Publishes the driver instance to the driver catalog with the given name.
-errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* name, intptr_t arg)
+errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* name, UserId uid, GroupId gid, FilePermissions perms, intptr_t arg)
 {
     decl_try_err();
     DriverCatalogId parentBusCatalogId = (self->parent) ? Driver_GetBusCatalogId(self->parent) : 0;
 
-    if ((err = DriverCatalog_Publish(gDriverCatalog, parentBusCatalogId, name, self, arg, &self->driverCatalogId)) == EOK) {
+    if ((err = DriverCatalog_Publish(gDriverCatalog, parentBusCatalogId, name, uid, gid, perms, self, arg, &self->driverCatalogId)) == EOK) {
         if ((err = Driver_OnPublish(self)) == EOK) {
             return EOK;
         }
@@ -290,13 +290,18 @@ errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* name, intptr
 // entry represents the bus driver itself. All immediate children of the bus
 // driver will be published as additional entries to the bus directory.
 // The extra argument 'arg' is associated with the 'self' entry.
-errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const char* name, intptr_t arg)
+errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const char* name, UserId uid, GroupId gid, FilePermissions perms, intptr_t arg)
 {
     decl_try_err();
     DriverCatalogId parentBusCatalogId = (self->parent) ? Driver_GetBusCatalogId(self->parent) : 0;
 
-    if ((err = DriverCatalog_PublishBus(gDriverCatalog, parentBusCatalogId, name, &self->busCatalogId)) == EOK) {
-        if ((err = DriverCatalog_Publish(gDriverCatalog, self->busCatalogId, "self", self, arg, &self->driverCatalogId)) == EOK) {
+    if ((err = DriverCatalog_PublishBus(gDriverCatalog, parentBusCatalogId, name, uid, gid, perms, &self->busCatalogId)) == EOK) {
+        const FilePermissions ownerPerms = FilePermissions_Get(perms, kFilePermissionsClass_User) & ~kFilePermission_Execute;
+        const FilePermissions groupPerms = FilePermissions_Get(perms, kFilePermissionsClass_Group) & ~kFilePermission_Execute;
+        const FilePermissions otherPerms = FilePermissions_Get(perms, kFilePermissionsClass_Other) & ~kFilePermission_Execute;
+        const FilePermissions selfPerms = FilePermissions_Make(ownerPerms, groupPerms, otherPerms);
+    
+        if ((err = DriverCatalog_Publish(gDriverCatalog, self->busCatalogId, "self", uid, gid, selfPerms, self, arg, &self->driverCatalogId)) == EOK) {
             if ((err = Driver_OnPublish(self)) == EOK) {
                 return EOK;
             }

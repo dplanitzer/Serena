@@ -25,7 +25,7 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
 
-    try(Driver_PublishBus((DriverRef)self, "zorro-bus", 0));
+    try(Driver_PublishBus((DriverRef)self, "zorro-bus", kRootUserId, kRootGroupId, FilePermissions_MakeFromOctal(0777), 0));
 
 
     // Auto config the Zorro bus

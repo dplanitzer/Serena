@@ -79,7 +79,7 @@ static errno_t DriverCatalog_AcquireBusDirectory(DriverCatalogRef _Nonnull self,
     }
 }
 
-errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, DriverCatalogId busCatalogId, const char* _Nonnull name, DriverRef _Nonnull driver, intptr_t arg, DriverCatalogId* _Nonnull pOutDriverCatalogId)
+errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, DriverCatalogId busCatalogId, const char* _Nonnull name, UserId uid, GroupId gid, FilePermissions perms, DriverRef _Nonnull driver, intptr_t arg, DriverCatalogId* _Nonnull pOutDriverCatalogId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -91,13 +91,9 @@ errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, DriverCatalogId bu
     pc.name = name;
     pc.count = String_Length(name);
 
-    const FilePermissions ownerPerms = kFilePermission_Read | kFilePermission_Write;
-    const FilePermissions otherPerms = kFilePermission_Read | kFilePermission_Write;
-    const FilePermissions permissions = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
-
     err = DriverCatalog_AcquireBusDirectory(self, busCatalogId, &pDir);
     if (err == EOK) {
-        err = DevFS_CreateDevice(self->devfs, pDir, &pc, driver, arg, kRootUserId, kRootGroupId, permissions, &pNode);
+        err = DevFS_CreateDevice(self->devfs, pDir, &pc, driver, arg, uid, gid, perms, &pNode);
         if (err == EOK) {
             *pOutDriverCatalogId = (DriverCatalogId)Inode_GetId(pNode);
         }
@@ -110,7 +106,7 @@ errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, DriverCatalogId bu
 }
 
 // Publishes a bus directory with the name 'name' to the driver catalog.
-errno_t DriverCatalog_PublishBus(DriverCatalogRef _Nonnull self, DriverCatalogId parentBusId, const char* _Nonnull name, DriverCatalogId* _Nonnull pOutBusCatalogId)
+errno_t DriverCatalog_PublishBus(DriverCatalogRef _Nonnull self, DriverCatalogId parentBusId, const char* _Nonnull name, UserId uid, GroupId gid, FilePermissions perms, DriverCatalogId* _Nonnull pOutBusCatalogId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -122,13 +118,9 @@ errno_t DriverCatalog_PublishBus(DriverCatalogRef _Nonnull self, DriverCatalogId
     pc.name = name;
     pc.count = String_Length(name);
 
-    const FilePermissions ownerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
-    const FilePermissions otherPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
-    const FilePermissions permissions = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
-
     err = DriverCatalog_AcquireBusDirectory(self, parentBusId, &pDir);
     if (err == EOK) {
-        err = Filesystem_CreateNode((FilesystemRef)self->devfs, kFileType_Directory, pDir, &pc, NULL, kRootUserId, kRootGroupId, permissions, &pNode);
+        err = Filesystem_CreateNode((FilesystemRef)self->devfs, kFileType_Directory, pDir, &pc, NULL, uid, gid, perms, &pNode);
         if (err == EOK) {
             *pOutBusCatalogId = (DriverCatalogId)Inode_GetId(pNode);
         }

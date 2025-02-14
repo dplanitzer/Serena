@@ -109,7 +109,7 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     name[2] = '0' + self->drive;
     name[3] = '\0';
 
-    if ((err = Driver_Publish((DriverRef)self, name, 0)) == EOK) {
+    if ((err = Driver_Publish((DriverRef)self, name, kRootUserId, kRootGroupId, FilePermissions_MakeFromOctal(0640), 0)) == EOK) {
         if ((err = DispatchQueue_DispatchAsync(Driver_GetDispatchQueue(self), (VoidFunc_1)FloppyDriver_EstablishInitialDriveState, self)) == EOK) {
             return EOK;
         }

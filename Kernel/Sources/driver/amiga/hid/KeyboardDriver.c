@@ -90,7 +90,7 @@ static void KeyboardDriver_deinit(KeyboardDriverRef _Nonnull self)
 
 errno_t KeyboardDriver_onStart(KeyboardDriverRef _Nonnull _Locked self)
 {
-    return Driver_Publish((DriverRef)self, "kb", 0);
+    return Driver_Publish((DriverRef)self, "kb", kRootUserId, kRootGroupId, FilePermissions_MakeFromOctal(0444), 0);
 }
 
 InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)

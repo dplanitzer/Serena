@@ -24,10 +24,10 @@ extern FilesystemRef _Nullable DriverCatalog_CopyChapterFilesystem(DriverCatalog
 // Returns a suitable error if another entry with the same name already exists.
 // 'arg' is an optional argument that will be passed to the Driver_Open() method
 // when the driver needs to be opened.
-extern errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, DriverCatalogId busCatalogId, const char* _Nonnull name, DriverRef _Nonnull driver, intptr_t arg, DriverCatalogId* _Nonnull pOutDriverCatalogId);
+extern errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, DriverCatalogId busCatalogId, const char* _Nonnull name, UserId uid, GroupId gid, FilePermissions perms, DriverRef _Nonnull driver, intptr_t arg, DriverCatalogId* _Nonnull pOutDriverCatalogId);
 
 // Publishes a bus directory with the name 'name' to the driver catalog.
-extern errno_t DriverCatalog_PublishBus(DriverCatalogRef _Nonnull self, DriverCatalogId parentBusId, const char* _Nonnull name, DriverCatalogId* _Nonnull pOutBusCatalogId);
+extern errno_t DriverCatalog_PublishBus(DriverCatalogRef _Nonnull self, DriverCatalogId parentBusId, const char* _Nonnull name, UserId uid, GroupId gid, FilePermissions perms, DriverCatalogId* _Nonnull pOutBusCatalogId);
 
 // Either removes a published driver entry from the driver catalog or a published
 // bus entry. Pass the bus and the driver catalog ID if you want to remove a

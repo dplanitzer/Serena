@@ -102,7 +102,7 @@ static errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     // Start cursor blinking
     Console_SetCursorBlinkingEnabled_Locked(self, true);
 
-    return Driver_Publish((DriverRef)self, kConsoleName, 0);
+    return Driver_Publish((DriverRef)self, kConsoleName, kRootUserId, kRootGroupId, FilePermissions_MakeFromOctal(0666),  0);
 }
 
 errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking)

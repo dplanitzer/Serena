@@ -12,6 +12,8 @@
 #include <dispatcher/Lock.h>
 #include <klib/List.h>
 #include <kobj/Object.h>
+#include <System/FilePermissions.h>
+#include <User.h>
 
 typedef enum DriverOptions {
     kDriver_Exclusive = 1,    // At most one I/O channel can be open at any given time. Attempts to open more will generate a EBUSY error
@@ -295,7 +297,7 @@ invoke_0(onUnpublish, Driver, __self)
 
 // Publishes the driver instance to the driver catalog with the given name. This
 // method should be called from a onStart() override.
-extern errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* _Nonnull name, intptr_t arg);
+extern errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* _Nonnull name, UserId uid, GroupId gid, FilePermissions perms, intptr_t arg);
 
 // Publishes the receiver to the driver catalog as a bus controller. This means
 // that first a directory with name 'name' is created which represents the bus.
@@ -303,7 +305,7 @@ extern errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* _Nonn
 // entry represents the bus driver itself. All immediate children of the bus
 // driver will be published as additional entries to the bus directory.
 // The extra argument 'arg' is associated with the 'self' entry.
-extern errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const char* name, intptr_t arg);
+extern errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const char* name, UserId uid, GroupId gid, FilePermissions perms, intptr_t arg);
 
 // Removes the driver instance from the driver catalog. Called as part of the
 // driver termination process.

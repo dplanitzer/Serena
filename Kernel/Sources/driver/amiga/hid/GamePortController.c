@@ -113,7 +113,7 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
 
-    if ((err = Driver_PublishBus((DriverRef)self, "gp-bus", 0)) == EOK) {
+    if ((err = Driver_PublishBus((DriverRef)self, "gp-bus", kRootUserId, kRootGroupId, FilePermissions_MakeFromOctal(0777), 0)) == EOK) {
         err = GamePortController_SetPortDevice_Locked(self, 0, kInputType_Mouse);
         if (err != EOK) {
             Driver_Unpublish((DriverRef)self);
