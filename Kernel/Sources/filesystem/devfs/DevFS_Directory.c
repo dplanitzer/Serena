@@ -20,36 +20,34 @@ errno_t DevFS_InsertDirectoryEntry(DevFSRef _Nonnull _Locked self, InodeRef _Non
     decl_try_err();
     DfsDirectoryItem* ip = Inode_GetDfsDirectoryItem(pDir);
 
-    try(DfsDirectoryItem_AddEntry(ip, inid, pName));
-    Inode_IncrementFileSize(pDir, sizeof(DfsDirectoryEntry));
-
-
-    // Mark the directory as modified
+    err = DfsDirectoryItem_AddEntry(ip, inid, pName);
     if (err == EOK) {
-        Inode_SetModified(pDir, kInodeFlag_Updated | kInodeFlag_StatusChanged);
+        Inode_IncrementFileSize(pDir, sizeof(DfsDirectoryEntry));
+
+        // Mark the directory as modified
+        if (err == EOK) {
+            Inode_SetModified(pDir, kInodeFlag_Updated | kInodeFlag_StatusChanged);
+        }
     }
 
-catch:
     return err;
 }
 
 errno_t DevFS_RemoveDirectoryEntry(DevFSRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, InodeId idToRemove)
 {
-    decl_try_err();
+    const errno_t err = DfsDirectoryItem_RemoveEntry(Inode_GetDfsDirectoryItem(pDir), idToRemove);
+    
+    if (err == EOK) {
+        Inode_DecrementFileSize(pDir, sizeof(DfsDirectoryEntry));
+    }
 
-    try(DfsDirectoryItem_RemoveEntry(Inode_GetDfsDirectoryItem(pDir), idToRemove));
-    Inode_DecrementFileSize(pDir, sizeof(DfsDirectoryEntry));
-
-catch:
     return err;
 }
 
 errno_t DevFS_acquireRootDirectory(DevFSRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir)
 {
-    decl_try_err();
-
     try_bang(SELock_LockShared(&self->seLock)); 
-    err = (self->flags.isMounted) ? Filesystem_AcquireNodeWithId((FilesystemRef)self, self->rootDirInodeId, pOutDir) : EIO;
+    const errno_t err = (self->flags.isMounted) ? Filesystem_AcquireNodeWithId((FilesystemRef)self, self->rootDirInodeId, pOutDir) : EIO;
     SELock_Unlock(&self->seLock);
     return err;
 }
@@ -60,36 +58,22 @@ errno_t DevFS_acquireNodeForName(DevFSRef _Nonnull self, InodeRef _Nonnull _Lock
     DfsDirectoryEntry* entry;
 
     try_bang(SELock_LockShared(&self->seLock));
-    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Searchable));
-    try(DfsDirectoryItem_GetEntryForName(Inode_GetDfsDirectoryItem(pDir), pName, &entry));
-
-    if (pOutNode) {
-        try(Filesystem_AcquireNodeWithId((FilesystemRef)self, entry->inid, pOutNode));
+    err = DfsDirectoryItem_GetEntryForName(Inode_GetDfsDirectoryItem(pDir), pName, &entry);
+    if (err == EOK && pOutNode) {
+        err = Filesystem_AcquireNodeWithId((FilesystemRef)self, entry->inid, pOutNode);
     }
-    SELock_Unlock(&self->seLock);
-    return EOK;
-
-catch:
-    SELock_Unlock(&self->seLock);
-    if (pOutNode) {
+    if (err != EOK && pOutNode) {
         *pOutNode = NULL;
     }
+    SELock_Unlock(&self->seLock);
     return err;
 }
 
 errno_t DevFS_getNameOfNode(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, UserId uid, GroupId gid, MutablePathComponent* _Nonnull pName)
 {
-    decl_try_err();
-
     try_bang(SELock_LockShared(&self->seLock));
-    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Readable | kAccess_Searchable));
-    try(DfsDirectoryItem_GetNameOfEntryWithId(Inode_GetDfsDirectoryItem(pDir), id, pName));
+    const errno_t err = DfsDirectoryItem_GetNameOfEntryWithId(Inode_GetDfsDirectoryItem(pDir), id, pName);
     SELock_Unlock(&self->seLock);
-    return EOK;
-
-catch:
-    SELock_Unlock(&self->seLock);
-    pName->count = 0;
     return err;
 }
 

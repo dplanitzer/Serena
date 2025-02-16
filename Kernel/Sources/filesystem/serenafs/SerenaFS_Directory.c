@@ -201,17 +201,13 @@ errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull
     SFSDirectoryQuery q;
     InodeId entryId;
 
-    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Searchable));
     q.kind = kSFSDirectoryQuery_PathComponent;
     q.u.pc = pName;
-    try(SerenaFS_GetDirectoryEntry(self, pDir, &q, (pDirInsHint) ? (SFSDirectoryEntryPointer*)pDirInsHint->data : NULL, NULL, &entryId, NULL));
-    if (pOutNode) {
-        try(Filesystem_AcquireNodeWithId((FilesystemRef)self, entryId, pOutNode));
+    err = SerenaFS_GetDirectoryEntry(self, pDir, &q, (pDirInsHint) ? (SFSDirectoryEntryPointer*)pDirInsHint->data : NULL, NULL, &entryId, NULL);
+    if (err == EOK && pOutNode) {
+        err = Filesystem_AcquireNodeWithId((FilesystemRef)self, entryId, pOutNode);
     }
-    return EOK;
-
-catch:
-    if (pOutNode) {
+    if (err != EOK && pOutNode) {
         *pOutNode = NULL;
     }
     return err;
@@ -219,18 +215,11 @@ catch:
 
 errno_t SerenaFS_getNameOfNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, UserId uid, GroupId gid, MutablePathComponent* _Nonnull pName)
 {
-    decl_try_err();
     SFSDirectoryQuery q;
 
-    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Readable | kAccess_Searchable));
     q.kind = kSFSDirectoryQuery_InodeId;
     q.u.id = id;
-    try(SerenaFS_GetDirectoryEntry(self, pDir, &q, NULL, NULL, NULL, pName));
-    return EOK;
-
-catch:
-    pName->count = 0;
-    return err;
+    return SerenaFS_GetDirectoryEntry(self, pDir, &q, NULL, NULL, NULL, pName);
 }
 
 errno_t SerenaFS_RemoveDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId idToRemove)

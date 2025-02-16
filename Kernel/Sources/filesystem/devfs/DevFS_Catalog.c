@@ -123,16 +123,18 @@ errno_t DfsDirectoryItem_GetNameOfEntryWithId(DfsDirectoryItem* _Nonnull self, I
     )
 
     if (entry == NULL) {
+        mpc->count = 0;
         return ENOENT;
     }
-    if (entry->nameLength > mpc->capacity) {
+    else if (entry->nameLength > mpc->capacity) {
+        mpc->count = 0;
         return ERANGE;
     }
-
-    mpc->count = entry->nameLength;
-    memcpy(mpc->name, entry->name, entry->nameLength);
-    
-    return EOK;
+    else {
+        mpc->count = entry->nameLength;
+        memcpy(mpc->name, entry->name, entry->nameLength);
+        return EOK;
+    }
 }
 
 errno_t DfsDirectoryItem_AddEntry(DfsDirectoryItem* _Nonnull self, InodeId inid, const PathComponent* _Nonnull pc)
