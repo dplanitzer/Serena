@@ -36,6 +36,14 @@ errno_t Object_Create(Class* _Nonnull pClass, size_t extraByteCount, void* _Null
     return err;
 }
 
+void* _Nonnull Object_Retain(void* _Nonnull self)
+{
+    ObjectRef s = (ObjectRef)self;
+
+    AtomicInt_Increment(&s->retainCount);
+    return self;
+}
+
 static void _Object_Dealloc(ObjectRef _Nonnull self)
 {
     decl_try_err();
@@ -63,13 +71,15 @@ static void _Object_Dealloc(ObjectRef _Nonnull self)
 // Releases a strong reference on the given resource. Deallocates the resource
 // when the reference count transitions from 1 to 0. Invokes the deinit method
 // on the resource if the resource should be deallocated.
-void _Object_Release(ObjectRef _Nullable self)
+void Object_Release(void* _Nullable self)
 {
-    if (self == NULL) {
+    ObjectRef s = (ObjectRef)self;
+
+    if (s == NULL) {
         return;
     }
 
-    const AtomicInt rc = AtomicInt_Decrement(&self->retainCount);
+    const AtomicInt rc = AtomicInt_Decrement(&s->retainCount);
 
     // Note that we trigger the deallocation when the reference count transitions
     // from 1 to 0. The VP that caused this transition is the one that executes
@@ -79,6 +89,6 @@ void _Object_Release(ObjectRef _Nullable self)
     // negative which is fine. In that sense a negative reference count signals
     // that the object is dead.
     if (rc == 0) {
-        _Object_Dealloc(self);
+        _Object_Dealloc(s);
     }
 }

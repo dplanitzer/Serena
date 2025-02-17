@@ -45,32 +45,20 @@ extern errno_t Object_Create(Class* _Nonnull pClass, size_t extraByteCount, void
 
 // Retains the given object and returns a (new) strong reference to the given
 // object. Retaining an object keeps it alive.
-#define Object_Retain(__self) \
-    _Object_Retain((ObjectRef)(__self))
+extern void* _Nonnull Object_Retain(void* _Nonnull self);
 
 #define Object_RetainAs(__self, __class) \
-    ((__class##Ref)_Object_Retain((ObjectRef)(__self)))
+    ((__class##Ref)Object_Retain(__self))
 
 
 // Releases a strong reference on the given object. Deallocates the object when
 // the reference count transitions from 1 to 0. Invokes the deinit method on
 // the object if the object should be deallocated.
-#define Object_Release(__self) \
-    _Object_Release((ObjectRef)(__self))
+extern void Object_Release(void* _Nullable self);
 
 
 // For debugging purposes only: returns the current retain count.
 #define Object_GetRetainCount(__self) \
     (((ObjectRef)(__self))->retainCount)
-
-
-// Do not call these functions directly. Use the macros defined above instead.
-extern void _Object_Release(ObjectRef _Nullable self);
-
-static inline ObjectRef _Nonnull _Object_Retain(ObjectRef _Nonnull self)
-{
-    AtomicInt_Increment(&self->retainCount);
-    return self;
-}
 
 #endif /* Object_h */
