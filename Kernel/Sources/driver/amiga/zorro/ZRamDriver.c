@@ -12,7 +12,7 @@
 
 errno_t ZRamDriver_Create(DriverRef _Nullable parent, const ZorroConfiguration* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return ZorroDriver_Create(ZRamDriver, 0, parent, config, pOutSelf);
+    return ZorroDriver_Create(class(ZRamDriver), 0, parent, config, pOutSelf);
 }
 
 errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)

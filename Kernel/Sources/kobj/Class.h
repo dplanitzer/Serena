@@ -35,7 +35,7 @@ struct __name { __super __ivars_decls }
 
 
 // Generates a definition of the reference type of a class instance, __nameRef.
-// Add a class_ref() to kobj/ObectRefs for each class you define in the kernel. 
+// Add a class_ref() to kobj/AnyRefs.h for each class you define in the kernel. 
 #define class_ref(__name) \
 typedef struct __name* __name##Ref
 

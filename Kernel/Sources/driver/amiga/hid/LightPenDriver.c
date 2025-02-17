@@ -40,7 +40,7 @@ errno_t LightPenDriver_Create(DriverRef _Nullable parent, int port, DriverRef _N
         throw(ENODEV);
     }
     
-    try(Driver_Create(LightPenDriver, kDriver_Exclusive, parent, &self));
+    try(Driver_Create(class(LightPenDriver), kDriver_Exclusive, parent, (DriverRef*)&self));
     
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
     self->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;

@@ -33,7 +33,7 @@ errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, si
     decl_try_err();
     RamDiskRef self = NULL;
 
-    try(DiskDriver_Create(RamDisk, 0, parent, &self));
+    try(DiskDriver_Create(class(RamDisk), 0, parent, (DriverRef*)&self));
     SList_Init(&self->extents);
     self->extentBlockCount = __min(extentBlockCount, blockCount);
     self->blockCount = blockCount;

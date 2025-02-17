@@ -186,7 +186,7 @@ errno_t FileHierarchy_Create(FilesystemRef _Nonnull rootFS, FileHierarchyRef _Nu
     decl_try_err();
     FileHierarchyRef self;
 
-    try(Object_Create(FileHierarchy, &self));
+    try(Object_Create(class(FileHierarchy), 0, (void**)&self));
     SELock_Init(&self->lock);
     
     for (int i = 0; i < HASH_CHAINS_COUNT; i++) {

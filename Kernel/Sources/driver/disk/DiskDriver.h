@@ -160,9 +160,6 @@ invoke_n(putBlock, DiskDriver, __self, __ior)
 invoke_n(endIO, DiskDriver, __self, __pBlock, __status)
 
 
-#define DiskDriver_Create(__className, __options, __parent, __pOutSelf) \
-    _DiskDriver_Create(&k##__className##Class, __options, __parent, (DriverRef*)__pOutSelf)
-
-extern errno_t _DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* DiskDriver_h */

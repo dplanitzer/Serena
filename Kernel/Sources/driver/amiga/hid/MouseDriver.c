@@ -39,7 +39,7 @@ errno_t MouseDriver_Create(DriverRef _Nullable parent, int port, DriverRef _Null
         throw(ENODEV);
     }
     
-    try(Driver_Create(MouseDriver, kDriver_Exclusive, parent, &self));
+    try(Driver_Create(class(MouseDriver), kDriver_Exclusive, parent, (DriverRef*)&self));
     
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);

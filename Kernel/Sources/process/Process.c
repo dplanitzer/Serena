@@ -66,7 +66,7 @@ errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, UserI
     UDispatchQueueRef pMainQueue = NULL;
     int mainQueueDesc = -1;
     
-    try(Object_Create(Process, &self));
+    try(Object_Create(class(Process), 0, (void**)&self));
 
     Lock_Init(&self->lock);
 

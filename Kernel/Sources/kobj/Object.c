@@ -21,20 +21,18 @@ func_def(deinit, Object)
 );
 
 
-errno_t _Object_Create(Class* _Nonnull pClass, size_t extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject)
+errno_t Object_Create(Class* _Nonnull pClass, size_t extraByteCount, void* _Nullable * _Nonnull pOutObject)
 {
     decl_try_err();
     ObjectRef pObject;
 
-    try(kalloc_cleared(pClass->instanceSize + extraByteCount, (void**) &pObject));
-    pObject->super.clazz = pClass;
-    pObject->retainCount = 1;
+    err = kalloc_cleared(pClass->instanceSize + extraByteCount, (void**) &pObject);
+    if (err == EOK) {
+        pObject->super.clazz = pClass;
+        pObject->retainCount = 1;
+    }
     *pOutObject = pObject;
-    
-    return EOK;
 
-catch:
-    *pOutObject = NULL;
     return err;
 }
 

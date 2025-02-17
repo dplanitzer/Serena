@@ -42,7 +42,7 @@ errno_t FloppyController_Create(DriverRef _Nullable parent, FloppyControllerRef 
     decl_try_err();
     FloppyControllerRef self;
     
-    try(Driver_Create(FloppyController, 0, parent, &self));
+    try(Driver_Create(class(FloppyController), 0, parent, (DriverRef*)&self));
 
     Lock_Init(&self->lock);
     ConditionVariable_Init(&self->cv);

@@ -26,7 +26,7 @@ errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, co
     RomDiskRef self = NULL;
 
     assert(pImage != NULL);
-    try(DiskDriver_Create(RomDisk, 0, parent, &self));
+    try(DiskDriver_Create(class(RomDisk), 0, parent, (DriverRef*)&self));
     self->diskImage = pImage;
     self->blockCount = blockCount;
     self->blockSize = blockSize;

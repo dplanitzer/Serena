@@ -33,7 +33,7 @@ errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _N
     struct DiskFSContainer* self;
     const DiskInfo* info = DiskDriverChannel_GetInfo(pChannel);
 
-    if ((err = Object_Create(DiskFSContainer, (struct DiskFSContainer*)&self)) == EOK) {
+    if ((err = Object_Create(class(DiskFSContainer), 0, (void**)&self)) == EOK) {
         self->channel = IOChannel_Retain(pChannel);
         self->diskId = info->diskId;
         self->mediaId = info->mediaId;

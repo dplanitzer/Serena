@@ -22,7 +22,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     ConsoleRef self;
 
-    try(Driver_Create(Console, 0, NULL, &self));
+    try(Driver_Create(class(Console), 0, NULL, (DriverRef*)&self));
     
     Lock_Init(&self->lock);
 

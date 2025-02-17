@@ -24,7 +24,7 @@ any_subclass_funcs(Object,
     // Overrides should release all resources held by the object.
     // Note that you do not need to call the super implementation from your
     // override. The object runtime takes care of that automatically. 
-    void    (*deinit)(void* _Nonnull self);
+    void (*deinit)(void* _Nonnull self);
 );
 
 
@@ -33,11 +33,7 @@ any_subclass_funcs(Object,
 // size recorded in the class. Returns an error if allocation has failed for
 // some reason. The returned object has a reference count of 1. All object
 // instance variables are initially set to 0.
-#define Object_Create(__className, __pOutObject) \
-    _Object_Create(&k##__className##Class, 0, (ObjectRef*)__pOutObject)
-
-#define Object_CreateWithExtraBytes(__className, __extraByteCount, __pOutObject) \
-    _Object_Create(&k##__className##Class, __extraByteCount, (ObjectRef*)__pOutObject)
+extern errno_t Object_Create(Class* _Nonnull pClass, size_t extraByteCount, void* _Nullable * _Nonnull pOutObject);
 
 
 // Reference counting model for objects:
@@ -69,7 +65,6 @@ any_subclass_funcs(Object,
 
 
 // Do not call these functions directly. Use the macros defined above instead.
-extern errno_t _Object_Create(Class* _Nonnull pClass, size_t extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject);
 extern void _Object_Release(ObjectRef _Nullable self);
 
 static inline ObjectRef _Nonnull _Object_Retain(ObjectRef _Nonnull self)

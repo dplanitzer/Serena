@@ -22,7 +22,7 @@ errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, in
         throw(EINVAL);
     }
     
-    try(Object_CreateWithExtraBytes(DispatchQueue, sizeof(ConcurrencyLane) * (maxConcurrency - 1), &self));
+    try(Object_Create(class(DispatchQueue), sizeof(ConcurrencyLane) * (maxConcurrency - 1), (void**)&self));
     SList_Init(&self->item_queue);
     SList_Init(&self->timer_queue);
     SList_Init(&self->item_cache_queue);

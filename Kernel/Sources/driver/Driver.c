@@ -14,12 +14,12 @@
 (DriverRef) (((uint8_t*)__ptr) - offsetof(struct Driver, childNode))
 
 
-errno_t _Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DriverRef self = NULL;
 
-    try(_Object_Create(pClass, 0, (ObjectRef*)&self));
+    try(Object_Create(pClass, 0, (void**)&self));
 
     Lock_Init(&self->lock);
     List_Init(&self->children);

@@ -21,7 +21,7 @@ errno_t GraphicsDriver_Create(DriverRef _Nullable parent, GraphicsDriverRef _Nul
     decl_try_err();
     GraphicsDriverRef self;
     
-    try(Driver_Create(GraphicsDriver, 0, parent, &self));
+    try(Driver_Create(class(GraphicsDriver), 0, parent, (DriverRef*)&self));
     self->nextSurfaceId = 1;
     self->nextScreenId = 1;
 

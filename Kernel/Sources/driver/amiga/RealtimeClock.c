@@ -50,7 +50,7 @@ errno_t RealtimeClock_Create(DriverRef _Nullable parent, const SystemDescription
     decl_try_err();
     RealtimeClockRef self;
     
-    try(Driver_Create(RealtimeClock, 0, parent, &self));
+    try(Driver_Create(class(RealtimeClock), 0, parent, (DriverRef*)&self));
     Lock_Init(&self->lock);
     
     *pOutSelf = self;

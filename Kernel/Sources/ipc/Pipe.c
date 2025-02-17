@@ -29,7 +29,7 @@ errno_t Pipe_Create(size_t bufferSize, PipeRef _Nullable * _Nonnull pOutPipe)
     decl_try_err();
     PipeRef self;
 
-    try(Object_Create(Pipe, &self));
+    try(Object_Create(class(Pipe), 0, (void**)&self));
     
     Lock_Init(&self->lock);
     ConditionVariable_Init(&self->reader);

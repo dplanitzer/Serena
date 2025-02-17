@@ -28,7 +28,7 @@ errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOut
     decl_try_err();
     FilesystemRef self;
 
-    try(_Object_Create(pClass, 0, (ObjectRef*)&self));
+    try(Object_Create(pClass, 0, (void**)&self));
     self->fsid = Filesystem_GetNextAvailableId();
     Lock_Init(&self->inodeManagementLock);
     PointerArray_Init(&self->inodesInUse, 16);

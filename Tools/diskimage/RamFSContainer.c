@@ -22,7 +22,7 @@ errno_t RamFSContainer_Create(const DiskImageFormat* _Nonnull pFormat, RamFSCont
     decl_try_err();
     RamFSContainerRef self;
 
-    try(Object_Create(RamFSContainer, &self));
+    try(Object_Create(class(RamFSContainer), 0, (void**)&self));
     self->diskImage = calloc(pFormat->blocksPerDisk, pFormat->blockSize);
     self->blockSize = pFormat->blockSize;
     self->blockCount = pFormat->blocksPerDisk;

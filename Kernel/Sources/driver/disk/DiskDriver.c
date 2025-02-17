@@ -13,12 +13,12 @@
 #include <driver/DriverChannel.h>
 
 
-errno_t _DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskDriverRef self = NULL;
 
-    try(_Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, parent, (DriverRef*)&self));
+    try(Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, parent, (DriverRef*)&self));
     self->diskId = kDiskId_None;
     self->currentMediaId = kMediaId_None;
 

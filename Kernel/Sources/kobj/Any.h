@@ -30,6 +30,11 @@
 any_class(Any);
 
 
+// Returns a pointer to the class structure for the type '__name'
+#define class(__name) \
+((Class*)(&k##__name##Class))
+
+
 // Returns the class of the given instance.
 #define classof(__self)\
     ((Class*)(((AnyRef)(__self))->clazz))
@@ -43,7 +48,7 @@ any_class(Any);
 // Returns true if the given object is an instance of the given class or one of
 // the super classes.
 #define instanceof(__self, __className) \
-    _instanceof((AnyRef)__self, &k##__className##Class)
+    _instanceof((AnyRef)__self, class(__className))
 
 
 // Returns the implementation pointer of a method. You must cast this pointer to
@@ -75,10 +80,10 @@ any_class(Any);
 // '__className' is the static type of the instance (the name of the class in which the super() call appears)
 // '__self' is the instance on which to invoke the function
 #define super_0(__func, __funcClassName, __className, __self) \
-    dispatch_0(__func, __funcClassName, _superimplementationof((Class*)&k##__className##Class, offsetof(struct __funcClassName##MethodTable, __func)), __self)
+    dispatch_0(__func, __funcClassName, _superimplementationof(class(__className), offsetof(struct __funcClassName##MethodTable, __func)), __self)
 
 #define super_n(__func, __funcClassName, __className, __self, ...) \
-    dispatch_n(__func, __funcClassName, _superimplementationof((Class*)&k##__className##Class, offsetof(struct __funcClassName##MethodTable, __func)), __self, __VA_ARGS__)
+    dispatch_n(__func, __funcClassName, _superimplementationof(class(__className), offsetof(struct __funcClassName##MethodTable, __func)), __self, __VA_ARGS__)
 
 
 

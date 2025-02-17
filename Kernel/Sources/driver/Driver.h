@@ -257,9 +257,8 @@ extern intptr_t Driver_GetTag(DriverRef _Nonnull self);
 // Subclassers
 //
 
-// Create a driver instance. 
-#define Driver_Create(__className, __options, __parent, __pOutDriver) \
-    _Driver_Create(&k##__className##Class, __options, __parent, (DriverRef*)__pOutDriver)
+// Create a driver instance.
+extern errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf);
 
 
 // Returns true if the driver is in active state; false otherwise
@@ -353,9 +352,5 @@ extern void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnu
 // Returns a reference to the child driver with tag 'tag'. NULL is returned if
 // no such child driver exists.
 extern DriverRef _Nullable Driver_GetChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag);
-
-
-// Do not call directly. Use the Driver_Create() macro instead
-extern errno_t _Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* Driver_h */

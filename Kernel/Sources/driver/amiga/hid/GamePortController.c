@@ -21,7 +21,7 @@ final_class_ivars(GamePortController, Driver,
 
 errno_t GamePortController_Create(DriverRef _Nullable parent, GamePortControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(GamePortController, kDriver_Exclusive, parent, (DriverRef*)pOutSelf);
+    return Driver_Create(class(GamePortController), kDriver_Exclusive, parent, (DriverRef*)pOutSelf);
 }
 
 static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType* _Nullable pOutType)

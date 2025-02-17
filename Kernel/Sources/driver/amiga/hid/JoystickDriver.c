@@ -41,7 +41,7 @@ errno_t DigitalJoystickDriver_Create(DriverRef _Nullable parent, int port, Drive
         throw(ENODEV);
     }
     
-    try(Driver_Create(DigitalJoystickDriver, kDriver_Exclusive, parent, &self));
+    try(Driver_Create(class(DigitalJoystickDriver), kDriver_Exclusive, parent, (DriverRef*)&self));
     
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
@@ -178,7 +178,7 @@ errno_t AnalogJoystickDriver_Create(DriverRef _Nullable parent, int port, Driver
         throw(ENODEV);
     }
     
-    try(Driver_Create(AnalogJoystickDriver, kDriver_Exclusive, parent, &self));
+    try(Driver_Create(class(AnalogJoystickDriver), kDriver_Exclusive, parent, (DriverRef*)&self));
     
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potdat = (port == 0) ? CHIPSET_REG_16(cp, POT0DAT) : CHIPSET_REG_16(cp, POT1DAT);

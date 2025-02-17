@@ -14,7 +14,7 @@ final_class_ivars(NullDriver, Driver,
 
 errno_t NullDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(NullDriver, 0, NULL, pOutSelf);
+    return Driver_Create(class(NullDriver), 0, NULL, pOutSelf);
 }
 
 errno_t NullDriver_onStart(DriverRef _Nonnull _Locked self)
