@@ -57,6 +57,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     try(BlockAllocator_CommitToDisk(&self->blockAllocator, fsContainer));
 
     try(Inode_Create(
+        class(Inode),
         (FilesystemRef)self,
         (InodeId)inodeLba,
         type,
@@ -127,6 +128,7 @@ errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, Inode
     memcpy(bmap, ip->bp, sizeof(uint32_t) * kSFSInodeBlockPointersCount);
 
     err = Inode_Create(
+        class(Inode),
         (FilesystemRef)self,
         id,
         ip->type,

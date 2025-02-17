@@ -9,7 +9,7 @@
 #include "Object.h"
 #include <klib/Kalloc.h>
 
-typedef void (*Object_Deinit_Impl)(void* _Nonnull self);
+typedef void (*deinit_impl_t)(void* _Nonnull self);
 
 
 void Object_deinit(ObjectRef _Nonnull self)
@@ -44,28 +44,26 @@ void* _Nonnull Object_Retain(void* _Nonnull self)
     return self;
 }
 
-static void _Object_Dealloc(ObjectRef _Nonnull self)
+static void _Object_Deinit(ObjectRef _Nonnull self)
 {
     decl_try_err();
-    Object_Deinit_Impl pPrevDeinitImpl = NULL;
+    deinit_impl_t pPrevDeinitImpl = NULL;
     Class* pCurClass = classof(self);
 
     for(;;) {
-        Object_Deinit_Impl pCurDeinitImpl = (Object_Deinit_Impl)implementationof(deinit, Object, pCurClass);
+        deinit_impl_t pCurDeinitImpl = (deinit_impl_t)implementationof(deinit, Object, pCurClass);
         
         if (pCurDeinitImpl != pPrevDeinitImpl) {
             pCurDeinitImpl(self);
             pPrevDeinitImpl = pCurDeinitImpl;
         }
 
-        if (pCurClass == &kObjectClass) {
+        if (pCurClass == class(Object)) {
             break;
         }
 
         pCurClass = pCurClass->super;
     }
-
-    kfree(self);
 }
 
 // Releases a strong reference on the given resource. Deallocates the resource
@@ -89,6 +87,7 @@ void Object_Release(void* _Nullable self)
     // negative which is fine. In that sense a negative reference count signals
     // that the object is dead.
     if (rc == 0) {
-        _Object_Dealloc(s);
+        _Object_Deinit(s);
+        kfree(s);
     }
 }

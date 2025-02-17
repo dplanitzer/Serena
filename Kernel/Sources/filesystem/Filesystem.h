@@ -9,6 +9,7 @@
 #ifndef Filesystem_h
 #define Filesystem_h
 
+#include <kobj/Object.h>
 #include "Inode.h"
 #include "PathComponent.h"
 #include "User.h"

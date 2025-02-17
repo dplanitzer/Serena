@@ -9,6 +9,7 @@
 #ifndef FileHierarchy_h
 #define FileHierarchy_h
 
+#include <kobj/Object.h>
 #include <filesystem/Filesystem.h>
 
 #define kMaxPathLength          (__PATH_MAX-1)

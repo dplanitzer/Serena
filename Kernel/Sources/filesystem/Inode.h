@@ -9,8 +9,7 @@
 #ifndef Inode_h
 #define Inode_h
 
-#include <klib/klib.h>
-#include <kobj/Object.h>
+#include <kobj/Any.h>
 #include <dispatcher/Lock.h>
 #include <System/Directory.h>
 #include <System/File.h>
@@ -27,7 +26,7 @@ enum {
 // abstract class that must be subclassed and fully implemented by a file system.
 // See the description of the Filesystem class to learn about how locking for
 // Inodes works.
-typedef struct Inode {
+open_class(Inode, Any,
     TimeInterval                    accessTime;
     TimeInterval                    modificationTime;
     TimeInterval                    statusChangeTime;
@@ -43,7 +42,14 @@ typedef struct Inode {
     FilePermissions                 permissions;
     UserId                          uid;
     GroupId                         gid;
-} Inode;
+);
+any_subclass_funcs(Inode,
+    // Invoked when the last strong reference of the inode has been released.
+    // Overrides should release all resources held by the inode.
+    // Note that you do not need to call the super implementation from your
+    // override. The object runtime takes care of that automatically. 
+    void (*deinit)(void* _Nonnull self);
+);
 
 
 //
@@ -215,9 +221,9 @@ extern bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
 //
 
 // Creates an instance an Inode.
-extern errno_t Inode_Create(FilesystemRef _Nonnull pFS, InodeId id,
-                    FileType type,
-                    int linkCount,
+extern errno_t Inode_Create(Class* _Nonnull pClass,
+                    FilesystemRef _Nonnull pFS, InodeId id,
+                    FileType type, int linkCount,
                     UserId uid, GroupId gid, FilePermissions permissions,
                     FileOffset size,
                     TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,

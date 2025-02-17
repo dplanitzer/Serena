@@ -102,6 +102,7 @@ errno_t DevFS_onReadNodeFromDisk(DevFSRef _Nonnull self, InodeId inid, InodeRef 
     }
 
     return Inode_Create(
+        class(Inode),
         (FilesystemRef)self,
         inid,
         ip->type,
