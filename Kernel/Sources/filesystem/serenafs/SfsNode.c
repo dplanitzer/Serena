@@ -30,7 +30,6 @@ errno_t SfsNode_Create(SerenaFSRef _Nonnull fs, InodeId inid, const SFSInode* _N
         TimeInterval_Make(UInt32_BigToHost(ip->accessTime.tv_sec), UInt32_BigToHost(ip->accessTime.tv_nsec)),
         TimeInterval_Make(UInt32_BigToHost(ip->modificationTime.tv_sec), UInt32_BigToHost(ip->modificationTime.tv_nsec)),
         TimeInterval_Make(UInt32_BigToHost(ip->statusChangeTime.tv_sec), UInt32_BigToHost(ip->statusChangeTime.tv_nsec)),
-        NULL,
         (InodeRef*)&self);
     if (err == EOK) {
         memcpy(self->direct, ip->bp, sizeof(SFSBlockNumber) * kSFSInodeBlockPointersCount);

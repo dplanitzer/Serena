@@ -36,7 +36,6 @@ open_class(Inode, Any,
     InodeId                         inid;       // Filesystem specific ID of the inode
     int                             useCount;   // Number of entities that are using this inode at this moment. Incremented on acquisition and decremented on relinquishing (protected by the FS inode management lock)
     int                             linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
-    void*                           refcon;     // Filesystem specific information
     FileType                        type;
     uint8_t                         flags;
     FilePermissions                 permissions;
@@ -133,15 +132,6 @@ extern errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self);
 void Inode_Unlink(InodeRef _Nonnull self);
 
 
-// Associate/disassociate filesystem specific information with the node. The
-// inode will not free this pointer.
-#define Inode_GetRefConAs(__self, __type) \
-    ((__type)(((InodeRef)__self)->refcon))
-
-#define Inode_SetRefCon(__self, __ptr) \
-    ((InodeRef)__self)->refcon = (__ptr)
-
-
 // Returns the permissions of the node.
 #define Inode_GetFilePermissions(__self) \
     ((InodeRef)__self)->permissions
@@ -227,7 +217,6 @@ extern errno_t Inode_Create(Class* _Nonnull pClass,
                     UserId uid, GroupId gid, FilePermissions permissions,
                     FileOffset size,
                     TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
-                    void* refcon,
                     InodeRef _Nullable * _Nonnull pOutNode);
 extern void Inode_Destroy(InodeRef _Nonnull self);
 

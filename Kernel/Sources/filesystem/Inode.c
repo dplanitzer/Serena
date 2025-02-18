@@ -14,34 +14,32 @@ typedef void (*deinit_impl_t)(void* _Nonnull self);
 
 
 
-errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, InodeId id, FileType type, int linkCount, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime, void* refcon, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, InodeId id,
+    FileType type, int linkCount, UserId uid, GroupId gid, FilePermissions permissions,
+    FileOffset size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
+    InodeRef _Nullable * _Nonnull pOutNode)
 {
-    decl_try_err();
     InodeRef self;
 
-    try(FSAllocateCleared(pClass->instanceSize, (void**) &self));
-    self->super.clazz = pClass;
-    self->accessTime = accessTime;
-    self->modificationTime = modTime;
-    self->statusChangeTime = statusChangeTime;
-    self->size = size;
-    Lock_Init(&self->lock);
-    self->filesystem = pFS;
-    self->inid = id;
-    self->useCount = 0;
-    self->linkCount = linkCount;
-    self->refcon = refcon;
-    self->type = type;
-    self->flags = 0;
-    self->permissions = permissions;
-    self->uid = uid;
-    self->gid = gid;
-
+    const errno_t err = FSAllocateCleared(pClass->instanceSize, (void**) &self);
+    if (err == EOK) {
+        self->super.clazz = pClass;
+        self->accessTime = accessTime;
+        self->modificationTime = modTime;
+        self->statusChangeTime = statusChangeTime;
+        self->size = size;
+        Lock_Init(&self->lock);
+        self->filesystem = pFS;
+        self->inid = id;
+        self->useCount = 0;
+        self->linkCount = linkCount;
+        self->type = type;
+        self->flags = 0;
+        self->permissions = permissions;
+        self->uid = uid;
+        self->gid = gid;
+    }
     *pOutNode = self;
-    return EOK;
-
-catch:
-    *pOutNode = NULL;
     return err;
 }
 
@@ -51,16 +49,15 @@ void Inode_deinit(ObjectRef _Nonnull self)
 
 static void _Inode_Deinit(InodeRef _Nonnull self)
 {
-    decl_try_err();
-    deinit_impl_t pPrevDeinitImpl = NULL;
+    deinit_impl_t pPrevImpl = NULL;
     Class* pCurClass = classof(self);
 
     for(;;) {
-        deinit_impl_t pCurDeinitImpl = (deinit_impl_t)implementationof(deinit, Inode, pCurClass);
+        deinit_impl_t pCurImpl = (deinit_impl_t)implementationof(deinit, Inode, pCurClass);
         
-        if (pCurDeinitImpl != pPrevDeinitImpl) {
-            pCurDeinitImpl(self);
-            pPrevDeinitImpl = pCurDeinitImpl;
+        if (pCurImpl != pPrevImpl) {
+            pCurImpl(self);
+            pPrevImpl = pCurImpl;
         }
 
         if (pCurClass == class(Inode)) {
@@ -75,7 +72,6 @@ void Inode_Destroy(InodeRef _Nullable self)
 {
     if (self) {
         self->filesystem = NULL;
-        self->refcon = NULL;
         Lock_Deinit(&self->lock);
 
         _Inode_Deinit(self);

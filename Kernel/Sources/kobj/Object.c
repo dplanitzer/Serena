@@ -46,16 +46,15 @@ void* _Nonnull Object_Retain(void* _Nonnull self)
 
 static void _Object_Deinit(ObjectRef _Nonnull self)
 {
-    decl_try_err();
-    deinit_impl_t pPrevDeinitImpl = NULL;
+    deinit_impl_t pPrevImpl = NULL;
     Class* pCurClass = classof(self);
 
     for(;;) {
-        deinit_impl_t pCurDeinitImpl = (deinit_impl_t)implementationof(deinit, Object, pCurClass);
+        deinit_impl_t pCurImpl = (deinit_impl_t)implementationof(deinit, Object, pCurClass);
         
-        if (pCurDeinitImpl != pPrevDeinitImpl) {
-            pCurDeinitImpl(self);
-            pPrevDeinitImpl = pCurDeinitImpl;
+        if (pCurImpl != pPrevImpl) {
+            pCurImpl(self);
+            pPrevImpl = pCurImpl;
         }
 
         if (pCurClass == class(Object)) {

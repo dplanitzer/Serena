@@ -30,7 +30,6 @@ errno_t DfsNode_Create(DevFSRef _Nonnull fs, InodeId inid, DfsItem* _Nonnull ip,
         ip->accessTime,
         ip->modificationTime,
         ip->statusChangeTime,
-        NULL,
         (InodeRef*)&self);
     if (err == EOK) {
         self->u.item = ip;
