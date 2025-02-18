@@ -1,12 +1,15 @@
 //
-//  DevFS_Catalog.c
+//  DfsItem.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 12/3/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "DevFSPriv.h"
+#include "DfsItem.h"
+#include <driver/Driver.h>
+#include <filesystem/FSUtilities.h>
+#include <System/File.h>
 
 
 //
@@ -78,7 +81,7 @@ catch:
 void DfsDirectoryItem_Destroy(DfsDirectoryItem* _Nullable self)
 {
     if (self) {
-        List_ForEach(&self->entries, DirectoryEntry,
+        List_ForEach(&self->entries, DfsDirectoryEntry,
             FSDeallocate(pCurNode);
         )
         FSDeallocate(self);
