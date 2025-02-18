@@ -19,9 +19,8 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     LogicalBlockAddress inodeLba = 0;
     LogicalBlockAddress dirContLba = 0;
     FileOffset fileSize = 0ll;
-    SFSBlockNumber* bmap = NULL;
     InodeRef pNode = NULL;
-    bool isPublished = false;
+    DiskBlockRef pBlock = NULL;
 
     if (type == kFileType_Directory) {
         // Make sure that the parent directory is able to accept one more link
@@ -30,16 +29,12 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
         }
     }
 
-    try(FSAllocateCleared(sizeof(SFSBlockNumber) * kSFSInodeBlockPointersCount, (void**)&bmap));
     try(BlockAllocator_Allocate(&self->blockAllocator, &inodeLba));
     
     if (type == kFileType_Directory) {
         // Write the initial directory content. These are just the '.' and '..'
         // entries
-        DiskBlockRef pBlock;
-
         try(BlockAllocator_Allocate(&self->blockAllocator, &dirContLba));
-        bmap[0] = UInt32_HostToBig(dirContLba);
 
         try(FSContainer_AcquireBlock(fsContainer, dirContLba, kAcquireBlock_Cleared, &pBlock));
         SFSDirectoryEntry* dep = DiskBlock_GetMutableData(pBlock);
@@ -49,36 +44,34 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
         dep[1].filename[0] = '.';
         dep[1].filename[1] = '.';
         FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+        pBlock = NULL;
 
         fileSize = 2 * sizeof(SFSDirectoryEntry);
     }
 
     try(BlockAllocator_CommitToDisk(&self->blockAllocator, fsContainer));
 
-    try(Inode_Create(
-        class(Inode),
-        (FilesystemRef)self,
-        (InodeId)inodeLba,
-        type,
-        1,
-        uid,
-        gid,
-        permissions,
-        fileSize,
-        curTime,
-        curTime,
-        curTime,
-        bmap,
-        &pNode));
-    Inode_SetModified(pNode, kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged);
+
+    try(FSContainer_AcquireBlock(fsContainer, inodeLba, kAcquireBlock_Cleared, &pBlock));
+    SFSInode* ip = (SFSInode*)DiskBlock_GetMutableData(pBlock);
+    ip->accessTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
+    ip->accessTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
+    ip->modificationTime.tv_sec = ip->accessTime.tv_sec;
+    ip->modificationTime.tv_nsec = ip->accessTime.tv_nsec;
+    ip->statusChangeTime.tv_sec = ip->accessTime.tv_sec;
+    ip->statusChangeTime.tv_nsec = ip->accessTime.tv_nsec;
+    ip->size = Int64_HostToBig(fileSize);
+    ip->uid = UInt32_HostToBig(uid);
+    ip->gid = UInt32_HostToBig(gid);
+    ip->linkCount = Int32_HostToBig(1);
+    ip->permissions = UInt16_HostToBig(permissions);
+    ip->type = type;
+    ip->bp[0] = UInt32_HostToBig(dirContLba);
+    FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+    pBlock = NULL;
 
 
-    // Be sure to publish the newly create inode before we add it to the parent
-    // directory. This ensures that a guy who stumbles across the new directory
-    // entry and calls Filesystem_AcquireNode() on it, won't unexpectedly create
-    // a second inode object representing the same inode.  
-    try(Filesystem_PublishNode((FilesystemRef)self, pNode));
-    isPublished = true;
+    try(Filesystem_AcquireNodeWithId((FilesystemRef)self, (InodeId)inodeLba, &pNode));
     try(SerenaFS_InsertDirectoryEntry(self, dir, name, Inode_GetId(pNode), pDirInsertionHint));
 
     if (type == kFileType_Directory) {
@@ -88,17 +81,13 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     }
 
     *pOutNode = pNode;
-
     return EOK;
 
 catch:
-    if (isPublished) {
+    if (pNode) {
         Filesystem_Unlink((FilesystemRef)self, pNode, dir);
         Filesystem_RelinquishNode((FilesystemRef)self, pNode);
-    } else {
-        Inode_Destroy(pNode);
     }
-    FSDeallocate(bmap);
 
     if (dirContLba != 0) {
         BlockAllocator_Deallocate(&self->blockAllocator, dirContLba);
