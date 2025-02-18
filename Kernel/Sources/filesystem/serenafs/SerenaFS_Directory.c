@@ -9,7 +9,6 @@
 #include "SerenaFSPriv.h"
 #include <filesystem/DirectoryChannel.h>
 #include <System/ByteOrder.h>
-#include <security/SecurityManager.h>
 
 
 ////////////////////////////////////////////////////////////////////////////////

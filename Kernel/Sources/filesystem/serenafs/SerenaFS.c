@@ -8,7 +8,6 @@
 
 #include "SerenaFSPriv.h"
 #include <System/ByteOrder.h>
-#include <security/SecurityManager.h>
 
 
 // Creates an instance of SerenaFS.

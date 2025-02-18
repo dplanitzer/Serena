@@ -8,7 +8,6 @@
 
 #include "DevFSPriv.h"
 #include <filesystem/DirectoryChannel.h>
-#include <security/SecurityManager.h>
 
 
 // Inserts a new directory entry of the form (pName, id) into the directory node

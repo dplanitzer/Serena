@@ -7,7 +7,6 @@
 //
 
 #include "DevFSPriv.h"
-#include <security/SecurityManager.h>
 
 
 // Returns a strong reference to the driver backing the given driver node.

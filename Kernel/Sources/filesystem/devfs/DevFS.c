@@ -9,7 +9,6 @@
 #include "DevFSPriv.h"
 #include <driver/Driver.h>
 #include <filesystem/DirectoryChannel.h>
-#include <security/SecurityManager.h>
 
 
 // Creates an instance of DevFS.

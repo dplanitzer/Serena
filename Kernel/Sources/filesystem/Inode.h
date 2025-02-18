@@ -59,7 +59,7 @@ any_subclass_funcs(Inode,
 // Reacquiring and relinquishing an existing inode
 
 #define Inode_Reacquire(__self) \
-    Filesystem_ReacquireNode((__self)->filesystem, __self)
+    Filesystem_ReacquireNode(((InodeRef)__self)->filesystem, __self)
 
 extern errno_t Inode_Relinquish(InodeRef _Nullable self);
 extern errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self);
@@ -83,52 +83,52 @@ extern errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self);
 // Inode timestamps
 
 #define Inode_GetAccessTime(__self) \
-    (__self)->accessTime
+    ((InodeRef)__self)->accessTime
 
 #define Inode_SetAccessTime(__self, __time) \
-    (__self)->accessTime = __time
+    ((InodeRef)__self)->accessTime = (__time)
 
 #define Inode_GetModificationTime(__self) \
-    (__self)->modificationTime
+    ((InodeRef)__self)->modificationTime
 
 #define Inode_SetModificationTime(__self, __time) \
-    (__self)->modificationTime = __time
+    ((InodeRef)__self)->modificationTime = (__time)
 
 #define Inode_GetStatusChangeTime(__self) \
-    (__self)->statusChangeTime
+    ((InodeRef)__self)->statusChangeTime
 
 #define Inode_SetStatusChangeTime(__self, __time) \
-    (__self)->statusChangeTime = __time
+    ((InodeRef)__self)->statusChangeTime = (__time)
 
 
 // Inode modified and timestamp changed flags
 
 #define Inode_IsModified(__self) \
-    (((__self)->flags & (kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged)) != 0)
+    ((((InodeRef)__self)->flags & (kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged)) != 0)
 
 #define Inode_SetModified(__self, __mflags) \
-    ((__self)->flags |= ((__mflags) & (kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged)))
+    (((InodeRef)__self)->flags |= ((__mflags) & (kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged)))
 
 #define Inode_ClearModified(__self) \
-    ((__self)->flags &= ~(kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged))
+    (((InodeRef)__self)->flags &= ~(kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged))
 
 #define Inode_IsAccessed(__self) \
-    (((__self)->flags & kInodeFlag_Accessed) != 0)
+    ((((InodeRef)__self)->flags & kInodeFlag_Accessed) != 0)
 
 #define Inode_IsUpdated(__self) \
-    (((__self)->flags & kInodeFlag_Updated) != 0)
+    ((((InodeRef)__self)->flags & kInodeFlag_Updated) != 0)
 
 #define Inode_IsStatusChanged(__self) \
-    (((__self)->flags & kInodeFlag_StatusChanged) != 0)
+    ((((InodeRef)__self)->flags & kInodeFlag_StatusChanged) != 0)
 
 
 // Inode link counts
 
 #define Inode_GetLinkCount(__self) \
-    (__self)->linkCount
+    ((InodeRef)__self)->linkCount
 
 #define Inode_Link(__self) \
-    (__self)->linkCount++
+    ((InodeRef)__self)->linkCount++
 
 void Inode_Unlink(InodeRef _Nonnull self);
 
@@ -136,48 +136,48 @@ void Inode_Unlink(InodeRef _Nonnull self);
 // Associate/disassociate filesystem specific information with the node. The
 // inode will not free this pointer.
 #define Inode_GetRefConAs(__self, __type) \
-    ((__type)((__self)->refcon))
+    ((__type)(((InodeRef)__self)->refcon))
 
 #define Inode_SetRefCon(__self, __ptr) \
-    (__self)->refcon = (__ptr)
+    ((InodeRef)__self)->refcon = (__ptr)
 
 
 // Returns the permissions of the node.
 #define Inode_GetFilePermissions(__self) \
-    (__self)->permissions
+    ((InodeRef)__self)->permissions
 
 #define Inode_SetFilePermissions(__self, __perms) \
-    (__self)->permissions = __perms
+    ((InodeRef)__self)->permissions = (__perms)
 
 // Returns the User ID of the node.
 #define Inode_GetUserId(__self) \
-    (__self)->uid
+    ((InodeRef)__self)->uid
 
 #define Inode_SetUserId(__self, __uid) \
-    (__self)->uid = __uid
+    ((InodeRef)__self)->uid = (__uid)
 
 // Returns the group ID of the node.
 #define Inode_GetGroupId(__self) \
-    (__self)->gid
+    ((InodeRef)__self)->gid
 
 #define Inode_SetGroupId(__self, __gid) \
-    (__self)->gid = __gid
+    ((InodeRef)__self)->gid = (__gid)
 
 
 
 // Inode file size
 
 #define Inode_GetFileSize(__self) \
-    (__self)->size
+    ((InodeRef)__self)->size
 
 #define Inode_SetFileSize(__self, __size) \
-    (__self)->size = __size
+    ((InodeRef)__self)->size = (__size)
 
 #define Inode_IncrementFileSize(__self, __delta) \
-    (__self)->size += (__delta)
+    ((InodeRef)__self)->size += (__delta)
 
 #define Inode_DecrementFileSize(__self, __delta) \
-    (__self)->size -= (__delta)
+    ((InodeRef)__self)->size -= (__delta)
 
 
 
@@ -189,28 +189,28 @@ void Inode_Unlink(InodeRef _Nonnull self);
 
 // Returns the type of the node.
 #define Inode_GetFileType(__self) \
-    (__self)->type
+    ((InodeRef)__self)->type
 
 // Returns true if the node is a directory; false otherwise.
 #define Inode_IsDirectory(__self) \
-    (Inode_GetFileType(__self) == kFileType_Directory)
+    (Inode_GetFileType((InodeRef)__self) == kFileType_Directory)
 
 // Returns true if the node is a regular file; false otherwise.
 #define Inode_IsRegularFile(__self) \
-    (Inode_GetFileType(__self) == kFileType_RegularFile)
+    (Inode_GetFileType((InodeRef)__self) == kFileType_RegularFile)
 
 // Returns the filesystem specific ID of the node.
 #define Inode_GetId(__self) \
-    (__self)->inid
+    ((InodeRef)__self)->inid
 
 // Returns the ID of the filesystem to which this node belongs.
 #define Inode_GetFilesystemId(__self) \
-    Filesystem_GetId((__self)->filesystem)
+    Filesystem_GetId(((InodeRef)__self)->filesystem)
 
 // Returns the filesystem that owns the inode. The returned reference is unowned
 // and guaranteed to be valid as long as the inode reference remains valid.
 #define Inode_GetFilesystem(__self) \
-    (__self)->filesystem
+    ((InodeRef)__self)->filesystem
 
 // Returns true if the receiver and 'pOther' are the same node; false otherwise
 extern bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);

@@ -8,7 +8,6 @@
 
 #include "SerenaFSPriv.h"
 #include <System/ByteOrder.h>
-#include <security/SecurityManager.h>
 
 
 errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
