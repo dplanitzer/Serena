@@ -22,6 +22,7 @@ class_ref(AnalogJoystickDriver);
 class_ref(ConsoleChannel);
 class_ref(Console);
 class_ref(DevFS);
+class_ref(DfsNode);
 class_ref(DigitalJoystickDriver);
 class_ref(DirectoryChannel);
 class_ref(DiskBlock);

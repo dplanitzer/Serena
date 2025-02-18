@@ -7,18 +7,14 @@
 //
 
 #include "DevFSPriv.h"
+#include "DfsNode.h"
 
 
 // Returns a strong reference to the driver backing the given driver node.
 // Returns NULL if the given node is not a driver node.
 DriverRef _Nullable DevFS_CopyDriverForNode(DevFSRef _Nonnull self, InodeRef _Nonnull pNode)
 {
-    if (Inode_GetFileType(pNode) == kFileType_Device) {
-        return Object_RetainAs(Inode_GetDfsDriverItem(pNode)->instance, Driver);
-    }
-    else {
-        return NULL;
-    }
+    return DfsNode_CopyDriver(pNode);
 }
 
 static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable extra1, intptr_t extra2, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
@@ -26,7 +22,6 @@ static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef
     decl_try_err();
     const TimeInterval curTime = FSGetCurrentTime();
     DfsItem* pItem = NULL;
-    InodeRef pNode = NULL;
 
     try_bang(SELock_LockExclusive(&self->seLock));
 
@@ -58,13 +53,9 @@ static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef
         Inode_Link(dir);
     }
 
-    if ((err = Filesystem_AcquireNodeWithId((FilesystemRef)self, pItem->inid, &pNode)) == EOK) {
-        Inode_SetModified(pNode, kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged);
-    }
+    try(Filesystem_AcquireNodeWithId((FilesystemRef)self, pItem->inid, pOutNode));
 
-    *pOutNode = pNode;
     SELock_Unlock(&self->seLock);
-
     return err;
 
 catch:
@@ -93,50 +84,25 @@ errno_t DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef _Nonnul
 errno_t DevFS_onReadNodeFromDisk(DevFSRef _Nonnull self, InodeId inid, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
-
     DfsItem* ip = DevFS_GetItem(self, inid);
-    if (ip == NULL) {
+
+    if (ip) {
+        return DfsNode_Create(self, inid, ip, pOutNode);
+    }
+    else {
         *pOutNode = NULL;
         return EIO;
     }
-
-    return Inode_Create(
-        class(Inode),
-        (FilesystemRef)self,
-        inid,
-        ip->type,
-        ip->linkCount,
-        ip->uid,
-        ip->gid,
-        ip->permissions,
-        ip->size,
-        ip->accessTime,
-        ip->modificationTime,
-        ip->statusChangeTime,
-        ip,
-        pOutNode);
 }
 
 errno_t DevFS_onWriteNodeToDisk(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
-    const TimeInterval curTime = FSGetCurrentTime();
-    DfsItem* ip = Inode_GetDfsItem(pNode);
-
-    ip->accessTime = (Inode_IsAccessed(pNode)) ? curTime : Inode_GetAccessTime(pNode);
-    ip->modificationTime = (Inode_IsUpdated(pNode)) ? curTime : Inode_GetModificationTime(pNode);
-    ip->statusChangeTime = (Inode_IsStatusChanged(pNode)) ? curTime : Inode_GetStatusChangeTime(pNode);
-    ip->size = Inode_GetFileSize(pNode);
-    ip->uid = Inode_GetUserId(pNode);
-    ip->gid = Inode_GetGroupId(pNode);
-    ip->linkCount = Inode_GetLinkCount(pNode);
-    ip->permissions = Inode_GetFilePermissions(pNode);
-    ip->type = Inode_GetFileType(pNode);
-
+    DfsNode_Serialize(pNode, DfsNode_GetItem(pNode));
     return EOK;
 }
 
 void DevFS_onRemoveNodeFromDisk(DevFSRef _Nonnull self, InodeRef _Nonnull pNode)
 {
     DevFS_RemoveItem(self, Inode_GetId(pNode));
-    DfsItem_Destroy(Inode_GetDfsItem(pNode));
+    DfsItem_Destroy(DfsNode_GetItem(pNode));
 }

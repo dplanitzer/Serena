@@ -19,21 +19,6 @@
 
 
 //
-// Inode Extensions
-//
-
-// Returns the DfsItem backing the inode.
-#define Inode_GetDfsItem(__self) \
-    Inode_GetRefConAs(__self, DfsItem*)
-
-#define Inode_GetDfsDirectoryItem(__self) \
-    Inode_GetRefConAs(__self, DfsDirectoryItem*)
-
-#define Inode_GetDfsDriverItem(__self) \
-    Inode_GetRefConAs(__self, DfsDriverItem*)
-
-
-//
 // DevFS
 //
 
