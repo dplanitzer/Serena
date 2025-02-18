@@ -21,6 +21,7 @@
 #include <filesystem/FileChannel.h>
 #include <filesystem/SerenaDiskImage.h>
 #include <filesystem/serenafs/SerenaFS.h>
+#include <filesystem/serenafs/SfsNode.h>
 #include <clap.h>
 #include <System/ByteOrder.h>
 
@@ -520,17 +521,18 @@ CLAP_DECL(params,
 
 static void init(void)
 {
-    _RegisterClass(&kAnyClass);
-    _RegisterClass(&kObjectClass);
-    _RegisterClass(&kFSContainerClass);
-    _RegisterClass(&kRamFSContainerClass);
-    _RegisterClass(&kFilesystemClass);
-    _RegisterClass(&kContainerFilesystemClass);
-    _RegisterClass(&kSerenaFSClass);
-    _RegisterClass(&kIOChannelClass);
-    _RegisterClass(&kFileChannelClass);
-    _RegisterClass(&kDirectoryChannelClass);
-    _RegisterClass(&kFileHierarchyClass);
+    _RegisterClass(class(Any));
+    _RegisterClass(class(Object));
+    _RegisterClass(class(FSContainer));
+    _RegisterClass(class(RamFSContainer));
+    _RegisterClass(class(Filesystem));
+    _RegisterClass(class(ContainerFilesystem));
+    _RegisterClass(class(SerenaFS));
+    _RegisterClass(class(SfsNode));
+    _RegisterClass(class(IOChannel));
+    _RegisterClass(class(FileChannel));
+    _RegisterClass(class(DirectoryChannel));
+    _RegisterClass(class(FileHierarchy));
 }
 
 int main(int argc, char* argv[])

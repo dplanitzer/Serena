@@ -43,16 +43,6 @@ typedef struct SFSDirectoryEntryPointer {
 
 
 //
-// Inode Extensions
-//
-
-// Returns the top-level of the inode's associated block map. Note that all block
-// addresses in the block map are in big-endian byte order (even in core memory).
-#define Inode_GetBlockMap(__self) \
-    Inode_GetRefConAs(__self, SFSBlockNumber*)
-
-
-//
 // SerenaFS
 //
 

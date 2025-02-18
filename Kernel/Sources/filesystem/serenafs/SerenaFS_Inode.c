@@ -7,6 +7,7 @@
 //
 
 #include "SerenaFSPriv.h"
+#include "SfsNode.h"
 #include <System/ByteOrder.h>
 
 
@@ -103,76 +104,33 @@ catch:
 
 errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    DiskBlockRef pBlock;
     const LogicalBlockAddress lba = (LogicalBlockAddress)id;
-    SFSBlockNumber* bmap = NULL;
+    DiskBlockRef pBlock;
 
-    try(FSAllocate(sizeof(SFSBlockNumber) * kSFSInodeBlockPointersCount, (void**)&bmap));
-    try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_ReadOnly, &pBlock));
-    const SFSInode* ip = (const SFSInode*)DiskBlock_GetData(pBlock);
-
-    memcpy(bmap, ip->bp, sizeof(uint32_t) * kSFSInodeBlockPointersCount);
-
-    err = Inode_Create(
-        class(Inode),
-        (FilesystemRef)self,
-        id,
-        ip->type,
-        Int32_BigToHost(ip->linkCount),
-        UInt32_BigToHost(ip->uid),
-        UInt32_BigToHost(ip->gid),
-        UInt16_BigToHost(ip->permissions),
-        Int64_BigToHost(ip->size),
-        TimeInterval_Make(UInt32_BigToHost(ip->accessTime.tv_sec), UInt32_BigToHost(ip->accessTime.tv_nsec)),
-        TimeInterval_Make(UInt32_BigToHost(ip->modificationTime.tv_sec), UInt32_BigToHost(ip->modificationTime.tv_nsec)),
-        TimeInterval_Make(UInt32_BigToHost(ip->statusChangeTime.tv_sec), UInt32_BigToHost(ip->statusChangeTime.tv_nsec)),
-        bmap,
-        pOutNode);
-
-    FSContainer_RelinquishBlock(fsContainer, pBlock);
-    return err;
-
-catch:
-    FSDeallocate(bmap);
-    *pOutNode = NULL;
+    errno_t err = FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_ReadOnly, &pBlock);
+    if (err == EOK) {
+        err = SfsNode_Create(self, id, (const SFSInode*)DiskBlock_GetData(pBlock), pOutNode);
+        FSContainer_RelinquishBlock(fsContainer, pBlock);
+    }
+    else {
+        *pOutNode = NULL;
+    }
     return err;
 }
 
 errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
-    decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    DiskBlockRef pBlock;
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
-    const SFSBlockNumber* bmap = (const SFSBlockNumber*)Inode_GetBlockMap(pNode);
-    const TimeInterval curTime = FSGetCurrentTime();
+    DiskBlockRef pBlock;
 
-    try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Cleared, &pBlock));
-    SFSInode* ip = (SFSInode*)DiskBlock_GetMutableData(pBlock);
-    const TimeInterval accTime = (Inode_IsAccessed(pNode)) ? curTime : Inode_GetAccessTime(pNode);
-    const TimeInterval modTime = (Inode_IsUpdated(pNode)) ? curTime : Inode_GetModificationTime(pNode);
-    const TimeInterval chgTime = (Inode_IsStatusChanged(pNode)) ? curTime : Inode_GetStatusChangeTime(pNode);
+    const errno_t err = FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Cleared, &pBlock);
+    if (err == EOK) {
+        SfsNode_Serialize(pNode, (SFSInode*)DiskBlock_GetMutableData(pBlock));
+        FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+    }
 
-    ip->accessTime.tv_sec = UInt32_HostToBig(accTime.tv_sec);
-    ip->accessTime.tv_nsec = UInt32_HostToBig(accTime.tv_nsec);
-    ip->modificationTime.tv_sec = UInt32_HostToBig(modTime.tv_sec);
-    ip->modificationTime.tv_nsec = UInt32_HostToBig(modTime.tv_nsec);
-    ip->statusChangeTime.tv_sec = UInt32_HostToBig(chgTime.tv_sec);
-    ip->statusChangeTime.tv_nsec = UInt32_HostToBig(chgTime.tv_nsec);
-    ip->size = Int64_HostToBig(Inode_GetFileSize(pNode));
-    ip->uid = UInt32_HostToBig(Inode_GetUserId(pNode));
-    ip->gid = UInt32_HostToBig(Inode_GetGroupId(pNode));
-    ip->linkCount = Int32_HostToBig(Inode_GetLinkCount(pNode));
-    ip->permissions = UInt16_HostToBig(Inode_GetFilePermissions(pNode));
-    ip->type = Inode_GetFileType(pNode);
-
-    memcpy(ip->bp, bmap, sizeof(uint32_t) * kSFSInodeBlockPointersCount);
-
-    FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
-
-catch:
     return err;
 }
 
@@ -180,7 +138,7 @@ static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, FSCo
 {
     decl_try_err();
     DiskBlockRef pBlock;
-    const SFSBlockNumber* l0_bmap = (const SFSBlockNumber*)Inode_GetBlockMap(pNode);
+    const SFSBlockNumber* l0_bmap = (const SFSBlockNumber*)SfsNode_GetBlockMap(pNode);
 
     if (l0_bmap[kSFSDirectBlockPointersCount] != 0) {
         if ((err = FSContainer_AcquireBlock(fsContainer, UInt32_BigToHost(l0_bmap[kSFSDirectBlockPointersCount]), kAcquireBlock_Update, &pBlock)) == EOK) {

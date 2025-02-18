@@ -12,21 +12,6 @@
 #include <filesystem/Inode.h>
 #include "DfsItem.h"
 
-
-//
-// Inode Extensions
-//
-
-// Returns the DfsItem backing the inode.
-#define DfsNode_GetItem(__self) \
-    ((DfsNodeRef)__self)->u.item
-
-#define DfsNode_GetDirectory(__self) \
-    ((DfsNodeRef)__self)->u.dir
-
-#define DfsNode_GetDriver(__self) \
-    ((DfsNodeRef)__self)->u.driver
-
     
 open_class(DfsNode, Inode,
     union {
@@ -43,5 +28,15 @@ extern errno_t DfsNode_Create(DevFSRef _Nonnull fs, InodeId inid, DfsItem* _Nonn
 extern void DfsNode_Serialize(InodeRef _Nonnull _Locked pNode, DfsItem* _Nonnull ip);
 
 extern DriverRef _Nullable DfsNode_CopyDriver(InodeRef _Nonnull pNode);
+
+// Returns the DfsItem backing the inode.
+#define DfsNode_GetItem(__self) \
+    ((DfsNodeRef)__self)->u.item
+
+#define DfsNode_GetDirectory(__self) \
+    ((DfsNodeRef)__self)->u.dir
+
+#define DfsNode_GetDriver(__self) \
+    ((DfsNodeRef)__self)->u.driver
 
 #endif /* DfsNode_h */
