@@ -14,14 +14,14 @@
 
 
 open_class(SfsFile, Inode,
-    SFSBlockNumber  direct[kSFSInodeBlockPointersCount];
+    sfs_bno_t   direct[kSFSInodeBlockPointersCount];
 );
 open_class_funcs(SfsFile, Inode,
 );
 
 
-extern errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, InodeId inid, const SFSInode* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode);
-extern void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, SFSInode* _Nonnull ip);
+extern errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, InodeId inid, const sfs_inode_t* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode);
+extern void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, sfs_inode_t* _Nonnull ip);
 
 // Returns the top-level of the inode's associated block map. Note that all block
 // addresses in the block map are in big-endian byte order (even in core memory).

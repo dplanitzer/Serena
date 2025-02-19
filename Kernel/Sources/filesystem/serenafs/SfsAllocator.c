@@ -23,7 +23,7 @@ void SfsAllocator_Deinit(SfsAllocator* _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
-errno_t SfsAllocator_Start(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer, const SFSVolumeHeader* _Nonnull vhp, size_t blockSize)
+errno_t SfsAllocator_Start(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer, const sfs_vol_header_t* _Nonnull vhp, size_t blockSize)
 {
     decl_try_err();
     const uint32_t volumeBlockCount = UInt32_BigToHost(vhp->volumeBlockCount);

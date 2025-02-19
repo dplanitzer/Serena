@@ -12,7 +12,7 @@
 #include <System/ByteOrder.h>
 
 
-errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, InodeId inid, const SFSInode* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, InodeId inid, const sfs_inode_t* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     SfsFileRef self;
@@ -32,14 +32,14 @@ errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, InodeId 
         TimeInterval_Make(UInt32_BigToHost(ip->statusChangeTime.tv_sec), UInt32_BigToHost(ip->statusChangeTime.tv_nsec)),
         (InodeRef*)&self);
     if (err == EOK) {
-        memcpy(self->direct, ip->bp, sizeof(SFSBlockNumber) * kSFSInodeBlockPointersCount);
+        memcpy(self->direct, ip->bp, sizeof(sfs_bno_t) * kSFSInodeBlockPointersCount);
     }
     *pOutNode = (InodeRef)self;
 
     return err;
 }
 
-void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, SFSInode* _Nonnull ip)
+void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, sfs_inode_t* _Nonnull ip)
 {
     SfsFileRef self = (SfsFileRef)pNode;
     const TimeInterval curTime = FSGetCurrentTime();

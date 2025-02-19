@@ -32,7 +32,7 @@ typedef struct SfsAllocator {
 extern void SfsAllocator_Init(SfsAllocator* _Nonnull self);
 extern void SfsAllocator_Deinit(SfsAllocator* _Nonnull self);
 
-extern errno_t SfsAllocator_Start(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer, const SFSVolumeHeader* _Nonnull vhp, size_t blockSize);
+extern errno_t SfsAllocator_Start(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer, const sfs_vol_header_t* _Nonnull vhp, size_t blockSize);
 extern void SfsAllocator_Stop(SfsAllocator* _Nonnull self);
 extern void AllocationBitmap_SetBlockInUse(uint8_t *bitmap, LogicalBlockAddress lba, bool inUse);
 

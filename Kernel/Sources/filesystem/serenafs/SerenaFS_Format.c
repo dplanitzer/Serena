@@ -52,7 +52,7 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, UserId uid, Gr
 
     // Write the volume header
     try(FSContainer_AcquireBlock(fsContainer, 0, kAcquireBlock_Cleared, &pBlock));
-    SFSVolumeHeader* vhp = (SFSVolumeHeader*)DiskBlock_GetMutableData(pBlock);
+    sfs_vol_header_t* vhp = (sfs_vol_header_t*)DiskBlock_GetMutableData(pBlock);
     vhp->signature = UInt32_HostToBig(kSFSSignature_SerenaFS);
     vhp->version = UInt32_HostToBig(kSFSVersion_Current);
     vhp->attributes = UInt32_HostToBig(0);
@@ -91,14 +91,14 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, UserId uid, Gr
 
     // Write the root directory inode
     try(FSContainer_AcquireBlock(fsContainer, rootDirInodeLba, kAcquireBlock_Cleared, &pBlock));
-    SFSInode* ip = (SFSInode*)DiskBlock_GetMutableData(pBlock);
+    sfs_inode_t* ip = (sfs_inode_t*)DiskBlock_GetMutableData(pBlock);
     ip->accessTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     ip->accessTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
     ip->modificationTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     ip->modificationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
     ip->statusChangeTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     ip->statusChangeTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
-    ip->size = Int64_HostToBig(2 * sizeof(SFSDirectoryEntry));
+    ip->size = Int64_HostToBig(2 * sizeof(sfs_dirent_t));
     ip->uid = UInt32_HostToBig(uid);
     ip->gid = UInt32_HostToBig(gid);
     ip->linkCount = Int32_HostToBig(1);
@@ -111,7 +111,7 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, UserId uid, Gr
     // Write the root directory content. This is just the entries '.' and '..'
     // which both point back to the root directory.
     try(FSContainer_AcquireBlock(fsContainer, rootDirContentLba, kAcquireBlock_Cleared, &pBlock));
-    SFSDirectoryEntry* dep = (SFSDirectoryEntry*)DiskBlock_GetMutableData(pBlock);
+    sfs_dirent_t* dep = (sfs_dirent_t*)DiskBlock_GetMutableData(pBlock);
     dep[0].id = UInt32_HostToBig(rootDirInodeLba);
     dep[0].filename[0] = '.';
     dep[1].id = UInt32_HostToBig(rootDirInodeLba);

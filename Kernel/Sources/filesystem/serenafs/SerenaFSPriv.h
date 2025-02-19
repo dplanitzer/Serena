@@ -35,11 +35,11 @@ typedef struct SFSDirectoryQuery {
 } SFSDirectoryQuery;
 
 // Points to a directory entry inside a disk block
-typedef struct SFSDirectoryEntryPointer {
+typedef struct sfs_dirent_ptr {
     LogicalBlockAddress     lba;            // LBA of the disk block that holds the directory entry
     size_t                  blockOffset;    // Byte offset to the directory entry relative to the disk block start
     FileOffset              fileOffset;     // Byte offset relative to the start of the directory file
-} SFSDirectoryEntryPointer;
+} sfs_dirent_ptr_t;
 
 
 //
@@ -69,15 +69,15 @@ typedef ssize_t (*SFSReadCallback)(void* _Nonnull pDst, const void* _Nonnull pSr
 typedef void (*SFSWriteCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ssize_t n);
 
 
-extern errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
+extern errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, sfs_dirent_ptr_t* _Nullable pDirInsertionHint, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
 extern errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode);
 extern errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode);
 extern void SerenaFS_onRemoveNodeFromDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode);
 
 extern bool DirectoryNode_IsNotEmpty(InodeRef _Nonnull _Locked self);
-extern errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id, const SFSDirectoryEntryPointer* _Nullable pEmptyPtr);
+extern errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id, const sfs_dirent_ptr_t* _Nullable pEmptyPtr);
 extern errno_t SerenaFS_RemoveDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, InodeId idToRemove);
-extern errno_t SerenaFS_GetDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, const SFSDirectoryQuery* _Nonnull pQuery, SFSDirectoryEntryPointer* _Nullable pOutEmptyPtr, SFSDirectoryEntryPointer* _Nullable pOutEntryPtr, InodeId* _Nullable pOutId, MutablePathComponent* _Nullable pOutFilename);
+extern errno_t SerenaFS_GetDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, const SFSDirectoryQuery* _Nonnull pQuery, sfs_dirent_ptr_t* _Nullable pOutEmptyPtr, sfs_dirent_ptr_t* _Nullable pOutEntryPtr, InodeId* _Nullable pOutId, MutablePathComponent* _Nullable pOutFilename);
 extern errno_t SerenaFS_acquireRootDirectory(SerenaFSRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir);
 extern errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode);
 extern errno_t SerenaFS_getNameOfNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, UserId uid, GroupId gid, MutablePathComponent* _Nonnull pName);

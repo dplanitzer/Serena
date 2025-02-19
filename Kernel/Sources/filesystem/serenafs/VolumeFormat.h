@@ -15,7 +15,7 @@
 #define kSFSBlockSizeShift                  9
 #define kSFSBlockSize                       (1 << kSFSBlockSizeShift)
 #define kSFSBlockSizeMask                   (kSFSBlockSize - 1)
-#define kSFSDirectoryEntriesPerBlock        (kSFSBlockSize / sizeof(SFSDirectoryEntry))
+#define kSFSDirectoryEntriesPerBlock        (kSFSBlockSize / sizeof(sfs_dirent_t))
 #define kSFSDirectoryEntriesPerBlockMask    (kSFSDirectoryEntriesPerBlock - 1)
 #define kSFSDirectBlockPointersCount        113
 #define kSFSIndirectBlockPointersCount      1
@@ -65,28 +65,28 @@ enum {
     kSFSVolumeAttributeBit_IsConsistent = 1,    // OnMount() must clear this bit on the disk and onUnmount must set it on disk as the last write operation. If this bit is cleared on mount then the FS state on disk should be considered inconsistent
 };
 
-typedef struct SFSDateTime {
+typedef struct sfs_datetime {
     uint32_t    tv_sec;     // Seconds since 00:00:00 UTC Jan 1st, 1970
     uint32_t    tv_nsec;    // 0..<1billion
-} SFSDateTime;
+} sfs_datetime_t;
 
 
-typedef struct SFSVolumeHeader {
-    uint32_t    signature;
-    uint32_t    version;
-    uint32_t    attributes;
+typedef struct sfs_vol_header {
+    uint32_t        signature;
+    uint32_t        version;
+    uint32_t        attributes;
 
-    SFSDateTime creationTime;               // Date/time when the disk was formatted to create the FS
-    SFSDateTime modificationTime;           // Date/time when the most recent modification to the FS happened
+    sfs_datetime_t  creationTime;               // Date/time when the disk was formatted to create the FS
+    sfs_datetime_t  modificationTime;           // Date/time when the most recent modification to the FS happened
     
-    uint32_t    blockSize;                  // Allocation block size (currently always == disk block size)
-    uint32_t    volumeBlockCount;           // Size of the volume in terms of allocation blocks
-    uint32_t    allocationBitmapByteSize;   // Size of allocation bitmap in bytes (XXX tmp until we'll turn the allocation bitmap into a real file)
+    uint32_t        blockSize;                  // Allocation block size (currently always == disk block size)
+    uint32_t        volumeBlockCount;           // Size of the volume in terms of allocation blocks
+    uint32_t        allocationBitmapByteSize;   // Size of allocation bitmap in bytes (XXX tmp until we'll turn the allocation bitmap into a real file)
 
-    uint32_t    rootDirectoryLba;           // LBA of the root directory Inode
-    uint32_t    allocationBitmapLba;        // LBA of the first block of the allocation bitmap area
+    uint32_t        rootDirectoryLba;           // LBA of the root directory Inode
+    uint32_t        allocationBitmapLba;        // LBA of the first block of the allocation bitmap area
     // All bytes from here to the end of the block are reserved
-} SFSVolumeHeader;
+} sfs_vol_header_t;
 
 
 //
@@ -118,12 +118,12 @@ typedef struct SFSVolumeHeader {
 // XXX currently limited to file sizes of 122k. That's fine for now since we'll
 // XXX move to B-Trees for block mapping, directory content and extended
 // XXX attributes anyway.
-typedef uint32_t SFSBlockNumber;
+typedef uint32_t sfs_bno_t;
 
-typedef struct SFSInode {
-    SFSDateTime     accessTime;
-    SFSDateTime     modificationTime;
-    SFSDateTime     statusChangeTime;
+typedef struct sfs_inode {
+    sfs_datetime_t  accessTime;
+    sfs_datetime_t  modificationTime;
+    sfs_datetime_t  statusChangeTime;
     int64_t         size;
     uint32_t        uid;
     uint32_t        gid;
@@ -131,9 +131,8 @@ typedef struct SFSInode {
     uint16_t        permissions;
     uint8_t         type;
     uint8_t         reserved;
-    SFSBlockNumber  bp[kSFSInodeBlockPointersCount];
-} SFSInode;
-typedef SFSInode* SFSInodeRef;
+    sfs_bno_t       bp[kSFSInodeBlockPointersCount];
+} sfs_inode_t;
 
 
 #define kSFSLimit_LinkMax INT32_MAX         /* Max number of hard links to a directory/file */
@@ -153,7 +152,7 @@ typedef SFSInode* SFSInodeRef;
 //
 // Directory File
 //
-// A directory file stores an array of SFSDirectoryEntry objects in its file
+// A directory file stores an array of sfs_dirent_t objects in its file
 // content.
 // Internal organisation:
 // [0] "."
@@ -162,13 +161,13 @@ typedef SFSInode* SFSInodeRef;
 // .
 // [n] userEntryN-1
 // This should be mod(SFSDiskBlockSize, SFSDirectoryEntrySize) == 0
-// The number of entries in the directory file is fileLength / sizeof(SFSDirectoryEntry)
+// The number of entries in the directory file is fileLength / sizeof(sfs_dirent_t)
 //
 // The '.' and '..' entries of the root directory map to the root directory
 // inode id.
-typedef struct SFSDirectoryEntry {
+typedef struct sfs_dirent {
     uint32_t    id;
     char        filename[kSFSMaxFilenameLength];    // if strlen(filename) < kSFSMaxFilenameLength -> 0 terminated
-} SFSDirectoryEntry;
+} sfs_dirent_t;
 
 #endif /* VolumeFormat_h */
