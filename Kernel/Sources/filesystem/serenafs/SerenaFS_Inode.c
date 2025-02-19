@@ -7,7 +7,7 @@
 //
 
 #include "SerenaFSPriv.h"
-#include "SfsNode.h"
+#include "SfsDirectory.h"
 #include <System/ByteOrder.h>
 
 
@@ -106,11 +106,31 @@ errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, Inode
 {
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const LogicalBlockAddress lba = (LogicalBlockAddress)id;
+    Class* pClass;
     DiskBlockRef pBlock;
 
     errno_t err = FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_ReadOnly, &pBlock);
     if (err == EOK) {
-        err = SfsNode_Create(self, id, (const SFSInode*)DiskBlock_GetData(pBlock), pOutNode);
+        const SFSInode* ip = (const SFSInode*)DiskBlock_GetData(pBlock);
+
+        switch (ip->type) {
+            case kFileType_Directory:
+                pClass = class(SfsDirectory);
+                break;
+
+            case kFileType_RegularFile:
+                pClass = class(SfsFile);
+                break;
+
+            default:
+                pClass = NULL;
+                err = EIO;
+                break;
+        }
+
+        if (pClass) {
+            err = SfsFile_Create(pClass, self, id, ip, pOutNode);
+        }
         FSContainer_RelinquishBlock(fsContainer, pBlock);
     }
     else {
@@ -127,7 +147,7 @@ errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
 
     const errno_t err = FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Cleared, &pBlock);
     if (err == EOK) {
-        SfsNode_Serialize(pNode, (SFSInode*)DiskBlock_GetMutableData(pBlock));
+        SfsFile_Serialize(pNode, (SFSInode*)DiskBlock_GetMutableData(pBlock));
         FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
     }
 
@@ -138,7 +158,7 @@ static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, FSCo
 {
     decl_try_err();
     DiskBlockRef pBlock;
-    const SFSBlockNumber* l0_bmap = (const SFSBlockNumber*)SfsNode_GetBlockMap(pNode);
+    const SFSBlockNumber* l0_bmap = (const SFSBlockNumber*)SfsFile_GetBlockMap(pNode);
 
     if (l0_bmap[kSFSDirectBlockPointersCount] != 0) {
         if ((err = FSContainer_AcquireBlock(fsContainer, UInt32_BigToHost(l0_bmap[kSFSDirectBlockPointersCount]), kAcquireBlock_Update, &pBlock)) == EOK) {

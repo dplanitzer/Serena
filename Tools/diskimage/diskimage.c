@@ -21,7 +21,7 @@
 #include <filesystem/FileChannel.h>
 #include <filesystem/SerenaDiskImage.h>
 #include <filesystem/serenafs/SerenaFS.h>
-#include <filesystem/serenafs/SfsNode.h>
+#include <filesystem/serenafs/SfsDirectory.h>
 #include <clap.h>
 #include <System/ByteOrder.h>
 
@@ -528,7 +528,8 @@ static void init(void)
     _RegisterClass(class(Filesystem));
     _RegisterClass(class(ContainerFilesystem));
     _RegisterClass(class(SerenaFS));
-    _RegisterClass(class(SfsNode));
+    _RegisterClass(class(SfsFile));
+    _RegisterClass(class(SfsDirectory));
     _RegisterClass(class(IOChannel));
     _RegisterClass(class(FileChannel));
     _RegisterClass(class(DirectoryChannel));

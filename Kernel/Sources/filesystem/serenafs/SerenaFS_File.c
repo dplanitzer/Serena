@@ -7,7 +7,7 @@
 //
 
 #include "SerenaFSPriv.h"
-#include "SfsNode.h"
+#include "SfsFile.h"
 #include <filesystem/FileChannel.h>
 #include <System/ByteOrder.h>
 
@@ -53,7 +53,7 @@ errno_t SerenaFS_AcquireFileBlock(SerenaFSRef _Nonnull self, InodeRef _Nonnull _
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    SFSBlockNumber* ino_bmap = SfsNode_GetBlockMap(pNode);
+    SFSBlockNumber* ino_bmap = SfsFile_GetBlockMap(pNode);
     bool isAlloc;
 
     if (fba < 0) {
@@ -251,7 +251,7 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const FileOffset oldLength = Inode_GetFileSize(pNode);
-    SFSBlockNumber* ino_bmap = SfsNode_GetBlockMap(pNode);
+    SFSBlockNumber* ino_bmap = SfsFile_GetBlockMap(pNode);
     const SFSBlockNumber bn_nlen = (SFSBlockNumber)(newLength >> (FileOffset)kSFSBlockSizeShift);   //XXX should be 64bit
     const size_t boff_nlen = newLength & (FileOffset)kSFSBlockSizeMask;
     SFSBlockNumber bn_first_to_discard = (boff_nlen > 0) ? bn_nlen + 1 : bn_nlen;   // first block to discard (the block that contains newLength or that is right in front of newLength)

@@ -7,7 +7,7 @@
 //
 
 #include "SerenaFSPriv.h"
-#include "SfsNode.h"
+#include "SfsDirectory.h"
 #include <filesystem/DirectoryChannel.h>
 #include <System/ByteOrder.h>
 
@@ -278,7 +278,7 @@ errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
     }
     else {
         // Append a new entry
-        SFSBlockNumber* ino_bmap = SfsNode_GetBlockMap(pDirNode);
+        SFSBlockNumber* ino_bmap = SfsFile_GetBlockMap(pDirNode);
         const FileOffset size = Inode_GetFileSize(pDirNode);
         const int remainder = size & kSFSBlockSizeMask;
         SFSDirectoryEntry* dep;

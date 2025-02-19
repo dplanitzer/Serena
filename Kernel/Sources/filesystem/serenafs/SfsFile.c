@@ -1,24 +1,24 @@
 //
-//  SfsNode.c
+//  SfsFile.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/17/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "SfsNode.h"
+#include "SfsFile.h"
 #include <filesystem/FSUtilities.h>
 #include <kobj/AnyRefs.h>
 #include <System/ByteOrder.h>
 
 
-errno_t SfsNode_Create(SerenaFSRef _Nonnull fs, InodeId inid, const SFSInode* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, InodeId inid, const SFSInode* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
-    SfsNodeRef self;
+    SfsFileRef self;
 
     err = Inode_Create(
-        class(SfsNode),
+        pClass,
         (FilesystemRef)fs,
         inid,
         ip->type,
@@ -39,9 +39,9 @@ errno_t SfsNode_Create(SerenaFSRef _Nonnull fs, InodeId inid, const SFSInode* _N
     return err;
 }
 
-void SfsNode_Serialize(InodeRef _Nonnull _Locked pNode, SFSInode* _Nonnull ip)
+void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, SFSInode* _Nonnull ip)
 {
-    SfsNodeRef self = (SfsNodeRef)pNode;
+    SfsFileRef self = (SfsFileRef)pNode;
     const TimeInterval curTime = FSGetCurrentTime();
     const TimeInterval accTime = (Inode_IsAccessed(self)) ? curTime : Inode_GetAccessTime(self);
     const TimeInterval modTime = (Inode_IsUpdated(self)) ? curTime : Inode_GetModificationTime(self);
@@ -60,10 +60,10 @@ void SfsNode_Serialize(InodeRef _Nonnull _Locked pNode, SFSInode* _Nonnull ip)
     ip->permissions = UInt16_HostToBig(Inode_GetFilePermissions(self));
     ip->type = Inode_GetFileType(self);
 
-    memcpy(ip->bp, SfsNode_GetBlockMap(self), sizeof(uint32_t) * kSFSInodeBlockPointersCount);
+    memcpy(ip->bp, SfsFile_GetBlockMap(self), sizeof(uint32_t) * kSFSInodeBlockPointersCount);
 }
 
 
-class_func_defs(SfsNode, Inode,
+class_func_defs(SfsFile, Inode,
 //override_func_def(onStart, ZRamDriver, Driver)
 );
