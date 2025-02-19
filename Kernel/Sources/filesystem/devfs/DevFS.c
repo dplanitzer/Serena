@@ -7,7 +7,8 @@
 //
 
 #include "DevFSPriv.h"
-#include "DfsNode.h"
+#include "DfsDirectory.h"
+#include "DfsDevice.h"
 #include <driver/Driver.h>
 #include <filesystem/DirectoryChannel.h>
 
@@ -147,9 +148,9 @@ errno_t DevFS_createChannel(DevFSRef _Nonnull self, InodeRef _Consuming _Nonnull
             return DirectoryChannel_Create(pNode, pOutChannel);
 
         case kFileType_Device: {
-            DfsDriverItem* dip = DfsNode_GetDriver(pNode);
+            DfsDeviceItem* ip = DfsDevice_GetItem(pNode);
 
-            if ((err = Driver_Open(dip->instance, mode, dip->arg, pOutChannel)) == EOK) {
+            if ((err = Driver_Open(ip->instance, mode, ip->arg, pOutChannel)) == EOK) {
                 Inode_Relinquish(pNode);
             }
             return err;
@@ -212,7 +213,7 @@ errno_t DevFS_unlink(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked target, I
     try_bang(SELock_LockExclusive(&self->seLock));
 
     // A directory must be empty in order to be allowed to unlink it
-    if (Inode_IsDirectory(target) && Inode_GetLinkCount(target) > 1 && DfsDirectoryItem_IsEmpty(DfsNode_GetDirectory(target))) {
+    if (Inode_IsDirectory(target) && Inode_GetLinkCount(target) > 1 && DfsDirectoryItem_IsEmpty(DfsDirectory_GetItem(target))) {
         throw(EBUSY);
     }
 

@@ -7,14 +7,20 @@
 //
 
 #include "DevFSPriv.h"
-#include "DfsNode.h"
+#include "DfsDirectory.h"
+#include "DfsDevice.h"
 
 
 // Returns a strong reference to the driver backing the given driver node.
 // Returns NULL if the given node is not a driver node.
 DriverRef _Nullable DevFS_CopyDriverForNode(DevFSRef _Nonnull self, InodeRef _Nonnull pNode)
 {
-    return DfsNode_CopyDriver(pNode);
+    if (Inode_GetFileType(pNode) == kFileType_Device) {
+        return Object_RetainAs(DfsDevice_GetItem(pNode)->instance, Driver);
+    }
+    else {
+        return NULL;
+    }
 }
 
 static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable extra1, intptr_t extra2, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
@@ -36,7 +42,7 @@ static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef
             break;
 
         case kFileType_Device:
-            try(DfsDriverItem_Create(DevFS_GetNextAvailableInodeId(self), permissions, uid, gid, (DriverRef)extra1, extra2, (DfsDriverItem**)&pItem));
+            try(DfsDeviceItem_Create(DevFS_GetNextAvailableInodeId(self), permissions, uid, gid, (DriverRef)extra1, extra2, (DfsDeviceItem**)&pItem));
             break;
 
         default:
@@ -87,22 +93,57 @@ errno_t DevFS_onReadNodeFromDisk(DevFSRef _Nonnull self, InodeId inid, InodeRef 
     DfsItem* ip = DevFS_GetItem(self, inid);
 
     if (ip) {
-        return DfsNode_Create(self, inid, ip, pOutNode);
+        switch (ip->type) {
+            case kFileType_Device:
+                return DfsDevice_Create(self, inid, (DfsDeviceItem*)ip, pOutNode);
+
+            case kFileType_Directory:
+                return DfsDirectory_Create(self, inid, (DfsDirectoryItem*)ip, pOutNode);
+
+            default:
+                break;
+        }
     }
-    else {
-        *pOutNode = NULL;
-        return EIO;
-    }
+
+    *pOutNode = NULL;
+    return EIO;
 }
 
 errno_t DevFS_onWriteNodeToDisk(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
-    DfsNode_Serialize(pNode, DfsNode_GetItem(pNode));
-    return EOK;
+    decl_try_err();
+
+    switch (Inode_GetFileType(pNode)) {
+        case kFileType_Device:
+            DfsDevice_Serialize(pNode);
+            break;
+
+        case kFileType_Directory:
+            DfsDirectory_Serialize(pNode);
+            break;
+
+        default:
+            err = EIO;
+            break;
+    }
+
+    return err;
 }
 
 void DevFS_onRemoveNodeFromDisk(DevFSRef _Nonnull self, InodeRef _Nonnull pNode)
 {
     DevFS_RemoveItem(self, Inode_GetId(pNode));
-    DfsItem_Destroy(DfsNode_GetItem(pNode));
+
+    switch (Inode_GetFileType(pNode)) {
+        case kFileType_Device:
+            DfsItem_Destroy((DfsItem*)DfsDevice_GetItem(pNode));
+            break;
+
+        case kFileType_Directory:
+            DfsItem_Destroy((DfsItem*)DfsDirectory_GetItem(pNode));
+            break;
+
+        default:
+            break;
+    }
 }

@@ -49,12 +49,12 @@ typedef struct DfsDirectoryItem {
     List/*<DfsDirectoryEntry>*/ entries;
 } DfsDirectoryItem;
 
-// A driver entry
-typedef struct DfsDriverItem {
+// A device entry
+typedef struct DfsDeviceItem {
     DfsItem             super;
     DriverRef _Nonnull  instance;
     intptr_t            arg;
-} DfsDriverItem;
+} DfsDeviceItem;
 
 
 extern void DfsItem_Destroy(DfsItem* _Nullable self);
@@ -67,7 +67,7 @@ extern errno_t DfsDirectoryItem_GetNameOfEntryWithId(DfsDirectoryItem* _Nonnull 
 extern errno_t DfsDirectoryItem_AddEntry(DfsDirectoryItem* _Nonnull self, InodeId inid, const PathComponent* _Nonnull pc);
 extern errno_t DfsDirectoryItem_RemoveEntry(DfsDirectoryItem* _Nonnull self, InodeId inid);
 
-extern errno_t DfsDriverItem_Create(InodeId inid, FilePermissions permissions, UserId uid, GroupId gid, DriverRef _Nonnull pDriver, intptr_t arg, DfsDriverItem* _Nullable * _Nonnull pOutSelf);
-extern void DfsDriverItem_Destroy(DfsDriverItem* _Nullable self);
+extern errno_t DfsDeviceItem_Create(InodeId inid, FilePermissions permissions, UserId uid, GroupId gid, DriverRef _Nonnull pDriver, intptr_t arg, DfsDeviceItem* _Nullable * _Nonnull pOutSelf);
+extern void DfsDeviceItem_Destroy(DfsDeviceItem* _Nullable self);
 
 #endif /* DfsItem_h */

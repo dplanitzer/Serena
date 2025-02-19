@@ -40,7 +40,7 @@ void DfsItem_Destroy(DfsItem* _Nullable self)
                 break;
 
             case kFileType_Device:
-                DfsDriverItem_Destroy((DfsDriverItem*)self);
+                DfsDeviceItem_Destroy((DfsDeviceItem*)self);
                 break;
 
             default:
@@ -187,14 +187,14 @@ errno_t DfsDirectoryItem_RemoveEntry(DfsDirectoryItem* _Nonnull self, InodeId in
 // DriverItem
 //
 
-errno_t DfsDriverItem_Create(InodeId inid, FilePermissions permissions, UserId uid, GroupId gid, DriverRef _Nonnull pDriver, intptr_t arg, DfsDriverItem* _Nullable * _Nonnull pOutSelf)
+errno_t DfsDeviceItem_Create(InodeId inid, FilePermissions permissions, UserId uid, GroupId gid, DriverRef _Nonnull pDriver, intptr_t arg, DfsDeviceItem* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    DfsDriverItem* self = NULL;
+    DfsDeviceItem* self = NULL;
 
-    try(FSAllocateCleared(sizeof(DfsDriverItem), (void**)&self));
+    try(FSAllocateCleared(sizeof(DfsDeviceItem), (void**)&self));
     DfsItem_Init(&self->super, inid, kFileType_Device, permissions, uid, gid);
-    self->super.size = sizeof(DfsDriverItem);
+    self->super.size = sizeof(DfsDeviceItem);
     self->instance = Object_RetainAs(pDriver, Driver);
     self->arg = arg;
 
@@ -203,7 +203,7 @@ catch:
     return err;
 }
 
-void DfsDriverItem_Destroy(DfsDriverItem* _Nullable self)
+void DfsDeviceItem_Destroy(DfsDeviceItem* _Nullable self)
 {
     if (self) {
         Object_Release(self->instance);
