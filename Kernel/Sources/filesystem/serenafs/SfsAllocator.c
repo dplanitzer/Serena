@@ -1,29 +1,29 @@
 //
-//  SerenaFS_Alloc.c
+//  SfsAllocator.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 11/11/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "BlockAllocator.h"
+#include "SfsAllocator.h"
 #include <filesystem/FSContainer.h>
 #include <filesystem/FSUtilities.h>
 #include <System/ByteOrder.h>
 
 
-void BlockAllocator_Init(BlockAllocator* _Nonnull self)
+void SfsAllocator_Init(SfsAllocator* _Nonnull self)
 {
-    memset(self, 0, sizeof(BlockAllocator));
+    memset(self, 0, sizeof(SfsAllocator));
     Lock_Init(&self->lock);
 }
 
-void BlockAllocator_Deinit(BlockAllocator* _Nonnull self)
+void SfsAllocator_Deinit(SfsAllocator* _Nonnull self)
 {
     Lock_Deinit(&self->lock);
 }
 
-errno_t BlockAllocator_Start(BlockAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer, const SFSVolumeHeader* _Nonnull vhp, size_t blockSize)
+errno_t SfsAllocator_Start(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer, const SFSVolumeHeader* _Nonnull vhp, size_t blockSize)
 {
     decl_try_err();
     const uint32_t volumeBlockCount = UInt32_BigToHost(vhp->volumeBlockCount);
@@ -62,7 +62,7 @@ catch:
     return err;
 }
 
-void BlockAllocator_Stop(BlockAllocator* _Nonnull self)
+void SfsAllocator_Stop(SfsAllocator* _Nonnull self)
 {
     FSDeallocate(self->dirtyBitmapBlocks);
     self->dirtyBitmapBlocks = NULL;
@@ -96,7 +96,7 @@ void AllocationBitmap_SetBlockInUse(uint8_t *bitmap, LogicalBlockAddress lba, bo
     }
 }
 
-errno_t BlockAllocator_Allocate(BlockAllocator* _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba)
+errno_t SfsAllocator_Allocate(SfsAllocator* _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba)
 {
     decl_try_err();
     LogicalBlockAddress lba = 0;    // Safe because LBA #0 is the volume header which is always allocated when the FS is mounted
@@ -130,7 +130,7 @@ catch:
     return err;
 }
 
-void BlockAllocator_Deallocate(BlockAllocator* _Nonnull self, LogicalBlockAddress lba)
+void SfsAllocator_Deallocate(SfsAllocator* _Nonnull self, LogicalBlockAddress lba)
 {
     if (lba == 0) {
         return;
@@ -142,7 +142,7 @@ void BlockAllocator_Deallocate(BlockAllocator* _Nonnull self, LogicalBlockAddres
     Lock_Unlock(&self->lock);
 }
 
-errno_t BlockAllocator_CommitToDisk(BlockAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer)
+errno_t SfsAllocator_CommitToDisk(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer)
 {
     decl_try_err();
 

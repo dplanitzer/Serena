@@ -1,20 +1,20 @@
 //
-//  BlockAllocator.h
+//  SfsAllocator.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 12/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef BlockAllocator_h
-#define BlockAllocator_h
+#ifndef SfsAllocator_h
+#define SfsAllocator_h
 
-#include "VolumeFormat.h"
 #include <kobj/Any.h>
 #include <dispatcher/Lock.h>
+#include "VolumeFormat.h"
 
 
-typedef struct BlockAllocator {
+typedef struct SfsAllocator {
     Lock                    lock;                   // Protects all block allocation related state
 
     uint8_t* _Nullable      bitmap;
@@ -26,19 +26,19 @@ typedef struct BlockAllocator {
 
     size_t                  blockSize;              // Disk block size in bytes
     uint32_t                volumeBlockCount;
-} BlockAllocator;
+} SfsAllocator;
 
 
-extern void BlockAllocator_Init(BlockAllocator* _Nonnull self);
-extern void BlockAllocator_Deinit(BlockAllocator* _Nonnull self);
+extern void SfsAllocator_Init(SfsAllocator* _Nonnull self);
+extern void SfsAllocator_Deinit(SfsAllocator* _Nonnull self);
 
-extern errno_t BlockAllocator_Start(BlockAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer, const SFSVolumeHeader* _Nonnull vhp, size_t blockSize);
-extern void BlockAllocator_Stop(BlockAllocator* _Nonnull self);
+extern errno_t SfsAllocator_Start(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer, const SFSVolumeHeader* _Nonnull vhp, size_t blockSize);
+extern void SfsAllocator_Stop(SfsAllocator* _Nonnull self);
 extern void AllocationBitmap_SetBlockInUse(uint8_t *bitmap, LogicalBlockAddress lba, bool inUse);
 
-extern errno_t BlockAllocator_Allocate(BlockAllocator* _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba);
-extern void BlockAllocator_Deallocate(BlockAllocator* _Nonnull self, LogicalBlockAddress lba);
+extern errno_t SfsAllocator_Allocate(SfsAllocator* _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba);
+extern void SfsAllocator_Deallocate(SfsAllocator* _Nonnull self, LogicalBlockAddress lba);
 
-extern errno_t BlockAllocator_CommitToDisk(BlockAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer);
+extern errno_t SfsAllocator_CommitToDisk(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer);
 
-#endif /* BlockAllocator_h */
+#endif /* SfsAllocator_h */

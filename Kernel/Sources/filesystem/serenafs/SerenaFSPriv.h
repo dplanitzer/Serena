@@ -10,7 +10,7 @@
 #define SerenaFSPriv_h
 
 #include "SerenaFS.h"
-#include "BlockAllocator.h"
+#include "SfsAllocator.h"
 #include "VolumeFormat.h"
 #include <dispatcher/Lock.h>
 #include <dispatcher/SELock.h>
@@ -60,7 +60,7 @@ final_class_ivars(SerenaFS, ContainerFilesystem,
         unsigned int    reserved:29;
     }                       mountFlags; // Flags that remain constant as long as the FS is mounted
 
-    BlockAllocator          blockAllocator;
+    SfsAllocator            blockAllocator;
 
     LogicalBlockAddress     rootDirLba;                     // Root directory LBA (This is the inode id at the same time)
 );

@@ -32,7 +32,7 @@ static errno_t acquire_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress
         else {
             LogicalBlockAddress new_lba;
 
-            if((err = BlockAllocator_Allocate(&self->blockAllocator, &new_lba)) == EOK) {
+            if((err = SfsAllocator_Allocate(&self->blockAllocator, &new_lba)) == EOK) {
                 *pOutLba = UInt32_HostToBig(new_lba);
                 *pOutIsAlloc = true;
 
@@ -200,7 +200,7 @@ errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
         offset += (FileOffset)nBytesToWriteInCurrentBlock;
     }
 
-    const errno_t e2 = BlockAllocator_CommitToDisk(&self->blockAllocator, fsContainer);
+    const errno_t e2 = SfsAllocator_CommitToDisk(&self->blockAllocator, fsContainer);
     if (err == EOK) {
         err = e2;
     }
@@ -259,7 +259,7 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
     if (bn_first_to_discard < kSFSDirectBlockPointersCount) {
         for (SFSBlockNumber bn = bn_first_to_discard; bn < kSFSDirectBlockPointersCount; bn++) {
             if (ino_bmap[bn] != 0) {
-                BlockAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(ino_bmap[bn]));
+                SfsAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(ino_bmap[bn]));
                 ino_bmap[bn] = 0;
             }
         }
@@ -277,7 +277,7 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
 
             for (SFSBlockNumber bn = bn_first_i1_to_discard; bn < kSFSBlockPointersPerBlockCount; bn++) {
                 if (i1_bmap[bn] != 0) {
-                    BlockAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(i1_bmap[bn]));
+                    SfsAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(i1_bmap[bn]));
                     i1_bmap[bn] = 0;
                 }
             }
@@ -295,7 +295,7 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
         }
     }
 
-    BlockAllocator_CommitToDisk(&self->blockAllocator, fsContainer);
+    SfsAllocator_CommitToDisk(&self->blockAllocator, fsContainer);
 
     Inode_SetFileSize(pNode, newLength);
     Inode_SetModified(pNode, kInodeFlag_Updated | kInodeFlag_StatusChanged);
