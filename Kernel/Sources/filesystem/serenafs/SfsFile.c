@@ -96,7 +96,7 @@ static errno_t acquire_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress
     return err;
 }
 
-// Acquires the file block 'fba' in the file 'pInode'. Note that this function
+// Acquires the file block 'fba' in the file 'self'. Note that this function
 // allocates a new file block if 'mode' implies a write operation and the required
 // file block doesn't exist yet. However this function does not commit the updated
 // allocation bitmap back to disk. The caller has to trigger this.
@@ -153,13 +153,13 @@ catch:
 }
 
 // Reads 'nBytesToRead' bytes from the file 'pNode' starting at offset 'offset'.
-errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     const FileOffset fileSize = Inode_GetFileSize(self);
-    uint8_t* dp = pBuffer;
+    uint8_t* dp = buf;
     ssize_t nBytesRead = 0;
 
     if (nBytesToRead > 0) {
@@ -176,6 +176,7 @@ errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void*
     else if (nBytesToRead < 0) {
         return EINVAL;
     }
+
 
     while (nBytesToRead > 0 && offset < fileSize) {
         const int blockIdx = (int)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
@@ -201,10 +202,12 @@ errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void*
         dp += nBytesToReadInCurrentBlock;
     }
 
-    *pOutBytesRead = nBytesRead;
-    if (*pOutBytesRead > 0 && fs->mountFlags.isAccessUpdateOnReadEnabled) {
+
+    if (nBytesRead > 0 && fs->mountFlags.isAccessUpdateOnReadEnabled) {
         Inode_SetModified(self, kInodeFlag_Accessed);
     }
+
+    *pOutBytesRead = nBytesRead;
     return err;
 }
 
