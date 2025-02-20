@@ -104,7 +104,7 @@ static errno_t acquire_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress
 errno_t SfsFile_AcquireBlock(SfsFileRef _Nonnull _Locked self, int fba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
-    SerenaFSRef fs = (SerenaFSRef)Inode_GetFilesystem(self);
+    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     sfs_bno_t* ino_bmap = SfsFile_GetBlockMap(self);
     bool isAlloc;
@@ -156,7 +156,7 @@ catch:
 errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
-    SerenaFSRef fs = (SerenaFSRef)Inode_GetFilesystem(self);
+    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     const FileOffset fileSize = Inode_GetFileSize(self);
     uint8_t* dp = pBuffer;
@@ -213,7 +213,7 @@ errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void*
 void SfsFile_xTruncate(SfsFileRef _Nonnull _Locked self, FileOffset newLength)
 {
     decl_try_err();
-    SerenaFSRef fs = (SerenaFSRef)Inode_GetFilesystem(self);
+    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     const FileOffset oldLength = Inode_GetFileSize(self);
     sfs_bno_t* ino_bmap = SfsFile_GetBlockMap(self);

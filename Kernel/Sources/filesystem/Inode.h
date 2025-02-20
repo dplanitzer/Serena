@@ -249,6 +249,10 @@ void Inode_Unlink(InodeRef _Nonnull self);
 #define Inode_GetFilesystem(__self) \
     ((InodeRef)__self)->filesystem
 
+#define Inode_GetFilesystemAs(__self, __class) \
+    ((__class##Ref)((InodeRef)__self)->filesystem)
+
+
 // Returns true if the receiver and 'pOther' are the same node; false otherwise
 extern bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
 

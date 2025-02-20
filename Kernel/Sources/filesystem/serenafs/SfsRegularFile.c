@@ -15,7 +15,7 @@
 errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    SerenaFSRef fs = (SerenaFSRef)Inode_GetFilesystem(self);
+    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
 
     err = SfsFile_xRead((SfsFileRef)self, IOChannel_GetOffset(ch), pBuffer, nBytesToRead, nOutBytesRead);
     IOChannel_IncrementOffsetBy(ch, *nOutBytesRead);
@@ -27,7 +27,7 @@ errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, FileChannel
 static errno_t write_contents(SfsRegularFileRef _Nonnull _Locked self, FileOffset offset, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
-    SerenaFSRef fs = (SerenaFSRef)Inode_GetFilesystem(self);
+    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     ssize_t nBytesWritten = 0;
 
@@ -88,7 +88,7 @@ static errno_t write_contents(SfsRegularFileRef _Nonnull _Locked self, FileOffse
 errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked ch, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     decl_try_err();
-    SerenaFSRef fs = (SerenaFSRef)Inode_GetFilesystem(self);
+    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FileOffset offset;
 
     if ((IOChannel_GetMode(ch) & kOpen_Append) == kOpen_Append) {
@@ -107,7 +107,7 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
 errno_t SfsRegularFile_truncate(SfsRegularFileRef _Nonnull _Locked self, FileOffset length)
 {
     decl_try_err();
-    SerenaFSRef fs = (SerenaFSRef)Inode_GetFilesystem(self);
+    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
 
     const FileOffset oldLength = Inode_GetFileSize(self);
     if (oldLength < length) {

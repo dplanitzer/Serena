@@ -23,7 +23,7 @@
 errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChannelRef _Nonnull _Locked ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    SerenaFSRef fs = (SerenaFSRef)Inode_GetFilesystem(self);
+    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FileOffset offset = IOChannel_GetOffset(ch);
     sfs_dirent_t dirent;
     ssize_t nAllDirBytesRead = 0;
