@@ -65,6 +65,7 @@ class_ref(SecurityManager);
 class_ref(SerenaFS);
 class_ref(SfsDirectory);
 class_ref(SfsFile);
+class_ref(SfsRegularFile);
 class_ref(UConditionVariable);
 class_ref(UDispatchQueue);
 class_ref(ULock);

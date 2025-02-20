@@ -8,6 +8,7 @@
 
 #include "SerenaFSPriv.h"
 #include "SfsDirectory.h"
+#include "SfsRegularFile.h"
 #include <System/ByteOrder.h>
 
 
@@ -119,7 +120,7 @@ errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, Inode
                 break;
 
             case kFileType_RegularFile:
-                pClass = class(SfsFile);
+                pClass = class(SfsRegularFile);
                 break;
 
             default:
