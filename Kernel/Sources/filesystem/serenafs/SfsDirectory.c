@@ -31,7 +31,7 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
 
     while (nBytesToRead > 0) {
         ssize_t nDirBytesRead;
-        const errno_t e1 = SerenaFS_xRead(fs, (InodeRef)self, offset, &dirent, sizeof(sfs_dirent_t), &nDirBytesRead);
+        const errno_t e1 = SfsFile_xRead((SfsFileRef)self, offset, &dirent, sizeof(sfs_dirent_t), &nDirBytesRead);
 
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;

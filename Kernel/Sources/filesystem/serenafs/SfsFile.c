@@ -7,6 +7,7 @@
 //
 
 #include "SfsFile.h"
+#include "SerenaFSPriv.h"
 #include <filesystem/FSUtilities.h>
 #include <kobj/AnyRefs.h>
 #include <System/ByteOrder.h>
@@ -61,6 +62,208 @@ void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, sfs_inode_t* _Nonnull ip
     ip->type = Inode_GetFileType(self);
 
     memcpy(ip->bp, SfsFile_GetBlockMap(self), sizeof(uint32_t) * kSFSInodeBlockPointersCount);
+}
+
+// Acquires the disk block 'lba' if lba is > 0; otherwise allocates a new block.
+// The new block is for read-only if read-only 'mode' is requested and it is
+// suitable for writing back to disk if 'mode' is a replace/update mode.
+static errno_t acquire_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, sfs_bno_t* _Nonnull pOutLba, bool* _Nonnull pOutIsAlloc, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+{
+    decl_try_err();
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
+
+    *pOutIsAlloc = false;
+
+    if (lba > 0) {
+        err = FSContainer_AcquireBlock(fsContainer, lba, mode, pOutBlock);
+    }
+    else {
+        if (mode == kAcquireBlock_ReadOnly) {
+            err = FSContainer_AcquireEmptyBlock(fsContainer, pOutBlock);
+        }
+        else {
+            LogicalBlockAddress new_lba;
+
+            if((err = SfsAllocator_Allocate(&self->blockAllocator, &new_lba)) == EOK) {
+                *pOutLba = UInt32_HostToBig(new_lba);
+                *pOutIsAlloc = true;
+
+                err = FSContainer_AcquireBlock(fsContainer, new_lba, kAcquireBlock_Cleared, pOutBlock);
+            }
+        }
+    }
+
+    return err;
+}
+
+// Acquires the file block 'fba' in the file 'pInode'. Note that this function
+// allocates a new file block if 'mode' implies a write operation and the required
+// file block doesn't exist yet. However this function does not commit the updated
+// allocation bitmap back to disk. The caller has to trigger this.
+// XXX 'fba' should be LogicalBlockAddress. However we want to be able to detect overflows
+errno_t SfsFile_AcquireBlock(SfsFileRef _Nonnull _Locked self, int fba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+{
+    decl_try_err();
+    SerenaFSRef fs = (SerenaFSRef)Inode_GetFilesystem(self);
+    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
+    sfs_bno_t* ino_bmap = SfsFile_GetBlockMap(self);
+    bool isAlloc;
+
+    if (fba < 0) {
+        throw(EFBIG);
+    }
+
+    if (fba < kSFSDirectBlockPointersCount) {
+        LogicalBlockAddress dat_lba = UInt32_BigToHost(ino_bmap[fba]);
+
+        return acquire_disk_block(fs, dat_lba, mode, &ino_bmap[fba], &isAlloc, pOutBlock);
+    }
+    fba -= kSFSDirectBlockPointersCount;
+
+
+    if (fba < kSFSBlockPointersPerBlockCount) {
+        DiskBlockRef i0_block;
+        LogicalBlockAddress i0_lba = UInt32_BigToHost(ino_bmap[kSFSDirectBlockPointersCount]);
+
+        // Get the indirect block
+        try(acquire_disk_block(fs, i0_lba, kAcquireBlock_Update, &ino_bmap[kSFSDirectBlockPointersCount], &isAlloc, &i0_block));
+
+
+        // Get the data block
+        sfs_bno_t* i0_bmap = DiskBlock_GetMutableData(i0_block);
+        LogicalBlockAddress dat_lba = UInt32_BigToHost(i0_bmap[fba]);
+
+        err = acquire_disk_block(fs, dat_lba, mode, &i0_bmap[fba], &isAlloc, pOutBlock);
+        
+        if (isAlloc) {
+            FSContainer_RelinquishBlockWriting(fsContainer, i0_block, kWriteBlock_Sync);
+        }
+        else {
+            FSContainer_RelinquishBlock(fsContainer, i0_block);
+        }
+
+        return err;
+    }
+
+    err = EFBIG;
+
+catch:
+    *pOutBlock = NULL;
+    return err;
+}
+
+// Reads 'nBytesToRead' bytes from the file 'pNode' starting at offset 'offset'.
+errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+{
+    decl_try_err();
+    SerenaFSRef fs = (SerenaFSRef)Inode_GetFilesystem(self);
+    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
+    const FileOffset fileSize = Inode_GetFileSize(self);
+    uint8_t* dp = pBuffer;
+    ssize_t nBytesRead = 0;
+
+    if (nBytesToRead > 0) {
+        if (offset < 0ll || offset >= kSFSLimit_FileSizeMax) {
+            *pOutBytesRead = 0;
+            return EOVERFLOW;
+        }
+
+        const FileOffset targetOffset = offset + (FileOffset)nBytesToRead;
+        if (targetOffset < 0ll || targetOffset > kSFSLimit_FileSizeMax) {
+            nBytesToRead = (ssize_t)(kSFSLimit_FileSizeMax - offset);
+        }
+    }
+    else if (nBytesToRead < 0) {
+        return EINVAL;
+    }
+
+    while (nBytesToRead > 0 && offset < fileSize) {
+        const int blockIdx = (int)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
+        const size_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
+        const size_t nBytesToReadInCurrentBlock = (size_t)__min((FileOffset)(kSFSBlockSize - blockOffset), __min(fileSize - offset, (FileOffset)nBytesToRead));
+        DiskBlockRef pBlock;
+
+        errno_t e1 = SfsFile_AcquireBlock(self, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
+        if (e1 == EOK) {
+            const uint8_t* bp = DiskBlock_GetData(pBlock);
+            
+            memcpy(dp, bp + blockOffset, nBytesToReadInCurrentBlock);
+            FSContainer_RelinquishBlock(fsContainer, pBlock);
+        }
+        if (e1 != EOK) {
+            err = (nBytesRead == 0) ? e1 : EOK;
+            break;
+        }
+
+        nBytesToRead -= nBytesToReadInCurrentBlock;
+        nBytesRead += nBytesToReadInCurrentBlock;
+        offset += (FileOffset)nBytesToReadInCurrentBlock;
+        dp += nBytesToReadInCurrentBlock;
+    }
+
+    *pOutBytesRead = nBytesRead;
+    if (*pOutBytesRead > 0 && fs->mountFlags.isAccessUpdateOnReadEnabled) {
+        Inode_SetModified(self, kInodeFlag_Accessed);
+    }
+    return err;
+}
+
+// Internal file truncation function. Shortens the file 'self' to the new and
+// smaller size 'length'. Does not support increasing the size of a file.
+void SfsFile_xTruncate(SfsFileRef _Nonnull _Locked self, FileOffset newLength)
+{
+    decl_try_err();
+    SerenaFSRef fs = (SerenaFSRef)Inode_GetFilesystem(self);
+    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
+    const FileOffset oldLength = Inode_GetFileSize(self);
+    sfs_bno_t* ino_bmap = SfsFile_GetBlockMap(self);
+    const sfs_bno_t bn_nlen = (sfs_bno_t)(newLength >> (FileOffset)kSFSBlockSizeShift);   //XXX should be 64bit
+    const size_t boff_nlen = newLength & (FileOffset)kSFSBlockSizeMask;
+    sfs_bno_t bn_first_to_discard = (boff_nlen > 0) ? bn_nlen + 1 : bn_nlen;   // first block to discard (the block that contains newLength or that is right in front of newLength)
+
+    if (bn_first_to_discard < kSFSDirectBlockPointersCount) {
+        for (sfs_bno_t bn = bn_first_to_discard; bn < kSFSDirectBlockPointersCount; bn++) {
+            if (ino_bmap[bn] != 0) {
+                SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(ino_bmap[bn]));
+                ino_bmap[bn] = 0;
+            }
+        }
+    }
+
+    const sfs_bno_t bn_first_i1_to_discard = (bn_first_to_discard < kSFSDirectBlockPointersCount) ? 0 : bn_first_to_discard - kSFSDirectBlockPointersCount;
+    const LogicalBlockAddress i1_lba = UInt32_BigToHost(ino_bmap[kSFSDirectBlockPointersCount]);
+
+    if (i1_lba != 0) {
+        DiskBlockRef pBlock;
+
+        err = FSContainer_AcquireBlock(fsContainer, i1_lba, kAcquireBlock_Update, &pBlock);
+        if (err == EOK) {
+            sfs_bno_t* i1_bmap = (sfs_bno_t*)DiskBlock_GetMutableData(pBlock);
+
+            for (sfs_bno_t bn = bn_first_i1_to_discard; bn < kSFSBlockPointersPerBlockCount; bn++) {
+                if (i1_bmap[bn] != 0) {
+                    SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(i1_bmap[bn]));
+                    i1_bmap[bn] = 0;
+                }
+            }
+
+            if (bn_first_i1_to_discard == 0) {
+                // We removed the whole i1 level
+                ino_bmap[kSFSDirectBlockPointersCount] = 0;
+                // XXX no need to write back the abandoned i1 block?
+            }
+            else {
+                // We partially removed the i1 level
+            }
+
+            FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+        }
+    }
+
+    SfsAllocator_CommitToDisk(&fs->blockAllocator, fsContainer);
+
+    Inode_SetFileSize(self, newLength);
+    Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
 }
 
 

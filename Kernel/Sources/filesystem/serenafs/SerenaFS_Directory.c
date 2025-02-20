@@ -130,7 +130,7 @@ errno_t SerenaFS_GetDirectoryEntry(
             break;
         }
 
-        try(SerenaFS_AcquireFileBlock(self, pNode, blockIdx, kAcquireBlock_ReadOnly, &pBlock));
+        try(SfsFile_AcquireBlock((SfsFileRef)pNode, blockIdx, kAcquireBlock_ReadOnly, &pBlock));
 
         const sfs_dirent_t* pDirBuffer = (const sfs_dirent_t*)DiskBlock_GetData(pBlock);
         const int nDirEntries = nBytesAvailable / sizeof(sfs_dirent_t);

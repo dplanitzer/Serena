@@ -17,9 +17,71 @@ errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, FileChannel
     decl_try_err();
     SerenaFSRef fs = (SerenaFSRef)Inode_GetFilesystem(self);
 
-    err = SerenaFS_xRead(fs, (InodeRef)self, IOChannel_GetOffset(ch), pBuffer, nBytesToRead, nOutBytesRead);
+    err = SfsFile_xRead((SfsFileRef)self, IOChannel_GetOffset(ch), pBuffer, nBytesToRead, nOutBytesRead);
     IOChannel_IncrementOffsetBy(ch, *nOutBytesRead);
 
+    return err;
+}
+
+// Writes 'nBytesToWrite' bytes to the file 'self' starting at offset 'offset'.
+static errno_t write_contents(SfsRegularFileRef _Nonnull _Locked self, FileOffset offset, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+{
+    decl_try_err();
+    SerenaFSRef fs = (SerenaFSRef)Inode_GetFilesystem(self);
+    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
+    ssize_t nBytesWritten = 0;
+
+    if (nBytesToWrite > 0) {
+        if (offset < 0ll || offset >= kSFSLimit_FileSizeMax) {
+            *pOutBytesWritten = 0;
+            return EOVERFLOW;
+        }
+
+        const FileOffset targetOffset = offset + (FileOffset)nBytesToWrite;
+        if (targetOffset < 0ll || targetOffset > kSFSLimit_FileSizeMax) {
+            nBytesToWrite = (ssize_t)(kSFSLimit_FileSizeMax - offset);
+        }
+    }
+    else if (nBytesToWrite < 0) {
+        return EINVAL;
+    }
+
+    while (nBytesToWrite > 0) {
+        const int blockIdx = (int)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
+        const size_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
+        const size_t nBytesToWriteInCurrentBlock = __min(kSFSBlockSize - blockOffset, nBytesToWrite);
+        AcquireBlock acquireMode = (nBytesToWriteInCurrentBlock == kSFSBlockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
+        DiskBlockRef pBlock;
+
+        errno_t e1 = SfsFile_AcquireBlock((SfsFileRef)self, blockIdx, acquireMode, &pBlock);
+        if (e1 == EOK) {
+            uint8_t* bp = DiskBlock_GetMutableData(pBlock);
+        
+            memcpy(bp + blockOffset, ((const uint8_t*) pBuffer) + nBytesWritten, nBytesToWriteInCurrentBlock);
+            e1 = FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+        }
+        if (e1 != EOK) {
+            err = (nBytesWritten == 0) ? e1 : EOK;
+            break;
+        }
+
+        nBytesToWrite -= nBytesToWriteInCurrentBlock;
+        nBytesWritten += nBytesToWriteInCurrentBlock;
+        offset += (FileOffset)nBytesToWriteInCurrentBlock;
+    }
+
+    const errno_t e2 = SfsAllocator_CommitToDisk(&fs->blockAllocator, fsContainer);
+    if (err == EOK) {
+        err = e2;
+    }
+
+    if (nBytesWritten > 0) {
+        if (offset > Inode_GetFileSize(self)) {
+            Inode_SetFileSize(self, offset);
+        }
+        Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
+    }
+    *pOutBytesWritten = nBytesWritten;
     return err;
 }
 
@@ -36,7 +98,7 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
         offset = IOChannel_GetOffset(ch);
     }
 
-    err = SerenaFS_xWrite(fs, (InodeRef)self, offset, pBuffer, nBytesToWrite, nOutBytesWritten);
+    err = write_contents(self, offset, pBuffer, nBytesToWrite, nOutBytesWritten);
     IOChannel_IncrementOffsetBy(ch, *nOutBytesWritten);
 
     return err;
@@ -57,7 +119,7 @@ errno_t SfsRegularFile_truncate(SfsRegularFileRef _Nonnull _Locked self, FileOff
     }
     else if (oldLength > length) {
         // Reduction in size
-        SerenaFS_xTruncateFile(fs, (InodeRef)self, length);
+        SfsFile_xTruncate((SfsFileRef)self, length);
     }
 
     return err;

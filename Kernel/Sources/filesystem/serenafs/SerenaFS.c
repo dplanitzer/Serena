@@ -7,6 +7,7 @@
 //
 
 #include "SerenaFSPriv.h"
+#include "SfsFile.h"
 #include <System/ByteOrder.h>
 
 
@@ -154,7 +155,7 @@ static errno_t SerenaFS_unlinkCore(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
 
     // Remove the directory entry in the parent directory
     try(SerenaFS_RemoveDirectoryEntry(self, pDir, Inode_GetId(pNodeToUnlink)));
-    SerenaFS_xTruncateFile(self, pDir, Inode_GetFileSize(pDir));
+    SfsFile_xTruncate((SfsFileRef)pDir, Inode_GetFileSize(pDir));
 
 
     // If this is a directory then unlink it from its parent since we remove a
