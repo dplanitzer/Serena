@@ -14,13 +14,13 @@
 
 // Creates a directory channel which takes ownership of the provided inode
 // reference. This reference will be released by deinit().
-errno_t DirectoryChannel_Create(InodeRef _Consuming _Nonnull pDir, IOChannelRef _Nullable * _Nonnull pOutDir)
+errno_t DirectoryChannel_Create(InodeRef _Nonnull pDir, IOChannelRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();
     DirectoryChannelRef self;
 
     try(IOChannel_Create(&kDirectoryChannelClass, kIOChannel_Seekable, kIOChannelType_Directory, kOpen_Read, (IOChannelRef*)&self));
-    self->inode = pDir;
+    self->inode = Inode_Reacquire(pDir);
 
 catch:
     *pOutDir = (IOChannelRef)self;

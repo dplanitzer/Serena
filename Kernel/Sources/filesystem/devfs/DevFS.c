@@ -139,29 +139,6 @@ bool DevFS_isReadOnly(DevFSRef _Nonnull self)
     return false;
 }
 
-errno_t DevFS_createChannel(DevFSRef _Nonnull self, InodeRef _Consuming _Nonnull pNode, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    decl_try_err();
-
-    switch (Inode_GetFileType(pNode)) {
-        case kFileType_Directory:
-            return DirectoryChannel_Create(pNode, pOutChannel);
-
-        case kFileType_Device: {
-            DfsDeviceItem* ip = DfsDevice_GetItem(pNode);
-
-            if ((err = Driver_Open(ip->instance, mode, ip->arg, pOutChannel)) == EOK) {
-                Inode_Relinquish(pNode);
-            }
-            return err;
-        }
-
-        default:
-            *pOutChannel = NULL;
-            return EPERM;
-    }
-}
-
 errno_t DevFS_readFile(DevFSRef _Nonnull self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EPERM;
@@ -261,7 +238,6 @@ override_func_def(isReadOnly, DevFS, Filesystem)
 override_func_def(acquireRootDirectory, DevFS, Filesystem)
 override_func_def(acquireNodeForName, DevFS, Filesystem)
 override_func_def(getNameOfNode, DevFS, Filesystem)
-override_func_def(createChannel, DevFS, Filesystem)
 override_func_def(createNode, DevFS, Filesystem)
 override_func_def(readFile, DevFS, Filesystem)
 override_func_def(writeFile, DevFS, Filesystem)

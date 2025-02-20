@@ -8,6 +8,7 @@
 
 #include "DfsDirectory.h"
 #include <driver/Driver.h>
+#include <filesystem/DirectoryChannel.h>
 #include <filesystem/FSUtilities.h>
 #include <kobj/AnyRefs.h>
 
@@ -53,7 +54,12 @@ void DfsDirectory_Serialize(InodeRef _Nonnull _Locked self)
     ip->super.permissions = Inode_GetFilePermissions(self);
 }
 
+errno_t DfsDirectory_createChannel(InodeRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+{
+    return DirectoryChannel_Create(self, pOutChannel);
+}
+
 
 class_func_defs(DfsDirectory, Inode,
-//override_func_def(onStart, ZRamDriver, Driver)
+override_func_def(createChannel, DfsDirectory, Inode)
 );

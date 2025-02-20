@@ -40,9 +40,7 @@ static errno_t discover_and_start_disk_fs(FileManagerRef _Nonnull self, const ch
     throw_iferr(err);
 
 
-    // Note that this call takes ownership of the inode reference
-    try(Filesystem_CreateChannel(Inode_GetFilesystem(rp_disk.inode), rp_disk.inode, kOpen_ReadWrite, &devChan));
-    rp_disk.inode = NULL;
+    try(Inode_CreateChannel(rp_disk.inode, kOpen_ReadWrite, &devChan));
 
 
     // Start the filesystem

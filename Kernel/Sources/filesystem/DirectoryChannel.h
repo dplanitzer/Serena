@@ -31,7 +31,7 @@ open_class_funcs(DirectoryChannel, IOChannel,
 
 
 // Creates a directory object.
-extern errno_t DirectoryChannel_Create(InodeRef _Consuming _Nonnull pDir, IOChannelRef _Nullable * _Nonnull pOutDir);
+extern errno_t DirectoryChannel_Create(InodeRef _Nonnull pDir, IOChannelRef _Nullable * _Nonnull pOutDir);
 
 #define DirectoryChannel_GetInode(__self) \
 ((DirectoryChannelRef)(__self))->inode

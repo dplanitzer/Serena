@@ -14,13 +14,13 @@
 
 // Creates a file channel which takes ownership of the provided inode reference.
 // This reference will be released by deinit().
-errno_t FileChannel_Create(InodeRef _Consuming _Nonnull pNode, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutFile)
+errno_t FileChannel_Create(InodeRef _Nonnull pNode, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutFile)
 {
     decl_try_err();
     FileChannelRef self;
 
     try(IOChannel_Create(&kFileChannelClass, kIOChannel_Seekable, kIOChannelType_File, mode, (IOChannelRef*)&self));
-    self->inode = pNode;
+    self->inode = Inode_Reacquire(pNode);
 
 catch:
     *pOutFile = (IOChannelRef)self;

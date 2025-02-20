@@ -53,7 +53,14 @@ void DfsDevice_Serialize(InodeRef _Nonnull _Locked self)
     ip->super.permissions = Inode_GetFilePermissions(self);
 }
 
+errno_t DfsDevice_createChannel(InodeRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+{
+    DfsDeviceItem* ip = DfsDevice_GetItem(self);
+
+    return Driver_Open(ip->instance, mode, ip->arg, pOutChannel);
+}
+
 
 class_func_defs(DfsDevice, Inode,
-//override_func_def(onStart, ZRamDriver, Driver)
+override_func_def(createChannel, DfsDevice, Inode)
 );

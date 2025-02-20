@@ -163,13 +163,10 @@ errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull 
     Inode_Unlock(r.inode);
     throw_iferr(err);
 
-    // Note that this call takes ownership of the inode reference
-    try(Filesystem_CreateChannel(Inode_GetFilesystem(r.inode), r.inode, mode, pOutChannel));
-    r.inode = NULL;
+    err = Inode_CreateChannel(r.inode, mode, pOutChannel);
 
 catch:
     ResolvedPath_Deinit(&r);
-
     return err;
 }
 
@@ -201,14 +198,10 @@ errno_t FileManager_OpenExecutable(FileManagerRef _Nonnull self, const char* _No
     Inode_Unlock(r.inode);
     throw_iferr(err);
 
-
-    // Note that this call takes ownership of the inode reference
-    try(Filesystem_CreateChannel(Inode_GetFilesystem(r.inode), r.inode, kOpen_Read, pOutChannel));
-    r.inode = NULL;
+    err = Inode_CreateChannel(r.inode, kOpen_Read, pOutChannel);
 
 catch:
     ResolvedPath_Deinit(&r);
-
     return err;
 }
 

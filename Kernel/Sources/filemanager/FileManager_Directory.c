@@ -127,9 +127,7 @@ errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const char* _Non
     Inode_Unlock(r.inode);
     throw_iferr(err);
     
-    // Note that this method takes ownership of the inode reference
-    try(Filesystem_CreateChannel(Inode_GetFilesystem(r.inode), r.inode, kOpen_Read, pOutChannel));
-    r.inode = NULL;
+    err = Inode_CreateChannel(r.inode, kOpen_Read, pOutChannel);
     
 catch:
     ResolvedPath_Deinit(&r);

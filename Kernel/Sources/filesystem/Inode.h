@@ -48,6 +48,15 @@ any_subclass_funcs(Inode,
     // Note that you do not need to call the super implementation from your
     // override. The object runtime takes care of that automatically. 
     void (*deinit)(void* _Nonnull self);
+
+
+    //
+    // I/O Channels
+    //
+
+    // Creates and returns an I/O channel that is suitable for reading/writing
+    // data.
+    errno_t (*createChannel)(void* _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 );
 
 
@@ -204,6 +213,10 @@ void Inode_Unlink(InodeRef _Nonnull self);
 
 // Returns true if the receiver and 'pOther' are the same node; false otherwise
 extern bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
+
+
+#define Inode_CreateChannel(__self, __mode, __pOutChannel) \
+invoke_n(createChannel, Inode, __self, __mode, __pOutChannel)
 
 
 //

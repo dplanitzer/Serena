@@ -7,6 +7,8 @@
 //
 
 #include "Inode.h"
+#include "DirectoryChannel.h"
+#include "FileChannel.h"
 #include "Filesystem.h"
 #include "FSUtilities.h"
 
@@ -114,8 +116,23 @@ errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self)
     return err;
 }
 
+errno_t Inode_createChannel(InodeRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+{
+    switch (Inode_GetFileType(self)) {
+        case kFileType_Directory:
+            return DirectoryChannel_Create(self, pOutChannel);
+
+        case kFileType_RegularFile:
+            return FileChannel_Create(self, mode, pOutChannel);
+
+        default:
+            *pOutChannel = NULL;
+            return EPERM;
+    }
+}
+
 
 any_subclass_func_defs(Inode,
-    func_def(deinit, Inode)
+func_def(deinit, Inode)
+func_def(createChannel, Inode)
 );
-    

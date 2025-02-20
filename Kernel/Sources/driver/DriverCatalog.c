@@ -187,8 +187,7 @@ errno_t DriverCatalog_OpenDriver(DriverCatalogRef _Nonnull self, const char* _No
     ResolvedPath rp;
 
     try(FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kRootUserId, kRootGroupId, &rp));
-    try(Filesystem_CreateChannel(self->devfs, rp.inode, mode, pOutChannel));
-    rp.inode = NULL;    // Consumed by CreateChannel()
+    err = Inode_CreateChannel(rp.inode, mode, pOutChannel);
 
 catch:
     ResolvedPath_Deinit(&rp);
