@@ -192,40 +192,6 @@ open_class_funcs(Filesystem, Object,
 
 
     //
-    // File Specific Operations
-    //
-
-    // Reads up to 'nBytesToRead' bytes starting at the file offset 'pInOutOffset'
-    // from the file 'pFile'.
-    errno_t (*readFile)(void* _Nonnull self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
-
-    // Writes up to 'nBytesToWrite' bytes starting at file offset 'pInOutOffset'
-    // to the file 'pFile'.
-    errno_t (*writeFile)(void* _Nonnull self, FileChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
-
-    // Change the size of the file 'pFile' to 'length'. 'length' is guaranteed
-    // to be >= 0. No longer needed blocks are deallocated if the new length is
-    // less than the old length and zero-fille blocks are allocated and assigned
-    // to the file if the new length is longer than the old length. Note that a
-    // filesystem implementation is free to defer the actual allocation of the
-    // new blocks until an attempt is made to read or write them.
-    errno_t (*truncateFile)(void* _Nonnull self, InodeRef _Nonnull _Locked pFile, FileOffset length);
-
-
-    //
-    // Directory Specific Operations
-    //
-
-    // Reads the next set of directory entries. The first entry read is the one
-    // at the current directory index stored in 'channel'. This function guarantees
-    // that it will only ever return complete directories entries. It will never
-    // return a partial entry. Consequently the provided buffer must be big enough
-    // to hold at least one directory entry. Note that this function is expected
-    // to return "." for the entry at index #0 and ".." for the entry at index #1.
-    errno_t (*readDirectory)(void* _Nonnull self, DirectoryChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
-
-
-    //
     // General File/Directory Operations
     //
 
@@ -325,20 +291,6 @@ invoke_n(getNameOfNode, Filesystem, __self, __pDir, __id, __uid, __gid, __pName)
 invoke_n(createNode, Filesystem, __self, __type, __pDir, __pName, __pDirInsertionHint, __uid, __gid, __permissions, __pOutNode)
 
 
-#define Filesystem_ReadFile(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
-invoke_n(readFile, Filesystem, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
-
-#define Filesystem_WriteFile(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
-invoke_n(writeFile, Filesystem, __self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
-
-#define Filesystem_TruncateFile(__self, __pFile, __length) \
-invoke_n(truncateFile, Filesystem, __self, __pFile, __length)
-
-
-#define Filesystem_ReadDirectory(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
-invoke_n(readDirectory, Filesystem, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
-
-
 #define Filesystem_Unlink(__self, __target, __dir) \
 invoke_n(unlink, Filesystem, __self, __target, __dir)
 
@@ -347,6 +299,7 @@ invoke_n(move, Filesystem, __self, __pSrcNode, __pSrcDir, __pDstDir, __pNewName,
 
 #define Filesystem_Rename(__self, __pSrcNode, __pSrcDir, __pNewName, __uid, __gid) \
 invoke_n(rename, Filesystem, __self, __pSrcNode, __pSrcDir, __pNewName, __uid, __gid)
+
 
 // Acquires a new reference to the given node.
 extern InodeRef _Nonnull _Locked Filesystem_ReacquireNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode);

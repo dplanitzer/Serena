@@ -7,6 +7,7 @@
 //
 
 #include "DfsDirectory.h"
+#include "DevFSPriv.h"
 #include <driver/Driver.h>
 #include <filesystem/DirectoryChannel.h>
 #include <filesystem/FSUtilities.h>
@@ -59,7 +60,53 @@ errno_t DfsDirectory_createChannel(InodeRef _Nonnull _Locked self, unsigned int 
     return DirectoryChannel_Create(self, pOutChannel);
 }
 
+errno_t DfsDirectory_read(InodeRef _Nonnull _Locked self, DirectoryChannelRef _Nonnull _Locked ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+{
+    decl_try_err();
+    DevFSRef fs = (DevFSRef)Inode_GetFilesystem(self);
+    DirectoryEntry* pOutEntry = (DirectoryEntry*)pBuffer;
+    FileOffset offset = IOChannel_GetOffset(ch);  // in terms of #entries
+    ssize_t nAllDirEntriesRead = 0;
+    ssize_t nBytesRead = 0;
+
+    try_bang(SELock_LockShared(&fs->seLock));
+
+    DfsDirectoryItem* ip = DfsDirectory_GetItem(self);
+    DfsDirectoryEntry* curEntry = (DfsDirectoryEntry*)ip->entries.first;
+
+    // Move to the first entry that we are supposed to read
+    while (offset > 0) {
+        curEntry = (DfsDirectoryEntry*)curEntry->sibling.next;
+        offset--;
+    }
+
+    // Read as many entries as we can fit into 'nBytesToRead'
+    while (curEntry && nBytesToRead >= sizeof(DirectoryEntry)) {
+        pOutEntry->inodeId = curEntry->inid;
+        memcpy(pOutEntry->name, curEntry->name, curEntry->nameLength);
+        pOutEntry->name[curEntry->nameLength] = '\0';
+
+        nBytesRead += sizeof(DirectoryEntry);
+        nBytesToRead -= sizeof(DirectoryEntry);
+
+        nAllDirEntriesRead++;
+        pOutEntry++;
+
+        curEntry = (DfsDirectoryEntry*)curEntry->sibling.next;
+    }
+
+    if (nBytesRead > 0) {
+        IOChannel_IncrementOffsetBy(ch, nAllDirEntriesRead);
+    }
+    *nOutBytesRead = nBytesRead;
+
+    SELock_Unlock(&fs->seLock);
+
+    return err;
+}
+
 
 class_func_defs(DfsDirectory, Inode,
 override_func_def(createChannel, DfsDirectory, Inode)
+override_func_def(read, DfsDirectory, Inode)
 );

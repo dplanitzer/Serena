@@ -44,7 +44,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
     if (err == EOK) {
         if (Inode_GetFileSize(pFile) >= 0ll) {
             if ((mode & kOpen_Truncate) == kOpen_Truncate) {
-                err = Filesystem_TruncateFile(fs, pFile, 0);
+                err = Inode_Truncate(pFile, 0);
             }
         }
         else {
@@ -290,7 +290,7 @@ errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonn
         if (Inode_IsRegularFile(r.inode)) {
             err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, kAccess_Writable);
             if (err == EOK) {
-                err = Filesystem_TruncateFile(Inode_GetFilesystem(r.inode), r.inode, length);
+                err = Inode_Truncate(r.inode, length);
             }
         }
         else {

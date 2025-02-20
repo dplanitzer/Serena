@@ -49,12 +49,12 @@ void FileChannel_unlock(FileChannelRef _Nonnull _Locked self)
 
 errno_t FileChannel_read(FileChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    return Filesystem_ReadFile(Inode_GetFilesystem(self->inode), self, pBuffer, nBytesToRead, nOutBytesRead);
+    return Inode_Read(self->inode, self, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
 errno_t FileChannel_write(FileChannelRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    return Filesystem_WriteFile(Inode_GetFilesystem(self->inode), self, pBuffer, nBytesToWrite, nOutBytesWritten);
+    return Inode_Write(self->inode, self, pBuffer, nBytesToWrite, nOutBytesWritten);
 }
 
 FileOffset FileChannel_getSeekableRange(FileChannelRef _Nonnull _Locked self)
@@ -97,7 +97,7 @@ errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, FileOffset length)
     
     // Does not adjust the file offset
     IOChannel_Lock((IOChannelRef)self);
-    const errno_t err = Filesystem_TruncateFile(Inode_GetFilesystem(self->inode), self->inode, length);
+    const errno_t err = Inode_Truncate(self->inode, length);
     IOChannel_Unlock((IOChannelRef)self);
     
     return err;

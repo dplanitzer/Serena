@@ -199,26 +199,6 @@ errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull 
     return EIO;
 }
 
-errno_t Filesystem_readFile(FilesystemRef _Nonnull self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    return EIO;
-}
-
-errno_t Filesystem_writeFile(FilesystemRef _Nonnull self, FileChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
-{
-    return EIO;
-}
-
-errno_t Filesystem_truncateFile(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pFile, FileOffset length)
-{
-    return EIO;
-}
-
-errno_t Filesystem_readDirectory(FilesystemRef _Nonnull self, DirectoryChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    return EIO;
-}
-
 errno_t Filesystem_createNode(FilesystemRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return EIO;
@@ -256,10 +236,6 @@ func_def(acquireRootDirectory, Filesystem)
 func_def(acquireNodeForName, Filesystem)
 func_def(getNameOfNode, Filesystem)
 func_def(createNode, Filesystem)
-func_def(readFile, Filesystem)
-func_def(writeFile, Filesystem)
-func_def(truncateFile, Filesystem)
-func_def(readDirectory, Filesystem)
 func_def(isReadOnly, Filesystem)
 func_def(unlink, Filesystem)
 func_def(move, Filesystem)

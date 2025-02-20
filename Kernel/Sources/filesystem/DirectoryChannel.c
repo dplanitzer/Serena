@@ -49,7 +49,7 @@ void DirectoryChannel_unlock(DirectoryChannelRef _Nonnull _Locked self)
 
 errno_t DirectoryChannel_read(DirectoryChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    return Filesystem_ReadDirectory(Inode_GetFilesystem(self->inode), self, pBuffer, nBytesToRead, nOutBytesRead);
+    return Inode_Read(self->inode, self, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
 errno_t DirectoryChannel_seek(DirectoryChannelRef _Nonnull _Locked self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)

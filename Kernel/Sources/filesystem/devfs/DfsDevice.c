@@ -60,7 +60,25 @@ errno_t DfsDevice_createChannel(InodeRef _Nonnull _Locked self, unsigned int mod
     return Driver_Open(ip->instance, mode, ip->arg, pOutChannel);
 }
 
+errno_t DfsDevice_read(InodeRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+{
+    return EPERM;
+}
+
+errno_t DfsDevice_write(InodeRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+{
+    return EPERM;
+}
+
+errno_t DfsDevice_truncate(InodeRef _Nonnull _Locked self, FileOffset length)
+{
+    return EPERM;
+}
+
 
 class_func_defs(DfsDevice, Inode,
 override_func_def(createChannel, DfsDevice, Inode)
+override_func_def(read, DfsDevice, Inode)
+override_func_def(write, DfsDevice, Inode)
+override_func_def(truncate, DfsDevice, Inode)
 );

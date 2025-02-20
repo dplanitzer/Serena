@@ -139,21 +139,6 @@ bool DevFS_isReadOnly(DevFSRef _Nonnull self)
     return false;
 }
 
-errno_t DevFS_readFile(DevFSRef _Nonnull self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    return EPERM;
-}
-
-errno_t DevFS_writeFile(DevFSRef _Nonnull self, FileChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
-{
-    return EPERM;
-}
-
-errno_t DevFS_truncateFile(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, FileOffset length)
-{
-    return EPERM;
-}
-
 static errno_t DevFS_unlinkCore(DevFSRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pDir)
 {
     decl_try_err();
@@ -239,10 +224,6 @@ override_func_def(acquireRootDirectory, DevFS, Filesystem)
 override_func_def(acquireNodeForName, DevFS, Filesystem)
 override_func_def(getNameOfNode, DevFS, Filesystem)
 override_func_def(createNode, DevFS, Filesystem)
-override_func_def(readFile, DevFS, Filesystem)
-override_func_def(writeFile, DevFS, Filesystem)
-override_func_def(truncateFile, DevFS, Filesystem)
-override_func_def(readDirectory, DevFS, Filesystem)
 override_func_def(unlink, DevFS, Filesystem)
 override_func_def(move, DevFS, Filesystem)
 override_func_def(rename, DevFS, Filesystem)

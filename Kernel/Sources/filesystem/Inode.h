@@ -74,6 +74,27 @@ any_subclass_funcs(Inode,
     // Override: Optional
     // Default Behavior: Updates the inode's file info
     errno_t (*setInfo)(void* _Nonnull _Locked self, UserId uid, GroupId gid, MutableFileInfo* _Nonnull pInfo);
+
+
+    //
+    // File Specific Operations
+    //
+
+    // Reads up to 'nBytesToRead' bytes starting at the file offset 'pInOutOffset'
+    // from the file 'pFile'.
+    errno_t (*read)(void* _Nonnull _Locked self, IOChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+
+    // Writes up to 'nBytesToWrite' bytes starting at file offset 'pInOutOffset'
+    // to the file 'pFile'.
+    errno_t (*write)(void* _Nonnull _Locked self, IOChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+
+    // Change the size of the file 'pFile' to 'length'. 'length' is guaranteed
+    // to be >= 0. No longer needed blocks are deallocated if the new length is
+    // less than the old length and zero-fille blocks are allocated and assigned
+    // to the file if the new length is longer than the old length. Note that a
+    // filesystem implementation is free to defer the actual allocation of the
+    // new blocks until an attempt is made to read or write them.
+    errno_t (*truncate)(void* _Nonnull _Locked self, FileOffset length);
 );
 
 
@@ -241,6 +262,16 @@ invoke_n(getInfo, Inode, __self, __pOutInfo)
 
 #define Inode_SetInfo(__self, __uid, __gid, __pInfo) \
 invoke_n(setInfo, Inode, __self, __uid, __gid, __pInfo)
+
+
+#define Inode_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
+invoke_n(read, Inode, __self, (IOChannelRef)__pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
+
+#define Inode_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
+invoke_n(write, Inode, __self, (IOChannelRef)__pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
+
+#define Inode_Truncate(__self, __length) \
+invoke_n(truncate, Inode, __self, __length)
 
 
 //

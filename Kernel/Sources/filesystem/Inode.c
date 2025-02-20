@@ -217,10 +217,28 @@ errno_t Inode_setInfo(InodeRef _Nonnull _Locked self, UserId uid, GroupId gid, M
     return EOK;
 }
 
+errno_t Inode_read(InodeRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+{
+    return EIO;
+}
+
+errno_t Inode_write(InodeRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+{
+    return EIO;
+}
+
+errno_t Inode_truncate(InodeRef _Nonnull _Locked self, FileOffset length)
+{
+    return EIO;
+}
+
 
 any_subclass_func_defs(Inode,
 func_def(deinit, Inode)
 func_def(createChannel, Inode)
 func_def(getInfo, Inode)
 func_def(setInfo, Inode)
+func_def(read, Inode)
+func_def(write, Inode)
+func_def(truncate, Inode)
 );

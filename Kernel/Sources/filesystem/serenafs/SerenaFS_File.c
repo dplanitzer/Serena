@@ -215,35 +215,6 @@ errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
     return err;
 }
 
-errno_t SerenaFS_readFile(SerenaFSRef _Nonnull self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    decl_try_err();
-
-    err = SerenaFS_xRead(self, FileChannel_GetInode(pChannel), IOChannel_GetOffset(pChannel), pBuffer, nBytesToRead, nOutBytesRead);
-    IOChannel_IncrementOffsetBy(pChannel, *nOutBytesRead);
-
-    return err;
-}
-
-errno_t SerenaFS_writeFile(SerenaFSRef _Nonnull self, FileChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
-{
-    decl_try_err();
-    InodeRef pNode = FileChannel_GetInode(pChannel);
-    FileOffset offset;
-
-    if ((IOChannel_GetMode(self) & kOpen_Append) == kOpen_Append) {
-        offset = Inode_GetFileSize(pNode);
-    }
-    else {
-        offset = IOChannel_GetOffset(pChannel);
-    }
-
-    err = SerenaFS_xWrite(self, pNode, offset, pBuffer, nBytesToWrite, nOutBytesWritten);
-    IOChannel_IncrementOffsetBy(pChannel, *nOutBytesWritten);
-
-    return err;
-}
-
 // Internal file truncation function. Shortens the file 'pNode' to the new and
 // smaller size 'length'. Does not support increasing the size of a file.
 void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset newLength)
@@ -299,24 +270,4 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
 
     Inode_SetFileSize(pNode, newLength);
     Inode_SetModified(pNode, kInodeFlag_Updated | kInodeFlag_StatusChanged);
-}
-
-errno_t SerenaFS_truncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, FileOffset length)
-{
-    decl_try_err();
-
-    const FileOffset oldLength = Inode_GetFileSize(pFile);
-    if (oldLength < length) {
-        // Expansion in size
-        // Just set the new file size. The needed blocks will be allocated on
-        // demand when read/write is called to manipulate the new data range.
-        Inode_SetFileSize(pFile, length);
-        Inode_SetModified(pFile, kInodeFlag_Updated | kInodeFlag_StatusChanged); 
-    }
-    else if (oldLength > length) {
-        // Reduction in size
-        SerenaFS_xTruncateFile(self, pFile, length);
-    }
-
-    return err;
 }
