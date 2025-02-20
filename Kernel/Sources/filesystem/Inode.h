@@ -56,7 +56,24 @@ any_subclass_funcs(Inode,
 
     // Creates and returns an I/O channel that is suitable for reading/writing
     // data.
-    errno_t (*createChannel)(void* _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+    errno_t (*createChannel)(void* _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+
+
+    //
+    // Get/Set Inode Attributes
+    //
+
+    // Returns the file information of the given node. The node may be of any
+    // type.
+    // Override: Optional
+    // Default Behavior: Returns the node's file info
+    errno_t (*getInfo)(void* _Nonnull _Locked self, FileInfo* _Nonnull pOutInfo);
+
+    // Modifies one or more attributes stored in the file information of the given
+    // node. The node may be of any type.
+    // Override: Optional
+    // Default Behavior: Updates the inode's file info
+    errno_t (*setInfo)(void* _Nonnull _Locked self, UserId uid, GroupId gid, MutableFileInfo* _Nonnull pInfo);
 );
 
 
@@ -217,6 +234,13 @@ extern bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
 
 #define Inode_CreateChannel(__self, __mode, __pOutChannel) \
 invoke_n(createChannel, Inode, __self, __mode, __pOutChannel)
+
+
+#define Inode_GetInfo(__self, __pOutInfo) \
+invoke_n(getInfo, Inode, __self, __pOutInfo)
+
+#define Inode_SetInfo(__self, __uid, __gid, __pInfo) \
+invoke_n(setInfo, Inode, __self, __uid, __gid, __pInfo)
 
 
 //

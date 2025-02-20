@@ -213,12 +213,11 @@ errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnu
 
     if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r)) == EOK) {
         Inode_Lock(r.inode);
-        err = Filesystem_GetFileInfo(Inode_GetFilesystem(r.inode), r.inode, pOutInfo);
+        err = Inode_GetInfo(r.inode, pOutInfo);
         Inode_Unlock(r.inode);
     }
 
     ResolvedPath_Deinit(&r);
-    
     return err;
 }
 
@@ -248,7 +247,7 @@ errno_t FileManager_SetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnu
 
     if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, pPath, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r)) == EOK) {
         Inode_Lock(r.inode);
-        err = Filesystem_SetFileInfo(Inode_GetFilesystem(r.inode), r.inode, self->ruid, self->rgid, info);
+        err = Inode_SetInfo(r.inode, self->ruid, self->rgid, info);
         Inode_Unlock(r.inode);
     }
 

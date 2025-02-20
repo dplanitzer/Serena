@@ -192,23 +192,6 @@ open_class_funcs(Filesystem, Object,
 
 
     //
-    // Get/Set Inode Attributes
-    //
-
-    // Returns the file information of the given node. The node may be of any
-    // type.
-    // Override: Optional
-    // Default Behavior: Returns the node's file info
-    errno_t (*getFileInfo)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, FileInfo* _Nonnull pOutInfo);
-
-    // Modifies one or more attributes stored in the file information of the given
-    // node. The node may be of any type.
-    // Override: Optional
-    // Default Behavior: Updates the inode's file info
-    errno_t (*setFileInfo)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, UserId uid, GroupId gid, MutableFileInfo* _Nonnull pInfo);
-
-
-    //
     // File Specific Operations
     //
 
@@ -340,13 +323,6 @@ invoke_n(getNameOfNode, Filesystem, __self, __pDir, __id, __uid, __gid, __pName)
 
 #define Filesystem_CreateNode(__self, __type, __pDir, __pName, __pDirInsertionHint, __uid, __gid, __permissions, __pOutNode) \
 invoke_n(createNode, Filesystem, __self, __type, __pDir, __pName, __pDirInsertionHint, __uid, __gid, __permissions, __pOutNode)
-
-
-#define Filesystem_GetFileInfo(__self, __pNode, __pOutInfo) \
-invoke_n(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
-
-#define Filesystem_SetFileInfo(__self, __pNode, __uid, __gid, __pInfo) \
-invoke_n(setFileInfo, Filesystem, __self, __pNode, __uid, __gid, __pInfo)
 
 
 #define Filesystem_ReadFile(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \

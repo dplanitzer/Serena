@@ -54,7 +54,7 @@ void DfsDirectory_Serialize(InodeRef _Nonnull _Locked self)
     ip->super.permissions = Inode_GetFilePermissions(self);
 }
 
-errno_t DfsDirectory_createChannel(InodeRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t DfsDirectory_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return DirectoryChannel_Create(self, pOutChannel);
 }

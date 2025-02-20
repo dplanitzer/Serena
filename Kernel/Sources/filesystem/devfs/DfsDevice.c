@@ -53,7 +53,7 @@ void DfsDevice_Serialize(InodeRef _Nonnull _Locked self)
     ip->super.permissions = Inode_GetFilePermissions(self);
 }
 
-errno_t DfsDevice_createChannel(InodeRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t DfsDevice_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     DfsDeviceItem* ip = DfsDevice_GetItem(self);
 

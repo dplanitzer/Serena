@@ -10,7 +10,6 @@
 #include "FSUtilities.h"
 #include "DirectoryChannel.h"
 #include "FileChannel.h"
-#include <security/SecurityManager.h>
 
 
 // Returns the next available FSID.
@@ -200,91 +199,6 @@ errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull 
     return EIO;
 }
 
-errno_t Filesystem_getFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileInfo* _Nonnull pOutInfo)
-{
-    TimeInterval curTime;
-
-    if (Inode_IsModified(pNode)) {
-        curTime = FSGetCurrentTime();
-    }
-
-    if (Inode_IsAccessed(pNode)) {
-        pOutInfo->accessTime = curTime;
-    } else {
-        pOutInfo->accessTime = Inode_GetAccessTime(pNode);
-    }
-    if (Inode_IsUpdated(pNode)) {
-        pOutInfo->modificationTime = curTime;
-    } else {
-        pOutInfo->modificationTime = Inode_GetModificationTime(pNode);
-    }
-    if (Inode_IsStatusChanged(pNode)) {
-        pOutInfo->statusChangeTime = curTime;
-    } else {
-        pOutInfo->statusChangeTime = Inode_GetStatusChangeTime(pNode);
-    }
-    
-    pOutInfo->size = Inode_GetFileSize(pNode);
-    pOutInfo->uid = Inode_GetUserId(pNode);
-    pOutInfo->gid = Inode_GetGroupId(pNode);
-    pOutInfo->permissions = Inode_GetFilePermissions(pNode);
-    pOutInfo->type = Inode_GetFileType(pNode);
-    pOutInfo->reserved = 0;
-    pOutInfo->linkCount = Inode_GetLinkCount(pNode);
-    pOutInfo->filesystemId = Filesystem_GetId(self);
-    pOutInfo->inodeId = Inode_GetId(pNode);
-
-    return EOK;
-}
-
-errno_t Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, UserId uid, GroupId gid, MutableFileInfo* _Nonnull pInfo)
-{
-    const uint32_t  modify = pInfo->modify & kModifyFileInfo_All;
-
-    if (modify == 0) {
-        return EOK;
-    }
-
-    // Only the owner of a file may change its metadata.
-    if (uid != Inode_GetUserId(pNode) && !SecurityManager_IsSuperuser(gSecurityManager, uid)) {
-        return EPERM;
-    }
-
-    // Can't change the metadata if the disk is read-only
-    if (Filesystem_IsReadOnly(self)) {
-        return EROFS;
-    }
-    
-
-    // We got permissions. Now update the data as requested.
-    if ((modify & kModifyFileInfo_UserId) == kModifyFileInfo_UserId) {
-        Inode_SetUserId(pNode, pInfo->uid);
-    }
-
-    if ((modify & kModifyFileInfo_GroupId) == kModifyFileInfo_GroupId) {
-        Inode_SetGroupId(pNode, pInfo->gid);
-    }
-
-    if ((modify & kModifyFileInfo_Permissions) == kModifyFileInfo_Permissions) {
-        const FilePermissions oldPerms = Inode_GetFilePermissions(pNode);
-        const FilePermissions newPerms = (oldPerms & ~pInfo->permissionsModifyMask) | (pInfo->permissions & pInfo->permissionsModifyMask);
-
-        Inode_SetFilePermissions(pNode, newPerms);
-    }
-
-    // Update timestamps
-    if ((modify & kModifyFileInfo_AccessTime) == kModifyFileInfo_AccessTime) {
-        Inode_SetAccessTime(pNode, pInfo->accessTime);
-    }
-    if ((modify & kModifyFileInfo_ModificationTime) == kModifyFileInfo_ModificationTime) {
-        Inode_SetModificationTime(pNode, pInfo->modificationTime);
-    }
-
-    Inode_SetModified(pNode, kInodeFlag_StatusChanged);
-
-    return EOK;
-}
-
 errno_t Filesystem_readFile(FilesystemRef _Nonnull self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EIO;
@@ -341,8 +255,6 @@ func_def(stop, Filesystem)
 func_def(acquireRootDirectory, Filesystem)
 func_def(acquireNodeForName, Filesystem)
 func_def(getNameOfNode, Filesystem)
-func_def(getFileInfo, Filesystem)
-func_def(setFileInfo, Filesystem)
 func_def(createNode, Filesystem)
 func_def(readFile, Filesystem)
 func_def(writeFile, Filesystem)

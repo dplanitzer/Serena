@@ -74,7 +74,7 @@ FileOffset FileChannel_GetFileSize(FileChannelRef _Nonnull self)
 errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
 {
     IOChannel_Lock((IOChannelRef)self);
-    const errno_t err = Filesystem_GetFileInfo(Inode_GetFilesystem(self->inode), self->inode, pOutInfo);
+    const errno_t err = Inode_GetInfo(self->inode, pOutInfo);
     IOChannel_Unlock((IOChannelRef)self);
     
     return err;
@@ -83,7 +83,7 @@ errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, FileInfo* _Nonnull pOu
 errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, UserId uid, GroupId gid, MutableFileInfo* _Nonnull pInfo)
 {
     IOChannel_Lock((IOChannelRef)self);
-    const errno_t err = Filesystem_SetFileInfo(Inode_GetFilesystem(self->inode), self->inode, uid, gid, pInfo);
+    const errno_t err = Inode_SetInfo(self->inode, uid, gid, pInfo);
     IOChannel_Unlock((IOChannelRef)self);
     
     return err;
