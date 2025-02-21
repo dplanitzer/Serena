@@ -29,7 +29,7 @@ PathComponent PathComponent_MakeFromCString(const char* _Nonnull pCString)
 
 // Returns true if the given path component is equal to the given nul-terminated
 // string.
-bool PathComponent_EqualsCString(const PathComponent* pc, const char* rhs)
+bool PathComponent_EqualsCString(const PathComponent* _Nonnull pc, const char* _Nonnull rhs)
 {
     const char* lhs = pc->name;
     int n = pc->count;
@@ -49,7 +49,7 @@ bool PathComponent_EqualsCString(const PathComponent* pc, const char* rhs)
     return (*rhs == '\0' && n == 0) ? true : false;
 }
 
-bool PathComponent_EqualsString(const PathComponent* pc, const char* rhs, size_t rhsLength)
+bool PathComponent_EqualsString(const PathComponent* _Nonnull pc, const char* _Nonnull rhs, size_t rhsLength)
 {
     size_t lhsLength = pc->count;
     const char* lhs = pc->name;

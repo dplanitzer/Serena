@@ -116,22 +116,14 @@ errno_t _Nullable DfsDirectoryItem_GetEntryForName(DfsDirectoryItem* _Nonnull se
 
 errno_t DfsDirectoryItem_GetNameOfEntryWithId(DfsDirectoryItem* _Nonnull self, InodeId inid, MutablePathComponent* _Nonnull mpc)
 {
-    DfsDirectoryEntry* entry = NULL;
-
     List_ForEach(&self->entries, DfsDirectoryEntry,
         if (pCurNode->inid == inid) {
-            entry = pCurNode;
-            break;
+            return MutablePathComponent_SetString(mpc, pCurNode->name, pCurNode->nameLength);
         }
     )
 
-    if (entry == NULL) {
-        mpc->count = 0;
-        return ENOENT;
-    }
-    else {
-        return MutablePathComponent_SetString(mpc, entry->name, entry->nameLength);
-    }
+    mpc->count = 0;
+    return ENOENT;
 }
 
 errno_t DfsDirectoryItem_AddEntry(DfsDirectoryItem* _Nonnull self, InodeId inid, const PathComponent* _Nonnull pc)

@@ -33,11 +33,11 @@ extern PathComponent PathComponent_MakeFromCString(const char* _Nonnull pCString
 
 // Returns true if the given path component is equal to the given nul-terminated
 // string.
-extern bool PathComponent_EqualsCString(const PathComponent* pc, const char* rhs);
+extern bool PathComponent_EqualsCString(const PathComponent* _Nonnull pc, const char* _Nonnull rhs);
 
 // Returns true if the given path component is equal to the given string with
 // the given length.
-extern bool PathComponent_EqualsString(const PathComponent* pc, const char* rhs, size_t rhsLength);
+extern bool PathComponent_EqualsString(const PathComponent* _Nonnull pc, const char* _Nonnull rhs, size_t rhsLength);
 
 
 // Mutable version of PathComponent. 'count' must be set on return to the actual
