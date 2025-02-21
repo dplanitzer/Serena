@@ -196,8 +196,8 @@ errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void*
     // Iterate through a contiguous sequence of blocks until we've read all
     // required bytes.
     while (nBytesToRead > 0) {
-        const ssize_t nActualBlockSize = kSFSBlockSize - blockOffset;
-        const ssize_t nBytesToReadInBlock = (nBytesToRead > nActualBlockSize) ? nActualBlockSize : nBytesToRead;
+        const ssize_t nRemainderBlockSize = kSFSBlockSize - blockOffset;
+        const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
         DiskBlockRef pBlock;
 
         const errno_t e1 = SfsFile_AcquireBlock(self, blockIdx, kAcquireBlock_ReadOnly, &pBlock);

@@ -28,6 +28,7 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
+    const uint8_t* sp = buf;
     ssize_t nBytesWritten = 0;
     FileOffset offset;
 
@@ -47,6 +48,7 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
     }
 
 
+    // Limit 'nBytesToWrite' to the maximum possible file size relative to 'offset'.
     if (nBytesToWrite > 0) {
         if (offset >= kSFSLimit_FileSizeMax) {
             throw(EFBIG);
@@ -60,18 +62,26 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
     }
 
 
+    // Get the block index and block offset that corresponds to 'offset'. We start
+    // iterating through blocks there.
+    sfs_bno_t blockIdx;
+    ssize_t blockOffset;
+    SfsFile_ConvertOffset((SfsFileRef)self, offset, &blockIdx, &blockOffset);
+
+
+    // Iterate through a contiguous sequence of blocks until we've written all
+    // required bytes.
     while (nBytesToWrite > 0) {
-        const sfs_bno_t blockIdx = (sfs_bno_t)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
-        const size_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
-        const size_t nBytesToWriteInCurrentBlock = __min(kSFSBlockSize - blockOffset, nBytesToWrite);
-        AcquireBlock acquireMode = (nBytesToWriteInCurrentBlock == kSFSBlockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
+        const ssize_t nRemainderBlockSize = kSFSBlockSize - blockOffset;
+        const ssize_t nBytesToWriteInBlock = (nBytesToWrite > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToWrite;
+        AcquireBlock acquireMode = (nBytesToWriteInBlock == kSFSBlockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
         DiskBlockRef pBlock;
 
         errno_t e1 = SfsFile_AcquireBlock((SfsFileRef)self, blockIdx, acquireMode, &pBlock);
         if (e1 == EOK) {
-            uint8_t* bp = DiskBlock_GetMutableData(pBlock);
+            uint8_t* dp = DiskBlock_GetMutableData(pBlock);
         
-            memcpy(bp + blockOffset, ((const uint8_t*) buf) + nBytesWritten, nBytesToWriteInCurrentBlock);
+            memcpy(dp + blockOffset, sp, nBytesToWriteInBlock);
             e1 = FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
         }
         if (e1 != EOK) {
@@ -79,9 +89,12 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
             break;
         }
 
-        nBytesToWrite -= nBytesToWriteInCurrentBlock;
-        nBytesWritten += nBytesToWriteInCurrentBlock;
-        offset += (FileOffset)nBytesToWriteInCurrentBlock;
+        nBytesToWrite -= nBytesToWriteInBlock;
+        nBytesWritten += nBytesToWriteInBlock;
+        sp += nBytesToWriteInBlock;
+
+        blockOffset = 0;
+        blockIdx++;
     }
 
 
@@ -92,8 +105,10 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
 
 
     if (nBytesWritten > 0) {
-        if (offset > Inode_GetFileSize(self)) {
-            Inode_SetFileSize(self, offset);
+        const FileOffset endOffset = offset + (FileOffset)nBytesWritten;
+
+        if (endOffset > Inode_GetFileSize(self)) {
+            Inode_SetFileSize(self, endOffset);
         }
         Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
         IOChannel_IncrementOffsetBy(ch, nBytesWritten);
