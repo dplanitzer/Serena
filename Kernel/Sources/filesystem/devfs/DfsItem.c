@@ -129,14 +129,8 @@ errno_t DfsDirectoryItem_GetNameOfEntryWithId(DfsDirectoryItem* _Nonnull self, I
         mpc->count = 0;
         return ENOENT;
     }
-    else if (entry->nameLength > mpc->capacity) {
-        mpc->count = 0;
-        return ERANGE;
-    }
     else {
-        mpc->count = entry->nameLength;
-        memcpy(mpc->name, entry->name, entry->nameLength);
-        return EOK;
+        return MutablePathComponent_SetString(mpc, entry->name, entry->nameLength);
     }
 }
 

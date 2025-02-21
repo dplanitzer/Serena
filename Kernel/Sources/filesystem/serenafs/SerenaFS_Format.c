@@ -113,8 +113,10 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, UserId uid, Gr
     try(FSContainer_AcquireBlock(fsContainer, rootDirContentLba, kAcquireBlock_Cleared, &pBlock));
     sfs_dirent_t* dep = (sfs_dirent_t*)DiskBlock_GetMutableData(pBlock);
     dep[0].id = UInt32_HostToBig(rootDirInodeLba);
+    dep[0].len = 1;
     dep[0].filename[0] = '.';
     dep[1].id = UInt32_HostToBig(rootDirInodeLba);
+    dep[1].len = 2;
     dep[1].filename[0] = '.';
     dep[1].filename[1] = '.';
     try(FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync));

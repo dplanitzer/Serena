@@ -32,26 +32,26 @@ bool DirectoryNode_IsNotEmpty(InodeRef _Nonnull _Locked self)
 
 // Returns true if the array of directory entries starting at 'pEntry' and holding
 // 'nEntries' entries contains a directory entry that matches 'pQuery'.
-static bool xHasMatchingDirectoryEntry(const SFSDirectoryQuery* _Nonnull pQuery, const sfs_dirent_t* _Nonnull pBlock, int nEntries, sfs_dirent_t* _Nullable * _Nullable pOutEmptyPtr, sfs_dirent_t* _Nullable * _Nonnull pOutEntryPtr)
+static bool xHasMatchingDirectoryEntry(const SFSDirectoryQuery* _Nonnull pq, const sfs_dirent_t* _Nonnull pBlock, int nEntries, sfs_dirent_t* _Nullable * _Nullable pOutEmptyPtr, sfs_dirent_t* _Nullable * _Nonnull pOutEntryPtr)
 {
-    const sfs_dirent_t* pEntry = pBlock;
+    const sfs_dirent_t* pe = pBlock;
 
     *pOutEmptyPtr = NULL;
     *pOutEntryPtr = NULL;
 
     while (nEntries-- > 0) {
-        if (pEntry->id > 0) {
-            switch (pQuery->kind) {
+        if (pe->id > 0) {
+            switch (pq->kind) {
                 case kSFSDirectoryQuery_PathComponent:
-                    if (PathComponent_EqualsCString(pQuery->u.pc, pEntry->filename)) {
-                        *pOutEntryPtr = (sfs_dirent_t*)pEntry;
+                    if (PathComponent_EqualsString(pq->u.pc, pe->filename, pe->len)) {
+                        *pOutEntryPtr = (sfs_dirent_t*)pe;
                         return true;
                     }
                     break;
 
                 case kSFSDirectoryQuery_InodeId:
-                    if (pEntry->id == pQuery->u.id) {
-                       *pOutEntryPtr = (sfs_dirent_t*)pEntry;
+                    if (pe->id == pq->u.id) {
+                       *pOutEntryPtr = (sfs_dirent_t*)pe;
                         return true;
                     }
                     break;
@@ -61,9 +61,9 @@ static bool xHasMatchingDirectoryEntry(const SFSDirectoryQuery* _Nonnull pQuery,
             }
         }
         else if (pOutEmptyPtr) {
-            *pOutEmptyPtr = (sfs_dirent_t*)pEntry;
+            *pOutEmptyPtr = (sfs_dirent_t*)pe;
         }
-        pEntry++;
+        pe++;
     }
 
     return false;
@@ -150,13 +150,7 @@ errno_t SerenaFS_GetDirectoryEntry(
                 *pOutId = UInt32_BigToHost(pMatchingEntry->id);
             }
             if (pOutFilename) {
-                const ssize_t len = String_LengthUpTo(pMatchingEntry->filename, kSFSMaxFilenameLength);
-                if (len > pOutFilename->capacity) {
-                    throw(ERANGE);
-                }
-
-                String_CopyUpTo(pOutFilename->name, pMatchingEntry->filename, len);
-                pOutFilename->count = len;
+                try(MutablePathComponent_SetString(pOutFilename, pMatchingEntry->filename, pMatchingEntry->len));
             }
         }
 
@@ -270,8 +264,9 @@ errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
         uint8_t* bp = DiskBlock_GetMutableData(pBlock);
         sfs_dirent_t* dep = (sfs_dirent_t*)(bp + pEmptyPtr->blockOffset);
 
-        char* p = String_CopyUpTo(dep->filename, pName->name, pName->count);
-        while (p < &dep->filename[kSFSMaxFilenameLength]) *p++ = '\0';
+        memset(dep->filename, 0, kSFSMaxFilenameLength);
+        memcpy(dep->filename, pName->name, pName->count);
+        dep->len = pName->count;
         dep->id = UInt32_HostToBig(id);
 
         FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
@@ -312,7 +307,9 @@ errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
             dep = (sfs_dirent_t*)DiskBlock_GetMutableData(pBlock);
         }
 
-        String_CopyUpTo(dep->filename, pName->name, pName->count);
+        memset(dep->filename, 0, kSFSMaxFilenameLength);
+        memcpy(dep->filename, pName->name, pName->count);
+        dep->len = pName->count;
         dep->id = UInt32_HostToBig(id);
         FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
 

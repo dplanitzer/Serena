@@ -11,7 +11,7 @@
 
 #include <klib/Types.h>
 
-#define kSFSMaxFilenameLength               28
+#define kSFSMaxFilenameLength               27
 #define kSFSBlockSizeShift                  9
 #define kSFSBlockSize                       (1 << kSFSBlockSizeShift)
 #define kSFSBlockSizeMask                   (kSFSBlockSize - 1)
@@ -152,22 +152,27 @@ typedef struct sfs_inode {
 //
 // Directory File
 //
-// A directory file stores an array of sfs_dirent_t objects in its file
-// content.
-// Internal organisation:
+// A directory file is organized into pages. Each page corresponds exactly to a
+// filesystem block. A page stores an array of sfs_dirent data structures.
+//
+// Internal directory organisation:
 // [0] "."
 // [1] ".."
 // [2] userEntry0
 // .
 // [n] userEntryN-1
-// This should be mod(SFSDiskBlockSize, SFSDirectoryEntrySize) == 0
+// This must be mod(SFSDiskBlockSize, SFSDirectoryEntrySize) == 0
 // The number of entries in the directory file is fileLength / sizeof(sfs_dirent_t)
+//
+// File names are stored without a trailing NUL character since the length is
+// explicitly stored in 'len'.
 //
 // The '.' and '..' entries of the root directory map to the root directory
 // inode id.
 typedef struct sfs_dirent {
     uint32_t    id;
-    char        filename[kSFSMaxFilenameLength];    // if strlen(filename) < kSFSMaxFilenameLength -> 0 terminated
+    uint8_t     len;
+    char        filename[kSFSMaxFilenameLength];    // if strlen(filename) < kSFSMaxFilenameLength
 } sfs_dirent_t;
 
 #endif /* VolumeFormat_h */

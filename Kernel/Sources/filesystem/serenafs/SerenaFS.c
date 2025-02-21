@@ -308,7 +308,7 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSr
     DiskBlockRef pBlock;
 
     if (pNewName->count > kSFSMaxFilenameLength) {
-        throw(ENAMETOOLONG);
+        return ENAMETOOLONG;
     }
     
     q.kind = kSFSDirectoryQuery_InodeId;
@@ -319,12 +319,11 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSr
 
     uint8_t* bp = DiskBlock_GetMutableData(pBlock);
     sfs_dirent_t* dep = (sfs_dirent_t*)(bp + mp.blockOffset);
-    char* p = String_CopyUpTo(dep->filename, pNewName->name, pNewName->count);
-    while (p < &dep->filename[kSFSMaxFilenameLength]) *p++ = '\0';
+    memset(dep->filename, 0, kSFSMaxFilenameLength);
+    memcpy(dep->filename, pNewName->name, pNewName->count);
+    dep->len = pNewName->count;
 
     FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
-
-    return EOK;
 
 catch:
     return err;

@@ -41,8 +41,10 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
         try(FSContainer_AcquireBlock(fsContainer, dirContLba, kAcquireBlock_Cleared, &pBlock));
         sfs_dirent_t* dep = DiskBlock_GetMutableData(pBlock);
         dep[0].id = UInt32_HostToBig(inodeLba);
+        dep[0].len = 1;
         dep[0].filename[0] = '.';
         dep[1].id = UInt32_HostToBig(parentInodeId);
+        dep[1].len = 2;
         dep[1].filename[0] = '.';
         dep[1].filename[1] = '.';
         FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);

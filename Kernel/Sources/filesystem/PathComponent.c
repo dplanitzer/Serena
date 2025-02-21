@@ -65,3 +65,20 @@ bool PathComponent_EqualsString(const PathComponent* pc, const char* rhs, size_t
 
     return (lhsLength == 0) ? true : false;
 }
+
+errno_t MutablePathComponent_SetString(MutablePathComponent* _Nonnull pc, const char* _Nonnull str, size_t len)
+{
+    if (pc->capacity < len) {
+        pc->count = 0;
+        return ERANGE;
+    }
+
+    pc->count = len;
+
+    char* dp = pc->name;
+    while (len-- > 0) {
+        *dp++ = *str++;
+    }
+
+    return EOK;
+}

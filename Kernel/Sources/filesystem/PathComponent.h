@@ -59,4 +59,10 @@ typedef struct MutablePathComponent {
 #define MutablePathComponent_EqualsString(__pc, __rhs, __rhsLength) \
     PathComponent_EqualsString((const PathComponent*)(__pc), __rhs, __rhsLength)
 
+// Replaces the current string contents of 'pc' with the string 'str' of length
+// 'len'. The string characters are copied into the character buffer of the
+// receiver. ERANGE is returned if the buffer is not big enough to hold 'len'
+// characters.
+extern errno_t MutablePathComponent_SetString(MutablePathComponent* _Nonnull pc, const char* _Nonnull str, size_t len);
+
 #endif /* PathComponent_h */
