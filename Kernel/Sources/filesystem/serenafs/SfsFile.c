@@ -158,23 +158,27 @@ errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void*
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
-    const FileOffset fileSize = Inode_GetFileSize(self);
     uint8_t* dp = buf;
     ssize_t nBytesRead = 0;
 
-    if (nBytesToRead > 0) {
-        if (offset < 0ll || offset >= kSFSLimit_FileSizeMax) {
-            *pOutBytesRead = 0;
-            return EOVERFLOW;
-        }
-
-        const FileOffset targetOffset = offset + (FileOffset)nBytesToRead;
-        if (targetOffset < 0ll || targetOffset > kSFSLimit_FileSizeMax) {
-            nBytesToRead = (ssize_t)(kSFSLimit_FileSizeMax - offset);
-        }
+    if (nBytesToRead < 0) {
+        throw(EINVAL);
     }
-    else if (nBytesToRead < 0) {
-        return EINVAL;
+    if (nBytesToRead > 0 && offset < 0ll) {
+        throw(EOVERFLOW);
+    }
+
+
+    const FileOffset fileSize = Inode_GetFileSize(self);
+    const FileOffset nAvailBytes = fileSize - offset;
+    
+    if (nAvailBytes > 0) {
+        if (nAvailBytes <= (FileOffset)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToRead) {
+            nBytesToRead = (ssize_t)nAvailBytes;
+        }
+        // Otherwise, use 'nBytesToRead' as is
+    } else {
+        nBytesToRead = 0;
     }
 
 
@@ -207,6 +211,7 @@ errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void*
         Inode_SetModified(self, kInodeFlag_Accessed);
     }
 
+catch:
     *pOutBytesRead = nBytesRead;
     return err;
 }

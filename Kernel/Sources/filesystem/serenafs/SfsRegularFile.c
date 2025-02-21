@@ -39,19 +39,24 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
     }
 
 
+    if (nBytesToWrite < 0) {
+        throw(EINVAL);
+    }
+    if (nBytesToWrite > 0 && offset < 0ll) {
+        throw(EOVERFLOW);
+    }
+
+
     if (nBytesToWrite > 0) {
-        if (offset < 0ll || offset >= kSFSLimit_FileSizeMax) {
-            *pOutBytesWritten = 0;
-            return EOVERFLOW;
+        if (offset >= kSFSLimit_FileSizeMax) {
+            throw(EFBIG);
         }
 
-        const FileOffset targetOffset = offset + (FileOffset)nBytesToWrite;
-        if (targetOffset < 0ll || targetOffset > kSFSLimit_FileSizeMax) {
-            nBytesToWrite = (ssize_t)(kSFSLimit_FileSizeMax - offset);
+        const FileOffset nAvailBytes = kSFSLimit_FileSizeMax - offset;
+        if (nAvailBytes <= (FileOffset)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToWrite) {
+            nBytesToWrite = (ssize_t)nAvailBytes;
         }
-    }
-    else if (nBytesToWrite < 0) {
-        return EINVAL;
+        // Otherwise, use 'nBytesToWrite' as is
     }
 
 
@@ -95,6 +100,7 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
     }
 
 
+catch:
     *pOutBytesWritten = nBytesWritten;
     return err;
 }
