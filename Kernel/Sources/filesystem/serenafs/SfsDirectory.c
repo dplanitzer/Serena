@@ -51,7 +51,7 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
             pEntry->inodeId = UInt32_BigToHost(dirent.id);
             memcpy(pEntry->name, dirent.filename, dirent.len);
             pEntry->name[dirent.len] = '\0';
-            
+
             nBytesRead += sizeof(DirectoryEntry);
             nBytesToRead -= sizeof(DirectoryEntry);
         }
@@ -60,11 +60,9 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
         nAllDirBytesRead += nDirBytesRead;
     }
 
-    if (nBytesRead > 0) {
-        IOChannel_IncrementOffsetBy(ch, nAllDirBytesRead);
-    }
+    IOChannel_IncrementOffsetBy(ch, nAllDirBytesRead);
+    
     *nOutBytesRead = nBytesRead;
-
     return err;
 }
 
