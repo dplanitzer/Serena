@@ -61,7 +61,7 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
 
 
     while (nBytesToWrite > 0) {
-        const int blockIdx = (int)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
+        const sfs_bno_t blockIdx = (sfs_bno_t)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
         const size_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
         const size_t nBytesToWriteInCurrentBlock = __min(kSFSBlockSize - blockOffset, nBytesToWrite);
         AcquireBlock acquireMode = (nBytesToWriteInCurrentBlock == kSFSBlockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;

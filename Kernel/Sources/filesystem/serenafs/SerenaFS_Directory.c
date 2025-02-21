@@ -122,7 +122,7 @@ errno_t SerenaFS_GetDirectoryEntry(
     }
 
     while (true) {
-        const int blockIdx = offset >> (FileOffset)kSFSBlockSizeShift;
+        const sfs_bno_t blockIdx = (sfs_bno_t)(offset >> (FileOffset)kSFSBlockSizeShift);
         const ssize_t nBytesAvailable = (ssize_t)__min((FileOffset)kSFSBlockSize, fileSize - offset);
         DiskBlockRef pBlock;
 

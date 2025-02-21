@@ -100,18 +100,14 @@ static errno_t acquire_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress
 // allocates a new file block if 'mode' implies a write operation and the required
 // file block doesn't exist yet. However this function does not commit the updated
 // allocation bitmap back to disk. The caller has to trigger this.
-// XXX 'fba' should be LogicalBlockAddress. However we want to be able to detect overflows
-errno_t SfsFile_AcquireBlock(SfsFileRef _Nonnull _Locked self, int fba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+// This function expects that 'fba' is in the range 0..<numBlocksInFile.
+errno_t SfsFile_AcquireBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     sfs_bno_t* ino_bmap = SfsFile_GetBlockMap(self);
     bool isAlloc;
-
-    if (fba < 0) {
-        throw(EFBIG);
-    }
 
     if (fba < kSFSDirectBlockPointersCount) {
         LogicalBlockAddress dat_lba = UInt32_BigToHost(ino_bmap[fba]);
@@ -171,7 +167,7 @@ errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void*
 
     const FileOffset fileSize = Inode_GetFileSize(self);
     const FileOffset nAvailBytes = fileSize - offset;
-    
+
     if (nAvailBytes > 0) {
         if (nAvailBytes <= (FileOffset)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToRead) {
             nBytesToRead = (ssize_t)nAvailBytes;
@@ -183,7 +179,7 @@ errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void*
 
 
     while (nBytesToRead > 0 && offset < fileSize) {
-        const int blockIdx = (int)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
+        const sfs_bno_t blockIdx = (sfs_bno_t)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
         const size_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
         const size_t nBytesToReadInCurrentBlock = (size_t)__min((FileOffset)(kSFSBlockSize - blockOffset), __min(fileSize - offset, (FileOffset)nBytesToRead));
         DiskBlockRef pBlock;
