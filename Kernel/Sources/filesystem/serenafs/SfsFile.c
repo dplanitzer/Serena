@@ -148,6 +148,12 @@ catch:
     return err;
 }
 
+void SfsFile_ConvertOffset(SfsFileRef _Nonnull _Locked self, FileOffset offset, sfs_bno_t* _Nonnull pOutBlockIdx, ssize_t* _Nonnull pOutBlockOffset)
+{
+    *pOutBlockIdx = (sfs_bno_t)(offset >> (FileOffset)kSFSBlockSizeShift);
+    *pOutBlockOffset = (ssize_t)(offset & (FileOffset)kSFSBlockSizeMask);
+}
+
 // Reads 'nBytesToRead' bytes from the file 'pNode' starting at offset 'offset'.
 errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
@@ -165,6 +171,8 @@ errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void*
     }
 
 
+    // Limit 'nBytesToRead' to the range of bytes that is actually available in
+    // the file starting at 'offset'.
     const FileOffset fileSize = Inode_GetFileSize(self);
     const FileOffset nAvailBytes = fileSize - offset;
 
@@ -178,28 +186,36 @@ errno_t SfsFile_xRead(SfsFileRef _Nonnull _Locked self, FileOffset offset, void*
     }
 
 
-    while (nBytesToRead > 0 && offset < fileSize) {
-        const sfs_bno_t blockIdx = (sfs_bno_t)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
-        const size_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
-        const size_t nBytesToReadInCurrentBlock = (size_t)__min((FileOffset)(kSFSBlockSize - blockOffset), __min(fileSize - offset, (FileOffset)nBytesToRead));
+    // Get the block index and block offset that corresponds to 'offset'. We start
+    // iterating through blocks there.
+    sfs_bno_t blockIdx;
+    ssize_t blockOffset;
+    SfsFile_ConvertOffset(self, offset, &blockIdx, &blockOffset);
+
+
+    // Iterate through a contiguous sequence of blocks until we've read all
+    // required bytes.
+    while (nBytesToRead > 0) {
+        const ssize_t nActualBlockSize = kSFSBlockSize - blockOffset;
+        const ssize_t nBytesToReadInBlock = (nBytesToRead > nActualBlockSize) ? nActualBlockSize : nBytesToRead;
         DiskBlockRef pBlock;
 
-        errno_t e1 = SfsFile_AcquireBlock(self, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
-        if (e1 == EOK) {
-            const uint8_t* bp = DiskBlock_GetData(pBlock);
-            
-            memcpy(dp, bp + blockOffset, nBytesToReadInCurrentBlock);
-            FSContainer_RelinquishBlock(fsContainer, pBlock);
-        }
+        const errno_t e1 = SfsFile_AcquireBlock(self, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
             break;
         }
+        
+        const uint8_t* bp = DiskBlock_GetData(pBlock);
+        memcpy(dp, bp + blockOffset, nBytesToReadInBlock);
+        FSContainer_RelinquishBlock(fsContainer, pBlock);
 
-        nBytesToRead -= nBytesToReadInCurrentBlock;
-        nBytesRead += nBytesToReadInCurrentBlock;
-        offset += (FileOffset)nBytesToReadInCurrentBlock;
-        dp += nBytesToReadInCurrentBlock;
+        nBytesToRead -= nBytesToReadInBlock;
+        nBytesRead += nBytesToReadInBlock;
+        dp += nBytesToReadInBlock;
+
+        blockOffset = 0;
+        blockIdx++;
     }
 
 
