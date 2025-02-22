@@ -12,14 +12,79 @@
 #include <kobj/AnyRefs.h>
 
 
-errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
+    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
+    const FileOffset offset = IOChannel_GetOffset(ch);
+    uint8_t* dp = buf;
+    ssize_t nBytesRead = 0;
 
-    err = SfsFile_xRead((SfsFileRef)self, IOChannel_GetOffset(ch), pBuffer, nBytesToRead, nOutBytesRead);
-    IOChannel_IncrementOffsetBy(ch, *nOutBytesRead);
+    if (nBytesToRead < 0) {
+        throw(EINVAL);
+    }
+    if (nBytesToRead > 0 && offset < 0ll) {
+        throw(EOVERFLOW);
+    }
 
+
+    // Limit 'nBytesToRead' to the range of bytes that is actually available in
+    // the file starting at 'offset'.
+    const FileOffset nAvailBytes = Inode_GetFileSize(self) - offset;
+
+    if (nAvailBytes > 0) {
+        if (nAvailBytes <= (FileOffset)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToRead) {
+            nBytesToRead = (ssize_t)nAvailBytes;
+        }
+        // Otherwise, use 'nBytesToRead' as is
+    } else {
+        nBytesToRead = 0;
+    }
+
+
+    // Get the block index and block offset that corresponds to 'offset'. We start
+    // iterating through blocks there.
+    sfs_bno_t blockIdx;
+    ssize_t blockOffset;
+    SfsFile_ConvertOffset((SfsFileRef)self, offset, &blockIdx, &blockOffset);
+
+
+    // Iterate through a contiguous sequence of blocks until we've read all
+    // required bytes.
+    while (nBytesToRead > 0) {
+        const ssize_t nRemainderBlockSize = kSFSBlockSize - blockOffset;
+        const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
+        DiskBlockRef pBlock;
+
+        const errno_t e1 = SfsFile_AcquireBlock((SfsFileRef)self, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
+        if (e1 != EOK) {
+            err = (nBytesRead == 0) ? e1 : EOK;
+            break;
+        }
+        
+        const uint8_t* bp = DiskBlock_GetData(pBlock);
+        memcpy(dp, bp + blockOffset, nBytesToReadInBlock);
+        FSContainer_RelinquishBlock(fsContainer, pBlock);
+
+        nBytesToRead -= nBytesToReadInBlock;
+        nBytesRead += nBytesToReadInBlock;
+        dp += nBytesToReadInBlock;
+
+        blockOffset = 0;
+        blockIdx++;
+    }
+
+
+    if (nBytesRead > 0) {
+        if (fs->mountFlags.isAccessUpdateOnReadEnabled) {
+            Inode_SetModified(self, kInodeFlag_Accessed);
+        }
+        IOChannel_IncrementOffsetBy(ch, nBytesRead);
+    }
+
+catch:
+    *pOutBytesRead = nBytesRead;
     return err;
 }
 
