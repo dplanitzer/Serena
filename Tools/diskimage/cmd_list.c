@@ -29,9 +29,20 @@
 #endif
 
 
+// Buffer holding directory entries
+#define DIRBUF_SIZE 12
+
+// Buffer used for various conversions
+#define BUF_SIZE    32
+
+// Max length of a permission string
+#define PERMISSIONS_STRING_LENGTH  11
+
+
 typedef struct list_ctx {
     DiskControllerRef _Nonnull  dc;
     FileManagerRef _Nonnull     fm;
+
     int                         linkCountWidth;
     int                         uidWidth;
     int                         gidWidth;
@@ -43,8 +54,10 @@ typedef struct list_ctx {
         unsigned int reserved:31;
     }                           flags;
 
-    char                        digitBuffer[32];
-    char                        pathBuffer[PATH_MAX];
+    char                        buf[BUF_SIZE];
+    char                        pathbuf[PATH_MAX];
+
+    DirectoryEntry              dirbuf[DIRBUF_SIZE];
 } list_ctx_t;
 
 
@@ -70,16 +83,16 @@ static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path
     const errno_t err = FileManager_GetFileInfo(self->fm, path, &info);
     
     if (err == EOK) {
-        itoa(info.linkCount, self->digitBuffer, 10);
-        self->linkCountWidth = __max(self->linkCountWidth, strlen(self->digitBuffer));
-        itoa(info.uid, self->digitBuffer, 10);
-        self->uidWidth = __max(self->uidWidth, strlen(self->digitBuffer));
-        itoa(info.gid, self->digitBuffer, 10);
-        self->gidWidth = __max(self->gidWidth, strlen(self->digitBuffer));
-        lltoa(info.size, self->digitBuffer, 10);
-        self->sizeWidth = __max(self->sizeWidth, strlen(self->digitBuffer));
-        itoa(info.inodeId, self->digitBuffer, 10);
-        self->inodeIdWidth = __max(self->inodeIdWidth, strlen(self->digitBuffer));
+        itoa(info.linkCount, self->buf, 10);
+        self->linkCountWidth = __max(self->linkCountWidth, strlen(self->buf));
+        itoa(info.uid, self->buf, 10);
+        self->uidWidth = __max(self->uidWidth, strlen(self->buf));
+        itoa(info.gid, self->buf, 10);
+        self->gidWidth = __max(self->gidWidth, strlen(self->buf));
+        lltoa(info.size, self->buf, 10);
+        self->sizeWidth = __max(self->sizeWidth, strlen(self->buf));
+        itoa(info.inodeId, self->buf, 10);
+        self->inodeIdWidth = __max(self->inodeIdWidth, strlen(self->buf));
     }
     return err;
 }
@@ -90,21 +103,28 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
     const errno_t err = FileManager_GetFileInfo(self->fm, path, &info);
     
     if (err == EOK) {
-        char tp[11];
+        char tc;
 
-        for (int i = 0; i < sizeof(tp); i++) {
-            tp[i] = '-';
+        switch (info.type) {
+            case kFileType_Device:              tc = 'h'; break;
+            case kFileType_Directory:           tc = 'd'; break;
+            case kFileType_Pipe:                tc = 'p'; break;
+            case kFileType_SymbolicLink:        tc = 'l'; break;
+            default:                            tc = '-'; break;
         }
-        if (info.type == kFileType_Directory) {
-            tp[0] = 'd';
+        self->buf[0] = tc;
+
+        for (int i = 1; i < PERMISSIONS_STRING_LENGTH; i++) {
+            self->buf[i] = '-';
         }
-        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_User), &tp[1]);
-        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Group), &tp[4]);
-        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Other), &tp[7]);
-        tp[10] = '\0';
+
+        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_User), &self->buf[1]);
+        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Group), &self->buf[4]);
+        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Other), &self->buf[7]);
+        self->buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
         printf("%s %*d  %*u %*u  %*lld %*" PINID " %s\n",
-            tp,
+            self->buf,
             self->linkCountWidth, info.linkCount,
             self->uidWidth, info.uid,
             self->gidWidth, info.gid,
@@ -116,43 +136,50 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
 }
 
 
+static void concat_path(char* _Nonnull path, const char* _Nonnull dir, const char* _Nonnull fileName)
+{
+    strcpy(path, dir);
+    strcat(path, "/");
+    strcat(path, fileName);
+}
+
 static errno_t format_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
 {
-    strcpy(self->pathBuffer, dirPath);
-    strcat(self->pathBuffer, "/");
-    strcat(self->pathBuffer, entryName);
+    concat_path(self->pathbuf, dirPath, entryName);
 
-    return format_inode(self, self->pathBuffer, entryName);
+    return format_inode(self, self->pathbuf, entryName);
 }
 
 static errno_t print_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
 {
-    strcpy(self->pathBuffer, dirPath);
-    strcat(self->pathBuffer, "/");
-    strcat(self->pathBuffer, entryName);
+    concat_path(self->pathbuf, dirPath, entryName);
 
-    return print_inode(self, self->pathBuffer, entryName);
+    return print_inode(self, self->pathbuf, entryName);
 }
 
 static errno_t iterate_dir(list_ctx_t* _Nonnull self, IOChannelRef _Nonnull chan, const char* _Nonnull path, dir_iter_t _Nonnull cb)
 {
     decl_try_err();
-    DirectoryEntry dirent;
-    ssize_t r;
+    ssize_t nBytesRead;
 
-    while (true) {
-        err = IOChannel_Read(chan, &dirent, sizeof(DirectoryEntry), &r);
-        if (err != EOK || r == 0) {
+    while (err == EOK) {
+        err = IOChannel_Read(chan, self->dirbuf, sizeof(self->dirbuf), &nBytesRead);
+        if (err != EOK || nBytesRead == 0) {
             break;
         }
 
-        if (!self->flags.printAll && dirent.name[0] == '.') {
-            continue;
-        }
+        const DirectoryEntry* dep = self->dirbuf;
+        
+        while (nBytesRead > 0) {
+            if (self->flags.printAll || dep->name[0] != '.') {
+                err = cb(self, path, dep->name);
+                if (err != EOK) {
+                    break;
+                }
+            }
 
-        err = cb(self, path, dirent.name);
-        if (err != EOK) {
-            break;
+            nBytesRead -= sizeof(DirectoryEntry);
+            dep++;
         }
     }
 

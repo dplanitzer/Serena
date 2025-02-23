@@ -26,6 +26,9 @@ extern const char* __gc_abbrev_ymon(unsigned m);
 // Jan 12 13:45
 #define TIME_WIDTH (3 + 1 + 2 + 1 + 5)
 
+// Buffer holding directory entries
+#define DIRBUF_SIZE 12
+
 // Buffer used for various conversions
 #define BUF_SIZE    32
 
@@ -33,23 +36,25 @@ extern const char* __gc_abbrev_ymon(unsigned m);
 #define PERMISSIONS_STRING_LENGTH  11
 
 typedef struct list_ctx {
-    int         currentYear;
-    int         currentMonth;
+    int             currentYear;
+    int             currentMonth;
 
-    int         linkCountWidth;
-    int         uidWidth;
-    int         gidWidth;
-    int         sizeWidth;
-    int         dateWidth;
+    int             linkCountWidth;
+    int             uidWidth;
+    int             gidWidth;
+    int             sizeWidth;
+    int             dateWidth;
 
     struct Flags {
         unsigned int printAll:1;
         unsigned int reserved:31;
-    }           flags;
+    }               flags;
 
-    struct tm   date;
-    char        buf[BUF_SIZE];
-    char        pathBuffer[PATH_MAX];
+    struct tm       date;
+    char            buf[BUF_SIZE];
+    char            pathbuf[PATH_MAX];
+
+    DirectoryEntry  dirbuf[DIRBUF_SIZE];
 } list_ctx_t;
 
 
@@ -150,43 +155,51 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
 }
 
 
+extern char *__strcpy(char * _Restrict dst, const char * _Restrict src);
+extern char *__strcat(char * _Restrict dst, const char * _Restrict src);
+
+static void concat_path(char* _Nonnull path, const char* _Nonnull dir, const char* _Nonnull fileName)
+{
+    __strcat(__strcat(__strcpy(path, dir), "/"), fileName);
+}
+
 static errno_t format_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
 {
-    strcpy(self->pathBuffer, dirPath);
-    strcat(self->pathBuffer, "/");
-    strcat(self->pathBuffer, entryName);
+    concat_path(self->pathbuf, dirPath, entryName);
 
-    return format_inode(self, self->pathBuffer, entryName);
+    return format_inode(self, self->pathbuf, entryName);
 }
 
 static errno_t print_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
 {
-    strcpy(self->pathBuffer, dirPath);
-    strcat(self->pathBuffer, "/");
-    strcat(self->pathBuffer, entryName);
+    concat_path(self->pathbuf, dirPath, entryName);
 
-    return print_inode(self, self->pathBuffer, entryName);
+    return print_inode(self, self->pathbuf, entryName);
 }
 
 static errno_t iterate_dir(list_ctx_t* _Nonnull self, int dp, const char* _Nonnull path, dir_iter_t _Nonnull cb)
 {
     decl_try_err();
-    DirectoryEntry dirent;
-    ssize_t r;
+    ssize_t nBytesRead;
 
-    while (true) {
-        err = Directory_Read(dp, &dirent, sizeof(dirent), &r);
-        if (err != EOK || r == 0) {
+    while (err == EOK) {
+        err = Directory_Read(dp, self->dirbuf, sizeof(self->dirbuf), &nBytesRead);
+        if (err != EOK || nBytesRead == 0) {
             break;
         }
 
-        if (!self->flags.printAll && dirent.name[0] == '.') {
-            continue;
-        }
+        const DirectoryEntry* dep = self->dirbuf;
+        
+        while (nBytesRead > 0) {
+            if (self->flags.printAll || dep->name[0] != '.') {
+                err = cb(self, path, dep->name);
+                if (err != EOK) {
+                    break;
+                }
+            }
 
-        err = cb(self, path, dirent.name);
-        if (err != EOK) {
-            break;
+            nBytesRead -= sizeof(DirectoryEntry);
+            dep++;
         }
     }
 
