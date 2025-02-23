@@ -18,6 +18,8 @@
 #include <System/_math.h>
 
 extern const char* __gc_abbrev_ymon(unsigned m);
+extern char *__strcpy(char * _Restrict dst, const char * _Restrict src);
+extern char *__strcat(char * _Restrict dst, const char * _Restrict src);
 
 
 // Jan 12  2025
@@ -154,9 +156,6 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
     return err;
 }
 
-
-extern char *__strcpy(char * _Restrict dst, const char * _Restrict src);
-extern char *__strcat(char * _Restrict dst, const char * _Restrict src);
 
 static void concat_path(char* _Nonnull path, const char* _Nonnull dir, const char* _Nonnull fileName)
 {
