@@ -29,7 +29,7 @@
 #endif
 
 
-typedef struct ListContext {
+typedef struct list_ctx {
     DiskControllerRef _Nonnull  dc;
     FileManagerRef _Nonnull     fm;
     int                         linkCountWidth;
@@ -45,11 +45,10 @@ typedef struct ListContext {
 
     char                        digitBuffer[32];
     char                        pathBuffer[PATH_MAX];
-} ListContext;
-typedef ListContext* ListContextRef;
+} list_ctx_t;
 
 
-typedef errno_t (*DirectoryIteratorCallback)(ListContextRef _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName);
+typedef errno_t (*dir_iter_t)(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName);
 
 
 static void file_permissions_to_text(FilePermissions perms, char* _Nonnull buf)
@@ -65,7 +64,7 @@ static void file_permissions_to_text(FilePermissions perms, char* _Nonnull buf)
     }
 }
 
-static errno_t format_inode(ListContextRef _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
+static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
     FileInfo info;
     const errno_t err = FileManager_GetFileInfo(self->fm, path, &info);
@@ -85,7 +84,7 @@ static errno_t format_inode(ListContextRef _Nonnull self, const char* _Nonnull p
     return err;
 }
 
-static errno_t print_inode(ListContextRef _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
+static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
     FileInfo info;
     const errno_t err = FileManager_GetFileInfo(self->fm, path, &info);
@@ -117,7 +116,7 @@ static errno_t print_inode(ListContextRef _Nonnull self, const char* _Nonnull pa
 }
 
 
-static errno_t format_dir_entry(ListContextRef _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
+static errno_t format_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
 {
     strcpy(self->pathBuffer, dirPath);
     strcat(self->pathBuffer, "/");
@@ -126,7 +125,7 @@ static errno_t format_dir_entry(ListContextRef _Nonnull self, const char* _Nonnu
     return format_inode(self, self->pathBuffer, entryName);
 }
 
-static errno_t print_dir_entry(ListContextRef _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
+static errno_t print_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
 {
     strcpy(self->pathBuffer, dirPath);
     strcat(self->pathBuffer, "/");
@@ -135,7 +134,7 @@ static errno_t print_dir_entry(ListContextRef _Nonnull self, const char* _Nonnul
     return print_inode(self, self->pathBuffer, entryName);
 }
 
-static errno_t iterate_dir(ListContextRef _Nonnull self, IOChannelRef _Nonnull chan, const char* _Nonnull path, DirectoryIteratorCallback _Nonnull cb)
+static errno_t iterate_dir(list_ctx_t* _Nonnull self, IOChannelRef _Nonnull chan, const char* _Nonnull path, dir_iter_t _Nonnull cb)
 {
     decl_try_err();
     DirectoryEntry dirent;
@@ -160,7 +159,7 @@ static errno_t iterate_dir(ListContextRef _Nonnull self, IOChannelRef _Nonnull c
     return err;
 }
 
-static errno_t list_dir(ListContextRef _Nonnull self, const char* _Nonnull path)
+static errno_t list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
     decl_try_err();
     IOChannelRef chan = NULL;
@@ -175,7 +174,7 @@ catch:
     return err;
 }
 
-static errno_t list_file(ListContextRef _Nonnull self, const char* _Nonnull path)
+static errno_t list_file(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
     decl_try_err();
 
@@ -187,7 +186,7 @@ static errno_t list_file(ListContextRef _Nonnull self, const char* _Nonnull path
     return err;
 }
 
-static bool is_dir(ListContext* _Nonnull self, const char* _Nonnull path)
+static bool is_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
     FileInfo info;
 
@@ -201,7 +200,7 @@ static errno_t do_list(DiskControllerRef dc, const char* _Nonnull path, bool isP
 {
     decl_try_err();
 
-    ListContext* ctx = calloc(1, sizeof(ListContext));
+    list_ctx_t* ctx = calloc(1, sizeof(list_ctx_t));
     if (ctx == NULL) {
         return ENOMEM;
     }
