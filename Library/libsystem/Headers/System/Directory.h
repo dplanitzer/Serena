@@ -38,13 +38,13 @@ extern errno_t Directory_Create(const char* _Nonnull path, FilePermissions mode)
 extern errno_t Directory_Open(const char* _Nonnull path, int* _Nonnull ioc);
 
 // Reads one or more directory entries from the directory identified by 'ioc'.
-// Returns the number of directory entries actually read and returns 0 once all
-// directory entries have been read.
+// Returns the number of bytes actually read and returns 0 once all directory
+// entries have been read.
 // You can get the current directory entry position by calling File_GetPosition()
 // and you can reestablish a previously saved directory entry position by calling
 // File_Seek() with the result of a previous File_GetPosition() call.
 // @Concurrency: Safe
-extern errno_t Directory_Read(int ioc, DirectoryEntry* _Nonnull entries, size_t nEntriesToRead, ssize_t* _Nonnull nReadEntries);
+extern errno_t Directory_Read(int ioc, DirectoryEntry* _Nonnull entries, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead);
 
 // Resets the read position of the directory identified by 'ioc' to the beginning.
 // The next Directory_Read call will start reading directory entries from the

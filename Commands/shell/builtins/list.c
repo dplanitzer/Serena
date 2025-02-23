@@ -176,7 +176,7 @@ static errno_t iterate_dir(ListContextRef _Nonnull self, int dp, const char* _No
     ssize_t r;
 
     while (true) {
-        err = Directory_Read(dp, &dirent, 1, &r);
+        err = Directory_Read(dp, &dirent, sizeof(dirent), &r);
         if (err != EOK || r == 0) {
             break;
         }

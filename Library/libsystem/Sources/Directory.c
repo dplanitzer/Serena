@@ -21,12 +21,9 @@ errno_t Directory_Open(const char* _Nonnull path, int* _Nonnull ioc)
     return (errno_t)_syscall(SC_opendir, path, ioc);
 }
 
-errno_t Directory_Read(int ioc, DirectoryEntry* _Nonnull entries, size_t nEntriesToRead, ssize_t* _Nonnull nReadEntries)
+errno_t Directory_Read(int ioc, DirectoryEntry* _Nonnull entries, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
 {
-    ssize_t nBytesRead;
-    const errno_t  err = _syscall(SC_read, ioc, entries, nEntriesToRead * sizeof(DirectoryEntry), &nBytesRead);
-    *nReadEntries = nBytesRead / sizeof(DirectoryEntry);
-    return err;
+    return (errno_t)_syscall(SC_read, ioc, entries, nBytesToRead, nBytesRead);
 }
 
 errno_t Directory_Rewind(int ioc)
