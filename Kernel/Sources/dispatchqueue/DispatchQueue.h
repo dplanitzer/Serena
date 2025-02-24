@@ -109,9 +109,8 @@ extern errno_t DispatchQueue_DispatchAsyncArgs(DispatchQueueRef _Nonnull self, V
 // as the first argument and a pointer to the arguments as the second argument.
 // The argument pointer will be exactly 'args' if 'nArgBytes' is 0 and otherwise
 // it will point to a copy of the arguments that 'args' pointed to.
-// Use 'options to control whether the function should be executed in kernel or
-// user space and whether the caller should be blocked until 'func' has finished
-// executing. The function will execute as soon as possible.
+// Use 'options to control whether the function should be blocked until 'func'
+// has finished executing. The function will execute as soon as possible.
 extern errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes, uint32_t options, uintptr_t tag);
 
 
@@ -135,8 +134,8 @@ extern errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeI
 // 'tag' from the dispatch queue. If the closure of the work item is in the
 // process of executing when this function is called then the closure will
 // continue to execute uninterrupted. If on the other side, the work item is
-// still pending and has not executed yet then it will be removed and it will
-// not execute.
+// still pending and has not begun executing yet then it will be removed and it
+// will not execute.
 extern bool DispatchQueue_RemoveByTag(DispatchQueueRef _Nonnull self, uintptr_t tag);
 
 
@@ -146,7 +145,7 @@ extern void DispatchQueue_Flush(DispatchQueueRef _Nonnull self);
 
 
 // Returns the process that owns the dispatch queue. Returns NULL if the dispatch
-// queue is not owned by any particular process. Eg the kernel main dispatch queue.
+// queue is not owned by any particular process. Eg a private kernel dispatch queue.
 extern ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonnull self);
 
 // Sets the dispatch queue descriptor

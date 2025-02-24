@@ -7,7 +7,6 @@
 //
 
 #include "SerenaFSPriv.h"
-#include "SfsFile.h"
 #include <System/ByteOrder.h>
 
 
@@ -154,7 +153,7 @@ static errno_t SerenaFS_unlinkCore(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
     decl_try_err();
 
     // Remove the directory entry in the parent directory
-    try(SerenaFS_RemoveDirectoryEntry(self, pDir, Inode_GetId(pNodeToUnlink)));
+    try(SfsDirectory_RemoveEntry(pDir, Inode_GetId(pNodeToUnlink)));
     SfsFile_xTruncate((SfsFileRef)pDir, Inode_GetFileSize(pDir));
 
 
@@ -184,7 +183,7 @@ errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked tar
     decl_try_err();
 
     // A directory must be empty in order to be allowed to unlink its
-    if (Inode_IsDirectory(target) && Inode_GetLinkCount(target) > 1 && DirectoryNode_IsNotEmpty(target)) {
+    if (Inode_IsDirectory(target) && Inode_GetLinkCount(target) > 1 && SfsDirectory_IsNotEmpty(target)) {
         throw(EBUSY);
     }
 
@@ -239,7 +238,7 @@ errno_t SerenaFS_link(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
 {
     decl_try_err();
 
-    try(SerenaFS_InsertDirectoryEntry(self, pDstDir, pName, Inode_GetId(pSrcNode), (sfs_dirent_ptr_t*)pDirInstHint->data));
+    try(SfsDirectory_InsertEntry(pDstDir, pName, Inode_GetId(pSrcNode), (sfs_dirent_ptr_t*)pDirInstHint->data));
     Inode_Link(pSrcNode);
     Inode_SetModified(pSrcNode, kInodeFlag_StatusChanged);
 
@@ -280,7 +279,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
 
         q.kind = kSFSDirectoryQuery_PathComponent;
         q.u.pc = &kPathComponent_Parent;
-        try(SerenaFS_GetDirectoryEntry(self, pSrcNode, &q, NULL, &mp, NULL, NULL));
+        try(SfsDirectory_GetEntry(pSrcNode, &q, NULL, &mp, NULL, NULL));
 
         try(FSContainer_AcquireBlock(fsContainer, mp.lba, kAcquireBlock_Update, &pBlock));
 
@@ -313,7 +312,7 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSr
     
     q.kind = kSFSDirectoryQuery_InodeId;
     q.u.id = Inode_GetId(pSrcNode);
-    try(SerenaFS_GetDirectoryEntry(self, pSrcDir, &q, NULL, &mp, NULL, NULL));
+    try(SfsDirectory_GetEntry(pSrcDir, &q, NULL, &mp, NULL, NULL));
 
     try(FSContainer_AcquireBlock(fsContainer, mp.lba, kAcquireBlock_Update, &pBlock));
 

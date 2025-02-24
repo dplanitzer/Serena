@@ -76,7 +76,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
 
 
     try(Filesystem_AcquireNodeWithId((FilesystemRef)self, (InodeId)inodeLba, &pNode));
-    try(SerenaFS_InsertDirectoryEntry(self, dir, name, Inode_GetId(pNode), pDirInsertionHint));
+    try(SfsDirectory_InsertEntry(dir, name, Inode_GetId(pNode), pDirInsertionHint));
 
     if (type == kFileType_Directory) {
         // Increment the parent directory link count to account for the '..' entry
