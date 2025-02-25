@@ -112,146 +112,102 @@ bool SfsDirectory_IsNotEmpty(InodeRef _Nonnull _Locked self)
     return Inode_GetLinkCount(self) > 1 || Inode_GetFileSize(self) > 2 * sizeof(sfs_dirent_t);
 }
 
-// Returns true if the array of directory entries starting at 'pEntry' and holding
-// 'nEntries' entries contains a directory entry that matches 'pQuery'.
-static bool has_matching_dirent(const SFSDirectoryQuery* _Nonnull pq, const sfs_dirent_t* _Nonnull pBlock, int nEntries, sfs_dirent_t* _Nullable * _Nullable pOutEmptyPtr, sfs_dirent_t* _Nullable * _Nonnull pOutEntryPtr)
-{
-    const sfs_dirent_t* pe = pBlock;
-
-    *pOutEmptyPtr = NULL;
-    *pOutEntryPtr = NULL;
-
-    while (nEntries-- > 0) {
-        if (pe->id > 0) {
-            switch (pq->kind) {
-                case kSFSDirectoryQuery_PathComponent:
-                    if (PathComponent_EqualsString(pq->u.pc, pe->filename, pe->len)) {
-                        *pOutEntryPtr = (sfs_dirent_t*)pe;
-                        return true;
-                    }
-                    break;
-
-                case kSFSDirectoryQuery_InodeId:
-                    if (pe->id == pq->u.id) {
-                       *pOutEntryPtr = (sfs_dirent_t*)pe;
-                        return true;
-                    }
-                    break;
-
-                default:
-                    abort();
-            }
-        }
-        else if (pOutEmptyPtr) {
-            *pOutEmptyPtr = (sfs_dirent_t*)pe;
-        }
-        pe++;
-    }
-
-    return false;
-}
-
-// Returns a reference to the directory entry that holds 'pName'. NULL and a
-// suitable error is returned if no such entry exists or 'pName' is empty or
-// too long.
-errno_t SfsDirectory_GetEntry(
-    InodeRef _Nonnull _Locked self,
-    const SFSDirectoryQuery* _Nonnull pQuery,
-    sfs_dirent_ptr_t* _Nullable pOutEmptyPtr,
-    sfs_dirent_ptr_t* _Nullable pOutEntryPtr,
-    InodeId* _Nullable pOutId,
-    MutablePathComponent* _Nullable pOutFilename)
+errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull q, sfs_query_result_t* _Nonnull qr)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
-    const FileOffset fileSize = Inode_GetFileSize(self);
     FileOffset offset = 0ll;
-    sfs_dirent_t* pEmptyEntry = NULL;
-    sfs_dirent_t* pMatchingEntry = NULL;
-    SFSDirectoryQuery swappedQuery;
-    bool hasMatch = false;
+    const FileOffset fileSize = Inode_GetFileSize(self);
+    sfs_bno_t blockIdx = 0;
+    bool hasInsertionHint = false;
+    bool done = false;
 
-    if (pOutEmptyPtr) {
-        pOutEmptyPtr->lba = 0;
-        pOutEmptyPtr->blockOffset = 0;
-        pOutEmptyPtr->fileOffset = 0ll;
+    qr->id = 0;
+    if (q->mpc && q->kind == kSFSQuery_InodeId) {
+        qr->mpc = q->mpc;
+        qr->mpc->count = 0;
+    } else {
+        qr->mpc = NULL;
     }
-    if (pOutEntryPtr) {
-        pOutEntryPtr->lba = 0;
-        pOutEntryPtr->blockOffset = 0;
-        pOutEntryPtr->fileOffset = 0ll;
-    }
-    if (pOutId) {
-        *pOutId = 0;
-    }
-    if (pOutFilename) {
-        pOutFilename->count = 0;
+    qr->lba = 0;
+    qr->blockOffset = 0;
+    qr->fileOffset = 0ll;
+    if (q->ih) {
+        qr->ih = q->ih;
+        qr->ih->lba = 0;
+        qr->ih->blockOffset = 0;
+    } else {
+        qr->ih = NULL;
     }
 
-    if (pQuery->kind == kSFSDirectoryQuery_PathComponent) {
-        if (pQuery->u.pc->count == 0) {
+
+    if (q->kind == kSFSQuery_PathComponent) {
+        if (q->u.pc->count == 0) {
             return ENOENT;
         }
-        if (pQuery->u.pc->count > kSFSMaxFilenameLength) {
+        if (q->u.pc->count > kSFSMaxFilenameLength) {
             return ENAMETOOLONG;
         }
     }
 
-    swappedQuery = *pQuery;
-    if (swappedQuery.kind == kSFSDirectoryQuery_InodeId) {
-        swappedQuery.u.id = UInt32_HostToBig(swappedQuery.u.id);
-    }
 
-    while (true) {
-        const sfs_bno_t blockIdx = (sfs_bno_t)(offset >> (FileOffset)kSFSBlockSizeShift);
-        const ssize_t nBytesAvailable = (ssize_t)__min((FileOffset)kSFSBlockSize, fileSize - offset);
+    // Iterate through a contiguous sequence of blocks until we find the desired
+    // directory entry.
+    while (!done && offset < fileSize) {
         DiskBlockRef pBlock;
-
-        if (nBytesAvailable <= 0) {
+        
+        err = SfsFile_AcquireBlock((SfsFileRef)self, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
+        if (err != EOK) {
             break;
         }
+        
+        const uint8_t* bp = DiskBlock_GetData(pBlock);
+        const sfs_dirent_t* sp = (const sfs_dirent_t*)bp;
+        const sfs_dirent_t* ep = (const sfs_dirent_t*)(bp + DiskBlock_GetByteSize(pBlock));
 
-        try(SfsFile_AcquireBlock((SfsFileRef)self, blockIdx, kAcquireBlock_ReadOnly, &pBlock));
+        while (sp < ep && offset < fileSize) {
+            if (sp->id > 0) {
+                switch (q->kind) {
+                    case kSFSQuery_PathComponent:
+                        done = PathComponent_EqualsString(q->u.pc, sp->filename, sp->len);
+                        break;
 
-        const sfs_dirent_t* pDirBuffer = (const sfs_dirent_t*)DiskBlock_GetData(pBlock);
-        const int nDirEntries = nBytesAvailable / sizeof(sfs_dirent_t);
-        hasMatch = has_matching_dirent(&swappedQuery, pDirBuffer, nDirEntries, &pEmptyEntry, &pMatchingEntry);
-        if (pEmptyEntry) {
-            pOutEmptyPtr->lba = DiskBlock_GetDiskAddress(pBlock)->lba;
-            pOutEmptyPtr->blockOffset = ((uint8_t*)pEmptyEntry) - ((uint8_t*)pDirBuffer);
-            pOutEmptyPtr->fileOffset = offset + pOutEmptyPtr->blockOffset;
+                    case kSFSQuery_InodeId:
+                        done = (UInt32_HostToBig(q->u.id) == sp->id) ? true : false;
+                        break;
+
+                    default:
+                        abort();
+                        break;
+                }
+            }
+            else if (qr->ih && !hasInsertionHint) {
+                qr->ih->lba = blockIdx;
+                qr->ih->blockOffset = (const uint8_t*)sp - bp;
+                hasInsertionHint = true;
+            }
+            
+            if (done) {
+                qr->id = UInt32_BigToHost(sp->id);
+                if (qr->mpc) {
+                    MutablePathComponent_SetString(qr->mpc, sp->filename, sp->len);
+                }
+                qr->lba = blockIdx;
+                qr->blockOffset = (const uint8_t*)sp - bp;
+                qr->fileOffset = offset;
+                break;
+            }
+
+            offset += sizeof(sfs_dirent_t);
+            sp++;
         }
-        if (hasMatch) {
-            if (pOutEntryPtr) {
-                pOutEntryPtr->lba = DiskBlock_GetDiskAddress(pBlock)->lba;
-                pOutEntryPtr->blockOffset = ((uint8_t*)pMatchingEntry) - ((uint8_t*)pDirBuffer);
-                pOutEntryPtr->fileOffset = offset + pOutEntryPtr->blockOffset;
-            }
-            if (pOutId) {
-                *pOutId = UInt32_BigToHost(pMatchingEntry->id);
-            }
-            if (pOutFilename) {
-                try(MutablePathComponent_SetString(pOutFilename, pMatchingEntry->filename, pMatchingEntry->len));
-            }
-        }
-
         FSContainer_RelinquishBlock(fsContainer, pBlock);
-        pBlock = NULL;
 
-        if (hasMatch) {
-            break;
-        }
-
-        offset += (FileOffset)nBytesAvailable;
+        blockIdx++;
     }
 
-    if (!hasMatch) {
-        err = ENOENT;
-    }
-
-catch:
-    return err;
+    return (done) ? err : ENOENT;
 }
 
 errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeId idToRemove)
@@ -259,21 +215,23 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeId idToRem
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
-    sfs_dirent_ptr_t mp;
-    SFSDirectoryQuery q;
+    sfs_query_t q;
+    sfs_query_result_t qr;
     DiskBlockRef pBlock;
 
-    q.kind = kSFSDirectoryQuery_InodeId;
+    q.kind = kSFSQuery_InodeId;
     q.u.id = idToRemove;
-    try(SfsDirectory_GetEntry(self, &q, NULL, &mp, NULL, NULL));
+    q.mpc = NULL;
+    q.ih = NULL;
+    try(SfsDirectory_Query(self, &q, &qr));
 
-    try(FSContainer_AcquireBlock(fsContainer, mp.lba, kAcquireBlock_Update, &pBlock));
+    try(FSContainer_AcquireBlock(fsContainer, qr.lba, kAcquireBlock_Update, &pBlock));
     uint8_t* bp = DiskBlock_GetMutableData(pBlock);
-    sfs_dirent_t* dep = (sfs_dirent_t*)(bp + mp.blockOffset);
+    sfs_dirent_t* dep = (sfs_dirent_t*)(bp + qr.blockOffset);
     memset(dep, 0, sizeof(sfs_dirent_t));
     FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
 
-    if (Inode_GetFileSize(self) - (FileOffset)sizeof(sfs_dirent_t) == mp.fileOffset) {
+    if (Inode_GetFileSize(self) - (FileOffset)sizeof(sfs_dirent_t) == qr.fileOffset) {
         Inode_DecrementFileSize(self, sizeof(sfs_dirent_t));
     }
 
@@ -287,7 +245,7 @@ catch:
 // entry; otherwise a completely new entry will be added to the directory.
 // NOTE: this function does not verify that the new entry is unique. The caller
 // has to ensure that it doesn't try to add a duplicate entry to the directory.
-errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull pName, InodeId id, const sfs_dirent_ptr_t* _Nullable pEmptyPtr)
+errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull pName, InodeId id, const sfs_insertion_hint_t* _Nullable ih)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
@@ -298,11 +256,11 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
         return ENAMETOOLONG;
     }
 
-    if (pEmptyPtr && pEmptyPtr->lba > 0) {
+    if (ih && ih->lba > 0) {
         // Reuse an empty entry
-        try(FSContainer_AcquireBlock(fsContainer, pEmptyPtr->lba, kAcquireBlock_Update, &pBlock));
+        try(FSContainer_AcquireBlock(fsContainer, ih->lba, kAcquireBlock_Update, &pBlock));
         uint8_t* bp = DiskBlock_GetMutableData(pBlock);
-        sfs_dirent_t* dep = (sfs_dirent_t*)(bp + pEmptyPtr->blockOffset);
+        sfs_dirent_t* dep = (sfs_dirent_t*)(bp + ih->blockOffset);
 
         memset(dep->filename, 0, kSFSMaxFilenameLength);
         memcpy(dep->filename, pName->name, pName->count);

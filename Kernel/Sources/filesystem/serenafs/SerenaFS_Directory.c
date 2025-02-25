@@ -29,14 +29,17 @@ errno_t SerenaFS_acquireRootDirectory(SerenaFSRef _Nonnull self, InodeRef _Nulla
 errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
 {
     decl_try_err();
-    SFSDirectoryQuery q;
-    InodeId entryId;
+    sfs_query_t q;
+    sfs_query_result_t qr;
 
-    q.kind = kSFSDirectoryQuery_PathComponent;
+    q.kind = kSFSQuery_PathComponent;
     q.u.pc = pName;
-    err = SfsDirectory_GetEntry(pDir, &q, (pDirInsHint) ? (sfs_dirent_ptr_t*)pDirInsHint->data : NULL, NULL, &entryId, NULL);
+    q.mpc = NULL;
+    q.ih = (sfs_insertion_hint_t*)pDirInsHint;
+
+    err = SfsDirectory_Query(pDir, &q, &qr);
     if (err == EOK && pOutNode) {
-        err = Filesystem_AcquireNodeWithId((FilesystemRef)self, entryId, pOutNode);
+        err = Filesystem_AcquireNodeWithId((FilesystemRef)self, qr.id, pOutNode);
     }
     if (err != EOK && pOutNode) {
         *pOutNode = NULL;
@@ -46,9 +49,12 @@ errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull
 
 errno_t SerenaFS_getNameOfNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, UserId uid, GroupId gid, MutablePathComponent* _Nonnull pName)
 {
-    SFSDirectoryQuery q;
+    sfs_query_t q;
+    sfs_query_result_t qr;
 
-    q.kind = kSFSDirectoryQuery_InodeId;
+    q.kind = kSFSQuery_InodeId;
     q.u.id = id;
-    return SfsDirectory_GetEntry(pDir, &q, NULL, NULL, NULL, pName);
+    q.mpc = pName;
+    q.ih = NULL;
+    return SfsDirectory_Query(pDir, &q, &qr);
 }

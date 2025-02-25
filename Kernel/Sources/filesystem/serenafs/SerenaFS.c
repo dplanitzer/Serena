@@ -238,7 +238,7 @@ errno_t SerenaFS_link(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
 {
     decl_try_err();
 
-    try(SfsDirectory_InsertEntry(pDstDir, pName, Inode_GetId(pSrcNode), (sfs_dirent_ptr_t*)pDirInstHint->data));
+    try(SfsDirectory_InsertEntry(pDstDir, pName, Inode_GetId(pSrcNode), (sfs_insertion_hint_t*)pDirInstHint->data));
     Inode_Link(pSrcNode);
     Inode_SetModified(pSrcNode, kInodeFlag_StatusChanged);
 
@@ -270,21 +270,23 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
     try(SerenaFS_unlinkCore(self, pSrcNode, pSrcDir));  // XXX should theoretically be able to use unlink() here. Fails with resource busy because we trigger the empty check on the destination directory
 
 
-    // If we're moving a directory then we need to repoint its parent entry '..'
+    // If we're moving a directory then we need to re-point its parent entry '..'
     // to the new parent directory
     if (isMovingDir) {
-        sfs_dirent_ptr_t mp;
-        SFSDirectoryQuery q;
+        sfs_query_t q;
+        sfs_query_result_t qr;
         DiskBlockRef pBlock;
 
-        q.kind = kSFSDirectoryQuery_PathComponent;
+        q.kind = kSFSQuery_PathComponent;
         q.u.pc = &kPathComponent_Parent;
-        try(SfsDirectory_GetEntry(pSrcNode, &q, NULL, &mp, NULL, NULL));
+        q.mpc = NULL;
+        q.ih = NULL;
+        try(SfsDirectory_Query(pSrcNode, &q, &qr));
 
-        try(FSContainer_AcquireBlock(fsContainer, mp.lba, kAcquireBlock_Update, &pBlock));
+        try(FSContainer_AcquireBlock(fsContainer, qr.lba, kAcquireBlock_Update, &pBlock));
 
         uint8_t* bp = DiskBlock_GetMutableData(pBlock);
-        sfs_dirent_t* dep = (sfs_dirent_t*)(bp + mp.blockOffset);
+        sfs_dirent_t* dep = (sfs_dirent_t*)(bp + qr.blockOffset);
         dep->id = Inode_GetId(pDstDir);
 
         FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
@@ -302,22 +304,24 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSr
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    sfs_dirent_ptr_t mp;
-    SFSDirectoryQuery q;
+    sfs_query_t q;
+    sfs_query_result_t qr;
     DiskBlockRef pBlock;
 
     if (pNewName->count > kSFSMaxFilenameLength) {
         return ENAMETOOLONG;
     }
     
-    q.kind = kSFSDirectoryQuery_InodeId;
+    q.kind = kSFSQuery_InodeId;
     q.u.id = Inode_GetId(pSrcNode);
-    try(SfsDirectory_GetEntry(pSrcDir, &q, NULL, &mp, NULL, NULL));
+    q.mpc = NULL;
+    q.ih = NULL;
+    try(SfsDirectory_Query(pSrcDir, &q, &qr));
 
-    try(FSContainer_AcquireBlock(fsContainer, mp.lba, kAcquireBlock_Update, &pBlock));
+    try(FSContainer_AcquireBlock(fsContainer, qr.lba, kAcquireBlock_Update, &pBlock));
 
     uint8_t* bp = DiskBlock_GetMutableData(pBlock);
-    sfs_dirent_t* dep = (sfs_dirent_t*)(bp + mp.blockOffset);
+    sfs_dirent_t* dep = (sfs_dirent_t*)(bp + qr.blockOffset);
     memset(dep->filename, 0, kSFSMaxFilenameLength);
     memcpy(dep->filename, pNewName->name, pNewName->count);
     dep->len = pNewName->count;
