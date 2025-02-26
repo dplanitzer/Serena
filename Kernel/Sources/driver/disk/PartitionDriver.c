@@ -31,6 +31,10 @@ errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull 
     PartitionDriverRef self = NULL;
 
     try(DiskDriver_GetInfo(disk, &info));
+    if (startBlock >= info.blockCount || blockCount < 1 || (startBlock + blockCount - 1) >= info.blockCount) {
+        throw(EINVAL);
+    }
+
     try(DiskDriver_Create(class(PartitionDriver), 0, parent, (DriverRef*)&self));
     self->diskDriver = disk;
     self->wholeDiskId = info.diskId;
@@ -47,8 +51,12 @@ errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull 
     mediaInfo.isReadOnly = self->isReadOnly;
     DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &mediaInfo);
 
-catch:
     *pOutSelf = self;
+    return EOK;
+
+catch:
+    Object_Release(self);
+    *pOutSelf = NULL;
     return err;
 }
 
