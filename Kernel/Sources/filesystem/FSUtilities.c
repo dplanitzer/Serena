@@ -35,3 +35,10 @@ void FSDeallocate(void* ptr)
 {
     kfree(ptr);
 }
+
+
+// Calculates the power-of-2 value greater equal the given size_t value
+size_t FSPowerOf2Ceil(size_t n)
+{
+    return spow2_ceil(n);
+}

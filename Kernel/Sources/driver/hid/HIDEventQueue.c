@@ -20,7 +20,7 @@ typedef struct HIDEventQueue {
     uint8_t     capacityMask;
     uint8_t     readIdx;
     uint8_t     writeIdx;
-    int         overflowCount;
+    size_t      overflowCount;
     HIDEvent    data[1];
 } HIDEventQueue;
 
@@ -29,12 +29,12 @@ typedef struct HIDEventQueue {
 // Allocates an empty event queue. 'capacity' is the queue capacity in terms of
 // the maximum number of events it can store at the same time. This value is
 // rounded up to the next power of 2.
-errno_t HIDEventQueue_Create(int capacity, HIDEventQueueRef _Nullable * _Nonnull pOutSelf)
+errno_t HIDEventQueue_Create(size_t capacity, HIDEventQueueRef _Nullable * _Nonnull pOutSelf)
 {
     assert(capacity >= 2);
 
     decl_try_err();
-    const int powerOfTwoCapacity = Int_NextPowerOf2(capacity);
+    const size_t powerOfTwoCapacity = spow2_ceil(capacity);
     HIDEventQueue* self;
     
     assert(powerOfTwoCapacity <= UINT8_MAX/2);
@@ -46,11 +46,8 @@ errno_t HIDEventQueue_Create(int capacity, HIDEventQueueRef _Nullable * _Nonnull
     self->writeIdx = 0;
     self->overflowCount = 0;
 
-    *pOutSelf = self;
-    return EOK;
-
 catch:
-    *pOutSelf = NULL;
+    *pOutSelf = self;
     return err;
 }
 
@@ -100,10 +97,10 @@ bool HIDEventQueue_IsEmpty(HIDEventQueueRef _Nonnull self)
 
 // Returns the number of times the queue overflowed. Note that the queue drops
 // the oldest event every time it overflows.
-int HIDEventQueue_GetOverflowCount(HIDEventQueueRef _Nonnull self)
+size_t HIDEventQueue_GetOverflowCount(HIDEventQueueRef _Nonnull self)
 {
     const int irs = cpu_disable_irqs();
-    const int overflowCount = self->overflowCount;
+    const size_t overflowCount = self->overflowCount;
     cpu_restore_irqs(irs);
     return overflowCount;
 }

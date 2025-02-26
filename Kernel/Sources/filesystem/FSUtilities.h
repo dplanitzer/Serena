@@ -31,4 +31,8 @@ extern errno_t FSAllocateCleared(size_t nbytes, void* _Nullable * _Nonnull pOutP
 // Frees a memory block allocated by FSAllocate().
 extern void FSDeallocate(void* ptr);
 
+
+// Calculates the power-of-2 value greater equal the given size_t value
+extern size_t FSPowerOf2Ceil(size_t n);
+
 #endif /* FSUtilities_h */

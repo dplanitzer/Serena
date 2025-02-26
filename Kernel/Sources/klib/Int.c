@@ -310,17 +310,32 @@ const char* _Nonnull UInt64_ToString(uint64_t val, int radix, bool isUppercase, 
     return copy_out(pBuffer, __ui64toa(val, radix, isUppercase, t));
 }
 
-int Int_NextPowerOf2(int n)
+unsigned long ulpow2_ceil(unsigned long n)
 {
-    if (n && !(n & (n - 1))) {
+    if (n && !(n & (n - 1l))) {
         return n;
     } else {
-        int p = 1;
-
+        unsigned long p = 1l;
+        
         while (p < n) {
-            p <<= 1;
+            p <<= 1l;
         }
-    
+        
+        return p;
+    }
+}
+
+unsigned long long ullpow2_ceil(unsigned long long n)
+{
+    if (n && !(n & (n - 1ll))) {
+        return n;
+    } else {
+        unsigned long long p = 1ll;
+        
+        while (p < n) {
+            p <<= 1ll;
+        }
+        
         return p;
     }
 }

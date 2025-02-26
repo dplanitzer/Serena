@@ -54,12 +54,21 @@ typedef void (*VoidFunc_2)(void*, void*);
 #define SIZE_KB(x)  ((long)(x) * 1024)
 
 
-// int
-extern int Int_NextPowerOf2(int n);
+extern unsigned long ulpow2_ceil(unsigned long n);
+extern unsigned long long ullpow2_ceil(unsigned long long n);
 
+#define pow2_ceil(__n)\
+(unsigned int)ulpow2_ceil((unsigned long)__n)
 
-// unsigned int
-extern unsigned int UInt_NextPowerOf2(unsigned int n);
+#if __SIZE_WIDTH == 32
+#define spow2_ceil(__n) \
+(size_t)ulpow2_ceil((unsigned long)__n)
+#elif __SIZE_WIDTH == 64
+#define spow2_ceil(__n) \
+(size_t)ullpow2_ceil((unsigned long long)__n)
+#else
+#error "unable to define spow2_ceil()"
+#endif
 
 
 // int32_t

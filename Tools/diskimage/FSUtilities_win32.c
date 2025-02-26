@@ -40,3 +40,19 @@ void FSDeallocate(void* ptr)
 {
     free(ptr);
 }
+
+
+size_t FSPowerOf2Ceil(size_t n)
+{
+    if (n && !(n & (n - 1))) {
+        return n;
+    } else {
+        size_t p = 1;
+        
+        while (p < n) {
+            p <<= 1;
+        }
+        
+        return p;
+    }
+}

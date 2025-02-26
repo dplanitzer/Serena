@@ -19,7 +19,7 @@ typedef struct HIDEventQueue* HIDEventQueueRef;
 // Allocates an empty event queue. 'capacity' is the queue capacity in terms of
 // the maximum number of events it can store at the same time. This value is
 // rounded up to the next power of 2.
-extern errno_t HIDEventQueue_Create(int capacity, HIDEventQueueRef _Nullable * _Nonnull pOutSelf);
+extern errno_t HIDEventQueue_Create(size_t capacity, HIDEventQueueRef _Nullable * _Nonnull pOutSelf);
 
 // Frees the event queue.
 extern void HIDEventQueue_Destroy(HIDEventQueueRef _Nonnull self);
@@ -29,7 +29,7 @@ bool HIDEventQueue_IsEmpty(HIDEventQueueRef _Nonnull self);
 
 // Returns the number of times the queue overflowed. Note that the queue drops
 // the oldest event every time it overflows.
-extern int HIDEventQueue_GetOverflowCount(HIDEventQueueRef _Nonnull self);
+extern size_t HIDEventQueue_GetOverflowCount(HIDEventQueueRef _Nonnull self);
 
 // Removes all events from the queue.
 extern void HIDEventQueue_RemoveAll(HIDEventQueueRef _Nonnull self);
