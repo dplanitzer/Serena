@@ -12,9 +12,6 @@
 #include <klib/Types.h>
 
 #define kSFSMaxFilenameLength               27
-#define kSFSBlockSize                       512
-#define kSFSDirectoryEntriesPerBlock        (kSFSBlockSize / sizeof(sfs_dirent_t))
-#define kSFSDirectoryEntriesPerBlockMask    (kSFSDirectoryEntriesPerBlock - 1)
 #define kSFSDirectBlockPointersCount        113
 #define kSFSIndirectBlockPointersCount      1
 #define kSFSInodeBlockPointersCount         (kSFSDirectBlockPointersCount + kSFSIndirectBlockPointersCount)

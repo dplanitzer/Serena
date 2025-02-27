@@ -86,7 +86,7 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
 
 
     // Cache the root directory info
-    self->rootDirLba = UInt32_BigToHost(vhp->lbaRootDir);
+    self->lbaRootDir = UInt32_BigToHost(vhp->lbaRootDir);
 
 
     // Cache the allocation bitmap in RAM
@@ -135,9 +135,9 @@ errno_t SerenaFS_stop(SerenaFSRef _Nonnull self)
 
     // XXX flush the allocation bitmap to disk (synchronously)
 
-    self->rootDirLba = 0;
     SfsAllocator_Stop(&self->blockAllocator);
 
+    self->lbaRootDir = 0;
     self->mountFlags.isMounted = 0;
 
 catch:

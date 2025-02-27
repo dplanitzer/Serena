@@ -16,7 +16,7 @@ errno_t SerenaFS_acquireRootDirectory(SerenaFSRef _Nonnull self, InodeRef _Nulla
     err = SELock_LockShared(&self->seLock);
     if (err == EOK) {
         if (self->mountFlags.isMounted) {
-            err = Filesystem_AcquireNodeWithId((FilesystemRef)self, self->rootDirLba, pOutDir);
+            err = Filesystem_AcquireNodeWithId((FilesystemRef)self, self->lbaRootDir, pOutDir);
         }
         else {
             err = EIO;
@@ -26,7 +26,7 @@ errno_t SerenaFS_acquireRootDirectory(SerenaFSRef _Nonnull self, InodeRef _Nulla
     return err;
 }
 
-errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
+errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
 {
     decl_try_err();
     sfs_query_t q;
@@ -37,7 +37,7 @@ errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull
     q.mpc = NULL;
     q.ih = (sfs_insertion_hint_t*)pDirInsHint;
 
-    err = SfsDirectory_Query(pDir, &q, &qr);
+    err = SfsDirectory_Query(dir, &q, &qr);
     if (err == EOK && pOutNode) {
         err = Filesystem_AcquireNodeWithId((FilesystemRef)self, qr.id, pOutNode);
     }
@@ -47,7 +47,7 @@ errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull
     return err;
 }
 
-errno_t SerenaFS_getNameOfNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, UserId uid, GroupId gid, MutablePathComponent* _Nonnull pName)
+errno_t SerenaFS_getNameOfNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, InodeId id, UserId uid, GroupId gid, MutablePathComponent* _Nonnull pName)
 {
     sfs_query_t q;
     sfs_query_result_t qr;
@@ -56,5 +56,6 @@ errno_t SerenaFS_getNameOfNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
     q.u.id = id;
     q.mpc = pName;
     q.ih = NULL;
-    return SfsDirectory_Query(pDir, &q, &qr);
+    
+    return SfsDirectory_Query(dir, &q, &qr);
 }

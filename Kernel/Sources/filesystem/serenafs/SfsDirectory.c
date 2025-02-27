@@ -10,7 +10,6 @@
 #include "SerenaFSPriv.h"
 #include <filesystem/DirectoryChannel.h>
 #include <filesystem/FSUtilities.h>
-#include <kobj/AnyRefs.h>
 #include <System/ByteOrder.h>
 
 
@@ -215,9 +214,9 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeId idToRem
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
+    DiskBlockRef pBlock;
     sfs_query_t q;
     sfs_query_result_t qr;
-    DiskBlockRef pBlock;
 
     q.kind = kSFSQuery_InodeId;
     q.u.id = idToRemove;
@@ -272,14 +271,14 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
     else {
         // Append a new entry
         sfs_bno_t* ino_bmap = SfsFile_GetBlockMap(self);
-        const FileOffset size = Inode_GetFileSize(self);
-        const int remainder = size & fs->blockMask;
-        sfs_dirent_t* dep;
+        const FileOffset dirSize = Inode_GetFileSize(self);
+        const size_t remainder = (size_t)(dirSize & (FileOffset)fs->blockMask);
         LogicalBlockAddress lba;
+        sfs_dirent_t* dep;
         int idx = -1;
 
         if (remainder > 0) {
-            idx = size / fs->blockAllocator.blockSize;
+            idx = (int)(dirSize >> (FileOffset)fs->blockShift);
             lba = UInt32_BigToHost(ino_bmap[idx]);
 
             try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Update, &pBlock));

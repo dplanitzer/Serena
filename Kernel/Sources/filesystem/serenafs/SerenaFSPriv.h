@@ -32,7 +32,7 @@ final_class_ivars(SerenaFS, ContainerFilesystem,
     uint32_t                blockShift;
     uint32_t                blockMask;
 
-    LogicalBlockAddress     rootDirLba;                     // Root directory LBA (This is the inode id at the same time)
+    LogicalBlockAddress     lbaRootDir;                     // Root directory LBA (This is the inode id at the same time)
 
     struct {
         unsigned int    isMounted:1;    // true while mounted; false if not mounted
@@ -41,9 +41,6 @@ final_class_ivars(SerenaFS, ContainerFilesystem,
         unsigned int    reserved:29;
     }                       mountFlags; // Flags that remain constant as long as the FS is mounted
 );
-
-typedef ssize_t (*SFSReadCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ssize_t n);
-typedef void (*SFSWriteCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ssize_t n);
 
 
 extern errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, sfs_insertion_hint_t* _Nullable pDirInsertionHint, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
