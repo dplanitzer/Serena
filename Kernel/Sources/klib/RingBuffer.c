@@ -16,7 +16,7 @@
 
 errno_t RingBuffer_Init(RingBuffer* _Nonnull self, size_t capacity)
 {
-    self->capacity = spow2_ceil(capacity);
+    self->capacity = siz_pow2_ceil(capacity);
     self->readIdx = 0;
     self->writeIdx = 0;
     self->flags = kFlag_OwnsBuffer;

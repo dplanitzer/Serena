@@ -34,7 +34,7 @@ errno_t HIDEventQueue_Create(size_t capacity, HIDEventQueueRef _Nullable * _Nonn
     assert(capacity >= 2);
 
     decl_try_err();
-    const size_t powerOfTwoCapacity = spow2_ceil(capacity);
+    const size_t powerOfTwoCapacity = siz_pow2_ceil(capacity);
     HIDEventQueue* self;
     
     assert(powerOfTwoCapacity <= UINT8_MAX/2);

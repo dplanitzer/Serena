@@ -17,20 +17,24 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, UserId uid, Gr
 {
     decl_try_err();
     DiskBlockRef pBlock;
-    FSContainerInfo fscInfo;
+    FSContainerInfo diskinf;
     const TimeInterval curTime = FSGetCurrentTime();
 
-    if ((err = FSContainer_GetInfo(fsContainer, &fscInfo)) != EOK) {
+    if ((err = FSContainer_GetInfo(fsContainer, &diskinf)) != EOK) {
         return err;
     }
 
-    // Make sure that the  disk is compatible with our FS
-    if (fscInfo.blockSize != kSFSBlockSize) {
+    // Make sure that the disk is compatible with our FS
+    if (!FSIsPowerOf2(diskinf.blockSize)) {
         return EINVAL;
     }
-    if (fscInfo.blockCount < kSFSVolume_MinBlockCount) {
+    if (diskinf.blockSize < kSFSVolume_MinBlockSize) {
+        return EINVAL;
+    }
+    if (diskinf.blockCount < kSFSVolume_MinBlockCount) {
         return ENOSPC;
     }
+
 
 
     // Structure of the initialized FS:
@@ -44,8 +48,8 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, UserId uid, Gr
     // Nab+3    Unused
     // .        ...
     // Figure out the size and location of the allocation bitmap and root directory
-    const uint32_t allocationBitmapByteSize = (fscInfo.blockCount + 7) >> 3;
-    const LogicalBlockCount allocBitmapBlockCount = (allocationBitmapByteSize + (fscInfo.blockSize - 1)) / fscInfo.blockSize;
+    const uint32_t allocationBitmapByteSize = (diskinf.blockCount + 7) >> 3;
+    const LogicalBlockCount allocBitmapBlockCount = (allocationBitmapByteSize + (diskinf.blockSize - 1)) / diskinf.blockSize;
     const LogicalBlockAddress rootDirInodeLba = allocBitmapBlockCount + 1;
     const LogicalBlockAddress rootDirContentLba = rootDirInodeLba + 1;
 
@@ -60,17 +64,17 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, UserId uid, Gr
     vhp->creationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
     vhp->modificationTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     vhp->modificationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
-    vhp->blockSize = UInt32_HostToBig(fscInfo.blockSize);
-    vhp->volumeBlockCount = UInt32_HostToBig(fscInfo.blockCount);
-    vhp->allocationBitmapByteSize = UInt32_HostToBig(allocationBitmapByteSize);
-    vhp->rootDirectoryLba = UInt32_HostToBig(rootDirInodeLba);
-    vhp->allocationBitmapLba = UInt32_HostToBig(1);
+    vhp->volBlockSize = UInt32_HostToBig(diskinf.blockSize);
+    vhp->volBlockCount = UInt32_HostToBig(diskinf.blockCount);
+    vhp->allocBitmapByteSize = UInt32_HostToBig(allocationBitmapByteSize);
+    vhp->lbaRootDir = UInt32_HostToBig(rootDirInodeLba);
+    vhp->lbaAllocBitmap = UInt32_HostToBig(1);
     try(FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync));
 
 
     // Write the allocation bitmap
     // Note that we mark the blocks that we already know are in use as in-use
-    const size_t nAllocationBitsPerBlock = fscInfo.blockSize << 3;
+    const size_t nAllocationBitsPerBlock = diskinf.blockSize << 3;
     const LogicalBlockAddress nBlocksToAllocate = 1 + allocBitmapBlockCount + 1 + 1; // volume header + alloc bitmap + root dir inode + root dir content
     LogicalBlockAddress nBlocksAllocated = 0;
 

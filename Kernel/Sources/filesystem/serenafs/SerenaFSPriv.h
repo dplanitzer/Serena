@@ -26,16 +26,20 @@
 final_class_ivars(SerenaFS, ContainerFilesystem,
     SELock                  seLock;
     Lock                    moveLock;   // To make the move operation atomic
+    
+    SfsAllocator            blockAllocator;
+    
+    uint32_t                blockShift;
+    uint32_t                blockMask;
+
+    LogicalBlockAddress     rootDirLba;                     // Root directory LBA (This is the inode id at the same time)
+
     struct {
         unsigned int    isMounted:1;    // true while mounted; false if not mounted
         unsigned int    isReadOnly:1;
         unsigned int    isAccessUpdateOnReadEnabled:1;  // true if updates to the access-date on read operations are enabled
         unsigned int    reserved:29;
     }                       mountFlags; // Flags that remain constant as long as the FS is mounted
-
-    SfsAllocator            blockAllocator;
-
-    LogicalBlockAddress     rootDirLba;                     // Root directory LBA (This is the inode id at the same time)
 );
 
 typedef ssize_t (*SFSReadCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ssize_t n);

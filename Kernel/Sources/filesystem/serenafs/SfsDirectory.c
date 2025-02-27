@@ -60,7 +60,7 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
     // Iterate through a contiguous sequence of blocks until we've read all
     // required bytes.
     while (nSrcBytesToRead > 0 && nDstBytesToRead >= sizeof(DirectoryEntry)) {
-        const ssize_t nRemainderBlockSize = kSFSBlockSize - blockOffset;
+        const ssize_t nRemainderBlockSize = fs->blockAllocator.blockSize - blockOffset;
         ssize_t nBytesToReadInBlock = (nSrcBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nSrcBytesToRead;
         DiskBlockRef pBlock;
 
@@ -273,13 +273,13 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
         // Append a new entry
         sfs_bno_t* ino_bmap = SfsFile_GetBlockMap(self);
         const FileOffset size = Inode_GetFileSize(self);
-        const int remainder = size & kSFSBlockSizeMask;
+        const int remainder = size & fs->blockMask;
         sfs_dirent_t* dep;
         LogicalBlockAddress lba;
         int idx = -1;
 
         if (remainder > 0) {
-            idx = size / kSFSBlockSize;
+            idx = size / fs->blockAllocator.blockSize;
             lba = UInt32_BigToHost(ino_bmap[idx]);
 
             try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Update, &pBlock));

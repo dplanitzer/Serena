@@ -12,9 +12,7 @@
 #include <klib/Types.h>
 
 #define kSFSMaxFilenameLength               27
-#define kSFSBlockSizeShift                  9
-#define kSFSBlockSize                       (1 << kSFSBlockSizeShift)
-#define kSFSBlockSizeMask                   (kSFSBlockSize - 1)
+#define kSFSBlockSize                       512
 #define kSFSDirectoryEntriesPerBlock        (kSFSBlockSize / sizeof(sfs_dirent_t))
 #define kSFSDirectoryEntriesPerBlockMask    (kSFSDirectoryEntriesPerBlock - 1)
 #define kSFSDirectBlockPointersCount        113
@@ -34,6 +32,7 @@
 // * Do not modify on write (preserve whatever values the reserved bytes have)
 
 enum {
+    kSFSVolume_MinBlockSize = 512,
     kSFSVolume_MinBlockCount = 4,   // Need space for at least 1 volume header block + 1 allocation bitmap block + 1 root dir inode + 1 root dir content block
 };
 
@@ -61,8 +60,8 @@ enum {
 };
 
 enum {
-    kSFSVolumeAttributeBit_ReadOnly = 0,        // If set then the volume is (software) write protected. A volume is R/W-able if it is neither software nor hardware read-only
-    kSFSVolumeAttributeBit_IsConsistent = 1,    // OnMount() must clear this bit on the disk and onUnmount must set it on disk as the last write operation. If this bit is cleared on mount then the FS state on disk should be considered inconsistent
+    kSFSVolAttrib_ReadOnly = 1,         // If set then the volume is (software) write protected. A volume is R/W-able if it is neither software nor hardware read-only
+    kSFSVolAttrib_IsConsistent = 2,     // OnMount() must clear this bit on the disk and onUnmount must set it on disk as the last write operation. If this bit is cleared on mount then the FS state on disk should be considered inconsistent
 };
 
 typedef struct sfs_datetime {
@@ -79,12 +78,12 @@ typedef struct sfs_vol_header {
     sfs_datetime_t  creationTime;               // Date/time when the disk was formatted to create the FS
     sfs_datetime_t  modificationTime;           // Date/time when the most recent modification to the FS happened
     
-    uint32_t        blockSize;                  // Allocation block size (currently always == disk block size)
-    uint32_t        volumeBlockCount;           // Size of the volume in terms of allocation blocks
-    uint32_t        allocationBitmapByteSize;   // Size of allocation bitmap in bytes (XXX tmp until we'll turn the allocation bitmap into a real file)
+    uint32_t        volBlockSize;               // Volume block size (currently always == disk block size)
+    uint32_t        volBlockCount;              // Size of the volume in terms of volume blocks
+    uint32_t        allocBitmapByteSize;        // Size of allocation bitmap in bytes
 
-    uint32_t        rootDirectoryLba;           // LBA of the root directory Inode
-    uint32_t        allocationBitmapLba;        // LBA of the first block of the allocation bitmap area
+    uint32_t        lbaRootDir;                 // LBA of the root directory Inode
+    uint32_t        lbaAllocBitmap;             // LBA of the first block of the allocation bitmap area
     // All bytes from here to the end of the block are reserved
 } sfs_vol_header_t;
 

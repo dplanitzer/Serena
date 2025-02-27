@@ -42,12 +42,17 @@ void FSDeallocate(void* ptr)
 }
 
 
+bool FSIsPowerOf2(size_t n)
+{
+    return (n && (n & (n - 1)) == 0) ? true : false;
+}
+
 size_t FSPowerOf2Ceil(size_t n)
 {
     if (n && !(n & (n - 1))) {
         return n;
     } else {
-        size_t p = 1;
+        unsigned long p = 1;
         
         while (p < n) {
             p <<= 1;
@@ -55,4 +60,17 @@ size_t FSPowerOf2Ceil(size_t n)
         
         return p;
     }
+}
+
+unsigned int FSLog2(size_t n)
+{
+    size_t p = 1;
+    unsigned int b = 0;
+
+    while (p < n) {
+        p <<= 1;
+        b++;
+    }
+        
+    return b;
 }

@@ -53,7 +53,7 @@ errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, FileChannel
     // Iterate through a contiguous sequence of blocks until we've read all
     // required bytes.
     while (nBytesToRead > 0) {
-        const ssize_t nRemainderBlockSize = kSFSBlockSize - blockOffset;
+        const ssize_t nRemainderBlockSize = fs->blockAllocator.blockSize - blockOffset;
         const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
         DiskBlockRef pBlock;
 
@@ -137,9 +137,9 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
     // Iterate through a contiguous sequence of blocks until we've written all
     // required bytes.
     while (nBytesToWrite > 0) {
-        const ssize_t nRemainderBlockSize = kSFSBlockSize - blockOffset;
+        const ssize_t nRemainderBlockSize = fs->blockAllocator.blockSize - blockOffset;
         const ssize_t nBytesToWriteInBlock = (nBytesToWrite > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToWrite;
-        AcquireBlock acquireMode = (nBytesToWriteInBlock == kSFSBlockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
+        AcquireBlock acquireMode = (nBytesToWriteInBlock == fs->blockAllocator.blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
         DiskBlockRef pBlock;
 
         errno_t e1 = SfsFile_AcquireBlock((SfsFileRef)self, blockIdx, acquireMode, &pBlock);

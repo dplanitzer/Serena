@@ -16,10 +16,6 @@ errno_t SerenaFS_Create(FSContainerRef _Nonnull pContainer, SerenaFSRef _Nullabl
     decl_try_err();
     SerenaFSRef self;
 
-    assert(sizeof(sfs_vol_header_t) <= kSFSBlockSize);
-    assert(sizeof(sfs_inode_t) <= kSFSBlockSize);
-    assert(sizeof(sfs_dirent_t) * kSFSDirectoryEntriesPerBlock == kSFSBlockSize);
-    
     try(ContainerFilesystem_Create(&kSerenaFSClass, pContainer, (FilesystemRef*)&self));
     SELock_Init(&self->seLock);
     Lock_Init(&self->moveLock);
@@ -45,7 +41,7 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    FSContainerInfo fscInfo;
+    FSContainerInfo diskinf;
     DiskBlockRef pRootBlock = NULL;
 
     if ((err = SELock_LockExclusive(&self->seLock)) != EOK) {
@@ -56,14 +52,15 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
         throw(EIO);
     }
 
+
     // Make sure that the disk partition actually contains a SerenaFS that we
     // know how to handle.
-    try(FSContainer_GetInfo(fsContainer, &fscInfo));
+    try(FSContainer_GetInfo(fsContainer, &diskinf));
 
-    if (fscInfo.blockCount < kSFSVolume_MinBlockCount) {
+    if (diskinf.blockCount < kSFSVolume_MinBlockCount) {
         throw(EIO);
     }
-    if (fscInfo.blockSize != kSFSBlockSize) {
+    if (diskinf.blockSize > UINT16_MAX) {
         throw(EIO);
     }
 
@@ -78,27 +75,32 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
     const sfs_vol_header_t* vhp = (const sfs_vol_header_t*)DiskBlock_GetData(pRootBlock);
     const uint32_t signature = UInt32_BigToHost(vhp->signature);
     const uint32_t version = UInt32_BigToHost(vhp->version);
-    const uint32_t blockSize = UInt32_BigToHost(vhp->blockSize);
+    const uint32_t blockSize = UInt32_BigToHost(vhp->volBlockSize);
 
     if (signature != kSFSSignature_SerenaFS || version != kSFSVersion_v0_1) {
         throw(EIO);
     }
-    if (blockSize != kSFSBlockSize) {
+    if (blockSize != diskinf.blockSize) {
         throw(EIO);
     }
 
 
     // Cache the root directory info
-    self->rootDirLba = UInt32_BigToHost(vhp->rootDirectoryLba);
+    self->rootDirLba = UInt32_BigToHost(vhp->lbaRootDir);
 
 
     // Cache the allocation bitmap in RAM
     try(SfsAllocator_Start(&self->blockAllocator, fsContainer, vhp, blockSize));
 
 
+    // Calculate the volume block shift and mask values
+    self->blockShift = FSLog2(blockSize);
+    self->blockMask = blockSize - 1;
+
+
     self->mountFlags.isMounted = 1;
     // XXX should be drive->is_readonly || mount-params->is_readonly
-    if (fscInfo.isReadOnly) {
+    if (diskinf.isReadOnly || (vhp->attributes & kSFSVolAttrib_ReadOnly) == kSFSVolAttrib_ReadOnly) {
         self->mountFlags.isReadOnly = 1;
     }
     

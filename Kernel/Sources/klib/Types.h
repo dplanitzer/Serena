@@ -54,20 +54,54 @@ typedef void (*VoidFunc_2)(void*, void*);
 #define SIZE_KB(x)  ((long)(x) * 1024)
 
 
-extern unsigned long ulpow2_ceil(unsigned long n);
-extern unsigned long long ullpow2_ceil(unsigned long long n);
+extern bool ul_ispow2(unsigned long n);
+extern bool ull_ispow2(unsigned long long n);
 
-#define pow2_ceil(__n)\
-(unsigned int)ulpow2_ceil((unsigned long)__n)
+#define u_ispow2(__n)\
+ul_ispow2((unsigned long)__n)
 
 #if __SIZE_WIDTH == 32
-#define spow2_ceil(__n) \
-(size_t)ulpow2_ceil((unsigned long)__n)
+#define siz_ispow2(__n) \
+ul_ispow2((unsigned long)__n)
 #elif __SIZE_WIDTH == 64
-#define spow2_ceil(__n) \
-(size_t)ullpow2_ceil((unsigned long long)__n)
+#define siz_ispow2(__n) \
+ull_ispow2((unsigned long long)__n)
 #else
-#error "unable to define spow2_ceil()"
+#error "unable to define siz_ispow2()"
+#endif
+
+
+extern unsigned long ul_pow2_ceil(unsigned long n);
+extern unsigned long long ull_pow2_ceil(unsigned long long n);
+
+#define u_pow2_ceil(__n)\
+(unsigned int)ul_pow2_ceil((unsigned long)__n)
+
+#if __SIZE_WIDTH == 32
+#define siz_pow2_ceil(__n) \
+(size_t)ul_pow2_ceil((unsigned long)__n)
+#elif __SIZE_WIDTH == 64
+#define siz_pow2_ceil(__n) \
+(size_t)ull_pow2_ceil((unsigned long long)__n)
+#else
+#error "unable to define siz_pow2_ceil()"
+#endif
+
+
+extern unsigned int ul_log2(unsigned long n);
+extern unsigned int ull_log2(unsigned long long n);
+
+#define u_log2(__n)\
+ul_log2((unsigned long)__n)
+
+#if __SIZE_WIDTH == 32
+#define siz_log2(__n) \
+ul_log2((unsigned long)__n)
+#elif __SIZE_WIDTH == 64
+#define siz_log2(__n) \
+ull_log2((unsigned long long)__n)
+#else
+#error "unable to define siz_log2()"
 #endif
 
 
