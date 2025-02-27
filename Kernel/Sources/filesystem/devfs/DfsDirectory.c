@@ -65,7 +65,7 @@ errno_t DfsDirectory_read(InodeRef _Nonnull _Locked self, DirectoryChannelRef _N
     decl_try_err();
     DevFSRef fs = Inode_GetFilesystemAs(self, DevFS);
     DirectoryEntry* pOutEntry = (DirectoryEntry*)pBuffer;
-    FileOffset offset = IOChannel_GetOffset(ch);  // in terms of #entries
+    off_t offset = IOChannel_GetOffset(ch);  // in terms of #entries
     ssize_t nAllDirEntriesRead = 0;
     ssize_t nBytesRead = 0;
 

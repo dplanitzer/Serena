@@ -147,25 +147,25 @@ catch:
     return err;
 }
 
-void SfsFile_ConvertOffset(SfsFileRef _Nonnull _Locked self, FileOffset offset, sfs_bno_t* _Nonnull pOutBlockIdx, ssize_t* _Nonnull pOutBlockOffset)
+void SfsFile_ConvertOffset(SfsFileRef _Nonnull _Locked self, off_t offset, sfs_bno_t* _Nonnull pOutBlockIdx, ssize_t* _Nonnull pOutBlockOffset)
 {
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
 
-    *pOutBlockIdx = (sfs_bno_t)(offset >> (FileOffset)fs->blockShift);
-    *pOutBlockOffset = (ssize_t)(offset & (FileOffset)fs->blockMask);
+    *pOutBlockIdx = (sfs_bno_t)(offset >> (off_t)fs->blockShift);
+    *pOutBlockOffset = (ssize_t)(offset & (off_t)fs->blockMask);
 }
 
 // Internal file truncation function. Shortens the file 'self' to the new and
 // smaller size 'length'. Does not support increasing the size of a file.
-void SfsFile_xTruncate(SfsFileRef _Nonnull _Locked self, FileOffset newLength)
+void SfsFile_xTruncate(SfsFileRef _Nonnull _Locked self, off_t newLength)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
-    const FileOffset oldLength = Inode_GetFileSize(self);
+    const off_t oldLength = Inode_GetFileSize(self);
     sfs_bno_t* ino_bmap = SfsFile_GetBlockMap(self);
-    const sfs_bno_t bn_nlen = (sfs_bno_t)(newLength >> (FileOffset)fs->blockShift);   //XXX should be 64bit
-    const size_t boff_nlen = newLength & (FileOffset)fs->blockMask;
+    const sfs_bno_t bn_nlen = (sfs_bno_t)(newLength >> (off_t)fs->blockShift);   //XXX should be 64bit
+    const size_t boff_nlen = newLength & (off_t)fs->blockMask;
     sfs_bno_t bn_first_to_discard = (boff_nlen > 0) ? bn_nlen + 1 : bn_nlen;   // first block to discard (the block that contains newLength or that is right in front of newLength)
 
     if (bn_first_to_discard < kSFSDirectBlockPointersCount) {

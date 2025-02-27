@@ -225,8 +225,8 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
 {
     decl_try_err();
     const DiskInfo* info = DiskDriverChannel_GetInfo(pChannel);
-    const FileOffset diskSize = IOChannel_GetSeekableRange(pChannel);
-    FileOffset offset = IOChannel_GetOffset(pChannel);
+    const off_t diskSize = IOChannel_GetSeekableRange(pChannel);
+    off_t offset = IOChannel_GetOffset(pChannel);
     uint8_t* dp = pBuffer;
     ssize_t nBytesRead = 0;
 
@@ -236,7 +236,7 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
             return EOVERFLOW;
         }
 
-        const FileOffset targetOffset = offset + (FileOffset)nBytesToRead;
+        const off_t targetOffset = offset + (off_t)nBytesToRead;
         if (targetOffset < 0ll || targetOffset > diskSize) {
             nBytesToRead = (ssize_t)(diskSize - offset);
         }
@@ -246,9 +246,9 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
     }
 
     while (nBytesToRead > 0 && offset < diskSize) {
-        const int blockIdx = (int)(offset / (FileOffset)info->blockSize);    //XXX blockIdx should be 64bit
-        const size_t blockOffset = offset % (FileOffset)info->blockSize;     //XXX optimize for power-of-2
-        const size_t nBytesToReadInCurrentBlock = (size_t)__min((FileOffset)(info->blockSize - blockOffset), __min(diskSize - offset, (FileOffset)nBytesToRead));
+        const int blockIdx = (int)(offset / (off_t)info->blockSize);    //XXX blockIdx should be 64bit
+        const size_t blockOffset = offset % (off_t)info->blockSize;     //XXX optimize for power-of-2
+        const size_t nBytesToReadInCurrentBlock = (size_t)__min((off_t)(info->blockSize - blockOffset), __min(diskSize - offset, (off_t)nBytesToRead));
         DiskBlockRef pBlock;
 
         errno_t e1 = DiskCache_AcquireBlock(gDiskCache, info->diskId, info->mediaId, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
@@ -265,7 +265,7 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
 
         nBytesToRead -= nBytesToReadInCurrentBlock;
         nBytesRead += nBytesToReadInCurrentBlock;
-        offset += (FileOffset)nBytesToReadInCurrentBlock;
+        offset += (off_t)nBytesToReadInCurrentBlock;
         dp += nBytesToReadInCurrentBlock;
     }
 
@@ -278,8 +278,8 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
 {
     decl_try_err();
     const DiskInfo* info = DiskDriverChannel_GetInfo(pChannel);
-    const FileOffset diskSize = IOChannel_GetSeekableRange(pChannel);
-    FileOffset offset = IOChannel_GetOffset(pChannel);
+    const off_t diskSize = IOChannel_GetSeekableRange(pChannel);
+    off_t offset = IOChannel_GetOffset(pChannel);
     ssize_t nBytesWritten = 0;
 
     if (nBytesToWrite > 0) {
@@ -288,7 +288,7 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
             return EOVERFLOW;
         }
 
-        const FileOffset targetOffset = offset + (FileOffset)nBytesToWrite;
+        const off_t targetOffset = offset + (off_t)nBytesToWrite;
         if (targetOffset < 0ll || targetOffset > diskSize) {
             nBytesToWrite = (ssize_t)(diskSize - offset);
         }
@@ -298,8 +298,8 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
     }
 
     while (nBytesToWrite > 0) {
-        const int blockIdx = (int)(offset / (FileOffset)info->blockSize);    //XXX blockIdx should be 64bit
-        const size_t blockOffset = offset % (FileOffset)info->blockSize;     //XXX optimize for power-of-2
+        const int blockIdx = (int)(offset / (off_t)info->blockSize);    //XXX blockIdx should be 64bit
+        const size_t blockOffset = offset % (off_t)info->blockSize;     //XXX optimize for power-of-2
         const size_t nBytesToWriteInCurrentBlock = __min(info->blockSize - blockOffset, nBytesToWrite);
         AcquireBlock acquireMode = (nBytesToWriteInCurrentBlock == info->blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
         DiskBlockRef pBlock;
@@ -318,14 +318,14 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
 
         nBytesToWrite -= nBytesToWriteInCurrentBlock;
         nBytesWritten += nBytesToWriteInCurrentBlock;
-        offset += (FileOffset)nBytesToWriteInCurrentBlock;
+        offset += (off_t)nBytesToWriteInCurrentBlock;
     }
 
     *pOutBytesWritten = nBytesWritten;
     return err;
 }
 
-FileOffset DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
+off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
 {
     DiskInfo info;
 

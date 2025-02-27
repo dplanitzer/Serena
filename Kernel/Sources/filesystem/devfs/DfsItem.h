@@ -25,7 +25,7 @@ typedef struct DfsItem {
     TimeInterval        accessTime;
     TimeInterval        modificationTime;
     TimeInterval        statusChangeTime;
-    FileOffset          size;
+    off_t               size;
     InodeId             inid;
     int                 linkCount;
     FileType            type;

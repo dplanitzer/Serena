@@ -146,7 +146,7 @@ SYSCALL_4(write, int ioc, const void* _Nullable buffer, size_t nBytesToWrite, ss
     return Process_WriteChannel(Process_GetCurrent(), pArgs->ioc, pArgs->buffer, pArgs->nBytesToWrite, pArgs->nBytesWritten);
 }
 
-SYSCALL_4(seek, int ioc, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
+SYSCALL_4(seek, int ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence)
 {
     return Process_SeekChannel(Process_GetCurrent(), pArgs->ioc, pArgs->offset, pArgs->pOutOldPosition, pArgs->whence);
 }
@@ -214,7 +214,7 @@ SYSCALL_2(fsetfileinfo, int ioc, MutableFileInfo* _Nullable pInfo)
     return Process_SetFileInfo_ioc(Process_GetCurrent(), pArgs->ioc, pArgs->pInfo);
 }
 
-SYSCALL_2(truncate, const char* _Nullable path, FileOffset length)
+SYSCALL_2(truncate, const char* _Nullable path, off_t length)
 {
     if (pArgs->path == NULL) {
         return EINVAL;
@@ -223,7 +223,7 @@ SYSCALL_2(truncate, const char* _Nullable path, FileOffset length)
     return Process_TruncateFile(Process_GetCurrent(), pArgs->path, pArgs->length);
 }
 
-SYSCALL_2(ftruncate, int ioc, FileOffset length)
+SYSCALL_2(ftruncate, int ioc, off_t length)
 {
     return Process_TruncateFile_ioc(Process_GetCurrent(), pArgs->ioc, pArgs->length);
 }

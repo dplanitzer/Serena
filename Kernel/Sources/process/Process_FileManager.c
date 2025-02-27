@@ -198,7 +198,7 @@ errno_t Process_SetFileInfo_ioc(ProcessRef _Nonnull self, int ioc, MutableFileIn
 
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
-errno_t Process_TruncateFile(ProcessRef _Nonnull self, const char* _Nonnull path, FileOffset length)
+errno_t Process_TruncateFile(ProcessRef _Nonnull self, const char* _Nonnull path, off_t length)
 {
     decl_try_err();
 
@@ -210,7 +210,7 @@ errno_t Process_TruncateFile(ProcessRef _Nonnull self, const char* _Nonnull path
 }
 
 // Same as above but the file is identified by the given I/O channel.
-errno_t Process_TruncateFile_ioc(ProcessRef _Nonnull self, int ioc, FileOffset length)
+errno_t Process_TruncateFile_ioc(ProcessRef _Nonnull self, int ioc, off_t length)
 {
     decl_try_err();
     IOChannelRef pChannel;

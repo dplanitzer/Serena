@@ -160,7 +160,7 @@ extern errno_t Process_ReadChannel(ProcessRef _Nonnull pProc, int ioc, void* _No
 
 extern errno_t Process_WriteChannel(ProcessRef _Nonnull pProc, int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nBytesWritten);
 
-extern errno_t Process_SeekChannel(ProcessRef _Nonnull pProc, int ioc, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence);
+extern errno_t Process_SeekChannel(ProcessRef _Nonnull pProc, int ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
 
 // Sends a I/O Channel or I/O Resource defined command to the I/O Channel or
 // resource identified by the given descriptor.
@@ -229,10 +229,10 @@ extern errno_t Process_SetFileInfo_ioc(ProcessRef _Nonnull pProc, int fd, Mutabl
 
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
-extern errno_t Process_TruncateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, FileOffset length);
+extern errno_t Process_TruncateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, off_t length);
 
 // Same as above but the file is identified by the given I/O channel.
-extern errno_t Process_TruncateFile_ioc(ProcessRef _Nonnull pProc, int fd, FileOffset length);
+extern errno_t Process_TruncateFile_ioc(ProcessRef _Nonnull pProc, int fd, off_t length);
 
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the

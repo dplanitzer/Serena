@@ -16,7 +16,7 @@ errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, FileChannel
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
-    const FileOffset offset = IOChannel_GetOffset(ch);
+    const off_t offset = IOChannel_GetOffset(ch);
     uint8_t* dp = buf;
     ssize_t nBytesRead = 0;
 
@@ -30,10 +30,10 @@ errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, FileChannel
 
     // Limit 'nBytesToRead' to the range of bytes that is actually available in
     // the file starting at 'offset'.
-    const FileOffset nAvailBytes = Inode_GetFileSize(self) - offset;
+    const off_t nAvailBytes = Inode_GetFileSize(self) - offset;
 
     if (nAvailBytes > 0) {
-        if (nAvailBytes <= (FileOffset)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToRead) {
+        if (nAvailBytes <= (off_t)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToRead) {
             nBytesToRead = (ssize_t)nAvailBytes;
         }
         // Otherwise, use 'nBytesToRead' as is
@@ -94,7 +94,7 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     const uint8_t* sp = buf;
     ssize_t nBytesWritten = 0;
-    FileOffset offset;
+    off_t offset;
 
     if ((IOChannel_GetMode(ch) & kOpen_Append) == kOpen_Append) {
         offset = Inode_GetFileSize(self);
@@ -118,8 +118,8 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
             throw(EFBIG);
         }
 
-        const FileOffset nAvailBytes = kSFSLimit_FileSizeMax - offset;
-        if (nAvailBytes <= (FileOffset)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToWrite) {
+        const off_t nAvailBytes = kSFSLimit_FileSizeMax - offset;
+        if (nAvailBytes <= (off_t)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToWrite) {
             nBytesToWrite = (ssize_t)nAvailBytes;
         }
         // Otherwise, use 'nBytesToWrite' as is
@@ -169,7 +169,7 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
 
 
     if (nBytesWritten > 0) {
-        const FileOffset endOffset = offset + (FileOffset)nBytesWritten;
+        const off_t endOffset = offset + (off_t)nBytesWritten;
 
         if (endOffset > Inode_GetFileSize(self)) {
             Inode_SetFileSize(self, endOffset);
@@ -184,12 +184,12 @@ catch:
     return err;
 }
 
-errno_t SfsRegularFile_truncate(SfsRegularFileRef _Nonnull _Locked self, FileOffset length)
+errno_t SfsRegularFile_truncate(SfsRegularFileRef _Nonnull _Locked self, off_t length)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
 
-    const FileOffset oldLength = Inode_GetFileSize(self);
+    const off_t oldLength = Inode_GetFileSize(self);
     if (oldLength < length) {
         // Expansion in size
         // Just set the new file size. The needed blocks will be allocated on

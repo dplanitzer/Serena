@@ -37,7 +37,7 @@ typedef struct FileInfo {
     TimeInterval        accessTime;
     TimeInterval        modificationTime;
     TimeInterval        statusChangeTime;
-    FileOffset          size;
+    off_t               size;
     UserId              uid;
     GroupId             gid;
     FilePermissions     permissions;
@@ -127,14 +127,14 @@ extern errno_t File_Open(const char* _Nonnull path, unsigned int mode, int* _Non
 // Returns the current file position. This is the position at which the next
 // read or write operation will start.
 // @Concurrency: Safe
-extern errno_t File_GetPosition(int ioc, FileOffset* _Nonnull pos);
+extern errno_t File_GetPosition(int ioc, off_t* _Nonnull pos);
 
 // Sets the current file position. Note that the file position may be set to a
 // value past the current file size. Doing this implicitly expands the size of
 // the file to encompass the new file position. The byte range between the old
 // end of file and the new end of file is automatically filled with zero bytes.
 // @Concurrency: Safe
-extern errno_t File_Seek(int ioc, FileOffset offset, FileOffset* _Nullable oldpos, int whence);
+extern errno_t File_Seek(int ioc, off_t offset, off_t* _Nullable oldpos, int whence);
 
 
 // Truncates the file at the filesystem location 'path'. If the new length is
@@ -143,7 +143,7 @@ extern errno_t File_Seek(int ioc, FileOffset offset, FileOffset* _Nullable oldpo
 // size of the existing file, then the excess data is removed and the size of
 // the file is set to the new length.
 // @Concurrency: Safe
-extern errno_t File_Truncate(const char* _Nonnull path, FileOffset length);
+extern errno_t File_Truncate(const char* _Nonnull path, off_t length);
 
 
 // Returns meta-information about the file located at the filesystem location 'path'.
@@ -176,7 +176,7 @@ extern errno_t File_Rename(const char* _Nonnull oldpath, const char* _Nonnull ne
 
 // Similar to File_Truncate() but operates on the open file identified by 'ioc'.
 // @Concurrency: Safe
-extern errno_t FileChannel_Truncate(int ioc, FileOffset length);
+extern errno_t FileChannel_Truncate(int ioc, off_t length);
 
 
 // Similar to File_GetInfo() but operates on the open file identified by 'ioc'.

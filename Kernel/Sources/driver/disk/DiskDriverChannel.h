@@ -19,7 +19,7 @@
 // media while the channel is open, then all further read/write operations on
 // the channel must fail.
 open_class(DiskDriverChannel, DriverChannel,
-    FileOffset  diskSize;
+    off_t       diskSize;
     DiskInfo    info;
 );
 open_class_funcs(DiskDriverChannel, DriverChannel,

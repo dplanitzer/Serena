@@ -276,7 +276,7 @@ errno_t FileManager_SetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _
 
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
-errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, FileOffset length)
+errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, off_t length)
 {
     decl_try_err();
     ResolvedPath r;
@@ -305,7 +305,7 @@ errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonn
 }
 
 // Same as above but the file is identified by the given I/O channel.
-errno_t FileManager_TruncateFile_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, FileOffset length)
+errno_t FileManager_TruncateFile_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, off_t length)
 {
     decl_try_err();
 

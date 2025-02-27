@@ -13,6 +13,7 @@
 #include <System/abi/_bool.h>
 #include <System/abi/_inttypes.h>
 #include <System/_null.h>
+#include <System/abi/_off.h>
 #include <System/abi/_size.h>
 #include <System/abi/_ssize.h>
 #include <System/_errno.h>
@@ -72,13 +73,20 @@ typedef uint32_t    DiskId;
 
 typedef uint16_t    FilePermissions;
 typedef int8_t      FileType;
-typedef int64_t     FileOffset;
 
 typedef uint32_t    UserId;
 typedef uint32_t    GroupId;
 
-#define kFileOffset_Min 0ll
-#define kFileOffset_Max INT64_MAX
+
+#ifndef OFF_MIN
+#define OFF_MIN  __OFF_MIN
+#endif
+#ifndef OFF_MAX
+#define OFF_MAX  __OFF_MAX
+#endif
+#ifndef OFF_WIDTH
+#define OFF_WIDTH __OFF_WIDTH
+#endif
 
 
 #ifndef SSIZE_MIN
@@ -90,6 +98,7 @@ typedef uint32_t    GroupId;
 #ifndef SSIZE_WIDTH
 #define SSIZE_WIDTH __SSIZE_WIDTH
 #endif
+
 
 #ifndef SIZE_MAX
 #define SIZE_MAX __SIZE_MAX

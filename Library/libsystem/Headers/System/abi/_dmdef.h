@@ -122,6 +122,14 @@ typedef long __ssize_t;
 #define __SSIZE_MIN 0x80000000l
 #define __SSIZE_MAX 0x7fffffffl
 
+
+// off_t
+typedef long long __off_t;
+
+#define __OFF_WIDTH 64
+#define __OFF_MIN 0x8000000000000000ll
+#define __OFF_MAX 0x7fffffffffffffffll
+
 #elif __LP64__
 //
 // LP64
@@ -206,6 +214,14 @@ typedef long __ssize_t;
 #define __SSIZE_MIN 0x8000000000000000l
 #define __SSIZE_MAX 0x7fffffffffffffffl
 
+
+// off_t
+typedef long long __off_t;
+
+#define __OFF_WIDTH 64
+#define __OFF_MIN 0x8000000000000000ll
+#define __OFF_MAX 0x7fffffffffffffffll
+
 #elif __LLP64__
 //
 // LLP64
@@ -257,38 +273,46 @@ typedef unsigned long long __uintmax_t;
 typedef long long __intptr_t;
 
 #define __INTPTR_WIDTH 64
-#define __INTPTR_MIN 0x8000000000000000l
-#define __INTPTR_MAX 0x7fffffffffffffffl
+#define __INTPTR_MIN 0x8000000000000000ll
+#define __INTPTR_MAX 0x7fffffffffffffffll
 
 
 // uintptr_t
 typedef unsigned long long __uintptr_t;
 
 #define __UINTPTR_WIDTH 64
-#define __UINTPTR_MAX 18446744073709551615ul
+#define __UINTPTR_MAX 18446744073709551615ull
 
 
 // ptrdiff_t
 typedef long long __ptrdiff_t;
 
 #define __PTRDIFF_WIDTH 64
-#define __PTRDIFF_MIN 0x8000000000000000l
-#define __PTRDIFF_MAX 0x7fffffffffffffffl
+#define __PTRDIFF_MIN 0x8000000000000000ll
+#define __PTRDIFF_MAX 0x7fffffffffffffffll
 
 
 // size_t
 typedef unsigned long long __size_t;
 
 #define __SIZE_WIDTH 64
-#define __SIZE_MAX 18446744073709551615ul
+#define __SIZE_MAX 18446744073709551615ull
 
 
 // ssize_t
 typedef long long __ssize_t;
 
 #define __SSIZE_WIDTH 64
-#define __SSIZE_MIN 0x8000000000000000l
-#define __SSIZE_MAX 0x7fffffffffffffffl
+#define __SSIZE_MIN 0x8000000000000000ll
+#define __SSIZE_MAX 0x7fffffffffffffffll
+
+
+// off_t
+typedef long long __off_t;
+
+#define __OFF_WIDTH 64
+#define __OFF_MIN 0x8000000000000000ll
+#define __OFF_MAX 0x7fffffffffffffffll
 
 #else
 

@@ -52,8 +52,8 @@ static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _N
 errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, FileChannelRef _Nonnull chan, void* _Nullable * _Nonnull pOutImageBase, void* _Nullable * _Nonnull pOutEntryPoint)
 {
     decl_try_err();
-    FileOffset fileSize = FileChannel_GetFileSize(chan);
-    FileOffset fileOffset;
+    off_t fileSize = FileChannel_GetFileSize(chan);
+    off_t fileOffset;
     GemDosExecutableHeader hdr;
     ssize_t nBytesRead;
 

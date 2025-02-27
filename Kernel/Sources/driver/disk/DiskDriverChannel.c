@@ -16,7 +16,7 @@ errno_t DiskDriverChannel_Create(DiskDriverRef _Nonnull pDriver, const DiskInfo*
 
     err = DriverChannel_Create(&kDiskDriverChannelClass, kIOChannel_Seekable, kIOChannelType_Driver, mode, (DriverRef)pDriver, (IOChannelRef*)&self);
     if (err == EOK) {
-        self->diskSize = (FileOffset)info->blockCount * (FileOffset)info->blockSize;
+        self->diskSize = (off_t)info->blockCount * (off_t)info->blockSize;
         self->info = *info;
     }
 
@@ -24,7 +24,7 @@ errno_t DiskDriverChannel_Create(DiskDriverRef _Nonnull pDriver, const DiskInfo*
     return err;
 }
 
-FileOffset DiskDriverChannel_getSeekableRange(DiskDriverChannelRef _Nonnull self)
+off_t DiskDriverChannel_getSeekableRange(DiskDriverChannelRef _Nonnull self)
 {
     return self->diskSize;
 }

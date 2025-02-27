@@ -24,7 +24,7 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
-    FileOffset offset = IOChannel_GetOffset(ch);
+    off_t offset = IOChannel_GetOffset(ch);
     DirectoryEntry* dp = buf;
     ssize_t nSrcBytesRead = 0;
     ssize_t nDstBytesRead = 0;
@@ -39,10 +39,10 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
 
     // Calculate the amount of bytes available in the directory starting at
     // offset 'offset'.
-    const FileOffset nAvailBytes = Inode_GetFileSize(self) - offset;
+    const off_t nAvailBytes = Inode_GetFileSize(self) - offset;
     ssize_t nSrcBytesToRead;
 
-    if (nAvailBytes <= (FileOffset)SSIZE_MAX) {
+    if (nAvailBytes <= (off_t)SSIZE_MAX) {
         nSrcBytesToRead = (ssize_t)nAvailBytes;
     } else {
         nSrcBytesToRead = SSIZE_MAX;
@@ -116,8 +116,8 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
-    FileOffset offset = 0ll;
-    const FileOffset fileSize = Inode_GetFileSize(self);
+    off_t offset = 0ll;
+    const off_t fileSize = Inode_GetFileSize(self);
     sfs_bno_t blockIdx = 0;
     bool hasInsertionHint = false;
     bool done = false;
@@ -230,7 +230,7 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeId idToRem
     memset(dep, 0, sizeof(sfs_dirent_t));
     FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
 
-    if (Inode_GetFileSize(self) - (FileOffset)sizeof(sfs_dirent_t) == qr.fileOffset) {
+    if (Inode_GetFileSize(self) - (off_t)sizeof(sfs_dirent_t) == qr.fileOffset) {
         Inode_DecrementFileSize(self, sizeof(sfs_dirent_t));
     }
 
@@ -271,14 +271,14 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
     else {
         // Append a new entry
         sfs_bno_t* ino_bmap = SfsFile_GetBlockMap(self);
-        const FileOffset dirSize = Inode_GetFileSize(self);
-        const size_t remainder = (size_t)(dirSize & (FileOffset)fs->blockMask);
+        const off_t dirSize = Inode_GetFileSize(self);
+        const size_t remainder = (size_t)(dirSize & (off_t)fs->blockMask);
         LogicalBlockAddress lba;
         sfs_dirent_t* dep;
         int idx = -1;
 
         if (remainder > 0) {
-            idx = (int)(dirSize >> (FileOffset)fs->blockShift);
+            idx = (int)(dirSize >> (off_t)fs->blockShift);
             lba = UInt32_BigToHost(ino_bmap[idx]);
 
             try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Update, &pBlock));

@@ -57,15 +57,15 @@ errno_t FileChannel_write(FileChannelRef _Nonnull _Locked self, const void* _Non
     return Inode_Write(self->inode, self, pBuffer, nBytesToWrite, nOutBytesWritten);
 }
 
-FileOffset FileChannel_getSeekableRange(FileChannelRef _Nonnull _Locked self)
+off_t FileChannel_getSeekableRange(FileChannelRef _Nonnull _Locked self)
 {
     return Inode_GetFileSize(self->inode);
 }
 
-FileOffset FileChannel_GetFileSize(FileChannelRef _Nonnull self)
+off_t FileChannel_GetFileSize(FileChannelRef _Nonnull self)
 {
     IOChannel_Lock((IOChannelRef)self);
-    const FileOffset fileSize = IOChannel_GetSeekableRange(self);
+    const off_t fileSize = IOChannel_GetSeekableRange(self);
     IOChannel_Unlock((IOChannelRef)self);
 
     return fileSize;
@@ -89,7 +89,7 @@ errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, UserId uid, GroupId gi
     return err;
 }
 
-errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, FileOffset length)
+errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, off_t length)
 {
     if (length < 0ll) {
         return EINVAL;

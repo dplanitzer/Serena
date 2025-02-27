@@ -201,7 +201,7 @@ open_class_funcs(Driver, Object,
     // one.
     // Override: Optional
     // Default Behavior: Returns 0
-    FileOffset (*getSeekableRange)(void* _Nonnull self);
+    off_t (*getSeekableRange)(void* _Nonnull self);
     
     // Invoked as the result of calling Driver_Ioctl(). A driver subclass should
     // override this method to implement support for the ioctl() system call.

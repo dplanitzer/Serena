@@ -70,7 +70,7 @@ errno_t DfsDevice_write(InodeRef _Nonnull _Locked self, FileChannelRef _Nonnull 
     return EPERM;
 }
 
-errno_t DfsDevice_truncate(InodeRef _Nonnull _Locked self, FileOffset length)
+errno_t DfsDevice_truncate(InodeRef _Nonnull _Locked self, off_t length)
 {
     return EPERM;
 }

@@ -67,7 +67,7 @@ errno_t DriverChannel_write(DriverChannelRef _Nonnull _Locked self, const void* 
     return Driver_Write(self->driver, (IOChannelRef)self, pBuffer, nBytesToWrite, nOutBytesWritten);
 }
 
-FileOffset DriverChannel_getSeekableRange(DriverChannelRef _Nonnull _Locked self)
+off_t DriverChannel_getSeekableRange(DriverChannelRef _Nonnull _Locked self)
 {
     return Driver_GetSeekableRange(self);
 }

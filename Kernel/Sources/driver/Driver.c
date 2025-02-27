@@ -240,7 +240,7 @@ errno_t Driver_write(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, co
     return EBADF;
 }
 
-FileOffset Driver_getSeekableRange(DriverRef _Nonnull self)
+off_t Driver_getSeekableRange(DriverRef _Nonnull self)
 {
     return 0ll;
 }

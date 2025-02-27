@@ -20,7 +20,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     InodeId parentInodeId = Inode_GetId(dir);
     LogicalBlockAddress inodeLba = 0;
     LogicalBlockAddress dirContLba = 0;
-    FileOffset fileSize = 0ll;
+    off_t fileSize = 0ll;
     InodeRef pNode = NULL;
     DiskBlockRef pBlock = NULL;
 

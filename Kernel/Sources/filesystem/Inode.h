@@ -30,7 +30,7 @@ open_class(Inode, Any,
     TimeInterval                    accessTime;
     TimeInterval                    modificationTime;
     TimeInterval                    statusChangeTime;
-    FileOffset                      size;       // File size
+    off_t                           size;       // File size
     Lock                            lock;
     FilesystemRef _Weak _Nonnull    filesystem; // The owning filesystem instance
     InodeId                         inid;       // Filesystem specific ID of the inode
@@ -94,7 +94,7 @@ any_subclass_funcs(Inode,
     // to the file if the new length is longer than the old length. Note that a
     // filesystem implementation is free to defer the actual allocation of the
     // new blocks until an attempt is made to read or write them.
-    errno_t (*truncate)(void* _Nonnull _Locked self, FileOffset length);
+    errno_t (*truncate)(void* _Nonnull _Locked self, off_t length);
 );
 
 
@@ -287,7 +287,7 @@ extern errno_t Inode_Create(Class* _Nonnull pClass,
                     FilesystemRef _Nonnull pFS, InodeId id,
                     FileType type, int linkCount,
                     UserId uid, GroupId gid, FilePermissions permissions,
-                    FileOffset size,
+                    off_t size,
                     TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
                     InodeRef _Nullable * _Nonnull pOutNode);
 extern void Inode_Destroy(InodeRef _Nonnull self);

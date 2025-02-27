@@ -28,11 +28,11 @@ extern errno_t FileChannel_Create(InodeRef _Nonnull pNode, unsigned int mode, IO
 ((FileChannelRef)(__self))->inode
 
 
-extern FileOffset FileChannel_GetFileSize(FileChannelRef _Nonnull self);
+extern off_t FileChannel_GetFileSize(FileChannelRef _Nonnull self);
 
 extern errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo);
 extern errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, UserId uid, GroupId gid, MutableFileInfo* _Nonnull pInfo);
 
-extern errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, FileOffset length);
+extern errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, off_t length);
 
 #endif /* FileChannel_h */

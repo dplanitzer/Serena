@@ -19,7 +19,7 @@ typedef void (*deinit_impl_t)(void* _Nonnull self);
 
 errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, InodeId id,
     FileType type, int linkCount, UserId uid, GroupId gid, FilePermissions permissions,
-    FileOffset size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
+    off_t size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
     InodeRef _Nullable * _Nonnull pOutNode)
 {
     InodeRef self;
@@ -227,7 +227,7 @@ errno_t Inode_write(InodeRef _Nonnull _Locked self, FileChannelRef _Nonnull _Loc
     return EIO;
 }
 
-errno_t Inode_truncate(InodeRef _Nonnull _Locked self, FileOffset length)
+errno_t Inode_truncate(InodeRef _Nonnull _Locked self, off_t length)
 {
     return EIO;
 }

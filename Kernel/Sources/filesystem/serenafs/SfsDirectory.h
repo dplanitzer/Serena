@@ -41,7 +41,7 @@ typedef struct sfs_query_result {
     InodeId                         id;
     LogicalBlockAddress             lba;            // LBA of the disk block that holds the directory entry
     size_t                          blockOffset;    // Byte offset to the directory entry relative to the disk block start
-    FileOffset                      fileOffset;     // Byte offset relative to the start of the directory file
+    off_t                           fileOffset;     // Byte offset relative to the start of the directory file
     sfs_insertion_hint_t* _Nullable ih;
 } sfs_query_result_t;
 

@@ -184,7 +184,7 @@ errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer
 }
 
 
-errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
+errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutOldPosition, int whence)
 {
     if (whence == kSeek_Set) {
         if (offset >= 0ll) {
@@ -200,13 +200,13 @@ errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, FileOffset offset, Fi
         }
     }
     else if(whence == kSeek_Current || whence == kSeek_End) {
-        const FileOffset refPos = (whence == kSeek_End) ? IOChannel_GetSeekableRange(self) : self->offset;
+        const off_t refPos = (whence == kSeek_End) ? IOChannel_GetSeekableRange(self) : self->offset;
             
         if (offset < 0ll && -offset > refPos) {
             return EINVAL;
         }
         else {
-            const FileOffset newOffset = refPos + offset;
+            const off_t newOffset = refPos + offset;
 
             if (newOffset < 0ll) {
                 return EOVERFLOW;
@@ -224,7 +224,7 @@ errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, FileOffset offset, Fi
     }
 }
 
-errno_t IOChannel_Seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset* pOutOldPosition, int whence)
+errno_t IOChannel_Seek(IOChannelRef _Nonnull self, off_t offset, off_t* pOutOldPosition, int whence)
 {
     decl_try_err();
 
@@ -240,7 +240,7 @@ errno_t IOChannel_Seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset
     return err;
 }
 
-FileOffset IOChannel_getSeekableRange(IOChannelRef _Nonnull _Locked self)
+off_t IOChannel_getSeekableRange(IOChannelRef _Nonnull _Locked self)
 {
     return 0ll;
 }

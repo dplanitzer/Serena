@@ -28,5 +28,5 @@ errno_t Directory_Read(int ioc, DirectoryEntry* _Nonnull entries, size_t nBytesT
 
 errno_t Directory_Rewind(int ioc)
 {
-    return (errno_t)_syscall(SC_seek, ioc, (FileOffset)0, NULL, kSeek_Set);
+    return (errno_t)_syscall(SC_seek, ioc, (off_t)0ll, NULL, kSeek_Set);
 }

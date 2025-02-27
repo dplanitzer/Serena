@@ -38,7 +38,7 @@ errno_t Process_WriteChannel(ProcessRef _Nonnull pProc, int ioc, const void* _No
     return err;
 }
 
-errno_t Process_SeekChannel(ProcessRef _Nonnull pProc, int ioc, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
+errno_t Process_SeekChannel(ProcessRef _Nonnull pProc, int ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence)
 {
     decl_try_err();
     IOChannelRef pChannel;

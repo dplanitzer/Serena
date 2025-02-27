@@ -84,13 +84,13 @@
 // Only mode (1) is supported by the I/O channel class at this time. Support for
 // the other modes is planned for the future.
 open_class(IOChannel, Any,
-    Lock            countLock;
-    int32_t         ownerCount;     // countLock
-    int32_t         useCount;       // countLock
-    uint16_t        mode;           // Constant
-    uint8_t         options;        // Constant
-    int8_t          channelType;    // Constant
-    FileOffset      offset;         // I/O channel lock
+    Lock        countLock;
+    int32_t     ownerCount;     // countLock
+    int32_t     useCount;       // countLock
+    uint16_t    mode;           // Constant
+    uint8_t     options;        // Constant
+    int8_t      channelType;    // Constant
+    off_t       offset;         // I/O channel lock
 );
 any_subclass_funcs(IOChannel,
     // Called once an I/O channel is ready to be deallocated for good. Overrides
@@ -133,13 +133,13 @@ any_subclass_funcs(IOChannel,
     // support seeking will return ESPIPE and 0 as the old position. The next
     // channel read/write operation will start reading/writing from this
     // position.
-    errno_t (*seek)(void* _Nonnull _Locked self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence);
+    errno_t (*seek)(void* _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
 
     // Invoked by seek() to get the size of the seekable space. The maximum
     // position to which a client is allowed to seek is this value minus one.
     // Override: Optional
     // Default Behavior: Returns 0
-    FileOffset (*getSeekableRange)(void* _Nonnull _Locked self);
+    off_t (*getSeekableRange)(void* _Nonnull _Locked self);
 
 
     // Execute an I/O channel specific command.
@@ -170,7 +170,7 @@ any_subclass_funcs(IOChannel,
 
 extern errno_t IOChannel_Read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 extern errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
-extern errno_t IOChannel_Seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence);
+extern errno_t IOChannel_Seek(IOChannelRef _Nonnull self, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
 
 extern errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...);
 extern errno_t IOChannel_vIoctl(IOChannelRef _Nonnull self, int cmd, va_list ap);
