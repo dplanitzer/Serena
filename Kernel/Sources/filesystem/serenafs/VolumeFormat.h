@@ -11,13 +11,34 @@
 
 #include <klib/Types.h>
 
-#define kSFSMaxFilenameLength           27
-#define kSFSDirectBlockPointersCount    113
-
 
 //
 // Serena FS Volume Format
 //
+
+typedef uint32_t sfs_bno_t;
+
+
+enum {
+    kSFSMaxFilenameLength = 27,
+    kSFSDirectBlockPointersCount = 111,
+};
+
+enum {
+    kSFSSignature_SerenaFS = 0x53654653,        // 'SeFS'
+    kSFSSignature_Inode = 0x6e6f6465,           // 'node'
+};
+
+// Semantic FS version. Encoded in a 32bit integer as:
+// xx_MA_MI_PA
+// where MA is the major version, MI the minor and PA the patch version. Each
+// version field occupies exactly one byte and each sub-version field is treated
+// as a unsigned binary encoded number.
+enum {
+    kSFSVersion_v0_1 = 0x00000100,              // v0.1.0
+    kSFSVersion_v1_0 = 0x00010000,              // v1.0.0
+    kSFSVersion_Current = kSFSVersion_v0_1,     // Version to use for formatting a new disk
+};
 
 
 // Meaning of 'reserved' bytes:
@@ -39,23 +60,8 @@ enum {
 // and other files needed to manage the filesystem.
 
 enum {
-    kSFSSignature_SerenaFS = 0x53654653,        // 'SeFS'
-};
-
-// Semantic FS version. Encoded in a 32bit integer as:
-// xx_MA_MI_PA
-// where MA is the major version, MI the minor and PA the patch version. Each
-// version field occupies exactly one byte and each sub-version field is treated
-// as a unsigned binary encoded number.
-enum {
-    kSFSVersion_v0_1 = 0x00000100,              // v0.1.0
-    kSFSVersion_v1_0 = 0x00010000,              // v1.0.0
-    kSFSVersion_Current = kSFSVersion_v0_1,     // Version to use for formatting a new disk
-};
-
-enum {
     kSFSVolAttrib_ReadOnly = 1,         // If set then the volume is (software) write protected. A volume is R/W-able if it is neither software nor hardware read-only
-    kSFSVolAttrib_IsConsistent = 2,     // OnMount() must clear this bit on the disk and onUnmount must set it on disk as the last write operation. If this bit is cleared on mount then the FS state on disk should be considered inconsistent
+    kSFSVolAttrib_IsConsistent = 2,     // Start() must clear this bit on the disk and onUnmount must set it on disk as the last write operation. If this bit is cleared on mount then the FS state on disk should be considered inconsistent
 };
 
 typedef struct sfs_datetime {
@@ -65,7 +71,7 @@ typedef struct sfs_datetime {
 
 
 typedef struct sfs_vol_header {
-    uint32_t        signature;
+    uint32_t        signature;                  // kSFSSignature_SerenaFS
     uint32_t        version;
     uint32_t        attributes;
 
@@ -76,8 +82,8 @@ typedef struct sfs_vol_header {
     uint32_t        volBlockCount;              // Size of the volume in terms of volume blocks
     uint32_t        allocBitmapByteSize;        // Size of allocation bitmap in bytes
 
-    uint32_t        lbaRootDir;                 // LBA of the root directory Inode
-    uint32_t        lbaAllocBitmap;             // LBA of the first block of the allocation bitmap area
+    sfs_bno_t       lbaRootDir;                 // LBA of the root directory Inode
+    sfs_bno_t       lbaAllocBitmap;             // LBA of the first block of the allocation bitmap area
     // All bytes from here to the end of the block are reserved
 } sfs_vol_header_t;
 
@@ -103,7 +109,6 @@ typedef struct sfs_vol_header {
 //
 // Block Map
 //
-typedef uint32_t sfs_bno_t;
 
 typedef struct sfs_bmap {
     sfs_bno_t   indirect;
@@ -118,6 +123,8 @@ typedef struct sfs_bmap {
 // XXX move to B-Trees for block mapping, directory content and extended
 // XXX attributes anyway.
 typedef struct sfs_inode {
+    uint32_t        signature;              // kSFSSignature_Inode
+    sfs_bno_t       id;                     // Id (lba) of this inode
     sfs_datetime_t  accessTime;
     sfs_datetime_t  modificationTime;
     sfs_datetime_t  statusChangeTime;

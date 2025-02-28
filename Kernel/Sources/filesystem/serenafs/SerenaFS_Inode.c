@@ -58,6 +58,8 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
 
     try(FSContainer_AcquireBlock(fsContainer, inodeLba, kAcquireBlock_Cleared, &pBlock));
     sfs_inode_t* ip = (sfs_inode_t*)DiskBlock_GetMutableData(pBlock);
+    ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
+    ip->id = UInt32_HostToBig(inodeLba);
     ip->accessTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     ip->accessTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
     ip->modificationTime.tv_sec = ip->accessTime.tv_sec;
@@ -113,32 +115,38 @@ errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, Inode
     DiskBlockRef pBlock;
 
     errno_t err = FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_ReadOnly, &pBlock);
-    if (err == EOK) {
-        const sfs_inode_t* ip = (const sfs_inode_t*)DiskBlock_GetData(pBlock);
-
-        switch (ip->type) {
-            case kFileType_Directory:
-                pClass = class(SfsDirectory);
-                break;
-
-            case kFileType_RegularFile:
-                pClass = class(SfsRegularFile);
-                break;
-
-            default:
-                pClass = NULL;
-                err = EIO;
-                break;
-        }
-
-        if (pClass) {
-            err = SfsFile_Create(pClass, self, id, ip, pOutNode);
-        }
-        FSContainer_RelinquishBlock(fsContainer, pBlock);
-    }
-    else {
+    if (err != EOK) {
         *pOutNode = NULL;
+        return err;
     }
+    
+    const sfs_inode_t* ip = (const sfs_inode_t*)DiskBlock_GetData(pBlock);
+    if (UInt32_BigToHost(ip->signature) != kSFSSignature_Inode || UInt32_BigToHost(ip->id) != id) {
+        FSContainer_RelinquishBlock(fsContainer, pBlock);
+        *pOutNode = NULL;
+        return EIO;
+    }
+
+    switch (ip->type) {
+        case kFileType_Directory:
+            pClass = class(SfsDirectory);
+            break;
+
+        case kFileType_RegularFile:
+            pClass = class(SfsRegularFile);
+            break;
+
+        default:
+            pClass = NULL;
+            err = EIO;
+            break;
+    }
+
+    if (pClass) {
+        err = SfsFile_Create(pClass, self, id, ip, pOutNode);
+    }
+    FSContainer_RelinquishBlock(fsContainer, pBlock);
+
     return err;
 }
 

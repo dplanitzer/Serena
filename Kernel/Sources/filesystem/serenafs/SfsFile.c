@@ -50,6 +50,8 @@ void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, sfs_inode_t* _Nonnull ip
     const TimeInterval modTime = (Inode_IsUpdated(self)) ? curTime : Inode_GetModificationTime(self);
     const TimeInterval chgTime = (Inode_IsStatusChanged(self)) ? curTime : Inode_GetStatusChangeTime(self);
 
+    ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
+    ip->id = UInt32_HostToBig(Inode_GetId(pNode));
     ip->accessTime.tv_sec = UInt32_HostToBig(accTime.tv_sec);
     ip->accessTime.tv_nsec = UInt32_HostToBig(accTime.tv_nsec);
     ip->modificationTime.tv_sec = UInt32_HostToBig(modTime.tv_sec);

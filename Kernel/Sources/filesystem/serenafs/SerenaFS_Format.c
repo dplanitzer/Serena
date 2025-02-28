@@ -96,6 +96,8 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, UserId uid, Gr
     // Write the root directory inode
     try(FSContainer_AcquireBlock(fsContainer, rootDirLba, kAcquireBlock_Cleared, &pBlock));
     sfs_inode_t* ip = (sfs_inode_t*)DiskBlock_GetMutableData(pBlock);
+    ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
+    ip->id = UInt32_HostToBig(rootDirLba);
     ip->accessTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     ip->accessTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
     ip->modificationTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
