@@ -11,11 +11,9 @@
 
 #include <klib/Types.h>
 
-#define kSFSMaxFilenameLength               27
-#define kSFSDirectBlockPointersCount        113
-#define kSFSIndirectBlockPointersCount      1
-#define kSFSInodeBlockPointersCount         (kSFSDirectBlockPointersCount + kSFSIndirectBlockPointersCount)
-#define kSFSBlockPointersPerBlockCount      128
+#define kSFSMaxFilenameLength           27
+#define kSFSDirectBlockPointersCount    113
+#define kSFSBlockPointersPerBlockCount  128
 
 
 //
@@ -104,18 +102,22 @@ typedef struct sfs_vol_header {
 
 
 //
+// Block Map
+//
+typedef uint32_t sfs_bno_t;
+
+typedef struct sfs_bmap {
+    sfs_bno_t   indirect;
+    sfs_bno_t   direct[kSFSDirectBlockPointersCount];
+} sfs_bmap_t;
+
+
+//
 // Inodes
 //
-// NOTE: disk nodes own the data blocks of a file/directory. Inodes are set up
-// with a pointer to the disk node block map. So inodes manipulate the block map
-// directly instead of copying it back and forth. That's okay because the inode
-// lock effectively protects the disk node sitting behind the inode. 
-
 // XXX currently limited to file sizes of 122k. That's fine for now since we'll
 // XXX move to B-Trees for block mapping, directory content and extended
 // XXX attributes anyway.
-typedef uint32_t sfs_bno_t;
-
 typedef struct sfs_inode {
     sfs_datetime_t  accessTime;
     sfs_datetime_t  modificationTime;
@@ -127,7 +129,7 @@ typedef struct sfs_inode {
     uint16_t        permissions;
     uint8_t         type;
     uint8_t         reserved;
-    sfs_bno_t       bp[kSFSInodeBlockPointersCount];
+    sfs_bmap_t      bmap;
 } sfs_inode_t;
 
 

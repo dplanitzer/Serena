@@ -32,7 +32,10 @@ errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, InodeId 
         TimeInterval_Make(UInt32_BigToHost(ip->statusChangeTime.tv_sec), UInt32_BigToHost(ip->statusChangeTime.tv_nsec)),
         (InodeRef*)&self);
     if (err == EOK) {
-        memcpy(self->direct, ip->bp, sizeof(sfs_bno_t) * kSFSInodeBlockPointersCount);
+        self->bmap.indirect = ip->bmap.indirect;
+        for (size_t i = 0; i < kSFSDirectBlockPointersCount; i++) {
+            self->bmap.direct[i] = ip->bmap.direct[i];
+        }
     }
     *pOutNode = (InodeRef)self;
 
@@ -60,7 +63,10 @@ void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, sfs_inode_t* _Nonnull ip
     ip->permissions = UInt16_HostToBig(Inode_GetFilePermissions(self));
     ip->type = Inode_GetFileType(self);
 
-    memcpy(ip->bp, SfsFile_GetBlockMap(self), sizeof(uint32_t) * kSFSInodeBlockPointersCount);
+    ip->bmap.indirect = self->bmap.indirect;
+    for (size_t i = 0; i < kSFSDirectBlockPointersCount; i++) {
+        ip->bmap.direct[i] = self->bmap.direct[i];
+    }
 }
 
 // Acquires the disk block 'lba' if lba is > 0; otherwise allocates a new block.
@@ -105,23 +111,23 @@ errno_t SfsFile_AcquireBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, Ac
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
-    sfs_bno_t* ino_bmap = SfsFile_GetBlockMap(self);
+    sfs_bmap_t* bmap = &self->bmap;
     bool isAlloc;
 
     if (fba < kSFSDirectBlockPointersCount) {
-        LogicalBlockAddress dat_lba = UInt32_BigToHost(ino_bmap[fba]);
+        LogicalBlockAddress dat_lba = UInt32_BigToHost(bmap->direct[fba]);
 
-        return acquire_disk_block(fs, dat_lba, mode, &ino_bmap[fba], &isAlloc, pOutBlock);
+        return acquire_disk_block(fs, dat_lba, mode, &bmap->direct[fba], &isAlloc, pOutBlock);
     }
     fba -= kSFSDirectBlockPointersCount;
 
 
     if (fba < kSFSBlockPointersPerBlockCount) {
         DiskBlockRef i0_block;
-        LogicalBlockAddress i0_lba = UInt32_BigToHost(ino_bmap[kSFSDirectBlockPointersCount]);
+        LogicalBlockAddress i0_lba = UInt32_BigToHost(bmap->indirect);
 
         // Get the indirect block
-        try(acquire_disk_block(fs, i0_lba, kAcquireBlock_Update, &ino_bmap[kSFSDirectBlockPointersCount], &isAlloc, &i0_block));
+        try(acquire_disk_block(fs, i0_lba, kAcquireBlock_Update, &bmap->indirect, &isAlloc, &i0_block));
 
 
         // Get the data block
@@ -163,44 +169,44 @@ void SfsFile_xTruncate(SfsFileRef _Nonnull _Locked self, off_t newLength)
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     const off_t oldLength = Inode_GetFileSize(self);
-    sfs_bno_t* ino_bmap = SfsFile_GetBlockMap(self);
+    sfs_bmap_t* bmap = &self->bmap;
     const sfs_bno_t bn_nlen = (sfs_bno_t)(newLength >> (off_t)fs->blockShift);   //XXX should be 64bit
     const size_t boff_nlen = newLength & (off_t)fs->blockMask;
     sfs_bno_t bn_first_to_discard = (boff_nlen > 0) ? bn_nlen + 1 : bn_nlen;   // first block to discard (the block that contains newLength or that is right in front of newLength)
 
     if (bn_first_to_discard < kSFSDirectBlockPointersCount) {
-        for (sfs_bno_t bn = bn_first_to_discard; bn < kSFSDirectBlockPointersCount; bn++) {
-            if (ino_bmap[bn] != 0) {
-                SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(ino_bmap[bn]));
-                ino_bmap[bn] = 0;
+        for (size_t bn = bn_first_to_discard; bn < kSFSDirectBlockPointersCount; bn++) {
+            if (bmap->direct[bn] > 0) {
+                SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(bmap->direct[bn]));
+                bmap->direct[bn] = 0;
             }
         }
     }
 
-    const sfs_bno_t bn_first_i1_to_discard = (bn_first_to_discard < kSFSDirectBlockPointersCount) ? 0 : bn_first_to_discard - kSFSDirectBlockPointersCount;
-    const LogicalBlockAddress i1_lba = UInt32_BigToHost(ino_bmap[kSFSDirectBlockPointersCount]);
+    const size_t bn_first_i0_to_discard = (bn_first_to_discard < kSFSDirectBlockPointersCount) ? 0 : bn_first_to_discard - kSFSDirectBlockPointersCount;
+    const LogicalBlockAddress i0_lba = UInt32_BigToHost(bmap->indirect);
 
-    if (i1_lba != 0) {
+    if (i0_lba != 0) {
         DiskBlockRef pBlock;
 
-        err = FSContainer_AcquireBlock(fsContainer, i1_lba, kAcquireBlock_Update, &pBlock);
+        err = FSContainer_AcquireBlock(fsContainer, i0_lba, kAcquireBlock_Update, &pBlock);
         if (err == EOK) {
-            sfs_bno_t* i1_bmap = (sfs_bno_t*)DiskBlock_GetMutableData(pBlock);
+            sfs_bno_t* i0_bmap = (sfs_bno_t*)DiskBlock_GetMutableData(pBlock);
 
-            for (sfs_bno_t bn = bn_first_i1_to_discard; bn < kSFSBlockPointersPerBlockCount; bn++) {
-                if (i1_bmap[bn] != 0) {
-                    SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(i1_bmap[bn]));
-                    i1_bmap[bn] = 0;
+            for (size_t bn = bn_first_i0_to_discard; bn < kSFSBlockPointersPerBlockCount; bn++) {
+                if (i0_bmap[bn] != 0) {
+                    SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(i0_bmap[bn]));
+                    i0_bmap[bn] = 0;
                 }
             }
 
-            if (bn_first_i1_to_discard == 0) {
-                // We removed the whole i1 level
-                ino_bmap[kSFSDirectBlockPointersCount] = 0;
-                // XXX no need to write back the abandoned i1 block?
+            if (bn_first_i0_to_discard == 0) {
+                // We removed the whole i0 level
+                bmap->indirect = 0;
+                // XXX no need to write back the abandoned i0 block?
             }
             else {
-                // We partially removed the i1 level
+                // We partially removed the i0 level
             }
 
             FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);

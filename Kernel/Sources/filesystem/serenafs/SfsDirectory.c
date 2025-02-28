@@ -270,7 +270,7 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
     }
     else {
         // Append a new entry
-        sfs_bno_t* ino_bmap = SfsFile_GetBlockMap(self);
+        sfs_bmap_t* bmap = SfsFile_GetBlockMap(self);
         const off_t dirSize = Inode_GetFileSize(self);
         const size_t remainder = (size_t)(dirSize & (off_t)fs->blockMask);
         LogicalBlockAddress lba;
@@ -279,15 +279,15 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
 
         if (remainder > 0) {
             idx = (int)(dirSize >> (off_t)fs->blockShift);
-            lba = UInt32_BigToHost(ino_bmap[idx]);
+            lba = UInt32_BigToHost(bmap->direct[idx]);
 
             try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Update, &pBlock));
             uint8_t* bp = DiskBlock_GetMutableData(pBlock);
             dep = (sfs_dirent_t*)(bp + remainder);
         }
         else {
-            for (int i = 0; i < kSFSDirectBlockPointersCount; i++) {
-                if (ino_bmap[i] == 0) {
+            for (size_t i = 0; i < kSFSDirectBlockPointersCount; i++) {
+                if (bmap->direct[i] == 0) {
                     idx = i;
                     break;
                 }
@@ -298,7 +298,7 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
 
             try(SfsAllocator_Allocate(&fs->blockAllocator, &lba));
             try(SfsAllocator_CommitToDisk(&fs->blockAllocator, fsContainer));
-            ino_bmap[idx] = UInt32_HostToBig(lba);
+            bmap->direct[idx] = UInt32_HostToBig(lba);
             
             try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Cleared, &pBlock));
             dep = (sfs_dirent_t*)DiskBlock_GetMutableData(pBlock);

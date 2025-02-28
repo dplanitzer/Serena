@@ -15,7 +15,7 @@
 
 
 open_class(SfsFile, Inode,
-    sfs_bno_t   direct[kSFSInodeBlockPointersCount];
+    sfs_bmap_t  bmap;
 );
 open_class_funcs(SfsFile, Inode,
 );
@@ -32,6 +32,6 @@ extern void SfsFile_xTruncate(SfsFileRef _Nonnull _Locked self, off_t newLength)
 // Returns the top-level of the inode's associated block map. Note that all block
 // addresses in the block map are in big-endian byte order (even in core memory).
 #define SfsFile_GetBlockMap(__self) \
-((SfsFileRef)__self)->direct
+&(((SfsFileRef)__self)->bmap)
 
 #endif /* SfsFile_h */

@@ -70,7 +70,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     ip->linkCount = Int32_HostToBig(1);
     ip->permissions = UInt16_HostToBig(permissions);
     ip->type = type;
-    ip->bp[0] = UInt32_HostToBig(dirContLba);
+    ip->bmap.direct[0] = UInt32_HostToBig(dirContLba);
     FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
     pBlock = NULL;
 
@@ -161,26 +161,26 @@ static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, FSCo
 {
     decl_try_err();
     DiskBlockRef pBlock;
-    const sfs_bno_t* l0_bmap = (const sfs_bno_t*)SfsFile_GetBlockMap(pNode);
+    const sfs_bmap_t* bmap = SfsFile_GetBlockMap(pNode);
 
-    if (l0_bmap[kSFSDirectBlockPointersCount] != 0) {
-        if ((err = FSContainer_AcquireBlock(fsContainer, UInt32_BigToHost(l0_bmap[kSFSDirectBlockPointersCount]), kAcquireBlock_Update, &pBlock)) == EOK) {
-            sfs_bno_t* l1_bmap = (sfs_bno_t*)DiskBlock_GetData(pBlock);
+    if (bmap->indirect > 0) {
+        if ((err = FSContainer_AcquireBlock(fsContainer, UInt32_BigToHost(bmap->indirect), kAcquireBlock_Update, &pBlock)) == EOK) {
+            sfs_bno_t* l0_bmap = (sfs_bno_t*)DiskBlock_GetData(pBlock);
 
-            for (int i = 0; i < kSFSBlockPointersPerBlockCount; i++) {
-                if (l1_bmap[i] != 0) {
-                    SfsAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(l1_bmap[i]));
+            for (size_t i = 0; i < kSFSBlockPointersPerBlockCount; i++) {
+                if (l0_bmap[i] > 0) {
+                    SfsAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(l0_bmap[i]));
                 }
             }
 
             FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
         }
-        SfsAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(l0_bmap[kSFSDirectBlockPointersCount]));
+        SfsAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(bmap->indirect));
     }
 
-    for (int i = 0; i < kSFSDirectBlockPointersCount; i++) {
-        if (l0_bmap[i] != 0) {
-            SfsAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(l0_bmap[i]));
+    for (size_t i = 0; i < kSFSDirectBlockPointersCount; i++) {
+        if (bmap->direct[i] > 0) {
+            SfsAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(bmap->direct[i]));
         }
     }
 }
