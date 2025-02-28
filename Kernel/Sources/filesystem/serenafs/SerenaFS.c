@@ -93,9 +93,10 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
     try(SfsAllocator_Start(&self->blockAllocator, fsContainer, vhp, blockSize));
 
 
-    // Calculate the volume block shift and mask values
+    // Calculate various parameters that depend on the concrete disk block size
     self->blockShift = FSLog2(blockSize);
     self->blockMask = blockSize - 1;
+    self->indirectBlockEntryCount = blockSize / sizeof(sfs_bno_t);
 
 
     self->mountFlags.isMounted = 1;

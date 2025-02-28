@@ -167,7 +167,7 @@ static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, FSCo
         if ((err = FSContainer_AcquireBlock(fsContainer, UInt32_BigToHost(bmap->indirect), kAcquireBlock_Update, &pBlock)) == EOK) {
             sfs_bno_t* l0_bmap = (sfs_bno_t*)DiskBlock_GetData(pBlock);
 
-            for (size_t i = 0; i < kSFSBlockPointersPerBlockCount; i++) {
+            for (size_t i = 0; i < self->indirectBlockEntryCount; i++) {
                 if (l0_bmap[i] > 0) {
                     SfsAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(l0_bmap[i]));
                 }

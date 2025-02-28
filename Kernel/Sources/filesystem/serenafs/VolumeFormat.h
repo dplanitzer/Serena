@@ -13,7 +13,6 @@
 
 #define kSFSMaxFilenameLength           27
 #define kSFSDirectBlockPointersCount    113
-#define kSFSBlockPointersPerBlockCount  128
 
 
 //

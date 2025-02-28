@@ -122,7 +122,7 @@ errno_t SfsFile_AcquireBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, Ac
     fba -= kSFSDirectBlockPointersCount;
 
 
-    if (fba < kSFSBlockPointersPerBlockCount) {
+    if (fba < fs->indirectBlockEntryCount) {
         DiskBlockRef i0_block;
         LogicalBlockAddress i0_lba = UInt32_BigToHost(bmap->indirect);
 
@@ -193,7 +193,7 @@ void SfsFile_xTruncate(SfsFileRef _Nonnull _Locked self, off_t newLength)
         if (err == EOK) {
             sfs_bno_t* i0_bmap = (sfs_bno_t*)DiskBlock_GetMutableData(pBlock);
 
-            for (size_t bn = bn_first_i0_to_discard; bn < kSFSBlockPointersPerBlockCount; bn++) {
+            for (size_t bn = bn_first_i0_to_discard; bn < fs->indirectBlockEntryCount; bn++) {
                 if (i0_bmap[bn] != 0) {
                     SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(i0_bmap[bn]));
                     i0_bmap[bn] = 0;

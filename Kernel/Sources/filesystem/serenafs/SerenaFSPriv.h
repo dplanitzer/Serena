@@ -31,6 +31,7 @@ final_class_ivars(SerenaFS, ContainerFilesystem,
     
     uint32_t                blockShift;
     uint32_t                blockMask;
+    size_t                  indirectBlockEntryCount;        // Number of block pointers in an indirect block
 
     LogicalBlockAddress     lbaRootDir;                     // Root directory LBA (This is the inode id at the same time)
 
