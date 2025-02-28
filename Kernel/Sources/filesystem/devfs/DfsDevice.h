@@ -20,7 +20,7 @@ open_class_funcs(DfsDevice, Inode,
 );
 
 
-extern errno_t DfsDevice_Create(DevFSRef _Nonnull fs, InodeId inid, DfsDeviceItem* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode);
+extern errno_t DfsDevice_Create(DevFSRef _Nonnull fs, ino_t inid, DfsDeviceItem* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode);
 extern void DfsDevice_Serialize(InodeRef _Nonnull _Locked pNode);
 
 #define DfsDevice_GetItem(__self) \

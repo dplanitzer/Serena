@@ -66,8 +66,8 @@ typedef struct SpawnOptions {
     const char* _Nullable               root_dir;               // Process root directory, if not NULL; otherwise inherited from the parent
     const char* _Nullable               cw_dir;                 // Process current working directory, if not NULL; otherwise inherited from the parent
     FilePermissions                     umask;                  // Override umask
-    UserId                              uid;                    // Override user ID
-    GroupId                             gid;                    // Override group ID
+    uid_t                               uid;                    // Override user ID
+    gid_t                               gid;                    // Override group ID
     int                                 notificationQueue;      // If kSpawn_NotifyOnProcessTermination is set, then this queue will receive termination notifications
     Dispatch_Closure _Nullable          notificationClosure;
     void* _Nullable                     notificationContext;
@@ -77,8 +77,8 @@ typedef struct SpawnOptions {
 
 // The result of a Process_WaitForTerminationOfChild() system call.
 typedef struct ProcessTerminationStatus {
-    ProcessId   pid;        // PID of the child process
-    int         status;     // Child process exit status
+    pid_t   pid;        // PID of the child process
+    int     status;     // Child process exit status
 } ProcessTerminationStatus;
 
 
@@ -95,16 +95,16 @@ extern FilePermissions Process_GetUserMask(void);
 extern void Process_SetUserMask(FilePermissions mask);
 
 
-extern ProcessId Process_GetId(void);
-extern ProcessId Process_GetParentId(void);
+extern pid_t Process_GetId(void);
+extern pid_t Process_GetParentId(void);
 
 
-extern UserId Process_GetUserId(void);
-extern GroupId Process_GetGroupId(void);
+extern uid_t Process_GetUserId(void);
+extern gid_t Process_GetGroupId(void);
 
 
-extern errno_t Process_Spawn(const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable options, ProcessId* _Nullable rpid);
-extern errno_t Process_WaitForTerminationOfChild(ProcessId pid, ProcessTerminationStatus* _Nullable result);
+extern errno_t Process_Spawn(const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable options, pid_t* _Nullable rpid);
+extern errno_t Process_WaitForTerminationOfChild(pid_t pid, ProcessTerminationStatus* _Nullable result);
 
 extern ProcessArguments* _Nonnull Process_GetArguments(void);
 

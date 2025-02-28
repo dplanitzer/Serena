@@ -13,13 +13,13 @@
 
 
 // Returns the next available FSID.
-static FilesystemId Filesystem_GetNextAvailableId(void)
+static fsid_t Filesystem_GetNextAvailableId(void)
 {
     // XXX want to:
     // XXX handle overflow (wrap around)
     // XXX make sure the generated id isn't actually in use by someone else
     static volatile AtomicInt gNextAvailableId = 0;
-    return (FilesystemId) AtomicInt_Increment(&gNextAvailableId);
+    return (fsid_t) AtomicInt_Increment(&gNextAvailableId);
 }
 
 errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOutFileSys)
@@ -60,7 +60,7 @@ catch:
     return err;
 }
 
-errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef pNode = NULL;
@@ -148,7 +148,7 @@ bool Filesystem_CanUnmount(FilesystemRef _Nonnull self)
     return ok;
 }
 
-errno_t Filesystem_onReadNodeFromDisk(FilesystemRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t Filesystem_onReadNodeFromDisk(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return EIO;
 }
@@ -180,7 +180,7 @@ errno_t Filesystem_acquireRootDirectory(FilesystemRef _Nonnull self, InodeRef _N
     return EIO;
 }
 
-errno_t Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
+errno_t Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, uid_t uid, gid_t gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
 {
     if (pOutNode) {
         *pOutNode = NULL;
@@ -193,13 +193,13 @@ errno_t Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Non
     }
 }
 
-errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, UserId uid, GroupId gid, MutablePathComponent* _Nonnull pName)
+errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, ino_t id, uid_t uid, gid_t gid, MutablePathComponent* _Nonnull pName)
 {
     pName->count = 0;
     return EIO;
 }
 
-errno_t Filesystem_createNode(FilesystemRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t Filesystem_createNode(FilesystemRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return EIO;
 }
@@ -214,12 +214,12 @@ errno_t Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked
     return EACCESS;
 }
 
-errno_t Filesystem_move(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, UserId uid, GroupId gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
+errno_t Filesystem_move(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, uid_t uid, gid_t gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
 {
     return EACCESS;
 }
 
-errno_t Filesystem_rename(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, UserId uid, GroupId gid)
+errno_t Filesystem_rename(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, uid_t uid, gid_t gid)
 {
     return EACCESS;
 }

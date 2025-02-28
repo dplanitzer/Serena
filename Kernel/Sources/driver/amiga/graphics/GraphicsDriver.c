@@ -65,7 +65,7 @@ void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull sel
 
 static errno_t GraphicsDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    return Driver_Publish(self, kFramebufferName, kRootUserId, kRootGroupId, FilePermissions_MakeFromOctal(0666), 0);
+    return Driver_Publish(self, kFramebufferName, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0666), 0);
 }
 
 errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, int cmd, va_list ap)

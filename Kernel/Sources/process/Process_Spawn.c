@@ -11,7 +11,7 @@
 #include "UDispatchQueue.h"
 
 
-errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable pOptions, ProcessId * _Nullable pOutChildPid)
+errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable pOptions, pid_t * _Nullable pOutChildPid)
 {
     decl_try_err();
     ProcessRef pChildProc = NULL;
@@ -40,8 +40,8 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
 
-    UserId childUid = pProc->fm.ruid;
-    GroupId childGid = pProc->fm.rgid;
+    uid_t childUid = pProc->fm.ruid;
+    gid_t childGid = pProc->fm.rgid;
     FilePermissions childUMask = FileManager_GetFileCreationMask(&pProc->fm);
     if ((so.options & kSpawn_OverrideUserMask) == kSpawn_OverrideUserMask) {
         childUMask = so.umask & 0777;
@@ -113,13 +113,13 @@ catch:
 
 // Adopts the process with the given PID as a child. The ppid of 'pOtherProc' must
 // be the PID of the receiver.
-errno_t Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, ProcessId childPid)
+errno_t Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, pid_t childPid)
 {
     return IntArray_Add(&pProc->childPids, childPid);
 }
 
 // Abandons the process with the given PID as a child of the receiver.
-void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, ProcessId childPid)
+void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, pid_t childPid)
 {
     IntArray_Remove(&pProc->childPids, childPid);
 }

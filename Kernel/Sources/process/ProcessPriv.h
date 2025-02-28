@@ -35,8 +35,8 @@ typedef struct ProcessTombstone {
 final_class_ivars(Process, Object,
     Lock                            lock;
     
-    ProcessId                       ppid;       // parent's PID
-    ProcessId                       pid;        // my PID
+    pid_t                           ppid;       // parent's PID
+    pid_t                           pid;        // my PID
 
     DispatchQueueRef _Nonnull _Weak mainDispatchQueue;
     AddressSpaceRef _Nonnull        addressSpace;
@@ -66,7 +66,7 @@ final_class_ivars(Process, Object,
 );
 
 
-extern errno_t Process_Create(ProcessId ppid, FileHierarchyRef _Nonnull pFileHierarchy, UserId uid, GroupId gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutSelf);
+extern errno_t Process_Create(pid_t ppid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutSelf);
 extern void Process_deinit(ProcessRef _Nonnull self);
 
 // Frees all tombstones
@@ -87,10 +87,10 @@ extern void _Process_DoTerminate(ProcessRef _Nonnull self);
 
 // Adopts the process wth the given PID as a child. The ppid of 'pOtherProc' must
 // be the PID of the receiver.
-extern errno_t Process_AdoptChild_Locked(ProcessRef _Nonnull self, ProcessId childPid);
+extern errno_t Process_AdoptChild_Locked(ProcessRef _Nonnull self, pid_t childPid);
 
 // Abandons the process with the given PID as a child of the receiver.
-extern void Process_AbandonChild_Locked(ProcessRef _Nonnull self, ProcessId childPid);
+extern void Process_AbandonChild_Locked(ProcessRef _Nonnull self, pid_t childPid);
 
 // Loads an executable from the given executable file into the process address
 // space.

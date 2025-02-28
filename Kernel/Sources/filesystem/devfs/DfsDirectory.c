@@ -14,7 +14,7 @@
 #include <kobj/AnyRefs.h>
 
 
-errno_t DfsDirectory_Create(DevFSRef _Nonnull fs, InodeId inid, DfsDirectoryItem* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t DfsDirectory_Create(DevFSRef _Nonnull fs, ino_t inid, DfsDirectoryItem* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     DfsDirectoryRef self;
@@ -82,7 +82,7 @@ errno_t DfsDirectory_read(InodeRef _Nonnull _Locked self, DirectoryChannelRef _N
 
     // Read as many entries as we can fit into 'nBytesToRead'
     while (curEntry && nBytesToRead >= sizeof(DirectoryEntry)) {
-        pOutEntry->inodeId = curEntry->inid;
+        pOutEntry->inid = curEntry->inid;
         memcpy(pOutEntry->name, curEntry->name, curEntry->nameLength);
         pOutEntry->name[curEntry->nameLength] = '\0';
 

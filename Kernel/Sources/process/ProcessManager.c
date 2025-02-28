@@ -54,7 +54,7 @@ ProcessRef _Nonnull ProcessManager_CopyRootProcess(ProcessManagerRef _Nonnull se
 // registered with the process manager and otherwise returns a strong reference
 // to the process object. The caller is responsible for releasing the reference
 // once no longer needed.
-ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull self, ProcessId pid)
+ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull self, pid_t pid)
 {
     ProcessRef pProc = NULL;
 

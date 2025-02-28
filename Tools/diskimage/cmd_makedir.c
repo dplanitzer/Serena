@@ -13,7 +13,7 @@
 #include <string.h>
 
 
-static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnull path, FilePermissions perms, UserId uid, GroupId gid)
+static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnull path, FilePermissions perms, uid_t uid, gid_t gid)
 {
     decl_try_err();
 
@@ -34,7 +34,7 @@ static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnul
     return err;
 }
 
-static errno_t _create_directory_recursively(DiskControllerRef _Nonnull self, char* _Nonnull path, FilePermissions permissions, UserId uid, GroupId gid)
+static errno_t _create_directory_recursively(DiskControllerRef _Nonnull self, char* _Nonnull path, FilePermissions permissions, uid_t uid, gid_t gid)
 {
     decl_try_err();
     char* p = path;
@@ -75,7 +75,7 @@ static errno_t _create_directory_recursively(DiskControllerRef _Nonnull self, ch
 // may now come back with ENOENT because X was empty and it got deleted by
 // another process. We simply start over again from the root of our path in
 // this case.
-static errno_t create_directory_recursively(DiskControllerRef _Nonnull self, char* _Nonnull path, FilePermissions permissions, UserId uid, GroupId gid)
+static errno_t create_directory_recursively(DiskControllerRef _Nonnull self, char* _Nonnull path, FilePermissions permissions, uid_t uid, gid_t gid)
 {
     decl_try_err();
     int i = 0;
@@ -96,7 +96,7 @@ static errno_t create_directory_recursively(DiskControllerRef _Nonnull self, cha
 ////////////////////////////////////////////////////////////////////////////////
 
 
-errno_t cmd_makedir(bool shouldCreateParents, FilePermissions dirPerms, UserId uid, GroupId gid, const char* _Nonnull path_, const char* _Nonnull dmgPath)
+errno_t cmd_makedir(bool shouldCreateParents, FilePermissions dirPerms, uid_t uid, gid_t gid, const char* _Nonnull path_, const char* _Nonnull dmgPath)
 {
     decl_try_err();
     DiskControllerRef self;

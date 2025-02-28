@@ -15,7 +15,7 @@
 // 'pDir'.
 // NOTE: this function does not verify that the new entry is unique. The caller
 // has to ensure that it doesn't try to add a duplicate entry to the directory.
-errno_t DevFS_InsertDirectoryEntry(DevFSRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, InodeId inid, const PathComponent* _Nonnull pName)
+errno_t DevFS_InsertDirectoryEntry(DevFSRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, ino_t inid, const PathComponent* _Nonnull pName)
 {
     decl_try_err();
     DfsDirectoryItem* ip = DfsDirectory_GetItem(pDir);
@@ -33,7 +33,7 @@ errno_t DevFS_InsertDirectoryEntry(DevFSRef _Nonnull _Locked self, InodeRef _Non
     return err;
 }
 
-errno_t DevFS_RemoveDirectoryEntry(DevFSRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, InodeId idToRemove)
+errno_t DevFS_RemoveDirectoryEntry(DevFSRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, ino_t idToRemove)
 {
     const errno_t err = DfsDirectoryItem_RemoveEntry(DfsDirectory_GetItem(pDir), idToRemove);
     
@@ -52,7 +52,7 @@ errno_t DevFS_acquireRootDirectory(DevFSRef _Nonnull self, InodeRef _Nullable * 
     return err;
 }
 
-errno_t DevFS_acquireNodeForName(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
+errno_t DevFS_acquireNodeForName(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, uid_t uid, gid_t gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
 {
     decl_try_err();
     DfsDirectoryEntry* entry;
@@ -69,7 +69,7 @@ errno_t DevFS_acquireNodeForName(DevFSRef _Nonnull self, InodeRef _Nonnull _Lock
     return err;
 }
 
-errno_t DevFS_getNameOfNode(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, UserId uid, GroupId gid, MutablePathComponent* _Nonnull pName)
+errno_t DevFS_getNameOfNode(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, ino_t id, uid_t uid, gid_t gid, MutablePathComponent* _Nonnull pName)
 {
     try_bang(SELock_LockShared(&self->seLock));
     const errno_t err = DfsDirectoryItem_GetNameOfEntryWithId(DfsDirectory_GetItem(pDir), id, pName);

@@ -18,7 +18,7 @@
 __CPP_BEGIN
 
 typedef struct DirectoryEntry {
-    InodeId     inodeId;
+    ino_t       inid;
     char        name[__PATH_COMPONENT_MAX];
 } DirectoryEntry;
 

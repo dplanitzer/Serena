@@ -12,7 +12,7 @@
 #include <kobj/AnyRefs.h>
 
 
-errno_t DfsDevice_Create(DevFSRef _Nonnull fs, InodeId inid, DfsDeviceItem* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t DfsDevice_Create(DevFSRef _Nonnull fs, ino_t inid, DfsDeviceItem* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     DfsDeviceRef self;

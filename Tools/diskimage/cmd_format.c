@@ -11,7 +11,7 @@
 #include <string.h>
 
 
-errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, UserId rootDirUid, GroupId rootDirGid, const char* _Nonnull fsType, const char* _Nonnull dmgPath)
+errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull dmgPath)
 {
     decl_try_err();
     RamFSContainerRef fsContainer = NULL;

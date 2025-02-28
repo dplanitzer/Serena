@@ -12,12 +12,12 @@
 #include <System/ByteOrder.h>
 
 
-errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, sfs_insertion_hint_t* _Nullable pDirInsertionHint, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, sfs_insertion_hint_t* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const TimeInterval curTime = FSGetCurrentTime();
-    InodeId parentInodeId = Inode_GetId(dir);
+    ino_t parentInodeId = Inode_GetId(dir);
     LogicalBlockAddress inodeLba = 0;
     LogicalBlockAddress dirContLba = 0;
     off_t fileSize = 0ll;
@@ -77,7 +77,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     pBlock = NULL;
 
 
-    try(Filesystem_AcquireNodeWithId((FilesystemRef)self, (InodeId)inodeLba, &pNode));
+    try(Filesystem_AcquireNodeWithId((FilesystemRef)self, (ino_t)inodeLba, &pNode));
     try(SfsDirectory_InsertEntry(dir, name, Inode_GetId(pNode), pDirInsertionHint));
 
     if (type == kFileType_Directory) {
@@ -107,7 +107,7 @@ catch:
     return err;
 }
 
-errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode)
 {
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const LogicalBlockAddress lba = (LogicalBlockAddress)id;

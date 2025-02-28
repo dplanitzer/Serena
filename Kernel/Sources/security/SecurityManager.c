@@ -32,13 +32,13 @@ catch:
     return err;
 }
 
-errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeRef _Nonnull _Locked pNode, UserId uid, GroupId gid, AccessMode mode)
+errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeRef _Nonnull _Locked pNode, uid_t uid, gid_t gid, AccessMode mode)
 {
     const FilePermissions nodePerms = Inode_GetFilePermissions(pNode);
     FilePermissions reqPerms = 0;
 
     // XXX probably temporary until we're getting around to designing a full permission model
-    if (uid == kRootUserId) {
+    if (uid == kUserId_Root) {
         return EOK;
     }
     // XXX
@@ -80,7 +80,7 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
     }
 }
 
-bool SecurityManager_IsSuperuser(SecurityManagerRef _Nonnull self, UserId uid)
+bool SecurityManager_IsSuperuser(SecurityManagerRef _Nonnull self, uid_t uid)
 {
-    return uid == kRootUserId;
+    return uid == kUserId_Root;
 }

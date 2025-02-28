@@ -20,7 +20,7 @@ open_class_funcs(DfsDirectory, Inode,
 );
 
 
-extern errno_t DfsDirectory_Create(DevFSRef _Nonnull fs, InodeId inid, DfsDirectoryItem* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode);
+extern errno_t DfsDirectory_Create(DevFSRef _Nonnull fs, ino_t inid, DfsDirectoryItem* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode);
 extern void DfsDirectory_Serialize(InodeRef _Nonnull _Locked pNode);
 
 #define DfsDirectory_GetItem(__self) \

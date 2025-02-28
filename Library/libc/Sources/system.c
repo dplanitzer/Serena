@@ -14,7 +14,7 @@
 int system(const char *string)
 {
     decl_try_err();
-    ProcessId shPid;
+    pid_t shPid;
     ProcessTerminationStatus pts;
     SpawnOptions opts = {0};
     const char* argv[4];

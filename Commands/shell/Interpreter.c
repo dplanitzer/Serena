@@ -222,7 +222,7 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
     static const char* gSearchPath = "/System/Commands/";
 
     decl_try_err();
-    ProcessId childPid;
+    pid_t childPid;
     char* cmdPath = NULL;
     const bool needsSearchPath = should_use_search_path(argv[0]);
     const size_t searchPathLen = (needsSearchPath) ? strlen(gSearchPath) : 0;

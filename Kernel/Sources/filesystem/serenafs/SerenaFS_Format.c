@@ -13,7 +13,7 @@
 // Formats the given disk drive and installs a SerenaFS with an empty root
 // directory on it. 'user' and 'permissions' are the user and permissions that
 // should be assigned to the root directory.
-errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, UserId uid, GroupId gid, FilePermissions permissions)
+errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, uid_t uid, gid_t gid, FilePermissions permissions)
 {
     decl_try_err();
     DiskBlockRef pBlock;

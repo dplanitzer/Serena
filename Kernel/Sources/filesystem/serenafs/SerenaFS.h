@@ -18,7 +18,7 @@ final_class(SerenaFS, ContainerFilesystem);
 // Formats the given disk drive and installs a SerenaFS with an empty root
 // directory on it. 'user' and 'permissions' are the user and permissions that
 // should be assigned to the root directory.
-extern errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull pContainer, UserId uid, GroupId gid, FilePermissions permissions);
+extern errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull pContainer, uid_t uid, gid_t gid, FilePermissions permissions);
 
 
 // Creates an instance of SerenaFS.

@@ -31,19 +31,19 @@ typedef uint32_t    DriverCatalogId;
 
 
 // Various Kernel API types
-typedef int         ProcessId;
+typedef int         pid_t;
 
 // The non-persistent, globally unique ID of a filesystem. This ID does not survive
 // a system reboot. Id 0 represents a filesystem that does not exist.
-typedef uint32_t    FilesystemId;
+typedef uint32_t    fsid_t;
 
 
 // The persistent, filesystem unique ID of a filesystem inode. This ID is only
 // unique with respect to the filesystem to which it belongs.
 #if defined(__ILP32__)
-typedef uint32_t    InodeId;
+typedef uint32_t    ino_t;
 #elif defined(__LP64__) || defined(__LLP64__)
-typedef uint64_t    InodeId;
+typedef uint64_t    ino_t;
 #else
 #error "Unknown data model"
 #endif
@@ -74,8 +74,11 @@ typedef uint32_t    DiskId;
 typedef uint16_t    FilePermissions;
 typedef int8_t      FileType;
 
-typedef uint32_t    UserId;
-typedef uint32_t    GroupId;
+typedef uint32_t    uid_t;
+typedef uint32_t    gid_t;
+typedef uint32_t    id_t;
+
+typedef int         nlink_t;
 
 
 #ifndef OFF_MIN

@@ -376,8 +376,8 @@ static int parseOwnerId(const char* _Nonnull proc_name, const struct clap_param_
 
     try(parse_required_ulong(p, &p, &uid));
     if (*p == '\0') {
-        owner->uid = (UserId)uid;
-        owner->gid = (GroupId)uid;
+        owner->uid = (uid_t)uid;
+        owner->gid = (gid_t)uid;
         owner->isValid = true;
         return EXIT_SUCCESS;
     }
@@ -386,8 +386,8 @@ static int parseOwnerId(const char* _Nonnull proc_name, const struct clap_param_
         try(parse_required_ulong(p + 1, &p, &gid));
 
         if (*p == '\0') {
-            owner->uid = (UserId)uid;
-            owner->gid = (GroupId)gid;
+            owner->uid = (uid_t)uid;
+            owner->gid = (gid_t)gid;
             owner->isValid = true;
             return EXIT_SUCCESS;
         }
@@ -414,7 +414,7 @@ static void assert_has_slice_type(const di_slice_t* _Nonnull slice)
 
 
 static di_permissions_spec_t permissions = {0, false};
-static di_owner_spec_t owner = {kRootUserId, kRootGroupId, false};
+static di_owner_spec_t owner = {kUserId_Root, kGroupId_Root, false};
 static clap_string_array_t paths = {NULL, 0};
 static const char* cmd_id = "";
 
@@ -593,8 +593,8 @@ int main(int argc, char* argv[])
             permissions.p = FilePermissions_MakeFromOctal(0755);
         }
         if (!owner.isValid) {
-            owner.uid = kRootUserId;
-            owner.gid = kRootGroupId;
+            owner.uid = kUserId_Root;
+            owner.gid = kGroupId_Root;
             owner.isValid = true;
         }
         try(cmd_format(should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, dmg_path));
@@ -609,8 +609,8 @@ int main(int argc, char* argv[])
             permissions.p = FilePermissions_MakeFromOctal(0755);
         }
         if (!owner.isValid) {
-            owner.uid = kRootUserId;
-            owner.gid = kRootGroupId;
+            owner.uid = kUserId_Root;
+            owner.gid = kGroupId_Root;
             owner.isValid = true;
         }
         try(cmd_makedir(should_create_parents, permissions.p, owner.uid, owner.gid, path, dmg_path));
@@ -625,8 +625,8 @@ int main(int argc, char* argv[])
             permissions.p = FilePermissions_MakeFromOctal(0644);
         }
         if (!owner.isValid) {
-            owner.uid = kRootUserId;
-            owner.gid = kRootGroupId;
+            owner.uid = kUserId_Root;
+            owner.gid = kGroupId_Root;
             owner.isValid = true;
         }
         try(cmd_push(permissions.p, owner.uid, owner.gid, src_path, path, dmg_path));

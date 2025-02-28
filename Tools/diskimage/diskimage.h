@@ -55,8 +55,8 @@ typedef struct di_permissions_spec {
 } di_permissions_spec_t;
 
 typedef struct di_owner_spec {
-    UserId  uid;
-    GroupId gid;
+    uid_t   uid;
+    gid_t   gid;
     bool    isValid;
 } di_owner_spec_t;
 
@@ -74,11 +74,11 @@ extern errno_t cmd_get_disk_slice(const char* _Nonnull dmgPath, di_slice_t* _Non
 extern errno_t cmd_put_disk_slice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice);
 
 extern errno_t cmd_delete(const char* _Nonnull path, const char* _Nonnull dmgPath);
-extern errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, UserId rootDirUid, GroupId rootDirGid, const char* _Nonnull fsType, const char* _Nonnull dmgPath);
+extern errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull dmgPath);
 extern errno_t cmd_list(const char* _Nonnull path, const char* _Nonnull dmgPath);
-extern errno_t cmd_makedir(bool shouldCreateParents, FilePermissions dirPerms, UserId uid, GroupId gid, const char* _Nonnull path, const char* _Nonnull dmgPath);
+extern errno_t cmd_makedir(bool shouldCreateParents, FilePermissions dirPerms, uid_t uid, gid_t gid, const char* _Nonnull path, const char* _Nonnull dmgPath);
 extern errno_t cmd_pull(const char* _Nonnull path, const char* _Nonnull dstPath, const char* _Nonnull dmgPath);
-extern errno_t cmd_push(FilePermissions filePerms, UserId uid, GroupId gid, const char* _Nonnull srcPath, const char* _Nonnull path, const char* _Nonnull dmgPath);
+extern errno_t cmd_push(FilePermissions filePerms, uid_t uid, gid_t gid, const char* _Nonnull srcPath, const char* _Nonnull path, const char* _Nonnull dmgPath);
 
 extern errno_t di_describe_diskimage(const char* _Nonnull dmgPath, DiskImage* _Nonnull pOutInfo);
 extern errno_t di_lba_from_disk_addr(size_t* _Nonnull pOutLba, const DiskImage* _Nonnull info, const di_addr_t* _Nonnull addr);

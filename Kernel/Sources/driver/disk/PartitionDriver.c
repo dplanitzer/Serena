@@ -62,7 +62,7 @@ catch:
 
 errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
 {
-    return Driver_Publish((DriverRef)self, self->name, kRootUserId, kRootGroupId, FilePermissions_MakeFromOctal(0640), 0);
+    return Driver_Publish((DriverRef)self, self->name, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0640), 0);
 }
 
 void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, const IORequest* _Nonnull ior)

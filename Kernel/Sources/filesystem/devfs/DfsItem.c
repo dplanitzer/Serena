@@ -17,7 +17,7 @@
 // DfsItem
 //
 
-static void DfsItem_Init(DfsItem* _Nonnull self, InodeId inid, FileType type, FilePermissions permissions, UserId uid, GroupId gid)
+static void DfsItem_Init(DfsItem* _Nonnull self, ino_t inid, FileType type, FilePermissions permissions, uid_t uid, gid_t gid)
 {
     self->modificationTime = FSGetCurrentTime();
     self->accessTime = self->modificationTime;
@@ -56,7 +56,7 @@ void DfsItem_Destroy(DfsItem* _Nullable self)
 // DirectoryItem
 //
 
-errno_t DfsDirectoryItem_Create(InodeId inid, FilePermissions permissions, UserId uid, GroupId gid, InodeId pnid, DfsDirectoryItem* _Nullable * _Nonnull pOutSelf)
+errno_t DfsDirectoryItem_Create(ino_t inid, FilePermissions permissions, uid_t uid, gid_t gid, ino_t pnid, DfsDirectoryItem* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DfsDirectoryItem* self = NULL;
@@ -114,7 +114,7 @@ errno_t _Nullable DfsDirectoryItem_GetEntryForName(DfsDirectoryItem* _Nonnull se
     return ENOENT;
 }
 
-errno_t DfsDirectoryItem_GetNameOfEntryWithId(DfsDirectoryItem* _Nonnull self, InodeId inid, MutablePathComponent* _Nonnull mpc)
+errno_t DfsDirectoryItem_GetNameOfEntryWithId(DfsDirectoryItem* _Nonnull self, ino_t inid, MutablePathComponent* _Nonnull mpc)
 {
     List_ForEach(&self->entries, DfsDirectoryEntry,
         if (pCurNode->inid == inid) {
@@ -126,7 +126,7 @@ errno_t DfsDirectoryItem_GetNameOfEntryWithId(DfsDirectoryItem* _Nonnull self, I
     return ENOENT;
 }
 
-errno_t DfsDirectoryItem_AddEntry(DfsDirectoryItem* _Nonnull self, InodeId inid, const PathComponent* _Nonnull pc)
+errno_t DfsDirectoryItem_AddEntry(DfsDirectoryItem* _Nonnull self, ino_t inid, const PathComponent* _Nonnull pc)
 {
     decl_try_err();
     DfsDirectoryEntry* entry;
@@ -148,7 +148,7 @@ errno_t DfsDirectoryItem_AddEntry(DfsDirectoryItem* _Nonnull self, InodeId inid,
     return err;
 }
 
-errno_t DfsDirectoryItem_RemoveEntry(DfsDirectoryItem* _Nonnull self, InodeId inid)
+errno_t DfsDirectoryItem_RemoveEntry(DfsDirectoryItem* _Nonnull self, ino_t inid)
 {
     DfsDirectoryEntry* entry = NULL;
 
@@ -173,7 +173,7 @@ errno_t DfsDirectoryItem_RemoveEntry(DfsDirectoryItem* _Nonnull self, InodeId in
 // DriverItem
 //
 
-errno_t DfsDeviceItem_Create(InodeId inid, FilePermissions permissions, UserId uid, GroupId gid, DriverRef _Nonnull pDriver, intptr_t arg, DfsDeviceItem* _Nullable * _Nonnull pOutSelf)
+errno_t DfsDeviceItem_Create(ino_t inid, FilePermissions permissions, uid_t uid, gid_t gid, DriverRef _Nonnull pDriver, intptr_t arg, DfsDeviceItem* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DfsDeviceItem* self = NULL;

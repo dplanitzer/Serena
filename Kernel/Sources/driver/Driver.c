@@ -269,7 +269,7 @@ errno_t Driver_onPublish(DriverRef _Nonnull _Locked self)
 }
 
 // Publishes the driver instance to the driver catalog with the given name.
-errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* name, UserId uid, GroupId gid, FilePermissions perms, intptr_t arg)
+errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* name, uid_t uid, gid_t gid, FilePermissions perms, intptr_t arg)
 {
     decl_try_err();
     DriverCatalogId parentBusCatalogId = (self->parent) ? Driver_GetBusCatalogId(self->parent) : 0;
@@ -290,7 +290,7 @@ errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* name, UserId
 // entry represents the bus driver itself. All immediate children of the bus
 // driver will be published as additional entries to the bus directory.
 // The extra argument 'arg' is associated with the 'self' entry.
-errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const char* name, UserId uid, GroupId gid, FilePermissions perms, intptr_t arg)
+errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const char* name, uid_t uid, gid_t gid, FilePermissions perms, intptr_t arg)
 {
     decl_try_err();
     DriverCatalogId parentBusCatalogId = (self->parent) ? Driver_GetBusCatalogId(self->parent) : 0;

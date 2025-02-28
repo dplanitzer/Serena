@@ -75,11 +75,11 @@ static errno_t DriverCatalog_AcquireBusDirectory(DriverCatalogRef _Nonnull self,
         return Filesystem_AcquireRootDirectory(self->devfs, pOutDir);
     }
     else {
-        return Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (InodeId)busCatalogId, pOutDir);
+        return Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (ino_t)busCatalogId, pOutDir);
     }
 }
 
-errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, DriverCatalogId busCatalogId, const char* _Nonnull name, UserId uid, GroupId gid, FilePermissions perms, DriverRef _Nonnull driver, intptr_t arg, DriverCatalogId* _Nonnull pOutDriverCatalogId)
+errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, DriverCatalogId busCatalogId, const char* _Nonnull name, uid_t uid, gid_t gid, FilePermissions perms, DriverRef _Nonnull driver, intptr_t arg, DriverCatalogId* _Nonnull pOutDriverCatalogId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -106,7 +106,7 @@ errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, DriverCatalogId bu
 }
 
 // Publishes a bus directory with the name 'name' to the driver catalog.
-errno_t DriverCatalog_PublishBus(DriverCatalogRef _Nonnull self, DriverCatalogId parentBusId, const char* _Nonnull name, UserId uid, GroupId gid, FilePermissions perms, DriverCatalogId* _Nonnull pOutBusCatalogId)
+errno_t DriverCatalog_PublishBus(DriverCatalogRef _Nonnull self, DriverCatalogId parentBusId, const char* _Nonnull name, uid_t uid, gid_t gid, FilePermissions perms, DriverCatalogId* _Nonnull pOutBusCatalogId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -150,10 +150,10 @@ errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverCatalogId 
             pNode = pDir;
             pDir = NULL;
 
-            err = Filesystem_AcquireNodeForName(self->devfs, pDir, &kPathComponent_Parent, kRootUserId, kRootGroupId, NULL, &pDir);
+            err = Filesystem_AcquireNodeForName(self->devfs, pDir, &kPathComponent_Parent, kUserId_Root, kGroupId_Root, NULL, &pDir);
         }
         else {
-            err = Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (InodeId)driverCatalogId, &pNode);
+            err = Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (ino_t)driverCatalogId, &pNode);
         }
 
 
@@ -175,7 +175,7 @@ errno_t DriverCatalog_IsDriverPublished(DriverCatalogRef _Nonnull self, const ch
     decl_try_err();
     ResolvedPath rp;
 
-    err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kRootUserId, kRootGroupId, &rp);
+    err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUserId_Root, kGroupId_Root, &rp);
     ResolvedPath_Deinit(&rp);
 
     return err;
@@ -186,7 +186,7 @@ errno_t DriverCatalog_OpenDriver(DriverCatalogRef _Nonnull self, const char* _No
     decl_try_err();
     ResolvedPath rp;
 
-    try(FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kRootUserId, kRootGroupId, &rp));
+    try(FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUserId_Root, kGroupId_Root, &rp));
     err = Inode_CreateChannel(rp.inode, mode, pOutChannel);
 
 catch:

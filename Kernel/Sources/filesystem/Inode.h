@@ -33,14 +33,14 @@ open_class(Inode, Any,
     off_t                           size;       // File size
     Lock                            lock;
     FilesystemRef _Weak _Nonnull    filesystem; // The owning filesystem instance
-    InodeId                         inid;       // Filesystem specific ID of the inode
+    ino_t                           inid;       // Filesystem specific ID of the inode
     int                             useCount;   // Number of entities that are using this inode at this moment. Incremented on acquisition and decremented on relinquishing (protected by the FS inode management lock)
-    int                             linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
+    nlink_t                         linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
     FileType                        type;
     uint8_t                         flags;
     FilePermissions                 permissions;
-    UserId                          uid;
-    GroupId                         gid;
+    uid_t                           uid;
+    gid_t                           gid;
 );
 any_subclass_funcs(Inode,
     // Invoked when the last strong reference of the inode has been released.
@@ -73,7 +73,7 @@ any_subclass_funcs(Inode,
     // node. The node may be of any type.
     // Override: Optional
     // Default Behavior: Updates the inode's file info
-    errno_t (*setInfo)(void* _Nonnull _Locked self, UserId uid, GroupId gid, MutableFileInfo* _Nonnull pInfo);
+    errno_t (*setInfo)(void* _Nonnull _Locked self, uid_t uid, gid_t gid, MutableFileInfo* _Nonnull pInfo);
 
 
     //
@@ -284,9 +284,9 @@ invoke_n(truncate, Inode, __self, __length)
 
 // Creates an instance an Inode.
 extern errno_t Inode_Create(Class* _Nonnull pClass,
-                    FilesystemRef _Nonnull pFS, InodeId id,
+                    FilesystemRef _Nonnull pFS, ino_t id,
                     FileType type, int linkCount,
-                    UserId uid, GroupId gid, FilePermissions permissions,
+                    uid_t uid, gid_t gid, FilePermissions permissions,
                     off_t size,
                     TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
                     InodeRef _Nullable * _Nonnull pOutNode);

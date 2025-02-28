@@ -36,32 +36,32 @@ void Process_SetUserMask(FilePermissions mask)
     _syscall(SC_setumask, mask);
 }
 
-ProcessId Process_GetId(void)
+pid_t Process_GetId(void)
 {
     return _syscall(SC_getpid);
 }
 
-ProcessId Process_GetParentId(void)
+pid_t Process_GetParentId(void)
 {
     return _syscall(SC_getppid);
 }
 
-UserId Process_GetUserId(void)
+uid_t Process_GetUserId(void)
 {
     return _syscall(SC_getuid);
 }
 
-GroupId Process_GetGroupId(void)
+gid_t Process_GetGroupId(void)
 {
     return _syscall(SC_getgid);
 }
 
-errno_t Process_Spawn(const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable options, ProcessId* _Nullable rpid)
+errno_t Process_Spawn(const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable options, pid_t* _Nullable rpid)
 {
     return _syscall(SC_spawn_process, path, argv, options, rpid);
 }
 
-errno_t Process_WaitForTerminationOfChild(ProcessId pid, ProcessTerminationStatus* _Nullable result)
+errno_t Process_WaitForTerminationOfChild(pid_t pid, ProcessTerminationStatus* _Nullable result)
 {
     return _syscall(SC_waitpid, pid, result);
 }

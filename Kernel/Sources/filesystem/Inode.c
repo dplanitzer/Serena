@@ -17,8 +17,8 @@ typedef void (*deinit_impl_t)(void* _Nonnull self);
 
 
 
-errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, InodeId id,
-    FileType type, int linkCount, UserId uid, GroupId gid, FilePermissions permissions,
+errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, ino_t id,
+    FileType type, int linkCount, uid_t uid, gid_t gid, FilePermissions permissions,
     off_t size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
     InodeRef _Nullable * _Nonnull pOutNode)
 {
@@ -163,13 +163,13 @@ errno_t Inode_getInfo(InodeRef _Nonnull _Locked self, FileInfo* _Nonnull pOutInf
     pOutInfo->type = Inode_GetFileType(self);
     pOutInfo->reserved = 0;
     pOutInfo->linkCount = Inode_GetLinkCount(self);
-    pOutInfo->filesystemId = Filesystem_GetId(self);
-    pOutInfo->inodeId = Inode_GetId(self);
+    pOutInfo->fsid = Filesystem_GetId(self);
+    pOutInfo->inid = Inode_GetId(self);
 
     return EOK;
 }
 
-errno_t Inode_setInfo(InodeRef _Nonnull _Locked self, UserId uid, GroupId gid, MutableFileInfo* _Nonnull pInfo)
+errno_t Inode_setInfo(InodeRef _Nonnull _Locked self, uid_t uid, gid_t gid, MutableFileInfo* _Nonnull pInfo)
 {
     const uint32_t  modify = pInfo->modify & kModifyFileInfo_All;
 

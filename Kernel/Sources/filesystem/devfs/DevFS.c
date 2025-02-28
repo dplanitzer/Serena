@@ -31,9 +31,9 @@ errno_t DevFS_Create(DevFSRef _Nullable * _Nonnull pOutSelf)
     const FilePermissions dirOwnerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
     const FilePermissions dirOtherPerms = kFilePermission_Read | kFilePermission_Execute;
     const FilePermissions rootDirPerms = FilePermissions_Make(dirOwnerPerms, dirOtherPerms, dirOtherPerms);
-    const InodeId rootDirInid = DevFS_GetNextAvailableInodeId(self);
+    const ino_t rootDirInid = DevFS_GetNextAvailableInodeId(self);
 
-    try(DfsDirectoryItem_Create(rootDirInid, rootDirPerms, kRootUserId, kRootGroupId, rootDirInid, &rootDir));
+    try(DfsDirectoryItem_Create(rootDirInid, rootDirPerms, kUserId_Root, kGroupId_Root, rootDirInid, &rootDir));
     DevFS_AddItem(self, (DfsItem*)rootDir);
     self->rootDirInodeId = rootDirInid;
 
@@ -95,9 +95,9 @@ catch:
     return err;
 }
 
-InodeId DevFS_GetNextAvailableInodeId(DevFSRef _Nonnull _Locked self)
+ino_t DevFS_GetNextAvailableInodeId(DevFSRef _Nonnull _Locked self)
 {
-    InodeId id = self->nextAvailableInodeId;
+    ino_t id = self->nextAvailableInodeId;
 
     self->nextAvailableInodeId++;
     return id;
@@ -110,7 +110,7 @@ void DevFS_AddItem(DevFSRef _Nonnull _Locked self, DfsItem* _Nonnull item)
     List_InsertAfterLast(&self->inidChains[idx], &item->inidChain);
 }
 
-void DevFS_RemoveItem(DevFSRef _Nonnull _Locked self, InodeId inid)
+void DevFS_RemoveItem(DevFSRef _Nonnull _Locked self, ino_t inid)
 {
     const size_t idx = INID_HASH_INDEX(inid);
 
@@ -122,7 +122,7 @@ void DevFS_RemoveItem(DevFSRef _Nonnull _Locked self, InodeId inid)
     )
 }
 
-DfsItem* _Nullable DevFS_GetItem(DevFSRef _Nonnull _Locked self, InodeId inid)
+DfsItem* _Nullable DevFS_GetItem(DevFSRef _Nonnull _Locked self, ino_t inid)
 {
     const size_t idx = INID_HASH_INDEX(inid);
 
@@ -187,7 +187,7 @@ catch:
     return err;
 }
 
-errno_t DevFS_link(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
+errno_t DevFS_link(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pName, uid_t uid, gid_t gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
 {
     decl_try_err();
 
@@ -201,12 +201,12 @@ catch:
     return err;
 }
 
-errno_t DevFS_move(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, UserId uid, GroupId gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
+errno_t DevFS_move(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, uid_t uid, gid_t gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
 {
     return EPERM;
 }
 
-errno_t DevFS_rename(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, UserId uid, GroupId gid)
+errno_t DevFS_rename(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, uid_t uid, gid_t gid)
 {
     return EPERM;
 }

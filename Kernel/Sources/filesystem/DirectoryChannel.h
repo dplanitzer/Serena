@@ -37,6 +37,6 @@ extern errno_t DirectoryChannel_Create(InodeRef _Nonnull pDir, IOChannelRef _Nul
 ((DirectoryChannelRef)(__self))->inode
 
 extern errno_t DirectoryChannel_GetInfo(DirectoryChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo);
-extern errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, UserId uid, GroupId gid, MutableFileInfo* _Nonnull pInfo);
+extern errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, uid_t uid, gid_t gid, MutableFileInfo* _Nonnull pInfo);
 
 #endif /* DirectoryChannel_h */

@@ -91,7 +91,7 @@ static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path
         self->gidWidth = __max(self->gidWidth, strlen(self->buf));
         lltoa(info.size, self->buf, 10);
         self->sizeWidth = __max(self->sizeWidth, strlen(self->buf));
-        itoa(info.inodeId, self->buf, 10);
+        itoa(info.inid, self->buf, 10);
         self->inodeIdWidth = __max(self->inodeIdWidth, strlen(self->buf));
     }
     return err;
@@ -129,7 +129,7 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
             self->uidWidth, info.uid,
             self->gidWidth, info.gid,
             self->sizeWidth, info.size,
-            self->inodeIdWidth, info.inodeId,
+            self->inodeIdWidth, info.inid,
             entryName);
     }
     return err;

@@ -117,9 +117,9 @@ typedef struct DirectoryEntryInsertionHint {
 // operation is executing.
 //
 open_class(Filesystem, Object,
-    FilesystemId        fsid;
-    Lock                inodeManagementLock;
-    PointerArray        inodesInUse;
+    fsid_t          fsid;
+    Lock            inodeManagementLock;
+    PointerArray    inodesInUse;
 );
 open_class_funcs(Filesystem, Object,
 
@@ -176,7 +176,7 @@ open_class_funcs(Filesystem, Object,
     // with a given name without forcing the acquisition of the node itself.
     // Override: Advised
     // Default Behavior: Returns NULL and ENOENT (EIO for '..' lookups)
-    errno_t (*acquireNodeForName)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode);
+    errno_t (*acquireNodeForName)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, uid_t uid, gid_t gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode);
 
     // Returns the name of the node with the id 'id' which a child of the
     // directory node 'pDir'. 'id' may be of any type. The name is returned in
@@ -188,7 +188,7 @@ open_class_funcs(Filesystem, Object,
     // should be returned.
     // Override: Advised
     // Default Behavior: Returns EIO and sets 'pName' to an empty name
-    errno_t (*getNameOfNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, UserId uid, GroupId gid, MutablePathComponent* _Nonnull pName);
+    errno_t (*getNameOfNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, ino_t id, uid_t uid, gid_t gid, MutablePathComponent* _Nonnull pName);
 
 
     //
@@ -199,7 +199,7 @@ open_class_funcs(Filesystem, Object,
     // 'permissions' and adds it to the directory 'pDir'. The new node will be
     // added to 'pDir' with the name 'pName'. Returns the newly acquired inode
     // on success and NULL otherwise.
-    errno_t (*createNode)(void* _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
+    errno_t (*createNode)(void* _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Unlink the node 'target' which is an immediate child of 'dir'. Both nodes
     // are guaranteed to be members of the same filesystem. 'target' is guaranteed
@@ -212,11 +212,11 @@ open_class_funcs(Filesystem, Object,
     // Moves the node 'pSrcNode' from its current parent directory 'pSrcDir' to
     // the new parent directory 'pDstDir' and assigns it the name 'pName' in this
     // new directory.
-    errno_t (*move)(void* _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, UserId uid, GroupId gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint);
+    errno_t (*move)(void* _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, uid_t uid, gid_t gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint);
 
     // Changes the existing name of the node 'pSrcNode' which is an immediate
     // child of the directory 'pSrcDir' such that it will be 'pNewName'.
-    errno_t (*rename)(void* _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, UserId uid, GroupId gid);
+    errno_t (*rename)(void* _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, uid_t uid, gid_t gid);
 
 
     //
@@ -230,7 +230,7 @@ open_class_funcs(Filesystem, Object,
     // data can not be read off the disk.
     // Override: Advised
     // Default Behavior: Returns EIO
-    errno_t (*onReadNodeFromDisk)(void* _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode);
+    errno_t (*onReadNodeFromDisk)(void* _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Invoked when the inode is relinquished and it is marked as modified. The
     // filesystem override should write the inode meta-data back to the 
@@ -335,7 +335,7 @@ extern errno_t Filesystem_PublishNode(FilesystemRef _Nonnull self, InodeRef _Non
 // \param self the filesystem instance
 // \param id the id of the inode to acquire
 // \param pOutNode receives the acquired inode
-extern errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode);
+extern errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode);
 
 // Returns true if the filesystem can be unmounted which means that there are no
 // acquired inodes outstanding that belong to this filesystem.

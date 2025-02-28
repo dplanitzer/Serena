@@ -69,7 +69,7 @@ void RealtimeClock_deinit(RealtimeClockRef _Nonnull self)
 
 errno_t RealtimeClock_onStart(DriverRef _Nonnull _Locked self)
 {
-    return Driver_Publish(self, kRealtimeClockName, kRootUserId, kRootGroupId, FilePermissions_MakeFromOctal(0664), 0);
+    return Driver_Publish(self, kRealtimeClockName, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0664), 0);
 }
 
 // Returns the current Gregorian date & time.

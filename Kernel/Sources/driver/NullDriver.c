@@ -19,7 +19,7 @@ errno_t NullDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 
 errno_t NullDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    return Driver_Publish(self, "null", kRootUserId, kRootGroupId, FilePermissions_MakeFromOctal(0666), 0);
+    return Driver_Publish(self, "null", kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0666), 0);
 }
 
 errno_t NullDriver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

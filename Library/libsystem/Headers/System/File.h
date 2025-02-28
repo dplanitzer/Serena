@@ -38,14 +38,14 @@ typedef struct FileInfo {
     TimeInterval        modificationTime;
     TimeInterval        statusChangeTime;
     off_t               size;
-    UserId              uid;
-    GroupId             gid;
+    uid_t               uid;
+    gid_t               gid;
     FilePermissions     permissions;
     FileType            type;
     char                reserved;
-    int                 linkCount;
-    FilesystemId        filesystemId;
-    InodeId             inodeId;
+    nlink_t             linkCount;
+    fsid_t              fsid;
+    ino_t               inid;
 } FileInfo;
 
 
@@ -64,8 +64,8 @@ typedef struct MutableFileInfo {
     uint32_t            modify;
     TimeInterval        accessTime;
     TimeInterval        modificationTime;
-    UserId              uid;
-    GroupId             gid;
+    uid_t               uid;
+    gid_t               gid;
     FilePermissions     permissions;
     uint16_t            permissionsModifyMask;  // Only modify permissions whose bit is set here
 } MutableFileInfo;

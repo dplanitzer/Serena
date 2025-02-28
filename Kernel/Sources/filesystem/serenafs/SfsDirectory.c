@@ -73,7 +73,7 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
         const sfs_dirent_t* sp = (const sfs_dirent_t*)(bp + blockOffset);
         while (nBytesToReadInBlock > 0 && nDstBytesToRead >= sizeof(DirectoryEntry)) {
             if (sp->id > 0) {
-                dp->inodeId = UInt32_BigToHost(sp->id);
+                dp->inid = UInt32_BigToHost(sp->id);
                 memcpy(dp->name, sp->filename, sp->len);
                 dp->name[sp->len] = '\0';
                 
@@ -209,7 +209,7 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
     return (done) ? err : ENOENT;
 }
 
-errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeId idToRemove)
+errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, ino_t idToRemove)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
@@ -244,7 +244,7 @@ catch:
 // entry; otherwise a completely new entry will be added to the directory.
 // NOTE: this function does not verify that the new entry is unique. The caller
 // has to ensure that it doesn't try to add a duplicate entry to the directory.
-errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull pName, InodeId id, const sfs_insertion_hint_t* _Nullable ih)
+errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull pName, ino_t id, const sfs_insertion_hint_t* _Nullable ih)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);

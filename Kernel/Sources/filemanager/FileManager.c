@@ -11,7 +11,7 @@
 #include <filesystem/FSUtilities.h>
 
 
-void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, UserId uid, GroupId gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask)
+void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask)
 {
     self->fileHierarchy = Object_RetainAs(pFileHierarchy, FileHierarchy);
     self->rootDirectory = Inode_Reacquire(pRootDir);
@@ -32,12 +32,12 @@ void FileManager_Deinit(FileManagerRef _Nonnull self)
     self->fileHierarchy = NULL;
 }
 
-UserId FileManager_GetRealUserId(FileManagerRef _Nonnull self)
+uid_t FileManager_GetRealUserId(FileManagerRef _Nonnull self)
 {
     return self->ruid;
 }
 
-GroupId FileManager_GetRealGroupId(FileManagerRef _Nonnull self)
+gid_t FileManager_GetRealGroupId(FileManagerRef _Nonnull self)
 {
     return self->rgid;
 }

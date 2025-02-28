@@ -440,7 +440,7 @@ SYSCALL_1(exit, int status)
 // nul-terminated strings. The last entry in the table has to be NULL. All these
 // strings are the command line arguments that should be passed to the new
 // process.
-SYSCALL_4(spawn_process, const char* _Nullable path, const char* _Nullable * _Nullable argv, const SpawnOptions* _Nullable options, ProcessId* _Nullable pOutPid)
+SYSCALL_4(spawn_process, const char* _Nullable path, const char* _Nullable * _Nullable argv, const SpawnOptions* _Nullable options, pid_t* _Nullable pOutPid)
 {
     if (pArgs->path == NULL || pArgs->path[0] == '\0') {
         return EINVAL;
@@ -475,7 +475,7 @@ SYSCALL_0(getpargs)
     return (intptr_t) Process_GetArgumentsBaseAddress(Process_GetCurrent());
 }
 
-SYSCALL_2(waitpid, ProcessId pid, ProcessTerminationStatus* _Nullable pOutStatus)
+SYSCALL_2(waitpid, pid_t pid, ProcessTerminationStatus* _Nullable pOutStatus)
 {
     return Process_WaitForTerminationOfChild(Process_GetCurrent(), pArgs->pid, pArgs->pOutStatus);
 }

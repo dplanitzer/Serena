@@ -23,16 +23,16 @@ typedef struct FileManager {
     InodeRef _Nonnull           workingDirectory;
     
     FilePermissions             fileCreationMask;   // Mask of file permissions that should be filtered out from user supplied permissions when creating a file system object
-    UserId                      ruid;               // Real user identity inherited from the parent process / set at spawn time
-    GroupId                     rgid;
+    uid_t                       ruid;               // Real user identity inherited from the parent process / set at spawn time
+    gid_t                       rgid;
 } FileManager;
 
 
-extern void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, UserId uid, GroupId gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask);
+extern void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask);
 extern void FileManager_Deinit(FileManagerRef _Nonnull self);
 
-extern UserId FileManager_GetRealUserId(FileManagerRef _Nonnull self);
-extern GroupId FileManager_GetRealGroupId(FileManagerRef _Nonnull self);
+extern uid_t FileManager_GetRealUserId(FileManagerRef _Nonnull self);
+extern gid_t FileManager_GetRealGroupId(FileManagerRef _Nonnull self);
 
 
 //

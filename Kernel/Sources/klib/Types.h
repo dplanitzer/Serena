@@ -41,11 +41,11 @@ typedef void (*VoidFunc_2)(void*, void*);
 // way to statically compare the size of two types. Supporting that would be just
 // too easy you know and the language only has had like 50 years to mature...)
 // 
-// UserId       <= int
-// GroupId      <= int
+// uid_t        <= int
+// gid_t        <= int
 // errno_t      <= int
-// ProcessId    <= int
-// FilesystemId <= int
+// pid_t        <= int
+// fsid_t       <= int
 
 
 // Size constructors

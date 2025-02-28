@@ -80,7 +80,7 @@ errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, FileInfo* _Nonnull pOu
     return err;
 }
 
-errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, UserId uid, GroupId gid, MutableFileInfo* _Nonnull pInfo)
+errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, uid_t uid, gid_t gid, MutableFileInfo* _Nonnull pInfo)
 {
     IOChannel_Lock((IOChannelRef)self);
     const errno_t err = Inode_SetInfo(self->inode, uid, gid, pInfo);

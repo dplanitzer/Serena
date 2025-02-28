@@ -32,7 +32,7 @@ void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc)
 errno_t Process_OnChildTermination(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pChildProc)
 {
     ProcessTombstone* pTombstone;
-    const ProcessId childPid = pChildProc->pid;
+    const pid_t childPid = pChildProc->pid;
     const int childExitCode = pChildProc->exitCode;
 
     if (Process_IsTerminating(pProc)) {
@@ -69,7 +69,7 @@ errno_t Process_OnChildTermination(ProcessRef _Nonnull pProc, ProcessRef _Nonnul
 // child processes available or the PID is not the PID of a child process of
 // the receiver. Otherwise blocks the caller until the requested process or any
 // child process (pid == -1) has exited.
-errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, ProcessId pid, ProcessTerminationStatus* _Nullable pStatus)
+errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, pid_t pid, ProcessTerminationStatus* _Nullable pStatus)
 {
     decl_try_err();
 
@@ -216,7 +216,7 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 
     // Terminate all my children and wait for them to be dead
     while (true) {
-        const ProcessId pid = Process_GetAnyChildPid(pProc);
+        const pid_t pid = Process_GetAnyChildPid(pProc);
 
         if (pid <= 0) {
             break;

@@ -17,7 +17,7 @@ override_func_def(deinit, Process, Object)
 
 
 // Returns the next PID available for use by a new process.
-static ProcessId Process_GetNextAvailablePID(void)
+static pid_t Process_GetNextAvailablePID(void)
 {
     static volatile AtomicInt gNextAvailablePid = 0;
     return AtomicInt_Increment(&gNextAvailablePid);
@@ -37,7 +37,7 @@ ProcessRef _Nullable Process_GetCurrent(void)
 errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutProc)
 {
     InodeRef rootDir = FileHierarchy_AcquireRootDirectory(pRootFh);
-    const errno_t err = Process_Create(1, pRootFh, kRootUserId, kRootGroupId, rootDir, rootDir, FilePermissions_MakeFromOctal(0022), pOutProc);
+    const errno_t err = Process_Create(1, pRootFh, kUserId_Root, kGroupId_Root, rootDir, rootDir, FilePermissions_MakeFromOctal(0022), pOutProc);
 
     Inode_Relinquish(rootDir);
     return err;
@@ -59,7 +59,7 @@ errno_t RootProcess_Exec(ProcessRef _Nonnull pProc, const char* _Nonnull pExecPa
 
 
 
-errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, UserId uid, GroupId gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutSelf)
+errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ProcessRef self;
@@ -129,34 +129,34 @@ void Process_deinit(ProcessRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
-ProcessId Process_GetId(ProcessRef _Nonnull self)
+pid_t Process_GetId(ProcessRef _Nonnull self)
 {
     // The PID is constant over the lifetime of the process. No need to lock here
     return self->pid;
 }
 
-ProcessId Process_GetParentId(ProcessRef _Nonnull self)
+pid_t Process_GetParentId(ProcessRef _Nonnull self)
 {
     Lock_Lock(&self->lock);
-    const ProcessId ppid = self->ppid;
+    const pid_t ppid = self->ppid;
     Lock_Unlock(&self->lock);
 
     return ppid;
 }
 
-UserId Process_GetRealUserId(ProcessRef _Nonnull self)
+uid_t Process_GetRealUserId(ProcessRef _Nonnull self)
 {
     Lock_Lock(&self->lock);
-    const UserId uid = FileManager_GetRealUserId(&self->fm);
+    const uid_t uid = FileManager_GetRealUserId(&self->fm);
     Lock_Unlock(&self->lock);
 
     return uid;
 }
 
-GroupId Process_GetRealGroupId(ProcessRef _Nonnull self)
+gid_t Process_GetRealGroupId(ProcessRef _Nonnull self)
 {
     Lock_Lock(&self->lock);
-    const GroupId gid = FileManager_GetRealGroupId(&self->fm);
+    const gid_t gid = FileManager_GetRealGroupId(&self->fm);
     Lock_Unlock(&self->lock);
 
     return gid;

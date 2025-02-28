@@ -12,8 +12,12 @@
 #include <System/Types.h>
 
 enum {
-    kRootUserId = 0,
-    kRootGroupId = 0
+    kUserId_Root = 0,
+};
+
+
+enum {
+    kGroupId_Root = 0
 };
 
 #endif /* User_h */

@@ -75,7 +75,7 @@ extern bool FileHierarchy_IsAttachmentPoint(FileHierarchyRef _Nonnull self, Inod
 
 
 // Returns a path from 'rootDir' to 'dir' in 'buffer'.
-extern errno_t FileHierarchy_GetDirectoryPath(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir, InodeRef _Nonnull rootDir, UserId uid, GroupId gid, char* _Nonnull  pBuffer, size_t bufferSize);
+extern errno_t FileHierarchy_GetDirectoryPath(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir, InodeRef _Nonnull rootDir, uid_t uid, gid_t gid, char* _Nonnull  pBuffer, size_t bufferSize);
 
 // Looks up the inode named by the given path. The path may be relative or absolute.
 // If it is relative then the resolution starts with the current working directory.
@@ -87,6 +87,6 @@ extern errno_t FileHierarchy_GetDirectoryPath(FileHierarchyRef _Nonnull self, In
 // The caller of this function has to call PathResolverResult_Deinit() on the
 // returned result when no longer needed, no matter whether this function has
 // returned with EOK or some error.
-extern errno_t FileHierarchy_AcquireNodeForPath(FileHierarchyRef _Nonnull self, PathResolution mode, const char* _Nonnull path, InodeRef _Nonnull rootDir, InodeRef _Nonnull cwDir, UserId uid, GroupId gid, ResolvedPath* _Nonnull pResult);
+extern errno_t FileHierarchy_AcquireNodeForPath(FileHierarchyRef _Nonnull self, PathResolution mode, const char* _Nonnull path, InodeRef _Nonnull rootDir, InodeRef _Nonnull cwDir, uid_t uid, gid_t gid, ResolvedPath* _Nonnull pResult);
 
 #endif /* FileHierarchy_h */
