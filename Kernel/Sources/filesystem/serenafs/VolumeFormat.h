@@ -16,6 +16,11 @@
 // Serena FS Volume Format
 //
 
+// Meaning of 'reserved' bytes:
+// * Ignore on read
+// * Set to 0 when formatting
+// * Do not modify on write (preserve whatever values the reserved bytes have)
+
 typedef uint32_t sfs_bno_t;
 
 
@@ -40,16 +45,13 @@ enum {
     kSFSVersion_Current = kSFSVersion_v0_1,     // Version to use for formatting a new disk
 };
 
-
-// Meaning of 'reserved' bytes:
-// * Ignore on read
-// * Set to 0 when formatting
-// * Do not modify on write (preserve whatever values the reserved bytes have)
-
 enum {
     kSFSVolume_MinBlockSize = 512,
     kSFSVolume_MinBlockCount = 4,   // Need space for at least 1 volume header block + 1 allocation bitmap block + 1 root dir inode + 1 root dir content block
 };
+
+#define kSFSLimit_LinkMax INT32_MAX         /* Max number of hard links to a directory/file */
+#define kSFSLimit_FileSizeMax INT64_MAX     /* Permissible max size of a file in terms of bytes */
 
 
 //
@@ -137,10 +139,6 @@ typedef struct sfs_inode {
     uint8_t         reserved;
     sfs_bmap_t      bmap;
 } sfs_inode_t;
-
-
-#define kSFSLimit_LinkMax INT32_MAX         /* Max number of hard links to a directory/file */
-#define kSFSLimit_FileSizeMax INT64_MAX     /* Permissible max size of a file in terms of bytes */
 
 
 //

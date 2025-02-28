@@ -165,40 +165,12 @@ errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
     return err;
 }
 
-static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, FSContainerRef _Nonnull fsContainer, InodeRef _Nonnull pNode)
-{
-    decl_try_err();
-    DiskBlockRef pBlock;
-    const sfs_bmap_t* bmap = SfsFile_GetBlockMap(pNode);
-
-    if (bmap->indirect > 0) {
-        if ((err = FSContainer_AcquireBlock(fsContainer, UInt32_BigToHost(bmap->indirect), kAcquireBlock_Update, &pBlock)) == EOK) {
-            sfs_bno_t* l0_bmap = (sfs_bno_t*)DiskBlock_GetData(pBlock);
-
-            for (size_t i = 0; i < self->indirectBlockEntryCount; i++) {
-                if (l0_bmap[i] > 0) {
-                    SfsAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(l0_bmap[i]));
-                }
-            }
-
-            FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
-        }
-        SfsAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(bmap->indirect));
-    }
-
-    for (size_t i = 0; i < kSFSDirectBlockPointersCount; i++) {
-        if (bmap->direct[i] > 0) {
-            SfsAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(bmap->direct[i]));
-        }
-    }
-}
-
 void SerenaFS_onRemoveNodeFromDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode)
 {
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
 
-    SerenaFS_DeallocateFileContentBlocks(self, fsContainer, pNode);
+    SfsFile_DeallocBlocks((SfsFileRef)pNode);
     SfsAllocator_Deallocate(&self->blockAllocator, lba);
     SfsAllocator_CommitToDisk(&self->blockAllocator, fsContainer);
 }

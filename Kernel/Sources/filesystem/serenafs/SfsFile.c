@@ -163,9 +163,39 @@ void SfsFile_ConvertOffset(SfsFileRef _Nonnull _Locked self, off_t offset, sfs_b
     *pOutBlockOffset = (ssize_t)(offset & (off_t)fs->blockMask);
 }
 
+void SfsFile_DeallocBlocks(SfsFileRef _Nonnull self)
+{
+    decl_try_err();
+    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
+    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
+    const sfs_bmap_t* bmap = &self->bmap;
+    DiskBlockRef pBlock;
+
+    if (bmap->indirect > 0) {
+        if ((err = FSContainer_AcquireBlock(fsContainer, UInt32_BigToHost(bmap->indirect), kAcquireBlock_ReadOnly, &pBlock)) == EOK) {
+            sfs_bno_t* i0_bmap = (sfs_bno_t*)DiskBlock_GetData(pBlock);
+
+            for (size_t i = 0; i < fs->indirectBlockEntryCount; i++) {
+                if (i0_bmap[i] > 0) {
+                    SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(i0_bmap[i]));
+                }
+            }
+
+            FSContainer_RelinquishBlock(fsContainer, pBlock);
+        }
+        SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(bmap->indirect));
+    }
+
+    for (size_t i = 0; i < kSFSDirectBlockPointersCount; i++) {
+        if (bmap->direct[i] > 0) {
+            SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(bmap->direct[i]));
+        }
+    }
+}
+
 // Internal file truncation function. Shortens the file 'self' to the new and
 // smaller size 'length'. Does not support increasing the size of a file.
-void SfsFile_xTruncate(SfsFileRef _Nonnull _Locked self, off_t newLength)
+void SfsFile_Truncate(SfsFileRef _Nonnull _Locked self, off_t newLength)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);

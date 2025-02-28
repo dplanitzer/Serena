@@ -199,7 +199,7 @@ errno_t SfsRegularFile_truncate(SfsRegularFileRef _Nonnull _Locked self, off_t l
     }
     else if (oldLength > length) {
         // Reduction in size
-        SfsFile_xTruncate((SfsFileRef)self, length);
+        SfsFile_Truncate((SfsFileRef)self, length);
     }
 
     return err;
