@@ -231,7 +231,7 @@ static errno_t make_block_info(const DiskInfo* _Nonnull dinfo, block_info_t* _No
     binfo->blockShift = u_log2(dinfo->blockSize);
     binfo->blockMask = dinfo->blockSize - 1;
 
-    return (binfo->blockShift == dinfo->blockSize) ? EOK : EIO;
+    return (u_ispow2(dinfo->blockSize)) ? EOK : EIO;
 }
 
 static void convert_offset(off_t offset, const block_info_t* _Nonnull info, LogicalBlockAddress* _Nonnull pOutBlockIdx, ssize_t* _Nonnull pOutBlockOffset)

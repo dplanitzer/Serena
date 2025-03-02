@@ -24,6 +24,7 @@ final_class_ivars(RamDisk, DiskDriver,
     LogicalBlockCount   extentBlockCount;   // How many blocks an extent stores
     LogicalBlockCount   blockCount;
     size_t              blockSize;
+    size_t              blockShift;
     char                name[MAX_NAME_LENGTH];
 );
 
@@ -33,11 +34,16 @@ errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, si
     decl_try_err();
     RamDiskRef self = NULL;
 
+    if (!siz_ispow2(blockSize)) {
+        throw(EINVAL);
+    }
+
     try(DiskDriver_Create(class(RamDisk), 0, parent, (DriverRef*)&self));
     SList_Init(&self->extents);
     self->extentBlockCount = __min(extentBlockCount, blockCount);
     self->blockCount = blockCount;
     self->blockSize = blockSize;
+    self->blockShift = siz_log2(self->blockSize);
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
 
     MediaInfo info;
@@ -101,14 +107,14 @@ errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, const IORequest* _Nonnull ior
     void* dp = DiskBlock_GetMutableData(ior->block);
 
     if (lba >= self->blockCount) {
-        return EIO;
+        return ENXIO;
     }
 
 
     DiskExtent* pExtent = RamDisk_GetDiskExtentForBlockIndex_Locked(self, lba, NULL);
     if (pExtent) {
         // Request for a block that was previously written to -> return the block
-        memcpy(dp, &pExtent->data[(lba - pExtent->firstBlockIndex) * self->blockSize], self->blockSize);
+        memcpy(dp, &pExtent->data[(lba - pExtent->firstBlockIndex) << self->blockShift], self->blockSize);
     }
     else {
         // Request for a block that hasn't been written to yet -> return zeros
@@ -128,7 +134,7 @@ static errno_t RamDisk_AddExtentAfter_Locked(RamDiskRef _Nonnull self, LogicalBl
     decl_try_err();
     DiskExtent* pExtent;
 
-    try(kalloc_cleared(sizeof(DiskExtent) - 1 + self->extentBlockCount * self->blockSize, (void**)&pExtent));
+    try(kalloc_cleared(sizeof(DiskExtent) - 1 + (self->extentBlockCount << self->blockShift), (void**)&pExtent));
     SList_InsertAfter(&self->extents, &pExtent->node, (pPrevExtent) ? &pPrevExtent->node : NULL);
     pExtent->firstBlockIndex = firstBlockIndex;
     *pOutExtent = pExtent;
@@ -144,7 +150,7 @@ errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, const IORequest* _Nonnull ior
     const void* sp = DiskBlock_GetData(ior->block);
 
     if (lba >= self->blockCount) {
-        return EIO;
+        return ENXIO;
     }
 
     DiskExtent* pPrevExtent;
@@ -155,7 +161,7 @@ errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, const IORequest* _Nonnull ior
         try(RamDisk_AddExtentAfter_Locked(self, (lba / self->extentBlockCount) * self->extentBlockCount, pPrevExtent, &pExtent));
     }
     if (pExtent) {
-        memcpy(&pExtent->data[(lba - pExtent->firstBlockIndex) * self->blockSize], sp, self->blockSize);
+        memcpy(&pExtent->data[(lba - pExtent->firstBlockIndex) << self->blockShift], sp, self->blockSize);
     }
 
 catch:
