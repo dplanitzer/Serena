@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <filesystem/SerenaDiskImage.h>
+#include <filesystem/FSUtilities.h>
 #include <System/ByteOrder.h>
 #include <System/Disk.h>
 
@@ -25,6 +26,8 @@ errno_t RamFSContainer_Create(const DiskImageFormat* _Nonnull pFormat, RamFSCont
     try(Object_Create(class(RamFSContainer), 0, (void**)&self));
     self->diskImage = calloc(pFormat->blocksPerDisk, pFormat->blockSize);
     self->blockSize = pFormat->blockSize;
+    self->blockShift = FSLog2(self->blockSize);
+    self->blockMask = self->blockSize - 1;
     self->blockCount = pFormat->blocksPerDisk;
     self->lowestWrittenToLba = ~0;
     self->highestWrittenToLba = 0;
@@ -103,7 +106,7 @@ errno_t RamFSContainer_acquireEmptyBlock(RamFSContainerRef self, DiskBlockRef _N
 static errno_t RamFSContainer_GetBlock(RamFSContainerRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     if (lba >= self->blockCount) {
-        return EIO;
+        return ENXIO;
     }
 
     memcpy(pBuffer, &self->diskImage[lba * self->blockSize], self->blockSize);
@@ -146,7 +149,7 @@ errno_t RamFSContainer_acquireBlock(struct RamFSContainer* _Nonnull self, Logica
 static errno_t RamFSContainer_PutBlock(RamFSContainerRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     if (lba >= self->blockCount) {
-        return EIO;
+        return ENXIO;
     }
 
     memcpy(&self->diskImage[lba * self->blockSize], pBuffer, self->blockSize);
@@ -185,6 +188,159 @@ void RamFSContainer_relinquishBlock(struct RamFSContainer* _Nonnull self, DiskBl
     if (pBlock) {
         DiskBlock_Destroy(pBlock);
     }
+}
+
+static void convert_offset(struct RamFSContainer* _Nonnull self, off_t offset, LogicalBlockAddress* _Nonnull pOutBlockIdx, ssize_t* _Nonnull pOutBlockOffset)
+{
+    *pOutBlockIdx = (LogicalBlockAddress)(offset >> (off_t)self->blockShift);
+    *pOutBlockOffset = (ssize_t)(offset & (off_t)self->blockMask);
+}
+
+errno_t RamFSContainer_Read(RamFSContainerRef _Nonnull self, void* _Nonnull buf, ssize_t nBytesToRead, off_t offset, ssize_t* _Nonnull pOutBytesRead)
+{
+    decl_try_err();
+    const off_t diskSize = (off_t)self->blockCount * (off_t)self->blockSize;
+    uint8_t* dp = buf;
+    ssize_t nBytesRead = 0;
+
+    if (nBytesToRead < 0) {
+        throw(EINVAL);
+    }
+    if (nBytesToRead > 0) {
+        if (offset < 0ll) {
+            throw(EOVERFLOW);
+        }
+        if (offset >= diskSize) {
+            throw(ENXIO);
+        }
+    }
+
+
+    // Limit 'nBytesToRead' to the range of bytes that is actually available
+    // starting at 'offset'.
+    const off_t nAvailBytes = diskSize - offset;
+
+    if (nAvailBytes > 0) {
+        if (nAvailBytes <= (off_t)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToRead) {
+            nBytesToRead = (ssize_t)nAvailBytes;
+        }
+        // Otherwise, use 'nBytesToRead' as is
+    } else {
+        nBytesToRead = 0;
+    }
+
+
+    // Get the block index and block offset that corresponds to 'offset'. We start
+    // iterating through blocks there.
+    LogicalBlockAddress blockIdx;
+    ssize_t blockOffset;
+    convert_offset(self, offset, &blockIdx, &blockOffset);
+
+
+    // Iterate through a contiguous sequence of blocks until we've read all
+    // required bytes.
+    while (nBytesToRead > 0) {
+        const ssize_t nRemainderBlockSize = (ssize_t)self->blockSize - blockOffset;
+        const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
+        DiskBlockRef pBlock;
+
+        errno_t e1 = FSContainer_AcquireBlock(self, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
+        if (e1 != EOK) {
+            err = (nBytesRead == 0) ? e1 : EOK;
+            break;
+        }
+        
+        const uint8_t* bp = DiskBlock_GetData(pBlock);
+        memcpy(dp, bp + blockOffset, nBytesToReadInBlock);
+        FSContainer_RelinquishBlock(self, pBlock);
+
+        nBytesToRead -= nBytesToReadInBlock;
+        nBytesRead += nBytesToReadInBlock;
+        dp += nBytesToReadInBlock;
+
+        blockOffset = 0;
+        blockIdx++;
+    }
+
+
+catch:
+    *pOutBytesRead = nBytesRead;
+    return err;
+}
+
+errno_t RamFSContainer_Write(RamFSContainerRef _Nonnull self, const void* _Nonnull buf, ssize_t nBytesToWrite, off_t offset, ssize_t* _Nonnull pOutBytesWritten)
+{
+    decl_try_err();
+    const off_t diskSize = (off_t)self->blockCount * (off_t)self->blockSize;
+    const uint8_t* sp = buf;
+    ssize_t nBytesWritten = 0;
+
+    if (nBytesToWrite < 0) {
+        throw(EINVAL);
+    }
+    if (nBytesToWrite > 0) {
+        if (offset < 0ll) {
+            throw(EOVERFLOW);
+        }
+        if (offset >= diskSize) {
+            throw(ENXIO);
+        }
+    }
+
+
+    // Limit 'nBytesToWrite' to the range of bytes that is actually available
+    // starting at 'offset'.
+    const off_t nAvailBytes = diskSize - offset;
+
+    if (nAvailBytes > 0) {
+        if (nAvailBytes <= (off_t)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToWrite) {
+            nBytesToWrite = (ssize_t)nAvailBytes;
+        }
+        // Otherwise, use 'nBytesToWrite' as is
+    } else {
+        nBytesToWrite = 0;
+    }
+
+
+    // Get the block index and block offset that corresponds to 'offset'. We start
+    // iterating through blocks there.
+    LogicalBlockAddress blockIdx;
+    ssize_t blockOffset;
+    convert_offset(self, offset, &blockIdx, &blockOffset);
+
+
+    // Iterate through a contiguous sequence of blocks until we've written all
+    // required bytes.
+    while (nBytesToWrite > 0) {
+        const ssize_t nRemainderBlockSize = (ssize_t)self->blockSize - blockOffset;
+        const ssize_t nBytesToWriteInBlock = (nBytesToWrite > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToWrite;
+        AcquireBlock acquireMode = (nBytesToWriteInBlock == (ssize_t)self->blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
+        DiskBlockRef pBlock;
+
+        errno_t e1 = FSContainer_AcquireBlock(self, blockIdx, acquireMode, &pBlock);
+        if (e1 == EOK) {
+            uint8_t* dp = DiskBlock_GetMutableData(pBlock);
+        
+            memcpy(dp + blockOffset, sp, nBytesToWriteInBlock);
+            e1 = FSContainer_RelinquishBlockWriting(self, pBlock, kWriteBlock_Sync);
+        }
+        if (e1 != EOK) {
+            err = (nBytesWritten == 0) ? e1 : EOK;
+            break;
+        }
+
+        nBytesToWrite -= nBytesToWriteInBlock;
+        nBytesWritten += nBytesToWriteInBlock;
+        sp += nBytesToWriteInBlock;
+
+        blockOffset = 0;
+        blockIdx++;
+    }
+
+
+catch:
+    *pOutBytesWritten = nBytesWritten;
+    return err;
 }
 
 void RamFSContainer_WipeDisk(RamFSContainerRef _Nonnull self)
