@@ -756,7 +756,7 @@ errno_t FloppyDriver_getBlock(FloppyDriverRef _Nonnull self, const IORequest* _N
     const LogicalBlockAddress lba = ior->address.lba;
 
     if (lba >= self->blocksPerDisk) {
-        return EIO;
+        return ENXIO;
     }
 
     const int cylinder = lba / self->sectorsPerCylinder;
@@ -883,7 +883,7 @@ errno_t FloppyDriver_putBlock(FloppyDriverRef _Nonnull self, const IORequest* _N
     const LogicalBlockAddress lba = ior->address.lba;
 
     if (lba >= self->blocksPerDisk) {
-        return EIO;
+        return ENXIO;
     }
 
     const int cylinder = lba / self->sectorsPerCylinder;
