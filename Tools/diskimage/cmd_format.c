@@ -10,12 +10,13 @@
 #include "RamFSContainer.h"
 #include <string.h>
 
-extern errno_t sefs_format(FSContainerRef _Nonnull fsContainer, uid_t uid, gid_t gid, FilePermissions permissions);
+errno_t sefs_format(intptr_t fd, LogicalBlockCount blockCount, size_t blockSize, uid_t uid, gid_t gid, FilePermissions permissions);
 
 
 errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull dmgPath)
 {
     decl_try_err();
+    FSContainerInfo info;
     RamFSContainerRef fsContainer = NULL;
 
     if (strcmp(fsType, "sefs")) {
@@ -28,7 +29,8 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, 
         RamFSContainer_WipeDisk(fsContainer);
     }
 
-    try(sefs_format((FSContainerRef)fsContainer, rootDirUid, rootDirGid, rootDirPerms));
+    try(FSContainer_GetInfo(fsContainer, &info));
+    try(sefs_format((intptr_t)fsContainer, info.blockCount, info.blockSize, rootDirUid, rootDirGid, rootDirPerms));
     err = RamFSContainer_WriteToPath(fsContainer, dmgPath);
 
 catch:

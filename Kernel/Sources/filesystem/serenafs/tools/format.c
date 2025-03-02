@@ -10,37 +10,51 @@
 #include <System/Error.h>
 #include <System/File.h>
 #include <System/Types.h>
+#include <System/_math.h>
 #include <filesystem/FSContainer.h>
 #include <filesystem/FSUtilities.h>
 #include <filesystem/serenafs/VolumeFormat.h>
+#ifdef _WIN32
 #include <stdlib.h>
+#endif
 
+
+errno_t block_write(intptr_t fd, const void* _Nonnull buf, LogicalBlockAddress blockAddr, size_t blockSize)
+{
+#ifdef __DISKIMAGE__
+    extern errno_t RamFSContainer_Write(void* _Nonnull self, const void* _Nonnull buf, ssize_t nBytesToWrite, off_t offset, ssize_t* _Nonnull pOutBytesWritten);
+
+    ssize_t bytesWritten;
+    const errno_t err = RamFSContainer_Write((void*)fd, buf, blockSize, blockAddr * blockSize, &bytesWritten);
+
+    return (err == EOK && bytesWritten == blockSize) ? EOK : EIO;
+#else
+    return EIO;
+#endif
+}
 
 // Formats the given disk drive and installs a SerenaFS with an empty root
 // directory on it. 'user' and 'permissions' are the user and permissions that
 // should be assigned to the root directory.
-errno_t sefs_format(FSContainerRef _Nonnull fsContainer, uid_t uid, gid_t gid, FilePermissions permissions)
+errno_t sefs_format(intptr_t fd, LogicalBlockCount blockCount, size_t blockSize, uid_t uid, gid_t gid, FilePermissions permissions)
 {
     decl_try_err();
-    DiskBlockRef pBlock;
-    FSContainerInfo diskinf;
     const TimeInterval curTime = FSGetCurrentTime();
 
-    if ((err = FSContainer_GetInfo(fsContainer, &diskinf)) != EOK) {
-        return err;
-    }
 
     // Make sure that the disk is compatible with our FS
-    if (!FSIsPowerOf2(diskinf.blockSize)) {
+    if (!FSIsPowerOf2(blockSize)) {
         return EINVAL;
     }
-    if (diskinf.blockSize < kSFSVolume_MinBlockSize) {
+    if (blockSize < kSFSVolume_MinBlockSize) {
         return EINVAL;
     }
-    if (diskinf.blockCount < kSFSVolume_MinBlockCount) {
+    if (blockCount < kSFSVolume_MinBlockCount) {
         return ENOSPC;
     }
 
+
+    void* bp = malloc(blockSize);
 
 
     // Structure of the initialized FS:
@@ -54,15 +68,15 @@ errno_t sefs_format(FSContainerRef _Nonnull fsContainer, uid_t uid, gid_t gid, F
     // Nab+3    Unused
     // .        ...
     // Figure out the size and location of the allocation bitmap and root directory
-    const uint32_t allocationBitmapByteSize = (diskinf.blockCount + 7) >> 3;
-    const LogicalBlockCount allocBitmapBlockCount = (allocationBitmapByteSize + (diskinf.blockSize - 1)) / diskinf.blockSize;
+    const uint32_t allocationBitmapByteSize = (blockCount + 7) >> 3;
+    const LogicalBlockCount allocBitmapBlockCount = (allocationBitmapByteSize + (blockSize - 1)) / blockSize;
     const LogicalBlockAddress rootDirLba = allocBitmapBlockCount + 1;
     const LogicalBlockAddress rootDirContLba = rootDirLba + 1;
 
 
     // Write the volume header
-    try(FSContainer_AcquireBlock(fsContainer, 0, kAcquireBlock_Cleared, &pBlock));
-    sfs_vol_header_t* vhp = (sfs_vol_header_t*)DiskBlock_GetMutableData(pBlock);
+    sfs_vol_header_t* vhp = (sfs_vol_header_t*)bp;
+    memset(bp, 0, blockSize);
     vhp->signature = UInt32_HostToBig(kSFSSignature_SerenaFS);
     vhp->version = UInt32_HostToBig(kSFSVersion_Current);
     vhp->attributes = UInt32_HostToBig(0);
@@ -70,38 +84,38 @@ errno_t sefs_format(FSContainerRef _Nonnull fsContainer, uid_t uid, gid_t gid, F
     vhp->creationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
     vhp->modificationTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     vhp->modificationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
-    vhp->volBlockSize = UInt32_HostToBig(diskinf.blockSize);
-    vhp->volBlockCount = UInt32_HostToBig(diskinf.blockCount);
+    vhp->volBlockSize = UInt32_HostToBig(blockSize);
+    vhp->volBlockCount = UInt32_HostToBig(blockCount);
     vhp->allocBitmapByteSize = UInt32_HostToBig(allocationBitmapByteSize);
     vhp->lbaRootDir = UInt32_HostToBig(rootDirLba);
     vhp->lbaAllocBitmap = UInt32_HostToBig(1);
-    try(FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync));
+    try(block_write(fd, bp, 0, blockSize));
 
 
     // Write the allocation bitmap
     // Note that we mark the blocks that we already know are in use as in-use
-    const size_t nAllocationBitsPerBlock = diskinf.blockSize << 3;
+    const size_t nAllocationBitsPerBlock = blockSize << 3;
     const LogicalBlockAddress nBlocksToAllocate = 1 + allocBitmapBlockCount + 1 + 1; // volume header + alloc bitmap + root dir inode + root dir content
     LogicalBlockAddress nBlocksAllocated = 0;
 
     for (LogicalBlockAddress i = 0; i < allocBitmapBlockCount; i++) {
-        try(FSContainer_AcquireBlock(fsContainer, 1 + i, kAcquireBlock_Cleared, &pBlock));
-        uint8_t* bbp = DiskBlock_GetMutableData(pBlock);
+        uint8_t* bbp = bp;
         LogicalBlockAddress bitNo = 0;
 
+        memset(bbp, 0, blockSize);
         while (nBlocksAllocated < __min(nBlocksToAllocate, nAllocationBitsPerBlock)) {
             AllocationBitmap_SetBlockInUse(bbp, bitNo, true);
             nBlocksAllocated++;
             bitNo++;
         }
 
-        try(FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync));
+        try(block_write(fd, bp, 1 + i, blockSize));
     }
 
 
     // Write the root directory inode
-    try(FSContainer_AcquireBlock(fsContainer, rootDirLba, kAcquireBlock_Cleared, &pBlock));
-    sfs_inode_t* ip = (sfs_inode_t*)DiskBlock_GetMutableData(pBlock);
+    sfs_inode_t* ip = (sfs_inode_t*)bp;
+    memset(ip, 0, blockSize);
     ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
     ip->id = UInt32_HostToBig(rootDirLba);
     ip->accessTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
@@ -117,13 +131,13 @@ errno_t sefs_format(FSContainerRef _Nonnull fsContainer, uid_t uid, gid_t gid, F
     ip->permissions = UInt16_HostToBig(permissions);
     ip->type = kFileType_Directory;
     ip->bmap.direct[0] = UInt32_HostToBig(rootDirContLba);
-    try(FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync));
+    try(block_write(fd, bp, rootDirLba, blockSize));
 
 
     // Write the root directory content. This is just the entries '.' and '..'
     // which both point back to the root directory.
-    try(FSContainer_AcquireBlock(fsContainer, rootDirContLba, kAcquireBlock_Cleared, &pBlock));
-    sfs_dirent_t* dep = (sfs_dirent_t*)DiskBlock_GetMutableData(pBlock);
+    sfs_dirent_t* dep = (sfs_dirent_t*)bp;
+    memset(dep, 0, blockSize);
     dep[0].id = UInt32_HostToBig(rootDirLba);
     dep[0].len = 1;
     dep[0].filename[0] = '.';
@@ -131,8 +145,9 @@ errno_t sefs_format(FSContainerRef _Nonnull fsContainer, uid_t uid, gid_t gid, F
     dep[1].len = 2;
     dep[1].filename[0] = '.';
     dep[1].filename[1] = '.';
-    try(FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync));
+    try(block_write(fd, bp, rootDirContLba, blockSize));
 
 catch:
+    free(bp);
     return err;
 }
