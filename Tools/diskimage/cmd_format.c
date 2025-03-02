@@ -10,6 +10,8 @@
 #include "RamFSContainer.h"
 #include <string.h>
 
+extern errno_t sefs_format(FSContainerRef _Nonnull fsContainer, uid_t uid, gid_t gid, FilePermissions permissions);
+
 
 errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull dmgPath)
 {
@@ -26,7 +28,7 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, 
         RamFSContainer_WipeDisk(fsContainer);
     }
 
-    try(SerenaFS_FormatDrive((FSContainerRef)fsContainer, rootDirUid, rootDirGid, rootDirPerms));
+    try(sefs_format((FSContainerRef)fsContainer, rootDirUid, rootDirGid, rootDirPerms));
     err = RamFSContainer_WriteToPath(fsContainer, dmgPath);
 
 catch:

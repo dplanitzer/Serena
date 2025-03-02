@@ -6,14 +6,20 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "SerenaFSPriv.h"
 #include <System/ByteOrder.h>
+#include <System/Error.h>
+#include <System/File.h>
+#include <System/Types.h>
+#include <filesystem/FSContainer.h>
+#include <filesystem/FSUtilities.h>
+#include <filesystem/serenafs/VolumeFormat.h>
+#include <stdlib.h>
 
 
 // Formats the given disk drive and installs a SerenaFS with an empty root
 // directory on it. 'user' and 'permissions' are the user and permissions that
 // should be assigned to the root directory.
-errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, uid_t uid, gid_t gid, FilePermissions permissions)
+errno_t sefs_format(FSContainerRef _Nonnull fsContainer, uid_t uid, gid_t gid, FilePermissions permissions)
 {
     decl_try_err();
     DiskBlockRef pBlock;
