@@ -51,8 +51,9 @@ EMFILE          equ 38
 EXDEV           equ 39
 ETERMINATED     equ 40
 ENOTSUP         equ 41
+ENXIO           equ 42
 
 __EFIRST    equ 1
-__ELAST     equ 41
+__ELAST     equ 42
 
         endif   ; __ABI_ERRNO_I

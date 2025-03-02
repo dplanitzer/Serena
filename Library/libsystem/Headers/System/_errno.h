@@ -64,9 +64,10 @@
 #define EXDEV           39
 #define ETERMINATED     40
 #define ENOTSUP         41
+#define ENXIO           42
 
 #define __EFIRST    1
-#define __ELAST     41
+#define __ELAST     42
 
 #endif  /* __SYSTEM_SHIM__ */
 

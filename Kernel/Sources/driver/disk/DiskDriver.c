@@ -221,94 +221,165 @@ errno_t DiskDriver_createChannel(DiskDriverRef _Nonnull _Locked self, unsigned i
     return DiskDriverChannel_Create(self, &info, mode, pOutChannel);
 }
 
-errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+typedef struct block_info {
+    uint32_t    blockShift;
+    uint32_t    blockMask;
+} block_info_t;
+
+static errno_t make_block_info(const DiskInfo* _Nonnull dinfo, block_info_t* _Nonnull binfo)
+{
+    binfo->blockShift = u_log2(dinfo->blockSize);
+    binfo->blockMask = dinfo->blockSize - 1;
+
+    return (binfo->blockShift == dinfo->blockSize) ? EOK : EIO;
+}
+
+static void convert_offset(off_t offset, const block_info_t* _Nonnull info, LogicalBlockAddress* _Nonnull pOutBlockIdx, ssize_t* _Nonnull pOutBlockOffset)
+{
+    *pOutBlockIdx = (LogicalBlockAddress)(offset >> (off_t)info->blockShift);
+    *pOutBlockOffset = (ssize_t)(offset & (off_t)info->blockMask);
+}
+
+errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
-    const DiskInfo* info = DiskDriverChannel_GetInfo(pChannel);
-    const off_t diskSize = IOChannel_GetSeekableRange(pChannel);
-    off_t offset = IOChannel_GetOffset(pChannel);
+    const DiskInfo* info = DiskDriverChannel_GetInfo(ch);
+    const off_t diskSize = IOChannel_GetSeekableRange(ch);
+    off_t offset = IOChannel_GetOffset(ch);
     uint8_t* dp = pBuffer;
     ssize_t nBytesRead = 0;
 
+    if (nBytesToRead < 0) {
+        throw(EINVAL);
+    }
     if (nBytesToRead > 0) {
-        if (offset < 0ll || offset >= diskSize) {
-            *pOutBytesRead = 0;
-            return EOVERFLOW;
+        if (offset < 0ll) {
+            throw(EOVERFLOW);
         }
-
-        const off_t targetOffset = offset + (off_t)nBytesToRead;
-        if (targetOffset < 0ll || targetOffset > diskSize) {
-            nBytesToRead = (ssize_t)(diskSize - offset);
+        if (offset >= diskSize) {
+            throw(ENXIO);
         }
     }
-    else if (nBytesToRead < 0) {
-        return EINVAL;
+
+
+    // Limit 'nBytesToRead' to the range of bytes that is actually available
+    // starting at 'offset'.
+    const off_t nAvailBytes = diskSize - offset;
+
+    if (nAvailBytes > 0) {
+        if (nAvailBytes <= (off_t)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToRead) {
+            nBytesToRead = (ssize_t)nAvailBytes;
+        }
+        // Otherwise, use 'nBytesToRead' as is
+    } else {
+        nBytesToRead = 0;
     }
 
-    while (nBytesToRead > 0 && offset < diskSize) {
-        const int blockIdx = (int)(offset / (off_t)info->blockSize);    //XXX blockIdx should be 64bit
-        const size_t blockOffset = offset % (off_t)info->blockSize;     //XXX optimize for power-of-2
-        const size_t nBytesToReadInCurrentBlock = (size_t)__min((off_t)(info->blockSize - blockOffset), __min(diskSize - offset, (off_t)nBytesToRead));
+
+    // Get the block index and block offset that corresponds to 'offset'. We start
+    // iterating through blocks there.
+    block_info_t binfo;
+    try(make_block_info(info, &binfo));
+
+    LogicalBlockAddress blockIdx;
+    ssize_t blockOffset;
+    convert_offset(offset, &binfo, &blockIdx, &blockOffset);
+
+
+    // Iterate through a contiguous sequence of blocks until we've read all
+    // required bytes.
+    while (nBytesToRead > 0) {
+        const ssize_t nRemainderBlockSize = (ssize_t)info->blockSize - blockOffset;
+        const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
         DiskBlockRef pBlock;
 
         errno_t e1 = DiskCache_AcquireBlock(gDiskCache, info->diskId, info->mediaId, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
-        if (e1 == EOK) {
-            const uint8_t* bp = DiskBlock_GetData(pBlock);
-            
-            memcpy(dp, bp + blockOffset, nBytesToReadInCurrentBlock);
-            DiskCache_RelinquishBlock(gDiskCache, pBlock);
-        }
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
             break;
         }
+        
+        const uint8_t* bp = DiskBlock_GetData(pBlock);
+        memcpy(dp, bp + blockOffset, nBytesToReadInBlock);
+        DiskCache_RelinquishBlock(gDiskCache, pBlock);
 
-        nBytesToRead -= nBytesToReadInCurrentBlock;
-        nBytesRead += nBytesToReadInCurrentBlock;
-        offset += (off_t)nBytesToReadInCurrentBlock;
-        dp += nBytesToReadInCurrentBlock;
+        nBytesToRead -= nBytesToReadInBlock;
+        nBytesRead += nBytesToReadInBlock;
+        dp += nBytesToReadInBlock;
+
+        blockOffset = 0;
+        blockIdx++;
     }
 
-    *pOutBytesRead = nBytesRead;
+    if (nBytesRead > 0) {
+        IOChannel_IncrementOffsetBy(ch, nBytesRead);
+    }
 
+
+catch:
+    *pOutBytesRead = nBytesRead;
     return err;
 }
 
-errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
-    const DiskInfo* info = DiskDriverChannel_GetInfo(pChannel);
-    const off_t diskSize = IOChannel_GetSeekableRange(pChannel);
-    off_t offset = IOChannel_GetOffset(pChannel);
+    const DiskInfo* info = DiskDriverChannel_GetInfo(ch);
+    const off_t diskSize = IOChannel_GetSeekableRange(ch);
+    off_t offset = IOChannel_GetOffset(ch);
+    const uint8_t* sp = buf;
     ssize_t nBytesWritten = 0;
 
+    if (nBytesToWrite < 0) {
+        throw(EINVAL);
+    }
     if (nBytesToWrite > 0) {
-        if (offset < 0ll || offset >= diskSize) {
-            *pOutBytesWritten = 0;
-            return EOVERFLOW;
+        if (offset < 0ll) {
+            throw(EOVERFLOW);
         }
-
-        const off_t targetOffset = offset + (off_t)nBytesToWrite;
-        if (targetOffset < 0ll || targetOffset > diskSize) {
-            nBytesToWrite = (ssize_t)(diskSize - offset);
+        if (offset >= diskSize) {
+            throw(ENXIO);
         }
     }
-    else if (nBytesToWrite < 0) {
-        return EINVAL;
+
+
+    // Limit 'nBytesToWrite' to the range of bytes that is actually available
+    // starting at 'offset'.
+    const off_t nAvailBytes = diskSize - offset;
+
+    if (nAvailBytes > 0) {
+        if (nAvailBytes <= (off_t)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToWrite) {
+            nBytesToWrite = (ssize_t)nAvailBytes;
+        }
+        // Otherwise, use 'nBytesToWrite' as is
+    } else {
+        nBytesToWrite = 0;
     }
 
+
+    // Get the block index and block offset that corresponds to 'offset'. We start
+    // iterating through blocks there.
+    block_info_t binfo;
+    try(make_block_info(info, &binfo));
+
+    LogicalBlockAddress blockIdx;
+    ssize_t blockOffset;
+    convert_offset(offset, &binfo, &blockIdx, &blockOffset);
+
+
+    // Iterate through a contiguous sequence of blocks until we've written all
+    // required bytes.
     while (nBytesToWrite > 0) {
-        const int blockIdx = (int)(offset / (off_t)info->blockSize);    //XXX blockIdx should be 64bit
-        const size_t blockOffset = offset % (off_t)info->blockSize;     //XXX optimize for power-of-2
-        const size_t nBytesToWriteInCurrentBlock = __min(info->blockSize - blockOffset, nBytesToWrite);
-        AcquireBlock acquireMode = (nBytesToWriteInCurrentBlock == info->blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
+        const ssize_t nRemainderBlockSize = (ssize_t)info->blockSize - blockOffset;
+        const ssize_t nBytesToWriteInBlock = (nBytesToWrite > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToWrite;
+        AcquireBlock acquireMode = (nBytesToWriteInBlock == (ssize_t)info->blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
         DiskBlockRef pBlock;
 
         errno_t e1 = DiskCache_AcquireBlock(gDiskCache, info->diskId, info->mediaId, blockIdx, acquireMode, &pBlock);
         if (e1 == EOK) {
-            uint8_t* bp = DiskBlock_GetMutableData(pBlock);
+            uint8_t* dp = DiskBlock_GetMutableData(pBlock);
         
-            memcpy(bp + blockOffset, ((const uint8_t*) pBuffer) + nBytesWritten, nBytesToWriteInCurrentBlock);
+            memcpy(dp + blockOffset, sp, nBytesToWriteInBlock);
             e1 = DiskCache_RelinquishBlockWriting(gDiskCache, pBlock, kWriteBlock_Sync);
         }
         if (e1 != EOK) {
@@ -316,11 +387,20 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
             break;
         }
 
-        nBytesToWrite -= nBytesToWriteInCurrentBlock;
-        nBytesWritten += nBytesToWriteInCurrentBlock;
-        offset += (off_t)nBytesToWriteInCurrentBlock;
+        nBytesToWrite -= nBytesToWriteInBlock;
+        nBytesWritten += nBytesToWriteInBlock;
+        sp += nBytesToWriteInBlock;
+
+        blockOffset = 0;
+        blockIdx++;
     }
 
+    if (nBytesWritten > 0) {
+        IOChannel_IncrementOffsetBy(ch, nBytesWritten);
+    }
+
+
+catch:
     *pOutBytesWritten = nBytesWritten;
     return err;
 }

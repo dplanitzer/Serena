@@ -53,7 +53,8 @@ char *strerror(int err_no)
         /*EMFILE*/          "Too many open I/O channels",
         /*EXDEV*/           "Cross-device link not permitted",
         /*ETERMINATED*/     "Terminated",
-        /*ENOTSUP*/         "Operation not supported"
+        /*ENOTSUP*/         "Operation not supported",
+        /*ENXIO*/           "No such device or address",
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {
