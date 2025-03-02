@@ -18,20 +18,20 @@
 #include <System/Disk.h>
 
 
-errno_t RamFSContainer_Create(const DiskImageFormat* _Nonnull pFormat, RamFSContainerRef _Nullable * _Nonnull pOutSelf)
+errno_t RamFSContainer_Create(const DiskImageFormat* _Nonnull format, RamFSContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     RamFSContainerRef self;
 
     try(Object_Create(class(RamFSContainer), 0, (void**)&self));
-    self->diskImage = calloc(pFormat->blocksPerDisk, pFormat->blockSize);
-    self->blockSize = pFormat->blockSize;
+    self->diskImage = calloc(format->blocksPerDisk, format->blockSize);
+    self->blockSize = format->blockSize;
     self->blockShift = FSLog2(self->blockSize);
     self->blockMask = self->blockSize - 1;
-    self->blockCount = pFormat->blocksPerDisk;
+    self->blockCount = format->blocksPerDisk;
     self->lowestWrittenToLba = ~0;
     self->highestWrittenToLba = 0;
-    self->format = pFormat->format;
+    self->format = format->format;
 
     *pOutSelf = self;
     return EOK;
@@ -103,14 +103,15 @@ errno_t RamFSContainer_acquireEmptyBlock(RamFSContainerRef self, DiskBlockRef _N
     return err;
 }
 
-static errno_t RamFSContainer_GetBlock(RamFSContainerRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
+static errno_t RamFSContainer_GetBlock(RamFSContainerRef _Nonnull self, void* _Nonnull buf, LogicalBlockAddress lba)
 {
-    if (lba >= self->blockCount) {
+    if (lba < self->blockCount) {
+        memcpy(buf, &self->diskImage[lba << self->blockShift], self->blockSize);
+        return EOK;
+    }
+    else {
         return ENXIO;
     }
-
-    memcpy(pBuffer, &self->diskImage[lba * self->blockSize], self->blockSize);
-    return EOK;
 }
 
 errno_t RamFSContainer_acquireBlock(struct RamFSContainer* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
@@ -141,26 +142,27 @@ errno_t RamFSContainer_acquireBlock(struct RamFSContainer* _Nonnull self, Logica
     return err;
 }
 
-// Writes the contents of 'pBuffer' to the block at index 'lba'. 'pBuffer'
+// Writes the contents of 'buf' to the block at index 'lba'. 'buf'
 // must be big enough to hold a full block. Blocks the caller until the
 // write has completed. The contents of the block on disk is left in an
 // indeterminate state of the write fails in the middle of the write. The
 // block may contain a mix of old and new data.
-static errno_t RamFSContainer_PutBlock(RamFSContainerRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
+static errno_t RamFSContainer_PutBlock(RamFSContainerRef _Nonnull self, const void* _Nonnull buf, LogicalBlockAddress lba)
 {
-    if (lba >= self->blockCount) {
+    if (lba < self->blockCount) {
+        memcpy(&self->diskImage[lba << self->blockShift], buf, self->blockSize);
+        if (lba < self->lowestWrittenToLba) {
+            self->lowestWrittenToLba = lba;
+        }
+        if (lba > self->highestWrittenToLba) {
+            self->highestWrittenToLba = lba;
+        }
+
+        return EOK;
+    }
+    else {
         return ENXIO;
     }
-
-    memcpy(&self->diskImage[lba * self->blockSize], pBuffer, self->blockSize);
-    if (lba < self->lowestWrittenToLba) {
-        self->lowestWrittenToLba = lba;
-    }
-    if (lba > self->highestWrittenToLba) {
-        self->highestWrittenToLba = lba;
-    }
-
-    return EOK;
 }
 
 errno_t RamFSContainer_relinquishBlockWriting(struct RamFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
@@ -199,7 +201,7 @@ static void convert_offset(struct RamFSContainer* _Nonnull self, off_t offset, L
 errno_t RamFSContainer_Read(RamFSContainerRef _Nonnull self, void* _Nonnull buf, ssize_t nBytesToRead, off_t offset, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
-    const off_t diskSize = (off_t)self->blockCount * (off_t)self->blockSize;
+    const off_t diskSize = (off_t)self->blockCount << (off_t)self->blockShift;
     uint8_t* dp = buf;
     ssize_t nBytesRead = 0;
 
@@ -271,7 +273,7 @@ catch:
 errno_t RamFSContainer_Write(RamFSContainerRef _Nonnull self, const void* _Nonnull buf, ssize_t nBytesToWrite, off_t offset, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
-    const off_t diskSize = (off_t)self->blockCount * (off_t)self->blockSize;
+    const off_t diskSize = (off_t)self->blockCount << (off_t)self->blockShift;
     const uint8_t* sp = buf;
     ssize_t nBytesWritten = 0;
 
@@ -345,19 +347,19 @@ catch:
 
 void RamFSContainer_WipeDisk(RamFSContainerRef _Nonnull self)
 {
-    memset(self->diskImage, 0, self->blockCount * self->blockSize);
+    memset(self->diskImage, 0, self->blockCount << self->blockShift);
     
     self->lowestWrittenToLba = 0;
     self->highestWrittenToLba = self->blockCount - 1;
 }
 
 // Writes the contents of the disk to the given path as a regular file.
-errno_t RamFSContainer_WriteToPath(RamFSContainerRef _Nonnull self, const char* pPath)
+errno_t RamFSContainer_WriteToPath(RamFSContainerRef _Nonnull self, const char* path)
 {
     decl_try_err();
     FILE* fp;
 
-    try_null(fp, fopen(pPath, "wb"), EIO);
+    try_null(fp, fopen(path, "wb"), EIO);
     
     if (self->format == kDiskImage_Serena) {
         SMG_Header  hdr;
