@@ -71,6 +71,14 @@ void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, sfs_inode_t* _Nonnull ip
     }
 }
 
+void SfsFile_ConvertOffset(SfsFileRef _Nonnull _Locked self, off_t offset, sfs_bno_t* _Nonnull pOutFba, ssize_t* _Nonnull pOutFbaOffset)
+{
+    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
+
+    *pOutFba = (sfs_bno_t)(offset >> (off_t)fs->blockShift);
+    *pOutFbaOffset = (ssize_t)(offset & (off_t)fs->blockMask);
+}
+
 // Acquires the disk block 'lba' if lba is > 0; otherwise allocates a new block.
 // The new block is for read-only if read-only 'mode' is requested and it is
 // suitable for writing back to disk if 'mode' is a replace/update mode.
@@ -155,73 +163,48 @@ catch:
     return err;
 }
 
-void SfsFile_ConvertOffset(SfsFileRef _Nonnull _Locked self, off_t offset, sfs_bno_t* _Nonnull pOutFba, ssize_t* _Nonnull pOutFbaOffset)
-{
-    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
-
-    *pOutFba = (sfs_bno_t)(offset >> (off_t)fs->blockShift);
-    *pOutFbaOffset = (ssize_t)(offset & (off_t)fs->blockMask);
-}
-
-void SfsFile_DeallocBlocks(SfsFileRef _Nonnull self)
-{
-    decl_try_err();
-    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
-    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
-    const sfs_bmap_t* bmap = &self->bmap;
-    DiskBlockRef pBlock;
-
-    if (bmap->indirect > 0) {
-        if ((err = FSContainer_AcquireBlock(fsContainer, UInt32_BigToHost(bmap->indirect), kAcquireBlock_ReadOnly, &pBlock)) == EOK) {
-            sfs_bno_t* i0_bmap = (sfs_bno_t*)DiskBlock_GetData(pBlock);
-
-            for (size_t i = 0; i < fs->indirectBlockEntryCount; i++) {
-                if (i0_bmap[i] > 0) {
-                    SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(i0_bmap[i]));
-                }
-            }
-
-            FSContainer_RelinquishBlock(fsContainer, pBlock);
-        }
-        SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(bmap->indirect));
-    }
-
-    for (size_t i = 0; i < kSFSDirectBlockPointersCount; i++) {
-        if (bmap->direct[i] > 0) {
-            SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(bmap->direct[i]));
-        }
-    }
-}
-
-// Internal file truncation function. Shortens the file 'self' to the new and
-// smaller size 'length'. Does not support increasing the size of a file.
-void SfsFile_Truncate(SfsFileRef _Nonnull _Locked self, off_t newLength)
+// Trims (shortens) the size of the file to the new (and smaller) size 'newLength'.
+// Note that this function may free blocks but it does not commit the changes to
+// the allocation bitmap to the disk, change the file size or set the inode
+// modification flags. The caller has to do this.
+// Returns true if at least one block was actually trimmed; false otherwise
+bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     const off_t oldLength = Inode_GetFileSize(self);
     sfs_bmap_t* bmap = &self->bmap;
-    const sfs_bno_t bn_nlen = (sfs_bno_t)(newLength >> (off_t)fs->blockShift);   //XXX should be 64bit
-    const size_t boff_nlen = newLength & (off_t)fs->blockMask;
-    sfs_bno_t bn_first_to_discard = (boff_nlen > 0) ? bn_nlen + 1 : bn_nlen;   // first block to discard (the block that contains newLength or that is right in front of newLength)
+    sfs_bno_t bn_nlen;
+    ssize_t boff_nlen;
+    bool didTrim = false;
 
-    if (bn_first_to_discard < kSFSDirectBlockPointersCount) {
-        for (size_t bn = bn_first_to_discard; bn < kSFSDirectBlockPointersCount; bn++) {
-            if (bmap->direct[bn] > 0) {
-                SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(bmap->direct[bn]));
-                bmap->direct[bn] = 0;
-            }
+    SfsFile_ConvertOffset(self, newLength, &bn_nlen, &boff_nlen);
+
+
+    // Calculate the first FBA to discard
+    sfs_bno_t bn_first_to_discard = (boff_nlen > 0) ? bn_nlen + 1 : bn_nlen;
+
+
+    // Trim the direct blocks
+    for (size_t bn = bn_first_to_discard; bn < kSFSDirectBlockPointersCount; bn++) {
+        if (bmap->direct[bn] > 0) {
+            SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(bmap->direct[bn]));
+            bmap->direct[bn] = 0;
+            didTrim = true;
         }
     }
 
+
+    // Figure out whether indirect blocks need to be trimmed
     const size_t bn_first_i0_to_discard = (bn_first_to_discard < kSFSDirectBlockPointersCount) ? 0 : bn_first_to_discard - kSFSDirectBlockPointersCount;
+    const AcquireBlock mode = (bn_first_i0_to_discard == 0) ? kAcquireBlock_ReadOnly : kAcquireBlock_Update;
     const LogicalBlockAddress i0_lba = UInt32_BigToHost(bmap->indirect);
 
-    if (i0_lba != 0) {
+    if (i0_lba > 0) {
         DiskBlockRef pBlock;
 
-        err = FSContainer_AcquireBlock(fsContainer, i0_lba, kAcquireBlock_Update, &pBlock);
+        err = FSContainer_AcquireBlock(fsContainer, i0_lba, mode, &pBlock);
         if (err == EOK) {
             sfs_bno_t* i0_bmap = (sfs_bno_t*)DiskBlock_GetMutableData(pBlock);
 
@@ -229,26 +212,24 @@ void SfsFile_Truncate(SfsFileRef _Nonnull _Locked self, off_t newLength)
                 if (i0_bmap[bn] != 0) {
                     SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(i0_bmap[bn]));
                     i0_bmap[bn] = 0;
+                    didTrim = true;
                 }
             }
 
-            if (bn_first_i0_to_discard == 0) {
-                // We removed the whole i0 level
-                bmap->indirect = 0;
-                // XXX no need to write back the abandoned i0 block?
+            if (mode == kAcquireBlock_Update) {
+                // We removed some of the i0 blocks
+                FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
             }
             else {
-                // We partially removed the i0 level
+                // We abandoned all of the i0 level
+                FSContainer_RelinquishBlock(fsContainer, pBlock);
+                bmap->indirect = 0;
+                didTrim = true;
             }
-
-            FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
         }
     }
 
-    SfsAllocator_CommitToDisk(&fs->blockAllocator, fsContainer);
-
-    Inode_SetFileSize(self, newLength);
-    Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
+    return didTrim;
 }
 
 

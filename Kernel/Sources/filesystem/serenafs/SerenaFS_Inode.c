@@ -170,7 +170,7 @@ void SerenaFS_onRemoveNodeFromDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
 
-    SfsFile_DeallocBlocks((SfsFileRef)pNode);
+    SfsFile_Trim((SfsFileRef)pNode, 0ll);
     SfsAllocator_Deallocate(&self->blockAllocator, lba);
     SfsAllocator_CommitToDisk(&self->blockAllocator, fsContainer);
 }
