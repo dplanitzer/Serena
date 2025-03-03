@@ -182,7 +182,7 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
                 }
             }
             else if (qr->ih && !hasInsertionHint) {
-                qr->ih->lba = blockIdx;
+                qr->ih->lba = DiskBlock_GetDiskAddress(pBlock)->lba;
                 qr->ih->blockOffset = (const uint8_t*)sp - bp;
                 hasInsertionHint = true;
             }
@@ -192,7 +192,7 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
                 if (qr->mpc) {
                     MutablePathComponent_SetString(qr->mpc, sp->filename, sp->len);
                 }
-                qr->lba = blockIdx;
+                qr->lba = DiskBlock_GetDiskAddress(pBlock)->lba;
                 qr->blockOffset = (const uint8_t*)sp - bp;
                 qr->fileOffset = offset;
                 break;
@@ -231,7 +231,7 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, ino_t idToRemov
     FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
 
     if (Inode_GetFileSize(self) - (off_t)sizeof(sfs_dirent_t) == qr.fileOffset) {
-        Inode_DecrementFileSize(self, sizeof(sfs_dirent_t));
+        Inode_SetFileSize(self, qr.fileOffset);
     }
 
 catch:
@@ -250,74 +250,38 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs); 
     DiskBlockRef pBlock;
+    ssize_t blockOffset;
 
     if (pName->count > kSFSMaxFilenameLength) {
         return ENAMETOOLONG;
     }
 
     if (ih && ih->lba > 0) {
-        // Reuse an empty entry
         try(FSContainer_AcquireBlock(fsContainer, ih->lba, kAcquireBlock_Update, &pBlock));
-        uint8_t* bp = DiskBlock_GetMutableData(pBlock);
-        sfs_dirent_t* dep = (sfs_dirent_t*)(bp + ih->blockOffset);
-
-        memset(dep->filename, 0, kSFSMaxFilenameLength);
-        memcpy(dep->filename, pName->name, pName->count);
-        dep->len = pName->count;
-        dep->id = UInt32_HostToBig(id);
-
-        FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+        blockOffset = ih->blockOffset;
     }
     else {
-        // Append a new entry
-        sfs_bmap_t* bmap = SfsFile_GetBlockMap(self);
-        const off_t dirSize = Inode_GetFileSize(self);
-        const size_t remainder = (size_t)(dirSize & (off_t)fs->blockMask);
-        LogicalBlockAddress lba;
-        sfs_dirent_t* dep;
-        int idx = -1;
+        sfs_bno_t fba;
 
-        if (remainder > 0) {
-            idx = (int)(dirSize >> (off_t)fs->blockShift);
-            lba = UInt32_BigToHost(bmap->direct[idx]);
-
-            try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Update, &pBlock));
-            uint8_t* bp = DiskBlock_GetMutableData(pBlock);
-            dep = (sfs_dirent_t*)(bp + remainder);
-        }
-        else {
-            for (size_t i = 0; i < kSFSDirectBlockPointersCount; i++) {
-                if (bmap->direct[i] == 0) {
-                    idx = i;
-                    break;
-                }
-            }
-            if (idx == -1) {
-                throw(EIO);
-            }
-
-            try(SfsAllocator_Allocate(&fs->blockAllocator, &lba));
-            try(SfsAllocator_CommitToDisk(&fs->blockAllocator, fsContainer));
-            bmap->direct[idx] = UInt32_HostToBig(lba);
-            
-            try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Cleared, &pBlock));
-            dep = (sfs_dirent_t*)DiskBlock_GetMutableData(pBlock);
-        }
-
-        memset(dep->filename, 0, kSFSMaxFilenameLength);
-        memcpy(dep->filename, pName->name, pName->count);
-        dep->len = pName->count;
-        dep->id = UInt32_HostToBig(id);
-        FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
-
+        SfsFile_ConvertOffset((SfsFileRef)self, Inode_GetFileSize(self), &fba, &blockOffset);
+        try(SfsFile_AcquireBlock((SfsFileRef)self, fba, kAcquireBlock_Update, &pBlock));
+        try(SfsAllocator_CommitToDisk(&fs->blockAllocator, fsContainer));
         Inode_IncrementFileSize(self, sizeof(sfs_dirent_t));
     }
 
+    uint8_t* bp = DiskBlock_GetMutableData(pBlock);
+    sfs_dirent_t* dep = (sfs_dirent_t*)(bp + blockOffset);
+
+    memset(dep->filename, 0, kSFSMaxFilenameLength);
+    memcpy(dep->filename, pName->name, pName->count);
+    dep->len = pName->count;
+    dep->id = UInt32_HostToBig(id);
+
+    FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+
 
     // Mark the directory as modified
-    if (err == EOK) {
-        Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
-    }
+    Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
 
 catch:
     return err;

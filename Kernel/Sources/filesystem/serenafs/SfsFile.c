@@ -155,12 +155,12 @@ catch:
     return err;
 }
 
-void SfsFile_ConvertOffset(SfsFileRef _Nonnull _Locked self, off_t offset, sfs_bno_t* _Nonnull pOutBlockIdx, ssize_t* _Nonnull pOutBlockOffset)
+void SfsFile_ConvertOffset(SfsFileRef _Nonnull _Locked self, off_t offset, sfs_bno_t* _Nonnull pOutFba, ssize_t* _Nonnull pOutFbaOffset)
 {
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
 
-    *pOutBlockIdx = (sfs_bno_t)(offset >> (off_t)fs->blockShift);
-    *pOutBlockOffset = (ssize_t)(offset & (off_t)fs->blockMask);
+    *pOutFba = (sfs_bno_t)(offset >> (off_t)fs->blockShift);
+    *pOutFbaOffset = (ssize_t)(offset & (off_t)fs->blockMask);
 }
 
 void SfsFile_DeallocBlocks(SfsFileRef _Nonnull self)
