@@ -7,6 +7,7 @@
 //
 
 #include "FileHierarchy.h"
+#include <klib/Hash.h>
 #include <dispatcher/SELock.h>
 #include <filesystem/FSUtilities.h>
 #include <security/SecurityManager.h>
@@ -53,11 +54,8 @@ typedef struct FHKey {
 #define HASH_CHAINS_COUNT   8
 #define HASH_CHAINS_MASK    (HASH_CHAINS_COUNT - 1)
 
-#define HASH_CODE(__type, __fsid, __inid) \
-    (((size_t)__type) + ((size_t)__fsid) + ((size_t)__inid))
-
 #define HASH_INDEX(__direction, __fsid, __inid) \
-    (HASH_CODE(__direction, __fsid, __inid) & HASH_CHAINS_MASK)
+    (hash_scalar(((size_t)__direction) + ((size_t)__fsid) + ((size_t)__inid)) & HASH_CHAINS_MASK)
 
 final_class_ivars(FileHierarchy, Object,
     SELock              lock;

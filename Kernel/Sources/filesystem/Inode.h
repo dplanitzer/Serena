@@ -23,6 +23,15 @@ enum {
 };
 
 
+// Inode state
+enum {
+    kInodeState_Reading = 0,
+    kInodeState_Cached,
+    kInodeState_Writing,
+    kInodeState_Deleting
+};
+
+
 // An Inode represents the meta information of a file or directory. This is an
 // abstract class that must be subclassed and fully implemented by a file system.
 // See the description of the Filesystem class to learn about how locking for

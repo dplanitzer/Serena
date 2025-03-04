@@ -15,6 +15,7 @@
 #include <klib/Assert.h>
 #include <klib/Atomic.h>
 #include <klib/Error.h>
+#include <klib/Hash.h>
 #include <klib/Kalloc.h>
 #include <klib/List.h>
 #include <klib/Memory.h>

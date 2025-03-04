@@ -11,6 +11,7 @@
 
 #include "DiskCache.h"
 #include "DiskBlock.h"
+#include <klib/Hash.h>
 #include <klib/List.h>
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
@@ -164,8 +165,7 @@ enum {
 
 #define DISK_DRIVER_HASH_CHAIN_COUNT        4
 #define DISK_DRIVER_HASH_CHAIN_MASK         (DISK_DRIVER_HASH_CHAIN_COUNT - 1)
-#define DISK_DRIVER_HASH_CODE(__diskId)     (__diskId)
-#define DISK_DRIVER_HASH_INDEX(__diskId)    (DISK_DRIVER_HASH_CODE(__diskId) & DISK_DRIVER_HASH_CHAIN_MASK)
+#define DISK_DRIVER_HASH_INDEX(__diskId)    (hash_scalar(__diskId) & DISK_DRIVER_HASH_CHAIN_MASK)
 
 
 typedef struct DiskEntry {

@@ -15,6 +15,7 @@
 #include <dispatcher/SELock.h>
 #include <filesystem/FSUtilities.h>
 #include <klib/Types.h>
+#include <klib/Hash.h>
 #include <klib/List.h>
 
 
@@ -23,8 +24,7 @@
 //
 
 #define INID_HASH_CHAINS_COUNT  8
-#define INID_HASH_CODE(__id)    (__id)
-#define INID_HASH_INDEX(__id)   (INID_HASH_CODE(__id) & (INID_HASH_CHAINS_COUNT-1))
+#define INID_HASH_INDEX(__id)   (hash_scalar(__id) & (INID_HASH_CHAINS_COUNT-1))
 
 
 // DevFS Locking:

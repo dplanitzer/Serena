@@ -10,15 +10,13 @@
 #include "FSUtilities.h"
 #include "DirectoryChannel.h"
 #include "FileChannel.h"
+#include <klib/Hash.h>
 
 #define IN_HASH_CHAINS_COUNT    8
 #define IN_HASH_CHAINS_MASK     (IN_HASH_CHAINS_COUNT - 1)
 
-#define IN_HASH_CODE(__inid) \
-((size_t)__inid)
-
 #define IN_HASH_INDEX(__inid) \
-(IN_HASH_CODE(__inid) & IN_HASH_CHAINS_MASK)
+(hash_scalar(__inid) & IN_HASH_CHAINS_MASK)
 
 #define InodeFromHashChainPointer(__ptr) \
 (InodeRef) (((uint8_t*)__ptr) - offsetof(struct Inode, sibling))
