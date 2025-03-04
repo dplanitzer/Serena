@@ -10,6 +10,7 @@
 #define Inode_h
 
 #include <kobj/Any.h>
+#include <klib/List.h>
 #include <dispatcher/Lock.h>
 #include <System/Directory.h>
 #include <System/File.h>
@@ -27,11 +28,12 @@ enum {
 // See the description of the Filesystem class to learn about how locking for
 // Inodes works.
 open_class(Inode, Any,
+    ListNode                        sibling;
+    Lock                            lock;
     TimeInterval                    accessTime;
     TimeInterval                    modificationTime;
     TimeInterval                    statusChangeTime;
     off_t                           size;       // File size
-    Lock                            lock;
     FilesystemRef _Weak _Nonnull    filesystem; // The owning filesystem instance
     ino_t                           inid;       // Filesystem specific ID of the inode
     int                             useCount;   // Number of entities that are using this inode at this moment. Incremented on acquisition and decremented on relinquishing (protected by the FS inode management lock)

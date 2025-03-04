@@ -10,6 +10,7 @@
 #define Filesystem_h
 
 #include <kobj/Object.h>
+#include <klib/List.h>
 #include "Inode.h"
 #include "PathComponent.h"
 #include "User.h"
@@ -118,8 +119,9 @@ typedef struct DirectoryEntryInsertionHint {
 //
 open_class(Filesystem, Object,
     fsid_t          fsid;
-    Lock            inodeManagementLock;
-    PointerArray    inodesInUse;
+    Lock            inLock;
+    List* _Nonnull  inHashTable;   // <Inode>
+    size_t          inCount;
 );
 open_class_funcs(Filesystem, Object,
 
@@ -313,15 +315,6 @@ extern errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _
 //
 // Methods for use by filesystem subclassers.
 //
-
-// Publishes the given inode. Publishing should be the last step in creating a
-// new inode in order to make it visible and accessible to other part of the
-// kernel. Note that the inode that is passed to this function must not have
-// been acquired via Filesystem_AcquireNode(). The passed in inode must be a
-// freshly allocated inode (via Inode_Create). The inode is considered acquired
-// once this function returns. This means that you have to relinquish it by
-// calling Filesystem_RelinquishNode(). 
-extern errno_t Filesystem_PublishNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode);
 
 // Acquires the inode with the ID 'id'. This methods guarantees that there will
 // always only be at most one inode instance in memory at any given time and

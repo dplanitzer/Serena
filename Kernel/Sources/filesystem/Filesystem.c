@@ -11,6 +11,19 @@
 #include "DirectoryChannel.h"
 #include "FileChannel.h"
 
+#define IN_HASH_CHAINS_COUNT    8
+#define IN_HASH_CHAINS_MASK     (IN_HASH_CHAINS_COUNT - 1)
+
+#define IN_HASH_CODE(__inid) \
+((size_t)__inid)
+
+#define IN_HASH_INDEX(__inid) \
+(IN_HASH_CODE(__inid) & IN_HASH_CHAINS_MASK)
+
+#define InodeFromHashChainPointer(__ptr) \
+(InodeRef) (((uint8_t*)__ptr) - offsetof(struct Inode, sibling))
+
+
 
 // Returns the next available FSID.
 static fsid_t Filesystem_GetNextAvailableId(void)
@@ -28,76 +41,68 @@ errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOut
     FilesystemRef self;
 
     try(Object_Create(pClass, 0, (void**)&self));
+    try(FSAllocateCleared(sizeof(List) * IN_HASH_CHAINS_COUNT, (void**)&self->inHashTable));
     self->fsid = Filesystem_GetNextAvailableId();
-    Lock_Init(&self->inodeManagementLock);
-    PointerArray_Init(&self->inodesInUse, 16);
+    Lock_Init(&self->inLock);
 
     *pOutFileSys = self;
     return EOK;
 
 catch:
+    Object_Release(self);
     *pOutFileSys = NULL;
     return err;
 }
 
 void Filesystem_deinit(FilesystemRef _Nonnull self)
 {
-    PointerArray_Deinit(&self->inodesInUse);
-    Lock_Deinit(&self->inodeManagementLock);
-}
+    if (self->inCount > 0) {
+        // This should never happen because a filesystem can not be destroyed
+        // as long as inodes are still alive
+        abort();
+    }
 
-errno_t Filesystem_PublishNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode)
-{
-    decl_try_err();
-
-    Lock_Lock(&self->inodeManagementLock);
-    assert(pNode->useCount == 0);
-    try(PointerArray_Add(&self->inodesInUse, pNode));
-    pNode->useCount++;
-    
-catch:
-    Lock_Unlock(&self->inodeManagementLock);
-    return err;
+    Lock_Deinit(&self->inLock);
 }
 
 errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
-    InodeRef pNode = NULL;
+    const size_t hashIdx = IN_HASH_INDEX(id);
+    InodeRef ip = NULL;
 
-    Lock_Lock(&self->inodeManagementLock);
+    Lock_Lock(&self->inLock);
 
-    for (int i = 0; i < PointerArray_GetCount(&self->inodesInUse); i++) {
-        InodeRef pCurNode = (InodeRef)PointerArray_GetAt(&self->inodesInUse, i);
+    List_ForEach(&self->inHashTable[hashIdx], struct Inode,
+        InodeRef curNode = InodeFromHashChainPointer(pCurNode);
 
-        if (Inode_GetId(pCurNode) == id) {
-            pNode = pCurNode;
+        if (Inode_GetId(curNode) == id) {
+            ip = curNode;
             break;
         }
+    );
+
+    if (ip == NULL) {
+        try(Filesystem_OnReadNodeFromDisk(self, id, &ip));
+
+        List_InsertBeforeFirst(&self->inHashTable[hashIdx], &ip->sibling);
+        self->inCount++;
     }
 
-    if (pNode == NULL) {
-        try(Filesystem_OnReadNodeFromDisk(self, id, &pNode));
-        try(PointerArray_Add(&self->inodesInUse, pNode));
-    }
-
-    pNode->useCount++;
-    Lock_Unlock(&self->inodeManagementLock);
-    *pOutNode = pNode;
-
-    return EOK;
+    ip->useCount++;
 
 catch:
-    Lock_Unlock(&self->inodeManagementLock);
-    *pOutNode = NULL;
+    Lock_Unlock(&self->inLock);
+    *pOutNode = ip;
+
     return err;
 }
 
 InodeRef _Nonnull _Locked Filesystem_ReacquireNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode)
 {
-    Lock_Lock(&self->inodeManagementLock);
+    Lock_Lock(&self->inLock);
     pNode->useCount++;
-    Lock_Unlock(&self->inodeManagementLock);
+    Lock_Unlock(&self->inLock);
 
     return pNode;
 }
@@ -110,7 +115,8 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
         return EOK;
     }
     
-    Lock_Lock(&self->inodeManagementLock);
+    const size_t hashIdx = IN_HASH_INDEX(Inode_GetId(pNode));
+    Lock_Lock(&self->inLock);
 
     if (!Filesystem_IsReadOnly(self)) {
         // Remove the inode (file) from disk if the use count goes to 0 and the link
@@ -131,20 +137,21 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
     assert(pNode->useCount > 0);
     pNode->useCount--;
     if (pNode->useCount == 0) {
-        PointerArray_Remove(&self->inodesInUse, pNode);
+        self->inCount--;
+        List_Remove(&self->inHashTable[hashIdx], &pNode->sibling);
         Inode_Destroy(pNode);
     }
 
-    Lock_Unlock(&self->inodeManagementLock);
+    Lock_Unlock(&self->inLock);
 
     return err;
 }
 
 bool Filesystem_CanUnmount(FilesystemRef _Nonnull self)
 {
-    Lock_Lock(&self->inodeManagementLock);
-    const bool ok = PointerArray_IsEmpty(&self->inodesInUse);
-    Lock_Unlock(&self->inodeManagementLock);
+    Lock_Lock(&self->inLock);
+    const bool ok = (self->inCount > 0) ? true : false;
+    Lock_Unlock(&self->inLock);
     return ok;
 }
 
