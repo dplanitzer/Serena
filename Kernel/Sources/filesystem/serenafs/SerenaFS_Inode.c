@@ -156,7 +156,7 @@ errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
     DiskBlockRef pBlock;
 
-    const errno_t err = FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Cleared, &pBlock);
+    const errno_t err = FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Replace, &pBlock);
     if (err == EOK) {
         SfsFile_Serialize(pNode, (sfs_inode_t*)DiskBlock_GetMutableData(pBlock));
         FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);

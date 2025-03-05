@@ -37,7 +37,7 @@ enum {
 // See the description of the Filesystem class to learn about how locking for
 // Inodes works.
 open_class(Inode, Any,
-    ListNode                        sibling;
+    ListNode                        sibling;        // Protected by Filesystem.inLock
     Lock                            lock;
     TimeInterval                    accessTime;
     TimeInterval                    modificationTime;

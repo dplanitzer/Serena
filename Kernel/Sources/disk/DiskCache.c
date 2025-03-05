@@ -691,7 +691,8 @@ errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRe
             break;
 
         default:
-            abort(); break;
+            abort();
+            break;
     }
 
     _DiskCache_UnlockContentAndPutBlock(self, pBlock);
