@@ -101,22 +101,18 @@ catch:
 
 errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode)
 {
+    decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const LogicalBlockAddress lba = (LogicalBlockAddress)id;
     Class* pClass;
-    DiskBlockRef pBlock;
+    DiskBlockRef pBlock = NULL;
+    InodeRef pNode = NULL;
 
-    errno_t err = FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_ReadOnly, &pBlock);
-    if (err != EOK) {
-        *pOutNode = NULL;
-        return err;
-    }
+    try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_ReadOnly, &pBlock));
     
     const sfs_inode_t* ip = (const sfs_inode_t*)DiskBlock_GetData(pBlock);
     if (UInt32_BigToHost(ip->signature) != kSFSSignature_Inode || UInt32_BigToHost(ip->id) != id) {
-        FSContainer_RelinquishBlock(fsContainer, pBlock);
-        *pOutNode = NULL;
-        return EIO;
+        throw(EIO);
     }
 
     switch (ip->type) {
@@ -129,16 +125,15 @@ errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, ino_t id, InodeRe
             break;
 
         default:
-            pClass = NULL;
-            err = EIO;
+            throw(EIO);
             break;
     }
 
-    if (pClass) {
-        err = SfsFile_Create(pClass, self, id, ip, pOutNode);
-    }
-    FSContainer_RelinquishBlock(fsContainer, pBlock);
+    err = SfsFile_Create(pClass, self, id, ip, &pNode);
 
+catch:
+    FSContainer_RelinquishBlock(fsContainer, pBlock);
+    *pOutNode = pNode;
     return err;
 }
 
