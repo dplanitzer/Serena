@@ -200,25 +200,25 @@ bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
 
     // Figure out whether indirect blocks need to be trimmed
     const size_t bn_first_i0_to_discard = (bn_first_to_discard < kSFSDirectBlockPointersCount) ? 0 : bn_first_to_discard - kSFSDirectBlockPointersCount;
-    const AcquireBlock mode = (bn_first_i0_to_discard == 0) ? kAcquireBlock_ReadOnly : kAcquireBlock_Update;
+    const bool is_i0_update = (bn_first_i0_to_discard > 0) ? true : false;
     const LogicalBlockAddress i0_lba = UInt32_BigToHost(bmap->indirect);
 
     if (i0_lba > 0) {
         DiskBlockRef pBlock;
 
-        err = FSContainer_AcquireBlock(fsContainer, i0_lba, mode, &pBlock);
+        err = FSContainer_AcquireBlock(fsContainer, i0_lba, (is_i0_update) ? kAcquireBlock_Update : kAcquireBlock_ReadOnly, &pBlock);
         if (err == EOK) {
             sfs_bno_t* i0_bmap = (sfs_bno_t*)DiskBlock_GetMutableData(pBlock);
 
             for (size_t bn = bn_first_i0_to_discard; bn < fs->indirectBlockEntryCount; bn++) {
-                if (i0_bmap[bn] != 0) {
+                if (i0_bmap[bn] > 0) {
                     SfsAllocator_Deallocate(&fs->blockAllocator, UInt32_BigToHost(i0_bmap[bn]));
-                    i0_bmap[bn] = 0;
+                    if (is_i0_update) i0_bmap[bn] = 0;
                     didTrim = true;
                 }
             }
 
-            if (mode == kAcquireBlock_Update) {
+            if (is_i0_update) {
                 // We removed some of the i0 blocks
                 FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
             }
