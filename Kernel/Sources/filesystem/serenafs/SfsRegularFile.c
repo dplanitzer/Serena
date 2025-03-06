@@ -200,10 +200,8 @@ errno_t SfsRegularFile_truncate(SfsRegularFileRef _Nonnull _Locked self, off_t l
     else if (oldLength > length) {
         // Reduction in size
         SfsFile_Trim((SfsFileRef)self, length);
-
         SfsAllocator_CommitToDisk(&fs->blockAllocator, Filesystem_GetContainer(fs));
 
-        Inode_SetFileSize(self, length);
         Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);    
     }
 

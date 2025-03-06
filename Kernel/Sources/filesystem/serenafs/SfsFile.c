@@ -165,8 +165,10 @@ catch:
 
 // Trims (shortens) the size of the file to the new (and smaller) size 'newLength'.
 // Note that this function may free blocks but it does not commit the changes to
-// the allocation bitmap to the disk, change the file size or set the inode
-// modification flags. The caller has to do this.
+// the allocation bitmap to the disk and doesn't set the inode modification flags.
+// The caller has to do this. Note that this function always updates the file
+// size even if no blocks are removed. It also always checks whether a block can
+// be removed even if the file size of the node is already == newLength.
 // Returns true if at least one block was actually trimmed; false otherwise
 bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
 {
@@ -228,6 +230,8 @@ bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
             }
         }
     }
+
+    Inode_SetFileSize(self, newLength);
 
     return didTrim;
 }

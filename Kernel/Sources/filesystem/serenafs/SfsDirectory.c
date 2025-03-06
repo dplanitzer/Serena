@@ -235,7 +235,6 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeRef _Nonnu
     // the directory
     if (Inode_GetFileSize(self) - (off_t)sizeof(sfs_dirent_t) == qr.fileOffset) {
         SfsFile_Trim((SfsFileRef)self, qr.fileOffset);
-        Inode_SetFileSize(self, qr.fileOffset);
     }
 
 
