@@ -162,7 +162,16 @@ void SerenaFS_onRemoveNodeFromDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
 
+    // Write the 'dead' node back to disk to ensure that a fs check will recognize
+    // it as a deleted file
+    // linkCount == 0 at this point
     SfsFile_Trim((SfsFileRef)pNode, 0ll);
+    Inode_SetModified(pNode, kInodeFlag_Updated | kInodeFlag_StatusChanged);
+    SerenaFS_onWriteNodeToDisk(self, pNode);
+
+
+    // Update the allocation bitmap to mark the inode and all content blocks as
+    // freed
     SfsAllocator_Deallocate(&self->blockAllocator, lba);
     SfsAllocator_CommitToDisk(&self->blockAllocator, fsContainer);
 }
