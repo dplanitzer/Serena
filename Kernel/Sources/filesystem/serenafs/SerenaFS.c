@@ -240,11 +240,12 @@ catch:
     return r;
 }
 
-errno_t SerenaFS_link(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pName, uid_t uid, gid_t gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
+errno_t SerenaFS_link(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull name, uid_t uid, gid_t gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
 {
     decl_try_err();
 
-    try(SfsDirectory_InsertEntry(pDstDir, pName, pSrcNode, (sfs_insertion_hint_t*)pDirInstHint->data));
+    try(SfsDirectory_CanAcceptEntry(pDstDir, name, Inode_GetFileType(pSrcNode)));
+    try(SfsDirectory_InsertEntry(pDstDir, name, pSrcNode, (sfs_insertion_hint_t*)pDirInstHint->data));
     
     Inode_Link(pSrcNode);
     Inode_SetModified(pSrcNode, kInodeFlag_StatusChanged);

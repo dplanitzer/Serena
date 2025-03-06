@@ -24,12 +24,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     InodeRef pNode = NULL;
     DiskBlockRef pBlock = NULL;
 
-    if (type == kFileType_Directory) {
-        // Make sure that the parent directory is able to accept one more link
-        if (Inode_GetLinkCount(dir) >= kSFSLimit_LinkMax) {
-            throw(EMLINK);
-        }
-    }
+    try(SfsDirectory_CanAcceptEntry(dir, name, type));
 
     try(SfsAllocator_Allocate(&self->blockAllocator, &inodeLba));
     

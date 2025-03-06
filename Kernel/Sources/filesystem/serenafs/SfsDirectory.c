@@ -238,23 +238,43 @@ catch:
     return err;
 }
 
+// Validates that adding an entry with name 'name' and file type 'type' to this
+// directory is possible. This checks things like the length of the filename and
+// the link count of this directory. Returns EOK if adding the entry is possible.
+// The expectation is that 'self' is locked before this function is called and
+// that 'self' remains locked until after the directory entry has been added to
+// self.
+errno_t SfsDirectory_CanAcceptEntry(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull name, FileType type)
+{
+    if (name->count > kSFSMaxFilenameLength) {
+        return ENAMETOOLONG;
+    }
+
+    if (type == kFileType_Directory) {
+        // Adding a subdirectory increments our link count by 1
+        if (Inode_GetLinkCount(self) >= kSFSLimit_LinkMax) {
+            return EMLINK;
+        }
+    }
+
+    return EOK;
+}
+
 // Inserts a new directory entry of the form (pName, id) into the directory node
 // 'self'. 'ih' is an optional insertion hint. If this pointer exists then the
 // directory entry that it points to will be reused for the new directory entry;
 // otherwise a completely new entry will be added to the directory.
 // NOTE: this function does not verify that the new entry is unique. The caller
 // has to ensure that it doesn't try to add a duplicate entry to the directory.
-errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pChildNode, const sfs_insertion_hint_t* _Nullable ih)
+// NOTE: expects that you called SfsDirectory_CanAcceptEntry() before calling
+// this function and that it returned EOK.
+errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull name, InodeRef _Nonnull _Locked pChildNode, const sfs_insertion_hint_t* _Nullable ih)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
-    FSContainerRef fsContainer = Filesystem_GetContainer(fs); 
+    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     DiskBlockRef pBlock;
     ssize_t blockOffset;
-
-    if (pName->count > kSFSMaxFilenameLength) {
-        return ENAMETOOLONG;
-    }
 
     if (ih && ih->lba > 0) {
         try(FSContainer_AcquireBlock(fsContainer, ih->lba, kAcquireBlock_Update, &pBlock));
@@ -273,8 +293,8 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
     sfs_dirent_t* dep = (sfs_dirent_t*)(bp + blockOffset);
 
     memset(dep->filename, 0, kSFSMaxFilenameLength);
-    memcpy(dep->filename, pName->name, pName->count);
-    dep->len = pName->count;
+    memcpy(dep->filename, name->name, name->count);
+    dep->len = name->count;
     dep->id = UInt32_HostToBig(Inode_GetId(pChildNode));
 
     FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
@@ -286,7 +306,7 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
         Inode_Link(self);
     }
 
-    
+
     // Mark the directory as modified
     Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
 
