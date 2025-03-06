@@ -244,7 +244,8 @@ errno_t SerenaFS_link(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
 {
     decl_try_err();
 
-    try(SfsDirectory_InsertEntry(pDstDir, pName, Inode_GetId(pSrcNode), (sfs_insertion_hint_t*)pDirInstHint->data));
+    try(SfsDirectory_InsertEntry(pDstDir, pName, pSrcNode, (sfs_insertion_hint_t*)pDirInstHint->data));
+    
     Inode_Link(pSrcNode);
     Inode_SetModified(pSrcNode, kInodeFlag_StatusChanged);
 

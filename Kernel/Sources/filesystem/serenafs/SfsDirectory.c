@@ -239,12 +239,12 @@ catch:
 }
 
 // Inserts a new directory entry of the form (pName, id) into the directory node
-// 'self'. 'pEmptyEntry' is an optional insertion hint. If this pointer exists
-// then the directory entry that it points to will be reused for the new directory
-// entry; otherwise a completely new entry will be added to the directory.
+// 'self'. 'ih' is an optional insertion hint. If this pointer exists then the
+// directory entry that it points to will be reused for the new directory entry;
+// otherwise a completely new entry will be added to the directory.
 // NOTE: this function does not verify that the new entry is unique. The caller
 // has to ensure that it doesn't try to add a duplicate entry to the directory.
-errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull pName, ino_t id, const sfs_insertion_hint_t* _Nullable ih)
+errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pChildNode, const sfs_insertion_hint_t* _Nullable ih)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
@@ -275,11 +275,18 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
     memset(dep->filename, 0, kSFSMaxFilenameLength);
     memcpy(dep->filename, pName->name, pName->count);
     dep->len = pName->count;
-    dep->id = UInt32_HostToBig(id);
+    dep->id = UInt32_HostToBig(Inode_GetId(pChildNode));
 
     FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
 
 
+    // Increment the link count of the directory if the child node is itself a
+    // directory (accounting for its '..' entry)
+    if (Inode_IsDirectory(pChildNode)) {
+        Inode_Link(self);
+    }
+
+    
     // Mark the directory as modified
     Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
 

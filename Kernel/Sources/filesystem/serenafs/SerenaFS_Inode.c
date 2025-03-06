@@ -53,8 +53,6 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
         fileSize = 2 * sizeof(sfs_dirent_t);
     }
 
-    try(SfsAllocator_CommitToDisk(&self->blockAllocator, fsContainer));
-
 
     try(FSContainer_AcquireBlock(fsContainer, inodeLba, kAcquireBlock_Cleared, &pBlock));
     sfs_inode_t* ip = (sfs_inode_t*)DiskBlock_GetMutableData(pBlock);
@@ -78,13 +76,12 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
 
 
     try(Filesystem_AcquireNodeWithId((FilesystemRef)self, (ino_t)inodeLba, &pNode));
-    try(SfsDirectory_InsertEntry(dir, name, Inode_GetId(pNode), pDirInsertionHint));
+    Inode_Lock(pNode);
+    err = SfsDirectory_InsertEntry(dir, name, pNode, pDirInsertionHint);
+    Inode_Unlock(pNode);
+    throw_iferr(err);
 
-    if (type == kFileType_Directory) {
-        // Increment the parent directory link count to account for the '..' entry
-        // in the just created subdirectory
-        Inode_Link(dir);
-    }
+    try(SfsAllocator_CommitToDisk(&self->blockAllocator, fsContainer));
 
     *pOutNode = pNode;
     return EOK;
