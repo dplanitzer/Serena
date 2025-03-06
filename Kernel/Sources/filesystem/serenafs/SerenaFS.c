@@ -156,18 +156,8 @@ static errno_t SerenaFS_unlinkCore(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
     decl_try_err();
 
     // Remove the directory entry in the parent directory
-    try(SfsDirectory_RemoveEntry(pDir, Inode_GetId(pNodeToUnlink)));
-
-    SfsFile_Trim((SfsFileRef)pDir, Inode_GetFileSize(pDir));
+    try(SfsDirectory_RemoveEntry(pDir, pNodeToUnlink));
     SfsAllocator_CommitToDisk(&self->blockAllocator, Filesystem_GetContainer(self));
-    Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
-
-
-    // If this is a directory then unlink it from its parent since we remove a
-    // '..' entry that points to the parent
-    if (Inode_IsDirectory(pNodeToUnlink)) {
-        Inode_Unlink(pDir);
-    }
 
 
     // Unlink the node itself

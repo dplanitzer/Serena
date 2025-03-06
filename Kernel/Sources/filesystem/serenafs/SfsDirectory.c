@@ -209,7 +209,7 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
     return (done) ? err : ENOENT;
 }
 
-errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, ino_t idToRemove)
+errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pNodeToRemove)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
@@ -219,7 +219,7 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, ino_t idToRemov
     sfs_query_result_t qr;
 
     q.kind = kSFSQuery_InodeId;
-    q.u.id = idToRemove;
+    q.u.id = Inode_GetId(pNodeToRemove);
     q.mpc = NULL;
     q.ih = NULL;
     try(SfsDirectory_Query(self, &q, &qr));
@@ -230,9 +230,23 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, ino_t idToRemov
     memset(dep, 0, sizeof(sfs_dirent_t));
     FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
 
+
+    // Shrink the directory file by one entry if we removed the last entry in
+    // the directory
     if (Inode_GetFileSize(self) - (off_t)sizeof(sfs_dirent_t) == qr.fileOffset) {
+        SfsFile_Trim((SfsFileRef)self, qr.fileOffset);
         Inode_SetFileSize(self, qr.fileOffset);
     }
+
+
+    // Reduce our link count by one if we removed a subdirectory
+    if (Inode_IsDirectory(pNodeToRemove)) {
+        Inode_Unlink(self);
+    }
+
+
+    // Mark the directory as modified
+    Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
 
 catch:
     return err;
