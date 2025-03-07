@@ -49,9 +49,8 @@ void DevFS_RemoveItem(DevFSRef _Nonnull _Locked self, ino_t inid);
 DfsItem* _Nullable DevFS_GetItem(DevFSRef _Nonnull _Locked self, ino_t inid);
 
 extern errno_t DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
-extern errno_t DevFS_onReadNodeFromDisk(DevFSRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode);
-extern errno_t DevFS_onWriteNodeToDisk(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode);
-extern void DevFS_onRemoveNodeFromDisk(DevFSRef _Nonnull self, InodeRef _Nonnull pNode);
+extern errno_t DevFS_onAcquireNode(DevFSRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode);
+extern errno_t DevFS_onWritebackNode(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode);
 
 extern errno_t DevFS_InsertDirectoryEntry(DevFSRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, ino_t inid, const PathComponent* _Nonnull pName);
 extern errno_t DevFS_RemoveDirectoryEntry(DevFSRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, ino_t idToRemove);

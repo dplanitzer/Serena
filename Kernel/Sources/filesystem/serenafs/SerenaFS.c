@@ -333,9 +333,8 @@ catch:
 
 class_func_defs(SerenaFS, ContainerFilesystem,
 override_func_def(deinit, SerenaFS, Object)
-override_func_def(onReadNodeFromDisk, SerenaFS, Filesystem)
-override_func_def(onWriteNodeToDisk, SerenaFS, Filesystem)
-override_func_def(onRemoveNodeFromDisk, SerenaFS, Filesystem)
+override_func_def(onAcquireNode, SerenaFS, Filesystem)
+override_func_def(onWritebackNode, SerenaFS, Filesystem)
 override_func_def(start, SerenaFS, Filesystem)
 override_func_def(stop, SerenaFS, Filesystem)
 override_func_def(isReadOnly, SerenaFS, Filesystem)

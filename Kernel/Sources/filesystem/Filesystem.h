@@ -222,32 +222,40 @@ open_class_funcs(Filesystem, Object,
 
 
     //
-    // Subclassing Override points
+    // Inode management
     //
 
     // Invoked when Filesystem_AcquireNodeWithId() needs to read the requested
     // inode off the disk. The override should read the inode data from the disk,
-    // create and inode instance and fill it in with the data from the disk and
+    // create an inode instance and fill it in with the data from the disk and
     // then return it. It should return a suitable error and NULL if the inode
     // data can not be read off the disk.
-    // Override: Advised
+    // Override: Required
     // Default Behavior: Returns EIO
-    errno_t (*onReadNodeFromDisk)(void* _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode);
+    errno_t (*onAcquireNode)(void* _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode);
 
-    // Invoked when the inode is relinquished and it is marked as modified. The
-    // filesystem override should write the inode meta-data back to the 
-    // corresponding disk node.
-    // Override: Advised
+    // Invoked when the inode is relinquished and it is marked as modified or
+    // its link count is 0 and the filesystem is not read-only. The override
+    // function should write the inode meta-data back to the disk. Note that
+    // the override needs to check whether the link count is 0. A node with link
+    // count 0 should be marked as deleted on disk and all disk blocks associated
+    // with the node and its content should be freed. On the other hand, a node
+    // with a link count > 0 should be kept alive and just updated on the disk.
+    // Override: Required
     // Default Behavior: Returns EIO
-    errno_t (*onWriteNodeToDisk)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode);
+    errno_t (*onWritebackNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode);
 
-    // Invoked when Filesystem_RelinquishNode() has determined that the inode is
-    // no longer being referenced by any directory and that the on-disk
-    // representation should be deleted from the disk and deallocated. This
-    // operation is assumed to never fail.
-    // Override: Advised
-    // Default Behavior: Does nothing
-    void (*onRemoveNodeFromDisk)(void* _Nonnull self, InodeRef _Nonnull pNode);
+    // Invoked when the given inode should be freed. This function is called
+    // after the last active reference to it has been relinquished and any
+    // modified data has been written back to disk by onWritebackNode().
+    // Override: Optional
+    // Default behavior: unconditionally calls Inode_Destroy()
+    void (*onRelinquishNode)(void* _Nonnull self, InodeRef _Nonnull pNode);
+
+
+    //
+    // Properties
+    //
 
     // Returns true if the filesystem is read-only and false otherwise. A filesystem
     // may be read-only because it was mounted with a read-only parameter or
@@ -306,9 +314,7 @@ invoke_n(rename, Filesystem, __self, __pSrcNode, __pSrcDir, __pNewName, __uid, _
 // Acquires a new reference to the given node.
 extern InodeRef _Nonnull _Locked Filesystem_ReacquireNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode);
 
-// Relinquishes the given node back to the filesystem. This method will invoke
-// the filesystem onRemoveNodeFromDisk() if no directory is referencing the inode
-// anymore. This will remove the inode from disk.
+// Relinquishes the given node back to the filesystem.
 extern errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable pNode);
 
 
@@ -322,9 +328,9 @@ extern errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _
 // Once you're done with the inode, you should relinquish it back to the filesystem.
 // This method should be used by subclassers to acquire inodes in order to return
 // them to a filesystem user.
-// This method calls the filesystem method onReadNodeFromDisk() to read the
-// requested inode off the disk if there is no inode instance in memory at the
-// time this method is called.
+// This method calls the filesystem method onAcquireNode() to read the requested
+// inode off the disk if there is no inode instance in memory at the time this
+// method is called.
 // \param self the filesystem instance
 // \param id the id of the inode to acquire
 // \param pOutNode receives the acquired inode
@@ -334,14 +340,14 @@ extern errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t i
 // acquired inodes outstanding that belong to this filesystem.
 extern bool Filesystem_CanUnmount(FilesystemRef _Nonnull self);
 
-#define Filesystem_OnReadNodeFromDisk(__self, __id, __pOutNode) \
-invoke_n(onReadNodeFromDisk, Filesystem, __self, __id, __pOutNode)
+#define Filesystem_OnAcquireNode(__self, __id, __pOutNode) \
+invoke_n(onAcquireNode, Filesystem, __self, __id, __pOutNode)
 
-#define Filesystem_OnWriteNodeToDisk(__self, __pNode) \
-invoke_n(onWriteNodeToDisk, Filesystem, __self, __pNode)
+#define Filesystem_OnWritebackNode(__self, __pNode) \
+invoke_n(onWritebackNode, Filesystem, __self, __pNode)
 
-#define Filesystem_OnRemoveNodeFromDisk(__self, __pNode) \
-invoke_n(onRemoveNodeFromDisk, Filesystem, __self, __pNode)
+#define Filesystem_OnRelinquishNode(__self, __pNode) \
+invoke_n(onRelinquishNode, Filesystem, __self, __pNode)
 
 #define Filesystem_IsReadOnly(__self) \
 invoke_0(isReadOnly, Filesystem, __self)

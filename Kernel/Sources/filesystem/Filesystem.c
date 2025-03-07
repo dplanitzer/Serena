@@ -81,7 +81,7 @@ errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, Inod
     );
 
     if (ip == NULL) {
-        try(Filesystem_OnReadNodeFromDisk(self, id, &ip));
+        try(Filesystem_OnAcquireNode(self, id, &ip));
 
         List_InsertBeforeFirst(&self->inHashTable[hashIdx], &ip->sibling);
         self->inCount++;
@@ -123,11 +123,8 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
         // that you are then still able to read/write the file until you close it.
         // This gives you anonymous temporary storage that is guaranteed to disappear
         // with the death of the process.  
-        if (pNode->useCount == 1 && pNode->linkCount == 0) {
-            Filesystem_OnRemoveNodeFromDisk(self, pNode);
-        }
-        else if (Inode_IsModified(pNode)) {
-            err = Filesystem_OnWriteNodeToDisk(self, pNode);
+        if ((pNode->useCount == 1 && pNode->linkCount == 0) || Inode_IsModified(pNode)) {
+            err = Filesystem_OnWritebackNode(self, pNode);
             Inode_ClearModified(pNode);
         }
     }
@@ -137,7 +134,7 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
     if (pNode->useCount == 0) {
         self->inCount--;
         List_Remove(&self->inHashTable[hashIdx], &pNode->sibling);
-        Inode_Destroy(pNode);
+        Filesystem_OnRelinquishNode(self, pNode);
     }
 
     Lock_Unlock(&self->inLock);
@@ -153,18 +150,19 @@ bool Filesystem_CanUnmount(FilesystemRef _Nonnull self)
     return ok;
 }
 
-errno_t Filesystem_onReadNodeFromDisk(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t Filesystem_onAcquireNode(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return EIO;
 }
 
-errno_t Filesystem_onWriteNodeToDisk(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
+errno_t Filesystem_onWritebackNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
     return EIO;
 }
 
-void Filesystem_onRemoveNodeFromDisk(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode)
+void Filesystem_onRelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode)
 {
+    Inode_Destroy(pNode);
 }
 
 
@@ -232,9 +230,9 @@ errno_t Filesystem_rename(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked
 
 class_func_defs(Filesystem, Object,
 override_func_def(deinit, Filesystem, Object)
-func_def(onReadNodeFromDisk, Filesystem)
-func_def(onWriteNodeToDisk, Filesystem)
-func_def(onRemoveNodeFromDisk, Filesystem)
+func_def(onAcquireNode, Filesystem)
+func_def(onWritebackNode, Filesystem)
+func_def(onRelinquishNode, Filesystem)
 func_def(start, Filesystem)
 func_def(stop, Filesystem)
 func_def(acquireRootDirectory, Filesystem)

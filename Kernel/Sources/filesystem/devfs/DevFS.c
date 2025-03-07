@@ -214,9 +214,8 @@ errno_t DevFS_rename(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode,
 
 class_func_defs(DevFS, Filesystem,
 override_func_def(deinit, DevFS, Object)
-override_func_def(onReadNodeFromDisk, DevFS, Filesystem)
-override_func_def(onWriteNodeToDisk, DevFS, Filesystem)
-override_func_def(onRemoveNodeFromDisk, DevFS, Filesystem)
+override_func_def(onAcquireNode, DevFS, Filesystem)
+override_func_def(onWritebackNode, DevFS, Filesystem)
 override_func_def(start, DevFS, Filesystem)
 override_func_def(stop, DevFS, Filesystem)
 override_func_def(isReadOnly, DevFS, Filesystem)

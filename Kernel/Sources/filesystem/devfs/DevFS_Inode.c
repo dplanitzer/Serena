@@ -87,7 +87,7 @@ errno_t DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef _Nonnul
     return _DevFS_createNode(self, type, dir, name, dirInsertionHint, 0, uid, gid, permissions, pOutNode);
 }
 
-errno_t DevFS_onReadNodeFromDisk(DevFSRef _Nonnull self, ino_t inid, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t DevFS_onAcquireNode(DevFSRef _Nonnull self, ino_t inid, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     DfsItem* ip = DevFS_GetItem(self, inid);
@@ -109,17 +109,31 @@ errno_t DevFS_onReadNodeFromDisk(DevFSRef _Nonnull self, ino_t inid, InodeRef _N
     return EIO;
 }
 
-errno_t DevFS_onWriteNodeToDisk(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
+errno_t DevFS_onWritebackNode(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
     decl_try_err();
+    const ino_t id = Inode_GetId(pNode);
+    const bool doDelete = (Inode_GetLinkCount(pNode) == 0) ? true : false;
 
     switch (Inode_GetFileType(pNode)) {
         case kFileType_Device:
-            DfsDevice_Serialize(pNode);
+            if (doDelete) {
+                DevFS_RemoveItem(self, id);
+                DfsItem_Destroy((DfsItem*)DfsDevice_GetItem(pNode));
+            }
+            else {
+                DfsDevice_Serialize(pNode);
+            }
             break;
 
         case kFileType_Directory:
-            DfsDirectory_Serialize(pNode);
+            if (doDelete) {
+                DevFS_RemoveItem(self, id);
+                DfsItem_Destroy((DfsItem*)DfsDirectory_GetItem(pNode));
+            }
+            else {
+                DfsDirectory_Serialize(pNode);
+            }
             break;
 
         default:
@@ -128,22 +142,4 @@ errno_t DevFS_onWriteNodeToDisk(DevFSRef _Nonnull self, InodeRef _Nonnull _Locke
     }
 
     return err;
-}
-
-void DevFS_onRemoveNodeFromDisk(DevFSRef _Nonnull self, InodeRef _Nonnull pNode)
-{
-    DevFS_RemoveItem(self, Inode_GetId(pNode));
-
-    switch (Inode_GetFileType(pNode)) {
-        case kFileType_Device:
-            DfsItem_Destroy((DfsItem*)DfsDevice_GetItem(pNode));
-            break;
-
-        case kFileType_Directory:
-            DfsItem_Destroy((DfsItem*)DfsDirectory_GetItem(pNode));
-            break;
-
-        default:
-            break;
-    }
 }
