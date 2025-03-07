@@ -113,25 +113,20 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
         return EOK;
     }
     
-    const size_t hashIdx = IN_HASH_INDEX(Inode_GetId(pNode));
     Lock_Lock(&self->inLock);
 
-    if (!Filesystem_IsReadOnly(self)) {
-        // Remove the inode (file) from disk if the use count goes to 0 and the link
-        // count is 0. The reason why we defer deleting the on-disk version of the
-        // inode is that this allows you to create a file, immediately unlink it and
-        // that you are then still able to read/write the file until you close it.
-        // This gives you anonymous temporary storage that is guaranteed to disappear
-        // with the death of the process.  
-        if ((pNode->useCount == 1 && pNode->linkCount == 0) || Inode_IsModified(pNode)) {
+    if ((pNode->useCount == 1 && pNode->linkCount == 0) || Inode_IsModified(pNode)) {
+        if (!Filesystem_IsReadOnly(self)) {
             err = Filesystem_OnWritebackNode(self, pNode);
-            Inode_ClearModified(pNode);
         }
+        Inode_ClearModified(pNode);
     }
 
     assert(pNode->useCount > 0);
     pNode->useCount--;
     if (pNode->useCount == 0) {
+        const size_t hashIdx = IN_HASH_INDEX(Inode_GetId(pNode));
+
         self->inCount--;
         List_Remove(&self->inHashTable[hashIdx], &pNode->sibling);
         Filesystem_OnRelinquishNode(self, pNode);
