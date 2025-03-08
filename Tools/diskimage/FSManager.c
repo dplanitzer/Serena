@@ -1,13 +1,12 @@
 //
-//  DiskController.c
-//  kernel
+//  FSManager.c
+//  diskimage
 //
-//  Created by Dietmar Planitzer on 12/17/24.
-//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 3/7/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "DiskController.h"
-#include "RamFSContainer.h"
+#include "FSManager.h"
 #include <filemanager/FileHierarchy.h>
 #include <filesystem/FSUtilities.h>
 #include <filesystem/serenafs/SerenaFS.h>
@@ -15,17 +14,16 @@
 #include <stdlib.h>
 
 
-errno_t DiskController_CreateWithContentsOfPath(const char* _Nonnull path, DiskControllerRef _Nullable * _Nonnull pOutSelf)
+errno_t FSManager_Create(RamFSContainerRef _Nonnull fsContainer, FSManagerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    DiskControllerRef self = NULL;
+    FSManagerRef self = NULL;
     InodeRef rootDir = NULL;
     FileHierarchyRef fh = NULL;
 
-    try_null(self, malloc(sizeof(DiskController)), ENOMEM);
+    try_null(self, malloc(sizeof(FSManager)), ENOMEM);
 
-    try(RamFSContainer_CreateWithContentsOfPath(path, &self->fsContainer));
-    try(SerenaFS_Create((FSContainerRef)self->fsContainer, (SerenaFSRef*)&self->fs));
+    try(SerenaFS_Create((FSContainerRef)fsContainer, (SerenaFSRef*)&self->fs));
     try(Filesystem_Start(self->fs, NULL, 0));
 
     try(FileHierarchy_Create(self->fs, &fh));
@@ -42,13 +40,13 @@ errno_t DiskController_CreateWithContentsOfPath(const char* _Nonnull path, DiskC
 catch:
     Object_Release(fh);
     Inode_Relinquish(rootDir);
-    DiskController_Destroy(self);
+    FSManager_Destroy(self);
     *pOutSelf = NULL;
 
     return err;
 }
 
-void DiskController_Destroy(DiskControllerRef _Nullable self)
+void FSManager_Destroy(FSManagerRef _Nullable self)
 {
     if (self) {
         if (self->isFmUp) {
@@ -61,16 +59,6 @@ void DiskController_Destroy(DiskControllerRef _Nullable self)
             self->fs = NULL;
         }
 
-        if (self->fsContainer) {
-            Object_Release(self->fsContainer);
-            self->fsContainer = NULL;
-        }
-
         free(self);
     }
-}
-
-errno_t DiskController_WriteToPath(DiskControllerRef _Nonnull self, const char* _Nonnull path)
-{
-    return RamFSContainer_WriteToPath(self->fsContainer, path);
 }

@@ -7,19 +7,25 @@
 //
 
 #include "diskimage.h"
-#include "DiskController.h"
+#include "FSManager.h"
 
 
 errno_t cmd_delete(const char* _Nonnull path, const char* _Nonnull dmgPath)
 {
     decl_try_err();
-    DiskControllerRef self;
+    RamFSContainerRef disk = NULL;
+    FSManagerRef m = NULL;
 
-    try(DiskController_CreateWithContentsOfPath(dmgPath, &self));
-    try(FileManager_Unlink(&self->fm, path));
-    err = DiskController_WriteToPath(self, dmgPath);
+    try(RamFSContainer_CreateWithContentsOfPath(dmgPath, &disk));
+    try(FSManager_Create(disk, &m));
+    
+    try(FileManager_Unlink(&m->fm, path));
 
 catch:
-    DiskController_Destroy(self);
+    FSManager_Destroy(m);
+    if (err == EOK) {
+        err = RamFSContainer_WriteToPath(disk, dmgPath);
+    }
+    Object_Release(disk);
     return err;
 }

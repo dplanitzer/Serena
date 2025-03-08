@@ -7,7 +7,7 @@
 //
 
 #include "diskimage.h"
-#include "DiskController.h"
+#include "FSManager.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -40,7 +40,6 @@
 
 
 typedef struct list_ctx {
-    DiskControllerRef _Nonnull  dc;
     FileManagerRef _Nonnull     fm;
 
     int                         linkCountWidth;
@@ -223,7 +222,7 @@ static bool is_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static errno_t do_list(DiskControllerRef dc, const char* _Nonnull path, bool isPrintAll)
+static errno_t do_list(FileManagerRef _Nonnull fm, const char* _Nonnull path, bool isPrintAll)
 {
     decl_try_err();
 
@@ -232,8 +231,7 @@ static errno_t do_list(DiskControllerRef dc, const char* _Nonnull path, bool isP
         return ENOMEM;
     }
 
-    ctx->dc = dc;
-    ctx->fm = &dc->fm;
+    ctx->fm = fm;
     ctx->flags.printAll = isPrintAll;
 
     if (is_dir(ctx, path)) {
@@ -251,12 +249,16 @@ static errno_t do_list(DiskControllerRef dc, const char* _Nonnull path, bool isP
 errno_t cmd_list(const char* _Nonnull path, const char* _Nonnull dmgPath)
 {
     decl_try_err();
-    DiskControllerRef dc;
+    RamFSContainerRef disk = NULL;
+    FSManagerRef m = NULL;
 
-    try(DiskController_CreateWithContentsOfPath(dmgPath, &dc));
-    err = do_list(dc, path, false);
+    try(RamFSContainer_CreateWithContentsOfPath(dmgPath, &disk));
+    try(FSManager_Create(disk, &m));
+
+    err = do_list(&m->fm, path, false);
 
 catch:
-    DiskController_Destroy(dc);
+    FSManager_Destroy(m);
+    Object_Release(disk);
     return err;
 }

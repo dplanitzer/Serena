@@ -7,7 +7,7 @@
 //
 
 #include "diskimage.h"
-#include "DiskController.h"
+#include "FSManager.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,7 +34,7 @@ static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnul
     return err;
 }
 
-static errno_t _create_directory_recursively(DiskControllerRef _Nonnull self, char* _Nonnull path, FilePermissions permissions, uid_t uid, gid_t gid)
+static errno_t _create_directory_recursively(FileManagerRef fm, char* _Nonnull path, FilePermissions permissions, uid_t uid, gid_t gid)
 {
     decl_try_err();
     char* p = path;
@@ -48,7 +48,7 @@ static errno_t _create_directory_recursively(DiskControllerRef _Nonnull self, ch
 
         if (ps) { *ps = '\0'; }
 
-        err = _create_directory(&self->fm, path, permissions, uid, gid);
+        err = _create_directory(fm, path, permissions, uid, gid);
         if (ps) { *ps = '/'; }
 
         if (err != EOK && err != EEXIST || ps == NULL) {
@@ -75,13 +75,13 @@ static errno_t _create_directory_recursively(DiskControllerRef _Nonnull self, ch
 // may now come back with ENOENT because X was empty and it got deleted by
 // another process. We simply start over again from the root of our path in
 // this case.
-static errno_t create_directory_recursively(DiskControllerRef _Nonnull self, char* _Nonnull path, FilePermissions permissions, uid_t uid, gid_t gid)
+static errno_t create_directory_recursively(FileManagerRef _Nonnull fm, char* _Nonnull path, FilePermissions permissions, uid_t uid, gid_t gid)
 {
     decl_try_err();
     int i = 0;
 
     while (i < 16) {
-        err = _create_directory_recursively(self, path, permissions, uid, gid);
+        err = _create_directory_recursively(fm, path, permissions, uid, gid);
         if (err == EOK || err != ENOENT) {
             break;
         }
@@ -99,24 +99,27 @@ static errno_t create_directory_recursively(DiskControllerRef _Nonnull self, cha
 errno_t cmd_makedir(bool shouldCreateParents, FilePermissions dirPerms, uid_t uid, gid_t gid, const char* _Nonnull path_, const char* _Nonnull dmgPath)
 {
     decl_try_err();
-    DiskControllerRef self;
+    RamFSContainerRef disk = NULL;
+    FSManagerRef m = NULL;
     char* path;
 
-    try(DiskController_CreateWithContentsOfPath(dmgPath, &self));
+    try(RamFSContainer_CreateWithContentsOfPath(dmgPath, &disk));
+    try(FSManager_Create(disk, &m));
+
     try_null(path, strdup(path_), ENOMEM);
 
-    err = _create_directory(&self->fm, path, dirPerms, uid, gid);
+    err = _create_directory(&m->fm, path, dirPerms, uid, gid);
     if (err != EOK) {
         if (err == ENOENT && shouldCreateParents) {
-            err = create_directory_recursively(self, path, dirPerms, uid, gid);
+            err = create_directory_recursively(&m->fm, path, dirPerms, uid, gid);
         }
     }
 
-    if (err == EOK) {
-        err = DiskController_WriteToPath(self, dmgPath);
-    }
-
 catch:
-    DiskController_Destroy(self);
+    FSManager_Destroy(m);
+    if (err == EOK) {
+        err = RamFSContainer_WriteToPath(disk, dmgPath);
+    }
+    Object_Release(disk);
     return err;
 }
