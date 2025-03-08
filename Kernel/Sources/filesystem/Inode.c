@@ -82,6 +82,11 @@ void Inode_Destroy(InodeRef _Nullable self)
     }
 }
 
+errno_t Inode_Writeback(InodeRef _Nonnull _Locked self)
+{
+    return Filesystem_OnWritebackNode(self->filesystem, self);
+}
+
 void Inode_Unlink(InodeRef _Nonnull self)
 {
     if (self->linkCount > 0) {

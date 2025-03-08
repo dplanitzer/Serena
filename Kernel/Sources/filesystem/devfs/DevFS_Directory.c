@@ -27,6 +27,7 @@ errno_t DevFS_InsertDirectoryEntry(DevFSRef _Nonnull _Locked self, InodeRef _Non
         // Mark the directory as modified
         if (err == EOK) {
             Inode_SetModified(pDir, kInodeFlag_Updated | kInodeFlag_StatusChanged);
+            Inode_Writeback(pDir);
         }
     }
 

@@ -175,6 +175,7 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
             Inode_SetFileSize(self, endOffset);
         }
         Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
+        Inode_Writeback((InodeRef)self);
         IOChannel_IncrementOffsetBy(ch, nBytesWritten);
     }
 
@@ -205,6 +206,8 @@ errno_t SfsRegularFile_truncate(SfsRegularFileRef _Nonnull _Locked self, off_t l
         Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);    
     }
 
+    Inode_Writeback((InodeRef)self);
+    
     return err;
 }
 

@@ -246,6 +246,7 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeRef _Nonnu
 
     // Mark the directory as modified
     Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
+    Inode_Writeback(self);
 
 catch:
     return err;
@@ -322,6 +323,7 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
 
     // Mark the directory as modified
     Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
+    Inode_Writeback(self);
 
 catch:
     return err;

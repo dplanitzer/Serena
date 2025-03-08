@@ -303,4 +303,7 @@ extern errno_t Inode_Create(Class* _Nonnull pClass,
                     InodeRef _Nullable * _Nonnull pOutNode);
 extern void Inode_Destroy(InodeRef _Nonnull self);
 
+// Writes the inode's metadata to disk. Does not write the file content.
+extern errno_t Inode_Writeback(InodeRef _Nonnull _Locked self);
+
 #endif /* Inode_h */

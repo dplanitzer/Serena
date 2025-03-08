@@ -115,8 +115,8 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
     
     Lock_Lock(&self->inLock);
 
-    if ((pNode->useCount == 1 && pNode->linkCount == 0) || Inode_IsModified(pNode)) {
-        if (!Filesystem_IsReadOnly(self)) {
+    if (pNode->useCount == 1) {
+        if ((pNode->linkCount == 0 || Inode_IsModified(pNode)) && !Filesystem_IsReadOnly(self)) {
             err = Filesystem_OnWritebackNode(self, pNode);
         }
         Inode_ClearModified(pNode);
