@@ -31,6 +31,8 @@ errno_t DiskController_CreateWithContentsOfPath(const char* _Nonnull path, DiskC
     try(FileHierarchy_Create(self->fs, &fh));
     rootDir = FileHierarchy_AcquireRootDirectory(fh);
     FileManager_Init(&self->fm, fh, kUserId_Root, kGroupId_Root, rootDir, rootDir, FilePermissions_MakeFromOctal(0));
+    self->isFmUp = true;
+
     Inode_Relinquish(rootDir);
     Object_Release(fh);
 
@@ -49,13 +51,20 @@ catch:
 void DiskController_Destroy(DiskControllerRef _Nullable self)
 {
     if (self) {
-        FileManager_Deinit(&self->fm);
+        if (self->isFmUp) {
+            FileManager_Deinit(&self->fm);
+        }
 
-        assert(Filesystem_Stop(self->fs) == EOK);
-        self->fs = NULL;
+        if (self->fs) {
+            assert(Filesystem_Stop(self->fs) == EOK);
+            Object_Release(self->fs);
+            self->fs = NULL;
+        }
 
-        Object_Release(self->fsContainer);
-        self->fsContainer = NULL;
+        if (self->fsContainer) {
+            Object_Release(self->fsContainer);
+            self->fsContainer = NULL;
+        }
 
         free(self);
     }

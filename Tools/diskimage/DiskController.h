@@ -15,12 +15,14 @@
 #include <filesystem/IOChannel.h>
 #include <System/File.h>
 #include <User.h>
+#include <stdbool.h>
 
 
 typedef struct DiskController {
     RamFSContainerRef _Nonnull  fsContainer;
     FilesystemRef _Nonnull      fs;
     FileManager                 fm;
+    bool                        isFmUp;
 } DiskController;
 typedef DiskController* DiskControllerRef;
 
