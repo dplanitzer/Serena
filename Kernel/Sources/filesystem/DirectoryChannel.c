@@ -12,8 +12,7 @@
 // DirectoryChannel uses the Inode lock to protect its seek state
 
 
-// Creates a directory channel which takes ownership of the provided inode
-// reference. This reference will be released by deinit().
+// Creates a directory channel.
 errno_t DirectoryChannel_Create(InodeRef _Nonnull pDir, IOChannelRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();

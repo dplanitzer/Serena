@@ -139,7 +139,7 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
 bool Filesystem_CanUnmount(FilesystemRef _Nonnull self)
 {
     Lock_Lock(&self->inLock);
-    const bool ok = (self->inCount > 0) ? true : false;
+    const bool ok = (self->inCount == 0) ? true : false;
     Lock_Unlock(&self->inLock);
     return ok;
 }

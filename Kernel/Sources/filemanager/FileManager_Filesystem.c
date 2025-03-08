@@ -77,7 +77,6 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const ch
 
     switch (type) {
         case kMount_Disk:
-            // Note that this call takes ownership of the inode reference
             err = discover_and_start_disk_fs(self, containerPath, params, paramsSize, &fs);
             break;
 

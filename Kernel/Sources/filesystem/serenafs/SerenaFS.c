@@ -134,8 +134,7 @@ errno_t SerenaFS_stop(SerenaFSRef _Nonnull self)
 
     // XXX flush all still cached file data to disk (synchronously)
 
-    // XXX flush the allocation bitmap to disk (synchronously)
-
+    SfsAllocator_CommitToDisk(&self->blockAllocator, Filesystem_GetContainer(self));
     SfsAllocator_Stop(&self->blockAllocator);
 
     self->lbaRootDir = 0;

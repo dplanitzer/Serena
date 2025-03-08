@@ -75,7 +75,7 @@ errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _N
     decl_try_err();
     ResolvedPath r;
     DirectoryEntryInsertionHint dih;
-    InodeRef newDir = NULL;
+    InodeRef ip = NULL;
 
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_PredecessorOfTarget, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
 
@@ -91,7 +91,7 @@ errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _N
         // We must have write permissions for the parent directory
         err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, kAccess_Writable);
         if (err == EOK) {
-            err = Filesystem_CreateNode(Inode_GetFilesystem(r.inode), kFileType_Directory, r.inode, dirName, &dih, self->ruid, self->rgid, dirPerms, &newDir);
+            err = Filesystem_CreateNode(Inode_GetFilesystem(r.inode), kFileType_Directory, r.inode, dirName, &dih, self->ruid, self->rgid, dirPerms, &ip);
         }
     }
     else if (err == EOK) {
@@ -100,7 +100,7 @@ errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _N
     Inode_Unlock(r.inode);
 
 catch:
-    Inode_Relinquish(newDir);
+    Inode_Relinquish(ip);
     ResolvedPath_Deinit(&r);
     
     return err;

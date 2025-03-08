@@ -9,9 +9,9 @@
 #include "DiskController.h"
 #include "RamFSContainer.h"
 #include <filemanager/FileHierarchy.h>
-#include <filesystem/Filesystem.h>
 #include <filesystem/FSUtilities.h>
 #include <filesystem/serenafs/SerenaFS.h>
+#include <assert.h>
 #include <stdlib.h>
 
 
@@ -19,17 +19,16 @@ errno_t DiskController_CreateWithContentsOfPath(const char* _Nonnull path, DiskC
 {
     decl_try_err();
     DiskControllerRef self = NULL;
-    FilesystemRef fs = NULL;
     InodeRef rootDir = NULL;
     FileHierarchyRef fh = NULL;
 
     try_null(self, malloc(sizeof(DiskController)), ENOMEM);
 
     try(RamFSContainer_CreateWithContentsOfPath(path, &self->fsContainer));
-    try(SerenaFS_Create((FSContainerRef)self->fsContainer, (SerenaFSRef*)&fs));
-    try(Filesystem_Start(fs, NULL, 0));
+    try(SerenaFS_Create((FSContainerRef)self->fsContainer, (SerenaFSRef*)&self->fs));
+    try(Filesystem_Start(self->fs, NULL, 0));
 
-    try(FileHierarchy_Create(fs, &fh));
+    try(FileHierarchy_Create(self->fs, &fh));
     rootDir = FileHierarchy_AcquireRootDirectory(fh);
     FileManager_Init(&self->fm, fh, kUserId_Root, kGroupId_Root, rootDir, rootDir, FilePermissions_MakeFromOctal(0));
     Inode_Relinquish(rootDir);
@@ -51,6 +50,9 @@ void DiskController_Destroy(DiskControllerRef _Nullable self)
 {
     if (self) {
         FileManager_Deinit(&self->fm);
+
+        assert(Filesystem_Stop(self->fs) == EOK);
+        self->fs = NULL;
 
         Object_Release(self->fsContainer);
         self->fsContainer = NULL;

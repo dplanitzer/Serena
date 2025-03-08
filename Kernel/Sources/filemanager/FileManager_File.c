@@ -63,7 +63,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
     ResolvedPath r;
     DirectoryEntryInsertionHint dih;
     InodeRef dir = NULL;
-    InodeRef filein = NULL;
+    InodeRef ip = NULL;
 
     *pOutChannel = NULL;
 
@@ -84,7 +84,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
 
 
     // The last path component must not exist
-    err = Filesystem_AcquireNodeForName(pFS, dir, name, self->ruid, self->rgid, &dih, &filein);
+    err = Filesystem_AcquireNodeForName(pFS, dir, name, self->ruid, self->rgid, &dih, &ip);
     if (err == EOK) {
         // File exists - reject the operation in exclusive mode and open the
         // file otherwise
@@ -93,9 +93,9 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
             throw(EEXIST);
         }
         else {
-            Inode_Lock(filein);
-            err = _FileManager_OpenFile(self, filein, mode);
-            Inode_Unlock(filein);
+            Inode_Lock(ip);
+            err = _FileManager_OpenFile(self, ip, mode);
+            Inode_Unlock(ip);
             throw_iferr(err);
         }
     }
@@ -121,26 +121,19 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
 
 
         // Create the new file and add it to its parent directory
-        try(Filesystem_CreateNode(pFS, kFileType_RegularFile, dir, name, &dih, self->ruid, self->rgid, filePerms, &filein));
+        try(Filesystem_CreateNode(pFS, kFileType_RegularFile, dir, name, &dih, self->ruid, self->rgid, filePerms, &ip));
     }
     else {
         throw(err);
     }
 
-    Inode_UnlockRelinquish(dir);
-    dir = NULL;
 
-
-    // Note that the file channel takes ownership of the inode reference
-    try(FileChannel_Create(filein, mode, pOutChannel));
-    filein = NULL;
-
-    ResolvedPath_Deinit(&r);
-    return EOK;
+    // Create the file channel
+    try(FileChannel_Create(ip, mode, pOutChannel));
 
 catch:
+    Inode_Relinquish(ip);
     Inode_UnlockRelinquish(dir);
-    Inode_Relinquish(filein);
 
     ResolvedPath_Deinit(&r);
     

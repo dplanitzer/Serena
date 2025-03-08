@@ -11,6 +11,7 @@
 
 #include "RamFSContainer.h"
 #include <filemanager/FileManager.h>
+#include <filesystem/Filesystem.h>
 #include <filesystem/IOChannel.h>
 #include <System/File.h>
 #include <User.h>
@@ -18,6 +19,7 @@
 
 typedef struct DiskController {
     RamFSContainerRef _Nonnull  fsContainer;
+    FilesystemRef _Nonnull      fs;
     FileManager                 fm;
 } DiskController;
 typedef DiskController* DiskControllerRef;
