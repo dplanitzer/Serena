@@ -166,9 +166,6 @@ extern errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self);
 #define Inode_SetModified(__self, __mflags) \
     (((InodeRef)__self)->flags |= ((__mflags) & (kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged)))
 
-#define Inode_ClearModified(__self) \
-    (((InodeRef)__self)->flags &= ~(kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged))
-
 #define Inode_IsAccessed(__self) \
     ((((InodeRef)__self)->flags & kInodeFlag_Accessed) != 0)
 
@@ -303,7 +300,8 @@ extern errno_t Inode_Create(Class* _Nonnull pClass,
                     InodeRef _Nullable * _Nonnull pOutNode);
 extern void Inode_Destroy(InodeRef _Nonnull self);
 
-// Writes the inode's metadata to disk. Does not write the file content.
+// Unconditionally writes the inode's metadata to disk. Does not write the file
+// content.
 extern errno_t Inode_Writeback(InodeRef _Nonnull _Locked self);
 
 #endif /* Inode_h */

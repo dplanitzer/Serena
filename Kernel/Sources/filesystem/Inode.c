@@ -84,7 +84,10 @@ void Inode_Destroy(InodeRef _Nullable self)
 
 errno_t Inode_Writeback(InodeRef _Nonnull _Locked self)
 {
-    return Filesystem_OnWritebackNode(self->filesystem, self);
+    const errno_t err = Filesystem_OnWritebackNode(self->filesystem, self);
+
+    self->flags &= ~(kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged);
+    return err;
 }
 
 void Inode_Unlink(InodeRef _Nonnull self)

@@ -117,9 +117,8 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
 
     if (pNode->useCount == 1) {
         if ((pNode->linkCount == 0 || Inode_IsModified(pNode)) && !Filesystem_IsReadOnly(self)) {
-            err = Filesystem_OnWritebackNode(self, pNode);
+            err = Inode_Writeback(pNode);
         }
-        Inode_ClearModified(pNode);
     }
 
     assert(pNode->useCount > 0);
