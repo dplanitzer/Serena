@@ -10,6 +10,17 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <System/TimeInterval.h>
+
+#define ONE_SECOND_IN_NANOS (1000l * 1000l * 1000l)
+
+
+const TimeInterval kTimeInterval_Zero = {0l, 0l};
+const TimeInterval kTimeInterval_Infinity = {LONG_MAX, ONE_SECOND_IN_NANOS};
+const TimeInterval kTimeInterval_MinusInfinity = {LONG_MIN, ONE_SECOND_IN_NANOS};
+
+
+////////////////////////////////////////////////////////////////////////////////
 
 #include "Atomic.h"
 

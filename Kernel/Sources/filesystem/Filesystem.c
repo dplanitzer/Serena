@@ -22,6 +22,20 @@
 (InodeRef) (((uint8_t*)__ptr) - offsetof(struct Inode, sibling))
 
 
+#define IN_READING_HASH_CHAINS_COUNT 4
+#define IN_READING_HASH_CHAINS_MASK  (IN_READING_HASH_CHAINS_COUNT - 1)
+
+#define IN_READING_HASH_INDEX(__inid) \
+(hash_scalar(__inid) & IN_READING_HASH_CHAINS_MASK)
+
+#define MAX_CACHED_RDNODES  4
+
+
+typedef struct RDnode {
+    ListNode    sibling;
+    ino_t       id;
+} RDnode;
+
 
 // Returns the next available FSID.
 static fsid_t Filesystem_GetNextAvailableId(void)
@@ -40,8 +54,12 @@ errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOut
 
     try(Object_Create(pClass, 0, (void**)&self));
     try(FSAllocateCleared(sizeof(List) * IN_CACHED_HASH_CHAINS_COUNT, (void**)&self->inCached));
+    try(FSAllocateCleared(sizeof(List) * IN_READING_HASH_CHAINS_COUNT, (void**)&self->inReading));
+    
     self->fsid = Filesystem_GetNextAvailableId();
+    ConditionVariable_Init(&self->inCondVar);
     Lock_Init(&self->inLock);
+    List_Init(&self->inReadingCache);
 
     *pOutFileSys = self;
     return EOK;
@@ -54,24 +72,71 @@ catch:
 
 void Filesystem_deinit(FilesystemRef _Nonnull self)
 {
-    if (self->inCount > 0) {
+    if (self->inCachedCount > 0 || self->inReadingCount > 0) {
         // This should never happen because a filesystem can not be destroyed
         // as long as inodes are still alive
         abort();
     }
 
+    FSDeallocate(self->inCached);
+    self->inCached = NULL;
+
+    FSDeallocate(self->inReading);
+    self->inReading = NULL;
+
+    List_Deinit(&self->inReadingCache);
     Lock_Deinit(&self->inLock);
+    ConditionVariable_Deinit(&self->inCondVar);
+}
+
+static errno_t _Filesystem_PrepReadingNode(FilesystemRef _Nonnull self, ino_t id, RDnode* _Nullable * _Nonnull pOutNode)
+{
+    decl_try_err();
+    RDnode* rdp;
+
+    if (self->inReadingCacheCount > 0) {
+        rdp = (RDnode*)List_RemoveFirst(&self->inReadingCache);
+        self->inReadingCacheCount--;
+    }
+    else {
+        err = FSAllocateCleared(sizeof(RDnode), (void**)&rdp);
+    }
+
+    if (err == EOK) {
+        rdp->id = id;
+        List_InsertBeforeFirst(&self->inReading[IN_READING_HASH_INDEX(id)], &rdp->sibling);
+        self->inReadingCount++;
+    }
+
+    *pOutNode = rdp;
+    return err;
+}
+
+static void _Filesystem_FinReadingNode(FilesystemRef _Nonnull self, RDnode* _Nonnull rdp)
+{
+    List_Remove(&self->inReading[IN_READING_HASH_INDEX(rdp->id)], &rdp->sibling);
+    self->inReadingCount--;
+
+    if (self->inReadingCacheCount < MAX_CACHED_RDNODES) {
+        List_InsertBeforeFirst(&self->inReadingCache, &rdp->sibling);
+        self->inReadingCacheCount++;
+    }
+    else {
+        FSDeallocate(rdp);
+    }
 }
 
 errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
-    const size_t hashIdx = IN_CACHED_HASH_INDEX(id);
     InodeRef ip = NULL;
+    bool doBroadcast = false;
 
     Lock_Lock(&self->inLock);
 
-    List_ForEach(&self->inCached[hashIdx], struct Inode,
+retry:
+    // Check whether we already got the inode cached
+    List_ForEach(&self->inCached[IN_CACHED_HASH_INDEX(id)], struct Inode,
         InodeRef curNode = InodeFromHashChainPointer(pCurNode);
 
         if (Inode_GetId(curNode) == id) {
@@ -80,42 +145,77 @@ errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, Inod
         }
     );
 
+
+    if (ip == NULL) {
+        // Check whether someone else already kicked off the process of reading
+        // the inode off the disk. We'll wait if that's the case.
+        bool isReading = false;
+
+        List_ForEach(&self->inReading[IN_READING_HASH_INDEX(id)], struct RDnode,
+            if (((RDnode*)pCurNode)->id == id) {
+                isReading = true;
+                break;
+            }
+        );
+
+        if (isReading) {
+            self->inReadingWaiterCount++;
+            try_bang(ConditionVariable_Wait(&self->inCondVar, &self->inLock, kTimeInterval_Infinity));
+            self->inReadingWaiterCount--;
+            goto retry;
+        }
+    }
+
+
+
     if (ip) {
-        switch (ip->state) {
-            case kInodeState_Cached:
-                // Just return the cached inode
-                break;
-
-            case kInodeState_Writeback:
-                // Inode meta-data is in the process of being written to disk. The
-                // inode is locked. We return a reference to it to the caller right
-                // away. The caller will have to take the inode lock and will get
-                // blocked until the node write has completed.
-                break;
-                
-            case kInodeState_Deleting:
-                // Inode is in the process of being deleted. Return NULL to the
-                // caller.
-                ip = NULL;
-                break;
-
-            default:
-                abort();
-                break;
+        // If the node is cached or in the process of being written back to disk -> return it
+        // If the node is in the process of being deleted -> return NULL (not found)
+        //
+        // If node is being written back: we return it right away. The node is locked
+        // until the write back is done. Thus the caller will block on the inode lock
+        // when it tries to access it.
+        if (ip->state == kInodeState_Deleting) {
+            ip = NULL;
+            err = ENOENT;
         }
     }
     else {
-        try(Filesystem_OnAcquireNode(self, id, &ip));
+        // The inode doesn't exist yet. Need to trigger a read from the disk. We'll
+        // create a (temporary) RDnode to track the fact that the inode is in the
+        // process of reading off the disk. The actual read is done outside of the
+        // inode management locking scope so that we don't block other folks from
+        // doing inode management while we're busy hitting the disk.
+        RDnode* rdp = NULL;
+        
+        err = _Filesystem_PrepReadingNode(self, id, &rdp);
+        if (err == EOK) {
+            Lock_Unlock(&self->inLock);
+            err = Filesystem_OnAcquireNode(self, id, &ip);
+            Lock_Lock(&self->inLock);
 
-        List_InsertBeforeFirst(&self->inCached[hashIdx], &ip->sibling);
-        self->inCount++;
-        ip->state = kInodeState_Cached;
+            _Filesystem_FinReadingNode(self, rdp);
+        }
+
+        if (err == EOK) {
+            List_InsertBeforeFirst(&self->inCached[IN_CACHED_HASH_INDEX(id)], &ip->sibling);
+            self->inCachedCount++;
+            ip->state = kInodeState_Cached;
+        }
+
+        // Wake waiters no matter whether reading has succeeded or failed
+        doBroadcast = (self->inReadingWaiterCount > 0) ? true : false;
     }
 
     ip->useCount++;
 
 catch:
-    Lock_Unlock(&self->inLock);
+    if (doBroadcast) {
+        ConditionVariable_BroadcastAndUnlock(&self->inCondVar, &self->inLock);
+    }
+    else {
+        Lock_Unlock(&self->inLock);
+    }
     *pOutNode = ip;
 
     return err;
@@ -185,7 +285,7 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
     pNode->useCount--;
     if (pNode->useCount == 0) {
         List_Remove(&self->inCached[IN_CACHED_HASH_INDEX(Inode_GetId(pNode))], &pNode->sibling);
-        self->inCount--;
+        self->inCachedCount--;
         doDestroy = true;
     }
 
@@ -201,7 +301,7 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
 bool Filesystem_CanUnmount(FilesystemRef _Nonnull self)
 {
     Lock_Lock(&self->inLock);
-    const bool ok = (self->inCount == 0) ? true : false;
+    const bool ok = (self->inCachedCount == 0 && self->inReadingCount == 0) ? true : false;
     Lock_Unlock(&self->inLock);
     return ok;
 }

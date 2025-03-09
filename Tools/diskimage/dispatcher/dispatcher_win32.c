@@ -41,6 +41,11 @@ void ConditionVariable_Deinit(ConditionVariable* pCondVar)
 {
 }
 
+void ConditionVariable_Broadcast(ConditionVariable* pCondVar)
+{
+    WakeAllConditionVariable(pCondVar);
+}
+
 void ConditionVariable_BroadcastAndUnlock(ConditionVariable* pCondVar, Lock* pLock)
 {
     WakeAllConditionVariable(pCondVar);

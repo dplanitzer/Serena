@@ -11,6 +11,8 @@
 
 #include <kobj/Object.h>
 #include <klib/List.h>
+#include <dispatcher/ConditionVariable.h>
+#include <dispatcher/Lock.h>
 #include "Inode.h"
 #include "PathComponent.h"
 #include "User.h"
@@ -118,10 +120,16 @@ typedef struct DirectoryEntryInsertionHint {
 // operation is executing.
 //
 open_class(Filesystem, Object,
-    fsid_t          fsid;
-    Lock            inLock;
-    List* _Nonnull  inCached;   // <Inode>
-    size_t          inCount;
+    fsid_t              fsid;
+    ConditionVariable   inCondVar;
+    Lock                inLock;
+    List* _Nonnull      inCached;   // <Inode>
+    size_t              inCachedCount;
+    List* _Nonnull      inReading;  // <RDnode>
+    size_t              inReadingCount;
+    size_t              inReadingWaiterCount;
+    List                inReadingCache;
+    size_t              inReadingCacheCount;
 );
 open_class_funcs(Filesystem, Object,
 
