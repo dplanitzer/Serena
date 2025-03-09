@@ -120,7 +120,7 @@ typedef struct DirectoryEntryInsertionHint {
 open_class(Filesystem, Object,
     fsid_t          fsid;
     Lock            inLock;
-    List* _Nonnull  inHashTable;   // <Inode>
+    List* _Nonnull  inCached;   // <Inode>
     size_t          inCount;
 );
 open_class_funcs(Filesystem, Object,

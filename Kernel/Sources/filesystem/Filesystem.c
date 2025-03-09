@@ -12,11 +12,11 @@
 #include "FileChannel.h"
 #include <klib/Hash.h>
 
-#define IN_HASH_CHAINS_COUNT    8
-#define IN_HASH_CHAINS_MASK     (IN_HASH_CHAINS_COUNT - 1)
+#define IN_CACHED_HASH_CHAINS_COUNT 16
+#define IN_CACHED_HASH_CHAINS_MASK  (IN_CACHED_HASH_CHAINS_COUNT - 1)
 
-#define IN_HASH_INDEX(__inid) \
-(hash_scalar(__inid) & IN_HASH_CHAINS_MASK)
+#define IN_CACHED_HASH_INDEX(__inid) \
+(hash_scalar(__inid) & IN_CACHED_HASH_CHAINS_MASK)
 
 #define InodeFromHashChainPointer(__ptr) \
 (InodeRef) (((uint8_t*)__ptr) - offsetof(struct Inode, sibling))
@@ -39,7 +39,7 @@ errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOut
     FilesystemRef self;
 
     try(Object_Create(pClass, 0, (void**)&self));
-    try(FSAllocateCleared(sizeof(List) * IN_HASH_CHAINS_COUNT, (void**)&self->inHashTable));
+    try(FSAllocateCleared(sizeof(List) * IN_CACHED_HASH_CHAINS_COUNT, (void**)&self->inCached));
     self->fsid = Filesystem_GetNextAvailableId();
     Lock_Init(&self->inLock);
 
@@ -66,12 +66,12 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
 errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
-    const size_t hashIdx = IN_HASH_INDEX(id);
+    const size_t hashIdx = IN_CACHED_HASH_INDEX(id);
     InodeRef ip = NULL;
 
     Lock_Lock(&self->inLock);
 
-    List_ForEach(&self->inHashTable[hashIdx], struct Inode,
+    List_ForEach(&self->inCached[hashIdx], struct Inode,
         InodeRef curNode = InodeFromHashChainPointer(pCurNode);
 
         if (Inode_GetId(curNode) == id) {
@@ -107,7 +107,7 @@ errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, Inod
     else {
         try(Filesystem_OnAcquireNode(self, id, &ip));
 
-        List_InsertBeforeFirst(&self->inHashTable[hashIdx], &ip->sibling);
+        List_InsertBeforeFirst(&self->inCached[hashIdx], &ip->sibling);
         self->inCount++;
         ip->state = kInodeState_Cached;
     }
@@ -184,7 +184,7 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
     bool doDestroy = false;
     pNode->useCount--;
     if (pNode->useCount == 0) {
-        List_Remove(&self->inHashTable[IN_HASH_INDEX(Inode_GetId(pNode))], &pNode->sibling);
+        List_Remove(&self->inCached[IN_CACHED_HASH_INDEX(Inode_GetId(pNode))], &pNode->sibling);
         self->inCount--;
         doDestroy = true;
     }
