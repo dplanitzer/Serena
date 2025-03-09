@@ -27,14 +27,16 @@ errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, ino_t i
     const errno_t err = FSAllocateCleared(pClass->instanceSize, (void**) &self);
     if (err == EOK) {
         self->super.clazz = pClass;
+        self->useCount = 0;
+        self->state = kInodeState_Reading;
+
+        Lock_Init(&self->lock);
         self->accessTime = accessTime;
         self->modificationTime = modTime;
         self->statusChangeTime = statusChangeTime;
         self->size = size;
-        Lock_Init(&self->lock);
         self->filesystem = pFS;
         self->inid = id;
-        self->useCount = 0;
         self->linkCount = linkCount;
         self->type = type;
         self->flags = 0;

@@ -80,11 +80,36 @@ errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, Inod
         }
     );
 
-    if (ip == NULL) {
+    if (ip) {
+        switch (ip->state) {
+            case kInodeState_Cached:
+                // Just return the cached inode
+                break;
+
+            case kInodeState_Writeback:
+                // Inode meta-data is in the process of being written to disk. The
+                // inode is locked. We return a reference to it to the caller right
+                // away. The caller will have to take the inode lock and will get
+                // blocked until the node write has completed.
+                break;
+                
+            case kInodeState_Deleting:
+                // Inode is in the process of being deleted. Return NULL to the
+                // caller.
+                ip = NULL;
+                break;
+
+            default:
+                abort();
+                break;
+        }
+    }
+    else {
         try(Filesystem_OnAcquireNode(self, id, &ip));
 
         List_InsertBeforeFirst(&self->inHashTable[hashIdx], &ip->sibling);
         self->inCount++;
+        ip->state = kInodeState_Cached;
     }
 
     ip->useCount++;
@@ -116,22 +141,59 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
     Lock_Lock(&self->inLock);
 
     if (pNode->useCount == 1) {
-        if ((pNode->linkCount == 0 || Inode_IsModified(pNode)) && !Filesystem_IsReadOnly(self)) {
-            err = Inode_Writeback(pNode);
+        // We know that no one else has a reference to the inode. So taking its
+        // lock here will not block us here
+        Inode_Lock(pNode);
+
+        // Update the node state
+        if (pNode->linkCount == 0) {
+            pNode->state = kInodeState_Deleting;
         }
+        else if (Inode_IsModified(pNode)) {
+            pNode->state = kInodeState_Writeback;
+        }
+
+        if (pNode->state == kInodeState_Writeback || pNode->state == kInodeState_Deleting) {
+            // Drop the inode management lock. The writeback may be done
+            // synchronously and may be time consuming. Don't block other processes
+            // from acquiring/relinquishing inodes in the meantime 
+            Lock_Unlock(&self->inLock);
+
+            if (!Filesystem_IsReadOnly(self)) {
+                err = Inode_Writeback(pNode);
+            }
+            else {
+                err = EROFS;
+            }
+            
+            Lock_Lock(&self->inLock);
+        }
+        Inode_Unlock(pNode);
     }
 
-    assert(pNode->useCount > 0);
+
+    // Let the filesystem destroy or retire the inode if no more references
+    // exist to it. Note, that we do the writeback of a node above outside of
+    // holding the inode management lock. So someone else might actually have
+    // taken out a new reference on the note that we wrote back. Thus the use
+    // count of that note would now be > 1 again and we won't free it here.
+    if (pNode->useCount <= 0) {
+        abort();
+    }
+
+    bool doDestroy = false;
     pNode->useCount--;
     if (pNode->useCount == 0) {
-        const size_t hashIdx = IN_HASH_INDEX(Inode_GetId(pNode));
-
+        List_Remove(&self->inHashTable[IN_HASH_INDEX(Inode_GetId(pNode))], &pNode->sibling);
         self->inCount--;
-        List_Remove(&self->inHashTable[hashIdx], &pNode->sibling);
-        Filesystem_OnRelinquishNode(self, pNode);
+        doDestroy = true;
     }
 
     Lock_Unlock(&self->inLock);
+
+    if (doDestroy) {
+        Filesystem_OnRelinquishNode(self, pNode);
+    }
 
     return err;
 }

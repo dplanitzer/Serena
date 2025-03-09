@@ -27,7 +27,7 @@ enum {
 enum {
     kInodeState_Reading = 0,
     kInodeState_Cached,
-    kInodeState_Writing,
+    kInodeState_Writeback,
     kInodeState_Deleting
 };
 
@@ -38,6 +38,9 @@ enum {
 // Inodes works.
 open_class(Inode, Any,
     ListNode                        sibling;        // Protected by Filesystem.inLock
+    int                             useCount;       // Number of clients currently using this inode. Incremented on acquisition and decremented on relinquishing (protected by Filesystem.inLock)
+    int                             state;
+
     Lock                            lock;
     TimeInterval                    accessTime;
     TimeInterval                    modificationTime;
@@ -45,7 +48,6 @@ open_class(Inode, Any,
     off_t                           size;       // File size
     FilesystemRef _Weak _Nonnull    filesystem; // The owning filesystem instance
     ino_t                           inid;       // Filesystem specific ID of the inode
-    int                             useCount;   // Number of entities that are using this inode at this moment. Incremented on acquisition and decremented on relinquishing (protected by the FS inode management lock)
     nlink_t                         linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
     FileType                        type;
     uint8_t                         flags;
