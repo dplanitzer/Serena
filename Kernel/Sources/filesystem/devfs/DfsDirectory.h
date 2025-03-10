@@ -40,7 +40,8 @@ extern bool DfsDirectory_IsEmpty(DfsDirectoryRef _Nonnull _Locked self);
 extern errno_t _Nullable DfsDirectory_GetEntryForName(DfsDirectoryRef _Nonnull _Locked self, const PathComponent* _Nonnull pc, DfsDirectoryEntry* _Nullable * _Nonnull pOutEntry);
 extern errno_t DfsDirectory_GetNameOfEntryWithId(DfsDirectoryRef _Nonnull _Locked self, ino_t inid, MutablePathComponent* _Nonnull mpc);
 
-extern errno_t DfsDirectory_InsertEntry(DfsDirectoryRef _Nonnull _Locked self, ino_t inid, const PathComponent* _Nonnull pc);
-extern errno_t DfsDirectory_RemoveEntry(DfsDirectoryRef _Nonnull _Locked self, ino_t inid);
+extern errno_t DfsDirectory_CanAcceptEntry(DfsDirectoryRef _Nonnull _Locked self, const PathComponent* _Nonnull name, FileType type);
+extern errno_t DfsDirectory_InsertEntry(DfsDirectoryRef _Nonnull _Locked self, ino_t inid, bool isChildDir, const PathComponent* _Nonnull pc);
+extern errno_t DfsDirectory_RemoveEntry(DfsDirectoryRef _Nonnull _Locked self, InodeRef _Nonnull pNodeToRemove);
 
 #endif /* DfsDirectory_h */

@@ -155,14 +155,7 @@ static errno_t DevFS_unlinkCore(DevFSRef _Nonnull _Locked self, InodeRef _Nonnul
     decl_try_err();
 
     // Remove the directory entry in the parent directory
-    try(DfsDirectory_RemoveEntry((DfsDirectoryRef)pDir, Inode_GetId(pNodeToUnlink)));
-
-
-    // If this is a directory then unlink it from its parent since we remove a
-    // '..' entry that points to the parent
-    if (Inode_IsDirectory(pNodeToUnlink)) {
-        Inode_Unlink(pDir);
-    }
+    try(DfsDirectory_RemoveEntry((DfsDirectoryRef)pDir, pNodeToUnlink));
 
 
     // Unlink the node itself
@@ -203,7 +196,8 @@ errno_t DevFS_link(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, I
     decl_try_err();
 
     try_bang(SELock_LockExclusive(&self->seLock));
-    try(DevFS_InsertDirectoryEntry(self, (DfsDirectoryRef)pDstDir, Inode_GetId(pSrcNode), pName));
+    try(DevFS_InsertDirectoryEntry(self, (DfsDirectoryRef)pDstDir, (DfsNodeRef)pSrcNode, pName));
+
     Inode_Link(pSrcNode);
     Inode_SetModified(pSrcNode, kInodeFlag_StatusChanged);
 

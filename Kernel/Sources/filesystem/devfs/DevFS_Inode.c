@@ -30,13 +30,10 @@ static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef
 
     try_bang(SELock_LockExclusive(&self->seLock));
 
+    try(DfsDirectory_CanAcceptEntry((DfsDirectoryRef)dir, name, type));
+
     switch (type) {
         case kFileType_Directory:
-            // Make sure that the parent directory is able to accept one more link
-            if (Inode_GetLinkCount(dir) >= MAX_LINK_COUNT) {
-                throw(EMLINK);
-            }
-
             try(DfsDirectory_Create(self, DevFS_GetNextAvailableInodeId(self), permissions, uid, gid, Inode_GetId(dir), &ip));
             break;
 
@@ -51,13 +48,7 @@ static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef
 
     _DevFS_AddInode(self, ip);
 
-    try(DevFS_InsertDirectoryEntry(self, (DfsDirectoryRef)dir, Inode_GetId(ip), name));
-    if (type == kFileType_Directory) {
-        // Increment the parent directory link count to account for the '..' entry
-        // in the just created subdirectory
-        Inode_Link(dir);
-    }
-
+    try(DevFS_InsertDirectoryEntry(self, (DfsDirectoryRef)dir, ip, name));
     try(Filesystem_AcquireNodeWithId((FilesystemRef)self, Inode_GetId(ip), pOutNode));
 
     SELock_Unlock(&self->seLock);
