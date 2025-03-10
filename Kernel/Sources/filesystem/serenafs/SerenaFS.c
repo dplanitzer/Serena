@@ -150,12 +150,13 @@ bool SerenaFS_isReadOnly(SerenaFSRef _Nonnull self)
     return (self->mountFlags.isReadOnly) ? true : false;
 }
 
-static errno_t SerenaFS_unlinkCore(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pDir)
+static errno_t SerenaFS_unlinkCore(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked dir)
 {
     decl_try_err();
 
     // Remove the directory entry in the parent directory
-    try(SfsDirectory_RemoveEntry(pDir, pNodeToUnlink));
+    try(SfsDirectory_RemoveEntry(dir, pNodeToUnlink));
+    Inode_Writeback(dir);
     SfsAllocator_CommitToDisk(&self->blockAllocator, Filesystem_GetContainer(self));
 
 
@@ -235,7 +236,8 @@ errno_t SerenaFS_link(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
 
     try(SfsDirectory_CanAcceptEntry(pDstDir, name, Inode_GetFileType(pSrcNode)));
     try(SfsDirectory_InsertEntry(pDstDir, name, pSrcNode, (sfs_insertion_hint_t*)pDirInstHint->data));
-    
+    Inode_Writeback(pDstDir);
+
     Inode_Link(pSrcNode);
     Inode_SetModified(pSrcNode, kInodeFlag_StatusChanged);
 

@@ -73,6 +73,9 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     try(Filesystem_AcquireNodeWithId((FilesystemRef)self, (ino_t)inodeLba, &pNode));
     Inode_Lock(pNode);
     err = SfsDirectory_InsertEntry(dir, name, pNode, pDirInsertionHint);
+    if (err == EOK) {
+        Inode_Writeback(dir);
+    }
     Inode_Unlock(pNode);
     throw_iferr(err);
 
