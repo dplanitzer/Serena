@@ -48,7 +48,9 @@ static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef
 
     _DevFS_AddInode(self, ip);
 
-    try(DevFS_InsertDirectoryEntry(self, (DfsDirectoryRef)dir, ip, name));
+    try(DfsDirectory_InsertEntry((DfsDirectoryRef)dir, Inode_GetId(ip), Inode_IsDirectory(ip), name));
+    Inode_Writeback(dir);
+    
     try(Filesystem_AcquireNodeWithId((FilesystemRef)self, Inode_GetId(ip), pOutNode));
 
     SELock_Unlock(&self->seLock);

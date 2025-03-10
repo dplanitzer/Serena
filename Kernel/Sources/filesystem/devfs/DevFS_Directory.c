@@ -11,22 +11,6 @@
 #include <filesystem/DirectoryChannel.h>
 
 
-// Inserts a new directory entry of the form (pName, id) into the directory node
-// 'pDir'.
-// NOTE: this function does not verify that the new entry is unique. The caller
-// has to ensure that it doesn't try to add a duplicate entry to the directory.
-errno_t DevFS_InsertDirectoryEntry(DevFSRef _Nonnull _Locked self, DfsDirectoryRef _Nonnull _Locked dir, DfsNodeRef _Nonnull pChildNode, const PathComponent* _Nonnull name)
-{
-    decl_try_err();
-
-    err = DfsDirectory_InsertEntry(dir, Inode_GetId(pChildNode), Inode_IsDirectory(pChildNode), name);
-    if (err == EOK) {
-        Inode_Writeback((InodeRef)dir);
-    }
-
-    return err;
-}
-
 errno_t DevFS_acquireRootDirectory(DevFSRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir)
 {
     try_bang(SELock_LockShared(&self->seLock)); 

@@ -185,6 +185,7 @@ errno_t DevFS_unlink(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked target, I
 
 
     try(DevFS_unlinkCore(self, target, dir));
+    Inode_Writeback(dir);
 
 catch:
     SELock_Unlock(&self->seLock);
@@ -196,11 +197,12 @@ errno_t DevFS_link(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, I
     decl_try_err();
 
     try_bang(SELock_LockExclusive(&self->seLock));
-    try(DevFS_InsertDirectoryEntry(self, (DfsDirectoryRef)pDstDir, (DfsNodeRef)pSrcNode, pName));
+    try(DfsDirectory_InsertEntry((DfsDirectoryRef)pDstDir, Inode_GetId(pSrcNode), Inode_IsDirectory(pSrcNode), pName));
+    Inode_Writeback(pDstDir);
 
     Inode_Link(pSrcNode);
     Inode_SetModified(pSrcNode, kInodeFlag_StatusChanged);
-
+    
 catch:
     SELock_Unlock(&self->seLock);
     return err;
