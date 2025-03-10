@@ -15,31 +15,15 @@
 // 'pDir'.
 // NOTE: this function does not verify that the new entry is unique. The caller
 // has to ensure that it doesn't try to add a duplicate entry to the directory.
-errno_t DevFS_InsertDirectoryEntry(DevFSRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, ino_t inid, const PathComponent* _Nonnull pName)
+errno_t DevFS_InsertDirectoryEntry(DevFSRef _Nonnull _Locked self, DfsDirectoryRef _Nonnull _Locked dir, ino_t inid, const PathComponent* _Nonnull name)
 {
     decl_try_err();
-    DfsDirectoryItem* ip = DfsDirectory_GetItem(pDir);
 
-    err = DfsDirectoryItem_AddEntry(ip, inid, pName);
+    err = DfsDirectory_InsertEntry(dir, inid, name);
     if (err == EOK) {
-        Inode_IncrementFileSize(pDir, sizeof(DfsDirectoryEntry));
-
         // Mark the directory as modified
-        if (err == EOK) {
-            Inode_SetModified(pDir, kInodeFlag_Updated | kInodeFlag_StatusChanged);
-            Inode_Writeback(pDir);
-        }
-    }
-
-    return err;
-}
-
-errno_t DevFS_RemoveDirectoryEntry(DevFSRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, ino_t idToRemove)
-{
-    const errno_t err = DfsDirectoryItem_RemoveEntry(DfsDirectory_GetItem(pDir), idToRemove);
-    
-    if (err == EOK) {
-        Inode_DecrementFileSize(pDir, sizeof(DfsDirectoryEntry));
+        Inode_SetModified(dir, kInodeFlag_Updated | kInodeFlag_StatusChanged);
+        Inode_Writeback((InodeRef)dir);
     }
 
     return err;
@@ -59,7 +43,7 @@ errno_t DevFS_acquireNodeForName(DevFSRef _Nonnull self, InodeRef _Nonnull _Lock
     DfsDirectoryEntry* entry;
 
     try_bang(SELock_LockShared(&self->seLock));
-    err = DfsDirectoryItem_GetEntryForName(DfsDirectory_GetItem(pDir), pName, &entry);
+    err = DfsDirectory_GetEntryForName((DfsDirectoryRef)pDir, pName, &entry);
     if (err == EOK && pOutNode) {
         err = Filesystem_AcquireNodeWithId((FilesystemRef)self, entry->inid, pOutNode);
     }
@@ -67,13 +51,14 @@ errno_t DevFS_acquireNodeForName(DevFSRef _Nonnull self, InodeRef _Nonnull _Lock
         *pOutNode = NULL;
     }
     SELock_Unlock(&self->seLock);
+
     return err;
 }
 
 errno_t DevFS_getNameOfNode(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, ino_t id, uid_t uid, gid_t gid, MutablePathComponent* _Nonnull pName)
 {
     try_bang(SELock_LockShared(&self->seLock));
-    const errno_t err = DfsDirectoryItem_GetNameOfEntryWithId(DfsDirectory_GetItem(pDir), id, pName);
+    const errno_t err = DfsDirectory_GetNameOfEntryWithId((DfsDirectoryRef)pDir, id, pName);
     SELock_Unlock(&self->seLock);
     return err;
 }

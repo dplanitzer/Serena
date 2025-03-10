@@ -9,21 +9,18 @@
 #ifndef DfsDevice_h
 #define DfsDevice_h
 
-#include <filesystem/Inode.h>
-#include "DfsItem.h"
+#include "DfsNode.h"
+#include <driver/Driver.h>
 
     
-open_class(DfsDevice, Inode,
-    DfsDeviceItem* _Nonnull item;
+open_class(DfsDevice, DfsNode,
+    DriverRef _Nonnull  instance;
+    intptr_t            arg;
 );
-open_class_funcs(DfsDevice, Inode,
+open_class_funcs(DfsDevice, DfsNode,
 );
 
 
-extern errno_t DfsDevice_Create(DevFSRef _Nonnull fs, ino_t inid, DfsDeviceItem* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode);
-extern void DfsDevice_Serialize(InodeRef _Nonnull _Locked pNode);
-
-#define DfsDevice_GetItem(__self) \
-    ((DfsDeviceRef)__self)->item
+extern errno_t DfsDevice_Create(DevFSRef _Nonnull fs, ino_t inid, FilePermissions permissions, uid_t uid, gid_t gid, DriverRef _Nonnull pDriver, intptr_t arg, DfsNodeRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* DfsDevice_h */

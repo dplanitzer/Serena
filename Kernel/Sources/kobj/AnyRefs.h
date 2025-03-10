@@ -24,6 +24,7 @@ class_ref(Console);
 class_ref(DevFS);
 class_ref(DfsDirectory);
 class_ref(DfsDevice);
+class_ref(DfsNode);
 class_ref(DigitalJoystickDriver);
 class_ref(DirectoryChannel);
 class_ref(DiskBlock);

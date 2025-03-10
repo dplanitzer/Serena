@@ -7,76 +7,67 @@
 //
 
 #include "DfsDevice.h"
-#include <driver/Driver.h>
 #include <filesystem/FSUtilities.h>
-#include <kobj/AnyRefs.h>
 
 
-errno_t DfsDevice_Create(DevFSRef _Nonnull fs, ino_t inid, DfsDeviceItem* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t DfsDevice_Create(DevFSRef _Nonnull fs, ino_t inid, FilePermissions permissions, uid_t uid, gid_t gid, DriverRef _Nonnull pDriver, intptr_t arg, DfsNodeRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
+    const TimeInterval curTime = FSGetCurrentTime();
     DfsDeviceRef self;
 
-    err = Inode_Create(
+    try(Inode_Create(
         class(DfsDevice),
         (FilesystemRef)fs,
         inid,
         kFileType_Device,
-        ip->super.linkCount,
-        ip->super.uid,
-        ip->super.gid,
-        ip->super.permissions,
-        ip->super.size,
-        ip->super.accessTime,
-        ip->super.modificationTime,
-        ip->super.statusChangeTime,
-        (InodeRef*)&self);
-    if (err == EOK) {
-        self->item = ip;
-    }
-    *pOutNode = (InodeRef)self;
+        1,
+        uid,
+        gid,
+        permissions,
+        8,
+        curTime,
+        curTime,
+        curTime,
+        (InodeRef*)&self));
+    self->instance = Object_RetainAs(pDriver, Driver);
+    self->arg = arg;
+
+catch:
+    *pOutSelf = (DfsNodeRef)self;
     return err;
 }
 
-void DfsDevice_Serialize(InodeRef _Nonnull _Locked self)
+void DfsDevice_deinit(DfsDeviceRef _Nullable self)
 {
-    DfsDeviceItem* _Nonnull ip = DfsDevice_GetItem(self);
-    const TimeInterval curTime = FSGetCurrentTime();
-
-    ip->super.accessTime = (Inode_IsAccessed(self)) ? curTime : Inode_GetAccessTime(self);
-    ip->super.modificationTime = (Inode_IsUpdated(self)) ? curTime : Inode_GetModificationTime(self);
-    ip->super.statusChangeTime = (Inode_IsStatusChanged(self)) ? curTime : Inode_GetStatusChangeTime(self);
-    ip->super.size = Inode_GetFileSize(self);
-    ip->super.uid = Inode_GetUserId(self);
-    ip->super.gid = Inode_GetGroupId(self);
-    ip->super.linkCount = Inode_GetLinkCount(self);
-    ip->super.permissions = Inode_GetFilePermissions(self);
+    Object_Release(self->instance);
+    self->instance = NULL;
+    self->arg = 0;
 }
 
-errno_t DfsDevice_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t DfsDevice_createChannel(DfsDeviceRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    DfsDeviceItem* ip = DfsDevice_GetItem(self);
-
-    return Driver_Open(ip->instance, mode, ip->arg, pOutChannel);
+    return Driver_Open(self->instance, mode, self->arg, pOutChannel);
 }
 
-errno_t DfsDevice_read(InodeRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t DfsDevice_read(DfsDeviceRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EPERM;
 }
 
-errno_t DfsDevice_write(InodeRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t DfsDevice_write(DfsDeviceRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return EPERM;
 }
 
-errno_t DfsDevice_truncate(InodeRef _Nonnull _Locked self, off_t length)
+errno_t DfsDevice_truncate(DfsDeviceRef _Nonnull _Locked self, off_t length)
 {
     return EPERM;
 }
 
 
-class_func_defs(DfsDevice, Inode,
+class_func_defs(DfsDevice, DfsNode,
+override_func_def(deinit, DfsDevice, Inode)
 override_func_def(createChannel, DfsDevice, Inode)
 override_func_def(read, DfsDevice, Inode)
 override_func_def(write, DfsDevice, Inode)

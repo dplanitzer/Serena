@@ -16,7 +16,7 @@
 DriverRef _Nullable DevFS_CopyDriverForNode(DevFSRef _Nonnull self, InodeRef _Nonnull pNode)
 {
     if (Inode_GetFileType(pNode) == kFileType_Device) {
-        return Object_RetainAs(DfsDevice_GetItem(pNode)->instance, Driver);
+        return Object_RetainAs(((DfsDeviceRef)pNode)->instance, Driver);
     }
     else {
         return NULL;
@@ -26,8 +26,7 @@ DriverRef _Nullable DevFS_CopyDriverForNode(DevFSRef _Nonnull self, InodeRef _No
 static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable extra1, intptr_t extra2, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
-    const TimeInterval curTime = FSGetCurrentTime();
-    DfsItem* pItem = NULL;
+    DfsNodeRef ip = NULL;
 
     try_bang(SELock_LockExclusive(&self->seLock));
 
@@ -38,11 +37,11 @@ static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef
                 throw(EMLINK);
             }
 
-            try(DfsDirectoryItem_Create(DevFS_GetNextAvailableInodeId(self), permissions, uid, gid, Inode_GetId(dir), (DfsDirectoryItem**)&pItem));
+            try(DfsDirectory_Create(self, DevFS_GetNextAvailableInodeId(self), permissions, uid, gid, Inode_GetId(dir), &ip));
             break;
 
         case kFileType_Device:
-            try(DfsDeviceItem_Create(DevFS_GetNextAvailableInodeId(self), permissions, uid, gid, (DriverRef)extra1, extra2, (DfsDeviceItem**)&pItem));
+            try(DfsDevice_Create(self, DevFS_GetNextAvailableInodeId(self), permissions, uid, gid, (DriverRef)extra1, extra2, &ip));
             break;
 
         default:
@@ -50,24 +49,23 @@ static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef
             break;
     }
 
-    DevFS_AddItem(self, pItem);
+    _DevFS_AddInode(self, ip);
 
-    try(DevFS_InsertDirectoryEntry(self, dir, pItem->inid, name));
+    try(DevFS_InsertDirectoryEntry(self, (DfsDirectoryRef)dir, Inode_GetId(ip), name));
     if (type == kFileType_Directory) {
         // Increment the parent directory link count to account for the '..' entry
         // in the just created subdirectory
         Inode_Link(dir);
     }
 
-    try(Filesystem_AcquireNodeWithId((FilesystemRef)self, pItem->inid, pOutNode));
+    try(Filesystem_AcquireNodeWithId((FilesystemRef)self, Inode_GetId(ip), pOutNode));
 
     SELock_Unlock(&self->seLock);
     return err;
 
 catch:
-    if (pItem) {
-        DevFS_RemoveItem(self, pItem->inid);
-        DfsItem_Destroy(pItem);
+    if (ip) {
+        _DevFS_DestroyInode(self, ip);
     }
 
     *pOutNode = NULL;
@@ -89,57 +87,36 @@ errno_t DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef _Nonnul
 
 errno_t DevFS_onAcquireNode(DevFSRef _Nonnull self, ino_t inid, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    decl_try_err();
-    DfsItem* ip = DevFS_GetItem(self, inid);
+    // Caller is holding the seLock
+    DfsNodeRef ip = _DevFS_GetInode(self, inid);
 
-    if (ip) {
-        switch (ip->type) {
-            case kFileType_Device:
-                return DfsDevice_Create(self, inid, (DfsDeviceItem*)ip, pOutNode);
-
-            case kFileType_Directory:
-                return DfsDirectory_Create(self, inid, (DfsDirectoryItem*)ip, pOutNode);
-
-            default:
-                break;
-        }
-    }
-
-    *pOutNode = NULL;
-    return EIO;
+    *pOutNode = (InodeRef)ip;
+    return (ip) ? EOK : ENODEV;
 }
 
 errno_t DevFS_onWritebackNode(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
-    decl_try_err();
-    const ino_t id = Inode_GetId(pNode);
-    const bool doDelete = (Inode_GetLinkCount(pNode) == 0) ? true : false;
+    if (Inode_IsModified(pNode)) {
+        const TimeInterval curTime = FSGetCurrentTime();
 
-    switch (Inode_GetFileType(pNode)) {
-        case kFileType_Device:
-            if (doDelete) {
-                DevFS_RemoveItem(self, id);
-                DfsItem_Destroy((DfsItem*)DfsDevice_GetItem(pNode));
-            }
-            else {
-                DfsDevice_Serialize(pNode);
-            }
-            break;
-
-        case kFileType_Directory:
-            if (doDelete) {
-                DevFS_RemoveItem(self, id);
-                DfsItem_Destroy((DfsItem*)DfsDirectory_GetItem(pNode));
-            }
-            else {
-                DfsDirectory_Serialize(pNode);
-            }
-            break;
-
-        default:
-            err = EIO;
-            break;
+        if (Inode_IsAccessed(pNode)) {
+            Inode_SetAccessTime(pNode, curTime);
+        }
+        if (Inode_IsUpdated(pNode)) {
+            Inode_SetModificationTime(pNode, curTime);
+        }
+        if (Inode_IsStatusChanged(pNode)) {
+            Inode_SetStatusChangeTime(pNode, curTime);
+        }
     }
 
-    return err;
+    return EOK;
+}
+
+void DevFS_onRelinquishNode(DevFSRef _Nonnull self, InodeRef _Nonnull pNode)
+{
+    // Caller is holding the seLock
+    if (Inode_GetLinkCount(pNode) == 0) {
+        _DevFS_DestroyInode(self, (DfsNodeRef)pNode);
+    }
 }

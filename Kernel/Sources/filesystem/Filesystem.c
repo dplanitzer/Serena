@@ -72,7 +72,7 @@ catch:
 
 void Filesystem_deinit(FilesystemRef _Nonnull self)
 {
-    if (self->inCachedCount > 0 || self->inReadingCount > 0) {
+    if (!Filesystem_CanUnmount(self)) {
         // This should never happen because a filesystem can not be destroyed
         // as long as inodes are still alive
         abort();
