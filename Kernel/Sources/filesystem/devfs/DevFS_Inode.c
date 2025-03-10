@@ -48,8 +48,13 @@ static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef
 
     _DevFS_AddInode(self, ip);
 
-    try(DfsDirectory_InsertEntry((DfsDirectoryRef)dir, Inode_GetId(ip), Inode_IsDirectory(ip), name));
-    Inode_Writeback(dir);
+    Inode_Lock(ip);
+    err = DfsDirectory_InsertEntry((DfsDirectoryRef)dir, Inode_GetId(ip), Inode_IsDirectory(ip), name);
+    if (err == EOK) {
+        Inode_Writeback(dir);
+    }
+    Inode_Unlock(ip);
+    throw_iferr(err);
     
     try(Filesystem_AcquireNodeWithId((FilesystemRef)self, Inode_GetId(ip), pOutNode));
 
