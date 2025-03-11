@@ -27,6 +27,13 @@ typedef struct DirectoryEntryInsertionHint {
     uint64_t    data[4];
 } DirectoryEntryInsertionHint;
 
+
+// Filesystem properties returned by the onStart() override
+typedef struct FSProperties {
+    ino_t   rootDirectoryId;
+} FSProperties;
+
+
 enum {
     kFilesystemState_Idle = 0,
     kFilesystemState_Active,
@@ -135,6 +142,7 @@ open_class(Filesystem, Object,
     List                inReadingCache;
     size_t              inReadingCacheCount;
     int                 state;
+    ino_t               rootDirectoryId;
 );
 open_class_funcs(Filesystem, Object,
 
@@ -149,9 +157,9 @@ open_class_funcs(Filesystem, Object,
     // underlying medium is passed to the filesystem when it is created. Note
     // that the kernel guarantees that no operations will be issued to the
     // filesystem before start() has returned with EOK.
-    // Override: Optional
+    // Override: Required
     // Default Behavior: Returns EOK
-    errno_t (*onStart)(void* _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize);
+    errno_t (*onStart)(void* _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize, FSProperties* _Nonnull pOutProps);
 
     // Invoked when a started instance of this file system is stopped. A file
     // system may return an error. Note however that this error is purely
@@ -169,12 +177,6 @@ open_class_funcs(Filesystem, Object,
     //
     // Filesystem Navigation
     //
-
-    // Returns the root directory of the filesystem if the filesystem is currently
-    // in mounted state. Returns EIO and NULL if the filesystem is not mounted.
-    // Override: Advised
-    // Default Behavior: Returns NULL and EIO
-    errno_t (*acquireRootDirectory)(void* _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir);
 
     // Returns EOK and the node corresponding to the tuple (parent-node, name),
     // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
@@ -289,7 +291,7 @@ open_class_funcs(Filesystem, Object,
 // should not use this function to allocate an instance of the concrete filesystem.
 // This function is for use by Filesystem subclassers to define the filesystem
 // specific instance allocation function.
-extern errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOutFileSys);
+extern errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOutSelf);
 
 // Returns the filesystem ID of the given filesystem.
 #define Filesystem_GetId(__fs) \
@@ -300,8 +302,7 @@ extern errno_t Filesystem_Start(FilesystemRef _Nonnull self, const void* _Nonnul
 extern errno_t Filesystem_Stop(FilesystemRef _Nonnull self);
 
 
-#define Filesystem_AcquireRootDirectory(__self, __pOutDir) \
-invoke_n(acquireRootDirectory, Filesystem, __self, __pOutDir)
+extern errno_t Filesystem_AcquireRootDirectory(FilesystemRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir);
 
 #define Filesystem_AcquireNodeForName(__self, __pDir, __pName, __uid, __gid, __pDirInsHint, __pOutNode) \
 invoke_n(acquireNodeForName, Filesystem, __self, __pDir, __pName, __uid, __gid, __pDirInsHint, __pOutNode)
@@ -335,8 +336,8 @@ extern errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _
 // Methods for use by filesystem subclassers.
 //
 
-#define Filesystem_OnStart(__self, __pParams, __paramsSize) \
-invoke_n(onStart, Filesystem, __self, __pParams, __paramsSize)
+#define Filesystem_OnStart(__self, __pParams, __paramsSize, __fsProps) \
+invoke_n(onStart, Filesystem, __self, __pParams, __paramsSize, __fsProps)
 
 #define Filesystem_OnStop(__self) \
 invoke_0(onStop, Filesystem, __self)

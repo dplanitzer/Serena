@@ -12,7 +12,6 @@
 #include "DevFS.h"
 #include "DfsNode.h"
 #include <dispatcher/Lock.h>
-#include <dispatcher/SELock.h>
 #include <filesystem/FSUtilities.h>
 #include <klib/Types.h>
 #include <klib/Hash.h>
@@ -30,9 +29,7 @@
 (DfsNodeRef) (((uint8_t*)__ptr) - offsetof(struct DfsNode, inChain))
 
 
-// DevFS Locking:
-//
-// seLock:  provides exclusion for mount, unmount and acquire-root-node
+// DevFS
 //
 // Inodes
 //
@@ -47,18 +44,17 @@
 // - onWritebackNode: do nothing
 // - onRelinquishNode: delete the node from 'inOwned' if linkCount == 0; do nothing otherwise
 final_class_ivars(DevFS, Filesystem,
-    SELock          seLock;
+    Lock            inOwnedLock;
     List* _Nonnull  inOwned;            // <DfsNode>
-    ino_t           rootDirInodeId;
     ino_t           nextAvailableInodeId;
 );
 
 
 ino_t DevFS_GetNextAvailableInodeId(DevFSRef _Nonnull _Locked self);
 
-extern void _DevFS_AddInode(DevFSRef _Nonnull _Locked self, DfsNodeRef _Nonnull ip);
-extern void _DevFS_DestroyInode(DevFSRef _Nonnull _Locked self, DfsNodeRef _Nonnull ip);
-extern DfsNodeRef _Nullable _DevFS_GetInode(DevFSRef _Nonnull _Locked self, ino_t id);
+extern void _DevFS_AddInode(DevFSRef _Nonnull self, DfsNodeRef _Nonnull ip);
+extern void _DevFS_DestroyInode(DevFSRef _Nonnull self, DfsNodeRef _Nonnull ip);
+extern DfsNodeRef _Nullable _DevFS_GetInode(DevFSRef _Nonnull self, ino_t id);
 
 extern errno_t DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
 extern errno_t DevFS_onAcquireNode(DevFSRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode);

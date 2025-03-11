@@ -34,7 +34,7 @@ void SerenaFS_deinit(SerenaFSRef _Nonnull self)
     SfsAllocator_Deinit(&self->blockAllocator);
 }
 
-errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize)
+errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize, FSProperties* _Nonnull pOutProps)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
@@ -73,8 +73,8 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
     }
 
 
-    // Cache the root directory info
-    self->lbaRootDir = UInt32_BigToHost(vhp->lbaRootDir);
+    // Get the root directory id
+    pOutProps->rootDirectoryId = (ino_t) UInt32_BigToHost(vhp->lbaRootDir);
 
 
     // Cache the allocation bitmap in RAM
@@ -106,17 +106,12 @@ catch:
 
 errno_t SerenaFS_onStop(SerenaFSRef _Nonnull self)
 {
-    decl_try_err();
-
     // XXX flush all still cached file data to disk (synchronously)
 
     SfsAllocator_CommitToDisk(&self->blockAllocator, Filesystem_GetContainer(self));
     SfsAllocator_Stop(&self->blockAllocator);
 
-    self->lbaRootDir = 0;
-
-catch:
-    return err;
+    return EOK;
 }
 
 bool SerenaFS_isReadOnly(SerenaFSRef _Nonnull self)
@@ -313,7 +308,6 @@ override_func_def(onWritebackNode, SerenaFS, Filesystem)
 override_func_def(onStart, SerenaFS, Filesystem)
 override_func_def(onStop, SerenaFS, Filesystem)
 override_func_def(isReadOnly, SerenaFS, Filesystem)
-override_func_def(acquireRootDirectory, SerenaFS, Filesystem)
 override_func_def(acquireNodeForName, SerenaFS, Filesystem)
 override_func_def(getNameOfNode, SerenaFS, Filesystem)
 override_func_def(createNode, SerenaFS, Filesystem)

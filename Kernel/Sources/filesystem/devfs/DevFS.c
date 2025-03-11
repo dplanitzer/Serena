@@ -18,26 +18,18 @@ errno_t DevFS_Create(DevFSRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DevFSRef self;
-    DfsNodeRef rootDir = NULL;
 
     try(Filesystem_Create(&kDevFSClass, (FilesystemRef*)&self));
     try(FSAllocateCleared(sizeof(List) * IN_HASH_CHAINS_COUNT, (void**)&self->inOwned));
 
-    SELock_Init(&self->seLock);
+    Lock_Init(&self->inOwnedLock);
     self->nextAvailableInodeId = 1;
-
-    const FilePermissions dirOwnerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
-    const FilePermissions dirOtherPerms = kFilePermission_Read | kFilePermission_Execute;
-    const FilePermissions rootDirPerms = FilePermissions_Make(dirOwnerPerms, dirOtherPerms, dirOtherPerms);
-    self->rootDirInodeId = DevFS_GetNextAvailableInodeId(self);
-
-    try(DfsDirectory_Create(self, self->rootDirInodeId, rootDirPerms, kUserId_Root, kGroupId_Root, self->rootDirInodeId, &rootDir));
-    _DevFS_AddInode(self, rootDir);
 
     *pOutSelf = self;
     return EOK;
 
 catch:
+    Object_Release(self);
     *pOutSelf = NULL;
     return err;
 }
@@ -49,55 +41,84 @@ void DevFS_deinit(DevFSRef _Nonnull self)
             Inode_Destroy((InodeRef)DfsNodeFromHashChainPointer(pCurNode));
         )
     }
-    SELock_Deinit(&self->seLock);
+    Lock_Deinit(&self->inOwnedLock);
 }
 
-ino_t DevFS_GetNextAvailableInodeId(DevFSRef _Nonnull _Locked self)
+ino_t DevFS_GetNextAvailableInodeId(DevFSRef _Nonnull self)
 {
+    Lock_Lock(&self->inOwnedLock);
     ino_t id = self->nextAvailableInodeId;
-
     self->nextAvailableInodeId++;
+    Lock_Unlock(&self->inOwnedLock);
+    
     return id;
 }
 
-void _DevFS_AddInode(DevFSRef _Nonnull _Locked self, DfsNodeRef _Nonnull ip)
+void _DevFS_AddInode(DevFSRef _Nonnull self, DfsNodeRef _Nonnull ip)
 {
     const size_t idx = IN_HASH_INDEX(Inode_GetId(ip));
 
+    Lock_Lock(&self->inOwnedLock);
     List_InsertBeforeFirst(&self->inOwned[idx], &ip->inChain);
+    Lock_Unlock(&self->inOwnedLock);
 }
 
-void _DevFS_DestroyInode(DevFSRef _Nonnull _Locked self, DfsNodeRef _Nonnull ip)
+void _DevFS_DestroyInode(DevFSRef _Nonnull self, DfsNodeRef _Nonnull ip)
 {
     const ino_t id = Inode_GetId(ip);
     const size_t idx = IN_HASH_INDEX(id);
 
+    Lock_Lock(&self->inOwnedLock);
     List_ForEach(&self->inOwned[idx], struct DfsNode,
         DfsNodeRef curNode = DfsNodeFromHashChainPointer(pCurNode);
 
         if (Inode_GetId(curNode) == id) {
             List_Remove(&self->inOwned[idx], &ip->inChain);
             Inode_Destroy((InodeRef)ip);
-            return;
+            break;
         }
     )
+    Lock_Unlock(&self->inOwnedLock);
 }
 
-DfsNodeRef _Nullable _DevFS_GetInode(DevFSRef _Nonnull _Locked self, ino_t id)
+DfsNodeRef _Nullable _DevFS_GetInode(DevFSRef _Nonnull self, ino_t id)
 {
     const size_t idx = IN_HASH_INDEX(id);
+    DfsNodeRef theNode = NULL;
 
+    Lock_Lock(&self->inOwnedLock);
     List_ForEach(&self->inOwned[idx], struct DfsNode,
         DfsNodeRef curNode = DfsNodeFromHashChainPointer(pCurNode);
 
         if (Inode_GetId(curNode) == id) {
-            return curNode;
+            theNode = curNode;
+            break;
         }
     )
+    Lock_Unlock(&self->inOwnedLock);
 
-    return NULL;
+    return theNode;
 }
 
+
+errno_t DevFS_onStart(DevFSRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize, FSProperties* _Nonnull pOutProps)
+{
+    decl_try_err();
+    DfsNodeRef rootDir;
+
+    const FilePermissions dirOwnerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
+    const FilePermissions dirOtherPerms = kFilePermission_Read | kFilePermission_Execute;
+    const FilePermissions rootDirPerms = FilePermissions_Make(dirOwnerPerms, dirOtherPerms, dirOtherPerms);
+    const ino_t rootDirInodeId = DevFS_GetNextAvailableInodeId(self);
+
+    try(DfsDirectory_Create(self, rootDirInodeId, rootDirPerms, kUserId_Root, kGroupId_Root, rootDirInodeId, &rootDir));
+    _DevFS_AddInode(self, rootDir);
+    
+    pOutProps->rootDirectoryId = rootDirInodeId;
+
+catch:
+    return err;
+}
 
 bool DevFS_isReadOnly(DevFSRef _Nonnull self)
 {
@@ -130,8 +151,6 @@ errno_t DevFS_unlink(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked target, I
 {
     decl_try_err();
 
-    try_bang(SELock_LockExclusive(&self->seLock));
-
     // A directory must be empty in order to be allowed to unlink it
     if (Inode_IsDirectory(target) && Inode_GetLinkCount(target) > 1 && DfsDirectory_IsEmpty((DfsDirectoryRef)target)) {
         throw(EBUSY);
@@ -142,7 +161,6 @@ errno_t DevFS_unlink(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked target, I
     Inode_Writeback(dir);
 
 catch:
-    SELock_Unlock(&self->seLock);
     return err;
 }
 
@@ -150,7 +168,6 @@ errno_t DevFS_link(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, I
 {
     decl_try_err();
 
-    try_bang(SELock_LockExclusive(&self->seLock));
     try(DfsDirectory_InsertEntry((DfsDirectoryRef)pDstDir, Inode_GetId(pSrcNode), Inode_IsDirectory(pSrcNode), pName));
     Inode_Writeback(pDstDir);
 
@@ -158,7 +175,6 @@ errno_t DevFS_link(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, I
     Inode_SetModified(pSrcNode, kInodeFlag_StatusChanged);
     
 catch:
-    SELock_Unlock(&self->seLock);
     return err;
 }
 
@@ -175,11 +191,11 @@ errno_t DevFS_rename(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode,
 
 class_func_defs(DevFS, Filesystem,
 override_func_def(deinit, DevFS, Object)
+override_func_def(onStart, DevFS, Filesystem)
 override_func_def(onAcquireNode, DevFS, Filesystem)
 override_func_def(onWritebackNode, DevFS, Filesystem)
 override_func_def(onRelinquishNode, DevFS, Filesystem)
 override_func_def(isReadOnly, DevFS, Filesystem)
-override_func_def(acquireRootDirectory, DevFS, Filesystem)
 override_func_def(acquireNodeForName, DevFS, Filesystem)
 override_func_def(getNameOfNode, DevFS, Filesystem)
 override_func_def(createNode, DevFS, Filesystem)

@@ -31,7 +31,7 @@ errno_t DriverCatalog_Create(DriverCatalogRef _Nullable * _Nonnull pOutSelf)
     try(DevFS_Create(&self->devfs));
     try(Filesystem_Start((FilesystemRef)self->devfs, NULL, 0));
     try(FileHierarchy_Create((FilesystemRef)self->devfs, &self->fh));
-    try(Filesystem_AcquireRootDirectory(self->devfs, &self->rootDirectory));
+    try(Filesystem_AcquireRootDirectory((FilesystemRef)self->devfs, &self->rootDirectory));
 
     *pOutSelf = self;
     return EOK;
@@ -72,7 +72,7 @@ FilesystemRef _Nullable DriverCatalog_CopyChapterFilesystem(DriverCatalogRef _No
 static errno_t DriverCatalog_AcquireBusDirectory(DriverCatalogRef _Nonnull self, DriverCatalogId busCatalogId, InodeRef _Nullable * _Nonnull pOutDir)
 {
     if (busCatalogId == kDriverCatalogId_None) {
-        return Filesystem_AcquireRootDirectory(self->devfs, pOutDir);
+        return Filesystem_AcquireRootDirectory((FilesystemRef)self->devfs, pOutDir);
     }
     else {
         return Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (ino_t)busCatalogId, pOutDir);

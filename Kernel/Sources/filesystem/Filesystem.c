@@ -47,7 +47,7 @@ static fsid_t Filesystem_GetNextAvailableId(void)
     return (fsid_t) AtomicInt_Increment(&gNextAvailableId);
 }
 
-errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOutFileSys)
+errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     FilesystemRef self;
@@ -62,12 +62,12 @@ errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOut
     List_Init(&self->inReadingCache);
     self->state = kFilesystemState_Idle;
 
-    *pOutFileSys = self;
+    *pOutSelf = self;
     return EOK;
 
 catch:
     Object_Release(self);
-    *pOutFileSys = NULL;
+    *pOutSelf = NULL;
     return err;
 }
 
@@ -127,17 +127,15 @@ static void _Filesystem_FinReadingNode(FilesystemRef _Nonnull self, RDnode* _Non
     }
 }
 
-errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode)
+static errno_t _Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef ip = NULL;
     bool doBroadcast = false;
 
-    Lock_Lock(&self->inLock);
-
     // Don't return inodes if we aren't active
     if (self->state != kFilesystemState_Active) {
-        throw(ENXIO);
+        return ENXIO;
     }
 
 
@@ -218,13 +216,18 @@ retry:
 
 catch:
     if (doBroadcast) {
-        ConditionVariable_BroadcastAndUnlock(&self->inCondVar, &self->inLock);
+        ConditionVariable_Broadcast(&self->inCondVar);
     }
-    else {
-        Lock_Unlock(&self->inLock);
-    }
-    *pOutNode = ip;
 
+    *pOutNode = ip;
+    return err;
+}
+
+errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode)
+{
+    Lock_Lock(&self->inLock);
+    const errno_t err = _Filesystem_AcquireNodeWithId(self, id, pOutNode);
+    Lock_Unlock(&self->inLock);
     return err;
 }
 
@@ -324,6 +327,7 @@ void Filesystem_onRelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nonnull 
 errno_t Filesystem_Start(FilesystemRef _Nonnull self, const void* _Nonnull params, ssize_t paramsSize)
 {
     decl_try_err();
+    FSProperties fs_props;
 
     Lock_Lock(&self->inLock);
     switch (self->state) {
@@ -332,8 +336,9 @@ errno_t Filesystem_Start(FilesystemRef _Nonnull self, const void* _Nonnull param
         default: break;
     }
 
-    err = Filesystem_OnStart(self, params, paramsSize);
+    err = Filesystem_OnStart(self, params, paramsSize, &fs_props);
     if (err == EOK) {
+        self->rootDirectoryId = fs_props.rootDirectoryId;
         self->state = kFilesystemState_Active;
     }
 
@@ -342,9 +347,9 @@ catch:
     return err;
 }
 
-errno_t Filesystem_onStart(FilesystemRef _Nonnull self, const void* _Nonnull params, ssize_t paramsSize)
+errno_t Filesystem_onStart(FilesystemRef _Nonnull self, const void* _Nonnull params, ssize_t paramsSize, FSProperties* _Nonnull pOutProps)
 {
-    return EOK;
+    return EIO;
 }
 
 bool Filesystem_CanStop(FilesystemRef _Nonnull self)
@@ -381,10 +386,12 @@ errno_t Filesystem_onStop(FilesystemRef _Nonnull self)
 }
 
 
-errno_t Filesystem_acquireRootDirectory(FilesystemRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir)
+errno_t Filesystem_AcquireRootDirectory(FilesystemRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir)
 {
-    *pOutDir = NULL;
-    return EIO;
+    Lock_Lock(&self->inLock);
+    const errno_t err = _Filesystem_AcquireNodeWithId(self, self->rootDirectoryId, pOutDir);
+    Lock_Unlock(&self->inLock);
+    return err;
 }
 
 errno_t Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, uid_t uid, gid_t gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
@@ -439,7 +446,6 @@ func_def(onWritebackNode, Filesystem)
 func_def(onRelinquishNode, Filesystem)
 func_def(onStart, Filesystem)
 func_def(onStop, Filesystem)
-func_def(acquireRootDirectory, Filesystem)
 func_def(acquireNodeForName, Filesystem)
 func_def(getNameOfNode, Filesystem)
 func_def(createNode, Filesystem)

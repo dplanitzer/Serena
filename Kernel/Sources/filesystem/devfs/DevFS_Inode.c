@@ -28,8 +28,6 @@ static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef
     decl_try_err();
     DfsNodeRef ip = NULL;
 
-    try_bang(SELock_LockExclusive(&self->seLock));
-
     try(DfsDirectory_CanAcceptEntry((DfsDirectoryRef)dir, name, type));
 
     switch (type) {
@@ -58,7 +56,6 @@ static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef
     
     try(Filesystem_AcquireNodeWithId((FilesystemRef)self, Inode_GetId(ip), pOutNode));
 
-    SELock_Unlock(&self->seLock);
     return err;
 
 catch:
@@ -67,7 +64,6 @@ catch:
     }
 
     *pOutNode = NULL;
-    SELock_Unlock(&self->seLock);
 
     return err;
 }
