@@ -8,13 +8,12 @@
 
 #include "DevFSPriv.h"
 #include "DfsDirectory.h"
-#include <filesystem/DirectoryChannel.h>
 
 
 errno_t DevFS_acquireRootDirectory(DevFSRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir)
 {
     try_bang(SELock_LockShared(&self->seLock)); 
-    const errno_t err = (self->flags.isMounted) ? Filesystem_AcquireNodeWithId((FilesystemRef)self, self->rootDirInodeId, pOutDir) : EIO;
+    const errno_t err = Filesystem_AcquireNodeWithId((FilesystemRef)self, self->rootDirInodeId, pOutDir);
     SELock_Unlock(&self->seLock);
     return err;
 }

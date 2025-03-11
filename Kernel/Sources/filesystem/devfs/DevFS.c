@@ -44,58 +44,12 @@ catch:
 
 void DevFS_deinit(DevFSRef _Nonnull self)
 {
-    if (!Filesystem_CanUnmount((FilesystemRef)self)) {
-        // This should never happen because a filesystem can not be destroyed
-        // as long as inodes are still alive
-        abort();
-    }
-
     for (size_t i = 0; i < IN_HASH_CHAINS_COUNT; i++) {
         List_ForEach(&self->inOwned[i], struct Inode,
             Inode_Destroy((InodeRef)DfsNodeFromHashChainPointer(pCurNode));
         )
     }
     SELock_Deinit(&self->seLock);
-}
-
-errno_t DevFS_start(DevFSRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize)
-{
-    decl_try_err();
-
-    if ((err = SELock_LockExclusive(&self->seLock)) != EOK) {
-        return err;
-    }
-
-    if (self->flags.isMounted) {
-        throw(EIO);
-    }
-
-    self->flags.isMounted = 1;
-
-catch:
-    SELock_Unlock(&self->seLock);
-    return err;
-}
-
-errno_t DevFS_stop(DevFSRef _Nonnull self)
-{
-    decl_try_err();
-
-    if ((err = SELock_LockExclusive(&self->seLock)) != EOK) {
-        return err;
-    }
-    if (!self->flags.isMounted) {
-        throw(EIO);
-    }
-    if (!Filesystem_CanUnmount((FilesystemRef)self)) {
-        throw(EBUSY);
-    }
-
-    self->flags.isMounted = 0;
-
-catch:
-    SELock_Unlock(&self->seLock);
-    return err;
 }
 
 ino_t DevFS_GetNextAvailableInodeId(DevFSRef _Nonnull _Locked self)
@@ -224,8 +178,6 @@ override_func_def(deinit, DevFS, Object)
 override_func_def(onAcquireNode, DevFS, Filesystem)
 override_func_def(onWritebackNode, DevFS, Filesystem)
 override_func_def(onRelinquishNode, DevFS, Filesystem)
-override_func_def(start, DevFS, Filesystem)
-override_func_def(stop, DevFS, Filesystem)
 override_func_def(isReadOnly, DevFS, Filesystem)
 override_func_def(acquireRootDirectory, DevFS, Filesystem)
 override_func_def(acquireNodeForName, DevFS, Filesystem)

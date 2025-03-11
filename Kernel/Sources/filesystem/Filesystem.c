@@ -60,6 +60,7 @@ errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOut
     ConditionVariable_Init(&self->inCondVar);
     Lock_Init(&self->inLock);
     List_Init(&self->inReadingCache);
+    self->state = kFilesystemState_Idle;
 
     *pOutFileSys = self;
     return EOK;
@@ -72,7 +73,7 @@ catch:
 
 void Filesystem_deinit(FilesystemRef _Nonnull self)
 {
-    if (!Filesystem_CanUnmount(self)) {
+    if (self->state != kFilesystemState_Stopped) {
         // This should never happen because a filesystem can not be destroyed
         // as long as inodes are still alive
         abort();
@@ -133,6 +134,12 @@ errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, Inod
     bool doBroadcast = false;
 
     Lock_Lock(&self->inLock);
+
+    // Don't return inodes if we aren't active
+    if (self->state != kFilesystemState_Active) {
+        throw(ENXIO);
+    }
+
 
 retry:
     // Check whether we already got the inode cached
@@ -298,14 +305,6 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
     return err;
 }
 
-bool Filesystem_CanUnmount(FilesystemRef _Nonnull self)
-{
-    Lock_Lock(&self->inLock);
-    const bool ok = (self->inCachedCount == 0 && self->inReadingCount == 0) ? true : false;
-    Lock_Unlock(&self->inLock);
-    return ok;
-}
-
 errno_t Filesystem_onAcquireNode(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return EIO;
@@ -322,12 +321,61 @@ void Filesystem_onRelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nonnull 
 }
 
 
-errno_t Filesystem_start(FilesystemRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize)
+errno_t Filesystem_Start(FilesystemRef _Nonnull self, const void* _Nonnull params, ssize_t paramsSize)
+{
+    decl_try_err();
+
+    Lock_Lock(&self->inLock);
+    switch (self->state) {
+        case kFilesystemState_Active:   throw(EBUSY); break;
+        case kFilesystemState_Stopped:  throw(ENXIO); break;
+        default: break;
+    }
+
+    err = Filesystem_OnStart(self, params, paramsSize);
+    if (err == EOK) {
+        self->state = kFilesystemState_Active;
+    }
+
+catch:
+    Lock_Unlock(&self->inLock);
+    return err;
+}
+
+errno_t Filesystem_onStart(FilesystemRef _Nonnull self, const void* _Nonnull params, ssize_t paramsSize)
 {
     return EOK;
 }
 
-errno_t Filesystem_stop(FilesystemRef _Nonnull self)
+bool Filesystem_CanStop(FilesystemRef _Nonnull self)
+{
+    Lock_Lock(&self->inLock);
+    const bool ok = (self->inCachedCount == 0 && self->inReadingCount == 0) ? true : false;
+    Lock_Unlock(&self->inLock);
+    return ok;
+}
+
+errno_t Filesystem_Stop(FilesystemRef _Nonnull self)
+{
+    decl_try_err();
+
+    Lock_Lock(&self->inLock);
+    if (self->state != kFilesystemState_Active) {
+        throw(ENXIO);
+    }
+    if (self->inCachedCount > 0 || self->inReadingCount > 0) {
+        throw(EBUSY);
+    }
+
+    err = Filesystem_OnStop(self);
+    self->state = kFilesystemState_Stopped;
+
+catch:
+    Lock_Unlock(&self->inLock);
+    return err;
+}
+
+errno_t Filesystem_onStop(FilesystemRef _Nonnull self)
 {
     return EOK;
 }
@@ -389,8 +437,8 @@ override_func_def(deinit, Filesystem, Object)
 func_def(onAcquireNode, Filesystem)
 func_def(onWritebackNode, Filesystem)
 func_def(onRelinquishNode, Filesystem)
-func_def(start, Filesystem)
-func_def(stop, Filesystem)
+func_def(onStart, Filesystem)
+func_def(onStop, Filesystem)
 func_def(acquireRootDirectory, Filesystem)
 func_def(acquireNodeForName, Filesystem)
 func_def(getNameOfNode, Filesystem)

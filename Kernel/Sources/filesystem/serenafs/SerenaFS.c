@@ -17,7 +17,6 @@ errno_t SerenaFS_Create(FSContainerRef _Nonnull pContainer, SerenaFSRef _Nullabl
     SerenaFSRef self;
 
     try(ContainerFilesystem_Create(&kSerenaFSClass, pContainer, (FilesystemRef*)&self));
-    SELock_Init(&self->seLock);
     Lock_Init(&self->moveLock);
     SfsAllocator_Init(&self->blockAllocator);
 
@@ -32,26 +31,15 @@ catch:
 void SerenaFS_deinit(SerenaFSRef _Nonnull self)
 {
     Lock_Deinit(&self->moveLock);
-    SELock_Deinit(&self->seLock);
-
     SfsAllocator_Deinit(&self->blockAllocator);
 }
 
-errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize)
+errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     FSContainerInfo diskinf;
     DiskBlockRef pRootBlock = NULL;
-
-    if ((err = SELock_LockExclusive(&self->seLock)) != EOK) {
-        return err;
-    }
-
-    if (self->mountFlags.isMounted) {
-        throw(EIO);
-    }
-
 
     // Make sure that the disk partition actually contains a SerenaFS that we
     // know how to handle.
@@ -99,7 +87,6 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
     self->indirectBlockEntryCount = blockSize / sizeof(sfs_bno_t);
 
 
-    self->mountFlags.isMounted = 1;
     // XXX should be drive->is_readonly || mount-params->is_readonly
     if (diskinf.isReadOnly || (vhp->attributes & kSFSVolAttrib_ReadOnly) == kSFSVolAttrib_ReadOnly) {
         self->mountFlags.isReadOnly = 1;
@@ -114,23 +101,12 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
 catch:
     FSContainer_RelinquishBlock(fsContainer, pRootBlock);
 
-    SELock_Unlock(&self->seLock);
     return err;
 }
 
-errno_t SerenaFS_stop(SerenaFSRef _Nonnull self)
+errno_t SerenaFS_onStop(SerenaFSRef _Nonnull self)
 {
     decl_try_err();
-
-    if ((err = SELock_LockExclusive(&self->seLock)) != EOK) {
-        return err;
-    }
-    if (!self->mountFlags.isMounted) {
-        throw(EIO);
-    }
-    if (!Filesystem_CanUnmount((FilesystemRef)self)) {
-        throw(EBUSY);
-    }
 
     // XXX flush all still cached file data to disk (synchronously)
 
@@ -138,10 +114,8 @@ errno_t SerenaFS_stop(SerenaFSRef _Nonnull self)
     SfsAllocator_Stop(&self->blockAllocator);
 
     self->lbaRootDir = 0;
-    self->mountFlags.isMounted = 0;
 
 catch:
-    SELock_Unlock(&self->seLock);
     return err;
 }
 
@@ -336,8 +310,8 @@ class_func_defs(SerenaFS, ContainerFilesystem,
 override_func_def(deinit, SerenaFS, Object)
 override_func_def(onAcquireNode, SerenaFS, Filesystem)
 override_func_def(onWritebackNode, SerenaFS, Filesystem)
-override_func_def(start, SerenaFS, Filesystem)
-override_func_def(stop, SerenaFS, Filesystem)
+override_func_def(onStart, SerenaFS, Filesystem)
+override_func_def(onStop, SerenaFS, Filesystem)
 override_func_def(isReadOnly, SerenaFS, Filesystem)
 override_func_def(acquireRootDirectory, SerenaFS, Filesystem)
 override_func_def(acquireNodeForName, SerenaFS, Filesystem)

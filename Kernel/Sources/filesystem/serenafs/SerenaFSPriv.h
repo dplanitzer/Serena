@@ -15,32 +15,28 @@
 #include "SfsFile.h"
 #include "VolumeFormat.h"
 #include <dispatcher/Lock.h>
-#include <dispatcher/SELock.h>
 #include <filesystem/FSUtilities.h>
 
 
 // SerenaFS Locking:
 //
-// seLock:         provides exclusion for mount, unmount and acquire-root-node
 // allocationLock: implements atomic block allocation and deallocation
 final_class_ivars(SerenaFS, ContainerFilesystem,
-    SELock                  seLock;
-    Lock                    moveLock;   // To make the move operation atomic
-    
     SfsAllocator            blockAllocator;
     
     uint32_t                blockShift;
     uint32_t                blockMask;
-    size_t                  indirectBlockEntryCount;        // Number of block pointers in an indirect block
+    size_t                  indirectBlockEntryCount;    // Number of block pointers in an indirect block
 
-    LogicalBlockAddress     lbaRootDir;                     // Root directory LBA (This is the inode id at the same time)
+    LogicalBlockAddress     lbaRootDir;                 // Root directory LBA (This is the inode id at the same time)
+
+    Lock                    moveLock;                   // To make the move operation atomic
 
     struct {
-        unsigned int    isMounted:1;    // true while mounted; false if not mounted
         unsigned int    isReadOnly:1;
         unsigned int    isAccessUpdateOnReadEnabled:1;  // true if updates to the access-date on read operations are enabled
-        unsigned int    reserved:29;
-    }                       mountFlags; // Flags that remain constant as long as the FS is mounted
+        unsigned int    reserved:30;
+    }                       mountFlags;                 // Flags that remain constant as long as the FS is mounted
 );
 
 

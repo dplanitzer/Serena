@@ -51,10 +51,6 @@ final_class_ivars(DevFS, Filesystem,
     List* _Nonnull  inOwned;            // <DfsNode>
     ino_t           rootDirInodeId;
     ino_t           nextAvailableInodeId;
-    struct {
-        unsigned int    isMounted:1;
-        unsigned int    reserved: 31;
-    }               flags;
 );
 
 

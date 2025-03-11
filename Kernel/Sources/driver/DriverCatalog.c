@@ -29,7 +29,7 @@ errno_t DriverCatalog_Create(DriverCatalogRef _Nullable * _Nonnull pOutSelf)
     try(kalloc_cleared(sizeof(DriverCatalog), (void**) &self));
     
     try(DevFS_Create(&self->devfs));
-    try(Filesystem_Start(self->devfs, NULL, 0));
+    try(Filesystem_Start((FilesystemRef)self->devfs, NULL, 0));
     try(FileHierarchy_Create((FilesystemRef)self->devfs, &self->fh));
     try(Filesystem_AcquireRootDirectory(self->devfs, &self->rootDirectory));
 
@@ -51,7 +51,7 @@ void DriverCatalog_Destroy(DriverCatalogRef _Nullable self)
         Object_Release(self->fh);
         self->fh = NULL;
 
-        Filesystem_Stop(self->devfs);
+        Filesystem_Stop((FilesystemRef)self->devfs);
         Object_Release(self->devfs);
         self->devfs = NULL;
 

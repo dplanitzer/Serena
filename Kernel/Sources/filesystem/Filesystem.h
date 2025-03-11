@@ -27,6 +27,12 @@ typedef struct DirectoryEntryInsertionHint {
     uint64_t    data[4];
 } DirectoryEntryInsertionHint;
 
+enum {
+    kFilesystemState_Idle = 0,
+    kFilesystemState_Active,
+    kFilesystemState_Stopped
+};
+
 
 // A filesystem stores files and directories persistently. Files and directories
 // are represented in memory by Inode instances. An inode has to be acquired by
@@ -92,32 +98,30 @@ typedef struct DirectoryEntryInsertionHint {
 // disk and deleting the the (meta-)data of an inode on disk are done atomically
 // in the sense that no other thread of execution can acquire an inode that is
 // currently in the process of a write-back or on-disk removal.
-// Reacquiring an inode is also atomic. Finally publishing an inode is an atomic
-// operation that guarantees that the inode to publish will only be accessible
-// to other threads of execution (via acquisition) once the publish operation has
-// completed.
+// Reacquiring an inode is also atomic.
 //
-// Filesystem Mount, Unmount and Root Node Acquisition:
+// Filesystem Start, Stop and Root Node Acquisition:
 //
-// This must be implemented by Filesystem subclassers. A concrete Filesystem
-// implementation must guarantee that mount, unmount and root inode acquisition
-// operations are executed non-currently and atomically. Ie all three operations
-// and their shared state must be protected by a lock. This way a filesystem user
-// can be sure that once they have successfully acquired the root node of a
-// filesystem that the filesystem can not be unmounted and neither deallocated
-// for as long as the user is holding on to the inode and using it. An unmount
-// will only succeed if no inodes are acquired at the beginning of the unmount
-// operation. Furthermore a Filesystem subclass implementation must guarantee
-// that a root inode acquisition will fail with an EIO error if the filesystem
-// is in unmounted state.
+// Starting, stopping a filesystem and acquiring its root node (and any other
+// node for that matter) are protected by the same inode management lock and
+// are atomic with respect to each other. A filesystem must be started and not
+// stopped in order to be able to acquire its root node or any other node. This
+// mechanism is enforced by the Filesystem class and subclasses do not need to
+// implement anything special to make this semantic work. Subclasses simply
+// override the onStart() and onStop() methods to implement the filesystem
+// specific portions of starting and stopping the filesystem.
 //
-// Remember that a filesystem can not be unmounted and neither deallocated as
+// Note that reacquiring an already acquired node or relinquishing is possible
+// event after the underlying filesystem has been stopped.
+//
+// Remember that a filesystem can not be stopped and neither deallocated as
 // long as there is at least one acquired inode outstanding. Because of this and
 // the fact that all filesystem operations expect at least one inode as input,
-// non of the filesystem operation functions need to be protected with a lock.
-// The inode that is passed to an operation acts in a sense as a lock and a
-// guarantee that the filesystem can not be unmounted and deallocated while the
-// operation is executing.
+// non of the filesystem operation functions need to be protected with a
+// filesystem specific lock.
+// The inode that is passed to an operation acts in a sense as a lock and its
+// existence guarantees that the filesystem can not be stopped and deallocated
+// while the operation is executing.
 //
 open_class(Filesystem, Object,
     fsid_t              fsid;
@@ -130,6 +134,7 @@ open_class(Filesystem, Object,
     size_t              inReadingWaiterCount;
     List                inReadingCache;
     size_t              inReadingCacheCount;
+    int                 state;
 );
 open_class_funcs(Filesystem, Object,
 
@@ -137,7 +142,7 @@ open_class_funcs(Filesystem, Object,
     // Mounting/Unmounting
     //
 
-    // Invoked when an instance of this file system is mounted. Overrides of this
+    // Invoked when an instance of this file system is started. Overrides of this
     // method should read the root information off the underlying medium and
     // prepare the filesystem for use. Ie it must be possible to read the root
     // directory information once this method successfully returns. Note that the
@@ -146,17 +151,19 @@ open_class_funcs(Filesystem, Object,
     // filesystem before start() has returned with EOK.
     // Override: Optional
     // Default Behavior: Returns EOK
-    errno_t (*start)(void* _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize);
+    errno_t (*onStart)(void* _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize);
 
-    // Invoked when a started (mounted) instance of this file system is stopped
-    // (unmounted). A file system may return an error. Note however that this
-    // error is purely informational and the file system implementation is
-    // required to do everything it can to successfully stop. Errors returned by
-    // this method are ignored and the file system manager will complete the
-    // unmount operation in any case.
+    // Invoked when a started instance of this file system is stopped. A file
+    // system may return an error. Note however that this error is purely
+    // informational and the file system implementation is required to do
+    // everything it can to successfully stop. Errors returned by this method
+    // are ignored and the file system manager will complete the stop operation
+    // in any case.
+    // A stopped filesystem may not be restarted and no more inodes can be
+    // acquired. However, already existing inodes may still be relinquished.
     // Override: Optional
     // Default Behavior: Returns EOK
-    errno_t (*stop)(void* _Nonnull self);
+    errno_t (*onStop)(void* _Nonnull self);
 
 
     //
@@ -288,11 +295,9 @@ extern errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnu
 #define Filesystem_GetId(__fs) \
     ((FilesystemRef)(__fs))->fsid
 
-#define Filesystem_Start(__self, __pParams, __paramsSize) \
-invoke_n(start, Filesystem, __self, __pParams, __paramsSize)
+extern errno_t Filesystem_Start(FilesystemRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize);
 
-#define Filesystem_Stop(__self) \
-invoke_0(stop, Filesystem, __self)
+extern errno_t Filesystem_Stop(FilesystemRef _Nonnull self);
 
 
 #define Filesystem_AcquireRootDirectory(__self, __pOutDir) \
@@ -330,6 +335,12 @@ extern errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _
 // Methods for use by filesystem subclassers.
 //
 
+#define Filesystem_OnStart(__self, __pParams, __paramsSize) \
+invoke_n(onStart, Filesystem, __self, __pParams, __paramsSize)
+
+#define Filesystem_OnStop(__self) \
+invoke_0(onStop, Filesystem, __self)
+
 // Acquires the inode with the ID 'id'. This methods guarantees that there will
 // always only be at most one inode instance in memory at any given time and
 // that only one VP can access/modify the inode.
@@ -344,9 +355,9 @@ extern errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _
 // \param pOutNode receives the acquired inode
 extern errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode);
 
-// Returns true if the filesystem can be unmounted which means that there are no
+// Returns true if the filesystem can be stopped which means that there are no
 // acquired inodes outstanding that belong to this filesystem.
-extern bool Filesystem_CanUnmount(FilesystemRef _Nonnull self);
+extern bool Filesystem_CanStop(FilesystemRef _Nonnull self);
 
 #define Filesystem_OnAcquireNode(__self, __id, __pOutNode) \
 invoke_n(onAcquireNode, Filesystem, __self, __id, __pOutNode)

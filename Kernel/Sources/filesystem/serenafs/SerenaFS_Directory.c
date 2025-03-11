@@ -11,19 +11,7 @@
 
 errno_t SerenaFS_acquireRootDirectory(SerenaFSRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir)
 {
-    decl_try_err();
-
-    err = SELock_LockShared(&self->seLock);
-    if (err == EOK) {
-        if (self->mountFlags.isMounted) {
-            err = Filesystem_AcquireNodeWithId((FilesystemRef)self, self->lbaRootDir, pOutDir);
-        }
-        else {
-            err = EIO;
-        }
-        SELock_Unlock(&self->seLock);
-    }
-    return err;
+    return Filesystem_AcquireNodeWithId((FilesystemRef)self, self->lbaRootDir, pOutDir);
 }
 
 errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull pName, uid_t uid, gid_t gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
