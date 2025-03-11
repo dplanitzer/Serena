@@ -31,6 +31,7 @@ typedef struct DirectoryEntryInsertionHint {
 // Filesystem properties returned by the onStart() override
 typedef struct FSProperties {
     ino_t   rootDirectoryId;
+    bool    isReadOnly;
 } FSProperties;
 
 
@@ -141,8 +142,10 @@ open_class(Filesystem, Object,
     size_t              inReadingWaiterCount;
     List                inReadingCache;
     size_t              inReadingCacheCount;
-    int                 state;
     ino_t               rootDirectoryId;
+    int8_t              state;
+    bool                isReadOnly;
+    int8_t              reserved[2];
 );
 open_class_funcs(Filesystem, Object,
 
@@ -268,18 +271,6 @@ open_class_funcs(Filesystem, Object,
     // Override: Optional
     // Default behavior: unconditionally calls Inode_Destroy()
     void (*onRelinquishNode)(void* _Nonnull self, InodeRef _Nonnull pNode);
-
-
-    //
-    // Properties
-    //
-
-    // Returns true if the filesystem is read-only and false otherwise. A filesystem
-    // may be read-only because it was mounted with a read-only parameter or
-    // because the underlying disk is physically read-only.
-    // Override: Optional
-    // Default Behavior: Returns true
-    bool (*isReadOnly)(void* _Nonnull self);
 );
 
 
@@ -331,6 +322,9 @@ extern InodeRef _Nonnull _Locked Filesystem_ReacquireNode(FilesystemRef _Nonnull
 // Relinquishes the given node back to the filesystem.
 extern errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable pNode);
 
+#define Filesystem_IsReadOnly(__self) \
+((FilesystemRef)__self)->isReadOnly
+
 
 //
 // Methods for use by filesystem subclassers.
@@ -368,8 +362,5 @@ invoke_n(onWritebackNode, Filesystem, __self, __pNode)
 
 #define Filesystem_OnRelinquishNode(__self, __pNode) \
 invoke_n(onRelinquishNode, Filesystem, __self, __pNode)
-
-#define Filesystem_IsReadOnly(__self) \
-invoke_0(isReadOnly, Filesystem, __self)
 
 #endif /* Filesystem_h */

@@ -336,9 +336,13 @@ errno_t Filesystem_Start(FilesystemRef _Nonnull self, const void* _Nonnull param
         default: break;
     }
 
+    fs_props.rootDirectoryId = 0;
+    fs_props.isReadOnly = true;
+
     err = Filesystem_OnStart(self, params, paramsSize, &fs_props);
     if (err == EOK) {
         self->rootDirectoryId = fs_props.rootDirectoryId;
+        self->isReadOnly = fs_props.isReadOnly;
         self->state = kFilesystemState_Active;
     }
 
@@ -418,11 +422,6 @@ errno_t Filesystem_createNode(FilesystemRef _Nonnull self, FileType type, InodeR
     return EIO;
 }
 
-bool Filesystem_isReadOnly(FilesystemRef _Nonnull self)
-{
-    return true;
-}
-
 errno_t Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked target, InodeRef _Nonnull _Locked dir)
 {
     return EACCESS;
@@ -449,7 +448,6 @@ func_def(onStop, Filesystem)
 func_def(acquireNodeForName, Filesystem)
 func_def(getNameOfNode, Filesystem)
 func_def(createNode, Filesystem)
-func_def(isReadOnly, Filesystem)
 func_def(unlink, Filesystem)
 func_def(move, Filesystem)
 func_def(rename, Filesystem)

@@ -115,14 +115,10 @@ errno_t DevFS_onStart(DevFSRef _Nonnull self, const void* _Nonnull pParams, ssiz
     _DevFS_AddInode(self, rootDir);
     
     pOutProps->rootDirectoryId = rootDirInodeId;
+    pOutProps->isReadOnly = false;
 
 catch:
     return err;
-}
-
-bool DevFS_isReadOnly(DevFSRef _Nonnull self)
-{
-    return false;
 }
 
 static errno_t DevFS_unlinkCore(DevFSRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pDir)
@@ -195,7 +191,6 @@ override_func_def(onStart, DevFS, Filesystem)
 override_func_def(onAcquireNode, DevFS, Filesystem)
 override_func_def(onWritebackNode, DevFS, Filesystem)
 override_func_def(onRelinquishNode, DevFS, Filesystem)
-override_func_def(isReadOnly, DevFS, Filesystem)
 override_func_def(acquireNodeForName, DevFS, Filesystem)
 override_func_def(getNameOfNode, DevFS, Filesystem)
 override_func_def(createNode, DevFS, Filesystem)

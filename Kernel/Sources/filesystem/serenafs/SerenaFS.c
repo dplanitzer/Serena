@@ -53,9 +53,8 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
     }
 
 
-    // Establish the default mount settings
+    // Establish the default settings
     self->mountFlags.isAccessUpdateOnReadEnabled = 1;
-    self->mountFlags.isReadOnly = 0;
 
 
     // Get the FS root block
@@ -75,6 +74,7 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
 
     // Get the root directory id
     pOutProps->rootDirectoryId = (ino_t) UInt32_BigToHost(vhp->lbaRootDir);
+    pOutProps->isReadOnly = false;
 
 
     // Cache the allocation bitmap in RAM
@@ -89,7 +89,7 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
 
     // XXX should be drive->is_readonly || mount-params->is_readonly
     if (diskinf.isReadOnly || (vhp->attributes & kSFSVolAttrib_ReadOnly) == kSFSVolAttrib_ReadOnly) {
-        self->mountFlags.isReadOnly = 1;
+        pOutProps->isReadOnly = true;
     }
     
 #ifdef __SERENA__
@@ -112,11 +112,6 @@ errno_t SerenaFS_onStop(SerenaFSRef _Nonnull self)
     SfsAllocator_Stop(&self->blockAllocator);
 
     return EOK;
-}
-
-bool SerenaFS_isReadOnly(SerenaFSRef _Nonnull self)
-{
-    return (self->mountFlags.isReadOnly) ? true : false;
 }
 
 static errno_t SerenaFS_unlinkCore(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked dir)
@@ -307,7 +302,6 @@ override_func_def(onAcquireNode, SerenaFS, Filesystem)
 override_func_def(onWritebackNode, SerenaFS, Filesystem)
 override_func_def(onStart, SerenaFS, Filesystem)
 override_func_def(onStop, SerenaFS, Filesystem)
-override_func_def(isReadOnly, SerenaFS, Filesystem)
 override_func_def(acquireNodeForName, SerenaFS, Filesystem)
 override_func_def(getNameOfNode, SerenaFS, Filesystem)
 override_func_def(createNode, SerenaFS, Filesystem)
