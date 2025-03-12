@@ -52,8 +52,8 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
 
 
         // Define the screen colors
-        GraphicsDriver_SetCLUTEntry(gd, scr, 0, RGBColor32_Make(0x00, 0x00, 0x00));
-        GraphicsDriver_SetCLUTEntry(gd, scr, 1, RGBColor32_Make(0x00, 0xff, 0x00));
+        GraphicsDriver_SetCLUTEntry(gd, scr, 0, RGBColor32_Make(0xff, 0xff, 0xff));
+        GraphicsDriver_SetCLUTEntry(gd, scr, 1, RGBColor32_Make(0x00, 0x00, 0x00));
 
         bscr->gd = gd;
         bscr->chan = chan;
