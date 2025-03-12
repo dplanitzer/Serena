@@ -18,6 +18,7 @@
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/IOChannel.h>
 #include <hal/Platform.h>
+#include "boot_screen.h"
 
 
 // Finds a RAM or ROM disk to boot from and returns the in-kernel path to the
@@ -87,83 +88,21 @@ static void wait_for_disk_change(const char* _Nonnull driverPath, int maxTries, 
     IOChannel_Release(chan);
 }
 
-extern const uint16_t gFloppyImg_Plane0[];
-extern const int gFloppyImg_Width;
-extern const int gFloppyImg_Height;
-
-static void ask_user_for_new_disk(const char* _Nonnull driverPath, MediaId* _Nonnull mediaId)
+static void ask_user_for_new_disk(boot_screen_t* _Nonnull bscr, const char* _Nonnull driverPath, MediaId* _Nonnull mediaId)
 {
-    decl_try_err();
-    GraphicsDriverRef gd = NULL;
-    IOChannelRef chan;
-    VideoConfiguration cfg;
-    SurfaceMapping mp;
-    int srf, scr;
-
-    if (chipset_is_ntsc()) {
-        cfg.width = 320;
-        cfg.height = 200;
-        cfg.fps = 60;
-        
-        //cfg.width = 320;
-        //cfg.height = 400;
-        //cfg.fps = 30;
-    } else {
-        cfg.width = 320;
-        cfg.height = 256;
-        cfg.fps = 50;
-
-        //cfg.width = 320;
-        //cfg.height = 512;
-        //cfg.fps = 25;
-    }
-
-    if ((err = DriverCatalog_OpenDriver(gDriverCatalog, "/fb", kOpen_ReadWrite, &chan)) == EOK) {
-        gd = DriverChannel_GetDriverAs(chan, GraphicsDriver);
-
-        // Create a surface and blit the floppy graphics in there
-        GraphicsDriver_CreateSurface(gd, cfg.width, cfg.height, kPixelFormat_RGB_Indexed1, &srf);
-        GraphicsDriver_MapSurface(gd, srf, kMapPixels_ReadWrite, &mp);
-
-        uint8_t* dp = mp.plane[0];
-        const size_t dbpr = mp.bytesPerRow[0];
-        const uint8_t* sp = (const uint8_t*)gFloppyImg_Plane0;
-        const size_t sbpr = gFloppyImg_Width >> 3;
-        const size_t xb = ((cfg.width - gFloppyImg_Width) >> 3) >> 1;
-        const size_t yb = (cfg.height - gFloppyImg_Height) >> 1;
-
-        memset(dp, 0, dbpr * cfg.height);
-        for (int y = 0; y < gFloppyImg_Height; y++) {
-            memcpy(dp + (y + yb) * dbpr + xb, sp + y * sbpr, sbpr);
-        }
-        GraphicsDriver_UnmapSurface(gd, srf);
-        
-
-        // Create a screen and show it
-        GraphicsDriver_CreateScreen(gd, &cfg, srf, &scr);
-        GraphicsDriver_SetCLUTEntry(gd, scr, 0, RGBColor32_Make(0x00, 0x00, 0x00));
-        GraphicsDriver_SetCLUTEntry(gd, scr, 1, RGBColor32_Make(0x00, 0xff, 0x00));
-
-        GraphicsDriver_SetCurrentScreen(gd, scr);
-    }
+    blit_boot_logo(bscr, gFloppyImg_Plane0, gFloppyImg_Width, gFloppyImg_Height);
 
 
     // Wait for the user to insert a different disk
     wait_for_disk_change(driverPath, INT_MAX, mediaId);
 
 
-    // Remove the screen and turn video off again
-    if (gd) {
-        GraphicsDriver_SetCurrentScreen(gd, 0);
-        GraphicsDriver_DestroyScreen(gd, scr);
-        GraphicsDriver_DestroySurface(gd, srf);
-        IOChannel_Release(chan);
-    }
+    blit_boot_logo(bscr, gSerenaImg_Plane0, gSerenaImg_Width, gSerenaImg_Height);
 }
 
 // Tries to mount the root filesystem stored on the mass storage device
 // represented by 'pDriver'.
-static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry, FilesystemRef _Nullable * _Nonnull pOutFS)
+static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry, boot_screen_t* _Nonnull bscr, FilesystemRef _Nullable * _Nonnull pOutFS)
 {
     decl_try_err();
     MediaId curMediaId = kMediaId_None;
@@ -192,7 +131,7 @@ static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry,
             return err;
         }
 
-        ask_user_for_new_disk(driverPath, &curMediaId);
+        ask_user_for_new_disk(bscr, driverPath, &curMediaId);
     }
 
     printf("Booting from %s...\n\n", &driverPath[1]);
@@ -208,7 +147,7 @@ catch:
 
 // Locates the boot device and creates the boot filesystem. Halts the machine if
 // a boot device/filesystem can not be found.
-FilesystemRef _Nullable create_boot_filesystem(void)
+FilesystemRef _Nullable create_boot_filesystem(boot_screen_t* _Nonnull bscr)
 {
     decl_try_err();
     int state = 0;
@@ -240,7 +179,7 @@ FilesystemRef _Nullable create_boot_filesystem(void)
         }
 
         if (driverPath) {
-            err = boot_from_disk(driverPath, shouldRetry, &fs);
+            err = boot_from_disk(driverPath, shouldRetry, bscr, &fs);
             if (err == EOK) {
                 break;
             }
@@ -254,13 +193,13 @@ FilesystemRef _Nullable create_boot_filesystem(void)
 
 // Creates the root file hierarchy based on the detected boot filesystem. Halts
 // the machine if anything goes wrong.
-FileHierarchyRef _Nonnull create_root_file_hierarchy(void)
+FileHierarchyRef _Nonnull create_root_file_hierarchy(boot_screen_t* _Nonnull bscr)
 {
     decl_try_err();
     FilesystemRef fs;
     FileHierarchyRef fh;
 
-    fs = create_boot_filesystem();
+    fs = create_boot_filesystem(bscr);
     if (fs == NULL) {
         printf("No boot device found.\nHalting...\n");
         while(true);

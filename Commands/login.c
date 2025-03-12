@@ -92,9 +92,7 @@ static void login_user(void)
     const char* homePath = "/Users/admin";
     const char* shellPath = "/System/Commands/shell";
 
-    puts("   Login: admin");
-    puts("Password: ***\n");
-    puts("Logging in...\n");
+    puts("Logging in as admin...\n");
 
     // Make the current directory the user's home directory
     Process_SetWorkingDirectory(homePath);
@@ -153,6 +151,10 @@ void main_closure(int argc, char *argv[])
         exit(EXIT_FAILURE);
         /* NOT REACHED */
     }
+
+
+    // XXX Temp. Fire up the kernel VT100 console
+    System_ConInit();
 
 
     // Open the console and initialize stdin, stdout and stderr

@@ -63,9 +63,10 @@ SC_mount                    equ 50
 SC_unmount                  equ 51
 SC_getgid                   equ 52
 SC_sync                     equ 53
+SC_coninit                  equ 54
 
 
-SC_numberOfCalls            equ 54
+SC_numberOfCalls            equ 55
 
 
 ; System call macro.

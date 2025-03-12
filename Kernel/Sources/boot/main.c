@@ -15,9 +15,11 @@
 #include <dispatcher/VirtualProcessorPool.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverCatalog.h>
+#include <driver/DriverChannel.h>
 #include <driver/LogDriver.h>
 #include <driver/NullDriver.h>
 #include <driver/amiga/AmigaController.h>
+#include <driver/amiga/graphics/GraphicsDriver.h>
 #include <driver/hid/HIDDriver.h>
 #include <driver/hid/HIDManager.h>
 #include <filemanager/FilesystemManager.h>
@@ -29,13 +31,17 @@
 #include <process/ProcessManager.h>
 #include <security/SecurityManager.h>
 #include "BootAllocator.h"
+#include "boot_screen.h"
 
 extern char _text, _etext, _data, _edata, _bss, _ebss;
 static char* gInitialHeapBottom;
 static char* gInitialHeapTop;
 
+boot_screen_t gBootScreen;
+static ConsoleRef gConsole;
 
-extern FileHierarchyRef _Nonnull create_root_file_hierarchy(void);
+
+extern FileHierarchyRef _Nonnull create_root_file_hierarchy(boot_screen_t* _Nonnull bscr);
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);
 static void OnMain(void);
 
@@ -184,6 +190,10 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     try_bang(drivers_init());
 
 
+    // Open the boot screen and show the boot logo
+    open_boot_screen(&gBootScreen);
+
+
     // Initialize the Kernel Runtime Services so that we can make it available
     // to userspace in the form of the Userspace Runtime Services.
     krt_init();
@@ -194,7 +204,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     
     // Create the root file hierarchy and process.
-    FileHierarchyRef pRootFh = create_root_file_hierarchy();
+    FileHierarchyRef pRootFh = create_root_file_hierarchy(&gBootScreen);
     ProcessRef pRootProc;
     try(RootProcess_Create(pRootFh, &pRootProc));
     Object_Release(pRootFh);
@@ -202,12 +212,6 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     // Create the process manager
     try(ProcessManager_Create(pRootProc, &gProcessManager));
-
-
-    // Initialize the console
-    static ConsoleRef gConsole = NULL;
-    try(Console_Create(&gConsole));
-    try(Driver_Start((DriverRef)gConsole));
 
 
     // Get the root process going
@@ -222,4 +226,22 @@ catch:
     printf("Error: unable to complete startup: %d\nHalting.\n", err);
     while(1);
     /* NOT REACHED */
+}
+
+// Invoked via system call by login. Shut down the boot screen and initialize
+// the VT100 console.
+// XXX This is a temporary solution until the VT100 console has been moved to
+// XXX user space.
+errno_t SwitchToFullConsole(void)
+{
+    decl_try_err();
+
+    close_boot_screen(&gBootScreen);
+
+    // Initialize the console
+    try(Console_Create(&gConsole));
+    try(Driver_Start((DriverRef)gConsole));
+
+catch:
+    return err;
 }

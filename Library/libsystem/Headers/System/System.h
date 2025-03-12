@@ -44,6 +44,10 @@ __CPP_BEGIN
 // @Concurrency: Not Safe
 extern void System_Init(ProcessArguments* _Nonnull argsp);
 
+// Shut down the boot screen and initialize the kerne VT100 console
+// XXX for now. Don't use outside of login.
+extern errno_t System_ConInit(void);
+
 #endif /* __KERNEL__ */
 
 __CPP_END

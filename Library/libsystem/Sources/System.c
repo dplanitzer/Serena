@@ -8,6 +8,8 @@
 
 #include <System/Types.h>
 #include <System/Process.h>
+#include <System/_syscall.h>
+#include <System/_varargs.h>
 
 extern void __UrtInit(ProcessArguments* _Nonnull argsp);
 
@@ -22,4 +24,9 @@ void System_Init(ProcessArguments* _Nonnull argsp)
     
     __UrtInit(argsp);
     __gIsSystemLibInitialized = true;
+}
+
+errno_t System_ConInit(void)
+{
+    return (errno_t)_syscall(SC_coninit);
 }

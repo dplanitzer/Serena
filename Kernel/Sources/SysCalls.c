@@ -504,6 +504,13 @@ SYSCALL_0(sync)
     return EOK;
 }
 
+SYSCALL_0(coninit)
+{
+    extern errno_t SwitchToFullConsole(void);
+
+    return SwitchToFullConsole();
+}
+
 
 SystemCall gSystemCallTable[] = {
     REF_SYSCALL(read),
@@ -560,4 +567,5 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(unmount),
     REF_SYSCALL(getgid),
     REF_SYSCALL(sync),
+    REF_SYSCALL(coninit),
 };

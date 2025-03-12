@@ -69,6 +69,7 @@ enum {
     SC_unmount,             // errno_t unmount(const char* _Nonnull atDirPath, UnmountOptions options)
     SC_getgid,              // gid_t Process_GetGroupId(void)
     SC_sync,                // void Sync(void)
+    SC_coninit,             // void ConInit(void)
 };
 
 
