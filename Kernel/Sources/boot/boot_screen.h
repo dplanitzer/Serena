@@ -10,7 +10,7 @@
 #define boot_screen_h
 
 #include <klib/Types.h>
-#include <kobj/AnyRefs.h>
+#include <driver/amiga/graphics/GraphicsDriver.h>
 
 typedef struct boot_screen {
     GraphicsDriverRef _Nullable gd;
@@ -19,12 +19,14 @@ typedef struct boot_screen {
     int                         srf;
     size_t                      width;
     size_t                      height;
+    SurfaceMapping              mp;
 } boot_screen_t;
 
 
 extern void open_boot_screen(boot_screen_t* _Nonnull bscr);
 extern void close_boot_screen(const boot_screen_t* _Nonnull bscr);
 
+extern void clear_boot_screen(const boot_screen_t* _Nonnull bscr);
 extern void blit_boot_logo(const boot_screen_t* _Nonnull bscr, const uint16_t* _Nonnull bitmap, size_t w, size_t h);
 
 

@@ -11,7 +11,6 @@
 #include <disk/DiskCache.h>
 #include <driver/DriverCatalog.h>
 #include <driver/DriverChannel.h>
-#include <driver/amiga/graphics/GraphicsDriver.h>
 #include <hal/Platform.h>
 
 
@@ -62,8 +61,10 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
         bscr->width = cfg.width;
         bscr->height = cfg.height;
 
+        GraphicsDriver_MapSurface(bscr->gd, bscr->srf, kMapPixels_ReadWrite, &bscr->mp);
 
         // Blit the boot logo
+        clear_boot_screen(bscr);
         blit_boot_logo(bscr, gSerenaImg_Plane0, gSerenaImg_Width, gSerenaImg_Height);
 
 
@@ -72,35 +73,39 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
     }
 }
 
-void blit_boot_logo(const boot_screen_t* _Nonnull bscr, const uint16_t* _Nonnull bitmap, size_t w, size_t h)
+void clear_boot_screen(const boot_screen_t* _Nonnull bscr)
 {
-    SurfaceMapping mp;
-
     if (bscr->chan == NULL) {
         return;
     }
 
-    GraphicsDriver_MapSurface(bscr->gd, bscr->srf, kMapPixels_ReadWrite, &mp);
+    memset(bscr->mp.plane[0], 0, bscr->mp.bytesPerRow[0] * bscr->height);
+}
 
-    uint8_t* dp = mp.plane[0];
-    const size_t dbpr = mp.bytesPerRow[0];
+void blit_boot_logo(const boot_screen_t* _Nonnull bscr, const uint16_t* _Nonnull bitmap, size_t w, size_t h)
+{
+    if (bscr->chan == NULL) {
+        return;
+    }
+
+    uint8_t* dp = bscr->mp.plane[0];
+    const size_t dbpr = bscr->mp.bytesPerRow[0];
     const uint8_t* sp = (const uint8_t*)bitmap;
     const size_t sbpr = w >> 3;
     const size_t xb = ((bscr->width - w) >> 3) >> 1;
     const size_t yb = (bscr->height - h) >> 1;
 
-    memset(dp, 0, dbpr * bscr->height);
-    for (int y = 0; y < h; y++) {
+    for (size_t y = 0; y < h; y++) {
         memcpy(dp + (y + yb) * dbpr + xb, sp + y * sbpr, sbpr);
     }
-
-    GraphicsDriver_UnmapSurface(bscr->gd, bscr->srf);
 }
 
 void close_boot_screen(const boot_screen_t* _Nonnull bscr)
 {
     // Remove the screen and turn video off again
     if (bscr->gd) {
+        GraphicsDriver_UnmapSurface(bscr->gd, bscr->srf);
+
         GraphicsDriver_SetCurrentScreen(bscr->gd, 0);
         GraphicsDriver_DestroyScreen(bscr->gd, bscr->scr);
         GraphicsDriver_DestroySurface(bscr->gd, bscr->srf);
