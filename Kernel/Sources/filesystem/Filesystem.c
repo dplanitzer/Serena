@@ -73,7 +73,7 @@ catch:
 
 void Filesystem_deinit(FilesystemRef _Nonnull self)
 {
-    if (self->state != kFilesystemState_Stopped) {
+    if (self->state == kFilesystemState_Active) {
         // This should never happen because a filesystem can not be destroyed
         // as long as inodes are still alive
         abort();
