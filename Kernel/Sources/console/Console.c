@@ -9,6 +9,7 @@
 #include "ConsolePriv.h"
 #include "ConsoleChannel.h"
 #include <driver/DriverCatalog.h>
+#include <driver/hid/HIDChannel.h>
 
 const char* const kConsoleName = "console";
 
@@ -28,7 +29,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 
     try(DispatchQueue_Create(0, 1, kDispatchQoS_Interactive, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
 
-    try(DriverCatalog_OpenDriver(gDriverCatalog, "/hid", kOpen_Read, &self->hidDriverChannel));
+    try(DriverCatalog_OpenDriver(gDriverCatalog, "/hid", kOpen_Read, &self->hidChannel));
     try(RingBuffer_Init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     // Open a channel to the framebuffer
@@ -87,8 +88,8 @@ void Console_deinit(ConsoleRef _Nonnull self)
     Object_Release(self->fb);
     self->fb = NULL;
 
-    IOChannel_Release(self->hidDriverChannel);
-    self->hidDriverChannel = NULL;
+    IOChannel_Release(self->hidChannel);
+    self->hidChannel = NULL;
 }
 
 static errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
@@ -538,7 +539,6 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, ConsoleChanne
     decl_try_err();
     HIDEvent evt;
     ssize_t nBytesRead = 0;
-    ssize_t nEvtBytesRead;
 
     while (nBytesRead < nBytesToRead) {
         // Drop the console lock while getting an event since the get events call
@@ -548,7 +548,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, ConsoleChanne
         Lock_Unlock(&self->lock);
         // XXX Need an API that allows me to read as many events as possible without blocking and that only blocks if there are no events available
         // XXX Or, probably, that's how the event driver read() should work in general
-        const errno_t e1 = IOChannel_Read(self->hidDriverChannel, &evt, sizeof(evt), &nEvtBytesRead);
+        const errno_t e1 = HIDChannel_GetNextEvent(self->hidChannel, kTimeInterval_Infinity, &evt);
         Lock_Lock(&self->lock);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay

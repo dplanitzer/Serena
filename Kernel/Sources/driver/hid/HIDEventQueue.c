@@ -141,25 +141,33 @@ void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const 
 // has arrived or 'timeout' has elapsed. Returns EOK if an event has been
 // successfully dequeued or ETIMEDOUT if no event has arrived and the wait has
 // timed out.
-errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, HIDEvent* _Nonnull pOutEvent, TimeInterval timeout)
+errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, TimeInterval timeout, HIDEvent* _Nonnull pOutEvent)
 {
     decl_try_err();
-    const int irs = cpu_disable_irqs();
 
     while (true) {
-        if (!HIDEventQueue_IsEmpty_Locked(self)) {
+        const int irs = cpu_disable_irqs();
+        const bool hasEvent = !HIDEventQueue_IsEmpty_Locked(self);
+
+        if (hasEvent) {
             *pOutEvent = self->data[self->readIdx++ & self->capacityMask];
+        }
+        cpu_restore_irqs(irs);
+
+        if (hasEvent) {
+            err = EOK;
+            break;
+        }
+        if (timeout.tv_sec <= 0 && timeout.tv_nsec <= 0) {
+            err = ETIMEDOUT;
             break;
         }
 
-        // This temporarily reenables IRQs while we are blocked waiting. IRQs
-        // are disabled once again when this call comes back.
         err = Semaphore_Acquire(&self->semaphore, timeout);
         if (err != EOK) {
             break;
         }
     }
-    cpu_restore_irqs(irs);
 
     return err;
 }

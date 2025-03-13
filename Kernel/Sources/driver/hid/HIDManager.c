@@ -514,29 +514,9 @@ uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self)
 // MARK: Getting Events
 ////////////////////////////////////////////////////////////////////////////////
 
-// Returns events in the order oldest to newest. As many events are returned as
-// fit in the provided buffer. Only blocks the caller if no events are queued.
-errno_t HIDManager_GetEvents(HIDManagerRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, TimeInterval timeout, ssize_t* _Nonnull nOutBytesRead)
+// Dequeues and returns the next available event or ETIMEOUT if no event is
+// available.
+errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, TimeInterval timeout, HIDEvent* _Nonnull evt)
 {
-    decl_try_err();
-    HIDEvent* pEvent = (HIDEvent*)pBuffer;
-    ssize_t nBytesRead = 0;
-
-    while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
-        const errno_t e1 = HIDEventQueue_Get(self->eventQueue, pEvent, timeout);
-
-        if (e1 != EOK) {
-            // Return with an error if we were not able to read any event data at
-            // all and return with the data we were able to read otherwise.
-            err = (nBytesRead == 0) ? e1 : EOK;
-            break;
-        }
-        //assert(HIDEventQueue_GetOverflowCount(self->eventQueue) == 0);
-        
-        nBytesRead += sizeof(HIDEvent);
-        pEvent++;
-    }
-
-    *nOutBytesRead = nBytesRead;
-    return err;
+    return HIDEventQueue_Get(self->eventQueue, timeout, evt);
 }

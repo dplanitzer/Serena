@@ -7,6 +7,7 @@
 //
 
 #include "HIDChannel.h"
+#include "HIDManager.h"
 
 
 errno_t HIDChannel_Create(DriverRef _Nonnull pDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)
@@ -22,6 +23,10 @@ errno_t HIDChannel_Create(DriverRef _Nonnull pDriver, unsigned int mode, IOChann
     return err;
 }
 
+errno_t HIDChannel_GetNextEvent(IOChannelRef _Nonnull self, TimeInterval timeout, HIDEvent* _Nonnull evt)
+{
+    return HIDManager_GetNextEvent(gHIDManager, timeout, evt);
+}
 
 class_func_defs(HIDChannel, DriverChannel,
 );

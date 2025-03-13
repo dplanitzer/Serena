@@ -57,8 +57,6 @@ extern void HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self, int* 
 extern uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self);
 
 
-// Returns events in the order oldest to newest. As many events are returned as
-// fit in the provided buffer. Only blocks the caller if no events are queued.
-extern errno_t HIDManager_GetEvents(HIDManagerRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, TimeInterval timeout, ssize_t* _Nonnull nOutBytesRead);
+extern errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, TimeInterval timeout, HIDEvent* _Nonnull evt);
 
 #endif /* HIDManager_h */

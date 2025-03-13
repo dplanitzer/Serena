@@ -32,14 +32,38 @@ errno_t HIDDriver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mo
 
 // Returns events in the order oldest to newest. As many events are returned as
 // fit in the provided buffer. Only blocks the caller if no events are queued.
-errno_t HIDDriver_read(DriverRef _Nonnull self, HIDChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t HIDDriver_read(DriverRef _Nonnull self, HIDChannelRef _Nonnull pChannel, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    return HIDManager_GetEvents(gHIDManager, pBuffer, nBytesToRead, pChannel->timeout, nOutBytesRead);
+    decl_try_err();
+    HIDEvent* pe = buf;
+    ssize_t nBytesRead = 0;
+
+    while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
+        // Only block waiting for the first event. For all other events we do not
+        // wait.
+        const errno_t e1 = HIDManager_GetNextEvent(gHIDManager, (pe == buf) ? pChannel->timeout : kTimeInterval_Zero, pe);
+
+        if (e1 != EOK) {
+            // Return with an error if we were not able to read any event data at
+            // all and return with the data we were able to read otherwise.
+            err = (nBytesRead == 0) ? e1 : EOK;
+            break;
+        }
+        
+        nBytesRead += sizeof(HIDEvent);
+        pe++;
+    }
+
+    *nOutBytesRead = nBytesRead;
+    return err;
 }
 
 errno_t HIDDriver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
+        case kHIDCommand_GetNextEvent:
+            return HIDManager_GetNextEvent(gHIDManager, va_arg(ap, TimeInterval), va_arg(ap, HIDEvent*));
+
         case kHIDCommand_GetKeyRepeatDelays:
             HIDManager_GetKeyRepeatDelays(gHIDManager, va_arg(ap, TimeInterval*), va_arg(ap, TimeInterval*));
             return EOK;

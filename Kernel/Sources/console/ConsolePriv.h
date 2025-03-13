@@ -155,7 +155,7 @@ final_class_ivars(Console, Driver,
 
     vtparser_t                  vtparser;
 
-    IOChannelRef _Nonnull       hidDriverChannel;
+    IOChannelRef _Nonnull       hidChannel;
     const KeyMap* _Nonnull      keyMap;
     RingBuffer                  reportsQueue;
 
