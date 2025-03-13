@@ -45,8 +45,10 @@ typedef int MouseCursorVisibility;
 //
 
 // Dequeues and returns the next pending event from the event queue. Waits until
-// an event arrives if none is pending. ETIMEDOUT is returned if no event is
-// pending and the timeout has been exceeded.
+// an event arrives if none is pending and timeout is > 0. Returns ETIMEDOUT if
+// no event has arrived before timeout. Returns EAGAIN if timeout is 0 and no
+// event is pending. Note that this call disregards the kOpen_NonBlocking mode
+// on the I/O channel.
 // get_next_event(TimeInterval timeout, HIDEvent* _Nonnull evt)
 #define kHIDCommand_GetNextEvent IOResourceCommand(0)
 

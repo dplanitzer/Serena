@@ -514,8 +514,9 @@ uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self)
 // MARK: Getting Events
 ////////////////////////////////////////////////////////////////////////////////
 
-// Dequeues and returns the next available event or ETIMEOUT if no event is
-// available.
+// Dequeues and returns the next available event or ETIMEDOUT if no event is
+// available and a timeout > 0 was specified. Returns EAGAIN if no event is
+// available and the timeout is 0.
 errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, TimeInterval timeout, HIDEvent* _Nonnull evt)
 {
     return HIDEventQueue_Get(self->eventQueue, timeout, evt);

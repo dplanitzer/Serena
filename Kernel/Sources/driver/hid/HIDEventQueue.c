@@ -140,7 +140,7 @@ void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const 
 // caller if the queue is empty. The caller stays blocked until either an event
 // has arrived or 'timeout' has elapsed. Returns EOK if an event has been
 // successfully dequeued or ETIMEDOUT if no event has arrived and the wait has
-// timed out.
+// timed out. Returns EAGAIN if timeout is 0 and no event is pending.
 errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, TimeInterval timeout, HIDEvent* _Nonnull pOutEvent)
 {
     decl_try_err();
@@ -159,7 +159,7 @@ errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, TimeInterval timeout, 
             break;
         }
         if (timeout.tv_sec <= 0 && timeout.tv_nsec <= 0) {
-            err = ETIMEDOUT;
+            err = EAGAIN;
             break;
         }
 

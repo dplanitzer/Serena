@@ -24,7 +24,7 @@ errno_t IOChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int c
         Lock_Init(&self->countLock);
         self->ownerCount = 1;
         self->useCount = 0;
-        self->mode = mode & (kOpen_ReadWrite | kOpen_Append);
+        self->mode = mode & (kOpen_ReadWrite | kOpen_Append | kOpen_NonBlocking);
         self->options = options;
         self->channelType = channelType;
     }
@@ -279,6 +279,19 @@ errno_t IOChannel_ioctl(IOChannelRef _Nonnull _Locked self, int cmd, va_list ap)
         case kIOChannelCommand_GetMode:
             *((unsigned int*) va_arg(ap, unsigned int*)) = self->mode;
             return EOK;
+
+        case kIOChannelCommand_SetMode: {
+            int setOrClear = va_arg(ap, int);
+            unsigned int newMode = va_arg(ap, unsigned int) & (kOpen_Append | kOpen_NonBlocking);
+
+            if (setOrClear) {
+                self->mode |= newMode;
+            }
+            else {
+                self->mode &= ~newMode;
+            }
+            return EOK;
+        }
 
         default:
             return ENOTIOCTLCMD;

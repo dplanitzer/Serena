@@ -15,7 +15,6 @@
 
 
 open_class(HIDChannel, DriverChannel,
-    TimeInterval    timeout;
 );
 open_class_funcs(HIDChannel, DriverChannel,
 );

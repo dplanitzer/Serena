@@ -35,13 +35,15 @@ errno_t HIDDriver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mo
 errno_t HIDDriver_read(DriverRef _Nonnull self, HIDChannelRef _Nonnull pChannel, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
+    const bool isNonBlocking = (IOChannel_GetMode(pChannel) & kOpen_NonBlocking) == kOpen_NonBlocking;
+    const TimeInterval timeout = (isNonBlocking) ? kTimeInterval_Zero : kTimeInterval_Infinity;
     HIDEvent* pe = buf;
     ssize_t nBytesRead = 0;
 
     while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
         // Only block waiting for the first event. For all other events we do not
         // wait.
-        const errno_t e1 = HIDManager_GetNextEvent(gHIDManager, (pe == buf) ? pChannel->timeout : kTimeInterval_Zero, pe);
+        const errno_t e1 = HIDManager_GetNextEvent(gHIDManager, (pe == buf) ? timeout : kTimeInterval_Zero, pe);
 
         if (e1 != EOK) {
             // Return with an error if we were not able to read any event data at

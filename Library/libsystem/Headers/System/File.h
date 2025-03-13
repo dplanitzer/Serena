@@ -87,6 +87,7 @@ typedef uint32_t    AccessMode;
 #define kOpen_Append        0x0004
 #define kOpen_Exclusive     0x0008
 #define kOpen_Truncate      0x0010
+#define kOpen_NonBlocking   0x0020
 
 
 // Specifies how a File_Seek() call should apply 'offset' to the current file

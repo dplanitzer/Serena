@@ -32,7 +32,16 @@ typedef enum IOChannelType {
 } IOChannelType;
 
 // Returns the mode with which the I/O channel was opened.
+// unsigned int get_mode(int ioc)
 #define kIOChannelCommand_GetMode   IOChannelCommand(2)
+
+// Updates the mode of an I/O channel. Enables 'mode' on the channel if 'setOrClear'
+// is != 0 and disables 'mode' if 'setOrClear' == 0.
+// The following modes may be changed:
+// - kOpen_Append
+// - kOpen_NonBlocking
+// errno_t set_mode(int ioc, int setOrClear, unsigned int mode)
+#define kIOChannelCommand_SetMode   IOChannelCommand(3)
 
 
 // Standard I/O channels that are open when a process starts. These channels

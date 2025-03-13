@@ -12,15 +12,7 @@
 
 errno_t HIDChannel_Create(DriverRef _Nonnull pDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)
 {
-    decl_try_err();
-    HIDChannelRef self = NULL;
-    
-    if ((err = DriverChannel_Create(&kHIDChannelClass, 0, kIOChannelType_Driver, mode, pDriver, (IOChannelRef*)&self)) == EOK) {
-        self->timeout = kTimeInterval_Infinity;
-    }
-
-    *pOutSelf = (IOChannelRef)self;
-    return err;
+    return DriverChannel_Create(&kHIDChannelClass, 0, kIOChannelType_Driver, mode, pDriver, pOutSelf);
 }
 
 errno_t HIDChannel_GetNextEvent(IOChannelRef _Nonnull self, TimeInterval timeout, HIDEvent* _Nonnull evt)
