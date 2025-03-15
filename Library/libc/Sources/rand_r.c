@@ -9,6 +9,28 @@
 #include <stdlib.h>
 
 
+#if 1
+// SHR3 random number generator
+int rand_r(unsigned int *seed)
+{
+    int shr3;
+
+    shr3 = *seed;
+    if (shr3 == 0) {
+        shr3 = -1;
+    }
+    shr3 ^= (shr3 << 13);
+    shr3 ^= (shr3 >> 17);
+    shr3 ^= (shr3 << 5);
+    
+    if (shr3 < 0) {
+        shr3 += 2147483647;
+    }
+    *seed = shr3;
+
+    return shr3;
+}
+#else
 // Based on:
 // Random number generators: good ones are hard to find
 // ACM October 1988 Volume 31 Number 10
@@ -29,3 +51,4 @@ int rand_r(unsigned int *seed)
 
     return iSeed;   // [0, RAND_MAX]
 }
+#endif

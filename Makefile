@@ -86,7 +86,7 @@ include $(WORKSPACE_DIR)/common.mk
 
 
 # --------------------------------------------------------------------------
-# Project definitions
+# OS
 #
 
 KERNEL_PROJECT_DIR := $(WORKSPACE_DIR)/Kernel
@@ -152,6 +152,15 @@ LIBCLAP_OBJS_DIR := $(OBJS_DIR)/Library/libclap
 LIBCLAP_FILE := $(LIBCLAP_OBJS_DIR)/libclap.a
 
 
+#---------------------------------------------------------------------------
+# Demos
+#
+
+SNAKE_PROJECT_DIR := $(WORKSPACE_DIR)/Demos/snake
+SNAKE_OBJS_DIR := $(OBJS_DIR)/Demos/snake
+SNAKE_FILE := $(SNAKE_OBJS_DIR)/snake
+
+
 # --------------------------------------------------------------------------
 # Project includes
 #
@@ -167,6 +176,8 @@ include $(KERNEL_TESTS_PROJECT_DIR)/project.mk
 include $(SH_PROJECT_DIR)/project.mk
 include $(SYSTEMD_PROJECT_DIR)/project.mk
 include $(CMDS_PROJECT_DIR)/project.mk
+
+include $(SNAKE_PROJECT_DIR)/project.mk
 
 
 # --------------------------------------------------------------------------
@@ -187,7 +198,7 @@ build-rom: $(ROM_FILE)
 build-boot-dmg: $(BOOT_DMG_FILE)
 
 
-$(BOOT_DMG_FILE): $(LOGIN_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(TYPE_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
+$(BOOT_DMG_FILE): $(SNAKE_FILE) $(LOGIN_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(TYPE_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
 	@echo Making boot_disk.adf
 	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DMG_FILE)
 	$(DISKIMAGE) format sefs $(BOOT_DMG_FILE)
@@ -207,6 +218,7 @@ $(BOOT_DMG_FILE): $(LOGIN_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(TYPE_FILE) $(KERNEL
 	$(DISKIMAGE) push -m=rw-r----- -o=1000:1000 $(DEMOS_DIR)/helloworld.sh /Users/admin/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rw-r----- -o=1000:1000 $(DEMOS_DIR)/prime.sh /Users/admin/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rw-r----- -o=1000:1000 $(DEMOS_DIR)/while.sh /Users/admin/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(SNAKE_FILE) /Users/admin/ $(BOOT_DMG_FILE)
 
 
 $(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE_FOR_ROM) | $(PRODUCT_DIR)
