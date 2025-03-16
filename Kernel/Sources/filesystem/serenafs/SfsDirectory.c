@@ -268,7 +268,7 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
     dep->len = name->count;
     dep->id = UInt32_HostToBig(Inode_GetId(pChildNode));
 
-    FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+    FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Deferred);
 
 
     // Increment the link count of the directory if the child node is itself a
@@ -304,7 +304,7 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeRef _Nonnu
     uint8_t* bp = DiskBlock_GetMutableData(pBlock);
     sfs_dirent_t* dep = (sfs_dirent_t*)(bp + qr.blockOffset);
     memset(dep, 0, sizeof(sfs_dirent_t));
-    FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+    FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Deferred);
 
 
     // Shrink the directory file by one entry if we removed the last entry in

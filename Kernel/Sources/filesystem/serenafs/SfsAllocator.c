@@ -156,7 +156,7 @@ errno_t SfsAllocator_CommitToDisk(SfsAllocator* _Nonnull self, FSContainerRef _N
 
             if ((err = FSContainer_AcquireBlock(fsContainer, allocationBitmapBlockLba, kAcquireBlock_Cleared, &pBlock)) == EOK) {
                 memcpy(DiskBlock_GetMutableData(pBlock), pBitmapData, self->bitmapByteSize);
-                FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+                FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Deferred);
             }
 
             if (err != EOK) {

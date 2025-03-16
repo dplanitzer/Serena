@@ -146,7 +146,7 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
             uint8_t* dp = DiskBlock_GetMutableData(pBlock);
         
             memcpy(dp + blockOffset, sp, nBytesToWriteInBlock);
-            e1 = FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+            e1 = FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Deferred);
         }
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;

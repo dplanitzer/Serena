@@ -147,7 +147,7 @@ errno_t SfsFile_AcquireBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, Ac
         err = acquire_disk_block(fs, dat_lba, mode, &i0_bmap[fba], &isAlloc, pOutBlock);
         
         if (isAlloc) {
-            FSContainer_RelinquishBlockWriting(fsContainer, i0_block, kWriteBlock_Sync);
+            FSContainer_RelinquishBlockWriting(fsContainer, i0_block, kWriteBlock_Deferred);
         }
         else {
             FSContainer_RelinquishBlock(fsContainer, i0_block);
@@ -220,7 +220,7 @@ bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
 
             if (is_i0_update) {
                 // We removed some of the i0 blocks
-                FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+                FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Deferred);
             }
             else {
                 // We abandoned all of the i0 level
