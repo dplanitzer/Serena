@@ -49,7 +49,7 @@ static const char* _Nullable get_boot_mem_driver_path(void)
 // exists; NULL otherwise.
 static const char* _Nullable get_boot_floppy_driver_path(void)
 {
-    static char* gBootFloppyName = "/hw/fd0";
+    static char* gBootFloppyName = "/hw/fd-bus/fd0";
 
     for (int i = 0; i < 4; i++) {
         const errno_t err = DriverCatalog_IsDriverPublished(gDriverCatalog, gBootFloppyName);

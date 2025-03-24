@@ -43,7 +43,6 @@ errno_t FloppyController_Create(DriverRef _Nullable parent, FloppyControllerRef 
     FloppyControllerRef self;
     
     try(Driver_Create(class(FloppyController), 0, parent, (DriverRef*)&self));
-    ((DriverRef)self)->busCatalogId = parent->busCatalogId; //XXX hack for now
 
     Lock_Init(&self->lock);
     ConditionVariable_Init(&self->cv);
@@ -83,6 +82,9 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
 
+    try(Driver_PublishBus((DriverRef)self, "fd-bus", kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0777), 0));
+
+    
     // Discover as many floppy drives as possible. We ignore drives that generate
     // an error while trying to initialize them.
     for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
@@ -100,7 +102,8 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
         }
     }
 
-    return EOK;
+catch:
+    return err;
 }
 
 DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int drive)

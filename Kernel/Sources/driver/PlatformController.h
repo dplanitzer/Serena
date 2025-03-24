@@ -18,7 +18,6 @@
 // that is part of the motherboard.
 // A platform controller is expected to implement the synchronous driver model.
 open_class(PlatformController, Driver,
-    DriverCatalogId baseBusId;
 );
 open_class_funcs(PlatformController, Driver,
 );
@@ -27,6 +26,8 @@ open_class_funcs(PlatformController, Driver,
 // Creates a platform controller instance.
 extern errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf);
 
-extern errno_t PlatformController_PublishHardwareBus(PlatformControllerRef _Nonnull self);
+// Publishes the /dev/hw bus directory. All motherboard components should be placed
+// inside of this directory.
+extern errno_t PlatformController_PublishHardwareBus(PlatformControllerRef _Nonnull _Locked self);
 
 #endif /* PlatformController_h */

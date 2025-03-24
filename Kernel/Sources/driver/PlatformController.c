@@ -15,16 +15,10 @@ errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * 
     return Driver_Create(pClass, 0, NULL, pOutSelf);
 }
 
-errno_t PlatformController_PublishHardwareBus(PlatformControllerRef _Nonnull self)
+errno_t PlatformController_PublishHardwareBus(PlatformControllerRef _Nonnull _Locked self)
 {
     return DriverCatalog_PublishBus(gDriverCatalog, kDriverCatalogId_None, "hw", kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0755), &((DriverRef)self)->busCatalogId);
 }
 
-DriverCatalogId PlatformController_getParentBusCatalogId(DriverRef _Nonnull _Locked self)
-{
-    return kDriverCatalogId_None;
-}
-
 class_func_defs(PlatformController, Driver,
-override_func_def(getParentBusCatalogId, PlatformController, Driver)
 );

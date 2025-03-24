@@ -268,7 +268,7 @@ errno_t Driver_onPublish(DriverRef _Nonnull _Locked self)
     return EOK;
 }
 
-DriverCatalogId Driver_getParentBusCatalogId(DriverRef _Nonnull _Locked self)
+static DriverCatalogId Driver_GetParentBusCatalogId(DriverRef _Nonnull _Locked self)
 {
     return (self->parent) ? Driver_GetBusCatalogId(self->parent) : kDriverCatalogId_None;
 }
@@ -450,7 +450,6 @@ func_def(onStart, Driver)
 func_def(onStop, Driver)
 func_def(onPublish, Driver)
 func_def(onUnpublish, Driver)
-func_def(getParentBusCatalogId, Driver)
 func_def(open, Driver)
 func_def(createChannel, Driver)
 func_def(close, Driver)

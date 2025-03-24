@@ -163,13 +163,6 @@ open_class_funcs(Driver, Object,
     // Default behavior: does nothing
     void (*onUnpublish)(void* _Nonnull _Locked self);
 
-    // Returns the catalog id of the bus directory that the parent driver has
-    // created and in which the receiver should publish its catalog entries.
-    // Override: Optional
-    // Default behavior: returns the directory representing the bus on which
-    //                   the receiver lives
-    DriverCatalogId (*getParentBusCatalogId)(void* _Nonnull _Locked self);
-
    
     // Invoked as the result of calling Driver_Open(). A driver subclass may
     // override this method to create a driver specific I/O channel object. The
@@ -299,9 +292,6 @@ invoke_0(onPublish, Driver, __self)
 
 #define Driver_OnUnpublish(__self) \
 invoke_0(onUnpublish, Driver, __self)
-
-#define Driver_GetParentBusCatalogId(__self) \
-invoke_0(getParentBusCatalogId, Driver, __self)
 
 
 // Publishes the driver instance to the driver catalog with the given name. This
