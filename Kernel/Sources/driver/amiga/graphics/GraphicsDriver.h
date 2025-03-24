@@ -16,9 +16,6 @@
 #include "VideoConfiguration.h"
 
 
-extern const char* const kFramebufferName;
-
-
 final_class(GraphicsDriver, Driver);
 
 

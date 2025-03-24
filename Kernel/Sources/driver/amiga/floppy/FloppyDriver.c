@@ -21,8 +21,6 @@
 #define LOG(drive, fmt, ...)
 #endif
 
-const char* const kFloppyDrive0Name = "fd0";
-
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.

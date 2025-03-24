@@ -7,25 +7,22 @@
 //
 
 #include "PlatformController.h"
+#include "DriverCatalog.h"
 
 
-errno_t PlatformController_Create(Class* _Nonnull pClass, DriverCatalogId baseBusId, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    decl_try_err();
-    PlatformControllerRef self;
+    return Driver_Create(pClass, 0, NULL, pOutSelf);
+}
 
-    err = Driver_Create(pClass, 0, NULL, (DriverRef*)&self);
-    if (err == EOK) {
-        self->baseBusId = baseBusId;
-    }
-
-    *pOutSelf = (DriverRef)self;
-    return err;
+errno_t PlatformController_PublishHardwareBus(PlatformControllerRef _Nonnull self)
+{
+    return DriverCatalog_PublishBus(gDriverCatalog, kDriverCatalogId_None, "hw", kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0755), &((DriverRef)self)->busCatalogId);
 }
 
 DriverCatalogId PlatformController_getParentBusCatalogId(DriverRef _Nonnull _Locked self)
 {
-    return self->busCatalogId;
+    return kDriverCatalogId_None;
 }
 
 class_func_defs(PlatformController, Driver,

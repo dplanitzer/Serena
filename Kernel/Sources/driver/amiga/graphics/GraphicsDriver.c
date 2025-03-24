@@ -9,8 +9,6 @@
 #include "GraphicsDriverPriv.h"
 #include <System/HID.h>
 
-const char* const kFramebufferName = "fb";
-
 
 // Creates a graphics driver instance which manages the on-board video hardware.
 // We assume that video is turned off at the time this function is called and
@@ -65,7 +63,7 @@ void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull sel
 
 static errno_t GraphicsDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    return Driver_Publish(self, kFramebufferName, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0666), 0);
+    return Driver_Publish(self, "fb", kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0666), 0);
 }
 
 errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, int cmd, va_list ap)

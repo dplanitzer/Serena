@@ -115,7 +115,7 @@ static errno_t drivers_init(void)
 
 
     // Platform controller
-    try(PlatformController_Create(class(AmigaController), kDriverCatalogId_None, &gPlatformController));
+    try(PlatformController_Create(class(AmigaController), &gPlatformController));
     try(Driver_Start(gPlatformController));
 
 

@@ -42,7 +42,7 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
 
     memset(bscr, 0, sizeof(boot_screen_t));
 
-    if ((err = DriverCatalog_OpenDriver(gDriverCatalog, "/fb", kOpen_ReadWrite, &chan)) == EOK) {
+    if ((err = DriverCatalog_OpenDriver(gDriverCatalog, "/hw/fb", kOpen_ReadWrite, &chan)) == EOK) {
         gd = DriverChannel_GetDriverAs(chan, GraphicsDriver);
 
         // Create the surface and screen

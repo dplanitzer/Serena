@@ -33,7 +33,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     try(RingBuffer_Init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     // Open a channel to the framebuffer
-    try(DriverCatalog_OpenDriver(gDriverCatalog, kFramebufferName, kOpen_ReadWrite, &self->fbChannel));
+    try(DriverCatalog_OpenDriver(gDriverCatalog, "/hw/fb", kOpen_ReadWrite, &self->fbChannel));
     self->fb = DriverChannel_GetDriverAs(self->fbChannel, GraphicsDriver);
     self->keyMap = (const KeyMap*) gKeyMap_usa;
 

@@ -111,6 +111,9 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
 {
     decl_try_err();
 
+    try(PlatformController_PublishHardwareBus((PlatformControllerRef)self));
+
+    
     // Graphics Driver
     GraphicsDriverRef fb = NULL;
     try(GraphicsDriver_Create((DriverRef)self, &fb));

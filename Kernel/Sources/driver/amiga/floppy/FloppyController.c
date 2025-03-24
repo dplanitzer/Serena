@@ -43,6 +43,7 @@ errno_t FloppyController_Create(DriverRef _Nullable parent, FloppyControllerRef 
     FloppyControllerRef self;
     
     try(Driver_Create(class(FloppyController), 0, parent, (DriverRef*)&self));
+    ((DriverRef)self)->busCatalogId = parent->busCatalogId; //XXX hack for now
 
     Lock_Init(&self->lock);
     ConditionVariable_Init(&self->cv);

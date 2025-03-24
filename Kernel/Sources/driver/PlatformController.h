@@ -24,9 +24,9 @@ open_class_funcs(PlatformController, Driver,
 );
 
 
-// Creates a platform controller instance. 'baseBusId' is the catalog id of the
-// bus directory into which the platform controller should publish its immediate
-// children. 
-extern errno_t PlatformController_Create(Class* _Nonnull pClass, DriverCatalogId baseBusId, DriverRef _Nullable * _Nonnull pOutSelf);
+// Creates a platform controller instance.
+extern errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf);
+
+extern errno_t PlatformController_PublishHardwareBus(PlatformControllerRef _Nonnull self);
 
 #endif /* PlatformController_h */
