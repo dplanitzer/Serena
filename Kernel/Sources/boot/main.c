@@ -102,7 +102,7 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 // specific drivers and gets them up and running.
 static errno_t drivers_init(void)
 {
-    static PlatformControllerRef gPlatformController;
+    static DriverRef gPlatformController;
     static DriverRef gHidDriver;
     static DriverRef gLogDriver;
     static DriverRef gNullDriver;
@@ -115,8 +115,8 @@ static errno_t drivers_init(void)
 
 
     // Platform controller
-    try(AmigaController_Create(&gPlatformController));
-    try(Driver_Start((DriverRef)gPlatformController));
+    try(PlatformController_Create(class(AmigaController), kDriverCatalogId_None, &gPlatformController));
+    try(Driver_Start(gPlatformController));
 
 
     // Start the HID manager

@@ -18,8 +18,15 @@
 // that is part of the motherboard.
 // A platform controller is expected to implement the synchronous driver model.
 open_class(PlatformController, Driver,
+    DriverCatalogId baseBusId;
 );
 open_class_funcs(PlatformController, Driver,
 );
+
+
+// Creates a platform controller instance. 'baseBusId' is the catalog id of the
+// bus directory into which the platform controller should publish its immediate
+// children. 
+extern errno_t PlatformController_Create(Class* _Nonnull pClass, DriverCatalogId baseBusId, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* PlatformController_h */

@@ -30,11 +30,6 @@ final_class_ivars(AmigaController, PlatformController,
 );
 
 
-errno_t AmigaController_Create(PlatformControllerRef _Nullable * _Nonnull pOutSelf)
-{
-    return Driver_Create(class(AmigaController), 0, NULL, (DriverRef*)pOutSelf);
-}
-
 // Scans the ROM area following the end of the kernel looking for an embedded
 // Serena disk image with a root filesystem.
 static const SMG_Header* _Nullable find_rom_rootfs(void)

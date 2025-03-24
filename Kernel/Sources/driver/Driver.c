@@ -268,11 +268,16 @@ errno_t Driver_onPublish(DriverRef _Nonnull _Locked self)
     return EOK;
 }
 
+DriverCatalogId Driver_getParentBusCatalogId(DriverRef _Nonnull _Locked self)
+{
+    return (self->parent) ? Driver_GetBusCatalogId(self->parent) : kDriverCatalogId_None;
+}
+
 // Publishes the driver instance to the driver catalog with the given name.
 errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* name, uid_t uid, gid_t gid, FilePermissions perms, intptr_t arg)
 {
     decl_try_err();
-    DriverCatalogId parentBusCatalogId = (self->parent) ? Driver_GetBusCatalogId(self->parent) : 0;
+    const DriverCatalogId parentBusCatalogId = Driver_GetParentBusCatalogId(self);
 
     if ((err = DriverCatalog_Publish(gDriverCatalog, parentBusCatalogId, name, uid, gid, perms, self, arg, &self->driverCatalogId)) == EOK) {
         if ((err = Driver_OnPublish(self)) == EOK) {
@@ -293,7 +298,7 @@ errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* name, uid_t 
 errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const char* name, uid_t uid, gid_t gid, FilePermissions perms, intptr_t arg)
 {
     decl_try_err();
-    DriverCatalogId parentBusCatalogId = (self->parent) ? Driver_GetBusCatalogId(self->parent) : 0;
+    const DriverCatalogId parentBusCatalogId = Driver_GetParentBusCatalogId(self);
     // We assume for now that busses always dynamically discover devices and want to be in full control of the device names (user can't add, remove or rename entries)
     const FilePermissions ownerPerms = FilePermissions_Get(perms, kFilePermissionsClass_User);
     const FilePermissions groupPerms = FilePermissions_Get(perms, kFilePermissionsClass_Group) & ~kFilePermission_Write;
@@ -326,7 +331,7 @@ void Driver_onUnpublish(DriverRef _Nonnull _Locked self)
 // Removes the driver instance from the driver catalog.
 void Driver_Unpublish(DriverRef _Nonnull _Locked self)
 {
-    DriverCatalogId parentBusCatalogId = (self->parent) ? Driver_GetBusCatalogId(self->parent) : 0;
+    DriverCatalogId parentBusCatalogId = Driver_GetParentBusCatalogId(self);
 
     Driver_OnUnpublish(self);
     DriverCatalog_Unpublish(gDriverCatalog, parentBusCatalogId, self->driverCatalogId);
@@ -445,6 +450,7 @@ func_def(onStart, Driver)
 func_def(onStop, Driver)
 func_def(onPublish, Driver)
 func_def(onUnpublish, Driver)
+func_def(getParentBusCatalogId, Driver)
 func_def(open, Driver)
 func_def(createChannel, Driver)
 func_def(close, Driver)
