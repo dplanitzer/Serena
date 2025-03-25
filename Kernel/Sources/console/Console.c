@@ -11,8 +11,6 @@
 #include <driver/DriverCatalog.h>
 #include <driver/hid/HIDChannel.h>
 
-const char* const kConsoleName = "console";
-
 
 // Creates a new console object. This console will display its output on the
 // provided graphics device.
@@ -103,7 +101,14 @@ static errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     // Start cursor blinking
     Console_SetCursorBlinkingEnabled_Locked(self, true);
 
-    return Driver_Publish((DriverRef)self, kConsoleName, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0666),  0);
+    DriverEntry de;
+    de.name = "console";
+    de.uid = kUserId_Root;
+    de.gid = kGroupId_Root;
+    de.perms = FilePermissions_MakeFromOctal(0666);
+    de.arg = 0;
+
+    return Driver_Publish((DriverRef)self, &de);
 }
 
 errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking)

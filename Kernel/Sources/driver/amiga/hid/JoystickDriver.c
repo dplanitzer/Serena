@@ -89,7 +89,14 @@ errno_t DigitalJoystickDriver_onStart(DigitalJoystickDriverRef _Nonnull _Locked 
     name[4] = '0' + self->port;
     name[5] = '\0';
 
-    return Driver_Publish((DriverRef)self, name, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0444), 0);
+    DriverEntry de;
+    de.name = name;
+    de.uid = kUserId_Root;
+    de.gid = kGroupId_Root;
+    de.perms = FilePermissions_MakeFromOctal(0444);
+    de.arg = 0;
+
+    return Driver_Publish((DriverRef)self, &de);
 }
 
 InputType DigitalJoystickDriver_getInputType(DigitalJoystickDriverRef _Nonnull self)
@@ -224,7 +231,14 @@ errno_t AnalogJoystickDriver_onStart(AnalogJoystickDriverRef _Nonnull _Locked se
     name[4] = '0' + self->port;
     name[5] = '\0';
 
-    return Driver_Publish((DriverRef)self, name, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0444), 0);
+    DriverEntry de;
+    de.name = name;
+    de.uid = kUserId_Root;
+    de.gid = kGroupId_Root;
+    de.perms = FilePermissions_MakeFromOctal(0444);
+    de.arg = 0;
+
+    return Driver_Publish((DriverRef)self, &de);
 }
 
 InputType AnalogJoystickDriver_getInputType(AnalogJoystickDriverRef _Nonnull self)

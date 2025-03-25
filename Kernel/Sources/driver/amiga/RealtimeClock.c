@@ -10,8 +10,6 @@
 #include <dispatcher/Lock.h>
 #include <hal/Platform.h>
 
-const char* const kRealtimeClockName = "rtc";
-
 
 // The realtime clock
 final_class_ivars(RealtimeClock, Driver,
@@ -69,7 +67,14 @@ void RealtimeClock_deinit(RealtimeClockRef _Nonnull self)
 
 errno_t RealtimeClock_onStart(DriverRef _Nonnull _Locked self)
 {
-    return Driver_Publish(self, kRealtimeClockName, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0664), 0);
+    DriverEntry de;
+    de.name = "rtc";
+    de.uid = kUserId_Root;
+    de.gid = kGroupId_Root;
+    de.perms = FilePermissions_MakeFromOctal(0664);
+    de.arg = 0;
+
+    return Driver_Publish(self, &de);
 }
 
 // Returns the current Gregorian date & time.

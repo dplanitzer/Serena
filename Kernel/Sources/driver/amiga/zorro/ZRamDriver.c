@@ -28,7 +28,14 @@ errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)
     name[3] = '0' + cfg->slot;
     name[4] = '\0';
 
-    if ((err = Driver_Publish((DriverRef)self, name, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0440), 0)) == EOK) {
+    DriverEntry de;
+    de.name = name;
+    de.uid = kUserId_Root;
+    de.gid = kGroupId_Root;
+    de.perms = FilePermissions_MakeFromOctal(0440);
+    de.arg = 0;
+
+    if ((err = Driver_Publish((DriverRef)self, &de)) == EOK) {
         md.lower = cfg->start;
         md.upper = cfg->start + cfg->logicalSize;
         md.type = MEM_TYPE_MEMORY;

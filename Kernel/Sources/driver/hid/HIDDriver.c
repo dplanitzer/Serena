@@ -22,7 +22,14 @@ errno_t HIDDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 
 errno_t HIDDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    return Driver_Publish(self, "hid", kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0666), 0);
+    DriverEntry de;
+    de.name = "hid";
+    de.uid = kUserId_Root;
+    de.gid = kGroupId_Root;
+    de.perms = FilePermissions_MakeFromOctal(0666);
+    de.arg = 0;
+
+    return Driver_Publish(self, &de);
 }
 
 errno_t HIDDriver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)

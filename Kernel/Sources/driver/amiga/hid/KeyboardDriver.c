@@ -90,7 +90,14 @@ static void KeyboardDriver_deinit(KeyboardDriverRef _Nonnull self)
 
 errno_t KeyboardDriver_onStart(KeyboardDriverRef _Nonnull _Locked self)
 {
-    return Driver_Publish((DriverRef)self, "kb", kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0444), 0);
+    DriverEntry de;
+    de.name = "kb";
+    de.uid = kUserId_Root;
+    de.gid = kGroupId_Root;
+    de.perms = FilePermissions_MakeFromOctal(0444);
+    de.arg = 0;
+
+    return Driver_Publish((DriverRef)self, &de);
 }
 
 InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)

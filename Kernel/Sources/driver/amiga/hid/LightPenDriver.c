@@ -91,7 +91,14 @@ errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
     name[4] = '0' + self->port;
     name[5] = '\0';
 
-    return Driver_Publish((DriverRef)self, name, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0444), 0);
+    DriverEntry de;
+    de.name = name;
+    de.uid = kUserId_Root;
+    de.gid = kGroupId_Root;
+    de.perms = FilePermissions_MakeFromOctal(0444);
+    de.arg = 0;
+
+    return Driver_Publish((DriverRef)self, &de);
 }
 
 InputType LightPenDriver_getInputType(LightPenDriverRef _Nonnull self)

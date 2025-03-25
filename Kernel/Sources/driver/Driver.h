@@ -28,6 +28,23 @@ typedef enum DriverState {
 } DriverState;
 
 
+typedef struct BusEntry {
+    const char* _Nonnull    name;
+    uid_t                   uid;
+    gid_t                   gid;
+    FilePermissions         perms;
+} BusEntry;
+
+
+typedef struct DriverEntry {
+    const char* _Nonnull    name;
+    uid_t                   uid;
+    gid_t                   gid;
+    FilePermissions         perms;
+    intptr_t                arg;
+} DriverEntry;
+
+
 // A driver object manages a device. A device is a piece of hardware while a
 // driver is the software that manages the hardware.
 //
@@ -296,15 +313,20 @@ invoke_0(onUnpublish, Driver, __self)
 
 // Publishes the driver instance to the driver catalog with the given name. This
 // method should be called from a onStart() override.
-extern errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* _Nonnull name, uid_t uid, gid_t gid, FilePermissions perms, intptr_t arg);
+extern errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const DriverEntry* _Nonnull de);
 
-// Publishes the receiver to the driver catalog as a bus controller. This means
-// that first a directory with name 'name' is created which represents the bus.
-// Then an entry with name 'self' is created inside this new bus directory. This
-// entry represents the bus driver itself. All immediate children of the bus
-// driver will be published as additional entries to the bus directory.
-// The extra argument 'arg' is associated with the 'self' entry.
-extern errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const char* name, uid_t uid, gid_t gid, FilePermissions perms, intptr_t arg);
+// Publishes the receiver to the driver catalog as a bus owner and controller.
+// This means that a directory is created in the driver catalog to represent the
+// bus. The properties of this directory are defined by the bus entry 'be' struct.
+// Then, optionally, a driver entry is published to the driver catalog as an
+// immediate child of the bus directory. The properties of this driver entry are
+// defined by the 'de' struct. The purpose of the driver entry is to allow a
+// user space application to get information about the bus itself and to control
+// various aspects of it. However a bus controller is not required to provide
+// such an entry. The name of the controller driver entry should be "self".
+// All children of the bus controller will be added to the bus directory of this
+// controller.
+extern errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const BusEntry* _Nonnull be, const DriverEntry* _Nullable de);
 
 // Removes the driver instance from the driver catalog. Called as part of the
 // driver termination process.

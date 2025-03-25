@@ -31,8 +31,6 @@ extern const GregorianDate  GREGORIAN_DATE_EPOCH;
 
 extern bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* _Nonnull b);
 
-extern const char* const kRealtimeClockName;
-
 
 final_class(RealtimeClock, Driver);
 

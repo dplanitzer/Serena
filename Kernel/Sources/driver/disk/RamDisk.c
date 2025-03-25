@@ -68,7 +68,14 @@ void RamDisk_deinit(RamDiskRef _Nonnull self)
 
 errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
 {
-    return Driver_Publish((DriverRef)self, self->name, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0666), 0);
+    DriverEntry de;
+    de.name = self->name;
+    de.uid = kUserId_Root;
+    de.gid = kGroupId_Root;
+    de.perms = FilePermissions_MakeFromOctal(0666);
+    de.arg = 0;
+
+    return Driver_Publish((DriverRef)self, &de);
 }
 
 // Tries to find the disk extent that contains the given block index. This disk

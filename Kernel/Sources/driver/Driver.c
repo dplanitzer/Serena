@@ -273,13 +273,12 @@ static DriverCatalogId Driver_GetParentBusCatalogId(DriverRef _Nonnull _Locked s
     return (self->parent) ? Driver_GetBusCatalogId(self->parent) : kDriverCatalogId_None;
 }
 
-// Publishes the driver instance to the driver catalog with the given name.
-errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* name, uid_t uid, gid_t gid, FilePermissions perms, intptr_t arg)
+errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const DriverEntry* _Nonnull de)
 {
     decl_try_err();
     const DriverCatalogId parentBusCatalogId = Driver_GetParentBusCatalogId(self);
 
-    if ((err = DriverCatalog_Publish(gDriverCatalog, parentBusCatalogId, name, uid, gid, perms, self, arg, &self->driverCatalogId)) == EOK) {
+    if ((err = DriverCatalog_Publish(gDriverCatalog, parentBusCatalogId, de->name, de->uid, de->gid, de->perms, self, de->arg, &self->driverCatalogId)) == EOK) {
         if ((err = Driver_OnPublish(self)) == EOK) {
             return EOK;
         }
@@ -289,36 +288,29 @@ errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* name, uid_t 
     return err;
 }
 
-// Publishes the receiver to the driver catalog as a bus controller. This means
-// that first a directory with name 'name' is created which represents the bus.
-// Then an entry with name 'self' is created inside this new bus directory. This
-// entry represents the bus driver itself. All immediate children of the bus
-// driver will be published as additional entries to the bus directory.
-// The extra argument 'arg' is associated with the 'self' entry.
-errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const char* name, uid_t uid, gid_t gid, FilePermissions perms, intptr_t arg)
+errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const BusEntry* _Nonnull be, const DriverEntry* _Nullable de)
 {
     decl_try_err();
+    bool hasBus = false;
+    bool hasSelf = false;
     const DriverCatalogId parentBusCatalogId = Driver_GetParentBusCatalogId(self);
-    // We assume for now that busses always dynamically discover devices and want to be in full control of the device names (user can't add, remove or rename entries)
-    const FilePermissions ownerPerms = FilePermissions_Get(perms, kFilePermissionsClass_User);
-    const FilePermissions groupPerms = FilePermissions_Get(perms, kFilePermissionsClass_Group) & ~kFilePermission_Write;
-    const FilePermissions otherPerms = FilePermissions_Get(perms, kFilePermissionsClass_Other) & ~kFilePermission_Write;
-    const FilePermissions dirPerms = FilePermissions_Make(ownerPerms, groupPerms, otherPerms);
 
-    if ((err = DriverCatalog_PublishBus(gDriverCatalog, parentBusCatalogId, name, uid, gid, dirPerms, &self->busCatalogId)) == EOK) {
-        // We assume that the self device entry can not be an executable
-        const FilePermissions ownerPerms = FilePermissions_Get(perms, kFilePermissionsClass_User) & ~kFilePermission_Execute;
-        const FilePermissions groupPerms = FilePermissions_Get(perms, kFilePermissionsClass_Group) & ~kFilePermission_Execute;
-        const FilePermissions otherPerms = FilePermissions_Get(perms, kFilePermissionsClass_Other) & ~kFilePermission_Execute;
-        const FilePermissions selfPerms = FilePermissions_Make(ownerPerms, groupPerms, otherPerms);
-    
-        if ((err = DriverCatalog_Publish(gDriverCatalog, self->busCatalogId, "self", uid, gid, selfPerms, self, arg, &self->driverCatalogId)) == EOK) {
-            if ((err = Driver_OnPublish(self)) == EOK) {
-                return EOK;
-            }
+    try(DriverCatalog_PublishBus(gDriverCatalog, parentBusCatalogId, be->name, be->uid, be->gid, be->perms, &self->busCatalogId));
+    hasBus = true;
 
-            DriverCatalog_Unpublish(gDriverCatalog, self->busCatalogId, self->driverCatalogId);
-        }
+    if (de && de->name[0] != '\0') {
+        try(DriverCatalog_Publish(gDriverCatalog, self->busCatalogId, de->name, de->uid, de->gid, de->perms, self, de->arg, &self->driverCatalogId));
+        hasSelf = true;
+    }
+
+    try(Driver_OnPublish(self));
+    return EOK;
+
+catch:
+    if (hasSelf) {
+        DriverCatalog_Unpublish(gDriverCatalog, self->busCatalogId, self->driverCatalogId);
+    }
+    if (hasBus) {
         DriverCatalog_Unpublish(gDriverCatalog, self->busCatalogId, kDriverCatalogId_None);
     }
     return err;

@@ -25,7 +25,20 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
 
-    try(Driver_PublishBus((DriverRef)self, "zorro-bus", kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0777), 0));
+    BusEntry be;
+    be.name = "zorro-bus";
+    be.uid = kUserId_Root;
+    be.gid = kGroupId_Root;
+    be.perms = FilePermissions_MakeFromOctal(0755);
+
+    DriverEntry de;
+    de.name = "self";
+    de.uid = kUserId_Root;
+    de.gid = kGroupId_Root;
+    de.perms = FilePermissions_MakeFromOctal(0666);
+    de.arg = 0;
+
+    try(Driver_PublishBus((DriverRef)self, &be, &de));
 
 
     // Auto config the Zorro bus
