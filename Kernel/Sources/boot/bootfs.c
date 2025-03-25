@@ -58,8 +58,6 @@ static const char* _Nullable get_boot_floppy_driver_path(void)
             return gBootFloppyName;
         }
 
-        mem_non_recoverable_error();
-        while(1);
         gBootFloppyName[6] = '0' + i;
     }
 
