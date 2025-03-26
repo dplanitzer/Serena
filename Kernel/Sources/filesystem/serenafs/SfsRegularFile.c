@@ -54,17 +54,16 @@ errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, FileChannel
     while (nBytesToRead > 0) {
         const ssize_t nRemainderBlockSize = fs->blockAllocator.blockSize - blockOffset;
         const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
-        DiskBlockRef pBlock;
+        sfs_mapblk_t blk;
 
-        const errno_t e1 = SfsFile_AcquireBlock((SfsFileRef)self, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
+        const errno_t e1 = SfsFile_AcquireBlock((SfsFileRef)self, blockIdx, kAcquireBlock_ReadOnly, &blk);
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
             break;
         }
         
-        const uint8_t* bp = DiskBlock_GetData(pBlock);
-        memcpy(dp, bp + blockOffset, nBytesToReadInBlock);
-        FSContainer_RelinquishBlock(fsContainer, pBlock);
+        memcpy(dp, blk.data + blockOffset, nBytesToReadInBlock);
+        FSContainer_RelinquishBlock(fsContainer, blk.block);
 
         nBytesToRead -= nBytesToReadInBlock;
         nBytesRead += nBytesToReadInBlock;
@@ -139,14 +138,12 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
         const ssize_t nRemainderBlockSize = fs->blockAllocator.blockSize - blockOffset;
         const ssize_t nBytesToWriteInBlock = (nBytesToWrite > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToWrite;
         AcquireBlock acquireMode = (nBytesToWriteInBlock == fs->blockAllocator.blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
-        DiskBlockRef pBlock;
+        sfs_mapblk_t blk;
 
-        errno_t e1 = SfsFile_AcquireBlock((SfsFileRef)self, blockIdx, acquireMode, &pBlock);
+        errno_t e1 = SfsFile_AcquireBlock((SfsFileRef)self, blockIdx, acquireMode, &blk);
         if (e1 == EOK) {
-            uint8_t* dp = DiskBlock_GetMutableData(pBlock);
-        
-            memcpy(dp + blockOffset, sp, nBytesToWriteInBlock);
-            e1 = FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Deferred);
+            memcpy(blk.data + blockOffset, sp, nBytesToWriteInBlock);
+            e1 = FSContainer_RelinquishBlockWriting(fsContainer, blk.block, kWriteBlock_Deferred);
         }
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;

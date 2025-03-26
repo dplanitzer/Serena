@@ -82,6 +82,7 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
 
 
     // Calculate various parameters that depend on the concrete disk block size
+    self->blockSize = diskinf.blockSize;
     self->blockShift = FSLog2(blockSize);
     self->blockMask = blockSize - 1;
     self->indirectBlockEntryCount = blockSize / sizeof(sfs_bno_t);

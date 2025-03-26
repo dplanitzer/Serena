@@ -82,30 +82,38 @@ void SfsFile_ConvertOffset(SfsFileRef _Nonnull _Locked self, off_t offset, sfs_b
 // Acquires the disk block 'lba' if lba is > 0; otherwise allocates a new block.
 // The new block is for read-only if read-only 'mode' is requested and it is
 // suitable for writing back to disk if 'mode' is a replace/update mode.
-static errno_t acquire_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, sfs_bno_t* _Nonnull pOutLba, bool* _Nonnull pOutIsAlloc, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+static errno_t acquire_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, sfs_bno_t* _Nonnull pOutOnDiskLba, sfs_mapblk_t* _Nonnull blk)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
 
-    *pOutIsAlloc = false;
+    blk->block = NULL;
+    blk->data = NULL;
+    blk->lba = lba;
+    blk->wasAlloced = false;
 
     if (lba > 0) {
-        err = FSContainer_AcquireBlock(fsContainer, lba, mode, pOutBlock);
+        err = FSContainer_AcquireBlock(fsContainer, lba, mode, &blk->block);
     }
     else {
         if (mode == kAcquireBlock_ReadOnly) {
-            err = FSContainer_AcquireEmptyBlock(fsContainer, pOutBlock);
+            err = FSContainer_AcquireEmptyBlock(fsContainer, &blk->block);
         }
         else {
             LogicalBlockAddress new_lba;
 
             if((err = SfsAllocator_Allocate(&self->blockAllocator, &new_lba)) == EOK) {
-                *pOutLba = UInt32_HostToBig(new_lba);
-                *pOutIsAlloc = true;
+                blk->lba = new_lba;
+                blk->wasAlloced = true;
+                *pOutOnDiskLba = UInt32_HostToBig(new_lba);
 
-                err = FSContainer_AcquireBlock(fsContainer, new_lba, kAcquireBlock_Cleared, pOutBlock);
+                err = FSContainer_AcquireBlock(fsContainer, new_lba, kAcquireBlock_Cleared, &blk->block);
             }
         }
+    }
+
+    if (err == EOK) {
+        blk->data = DiskBlock_GetMutableData(blk->block);
     }
 
     return err;
@@ -116,41 +124,40 @@ static errno_t acquire_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress
 // file block doesn't exist yet. However this function does not commit the updated
 // allocation bitmap back to disk. The caller has to trigger this.
 // This function expects that 'fba' is in the range 0..<numBlocksInFile.
-errno_t SfsFile_AcquireBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+errno_t SfsFile_AcquireBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, AcquireBlock mode, sfs_mapblk_t* _Nonnull blk)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     sfs_bmap_t* bmap = &self->bmap;
-    bool isAlloc;
 
     if (fba < kSFSDirectBlockPointersCount) {
         LogicalBlockAddress dat_lba = UInt32_BigToHost(bmap->direct[fba]);
 
-        return acquire_disk_block(fs, dat_lba, mode, &bmap->direct[fba], &isAlloc, pOutBlock);
+        return acquire_disk_block(fs, dat_lba, mode, &bmap->direct[fba], blk);
     }
     fba -= kSFSDirectBlockPointersCount;
 
 
     if (fba < fs->indirectBlockEntryCount) {
-        DiskBlockRef i0_block;
+        sfs_mapblk_t i0_block;
         LogicalBlockAddress i0_lba = UInt32_BigToHost(bmap->indirect);
 
         // Get the indirect block
-        try(acquire_disk_block(fs, i0_lba, kAcquireBlock_Update, &bmap->indirect, &isAlloc, &i0_block));
+        try(acquire_disk_block(fs, i0_lba, kAcquireBlock_Update, &bmap->indirect, &i0_block));
 
 
         // Get the data block
-        sfs_bno_t* i0_bmap = DiskBlock_GetMutableData(i0_block);
+        sfs_bno_t* i0_bmap = (sfs_bno_t*)i0_block.data;
         LogicalBlockAddress dat_lba = UInt32_BigToHost(i0_bmap[fba]);
 
-        err = acquire_disk_block(fs, dat_lba, mode, &i0_bmap[fba], &isAlloc, pOutBlock);
+        err = acquire_disk_block(fs, dat_lba, mode, &i0_bmap[fba], blk);
         
-        if (isAlloc) {
-            FSContainer_RelinquishBlockWriting(fsContainer, i0_block, kWriteBlock_Deferred);
+        if (blk->wasAlloced) {
+            FSContainer_RelinquishBlockWriting(fsContainer, i0_block.block, kWriteBlock_Deferred);
         }
         else {
-            FSContainer_RelinquishBlock(fsContainer, i0_block);
+            FSContainer_RelinquishBlock(fsContainer, i0_block.block);
         }
 
         return err;
@@ -159,7 +166,6 @@ errno_t SfsFile_AcquireBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, Ac
     err = EFBIG;
 
 catch:
-    *pOutBlock = NULL;
     return err;
 }
 

@@ -24,6 +24,7 @@
 final_class_ivars(SerenaFS, ContainerFilesystem,
     SfsAllocator            blockAllocator;
     
+    size_t                  blockSize;
     uint32_t                blockShift;
     uint32_t                blockMask;
     size_t                  indirectBlockEntryCount;    // Number of block pointers in an indirect block
