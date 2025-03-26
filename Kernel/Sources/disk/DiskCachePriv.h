@@ -163,17 +163,6 @@ enum {
 #define DISK_BLOCK_HASH_CHAIN_COUNT         8
 #define DISK_BLOCK_HASH_CHAIN_MASK          (DISK_BLOCK_HASH_CHAIN_COUNT - 1)
 
-#define DISK_DRIVER_HASH_CHAIN_COUNT        4
-#define DISK_DRIVER_HASH_CHAIN_MASK         (DISK_DRIVER_HASH_CHAIN_COUNT - 1)
-#define DISK_DRIVER_HASH_INDEX(__diskId)    (hash_scalar(__diskId) & DISK_DRIVER_HASH_CHAIN_MASK)
-
-
-typedef struct DiskEntry {
-    ListNode                chain;
-    DiskDriverRef _Nonnull  driver;
-    DiskId                  diskId;
-} DiskEntry;
-
 
 typedef struct DiskCache {
     Lock                        interlock;
@@ -186,8 +175,6 @@ typedef struct DiskCache {
     size_t                      blockCapacity;          // Maximum number of disk blocks that may exist at any given time
     size_t                      dirtyBlockCount;        // Number of blocks in the cache that are currently marked dirty
     List/*<DiskBlock>*/         diskAddrHash[DISK_BLOCK_HASH_CHAIN_COUNT];  // Hash table organizing disk blocks by disk address
-    List/*<DiskEntry>*/         driverHash[DISK_DRIVER_HASH_CHAIN_COUNT];   // Hash table mapping DiskId -> DiskDriverRef
-    DiskId                      nextDiskId;
 } DiskCache;
 
 #endif /* DiskCachePriv_h */

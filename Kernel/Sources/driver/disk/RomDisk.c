@@ -71,7 +71,7 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
 
 errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, const IORequest* _Nonnull ior)
 {
-    const LogicalBlockAddress lba = ior->address.lba;
+    const LogicalBlockAddress lba = ior->lba;
 
     if (lba < self->blockCount) {
         memcpy(DiskBlock_GetMutableData(ior->block), self->diskImage + (lba << self->blockShift), self->blockSize);

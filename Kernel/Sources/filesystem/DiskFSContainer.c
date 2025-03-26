@@ -15,9 +15,9 @@
 
 
 final_class_ivars(DiskFSContainer, FSContainer,
-    IOChannelRef _Nonnull   channel;
-    DiskId                  diskId;
-    MediaId                 mediaId;
+    IOChannelRef _Nonnull           channel;
+    DiskDriverRef _Nonnull _Weak    disk;
+    MediaId                         mediaId;
 );
 
 
@@ -35,7 +35,7 @@ errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _N
 
     if ((err = Object_Create(class(DiskFSContainer), 0, (void**)&self)) == EOK) {
         self->channel = IOChannel_Retain(pChannel);
-        self->diskId = info->diskId;
+        self->disk = DriverChannel_GetDriverAs(pChannel, DiskDriver);
         self->mediaId = info->mediaId;
     }
 
@@ -45,6 +45,8 @@ errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _N
 
 void DiskFSContainer_deinit(struct DiskFSContainer* _Nonnull self)
 {
+    self->disk = NULL;
+    
     IOChannel_Release(self->channel);
     self->channel = NULL;
 }
@@ -62,12 +64,12 @@ errno_t DiskFSContainer_getInfo(struct DiskFSContainer* _Nonnull self, FSContain
 
 errno_t DiskFSContainer_prefetchBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba)
 {
-    return DiskCache_PrefetchBlock(gDiskCache, self->diskId, self->mediaId, lba);
+    return DiskCache_PrefetchBlock(gDiskCache, self->disk, self->mediaId, lba);
 }
 
 errno_t DiskFSContainer_syncBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba)
 {
-    return DiskCache_SyncBlock(gDiskCache, self->diskId, self->mediaId, lba);
+    return DiskCache_SyncBlock(gDiskCache, self->disk, self->mediaId, lba);
 }
 
 errno_t DiskFSContainer_acquireEmptyBlock(struct DiskFSContainer* self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
@@ -77,7 +79,7 @@ errno_t DiskFSContainer_acquireEmptyBlock(struct DiskFSContainer* self, DiskBloc
 
 errno_t DiskFSContainer_acquireBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
-    return DiskCache_AcquireBlock(gDiskCache, self->diskId, self->mediaId, lba, mode, pOutBlock);
+    return DiskCache_AcquireBlock(gDiskCache, self->disk, self->mediaId, lba, mode, pOutBlock);
 }
 
 void DiskFSContainer_relinquishBlock(struct DiskFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock)
@@ -92,7 +94,7 @@ errno_t DiskFSContainer_relinquishBlockWriting(struct DiskFSContainer* _Nonnull 
 
 errno_t DiskFSContainer_sync(struct DiskFSContainer* _Nonnull self)
 {
-    return DiskCache_Sync(gDiskCache, self->diskId, self->mediaId);
+    return DiskCache_Sync(gDiskCache, self->disk, self->mediaId);
 }
 
 

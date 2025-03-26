@@ -13,13 +13,6 @@
 
 __CPP_BEGIN
 
-// Means no disk drive
-#define kDiskId_None   0
-
-// Indicates that disk blocks cached for all disk drives should be synced
-#define kDiskId_All     (~0)
-
-
 // No media/empty drive
 #define kMediaId_None   0
 
@@ -33,7 +26,6 @@ __CPP_BEGIN
 #define kDiskCommand_GetInfo  IOResourceCommand(0)
 
 typedef struct DiskInfo {
-    DiskId              diskId;             // Globally unique, non-persistent disk drive ID
     MediaId             mediaId;            // ID of the currently loaded media; changes with every media eject and insertion; 0 means no media is loaded 
     bool                isReadOnly;         // true if the data on the disk is hardware write protected
     char                reserved[3];

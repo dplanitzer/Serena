@@ -13,8 +13,7 @@
 
 // All ivars are protected by the dispatch queue
 final_class_ivars(PartitionDriver, DiskDriver,
-    DiskDriverRef _Nonnull _Weak    diskDriver;         // Driver representing the whole disk
-    DiskId                          wholeDiskId;        // Disk Id of the whole disk driver
+    DiskDriverRef _Nonnull _Weak    wholeDisk;          // Driver representing the whole disk
     MediaId                         wholeMediaId;       // Media Id of the whole disk
     LogicalBlockAddress             startBlock;         // First block of the partition
     LogicalBlockCount               blockCount;         // Partition size in terms of blocks
@@ -24,20 +23,19 @@ final_class_ivars(PartitionDriver, DiskDriver,
 );
 
 
-errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull name, LogicalBlockAddress startBlock, LogicalBlockCount blockCount, bool isReadOnly, DiskDriverRef disk, PartitionDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull name, LogicalBlockAddress startBlock, LogicalBlockCount blockCount, bool isReadOnly, DiskDriverRef wholeDisk, PartitionDriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskInfo info;
     PartitionDriverRef self = NULL;
 
-    try(DiskDriver_GetInfo(disk, &info));
+    try(DiskDriver_GetInfo(wholeDisk, &info));
     if (startBlock >= info.blockCount || blockCount < 1 || (startBlock + blockCount - 1) >= info.blockCount) {
         throw(EINVAL);
     }
 
     try(DiskDriver_Create(class(PartitionDriver), 0, parent, (DriverRef*)&self));
-    self->diskDriver = disk;
-    self->wholeDiskId = info.diskId;
+    self->wholeDisk = wholeDisk;
     self->wholeMediaId = info.mediaId;
     self->startBlock = startBlock;
     self->blockCount = blockCount;
@@ -77,11 +75,10 @@ void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, const IORequest* 
     IORequest dior;
 
     dior.block = ior->block;
-    dior.address.diskId = self->wholeDiskId;
-    dior.address.mediaId = ior->address.mediaId;
-    dior.address.lba = self->startBlock + ior->address.lba;
+    dior.mediaId = ior->mediaId;
+    dior.lba = self->startBlock + ior->lba;
 
-    DiskDriver_BeginIO(self->diskDriver, &dior);
+    DiskDriver_BeginIO(self->wholeDisk, &dior);
 }
 
 

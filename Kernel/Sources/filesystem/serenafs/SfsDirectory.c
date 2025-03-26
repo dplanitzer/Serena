@@ -182,7 +182,7 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
                 }
             }
             else if (qr->ih && !hasInsertionHint) {
-                qr->ih->lba = DiskBlock_GetDiskAddress(pBlock)->lba;
+                qr->ih->lba = pBlock->lba;
                 qr->ih->blockOffset = (const uint8_t*)sp - bp;
                 hasInsertionHint = true;
             }
@@ -192,7 +192,7 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
                 if (qr->mpc) {
                     MutablePathComponent_SetString(qr->mpc, sp->filename, sp->len);
                 }
-                qr->lba = DiskBlock_GetDiskAddress(pBlock)->lba;
+                qr->lba = pBlock->lba;
                 qr->blockOffset = (const uint8_t*)sp - bp;
                 qr->fileOffset = offset;
                 break;

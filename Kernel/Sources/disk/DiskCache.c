@@ -25,12 +25,11 @@ errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRe
     
     try(kalloc_cleared(sizeof(DiskCache), (void**) &self));
     try(DispatchQueue_Create(0, 1, kDispatchQoS_Background, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->autoSyncQueue));
-    try(DiskBlock_Create(kDiskId_None, kMediaId_None, 0, &self->emptyBlock));
+    try(DiskBlock_Create(NULL, kMediaId_None, 0, &self->emptyBlock));
 
     Lock_Init(&self->interlock);
     ConditionVariable_Init(&self->condition);
     List_Init(&self->lruChain);
-    self->nextDiskId = 0;
 
     self->blockCount = 0;
     self->blockCapacity = SystemDescription_GetRamSize(pSysDesc) >> 5;
@@ -38,9 +37,6 @@ errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRe
 
     for (int i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
         List_Init(&self->diskAddrHash[i]);
-    }
-    for (int i = 0; i < DISK_DRIVER_HASH_CHAIN_COUNT; i++) {
-        List_Init(&self->driverHash[i]);
     }
 
     _DiskCache_ScheduleAutoSync(self);
@@ -51,17 +47,6 @@ errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRe
 catch:
     *pOutSelf = NULL;
     return err;
-}
-
-// Generates a new unique disk ID.
-static DiskId _DiskCache_GetNewDiskId(DiskCacheRef _Nonnull _Locked self)
-{
-    self->nextDiskId++;
-    while (self->nextDiskId == kDiskId_None || self->nextDiskId == kDiskId_All) {
-        self->nextDiskId++;
-    }
-
-    return self->nextDiskId;
 }
 
 // Locks the given block's content in shared or exclusive mode. Multiple clients
@@ -192,7 +177,7 @@ static void _DiskCache_Print(DiskCacheRef _Nonnull _Locked self)
     printf("{");
     for (size_t i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
         List_ForEach(&self->diskAddrHash[i], DiskBlock,
-            printf("%u [%u], ", DiskBlock_GetDiskAddress(pCurNode)->lba, i);
+            printf("%u [%u], ", pCurNode->lba, i);
         );
     }
     printf("}");
@@ -203,7 +188,7 @@ static void _DiskCache_PrintLruChain(DiskCacheRef _Nonnull _Locked self)
     printf("{");
     List_ForEach(&self->lruChain, ListNode,
         DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
-        printf("%u", DiskBlock_GetDiskAddress(pb)->lba);
+        printf("%u", pb->lba);
         if (pCurNode->next) {
             printf(", ");
         }
@@ -213,13 +198,13 @@ static void _DiskCache_PrintLruChain(DiskCacheRef _Nonnull _Locked self)
 #endif
 
 
-static errno_t _DiskCache_CreateBlock(DiskCacheRef _Nonnull _Locked self, DiskId diskId, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+static errno_t _DiskCache_CreateBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
     DiskBlockRef pBlock;
 
     // We can still grow the disk block list
-    err = DiskBlock_Create(diskId, mediaId, lba, &pBlock);
+    err = DiskBlock_Create(disk, mediaId, lba, &pBlock);
     if (err == EOK) {
         _DiskCache_RegisterBlock(self, pBlock);
         self->blockCount++;
@@ -231,7 +216,7 @@ static errno_t _DiskCache_CreateBlock(DiskCacheRef _Nonnull _Locked self, DiskId
 
 // Finds the oldest cached block that isn't currently in use and re-targets this
 // block to the new disk address.  
-static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked self, DiskId diskId, MediaId mediaId, LogicalBlockAddress lba)
+static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba)
 {
     DiskBlockRef pBlock = NULL;
 
@@ -249,30 +234,30 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
         _DiskCache_SyncBlock(self, pBlock);
 
         _DiskCache_UnregisterBlock(self, pBlock);
-        DiskBlock_SetDiskAddress(pBlock, diskId, mediaId, lba);
+        DiskBlock_SetDiskAddress(pBlock, disk, mediaId, lba);
         _DiskCache_RegisterBlock(self, pBlock);
     }
 
     return pBlock;
 }
 
-// Returns the block that corresponds to the disk address (diskId, mediaId, lba).
+// Returns the block that corresponds to the disk address (disk, mediaId, lba).
 // A new block is created if needed or an existing block is retrieved from the
 // cached list of blocks. The caller must lock the content of the block before
 // doing I/O on it or before handing it to a filesystem.
-static errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DiskId diskId, MediaId mediaId, LogicalBlockAddress lba, unsigned int options, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+static errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, unsigned int options, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
     DiskBlockRef pBlock;
 
     for (;;) {
-        // Look up the block based on (diskId, mediaId, lba)
-        const size_t idx = DiskBlock_HashKey(diskId, mediaId, lba) & DISK_BLOCK_HASH_CHAIN_MASK;
+        // Look up the block based on (disk, mediaId, lba)
+        const size_t idx = DiskBlock_HashKey(disk, mediaId, lba) & DISK_BLOCK_HASH_CHAIN_MASK;
         List* chain = &self->diskAddrHash[idx];
     
         pBlock = NULL;
         List_ForEach(chain, DiskBlock,
-            if (DiskBlock_IsEqualKey(pCurNode, diskId, mediaId, lba)) {
+            if (DiskBlock_IsEqualKey(pCurNode, disk, mediaId, lba)) {
                 pBlock = pCurNode;
                 break;
             }
@@ -288,14 +273,14 @@ static errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DiskId di
         // find a block that we can reuse for the new disk address
         if (self->blockCount < self->blockCapacity) {
             // We can still grow the disk block list
-            err = _DiskCache_CreateBlock(self, diskId, mediaId, lba, &pBlock);
+            err = _DiskCache_CreateBlock(self, disk, mediaId, lba, &pBlock);
             break;
         }
         else {
             // We can't create any more disk blocks. Try to reuse one that isn't
             // currently in use. We may have to wait for a disk block to become
             // available for use if they are all currently in use.
-            pBlock = _DiskCache_ReuseCachedBlock(self, diskId, mediaId, lba);
+            pBlock = _DiskCache_ReuseCachedBlock(self, disk, mediaId, lba);
             if (pBlock) {
                 break;
             }
@@ -341,38 +326,18 @@ static void _DiskCache_UnlockContentAndPutBlock(DiskCacheRef _Nonnull _Locked se
     _DiskCache_PutBlock(self, pBlock);
 }
 
-static DiskEntry* _Nullable _DiskCache_GetDiskEntryForDiskId(DiskCacheRef _Nonnull _Locked self, DiskId diskId)
-{
-    const size_t hashIdx = DISK_DRIVER_HASH_INDEX(diskId);
-
-    List_ForEach(&self->driverHash[hashIdx], DiskEntry,
-        if (pCurNode->diskId == diskId) {
-            return pCurNode;
-        }
-    );
-
-    return NULL;
-}
-
-static DiskDriverRef _Nullable _DiskCache_CopyDriverForDiskId(DiskCacheRef _Nonnull _Locked self, DiskId diskId)
-{
-    DiskEntry* pEntry = _DiskCache_GetDiskEntryForDiskId(self, diskId);
-
-    return (pEntry) ? Object_RetainAs(pEntry->driver, DiskDriver) : NULL;
-}
-
-// Purges all cached blocks of the disk drive 'diskId' and media 'mediaId'. The
-// media ID may be kMedia_None which means that all blocks of the driver 'diskId'
+// Purges all cached blocks of the disk drive 'disk' and media 'mediaId'. The
+// media ID may be kMedia_None which means that all blocks of the driver 'disk'
 // should be purged no matter for which media they hold data.
 // Purging a block means that the block is reset back to a state where it is forced
 // to read its data in again from the disk, next time data is requested.
-static void _DiskCache_PurgeBlocks(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId)
+static void _DiskCache_PurgeBlocks(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId)
 {
     // XXX optimize this
     List_ForEach(&self->lruChain, DiskBlock, 
         DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
 
-        if (pb->address.diskId == diskId && (mediaId == kMediaId_None || mediaId == pb->address.mediaId)) {
+        if (pb->disk == disk && (mediaId == kMediaId_None || mediaId == pb->mediaId)) {
             // XXX do something about blocks that are currently doing I/O (cancel I/O)
             assert(pb->flags.op == kDiskBlockOp_Idle);
             DiskBlock_Purge(pb);
@@ -385,88 +350,65 @@ static void _DiskCache_PurgeBlocks(DiskCacheRef _Nonnull self, DiskId diskId, Me
 // API
 //
 
-errno_t DiskCache_RegisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull pDriver, DiskId* _Nonnull pOutDiskId)
+errno_t DiskCache_RegisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk)
 {
     decl_try_err();
-    DiskId diskId;
-    bool isUnique = false;
-    DiskEntry* pEntry;
 
     Lock_Lock(&self->interlock);
 
-    // Get a unique disk ID
-    while (!isUnique) {
-        diskId = _DiskCache_GetNewDiskId(self);
-        isUnique = true;
-
-        for (size_t i = 0; i < DISK_DRIVER_HASH_CHAIN_COUNT; i++) {
-            List_ForEach(&self->driverHash[i], DiskEntry,
-                if (pCurNode->diskId == diskId) {
-                    isUnique = false;
-                    break;
-                }
-            );
-        }
-    }
-
-    // Register the drive
-    if ((err = kalloc_cleared(sizeof(DiskEntry), (void**)&pEntry)) == EOK) {
-        pEntry->diskId = diskId;
-        pEntry->driver = Object_RetainAs(pDriver, DiskDriver);
-
-        List_InsertAfterLast(&self->driverHash[DISK_DRIVER_HASH_INDEX(diskId)], &pEntry->chain);
+    DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
+    if (dcc->state == kDccS_NotRegistered) {
+        dcc->useCount = 0;
+        dcc->state = kDccS_Registered;
+        Object_Retain(disk);
+        err = EOK;
     }
     else {
-        diskId = kDiskId_None;
+        err = EBUSY;
     }
 
     Lock_Unlock(&self->interlock);
 
-    *pOutDiskId = diskId;
     return err;
 }
 
-void DiskCache_UnregisterDisk(DiskCacheRef _Nonnull self, DiskId diskId)
+static void _DiskCache_FinalizeUnregisterDisk(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk)
 {
-    DiskEntry* pEntry;
+    DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
 
-    if (diskId == kDiskId_None) {
-        return;
-    }
+    dcc->state = kDccS_NotRegistered;
+    dcc->useCount = 0;
 
-    // Remove the driver from the hash table
+    _DiskCache_PurgeBlocks(self, disk, kMediaId_None);
+    Object_Release(disk);
+}
+
+void DiskCache_UnregisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk)
+{
     Lock_Lock(&self->interlock);
-    pEntry = _DiskCache_GetDiskEntryForDiskId(self, diskId);
-    if (pEntry) {
-        List_Remove(&self->driverHash[DISK_DRIVER_HASH_INDEX(diskId)], &pEntry->chain);
 
-        _DiskCache_PurgeBlocks(self, diskId, kMediaId_None);
+    DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
+    if (dcc->state == kDccS_Registered) {
+        dcc->state = kDccS_Deregistering;
+
+        if (dcc->useCount == 0) {
+            _DiskCache_FinalizeUnregisterDisk(self, disk);
+        }
     }
+
     Lock_Unlock(&self->interlock);
-
-
-    // Free the disk entry
-    if (pEntry) {
-        Object_Release(pEntry->driver);
-        pEntry->driver = NULL;
-
-        kfree(pEntry);
-    }
 }
 
 // Triggers an asynchronous loading of the disk block data at the address
-// (diskId, mediaId, lba)
-errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId, LogicalBlockAddress lba)
+// (disk, mediaId, lba)
+errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
     bool doingIO = false;
 
     // Can not address blocks on a disk or media that doesn't exist
-    if (diskId == kDiskId_None) {
-        return ENODEV;
-    }
-    else if (mediaId == kMediaId_None) {
+    if (mediaId == kMediaId_None) {
         return ENOMEDIUM;
     }
 
@@ -474,7 +416,7 @@ errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskId diskId, Media
     Lock_Lock(&self->interlock);
 
     // Get the block
-    err = _DiskCache_GetBlock(self, diskId, mediaId, lba, kGetBlock_Allocate | kGetBlock_RecentUse | kGetBlock_Exclusive, &pBlock);
+    err = _DiskCache_GetBlock(self, disk, mediaId, lba, kGetBlock_Allocate | kGetBlock_RecentUse | kGetBlock_Exclusive, &pBlock);
     if (err == EOK && !pBlock->flags.hasData && pBlock->flags.op != kDiskBlockOp_Read) {
         err = _DiskCache_LockBlockContent(self, pBlock, kLockMode_Exclusive);
 
@@ -514,16 +456,13 @@ static errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskBloc
     return err;
 }
 
-errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId, LogicalBlockAddress lba)
+errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
 
     // Can not address blocks on a disk or media that doesn't exist
-    if (diskId == kDiskId_None) {
-        return ENODEV;
-    }
-    else if (mediaId == kMediaId_None) {
+    if (mediaId == kMediaId_None) {
         return ENOMEDIUM;
     }
 
@@ -531,7 +470,7 @@ errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskId diskId, MediaId m
     Lock_Lock(&self->interlock);
 
     // Find the block and only sync it if no one else is currently using it
-    err = _DiskCache_GetBlock(self, diskId, mediaId, lba, kGetBlock_Exclusive, &pBlock);
+    err = _DiskCache_GetBlock(self, disk, mediaId, lba, kGetBlock_Exclusive, &pBlock);
     if (err == EOK) {
         err = _DiskCache_SyncBlock(self, pBlock);
         _DiskCache_PutBlock(self, pBlock);
@@ -555,16 +494,13 @@ errno_t DiskCache_AcquireEmptyBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nu
     return err;
 }
 
-errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
 
     // Can not address blocks on a disk or media that doesn't exist
-    if (diskId == kDiskId_None) {
-        return ENODEV;
-    }
-    else if (mediaId == kMediaId_None) {
+    if (mediaId == kMediaId_None) {
         return ENOMEDIUM;
     }
 
@@ -574,7 +510,7 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DiskId diskId, MediaI
     // Get and lock the block. Only time we can lock the block content shared is
     // when the caller asks for read-only and the block content already exists.
     // Lock for exclusive mode in all other cases.
-    err = _DiskCache_GetBlock(self, diskId, mediaId, lba, kGetBlock_Allocate | kGetBlock_RecentUse, &pBlock);
+    err = _DiskCache_GetBlock(self, disk, mediaId, lba, kGetBlock_Allocate | kGetBlock_RecentUse, &pBlock);
     if (err != EOK) {
         Lock_Unlock(&self->interlock);
         return err;
@@ -741,22 +677,28 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     }
 
 
-    // Start a new I/O operation
-    DiskDriverRef pDriver = _DiskCache_CopyDriverForDiskId(self, DiskBlock_GetDiskAddress(pBlock)->diskId);
-    if (pDriver == NULL) {
+    // Don't start a new I/O request if the driver has been deregistered
+    DiskDriverRef disk = pBlock->disk;
+    DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
+
+    if (dcc->state != kDccS_Registered) {
         return ENODEV;
     }
-    
+
+
+    // Start a new I/O operation
     pBlock->flags.op = op;
     pBlock->flags.async = (isSync) ? 0 : 1;
     pBlock->flags.readError = EOK;
 
     IORequest ior;
     ior.block = pBlock;
-    ior.address = *DiskBlock_GetDiskAddress(pBlock);
+    ior.mediaId = pBlock->mediaId;
+    ior.lba = pBlock->lba;
 
-    err = DiskDriver_BeginIO(pDriver, &ior);
+    err = DiskDriver_BeginIO(disk, &ior);
     if (err == EOK && isSync) {
+        dcc->useCount++;
         err = _DiskCache_WaitIO(self, pBlock, op);
         // The lock is now held in exclusive mode again, if succeeded
     }
@@ -773,7 +715,7 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 // - async: unlocks and puts the block
 // - sync: wakes up the clients that are waiting on the block and leaves the block
 //         locked exclusively
-void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskDriverRef pDriver, DiskBlockRef _Nonnull pBlock, errno_t status)
+void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskBlockRef _Nonnull pBlock, errno_t status)
 {
     Lock_Lock(&self->interlock);
 
@@ -824,24 +766,27 @@ void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskDriverRef pDriv
         // on the type of I/O operation we did
     }
 
-    Lock_Unlock(&self->interlock);
 
-    // Balance the retain from DoIO()
-    Object_Release(pDriver);
+    // Balance the useCount from DoIO()
+    DiskDriverRef disk = pBlock->disk;
+    DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
+    dcc->useCount--;
+    if (dcc->useCount == 0 && dcc->state == kDccS_Deregistering) {
+        _DiskCache_FinalizeUnregisterDisk(self, disk);
+    }
+
+    Lock_Unlock(&self->interlock);
 }
 
 
 // Synchronously writes all dirty disk blocks for drive 'diskId' and media
-// 'mediaId' to disk. Does nothing if 'diskId' is kDisk_None. Flushes all dirty
-// blocks for all drives and media if 'diskId' is kDisk_All. 
-errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId)
+// 'mediaId' to disk. Flushes all dirty blocks for all drives and media if
+// 'disk' is NULL. 
+errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskDriverRef _Nullable disk, MediaId mediaId)
 {
     decl_try_err();
 
-    if (diskId == kDiskId_None) {
-        return ENODEV;
-    }
-    else if (mediaId == kMediaId_None) {
+    if (mediaId == kMediaId_None) {
         return ENOMEDIUM;
     }
 
@@ -862,7 +807,7 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaI
                 DiskBlockRef pBlock = DiskBlockFromLruChainPointer(pCurNode);
 
                 if (!DiskBlock_InUse(pBlock)) {
-                    if ((diskId == kDiskId_All) || (pBlock->address.diskId == diskId && (pBlock->address.mediaId == mediaId || mediaId == kMediaId_Current))) {
+                    if ((disk == NULL) || (pBlock->disk == disk && (pBlock->mediaId == mediaId || mediaId == kMediaId_Current))) {
                         const errno_t err1 = _DiskCache_SyncBlock(self, pBlock);
                     
                         if (err == EOK) {
@@ -887,7 +832,7 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaI
 // Auto syncs cache blocks to their associated disks
 static void _DiskCache_AutoSync(DiskCacheRef _Nonnull self)
 {
-    DiskCache_Sync(self, kDiskId_All, kMediaId_Current);
+    DiskCache_Sync(self, NULL, kMediaId_Current);
     _DiskCache_ScheduleAutoSync(self);
 }
 

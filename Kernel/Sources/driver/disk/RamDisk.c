@@ -110,7 +110,7 @@ static DiskExtent* _Nullable RamDisk_GetDiskExtentForBlockIndex_Locked(RamDiskRe
 
 errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, const IORequest* _Nonnull ior)
 {
-    const LogicalBlockAddress lba = ior->address.lba;
+    const LogicalBlockAddress lba = ior->lba;
     void* dp = DiskBlock_GetMutableData(ior->block);
 
     if (lba >= self->blockCount) {
@@ -153,7 +153,7 @@ catch:
 errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, const IORequest* _Nonnull ior)
 {
     decl_try_err();
-    const LogicalBlockAddress lba = ior->address.lba;
+    const LogicalBlockAddress lba = ior->lba;
     const void* sp = DiskBlock_GetData(ior->block);
 
     if (lba >= self->blockCount) {

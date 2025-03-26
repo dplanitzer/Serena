@@ -19,7 +19,6 @@ errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverR
     DiskDriverRef self = NULL;
 
     try(Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, parent, (DriverRef*)&self));
-    self->diskId = kDiskId_None;
     self->currentMediaId = kMediaId_None;
 
     if ((options & kDiskDriver_Queuing) == kDiskDriver_Queuing) {
@@ -50,15 +49,12 @@ errno_t DiskDriver_createDispatchQueue(DiskDriverRef _Nonnull self, DispatchQueu
 
 errno_t DiskDriver_onPublish(DiskDriverRef _Nonnull self)
 {
-    return DiskCache_RegisterDisk(gDiskCache, self, &self->diskId);
+    return DiskCache_RegisterDisk(gDiskCache, self);
 }
 
 void DiskDriver_onUnpublish(DiskDriverRef _Nonnull self)
 {
-    if (self->diskId != kDiskId_None) {
-        DiskCache_UnregisterDisk(gDiskCache, self->diskId);
-        self->diskId = kDiskId_None;
-    }
+    DiskCache_UnregisterDisk(gDiskCache, self);
 }
 
 void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
@@ -74,7 +70,6 @@ void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
 // drive.
 void DiskDriver_getInfo(DiskDriverRef _Nonnull _Locked self, DiskInfo* _Nonnull pOutInfo)
 {
-    pOutInfo->diskId = self->diskId;
     pOutInfo->mediaId = self->currentMediaId;
     pOutInfo->isReadOnly = self->mediaInfo.isReadOnly;
     pOutInfo->reserved[0] = 0;
@@ -130,7 +125,7 @@ void DiskDriver_doIO(DiskDriverRef _Nonnull self, const IORequest* _Nonnull ior)
     const MediaId curMediaId = self->currentMediaId;
     Driver_Unlock(self);
 
-    if (ior->address.mediaId == kMediaId_Current || ior->address.mediaId == curMediaId) {
+    if (ior->mediaId == kMediaId_Current || ior->mediaId == curMediaId) {
         switch (DiskBlock_GetOp(ior->block)) {
             case kDiskBlockOp_Read:
                 err = DiskDriver_GetBlock(self, ior);
@@ -204,7 +199,7 @@ errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, const IORequest* _Nonnu
 
 void DiskDriver_endIO(DiskDriverRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, errno_t status)
 {
-    DiskCache_OnBlockFinishedIO(gDiskCache, self, pBlock, status);
+    DiskCache_OnBlockFinishedIO(gDiskCache, pBlock, status);
 }
 
 
@@ -293,7 +288,7 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
         const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
         DiskBlockRef pBlock;
 
-        errno_t e1 = DiskCache_AcquireBlock(gDiskCache, info->diskId, info->mediaId, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
+        errno_t e1 = DiskCache_AcquireBlock(gDiskCache, self, info->mediaId, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
             break;
@@ -375,7 +370,7 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
         AcquireBlock acquireMode = (nBytesToWriteInBlock == (ssize_t)info->blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
         DiskBlockRef pBlock;
 
-        errno_t e1 = DiskCache_AcquireBlock(gDiskCache, info->diskId, info->mediaId, blockIdx, acquireMode, &pBlock);
+        errno_t e1 = DiskCache_AcquireBlock(gDiskCache, self, info->mediaId, blockIdx, acquireMode, &pBlock);
         if (e1 == EOK) {
             uint8_t* dp = DiskBlock_GetMutableData(pBlock);
         

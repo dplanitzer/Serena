@@ -758,7 +758,7 @@ static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, uint8_t target
 errno_t FloppyDriver_getBlock(FloppyDriverRef _Nonnull self, const IORequest* _Nonnull ior)
 {
     decl_try_err();
-    const LogicalBlockAddress lba = ior->address.lba;
+    const LogicalBlockAddress lba = ior->lba;
 
     if (lba >= self->blocksPerDisk) {
         return ENXIO;
@@ -885,7 +885,7 @@ static void FloppyDriver_BuildSector(FloppyDriverRef _Nonnull self, uint8_t targ
 errno_t FloppyDriver_putBlock(FloppyDriverRef _Nonnull self, const IORequest* _Nonnull ior)
 {
     decl_try_err();
-    const LogicalBlockAddress lba = ior->address.lba;
+    const LogicalBlockAddress lba = ior->lba;
 
     if (lba >= self->blocksPerDisk) {
         return ENXIO;

@@ -12,7 +12,7 @@
 #define BLOCK_SIZE  512
 
 
-errno_t DiskBlock_Create(DiskId diskId, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskBlock_Create(DiskDriverRef _Nullable _Weak disk, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskBlock* self;
@@ -20,9 +20,9 @@ errno_t DiskBlock_Create(DiskId diskId, MediaId mediaId, LogicalBlockAddress lba
     try(kalloc_cleared(sizeof(DiskBlock) + BLOCK_SIZE - 1, (void**) &self));
     ListNode_Init(&self->hashNode);
     ListNode_Init(&self->lruNode);
-    self->address.diskId = diskId;
-    self->address.mediaId = mediaId;
-    self->address.lba = lba;
+    self->disk = disk;
+    self->mediaId = mediaId;
+    self->lba = lba;
     self->flags.byteSize = BLOCK_SIZE;
 
     *pOutSelf = self;
@@ -39,6 +39,7 @@ void DiskBlock_Destroy(DiskBlockRef _Nullable self)
     if (self) {
         ListNode_Deinit(&self->hashNode);
         ListNode_Deinit(&self->lruNode);
+        self->disk = NULL;
 
         kfree(self);
     }

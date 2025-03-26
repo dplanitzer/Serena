@@ -500,7 +500,7 @@ SYSCALL_2(unmount, const char* _Nullable atDirPath, UnmountOptions options)
 
 SYSCALL_0(sync)
 {
-    DiskCache_Sync(gDiskCache, kDiskId_All, kMediaId_Current);
+    DiskCache_Sync(gDiskCache, NULL, kMediaId_Current);
     return EOK;
 }
 

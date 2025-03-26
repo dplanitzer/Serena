@@ -94,7 +94,7 @@ errno_t RamFSContainer_getInfo(RamFSContainerRef _Nonnull self, FSContainerInfo*
 errno_t RamFSContainer_acquireEmptyBlock(RamFSContainerRef self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     DiskBlockRef pBlock;
-    const errno_t err = DiskBlock_Create(kDiskId_None, kMediaId_None, 0, &pBlock);
+    const errno_t err = DiskBlock_Create(NULL, kMediaId_None, 0, &pBlock);
 
     if (err == EOK) {
         memset(DiskBlock_GetMutableData(pBlock), 0, DiskBlock_GetByteSize(pBlock));
@@ -119,12 +119,12 @@ errno_t RamFSContainer_acquireBlock(struct RamFSContainer* _Nonnull self, Logica
     decl_try_err();
     DiskBlockRef pBlock = NULL;
 
-    err = DiskBlock_Create(1, 1, lba, &pBlock);
+    err = DiskBlock_Create((DiskDriverRef)1, 1, lba, &pBlock);
     if (err == EOK) {
         switch (mode) {
             case kAcquireBlock_ReadOnly:
             case kAcquireBlock_Update:
-                err = RamFSContainer_GetBlock(self, DiskBlock_GetMutableData(pBlock), DiskBlock_GetDiskAddress(pBlock)->lba);
+                err = RamFSContainer_GetBlock(self, DiskBlock_GetMutableData(pBlock), pBlock->lba);
                 break;
 
             case kAcquireBlock_Replace:
@@ -173,7 +173,7 @@ errno_t RamFSContainer_relinquishBlockWriting(struct RamFSContainer* _Nonnull se
         switch (mode) {
             case kWriteBlock_Sync:
             case kWriteBlock_Deferred:
-                err = RamFSContainer_PutBlock(self, DiskBlock_GetData(pBlock), DiskBlock_GetDiskAddress(pBlock)->lba);
+                err = RamFSContainer_PutBlock(self, DiskBlock_GetData(pBlock), pBlock->lba);
                 break;
 
             default:

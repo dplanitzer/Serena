@@ -10,7 +10,7 @@
 #define DiskDriver_h
 
 #include <klib/klib.h>
-#include <disk/DiskBlock.h>
+#include <disk/DiskCache.h>
 #include <driver/Driver.h>
 #include <System/Disk.h>
 
@@ -26,7 +26,8 @@ typedef struct MediaInfo {
 
 typedef struct IORequest {
     DiskBlockRef _Nonnull   block;      // Disk block to read/write
-    DiskAddress             address;    // Physical disk address
+    MediaId                 mediaId;    // Physical disk block address
+    LogicalBlockAddress     lba;
 } IORequest;
 
 
@@ -62,7 +63,7 @@ typedef struct IORequest {
 //
 open_class(DiskDriver, Driver,
     DispatchQueueRef _Nullable  dispatchQueue;
-    DiskId                      diskId;
+    DiskCacheClient             dcClient;       // Protected by disk cache lock
     MediaId                     currentMediaId;
     MediaInfo                   mediaInfo;
 );
@@ -125,6 +126,14 @@ open_class_funcs(DiskDriver, Driver,
 extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
 
 extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, const IORequest* _Nonnull ior);
+
+
+//
+// Methods for use by the disk cache
+//
+#define DiskDriver_GetDiskCacheClient(__self) \
+&((DiskDriverRef)__self)->dcClient
+
 
 //
 // Subclassers
