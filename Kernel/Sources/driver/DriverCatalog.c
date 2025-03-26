@@ -61,7 +61,7 @@ void DriverCatalog_Destroy(DriverCatalogRef _Nullable self)
 
 FilesystemRef _Nullable DriverCatalog_CopyChapterFilesystem(DriverCatalogRef _Nonnull self, const char* _Nonnull chapterName)
 {
-    if (String_Equals(chapterName, "topology")) {
+    if (String_Equals(chapterName, "drivers")) {
         return Object_RetainAs(self->devfs, Filesystem);
     }
     else {

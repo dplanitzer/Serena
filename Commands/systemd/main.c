@@ -43,7 +43,7 @@ void main_closure(int argc, char *argv[])
 
     
     // Mount devfs.topology at /dev
-    Mount(kMount_DriverCatalog, "topology", "/dev", NULL, 0);
+    Mount(kMount_DriverCatalog, "drivers", "/dev", NULL, 0);
 
 
     // Startup login
