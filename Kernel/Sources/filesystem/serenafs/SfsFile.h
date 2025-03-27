@@ -14,10 +14,10 @@
 #include "VolumeFormat.h"
 
 typedef struct sfs_mapblk {
-    DiskBlockRef _Nullable  block;
-    uint8_t* _Nullable      data;
-    LogicalBlockAddress     lba;
-    bool                    wasAlloced;
+    intptr_t            token;
+    uint8_t* _Nullable  data;
+    LogicalBlockAddress lba;
+    bool                wasAlloced;
 } sfs_mapblk_t;
 
 
@@ -33,7 +33,7 @@ extern void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, sfs_inode_t* _Non
 
 extern void SfsFile_ConvertOffset(SfsFileRef _Nonnull _Locked self, off_t offset, sfs_bno_t* _Nonnull pOutFba, ssize_t* _Nonnull pOutFbaOffset);
 
-extern errno_t SfsFile_AcquireBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, AcquireBlock mode, sfs_mapblk_t* _Nonnull blk);
+extern errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, AcquireBlock mode, sfs_mapblk_t* _Nonnull blk);
 extern bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength);
 
 #endif /* SfsFile_h */

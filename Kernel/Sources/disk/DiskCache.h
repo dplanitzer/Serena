@@ -24,6 +24,12 @@ typedef struct DiskCacheClient {
 } DiskCacheClient;
 
 
+typedef struct diskblock {
+    intptr_t            token;
+    uint8_t* _Nullable  data;
+} diskblock_t;
+
+
 extern DiskCacheRef _Nonnull  gDiskCache;
 
 extern errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRef _Nullable * _Nonnull pOutSelf);
@@ -31,11 +37,11 @@ extern errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, Disk
 extern errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba);
 extern errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba);
 
-extern errno_t DiskCache_AcquireEmptyBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable * _Nonnull pOutBlock);
-extern errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock);
+extern errno_t DiskCache_MapEmptyBlock(DiskCacheRef _Nonnull self, diskblock_t* _Nonnull blk);
+extern errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, diskblock_t* _Nonnull blk);
 
-extern void DiskCache_RelinquishBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable pBlock);
-extern errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode);
+extern void DiskCache_UnmapBlock(DiskCacheRef _Nonnull self, intptr_t token);
+extern errno_t DiskCache_UnmapBlockWriting(DiskCacheRef _Nonnull self, intptr_t token, WriteBlock mode);
 
 extern errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId);
 

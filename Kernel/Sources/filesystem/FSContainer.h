@@ -21,6 +21,12 @@ typedef struct FSContainerInfo {
 } FSContainerInfo;
 
 
+typedef struct FSBlock {
+    intptr_t            token;
+    uint8_t* _Nullable  data;
+} FSBlock;
+
+
 // A filesystem container provides access to the data on a mass storage device
 // or a collection of distinct mass storage devices under the assumption that
 // this data represents the persistent state of a filesystem.
@@ -45,21 +51,21 @@ open_class_funcs(FSContainer, Object,
 
     // Acquires an empty block, filled with zero bytes. This block is not attached
     // to any disk address and thus may not be written back to disk.
-    errno_t (*acquireEmptyBlock)(void* _Nonnull self, DiskBlockRef _Nullable * _Nonnull pOutBlock);
+    errno_t (*mapEmptyBlock)(void* _Nonnull self, FSBlock* _Nonnull blk);
 
     // Acquires the disk block with the block address 'lba'. The acquisition is
     // done according to the acquisition mode 'mode'. An error is returned if
     // the disk block needed to be loaded and loading failed for some reason.
     // Once done with the block, it must be relinquished by calling the
     // relinquishBlock() method.
-    errno_t (*acquireBlock)(void* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock);
+    errno_t (*mapBlock)(void* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, FSBlock* _Nonnull blk);
 
     // Relinquishes the disk block 'pBlock' without writing it back to disk.
-    void (*relinquishBlock)(void* _Nonnull self, DiskBlockRef _Nullable pBlock);
+    void (*unmapBlock)(void* _Nonnull self, intptr_t token);
 
     // Relinquishes the disk block 'pBlock' and writes the disk block back to
     // disk according to the write back mode 'mode'.
-    errno_t (*relinquishBlockWriting)(void* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode);
+    errno_t (*unmapBlockWriting)(void* _Nonnull self, intptr_t token, WriteBlock mode);
 
     // Synchronously flushes all cached and unwritten blocks belonging to this
     // FS container to disk(s).
@@ -80,17 +86,19 @@ invoke_n(prefetchBlock, FSContainer, __self, __driverId, __mediaId, __lba)
 #define FSContainer_SyncBlock(__self, __driverId, __mediaId, __lba) \
 invoke_n(syncBlock, FSContainer, __self, __driverId, __mediaId, __lba)
 
-#define FSContainer_AcquireEmptyBlock(__self, __pOutBlock) \
-invoke_n(acquireEmptyBlock, FSContainer, __self, __pOutBlock)
 
-#define FSContainer_AcquireBlock(__self, __lba, __mode, __pOutBlock) \
-invoke_n(acquireBlock, FSContainer, __self, __lba, __mode, __pOutBlock)
+#define FSContainer_MapEmptyBlock(__self, __blk) \
+invoke_n(mapEmptyBlock, FSContainer, __self, __blk)
 
-#define FSContainer_RelinquishBlock(__self, __pBlock) \
-invoke_n(relinquishBlock, FSContainer, __self, __pBlock)
+#define FSContainer_MapBlock(__self, __lba, __mode, __blk) \
+invoke_n(mapBlock, FSContainer, __self, __lba, __mode, __blk)
 
-#define FSContainer_RelinquishBlockWriting(__self, __pBlock, __mode) \
-invoke_n(relinquishBlockWriting, FSContainer, __self, __pBlock, __mode)
+#define FSContainer_UnmapBlock(__self, __token) \
+invoke_n(unmapBlock, FSContainer, __self, __token)
+
+#define FSContainer_UnmapBlockWriting(__self, __token, __mode) \
+invoke_n(unmapBlockWriting, FSContainer, __self, __token, __mode)
+
 
 #define FSContainer_Sync(__self) \
 invoke_0(sync, FSContainer, __self)

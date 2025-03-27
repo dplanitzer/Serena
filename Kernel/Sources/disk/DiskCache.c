@@ -481,23 +481,34 @@ errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull d
     return err;
 }
 
-// Returns an empty block (all data is zero) for read-only operations.
-errno_t DiskCache_AcquireEmptyBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+// Maps an empty read-only block (all data is zero).
+errno_t DiskCache_MapEmptyBlock(DiskCacheRef _Nonnull self, diskblock_t* _Nonnull blk)
 {
     decl_try_err();
 
     Lock_Lock(&self->interlock);    
     err = _DiskCache_LockBlockContent(self, self->emptyBlock, kLockMode_Shared);
+    if (err == EOK) {
+        blk->token = (intptr_t)self->emptyBlock;
+        blk->data = DiskBlock_GetMutableData(self->emptyBlock);
+    }
+    else {
+        blk->token = 0;
+        blk->data = NULL;
+    }
     Lock_Unlock(&self->interlock);
-    *pOutBlock = self->emptyBlock;
 
     return err;
 }
 
-errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, diskblock_t* _Nonnull blk)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
+
+    blk->token = 0;
+    blk->data = NULL;
+
 
     // Can not address blocks on a disk or media that doesn't exist
     if (mediaId == kMediaId_None) {
@@ -570,20 +581,26 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnul
     }
 
 catch:
-    if (err != EOK && pBlock) {
-        _DiskCache_UnlockContentAndPutBlock(self, pBlock);
-        pBlock = NULL;
+    if (pBlock) {
+        if (err == EOK) {
+            blk->token = (intptr_t)pBlock;
+            blk->data = DiskBlock_GetMutableData(pBlock);
+        }
+        else {
+            _DiskCache_UnlockContentAndPutBlock(self, pBlock);
+        }
     }
 
     Lock_Unlock(&self->interlock);
-    *pOutBlock = pBlock;
 
     return err;
 }
 
 
-void DiskCache_RelinquishBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable pBlock)
+void DiskCache_UnmapBlock(DiskCacheRef _Nonnull self, intptr_t token)
 {
+    DiskBlockRef pBlock = (DiskBlockRef)token;
+
     if (pBlock) {
         Lock_Lock(&self->interlock);
         _DiskCache_UnlockContentAndPutBlock(self, pBlock);
@@ -591,9 +608,10 @@ void DiskCache_RelinquishBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullabl
     }
 }
 
-errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
+errno_t DiskCache_UnmapBlockWriting(DiskCacheRef _Nonnull self, intptr_t token, WriteBlock mode)
 {
     decl_try_err();
+    DiskBlockRef pBlock = (DiskBlockRef)token;
 
     if (pBlock == NULL) {
         return EOK;

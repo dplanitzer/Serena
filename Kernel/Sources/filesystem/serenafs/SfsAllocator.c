@@ -28,6 +28,7 @@ errno_t SfsAllocator_Start(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull 
     decl_try_err();
     const uint32_t volumeBlockCount = UInt32_BigToHost(vhp->volBlockCount);
     const uint32_t allocationBitmapByteSize = UInt32_BigToHost(vhp->allocBitmapByteSize);
+    FSBlock blk = {0};
 
     if (allocationBitmapByteSize < 1 || volumeBlockCount < kSFSVolume_MinBlockCount) {
         return EIO;
@@ -47,12 +48,12 @@ errno_t SfsAllocator_Start(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull 
 
     for (LogicalBlockAddress lba = 0; lba < self->bitmapBlockCount; lba++) {
         const size_t nBytesToCopy = __min(blockSize, allocBitmapByteSize);
-        DiskBlockRef pBlock;
 
-        try(FSContainer_AcquireBlock(fsContainer, self->bitmapLba + lba, kAcquireBlock_ReadOnly, &pBlock));
-        memcpy(pAllocBitmap, DiskBlock_GetData(pBlock), nBytesToCopy);
-        FSContainer_RelinquishBlock(fsContainer, pBlock);
-        pBlock = NULL;
+        try(FSContainer_MapBlock(fsContainer, self->bitmapLba + lba, kAcquireBlock_ReadOnly, &blk));
+        memcpy(pAllocBitmap, blk.data, nBytesToCopy);
+        FSContainer_UnmapBlock(fsContainer, blk.token);
+        blk.token = 0;
+        blk.data = NULL;
 
         allocBitmapByteSize -= nBytesToCopy;
         pAllocBitmap += blockSize;
@@ -145,6 +146,7 @@ void SfsAllocator_Deallocate(SfsAllocator* _Nonnull self, LogicalBlockAddress lb
 errno_t SfsAllocator_CommitToDisk(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer)
 {
     decl_try_err();
+    FSBlock blk = {0};
 
     Lock_Lock(&self->lock);
 
@@ -152,12 +154,14 @@ errno_t SfsAllocator_CommitToDisk(SfsAllocator* _Nonnull self, FSContainerRef _N
         if (AllocationBitmap_IsBlockInUse(self->dirtyBitmapBlocks, i)) {
             const LogicalBlockAddress allocationBitmapBlockLba = self->bitmapLba + i;
             const uint8_t* pBitmapData = &self->bitmap[i * self->blockSize];
-            DiskBlockRef pBlock;
 
-            if ((err = FSContainer_AcquireBlock(fsContainer, allocationBitmapBlockLba, kAcquireBlock_Cleared, &pBlock)) == EOK) {
-                memcpy(DiskBlock_GetMutableData(pBlock), pBitmapData, self->bitmapByteSize);
-                FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Deferred);
+            if ((err = FSContainer_MapBlock(fsContainer, allocationBitmapBlockLba, kAcquireBlock_Cleared, &blk)) == EOK) {
+                memcpy(blk.data, pBitmapData, self->bitmapByteSize);
+                FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
             }
+            
+            blk.token = 0;
+            blk.data = NULL;
 
             if (err != EOK) {
                 break;

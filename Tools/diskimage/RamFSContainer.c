@@ -24,7 +24,9 @@ errno_t RamFSContainer_Create(const DiskImageFormat* _Nonnull format, RamFSConta
     RamFSContainerRef self;
 
     try(Object_Create(class(RamFSContainer), 0, (void**)&self));
-    self->diskImage = calloc(format->blocksPerDisk, format->blockSize);
+    try(FSAllocateCleared(format->blocksPerDisk * format->blockSize, (void**)&self->diskImage));
+    try(FSAllocateCleared(format->blockSize, (void**)&self->emptyBlock));
+    try(FSAllocateCleared(format->blocksPerDisk, (void**)&self->mappedFlags));
     self->blockSize = format->blockSize;
     self->blockShift = FSLog2(self->blockSize);
     self->blockMask = self->blockSize - 1;
@@ -78,7 +80,13 @@ catch:
 
 void RamFSContainer_deinit(RamFSContainerRef _Nonnull self)
 {
-    free(self->diskImage);
+    FSDeallocate(self->mappedFlags);
+    self->mappedFlags = NULL;
+
+    FSDeallocate(self->emptyBlock);
+    self->emptyBlock = NULL;
+
+    FSDeallocate(self->diskImage);
     self->diskImage = NULL;
 }
 
@@ -91,55 +99,58 @@ errno_t RamFSContainer_getInfo(RamFSContainerRef _Nonnull self, FSContainerInfo*
     return EOK;
 }
 
-errno_t RamFSContainer_acquireEmptyBlock(RamFSContainerRef self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+errno_t RamFSContainer_mapEmptyBlock(RamFSContainerRef self, FSBlock* _Nonnull blk)
 {
-    DiskBlockRef pBlock;
-    const errno_t err = DiskBlock_Create(NULL, kMediaId_None, 0, &pBlock);
+    blk->token = 0;
+    blk->data = self->emptyBlock;
 
-    if (err == EOK) {
-        memset(DiskBlock_GetMutableData(pBlock), 0, DiskBlock_GetByteSize(pBlock));
-    }
-    *pOutBlock = pBlock;
-    return err;
+    return EOK;
 }
 
-static errno_t RamFSContainer_GetBlock(RamFSContainerRef _Nonnull self, void* _Nonnull buf, LogicalBlockAddress lba)
-{
-    if (lba < self->blockCount) {
-        memcpy(buf, &self->diskImage[lba << self->blockShift], self->blockSize);
-        return EOK;
-    }
-    else {
-        return ENXIO;
-    }
-}
-
-errno_t RamFSContainer_acquireBlock(struct RamFSContainer* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+errno_t RamFSContainer_mapBlock(struct RamFSContainer* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, FSBlock* _Nonnull blk)
 {
     decl_try_err();
-    DiskBlockRef pBlock = NULL;
 
-    err = DiskBlock_Create((DiskDriverRef)1, 1, lba, &pBlock);
-    if (err == EOK) {
-        switch (mode) {
-            case kAcquireBlock_ReadOnly:
-            case kAcquireBlock_Update:
-                err = RamFSContainer_GetBlock(self, DiskBlock_GetMutableData(pBlock), pBlock->lba);
-                break;
-
-            case kAcquireBlock_Replace:
-                // Caller will replace every byte in the block
-                break;
-
-            case kAcquireBlock_Cleared:
-                memset(DiskBlock_GetMutableData(pBlock), 0, DiskBlock_GetByteSize(pBlock));
-                break; 
-
-        }
+    if (self->mappedFlags[lba]) {
+        abort();
+        //XXX for now. Should really wait until the block has been unmapped
     }
-    *pOutBlock = pBlock;
+
+    switch (mode) {
+        case kAcquireBlock_ReadOnly:
+        case kAcquireBlock_Update:
+        case kAcquireBlock_Replace:
+        case kAcquireBlock_Cleared:
+            if (lba < self->blockCount) {
+                blk->token = lba + 1;
+                blk->data = &self->diskImage[lba << self->blockShift];
+            }
+            else {
+                err = ENXIO;
+            }
+            break;
+
+        default:
+            abort();
+            break;
+    }
+
+    if (err == EOK) {
+        if (mode == kAcquireBlock_Cleared) {
+            memset(blk->data, 0, self->blockSize);
+        }
+
+        self->mappedFlags[lba] = true;
+    }
 
     return err;
+}
+
+void RamFSContainer_unmapBlock(struct RamFSContainer* _Nonnull self, intptr_t token)
+{
+    if (token) {
+        self->mappedFlags[token - 1] = false;
+    }
 }
 
 // Writes the contents of 'buf' to the block at index 'lba'. 'buf'
@@ -147,49 +158,39 @@ errno_t RamFSContainer_acquireBlock(struct RamFSContainer* _Nonnull self, Logica
 // write has completed. The contents of the block on disk is left in an
 // indeterminate state of the write fails in the middle of the write. The
 // block may contain a mix of old and new data.
-static errno_t RamFSContainer_PutBlock(RamFSContainerRef _Nonnull self, const void* _Nonnull buf, LogicalBlockAddress lba)
-{
-    if (lba < self->blockCount) {
-        memcpy(&self->diskImage[lba << self->blockShift], buf, self->blockSize);
-        if (lba < self->lowestWrittenToLba) {
-            self->lowestWrittenToLba = lba;
-        }
-        if (lba > self->highestWrittenToLba) {
-            self->highestWrittenToLba = lba;
-        }
-
-        return EOK;
-    }
-    else {
-        return ENXIO;
-    }
-}
-
-errno_t RamFSContainer_relinquishBlockWriting(struct RamFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
+errno_t RamFSContainer_unmapBlockWriting(struct RamFSContainer* _Nonnull self, intptr_t token, WriteBlock mode)
 {
     decl_try_err();
 
-    if (pBlock) {
-        switch (mode) {
-            case kWriteBlock_Sync:
-            case kWriteBlock_Deferred:
-                err = RamFSContainer_PutBlock(self, DiskBlock_GetData(pBlock), pBlock->lba);
-                break;
+    if (token == 0) {
+        return EOK;
+    }
 
-            default:
-                abort();
-        }
-        DiskBlock_Destroy(pBlock);
+    LogicalBlockAddress lba = token - 1;
+    switch (mode) {
+        case kWriteBlock_Sync:
+        case kWriteBlock_Deferred:
+            if (lba < self->blockCount) {
+                if (lba < self->lowestWrittenToLba) {
+                    self->lowestWrittenToLba = lba;
+                }
+                if (lba > self->highestWrittenToLba) {
+                    self->highestWrittenToLba = lba;
+                }
+
+                self->mappedFlags[lba] = false;
+            }
+            else {
+                err = ENXIO;
+            }
+            break;
+
+        default:
+            abort();
+            break;
     }
 
     return err;
-}
-
-void RamFSContainer_relinquishBlock(struct RamFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock)
-{
-    if (pBlock) {
-        DiskBlock_Destroy(pBlock);
-    }
 }
 
 static void convert_offset(struct RamFSContainer* _Nonnull self, off_t offset, LogicalBlockAddress* _Nonnull pOutBlockIdx, ssize_t* _Nonnull pOutBlockOffset)
@@ -244,17 +245,16 @@ errno_t RamFSContainer_Read(RamFSContainerRef _Nonnull self, void* _Nonnull buf,
     while (nBytesToRead > 0) {
         const ssize_t nRemainderBlockSize = (ssize_t)self->blockSize - blockOffset;
         const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
-        DiskBlockRef pBlock;
+        FSBlock blk = {0};
 
-        errno_t e1 = FSContainer_AcquireBlock(self, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
+        errno_t e1 = FSContainer_MapBlock(self, blockIdx, kAcquireBlock_ReadOnly, &blk);
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
             break;
         }
         
-        const uint8_t* bp = DiskBlock_GetData(pBlock);
-        memcpy(dp, bp + blockOffset, nBytesToReadInBlock);
-        FSContainer_RelinquishBlock(self, pBlock);
+        memcpy(dp, blk.data + blockOffset, nBytesToReadInBlock);
+        FSContainer_UnmapBlock(self, blk.token);
 
         nBytesToRead -= nBytesToReadInBlock;
         nBytesRead += nBytesToReadInBlock;
@@ -317,14 +317,12 @@ errno_t RamFSContainer_Write(RamFSContainerRef _Nonnull self, const void* _Nonnu
         const ssize_t nRemainderBlockSize = (ssize_t)self->blockSize - blockOffset;
         const ssize_t nBytesToWriteInBlock = (nBytesToWrite > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToWrite;
         AcquireBlock acquireMode = (nBytesToWriteInBlock == (ssize_t)self->blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
-        DiskBlockRef pBlock;
+        FSBlock blk = {0};
 
-        errno_t e1 = FSContainer_AcquireBlock(self, blockIdx, acquireMode, &pBlock);
+        errno_t e1 = FSContainer_MapBlock(self, blockIdx, acquireMode, &blk);
         if (e1 == EOK) {
-            uint8_t* dp = DiskBlock_GetMutableData(pBlock);
-        
-            memcpy(dp + blockOffset, sp, nBytesToWriteInBlock);
-            e1 = FSContainer_RelinquishBlockWriting(self, pBlock, kWriteBlock_Sync);
+            memcpy(blk.data + blockOffset, sp, nBytesToWriteInBlock);
+            e1 = FSContainer_UnmapBlockWriting(self, blk.token, kWriteBlock_Sync);
         }
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;
@@ -397,7 +395,8 @@ catch:
 class_func_defs(RamFSContainer, FSContainer,
 override_func_def(deinit, RamFSContainer, Object)
 override_func_def(getInfo, RamFSContainer, FSContainer)
-override_func_def(acquireBlock, RamFSContainer, FSContainer)
-override_func_def(relinquishBlockWriting, RamFSContainer, FSContainer)
-override_func_def(relinquishBlock, RamFSContainer, FSContainer)
+override_func_def(mapEmptyBlock, RamFSContainer, FSContainer)
+override_func_def(mapBlock, RamFSContainer, FSContainer)
+override_func_def(unmapBlockWriting, RamFSContainer, FSContainer)
+override_func_def(unmapBlock, RamFSContainer, FSContainer)
 );

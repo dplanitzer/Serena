@@ -286,17 +286,16 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
     while (nBytesToRead > 0) {
         const ssize_t nRemainderBlockSize = (ssize_t)info->blockSize - blockOffset;
         const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
-        DiskBlockRef pBlock;
+        diskblock_t blk = {0};
 
-        errno_t e1 = DiskCache_AcquireBlock(gDiskCache, self, info->mediaId, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
+        errno_t e1 = DiskCache_MapBlock(gDiskCache, self, info->mediaId, blockIdx, kAcquireBlock_ReadOnly, &blk);
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
             break;
         }
         
-        const uint8_t* bp = DiskBlock_GetData(pBlock);
-        memcpy(dp, bp + blockOffset, nBytesToReadInBlock);
-        DiskCache_RelinquishBlock(gDiskCache, pBlock);
+        memcpy(dp, blk.data + blockOffset, nBytesToReadInBlock);
+        DiskCache_UnmapBlock(gDiskCache, blk.token);
 
         nBytesToRead -= nBytesToReadInBlock;
         nBytesRead += nBytesToReadInBlock;
@@ -368,14 +367,12 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
         const ssize_t nRemainderBlockSize = (ssize_t)info->blockSize - blockOffset;
         const ssize_t nBytesToWriteInBlock = (nBytesToWrite > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToWrite;
         AcquireBlock acquireMode = (nBytesToWriteInBlock == (ssize_t)info->blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
-        DiskBlockRef pBlock;
+        diskblock_t blk = {0};
 
-        errno_t e1 = DiskCache_AcquireBlock(gDiskCache, self, info->mediaId, blockIdx, acquireMode, &pBlock);
+        errno_t e1 = DiskCache_MapBlock(gDiskCache, self, info->mediaId, blockIdx, acquireMode, &blk);
         if (e1 == EOK) {
-            uint8_t* dp = DiskBlock_GetMutableData(pBlock);
-        
-            memcpy(dp + blockOffset, sp, nBytesToWriteInBlock);
-            e1 = DiskCache_RelinquishBlockWriting(gDiskCache, pBlock, kWriteBlock_Sync);
+            memcpy(blk.data + blockOffset, sp, nBytesToWriteInBlock);
+            e1 = DiskCache_UnmapBlockWriting(gDiskCache, blk.token, kWriteBlock_Sync);
         }
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;

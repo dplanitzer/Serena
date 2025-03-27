@@ -56,14 +56,14 @@ errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, FileChannel
         const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
         sfs_mapblk_t blk;
 
-        const errno_t e1 = SfsFile_AcquireBlock((SfsFileRef)self, blockIdx, kAcquireBlock_ReadOnly, &blk);
+        const errno_t e1 = SfsFile_MapBlock((SfsFileRef)self, blockIdx, kAcquireBlock_ReadOnly, &blk);
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
             break;
         }
         
         memcpy(dp, blk.data + blockOffset, nBytesToReadInBlock);
-        FSContainer_RelinquishBlock(fsContainer, blk.block);
+        FSContainer_UnmapBlock(fsContainer, blk.token);
 
         nBytesToRead -= nBytesToReadInBlock;
         nBytesRead += nBytesToReadInBlock;
@@ -140,10 +140,10 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
         AcquireBlock acquireMode = (nBytesToWriteInBlock == fs->blockAllocator.blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
         sfs_mapblk_t blk;
 
-        errno_t e1 = SfsFile_AcquireBlock((SfsFileRef)self, blockIdx, acquireMode, &blk);
+        errno_t e1 = SfsFile_MapBlock((SfsFileRef)self, blockIdx, acquireMode, &blk);
         if (e1 == EOK) {
             memcpy(blk.data + blockOffset, sp, nBytesToWriteInBlock);
-            e1 = FSContainer_RelinquishBlockWriting(fsContainer, blk.block, kWriteBlock_Deferred);
+            e1 = FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
         }
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;

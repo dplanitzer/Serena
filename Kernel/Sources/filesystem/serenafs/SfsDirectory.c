@@ -63,7 +63,7 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
         ssize_t nBytesToReadInBlock = (nSrcBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nSrcBytesToRead;
         sfs_mapblk_t blk;
 
-        const errno_t e1 = SfsFile_AcquireBlock((SfsFileRef)self, blockIdx, kAcquireBlock_ReadOnly, &blk);
+        const errno_t e1 = SfsFile_MapBlock((SfsFileRef)self, blockIdx, kAcquireBlock_ReadOnly, &blk);
         if (e1 != EOK) {
             err = (nSrcBytesRead == 0) ? e1 : EOK;
             break;
@@ -86,7 +86,7 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
             nSrcBytesRead += sizeof(sfs_dirent_t);
             sp++;
         }
-        FSContainer_RelinquishBlock(fsContainer, blk.block);
+        FSContainer_UnmapBlock(fsContainer, blk.token);
 
         blockOffset = 0;
         blockIdx++;
@@ -155,7 +155,7 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
     while (!done && offset < fileSize) {
         sfs_mapblk_t blk;
         
-        err = SfsFile_AcquireBlock((SfsFileRef)self, blockIdx, kAcquireBlock_ReadOnly, &blk);
+        err = SfsFile_MapBlock((SfsFileRef)self, blockIdx, kAcquireBlock_ReadOnly, &blk);
         if (err != EOK) {
             break;
         }
@@ -200,7 +200,7 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
             offset += sizeof(sfs_dirent_t);
             sp++;
         }
-        FSContainer_RelinquishBlock(fsContainer, blk.block);
+        FSContainer_UnmapBlock(fsContainer, blk.token);
 
         blockIdx++;
     }
@@ -247,11 +247,11 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
     sfs_mapblk_t blk;
 
     if (ih && ih->lba > 0) {
-        DiskBlockRef pBlock;
+        FSBlock fsblk;
 
-        try(FSContainer_AcquireBlock(fsContainer, ih->lba, kAcquireBlock_Update, &pBlock));
-        blk.block = pBlock;
-        blk.data = DiskBlock_GetMutableData(pBlock);
+        try(FSContainer_MapBlock(fsContainer, ih->lba, kAcquireBlock_Update, &fsblk));
+        blk.token = fsblk.token;
+        blk.data = fsblk.data;
         blk.lba = ih->lba;
         blk.wasAlloced = false;
         blockOffset = ih->blockOffset;
@@ -260,7 +260,7 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
         sfs_bno_t fba;
 
         SfsFile_ConvertOffset((SfsFileRef)self, Inode_GetFileSize(self), &fba, &blockOffset);
-        try(SfsFile_AcquireBlock((SfsFileRef)self, fba, kAcquireBlock_Update, &blk));
+        try(SfsFile_MapBlock((SfsFileRef)self, fba, kAcquireBlock_Update, &blk));
         try(SfsAllocator_CommitToDisk(&fs->blockAllocator, fsContainer));
         Inode_IncrementFileSize(self, sizeof(sfs_dirent_t));
     }
@@ -272,7 +272,7 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
     dep->len = name->count;
     dep->id = UInt32_HostToBig(Inode_GetId(pChildNode));
 
-    FSContainer_RelinquishBlockWriting(fsContainer, blk.block, kWriteBlock_Deferred);
+    FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
 
 
     // Increment the link count of the directory if the child node is itself a
@@ -294,7 +294,7 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeRef _Nonnu
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
-    DiskBlockRef pBlock;
+    FSBlock blk = {0};
     sfs_query_t q;
     sfs_query_result_t qr;
 
@@ -304,11 +304,10 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeRef _Nonnu
     q.ih = NULL;
     try(SfsDirectory_Query(self, &q, &qr));
 
-    try(FSContainer_AcquireBlock(fsContainer, qr.lba, kAcquireBlock_Update, &pBlock));
-    uint8_t* bp = DiskBlock_GetMutableData(pBlock);
-    sfs_dirent_t* dep = (sfs_dirent_t*)(bp + qr.blockOffset);
+    try(FSContainer_MapBlock(fsContainer, qr.lba, kAcquireBlock_Update, &blk));
+    sfs_dirent_t* dep = (sfs_dirent_t*)(blk.data + qr.blockOffset);
     memset(dep, 0, sizeof(sfs_dirent_t));
-    FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Deferred);
+    FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
 
 
     // Shrink the directory file by one entry if we removed the last entry in

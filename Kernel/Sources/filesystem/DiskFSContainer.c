@@ -72,24 +72,24 @@ errno_t DiskFSContainer_syncBlock(struct DiskFSContainer* _Nonnull self, Logical
     return DiskCache_SyncBlock(gDiskCache, self->disk, self->mediaId, lba);
 }
 
-errno_t DiskFSContainer_acquireEmptyBlock(struct DiskFSContainer* self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+errno_t DiskFSContainer_mapEmptyBlock(struct DiskFSContainer* self, FSBlock* _Nonnull blk)
 {
-    return DiskCache_AcquireEmptyBlock(gDiskCache, pOutBlock);
+    return DiskCache_MapEmptyBlock(gDiskCache, (diskblock_t*)blk);
 }
 
-errno_t DiskFSContainer_acquireBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+errno_t DiskFSContainer_mapBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, FSBlock* _Nonnull blk)
 {
-    return DiskCache_AcquireBlock(gDiskCache, self->disk, self->mediaId, lba, mode, pOutBlock);
+    return DiskCache_MapBlock(gDiskCache, self->disk, self->mediaId, lba, mode, (diskblock_t*)blk);
 }
 
-void DiskFSContainer_relinquishBlock(struct DiskFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock)
+void DiskFSContainer_unmapBlock(struct DiskFSContainer* _Nonnull self, intptr_t token)
 {
-    DiskCache_RelinquishBlock(gDiskCache, pBlock);
+    DiskCache_UnmapBlock(gDiskCache, token);
 }
 
-errno_t DiskFSContainer_relinquishBlockWriting(struct DiskFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
+errno_t DiskFSContainer_unmapBlockWriting(struct DiskFSContainer* _Nonnull self, intptr_t token, WriteBlock mode)
 {
-    return DiskCache_RelinquishBlockWriting(gDiskCache, pBlock, mode);
+    return DiskCache_UnmapBlockWriting(gDiskCache, token, mode);
 }
 
 errno_t DiskFSContainer_sync(struct DiskFSContainer* _Nonnull self)
@@ -103,9 +103,9 @@ override_func_def(deinit, DiskFSContainer, Object)
 override_func_def(getInfo, DiskFSContainer, FSContainer)
 override_func_def(prefetchBlock, DiskFSContainer, FSContainer)
 override_func_def(syncBlock, DiskFSContainer, FSContainer)
-override_func_def(acquireEmptyBlock, DiskFSContainer, FSContainer)
-override_func_def(acquireBlock, DiskFSContainer, FSContainer)
-override_func_def(relinquishBlock, DiskFSContainer, FSContainer)
-override_func_def(relinquishBlockWriting, DiskFSContainer, FSContainer)
+override_func_def(mapEmptyBlock, DiskFSContainer, FSContainer)
+override_func_def(mapBlock, DiskFSContainer, FSContainer)
+override_func_def(unmapBlock, DiskFSContainer, FSContainer)
+override_func_def(unmapBlockWriting, DiskFSContainer, FSContainer)
 override_func_def(sync, DiskFSContainer, FSContainer)
 );

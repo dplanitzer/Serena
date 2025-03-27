@@ -78,18 +78,21 @@ static errno_t AmigaController_AutoDetectBootMemoryDisk(struct AmigaController* 
     }
     else {
         FSContainerRef fsContainer = NULL;
+        FSContainerInfo info;
 
         try(RamDisk_Create((DriverRef)self, "ram", smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128, (RamDiskRef*)&disk));
         try(Driver_Start((DriverRef)disk));
 
         try(DriverCatalog_OpenDriver(gDriverCatalog, "/ram", kOpen_ReadWrite, &chan));
         try(DiskFSContainer_Create(chan, &fsContainer));
-        for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
-            DiskBlockRef pb;
+        try(FSContainer_GetInfo(fsContainer, &info));
 
-            try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Replace, &pb));
-            memcpy(DiskBlock_GetMutableData(pb), &dmg[lba * smg_hdr->blockSize], DiskBlock_GetByteSize(pb));
-            try(FSContainer_RelinquishBlockWriting(fsContainer, pb, kWriteBlock_Sync));
+        for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
+            FSBlock blk;
+
+            try(FSContainer_MapBlock(fsContainer, lba, kAcquireBlock_Replace, &blk));
+            memcpy(blk.data, &dmg[lba * smg_hdr->blockSize], info.blockSize);
+            try(FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Sync));
         }
         Object_Release(fsContainer);
         IOChannel_Release(chan);

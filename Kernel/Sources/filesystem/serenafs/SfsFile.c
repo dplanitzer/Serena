@@ -79,25 +79,26 @@ void SfsFile_ConvertOffset(SfsFileRef _Nonnull _Locked self, off_t offset, sfs_b
     *pOutFbaOffset = (ssize_t)(offset & (off_t)fs->blockMask);
 }
 
-// Acquires the disk block 'lba' if lba is > 0; otherwise allocates a new block.
+// Maps the disk block 'lba' if lba is > 0; otherwise allocates a new block.
 // The new block is for read-only if read-only 'mode' is requested and it is
 // suitable for writing back to disk if 'mode' is a replace/update mode.
-static errno_t acquire_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, sfs_bno_t* _Nonnull pOutOnDiskLba, sfs_mapblk_t* _Nonnull blk)
+static errno_t map_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, sfs_bno_t* _Nonnull pOutOnDiskLba, sfs_mapblk_t* _Nonnull blk)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
+    FSBlock fsblk;
 
-    blk->block = NULL;
+    blk->token = 0;
     blk->data = NULL;
     blk->lba = lba;
     blk->wasAlloced = false;
 
     if (lba > 0) {
-        err = FSContainer_AcquireBlock(fsContainer, lba, mode, &blk->block);
+        err = FSContainer_MapBlock(fsContainer, lba, mode, &fsblk);
     }
     else {
         if (mode == kAcquireBlock_ReadOnly) {
-            err = FSContainer_AcquireEmptyBlock(fsContainer, &blk->block);
+            err = FSContainer_MapEmptyBlock(fsContainer, &fsblk);
         }
         else {
             LogicalBlockAddress new_lba;
@@ -107,24 +108,25 @@ static errno_t acquire_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress
                 blk->wasAlloced = true;
                 *pOutOnDiskLba = UInt32_HostToBig(new_lba);
 
-                err = FSContainer_AcquireBlock(fsContainer, new_lba, kAcquireBlock_Cleared, &blk->block);
+                err = FSContainer_MapBlock(fsContainer, new_lba, kAcquireBlock_Cleared, &fsblk);
             }
         }
     }
 
     if (err == EOK) {
-        blk->data = DiskBlock_GetMutableData(blk->block);
+        blk->token = fsblk.token;
+        blk->data = fsblk.data;
     }
 
     return err;
 }
 
-// Acquires the file block 'fba' in the file 'self'. Note that this function
+// Maps the file block 'fba' in the file 'self'. Note that this function
 // allocates a new file block if 'mode' implies a write operation and the required
 // file block doesn't exist yet. However this function does not commit the updated
 // allocation bitmap back to disk. The caller has to trigger this.
 // This function expects that 'fba' is in the range 0..<numBlocksInFile.
-errno_t SfsFile_AcquireBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, AcquireBlock mode, sfs_mapblk_t* _Nonnull blk)
+errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, AcquireBlock mode, sfs_mapblk_t* _Nonnull blk)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
@@ -134,7 +136,7 @@ errno_t SfsFile_AcquireBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, Ac
     if (fba < kSFSDirectBlockPointersCount) {
         LogicalBlockAddress dat_lba = UInt32_BigToHost(bmap->direct[fba]);
 
-        return acquire_disk_block(fs, dat_lba, mode, &bmap->direct[fba], blk);
+        return map_disk_block(fs, dat_lba, mode, &bmap->direct[fba], blk);
     }
     fba -= kSFSDirectBlockPointersCount;
 
@@ -144,20 +146,20 @@ errno_t SfsFile_AcquireBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, Ac
         LogicalBlockAddress i0_lba = UInt32_BigToHost(bmap->indirect);
 
         // Get the indirect block
-        try(acquire_disk_block(fs, i0_lba, kAcquireBlock_Update, &bmap->indirect, &i0_block));
+        try(map_disk_block(fs, i0_lba, kAcquireBlock_Update, &bmap->indirect, &i0_block));
 
 
         // Get the data block
         sfs_bno_t* i0_bmap = (sfs_bno_t*)i0_block.data;
         LogicalBlockAddress dat_lba = UInt32_BigToHost(i0_bmap[fba]);
 
-        err = acquire_disk_block(fs, dat_lba, mode, &i0_bmap[fba], blk);
+        err = map_disk_block(fs, dat_lba, mode, &i0_bmap[fba], blk);
         
         if (blk->wasAlloced) {
-            FSContainer_RelinquishBlockWriting(fsContainer, i0_block.block, kWriteBlock_Deferred);
+            FSContainer_UnmapBlockWriting(fsContainer, i0_block.token, kWriteBlock_Deferred);
         }
         else {
-            FSContainer_RelinquishBlock(fsContainer, i0_block.block);
+            FSContainer_UnmapBlock(fsContainer, i0_block.token);
         }
 
         return err;
@@ -208,13 +210,13 @@ bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
     const size_t bn_first_i0_to_discard = (bn_first_to_discard < kSFSDirectBlockPointersCount) ? 0 : bn_first_to_discard - kSFSDirectBlockPointersCount;
     const bool is_i0_update = (bn_first_i0_to_discard > 0) ? true : false;
     const LogicalBlockAddress i0_lba = UInt32_BigToHost(bmap->indirect);
+    FSBlock blk = {0};
 
     if (i0_lba > 0) {
-        DiskBlockRef pBlock;
-
-        err = FSContainer_AcquireBlock(fsContainer, i0_lba, (is_i0_update) ? kAcquireBlock_Update : kAcquireBlock_ReadOnly, &pBlock);
+        err = FSContainer_MapBlock(fsContainer, i0_lba, (is_i0_update) ? kAcquireBlock_Update : kAcquireBlock_ReadOnly, &blk);
+        
         if (err == EOK) {
-            sfs_bno_t* i0_bmap = (sfs_bno_t*)DiskBlock_GetMutableData(pBlock);
+            sfs_bno_t* i0_bmap = (sfs_bno_t*)blk.data;
 
             for (size_t bn = bn_first_i0_to_discard; bn < fs->indirectBlockEntryCount; bn++) {
                 if (i0_bmap[bn] > 0) {
@@ -226,11 +228,11 @@ bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
 
             if (is_i0_update) {
                 // We removed some of the i0 blocks
-                FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Deferred);
+                FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
             }
             else {
                 // We abandoned all of the i0 level
-                FSContainer_RelinquishBlock(fsContainer, pBlock);
+                FSContainer_UnmapBlock(fsContainer, blk.token);
                 bmap->indirect = 0;
                 didTrim = true;
             }

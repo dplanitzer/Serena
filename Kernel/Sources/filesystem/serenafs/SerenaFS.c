@@ -39,7 +39,7 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     FSContainerInfo diskinf;
-    DiskBlockRef pRootBlock = NULL;
+    FSBlock blk = {0};
 
     // Make sure that the disk partition actually contains a SerenaFS that we
     // know how to handle.
@@ -58,8 +58,8 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
 
 
     // Get the FS root block
-    try(FSContainer_AcquireBlock(fsContainer, 0, kAcquireBlock_ReadOnly, &pRootBlock));
-    const sfs_vol_header_t* vhp = (const sfs_vol_header_t*)DiskBlock_GetData(pRootBlock);
+    try(FSContainer_MapBlock(fsContainer, 0, kAcquireBlock_ReadOnly, &blk));
+    const sfs_vol_header_t* vhp = (const sfs_vol_header_t*)blk.data;
     const uint32_t signature = UInt32_BigToHost(vhp->signature);
     const uint32_t version = UInt32_BigToHost(vhp->version);
     const uint32_t blockSize = UInt32_BigToHost(vhp->volBlockSize);
@@ -100,7 +100,7 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
 #endif
 
 catch:
-    FSContainer_RelinquishBlock(fsContainer, pRootBlock);
+    FSContainer_UnmapBlock(fsContainer, blk.token);
 
     return err;
 }
@@ -239,7 +239,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
     if (isMovingDir) {
         sfs_query_t q;
         sfs_query_result_t qr;
-        DiskBlockRef pBlock;
+        FSBlock blk = {0};
 
         q.kind = kSFSQuery_PathComponent;
         q.u.pc = &kPathComponent_Parent;
@@ -247,13 +247,12 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
         q.ih = NULL;
         try(SfsDirectory_Query(pSrcNode, &q, &qr));
 
-        try(FSContainer_AcquireBlock(fsContainer, qr.lba, kAcquireBlock_Update, &pBlock));
+        try(FSContainer_MapBlock(fsContainer, qr.lba, kAcquireBlock_Update, &blk));
 
-        uint8_t* bp = DiskBlock_GetMutableData(pBlock);
-        sfs_dirent_t* dep = (sfs_dirent_t*)(bp + qr.blockOffset);
+        sfs_dirent_t* dep = (sfs_dirent_t*)(blk.data + qr.blockOffset);
         dep->id = Inode_GetId(pDstDir);
 
-        FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Deferred);
+        FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
 
         // Our parent receives a +1 on the link count because of our .. entry
         Inode_Link(pDstDir);
@@ -270,7 +269,7 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSr
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     sfs_query_t q;
     sfs_query_result_t qr;
-    DiskBlockRef pBlock;
+    FSBlock blk = {0};
 
     if (pNewName->count > kSFSMaxFilenameLength) {
         return ENAMETOOLONG;
@@ -282,15 +281,14 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSr
     q.ih = NULL;
     try(SfsDirectory_Query(pSrcDir, &q, &qr));
 
-    try(FSContainer_AcquireBlock(fsContainer, qr.lba, kAcquireBlock_Update, &pBlock));
+    try(FSContainer_MapBlock(fsContainer, qr.lba, kAcquireBlock_Update, &blk));
 
-    uint8_t* bp = DiskBlock_GetMutableData(pBlock);
-    sfs_dirent_t* dep = (sfs_dirent_t*)(bp + qr.blockOffset);
+    sfs_dirent_t* dep = (sfs_dirent_t*)(blk.data + qr.blockOffset);
     memset(dep->filename, 0, kSFSMaxFilenameLength);
     memcpy(dep->filename, pNewName->name, pNewName->count);
     dep->len = pNewName->count;
 
-    FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Deferred);
+    FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
 
 catch:
     return err;

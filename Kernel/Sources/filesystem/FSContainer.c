@@ -28,21 +28,27 @@ errno_t FSContainer_syncBlock(FSContainerRef _Nonnull self, LogicalBlockAddress 
     return EOK;
 }
 
-errno_t FSContainer_acquireEmptyBlock(FSContainerRef self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+errno_t FSContainer_mapEmptyBlock(FSContainerRef self, FSBlock* _Nonnull blk)
 {
+    blk->token = 0;
+    blk->data = NULL;
+
     return EIO;
 }
 
-errno_t FSContainer_acquireBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+errno_t FSContainer_mapBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, FSBlock* _Nonnull blk)
 {
+    blk->token = 0;
+    blk->data = NULL;
+
     return EIO;
 }
 
-void FSContainer_relinquishBlock(FSContainerRef _Nonnull self, DiskBlockRef _Nullable pBlock)
+void FSContainer_unmapBlock(FSContainerRef _Nonnull self, intptr_t token)
 {
 }
 
-errno_t FSContainer_relinquishBlockWriting(FSContainerRef _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
+errno_t FSContainer_unmapBlockWriting(FSContainerRef _Nonnull self, intptr_t token, WriteBlock mode)
 {
     return EIO;
 }
@@ -57,9 +63,9 @@ class_func_defs(FSContainer, Object,
 func_def(getInfo, FSContainer)
 func_def(prefetchBlock, FSContainer)
 func_def(syncBlock, FSContainer)
-func_def(acquireEmptyBlock, FSContainer)
-func_def(acquireBlock, FSContainer)
-func_def(relinquishBlock, FSContainer)
-func_def(relinquishBlockWriting, FSContainer)
+func_def(mapEmptyBlock, FSContainer)
+func_def(mapBlock, FSContainer)
+func_def(unmapBlock, FSContainer)
+func_def(unmapBlockWriting, FSContainer)
 func_def(sync, FSContainer)
 );
