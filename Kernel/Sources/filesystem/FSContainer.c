@@ -28,14 +28,6 @@ errno_t FSContainer_syncBlock(FSContainerRef _Nonnull self, LogicalBlockAddress 
     return EOK;
 }
 
-errno_t FSContainer_mapEmptyBlock(FSContainerRef self, FSBlock* _Nonnull blk)
-{
-    blk->token = 0;
-    blk->data = NULL;
-
-    return EIO;
-}
-
 errno_t FSContainer_mapBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
     blk->token = 0;
@@ -63,7 +55,6 @@ class_func_defs(FSContainer, Object,
 func_def(getInfo, FSContainer)
 func_def(prefetchBlock, FSContainer)
 func_def(syncBlock, FSContainer)
-func_def(mapEmptyBlock, FSContainer)
 func_def(mapBlock, FSContainer)
 func_def(unmapBlock, FSContainer)
 func_def(unmapBlockWriting, FSContainer)

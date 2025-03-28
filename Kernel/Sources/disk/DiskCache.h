@@ -33,7 +33,6 @@ extern errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, Disk
 extern errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba);
 extern errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba);
 
-extern errno_t DiskCache_MapEmptyBlock(DiskCacheRef _Nonnull self, FSBlock* _Nonnull blk);
 extern errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk);
 
 extern void DiskCache_UnmapBlock(DiskCacheRef _Nonnull self, intptr_t token);

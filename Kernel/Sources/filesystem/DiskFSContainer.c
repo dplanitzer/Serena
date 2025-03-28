@@ -72,11 +72,6 @@ errno_t DiskFSContainer_syncBlock(struct DiskFSContainer* _Nonnull self, Logical
     return DiskCache_SyncBlock(gDiskCache, self->disk, self->mediaId, lba);
 }
 
-errno_t DiskFSContainer_mapEmptyBlock(struct DiskFSContainer* self, FSBlock* _Nonnull blk)
-{
-    return DiskCache_MapEmptyBlock(gDiskCache, blk);
-}
-
 errno_t DiskFSContainer_mapBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
     return DiskCache_MapBlock(gDiskCache, self->disk, self->mediaId, lba, mode, blk);
@@ -103,7 +98,6 @@ override_func_def(deinit, DiskFSContainer, Object)
 override_func_def(getInfo, DiskFSContainer, FSContainer)
 override_func_def(prefetchBlock, DiskFSContainer, FSContainer)
 override_func_def(syncBlock, DiskFSContainer, FSContainer)
-override_func_def(mapEmptyBlock, DiskFSContainer, FSContainer)
 override_func_def(mapBlock, DiskFSContainer, FSContainer)
 override_func_def(unmapBlock, DiskFSContainer, FSContainer)
 override_func_def(unmapBlockWriting, DiskFSContainer, FSContainer)

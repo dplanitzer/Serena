@@ -43,10 +43,6 @@ open_class_funcs(FSContainer, Object,
     // clean.
     errno_t (*syncBlock)(void* _Nonnull self, LogicalBlockAddress lba);
 
-    // Acquires an empty block, filled with zero bytes. This block is not attached
-    // to any disk address and thus may not be written back to disk.
-    errno_t (*mapEmptyBlock)(void* _Nonnull self, FSBlock* _Nonnull blk);
-
     // Acquires the disk block with the block address 'lba'. The acquisition is
     // done according to the acquisition mode 'mode'. An error is returned if
     // the disk block needed to be loaded and loading failed for some reason.
@@ -80,9 +76,6 @@ invoke_n(prefetchBlock, FSContainer, __self, __driverId, __mediaId, __lba)
 #define FSContainer_SyncBlock(__self, __driverId, __mediaId, __lba) \
 invoke_n(syncBlock, FSContainer, __self, __driverId, __mediaId, __lba)
 
-
-#define FSContainer_MapEmptyBlock(__self, __blk) \
-invoke_n(mapEmptyBlock, FSContainer, __self, __blk)
 
 #define FSContainer_MapBlock(__self, __lba, __mode, __blk) \
 invoke_n(mapBlock, FSContainer, __self, __lba, __mode, __blk)

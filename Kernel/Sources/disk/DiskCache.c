@@ -25,7 +25,6 @@ errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRe
     
     try(kalloc_cleared(sizeof(DiskCache), (void**) &self));
     try(DispatchQueue_Create(0, 1, kDispatchQoS_Background, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->autoSyncQueue));
-    try(DiskBlock_Create(NULL, kMediaId_None, 0, &self->emptyBlock));
 
     Lock_Init(&self->interlock);
     ConditionVariable_Init(&self->condition);
@@ -314,9 +313,7 @@ static void _DiskCache_PutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef
         assert(pBlock->flags.op == kDiskBlockOp_Idle);
 
         // Wake the wait() in _DiskBlock_Get() if this isn't the (singleton) empty block
-        if (pBlock != self->emptyBlock) {
-            ConditionVariable_Broadcast(&self->condition);
-        }
+        ConditionVariable_Broadcast(&self->condition);
     }
 }
 
@@ -481,26 +478,6 @@ errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull d
     return err;
 }
 
-// Maps an empty read-only block (all data is zero).
-errno_t DiskCache_MapEmptyBlock(DiskCacheRef _Nonnull self, FSBlock* _Nonnull blk)
-{
-    decl_try_err();
-
-    Lock_Lock(&self->interlock);    
-    err = _DiskCache_LockBlockContent(self, self->emptyBlock, kLockMode_Shared);
-    if (err == EOK) {
-        blk->token = (intptr_t)self->emptyBlock;
-        blk->data = DiskBlock_GetMutableData(self->emptyBlock);
-    }
-    else {
-        blk->token = 0;
-        blk->data = NULL;
-    }
-    Lock_Unlock(&self->interlock);
-
-    return err;
-}
-
 errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
     decl_try_err();
@@ -615,10 +592,6 @@ errno_t DiskCache_UnmapBlockWriting(DiskCacheRef _Nonnull self, intptr_t token, 
 
     if (pBlock == NULL) {
         return EOK;
-    }
-    if (pBlock == self->emptyBlock) {
-        // The empty block is for reading only
-        abort();
     }
 #if defined(__FORCE_WRITES_SYNC)
     mode = kWriteBlock_Sync;

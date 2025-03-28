@@ -27,7 +27,7 @@ typedef enum DiskBlockOp {
 typedef struct DiskBlock {
     ListNode                        hashNode;           // Protected by Interlock
     ListNode                        lruNode;            // Protected by Interlock
-    DiskDriverRef _Nullable _Weak   disk;               // Protected by Interlock. Address by which a block is identified in the cache
+    DiskDriverRef _Nonnull _Weak    disk;               // Protected by Interlock. Address by which a block is identified in the cache
     MediaId                         mediaId;            // Protected by Interlock. Address by which a block is identified in the cache
     LogicalBlockAddress             lba;                // Protected by Interlock. Address by which a block is identified in the cache
     int                             shareCount;         // Protected by Interlock
@@ -62,7 +62,7 @@ typedef struct DiskBlock {
 // Kernel internal functions
 //
 
-extern errno_t DiskBlock_Create(DiskDriverRef _Nullable _Weak disk, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DiskBlock_Create(DiskDriverRef _Nonnull _Weak disk, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf);
 extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
 
 #define DiskBlock_InUse(__self) \

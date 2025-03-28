@@ -12,7 +12,7 @@
 #define BLOCK_SIZE  512
 
 
-errno_t DiskBlock_Create(DiskDriverRef _Nullable _Weak disk, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskBlock_Create(DiskDriverRef _Nonnull _Weak disk, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskBlock* self;

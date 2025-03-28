@@ -25,7 +25,6 @@ errno_t RamFSContainer_Create(const DiskImageFormat* _Nonnull format, RamFSConta
 
     try(Object_Create(class(RamFSContainer), 0, (void**)&self));
     try(FSAllocateCleared(format->blocksPerDisk * format->blockSize, (void**)&self->diskImage));
-    try(FSAllocateCleared(format->blockSize, (void**)&self->emptyBlock));
     try(FSAllocateCleared(format->blocksPerDisk, (void**)&self->mappedFlags));
     self->blockSize = format->blockSize;
     self->blockShift = FSLog2(self->blockSize);
@@ -83,9 +82,6 @@ void RamFSContainer_deinit(RamFSContainerRef _Nonnull self)
     FSDeallocate(self->mappedFlags);
     self->mappedFlags = NULL;
 
-    FSDeallocate(self->emptyBlock);
-    self->emptyBlock = NULL;
-
     FSDeallocate(self->diskImage);
     self->diskImage = NULL;
 }
@@ -95,14 +91,6 @@ errno_t RamFSContainer_getInfo(RamFSContainerRef _Nonnull self, FSContainerInfo*
     pOutInfo->blockSize = self->blockSize;
     pOutInfo->blockCount = self->blockCount;
     pOutInfo->isReadOnly = false;
-
-    return EOK;
-}
-
-errno_t RamFSContainer_mapEmptyBlock(RamFSContainerRef self, FSBlock* _Nonnull blk)
-{
-    blk->token = 0;
-    blk->data = self->emptyBlock;
 
     return EOK;
 }
@@ -395,7 +383,6 @@ catch:
 class_func_defs(RamFSContainer, FSContainer,
 override_func_def(deinit, RamFSContainer, Object)
 override_func_def(getInfo, RamFSContainer, FSContainer)
-override_func_def(mapEmptyBlock, RamFSContainer, FSContainer)
 override_func_def(mapBlock, RamFSContainer, FSContainer)
 override_func_def(unmapBlockWriting, RamFSContainer, FSContainer)
 override_func_def(unmapBlock, RamFSContainer, FSContainer)

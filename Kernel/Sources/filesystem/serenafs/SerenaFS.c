@@ -30,6 +30,9 @@ catch:
 
 void SerenaFS_deinit(SerenaFSRef _Nonnull self)
 {
+    FSDeallocate(self->emptyReadOnlyBlock);
+    self->emptyReadOnlyBlock = NULL;
+    
     Lock_Deinit(&self->moveLock);
     SfsAllocator_Deinit(&self->blockAllocator);
 }
@@ -72,6 +75,10 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
     }
 
 
+    // Allocate an empty read-only block for zero-fill reads
+    try(FSAllocateCleared(blockSize, (void**)&self->emptyReadOnlyBlock));
+
+    
     // Get the root directory id
     pOutProps->rootDirectoryId = (ino_t) UInt32_BigToHost(vhp->lbaRootDir);
     pOutProps->isReadOnly = false;

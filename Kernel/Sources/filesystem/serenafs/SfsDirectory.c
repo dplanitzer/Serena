@@ -23,7 +23,6 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
-    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     off_t offset = IOChannel_GetOffset(ch);
     DirectoryEntry* dp = buf;
     ssize_t nSrcBytesRead = 0;
@@ -86,7 +85,7 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
             nSrcBytesRead += sizeof(sfs_dirent_t);
             sp++;
         }
-        FSContainer_UnmapBlock(fsContainer, blk.token);
+        SfsFile_UnmapBlock((SfsFileRef)self, &blk);
 
         blockOffset = 0;
         blockIdx++;
@@ -114,7 +113,6 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
-    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     off_t offset = 0ll;
     const off_t fileSize = Inode_GetFileSize(self);
     sfs_bno_t blockIdx = 0;
@@ -200,7 +198,7 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
             offset += sizeof(sfs_dirent_t);
             sp++;
         }
-        FSContainer_UnmapBlock(fsContainer, blk.token);
+        SfsFile_UnmapBlock((SfsFileRef)self, &blk);
 
         blockIdx++;
     }
@@ -272,7 +270,7 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
     dep->len = name->count;
     dep->id = UInt32_HostToBig(Inode_GetId(pChildNode));
 
-    FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
+    SfsFile_UnmapBlockWriting((SfsFileRef)self, &blk, kWriteBlock_Deferred);
 
 
     // Increment the link count of the directory if the child node is itself a

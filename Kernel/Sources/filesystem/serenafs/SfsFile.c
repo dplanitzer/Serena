@@ -82,40 +82,50 @@ void SfsFile_ConvertOffset(SfsFileRef _Nonnull _Locked self, off_t offset, sfs_b
 // Maps the disk block 'lba' if lba is > 0; otherwise allocates a new block.
 // The new block is for read-only if read-only 'mode' is requested and it is
 // suitable for writing back to disk if 'mode' is a replace/update mode.
-static errno_t map_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress lba, MapBlock mode, sfs_bno_t* _Nonnull pOutOnDiskLba, SfsFileBlock* _Nonnull blk)
+static errno_t map_disk_block(SerenaFSRef _Nonnull fs, LogicalBlockAddress lba, MapBlock mode, sfs_bno_t* _Nonnull pOutOnDiskLba, SfsFileBlock* _Nonnull blk)
 {
     decl_try_err();
-    FSContainerRef fsContainer = Filesystem_GetContainer(self);
+    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     FSBlock fsblk;
 
     blk->token = 0;
     blk->data = NULL;
     blk->lba = lba;
     blk->wasAlloced = false;
+    blk->isZeroFill = false;
 
     if (lba > 0) {
         err = FSContainer_MapBlock(fsContainer, lba, mode, &fsblk);
+        if (err == EOK) {
+            blk->token = fsblk.token;
+            blk->data = fsblk.data;    
+        }
     }
     else {
         if (mode == kMapBlock_ReadOnly) {
-            err = FSContainer_MapEmptyBlock(fsContainer, &fsblk);
+            blk->token = 0;
+            blk->data = fs->emptyReadOnlyBlock;
+            blk->isZeroFill = true;
+            err = EOK;
         }
         else {
             LogicalBlockAddress new_lba;
 
-            if((err = SfsAllocator_Allocate(&self->blockAllocator, &new_lba)) == EOK) {
-                blk->lba = new_lba;
-                blk->wasAlloced = true;
-                *pOutOnDiskLba = UInt32_HostToBig(new_lba);
-
+            if((err = SfsAllocator_Allocate(&fs->blockAllocator, &new_lba)) == EOK) {
                 err = FSContainer_MapBlock(fsContainer, new_lba, kMapBlock_Cleared, &fsblk);
+                
+                if (err == EOK) {
+                    blk->token = fsblk.token;
+                    blk->data = fsblk.data;
+                    blk->lba = new_lba;
+                    blk->wasAlloced = true;
+                    *pOutOnDiskLba = UInt32_HostToBig(new_lba);    
+                }
+                else {
+                    SfsAllocator_Deallocate(&fs->blockAllocator, new_lba);
+                }
             }
         }
-    }
-
-    if (err == EOK) {
-        blk->token = fsblk.token;
-        blk->data = fsblk.data;
     }
 
     return err;
@@ -169,6 +179,29 @@ errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, MapBlo
 
 catch:
     return err;
+}
+
+void SfsFile_UnmapBlock(SfsFileRef _Nonnull _Locked self, SfsFileBlock* _Nonnull blk)
+{
+    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
+    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
+
+    if (blk->token != 0 && !blk->isZeroFill) {
+        FSContainer_UnmapBlock(fsContainer, blk->token);
+    }
+}
+
+errno_t SfsFile_UnmapBlockWriting(SfsFileRef _Nonnull _Locked self, SfsFileBlock* _Nonnull blk, WriteBlock mode)
+{
+    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
+    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
+
+    if (blk->isZeroFill) {
+        // The empty block is for reading only
+        abort();
+    }
+
+    return FSContainer_UnmapBlockWriting(fsContainer, blk->token, mode);
 }
 
 // Trims (shortens) the size of the file to the new (and smaller) size 'newLength'.
