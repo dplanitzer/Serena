@@ -48,6 +48,11 @@ catch:
     return err;
 }
 
+size_t DiskCache_GetBlockSize(DiskCacheRef _Nonnull self)
+{
+    return kDiskCache_BlockSize;
+}
+
 // Locks the given block's content in shared or exclusive mode. Multiple clients
 // may lock the content of a block in shared mode but at most one client at a
 // time may lock the content of a block in exclusive mode. A block is only
@@ -518,7 +523,7 @@ errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull di
             // We always clear the block data because we don't know whether the
             // data is all zero or not
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
-            memset(pBlock->data, 0, pBlock->flags.byteSize);
+            memset(pBlock->data, 0, kDiskCache_BlockSize);
             pBlock->flags.hasData = 1;
             break;
 

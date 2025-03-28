@@ -9,38 +9,27 @@
 #include "DiskBlock.h"
 #include <klib/Kalloc.h>
 
-#define BLOCK_SIZE  512
-
 
 errno_t DiskBlock_Create(DiskDriverRef _Nonnull _Weak disk, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    DiskBlock* self;
+    DiskBlock* self = NULL;
     
-    try(kalloc_cleared(sizeof(DiskBlock) + BLOCK_SIZE - 1, (void**) &self));
-    ListNode_Init(&self->hashNode);
-    ListNode_Init(&self->lruNode);
-    self->disk = disk;
-    self->mediaId = mediaId;
-    self->lba = lba;
-    self->flags.byteSize = BLOCK_SIZE;
+    err = kalloc_cleared(sizeof(DiskBlock) + kDiskCache_BlockSize - 1, (void**) &self);
+    if (err == EOK) {
+        self->disk = disk;
+        self->mediaId = mediaId;
+        self->lba = lba;
+    }
 
     *pOutSelf = self;
-    return EOK;
-
-catch:
-    DiskBlock_Destroy(self);
-    *pOutSelf = NULL;
     return err;
 }
 
 void DiskBlock_Destroy(DiskBlockRef _Nullable self)
 {
     if (self) {
-        ListNode_Deinit(&self->hashNode);
-        ListNode_Deinit(&self->lruNode);
         self->disk = NULL;
-
         kfree(self);
     }
 }

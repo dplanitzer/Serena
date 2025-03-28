@@ -30,6 +30,9 @@ extern DiskCacheRef _Nonnull  gDiskCache;
 
 extern errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRef _Nullable * _Nonnull pOutSelf);
 
+// Returns the number of bytes that a single block in the disk cache can hold.
+extern size_t DiskCache_GetBlockSize(DiskCacheRef _Nonnull self);
+
 extern errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba);
 extern errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba);
 

@@ -14,6 +14,9 @@
 #include <filesystem/FSBlock.h>
 
 
+#define kDiskCache_BlockSize  512
+
+
 typedef enum DiskBlockOp {
     kDiskBlockOp_Idle = 0,
     kDiskBlockOp_Read = 1,
@@ -32,14 +35,13 @@ typedef struct DiskBlock {
     LogicalBlockAddress             lba;                // Protected by Interlock. Address by which a block is identified in the cache
     int                             shareCount;         // Protected by Interlock
     struct __DiskBlockFlags {
-        unsigned int        byteSize:16;    // Constant value
         unsigned int        exclusive:1;    // Protected by Interlock
         unsigned int        hasData:1;      // Protected by Interlock
         unsigned int        isDirty:1;      // Protected by Interlock
         unsigned int        op:2;           // Protected by Interlock
         unsigned int        async:1;        // Protected by Interlock
         unsigned int        readError:8;    // Read: shared lock; Modify: exclusive lock
-        unsigned int        reserved:2;
+        unsigned int        reserved:18;
     }                               flags;
     uint8_t                         data[1];            // Read: shared lock; Modify: exclusive lock
 } DiskBlock;
@@ -50,9 +52,6 @@ typedef struct DiskBlock {
 
 #define DiskBlock_GetMutableData(__self) \
     (void*)(&(__self)->data[0])
-
-#define DiskBlock_GetByteSize(__self) \
-    (__self)->flags.byteSize
 
 #define DiskBlock_GetOp(__self) \
     (DiskBlockOp)(__self)->flags.op
