@@ -15,8 +15,7 @@
 #include "VolumeFormat.h"
 
 typedef struct SfsFileBlock {
-    intptr_t            token;
-    uint8_t* _Nullable  data;
+    FSBlock             b;
     LogicalBlockAddress lba;
     bool                wasAlloced;
     bool                isZeroFill;

@@ -68,7 +68,7 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
             break;
         }
         
-        const sfs_dirent_t* sp = (const sfs_dirent_t*)(blk.data + blockOffset);
+        const sfs_dirent_t* sp = (const sfs_dirent_t*)(blk.b.data + blockOffset);
         while (nBytesToReadInBlock > 0 && nDstBytesToRead >= sizeof(DirectoryEntry)) {
             if (sp->id > 0) {
                 dp->inid = UInt32_BigToHost(sp->id);
@@ -158,7 +158,7 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
             break;
         }
         
-        const uint8_t* bp = blk.data;
+        const uint8_t* bp = blk.b.data;
         const sfs_dirent_t* sp = (const sfs_dirent_t*)bp;
         const sfs_dirent_t* ep = (const sfs_dirent_t*)(bp + fs->blockSize);
 
@@ -248,8 +248,8 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
         FSBlock fsblk;
 
         try(FSContainer_MapBlock(fsContainer, ih->lba, kMapBlock_Update, &fsblk));
-        blk.token = fsblk.token;
-        blk.data = fsblk.data;
+        blk.b.token = fsblk.token;
+        blk.b.data = fsblk.data;
         blk.lba = ih->lba;
         blk.wasAlloced = false;
         blockOffset = ih->blockOffset;
@@ -263,7 +263,7 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
         Inode_IncrementFileSize(self, sizeof(sfs_dirent_t));
     }
 
-    sfs_dirent_t* dep = (sfs_dirent_t*)(blk.data + blockOffset);
+    sfs_dirent_t* dep = (sfs_dirent_t*)(blk.b.data + blockOffset);
 
     memset(dep->filename, 0, kSFSMaxFilenameLength);
     memcpy(dep->filename, name->name, name->count);

@@ -61,7 +61,7 @@ errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, FileChannel
             break;
         }
         
-        memcpy(dp, blk.data + blockOffset, nBytesToReadInBlock);
+        memcpy(dp, blk.b.data + blockOffset, nBytesToReadInBlock);
         SfsFile_UnmapBlock((SfsFileRef)self, &blk);
 
         nBytesToRead -= nBytesToReadInBlock;
@@ -141,7 +141,7 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
 
         errno_t e1 = SfsFile_MapBlock((SfsFileRef)self, blockIdx, mmode, &blk);
         if (e1 == EOK) {
-            memcpy(blk.data + blockOffset, sp, nBytesToWriteInBlock);
+            memcpy(blk.b.data + blockOffset, sp, nBytesToWriteInBlock);
             e1 = SfsFile_UnmapBlockWriting((SfsFileRef)self, &blk, kWriteBlock_Deferred);
         }
         if (e1 != EOK) {

@@ -86,25 +86,20 @@ static errno_t map_disk_block(SerenaFSRef _Nonnull fs, LogicalBlockAddress lba, 
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
-    FSBlock fsblk;
 
-    blk->token = 0;
-    blk->data = NULL;
+    blk->b.token = 0;
+    blk->b.data = NULL;
     blk->lba = lba;
     blk->wasAlloced = false;
     blk->isZeroFill = false;
 
     if (lba > 0) {
-        err = FSContainer_MapBlock(fsContainer, lba, mode, &fsblk);
-        if (err == EOK) {
-            blk->token = fsblk.token;
-            blk->data = fsblk.data;    
-        }
+        err = FSContainer_MapBlock(fsContainer, lba, mode, &blk->b);
     }
     else {
         if (mode == kMapBlock_ReadOnly) {
-            blk->token = 0;
-            blk->data = fs->emptyReadOnlyBlock;
+            blk->b.token = 0;
+            blk->b.data = fs->emptyReadOnlyBlock;
             blk->isZeroFill = true;
             err = EOK;
         }
@@ -112,11 +107,9 @@ static errno_t map_disk_block(SerenaFSRef _Nonnull fs, LogicalBlockAddress lba, 
             LogicalBlockAddress new_lba;
 
             if((err = SfsAllocator_Allocate(&fs->blockAllocator, &new_lba)) == EOK) {
-                err = FSContainer_MapBlock(fsContainer, new_lba, kMapBlock_Cleared, &fsblk);
+                err = FSContainer_MapBlock(fsContainer, new_lba, kMapBlock_Cleared, &blk->b);
                 
                 if (err == EOK) {
-                    blk->token = fsblk.token;
-                    blk->data = fsblk.data;
                     blk->lba = new_lba;
                     blk->wasAlloced = true;
                     *pOutOnDiskLba = UInt32_HostToBig(new_lba);    
@@ -160,16 +153,16 @@ errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, MapBlo
 
 
         // Get the data block
-        sfs_bno_t* i0_bmap = (sfs_bno_t*)i0_block.data;
+        sfs_bno_t* i0_bmap = (sfs_bno_t*)i0_block.b.data;
         LogicalBlockAddress dat_lba = UInt32_BigToHost(i0_bmap[fba]);
 
         err = map_disk_block(fs, dat_lba, mode, &i0_bmap[fba], blk);
         
         if (blk->wasAlloced) {
-            FSContainer_UnmapBlockWriting(fsContainer, i0_block.token, kWriteBlock_Deferred);
+            FSContainer_UnmapBlockWriting(fsContainer, i0_block.b.token, kWriteBlock_Deferred);
         }
         else {
-            FSContainer_UnmapBlock(fsContainer, i0_block.token);
+            FSContainer_UnmapBlock(fsContainer, i0_block.b.token);
         }
 
         return err;
@@ -186,8 +179,8 @@ void SfsFile_UnmapBlock(SfsFileRef _Nonnull _Locked self, SfsFileBlock* _Nonnull
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
 
-    if (blk->token != 0 && !blk->isZeroFill) {
-        FSContainer_UnmapBlock(fsContainer, blk->token);
+    if (blk->b.token != 0 && !blk->isZeroFill) {
+        FSContainer_UnmapBlock(fsContainer, blk->b.token);
     }
 }
 
@@ -201,7 +194,7 @@ errno_t SfsFile_UnmapBlockWriting(SfsFileRef _Nonnull _Locked self, SfsFileBlock
         abort();
     }
 
-    return FSContainer_UnmapBlockWriting(fsContainer, blk->token, mode);
+    return FSContainer_UnmapBlockWriting(fsContainer, blk->b.token, mode);
 }
 
 // Trims (shortens) the size of the file to the new (and smaller) size 'newLength'.
