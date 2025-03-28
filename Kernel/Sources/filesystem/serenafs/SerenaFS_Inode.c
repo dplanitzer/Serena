@@ -33,7 +33,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
         // entries
         try(SfsAllocator_Allocate(&self->blockAllocator, &dirContLba));
 
-        try(FSContainer_MapBlock(fsContainer, dirContLba, kAcquireBlock_Cleared, &blk));
+        try(FSContainer_MapBlock(fsContainer, dirContLba, kMapBlock_Cleared, &blk));
         sfs_dirent_t* dep = (sfs_dirent_t*)blk.data;
         dep[0].id = UInt32_HostToBig(inodeLba);
         dep[0].len = 1;
@@ -49,7 +49,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     }
 
 
-    try(FSContainer_MapBlock(fsContainer, inodeLba, kAcquireBlock_Cleared, &blk));
+    try(FSContainer_MapBlock(fsContainer, inodeLba, kMapBlock_Cleared, &blk));
     sfs_inode_t* ip = (sfs_inode_t*)blk.data;
     ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
     ip->id = UInt32_HostToBig(inodeLba);
@@ -111,7 +111,7 @@ errno_t SerenaFS_onAcquireNode(SerenaFSRef _Nonnull self, ino_t id, InodeRef _Nu
     InodeRef pNode = NULL;
     FSBlock blk = {0};
 
-    try(FSContainer_MapBlock(fsContainer, lba, kAcquireBlock_ReadOnly, &blk));
+    try(FSContainer_MapBlock(fsContainer, lba, kMapBlock_ReadOnly, &blk));
     
     const sfs_inode_t* ip = (const sfs_inode_t*)blk.data;
     if (UInt32_BigToHost(ip->signature) != kSFSSignature_Inode || UInt32_BigToHost(ip->id) != id) {
@@ -156,7 +156,7 @@ errno_t SerenaFS_onWritebackNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _L
 
 
     // Write the inode meta-data back to disk
-    const errno_t err = FSContainer_MapBlock(fsContainer, lba, kAcquireBlock_Replace, &blk);
+    const errno_t err = FSContainer_MapBlock(fsContainer, lba, kMapBlock_Replace, &blk);
     if (err == EOK) {
         SfsFile_Serialize(pNode, (sfs_inode_t*)blk.data);
         FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);

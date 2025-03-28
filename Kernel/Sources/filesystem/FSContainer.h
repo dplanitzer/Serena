@@ -11,7 +11,7 @@
 
 #include <klib/klib.h>
 #include <kobj/Object.h>
-#include <disk/DiskBlock.h>
+#include <filesystem/FSBlock.h>
 
 
 typedef struct FSContainerInfo {
@@ -19,12 +19,6 @@ typedef struct FSContainerInfo {
     LogicalBlockCount   blockCount;         // overall number of addressable blocks in this FSContainer
     bool                isReadOnly;         // true if all the data in the FSContainer is hardware write protected 
 } FSContainerInfo;
-
-
-typedef struct FSBlock {
-    intptr_t            token;
-    uint8_t* _Nullable  data;
-} FSBlock;
 
 
 // A filesystem container provides access to the data on a mass storage device
@@ -58,7 +52,7 @@ open_class_funcs(FSContainer, Object,
     // the disk block needed to be loaded and loading failed for some reason.
     // Once done with the block, it must be relinquished by calling the
     // relinquishBlock() method.
-    errno_t (*mapBlock)(void* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, FSBlock* _Nonnull blk);
+    errno_t (*mapBlock)(void* _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk);
 
     // Relinquishes the disk block 'pBlock' without writing it back to disk.
     void (*unmapBlock)(void* _Nonnull self, intptr_t token);

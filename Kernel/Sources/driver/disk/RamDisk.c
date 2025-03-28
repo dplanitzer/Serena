@@ -7,6 +7,7 @@
 //
 
 #include "RamDisk.h"
+#include <disk/DiskBlock.h>
 
 
 typedef struct DiskExtent {

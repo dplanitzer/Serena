@@ -61,9 +61,9 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
     while (nSrcBytesToRead > 0 && nDstBytesToRead >= sizeof(DirectoryEntry)) {
         const ssize_t nRemainderBlockSize = fs->blockAllocator.blockSize - blockOffset;
         ssize_t nBytesToReadInBlock = (nSrcBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nSrcBytesToRead;
-        sfs_mapblk_t blk;
+        SfsFileBlock blk;
 
-        const errno_t e1 = SfsFile_MapBlock((SfsFileRef)self, blockIdx, kAcquireBlock_ReadOnly, &blk);
+        const errno_t e1 = SfsFile_MapBlock((SfsFileRef)self, blockIdx, kMapBlock_ReadOnly, &blk);
         if (e1 != EOK) {
             err = (nSrcBytesRead == 0) ? e1 : EOK;
             break;
@@ -153,9 +153,9 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
     // Iterate through a contiguous sequence of blocks until we find the desired
     // directory entry.
     while (!done && offset < fileSize) {
-        sfs_mapblk_t blk;
+        SfsFileBlock blk;
         
-        err = SfsFile_MapBlock((SfsFileRef)self, blockIdx, kAcquireBlock_ReadOnly, &blk);
+        err = SfsFile_MapBlock((SfsFileRef)self, blockIdx, kMapBlock_ReadOnly, &blk);
         if (err != EOK) {
             break;
         }
@@ -244,12 +244,12 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
     ssize_t blockOffset;
-    sfs_mapblk_t blk;
+    SfsFileBlock blk;
 
     if (ih && ih->lba > 0) {
         FSBlock fsblk;
 
-        try(FSContainer_MapBlock(fsContainer, ih->lba, kAcquireBlock_Update, &fsblk));
+        try(FSContainer_MapBlock(fsContainer, ih->lba, kMapBlock_Update, &fsblk));
         blk.token = fsblk.token;
         blk.data = fsblk.data;
         blk.lba = ih->lba;
@@ -260,7 +260,7 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
         sfs_bno_t fba;
 
         SfsFile_ConvertOffset((SfsFileRef)self, Inode_GetFileSize(self), &fba, &blockOffset);
-        try(SfsFile_MapBlock((SfsFileRef)self, fba, kAcquireBlock_Update, &blk));
+        try(SfsFile_MapBlock((SfsFileRef)self, fba, kMapBlock_Update, &blk));
         try(SfsAllocator_CommitToDisk(&fs->blockAllocator, fsContainer));
         Inode_IncrementFileSize(self, sizeof(sfs_dirent_t));
     }
@@ -304,7 +304,7 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeRef _Nonnu
     q.ih = NULL;
     try(SfsDirectory_Query(self, &q, &qr));
 
-    try(FSContainer_MapBlock(fsContainer, qr.lba, kAcquireBlock_Update, &blk));
+    try(FSContainer_MapBlock(fsContainer, qr.lba, kMapBlock_Update, &blk));
     sfs_dirent_t* dep = (sfs_dirent_t*)(blk.data + qr.blockOffset);
     memset(dep, 0, sizeof(sfs_dirent_t));
     FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);

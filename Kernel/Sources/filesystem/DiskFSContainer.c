@@ -74,12 +74,12 @@ errno_t DiskFSContainer_syncBlock(struct DiskFSContainer* _Nonnull self, Logical
 
 errno_t DiskFSContainer_mapEmptyBlock(struct DiskFSContainer* self, FSBlock* _Nonnull blk)
 {
-    return DiskCache_MapEmptyBlock(gDiskCache, (diskblock_t*)blk);
+    return DiskCache_MapEmptyBlock(gDiskCache, blk);
 }
 
-errno_t DiskFSContainer_mapBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, FSBlock* _Nonnull blk)
+errno_t DiskFSContainer_mapBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
-    return DiskCache_MapBlock(gDiskCache, self->disk, self->mediaId, lba, mode, (diskblock_t*)blk);
+    return DiskCache_MapBlock(gDiskCache, self->disk, self->mediaId, lba, mode, blk);
 }
 
 void DiskFSContainer_unmapBlock(struct DiskFSContainer* _Nonnull self, intptr_t token)

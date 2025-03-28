@@ -482,7 +482,7 @@ errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull d
 }
 
 // Maps an empty read-only block (all data is zero).
-errno_t DiskCache_MapEmptyBlock(DiskCacheRef _Nonnull self, diskblock_t* _Nonnull blk)
+errno_t DiskCache_MapEmptyBlock(DiskCacheRef _Nonnull self, FSBlock* _Nonnull blk)
 {
     decl_try_err();
 
@@ -501,7 +501,7 @@ errno_t DiskCache_MapEmptyBlock(DiskCacheRef _Nonnull self, diskblock_t* _Nonnul
     return err;
 }
 
-errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, diskblock_t* _Nonnull blk)
+errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
@@ -527,7 +527,7 @@ errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull di
         return err;
     }
 
-    const LockMode lockMode = (mode == kAcquireBlock_ReadOnly && pBlock->flags.hasData) ? kLockMode_Shared : kLockMode_Exclusive;
+    const LockMode lockMode = (mode == kMapBlock_ReadOnly && pBlock->flags.hasData) ? kLockMode_Shared : kLockMode_Exclusive;
     err = _DiskCache_LockBlockContent(self, pBlock, lockMode);
     if (err != EOK) {
         _DiskCache_PutBlock(self, pBlock);
@@ -537,7 +537,7 @@ errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull di
 
 
     switch (mode) {
-        case kAcquireBlock_Cleared:
+        case kMapBlock_Cleared:
             // We always clear the block data because we don't know whether the
             // data is all zero or not
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
@@ -545,14 +545,14 @@ errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull di
             pBlock->flags.hasData = 1;
             break;
 
-        case kAcquireBlock_Replace:
+        case kMapBlock_Replace:
             // Caller accepts whatever is currently in the buffer since it's
             // going to replace every byte anyway.
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
             pBlock->flags.hasData = 1;
             break;
 
-        case kAcquireBlock_Update:
+        case kMapBlock_Update:
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
             if (!pBlock->flags.hasData) {
                 err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, true);
@@ -562,7 +562,7 @@ errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull di
             }
             break;
 
-        case kAcquireBlock_ReadOnly:
+        case kMapBlock_ReadOnly:
             if (!pBlock->flags.hasData) {
                 ASSERT_LOCKED_EXCLUSIVE(pBlock);
 

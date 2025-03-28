@@ -36,7 +36,7 @@ errno_t FSContainer_mapEmptyBlock(FSContainerRef self, FSBlock* _Nonnull blk)
     return EIO;
 }
 
-errno_t FSContainer_mapBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, FSBlock* _Nonnull blk)
+errno_t FSContainer_mapBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
     blk->token = 0;
     blk->data = NULL;

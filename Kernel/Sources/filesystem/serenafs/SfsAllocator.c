@@ -49,7 +49,7 @@ errno_t SfsAllocator_Start(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull 
     for (LogicalBlockAddress lba = 0; lba < self->bitmapBlockCount; lba++) {
         const size_t nBytesToCopy = __min(blockSize, allocBitmapByteSize);
 
-        try(FSContainer_MapBlock(fsContainer, self->bitmapLba + lba, kAcquireBlock_ReadOnly, &blk));
+        try(FSContainer_MapBlock(fsContainer, self->bitmapLba + lba, kMapBlock_ReadOnly, &blk));
         memcpy(pAllocBitmap, blk.data, nBytesToCopy);
         FSContainer_UnmapBlock(fsContainer, blk.token);
         blk.token = 0;
@@ -155,7 +155,7 @@ errno_t SfsAllocator_CommitToDisk(SfsAllocator* _Nonnull self, FSContainerRef _N
             const LogicalBlockAddress allocationBitmapBlockLba = self->bitmapLba + i;
             const uint8_t* pBitmapData = &self->bitmap[i * self->blockSize];
 
-            if ((err = FSContainer_MapBlock(fsContainer, allocationBitmapBlockLba, kAcquireBlock_Cleared, &blk)) == EOK) {
+            if ((err = FSContainer_MapBlock(fsContainer, allocationBitmapBlockLba, kMapBlock_Cleared, &blk)) == EOK) {
                 memcpy(blk.data, pBitmapData, self->bitmapByteSize);
                 FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
             }

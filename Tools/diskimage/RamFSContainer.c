@@ -107,7 +107,7 @@ errno_t RamFSContainer_mapEmptyBlock(RamFSContainerRef self, FSBlock* _Nonnull b
     return EOK;
 }
 
-errno_t RamFSContainer_mapBlock(struct RamFSContainer* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, FSBlock* _Nonnull blk)
+errno_t RamFSContainer_mapBlock(struct RamFSContainer* _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
     decl_try_err();
 
@@ -117,10 +117,10 @@ errno_t RamFSContainer_mapBlock(struct RamFSContainer* _Nonnull self, LogicalBlo
     }
 
     switch (mode) {
-        case kAcquireBlock_ReadOnly:
-        case kAcquireBlock_Update:
-        case kAcquireBlock_Replace:
-        case kAcquireBlock_Cleared:
+        case kMapBlock_ReadOnly:
+        case kMapBlock_Update:
+        case kMapBlock_Replace:
+        case kMapBlock_Cleared:
             if (lba < self->blockCount) {
                 blk->token = lba + 1;
                 blk->data = &self->diskImage[lba << self->blockShift];
@@ -136,7 +136,7 @@ errno_t RamFSContainer_mapBlock(struct RamFSContainer* _Nonnull self, LogicalBlo
     }
 
     if (err == EOK) {
-        if (mode == kAcquireBlock_Cleared) {
+        if (mode == kMapBlock_Cleared) {
             memset(blk->data, 0, self->blockSize);
         }
 
@@ -247,7 +247,7 @@ errno_t RamFSContainer_Read(RamFSContainerRef _Nonnull self, void* _Nonnull buf,
         const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
         FSBlock blk = {0};
 
-        errno_t e1 = FSContainer_MapBlock(self, blockIdx, kAcquireBlock_ReadOnly, &blk);
+        errno_t e1 = FSContainer_MapBlock(self, blockIdx, kMapBlock_ReadOnly, &blk);
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
             break;
@@ -316,10 +316,10 @@ errno_t RamFSContainer_Write(RamFSContainerRef _Nonnull self, const void* _Nonnu
     while (nBytesToWrite > 0) {
         const ssize_t nRemainderBlockSize = (ssize_t)self->blockSize - blockOffset;
         const ssize_t nBytesToWriteInBlock = (nBytesToWrite > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToWrite;
-        AcquireBlock acquireMode = (nBytesToWriteInBlock == (ssize_t)self->blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
+        MapBlock mmode = (nBytesToWriteInBlock == (ssize_t)self->blockSize) ? kMapBlock_Replace : kMapBlock_Update;
         FSBlock blk = {0};
 
-        errno_t e1 = FSContainer_MapBlock(self, blockIdx, acquireMode, &blk);
+        errno_t e1 = FSContainer_MapBlock(self, blockIdx, mmode, &blk);
         if (e1 == EOK) {
             memcpy(blk.data + blockOffset, sp, nBytesToWriteInBlock);
             e1 = FSContainer_UnmapBlockWriting(self, blk.token, kWriteBlock_Sync);

@@ -88,7 +88,6 @@ KERNEL_DIR := ../Kernel/Sources
 KERNEL_C_SOURCES += $(KERNEL_DIR)/klib/Array.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/klib/Hash.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/klib/List.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/disk/DiskBlock.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/FileHierarchy.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/FileManager_Directory.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/FileManager_File.c

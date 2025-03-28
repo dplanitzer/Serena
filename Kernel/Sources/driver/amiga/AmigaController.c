@@ -90,7 +90,7 @@ static errno_t AmigaController_AutoDetectBootMemoryDisk(struct AmigaController* 
         for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
             FSBlock blk;
 
-            try(FSContainer_MapBlock(fsContainer, lba, kAcquireBlock_Replace, &blk));
+            try(FSContainer_MapBlock(fsContainer, lba, kMapBlock_Replace, &blk));
             memcpy(blk.data, &dmg[lba * smg_hdr->blockSize], info.blockSize);
             try(FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Sync));
         }

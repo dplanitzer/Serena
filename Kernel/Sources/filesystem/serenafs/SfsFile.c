@@ -82,7 +82,7 @@ void SfsFile_ConvertOffset(SfsFileRef _Nonnull _Locked self, off_t offset, sfs_b
 // Maps the disk block 'lba' if lba is > 0; otherwise allocates a new block.
 // The new block is for read-only if read-only 'mode' is requested and it is
 // suitable for writing back to disk if 'mode' is a replace/update mode.
-static errno_t map_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, sfs_bno_t* _Nonnull pOutOnDiskLba, sfs_mapblk_t* _Nonnull blk)
+static errno_t map_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress lba, MapBlock mode, sfs_bno_t* _Nonnull pOutOnDiskLba, SfsFileBlock* _Nonnull blk)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
@@ -97,7 +97,7 @@ static errno_t map_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress lba
         err = FSContainer_MapBlock(fsContainer, lba, mode, &fsblk);
     }
     else {
-        if (mode == kAcquireBlock_ReadOnly) {
+        if (mode == kMapBlock_ReadOnly) {
             err = FSContainer_MapEmptyBlock(fsContainer, &fsblk);
         }
         else {
@@ -108,7 +108,7 @@ static errno_t map_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress lba
                 blk->wasAlloced = true;
                 *pOutOnDiskLba = UInt32_HostToBig(new_lba);
 
-                err = FSContainer_MapBlock(fsContainer, new_lba, kAcquireBlock_Cleared, &fsblk);
+                err = FSContainer_MapBlock(fsContainer, new_lba, kMapBlock_Cleared, &fsblk);
             }
         }
     }
@@ -126,7 +126,7 @@ static errno_t map_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress lba
 // file block doesn't exist yet. However this function does not commit the updated
 // allocation bitmap back to disk. The caller has to trigger this.
 // This function expects that 'fba' is in the range 0..<numBlocksInFile.
-errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, AcquireBlock mode, sfs_mapblk_t* _Nonnull blk)
+errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, MapBlock mode, SfsFileBlock* _Nonnull blk)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
@@ -142,11 +142,11 @@ errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, Acquir
 
 
     if (fba < fs->indirectBlockEntryCount) {
-        sfs_mapblk_t i0_block;
+        SfsFileBlock i0_block;
         LogicalBlockAddress i0_lba = UInt32_BigToHost(bmap->indirect);
 
         // Get the indirect block
-        try(map_disk_block(fs, i0_lba, kAcquireBlock_Update, &bmap->indirect, &i0_block));
+        try(map_disk_block(fs, i0_lba, kMapBlock_Update, &bmap->indirect, &i0_block));
 
 
         // Get the data block
@@ -213,7 +213,7 @@ bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
     FSBlock blk = {0};
 
     if (i0_lba > 0) {
-        err = FSContainer_MapBlock(fsContainer, i0_lba, (is_i0_update) ? kAcquireBlock_Update : kAcquireBlock_ReadOnly, &blk);
+        err = FSContainer_MapBlock(fsContainer, i0_lba, (is_i0_update) ? kMapBlock_Update : kMapBlock_ReadOnly, &blk);
         
         if (err == EOK) {
             sfs_bno_t* i0_bmap = (sfs_bno_t*)blk.data;

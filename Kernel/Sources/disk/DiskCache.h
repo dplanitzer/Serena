@@ -9,7 +9,9 @@
 #ifndef DiskCache_h
 #define DiskCache_h
 
-#include <disk/DiskBlock.h>
+#include <klib/Error.h>
+#include <kobj/AnyRefs.h>
+#include <filesystem/FSBlock.h>
 #include <hal/SystemDescription.h>
 
 enum {
@@ -24,12 +26,6 @@ typedef struct DiskCacheClient {
 } DiskCacheClient;
 
 
-typedef struct diskblock {
-    intptr_t            token;
-    uint8_t* _Nullable  data;
-} diskblock_t;
-
-
 extern DiskCacheRef _Nonnull  gDiskCache;
 
 extern errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRef _Nullable * _Nonnull pOutSelf);
@@ -37,8 +33,8 @@ extern errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, Disk
 extern errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba);
 extern errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba);
 
-extern errno_t DiskCache_MapEmptyBlock(DiskCacheRef _Nonnull self, diskblock_t* _Nonnull blk);
-extern errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, diskblock_t* _Nonnull blk);
+extern errno_t DiskCache_MapEmptyBlock(DiskCacheRef _Nonnull self, FSBlock* _Nonnull blk);
+extern errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk);
 
 extern void DiskCache_UnmapBlock(DiskCacheRef _Nonnull self, intptr_t token);
 extern errno_t DiskCache_UnmapBlockWriting(DiskCacheRef _Nonnull self, intptr_t token, WriteBlock mode);

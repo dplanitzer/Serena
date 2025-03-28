@@ -8,6 +8,7 @@
 
 #include "DiskDriver.h"
 #include "DiskDriverChannel.h"
+#include <disk/DiskBlock.h>
 #include <disk/DiskCache.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverChannel.h>
@@ -286,9 +287,9 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
     while (nBytesToRead > 0) {
         const ssize_t nRemainderBlockSize = (ssize_t)info->blockSize - blockOffset;
         const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
-        diskblock_t blk = {0};
+        FSBlock blk = {0};
 
-        errno_t e1 = DiskCache_MapBlock(gDiskCache, self, info->mediaId, blockIdx, kAcquireBlock_ReadOnly, &blk);
+        errno_t e1 = DiskCache_MapBlock(gDiskCache, self, info->mediaId, blockIdx, kMapBlock_ReadOnly, &blk);
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
             break;
@@ -366,10 +367,10 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
     while (nBytesToWrite > 0) {
         const ssize_t nRemainderBlockSize = (ssize_t)info->blockSize - blockOffset;
         const ssize_t nBytesToWriteInBlock = (nBytesToWrite > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToWrite;
-        AcquireBlock acquireMode = (nBytesToWriteInBlock == (ssize_t)info->blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
-        diskblock_t blk = {0};
+        MapBlock mmode = (nBytesToWriteInBlock == (ssize_t)info->blockSize) ? kMapBlock_Replace : kMapBlock_Update;
+        FSBlock blk = {0};
 
-        errno_t e1 = DiskCache_MapBlock(gDiskCache, self, info->mediaId, blockIdx, acquireMode, &blk);
+        errno_t e1 = DiskCache_MapBlock(gDiskCache, self, info->mediaId, blockIdx, mmode, &blk);
         if (e1 == EOK) {
             memcpy(blk.data + blockOffset, sp, nBytesToWriteInBlock);
             e1 = DiskCache_UnmapBlockWriting(gDiskCache, blk.token, kWriteBlock_Sync);

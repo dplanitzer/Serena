@@ -11,20 +11,7 @@
 
 #include <kobj/Object.h>
 #include <klib/List.h>
-
-
-typedef enum AcquireBlock {
-    kAcquireBlock_ReadOnly,     // Acquire the disk block for reading only with no write back
-    kAcquireBlock_Update,       // Acquire the disk block for a partial update and write back
-    kAcquireBlock_Replace,      // Acquire the disk block for a full update where every byte will be replaced and written back
-    kAcquireBlock_Cleared       // Acquire the disk block with every byte cleared, potential additional full or partial updates and write back
-} AcquireBlock;
-
-
-typedef enum WriteBlock {
-    kWriteBlock_Sync,           // Write the disk block back to disk and wait for the write to finish
-    kWriteBlock_Deferred        // Mark the disk block as needing write back but wait with the write back until a flush event happens or the block is needed for another disk address
-} WriteBlock;
+#include <filesystem/FSBlock.h>
 
 
 typedef enum DiskBlockOp {

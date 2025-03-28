@@ -58,7 +58,7 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
 
 
     // Get the FS root block
-    try(FSContainer_MapBlock(fsContainer, 0, kAcquireBlock_ReadOnly, &blk));
+    try(FSContainer_MapBlock(fsContainer, 0, kMapBlock_ReadOnly, &blk));
     const sfs_vol_header_t* vhp = (const sfs_vol_header_t*)blk.data;
     const uint32_t signature = UInt32_BigToHost(vhp->signature);
     const uint32_t version = UInt32_BigToHost(vhp->version);
@@ -247,7 +247,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
         q.ih = NULL;
         try(SfsDirectory_Query(pSrcNode, &q, &qr));
 
-        try(FSContainer_MapBlock(fsContainer, qr.lba, kAcquireBlock_Update, &blk));
+        try(FSContainer_MapBlock(fsContainer, qr.lba, kMapBlock_Update, &blk));
 
         sfs_dirent_t* dep = (sfs_dirent_t*)(blk.data + qr.blockOffset);
         dep->id = Inode_GetId(pDstDir);
@@ -281,7 +281,7 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSr
     q.ih = NULL;
     try(SfsDirectory_Query(pSrcDir, &q, &qr));
 
-    try(FSContainer_MapBlock(fsContainer, qr.lba, kAcquireBlock_Update, &blk));
+    try(FSContainer_MapBlock(fsContainer, qr.lba, kMapBlock_Update, &blk));
 
     sfs_dirent_t* dep = (sfs_dirent_t*)(blk.data + qr.blockOffset);
     memset(dep->filename, 0, kSFSMaxFilenameLength);

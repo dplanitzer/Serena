@@ -7,6 +7,7 @@
 //
 
 #include "FloppyDriverPriv.h"
+#include <disk/DiskBlock.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <hal/MonotonicClock.h>
