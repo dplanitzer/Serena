@@ -11,6 +11,7 @@
 
 #include <klib/Error.h>
 #include <kobj/AnyRefs.h>
+#include <driver/disk/DiskRequest.h>
 #include <filesystem/FSBlock.h>
 #include <hal/SystemDescription.h>
 
@@ -44,6 +45,6 @@ extern errno_t DiskCache_UnmapBlock(DiskCacheRef _Nonnull self, intptr_t token, 
 
 extern errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId);
 
-extern void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskBlockRef _Nonnull pBlock, errno_t status);
+extern void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, errno_t status);
 
 #endif /* DiskCache_h */

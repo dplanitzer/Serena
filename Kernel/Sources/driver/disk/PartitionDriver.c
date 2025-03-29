@@ -70,15 +70,12 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
-void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, const IORequest* _Nonnull ior)
+void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, DiskRequest* _Nonnull req)
 {
-    IORequest dior;
-
-    dior.block = ior->block;
-    dior.mediaId = ior->mediaId;
-    dior.lba = self->startBlock + ior->lba;
-
-    DiskDriver_BeginIO(self->wholeDisk, &dior);
+    // Update the block number and pass the disk request on to the whole disk
+    // driver 
+    req->lba += self->startBlock;
+    DiskDriver_BeginIO(self->wholeDisk, req);
 }
 
 

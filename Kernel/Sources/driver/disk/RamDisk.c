@@ -109,10 +109,10 @@ static DiskExtent* _Nullable RamDisk_GetDiskExtentForBlockIndex_Locked(RamDiskRe
     return pExtent;
 }
 
-errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, const IORequest* _Nonnull ior)
+errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, DiskRequest* _Nonnull req)
 {
-    const LogicalBlockAddress lba = ior->lba;
-    void* dp = DiskBlock_GetMutableData(ior->block);
+    const LogicalBlockAddress lba = req->lba;
+    void* dp = DiskBlock_GetMutableData(req->block);
 
     if (lba >= self->blockCount) {
         return ENXIO;
@@ -151,11 +151,11 @@ catch:
     return err;
 }
 
-errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, const IORequest* _Nonnull ior)
+errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, DiskRequest* _Nonnull req)
 {
     decl_try_err();
-    const LogicalBlockAddress lba = ior->lba;
-    const void* sp = DiskBlock_GetData(ior->block);
+    const LogicalBlockAddress lba = req->lba;
+    const void* sp = DiskBlock_GetData(req->block);
 
     if (lba >= self->blockCount) {
         return ENXIO;

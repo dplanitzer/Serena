@@ -12,6 +12,7 @@
 #include <klib/klib.h>
 #include <disk/DiskCache.h>
 #include <driver/Driver.h>
+#include <driver/disk/DiskRequest.h>
 #include <System/Disk.h>
 
 enum DiskDriverOptions {
@@ -23,12 +24,6 @@ typedef struct MediaInfo {
     size_t              blockSize;
     bool                isReadOnly;
 } MediaInfo;
-
-typedef struct IORequest {
-    DiskBlockRef _Nonnull   block;      // Disk block to read/write
-    MediaId                 mediaId;    // Physical disk block address
-    LogicalBlockAddress     lba;
-} IORequest;
 
 
 // A disk driver manages the data stored on a disk. It provides read and write
@@ -82,18 +77,19 @@ open_class_funcs(DiskDriver, Driver,
     void (*getInfo)(void* _Nonnull _Locked self, DiskInfo* _Nonnull pOutInfo);
 
 
-    // Starts an I/O operation on the given block and disk block address
-    // 'targetAddr'. Calls getBlock() if the block should be read and putBlock()
-    // if it should be written. It then invokes endIO() to notify the system
-    // about the completed I/O operation. This function assumes that getBlock()/
-    // putBlock() will only return once the I/O operation is done or an error
-    // has been encountered.
+    // Starts an I/O operation for the given disk request. Calls getBlock() if
+    // the block should be read and putBlock() if it should be written. It then
+    // invokes endIO() to notify the system about the completed I/O operation.
+    // This function assumes that getBlock()/putBlock() will only return once
+    // the I/O operation is done or an error has been encountered.
+    // A disk driver implementation may update the block address fields in the
+    // request and then pass the request on to a different driver.
     // Default Behavior: Dispatches an async call to doIO()
-    errno_t (*beginIO)(void* _Nonnull _Locked self, const IORequest* _Nonnull ior);
+    errno_t (*beginIO)(void* _Nonnull _Locked self, DiskRequest* _Nonnull req);
 
     // Executes an I/O request.
     // Default Behavior: Calls getBlock/putBlock
-    void (*doIO)(void* _Nonnull self, const IORequest* _Nonnull ior);
+    void (*doIO)(void* _Nonnull self, DiskRequest* _Nonnull req);
 
     // Reads the contents of the bloc at the disk address 'targetAddr' into the
     // in-memory block 'pBlock'. Blocks the caller until the read operation has
@@ -101,7 +97,7 @@ open_class_funcs(DiskDriver, Driver,
     // block. Either it succeeds and the full block data is returned, or it
     // fails and no block data is returned.
     // Default Behavior: returns EIO
-    errno_t (*getBlock)(void* _Nonnull self, const IORequest* _Nonnull ior);
+    errno_t (*getBlock)(void* _Nonnull self, DiskRequest* _Nonnull req);
 
     // Writes the contents of 'pBlock' to the disk block 'targetAddr'. Blocks
     // the caller until the write has completed. The contents of the block on
@@ -109,13 +105,13 @@ open_class_funcs(DiskDriver, Driver,
     // of the write. The block may contain a mix of old and new data.
     // The abstract implementation returns EIO.
     // Default Behavior: returns EIO
-    errno_t (*putBlock)(void* _Nonnull self, const IORequest* _Nonnull ior);
+    errno_t (*putBlock)(void* _Nonnull self, DiskRequest* _Nonnull req);
 
-    // Notifies the system that the I/O operation on the given block has finished
+    // Notifies the system that the I/O operation on the given request has finished
     // and that all data has been read in and stored in the block (if reading) or
     // committed to disk (if writing).
     // Default Behavior: Notifies the disk cache
-    void (*endIO)(void* _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, errno_t status);
+    void (*endIO)(void* _Nonnull _Locked self, DiskRequest* _Nonnull req, errno_t status);
 );
 
 
@@ -125,7 +121,7 @@ open_class_funcs(DiskDriver, Driver,
 
 extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
 
-extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, const IORequest* _Nonnull ior);
+extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req);
 
 
 //
@@ -159,14 +155,14 @@ invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
 extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable pInfo);
 
 
-#define DiskDriver_GetBlock(__self, __ior) \
-invoke_n(getBlock, DiskDriver, __self, __ior)
+#define DiskDriver_GetBlock(__self, __req) \
+invoke_n(getBlock, DiskDriver, __self, __req)
 
-#define DiskDriver_PutBlock(__self, __ior) \
-invoke_n(putBlock, DiskDriver, __self, __ior)
+#define DiskDriver_PutBlock(__self, __req) \
+invoke_n(putBlock, DiskDriver, __self, __req)
 
-#define DiskDriver_EndIO(__self, __pBlock, __status) \
-invoke_n(endIO, DiskDriver, __self, __pBlock, __status)
+#define DiskDriver_EndIO(__self, __req, __status) \
+invoke_n(endIO, DiskDriver, __self, __req, __status)
 
 
 extern errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf);

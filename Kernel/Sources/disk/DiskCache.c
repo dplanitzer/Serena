@@ -657,6 +657,7 @@ static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRe
 static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync)
 {
     decl_try_err();
+    DiskRequest* req = NULL;
 
     // Assert that if there is a I/O operation currently ongoing, that it is of
     // the same kind as 'op'. See the requirements at the top of this file.
@@ -679,17 +680,21 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     }
 
 
-    // Start a new I/O operation
+    // Start a new disk request
+    err = DiskRequest_Get(&req);
+    if (err != EOK) {
+        return err;
+    }
+
     pBlock->flags.op = op;
     pBlock->flags.async = (isSync) ? 0 : 1;
     pBlock->flags.readError = EOK;
 
-    IORequest ior;
-    ior.block = pBlock;
-    ior.mediaId = pBlock->mediaId;
-    ior.lba = pBlock->lba;
+    req->block = pBlock;
+    req->mediaId = pBlock->mediaId;
+    req->lba = pBlock->lba;
 
-    err = DiskDriver_BeginIO(disk, &ior);
+    err = DiskDriver_BeginIO(disk, req);
     if (err == EOK && isSync) {
         dcc->useCount++;
         err = _DiskCache_WaitIO(self, pBlock, op);
@@ -708,10 +713,11 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 // - async: unlocks and puts the block
 // - sync: wakes up the clients that are waiting on the block and leaves the block
 //         locked exclusively
-void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskBlockRef _Nonnull pBlock, errno_t status)
+void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, errno_t status)
 {
     Lock_Lock(&self->interlock);
 
+    DiskBlockRef pBlock = req->block;
     const bool isAsync = pBlock->flags.async ? true : false;
 
     switch (pBlock->flags.op) {
@@ -769,6 +775,8 @@ void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskBlockRef _Nonnu
     }
 
     Lock_Unlock(&self->interlock);
+
+    DiskRequest_Put(req);
 }
 
 
