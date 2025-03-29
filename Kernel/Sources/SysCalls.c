@@ -6,7 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <disk/DiskCache.h>
+#include <diskcache/DiskCache.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <filesystem/IOChannel.h>

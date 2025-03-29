@@ -10,7 +10,7 @@
 #include <klib/klib.h>
 #include <log/Log.h>
 #include <console/Console.h>
-#include <disk/DiskCache.h>
+#include <diskcache/DiskCache.h>
 #include <dispatcher/VirtualProcessorScheduler.h>
 #include <dispatcher/VirtualProcessorPool.h>
 #include <dispatchqueue/DispatchQueue.h>

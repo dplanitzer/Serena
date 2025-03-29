@@ -7,7 +7,7 @@
 //
 
 #include "DiskFSContainer.h"
-#include <disk/DiskCache.h>
+#include <diskcache/DiskCache.h>
 #include <driver/DriverCatalog.h>
 #include <driver/disk/DiskDriver.h>
 #include <driver/disk/DiskDriverChannel.h>

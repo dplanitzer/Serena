@@ -10,7 +10,7 @@
 #define DiskDriver_h
 
 #include <klib/klib.h>
-#include <disk/DiskCache.h>
+#include <diskcache/DiskCache.h>
 #include <driver/Driver.h>
 #include <driver/disk/DiskRequest.h>
 #include <System/Disk.h>

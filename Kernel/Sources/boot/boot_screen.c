@@ -8,7 +8,7 @@
 
 #include "boot_screen.h"
 #include <console/Console.h>
-#include <disk/DiskCache.h>
+#include <diskcache/DiskCache.h>
 #include <driver/DriverCatalog.h>
 #include <driver/DriverChannel.h>
 #include <hal/Platform.h>

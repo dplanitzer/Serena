@@ -7,7 +7,7 @@
 //
 
 #include "RomDisk.h"
-#include <disk/DiskBlock.h>
+#include <diskcache/DiskBlock.h>
 
 
 #define MAX_NAME_LENGTH 8
