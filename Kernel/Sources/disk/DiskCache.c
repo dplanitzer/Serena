@@ -579,18 +579,7 @@ catch:
 }
 
 
-void DiskCache_UnmapBlock(DiskCacheRef _Nonnull self, intptr_t token)
-{
-    DiskBlockRef pBlock = (DiskBlockRef)token;
-
-    if (pBlock) {
-        Lock_Lock(&self->interlock);
-        _DiskCache_UnlockContentAndPutBlock(self, pBlock);
-        Lock_Unlock(&self->interlock);
-    }
-}
-
-errno_t DiskCache_UnmapBlockWriting(DiskCacheRef _Nonnull self, intptr_t token, WriteBlock mode)
+errno_t DiskCache_UnmapBlock(DiskCacheRef _Nonnull self, intptr_t token, WriteBlock mode)
 {
     decl_try_err();
     DiskBlockRef pBlock = (DiskBlockRef)token;
@@ -599,22 +588,30 @@ errno_t DiskCache_UnmapBlockWriting(DiskCacheRef _Nonnull self, intptr_t token, 
         return EOK;
     }
 #if defined(__FORCE_WRITES_SYNC)
-    mode = kWriteBlock_Sync;
+    if (mode == kWriteBlock_Deferred) {
+        mode = kWriteBlock_Sync;
+    }
 #endif
 
     Lock_Lock(&self->interlock);
 
-    // We must be holding the exclusive lock here
-    ASSERT_LOCKED_EXCLUSIVE(pBlock);
-
     switch (mode) {
+        case kWriteBlock_None:
+            break;
+
         case kWriteBlock_Sync:
+            // We must be holding the exclusive lock here
+            ASSERT_LOCKED_EXCLUSIVE(pBlock);
+
             _DiskCache_DowngradeBlockContentLock(self, pBlock);
             ASSERT_LOCKED_SHARED(pBlock);
             err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
             break;
 
         case kWriteBlock_Deferred:
+            // We must be holding the exclusive lock here
+            ASSERT_LOCKED_EXCLUSIVE(pBlock);
+
             if (pBlock->flags.isDirty == 0) {
                 pBlock->flags.isDirty = 1;
                 self->dirtyBlockCount++;

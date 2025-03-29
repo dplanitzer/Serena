@@ -107,7 +107,7 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
 #endif
 
 catch:
-    FSContainer_UnmapBlock(fsContainer, blk.token);
+    FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_None);
 
     return err;
 }
@@ -259,7 +259,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
         sfs_dirent_t* dep = (sfs_dirent_t*)(blk.data + qr.blockOffset);
         dep->id = Inode_GetId(pDstDir);
 
-        FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
+        FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_Deferred);
 
         // Our parent receives a +1 on the link count because of our .. entry
         Inode_Link(pDstDir);
@@ -295,7 +295,7 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSr
     memcpy(dep->filename, pNewName->name, pNewName->count);
     dep->len = pNewName->count;
 
-    FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
+    FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_Deferred);
 
 catch:
     return err;

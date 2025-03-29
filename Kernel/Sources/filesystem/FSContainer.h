@@ -50,12 +50,9 @@ open_class_funcs(FSContainer, Object,
     // relinquishBlock() method.
     errno_t (*mapBlock)(void* _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk);
 
-    // Relinquishes the disk block 'pBlock' without writing it back to disk.
-    void (*unmapBlock)(void* _Nonnull self, intptr_t token);
-
-    // Relinquishes the disk block 'pBlock' and writes the disk block back to
+    // Unmaps the disk block 'pBlock' and writes the disk block back to
     // disk according to the write back mode 'mode'.
-    errno_t (*unmapBlockWriting)(void* _Nonnull self, intptr_t token, WriteBlock mode);
+    errno_t (*unmapBlock)(void* _Nonnull self, intptr_t token, WriteBlock mode);
 
     // Synchronously flushes all cached and unwritten blocks belonging to this
     // FS container to disk(s).
@@ -80,11 +77,8 @@ invoke_n(syncBlock, FSContainer, __self, __driverId, __mediaId, __lba)
 #define FSContainer_MapBlock(__self, __lba, __mode, __blk) \
 invoke_n(mapBlock, FSContainer, __self, __lba, __mode, __blk)
 
-#define FSContainer_UnmapBlock(__self, __token) \
-invoke_n(unmapBlock, FSContainer, __self, __token)
-
-#define FSContainer_UnmapBlockWriting(__self, __token, __mode) \
-invoke_n(unmapBlockWriting, FSContainer, __self, __token, __mode)
+#define FSContainer_UnmapBlock(__self, __token, __mode) \
+invoke_n(unmapBlock, FSContainer, __self, __token, __mode)
 
 
 #define FSContainer_Sync(__self) \

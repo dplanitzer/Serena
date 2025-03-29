@@ -36,11 +36,7 @@ errno_t FSContainer_mapBlock(FSContainerRef _Nonnull self, LogicalBlockAddress l
     return EIO;
 }
 
-void FSContainer_unmapBlock(FSContainerRef _Nonnull self, intptr_t token)
-{
-}
-
-errno_t FSContainer_unmapBlockWriting(FSContainerRef _Nonnull self, intptr_t token, WriteBlock mode)
+errno_t FSContainer_unmapBlock(FSContainerRef _Nonnull self, intptr_t token, WriteBlock mode)
 {
     return EIO;
 }
@@ -57,6 +53,5 @@ func_def(prefetchBlock, FSContainer)
 func_def(syncBlock, FSContainer)
 func_def(mapBlock, FSContainer)
 func_def(unmapBlock, FSContainer)
-func_def(unmapBlockWriting, FSContainer)
 func_def(sync, FSContainer)
 );

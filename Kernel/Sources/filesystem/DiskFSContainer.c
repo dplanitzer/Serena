@@ -77,14 +77,9 @@ errno_t DiskFSContainer_mapBlock(struct DiskFSContainer* _Nonnull self, LogicalB
     return DiskCache_MapBlock(gDiskCache, self->disk, self->mediaId, lba, mode, blk);
 }
 
-void DiskFSContainer_unmapBlock(struct DiskFSContainer* _Nonnull self, intptr_t token)
+errno_t DiskFSContainer_unmapBlock(struct DiskFSContainer* _Nonnull self, intptr_t token, WriteBlock mode)
 {
-    DiskCache_UnmapBlock(gDiskCache, token);
-}
-
-errno_t DiskFSContainer_unmapBlockWriting(struct DiskFSContainer* _Nonnull self, intptr_t token, WriteBlock mode)
-{
-    return DiskCache_UnmapBlockWriting(gDiskCache, token, mode);
+    return DiskCache_UnmapBlock(gDiskCache, token, mode);
 }
 
 errno_t DiskFSContainer_sync(struct DiskFSContainer* _Nonnull self)
@@ -100,6 +95,5 @@ override_func_def(prefetchBlock, DiskFSContainer, FSContainer)
 override_func_def(syncBlock, DiskFSContainer, FSContainer)
 override_func_def(mapBlock, DiskFSContainer, FSContainer)
 override_func_def(unmapBlock, DiskFSContainer, FSContainer)
-override_func_def(unmapBlockWriting, DiskFSContainer, FSContainer)
 override_func_def(sync, DiskFSContainer, FSContainer)
 );

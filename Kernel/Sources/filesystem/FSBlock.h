@@ -21,6 +21,7 @@ typedef enum {
 
 
 typedef enum WriteBlock {
+    kWriteBlock_None,           // Don't write the disk block back to disk
     kWriteBlock_Sync,           // Write the disk block back to disk and wait for the write to finish
     kWriteBlock_Deferred        // Mark the disk block as needing write back but wait with the write back until a flush event happens or the block is needed for another disk address
 } WriteBlock;

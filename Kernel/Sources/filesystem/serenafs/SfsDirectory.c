@@ -85,7 +85,7 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
             nSrcBytesRead += sizeof(sfs_dirent_t);
             sp++;
         }
-        SfsFile_UnmapBlock((SfsFileRef)self, &blk);
+        SfsFile_UnmapBlock((SfsFileRef)self, &blk, kWriteBlock_None);
 
         blockOffset = 0;
         blockIdx++;
@@ -198,7 +198,7 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
             offset += sizeof(sfs_dirent_t);
             sp++;
         }
-        SfsFile_UnmapBlock((SfsFileRef)self, &blk);
+        SfsFile_UnmapBlock((SfsFileRef)self, &blk, kWriteBlock_None);
 
         blockIdx++;
     }
@@ -270,7 +270,7 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
     dep->len = name->count;
     dep->id = UInt32_HostToBig(Inode_GetId(pChildNode));
 
-    SfsFile_UnmapBlockWriting((SfsFileRef)self, &blk, kWriteBlock_Deferred);
+    SfsFile_UnmapBlock((SfsFileRef)self, &blk, kWriteBlock_Deferred);
 
 
     // Increment the link count of the directory if the child node is itself a
@@ -305,7 +305,7 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeRef _Nonnu
     try(FSContainer_MapBlock(fsContainer, qr.lba, kMapBlock_Update, &blk));
     sfs_dirent_t* dep = (sfs_dirent_t*)(blk.data + qr.blockOffset);
     memset(dep, 0, sizeof(sfs_dirent_t));
-    FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
+    FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_Deferred);
 
 
     // Shrink the directory file by one entry if we removed the last entry in

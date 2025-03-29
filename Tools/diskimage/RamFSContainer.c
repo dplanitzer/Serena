@@ -134,19 +134,12 @@ errno_t RamFSContainer_mapBlock(struct RamFSContainer* _Nonnull self, LogicalBlo
     return err;
 }
 
-void RamFSContainer_unmapBlock(struct RamFSContainer* _Nonnull self, intptr_t token)
-{
-    if (token) {
-        self->mappedFlags[token - 1] = false;
-    }
-}
-
 // Writes the contents of 'buf' to the block at index 'lba'. 'buf'
 // must be big enough to hold a full block. Blocks the caller until the
 // write has completed. The contents of the block on disk is left in an
 // indeterminate state of the write fails in the middle of the write. The
 // block may contain a mix of old and new data.
-errno_t RamFSContainer_unmapBlockWriting(struct RamFSContainer* _Nonnull self, intptr_t token, WriteBlock mode)
+errno_t RamFSContainer_unmapBlock(struct RamFSContainer* _Nonnull self, intptr_t token, WriteBlock mode)
 {
     decl_try_err();
 
@@ -156,6 +149,10 @@ errno_t RamFSContainer_unmapBlockWriting(struct RamFSContainer* _Nonnull self, i
 
     LogicalBlockAddress lba = token - 1;
     switch (mode) {
+        case kWriteBlock_None:
+            self->mappedFlags[lba] = false;
+            break;
+
         case kWriteBlock_Sync:
         case kWriteBlock_Deferred:
             if (lba < self->blockCount) {
@@ -242,7 +239,7 @@ errno_t RamFSContainer_Read(RamFSContainerRef _Nonnull self, void* _Nonnull buf,
         }
         
         memcpy(dp, blk.data + blockOffset, nBytesToReadInBlock);
-        FSContainer_UnmapBlock(self, blk.token);
+        FSContainer_UnmapBlock(self, blk.token, kWriteBlock_None);
 
         nBytesToRead -= nBytesToReadInBlock;
         nBytesRead += nBytesToReadInBlock;
@@ -310,7 +307,7 @@ errno_t RamFSContainer_Write(RamFSContainerRef _Nonnull self, const void* _Nonnu
         errno_t e1 = FSContainer_MapBlock(self, blockIdx, mmode, &blk);
         if (e1 == EOK) {
             memcpy(blk.data + blockOffset, sp, nBytesToWriteInBlock);
-            e1 = FSContainer_UnmapBlockWriting(self, blk.token, kWriteBlock_Sync);
+            e1 = FSContainer_UnmapBlock(self, blk.token, kWriteBlock_Sync);
         }
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;
@@ -384,6 +381,5 @@ class_func_defs(RamFSContainer, FSContainer,
 override_func_def(deinit, RamFSContainer, Object)
 override_func_def(getInfo, RamFSContainer, FSContainer)
 override_func_def(mapBlock, RamFSContainer, FSContainer)
-override_func_def(unmapBlockWriting, RamFSContainer, FSContainer)
 override_func_def(unmapBlock, RamFSContainer, FSContainer)
 );

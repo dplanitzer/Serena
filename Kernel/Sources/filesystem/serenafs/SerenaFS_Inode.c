@@ -42,7 +42,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
         dep[1].len = 2;
         dep[1].filename[0] = '.';
         dep[1].filename[1] = '.';
-        FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
+        FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_Deferred);
         blk.token = 0;
 
         fileSize = 2 * sizeof(sfs_dirent_t);
@@ -66,7 +66,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     ip->permissions = UInt16_HostToBig(permissions);
     ip->type = type;
     ip->bmap.direct[0] = UInt32_HostToBig(dirContLba);
-    FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
+    FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_Deferred);
     blk.token = 0;
 
 
@@ -135,7 +135,7 @@ errno_t SerenaFS_onAcquireNode(SerenaFSRef _Nonnull self, ino_t id, InodeRef _Nu
     err = SfsFile_Create(pClass, self, id, ip, &pNode);
 
 catch:
-    FSContainer_UnmapBlock(fsContainer, blk.token);
+    FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_None);
     *pOutNode = pNode;
     return err;
 }
@@ -159,7 +159,7 @@ errno_t SerenaFS_onWritebackNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _L
     const errno_t err = FSContainer_MapBlock(fsContainer, lba, kMapBlock_Replace, &blk);
     if (err == EOK) {
         SfsFile_Serialize(pNode, (sfs_inode_t*)blk.data);
-        FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
+        FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_Deferred);
     }
 
 

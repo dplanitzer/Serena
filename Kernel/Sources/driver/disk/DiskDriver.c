@@ -296,7 +296,7 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
         }
         
         memcpy(dp, blk.data + blockOffset, nBytesToReadInBlock);
-        DiskCache_UnmapBlock(gDiskCache, blk.token);
+        DiskCache_UnmapBlock(gDiskCache, blk.token, kWriteBlock_None);
 
         nBytesToRead -= nBytesToReadInBlock;
         nBytesRead += nBytesToReadInBlock;
@@ -373,7 +373,7 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
         errno_t e1 = DiskCache_MapBlock(gDiskCache, self, info->mediaId, blockIdx, mmode, &blk);
         if (e1 == EOK) {
             memcpy(blk.data + blockOffset, sp, nBytesToWriteInBlock);
-            e1 = DiskCache_UnmapBlockWriting(gDiskCache, blk.token, kWriteBlock_Sync);
+            e1 = DiskCache_UnmapBlock(gDiskCache, blk.token, kWriteBlock_Sync);
         }
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;

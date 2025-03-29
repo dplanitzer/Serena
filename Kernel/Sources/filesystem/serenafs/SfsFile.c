@@ -158,13 +158,7 @@ errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, MapBlo
 
         err = map_disk_block(fs, dat_lba, mode, &i0_bmap[fba], blk);
         
-        if (blk->wasAlloced) {
-            FSContainer_UnmapBlockWriting(fsContainer, i0_block.b.token, kWriteBlock_Deferred);
-        }
-        else {
-            FSContainer_UnmapBlock(fsContainer, i0_block.b.token);
-        }
-
+        FSContainer_UnmapBlock(fsContainer, i0_block.b.token, (blk->wasAlloced) ? kWriteBlock_Deferred : kWriteBlock_None);
         return err;
     }
 
@@ -174,27 +168,20 @@ catch:
     return err;
 }
 
-void SfsFile_UnmapBlock(SfsFileRef _Nonnull _Locked self, SfsFileBlock* _Nonnull blk)
+errno_t SfsFile_UnmapBlock(SfsFileRef _Nonnull _Locked self, SfsFileBlock* _Nonnull blk, WriteBlock mode)
 {
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
 
-    if (blk->b.token != 0 && !blk->isZeroFill) {
-        FSContainer_UnmapBlock(fsContainer, blk->b.token);
+    if (mode == kWriteBlock_None && blk->isZeroFill) {
+        return EOK;
     }
-}
-
-errno_t SfsFile_UnmapBlockWriting(SfsFileRef _Nonnull _Locked self, SfsFileBlock* _Nonnull blk, WriteBlock mode)
-{
-    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
-    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
-
-    if (blk->isZeroFill) {
+    if (mode != kWriteBlock_None && blk->isZeroFill) {
         // The empty block is for reading only
         abort();
     }
 
-    return FSContainer_UnmapBlockWriting(fsContainer, blk->b.token, mode);
+    return FSContainer_UnmapBlock(fsContainer, blk->b.token, mode);
 }
 
 // Trims (shortens) the size of the file to the new (and smaller) size 'newLength'.
@@ -254,11 +241,11 @@ bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
 
             if (is_i0_update) {
                 // We removed some of the i0 blocks
-                FSContainer_UnmapBlockWriting(fsContainer, blk.token, kWriteBlock_Deferred);
+                FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_Deferred);
             }
             else {
                 // We abandoned all of the i0 level
-                FSContainer_UnmapBlock(fsContainer, blk.token);
+                FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_None);
                 bmap->indirect = 0;
                 didTrim = true;
             }
