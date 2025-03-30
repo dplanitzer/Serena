@@ -690,6 +690,10 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     pBlock->flags.async = (isSync) ? 0 : 1;
     pBlock->flags.readError = EOK;
 
+    req->done = (DiskRequestDoneCallback)DiskCache_OnDiskRequestDone;
+    req->context = self;
+    req->status = EOK;
+    
     req->block = pBlock;
     req->mediaId = pBlock->mediaId;
     req->lba = pBlock->lba;
@@ -713,7 +717,7 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 // - async: unlocks and puts the block
 // - sync: wakes up the clients that are waiting on the block and leaves the block
 //         locked exclusively
-void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, errno_t status)
+void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req)
 {
     Lock_Lock(&self->interlock);
 
@@ -724,14 +728,14 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnu
         case kDiskBlockOp_Read:
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
             // Holding the exclusive lock here
-            if (status == EOK) {
+            if (req->status == EOK) {
                 pBlock->flags.hasData = 1;
             }
             break;
 
         case kDiskBlockOp_Write:
             ASSERT_LOCKED_SHARED(pBlock);
-            if (status == EOK && pBlock->flags.isDirty) {
+            if (req->status == EOK && pBlock->flags.isDirty) {
                 pBlock->flags.isDirty = 0;
                 self->dirtyBlockCount--;
             }
@@ -747,7 +751,7 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnu
         // look at a write-related error (because writes are often deferred and
         // thus they may happen a long time after the process that initiated the
         // write exited).
-        pBlock->flags.readError = status;
+        pBlock->flags.readError = req->status;
     }
     pBlock->flags.async = 0;
     pBlock->flags.op = kDiskBlockOp_Idle;

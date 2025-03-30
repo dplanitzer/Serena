@@ -66,3 +66,12 @@ void DiskRequest_Put(DiskRequest* _Nullable self)
         Lock_Unlock(&gLock);
     }
 }
+
+void DiskRequest_Done(DiskRequest* _Nonnull self, errno_t status)
+{
+    self->status = status;
+    
+    if (self->done) {
+        self->done(self->context, self);
+    }
+}

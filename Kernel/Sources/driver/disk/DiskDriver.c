@@ -189,7 +189,7 @@ errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull r
 
 void DiskDriver_endIO(DiskDriverRef _Nonnull _Locked self, DiskRequest* _Nonnull req, errno_t status)
 {
-    DiskCache_OnDiskRequestDone(gDiskCache, req, status);
+    DiskRequest_Done(req, status);
 }
 
 

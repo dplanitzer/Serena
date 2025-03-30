@@ -45,6 +45,4 @@ extern errno_t DiskCache_UnmapBlock(DiskCacheRef _Nonnull self, intptr_t token, 
 
 extern errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId);
 
-extern void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, errno_t status);
-
 #endif /* DiskCache_h */
