@@ -317,7 +317,7 @@ static void _DiskCache_PutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef
     if (!DiskBlock_InUse(pBlock)) {
         assert(pBlock->flags.op == kDiskBlockOp_Idle);
 
-        // Wake the wait() in _DiskBlock_Get() if this isn't the (singleton) empty block
+        // Wake the wait() in _DiskCache_GetBlock()
         ConditionVariable_Broadcast(&self->condition);
     }
 }
@@ -566,7 +566,7 @@ catch:
     if (pBlock) {
         if (err == EOK) {
             blk->token = (intptr_t)pBlock;
-            blk->data = DiskBlock_GetMutableData(pBlock);
+            blk->data = pBlock->data;
         }
         else {
             _DiskCache_UnlockContentAndPutBlock(self, pBlock);
@@ -692,12 +692,13 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 
     req->done = (DiskRequestDoneCallback)DiskCache_OnDiskRequestDone;
     req->context = self;
-    req->status = EOK;
     req->type = (op == kDiskBlockOp_Read) ? kDiskRequest_Read : kDiskRequest_Write;
 
-    req->block = pBlock;
     req->mediaId = pBlock->mediaId;
     req->lba = pBlock->lba;
+    req->data = pBlock->data;
+    req->size = kDiskCache_BlockSize;
+    req->token = (intptr_t)pBlock;
 
     err = DiskDriver_BeginIO(disk, req);
     if (err == EOK && isSync) {
@@ -718,25 +719,25 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 // - async: unlocks and puts the block
 // - sync: wakes up the clients that are waiting on the block and leaves the block
 //         locked exclusively
-void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req)
+void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, errno_t status)
 {
     Lock_Lock(&self->interlock);
 
-    DiskBlockRef pBlock = req->block;
+    DiskBlockRef pBlock = (DiskBlockRef)req->token;
     const bool isAsync = pBlock->flags.async ? true : false;
 
     switch (req->type) {
         case kDiskRequest_Read:
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
             // Holding the exclusive lock here
-            if (req->status == EOK) {
+            if (status == EOK) {
                 pBlock->flags.hasData = 1;
             }
             break;
 
         case kDiskRequest_Write:
             ASSERT_LOCKED_SHARED(pBlock);
-            if (req->status == EOK && pBlock->flags.isDirty) {
+            if (status == EOK && pBlock->flags.isDirty) {
                 pBlock->flags.isDirty = 0;
                 self->dirtyBlockCount--;
             }
@@ -752,7 +753,7 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnu
         // look at a write-related error (because writes are often deferred and
         // thus they may happen a long time after the process that initiated the
         // write exited).
-        pBlock->flags.readError = req->status;
+        pBlock->flags.readError = status;
     }
     pBlock->flags.async = 0;
     pBlock->flags.op = kDiskBlockOp_Idle;

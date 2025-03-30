@@ -47,17 +47,6 @@ typedef struct DiskBlock {
 } DiskBlock;
 
 
-#define DiskBlock_GetData(__self) \
-    (const void*)(&(__self)->data[0])
-
-#define DiskBlock_GetMutableData(__self) \
-    (void*)(&(__self)->data[0])
-
-
-//
-// Kernel internal functions
-//
-
 extern errno_t DiskBlock_Create(DiskDriverRef _Nonnull _Weak disk, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf);
 extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
 

@@ -7,7 +7,6 @@
 //
 
 #include "RamDisk.h"
-#include <diskcache/DiskBlock.h>
 
 
 typedef struct DiskExtent {
@@ -112,7 +111,6 @@ static DiskExtent* _Nullable RamDisk_GetDiskExtentForBlockIndex_Locked(RamDiskRe
 errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, DiskRequest* _Nonnull req)
 {
     const LogicalBlockAddress lba = req->lba;
-    void* dp = DiskBlock_GetMutableData(req->block);
 
     if (lba >= self->blockCount) {
         return ENXIO;
@@ -122,11 +120,11 @@ errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, DiskRequest* _Nonnull req)
     DiskExtent* pExtent = RamDisk_GetDiskExtentForBlockIndex_Locked(self, lba, NULL);
     if (pExtent) {
         // Request for a block that was previously written to -> return the block
-        memcpy(dp, &pExtent->data[(lba - pExtent->firstBlockIndex) << self->blockShift], self->blockSize);
+        memcpy(req->data, &pExtent->data[(lba - pExtent->firstBlockIndex) << self->blockShift], self->blockSize);
     }
     else {
         // Request for a block that hasn't been written to yet -> return zeros
-        memset(dp, 0, self->blockSize);
+        memset(req->data, 0, self->blockSize);
     }
 
     return EOK;
@@ -155,7 +153,6 @@ errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, DiskRequest* _Nonnull req)
 {
     decl_try_err();
     const LogicalBlockAddress lba = req->lba;
-    const void* sp = DiskBlock_GetData(req->block);
 
     if (lba >= self->blockCount) {
         return ENXIO;
@@ -169,7 +166,7 @@ errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, DiskRequest* _Nonnull req)
         try(RamDisk_AddExtentAfter_Locked(self, (lba / self->extentBlockCount) * self->extentBlockCount, pPrevExtent, &pExtent));
     }
     if (pExtent) {
-        memcpy(&pExtent->data[(lba - pExtent->firstBlockIndex) << self->blockShift], sp, self->blockSize);
+        memcpy(&pExtent->data[(lba - pExtent->firstBlockIndex) << self->blockShift], req->data, self->blockSize);
     }
 
 catch:

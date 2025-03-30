@@ -7,7 +7,6 @@
 //
 
 #include "RomDisk.h"
-#include <diskcache/DiskBlock.h>
 
 
 #define MAX_NAME_LENGTH 8
@@ -75,7 +74,7 @@ errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, DiskRequest* _Nonnull req)
     const LogicalBlockAddress lba = req->lba;
 
     if (lba < self->blockCount) {
-        memcpy(DiskBlock_GetMutableData(req->block), self->diskImage + (lba << self->blockShift), self->blockSize);
+        memcpy(req->data, self->diskImage + (lba << self->blockShift), self->blockSize);
         return EOK;
     }
     else {

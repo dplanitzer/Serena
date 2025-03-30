@@ -7,7 +7,6 @@
 //
 
 #include "FloppyDriverPriv.h"
-#include <diskcache/DiskBlock.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <hal/MonotonicClock.h>
@@ -804,7 +803,7 @@ errno_t FloppyDriver_getBlock(FloppyDriverRef _Nonnull self, DiskRequest* _Nonnu
         if (s->isDataValid) {
             // MFM decode the sector data
             const ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
-            mfm_decode_bits((const uint32_t*)mfms->data.odd_bits, DiskBlock_GetMutableData(req->block), ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
+            mfm_decode_bits((const uint32_t*)mfms->data.odd_bits, (uint32_t*)req->data, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
         }
         else {
             self->readErrorCount++;
@@ -950,7 +949,7 @@ errno_t FloppyDriver_putBlock(FloppyDriverRef _Nonnull self, DiskRequest* _Nonnu
             }
         }
         else {
-            s_dat = DiskBlock_GetData(req->block);
+            s_dat = req->data;
             is_good = true;
         }
 

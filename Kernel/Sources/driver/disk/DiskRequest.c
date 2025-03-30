@@ -69,9 +69,7 @@ void DiskRequest_Put(DiskRequest* _Nullable self)
 
 void DiskRequest_Done(DiskRequest* _Nonnull self, errno_t status)
 {
-    self->status = status;
-    
     if (self->done) {
-        self->done(self->context, self);
+        self->done(self->context, self, status);
     }
 }

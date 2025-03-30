@@ -16,7 +16,7 @@
 struct DiskRequest;
 
 
-typedef (*DiskRequestDoneCallback)(void* ctx, struct DiskRequest* _Nonnull req);
+typedef (*DiskRequestDoneCallback)(void* ctx, struct DiskRequest* _Nonnull req, errno_t status);
 
 
 enum {
@@ -28,12 +28,13 @@ enum {
 typedef struct DiskRequest {
     DiskRequestDoneCallback _Nullable   done;       // <- done callback
     void* _Nullable                     context;    // <- done callback context
-    errno_t                             status;     // <- final disk request status
     int                                 type;       // -> disk request type: read/write
 
     MediaId                 mediaId;    // -> physical disk block address
     LogicalBlockAddress     lba;
-    DiskBlockRef _Nonnull   block;      // -> disk block to read/write
+    uint8_t* _Nonnull       data;       // -> byte buffer to read or write 
+    size_t                  size;       // -> number of bytes to read/write. Always equal the disk driver block size
+    intptr_t                token;      // -> token identifying this disk block
 } DiskRequest;
 
 
