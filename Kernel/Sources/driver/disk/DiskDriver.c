@@ -127,12 +127,12 @@ void DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
     Driver_Unlock(self);
 
     if (req->mediaId == kMediaId_Current || req->mediaId == curMediaId) {
-        switch (DiskBlock_GetOp(req->block)) {
-            case kDiskBlockOp_Read:
+        switch (req->type) {
+            case kDiskRequest_Read:
                 err = DiskDriver_GetBlock(self, req);
                 break;
 
-            case kDiskBlockOp_Write:
+            case kDiskRequest_Write:
                 err = DiskDriver_PutBlock(self, req);
                 break;
 

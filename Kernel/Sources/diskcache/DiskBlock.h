@@ -53,9 +53,6 @@ typedef struct DiskBlock {
 #define DiskBlock_GetMutableData(__self) \
     (void*)(&(__self)->data[0])
 
-#define DiskBlock_GetOp(__self) \
-    (DiskBlockOp)(__self)->flags.op
-
 
 //
 // Kernel internal functions

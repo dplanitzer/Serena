@@ -19,10 +19,17 @@ struct DiskRequest;
 typedef (*DiskRequestDoneCallback)(void* ctx, struct DiskRequest* _Nonnull req);
 
 
+enum {
+    kDiskRequest_Read = 1,
+    kDiskRequest_Write = 2
+};
+
+
 typedef struct DiskRequest {
     DiskRequestDoneCallback _Nullable   done;       // <- done callback
     void* _Nullable                     context;    // <- done callback context
     errno_t                             status;     // <- final disk request status
+    int                                 type;       // -> disk request type: read/write
 
     MediaId                 mediaId;    // -> physical disk block address
     LogicalBlockAddress     lba;

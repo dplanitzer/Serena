@@ -693,7 +693,8 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     req->done = (DiskRequestDoneCallback)DiskCache_OnDiskRequestDone;
     req->context = self;
     req->status = EOK;
-    
+    req->type = (op == kDiskBlockOp_Read) ? kDiskRequest_Read : kDiskRequest_Write;
+
     req->block = pBlock;
     req->mediaId = pBlock->mediaId;
     req->lba = pBlock->lba;
@@ -724,8 +725,8 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnu
     DiskBlockRef pBlock = req->block;
     const bool isAsync = pBlock->flags.async ? true : false;
 
-    switch (pBlock->flags.op) {
-        case kDiskBlockOp_Read:
+    switch (req->type) {
+        case kDiskRequest_Read:
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
             // Holding the exclusive lock here
             if (req->status == EOK) {
@@ -733,7 +734,7 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnu
             }
             break;
 
-        case kDiskBlockOp_Write:
+        case kDiskRequest_Write:
             ASSERT_LOCKED_SHARED(pBlock);
             if (req->status == EOK && pBlock->flags.isDirty) {
                 pBlock->flags.isDirty = 0;
@@ -746,7 +747,7 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnu
             break;
     }
 
-    if (pBlock->flags.op == kDiskBlockOp_Read) {
+    if (req->type == kDiskRequest_Read) {
         // We only note read related errors since there's noone who could ever
         // look at a write-related error (because writes are often deferred and
         // thus they may happen a long time after the process that initiated the
