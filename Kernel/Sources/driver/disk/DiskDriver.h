@@ -58,6 +58,7 @@ typedef struct MediaInfo {
 //
 open_class(DiskDriver, Driver,
     DispatchQueueRef _Nullable  dispatchQueue;
+    DiskCacheRef _Weak _Nonnull diskCache;      // This is a weak ref because the disk cache holds a strong ref to the driver and the disk cache has to outlive the driver by design (has to be a global object)
     DiskCacheClient             dcClient;       // Protected by disk cache lock
     MediaId                     currentMediaId;
     MediaInfo                   mediaInfo;
@@ -119,6 +120,14 @@ open_class_funcs(DiskDriver, Driver,
 // Methods for use by disk driver users.
 //
 
+// Returns a reference to the disk cache that caches disk data on behalf of the
+// receiver. Clients that want to read/write data from/to this disk driver should
+// go through the disk cache APIs and use the block size defined by this disk
+// cache rather than what the driver GetInfo() call returns. Note that a disk
+// driver is always associated with a disk cache.
+#define DiskDriver_GetDiskCache(__self) \
+((DiskDriverRef)__self)->diskCache
+
 extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
 
 extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req);
@@ -165,6 +174,6 @@ invoke_n(putBlock, DiskDriver, __self, __req)
 invoke_n(endIO, DiskDriver, __self, __req, __status)
 
 
-extern errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DiskCacheRef _Nonnull diskCache, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* DiskDriver_h */

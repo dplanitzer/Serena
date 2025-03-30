@@ -17,6 +17,7 @@
 final_class_ivars(DiskFSContainer, FSContainer,
     IOChannelRef _Nonnull           channel;
     DiskDriverRef _Nonnull _Weak    disk;
+    size_t                          blockSize;  // As advertised by the disk cache associated with the disk driver (which may be > disk driver block size)
     MediaId                         mediaId;
 );
 
@@ -36,6 +37,7 @@ errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _N
     if ((err = Object_Create(class(DiskFSContainer), 0, (void**)&self)) == EOK) {
         self->channel = IOChannel_Retain(pChannel);
         self->disk = DriverChannel_GetDriverAs(pChannel, DiskDriver);
+        self->blockSize = DiskCache_GetBlockSize(DiskDriver_GetDiskCache(self->disk));
         self->mediaId = info->mediaId;
     }
 
@@ -56,7 +58,7 @@ errno_t DiskFSContainer_getInfo(struct DiskFSContainer* _Nonnull self, FSContain
     const DiskInfo* info = DiskDriverChannel_GetInfo(self->channel);
 
     pOutInfo->isReadOnly = info->isReadOnly;
-    pOutInfo->blockSize = info->blockSize;
+    pOutInfo->blockSize = self->blockSize;
     pOutInfo->blockCount = info->blockCount;
     
     return EOK;

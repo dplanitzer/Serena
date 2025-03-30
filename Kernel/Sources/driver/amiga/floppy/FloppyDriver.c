@@ -7,6 +7,7 @@
 //
 
 #include "FloppyDriverPriv.h"
+#include <diskcache/DiskCache.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <hal/MonotonicClock.h>
@@ -29,7 +30,7 @@ errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds
     decl_try_err();
     FloppyDriverRef self;
     
-    try(DiskDriver_Create(class(FloppyDriver), kDiskDriver_Queuing, parent, (DriverRef*)&self));
+    try(DiskDriver_Create(class(FloppyDriver), kDiskDriver_Queuing, parent, gDiskCache, (DriverRef*)&self));
 
     self->drive = drive;
     self->driveState = ds;

@@ -34,7 +34,7 @@ errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull 
         throw(EINVAL);
     }
 
-    try(DiskDriver_Create(class(PartitionDriver), 0, parent, (DriverRef*)&self));
+    try(DiskDriver_Create(class(PartitionDriver), 0, parent, DiskDriver_GetDiskCache(parent), (DriverRef*)&self));
     self->wholeDisk = wholeDisk;
     self->wholeMediaId = info.mediaId;
     self->startBlock = startBlock;

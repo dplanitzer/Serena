@@ -29,6 +29,6 @@ open_class_funcs(DiskDriverChannel, DriverChannel,
 extern errno_t DiskDriverChannel_Create(DiskDriverRef _Nonnull pDriver, const DiskInfo* _Nonnull info, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf);
 
 #define DiskDriverChannel_GetInfo(__self) \
-(const DiskInfo*)(&((DiskDriverChannelRef)(__self))->info)
+((const DiskInfo*)&((DiskDriverChannelRef)(__self))->info)
 
 #endif /* DiskDriverChannel_h */
