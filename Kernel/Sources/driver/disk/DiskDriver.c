@@ -148,11 +148,11 @@ static errno_t _DiskDriver_DoBlockIO(DiskDriverRef _Nonnull self, int type, Logi
     while ((data < edata) && (err == EOK)) {
         switch (type) {
             case kDiskRequest_Read:
-                err = DiskDriver_GetMediaBlock(self, mba, data);
+                err = DiskDriver_GetMediaBlock(self, mba, data, mbSize);
                 break;
 
             case kDiskRequest_Write:
-                err = DiskDriver_PutMediaBlock(self, mba, data);
+                err = DiskDriver_PutMediaBlock(self, mba, data, mbSize);
                 break;
 
             default:
@@ -190,7 +190,7 @@ void DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
                 err = ENXIO;
                 break;
             }
-            
+
             err = _DiskDriver_DoBlockIO(self, req->type, lba, data, mbSize, mb2lbFactor);
             if (err != EOK) {
                 break;
@@ -242,12 +242,12 @@ errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull re
 }
 
 
-errno_t DiskDriver_getMediaBlock(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data)
+errno_t DiskDriver_getMediaBlock(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t mbSize)
 {
     return EIO;
 }
 
-errno_t DiskDriver_putMediaBlock(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data)
+errno_t DiskDriver_putMediaBlock(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t mbSize)
 {
     return EIO;
 }

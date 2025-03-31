@@ -13,7 +13,6 @@
 
 final_class_ivars(RomDisk, DiskDriver,
     const char* _Nonnull    diskImage;
-    size_t                  blockSize;
     size_t                  blockShift;
     bool                    freeDiskImageOnClose;
     char                    name[MAX_NAME_LENGTH + 1];
@@ -36,8 +35,7 @@ errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, co
 
     try(DiskDriver_Create(class(RomDisk), 0, parent, &info, (DriverRef*)&self));
     self->diskImage = pImage;
-    self->blockSize = blockSize;
-    self->blockShift = siz_log2(self->blockSize);
+    self->blockShift = siz_log2(blockSize);
     self->freeDiskImageOnClose = freeOnClose;
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
 
@@ -66,9 +64,9 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
-errno_t RomDisk_getMediaBlock(RomDiskRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data)
+errno_t RomDisk_getMediaBlock(RomDiskRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t mbSize)
 {
-    memcpy(data, self->diskImage + (ba << self->blockShift), self->blockSize);
+    memcpy(data, self->diskImage + (ba << self->blockShift), mbSize);
     return EOK;
 }
 

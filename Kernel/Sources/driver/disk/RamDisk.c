@@ -22,7 +22,6 @@ typedef struct DiskExtent {
 final_class_ivars(RamDisk, DiskDriver,
     SList               extents;            // Sorted ascending by 'firstBlockIndex'
     LogicalBlockCount   extentBlockCount;   // How many blocks an extent stores
-    size_t              blockSize;
     size_t              blockShift;
     char                name[MAX_NAME_LENGTH];
 );
@@ -45,8 +44,7 @@ errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, si
     try(DiskDriver_Create(class(RamDisk), 0, parent, &info, (DriverRef*)&self));
     SList_Init(&self->extents);
     self->extentBlockCount = __min(extentBlockCount, blockCount);
-    self->blockSize = blockSize;
-    self->blockShift = siz_log2(self->blockSize);
+    self->blockShift = siz_log2(blockSize);
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
 
 catch:
@@ -105,17 +103,17 @@ static DiskExtent* _Nullable RamDisk_GetDiskExtentForBlockIndex_Locked(RamDiskRe
     return pExtent;
 }
 
-errno_t RamDisk_getMediaBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data)
+errno_t RamDisk_getMediaBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t mbSize)
 {
     DiskExtent* pExtent = RamDisk_GetDiskExtentForBlockIndex_Locked(self, ba, NULL);
 
     if (pExtent) {
         // Request for a block that was previously written to -> return the block
-        memcpy(data, &pExtent->data[(ba - pExtent->firstBlockIndex) << self->blockShift], self->blockSize);
+        memcpy(data, &pExtent->data[(ba - pExtent->firstBlockIndex) << self->blockShift], mbSize);
     }
     else {
         // Request for a block that hasn't been written to yet -> return zeros
-        memset(data, 0, self->blockSize);
+        memset(data, 0, mbSize);
     }
 
     return EOK;
@@ -140,7 +138,7 @@ catch:
     return err;
 }
 
-errno_t RamDisk_putMediaBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data)
+errno_t RamDisk_putMediaBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t mbSize)
 {
     decl_try_err();
 
@@ -154,7 +152,7 @@ errno_t RamDisk_putMediaBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, 
     }
 
     if (pExtent) {
-        memcpy(&pExtent->data[(ba - pExtent->firstBlockIndex) << self->blockShift], data, self->blockSize);
+        memcpy(&pExtent->data[(ba - pExtent->firstBlockIndex) << self->blockShift], data, mbSize);
     }
 
     return err;

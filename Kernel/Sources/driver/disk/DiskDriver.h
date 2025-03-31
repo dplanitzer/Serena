@@ -145,8 +145,9 @@ open_class_funcs(DiskDriver, Driver,
     // block data is returned, or it fails and no block data is returned.
     // The media block address 'ba' is guaranteed to be in the range
     // [0, mediaBlockCount).
+    // 'mbSize' is the media block size in bytes.
     // Default Behavior: returns EIO
-    errno_t (*getMediaBlock)(void* _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data);
+    errno_t (*getMediaBlock)(void* _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t mbSize);
 
     // Writes the contents of 'data' to the physical block 'ba'. Blocks
     // the caller until the write has completed. The contents of the block on
@@ -154,9 +155,10 @@ open_class_funcs(DiskDriver, Driver,
     // of the write. The block may contain a mix of old and new data.
     // The media block address 'ba' is guaranteed to be in the range
     // [0, mediaBlockCount).
+    // 'mbSize' is the media block size in bytes.
     // The abstract implementation returns EIO.
     // Default Behavior: returns EIO
-    errno_t (*putMediaBlock)(void* _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data);
+    errno_t (*putMediaBlock)(void* _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t mbSize);
 );
 
 
@@ -208,11 +210,11 @@ invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
 extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable pInfo);
 
 
-#define DiskDriver_GetMediaBlock(__self, __ba, __data) \
-invoke_n(getMediaBlock, DiskDriver, __self, __ba, __data)
+#define DiskDriver_GetMediaBlock(__self, __ba, __data, __mbSize) \
+invoke_n(getMediaBlock, DiskDriver, __self, __ba, __data, __mbSize)
 
-#define DiskDriver_PutMediaBlock(__self, __ba, __data) \
-invoke_n(putMediaBlock, DiskDriver, __self, __ba, __data)
+#define DiskDriver_PutMediaBlock(__self, __ba, __data, __mbSize) \
+invoke_n(putMediaBlock, DiskDriver, __self, __ba, __data, __mbSize)
 
 
 // Creates a disk driver instance. This function should be called from DiskDrive
