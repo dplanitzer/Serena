@@ -220,25 +220,6 @@ errno_t DiskDriver_createChannel(DiskDriverRef _Nonnull _Locked self, unsigned i
     return DiskDriverChannel_Create(self, &info, mode, pOutChannel);
 }
 
-typedef struct block_info {
-    uint32_t    blockShift;
-    uint32_t    blockMask;
-} block_info_t;
-
-static errno_t make_block_info(size_t blockSize, block_info_t* _Nonnull binfo)
-{
-    binfo->blockShift = u_log2(blockSize);
-    binfo->blockMask = blockSize - 1;
-
-    return (u_ispow2(blockSize)) ? EOK : EIO;
-}
-
-static void convert_offset(off_t offset, const block_info_t* _Nonnull info, LogicalBlockAddress* _Nonnull pOutBlockIdx, ssize_t* _Nonnull pOutBlockOffset)
-{
-    *pOutBlockIdx = (LogicalBlockAddress)(offset >> (off_t)info->blockShift);
-    *pOutBlockOffset = (ssize_t)(offset & (off_t)info->blockMask);
-}
-
 errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
