@@ -23,9 +23,9 @@ enum DiskDriverOptions {
 // Describes the physical properties of the media that is currently loaded into
 // the drive.
 typedef struct MediaInfo {
-    LogicalBlockCount   blockCount;
-    size_t              blockSize;
-    bool                isReadOnly;
+    LogicalBlockCount   blockCount;     // > 0 if a media is loaded; 0 otherwise
+    size_t              blockSize;      // > 0 if a media is loaded; should be the default media block size even if no media is loaded; may be 0 
+    bool                isReadOnly;     // true/false if a media is loaded; true if no media is loaded
 } MediaInfo;
 
 

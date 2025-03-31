@@ -102,21 +102,25 @@ errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 
 void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable pInfo)
 {
-    Driver_Lock(self);
-    if (pInfo) {
-        self->mediaBlockCount = pInfo->blockCount;
-        self->mediaBlockSize = pInfo->blockSize;
-        self->blockSize = DiskCache_GetBlockSize(self->diskCache);
-        self->blockShift = u_log2(self->blockSize);
+    const bool hasMedia = (pInfo && (pInfo->blockCount > 0) && (pInfo->blockSize > 0)) ? true : false;
 
-        if (u_ispow2(self->mediaBlockSize)) {
-            self->mb2lbFactor = self->blockSize / self->mediaBlockSize;
-        }
-        else {
-            self->mb2lbFactor = 1;
-        }
-        
-        self->blockCount = self->mediaBlockCount / self->mb2lbFactor;
+    Driver_Lock(self);
+
+    self->mediaBlockCount = pInfo->blockCount;
+    self->mediaBlockSize = pInfo->blockSize;
+    self->blockSize = DiskCache_GetBlockSize(self->diskCache);
+    self->blockShift = u_log2(self->blockSize);
+
+    if (self->mediaBlockSize > 0 && u_ispow2(self->mediaBlockSize)) {
+        self->mb2lbFactor = self->blockSize / self->mediaBlockSize;
+    }
+    else {
+        self->mb2lbFactor = 1;
+    }
+
+    self->blockCount = self->mediaBlockCount / self->mb2lbFactor;
+
+    if (hasMedia) {
         self->isReadOnly = pInfo->isReadOnly;
     
         self->currentMediaId++;
@@ -125,16 +129,11 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
         }
     }
     else {
-        self->mediaBlockCount = 0;
-        self->mediaBlockSize = 0;
-        self->mb2lbFactor = 1;
-        self->blockCount = 0;
-        self->blockSize = 0;
-        self->blockShift = 0;
         self->isReadOnly = true;
 
         self->currentMediaId = kMediaId_None;
     }
+    
     Driver_Unlock(self);
 }
 
