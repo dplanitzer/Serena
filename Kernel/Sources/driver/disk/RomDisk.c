@@ -7,7 +7,6 @@
 //
 
 #include "RomDisk.h"
-#include <diskcache/DiskCache.h>
 
 
 #define MAX_NAME_LENGTH 8
@@ -31,19 +30,18 @@ errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, co
         throw(EINVAL);
     }
 
-    try(DiskDriver_Create(class(RomDisk), 0, parent, gDiskCache, (DriverRef*)&self));
+    MediaInfo info;
+    info.blockCount = blockCount;
+    info.blockSize = blockSize;
+    info.isReadOnly = true;
+
+    try(DiskDriver_Create(class(RomDisk), 0, parent, &info, (DriverRef*)&self));
     self->diskImage = pImage;
     self->blockCount = blockCount;
     self->blockSize = blockSize;
     self->blockShift = siz_log2(self->blockSize);
     self->freeDiskImageOnClose = freeOnClose;
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
-
-    MediaInfo info;
-    info.blockCount = self->blockCount;
-    info.blockSize = self->blockSize;
-    info.isReadOnly = true;
-    DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
 
 catch:
     *pOutSelf = self;

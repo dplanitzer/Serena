@@ -13,14 +13,16 @@
 #include <driver/DriverChannel.h>
 
 
-errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DiskCacheRef _Nonnull diskCache, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, const MediaInfo* _Nullable info, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskDriverRef self = NULL;
 
     try(Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, parent, (DriverRef*)&self));
-    self->diskCache = diskCache;
+    self->diskCache = gDiskCache;
     self->currentMediaId = kMediaId_None;
+
+    DiskDriver_NoteMediaLoaded(self, info);
 
     if ((options & kDiskDriver_Queuing) == kDiskDriver_Queuing) {
         try(DiskDriver_CreateDispatchQueue(self, &self->dispatchQueue));
@@ -133,7 +135,7 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
 
         self->currentMediaId = kMediaId_None;
     }
-    
+
     Driver_Unlock(self);
 }
 

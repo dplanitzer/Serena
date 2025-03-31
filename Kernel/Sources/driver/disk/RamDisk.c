@@ -7,7 +7,6 @@
 //
 
 #include "RamDisk.h"
-#include <diskcache/DiskCache.h>
 
 
 typedef struct DiskExtent {
@@ -39,19 +38,18 @@ errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, si
         throw(EINVAL);
     }
 
-    try(DiskDriver_Create(class(RamDisk), 0, parent, gDiskCache, (DriverRef*)&self));
+    MediaInfo info;
+    info.blockCount = blockCount;
+    info.blockSize = blockSize;
+    info.isReadOnly = false;
+
+    try(DiskDriver_Create(class(RamDisk), 0, parent, &info, (DriverRef*)&self));
     SList_Init(&self->extents);
     self->extentBlockCount = __min(extentBlockCount, blockCount);
     self->blockCount = blockCount;
     self->blockSize = blockSize;
     self->blockShift = siz_log2(self->blockSize);
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
-
-    MediaInfo info;
-    info.blockCount = self->blockCount;
-    info.blockSize = self->blockSize;
-    info.isReadOnly = false;
-    DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
 
 catch:
     *pOutSelf = self;

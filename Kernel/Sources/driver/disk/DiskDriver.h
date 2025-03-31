@@ -211,6 +211,14 @@ invoke_n(getMediaBlock, DiskDriver, __self, __ba, __data)
 invoke_n(putMediaBlock, DiskDriver, __self, __ba, __data)
 
 
-extern errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DiskCacheRef _Nonnull diskCache, DriverRef _Nullable * _Nonnull pOutSelf);
+// Creates a disk driver instance. This function should be called from DiskDrive
+// subclass constructors.
+// 'options' specifies various behaviors of the disk driver. 'parent' is a
+// reference to the bus driver that controls the disk driver. 'info' is a
+// description of the media loaded into the drive when the driver is instantiated.
+// It may be that the media is not really known at that point in time. In this
+// case either pass NULL or (preferably) a media info with blockCount == 0 and
+// the other properties set to defaults that make sense for the drive in general.
+extern errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, const MediaInfo* _Nullable info, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* DiskDriver_h */
