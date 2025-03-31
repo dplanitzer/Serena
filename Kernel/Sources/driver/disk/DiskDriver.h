@@ -54,10 +54,10 @@ typedef struct MediaInfo {
 // asynchronously processed by the driver dispatch queue.
 //
 // A synchronous driver should override:
-// - getBlock()/putBlock(), doIO() or beginIO()
+// - getMediaBlock()/putMediaBlock(), doIO() or beginIO()
 //
 // A queueing driver should override:
-// - getBlock()/putBlock() or doIO()
+// - getMediaBlock()/putMediaBlock() or doIO()
 //
 // Logical block sizes vs media block sizes:
 //
@@ -135,7 +135,7 @@ open_class_funcs(DiskDriver, Driver,
     errno_t (*beginIO)(void* _Nonnull _Locked self, DiskRequest* _Nonnull req);
 
     // Executes an I/O request.
-    // Default Behavior: Calls getBlock/putBlock
+    // Default Behavior: Calls getMediaBlock/putMediaBlock
     void (*doIO)(void* _Nonnull self, DiskRequest* _Nonnull req);
 
     // Reads the contents of the physical block at the disk address 'ba'
@@ -153,12 +153,6 @@ open_class_funcs(DiskDriver, Driver,
     // The abstract implementation returns EIO.
     // Default Behavior: returns EIO
     errno_t (*putMediaBlock)(void* _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data);
-
-    // Notifies the system that the I/O operation on the given request has finished
-    // and that all data has been read in and stored in the block (if reading) or
-    // committed to disk (if writing).
-    // Default Behavior: Notifies the disk cache
-    void (*endIO)(void* _Nonnull _Locked self, DiskRequest* _Nonnull req, errno_t status);
 );
 
 
@@ -215,9 +209,6 @@ invoke_n(getMediaBlock, DiskDriver, __self, __ba, __data)
 
 #define DiskDriver_PutMediaBlock(__self, __ba, __data) \
 invoke_n(putMediaBlock, DiskDriver, __self, __ba, __data)
-
-#define DiskDriver_EndIO(__self, __req, __status) \
-invoke_n(endIO, DiskDriver, __self, __req, __status)
 
 
 extern errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DiskCacheRef _Nonnull diskCache, DriverRef _Nullable * _Nonnull pOutSelf);

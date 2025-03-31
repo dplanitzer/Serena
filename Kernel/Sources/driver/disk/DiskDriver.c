@@ -204,7 +204,7 @@ void DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
         err = EDISKCHANGE;
     }
 
-    DiskDriver_EndIO(self, req, err);
+    DiskRequest_Done(req, err);
 }
 
 errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull _Locked self, DiskRequest* _Nonnull req)
@@ -243,12 +243,6 @@ errno_t DiskDriver_getMediaBlock(DiskDriverRef _Nonnull self, LogicalBlockAddres
 errno_t DiskDriver_putMediaBlock(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data)
 {
     return EIO;
-}
-
-
-void DiskDriver_endIO(DiskDriverRef _Nonnull _Locked self, DiskRequest* _Nonnull req, errno_t status)
-{
-    DiskRequest_Done(req, status);
 }
 
 
@@ -470,7 +464,6 @@ func_def(beginIO, DiskDriver)
 func_def(doIO, DiskDriver)
 func_def(getMediaBlock, DiskDriver)
 func_def(putMediaBlock, DiskDriver)
-func_def(endIO, DiskDriver)
 override_func_def(createChannel, DiskDriver, Driver)
 override_func_def(read, DiskDriver, Driver)
 override_func_def(write, DiskDriver, Driver)
