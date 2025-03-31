@@ -92,21 +92,21 @@ open_class_funcs(DiskDriver, Driver,
     // Default Behavior: Calls getBlock/putBlock
     void (*doIO)(void* _Nonnull self, DiskRequest* _Nonnull req);
 
-    // Reads the contents of the bloc at the disk address 'targetAddr' into the
-    // in-memory block 'pBlock'. Blocks the caller until the read operation has
-    // completed. Note that this function will never return a partially read
-    // block. Either it succeeds and the full block data is returned, or it
-    // fails and no block data is returned.
+    // Reads the contents of the physical block at the disk address 'ba'
+    // into the in-memory area 'data' of size 'blockSize'. Blocks the caller
+    // until the read operation has completed. Note that this function will
+    // never return a partially read block. Either it succeeds and the full
+    // block data is returned, or it fails and no block data is returned.
     // Default Behavior: returns EIO
-    errno_t (*getBlock)(void* _Nonnull self, DiskRequest* _Nonnull req);
+    errno_t (*getBlock)(void* _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t blockSize);
 
-    // Writes the contents of 'pBlock' to the disk block 'targetAddr'. Blocks
+    // Writes the contents of 'data' to the physical block 'ba'. Blocks
     // the caller until the write has completed. The contents of the block on
     // disk is left in an indeterminate state of the write fails in the middle
     // of the write. The block may contain a mix of old and new data.
     // The abstract implementation returns EIO.
     // Default Behavior: returns EIO
-    errno_t (*putBlock)(void* _Nonnull self, DiskRequest* _Nonnull req);
+    errno_t (*putBlock)(void* _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t blockSize);
 
     // Notifies the system that the I/O operation on the given request has finished
     // and that all data has been read in and stored in the block (if reading) or
@@ -164,11 +164,11 @@ invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
 extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable pInfo);
 
 
-#define DiskDriver_GetBlock(__self, __req) \
-invoke_n(getBlock, DiskDriver, __self, __req)
+#define DiskDriver_GetBlock(__self, __ba, __data, __blockSize) \
+invoke_n(getBlock, DiskDriver, __self, __ba, __data, __blockSize)
 
-#define DiskDriver_PutBlock(__self, __req) \
-invoke_n(putBlock, DiskDriver, __self, __req)
+#define DiskDriver_PutBlock(__self, __ba, __data, __blockSize) \
+invoke_n(putBlock, DiskDriver, __self, __ba, __data, __blockSize)
 
 #define DiskDriver_EndIO(__self, __req, __status) \
 invoke_n(endIO, DiskDriver, __self, __req, __status)

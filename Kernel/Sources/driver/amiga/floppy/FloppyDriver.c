@@ -756,18 +756,17 @@ static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, uint8_t target
 #endif
 }
 
-errno_t FloppyDriver_getBlock(FloppyDriverRef _Nonnull self, DiskRequest* _Nonnull req)
+errno_t FloppyDriver_getBlock(FloppyDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t blockSize)
 {
     decl_try_err();
-    const LogicalBlockAddress lba = req->lba;
 
-    if (lba >= self->blocksPerDisk) {
+    if (ba >= self->blocksPerDisk) {
         return ENXIO;
     }
 
-    const int cylinder = lba / self->sectorsPerCylinder;
-    const int head = (lba / self->sectorsPerTrack) % self->headsPerCylinder;
-    const int sector = lba % self->sectorsPerTrack;
+    const int cylinder = ba / self->sectorsPerCylinder;
+    const int head = (ba / self->sectorsPerTrack) % self->headsPerCylinder;
+    const int sector = ba % self->sectorsPerTrack;
     const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(cylinder, head);
     
     try(FloppyDriver_EnsureTrackBuffer(self));
@@ -804,7 +803,7 @@ errno_t FloppyDriver_getBlock(FloppyDriverRef _Nonnull self, DiskRequest* _Nonnu
         if (s->isDataValid) {
             // MFM decode the sector data
             const ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
-            mfm_decode_bits((const uint32_t*)mfms->data.odd_bits, (uint32_t*)req->data, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
+            mfm_decode_bits((const uint32_t*)mfms->data.odd_bits, (uint32_t*)data, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
         }
         else {
             self->readErrorCount++;
@@ -883,18 +882,17 @@ static void FloppyDriver_BuildSector(FloppyDriverRef _Nonnull self, uint8_t targ
     mfm_encode_bits(&checksum, &dst->payload.data_checksum.odd_bits, 1);
 }
 
-errno_t FloppyDriver_putBlock(FloppyDriverRef _Nonnull self, DiskRequest* _Nonnull req)
+errno_t FloppyDriver_putBlock(FloppyDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t blockSize)
 {
     decl_try_err();
-    const LogicalBlockAddress lba = req->lba;
 
-    if (lba >= self->blocksPerDisk) {
+    if (ba >= self->blocksPerDisk) {
         return ENXIO;
     }
 
-    const int cylinder = lba / self->sectorsPerCylinder;
-    const int head = (lba / self->sectorsPerTrack) % self->headsPerCylinder;
-    const int sector = lba % self->sectorsPerTrack;
+    const int cylinder = ba / self->sectorsPerCylinder;
+    const int head = (ba / self->sectorsPerTrack) % self->headsPerCylinder;
+    const int sector = ba % self->sectorsPerTrack;
     const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(cylinder, head);
 
     try(FloppyDriver_EnsureTrackBuffer(self));
@@ -950,7 +948,7 @@ errno_t FloppyDriver_putBlock(FloppyDriverRef _Nonnull self, DiskRequest* _Nonnu
             }
         }
         else {
-            s_dat = req->data;
+            s_dat = data;
             is_good = true;
         }
 

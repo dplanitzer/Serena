@@ -694,11 +694,11 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     req->context = self;
     req->type = (op == kDiskBlockOp_Read) ? kDiskRequest_Read : kDiskRequest_Write;
 
-    req->mediaId = pBlock->mediaId;
-    req->lba = pBlock->lba;
-    req->data = pBlock->data;
-    req->size = kDiskCache_BlockSize;
-    req->token = (intptr_t)pBlock;
+    req->r.mediaId = pBlock->mediaId;
+    req->r.lba = pBlock->lba;
+    req->r.data = pBlock->data;
+    req->r.blockCount = 1;
+    req->r.token = (intptr_t)pBlock;
 
     err = DiskDriver_BeginIO(disk, req);
     if (err == EOK && isSync) {
@@ -723,7 +723,7 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnu
 {
     Lock_Lock(&self->interlock);
 
-    DiskBlockRef pBlock = (DiskBlockRef)req->token;
+    DiskBlockRef pBlock = (DiskBlockRef)req->r.token;
     const bool isAsync = pBlock->flags.async ? true : false;
 
     switch (req->type) {

@@ -109,23 +109,21 @@ static DiskExtent* _Nullable RamDisk_GetDiskExtentForBlockIndex_Locked(RamDiskRe
     return pExtent;
 }
 
-errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, DiskRequest* _Nonnull req)
+errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t blockSize)
 {
-    const LogicalBlockAddress lba = req->lba;
-
-    if (lba >= self->blockCount) {
+    if (ba >= self->blockCount) {
         return ENXIO;
     }
 
 
-    DiskExtent* pExtent = RamDisk_GetDiskExtentForBlockIndex_Locked(self, lba, NULL);
+    DiskExtent* pExtent = RamDisk_GetDiskExtentForBlockIndex_Locked(self, ba, NULL);
     if (pExtent) {
         // Request for a block that was previously written to -> return the block
-        memcpy(req->data, &pExtent->data[(lba - pExtent->firstBlockIndex) << self->blockShift], self->blockSize);
+        memcpy(data, &pExtent->data[(ba - pExtent->firstBlockIndex) << self->blockShift], self->blockSize);
     }
     else {
         // Request for a block that hasn't been written to yet -> return zeros
-        memset(req->data, 0, self->blockSize);
+        memset(data, 0, self->blockSize);
     }
 
     return EOK;
@@ -150,24 +148,23 @@ catch:
     return err;
 }
 
-errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, DiskRequest* _Nonnull req)
+errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t blockSize)
 {
     decl_try_err();
-    const LogicalBlockAddress lba = req->lba;
 
-    if (lba >= self->blockCount) {
+    if (ba >= self->blockCount) {
         return ENXIO;
     }
 
     DiskExtent* pPrevExtent;
-    DiskExtent* pExtent = RamDisk_GetDiskExtentForBlockIndex_Locked(self, lba, &pPrevExtent);
+    DiskExtent* pExtent = RamDisk_GetDiskExtentForBlockIndex_Locked(self, ba, &pPrevExtent);
     if (pExtent == NULL) {
         // Extent doesn't exist yet for the range intersected by 'lba'. Allocate
         // it and make sure all the data in there is cleared out.
-        try(RamDisk_AddExtentAfter_Locked(self, (lba / self->extentBlockCount) * self->extentBlockCount, pPrevExtent, &pExtent));
+        try(RamDisk_AddExtentAfter_Locked(self, (ba / self->extentBlockCount) * self->extentBlockCount, pPrevExtent, &pExtent));
     }
     if (pExtent) {
-        memcpy(&pExtent->data[(lba - pExtent->firstBlockIndex) << self->blockShift], req->data, self->blockSize);
+        memcpy(&pExtent->data[(ba - pExtent->firstBlockIndex) << self->blockShift], data, self->blockSize);
     }
 
 catch:

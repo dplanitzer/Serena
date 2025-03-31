@@ -25,16 +25,21 @@ enum {
 };
 
 
+typedef struct BLockRange {
+    MediaId                 mediaId;    // -> physical disk block address
+    LogicalBlockAddress     lba;
+    uint8_t* _Nonnull       data;       // -> byte buffer to read or write 
+    size_t                  blockCount; // -> number of blocks to read/write.
+    intptr_t                token;      // -> token identifying this disk block
+} BlockRange;
+
+
 typedef struct DiskRequest {
     DiskRequestDoneCallback _Nullable   done;       // <- done callback
     void* _Nullable                     context;    // <- done callback context
     int                                 type;       // -> disk request type: read/write
 
-    MediaId                 mediaId;    // -> physical disk block address
-    LogicalBlockAddress     lba;
-    uint8_t* _Nonnull       data;       // -> byte buffer to read or write 
-    size_t                  size;       // -> number of bytes to read/write. Always equal the disk driver block size
-    intptr_t                token;      // -> token identifying this disk block
+    BlockRange                          r;
 } DiskRequest;
 
 

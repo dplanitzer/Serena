@@ -74,7 +74,7 @@ void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, DiskRequest* _Non
 {
     // Update the block number and pass the disk request on to the whole disk
     // driver 
-    req->lba += self->startBlock;
+    req->r.lba += self->startBlock;
     DiskDriver_BeginIO(self->wholeDisk, req);
 }
 

@@ -119,6 +119,7 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
     Driver_Unlock(self);
 }
 
+typedef errno_t (*phys_block_func_t)(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t blockSize);
 
 void DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
 {
@@ -126,21 +127,28 @@ void DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
 
     Driver_Lock(self);
     const MediaId curMediaId = self->currentMediaId;
+    const size_t logicalBlockSize = DiskCache_GetBlockSize(self->diskCache);
+    const size_t physBlockSize = self->mediaInfo.blockSize;
     Driver_Unlock(self);
 
-    if (req->mediaId == kMediaId_Current || req->mediaId == curMediaId) {
-        switch (req->type) {
-            case kDiskRequest_Read:
-                err = DiskDriver_GetBlock(self, req);
-                break;
+    phys_block_func_t pbf;
+    switch (req->type) {
+        case kDiskRequest_Read:
+            pbf = (phys_block_func_t)implementationof(getBlock, DiskDriver, classof(self));
+            break;
 
-            case kDiskRequest_Write:
-                err = DiskDriver_PutBlock(self, req);
-                break;
+        case kDiskRequest_Write:
+            pbf = (phys_block_func_t)implementationof(putBlock, DiskDriver, classof(self));
+            break;
 
-            default:
-                err = EIO;
-                break;
+        default:
+            err = EIO;
+            break;
+    }
+
+    if (req->r.mediaId == kMediaId_Current || req->r.mediaId == curMediaId) {
+        for (size_t i = 0; (err == EOK) && (i < req->r.blockCount); i++) {
+            err = pbf(self, req->r.lba + i, &req->r.data[i * logicalBlockSize], physBlockSize);
         }
     }
     else {
@@ -178,12 +186,12 @@ errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull re
 }
 
 
-errno_t DiskDriver_getBlock(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
+errno_t DiskDriver_getBlock(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t blockSize)
 {
     return EIO;
 }
 
-errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
+errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t blockSize)
 {
     return EIO;
 }
