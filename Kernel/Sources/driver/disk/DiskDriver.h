@@ -19,6 +19,9 @@ enum DiskDriverOptions {
     kDiskDriver_Queuing = 256,  // BeginIO should queue incoming requested and the requests will by asynchronously processed by a dispatch queue work item
 };
 
+
+// Describes the physical properties of the media that is currently loaded into
+// the drive.
 typedef struct MediaInfo {
     LogicalBlockCount   blockCount;
     size_t              blockSize;
@@ -56,14 +59,54 @@ typedef struct MediaInfo {
 // A queueing driver should override:
 // - getBlock()/putBlock() or doIO()
 //
+// Logical block sizes vs media block sizes:
+//
+// Every disk driver defines a 'media block size' and 'media block count'. These
+// are the size of a single block or sector on the media and the overall number
+// of addressable sectors on the media. These numbers may change when the
+// currently loaded media is ejected and replaced with a different media.
+//
+// Every disk driver is also associated with a disk cache. The disk cache defines
+// a 'logical block size'. The logical block size is always a power-of-2 while
+// the media block size is usually a power-of-2 but isn't required to be one.
+// Eg CD-ROM Audio disks define a media block size of 2,352 bytes.
+//
+// A disk driver is required to call DiskDriver_NoteMediaLoaded() when a new
+// media is loaded into the drive. This function takes a media info that
+// describes the media block size and block count. The disk driver class then
+// derives the logical block count and the conversation factor from media block
+// size to logical block size. Note that the conversation is defined like this:
+// * media block size is a power-of-2: as many media blocks are mapped to a
+//                                     single logical block as possible.
+// * media block size is NOT a power-of-2: a single media block is mapped to a
+//                                         single logical block. The remaining
+//                                         bytes are zero-filled on read and
+//                                         ignored on write
+//
+// The disk driver implementation requires that:
+// * logical block size is always a power-of-2
+// * media block size may be a power-of-2
+// * logical block size is always >= media block size
+// * if media block size is not a power-of-2, then 1 logical block corresponds
+//   to 1 media block
+// 
+// User space applications and kernel code which wants to invoke the raw read/
+// write functions or access a disk through a FSContainer works with the logical
+// block size. The media block size is only relevant to the internals of the disk
+// driver. That said, the media block size and count are still made available as
+// part of the DiskInfo object to enable user space code to show those values to
+// the user if desired.
 open_class(DiskDriver, Driver,
     DispatchQueueRef _Nullable  dispatchQueue;
     DiskCacheRef _Weak _Nonnull diskCache;      // This is a weak ref because the disk cache holds a strong ref to the driver and the disk cache has to outlive the driver by design (has to be a global object)
     DiskCacheClient             dcClient;       // Protected by disk cache lock
     MediaId                     currentMediaId;
-    LogicalBlockCount           blockCount;
-    size_t                      blockSize;
-    size_t                      blockShift;     // > 0 -> valid block shift; == 0 -> invalid block shift and I/O should fail with EIO
+    LogicalBlockCount           blockCount;         // Number of logical blocks per media
+    size_t                      blockSize;          // Size of a logical block i nbytes. Always a power-of-2
+    uint16_t                    blockShift;         // log2(blockSize)
+    uint16_t                    mb2lbFactor;        // Number of media blocks per logical block
+    LogicalBlockCount           mediaBlockCount;    // Number of media blocks per media. Is blockCount * mb2lbFactor
+    size_t                      mediaBlockSize;     // Size of a media block in bytes. Usually power-of-2, but may not be. If not, then one media block maps to one logical block with 0 padding at the end 
     bool                        isReadOnly;
 );
 open_class_funcs(DiskDriver, Driver,
