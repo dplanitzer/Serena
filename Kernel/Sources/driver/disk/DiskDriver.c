@@ -74,12 +74,12 @@ void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
 void DiskDriver_getInfo(DiskDriverRef _Nonnull _Locked self, DiskInfo* _Nonnull pOutInfo)
 {
     pOutInfo->mediaId = self->currentMediaId;
-    pOutInfo->isReadOnly = self->mediaInfo.isReadOnly;
+    pOutInfo->isReadOnly = self->isReadOnly;
     pOutInfo->reserved[0] = 0;
     pOutInfo->reserved[1] = 0;
     pOutInfo->reserved[2] = 0;
-    pOutInfo->blockSize = self->mediaInfo.blockSize;
-    pOutInfo->blockCount = self->mediaInfo.blockCount;
+    pOutInfo->blockSize = self->blockSize;
+    pOutInfo->blockCount = self->blockCount;
 }
 
 errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
@@ -102,17 +102,21 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
 {
     Driver_Lock(self);
     if (pInfo) {
-        self->mediaInfo = *pInfo;
-
+        self->blockSize = pInfo->blockSize;
+        self->blockCount = pInfo->blockCount;
+        self->blockShift = u_ispow2(pInfo->blockSize) ? u_log2(pInfo->blockSize) : 0;
+        self->isReadOnly = pInfo->isReadOnly;
+    
         self->currentMediaId++;
         while (self->currentMediaId == kMediaId_None || self->currentMediaId == kMediaId_Current) {
             self->currentMediaId++;
         }
     }
     else {
-        self->mediaInfo.blockCount = 0;
-        self->mediaInfo.blockSize = 0;
-        self->mediaInfo.isReadOnly = true;
+        self->blockCount = 0;
+        self->blockSize = 0;
+        self->blockShift = 0;
+        self->isReadOnly = true;
 
         self->currentMediaId = kMediaId_None;
     }
@@ -128,7 +132,7 @@ void DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
     Driver_Lock(self);
     const MediaId curMediaId = self->currentMediaId;
     const size_t logicalBlockSize = DiskCache_GetBlockSize(self->diskCache);
-    const size_t physBlockSize = self->mediaInfo.blockSize;
+    const size_t physBlockSize = self->blockSize;
     Driver_Unlock(self);
 
     phys_block_func_t pbf;
@@ -238,8 +242,6 @@ static void convert_offset(off_t offset, const block_info_t* _Nonnull info, Logi
 errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
-    const MediaId mediaId = DiskDriverChannel_GetInfo(ch)->mediaId;
-    const size_t blockSize = DiskCache_GetBlockSize(DiskDriver_GetDiskCache(self));
     const off_t diskSize = IOChannel_GetSeekableRange(ch);
     off_t offset = IOChannel_GetOffset(ch);
     uint8_t* dp = pBuffer;
@@ -274,12 +276,19 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
 
     // Get the block index and block offset that corresponds to 'offset'. We start
     // iterating through blocks there.
-    block_info_t binfo;
-    try(make_block_info(blockSize, &binfo));
+    Driver_Lock(self);
+    const MediaId mediaId = self->currentMediaId;
+    const size_t blockSize = self->blockSize;
+    const size_t blockShift = self->blockShift;
+    Driver_Unlock(self);
 
-    LogicalBlockAddress blockIdx;
-    ssize_t blockOffset;
-    convert_offset(offset, &binfo, &blockIdx, &blockOffset);
+    if (blockShift == 0) {
+        throw(EIO);
+    }
+
+    const size_t blockMask = blockSize - 1;
+    LogicalBlockAddress blockIdx = (LogicalBlockAddress)(offset >> (off_t)blockShift);
+    ssize_t blockOffset = (ssize_t)(offset & (off_t)blockMask);
 
 
     // Iterate through a contiguous sequence of blocks until we've read all
@@ -319,8 +328,6 @@ catch:
 errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
-    const MediaId mediaId = DiskDriverChannel_GetInfo(ch)->mediaId;
-    const size_t blockSize = DiskCache_GetBlockSize(DiskDriver_GetDiskCache(self));
     const off_t diskSize = IOChannel_GetSeekableRange(ch);
     off_t offset = IOChannel_GetOffset(ch);
     const uint8_t* sp = buf;
@@ -355,12 +362,19 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
 
     // Get the block index and block offset that corresponds to 'offset'. We start
     // iterating through blocks there.
-    block_info_t binfo;
-    try(make_block_info(blockSize, &binfo));
+    Driver_Lock(self);
+    const MediaId mediaId = self->currentMediaId;
+    const size_t blockSize = self->blockSize;
+    const size_t blockShift = self->blockShift;
+    Driver_Unlock(self);
 
-    LogicalBlockAddress blockIdx;
-    ssize_t blockOffset;
-    convert_offset(offset, &binfo, &blockIdx, &blockOffset);
+    if (blockShift == 0) {
+        throw(EIO);
+    }
+    
+    const size_t blockMask = blockSize - 1;
+    LogicalBlockAddress blockIdx = (LogicalBlockAddress)(offset >> (off_t)blockShift);
+    ssize_t blockOffset = (ssize_t)(offset & (off_t)blockMask);
 
 
     // Iterate through a contiguous sequence of blocks until we've written all

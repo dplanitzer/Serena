@@ -61,7 +61,10 @@ open_class(DiskDriver, Driver,
     DiskCacheRef _Weak _Nonnull diskCache;      // This is a weak ref because the disk cache holds a strong ref to the driver and the disk cache has to outlive the driver by design (has to be a global object)
     DiskCacheClient             dcClient;       // Protected by disk cache lock
     MediaId                     currentMediaId;
-    MediaInfo                   mediaInfo;
+    LogicalBlockCount           blockCount;
+    size_t                      blockSize;
+    size_t                      blockShift;     // > 0 -> valid block shift; == 0 -> invalid block shift and I/O should fail with EIO
+    bool                        isReadOnly;
 );
 open_class_funcs(DiskDriver, Driver,
 
