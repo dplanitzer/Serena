@@ -766,10 +766,6 @@ errno_t FloppyDriver_getMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAd
 {
     decl_try_err();
 
-    if (ba >= self->blocksPerDisk) {
-        return ENXIO;
-    }
-
     const int cylinder = ba / self->sectorsPerCylinder;
     const int head = (ba / self->sectorsPerTrack) % self->headsPerCylinder;
     const int sector = ba % self->sectorsPerTrack;
@@ -891,10 +887,6 @@ static void FloppyDriver_BuildSector(FloppyDriverRef _Nonnull self, uint8_t targ
 errno_t FloppyDriver_putMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data)
 {
     decl_try_err();
-
-    if (ba >= self->blocksPerDisk) {
-        return ENXIO;
-    }
 
     const int cylinder = ba / self->sectorsPerCylinder;
     const int head = (ba / self->sectorsPerTrack) % self->headsPerCylinder;

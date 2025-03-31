@@ -22,7 +22,6 @@ typedef struct DiskExtent {
 final_class_ivars(RamDisk, DiskDriver,
     SList               extents;            // Sorted ascending by 'firstBlockIndex'
     LogicalBlockCount   extentBlockCount;   // How many blocks an extent stores
-    LogicalBlockCount   blockCount;
     size_t              blockSize;
     size_t              blockShift;
     char                name[MAX_NAME_LENGTH];
@@ -46,7 +45,6 @@ errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, si
     try(DiskDriver_Create(class(RamDisk), 0, parent, &info, (DriverRef*)&self));
     SList_Init(&self->extents);
     self->extentBlockCount = __min(extentBlockCount, blockCount);
-    self->blockCount = blockCount;
     self->blockSize = blockSize;
     self->blockShift = siz_log2(self->blockSize);
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
@@ -109,12 +107,8 @@ static DiskExtent* _Nullable RamDisk_GetDiskExtentForBlockIndex_Locked(RamDiskRe
 
 errno_t RamDisk_getMediaBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data)
 {
-    if (ba >= self->blockCount) {
-        return ENXIO;
-    }
-
-
     DiskExtent* pExtent = RamDisk_GetDiskExtentForBlockIndex_Locked(self, ba, NULL);
+
     if (pExtent) {
         // Request for a block that was previously written to -> return the block
         memcpy(data, &pExtent->data[(ba - pExtent->firstBlockIndex) << self->blockShift], self->blockSize);
@@ -135,14 +129,14 @@ errno_t RamDisk_getMediaBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, 
 static errno_t RamDisk_AddExtentAfter_Locked(RamDiskRef _Nonnull self, LogicalBlockAddress firstBlockIndex, DiskExtent* _Nullable pPrevExtent, DiskExtent* _Nullable * _Nonnull pOutExtent)
 {
     decl_try_err();
-    DiskExtent* pExtent;
+    DiskExtent* pExtent = NULL;
 
     try(kalloc_cleared(sizeof(DiskExtent) - 1 + (self->extentBlockCount << self->blockShift), (void**)&pExtent));
     SList_InsertAfter(&self->extents, &pExtent->node, (pPrevExtent) ? &pPrevExtent->node : NULL);
     pExtent->firstBlockIndex = firstBlockIndex;
-    *pOutExtent = pExtent;
 
 catch:
+    *pOutExtent = pExtent;
     return err;
 }
 
@@ -150,22 +144,19 @@ errno_t RamDisk_putMediaBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, 
 {
     decl_try_err();
 
-    if (ba >= self->blockCount) {
-        return ENXIO;
-    }
-
     DiskExtent* pPrevExtent;
     DiskExtent* pExtent = RamDisk_GetDiskExtentForBlockIndex_Locked(self, ba, &pPrevExtent);
+    
     if (pExtent == NULL) {
         // Extent doesn't exist yet for the range intersected by 'ba'. Allocate
         // it and make sure all the data in there is cleared out.
-        try(RamDisk_AddExtentAfter_Locked(self, (ba / self->extentBlockCount) * self->extentBlockCount, pPrevExtent, &pExtent));
+        err = RamDisk_AddExtentAfter_Locked(self, (ba / self->extentBlockCount) * self->extentBlockCount, pPrevExtent, &pExtent);
     }
+
     if (pExtent) {
         memcpy(&pExtent->data[(ba - pExtent->firstBlockIndex) << self->blockShift], data, self->blockSize);
     }
 
-catch:
     return err;
 }
 

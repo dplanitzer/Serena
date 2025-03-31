@@ -143,6 +143,8 @@ open_class_funcs(DiskDriver, Driver,
     // until the read operation has completed. Note that this function will
     // never return a partially read block. Either it succeeds and the full
     // block data is returned, or it fails and no block data is returned.
+    // The media block address 'ba' is guaranteed to be in the range
+    // [0, mediaBlockCount).
     // Default Behavior: returns EIO
     errno_t (*getMediaBlock)(void* _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data);
 
@@ -150,6 +152,8 @@ open_class_funcs(DiskDriver, Driver,
     // the caller until the write has completed. The contents of the block on
     // disk is left in an indeterminate state of the write fails in the middle
     // of the write. The block may contain a mix of old and new data.
+    // The media block address 'ba' is guaranteed to be in the range
+    // [0, mediaBlockCount).
     // The abstract implementation returns EIO.
     // Default Behavior: returns EIO
     errno_t (*putMediaBlock)(void* _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data);

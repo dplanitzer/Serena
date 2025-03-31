@@ -172,6 +172,7 @@ void DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
     decl_try_err();
 
     Driver_Lock(self);
+    const LogicalBlockCount bCount = self->blockCount;
     const MediaId curMediaId = self->currentMediaId;
     const size_t lbSize = self->blockSize;
     const size_t mbSize = self->mediaBlockSize;
@@ -185,6 +186,11 @@ void DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
         size_t i = 0;
 
         while(i < req->r.blockCount) {
+            if (lba >= bCount) {
+                err = ENXIO;
+                break;
+            }
+            
             err = _DiskDriver_DoBlockIO(self, req->type, lba, data, mbSize, mb2lbFactor);
             if (err != EOK) {
                 break;
