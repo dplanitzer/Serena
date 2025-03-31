@@ -144,7 +144,7 @@ open_class_funcs(DiskDriver, Driver,
     // never return a partially read block. Either it succeeds and the full
     // block data is returned, or it fails and no block data is returned.
     // Default Behavior: returns EIO
-    errno_t (*getBlock)(void* _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t blockSize);
+    errno_t (*getMediaBlock)(void* _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data);
 
     // Writes the contents of 'data' to the physical block 'ba'. Blocks
     // the caller until the write has completed. The contents of the block on
@@ -152,7 +152,7 @@ open_class_funcs(DiskDriver, Driver,
     // of the write. The block may contain a mix of old and new data.
     // The abstract implementation returns EIO.
     // Default Behavior: returns EIO
-    errno_t (*putBlock)(void* _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t blockSize);
+    errno_t (*putMediaBlock)(void* _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data);
 
     // Notifies the system that the I/O operation on the given request has finished
     // and that all data has been read in and stored in the block (if reading) or
@@ -210,11 +210,11 @@ invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
 extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable pInfo);
 
 
-#define DiskDriver_GetBlock(__self, __ba, __data, __blockSize) \
-invoke_n(getBlock, DiskDriver, __self, __ba, __data, __blockSize)
+#define DiskDriver_GetMediaBlock(__self, __ba, __data) \
+invoke_n(getMediaBlock, DiskDriver, __self, __ba, __data)
 
-#define DiskDriver_PutBlock(__self, __ba, __data, __blockSize) \
-invoke_n(putBlock, DiskDriver, __self, __ba, __data, __blockSize)
+#define DiskDriver_PutMediaBlock(__self, __ba, __data) \
+invoke_n(putMediaBlock, DiskDriver, __self, __ba, __data)
 
 #define DiskDriver_EndIO(__self, __req, __status) \
 invoke_n(endIO, DiskDriver, __self, __req, __status)

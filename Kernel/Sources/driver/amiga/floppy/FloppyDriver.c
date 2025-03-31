@@ -756,7 +756,7 @@ static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, uint8_t target
 #endif
 }
 
-errno_t FloppyDriver_getBlock(FloppyDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t blockSize)
+errno_t FloppyDriver_getMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data)
 {
     decl_try_err();
 
@@ -882,7 +882,7 @@ static void FloppyDriver_BuildSector(FloppyDriverRef _Nonnull self, uint8_t targ
     mfm_encode_bits(&checksum, &dst->payload.data_checksum.odd_bits, 1);
 }
 
-errno_t FloppyDriver_putBlock(FloppyDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t blockSize)
+errno_t FloppyDriver_putMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data)
 {
     decl_try_err();
 
@@ -1000,6 +1000,6 @@ catch:
 class_func_defs(FloppyDriver, DiskDriver,
 override_func_def(deinit, FloppyDriver, Object)
 override_func_def(onStart, FloppyDriver, Driver)
-override_func_def(getBlock, FloppyDriver, DiskDriver)
-override_func_def(putBlock, FloppyDriver, DiskDriver)
+override_func_def(getMediaBlock, FloppyDriver, DiskDriver)
+override_func_def(putMediaBlock, FloppyDriver, DiskDriver)
 );

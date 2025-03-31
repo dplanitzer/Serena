@@ -109,7 +109,7 @@ static DiskExtent* _Nullable RamDisk_GetDiskExtentForBlockIndex_Locked(RamDiskRe
     return pExtent;
 }
 
-errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t blockSize)
+errno_t RamDisk_getMediaBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data)
 {
     if (ba >= self->blockCount) {
         return ENXIO;
@@ -148,7 +148,7 @@ catch:
     return err;
 }
 
-errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t blockSize)
+errno_t RamDisk_putMediaBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data)
 {
     decl_try_err();
 
@@ -159,7 +159,7 @@ errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, LogicalBlockAddress ba, const
     DiskExtent* pPrevExtent;
     DiskExtent* pExtent = RamDisk_GetDiskExtentForBlockIndex_Locked(self, ba, &pPrevExtent);
     if (pExtent == NULL) {
-        // Extent doesn't exist yet for the range intersected by 'lba'. Allocate
+        // Extent doesn't exist yet for the range intersected by 'ba'. Allocate
         // it and make sure all the data in there is cleared out.
         try(RamDisk_AddExtentAfter_Locked(self, (ba / self->extentBlockCount) * self->extentBlockCount, pPrevExtent, &pExtent));
     }
@@ -175,6 +175,6 @@ catch:
 class_func_defs(RamDisk, DiskDriver,
 override_func_def(deinit, RamDisk, Object)
 override_func_def(onStart, RamDisk, Driver)
-override_func_def(getBlock, RamDisk, DiskDriver)
-override_func_def(putBlock, RamDisk, DiskDriver)
+override_func_def(getMediaBlock, RamDisk, DiskDriver)
+override_func_def(putMediaBlock, RamDisk, DiskDriver)
 );

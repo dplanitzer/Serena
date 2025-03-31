@@ -70,7 +70,7 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
-errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t blockSize)
+errno_t RomDisk_getMediaBlock(RomDiskRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data)
 {
     if (ba < self->blockCount) {
         memcpy(data, self->diskImage + (ba << self->blockShift), self->blockSize);
@@ -85,5 +85,5 @@ errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, LogicalBlockAddress ba, uint8
 class_func_defs(RomDisk, DiskDriver,
 override_func_def(deinit, RomDisk, Object)
 override_func_def(onStart, RomDisk, Driver)
-override_func_def(getBlock, RomDisk, DiskDriver)
+override_func_def(getMediaBlock, RomDisk, DiskDriver)
 );

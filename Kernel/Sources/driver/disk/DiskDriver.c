@@ -147,11 +147,11 @@ static errno_t _DiskDriver_DoBlockIO(DiskDriverRef _Nonnull self, int type, Logi
     while ((data < edata) && (err == EOK)) {
         switch (type) {
             case kDiskRequest_Read:
-                err = DiskDriver_GetBlock(self, mba, data, mbSize);
+                err = DiskDriver_GetMediaBlock(self, mba, data);
                 break;
 
             case kDiskRequest_Write:
-                err = DiskDriver_PutBlock(self, mba, data, mbSize);
+                err = DiskDriver_PutMediaBlock(self, mba, data);
                 break;
 
             default:
@@ -235,12 +235,12 @@ errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull re
 }
 
 
-errno_t DiskDriver_getBlock(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t blockSize)
+errno_t DiskDriver_getMediaBlock(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data)
 {
     return EIO;
 }
 
-errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t blockSize)
+errno_t DiskDriver_putMediaBlock(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data)
 {
     return EIO;
 }
@@ -468,8 +468,8 @@ override_func_def(onStop, DiskDriver, Driver)
 func_def(getInfo, DiskDriver)
 func_def(beginIO, DiskDriver)
 func_def(doIO, DiskDriver)
-func_def(getBlock, DiskDriver)
-func_def(putBlock, DiskDriver)
+func_def(getMediaBlock, DiskDriver)
+func_def(putMediaBlock, DiskDriver)
 func_def(endIO, DiskDriver)
 override_func_def(createChannel, DiskDriver, Driver)
 override_func_def(read, DiskDriver, Driver)
