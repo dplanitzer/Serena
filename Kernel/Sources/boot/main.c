@@ -102,7 +102,6 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 // specific drivers and gets them up and running.
 static errno_t drivers_init(void)
 {
-    static DriverRef gPlatformController;
     static DriverRef gHidDriver;
     static DriverRef gLogDriver;
     static DriverRef gNullDriver;
