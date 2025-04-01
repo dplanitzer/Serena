@@ -178,7 +178,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
 
     // Create the disk cache
-    try(DiskCache_Create(gSystemDescription, &gDiskCache));
+    try(DiskCache_Create(512, SystemDescription_GetRamSize(pSysDesc) >> 5, &gDiskCache));
 
 
     // Create the security manager

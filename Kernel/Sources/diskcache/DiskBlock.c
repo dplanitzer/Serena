@@ -10,12 +10,12 @@
 #include <klib/Kalloc.h>
 
 
-errno_t DiskBlock_Create(DiskDriverRef _Nonnull _Weak disk, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskBlock_Create(DiskDriverRef _Nonnull _Weak disk, MediaId mediaId, LogicalBlockAddress lba, size_t blockSize, DiskBlockRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskBlock* self = NULL;
     
-    err = kalloc_cleared(sizeof(DiskBlock) + kDiskCache_BlockSize - 1, (void**) &self);
+    err = kalloc_cleared(sizeof(DiskBlock) + blockSize - 1, (void**) &self);
     if (err == EOK) {
         self->disk = disk;
         self->mediaId = mediaId;

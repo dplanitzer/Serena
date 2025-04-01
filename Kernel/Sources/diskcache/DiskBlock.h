@@ -14,9 +14,6 @@
 #include <filesystem/FSBlock.h>
 
 
-#define kDiskCache_BlockSize  512
-
-
 typedef enum DiskBlockOp {
     kDiskBlockOp_Idle = 0,
     kDiskBlockOp_Read = 1,
@@ -47,7 +44,7 @@ typedef struct DiskBlock {
 } DiskBlock;
 
 
-extern errno_t DiskBlock_Create(DiskDriverRef _Nonnull _Weak disk, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DiskBlock_Create(DiskDriverRef _Nonnull _Weak disk, MediaId mediaId, LogicalBlockAddress lba, size_t blockSize, DiskBlockRef _Nullable * _Nonnull pOutSelf);
 extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
 
 #define DiskBlock_InUse(__self) \

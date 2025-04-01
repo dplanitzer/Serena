@@ -16,12 +16,14 @@
 
 DiskCacheRef _Nonnull  gDiskCache;
 
-errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskCache_Create(size_t blockSize, size_t maxBlockCount, DiskCacheRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskCache* self;
     
     assert(__ELAST <= UCHAR_MAX);
+    assert(blockSize > 0 && siz_ispow2(blockSize));
+    assert(maxBlockCount > 0);
     
     try(kalloc_cleared(sizeof(DiskCache), (void**) &self));
     try(DispatchQueue_Create(0, 1, kDispatchQoS_Background, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->autoSyncQueue));
@@ -30,8 +32,9 @@ errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRe
     ConditionVariable_Init(&self->condition);
     List_Init(&self->lruChain);
 
+    self->blockSize = blockSize;
     self->blockCount = 0;
-    self->blockCapacity = SystemDescription_GetRamSize(pSysDesc) >> 5;
+    self->blockCapacity = maxBlockCount;
     assert(self->blockCapacity > 0);
 
     for (int i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
@@ -50,7 +53,7 @@ catch:
 
 size_t DiskCache_GetBlockSize(DiskCacheRef _Nonnull self)
 {
-    return kDiskCache_BlockSize;
+    return self->blockSize;
 }
 
 // Locks the given block's content in shared or exclusive mode. Multiple clients
@@ -208,7 +211,7 @@ static errno_t _DiskCache_CreateBlock(DiskCacheRef _Nonnull _Locked self, DiskDr
     DiskBlockRef pBlock;
 
     // We can still grow the disk block list
-    err = DiskBlock_Create(disk, mediaId, lba, &pBlock);
+    err = DiskBlock_Create(disk, mediaId, lba, self->blockSize, &pBlock);
     if (err == EOK) {
         _DiskCache_RegisterBlock(self, pBlock);
         self->blockCount++;
@@ -523,7 +526,7 @@ errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull di
             // We always clear the block data because we don't know whether the
             // data is all zero or not
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
-            memset(pBlock->data, 0, kDiskCache_BlockSize);
+            memset(pBlock->data, 0, self->blockSize);
             pBlock->flags.hasData = 1;
             break;
 

@@ -13,7 +13,6 @@
 #include <kobj/AnyRefs.h>
 #include <driver/disk/DiskRequest.h>
 #include <filesystem/FSBlock.h>
-#include <hal/SystemDescription.h>
 
 enum {
     kDccS_NotRegistered = 0,    // Not registered with the disk cache
@@ -29,7 +28,7 @@ typedef struct DiskCacheClient {
 
 extern DiskCacheRef _Nonnull  gDiskCache;
 
-extern errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DiskCache_Create(size_t blockSize, size_t maxBlockCount, DiskCacheRef _Nullable * _Nonnull pOutSelf);
 
 extern errno_t DiskCache_RegisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk);
 extern void DiskCache_UnregisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk);
