@@ -23,13 +23,11 @@ errno_t RamFSContainer_Create(const DiskImageFormat* _Nonnull format, RamFSConta
     decl_try_err();
     RamFSContainerRef self;
 
-    try(Object_Create(class(RamFSContainer), 0, (void**)&self));
+    try(FSContainer_Create(class(RamFSContainer), format->blocksPerDisk, format->blockSize, false, (FSContainerRef*)&self));
     try(FSAllocateCleared(format->blocksPerDisk * format->blockSize, (void**)&self->diskImage));
     try(FSAllocateCleared(format->blocksPerDisk, (void**)&self->mappedFlags));
-    self->blockSize = format->blockSize;
-    self->blockShift = FSLog2(self->blockSize);
-    self->blockMask = self->blockSize - 1;
-    self->blockCount = format->blocksPerDisk;
+    self->blockShift = FSLog2(format->blockSize);
+    self->blockMask = format->blockSize - 1;
     self->lowestWrittenToLba = ~0;
     self->highestWrittenToLba = 0;
     self->format = format->format;
@@ -60,7 +58,7 @@ errno_t RamFSContainer_CreateWithContentsOfPath(const char* _Nonnull path, RamFS
     try(RamFSContainer_Create(&dif, &self));
 
     try_null(fp, fopen(path, "rb"), errno);
-    if (fread(self->diskImage, self->blockSize, self->blockCount, fp) != self->blockCount) {
+    if (fread(self->diskImage, dif.blockSize, dif.blocksPerDisk, fp) != dif.blocksPerDisk) {
         throw(EIO);
     }
     fclose(fp);
@@ -86,15 +84,6 @@ void RamFSContainer_deinit(RamFSContainerRef _Nonnull self)
     self->diskImage = NULL;
 }
 
-errno_t RamFSContainer_getInfo(RamFSContainerRef _Nonnull self, FSContainerInfo* pOutInfo)
-{
-    pOutInfo->blockSize = self->blockSize;
-    pOutInfo->blockCount = self->blockCount;
-    pOutInfo->isReadOnly = false;
-
-    return EOK;
-}
-
 errno_t RamFSContainer_mapBlock(struct RamFSContainer* _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
     decl_try_err();
@@ -109,7 +98,7 @@ errno_t RamFSContainer_mapBlock(struct RamFSContainer* _Nonnull self, LogicalBlo
         case kMapBlock_Update:
         case kMapBlock_Replace:
         case kMapBlock_Cleared:
-            if (lba < self->blockCount) {
+            if (lba < FSContainer_GetBlockCount(self)) {
                 blk->token = lba + 1;
                 blk->data = &self->diskImage[lba << self->blockShift];
             }
@@ -125,7 +114,7 @@ errno_t RamFSContainer_mapBlock(struct RamFSContainer* _Nonnull self, LogicalBlo
 
     if (err == EOK) {
         if (mode == kMapBlock_Cleared) {
-            memset(blk->data, 0, self->blockSize);
+            memset(blk->data, 0, FSContainer_GetBlockSize(self));
         }
 
         self->mappedFlags[lba] = true;
@@ -155,7 +144,7 @@ errno_t RamFSContainer_unmapBlock(struct RamFSContainer* _Nonnull self, intptr_t
 
         case kWriteBlock_Sync:
         case kWriteBlock_Deferred:
-            if (lba < self->blockCount) {
+            if (lba < FSContainer_GetBlockCount(self)) {
                 if (lba < self->lowestWrittenToLba) {
                     self->lowestWrittenToLba = lba;
                 }
@@ -187,7 +176,7 @@ static void convert_offset(struct RamFSContainer* _Nonnull self, off_t offset, L
 errno_t RamFSContainer_Read(RamFSContainerRef _Nonnull self, void* _Nonnull buf, ssize_t nBytesToRead, off_t offset, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
-    const off_t diskSize = (off_t)self->blockCount << (off_t)self->blockShift;
+    const off_t diskSize = (off_t)FSContainer_GetBlockCount(self) << (off_t)self->blockShift;
     uint8_t* dp = buf;
     ssize_t nBytesRead = 0;
 
@@ -228,7 +217,7 @@ errno_t RamFSContainer_Read(RamFSContainerRef _Nonnull self, void* _Nonnull buf,
     // Iterate through a contiguous sequence of blocks until we've read all
     // required bytes.
     while (nBytesToRead > 0) {
-        const ssize_t nRemainderBlockSize = (ssize_t)self->blockSize - blockOffset;
+        const ssize_t nRemainderBlockSize = (ssize_t)FSContainer_GetBlockSize(self) - blockOffset;
         const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
         FSBlock blk = {0};
 
@@ -258,7 +247,7 @@ catch:
 errno_t RamFSContainer_Write(RamFSContainerRef _Nonnull self, const void* _Nonnull buf, ssize_t nBytesToWrite, off_t offset, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
-    const off_t diskSize = (off_t)self->blockCount << (off_t)self->blockShift;
+    const off_t diskSize = (off_t)FSContainer_GetBlockCount(self) << (off_t)self->blockShift;
     const uint8_t* sp = buf;
     ssize_t nBytesWritten = 0;
 
@@ -299,9 +288,9 @@ errno_t RamFSContainer_Write(RamFSContainerRef _Nonnull self, const void* _Nonnu
     // Iterate through a contiguous sequence of blocks until we've written all
     // required bytes.
     while (nBytesToWrite > 0) {
-        const ssize_t nRemainderBlockSize = (ssize_t)self->blockSize - blockOffset;
+        const ssize_t nRemainderBlockSize = (ssize_t)FSContainer_GetBlockSize(self) - blockOffset;
         const ssize_t nBytesToWriteInBlock = (nBytesToWrite > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToWrite;
-        MapBlock mmode = (nBytesToWriteInBlock == (ssize_t)self->blockSize) ? kMapBlock_Replace : kMapBlock_Update;
+        MapBlock mmode = (nBytesToWriteInBlock == (ssize_t)FSContainer_GetBlockSize(self)) ? kMapBlock_Replace : kMapBlock_Update;
         FSBlock blk = {0};
 
         errno_t e1 = FSContainer_MapBlock(self, blockIdx, mmode, &blk);
@@ -330,16 +319,20 @@ catch:
 
 void RamFSContainer_WipeDisk(RamFSContainerRef _Nonnull self)
 {
-    memset(self->diskImage, 0, self->blockCount << self->blockShift);
+    const LogicalBlockCount blockCount = FSContainer_GetBlockCount(self);
+
+    memset(self->diskImage, 0, blockCount << self->blockShift);
     
     self->lowestWrittenToLba = 0;
-    self->highestWrittenToLba = self->blockCount - 1;
+    self->highestWrittenToLba = blockCount - 1;
 }
 
 // Writes the contents of the disk to the given path as a regular file.
 errno_t RamFSContainer_WriteToPath(RamFSContainerRef _Nonnull self, const char* path)
 {
     decl_try_err();
+    const LogicalBlockCount blockCount = FSContainer_GetBlockCount(self);
+    const size_t blockSize = FSContainer_GetBlockSize(self);
     FILE* fp;
 
     try_null(fp, fopen(path, "wb"), EIO);
@@ -350,9 +343,9 @@ errno_t RamFSContainer_WriteToPath(RamFSContainerRef _Nonnull self, const char* 
         memset(&hdr, 0, sizeof(SMG_Header));
         hdr.signature = UInt32_HostToBig(SMG_SIGNATURE);
         hdr.headerSize = UInt32_HostToBig(SMG_HEADER_SIZE);
-        hdr.physicalBlockCount = UInt64_HostToBig(self->blockCount);
+        hdr.physicalBlockCount = UInt64_HostToBig(blockCount);
         hdr.logicalBlockCount = UInt64_HostToBig((uint64_t)self->highestWrittenToLba + 1ull);
-        hdr.blockSize = UInt32_HostToBig(self->blockSize);
+        hdr.blockSize = UInt32_HostToBig(blockSize);
         hdr.options = 0;
 
         fwrite(&hdr, SMG_HEADER_SIZE, 1, fp);
@@ -361,12 +354,12 @@ errno_t RamFSContainer_WriteToPath(RamFSContainerRef _Nonnull self, const char* 
         }
     }
 
-    LogicalBlockCount nBlocksToWrite = self->blockCount;
+    LogicalBlockCount nBlocksToWrite = blockCount;
     if (self->format == kDiskImage_Serena) {
         nBlocksToWrite = __min(nBlocksToWrite, self->highestWrittenToLba + 1);
     }
 
-    fwrite(self->diskImage, self->blockSize, nBlocksToWrite, fp);
+    fwrite(self->diskImage, blockSize, nBlocksToWrite, fp);
     if (ferror(fp)) {
         throw(EIO);
     }
@@ -379,7 +372,6 @@ catch:
 
 class_func_defs(RamFSContainer, FSContainer,
 override_func_def(deinit, RamFSContainer, Object)
-override_func_def(getInfo, RamFSContainer, FSContainer)
 override_func_def(mapBlock, RamFSContainer, FSContainer)
 override_func_def(unmapBlock, RamFSContainer, FSContainer)
 );

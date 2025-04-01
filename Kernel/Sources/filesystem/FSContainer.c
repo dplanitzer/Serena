@@ -7,15 +7,24 @@
 //
 
 #include "FSContainer.h"
+#include "FSUtilities.h"
 
 
-errno_t FSContainer_getInfo(FSContainerRef _Nonnull self, FSContainerInfo* pOutInfo)
+errno_t FSContainer_Create(Class* _Nonnull pClass, LogicalBlockCount blockCount, size_t blockSize, bool isReadOnly, FSContainerRef _Nullable * _Nonnull pOutSelf)
 {
-    pOutInfo->blockSize = 512;
-    pOutInfo->blockCount = 0;
-    pOutInfo->isReadOnly = true;
+    decl_try_err();
+    FSContainerRef self;
 
-    return EOK;
+    assert(FSIsPowerOf2(blockSize));
+
+    if ((err = Object_Create(pClass, 0, (void**)&self)) == EOK) {
+        self->blockCount = blockCount;
+        self->blockSize = blockSize;
+        self->isReadOnly = isReadOnly;
+    }
+
+    *pOutSelf = self;
+    return err;
 }
 
 errno_t FSContainer_prefetchBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba)
@@ -48,7 +57,6 @@ errno_t FSContainer_sync(FSContainerRef _Nonnull self)
 
 
 class_func_defs(FSContainer, Object,
-func_def(getInfo, FSContainer)
 func_def(prefetchBlock, FSContainer)
 func_def(syncBlock, FSContainer)
 func_def(mapBlock, FSContainer)

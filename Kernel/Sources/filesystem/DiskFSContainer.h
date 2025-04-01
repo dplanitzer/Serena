@@ -16,6 +16,6 @@
 final_class(DiskFSContainer, FSContainer);
 
 
-extern errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nullable * _Nonnull pOutContainer);
+extern errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* DiskFSContainer_h */

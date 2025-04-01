@@ -19,7 +19,9 @@ errno_t cmd_create(const DiskImageFormat* _Nonnull dmgFmt, const char* _Nonnull 
 
     err = RamFSContainer_CreateWithContentsOfPath(dmgPath, &fsContainer);
     if (err == EOK) {
-        if (dmgFmt->format == fsContainer->format && dmgFmt->blockSize == fsContainer->blockSize && dmgFmt->blocksPerDisk == fsContainer->blockCount) {
+        if (dmgFmt->format == fsContainer->format
+            && dmgFmt->blockSize == FSContainer_GetBlockSize(fsContainer)
+            && dmgFmt->blocksPerDisk == FSContainer_GetBlockCount(fsContainer)) {
             doCreateDiskImage = false;
         }
     }

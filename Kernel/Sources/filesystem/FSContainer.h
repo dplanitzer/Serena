@@ -14,23 +14,15 @@
 #include <filesystem/FSBlock.h>
 
 
-typedef struct FSContainerInfo {
-    size_t              blockSize;          // byte size of a logical disk block. A single logical disk block may map to multiple physical blocks. The FSContainer transparently takes care of the mapping
-    LogicalBlockCount   blockCount;         // overall number of addressable blocks in this FSContainer
-    bool                isReadOnly;         // true if all the data in the FSContainer is hardware write protected 
-} FSContainerInfo;
-
-
 // A filesystem container provides access to the data on a mass storage device
 // or a collection of distinct mass storage devices under the assumption that
 // this data represents the persistent state of a filesystem.
 open_class(FSContainer, Object,
+    size_t              blockSize;          // byte size of a logical disk block. A single logical disk block may map to multiple physical blocks. The FSContainer transparently takes care of the mapping
+    LogicalBlockCount   blockCount;         // overall number of addressable blocks in this FSContainer
+    bool                isReadOnly;         // true if all the data in the FSContainer is hardware write protected 
 );
 open_class_funcs(FSContainer, Object,
-
-    // Returns information about the filesystem container and the underlying disk
-    // medium(s).
-    errno_t (*getInfo)(void* _Nonnull self, FSContainerInfo* pOutInfo);
 
     // Prefetches a block and stores it in the disk cache if possible. The prefetch
     // is executed asynchronously. An error is returned if the prefetch could not
@@ -64,8 +56,15 @@ open_class_funcs(FSContainer, Object,
 // Methods for use by FSContainer users.
 //
 
-#define FSContainer_GetInfo(__self, __pOutInfo) \
-invoke_n(getInfo, FSContainer, __self, __pOutInfo)
+#define FSContainer_GetBlockCount(__self)\
+((FSContainerRef)__self)->blockCount
+
+#define FSContainer_GetBlockSize(__self)\
+((FSContainerRef)__self)->blockSize
+
+#define FSContainer_IsReadOnly(__self)\
+((FSContainerRef)__self)->isReadOnly
+
 
 #define FSContainer_PrefetchBlock(__self, __driverId, __mediaId, __lba) \
 invoke_n(prefetchBlock, FSContainer, __self, __driverId, __mediaId, __lba)
@@ -83,5 +82,12 @@ invoke_n(unmapBlock, FSContainer, __self, __token, __mode)
 
 #define FSContainer_Sync(__self) \
 invoke_0(sync, FSContainer, __self)
+
+
+//
+// Methods for use by FSContainer subclassers.
+//
+
+extern errno_t FSContainer_Create(Class* _Nonnull pClass, LogicalBlockCount blockCount, size_t blockSize, bool isReadOnly, FSContainerRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* FSContainer_h */

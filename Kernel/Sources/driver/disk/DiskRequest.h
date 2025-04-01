@@ -25,7 +25,7 @@ enum {
 };
 
 
-typedef struct BLockRange {
+typedef struct BlockRange {
     MediaId                 mediaId;    // -> physical disk block address
     LogicalBlockAddress     lba;
     uint8_t* _Nonnull       data;       // -> byte buffer to read or write 

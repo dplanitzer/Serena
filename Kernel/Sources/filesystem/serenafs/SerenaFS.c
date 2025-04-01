@@ -41,17 +41,18 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    FSContainerInfo diskinf;
     FSBlock blk = {0};
 
     // Make sure that the disk partition actually contains a SerenaFS that we
     // know how to handle.
-    try(FSContainer_GetInfo(fsContainer, &diskinf));
+    const LogicalBlockCount fscBlockCount = FSContainer_GetBlockCount(fsContainer);
+    const size_t fscBlockSize = FSContainer_GetBlockSize(fsContainer);
+    const bool fscIsReadOnly = FSContainer_IsReadOnly(fsContainer);
 
-    if (diskinf.blockCount < kSFSVolume_MinBlockCount) {
+    if (fscBlockCount < kSFSVolume_MinBlockCount) {
         throw(EIO);
     }
-    if (diskinf.blockSize > UINT16_MAX) {
+    if (fscBlockSize > UINT16_MAX) {
         throw(EIO);
     }
 
@@ -70,7 +71,7 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
     if (signature != kSFSSignature_SerenaFS || version != kSFSVersion_v0_1) {
         throw(EIO);
     }
-    if (blockSize != diskinf.blockSize) {
+    if (blockSize != fscBlockSize) {
         throw(EIO);
     }
 
@@ -89,14 +90,14 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
 
 
     // Calculate various parameters that depend on the concrete disk block size
-    self->blockSize = diskinf.blockSize;
+    self->blockSize = blockSize;
     self->blockShift = FSLog2(blockSize);
     self->blockMask = blockSize - 1;
     self->indirectBlockEntryCount = blockSize / sizeof(sfs_bno_t);
 
 
     // XXX should be drive->is_readonly || mount-params->is_readonly
-    if (diskinf.isReadOnly || (vhp->attributes & kSFSVolAttrib_ReadOnly) == kSFSVolAttrib_ReadOnly) {
+    if (fscIsReadOnly || (vhp->attributes & kSFSVolAttrib_ReadOnly) == kSFSVolAttrib_ReadOnly) {
         pOutProps->isReadOnly = true;
     }
     

@@ -78,20 +78,18 @@ static errno_t AmigaController_AutoDetectBootMemoryDisk(struct AmigaController* 
     }
     else {
         FSContainerRef fsContainer = NULL;
-        FSContainerInfo info;
 
         try(RamDisk_Create((DriverRef)self, "ram", smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128, (RamDiskRef*)&disk));
         try(Driver_Start((DriverRef)disk));
 
         try(DriverCatalog_OpenDriver(gDriverCatalog, "/ram", kOpen_ReadWrite, &chan));
         try(DiskFSContainer_Create(chan, &fsContainer));
-        try(FSContainer_GetInfo(fsContainer, &info));
 
         for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
             FSBlock blk;
 
             try(FSContainer_MapBlock(fsContainer, lba, kMapBlock_Replace, &blk));
-            memcpy(blk.data, &dmg[lba * smg_hdr->blockSize], info.blockSize);
+            memcpy(blk.data, &dmg[lba * smg_hdr->blockSize], FSContainer_GetBlockSize(fsContainer));
             try(FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_Sync));
         }
         Object_Release(fsContainer);

@@ -16,10 +16,8 @@
 open_class(RamFSContainer, FSContainer,
     uint8_t* _Nonnull           diskImage;
     uint8_t* _Nonnull           mappedFlags;    // One flag per block: false -> block not mapped; true -> block is mapped
-    size_t                      blockSize;
     size_t                      blockShift;
     size_t                      blockMask;
-    LogicalBlockCount           blockCount;
     LogicalBlockAddress         lowestWrittenToLba;
     LogicalBlockAddress         highestWrittenToLba;
     enum DiskImageFormatType    format;

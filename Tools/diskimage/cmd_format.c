@@ -16,7 +16,6 @@ errno_t sefs_format(intptr_t fd, LogicalBlockCount blockCount, size_t blockSize,
 errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull dmgPath)
 {
     decl_try_err();
-    FSContainerInfo info;
     RamFSContainerRef fsContainer = NULL;
 
     if (strcmp(fsType, "sefs")) {
@@ -29,8 +28,7 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, 
         RamFSContainer_WipeDisk(fsContainer);
     }
 
-    try(FSContainer_GetInfo(fsContainer, &info));
-    try(sefs_format((intptr_t)fsContainer, info.blockCount, info.blockSize, rootDirUid, rootDirGid, rootDirPerms));
+    try(sefs_format((intptr_t)fsContainer, FSContainer_GetBlockCount(fsContainer), FSContainer_GetBlockSize(fsContainer), rootDirUid, rootDirGid, rootDirPerms));
     err = RamFSContainer_WriteToPath(fsContainer, dmgPath);
 
 catch:
