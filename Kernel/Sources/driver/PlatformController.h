@@ -20,6 +20,13 @@
 open_class(PlatformController, Driver,
 );
 open_class_funcs(PlatformController, Driver,
+
+    // Override in a subclass to detect all relevant devices that are directly
+    // connected to the motherboard and instantiate suitable driver classes for
+    // them.
+    // Override: Required
+    // Default Behavior: Does nothing and returns EOK
+    errno_t (*detectDevices)(void* _Nonnull self);
 );
 
 
@@ -28,9 +35,5 @@ extern DriverRef gPlatformController;
 
 // Creates a platform controller instance.
 extern errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf);
-
-// Publishes the /dev/hw bus directory. All motherboard components should be placed
-// inside of this directory.
-extern errno_t PlatformController_PublishHardwareBus(PlatformControllerRef _Nonnull _Locked self);
 
 #endif /* PlatformController_h */

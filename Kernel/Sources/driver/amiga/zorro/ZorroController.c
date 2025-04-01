@@ -21,6 +21,23 @@ errno_t ZorroController_Create(DriverRef _Nullable parent, ZorroControllerRef _N
     return Driver_Create(class(ZorroController), 0, parent, (DriverRef*)pOutSelf);
 }
 
+static errno_t ZorroController_DetectDevices(ZorroControllerRef _Nonnull _Locked self)
+{
+    List_ForEach(&self->bus.boards, ZorroBoard,
+        const ZorroConfiguration* cfg = &pCurNode->cfg;
+    
+        if (cfg->type == BOARD_TYPE_RAM && cfg->start && cfg->logicalSize > 0) {
+            DriverRef dp;
+    
+            if (ZRamDriver_Create((DriverRef)self, cfg, &dp) == EOK) {
+                Driver_StartAdoptChild((DriverRef)self, dp);
+            }
+        }
+    );
+    
+    return EOK;
+}
+
 errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
@@ -45,22 +62,13 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
     zorro_auto_config(&self->bus);
 
 
-    // Instantiate the board drivers 
-    List_ForEach(&self->bus.boards, ZorroBoard,
-        const ZorroConfiguration* cfg = &pCurNode->cfg;
-
-        if (cfg->type == BOARD_TYPE_RAM && cfg->start && cfg->logicalSize > 0) {
-            DriverRef dp;
-
-            if (ZRamDriver_Create((DriverRef)self, cfg, &dp) == EOK) {
-                Driver_StartAdoptChild((DriverRef)self, dp);
-            }
-        }
-    );
+    // Instantiate the board drivers
+    err = ZorroController_DetectDevices(self);
 
 catch:
     return err;
 }
+
 
 class_func_defs(ZorroController, Driver,
 override_func_def(onStart, ZorroController, Driver)

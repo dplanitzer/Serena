@@ -78,6 +78,28 @@ static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
+static errno_t FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked self)
+{
+    decl_try_err();
+
+    for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
+        DriveState ds = FloppyController_ResetDrive(self, i);
+
+        if (FloppyController_GetDriveType(self, &ds) == kDriveType_3_5) {
+            FloppyDriverRef drive;
+            
+            if ((err = FloppyDriver_Create((DriverRef)self, i, ds, &drive)) == EOK) {
+                err = Driver_StartAdoptChild((DriverRef)self, (DriverRef)drive);
+                if (err != EOK) {
+                    Object_Release(drive);
+                }
+            }
+        }
+    }
+
+    return err;
+}
+
 errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
@@ -100,20 +122,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     
     // Discover as many floppy drives as possible. We ignore drives that generate
     // an error while trying to initialize them.
-    for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
-        DriveState ds = FloppyController_ResetDrive(self, i);
-
-        if (FloppyController_GetDriveType(self, &ds) == kDriveType_3_5) {
-            FloppyDriverRef drive;
-            
-            if ((err = FloppyDriver_Create((DriverRef)self, i, ds, &drive)) == EOK) {
-                err = Driver_StartAdoptChild((DriverRef)self, (DriverRef)drive);
-                if (err != EOK) {
-                    Object_Release(drive);
-                }
-            }
-        }
-    }
+    err = FloppyController_DetectDevices(self);
 
 catch:
     return err;

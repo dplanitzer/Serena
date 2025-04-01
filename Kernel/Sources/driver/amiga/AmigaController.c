@@ -108,12 +108,9 @@ catch:
     return err;
 }
 
-errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
+errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked self)
 {
     decl_try_err();
-
-    try(PlatformController_PublishHardwareBus((PlatformControllerRef)self));
-
     
     // Graphics Driver
     GraphicsDriverRef fb = NULL;
@@ -162,5 +159,5 @@ catch:
 }
 
 class_func_defs(AmigaController, PlatformController,
-override_func_def(onStart, AmigaController, Driver)
+override_func_def(detectDevices, AmigaController, PlatformController)
 );
