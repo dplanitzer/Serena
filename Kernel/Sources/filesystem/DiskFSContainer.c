@@ -8,8 +8,8 @@
 
 #include "DiskFSContainer.h"
 #include <diskcache/DiskCache.h>
+#include <driver/DriverChannel.h>
 #include <driver/disk/DiskDriver.h>
-#include <driver/disk/DiskDriverChannel.h>
 #include <filesystem/IOChannel.h>
 
 
@@ -23,21 +23,17 @@ final_class_ivars(DiskFSContainer, FSContainer,
 errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
+    struct DiskFSContainer* self = NULL;
+    DiskInfo info;
 
-    if (!instanceof(pChannel, DiskDriverChannel)) {
-        *pOutSelf = NULL;
-        return EINVAL;
-    }
+    try(IOChannel_Ioctl(pChannel, kDiskCommand_GetInfo, &info));
+    try(FSContainer_Create(class(DiskFSContainer), info.blockCount, info.blockSize, info.isReadOnly, (FSContainerRef*)&self));
 
-    struct DiskFSContainer* self;
-    const DiskInfo* info = DiskDriverChannel_GetInfo(pChannel);
+    self->channel = IOChannel_Retain(pChannel);
+    self->disk = DriverChannel_GetDriverAs(pChannel, DiskDriver);
+    self->mediaId = info.mediaId;
 
-    if ((err = FSContainer_Create(class(DiskFSContainer), info->blockCount, info->blockSize, info->isReadOnly, (FSContainerRef*)&self)) == EOK) {
-        self->channel = IOChannel_Retain(pChannel);
-        self->disk = DriverChannel_GetDriverAs(pChannel, DiskDriver);
-        self->mediaId = info->mediaId;
-    }
-
+catch:
     *pOutSelf = (FSContainerRef)self;
     return err;
 }

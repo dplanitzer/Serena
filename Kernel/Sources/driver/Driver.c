@@ -164,7 +164,7 @@ errno_t Driver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mode,
         iocOpts |= kIOChannel_Seekable;
     }
     
-    return DriverChannel_Create(&kDriverChannelClass, iocOpts, kIOChannelType_Driver, mode, self, pOutChannel);
+    return DriverChannel_Create(class(DriverChannel), iocOpts, kIOChannelType_Driver, mode, self, pOutChannel);
 }
 
 errno_t Driver_open(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)

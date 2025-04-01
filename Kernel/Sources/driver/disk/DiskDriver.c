@@ -7,7 +7,6 @@
 //
 
 #include "DiskDriver.h"
-#include "DiskDriverChannel.h"
 #include <diskcache/DiskCache.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverChannel.h>
@@ -258,12 +257,13 @@ errno_t DiskDriver_putMediaBlock(DiskDriverRef _Nonnull self, LogicalBlockAddres
 // I/O Channel API
 //
 
-errno_t DiskDriver_createChannel(DiskDriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
+off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
 {
-    DiskInfo info;
+    Driver_Lock(self);
+    const off_t r = (off_t)self->blockCount * (off_t)self->blockSize;
+    Driver_Unlock(self);
 
-    invoke_n(getInfo, DiskDriver, self, &info);
-    return DiskDriverChannel_Create(self, &info, mode, pOutChannel);
+    return r;
 }
 
 errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
@@ -440,14 +440,6 @@ catch:
     return err;
 }
 
-off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
-{
-    DiskInfo info;
-
-    DiskDriver_GetInfo(self, &info);
-    return info.blockCount * info.blockSize;
-}
-
 errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
@@ -471,9 +463,8 @@ func_def(beginIO, DiskDriver)
 func_def(doIO, DiskDriver)
 func_def(getMediaBlock, DiskDriver)
 func_def(putMediaBlock, DiskDriver)
-override_func_def(createChannel, DiskDriver, Driver)
+override_func_def(getSeekableRange, DiskDriver, Driver)
 override_func_def(read, DiskDriver, Driver)
 override_func_def(write, DiskDriver, Driver)
-override_func_def(getSeekableRange, DiskDriver, Driver)
 override_func_def(ioctl, DiskDriver, Driver)
 );
