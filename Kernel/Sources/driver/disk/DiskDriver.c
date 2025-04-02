@@ -53,12 +53,12 @@ errno_t DiskDriver_createDispatchQueue(DiskDriverRef _Nonnull self, DispatchQueu
 
 errno_t DiskDriver_onPublish(DiskDriverRef _Nonnull self)
 {
-    return DiskCache_RegisterDisk(gDiskCache, self);
+    return DiskCache_RegisterDisk(self->diskCache, self);
 }
 
 void DiskDriver_onUnpublish(DiskDriverRef _Nonnull self)
 {
-    DiskCache_UnregisterDisk(gDiskCache, self);
+    DiskCache_UnregisterDisk(self->diskCache, self);
 }
 
 void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
@@ -325,14 +325,14 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
         const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
         FSBlock blk = {0};
 
-        errno_t e1 = DiskCache_MapBlock(gDiskCache, self, mediaId, blockIdx, kMapBlock_ReadOnly, &blk);
+        errno_t e1 = DiskCache_MapBlock(self->diskCache, self, mediaId, blockIdx, kMapBlock_ReadOnly, &blk);
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
             break;
         }
         
         memcpy(dp, blk.data + blockOffset, nBytesToReadInBlock);
-        DiskCache_UnmapBlock(gDiskCache, blk.token, kWriteBlock_None);
+        DiskCache_UnmapBlock(self->diskCache, blk.token, kWriteBlock_None);
 
         nBytesToRead -= nBytesToReadInBlock;
         nBytesRead += nBytesToReadInBlock;
@@ -412,10 +412,10 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
         MapBlock mmode = (nBytesToWriteInBlock == (ssize_t)blockSize) ? kMapBlock_Replace : kMapBlock_Update;
         FSBlock blk = {0};
 
-        errno_t e1 = DiskCache_MapBlock(gDiskCache, self, mediaId, blockIdx, mmode, &blk);
+        errno_t e1 = DiskCache_MapBlock(self->diskCache, self, mediaId, blockIdx, mmode, &blk);
         if (e1 == EOK) {
             memcpy(blk.data + blockOffset, sp, nBytesToWriteInBlock);
-            e1 = DiskCache_UnmapBlock(gDiskCache, blk.token, kWriteBlock_Sync);
+            e1 = DiskCache_UnmapBlock(self->diskCache, blk.token, kWriteBlock_Sync);
         }
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;

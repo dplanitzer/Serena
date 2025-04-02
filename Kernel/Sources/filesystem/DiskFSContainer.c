@@ -16,6 +16,7 @@
 final_class_ivars(DiskFSContainer, FSContainer,
     IOChannelRef _Nonnull           channel;
     DiskDriverRef _Nonnull _Weak    disk;
+    DiskCacheRef _Nonnull           diskCache;
     MediaId                         mediaId;
 );
 
@@ -31,6 +32,7 @@ errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _N
 
     self->channel = IOChannel_Retain(pChannel);
     self->disk = DriverChannel_GetDriverAs(pChannel, DiskDriver);
+    self->diskCache = DiskDriver_GetDiskCache(self->disk);
     self->mediaId = info.mediaId;
 
 catch:
@@ -48,27 +50,27 @@ void DiskFSContainer_deinit(struct DiskFSContainer* _Nonnull self)
 
 errno_t DiskFSContainer_prefetchBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba)
 {
-    return DiskCache_PrefetchBlock(gDiskCache, self->disk, self->mediaId, lba);
+    return DiskCache_PrefetchBlock(self->diskCache, self->disk, self->mediaId, lba);
 }
 
 errno_t DiskFSContainer_syncBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba)
 {
-    return DiskCache_SyncBlock(gDiskCache, self->disk, self->mediaId, lba);
+    return DiskCache_SyncBlock(self->diskCache, self->disk, self->mediaId, lba);
 }
 
 errno_t DiskFSContainer_mapBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
-    return DiskCache_MapBlock(gDiskCache, self->disk, self->mediaId, lba, mode, blk);
+    return DiskCache_MapBlock(self->diskCache, self->disk, self->mediaId, lba, mode, blk);
 }
 
 errno_t DiskFSContainer_unmapBlock(struct DiskFSContainer* _Nonnull self, intptr_t token, WriteBlock mode)
 {
-    return DiskCache_UnmapBlock(gDiskCache, token, mode);
+    return DiskCache_UnmapBlock(self->diskCache, token, mode);
 }
 
 errno_t DiskFSContainer_sync(struct DiskFSContainer* _Nonnull self)
 {
-    return DiskCache_Sync(gDiskCache, self->disk, self->mediaId);
+    return DiskCache_Sync(self->diskCache, self->disk, self->mediaId);
 }
 
 
