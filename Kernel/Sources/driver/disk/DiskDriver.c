@@ -178,32 +178,39 @@ void DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
     const size_t mb2lbFactor = self->mb2lbFactor;
     Driver_Unlock(self);
 
-    if (req->r.mediaId == kMediaId_Current || req->r.mediaId == curMediaId) {
+    if (req->mediaId == kMediaId_Current || req->mediaId == curMediaId) {
         const bool shouldZeroFill = ((req->type == kDiskRequest_Read) && (lbSize > mbSize) && (mb2lbFactor == 1)) ? true : false;
-        uint8_t* data = req->r.data;
-        LogicalBlockAddress lba = req->r.lba;
-        size_t i = 0;
 
-        while(i < req->r.blockCount) {
-            if (lba >= bCount) {
-                err = ENXIO;
-                break;
+        for (size_t i = 0; i < req->rCount; i++) {
+            uint8_t* data = req->r[i].data;
+            LogicalBlockAddress lba = req->r[i].lba;
+            size_t j = 0;
+
+            while(j < req->r[i].blockCount) {
+                if (lba >= bCount) {
+                    err = ENXIO;
+                    break;
+                }
+
+                err = _DiskDriver_DoBlockIO(self, req->type, lba, data, mbSize, mb2lbFactor);
+                if (err != EOK) {
+                    break;
+                }
+
+                if (shouldZeroFill) {
+                    // Media block size isn't a power-of-2 and this is a read. We zero-fill
+                    // the remaining bytes in the logical block
+                    memset(data + mbSize, 0, lbSize - mbSize);
+                }
+        
+                j++;
+                lba++;
+                data += lbSize;
             }
 
-            err = _DiskDriver_DoBlockIO(self, req->type, lba, data, mbSize, mb2lbFactor);
             if (err != EOK) {
                 break;
             }
-
-            if (shouldZeroFill) {
-                // Media block size isn't a power-of-2 and this is a read. We zero-fill
-                // the remaining bytes in the logical block
-                memset(data + mbSize, 0, lbSize - mbSize);
-            }
-        
-            i++;
-            lba++;
-            data += lbSize;
         }
     }
     else {

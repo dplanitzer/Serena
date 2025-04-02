@@ -710,7 +710,7 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 
 
     // Start a new disk request
-    err = DiskRequest_Get(&req);
+    err = DiskRequest_Get(1, &req);
     if (err != EOK) {
         return err;
     }
@@ -722,12 +722,13 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     req->done = (DiskRequestDoneCallback)DiskCache_OnDiskRequestDone;
     req->context = self;
     req->type = (op == kDiskBlockOp_Read) ? kDiskRequest_Read : kDiskRequest_Write;
-
-    req->r.mediaId = pBlock->mediaId;
-    req->r.lba = pBlock->lba;
-    req->r.data = pBlock->data;
-    req->r.blockCount = 1;
-    req->r.token = (intptr_t)pBlock;
+    req->mediaId = pBlock->mediaId;
+    req->rCount = 1;
+    
+    req->r[0].lba = pBlock->lba;
+    req->r[0].data = pBlock->data;
+    req->r[0].blockCount = 1;
+    req->r[0].token = (intptr_t)pBlock;
 
     err = DiskDriver_BeginIO(disk, req);
     if (err == EOK && isSync) {
@@ -752,7 +753,7 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnu
 {
     Lock_Lock(&self->interlock);
 
-    DiskBlockRef pBlock = (DiskBlockRef)req->r.token;
+    DiskBlockRef pBlock = (DiskBlockRef)req->r[0].token;
     const bool isAsync = pBlock->flags.async ? true : false;
 
     switch (req->type) {

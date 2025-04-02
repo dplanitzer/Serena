@@ -26,7 +26,6 @@ enum {
 
 
 typedef struct BlockRange {
-    MediaId                 mediaId;    // -> physical disk block address
     LogicalBlockAddress     lba;
     uint8_t* _Nonnull       data;       // -> byte buffer to read or write 
     size_t                  blockCount; // -> number of blocks to read/write.
@@ -35,15 +34,18 @@ typedef struct BlockRange {
 
 
 typedef struct DiskRequest {
-    DiskRequestDoneCallback _Nullable   done;       // <- done callback
-    void* _Nullable                     context;    // <- done callback context
-    int                                 type;       // -> disk request type: read/write
+    DiskRequestDoneCallback _Nullable   done;           // -> done callback
+    void* _Nullable                     context;        // -> done callback context
+    int                                 type;           // -> disk request type: read/write
+    MediaId                             mediaId;        // -> physical disk block address
+    size_t                              rCapacity;      // -> number of block ranges the request can hold
+    size_t                              rCount;         // -> number of block ranges that are actually set up in the request
 
-    BlockRange                          r;
+    BlockRange                          r[1];
 } DiskRequest;
 
 
-extern errno_t DiskRequest_Get(DiskRequest* _Nullable * _Nonnull pOutSelf);
+extern errno_t DiskRequest_Get(size_t rCapacity, DiskRequest* _Nullable * _Nonnull pOutSelf);
 extern void DiskRequest_Put(DiskRequest* _Nullable self);
 
 // Call this to mark the request as done. This will synchronously invoke the

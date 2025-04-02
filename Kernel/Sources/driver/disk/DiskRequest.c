@@ -15,17 +15,18 @@
 #define MAX_CACHED_REQUESTS 4
 
 typedef struct CachedDiskRequest {
-    SListNode   node;
+    ListNode    node;
+    size_t      rCapacity;  // Number of block request slots in this cached disk request
 } CachedDiskRequest;
 
 
 // All 0 by default by virtue of being in the BSS
-static Lock     gLock;
-static SList    gCache;
-static int      gCacheCount;
+static Lock gLock;
+static List gCache;
+static int  gCacheCount;
 
 
-errno_t DiskRequest_Get(DiskRequest* _Nullable * _Nonnull pOutSelf)
+errno_t DiskRequest_Get(size_t rCapacity, DiskRequest* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskRequest* self = NULL;
@@ -33,16 +34,40 @@ errno_t DiskRequest_Get(DiskRequest* _Nullable * _Nonnull pOutSelf)
     Lock_Lock(&gLock);
 
     if (gCacheCount > 0) {
-        self = (DiskRequest*)SList_RemoveFirst(&gCache);
-        gCacheCount--;
+        CachedDiskRequest* cdr = NULL;
+
+        List_ForEach(&gCache, CachedDiskRequest, {
+            if (pCurNode->rCapacity >= rCapacity) {
+                cdr = pCurNode;
+                break;
+            }
+        });
+
+        if (cdr) {
+            List_Remove(&gCache, &cdr->node);
+            gCacheCount--;
+
+            const size_t capacity = cdr->rCapacity;
+            self = (DiskRequest*)cdr;
+            self->rCapacity = capacity;
+        }
     }
+
+    Lock_Unlock(&gLock);
 
     if (self == NULL) {
-        try(kalloc_cleared(sizeof(DiskRequest), (void**)&self));
+        err = kalloc(sizeof(DiskRequest) + sizeof(BlockRange) * (rCapacity - 1), (void**)&self);
+        if (err == EOK) {
+            self->rCapacity = rCapacity;
+        }
     }
 
-catch:
-    Lock_Unlock(&gLock);
+    if (self) {
+        self->done = NULL;
+        self->context = NULL;
+        self->type = 0;
+        self->rCount = 0;
+    }
 
     *pOutSelf = self;
     return err;
@@ -51,19 +76,28 @@ catch:
 void DiskRequest_Put(DiskRequest* _Nullable self)
 {
     if (self) {
+        bool didCache = false;
+
         Lock_Lock(&gLock);
 
         if (gCacheCount < MAX_CACHED_REQUESTS) {
+            const size_t capacity = self->rCapacity;
             CachedDiskRequest* cdr = (CachedDiskRequest*)self;
 
-            SList_InsertBeforeFirst(&gCache, &cdr->node);
+            cdr->node.next = NULL;
+            cdr->node.prev = NULL;
+            cdr->rCapacity = capacity;
+
+            List_InsertBeforeFirst(&gCache, &cdr->node);
             gCacheCount++;
-        }
-        else {
-            kfree(self);
+            didCache = true;
         }
 
         Lock_Unlock(&gLock);
+
+        if (!didCache) {
+            kfree(self);
+        }
     }
 }
 

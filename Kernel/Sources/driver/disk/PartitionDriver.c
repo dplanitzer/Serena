@@ -68,8 +68,11 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
 void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, DiskRequest* _Nonnull req)
 {
     // Update the block number and pass the disk request on to the whole disk
-    // driver 
-    req->r.lba += self->startBlock;
+    // driver
+    for (size_t i = 0; i < req->rCount; i++) { 
+        req->r[i].lba += self->startBlock;
+    }
+    
     DiskDriver_BeginIO(self->wholeDisk, req);
 }
 
