@@ -230,7 +230,7 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
     List_ForEachReversed(&self->lruChain, ListNode, 
         DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
 
-        if (!DiskBlock_InUse(pb)) {
+        if (!DiskBlock_InUse(pb) && (!pb->flags.isDirty || (pb->flags.isDirty && !pb->flags.isPinned))) {
             pBlock = pb;
             break;
         }
@@ -475,14 +475,57 @@ errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull d
     Lock_Lock(&self->interlock);
 
     // Find the block and only sync it if no one else is currently using it
-    err = _DiskCache_GetBlock(self, disk, mediaId, lba, kGetBlock_Exclusive, &pBlock);
-    if (err == EOK) {
+    if ((err = _DiskCache_GetBlock(self, disk, mediaId, lba, kGetBlock_Exclusive, &pBlock)) == EOK) {
         err = _DiskCache_SyncBlock(self, pBlock);
         _DiskCache_PutBlock(self, pBlock);
     }
 
     Lock_Unlock(&self->interlock);
 
+    return err;
+}
+
+errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba)
+{
+    decl_try_err();
+    DiskBlockRef pBlock = NULL;
+
+    // Can not address blocks on a disk or media that doesn't exist
+    if (mediaId == kMediaId_None) {
+        return ENOMEDIUM;
+    }
+
+
+    Lock_Lock(&self->interlock);
+
+    if ((err = _DiskCache_GetBlock(self, disk, mediaId, lba, 0, &pBlock)) == EOK) {
+        pBlock->flags.isPinned = 1;
+        _DiskCache_PutBlock(self, pBlock);
+    }
+
+    Lock_Unlock(&self->interlock);
+    return err;
+}
+
+errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba)
+{
+    decl_try_err();
+    DiskBlockRef pBlock = NULL;
+
+    // Can not address blocks on a disk or media that doesn't exist
+    if (mediaId == kMediaId_None) {
+        return ENOMEDIUM;
+    }
+
+
+    Lock_Lock(&self->interlock);
+
+    if ((err = _DiskCache_GetBlock(self, disk, mediaId, lba, 0, &pBlock)) == EOK) {
+        pBlock->flags.isPinned = 0;
+        _DiskCache_PutBlock(self, pBlock);
+    }
+
+    Lock_Unlock(&self->interlock);
     return err;
 }
 
@@ -667,6 +710,12 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     assert(pBlock->flags.op == kDiskBlockOp_Idle || pBlock->flags.op == op);
 
 
+    // Reject a write if the block is pinned
+    if (op == kDiskBlockOp_Write && pBlock->flags.isPinned) {
+        return ENXIO;
+    }
+
+
     // Just join an already ongoing I/O operation if one is active (and of the
     // same type as 'op')
     if (pBlock->flags.op == op) {
@@ -814,11 +863,11 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskDriverRef _Nullable disk,
             done = true;
 
             List_ForEachReversed(&self->lruChain, ListNode, 
-                DiskBlockRef pBlock = DiskBlockFromLruChainPointer(pCurNode);
+                DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
 
-                if (!DiskBlock_InUse(pBlock)) {
-                    if ((disk == NULL) || (pBlock->disk == disk && (pBlock->mediaId == mediaId || mediaId == kMediaId_Current))) {
-                        const errno_t err1 = _DiskCache_SyncBlock(self, pBlock);
+                if (!DiskBlock_InUse(pb) && (pb->flags.isDirty && !pb->flags.isPinned)) {
+                    if ((disk == NULL) || (pb->disk == disk && (pb->mediaId == mediaId || mediaId == kMediaId_Current))) {
+                        const errno_t err1 = _DiskCache_SyncBlock(self, pb);
                     
                         if (err == EOK) {
                             // Return the first error that we encountered. However,
@@ -826,7 +875,7 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskDriverRef _Nullable disk,
                             err = err1;
                         }
                     }
-                    _DiskCache_PutBlock(self, pBlock);
+                    _DiskCache_PutBlock(self, pb);
                 }
 
                 if (myLruChainGeneration != self->lruChainGeneration) {

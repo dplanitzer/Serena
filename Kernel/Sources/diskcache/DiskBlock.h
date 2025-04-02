@@ -35,10 +35,11 @@ typedef struct DiskBlock {
         unsigned int        exclusive:1;    // Protected by Interlock
         unsigned int        hasData:1;      // Protected by Interlock
         unsigned int        isDirty:1;      // Protected by Interlock
+        unsigned int        isPinned:1;     // Protected by INterlock
         unsigned int        op:2;           // Protected by Interlock
         unsigned int        async:1;        // Protected by Interlock
         unsigned int        readError:8;    // Read: shared lock; Modify: exclusive lock
-        unsigned int        reserved:18;
+        unsigned int        reserved:17;
     }                               flags;
     uint8_t                         data[1];            // Read: shared lock; Modify: exclusive lock
 } DiskBlock;
