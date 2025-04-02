@@ -11,7 +11,6 @@
 
 #include <klib/Error.h>
 #include <klib/Types.h>
-#include <kobj/AnyRefs.h>
 
 struct DiskRequest;
 
@@ -26,10 +25,10 @@ enum {
 
 
 typedef struct BlockRange {
-    LogicalBlockAddress     lba;
+    LogicalBlockAddress     lba;        // -> logical (cache) block address
     uint8_t* _Nonnull       data;       // -> byte buffer to read or write 
+    intptr_t                token;      // -> token identifying this disk block range
     size_t                  blockCount; // -> number of blocks to read/write.
-    intptr_t                token;      // -> token identifying this disk block
 } BlockRange;
 
 
@@ -37,7 +36,7 @@ typedef struct DiskRequest {
     DiskRequestDoneCallback _Nullable   done;           // -> done callback
     void* _Nullable                     context;        // -> done callback context
     int                                 type;           // -> disk request type: read/write
-    MediaId                             mediaId;        // -> physical disk block address
+    MediaId                             mediaId;        // -> disk media identity
     size_t                              rCapacity;      // -> number of block ranges the request can hold
     size_t                              rCount;         // -> number of block ranges that are actually set up in the request
 
