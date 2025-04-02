@@ -257,6 +257,13 @@ static errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DiskDrive
     decl_try_err();
     DiskBlockRef pBlock;
 
+    // Can not address blocks on a disk or media that doesn't exist
+    if (mediaId == kMediaId_None) {
+        *pOutBlock = NULL;
+        return ENOMEDIUM;
+    }
+    
+
     for (;;) {
         // Look up the block based on (disk, mediaId, lba)
         const size_t idx = DiskBlock_HashKey(disk, mediaId, lba) & DISK_BLOCK_HASH_CHAIN_MASK;
@@ -412,12 +419,6 @@ errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnu
     DiskBlockRef pBlock = NULL;
     bool doingIO = false;
 
-    // Can not address blocks on a disk or media that doesn't exist
-    if (mediaId == kMediaId_None) {
-        return ENOMEDIUM;
-    }
-
-
     Lock_Lock(&self->interlock);
 
     // Get the block
@@ -466,12 +467,6 @@ errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull d
     decl_try_err();
     DiskBlockRef pBlock = NULL;
 
-    // Can not address blocks on a disk or media that doesn't exist
-    if (mediaId == kMediaId_None) {
-        return ENOMEDIUM;
-    }
-
-
     Lock_Lock(&self->interlock);
 
     // Find the block and only sync it if no one else is currently using it
@@ -490,12 +485,6 @@ errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull di
     decl_try_err();
     DiskBlockRef pBlock = NULL;
 
-    // Can not address blocks on a disk or media that doesn't exist
-    if (mediaId == kMediaId_None) {
-        return ENOMEDIUM;
-    }
-
-
     Lock_Lock(&self->interlock);
 
     if ((err = _DiskCache_GetBlock(self, disk, mediaId, lba, 0, &pBlock)) == EOK) {
@@ -511,12 +500,6 @@ errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull 
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
-
-    // Can not address blocks on a disk or media that doesn't exist
-    if (mediaId == kMediaId_None) {
-        return ENOMEDIUM;
-    }
-
 
     Lock_Lock(&self->interlock);
 
@@ -536,12 +519,6 @@ errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull di
 
     blk->token = 0;
     blk->data = NULL;
-
-
-    // Can not address blocks on a disk or media that doesn't exist
-    if (mediaId == kMediaId_None) {
-        return ENOMEDIUM;
-    }
 
 
     Lock_Lock(&self->interlock);
