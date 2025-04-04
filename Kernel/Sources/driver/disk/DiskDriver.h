@@ -29,6 +29,15 @@ typedef struct MediaInfo {
 } MediaInfo;
 
 
+// Contextual information passed to doIO().
+typedef struct DiskIOContext {
+    LogicalBlockCount   lBlockCount;    // Number of logical blocks on the disk
+    size_t              lBlockSize;     // Logical block size in bytes
+    size_t              mBlockSize;     // Media block size in bytes
+    size_t              mb2lbFactor;    // Media blocks per logical block
+} DiskIOContext;
+
+
 // A disk driver manages the data stored on a disk. It provides read and write
 // access to the disk data. Data on a disk is organized in blocks. All blocks
 // are of the same size. Blocks are addressed with an index in the range
@@ -136,7 +145,7 @@ open_class_funcs(DiskDriver, Driver,
 
     // Executes an I/O request.
     // Default Behavior: Calls getMediaBlock/putMediaBlock
-    void (*doIO)(void* _Nonnull self, DiskRequest* _Nonnull req);
+    errno_t (*doIO)(void* _Nonnull self, DiskRequest* _Nonnull req, const DiskIOContext* _Nonnull ctx);
 
     // Reads the contents of the physical block at the disk address 'ba'
     // into the in-memory area 'data' of size 'blockSize'. Blocks the caller
@@ -208,6 +217,10 @@ invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
 // it must be called with a properly filled in media info record.
 // This function generates the required unique media id. 
 extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable pInfo);
+
+
+#define DiskDriver_DoIO(__self, __req, __ctx) \
+invoke_n(doIO, DiskDriver, __self, __req, __ctx)
 
 
 #define DiskDriver_GetMediaBlock(__self, __ba, __data, __mbSize) \

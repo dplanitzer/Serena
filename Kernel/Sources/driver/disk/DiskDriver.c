@@ -138,20 +138,20 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
     Driver_Unlock(self);
 }
 
-static errno_t _DiskDriver_DoBlockIO(DiskDriverRef _Nonnull self, int type, LogicalBlockAddress lba, uint8_t* _Nonnull data, size_t mbSize, size_t mb2lbFactor)
+static errno_t _DiskDriver_DoBlockIO(DiskDriverRef _Nonnull self, int type, LogicalBlockAddress lba, uint8_t* _Nonnull data, const DiskIOContext* _Nonnull ctx)
 {
     decl_try_err();
-    uint8_t* edata = data + mbSize * mb2lbFactor;
-    LogicalBlockAddress mba = lba * mb2lbFactor;
+    uint8_t* edata = data + ctx->mBlockSize * ctx->mb2lbFactor;
+    LogicalBlockAddress mba = lba * ctx->mb2lbFactor;
 
     while ((data < edata) && (err == EOK)) {
         switch (type) {
             case kDiskRequest_Read:
-                err = DiskDriver_GetMediaBlock(self, mba, data, mbSize);
+                err = DiskDriver_GetMediaBlock(self, mba, data, ctx->mBlockSize);
                 break;
 
             case kDiskRequest_Write:
-                err = DiskDriver_PutMediaBlock(self, mba, data, mbSize);
+                err = DiskDriver_PutMediaBlock(self, mba, data, ctx->mBlockSize);
                 break;
 
             default:
@@ -159,59 +159,68 @@ static errno_t _DiskDriver_DoBlockIO(DiskDriverRef _Nonnull self, int type, Logi
                 break;
         }
 
-        data += mbSize;
+        data += ctx->mBlockSize;
         mba++;
     }
 
     return err;
 }
 
-void DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
+errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req, const DiskIOContext* _Nonnull ctx)
 {
     decl_try_err();
+    const bool shouldZeroFill = ((req->type == kDiskRequest_Read) && (ctx->lBlockSize > ctx->mBlockSize) && (ctx->mb2lbFactor == 1)) ? true : false;
 
-    Driver_Lock(self);
-    const LogicalBlockCount bCount = self->blockCount;
-    const MediaId curMediaId = self->currentMediaId;
-    const size_t lbSize = self->blockSize;
-    const size_t mbSize = self->mediaBlockSize;
-    const size_t mb2lbFactor = self->mb2lbFactor;
-    Driver_Unlock(self);
+    for (size_t i = 0; i < req->rCount; i++) {
+        uint8_t* data = req->r[i].data;
+        LogicalBlockAddress lba = req->r[i].lba;
+        size_t j = 0;
 
-    if (req->mediaId == kMediaId_Current || req->mediaId == curMediaId) {
-        const bool shouldZeroFill = ((req->type == kDiskRequest_Read) && (lbSize > mbSize) && (mb2lbFactor == 1)) ? true : false;
-
-        for (size_t i = 0; i < req->rCount; i++) {
-            uint8_t* data = req->r[i].data;
-            LogicalBlockAddress lba = req->r[i].lba;
-            size_t j = 0;
-
-            while(j < req->r[i].blockCount) {
-                if (lba >= bCount) {
-                    err = ENXIO;
-                    break;
-                }
-
-                err = _DiskDriver_DoBlockIO(self, req->type, lba, data, mbSize, mb2lbFactor);
-                if (err != EOK) {
-                    break;
-                }
-
-                if (shouldZeroFill) {
-                    // Media block size isn't a power-of-2 and this is a read. We zero-fill
-                    // the remaining bytes in the logical block
-                    memset(data + mbSize, 0, lbSize - mbSize);
-                }
-        
-                j++;
-                lba++;
-                data += lbSize;
+        while(j < req->r[i].blockCount) {
+            if (lba >= ctx->lBlockCount) {
+                err = ENXIO;
+                break;
             }
 
+            err = _DiskDriver_DoBlockIO(self, req->type, lba, data, ctx);
             if (err != EOK) {
                 break;
             }
+
+            if (shouldZeroFill) {
+                // Media block size isn't a power-of-2 and this is a read. We zero-fill
+                // the remaining bytes in the logical block
+                memset(data + ctx->mBlockSize, 0, ctx->lBlockSize - ctx->mBlockSize);
+            }
+        
+            j++;
+            lba++;
+            data += ctx->lBlockSize;
         }
+
+        if (err != EOK) {
+            break;
+        }
+    }
+
+    return err;
+}
+
+static void _DiskDriver_xDoIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
+{
+    decl_try_err();
+    DiskIOContext ctx;
+
+    Driver_Lock(self);
+    const MediaId curMediaId = self->currentMediaId;
+    ctx.lBlockCount = self->blockCount;
+    ctx.lBlockSize = self->blockSize;
+    ctx.mBlockSize = self->mediaBlockSize;
+    ctx.mb2lbFactor = self->mb2lbFactor;
+    Driver_Unlock(self);
+
+    if (req->mediaId == kMediaId_Current || req->mediaId == curMediaId) {
+        err = DiskDriver_DoIO(self, req, &ctx);
     }
     else {
         err = EDISKCHANGE;
@@ -223,10 +232,10 @@ void DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
 errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull _Locked self, DiskRequest* _Nonnull req)
 {
     if (self->dispatchQueue) {
-        return DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)implementationof(doIO, DiskDriver, classof(self)), self, req, 0, 0, 0);
+        return DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)_DiskDriver_xDoIO, self, req, 0, 0, 0);
     }
     else {
-        invoke_n(doIO, DiskDriver, self, req);
+        _DiskDriver_xDoIO(self, req);
         return EOK;
     }
 }
