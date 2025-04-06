@@ -112,9 +112,9 @@ static void FloppyDriver_CancelUpdateHasDiskState(FloppyDriverRef _Nonnull self)
 static void FloppyDriver_UpdateHasDiskState(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self);
 
-static errno_t FloppyDriver_BeginIO(FloppyDriverRef _Nonnull self, int cylinder, int head, bool prepMotorAndHead);
-static errno_t FloppyDriver_DoIO(FloppyDriverRef _Nonnull self, bool bWrite);
-static errno_t FloppyDriver_EndIO(FloppyDriverRef _Nonnull self, errno_t err);
+static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, int cylinder, int head, bool prepMotorAndHead);
+static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, bool bWrite);
+static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t err);
 
 #define FloppyDriver_TrackFromCylinderAndHead(__cylinder, __head) (2*__cylinder + __head)
 

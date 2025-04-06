@@ -503,7 +503,7 @@ static void FloppyDriver_CancelUpdateHasDiskState(FloppyDriverRef _Nonnull self)
 
 // Invoked at the beginning of a disk read/write operation to prepare the drive
 // state. Ie turn motor on, seek, switch disk head, detect drive status, etc. 
-static errno_t FloppyDriver_BeginIO(FloppyDriverRef _Nonnull self, int cylinder, int head, bool prepMotorAndHead)
+static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, int cylinder, int head, bool prepMotorAndHead)
 {
     decl_try_err();
     FloppyControllerRef fdc = FloppyDriver_GetController(self);
@@ -541,9 +541,8 @@ static errno_t FloppyDriver_BeginIO(FloppyDriverRef _Nonnull self, int cylinder,
 // Invoked to do the actual read/write operation. Also validates that the disk
 // hasn't been yanked out of the drive or changed on us while doing the I/O.
 // Expects that the track buffer is properly prepared for the I/O.
-static errno_t FloppyDriver_DoIO(FloppyDriverRef _Nonnull self, bool bWrite)
+static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, bool bWrite)
 {
-    FloppyControllerRef fdc = FloppyDriver_GetController(self);
     uint16_t precompensation;
     int16_t nWords;
 
@@ -558,7 +557,8 @@ static errno_t FloppyDriver_DoIO(FloppyDriverRef _Nonnull self, bool bWrite)
         nWords = self->trackReadWordCount;
     }
 
-    errno_t err = FloppyController_DoIO(fdc, self->driveState, precompensation, self->trackBuffer, nWords, bWrite);
+    FloppyControllerRef fdc = FloppyDriver_GetController(self);
+    errno_t err = FloppyController_Dma(fdc, self->driveState, precompensation, self->trackBuffer, nWords, bWrite);
     const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
 
     if ((status & kDriveStatus_DiskReady) == 0) {
@@ -574,9 +574,12 @@ static errno_t FloppyDriver_DoIO(FloppyDriverRef _Nonnull self, bool bWrite)
 // Invoked at the end of a disk I/O operation. Potentially translates the provided
 // internal error code to an external one and kicks of disk-change related flow
 // control and initiates a delayed motor-off operation.
-static errno_t FloppyDriver_EndIO(FloppyDriverRef _Nonnull self, errno_t err)
+static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t err)
 {
     switch (err) {
+        case EOK:
+            break;
+
         case ETIMEDOUT:
             // A timeout may be caused by:
             // - no drive connected
@@ -594,9 +597,6 @@ static errno_t FloppyDriver_EndIO(FloppyDriverRef _Nonnull self, errno_t err)
                 err = ENOMEDIUM;
             }
             FloppyDriver_OnMediaChanged(self);
-            break;
-
-        case EOK:
             break;
 
         default:
@@ -759,11 +759,11 @@ errno_t FloppyDriver_getMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAd
     // load it in if not. Note that we always call Begin() to ensure that the
     // drive hardware is still there and that the disk didn't change on us even
     // if we still got the 'right' track cached.
-    err = FloppyDriver_BeginIO(self, cylinder, head, doActualRead);
+    err = FloppyDriver_PrepareIO(self, cylinder, head, doActualRead);
 
     if (err == EOK && doActualRead) {
         for (int retry = 0; retry < 4; retry++) {
-            err = FloppyDriver_DoIO(self, false);
+            err = FloppyDriver_DoSyncIO(self, false);
 
             if (err == EOK) {
                 FloppyDriver_ScanTrack(self, targetTrack);
@@ -778,7 +778,7 @@ errno_t FloppyDriver_getMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAd
             }
         }
     }
-    err = FloppyDriver_EndIO(self, err);
+    err = FloppyDriver_FinalizeIO(self, err);
     
     if (err == EOK) {
         if (s->isDataValid) {
@@ -874,7 +874,7 @@ errno_t FloppyDriver_putMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAd
 
     try(FloppyDriver_EnsureTrackBuffer(self));
     try(FloppyDriver_EnsureTrackCompositionBuffer(self));
-    try(FloppyDriver_BeginIO(self, cylinder, head, true));
+    try(FloppyDriver_PrepareIO(self, cylinder, head, true));
 
 
     // Make sure that we got all the sectors of the target track in our track buffer
@@ -882,7 +882,7 @@ errno_t FloppyDriver_putMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAd
     // defective in the buffer because we're going to override it anyway.
     if (!FloppyDriver_IsTrackGoodForWriting(self, targetTrack, sector)) {
         for (int retry = 0; retry < 4; retry++) {
-            err = FloppyDriver_DoIO(self, false);
+            err = FloppyDriver_DoSyncIO(self, false);
 
             if (err == EOK) {
                 FloppyDriver_ScanTrack(self, targetTrack);
@@ -966,11 +966,11 @@ errno_t FloppyDriver_putMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAd
 
 
     // Write the track back to disk
-    try(FloppyDriver_DoIO(self, true));
+    try(FloppyDriver_DoSyncIO(self, true));
     VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200));
 
 catch:
-    return FloppyDriver_EndIO(self, err);
+    return FloppyDriver_FinalizeIO(self, err);
 }
 
 

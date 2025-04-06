@@ -281,10 +281,10 @@ void FloppyController_StepHead(FloppyControllerRef _Nonnull self, DriveState cb,
     Lock_Unlock(&self->lock);
 }
 
-// Synchronously reads 'nWords' 16bit words into the given word buffer. Blocks
-// the caller until the DMA is available and all words have been transferred from
-// disk.
-errno_t FloppyController_DoIO(FloppyControllerRef _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite)
+// Synchronously reads/writes 'nWords' 16bit words into the given word buffer.
+// Blocks the caller until the DMA is available and all words have been
+// transferred from disk.
+errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite)
 {
     decl_try_err();
     CIAB_BASE_DECL(ciab);

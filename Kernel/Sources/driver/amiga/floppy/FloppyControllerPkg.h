@@ -46,6 +46,6 @@ extern void FloppyController_SetMotor(FloppyControllerRef _Nonnull self, DriveSt
 extern void FloppyController_SelectHead(FloppyControllerRef _Nonnull self, DriveState* _Nonnull cb, int head);
 extern void FloppyController_StepHead(FloppyControllerRef _Nonnull self, DriveState cb, int delta);
 
-extern errno_t FloppyController_DoIO(FloppyControllerRef _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite);
+extern errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite);
 
 #endif /* FloppyControllerPkg_h */
