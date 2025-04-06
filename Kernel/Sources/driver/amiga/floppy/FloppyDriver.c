@@ -71,7 +71,7 @@ catch:
 
 static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
 {
-    FloppyDriver_CancelDelayedMotorOff(self);
+    FloppyDriver_MotorOff(self);
     FloppyDriver_CancelUpdateHasDiskState(self);
 
     FloppyDriver_DisposeTrackBuffer(self);
@@ -156,10 +156,12 @@ static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self)
 // Called when we've detected a loss of the drive hardware
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self)
 {
-        self->flags.isOnline = 0;
-        self->flags.hasDisk = 0;
+    FloppyDriver_MotorOff(self);
+    
+    self->flags.isOnline = 0;
+    self->flags.hasDisk = 0;
 
-        FloppyDriver_OnMediaChanged(self);
+    FloppyDriver_OnMediaChanged(self);
 }
 
 
@@ -235,31 +237,42 @@ static void FloppyDriver_DisposeTrackCompositionBuffer(FloppyDriverRef _Nonnull 
 // Motor Control
 ////////////////////////////////////////////////////////////////////////////////
 
-// Turns the drive motor on and blocks the caller until the disk is ready.
-static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self)
+static void FloppyDriver_CancelDelayedMotorOff(FloppyDriverRef _Nonnull self)
 {
-    FloppyControllerRef fdc = FloppyDriver_GetController(self);
-
-    if (self->flags.motorState == kMotor_Off) {
-        FloppyController_SetMotor(fdc, &self->driveState, true);
-        self->flags.motorState = kMotor_SpinningUp;
-    }
-
-    FloppyDriver_CancelDelayedMotorOff(self);
+    DispatchQueue_RemoveByTag(Driver_GetDispatchQueue(self), kDelayedMotorOffTag);
 }
 
 // Turns the drive motor off.
 static void FloppyDriver_MotorOff(FloppyDriverRef _Nonnull self)
 {
-    FloppyControllerRef fdc = FloppyDriver_GetController(self);
-
-    // Note: may be called if the motor when off on us without our doing. We call
+    // Note: may be called if the motor went off on us without our doing. We call
     // this function in this case to resync out software state with the hardware
     // state.
-    FloppyController_SetMotor(fdc, &self->driveState, false);
+    if (self->flags.isOnline) {
+        FloppyController_SetMotor(FloppyDriver_GetController(self), &self->driveState, false);
+    }
     self->flags.motorState = kMotor_Off;
 
     FloppyDriver_CancelDelayedMotorOff(self);
+}
+
+// Turns the drive motor on and schedules an auto-motor-off in 4 seconds.
+static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self)
+{
+    if (self->flags.motorState == kMotor_Off) {
+        FloppyController_SetMotor(FloppyDriver_GetController(self), &self->driveState, true);
+        self->flags.motorState = kMotor_SpinningUp;
+    }
+
+    FloppyDriver_CancelDelayedMotorOff(self);
+    
+    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
+    const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(4));
+    DispatchQueue_DispatchAsyncAfter(Driver_GetDispatchQueue(self),
+            deadline,
+            (VoidFunc_1)FloppyDriver_MotorOff,
+            self,
+            kDelayedMotorOffTag);
 }
 
 // Waits until the drive is ready (motor is spinning at full speed). This function
@@ -268,14 +281,13 @@ static void FloppyDriver_MotorOff(FloppyDriverRef _Nonnull self)
 // ready in time.
 static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
 {
-    FloppyControllerRef fdc = FloppyDriver_GetController(self);
-
     if (self->flags.motorState == kMotor_AtTargetSpeed) {
         return EOK;
     }
     else if (self->flags.motorState == kMotor_SpinningUp) {
         // Waits for at most 500ms for the motor to reach its target speed
         const TimeInterval delay = TimeInterval_MakeMilliseconds(10);
+        FloppyControllerRef fdc = FloppyDriver_GetController(self);
 
         for (int i = 0; i < 50; i++) {
             const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
@@ -298,33 +310,6 @@ static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
     else if (self->flags.motorState == kMotor_Off) {
         return EIO;
     }
-}
-
-// Called from a timer after the drive has been sitting idle for some time. Turn
-// the drive motor off. 
-static void FloppyDriver_OnDelayedMotorOff(FloppyDriverRef _Nonnull self)
-{
-    if (self->flags.isOnline) {
-        FloppyDriver_MotorOff(self);
-    }
-}
-
-static void FloppyDriver_DelayedMotorOff(FloppyDriverRef _Nonnull self)
-{
-    FloppyDriver_CancelDelayedMotorOff(self);
-
-    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
-    const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(4));
-    DispatchQueue_DispatchAsyncAfter(Driver_GetDispatchQueue(self),
-        deadline,
-        (VoidFunc_1)FloppyDriver_OnDelayedMotorOff,
-        self,
-        kDelayedMotorOffTag);
-}
-
-static void FloppyDriver_CancelDelayedMotorOff(FloppyDriverRef _Nonnull self)
-{
-    DispatchQueue_RemoveByTag(Driver_GetDispatchQueue(self), kDelayedMotorOffTag);
 }
 
 
@@ -617,12 +602,6 @@ static errno_t FloppyDriver_EndIO(FloppyDriverRef _Nonnull self, errno_t err)
         default:
             err = EIO;
             break;
-    }
-
-    if (!self->flags.isOnline && err != ENOMEDIUM) {
-        // Instead of turning off the motor right away, let's wait some time and
-        // turn the motor off if no further I/O request arrives in the meantime
-        FloppyDriver_DelayedMotorOff(self);
     }
 
     return err;
