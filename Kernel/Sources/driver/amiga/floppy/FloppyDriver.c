@@ -741,10 +741,23 @@ static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, uint8_t target
 #endif
 }
 
+static errno_t FloppyDriver_ReadTrack(FloppyDriverRef _Nonnull self, int cylinder, int head)
+{
+    decl_try_err();
+    const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(cylinder, head);
+    
+    try(FloppyDriver_PrepareIO(self, cylinder, head, true));
+    try(FloppyDriver_DoSyncIO(self, false));
+    FloppyDriver_ScanTrack(self, targetTrack);
+    err = FloppyDriver_FinalizeIO(self, err);
+
+catch:
+    return err;
+}
+
 errno_t FloppyDriver_getMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t mbSize)
 {
     decl_try_err();
-
     const int cylinder = ba / self->sectorsPerCylinder;
     const int head = (ba / self->sectorsPerTrack) % self->headsPerCylinder;
     const int sector = ba % self->sectorsPerTrack;
@@ -752,43 +765,28 @@ errno_t FloppyDriver_getMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAd
     
     try(FloppyDriver_EnsureTrackBuffer(self));
     const ADFSector* s = &self->sectors[sector];
-    const bool doActualRead = (s->info.track != targetTrack || (s->info.track == targetTrack && !s->isDataValid)) ? true : false;
+    bool bReadTrack = (s->info.track != targetTrack) ? true : false;
 
-
-    // Check whether we got the desired sector already in the track buffer and
-    // load it in if not. Note that we always call Begin() to ensure that the
-    // drive hardware is still there and that the disk didn't change on us even
-    // if we still got the 'right' track cached.
-    err = FloppyDriver_PrepareIO(self, cylinder, head, doActualRead);
-
-    if (err == EOK && doActualRead) {
-        for (int retry = 0; retry < 4; retry++) {
-            err = FloppyDriver_DoSyncIO(self, false);
-
-            if (err == EOK) {
-                FloppyDriver_ScanTrack(self, targetTrack);
-
-                if (!s->isDataValid) {
-                    self->readErrorCount++;
-                    err = EIO;
-                }
-            }
-            if (err != EIO) {
-                break;
-            }
+    for (int retry = 0; retry < 4; retry++) {
+        if (bReadTrack) {
+            err = FloppyDriver_ReadTrack(self, cylinder, head);
         }
-    }
-    err = FloppyDriver_FinalizeIO(self, err);
-    
-    if (err == EOK) {
-        if (s->isDataValid) {
+
+        if (err == EOK && s->isDataValid) {
             // MFM decode the sector data
             const ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
             mfm_decode_bits((const uint32_t*)mfms->data.odd_bits, (uint32_t*)data, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
+            break;
         }
-        else {
-            self->readErrorCount++;
+        else if (!s->isDataValid) {
             err = EIO;
+        }
+
+        self->readErrorCount++;
+        bReadTrack = true;
+
+        if (err != EIO) {
+            break;
         }
     }
 
