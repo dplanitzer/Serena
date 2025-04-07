@@ -727,7 +727,6 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     
     req->r[0].lba = pBlock->lba;
     req->r[0].data = pBlock->data;
-    req->r[0].blockCount = 1;
     req->r[0].token = (intptr_t)pBlock;
 
     err = DiskDriver_BeginIO(disk, req);

@@ -174,33 +174,25 @@ errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req, 
     for (size_t i = 0; i < req->rCount; i++) {
         uint8_t* data = req->r[i].data;
         LogicalBlockAddress lba = req->r[i].lba;
-        size_t j = 0;
 
-        while(j < req->r[i].blockCount) {
-            if (lba >= ctx->lBlockCount) {
-                err = ENXIO;
-                break;
-            }
-
-            err = _DiskDriver_DoBlockIO(self, req->type, lba, data, ctx);
-            if (err != EOK) {
-                break;
-            }
-
-            if (shouldZeroFill) {
-                // Media block size isn't a power-of-2 and this is a read. We zero-fill
-                // the remaining bytes in the logical block
-                memset(data + ctx->mBlockSize, 0, ctx->lBlockSize - ctx->mBlockSize);
-            }
-        
-            j++;
-            lba++;
-            data += ctx->lBlockSize;
+        if (lba >= ctx->lBlockCount) {
+            err = ENXIO;
+            break;
         }
 
+        err = _DiskDriver_DoBlockIO(self, req->type, lba, data, ctx);
         if (err != EOK) {
             break;
         }
+
+        if (shouldZeroFill) {
+            // Media block size isn't a power-of-2 and this is a read. We zero-fill
+            // the remaining bytes in the logical block
+            memset(data + ctx->mBlockSize, 0, ctx->lBlockSize - ctx->mBlockSize);
+        }
+        
+        lba++;
+        data += ctx->lBlockSize;
     }
 
     return err;

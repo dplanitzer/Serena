@@ -24,12 +24,11 @@ enum {
 };
 
 
-typedef struct BlockRange {
+typedef struct BlockRequest {
     LogicalBlockAddress     lba;        // -> logical (cache) block address
     uint8_t* _Nonnull       data;       // -> byte buffer to read or write 
     intptr_t                token;      // -> token identifying this disk block range
-    size_t                  blockCount; // -> number of blocks to read/write.
-} BlockRange;
+} BlockRequest;
 
 
 typedef struct DiskRequest {
@@ -40,7 +39,7 @@ typedef struct DiskRequest {
     size_t                              rCapacity;      // -> number of block ranges the request can hold
     size_t                              rCount;         // -> number of block ranges that are actually set up in the request
 
-    BlockRange                          r[1];
+    BlockRequest                        r[1];
 } DiskRequest;
 
 

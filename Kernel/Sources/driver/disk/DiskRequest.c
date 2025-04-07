@@ -56,7 +56,7 @@ errno_t DiskRequest_Get(size_t rCapacity, DiskRequest* _Nullable * _Nonnull pOut
     Lock_Unlock(&gLock);
 
     if (self == NULL) {
-        err = kalloc(sizeof(DiskRequest) + sizeof(BlockRange) * (rCapacity - 1), (void**)&self);
+        err = kalloc(sizeof(DiskRequest) + sizeof(BlockRequest) * (rCapacity - 1), (void**)&self);
         if (err == EOK) {
             self->rCapacity = rCapacity;
         }
