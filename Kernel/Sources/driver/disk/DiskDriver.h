@@ -30,12 +30,13 @@ typedef struct MediaInfo {
 
 
 // Contextual information passed to doIO().
-typedef struct DiskIOContext {
+typedef struct DiskContext {
+    MediaId             mediaId;        // ID of currently loaded disk media
     LogicalBlockCount   lBlockCount;    // Number of logical blocks on the disk
     size_t              lBlockSize;     // Logical block size in bytes
     size_t              mBlockSize;     // Media block size in bytes
     size_t              mb2lbFactor;    // Media blocks per logical block
-} DiskIOContext;
+} DiskContext;
 
 
 // A disk driver manages the data stored on a disk. It provides read and write
@@ -143,9 +144,21 @@ open_class_funcs(DiskDriver, Driver,
     // Default Behavior: Dispatches an async call to doIO()
     errno_t (*beginIO)(void* _Nonnull _Locked self, DiskRequest* _Nonnull req);
 
-    // Executes an I/O request.
+    // Executes a disk request. A disk request is a list of block requests. This
+    // function is expected to call 'doBlockRequest' for each block request in
+    // the disk request and to mark each block request as done by calling
+    // DiskRequest_Done() with the block request and the final status for the
+    // block request. Note that this function should not call DiskRequest_Done()
+    // for the disk request itself.
+    // Default Behavior: Calls doBlockRequest
+    void (*doDiskRequest)(void* _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req);
+
+    // Executes a block request. This function is expected to validate the block
+    // request parameters based on the provided disk context 'ctx'. It should
+    // then read/write the block data while taking care of the translation from
+    // a logical block size to the media block size.
     // Default Behavior: Calls getMediaBlock/putMediaBlock
-    errno_t (*doIO)(void* _Nonnull self, DiskRequest* _Nonnull req, const DiskIOContext* _Nonnull ctx);
+    errno_t (*doBlockRequest)(void* _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, BlockRequest* _br);
 
     // Reads the contents of the physical block at the disk address 'ba'
     // into the in-memory area 'data' of size 'blockSize'. Blocks the caller
@@ -219,8 +232,11 @@ invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
 extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable pInfo);
 
 
-#define DiskDriver_DoIO(__self, __req, __ctx) \
-invoke_n(doIO, DiskDriver, __self, __req, __ctx)
+#define DiskDriver_DoDiskRequest(__self, __req, __ctx) \
+invoke_n(doDiskRequest, DiskDriver, __self, __req, __ctx)
+
+#define DiskDriver_DoBlockRequest(__self, __req, __br, __ctx) \
+invoke_n(doBlockRequest, DiskDriver, __self, __req, __br, __ctx)
 
 
 #define DiskDriver_GetMediaBlock(__self, __ba, __data, __mbSize) \

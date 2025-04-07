@@ -101,9 +101,9 @@ void DiskRequest_Put(DiskRequest* _Nullable self)
     }
 }
 
-void DiskRequest_Done(DiskRequest* _Nonnull self, errno_t status)
+void DiskRequest_Done(DiskRequest* _Nonnull self, BlockRequest* _Nullable br, errno_t status)
 {
     if (self->done) {
-        self->done(self->context, self, status);
+        self->done(self->context, self, br, status);
     }
 }

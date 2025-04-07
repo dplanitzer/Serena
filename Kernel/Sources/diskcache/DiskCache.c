@@ -740,7 +740,7 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 }
 
 
-// Must be called by the disk driver when it's done with the block.
+// Must be called by the disk driver when it's done with a block.
 // Expects that the block lock is held:
 // - read: exclusively
 // - write: shared
@@ -748,7 +748,7 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 // - async: unlocks and puts the block
 // - sync: wakes up the clients that are waiting on the block and leaves the block
 //         locked exclusively
-void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, errno_t status)
+static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, BlockRequest* _Nullable br, errno_t status)
 {
     Lock_Lock(&self->interlock);
 
@@ -810,8 +810,16 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnu
     }
 
     Lock_Unlock(&self->interlock);
+}
 
-    DiskRequest_Put(req);
+void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, BlockRequest* _Nullable br, errno_t status)
+{
+    if (br) {
+        DiskCache_OnBlockRequestDone(self, req, br, status);
+    }
+    else {
+        DiskRequest_Put(req);
+    }
 }
 
 

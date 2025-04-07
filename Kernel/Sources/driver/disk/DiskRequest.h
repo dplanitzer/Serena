@@ -12,10 +12,11 @@
 #include <klib/Error.h>
 #include <klib/Types.h>
 
+struct BlockRequest;
 struct DiskRequest;
 
 
-typedef (*DiskRequestDoneCallback)(void* ctx, struct DiskRequest* _Nonnull req, errno_t status);
+typedef (*DiskRequestDoneCallback)(void* ctx, struct DiskRequest* _Nonnull req, struct BlockRequest* _Nullable br, errno_t status);
 
 
 enum {
@@ -48,6 +49,6 @@ extern void DiskRequest_Put(DiskRequest* _Nullable self);
 
 // Call this to mark the request as done. This will synchronously invoke the
 // request's done callback.
-extern void DiskRequest_Done(DiskRequest* _Nonnull self, errno_t status);
+extern void DiskRequest_Done(DiskRequest* _Nonnull self, BlockRequest* _Nullable br, errno_t status);
 
 #endif /* DiskRequest_h */
