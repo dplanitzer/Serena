@@ -55,6 +55,8 @@ final_class_ivars(FloppyDriver, DiskDriver,
     uint16_t* _Nullable         trackBuffer;                        // cached read track data (MFM encoded)
     int16_t                     trackReadWordCount;                 // cached read track buffer size in words
     int16_t                     gapSize;                            // track gap size
+    int16_t                     tbCylinder;                         // cylinder of the track stored in the track buffer; -1 if track buffer is empty
+    int16_t                     tbHead;                             // head of the track stored in the track buffer; -1 if track buffer is empty
 
     // Buffer used to compose a track for writing
     uint16_t* _Nullable         trackCompositionBuffer;
@@ -92,7 +94,7 @@ static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self);
 
 static errno_t FloppyDriver_EnsureTrackBuffer(FloppyDriverRef _Nonnull self);
-static void FloppyDriver_DisposeTrackBuffer(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_InvalidateTrackBuffer(FloppyDriverRef _Nonnull self);
 
 static errno_t FloppyDriver_EnsureTrackCompositionBuffer(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_DisposeTrackCompositionBuffer(FloppyDriverRef _Nonnull self);
