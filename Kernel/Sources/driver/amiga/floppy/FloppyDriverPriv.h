@@ -114,7 +114,7 @@ static void FloppyDriver_CancelUpdateHasDiskState(FloppyDriverRef _Nonnull self)
 static void FloppyDriver_UpdateHasDiskState(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self);
 
-static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, int cylinder, int head, bool prepMotorAndHead);
+static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, int cylinder, int head);
 static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, bool bWrite);
 static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t err);
 

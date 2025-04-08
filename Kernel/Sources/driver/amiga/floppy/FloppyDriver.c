@@ -494,7 +494,7 @@ static void FloppyDriver_CancelUpdateHasDiskState(FloppyDriverRef _Nonnull self)
 
 // Invoked at the beginning of a disk read/write operation to prepare the drive
 // state. Ie turn motor on, seek, switch disk head, detect drive status, etc. 
-static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, int cylinder, int head, bool prepMotorAndHead)
+static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, int cylinder, int head)
 {
     decl_try_err();
     FloppyControllerRef fdc = FloppyDriver_GetController(self);
@@ -509,21 +509,19 @@ static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, int cylinde
     }
 
 
-    if (prepMotorAndHead) {
-        // Make sure that the motor is turned on
-        FloppyDriver_MotorOn(self);
+    // Make sure that the motor is turned on
+    FloppyDriver_MotorOn(self);
 
 
-        // Seek to the required cylinder and select the required head
-        if (self->cylinder != cylinder || self->head != head) {
-            err = FloppyDriver_SeekTo(self, cylinder, head);
-        }
+    // Seek to the required cylinder and select the required head
+    if (self->cylinder != cylinder || self->head != head) {
+        err = FloppyDriver_SeekTo(self, cylinder, head);
+    }
 
 
-        // Wait until the motor has reached its target speed
-        if (err == EOK) {
-            err = FloppyDriver_WaitForDiskReady(self);
-        }
+    // Wait until the motor has reached its target speed
+    if (err == EOK) {
+        err = FloppyDriver_WaitForDiskReady(self);
     }
 
     return err;
@@ -738,7 +736,7 @@ static errno_t FloppyDriver_ReadTrack(FloppyDriverRef _Nonnull self, int cylinde
     const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(cylinder, head);
     
     FloppyDriver_InvalidateTrackBuffer(self);
-    try(FloppyDriver_PrepareIO(self, cylinder, head, true));
+    try(FloppyDriver_PrepareIO(self, cylinder, head));
     try(FloppyDriver_DoSyncIO(self, false));
     FloppyDriver_ScanTrack(self, targetTrack);
     try(FloppyDriver_FinalizeIO(self, err));
@@ -867,7 +865,7 @@ errno_t FloppyDriver_putMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAd
     try(FloppyDriver_EnsureTrackBuffer(self));
     try(FloppyDriver_EnsureTrackCompositionBuffer(self));
     FloppyDriver_InvalidateTrackBuffer(self);
-    try(FloppyDriver_PrepareIO(self, cylinder, head, true));
+    try(FloppyDriver_PrepareIO(self, cylinder, head));
 
 
     // Make sure that we got all the sectors of the target track in our track buffer
