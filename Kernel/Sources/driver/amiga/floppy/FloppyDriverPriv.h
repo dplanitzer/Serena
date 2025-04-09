@@ -97,7 +97,6 @@ static errno_t FloppyDriver_EnsureTrackBuffer(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_InvalidateTrackBuffer(FloppyDriverRef _Nonnull self);
 
 static errno_t FloppyDriver_EnsureTrackCompositionBuffer(FloppyDriverRef _Nonnull self);
-static void FloppyDriver_DisposeTrackCompositionBuffer(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_ResetTrackBuffer(FloppyDriverRef _Nonnull self);
 
 static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self);

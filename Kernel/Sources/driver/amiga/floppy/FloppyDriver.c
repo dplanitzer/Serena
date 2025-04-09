@@ -80,7 +80,8 @@ static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
     kfree(self->trackBuffer);
     self->trackBuffer = NULL;
 
-    FloppyDriver_DisposeTrackCompositionBuffer(self);
+    kfree(self->trackCompositionBuffer);
+    self->trackCompositionBuffer = NULL;
 }
 
 // Establishes the base state for a newly discovered drive. This means that we
@@ -180,12 +181,13 @@ static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self)
 
 static errno_t FloppyDriver_EnsureTrackBuffer(FloppyDriverRef _Nonnull self)
 {
-    decl_try_err();
-
-    if (self->trackBuffer == NULL) {
-        err = kalloc_options(sizeof(uint16_t) * self->trackReadWordCount, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
+    if (self->trackBuffer) {
+        return EOK;
     }
-    return err;
+    else {
+        FloppyDriver_InvalidateTrackBuffer(self);
+        return kalloc_options(sizeof(uint16_t) * self->trackReadWordCount, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
+    }
 }
 
 static void FloppyDriver_InvalidateTrackBuffer(FloppyDriverRef _Nonnull self)
@@ -203,19 +205,11 @@ static void FloppyDriver_InvalidateTrackBuffer(FloppyDriverRef _Nonnull self)
 
 static errno_t FloppyDriver_EnsureTrackCompositionBuffer(FloppyDriverRef _Nonnull self)
 {
-    if (self->trackCompositionBuffer == NULL) {
-        return kalloc_options(sizeof(uint16_t) * self->trackWriteWordCount, 0, (void**) &self->trackCompositionBuffer);
-    }
-    else {
+    if (self->trackCompositionBuffer) {
         return EOK;
     }
-}
-
-static void FloppyDriver_DisposeTrackCompositionBuffer(FloppyDriverRef _Nonnull self)
-{
-    if (self->trackCompositionBuffer) {
-        kfree(self->trackCompositionBuffer);
-        self->trackCompositionBuffer = NULL;
+    else {
+        return kalloc_options(sizeof(uint16_t) * self->trackWriteWordCount, 0, (void**) &self->trackCompositionBuffer);
     }
 }
 
@@ -313,7 +307,6 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self, bool* _
     int steps = 0;
 
     *pOutDidStep = false;
-    FloppyDriver_InvalidateTrackBuffer(self);
 
     // Wait 18 ms if we have to reverse the seek direction
     // Wait 2 ms if there was a write previously and we have to change the head
@@ -372,8 +365,6 @@ static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, 
     
     // Seek if necessary
     if (nSteps > 0) {
-        FloppyDriver_InvalidateTrackBuffer(self);
-
         for (int i = nSteps; i > 0; i--) {
             FloppyController_StepHead(fdc, self->driveState, cur_dir);     
             
@@ -391,7 +382,6 @@ static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, 
     
     // Switch heads if necessary
     if (change_side) {
-        FloppyDriver_InvalidateTrackBuffer(self);
         FloppyController_SelectHead(fdc, &self->driveState, head);
         self->head = head;
     }
@@ -649,9 +639,10 @@ static bool FloppyDriver_RecognizeSector(FloppyDriverRef _Nonnull self, int16_t 
     return false;
 }
 
-static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, uint8_t targetTrack)
+static void FloppyDriver_ParseTrack(FloppyDriverRef _Nonnull self, int cylinder, int head)
 {
     // Build the sector table
+    const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(cylinder, head);
     const uint16_t* pt = self->trackBuffer;
     const uint16_t* pt_start = pt;
     const uint16_t* pt_limit = &self->trackBuffer[self->trackReadWordCount];
@@ -661,7 +652,7 @@ static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, uint8_t target
     int8_t nSectorsRead = 0;
     ADF_SectorInfo info;
 
-    memset(self->sectors, 0, sizeof(ADFSector) * self->sectorsPerTrack);
+    FloppyDriver_InvalidateTrackBuffer(self);
 
     while (pt < pt_limit && nSectorsRead < self->sectorsPerTrack) {
         int nSyncWords = 0;
@@ -712,6 +703,8 @@ static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, uint8_t target
     }
 
     self->gapSize = (pg_start && pg_end) ? pg_end - pg_start : 0;
+    self->tbCylinder = cylinder;
+    self->tbHead = head;
 
 #if 0
     printf("c: %d, h: %d ---------- tb: %p, limit: %p\n", self->cylinder, self->head, self->trackBuffer, pt_limit);
@@ -733,16 +726,13 @@ static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, uint8_t target
 static errno_t FloppyDriver_ReadTrack(FloppyDriverRef _Nonnull self, int cylinder, int head)
 {
     decl_try_err();
-    const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(cylinder, head);
     
     FloppyDriver_InvalidateTrackBuffer(self);
+    try(FloppyDriver_EnsureTrackBuffer(self));
     try(FloppyDriver_PrepareIO(self, cylinder, head));
     try(FloppyDriver_DoSyncIO(self, false));
-    FloppyDriver_ScanTrack(self, targetTrack);
+    FloppyDriver_ParseTrack(self, cylinder, head);
     try(FloppyDriver_FinalizeIO(self, err));
-    
-    self->tbCylinder = cylinder;
-    self->tbHead = head;
 
 catch:
     return err;
@@ -751,26 +741,24 @@ catch:
 errno_t FloppyDriver_getMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t mbSize)
 {
     decl_try_err();
-    const int cylinder = ba / self->sectorsPerCylinder;
-    const int head = (ba / self->sectorsPerTrack) % self->headsPerCylinder;
-    const int sector = ba % self->sectorsPerTrack;
-    
-    try(FloppyDriver_EnsureTrackBuffer(self));
-    const ADFSector* s = &self->sectors[sector];
-    bool isCacheValid = (self->tbCylinder == cylinder && self->tbHead == head) ? true : false;
+    const int c = ba / self->sectorsPerCylinder;
+    const int h = (ba / self->sectorsPerTrack) % self->headsPerCylinder;
+    const int s = ba % self->sectorsPerTrack;    
+    bool isCacheValid = (self->tbCylinder == c && self->tbHead == h) ? true : false;
+    const ADFSector* ps = &self->sectors[s];
 
     for (int retry = 0; retry < 4; retry++) {
         if (!isCacheValid) {
-            err = FloppyDriver_ReadTrack(self, cylinder, head);
+            err = FloppyDriver_ReadTrack(self, c, h);
         }
 
-        if (err == EOK && s->isDataValid) {
+        if (err == EOK && ps->isDataValid) {
             // MFM decode the sector data
-            const ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
+            const ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[ps->offsetToHeader];
             mfm_decode_bits((const uint32_t*)mfms->data.odd_bits, (uint32_t*)data, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
             break;
         }
-        else if (!s->isDataValid) {
+        else if (!ps->isDataValid) {
             err = EIO;
         }
 
@@ -782,7 +770,6 @@ errno_t FloppyDriver_getMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAd
         }
     }
 
-catch:
     return err;
 }
 
@@ -864,7 +851,6 @@ errno_t FloppyDriver_putMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAd
 
     try(FloppyDriver_EnsureTrackBuffer(self));
     try(FloppyDriver_EnsureTrackCompositionBuffer(self));
-    FloppyDriver_InvalidateTrackBuffer(self);
     try(FloppyDriver_PrepareIO(self, cylinder, head));
 
 
@@ -873,10 +859,11 @@ errno_t FloppyDriver_putMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAd
     // defective in the buffer because we're going to override it anyway.
     if (!FloppyDriver_IsTrackGoodForWriting(self, targetTrack, sector)) {
         for (int retry = 0; retry < 4; retry++) {
+            FloppyDriver_InvalidateTrackBuffer(self);
             err = FloppyDriver_DoSyncIO(self, false);
 
             if (err == EOK) {
-                FloppyDriver_ScanTrack(self, targetTrack);
+                FloppyDriver_ParseTrack(self, cylinder, head);
 
                 if (!FloppyDriver_IsTrackGoodForWriting(self, targetTrack, sector)) {
                     self->readErrorCount++;
@@ -952,9 +939,7 @@ errno_t FloppyDriver_putMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAd
 
     // Move the newly composed track to the DMA buffer
     memcpy(self->trackBuffer, self->trackCompositionBuffer, sizeof(uint16_t) * self->trackWriteWordCount);
-    FloppyDriver_ScanTrack(self, targetTrack);
-    self->tbCylinder = cylinder;
-    self->tbHead = head;
+    FloppyDriver_ParseTrack(self, cylinder, head);
 
 
     // Write the track back to disk
