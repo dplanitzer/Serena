@@ -39,6 +39,12 @@ typedef struct DiskContext {
 } DiskContext;
 
 
+typedef struct brng {
+    LogicalBlockAddress lba;
+    LogicalBlockCount   count;
+} brng_t;
+
+
 // A disk driver manages the data stored on a disk. It provides read and write
 // access to the disk data. Data on a disk is organized in blocks. All blocks
 // are of the same size. Blocks are addressed with an index in the range
@@ -134,6 +140,15 @@ open_class_funcs(DiskDriver, Driver,
     void (*getInfo)(void* _Nonnull _Locked self, DiskInfo* _Nonnull pOutInfo);
 
 
+    // XXX Experimental
+    // Returns the range of consecutive blocks that should be fetched from disk
+    // or written to disk in a single disk request. This allows a disk driver
+    // subclass to optimize reading/writing disks in the sense that a whole
+    // track worth of data can be processed in a single disk request.
+    // Default behavior: returns a block range of size 1 and the provided lba
+    errno_t (*getRequestRange2)(void* _Nonnull self, MediaId mediaId, LogicalBlockAddress lba, brng_t* _Nonnull pOutBlockRange);
+
+
     // Starts an I/O operation for the given disk request. Calls getBlock() if
     // the block should be read and putBlock() if it should be written. It then
     // invokes endIO() to notify the system about the completed I/O operation.
@@ -197,6 +212,13 @@ open_class_funcs(DiskDriver, Driver,
 ((DiskDriverRef)__self)->diskCache
 
 extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
+
+
+extern errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId, LogicalBlockAddress lba, brng_t* _Nonnull pOutBlockRange);
+
+#define DiskDriver_GetRequestRange2(__self, __mediaId, __lba, __brng) \
+invoke_n(getRequestRange2, DiskDriver, __self, __mediaId, __lba, __brng)
+
 
 extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req);
 

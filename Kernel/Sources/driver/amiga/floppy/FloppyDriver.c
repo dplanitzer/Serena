@@ -950,10 +950,22 @@ catch:
     return FloppyDriver_FinalizeIO(self, err);
 }
 
+errno_t FloppyDriver_getRequestRange2(FloppyDriverRef _Nonnull self, MediaId mediaId, LogicalBlockAddress ba, brng_t* _Nonnull pOutBlockRange)
+{
+    const int c = ba / self->sectorsPerCylinder;
+    const int h = (ba / self->sectorsPerTrack) % self->headsPerCylinder;
+
+    pOutBlockRange->lba = (c * self->headsPerCylinder + h) * self->sectorsPerTrack + 0;
+    pOutBlockRange->count = self->sectorsPerTrack;
+
+    return EOK;
+}
+
 
 class_func_defs(FloppyDriver, DiskDriver,
 override_func_def(deinit, FloppyDriver, Object)
 override_func_def(onStart, FloppyDriver, Driver)
 override_func_def(getMediaBlock, FloppyDriver, DiskDriver)
 override_func_def(putMediaBlock, FloppyDriver, DiskDriver)
+override_func_def(getRequestRange2, FloppyDriver, DiskDriver)
 );

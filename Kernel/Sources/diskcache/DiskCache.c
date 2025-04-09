@@ -709,25 +709,85 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     }
 
 
+    size_t bCapacity = 1;
+    size_t idx = 0;
+
+    //XXX
+    // This is experimental: ask the disk driver for the range of blocks that
+    // should be read/written in a single disk request. This allows a driver to
+    // tell us that we should go and read all blocks in a track. This allows us
+    // to cache everything from a track right away. This makes sense for track
+    // orientated disk drives like teh Amiga disk drive. 
+    brng_t br;
+    DiskDriver_GetRequestRange(disk, pBlock->mediaId, pBlock->lba, &br);
+    bCapacity = br.count;
+    //XXX
+
+
     // Start a new disk request
-    err = DiskRequest_Get(1, &req);
+    err = DiskRequest_Get(bCapacity, &req);
     if (err != EOK) {
         return err;
     }
+    
+#if 1
+    for (size_t offset = 0; offset < br.count; offset++) {
+        const LogicalBlockAddress lba = br.lba + offset;
+        DiskBlockRef pOther;
 
+        if (lba == pBlock->lba) {
+            pBlock->flags.op = op;
+            pBlock->flags.async = (isSync) ? 0 : 1;
+            pBlock->flags.readError = EOK;
+        
+            req->r[idx].lba = pBlock->lba;
+            req->r[idx].data = pBlock->data;
+            req->r[idx].token = (intptr_t)pBlock;
+            idx++;
+        }
+        else if (op == kDiskBlockOp_Read) {
+            // We'll request all blocks in the request range that haven't already
+            // been read in earlier. Note that we just ignore blocks that don't
+            // fit our requirements since this is just for prefetching.
+            err = _DiskCache_GetBlock(self, disk, pBlock->mediaId, lba, kGetBlock_Allocate | kGetBlock_Exclusive, &pOther);
+            if (err == EOK && !pOther->flags.hasData && pOther->flags.op != kDiskBlockOp_Read) {
+                err = _DiskCache_LockBlockContent(self, pOther, kLockMode_Exclusive);
+
+                if (err == EOK) {
+                    // Trigger the async read. Note that endIO() will unlock-and-put the
+                    // block for us.
+                    ASSERT_LOCKED_EXCLUSIVE(pOther);
+                    pOther->flags.op = op;
+                    pOther->flags.async = 1;
+                    pOther->flags.readError = EOK;
+                    req->r[idx].lba = pOther->lba;
+                    req->r[idx].data = pOther->data;
+                    req->r[idx].token = (intptr_t)pOther;
+                    idx++;
+                }
+            }
+            if (err != EOK) {
+                _DiskCache_PutBlock(self, pOther);
+            }
+        }
+    }
+#else
     pBlock->flags.op = op;
     pBlock->flags.async = (isSync) ? 0 : 1;
     pBlock->flags.readError = EOK;
+
+    req->r[idx].lba = pBlock->lba;
+    req->r[idx].data = pBlock->data;
+    req->r[idx].token = (intptr_t)pBlock;
+    idx++;
+#endif
 
     req->done = (DiskRequestDoneCallback)DiskCache_OnDiskRequestDone;
     req->context = self;
     req->type = (op == kDiskBlockOp_Read) ? kDiskRequest_Read : kDiskRequest_Write;
     req->mediaId = pBlock->mediaId;
-    req->rCount = 1;
-    
-    req->r[0].lba = pBlock->lba;
-    req->r[0].data = pBlock->data;
-    req->r[0].token = (intptr_t)pBlock;
+    req->rCount = idx;
+
 
     err = DiskDriver_BeginIO(disk, req);
     if (err == EOK && isSync) {
@@ -752,7 +812,7 @@ static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest
 {
     Lock_Lock(&self->interlock);
 
-    DiskBlockRef pBlock = (DiskBlockRef)req->r[0].token;
+    DiskBlockRef pBlock = (DiskBlockRef)br->token;
     const bool isAsync = pBlock->flags.async ? true : false;
 
     switch (req->type) {

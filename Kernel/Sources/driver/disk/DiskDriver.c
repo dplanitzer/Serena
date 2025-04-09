@@ -10,6 +10,7 @@
 #include <diskcache/DiskCache.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverChannel.h>
+#include <log/Log.h>
 
 
 errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, const MediaInfo* _Nullable info, DriverRef _Nullable * _Nonnull pOutSelf)
@@ -136,6 +137,31 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
     }
 
     Driver_Unlock(self);
+}
+
+errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId, LogicalBlockAddress lba, brng_t* _Nonnull pOutBlockRange)
+{
+    decl_try_err();
+
+    Driver_Lock(self);
+    if (mediaId == self->currentMediaId || mediaId == kMediaId_Current) {
+        err = DiskDriver_GetRequestRange2(self, mediaId, lba * self->mb2lbFactor, pOutBlockRange);
+        pOutBlockRange->lba = pOutBlockRange->lba / self->mb2lbFactor;
+    }
+    else {
+        err = EDISKCHANGE;
+    }
+    Driver_Unlock(self);
+
+    //printf("lba: %d -> [%d, %d)\n", (int)lba, (int)pOutBlockRange->lba, (int)(pOutBlockRange->lba + pOutBlockRange->count));
+    return err;
+}
+
+errno_t DiskDriver_getRequestRange2(DiskDriverRef _Nonnull self, MediaId mediaId, LogicalBlockAddress lba, brng_t* _Nonnull pOutBlockRange)
+{
+    pOutBlockRange->lba = lba;
+    pOutBlockRange->count = 1;
+    return EOK;
 }
 
 errno_t DiskDriver_doBlockRequest(DiskDriverRef _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, BlockRequest* _Nonnull br)
@@ -457,6 +483,7 @@ override_func_def(onPublish, DiskDriver, Driver)
 override_func_def(onUnpublish, DiskDriver, Driver)
 override_func_def(onStop, DiskDriver, Driver)
 func_def(getInfo, DiskDriver)
+func_def(getRequestRange2, DiskDriver)
 func_def(beginIO, DiskDriver)
 func_def(doDiskRequest, DiskDriver)
 func_def(doBlockRequest, DiskDriver)
