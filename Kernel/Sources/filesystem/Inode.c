@@ -20,6 +20,7 @@ typedef void (*deinit_impl_t)(void* _Nonnull self);
 errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, ino_t id,
     FileType type, int linkCount, uid_t uid, gid_t gid, FilePermissions permissions,
     off_t size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
+    ino_t pnid,
     InodeRef _Nullable * _Nonnull pOutNode)
 {
     InodeRef self;
@@ -37,6 +38,7 @@ errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, ino_t i
         self->size = size;
         self->filesystem = pFS;
         self->inid = id;
+        self->pnid = pnid;
         self->linkCount = linkCount;
         self->type = type;
         self->flags = 0;

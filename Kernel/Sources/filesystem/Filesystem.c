@@ -417,6 +417,22 @@ errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull 
     return EIO;
 }
 
+errno_t Filesystem_getParentNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nullable * _Nonnull pOutParent)
+{
+    decl_try_err();
+    const ino_t pnid = Inode_GetParentId(pNode);
+
+    if (pnid != 0) {
+        err = Filesystem_AcquireNodeWithId(self, pnid, pOutParent);
+    }
+    else {
+        *pOutParent = NULL;
+        err = ENOTSUP;
+    }
+
+    return err;
+}
+
 errno_t Filesystem_createNode(FilesystemRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return EIO;
@@ -447,6 +463,7 @@ func_def(onStart, Filesystem)
 func_def(onStop, Filesystem)
 func_def(acquireNodeForName, Filesystem)
 func_def(getNameOfNode, Filesystem)
+func_def(getParentNode, Filesystem)
 func_def(createNode, Filesystem)
 func_def(unlink, Filesystem)
 func_def(move, Filesystem)

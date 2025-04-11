@@ -30,7 +30,9 @@ errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, ino_t in
         TimeInterval_Make(UInt32_BigToHost(ip->accessTime.tv_sec), UInt32_BigToHost(ip->accessTime.tv_nsec)),
         TimeInterval_Make(UInt32_BigToHost(ip->modificationTime.tv_sec), UInt32_BigToHost(ip->modificationTime.tv_nsec)),
         TimeInterval_Make(UInt32_BigToHost(ip->statusChangeTime.tv_sec), UInt32_BigToHost(ip->statusChangeTime.tv_nsec)),
+        UInt32_BigToHost(ip->pnid),
         (InodeRef*)&self);
+
     if (err == EOK) {
         self->bmap.indirect = ip->bmap.indirect;
         for (size_t i = 0; i < kSFSDirectBlockPointersCount; i++) {
@@ -50,18 +52,19 @@ void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, sfs_inode_t* _Nonnull ip
     const TimeInterval modTime = (Inode_IsUpdated(self)) ? curTime : Inode_GetModificationTime(self);
     const TimeInterval chgTime = (Inode_IsStatusChanged(self)) ? curTime : Inode_GetStatusChangeTime(self);
 
-    ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
-    ip->id = UInt32_HostToBig(Inode_GetId(pNode));
+    ip->size = Int64_HostToBig(Inode_GetFileSize(self));
     ip->accessTime.tv_sec = UInt32_HostToBig(accTime.tv_sec);
     ip->accessTime.tv_nsec = UInt32_HostToBig(accTime.tv_nsec);
     ip->modificationTime.tv_sec = UInt32_HostToBig(modTime.tv_sec);
     ip->modificationTime.tv_nsec = UInt32_HostToBig(modTime.tv_nsec);
     ip->statusChangeTime.tv_sec = UInt32_HostToBig(chgTime.tv_sec);
     ip->statusChangeTime.tv_nsec = UInt32_HostToBig(chgTime.tv_nsec);
-    ip->size = Int64_HostToBig(Inode_GetFileSize(self));
+    ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
+    ip->id = UInt32_HostToBig(Inode_GetId(pNode));
+    ip->pnid = UInt32_HostToBig(Inode_GetParentId(pNode));
+    ip->linkCount = Int32_HostToBig(Inode_GetLinkCount(self));
     ip->uid = UInt32_HostToBig(Inode_GetUserId(self));
     ip->gid = UInt32_HostToBig(Inode_GetGroupId(self));
-    ip->linkCount = Int32_HostToBig(Inode_GetLinkCount(self));
     ip->permissions = UInt16_HostToBig(Inode_GetFilePermissions(self));
     ip->type = Inode_GetFileType(self);
 

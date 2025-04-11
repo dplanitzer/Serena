@@ -51,18 +51,19 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
 
     try(FSContainer_MapBlock(fsContainer, inodeLba, kMapBlock_Cleared, &blk));
     sfs_inode_t* ip = (sfs_inode_t*)blk.data;
-    ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
-    ip->id = UInt32_HostToBig(inodeLba);
+    ip->size = Int64_HostToBig(fileSize);
     ip->accessTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     ip->accessTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
     ip->modificationTime.tv_sec = ip->accessTime.tv_sec;
     ip->modificationTime.tv_nsec = ip->accessTime.tv_nsec;
     ip->statusChangeTime.tv_sec = ip->accessTime.tv_sec;
     ip->statusChangeTime.tv_nsec = ip->accessTime.tv_nsec;
-    ip->size = Int64_HostToBig(fileSize);
+    ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
+    ip->id = UInt32_HostToBig(inodeLba);
+    ip->pnid = UInt32_HostToBig(parentInodeId);
+    ip->linkCount = Int32_HostToBig(1);
     ip->uid = UInt32_HostToBig(uid);
     ip->gid = UInt32_HostToBig(gid);
-    ip->linkCount = Int32_HostToBig(1);
     ip->permissions = UInt16_HostToBig(permissions);
     ip->type = type;
     ip->bmap.direct[0] = UInt32_HostToBig(dirContLba);

@@ -31,6 +31,7 @@ errno_t DfsDirectory_Create(DevFSRef _Nonnull fs, ino_t inid, FilePermissions pe
         curTime,
         curTime,
         curTime,
+        pnid,
         (InodeRef*)&self));
     try(DfsDirectory_InsertEntry(self, inid, false, &kPathComponent_Self));
     try(DfsDirectory_InsertEntry(self, pnid, false, &kPathComponent_Parent));

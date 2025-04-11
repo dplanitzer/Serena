@@ -10,7 +10,7 @@
 #include <filesystem/FSUtilities.h>
 
 
-errno_t DfsDevice_Create(DevFSRef _Nonnull fs, ino_t inid, FilePermissions permissions, uid_t uid, gid_t gid, DriverRef _Nonnull pDriver, intptr_t arg, DfsNodeRef _Nullable * _Nonnull pOutSelf)
+errno_t DfsDevice_Create(DevFSRef _Nonnull fs, ino_t inid, FilePermissions permissions, uid_t uid, gid_t gid, ino_t pnid, DriverRef _Nonnull pDriver, intptr_t arg, DfsNodeRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     const TimeInterval curTime = FSGetCurrentTime();
@@ -29,6 +29,7 @@ errno_t DfsDevice_Create(DevFSRef _Nonnull fs, ino_t inid, FilePermissions permi
         curTime,
         curTime,
         curTime,
+        pnid,
         (InodeRef*)&self));
     self->instance = Object_RetainAs(pDriver, Driver);
     self->arg = arg;

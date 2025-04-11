@@ -116,18 +116,19 @@ errno_t sefs_format(intptr_t fd, LogicalBlockCount blockCount, size_t blockSize,
     // Write the root directory inode
     sfs_inode_t* ip = (sfs_inode_t*)bp;
     memset(ip, 0, blockSize);
-    ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
-    ip->id = UInt32_HostToBig(rootDirLba);
+    ip->size = Int64_HostToBig(2 * sizeof(sfs_dirent_t));
     ip->accessTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     ip->accessTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
     ip->modificationTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     ip->modificationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
     ip->statusChangeTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     ip->statusChangeTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
-    ip->size = Int64_HostToBig(2 * sizeof(sfs_dirent_t));
+    ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
+    ip->id = UInt32_HostToBig(rootDirLba);
+    ip->pnid = UInt32_HostToBig(rootDirLba);
+    ip->linkCount = Int32_HostToBig(1);
     ip->uid = UInt32_HostToBig(uid);
     ip->gid = UInt32_HostToBig(gid);
-    ip->linkCount = Int32_HostToBig(1);
     ip->permissions = UInt16_HostToBig(permissions);
     ip->type = kFileType_Directory;
     ip->bmap.direct[0] = UInt32_HostToBig(rootDirContLba);

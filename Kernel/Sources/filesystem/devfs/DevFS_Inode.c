@@ -36,7 +36,7 @@ static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef
             break;
 
         case kFileType_Device:
-            try(DfsDevice_Create(self, DevFS_GetNextAvailableInodeId(self), permissions, uid, gid, (DriverRef)extra1, extra2, &ip));
+            try(DfsDevice_Create(self, DevFS_GetNextAvailableInodeId(self), permissions, uid, gid, Inode_GetId(dir), (DriverRef)extra1, extra2, &ip));
             break;
 
         default:

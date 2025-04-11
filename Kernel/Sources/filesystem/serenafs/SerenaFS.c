@@ -218,11 +218,11 @@ catch:
     return err;
 }
 
-errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, uid_t uid, gid_t gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
+errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, uid_t uid, gid_t gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    const bool isMovingDir = Inode_IsDirectory(pSrcNode);
+    const bool isMovingDir = Inode_IsDirectory(pNode);
 
     // The 'moveLock' ensures that there can be only one operation active at any
     // given time that might move directories around in the filesystem. This ie
@@ -230,7 +230,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
     // stays meaningful while we are busy executing the move.
     Lock_Lock(&self->moveLock);
 
-    if (isMovingDir && SerenaFS_IsAncestorOfDirectory(self, pSrcNode, pSrcDir, pDstDir, uid, gid)) {
+    if (isMovingDir && SerenaFS_IsAncestorOfDirectory(self, pNode, pSrcDir, pDstDir, uid, gid)) {
         // oldpath is an ancestor of newpath (Don't allow moving a directory inside of itself)
         throw(EINVAL);
     }
@@ -238,13 +238,18 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
 
     // Add a new entry in the destination directory and remove the old entry from
     // the source directory
-    try(SerenaFS_link(self, pSrcNode, pDstDir, pNewName, uid, gid, pDirInstHint));
-    try(SerenaFS_unlinkCore(self, pSrcNode, pSrcDir));  // XXX should theoretically be able to use unlink() here. Fails with resource busy because we trigger the empty check on the destination directory
+    try(SerenaFS_link(self, pNode, pDstDir, pNewName, uid, gid, pDirInstHint));
+    try(SerenaFS_unlinkCore(self, pNode, pSrcDir));  // XXX should theoretically be able to use unlink() here. Fails with resource busy because we trigger the empty check on the destination directory
+
+
+    // Re-point the moved inode to its new parent node
+    Inode_SetParentId(pNode, Inode_GetId(pDstDir));
 
 
     // If we're moving a directory then we need to re-point its parent entry '..'
     // to the new parent directory
     if (isMovingDir) {
+        // XXX remove this once we synthesize the . and .. entries
         sfs_query_t q;
         sfs_query_result_t qr;
         FSBlock blk = {0};
@@ -253,7 +258,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
         q.u.pc = &kPathComponent_Parent;
         q.mpc = NULL;
         q.ih = NULL;
-        try(SfsDirectory_Query(pSrcNode, &q, &qr));
+        try(SfsDirectory_Query(pNode, &q, &qr));
 
         try(FSContainer_MapBlock(fsContainer, qr.lba, kMapBlock_Update, &blk));
 
@@ -261,7 +266,8 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
         dep->id = Inode_GetId(pDstDir);
 
         FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_Deferred);
-
+        // XXX remove this once we synthesize the . and .. entries
+        
         // Our parent receives a +1 on the link count because of our .. entry
         Inode_Link(pDstDir);
     }

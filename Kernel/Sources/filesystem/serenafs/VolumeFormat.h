@@ -26,7 +26,7 @@ typedef uint32_t sfs_bno_t;
 
 enum {
     kSFSMaxFilenameLength = 27,
-    kSFSDirectBlockPointersCount = 111,
+    kSFSDirectBlockPointersCount = 110,
 };
 
 enum {
@@ -125,15 +125,16 @@ typedef struct sfs_bmap {
 // XXX move to B-Trees for block mapping, directory content and extended
 // XXX attributes anyway.
 typedef struct sfs_inode {
-    uint32_t        signature;              // kSFSSignature_Inode
-    sfs_bno_t       id;                     // Id (lba) of this inode
+    int64_t         size;
     sfs_datetime_t  accessTime;
     sfs_datetime_t  modificationTime;
     sfs_datetime_t  statusChangeTime;
-    int64_t         size;
+    sfs_bno_t       id;                     // Id (lba) of this inode
+    sfs_bno_t       pnid;                   // Id (lba) of the parent inode (directory)
+    uint32_t        signature;              // kSFSSignature_Inode
+    int32_t         linkCount;
     uint32_t        uid;
     uint32_t        gid;
-    int32_t         linkCount;
     uint16_t        permissions;
     uint8_t         type;
     uint8_t         reserved;

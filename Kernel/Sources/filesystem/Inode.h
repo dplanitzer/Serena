@@ -48,6 +48,7 @@ open_class(Inode, Any,
     off_t                           size;       // File size
     FilesystemRef _Weak _Nonnull    filesystem; // The owning filesystem instance
     ino_t                           inid;       // Filesystem specific ID of the inode
+    ino_t                           pnid;       // Filesystem specific ID of the parent inode (directory in which inid is stored)
     nlink_t                         linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
     FileType                        type;
     uint8_t                         flags;
@@ -246,6 +247,19 @@ void Inode_Unlink(InodeRef _Nonnull self);
 #define Inode_IsRegularFile(__self) \
     (Inode_GetFileType((InodeRef)__self) == kFileType_RegularFile)
 
+
+// Returns the inode id of the parent inode. This function may return 0 because
+// tracking the parent node for the given inode type is not supported by the
+// filesystem.
+#define Inode_GetParentId(__self) \
+((InodeRef)__self)->pnid
+
+// Sets the inode id of the parent inode. This should only be called by the
+// Filesystem.move() function
+#define Inode_SetParentId(__self, __id) \
+((InodeRef)__self)->pnid = (__id)
+
+
 // Returns the filesystem specific ID of the node.
 #define Inode_GetId(__self) \
     ((InodeRef)__self)->inid
@@ -292,13 +306,21 @@ invoke_n(truncate, Inode, __self, __length)
 // Only filesystem implementations should call the following functions.
 //
 
-// Creates an instance an Inode.
+// Creates an instance of the inode subclass 'pClass'. 'id' is the unique id of
+// the inode. This id must be unique with respect to the owning filesystem 'fs'.
+// 'pnid' is the id of the parent inode. This is the directory inside of which
+// 'id' exists. Note that the parent id is optional: if it is 0 then this means
+// that the filesystem does not support tracking the parent for inodes of type
+// 'type'. If it is > 0 then the provided id is the id of the directory in which
+// the inode of type 'type' and 'id' resides. Note that the parent id of the root
+// node of the filesystem should be equal to the root node id.
 extern errno_t Inode_Create(Class* _Nonnull pClass,
-                    FilesystemRef _Nonnull pFS, ino_t id,
+                    FilesystemRef _Nonnull fs, ino_t id,
                     FileType type, int linkCount,
                     uid_t uid, gid_t gid, FilePermissions permissions,
                     off_t size,
                     TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
+                    ino_t pnid,
                     InodeRef _Nullable * _Nonnull pOutNode);
 extern void Inode_Destroy(InodeRef _Nonnull self);
 

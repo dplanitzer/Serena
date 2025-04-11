@@ -21,6 +21,6 @@ open_class_funcs(DfsDevice, DfsNode,
 );
 
 
-extern errno_t DfsDevice_Create(DevFSRef _Nonnull fs, ino_t inid, FilePermissions permissions, uid_t uid, gid_t gid, DriverRef _Nonnull pDriver, intptr_t arg, DfsNodeRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DfsDevice_Create(DevFSRef _Nonnull fs, ino_t inid, FilePermissions permissions, uid_t uid, gid_t gid, ino_t pnid, DriverRef _Nonnull pDriver, intptr_t arg, DfsNodeRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* DfsDevice_h */
