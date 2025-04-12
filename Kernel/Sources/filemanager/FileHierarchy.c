@@ -478,7 +478,7 @@ static errno_t get_name_of_node(ino_t idOfNodeToLookup, InodeRef _Nonnull pDir, 
     Inode_Lock(pDir);
     err = SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Readable | kAccess_Searchable);
     if (err == EOK) {
-        err = Filesystem_GetNameOfNode(Inode_GetFilesystem(pDir), pDir, idOfNodeToLookup, uid, gid, pc);
+        err = Filesystem_GetNameOfNode(Inode_GetFilesystem(pDir), pDir, idOfNodeToLookup, pc);
     }
     Inode_Unlock(pDir);
     return err;
@@ -618,7 +618,7 @@ static errno_t FileHierarchy_AcquireChildNode(FileHierarchyRef _Nonnull _Locked 
 
     // Ask the filesystem for the inode that is named by the tuple (pDir, pName)
     try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Searchable));
-    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(pDir), pDir, pName, uid, gid, NULL, &pChildNode));
+    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(pDir), pDir, pName, NULL, &pChildNode));
 
 
     // This can only happen if the filesystem is in a corrupted state.

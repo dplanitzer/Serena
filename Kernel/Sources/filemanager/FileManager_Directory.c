@@ -86,7 +86,7 @@ errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _N
     // Create the new directory and add it to the parent directory if it doesn't
     // exist; otherwise error out
     Inode_Lock(r.inode);
-    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(r.inode), r.inode, dirName, self->ruid, self->rgid, &dih, NULL);
+    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(r.inode), r.inode, dirName, &dih, NULL);
     if (err == ENOENT) {
         // We must have write permissions for the parent directory
         err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, kAccess_Writable);

@@ -84,7 +84,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
 
 
     // The last path component must not exist
-    err = Filesystem_AcquireNodeForName(pFS, dir, name, self->ruid, self->rgid, &dih, &ip);
+    err = Filesystem_AcquireNodeForName(pFS, dir, name, &dih, &ip);
     if (err == EOK) {
         // File exists - reject the operation in exclusive mode and open the
         // file otherwise
@@ -360,7 +360,7 @@ errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull pa
 
 
     // Figure out what the target and parent node is
-    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(dir), dir, name, self->ruid, self->rgid, NULL, &target));
+    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(dir), dir, name, NULL, &target));
     Inode_Lock(target);
 
     if (Inode_IsDirectory(target)) {
@@ -473,12 +473,12 @@ errno_t FileManager_Rename(FileManagerRef _Nonnull self, const char* oldPath, co
 
 
     // Get the source node. It must exist
-    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(oldDir), oldDir, oldName, self->ruid, self->rgid, NULL, &oldNode));
+    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(oldDir), oldDir, oldName, NULL, &oldNode));
     ilock_ordered(oldNode, lockedNodes, &lockedNodeCount);
 
 
     // The destination may exist
-    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(newDir), newDir, newName, self->ruid, self->rgid, &dih, &newNode);
+    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(newDir), newDir, newName, &dih, &newNode);
     if (err != EOK && err != ENOENT) {
         throw(err);
     }

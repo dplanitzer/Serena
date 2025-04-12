@@ -209,7 +209,7 @@ open_class_funcs(Filesystem, Object,
     // with a given name without forcing the acquisition of the node itself.
     // Override: Advised
     // Default Behavior: Returns NULL and ENOENT (EIO for '..' lookups)
-    errno_t (*acquireNodeForName)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, uid_t uid, gid_t gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode);
+    errno_t (*acquireNodeForName)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode);
 
     // Returns the name of the node with the id 'id' which a child of the
     // directory node 'pDir'. 'id' may be of any type. The name is returned in
@@ -221,7 +221,7 @@ open_class_funcs(Filesystem, Object,
     // should be returned.
     // Override: Advised
     // Default Behavior: Returns EIO and sets 'pName' to an empty name
-    errno_t (*getNameOfNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, ino_t id, uid_t uid, gid_t gid, MutablePathComponent* _Nonnull pName);
+    errno_t (*getNameOfNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, ino_t id, MutablePathComponent* _Nonnull pName);
 
     
     //
@@ -309,11 +309,11 @@ extern errno_t Filesystem_AcquireRootDirectory(FilesystemRef _Nonnull self, Inod
 #define Filesystem_AcquireParentNode(__self, __pNode, __pOutParent) \
 invoke_n(acquireParentNode, Filesystem, __self, __pNode, __pOutParent)
 
-#define Filesystem_AcquireNodeForName(__self, __pDir, __pName, __uid, __gid, __pDirInsHint, __pOutNode) \
-invoke_n(acquireNodeForName, Filesystem, __self, __pDir, __pName, __uid, __gid, __pDirInsHint, __pOutNode)
+#define Filesystem_AcquireNodeForName(__self, __pDir, __pName, __pDirInsHint, __pOutNode) \
+invoke_n(acquireNodeForName, Filesystem, __self, __pDir, __pName, __pDirInsHint, __pOutNode)
 
-#define Filesystem_GetNameOfNode(__self, __pDir, __id, __uid, __gid, __pName) \
-invoke_n(getNameOfNode, Filesystem, __self, __pDir, __id, __uid, __gid, __pName)
+#define Filesystem_GetNameOfNode(__self, __pDir, __id, __pName) \
+invoke_n(getNameOfNode, Filesystem, __self, __pDir, __id, __pName)
 
 
 #define Filesystem_CreateNode(__self, __type, __pDir, __pName, __pDirInsertionHint, __uid, __gid, __permissions, __pOutNode) \

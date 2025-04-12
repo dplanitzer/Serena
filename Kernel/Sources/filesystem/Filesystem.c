@@ -414,7 +414,7 @@ errno_t Filesystem_acquireParentNode(FilesystemRef _Nonnull self, InodeRef _Nonn
     return err;
 }
 
-errno_t Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, uid_t uid, gid_t gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
+errno_t Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
 {
     if (pOutNode) {
         *pOutNode = NULL;
@@ -427,7 +427,7 @@ errno_t Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Non
     }
 }
 
-errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, ino_t id, uid_t uid, gid_t gid, MutablePathComponent* _Nonnull pName)
+errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, ino_t id, MutablePathComponent* _Nonnull pName)
 {
     pName->count = 0;
     return EIO;
