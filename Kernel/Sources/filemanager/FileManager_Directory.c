@@ -64,7 +64,7 @@ errno_t FileManager_SetWorkingDirectoryPath(FileManagerRef _Nonnull self, const 
 // large as length(path) + 1.
 errno_t FileManager_GetWorkingDirectoryPath(FileManagerRef _Nonnull self, char* _Nonnull pBuffer, size_t bufferSize)
 {
-    return FileHierarchy_GetDirectoryPath(self->fileHierarchy, self->workingDirectory, self->rootDirectory, self->ruid, self->rgid, pBuffer, bufferSize);
+    return FileHierarchy_GetPath(self->fileHierarchy, self->workingDirectory, self->rootDirectory, self->ruid, self->rgid, pBuffer, bufferSize);
 }
 
 

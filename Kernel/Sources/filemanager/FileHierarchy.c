@@ -484,14 +484,19 @@ static errno_t get_name_of_node(ino_t idOfNodeToLookup, InodeRef _Nonnull pDir, 
     return err;
 }
 
-// Returns a path from 'rootDir' to 'dir' in 'buffer'.
-errno_t FileHierarchy_GetDirectoryPath(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir, InodeRef _Nonnull rootDir, uid_t uid, gid_t gid, char* _Nonnull  pBuffer, size_t bufferSize)
+// Returns a path from 'rootDir' to 'node' in 'buffer'. This function guarantees
+// that it will always be able to produce a path if 'node' is a directory (assuming
+// that the caller has the necessary permissions). However, some filesystem
+// implementations are able to produce a path even if 'node' is a file or some
+// other kind of inode. ENOTSUP is returned if a path can not be produced because
+// the filesystem doesn't support doing that for the type of node that 'node' is.
+errno_t FileHierarchy_GetPath(FileHierarchyRef _Nonnull self, InodeRef _Nonnull node, InodeRef _Nonnull rootDir, uid_t uid, gid_t gid, char* _Nonnull  pBuffer, size_t bufferSize)
 {
     decl_try_err();
     MutablePathComponent pc;
 
     try_bang(SELock_LockShared(&self->lock));
-    InodeRef pCurDir = Inode_Reacquire(dir);
+    InodeRef pCurDir = Inode_Reacquire(node);
 
     if (bufferSize < 1) {
         throw(EINVAL);
