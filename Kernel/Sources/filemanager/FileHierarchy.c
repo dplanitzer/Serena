@@ -593,7 +593,7 @@ static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _L
         Inode_Lock(pMountingDir);
         err = SecurityManager_CheckNodeAccess(gSecurityManager, pMountingDir, uid, gid, kAccess_Searchable);
         if (err == EOK) {
-            err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(pMountingDir), pMountingDir, &kPathComponent_Parent, uid, gid, NULL, &pParentOfMountingDir);
+            err = Filesystem_AcquireParentNode(Inode_GetFilesystem(pMountingDir), pMountingDir, &pParentOfMountingDir);
         }
         Inode_UnlockRelinquish(pMountingDir);
 

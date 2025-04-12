@@ -150,7 +150,7 @@ errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverCatalogId 
             pNode = pDir;
             pDir = NULL;
 
-            err = Filesystem_AcquireNodeForName(self->devfs, pDir, &kPathComponent_Parent, kUserId_Root, kGroupId_Root, NULL, &pDir);
+            err = Filesystem_AcquireParentNode(self->devfs, pDir, &pDir);
         }
         else {
             err = Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (ino_t)driverCatalogId, &pNode);

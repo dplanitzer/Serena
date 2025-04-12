@@ -165,7 +165,7 @@ catch:
 
 // Returns true if the function can establish that 'pDir' is a subdirectory of
 // 'pAncestorDir' or that it is in fact 'pAncestorDir' itself.
-static bool SerenaFS_IsAncestorOfDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pAncestorDir, InodeRef _Nonnull _Locked pGrandAncestorDir, InodeRef _Nonnull _Locked pDir, uid_t uid, gid_t gid)
+static bool SerenaFS_IsAncestorOfDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pAncestorDir, InodeRef _Nonnull _Locked pGrandAncestorDir, InodeRef _Nonnull _Locked pDir)
 {
     InodeRef pCurDir = Inode_Reacquire(pDir);
     bool r = false;
@@ -183,7 +183,7 @@ static bool SerenaFS_IsAncestorOfDirectory(SerenaFSRef _Nonnull self, InodeRef _
             Inode_Lock(pCurDir);
             didLock = true;
         }
-        const errno_t err = Filesystem_AcquireNodeForName(self, pCurDir, &kPathComponent_Parent, uid, gid, NULL, &pParentDir);
+        const errno_t err = Filesystem_AcquireParentNode(self, pCurDir, &pParentDir);
         if (didLock) {
             Inode_Unlock(pCurDir);
         }
@@ -230,7 +230,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode
     // stays meaningful while we are busy executing the move.
     Lock_Lock(&self->moveLock);
 
-    if (isMovingDir && SerenaFS_IsAncestorOfDirectory(self, pNode, pSrcDir, pDstDir, uid, gid)) {
+    if (isMovingDir && SerenaFS_IsAncestorOfDirectory(self, pNode, pSrcDir, pDstDir)) {
         // oldpath is an ancestor of newpath (Don't allow moving a directory inside of itself)
         throw(EINVAL);
     }
