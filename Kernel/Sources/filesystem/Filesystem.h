@@ -181,6 +181,17 @@ open_class_funcs(Filesystem, Object,
     // Filesystem Navigation
     //
 
+    // Returns the parent node (directory) of the node 'pNode'. 'pNode' may be
+    // a directory, file or other type of node. However, only retrieval of a
+    // parent of a directory is guaranteed to be supported by a filesystem. Other
+    // types of nodes may or may not be supported. ENOTSUP is returned in this
+    // case. Otherwise EOK and the parent node is returned. The node is returned
+    // unlocked. If 'pNode' is the root node of the filesystem then 'pOutParent'
+    // is set to 'pNode' and 'pNode' is reacquired.
+    // Override: Advised
+    // Default Behavior: Calls Inode.getParentId()
+    errno_t (*acquireParentNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nullable * _Nonnull pOutParent);
+
     // Returns EOK and the node corresponding to the tuple (parent-node, name),
     // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
     // function has to support the special name ".." (parent of node) in addition
@@ -211,17 +222,6 @@ open_class_funcs(Filesystem, Object,
     // Override: Advised
     // Default Behavior: Returns EIO and sets 'pName' to an empty name
     errno_t (*getNameOfNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, ino_t id, uid_t uid, gid_t gid, MutablePathComponent* _Nonnull pName);
-
-    // Returns the parent node (directory) of the node 'pNode'. 'pNode' may be
-    // a directory, file or other type of node. However, only retrieval of a
-    // parent of a directory is guaranteed to be supported by a filesystem. Other
-    // types of nodes may or may not be supported. ENOTSUP is returned in this
-    // case. Otherwise EOK and the parent node is returned. The node is returned
-    // unlocked. If 'pNode' is the root node of the filesystem then 'pOutParent'
-    // is set to 'pNode' and 'pNode' is reacquired.
-    // Override: Advised
-    // Default Behavior: Calls Inode.getParentId()
-    errno_t (*getParentNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nullable * _Nonnull pOutParent);
 
     
     //
@@ -306,14 +306,14 @@ extern errno_t Filesystem_Stop(FilesystemRef _Nonnull self);
 
 extern errno_t Filesystem_AcquireRootDirectory(FilesystemRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir);
 
+#define Filesystem_AcquireParentNode(__self, __pNode, __pOutParent) \
+invoke_n(acquireParentNode, Filesystem, __self, __pNode, __pOutParent)
+
 #define Filesystem_AcquireNodeForName(__self, __pDir, __pName, __uid, __gid, __pDirInsHint, __pOutNode) \
 invoke_n(acquireNodeForName, Filesystem, __self, __pDir, __pName, __uid, __gid, __pDirInsHint, __pOutNode)
 
 #define Filesystem_GetNameOfNode(__self, __pDir, __id, __uid, __gid, __pName) \
 invoke_n(getNameOfNode, Filesystem, __self, __pDir, __id, __uid, __gid, __pName)
-
-#define Filesystem_GetParentNode(__self, __pNode, __pOutParent) \
-invoke_n(getParentNode, Filesystem, __self, __pNode, __pOutParent)
 
 
 #define Filesystem_CreateNode(__self, __type, __pDir, __pName, __pDirInsertionHint, __uid, __gid, __permissions, __pOutNode) \
