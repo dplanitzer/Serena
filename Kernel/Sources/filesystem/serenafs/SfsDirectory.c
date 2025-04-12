@@ -328,6 +328,33 @@ catch:
     return err;
 }
 
+errno_t SfsDirectory_UpdateParentEntry(InodeRef _Nonnull _Locked self, ino_t pnid)
+{
+    decl_try_err();
+    SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
+    FSContainerRef fsContainer = Filesystem_GetContainer(fs);
+
+    sfs_query_t q;
+    sfs_query_result_t qr;
+    FSBlock blk = {0};
+
+    q.kind = kSFSQuery_PathComponent;
+    q.u.pc = &kPathComponent_Parent;
+    q.mpc = NULL;
+    q.ih = NULL;
+    try(SfsDirectory_Query(self, &q, &qr));
+
+    try(FSContainer_MapBlock(fsContainer, qr.lba, kMapBlock_Update, &blk));
+
+    sfs_dirent_t* dep = (sfs_dirent_t*)(blk.data + qr.blockOffset);
+    dep->id = pnid;
+
+    FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_Deferred);
+
+catch:
+    return err;
+}
+
 
 class_func_defs(SfsDirectory, SfsFile,
 override_func_def(read, SfsDirectory, Inode)

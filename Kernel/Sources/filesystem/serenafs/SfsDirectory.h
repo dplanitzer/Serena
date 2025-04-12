@@ -57,5 +57,6 @@ extern errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _
 extern errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pNodeToRemove);
 extern errno_t SfsDirectory_CanAcceptEntry(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull name, FileType type);
 extern errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pChildNode, const sfs_insertion_hint_t* _Nullable ih);
+extern errno_t SfsDirectory_UpdateParentEntry(InodeRef _Nonnull _Locked self, ino_t pnid);
 
 #endif /* SfsDirectory_h */
