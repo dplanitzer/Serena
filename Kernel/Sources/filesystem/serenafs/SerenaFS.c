@@ -163,46 +163,6 @@ catch:
     return err;
 }
 
-// Returns true if the function can establish that 'pDir' is a subdirectory of
-// 'pAncestorDir' or that it is in fact 'pAncestorDir' itself.
-static bool SerenaFS_IsAncestorOfDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pAncestorDir, InodeRef _Nonnull _Locked pGrandAncestorDir, InodeRef _Nonnull _Locked pDir)
-{
-    InodeRef pCurDir = Inode_Reacquire(pDir);
-    bool r = false;
-
-    while (true) {
-        InodeRef pParentDir = NULL;
-        bool didLock = false;
-
-        if (Inode_Equals(pCurDir, pAncestorDir)) {
-            r = true;
-            break;
-        }
-
-        if (pCurDir != pDir && pCurDir != pAncestorDir && pCurDir != pGrandAncestorDir) {
-            Inode_Lock(pCurDir);
-            didLock = true;
-        }
-        const errno_t err = Filesystem_AcquireParentNode(self, pCurDir, &pParentDir);
-        if (didLock) {
-            Inode_Unlock(pCurDir);
-        }
-
-        if (err != EOK || Inode_Equals(pCurDir, pParentDir)) {
-            // Hit the root directory or encountered an error
-            Inode_Relinquish(pParentDir);
-            break;
-        }
-
-        Inode_Relinquish(pCurDir);
-        pCurDir = pParentDir;
-    }
-
-catch:
-    Inode_Relinquish(pCurDir);
-    return r;
-}
-
 errno_t SerenaFS_link(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull name, uid_t uid, gid_t gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
 {
     decl_try_err();
@@ -230,7 +190,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode
     // stays meaningful while we are busy executing the move.
     Lock_Lock(&self->moveLock);
 
-    if (isMovingDir && SerenaFS_IsAncestorOfDirectory(self, pNode, pSrcDir, pDstDir)) {
+    if (isMovingDir && SfsDirectory_IsAncestorOf(pNode, pSrcDir, pDstDir)) {
         // oldpath is an ancestor of newpath (Don't allow moving a directory inside of itself)
         throw(EINVAL);
     }

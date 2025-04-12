@@ -109,6 +109,47 @@ bool SfsDirectory_IsNotEmpty(InodeRef _Nonnull _Locked self)
     return Inode_GetLinkCount(self) > 1 || Inode_GetFileSize(self) > 2 * sizeof(sfs_dirent_t);
 }
 
+// Returns true if the function can establish that 'pDir' is a subdirectory of
+// 'pAncestorDir' or that it is in fact 'pAncestorDir' itself.
+bool SfsDirectory_IsAncestorOf(InodeRef _Nonnull _Locked pAncestorDir, InodeRef _Nonnull _Locked pGrandAncestorDir, InodeRef _Nonnull _Locked pDir)
+{
+    SerenaFSRef fs = Inode_GetFilesystemAs(pAncestorDir, SerenaFS);
+    InodeRef pCurDir = Inode_Reacquire(pDir);
+    bool r = false;
+
+    while (true) {
+        InodeRef pParentDir = NULL;
+        bool didLock = false;
+
+        if (Inode_Equals(pCurDir, pAncestorDir)) {
+            r = true;
+            break;
+        }
+
+        if (pCurDir != pDir && pCurDir != pAncestorDir && pCurDir != pGrandAncestorDir) {
+            Inode_Lock(pCurDir);
+            didLock = true;
+        }
+        const errno_t err = Filesystem_AcquireParentNode(fs, pCurDir, &pParentDir);
+        if (didLock) {
+            Inode_Unlock(pCurDir);
+        }
+
+        if (err != EOK || Inode_Equals(pCurDir, pParentDir)) {
+            // Hit the root directory or encountered an error
+            Inode_Relinquish(pParentDir);
+            break;
+        }
+
+        Inode_Relinquish(pCurDir);
+        pCurDir = pParentDir;
+    }
+
+catch:
+    Inode_Relinquish(pCurDir);
+    return r;
+}
+
 errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull q, sfs_query_result_t* _Nonnull qr)
 {
     decl_try_err();
