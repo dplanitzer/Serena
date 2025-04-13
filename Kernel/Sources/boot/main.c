@@ -175,8 +175,10 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
 
     // Create the various kernel object catalogs
-    try_bang(DriverCatalog_Create(&gDriverCatalog));
     try_bang(FSCatalog_Create(&gFSCatalog));
+    try_bang(DriverCatalog_Create(&gDriverCatalog));
+    try_bang(Filesystem_Publish(FSCatalog_CopyFilesystem(gFSCatalog)));
+    try_bang(Filesystem_Publish(DriverCatalog_CopyFilesystem(gDriverCatalog)));
 
 
     // Create the disk cache

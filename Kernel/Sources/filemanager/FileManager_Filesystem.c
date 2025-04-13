@@ -101,12 +101,6 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const ch
     }
 
 
-    // Make sure the FS is published to the FS catalog
-    if (err == EOK) {
-        err = Filesystem_Publish(fs);
-    }
-
-
     // Attach the filesystem
     if (err == EOK) {
         err = FileHierarchy_AttachFilesystem(self->fileHierarchy, fs, rp_atDir.inode);
@@ -134,7 +128,7 @@ errno_t FileManager_Unmount(FileManagerRef _Nonnull self, const char* _Nonnull a
 
 
     // Unpublish the filesystem
-    // XXX not yet
+    // XXX not yet. Well this really belongs in a FilesystemManager_Unmount() call
     //try(Filesystem_Unpublish(fs));
 
 catch:

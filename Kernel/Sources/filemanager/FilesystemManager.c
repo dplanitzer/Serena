@@ -55,6 +55,7 @@ errno_t FilesystemManager_DiscoverAndStartFilesystemWithChannel(FilesystemManage
     try(DiskFSContainer_Create(driverChannel, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
     try(Filesystem_Start(fs, params, paramsSize));
+    try(Filesystem_Publish(fs));
 
     Object_Release(fsContainer);
     *pOutFs = fs;
