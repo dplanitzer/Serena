@@ -12,6 +12,7 @@
 #include "FilesystemManager.h"
 #include <driver/DriverCatalog.h>
 #include <filesystem/Filesystem.h>
+#include <filesystem/FSCatalog.h>
 #include <filesystem/IOChannel.h>
 #include <System/Filesystem.h>
 
@@ -81,11 +82,28 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const ch
             break;
 
         case kMount_DriverCatalog:
-            fs = DriverCatalog_CopyChapterFilesystem(gDriverCatalog, containerPath);
-            if (fs == NULL) {
+            if (String_Equals(containerPath, "drivers")) {
+                fs = DriverCatalog_CopyFilesystem(gDriverCatalog);
+            }
+            else {
                 err = ENOENT;
             }
             break;
+
+        case kMount_FSCatalog:
+            if (String_Equals(containerPath, "filesystems")) {
+                fs = FSCatalog_CopyFilesystem(gFSCatalog);
+            }
+            else {
+                err = ENOENT;
+            }
+            break;
+    }
+
+
+    // Make sure the FS is published to the FS catalog
+    if (err == EOK) {
+        err = Filesystem_Publish(fs);
     }
 
 
@@ -113,6 +131,11 @@ errno_t FileManager_Unmount(FileManagerRef _Nonnull self, const char* _Nonnull a
 
     // Detach the filesystem
     try(FileHierarchy_DetachFilesystemAt(self->fileHierarchy, rp_atDir.inode, forced));
+
+
+    // Unpublish the filesystem
+    // XXX not yet
+    //try(Filesystem_Unpublish(fs));
 
 catch:
     ResolvedPath_Deinit(&rp_atDir);

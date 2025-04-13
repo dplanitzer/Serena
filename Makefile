@@ -209,6 +209,7 @@ $(BOOT_DMG_FILE): $(SNAKE_FILE) $(LOGIN_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(TYPE_
 	$(DISKIMAGE) push -m=rwxr-xr-x $(SH_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxr-xr-x -p /dev $(BOOT_DMG_FILE)
+	$(DISKIMAGE) makedir -m=rwxr-xr-x -p /fs $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxrwxrwx -p /tmp $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -p /Users $(BOOT_DMG_FILE)
 

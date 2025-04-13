@@ -10,6 +10,10 @@
 #include "FSUtilities.h"
 #include "DirectoryChannel.h"
 #include "FileChannel.h"
+#ifndef __DISKIMAGE__
+#include "FSCatalog.h"
+#endif
+#include "FSChannel.h"
 #include <klib/Hash.h>
 
 #define IN_CACHED_HASH_CHAINS_COUNT 16
@@ -61,6 +65,9 @@ errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOut
     Lock_Init(&self->inLock);
     List_Init(&self->inReadingCache);
     self->state = kFilesystemState_Idle;
+#ifndef __DISKIMAGE__
+    self->catalogId = kFSCatalogId_None;
+#endif
 
     *pOutSelf = self;
     return EOK;
@@ -88,6 +95,36 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
     List_Deinit(&self->inReadingCache);
     Lock_Deinit(&self->inLock);
     ConditionVariable_Deinit(&self->inCondVar);
+}
+
+errno_t Filesystem_Publish(FilesystemRef _Nonnull self)
+{
+#ifndef __DISKIMAGE__
+    if (self->catalogId == kFSCatalogId_None) {
+        char buf[12];
+
+        UInt32_ToString(self->fsid, 10, false, buf);
+        return FSCatalog_Publish(gFSCatalog, buf, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0444), self, &self->catalogId);
+    }
+    else {
+        return EOK;
+    }
+#else
+    return ENOTSUP;
+#endif
+}
+
+errno_t Filesystem_Unpublish(FilesystemRef _Nonnull self)
+{
+#ifndef __DISKIMAGE__
+    if (self->catalogId != kFSCatalogId_None) {
+        FSCatalog_Unpublish(gFSCatalog, self->catalogId);
+        self->catalogId = kFSCatalogId_None;
+    }
+    return EOK;
+#else
+    return ENOTSUP;
+#endif
 }
 
 static errno_t _Filesystem_PrepReadingNode(FilesystemRef _Nonnull self, ino_t id, RDnode* _Nullable * _Nonnull pOutNode)
@@ -389,6 +426,33 @@ errno_t Filesystem_onStop(FilesystemRef _Nonnull self)
     return EOK;
 }
 
+errno_t Filesystem_open(FilesystemRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
+{
+    return FSChannel_Create(class(FSChannel), 0, kIOChannelType_Filesystem, mode, self, pOutChannel);
+}
+
+errno_t Filesystem_close(FilesystemRef _Nonnull _Locked self, IOChannelRef _Nonnull pChannel)
+{
+    return EOK;
+}
+
+errno_t Filesystem_ioctl(FilesystemRef _Nonnull self, int cmd, va_list ap)
+{
+    return ENOTIOCTLCMD;
+}
+
+errno_t Filesystem_Ioctl(FilesystemRef _Nonnull self, int cmd, ...)
+{
+    decl_try_err();
+
+    va_list ap;
+    va_start(ap, cmd);
+    err = Filesystem_vIoctl(self, cmd, ap);
+    va_end(ap);
+
+    return err;
+}
+
 
 errno_t Filesystem_AcquireRootDirectory(FilesystemRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir)
 {
@@ -461,6 +525,9 @@ func_def(onWritebackNode, Filesystem)
 func_def(onRelinquishNode, Filesystem)
 func_def(onStart, Filesystem)
 func_def(onStop, Filesystem)
+func_def(open, Filesystem)
+func_def(close, Filesystem)
+func_def(ioctl, Filesystem)
 func_def(acquireParentNode, Filesystem)
 func_def(acquireNodeForName, Filesystem)
 func_def(getNameOfNode, Filesystem)

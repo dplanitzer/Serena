@@ -9,6 +9,7 @@
 #include "KernFSPriv.h"
 #include "KfsDirectory.h"
 #include "KfsDevice.h"
+#include "KfsFilesystem.h"
 
 
 // Returns a strong reference to the driver backing the given driver node.
@@ -37,6 +38,10 @@ static errno_t _KernFS_createNode(KernFSRef _Nonnull self, FileType type, InodeR
 
         case kFileType_Device:
             try(KfsDevice_Create(self, KernFS_GetNextAvailableInodeId(self), permissions, uid, gid, Inode_GetId(dir), (DriverRef)extra1, extra2, &ip));
+            break;
+
+        case kFileType_Filesystem:
+            try(KfsFilesystem_Create(self, KernFS_GetNextAvailableInodeId(self), permissions, uid, gid, Inode_GetId(dir), (FilesystemRef)extra1, &ip));
             break;
 
         default:
@@ -72,6 +77,12 @@ catch:
 errno_t KernFS_CreateDevice(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull pDriverInstance, intptr_t arg, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return _KernFS_createNode(self, kFileType_Device, dir, name, pDriverInstance, arg, uid, gid, permissions, pOutNode);
+}
+
+// Creates a new filesystem node in the file system.
+errno_t KernFS_CreateFilesystem(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, FilesystemRef _Nonnull fsInstance, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
+{
+    return _KernFS_createNode(self, kFileType_Filesystem, dir, name, fsInstance, 0, uid, gid, permissions, pOutNode);
 }
 
 errno_t KernFS_createNode(KernFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)

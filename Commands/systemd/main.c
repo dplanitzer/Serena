@@ -42,8 +42,9 @@ void main_closure(int argc, char *argv[])
     decl_try_err();
 
     
-    // Mount devfs at /dev
+    // Mount kernel object catalogs
     Mount(kMount_DriverCatalog, "drivers", "/dev", NULL, 0);
+    Mount(kMount_FSCatalog, "filesystems", "/fs", NULL, 0);
 
 
     // Startup login

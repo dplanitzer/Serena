@@ -114,6 +114,7 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
         switch (info.type) {
             case kFileType_Device:              tc = 'h'; break;
             case kFileType_Directory:           tc = 'd'; break;
+            case kFileType_Filesystem:          tc = 'f'; break;
             case kFileType_Pipe:                tc = 'p'; break;
             case kFileType_SymbolicLink:        tc = 'l'; break;
             default:                            tc = '-'; break;

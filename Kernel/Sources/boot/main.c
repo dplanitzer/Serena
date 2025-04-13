@@ -24,6 +24,7 @@
 #include <driver/hid/HIDManager.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
+#include <filesystem/FSCatalog.h>
 #include <hal/InterruptController.h>
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
@@ -173,8 +174,9 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     log_init();
 
 
-    // Create the driver catalog
+    // Create the various kernel object catalogs
     try_bang(DriverCatalog_Create(&gDriverCatalog));
+    try_bang(FSCatalog_Create(&gFSCatalog));
 
 
     // Create the disk cache

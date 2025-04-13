@@ -146,11 +146,12 @@ open_class(Filesystem, Object,
     int8_t              state;
     bool                isReadOnly;
     int8_t              reserved[2];
+    FSCatalogId         catalogId;
 );
 open_class_funcs(Filesystem, Object,
 
     //
-    // Mounting/Unmounting
+    // FS management
     //
 
     // Invoked when an instance of this file system is started. Overrides of this
@@ -175,6 +176,27 @@ open_class_funcs(Filesystem, Object,
     // Override: Optional
     // Default Behavior: Returns EOK
     errno_t (*onStop)(void* _Nonnull self);
+
+
+    // Invoked as the result of calling Filesystem_Open(). A filesystem subclass
+    // may override this method to create a filesystem I/O channel object. The
+    // default implementation creates a FSChannel instance which supports
+    // ioctl operations.
+    // Override: Optional
+    // Default Behavior: Creates a FSChannel instance
+    errno_t (*open)(void* _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
+
+    // Invoked as the result of calling Filesystem_Close().
+    // Override: Optional
+    // Default Behavior: Does nothing and returns EOK
+    errno_t (*close)(void* _Nonnull _Locked self, IOChannelRef _Nonnull pChannel);
+
+    // Invoked as the result of calling Filesystem_Ioctl(). A filesystem subclass
+    // should override this method to implement support for the ioctl() system
+    // call.
+    // Override: Optional
+    // Default Behavior: Returns ENOTIOCTLCMD
+    errno_t (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
 
 
     //
@@ -300,8 +322,28 @@ extern errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnu
     ((FilesystemRef)(__fs))->fsid
 
 extern errno_t Filesystem_Start(FilesystemRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize);
-
 extern errno_t Filesystem_Stop(FilesystemRef _Nonnull self);
+
+
+extern errno_t Filesystem_Publish(FilesystemRef _Nonnull self);
+extern errno_t Filesystem_Unpublish(FilesystemRef _Nonnull self);
+
+
+// Opens an I/O channel to the filesystem with the mode 'mode'. EOK and the channel
+// is returned in 'pOutChannel' on success and a suitable error code is returned
+// otherwise.
+#define Filesystem_Open(__self, __mode, __arg, __pOutChannel) \
+invoke_n(open, Filesystem, __self, __mode, __arg, __pOutChannel)
+
+// Closes the given filesystem channel.
+#define Filesystem_Close(__self, __ch) \
+invoke_n(close, Filesystem, __self, __ch)
+
+
+extern errno_t Filesystem_Ioctl(FilesystemRef _Nonnull self, int cmd, ...);
+
+#define Filesystem_vIoctl(__self, __cmd, __ap) \
+invoke_n(ioctl, Filesystem, __self, __cmd, __ap)
 
 
 extern errno_t Filesystem_AcquireRootDirectory(FilesystemRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir);

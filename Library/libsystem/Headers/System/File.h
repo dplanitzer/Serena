@@ -28,6 +28,7 @@ enum FileType {
     kFileType_RegularFile = 0,  // A regular file that stores data
     kFileType_Directory,        // A directory which stores information about child nodes
     kFileType_Device,           // A driver which manages a piece of hardware
+    kFileType_Filesystem,       // A mounted filesystem instance
     kFileType_SymbolicLink,
     kFileType_Pipe,
 };

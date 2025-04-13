@@ -17,7 +17,8 @@ __CPP_BEGIN
 
 enum {
     kMount_Disk,            // 'containerPath' is a disk device path
-    kMount_DriverCatalog,   // 'containerPath' is a driver catalog chapter name ("drivers", ...)
+    kMount_DriverCatalog,   // 'containerPath' is "drivers"
+    kMount_FSCatalog,       // 'containerPath' is "filesystems"
 };
 typedef int MountType;
 
