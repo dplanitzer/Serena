@@ -9,11 +9,11 @@
 
 #include "DriverCatalog.h"
 #include <filemanager/FileHierarchy.h>
-#include <filesystem/devfs/DevFS.h>
+#include <filesystem/kernfs/KernFS.h>
 
 
 typedef struct DriverCatalog {
-    DevFSRef _Nonnull           devfs;
+    KernFSRef _Nonnull          devfs;
     FileHierarchyRef _Nonnull   fh;
     InodeRef _Nonnull           rootDirectory;
 } DriverCatalog;
@@ -28,7 +28,7 @@ errno_t DriverCatalog_Create(DriverCatalogRef _Nullable * _Nonnull pOutSelf)
     
     try(kalloc_cleared(sizeof(DriverCatalog), (void**) &self));
     
-    try(DevFS_Create(&self->devfs));
+    try(KernFS_Create(&self->devfs));
     try(Filesystem_Start((FilesystemRef)self->devfs, NULL, 0));
     try(FileHierarchy_Create((FilesystemRef)self->devfs, &self->fh));
     try(Filesystem_AcquireRootDirectory((FilesystemRef)self->devfs, &self->rootDirectory));
@@ -93,7 +93,7 @@ errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, DriverCatalogId bu
 
     err = DriverCatalog_AcquireBusDirectory(self, busCatalogId, &pDir);
     if (err == EOK) {
-        err = DevFS_CreateDevice(self->devfs, pDir, &pc, driver, arg, uid, gid, perms, &pNode);
+        err = KernFS_CreateDevice(self->devfs, pDir, &pc, driver, arg, uid, gid, perms, &pNode);
         if (err == EOK) {
             *pOutDriverCatalogId = (DriverCatalogId)Inode_GetId(pNode);
         }

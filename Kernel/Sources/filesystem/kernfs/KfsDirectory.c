@@ -1,25 +1,25 @@
 //
-//  DfsDirectory.c
+//  KfsDirectory.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/18/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "DfsDirectory.h"
-#include "DevFSPriv.h"
+#include "KfsDirectory.h"
+#include "KernFSPriv.h"
 #include <filesystem/DirectoryChannel.h>
 #include <filesystem/FSUtilities.h>
 
 
-errno_t DfsDirectory_Create(DevFSRef _Nonnull fs, ino_t inid, FilePermissions permissions, uid_t uid, gid_t gid, ino_t pnid, DfsNodeRef _Nullable * _Nonnull pOutSelf)
+errno_t KfsDirectory_Create(KernFSRef _Nonnull fs, ino_t inid, FilePermissions permissions, uid_t uid, gid_t gid, ino_t pnid, KfsNodeRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     const TimeInterval curTime = FSGetCurrentTime();
-    DfsDirectoryRef self;
+    KfsDirectoryRef self;
 
     try(Inode_Create(
-        class(DfsDirectory),
+        class(KfsDirectory),
         (FilesystemRef)fs,
         inid,
         kFileType_Directory,
@@ -33,27 +33,27 @@ errno_t DfsDirectory_Create(DevFSRef _Nonnull fs, ino_t inid, FilePermissions pe
         curTime,
         pnid,
         (InodeRef*)&self));
-    try(DfsDirectory_InsertEntry(self, inid, false, &kPathComponent_Self));
-    try(DfsDirectory_InsertEntry(self, pnid, false, &kPathComponent_Parent));
+    try(KfsDirectory_InsertEntry(self, inid, false, &kPathComponent_Self));
+    try(KfsDirectory_InsertEntry(self, pnid, false, &kPathComponent_Parent));
     
 catch:
-    *pOutSelf = (DfsNodeRef)self;
+    *pOutSelf = (KfsNodeRef)self;
     return err;
 }
 
-void DfsDirectory_deinit(DfsDirectoryRef _Nonnull self)
+void KfsDirectory_deinit(KfsDirectoryRef _Nonnull self)
 {
-    List_ForEach(&self->entries, DfsDirectoryEntry,
+    List_ForEach(&self->entries, KfsDirectoryEntry,
         FSDeallocate(pCurNode);
     )
 }
 
-bool DfsDirectory_IsEmpty(DfsDirectoryRef _Nonnull _Locked self)
+bool KfsDirectory_IsEmpty(KfsDirectoryRef _Nonnull _Locked self)
 {
     return List_IsEmpty(&self->entries);
 }
 
-errno_t _Nullable DfsDirectory_GetEntryForName(DfsDirectoryRef _Nonnull _Locked self, const PathComponent* _Nonnull pc, DfsDirectoryEntry* _Nullable * _Nonnull pOutEntry)
+errno_t _Nullable KfsDirectory_GetEntryForName(KfsDirectoryRef _Nonnull _Locked self, const PathComponent* _Nonnull pc, KfsDirectoryEntry* _Nullable * _Nonnull pOutEntry)
 {
     *pOutEntry = NULL;
 
@@ -64,7 +64,7 @@ errno_t _Nullable DfsDirectory_GetEntryForName(DfsDirectoryRef _Nonnull _Locked 
         return ENAMETOOLONG;
     }
 
-    List_ForEach(&self->entries, DfsDirectoryEntry,
+    List_ForEach(&self->entries, KfsDirectoryEntry,
         if (PathComponent_EqualsString(pc, pCurNode->name, pCurNode->nameLength)) {
             *pOutEntry = pCurNode;
             return EOK;
@@ -74,9 +74,9 @@ errno_t _Nullable DfsDirectory_GetEntryForName(DfsDirectoryRef _Nonnull _Locked 
     return ENOENT;
 }
 
-errno_t DfsDirectory_GetNameOfEntryWithId(DfsDirectoryRef _Nonnull _Locked self, ino_t inid, MutablePathComponent* _Nonnull mpc)
+errno_t KfsDirectory_GetNameOfEntryWithId(KfsDirectoryRef _Nonnull _Locked self, ino_t inid, MutablePathComponent* _Nonnull mpc)
 {
-    List_ForEach(&self->entries, DfsDirectoryEntry,
+    List_ForEach(&self->entries, KfsDirectoryEntry,
         if (pCurNode->inid == inid) {
             return MutablePathComponent_SetString(mpc, pCurNode->name, pCurNode->nameLength);
         }
@@ -92,7 +92,7 @@ errno_t DfsDirectory_GetNameOfEntryWithId(DfsDirectoryRef _Nonnull _Locked self,
 // The expectation is that 'self' is locked before this function is called and
 // that 'self' remains locked until after the directory entry has been added to
 // self.
-errno_t DfsDirectory_CanAcceptEntry(DfsDirectoryRef _Nonnull _Locked self, const PathComponent* _Nonnull name, FileType type)
+errno_t KfsDirectory_CanAcceptEntry(KfsDirectoryRef _Nonnull _Locked self, const PathComponent* _Nonnull name, FileType type)
 {
     if (name->count > MAX_NAME_LENGTH) {
         return ENAMETOOLONG;
@@ -114,18 +114,18 @@ errno_t DfsDirectory_CanAcceptEntry(DfsDirectoryRef _Nonnull _Locked self, const
 // has to ensure that it doesn't try to add a duplicate entry to the directory.
 // NOTE: expects that you called SfsDirectory_CanAcceptEntry() before calling
 // this function and that it returned EOK.
-errno_t DfsDirectory_InsertEntry(DfsDirectoryRef _Nonnull _Locked self, ino_t inid, bool isChildDir, const PathComponent* _Nonnull pc)
+errno_t KfsDirectory_InsertEntry(KfsDirectoryRef _Nonnull _Locked self, ino_t inid, bool isChildDir, const PathComponent* _Nonnull pc)
 {
     decl_try_err();
-    DfsDirectoryEntry* entry;
+    KfsDirectoryEntry* entry;
 
-    try(FSAllocateCleared(sizeof(DfsDirectoryEntry), (void**)&entry));
+    try(FSAllocateCleared(sizeof(KfsDirectoryEntry), (void**)&entry));
     entry->inid = inid;
     entry->nameLength = pc->count;
     memcpy(entry->name, pc->name, pc->count);
 
     List_InsertAfterLast(&self->entries, &entry->sibling);
-    Inode_IncrementFileSize(self, sizeof(DfsDirectoryEntry));
+    Inode_IncrementFileSize(self, sizeof(KfsDirectoryEntry));
 
 
     // Increment the link count of the directory if the child node is itself a
@@ -142,11 +142,11 @@ catch:
     return err;
 }
 
-errno_t DfsDirectory_RemoveEntry(DfsDirectoryRef _Nonnull _Locked self, InodeRef _Nonnull pNodeToRemove)
+errno_t KfsDirectory_RemoveEntry(KfsDirectoryRef _Nonnull _Locked self, InodeRef _Nonnull pNodeToRemove)
 {
-    DfsDirectoryEntry* entry = NULL;
+    KfsDirectoryEntry* entry = NULL;
 
-    List_ForEach(&self->entries, DfsDirectoryEntry,
+    List_ForEach(&self->entries, KfsDirectoryEntry,
         if (pCurNode->inid == Inode_GetId(pNodeToRemove)) {
             entry = pCurNode;
             break;
@@ -159,7 +159,7 @@ errno_t DfsDirectory_RemoveEntry(DfsDirectoryRef _Nonnull _Locked self, InodeRef
 
     List_Remove(&self->entries, &entry->sibling);
     FSDeallocate(entry);
-    Inode_DecrementFileSize(self, sizeof(DfsDirectoryEntry));
+    Inode_DecrementFileSize(self, sizeof(KfsDirectoryEntry));
 
 
     // If this is a directory then unlink it from its parent since we remove a
@@ -173,12 +173,12 @@ errno_t DfsDirectory_RemoveEntry(DfsDirectoryRef _Nonnull _Locked self, InodeRef
     Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
 }
 
-errno_t DfsDirectory_createChannel(DfsDirectoryRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t KfsDirectory_createChannel(KfsDirectoryRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return DirectoryChannel_Create((InodeRef)self, pOutChannel);
 }
 
-errno_t DfsDirectory_read(DfsDirectoryRef _Nonnull _Locked self, DirectoryChannelRef _Nonnull _Locked ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t KfsDirectory_read(KfsDirectoryRef _Nonnull _Locked self, DirectoryChannelRef _Nonnull _Locked ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     DirectoryEntry* pOutEntry = (DirectoryEntry*)pBuffer;
@@ -186,11 +186,11 @@ errno_t DfsDirectory_read(DfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
     ssize_t nAllDirEntriesRead = 0;
     ssize_t nBytesRead = 0;
 
-    DfsDirectoryEntry* curEntry = (DfsDirectoryEntry*)self->entries.first;
+    KfsDirectoryEntry* curEntry = (KfsDirectoryEntry*)self->entries.first;
 
     // Move to the first entry that we are supposed to read
     while (offset > 0) {
-        curEntry = (DfsDirectoryEntry*)curEntry->sibling.next;
+        curEntry = (KfsDirectoryEntry*)curEntry->sibling.next;
         offset--;
     }
 
@@ -206,7 +206,7 @@ errno_t DfsDirectory_read(DfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
         nAllDirEntriesRead++;
         pOutEntry++;
 
-        curEntry = (DfsDirectoryEntry*)curEntry->sibling.next;
+        curEntry = (KfsDirectoryEntry*)curEntry->sibling.next;
     }
 
     if (nBytesRead > 0) {
@@ -218,8 +218,8 @@ errno_t DfsDirectory_read(DfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
 }
 
 
-class_func_defs(DfsDirectory, DfsNode,
-override_func_def(deinit, DfsDirectory, Inode)
-override_func_def(createChannel, DfsDirectory, Inode)
-override_func_def(read, DfsDirectory, Inode)
+class_func_defs(KfsDirectory, KfsNode,
+override_func_def(deinit, KfsDirectory, Inode)
+override_func_def(createChannel, KfsDirectory, Inode)
+override_func_def(read, KfsDirectory, Inode)
 );

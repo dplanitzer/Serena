@@ -42,7 +42,7 @@ void main_closure(int argc, char *argv[])
     decl_try_err();
 
     
-    // Mount devfs.topology at /dev
+    // Mount devfs at /dev
     Mount(kMount_DriverCatalog, "drivers", "/dev", NULL, 0);
 
 

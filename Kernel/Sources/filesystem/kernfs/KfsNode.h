@@ -1,22 +1,22 @@
 //
-//  DfsNode.h
+//  KfsNode.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/17/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef DfsNode_h
-#define DfsNode_h
+#ifndef KfsNode_h
+#define KfsNode_h
 
 #include <filesystem/Inode.h>
 #include <klib/List.h>
 
     
-open_class(DfsNode, Inode,
+open_class(KfsNode, Inode,
     ListNode    inChain;
 );
-open_class_funcs(DfsNode, Inode,
+open_class_funcs(KfsNode, Inode,
 );
 
-#endif /* DfsNode_h */
+#endif /* KfsNode_h */
