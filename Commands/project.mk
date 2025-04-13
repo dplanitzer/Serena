@@ -15,10 +15,14 @@ CMDS_OBJS := $(patsubst $(CMDS_SOURCES_DIR)/%.c, $(CMDS_OBJS_DIR)/%.o, $(CMDS_C_
 .PHONY: clean-cmds $(CMDS_OBJS_DIR)
 
 
-build-cmds: $(LOGIN_FILE) $(TYPE_FILE)
+build-cmds: $(FSID_FILE) $(LOGIN_FILE) $(TYPE_FILE)
 
 $(CMDS_OBJS_DIR):
 	$(call mkdir_if_needed,$(CMDS_OBJS_DIR))
+
+
+$(FSID_FILE): $(CSTART_FILE) $(CMDS_OBJS_DIR)/fsid.o $(LIBSYSTEM_FILE) $(LIBC_FILE)
+	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
 
 
 $(LOGIN_FILE): $(ASTART_FILE) $(CMDS_OBJS_DIR)/login.o $(LIBSYSTEM_FILE) $(LIBC_FILE)

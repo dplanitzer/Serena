@@ -16,6 +16,7 @@
 #include "Inode.h"
 #include "PathComponent.h"
 #include "User.h"
+#include <System/Filesystem.h>
 
 
 // Can be used by filesystem subclasses to temporarily store a hint where a new
@@ -191,6 +192,11 @@ open_class_funcs(Filesystem, Object,
     // Default Behavior: Does nothing and returns EOK
     errno_t (*close)(void* _Nonnull _Locked self, IOChannelRef _Nonnull pChannel);
 
+    // Returns general information about the filesystem.
+    // Override: Optional
+    // Default Behavior: Returns ENOTIOCTLCMD
+    errno_t (*getInfo)(void* _Nonnull self, FSInfo* _Nonnull pOutInfo);
+
     // Invoked as the result of calling Filesystem_Ioctl(). A filesystem subclass
     // should override this method to implement support for the ioctl() system
     // call.
@@ -339,6 +345,10 @@ invoke_n(open, Filesystem, __self, __mode, __arg, __pOutChannel)
 #define Filesystem_Close(__self, __ch) \
 invoke_n(close, Filesystem, __self, __ch)
 
+
+// Returns general information about the filesystem.
+#define Filesystem_GetInfo(__self, __pOutInfo) \
+invoke_n(getInfo, Filesystem, __self, __pOutInfo)
 
 extern errno_t Filesystem_Ioctl(FilesystemRef _Nonnull self, int cmd, ...);
 

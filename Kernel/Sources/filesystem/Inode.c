@@ -175,7 +175,7 @@ errno_t Inode_getInfo(InodeRef _Nonnull _Locked self, FileInfo* _Nonnull pOutInf
     pOutInfo->type = Inode_GetFileType(self);
     pOutInfo->reserved = 0;
     pOutInfo->linkCount = Inode_GetLinkCount(self);
-    pOutInfo->fsid = Filesystem_GetId(self);
+    pOutInfo->fsid = Filesystem_GetId(Inode_GetFilesystem(self));
     pOutInfo->inid = Inode_GetId(self);
 
     return EOK;

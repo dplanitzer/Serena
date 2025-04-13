@@ -111,6 +111,18 @@ Exits the current shell with the exit code 'exit_code'. The exit code is passed 
 
 * `exit_code`: an integer that will be passed to the parent shell
 
+## `fsid`
+
+Prints the globally unique filesystem id of the filesystem on which the current working directory resides if no path is provided, or the filesystem id of the filesystem on which the file/directory resides to which the provided path points.
+
+### Signature
+
+`fsid [path]`
+
+### Parameters
+
+* `path`: a path to a file or directory
+
 ## `history`
 
 Prints the contents of the shell history to standard out. Each history entry is printed as a separate line. The entries are printed in the order of newest to oldest.

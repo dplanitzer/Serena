@@ -1,6 +1,6 @@
 //
 //  login.c
-//  login
+//  cmds
 //
 //  Created by Dietmar Planitzer on 7/8/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

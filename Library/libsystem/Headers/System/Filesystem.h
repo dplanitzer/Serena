@@ -12,6 +12,7 @@
 #include <System/_cmndef.h>
 #include <System/Error.h>
 #include <System/Types.h>
+#include <System/IOChannel.h>
 
 __CPP_BEGIN
 
@@ -27,6 +28,32 @@ enum {
     kUnmount_Forced = 0x0001,   // Force the unmount even if there are still files open
 };
 typedef unsigned int UnmountOptions;
+
+
+// Filesystem properties
+enum {
+    kFSProperty_IsCatalog = 0x0001,     // Filesystem is a kernel managed catalog
+    kFSProperty_IsReadOnly = 0x0002,    // Filesystem was mounted read-only
+    kFSProperty_IsEjectable = 0x0004,   // Filesystem lives on an ejectable media
+};
+
+// Filesystem specific information
+typedef struct FSInfo {
+    LogicalBlockCount   capacity;       // Filesystem capacity in terms of filesystem blocks (if a regular fs) or catalog entries (if a catalog)
+    LogicalBlockCount   count;          // Blocks or entries currently in use/allocated
+    size_t              blockSize;      // Size of a block in bytes
+    MediaId             mediaId;        // Media on which the filesystem lives
+    uint32_t            properties;     // Filesystem properties
+} FSInfo;
+
+
+//
+// FS API
+//
+
+// Returns general information about the filesystem.
+// get_fsinfo(FSInfo* _Nonnull pOutInfo)
+#define kFSCommand_GetInfo  IOResourceCommand(0)
 
 
 #if !defined(__KERNEL__)

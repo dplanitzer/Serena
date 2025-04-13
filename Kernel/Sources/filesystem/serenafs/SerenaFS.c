@@ -123,6 +123,20 @@ errno_t SerenaFS_onStop(SerenaFSRef _Nonnull self)
     return EOK;
 }
 
+errno_t SerenaFS_getInfo(FilesystemRef _Nonnull self, FSInfo* _Nonnull pOutInfo)
+{
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
+
+    pOutInfo->capacity = FSContainer_GetBlockCount(fsContainer);
+    pOutInfo->count = 0;
+    pOutInfo->blockSize = FSContainer_GetBlockSize(fsContainer);
+    if (FSContainer_IsReadOnly(fsContainer)) {
+        pOutInfo->properties |= kFSProperty_IsReadOnly;
+    }
+    
+    return ENOTIOCTLCMD;
+}
+
 static errno_t SerenaFS_unlinkCore(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked dir)
 {
     decl_try_err();
@@ -258,6 +272,7 @@ override_func_def(onAcquireNode, SerenaFS, Filesystem)
 override_func_def(onWritebackNode, SerenaFS, Filesystem)
 override_func_def(onStart, SerenaFS, Filesystem)
 override_func_def(onStop, SerenaFS, Filesystem)
+override_func_def(getInfo, SerenaFS, Filesystem)
 override_func_def(acquireNodeForName, SerenaFS, Filesystem)
 override_func_def(getNameOfNode, SerenaFS, Filesystem)
 override_func_def(createNode, SerenaFS, Filesystem)

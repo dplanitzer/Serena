@@ -1,6 +1,6 @@
 //
 //  type.c
-//  sh
+//  cmds
 //
 //  Created by Dietmar Planitzer on 3/17/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

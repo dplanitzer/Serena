@@ -121,6 +121,13 @@ catch:
     return err;
 }
 
+errno_t KernFS_getInfo(KernFSRef _Nonnull self, FSInfo* _Nonnull pOutInfo)
+{
+    memset(pOutInfo, 0, sizeof(FSInfo));
+    pOutInfo->properties |= kFSProperty_IsCatalog;
+    return EOK;
+}
+
 static errno_t KernFS_unlinkCore(KernFSRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pDir)
 {
     decl_try_err();
@@ -188,6 +195,7 @@ errno_t KernFS_rename(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNod
 class_func_defs(KernFS, Filesystem,
 override_func_def(deinit, KernFS, Object)
 override_func_def(onStart, KernFS, Filesystem)
+override_func_def(getInfo, KernFS, Filesystem)
 override_func_def(onAcquireNode, KernFS, Filesystem)
 override_func_def(onWritebackNode, KernFS, Filesystem)
 override_func_def(onRelinquishNode, KernFS, Filesystem)
