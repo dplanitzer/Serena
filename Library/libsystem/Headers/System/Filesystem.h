@@ -42,6 +42,7 @@ typedef struct FSInfo {
     LogicalBlockCount   capacity;       // Filesystem capacity in terms of filesystem blocks (if a regular fs) or catalog entries (if a catalog)
     LogicalBlockCount   count;          // Blocks or entries currently in use/allocated
     size_t              blockSize;      // Size of a block in bytes
+    fsid_t              fsid;           // Filesystem ID
     MediaId             mediaId;        // Media on which the filesystem lives
     uint32_t            properties;     // Filesystem properties
 } FSInfo;

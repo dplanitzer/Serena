@@ -155,6 +155,18 @@ Note that an if command is an expression. This means that the result of the if e
 * `then_block`: the block to execute when the conditional expression evaluates to true
 * `else_block`: the block to execute when the conditional expression evaluates to false
 
+## `info`
+
+Prints information about a filesystem. Eg the size, number of used and freed blocks, name of the underlying disk device, etc. The command prints information for the filesystem that holds the current working directory by default. Specify the id of a mounted filesystem to print information about this particular filesystem instead.
+
+### Signature
+
+`info [fsid]`
+
+### Parameters
+
+* `fsid`: the filesystem id
+
 ## `input`
 
 Prints the prompt 'prompt' if provided and then allows the user to enter a line of text. Then returns the text that the user has entered.

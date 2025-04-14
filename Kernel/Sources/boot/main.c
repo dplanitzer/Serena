@@ -244,7 +244,7 @@ errno_t SwitchToFullConsole(void)
     // Initialize the console
     try(Console_Create(&gConsole));
     try(Driver_Start((DriverRef)gConsole));
-    //log_switch_to_console();
+    log_switch_to_console();
 
 catch:
     return err;

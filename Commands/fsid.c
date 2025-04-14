@@ -18,7 +18,6 @@
 int main(int argc, char* argv[])
 {
     FileInfo info;
-    char buf[12];
     errno_t err = 0;
     char* path = NULL;
     bool doFree = false;

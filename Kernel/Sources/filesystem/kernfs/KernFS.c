@@ -124,6 +124,8 @@ catch:
 errno_t KernFS_getInfo(KernFSRef _Nonnull self, FSInfo* _Nonnull pOutInfo)
 {
     memset(pOutInfo, 0, sizeof(FSInfo));
+    pOutInfo->fsid = Filesystem_GetId(self);
+    pOutInfo->mediaId = 1;
     pOutInfo->properties |= kFSProperty_IsCatalog;
     return EOK;
 }

@@ -123,6 +123,7 @@ SYSTEMD_FILE := $(SYSTEMD_OBJS_DIR)/systemd
 CMDS_PROJECT_DIR := $(WORKSPACE_DIR)/Commands
 CMDS_OBJS_DIR := $(OBJS_DIR)/Commands
 FSID_FILE := $(CMDS_OBJS_DIR)/fsid
+INFO_FILE := $(CMDS_OBJS_DIR)/info
 LOGIN_FILE := $(CMDS_OBJS_DIR)/login
 TYPE_FILE := $(CMDS_OBJS_DIR)/type
 
@@ -199,7 +200,7 @@ build-rom: $(ROM_FILE)
 build-boot-dmg: $(BOOT_DMG_FILE)
 
 
-$(BOOT_DMG_FILE): $(SNAKE_FILE) $(LOGIN_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(FSID_FILE) $(TYPE_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
+$(BOOT_DMG_FILE): $(SNAKE_FILE) $(LOGIN_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(FSID_FILE) $(INFO_FILE) $(TYPE_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
 	@echo Making boot_disk.adf
 	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DMG_FILE)
 	$(DISKIMAGE) format sefs $(BOOT_DMG_FILE)
@@ -209,6 +210,7 @@ $(BOOT_DMG_FILE): $(SNAKE_FILE) $(LOGIN_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(FSID_
 	$(DISKIMAGE) push -m=rwxr-xr-x $(LOGIN_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(SH_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(FSID_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(INFO_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxr-xr-x -p /dev $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxr-xr-x -p /fs $(BOOT_DMG_FILE)
