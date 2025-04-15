@@ -54,7 +54,14 @@ typedef struct FSInfo {
 
 // Returns general information about the filesystem.
 // get_fsinfo(FSInfo* _Nonnull pOutInfo)
-#define kFSCommand_GetInfo  IOResourceCommand(0)
+#define kFSCommand_GetInfo      IOResourceCommand(0)
+
+// Returns the canonical name of the disk on which the filesystem resides. Note
+// that not all filesystems are disk-based. Eg kernel object catalogs like /dev
+// or /fs are not disk-based and thus they return an empty string as the disk
+// name. 
+// get_get_disk_name(size_t bufSize, char* _Nonnull buf)
+#define kFSCommand_GetDiskName  IOResourceCommand(1)
 
 
 #if !defined(__KERNEL__)

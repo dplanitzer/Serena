@@ -20,6 +20,7 @@
 open_class(FSContainer, Object,
     size_t              blockSize;          // byte size of a logical disk block. A single logical disk block may map to multiple physical blocks. The FSContainer transparently takes care of the mapping
     LogicalBlockCount   blockCount;         // overall number of addressable blocks in this FSContainer
+    MediaId             mediaId;            // media in which the FS container resides
     bool                isReadOnly;         // true if all the data in the FSContainer is hardware write protected 
 );
 open_class_funcs(FSContainer, Object,
@@ -49,6 +50,11 @@ open_class_funcs(FSContainer, Object,
     // Synchronously flushes all cached and unwritten blocks belonging to this
     // FS container to disk(s).
     errno_t (*sync)(void* _Nonnull self);
+
+
+    // Returns the canonical name of the disk on which this FS container resides.
+    // An empty string is returned if the name is unknown.
+    errno_t (*getDiskName)(void* _Nonnull self, size_t bufSize, char* _Nonnull buf);
 );
 
 
@@ -61,6 +67,9 @@ open_class_funcs(FSContainer, Object,
 
 #define FSContainer_GetBlockSize(__self)\
 ((FSContainerRef)__self)->blockSize
+
+#define FSContainer_GetMediaId(__self)\
+((FSContainerRef)__self)->mediaId
 
 #define FSContainer_IsReadOnly(__self)\
 ((FSContainerRef)__self)->isReadOnly
@@ -84,10 +93,14 @@ invoke_n(unmapBlock, FSContainer, __self, __token, __mode)
 invoke_0(sync, FSContainer, __self)
 
 
+#define FSContainer_GetDiskName(__self, __bufSize, __buf) \
+invoke_n(getDiskName, FSContainer, __self, __bufSize, __buf)
+
+
 //
 // Methods for use by FSContainer subclassers.
 //
 
-extern errno_t FSContainer_Create(Class* _Nonnull pClass, LogicalBlockCount blockCount, size_t blockSize, bool isReadOnly, FSContainerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t FSContainer_Create(Class* _Nonnull pClass, LogicalBlockCount blockCount, size_t blockSize, MediaId mediaId, bool isReadOnly, FSContainerRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* FSContainer_h */

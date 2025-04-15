@@ -10,7 +10,7 @@
 #include "FSUtilities.h"
 
 
-errno_t FSContainer_Create(Class* _Nonnull pClass, LogicalBlockCount blockCount, size_t blockSize, bool isReadOnly, FSContainerRef _Nullable * _Nonnull pOutSelf)
+errno_t FSContainer_Create(Class* _Nonnull pClass, LogicalBlockCount blockCount, size_t blockSize, MediaId mediaId, bool isReadOnly, FSContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     FSContainerRef self;
@@ -20,6 +20,7 @@ errno_t FSContainer_Create(Class* _Nonnull pClass, LogicalBlockCount blockCount,
     if ((err = Object_Create(pClass, 0, (void**)&self)) == EOK) {
         self->blockCount = blockCount;
         self->blockSize = blockSize;
+        self->mediaId = mediaId;
         self->isReadOnly = isReadOnly;
     }
 
@@ -55,6 +56,15 @@ errno_t FSContainer_sync(FSContainerRef _Nonnull self)
     return EOK;
 }
 
+errno_t FSContainer_getDiskName(FSContainerRef _Nonnull self, size_t bufSize, char* _Nonnull buf)
+{
+    if (bufSize < 1) {
+        return EINVAL;
+    }
+
+    *buf = '\0';
+    return EOK;
+}
 
 class_func_defs(FSContainer, Object,
 func_def(prefetchBlock, FSContainer)
@@ -62,4 +72,5 @@ func_def(syncBlock, FSContainer)
 func_def(mapBlock, FSContainer)
 func_def(unmapBlock, FSContainer)
 func_def(sync, FSContainer)
+func_def(getDiskName, FSContainer)
 );

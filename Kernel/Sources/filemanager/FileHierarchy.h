@@ -80,7 +80,7 @@ extern bool FileHierarchy_IsAttachmentPoint(FileHierarchyRef _Nonnull self, Inod
 // implementations are able to produce a path even if 'node' is a file or some
 // other kind of inode. ENOTSUP is returned if a path can not be produced because
 // the filesystem doesn't support doing that for the type of node that 'node' is.
-extern errno_t FileHierarchy_GetPath(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir, InodeRef _Nonnull rootDir, uid_t uid, gid_t gid, char* _Nonnull  pBuffer, size_t bufferSize);
+extern errno_t FileHierarchy_GetPath(FileHierarchyRef _Nonnull self, InodeRef _Nonnull node, InodeRef _Nonnull rootDir, uid_t uid, gid_t gid, char* _Nonnull  pBuffer, size_t bufferSize);
 
 // Looks up the inode named by the given path. The path may be relative or absolute.
 // If it is relative then the resolution starts with the current working directory.

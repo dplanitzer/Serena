@@ -441,12 +441,25 @@ errno_t Filesystem_getInfo(FilesystemRef _Nonnull self, FSInfo* _Nonnull pOutInf
     return ENOTIOCTLCMD;
 }
 
+errno_t Filesystem_getDiskName(FilesystemRef _Nonnull self, size_t bufSize, char* _Nonnull buf)
+{
+    if (bufSize < 1) {
+        return EINVAL;
+    } else {
+        *buf = '\0';
+        return EOK;
+    }
+}
+
 errno_t Filesystem_ioctl(FilesystemRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
         case kFSCommand_GetInfo:
             return Filesystem_GetInfo(self, va_arg(ap, FSInfo*));
 
+        case kFSCommand_GetDiskName:
+            return Filesystem_GetDiskName(self, va_arg(ap, size_t), va_arg(ap, char*));
+         
         default:
             return ENOTIOCTLCMD;
     }
@@ -539,6 +552,7 @@ func_def(onStop, Filesystem)
 func_def(open, Filesystem)
 func_def(close, Filesystem)
 func_def(getInfo, Filesystem)
+func_def(getDiskName, Filesystem)
 func_def(ioctl, Filesystem)
 func_def(acquireParentNode, Filesystem)
 func_def(acquireNodeForName, Filesystem)

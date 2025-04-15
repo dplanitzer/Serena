@@ -17,6 +17,8 @@
 #include <System/Filesystem.h>
 #include <System/Process.h>
 
+#define DISKNAME_BUFSIZE    16
+
 
 static void print_cat_info(const FSInfo* _Nonnull info)
 {
@@ -25,7 +27,7 @@ static void print_cat_info(const FSInfo* _Nonnull info)
     printf("-       %u\n", info->fsid);
 }
 
-static void print_reg_info(const FSInfo* _Nonnull info)
+static void print_reg_info(const FSInfo* _Nonnull info, const char* _Nonnull diskName)
 {
     const uint64_t size = (uint64_t)info->capacity * (uint64_t)info->blockSize;
     const char* status;
@@ -39,8 +41,9 @@ static void print_reg_info(const FSInfo* _Nonnull info)
 
     // XX formatting, real data
     puts("Disk ID Size   Used   Free Full Status");
-    printf("%s %u %lluK %u %u %u %s\n", "fd0", info->fsid, size / 1024ull, 0, 0, 0, status);
+    printf("%s %u %lluK %u %u %u %s\n", diskName, info->fsid, size / 1024ull, 0, 0, 0, status);
 }
+
 
 static errno_t get_cwd_fsid(fsid_t* _Nonnull fsid)
 {
@@ -71,7 +74,7 @@ int main(int argc, char* argv[])
     fsid_t fsid;
     FSInfo info;
     int fd = -1;
-    char path[80];
+    char buf[80];
 
     if (argc < 2 ) {
         try(get_cwd_fsid(&fsid));
@@ -85,15 +88,16 @@ int main(int argc, char* argv[])
     }
 
 
-    sprintf(path, "/fs/%u", fsid);
-    try(File_Open(path, kOpen_Read, &fd));
+    sprintf(buf, "/fs/%u", fsid);
+    try(File_Open(buf, kOpen_Read, &fd));
     try(IOChannel_Control(fd, kFSCommand_GetInfo, &info));
 
     if ((info.properties & kFSProperty_IsCatalog) == kFSProperty_IsCatalog) {
         print_cat_info(&info);
     }
     else {
-        print_reg_info(&info);
+        try(IOChannel_Control(fd, kFSCommand_GetDiskName, sizeof(buf), buf));
+        print_reg_info(&info, buf);
     }
 
 

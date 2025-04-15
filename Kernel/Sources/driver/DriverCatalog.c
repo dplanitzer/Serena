@@ -188,3 +188,24 @@ catch:
     ResolvedPath_Deinit(&rp);
     return err;
 }
+
+errno_t DriverCatalog_GetPath(DriverCatalogRef _Nonnull self, DriverCatalogId cid, size_t bufSize, char* _Nonnull buf)
+{
+    decl_try_err();
+    InodeRef nd;
+
+    if (bufSize < 1) {
+        return EINVAL;
+    }
+
+    err = Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, cid, &nd);
+    if (err == EOK) {
+        err = FileHierarchy_GetPath(self->fh, nd, self->rootDirectory, kUserId_Root, kGroupId_Root, buf, bufSize);
+        Inode_Relinquish(nd);
+    }
+    else {
+        *buf = '\0';
+    }
+
+    return err;
+}

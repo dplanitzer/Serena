@@ -131,7 +131,7 @@ errno_t SerenaFS_getInfo(FilesystemRef _Nonnull self, FSInfo* _Nonnull pOutInfo)
     pOutInfo->count = 0;
     pOutInfo->blockSize = FSContainer_GetBlockSize(fsContainer);
     pOutInfo->fsid = Filesystem_GetId(self);
-    pOutInfo->mediaId = 0;  //XXX
+    pOutInfo->mediaId = FSContainer_GetMediaId(fsContainer);
     pOutInfo->properties = 0;
     if (FSContainer_IsReadOnly(fsContainer)) {
         pOutInfo->properties |= kFSProperty_IsReadOnly;

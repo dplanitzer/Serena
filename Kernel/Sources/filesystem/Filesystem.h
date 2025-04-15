@@ -197,6 +197,14 @@ open_class_funcs(Filesystem, Object,
     // Default Behavior: Returns ENOTIOCTLCMD
     errno_t (*getInfo)(void* _Nonnull self, FSInfo* _Nonnull pOutInfo);
 
+    // Returns the canonical name of the disk on which this filesystem resides.
+    // Note that a filesystem may actually not be backed by a disk. An empty
+    // string is returned in this case or any other case in which the disk name
+    // can not be established.
+    // Override: Optional
+    // Default Behavior: Returns an empty string
+    errno_t (*getDiskName)(void* _Nonnull self, size_t bufSize, char* _Nonnull buf);
+
     // Invoked as the result of calling Filesystem_Ioctl(). A filesystem subclass
     // should override this method to implement support for the ioctl() system
     // call.
@@ -349,6 +357,10 @@ invoke_n(close, Filesystem, __self, __ch)
 // Returns general information about the filesystem.
 #define Filesystem_GetInfo(__self, __pOutInfo) \
 invoke_n(getInfo, Filesystem, __self, __pOutInfo)
+
+// Returns the canonical name of the disk on which the filesystem resides.
+#define Filesystem_GetDiskName(__self, __bufSize, __buf) \
+invoke_n(getDiskName, Filesystem, __self, __bufSize, __buf)
 
 extern errno_t Filesystem_Ioctl(FilesystemRef _Nonnull self, int cmd, ...);
 

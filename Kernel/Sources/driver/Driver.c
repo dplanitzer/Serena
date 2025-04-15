@@ -9,6 +9,7 @@
 #include "Driver.h"
 #include "DriverChannel.h"
 #include "DriverCatalog.h"
+#include <System/Driver.h>
 
 #define DriverFromChildNode(__ptr) \
 (DriverRef) (((uint8_t*)__ptr) - offsetof(struct Driver, childNode))
@@ -245,9 +246,31 @@ off_t Driver_getSeekableRange(DriverRef _Nonnull self)
     return 0ll;
 }
 
+errno_t Driver_GetCanonicalName(DriverRef _Nonnull self, size_t bufSize, char* _Nonnull buf)
+{
+    decl_try_err();
+
+    Driver_Lock(self);
+    if (Driver_IsActive(self)) {
+        err = DriverCatalog_GetPath(gDriverCatalog, self->driverCatalogId, bufSize, buf);
+    }
+    else {
+        err = ENODEV;
+    }
+    Driver_Unlock(self);
+
+    return err;
+}
+
 errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
 {
-    return ENOTIOCTLCMD;
+    switch (cmd) {
+        case kDriverCommand_GetCanonicalName:
+            return Driver_GetCanonicalName(self, va_arg(ap, size_t), va_arg(ap, char*));
+
+        default:
+            return ENOTIOCTLCMD;
+    }
 }
 
 errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, ...)

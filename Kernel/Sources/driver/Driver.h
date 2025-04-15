@@ -253,6 +253,8 @@ invoke_n(read, Driver, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutByte
 #define Driver_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
 invoke_n(write, Driver, __self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
+extern errno_t Driver_GetCanonicalName(DriverRef _Nonnull self, size_t bufSize, char* _Nonnull buf);
+
 extern errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, ...);
 
 #define Driver_vIoctl(__self, __cmd, __ap) \

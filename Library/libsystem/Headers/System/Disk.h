@@ -9,7 +9,7 @@
 #ifndef _SYS_DISK_H
 #define _SYS_DISK_H 1
 
-#include <System/IOChannel.h>
+#include <System/Driver.h>
 
 __CPP_BEGIN
 
@@ -23,7 +23,7 @@ __CPP_BEGIN
 
 // Returns information about a disk drive.
 // get_info(DiskInfo* _Nonnull pOutInfo)
-#define kDiskCommand_GetInfo  IOResourceCommand(0)
+#define kDiskCommand_GetInfo  IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
 typedef struct DiskInfo {
     MediaId             mediaId;            // ID of the currently loaded media; changes with every media eject and insertion; 0 means no media is loaded 

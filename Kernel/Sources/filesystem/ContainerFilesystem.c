@@ -28,7 +28,13 @@ void ContainerFilesystem_deinit(struct ContainerFilesystem* _Nonnull self)
     self->fsContainer = NULL;
 }
 
+errno_t ContainerFilesystem_getDiskName(struct ContainerFilesystem* _Nonnull self, size_t bufSize, char* _Nonnull buf)
+{
+    return FSContainer_GetDiskName(self->fsContainer, bufSize, buf);
+}
+
 
 class_func_defs(ContainerFilesystem, Filesystem,
 override_func_def(deinit, ContainerFilesystem, Object)
+override_func_def(getDiskName, ContainerFilesystem, Filesystem)
 );

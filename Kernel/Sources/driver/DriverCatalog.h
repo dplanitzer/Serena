@@ -46,4 +46,7 @@ extern errno_t DriverCatalog_IsDriverPublished(DriverCatalogRef _Nonnull self, c
 // form '/driver-name'.
 extern errno_t DriverCatalog_OpenDriver(DriverCatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
+// Returns the path for 'cid'.
+extern errno_t DriverCatalog_GetPath(DriverCatalogRef _Nonnull self, DriverCatalogId cid, size_t bufSize, char* _Nonnull buf);
+
 #endif /* DriverCatalog_h */
