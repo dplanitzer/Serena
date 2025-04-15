@@ -451,6 +451,21 @@ errno_t Filesystem_getDiskName(FilesystemRef _Nonnull self, size_t bufSize, char
     }
 }
 
+errno_t Filesystem_getLabel(FilesystemRef _Nonnull self, size_t bufSize, char* _Nonnull buf)
+{
+    if (bufSize < 1) {
+        return EINVAL;
+    } else {
+        *buf = '\0';
+        return ENOTSUP;
+    }
+}
+
+errno_t Filesystem_setLabel(FilesystemRef _Nonnull self, const char* _Nonnull buf)
+{
+    return ENOTSUP;
+}
+
 errno_t Filesystem_ioctl(FilesystemRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
@@ -459,6 +474,17 @@ errno_t Filesystem_ioctl(FilesystemRef _Nonnull self, int cmd, va_list ap)
 
         case kFSCommand_GetDiskName:
             return Filesystem_GetDiskName(self, va_arg(ap, size_t), va_arg(ap, char*));
+
+        case kFSCommand_GetLabel: {
+            // XXX inlining this doesn't work for some reason...
+            const size_t bufSize = va_arg(ap, size_t);
+            char* buf = va_arg(ap, char*);
+
+            return Filesystem_GetLabel(self, bufSize, buf);
+        }
+
+        case kFSCommand_SetLabel:
+            return Filesystem_SetLabel(self, va_arg(ap, const char*));
          
         default:
             return ENOTIOCTLCMD;
@@ -553,6 +579,8 @@ func_def(open, Filesystem)
 func_def(close, Filesystem)
 func_def(getInfo, Filesystem)
 func_def(getDiskName, Filesystem)
+func_def(getLabel, Filesystem)
+func_def(setLabel, Filesystem)
 func_def(ioctl, Filesystem)
 func_def(acquireParentNode, Filesystem)
 func_def(acquireNodeForName, Filesystem)

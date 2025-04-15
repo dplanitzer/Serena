@@ -103,7 +103,7 @@ Format a disk image by issuing a format command like this:
 ```
 diskimage format fs_type path/to/dmg
 ```
-Where the fs_type parameter specifies the desired filesystem type. The only filesystem type supported at this time is 'sefs' (Serena FS). The path argument specifies the path to the disk image. Use the `-q` switch to select quick formatting. Quick formatting does not wipe the disk image clean. Instead it only writes a new and empty root directory to the disk image. Use the `-o` option to specify the root directory user and group id and the `-x` option to specify the root directory permissions.
+Where the fs_type parameter specifies the desired filesystem type. The only filesystem type supported at this time is 'sefs' (Serena FS). The path argument specifies the path to the disk image. Use the `-q` switch to select quick formatting. Quick formatting does not wipe the disk image clean. Instead it only writes a new and empty root directory to the disk image. Use the `-o` option to specify the root directory user and group id and the `-x` option to specify the root directory permissions. Use the `-l` option to assign a label to the diskimage.
 
 You can list the contents of a SeFS formatted disk image with the list command:
 ```

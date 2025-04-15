@@ -36,7 +36,7 @@ errno_t block_write(intptr_t fd, const void* _Nonnull buf, LogicalBlockAddress b
 // Formats the given disk drive and installs a SerenaFS with an empty root
 // directory on it. 'user' and 'permissions' are the user and permissions that
 // should be assigned to the root directory.
-errno_t sefs_format(intptr_t fd, LogicalBlockCount blockCount, size_t blockSize, uid_t uid, gid_t gid, FilePermissions permissions)
+errno_t sefs_format(intptr_t fd, LogicalBlockCount blockCount, size_t blockSize, uid_t uid, gid_t gid, FilePermissions permissions, const char* _Nonnull label)
 {
     decl_try_err();
     const TimeInterval curTime = FSGetCurrentTime();
@@ -51,6 +51,9 @@ errno_t sefs_format(intptr_t fd, LogicalBlockCount blockCount, size_t blockSize,
     }
     if (blockCount < kSFSVolume_MinBlockCount) {
         return ENOSPC;
+    }
+    if (strlen(label) > kSFSMaxVolumeLabelLength) {
+        return ERANGE;
     }
 
 
@@ -89,6 +92,8 @@ errno_t sefs_format(intptr_t fd, LogicalBlockCount blockCount, size_t blockSize,
     vhp->allocBitmapByteSize = UInt32_HostToBig(allocationBitmapByteSize);
     vhp->lbaRootDir = UInt32_HostToBig(rootDirLba);
     vhp->lbaAllocBitmap = UInt32_HostToBig(1);
+    vhp->labelLength = strlen(label);
+    memcpy(vhp->label, label, vhp->labelLength);
     try(block_write(fd, bp, 0, blockSize));
 
 

@@ -26,6 +26,7 @@ typedef uint32_t sfs_bno_t;
 
 enum {
     kSFSMaxFilenameLength = 27,
+    kSFSMaxVolumeLabelLength = 48,
     kSFSDirectBlockPointersCount = 110,
 };
 
@@ -46,6 +47,7 @@ enum {
 };
 
 enum {
+    kSFSVolume_HeaderBno = 0,
     kSFSVolume_MinBlockSize = 512,
     kSFSVolume_MinBlockCount = 4,   // Need space for at least 1 volume header block + 1 allocation bitmap block + 1 root dir inode + 1 root dir content block
 };
@@ -86,6 +88,9 @@ typedef struct sfs_vol_header {
 
     sfs_bno_t       lbaRootDir;                 // LBA of the root directory Inode
     sfs_bno_t       lbaAllocBitmap;             // LBA of the first block of the allocation bitmap area
+
+    uint8_t         labelLength;
+    char            label[kSFSMaxVolumeLabelLength];    // Volume label string
     // All bytes from here to the end of the block are reserved
 } sfs_vol_header_t;
 

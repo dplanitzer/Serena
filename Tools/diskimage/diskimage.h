@@ -74,7 +74,7 @@ extern errno_t cmd_get_disk_slice(const char* _Nonnull dmgPath, di_slice_t* _Non
 extern errno_t cmd_put_disk_slice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice);
 
 extern errno_t cmd_delete(const char* _Nonnull path, const char* _Nonnull dmgPath);
-extern errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull dmgPath);
+extern errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull dmgPath);
 extern errno_t cmd_list(const char* _Nonnull path, const char* _Nonnull dmgPath);
 extern errno_t cmd_makedir(bool shouldCreateParents, FilePermissions dirPerms, uid_t uid, gid_t gid, const char* _Nonnull path, const char* _Nonnull dmgPath);
 extern errno_t cmd_pull(const char* _Nonnull path, const char* _Nonnull dstPath, const char* _Nonnull dmgPath);

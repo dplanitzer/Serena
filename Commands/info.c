@@ -27,7 +27,7 @@ static void print_cat_info(const FSInfo* _Nonnull info)
     printf("-       %u\n", info->fsid);
 }
 
-static void print_reg_info(const FSInfo* _Nonnull info, const char* _Nonnull diskName)
+static void print_reg_info(const FSInfo* _Nonnull info, const char* _Nonnull volLabel, const char* _Nonnull diskName)
 {
     const uint64_t size = (uint64_t)info->capacity * (uint64_t)info->blockSize;
     const char* status;
@@ -40,8 +40,8 @@ static void print_reg_info(const FSInfo* _Nonnull info, const char* _Nonnull dis
     }
 
     // XX formatting, real data
-    puts("Disk ID Size   Used   Free Full Status");
-    printf("%s %u %lluK %u %u %u %s\n", diskName, info->fsid, size / 1024ull, 0, 0, 0, status);
+    puts("Disk ID Size   Used   Free Full Status Name");
+    printf("%s %u %lluK %u %u %u %s %s\n", diskName, info->fsid, size / 1024ull, 0, 0, 0, status, volLabel);
 }
 
 
@@ -74,7 +74,9 @@ int main(int argc, char* argv[])
     fsid_t fsid;
     FSInfo info;
     int fd = -1;
-    char buf[80];
+    char path[32];
+    char diskName[32];
+    char volLabel[64];
 
     if (argc < 2 ) {
         try(get_cwd_fsid(&fsid));
@@ -88,16 +90,17 @@ int main(int argc, char* argv[])
     }
 
 
-    sprintf(buf, "/fs/%u", fsid);
-    try(File_Open(buf, kOpen_Read, &fd));
+    sprintf(path, "/fs/%u", fsid);
+    try(File_Open(path, kOpen_Read, &fd));
     try(IOChannel_Control(fd, kFSCommand_GetInfo, &info));
 
     if ((info.properties & kFSProperty_IsCatalog) == kFSProperty_IsCatalog) {
         print_cat_info(&info);
     }
     else {
-        try(IOChannel_Control(fd, kFSCommand_GetDiskName, sizeof(buf), buf));
-        print_reg_info(&info, buf);
+        try(IOChannel_Control(fd, kFSCommand_GetDiskName, sizeof(diskName), diskName));
+        try(IOChannel_Control(fd, kFSCommand_GetLabel, sizeof(volLabel), volLabel));
+        print_reg_info(&info, volLabel, diskName);
     }
 
 

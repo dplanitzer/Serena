@@ -437,6 +437,7 @@ static char* path = "";
 // diskimage format
 static bool should_quick_format = false;
 static char* fs_type = "";
+static char* vol_label = "";
 
 // diskimage makedir
 static bool should_create_parents = false;
@@ -493,6 +494,7 @@ CLAP_DECL(params,
         CLAP_BOOL('q', "quick", &should_quick_format, "Do a quick format"),
         CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
+        CLAP_STRING('l', "label", &vol_label, "Specify the volume label"),
         CLAP_POSITIONAL_STRING(&fs_type),
         CLAP_POSITIONAL_STRING(&dmg_path),
 
@@ -599,7 +601,7 @@ int main(int argc, char* argv[])
             owner.gid = kGroupId_Root;
             owner.isValid = true;
         }
-        try(cmd_format(should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, dmg_path));
+        try(cmd_format(should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, vol_label, dmg_path));
     }
     else if (!strcmp(argv[1], "list")) {
         // diskimage list

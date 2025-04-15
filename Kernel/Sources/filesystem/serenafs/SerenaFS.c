@@ -61,8 +61,8 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams
     self->mountFlags.isAccessUpdateOnReadEnabled = 1;
 
 
-    // Get the FS root block
-    try(FSContainer_MapBlock(fsContainer, 0, kMapBlock_ReadOnly, &blk));
+    // Get the volume header block
+    try(FSContainer_MapBlock(fsContainer, kSFSVolume_HeaderBno, kMapBlock_ReadOnly, &blk));
     const sfs_vol_header_t* vhp = (const sfs_vol_header_t*)blk.data;
     const uint32_t signature = UInt32_BigToHost(vhp->signature);
     const uint32_t version = UInt32_BigToHost(vhp->version);
@@ -138,6 +138,44 @@ errno_t SerenaFS_getInfo(FilesystemRef _Nonnull self, FSInfo* _Nonnull pOutInfo)
     }
     
     return EOK;
+}
+
+errno_t SerenaFS_getLabel(SerenaFSRef _Nonnull self, size_t bufSize, char* _Nonnull buf)
+{
+    decl_try_err();
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
+    FSBlock blk = {0};
+
+    if (bufSize < 1) {
+        return EINVAL;
+    }
+
+    err = FSContainer_MapBlock(fsContainer, kSFSVolume_HeaderBno, kMapBlock_ReadOnly, &blk);
+    if (err == EOK) {
+        const sfs_vol_header_t* vhp = (const sfs_vol_header_t*)blk.data;
+
+        if (bufSize >= (vhp->labelLength + 1)) {
+            memcpy(buf, vhp->label, vhp->labelLength);
+            buf[vhp->labelLength] = '\0';
+        }
+        else {
+            *buf = '\0';
+            err = ERANGE;
+        }
+
+        FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_None);
+    }
+    else {
+        *buf = '\0';
+    }
+
+    return err;
+}
+
+errno_t SerenaFS_setLabel(SerenaFSRef _Nonnull self, const char* _Nonnull buf)
+{
+    // XXX implement me
+    return ENOTSUP;
 }
 
 static errno_t SerenaFS_unlinkCore(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked dir)
@@ -276,6 +314,8 @@ override_func_def(onWritebackNode, SerenaFS, Filesystem)
 override_func_def(onStart, SerenaFS, Filesystem)
 override_func_def(onStop, SerenaFS, Filesystem)
 override_func_def(getInfo, SerenaFS, Filesystem)
+override_func_def(getLabel, SerenaFS, Filesystem)
+override_func_def(setLabel, SerenaFS, Filesystem)
 override_func_def(acquireNodeForName, SerenaFS, Filesystem)
 override_func_def(getNameOfNode, SerenaFS, Filesystem)
 override_func_def(createNode, SerenaFS, Filesystem)

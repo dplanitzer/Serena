@@ -63,6 +63,17 @@ typedef struct FSInfo {
 // get_get_disk_name(size_t bufSize, char* _Nonnull buf)
 #define kFSCommand_GetDiskName  IOResourceCommand(1)
 
+// Returns the label of a filesystem. The label is a name that can be assigned
+// when a disk is formatted and that helps a user in identifying a disk. Note
+// that not all filesystems support a label. ENOTSUP is returned in this case.
+// get_label(size_t bufSize, char* _Nonnull buf)
+#define kFSCommand_GetLabel     IOResourceCommand(2)
+
+// Sets the label of a filesystem. Note that not all filesystems support a label.
+// ENOTSUP is returned in this case.
+// set_label(const char* _Nonnull buf)
+#define kFSCommand_SetLabel     IOResourceCommand(3)
+
 
 #if !defined(__KERNEL__)
 
