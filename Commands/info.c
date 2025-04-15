@@ -40,9 +40,8 @@ static void print_reg_info(const FSInfo* _Nonnull info, const char* _Nonnull vol
     }
 
     // XX formatting, real data
-    puts("Disk ID Size   Used   Free Full Status Name");
-    printf("%s %u %lluK %u %u %u %s %s\n", diskName, info->fsid, size / 1024ull, 0, 0, 0, status, volLabel);
-}
+    puts("Disk ID Size   Used   Free Full Status Type Name");
+    printf("%s %u %lluK %u %u %u %s %s %s\n", diskName, info->fsid, size / 1024ull, 0, 0, 0, status, info->type, volLabel);}
 
 
 static errno_t get_cwd_fsid(fsid_t* _Nonnull fsid)

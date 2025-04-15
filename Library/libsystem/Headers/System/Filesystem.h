@@ -45,6 +45,7 @@ typedef struct FSInfo {
     fsid_t              fsid;           // Filesystem ID
     MediaId             mediaId;        // Media on which the filesystem lives
     uint32_t            properties;     // Filesystem properties
+    char                type[12];       // Filesystem type (max 11 characters C string)
 } FSInfo;
 
 

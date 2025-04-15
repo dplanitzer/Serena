@@ -136,7 +136,8 @@ errno_t SerenaFS_getInfo(FilesystemRef _Nonnull self, FSInfo* _Nonnull pOutInfo)
     if (FSContainer_IsReadOnly(fsContainer)) {
         pOutInfo->properties |= kFSProperty_IsReadOnly;
     }
-    
+    memcpy(pOutInfo->type, "sefs", 5);
+
     return EOK;
 }
 

@@ -127,6 +127,8 @@ errno_t KernFS_getInfo(KernFSRef _Nonnull self, FSInfo* _Nonnull pOutInfo)
     pOutInfo->fsid = Filesystem_GetId(self);
     pOutInfo->mediaId = 1;
     pOutInfo->properties |= kFSProperty_IsCatalog;
+    memcpy(pOutInfo->type, "kernfs", 7);
+
     return EOK;
 }
 
