@@ -30,6 +30,7 @@ static void print_cat_info(const FSInfo* _Nonnull info)
 static void print_reg_info(const FSInfo* _Nonnull info, const char* _Nonnull volLabel, const char* _Nonnull diskName)
 {
     const uint64_t size = (uint64_t)info->capacity * (uint64_t)info->blockSize;
+    const unsigned fullPerc = info->count * 100 / info->capacity;
     const char* status;
 
     if ((info->properties & kFSProperty_IsReadOnly) == kFSProperty_IsReadOnly) {
@@ -41,7 +42,8 @@ static void print_reg_info(const FSInfo* _Nonnull info, const char* _Nonnull vol
 
     // XX formatting, real data
     puts("Disk ID Size   Used   Free Full Status Type Name");
-    printf("%s %u %lluK %u %u %u %s %s %s\n", diskName, info->fsid, size / 1024ull, 0, 0, 0, status, info->type, volLabel);}
+    printf("%s %u %lluK %u %u %u%% %s %s %s\n", diskName, info->fsid, size / 1024ull, info->count, info->capacity - info->count, fullPerc, status, info->type, volLabel);
+}
 
 
 static errno_t get_cwd_fsid(fsid_t* _Nonnull fsid)

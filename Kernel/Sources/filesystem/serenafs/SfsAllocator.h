@@ -41,4 +41,6 @@ extern void SfsAllocator_Deallocate(SfsAllocator* _Nonnull self, LogicalBlockAdd
 
 extern errno_t SfsAllocator_CommitToDisk(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer);
 
+extern LogicalBlockCount SfsAllocator_GetAllocatedBlockCount(SfsAllocator* _Nonnull self);
+
 #endif /* SfsAllocator_h */

@@ -123,12 +123,12 @@ errno_t SerenaFS_onStop(SerenaFSRef _Nonnull self)
     return EOK;
 }
 
-errno_t SerenaFS_getInfo(FilesystemRef _Nonnull self, FSInfo* _Nonnull pOutInfo)
+errno_t SerenaFS_getInfo(SerenaFSRef _Nonnull self, FSInfo* _Nonnull pOutInfo)
 {
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
 
     pOutInfo->capacity = FSContainer_GetBlockCount(fsContainer);
-    pOutInfo->count = 0;
+    pOutInfo->count = SfsAllocator_GetAllocatedBlockCount(&self->blockAllocator);
     pOutInfo->blockSize = FSContainer_GetBlockSize(fsContainer);
     pOutInfo->fsid = Filesystem_GetId(self);
     pOutInfo->mediaId = FSContainer_GetMediaId(fsContainer);

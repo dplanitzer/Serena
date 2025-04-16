@@ -143,6 +143,24 @@ void SfsAllocator_Deallocate(SfsAllocator* _Nonnull self, LogicalBlockAddress lb
     Lock_Unlock(&self->lock);
 }
 
+LogicalBlockCount SfsAllocator_GetAllocatedBlockCount(SfsAllocator* _Nonnull self)
+{
+    decl_try_err();
+    LogicalBlockCount count = 0;
+
+    Lock_Lock(&self->lock);
+
+    for (LogicalBlockAddress i = 0; i < self->volumeBlockCount; i++) {
+        if (AllocationBitmap_IsBlockInUse(self->bitmap, i)) {
+            count++;
+        }
+    }
+
+    Lock_Unlock(&self->lock);
+
+    return count;
+}
+
 errno_t SfsAllocator_CommitToDisk(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer)
 {
     decl_try_err();
