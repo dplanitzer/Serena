@@ -14,16 +14,23 @@
 
 
 // Creates an instance of KernFS.
-errno_t KernFS_Create(KernFSRef _Nullable * _Nonnull pOutSelf)
+errno_t KernFS_Create(const char* _Nonnull catalogName, KernFSRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
+    const size_t cnlen = String_Length(catalogName);
     KernFSRef self;
+
+    if (cnlen > kMaxCatalogNameLength) {
+        throw(ERANGE);
+    }
 
     try(Filesystem_Create(&kKernFSClass, (FilesystemRef*)&self));
     try(FSAllocateCleared(sizeof(List) * IN_HASH_CHAINS_COUNT, (void**)&self->inOwned));
 
     Lock_Init(&self->inOwnedLock);
     self->nextAvailableInodeId = 1;
+    self->catalogNameLength = cnlen;
+    memcpy(self->catalogName, catalogName, cnlen);
 
     *pOutSelf = self;
     return EOK;
@@ -121,6 +128,21 @@ catch:
     return err;
 }
 
+errno_t KernFS_getDiskName(KernFSRef _Nonnull self, size_t bufSize, char* _Nonnull buf)
+{
+    if (bufSize < 1) {
+        return ERANGE;
+    }
+    if (bufSize < (self->catalogNameLength + 1)) {
+        *buf = '\0';
+        return ERANGE;
+    }
+
+    memcpy(buf, self->catalogName, self->catalogNameLength);
+    buf[self->catalogNameLength] = '\0';
+    return EOK;
+}
+
 errno_t KernFS_getInfo(KernFSRef _Nonnull self, FSInfo* _Nonnull pOutInfo)
 {
     memset(pOutInfo, 0, sizeof(FSInfo));
@@ -199,6 +221,7 @@ errno_t KernFS_rename(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNod
 class_func_defs(KernFS, Filesystem,
 override_func_def(deinit, KernFS, Object)
 override_func_def(onStart, KernFS, Filesystem)
+override_func_def(getDiskName, KernFS, Filesystem)
 override_func_def(getInfo, KernFS, Filesystem)
 override_func_def(onAcquireNode, KernFS, Filesystem)
 override_func_def(onWritebackNode, KernFS, Filesystem)

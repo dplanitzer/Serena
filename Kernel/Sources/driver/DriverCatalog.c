@@ -28,7 +28,7 @@ errno_t DriverCatalog_Create(DriverCatalogRef _Nullable * _Nonnull pOutSelf)
     
     try(kalloc_cleared(sizeof(DriverCatalog), (void**) &self));
     
-    try(KernFS_Create(&self->devfs));
+    try(KernFS_Create(kCatalogName_Drivers, &self->devfs));
     try(Filesystem_Start((FilesystemRef)self->devfs, NULL, 0));
     try(FileHierarchy_Create((FilesystemRef)self->devfs, &self->fh));
     try(Filesystem_AcquireRootDirectory((FilesystemRef)self->devfs, &self->rootDirectory));

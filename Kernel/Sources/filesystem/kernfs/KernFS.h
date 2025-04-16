@@ -16,7 +16,7 @@ final_class(KernFS, Filesystem);
 
 
 // Creates an instance of KernFS.
-extern errno_t KernFS_Create(KernFSRef _Nullable * _Nonnull pOutSelf);
+extern errno_t KernFS_Create(const char* _Nonnull catalogName, KernFSRef _Nullable * _Nonnull pOutSelf);
 
 // Returns a strong reference to the driver backing the given driver node.
 // Returns NULL if the given node is not a driver node.

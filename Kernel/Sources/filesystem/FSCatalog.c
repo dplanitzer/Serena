@@ -28,7 +28,7 @@ errno_t FSCatalog_Create(FSCatalogRef _Nullable * _Nonnull pOutSelf)
     
     try(kalloc_cleared(sizeof(FSCatalog), (void**) &self));
     
-    try(KernFS_Create(&self->fs));
+    try(KernFS_Create(kCatalogName_Filesystems, &self->fs));
     try(Filesystem_Start((FilesystemRef)self->fs, NULL, 0));
     try(FileHierarchy_Create((FilesystemRef)self->fs, &self->fh));
     try(Filesystem_AcquireRootDirectory((FilesystemRef)self->fs, &self->rootDirectory));

@@ -20,18 +20,32 @@
 #define DISKNAME_BUFSIZE    16
 
 
-static void print_cat_info(const FSInfo* _Nonnull info)
+static errno_t print_cat_info(const FSInfo* _Nonnull info, int fd)
 {
+    decl_try_err();
+    char diskName[32];
+
+    try(IOChannel_Control(fd, kFSCommand_GetDiskName, sizeof(diskName), diskName));
+
     puts("Catalog ID");
-    //XXX get catalog name
-    printf("-       %u\n", info->fsid);
+    printf("%s       %u\n", diskName, info->fsid);
+
+catch:
+    return err;
 }
 
-static void print_reg_info(const FSInfo* _Nonnull info, const char* _Nonnull volLabel, const char* _Nonnull diskName)
+static errno_t print_reg_info(const FSInfo* _Nonnull info, int fd)
 {
+    decl_try_err();
     const uint64_t size = (uint64_t)info->capacity * (uint64_t)info->blockSize;
     const unsigned fullPerc = info->count * 100 / info->capacity;
     const char* status;
+    char diskName[32];
+    char volLabel[64];
+
+    try(IOChannel_Control(fd, kFSCommand_GetDiskName, sizeof(diskName), diskName));
+    try(IOChannel_Control(fd, kFSCommand_GetLabel, sizeof(volLabel), volLabel));
+
 
     if ((info->properties & kFSProperty_IsReadOnly) == kFSProperty_IsReadOnly) {
         status = "Read Only";
@@ -40,9 +54,13 @@ static void print_reg_info(const FSInfo* _Nonnull info, const char* _Nonnull vol
         status = "Read/Write";
     }
 
-    // XX formatting, real data
+
+    // XX formatting
     puts("Disk ID Size   Used   Free Full Status Type Name");
     printf("%s %u %lluK %u %u %u%% %s %s %s\n", diskName, info->fsid, size / 1024ull, info->count, info->capacity - info->count, fullPerc, status, info->type, volLabel);
+
+catch:
+    return err;
 }
 
 
@@ -76,8 +94,6 @@ int main(int argc, char* argv[])
     FSInfo info;
     int fd = -1;
     char path[32];
-    char diskName[32];
-    char volLabel[64];
 
     if (argc < 2 ) {
         try(get_cwd_fsid(&fsid));
@@ -96,12 +112,10 @@ int main(int argc, char* argv[])
     try(IOChannel_Control(fd, kFSCommand_GetInfo, &info));
 
     if ((info.properties & kFSProperty_IsCatalog) == kFSProperty_IsCatalog) {
-        print_cat_info(&info);
+        err = print_cat_info(&info, fd);
     }
     else {
-        try(IOChannel_Control(fd, kFSCommand_GetDiskName, sizeof(diskName), diskName));
-        try(IOChannel_Control(fd, kFSCommand_GetLabel, sizeof(volLabel), volLabel));
-        print_reg_info(&info, volLabel, diskName);
+        err = print_reg_info(&info, fd);
     }
 
 

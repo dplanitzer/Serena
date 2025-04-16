@@ -265,8 +265,12 @@ errno_t Driver_GetCanonicalName(DriverRef _Nonnull self, size_t bufSize, char* _
 errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
-        case kDriverCommand_GetCanonicalName:
-            return Driver_GetCanonicalName(self, va_arg(ap, size_t), va_arg(ap, char*));
+        case kDriverCommand_GetCanonicalName: {
+            const size_t bufSize = va_arg(ap, size_t);
+            const char* buf = va_arg(ap, char*);
+
+            return Driver_GetCanonicalName(self, bufSize, buf);
+        }
 
         default:
             return ENOTIOCTLCMD;

@@ -469,23 +469,32 @@ errno_t Filesystem_setLabel(FilesystemRef _Nonnull self, const char* _Nonnull bu
 errno_t Filesystem_ioctl(FilesystemRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
-        case kFSCommand_GetInfo:
-            return Filesystem_GetInfo(self, va_arg(ap, FSInfo*));
+        case kFSCommand_GetInfo: {
+            FSInfo* info = va_arg(ap, FSInfo*);
 
-        case kFSCommand_GetDiskName:
-            return Filesystem_GetDiskName(self, va_arg(ap, size_t), va_arg(ap, char*));
+            return Filesystem_GetInfo(self, info);
+        }
+
+        case kFSCommand_GetDiskName: {
+            const size_t bufSize = va_arg(ap, size_t);
+            char* buf = va_arg(ap, char*);
+
+            return Filesystem_GetDiskName(self, bufSize, buf);
+        }
 
         case kFSCommand_GetLabel: {
-            // XXX inlining this doesn't work for some reason...
             const size_t bufSize = va_arg(ap, size_t);
             char* buf = va_arg(ap, char*);
 
             return Filesystem_GetLabel(self, bufSize, buf);
         }
 
-        case kFSCommand_SetLabel:
-            return Filesystem_SetLabel(self, va_arg(ap, const char*));
-         
+        case kFSCommand_SetLabel: {
+            const char* buf = va_arg(ap, const char*);
+
+            return Filesystem_SetLabel(self, buf);
+        }
+
         default:
             return ENOTIOCTLCMD;
     }

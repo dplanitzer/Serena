@@ -16,6 +16,9 @@
 
 __CPP_BEGIN
 
+#define kCatalogName_Drivers        "dev"
+#define kCatalogName_Filesystems    "fs"
+
 enum {
     kMount_Disk,            // 'containerPath' is a disk device path
     kMount_DriverCatalog,   // 'containerPath' is "drivers"
