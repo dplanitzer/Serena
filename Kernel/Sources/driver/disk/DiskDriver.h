@@ -25,7 +25,7 @@ enum DiskDriverOptions {
 typedef struct MediaInfo {
     LogicalBlockCount   blockCount;     // > 0 if a media is loaded; 0 otherwise
     size_t              blockSize;      // > 0 if a media is loaded; should be the default media block size even if no media is loaded; may be 0 
-    bool                isReadOnly;     // true/false if a media is loaded; true if no media is loaded
+    uint32_t            properties;     // media properties
 } MediaInfo;
 
 
@@ -123,7 +123,7 @@ open_class(DiskDriver, Driver,
     uint16_t                    mb2lbFactor;        // Number of media blocks per logical block
     LogicalBlockCount           mediaBlockCount;    // Number of media blocks per media. Is blockCount * mb2lbFactor
     size_t                      mediaBlockSize;     // Size of a media block in bytes. Usually power-of-2, but may not be. If not, then one media block maps to one logical block with 0 padding at the end 
-    bool                        isReadOnly;
+    uint32_t                    mediaProperties;
 );
 open_class_funcs(DiskDriver, Driver,
 
@@ -251,7 +251,7 @@ invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
 // then this function must be called with NULL as the info argument; otherwise
 // it must be called with a properly filled in media info record.
 // This function generates the required unique media id. 
-extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable pInfo);
+extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable info);
 
 
 #define DiskDriver_DoDiskRequest(__self, __req, __ctx) \

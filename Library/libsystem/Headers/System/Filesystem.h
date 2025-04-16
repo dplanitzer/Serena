@@ -37,8 +37,8 @@ typedef unsigned int UnmountOptions;
 // Filesystem properties
 enum {
     kFSProperty_IsCatalog = 0x0001,     // Filesystem is a kernel managed catalog
-    kFSProperty_IsReadOnly = 0x0002,    // Filesystem was mounted read-only
-    kFSProperty_IsEjectable = 0x0004,   // Filesystem lives on an ejectable media
+    kFSProperty_IsRemovable = 0x0002,   // Filesystem lives on a removable/ejectable media
+    kFSProperty_IsReadOnly = 0x0004,    // Filesystem was mounted read-only
 };
 
 // Filesystem specific information

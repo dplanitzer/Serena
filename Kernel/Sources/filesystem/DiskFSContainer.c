@@ -18,9 +18,18 @@ errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _N
     decl_try_err();
     struct DiskFSContainer* self = NULL;
     DiskInfo info;
+    uint32_t fsprops = 0;
 
     try(IOChannel_Ioctl(pChannel, kDiskCommand_GetInfo, &info));
-    try(FSContainer_Create(class(DiskFSContainer), info.mediaId, info.blockCount, info.blockSize, info.isReadOnly, (FSContainerRef*)&self));
+
+    if ((info.properties & kMediaProperty_IsReadOnly) == kMediaProperty_IsReadOnly) {
+        fsprops |= kFSProperty_IsReadOnly;
+    }
+    if ((info.properties & kMediaProperty_IsRemovable) == kMediaProperty_IsRemovable) {
+        fsprops |= kFSProperty_IsRemovable;
+    }
+
+    try(FSContainer_Create(class(DiskFSContainer), info.mediaId, info.blockCount, info.blockSize, fsprops, (FSContainerRef*)&self));
 
     self->channel = IOChannel_Retain(pChannel);
     self->disk = DriverChannel_GetDriverAs(pChannel, DiskDriver);

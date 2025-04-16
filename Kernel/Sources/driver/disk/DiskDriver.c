@@ -76,10 +76,7 @@ void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
 void DiskDriver_getInfo(DiskDriverRef _Nonnull _Locked self, DiskInfo* _Nonnull pOutInfo)
 {
     pOutInfo->mediaId = self->currentMediaId;
-    pOutInfo->isReadOnly = self->isReadOnly;
-    pOutInfo->reserved[0] = 0;
-    pOutInfo->reserved[1] = 0;
-    pOutInfo->reserved[2] = 0;
+    pOutInfo->properties = self->mediaProperties;
     pOutInfo->blockSize = self->blockSize;
     pOutInfo->blockCount = self->blockCount;
     pOutInfo->mediaBlockSize = self->mediaBlockSize;
@@ -102,14 +99,14 @@ errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
     return err;
 }
 
-void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable pInfo)
+void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable info)
 {
-    const bool hasMedia = (pInfo && (pInfo->blockCount > 0) && (pInfo->blockSize > 0)) ? true : false;
+    const bool hasMedia = (info && (info->blockCount > 0) && (info->blockSize > 0)) ? true : false;
 
     Driver_Lock(self);
 
-    self->mediaBlockCount = pInfo->blockCount;
-    self->mediaBlockSize = pInfo->blockSize;
+    self->mediaBlockCount = info->blockCount;
+    self->mediaBlockSize = info->blockSize;
     self->blockSize = DiskCache_GetBlockSize(self->diskCache);
     self->blockShift = u_log2(self->blockSize);
 
@@ -123,7 +120,7 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
     self->blockCount = self->mediaBlockCount / self->mb2lbFactor;
 
     if (hasMedia) {
-        self->isReadOnly = pInfo->isReadOnly;
+        self->mediaProperties = info->properties;
     
         self->currentMediaId++;
         while (self->currentMediaId == kMediaId_None || self->currentMediaId == kMediaId_Current) {
@@ -131,8 +128,7 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
         }
     }
     else {
-        self->isReadOnly = true;
-
+        self->mediaProperties = kMediaProperty_IsReadOnly;
         self->currentMediaId = kMediaId_None;
     }
 

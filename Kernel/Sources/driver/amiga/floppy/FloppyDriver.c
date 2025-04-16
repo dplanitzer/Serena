@@ -34,7 +34,7 @@ errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds
     MediaInfo info;
     info.blockCount = 0;
     info.blockSize = ADF_SECTOR_DATA_SIZE;
-    info.isReadOnly = true;
+    info.properties = kMediaProperty_IsReadOnly | kMediaProperty_IsRemovable;
 
     try(DiskDriver_Create(class(FloppyDriver), kDiskDriver_Queuing, parent, &info, (DriverRef*)&self));
 
@@ -154,7 +154,10 @@ static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self)
     else {
         MediaInfo info;
 
-        info.isReadOnly = ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) ? true : false;
+        info.properties = kMediaProperty_IsRemovable;
+        if ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) {
+            info.properties |= kMediaProperty_IsReadOnly;
+        }
         info.blockSize = ADF_SECTOR_DATA_SIZE;
         info.blockCount = self->blocksPerDisk;
         DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);

@@ -35,7 +35,10 @@ errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull 
     MediaInfo partInfo;
     partInfo.blockCount = blockCount;
     partInfo.blockSize = diskInfo.blockSize;
-    partInfo.isReadOnly = diskInfo.isReadOnly || isReadOnly;
+    partInfo.properties = diskInfo.properties;
+    if (isReadOnly) {
+        partInfo.properties |= kMediaProperty_IsReadOnly;
+    }
 
     try(DiskDriver_Create(class(PartitionDriver), 0, parent, &partInfo, (DriverRef*)&self));
     self->wholeDisk = wholeDisk;

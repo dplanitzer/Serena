@@ -31,7 +31,7 @@ errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, co
     MediaInfo info;
     info.blockCount = blockCount;
     info.blockSize = blockSize;
-    info.isReadOnly = true;
+    info.properties = kMediaProperty_IsReadOnly;
 
     try(DiskDriver_Create(class(RomDisk), 0, parent, &info, (DriverRef*)&self));
     self->diskImage = pImage;

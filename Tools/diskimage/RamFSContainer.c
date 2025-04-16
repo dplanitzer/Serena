@@ -23,7 +23,7 @@ errno_t RamFSContainer_Create(const DiskImageFormat* _Nonnull format, RamFSConta
     decl_try_err();
     RamFSContainerRef self;
 
-    try(FSContainer_Create(class(RamFSContainer), 1, format->blocksPerDisk, format->blockSize, false, (FSContainerRef*)&self));
+    try(FSContainer_Create(class(RamFSContainer), 1, format->blocksPerDisk, format->blockSize, 0, (FSContainerRef*)&self));
     try(FSAllocateCleared(format->blocksPerDisk * format->blockSize, (void**)&self->diskImage));
     try(FSAllocateCleared(format->blocksPerDisk, (void**)&self->mappedFlags));
     self->blockShift = FSLog2(format->blockSize);

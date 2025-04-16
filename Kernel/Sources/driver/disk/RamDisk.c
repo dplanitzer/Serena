@@ -39,7 +39,7 @@ errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, si
     MediaInfo info;
     info.blockCount = blockCount;
     info.blockSize = blockSize;
-    info.isReadOnly = false;
+    info.properties = 0;
 
     try(DiskDriver_Create(class(RamDisk), 0, parent, &info, (DriverRef*)&self));
     SList_Init(&self->extents);

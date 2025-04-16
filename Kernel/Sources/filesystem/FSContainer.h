@@ -12,6 +12,7 @@
 #include <klib/klib.h>
 #include <kobj/Object.h>
 #include <filesystem/FSBlock.h>
+#include <System/Filesystem.h>
 
 
 // A filesystem container provides access to the data on a mass storage device
@@ -21,7 +22,7 @@ open_class(FSContainer, Object,
     size_t              blockSize;          // byte size of a logical disk block. A single logical disk block may map to multiple physical blocks. The FSContainer transparently takes care of the mapping
     LogicalBlockCount   blockCount;         // overall number of addressable blocks in this FSContainer
     MediaId             mediaId;            // media in which the FS container resides
-    bool                isReadOnly;         // true if all the data in the FSContainer is hardware write protected 
+    uint32_t            properties;         // FS properties defined by the FS container 
 );
 open_class_funcs(FSContainer, Object,
 
@@ -71,8 +72,11 @@ open_class_funcs(FSContainer, Object,
 #define FSContainer_GetMediaId(__self)\
 ((FSContainerRef)__self)->mediaId
 
+#define FSContainer_GetFSProperties(__self)\
+((FSContainerRef)__self)->properties
+
 #define FSContainer_IsReadOnly(__self)\
-((FSContainerRef)__self)->isReadOnly
+((((FSContainerRef)__self)->properties & kFSProperty_IsReadOnly) == kFSProperty_IsReadOnly ? true : false)
 
 
 #define FSContainer_PrefetchBlock(__self, __driverId, __mediaId, __lba) \
@@ -101,6 +105,6 @@ invoke_n(getDiskName, FSContainer, __self, __bufSize, __buf)
 // Methods for use by FSContainer subclassers.
 //
 
-extern errno_t FSContainer_Create(Class* _Nonnull pClass, MediaId mediaId, LogicalBlockCount blockCount, size_t blockSize, bool isReadOnly, FSContainerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t FSContainer_Create(Class* _Nonnull pClass, MediaId mediaId, LogicalBlockCount blockCount, size_t blockSize, uint32_t properties, FSContainerRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* FSContainer_h */
