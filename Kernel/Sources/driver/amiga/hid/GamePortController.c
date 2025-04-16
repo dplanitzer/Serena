@@ -139,11 +139,19 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
 errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
-        case kGamePortCommand_GetPortDevice:
-            return GamePortController_GetPortDevice(self, va_arg(ap, int), va_arg(ap, InputType*));
+        case kGamePortCommand_GetPortDevice: {
+            const int port = va_arg(ap, int);
+            InputType* itype = va_arg(ap, InputType*);
 
-        case kGamePortCommand_SetPortDevice:
-            return GamePortController_SetPortDevice(self, va_arg(ap, int), va_arg(ap, InputType));
+            return GamePortController_GetPortDevice(self, port, itype);
+        }
+
+        case kGamePortCommand_SetPortDevice: {
+            const int port = va_arg(ap, int);
+            InputType itype = va_arg(ap, InputType);
+
+            return GamePortController_SetPortDevice(self, port, itype);
+        }
 
         default:
             return super_n(ioctl, Driver, GamePortController, self, cmd, ap);

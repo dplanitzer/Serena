@@ -467,9 +467,12 @@ catch:
 errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
-        case kDiskCommand_GetInfo:
-            return DiskDriver_GetInfo(self, va_arg(ap, DiskInfo*));
+        case kDiskCommand_GetInfo: {
+            DiskInfo* info = va_arg(ap, DiskInfo*);
             
+            return DiskDriver_GetInfo(self, info);
+        }
+
         default:
             return super_n(ioctl, Driver, DiskDriver, self, cmd, ap);
     }

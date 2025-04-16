@@ -76,49 +76,111 @@ static errno_t GraphicsDriver_onStart(DriverRef _Nonnull _Locked self)
 errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
-        case kFBCommand_CreateSurface:
-            return GraphicsDriver_CreateSurface(self, va_arg(ap, int), va_arg(ap, int), va_arg(ap, PixelFormat), va_arg(ap, int*));
+        case kFBCommand_CreateSurface: {
+            const int width = va_arg(ap, int);
+            const int height = va_arg(ap, int);
+            const PixelFormat fmt = va_arg(ap, PixelFormat);
+            int* hnd = va_arg(ap, int*);
 
-        case kFBCommand_DestroySurface:
-            return GraphicsDriver_DestroySurface(self, va_arg(ap, int));
+            return GraphicsDriver_CreateSurface(self, width, height, fmt, hnd);
+        }
 
-        case kFBCommand_GetSurfaceInfo:
-            return GraphicsDriver_GetSurfaceInfo(self, va_arg(ap, int), va_arg(ap, SurfaceInfo*));
+        case kFBCommand_DestroySurface: {
+            int hnd = va_arg(ap, int);
 
-        case kFBCommand_MapSurface:
-            return GraphicsDriver_MapSurface(self, va_arg(ap, int), va_arg(ap, MapPixels), va_arg(ap, SurfaceMapping*));
+            return GraphicsDriver_DestroySurface(self, hnd);
+        }
 
-        case kFBCommand_UnmapSurface:
-            return GraphicsDriver_UnmapSurface(self, va_arg(ap, int));
+        case kFBCommand_GetSurfaceInfo: {
+            int hnd = va_arg(ap, int);
+            SurfaceInfo* si = va_arg(ap, SurfaceInfo*);
 
+            return GraphicsDriver_GetSurfaceInfo(self, hnd, si);
+        }
 
-        case kFBCommand_CreateScreen:
-            return GraphicsDriver_CreateScreen(self, va_arg(ap, const VideoConfiguration*), va_arg(ap, int), va_arg(ap, int*));
+        case kFBCommand_MapSurface: {
+            int hnd = va_arg(ap, int);
+            MapPixels mode = va_arg(ap, MapPixels);
+            SurfaceMapping* sm = va_arg(ap, SurfaceMapping*);
 
-        case kFBCommand_DestroyScreen:
-            return GraphicsDriver_DestroyScreen(self, va_arg(ap, int));
+            return GraphicsDriver_MapSurface(self, hnd, mode, sm);
+        }
 
-        case kFBCommand_SetCLUTEntries:
-            return GraphicsDriver_SetCLUTEntries(self, va_arg(ap, int), va_arg(ap, size_t), va_arg(ap, size_t), va_arg(ap, const RGBColor32*));
+        case kFBCommand_UnmapSurface: {
+            const int hnd = va_arg(ap, int);
 
-        case kFBCommand_AcquireSprite:
-            return GraphicsDriver_AcquireSprite(self, va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, PixelFormat), va_arg(ap, int), va_arg(ap, int*));
-
-        case kFBCommand_RelinquishSprite:
-            return GraphicsDriver_RelinquishSprite(self, va_arg(ap, int));
-
-        case kFBCommand_SetSpritePixels:
-            return GraphicsDriver_SetSpritePixels(self, va_arg(ap, int), va_arg(ap, const uint16_t**));
-
-        case kFBCommand_SetSpritePosition:
-            return GraphicsDriver_SetSpritePosition(self, va_arg(ap, int), va_arg(ap, int), va_arg(ap, int));
-
-        case kFBCommand_SetSpriteVisible:
-            return GraphicsDriver_SetSpriteVisible(self, va_arg(ap, int), va_arg(ap, bool));
+            return GraphicsDriver_UnmapSurface(self, hnd);
+        }
 
 
-        case kFBCommand_SetCurrentScreen:
-            return GraphicsDriver_SetCurrentScreen(self, va_arg(ap, int));
+        case kFBCommand_CreateScreen: {
+            const VideoConfiguration* vc = va_arg(ap, const VideoConfiguration*);
+            const int sid = va_arg(ap, int);
+            int* hnd = va_arg(ap, int*);
+
+            return GraphicsDriver_CreateScreen(self, vc, sid, hnd);
+        }
+
+        case kFBCommand_DestroyScreen: {
+            const int hnd = va_arg(ap, int);
+
+            return GraphicsDriver_DestroyScreen(self, hnd);
+        }
+
+        case kFBCommand_SetCLUTEntries: {
+            const int hnd = va_arg(ap, int);
+            const size_t idx = va_arg(ap, size_t);
+            const size_t count = va_arg(ap, size_t);
+            const RGBColor32* colors = va_arg(ap, const RGBColor32*);
+
+            return GraphicsDriver_SetCLUTEntries(self, hnd, idx, count, colors);
+        }
+
+        case kFBCommand_AcquireSprite: {
+            const int hnd = va_arg(ap, int);
+            const int width = va_arg(ap, int);
+            const int height = va_arg(ap, int);
+            const PixelFormat fmt = va_arg(ap, PixelFormat);
+            const int pri = va_arg(ap, int);
+            int* sid = va_arg(ap, int*);
+
+            return GraphicsDriver_AcquireSprite(self, hnd, width, height, fmt, pri, sid);
+        }
+
+        case kFBCommand_RelinquishSprite: {
+            const int hnd = va_arg(ap, int);
+
+            return GraphicsDriver_RelinquishSprite(self, hnd);
+        }
+
+        case kFBCommand_SetSpritePixels: {
+            const int hnd = va_arg(ap, int);
+            const uint16_t** planes = va_arg(ap, const uint16_t**);
+
+            return GraphicsDriver_SetSpritePixels(self, hnd, planes);
+        }
+
+        case kFBCommand_SetSpritePosition: {
+            const int hnd = va_arg(ap, int);
+            const int x = va_arg(ap, int);
+            const int y = va_arg(ap, int);
+
+            return GraphicsDriver_SetSpritePosition(self, hnd, x, y);
+        }
+
+        case kFBCommand_SetSpriteVisible: {
+            const int hnd = va_arg(ap, int);
+            const bool flag = va_arg(ap, bool);
+
+            return GraphicsDriver_SetSpriteVisible(self, hnd, flag);
+        }
+
+
+        case kFBCommand_SetCurrentScreen: {
+            const int hnd = va_arg(ap, int);
+
+            return GraphicsDriver_SetCurrentScreen(self, hnd);
+        }
 
         case kFBCommand_GetCurrentScreen:
             return GraphicsDriver_GetCurrentScreen(self);
@@ -127,8 +189,14 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, int cmd, va_list a
             return GraphicsDriver_UpdateDisplay(self);
 
 
-        case kFBCommand_GetVideoConfigurationRange:
-            return GraphicsDriver_GetVideoConfigurationRange(self, va_arg(ap, VideoConfigurationRange*), va_arg(ap, size_t), va_arg(ap, size_t*));
+        case kFBCommand_GetVideoConfigurationRange: {
+            VideoConfigurationRange* vcr = va_arg(ap, VideoConfigurationRange*);
+            const size_t bufSize = va_arg(ap, size_t);
+            size_t* iter = va_arg(ap, size_t*);
+            
+            return GraphicsDriver_GetVideoConfigurationRange(self, vcr, bufSize, iter);
+        }
+
 
         default:
             return super_n(ioctl, Driver, GraphicsDriver, self, cmd, ap);

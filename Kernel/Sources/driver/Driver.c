@@ -267,7 +267,7 @@ errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
     switch (cmd) {
         case kDriverCommand_GetCanonicalName: {
             const size_t bufSize = va_arg(ap, size_t);
-            const char* buf = va_arg(ap, char*);
+            char* buf = va_arg(ap, char*);
 
             return Driver_GetCanonicalName(self, bufSize, buf);
         }

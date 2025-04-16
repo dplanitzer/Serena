@@ -70,38 +70,75 @@ errno_t HIDDriver_read(DriverRef _Nonnull self, HIDChannelRef _Nonnull pChannel,
 errno_t HIDDriver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
-        case kHIDCommand_GetNextEvent:
-            return HIDManager_GetNextEvent(gHIDManager, va_arg(ap, TimeInterval), va_arg(ap, HIDEvent*));
+        case kHIDCommand_GetNextEvent: {
+            const TimeInterval timeout = va_arg(ap, TimeInterval);
+            HIDEvent* evt = va_arg(ap, HIDEvent*);
 
-        case kHIDCommand_GetKeyRepeatDelays:
-            HIDManager_GetKeyRepeatDelays(gHIDManager, va_arg(ap, TimeInterval*), va_arg(ap, TimeInterval*));
+            return HIDManager_GetNextEvent(gHIDManager, timeout, evt);
+        }
+
+        case kHIDCommand_GetKeyRepeatDelays: {
+            TimeInterval* initial = va_arg(ap, TimeInterval*);
+            TimeInterval* repeat = va_arg(ap, TimeInterval*);
+
+            HIDManager_GetKeyRepeatDelays(gHIDManager, initial, repeat);
             return EOK;
+        }
 
-        case kHIDCommand_SetKeyRepeatDelays:
-            HIDManager_SetKeyRepeatDelays(gHIDManager, va_arg(ap, TimeInterval), va_arg(ap, TimeInterval));
+        case kHIDCommand_SetKeyRepeatDelays: {
+            const TimeInterval initial = va_arg(ap, TimeInterval);
+            const TimeInterval repeat = va_arg(ap, TimeInterval);
+
+            HIDManager_SetKeyRepeatDelays(gHIDManager, initial, repeat);
             return EOK;
+        }
 
-        case kHIDCommand_SetMouseCursor:
-            return HIDManager_SetMouseCursor(gHIDManager, va_arg(ap, const uint16_t**), va_arg(ap, int), va_arg(ap, int), va_arg(ap, PixelFormat), va_arg(ap, int), va_arg(ap, int));
+        case kHIDCommand_SetMouseCursor: {
+            const uint16_t** planes = va_arg(ap, const uint16_t**);
+            const int width = va_arg(ap, int);
+            const int height = va_arg(ap, int);
+            const PixelFormat fmt = va_arg(ap, PixelFormat);
+            const int hotSpotX = va_arg(ap, int);
+            const int hotSpotY = va_arg(ap, int);
 
-        case kHIDCommand_SetMouseCursorVisibility:
-            return HIDManager_SetMouseCursorVisibility(gHIDManager, va_arg(ap, MouseCursorVisibility));
+            return HIDManager_SetMouseCursor(gHIDManager, planes, width, height, fmt, hotSpotX, hotSpotY);
+        }
+
+        case kHIDCommand_SetMouseCursorVisibility: {
+            const MouseCursorVisibility vis = va_arg(ap, MouseCursorVisibility);
+
+            return HIDManager_SetMouseCursorVisibility(gHIDManager, vis);
+        }
 
         case kHIDCommand_GetMouseCursorVisibility:
             return HIDManager_GetMouseCursorVisibility(gHIDManager);
 
-        case kHIDCommand_ShieldMouseCursor:
-            return HIDManager_ShieldMouseCursor(gHIDManager, va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int));
+        case kHIDCommand_ShieldMouseCursor: {
+            const int x = va_arg(ap, int);
+            const int y = va_arg(ap, int);
+            const int w = va_arg(ap, int);
+            const int h = va_arg(ap, int);
+
+            return HIDManager_ShieldMouseCursor(gHIDManager, x, y, w, h);
+        }
 
         case kHIDCommand_UnshieldMouseCursor:
             HIDManager_UnshieldMouseCursor(gHIDManager);
             return EOK;
 
-        case kHIDCommand_GetPortDevice:
-            return HIDManager_GetPortDevice(gHIDManager, va_arg(ap, int), va_arg(ap, InputType*));
+        case kHIDCommand_GetPortDevice: {
+            const int port = va_arg(ap, int);
+            InputType* itype = va_arg(ap, InputType*);
 
-        case kHIDCommand_SetPortDevice:
-            return HIDManager_SetPortDevice(gHIDManager, va_arg(ap, int), va_arg(ap, InputType));
+            return HIDManager_GetPortDevice(gHIDManager, port, itype);
+        }
+
+        case kHIDCommand_SetPortDevice: {
+            const int port = va_arg(ap, int);
+            const InputType itype = va_arg(ap, InputType);
+
+            return HIDManager_SetPortDevice(gHIDManager, port, itype);
+        }
 
         default:
             return super_n(ioctl, Driver, HIDDriver, self, cmd, ap);

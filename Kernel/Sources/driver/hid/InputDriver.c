@@ -48,9 +48,12 @@ InputType InputDriver_getInputType(InputDriverRef _Nonnull self)
 errno_t InputDriver_ioctl(InputDriverRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
-        case kInputCommand_GetInfo:
-            return InputDriver_GetInfo(self, va_arg(ap, InputInfo*));
+        case kInputCommand_GetInfo: {
+            InputInfo* info = va_arg(ap, InputInfo*);
             
+            return InputDriver_GetInfo(self, info);
+        }
+
         default:
             return super_n(ioctl, Driver, InputDriver, self, cmd, ap);
     }

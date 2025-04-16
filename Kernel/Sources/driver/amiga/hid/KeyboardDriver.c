@@ -122,13 +122,21 @@ static void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, T
 errno_t KeyboardDriver_ioctl(KeyboardDriverRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
-        case kKeyboardCommand_GetKeyRepeatDelays:
-            KeyboardDriver_GetKeyRepeatDelays(self, va_arg(ap, TimeInterval*), va_arg(ap, TimeInterval*));
-            return EOK;
+        case kKeyboardCommand_GetKeyRepeatDelays: {
+            TimeInterval* initial = va_arg(ap, TimeInterval*);
+            TimeInterval* repeat = va_arg(ap, TimeInterval*);
 
-        case kKeyboardCommand_SetKeyRepeatDelays:
-            KeyboardDriver_SetKeyRepeatDelays(self, va_arg(ap, TimeInterval), va_arg(ap, TimeInterval));
+            KeyboardDriver_GetKeyRepeatDelays(self, initial, repeat);
             return EOK;
+        }
+
+        case kKeyboardCommand_SetKeyRepeatDelays: {
+            const TimeInterval initial = va_arg(ap, TimeInterval);
+            const TimeInterval repeat = va_arg(ap, TimeInterval);
+
+            KeyboardDriver_SetKeyRepeatDelays(self, initial, repeat);
+            return EOK;
+        }
 
         default:
             return super_n(ioctl, Driver, KeyboardDriver, self, cmd, ap);
