@@ -16,15 +16,16 @@
 
 __CPP_BEGIN
 
-#define kCatalogName_Drivers        "dev"
-#define kCatalogName_Filesystems    "fs"
-
 enum {
-    kMount_Disk,            // 'containerPath' is a disk device path
-    kMount_DriverCatalog,   // 'containerPath' is "drivers"
-    kMount_FSCatalog,       // 'containerPath' is "filesystems"
+    kMount_Disk,            // 'objectName' is the path to a disk device
+    kMount_Catalog,         // 'objectName' is a catalog name
 };
 typedef int MountType;
+
+
+// Mountable catalogs
+#define kCatalogName_Drivers        "dev"
+#define kCatalogName_Filesystems    "fs"
 
 
 enum {
@@ -81,10 +82,10 @@ typedef struct FSInfo {
 
 #if !defined(__KERNEL__)
 
-// Mounts the filesystem stored in the container at 'containerPath' at the
-// directory 'atDirPath'. 'params' are optional mount parameters that are passed
-// to the filesystem to mount.
-extern errno_t Mount(MountType type, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize);
+// Mounts the object 'objectName' of type 'type' at the directory 'atDirPath'.
+// 'params' are optional mount parameters that are passed to the filesystem to
+// mount.
+extern errno_t Mount(MountType type, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize);
 
 // Unmounts the filesystem mounted at the directory 'atDirPath'.
 extern errno_t Unmount(const char* _Nonnull atDirPath, UnmountOptions options);

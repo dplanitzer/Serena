@@ -54,10 +54,28 @@ catch:
     return err;
 }
 
-// Mounts the filesystem stored in the container at 'containerPath' at the
-// directory 'atDirPath'. 'params' are optional mount parameters that are passed
-// to the filesystem to mount.
-errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize)
+static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull catalogName, FilesystemRef _Nullable * _Nonnull pOutFs)
+{
+    decl_try_err();
+
+    if (String_Equals(catalogName, kCatalogName_Drivers)) {
+        *pOutFs = DriverCatalog_CopyFilesystem(gDriverCatalog);
+    }
+    else if (String_Equals(catalogName, kCatalogName_Filesystems)) {
+        *pOutFs = FSCatalog_CopyFilesystem(gFSCatalog);
+    }
+    else {
+        *pOutFs = NULL;
+        err = ENOENT;
+    }
+    
+    return err;
+}
+
+// Mounts the object 'objectName' of type 'type' at the directory 'atDirPath'.
+// 'params' are optional mount parameters that are passed to the filesystem to
+// mount.
+errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize)
 {
     decl_try_err();
     ResolvedPath rp_atDir;
@@ -78,25 +96,11 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const ch
 
     switch (type) {
         case kMount_Disk:
-            err = discover_and_start_disk_fs(self, containerPath, params, paramsSize, &fs);
+            err = discover_and_start_disk_fs(self, objectName, params, paramsSize, &fs);
             break;
 
-        case kMount_DriverCatalog:
-            if (String_Equals(containerPath, "drivers")) {
-                fs = DriverCatalog_CopyFilesystem(gDriverCatalog);
-            }
-            else {
-                err = ENOENT;
-            }
-            break;
-
-        case kMount_FSCatalog:
-            if (String_Equals(containerPath, "filesystems")) {
-                fs = FSCatalog_CopyFilesystem(gFSCatalog);
-            }
-            else {
-                err = ENOENT;
-            }
+        case kMount_Catalog:
+            err = lookup_catalog(self, objectName, &fs);
             break;
     }
 
