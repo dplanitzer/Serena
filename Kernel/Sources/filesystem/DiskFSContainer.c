@@ -20,7 +20,7 @@ errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _N
     DiskInfo info;
 
     try(IOChannel_Ioctl(pChannel, kDiskCommand_GetInfo, &info));
-    try(FSContainer_Create(class(DiskFSContainer), info.blockCount, info.blockSize, info.mediaId, info.isReadOnly, (FSContainerRef*)&self));
+    try(FSContainer_Create(class(DiskFSContainer), info.mediaId, info.blockCount, info.blockSize, info.isReadOnly, (FSContainerRef*)&self));
 
     self->channel = IOChannel_Retain(pChannel);
     self->disk = DriverChannel_GetDriverAs(pChannel, DiskDriver);

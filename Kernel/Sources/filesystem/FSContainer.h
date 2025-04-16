@@ -101,6 +101,6 @@ invoke_n(getDiskName, FSContainer, __self, __bufSize, __buf)
 // Methods for use by FSContainer subclassers.
 //
 
-extern errno_t FSContainer_Create(Class* _Nonnull pClass, LogicalBlockCount blockCount, size_t blockSize, MediaId mediaId, bool isReadOnly, FSContainerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t FSContainer_Create(Class* _Nonnull pClass, MediaId mediaId, LogicalBlockCount blockCount, size_t blockSize, bool isReadOnly, FSContainerRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* FSContainer_h */
