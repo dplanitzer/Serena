@@ -41,6 +41,7 @@ enum {
     kFSProperty_IsReadOnly = 0x0004,    // Filesystem was mounted read-only
 };
 
+
 // Filesystem specific information
 typedef struct FSInfo {
     LogicalBlockCount   capacity;       // Filesystem capacity in terms of filesystem blocks (if a regular fs) or catalog entries (if a catalog)

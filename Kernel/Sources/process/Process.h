@@ -14,7 +14,7 @@
 #include <System/File.h>
 #include <System/Filesystem.h>
 #include <System/Process.h>
-#include <User.h>
+#include <System/User.h>
 
 final_class(Process, Object);
 

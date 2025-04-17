@@ -106,7 +106,7 @@ static const char* _Nonnull Formatter_ParseConversionSpec(struct Formatter* _Non
         format++;
     }
     else if (ch >= '1' && ch <= '9') {
-        spec->minimumFieldWidth = (ssize_t)atoi(format, &format, 10);
+        spec->minimumFieldWidth = (ssize_t)_atoi(format, &format, 10);
     }
 
     // Precision
@@ -119,7 +119,7 @@ static const char* _Nonnull Formatter_ParseConversionSpec(struct Formatter* _Non
             format++;
         }
         else if (ch >= '0' && ch <= '9') {
-            spec->precision = (ssize_t)atoi(format, &format, 10);
+            spec->precision = (ssize_t)_atoi(format, &format, 10);
         }
         spec->flags.hasPrecision = true;
     }

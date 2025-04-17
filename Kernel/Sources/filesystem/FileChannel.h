@@ -11,7 +11,7 @@
 
 #include <filesystem/IOChannel.h>
 #include <filesystem/Inode.h>
-#include <User.h>
+#include <System/User.h>
 
 
 open_class(FileChannel, IOChannel,

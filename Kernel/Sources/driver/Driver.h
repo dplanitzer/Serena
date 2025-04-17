@@ -13,7 +13,7 @@
 #include <klib/List.h>
 #include <kobj/Object.h>
 #include <System/FilePermissions.h>
-#include <User.h>
+#include <System/User.h>
 
 typedef enum DriverOptions {
     kDriver_Exclusive = 1,    // At most one I/O channel can be open at any given time. Attempts to open more will generate a EBUSY error

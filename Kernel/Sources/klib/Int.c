@@ -86,7 +86,7 @@ static errno_t __atoi64(const char * _Nonnull str, char **str_end, int base, int
     return 0;
 }
 
-int atoi(const char *str, char **str_end, int base)
+int _atoi(const char *str, char **str_end, int base)
 {
     int64_t r;
 

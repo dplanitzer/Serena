@@ -1,6 +1,6 @@
 //
 //  User.h
-//  kernel
+//  libsystem
 //
 //  Created by Dietmar Planitzer on 3/15/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

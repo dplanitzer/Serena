@@ -635,6 +635,9 @@ int main(int argc, char* argv[])
         }
         try(cmd_push(permissions.p, owner.uid, owner.gid, src_path, path, dmg_path));
     }
+    else {
+        throw(EINVAL);
+    }
 
 
     return EXIT_SUCCESS;

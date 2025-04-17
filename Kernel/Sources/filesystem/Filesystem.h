@@ -15,8 +15,8 @@
 #include <dispatcher/Lock.h>
 #include "Inode.h"
 #include "PathComponent.h"
-#include "User.h"
 #include <System/Filesystem.h>
+#include <System/User.h>
 
 
 // Can be used by filesystem subclasses to temporarily store a hint where a new

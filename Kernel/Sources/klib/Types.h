@@ -149,6 +149,6 @@ extern char* _Nonnull __i64toa(int64_t val, char* _Nonnull digits);
 extern char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, char* _Nonnull digits);
 extern char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char* _Nonnull digits);
 
-extern int atoi(const char *str, char **str_end, int base);
+extern int _atoi(const char *str, char **str_end, int base);
 
 #endif /* Types_h */

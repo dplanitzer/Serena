@@ -6,37 +6,32 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#include "format.h"
+#include <stdlib.h>
+#include <string.h>
 #include <System/ByteOrder.h>
-#include <System/Error.h>
 #include <System/File.h>
-#include <System/Types.h>
 #include <System/_math.h>
-#include <filesystem/FSContainer.h>
 #include <filesystem/FSUtilities.h>
 #include <filesystem/serenafs/VolumeFormat.h>
-#ifdef _WIN32
-#include <stdlib.h>
-#endif
 
 
-errno_t block_write(intptr_t fd, const void* _Nonnull buf, LogicalBlockAddress blockAddr, size_t blockSize)
+// Sets the in-use bit corresponding to the logical block address 'lba' as in-use or not
+// (same as AllocationBitmap_SetInUse())
+static void alloc_bmp_mark_used(uint8_t *bitmap, LogicalBlockAddress lba, bool inUse)
 {
-#ifdef __DISKIMAGE__
-    extern errno_t RamFSContainer_Write(void* _Nonnull self, const void* _Nonnull buf, ssize_t nBytesToWrite, off_t offset, ssize_t* _Nonnull pOutBytesWritten);
+    uint8_t* bytePtr = &bitmap[lba >> 3];
+    const uint8_t bitNo = 7 - (lba & 0x07);
 
-    ssize_t bytesWritten;
-    const errno_t err = RamFSContainer_Write((void*)fd, buf, blockSize, blockAddr * blockSize, &bytesWritten);
-
-    return (err == EOK && bytesWritten == blockSize) ? EOK : EIO;
-#else
-    return EIO;
-#endif
+    if (inUse) {
+        *bytePtr |= (1 << bitNo);
+    }
+    else {
+        *bytePtr &= ~(1 << bitNo);
+    }
 }
 
-// Formats the given disk drive and installs a SerenaFS with an empty root
-// directory on it. 'user' and 'permissions' are the user and permissions that
-// should be assigned to the root directory.
-errno_t sefs_format(intptr_t fd, LogicalBlockCount blockCount, size_t blockSize, uid_t uid, gid_t gid, FilePermissions permissions, const char* _Nonnull label)
+errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, LogicalBlockCount blockCount, size_t blockSize, uid_t uid, gid_t gid, FilePermissions permissions, const char* _Nonnull label)
 {
     decl_try_err();
     const TimeInterval curTime = FSGetCurrentTime();
@@ -58,6 +53,9 @@ errno_t sefs_format(intptr_t fd, LogicalBlockCount blockCount, size_t blockSize,
 
 
     void* bp = malloc(blockSize);
+    if (bp == NULL) {
+        return ENOMEM;
+    }
 
 
     // Structure of the initialized FS:
@@ -109,7 +107,7 @@ errno_t sefs_format(intptr_t fd, LogicalBlockCount blockCount, size_t blockSize,
 
         memset(bbp, 0, blockSize);
         while (nBlocksAllocated < __min(nBlocksToAllocate, nAllocationBitsPerBlock)) {
-            AllocationBitmap_SetBlockInUse(bbp, bitNo, true);
+            alloc_bmp_mark_used(bbp, bitNo, true);
             nBlocksAllocated++;
             bitNo++;
         }
