@@ -70,6 +70,19 @@ Pauses execution for 'ms' milliseconds.
 
 * `ms`: a positive integer giving a duration in milliseconds
 
+## `diskutil`
+
+A utility to format and manage disks.
+
+### Signature
+
+`diskutil <command> ...`
+
+### Parameters
+
+* `command`: a utility command:
+    * `format`: format a disk. Expects a path to the disk device. Specify the name of the desired filesystem with the `-t` option.
+
 ## `echo`
 
 Prints the given list of strings separated by single space characters to standard out. The list of strings is followed by a single newline character. Note that all strings following a '--' parameter are printed verbatim and not interpreted as an option even if they start with '-' or '--' characters.

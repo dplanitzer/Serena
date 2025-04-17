@@ -21,8 +21,7 @@
 #include <System/TimeInterval.h>
 #include <System/Types.h>
 #include <System/User.h>
-
-errno_t sefs_format(intptr_t fd, LogicalBlockCount blockCount, size_t blockSize, uid_t uid, gid_t gid, FilePermissions permissions, const char* _Nonnull label);
+#include <filesystem/serenafs/tools/format.h>
 
 typedef struct di_permissions_spec {
     FilePermissions p;
@@ -105,11 +104,12 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, 
         throw(EINVAL);
     }
 
-    try_null(fp, fopen(diskPath, "rw"), errno);
+    try_null(fp, fopen(diskPath, "r+"), errno);
     setbuf(fp, NULL);
 
     try(IOChannel_Control(fileno(fp), kDiskCommand_GetInfo, &info));
-    //try(sefs_format((intptr_t)fp, info.blockCount, info.blockSize, rootDirUid, rootDirGid, rootDirPerms, label));
+    try(sefs_format((intptr_t)fp, block_write, info.blockCount, info.blockSize, rootDirUid, rootDirGid, rootDirPerms, label));
+    puts("ok");
 
 catch:
     if (fp) {

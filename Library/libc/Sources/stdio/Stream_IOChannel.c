@@ -119,5 +119,5 @@ catch:
 
 int fileno(FILE *s)
 {
-    return (s->cb.read == (FILE_Read)__ioc_read) ? (int)s->context : EOF;
+    return (s->cb.read == (FILE_Read)__ioc_read) ? ((__IOChannel_FILE*)s)->v.ioc : EOF;
 }
