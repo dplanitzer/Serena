@@ -82,6 +82,8 @@ A utility to format and manage disks.
 
 * `command`: a utility command:
     * `format`: format a disk. Expects a path to the disk device. Specify the name of the desired filesystem with the `-t` option.
+    * `mount`: mount a disk and make it accessible to the shell. Specify the directory where the disk should be mounted with the `--at` option.
+    * `unmount`: Unmount a disk. You should unmount a disk before you remove it from a floppy drive.
 
 ## `echo`
 

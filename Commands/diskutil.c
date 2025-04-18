@@ -15,8 +15,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <System/Directory.h>
 #include <System/Disk.h>
 #include <System/Error.h>
+#include <System/Filesystem.h>
 #include <System/FilePermissions.h>
 #include <System/TimeInterval.h>
 #include <System/Types.h>
@@ -115,6 +117,29 @@ catch:
     if (fp) {
         fclose(fp);
     }
+    return err;
+}
+
+errno_t cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
+{
+    decl_try_err();
+
+    err = Mount(kMount_Disk, diskPath, atPath, NULL, 0);
+
+    return err;
+}
+
+errno_t cmd_unmount(const char* _Nonnull atPath, bool doForce)
+{
+    decl_try_err();
+    UnmountOptions options = 0;
+
+    if (doForce) {
+        options |= kUnmount_Forced;
+    }
+
+    err = Unmount(atPath, options);
+
     return err;
 }
 
@@ -240,19 +265,31 @@ static char* vol_label = "";
 static di_permissions_spec_t permissions = {0, false};
 static di_owner_spec_t owner = {kUserId_Root, kGroupId_Root, false};
 
+// diskimage mount/unmount
+static char* at_path = "";
+static bool forced = false;
+
 
 CLAP_DECL(params,
     CLAP_VERSION("1.0"),
     CLAP_HELP(),
     CLAP_USAGE("diskutil <command> ..."),
 
-    CLAP_REQUIRED_COMMAND("format", &cmd_id, "<disk_path>", "Formats the disk image 'dimg_path' with teh filesystem <fs_type> (SeFS)."),
+    CLAP_REQUIRED_COMMAND("format", &cmd_id, "<disk_path>", "Formats the disk at 'disk_path' with the filesystem <fs_type> (SeFS)."),
         CLAP_BOOL('q', "quick", &should_quick_format, "Do a quick format"),
         CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
         CLAP_STRING('l', "label", &vol_label, "Specify the volume label"),
         CLAP_STRING('t', "type", &fs_type, "Specify the filesystem type"),
-        CLAP_POSITIONAL_STRING(&disk_path)
+        CLAP_POSITIONAL_STRING(&disk_path),
+
+    CLAP_REQUIRED_COMMAND("mount", &cmd_id, "<disk_path> --at <at_path>", "Mounts the disk 'disk_path' on top of the directory 'at_path'."),
+        CLAP_STRING('t', "at", &at_path, "Specify the mount point"),
+        CLAP_POSITIONAL_STRING(&disk_path),
+
+    CLAP_REQUIRED_COMMAND("unmount", &cmd_id, "<at_path>", "Unmounts the filesystem at 'at_path'."),
+        CLAP_BOOL('f', "force", &forced, "Force an unmount"),
+        CLAP_POSITIONAL_STRING(&at_path)
 );
 
 
@@ -262,10 +299,10 @@ int main(int argc, char* argv[])
 
     clap_parse(0, params, argc, argv);
     
-    if (!strcmp(argv[1], "format")) {
+    if (!strcmp(cmd_id, "format")) {
         // diskutil format
         if (!permissions.isValid) {
-            permissions.p = FilePermissions_MakeFromOctal(0755);
+            permissions.p = FilePermissions_MakeFromOctal(0777);
         }
         if (!owner.isValid) {
             owner.uid = kUserId_Root;
@@ -273,6 +310,14 @@ int main(int argc, char* argv[])
             owner.isValid = true;
         }
         try(cmd_format(should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, vol_label, disk_path));
+    }
+    else if (!strcmp(cmd_id, "mount")) {
+        // diskutil mount
+        try(cmd_mount(disk_path, at_path));
+    }
+    else if (!strcmp(cmd_id, "unmount")) {
+        // diskutil unmount
+        try(cmd_unmount(at_path, forced));
     }
     else {
         throw(EINVAL);

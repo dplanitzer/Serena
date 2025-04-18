@@ -490,7 +490,7 @@ CLAP_DECL(params,
         CLAP_POSITIONAL_STRING(&path),
         CLAP_POSITIONAL_STRING(&dmg_path),
 
-    CLAP_REQUIRED_COMMAND("format", &cmd_id, "<fs_type> <dimg_path>", "Formats the disk image 'dimg_path' with teh filesystem <fs_type> (SeFS)."),
+    CLAP_REQUIRED_COMMAND("format", &cmd_id, "<fs_type> <dimg_path>", "Formats the disk image 'dimg_path' with the filesystem <fs_type> (SeFS)."),
         CLAP_BOOL('q', "quick", &should_quick_format, "Do a quick format"),
         CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
@@ -551,7 +551,7 @@ int main(int argc, char* argv[])
 
     init();
 
-    if (!strcmp(argv[1], "create")) {
+    if (!strcmp(cmd_id, "create")) {
         // diskimage create
         DiskImageFormat fmt;
         if (!parseDiskFormat(gArgv_Zero, disk_type, &fmt)) {
@@ -567,31 +567,31 @@ int main(int argc, char* argv[])
 
         try(cmd_create(&fmt, dmg_path));
     }
-    else if (!strcmp(argv[1], "describe")) {
+    else if (!strcmp(cmd_id, "describe")) {
         // diskimage describe
         try(cmd_describe_disk(dmg_path));
     }
-    else if (!strcmp(argv[1], "diff")) {
+    else if (!strcmp(cmd_id, "diff")) {
         // diskimage get
         try(cmd_diff_disks(dmg_path, dmg_path2));
     }
-    else if (!strcmp(argv[1], "get")) {
+    else if (!strcmp(cmd_id, "get")) {
         // diskimage get
         assert_has_slice_type(&disk_slice);
 
         try(cmd_get_disk_slice(dmg_path, &disk_slice, is_hex));
     }
-    else if (!strcmp(argv[1], "put")) {
+    else if (!strcmp(cmd_id, "put")) {
         // diskimage put
         assert_has_slice_type(&disk_slice);
 
         try(cmd_put_disk_slice(dmg_path, &disk_slice));
     }
-    else if (!strcmp(argv[1], "delete")) {
+    else if (!strcmp(cmd_id, "delete")) {
         // diskimage delete
         try(cmd_delete(path, dmg_path));
     }
-    else if (!strcmp(argv[1], "format")) {
+    else if (!strcmp(cmd_id, "format")) {
         // diskimage format
         if (!permissions.isValid) {
             permissions.p = FilePermissions_MakeFromOctal(0755);
@@ -603,11 +603,11 @@ int main(int argc, char* argv[])
         }
         try(cmd_format(should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, vol_label, dmg_path));
     }
-    else if (!strcmp(argv[1], "list")) {
+    else if (!strcmp(cmd_id, "list")) {
         // diskimage list
         try(cmd_list(path, dmg_path));
     }
-    else if (!strcmp(argv[1], "makedir")) {
+    else if (!strcmp(cmd_id, "makedir")) {
         // diskimage makedir
         if (!permissions.isValid) {
             permissions.p = FilePermissions_MakeFromOctal(0755);
@@ -619,11 +619,11 @@ int main(int argc, char* argv[])
         }
         try(cmd_makedir(should_create_parents, permissions.p, owner.uid, owner.gid, path, dmg_path));
     }
-    else if (!strcmp(argv[1], "pull")) {
+    else if (!strcmp(cmd_id, "pull")) {
         // diskimage pull
         try(cmd_pull(path, dst_path, dmg_path));
     }
-    else if (!strcmp(argv[1], "push")) {
+    else if (!strcmp(cmd_id, "push")) {
         // diskimage push
         if (!permissions.isValid) {
             permissions.p = FilePermissions_MakeFromOctal(0644);
