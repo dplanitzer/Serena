@@ -10,7 +10,6 @@
 #include <klib/klib.h>
 #include <log/Log.h>
 #include <dispatcher/VirtualProcessor.h>
-#include <driver/DriverCatalog.h>
 #include <driver/DriverChannel.h>
 #include <driver/amiga/graphics/GraphicsDriver.h>
 #include <driver/disk/DiskDriver.h>
@@ -18,6 +17,7 @@
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/IOChannel.h>
 #include <hal/Platform.h>
+#include <Catalog.h>
 #include "boot_screen.h"
 
 
@@ -35,7 +35,7 @@ static const char* _Nullable get_boot_mem_driver_path(void)
     const char* path;
 
     while ((path = gMemDriverTable[i++]) != NULL) {
-        const errno_t err = DriverCatalog_IsDriverPublished(gDriverCatalog, path);
+        const errno_t err = Catalog_IsPublished(gDriverCatalog, path);
         
         if (err == EOK) {
             return path;
@@ -52,7 +52,7 @@ static const char* _Nullable get_boot_floppy_driver_path(void)
     static char* gBootFloppyName = "/hw/fd-bus/fd0";
 
     for (int i = 0; i < 4; i++) {
-        const errno_t err = DriverCatalog_IsDriverPublished(gDriverCatalog, gBootFloppyName);
+        const errno_t err = Catalog_IsPublished(gDriverCatalog, gBootFloppyName);
         
         if (err == EOK) {
             return gBootFloppyName;
@@ -70,7 +70,7 @@ static void wait_for_disk_change(const char* _Nonnull driverPath, int maxTries, 
     IOChannelRef chan;
     int tries = maxTries;
 
-    if ((err = DriverCatalog_OpenDriver(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan)) == EOK) {
+    if ((err = Catalog_Open(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan)) == EOK) {
         while (tries-- > 0) {
             DiskInfo info;
 

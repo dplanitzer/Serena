@@ -14,7 +14,6 @@
 #include <dispatcher/VirtualProcessorScheduler.h>
 #include <dispatcher/VirtualProcessorPool.h>
 #include <dispatchqueue/DispatchQueue.h>
-#include <driver/DriverCatalog.h>
 #include <driver/DriverChannel.h>
 #include <driver/LogDriver.h>
 #include <driver/NullDriver.h>
@@ -24,13 +23,14 @@
 #include <driver/hid/HIDManager.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
-#include <filesystem/FSCatalog.h>
 #include <hal/InterruptController.h>
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>
 #include <security/SecurityManager.h>
+#include <System/Filesystem.h>
+#include <Catalog.h>
 #include "BootAllocator.h"
 #include "boot_screen.h"
 
@@ -175,10 +175,10 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
 
     // Create the various kernel object catalogs
-    try_bang(FSCatalog_Create(&gFSCatalog));
-    try_bang(DriverCatalog_Create(&gDriverCatalog));
-    try_bang(Filesystem_Publish(FSCatalog_CopyFilesystem(gFSCatalog)));
-    try_bang(Filesystem_Publish(DriverCatalog_CopyFilesystem(gDriverCatalog)));
+    try_bang(Catalog_Create(kCatalogName_Filesystems, &gFSCatalog));
+    try_bang(Catalog_Create(kCatalogName_Drivers, &gDriverCatalog));
+    try_bang(Filesystem_Publish(Catalog_CopyFilesystem(gFSCatalog)));
+    try_bang(Filesystem_Publish(Catalog_CopyFilesystem(gDriverCatalog)));
 
 
     // Create the disk cache

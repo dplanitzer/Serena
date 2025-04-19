@@ -7,9 +7,9 @@
 //
 
 #include "boot_screen.h"
+#include <Catalog.h>
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
-#include <driver/DriverCatalog.h>
 #include <driver/DriverChannel.h>
 #include <hal/Platform.h>
 
@@ -42,7 +42,7 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
 
     memset(bscr, 0, sizeof(boot_screen_t));
 
-    if ((err = DriverCatalog_OpenDriver(gDriverCatalog, "/hw/fb", kOpen_ReadWrite, &chan)) == EOK) {
+    if ((err = Catalog_Open(gDriverCatalog, "/hw/fb", kOpen_ReadWrite, &chan)) == EOK) {
         gd = DriverChannel_GetDriverAs(chan, GraphicsDriver);
 
         // Create the surface and screen

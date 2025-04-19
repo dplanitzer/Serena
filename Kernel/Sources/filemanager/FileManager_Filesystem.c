@@ -10,9 +10,8 @@
 #include "FileManager.h"
 #include "FileHierarchy.h"
 #include "FilesystemManager.h"
-#include <driver/DriverCatalog.h>
+#include <Catalog.h>
 #include <filesystem/Filesystem.h>
-#include <filesystem/FSCatalog.h>
 #include <filesystem/IOChannel.h>
 #include <System/Filesystem.h>
 
@@ -57,19 +56,21 @@ catch:
 static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull catalogName, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
+    CatalogRef catalog = NULL;
 
     if (String_Equals(catalogName, kCatalogName_Drivers)) {
-        *pOutFs = DriverCatalog_CopyFilesystem(gDriverCatalog);
+        catalog = gDriverCatalog;
     }
     else if (String_Equals(catalogName, kCatalogName_Filesystems)) {
-        *pOutFs = FSCatalog_CopyFilesystem(gFSCatalog);
+        catalog = gFSCatalog;
     }
     else {
         *pOutFs = NULL;
-        err = ENOENT;
+        return ENOENT;
     }
-    
-    return err;
+
+    *pOutFs = Catalog_CopyFilesystem(catalog);
+    return EOK;
 }
 
 // Mounts the object 'objectName' of type 'type' at the directory 'atDirPath'.

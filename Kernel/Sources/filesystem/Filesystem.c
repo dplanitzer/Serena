@@ -10,9 +10,6 @@
 #include "FSUtilities.h"
 #include "DirectoryChannel.h"
 #include "FileChannel.h"
-#ifndef __DISKIMAGE__
-#include "FSCatalog.h"
-#endif
 #include "FSChannel.h"
 #include <klib/Hash.h>
 
@@ -66,7 +63,7 @@ errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOut
     List_Init(&self->inReadingCache);
     self->state = kFilesystemState_Idle;
 #ifndef __DISKIMAGE__
-    self->catalogId = kFSCatalogId_None;
+    self->catalogId = kCatalogId_None;
 #endif
 
     *pOutSelf = self;
@@ -100,11 +97,11 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
 errno_t Filesystem_Publish(FilesystemRef _Nonnull self)
 {
 #ifndef __DISKIMAGE__
-    if (self->catalogId == kFSCatalogId_None) {
+    if (self->catalogId == kCatalogId_None) {
         char buf[12];
 
         UInt32_ToString(self->fsid, 10, false, buf);
-        return FSCatalog_Publish(gFSCatalog, buf, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0444), self, &self->catalogId);
+        return Catalog_PublishFilesystem(gFSCatalog, buf, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0444), self, &self->catalogId);
     }
     else {
         return EOK;
@@ -117,9 +114,9 @@ errno_t Filesystem_Publish(FilesystemRef _Nonnull self)
 errno_t Filesystem_Unpublish(FilesystemRef _Nonnull self)
 {
 #ifndef __DISKIMAGE__
-    if (self->catalogId != kFSCatalogId_None) {
-        FSCatalog_Unpublish(gFSCatalog, self->catalogId);
-        self->catalogId = kFSCatalogId_None;
+    if (self->catalogId != kCatalogId_None) {
+        Catalog_Unpublish(gFSCatalog, kCatalogId_None, self->catalogId);
+        self->catalogId = kCatalogId_None;
     }
     return EOK;
 #else

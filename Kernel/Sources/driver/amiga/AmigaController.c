@@ -17,7 +17,6 @@
 #include <driver/amiga/zorro/ZorroController.h>
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
-#include <driver/DriverCatalog.h>
 #include <filesystem/DiskFSContainer.h>
 #include <filesystem/IOChannel.h>
 #include <filesystem/SerenaDiskImage.h>
@@ -82,7 +81,7 @@ static errno_t AmigaController_AutoDetectBootMemoryDisk(struct AmigaController* 
         try(RamDisk_Create((DriverRef)self, "ram", smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128, (RamDiskRef*)&disk));
         try(Driver_Start((DriverRef)disk));
 
-        try(DriverCatalog_OpenDriver(gDriverCatalog, "/ram", kOpen_ReadWrite, &chan));
+        try(Catalog_Open(gDriverCatalog, "/ram", kOpen_ReadWrite, &chan));
         try(DiskFSContainer_Create(chan, &fsContainer));
 
         for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {

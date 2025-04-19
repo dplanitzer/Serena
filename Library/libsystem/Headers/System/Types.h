@@ -21,24 +21,6 @@
 
 __CPP_BEGIN
 
-// The non-persistent, globally unique ID of a published driver catalog entry.
-// This ID does not survive a system reboot. Id 0 represents a driver catalog
-// entry that does not exist.
-typedef uint32_t    DriverCatalogId;
-
-// Means no driver catalog entry
-#define kDriverCatalogId_None   0
-
-
-// The non-persistent, globally unique ID of a published filesystem catalog entry.
-// This ID does not survive a system reboot. Id 0 represents a filesystem catalog
-// entry that does not exist.
-typedef uint32_t    FSCatalogId;
-
-// Means no filesystem catalog entry
-#define kFSCatalogId_None   0
-
-
 // Various Kernel API types
 typedef int         pid_t;
 

@@ -7,7 +7,6 @@
 //
 
 #include "HIDManagerPriv.h"
-#include <driver/DriverCatalog.h>
 #include <driver/DriverChannel.h>
 
 extern const uint8_t gUSBHIDKeyFlags[256];
@@ -47,7 +46,7 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
     decl_try_err();
 
     // Open a channel to the framebuffer
-    try(DriverCatalog_OpenDriver(gDriverCatalog, "/hw/fb", kOpen_ReadWrite, &self->fbChannel));
+    try(Catalog_Open(gDriverCatalog, "/hw/fb", kOpen_ReadWrite, &self->fbChannel));
     self->fb = DriverChannel_GetDriverAs(self->fbChannel, GraphicsDriver);
 
     int w, h;
@@ -60,11 +59,11 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
 
 
     // Open the keyboard driver
-    try(DriverCatalog_OpenDriver(gDriverCatalog, "/hw/kb", kOpen_ReadWrite, &self->kbChannel));
+    try(Catalog_Open(gDriverCatalog, "/hw/kb", kOpen_ReadWrite, &self->kbChannel));
 
 
     // Open the game port driver
-    try(DriverCatalog_OpenDriver(gDriverCatalog, "/hw/gp-bus", kOpen_ReadWrite, &self->gpChannel));
+    try(Catalog_Open(gDriverCatalog, "/hw/gp-bus", kOpen_ReadWrite, &self->gpChannel));
 
 catch:
     return err;

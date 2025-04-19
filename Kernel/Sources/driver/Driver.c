@@ -8,7 +8,6 @@
 
 #include "Driver.h"
 #include "DriverChannel.h"
-#include "DriverCatalog.h"
 #include <System/Driver.h>
 
 #define DriverFromChildNode(__ptr) \
@@ -252,7 +251,7 @@ errno_t Driver_GetCanonicalName(DriverRef _Nonnull self, size_t bufSize, char* _
 
     Driver_Lock(self);
     if (Driver_IsActive(self)) {
-        err = DriverCatalog_GetPath(gDriverCatalog, self->driverCatalogId, bufSize, buf);
+        err = Catalog_GetPath(gDriverCatalog, self->driverCatalogId, bufSize, buf);
     }
     else {
         err = ENODEV;
@@ -295,22 +294,22 @@ errno_t Driver_onPublish(DriverRef _Nonnull _Locked self)
     return EOK;
 }
 
-static DriverCatalogId Driver_GetParentBusCatalogId(DriverRef _Nonnull _Locked self)
+static CatalogId Driver_GetParentBusCatalogId(DriverRef _Nonnull _Locked self)
 {
-    return (self->parent) ? Driver_GetBusCatalogId(self->parent) : kDriverCatalogId_None;
+    return (self->parent) ? Driver_GetBusCatalogId(self->parent) : kCatalogId_None;
 }
 
 errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const DriverEntry* _Nonnull de)
 {
     decl_try_err();
-    const DriverCatalogId parentBusCatalogId = Driver_GetParentBusCatalogId(self);
+    const CatalogId parentBusCatalogId = Driver_GetParentBusCatalogId(self);
 
-    if ((err = DriverCatalog_Publish(gDriverCatalog, parentBusCatalogId, de->name, de->uid, de->gid, de->perms, self, de->arg, &self->driverCatalogId)) == EOK) {
+    if ((err = Catalog_PublishDriver(gDriverCatalog, parentBusCatalogId, de->name, de->uid, de->gid, de->perms, self, de->arg, &self->driverCatalogId)) == EOK) {
         if ((err = Driver_OnPublish(self)) == EOK) {
             return EOK;
         }
 
-        DriverCatalog_Unpublish(gDriverCatalog, parentBusCatalogId, self->driverCatalogId);
+        Catalog_Unpublish(gDriverCatalog, parentBusCatalogId, self->driverCatalogId);
     }
     return err;
 }
@@ -320,13 +319,13 @@ errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const BusEntry* _Nonn
     decl_try_err();
     bool hasBus = false;
     bool hasSelf = false;
-    const DriverCatalogId parentBusCatalogId = Driver_GetParentBusCatalogId(self);
+    const CatalogId parentBusCatalogId = Driver_GetParentBusCatalogId(self);
 
-    try(DriverCatalog_PublishBus(gDriverCatalog, parentBusCatalogId, be->name, be->uid, be->gid, be->perms, &self->busCatalogId));
+    try(Catalog_PublishFolder(gDriverCatalog, parentBusCatalogId, be->name, be->uid, be->gid, be->perms, &self->busCatalogId));
     hasBus = true;
 
     if (de && de->name[0] != '\0') {
-        try(DriverCatalog_Publish(gDriverCatalog, self->busCatalogId, de->name, de->uid, de->gid, de->perms, self, de->arg, &self->driverCatalogId));
+        try(Catalog_PublishDriver(gDriverCatalog, self->busCatalogId, de->name, de->uid, de->gid, de->perms, self, de->arg, &self->driverCatalogId));
         hasSelf = true;
     }
 
@@ -335,10 +334,10 @@ errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const BusEntry* _Nonn
 
 catch:
     if (hasSelf) {
-        DriverCatalog_Unpublish(gDriverCatalog, self->busCatalogId, self->driverCatalogId);
+        Catalog_Unpublish(gDriverCatalog, self->busCatalogId, self->driverCatalogId);
     }
     if (hasBus) {
-        DriverCatalog_Unpublish(gDriverCatalog, self->busCatalogId, kDriverCatalogId_None);
+        Catalog_Unpublish(gDriverCatalog, self->busCatalogId, kCatalogId_None);
     }
     return err;
 }
@@ -350,19 +349,19 @@ void Driver_onUnpublish(DriverRef _Nonnull _Locked self)
 // Removes the driver instance from the driver catalog.
 void Driver_Unpublish(DriverRef _Nonnull _Locked self)
 {
-    DriverCatalogId parentBusCatalogId = Driver_GetParentBusCatalogId(self);
+    CatalogId parentBusCatalogId = Driver_GetParentBusCatalogId(self);
 
     Driver_OnUnpublish(self);
-    DriverCatalog_Unpublish(gDriverCatalog, parentBusCatalogId, self->driverCatalogId);
+    Catalog_Unpublish(gDriverCatalog, parentBusCatalogId, self->driverCatalogId);
 }
 
 // Returns the bus driver catalog ID of the bus that the receiver represents.
-// Returns kDriverCatalogId_None if the receiver does not manage a bus.
-DriverCatalogId Driver_GetBusCatalogId(DriverRef _Nonnull self)
+// Returns kCatalogId_None if the receiver does not manage a bus.
+CatalogId Driver_GetBusCatalogId(DriverRef _Nonnull self)
 {
     //Driver_Lock(self);
     // XXX gets called at onStart() time and the parent typically is inside its onStart() and thus locked too
-    const DriverCatalogId id = self->busCatalogId;
+    const CatalogId id = self->busCatalogId;
     //Driver_Unlock(self);
     return id;
 }

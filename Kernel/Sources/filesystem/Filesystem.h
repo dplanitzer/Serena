@@ -15,6 +15,9 @@
 #include <dispatcher/Lock.h>
 #include "Inode.h"
 #include "PathComponent.h"
+#ifndef __DISKIMAGE__
+#include <Catalog.h>
+#endif
 #include <System/Filesystem.h>
 #include <System/User.h>
 
@@ -147,7 +150,7 @@ open_class(Filesystem, Object,
     int8_t              state;
     bool                isReadOnly;
     int8_t              reserved[2];
-    FSCatalogId         catalogId;
+    CatalogId           catalogId;
 );
 open_class_funcs(Filesystem, Object,
 

@@ -14,6 +14,7 @@
 #include <kobj/Object.h>
 #include <System/FilePermissions.h>
 #include <System/User.h>
+#include <Catalog.h>
 
 typedef enum DriverOptions {
     kDriver_Exclusive = 1,    // At most one I/O channel can be open at any given time. Attempts to open more will generate a EBUSY error
@@ -144,8 +145,8 @@ open_class(Driver, Object,
     uint8_t                     flags;
     int8_t                      state;
     int                         openCount;
-    DriverCatalogId             driverCatalogId;
-    DriverCatalogId             busCatalogId;
+    CatalogId                   driverCatalogId;
+    CatalogId                   busCatalogId;
     intptr_t                    tag;
 );
 open_class_funcs(Driver, Object,
@@ -335,8 +336,8 @@ extern errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const BusEntry
 extern void Driver_Unpublish(DriverRef _Nonnull _Locked self);
 
 // Returns the bus driver catalog ID of the bus that the receiver represents.
-// Returns kDriverCatalogId_None if the receiver does not manage a bus.
-extern DriverCatalogId Driver_GetBusCatalogId(DriverRef _Nonnull self);
+// Returns kCatalogId_None if the receiver does not manage a bus.
+extern CatalogId Driver_GetBusCatalogId(DriverRef _Nonnull self);
 
 
 // Creates an I/O channel that connects the driver to a user space application

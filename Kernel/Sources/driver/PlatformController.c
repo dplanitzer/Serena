@@ -7,7 +7,7 @@
 //
 
 #include "PlatformController.h"
-#include "DriverCatalog.h"
+#include <Catalog.h>
 
 
 DriverRef gPlatformController;
@@ -22,7 +22,7 @@ errno_t PlatformController_onStart(PlatformControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
 
-    try(DriverCatalog_PublishBus(gDriverCatalog, kDriverCatalogId_None, "hw", kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0755), &((DriverRef)self)->busCatalogId));
+    try(Catalog_PublishFolder(gDriverCatalog, kCatalogId_None, "hw", kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0755), &((DriverRef)self)->busCatalogId));
     try(invoke_0(detectDevices, PlatformController, self));
 
 catch:

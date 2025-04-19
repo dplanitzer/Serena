@@ -7,7 +7,7 @@
 //
 
 #include "FilesystemManager.h"
-#include <driver/DriverCatalog.h>
+#include <Catalog.h>
 #include <driver/disk/DiskDriver.h>
 #include <filesystem/DiskFSContainer.h>
 #include <filesystem/IOChannel.h>
@@ -38,7 +38,7 @@ errno_t FilesystemManager_DiscoverAndStartFilesystem(FilesystemManagerRef _Nonnu
     decl_try_err();
     IOChannelRef chan = NULL;
 
-    if ((err = DriverCatalog_OpenDriver(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan)) == EOK) {
+    if ((err = Catalog_Open(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan)) == EOK) {
         err = FilesystemManager_DiscoverAndStartFilesystemWithChannel(self, chan, params, paramsSize, pOutFs);
     } 
     IOChannel_Release(chan);
