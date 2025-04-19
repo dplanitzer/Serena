@@ -11,7 +11,9 @@
 #include <dispatcher/SELock.h>
 #include <filesystem/FSUtilities.h>
 #include <security/SecurityManager.h>
+#include <log/Log.h>
 
+//#define LOG
 
 // Represents a filesystem and lists all the directories in this filesystem that
 // serve as attachments points for other filesystems.
@@ -91,6 +93,7 @@ void ResolvedPath_Deinit(ResolvedPath* _Nonnull self)
 // MARK: FileHierarchy
 ////////////////////////////////////////////////////////////////////////////////
 
+static void print_atnode(AtNode* _Nonnull self);
 static void destroy_atnode(AtNode* _Nullable self);
 static void _FileHierarchy_DestroyAllKeys(FileHierarchyRef _Nonnull self);
 static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, InodeRef _Nonnull rootDir, uid_t uid, gid_t gid, ino_t* _Nullable pInOutMountingDirId, InodeRef _Nullable * _Nonnull pOutParentDir);
@@ -121,11 +124,24 @@ static errno_t create_fsnode(FilesystemRef _Nonnull fs, FsNode* _Nullable * _Non
     return err;
 }
 
+#if LOG
+static void print_fsnode(FsNode* _Nonnull self)
+{
+    printf("FsNode {\n");
+    printf("fsid: %u, fs: %p\n", Filesystem_GetId(self->filesystem), (void*)self->filesystem);
+    printf("attachment points:\n");
+    List_ForEach(&self->attachmentPoints, AtNode,
+        print_atnode(pCurNode);
+    );
+    printf("}\n");
+}
+#endif
+
 static void destroy_atnode(AtNode* _Nullable self)
 {
     if (self) {
         Inode_Relinquish(self->attachingDirectory);
-        Inode_Reacquire(self->attachedDirectory);
+        Inode_Relinquish(self->attachedDirectory);
         destroy_fsnode(self->attachedFsNode);
         FSDeallocate(self);
     }
@@ -154,6 +170,16 @@ catch:
     destroy_fsnode(fsNode);
     return err;
 }
+
+#if LOG
+static void print_atnode(AtNode* _Nonnull self)
+{
+    printf("AtNode {\n");
+    printf("  attaching-dir id: %u, i-node: %p\n", Inode_GetId(self->attachingDirectory), (void*)self->attachingDirectory);
+    printf("  attached-dir  id: %u, i-node: %p\n", Inode_GetId(self->attachedDirectory), (void*)self->attachedDirectory);
+    printf("}\n");
+}
+#endif
 
 static errno_t create_key(fsid_t fsid, ino_t inid, FHKeyType type, AtNode* _Nonnull node, FHKey* _Nullable * _Nonnull pOutSelf)
 {
@@ -383,10 +409,11 @@ static void destroy_key_collection(List* _Nonnull keys)
 errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir, bool force)
 {
     decl_try_err();
+    AtNode* atNode = NULL;
+    FsNode* atFsNode = NULL;
     List keys;
 
     List_Init(&keys);
-
     try_bang(SELock_LockExclusive(&self->lock));
 
     // Make sure that the FS that we want to detach, isn't the root FS
@@ -395,21 +422,22 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
     }
 
 
-    // Make sure that 'dir' is a attachment point
-    FHKey* downKey = _FileHierarchy_GetKey(self, dir, kKeyType_Downlink);
-    if (downKey == NULL) {
+    // 'dir' is the directory that is attached to the mountpoint. Thus we want
+    // to get the uplink here.
+    FHKey* upKey = _FileHierarchy_GetKey(self, dir, kKeyType_Uplink);
+    if (upKey == NULL) {
         throw(EINVAL);
     }   
 
 
     // Make sure that the FS that we want to detach doesn't have other FSs attached
     // to it.
-    AtNode* atNode = downKey->at;
+    atNode = upKey->at;
     if (!force && !List_IsEmpty(&atNode->attachedFsNode->attachmentPoints)) {
         throw(EBUSY);
     }
 
-    FsNode* atFsNode = atNode->attachingFsNode;
+    atFsNode = atNode->attachingFsNode;
     List_Remove(&atFsNode->attachmentPoints, &atNode->sibling);
     _FileHierarchy_CollectKeysForAtNode(self, atNode, &keys);
 
