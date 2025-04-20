@@ -17,6 +17,9 @@
 #include "PathComponent.h"
 #ifndef __DISKIMAGE__
 #include <Catalog.h>
+#else
+typedef uint32_t CatalogId;
+#define kCatalogId_None 0
 #endif
 #include <System/Filesystem.h>
 #include <System/User.h>

@@ -11,9 +11,12 @@
 #include <dispatcher/SELock.h>
 #include <filesystem/FSUtilities.h>
 #include <security/SecurityManager.h>
-#include <log/Log.h>
 
 //#define LOG
+#ifdef LOG
+#include <log/Log.h>
+#endif
+
 
 // Represents a filesystem and lists all the directories in this filesystem that
 // serve as attachments points for other filesystems.
