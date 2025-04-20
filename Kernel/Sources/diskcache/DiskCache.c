@@ -7,7 +7,6 @@
 //
 
 #include "DiskCachePriv.h"
-#include <hal/MonotonicClock.h>
 #include <log/Log.h>
 
 // Define to force all writes to be synchronous
@@ -26,7 +25,6 @@ errno_t DiskCache_Create(size_t blockSize, size_t maxBlockCount, DiskCacheRef _N
     assert(maxBlockCount > 0);
     
     try(kalloc_cleared(sizeof(DiskCache), (void**) &self));
-    try(DispatchQueue_Create(0, 1, kDispatchQoS_Background, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->autoSyncQueue));
 
     Lock_Init(&self->interlock);
     ConditionVariable_Init(&self->condition);
@@ -40,8 +38,6 @@ errno_t DiskCache_Create(size_t blockSize, size_t maxBlockCount, DiskCacheRef _N
     for (int i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
         List_Init(&self->diskAddrHash[i]);
     }
-
-    _DiskCache_ScheduleAutoSync(self);
 
     *pOutSelf = self;
     return EOK;
@@ -931,20 +927,4 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskDriverRef _Nullable disk,
         }
     }
     Lock_Unlock(&self->interlock);
-}
-
-// Auto syncs cache blocks to their associated disks
-static void _DiskCache_AutoSync(DiskCacheRef _Nonnull self)
-{
-    DiskCache_Sync(self, NULL, kMediaId_Current);
-    _DiskCache_ScheduleAutoSync(self);
-}
-
-// Schedule an automatic sync of cached blocks to the disk(s)
-static void _DiskCache_ScheduleAutoSync(DiskCacheRef _Nonnull self)
-{
-    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
-    const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(30));
-
-    try_bang(DispatchQueue_DispatchAsyncAfter(self->autoSyncQueue, deadline, (VoidFunc_1) _DiskCache_AutoSync, self, 0));
 }

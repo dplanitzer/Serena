@@ -15,7 +15,6 @@
 #include <klib/List.h>
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
-#include <dispatchqueue/DispatchQueue.h>
 #include <driver/disk/DiskDriver.h>
 
 
@@ -140,7 +139,6 @@
 #endif
 
 static DiskId _DiskCache_GetNewDiskId(DiskCacheRef _Nonnull _Locked self);
-static void _DiskCache_ScheduleAutoSync(DiskCacheRef _Nonnull self);
 static errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef pBlock);
 static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull _Locked pBlock, DiskBlockOp op, bool isSync);
 
@@ -167,7 +165,6 @@ enum {
 typedef struct DiskCache {
     Lock                        interlock;
     ConditionVariable           condition;
-    DispatchQueueRef _Nonnull   autoSyncQueue;
     size_t                      lruChainGeneration;     // Incremented every time the LRU chain is modified
     List/*<DiskBlock>*/         lruChain;               // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used
     size_t                      blockSize;

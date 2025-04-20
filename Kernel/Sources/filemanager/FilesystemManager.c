@@ -8,6 +8,8 @@
 
 #include "FilesystemManager.h"
 #include <Catalog.h>
+#include <diskcache/DiskCache.h>
+#include <dispatchqueue/DispatchQueue.h>
 #include <driver/disk/DiskDriver.h>
 #include <filesystem/DiskFSContainer.h>
 #include <filesystem/IOChannel.h>
@@ -15,8 +17,11 @@
 
 
 typedef struct FilesystemManager {
-    int dummy;
+    DispatchQueueRef _Nonnull   autoSyncQueue;
 } FilesystemManager;
+
+static void _FilesystemManager_ScheduleAutoSync(FilesystemManagerRef _Nonnull self);
+
 
 
 FilesystemManagerRef _Nonnull gFilesystemManager;
@@ -27,6 +32,9 @@ errno_t FilesystemManager_Create(FilesystemManagerRef _Nullable * _Nonnull pOutS
     FilesystemManagerRef self;
 
     try(kalloc_cleared(sizeof(FilesystemManager), (void**)&self));
+    try(DispatchQueue_Create(0, 1, kDispatchQoS_Background, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->autoSyncQueue));
+
+    _FilesystemManager_ScheduleAutoSync(self);
 
 catch:
     *pOutSelf = self;
@@ -81,4 +89,16 @@ bool FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Filesy
         Filesystem_Unpublish(fs);
         return true;
     }
+}
+
+// Auto syncs cache blocks to their associated disks
+static void _FilesystemManager_AutoSync(FilesystemManagerRef _Nonnull self)
+{
+    DiskCache_Sync(gDiskCache, NULL, kMediaId_Current);
+}
+
+// Schedule an automatic sync of cached blocks to the disk(s)
+static void _FilesystemManager_ScheduleAutoSync(FilesystemManagerRef _Nonnull self)
+{
+    try_bang(DispatchQueue_DispatchAsyncPeriodically(self->autoSyncQueue, kTimeInterval_Zero, TimeInterval_MakeSeconds(30), (VoidFunc_1) _FilesystemManager_AutoSync, self, 0));
 }
