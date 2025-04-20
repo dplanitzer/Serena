@@ -88,13 +88,13 @@ catch:
     return err;
 }
 
-bool FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, bool force)
+errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, bool forced)
 {
     decl_try_err();
 
-    err = Filesystem_Stop(fs);
+    err = Filesystem_Stop(fs, forced);
     if (err == EBUSY) {
-        if (force) {
+        if (forced) {
             ReaperEntry* re;
 
             Filesystem_Unpublish(fs);
@@ -106,26 +106,34 @@ bool FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Filesy
             List_InsertAfterLast(&self->reaperQueue, &re->node);
             Lock_Unlock(&self->reaperLock);
 
-            return true;
+            return EOK;
         }
         else {
-            return false;
+            return EBUSY;
         }
     }
     else if (err == EATTACHED) {
         // Still attached somewhere else. Don't unpublish
-        return false;
+        return EATTACHED;
     }
     else {
         // Not attached anywhere else anymore and stop has worked. Unpublish
         Filesystem_Unpublish(fs);
-        return true;
+        return err;
     }
 }
 
 void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self)
 {
     DiskCache_Sync(gDiskCache, NULL, kMediaId_Current);
+}
+
+static void _FilesystemManager_ReapFilesystem(FilesystemManagerRef _Nonnull self, List* _Nonnull queue, ReaperEntry* _Nonnull entry)
+{
+    List_Remove(queue, &entry->node);
+    Object_Release(entry->fs);
+    entry->fs = NULL;
+    kfree(entry);
 }
 
 // Tries to stop and destroy filesystems that are on the reaper queue.
@@ -145,11 +153,8 @@ static void _FilesystemManager_Reaper(FilesystemManagerRef _Nonnull self)
     if (!List_IsEmpty(&queue)) {
 
         List_ForEach(&queue, ReaperEntry,
-            if (Filesystem_Stop(pCurNode->fs) == EOK) {
-                List_Remove(&queue, &pCurNode->node);
-                Object_Release(pCurNode->fs);
-                pCurNode->fs = NULL;
-                kfree(pCurNode);
+            if (Filesystem_CanDestroy(pCurNode->fs)) {
+                _FilesystemManager_ReapFilesystem(self, &queue, pCurNode);
             }
         );
 

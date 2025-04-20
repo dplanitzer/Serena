@@ -368,7 +368,12 @@ extern errno_t Filesystem_Start(FilesystemRef _Nonnull self, const void* _Nonnul
 // a filesystem I/O channel is still open. Returns EATTACHED if the filesystem
 // is still attached to a file hierarchy and EBUSY if an inode is still acquired
 // or a filesystem I/O channel is still open.
-extern errno_t Filesystem_Stop(FilesystemRef _Nonnull self);
+extern errno_t Filesystem_Stop(FilesystemRef _Nonnull self, bool forced);
+
+
+// Returns true if the filesystem is stopped and no more inodes or FS channels
+// are outstanding/open.
+extern bool Filesystem_CanDestroy(FilesystemRef _Nonnull self);
 
 
 // Called by a file hierarchy to inform the FS that it has been attached/detached

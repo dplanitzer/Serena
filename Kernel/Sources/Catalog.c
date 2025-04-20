@@ -39,26 +39,8 @@ errno_t Catalog_Create(const char* _Nonnull name, CatalogRef _Nullable * _Nonnul
     return EOK;
 
 catch:
-    Catalog_Destroy(self);
     *pOutSelf = NULL;
     return err;
-}
-
-void Catalog_Destroy(CatalogRef _Nullable self)
-{
-    if (self) {
-        Inode_Relinquish(self->rootDirectory);
-        self->rootDirectory = NULL;
-
-        Object_Release(self->fh);
-        self->fh = NULL;
-
-        Filesystem_Stop(self->fs);
-        Object_Release(self->fs);
-        self->fs = NULL;
-
-        kfree(self);
-    }
 }
 
 FilesystemRef _Nonnull Catalog_CopyFilesystem(CatalogRef _Nonnull self)

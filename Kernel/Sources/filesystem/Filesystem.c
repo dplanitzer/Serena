@@ -405,7 +405,7 @@ errno_t Filesystem_onStart(FilesystemRef _Nonnull self, const void* _Nonnull par
     return EIO;
 }
 
-errno_t Filesystem_Stop(FilesystemRef _Nonnull self)
+errno_t Filesystem_Stop(FilesystemRef _Nonnull self, bool forced)
 {
     decl_try_err();
 
@@ -416,7 +416,7 @@ errno_t Filesystem_Stop(FilesystemRef _Nonnull self)
     if (self->attachCount > 0) {
         throw(EATTACHED);
     }
-    if (self->inCachedCount > 0 || self->inReadingCount > 0 || self->openChannelsCount > 0) {
+    if ((self->inCachedCount > 0 || self->inReadingCount > 0 || self->openChannelsCount > 0) && (!forced)) {
         throw(EBUSY);
     }
 
@@ -431,6 +431,25 @@ catch:
 errno_t Filesystem_onStop(FilesystemRef _Nonnull self)
 {
     return EOK;
+}
+
+bool Filesystem_CanDestroy(FilesystemRef _Nonnull self)
+{
+    bool ok;
+
+    Lock_Lock(&self->inLock);
+    if (self->state == kFilesystemState_Active) {
+        ok = false;
+    }
+    else if (self->inCachedCount > 0 || self->inReadingCount > 0 || self->openChannelsCount > 0) {
+        ok = false;
+    }
+    else {
+        ok = true;
+    }
+    Lock_Unlock(&self->inLock);
+    
+    return ok;
 }
 
 errno_t Filesystem_open(FilesystemRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)

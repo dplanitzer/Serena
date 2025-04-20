@@ -143,8 +143,11 @@ catch:
     ResolvedPath_Deinit(&rp_atDir);
 
     if (fsToStop) {
-        FilesystemManager_StopFilesystem(gFilesystemManager, fsToStop, forced);
+        err = FilesystemManager_StopFilesystem(gFilesystemManager, fsToStop, forced);
         //XXX FS might be busy && forced == false -> should not stop and should not detach
+        //if (err == EBUSY) {
+        //
+        //}
     }
 
     return err;

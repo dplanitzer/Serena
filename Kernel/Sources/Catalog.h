@@ -25,7 +25,6 @@ extern CatalogRef _Nonnull  gFSCatalog;
 
 
 extern errno_t Catalog_Create(const char* _Nonnull name, CatalogRef _Nullable * _Nonnull pOutSelf);
-extern void Catalog_Destroy(CatalogRef _Nullable self);
 
 extern FilesystemRef _Nonnull Catalog_CopyFilesystem(CatalogRef _Nonnull self);
 
