@@ -9,16 +9,27 @@
 #include "FilesystemManager.h"
 #include <Catalog.h>
 #include <diskcache/DiskCache.h>
+#include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/disk/DiskDriver.h>
 #include <filesystem/DiskFSContainer.h>
 #include <filesystem/IOChannel.h>
 #include <filesystem/serenafs/SerenaFS.h>
+#include <klib/List.h>
+
+
+typedef struct ReaperEntry {
+    ListNode                node;
+    FilesystemRef _Nonnull  fs;
+} ReaperEntry;
 
 
 typedef struct FilesystemManager {
-    DispatchQueueRef _Nonnull   autoSyncQueue;
+    DispatchQueueRef _Nonnull   dispatchQueue;
+    Lock                        reaperLock;
+    List                        reaperQueue;
 } FilesystemManager;
+
 
 static void _FilesystemManager_ScheduleAutoSync(FilesystemManagerRef _Nonnull self);
 
@@ -32,7 +43,8 @@ errno_t FilesystemManager_Create(FilesystemManagerRef _Nullable * _Nonnull pOutS
     FilesystemManagerRef self;
 
     try(kalloc_cleared(sizeof(FilesystemManager), (void**)&self));
-    try(DispatchQueue_Create(0, 1, kDispatchQoS_Background, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->autoSyncQueue));
+    try(DispatchQueue_Create(0, 1, kDispatchQoS_Background, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
+    Lock_Init(&self->reaperLock);
 
     _FilesystemManager_ScheduleAutoSync(self);
 
@@ -82,10 +94,30 @@ bool FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Filesy
 
     err = Filesystem_Stop(fs);
     if (err == EBUSY) {
-        // XXX add support for forced stop
+        if (force) {
+            ReaperEntry* re;
+
+            Filesystem_Unpublish(fs);
+
+            try_bang(kalloc_cleared(sizeof(ReaperEntry), (void**)&re));
+            re->fs = Object_RetainAs(fs, Filesystem);
+
+            Lock_Lock(&self->reaperLock);
+            List_InsertAfterLast(&self->reaperQueue, &re->node);
+            Lock_Unlock(&self->reaperLock);
+
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    else if (err == EATTACHED) {
+        // Still attached somewhere else. Don't unpublish
         return false;
     }
     else {
+        // Not attached anywhere else anymore and stop has worked. Unpublish
         Filesystem_Unpublish(fs);
         return true;
     }
@@ -96,8 +128,50 @@ void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self)
     DiskCache_Sync(gDiskCache, NULL, kMediaId_Current);
 }
 
+// Tries to stop and destroy filesystems that are on the reaper queue.
+static void _FilesystemManager_Reaper(FilesystemManagerRef _Nonnull self)
+{
+    List queue;
+
+    // Take a snapshot of the reaper queue so that we can do our work without
+    // having to hold the lock.
+    Lock_Lock(&self->reaperLock);
+    queue = self->reaperQueue;
+    List_Init(&self->reaperQueue);
+    Lock_Unlock(&self->reaperLock);
+
+    
+    // Kill as many filesystems as we can
+    if (!List_IsEmpty(&queue)) {
+
+        List_ForEach(&queue, ReaperEntry,
+            if (Filesystem_Stop(pCurNode->fs) == EOK) {
+                List_Remove(&queue, &pCurNode->node);
+                Object_Release(pCurNode->fs);
+                pCurNode->fs = NULL;
+                kfree(pCurNode);
+            }
+        );
+
+
+        // Put the rest back on the reaper queue
+        Lock_Lock(&self->reaperLock);
+        List_ForEach(&queue, ReaperEntry,
+            List_Remove(&queue, &pCurNode->node);
+            List_InsertBeforeFirst(&self->reaperQueue, &pCurNode->node);
+        );
+        Lock_Unlock(&self->reaperLock);
+    }
+}
+
+static void _FilesystemManager_DoBgWork(FilesystemManagerRef _Nonnull self)
+{
+    FilesystemManager_Sync(self);
+    _FilesystemManager_Reaper(self);
+}
+
 // Schedule an automatic sync of cached blocks to the disk(s)
 static void _FilesystemManager_ScheduleAutoSync(FilesystemManagerRef _Nonnull self)
 {
-    try_bang(DispatchQueue_DispatchAsyncPeriodically(self->autoSyncQueue, kTimeInterval_Zero, TimeInterval_MakeSeconds(30), (VoidFunc_1) FilesystemManager_Sync, self, 0));
+    try_bang(DispatchQueue_DispatchAsyncPeriodically(self->dispatchQueue, kTimeInterval_Zero, TimeInterval_MakeSeconds(30), (VoidFunc_1) _FilesystemManager_DoBgWork, self, 0));
 }

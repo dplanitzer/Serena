@@ -413,7 +413,10 @@ errno_t Filesystem_Stop(FilesystemRef _Nonnull self)
     if (self->state != kFilesystemState_Active) {
         throw(ENXIO);
     }
-    if (self->inCachedCount > 0 || self->inReadingCount > 0 || self->useCount > 0 || self->openChannelsCount > 0) {
+    if (self->useCount > 0) {
+        throw(EATTACHED);
+    }
+    if (self->inCachedCount > 0 || self->inReadingCount > 0 || self->openChannelsCount > 0) {
         throw(EBUSY);
     }
 

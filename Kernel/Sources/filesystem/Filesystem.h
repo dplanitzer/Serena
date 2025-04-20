@@ -356,7 +356,18 @@ extern errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnu
 #define Filesystem_GetId(__fs) \
     ((FilesystemRef)(__fs))->fsid
 
+
+// Starts the filesystem. This causes the filesystem implementation to read its
+// superblock, validate basic filesystem information and determines the root
+// directory.
 extern errno_t Filesystem_Start(FilesystemRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize);
+
+// Stops the filesystem. Returns EOK if the filesystem could be stopped. A
+// filesystem can not be stop as long as it is still attached to some file
+// hierarchy, an inode is still acquired or in the process of being acquired or
+// a filesystem I/O channel is still open. Returns EATTACHED if the filesystem
+// is still attached to a file hierarchy and EBUSY if an inode is still acquired
+// or a filesystem I/O channel is still open.
 extern errno_t Filesystem_Stop(FilesystemRef _Nonnull self);
 
 

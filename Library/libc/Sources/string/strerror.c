@@ -55,6 +55,7 @@ char *strerror(int err_no)
         /*ETERMINATED*/     "Terminated",
         /*ENOTSUP*/         "Operation not supported",
         /*ENXIO*/           "No such device or address",
+        /*EATTACHED*/       "Resource is still attached",
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {

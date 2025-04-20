@@ -144,6 +144,7 @@ catch:
 
     if (fsToStop) {
         FilesystemManager_StopFilesystem(gFilesystemManager, fsToStop, forced);
+        //XXX FS might be busy && forced == false -> should not stop and should not detach
     }
 
     return err;
