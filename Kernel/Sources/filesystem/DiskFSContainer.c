@@ -7,7 +7,6 @@
 //
 
 #include "DiskFSContainer.h"
-#include <diskcache/DiskCache.h>
 #include <driver/DriverChannel.h>
 #include <driver/disk/DiskDriver.h>
 #include <filesystem/IOChannel.h>
@@ -34,6 +33,7 @@ errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _N
     self->channel = IOChannel_Retain(pChannel);
     self->disk = DriverChannel_GetDriverAs(pChannel, DiskDriver);
     self->diskCache = DiskDriver_GetDiskCache(self->disk);
+    DiskCache_OpenSession(self->diskCache, self->disk, info.mediaId, &self->session);
 
 catch:
     *pOutSelf = (FSContainerRef)self;
@@ -46,33 +46,38 @@ void DiskFSContainer_deinit(struct DiskFSContainer* _Nonnull self)
     
     IOChannel_Release(self->channel);
     self->channel = NULL;
+
+    if (self->diskCache) {
+        DiskCache_CloseSession(self->diskCache, &self->session);
+    }
 }
 
 void DiskFSContainer_disconnect(struct DiskFSContainer* _Nonnull self)
 {
     DiskCache_Sync(self->diskCache, self->disk, FSContainer_GetMediaId(self));
+    DiskCache_CloseSession(self->diskCache, &self->session);
 }
 
 
 errno_t DiskFSContainer_mapBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
-    return DiskCache_MapBlock(self->diskCache, self->disk, FSContainer_GetMediaId(self), lba, mode, blk);
+    return DiskCache_MapBlock(self->diskCache, &self->session, lba, mode, blk);
 }
 
 errno_t DiskFSContainer_unmapBlock(struct DiskFSContainer* _Nonnull self, intptr_t token, WriteBlock mode)
 {
-    return DiskCache_UnmapBlock(self->diskCache, token, mode);
+    return DiskCache_UnmapBlock(self->diskCache, &self->session, token, mode);
 }
 
 errno_t DiskFSContainer_prefetchBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba)
 {
-    return DiskCache_PrefetchBlock(self->diskCache, self->disk, FSContainer_GetMediaId(self), lba);
+    return DiskCache_PrefetchBlock(self->diskCache, &self->session, lba);
 }
 
 
 errno_t DiskFSContainer_syncBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba)
 {
-    return DiskCache_SyncBlock(self->diskCache, self->disk, FSContainer_GetMediaId(self), lba);
+    return DiskCache_SyncBlock(self->diskCache, &self->session, lba);
 }
 
 errno_t DiskFSContainer_sync(struct DiskFSContainer* _Nonnull self)

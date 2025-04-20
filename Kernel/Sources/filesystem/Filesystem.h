@@ -119,7 +119,7 @@ enum {
 //            can not be acquired anymore and no filesystem channel can be opened
 //            anymore.
 // - Force Stopped (Zombie): filesystem was force stopped and is not yet destroyed.
-//                           There are still inodes outstanding and/or fopen
+//                           There are still inodes outstanding and/or open
 //                           filesystem channels active. Filesystem is disconnected
 //                           from its underlying storage. Root node can not be
 //                           acquired anymore. Filesystem channel can not be

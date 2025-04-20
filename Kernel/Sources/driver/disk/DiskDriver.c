@@ -336,23 +336,25 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
     const size_t blockMask = blockSize - 1;
     LogicalBlockAddress blockIdx = (LogicalBlockAddress)(offset >> (off_t)blockShift);
     ssize_t blockOffset = (ssize_t)(offset & (off_t)blockMask);
+    DiskSession s;
 
 
     // Iterate through a contiguous sequence of blocks until we've read all
     // required bytes.
+    DiskCache_OpenSession(self->diskCache, self, mediaId, &s);
     while (nBytesToRead > 0) {
         const ssize_t nRemainderBlockSize = (ssize_t)blockSize - blockOffset;
         const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
         FSBlock blk = {0};
 
-        errno_t e1 = DiskCache_MapBlock(self->diskCache, self, mediaId, blockIdx, kMapBlock_ReadOnly, &blk);
+        errno_t e1 = DiskCache_MapBlock(self->diskCache, &s, blockIdx, kMapBlock_ReadOnly, &blk);
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
             break;
         }
         
         memcpy(dp, blk.data + blockOffset, nBytesToReadInBlock);
-        DiskCache_UnmapBlock(self->diskCache, blk.token, kWriteBlock_None);
+        DiskCache_UnmapBlock(self->diskCache, &s, blk.token, kWriteBlock_None);
 
         nBytesToRead -= nBytesToReadInBlock;
         nBytesRead += nBytesToReadInBlock;
@@ -361,6 +363,7 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
         blockOffset = 0;
         blockIdx++;
     }
+    DiskCache_CloseSession(self->diskCache, &s);
 
     if (nBytesRead > 0) {
         IOChannel_IncrementOffsetBy(ch, nBytesRead);
@@ -422,20 +425,22 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
     const size_t blockMask = blockSize - 1;
     LogicalBlockAddress blockIdx = (LogicalBlockAddress)(offset >> (off_t)blockShift);
     ssize_t blockOffset = (ssize_t)(offset & (off_t)blockMask);
+    DiskSession s;
 
 
     // Iterate through a contiguous sequence of blocks until we've written all
     // required bytes.
+    DiskCache_OpenSession(self->diskCache, self, mediaId, &s);
     while (nBytesToWrite > 0) {
         const ssize_t nRemainderBlockSize = (ssize_t)blockSize - blockOffset;
         const ssize_t nBytesToWriteInBlock = (nBytesToWrite > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToWrite;
         MapBlock mmode = (nBytesToWriteInBlock == (ssize_t)blockSize) ? kMapBlock_Replace : kMapBlock_Update;
         FSBlock blk = {0};
 
-        errno_t e1 = DiskCache_MapBlock(self->diskCache, self, mediaId, blockIdx, mmode, &blk);
+        errno_t e1 = DiskCache_MapBlock(self->diskCache, &s, blockIdx, mmode, &blk);
         if (e1 == EOK) {
             memcpy(blk.data + blockOffset, sp, nBytesToWriteInBlock);
-            e1 = DiskCache_UnmapBlock(self->diskCache, blk.token, kWriteBlock_Sync);
+            e1 = DiskCache_UnmapBlock(self->diskCache, &s, blk.token, kWriteBlock_Sync);
         }
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;
@@ -449,6 +454,7 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
         blockOffset = 0;
         blockIdx++;
     }
+    DiskCache_CloseSession(self->diskCache, &s);
 
     if (nBytesWritten > 0) {
         IOChannel_IncrementOffsetBy(ch, nBytesWritten);

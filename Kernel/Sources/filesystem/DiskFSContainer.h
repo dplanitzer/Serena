@@ -10,6 +10,7 @@
 #define DiskFSContainer_h
 
 #include <filesystem/FSContainer.h>
+#include <diskcache/DiskCache.h>
 
 
 // FSContainer which represents a single disk or disk partition.
@@ -17,6 +18,7 @@ open_class(DiskFSContainer, FSContainer,
     IOChannelRef _Nonnull           channel;
     DiskDriverRef _Nonnull _Weak    disk;
     DiskCacheRef _Nonnull           diskCache;
+    DiskSession                     session;
 );
 open_class_funcs(DiskFSContainer, FSContainer,
 );
