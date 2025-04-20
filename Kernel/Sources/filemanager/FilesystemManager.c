@@ -91,8 +91,7 @@ bool FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Filesy
     }
 }
 
-// Auto syncs cache blocks to their associated disks
-static void _FilesystemManager_AutoSync(FilesystemManagerRef _Nonnull self)
+void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self)
 {
     DiskCache_Sync(gDiskCache, NULL, kMediaId_Current);
 }
@@ -100,5 +99,5 @@ static void _FilesystemManager_AutoSync(FilesystemManagerRef _Nonnull self)
 // Schedule an automatic sync of cached blocks to the disk(s)
 static void _FilesystemManager_ScheduleAutoSync(FilesystemManagerRef _Nonnull self)
 {
-    try_bang(DispatchQueue_DispatchAsyncPeriodically(self->autoSyncQueue, kTimeInterval_Zero, TimeInterval_MakeSeconds(30), (VoidFunc_1) _FilesystemManager_AutoSync, self, 0));
+    try_bang(DispatchQueue_DispatchAsyncPeriodically(self->autoSyncQueue, kTimeInterval_Zero, TimeInterval_MakeSeconds(30), (VoidFunc_1) FilesystemManager_Sync, self, 0));
 }

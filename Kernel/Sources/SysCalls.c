@@ -6,9 +6,9 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <diskcache/DiskCache.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <dispatchqueue/DispatchQueue.h>
+#include <filemanager/FilesystemManager.h>
 #include <filesystem/IOChannel.h>
 #include <hal/MonotonicClock.h>
 #include <process/Process.h>
@@ -500,7 +500,7 @@ SYSCALL_2(unmount, const char* _Nullable atDirPath, UnmountOptions options)
 
 SYSCALL_0(sync)
 {
-    DiskCache_Sync(gDiskCache, NULL, kMediaId_Current);
+    FilesystemManager_Sync(gFilesystemManager);
     return EOK;
 }
 

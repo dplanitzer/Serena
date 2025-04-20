@@ -34,4 +34,8 @@ extern errno_t FilesystemManager_DiscoverAndStartFilesystemWithChannel(Filesyste
 // soon as the last use on it has disappeared.
 extern bool FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, bool force);
 
+// Syncs all filesystems and modified blocks to disk. Blocks until the sync is
+// complete.
+extern void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self);
+
 #endif /* FilesystemManager_h */
