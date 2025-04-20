@@ -151,8 +151,8 @@ open_class(Filesystem, Object,
     bool                isReadOnly;
     int8_t              reserved[2];
     CatalogId           catalogId;
-    int                 useCount;   // Protected by inLock
-    int                 openChannelsCount;  // Protected by inLock
+    int                 attachCount;        // Count of times this FS instance has been attached to file hierarchies Protected by inLock
+    int                 openChannelsCount;  // Count of open FS channels. Protected by inLock
 );
 open_class_funcs(Filesystem, Object,
 
@@ -371,8 +371,10 @@ extern errno_t Filesystem_Start(FilesystemRef _Nonnull self, const void* _Nonnul
 extern errno_t Filesystem_Stop(FilesystemRef _Nonnull self);
 
 
-extern void Filesystem_BeginUse(FilesystemRef _Nonnull self);
-extern void Filesystem_EndUse(FilesystemRef _Nonnull self);
+// Called by a file hierarchy to inform the FS that it has been attached/detached
+// to/from a file hierarchy.
+extern void Filesystem_NoteAttached(FilesystemRef _Nonnull self);
+extern void Filesystem_NoteDetached(FilesystemRef _Nonnull self);
 
 
 extern errno_t Filesystem_Publish(FilesystemRef _Nonnull self);

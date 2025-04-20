@@ -94,18 +94,18 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
     ConditionVariable_Deinit(&self->inCondVar);
 }
 
-void Filesystem_BeginUse(FilesystemRef _Nonnull self)
+void Filesystem_NoteAttached(FilesystemRef _Nonnull self)
 {
     Lock_Lock(&self->inLock);
-    self->useCount++;
+    self->attachCount++;
     Lock_Unlock(&self->inLock);
 }
 
-void Filesystem_EndUse(FilesystemRef _Nonnull self)
+void Filesystem_NoteDetached(FilesystemRef _Nonnull self)
 {
     Lock_Lock(&self->inLock);
-    assert(self->useCount > 0);
-    self->useCount--;
+    assert(self->attachCount > 0);
+    self->attachCount--;
     Lock_Unlock(&self->inLock);
 }
 
@@ -413,7 +413,7 @@ errno_t Filesystem_Stop(FilesystemRef _Nonnull self)
     if (self->state != kFilesystemState_Active) {
         throw(ENXIO);
     }
-    if (self->useCount > 0) {
+    if (self->attachCount > 0) {
         throw(EATTACHED);
     }
     if (self->inCachedCount > 0 || self->inReadingCount > 0 || self->openChannelsCount > 0) {
