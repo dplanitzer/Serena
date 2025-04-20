@@ -18,8 +18,10 @@
 #ifndef __DISKIMAGE__
 #include <Catalog.h>
 #else
+// XXX come up with a better way of handling this
 typedef uint32_t CatalogId;
 #define kCatalogId_None 0
+#define EATTACHED 1024
 #endif
 #include <System/Filesystem.h>
 #include <System/User.h>
@@ -56,7 +58,7 @@ enum {
 // the filesystem to write inode metadata changes back to the underlying storage
 // device.
 //
-// The underlying medium
+// The Underlying Medium
 //
 // Every filesystem sits on top of some medium and it is responsible for managing
 // the data on this medium. A medium can be anything as far as the abstract
@@ -70,7 +72,7 @@ enum {
 // should derive from ContainerFilesystem instead of Filesystem.
 //
 //
-// Filesystem and inode lifetimes:
+// Filesystem and Inode Lifetimes:
 //
 // The lifetime of a filesystem instance is always >= the lifetime of all
 // acquired inodes. This is guaranteed by ensuring that a filesystem can not be
@@ -81,7 +83,7 @@ enum {
 // one) to ensure that the filesystem stays alive.
 //
 //
-// Starting/stopping a filesystem:
+// Starting/Stopping a Filesystem:
 //
 // A filesystem must be started before it can be used and the root inode can be
 // acquired. An active/running filesystem instance can be stopped at any time. A
@@ -104,7 +106,29 @@ enum {
 // longer connected to its underlying storage.
 //
 //
-// Locking protocol(s):
+// Filesystem Lifetime States
+//
+// A filesystem goes through the following lifetime states:
+// - Idle: filesystem was just created and hasn't been started yet.
+// - Started: filesystem was started and is connected to its underlying medium
+//            or storage. Filesystem is free to read/write its storage as needed.
+//            The root node may be acquired and a filesystem channel may be opened.
+// - Stopped: filesystem was stopped unforced and not isn't yet destroyed. No
+//            inodes are outstanding and no filesystem channels are open. The
+//            filesystem is disconnected from its underlying storage. Root node
+//            can not be acquired anymore and no filesystem channel can be opened
+//            anymore.
+// - Force Stopped (Zombie): filesystem was force stopped and is not yet destroyed.
+//                           There are still inodes outstanding and/or fopen
+//                           filesystem channels active. Filesystem is disconnected
+//                           from its underlying storage. Root node can not be
+//                           acquired anymore. Filesystem channel can not be
+//                           acquired anymore.
+// - Destroyed: filesystem is gone for good.
+//
+//
+//
+// Locking Protocol(s):
 //
 // File & Directory I/O Channels:
 //
@@ -190,11 +214,21 @@ open_class_funcs(Filesystem, Object,
     // in any case.
     // A stopped filesystem may not be restarted and no more inodes can be
     // acquired.
-    // Note that overrides of this method are expected to sync dirty blocks that
-    // belong to this filesystem to the disk before this function returns.
+    // Note that the filesystem will receive a call to disconnect() next once
+    // this method has returned.
     // Override: Optional
     // Default Behavior: Returns EOK
     errno_t (*onStop)(void* _Nonnull self);
+
+    // Invoked after onStop() has returned to disconnect the filesystem from its
+    // underlying storage. Every filesystem implementation must guarantee that
+    // it will not access/read/write this storage ever again once this method
+    // has returned. Instead of accessing the storage the filesystem should
+    // return a suitable error such as ENODEV to its clients.
+    // Override: Optional
+    // Default Behavior: Syncs the disk cache. ContainerFilesystem also
+    // disconnects its FSContainer
+    void (*disconnect)(void* _Nonnull self);
 
 
     // Invoked as the result of calling Filesystem_Open(). A filesystem subclass
@@ -472,6 +506,10 @@ invoke_n(onStart, Filesystem, __self, __pParams, __paramsSize, __fsProps)
 
 #define Filesystem_OnStop(__self) \
 invoke_0(onStop, Filesystem, __self)
+
+#define Filesystem_Disconnect(__self) \
+invoke_0(disconnect, Filesystem, __self)
+
 
 // Acquires the inode with the ID 'id'. This methods guarantees that there will
 // always only be at most one inode instance in memory at any given time and

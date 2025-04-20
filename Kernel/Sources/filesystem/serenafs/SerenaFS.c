@@ -118,10 +118,6 @@ errno_t SerenaFS_onStop(SerenaFSRef _Nonnull self)
     SfsAllocator_CommitToDisk(&self->blockAllocator, Filesystem_GetContainer(self));
     SfsAllocator_Stop(&self->blockAllocator);
 
-
-    // Synchronously flush all cached disk blocks to disk before we return
-    FSContainer_Sync(Filesystem_GetContainer(self));
-
     return EOK;
 }
 

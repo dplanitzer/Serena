@@ -28,6 +28,11 @@ void ContainerFilesystem_deinit(struct ContainerFilesystem* _Nonnull self)
     self->fsContainer = NULL;
 }
 
+void ContainerFilesystem_disconnect(struct ContainerFilesystem* _Nonnull self)
+{
+    FSContainer_Disconnect(self->fsContainer);
+}
+
 errno_t ContainerFilesystem_getDiskName(struct ContainerFilesystem* _Nonnull self, size_t bufSize, char* _Nonnull buf)
 {
     return FSContainer_GetDiskName(self->fsContainer, bufSize, buf);
@@ -36,5 +41,6 @@ errno_t ContainerFilesystem_getDiskName(struct ContainerFilesystem* _Nonnull sel
 
 class_func_defs(ContainerFilesystem, Filesystem,
 override_func_def(deinit, ContainerFilesystem, Object)
+override_func_def(disconnect, ContainerFilesystem, Filesystem)
 override_func_def(getDiskName, ContainerFilesystem, Filesystem)
 );

@@ -26,16 +26,17 @@ open_class(FSContainer, Object,
 );
 open_class_funcs(FSContainer, Object,
 
-    // Prefetches a block and stores it in the disk cache if possible. The prefetch
-    // is executed asynchronously. An error is returned if the prefetch could not
-    // be successfully started. Note that the returned error does not indicate
-    // whether the read operation as such was successful or not.
-    errno_t (*prefetchBlock)(void* _Nonnull self, LogicalBlockAddress lba);
+    // Invoked by the filesystem to disconnect it from the underlying storage.
+    // This method guarantees that (1) it syncs all cached/pending data to the
+    // underlying storage (synchronously) before returning and that (2) all
+    // future map, prefetch, sync, etc requests will return with an ENODEV error
+    // and never access the storage again. Additionally this method guarantees
+    // that it will block the caller as long as an active mapping is still
+    // outstanding (means that as long as there's a mapBlock() without a
+    // matching unmapBlock() active, this method will wait for the unmapBlock()
+    // to happen before it disconnects).
+    void (*disconnect)(void* _Nonnull self);
 
-    // Synchronously flushes the block at the logical block address 'lba' to
-    // disk if it contains unwritten (dirty) data. Does nothing if the block is
-    // clean.
-    errno_t (*syncBlock)(void* _Nonnull self, LogicalBlockAddress lba);
 
     // Acquires the disk block with the block address 'lba'. The acquisition is
     // done according to the acquisition mode 'mode'. An error is returned if
@@ -47,6 +48,18 @@ open_class_funcs(FSContainer, Object,
     // Unmaps the disk block 'pBlock' and writes the disk block back to
     // disk according to the write back mode 'mode'.
     errno_t (*unmapBlock)(void* _Nonnull self, intptr_t token, WriteBlock mode);
+
+    // Prefetches a block and stores it in the disk cache if possible. The prefetch
+    // is executed asynchronously. An error is returned if the prefetch could not
+    // be successfully started. Note that the returned error does not indicate
+    // whether the read operation as such was successful or not.
+    errno_t (*prefetchBlock)(void* _Nonnull self, LogicalBlockAddress lba);
+
+
+    // Synchronously flushes the block at the logical block address 'lba' to
+    // disk if it contains unwritten (dirty) data. Does nothing if the block is
+    // clean.
+    errno_t (*syncBlock)(void* _Nonnull self, LogicalBlockAddress lba);
 
     // Synchronously flushes all cached and unwritten blocks belonging to this
     // FS container to disk(s).
@@ -79,11 +92,8 @@ open_class_funcs(FSContainer, Object,
 ((((FSContainerRef)__self)->properties & kFSProperty_IsReadOnly) == kFSProperty_IsReadOnly ? true : false)
 
 
-#define FSContainer_PrefetchBlock(__self, __driverId, __mediaId, __lba) \
-invoke_n(prefetchBlock, FSContainer, __self, __driverId, __mediaId, __lba)
-
-#define FSContainer_SyncBlock(__self, __driverId, __mediaId, __lba) \
-invoke_n(syncBlock, FSContainer, __self, __driverId, __mediaId, __lba)
+#define FSContainer_Disconnect(__self) \
+invoke_0(disconnect, FSContainer, __self)
 
 
 #define FSContainer_MapBlock(__self, __lba, __mode, __blk) \
@@ -92,6 +102,12 @@ invoke_n(mapBlock, FSContainer, __self, __lba, __mode, __blk)
 #define FSContainer_UnmapBlock(__self, __token, __mode) \
 invoke_n(unmapBlock, FSContainer, __self, __token, __mode)
 
+#define FSContainer_PrefetchBlock(__self, __driverId, __mediaId, __lba) \
+invoke_n(prefetchBlock, FSContainer, __self, __driverId, __mediaId, __lba)
+
+
+#define FSContainer_SyncBlock(__self, __driverId, __mediaId, __lba) \
+invoke_n(syncBlock, FSContainer, __self, __driverId, __mediaId, __lba)
 
 #define FSContainer_Sync(__self) \
 invoke_0(sync, FSContainer, __self)

@@ -28,15 +28,10 @@ errno_t FSContainer_Create(Class* _Nonnull pClass, MediaId mediaId, LogicalBlock
     return err;
 }
 
-errno_t FSContainer_prefetchBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba)
+void FSContainer_disconnect(FSContainerRef _Nonnull self)
 {
-    return EOK;
 }
 
-errno_t FSContainer_syncBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba)
-{
-    return EOK;
-}
 
 errno_t FSContainer_mapBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
@@ -51,10 +46,22 @@ errno_t FSContainer_unmapBlock(FSContainerRef _Nonnull self, intptr_t token, Wri
     return EIO;
 }
 
+errno_t FSContainer_prefetchBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba)
+{
+    return EOK;
+}
+
+
+errno_t FSContainer_syncBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba)
+{
+    return EOK;
+}
+
 errno_t FSContainer_sync(FSContainerRef _Nonnull self)
 {
     return EOK;
 }
+
 
 errno_t FSContainer_getDiskName(FSContainerRef _Nonnull self, size_t bufSize, char* _Nonnull buf)
 {
@@ -67,10 +74,11 @@ errno_t FSContainer_getDiskName(FSContainerRef _Nonnull self, size_t bufSize, ch
 }
 
 class_func_defs(FSContainer, Object,
-func_def(prefetchBlock, FSContainer)
-func_def(syncBlock, FSContainer)
+func_def(disconnect, FSContainer)
 func_def(mapBlock, FSContainer)
 func_def(unmapBlock, FSContainer)
+func_def(prefetchBlock, FSContainer)
+func_def(syncBlock, FSContainer)
 func_def(sync, FSContainer)
 func_def(getDiskName, FSContainer)
 );
