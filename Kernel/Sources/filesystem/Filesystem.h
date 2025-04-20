@@ -84,13 +84,24 @@ enum {
 // Starting/stopping a filesystem:
 //
 // A filesystem must be started before it can be used and the root inode can be
-// acquired. Conversely all acquired inodes must have been relinquished before
-// the filesystem can be stopped and destroyed. However a filesystem may be
-// force-stopped which means that the filesystem is removed from the file
-// hierarchy (and thus is no longer accessible by any process) and the actual
-// stop and destruction action is deferred until the last acquired inode is
-// relinquished. Note that a particular filesystem instance can be started at
-// most once in its lifetime.
+// acquired. An active/running filesystem instance can be stopped at any time. A
+// stop may be forced or unforced: a forced means that the filesystem is stopped
+// even if there are still inode instances outstanding or an open channel to the
+// filesystem instance itself exists. An unforced stop will fail the stop if any
+// of these conditions is true and the filesystem remains in active state.
+// A stopped filesystem (whether unforced or forced stop) can not be destroyed
+// as long as there are still inodes outstanding or an open channel to the
+// filesystem exists. The filesystem will only be destroyed after all the
+// outstanding inodes have been relinquished and all open filesystem channels
+// have been closed. This is taken care of by the FilesystemManager reaper.
+// Stopping a filesystem causes it to flush all pending/cached data to disk
+// (synchronously) and it disconnects the filesystem from its underlying storage.
+// This guarantees that the filesystem will no longer be able to read/write the
+// underlying storage.
+// A forced stopped filesystem that hasn't been destructed yet is known as a
+// "zombie" filesystem because it no longer allows you to acquire its root node
+// and all I/O operations will fail with a ENODEV since the filesystem is no
+// longer connected to its underlying storage.
 //
 //
 // Locking protocol(s):
