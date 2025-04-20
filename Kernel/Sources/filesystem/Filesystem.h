@@ -56,7 +56,7 @@ enum {
 // The underlying medium
 //
 // Every filesystem sits on top of some medium and it is responsible for managing
-// the data of this medium. A medium can be anything as far as the abstract
+// the data on this medium. A medium can be anything as far as the abstract
 // Filesystem base class is concerned: it may be a physical disk, a tape or maybe
 // some kind of object that only exists in memory and does not even persist across
 // reboot.
@@ -64,30 +64,30 @@ enum {
 // on top of a FSContainer. A FSContainer represents a logical disk which may map
 // 1:1 to a single physical disk or an array of physical disks. Concrete filesystem
 // implementations which are meant to implement a traditional disk-based filesystem
-// should derive from ContainerFilesystem instead of Filesystem directly.
+// should derive from ContainerFilesystem instead of Filesystem.
 //
 //
 // Filesystem and inode lifetimes:
 //
 // The lifetime of a filesystem instance is always >= the lifetime of all
 // acquired inodes. This is guaranteed by ensuring that a filesystem can not be
-// destroyed as long as there is at least one acquired inode outstanding. Thus
-// it is sufficient to either hold a strong reference to a filesystem object
-// (use Object_Retain() to get it) or a strong reference to an inode from the
-// filesystem in question (use Filesystem_AcquireNode() to get one) to ensure
-// that the filesystem stays alive.
+// stopped and destroyed as long as there is at least one acquired inode
+// outstanding. Thus it is sufficient to either hold a strong reference to a
+// filesystem object (use Object_Retain() to get it) or a strong reference to
+// an inode from the filesystem in question (use Filesystem_AcquireNode() to get
+// one) to ensure that the filesystem stays alive.
 //
 //
 // Starting/stopping a filesystem:
 //
-// A filesystem must be started before it can be used and any inodes can be
+// A filesystem must be started before it can be used and the root inode can be
 // acquired. Conversely all acquired inodes must have been relinquished before
 // the filesystem can be stopped and destroyed. However a filesystem may be
 // force-stopped which means that the filesystem is removed from the file
 // hierarchy (and thus is no longer accessible by any process) and the actual
-// destruction action is deferred until the last acquired inode is relinquished.
-// Note that a particular filesystem instance can be started at most once at any
-// given time.
+// stop and destruction action is deferred until the last acquired inode is
+// relinquished. Note that a particular filesystem instance can be started at
+// most once in its lifetime.
 //
 //
 // Locking protocol(s):
@@ -122,9 +122,6 @@ enum {
 // implement anything special to make this semantic work. Subclasses simply
 // override the onStart() and onStop() methods to implement the filesystem
 // specific portions of starting and stopping the filesystem.
-//
-// Note that reacquiring an already acquired node or relinquishing is possible
-// event after the underlying filesystem has been stopped.
 //
 // Remember that a filesystem can not be stopped and neither deallocated as
 // long as there is at least one acquired inode outstanding. Because of this and
@@ -178,7 +175,9 @@ open_class_funcs(Filesystem, Object,
     // are ignored and the file system manager will complete the stop operation
     // in any case.
     // A stopped filesystem may not be restarted and no more inodes can be
-    // acquired. However, already existing inodes may still be relinquished.
+    // acquired.
+    // Note that overrides of this method are expected to sync dirty blocks that
+    // belong to this filesystem to the disk before this function returns.
     // Override: Optional
     // Default Behavior: Returns EOK
     errno_t (*onStop)(void* _Nonnull self);
