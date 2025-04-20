@@ -151,6 +151,8 @@ open_class(Filesystem, Object,
     bool                isReadOnly;
     int8_t              reserved[2];
     CatalogId           catalogId;
+    int                 useCount;   // Protected by inLock
+    int                 openChannelsCount;  // Protected by inLock
 );
 open_class_funcs(Filesystem, Object,
 
@@ -356,6 +358,10 @@ extern errno_t Filesystem_Start(FilesystemRef _Nonnull self, const void* _Nonnul
 extern errno_t Filesystem_Stop(FilesystemRef _Nonnull self);
 
 
+extern void Filesystem_BeginUse(FilesystemRef _Nonnull self);
+extern void Filesystem_EndUse(FilesystemRef _Nonnull self);
+
+
 extern errno_t Filesystem_Publish(FilesystemRef _Nonnull self);
 extern errno_t Filesystem_Unpublish(FilesystemRef _Nonnull self);
 
@@ -449,10 +455,6 @@ invoke_0(onStop, Filesystem, __self)
 // \param id the id of the inode to acquire
 // \param pOutNode receives the acquired inode
 extern errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode);
-
-// Returns true if the filesystem can be stopped which means that there are no
-// acquired inodes outstanding that belong to this filesystem.
-extern bool Filesystem_CanStop(FilesystemRef _Nonnull self);
 
 #define Filesystem_OnAcquireNode(__self, __id, __pOutNode) \
 invoke_n(onAcquireNode, Filesystem, __self, __id, __pOutNode)

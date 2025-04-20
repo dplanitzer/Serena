@@ -35,8 +35,8 @@ typedef struct AtNode {
 } AtNode;
 
 typedef enum FHKeyType {
-    kKeyType_Uplink,
-    kKeyType_Downlink       // Use this to check whether the file hierarchy knows a particular fsid, inid
+    kKeyType_Uplink,        // Represents moving from the root directory of an attached filesystem to the attaching directory inside the filesystem we're attached to
+    kKeyType_Downlink       // Represents moving from the attaching filesystem down to the attached filesystem. Use this to check whether the file hierarchy knows a particular fsid, inid
 } FHKeyType;
 
 // Hashtable entry that maps the (fsid, inid, type) of a directory to the
@@ -365,6 +365,7 @@ errno_t FileHierarchy_AttachFilesystem(FileHierarchyRef _Nonnull self, Filesyste
     _FileHierarchy_InsertKey(self, downKey);
 
     List_InsertAfterLast(&atFsNode->attachmentPoints, &atNode->sibling);
+    Filesystem_BeginUse(fs);
 
     try_bang(SELock_Unlock(&self->lock));
     return EOK;
@@ -403,9 +404,10 @@ static void destroy_key_collection(List* _Nonnull keys)
     }
 }
 
-// Detaches the filesystem attached to directory 'dir'. The detachment will fail
-// if the filesystem which is attached to 'dir' hosts other attached filesystems.
-// However, the detachment will be recursively applied if 'force' is true.
+// Detaches the filesystem who's directory 'dir' is attached to another filesystem.
+// The detachment will fail if the filesystem which is attached to 'dir' hosts
+// other attached filesystems. However, the detachment will be recursively
+// applied if 'force' is true.
 errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir, bool force)
 {
     decl_try_err();
@@ -430,8 +432,8 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
     }   
 
 
-    // Make sure that the FS that we want to detach doesn't have other FSs attached
-    // to it.
+    // Make sure that the FS that we want to detach doesn't have other FS'
+    // attached to it.
     atNode = upKey->at;
     if (!force && !List_IsEmpty(&atNode->attachedFsNode->attachmentPoints)) {
         throw(EBUSY);
@@ -440,6 +442,7 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
     atFsNode = atNode->attachingFsNode;
     List_Remove(&atFsNode->attachmentPoints, &atNode->sibling);
     _FileHierarchy_CollectKeysForAtNode(self, atNode, &keys);
+    Filesystem_EndUse(atNode->attachedFsNode->filesystem);
 
 catch:
     try_bang(SELock_Unlock(&self->lock));

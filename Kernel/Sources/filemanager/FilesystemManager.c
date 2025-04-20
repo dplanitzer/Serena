@@ -67,3 +67,18 @@ catch:
 
     return err;
 }
+
+bool FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, bool force)
+{
+    decl_try_err();
+
+    err = Filesystem_Stop(fs);
+    if (err == EBUSY) {
+        // XXX add support for forced stop
+        return false;
+    }
+    else {
+        Filesystem_Unpublish(fs);
+        return true;
+    }
+}

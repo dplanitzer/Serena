@@ -26,4 +26,12 @@ extern errno_t FilesystemManager_DiscoverAndStartFilesystem(FilesystemManagerRef
 // the given driver channel.
 extern errno_t FilesystemManager_DiscoverAndStartFilesystemWithChannel(FilesystemManagerRef _Nonnull self, IOChannelRef _Nonnull driverChannel, const void* _Nullable params, size_t paramsSize, FilesystemRef _Nullable * _Nonnull pOutFs);
 
+// Stops the filesystem 'fs'. If 'force' is false and the filesystem is still in
+// use (attached, inodes outstanding, open channels outstanding) then the
+// filesystem will not be stopped and false is returned. If 'force' is true and
+// the filesystem is still in use then the filesystem will be scheduled for
+// future stop and destruction. The filesystem will be stopped and destructed as
+// soon as the last use on it has disappeared.
+extern bool FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, bool force);
+
 #endif /* FilesystemManager_h */
