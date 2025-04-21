@@ -8,6 +8,7 @@
 
 #include "DiskCachePriv.h"
 #include <dispatcher/VirtualProcessor.h>
+#include <driver/DriverChannel.h>
 #include <log/Log.h>
 
 // Define to force all writes to be synchronous
@@ -408,9 +409,10 @@ void DiskCache_UnregisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull
     Lock_Unlock(&self->interlock);
 }
 
-void DiskCache_OpenSession(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, DiskSession* _Nonnull pOutSession)
+void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull diskChannel, MediaId mediaId, DiskSession* _Nonnull pOutSession)
 {
-    pOutSession->disk = Object_RetainAs(disk, DiskDriver);
+    pOutSession->channel = IOChannel_Retain(diskChannel);
+    pOutSession->disk = DriverChannel_GetDriverAs(diskChannel, DiskDriver);
     pOutSession->mediaId = mediaId;
     pOutSession->activeMappingsCount = 0;
     pOutSession->isOpen = true;
@@ -429,12 +431,34 @@ void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
             Lock_Lock(&self->interlock);
         }
 
-        Object_Release(s->disk);
+        IOChannel_Release(s->channel);
+        s->channel = NULL;
         s->disk = NULL;
         s->mediaId = kMediaId_None;
         s->isOpen = false;
     }
     Lock_Unlock(&self->interlock);
+}
+
+errno_t DiskCache_GetSessionDiskName(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, size_t bufSize, char* _Nonnull buf)
+{
+    decl_try_err();
+
+    if (bufSize < 1) {
+        return EINVAL;
+    }
+
+    Lock_Lock(&self->interlock);
+    if (s->isOpen) {
+        err = IOChannel_Ioctl(s->channel, kDriverCommand_GetCanonicalName, bufSize, buf);
+    }
+    else {
+        *buf = '\0';
+        err = ENODEV;
+    }
+    Lock_Unlock(&self->interlock);
+
+    return err;
 }
 
 

@@ -30,10 +30,8 @@ errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _N
 
     try(FSContainer_Create(class(DiskFSContainer), info.mediaId, info.blockCount, info.blockSize, fsprops, (FSContainerRef*)&self));
 
-    self->channel = IOChannel_Retain(pChannel);
-    self->disk = DriverChannel_GetDriverAs(pChannel, DiskDriver);
-    self->diskCache = DiskDriver_GetDiskCache(self->disk);
-    DiskCache_OpenSession(self->diskCache, self->disk, info.mediaId, &self->session);
+    self->diskCache = DiskDriver_GetDiskCache(DriverChannel_GetDriverAs(pChannel, DiskDriver));
+    DiskCache_OpenSession(self->diskCache, pChannel, info.mediaId, &self->session);
 
 catch:
     *pOutSelf = (FSContainerRef)self;
@@ -42,11 +40,6 @@ catch:
 
 void DiskFSContainer_deinit(struct DiskFSContainer* _Nonnull self)
 {
-    self->disk = NULL;
-    
-    IOChannel_Release(self->channel);
-    self->channel = NULL;
-
     if (self->diskCache) {
         DiskCache_CloseSession(self->diskCache, &self->session);
     }
@@ -88,7 +81,7 @@ errno_t DiskFSContainer_sync(struct DiskFSContainer* _Nonnull self)
 
 errno_t DiskFSContainer_getDiskName(struct DiskFSContainer* _Nonnull self, size_t bufSize, char* _Nonnull buf)
 {
-    return IOChannel_Ioctl(self->channel, kDriverCommand_GetCanonicalName, bufSize, buf);
+    return DiskCache_GetSessionDiskName(self->diskCache, &self->session, bufSize, buf);
 }
 
 

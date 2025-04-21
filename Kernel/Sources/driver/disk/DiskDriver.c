@@ -341,7 +341,7 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
 
     // Iterate through a contiguous sequence of blocks until we've read all
     // required bytes.
-    DiskCache_OpenSession(self->diskCache, self, mediaId, &s);
+    DiskCache_OpenSession(self->diskCache, (IOChannelRef)ch, mediaId, &s);
     while (nBytesToRead > 0) {
         const ssize_t nRemainderBlockSize = (ssize_t)blockSize - blockOffset;
         const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
@@ -430,7 +430,7 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
 
     // Iterate through a contiguous sequence of blocks until we've written all
     // required bytes.
-    DiskCache_OpenSession(self->diskCache, self, mediaId, &s);
+    DiskCache_OpenSession(self->diskCache, (IOChannelRef)ch, mediaId, &s);
     while (nBytesToWrite > 0) {
         const ssize_t nRemainderBlockSize = (ssize_t)blockSize - blockOffset;
         const ssize_t nBytesToWriteInBlock = (nBytesToWrite > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToWrite;

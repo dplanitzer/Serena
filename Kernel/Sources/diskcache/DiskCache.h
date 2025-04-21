@@ -13,6 +13,7 @@
 #include <kobj/AnyRefs.h>
 #include <driver/disk/DiskRequest.h>
 #include <filesystem/FSBlock.h>
+#include <filesystem/IOChannel.h>
 
 enum {
     kDccS_NotRegistered = 0,    // Not registered with the disk cache
@@ -27,7 +28,8 @@ typedef struct DiskCacheClient {
 
 
 typedef struct DiskSession {
-    DiskDriverRef _Nonnull  disk;
+    IOChannelRef _Nullable  channel;
+    DiskDriverRef _Nullable disk;
     MediaId                 mediaId;
     int                     activeMappingsCount;
     bool                    isOpen;
@@ -45,8 +47,10 @@ extern void DiskCache_UnregisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _
 extern size_t DiskCache_GetBlockSize(DiskCacheRef _Nonnull self);
 
 
-extern void DiskCache_OpenSession(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId, DiskSession* _Nonnull pOutSession);
+extern void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull diskChannel, MediaId mediaId, DiskSession* _Nonnull pOutSession);
 extern void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s);
+
+extern errno_t DiskCache_GetSessionDiskName(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, size_t bufSize, char* _Nonnull buf);
 
 extern errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba);
 extern errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba);
