@@ -639,6 +639,10 @@ errno_t Filesystem_rename(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked
     return EACCESS;
 }
 
+void Filesystem_sync(FilesystemRef _Nonnull self)
+{
+}
+
 
 class_func_defs(Filesystem, Object,
 override_func_def(deinit, Filesystem, Object)
@@ -662,4 +666,5 @@ func_def(createNode, Filesystem)
 func_def(unlink, Filesystem)
 func_def(move, Filesystem)
 func_def(rename, Filesystem)
+func_def(sync, Filesystem)
 );

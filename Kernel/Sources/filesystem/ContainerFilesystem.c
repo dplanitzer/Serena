@@ -38,9 +38,15 @@ errno_t ContainerFilesystem_getDiskName(struct ContainerFilesystem* _Nonnull sel
     return FSContainer_GetDiskName(self->fsContainer, bufSize, buf);
 }
 
+void ContainerFilesystem_sync(struct ContainerFilesystem* _Nonnull self)
+{
+    FSContainer_Sync(self->fsContainer);
+}
+
 
 class_func_defs(ContainerFilesystem, Filesystem,
 override_func_def(deinit, ContainerFilesystem, Object)
 override_func_def(disconnect, ContainerFilesystem, Filesystem)
 override_func_def(getDiskName, ContainerFilesystem, Filesystem)
+override_func_def(sync, ContainerFilesystem, Filesystem)
 );

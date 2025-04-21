@@ -8,7 +8,6 @@
 
 #include "FilesystemManager.h"
 #include <Catalog.h>
-#include <diskcache/DiskCache.h>
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/disk/DiskDriver.h>
@@ -18,19 +17,25 @@
 #include <klib/List.h>
 
 
-typedef struct ReaperEntry {
+typedef struct FSEntry {
     ListNode                node;
     FilesystemRef _Nonnull  fs;
-} ReaperEntry;
+} FSEntry;
 
 
+// A filesystem is initially on the 'filesystems' list and this list owns the FS.
+// Only filesystems on the filesystems list are synced to disk.
+// If a filesystem is forced unmounted then its FS entry is moved over to the
+// reaper queue.
 typedef struct FilesystemManager {
     DispatchQueueRef _Nonnull   dispatchQueue;
-    Lock                        reaperLock;
-    List                        reaperQueue;
+    Lock                        lock;
+    List                        filesystems;    // List<FSEntry>
+    List                        reaperQueue;    // List<FSEntry>
 } FilesystemManager;
 
 
+static errno_t _FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, const void* _Nullable params, size_t paramsSize);
 static void _FilesystemManager_ScheduleAutoSync(FilesystemManagerRef _Nonnull self);
 
 
@@ -44,7 +49,7 @@ errno_t FilesystemManager_Create(FilesystemManagerRef _Nullable * _Nonnull pOutS
 
     try(kalloc_cleared(sizeof(FilesystemManager), (void**)&self));
     try(DispatchQueue_Create(0, 1, kDispatchQoS_Background, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
-    Lock_Init(&self->reaperLock);
+    Lock_Init(&self->lock);
 
     _FilesystemManager_ScheduleAutoSync(self);
 
@@ -74,10 +79,9 @@ errno_t FilesystemManager_DiscoverAndStartFilesystemWithChannel(FilesystemManage
 
     try(DiskFSContainer_Create(driverChannel, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
-    try(Filesystem_Start(fs, params, paramsSize));
-    try(Filesystem_Publish(fs));
-
+    try(_FilesystemManager_StartFilesystem(self, fs, params, paramsSize));
     Object_Release(fsContainer);
+
     *pOutFs = fs;
     return EOK;
 
@@ -88,6 +92,27 @@ catch:
     return err;
 }
 
+static errno_t _FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, const void* _Nullable params, size_t paramsSize)
+{
+    decl_try_err();
+    FSEntry* entry = NULL;
+
+    try(kalloc_cleared(sizeof(FSEntry), (void**)&entry));
+    try(Filesystem_Start(fs, params, paramsSize));
+    try(Filesystem_Publish(fs));
+
+    entry->fs = Object_RetainAs(fs, Filesystem);
+
+    Lock_Lock(&self->lock);
+    List_InsertAfterLast(&self->filesystems, &entry->node);
+    Lock_Unlock(&self->lock);
+    return EOK;
+
+catch:
+    kfree(entry);
+    return err;
+}
+
 errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, bool forced)
 {
     decl_try_err();
@@ -95,16 +120,21 @@ errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Fil
     err = Filesystem_Stop(fs, forced);
     if (err == EBUSY) {
         if (forced) {
-            ReaperEntry* re;
-
             Filesystem_Unpublish(fs);
 
-            try_bang(kalloc_cleared(sizeof(ReaperEntry), (void**)&re));
-            re->fs = Object_RetainAs(fs, Filesystem);
+            Lock_Lock(&self->lock);
+            FSEntry* ep = NULL;
+            List_ForEach(&self->filesystems, FSEntry,
+                if (pCurNode->fs == fs) {
+                    ep = pCurNode;
+                    break;
+                }
+            );
+            assert(ep != NULL);
 
-            Lock_Lock(&self->reaperLock);
-            List_InsertAfterLast(&self->reaperQueue, &re->node);
-            Lock_Unlock(&self->reaperLock);
+            List_Remove(&self->filesystems, &ep->node);
+            List_InsertAfterLast(&self->reaperQueue, &ep->node);
+            Lock_Unlock(&self->lock);
 
             return EOK;
         }
@@ -119,21 +149,42 @@ errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Fil
     else {
         // Not attached anywhere else anymore and stop has worked. Unpublish
         Filesystem_Unpublish(fs);
+
+        Lock_Lock(&self->lock);
+        FSEntry* ep = NULL;
+        List_ForEach(&self->filesystems, FSEntry,
+            if (pCurNode->fs == fs) {
+                ep = pCurNode;
+                break;
+            }
+        );
+        assert(ep != NULL);
+
+        Object_Release(ep->fs);
+        ep->fs = NULL;
+        List_Remove(&self->filesystems, &ep->node);
+        Lock_Unlock(&self->lock);
+
         return err;
     }
 }
 
 void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self)
 {
-    DiskCache_Sync(gDiskCache, NULL, kMediaId_Current);
+    Lock_Lock(&self->lock);
+    // XXX change this to run the syncs outside of the lock
+    List_ForEach(&self->filesystems, FSEntry,
+        Filesystem_Sync(pCurNode->fs);
+    );
+    Lock_Unlock(&self->lock);
 }
 
-static void _FilesystemManager_ReapFilesystem(FilesystemManagerRef _Nonnull self, List* _Nonnull queue, ReaperEntry* _Nonnull entry)
+static void _FilesystemManager_ReapFilesystem(FilesystemManagerRef _Nonnull self, List* _Nonnull queue, FSEntry* _Nonnull ep)
 {
-    List_Remove(queue, &entry->node);
-    Object_Release(entry->fs);
-    entry->fs = NULL;
-    kfree(entry);
+    List_Remove(queue, &ep->node);
+    Object_Release(ep->fs);
+    ep->fs = NULL;
+    kfree(ep);
 }
 
 // Tries to stop and destroy filesystems that are on the reaper queue.
@@ -143,16 +194,16 @@ static void _FilesystemManager_Reaper(FilesystemManagerRef _Nonnull self)
 
     // Take a snapshot of the reaper queue so that we can do our work without
     // having to hold the lock.
-    Lock_Lock(&self->reaperLock);
+    Lock_Lock(&self->lock);
     queue = self->reaperQueue;
     List_Init(&self->reaperQueue);
-    Lock_Unlock(&self->reaperLock);
+    Lock_Unlock(&self->lock);
 
     
     // Kill as many filesystems as we can
     if (!List_IsEmpty(&queue)) {
 
-        List_ForEach(&queue, ReaperEntry,
+        List_ForEach(&queue, FSEntry,
             if (Filesystem_CanDestroy(pCurNode->fs)) {
                 _FilesystemManager_ReapFilesystem(self, &queue, pCurNode);
             }
@@ -160,12 +211,12 @@ static void _FilesystemManager_Reaper(FilesystemManagerRef _Nonnull self)
 
 
         // Put the rest back on the reaper queue
-        Lock_Lock(&self->reaperLock);
-        List_ForEach(&queue, ReaperEntry,
+        Lock_Lock(&self->lock);
+        List_ForEach(&queue, FSEntry,
             List_Remove(&queue, &pCurNode->node);
             List_InsertBeforeFirst(&self->reaperQueue, &pCurNode->node);
         );
-        Lock_Unlock(&self->reaperLock);
+        Lock_Unlock(&self->lock);
     }
 }
 

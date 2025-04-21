@@ -384,6 +384,15 @@ open_class_funcs(Filesystem, Object,
     // Override: Optional
     // Default behavior: unconditionally calls Inode_Destroy()
     void (*onRelinquishNode)(void* _Nonnull self, InodeRef _Nonnull pNode);
+
+
+    //
+    // Syncing
+    //
+
+    // Called when the filesystem should flush/sync pending and cached data to
+    // disk. This function should only return once all data has been synced.
+    void (*sync)(void* _Nonnull self);
 );
 
 
@@ -485,6 +494,10 @@ invoke_n(move, Filesystem, __self, __pSrcNode, __pSrcDir, __pDstDir, __pNewName,
 
 #define Filesystem_Rename(__self, __pSrcNode, __pSrcDir, __pNewName, __uid, __gid) \
 invoke_n(rename, Filesystem, __self, __pSrcNode, __pSrcDir, __pNewName, __uid, __gid)
+
+
+#define Filesystem_Sync(__self) \
+invoke_0(sync, Filesystem, __self)
 
 
 // Acquires a new reference to the given node.
