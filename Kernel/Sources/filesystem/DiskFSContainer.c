@@ -54,7 +54,7 @@ void DiskFSContainer_deinit(struct DiskFSContainer* _Nonnull self)
 
 void DiskFSContainer_disconnect(struct DiskFSContainer* _Nonnull self)
 {
-    DiskCache_Sync(self->diskCache, self->disk, FSContainer_GetMediaId(self));
+    DiskCache_Sync(self->diskCache, &self->session);
     DiskCache_CloseSession(self->diskCache, &self->session);
 }
 
@@ -82,7 +82,7 @@ errno_t DiskFSContainer_syncBlock(struct DiskFSContainer* _Nonnull self, Logical
 
 errno_t DiskFSContainer_sync(struct DiskFSContainer* _Nonnull self)
 {
-    return DiskCache_Sync(self->diskCache, self->disk, FSContainer_GetMediaId(self));
+    return DiskCache_Sync(self->diskCache, &self->session);
 }
 
 

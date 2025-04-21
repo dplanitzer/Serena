@@ -16,10 +16,6 @@ __CPP_BEGIN
 // No media/empty drive
 #define kMediaId_None   0
 
-// Indicates that the cached disk blocks for the currently loaded disk media
-// should be synced
-#define kMediaId_Current    (~0)
-
 
 // Disk/media properties
 enum {

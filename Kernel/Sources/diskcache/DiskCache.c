@@ -952,18 +952,17 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnu
 }
 
 
-// Synchronously writes all dirty disk blocks for drive 'diskId' and media
-// 'mediaId' to disk. Flushes all dirty blocks for all drives and media if
-// 'disk' is NULL. 
-errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskDriverRef _Nullable disk, MediaId mediaId)
+// Synchronously writes all dirty disk blocks belonging to the session 's' to
+// disk.
+errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
 {
     decl_try_err();
 
-    if (mediaId == kMediaId_None) {
-        return ENOMEDIUM;
+    Lock_Lock(&self->interlock);
+    if (!s->isOpen) {
+        throw(ENODEV);
     }
 
-    Lock_Lock(&self->interlock);
     if (self->dirtyBlockCount > 0) {
         size_t myLruChainGeneration = self->lruChainGeneration;
         bool done = false;
@@ -980,7 +979,7 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskDriverRef _Nullable disk,
                 DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
 
                 if (!DiskBlock_InUse(pb) && (pb->flags.isDirty && !pb->flags.isPinned)) {
-                    if ((disk == NULL) || (pb->disk == disk && (pb->mediaId == mediaId || mediaId == kMediaId_Current))) {
+                    if (pb->disk == s->disk && pb->mediaId == s->mediaId) {
                         const errno_t err1 = _DiskCache_SyncBlock(self, pb);
                     
                         if (err == EOK) {
@@ -999,5 +998,9 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskDriverRef _Nullable disk,
             );
         }
     }
+
+catch:
     Lock_Unlock(&self->interlock);
+
+    return err;
 }

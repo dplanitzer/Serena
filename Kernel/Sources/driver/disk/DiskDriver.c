@@ -123,7 +123,7 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
         self->mediaProperties = info->properties;
     
         self->currentMediaId++;
-        while (self->currentMediaId == kMediaId_None || self->currentMediaId == kMediaId_Current) {
+        while (self->currentMediaId == kMediaId_None) {
             self->currentMediaId++;
         }
     }
@@ -140,7 +140,7 @@ errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId,
     decl_try_err();
 
     Driver_Lock(self);
-    if (mediaId == self->currentMediaId || mediaId == kMediaId_Current) {
+    if (mediaId == self->currentMediaId) {
         err = DiskDriver_GetRequestRange2(self, mediaId, lba * self->mb2lbFactor, pOutBlockRange);
         pOutBlockRange->lba = pOutBlockRange->lba / self->mb2lbFactor;
     }
@@ -169,7 +169,7 @@ errno_t DiskDriver_doBlockRequest(DiskDriverRef _Nonnull self, const DiskContext
     LogicalBlockAddress mba = lba * ctx->mb2lbFactor;
     const bool shouldZeroFill = ((req->type == kDiskRequest_Read) && (ctx->lBlockSize > ctx->mBlockSize) && (ctx->mb2lbFactor == 1)) ? true : false;
 
-    if (req->mediaId != ctx->mediaId && req->mediaId != kMediaId_Current) {
+    if (req->mediaId != ctx->mediaId) {
         return EDISKCHANGE;
     }
     if (lba >= ctx->lBlockCount) {

@@ -62,6 +62,6 @@ extern errno_t DiskCache_UnmapBlock(DiskCacheRef _Nonnull self, DiskSession* _No
 extern errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba);
 extern errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba);
 
-extern errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId);
+extern errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s);
 
 #endif /* DiskCache_h */

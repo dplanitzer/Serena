@@ -174,9 +174,9 @@ open_class(Filesystem, Object,
     fsid_t              fsid;
     ConditionVariable   inCondVar;
     Lock                inLock;
-    List* _Nonnull      inCached;   // <Inode>
+    List* _Nonnull      inCached;   // List<Inode>
     size_t              inCachedCount;
-    List* _Nonnull      inReading;  // <RDnode>
+    List* _Nonnull      inReading;  // List<RDnode>
     size_t              inReadingCount;
     size_t              inReadingWaiterCount;
     List                inReadingCache;
