@@ -16,14 +16,14 @@
 errno_t cmd_pull(const char* _Nonnull srcPath, const char* _Nonnull path, const char* _Nonnull dmgPath)
 {
     decl_try_err();
-    RamFSContainerRef disk = NULL;
+    RamContainerRef disk = NULL;
     FSManagerRef m = NULL;
     IOChannelRef chan = NULL;
     FILE* fp = NULL;
     char* buf = NULL;
     char* dstPath = NULL;
 
-    try(RamFSContainer_CreateWithContentsOfPath(dmgPath, &disk));
+    try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
     try(FSManager_Create(disk, &m));
 
     try_null(buf, malloc(BLOCK_SIZE), ENOMEM);

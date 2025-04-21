@@ -250,10 +250,10 @@ static errno_t do_list(FileManagerRef _Nonnull fm, const char* _Nonnull path, bo
 errno_t cmd_list(const char* _Nonnull path, const char* _Nonnull dmgPath)
 {
     decl_try_err();
-    RamFSContainerRef disk = NULL;
+    RamContainerRef disk = NULL;
     FSManagerRef m = NULL;
 
-    try(RamFSContainer_CreateWithContentsOfPath(dmgPath, &disk));
+    try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
     try(FSManager_Create(disk, &m));
 
     err = do_list(&m->fm, path, false);

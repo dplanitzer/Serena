@@ -7,17 +7,17 @@
 //
 
 #include "diskimage.h"
-#include "RamFSContainer.h"
+#include "RamContainer.h"
 #include <stdio.h>
 
 
 errno_t cmd_create(const DiskImageFormat* _Nonnull dmgFmt, const char* _Nonnull dmgPath)
 {
     decl_try_err();
-    RamFSContainerRef fsContainer;
+    RamContainerRef fsContainer;
     bool doCreateDiskImage = true;
 
-    err = RamFSContainer_CreateWithContentsOfPath(dmgPath, &fsContainer);
+    err = RamContainer_CreateWithContentsOfPath(dmgPath, &fsContainer);
     if (err == EOK) {
         if (dmgFmt->format == fsContainer->format
             && dmgFmt->blockSize == FSContainer_GetBlockSize(fsContainer)
@@ -28,8 +28,8 @@ errno_t cmd_create(const DiskImageFormat* _Nonnull dmgFmt, const char* _Nonnull 
 
     if (doCreateDiskImage) {
         remove(dmgPath);
-        try(RamFSContainer_Create(dmgFmt, &fsContainer));
-        try(RamFSContainer_WriteToPath(fsContainer, dmgPath));
+        try(RamContainer_Create(dmgFmt, &fsContainer));
+        try(RamContainer_WriteToPath(fsContainer, dmgPath));
     }
 
 catch:

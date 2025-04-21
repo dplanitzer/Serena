@@ -14,7 +14,7 @@
 #include <stdlib.h>
 
 
-errno_t FSManager_Create(RamFSContainerRef _Nonnull fsContainer, FSManagerRef _Nullable * _Nonnull pOutSelf)
+errno_t FSManager_Create(RamContainerRef _Nonnull fsContainer, FSManagerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     FSManagerRef self = NULL;

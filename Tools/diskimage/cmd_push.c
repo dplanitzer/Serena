@@ -48,14 +48,14 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
 errno_t cmd_push(FilePermissions filePerms, uid_t uid, gid_t gid, const char* _Nonnull srcPath, const char* _Nonnull path, const char* _Nonnull dmgPath)
 {
     decl_try_err();
-    RamFSContainerRef disk = NULL;
+    RamContainerRef disk = NULL;
     FSManagerRef m = NULL;
     IOChannelRef chan = NULL;
     FILE* fp = NULL;
     char* buf = NULL;
     char* dstPath = NULL;
 
-    try(RamFSContainer_CreateWithContentsOfPath(dmgPath, &disk));
+    try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
     try(FSManager_Create(disk, &m));
 
     try_null(buf, malloc(BLOCK_SIZE), ENOMEM);
@@ -91,7 +91,7 @@ catch:
 
     FSManager_Destroy(m);
     if (err == EOK) {
-        err = RamFSContainer_WriteToPath(disk, dmgPath);
+        err = RamContainer_WriteToPath(disk, dmgPath);
     }
     Object_Release(disk);
     return err;

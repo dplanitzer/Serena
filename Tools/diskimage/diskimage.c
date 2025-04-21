@@ -7,7 +7,7 @@
 //
 
 #include "diskimage.h"
-#include "RamFSContainer.h"
+#include "RamContainer.h"
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
@@ -529,7 +529,7 @@ static void init(void)
     _RegisterClass(class(Object));
     _RegisterClass(class(FSChannel));
     _RegisterClass(class(FSContainer));
-    _RegisterClass(class(RamFSContainer));
+    _RegisterClass(class(RamContainer));
     _RegisterClass(class(Filesystem));
     _RegisterClass(class(ContainerFilesystem));
     _RegisterClass(class(SerenaFS));

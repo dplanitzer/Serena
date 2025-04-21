@@ -9,7 +9,7 @@
 #ifndef FSManager_h
 #define FSManager_h
 
-#include "RamFSContainer.h"
+#include "RamContainer.h"
 #include <filemanager/FileManager.h>
 #include <filesystem/Filesystem.h>
 #include <System/File.h>
@@ -24,7 +24,7 @@ typedef struct FSManager {
 typedef FSManager* FSManagerRef;
 
 
-extern errno_t FSManager_Create(RamFSContainerRef _Nonnull fsContainer, FSManagerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t FSManager_Create(RamContainerRef _Nonnull fsContainer, FSManagerRef _Nullable * _Nonnull pOutSelf);
 extern void FSManager_Destroy(FSManagerRef _Nullable self);
 
 #endif /* FSManager_h */

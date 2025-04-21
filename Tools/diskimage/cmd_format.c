@@ -7,7 +7,7 @@
 //
 
 #include "diskimage.h"
-#include "RamFSContainer.h"
+#include "RamContainer.h"
 #include <string.h>
 #include <filesystem/serenafs/tools/format.h>
 
@@ -15,7 +15,7 @@
 static errno_t block_write(intptr_t fd, const void* _Nonnull buf, LogicalBlockAddress blockAddr, size_t blockSize)
 {
     ssize_t bytesWritten;
-    const errno_t err = RamFSContainer_Write((void*)fd, buf, blockSize, blockAddr * blockSize, &bytesWritten);
+    const errno_t err = RamContainer_Write((void*)fd, buf, blockSize, blockAddr * blockSize, &bytesWritten);
 
     return (err == EOK && bytesWritten == blockSize) ? EOK : EIO;
 }
@@ -24,20 +24,20 @@ static errno_t block_write(intptr_t fd, const void* _Nonnull buf, LogicalBlockAd
 errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull dmgPath)
 {
     decl_try_err();
-    RamFSContainerRef fsContainer = NULL;
+    RamContainerRef fsContainer = NULL;
 
     if (strcmp(fsType, "sefs")) {
         throw(EINVAL);
     }
 
-    try(RamFSContainer_CreateWithContentsOfPath(dmgPath, &fsContainer));
+    try(RamContainer_CreateWithContentsOfPath(dmgPath, &fsContainer));
     
     if (!bQuick) {
-        RamFSContainer_WipeDisk(fsContainer);
+        RamContainer_WipeDisk(fsContainer);
     }
 
     try(sefs_format((intptr_t)fsContainer, block_write, FSContainer_GetBlockCount(fsContainer), FSContainer_GetBlockSize(fsContainer), rootDirUid, rootDirGid, rootDirPerms, label));
-    err = RamFSContainer_WriteToPath(fsContainer, dmgPath);
+    err = RamContainer_WriteToPath(fsContainer, dmgPath);
 
 catch:
     Object_Release(fsContainer);

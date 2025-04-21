@@ -1,12 +1,12 @@
 //
-//  RamFSContainer.c
+//  RamContainer.c
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 10/12/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "RamFSContainer.h"
+#include "RamContainer.h"
 #include "diskimage.h"
 #include <errno.h>
 #include <stdio.h>
@@ -18,12 +18,12 @@
 #include <System/Disk.h>
 
 
-errno_t RamFSContainer_Create(const DiskImageFormat* _Nonnull format, RamFSContainerRef _Nullable * _Nonnull pOutSelf)
+errno_t RamContainer_Create(const DiskImageFormat* _Nonnull format, RamContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    RamFSContainerRef self;
+    RamContainerRef self;
 
-    try(FSContainer_Create(class(RamFSContainer), 1, format->blocksPerDisk, format->blockSize, 0, (FSContainerRef*)&self));
+    try(FSContainer_Create(class(RamContainer), 1, format->blocksPerDisk, format->blockSize, 0, (FSContainerRef*)&self));
     try(FSAllocateCleared(format->blocksPerDisk * format->blockSize, (void**)&self->diskImage));
     try(FSAllocateCleared(format->blocksPerDisk, (void**)&self->mappedFlags));
     self->blockShift = FSLog2(format->blockSize);
@@ -41,11 +41,11 @@ catch:
     return err;
 }
 
-errno_t RamFSContainer_CreateWithContentsOfPath(const char* _Nonnull path, RamFSContainerRef _Nullable * _Nonnull pOutSelf)
+errno_t RamContainer_CreateWithContentsOfPath(const char* _Nonnull path, RamContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     FILE* fp = NULL;
-    RamFSContainerRef self = NULL;
+    RamContainerRef self = NULL;
     DiskImageFormat dif;
     DiskImage fmt;
 
@@ -55,7 +55,7 @@ errno_t RamFSContainer_CreateWithContentsOfPath(const char* _Nonnull path, RamFS
     dif.blocksPerDisk = fmt.sectorsPerTrack * fmt.headsPerCylinder * fmt.cylindersPerDisk;
     dif.format = fmt.format;
 
-    try(RamFSContainer_Create(&dif, &self));
+    try(RamContainer_Create(&dif, &self));
 
     try_null(fp, fopen(path, "rb"), errno);
     if (fread(self->diskImage, dif.blockSize, dif.blocksPerDisk, fp) != dif.blocksPerDisk) {
@@ -75,7 +75,7 @@ catch:
     return err;
 }
 
-void RamFSContainer_deinit(RamFSContainerRef _Nonnull self)
+void RamContainer_deinit(RamContainerRef _Nonnull self)
 {
     FSDeallocate(self->mappedFlags);
     self->mappedFlags = NULL;
@@ -84,7 +84,7 @@ void RamFSContainer_deinit(RamFSContainerRef _Nonnull self)
     self->diskImage = NULL;
 }
 
-errno_t RamFSContainer_mapBlock(struct RamFSContainer* _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
+errno_t RamContainer_mapBlock(struct RamContainer* _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
     decl_try_err();
 
@@ -128,7 +128,7 @@ errno_t RamFSContainer_mapBlock(struct RamFSContainer* _Nonnull self, LogicalBlo
 // write has completed. The contents of the block on disk is left in an
 // indeterminate state of the write fails in the middle of the write. The
 // block may contain a mix of old and new data.
-errno_t RamFSContainer_unmapBlock(struct RamFSContainer* _Nonnull self, intptr_t token, WriteBlock mode)
+errno_t RamContainer_unmapBlock(struct RamContainer* _Nonnull self, intptr_t token, WriteBlock mode)
 {
     decl_try_err();
 
@@ -167,13 +167,13 @@ errno_t RamFSContainer_unmapBlock(struct RamFSContainer* _Nonnull self, intptr_t
     return err;
 }
 
-static void convert_offset(struct RamFSContainer* _Nonnull self, off_t offset, LogicalBlockAddress* _Nonnull pOutBlockIdx, ssize_t* _Nonnull pOutBlockOffset)
+static void convert_offset(struct RamContainer* _Nonnull self, off_t offset, LogicalBlockAddress* _Nonnull pOutBlockIdx, ssize_t* _Nonnull pOutBlockOffset)
 {
     *pOutBlockIdx = (LogicalBlockAddress)(offset >> (off_t)self->blockShift);
     *pOutBlockOffset = (ssize_t)(offset & (off_t)self->blockMask);
 }
 
-errno_t RamFSContainer_Read(RamFSContainerRef _Nonnull self, void* _Nonnull buf, ssize_t nBytesToRead, off_t offset, ssize_t* _Nonnull pOutBytesRead)
+errno_t RamContainer_Read(RamContainerRef _Nonnull self, void* _Nonnull buf, ssize_t nBytesToRead, off_t offset, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
     const off_t diskSize = (off_t)FSContainer_GetBlockCount(self) << (off_t)self->blockShift;
@@ -244,7 +244,7 @@ catch:
     return err;
 }
 
-errno_t RamFSContainer_Write(RamFSContainerRef _Nonnull self, const void* _Nonnull buf, ssize_t nBytesToWrite, off_t offset, ssize_t* _Nonnull pOutBytesWritten)
+errno_t RamContainer_Write(RamContainerRef _Nonnull self, const void* _Nonnull buf, ssize_t nBytesToWrite, off_t offset, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
     const off_t diskSize = (off_t)FSContainer_GetBlockCount(self) << (off_t)self->blockShift;
@@ -317,7 +317,7 @@ catch:
     return err;
 }
 
-void RamFSContainer_WipeDisk(RamFSContainerRef _Nonnull self)
+void RamContainer_WipeDisk(RamContainerRef _Nonnull self)
 {
     const LogicalBlockCount blockCount = FSContainer_GetBlockCount(self);
 
@@ -328,7 +328,7 @@ void RamFSContainer_WipeDisk(RamFSContainerRef _Nonnull self)
 }
 
 // Writes the contents of the disk to the given path as a regular file.
-errno_t RamFSContainer_WriteToPath(RamFSContainerRef _Nonnull self, const char* path)
+errno_t RamContainer_WriteToPath(RamContainerRef _Nonnull self, const char* path)
 {
     decl_try_err();
     const LogicalBlockCount blockCount = FSContainer_GetBlockCount(self);
@@ -370,8 +370,8 @@ catch:
 }
 
 
-class_func_defs(RamFSContainer, FSContainer,
-override_func_def(deinit, RamFSContainer, Object)
-override_func_def(mapBlock, RamFSContainer, FSContainer)
-override_func_def(unmapBlock, RamFSContainer, FSContainer)
+class_func_defs(RamContainer, FSContainer,
+override_func_def(deinit, RamContainer, Object)
+override_func_def(mapBlock, RamContainer, FSContainer)
+override_func_def(unmapBlock, RamContainer, FSContainer)
 );

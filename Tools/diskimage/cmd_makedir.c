@@ -99,11 +99,11 @@ static errno_t create_directory_recursively(FileManagerRef _Nonnull fm, char* _N
 errno_t cmd_makedir(bool shouldCreateParents, FilePermissions dirPerms, uid_t uid, gid_t gid, const char* _Nonnull path_, const char* _Nonnull dmgPath)
 {
     decl_try_err();
-    RamFSContainerRef disk = NULL;
+    RamContainerRef disk = NULL;
     FSManagerRef m = NULL;
     char* path;
 
-    try(RamFSContainer_CreateWithContentsOfPath(dmgPath, &disk));
+    try(RamContainer_CreateWithContentsOfPath(dmgPath, &disk));
     try(FSManager_Create(disk, &m));
 
     try_null(path, strdup(path_), ENOMEM);
@@ -118,7 +118,7 @@ errno_t cmd_makedir(bool shouldCreateParents, FilePermissions dirPerms, uid_t ui
 catch:
     FSManager_Destroy(m);
     if (err == EOK) {
-        err = RamFSContainer_WriteToPath(disk, dmgPath);
+        err = RamContainer_WriteToPath(disk, dmgPath);
     }
     Object_Release(disk);
     return err;
