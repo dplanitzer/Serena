@@ -11,7 +11,7 @@
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/disk/DiskDriver.h>
-#include <filesystem/DiskFSContainer.h>
+#include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <klib/List.h>
@@ -77,7 +77,7 @@ errno_t FilesystemManager_DiscoverAndStartFilesystemWithChannel(FilesystemManage
     FSContainerRef fsContainer = NULL;
     FilesystemRef fs = NULL;
 
-    try(DiskFSContainer_Create(driverChannel, &fsContainer));
+    try(DiskContainer_Create(driverChannel, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
     try(_FilesystemManager_StartFilesystem(self, fs, params, paramsSize));
     Object_Release(fsContainer);
