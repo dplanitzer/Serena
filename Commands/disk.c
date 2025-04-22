@@ -122,11 +122,16 @@ catch:
     return err;
 }
 
-errno_t cmd_fsid(const char* _Nonnull path)
+
+// Returns the fsid of teh current working directory if 'path' is an empty string
+// and of the filesystem that owns path otherwise.
+static errno_t get_fsid(const char* _Nonnull path, fsid_t* _Nonnull fsid)
 {
     decl_try_err();
     FileInfo info;
     char* p = (char*)path;
+
+    *fsid = 0;
 
     if (*p == '\0') {
         p = malloc(PATH_MAX);
@@ -141,7 +146,7 @@ errno_t cmd_fsid(const char* _Nonnull path)
     if (err == EOK) {
         err = File_GetInfo(p, &info);
         if (err == EOK) {
-            printf("%u\n", info.fsid);
+            *fsid = info.fsid;
         }
     }
 
@@ -153,6 +158,94 @@ errno_t cmd_fsid(const char* _Nonnull path)
     return err;
 }
 
+errno_t cmd_fsid(const char* _Nonnull path)
+{
+    decl_try_err();
+    fsid_t fsid;
+
+    err = get_fsid(path, &fsid);
+    if (err == EOK) {
+        printf("%u\n", fsid);
+    }
+
+    return err;
+}
+
+
+#define DISKNAME_BUFSIZE    16
+static errno_t print_cat_info(const FSInfo* _Nonnull info, int fd)
+{
+    decl_try_err();
+    char diskName[32];
+
+    try(IOChannel_Control(fd, kFSCommand_GetDiskName, sizeof(diskName), diskName));
+
+    puts("Catalog ID");
+    printf("%s       %u\n", diskName, info->fsid);
+
+catch:
+    return err;
+}
+
+static errno_t print_reg_info(const FSInfo* _Nonnull info, int fd)
+{
+    decl_try_err();
+    const uint64_t size = (uint64_t)info->capacity * (uint64_t)info->blockSize;
+    const unsigned fullPerc = info->count * 100 / info->capacity;   // XXX round up to the next %
+    const char* status;
+    char diskName[32];
+    char volLabel[64];
+
+    try(IOChannel_Control(fd, kFSCommand_GetDiskName, sizeof(diskName), diskName));
+    try(IOChannel_Control(fd, kFSCommand_GetLabel, sizeof(volLabel), volLabel));
+
+
+    if ((info->properties & kFSProperty_IsReadOnly) == kFSProperty_IsReadOnly) {
+        status = "Read Only";
+    }
+    else {
+        status = "Read/Write";
+    }
+
+
+    // XX formatting
+    puts("Disk ID Size   Used   Free Full Status Type Name");
+    printf("%s %u %lluK %u %u %u%% %s %s %s\n", diskName, info->fsid, size / 1024ull, info->count, info->capacity - info->count, fullPerc, status, info->type, volLabel);
+
+catch:
+    return err;
+}
+
+static errno_t cmd_info(const char* _Nonnull path)
+{
+    decl_try_err();
+    fsid_t fsid;
+    FSInfo info;
+    int fd = -1;
+    char buf[32];
+
+    try(get_fsid(path, &fsid));
+    sprintf(buf, "/fs/%u", fsid);
+    try(File_Open(buf, kOpen_Read, &fd));
+    try(IOChannel_Control(fd, kFSCommand_GetInfo, &info));
+
+    if ((info.properties & kFSProperty_IsCatalog) == kFSProperty_IsCatalog) {
+        err = print_cat_info(&info, fd);
+    }
+    else {
+        err = print_reg_info(&info, fd);
+    }
+
+
+catch:
+    if (fd >= 0) {
+        IOChannel_Close(fd);
+    }
+
+    return err;
+}
+
+
 errno_t cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
 {
     decl_try_err();
@@ -161,6 +254,7 @@ errno_t cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
 
     return err;
 }
+
 
 errno_t cmd_unmount(const char* _Nonnull atPath, bool doForce)
 {
@@ -322,6 +416,9 @@ CLAP_DECL(params,
     CLAP_REQUIRED_COMMAND("fsid", &cmd_id, "<path>", "Prints the filesystem id of the filesystem at path 'path'."),
         CLAP_POSITIONAL_STRING(&fs_path),
 
+    CLAP_REQUIRED_COMMAND("info", &cmd_id, "<path>", "Prints information about the filesystem at path 'path'."),
+        CLAP_POSITIONAL_STRING(&fs_path),
+
     CLAP_REQUIRED_COMMAND("mount", &cmd_id, "<disk_path> --at <at_path>", "Mounts the disk 'disk_path' on top of the directory 'at_path'."),
         CLAP_STRING('t', "at", &at_path, "Specify the mount point"),
         CLAP_POSITIONAL_STRING(&disk_path),
@@ -353,6 +450,10 @@ int main(int argc, char* argv[])
     else if (!strcmp(cmd_id, "fsid")) {
         // disk fsid
         err = cmd_fsid(fs_path);
+    }
+    else if (!strcmp(cmd_id, "info")) {
+        // disk info
+        err = cmd_info(fs_path);
     }
     else if (!strcmp(cmd_id, "mount")) {
         // disk mount

@@ -102,6 +102,18 @@ Prints the globally unique filesystem id of the filesystem on which the current 
 
 * `path`: a path to a file or directory
 
+## `disk info`
+
+Prints information about a filesystem. Eg the size, number of used and freed blocks, name of the underlying disk device, etc. The command prints information for the filesystem that holds the current working directory by default. Specify the id of a mounted filesystem to print information about this particular filesystem instead.
+
+### Signature
+
+`disk info [path]`
+
+### Parameters
+
+* `path`: a path to a file or directory
+
 ## `disk mount`
 
 Mounts the filesystem stored on a disk and makes it accessible at the directory designated by the `--at` switch. Applications are able to access the filesystem once the mount operation has successfully completed.
@@ -206,18 +218,6 @@ Note that an if command is an expression. This means that the result of the if e
 * `cond_expr`: the conditional expression
 * `then_block`: the block to execute when the conditional expression evaluates to true
 * `else_block`: the block to execute when the conditional expression evaluates to false
-
-## `info`
-
-Prints information about a filesystem. Eg the size, number of used and freed blocks, name of the underlying disk device, etc. The command prints information for the filesystem that holds the current working directory by default. Specify the id of a mounted filesystem to print information about this particular filesystem instead.
-
-### Signature
-
-`info [fsid]`
-
-### Parameters
-
-* `fsid`: the filesystem id
 
 ## `input`
 
