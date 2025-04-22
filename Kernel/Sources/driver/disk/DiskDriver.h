@@ -23,8 +23,8 @@ enum DiskDriverOptions {
 // Describes the physical properties of the media that is currently loaded into
 // the drive.
 typedef struct MediaInfo {
-    LogicalBlockCount   blockCount;     // > 0 if a media is loaded; 0 otherwise
-    size_t              blockSize;      // > 0 if a media is loaded; should be the default media block size even if no media is loaded; may be 0 
+    LogicalBlockCount   sectorCount;    // > 0 if a media is loaded; 0 otherwise
+    size_t              sectorSize;     // > 0 if a media is loaded; should be the default sector size even if no media is loaded; may be 0 
     uint32_t            properties;     // media properties
 } MediaInfo;
 
@@ -32,10 +32,10 @@ typedef struct MediaInfo {
 // Contextual information passed to doIO().
 typedef struct DiskContext {
     MediaId             mediaId;        // ID of currently loaded disk media
-    LogicalBlockCount   lBlockCount;    // Number of logical blocks on the disk
-    size_t              lBlockSize;     // Logical block size in bytes
-    size_t              mBlockSize;     // Media block size in bytes
-    size_t              mb2lbFactor;    // Media blocks per logical block
+    LogicalBlockCount   blockCount;     // Number of logical blocks on the disk
+    size_t              blockSize;      // Logical block size in bytes
+    size_t              sectorSize;     // Sector size in bytes
+    size_t              s2bFactor;      // Sectors per logical block
 } DiskContext;
 
 
@@ -70,48 +70,47 @@ typedef struct brng {
 // asynchronously processed by the driver dispatch queue.
 //
 // A synchronous driver should override:
-// - getMediaBlock()/putMediaBlock(), doIO() or beginIO()
+// - getSector()/putSector(), doIO() or beginIO()
 //
 // A queueing driver should override:
-// - getMediaBlock()/putMediaBlock() or doIO()
+// - getSector()/putSector() or doIO()
 //
-// Logical block sizes vs media block sizes:
+// Logical block sizes vs sector sizes:
 //
-// Every disk driver defines a 'media block size' and 'media block count'. These
-// are the size of a single block or sector on the media and the overall number
+// Every disk driver defines a 'sector size' and 'sector count'. These are the
+// size of a single physical block or sector on the media and the overall number
 // of addressable sectors on the media. These numbers may change when the
 // currently loaded media is ejected and replaced with a different media.
 //
 // Every disk driver is also associated with a disk cache. The disk cache defines
 // a 'logical block size'. The logical block size is always a power-of-2 while
-// the media block size is usually a power-of-2 but isn't required to be one.
-// Eg CD-ROM Audio disks define a media block size of 2,352 bytes.
+// the sector size is usually a power-of-2 but isn't required to be one.
+// Eg CD-ROM Audio disks define a sector size of 2,352 bytes.
 //
 // A disk driver is required to call DiskDriver_NoteMediaLoaded() when a new
 // media is loaded into the drive. This function takes a media info that
-// describes the media block size and block count. The disk driver class then
-// derives the logical block count and the conversation factor from media block
-// size to logical block size. Note that the conversation is defined like this:
-// * media block size is a power-of-2: as many media blocks are mapped to a
-//                                     single logical block as possible.
-// * media block size is NOT a power-of-2: a single media block is mapped to a
-//                                         single logical block. The remaining
-//                                         bytes are zero-filled on read and
-//                                         ignored on write
+// describes the sector size and sector count. The disk driver class then
+// derives the logical block count and the conversion factor from sector
+// size to logical block size. Note that the conversion is defined like this:
+// * Power-of-2 sector size: as many sectors as possible are mapped to a
+//                           single logical block.
+// * Non-power-of-2 sector size: a single sector is mapped to a single logical
+//                               block. The remaining bytes are zero-filled on
+//                               read and ignored on write.
 //
 // The disk driver implementation requires that:
-// * logical block size is always a power-of-2
-// * media block size may be a power-of-2
-// * logical block size is always >= media block size
-// * if media block size is not a power-of-2, then 1 logical block corresponds
-//   to 1 media block
+// * Logical block size is always a power-of-2
+// * Sector size may be a power-of-2
+// * Logical block size is always >= sector size
+// * if sector size is not a power-of-2, then 1 logical block corresponds
+//   to 1 sector
 // 
 // User space applications and kernel code which wants to invoke the raw read/
 // write functions or access a disk through a FSContainer works with the logical
-// block size. The media block size is only relevant to the internals of the disk
-// driver. That said, the media block size and count are still made available as
-// part of the DiskInfo object to enable user space code to show those values to
-// the user if desired.
+// block size. The sector size is only relevant to the internals of the disk
+// driver. That said, the sector size and count are still made available as part
+// of the DiskInfo object to enable user space code to show those values to the
+// user if desired.
 open_class(DiskDriver, Driver,
     DispatchQueueRef _Nullable  dispatchQueue;
     DiskCacheRef _Weak _Nonnull diskCache;      // This is a weak ref because the disk cache holds a strong ref to the driver and the disk cache has to outlive the driver by design (has to be a global object)
@@ -120,9 +119,9 @@ open_class(DiskDriver, Driver,
     LogicalBlockCount           blockCount;         // Number of logical blocks per media
     size_t                      blockSize;          // Size of a logical block i nbytes. Always a power-of-2
     uint16_t                    blockShift;         // log2(blockSize)
-    uint16_t                    mb2lbFactor;        // Number of media blocks per logical block
-    LogicalBlockCount           mediaBlockCount;    // Number of media blocks per media. Is blockCount * mb2lbFactor
-    size_t                      mediaBlockSize;     // Size of a media block in bytes. Usually power-of-2, but may not be. If not, then one media block maps to one logical block with 0 padding at the end 
+    uint16_t                    s2bFactor;          // Number of sectors per logical block
+    LogicalBlockCount           sectorCount;        // Number of sectors per media. Is blockCount * s2bFactor
+    size_t                      sectorSize;         // Size of a sector in bytes. Usually power-of-2, but may not be. If not, then one sector maps to one logical block with 0 padding at the end 
     uint32_t                    mediaProperties;
 );
 open_class_funcs(DiskDriver, Driver,
@@ -171,8 +170,8 @@ open_class_funcs(DiskDriver, Driver,
     // Executes a block request. This function is expected to validate the block
     // request parameters based on the provided disk context 'ctx'. It should
     // then read/write the block data while taking care of the translation from
-    // a logical block size to the media block size.
-    // Default Behavior: Calls getMediaBlock/putMediaBlock
+    // a logical block size to the sector size.
+    // Default Behavior: Calls getSector/putSector
     errno_t (*doBlockRequest)(void* _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, BlockRequest* _br);
 
     // Reads the contents of the physical block at the disk address 'ba'
@@ -180,22 +179,22 @@ open_class_funcs(DiskDriver, Driver,
     // until the read operation has completed. Note that this function will
     // never return a partially read block. Either it succeeds and the full
     // block data is returned, or it fails and no block data is returned.
-    // The media block address 'ba' is guaranteed to be in the range
-    // [0, mediaBlockCount).
-    // 'mbSize' is the media block size in bytes.
+    // The sector address 'ba' is guaranteed to be in the range
+    // [0, sectorCount).
+    // 'mbSize' is the sector size in bytes.
     // Default Behavior: returns EIO
-    errno_t (*getMediaBlock)(void* _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t mbSize);
+    errno_t (*getSector)(void* _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t secSize);
 
     // Writes the contents of 'data' to the physical block 'ba'. Blocks
     // the caller until the write has completed. The contents of the block on
     // disk is left in an indeterminate state of the write fails in the middle
     // of the write. The block may contain a mix of old and new data.
-    // The media block address 'ba' is guaranteed to be in the range
-    // [0, mediaBlockCount).
-    // 'mbSize' is the media block size in bytes.
+    // The sector address 'ba' is guaranteed to be in the range
+    // [0, sectorCount).
+    // 'mbSize' is the sector size in bytes.
     // The abstract implementation returns EIO.
     // Default Behavior: returns EIO
-    errno_t (*putMediaBlock)(void* _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t mbSize);
+    errno_t (*putSector)(void* _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t secSize);
 );
 
 
@@ -261,11 +260,11 @@ invoke_n(doDiskRequest, DiskDriver, __self, __req, __ctx)
 invoke_n(doBlockRequest, DiskDriver, __self, __req, __br, __ctx)
 
 
-#define DiskDriver_GetMediaBlock(__self, __ba, __data, __mbSize) \
-invoke_n(getMediaBlock, DiskDriver, __self, __ba, __data, __mbSize)
+#define DiskDriver_GetSector(__self, __ba, __data, __secSize) \
+invoke_n(getSector, DiskDriver, __self, __ba, __data, __secSize)
 
-#define DiskDriver_PutMediaBlock(__self, __ba, __data, __mbSize) \
-invoke_n(putMediaBlock, DiskDriver, __self, __ba, __data, __mbSize)
+#define DiskDriver_PutSector(__self, __ba, __data, __secSize) \
+invoke_n(putSector, DiskDriver, __self, __ba, __data, __secSize)
 
 
 // Creates a disk driver instance. This function should be called from DiskDrive

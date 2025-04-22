@@ -13,29 +13,29 @@
 
 final_class_ivars(RomDisk, DiskDriver,
     const char* _Nonnull    diskImage;
-    size_t                  blockShift;
+    size_t                  sectorShift;
     bool                    freeDiskImageOnClose;
     char                    name[MAX_NAME_LENGTH + 1];
 );
 
 
-errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, const void* _Nonnull pImage, size_t blockSize, LogicalBlockCount blockCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
+errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, const void* _Nonnull pImage, size_t sectorSize, LogicalBlockCount sectorCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     RomDiskRef self = NULL;
 
-    if (pImage == NULL || !siz_ispow2(blockSize)) {
+    if (pImage == NULL || !siz_ispow2(sectorSize)) {
         throw(EINVAL);
     }
 
     MediaInfo info;
-    info.blockCount = blockCount;
-    info.blockSize = blockSize;
+    info.sectorCount = sectorCount;
+    info.sectorSize = sectorSize;
     info.properties = kMediaProperty_IsReadOnly;
 
     try(DiskDriver_Create(class(RomDisk), 0, parent, &info, (DriverRef*)&self));
     self->diskImage = pImage;
-    self->blockShift = siz_log2(blockSize);
+    self->sectorShift = siz_log2(sectorSize);
     self->freeDiskImageOnClose = freeOnClose;
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
 
@@ -64,9 +64,9 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
-errno_t RomDisk_getMediaBlock(RomDiskRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t mbSize)
+errno_t RomDisk_getSector(RomDiskRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t secSize)
 {
-    memcpy(data, self->diskImage + (ba << self->blockShift), mbSize);
+    memcpy(data, self->diskImage + (ba << self->sectorShift), secSize);
     return EOK;
 }
 
@@ -74,5 +74,5 @@ errno_t RomDisk_getMediaBlock(RomDiskRef _Nonnull self, LogicalBlockAddress ba, 
 class_func_defs(RomDisk, DiskDriver,
 override_func_def(deinit, RomDisk, Object)
 override_func_def(onStart, RomDisk, Driver)
-override_func_def(getMediaBlock, RomDisk, DiskDriver)
+override_func_def(getSector, RomDisk, DiskDriver)
 );

@@ -33,8 +33,8 @@ errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull 
     }
 
     MediaInfo partInfo;
-    partInfo.blockCount = blockCount;
-    partInfo.blockSize = diskInfo.blockSize;
+    partInfo.sectorCount = blockCount;
+    partInfo.sectorSize = diskInfo.blockSize;
     partInfo.properties = diskInfo.properties;
     if (isReadOnly) {
         partInfo.properties |= kMediaProperty_IsReadOnly;

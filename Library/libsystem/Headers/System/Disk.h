@@ -30,8 +30,8 @@ typedef struct DiskInfo {
     uint32_t            properties;         // Disk/media properties 
     size_t              blockSize;          // byte size of a single disk block. This is the data portion only without any header information
     LogicalBlockCount   blockCount;         // overall number of addressable blocks on the disk
-    size_t              mediaBlockSize;     // physical size of a block on the disk media. Only relevant if you want to display this value to the user
-    LogicalBlockCount   mediaBlockCount;    // number of physical blocks on the disk media
+    size_t              sectorSize;         // size of a sector (physical block) stored on the disk media. Only relevant if you want to display this value to the user or format a disk
+    LogicalBlockCount   sectorCount;        // number of sectors (physical blocks) stored on the disk media
 } DiskInfo;
 
 

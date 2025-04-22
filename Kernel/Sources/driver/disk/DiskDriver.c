@@ -79,8 +79,8 @@ void DiskDriver_getInfo(DiskDriverRef _Nonnull _Locked self, DiskInfo* _Nonnull 
     pOutInfo->properties = self->mediaProperties;
     pOutInfo->blockSize = self->blockSize;
     pOutInfo->blockCount = self->blockCount;
-    pOutInfo->mediaBlockSize = self->mediaBlockSize;
-    pOutInfo->mediaBlockCount = self->mediaBlockCount;
+    pOutInfo->sectorSize = self->sectorSize;
+    pOutInfo->sectorCount = self->sectorCount;
 }
 
 errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
@@ -101,23 +101,23 @@ errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 
 void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable info)
 {
-    const bool hasMedia = (info && (info->blockCount > 0) && (info->blockSize > 0)) ? true : false;
+    const bool hasMedia = (info && (info->sectorCount > 0) && (info->sectorSize > 0)) ? true : false;
 
     Driver_Lock(self);
 
-    self->mediaBlockCount = info->blockCount;
-    self->mediaBlockSize = info->blockSize;
+    self->sectorCount = info->sectorCount;
+    self->sectorSize = info->sectorSize;
     self->blockSize = DiskCache_GetBlockSize(self->diskCache);
     self->blockShift = u_log2(self->blockSize);
 
-    if (self->mediaBlockSize > 0 && u_ispow2(self->mediaBlockSize)) {
-        self->mb2lbFactor = self->blockSize / self->mediaBlockSize;
+    if (self->sectorSize > 0 && u_ispow2(self->sectorSize)) {
+        self->s2bFactor = self->blockSize / self->sectorSize;
     }
     else {
-        self->mb2lbFactor = 1;
+        self->s2bFactor = 1;
     }
 
-    self->blockCount = self->mediaBlockCount / self->mb2lbFactor;
+    self->blockCount = self->sectorCount / self->s2bFactor;
 
     if (hasMedia) {
         self->mediaProperties = info->properties;
@@ -141,8 +141,8 @@ errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId,
 
     Driver_Lock(self);
     if (mediaId == self->currentMediaId) {
-        err = DiskDriver_GetRequestRange2(self, mediaId, lba * self->mb2lbFactor, pOutBlockRange);
-        pOutBlockRange->lba = pOutBlockRange->lba / self->mb2lbFactor;
+        err = DiskDriver_GetRequestRange2(self, mediaId, lba * self->s2bFactor, pOutBlockRange);
+        pOutBlockRange->lba = pOutBlockRange->lba / self->s2bFactor;
     }
     else {
         err = EDISKCHANGE;
@@ -165,25 +165,25 @@ errno_t DiskDriver_doBlockRequest(DiskDriverRef _Nonnull self, const DiskContext
     decl_try_err();
     const LogicalBlockAddress lba = br->lba;
     uint8_t* data = br->data;
-    uint8_t* edata = data + ctx->mBlockSize * ctx->mb2lbFactor;
-    LogicalBlockAddress mba = lba * ctx->mb2lbFactor;
-    const bool shouldZeroFill = ((req->type == kDiskRequest_Read) && (ctx->lBlockSize > ctx->mBlockSize) && (ctx->mb2lbFactor == 1)) ? true : false;
+    uint8_t* edata = data + ctx->sectorSize * ctx->s2bFactor;
+    LogicalBlockAddress mba = lba * ctx->s2bFactor;
+    const bool shouldZeroFill = ((req->type == kDiskRequest_Read) && (ctx->blockSize > ctx->sectorSize) && (ctx->s2bFactor == 1)) ? true : false;
 
     if (req->mediaId != ctx->mediaId) {
         return EDISKCHANGE;
     }
-    if (lba >= ctx->lBlockCount) {
+    if (lba >= ctx->blockCount) {
         return ENXIO;
     }
 
     while ((data < edata) && (err == EOK)) {
         switch (req->type) {
             case kDiskRequest_Read:
-                err = DiskDriver_GetMediaBlock(self, mba, data, ctx->mBlockSize);
+                err = DiskDriver_GetSector(self, mba, data, ctx->sectorSize);
                 break;
 
             case kDiskRequest_Write:
-                err = DiskDriver_PutMediaBlock(self, mba, data, ctx->mBlockSize);
+                err = DiskDriver_PutSector(self, mba, data, ctx->sectorSize);
                 break;
 
             default:
@@ -191,14 +191,14 @@ errno_t DiskDriver_doBlockRequest(DiskDriverRef _Nonnull self, const DiskContext
                 break;
         }
 
-        data += ctx->mBlockSize;
+        data += ctx->sectorSize;
         mba++;
     }
 
     if (err == EOK && shouldZeroFill) {
         // Media block size isn't a power-of-2 and this is a read. We zero-fill
         // the remaining bytes in the logical block
-        memset(data + ctx->mBlockSize, 0, ctx->lBlockSize - ctx->mBlockSize);
+        memset(data + ctx->sectorSize, 0, ctx->blockSize - ctx->sectorSize);
     }
 
     return err;
@@ -223,10 +223,10 @@ static void DiskDriver_DoIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull r
 
     Driver_Lock(self);
     ctx.mediaId = self->currentMediaId;
-    ctx.lBlockCount = self->blockCount;
-    ctx.lBlockSize = self->blockSize;
-    ctx.mBlockSize = self->mediaBlockSize;
-    ctx.mb2lbFactor = self->mb2lbFactor;
+    ctx.blockCount = self->blockCount;
+    ctx.blockSize = self->blockSize;
+    ctx.sectorSize = self->sectorSize;
+    ctx.s2bFactor = self->s2bFactor;
     Driver_Unlock(self);
 
     DiskDriver_DoDiskRequest(self, &ctx, req);
@@ -261,12 +261,12 @@ errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull re
 }
 
 
-errno_t DiskDriver_getMediaBlock(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t mbSize)
+errno_t DiskDriver_getSector(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t mbSize)
 {
     return EIO;
 }
 
-errno_t DiskDriver_putMediaBlock(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t mbSize)
+errno_t DiskDriver_putSector(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t mbSize)
 {
     return EIO;
 }
@@ -492,8 +492,8 @@ func_def(getRequestRange2, DiskDriver)
 func_def(beginIO, DiskDriver)
 func_def(doDiskRequest, DiskDriver)
 func_def(doBlockRequest, DiskDriver)
-func_def(getMediaBlock, DiskDriver)
-func_def(putMediaBlock, DiskDriver)
+func_def(getSector, DiskDriver)
+func_def(putSector, DiskDriver)
 override_func_def(getSeekableRange, DiskDriver, Driver)
 override_func_def(read, DiskDriver, Driver)
 override_func_def(write, DiskDriver, Driver)

@@ -32,8 +32,8 @@ errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds
     // Default media properties until we've figured out what media is actually
     // in the drive
     MediaInfo info;
-    info.blockCount = 0;
-    info.blockSize = ADF_SECTOR_DATA_SIZE;
+    info.sectorCount = 0;
+    info.sectorSize = ADF_SECTOR_DATA_SIZE;
     info.properties = kMediaProperty_IsReadOnly | kMediaProperty_IsRemovable;
 
     try(DiskDriver_Create(class(FloppyDriver), kDiskDriver_Queuing, parent, &info, (DriverRef*)&self));
@@ -158,8 +158,8 @@ static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self)
         if ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) {
             info.properties |= kMediaProperty_IsReadOnly;
         }
-        info.blockSize = ADF_SECTOR_DATA_SIZE;
-        info.blockCount = self->blocksPerDisk;
+        info.sectorSize = ADF_SECTOR_DATA_SIZE;
+        info.sectorCount = self->blocksPerDisk;
         DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
         FloppyDriver_CancelUpdateHasDiskState(self);
     }
@@ -741,7 +741,7 @@ catch:
     return err;
 }
 
-errno_t FloppyDriver_getMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t mbSize)
+errno_t FloppyDriver_getSector(FloppyDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t secSize)
 {
     decl_try_err();
     const int c = ba / self->sectorsPerCylinder;
@@ -843,7 +843,7 @@ static void FloppyDriver_BuildSector(FloppyDriverRef _Nonnull self, uint8_t targ
     mfm_encode_bits(&checksum, &dst->payload.data_checksum.odd_bits, 1);
 }
 
-errno_t FloppyDriver_putMediaBlock(FloppyDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t mbSize)
+errno_t FloppyDriver_putSector(FloppyDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t secSize)
 {
     decl_try_err();
 
@@ -968,7 +968,7 @@ errno_t FloppyDriver_getRequestRange2(FloppyDriverRef _Nonnull self, MediaId med
 class_func_defs(FloppyDriver, DiskDriver,
 override_func_def(deinit, FloppyDriver, Object)
 override_func_def(onStart, FloppyDriver, Driver)
-override_func_def(getMediaBlock, FloppyDriver, DiskDriver)
-override_func_def(putMediaBlock, FloppyDriver, DiskDriver)
+override_func_def(getSector, FloppyDriver, DiskDriver)
+override_func_def(putSector, FloppyDriver, DiskDriver)
 override_func_def(getRequestRange2, FloppyDriver, DiskDriver)
 );
