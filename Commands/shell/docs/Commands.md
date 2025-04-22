@@ -70,20 +70,57 @@ Pauses execution for 'ms' milliseconds.
 
 * `ms`: a positive integer giving a duration in milliseconds
 
-## `diskutil`
+## `disk format`
 
-A utility to format and manage disks.
+Initializes an unformatted disk with the specified filesystem. The filesystem is set up with an empty root directory. Note that the only filesystem supported at this time is SerenaFS.
 
 ### Signature
 
-`diskutil <command> ...`
+`disk format <disk_path>`
+
+### Switches
+
+* `--type, -t`: specifies the name of the filesystem to create
+* `--label, -l`: specifies the label that should be assigned to the disk
+* `--owner, -o`: specifies the user and group id for the root directory
+* `--permissions, -p`: specifies the permissions of the root directory
+* `--quick, -q`: tells the tool that it should skip cleaning all disk blocks by setting their contents to 0
 
 ### Parameters
 
-* `command`: a utility command:
-    * `format`: format a disk. Expects a path to the disk device. Specify the name of the desired filesystem with the `-t` option.
-    * `mount`: mount a disk and make it accessible to the shell. Specify the directory where the disk should be mounted with the `--at` option.
-    * `unmount`: Unmount a disk. You should unmount a disk before you remove it from a floppy drive.
+* `disk_path`: a path to a disk driver (typically found in `/dev/hw`)
+
+## `disk mount`
+
+Mounts the filesystem stored on a disk and makes it accessible at the directory designated by the `--at` switch. Applications are able to access the filesystem once the mount operation has successfully completed.
+
+### Signature
+
+`disk mount <disk_path>`
+
+### Switches
+
+* `--at, -t`: specifies the directory at which the filesystem should be mounted. This switch is required
+
+### Parameters
+
+* `disk_path`: a path to a disk driver (typically found in `/dev/hw`)
+
+## `disk unmount`
+
+Unmounts a filesystem. This command ensures that all cached data is first written to the disk and the the filesystem is unmounted.
+
+### Signature
+
+`disk unmount <at_path>`
+
+### Switches
+
+* `--force, -f`: forces the unmount to proceed even if some application is still holding a file on the disk open
+
+### Parameters
+
+* `at_path`: the path to the directory at which the filesystem is mounted
 
 ## `echo`
 

@@ -1,5 +1,5 @@
 //
-//  diskutil.c
+//  disk.c
 //  cmds
 //
 //  Created by Dietmar Planitzer on 4/16/25.
@@ -273,7 +273,7 @@ static bool forced = false;
 CLAP_DECL(params,
     CLAP_VERSION("1.0"),
     CLAP_HELP(),
-    CLAP_USAGE("diskutil <command> ..."),
+    CLAP_USAGE("disk <command> ..."),
 
     CLAP_REQUIRED_COMMAND("format", &cmd_id, "<disk_path>", "Formats the disk at 'disk_path' with the filesystem <fs_type> (SeFS)."),
         CLAP_BOOL('q', "quick", &should_quick_format, "Do a quick format"),
@@ -300,7 +300,7 @@ int main(int argc, char* argv[])
     clap_parse(0, params, argc, argv);
     
     if (!strcmp(cmd_id, "format")) {
-        // diskutil format
+        // disk format
         if (!permissions.isValid) {
             permissions.p = FilePermissions_MakeFromOctal(0777);
         }
@@ -309,24 +309,26 @@ int main(int argc, char* argv[])
             owner.gid = kGroupId_Root;
             owner.isValid = true;
         }
-        try(cmd_format(should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, vol_label, disk_path));
+        err = cmd_format(should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, vol_label, disk_path);
     }
     else if (!strcmp(cmd_id, "mount")) {
-        // diskutil mount
-        try(cmd_mount(disk_path, at_path));
+        // disk mount
+        err = cmd_mount(disk_path, at_path);
     }
     else if (!strcmp(cmd_id, "unmount")) {
-        // diskutil unmount
-        try(cmd_unmount(at_path, forced));
+        // disk unmount
+        err = cmd_unmount(at_path, forced);
     }
     else {
-        throw(EINVAL);
+        err = EINVAL;
     }
 
 
-    return EXIT_SUCCESS;
-
-catch:
-    fatal(strerror(err));
-    return EXIT_FAILURE;
+    if (err == EOK) {
+        return EXIT_SUCCESS;
+    }
+    else {
+        fatal(strerror(err));
+        return EXIT_FAILURE;
+    }
 }
