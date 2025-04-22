@@ -90,6 +90,18 @@ Initializes an unformatted disk with the specified filesystem. The filesystem is
 
 * `disk_path`: a path to a disk driver (typically found in `/dev/hw`)
 
+## `disk fsid`
+
+Prints the globally unique filesystem id of the filesystem on which the current working directory resides if no path is provided, or the filesystem id of the filesystem on which the file/directory resides to which the provided path points.
+
+### Signature
+
+`disk fsid [path]`
+
+### Parameters
+
+* `path`: a path to a file or directory
+
 ## `disk mount`
 
 Mounts the filesystem stored on a disk and makes it accessible at the directory designated by the `--at` switch. Applications are able to access the filesystem once the mount operation has successfully completed.
@@ -162,18 +174,6 @@ Exits the current shell with the exit code 'exit_code'. The exit code is passed 
 ### Parameters
 
 * `exit_code`: an integer that will be passed to the parent shell
-
-## `fsid`
-
-Prints the globally unique filesystem id of the filesystem on which the current working directory resides if no path is provided, or the filesystem id of the filesystem on which the file/directory resides to which the provided path points.
-
-### Signature
-
-`fsid [path]`
-
-### Parameters
-
-* `path`: a path to a file or directory
 
 ## `history`
 

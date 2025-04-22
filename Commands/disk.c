@@ -18,8 +18,10 @@
 #include <System/Directory.h>
 #include <System/Disk.h>
 #include <System/Error.h>
+#include <System/File.h>
 #include <System/Filesystem.h>
 #include <System/FilePermissions.h>
+#include <System/Process.h>
 #include <System/TimeInterval.h>
 #include <System/Types.h>
 #include <System/User.h>
@@ -117,6 +119,37 @@ catch:
     if (fp) {
         fclose(fp);
     }
+    return err;
+}
+
+errno_t cmd_fsid(const char* _Nonnull path)
+{
+    decl_try_err();
+    FileInfo info;
+    char* p = (char*)path;
+
+    if (*p == '\0') {
+        p = malloc(PATH_MAX);
+        if (p == NULL) {
+            return ENOMEM;
+        }
+
+        err = Process_GetWorkingDirectory(p, PATH_MAX);
+    }
+
+
+    if (err == EOK) {
+        err = File_GetInfo(p, &info);
+        if (err == EOK) {
+            printf("%u\n", info.fsid);
+        }
+    }
+
+
+    if (p != path) {
+        free(p);
+    }
+
     return err;
 }
 
@@ -257,7 +290,7 @@ catch:
 
 static const char* cmd_id = "";
 
-// diskimage format
+// disk format
 static bool should_quick_format = false;
 static char* disk_path = "";
 static char* fs_type = "";
@@ -265,7 +298,10 @@ static char* vol_label = "";
 static di_permissions_spec_t permissions = {0, false};
 static di_owner_spec_t owner = {kUserId_Root, kGroupId_Root, false};
 
-// diskimage mount/unmount
+// disk fsid
+static char* fs_path = "";
+
+// disk mount/unmount
 static char* at_path = "";
 static bool forced = false;
 
@@ -282,6 +318,9 @@ CLAP_DECL(params,
         CLAP_STRING('l', "label", &vol_label, "Specify the volume label"),
         CLAP_STRING('t', "type", &fs_type, "Specify the filesystem type"),
         CLAP_POSITIONAL_STRING(&disk_path),
+
+    CLAP_REQUIRED_COMMAND("fsid", &cmd_id, "<path>", "Prints the filesystem id of the filesystem at path 'path'."),
+        CLAP_POSITIONAL_STRING(&fs_path),
 
     CLAP_REQUIRED_COMMAND("mount", &cmd_id, "<disk_path> --at <at_path>", "Mounts the disk 'disk_path' on top of the directory 'at_path'."),
         CLAP_STRING('t', "at", &at_path, "Specify the mount point"),
@@ -310,6 +349,10 @@ int main(int argc, char* argv[])
             owner.isValid = true;
         }
         err = cmd_format(should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, vol_label, disk_path);
+    }
+    else if (!strcmp(cmd_id, "fsid")) {
+        // disk fsid
+        err = cmd_fsid(fs_path);
     }
     else if (!strcmp(cmd_id, "mount")) {
         // disk mount
