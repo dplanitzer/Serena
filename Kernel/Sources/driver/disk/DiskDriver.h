@@ -15,11 +15,6 @@
 #include <driver/disk/DiskRequest.h>
 #include <System/Disk.h>
 
-enum DiskDriverOptions {
-    kDiskDriver_Queuing = 256,  // BeginIO should queue incoming requested and the requests will by asynchronously processed by a dispatch queue work item
-};
-
-
 // Describes the physical properties of the media that is currently loaded into
 // the drive.
 typedef struct MediaInfo {
@@ -46,34 +41,22 @@ typedef struct brng {
 
 
 // A disk driver manages the data stored on a disk. It provides read and write
-// access to the disk data. Data on a disk is organized in blocks. All blocks
-// are of the same size. Blocks are addressed with an index in the range
-// [0, BlockCount). Note that a disk driver always implements the asynchronous
-// driver model.
+// access to the disk data. Data on a disk is organized in sectors. All sectors
+// are of the same size. Sectors are addressed with an index in the range
+// [0, SectorCount). Note that a disk driver always implements the asynchronous
+// and dispatch queue-based driver model.
 //
 // A disk driver may either directly control a physical mass storage device or
 // it may implement a logical mass storage device which delegates the actual data
-// storage to another disk driver. To support the later use case, the DiskDriver
-// class supports disk block address virtualization.
+// storage to another disk driver.
 //
-// The BeginIO() method receives the cached disk block that should be read or
-// written plus a separate target address that indicates the physical disk block
-// that should be read or written. A logical disk driver may map the target
-// address that it has received to a new address suitable for another disk driver
-// and it then invokes the beginIO() method with the new target address on this
-// other driver.
+// By default a disk driver operates asynchronously and executes all its I/O
+// operations on a (serial) dispatch queue. However a subclass may override the
+// createDispatchQueue() method and return NULL to force a synchronous model.
+// Note that you should override all methods that are marked as dispatching in
+// the interface if you do this. The overrides should then execute the I/O
+// operations directly and 
 //
-// A disk driver may operate synchronously or queue-based. A synchronous disk
-// driver is a driver where the BeginIO() method immediately processes the I/O
-// request. The Begin() method of a queueing driver on the other hand simply
-// adds the request to an internal queue. The requests on the queue are then
-// asynchronously processed by the driver dispatch queue.
-//
-// A synchronous driver should override:
-// - getSector()/putSector(), doIO() or beginIO()
-//
-// A queueing driver should override:
-// - getSector()/putSector() or doIO()
 //
 // Logical block sizes vs sector sizes:
 //
@@ -126,8 +109,12 @@ open_class(DiskDriver, Driver,
 );
 open_class_funcs(DiskDriver, Driver,
 
-    // Invoked when the driver needs to create its dispatch queue. This will
-    // only happen for a queueing driver.
+    // Creates a dispatch queue for the driver. The default implementation creates
+    // a serial queue suitable for a disk driver. A subclass may override this
+    // method and return NULL to disable queuing. Note that if you do this in a
+    // subclass that you should also override all relevant methods below to
+    // execute the action directly instead of dispatching to a queue that doesn't
+    // exist. 
     // Override: Optional
     // Default Behavior: create a dispatch queue with priority Normal
     errno_t (*createDispatchQueue)(void* _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
@@ -148,31 +135,36 @@ open_class_funcs(DiskDriver, Driver,
     errno_t (*getRequestRange2)(void* _Nonnull self, MediaId mediaId, LogicalBlockAddress lba, brng_t* _Nonnull pOutBlockRange);
 
 
-    // Starts an I/O operation for the given disk request. Calls getBlock() if
-    // the block should be read and putBlock() if it should be written. It then
-    // invokes endIO() to notify the system about the completed I/O operation.
-    // This function assumes that getBlock()/putBlock() will only return once
-    // the I/O operation is done or an error has been encountered.
-    // A disk driver implementation may update the block address fields in the
-    // request and then pass the request on to a different driver.
+    //
+    // The following methods dispatch to the dispatch queue
+    //
+
+    // Starts an I/O operation for the given disk request. Dispatches an async
+    // call to doIO() on the dispatch queue. The actual read/write will happen
+    // asynchronously.
     // Default Behavior: Dispatches an async call to doIO()
     errno_t (*beginIO)(void* _Nonnull _Locked self, DiskRequest* _Nonnull req);
+    
+
+    //
+    // The following methods are executed on the dispatch queue.
+    //
 
     // Executes a disk request. A disk request is a list of block requests. This
-    // function is expected to call 'doBlockRequest' for each block request in
+    // function is expected to call 'doBlockIO' for each block request in
     // the disk request and to mark each block request as done by calling
     // DiskRequest_Done() with the block request and the final status for the
     // block request. Note that this function should not call DiskRequest_Done()
     // for the disk request itself.
-    // Default Behavior: Calls doBlockRequest
-    void (*doDiskRequest)(void* _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req);
+    // Default Behavior: Calls doBlockIO()
+    void (*doIO)(void* _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req);
 
     // Executes a block request. This function is expected to validate the block
     // request parameters based on the provided disk context 'ctx'. It should
     // then read/write the block data while taking care of the translation from
     // a logical block size to the sector size.
     // Default Behavior: Calls getSector/putSector
-    errno_t (*doBlockRequest)(void* _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, BlockRequest* _br);
+    errno_t (*doBlockIO)(void* _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, BlockRequest* _br);
 
     // Reads the contents of the physical block at the disk address 'ba'
     // into the in-memory area 'data' of size 'blockSize'. Blocks the caller
@@ -253,11 +245,11 @@ invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
 extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable info);
 
 
-#define DiskDriver_DoDiskRequest(__self, __req, __ctx) \
-invoke_n(doDiskRequest, DiskDriver, __self, __req, __ctx)
+#define DiskDriver_DoIO(__self, __req, __ctx) \
+invoke_n(doIO, DiskDriver, __self, __req, __ctx)
 
-#define DiskDriver_DoBlockRequest(__self, __req, __br, __ctx) \
-invoke_n(doBlockRequest, DiskDriver, __self, __req, __br, __ctx)
+#define DiskDriver_DoBlockIO(__self, __req, __br, __ctx) \
+invoke_n(doBlockIO, DiskDriver, __self, __req, __br, __ctx)
 
 
 #define DiskDriver_GetSector(__self, __ba, __data, __secSize) \

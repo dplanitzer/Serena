@@ -56,6 +56,12 @@ catch:
     return err;
 }
 
+errno_t PartitionDriver_createDispatchQueue(PartitionDriverRef _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
+{
+    *pOutQueue = NULL;
+    return EOK;
+}
+
 errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
 {
     DriverEntry de;
@@ -81,6 +87,7 @@ void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, DiskRequest* _Non
 
 
 class_func_defs(PartitionDriver, DiskDriver,
+override_func_def(createDispatchQueue, PartitionDriver, DiskDriver)
 override_func_def(onStart, PartitionDriver, Driver)
 override_func_def(beginIO, PartitionDriver, DiskDriver)
 );

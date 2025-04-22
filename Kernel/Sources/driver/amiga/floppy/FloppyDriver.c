@@ -36,7 +36,7 @@ errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds
     info.sectorSize = ADF_SECTOR_DATA_SIZE;
     info.properties = kMediaProperty_IsReadOnly | kMediaProperty_IsRemovable;
 
-    try(DiskDriver_Create(class(FloppyDriver), kDiskDriver_Queuing, parent, &info, (DriverRef*)&self));
+    try(DiskDriver_Create(class(FloppyDriver), 0, parent, &info, (DriverRef*)&self));
 
     self->drive = drive;
     self->driveState = ds;

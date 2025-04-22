@@ -23,10 +23,7 @@ errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverR
     self->currentMediaId = kMediaId_None;
 
     DiskDriver_NoteMediaLoaded(self, info);
-
-    if ((options & kDiskDriver_Queuing) == kDiskDriver_Queuing) {
-        try(DiskDriver_CreateDispatchQueue(self, &self->dispatchQueue));
-    }
+    try(DiskDriver_CreateDispatchQueue(self, &self->dispatchQueue));
 
     *pOutSelf = (DriverRef)self;
     return EOK;
@@ -39,10 +36,8 @@ catch:
 
 static void DiskDriver_deinit(DiskDriverRef _Nonnull self)
 {
-    if (self->dispatchQueue) {
-        Object_Release(self->dispatchQueue);
-        self->dispatchQueue = NULL;
-    }
+    Object_Release(self->dispatchQueue);
+    self->dispatchQueue = NULL;
 
     self->diskCache = NULL;
 }
@@ -160,7 +155,7 @@ errno_t DiskDriver_getRequestRange2(DiskDriverRef _Nonnull self, MediaId mediaId
     return EOK;
 }
 
-errno_t DiskDriver_doBlockRequest(DiskDriverRef _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, BlockRequest* _Nonnull br)
+errno_t DiskDriver_doBlockIO(DiskDriverRef _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, BlockRequest* _Nonnull br)
 {
     decl_try_err();
     const LogicalBlockAddress lba = br->lba;
@@ -204,11 +199,11 @@ errno_t DiskDriver_doBlockRequest(DiskDriverRef _Nonnull self, const DiskContext
     return err;
 }
 
-void DiskDriver_doDiskRequest(DiskDriverRef _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req)
+void DiskDriver_doIO(DiskDriverRef _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req)
 {
     for (size_t i = 0; i < req->rCount; i++) {
         BlockRequest* br = &req->r[i];
-        const errno_t err = DiskDriver_DoBlockRequest(self, ctx, req, br);
+        const errno_t err = DiskDriver_DoBlockIO(self, ctx, req, br);
     
         DiskRequest_Done(req, br, err);
         // Continue with the next block request even if the current one failed
@@ -216,7 +211,7 @@ void DiskDriver_doDiskRequest(DiskDriverRef _Nonnull self, const DiskContext* _N
     }
 }
 
-static void DiskDriver_DoIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
+static void _DiskDriver_xDoIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
 {
     decl_try_err();
     DiskContext ctx;
@@ -229,19 +224,13 @@ static void DiskDriver_DoIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull r
     ctx.s2bFactor = self->s2bFactor;
     Driver_Unlock(self);
 
-    DiskDriver_DoDiskRequest(self, &ctx, req);
+    DiskDriver_DoIO(self, &ctx, req);
     DiskRequest_Done(req, NULL, EOK);
 }
 
 errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull _Locked self, DiskRequest* _Nonnull req)
 {
-    if (self->dispatchQueue) {
-        return DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)DiskDriver_DoIO, self, req, 0, 0, 0);
-    }
-    else {
-        DiskDriver_DoIO(self, req);
-        return EOK;
-    }
+    return DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)_DiskDriver_xDoIO, self, req, 0, 0, 0);
 }
 
 errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
@@ -490,8 +479,8 @@ override_func_def(onStop, DiskDriver, Driver)
 func_def(getInfo, DiskDriver)
 func_def(getRequestRange2, DiskDriver)
 func_def(beginIO, DiskDriver)
-func_def(doDiskRequest, DiskDriver)
-func_def(doBlockRequest, DiskDriver)
+func_def(doIO, DiskDriver)
+func_def(doBlockIO, DiskDriver)
 func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)
 override_func_def(getSeekableRange, DiskDriver, Driver)

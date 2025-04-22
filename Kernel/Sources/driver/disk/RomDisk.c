@@ -52,6 +52,13 @@ void RomDisk_deinit(RomDiskRef _Nonnull self)
     }
 }
 
+errno_t RomDisk_createDispatchQueue(RomDiskRef _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
+{
+    *pOutQueue = NULL;
+    return EOK;
+}
+
+
 errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
 {
     DriverEntry de;
@@ -73,6 +80,7 @@ errno_t RomDisk_getSector(RomDiskRef _Nonnull self, LogicalBlockAddress ba, uint
 
 class_func_defs(RomDisk, DiskDriver,
 override_func_def(deinit, RomDisk, Object)
+override_func_def(createDispatchQueue, RomDisk, DiskDriver)
 override_func_def(onStart, RomDisk, Driver)
 override_func_def(getSector, RomDisk, DiskDriver)
 );
