@@ -100,6 +100,15 @@ void Interpreter_Destroy(InterpreterRef _Nullable self)
         StackAllocator_Destroy(self->allocator);
         self->allocator = NULL;
 
+        CDEntry* cde = self->cdStackTos;
+        while (cde) {
+            CDEntry* pe = cde->prev;
+
+            free(cde->path);
+            free(cde);
+            cde = pe;
+        }
+
         self->lineReader = NULL;
         free(self);
     }
@@ -141,6 +150,8 @@ static errno_t Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self)
     try(NameTable_DeclareName(self->nameTable, "list", cmd_list));
     try(NameTable_DeclareName(self->nameTable, "load", cmd_load));
     try(NameTable_DeclareName(self->nameTable, "makedir", cmd_makedir));
+    try(NameTable_DeclareName(self->nameTable, "popcd", cmd_popcd));
+    try(NameTable_DeclareName(self->nameTable, "pushcd", cmd_pushcd));
     try(NameTable_DeclareName(self->nameTable, "pwd", cmd_pwd));
     try(NameTable_DeclareName(self->nameTable, "rename", cmd_rename));
     try(NameTable_DeclareName(self->nameTable, "save", cmd_save));

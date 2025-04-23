@@ -25,6 +25,12 @@ typedef enum ExecuteOptions {
 } ExecuteOptions;
 
 
+typedef struct CDEntry {
+    struct CDEntry* _Nullable   prev;
+    char* _Nonnull              path;
+} CDEntry;
+
+
 typedef struct Interpreter {
     StackAllocatorRef _Nonnull  allocator;
     
@@ -34,6 +40,7 @@ typedef struct Interpreter {
     RunStack* _Nonnull          runStack;
     EnvironCache* _Nonnull      environCache;
     ArgumentVector* _Nonnull    argumentVector;
+    CDEntry* _Nullable          cdStackTos;
 
     int32_t                     loopNestingCount;
     bool                        isInteractive;

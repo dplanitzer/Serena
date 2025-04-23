@@ -292,6 +292,26 @@ Creates one or more empty directories at the file system locations designated by
 
 * `path ...`: one or more paths to directories that should be created
 
+## `popcd`
+
+Pops the least recently saved current directory from the current directory stack and makes it the new current directory. Prints an error if the stack is empty.
+
+### Signature
+
+`popcd`
+
+## `pushcd`
+
+Saves the current directory on a stack and then makes `path` the new current directory if a path is specified.
+
+### Signature
+
+`pushcd [path]`
+
+### Parameters
+
+* `path`: path of the directory to make current
+
 ## `pwd`
 
 Returns the absolute path of the current working directory.
