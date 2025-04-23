@@ -1,5 +1,5 @@
 //
-//  rename.c
+//  delete.c
 //  cmds
 //
 //  Created by Dietmar Planitzer on 4/22/25.
@@ -15,16 +15,14 @@
 #include <System/File.h>
 
 
-const char* old_path = "";
-const char* new_path = "";
+static clap_string_array_t paths = {NULL, 0};
 
 CLAP_DECL(params,
     CLAP_VERSION("1.0"),
     CLAP_HELP(),
-    CLAP_USAGE("rename <old_path> <new_path>"),
+    CLAP_USAGE("delete <path ...>"),
 
-    CLAP_REQUIRED_POSITIONAL_STRING(&old_path, "expected a path to an existing file"),
-    CLAP_REQUIRED_POSITIONAL_STRING(&new_path, "expected a new location path")
+    CLAP_REQUIRED_VARARG(&paths, "expected paths to files to delete")
 );
 
 
@@ -35,9 +33,14 @@ int main(int argc, char* argv[])
     clap_parse(0, params, argc, argv);
 
     
-    err = File_Rename(old_path, new_path);
-    if (err != EOK) {
-        clap_error(argv[0], "%s: %s", old_path, strerror(err));
+    for (size_t i = 0; i < paths.count; i++) {
+        const char* path = paths.strings[i];
+
+        err = File_Unlink(path);
+        if (err != EOK) {
+            clap_error(argv[0], "%s: %s", path, strerror(err));
+            break;
+        }
     }
 
     return (err == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
