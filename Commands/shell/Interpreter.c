@@ -152,7 +152,6 @@ static errno_t Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self)
     try(NameTable_DeclareName(self->nameTable, "pushcd", cmd_pushcd));
     try(NameTable_DeclareName(self->nameTable, "pwd", cmd_pwd));
     try(NameTable_DeclareName(self->nameTable, "save", cmd_save));
-    try(NameTable_DeclareName(self->nameTable, "shutdown", cmd_shutdown));
     try(NameTable_DeclareName(self->nameTable, "uptime", cmd_uptime));
     try(NameTable_DeclareName(self->nameTable, "vars", cmd_vars));
 
