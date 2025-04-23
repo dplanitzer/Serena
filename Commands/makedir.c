@@ -1,17 +1,18 @@
 //
 //  makedir.c
-//  sh
+//  cmds
 //
-//  Created by Dietmar Planitzer on 1/11/24.
-//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 4/22/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Interpreter.h"
-#include "Utilities.h"
+#include <clap.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <clap.h>
+#include <System/Error.h>
+#include <System/Directory.h>
 
 
 static errno_t _create_directory_recursively(char* _Nonnull path, FilePermissions permissions)
@@ -78,7 +79,7 @@ static errno_t create_directory_recursively(char* _Nonnull path, FilePermissions
 static clap_string_array_t paths = {NULL, 0};
 static bool should_create_parents = false;
 
-static CLAP_DECL(params,
+CLAP_DECL(params,
     CLAP_VERSION("1.0"),
     CLAP_HELP(),
     CLAP_USAGE("makedir [-p | --parents] <path>"),
@@ -88,22 +89,25 @@ static CLAP_DECL(params,
 );
 
 
-static errno_t do_makedir(clap_string_array_t* _Nonnull paths, bool shouldCreateParents, const char* _Nonnull proc_name)
+int main(int argc, char* argv[])
 {
     decl_try_err();
-    FilePermissions permissions = FilePermissions_MakeFromOctal(0755);
+    const FilePermissions permissions = FilePermissions_MakeFromOctal(0755);
 
-    for (size_t i = 0; i < paths->count; i++) {
-        char* path = (char*)paths->strings[i];
+    clap_parse(0, params, argc, argv);
+
+    
+    for (size_t i = 0; i < paths.count; i++) {
+        char* path = (char*)paths.strings[i];
 
         err = Directory_Create(path, permissions);
         if (err != EOK) {
-            if (err == ENOENT && shouldCreateParents) {
+            if (err == ENOENT && should_create_parents) {
                 err = create_directory_recursively(path, permissions);
             }
 
             if (err != EOK) {
-                print_error(proc_name, path, err);
+                clap_error(argv[0], "%s: %s", path, strerror(err));
             }
         }
 
@@ -112,23 +116,5 @@ static errno_t do_makedir(clap_string_array_t* _Nonnull paths, bool shouldCreate
         }
     }
 
-    return err;
-}
-
-int cmd_makedir(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
-{
-    should_create_parents = false;
-
-    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    int exitCode;
-
-    if (!clap_should_exit(status)) {
-        exitCode = exit_code(do_makedir(&paths, should_create_parents, argv[0]));
-    }
-    else {        
-        exitCode = clap_exit_code(status);
-    }
-
-    OpStack_PushVoid(ip->opStack);
-    return exitCode;
+    return (err == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
