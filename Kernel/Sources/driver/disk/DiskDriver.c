@@ -76,6 +76,7 @@ void DiskDriver_getInfo(DiskDriverRef _Nonnull _Locked self, DiskInfo* _Nonnull 
     pOutInfo->blockCount = self->blockCount;
     pOutInfo->sectorSize = self->sectorSize;
     pOutInfo->sectorCount = self->sectorCount;
+    pOutInfo->formatSectorCount = self->formatSectorCount;
 }
 
 errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
@@ -100,6 +101,7 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
 
     Driver_Lock(self);
 
+    self->formatSectorCount = info->formatSectorCount;
     self->sectorCount = info->sectorCount;
     self->sectorSize = info->sectorSize;
     self->blockSize = DiskCache_GetBlockSize(self->diskCache);
@@ -153,6 +155,17 @@ errno_t DiskDriver_getRequestRange2(DiskDriverRef _Nonnull self, MediaId mediaId
     pOutBlockRange->lba = lba;
     pOutBlockRange->count = 1;
     return EOK;
+}
+
+
+errno_t DiskDriver_getSector(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t mbSize)
+{
+    return EIO;
+}
+
+errno_t DiskDriver_putSector(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t mbSize)
+{
+    return EIO;
 }
 
 errno_t DiskDriver_doBlockIO(DiskDriverRef _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, BlockRequest* _Nonnull br)
@@ -250,14 +263,58 @@ errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull re
 }
 
 
-errno_t DiskDriver_getSector(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t mbSize)
+errno_t DiskDriver_doFormat(DiskDriverRef _Nonnull _Locked self, const DiskContext* _Nonnull ctx, FormatSectorsRequest* _Nonnull req)
 {
-    return EIO;
+    return ENOTSUP;
 }
 
-errno_t DiskDriver_putSector(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t mbSize)
+void _DiskDriver_xDoFormat(DiskDriverRef _Nonnull _Locked self, FormatSectorsRequest* _Nonnull req)
 {
-    return EIO;
+    decl_try_err();
+    DiskContext ctx;
+
+    // DiskDriver_Format() is holding the lock
+    ctx.mediaId = self->currentMediaId;
+    ctx.blockCount = self->blockCount;
+    ctx.blockSize = self->blockSize;
+    ctx.sectorSize = self->sectorSize;
+    ctx.s2bFactor = self->s2bFactor;
+
+    if (req->mediaId != ctx.mediaId) {
+        req->status = EDISKCHANGE;
+    }
+    else if (req->addr + self->formatSectorCount > self->sectorCount) {
+        req->status = ENXIO;
+    }
+    else {
+        req->status = DiskDriver_DoFormat(self, &ctx, req);
+    }
+}
+
+errno_t DiskDriver_format(DiskDriverRef _Nonnull _Locked self, FormatSectorsRequest* _Nonnull req)
+{
+    req->status = EOK;
+    errno_t err = DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)_DiskDriver_xDoFormat, self, req, 0, kDispatchOption_Sync, 0);
+    if (err == EOK) {
+        err = req->status;
+    }
+    return err;
+}
+
+errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, FormatSectorsRequest* _Nonnull req)
+{
+    decl_try_err();
+
+    Driver_Lock(self);
+    if (Driver_IsActive(self)) {
+        err = invoke_n(format, DiskDriver, self, req);
+    }
+    else {
+        err = ENODEV;
+    }
+    Driver_Unlock(self);
+
+    return err;
 }
 
 
@@ -464,6 +521,12 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
             return DiskDriver_GetInfo(self, info);
         }
 
+        case kDiskCommand_Format: {
+            FormatSectorsRequest* req = va_arg(ap, FormatSectorsRequest*);
+            
+            return DiskDriver_Format(self, req);
+        }
+
         default:
             return super_n(ioctl, Driver, DiskDriver, self, cmd, ap);
     }
@@ -483,6 +546,8 @@ func_def(doIO, DiskDriver)
 func_def(doBlockIO, DiskDriver)
 func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)
+func_def(format, DiskDriver)
+func_def(doFormat, DiskDriver)
 override_func_def(getSeekableRange, DiskDriver, Driver)
 override_func_def(read, DiskDriver, Driver)
 override_func_def(write, DiskDriver, Driver)

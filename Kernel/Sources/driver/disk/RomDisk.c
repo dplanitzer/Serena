@@ -31,6 +31,7 @@ errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, co
     MediaInfo info;
     info.sectorCount = sectorCount;
     info.sectorSize = sectorSize;
+    info.formatSectorCount = 0;
     info.properties = kMediaProperty_IsReadOnly;
 
     try(DiskDriver_Create(class(RomDisk), 0, parent, &info, (DriverRef*)&self));
@@ -50,12 +51,6 @@ void RomDisk_deinit(RomDiskRef _Nonnull self)
         kfree(self->diskImage);
         self->diskImage = NULL;
     }
-}
-
-errno_t RomDisk_createDispatchQueue(RomDiskRef _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
-{
-    *pOutQueue = NULL;
-    return EOK;
 }
 
 
@@ -80,7 +75,6 @@ errno_t RomDisk_getSector(RomDiskRef _Nonnull self, LogicalBlockAddress ba, uint
 
 class_func_defs(RomDisk, DiskDriver,
 override_func_def(deinit, RomDisk, Object)
-override_func_def(createDispatchQueue, RomDisk, DiskDriver)
 override_func_def(onStart, RomDisk, Driver)
 override_func_def(getSector, RomDisk, DiskDriver)
 );

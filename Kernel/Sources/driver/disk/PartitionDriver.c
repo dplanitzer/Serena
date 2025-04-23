@@ -35,6 +35,7 @@ errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull 
     MediaInfo partInfo;
     partInfo.sectorCount = blockCount;
     partInfo.sectorSize = diskInfo.blockSize;
+    partInfo.formatSectorCount = diskInfo.formatSectorCount;
     partInfo.properties = diskInfo.properties;
     if (isReadOnly) {
         partInfo.properties |= kMediaProperty_IsReadOnly;
@@ -85,9 +86,18 @@ void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, DiskRequest* _Non
     DiskDriver_BeginIO(self->wholeDisk, req);
 }
 
+errno_t PartitionDriver_format(PartitionDriverRef _Nonnull _Locked self, FormatSectorsRequest* _Nonnull req)
+{
+    FormatSectorsRequest req2 = *req;
+
+    req2.addr += self->startBlock;
+    return DiskDriver_Format(self->wholeDisk, &req2);
+}
+
 
 class_func_defs(PartitionDriver, DiskDriver,
 override_func_def(createDispatchQueue, PartitionDriver, DiskDriver)
 override_func_def(onStart, PartitionDriver, Driver)
 override_func_def(beginIO, PartitionDriver, DiskDriver)
+override_func_def(format, PartitionDriver, DiskDriver)
 );

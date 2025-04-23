@@ -39,6 +39,7 @@ errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, si
     MediaInfo info;
     info.sectorCount = sectorCount;
     info.sectorSize = sectorSize;
+    info.formatSectorCount = 1;
     info.properties = 0;
 
     try(DiskDriver_Create(class(RamDisk), 0, parent, &info, (DriverRef*)&self));
@@ -159,9 +160,16 @@ errno_t RamDisk_putSector(RamDiskRef _Nonnull self, LogicalBlockAddress ba, cons
 }
 
 
+errno_t RamDisk_doFormat(RamDiskRef _Nonnull _Locked self, const DiskContext* _Nonnull ctx, FormatSectorsRequest* _Nonnull req)
+{
+    return RamDisk_putSector(self, req->addr, req->data, ctx->sectorSize);
+}
+
+
 class_func_defs(RamDisk, DiskDriver,
 override_func_def(deinit, RamDisk, Object)
 override_func_def(onStart, RamDisk, Driver)
 override_func_def(getSector, RamDisk, DiskDriver)
 override_func_def(putSector, RamDisk, DiskDriver)
+override_func_def(doFormat, RamDisk, DiskDriver)
 );

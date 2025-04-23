@@ -98,6 +98,36 @@ static errno_t block_write(intptr_t fd, const void* _Nonnull buf, LogicalBlockAd
     }
 }
 
+static errno_t wipe_disk(int ioc, const DiskInfo* _Nonnull info)
+{
+    decl_try_err();
+    FormatSectorsRequest req;
+
+    req.mediaId = info->mediaId;
+    req.addr = 0;
+    req.data = malloc(info->sectorSize * info->formatSectorCount);
+    if (req.data == NULL) {
+        return ENOMEM;
+    }
+
+    
+    for (LogicalBlockCount i = 0; i < info->formatSectorCount; i++) {
+        memset(&((uint8_t*)req.data)[i * info->sectorSize], i + 1, info->sectorSize);
+    }
+
+    fputs("\033[?25l", stdout);
+    while (req.addr < info->sectorCount && err == EOK) {
+        printf("%u\n\033[1A", (unsigned)req.addr);
+        err = IOChannel_Control(ioc, kDiskCommand_Format, &req);
+        req.addr += info->formatSectorCount;
+    }
+    fputs("\033[?25h\n", stdout);
+
+    free(req.data);
+
+    return err;
+}
+
 errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull diskPath)
 {
     decl_try_err();
@@ -111,7 +141,10 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, 
     try_null(fp, fopen(diskPath, "r+"), errno);
     setbuf(fp, NULL);
 
-    try(IOChannel_Control(fileno(fp), kDiskCommand_GetInfo, &info));
+    try(IOChannel_Control(fileno(fp), kDiskCommand_GetInfo, &info)); 
+    if (!bQuick) {
+        try(wipe_disk(fileno(fp), &info));
+    }
     try(sefs_format((intptr_t)fp, block_write, info.blockCount, info.blockSize, rootDirUid, rootDirGid, rootDirPerms, label));
     puts("ok");
 

@@ -18,9 +18,10 @@
 // Describes the physical properties of the media that is currently loaded into
 // the drive.
 typedef struct MediaInfo {
-    LogicalBlockCount   sectorCount;    // > 0 if a media is loaded; 0 otherwise
-    size_t              sectorSize;     // > 0 if a media is loaded; should be the default sector size even if no media is loaded; may be 0 
-    uint32_t            properties;     // media properties
+    LogicalBlockCount   sectorCount;        // > 0 if a media is loaded; 0 otherwise
+    size_t              sectorSize;         // > 0 if a media is loaded; should be the default sector size even if no media is loaded; may be 0
+    size_t              formatSectorCount;  // > 0 then formatting is supported and a format call takes 'formatSectorCount' sectors as input
+    uint32_t            properties;         // media properties
 } MediaInfo;
 
 
@@ -105,6 +106,7 @@ open_class(DiskDriver, Driver,
     uint16_t                    s2bFactor;          // Number of sectors per logical block
     LogicalBlockCount           sectorCount;        // Number of sectors per media. Is blockCount * s2bFactor
     size_t                      sectorSize;         // Size of a sector in bytes. Usually power-of-2, but may not be. If not, then one sector maps to one logical block with 0 padding at the end 
+    size_t                      formatSectorCount;
     uint32_t                    mediaProperties;
 );
 open_class_funcs(DiskDriver, Driver,
@@ -142,9 +144,18 @@ open_class_funcs(DiskDriver, Driver,
     // Starts an I/O operation for the given disk request. Dispatches an async
     // call to doIO() on the dispatch queue. The actual read/write will happen
     // asynchronously.
+    // Override: Optional
     // Default Behavior: Dispatches an async call to doIO()
     errno_t (*beginIO)(void* _Nonnull _Locked self, DiskRequest* _Nonnull req);
-    
+
+    // Formats 'formatSectorCount' consecutive sectors starting at sector 'addr'.
+    // 'data' must point to a memory block of size formatSectorCount * sectorSize
+    // bytes. 'addr' must be a multiple of formatSectorCount'. The caller will be
+    // blocked until all data has been written to disk or an error is encountered.
+    // Override: Optional
+    // Default Behavior: Dispatches an async call to doFormat()
+    errno_t (*format)(void* _Nonnull self, FormatSectorsRequest* _Nonnull req);
+
 
     //
     // The following methods are executed on the dispatch queue.
@@ -173,7 +184,7 @@ open_class_funcs(DiskDriver, Driver,
     // block data is returned, or it fails and no block data is returned.
     // The sector address 'ba' is guaranteed to be in the range
     // [0, sectorCount).
-    // 'mbSize' is the sector size in bytes.
+    // 'secSize' is the sector size in bytes.
     // Default Behavior: returns EIO
     errno_t (*getSector)(void* _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t secSize);
 
@@ -183,10 +194,15 @@ open_class_funcs(DiskDriver, Driver,
     // of the write. The block may contain a mix of old and new data.
     // The sector address 'ba' is guaranteed to be in the range
     // [0, sectorCount).
-    // 'mbSize' is the sector size in bytes.
+    // 'secSize' is the sector size in bytes.
     // The abstract implementation returns EIO.
     // Default Behavior: returns EIO
     errno_t (*putSector)(void* _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t secSize);
+
+
+    // Executes the actual format action on the dispatch queue. See format()
+    // above.
+    errno_t (*doFormat)(void* _Nonnull self, const DiskContext* _Nonnull ctx, FormatSectorsRequest* _Nonnull req);
 );
 
 
@@ -212,6 +228,8 @@ invoke_n(getRequestRange2, DiskDriver, __self, __mediaId, __lba, __brng)
 
 
 extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req);
+
+extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, FormatSectorsRequest* _Nonnull req);
 
 
 //
@@ -257,6 +275,10 @@ invoke_n(getSector, DiskDriver, __self, __ba, __data, __secSize)
 
 #define DiskDriver_PutSector(__self, __ba, __data, __secSize) \
 invoke_n(putSector, DiskDriver, __self, __ba, __data, __secSize)
+
+
+#define DiskDriver_DoFormat(__self, __ctx, __req) \
+invoke_n(doFormat, DiskDriver, __self, __ctx, __req)
 
 
 // Creates a disk driver instance. This function should be called from DiskDrive

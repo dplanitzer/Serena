@@ -64,18 +64,18 @@ final_class_ivars(FloppyDriver, DiskDriver,
     uint8_t                     sectorDataBuffer[ADF_SECTOR_DATA_SIZE];
 
     // Disk geometry
-    LogicalBlockCount           blocksPerDisk;                      // disk size in terms of logical blocks
+    LogicalBlockCount           sectorsPerDisk;                     // disk size in terms of sectors
     int8_t                      sectorsPerCylinder;
     int8_t                      sectorsPerTrack;
     int8_t                      headsPerCylinder;
     int8_t                      cylindersPerDisk;
 
-    int                         readErrorCount;                         // Number of read errors since last disk driver reset / disk change
+    int                         readErrorCount;                     // Number of read errors since last disk driver reset / disk change
 
-    int8_t                      head;                                   // currently selected drive head; -1 means unknown -> need to call FloppyDriver_ResetDrive()
-    int8_t                      cylinder;                               // currently selected drive cylinder; -1 means unknown -> need to call FloppyDriver_ResetDrive()
-    int8_t                      drive;                                  // drive number that this fd object represents
-    DriveState                  driveState;                             // current drive hardware state as maintained by the floppy controller
+    int8_t                      head;                               // currently selected drive head; -1 means unknown -> need to call FloppyDriver_ResetDrive()
+    int8_t                      cylinder;                           // currently selected drive cylinder; -1 means unknown -> need to call FloppyDriver_ResetDrive()
+    int8_t                      drive;                              // drive number that this fd object represents
+    DriveState                  driveState;                         // current drive hardware state as maintained by the floppy controller
 
     struct __fdFlags {
         unsigned int    wasMostRecentSeekInward:1;

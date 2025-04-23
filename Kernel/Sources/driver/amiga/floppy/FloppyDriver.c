@@ -34,6 +34,7 @@ errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds
     MediaInfo info;
     info.sectorCount = 0;
     info.sectorSize = ADF_SECTOR_DATA_SIZE;
+    info.formatSectorCount = 0;
     info.properties = kMediaProperty_IsReadOnly | kMediaProperty_IsRemovable;
 
     try(DiskDriver_Create(class(FloppyDriver), 0, parent, &info, (DriverRef*)&self));
@@ -46,7 +47,7 @@ errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds
     self->headsPerCylinder = ADF_DD_HEADS_PER_CYL;
     self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
     self->sectorsPerCylinder = self->headsPerCylinder * self->sectorsPerTrack;
-    self->blocksPerDisk = self->sectorsPerCylinder * self->cylindersPerDisk;
+    self->sectorsPerDisk = self->sectorsPerCylinder * self->cylindersPerDisk;
 
     self->tbCylinder = -1;
     self->tbHead = -1;
@@ -159,7 +160,8 @@ static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self)
             info.properties |= kMediaProperty_IsReadOnly;
         }
         info.sectorSize = ADF_SECTOR_DATA_SIZE;
-        info.sectorCount = self->blocksPerDisk;
+        info.sectorCount = self->sectorsPerDisk;
+        info.formatSectorCount = self->sectorsPerTrack;
         DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
         FloppyDriver_CancelUpdateHasDiskState(self);
     }
@@ -965,10 +967,77 @@ errno_t FloppyDriver_getRequestRange2(FloppyDriverRef _Nonnull self, MediaId med
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+// Formatting
+////////////////////////////////////////////////////////////////////////////////
+
+errno_t FloppyDriver_doFormat(FloppyDriverRef _Nonnull _Locked self, const DiskContext* _Nonnull ctx, FormatSectorsRequest* _Nonnull req)
+{
+    decl_try_err();
+    
+    const int cylinder = req->addr / self->sectorsPerCylinder;
+    const int head = (req->addr / self->sectorsPerTrack) % self->headsPerCylinder;
+    const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(cylinder, head);
+    const uint8_t* data = req->data;
+
+    try(FloppyDriver_EnsureTrackBuffer(self));
+    try(FloppyDriver_EnsureTrackCompositionBuffer(self));
+    try(FloppyDriver_PrepareIO(self, cylinder, head));
+
+
+    // Layout:
+    // sector #1, ..., sector #11, gap
+    for (int i = 0; i < self->sectorsPerTrack; i++) {
+        FloppyDriver_BuildSector(self, targetTrack, i, data, true);
+        data += ADF_SECTOR_DATA_SIZE;
+    }
+
+
+    // Override the start of the gap with a couple 0xAA (0) values. We do this
+    // because the Amiga floppy controller hardware has a bug where it loses the
+    // last 3 bits when writing to disk. Also, we want to minimize the chance
+    // that the new gap may coincidentally contain the start (sync mark) of an
+    // old sector.
+    ADF_MFMPhysicalSector* tcb = (ADF_MFMPhysicalSector*)self->trackCompositionBuffer;
+    memset(&tcb[self->sectorsPerTrack], 0, ADF_MFM_SYNC_SIZE);
+
+
+    // Adjust the MFM clock bits in the header and data portions of every sector
+    // to make them compliant with the MFM spec. Note that we do this for the
+    // 1080 bytes of the sector + the word following the sector. The reason is
+    // that bit #0 of the last word in the sector data region may be 1 or 0 and
+    // depending on that, the MSB in the word following the sector has to be
+    // adjusted. So this word may come out as 0xAAAA or 0x2AAA.  
+    for (int i = 0; i < self->sectorsPerTrack; i++) {
+        const size_t trailerWordCount = (i < self->sectorsPerTrack - 1) ? 2 : ADF_MFM_SYNC_SIZE / 2;
+
+        mfm_adj_clock_bits((uint16_t*)&tcb[i].payload, ADF_MFM_SECTOR_SIZE / 2 + trailerWordCount);
+    }
+
+    // First sector MFM encoded pre-sync words
+    self->trackCompositionBuffer[0] = ADF_MFM_PRESYNC;
+    self->trackCompositionBuffer[1] = ADF_MFM_PRESYNC;
+
+
+    // Move the newly composed track to the DMA buffer
+    memcpy(self->trackBuffer, self->trackCompositionBuffer, sizeof(uint16_t) * self->trackWriteWordCount);
+    FloppyDriver_ParseTrack(self, cylinder, head);
+
+
+    // Write the track back to disk
+    try(FloppyDriver_DoSyncIO(self, true));
+    VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200));
+
+catch:
+    return FloppyDriver_FinalizeIO(self, err);
+}
+
+
 class_func_defs(FloppyDriver, DiskDriver,
 override_func_def(deinit, FloppyDriver, Object)
 override_func_def(onStart, FloppyDriver, Driver)
 override_func_def(getSector, FloppyDriver, DiskDriver)
 override_func_def(putSector, FloppyDriver, DiskDriver)
+override_func_def(doFormat, FloppyDriver, DiskDriver)
 override_func_def(getRequestRange2, FloppyDriver, DiskDriver)
 );

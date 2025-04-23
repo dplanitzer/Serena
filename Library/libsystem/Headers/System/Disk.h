@@ -32,12 +32,27 @@ typedef struct DiskInfo {
     LogicalBlockCount   blockCount;         // overall number of addressable blocks on the disk
     size_t              sectorSize;         // size of a sector (physical block) stored on the disk media. Only relevant if you want to display this value to the user or format a disk
     LogicalBlockCount   sectorCount;        // number of sectors (physical blocks) stored on the disk media
+    LogicalBlockCount   formatSectorCount;  // > 0 then formatting is supported and a format call takes 'formatSectorCount' sectors as input
 } DiskInfo;
-
 
 // Returns information about a disk drive.
 // get_info(DiskInfo* _Nonnull pOutInfo)
 #define kDiskCommand_GetInfo  IOResourceCommand(kDriverCommand_SubclassBase + 0)
+
+
+typedef struct FormatSectorsRequest {
+    MediaId                 mediaId;
+    LogicalBlockAddress     addr;
+    const void* _Nonnull    data;
+    int                     status;
+} FormatSectorsRequest;
+
+// Formats 'formatSectorCount' consecutive sectors starting at sector 'addr'.
+// 'data' must point to a memory block of size formatSectorCount * sectorSize
+// bytes. 'addr' must be a multiple of formatSectorCount'. The caller will be
+// blocked until all data has been written to disk or an error is encountered.
+// format(const FormatSectorsRequest* _Nonnull req)
+#define kDiskCommand_Format IOResourceCommand(kDriverCommand_SubclassBase + 1)
 
 
 #if !defined(__KERNEL__)
