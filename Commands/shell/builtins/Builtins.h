@@ -39,7 +39,6 @@ extern int cmd_makedir(struct Interpreter* _Nonnull ip, int argc, char** argv, c
 extern int cmd_popcd(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_pushcd(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_pwd(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
-extern int cmd_rename(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_save(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_shutdown(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_uptime(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);

@@ -19,7 +19,7 @@ SERENAFS_TOOLS_OBJS_DIR := $(KERNEL_OBJS_DIR)/filesystem/serenafs/tools
 .PHONY: clean-cmds $(CMDS_OBJS_DIR) $(SERENAFS_TOOLS_OBJS_DIR)
 
 
-build-cmds: $(DISK_FILE) $(LOGIN_FILE) $(TYPE_FILE)
+build-cmds: $(DISK_FILE) $(LOGIN_FILE) $(RENAME_FILE) $(TYPE_FILE)
 
 $(CMDS_OBJS_DIR):
 	$(call mkdir_if_needed,$(CMDS_OBJS_DIR))
@@ -33,6 +33,10 @@ $(DISK_FILE): $(CSTART_FILE) $(SERENAFS_TOOLS_OBJS_DIR)/format.o $(CMDS_OBJS_DIR
 
 
 $(LOGIN_FILE): $(ASTART_FILE) $(CMDS_OBJS_DIR)/login.o $(LIBSYSTEM_FILE) $(LIBC_FILE)
+	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
+
+
+$(RENAME_FILE): $(CSTART_FILE) $(CMDS_OBJS_DIR)/rename.o $(LIBSYSTEM_FILE) $(LIBC_FILE) $(LIBCLAP_FILE)
 	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
 
 

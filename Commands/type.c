@@ -187,7 +187,7 @@ catch:
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const char* path;
+const char* path = "";
 bool is_hex = false;
 
 CLAP_DECL(params,
@@ -220,8 +220,6 @@ static errno_t do_type(const char* _Nonnull path, bool isHex, const char* _Nonnu
 
 int main(int argc, char* argv[])
 {
-    is_hex = false;
-    
     clap_parse(0, params, argc, argv);
     
     return do_type(path, is_hex, argv[0]) == EOK ? EXIT_SUCCESS : EXIT_FAILURE;
