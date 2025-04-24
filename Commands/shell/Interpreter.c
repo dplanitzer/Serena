@@ -139,7 +139,6 @@ static errno_t Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self)
 
     try(NameTable_DeclareName(self->nameTable, "cd", cmd_cd));
     try(NameTable_DeclareName(self->nameTable, "cls", cmd_cls));
-    try(NameTable_DeclareName(self->nameTable, "delay", cmd_delay));
     try(NameTable_DeclareName(self->nameTable, "echo", cmd_echo));
     try(NameTable_DeclareName(self->nameTable, "exists", cmd_exists));
     try(NameTable_DeclareName(self->nameTable, "exit", cmd_exit));

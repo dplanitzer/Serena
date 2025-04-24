@@ -58,18 +58,6 @@ Deletes one or more directories or files indicated by the provided path(s). A di
 
 * `path ...`: one or more paths to files or directories
 
-## `delay`
-
-Pauses execution for 'ms' milliseconds.
-
-### Signature
-
-`delay <ms>`
-
-### Parameters
-
-* `ms`: a positive integer giving a duration in milliseconds
-
 ## `disk format`
 
 Initializes an unformatted disk with the specified filesystem. The filesystem is set up with an empty root directory. Note that the only filesystem supported at this time is SerenaFS.
@@ -422,6 +410,18 @@ Lists all variables defined in the current scope. Local (internal) variables are
 ### Signature
 
 `vars`
+
+## `wait`
+
+Pauses execution for the specified amount of milliseconds, seconds, minutes or hours.
+
+### Signature
+
+`wait <duration>[ms, s, m, h]`
+
+### Parameters
+
+* `duration`: a positive integer giving a duration in milliseconds, seconds, minutes or hours
 
 ## `while`
 
