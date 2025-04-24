@@ -7,20 +7,12 @@
 //
 
 #include <krt/krt.h>
-#include <klib/klib.h>
 #include <log/Log.h>
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
 #include <dispatcher/VirtualProcessorScheduler.h>
 #include <dispatcher/VirtualProcessorPool.h>
 #include <dispatchqueue/DispatchQueue.h>
-#include <driver/DriverChannel.h>
-#include <driver/LogDriver.h>
-#include <driver/NullDriver.h>
-#include <driver/amiga/AmigaController.h>
-#include <driver/amiga/graphics/GraphicsDriver.h>
-#include <driver/hid/HIDDriver.h>
-#include <driver/hid/HIDManager.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
 #include <hal/InterruptController.h>
@@ -43,6 +35,7 @@ static ConsoleRef gConsole;
 
 
 extern FileHierarchyRef _Nonnull create_root_file_hierarchy(boot_screen_t* _Nonnull bscr);
+extern errno_t drivers_init(void);
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);
 static void OnMain(void);
 
@@ -96,44 +89,6 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
     // Do the first ever context switch over to the boot virtual processor
     // execution context.
     VirtualProcessorScheduler_SwitchToBootVirtualProcessor();
-}
-
-
-// Creates and starts the platform controller which in turn discovers all platform
-// specific drivers and gets them up and running.
-static errno_t drivers_init(void)
-{
-    static DriverRef gHidDriver;
-    static DriverRef gLogDriver;
-    static DriverRef gNullDriver;
-    decl_try_err();
-
-    // HID manager & driver
-    try(HIDManager_Create(&gHIDManager));
-    try(HIDDriver_Create(&gHidDriver));
-    try(Driver_Start(gHidDriver));
-
-
-    // Platform controller
-    try(PlatformController_Create(class(AmigaController), &gPlatformController));
-    try(Driver_Start(gPlatformController));
-
-
-    // Start the HID manager
-    try(HIDManager_Start(gHIDManager));
-
-
-    // 'klog' driver
-    try(LogDriver_Create(&gLogDriver));
-    try(Driver_Start(gLogDriver));
-
-        
-    // 'null' driver
-    try(NullDriver_Create(&gNullDriver));
-    try(Driver_Start(gNullDriver));
-
-catch:
-    return err;
 }
 
 // Invoked by onBoot(). The code here runs in the boot virtual processor execution
