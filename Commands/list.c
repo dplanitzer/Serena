@@ -1,20 +1,22 @@
 //
 //  list.c
-//  sh
+//  cmds
 //
-//  Created by Dietmar Planitzer on 1/11/24.
-//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 4/22/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Interpreter.h"
-#include "Utilities.h"
-#include <inttypes.h>
-#include <stdbool.h>
+#include <clap.h>
+#include <errno.h>
 #include <stdio.h>
+#define _OPEN_SYS_ITOA_EXT
+#include <stdlib.h>
 #include <string.h>
 #define _POSIX_SOURCE
 #include <time.h>
-#include <clap.h>
+#include <System/Error.h>
+#include <System/Directory.h>
+#include <System/File.h>
 #include <System/_math.h>
 
 extern const char* __gc_abbrev_ymon(unsigned m);
@@ -247,7 +249,7 @@ static const char* default_path[1] = {"."};
 static clap_string_array_t paths = {default_path, 1};
 static bool is_print_all = false;
 
-static CLAP_DECL(params,
+CLAP_DECL(params,
     CLAP_VERSION("1.0"),
     CLAP_HELP(),
     CLAP_USAGE("list [-a | --all] <path>"),
@@ -257,27 +259,31 @@ static CLAP_DECL(params,
 );
 
 
-static errno_t do_list(clap_string_array_t* _Nonnull paths, bool isPrintAll, const char* _Nonnull proc_name)
+int main(int argc, char* argv[])
 {
     decl_try_err();
+
+    clap_parse(0, params, argc, argv);
+
+    
     errno_t firstErr = EOK;
     const time_t now = time(NULL);
 
     list_ctx_t* self = calloc(1, sizeof(list_ctx_t));
     if (self == NULL) {
-        return ENOMEM;
+        return EXIT_FAILURE;
     }
 
     localtime_r(&now, &self->date);
 
     self->currentYear = self->date.tm_year;
     self->currentMonth = self->date.tm_mon;
-    self->flags.printAll = isPrintAll;
+    self->flags.printAll = is_print_all;
 
-    for (size_t i = 0; i < paths->count; i++) {
-        const char* path = paths->strings[i];
+    for (size_t i = 0; i < paths.count; i++) {
+        const char* path = paths.strings[i];
 
-        if (paths->count > 1) {
+        if (paths.count > 1) {
             printf("%s:\n", path);
         }
 
@@ -289,34 +295,14 @@ static errno_t do_list(clap_string_array_t* _Nonnull paths, bool isPrintAll, con
         }
         if (err != EOK) {
             firstErr = err;
-            print_error(proc_name, path, err);
+            clap_error(argv[0], "%s: %s", path, strerror(err));
         }
 
-        if (i < (paths->count - 1)) {
+        if (i < (paths.count - 1)) {
             putchar('\n');
         }
     }
     free(self);
 
-    return firstErr;
-}
-
-int cmd_list(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
-{
-    paths.strings = default_path;
-    paths.count = 1;
-    is_print_all = false;
-
-    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    int exitCode;
-
-    if (!clap_should_exit(status)) {
-        exitCode = exit_code(do_list(&paths, is_print_all, argv[0]));
-    }
-    else {
-        exitCode = clap_exit_code(status);
-    }
-
-    OpStack_PushVoid(ip->opStack);
-    return exitCode;
+    return (firstErr == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

@@ -125,6 +125,7 @@ CMDS_OBJS_DIR := $(OBJS_DIR)/Commands
 DELETE_FILE := $(CMDS_OBJS_DIR)/delete
 DISK_FILE := $(CMDS_OBJS_DIR)/disk
 ID_FILE := $(CMDS_OBJS_DIR)/id
+LIST_FILE := $(CMDS_OBJS_DIR)/list
 LOGIN_FILE := $(CMDS_OBJS_DIR)/login
 MAKEDIR_FILE := $(CMDS_OBJS_DIR)/makedir
 RENAME_FILE := $(CMDS_OBJS_DIR)/rename
@@ -206,32 +207,34 @@ build-rom: $(ROM_FILE)
 build-boot-dmg: $(BOOT_DMG_FILE)
 
 
-$(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(DELETE_FILE) $(DISK_FILE) $(ID_FILE) $(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) $(SHUTDOWN_FILE) $(TYPE_FILE) $(UPTIME_FILE) $(WAIT_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
+$(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(DELETE_FILE) $(DISK_FILE) $(ID_FILE) $(LIST_FILE) $(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) $(SHUTDOWN_FILE) $(TYPE_FILE) $(UPTIME_FILE) $(WAIT_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
 	@echo Making boot_disk.adf
 	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DMG_FILE)
 	$(DISKIMAGE) format sefs --label "Serena FD" $(BOOT_DMG_FILE)
 
 	$(DISKIMAGE) makedir -p /System/Commands $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(SYSTEMD_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(LOGIN_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(SH_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(DELETE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(DISK_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(ID_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(MAKEDIR_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(RENAME_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(SHUTDOWN_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(UPTIME_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(WAIT_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxr-xr-x /dev $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxr-xr-x /fs $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxrwxrwx /tmp $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxr-xr-x /Users $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxrwxrwx /Volumes $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxrwxrwx /Volumes/FD1 $(BOOT_DMG_FILE)
-
 	$(DISKIMAGE) makedir -m=rwxr-x--- -o=1000:1000 -p /Users/admin $(BOOT_DMG_FILE)
+
+	$(DISKIMAGE) push -m=rwxr-xr-x $(SYSTEMD_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(LOGIN_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(SH_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(DELETE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(DISK_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(ID_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(LIST_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(MAKEDIR_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(RENAME_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(SHUTDOWN_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(UPTIME_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(WAIT_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+
 	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(KERNEL_TESTS_FILE) /Users/admin/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rw-r----- -o=1000:1000 $(DEMOS_DIR)/fibonacci.sh /Users/admin/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rw-r----- -o=1000:1000 $(DEMOS_DIR)/helloworld.sh /Users/admin/ $(BOOT_DMG_FILE)
