@@ -37,7 +37,6 @@ extern int cmd_popcd(struct Interpreter* _Nonnull ip, int argc, char** argv, cha
 extern int cmd_pushcd(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_pwd(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_save(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
-extern int cmd_uptime(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_vars(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 
 #endif  /* Builtins_h */

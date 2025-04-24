@@ -130,6 +130,7 @@ MAKEDIR_FILE := $(CMDS_OBJS_DIR)/makedir
 RENAME_FILE := $(CMDS_OBJS_DIR)/rename
 SHUTDOWN_FILE := $(CMDS_OBJS_DIR)/shutdown
 TYPE_FILE := $(CMDS_OBJS_DIR)/type
+UPTIME_FILE := $(CMDS_OBJS_DIR)/uptime
 
 
 LIBSYSTEM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libsystem
@@ -204,7 +205,7 @@ build-rom: $(ROM_FILE)
 build-boot-dmg: $(BOOT_DMG_FILE)
 
 
-$(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(DELETE_FILE) $(DISK_FILE) $(ID_FILE) $(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) $(SHUTDOWN_FILE) $(TYPE_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
+$(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(DELETE_FILE) $(DISK_FILE) $(ID_FILE) $(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) $(SHUTDOWN_FILE) $(TYPE_FILE) $(UPTIME_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
 	@echo Making boot_disk.adf
 	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DMG_FILE)
 	$(DISKIMAGE) format sefs --label "Serena FD" $(BOOT_DMG_FILE)
@@ -220,6 +221,7 @@ $(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(DELETE_FILE) $(DISK
 	$(DISKIMAGE) push -m=rwxr-xr-x $(RENAME_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(SHUTDOWN_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(UPTIME_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxr-xr-x /dev $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxr-xr-x /fs $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -m=rwxrwxrwx /tmp $(BOOT_DMG_FILE)
