@@ -32,8 +32,12 @@ extern FilesystemRef _Nonnull Catalog_CopyFilesystem(CatalogRef _Nonnull self);
 // ENOENT is returned.
 extern errno_t Catalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path);
 
+// Looks up the inode for the given path and returns it.
+extern errno_t Catalog_AcquireNode(CatalogRef _Nonnull self, const char* _Nonnull path, InodeRef _Nullable * _Nonnull pOutNode);
+
 // Opens the catalog entry at the in-kernel path 'path' with mode 'mode' and
-// returns the resulting channel in 'pOutChannel'.
+// returns the resulting channel in 'pOutChannel'. This call does not support
+// opening a folder.
 extern errno_t Catalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Returns the path for 'cid'.

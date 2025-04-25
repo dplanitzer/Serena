@@ -63,7 +63,7 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
 
 
     // Open the game port driver
-    try(Catalog_Open(gDriverCatalog, "/hw/gp-bus", kOpen_ReadWrite, &self->gpChannel));
+    try(Catalog_Open(gDriverCatalog, "/hw/gp-bus/self", kOpen_ReadWrite, &self->gpChannel));
 
 catch:
     return err;

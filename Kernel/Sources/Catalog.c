@@ -59,15 +59,41 @@ errno_t Catalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path)
     return err;
 }
 
+errno_t Catalog_AcquireNode(CatalogRef _Nonnull self, const char* _Nonnull path, InodeRef _Nullable * _Nonnull pOutNode)
+{
+    decl_try_err();
+    ResolvedPath rp;
+
+    err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUserId_Root, kGroupId_Root, &rp);
+    if (err == EOK) {
+        *pOutNode = rp.inode;
+        rp.inode = NULL;
+    }
+    else {
+        *pOutNode = NULL;
+    }
+
+    ResolvedPath_Deinit(&rp);
+    return err;
+}
+
 errno_t Catalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     ResolvedPath rp;
 
-    try(FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUserId_Root, kGroupId_Root, &rp));
-    err = Inode_CreateChannel(rp.inode, mode, pOutChannel);
+    err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUserId_Root, kGroupId_Root, &rp);
+    if (err == EOK) {
+        Inode_Lock(rp.inode);
+        if (!Inode_IsDirectory(rp.inode)) {
+            err = Inode_CreateChannel(rp.inode, mode, pOutChannel);
+        }
+        else {
+            err = EISDIR;
+        }
+        Inode_Unlock(rp.inode);
+    }
 
-catch:
     ResolvedPath_Deinit(&rp);
     return err;
 }
