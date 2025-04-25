@@ -15,10 +15,45 @@
 #include <klib/List.h>
 
 
-typedef struct FSEntry {
+typedef struct fsentry {
     ListNode                node;
     FilesystemRef _Nonnull  fs;
-} FSEntry;
+    char* _Nonnull          diskPath;
+} fsentry_t;
+
+static void fsentry_destroy(fsentry_t* _Nullable self)
+{
+    if (self) {
+        Object_Release(self->fs);
+        self->fs = NULL;
+
+        kfree(self->diskPath);
+        self->diskPath = NULL;
+
+        kfree(self);    
+    }
+}
+
+static errno_t fsentry_create(FilesystemRef _Nonnull fs, const char* _Nonnull diskPath, fsentry_t* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    const size_t len = String_Length(diskPath);
+    fsentry_t* self;
+
+    try(kalloc_cleared(sizeof(fsentry_t), (void**)&self));
+    try(kalloc(len + 1, (void**)&self->diskPath));
+    memcpy(self->diskPath, diskPath, len + 1);
+    self->fs = Object_RetainAs(fs, Filesystem);
+
+    *pOutSelf = self;
+    return EOK;
+
+catch:
+    fsentry_destroy(self);
+    *pOutSelf = NULL;
+    return err;
+}
+
 
 
 // A filesystem is initially on the 'filesystems' list and this list owns the FS.
@@ -55,16 +90,14 @@ catch:
     return err;
 }
 
-errno_t FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, const char* _Nonnull params)
+errno_t FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, const char* _Nonnull params, const char* _Nonnull diskPath)
 {
     decl_try_err();
-    FSEntry* entry = NULL;
+    fsentry_t* entry = NULL;
 
-    try(kalloc_cleared(sizeof(FSEntry), (void**)&entry));
     try(Filesystem_Start(fs, params));
     try(Filesystem_Publish(fs));
-
-    entry->fs = Object_RetainAs(fs, Filesystem);
+    try(fsentry_create(fs, diskPath, &entry));
 
     Lock_Lock(&self->lock);
     List_InsertAfterLast(&self->filesystems, &entry->node);
@@ -72,7 +105,10 @@ errno_t FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, Fi
     return EOK;
 
 catch:
-    kfree(entry);
+    if (fs) {
+        Filesystem_Unpublish(fs);
+        Filesystem_Stop(fs, false);
+    }
     return err;
 }
 
@@ -86,8 +122,8 @@ errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Fil
             Filesystem_Unpublish(fs);
 
             Lock_Lock(&self->lock);
-            FSEntry* ep = NULL;
-            List_ForEach(&self->filesystems, FSEntry,
+            fsentry_t* ep = NULL;
+            List_ForEach(&self->filesystems, fsentry_t,
                 if (pCurNode->fs == fs) {
                     ep = pCurNode;
                     break;
@@ -114,8 +150,8 @@ errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Fil
         Filesystem_Unpublish(fs);
 
         Lock_Lock(&self->lock);
-        FSEntry* ep = NULL;
-        List_ForEach(&self->filesystems, FSEntry,
+        fsentry_t* ep = NULL;
+        List_ForEach(&self->filesystems, fsentry_t,
             if (pCurNode->fs == fs) {
                 ep = pCurNode;
                 break;
@@ -123,10 +159,9 @@ errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Fil
         );
         assert(ep != NULL);
 
-        Object_Release(ep->fs);
-        ep->fs = NULL;
         List_Remove(&self->filesystems, &ep->node);
         Lock_Unlock(&self->lock);
+        fsentry_destroy(ep);
 
         return err;
     }
@@ -136,18 +171,16 @@ void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self)
 {
     Lock_Lock(&self->lock);
     // XXX change this to run the syncs outside of the lock
-    List_ForEach(&self->filesystems, FSEntry,
+    List_ForEach(&self->filesystems, fsentry_t,
         Filesystem_Sync(pCurNode->fs);
     );
     Lock_Unlock(&self->lock);
 }
 
-static void _FilesystemManager_ReapFilesystem(FilesystemManagerRef _Nonnull self, List* _Nonnull queue, FSEntry* _Nonnull ep)
+static void _FilesystemManager_ReapFilesystem(FilesystemManagerRef _Nonnull self, List* _Nonnull queue, fsentry_t* _Nonnull ep)
 {
     List_Remove(queue, &ep->node);
-    Object_Release(ep->fs);
-    ep->fs = NULL;
-    kfree(ep);
+    fsentry_destroy(ep);
 }
 
 // Tries to stop and destroy filesystems that are on the reaper queue.
@@ -166,7 +199,7 @@ static void _FilesystemManager_Reaper(FilesystemManagerRef _Nonnull self)
     // Kill as many filesystems as we can
     if (!List_IsEmpty(&queue)) {
 
-        List_ForEach(&queue, FSEntry,
+        List_ForEach(&queue, fsentry_t,
             if (Filesystem_CanDestroy(pCurNode->fs)) {
                 _FilesystemManager_ReapFilesystem(self, &queue, pCurNode);
             }
@@ -175,7 +208,7 @@ static void _FilesystemManager_Reaper(FilesystemManagerRef _Nonnull self)
 
         // Put the rest back on the reaper queue
         Lock_Lock(&self->lock);
-        List_ForEach(&queue, FSEntry,
+        List_ForEach(&queue, fsentry_t,
             List_Remove(&queue, &pCurNode->node);
             List_InsertBeforeFirst(&self->reaperQueue, &pCurNode->node);
         );

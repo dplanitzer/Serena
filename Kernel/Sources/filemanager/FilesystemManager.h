@@ -17,9 +17,9 @@ extern FilesystemManagerRef _Nonnull gFilesystemManager;
 
 extern errno_t FilesystemManager_Create(FilesystemManagerRef _Nullable * _Nonnull pOutSelf);
 
-// Starts the given filesystem instance. Passes 'params' as the start parameters
-// to this filesystem.
-extern errno_t FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, const char* _Nonnull params);
+// Starts the given filesystem instance which resides on the disk drive at
+// 'diskPath'. Passes 'params' as the start parameters to this filesystem.
+extern errno_t FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, const char* _Nonnull params, const char* _Nonnull diskPath);
 
 // Stops the filesystem 'fs'. If 'forced' is false and the filesystem is still
 // in use (attached, inodes outstanding, open channels outstanding) then the

@@ -18,7 +18,7 @@
 #include <System/Filesystem.h>
 
 
-static errno_t _discover_start_disk_fs(IOChannelRef _Nonnull driverChannel, const char* _Nonnull params, FilesystemRef _Nullable * _Nonnull pOutFs)
+static errno_t _discover_start_disk_fs(IOChannelRef _Nonnull driverChannel, const char* _Nonnull diskPath, const char* _Nonnull params, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
     FSContainerRef fsContainer = NULL;
@@ -26,7 +26,7 @@ static errno_t _discover_start_disk_fs(IOChannelRef _Nonnull driverChannel, cons
 
     try(DiskContainer_Create(driverChannel, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
-    try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, params));
+    try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, params, diskPath));
 
 catch:
     if (err != EOK) {
@@ -66,7 +66,7 @@ static errno_t discover_start_disk_fs(FileManagerRef _Nonnull self, const char* 
 
 
     // Start the filesystem
-    try(_discover_start_disk_fs(devChan, params, pOutFs));
+    try(_discover_start_disk_fs(devChan, diskPath, params, pOutFs));
 
 catch:
     IOChannel_Release(devChan);

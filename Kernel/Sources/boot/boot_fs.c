@@ -113,7 +113,7 @@ static errno_t start_boot_fs(const char* _Nonnull driverPath, FilesystemRef _Nul
     try(Catalog_Open(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan));
     try(DiskContainer_Create(chan, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
-    try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, ""));
+    try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, "", driverPath));
 
 catch:
     if (err != EOK) {
