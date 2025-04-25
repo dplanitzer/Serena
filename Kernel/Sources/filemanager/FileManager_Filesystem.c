@@ -11,36 +11,14 @@
 #include "FileHierarchy.h"
 #include "FilesystemManager.h"
 #include <Catalog.h>
-#include <filesystem/DiskContainer.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/IOChannel.h>
-#include <filesystem/serenafs/SerenaFS.h>
 #include <System/Filesystem.h>
 
 
-static errno_t _discover_start_disk_fs(IOChannelRef _Nonnull driverChannel, const char* _Nonnull diskPath, const char* _Nonnull params, FilesystemRef _Nullable * _Nonnull pOutFs)
-{
-    decl_try_err();
-    FSContainerRef fsContainer = NULL;
-    FilesystemRef fs = NULL;
-
-    try(DiskContainer_Create(driverChannel, &fsContainer));
-    try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
-    try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, params, diskPath));
-
-catch:
-    if (err != EOK) {
-        Object_Release(fs);
-    }
-    Object_Release(fsContainer);
-
-    *pOutFs = fs;
-    return err;
-}
-
-// Discovers and starts the filesystem stored on the disk managed by the driver
-// 'diskPath' and returns the filesystem object in 'pOutFs'.
-static errno_t discover_start_disk_fs(FileManagerRef _Nonnull self, const char* _Nonnull diskPath, const char* _Nonnull params, FilesystemRef _Nullable * _Nonnull pOutFs)
+// Establishes and starts the filesystem stored on the disk managed by the disk
+// driver 'diskPath' and returns the filesystem object in 'pOutFs'.
+static errno_t establish_start_disk_fs(FileManagerRef _Nonnull self, const char* _Nonnull diskPath, const char* _Nonnull params, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
     ResolvedPath rp_disk;
@@ -66,7 +44,8 @@ static errno_t discover_start_disk_fs(FileManagerRef _Nonnull self, const char* 
 
 
     // Start the filesystem
-    try(_discover_start_disk_fs(devChan, diskPath, params, pOutFs));
+    try(FilesystemManager_EstablishFilesystem(gFilesystemManager, devChan, diskPath, pOutFs));
+    try(FilesystemManager_StartFilesystem(gFilesystemManager, *pOutFs, params));
 
 catch:
     IOChannel_Release(devChan);
@@ -119,7 +98,7 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const ch
 
     switch (type) {
         case kMount_Disk:
-            err = discover_start_disk_fs(self, objectName, params, &fs);
+            err = establish_start_disk_fs(self, objectName, params, &fs);
             break;
 
         case kMount_Catalog:

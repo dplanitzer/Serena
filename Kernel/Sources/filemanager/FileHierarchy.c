@@ -417,6 +417,7 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
     decl_try_err();
     AtNode* atNode = NULL;
     FsNode* atFsNode = NULL;
+    FilesystemRef fs = NULL;
     List keys;
 
     List_Init(&keys);
@@ -439,6 +440,7 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
     // Make sure that the FS that we want to detach doesn't have other FS'
     // attached to it.
     atNode = upKey->at;
+    fs = atNode->attachedFsNode->filesystem;
     if (!forced && !List_IsEmpty(&atNode->attachedFsNode->attachmentPoints)) {
         throw(EBUSY);
     }
@@ -446,12 +448,11 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
 
     // Drop what should be the last inode reference on the filesystem and then
     // try to stop it. This may fail with an EBUSY if someone else still has
-    // inodes acquired. Note that we never stop a catalog filesystem.
-    // XXX should do the actually stop() outside our lock in the future
+    // inodes acquired. Note that the FS manager never stops catalog filesystems.
     Inode_Relinquish(dir);
-    if (!instanceof(atNode->attachedFsNode->filesystem, KernFS)) {
-        err = FilesystemManager_StopFilesystem(gFilesystemManager, atNode->attachedFsNode->filesystem, forced);
-    }
+#ifndef __DISKIMAGE__
+    err = FilesystemManager_StopFilesystem(gFilesystemManager, fs, forced);
+#endif
 
     if (err != EBUSY) {
         atFsNode = atNode->attachingFsNode;
@@ -459,11 +460,22 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
         _FileHierarchy_CollectKeysForAtNode(self, atNode, &keys);
     }
 
+    try_bang(SELock_Unlock(&self->lock));
+
+    // Now that we've dropped the lock, do the time consuming stuff (disbanding
+    // an FS may push data to the disk and block for a while).
+    if (err != EBUSY) {
+#ifndef __DISKIMAGE__
+        FilesystemManager_DisbandFilesystem(gFilesystemManager, fs);
+#endif
+        destroy_key_collection(&keys);
+        destroy_atnode(atNode);
+    }
+
+    return EOK;
+
 catch:
     try_bang(SELock_Unlock(&self->lock));
-    destroy_key_collection(&keys);
-    destroy_atnode(atNode);
-
     return err;
 }
 

@@ -11,7 +11,10 @@
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/disk/DiskDriver.h>
+#include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
+#include <filesystem/kernfs/KernFS.h>
+#include <filesystem/serenafs/SerenaFS.h>
 #include <klib/List.h>
 
 
@@ -34,7 +37,7 @@ static void fsentry_destroy(fsentry_t* _Nullable self)
     }
 }
 
-static errno_t fsentry_create(FilesystemRef _Nonnull fs, const char* _Nonnull diskPath, fsentry_t* _Nullable * _Nonnull pOutSelf)
+static errno_t fsentry_create(FilesystemRef _Consuming _Nonnull fs, const char* _Nonnull diskPath, fsentry_t* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     const size_t len = String_Length(diskPath);
@@ -43,7 +46,7 @@ static errno_t fsentry_create(FilesystemRef _Nonnull fs, const char* _Nonnull di
     try(kalloc_cleared(sizeof(fsentry_t), (void**)&self));
     try(kalloc(len + 1, (void**)&self->diskPath));
     memcpy(self->diskPath, diskPath, len + 1);
-    self->fs = Object_RetainAs(fs, Filesystem);
+    self->fs = fs;
 
     *pOutSelf = self;
     return EOK;
@@ -90,25 +93,47 @@ catch:
     return err;
 }
 
-errno_t FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, const char* _Nonnull params, const char* _Nonnull diskPath)
+errno_t FilesystemManager_EstablishFilesystem(FilesystemManagerRef _Nonnull self, IOChannelRef _Nonnull driverChannel, const char* _Nonnull diskPath, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
+    FSContainerRef fsContainer = NULL;
+    FilesystemRef fs = NULL;
     fsentry_t* entry = NULL;
 
-    try(Filesystem_Start(fs, params));
-    try(Filesystem_Publish(fs));
+    try(DiskContainer_Create(driverChannel, &fsContainer));
+    try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
     try(fsentry_create(fs, diskPath, &entry));
+    Object_Release(fsContainer);
 
     Lock_Lock(&self->lock);
     List_InsertAfterLast(&self->filesystems, &entry->node);
     Lock_Unlock(&self->lock);
+    *pOutFs = fs;
     return EOK;
 
 catch:
-    if (fs) {
-        Filesystem_Unpublish(fs);
-        Filesystem_Stop(fs, false);
+    Object_Release(fs);
+    Object_Release(fsContainer);
+    *pOutFs = NULL;
+    return err;
+}
+
+errno_t FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, const char* _Nonnull params)
+{
+    decl_try_err();
+
+    if (instanceof(fs, KernFS)) {
+        return EOK;
     }
+
+    err = Filesystem_Start(fs, params);
+    if (err == EOK) {
+        err = Filesystem_Publish(fs);
+        if (err != EOK) {
+            Filesystem_Stop(fs, false);
+        }
+    }
+
     return err;
 }
 
@@ -116,50 +141,52 @@ errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Fil
 {
     decl_try_err();
 
-    err = Filesystem_Stop(fs, forced);
-    if (err == EBUSY) {
-        if (forced) {
-            Filesystem_Unpublish(fs);
-
-            Lock_Lock(&self->lock);
-            fsentry_t* ep = NULL;
-            List_ForEach(&self->filesystems, fsentry_t,
-                if (pCurNode->fs == fs) {
-                    ep = pCurNode;
-                    break;
-                }
-            );
-            assert(ep != NULL);
-
-            List_Remove(&self->filesystems, &ep->node);
-            List_InsertAfterLast(&self->reaperQueue, &ep->node);
-            Lock_Unlock(&self->lock);
-
-            return EOK;
-        }
-        else {
-            return EBUSY;
-        }
+    if (instanceof(fs, KernFS)) {
+        return EOK;
     }
-    else {
-        // Not attached anywhere else anymore and stop has worked. Unpublish
-        Filesystem_Unpublish(fs);
 
+    err = Filesystem_Stop(fs, forced);
+    if (err != EBUSY || (err == EBUSY && forced)) {
+        Filesystem_Unpublish(fs);
+    }
+}
+
+static fsentry_t* _Nonnull _fsentry_for_filesystem(FilesystemManagerRef _Locked _Nonnull self, FilesystemRef fs)
+{
+    List_ForEach(&self->filesystems, fsentry_t,
+        if (pCurNode->fs == fs) {
+            return pCurNode;
+        }
+    );
+    abort();
+    return NULL;
+}
+
+void FilesystemManager_DisbandFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs)
+{
+    if (instanceof(fs, KernFS)) {
+        return;
+    }
+
+    Filesystem_Disconnect(fs);
+
+    if (Filesystem_CanDestroy(fs)) {
+        // Destroy the FS now
         Lock_Lock(&self->lock);
-        fsentry_t* ep = NULL;
-        List_ForEach(&self->filesystems, fsentry_t,
-            if (pCurNode->fs == fs) {
-                ep = pCurNode;
-                break;
-            }
-        );
-        assert(ep != NULL);
+        fsentry_t* ep = _fsentry_for_filesystem(self, fs);
 
         List_Remove(&self->filesystems, &ep->node);
         Lock_Unlock(&self->lock);
         fsentry_destroy(ep);
+    }
+    else {
+        // Hand the FS over to our reaper queue
+        Lock_Lock(&self->lock);
+        fsentry_t* ep = _fsentry_for_filesystem(self, fs);
 
-        return err;
+        List_Remove(&self->filesystems, &ep->node);
+        List_InsertAfterLast(&self->reaperQueue, &ep->node);
+        Lock_Unlock(&self->lock);
     }
 }
 

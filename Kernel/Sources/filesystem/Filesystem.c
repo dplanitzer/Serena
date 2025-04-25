@@ -403,7 +403,6 @@ errno_t Filesystem_Stop(FilesystemRef _Nonnull self, bool forced)
     }
 
     err = Filesystem_OnStop(self);
-    Filesystem_Disconnect(self);
     self->state = kFilesystemState_Stopped;
 
 catch:
@@ -416,7 +415,15 @@ errno_t Filesystem_onStop(FilesystemRef _Nonnull self)
     return EOK;
 }
 
-void Filesystem_disconnect(FilesystemRef _Nonnull self)
+void Filesystem_Disconnect(FilesystemRef _Nonnull self)
+{
+    Lock_Lock(&self->inLock);
+    assert(self->state == kFilesystemState_Stopped);
+    Filesystem_OnDisconnect(self);
+    Lock_Unlock(&self->inLock);
+}
+
+void Filesystem_onDisconnect(FilesystemRef _Nonnull self)
 {
 }
 
@@ -633,7 +640,7 @@ func_def(onWritebackNode, Filesystem)
 func_def(onRelinquishNode, Filesystem)
 func_def(onStart, Filesystem)
 func_def(onStop, Filesystem)
-func_def(disconnect, Filesystem)
+func_def(onDisconnect, Filesystem)
 func_def(open, Filesystem)
 func_def(close, Filesystem)
 func_def(getInfo, Filesystem)

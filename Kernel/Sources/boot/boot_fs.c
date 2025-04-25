@@ -15,9 +15,7 @@
 #include <driver/disk/DiskDriver.h>
 #include <filemanager/FileHierarchy.h>
 #include <filemanager/FilesystemManager.h>
-#include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
-#include <filesystem/serenafs/SerenaFS.h>
 #include <hal/Platform.h>
 #include <Catalog.h>
 #include "boot_screen.h"
@@ -107,19 +105,13 @@ static errno_t start_boot_fs(const char* _Nonnull driverPath, FilesystemRef _Nul
 {
     decl_try_err();
     IOChannelRef chan;
-    FSContainerRef fsContainer = NULL;
     FilesystemRef fs = NULL;
 
     try(Catalog_Open(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan));
-    try(DiskContainer_Create(chan, &fsContainer));
-    try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
-    try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, "", driverPath));
+    try(FilesystemManager_EstablishFilesystem(gFilesystemManager, chan, driverPath, &fs));
+    try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, ""));
 
 catch:
-    if (err != EOK) {
-        Object_Release(fs);
-    }
-    Object_Release(fsContainer);
     IOChannel_Release(chan);
 
     *pOutFs = fs;

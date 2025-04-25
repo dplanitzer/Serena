@@ -55,6 +55,7 @@ void FSManager_Destroy(FSManagerRef _Nullable self)
 
         if (self->fs) {
             assert(Filesystem_Stop(self->fs, true) == EOK);
+            Filesystem_Disconnect(self->fs);
             Object_Release(self->fs);
             self->fs = NULL;
         }

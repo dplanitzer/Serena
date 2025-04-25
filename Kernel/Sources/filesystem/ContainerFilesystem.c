@@ -28,7 +28,7 @@ void ContainerFilesystem_deinit(struct ContainerFilesystem* _Nonnull self)
     self->fsContainer = NULL;
 }
 
-void ContainerFilesystem_disconnect(struct ContainerFilesystem* _Nonnull self)
+void ContainerFilesystem_onDisconnect(struct ContainerFilesystem* _Nonnull self)
 {
     FSContainer_Disconnect(self->fsContainer);
 }
@@ -46,7 +46,7 @@ void ContainerFilesystem_sync(struct ContainerFilesystem* _Nonnull self)
 
 class_func_defs(ContainerFilesystem, Filesystem,
 override_func_def(deinit, ContainerFilesystem, Object)
-override_func_def(disconnect, ContainerFilesystem, Filesystem)
+override_func_def(onDisconnect, ContainerFilesystem, Filesystem)
 override_func_def(getDiskName, ContainerFilesystem, Filesystem)
 override_func_def(sync, ContainerFilesystem, Filesystem)
 );

@@ -227,7 +227,7 @@ open_class_funcs(Filesystem, Object,
     // Override: Optional
     // Default Behavior: Syncs the disk cache. ContainerFilesystem also
     // disconnects its FSContainer
-    void (*disconnect)(void* _Nonnull self);
+    void (*onDisconnect)(void* _Nonnull self);
 
 
     // Invoked as the result of calling Filesystem_Open(). A filesystem subclass
@@ -421,6 +421,9 @@ extern errno_t Filesystem_Start(FilesystemRef _Nonnull self, const char* _Nonnul
 // EBUSY if an inode is still acquired or a filesystem I/O channel is still open.
 extern errno_t Filesystem_Stop(FilesystemRef _Nonnull self, bool forced);
 
+// Instructs the filesystem to disconnect from the underlying storage.
+extern void Filesystem_Disconnect(FilesystemRef _Nonnull self);
+
 
 // Returns true if the filesystem is stopped and no more inodes or FS channels
 // are outstanding/open.
@@ -511,8 +514,8 @@ invoke_n(onStart, Filesystem, __self, __params, __fsProps)
 #define Filesystem_OnStop(__self) \
 invoke_0(onStop, Filesystem, __self)
 
-#define Filesystem_Disconnect(__self) \
-invoke_0(disconnect, Filesystem, __self)
+#define Filesystem_OnDisconnect(__self) \
+invoke_0(onDisconnect, Filesystem, __self)
 
 
 // Acquires the inode with the ID 'id'. This methods guarantees that there will
