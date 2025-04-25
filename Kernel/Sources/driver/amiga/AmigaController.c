@@ -13,7 +13,6 @@
 #include <driver/amiga/graphics/GraphicsDriver.h>
 #include <driver/amiga/hid/GamePortController.h>
 #include <driver/amiga/hid/KeyboardDriver.h>
-#include <driver/amiga/RealtimeClock.h>
 #include <driver/amiga/zorro/ZorroController.h>
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
@@ -133,15 +132,6 @@ errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked s
     FloppyControllerRef fdc = NULL;
     try(FloppyController_Create((DriverRef)self, &fdc));
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)fdc));
-
-
-    // Realtime Clock
-    #if 0
-    // XXX not yet
-    RealtimeClockRef rtcDriver = NULL;
-    try(RealtimeClock_Create((DriverRef)self, gSystemDescription, &rtcDriver));
-    try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)rtcDriver));
-    #endif
 
 
     // Zorro Bus
