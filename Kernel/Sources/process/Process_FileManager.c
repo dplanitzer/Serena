@@ -268,12 +268,12 @@ errno_t Process_Rename(ProcessRef _Nonnull self, const char* oldPath, const char
 // Mounts the filesystem stored in the container at 'containerPath' at the
 // directory 'atDirPath'. 'params' are optional mount parameters that are passed
 // to the filesystem to mount.
-errno_t Process_Mount(ProcessRef _Nonnull self, MountType type, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize)
+errno_t Process_Mount(ProcessRef _Nonnull self, MountType type, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const char* _Nonnull params)
 {
     decl_try_err();
 
     Lock_Lock(&self->lock);
-    err = FileManager_Mount(&self->fm, type, containerPath, atDirPath, params, paramsSize);
+    err = FileManager_Mount(&self->fm, type, containerPath, atDirPath, params);
     Lock_Unlock(&self->lock);
 
     return err;

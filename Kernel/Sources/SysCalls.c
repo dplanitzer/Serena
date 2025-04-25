@@ -480,13 +480,13 @@ SYSCALL_2(waitpid, pid_t pid, ProcessTerminationStatus* _Nullable pOutStatus)
     return Process_WaitForTerminationOfChild(Process_GetCurrent(), pArgs->pid, pArgs->pOutStatus);
 }
 
-SYSCALL_5(mount, MountType type, const char* _Nullable containerPath, const char* _Nullable atDirPath, const void* _Nullable params, size_t paramsSize)
+SYSCALL_4(mount, MountType type, const char* _Nullable containerPath, const char* _Nullable atDirPath, const char* _Nullable params)
 {
-    if (pArgs->containerPath == NULL || pArgs->atDirPath == NULL) {
+    if (pArgs->containerPath == NULL || pArgs->atDirPath == NULL || pArgs->params == NULL) {
         return EINVAL;
     }
 
-    return Process_Mount(Process_GetCurrent(), pArgs->type, pArgs->containerPath, pArgs->atDirPath, pArgs->params, pArgs->paramsSize);
+    return Process_Mount(Process_GetCurrent(), pArgs->type, pArgs->containerPath, pArgs->atDirPath, pArgs->params);
 }
 
 SYSCALL_2(unmount, const char* _Nullable atDirPath, UnmountOptions options)

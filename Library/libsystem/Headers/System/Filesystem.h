@@ -86,7 +86,7 @@ typedef struct FSInfo {
 // Mounts the object 'objectName' of type 'type' at the directory 'atDirPath'.
 // 'params' are optional mount parameters that are passed to the filesystem to
 // mount.
-extern errno_t Mount(MountType type, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize);
+extern errno_t Mount(MountType type, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params);
 
 // Unmounts the filesystem mounted at the directory 'atDirPath'.
 extern errno_t Unmount(const char* _Nonnull atDirPath, UnmountOptions options);

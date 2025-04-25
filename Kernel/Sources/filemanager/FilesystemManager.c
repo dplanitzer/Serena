@@ -55,13 +55,13 @@ catch:
     return err;
 }
 
-errno_t FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, const void* _Nullable params, size_t paramsSize)
+errno_t FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, const char* _Nonnull params)
 {
     decl_try_err();
     FSEntry* entry = NULL;
 
     try(kalloc_cleared(sizeof(FSEntry), (void**)&entry));
-    try(Filesystem_Start(fs, params, paramsSize));
+    try(Filesystem_Start(fs, params));
     try(Filesystem_Publish(fs));
 
     entry->fs = Object_RetainAs(fs, Filesystem);

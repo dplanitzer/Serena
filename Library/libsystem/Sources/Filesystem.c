@@ -11,9 +11,9 @@
 #include <System/_varargs.h>
 
 
-errno_t Mount(MountType type, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize)
+errno_t Mount(MountType type, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const char* _Nonnull params)
 {
-    return (errno_t)_syscall(SC_mount, type, containerPath, atDirPath, params, paramsSize);
+    return (errno_t)_syscall(SC_mount, type, containerPath, atDirPath, params);
 }
 
 errno_t Unmount(const char* _Nonnull atDirPath, UnmountOptions options)

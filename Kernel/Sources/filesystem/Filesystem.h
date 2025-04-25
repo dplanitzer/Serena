@@ -201,10 +201,11 @@ open_class_funcs(Filesystem, Object,
     // directory information once this method successfully returns. Note that the
     // underlying medium is passed to the filesystem when it is created. Note
     // that the kernel guarantees that no operations will be issued to the
-    // filesystem before start() has returned with EOK.
+    // filesystem before start() has returned with EOK. 'params' is an optional
+    // string with mount parameters. 
     // Override: Required
     // Default Behavior: Returns EOK
-    errno_t (*onStart)(void* _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize, FSProperties* _Nonnull pOutProps);
+    errno_t (*onStart)(void* _Nonnull self, const char* _Nonnull params, FSProperties* _Nonnull pOutProps);
 
     // Invoked when a started instance of this file system is stopped. A file
     // system may return an error. Note however that this error is purely
@@ -414,7 +415,7 @@ extern errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnu
 // Starts the filesystem. This causes the filesystem implementation to read its
 // superblock, validate basic filesystem information and determines the root
 // directory.
-extern errno_t Filesystem_Start(FilesystemRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize);
+extern errno_t Filesystem_Start(FilesystemRef _Nonnull self, const char* _Nonnull params);
 
 // Stops the filesystem. Returns EOK if the filesystem could be stopped. A
 // filesystem can not be stop as long as it is still attached to some file
@@ -514,8 +515,8 @@ extern errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _
 // Methods for use by filesystem subclassers.
 //
 
-#define Filesystem_OnStart(__self, __pParams, __paramsSize, __fsProps) \
-invoke_n(onStart, Filesystem, __self, __pParams, __paramsSize, __fsProps)
+#define Filesystem_OnStart(__self, __params, __fsProps) \
+invoke_n(onStart, Filesystem, __self, __params, __fsProps)
 
 #define Filesystem_OnStop(__self) \
 invoke_0(onStop, Filesystem, __self)

@@ -31,7 +31,7 @@ errno_t Catalog_Create(const char* _Nonnull name, CatalogRef _Nullable * _Nonnul
     try(kalloc_cleared(sizeof(Catalog), (void**) &self));
     
     try(KernFS_Create(name, (KernFSRef*)&self->fs));
-    try(Filesystem_Start(self->fs, NULL, 0));
+    try(Filesystem_Start(self->fs, ""));
     try(FileHierarchy_Create(self->fs, &self->fh));
     try(Filesystem_AcquireRootDirectory(self->fs, &self->rootDirectory));
 

@@ -373,7 +373,7 @@ void Filesystem_onRelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nonnull 
 }
 
 
-errno_t Filesystem_Start(FilesystemRef _Nonnull self, const void* _Nonnull params, ssize_t paramsSize)
+errno_t Filesystem_Start(FilesystemRef _Nonnull self, const char* _Nonnull params)
 {
     decl_try_err();
     FSProperties fs_props;
@@ -388,7 +388,7 @@ errno_t Filesystem_Start(FilesystemRef _Nonnull self, const void* _Nonnull param
     fs_props.rootDirectoryId = 0;
     fs_props.isReadOnly = true;
 
-    err = Filesystem_OnStart(self, params, paramsSize, &fs_props);
+    err = Filesystem_OnStart(self, params, &fs_props);
     if (err == EOK) {
         self->rootDirectoryId = fs_props.rootDirectoryId;
         self->isReadOnly = fs_props.isReadOnly;
@@ -400,7 +400,7 @@ catch:
     return err;
 }
 
-errno_t Filesystem_onStart(FilesystemRef _Nonnull self, const void* _Nonnull params, ssize_t paramsSize, FSProperties* _Nonnull pOutProps)
+errno_t Filesystem_onStart(FilesystemRef _Nonnull self, const char* _Nonnull params, FSProperties* _Nonnull pOutProps)
 {
     return EIO;
 }

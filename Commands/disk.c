@@ -283,7 +283,7 @@ errno_t cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
 {
     decl_try_err();
 
-    err = Mount(kMount_Disk, diskPath, atPath, NULL, 0);
+    err = Mount(kMount_Disk, diskPath, atPath, "");
 
     return err;
 }

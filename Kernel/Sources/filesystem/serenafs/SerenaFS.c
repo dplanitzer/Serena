@@ -37,7 +37,7 @@ void SerenaFS_deinit(SerenaFSRef _Nonnull self)
     SfsAllocator_Deinit(&self->blockAllocator);
 }
 
-errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize, FSProperties* _Nonnull pOutProps)
+errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const char* _Nonnull params, FSProperties* _Nonnull pOutProps)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);

@@ -18,7 +18,7 @@
 #include <System/Filesystem.h>
 
 
-static errno_t _discover_start_disk_fs(IOChannelRef _Nonnull driverChannel, const void* _Nullable params, size_t paramsSize, FilesystemRef _Nullable * _Nonnull pOutFs)
+static errno_t _discover_start_disk_fs(IOChannelRef _Nonnull driverChannel, const char* _Nonnull params, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
     FSContainerRef fsContainer = NULL;
@@ -26,7 +26,7 @@ static errno_t _discover_start_disk_fs(IOChannelRef _Nonnull driverChannel, cons
 
     try(DiskContainer_Create(driverChannel, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
-    try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, params, paramsSize));
+    try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, params));
 
 catch:
     if (err != EOK) {
@@ -40,7 +40,7 @@ catch:
 
 // Discovers and starts the filesystem stored on the disk managed by the driver
 // 'diskPath' and returns the filesystem object in 'pOutFs'.
-static errno_t discover_start_disk_fs(FileManagerRef _Nonnull self, const char* _Nonnull diskPath, void* _Nullable params, size_t paramsSize, FilesystemRef _Nullable * _Nonnull pOutFs)
+static errno_t discover_start_disk_fs(FileManagerRef _Nonnull self, const char* _Nonnull diskPath, const char* _Nonnull params, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
     ResolvedPath rp_disk;
@@ -66,7 +66,7 @@ static errno_t discover_start_disk_fs(FileManagerRef _Nonnull self, const char* 
 
 
     // Start the filesystem
-    try(_discover_start_disk_fs(devChan, params, paramsSize, pOutFs));
+    try(_discover_start_disk_fs(devChan, params, pOutFs));
 
 catch:
     IOChannel_Release(devChan);
@@ -98,7 +98,7 @@ static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull
 // Mounts the object 'objectName' of type 'type' at the directory 'atDirPath'.
 // 'params' are optional mount parameters that are passed to the filesystem to
 // mount.
-errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize)
+errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)
 {
     decl_try_err();
     ResolvedPath rp_atDir;
@@ -119,7 +119,7 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const ch
 
     switch (type) {
         case kMount_Disk:
-            err = discover_start_disk_fs(self, objectName, params, paramsSize, &fs);
+            err = discover_start_disk_fs(self, objectName, params, &fs);
             break;
 
         case kMount_Catalog:

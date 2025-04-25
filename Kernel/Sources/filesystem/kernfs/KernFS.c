@@ -108,7 +108,7 @@ KfsNodeRef _Nullable _KernFS_GetInode(KernFSRef _Nonnull self, ino_t id)
 }
 
 
-errno_t KernFS_onStart(KernFSRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize, FSProperties* _Nonnull pOutProps)
+errno_t KernFS_onStart(KernFSRef _Nonnull self, const char* _Nonnull params, FSProperties* _Nonnull pOutProps)
 {
     decl_try_err();
     KfsNodeRef rootDir;
