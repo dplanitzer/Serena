@@ -368,7 +368,6 @@ errno_t FileHierarchy_AttachFilesystem(FileHierarchyRef _Nonnull self, Filesyste
     _FileHierarchy_InsertKey(self, downKey);
 
     List_InsertAfterLast(&atFsNode->attachmentPoints, &atNode->sibling);
-    Filesystem_NoteAttached(fs);
 
     try_bang(SELock_Unlock(&self->lock));
     return EOK;
@@ -445,7 +444,6 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
     atFsNode = atNode->attachingFsNode;
     List_Remove(&atFsNode->attachmentPoints, &atNode->sibling);
     _FileHierarchy_CollectKeysForAtNode(self, atNode, &keys);
-    Filesystem_NoteDetached(atNode->attachedFsNode->filesystem);
 
 catch:
     try_bang(SELock_Unlock(&self->lock));

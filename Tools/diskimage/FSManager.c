@@ -24,7 +24,7 @@ errno_t FSManager_Create(RamContainerRef _Nonnull fsContainer, FSManagerRef _Nul
     try_null(self, malloc(sizeof(FSManager)), ENOMEM);
 
     try(SerenaFS_Create((FSContainerRef)fsContainer, (SerenaFSRef*)&self->fs));
-    try(Filesystem_Start(self->fs, NULL, 0));
+    try(Filesystem_Start(self->fs, ""));
 
     try(FileHierarchy_Create(self->fs, &fh));
     rootDir = FileHierarchy_AcquireRootDirectory(fh);

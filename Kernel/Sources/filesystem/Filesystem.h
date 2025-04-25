@@ -21,7 +21,6 @@
 // XXX come up with a better way of handling this
 typedef uint32_t CatalogId;
 #define kCatalogId_None 0
-#define EATTACHED 1024
 #endif
 #include <System/Filesystem.h>
 #include <System/User.h>
@@ -186,7 +185,6 @@ open_class(Filesystem, Object,
     bool                isReadOnly;
     int8_t              reserved[2];
     CatalogId           catalogId;
-    int                 attachCount;        // Count of times this FS instance has been attached to file hierarchies Protected by inLock
     int                 openChannelsCount;  // Count of open FS channels. Protected by inLock
 );
 open_class_funcs(Filesystem, Object,
@@ -418,23 +416,15 @@ extern errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnu
 extern errno_t Filesystem_Start(FilesystemRef _Nonnull self, const char* _Nonnull params);
 
 // Stops the filesystem. Returns EOK if the filesystem could be stopped. A
-// filesystem can not be stop as long as it is still attached to some file
-// hierarchy, an inode is still acquired or in the process of being acquired or
-// a filesystem I/O channel is still open. Returns EATTACHED if the filesystem
-// is still attached to a file hierarchy and EBUSY if an inode is still acquired
-// or a filesystem I/O channel is still open.
+// filesystem can not be stop as long as an inode is still acquired or in the
+// process of being acquired or a filesystem I/O channel is still open. Returns
+// EBUSY if an inode is still acquired or a filesystem I/O channel is still open.
 extern errno_t Filesystem_Stop(FilesystemRef _Nonnull self, bool forced);
 
 
 // Returns true if the filesystem is stopped and no more inodes or FS channels
 // are outstanding/open.
 extern bool Filesystem_CanDestroy(FilesystemRef _Nonnull self);
-
-
-// Called by a file hierarchy to inform the FS that it has been attached/detached
-// to/from a file hierarchy.
-extern void Filesystem_NoteAttached(FilesystemRef _Nonnull self);
-extern void Filesystem_NoteDetached(FilesystemRef _Nonnull self);
 
 
 extern errno_t Filesystem_Publish(FilesystemRef _Nonnull self);

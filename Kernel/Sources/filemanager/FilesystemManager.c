@@ -141,10 +141,6 @@ errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Fil
             return EBUSY;
         }
     }
-    else if (err == EATTACHED) {
-        // Still attached somewhere else. Don't unpublish
-        return EATTACHED;
-    }
     else {
         // Not attached anywhere else anymore and stop has worked. Unpublish
         Filesystem_Unpublish(fs);

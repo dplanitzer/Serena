@@ -94,21 +94,6 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
     ConditionVariable_Deinit(&self->inCondVar);
 }
 
-void Filesystem_NoteAttached(FilesystemRef _Nonnull self)
-{
-    Lock_Lock(&self->inLock);
-    self->attachCount++;
-    Lock_Unlock(&self->inLock);
-}
-
-void Filesystem_NoteDetached(FilesystemRef _Nonnull self)
-{
-    Lock_Lock(&self->inLock);
-    assert(self->attachCount > 0);
-    self->attachCount--;
-    Lock_Unlock(&self->inLock);
-}
-
 errno_t Filesystem_Publish(FilesystemRef _Nonnull self)
 {
 #ifndef __DISKIMAGE__
@@ -412,9 +397,6 @@ errno_t Filesystem_Stop(FilesystemRef _Nonnull self, bool forced)
     Lock_Lock(&self->inLock);
     if (self->state != kFilesystemState_Active) {
         throw(ENXIO);
-    }
-    if (self->attachCount > 0) {
-        throw(EATTACHED);
     }
     if ((self->inCachedCount > 0 || self->inReadingCount > 0 || self->openChannelsCount > 0) && (!forced)) {
         throw(EBUSY);

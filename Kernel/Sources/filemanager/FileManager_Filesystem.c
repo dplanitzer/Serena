@@ -14,6 +14,7 @@
 #include <filesystem/DiskContainer.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/IOChannel.h>
+#include <filesystem/kernfs/KernFS.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <System/Filesystem.h>
 
@@ -164,7 +165,7 @@ errno_t FileManager_Unmount(FileManagerRef _Nonnull self, const char* _Nonnull a
 catch:
     ResolvedPath_Deinit(&rp_atDir);
 
-    if (fsToStop) {
+    if (fsToStop && !instanceof(fsToStop, KernFS)) {
         err = FilesystemManager_StopFilesystem(gFilesystemManager, fsToStop, forced);
         //XXX FS might be busy && forced == false -> should not stop and should not detach
         //if (err == EBUSY) {
