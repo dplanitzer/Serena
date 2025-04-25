@@ -21,7 +21,7 @@
 typedef struct fsentry {
     ListNode                node;
     FilesystemRef _Nonnull  fs;
-    char* _Nonnull          diskPath;
+    InodeRef _Nonnull       driverNode;
 } fsentry_t;
 
 static void fsentry_destroy(fsentry_t* _Nullable self)
@@ -30,23 +30,23 @@ static void fsentry_destroy(fsentry_t* _Nullable self)
         Object_Release(self->fs);
         self->fs = NULL;
 
-        kfree(self->diskPath);
-        self->diskPath = NULL;
+        if (self->driverNode) {
+            Inode_Relinquish(self->driverNode);
+            self->driverNode = NULL;
+        }
 
         kfree(self);    
     }
 }
 
-static errno_t fsentry_create(FilesystemRef _Consuming _Nonnull fs, const char* _Nonnull diskPath, fsentry_t* _Nullable * _Nonnull pOutSelf)
+static errno_t fsentry_create(FilesystemRef _Consuming _Nonnull fs, InodeRef _Nonnull driverNode, fsentry_t* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    const size_t len = String_Length(diskPath);
     fsentry_t* self;
 
     try(kalloc_cleared(sizeof(fsentry_t), (void**)&self));
-    try(kalloc(len + 1, (void**)&self->diskPath));
-    memcpy(self->diskPath, diskPath, len + 1);
     self->fs = fs;
+    self->driverNode = Inode_Reacquire(driverNode);
 
     *pOutSelf = self;
     return EOK;
@@ -93,17 +93,20 @@ catch:
     return err;
 }
 
-errno_t FilesystemManager_EstablishFilesystem(FilesystemManagerRef _Nonnull self, IOChannelRef _Nonnull driverChannel, const char* _Nonnull diskPath, FilesystemRef _Nullable * _Nonnull pOutFs)
+errno_t FilesystemManager_EstablishFilesystem(FilesystemManagerRef _Nonnull self, InodeRef _Locked _Nonnull driverNode, unsigned int mode, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
     FSContainerRef fsContainer = NULL;
     FilesystemRef fs = NULL;
+    IOChannelRef chan = NULL;
     fsentry_t* entry = NULL;
 
-    try(DiskContainer_Create(driverChannel, &fsContainer));
+    try(Inode_CreateChannel(driverNode, mode, &chan));
+    try(DiskContainer_Create(chan, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
-    try(fsentry_create(fs, diskPath, &entry));
+    try(fsentry_create(fs, driverNode, &entry));
     Object_Release(fsContainer);
+    IOChannel_Release(chan);
 
     Lock_Lock(&self->lock);
     List_InsertAfterLast(&self->filesystems, &entry->node);
@@ -114,6 +117,7 @@ errno_t FilesystemManager_EstablishFilesystem(FilesystemManagerRef _Nonnull self
 catch:
     Object_Release(fs);
     Object_Release(fsContainer);
+    IOChannel_Release(chan);
     *pOutFs = NULL;
     return err;
 }

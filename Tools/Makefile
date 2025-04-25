@@ -92,6 +92,7 @@ KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/FileHierarchy.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/FileManager_Directory.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/FileManager_File.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/FileManager.c
+KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/ResolvedPath.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/FSContainer.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/ContainerFilesystem.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/Filesystem.c

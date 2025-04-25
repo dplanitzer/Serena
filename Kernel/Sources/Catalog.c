@@ -59,22 +59,9 @@ errno_t Catalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path)
     return err;
 }
 
-errno_t Catalog_AcquireNode(CatalogRef _Nonnull self, const char* _Nonnull path, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t Catalog_AcquireNodeForPath(CatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp)
 {
-    decl_try_err();
-    ResolvedPath rp;
-
-    err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUserId_Root, kGroupId_Root, &rp);
-    if (err == EOK) {
-        *pOutNode = rp.inode;
-        rp.inode = NULL;
-    }
-    else {
-        *pOutNode = NULL;
-    }
-
-    ResolvedPath_Deinit(&rp);
-    return err;
+    return FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUserId_Root, kGroupId_Root, rp);
 }
 
 errno_t Catalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)

@@ -18,20 +18,24 @@
 
 // Establishes and starts the filesystem stored on the disk managed by the disk
 // driver 'diskPath' and returns the filesystem object in 'pOutFs'.
-static errno_t establish_start_disk_fs(FileManagerRef _Nonnull self, const char* _Nonnull diskPath, const char* _Nonnull params, FilesystemRef _Nullable * _Nonnull pOutFs)
+static errno_t establish_and_start_disk_fs(FileManagerRef _Nonnull self, const char* _Nonnull diskPath, const char* _Nonnull params, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
+    const unsigned int mode = kOpen_ReadWrite;
+    FilesystemRef fs = NULL;
     ResolvedPath rp_disk;
-    IOChannelRef devChan = NULL;
 
     // Resolve the path to the disk device file
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, diskPath, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &rp_disk));
 
 
-    // Open the disk driver
+    // Open the disk driver and establish the filesystem
     Inode_Lock(rp_disk.inode);
     if (Inode_GetFileType(rp_disk.inode) == kFileType_Device) {
-        err = _FileManager_OpenFile(self, rp_disk.inode, kOpen_ReadWrite);
+        err = _FileManager_OpenFile(self, rp_disk.inode, mode);
+        if (err == EOK) {
+            err = FilesystemManager_EstablishFilesystem(gFilesystemManager, rp_disk.inode, mode, &fs);
+        }
     }
     else {
         err = ENODEV;
@@ -40,17 +44,13 @@ static errno_t establish_start_disk_fs(FileManagerRef _Nonnull self, const char*
     throw_iferr(err);
 
 
-    try(Inode_CreateChannel(rp_disk.inode, kOpen_ReadWrite, &devChan));
-
-
     // Start the filesystem
-    try(FilesystemManager_EstablishFilesystem(gFilesystemManager, devChan, diskPath, pOutFs));
-    try(FilesystemManager_StartFilesystem(gFilesystemManager, *pOutFs, params));
+    try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, params));
 
 catch:
-    IOChannel_Release(devChan);
     ResolvedPath_Deinit(&rp_disk);
-
+    *pOutFs = fs;
+    
     return err;
 }
 
@@ -98,7 +98,7 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const ch
 
     switch (type) {
         case kMount_Disk:
-            err = establish_start_disk_fs(self, objectName, params, &fs);
+            err = establish_and_start_disk_fs(self, objectName, params, &fs);
             break;
 
         case kMount_Catalog:

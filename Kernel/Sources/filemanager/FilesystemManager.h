@@ -20,7 +20,7 @@ extern errno_t FilesystemManager_Create(FilesystemManagerRef _Nullable * _Nonnul
 // Establishes a filesystem stored on the given disk. This means that we
 // create a FS container for the filesystem, instantiate it and record information
 // about it.
-extern errno_t FilesystemManager_EstablishFilesystem(FilesystemManagerRef _Nonnull self, IOChannelRef _Nonnull driverChannel, const char* _Nonnull diskPath, FilesystemRef _Nullable * _Nonnull pOutFs);
+extern errno_t FilesystemManager_EstablishFilesystem(FilesystemManagerRef _Nonnull self, InodeRef _Locked _Nonnull driverNode, unsigned int mode, FilesystemRef _Nullable * _Nonnull pOutFs);
 
 // Starts the given filesystem instance. Passes 'params' as the start parameters
 // to this filesystem.

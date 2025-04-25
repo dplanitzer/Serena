@@ -14,6 +14,9 @@
 #include <filesystem/kernfs/KernFS.h>
 #include <security/SecurityManager.h>
 
+extern void ResolvedPath_Init(ResolvedPath* _Nonnull self);
+
+
 //#define LOG
 #ifdef LOG
 #include <log/Log.h>
@@ -71,32 +74,6 @@ final_class_ivars(FileHierarchy, Object,
     List                hashChain[HASH_CHAINS_COUNT];   // Chains of FHKey
 );
 
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: ResolvedPath
-////////////////////////////////////////////////////////////////////////////////
-
-static void ResolvedPath_Init(ResolvedPath* _Nonnull self)
-{
-    self->inode = NULL;
-    self->lastPathComponent.name = NULL;
-    self->lastPathComponent.count = 0;
-}
-
-void ResolvedPath_Deinit(ResolvedPath* _Nonnull self)
-{
-    if (self->inode) {
-        Inode_Relinquish(self->inode);
-        self->inode = NULL;
-    }
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: FileHierarchy
-////////////////////////////////////////////////////////////////////////////////
 
 static void print_atnode(AtNode* _Nonnull self);
 static void destroy_atnode(AtNode* _Nullable self);

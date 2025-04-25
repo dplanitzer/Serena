@@ -10,6 +10,7 @@
 #define FileHierarchy_h
 
 #include <kobj/Object.h>
+#include <filemanager/ResolvedPath.h>
 #include <filesystem/Filesystem.h>
 
 #define kMaxPathLength          (__PATH_MAX-1)
@@ -37,17 +38,6 @@ typedef enum PathResolution {
     // the target can not be resolved.
     kPathResolution_PredecessorOfTarget
 } PathResolution;
-
-
-// The result of a path resolution operation.
-typedef struct ResolvedPath {
-    InodeRef _Nullable  inode;              // The target or the directory of the target node
-    PathComponent       lastPathComponent;  // Last path component if the resolution mode is ParentOnly. Note that this stores a reference into the path that was passed to the resolution function
-} ResolvedPath;
-
-
-// Must be called once you no longer need the path resolver result.
-extern void ResolvedPath_Deinit(ResolvedPath* self);
 
 
 extern errno_t FileHierarchy_Create(FilesystemRef _Nonnull rootFS, FileHierarchyRef _Nullable * _Nonnull pOutSelf);

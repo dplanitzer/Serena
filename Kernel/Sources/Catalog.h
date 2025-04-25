@@ -10,6 +10,8 @@
 #define Catalog_h
 
 #include <kobj/Object.h>
+#include <filemanager/ResolvedPath.h>
+
 
 // The non-persistent, globally unique ID of a published catalog entry.
 // This ID does not survive a system reboot. Id 0 represents a catalog
@@ -33,7 +35,7 @@ extern FilesystemRef _Nonnull Catalog_CopyFilesystem(CatalogRef _Nonnull self);
 extern errno_t Catalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path);
 
 // Looks up the inode for the given path and returns it.
-extern errno_t Catalog_AcquireNode(CatalogRef _Nonnull self, const char* _Nonnull path, InodeRef _Nullable * _Nonnull pOutNode);
+extern errno_t Catalog_AcquireNodeForPath(CatalogRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp);
 
 // Opens the catalog entry at the in-kernel path 'path' with mode 'mode' and
 // returns the resulting channel in 'pOutChannel'. This call does not support

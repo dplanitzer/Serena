@@ -101,20 +101,32 @@ static void ask_user_for_new_disk(boot_screen_t* _Nonnull bscr, const char* _Non
 }
 
 // SerenaFS is the only FS we support at this time for booting.
-static errno_t start_boot_fs(const char* _Nonnull driverPath, FilesystemRef _Nullable * _Nonnull pOutFs)
+static errno_t start_boot_fs(const char* _Nonnull diskPath, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
     IOChannelRef chan;
     FilesystemRef fs = NULL;
+    ResolvedPath rp;
 
-    try(Catalog_Open(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan));
-    try(FilesystemManager_EstablishFilesystem(gFilesystemManager, chan, driverPath, &fs));
+    try(Catalog_AcquireNodeForPath(gDriverCatalog, diskPath, &rp));
+    Inode_Lock(rp.inode);
+    err = FilesystemManager_EstablishFilesystem(gFilesystemManager, rp.inode, kOpen_ReadWrite, &fs);
+    Inode_Unlock(rp.inode);
+    throw_iferr(err);
+
     try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, ""));
+    
+    ResolvedPath_Deinit(&rp);
+    *pOutFs = fs;
+    return EOK;
 
 catch:
-    IOChannel_Release(chan);
+    if (fs) {
+        FilesystemManager_DisbandFilesystem(gFilesystemManager, fs);
+    }
+    ResolvedPath_Deinit(&rp);
+    *pOutFs = NULL;
 
-    *pOutFs = fs;
     return err;
 }
 
