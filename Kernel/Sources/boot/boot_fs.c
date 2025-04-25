@@ -15,7 +15,9 @@
 #include <driver/disk/DiskDriver.h>
 #include <filemanager/FileHierarchy.h>
 #include <filemanager/FilesystemManager.h>
+#include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
+#include <filesystem/serenafs/SerenaFS.h>
 #include <hal/Platform.h>
 #include <Catalog.h>
 #include "boot_screen.h"
@@ -100,6 +102,30 @@ static void ask_user_for_new_disk(boot_screen_t* _Nonnull bscr, const char* _Non
     blit_boot_logo(bscr, gSerenaImg_Plane0, gSerenaImg_Width, gSerenaImg_Height);
 }
 
+// SerenaFS is the only FS we support at this time for booting.
+static errno_t start_boot_fs(const char* _Nonnull driverPath, FilesystemRef _Nullable * _Nonnull pOutFs)
+{
+    decl_try_err();
+    IOChannelRef chan;
+    FSContainerRef fsContainer = NULL;
+    FilesystemRef fs = NULL;
+
+    try(Catalog_Open(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan));
+    try(DiskContainer_Create(chan, &fsContainer));
+    try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
+    try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, NULL, 0));
+
+catch:
+    if (err != EOK) {
+        Object_Release(fs);
+    }
+    Object_Release(fsContainer);
+    IOChannel_Release(chan);
+
+    *pOutFs = fs;
+    return err;
+}
+
 // Tries to mount the root filesystem stored on the mass storage device
 // represented by 'pDriver'.
 static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry, boot_screen_t* _Nonnull bscr, FilesystemRef _Nullable * _Nonnull pOutFS)
@@ -120,7 +146,8 @@ static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry,
     // Try to boot from the disk
     while (true) {
         fs = NULL;
-        err = FilesystemManager_DiscoverAndStartFilesystem(gFilesystemManager, driverPath, NULL, 0, &fs);
+        
+        err = start_boot_fs(driverPath, &fs);
 
         if (err == EOK) {
             break;

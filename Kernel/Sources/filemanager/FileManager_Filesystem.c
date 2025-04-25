@@ -11,14 +11,36 @@
 #include "FileHierarchy.h"
 #include "FilesystemManager.h"
 #include <Catalog.h>
+#include <filesystem/DiskContainer.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/IOChannel.h>
+#include <filesystem/serenafs/SerenaFS.h>
 #include <System/Filesystem.h>
 
 
+static errno_t _discover_start_disk_fs(IOChannelRef _Nonnull driverChannel, const void* _Nullable params, size_t paramsSize, FilesystemRef _Nullable * _Nonnull pOutFs)
+{
+    decl_try_err();
+    FSContainerRef fsContainer = NULL;
+    FilesystemRef fs = NULL;
+
+    try(DiskContainer_Create(driverChannel, &fsContainer));
+    try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
+    try(FilesystemManager_StartFilesystem(gFilesystemManager, fs, params, paramsSize));
+
+catch:
+    if (err != EOK) {
+        Object_Release(fs);
+    }
+    Object_Release(fsContainer);
+
+    *pOutFs = fs;
+    return err;
+}
+
 // Discovers and starts the filesystem stored on the disk managed by the driver
 // 'diskPath' and returns the filesystem object in 'pOutFs'.
-static errno_t discover_and_start_disk_fs(FileManagerRef _Nonnull self, const char* _Nonnull diskPath, void* _Nullable params, size_t paramsSize, FilesystemRef _Nullable * _Nonnull pOutFs)
+static errno_t discover_start_disk_fs(FileManagerRef _Nonnull self, const char* _Nonnull diskPath, void* _Nullable params, size_t paramsSize, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
     ResolvedPath rp_disk;
@@ -44,7 +66,7 @@ static errno_t discover_and_start_disk_fs(FileManagerRef _Nonnull self, const ch
 
 
     // Start the filesystem
-    try(FilesystemManager_DiscoverAndStartFilesystemWithChannel(gFilesystemManager, devChan, params, paramsSize, pOutFs));
+    try(_discover_start_disk_fs(devChan, params, paramsSize, pOutFs));
 
 catch:
     IOChannel_Release(devChan);
@@ -97,7 +119,7 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const ch
 
     switch (type) {
         case kMount_Disk:
-            err = discover_and_start_disk_fs(self, objectName, params, paramsSize, &fs);
+            err = discover_start_disk_fs(self, objectName, params, paramsSize, &fs);
             break;
 
         case kMount_Catalog:

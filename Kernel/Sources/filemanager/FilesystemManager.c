@@ -11,9 +11,7 @@
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/disk/DiskDriver.h>
-#include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
-#include <filesystem/serenafs/SerenaFS.h>
 #include <klib/List.h>
 
 
@@ -35,7 +33,6 @@ typedef struct FilesystemManager {
 } FilesystemManager;
 
 
-static errno_t _FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, const void* _Nullable params, size_t paramsSize);
 static void _FilesystemManager_ScheduleAutoSync(FilesystemManagerRef _Nonnull self);
 
 
@@ -58,41 +55,7 @@ catch:
     return err;
 }
 
-errno_t FilesystemManager_DiscoverAndStartFilesystem(FilesystemManagerRef _Nonnull self, const char* _Nonnull driverPath, const void* _Nullable params, size_t paramsSize, FilesystemRef _Nullable * _Nonnull pOutFs)
-{
-    decl_try_err();
-    IOChannelRef chan = NULL;
-
-    if ((err = Catalog_Open(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan)) == EOK) {
-        err = FilesystemManager_DiscoverAndStartFilesystemWithChannel(self, chan, params, paramsSize, pOutFs);
-    } 
-    IOChannel_Release(chan);
-    
-    return err;
-}
-
-errno_t FilesystemManager_DiscoverAndStartFilesystemWithChannel(FilesystemManagerRef _Nonnull self, IOChannelRef _Nonnull driverChannel, const void* _Nullable params, size_t paramsSize, FilesystemRef _Nullable * _Nonnull pOutFs)
-{
-    decl_try_err();
-    FSContainerRef fsContainer = NULL;
-    FilesystemRef fs = NULL;
-
-    try(DiskContainer_Create(driverChannel, &fsContainer));
-    try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
-    try(_FilesystemManager_StartFilesystem(self, fs, params, paramsSize));
-    Object_Release(fsContainer);
-
-    *pOutFs = fs;
-    return EOK;
-
-catch:
-    Object_Release(fs);
-    Object_Release(fsContainer);
-
-    return err;
-}
-
-static errno_t _FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, const void* _Nullable params, size_t paramsSize)
+errno_t FilesystemManager_StartFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs, const void* _Nullable params, size_t paramsSize)
 {
     decl_try_err();
     FSEntry* entry = NULL;
