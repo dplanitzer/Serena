@@ -511,6 +511,15 @@ SYSCALL_0(coninit)
     return SwitchToFullConsole();
 }
 
+SYSCALL_3(fsgetdisk, fsid_t fsid, char* _Nullable buf, size_t bufSize)
+{
+    if (pArgs->buf == NULL) {
+        return EINVAL;
+    }
+
+    return Process_GetFilesystemDiskPath(Process_GetCurrent(), pArgs->fsid, pArgs->buf, pArgs->bufSize);
+}
+
 
 SystemCall gSystemCallTable[] = {
     REF_SYSCALL(read),
@@ -568,4 +577,5 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(getgid),
     REF_SYSCALL(sync),
     REF_SYSCALL(coninit),
+    REF_SYSCALL(fsgetdisk),
 };

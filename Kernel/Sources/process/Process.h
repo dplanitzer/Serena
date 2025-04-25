@@ -254,4 +254,6 @@ extern errno_t Process_Mount(ProcessRef _Nonnull self, MountType type, const cha
 
 extern errno_t Process_Unmount(ProcessRef _Nonnull self, const char* _Nonnull atDirPath, UnmountOptions options);
 
+extern errno_t Process_GetFilesystemDiskPath(ProcessRef _Nonnull self, fsid_t fsid, char* _Nonnull buf, size_t bufSize);
+
 #endif /* Process_h */

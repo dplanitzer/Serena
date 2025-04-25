@@ -16,6 +16,8 @@ typedef struct Catalog {
     FilesystemRef _Nonnull      fs;
     FileHierarchyRef _Nonnull   fh;
     InodeRef _Nonnull           rootDirectory;
+    uint8_t                     nameLength;
+    char                        name[kMaxCatalogNameLength];
 } Catalog;
 
 
@@ -26,14 +28,21 @@ CatalogRef _Nonnull  gFSCatalog;
 errno_t Catalog_Create(const char* _Nonnull name, CatalogRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
+    const size_t cnlen = String_Length(name);
     CatalogRef self;
     
+    if (cnlen > kMaxCatalogNameLength) {
+        throw(ERANGE);
+    }
+
     try(kalloc_cleared(sizeof(Catalog), (void**) &self));
     
-    try(KernFS_Create(name, (KernFSRef*)&self->fs));
+    try(KernFS_Create((KernFSRef*)&self->fs));
     try(Filesystem_Start(self->fs, ""));
     try(FileHierarchy_Create(self->fs, &self->fh));
     try(Filesystem_AcquireRootDirectory(self->fs, &self->rootDirectory));
+    self->nameLength = cnlen;
+    memcpy(self->name, name, cnlen);
 
     *pOutSelf = self;
     return EOK;
@@ -43,9 +52,29 @@ catch:
     return err;
 }
 
+errno_t Catalog_GetName(CatalogRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
+{
+    if (bufSize < 1) {
+        return ERANGE;
+    }
+    if (bufSize < (self->nameLength + 1)) {
+        *buf = '\0';
+        return ERANGE;
+    }
+
+    memcpy(buf, self->name, self->nameLength);
+    buf[self->nameLength] = '\0';
+    return EOK;
+}
+
 FilesystemRef _Nonnull Catalog_CopyFilesystem(CatalogRef _Nonnull self)
 {
     return Object_RetainAs(self->fs, Filesystem);
+}
+
+bool Catalog_IsFsid(CatalogRef _Nonnull self, fsid_t fsid)
+{
+    return (Filesystem_GetId(self->fs) == fsid) ? true : false;
 }
 
 errno_t Catalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path)
@@ -84,28 +113,6 @@ errno_t Catalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsign
     ResolvedPath_Deinit(&rp);
     return err;
 }
-
-errno_t Catalog_GetPath(CatalogRef _Nonnull self, CatalogId cid, size_t bufSize, char* _Nonnull buf)
-{
-    decl_try_err();
-    InodeRef nd;
-
-    if (bufSize < 1) {
-        return EINVAL;
-    }
-
-    err = Filesystem_AcquireNodeWithId(self->fs, cid, &nd);
-    if (err == EOK) {
-        err = FileHierarchy_GetPath(self->fh, nd, self->rootDirectory, kUserId_Root, kGroupId_Root, buf, bufSize);
-        Inode_Relinquish(nd);
-    }
-    else {
-        *buf = '\0';
-    }
-
-    return err;
-}
-
 
 static errno_t _Catalog_AcquireFolder(CatalogRef _Nonnull self, CatalogId folderId, InodeRef _Nullable * _Nonnull pOutDir)
 {

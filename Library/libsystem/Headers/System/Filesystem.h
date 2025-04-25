@@ -62,23 +62,16 @@ typedef struct FSInfo {
 // get_fsinfo(FSInfo* _Nonnull pOutInfo)
 #define kFSCommand_GetInfo      IOResourceCommand(0)
 
-// Returns the canonical name of the disk on which the filesystem resides. Note
-// that not all filesystems are disk-based. Eg kernel object catalogs like /dev
-// or /fs are not disk-based and thus they return an empty string as the disk
-// name. 
-// get_get_disk_name(size_t bufSize, char* _Nonnull buf)
-#define kFSCommand_GetDiskName  IOResourceCommand(1)
-
 // Returns the label of a filesystem. The label is a name that can be assigned
 // when a disk is formatted and that helps a user in identifying a disk. Note
 // that not all filesystems support a label. ENOTSUP is returned in this case.
-// get_label(size_t bufSize, char* _Nonnull buf)
-#define kFSCommand_GetLabel     IOResourceCommand(2)
+// get_label(char* _Nonnull buf, size_t bufSize)
+#define kFSCommand_GetLabel     IOResourceCommand(1)
 
 // Sets the label of a filesystem. Note that not all filesystems support a label.
 // ENOTSUP is returned in this case.
 // set_label(const char* _Nonnull buf)
-#define kFSCommand_SetLabel     IOResourceCommand(3)
+#define kFSCommand_SetLabel     IOResourceCommand(2)
 
 
 #if !defined(__KERNEL__)
@@ -90,6 +83,10 @@ extern errno_t Mount(MountType type, const char* _Nonnull objectName, const char
 
 // Unmounts the filesystem mounted at the directory 'atDirPath'.
 extern errno_t Unmount(const char* _Nonnull atDirPath, UnmountOptions options);
+
+// Returns the path to the disk driver that underpins the filesystem with the
+// given id.
+extern errno_t s_fsgetdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize);
 
 #endif /* __KERNEL__ */
 

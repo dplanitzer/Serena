@@ -249,20 +249,12 @@ open_class_funcs(Filesystem, Object,
     // Default Behavior: Returns ENOTIOCTLCMD
     errno_t (*getInfo)(void* _Nonnull self, FSInfo* _Nonnull pOutInfo);
 
-    // Returns the canonical name of the disk on which this filesystem resides.
-    // Note that a filesystem may actually not be backed by a disk. An empty
-    // string is returned in this case or any other case in which the disk name
-    // can not be established.
-    // Override: Optional
-    // Default Behavior: Returns an empty string
-    errno_t (*getDiskName)(void* _Nonnull self, size_t bufSize, char* _Nonnull buf);
-
     // Returns the filesystem's label. A label is a string that is assigned to a
     // filesystem when it is formatted. However, it may be changed at a later
     // time by calling setLabel().
     // Override: Optional
     // Default Behavior: Returns ENOTSUP
-    errno_t (*getLabel)(void* _Nonnull self, size_t bufSize, char* _Nonnull buf);
+    errno_t (*getLabel)(void* _Nonnull self, char* _Nonnull buf, size_t bufSize);
 
     // Sets the filesystem's label.
     // Override: Optional
@@ -448,11 +440,8 @@ invoke_n(close, Filesystem, __self, __ch)
 #define Filesystem_GetInfo(__self, __pOutInfo) \
 invoke_n(getInfo, Filesystem, __self, __pOutInfo)
 
-#define Filesystem_GetDiskName(__self, __bufSize, __buf) \
-invoke_n(getDiskName, Filesystem, __self, __bufSize, __buf)
-
-#define Filesystem_GetLabel(__self, __bufSize, __buf) \
-invoke_n(getLabel, Filesystem, __self, __bufSize, __buf)
+#define Filesystem_GetLabel(__self, __buf, __bufSize) \
+invoke_n(getLabel, Filesystem, __self, __buf, __bufSize)
 
 #define Filesystem_SetLabel(__self, __buf) \
 invoke_n(setLabel, Filesystem, __self, __buf)

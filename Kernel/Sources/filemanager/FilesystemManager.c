@@ -7,7 +7,6 @@
 //
 
 #include "FilesystemManager.h"
-#include <Catalog.h>
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/disk/DiskDriver.h>
@@ -155,14 +154,14 @@ errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Fil
     }
 }
 
-static fsentry_t* _Nonnull _fsentry_for_filesystem(FilesystemManagerRef _Locked _Nonnull self, FilesystemRef fs)
+static fsentry_t* _Nullable _fsentry_for_fsid(FilesystemManagerRef _Locked _Nonnull self, fsid_t fsid)
 {
     List_ForEach(&self->filesystems, fsentry_t,
-        if (pCurNode->fs == fs) {
+        if (Filesystem_GetId(pCurNode->fs) == fsid) {
             return pCurNode;
         }
     );
-    abort();
+
     return NULL;
 }
 
@@ -177,7 +176,7 @@ void FilesystemManager_DisbandFilesystem(FilesystemManagerRef _Nonnull self, Fil
     if (Filesystem_CanDestroy(fs)) {
         // Destroy the FS now
         Lock_Lock(&self->lock);
-        fsentry_t* ep = _fsentry_for_filesystem(self, fs);
+        fsentry_t* ep = _fsentry_for_fsid(self, Filesystem_GetId(fs));
 
         List_Remove(&self->filesystems, &ep->node);
         Lock_Unlock(&self->lock);
@@ -186,12 +185,32 @@ void FilesystemManager_DisbandFilesystem(FilesystemManagerRef _Nonnull self, Fil
     else {
         // Hand the FS over to our reaper queue
         Lock_Lock(&self->lock);
-        fsentry_t* ep = _fsentry_for_filesystem(self, fs);
+        fsentry_t* ep = _fsentry_for_fsid(self, Filesystem_GetId(fs));
 
         List_Remove(&self->filesystems, &ep->node);
         List_InsertAfterLast(&self->reaperQueue, &ep->node);
         Lock_Unlock(&self->lock);
     }
+}
+
+errno_t FilesystemManager_AcquireDriverNodeForFsid(FilesystemManagerRef _Nonnull self, fsid_t fsid, InodeRef _Nullable * _Nonnull pOutNode)
+{
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    fsentry_t* ep = _fsentry_for_fsid(self, fsid);
+
+    if (ep) {
+        *pOutNode = Inode_Reacquire(ep->driverNode);
+        err = EOK;
+    }
+    else {
+        *pOutNode = NULL;
+        err = ENODEV;
+    }
+    Lock_Unlock(&self->lock);
+    
+    return err;
 }
 
 void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self)

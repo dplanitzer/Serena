@@ -70,6 +70,7 @@ enum {
     SC_getgid,              // gid_t Process_GetGroupId(void)
     SC_sync,                // void Sync(void)
     SC_coninit,             // void ConInit(void)
+    SC_fsgetdisk,           // errno_t fsgetdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
 };
 
 

@@ -440,27 +440,6 @@ void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
     Lock_Unlock(&self->interlock);
 }
 
-errno_t DiskCache_GetSessionDiskName(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, size_t bufSize, char* _Nonnull buf)
-{
-    decl_try_err();
-
-    if (bufSize < 1) {
-        return EINVAL;
-    }
-
-    Lock_Lock(&self->interlock);
-    if (s->isOpen) {
-        err = IOChannel_Ioctl(s->channel, kDriverCommand_GetCanonicalName, bufSize, buf);
-    }
-    else {
-        *buf = '\0';
-        err = ENODEV;
-    }
-    Lock_Unlock(&self->interlock);
-
-    return err;
-}
-
 
 // Triggers an asynchronous loading of the disk block data at the address
 // (disk, mediaId, lba)

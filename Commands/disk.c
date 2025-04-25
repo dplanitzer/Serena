@@ -205,13 +205,12 @@ errno_t cmd_fsid(const char* _Nonnull path)
 }
 
 
-#define DISKNAME_BUFSIZE    16
 static errno_t print_cat_info(const FSInfo* _Nonnull info, int fd)
 {
     decl_try_err();
     char diskName[32];
 
-    try(IOChannel_Control(fd, kFSCommand_GetDiskName, sizeof(diskName), diskName));
+    try(s_fsgetdisk(info->fsid, diskName, sizeof(diskName)));
 
     puts("Catalog ID");
     printf("%s       %u\n", diskName, info->fsid);
@@ -229,8 +228,8 @@ static errno_t print_reg_info(const FSInfo* _Nonnull info, int fd)
     char diskName[32];
     char volLabel[64];
 
-    try(IOChannel_Control(fd, kFSCommand_GetDiskName, sizeof(diskName), diskName));
-    try(IOChannel_Control(fd, kFSCommand_GetLabel, sizeof(volLabel), volLabel));
+    try(s_fsgetdisk(info->fsid, diskName, sizeof(diskName)));
+    try(IOChannel_Control(fd, kFSCommand_GetLabel, volLabel, sizeof(volLabel)));
 
 
     if ((info->properties & kFSProperty_IsReadOnly) == kFSProperty_IsReadOnly) {

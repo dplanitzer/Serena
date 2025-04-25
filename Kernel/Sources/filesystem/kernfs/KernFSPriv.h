@@ -22,8 +22,6 @@
 // KernFS
 //
 
-#define kMaxCatalogNameLength   7
-
 #define IN_HASH_CHAINS_COUNT    8
 #define IN_HASH_INDEX(__id)     (hash_scalar(__id) & (IN_HASH_CHAINS_COUNT-1))
 
@@ -49,8 +47,6 @@ final_class_ivars(KernFS, Filesystem,
     Lock            inOwnedLock;
     List* _Nonnull  inOwned;            // <KfsNode>
     ino_t           nextAvailableInodeId;
-    uint8_t         catalogNameLength;
-    char            catalogName[kMaxCatalogNameLength];
 );
 
 

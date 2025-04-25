@@ -245,35 +245,9 @@ off_t Driver_getSeekableRange(DriverRef _Nonnull self)
     return 0ll;
 }
 
-errno_t Driver_GetCanonicalName(DriverRef _Nonnull self, size_t bufSize, char* _Nonnull buf)
-{
-    decl_try_err();
-
-    Driver_Lock(self);
-    if (Driver_IsActive(self)) {
-        err = Catalog_GetPath(gDriverCatalog, self->driverCatalogId, bufSize, buf);
-    }
-    else {
-        err = ENODEV;
-    }
-    Driver_Unlock(self);
-
-    return err;
-}
-
 errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
 {
-    switch (cmd) {
-        case kDriverCommand_GetCanonicalName: {
-            const size_t bufSize = va_arg(ap, size_t);
-            char* buf = va_arg(ap, char*);
-
-            return Driver_GetCanonicalName(self, bufSize, buf);
-        }
-
-        default:
-            return ENOTIOCTLCMD;
-    }
+    return ENOTIOCTLCMD;
 }
 
 errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, ...)

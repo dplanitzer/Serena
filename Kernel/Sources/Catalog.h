@@ -22,13 +22,22 @@ typedef uint32_t    CatalogId;
 #define kCatalogId_None   0
 
 
+#define kMaxCatalogNameLength   7
+
+
 extern CatalogRef _Nonnull  gDriverCatalog;
 extern CatalogRef _Nonnull  gFSCatalog;
 
 
 extern errno_t Catalog_Create(const char* _Nonnull name, CatalogRef _Nullable * _Nonnull pOutSelf);
 
+// Returns the catalog name
+extern errno_t Catalog_GetName(CatalogRef _Nonnull self, char* _Nonnull buf, size_t bufSize);
+
 extern FilesystemRef _Nonnull Catalog_CopyFilesystem(CatalogRef _Nonnull self);
+
+// Returns true if the catalog owns the filesystem with id 'fsid'.
+extern bool Catalog_IsFsid(CatalogRef _Nonnull self, fsid_t fsid);
 
 // Returns EOK if an entry  is published at the in-kernel path 'path'. Otherwise
 // ENOENT is returned.
@@ -41,9 +50,6 @@ extern errno_t Catalog_AcquireNodeForPath(CatalogRef _Nonnull self, const char* 
 // returns the resulting channel in 'pOutChannel'. This call does not support
 // opening a folder.
 extern errno_t Catalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
-
-// Returns the path for 'cid'.
-extern errno_t Catalog_GetPath(CatalogRef _Nonnull self, CatalogId cid, size_t bufSize, char* _Nonnull buf);
 
 
 // Publishes a folder with the name 'name' to the catalog. Pass kCatalog_None as

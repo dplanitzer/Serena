@@ -50,8 +50,6 @@ extern size_t DiskCache_GetBlockSize(DiskCacheRef _Nonnull self);
 extern void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull diskChannel, MediaId mediaId, DiskSession* _Nonnull pOutSession);
 extern void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s);
 
-extern errno_t DiskCache_GetSessionDiskName(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, size_t bufSize, char* _Nonnull buf);
-
 extern errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba);
 extern errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba);
 

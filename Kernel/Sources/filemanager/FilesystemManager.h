@@ -39,6 +39,9 @@ extern errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull se
 // active then we schedule the filesystem for future destruction.
 extern void FilesystemManager_DisbandFilesystem(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull fs);
 
+// Returns the inode of the disk driver that underpins the filesystem for 'fsid'.
+extern errno_t FilesystemManager_AcquireDriverNodeForFsid(FilesystemManagerRef _Nonnull self, fsid_t fsid, InodeRef _Nullable * _Nonnull pOutNode);
+
 // Syncs all filesystems and modified blocks to disk. Blocks until the sync is
 // complete.
 extern void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self);

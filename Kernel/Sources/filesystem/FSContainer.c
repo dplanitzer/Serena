@@ -62,17 +62,6 @@ errno_t FSContainer_sync(FSContainerRef _Nonnull self)
     return EOK;
 }
 
-
-errno_t FSContainer_getDiskName(FSContainerRef _Nonnull self, size_t bufSize, char* _Nonnull buf)
-{
-    if (bufSize < 1) {
-        return EINVAL;
-    }
-
-    *buf = '\0';
-    return EOK;
-}
-
 class_func_defs(FSContainer, Object,
 func_def(disconnect, FSContainer)
 func_def(mapBlock, FSContainer)
@@ -80,5 +69,4 @@ func_def(unmapBlock, FSContainer)
 func_def(prefetchBlock, FSContainer)
 func_def(syncBlock, FSContainer)
 func_def(sync, FSContainer)
-func_def(getDiskName, FSContainer)
 );

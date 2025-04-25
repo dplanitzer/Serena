@@ -290,3 +290,14 @@ errno_t Process_Unmount(ProcessRef _Nonnull self, const char* _Nonnull atDirPath
 
     return err;
 }
+
+errno_t Process_GetFilesystemDiskPath(ProcessRef _Nonnull self, fsid_t fsid, char* _Nonnull buf, size_t bufSize)
+{
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    err = FileManager_GetFilesystemDiskPath(&self->fm, fsid, buf, bufSize);
+    Lock_Unlock(&self->lock);
+
+    return err;
+}

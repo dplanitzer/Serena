@@ -13,11 +13,6 @@
 
 __CPP_BEGIN
 
-// Returns the driver's canonical name. This is the path relative to /dev that
-// represents the driver entry in the hw tree.
-// get_canonical_name(size_t bufSize, char* _Nonnull buf)
-#define kDriverCommand_GetCanonicalName IOResourceCommand(0)
-
 // Returns information about a disk drive.
 // get_info(DiskInfo* _Nonnull pOutInfo)
 #define kDriverCommand_SubclassBase  IOResourceCommand(256)

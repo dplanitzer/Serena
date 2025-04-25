@@ -139,7 +139,7 @@ errno_t SerenaFS_getInfo(SerenaFSRef _Nonnull self, FSInfo* _Nonnull pOutInfo)
     return EOK;
 }
 
-errno_t SerenaFS_getLabel(SerenaFSRef _Nonnull self, size_t bufSize, char* _Nonnull buf)
+errno_t SerenaFS_getLabel(SerenaFSRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);

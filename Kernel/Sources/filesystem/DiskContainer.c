@@ -79,12 +79,6 @@ errno_t DiskContainer_sync(struct DiskContainer* _Nonnull self)
 }
 
 
-errno_t DiskContainer_getDiskName(struct DiskContainer* _Nonnull self, size_t bufSize, char* _Nonnull buf)
-{
-    return DiskCache_GetSessionDiskName(self->diskCache, &self->session, bufSize, buf);
-}
-
-
 class_func_defs(DiskContainer, Object,
 override_func_def(deinit, DiskContainer, Object)
 override_func_def(disconnect, DiskContainer, FSContainer)
@@ -93,5 +87,4 @@ override_func_def(unmapBlock, DiskContainer, FSContainer)
 override_func_def(prefetchBlock, DiskContainer, FSContainer)
 override_func_def(syncBlock, DiskContainer, FSContainer)
 override_func_def(sync, DiskContainer, FSContainer)
-override_func_def(getDiskName, DiskContainer, FSContainer)
 );

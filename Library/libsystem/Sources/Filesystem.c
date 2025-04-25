@@ -20,3 +20,8 @@ errno_t Unmount(const char* _Nonnull atDirPath, UnmountOptions options)
 {
     return (errno_t)_syscall(SC_unmount, atDirPath, options);
 }
+
+errno_t s_fsgetdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
+{
+    return (errno_t)_syscall(SC_fsgetdisk, fsid, buf, bufSize);
+}

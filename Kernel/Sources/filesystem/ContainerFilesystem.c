@@ -33,11 +33,6 @@ void ContainerFilesystem_onDisconnect(struct ContainerFilesystem* _Nonnull self)
     FSContainer_Disconnect(self->fsContainer);
 }
 
-errno_t ContainerFilesystem_getDiskName(struct ContainerFilesystem* _Nonnull self, size_t bufSize, char* _Nonnull buf)
-{
-    return FSContainer_GetDiskName(self->fsContainer, bufSize, buf);
-}
-
 void ContainerFilesystem_sync(struct ContainerFilesystem* _Nonnull self)
 {
     FSContainer_Sync(self->fsContainer);
@@ -47,6 +42,5 @@ void ContainerFilesystem_sync(struct ContainerFilesystem* _Nonnull self)
 class_func_defs(ContainerFilesystem, Filesystem,
 override_func_def(deinit, ContainerFilesystem, Object)
 override_func_def(onDisconnect, ContainerFilesystem, Filesystem)
-override_func_def(getDiskName, ContainerFilesystem, Filesystem)
 override_func_def(sync, ContainerFilesystem, Filesystem)
 );

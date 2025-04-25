@@ -64,11 +64,6 @@ open_class_funcs(FSContainer, Object,
     // Synchronously flushes all cached and unwritten blocks belonging to this
     // FS container to disk(s).
     errno_t (*sync)(void* _Nonnull self);
-
-
-    // Returns the canonical name of the disk on which this FS container resides.
-    // An empty string is returned if the name is unknown.
-    errno_t (*getDiskName)(void* _Nonnull self, size_t bufSize, char* _Nonnull buf);
 );
 
 
@@ -111,10 +106,6 @@ invoke_n(syncBlock, FSContainer, __self, __driverId, __mediaId, __lba)
 
 #define FSContainer_Sync(__self) \
 invoke_0(sync, FSContainer, __self)
-
-
-#define FSContainer_GetDiskName(__self, __bufSize, __buf) \
-invoke_n(getDiskName, FSContainer, __self, __bufSize, __buf)
 
 
 //
