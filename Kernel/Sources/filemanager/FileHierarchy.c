@@ -7,9 +7,11 @@
 //
 
 #include "FileHierarchy.h"
+#include "FilesystemManager.h"
 #include <klib/Hash.h>
 #include <dispatcher/SELock.h>
 #include <filesystem/FSUtilities.h>
+#include <filesystem/kernfs/KernFS.h>
 #include <security/SecurityManager.h>
 
 //#define LOG
@@ -33,7 +35,7 @@ typedef struct AtNode {
     InodeRef _Nonnull       attachingDirectory;     // Owning
     FsNode* _Nonnull _Weak  attachingFsNode;
 
-    InodeRef _Nonnull       attachedDirectory;      // Owning
+    ino_t                   attachedDirectoryId;    // Owning
     FsNode* _Nonnull        attachedFsNode;         // Owning
 } AtNode;
 
@@ -144,7 +146,6 @@ static void destroy_atnode(AtNode* _Nullable self)
 {
     if (self) {
         Inode_Relinquish(self->attachingDirectory);
-        Inode_Relinquish(self->attachedDirectory);
         destroy_fsnode(self->attachedFsNode);
         FSDeallocate(self);
     }
@@ -162,8 +163,9 @@ static errno_t create_atnode(FsNode* _Nonnull atFsNode, InodeRef _Nonnull atDir,
     try(FSAllocateCleared(sizeof(AtNode), (void**)&self));
     self->attachingDirectory = Inode_Reacquire(atDir);
     self->attachingFsNode = atFsNode;
-    self->attachedDirectory = rootDir;
+    self->attachedDirectoryId = Inode_GetId(rootDir);
     self->attachedFsNode = fsNode;
+    Inode_Relinquish(rootDir);
     *pOutSelf = self;
     return EOK;
 
@@ -179,7 +181,7 @@ static void print_atnode(AtNode* _Nonnull self)
 {
     printf("AtNode {\n");
     printf("  attaching-dir id: %u, i-node: %p\n", Inode_GetId(self->attachingDirectory), (void*)self->attachingDirectory);
-    printf("  attached-dir  id: %u, i-node: %p\n", Inode_GetId(self->attachedDirectory), (void*)self->attachedDirectory);
+    printf("  attached-dir  id: %u\n", self->attachedDirectoryId);
     printf("}\n");
 }
 #endif
@@ -361,7 +363,7 @@ errno_t FileHierarchy_AttachFilesystem(FileHierarchyRef _Nonnull self, Filesyste
     }
 
     try(create_atnode(atFsNode, atDir, fs, &atNode));
-    try(create_key(Filesystem_GetId(fs), Inode_GetId(atNode->attachedDirectory), kKeyType_Uplink, atNode, &upKey));
+    try(create_key(Filesystem_GetId(fs), atNode->attachedDirectoryId, kKeyType_Uplink, atNode, &upKey));
     try(create_key(Inode_GetFilesystemId(atDir), Inode_GetId(atDir), kKeyType_Downlink, atNode, &downKey));
 
     _FileHierarchy_InsertKey(self, upKey);
@@ -409,8 +411,8 @@ static void destroy_key_collection(List* _Nonnull keys)
 // Detaches the filesystem who's directory 'dir' is attached to another filesystem.
 // The detachment will fail if the filesystem which is attached to 'dir' hosts
 // other attached filesystems. However, the detachment will be recursively
-// applied if 'force' is true.
-errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir, bool force)
+// applied if 'forced' is true.
+errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRef _Consuming _Nonnull dir, bool forced)
 {
     decl_try_err();
     AtNode* atNode = NULL;
@@ -437,13 +439,25 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
     // Make sure that the FS that we want to detach doesn't have other FS'
     // attached to it.
     atNode = upKey->at;
-    if (!force && !List_IsEmpty(&atNode->attachedFsNode->attachmentPoints)) {
+    if (!forced && !List_IsEmpty(&atNode->attachedFsNode->attachmentPoints)) {
         throw(EBUSY);
     }
 
-    atFsNode = atNode->attachingFsNode;
-    List_Remove(&atFsNode->attachmentPoints, &atNode->sibling);
-    _FileHierarchy_CollectKeysForAtNode(self, atNode, &keys);
+
+    // Drop what should be the last inode reference on the filesystem and then
+    // try to stop it. This may fail with an EBUSY if someone else still has
+    // inodes acquired. Note that we never stop a catalog filesystem.
+    // XXX should do the actually stop() outside our lock in the future
+    Inode_Relinquish(dir);
+    if (!instanceof(atNode->attachedFsNode->filesystem, KernFS)) {
+        err = FilesystemManager_StopFilesystem(gFilesystemManager, atNode->attachedFsNode->filesystem, forced);
+    }
+
+    if (err != EBUSY) {
+        atFsNode = atNode->attachingFsNode;
+        List_Remove(&atFsNode->attachmentPoints, &atNode->sibling);
+        _FileHierarchy_CollectKeysForAtNode(self, atNode, &keys);
+    }
 
 catch:
     try_bang(SELock_Unlock(&self->lock));
@@ -492,8 +506,12 @@ static errno_t _FileHierarchy_AcquireDirectoryMountingDirectory(FileHierarchyRef
 static InodeRef _Nullable _FileHierarchy_AcquireDirectoryMountedAtDirectory(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull dir)
 {
     AtNode* node = _FileHierarchy_GetAtNode(self, dir, kKeyType_Downlink);
+    InodeRef ip = NULL;
 
-    return (node) ? Inode_Reacquire(node->attachedDirectory) : NULL;
+    if (node) {
+        Filesystem_AcquireRootDirectory(node->attachedFsNode->filesystem, &ip);
+    }
+    return ip;
 }
 
 

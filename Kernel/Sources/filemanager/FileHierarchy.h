@@ -67,8 +67,8 @@ extern errno_t FileHierarchy_AttachFilesystem(FileHierarchyRef _Nonnull self, Fi
 // Detaches the filesystem who's directory 'dir' is attached to another filesystem.
 // The detachment will fail if the filesystem which is attached to 'dir' hosts
 // other attached filesystems. However, the detachment will be recursively
-// applied if 'force' is true.
-extern errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir, bool force);
+// applied if 'forced' is true.
+extern errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir, bool forced);
 
 // Returns true if the given (directory) inode is an attachment point for another
 // filesystem.

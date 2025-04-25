@@ -14,7 +14,6 @@
 #include <filesystem/DiskContainer.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/IOChannel.h>
-#include <filesystem/kernfs/KernFS.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <System/Filesystem.h>
 
@@ -146,34 +145,17 @@ errno_t FileManager_Unmount(FileManagerRef _Nonnull self, const char* _Nonnull a
 {
     decl_try_err();
     ResolvedPath rp_atDir;
-    FilesystemRef fsToStop = NULL;
     bool forced = ((options & kUnmount_Forced) == kUnmount_Forced) ? true : false;
 
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, atDirPath, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &rp_atDir));
 
 
-    // Detach the filesystem
+    // Detach the filesystem. Note that this call consumes rp_atDir.inode
     try(FileHierarchy_DetachFilesystemAt(self->fileHierarchy, rp_atDir.inode, forced));
 
-
-    // Attempt to stop the filesystem. This will only succeed if it isn't attached
-    // anywhere else in this or another file hierarchy. Note that we first have
-    // to drop rp_atDir because this is the last node that is keeping the filesystem
-    // in use.
-    fsToStop = Inode_GetFilesystem(rp_atDir.inode);
-
 catch:
-    ResolvedPath_Deinit(&rp_atDir);
 
-    if (fsToStop && !instanceof(fsToStop, KernFS)) {
-        err = FilesystemManager_StopFilesystem(gFilesystemManager, fsToStop, forced);
-        //XXX FS might be busy && forced == false -> should not stop and should not detach
-        //if (err == EBUSY) {
-        //
-        //}
-    }
-
-    return err;
+return err;
 }
 
 #endif  /* __DISKIMAGE__ */
