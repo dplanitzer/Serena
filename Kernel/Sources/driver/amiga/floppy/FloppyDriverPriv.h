@@ -64,9 +64,7 @@ final_class_ivars(FloppyDriver, DiskDriver,
     uint8_t                     sectorDataBuffer[ADF_SECTOR_DATA_SIZE];
 
     // Disk geometry
-    int8_t                      sectorsPerCylinder;
     int8_t                      sectorsPerTrack;
-    int8_t                      headsPerCylinder;
     int8_t                      cylindersPerDisk;
 
     int                         readErrorCount;                     // Number of read errors since last disk driver reset / disk change
@@ -112,11 +110,11 @@ static void FloppyDriver_CancelUpdateHasDiskState(FloppyDriverRef _Nonnull self)
 static void FloppyDriver_UpdateHasDiskState(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self);
 
-static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, int cylinder, int head);
+static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs);
 static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, bool bWrite);
 static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t err);
 
-#define FloppyDriver_TrackFromCylinderAndHead(__cylinder, __head) (2*__cylinder + __head)
+#define FloppyDriver_TrackFromCylinderAndHead(__chs) (2*(__chs->c) + (__chs->h))
 
 #define FloppyDriver_GetController(__self) \
 Driver_GetParentAs(__self, FloppyController)
