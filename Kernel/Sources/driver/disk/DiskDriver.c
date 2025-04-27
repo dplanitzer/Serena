@@ -154,11 +154,15 @@ sno_t DiskDriver_ChsToLsa(DiskDriverRef _Locked _Nonnull self, const chs_t* _Non
 errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId, LogicalBlockAddress lba, brng_t* _Nonnull pOutBlockRange)
 {
     decl_try_err();
+    chs_t in_chs, out_chs;
+    scnt_t out_scnt;
 
     Driver_Lock(self);
     if (mediaId == self->currentMediaId) {
-        err = DiskDriver_GetRequestRange2(self, mediaId, lba * self->s2bFactor, pOutBlockRange);
-        pOutBlockRange->lba = pOutBlockRange->lba / self->s2bFactor;
+        DiskDriver_LsaToChs(self, lba * self->s2bFactor, &in_chs);
+        DiskDriver_GetRequestRange2(self, &in_chs, &out_chs, &out_scnt);
+        pOutBlockRange->lba = DiskDriver_ChsToLsa(self, &out_chs) / self->s2bFactor;
+        pOutBlockRange->count = out_scnt / self->s2bFactor;
     }
     else {
         err = EDISKCHANGE;
@@ -169,10 +173,10 @@ errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId,
     return err;
 }
 
-errno_t DiskDriver_getRequestRange2(DiskDriverRef _Nonnull self, MediaId mediaId, LogicalBlockAddress lba, brng_t* _Nonnull pOutBlockRange)
+errno_t DiskDriver_getRequestRange2(DiskDriverRef _Nonnull self, const chs_t* _Nonnull chs, chs_t* _Nonnull out_chs, scnt_t* _Nonnull out_scnt)
 {
-    pOutBlockRange->lba = lba;
-    pOutBlockRange->count = 1;
+    *out_chs = *chs;
+    *out_scnt = 1;
     return EOK;
 }
 

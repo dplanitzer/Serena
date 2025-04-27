@@ -144,7 +144,7 @@ open_class_funcs(DiskDriver, Driver,
     // subclass to optimize reading/writing disks in the sense that a whole
     // track worth of data can be processed in a single disk request.
     // Default behavior: returns a block range of size 1 and the provided lba
-    errno_t (*getRequestRange2)(void* _Nonnull self, MediaId mediaId, LogicalBlockAddress lba, brng_t* _Nonnull pOutBlockRange);
+    void (*getRequestRange2)(void* _Nonnull self, const chs_t* _Nonnull chs, chs_t* _Nonnull out_chs, scnt_t* _Nonnull out_scnt);
 
 
     //
@@ -235,8 +235,8 @@ extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInf
 
 extern errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId, LogicalBlockAddress lba, brng_t* _Nonnull pOutBlockRange);
 
-#define DiskDriver_GetRequestRange2(__self, __mediaId, __lba, __brng) \
-invoke_n(getRequestRange2, DiskDriver, __self, __mediaId, __lba, __brng)
+#define DiskDriver_GetRequestRange2(__self, __chs, __out_chs, __out_scnt) \
+invoke_n(getRequestRange2, DiskDriver, __self, __chs, __out_chs, __out_scnt)
 
 
 extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req);

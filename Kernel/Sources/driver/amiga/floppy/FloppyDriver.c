@@ -952,15 +952,13 @@ catch:
     return FloppyDriver_FinalizeIO(self, err);
 }
 
-errno_t FloppyDriver_getRequestRange2(FloppyDriverRef _Nonnull self, MediaId mediaId, LogicalBlockAddress ba, brng_t* _Nonnull pOutBlockRange)
+void FloppyDriver_getRequestRange2(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs, chs_t* _Nonnull out_chs, scnt_t* _Nonnull out_scnt)
 {
-    const int c = ba / self->sectorsPerCylinder;
-    const int h = (ba / self->sectorsPerTrack) % self->headsPerCylinder;
+    out_chs->c = chs->c;
+    out_chs->h = chs->h;
+    out_chs->s = 0;
 
-    pOutBlockRange->lba = (c * self->headsPerCylinder + h) * self->sectorsPerTrack + 0;
-    pOutBlockRange->count = self->sectorsPerTrack;
-
-    return EOK;
+    *out_scnt = self->sectorsPerTrack;
 }
 
 
