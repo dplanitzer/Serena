@@ -138,10 +138,6 @@
 #define ASSERT_LOCKED_SHARED(__block)
 #endif
 
-static DiskId _DiskCache_GetNewDiskId(DiskCacheRef _Nonnull _Locked self);
-static errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef pBlock);
-static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull _Locked pBlock, DiskBlockOp op, bool isSync);
-
 
 // Locking modes for the block content lock
 typedef enum LockMode {
@@ -173,6 +169,24 @@ typedef struct DiskCache {
     size_t                      dirtyBlockCount;        // Number of blocks in the cache that are currently marked dirty
     List/*<DiskBlock>*/         diskAddrHash[DISK_BLOCK_HASH_CHAIN_COUNT];  // Hash table organizing disk blocks by disk address
 } DiskCache;
+
+
+#define DiskBlockFromLruChainPointer(__ptr) \
+(DiskBlockRef) (((uint8_t*)__ptr) - offsetof(struct DiskBlock, lruNode))
+
+
+extern errno_t _DiskCache_LockBlockContent(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, LockMode mode);
+extern void _DiskCache_UnlockBlockContent(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock);
+extern void _DiskCache_DowngradeBlockContentLock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock);
+
+extern errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, unsigned int options, DiskBlockRef _Nullable * _Nonnull pOutBlock);
+extern void _DiskCache_PutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock);
+extern void _DiskCache_UnlockContentAndPutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock);
+
+extern errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef pBlock);
+extern void _DiskCache_FinalizeUnregisterDisk(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk);
+
+extern errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync);
 
 extern void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, BlockRequest* _Nullable br, errno_t status);
 

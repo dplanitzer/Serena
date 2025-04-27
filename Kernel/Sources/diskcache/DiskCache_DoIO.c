@@ -1,0 +1,240 @@
+//
+//  DiskCache_DoIO.c
+//  kernel
+//
+//  Created by Dietmar Planitzer on 11/6/24.
+//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
+//
+
+#include "DiskCachePriv.h"
+
+// Define to force all writes to be synchronous
+//#define __FORCE_WRITES_SYNC 1
+
+
+// Blocks the caller until the given block has finished the given I/O operation
+// type. Expects to be called with the lock held.
+static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, DiskBlockOp op)
+{
+    decl_try_err();
+
+    while (pBlock->flags.op == op) {
+        err = ConditionVariable_Wait(&self->condition, &self->interlock, kTimeInterval_Infinity);
+        if (err != EOK) {
+            return err;
+        }
+    }
+
+    return EOK;
+}
+
+// Starts an operation to read the contents of the provided block from disk or
+// to write it to disk. Must be called with the block locked in exclusive mode.
+// Waits until the I/O operation is finished if 'isSync' is true. A synchronous
+// I/O operation returns with the block locked in exclusive mode. If 'isSync' is
+// false then the I/O operation is executed asynchronously and the block is
+// unlocked and put once the I/O operation is done.
+errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync)
+{
+    decl_try_err();
+    DiskRequest* req = NULL;
+
+    // Assert that if there is a I/O operation currently ongoing, that it is of
+    // the same kind as 'op'. See the requirements at the top of this file.
+    assert(pBlock->flags.op == kDiskBlockOp_Idle || pBlock->flags.op == op);
+
+
+    // Reject a write if the block is pinned
+    if (op == kDiskBlockOp_Write && pBlock->flags.isPinned) {
+        return ENXIO;
+    }
+
+
+    // Just join an already ongoing I/O operation if one is active (and of the
+    // same type as 'op')
+    if (pBlock->flags.op == op) {
+        return (isSync) ? _DiskCache_WaitIO(self, pBlock, op) : EOK;
+    }
+
+
+    // Don't start a new I/O request if the driver has been deregistered
+    DiskDriverRef disk = pBlock->disk;
+    DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
+
+    if (dcc->state != kDccS_Registered) {
+        return ENODEV;
+    }
+
+
+    size_t bCapacity = 1;
+    size_t idx = 0;
+
+    //XXX
+    // This is experimental: ask the disk driver for the range of blocks that
+    // should be read/written in a single disk request. This allows a driver to
+    // tell us that we should go and read all blocks in a track. This allows us
+    // to cache everything from a track right away. This makes sense for track
+    // orientated disk drives like teh Amiga disk drive. 
+    brng_t br;
+    DiskDriver_GetRequestRange(disk, pBlock->mediaId, pBlock->lba, &br);
+    bCapacity = br.count;
+    //XXX
+
+
+    // Start a new disk request
+    err = DiskRequest_Get(bCapacity, &req);
+    if (err != EOK) {
+        return err;
+    }
+    
+#if 1
+    for (size_t offset = 0; offset < br.count; offset++) {
+        const LogicalBlockAddress lba = br.lba + offset;
+        DiskBlockRef pOther;
+
+        if (lba == pBlock->lba) {
+            pBlock->flags.op = op;
+            pBlock->flags.async = (isSync) ? 0 : 1;
+            pBlock->flags.readError = EOK;
+        
+            req->r[idx].lba = pBlock->lba;
+            req->r[idx].data = pBlock->data;
+            req->r[idx].token = (intptr_t)pBlock;
+            idx++;
+        }
+        else if (op == kDiskBlockOp_Read) {
+            // We'll request all blocks in the request range that haven't already
+            // been read in earlier. Note that we just ignore blocks that don't
+            // fit our requirements since this is just for prefetching.
+            err = _DiskCache_GetBlock(self, disk, pBlock->mediaId, lba, kGetBlock_Allocate | kGetBlock_Exclusive, &pOther);
+            if (err == EOK && !pOther->flags.hasData && pOther->flags.op != kDiskBlockOp_Read) {
+                err = _DiskCache_LockBlockContent(self, pOther, kLockMode_Exclusive);
+
+                if (err == EOK) {
+                    // Trigger the async read. Note that endIO() will unlock-and-put the
+                    // block for us.
+                    ASSERT_LOCKED_EXCLUSIVE(pOther);
+                    pOther->flags.op = op;
+                    pOther->flags.async = 1;
+                    pOther->flags.readError = EOK;
+                    req->r[idx].lba = pOther->lba;
+                    req->r[idx].data = pOther->data;
+                    req->r[idx].token = (intptr_t)pOther;
+                    idx++;
+                }
+            }
+            if (err != EOK) {
+                _DiskCache_PutBlock(self, pOther);
+            }
+        }
+    }
+#else
+    pBlock->flags.op = op;
+    pBlock->flags.async = (isSync) ? 0 : 1;
+    pBlock->flags.readError = EOK;
+
+    req->r[idx].lba = pBlock->lba;
+    req->r[idx].data = pBlock->data;
+    req->r[idx].token = (intptr_t)pBlock;
+    idx++;
+#endif
+
+    req->done = (DiskRequestDoneCallback)DiskCache_OnDiskRequestDone;
+    req->context = self;
+    req->type = (op == kDiskBlockOp_Read) ? kDiskRequest_Read : kDiskRequest_Write;
+    req->mediaId = pBlock->mediaId;
+    req->rCount = idx;
+
+
+    err = DiskDriver_BeginIO(disk, req);
+    if (err == EOK && isSync) {
+        dcc->useCount++;
+        err = _DiskCache_WaitIO(self, pBlock, op);
+        // The lock is now held in exclusive mode again, if succeeded
+    }
+
+    return err;
+}
+
+
+// Must be called by the disk driver when it's done with a block.
+// Expects that the block lock is held:
+// - read: exclusively
+// - write: shared
+// If the operation is:
+// - async: unlocks and puts the block
+// - sync: wakes up the clients that are waiting on the block and leaves the block
+//         locked exclusively
+static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, BlockRequest* _Nullable br, errno_t status)
+{
+    Lock_Lock(&self->interlock);
+
+    DiskBlockRef pBlock = (DiskBlockRef)br->token;
+    const bool isAsync = pBlock->flags.async ? true : false;
+
+    switch (req->type) {
+        case kDiskRequest_Read:
+            ASSERT_LOCKED_EXCLUSIVE(pBlock);
+            // Holding the exclusive lock here
+            if (status == EOK) {
+                pBlock->flags.hasData = 1;
+            }
+            break;
+
+        case kDiskRequest_Write:
+            ASSERT_LOCKED_SHARED(pBlock);
+            if (status == EOK && pBlock->flags.isDirty) {
+                pBlock->flags.isDirty = 0;
+                self->dirtyBlockCount--;
+            }
+            break;
+
+        default:
+            abort();
+            break;
+    }
+
+    if (req->type == kDiskRequest_Read) {
+        // We only note read related errors since there's noone who could ever
+        // look at a write-related error (because writes are often deferred and
+        // thus they may happen a long time after the process that initiated the
+        // write exited).
+        pBlock->flags.readError = status;
+    }
+    pBlock->flags.async = 0;
+    pBlock->flags.op = kDiskBlockOp_Idle;
+
+    if (isAsync) {
+        // Drops exclusive lock if this is a read op
+        // Drops shared lock if this is a write op
+        _DiskCache_UnlockContentAndPutBlock(self, pBlock);
+        // Unlocked here 
+    }
+    else {
+        // Wake up WaitIO()
+        ConditionVariable_Broadcast(&self->condition);
+        // Will return with the lock held in exclusive or shared mode depending
+        // on the type of I/O operation we did
+    }
+
+
+    // Balance the useCount from DoIO()
+    DiskDriverRef disk = pBlock->disk;
+    DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
+    dcc->useCount--;
+    if (dcc->useCount == 0 && dcc->state == kDccS_Deregistering) {
+        _DiskCache_FinalizeUnregisterDisk(self, disk);
+    }
+
+    Lock_Unlock(&self->interlock);
+}
+
+void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, BlockRequest* _Nullable br, errno_t status)
+{
+    if (br) {
+        DiskCache_OnBlockRequestDone(self, req, br, status);
+    }
+    else {
+        DiskRequest_Put(req);
+    }
+}

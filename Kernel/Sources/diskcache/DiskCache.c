@@ -8,11 +8,7 @@
 
 #include "DiskCachePriv.h"
 #include <dispatcher/VirtualProcessor.h>
-#include <driver/DriverChannel.h>
 #include <log/Log.h>
-
-// Define to force all writes to be synchronous
-//#define __FORCE_WRITES_SYNC 1
 
 
 DiskCacheRef _Nonnull  gDiskCache;
@@ -49,17 +45,12 @@ catch:
     return err;
 }
 
-size_t DiskCache_GetBlockSize(DiskCacheRef _Nonnull self)
-{
-    return self->blockSize;
-}
-
 // Locks the given block's content in shared or exclusive mode. Multiple clients
 // may lock the content of a block in shared mode but at most one client at a
 // time may lock the content of a block in exclusive mode. A block is only
 // lockable in exclusive mode if no other client is locking it in shared or
 // exclusive mode at the same time.
-static errno_t _DiskCache_LockBlockContent(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, LockMode mode)
+errno_t _DiskCache_LockBlockContent(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, LockMode mode)
 {
     decl_try_err();
 
@@ -98,7 +89,7 @@ static errno_t _DiskCache_LockBlockContent(DiskCacheRef _Nonnull _Locked self, D
 // of the block content since there can only be a single exclusive locker. If
 // the block content is locked in shared mode instead, then the caller is
 // assumed to be one of the shared block owners.
-static void _DiskCache_UnlockBlockContent(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
+void _DiskCache_UnlockBlockContent(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
 {
     if (pBlock->flags.exclusive) {
         // The lock is being held exclusively - we assume that we are holding it. Unlock it
@@ -118,7 +109,7 @@ static void _DiskCache_UnlockBlockContent(DiskCacheRef _Nonnull _Locked self, Di
 #if 0
 // Upgrades the given block content lock from being locked shared to locked
 // exclusive. Expects that the caller is holding a shared lock on the block
-static errno_t _DiskCache_UpgradeBlockContentLock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
+errno_t _DiskCache_UpgradeBlockContentLock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
 {
     decl_try_err();
 
@@ -140,7 +131,7 @@ static errno_t _DiskCache_UpgradeBlockContentLock(DiskCacheRef _Nonnull _Locked 
 
 // Downgrades the given block content lock from exclusive mode to shared mode.
 // Expects that the caller is holding an exclusive lock on the block.
-static void _DiskCache_DowngradeBlockContentLock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
+void _DiskCache_DowngradeBlockContentLock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
 {
     ASSERT_LOCKED_EXCLUSIVE(pBlock);
 
@@ -153,9 +144,6 @@ static void _DiskCache_DowngradeBlockContentLock(DiskCacheRef _Nonnull _Locked s
     // able to lock exclusively anyway since we now own the lock shared
 }
 
-
-#define DiskBlockFromLruChainPointer(__ptr) \
-(DiskBlockRef) (((uint8_t*)__ptr) - offsetof(struct DiskBlock, lruNode))
 
 static void _DiskCache_RegisterBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
 {
@@ -177,7 +165,7 @@ static void _DiskCache_UnregisterBlock(DiskCacheRef _Nonnull _Locked self, DiskB
     self->lruChainGeneration++;
 }
 #if 0
-static void _DiskCache_Print(DiskCacheRef _Nonnull _Locked self)
+void _DiskCache_Print(DiskCacheRef _Nonnull _Locked self)
 {
     printf("{");
     for (size_t i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
@@ -188,7 +176,7 @@ static void _DiskCache_Print(DiskCacheRef _Nonnull _Locked self)
     printf("}");
 }
 
-static void _DiskCache_PrintLruChain(DiskCacheRef _Nonnull _Locked self)
+void _DiskCache_PrintLruChain(DiskCacheRef _Nonnull _Locked self)
 {
     printf("{");
     List_ForEach(&self->lruChain, ListNode,
@@ -215,6 +203,25 @@ static errno_t _DiskCache_CreateBlock(DiskCacheRef _Nonnull _Locked self, DiskDr
         self->blockCount++;
     }
     *pOutBlock = pBlock;
+
+    return err;
+}
+
+// Check whether the given block has dirty data and write it synchronously to
+// disk, if so.
+errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef pBlock)
+{
+    decl_try_err();
+
+    if (pBlock->flags.isDirty && pBlock->flags.op != kDiskBlockOp_Write) {
+        err = _DiskCache_LockBlockContent(self, pBlock, kLockMode_Shared);
+        
+        if (err == EOK) {
+            ASSERT_LOCKED_SHARED(pBlock);
+            err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
+            _DiskCache_UnlockBlockContent(self, pBlock);
+        }
+    }
 
     return err;
 }
@@ -250,7 +257,7 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
 // A new block is created if needed or an existing block is retrieved from the
 // cached list of blocks. The caller must lock the content of the block before
 // doing I/O on it or before handing it to a filesystem.
-static errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, unsigned int options, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, unsigned int options, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
     DiskBlockRef pBlock;
@@ -320,7 +327,7 @@ static errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DiskDrive
     return err;
 }
 
-static void _DiskCache_PutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
+void _DiskCache_PutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
 {
     if (!DiskBlock_InUse(pBlock)) {
         assert(pBlock->flags.op == kDiskBlockOp_Idle);
@@ -330,7 +337,7 @@ static void _DiskCache_PutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef
     }
 }
 
-static void _DiskCache_UnlockContentAndPutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock)
+void _DiskCache_UnlockContentAndPutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock)
 {
     _DiskCache_UnlockBlockContent(self, pBlock);
     _DiskCache_PutBlock(self, pBlock);
@@ -382,7 +389,7 @@ errno_t DiskCache_RegisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnul
     return err;
 }
 
-static void _DiskCache_FinalizeUnregisterDisk(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk)
+void _DiskCache_FinalizeUnregisterDisk(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk)
 {
     DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
 
@@ -409,601 +416,7 @@ void DiskCache_UnregisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull
     Lock_Unlock(&self->interlock);
 }
 
-void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull diskChannel, MediaId mediaId, DiskSession* _Nonnull pOutSession)
+size_t DiskCache_GetBlockSize(DiskCacheRef _Nonnull self)
 {
-    pOutSession->channel = IOChannel_Retain(diskChannel);
-    pOutSession->disk = DriverChannel_GetDriverAs(diskChannel, DiskDriver);
-    pOutSession->mediaId = mediaId;
-    pOutSession->activeMappingsCount = 0;
-    pOutSession->isOpen = true;
-}
-
-void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
-{
-    Lock_Lock(&self->interlock);
-    if (s->isOpen) {
-        while (s->activeMappingsCount > 0) {
-            // XXX would be nice to rely on the existing condition variable.
-            // XXX however we don't want to have to introduce extra calls on it
-            // XXX since unmap() calls happen a lot more than session closes. 
-            Lock_Unlock(&self->interlock);
-            VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(1));
-            Lock_Lock(&self->interlock);
-        }
-
-        IOChannel_Release(s->channel);
-        s->channel = NULL;
-        s->disk = NULL;
-        s->mediaId = kMediaId_None;
-        s->isOpen = false;
-    }
-    Lock_Unlock(&self->interlock);
-}
-
-
-// Triggers an asynchronous loading of the disk block data at the address
-// (disk, mediaId, lba)
-errno_t _DiskCache_PrefetchBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba)
-{
-    decl_try_err();
-    DiskBlockRef pBlock = NULL;
-    bool doingIO = false;
-
-    // Get the block
-    err = _DiskCache_GetBlock(self, disk, mediaId, lba, kGetBlock_Allocate | kGetBlock_RecentUse | kGetBlock_Exclusive, &pBlock);
-    if (err == EOK && !pBlock->flags.hasData && pBlock->flags.op != kDiskBlockOp_Read) {
-        err = _DiskCache_LockBlockContent(self, pBlock, kLockMode_Exclusive);
-
-        if (err == EOK) {
-            // Trigger the async read. Note that endIO() will unlock-and-put the
-            // block for us.
-            ASSERT_LOCKED_EXCLUSIVE(pBlock);
-            err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, false);
-            doingIO = (err == EOK) ? true : false;
-        }
-    }
-    if (!doingIO && pBlock) {
-        _DiskCache_UnlockContentAndPutBlock(self, pBlock);
-    }
-
-    return err;
-}
-
-// Triggers an asynchronous loading of the disk block data at the address
-// (disk, mediaId, lba)
-errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba)
-{
-    decl_try_err();
-
-    Lock_Lock(&self->interlock);
-    if (s->isOpen) {
-        err = _DiskCache_PrefetchBlock(self, s->disk, s->mediaId, lba);
-    }
-    else {
-        err = ENODEV;
-    }
-    Lock_Unlock(&self->interlock);
-
-    return err;
-}
-
-
-// Check whether the given block has dirty data and write it synchronously to
-// disk, if so.
-static errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef pBlock)
-{
-    decl_try_err();
-
-    if (pBlock->flags.isDirty && pBlock->flags.op != kDiskBlockOp_Write) {
-        err = _DiskCache_LockBlockContent(self, pBlock, kLockMode_Shared);
-        
-        if (err == EOK) {
-            ASSERT_LOCKED_SHARED(pBlock);
-            err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
-            _DiskCache_UnlockBlockContent(self, pBlock);
-        }
-    }
-
-    return err;
-}
-
-errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba)
-{
-    decl_try_err();
-    DiskBlockRef pBlock = NULL;
-
-    Lock_Lock(&self->interlock);
-
-    if (s->isOpen) {
-        // Find the block and only sync it if no one else is currently using it
-        if ((err = _DiskCache_GetBlock(self, s->disk, s->mediaId, lba, kGetBlock_Exclusive, &pBlock)) == EOK) {
-            err = _DiskCache_SyncBlock(self, pBlock);
-            _DiskCache_PutBlock(self, pBlock);
-        }
-    }
-    else {
-        err = ENODEV;
-    }
-
-    Lock_Unlock(&self->interlock);
-
-    return err;
-}
-
-errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba)
-{
-    decl_try_err();
-    DiskBlockRef pBlock = NULL;
-
-    Lock_Lock(&self->interlock);
-
-    if (s->isOpen) {
-        if ((err = _DiskCache_GetBlock(self, s->disk, s->mediaId, lba, 0, &pBlock)) == EOK) {
-            pBlock->flags.isPinned = 1;
-            _DiskCache_PutBlock(self, pBlock);
-        }
-    }
-    else {
-        err = ENODEV;
-    }
-
-    Lock_Unlock(&self->interlock);
-    return err;
-}
-
-errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba)
-{
-    decl_try_err();
-    DiskBlockRef pBlock = NULL;
-
-    Lock_Lock(&self->interlock);
-
-    if (s->isOpen) {
-        if ((err = _DiskCache_GetBlock(self, s->disk, s->mediaId, lba, 0, &pBlock)) == EOK) {
-            pBlock->flags.isPinned = 0;
-            _DiskCache_PutBlock(self, pBlock);
-        }
-    }
-    else {
-        err = ENODEV;
-    }
-
-    Lock_Unlock(&self->interlock);
-    return err;
-}
-
-errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
-{
-    decl_try_err();
-    DiskBlockRef pBlock = NULL;
-
-    blk->token = 0;
-    blk->data = NULL;
-
-
-    Lock_Lock(&self->interlock);
-
-    if (!s->isOpen) {
-        throw(ENODEV);
-    }
-
-
-    // Get and lock the block. Only time we can lock the block content shared is
-    // when the caller asks for read-only and the block content already exists.
-    // Lock for exclusive mode in all other cases.
-    err = _DiskCache_GetBlock(self, s->disk, s->mediaId, lba, kGetBlock_Allocate | kGetBlock_RecentUse, &pBlock);
-    if (err != EOK) {
-        Lock_Unlock(&self->interlock);
-        return err;
-    }
-
-    const LockMode lockMode = (mode == kMapBlock_ReadOnly && pBlock->flags.hasData) ? kLockMode_Shared : kLockMode_Exclusive;
-    err = _DiskCache_LockBlockContent(self, pBlock, lockMode);
-    if (err != EOK) {
-        _DiskCache_PutBlock(self, pBlock);
-        Lock_Unlock(&self->interlock);
-        return err;
-    }
-
-
-    switch (mode) {
-        case kMapBlock_Cleared:
-            // We always clear the block data because we don't know whether the
-            // data is all zero or not
-            ASSERT_LOCKED_EXCLUSIVE(pBlock);
-            memset(pBlock->data, 0, self->blockSize);
-            pBlock->flags.hasData = 1;
-            break;
-
-        case kMapBlock_Replace:
-            // Caller accepts whatever is currently in the buffer since it's
-            // going to replace every byte anyway.
-            ASSERT_LOCKED_EXCLUSIVE(pBlock);
-            pBlock->flags.hasData = 1;
-            break;
-
-        case kMapBlock_Update:
-            ASSERT_LOCKED_EXCLUSIVE(pBlock);
-            if (!pBlock->flags.hasData) {
-                err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, true);
-                if (err == EOK && pBlock->flags.readError != EOK) {
-                    err = pBlock->flags.readError;
-                }
-            }
-            break;
-
-        case kMapBlock_ReadOnly:
-            if (!pBlock->flags.hasData) {
-                ASSERT_LOCKED_EXCLUSIVE(pBlock);
-
-                err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, true);
-                if (err == EOK && pBlock->flags.readError != EOK) {
-                    err = pBlock->flags.readError;
-                }
-
-                _DiskCache_DowngradeBlockContentLock(self, pBlock);
-            }
-            break;
-
-        default:
-            abort();
-            break;
-    }
-
-catch:
-    if (pBlock) {
-        if (err == EOK) {
-            blk->token = (intptr_t)pBlock;
-            blk->data = pBlock->data;
-            s->activeMappingsCount++;
-        }
-        else {
-            _DiskCache_UnlockContentAndPutBlock(self, pBlock);
-        }
-    }
-
-    Lock_Unlock(&self->interlock);
-
-    return err;
-}
-
-
-errno_t DiskCache_UnmapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, intptr_t token, WriteBlock mode)
-{
-    decl_try_err();
-    DiskBlockRef pBlock = (DiskBlockRef)token;
-
-    if (pBlock == NULL) {
-        return EOK;
-    }
-#if defined(__FORCE_WRITES_SYNC)
-    if (mode == kWriteBlock_Deferred) {
-        mode = kWriteBlock_Sync;
-    }
-#endif
-
-    Lock_Lock(&self->interlock);
-
-    if (!s->isOpen) {
-        throw(ENODEV);
-    }
-
-    switch (mode) {
-        case kWriteBlock_None:
-            break;
-
-        case kWriteBlock_Sync:
-            // We must be holding the exclusive lock here
-            ASSERT_LOCKED_EXCLUSIVE(pBlock);
-
-            _DiskCache_DowngradeBlockContentLock(self, pBlock);
-            ASSERT_LOCKED_SHARED(pBlock);
-            err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
-            break;
-
-        case kWriteBlock_Deferred:
-            // We must be holding the exclusive lock here
-            ASSERT_LOCKED_EXCLUSIVE(pBlock);
-
-            if (pBlock->flags.isDirty == 0) {
-                pBlock->flags.isDirty = 1;
-                self->dirtyBlockCount++;
-                // Block data will be written out when needed
-            }
-            break;
-
-        default:
-            abort();
-            break;
-    }
-    s->activeMappingsCount--;
-
-    _DiskCache_UnlockContentAndPutBlock(self, pBlock);
-
-catch:
-    Lock_Unlock(&self->interlock);
-
-    return err;
-}
-
-
-// Blocks the caller until the given block has finished the given I/O operation
-// type. Expects to be called with the lock held.
-static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, DiskBlockOp op)
-{
-    decl_try_err();
-
-    while (pBlock->flags.op == op) {
-        err = ConditionVariable_Wait(&self->condition, &self->interlock, kTimeInterval_Infinity);
-        if (err != EOK) {
-            return err;
-        }
-    }
-
-    return EOK;
-}
-
-// Starts an operation to read the contents of the provided block from disk or
-// to write it to disk. Must be called with the block locked in exclusive mode.
-// Waits until the I/O operation is finished if 'isSync' is true. A synchronous
-// I/O operation returns with the block locked in exclusive mode. If 'isSync' is
-// false then the I/O operation is executed asynchronously and the block is
-// unlocked and put once the I/O operation is done.
-static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync)
-{
-    decl_try_err();
-    DiskRequest* req = NULL;
-
-    // Assert that if there is a I/O operation currently ongoing, that it is of
-    // the same kind as 'op'. See the requirements at the top of this file.
-    assert(pBlock->flags.op == kDiskBlockOp_Idle || pBlock->flags.op == op);
-
-
-    // Reject a write if the block is pinned
-    if (op == kDiskBlockOp_Write && pBlock->flags.isPinned) {
-        return ENXIO;
-    }
-
-
-    // Just join an already ongoing I/O operation if one is active (and of the
-    // same type as 'op')
-    if (pBlock->flags.op == op) {
-        return (isSync) ? _DiskCache_WaitIO(self, pBlock, op) : EOK;
-    }
-
-
-    // Don't start a new I/O request if the driver has been deregistered
-    DiskDriverRef disk = pBlock->disk;
-    DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
-
-    if (dcc->state != kDccS_Registered) {
-        return ENODEV;
-    }
-
-
-    size_t bCapacity = 1;
-    size_t idx = 0;
-
-    //XXX
-    // This is experimental: ask the disk driver for the range of blocks that
-    // should be read/written in a single disk request. This allows a driver to
-    // tell us that we should go and read all blocks in a track. This allows us
-    // to cache everything from a track right away. This makes sense for track
-    // orientated disk drives like teh Amiga disk drive. 
-    brng_t br;
-    DiskDriver_GetRequestRange(disk, pBlock->mediaId, pBlock->lba, &br);
-    bCapacity = br.count;
-    //XXX
-
-
-    // Start a new disk request
-    err = DiskRequest_Get(bCapacity, &req);
-    if (err != EOK) {
-        return err;
-    }
-    
-#if 1
-    for (size_t offset = 0; offset < br.count; offset++) {
-        const LogicalBlockAddress lba = br.lba + offset;
-        DiskBlockRef pOther;
-
-        if (lba == pBlock->lba) {
-            pBlock->flags.op = op;
-            pBlock->flags.async = (isSync) ? 0 : 1;
-            pBlock->flags.readError = EOK;
-        
-            req->r[idx].lba = pBlock->lba;
-            req->r[idx].data = pBlock->data;
-            req->r[idx].token = (intptr_t)pBlock;
-            idx++;
-        }
-        else if (op == kDiskBlockOp_Read) {
-            // We'll request all blocks in the request range that haven't already
-            // been read in earlier. Note that we just ignore blocks that don't
-            // fit our requirements since this is just for prefetching.
-            err = _DiskCache_GetBlock(self, disk, pBlock->mediaId, lba, kGetBlock_Allocate | kGetBlock_Exclusive, &pOther);
-            if (err == EOK && !pOther->flags.hasData && pOther->flags.op != kDiskBlockOp_Read) {
-                err = _DiskCache_LockBlockContent(self, pOther, kLockMode_Exclusive);
-
-                if (err == EOK) {
-                    // Trigger the async read. Note that endIO() will unlock-and-put the
-                    // block for us.
-                    ASSERT_LOCKED_EXCLUSIVE(pOther);
-                    pOther->flags.op = op;
-                    pOther->flags.async = 1;
-                    pOther->flags.readError = EOK;
-                    req->r[idx].lba = pOther->lba;
-                    req->r[idx].data = pOther->data;
-                    req->r[idx].token = (intptr_t)pOther;
-                    idx++;
-                }
-            }
-            if (err != EOK) {
-                _DiskCache_PutBlock(self, pOther);
-            }
-        }
-    }
-#else
-    pBlock->flags.op = op;
-    pBlock->flags.async = (isSync) ? 0 : 1;
-    pBlock->flags.readError = EOK;
-
-    req->r[idx].lba = pBlock->lba;
-    req->r[idx].data = pBlock->data;
-    req->r[idx].token = (intptr_t)pBlock;
-    idx++;
-#endif
-
-    req->done = (DiskRequestDoneCallback)DiskCache_OnDiskRequestDone;
-    req->context = self;
-    req->type = (op == kDiskBlockOp_Read) ? kDiskRequest_Read : kDiskRequest_Write;
-    req->mediaId = pBlock->mediaId;
-    req->rCount = idx;
-
-
-    err = DiskDriver_BeginIO(disk, req);
-    if (err == EOK && isSync) {
-        dcc->useCount++;
-        err = _DiskCache_WaitIO(self, pBlock, op);
-        // The lock is now held in exclusive mode again, if succeeded
-    }
-
-    return err;
-}
-
-
-// Must be called by the disk driver when it's done with a block.
-// Expects that the block lock is held:
-// - read: exclusively
-// - write: shared
-// If the operation is:
-// - async: unlocks and puts the block
-// - sync: wakes up the clients that are waiting on the block and leaves the block
-//         locked exclusively
-static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, BlockRequest* _Nullable br, errno_t status)
-{
-    Lock_Lock(&self->interlock);
-
-    DiskBlockRef pBlock = (DiskBlockRef)br->token;
-    const bool isAsync = pBlock->flags.async ? true : false;
-
-    switch (req->type) {
-        case kDiskRequest_Read:
-            ASSERT_LOCKED_EXCLUSIVE(pBlock);
-            // Holding the exclusive lock here
-            if (status == EOK) {
-                pBlock->flags.hasData = 1;
-            }
-            break;
-
-        case kDiskRequest_Write:
-            ASSERT_LOCKED_SHARED(pBlock);
-            if (status == EOK && pBlock->flags.isDirty) {
-                pBlock->flags.isDirty = 0;
-                self->dirtyBlockCount--;
-            }
-            break;
-
-        default:
-            abort();
-            break;
-    }
-
-    if (req->type == kDiskRequest_Read) {
-        // We only note read related errors since there's noone who could ever
-        // look at a write-related error (because writes are often deferred and
-        // thus they may happen a long time after the process that initiated the
-        // write exited).
-        pBlock->flags.readError = status;
-    }
-    pBlock->flags.async = 0;
-    pBlock->flags.op = kDiskBlockOp_Idle;
-
-    if (isAsync) {
-        // Drops exclusive lock if this is a read op
-        // Drops shared lock if this is a write op
-        _DiskCache_UnlockContentAndPutBlock(self, pBlock);
-        // Unlocked here 
-    }
-    else {
-        // Wake up WaitIO()
-        ConditionVariable_Broadcast(&self->condition);
-        // Will return with the lock held in exclusive or shared mode depending
-        // on the type of I/O operation we did
-    }
-
-
-    // Balance the useCount from DoIO()
-    DiskDriverRef disk = pBlock->disk;
-    DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
-    dcc->useCount--;
-    if (dcc->useCount == 0 && dcc->state == kDccS_Deregistering) {
-        _DiskCache_FinalizeUnregisterDisk(self, disk);
-    }
-
-    Lock_Unlock(&self->interlock);
-}
-
-void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, BlockRequest* _Nullable br, errno_t status)
-{
-    if (br) {
-        DiskCache_OnBlockRequestDone(self, req, br, status);
-    }
-    else {
-        DiskRequest_Put(req);
-    }
-}
-
-
-// Synchronously writes all dirty disk blocks belonging to the session 's' to
-// disk.
-errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
-{
-    decl_try_err();
-
-    Lock_Lock(&self->interlock);
-    if (!s->isOpen) {
-        throw(ENODEV);
-    }
-
-    if (self->dirtyBlockCount > 0) {
-        size_t myLruChainGeneration = self->lruChainGeneration;
-        bool done = false;
-
-        // We push dirty blocks to the disk, starting at the block that has been
-        // sitting dirty in memory for the longest time. Note that we drop the
-        // interlock while writing the block to the disk. This is why we need to
-        // check here whether the LRU chain has changed on us while we were unlocked.
-        // If so, we restart the iteration.
-        while (!done) {
-            done = true;
-
-            List_ForEachReversed(&self->lruChain, ListNode, 
-                DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
-
-                if (!DiskBlock_InUse(pb) && (pb->flags.isDirty && !pb->flags.isPinned)) {
-                    if (pb->disk == s->disk && pb->mediaId == s->mediaId) {
-                        const errno_t err1 = _DiskCache_SyncBlock(self, pb);
-                    
-                        if (err == EOK) {
-                            // Return the first error that we encountered. However,
-                            // we continue flushing as many blocks as we can
-                            err = err1;
-                        }
-                    }
-                    _DiskCache_PutBlock(self, pb);
-                }
-
-                if (myLruChainGeneration != self->lruChainGeneration) {
-                    done = false;
-                    break;
-                }
-            );
-        }
-    }
-
-catch:
-    Lock_Unlock(&self->interlock);
-
-    return err;
+    return self->blockSize;
 }
