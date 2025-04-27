@@ -37,7 +37,9 @@ errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, si
     }
 
     MediaInfo info;
-    info.sectorCount = sectorCount;
+    info.sectorsPerTrack = sectorCount;
+    info.heads = 1;
+    info.cylinders = 1;
     info.sectorSize = sectorSize;
     info.formatSectorCount = 1;
     info.properties = 0;
@@ -104,13 +106,13 @@ static DiskExtent* _Nullable RamDisk_GetDiskExtentForSectorIndex_Locked(RamDiskR
     return pExtent;
 }
 
-errno_t RamDisk_getSector(RamDiskRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t secSize)
+errno_t RamDisk_getSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize)
 {
-    DiskExtent* pExtent = RamDisk_GetDiskExtentForSectorIndex_Locked(self, ba, NULL);
+    DiskExtent* pExtent = RamDisk_GetDiskExtentForSectorIndex_Locked(self, chs->s, NULL);
 
     if (pExtent) {
         // Request for a sector that was previously written to -> return the sector
-        memcpy(data, &pExtent->data[(ba - pExtent->firstSectorIndex) << self->sectorShift], secSize);
+        memcpy(data, &pExtent->data[(chs->s - pExtent->firstSectorIndex) << self->sectorShift], secSize);
     }
     else {
         // Request for a sector that hasn't been written to yet -> return zeros
@@ -139,30 +141,30 @@ catch:
     return err;
 }
 
-errno_t RamDisk_putSector(RamDiskRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t secSize)
+errno_t RamDisk_putSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, const uint8_t* _Nonnull data, size_t secSize)
 {
     decl_try_err();
 
     DiskExtent* pPrevExtent;
-    DiskExtent* pExtent = RamDisk_GetDiskExtentForSectorIndex_Locked(self, ba, &pPrevExtent);
+    DiskExtent* pExtent = RamDisk_GetDiskExtentForSectorIndex_Locked(self, chs->s, &pPrevExtent);
     
     if (pExtent == NULL) {
         // Extent doesn't exist yet for the range intersected by 'ba'. Allocate
         // it and make sure all the data in there is cleared out.
-        err = RamDisk_AddExtentAfter_Locked(self, (ba / self->extentSectorCount) * self->extentSectorCount, pPrevExtent, &pExtent);
+        err = RamDisk_AddExtentAfter_Locked(self, (chs->s / self->extentSectorCount) * self->extentSectorCount, pPrevExtent, &pExtent);
     }
 
     if (pExtent) {
-        memcpy(&pExtent->data[(ba - pExtent->firstSectorIndex) << self->sectorShift], data, secSize);
+        memcpy(&pExtent->data[(chs->s - pExtent->firstSectorIndex) << self->sectorShift], data, secSize);
     }
 
     return err;
 }
 
 
-errno_t RamDisk_doFormat(RamDiskRef _Nonnull _Locked self, const DiskContext* _Nonnull ctx, FormatSectorsRequest* _Nonnull req)
+errno_t RamDisk_formatSectors(RamDiskRef _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize)
 {
-    return RamDisk_putSector(self, req->addr, req->data, ctx->sectorSize);
+    return RamDisk_putSector(self, chs, data, secSize);
 }
 
 
@@ -171,5 +173,5 @@ override_func_def(deinit, RamDisk, Object)
 override_func_def(onStart, RamDisk, Driver)
 override_func_def(getSector, RamDisk, DiskDriver)
 override_func_def(putSector, RamDisk, DiskDriver)
-override_func_def(doFormat, RamDisk, DiskDriver)
+override_func_def(formatSectors, RamDisk, DiskDriver)
 );

@@ -52,6 +52,18 @@ typedef uint64_t    LogicalBlockAddress;
 // Type to represent the number of blocks on a disk
 typedef LogicalBlockAddress LogicalBlockCount;
 
+typedef size_t  bno_t;
+typedef bno_t   bcnt_t;
+
+typedef size_t  sno_t;
+typedef sno_t   scnt_t;
+
+typedef struct chs {
+    size_t  c;
+    size_t  h;
+    sno_t   s;
+} chs_t;
+
 
 // Unique disk media ID. A value of 0 indicates that no media is loaded in the
 // drive.

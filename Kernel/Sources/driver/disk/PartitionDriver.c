@@ -33,7 +33,9 @@ errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull 
     }
 
     MediaInfo partInfo;
-    partInfo.sectorCount = blockCount;
+    partInfo.sectorsPerTrack = 0;   //XXX
+    partInfo.heads = 0;             //XXX
+    partInfo.cylinders = 0;         //XXX
     partInfo.sectorSize = diskInfo.blockSize;
     partInfo.formatSectorCount = diskInfo.formatSectorCount;
     partInfo.properties = diskInfo.properties;

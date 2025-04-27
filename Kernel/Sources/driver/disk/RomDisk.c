@@ -29,7 +29,9 @@ errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, co
     }
 
     MediaInfo info;
-    info.sectorCount = sectorCount;
+    info.sectorsPerTrack = sectorCount;
+    info.heads = 1;
+    info.cylinders = 1;
     info.sectorSize = sectorSize;
     info.formatSectorCount = 0;
     info.properties = kMediaProperty_IsReadOnly;
@@ -66,9 +68,9 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
-errno_t RomDisk_getSector(RomDiskRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t secSize)
+errno_t RomDisk_getSector(RomDiskRef _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize)
 {
-    memcpy(data, self->diskImage + (ba << self->sectorShift), secSize);
+    memcpy(data, self->diskImage + (chs->s << self->sectorShift), secSize);
     return EOK;
 }
 

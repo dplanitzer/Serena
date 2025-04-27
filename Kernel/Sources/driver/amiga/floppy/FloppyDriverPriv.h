@@ -64,7 +64,6 @@ final_class_ivars(FloppyDriver, DiskDriver,
     uint8_t                     sectorDataBuffer[ADF_SECTOR_DATA_SIZE];
 
     // Disk geometry
-    LogicalBlockCount           sectorsPerDisk;                     // disk size in terms of sectors
     int8_t                      sectorsPerCylinder;
     int8_t                      sectorsPerTrack;
     int8_t                      headsPerCylinder;

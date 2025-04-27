@@ -18,7 +18,9 @@
 // Describes the physical properties of the media that is currently loaded into
 // the drive.
 typedef struct MediaInfo {
-    LogicalBlockCount   sectorCount;        // > 0 if a media is loaded; 0 otherwise
+    size_t              sectorsPerTrack;
+    size_t              heads;
+    size_t              cylinders;
     size_t              sectorSize;         // > 0 if a media is loaded; should be the default sector size even if no media is loaded; may be 0
     size_t              formatSectorCount;  // > 0 then formatting is supported and a format call takes 'formatSectorCount' sectors as input
     uint32_t            properties;         // media properties
@@ -100,14 +102,22 @@ open_class(DiskDriver, Driver,
     DiskCacheRef _Weak _Nonnull diskCache;      // This is a weak ref because the disk cache holds a strong ref to the driver and the disk cache has to outlive the driver by design (has to be a global object)
     DiskCacheClient             dcClient;       // Protected by disk cache lock
     MediaId                     currentMediaId;
-    LogicalBlockCount           blockCount;         // Number of logical blocks per media
+    scnt_t                      sectorsPerTrack;
+    size_t                      headsPerCylinder;
+    size_t                      cylindersPerDisk;
+    size_t                      sectorsPerCylinder;
+    bcnt_t                      blockCount;         // Number of logical blocks per media
     size_t                      blockSize;          // Size of a logical block i nbytes. Always a power-of-2
     uint16_t                    blockShift;         // log2(blockSize)
     uint16_t                    s2bFactor;          // Number of sectors per logical block
-    LogicalBlockCount           sectorCount;        // Number of sectors per media. Is blockCount * s2bFactor
+    scnt_t                      sectorCount;        // Number of sectors per media. Is blockCount * s2bFactor
     size_t                      sectorSize;         // Size of a sector in bytes. Usually power-of-2, but may not be. If not, then one sector maps to one logical block with 0 padding at the end 
-    size_t                      formatSectorCount;
+    scnt_t                      formatSectorCount;
     uint32_t                    mediaProperties;
+    struct __DiskDriverFlags {
+        unsigned int        isChsLinear:1;
+        unsigned int        reserved:31;
+    }                           flags;
 );
 open_class_funcs(DiskDriver, Driver,
 
@@ -186,7 +196,7 @@ open_class_funcs(DiskDriver, Driver,
     // [0, sectorCount).
     // 'secSize' is the sector size in bytes.
     // Default Behavior: returns EIO
-    errno_t (*getSector)(void* _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t secSize);
+    errno_t (*getSector)(void* _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize);
 
     // Writes the contents of 'data' to the physical block 'ba'. Blocks
     // the caller until the write has completed. The contents of the block on
@@ -197,12 +207,14 @@ open_class_funcs(DiskDriver, Driver,
     // 'secSize' is the sector size in bytes.
     // The abstract implementation returns EIO.
     // Default Behavior: returns EIO
-    errno_t (*putSector)(void* _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t secSize);
+    errno_t (*putSector)(void* _Nonnull self, const chs_t* _Nonnull chs, const uint8_t* _Nonnull data, size_t secSize);
 
 
-    // Executes the actual format action on the dispatch queue. See format()
-    // above.
+    // Executes the format action on the dispatch queue. See format() above.
     errno_t (*doFormat)(void* _Nonnull self, const DiskContext* _Nonnull ctx, FormatSectorsRequest* _Nonnull req);
+
+    // Called from doFormat(). Does the actual formatting of a cluster of sectors. 
+    errno_t (*formatSectors)(void* _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize);
 );
 
 
@@ -270,15 +282,22 @@ invoke_n(doIO, DiskDriver, __self, __req, __ctx)
 invoke_n(doBlockIO, DiskDriver, __self, __req, __br, __ctx)
 
 
-#define DiskDriver_GetSector(__self, __ba, __data, __secSize) \
-invoke_n(getSector, DiskDriver, __self, __ba, __data, __secSize)
+#define DiskDriver_GetSector(__self, __chs, __data, __secSize) \
+invoke_n(getSector, DiskDriver, __self, __chs, __data, __secSize)
 
-#define DiskDriver_PutSector(__self, __ba, __data, __secSize) \
-invoke_n(putSector, DiskDriver, __self, __ba, __data, __secSize)
+#define DiskDriver_PutSector(__self, __chs, __data, __secSize) \
+invoke_n(putSector, DiskDriver, __self, __chs, __data, __secSize)
 
 
 #define DiskDriver_DoFormat(__self, __ctx, __req) \
 invoke_n(doFormat, DiskDriver, __self, __ctx, __req)
+
+#define DiskDriver_FormatSectors(__self, __chs, __data, __secSize) \
+invoke_n(formatSectors, DiskDriver, __self, __chs, __data, __secSize)
+
+
+extern void DiskDriver_LsaToChs(DiskDriverRef _Locked _Nonnull self, sno_t lsa, chs_t* _Nonnull chs);
+extern sno_t DiskDriver_ChsToLsa(DiskDriverRef _Locked _Nonnull self, const chs_t* _Nonnull chs);
 
 
 // Creates a disk driver instance. This function should be called from DiskDrive

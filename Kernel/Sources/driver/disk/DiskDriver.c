@@ -97,12 +97,19 @@ errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 
 void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable info)
 {
-    const bool hasMedia = (info && (info->sectorCount > 0) && (info->sectorSize > 0)) ? true : false;
+    const scnt_t sectorCount = (info) ? (scnt_t)info->sectorsPerTrack * (scnt_t)info->heads * (scnt_t)info->cylinders : 0;
+    const bool hasMedia = (info && (sectorCount > 0) && (info->sectorSize > 0)) ? true : false;
 
     Driver_Lock(self);
 
+    self->sectorsPerTrack = info->sectorsPerTrack;
+    self->headsPerCylinder = info->heads;
+    self->cylindersPerDisk = info->cylinders;
+    self->sectorsPerCylinder = self->headsPerCylinder * self->sectorsPerTrack;
+    self->flags.isChsLinear = (info->heads == 1 && info->cylinders == 1);
+
     self->formatSectorCount = info->formatSectorCount;
-    self->sectorCount = info->sectorCount;
+    self->sectorCount = sectorCount;
     self->sectorSize = info->sectorSize;
     self->blockSize = DiskCache_GetBlockSize(self->diskCache);
     self->blockShift = u_log2(self->blockSize);
@@ -132,6 +139,18 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
     Driver_Unlock(self);
 }
 
+void DiskDriver_LsaToChs(DiskDriverRef _Locked _Nonnull self, sno_t lsa, chs_t* _Nonnull chs)
+{
+    chs->c = lsa / (sno_t)self->sectorsPerCylinder;
+    chs->h = (lsa / (sno_t)self->sectorsPerTrack) % (sno_t)self->headsPerCylinder;
+    chs->s = lsa % (sno_t)self->sectorsPerTrack;    
+}
+
+sno_t DiskDriver_ChsToLsa(DiskDriverRef _Locked _Nonnull self, const chs_t* _Nonnull chs)
+{
+    return (chs->c * (sno_t)self->headsPerCylinder + chs->h) * (sno_t)self->sectorsPerTrack + chs->s;
+}
+
 errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId, LogicalBlockAddress lba, brng_t* _Nonnull pOutBlockRange)
 {
     decl_try_err();
@@ -158,12 +177,12 @@ errno_t DiskDriver_getRequestRange2(DiskDriverRef _Nonnull self, MediaId mediaId
 }
 
 
-errno_t DiskDriver_getSector(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, uint8_t* _Nonnull data, size_t mbSize)
+errno_t DiskDriver_getSector(DiskDriverRef _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t mbSize)
 {
     return EIO;
 }
 
-errno_t DiskDriver_putSector(DiskDriverRef _Nonnull self, LogicalBlockAddress ba, const uint8_t* _Nonnull data, size_t mbSize)
+errno_t DiskDriver_putSector(DiskDriverRef _Nonnull self, const chs_t* _Nonnull chs, const uint8_t* _Nonnull data, size_t mbSize)
 {
     return EIO;
 }
@@ -174,7 +193,8 @@ errno_t DiskDriver_doBlockIO(DiskDriverRef _Nonnull self, const DiskContext* _No
     const LogicalBlockAddress lba = br->lba;
     uint8_t* data = br->data;
     uint8_t* edata = data + ctx->sectorSize * ctx->s2bFactor;
-    LogicalBlockAddress mba = lba * ctx->s2bFactor;
+    LogicalBlockAddress lsa = lba * ctx->s2bFactor;
+    chs_t chs;
     const bool shouldZeroFill = ((req->type == kDiskRequest_Read) && (ctx->blockSize > ctx->sectorSize) && (ctx->s2bFactor == 1)) ? true : false;
 
     if (req->mediaId != ctx->mediaId) {
@@ -185,13 +205,15 @@ errno_t DiskDriver_doBlockIO(DiskDriverRef _Nonnull self, const DiskContext* _No
     }
 
     while ((data < edata) && (err == EOK)) {
+        DiskDriver_LsaToChs(self, lsa, &chs);
+
         switch (req->type) {
             case kDiskRequest_Read:
-                err = DiskDriver_GetSector(self, mba, data, ctx->sectorSize);
+                err = DiskDriver_GetSector(self, &chs, data, ctx->sectorSize);
                 break;
 
             case kDiskRequest_Write:
-                err = DiskDriver_PutSector(self, mba, data, ctx->sectorSize);
+                err = DiskDriver_PutSector(self, &chs, data, ctx->sectorSize);
                 break;
 
             default:
@@ -200,7 +222,7 @@ errno_t DiskDriver_doBlockIO(DiskDriverRef _Nonnull self, const DiskContext* _No
         }
 
         data += ctx->sectorSize;
-        mba++;
+        lsa++;
     }
 
     if (err == EOK && shouldZeroFill) {
@@ -263,9 +285,17 @@ errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull re
 }
 
 
-errno_t DiskDriver_doFormat(DiskDriverRef _Nonnull _Locked self, const DiskContext* _Nonnull ctx, FormatSectorsRequest* _Nonnull req)
+errno_t DiskDriver_formatSectors(DiskDriverRef _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize)
 {
     return ENOTSUP;
+}
+
+errno_t DiskDriver_doFormat(DiskDriverRef _Nonnull _Locked self, const DiskContext* _Nonnull ctx, FormatSectorsRequest* _Nonnull req)
+{
+    chs_t chs;
+
+    DiskDriver_LsaToChs(self, req->addr, &chs);
+    return DiskDriver_FormatSectors(self, &chs, req->data, ctx->sectorSize);
 }
 
 void _DiskDriver_xDoFormat(DiskDriverRef _Nonnull _Locked self, FormatSectorsRequest* _Nonnull req)
@@ -548,6 +578,7 @@ func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)
 func_def(format, DiskDriver)
 func_def(doFormat, DiskDriver)
+func_def(formatSectors, DiskDriver)
 override_func_def(getSeekableRange, DiskDriver, Driver)
 override_func_def(read, DiskDriver, Driver)
 override_func_def(write, DiskDriver, Driver)
