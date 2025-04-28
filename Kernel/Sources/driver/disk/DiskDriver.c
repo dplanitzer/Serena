@@ -114,14 +114,26 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
 
 void DiskDriver_LsaToChs(DiskDriverRef _Locked _Nonnull self, sno_t lsa, chs_t* _Nonnull chs)
 {
-    chs->c = lsa / (sno_t)self->sectorsPerCylinder;
-    chs->h = (lsa / (sno_t)self->sectorsPerTrack) % (sno_t)self->headsPerCylinder;
-    chs->s = lsa % (sno_t)self->sectorsPerTrack;    
+    if (self->flags.isChsLinear) {
+        chs->c = 1;
+        chs->h = 1;
+        chs->s = lsa;
+    }
+    else {
+        chs->c = lsa / (sno_t)self->sectorsPerCylinder;
+        chs->h = (lsa / (sno_t)self->sectorsPerTrack) % (sno_t)self->headsPerCylinder;
+        chs->s = lsa % (sno_t)self->sectorsPerTrack;
+    }
 }
 
 sno_t DiskDriver_ChsToLsa(DiskDriverRef _Locked _Nonnull self, const chs_t* _Nonnull chs)
 {
-    return (chs->c * (sno_t)self->headsPerCylinder + chs->h) * (sno_t)self->sectorsPerTrack + chs->s;
+    if (self->flags.isChsLinear) {
+        return chs->s;
+    }
+    else {
+        return (chs->c * (sno_t)self->headsPerCylinder + chs->h) * (sno_t)self->sectorsPerTrack + chs->s;
+    }
 }
 
 errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId, sno_t lsa, srng_t* _Nonnull pOutSectorRange)
@@ -164,53 +176,43 @@ errno_t DiskDriver_putSector(DiskDriverRef _Nonnull self, const chs_t* _Nonnull 
     return EIO;
 }
 
-errno_t DiskDriver_doBlockIO(DiskDriverRef _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, SectorRequest* _Nonnull sr)
-{
-    decl_try_err();
-    sno_t lsa = sr->offset / self->sectorSize;
-    ssize_t size = sr->size;
-    uint8_t* data = sr->data;
-    chs_t chs;
-
-    if (req->mediaId != ctx->mediaId) {
-        return EDISKCHANGE;
-    }
-
-    while ((size >= self->sectorSize) && (err == EOK)) {
-        DiskDriver_LsaToChs(self, lsa, &chs);
-
-        if (lsa >= self->sectorCount) {
-            err = ENXIO;
-            break;
-        }
-
-        switch (req->type) {
-            case kDiskRequest_Read:
-                err = DiskDriver_GetSector(self, &chs, data, ctx->sectorSize);
-                break;
-
-            case kDiskRequest_Write:
-                err = DiskDriver_PutSector(self, &chs, data, ctx->sectorSize);
-                break;
-
-            default:
-                err = EIO;
-                break;
-        }
-
-        data += self->sectorSize;
-        size -= self->sectorSize;
-        lsa++;
-    }
-
-    return err;
-}
-
 void DiskDriver_doIO(DiskDriverRef _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req)
 {
+    decl_try_err();
+    chs_t chs;
+
     for (size_t i = 0; i < req->rCount; i++) {
         SectorRequest* sr = &req->r[i];
-        const errno_t err = DiskDriver_DoBlockIO(self, ctx, req, sr);
+        sno_t lsa = sr->offset / self->sectorSize;
+        ssize_t size = sr->size;
+        uint8_t* data = sr->data;
+        
+        while (size >= self->sectorSize) {
+            DiskDriver_LsaToChs(self, lsa, &chs);
+
+            if (req->mediaId != ctx->mediaId) {
+                err = EDISKCHANGE;
+                break;
+            }        
+            else if (lsa >= self->sectorCount) {
+                err = ENXIO;
+                break;
+            }
+            else if (req->type == kDiskRequest_Read) {
+                err = DiskDriver_GetSector(self, &chs, data, ctx->sectorSize);
+            }
+            else if (req->type == kDiskRequest_Write) {
+                err = DiskDriver_PutSector(self, &chs, data, ctx->sectorSize);
+            }
+            else {
+                err = EIO;
+                break;
+            }
+    
+            data += self->sectorSize;
+            size -= self->sectorSize;
+            lsa++;
+        }
     
         DiskRequest_Done(req, sr, err);
         // Continue with the next sector request even if the current one failed
@@ -543,7 +545,6 @@ func_def(getInfo, DiskDriver)
 func_def(getRequestRange2, DiskDriver)
 func_def(beginIO, DiskDriver)
 func_def(doIO, DiskDriver)
-func_def(doBlockIO, DiskDriver)
 func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)
 func_def(format, DiskDriver)

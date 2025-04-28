@@ -131,19 +131,13 @@ open_class_funcs(DiskDriver, Driver,
     //
 
     // Executes a disk request. A disk request is a list of sector requests. This
-    // function is expected to call 'doBlockIO' for each sector request in
-    // the disk request and to mark each sector request as done by calling
-    // DiskRequest_Done() with the sector request and the final status for the
-    // sector request. Note that this function should not call DiskRequest_Done()
-    // for the disk request itself.
-    // Default Behavior: Calls doBlockIO()
+    // function is expected to call getSector()/putSector() for each sector
+    // request in the disk request and to mark each sector request as done by
+    // calling DiskRequest_Done() with the sector request and the final status
+    // for the sector request. Note that this function should not call
+    // DiskRequest_Done() for the disk request itself.
+    // Default Behavior: Calls getSector()/putSector()
     void (*doIO)(void* _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req);
-
-    // Executes a sector request. This function is expected to validate the sector
-    // request parameters based on the provided disk context 'ctx'. It should
-    // then read/write the sector data.
-    // Default Behavior: Calls getSector/putSector
-    errno_t (*doBlockIO)(void* _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, SectorRequest* sr);
 
     // Reads the contents of the sector at the disk address 'chs' into the
     // in-memory area 'data' of size 'sectorSize'. Blocks the caller until the
@@ -218,9 +212,6 @@ extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaI
 
 #define DiskDriver_DoIO(__self, __req, __ctx) \
 invoke_n(doIO, DiskDriver, __self, __req, __ctx)
-
-#define DiskDriver_DoBlockIO(__self, __req, __sr, __ctx) \
-invoke_n(doBlockIO, DiskDriver, __self, __req, __sr, __ctx)
 
 
 #define DiskDriver_GetSector(__self, __chs, __data, __secSize) \
