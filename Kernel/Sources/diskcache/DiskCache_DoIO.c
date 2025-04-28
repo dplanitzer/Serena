@@ -34,7 +34,7 @@ static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRe
 // I/O operation returns with the block locked in exclusive mode. If 'isSync' is
 // false then the I/O operation is executed asynchronously and the block is
 // unlocked and put once the I/O operation is done.
-errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync)
+errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync)
 {
     decl_try_err();
     DiskRequest* req = NULL;
@@ -66,7 +66,6 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnul
     }
 
 
-    size_t bCapacity = 1;
     size_t idx = 0;
 
     //XXX
@@ -75,21 +74,22 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnul
     // tell us that we should go and read all blocks in a track. This allows us
     // to cache everything from a track right away. This makes sense for track
     // orientated disk drives like teh Amiga disk drive. 
-    brng_t br;
-    DiskDriver_GetRequestRange(disk, pBlock->mediaId, pBlock->lba, &br);
-    bCapacity = br.count;
+    srng_t sector_rng;
+    DiskDriver_GetRequestRange(disk, pBlock->mediaId, pBlock->lba * s->s2bFactor, &sector_rng);
+    const bcnt_t nBlocksToCluster = sector_rng.count / s->s2bFactor;
+    const bno_t lbaClusterStart = sector_rng.lsa / s->s2bFactor;
     //XXX
 
 
     // Start a new disk request
-    err = DiskRequest_Get(bCapacity, &req);
+    err = DiskRequest_Get(nBlocksToCluster, &req);
     if (err != EOK) {
         return err;
     }
     
 #if 1
-    for (size_t offset = 0; offset < br.count; offset++) {
-        const LogicalBlockAddress lba = br.lba + offset;
+    for (bcnt_t i = 0; i < nBlocksToCluster; i++) {
+        const LogicalBlockAddress lba = lbaClusterStart + i;
         DiskBlockRef pOther;
 
         if (lba == pBlock->lba) {
@@ -97,7 +97,8 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnul
             pBlock->flags.async = (isSync) ? 0 : 1;
             pBlock->flags.readError = EOK;
         
-            req->r[idx].lba = pBlock->lba;
+            req->r[idx].offset = pBlock->lba * s->s2bFactor * s->sectorSize;
+            req->r[idx].size = self->blockSize - s->trailPadSize;
             req->r[idx].data = pBlock->data;
             req->r[idx].token = (intptr_t)pBlock;
             idx++;
@@ -117,7 +118,8 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnul
                     pOther->flags.op = op;
                     pOther->flags.async = 1;
                     pOther->flags.readError = EOK;
-                    req->r[idx].lba = pOther->lba;
+                    req->r[idx].offset = pOther->lba * s->s2bFactor * s->sectorSize;
+                    req->r[idx].size = self->blockSize - s->trailPadSize;
                     req->r[idx].data = pOther->data;
                     req->r[idx].token = (intptr_t)pOther;
                     idx++;
@@ -141,6 +143,7 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnul
 
     req->done = (DiskRequestDoneCallback)DiskCache_OnDiskRequestDone;
     req->context = self;
+    req->refCon = (intptr_t)s->trailPadSize;
     req->type = (op == kDiskBlockOp_Read) ? kDiskRequest_Read : kDiskRequest_Write;
     req->mediaId = pBlock->mediaId;
     req->rCount = idx;
@@ -165,11 +168,12 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnul
 // - async: unlocks and puts the block
 // - sync: wakes up the clients that are waiting on the block and leaves the block
 //         locked exclusively
-static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, BlockRequest* _Nullable br, errno_t status)
+static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, SectorRequest* _Nullable sr, errno_t status)
 {
     Lock_Lock(&self->interlock);
 
-    DiskBlockRef pBlock = (DiskBlockRef)br->token;
+    DiskBlockRef pBlock = (DiskBlockRef)sr->token;
+    const size_t trailPadSize = (size_t)req->refCon;
     const bool isAsync = pBlock->flags.async ? true : false;
 
     switch (req->type) {
@@ -178,6 +182,12 @@ static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest
             // Holding the exclusive lock here
             if (status == EOK) {
                 pBlock->flags.hasData = 1;
+
+                if (trailPadSize > 0) {
+                    // Sector size isn't a power-of-2 and this is a read. We zero-fill
+                    // the remaining bytes in the cache block
+                    memset(pBlock + self->blockSize - trailPadSize, 0, trailPadSize);
+                }
             }
             break;
 
@@ -229,10 +239,10 @@ static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest
     Lock_Unlock(&self->interlock);
 }
 
-void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, BlockRequest* _Nullable br, errno_t status)
+void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, SectorRequest* _Nullable sr, errno_t status)
 {
-    if (br) {
-        DiskCache_OnBlockRequestDone(self, req, br, status);
+    if (sr) {
+        DiskCache_OnBlockRequestDone(self, req, sr, status);
     }
     else {
         DiskRequest_Put(req);

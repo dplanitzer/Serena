@@ -30,17 +30,14 @@ typedef struct MediaInfo {
 // Contextual information passed to doIO().
 typedef struct DiskContext {
     MediaId             mediaId;        // ID of currently loaded disk media
-    LogicalBlockCount   blockCount;     // Number of logical blocks on the disk
-    size_t              blockSize;      // Logical block size in bytes
     size_t              sectorSize;     // Sector size in bytes
-    size_t              s2bFactor;      // Sectors per logical block
 } DiskContext;
 
 
-typedef struct brng {
-    LogicalBlockAddress lba;
-    LogicalBlockCount   count;
-} brng_t;
+typedef struct srng {
+    sno_t   lsa;
+    scnt_t  count;
+} srng_t;
 
 
 // A disk driver manages the data stored on a disk. It provides read and write
@@ -106,10 +103,6 @@ open_class(DiskDriver, Driver,
     size_t                      headsPerCylinder;
     size_t                      cylindersPerDisk;
     size_t                      sectorsPerCylinder;
-    bcnt_t                      blockCount;         // Number of logical blocks per media
-    size_t                      blockSize;          // Size of a logical block i nbytes. Always a power-of-2
-    uint16_t                    blockShift;         // log2(blockSize)
-    uint16_t                    s2bFactor;          // Number of sectors per logical block
     scnt_t                      sectorCount;        // Number of sectors per media. Is blockCount * s2bFactor
     size_t                      sectorSize;         // Size of a sector in bytes. Usually power-of-2, but may not be. If not, then one sector maps to one logical block with 0 padding at the end 
     scnt_t                      formatSectorCount;
@@ -185,7 +178,7 @@ open_class_funcs(DiskDriver, Driver,
     // then read/write the block data while taking care of the translation from
     // a logical block size to the sector size.
     // Default Behavior: Calls getSector/putSector
-    errno_t (*doBlockIO)(void* _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, BlockRequest* _br);
+    errno_t (*doBlockIO)(void* _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, SectorRequest* sr);
 
     // Reads the contents of the physical block at the disk address 'ba'
     // into the in-memory area 'data' of size 'blockSize'. Blocks the caller
@@ -233,7 +226,7 @@ open_class_funcs(DiskDriver, Driver,
 extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
 
 
-extern errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId, LogicalBlockAddress lba, brng_t* _Nonnull pOutBlockRange);
+extern errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId, sno_t lsa, srng_t* _Nonnull pOutSectorRange);
 
 #define DiskDriver_GetRequestRange2(__self, __chs, __out_chs, __out_scnt) \
 invoke_n(getRequestRange2, DiskDriver, __self, __chs, __out_chs, __out_scnt)
@@ -278,8 +271,8 @@ extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaI
 #define DiskDriver_DoIO(__self, __req, __ctx) \
 invoke_n(doIO, DiskDriver, __self, __req, __ctx)
 
-#define DiskDriver_DoBlockIO(__self, __req, __br, __ctx) \
-invoke_n(doBlockIO, DiskDriver, __self, __req, __br, __ctx)
+#define DiskDriver_DoBlockIO(__self, __req, __sr, __ctx) \
+invoke_n(doBlockIO, DiskDriver, __self, __req, __sr, __ctx)
 
 
 #define DiskDriver_GetSector(__self, __chs, __data, __secSize) \

@@ -207,25 +207,6 @@ static errno_t _DiskCache_CreateBlock(DiskCacheRef _Nonnull _Locked self, DiskDr
     return err;
 }
 
-// Check whether the given block has dirty data and write it synchronously to
-// disk, if so.
-errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef pBlock)
-{
-    decl_try_err();
-
-    if (pBlock->flags.isDirty && pBlock->flags.op != kDiskBlockOp_Write) {
-        err = _DiskCache_LockBlockContent(self, pBlock, kLockMode_Shared);
-        
-        if (err == EOK) {
-            ASSERT_LOCKED_SHARED(pBlock);
-            err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
-            _DiskCache_UnlockBlockContent(self, pBlock);
-        }
-    }
-
-    return err;
-}
-
 // Finds the oldest cached block that isn't currently in use and re-targets this
 // block to the new disk address.  
 static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba)
@@ -241,6 +222,8 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
         }
     );
 
+#if 0
+    //XXX bring this back once we got a list of sessions
     if (pBlock) {
         // Sync the block to disk if necessary
         _DiskCache_SyncBlock(self, pBlock);
@@ -249,6 +232,7 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
         DiskBlock_SetDiskAddress(pBlock, disk, mediaId, lba);
         _DiskCache_RegisterBlock(self, pBlock);
     }
+#endif
 
     return pBlock;
 }

@@ -56,7 +56,7 @@ errno_t DiskRequest_Get(size_t rCapacity, DiskRequest* _Nullable * _Nonnull pOut
     Lock_Unlock(&gLock);
 
     if (self == NULL) {
-        err = kalloc(sizeof(DiskRequest) + sizeof(BlockRequest) * (rCapacity - 1), (void**)&self);
+        err = kalloc(sizeof(DiskRequest) + sizeof(SectorRequest) * (rCapacity - 1), (void**)&self);
         if (err == EOK) {
             self->rCapacity = rCapacity;
         }
@@ -101,9 +101,9 @@ void DiskRequest_Put(DiskRequest* _Nullable self)
     }
 }
 
-void DiskRequest_Done(DiskRequest* _Nonnull self, BlockRequest* _Nullable br, errno_t status)
+void DiskRequest_Done(DiskRequest* _Nonnull self, SectorRequest* _Nullable sr, errno_t status)
 {
     if (self->done) {
-        self->done(self->context, self, br, status);
+        self->done(self->context, self, sr, status);
     }
 }

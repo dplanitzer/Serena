@@ -28,8 +28,6 @@ enum {
 typedef struct DiskInfo {
     MediaId             mediaId;            // ID of the currently loaded media; changes with every media eject and insertion; 0 means no media is loaded
     uint32_t            properties;         // Disk/media properties 
-    size_t              blockSize;          // byte size of a single disk block. This is the data portion only without any header information
-    LogicalBlockCount   blockCount;         // overall number of addressable blocks on the disk
     size_t              sectorSize;         // size of a sector (physical block) stored on the disk media. Only relevant if you want to display this value to the user or format a disk
     LogicalBlockCount   sectorCount;        // number of sectors (physical blocks) stored on the disk media
     LogicalBlockCount   formatSectorCount;  // > 0 then formatting is supported and a format call takes 'formatSectorCount' sectors as input

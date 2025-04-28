@@ -145,7 +145,7 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, 
     if (!bQuick) {
         try(wipe_disk(fileno(fp), &info));
     }
-    try(sefs_format((intptr_t)fp, block_write, info.blockCount, info.blockSize, rootDirUid, rootDirGid, rootDirPerms, label));
+    try(sefs_format((intptr_t)fp, block_write, info.sectorCount, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label));
     puts("ok");
 
 catch:

@@ -13,8 +13,7 @@
 
 __CPP_BEGIN
 
-// Returns information about a disk drive.
-// get_info(DiskInfo* _Nonnull pOutInfo)
+// Driver subclasses define their respective commands based on this number.
 #define kDriverCommand_SubclassBase  IOResourceCommand(256)
 
 __CPP_END

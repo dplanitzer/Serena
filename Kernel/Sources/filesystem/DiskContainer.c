@@ -28,10 +28,14 @@ errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nul
         fsprops |= kFSProperty_IsRemovable;
     }
 
-    try(FSContainer_Create(class(DiskContainer), info.mediaId, info.blockCount, info.blockSize, fsprops, (FSContainerRef*)&self));
+    //XXX select the disk cache based on FS needs and driver sector size
+    DiskCacheRef diskCache = gDiskCache;
+    DiskSession s;
+    DiskCache_OpenSession(diskCache, pChannel, info.mediaId, info.sectorSize, &s);
 
-    self->diskCache = DiskDriver_GetDiskCache(DriverChannel_GetDriverAs(pChannel, DiskDriver));
-    DiskCache_OpenSession(self->diskCache, pChannel, info.mediaId, &self->session);
+    try(FSContainer_Create(class(DiskContainer), info.mediaId, info.sectorCount / s.s2bFactor, DiskCache_GetBlockSize(diskCache), fsprops, (FSContainerRef*)&self));
+    self->diskCache = diskCache;
+    self->session = s;
 
 catch:
     *pOutSelf = (FSContainerRef)self;

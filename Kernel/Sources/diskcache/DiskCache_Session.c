@@ -14,13 +14,23 @@
 //#define __FORCE_WRITES_SYNC 1
 
 
-void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull diskChannel, MediaId mediaId, DiskSession* _Nonnull pOutSession)
+void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull diskChannel, MediaId mediaId, size_t sectorSize, DiskSession* _Nonnull pOutSession)
 {
     pOutSession->channel = IOChannel_Retain(diskChannel);
     pOutSession->disk = DriverChannel_GetDriverAs(diskChannel, DiskDriver);
     pOutSession->mediaId = mediaId;
+    pOutSession->sectorSize = sectorSize;
     pOutSession->activeMappingsCount = 0;
     pOutSession->isOpen = true;
+
+    if (sectorSize > 0 && u_ispow2(sectorSize)) {
+        pOutSession->s2bFactor = self->blockSize / sectorSize;
+        pOutSession->trailPadSize = 0;
+    }
+    else {
+        pOutSession->s2bFactor = 1;
+        pOutSession->trailPadSize = self->blockSize - sectorSize;
+    }
 }
 
 void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
@@ -48,14 +58,14 @@ void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
 
 // Triggers an asynchronous loading of the disk block data at the address
 // (disk, mediaId, lba)
-errno_t _DiskCache_PrefetchBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba)
+static errno_t _DiskCache_PrefetchBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, LogicalBlockAddress lba)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
     bool doingIO = false;
 
     // Get the block
-    err = _DiskCache_GetBlock(self, disk, mediaId, lba, kGetBlock_Allocate | kGetBlock_RecentUse | kGetBlock_Exclusive, &pBlock);
+    err = _DiskCache_GetBlock(self, s->disk, s->mediaId, lba, kGetBlock_Allocate | kGetBlock_RecentUse | kGetBlock_Exclusive, &pBlock);
     if (err == EOK && !pBlock->flags.hasData && pBlock->flags.op != kDiskBlockOp_Read) {
         err = _DiskCache_LockBlockContent(self, pBlock, kLockMode_Exclusive);
 
@@ -63,7 +73,7 @@ errno_t _DiskCache_PrefetchBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverR
             // Trigger the async read. Note that endIO() will unlock-and-put the
             // block for us.
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
-            err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, false);
+            err = _DiskCache_DoIO(self, s, pBlock, kDiskBlockOp_Read, false);
             doingIO = (err == EOK) ? true : false;
         }
     }
@@ -82,7 +92,7 @@ errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnul
 
     Lock_Lock(&self->interlock);
     if (s->isOpen) {
-        err = _DiskCache_PrefetchBlock(self, s->disk, s->mediaId, lba);
+        err = _DiskCache_PrefetchBlock(self, s, lba);
     }
     else {
         err = ENODEV;
@@ -92,6 +102,25 @@ errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnul
     return err;
 }
 
+
+// Check whether the given block has dirty data and write it synchronously to
+// disk, if so.
+errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef pBlock)
+{
+    decl_try_err();
+
+    if (pBlock->flags.isDirty && pBlock->flags.op != kDiskBlockOp_Write) {
+        err = _DiskCache_LockBlockContent(self, pBlock, kLockMode_Shared);
+        
+        if (err == EOK) {
+            ASSERT_LOCKED_SHARED(pBlock);
+            err = _DiskCache_DoIO(self, s, pBlock, kDiskBlockOp_Write, true);
+            _DiskCache_UnlockBlockContent(self, pBlock);
+        }
+    }
+
+    return err;
+}
 
 errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba)
 {
@@ -103,7 +132,7 @@ errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s,
     if (s->isOpen) {
         // Find the block and only sync it if no one else is currently using it
         if ((err = _DiskCache_GetBlock(self, s->disk, s->mediaId, lba, kGetBlock_Exclusive, &pBlock)) == EOK) {
-            err = _DiskCache_SyncBlock(self, pBlock);
+            err = _DiskCache_SyncBlock(self, s, pBlock);
             _DiskCache_PutBlock(self, pBlock);
         }
     }
@@ -211,7 +240,7 @@ errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, 
         case kMapBlock_Update:
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
             if (!pBlock->flags.hasData) {
-                err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, true);
+                err = _DiskCache_DoIO(self, s, pBlock, kDiskBlockOp_Read, true);
                 if (err == EOK && pBlock->flags.readError != EOK) {
                     err = pBlock->flags.readError;
                 }
@@ -222,7 +251,7 @@ errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, 
             if (!pBlock->flags.hasData) {
                 ASSERT_LOCKED_EXCLUSIVE(pBlock);
 
-                err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, true);
+                err = _DiskCache_DoIO(self, s, pBlock, kDiskBlockOp_Read, true);
                 if (err == EOK && pBlock->flags.readError != EOK) {
                     err = pBlock->flags.readError;
                 }
@@ -284,7 +313,7 @@ errno_t DiskCache_UnmapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s
 
             _DiskCache_DowngradeBlockContentLock(self, pBlock);
             ASSERT_LOCKED_SHARED(pBlock);
-            err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
+            err = _DiskCache_DoIO(self, s, pBlock, kDiskBlockOp_Write, true);
             break;
 
         case kWriteBlock_Deferred:
@@ -340,7 +369,7 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
 
                 if (!DiskBlock_InUse(pb) && (pb->flags.isDirty && !pb->flags.isPinned)) {
                     if (pb->disk == s->disk && pb->mediaId == s->mediaId) {
-                        const errno_t err1 = _DiskCache_SyncBlock(self, pb);
+                        const errno_t err1 = _DiskCache_SyncBlock(self, s, pb);
                     
                         if (err == EOK) {
                             // Return the first error that we encountered. However,

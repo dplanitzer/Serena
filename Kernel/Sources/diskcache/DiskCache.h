@@ -31,6 +31,9 @@ typedef struct DiskSession {
     IOChannelRef _Nullable  channel;
     DiskDriverRef _Nullable disk;
     MediaId                 mediaId;
+    size_t                  sectorSize;
+    size_t                  s2bFactor;
+    size_t                  trailPadSize;
     int                     activeMappingsCount;
     bool                    isOpen;
 } DiskSession;
@@ -47,7 +50,7 @@ extern void DiskCache_UnregisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _
 extern size_t DiskCache_GetBlockSize(DiskCacheRef _Nonnull self);
 
 
-extern void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull diskChannel, MediaId mediaId, DiskSession* _Nonnull pOutSession);
+extern void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull diskChannel, MediaId mediaId, size_t sectorSize, DiskSession* _Nonnull pOutSession);
 extern void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s);
 
 extern errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba);

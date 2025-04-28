@@ -17,6 +17,6 @@
 final_class(PartitionDriver, DiskDriver);
 
 
-extern errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull name, LogicalBlockAddress startBlock, LogicalBlockCount blockCount, bool isReadOnly, DiskDriverRef wholeDisk, PartitionDriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull name, sno_t lsaStart, scnt_t sectorCount, bool isReadOnly, DiskDriverRef wholeDisk, PartitionDriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* PartitionDisk_h */

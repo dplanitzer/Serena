@@ -72,8 +72,6 @@ void DiskDriver_getInfo(DiskDriverRef _Nonnull _Locked self, DiskInfo* _Nonnull 
 {
     pOutInfo->mediaId = self->currentMediaId;
     pOutInfo->properties = self->mediaProperties;
-    pOutInfo->blockSize = self->blockSize;
-    pOutInfo->blockCount = self->blockCount;
     pOutInfo->sectorSize = self->sectorSize;
     pOutInfo->sectorCount = self->sectorCount;
     pOutInfo->formatSectorCount = self->formatSectorCount;
@@ -111,17 +109,6 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
     self->formatSectorCount = info->formatSectorCount;
     self->sectorCount = sectorCount;
     self->sectorSize = info->sectorSize;
-    self->blockSize = DiskCache_GetBlockSize(self->diskCache);
-    self->blockShift = u_log2(self->blockSize);
-
-    if (self->sectorSize > 0 && u_ispow2(self->sectorSize)) {
-        self->s2bFactor = self->blockSize / self->sectorSize;
-    }
-    else {
-        self->s2bFactor = 1;
-    }
-
-    self->blockCount = self->sectorCount / self->s2bFactor;
 
     if (hasMedia) {
         self->mediaProperties = info->properties;
@@ -151,7 +138,7 @@ sno_t DiskDriver_ChsToLsa(DiskDriverRef _Locked _Nonnull self, const chs_t* _Non
     return (chs->c * (sno_t)self->headsPerCylinder + chs->h) * (sno_t)self->sectorsPerTrack + chs->s;
 }
 
-errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId, LogicalBlockAddress lba, brng_t* _Nonnull pOutBlockRange)
+errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId, sno_t lsa, srng_t* _Nonnull pOutSectorRange)
 {
     decl_try_err();
     chs_t in_chs, out_chs;
@@ -159,17 +146,17 @@ errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId,
 
     Driver_Lock(self);
     if (mediaId == self->currentMediaId) {
-        DiskDriver_LsaToChs(self, lba * self->s2bFactor, &in_chs);
+        DiskDriver_LsaToChs(self, lsa, &in_chs);
         DiskDriver_GetRequestRange2(self, &in_chs, &out_chs, &out_scnt);
-        pOutBlockRange->lba = DiskDriver_ChsToLsa(self, &out_chs) / self->s2bFactor;
-        pOutBlockRange->count = out_scnt / self->s2bFactor;
+        pOutSectorRange->lsa = DiskDriver_ChsToLsa(self, &out_chs);
+        pOutSectorRange->count = out_scnt;
     }
     else {
         err = EDISKCHANGE;
     }
     Driver_Unlock(self);
 
-    //printf("lba: %d -> [%d, %d)\n", (int)lba, (int)pOutBlockRange->lba, (int)(pOutBlockRange->lba + pOutBlockRange->count));
+    //printf("lsa: %d -> [%d, %d)\n", (int)lsa, (int)pOutSectorRange->lsa, (int)(pOutSectorRange->lsa + pOutSectorRange->count));
     return err;
 }
 
@@ -191,25 +178,25 @@ errno_t DiskDriver_putSector(DiskDriverRef _Nonnull self, const chs_t* _Nonnull 
     return EIO;
 }
 
-errno_t DiskDriver_doBlockIO(DiskDriverRef _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, BlockRequest* _Nonnull br)
+errno_t DiskDriver_doBlockIO(DiskDriverRef _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, SectorRequest* _Nonnull sr)
 {
     decl_try_err();
-    const LogicalBlockAddress lba = br->lba;
-    uint8_t* data = br->data;
-    uint8_t* edata = data + ctx->sectorSize * ctx->s2bFactor;
-    LogicalBlockAddress lsa = lba * ctx->s2bFactor;
+    sno_t lsa = sr->offset / self->sectorSize;
+    ssize_t size = sr->size;
+    uint8_t* data = sr->data;
     chs_t chs;
-    const bool shouldZeroFill = ((req->type == kDiskRequest_Read) && (ctx->blockSize > ctx->sectorSize) && (ctx->s2bFactor == 1)) ? true : false;
 
     if (req->mediaId != ctx->mediaId) {
         return EDISKCHANGE;
     }
-    if (lba >= ctx->blockCount) {
-        return ENXIO;
-    }
 
-    while ((data < edata) && (err == EOK)) {
+    while ((size >= self->sectorSize) && (err == EOK)) {
         DiskDriver_LsaToChs(self, lsa, &chs);
+
+        if (lsa >= self->sectorCount) {
+            err = ENXIO;
+            break;
+        }
 
         switch (req->type) {
             case kDiskRequest_Read:
@@ -225,14 +212,9 @@ errno_t DiskDriver_doBlockIO(DiskDriverRef _Nonnull self, const DiskContext* _No
                 break;
         }
 
-        data += ctx->sectorSize;
+        data += self->sectorSize;
+        size -= self->sectorSize;
         lsa++;
-    }
-
-    if (err == EOK && shouldZeroFill) {
-        // Media block size isn't a power-of-2 and this is a read. We zero-fill
-        // the remaining bytes in the logical block
-        memset(data + ctx->sectorSize, 0, ctx->blockSize - ctx->sectorSize);
     }
 
     return err;
@@ -241,11 +223,11 @@ errno_t DiskDriver_doBlockIO(DiskDriverRef _Nonnull self, const DiskContext* _No
 void DiskDriver_doIO(DiskDriverRef _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req)
 {
     for (size_t i = 0; i < req->rCount; i++) {
-        BlockRequest* br = &req->r[i];
-        const errno_t err = DiskDriver_DoBlockIO(self, ctx, req, br);
+        SectorRequest* sr = &req->r[i];
+        const errno_t err = DiskDriver_DoBlockIO(self, ctx, req, sr);
     
-        DiskRequest_Done(req, br, err);
-        // Continue with the next block request even if the current one failed
+        DiskRequest_Done(req, sr, err);
+        // Continue with the next sector request even if the current one failed
         // with an error. We want to get as many good requests done as possible.
     }
 }
@@ -257,10 +239,7 @@ static void _DiskDriver_xDoIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull
 
     Driver_Lock(self);
     ctx.mediaId = self->currentMediaId;
-    ctx.blockCount = self->blockCount;
-    ctx.blockSize = self->blockSize;
     ctx.sectorSize = self->sectorSize;
-    ctx.s2bFactor = self->s2bFactor;
     Driver_Unlock(self);
 
     DiskDriver_DoIO(self, &ctx, req);
@@ -309,10 +288,7 @@ void _DiskDriver_xDoFormat(DiskDriverRef _Nonnull _Locked self, FormatSectorsReq
 
     // DiskDriver_Format() is holding the lock
     ctx.mediaId = self->currentMediaId;
-    ctx.blockCount = self->blockCount;
-    ctx.blockSize = self->blockSize;
     ctx.sectorSize = self->sectorSize;
-    ctx.s2bFactor = self->s2bFactor;
 
     if (req->mediaId != ctx.mediaId) {
         req->status = EDISKCHANGE;
@@ -360,7 +336,7 @@ errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, FormatSectorsRequest* _No
 off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
 {
     Driver_Lock(self);
-    const off_t r = (off_t)self->blockCount * (off_t)self->blockSize;
+    const off_t r = (off_t)self->sectorCount * (off_t)self->sectorSize;
     Driver_Unlock(self);
 
     return r;
@@ -369,6 +345,8 @@ off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
 errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
+#if 0
+//XXX
     const off_t diskSize = IOChannel_GetSeekableRange(ch);
     off_t offset = IOChannel_GetOffset(ch);
     uint8_t* dp = pBuffer;
@@ -421,7 +399,7 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
 
     // Iterate through a contiguous sequence of blocks until we've read all
     // required bytes.
-    DiskCache_OpenSession(self->diskCache, (IOChannelRef)ch, mediaId, &s);
+    DiskCache_OpenSession(self->diskCache, (IOChannelRef)ch, mediaId, self->sectorSize, &s);
     while (nBytesToRead > 0) {
         const ssize_t nRemainderBlockSize = (ssize_t)blockSize - blockOffset;
         const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
@@ -452,12 +430,15 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
 
 catch:
     *pOutBytesRead = nBytesRead;
+#endif
     return err;
 }
 
 errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
+#if 0
+//XXX
     const off_t diskSize = IOChannel_GetSeekableRange(ch);
     off_t offset = IOChannel_GetOffset(ch);
     const uint8_t* sp = buf;
@@ -510,7 +491,7 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
 
     // Iterate through a contiguous sequence of blocks until we've written all
     // required bytes.
-    DiskCache_OpenSession(self->diskCache, (IOChannelRef)ch, mediaId, &s);
+    DiskCache_OpenSession(self->diskCache, (IOChannelRef)ch, mediaId, self->sectorSize, &s);
     while (nBytesToWrite > 0) {
         const ssize_t nRemainderBlockSize = (ssize_t)blockSize - blockOffset;
         const ssize_t nBytesToWriteInBlock = (nBytesToWrite > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToWrite;
@@ -543,6 +524,7 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
 
 catch:
     *pOutBytesWritten = nBytesWritten;
+#endif
     return err;
 }
 
