@@ -131,7 +131,7 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     de.arg = 0;
 
     if ((err = Driver_Publish((DriverRef)self, &de)) == EOK) {
-        if ((err = DispatchQueue_DispatchAsync(Driver_GetDispatchQueue(self), (VoidFunc_1)FloppyDriver_EstablishInitialDriveState, self)) == EOK) {
+        if ((err = DispatchQueue_DispatchAsync(DiskDriver_GetDispatchQueue(self), (VoidFunc_1)FloppyDriver_EstablishInitialDriveState, self)) == EOK) {
             return EOK;
         }
 
@@ -226,7 +226,7 @@ static errno_t FloppyDriver_EnsureTrackCompositionBuffer(FloppyDriverRef _Nonnul
 
 static void FloppyDriver_CancelDelayedMotorOff(FloppyDriverRef _Nonnull self)
 {
-    DispatchQueue_RemoveByTag(Driver_GetDispatchQueue(self), kDelayedMotorOffTag);
+    DispatchQueue_RemoveByTag(DiskDriver_GetDispatchQueue(self), kDelayedMotorOffTag);
 }
 
 // Turns the drive motor off.
@@ -255,7 +255,7 @@ static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self)
     
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
     const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(4));
-    DispatchQueue_DispatchAsyncAfter(Driver_GetDispatchQueue(self),
+    DispatchQueue_DispatchAsyncAfter(DiskDriver_GetDispatchQueue(self),
             deadline,
             (VoidFunc_1)FloppyDriver_MotorOff,
             self,
@@ -470,7 +470,7 @@ static void FloppyDriver_ScheduleUpdateHasDiskState(FloppyDriverRef _Nonnull sel
 
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
     const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(3));
-    DispatchQueue_DispatchAsyncPeriodically(Driver_GetDispatchQueue(self),
+    DispatchQueue_DispatchAsyncPeriodically(DiskDriver_GetDispatchQueue(self),
         deadline,
         kTimeInterval_Zero,
         (VoidFunc_1)FloppyDriver_OnUpdateHasDiskStateCheck,
@@ -480,7 +480,7 @@ static void FloppyDriver_ScheduleUpdateHasDiskState(FloppyDriverRef _Nonnull sel
 
 static void FloppyDriver_CancelUpdateHasDiskState(FloppyDriverRef _Nonnull self)
 {
-    DispatchQueue_RemoveByTag(Driver_GetDispatchQueue(self), kUpdateHasDiskStateTag);
+    DispatchQueue_RemoveByTag(DiskDriver_GetDispatchQueue(self), kUpdateHasDiskStateTag);
 }
 
 

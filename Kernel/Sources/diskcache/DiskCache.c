@@ -351,55 +351,6 @@ static void _DiskCache_PurgeBlocks(DiskCacheRef _Nonnull self, DiskDriverRef _No
 // API
 //
 
-errno_t DiskCache_RegisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk)
-{
-    decl_try_err();
-
-    Lock_Lock(&self->interlock);
-
-    DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
-    if (dcc->state == kDccS_NotRegistered) {
-        dcc->useCount = 0;
-        dcc->state = kDccS_Registered;
-        Object_Retain(disk);
-        err = EOK;
-    }
-    else {
-        err = EBUSY;
-    }
-
-    Lock_Unlock(&self->interlock);
-
-    return err;
-}
-
-void _DiskCache_FinalizeUnregisterDisk(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk)
-{
-    DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
-
-    dcc->state = kDccS_NotRegistered;
-    dcc->useCount = 0;
-
-    _DiskCache_PurgeBlocks(self, disk, kMediaId_None);
-    Object_Release(disk);
-}
-
-void DiskCache_UnregisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk)
-{
-    Lock_Lock(&self->interlock);
-
-    DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
-    if (dcc->state == kDccS_Registered) {
-        dcc->state = kDccS_Deregistering;
-
-        if (dcc->useCount == 0) {
-            _DiskCache_FinalizeUnregisterDisk(self, disk);
-        }
-    }
-
-    Lock_Unlock(&self->interlock);
-}
-
 size_t DiskCache_GetBlockSize(DiskCacheRef _Nonnull self)
 {
     return self->blockSize;

@@ -15,17 +15,6 @@
 #include <filesystem/FSBlock.h>
 #include <filesystem/IOChannel.h>
 
-enum {
-    kDccS_NotRegistered = 0,    // Not registered with the disk cache
-    kDccS_Registered,           // Registered with the disk cache
-    kDccS_Deregistering         // Deregister called, but still requests in flight. Don't accept any new requested and finalize the deregistration once the last in-flight request is done
-};
-
-typedef struct DiskCacheClient {
-    int             useCount;
-    unsigned int    state;
-} DiskCacheClient;
-
 
 typedef struct DiskSession {
     IOChannelRef _Nullable  channel;
@@ -43,13 +32,18 @@ extern DiskCacheRef _Nonnull  gDiskCache;
 
 extern errno_t DiskCache_Create(size_t blockSize, size_t maxBlockCount, DiskCacheRef _Nullable * _Nonnull pOutSelf);
 
-extern errno_t DiskCache_RegisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk);
-extern void DiskCache_UnregisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk);
-
 // Returns the number of bytes that a single block in the disk cache can hold.
 extern size_t DiskCache_GetBlockSize(DiskCacheRef _Nonnull self);
 
 
+// Opens a new disk cache session. The session will be backed by the given disk
+// and the session will automatically map a disk cache (logical) block to one or
+// more disk sectors. If the logical block size is evenly divisible by the
+// sector size then multiple sectors will be packed into a single logical block.
+// If on the other hand the sector size is not a multiple of the logical block
+// size (eg CD-ROM sector size: 2,352 bytes) then a single sector will be mapped
+// to a single logical block. The remaining bytes will be ignored on write and
+// filled with zeros on read.  
 extern void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull diskChannel, MediaId mediaId, size_t sectorSize, DiskSession* _Nonnull pOutSession);
 extern void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s);
 

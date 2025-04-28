@@ -7,7 +7,6 @@
 //
 
 #include "DiskDriver.h"
-#include <diskcache/DiskCache.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverChannel.h>
 #include <log/Log.h>
@@ -19,7 +18,6 @@ errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverR
     DiskDriverRef self = NULL;
 
     try(Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, parent, (DriverRef*)&self));
-    self->diskCache = gDiskCache;
     self->currentMediaId = kMediaId_None;
 
     DiskDriver_NoteMediaLoaded(self, info);
@@ -38,23 +36,11 @@ static void DiskDriver_deinit(DiskDriverRef _Nonnull self)
 {
     Object_Release(self->dispatchQueue);
     self->dispatchQueue = NULL;
-
-    self->diskCache = NULL;
 }
 
 errno_t DiskDriver_createDispatchQueue(DiskDriverRef _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
 {
     return DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, gVirtualProcessorPool, NULL, pOutQueue);
-}
-
-errno_t DiskDriver_onPublish(DiskDriverRef _Nonnull self)
-{
-    return DiskCache_RegisterDisk(self->diskCache, self);
-}
-
-void DiskDriver_onUnpublish(DiskDriverRef _Nonnull self)
-{
-    DiskCache_UnregisterDisk(self->diskCache, self);
 }
 
 void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
@@ -552,8 +538,6 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
 class_func_defs(DiskDriver, Driver,
 override_func_def(deinit, DiskDriver, Object)
 func_def(createDispatchQueue, DiskDriver)
-override_func_def(onPublish, DiskDriver, Driver)
-override_func_def(onUnpublish, DiskDriver, Driver)
 override_func_def(onStop, DiskDriver, Driver)
 func_def(getInfo, DiskDriver)
 func_def(getRequestRange2, DiskDriver)

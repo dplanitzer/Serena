@@ -184,7 +184,6 @@ extern void _DiskCache_PutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef
 extern void _DiskCache_UnlockContentAndPutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock);
 
 extern errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef pBlock);
-extern void _DiskCache_FinalizeUnregisterDisk(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk);
 
 extern errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync);
 

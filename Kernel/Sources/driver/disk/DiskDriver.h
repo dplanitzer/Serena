@@ -54,50 +54,16 @@ typedef struct srng {
 // operations on a (serial) dispatch queue. However a subclass may override the
 // createDispatchQueue() method and return NULL to force a synchronous model.
 // Note that you should override all methods that are marked as dispatching in
-// the interface if you do this. The overrides should then execute the I/O
-// operations directly and 
+// the interface if you do this.
 //
-//
-// Logical block sizes vs sector sizes:
-//
-// Every disk driver defines a 'sector size' and 'sector count'. These are the
-// size of a single physical block or sector on the media and the overall number
-// of addressable sectors on the media. These numbers may change when the
-// currently loaded media is ejected and replaced with a different media.
-//
-// Every disk driver is also associated with a disk cache. The disk cache defines
-// a 'logical block size'. The logical block size is always a power-of-2 while
-// the sector size is usually a power-of-2 but isn't required to be one.
-// Eg CD-ROM Audio disks define a sector size of 2,352 bytes.
-//
-// A disk driver is required to call DiskDriver_NoteMediaLoaded() when a new
-// media is loaded into the drive. This function takes a media info that
-// describes the sector size and sector count. The disk driver class then
-// derives the logical block count and the conversion factor from sector
-// size to logical block size. Note that the conversion is defined like this:
-// * Power-of-2 sector size: as many sectors as possible are mapped to a
-//                           single logical block.
-// * Non-power-of-2 sector size: a single sector is mapped to a single logical
-//                               block. The remaining bytes are zero-filled on
-//                               read and ignored on write.
-//
-// The disk driver implementation requires that:
-// * Logical block size is always a power-of-2
-// * Sector size may be a power-of-2
-// * Logical block size is always >= sector size
-// * if sector size is not a power-of-2, then 1 logical block corresponds
-//   to 1 sector
-// 
-// User space applications and kernel code which wants to invoke the raw read/
-// write functions or access a disk through a FSContainer works with the logical
-// block size. The sector size is only relevant to the internals of the disk
-// driver. That said, the sector size and count are still made available as part
-// of the DiskInfo object to enable user space code to show those values to the
-// user if desired.
+// Note that beginIO() expects that a sector is identified by a byte offset value.
+// This byte offset has to be a multiple of the sector size. The length is also
+// expressed in bytes but doesn't have to be a multiple of the sector size. If
+// it isn't then a read/write is treated as a short read/write that returns the
+// number of bytes actually read/written. This number is always a multiple of the
+// sector size. 
 open_class(DiskDriver, Driver,
     DispatchQueueRef _Nullable  dispatchQueue;
-    DiskCacheRef _Weak _Nonnull diskCache;      // This is a weak ref because the disk cache holds a strong ref to the driver and the disk cache has to outlive the driver by design (has to be a global object)
-    DiskCacheClient             dcClient;       // Protected by disk cache lock
     MediaId                     currentMediaId;
     scnt_t                      sectorsPerTrack;
     size_t                      headsPerCylinder;
@@ -132,11 +98,11 @@ open_class_funcs(DiskDriver, Driver,
 
 
     // XXX Experimental
-    // Returns the range of consecutive blocks that should be fetched from disk
+    // Returns the range of consecutive sectors that should be fetched from disk
     // or written to disk in a single disk request. This allows a disk driver
     // subclass to optimize reading/writing disks in the sense that a whole
     // track worth of data can be processed in a single disk request.
-    // Default behavior: returns a block range of size 1 and the provided lba
+    // Default behavior: returns a sector range of size 1 and the provided lsa
     void (*getRequestRange2)(void* _Nonnull self, const chs_t* _Nonnull chs, chs_t* _Nonnull out_chs, scnt_t* _Nonnull out_scnt);
 
 
@@ -164,39 +130,36 @@ open_class_funcs(DiskDriver, Driver,
     // The following methods are executed on the dispatch queue.
     //
 
-    // Executes a disk request. A disk request is a list of block requests. This
-    // function is expected to call 'doBlockIO' for each block request in
-    // the disk request and to mark each block request as done by calling
-    // DiskRequest_Done() with the block request and the final status for the
-    // block request. Note that this function should not call DiskRequest_Done()
+    // Executes a disk request. A disk request is a list of sector requests. This
+    // function is expected to call 'doBlockIO' for each sector request in
+    // the disk request and to mark each sector request as done by calling
+    // DiskRequest_Done() with the sector request and the final status for the
+    // sector request. Note that this function should not call DiskRequest_Done()
     // for the disk request itself.
     // Default Behavior: Calls doBlockIO()
     void (*doIO)(void* _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req);
 
-    // Executes a block request. This function is expected to validate the block
+    // Executes a sector request. This function is expected to validate the sector
     // request parameters based on the provided disk context 'ctx'. It should
-    // then read/write the block data while taking care of the translation from
-    // a logical block size to the sector size.
+    // then read/write the sector data.
     // Default Behavior: Calls getSector/putSector
     errno_t (*doBlockIO)(void* _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req, SectorRequest* sr);
 
-    // Reads the contents of the physical block at the disk address 'ba'
-    // into the in-memory area 'data' of size 'blockSize'. Blocks the caller
-    // until the read operation has completed. Note that this function will
-    // never return a partially read block. Either it succeeds and the full
-    // block data is returned, or it fails and no block data is returned.
-    // The sector address 'ba' is guaranteed to be in the range
-    // [0, sectorCount).
+    // Reads the contents of the sector at the disk address 'chs' into the
+    // in-memory area 'data' of size 'sectorSize'. Blocks the caller until the
+    // read operation has completed. Note that this function will never return a
+    // partially read sector. Either it succeeds and the full sector data is
+    // returned, or it fails and no sector data is returned.
+    // The sector address 'chs' is guaranteed to be a valid address.
     // 'secSize' is the sector size in bytes.
     // Default Behavior: returns EIO
     errno_t (*getSector)(void* _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize);
 
-    // Writes the contents of 'data' to the physical block 'ba'. Blocks
-    // the caller until the write has completed. The contents of the block on
-    // disk is left in an indeterminate state of the write fails in the middle
-    // of the write. The block may contain a mix of old and new data.
-    // The sector address 'ba' is guaranteed to be in the range
-    // [0, sectorCount).
+    // Writes the contents of 'data' to the sector 'chs'. Blocks the caller
+    // until the write has completed. The contents of the sector on disk is left
+    // in an indeterminate state if the write fails in the middle of the write.
+    // The sector may contain a mix of old and new data in this case.
+    // The sector address 'chs' is guaranteed to be valid.
     // 'secSize' is the sector size in bytes.
     // The abstract implementation returns EIO.
     // Default Behavior: returns EIO
@@ -215,14 +178,6 @@ open_class_funcs(DiskDriver, Driver,
 // Methods for use by disk driver users.
 //
 
-// Returns a reference to the disk cache that caches disk data on behalf of the
-// receiver. Clients that want to read/write data from/to this disk driver should
-// go through the disk cache APIs and use the block size defined by this disk
-// cache rather than what the driver GetInfo() call returns. Note that a disk
-// driver is always associated with a disk cache.
-#define DiskDriver_GetDiskCache(__self) \
-((DiskDriverRef)__self)->diskCache
-
 extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
 
 
@@ -238,19 +193,12 @@ extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, FormatSectorsReque
 
 
 //
-// Methods for use by the disk cache
-//
-#define DiskDriver_GetDiskCacheClient(__self) \
-&((DiskDriverRef)__self)->dcClient
-
-
-//
 // Subclassers
 //
 
 // Returns the driver's serial dispatch queue. Only call this if the driver is
 // an asynchronous driver.
-#define Driver_GetDispatchQueue(__self) \
+#define DiskDriver_GetDispatchQueue(__self) \
     ((DiskDriverRef)__self)->dispatchQueue
 
 #define DiskDriver_CreateDispatchQueue(__self, __pOutQueue) \

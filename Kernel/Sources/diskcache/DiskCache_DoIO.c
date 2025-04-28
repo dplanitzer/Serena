@@ -57,15 +57,6 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     }
 
 
-    // Don't start a new I/O request if the driver has been deregistered
-    DiskDriverRef disk = pBlock->disk;
-    DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
-
-    if (dcc->state != kDccS_Registered) {
-        return ENODEV;
-    }
-
-
     size_t idx = 0;
 
     //XXX
@@ -75,7 +66,7 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     // to cache everything from a track right away. This makes sense for track
     // orientated disk drives like teh Amiga disk drive. 
     srng_t sector_rng;
-    DiskDriver_GetRequestRange(disk, pBlock->mediaId, pBlock->lba * s->s2bFactor, &sector_rng);
+    DiskDriver_GetRequestRange(s->disk, pBlock->mediaId, pBlock->lba * s->s2bFactor, &sector_rng);
     const bcnt_t nBlocksToCluster = sector_rng.count / s->s2bFactor;
     const bno_t lbaClusterStart = sector_rng.lsa / s->s2bFactor;
     //XXX
@@ -107,7 +98,7 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
             // We'll request all blocks in the request range that haven't already
             // been read in earlier. Note that we just ignore blocks that don't
             // fit our requirements since this is just for prefetching.
-            err = _DiskCache_GetBlock(self, disk, pBlock->mediaId, lba, kGetBlock_Allocate | kGetBlock_Exclusive, &pOther);
+            err = _DiskCache_GetBlock(self, s->disk, pBlock->mediaId, lba, kGetBlock_Allocate | kGetBlock_Exclusive, &pOther);
             if (err == EOK && !pOther->flags.hasData && pOther->flags.op != kDiskBlockOp_Read) {
                 err = _DiskCache_LockBlockContent(self, pOther, kLockMode_Exclusive);
 
@@ -149,9 +140,8 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     req->rCount = idx;
 
 
-    err = DiskDriver_BeginIO(disk, req);
+    err = DiskDriver_BeginIO(s->disk, req);
     if (err == EOK && isSync) {
-        dcc->useCount++;
         err = _DiskCache_WaitIO(self, pBlock, op);
         // The lock is now held in exclusive mode again, if succeeded
     }
@@ -225,15 +215,6 @@ static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest
         ConditionVariable_Broadcast(&self->condition);
         // Will return with the lock held in exclusive or shared mode depending
         // on the type of I/O operation we did
-    }
-
-
-    // Balance the useCount from DoIO()
-    DiskDriverRef disk = pBlock->disk;
-    DiskCacheClient* dcc = DiskDriver_GetDiskCacheClient(disk);
-    dcc->useCount--;
-    if (dcc->useCount == 0 && dcc->state == kDccS_Deregistering) {
-        _DiskCache_FinalizeUnregisterDisk(self, disk);
     }
 
     Lock_Unlock(&self->interlock);
