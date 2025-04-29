@@ -31,7 +31,7 @@ errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nul
     //XXX select the disk cache based on FS needs and driver sector size
     DiskCacheRef diskCache = gDiskCache;
     DiskSession s;
-    DiskCache_OpenSession(diskCache, pChannel, info.mediaId, info.sectorSize, &s);
+    DiskCache_OpenSession(diskCache, pChannel, &info, &s);
 
     try(FSContainer_Create(class(DiskContainer), info.mediaId, info.sectorCount / s.s2bFactor, DiskCache_GetBlockSize(diskCache), fsprops, (FSContainerRef*)&self));
     self->diskCache = diskCache;
@@ -46,6 +46,7 @@ void DiskContainer_deinit(struct DiskContainer* _Nonnull self)
 {
     if (self->diskCache) {
         DiskCache_CloseSession(self->diskCache, &self->session);
+        self->diskCache = NULL;
     }
 }
 

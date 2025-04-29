@@ -41,7 +41,8 @@ errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, si
     info.heads = 1;
     info.cylinders = 1;
     info.sectorSize = sectorSize;
-    info.formatSectorCount = 1;
+    info.rwClusterSize = 1;
+    info.frClusterSize = 1;
     info.properties = 0;
 
     try(DiskDriver_Create(class(RamDisk), 0, parent, &info, (DriverRef*)&self));

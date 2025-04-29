@@ -33,7 +33,8 @@ errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, co
     info.heads = 1;
     info.cylinders = 1;
     info.sectorSize = sectorSize;
-    info.formatSectorCount = 0;
+    info.rwClusterSize = 1;
+    info.frClusterSize = 0;
     info.properties = kMediaProperty_IsReadOnly;
 
     try(DiskDriver_Create(class(RomDisk), 0, parent, &info, (DriverRef*)&self));

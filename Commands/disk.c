@@ -105,13 +105,13 @@ static errno_t wipe_disk(int ioc, const DiskInfo* _Nonnull info)
 
     req.mediaId = info->mediaId;
     req.addr = 0;
-    req.data = malloc(info->sectorSize * info->formatSectorCount);
+    req.data = malloc(info->sectorSize * info->frClusterSize);
     if (req.data == NULL) {
         return ENOMEM;
     }
 
     
-    for (LogicalBlockCount i = 0; i < info->formatSectorCount; i++) {
+    for (LogicalBlockCount i = 0; i < info->frClusterSize; i++) {
         memset(&((uint8_t*)req.data)[i * info->sectorSize], i + 1, info->sectorSize);
     }
 
@@ -119,7 +119,7 @@ static errno_t wipe_disk(int ioc, const DiskInfo* _Nonnull info)
     while (req.addr < info->sectorCount && err == EOK) {
         printf("%u\n\033[1A", (unsigned)req.addr);
         err = IOChannel_Control(ioc, kDiskCommand_Format, &req);
-        req.addr += info->formatSectorCount;
+        req.addr += info->frClusterSize;
     }
     fputs("\033[?25h\n", stdout);
 

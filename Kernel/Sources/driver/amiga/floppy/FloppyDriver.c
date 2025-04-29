@@ -36,7 +36,8 @@ errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds
     info.heads = 0;
     info.cylinders = 0;
     info.sectorSize = ADF_SECTOR_DATA_SIZE;
-    info.formatSectorCount = 0;
+    info.rwClusterSize = 0;
+    info.frClusterSize = 0;
     info.properties = kMediaProperty_IsReadOnly | kMediaProperty_IsRemovable;
 
     try(DiskDriver_Create(class(FloppyDriver), 0, parent, &info, (DriverRef*)&self));
@@ -162,7 +163,8 @@ static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self)
         info.heads = ADF_DD_HEADS_PER_CYL;
         info.cylinders = self->cylindersPerDisk;
         info.sectorSize = ADF_SECTOR_DATA_SIZE;
-        info.formatSectorCount = self->sectorsPerTrack;
+        info.rwClusterSize = self->sectorsPerTrack;
+        info.frClusterSize = self->sectorsPerTrack;
         DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
         FloppyDriver_CancelUpdateHasDiskState(self);
     }
@@ -950,15 +952,6 @@ catch:
     return FloppyDriver_FinalizeIO(self, err);
 }
 
-void FloppyDriver_getRequestRange2(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs, chs_t* _Nonnull out_chs, scnt_t* _Nonnull out_scnt)
-{
-    out_chs->c = chs->c;
-    out_chs->h = chs->h;
-    out_chs->s = 0;
-
-    *out_scnt = self->sectorsPerTrack;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Formatting
@@ -1030,5 +1023,4 @@ override_func_def(onStart, FloppyDriver, Driver)
 override_func_def(getSector, FloppyDriver, DiskDriver)
 override_func_def(putSector, FloppyDriver, DiskDriver)
 override_func_def(formatSectors, FloppyDriver, DiskDriver)
-override_func_def(getRequestRange2, FloppyDriver, DiskDriver)
 );

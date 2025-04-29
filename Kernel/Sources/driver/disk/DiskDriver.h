@@ -18,11 +18,12 @@
 // Describes the physical properties of the media that is currently loaded into
 // the drive.
 typedef struct MediaInfo {
-    size_t              sectorsPerTrack;
+    scnt_t              sectorsPerTrack;
     size_t              heads;
     size_t              cylinders;
     size_t              sectorSize;         // > 0 if a media is loaded; should be the default sector size even if no media is loaded; may be 0
-    size_t              formatSectorCount;  // > 0 then formatting is supported and a format call takes 'formatSectorCount' sectors as input
+    scnt_t              rwClusterSize;
+    scnt_t              frClusterSize;      // > 0 then formatting is supported and a format call takes 'frClusterSize' sectors as input
     uint32_t            properties;         // media properties
 } MediaInfo;
 
@@ -70,8 +71,9 @@ open_class(DiskDriver, Driver,
     size_t                      cylindersPerDisk;
     size_t                      sectorsPerCylinder;
     scnt_t                      sectorCount;        // Number of sectors per media. Is blockCount * s2bFactor
-    size_t                      sectorSize;         // Size of a sector in bytes. Usually power-of-2, but may not be. If not, then one sector maps to one logical block with 0 padding at the end 
-    scnt_t                      formatSectorCount;
+    size_t                      sectorSize;         // Size of a sector in bytes. Usually power-of-2, but may not be. If not, then one sector maps to one logical block with 0 padding at the end
+    scnt_t                      rwClusterSize;
+    scnt_t                      frClusterSize;
     uint32_t                    mediaProperties;
     struct __DiskDriverFlags {
         unsigned int        isChsLinear:1;
@@ -97,15 +99,6 @@ open_class_funcs(DiskDriver, Driver,
     void (*getInfo)(void* _Nonnull _Locked self, DiskInfo* _Nonnull pOutInfo);
 
 
-    // XXX Experimental
-    // Returns the range of consecutive sectors that should be fetched from disk
-    // or written to disk in a single disk request. This allows a disk driver
-    // subclass to optimize reading/writing disks in the sense that a whole
-    // track worth of data can be processed in a single disk request.
-    // Default behavior: returns a sector range of size 1 and the provided lsa
-    void (*getRequestRange2)(void* _Nonnull self, const chs_t* _Nonnull chs, chs_t* _Nonnull out_chs, scnt_t* _Nonnull out_scnt);
-
-
     //
     // The following methods dispatch to the dispatch queue
     //
@@ -117,9 +110,9 @@ open_class_funcs(DiskDriver, Driver,
     // Default Behavior: Dispatches an async call to doIO()
     errno_t (*beginIO)(void* _Nonnull _Locked self, DiskRequest* _Nonnull req);
 
-    // Formats 'formatSectorCount' consecutive sectors starting at sector 'addr'.
-    // 'data' must point to a memory block of size formatSectorCount * sectorSize
-    // bytes. 'addr' must be a multiple of formatSectorCount'. The caller will be
+    // Formats 'frClusterSize' consecutive sectors starting at sector 'addr'.
+    // 'data' must point to a memory block of size frClusterSize * sectorSize
+    // bytes. 'addr' must be a multiple of frClusterSize'. The caller will be
     // blocked until all data has been written to disk or an error is encountered.
     // Override: Optional
     // Default Behavior: Dispatches an async call to doFormat()
@@ -173,12 +166,6 @@ open_class_funcs(DiskDriver, Driver,
 //
 
 extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
-
-
-extern errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId, sno_t lsa, srng_t* _Nonnull pOutSectorRange);
-
-#define DiskDriver_GetRequestRange2(__self, __chs, __out_chs, __out_scnt) \
-invoke_n(getRequestRange2, DiskDriver, __self, __chs, __out_chs, __out_scnt)
 
 
 extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req);

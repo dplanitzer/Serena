@@ -26,11 +26,12 @@ enum {
 
 // General information about a disk drive and the currently loaded media
 typedef struct DiskInfo {
-    MediaId             mediaId;            // ID of the currently loaded media; changes with every media eject and insertion; 0 means no media is loaded
-    uint32_t            properties;         // Disk/media properties 
-    size_t              sectorSize;         // size of a sector (physical block) stored on the disk media. Only relevant if you want to display this value to the user or format a disk
-    LogicalBlockCount   sectorCount;        // number of sectors (physical blocks) stored on the disk media
-    LogicalBlockCount   formatSectorCount;  // > 0 then formatting is supported and a format call takes 'formatSectorCount' sectors as input
+    MediaId     mediaId;            // ID of the currently loaded media; changes with every media eject and insertion; 0 means no media is loaded
+    uint32_t    properties;         // Disk/media properties 
+    size_t      sectorSize;         // size of a sector (physical block) stored on the disk media. Only relevant if you want to display this value to the user or format a disk
+    scnt_t      sectorCount;        // number of sectors (physical blocks) stored on the disk media
+    scnt_t      rwClusterSize;      // > 1 then the number of consecutive sectors that should be read/written in one go for optimal disk I/O performance (eg drive wants you to read a whole track rather than individual sectors)
+    scnt_t      frClusterSize;      // > 0 then formatting is supported and a format call takes 'frClusterSize' sectors as input
 } DiskInfo;
 
 // Returns information about a disk drive.
@@ -45,9 +46,9 @@ typedef struct FormatSectorsRequest {
     int                     status;
 } FormatSectorsRequest;
 
-// Formats 'formatSectorCount' consecutive sectors starting at sector 'addr'.
-// 'data' must point to a memory block of size formatSectorCount * sectorSize
-// bytes. 'addr' must be a multiple of formatSectorCount'. The caller will be
+// Formats 'frClusterSize' consecutive sectors starting at sector 'addr'.
+// 'data' must point to a memory block of size frClusterSize * sectorSize
+// bytes. 'addr' must be a multiple of frClusterSize'. The caller will be
 // blocked until all data has been written to disk or an error is encountered.
 // format(const FormatSectorsRequest* _Nonnull req)
 #define kDiskCommand_Format IOResourceCommand(kDriverCommand_SubclassBase + 1)

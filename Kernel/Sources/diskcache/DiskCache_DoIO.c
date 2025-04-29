@@ -60,15 +60,11 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     size_t idx = 0;
 
     //XXX
-    // This is experimental: ask the disk driver for the range of blocks that
-    // should be read/written in a single disk request. This allows a driver to
-    // tell us that we should go and read all blocks in a track. This allows us
-    // to cache everything from a track right away. This makes sense for track
-    // orientated disk drives like teh Amiga disk drive. 
-    srng_t sector_rng;
-    DiskDriver_GetRequestRange(s->disk, pBlock->mediaId, pBlock->lba * s->s2bFactor, &sector_rng);
-    const bcnt_t nBlocksToCluster = sector_rng.count / s->s2bFactor;
-    const bno_t lbaClusterStart = sector_rng.lsa / s->s2bFactor;
+    // This is experimental: read/write all sectors in a single R/W cluster in one
+    // go. This allows us to cache everything from a track right away. This makes
+    // sense for track orientated disk drives like the Amiga disk drive. 
+    const bcnt_t nBlocksToCluster = s->rwClusterSize;
+    const bno_t lbaClusterStart = (nBlocksToCluster > 1) ? (pBlock->lba * s->s2bFactor) / s->rwClusterSize * s->rwClusterSize / s->s2bFactor : pBlock->lba;
     //XXX
 
 

@@ -14,6 +14,7 @@
 #include <driver/disk/DiskRequest.h>
 #include <filesystem/FSBlock.h>
 #include <filesystem/IOChannel.h>
+#include <System/Disk.h>
 
 
 typedef struct DiskSession {
@@ -23,6 +24,7 @@ typedef struct DiskSession {
     size_t                  sectorSize;
     size_t                  s2bFactor;
     size_t                  trailPadSize;
+    scnt_t                  rwClusterSize;
     int                     activeMappingsCount;
     bool                    isOpen;
 } DiskSession;
@@ -44,7 +46,7 @@ extern size_t DiskCache_GetBlockSize(DiskCacheRef _Nonnull self);
 // size (eg CD-ROM sector size: 2,352 bytes) then a single sector will be mapped
 // to a single logical block. The remaining bytes will be ignored on write and
 // filled with zeros on read.  
-extern void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull diskChannel, MediaId mediaId, size_t sectorSize, DiskSession* _Nonnull pOutSession);
+extern void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull chan, const DiskInfo* _Nonnull info, DiskSession* _Nonnull s);
 extern void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s);
 
 extern errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba);

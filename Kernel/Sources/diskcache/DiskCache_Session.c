@@ -14,22 +14,23 @@
 //#define __FORCE_WRITES_SYNC 1
 
 
-void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull diskChannel, MediaId mediaId, size_t sectorSize, DiskSession* _Nonnull pOutSession)
+void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull chan, const DiskInfo* _Nonnull info, DiskSession* _Nonnull s)
 {
-    pOutSession->channel = IOChannel_Retain(diskChannel);
-    pOutSession->disk = DriverChannel_GetDriverAs(diskChannel, DiskDriver);
-    pOutSession->mediaId = mediaId;
-    pOutSession->sectorSize = sectorSize;
-    pOutSession->activeMappingsCount = 0;
-    pOutSession->isOpen = true;
+    s->channel = IOChannel_Retain(chan);
+    s->disk = DriverChannel_GetDriverAs(chan, DiskDriver);
+    s->mediaId = info->mediaId;
+    s->sectorSize = info->sectorSize;
+    s->rwClusterSize = info->rwClusterSize;
+    s->activeMappingsCount = 0;
+    s->isOpen = true;
 
-    if (sectorSize > 0 && u_ispow2(sectorSize)) {
-        pOutSession->s2bFactor = self->blockSize / sectorSize;
-        pOutSession->trailPadSize = 0;
+    if (info->sectorSize > 0 && u_ispow2(info->sectorSize)) {
+        s->s2bFactor = self->blockSize / info->sectorSize;
+        s->trailPadSize = 0;
     }
     else {
-        pOutSession->s2bFactor = 1;
-        pOutSession->trailPadSize = self->blockSize - sectorSize;
+        s->s2bFactor = 1;
+        s->trailPadSize = self->blockSize - info->sectorSize;
     }
 }
 

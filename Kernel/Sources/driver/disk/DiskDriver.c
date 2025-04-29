@@ -60,7 +60,8 @@ void DiskDriver_getInfo(DiskDriverRef _Nonnull _Locked self, DiskInfo* _Nonnull 
     pOutInfo->properties = self->mediaProperties;
     pOutInfo->sectorSize = self->sectorSize;
     pOutInfo->sectorCount = self->sectorCount;
-    pOutInfo->formatSectorCount = self->formatSectorCount;
+    pOutInfo->rwClusterSize = self->rwClusterSize;
+    pOutInfo->frClusterSize = self->frClusterSize;
 }
 
 errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
@@ -92,7 +93,8 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
     self->sectorsPerCylinder = self->headsPerCylinder * self->sectorsPerTrack;
     self->flags.isChsLinear = (info->heads == 1 && info->cylinders == 1);
 
-    self->formatSectorCount = info->formatSectorCount;
+    self->rwClusterSize = info->rwClusterSize;
+    self->frClusterSize = info->frClusterSize;
     self->sectorCount = sectorCount;
     self->sectorSize = info->sectorSize;
 
@@ -134,35 +136,6 @@ sno_t DiskDriver_ChsToLsa(DiskDriverRef _Locked _Nonnull self, const chs_t* _Non
     else {
         return (chs->c * (sno_t)self->headsPerCylinder + chs->h) * (sno_t)self->sectorsPerTrack + chs->s;
     }
-}
-
-errno_t DiskDriver_GetRequestRange(DiskDriverRef _Nonnull self, MediaId mediaId, sno_t lsa, srng_t* _Nonnull pOutSectorRange)
-{
-    decl_try_err();
-    chs_t in_chs, out_chs;
-    scnt_t out_scnt;
-
-    Driver_Lock(self);
-    if (mediaId == self->currentMediaId) {
-        DiskDriver_LsaToChs(self, lsa, &in_chs);
-        DiskDriver_GetRequestRange2(self, &in_chs, &out_chs, &out_scnt);
-        pOutSectorRange->lsa = DiskDriver_ChsToLsa(self, &out_chs);
-        pOutSectorRange->count = out_scnt;
-    }
-    else {
-        err = EDISKCHANGE;
-    }
-    Driver_Unlock(self);
-
-    //printf("lsa: %d -> [%d, %d)\n", (int)lsa, (int)pOutSectorRange->lsa, (int)(pOutSectorRange->lsa + pOutSectorRange->count));
-    return err;
-}
-
-errno_t DiskDriver_getRequestRange2(DiskDriverRef _Nonnull self, const chs_t* _Nonnull chs, chs_t* _Nonnull out_chs, scnt_t* _Nonnull out_scnt)
-{
-    *out_chs = *chs;
-    *out_scnt = 1;
-    return EOK;
 }
 
 
@@ -281,7 +254,7 @@ void _DiskDriver_xDoFormat(DiskDriverRef _Nonnull _Locked self, FormatSectorsReq
     if (req->mediaId != ctx.mediaId) {
         req->status = EDISKCHANGE;
     }
-    else if (req->addr + self->formatSectorCount > self->sectorCount) {
+    else if (req->addr + self->frClusterSize > self->sectorCount) {
         req->status = ENXIO;
     }
     else {
@@ -542,7 +515,6 @@ override_func_def(deinit, DiskDriver, Object)
 func_def(createDispatchQueue, DiskDriver)
 override_func_def(onStop, DiskDriver, Driver)
 func_def(getInfo, DiskDriver)
-func_def(getRequestRange2, DiskDriver)
 func_def(beginIO, DiskDriver)
 func_def(doIO, DiskDriver)
 func_def(getSector, DiskDriver)
