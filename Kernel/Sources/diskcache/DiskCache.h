@@ -11,7 +11,6 @@
 
 #include <klib/Error.h>
 #include <kobj/AnyRefs.h>
-#include <driver/disk/DiskRequest.h>
 #include <filesystem/FSBlock.h>
 #include <filesystem/IOChannel.h>
 #include <System/Disk.h>

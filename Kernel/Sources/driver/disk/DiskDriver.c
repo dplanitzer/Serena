@@ -171,10 +171,10 @@ void DiskDriver_sectorStrategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnul
                 err = ENXIO;
                 break;
             }
-            else if (req->type == kDiskRequest_Read) {
+            else if (req->s.type == kDiskRequest_Read) {
                 err = DiskDriver_GetSector(self, &chs, data, self->sectorSize);
             }
-            else if (req->type == kDiskRequest_Write) {
+            else if (req->s.type == kDiskRequest_Write) {
                 err = DiskDriver_PutSector(self, &chs, data, self->sectorSize);
             }
             else {
@@ -187,13 +187,13 @@ void DiskDriver_sectorStrategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnul
             lsa++;
         }
     
-        DiskRequest_Done(req, iov, err);
+        IORequest_Done(req, iov, err);
         // Continue with the next sector request even if the current one failed
         // with an error. We want to get as many good requests done as possible.
     }
 }
 
-void DiskDriver_strategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
+void DiskDriver_strategy(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
     decl_try_err();
 
@@ -204,13 +204,13 @@ void DiskDriver_strategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
     Driver_Unlock(self);
     throw_iferr(err);
 
-    DiskDriver_SectorStrategy(self, req);
+    DiskDriver_SectorStrategy(self, (DiskRequest*)req);
 
 catch:
-    DiskRequest_Done(req, NULL, err);
+    IORequest_Done(req, NULL, err);
 }
 
-errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull _Locked self, DiskRequest* _Nonnull req)
+errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
     return DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)implementationof(strategy, DiskDriver, classof(self)), self, req, 0, 0, 0);
 }

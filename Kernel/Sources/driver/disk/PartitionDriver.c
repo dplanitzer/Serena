@@ -80,11 +80,12 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
-void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, DiskRequest* _Nonnull req)
+void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
     // Update the sector number and pass the disk request on to the whole disk
     // driver
-    req->offset += self->lsaStart * self->sectorSize;
+    //XXX need to take the request type into account
+    ((DiskRequest*)req)->offset += self->lsaStart * self->sectorSize;
     
     DiskDriver_BeginIO(self->wholeDisk, req);
 }

@@ -12,7 +12,7 @@
 #include <klib/klib.h>
 #include <diskcache/DiskCache.h>
 #include <driver/Driver.h>
-#include <driver/disk/DiskRequest.h>
+#include <driver/IORequest.h>
 #include <System/Disk.h>
 
 // Describes the physical properties of the media that is currently loaded into
@@ -26,6 +26,23 @@ typedef struct MediaInfo {
     scnt_t      frClusterSize;      // > 0 then formatting is supported and a format call takes 'frClusterSize' sectors as input
     uint32_t    properties;         // media properties
 } MediaInfo;
+
+
+enum {
+    kDiskRequest_Read = 1,
+    kDiskRequest_Write = 2
+};
+
+
+typedef struct DiskRequest {
+    IORequest   s;
+    intptr_t    refCon;         // -> user-defined value
+    MediaId     mediaId;        // -> disk media identity
+    size_t      offset;         // -> logical sector address in terms of bytes
+    size_t      iovCount;       // -> number of I/O vectors in this request
+
+    IOVector    iov[1];
+} DiskRequest;
 
 
 // A disk driver manages the data stored on a disk. It provides read and write
@@ -95,7 +112,7 @@ open_class_funcs(DiskDriver, Driver,
     // will happen asynchronously.
     // Override: Optional
     // Default Behavior: Dispatches an async call to sectorStrategy()
-    errno_t (*beginIO)(void* _Nonnull self, DiskRequest* _Nonnull req);
+    errno_t (*beginIO)(void* _Nonnull self, IORequest* _Nonnull req);
 
     // Formats 'frClusterSize' consecutive sectors starting at sector 'addr'.
     // 'data' must point to a memory block of size frClusterSize * sectorSize
@@ -112,7 +129,7 @@ open_class_funcs(DiskDriver, Driver,
 
     // Executes a disk request.
     // Default Behavior: XXX
-    void (*strategy)(void* _Nonnull self, DiskRequest* _Nonnull req);
+    void (*strategy)(void* _Nonnull self, IORequest* _Nonnull req);
 
 
     // Executes a disk request. A disk request is a list of sector requests. This

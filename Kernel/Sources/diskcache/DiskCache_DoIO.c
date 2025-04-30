@@ -57,8 +57,6 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     }
 
 
-    size_t idx = 0;
-
     //XXX
     // This is experimental: read/write all sectors in a single R/W cluster in one
     // go. This allows us to cache everything from a track right away. This makes
@@ -69,7 +67,11 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
 
 
     // Start a new disk request
-    err = DiskRequest_Get(nBlocksToCluster, &req);
+    const int type = (op == kDiskBlockOp_Read) ? kDiskRequest_Read : kDiskRequest_Write;
+    const size_t reqSize = sizeof(DiskRequest) + sizeof(IOVector) * (nBlocksToCluster - 1);
+    size_t idx = 0;
+
+    err = IORequest_Get(type, reqSize, (IORequest**)&req);
     if (err != EOK) {
         return err;
     }
@@ -126,16 +128,15 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     idx++;
 #endif
 
-    req->done = (DiskRequestDoneCallback)DiskCache_OnDiskRequestDone;
-    req->context = self;
+    req->s.done = (IODoneFunc)DiskCache_OnDiskRequestDone;
+    req->s.context = self;
     req->refCon = (intptr_t)s->trailPadSize;
-    req->type = (op == kDiskBlockOp_Read) ? kDiskRequest_Read : kDiskRequest_Write;
     req->mediaId = pBlock->mediaId;
     req->offset = lbaClusterStart * s->s2bFactor * s->sectorSize;
-    req->iovCount = idx;
+    req->iovCount = nBlocksToCluster;
 
 
-    err = DiskDriver_BeginIO(s->disk, req);
+    err = DiskDriver_BeginIO(s->disk, (IORequest*)req);
     if (err == EOK && isSync) {
         err = _DiskCache_WaitIO(self, pBlock, op);
         // The lock is now held in exclusive mode again, if succeeded
@@ -161,7 +162,7 @@ static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest
     const size_t trailPadSize = (size_t)req->refCon;
     const bool isAsync = pBlock->flags.async ? true : false;
 
-    switch (req->type) {
+    switch (req->s.type) {
         case kDiskRequest_Read:
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
             // Holding the exclusive lock here
@@ -189,7 +190,7 @@ static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest
             break;
     }
 
-    if (req->type == kDiskRequest_Read) {
+    if (req->s.type == kDiskRequest_Read) {
         // We only note read related errors since there's noone who could ever
         // look at a write-related error (because writes are often deferred and
         // thus they may happen a long time after the process that initiated the
@@ -221,6 +222,6 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnu
         DiskCache_OnBlockRequestDone(self, req, iov, status);
     }
     else {
-        DiskRequest_Put(req);
+        IORequest_Put((IORequest*)req);
     }
 }
