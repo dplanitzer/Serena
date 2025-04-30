@@ -84,10 +84,9 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
             pBlock->flags.async = (isSync) ? 0 : 1;
             pBlock->flags.readError = EOK;
         
-            req->r[idx].offset = pBlock->lba * s->s2bFactor * s->sectorSize;
-            req->r[idx].size = self->blockSize - s->trailPadSize;
-            req->r[idx].data = pBlock->data;
-            req->r[idx].token = (intptr_t)pBlock;
+            req->iov[idx].data = pBlock->data;
+            req->iov[idx].token = (intptr_t)pBlock;
+            req->iov[idx].size = self->blockSize - s->trailPadSize;
             idx++;
         }
         else if (op == kDiskBlockOp_Read) {
@@ -105,10 +104,9 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
                     pOther->flags.op = op;
                     pOther->flags.async = 1;
                     pOther->flags.readError = EOK;
-                    req->r[idx].offset = pOther->lba * s->s2bFactor * s->sectorSize;
-                    req->r[idx].size = self->blockSize - s->trailPadSize;
-                    req->r[idx].data = pOther->data;
-                    req->r[idx].token = (intptr_t)pOther;
+                    req->iov[idx].data = pOther->data;
+                    req->iov[idx].token = (intptr_t)pOther;
+                    req->iov[idx].size = self->blockSize - s->trailPadSize;
                     idx++;
                 }
             }
@@ -122,9 +120,9 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     pBlock->flags.async = (isSync) ? 0 : 1;
     pBlock->flags.readError = EOK;
 
-    req->r[idx].lba = pBlock->lba;
-    req->r[idx].data = pBlock->data;
-    req->r[idx].token = (intptr_t)pBlock;
+    req->iov[idx].lba = pBlock->lba;
+    req->iov[idx].data = pBlock->data;
+    req->iov[idx].token = (intptr_t)pBlock;
     idx++;
 #endif
 
@@ -133,7 +131,8 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     req->refCon = (intptr_t)s->trailPadSize;
     req->type = (op == kDiskBlockOp_Read) ? kDiskRequest_Read : kDiskRequest_Write;
     req->mediaId = pBlock->mediaId;
-    req->rCount = idx;
+    req->offset = lbaClusterStart * s->s2bFactor * s->sectorSize;
+    req->iovCount = idx;
 
 
     err = DiskDriver_BeginIO(s->disk, req);
@@ -154,11 +153,11 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
 // - async: unlocks and puts the block
 // - sync: wakes up the clients that are waiting on the block and leaves the block
 //         locked exclusively
-static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, SectorRequest* _Nullable sr, errno_t status)
+static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, IOVector* _Nullable iov, errno_t status)
 {
     Lock_Lock(&self->interlock);
 
-    DiskBlockRef pBlock = (DiskBlockRef)sr->token;
+    DiskBlockRef pBlock = (DiskBlockRef)iov->token;
     const size_t trailPadSize = (size_t)req->refCon;
     const bool isAsync = pBlock->flags.async ? true : false;
 
@@ -216,10 +215,10 @@ static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest
     Lock_Unlock(&self->interlock);
 }
 
-void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, SectorRequest* _Nullable sr, errno_t status)
+void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, IOVector* _Nullable iov, errno_t status)
 {
-    if (sr) {
-        DiskCache_OnBlockRequestDone(self, req, sr, status);
+    if (iov) {
+        DiskCache_OnBlockRequestDone(self, req, iov, status);
     }
     else {
         DiskRequest_Put(req);

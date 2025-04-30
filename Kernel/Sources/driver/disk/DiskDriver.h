@@ -18,27 +18,14 @@
 // Describes the physical properties of the media that is currently loaded into
 // the drive.
 typedef struct MediaInfo {
-    scnt_t              sectorsPerTrack;
-    size_t              heads;
-    size_t              cylinders;
-    size_t              sectorSize;         // > 0 if a media is loaded; should be the default sector size even if no media is loaded; may be 0
-    scnt_t              rwClusterSize;
-    scnt_t              frClusterSize;      // > 0 then formatting is supported and a format call takes 'frClusterSize' sectors as input
-    uint32_t            properties;         // media properties
+    scnt_t      sectorsPerTrack;
+    size_t      heads;
+    size_t      cylinders;
+    size_t      sectorSize;         // > 0 if a media is loaded; should be the default sector size even if no media is loaded; may be 0
+    scnt_t      rwClusterSize;
+    scnt_t      frClusterSize;      // > 0 then formatting is supported and a format call takes 'frClusterSize' sectors as input
+    uint32_t    properties;         // media properties
 } MediaInfo;
-
-
-// Contextual information passed to doIO().
-typedef struct DiskContext {
-    MediaId             mediaId;        // ID of currently loaded disk media
-    size_t              sectorSize;     // Sector size in bytes
-} DiskContext;
-
-
-typedef struct srng {
-    sno_t   lsa;
-    scnt_t  count;
-} srng_t;
 
 
 // A disk driver manages the data stored on a disk. It provides read and write
@@ -104,11 +91,11 @@ open_class_funcs(DiskDriver, Driver,
     //
 
     // Starts an I/O operation for the given disk request. Dispatches an async
-    // call to doIO() on the dispatch queue. The actual read/write will happen
-    // asynchronously.
+    // call to sectorStrategy() on the dispatch queue. The actual read/write
+    // will happen asynchronously.
     // Override: Optional
-    // Default Behavior: Dispatches an async call to doIO()
-    errno_t (*beginIO)(void* _Nonnull _Locked self, DiskRequest* _Nonnull req);
+    // Default Behavior: Dispatches an async call to sectorStrategy()
+    errno_t (*beginIO)(void* _Nonnull self, DiskRequest* _Nonnull req);
 
     // Formats 'frClusterSize' consecutive sectors starting at sector 'addr'.
     // 'data' must point to a memory block of size frClusterSize * sectorSize
@@ -123,6 +110,11 @@ open_class_funcs(DiskDriver, Driver,
     // The following methods are executed on the dispatch queue.
     //
 
+    // Executes a disk request.
+    // Default Behavior: XXX
+    void (*strategy)(void* _Nonnull self, DiskRequest* _Nonnull req);
+
+
     // Executes a disk request. A disk request is a list of sector requests. This
     // function is expected to call getSector()/putSector() for each sector
     // request in the disk request and to mark each sector request as done by
@@ -130,7 +122,7 @@ open_class_funcs(DiskDriver, Driver,
     // for the sector request. Note that this function should not call
     // DiskRequest_Done() for the disk request itself.
     // Default Behavior: Calls getSector()/putSector()
-    void (*doIO)(void* _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req);
+    void (*sectorStrategy)(void* _Nonnull self, DiskRequest* _Nonnull req);
 
     // Reads the contents of the sector at the disk address 'chs' into the
     // in-memory area 'data' of size 'sectorSize'. Blocks the caller until the
@@ -154,7 +146,7 @@ open_class_funcs(DiskDriver, Driver,
 
 
     // Executes the format action on the dispatch queue. See format() above.
-    errno_t (*doFormat)(void* _Nonnull self, const DiskContext* _Nonnull ctx, FormatSectorsRequest* _Nonnull req);
+    errno_t (*doFormat)(void* _Nonnull self, FormatSectorsRequest* _Nonnull req);
 
     // Called from doFormat(). Does the actual formatting of a cluster of sectors. 
     errno_t (*formatSectors)(void* _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize);
@@ -168,7 +160,8 @@ open_class_funcs(DiskDriver, Driver,
 extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
 
 
-extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req);
+#define DiskDriver_BeginIO(__self, __req) \
+invoke_n(beginIO, DiskDriver, __self, __req)
 
 extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, FormatSectorsRequest* _Nonnull req);
 
@@ -197,8 +190,12 @@ invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
 extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable info);
 
 
-#define DiskDriver_DoIO(__self, __req, __ctx) \
-invoke_n(doIO, DiskDriver, __self, __req, __ctx)
+#define DiskDriver_Strategy(__self, __req) \
+invoke_n(strategy, DiskDriver, __self, __req)
+
+
+#define DiskDriver_SectorStrategy(__self, __req) \
+invoke_n(sectorStrategy, DiskDriver, __self, __req)
 
 
 #define DiskDriver_GetSector(__self, __chs, __data, __secSize) \
@@ -208,8 +205,8 @@ invoke_n(getSector, DiskDriver, __self, __chs, __data, __secSize)
 invoke_n(putSector, DiskDriver, __self, __chs, __data, __secSize)
 
 
-#define DiskDriver_DoFormat(__self, __ctx, __req) \
-invoke_n(doFormat, DiskDriver, __self, __ctx, __req)
+#define DiskDriver_DoFormat(__self, __req) \
+invoke_n(doFormat, DiskDriver, __self, __req)
 
 #define DiskDriver_FormatSectors(__self, __chs, __data, __secSize) \
 invoke_n(formatSectors, DiskDriver, __self, __chs, __data, __secSize)

@@ -149,21 +149,21 @@ errno_t DiskDriver_putSector(DiskDriverRef _Nonnull self, const chs_t* _Nonnull 
     return EIO;
 }
 
-void DiskDriver_doIO(DiskDriverRef _Nonnull self, const DiskContext* _Nonnull ctx, DiskRequest* _Nonnull req)
+void DiskDriver_sectorStrategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
 {
     decl_try_err();
     chs_t chs;
+    sno_t lsa = req->offset / self->sectorSize;
 
-    for (size_t i = 0; i < req->rCount; i++) {
-        SectorRequest* sr = &req->r[i];
-        sno_t lsa = sr->offset / self->sectorSize;
-        ssize_t size = sr->size;
-        uint8_t* data = sr->data;
+    for (size_t i = 0; i < req->iovCount; i++) {
+        IOVector* iov = &req->iov[i];
+        ssize_t size = iov->size;
+        uint8_t* data = iov->data;
         
         while (size >= self->sectorSize) {
             DiskDriver_LsaToChs(self, lsa, &chs);
 
-            if (req->mediaId != ctx->mediaId) {
+            if (req->mediaId != self->currentMediaId) {
                 err = EDISKCHANGE;
                 break;
             }        
@@ -172,10 +172,10 @@ void DiskDriver_doIO(DiskDriverRef _Nonnull self, const DiskContext* _Nonnull ct
                 break;
             }
             else if (req->type == kDiskRequest_Read) {
-                err = DiskDriver_GetSector(self, &chs, data, ctx->sectorSize);
+                err = DiskDriver_GetSector(self, &chs, data, self->sectorSize);
             }
             else if (req->type == kDiskRequest_Write) {
-                err = DiskDriver_PutSector(self, &chs, data, ctx->sectorSize);
+                err = DiskDriver_PutSector(self, &chs, data, self->sectorSize);
             }
             else {
                 err = EIO;
@@ -187,45 +187,32 @@ void DiskDriver_doIO(DiskDriverRef _Nonnull self, const DiskContext* _Nonnull ct
             lsa++;
         }
     
-        DiskRequest_Done(req, sr, err);
+        DiskRequest_Done(req, iov, err);
         // Continue with the next sector request even if the current one failed
         // with an error. We want to get as many good requests done as possible.
     }
 }
 
-static void _DiskDriver_xDoIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
+void DiskDriver_strategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
 {
     decl_try_err();
-    DiskContext ctx;
 
     Driver_Lock(self);
-    ctx.mediaId = self->currentMediaId;
-    ctx.sectorSize = self->sectorSize;
+    if (!Driver_IsActive(self)) {
+        err = ENODEV;
+    }
     Driver_Unlock(self);
+    throw_iferr(err);
 
-    DiskDriver_DoIO(self, &ctx, req);
-    DiskRequest_Done(req, NULL, EOK);
+    DiskDriver_SectorStrategy(self, req);
+
+catch:
+    DiskRequest_Done(req, NULL, err);
 }
 
 errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull _Locked self, DiskRequest* _Nonnull req)
 {
-    return DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)_DiskDriver_xDoIO, self, req, 0, 0, 0);
-}
-
-errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
-{
-    decl_try_err();
-
-    Driver_Lock(self);
-    if (Driver_IsActive(self)) {
-        err = invoke_n(beginIO, DiskDriver, self, req);
-    }
-    else {
-        err = ENODEV;
-    }
-    Driver_Unlock(self);
-
-    return err;
+    return DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)implementationof(strategy, DiskDriver, classof(self)), self, req, 0, 0, 0);
 }
 
 
@@ -234,31 +221,26 @@ errno_t DiskDriver_formatSectors(DiskDriverRef _Nonnull self, const chs_t* chs, 
     return ENOTSUP;
 }
 
-errno_t DiskDriver_doFormat(DiskDriverRef _Nonnull _Locked self, const DiskContext* _Nonnull ctx, FormatSectorsRequest* _Nonnull req)
+errno_t DiskDriver_doFormat(DiskDriverRef _Nonnull _Locked self, FormatSectorsRequest* _Nonnull req)
 {
     chs_t chs;
 
     DiskDriver_LsaToChs(self, req->addr, &chs);
-    return DiskDriver_FormatSectors(self, &chs, req->data, ctx->sectorSize);
+    return DiskDriver_FormatSectors(self, &chs, req->data, self->sectorSize);
 }
 
 void _DiskDriver_xDoFormat(DiskDriverRef _Nonnull _Locked self, FormatSectorsRequest* _Nonnull req)
 {
     decl_try_err();
-    DiskContext ctx;
 
-    // DiskDriver_Format() is holding the lock
-    ctx.mediaId = self->currentMediaId;
-    ctx.sectorSize = self->sectorSize;
-
-    if (req->mediaId != ctx.mediaId) {
+    if (req->mediaId != self->currentMediaId) {
         req->status = EDISKCHANGE;
     }
     else if (req->addr + self->frClusterSize > self->sectorCount) {
         req->status = ENXIO;
     }
     else {
-        req->status = DiskDriver_DoFormat(self, &ctx, req);
+        req->status = DiskDriver_DoFormat(self, req);
     }
 }
 
@@ -516,7 +498,8 @@ func_def(createDispatchQueue, DiskDriver)
 override_func_def(onStop, DiskDriver, Driver)
 func_def(getInfo, DiskDriver)
 func_def(beginIO, DiskDriver)
-func_def(doIO, DiskDriver)
+func_def(strategy, DiskDriver)
+func_def(sectorStrategy, DiskDriver)
 func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)
 func_def(format, DiskDriver)

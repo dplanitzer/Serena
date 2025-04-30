@@ -84,9 +84,7 @@ void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, DiskRequest* _Non
 {
     // Update the sector number and pass the disk request on to the whole disk
     // driver
-    for (size_t i = 0; i < req->rCount; i++) { 
-        req->r[i].offset += self->lsaStart * self->sectorSize;
-    }
+    req->offset += self->lsaStart * self->sectorSize;
     
     DiskDriver_BeginIO(self->wholeDisk, req);
 }

@@ -16,7 +16,7 @@
 
 typedef struct CachedDiskRequest {
     ListNode    node;
-    size_t      rCapacity;  // Number of block request slots in this cached disk request
+    size_t      iovCapacity;    // Number of block request slots in this cached disk request
 } CachedDiskRequest;
 
 
@@ -26,7 +26,7 @@ static List gCache;
 static int  gCacheCount;
 
 
-errno_t DiskRequest_Get(size_t rCapacity, DiskRequest* _Nullable * _Nonnull pOutSelf)
+errno_t DiskRequest_Get(size_t iovCapacity, DiskRequest* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskRequest* self = NULL;
@@ -37,7 +37,7 @@ errno_t DiskRequest_Get(size_t rCapacity, DiskRequest* _Nullable * _Nonnull pOut
         CachedDiskRequest* cdr = NULL;
 
         List_ForEach(&gCache, CachedDiskRequest, {
-            if (pCurNode->rCapacity >= rCapacity) {
+            if (pCurNode->iovCapacity >= iovCapacity) {
                 cdr = pCurNode;
                 break;
             }
@@ -47,18 +47,18 @@ errno_t DiskRequest_Get(size_t rCapacity, DiskRequest* _Nullable * _Nonnull pOut
             List_Remove(&gCache, &cdr->node);
             gCacheCount--;
 
-            const size_t capacity = cdr->rCapacity;
+            const size_t capacity = cdr->iovCapacity;
             self = (DiskRequest*)cdr;
-            self->rCapacity = capacity;
+            self->iovCapacity = capacity;
         }
     }
 
     Lock_Unlock(&gLock);
 
     if (self == NULL) {
-        err = kalloc(sizeof(DiskRequest) + sizeof(SectorRequest) * (rCapacity - 1), (void**)&self);
+        err = kalloc(sizeof(DiskRequest) + sizeof(IOVector) * (iovCapacity - 1), (void**)&self);
         if (err == EOK) {
-            self->rCapacity = rCapacity;
+            self->iovCapacity = iovCapacity;
         }
     }
 
@@ -66,7 +66,7 @@ errno_t DiskRequest_Get(size_t rCapacity, DiskRequest* _Nullable * _Nonnull pOut
         self->done = NULL;
         self->context = NULL;
         self->type = 0;
-        self->rCount = 0;
+        self->iovCount = 0;
     }
 
     *pOutSelf = self;
@@ -81,12 +81,12 @@ void DiskRequest_Put(DiskRequest* _Nullable self)
         Lock_Lock(&gLock);
 
         if (gCacheCount < MAX_CACHED_REQUESTS) {
-            const size_t capacity = self->rCapacity;
+            const size_t capacity = self->iovCapacity;
             CachedDiskRequest* cdr = (CachedDiskRequest*)self;
 
             cdr->node.next = NULL;
             cdr->node.prev = NULL;
-            cdr->rCapacity = capacity;
+            cdr->iovCapacity = capacity;
 
             List_InsertBeforeFirst(&gCache, &cdr->node);
             gCacheCount++;
@@ -101,9 +101,9 @@ void DiskRequest_Put(DiskRequest* _Nullable self)
     }
 }
 
-void DiskRequest_Done(DiskRequest* _Nonnull self, SectorRequest* _Nullable sr, errno_t status)
+void DiskRequest_Done(DiskRequest* _Nonnull self, IOVector* _Nullable iov, errno_t status)
 {
     if (self->done) {
-        self->done(self->context, self, sr, status);
+        self->done(self->context, self, iov, status);
     }
 }
