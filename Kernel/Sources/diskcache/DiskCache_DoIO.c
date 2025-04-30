@@ -154,10 +154,8 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
 // - async: unlocks and puts the block
 // - sync: wakes up the clients that are waiting on the block and leaves the block
 //         locked exclusively
-static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, IOVector* _Nullable iov, errno_t status)
+static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, DiskRequest* _Nonnull req, IOVector* _Nullable iov)
 {
-    Lock_Lock(&self->interlock);
-
     DiskBlockRef pBlock = (DiskBlockRef)iov->token;
     const size_t trailPadSize = (size_t)req->refCon;
     const bool isAsync = pBlock->flags.async ? true : false;
@@ -166,7 +164,7 @@ static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest
         case kDiskRequest_Read:
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
             // Holding the exclusive lock here
-            if (status == EOK) {
+            if (req->s.status == EOK) {
                 pBlock->flags.hasData = 1;
 
                 if (trailPadSize > 0) {
@@ -179,7 +177,7 @@ static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest
 
         case kDiskRequest_Write:
             ASSERT_LOCKED_SHARED(pBlock);
-            if (status == EOK && pBlock->flags.isDirty) {
+            if (req->s.status == EOK && pBlock->flags.isDirty) {
                 pBlock->flags.isDirty = 0;
                 self->dirtyBlockCount--;
             }
@@ -195,7 +193,7 @@ static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest
         // look at a write-related error (because writes are often deferred and
         // thus they may happen a long time after the process that initiated the
         // write exited).
-        pBlock->flags.readError = status;
+        pBlock->flags.readError = req->s.status;
     }
     pBlock->flags.async = 0;
     pBlock->flags.op = kDiskBlockOp_Idle;
@@ -212,16 +210,15 @@ static void DiskCache_OnBlockRequestDone(DiskCacheRef _Nonnull self, DiskRequest
         // Will return with the lock held in exclusive or shared mode depending
         // on the type of I/O operation we did
     }
-
-    Lock_Unlock(&self->interlock);
 }
 
-void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req, IOVector* _Nullable iov, errno_t status)
+void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req)
 {
-    if (iov) {
-        DiskCache_OnBlockRequestDone(self, req, iov, status);
+    Lock_Lock(&self->interlock);
+    for (size_t i = 0; i < req->iovCount; i++) {
+        _DiskCache_OnBlockRequestDone(self, req, &req->iov[i]);
     }
-    else {
-        IORequest_Put((IORequest*)req);
-    }
+    Lock_Unlock(&self->interlock);
+
+    IORequest_Put((IORequest*)req);
 }

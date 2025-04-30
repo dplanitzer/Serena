@@ -155,7 +155,7 @@ void DiskDriver_sectorStrategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnul
     chs_t chs;
     sno_t lsa = req->offset / self->sectorSize;
 
-    for (size_t i = 0; i < req->iovCount; i++) {
+    for (size_t i = 0; (i < req->iovCount) && (err == EOK); i++) {
         IOVector* iov = &req->iov[i];
         ssize_t size = iov->size;
         uint8_t* data = iov->data;
@@ -165,11 +165,9 @@ void DiskDriver_sectorStrategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnul
 
             if (req->mediaId != self->currentMediaId) {
                 err = EDISKCHANGE;
-                break;
             }        
             else if (lsa >= self->sectorCount) {
                 err = ENXIO;
-                break;
             }
             else if (req->s.type == kDiskRequest_Read) {
                 err = DiskDriver_GetSector(self, &chs, data, self->sectorSize);
@@ -179,35 +177,36 @@ void DiskDriver_sectorStrategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnul
             }
             else {
                 err = EIO;
+            }
+
+            if (err != EOK) {
                 break;
             }
     
+
             data += self->sectorSize;
             size -= self->sectorSize;
             lsa++;
         }
-    
-        IORequest_Done(req, iov, err);
-        // Continue with the next sector request even if the current one failed
-        // with an error. We want to get as many good requests done as possible.
     }
+
+    req->s.status = err;
 }
 
 void DiskDriver_strategy(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
-    decl_try_err();
-
     Driver_Lock(self);
     if (!Driver_IsActive(self)) {
-        err = ENODEV;
+        req->status = ENODEV;
     }
     Driver_Unlock(self);
-    throw_iferr(err);
 
-    DiskDriver_SectorStrategy(self, (DiskRequest*)req);
 
-catch:
-    IORequest_Done(req, NULL, err);
+    if (req->status == EOK) {
+        DiskDriver_SectorStrategy(self, (DiskRequest*)req);
+    }
+
+    IORequest_Done(req);
 }
 
 errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)

@@ -15,7 +15,7 @@
 struct IORequest;
 
 
-typedef (*IODoneFunc)(void* ctx, struct IORequest* _Nonnull req, void* extra, int status);
+typedef (*IODoneFunc)(void* ctx, struct IORequest* _Nonnull req);
 
 
 typedef struct IOVector {
@@ -37,9 +37,9 @@ typedef struct IORequest {
 extern errno_t IORequest_Get(int type, size_t reqSize, IORequest* _Nullable * _Nonnull pOutReq);
 extern void IORequest_Put(IORequest* _Nullable req);
 
-#define IORequest_Done(__req, __extra, __status) \
+#define IORequest_Done(__req) \
 if (((IORequest*)__req)->done) {\
-    ((IORequest*)__req)->done(((IORequest*)__req)->context, (IORequest*)__req, __extra, __status);\
+    ((IORequest*)__req)->done(((IORequest*)__req)->context, (IORequest*)__req);\
 }
 
 #endif /* IORequest_h */

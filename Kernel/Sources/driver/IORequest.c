@@ -66,9 +66,12 @@ errno_t IORequest_Get(int type, size_t reqSize, IORequest* _Nullable * _Nonnull 
 
     if (req) {
         uint32_t* p = (uint32_t*)req;
-        size_t nw = targetSize >> 2;
+        size_t nw = targetSize >> 4;
 
         while (nw-- > 0) {
+            *p++ = 0;
+            *p++ = 0;
+            *p++ = 0;
             *p++ = 0;
         }
 
