@@ -154,17 +154,15 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
 // - async: unlocks and puts the block
 // - sync: wakes up the clients that are waiting on the block and leaves the block
 //         locked exclusively
-static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, DiskRequest* _Nonnull req, IOVector* _Nullable iov)
+static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, DiskBlockRef _Nonnull pBlock, size_t trailPadSize, int type, errno_t status)
 {
-    DiskBlockRef pBlock = (DiskBlockRef)iov->token;
-    const size_t trailPadSize = (size_t)req->refCon;
     const bool isAsync = pBlock->flags.async ? true : false;
 
-    switch (req->s.type) {
+    switch (type) {
         case kDiskRequest_Read:
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
             // Holding the exclusive lock here
-            if (req->s.status == EOK) {
+            if (status == EOK) {
                 pBlock->flags.hasData = 1;
 
                 if (trailPadSize > 0) {
@@ -177,7 +175,7 @@ static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, Di
 
         case kDiskRequest_Write:
             ASSERT_LOCKED_SHARED(pBlock);
-            if (req->s.status == EOK && pBlock->flags.isDirty) {
+            if (status == EOK && pBlock->flags.isDirty) {
                 pBlock->flags.isDirty = 0;
                 self->dirtyBlockCount--;
             }
@@ -188,12 +186,12 @@ static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, Di
             break;
     }
 
-    if (req->s.type == kDiskRequest_Read) {
+    if (type == kDiskRequest_Read) {
         // We only note read related errors since there's noone who could ever
         // look at a write-related error (because writes are often deferred and
         // thus they may happen a long time after the process that initiated the
         // write exited).
-        pBlock->flags.readError = req->s.status;
+        pBlock->flags.readError = status;
     }
     pBlock->flags.async = 0;
     pBlock->flags.op = kDiskBlockOp_Idle;
@@ -214,9 +212,27 @@ static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, Di
 
 void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req)
 {
+    ssize_t resCount = req->resCount;
+    errno_t status = req->s.status;
+    const int type = req->s.type;
+
     Lock_Lock(&self->interlock);
     for (size_t i = 0; i < req->iovCount; i++) {
-        _DiskCache_OnBlockRequestDone(self, req, &req->iov[i]);
+        DiskBlockRef pBlock = (DiskBlockRef)req->iov[i].token;
+        const size_t trailPadSize = (size_t)req->refCon;
+
+        if (resCount >= self->blockSize) {
+            resCount -= self->blockSize;
+        }
+        else if (status == EOK) {
+            // We got a short read/write (bytes processed < block size) -> treat
+            // this as an I/O error for now. XXX should probably retry the blocks
+            // that got read/written short to get the real error from the disk
+            // driver.
+            status = EIO;
+        }
+
+        _DiskCache_OnBlockRequestDone(self, pBlock, trailPadSize, type, status);
     }
     Lock_Unlock(&self->interlock);
 

@@ -19,18 +19,18 @@ typedef (*IODoneFunc)(void* ctx, struct IORequest* _Nonnull req);
 
 
 typedef struct IOVector {
-    uint8_t* _Nonnull   data;       // -> byte buffer to read or write 
-    intptr_t            token;      // -> token identifying this disk block range
-    ssize_t             size;       // -> request size in terms of bytes
+    uint8_t* _Nonnull   data;       // <- byte buffer to read or write 
+    intptr_t            token;      // <- token identifying this disk block range
+    ssize_t             size;       // <- request size in terms of bytes
 } IOVector;
 
 
 typedef struct IORequest {
-    int                     type;           // -> request type
-    uint16_t                size;           // -> request size in bytes
-    uint16_t                status;         // <- request execution status
-    IODoneFunc _Nullable    done;           // <- done callback (if async request)
-    void* _Nullable         context;        // <- done callback context (if async request)
+    int                     type;           // <- request type
+    uint16_t                size;           // <- request size in bytes
+    uint16_t                status;         // -> request execution status
+    IODoneFunc _Nullable    done;           // -> done callback (if async request)
+    void* _Nullable         context;        // -> done callback context (if async request)
 } IORequest;
 
 

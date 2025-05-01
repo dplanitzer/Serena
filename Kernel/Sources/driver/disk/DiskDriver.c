@@ -153,6 +153,7 @@ void DiskDriver_sectorStrategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnul
 {
     decl_try_err();
     chs_t chs;
+    ssize_t resCount = 0;
     sno_t lsa = req->offset / self->sectorSize;
 
     for (size_t i = 0; (i < req->iovCount) && (err == EOK); i++) {
@@ -186,11 +187,13 @@ void DiskDriver_sectorStrategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnul
 
             data += self->sectorSize;
             size -= self->sectorSize;
+            resCount += self->sectorSize;
             lsa++;
         }
     }
 
-    req->s.status = err;
+    req->resCount = resCount;
+    req->s.status = (resCount > 0) ? EOK : err;
 }
 
 void DiskDriver_strategy(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
