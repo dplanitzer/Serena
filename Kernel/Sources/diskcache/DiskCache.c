@@ -216,23 +216,26 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
     List_ForEachReversed(&self->lruChain, ListNode, 
         DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
 
-        if (!DiskBlock_InUse(pb) && (!pb->flags.isDirty || (pb->flags.isDirty && !pb->flags.isPinned))) {
+        //XXX we previously allowed the reuse of a dirty block and we would sync out the
+        // dirty block before reuse. However we currently don't have access to the session
+        // that owns this block. Thus this is disabled for now.
+        //if (!DiskBlock_InUse(pb) && (!pb->flags.isDirty || (pb->flags.isDirty && !pb->flags.isPinned))) {
+        if (!DiskBlock_InUse(pb) && !pb->flags.isDirty && !pb->flags.isPinned) {
             pBlock = pb;
             break;
         }
     );
 
-#if 0
-    //XXX bring this back once we got a list of sessions
     if (pBlock) {
         // Sync the block to disk if necessary
-        _DiskCache_SyncBlock(self, pBlock);
+        //XXX see above
+        //_DiskCache_SyncBlock(self, pBlock);
 
         _DiskCache_UnregisterBlock(self, pBlock);
         DiskBlock_SetDiskAddress(pBlock, disk, mediaId, lba);
+        DiskBlock_PurgeData(pBlock, self->blockSize);
         _DiskCache_RegisterBlock(self, pBlock);
     }
-#endif
 
     return pBlock;
 }
@@ -325,25 +328,6 @@ void _DiskCache_UnlockContentAndPutBlock(DiskCacheRef _Nonnull _Locked self, Dis
 {
     _DiskCache_UnlockBlockContent(self, pBlock);
     _DiskCache_PutBlock(self, pBlock);
-}
-
-// Purges all cached blocks of the disk drive 'disk' and media 'mediaId'. The
-// media ID may be kMedia_None which means that all blocks of the driver 'disk'
-// should be purged no matter for which media they hold data.
-// Purging a block means that the block is reset back to a state where it is forced
-// to read its data in again from the disk, next time data is requested.
-static void _DiskCache_PurgeBlocks(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull disk, MediaId mediaId)
-{
-    // XXX optimize this
-    List_ForEach(&self->lruChain, DiskBlock, 
-        DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
-
-        if (pb->disk == disk && (mediaId == kMediaId_None || mediaId == pb->mediaId)) {
-            // XXX do something about blocks that are currently doing I/O (cancel I/O)
-            assert(pb->flags.op == kDiskBlockOp_Idle);
-            DiskBlock_Purge(pb);
-        }
-    );
 }
 
 

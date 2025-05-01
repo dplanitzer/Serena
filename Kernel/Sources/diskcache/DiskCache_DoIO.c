@@ -34,6 +34,9 @@ static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRe
 // I/O operation returns with the block locked in exclusive mode. If 'isSync' is
 // false then the I/O operation is executed asynchronously and the block is
 // unlocked and put once the I/O operation is done.
+//
+// NOTE: this function assumes that the data of a block that should be read from
+// disk is zeroed out.
 errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync)
 {
     decl_try_err();
@@ -130,7 +133,6 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
 
     req->s.done = (IODoneFunc)DiskCache_OnDiskRequestDone;
     req->s.context = self;
-    req->refCon = (intptr_t)s->trailPadSize;
     req->mediaId = pBlock->mediaId;
     req->offset = lbaClusterStart * s->s2bFactor * s->sectorSize;
     req->iovCount = nBlocksToCluster;
@@ -154,7 +156,7 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
 // - async: unlocks and puts the block
 // - sync: wakes up the clients that are waiting on the block and leaves the block
 //         locked exclusively
-static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, DiskBlockRef _Nonnull pBlock, size_t trailPadSize, int type, errno_t status)
+static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, DiskBlockRef _Nonnull pBlock, int type, errno_t status)
 {
     const bool isAsync = pBlock->flags.async ? true : false;
 
@@ -164,12 +166,6 @@ static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, Di
             // Holding the exclusive lock here
             if (status == EOK) {
                 pBlock->flags.hasData = 1;
-
-                if (trailPadSize > 0) {
-                    // Sector size isn't a power-of-2 and this is a read. We zero-fill
-                    // the remaining bytes in the cache block
-                    memset(pBlock + self->blockSize - trailPadSize, 0, trailPadSize);
-                }
             }
             break;
 
@@ -219,7 +215,6 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnu
     Lock_Lock(&self->interlock);
     for (size_t i = 0; i < req->iovCount; i++) {
         DiskBlockRef pBlock = (DiskBlockRef)req->iov[i].token;
-        const size_t trailPadSize = (size_t)req->refCon;
 
         if (resCount >= self->blockSize) {
             resCount -= self->blockSize;
@@ -232,7 +227,7 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnu
             status = EIO;
         }
 
-        _DiskCache_OnBlockRequestDone(self, pBlock, trailPadSize, type, status);
+        _DiskCache_OnBlockRequestDone(self, pBlock, type, status);
     }
     Lock_Unlock(&self->interlock);
 

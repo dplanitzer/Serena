@@ -57,14 +57,14 @@ extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
 #define DiskBlock_IsEqual(__self, __other) \
     DiskBlock_IsEqualKey(__self, (__other)->disk, (__other)->mediaId, (__other)->lba)
 
-#define DiskBlock_Purge(__self) \
+#define DiskBlock_PurgeData(__self, __blockSize) \
+    memset((__self)->data, 0, __blockSize);\
     (__self)->flags.hasData = 0
 
 #define DiskBlock_SetDiskAddress(__self, __disk, __mediaId, __lba)\
     (__self)->disk = __disk;\
     (__self)->mediaId = __mediaId;\
-    (__self)->lba = __lba;\
-    DiskBlock_Purge(__self)
+    (__self)->lba = __lba;
 
 
 #define DiskBlock_HashKey(__disk, __mediaId, __lba) \

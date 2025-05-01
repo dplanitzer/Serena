@@ -36,7 +36,6 @@ enum {
 
 typedef struct DiskRequest {
     IORequest   s;
-    intptr_t    refCon;         // <- user-defined value
     MediaId     mediaId;        // <- disk media identity
     size_t      offset;         // <- logical sector address in terms of bytes
     ssize_t     resCount;       // -> number of bytes read/written
