@@ -160,6 +160,15 @@ void DiskDriver_sectorStrategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnul
         IOVector* iov = &req->iov[i];
         ssize_t size = iov->size;
         uint8_t* data = iov->data;
+
+        if (size < 0) {
+            err = EINVAL;
+            break;
+        }
+        else if (size > 0 && req->offset < 0ll) {
+            err = EOVERFLOW;
+            break;
+        }
         
         while (size >= self->sectorSize) {
             DiskDriver_LsaToChs(self, lsa, &chs);
@@ -212,9 +221,19 @@ void DiskDriver_strategy(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
     IORequest_Done(req);
 }
 
+
 errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
     return DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)implementationof(strategy, DiskDriver, classof(self)), self, req, 0, 0, 0);
+}
+
+errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
+{
+    errno_t err = DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)implementationof(strategy, DiskDriver, classof(self)), self, req, 0, kDispatchOption_Sync, 0);
+    if (err == EOK) {
+        err = req->status;
+    }
+    return err;
 }
 
 
@@ -287,190 +306,39 @@ off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
     return r;
 }
 
-errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, DiskDriverChannelRef _Nonnull ch, void* _Nonnull buf, ssize_t byteCount, ssize_t* _Nonnull pOutByteCount)
 {
     decl_try_err();
-#if 0
-//XXX
-    const off_t diskSize = IOChannel_GetSeekableRange(ch);
-    off_t offset = IOChannel_GetOffset(ch);
-    uint8_t* dp = pBuffer;
-    ssize_t nBytesRead = 0;
+    DiskRequest req;
 
-    if (nBytesToRead < 0) {
-        throw(EINVAL);
-    }
-    if (nBytesToRead > 0) {
-        if (offset < 0ll) {
-            throw(EOVERFLOW);
-        }
-        if (offset >= diskSize) {
-            throw(ENXIO);
-        }
-    }
+    req.s.type = type;
+    req.s.size = sizeof(DiskRequest);
+    req.s.status = EOK;
+    req.iovCount = 1;
+    req.mediaId = self->currentMediaId;
+    req.offset = IOChannel_GetOffset(ch);
+    req.iov[0].data = buf;
+    req.iov[0].size = byteCount;
+    req.resCount = 0;
 
+    err = DiskDriver_DoIO(self, (IORequest*)&req);
 
-    // Limit 'nBytesToRead' to the range of bytes that is actually available
-    // starting at 'offset'.
-    const off_t nAvailBytes = diskSize - offset;
-
-    if (nAvailBytes > 0) {
-        if (nAvailBytes <= (off_t)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToRead) {
-            nBytesToRead = (ssize_t)nAvailBytes;
-        }
-        // Otherwise, use 'nBytesToRead' as is
-    } else {
-        nBytesToRead = 0;
+    if (req.resCount > 0) {
+        IOChannel_IncrementOffsetBy(ch, req.resCount);
     }
 
-
-    // Get the block index and block offset that corresponds to 'offset'. We start
-    // iterating through blocks there.
-    Driver_Lock(self);
-    const MediaId mediaId = self->currentMediaId;
-    const size_t blockSize = self->blockSize;
-    const size_t blockShift = self->blockShift;
-    Driver_Unlock(self);
-
-    if (blockShift == 0) {
-        throw(EIO);
-    }
-
-    const size_t blockMask = blockSize - 1;
-    LogicalBlockAddress blockIdx = (LogicalBlockAddress)(offset >> (off_t)blockShift);
-    ssize_t blockOffset = (ssize_t)(offset & (off_t)blockMask);
-    DiskSession s;
-
-
-    // Iterate through a contiguous sequence of blocks until we've read all
-    // required bytes.
-    DiskCache_OpenSession(self->diskCache, (IOChannelRef)ch, mediaId, self->sectorSize, &s);
-    while (nBytesToRead > 0) {
-        const ssize_t nRemainderBlockSize = (ssize_t)blockSize - blockOffset;
-        const ssize_t nBytesToReadInBlock = (nBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToRead;
-        FSBlock blk = {0};
-
-        errno_t e1 = DiskCache_MapBlock(self->diskCache, &s, blockIdx, kMapBlock_ReadOnly, &blk);
-        if (e1 != EOK) {
-            err = (nBytesRead == 0) ? e1 : EOK;
-            break;
-        }
-        
-        memcpy(dp, blk.data + blockOffset, nBytesToReadInBlock);
-        DiskCache_UnmapBlock(self->diskCache, &s, blk.token, kWriteBlock_None);
-
-        nBytesToRead -= nBytesToReadInBlock;
-        nBytesRead += nBytesToReadInBlock;
-        dp += nBytesToReadInBlock;
-
-        blockOffset = 0;
-        blockIdx++;
-    }
-    DiskCache_CloseSession(self->diskCache, &s);
-
-    if (nBytesRead > 0) {
-        IOChannel_IncrementOffsetBy(ch, nBytesRead);
-    }
-
-
-catch:
-    *pOutBytesRead = nBytesRead;
-#endif
+    *pOutByteCount = req.resCount;
     return err;
+}
+
+errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+{
+    return _DiskDriver_rdwr(self, kDiskRequest_Read, ch, buf, nBytesToRead, pOutBytesRead);
 }
 
 errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
-    decl_try_err();
-#if 0
-//XXX
-    const off_t diskSize = IOChannel_GetSeekableRange(ch);
-    off_t offset = IOChannel_GetOffset(ch);
-    const uint8_t* sp = buf;
-    ssize_t nBytesWritten = 0;
-
-    if (nBytesToWrite < 0) {
-        throw(EINVAL);
-    }
-    if (nBytesToWrite > 0) {
-        if (offset < 0ll) {
-            throw(EOVERFLOW);
-        }
-        if (offset >= diskSize) {
-            throw(ENXIO);
-        }
-    }
-
-
-    // Limit 'nBytesToWrite' to the range of bytes that is actually available
-    // starting at 'offset'.
-    const off_t nAvailBytes = diskSize - offset;
-
-    if (nAvailBytes > 0) {
-        if (nAvailBytes <= (off_t)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToWrite) {
-            nBytesToWrite = (ssize_t)nAvailBytes;
-        }
-        // Otherwise, use 'nBytesToWrite' as is
-    } else {
-        nBytesToWrite = 0;
-    }
-
-
-    // Get the block index and block offset that corresponds to 'offset'. We start
-    // iterating through blocks there.
-    Driver_Lock(self);
-    const MediaId mediaId = self->currentMediaId;
-    const size_t blockSize = self->blockSize;
-    const size_t blockShift = self->blockShift;
-    Driver_Unlock(self);
-
-    if (blockShift == 0) {
-        throw(EIO);
-    }
-    
-    const size_t blockMask = blockSize - 1;
-    LogicalBlockAddress blockIdx = (LogicalBlockAddress)(offset >> (off_t)blockShift);
-    ssize_t blockOffset = (ssize_t)(offset & (off_t)blockMask);
-    DiskSession s;
-
-
-    // Iterate through a contiguous sequence of blocks until we've written all
-    // required bytes.
-    DiskCache_OpenSession(self->diskCache, (IOChannelRef)ch, mediaId, self->sectorSize, &s);
-    while (nBytesToWrite > 0) {
-        const ssize_t nRemainderBlockSize = (ssize_t)blockSize - blockOffset;
-        const ssize_t nBytesToWriteInBlock = (nBytesToWrite > nRemainderBlockSize) ? nRemainderBlockSize : nBytesToWrite;
-        MapBlock mmode = (nBytesToWriteInBlock == (ssize_t)blockSize) ? kMapBlock_Replace : kMapBlock_Update;
-        FSBlock blk = {0};
-
-        errno_t e1 = DiskCache_MapBlock(self->diskCache, &s, blockIdx, mmode, &blk);
-        if (e1 == EOK) {
-            memcpy(blk.data + blockOffset, sp, nBytesToWriteInBlock);
-            e1 = DiskCache_UnmapBlock(self->diskCache, &s, blk.token, kWriteBlock_Sync);
-        }
-        if (e1 != EOK) {
-            err = (nBytesWritten == 0) ? e1 : EOK;
-            break;
-        }
-
-        nBytesToWrite -= nBytesToWriteInBlock;
-        nBytesWritten += nBytesToWriteInBlock;
-        sp += nBytesToWriteInBlock;
-
-        blockOffset = 0;
-        blockIdx++;
-    }
-    DiskCache_CloseSession(self->diskCache, &s);
-
-    if (nBytesWritten > 0) {
-        IOChannel_IncrementOffsetBy(ch, nBytesWritten);
-    }
-
-
-catch:
-    *pOutBytesWritten = nBytesWritten;
-#endif
-    return err;
+    return _DiskDriver_rdwr(self, kDiskRequest_Write, ch, buf, nBytesToWrite, pOutBytesWritten);
 }
 
 errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
@@ -500,6 +368,7 @@ func_def(createDispatchQueue, DiskDriver)
 override_func_def(onStop, DiskDriver, Driver)
 func_def(getInfo, DiskDriver)
 func_def(beginIO, DiskDriver)
+func_def(doIO, DiskDriver)
 func_def(strategy, DiskDriver)
 func_def(sectorStrategy, DiskDriver)
 func_def(getSector, DiskDriver)

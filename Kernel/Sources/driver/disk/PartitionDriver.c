@@ -80,14 +80,24 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
-void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, IORequest* _Nonnull req)
+errno_t PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
     // Update the sector number and pass the disk request on to the whole disk
     // driver
     //XXX need to take the request type into account
     ((DiskRequest*)req)->offset += self->lsaStart * self->sectorSize;
     
-    DiskDriver_BeginIO(self->wholeDisk, req);
+    return DiskDriver_BeginIO(self->wholeDisk, req);
+}
+
+errno_t PartitionDriver_doIO(PartitionDriverRef _Nonnull self, IORequest* _Nonnull req)
+{
+    // Update the sector number and pass the disk request on to the whole disk
+    // driver
+    //XXX need to take the request type into account
+    ((DiskRequest*)req)->offset += self->lsaStart * self->sectorSize;
+    
+    return DiskDriver_DoIO(self->wholeDisk, req);
 }
 
 errno_t PartitionDriver_format(PartitionDriverRef _Nonnull _Locked self, FormatSectorsRequest* _Nonnull req)
@@ -103,5 +113,6 @@ class_func_defs(PartitionDriver, DiskDriver,
 override_func_def(createDispatchQueue, PartitionDriver, DiskDriver)
 override_func_def(onStart, PartitionDriver, Driver)
 override_func_def(beginIO, PartitionDriver, DiskDriver)
+override_func_def(doIO, PartitionDriver, DiskDriver)
 override_func_def(format, PartitionDriver, DiskDriver)
 );

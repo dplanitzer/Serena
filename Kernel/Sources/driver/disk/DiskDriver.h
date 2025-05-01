@@ -36,8 +36,8 @@ enum {
 
 typedef struct DiskRequest {
     IORequest   s;
+    off_t       offset;         // <- logical sector address in terms of bytes
     MediaId     mediaId;        // <- disk media identity
-    size_t      offset;         // <- logical sector address in terms of bytes
     ssize_t     resCount;       // -> number of bytes read/written
     size_t      iovCount;       // <- number of I/O vectors in this request
 
@@ -107,12 +107,17 @@ open_class_funcs(DiskDriver, Driver,
     // The following methods dispatch to the dispatch queue
     //
 
-    // Starts an I/O operation for the given disk request. Dispatches an async
-    // call to sectorStrategy() on the dispatch queue. The actual read/write
-    // will happen asynchronously.
+    // Starts an asynchronous I/O operation.
     // Override: Optional
-    // Default Behavior: Dispatches an async call to sectorStrategy()
+    // Default Behavior: Dispatches an async call to the dispatch queue
     errno_t (*beginIO)(void* _Nonnull self, IORequest* _Nonnull req);
+
+
+    // Starts a asynchronous I/O operation and waits for its completion.
+    // Override: Optional
+    // Default Behavior: Dispatches a sync call to the dispatch queue
+    errno_t (*doIO)(void* _Nonnull self, IORequest* _Nonnull req);
+
 
     // Formats 'frClusterSize' consecutive sectors starting at sector 'addr'.
     // 'data' must point to a memory block of size frClusterSize * sectorSize
@@ -179,6 +184,9 @@ extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInf
 
 #define DiskDriver_BeginIO(__self, __req) \
 invoke_n(beginIO, DiskDriver, __self, __req)
+
+#define DiskDriver_DoIO(__self, __req) \
+invoke_n(doIO, DiskDriver, __self, __req)
 
 extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, FormatSectorsRequest* _Nonnull req);
 
