@@ -40,7 +40,7 @@ static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRe
 errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync)
 {
     decl_try_err();
-    DiskRequest* req = NULL;
+    StrategyRequest* req = NULL;
 
     // Assert that if there is a I/O operation currently ongoing, that it is of
     // the same kind as 'op'. See the requirements at the top of this file.
@@ -71,7 +71,7 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
 
     // Start a new disk request
     const int type = (op == kDiskBlockOp_Read) ? kDiskRequest_Read : kDiskRequest_Write;
-    const size_t reqSize = sizeof(DiskRequest) + sizeof(IOVector) * (nBlocksToCluster - 1);
+    const size_t reqSize = sizeof(StrategyRequest) + sizeof(IOVector) * (nBlocksToCluster - 1);
     size_t idx = 0;
 
     err = IORequest_Get(type, reqSize, (IORequest**)&req);
@@ -206,7 +206,7 @@ static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, Di
     }
 }
 
-void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req)
+void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, StrategyRequest* _Nonnull req)
 {
     ssize_t resCount = req->resCount;
     errno_t status = req->s.status;

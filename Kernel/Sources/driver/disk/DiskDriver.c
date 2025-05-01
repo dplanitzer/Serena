@@ -149,12 +149,12 @@ errno_t DiskDriver_putSector(DiskDriverRef _Nonnull self, const chs_t* _Nonnull 
     return EIO;
 }
 
-void DiskDriver_strategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
+void DiskDriver_strategy(DiskDriverRef _Nonnull self, StrategyRequest* _Nonnull req)
 {
     decl_try_err();
     chs_t chs;
     ssize_t resCount = 0;
-    sno_t lsa = req->offset / self->sectorSize;
+    sno_t lsa = req->offset / (off_t)self->sectorSize;
 
     for (size_t i = 0; (i < req->iovCount) && (err == EOK); i++) {
         IOVector* iov = &req->iov[i];
@@ -205,6 +205,37 @@ void DiskDriver_strategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
     req->s.status = (resCount > 0) ? EOK : err;
 }
 
+
+errno_t DiskDriver_formatSectors(DiskDriverRef _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize)
+{
+    return ENOTSUP;
+}
+
+void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull req)
+{
+    decl_try_err();
+
+    if (req->mediaId != self->currentMediaId) {
+        err = EDISKCHANGE;
+    }
+    else if (req->byteCount != self->frClusterSize * self->sectorSize) {
+        err = EINVAL;
+    }
+    else if (req->offset + (off_t)self->frClusterSize > (off_t)self->sectorCount) {
+        err = ENXIO;
+    }
+    else {
+        sno_t lsa = req->offset / (off_t)self->sectorSize;
+        chs_t chs;
+
+        DiskDriver_LsaToChs(self, lsa, &chs);
+        err = DiskDriver_FormatSectors(self, &chs, req->data, self->sectorSize);
+    }
+
+    req->s.status = err;
+}
+
+
 void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
     Driver_Lock(self);
@@ -215,7 +246,20 @@ void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IORequest* _Nonnull r
 
 
     if (req->status == EOK) {
-        DiskDriver_Strategy(self, (DiskRequest*)req);
+        switch (req->type) {
+            case kDiskRequest_Read:
+            case kDiskRequest_Write:
+                DiskDriver_Strategy(self, (StrategyRequest*)req);
+                break;
+
+            case kDiskRequest_Format:
+                DiskDriver_DoFormat(self, (FormatRequest*)req);
+                break;
+
+            default:
+                req->status = EINVAL;
+                break;
+        }
     }
 
     IORequest_Done(req);
@@ -237,56 +281,23 @@ errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 }
 
 
-errno_t DiskDriver_formatSectors(DiskDriverRef _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize)
-{
-    return ENOTSUP;
-}
-
-errno_t DiskDriver_doFormat(DiskDriverRef _Nonnull _Locked self, FormatSectorsRequest* _Nonnull req)
-{
-    chs_t chs;
-
-    DiskDriver_LsaToChs(self, req->addr, &chs);
-    return DiskDriver_FormatSectors(self, &chs, req->data, self->sectorSize);
-}
-
-void _DiskDriver_xDoFormat(DiskDriverRef _Nonnull _Locked self, FormatSectorsRequest* _Nonnull req)
+errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nonnull buf, ssize_t byteCount)
 {
     decl_try_err();
+    FormatRequest r;
 
-    if (req->mediaId != self->currentMediaId) {
-        req->status = EDISKCHANGE;
-    }
-    else if (req->addr + self->frClusterSize > self->sectorCount) {
-        req->status = ENXIO;
-    }
-    else {
-        req->status = DiskDriver_DoFormat(self, req);
-    }
-}
+    r.s.type = kDiskRequest_Format;
+    r.s.size = sizeof(FormatRequest);
+    r.s.status = EOK;
+    r.offset = IOChannel_GetOffset(ch);
+    r.mediaId = self->currentMediaId;
+    r.data = buf;
+    r.byteCount = byteCount;
 
-errno_t DiskDriver_format(DiskDriverRef _Nonnull _Locked self, FormatSectorsRequest* _Nonnull req)
-{
-    req->status = EOK;
-    errno_t err = DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)_DiskDriver_xDoFormat, self, req, 0, kDispatchOption_Sync, 0);
+    err = DiskDriver_DoIO(self, (IORequest*)&r);
     if (err == EOK) {
-        err = req->status;
+        IOChannel_IncrementOffsetBy(ch, byteCount);
     }
-    return err;
-}
-
-errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, FormatSectorsRequest* _Nonnull req)
-{
-    decl_try_err();
-
-    Driver_Lock(self);
-    if (Driver_IsActive(self)) {
-        err = invoke_n(format, DiskDriver, self, req);
-    }
-    else {
-        err = ENODEV;
-    }
-    Driver_Unlock(self);
 
     return err;
 }
@@ -306,37 +317,37 @@ off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
     return r;
 }
 
-static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, DiskDriverChannelRef _Nonnull ch, void* _Nonnull buf, ssize_t byteCount, ssize_t* _Nonnull pOutByteCount)
+static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, IOChannelRef _Nonnull ch, void* _Nonnull buf, ssize_t byteCount, ssize_t* _Nonnull pOutByteCount)
 {
     decl_try_err();
-    DiskRequest req;
+    StrategyRequest r;
 
-    req.s.type = type;
-    req.s.size = sizeof(DiskRequest);
-    req.s.status = EOK;
-    req.iovCount = 1;
-    req.mediaId = self->currentMediaId;
-    req.offset = IOChannel_GetOffset(ch);
-    req.iov[0].data = buf;
-    req.iov[0].size = byteCount;
-    req.resCount = 0;
+    r.s.type = type;
+    r.s.size = sizeof(StrategyRequest);
+    r.s.status = EOK;
+    r.offset = IOChannel_GetOffset(ch);
+    r.mediaId = self->currentMediaId;
+    r.iovCount = 1;
+    r.iov[0].data = buf;
+    r.iov[0].size = byteCount;
+    r.resCount = 0;
 
-    err = DiskDriver_DoIO(self, (IORequest*)&req);
+    err = DiskDriver_DoIO(self, (IORequest*)&r);
 
-    if (req.resCount > 0) {
-        IOChannel_IncrementOffsetBy(ch, req.resCount);
+    if (r.resCount > 0) {
+        IOChannel_IncrementOffsetBy(ch, r.resCount);
     }
 
-    *pOutByteCount = req.resCount;
+    *pOutByteCount = r.resCount;
     return err;
 }
 
-errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+errno_t DiskDriver_read(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     return _DiskDriver_rdwr(self, kDiskRequest_Read, ch, buf, nBytesToRead, pOutBytesRead);
 }
 
-errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+errno_t DiskDriver_write(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     return _DiskDriver_rdwr(self, kDiskRequest_Write, ch, buf, nBytesToWrite, pOutBytesWritten);
 }
@@ -351,9 +362,11 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
         }
 
         case kDiskCommand_Format: {
-            FormatSectorsRequest* req = va_arg(ap, FormatSectorsRequest*);
-            
-            return DiskDriver_Format(self, req);
+            const void* data = va_arg(ap, const void*);
+            const ssize_t byteCount = va_arg(ap, ssize_t);
+
+            //XXX need the channel
+            return DiskDriver_Format(self, NULL, data, byteCount);
         }
 
         default:
@@ -373,7 +386,6 @@ func_def(handleRequest, DiskDriver)
 func_def(strategy, DiskDriver)
 func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)
-func_def(format, DiskDriver)
 func_def(doFormat, DiskDriver)
 func_def(formatSectors, DiskDriver)
 override_func_def(getSeekableRange, DiskDriver, Driver)

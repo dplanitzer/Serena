@@ -101,29 +101,33 @@ static errno_t block_write(intptr_t fd, const void* _Nonnull buf, LogicalBlockAd
 static errno_t wipe_disk(int ioc, const DiskInfo* _Nonnull info)
 {
     decl_try_err();
-    FormatSectorsRequest req;
-
-    req.mediaId = info->mediaId;
-    req.addr = 0;
-    req.data = malloc(info->sectorSize * info->frClusterSize);
-    if (req.data == NULL) {
+    scnt_t sct = 0;
+    size_t clusterCount = 1;
+    ssize_t byteCount = info->sectorSize * info->frClusterSize;
+    uint8_t* data = malloc(byteCount);
+ 
+    if (data == NULL) {
         return ENOMEM;
     }
 
     
-    for (LogicalBlockCount i = 0; i < info->frClusterSize; i++) {
-        memset(&((uint8_t*)req.data)[i * info->sectorSize], i + 1, info->sectorSize);
+    for (size_t i = 0; i < info->frClusterSize; i++) {
+        memset(&data[i * info->sectorSize], i + 1, info->sectorSize);
     }
 
     fputs("\033[?25l", stdout);
-    while (req.addr < info->sectorCount && err == EOK) {
-        printf("%u\n\033[1A", (unsigned)req.addr);
-        err = IOChannel_Control(ioc, kDiskCommand_Format, &req);
-        req.addr += info->frClusterSize;
+    File_Seek(ioc, 0ll, NULL, kSeek_Set);
+    while (sct < info->sectorCount && err == EOK) {
+        printf("%u\n\033[1A", (unsigned)clusterCount);
+        
+        err = IOChannel_Control(ioc, kDiskCommand_Format, data, byteCount);
+        
+        sct += info->frClusterSize;
+        clusterCount++;
     }
     fputs("\033[?25h\n", stdout);
 
-    free(req.data);
+    free(data);
 
     return err;
 }

@@ -39,18 +39,12 @@ typedef struct DiskInfo {
 #define kDiskCommand_GetInfo  IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
 
-typedef struct FormatSectorsRequest {
-    MediaId                 mediaId;
-    LogicalBlockAddress     addr;
-    const void* _Nonnull    data;
-    int                     status;
-} FormatSectorsRequest;
-
-// Formats 'frClusterSize' consecutive sectors starting at sector 'addr'.
-// 'data' must point to a memory block of size frClusterSize * sectorSize
-// bytes. 'addr' must be a multiple of frClusterSize'. The caller will be
-// blocked until all data has been written to disk or an error is encountered.
-// format(const FormatSectorsRequest* _Nonnull req)
+// Formats 'frClusterSize' consecutive sectors starting at the current channel
+// position. 'data' points to the data that should be written to 'frClusterSize'
+// sectors. 'byteCount' must be frClusterSize * sectorSize. The channel position
+// must be a multiple of frClusterSize'. The caller will be blocked until all
+// data has been written to disk or an error is encountered.
+// format(const void* _Nonnull data, ssize_t byteCount)
 #define kDiskCommand_Format IOResourceCommand(kDriverCommand_SubclassBase + 1)
 
 

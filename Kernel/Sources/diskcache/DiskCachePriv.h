@@ -187,6 +187,6 @@ extern errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, const Di
 
 extern errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync);
 
-extern void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, DiskRequest* _Nonnull req);
+extern void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, StrategyRequest* _Nonnull req);
 
 #endif /* DiskCachePriv_h */

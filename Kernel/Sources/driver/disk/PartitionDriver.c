@@ -80,32 +80,34 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
+static void _adjust_req(PartitionDriverRef _Nonnull self, IORequest* _Nonnull r)
+{
+    switch (r->type) {
+        case kDiskRequest_Read:
+        case kDiskRequest_Write:
+            ((StrategyRequest*)r)->offset += self->lsaStart * self->sectorSize;
+            break;
+
+        case kDiskRequest_Format:
+            ((FormatRequest*)r)->offset += self->lsaStart * self->sectorSize;
+            break;
+
+        default:
+            r->status = EINVAL;
+            break;
+    }
+}
+
 errno_t PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
-    // Update the sector number and pass the disk request on to the whole disk
-    // driver
-    //XXX need to take the request type into account
-    ((DiskRequest*)req)->offset += self->lsaStart * self->sectorSize;
-    
+    _adjust_req(self, req);
     return DiskDriver_BeginIO(self->wholeDisk, req);
 }
 
 errno_t PartitionDriver_doIO(PartitionDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
-    // Update the sector number and pass the disk request on to the whole disk
-    // driver
-    //XXX need to take the request type into account
-    ((DiskRequest*)req)->offset += self->lsaStart * self->sectorSize;
-    
+    _adjust_req(self, req);
     return DiskDriver_DoIO(self->wholeDisk, req);
-}
-
-errno_t PartitionDriver_format(PartitionDriverRef _Nonnull _Locked self, FormatSectorsRequest* _Nonnull req)
-{
-    FormatSectorsRequest req2 = *req;
-
-    req2.addr += self->lsaStart * self->sectorSize;
-    return DiskDriver_Format(self->wholeDisk, &req2);
 }
 
 
@@ -114,5 +116,4 @@ override_func_def(createDispatchQueue, PartitionDriver, DiskDriver)
 override_func_def(onStart, PartitionDriver, Driver)
 override_func_def(beginIO, PartitionDriver, DiskDriver)
 override_func_def(doIO, PartitionDriver, DiskDriver)
-override_func_def(format, PartitionDriver, DiskDriver)
 );

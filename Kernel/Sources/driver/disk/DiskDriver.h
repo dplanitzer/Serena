@@ -30,11 +30,12 @@ typedef struct MediaInfo {
 
 enum {
     kDiskRequest_Read = 1,
-    kDiskRequest_Write = 2
+    kDiskRequest_Write,
+    kDiskRequest_Format,
 };
 
 
-typedef struct DiskRequest {
+typedef struct StrategyRequest {
     IORequest   s;
     off_t       offset;         // <- logical sector address in terms of bytes
     MediaId     mediaId;        // <- disk media identity
@@ -42,7 +43,16 @@ typedef struct DiskRequest {
     size_t      iovCount;       // <- number of I/O vectors in this request
 
     IOVector    iov[1];
-} DiskRequest;
+} StrategyRequest;
+
+
+typedef struct FormatRequest {
+    IORequest               s;
+    off_t                   offset;     // <- logical sector address in terms of bytes
+    MediaId                 mediaId;    // <- disk media identity
+    const void* _Nonnull    data;       // <- data for all sectors in the cluster to format
+    ssize_t                 byteCount;  // <- number of bytes in 'data'
+} FormatRequest;
 
 
 // A disk driver manages the data stored on a disk. It provides read and write
@@ -119,15 +129,6 @@ open_class_funcs(DiskDriver, Driver,
     errno_t (*doIO)(void* _Nonnull self, IORequest* _Nonnull req);
 
 
-    // Formats 'frClusterSize' consecutive sectors starting at sector 'addr'.
-    // 'data' must point to a memory block of size frClusterSize * sectorSize
-    // bytes. 'addr' must be a multiple of frClusterSize'. The caller will be
-    // blocked until all data has been written to disk or an error is encountered.
-    // Override: Optional
-    // Default Behavior: Dispatches an async call to doFormat()
-    errno_t (*format)(void* _Nonnull self, FormatSectorsRequest* _Nonnull req);
-
-
     //
     // The following methods are executed on the dispatch queue.
     //
@@ -137,14 +138,11 @@ open_class_funcs(DiskDriver, Driver,
     void (*handleRequest)(void* _Nonnull self, IORequest* _Nonnull req);
 
 
-    // Executes a disk request. A disk request is a list of sector requests. This
-    // function is expected to call getSector()/putSector() for each sector
-    // request in the disk request and to mark each sector request as done by
-    // calling DiskRequest_Done() with the sector request and the final status
-    // for the sector request. Note that this function should not call
-    // DiskRequest_Done() for the disk request itself.
+    // Executes a strategy request. A strategy request is a list of sector
+    // requests. This function is expected to call getSector()/putSector() for
+    // each sector referenced by the request.
     // Default Behavior: Calls getSector()/putSector()
-    void (*strategy)(void* _Nonnull self, DiskRequest* _Nonnull req);
+    void (*strategy)(void* _Nonnull self, StrategyRequest* _Nonnull req);
 
     // Reads the contents of the sector at the disk address 'chs' into the
     // in-memory area 'data' of size 'sectorSize'. Blocks the caller until the
@@ -168,7 +166,7 @@ open_class_funcs(DiskDriver, Driver,
 
 
     // Executes the format action on the dispatch queue. See format() above.
-    errno_t (*doFormat)(void* _Nonnull self, FormatSectorsRequest* _Nonnull req);
+    void (*doFormat)(void* _Nonnull self, FormatRequest* _Nonnull req);
 
     // Called from doFormat(). Does the actual formatting of a cluster of sectors. 
     errno_t (*formatSectors)(void* _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize);
@@ -179,16 +177,16 @@ open_class_funcs(DiskDriver, Driver,
 // Methods for use by disk driver users.
 //
 
-extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
-
-
 #define DiskDriver_BeginIO(__self, __req) \
 invoke_n(beginIO, DiskDriver, __self, __req)
 
 #define DiskDriver_DoIO(__self, __req) \
 invoke_n(doIO, DiskDriver, __self, __req)
 
-extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, FormatSectorsRequest* _Nonnull req);
+
+extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
+
+extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nonnull buf, ssize_t byteCount);
 
 
 //
