@@ -149,7 +149,7 @@ errno_t DiskDriver_putSector(DiskDriverRef _Nonnull self, const chs_t* _Nonnull 
     return EIO;
 }
 
-void DiskDriver_sectorStrategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
+void DiskDriver_strategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnull req)
 {
     decl_try_err();
     chs_t chs;
@@ -205,7 +205,7 @@ void DiskDriver_sectorStrategy(DiskDriverRef _Nonnull self, DiskRequest* _Nonnul
     req->s.status = (resCount > 0) ? EOK : err;
 }
 
-void DiskDriver_strategy(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
+void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
     Driver_Lock(self);
     if (!Driver_IsActive(self)) {
@@ -215,7 +215,7 @@ void DiskDriver_strategy(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 
 
     if (req->status == EOK) {
-        DiskDriver_SectorStrategy(self, (DiskRequest*)req);
+        DiskDriver_Strategy(self, (DiskRequest*)req);
     }
 
     IORequest_Done(req);
@@ -224,12 +224,12 @@ void DiskDriver_strategy(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 
 errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
-    return DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)implementationof(strategy, DiskDriver, classof(self)), self, req, 0, 0, 0);
+    return DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)implementationof(handleRequest, DiskDriver, classof(self)), self, req, 0, 0, 0);
 }
 
 errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
-    errno_t err = DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)implementationof(strategy, DiskDriver, classof(self)), self, req, 0, kDispatchOption_Sync, 0);
+    errno_t err = DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)implementationof(handleRequest, DiskDriver, classof(self)), self, req, 0, kDispatchOption_Sync, 0);
     if (err == EOK) {
         err = req->status;
     }
@@ -369,8 +369,8 @@ override_func_def(onStop, DiskDriver, Driver)
 func_def(getInfo, DiskDriver)
 func_def(beginIO, DiskDriver)
 func_def(doIO, DiskDriver)
+func_def(handleRequest, DiskDriver)
 func_def(strategy, DiskDriver)
-func_def(sectorStrategy, DiskDriver)
 func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)
 func_def(format, DiskDriver)

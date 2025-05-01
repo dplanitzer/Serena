@@ -134,7 +134,7 @@ open_class_funcs(DiskDriver, Driver,
 
     // Executes a disk request.
     // Default Behavior: XXX
-    void (*strategy)(void* _Nonnull self, IORequest* _Nonnull req);
+    void (*handleRequest)(void* _Nonnull self, IORequest* _Nonnull req);
 
 
     // Executes a disk request. A disk request is a list of sector requests. This
@@ -144,7 +144,7 @@ open_class_funcs(DiskDriver, Driver,
     // for the sector request. Note that this function should not call
     // DiskRequest_Done() for the disk request itself.
     // Default Behavior: Calls getSector()/putSector()
-    void (*sectorStrategy)(void* _Nonnull self, DiskRequest* _Nonnull req);
+    void (*strategy)(void* _Nonnull self, DiskRequest* _Nonnull req);
 
     // Reads the contents of the sector at the disk address 'chs' into the
     // in-memory area 'data' of size 'sectorSize'. Blocks the caller until the
@@ -215,12 +215,12 @@ invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
 extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable info);
 
 
+#define DiskDriver_HandleRequest(__self, __req) \
+invoke_n(handleRequest, DiskDriver, __self, __req)
+
+
 #define DiskDriver_Strategy(__self, __req) \
 invoke_n(strategy, DiskDriver, __self, __req)
-
-
-#define DiskDriver_SectorStrategy(__self, __req) \
-invoke_n(sectorStrategy, DiskDriver, __self, __req)
 
 
 #define DiskDriver_GetSector(__self, __chs, __data, __secSize) \
