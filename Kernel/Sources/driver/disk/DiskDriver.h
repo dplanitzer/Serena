@@ -32,6 +32,7 @@ enum {
     kDiskRequest_Read = 1,
     kDiskRequest_Write,
     kDiskRequest_Format,
+    kDiskRequest_GetInfo,
 };
 
 
@@ -53,6 +54,12 @@ typedef struct FormatRequest {
     const void* _Nonnull    data;       // <- data for all sectors in the cluster to format
     ssize_t                 byteCount;  // <- number of bytes in 'data'
 } FormatRequest;
+
+
+typedef struct GetDiskInfoRequest {
+    IORequest           s;
+    DiskInfo* _Nonnull  ip;
+} GetDiskInfoRequest;
 
 
 // A disk driver manages the data stored on a disk. It provides read and write
@@ -105,12 +112,6 @@ open_class_funcs(DiskDriver, Driver,
     // Override: Optional
     // Default Behavior: create a dispatch queue with priority Normal
     errno_t (*createDispatchQueue)(void* _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
-
-
-    // Returns information about the disk drive and the media loaded into the
-    // drive.
-    // Default Behavior: returns info for an empty disk
-    void (*getInfo)(void* _Nonnull _Locked self, DiskInfo* _Nonnull pOutInfo);
 
 
     //
@@ -170,6 +171,12 @@ open_class_funcs(DiskDriver, Driver,
 
     // Called from doFormat(). Does the actual formatting of a cluster of sectors. 
     errno_t (*formatSectors)(void* _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize);
+
+
+    // Returns information about the disk drive and the media loaded into the
+    // drive.
+    // Default Behavior: returns info for an empty disk
+    void (*doGetInfo)(void* _Nonnull self, GetDiskInfoRequest* _Nonnull req);
 );
 
 
@@ -184,9 +191,9 @@ invoke_n(beginIO, DiskDriver, __self, __req)
 invoke_n(doIO, DiskDriver, __self, __req)
 
 
-extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
-
 extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nonnull buf, ssize_t byteCount);
+
+extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
 
 
 //
@@ -220,7 +227,6 @@ invoke_n(handleRequest, DiskDriver, __self, __req)
 #define DiskDriver_Strategy(__self, __req) \
 invoke_n(strategy, DiskDriver, __self, __req)
 
-
 #define DiskDriver_GetSector(__self, __chs, __data, __secSize) \
 invoke_n(getSector, DiskDriver, __self, __chs, __data, __secSize)
 
@@ -233,6 +239,10 @@ invoke_n(doFormat, DiskDriver, __self, __req)
 
 #define DiskDriver_FormatSectors(__self, __chs, __data, __secSize) \
 invoke_n(formatSectors, DiskDriver, __self, __chs, __data, __secSize)
+
+
+#define DiskDriver_DoGetInfo(__self, __req) \
+invoke_n(doGetInfo, DiskDriver, __self, __req)
 
 
 extern void DiskDriver_LsaToChs(DiskDriverRef _Locked _Nonnull self, sno_t lsa, chs_t* _Nonnull chs);

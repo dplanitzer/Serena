@@ -9,7 +9,6 @@
 #include "DiskDriver.h"
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverChannel.h>
-#include <log/Log.h>
 
 
 errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, const MediaInfo* _Nullable info, DriverRef _Nullable * _Nonnull pOutSelf)
@@ -51,34 +50,6 @@ void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
     }
 }
 
-
-// Returns information about the disk drive and the media loaded into the
-// drive.
-void DiskDriver_getInfo(DiskDriverRef _Nonnull _Locked self, DiskInfo* _Nonnull pOutInfo)
-{
-    pOutInfo->mediaId = self->currentMediaId;
-    pOutInfo->properties = self->mediaProperties;
-    pOutInfo->sectorSize = self->sectorSize;
-    pOutInfo->sectorCount = self->sectorCount;
-    pOutInfo->rwClusterSize = self->rwClusterSize;
-    pOutInfo->frClusterSize = self->frClusterSize;
-}
-
-errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
-{
-    decl_try_err();
-
-    Driver_Lock(self);
-    if (Driver_IsActive(self)) {
-        invoke_n(getInfo, DiskDriver, self, pOutInfo);
-    }
-    else {
-        err = ENODEV;
-    }
-    Driver_Unlock(self);
-
-    return err;
-}
 
 void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable info)
 {
@@ -236,6 +207,22 @@ void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull re
 }
 
 
+// Returns information about the disk drive and the media loaded into the
+// drive.
+void DiskDriver_doGetInfo(DiskDriverRef _Nonnull self, GetDiskInfoRequest* _Nonnull req)
+{
+    DiskInfo* ip = req->ip;
+    
+    ip->mediaId = self->currentMediaId;
+    ip->properties = self->mediaProperties;
+    ip->sectorSize = self->sectorSize;
+    ip->sectorCount = self->sectorCount;
+    ip->rwClusterSize = self->rwClusterSize;
+    ip->frClusterSize = self->frClusterSize;
+    req->s.status = EOK;
+}
+
+
 void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
     Driver_Lock(self);
@@ -254,6 +241,10 @@ void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IORequest* _Nonnull r
 
             case kDiskRequest_Format:
                 DiskDriver_DoFormat(self, (FormatRequest*)req);
+                break;
+
+            case kDiskRequest_GetInfo:
+                DiskDriver_DoGetInfo(self, (GetDiskInfoRequest*)req);
                 break;
 
             default:
@@ -300,6 +291,22 @@ errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch,
     }
 
     return err;
+}
+
+errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* _Nonnull info)
+{
+    GetDiskInfoRequest r;
+
+    r.s.type = kDiskRequest_GetInfo;
+    r.s.size = sizeof(GetDiskInfoRequest);
+    r.s.status = EOK;
+    r.ip = info;
+
+    //XXX triggers an assert?!
+//    const errno_t err = DiskDriver_DoIO(self, (IORequest*)&r);
+    DiskDriver_DoGetInfo(self, &r);
+
+    return r.s.status;
 }
 
 
@@ -377,7 +384,6 @@ class_func_defs(DiskDriver, Driver,
 override_func_def(deinit, DiskDriver, Object)
 func_def(createDispatchQueue, DiskDriver)
 override_func_def(onStop, DiskDriver, Driver)
-func_def(getInfo, DiskDriver)
 func_def(beginIO, DiskDriver)
 func_def(doIO, DiskDriver)
 func_def(handleRequest, DiskDriver)
@@ -386,6 +392,7 @@ func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)
 func_def(doFormat, DiskDriver)
 func_def(formatSectors, DiskDriver)
+func_def(doGetInfo, DiskDriver)
 override_func_def(getSeekableRange, DiskDriver, Driver)
 override_func_def(read, DiskDriver, Driver)
 override_func_def(write, DiskDriver, Driver)

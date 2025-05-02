@@ -80,34 +80,32 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
-static void _adjust_req(PartitionDriverRef _Nonnull self, IORequest* _Nonnull r)
+static DiskDriverRef _Nonnull _prep_req(PartitionDriverRef _Nonnull self, IORequest* _Nonnull r)
 {
     switch (r->type) {
         case kDiskRequest_Read:
         case kDiskRequest_Write:
             ((StrategyRequest*)r)->offset += self->lsaStart * self->sectorSize;
-            break;
+            return self->wholeDisk;
 
         case kDiskRequest_Format:
             ((FormatRequest*)r)->offset += self->lsaStart * self->sectorSize;
-            break;
+            return self->wholeDisk;
 
         default:
-            r->status = EINVAL;
-            break;
+            // Everything else -> just forward it
+            return (DiskDriverRef)self;
     }
 }
 
 errno_t PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
-    _adjust_req(self, req);
-    return DiskDriver_BeginIO(self->wholeDisk, req);
+    return DiskDriver_BeginIO(_prep_req(self, req), req);
 }
 
 errno_t PartitionDriver_doIO(PartitionDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
-    _adjust_req(self, req);
-    return DiskDriver_DoIO(self->wholeDisk, req);
+    return DiskDriver_DoIO(_prep_req(self, req), req);
 }
 
 
