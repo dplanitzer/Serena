@@ -501,7 +501,7 @@ errno_t Filesystem_setLabel(FilesystemRef _Nonnull self, const char* _Nonnull bu
     return ENOTSUP;
 }
 
-errno_t Filesystem_ioctl(FilesystemRef _Nonnull self, int cmd, va_list ap)
+errno_t Filesystem_ioctl(FilesystemRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
 {
     switch (cmd) {
         case kFSCommand_GetInfo: {
@@ -528,13 +528,13 @@ errno_t Filesystem_ioctl(FilesystemRef _Nonnull self, int cmd, va_list ap)
     }
 }
 
-errno_t Filesystem_Ioctl(FilesystemRef _Nonnull self, int cmd, ...)
+errno_t Filesystem_Ioctl(FilesystemRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, ...)
 {
     decl_try_err();
 
     va_list ap;
     va_start(ap, cmd);
-    err = Filesystem_vIoctl(self, cmd, ap);
+    err = Filesystem_vIoctl(self, pChannel, cmd, ap);
     va_end(ap);
 
     return err;

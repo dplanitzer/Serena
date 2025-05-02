@@ -53,7 +53,7 @@ errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull _Locked self, int cmd, va_
         return super_n(ioctl, IOChannel, DriverChannel, self, cmd, ap);
     }
     else {
-        return Driver_vIoctl(self->driver, cmd, ap);
+        return Driver_vIoctl(self->driver, (IOChannelRef)self, cmd, ap);
     }
 }
 

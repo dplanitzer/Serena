@@ -136,7 +136,7 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
     return err;
 }
 
-errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, int cmd, va_list ap)
+errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
 {
     switch (cmd) {
         case kGamePortCommand_GetPortDevice: {
@@ -154,7 +154,7 @@ errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, int cmd, v
         }
 
         default:
-            return super_n(ioctl, Driver, GamePortController, self, cmd, ap);
+            return super_n(ioctl, Driver, GamePortController, self, pChannel, cmd, ap);
     }
 }
 

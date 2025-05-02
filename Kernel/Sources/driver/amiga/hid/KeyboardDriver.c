@@ -119,7 +119,7 @@ static void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, T
     cpu_restore_irqs(irs);
 }
 
-errno_t KeyboardDriver_ioctl(KeyboardDriverRef _Nonnull self, int cmd, va_list ap)
+errno_t KeyboardDriver_ioctl(KeyboardDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
 {
     switch (cmd) {
         case kKeyboardCommand_GetKeyRepeatDelays: {
@@ -139,7 +139,7 @@ errno_t KeyboardDriver_ioctl(KeyboardDriverRef _Nonnull self, int cmd, va_list a
         }
 
         default:
-            return super_n(ioctl, Driver, KeyboardDriver, self, cmd, ap);
+            return super_n(ioctl, Driver, KeyboardDriver, self, pChannel, cmd, ap);
     }
 }
 

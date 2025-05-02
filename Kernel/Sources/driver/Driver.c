@@ -245,18 +245,18 @@ off_t Driver_getSeekableRange(DriverRef _Nonnull self)
     return 0ll;
 }
 
-errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
+errno_t Driver_ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
 {
     return ENOTIOCTLCMD;
 }
 
-errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, ...)
+errno_t Driver_Ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, ...)
 {
     decl_try_err();
 
     va_list ap;
     va_start(ap, cmd);
-    err = Driver_vIoctl(self, cmd, ap);
+    err = Driver_vIoctl(self, pChannel, cmd, ap);
     va_end(ap);
 
     return err;

@@ -41,7 +41,7 @@ errno_t FSChannel_ioctl(FSChannelRef _Nonnull _Locked self, int cmd, va_list ap)
         return super_n(ioctl, IOChannel, FSChannel, self, cmd, ap);
     }
     else {
-        return Filesystem_vIoctl(self->fs, cmd, ap);
+        return Filesystem_vIoctl(self->fs, (IOChannelRef)self, cmd, ap);
     }
 }
 

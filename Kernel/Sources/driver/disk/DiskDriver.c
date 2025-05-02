@@ -352,7 +352,7 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, 
     return _DiskDriver_rdwr(self, kDiskRequest_Write, ch, buf, nBytesToWrite, pOutBytesWritten);
 }
 
-errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
+errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
 {
     switch (cmd) {
         case kDiskCommand_GetInfo: {
@@ -365,12 +365,11 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
             const void* data = va_arg(ap, const void*);
             const ssize_t byteCount = va_arg(ap, ssize_t);
 
-            //XXX need the channel
-            return DiskDriver_Format(self, NULL, data, byteCount);
+            return DiskDriver_Format(self, pChannel, data, byteCount);
         }
 
         default:
-            return super_n(ioctl, Driver, DiskDriver, self, cmd, ap);
+            return super_n(ioctl, Driver, DiskDriver, self, pChannel, cmd, ap);
     }
 }
 

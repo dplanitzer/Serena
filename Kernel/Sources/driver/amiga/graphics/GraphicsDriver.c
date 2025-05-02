@@ -73,7 +73,7 @@ static errno_t GraphicsDriver_onStart(DriverRef _Nonnull _Locked self)
     return Driver_Publish(self, &de);
 }
 
-errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, int cmd, va_list ap)
+errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
 {
     switch (cmd) {
         case kFBCommand_CreateSurface: {
@@ -199,7 +199,7 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, int cmd, va_list a
 
 
         default:
-            return super_n(ioctl, Driver, GraphicsDriver, self, cmd, ap);
+            return super_n(ioctl, Driver, GraphicsDriver, self, pChannel, cmd, ap);
     }
 }
 

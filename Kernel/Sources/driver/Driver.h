@@ -225,7 +225,7 @@ open_class_funcs(Driver, Object,
     // override this method to implement support for the ioctl() system call.
     // Override: Optional
     // Default Behavior: Returns ENOTIOCTLCMD
-    errno_t (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
+    errno_t (*ioctl)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap);
 );
 
 
@@ -254,10 +254,10 @@ invoke_n(read, Driver, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutByte
 #define Driver_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
 invoke_n(write, Driver, __self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
-extern errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, ...);
+extern errno_t Driver_Ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, ...);
 
-#define Driver_vIoctl(__self, __cmd, __ap) \
-invoke_n(ioctl, Driver, __self, __cmd, __ap)
+#define Driver_vIoctl(__self, __chan, __cmd, __ap) \
+invoke_n(ioctl, Driver, __self, __chan, __cmd, __ap)
 
 
 // Set a tag on the driver. A tag is a value that a controller driver may assign

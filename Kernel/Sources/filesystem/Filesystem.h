@@ -267,7 +267,7 @@ open_class_funcs(Filesystem, Object,
     // call.
     // Override: Optional
     // Default Behavior: Returns ENOTIOCTLCMD
-    errno_t (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
+    errno_t (*ioctl)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap);
 
 
     //
@@ -447,10 +447,10 @@ invoke_n(getLabel, Filesystem, __self, __buf, __bufSize)
 invoke_n(setLabel, Filesystem, __self, __buf)
 
 
-extern errno_t Filesystem_Ioctl(FilesystemRef _Nonnull self, int cmd, ...);
+extern errno_t Filesystem_Ioctl(FilesystemRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, ...);
 
-#define Filesystem_vIoctl(__self, __cmd, __ap) \
-invoke_n(ioctl, Filesystem, __self, __cmd, __ap)
+#define Filesystem_vIoctl(__self, __chan, __cmd, __ap) \
+invoke_n(ioctl, Filesystem, __self, __chan, __cmd, __ap)
 
 
 extern errno_t Filesystem_AcquireRootDirectory(FilesystemRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir);

@@ -45,7 +45,7 @@ InputType InputDriver_getInputType(InputDriverRef _Nonnull self)
 // I/O Channel API
 //
 
-errno_t InputDriver_ioctl(InputDriverRef _Nonnull self, int cmd, va_list ap)
+errno_t InputDriver_ioctl(InputDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
 {
     switch (cmd) {
         case kInputCommand_GetInfo: {
@@ -55,7 +55,7 @@ errno_t InputDriver_ioctl(InputDriverRef _Nonnull self, int cmd, va_list ap)
         }
 
         default:
-            return super_n(ioctl, Driver, InputDriver, self, cmd, ap);
+            return super_n(ioctl, Driver, InputDriver, self, pChannel, cmd, ap);
     }
 }
 
