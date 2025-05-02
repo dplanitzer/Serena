@@ -310,11 +310,10 @@ errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch,
 
 off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
 {
-    Driver_Lock(self);
-    const off_t r = (off_t)self->sectorCount * (off_t)self->sectorSize;
-    Driver_Unlock(self);
-
-    return r;
+    DiskInfo info;
+    const errno_t err = DiskDriver_GetInfo(self, &info);
+    
+    return (err == EOK) ? (off_t)info.sectorCount * (off_t)info.sectorSize : 0ll;
 }
 
 static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, IOChannelRef _Nonnull ch, void* _Nonnull buf, ssize_t byteCount, ssize_t* _Nonnull pOutByteCount)
