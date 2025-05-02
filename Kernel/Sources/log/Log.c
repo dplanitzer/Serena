@@ -108,6 +108,11 @@ ssize_t log_read(void* _Nonnull buf, ssize_t nBytesToRead)
     return nbytes;
 }
 
+const char* _Nonnull log_buffer(void)
+{
+    return gLogBuffer;
+}
+
 void printf(const char* _Nonnull format, ...)
 {
     va_list ap;

@@ -20,6 +20,10 @@ _Noreturn fatal(const char* _Nonnull format, ...)
         vprintf(format, ap);
     }
     else {
+        const char** p = NULL;
+
+        vprintf(format, ap);
+        *p = log_buffer();
         cpu_non_recoverable_error();
     }
     va_end(ap);

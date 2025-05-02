@@ -31,6 +31,9 @@ extern void log_write(const char* _Nonnull buf, ssize_t nbytes);
 // empty or the log is connected to the kernel console.
 extern ssize_t log_read(void* _Nonnull buf, ssize_t nbytes);
 
+// Returns a pointer to the log buffer.
+extern const char* _Nonnull log_buffer(void);
+
 
 extern void printf(const char* _Nonnull format, ...);
 extern void vprintf(const char* _Nonnull format, va_list ap);
