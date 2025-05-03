@@ -277,9 +277,7 @@ errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch,
     decl_try_err();
     FormatRequest r;
 
-    r.s.type = kDiskRequest_Format;
-    r.s.size = sizeof(FormatRequest);
-    r.s.status = EOK;
+    IORequest_Init(&r, kDiskRequest_Format);
     r.offset = IOChannel_GetOffset(ch);
     r.mediaId = self->currentMediaId;
     r.data = buf;
@@ -297,16 +295,10 @@ errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* _Nonnull info)
 {
     GetDiskInfoRequest r;
 
-    r.s.type = kDiskRequest_GetInfo;
-    r.s.size = sizeof(GetDiskInfoRequest);
-    r.s.status = EOK;
+    IORequest_Init(&r, kDiskRequest_GetInfo);
     r.ip = info;
 
-    //XXX triggers an assert?!
-//    const errno_t err = DiskDriver_DoIO(self, (IORequest*)&r);
-    DiskDriver_DoGetInfo(self, &r);
-
-    return r.s.status;
+    return DiskDriver_DoIO(self, (IORequest*)&r);
 }
 
 
@@ -328,9 +320,7 @@ static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, IOChannel
     decl_try_err();
     StrategyRequest r;
 
-    r.s.type = type;
-    r.s.size = sizeof(StrategyRequest);
-    r.s.status = EOK;
+    IORequest_Init(&r, type);
     r.offset = IOChannel_GetOffset(ch);
     r.mediaId = self->currentMediaId;
     r.iovCount = 1;

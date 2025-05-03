@@ -34,8 +34,16 @@ typedef struct IORequest {
 } IORequest;
 
 
+// Returns an IORequest suitable for an async I/O call
 extern errno_t IORequest_Get(int type, size_t reqSize, IORequest* _Nullable * _Nonnull pOutReq);
 extern void IORequest_Put(IORequest* _Nullable req);
+
+// Initializes an IORequest suitable for a sync I/O call
+#define IORequest_Init(__req, __type) \
+((IORequest*)__req)->type = (__type); \
+((IORequest*)__req)->size = 0; \
+((IORequest*)__req)->status = EOK; \
+((IORequest*)__req)->done = NULL
 
 #define IORequest_Done(__req) \
 if (((IORequest*)__req)->done) {\
