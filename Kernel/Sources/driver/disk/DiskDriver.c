@@ -185,6 +185,8 @@ errno_t DiskDriver_formatSectors(DiskDriverRef _Nonnull self, const chs_t* chs, 
 void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull req)
 {
     decl_try_err();
+    const sno_t lsa = req->offset / (off_t)self->sectorSize;
+    chs_t chs;
 
     if (req->mediaId != self->currentMediaId) {
         err = EDISKCHANGE;
@@ -192,13 +194,10 @@ void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull re
     else if (req->byteCount != self->frClusterSize * self->sectorSize) {
         err = EINVAL;
     }
-    else if (req->offset + (off_t)self->frClusterSize > (off_t)self->sectorCount) {
+    else if (lsa + self->frClusterSize > self->sectorCount) {
         err = ENXIO;
     }
     else {
-        sno_t lsa = req->offset / (off_t)self->sectorSize;
-        chs_t chs;
-
         DiskDriver_LsaToChs(self, lsa, &chs);
         err = DiskDriver_FormatSectors(self, &chs, req->data, self->sectorSize);
     }

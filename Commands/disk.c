@@ -148,6 +148,7 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, 
     try(IOChannel_Control(fileno(fp), kDiskCommand_GetInfo, &info)); 
     if (!bQuick) {
         try(wipe_disk(fileno(fp), &info));
+        File_Seek(fileno(fp), 0ll, NULL, kSeek_Set);
     }
     try(sefs_format((intptr_t)fp, block_write, info.sectorCount, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label));
     puts("ok");
