@@ -210,15 +210,31 @@ void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull re
 // drive.
 void DiskDriver_doGetInfo(DiskDriverRef _Nonnull self, GetDiskInfoRequest* _Nonnull req)
 {
-    DiskInfo* ip = req->ip;
+    DiskInfo* p = req->ip;
     
-    ip->mediaId = self->currentMediaId;
-    ip->properties = self->mediaProperties;
-    ip->sectorSize = self->sectorSize;
-    ip->sectorCount = self->sectorCount;
-    ip->rwClusterSize = self->rwClusterSize;
-    ip->frClusterSize = self->frClusterSize;
+    p->mediaId = self->currentMediaId;
+    p->properties = self->mediaProperties;
+    p->sectorSize = self->sectorSize;
+    p->sectorCount = self->sectorCount;
+    p->rwClusterSize = self->rwClusterSize;
+    p->frClusterSize = self->frClusterSize;
     req->s.status = EOK;
+}
+
+void DiskDriver_doGetGeometry(DiskDriverRef _Nonnull self, DiskGeometryRequest* _Nonnull req)
+{
+    DiskGeometry* p = req->gp;
+
+    if (self->currentMediaId > 0) {
+        p->headsPerCylinder = self->headsPerCylinder;
+        p->sectorsPerTrack = self->sectorsPerTrack;
+        p->cylindersPerDisk = self->cylindersPerDisk;
+        p->sectorSize = self->sectorSize;
+        req->s.status = EOK;
+    }
+    else {
+        req->s.status = ENOMEDIUM;
+    }
 }
 
 
@@ -244,6 +260,10 @@ void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IORequest* _Nonnull r
 
             case kDiskRequest_GetInfo:
                 DiskDriver_DoGetInfo(self, (GetDiskInfoRequest*)req);
+                break;
+
+            case kDiskRequest_GetGeometry:
+                DiskDriver_DoGetGeometry(self, (DiskGeometryRequest*)req);
                 break;
 
             default:
@@ -296,6 +316,16 @@ errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* _Nonnull info)
 
     IORequest_Init(&r, kDiskRequest_GetInfo);
     r.ip = info;
+
+    return DiskDriver_DoIO(self, (IORequest*)&r);
+}
+
+errno_t DiskDriver_GetGeometry(DiskDriverRef _Nonnull self, DiskGeometry* _Nonnull info)
+{
+    DiskGeometryRequest r;
+
+    IORequest_Init(&r, kDiskRequest_GetGeometry);
+    r.gp = info;
 
     return DiskDriver_DoIO(self, (IORequest*)&r);
 }
@@ -356,6 +386,12 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull pCha
             return DiskDriver_GetInfo(self, info);
         }
 
+        case kDiskCommand_GetGeometry: {
+            DiskGeometry* info = va_arg(ap, DiskGeometry*);
+        
+            return DiskDriver_GetGeometry(self, info);
+        }
+
         case kDiskCommand_Format: {
             const void* data = va_arg(ap, const void*);
             const ssize_t byteCount = va_arg(ap, ssize_t);
@@ -382,6 +418,7 @@ func_def(putSector, DiskDriver)
 func_def(doFormat, DiskDriver)
 func_def(formatSectors, DiskDriver)
 func_def(doGetInfo, DiskDriver)
+func_def(doGetGeometry, DiskDriver)
 override_func_def(getSeekableRange, DiskDriver, Driver)
 override_func_def(read, DiskDriver, Driver)
 override_func_def(write, DiskDriver, Driver)

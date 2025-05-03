@@ -39,13 +39,27 @@ typedef struct DiskInfo {
 #define kDiskCommand_GetInfo  IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
 
+// Disk geometry information
+typedef struct DiskGeometry {
+    size_t  headsPerCylinder;
+    size_t  sectorsPerTrack;
+    size_t  cylindersPerDisk;
+    size_t  sectorSize;
+} DiskGeometry;
+ 
+// Returns geometry information for the disk that is currently in the drive.
+// ENOMEDIUM is returned if no disk is in the drive.
+// get_geometry(DiskGeometry* _Nonnull pOutGeometry)
+#define kDiskCommand_GetGeometry  IOResourceCommand(kDriverCommand_SubclassBase + 1)
+
+    
 // Formats 'frClusterSize' consecutive sectors starting at the current channel
 // position. 'data' points to the data that should be written to 'frClusterSize'
 // sectors. 'byteCount' must be frClusterSize * sectorSize. The channel position
 // must be a multiple of frClusterSize'. The caller will be blocked until all
 // data has been written to disk or an error is encountered.
 // format(const void* _Nonnull data, ssize_t byteCount)
-#define kDiskCommand_Format IOResourceCommand(kDriverCommand_SubclassBase + 1)
+#define kDiskCommand_Format IOResourceCommand(kDriverCommand_SubclassBase + 2)
 
 
 #if !defined(__KERNEL__)

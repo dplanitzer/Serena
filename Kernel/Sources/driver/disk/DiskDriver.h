@@ -33,6 +33,7 @@ enum {
     kDiskRequest_Write,
     kDiskRequest_Format,
     kDiskRequest_GetInfo,
+    kDiskRequest_GetGeometry,
 };
 
 
@@ -62,6 +63,12 @@ typedef struct GetDiskInfoRequest {
 } GetDiskInfoRequest;
 
 
+typedef struct DiskGeometryRequest {
+    IORequest               s;
+    DiskGeometry* _Nonnull  gp;
+} DiskGeometryRequest;
+
+    
 // A disk driver manages the data stored on a disk. It provides read and write
 // access to the disk data. Data on a disk is organized in sectors. All sectors
 // are of the same size. Sectors are addressed with an index in the range
@@ -175,8 +182,14 @@ open_class_funcs(DiskDriver, Driver,
 
     // Returns information about the disk drive and the media loaded into the
     // drive.
-    // Default Behavior: returns info for an empty disk
+    // Default Behavior: returns info for the currently loaded disk
     void (*doGetInfo)(void* _Nonnull self, GetDiskInfoRequest* _Nonnull req);
+
+
+    // Returns geometry information about the disk that is currently in the
+    // drive. Returns ENOMEDIUM if no disk is in the drive
+    // Default Behavior: returns geometry info for the currently loaded disk
+    void (*doGetGeometry)(void* _Nonnull self, DiskGeometryRequest* _Nonnull req);
 );
 
 
@@ -194,6 +207,8 @@ invoke_n(doIO, DiskDriver, __self, __req)
 extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nonnull buf, ssize_t byteCount);
 
 extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
+
+extern errno_t DiskDriver_GetGeometry(DiskDriverRef _Nonnull self, DiskGeometry* pOutInfo);
 
 
 //
@@ -243,6 +258,9 @@ invoke_n(formatSectors, DiskDriver, __self, __chs, __data, __secSize)
 
 #define DiskDriver_DoGetInfo(__self, __req) \
 invoke_n(doGetInfo, DiskDriver, __self, __req)
+
+#define DiskDriver_DoGetGeometry(__self, __req) \
+invoke_n(doGetGeometry, DiskDriver, __self, __req)
 
 
 extern void DiskDriver_LsaToChs(DiskDriverRef _Locked _Nonnull self, sno_t lsa, chs_t* _Nonnull chs);

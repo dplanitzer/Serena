@@ -283,6 +283,44 @@ catch:
 }
 
 
+static errno_t cmd_geometry(const char* _Nonnull path)
+{
+    decl_try_err();
+    fsid_t fsid;
+    DiskGeometry info;
+    int fd = -1;
+    bool hasDisk = true;
+
+    try(File_Open(path, kOpen_Read, &fd));
+    err = IOChannel_Control(fd, kDiskCommand_GetGeometry, &info);
+    if (err == ENOMEDIUM) {
+        err = EOK;
+        hasDisk = false;
+    }
+    else {
+        throw_iferr(err);
+    }
+
+
+    // XX formatting
+    if (hasDisk) {
+        puts("Disk Cylinders Heads Sectors/Track Sectors/Disk Sector Size");
+        printf("%s  %zu  %zu  %zu  %zu  %zu\n", path, info.cylindersPerDisk, info.headsPerCylinder, info.sectorsPerTrack, info.cylindersPerDisk * info.headsPerCylinder * info.sectorsPerTrack, info.sectorSize);
+    }
+    else {
+        puts("Disk");
+        printf("%s  no disk in drive\n", path);
+    }
+
+catch:
+    if (fd >= 0) {
+        IOChannel_Close(fd);
+    }
+
+    return err;
+}
+
+
 errno_t cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
 {
     decl_try_err();
@@ -456,6 +494,9 @@ CLAP_DECL(params,
     CLAP_REQUIRED_COMMAND("info", &cmd_id, "<path>", "Prints information about the filesystem at path 'path'."),
         CLAP_POSITIONAL_STRING(&fs_path),
 
+    CLAP_REQUIRED_COMMAND("geometry", &cmd_id, "<disk_path>", "Prints information about the geometry of the disk device at path 'disk_path'."),
+        CLAP_POSITIONAL_STRING(&disk_path),
+
     CLAP_REQUIRED_COMMAND("mount", &cmd_id, "<disk_path> --at <at_path>", "Mounts the disk 'disk_path' on top of the directory 'at_path'."),
         CLAP_STRING('t', "at", &at_path, "Specify the mount point"),
         CLAP_POSITIONAL_STRING(&disk_path),
@@ -491,6 +532,10 @@ int main(int argc, char* argv[])
     else if (!strcmp(cmd_id, "info")) {
         // disk info
         err = cmd_info(fs_path);
+    }
+    else if (!strcmp(cmd_id, "geometry")) {
+        // disk geometry
+        err = cmd_geometry(disk_path);
     }
     else if (!strcmp(cmd_id, "mount")) {
         // disk mount
