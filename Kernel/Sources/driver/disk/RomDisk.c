@@ -13,13 +13,15 @@
 
 final_class_ivars(RomDisk, DiskDriver,
     const char* _Nonnull    diskImage;
+    scnt_t                  sectorCount;
     size_t                  sectorShift;
+    size_t                  sectorSize;
     bool                    freeDiskImageOnClose;
     char                    name[MAX_NAME_LENGTH + 1];
 );
 
 
-errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, const void* _Nonnull pImage, size_t sectorSize, LogicalBlockCount sectorCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
+errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, const void* _Nonnull pImage, size_t sectorSize, scnt_t sectorCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     RomDiskRef self = NULL;
@@ -28,18 +30,11 @@ errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, co
         throw(EINVAL);
     }
 
-    MediaInfo info;
-    info.sectorsPerTrack = sectorCount;
-    info.heads = 1;
-    info.cylinders = 1;
-    info.sectorSize = sectorSize;
-    info.rwClusterSize = 1;
-    info.frClusterSize = 0;
-    info.properties = kMediaProperty_IsReadOnly;
-
-    try(DiskDriver_Create(class(RomDisk), 0, parent, &info, (DriverRef*)&self));
+    try(DiskDriver_Create(class(RomDisk), 0, parent, (DriverRef*)&self));
     self->diskImage = pImage;
+    self->sectorCount = sectorCount;
     self->sectorShift = siz_log2(sectorSize);
+    self->sectorSize = sectorSize;
     self->freeDiskImageOnClose = freeOnClose;
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
 
@@ -59,6 +54,17 @@ void RomDisk_deinit(RomDiskRef _Nonnull self)
 
 errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
 {
+    MediaInfo info;
+    info.sectorsPerTrack = self->sectorCount;
+    info.heads = 1;
+    info.cylinders = 1;
+    info.sectorSize = self->sectorSize;
+    info.rwClusterSize = 1;
+    info.frClusterSize = 0;
+    info.properties = kMediaProperty_IsReadOnly;
+    DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
+
+
     DriverEntry de;
     de.name = self->name;
     de.uid = kUserId_Root;

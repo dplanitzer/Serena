@@ -90,7 +90,12 @@ typedef struct DiskGeometryRequest {
 // expressed in bytes but doesn't have to be a multiple of the sector size. If
 // it isn't then a read/write is treated as a short read/write that returns the
 // number of bytes actually read/written. This number is always a multiple of the
-// sector size. 
+// sector size.
+//
+// A disk driver instance always starts out assuming there is no disk in the
+// drive. A disk driver subclass should kick off the disk sensing from an onStart()
+// override and it should eventually call DiskDriver_NoteMediaLoaded() with a
+// description of the sensed disk.
 open_class(DiskDriver, Driver,
     DispatchQueueRef _Nullable  dispatchQueue;
     MediaId                     currentMediaId;
@@ -270,11 +275,7 @@ extern sno_t DiskDriver_ChsToLsa(DiskDriverRef _Locked _Nonnull self, const chs_
 // Creates a disk driver instance. This function should be called from DiskDrive
 // subclass constructors.
 // 'options' specifies various behaviors of the disk driver. 'parent' is a
-// reference to the bus driver that controls the disk driver. 'info' is a
-// description of the media loaded into the drive when the driver is instantiated.
-// It may be that the media is not really known at that point in time. In this
-// case either pass NULL or (preferably) a media info with blockCount == 0 and
-// the other properties set to defaults that make sense for the drive in general.
-extern errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, const MediaInfo* _Nullable info, DriverRef _Nullable * _Nonnull pOutSelf);
+// reference to the bus driver that controls the disk driver.
+extern errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* DiskDriver_h */

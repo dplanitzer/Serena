@@ -29,18 +29,7 @@ errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds
     decl_try_err();
     FloppyDriverRef self;
 
-    // Default media properties until we've figured out what media is actually
-    // in the drive
-    MediaInfo info;
-    info.sectorsPerTrack = 0;
-    info.heads = 0;
-    info.cylinders = 0;
-    info.sectorSize = ADF_SECTOR_DATA_SIZE;
-    info.rwClusterSize = 0;
-    info.frClusterSize = 0;
-    info.properties = kMediaProperty_IsReadOnly | kMediaProperty_IsRemovable;
-
-    try(DiskDriver_Create(class(FloppyDriver), 0, parent, &info, (DriverRef*)&self));
+    try(DiskDriver_Create(class(FloppyDriver), 0, parent, (DriverRef*)&self));
 
     self->drive = drive;
     self->driveState = ds;

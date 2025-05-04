@@ -18,6 +18,7 @@ final_class_ivars(PartitionDriver, DiskDriver,
     sno_t                           lsaStart;           // First sector of the partition
     scnt_t                          sectorCount;        // Partition size in terms of sectors
     size_t                          sectorSize;
+    bool                            isReadOnly;
     char                            name[MAX_NAME_LENGTH];
 );
 
@@ -33,24 +34,13 @@ errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull 
         throw(EINVAL);
     }
 
-    MediaInfo partInfo;
-    partInfo.sectorsPerTrack = 0;   //XXX
-    partInfo.heads = 0;             //XXX
-    partInfo.cylinders = 0;         //XXX
-    partInfo.sectorSize = diskInfo.sectorSize;
-    partInfo.rwClusterSize = diskInfo.rwClusterSize;
-    partInfo.frClusterSize = diskInfo.frClusterSize;
-    partInfo.properties = diskInfo.properties;
-    if (isReadOnly) {
-        partInfo.properties |= kMediaProperty_IsReadOnly;
-    }
-
-    try(DiskDriver_Create(class(PartitionDriver), 0, parent, &partInfo, (DriverRef*)&self));
+    try(DiskDriver_Create(class(PartitionDriver), 0, parent, (DriverRef*)&self));
     self->wholeDisk = wholeDisk;
     self->wholeMediaId = diskInfo.mediaId;
     self->lsaStart = lsaStart;
     self->sectorCount = sectorCount;
     self->sectorSize = diskInfo.sectorSize;
+    self->isReadOnly = isReadOnly;
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
 
     *pOutSelf = self;
@@ -70,6 +60,27 @@ errno_t PartitionDriver_createDispatchQueue(PartitionDriverRef _Nonnull self, Di
 
 errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
 {
+    decl_try_err();
+    DiskGeometry wholeGeom;
+    DiskInfo wholeInfo;
+
+    try(DiskDriver_GetGeometry(self->wholeDisk, &wholeGeom));
+    try(DiskDriver_GetInfo(self->wholeDisk, &wholeInfo));
+
+    MediaInfo info;
+    info.sectorsPerTrack = wholeGeom.sectorsPerTrack;
+    info.heads = wholeGeom.headsPerCylinder;
+    info.cylinders = wholeGeom.cylindersPerDisk;
+    info.sectorSize = wholeGeom.sectorSize;
+    info.rwClusterSize = wholeInfo.rwClusterSize;
+    info.frClusterSize = wholeInfo.frClusterSize;
+    info.properties = wholeInfo.properties;
+    if (self->isReadOnly) {
+        info.properties |= kMediaProperty_IsReadOnly;
+    }
+    DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
+
+
     DriverEntry de;
     de.name = self->name;
     de.uid = kUserId_Root;
@@ -77,7 +88,10 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     de.perms = FilePermissions_MakeFromOctal(0640);
     de.arg = 0;
 
-    return Driver_Publish((DriverRef)self, &de);
+    try(Driver_Publish((DriverRef)self, &de));
+
+catch:
+    return err;
 }
 
 static DiskDriverRef _Nonnull _prep_req(PartitionDriverRef _Nonnull self, IORequest* _Nonnull r)

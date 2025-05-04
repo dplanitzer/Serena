@@ -22,12 +22,14 @@ typedef struct DiskExtent {
 final_class_ivars(RamDisk, DiskDriver,
     SList               extents;            // Sorted ascending by 'firstSectorIndex'
     LogicalBlockCount   extentSectorCount;  // How many blocks an extent stores
+    scnt_t              sectorCount;
     size_t              sectorShift;
+    size_t              sectorSize;
     char                name[MAX_NAME_LENGTH];
 );
 
 
-errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, size_t sectorSize, LogicalBlockCount sectorCount, LogicalBlockCount extentSectorCount, RamDiskRef _Nullable * _Nonnull pOutSelf)
+errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount, RamDiskRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     RamDiskRef self = NULL;
@@ -36,19 +38,12 @@ errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, si
         throw(EINVAL);
     }
 
-    MediaInfo info;
-    info.sectorsPerTrack = sectorCount;
-    info.heads = 1;
-    info.cylinders = 1;
-    info.sectorSize = sectorSize;
-    info.rwClusterSize = 1;
-    info.frClusterSize = 1;
-    info.properties = 0;
-
-    try(DiskDriver_Create(class(RamDisk), 0, parent, &info, (DriverRef*)&self));
+    try(DiskDriver_Create(class(RamDisk), 0, parent, (DriverRef*)&self));
     SList_Init(&self->extents);
     self->extentSectorCount = __min(extentSectorCount, sectorCount);
+    self->sectorCount = sectorCount;
     self->sectorShift = siz_log2(sectorSize);
+    self->sectorSize = sectorSize;
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
 
 catch:
@@ -67,6 +62,17 @@ void RamDisk_deinit(RamDiskRef _Nonnull self)
 
 errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
 {
+    MediaInfo info;
+    info.sectorsPerTrack = self->sectorCount;
+    info.heads = 1;
+    info.cylinders = 1;
+    info.sectorSize = self->sectorSize;
+    info.rwClusterSize = 1;
+    info.frClusterSize = 1;
+    info.properties = 0;
+    DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
+
+
     DriverEntry de;
     de.name = self->name;
     de.uid = kUserId_Root;
