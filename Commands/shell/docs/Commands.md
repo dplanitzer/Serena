@@ -90,6 +90,18 @@ Prints the globally unique filesystem id of the filesystem on which the current 
 
 * `path`: a path to a file or directory
 
+## `disk geometry`
+
+Prints information about the geometry of the disk on which a filesystem is stored. The command prints information for the disk that holds the current working directory by default. Specify a path to a disk drive instead to print the geometry of this disk drive and specify a path to filesystem instead to print geometry information about the disk holding this filesystem.
+
+### Signature
+
+`disk geometry [path]`
+
+### Parameters
+
+* `path`: a path to a file, directory or disk device
+
 ## `disk info`
 
 Prints information about a filesystem. Eg the size, number of used and freed blocks, name of the underlying disk device, etc. The command prints information for the filesystem that holds the current working directory by default. Specify the id of a mounted filesystem to print information about this particular filesystem instead.
