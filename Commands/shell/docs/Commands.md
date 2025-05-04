@@ -78,6 +78,12 @@ Initializes an unformatted disk with the specified filesystem. The filesystem is
 
 * `disk_path`: a path to a disk driver (typically found in `/dev/hw`)
 
+### Example
+
+`disk format -t sefs /dev/hw/fd-bus/fd1`
+
+The disk in floppy disk drive 1 is formatted and initialized with a fresh Serena Filesystem copy. Note that it will take a while to complete the formatting process. Once completed the disk may be mounted and then accessed through the mountpoint directory.
+
 ## `disk fsid`
 
 Prints the globally unique filesystem id of the filesystem on which the current working directory resides if no path is provided, or the filesystem id of the filesystem on which the file/directory resides to which the provided path points.
@@ -130,6 +136,12 @@ Mounts the filesystem stored on a disk and makes it accessible at the directory 
 
 * `disk_path`: a path to a disk driver (typically found in `/dev/hw`)
 
+### Example
+
+`disk mount --at /Volumes/FD1 /dev/hw/fd-bus/fd1`
+
+Mounts the disk in floppy disk drive 1 at the directory `/Volumes/FD1`. Once mounting has completed, the contents of the disk may be accessed through this directory path.
+
 ## `disk unmount`
 
 Unmounts a filesystem. This command ensures that all cached data is first written to the disk and the the filesystem is unmounted.
@@ -145,6 +157,12 @@ Unmounts a filesystem. This command ensures that all cached data is first writte
 ### Parameters
 
 * `at_path`: the path to the directory at which the filesystem is mounted
+
+### Example
+
+`disk unmount /Volumes/FD1`
+
+Unmounts the filesystem mounted at the directory `/Volumes/FD1`. All data that is stored in the disk cache and hasn't been written to the disk yet is automatically written to the disk before the filesystem is unmounted. Once unmounted the contents of the filesystem is no longer accessible until it is mounted again.
 
 ## `echo`
 
