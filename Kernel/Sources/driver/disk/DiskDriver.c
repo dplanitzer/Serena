@@ -54,8 +54,6 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
     const scnt_t sectorCount = (info) ? (scnt_t)info->sectorsPerTrack * (scnt_t)info->heads * (scnt_t)info->cylinders : 0;
     const bool hasMedia = (info && (sectorCount > 0) && (info->sectorSize > 0)) ? true : false;
 
-    Driver_Lock(self);
-
     self->sectorsPerTrack = info->sectorsPerTrack;
     self->headsPerCylinder = info->heads;
     self->cylindersPerDisk = info->cylinders;
@@ -79,8 +77,6 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
         self->mediaProperties = kMediaProperty_IsReadOnly;
         self->currentMediaId = kMediaId_None;
     }
-
-    Driver_Unlock(self);
 }
 
 void DiskDriver_LsaToChs(DiskDriverRef _Locked _Nonnull self, sno_t lsa, chs_t* _Nonnull chs)
