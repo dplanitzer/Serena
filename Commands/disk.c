@@ -286,13 +286,30 @@ catch:
 static errno_t cmd_geometry(const char* _Nonnull path)
 {
     decl_try_err();
+    FileInfo finf;
     fsid_t fsid;
+    FSInfo fsinf;
+    char buf[32];
     DiskGeometry info;
     int fd = -1;
     bool hasDisk = true;
 
-    try(File_Open(path, kOpen_Read, &fd));
-    err = IOChannel_Control(fd, kDiskCommand_GetGeometry, &info);
+    if (*path != '\0') {
+        try(File_GetInfo(path, &finf));
+    }
+    if (finf.type == kFileType_Device) {
+        try(File_Open(path, kOpen_Read, &fd));
+        err = IOChannel_Control(fd, kDiskCommand_GetGeometry, &info);
+    }
+    else {
+        try(get_fsid(path, &fsid));
+        sprintf(buf, "/fs/%u", fsid);
+        try(File_Open(buf, kOpen_Read, &fd));
+        err = IOChannel_Control(fd, kFSCommand_GetDiskGeometry, &info);
+
+        try(s_fsgetdisk(fsid, buf, sizeof(buf)));
+        path = buf;
+    }
     if (err == ENOMEDIUM) {
         err = EOK;
         hasDisk = false;

@@ -12,6 +12,7 @@
 #include <klib/klib.h>
 #include <kobj/Object.h>
 #include <filesystem/FSBlock.h>
+#include <System/Disk.h>
 #include <System/Filesystem.h>
 
 
@@ -64,6 +65,11 @@ open_class_funcs(FSContainer, Object,
     // Synchronously flushes all cached and unwritten blocks belonging to this
     // FS container to disk(s).
     errno_t (*sync)(void* _Nonnull self);
+
+    // Returns the geometry of the disk underlying the container. ENOMEDIUM is
+    // returned if no disk is in the drive. ENOTSUP is returned if retrieving
+    // the geometry information is not supported.
+    errno_t (*getGeometry)(void* _Nonnull self, DiskGeometry* _Nonnull info);
 );
 
 
@@ -106,6 +112,9 @@ invoke_n(syncBlock, FSContainer, __self, __driverId, __mediaId, __lba)
 
 #define FSContainer_Sync(__self) \
 invoke_0(sync, FSContainer, __self)
+
+#define FSContainer_GetGeometry(__self, __info) \
+invoke_n(getGeometry, FSContainer, __self, __info)
 
 
 //

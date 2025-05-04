@@ -83,6 +83,11 @@ errno_t DiskContainer_sync(struct DiskContainer* _Nonnull self)
     return DiskCache_Sync(self->diskCache, &self->session);
 }
 
+errno_t DiskContainer_getGeometry(struct DiskContainer* _Nonnull self, DiskGeometry* _Nonnull info)
+{
+    return IOChannel_Ioctl(self->session.channel, kDiskCommand_GetGeometry, info);
+}
+
 
 class_func_defs(DiskContainer, Object,
 override_func_def(deinit, DiskContainer, Object)
@@ -92,4 +97,5 @@ override_func_def(unmapBlock, DiskContainer, FSContainer)
 override_func_def(prefetchBlock, DiskContainer, FSContainer)
 override_func_def(syncBlock, DiskContainer, FSContainer)
 override_func_def(sync, DiskContainer, FSContainer)
+override_func_def(getGeometry, DiskContainer, FSContainer)
 );

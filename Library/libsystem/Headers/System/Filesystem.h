@@ -60,18 +60,24 @@ typedef struct FSInfo {
 
 // Returns general information about the filesystem.
 // get_fsinfo(FSInfo* _Nonnull pOutInfo)
-#define kFSCommand_GetInfo      IOResourceCommand(0)
+#define kFSCommand_GetInfo          IOResourceCommand(0)
 
 // Returns the label of a filesystem. The label is a name that can be assigned
 // when a disk is formatted and that helps a user in identifying a disk. Note
 // that not all filesystems support a label. ENOTSUP is returned in this case.
 // get_label(char* _Nonnull buf, size_t bufSize)
-#define kFSCommand_GetLabel     IOResourceCommand(1)
+#define kFSCommand_GetLabel         IOResourceCommand(1)
 
 // Sets the label of a filesystem. Note that not all filesystems support a label.
 // ENOTSUP is returned in this case.
 // set_label(const char* _Nonnull buf)
-#define kFSCommand_SetLabel     IOResourceCommand(2)
+#define kFSCommand_SetLabel         IOResourceCommand(2)
+
+// Returns geometry information for the disk that holds the filesystem.
+// ENOMEDIUM is returned if no disk is in the drive. Returns ENOTSUP if the
+// filesystem isn't disk-based.
+// get_geometry(DiskGeometry* _Nonnull pOutGeometry)
+#define kFSCommand_GetDiskGeometry  IOResourceCommand(3)
 
 
 #if !defined(__KERNEL__)
