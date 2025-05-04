@@ -74,11 +74,14 @@ static void wait_for_disk_change(const char* _Nonnull driverPath, int maxTries, 
         while (tries-- > 0) {
             DiskInfo info;
 
-            if (IOChannel_Ioctl(chan, kDiskCommand_GetInfo, &info) != EOK) {
-                break;
+            err = IOChannel_Ioctl(chan, kDiskCommand_GetInfo, &info);
+            if (err == EOK) {
+                if (info.mediaId != *mediaId) {
+                    *mediaId = info.mediaId;
+                    break;
+                }
             }
-            if (info.mediaId != *mediaId) {
-                *mediaId = info.mediaId;
+            else if (err != ENOMEDIUM) {
                 break;
             }
 

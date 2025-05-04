@@ -212,13 +212,18 @@ void DiskDriver_doGetInfo(DiskDriverRef _Nonnull self, GetDiskInfoRequest* _Nonn
 {
     DiskInfo* p = req->ip;
     
-    p->mediaId = self->currentMediaId;
-    p->properties = self->mediaProperties;
-    p->sectorSize = self->sectorSize;
-    p->sectorCount = self->sectorCount;
-    p->rwClusterSize = self->rwClusterSize;
-    p->frClusterSize = self->frClusterSize;
-    req->s.status = EOK;
+    if (self->currentMediaId > 0) {
+        p->mediaId = self->currentMediaId;
+        p->properties = self->mediaProperties;
+        p->sectorSize = self->sectorSize;
+        p->sectorCount = self->sectorCount;
+        p->rwClusterSize = self->rwClusterSize;
+        p->frClusterSize = self->frClusterSize;
+        req->s.status = EOK;
+    }
+    else {
+        req->s.status = ENOMEDIUM;
+    }
 }
 
 void DiskDriver_doGetGeometry(DiskDriverRef _Nonnull self, DiskGeometryRequest* _Nonnull req)
