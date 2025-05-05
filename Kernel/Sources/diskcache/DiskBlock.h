@@ -25,22 +25,22 @@ typedef enum DiskBlockOp {
 // Management state is protected by the interlock
 // Block data and error status is protected by the shared/exclusive lock
 typedef struct DiskBlock {
-    ListNode                        hashNode;           // Protected by Interlock
-    ListNode                        lruNode;            // Protected by Interlock
-    int                             sessionId;            // Protected by Interlock. Address by which a block is identified in the cache
-    bno_t                           lba;                // Protected by Interlock. Address by which a block is identified in the cache
-    int                             shareCount;         // Protected by Interlock
+    ListNode        hashNode;           // Protected by Interlock
+    ListNode        lruNode;            // Protected by Interlock
+    int             sessionId;          // Protected by Interlock. Address by which a block is identified in the cache
+    bno_t           lba;                // Protected by Interlock. Address by which a block is identified in the cache
+    int             shareCount;         // Protected by Interlock
     struct __DiskBlockFlags {
-        unsigned int        exclusive:1;    // Protected by Interlock
-        unsigned int        hasData:1;      // Protected by Interlock
-        unsigned int        isDirty:1;      // Protected by Interlock
-        unsigned int        isPinned:1;     // Protected by INterlock
-        unsigned int        op:2;           // Protected by Interlock
-        unsigned int        async:1;        // Protected by Interlock
-        unsigned int        readError:8;    // Read: shared lock; Modify: exclusive lock
-        unsigned int        reserved:17;
-    }                               flags;
-    uint8_t                         data[1];            // Read: shared lock; Modify: exclusive lock
+        unsigned int    exclusive:1;    // Protected by Interlock
+        unsigned int    hasData:1;      // Protected by Interlock
+        unsigned int    isDirty:1;      // Protected by Interlock
+        unsigned int    isPinned:1;     // Protected by INterlock
+        unsigned int    op:2;           // Protected by Interlock
+        unsigned int    async:1;        // Protected by Interlock
+        unsigned int    readError:8;    // Read: shared lock; Modify: exclusive lock
+        unsigned int    reserved:17;
+    }               flags;
+    uint8_t         data[1];            // Read: shared lock; Modify: exclusive lock
 } DiskBlock;
 
 
