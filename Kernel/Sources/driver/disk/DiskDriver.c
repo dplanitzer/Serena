@@ -138,10 +138,7 @@ void DiskDriver_strategy(DiskDriverRef _Nonnull self, StrategyRequest* _Nonnull 
         while (size >= self->sectorSize) {
             DiskDriver_LsaToChs(self, lsa, &chs);
 
-            if (req->mediaId != self->currentMediaId) {
-                err = EDISKCHANGE;
-            }        
-            else if (lsa >= self->sectorCount) {
+            if (lsa >= self->sectorCount) {
                 err = ENXIO;
             }
             else if (req->s.type == kDiskRequest_Read) {
@@ -182,10 +179,7 @@ void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull re
     const sno_t lsa = req->offset / (off_t)self->sectorSize;
     chs_t chs;
 
-    if (req->mediaId != self->currentMediaId) {
-        err = EDISKCHANGE;
-    }
-    else if (req->byteCount != self->frClusterSize * self->sectorSize) {
+    if (req->byteCount != self->frClusterSize * self->sectorSize) {
         err = EINVAL;
     }
     else if (lsa + self->frClusterSize > self->sectorCount) {
@@ -297,7 +291,6 @@ errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch,
 
     IORequest_Init(&r, kDiskRequest_Format);
     r.offset = IOChannel_GetOffset(ch);
-    r.mediaId = self->currentMediaId;
     r.data = buf;
     r.byteCount = byteCount;
 
@@ -350,7 +343,6 @@ static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, IOChannel
 
     IORequest_Init(&r, type);
     r.offset = IOChannel_GetOffset(ch);
-    r.mediaId = self->currentMediaId;
     r.iovCount = 1;
     r.iov[0].data = buf;
     r.iov[0].size = byteCount;

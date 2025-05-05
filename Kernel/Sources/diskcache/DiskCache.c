@@ -28,6 +28,7 @@ errno_t DiskCache_Create(size_t blockSize, size_t maxBlockCount, DiskCacheRef _N
     ConditionVariable_Init(&self->condition);
     List_Init(&self->lruChain);
 
+    self->nextAvailSessionId = 1;
     self->blockSize = blockSize;
     self->blockCount = 0;
     self->blockCapacity = maxBlockCount;
@@ -191,13 +192,13 @@ void _DiskCache_PrintLruChain(DiskCacheRef _Nonnull _Locked self)
 #endif
 
 
-static errno_t _DiskCache_CreateBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+static errno_t _DiskCache_CreateBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, bno_t lba, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
     DiskBlockRef pBlock;
 
     // We can still grow the disk block list
-    err = DiskBlock_Create(disk, mediaId, lba, self->blockSize, &pBlock);
+    err = DiskBlock_Create(s->sessionId, lba, self->blockSize, &pBlock);
     if (err == EOK) {
         _DiskCache_RegisterBlock(self, pBlock);
         self->blockCount++;
@@ -209,7 +210,7 @@ static errno_t _DiskCache_CreateBlock(DiskCacheRef _Nonnull _Locked self, DiskDr
 
 // Finds the oldest cached block that isn't currently in use and re-targets this
 // block to the new disk address.  
-static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba)
+static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, bno_t lba)
 {
     DiskBlockRef pBlock = NULL;
 
@@ -232,7 +233,7 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
         //_DiskCache_SyncBlock(self, pBlock);
 
         _DiskCache_UnregisterBlock(self, pBlock);
-        DiskBlock_SetDiskAddress(pBlock, disk, mediaId, lba);
+        DiskBlock_SetDiskAddress(pBlock, s->sessionId, lba);
         DiskBlock_PurgeData(pBlock, self->blockSize);
         _DiskCache_RegisterBlock(self, pBlock);
     }
@@ -244,26 +245,19 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
 // A new block is created if needed or an existing block is retrieved from the
 // cached list of blocks. The caller must lock the content of the block before
 // doing I/O on it or before handing it to a filesystem.
-errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, unsigned int options, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, bno_t lba, unsigned int options, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
     DiskBlockRef pBlock;
 
-    // Can not address blocks on a disk or media that doesn't exist
-    if (mediaId == kMediaId_None) {
-        *pOutBlock = NULL;
-        return ENOMEDIUM;
-    }
-    
-
     for (;;) {
         // Look up the block based on (disk, mediaId, lba)
-        const size_t idx = DiskBlock_HashKey(disk, mediaId, lba) & DISK_BLOCK_HASH_CHAIN_MASK;
+        const size_t idx = DiskBlock_HashKey(s->sessionId, lba) & DISK_BLOCK_HASH_CHAIN_MASK;
         List* chain = &self->diskAddrHash[idx];
     
         pBlock = NULL;
         List_ForEach(chain, DiskBlock,
-            if (DiskBlock_IsEqualKey(pCurNode, disk, mediaId, lba)) {
+            if (DiskBlock_IsEqualKey(pCurNode, s->sessionId, lba)) {
                 pBlock = pCurNode;
                 break;
             }
@@ -279,14 +273,14 @@ errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _N
         // find a block that we can reuse for the new disk address
         if (self->blockCount < self->blockCapacity) {
             // We can still grow the disk block list
-            err = _DiskCache_CreateBlock(self, disk, mediaId, lba, &pBlock);
+            err = _DiskCache_CreateBlock(self, s, lba, &pBlock);
             break;
         }
         else {
             // We can't create any more disk blocks. Try to reuse one that isn't
             // currently in use. We may have to wait for a disk block to become
             // available for use if they are all currently in use.
-            pBlock = _DiskCache_ReuseCachedBlock(self, disk, mediaId, lba);
+            pBlock = _DiskCache_ReuseCachedBlock(self, s, lba);
             if (pBlock) {
                 break;
             }

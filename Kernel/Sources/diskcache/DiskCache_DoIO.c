@@ -81,7 +81,7 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     
 #if 1
     for (bcnt_t i = 0; i < nBlocksToCluster; i++) {
-        const LogicalBlockAddress lba = lbaClusterStart + i;
+        const bno_t lba = lbaClusterStart + i;
         DiskBlockRef pOther;
 
         if (lba == pBlock->lba) {
@@ -98,7 +98,7 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
             // We'll request all blocks in the request range that haven't already
             // been read in earlier. Note that we just ignore blocks that don't
             // fit our requirements since this is just for prefetching.
-            err = _DiskCache_GetBlock(self, s->disk, pBlock->mediaId, lba, kGetBlock_Allocate | kGetBlock_Exclusive, &pOther);
+            err = _DiskCache_GetBlock(self, s, lba, kGetBlock_Allocate | kGetBlock_Exclusive, &pOther);
             if (err == EOK && !pOther->flags.hasData && pOther->flags.op != kDiskBlockOp_Read) {
                 err = _DiskCache_LockBlockContent(self, pOther, kLockMode_Exclusive);
 
@@ -133,7 +133,6 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
 
     req->s.done = (IODoneFunc)DiskCache_OnDiskRequestDone;
     req->s.context = self;
-    req->mediaId = pBlock->mediaId;
     req->offset = lbaClusterStart * s->s2bFactor * s->sectorSize;
     req->iovCount = nBlocksToCluster;
 

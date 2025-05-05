@@ -19,7 +19,7 @@
 typedef struct DiskSession {
     IOChannelRef _Nullable  channel;
     DiskDriverRef _Nullable disk;
-    MediaId                 mediaId;
+    int                     sessionId;
     size_t                  sectorSize;
     size_t                  s2bFactor;
     size_t                  trailPadSize;
@@ -48,19 +48,19 @@ extern size_t DiskCache_GetBlockSize(DiskCacheRef _Nonnull self);
 extern void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull chan, const DiskInfo* _Nonnull info, DiskSession* _Nonnull s);
 extern void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s);
 
-extern errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba);
-extern errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba);
+extern errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba);
+extern errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba);
 
 // Maps and unmaps a block. Mapping a block allows direct access to the content
 // of the disk block.
-extern errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk);
+extern errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba, MapBlock mode, FSBlock* _Nonnull blk);
 extern errno_t DiskCache_UnmapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, intptr_t token, WriteBlock mode);
 
 // Pins and unpins the block (disk, media, lba). Pin a block to prevent it from
 // being written to disk. A pinned block that is dirty will be retained in
 // memory until it is unpinned and a sync of the block is triggered. 
-extern errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba);
-extern errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba);
+extern errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba);
+extern errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba);
 
 extern errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s);
 

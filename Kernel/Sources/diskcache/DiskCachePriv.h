@@ -161,6 +161,7 @@ enum {
 typedef struct DiskCache {
     Lock                        interlock;
     ConditionVariable           condition;
+    int                         nextAvailSessionId;
     size_t                      lruChainGeneration;     // Incremented every time the LRU chain is modified
     List/*<DiskBlock>*/         lruChain;               // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used
     size_t                      blockSize;
@@ -179,7 +180,7 @@ extern errno_t _DiskCache_LockBlockContent(DiskCacheRef _Nonnull _Locked self, D
 extern void _DiskCache_UnlockBlockContent(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock);
 extern void _DiskCache_DowngradeBlockContentLock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock);
 
-extern errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DiskDriverRef _Nonnull disk, MediaId mediaId, LogicalBlockAddress lba, unsigned int options, DiskBlockRef _Nullable * _Nonnull pOutBlock);
+extern errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, bno_t lba, unsigned int options, DiskBlockRef _Nullable * _Nonnull pOutBlock);
 extern void _DiskCache_PutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock);
 extern void _DiskCache_UnlockContentAndPutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock);
 

@@ -16,9 +16,11 @@
 
 void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull chan, const DiskInfo* _Nonnull info, DiskSession* _Nonnull s)
 {
+    Lock_Lock(&self->interlock);
+
     s->channel = IOChannel_Retain(chan);
     s->disk = DriverChannel_GetDriverAs(chan, DiskDriver);
-    s->mediaId = info->mediaId;
+    s->sessionId = self->nextAvailSessionId;
     s->sectorSize = info->sectorSize;
     s->rwClusterSize = info->rwClusterSize;
     s->activeMappingsCount = 0;
@@ -32,6 +34,11 @@ void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull cha
         s->s2bFactor = 1;
         s->trailPadSize = self->blockSize - info->sectorSize;
     }
+
+    self->nextAvailSessionId++;
+    assert(self->nextAvailSessionId >= 0);  // no wrap around
+
+    Lock_Unlock(&self->interlock);
 }
 
 void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
@@ -50,7 +57,7 @@ void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
         IOChannel_Release(s->channel);
         s->channel = NULL;
         s->disk = NULL;
-        s->mediaId = kMediaId_None;
+        s->sessionId = 0;
         s->isOpen = false;
     }
     Lock_Unlock(&self->interlock);
@@ -59,14 +66,14 @@ void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
 
 // Triggers an asynchronous loading of the disk block data at the address
 // (disk, mediaId, lba)
-static errno_t _DiskCache_PrefetchBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, LogicalBlockAddress lba)
+static errno_t _DiskCache_PrefetchBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, bno_t lba)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
     bool doingIO = false;
 
     // Get the block
-    err = _DiskCache_GetBlock(self, s->disk, s->mediaId, lba, kGetBlock_Allocate | kGetBlock_RecentUse | kGetBlock_Exclusive, &pBlock);
+    err = _DiskCache_GetBlock(self, s, lba, kGetBlock_Allocate | kGetBlock_RecentUse | kGetBlock_Exclusive, &pBlock);
     if (err == EOK && !pBlock->flags.hasData && pBlock->flags.op != kDiskBlockOp_Read) {
         err = _DiskCache_LockBlockContent(self, pBlock, kLockMode_Exclusive);
 
@@ -87,7 +94,7 @@ static errno_t _DiskCache_PrefetchBlock(DiskCacheRef _Nonnull _Locked self, cons
 
 // Triggers an asynchronous loading of the disk block data at the address
 // (disk, mediaId, lba)
-errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba)
+errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba)
 {
     decl_try_err();
 
@@ -123,7 +130,7 @@ errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, const DiskSessi
     return err;
 }
 
-errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba)
+errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
@@ -132,7 +139,7 @@ errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s,
 
     if (s->isOpen) {
         // Find the block and only sync it if no one else is currently using it
-        if ((err = _DiskCache_GetBlock(self, s->disk, s->mediaId, lba, kGetBlock_Exclusive, &pBlock)) == EOK) {
+        if ((err = _DiskCache_GetBlock(self, s, lba, kGetBlock_Exclusive, &pBlock)) == EOK) {
             err = _DiskCache_SyncBlock(self, s, pBlock);
             _DiskCache_PutBlock(self, pBlock);
         }
@@ -146,7 +153,7 @@ errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s,
     return err;
 }
 
-errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba)
+errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
@@ -154,7 +161,7 @@ errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, 
     Lock_Lock(&self->interlock);
 
     if (s->isOpen) {
-        if ((err = _DiskCache_GetBlock(self, s->disk, s->mediaId, lba, 0, &pBlock)) == EOK) {
+        if ((err = _DiskCache_GetBlock(self, s, lba, 0, &pBlock)) == EOK) {
             pBlock->flags.isPinned = 1;
             _DiskCache_PutBlock(self, pBlock);
         }
@@ -167,7 +174,7 @@ errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, 
     return err;
 }
 
-errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba)
+errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
@@ -175,7 +182,7 @@ errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s
     Lock_Lock(&self->interlock);
 
     if (s->isOpen) {
-        if ((err = _DiskCache_GetBlock(self, s->disk, s->mediaId, lba, 0, &pBlock)) == EOK) {
+        if ((err = _DiskCache_GetBlock(self, s, lba, 0, &pBlock)) == EOK) {
             pBlock->flags.isPinned = 0;
             _DiskCache_PutBlock(self, pBlock);
         }
@@ -188,7 +195,7 @@ errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s
     return err;
 }
 
-errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
+errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
@@ -207,7 +214,7 @@ errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, 
     // Get and lock the block. Only time we can lock the block content shared is
     // when the caller asks for read-only and the block content already exists.
     // Lock for exclusive mode in all other cases.
-    err = _DiskCache_GetBlock(self, s->disk, s->mediaId, lba, kGetBlock_Allocate | kGetBlock_RecentUse, &pBlock);
+    err = _DiskCache_GetBlock(self, s, lba, kGetBlock_Allocate | kGetBlock_RecentUse, &pBlock);
     if (err != EOK) {
         Lock_Unlock(&self->interlock);
         return err;
@@ -369,7 +376,7 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
                 DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
 
                 if (!DiskBlock_InUse(pb) && (pb->flags.isDirty && !pb->flags.isPinned)) {
-                    if (pb->disk == s->disk && pb->mediaId == s->mediaId) {
+                    if (pb->sessionId == s->sessionId) {
                         const errno_t err1 = _DiskCache_SyncBlock(self, s, pb);
                     
                         if (err == EOK) {

@@ -40,7 +40,6 @@ enum {
 typedef struct StrategyRequest {
     IORequest   s;
     off_t       offset;         // <- logical sector address in terms of bytes
-    MediaId     mediaId;        // <- disk media identity
     ssize_t     resCount;       // -> number of bytes read/written
     size_t      iovCount;       // <- number of I/O vectors in this request
 
@@ -51,7 +50,6 @@ typedef struct StrategyRequest {
 typedef struct FormatRequest {
     IORequest               s;
     off_t                   offset;     // <- logical sector address in terms of bytes
-    MediaId                 mediaId;    // <- disk media identity
     const void* _Nonnull    data;       // <- data for all sectors in the cluster to format
     ssize_t                 byteCount;  // <- number of bytes in 'data'
 } FormatRequest;

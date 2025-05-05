@@ -27,9 +27,8 @@ typedef enum DiskBlockOp {
 typedef struct DiskBlock {
     ListNode                        hashNode;           // Protected by Interlock
     ListNode                        lruNode;            // Protected by Interlock
-    DiskDriverRef _Nonnull _Weak    disk;               // Protected by Interlock. Address by which a block is identified in the cache
-    MediaId                         mediaId;            // Protected by Interlock. Address by which a block is identified in the cache
-    LogicalBlockAddress             lba;                // Protected by Interlock. Address by which a block is identified in the cache
+    int                             sessionId;            // Protected by Interlock. Address by which a block is identified in the cache
+    bno_t                           lba;                // Protected by Interlock. Address by which a block is identified in the cache
     int                             shareCount;         // Protected by Interlock
     struct __DiskBlockFlags {
         unsigned int        exclusive:1;    // Protected by Interlock
@@ -45,32 +44,31 @@ typedef struct DiskBlock {
 } DiskBlock;
 
 
-extern errno_t DiskBlock_Create(DiskDriverRef _Nonnull _Weak disk, MediaId mediaId, LogicalBlockAddress lba, size_t blockSize, DiskBlockRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DiskBlock_Create(int sessionId, bno_t lba, size_t blockSize, DiskBlockRef _Nullable * _Nonnull pOutSelf);
 extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
 
 #define DiskBlock_InUse(__self) \
     ((__self)->shareCount > 0 || (__self)->flags.exclusive)
 
 #define DiskBlock_Hash(__self) \
-    DiskBlock_HashKey((__self)->disk, (__self)->mediaId, (__self)->lba)
+    DiskBlock_HashKey((__self)->sessionId, (__self)->lba)
 
 #define DiskBlock_IsEqual(__self, __other) \
-    DiskBlock_IsEqualKey(__self, (__other)->disk, (__other)->mediaId, (__other)->lba)
+    DiskBlock_IsEqualKey(__self, (__other)->sessionId, (__other)->lba)
 
 #define DiskBlock_PurgeData(__self, __blockSize) \
     memset((__self)->data, 0, __blockSize);\
     (__self)->flags.hasData = 0
 
-#define DiskBlock_SetDiskAddress(__self, __disk, __mediaId, __lba)\
-    (__self)->disk = __disk;\
-    (__self)->mediaId = __mediaId;\
+#define DiskBlock_SetDiskAddress(__self, __sessionId, __lba)\
+    (__self)->sessionId = __sessionId;\
     (__self)->lba = __lba;
 
 
-#define DiskBlock_HashKey(__disk, __mediaId, __lba) \
-    (size_t)((intptr_t)(__disk) + (__mediaId) + (__lba))
+#define DiskBlock_HashKey(__sessionId, __lba) \
+    (size_t)((size_t)(__sessionId) + (size_t)(__lba))
 
-#define DiskBlock_IsEqualKey(__self, __disk, __mediaId, __lba) \
-    (((__self)->disk == (__disk) && (__self)->mediaId == (__mediaId) && (__self)->lba == (__lba)) ? true : false)
+#define DiskBlock_IsEqualKey(__self, __sessionId, __lba) \
+    (((__self)->sessionId == (__sessionId) && (__self)->lba == (__lba)) ? true : false)
 
 #endif /* DiskBlock_h */
