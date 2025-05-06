@@ -26,6 +26,8 @@ enum {
     __kStreamMode_Exclusive = 0x08,     // Fail if file already exists instead of creating it
     __kStreamMode_Truncate  = 0x10,     // Truncate the file to 0 on open
     __kStreamMode_Create    = 0x20,     // Create the file if it doesn't exist
+    __kStreamMode_Binary    =  0x0,     // Indicates that the data in the stream should be treated as binary (always active on Serena OS)
+    __kStreamMode_Text      = 0x40,     // Indicates that the data in the stream should be treated as text
 };
 
 enum {

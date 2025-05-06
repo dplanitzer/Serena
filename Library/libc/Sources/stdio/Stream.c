@@ -109,43 +109,45 @@ int __iterate_open_files(__file_func_t _Nonnull f)
 //
 // "x" may be used with "w" and "w+". It enables exclusive mode which means that open() will return with
 // an error if the file already exists.
+//
+// Modifier                     Action
+// -----------------------------------------------------------------------------
+// "b"                          open in binary (untranslated) mode
+// "t"                          open in translated mode
+//
+// Modifiers are optional and follow the mode. "b" is always implied on Serena OS.
 errno_t __fopen_parse_mode(const char* _Nonnull mode, __FILE_Mode* _Nonnull pOutMode)
 {
     decl_try_err();
     __FILE_Mode sm = 0;
 
-    while (*mode != '\0') {
-        if (*mode == 'r') {
-            sm |= __kStreamMode_Read;
+    // Mode
+    switch (*mode++) {
+        case 'r':   sm |= __kStreamMode_Read; break;
+        case 'w':   sm |= (__kStreamMode_Write | __kStreamMode_Create | __kStreamMode_Truncate); break;
+        case 'a':   sm |= (__kStreamMode_Write | __kStreamMode_Create | __kStreamMode_Append); break;
+        default:    *pOutMode = 0; return EINVAL;
+    }
 
-            if (*(mode + 1) == '+') {
-                sm |= __kStreamMode_Write;
-                mode++;
-            }
-        }
-        else if (*mode == 'w') {
-            sm |= (__kStreamMode_Write | __kStreamMode_Create | __kStreamMode_Truncate);
 
-            if (*(mode + 1) == '+') {
-                sm |= __kStreamMode_Read;
-                mode++;
-            }
-            if (*(mode + 1) == 'x') {
-                sm |= __kStreamMode_Exclusive;
-                mode++;
-            }
-        }
-        else if (*mode == 'a') {
-            sm |= (__kStreamMode_Write | __kStreamMode_Create | __kStreamMode_Append);
-
-            if (*(mode + 1) == '+') {
-                sm |= __kStreamMode_Read;
-                mode++;
-            }
-        }
-
+    // Modifier
+    if (*mode == '+') {
+        sm |= (__kStreamMode_Read | __kStreamMode_Write);
         mode++;
     }
+    if (*mode == 'x') {
+        sm |= __kStreamMode_Exclusive;
+        mode++;
+    }
+    if (*mode == 'b') {
+        sm |= __kStreamMode_Binary;
+        mode++;
+    }
+    if (*mode == 't') {
+        sm |= __kStreamMode_Text;
+        mode++;
+    }
+
 
     if ((sm & (__kStreamMode_Read|__kStreamMode_Write)) == 0) {
         err = EINVAL;
@@ -154,6 +156,9 @@ errno_t __fopen_parse_mode(const char* _Nonnull mode, __FILE_Mode* _Nonnull pOut
         err = EINVAL;
     }
     if ((sm & (__kStreamMode_Append|__kStreamMode_Truncate)) == (__kStreamMode_Append|__kStreamMode_Truncate)) {
+        err = EINVAL;
+    }
+    if ((sm & (__kStreamMode_Binary | __kStreamMode_Text)) == (__kStreamMode_Binary | __kStreamMode_Text)) {
         err = EINVAL;
     }
 
