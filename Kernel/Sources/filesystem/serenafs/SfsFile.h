@@ -15,10 +15,10 @@
 #include "VolumeFormat.h"
 
 typedef struct SfsFileBlock {
-    FSBlock             b;
-    LogicalBlockAddress lba;
-    bool                wasAlloced;
-    bool                isZeroFill;
+    FSBlock     b;
+    bno_t       lba;
+    bool        wasAlloced;
+    bool        isZeroFill;
 } SfsFileBlock;
 
 

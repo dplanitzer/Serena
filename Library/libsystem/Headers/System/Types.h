@@ -40,21 +40,11 @@ typedef uint64_t    ino_t;
 #endif
 
 
-// Represents a logical block address in the range 0..<DiskDriver.blockCount
-#if defined(__ILP32__)
-typedef uint32_t    LogicalBlockAddress;
-#elif defined(__LP64__) || defined(__LLP64__)
-typedef uint64_t    LogicalBlockAddress;
-#else
-#error "Unknown data model"
-#endif
-
-// Type to represent the number of blocks on a disk
-typedef LogicalBlockAddress LogicalBlockCount;
-
+// Represents a logical block address and count
 typedef size_t  bno_t;
 typedef bno_t   bcnt_t;
 
+// Represents a logical sector address and count
 typedef size_t  sno_t;
 typedef sno_t   scnt_t;
 

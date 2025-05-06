@@ -44,12 +44,12 @@ enum {
 
 // Filesystem specific information
 typedef struct FSInfo {
-    LogicalBlockCount   capacity;       // Filesystem capacity in terms of filesystem blocks (if a regular fs) or catalog entries (if a catalog)
-    LogicalBlockCount   count;          // Blocks or entries currently in use/allocated
-    size_t              blockSize;      // Size of a block in bytes
-    fsid_t              fsid;           // Filesystem ID
-    uint32_t            properties;     // Filesystem properties
-    char                type[12];       // Filesystem type (max 11 characters C string)
+    bcnt_t      capacity;       // Filesystem capacity in terms of filesystem blocks (if a regular fs) or catalog entries (if a catalog)
+    bcnt_t      count;          // Blocks or entries currently in use/allocated
+    size_t      blockSize;      // Size of a block in bytes
+    fsid_t      fsid;           // Filesystem ID
+    uint32_t    properties;     // Filesystem properties
+    char        type[12];       // Filesystem type (max 11 characters C string)
 } FSInfo;
 
 

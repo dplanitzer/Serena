@@ -20,9 +20,9 @@
 // or a collection of distinct mass storage devices under the assumption that
 // this data represents the persistent state of a filesystem.
 open_class(FSContainer, Object,
-    size_t              blockSize;          // byte size of a logical disk block. A single logical disk block may map to multiple physical blocks. The FSContainer transparently takes care of the mapping
-    LogicalBlockCount   blockCount;         // overall number of addressable blocks in this FSContainer
-    uint32_t            properties;         // FS properties defined by the FS container 
+    size_t      blockSize;          // byte size of a logical disk block. A single logical disk block may map to multiple physical blocks. The FSContainer transparently takes care of the mapping
+    bcnt_t      blockCount;         // overall number of addressable blocks in this FSContainer
+    uint32_t    properties;         // FS properties defined by the FS container 
 );
 open_class_funcs(FSContainer, Object,
 
@@ -43,7 +43,7 @@ open_class_funcs(FSContainer, Object,
     // the disk block needed to be loaded and loading failed for some reason.
     // Once done with the block, it must be relinquished by calling the
     // relinquishBlock() method.
-    errno_t (*mapBlock)(void* _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk);
+    errno_t (*mapBlock)(void* _Nonnull self, bno_t lba, MapBlock mode, FSBlock* _Nonnull blk);
 
     // Unmaps the disk block 'pBlock' and writes the disk block back to
     // disk according to the write back mode 'mode'.
@@ -53,13 +53,13 @@ open_class_funcs(FSContainer, Object,
     // is executed asynchronously. An error is returned if the prefetch could not
     // be successfully started. Note that the returned error does not indicate
     // whether the read operation as such was successful or not.
-    errno_t (*prefetchBlock)(void* _Nonnull self, LogicalBlockAddress lba);
+    errno_t (*prefetchBlock)(void* _Nonnull self, bno_t lba);
 
 
     // Synchronously flushes the block at the logical block address 'lba' to
     // disk if it contains unwritten (dirty) data. Does nothing if the block is
     // clean.
-    errno_t (*syncBlock)(void* _Nonnull self, LogicalBlockAddress lba);
+    errno_t (*syncBlock)(void* _Nonnull self, bno_t lba);
 
     // Synchronously flushes all cached and unwritten blocks belonging to this
     // FS container to disk(s).
@@ -117,6 +117,6 @@ invoke_n(getGeometry, FSContainer, __self, __info)
 // Methods for use by FSContainer subclassers.
 //
 
-extern errno_t FSContainer_Create(Class* _Nonnull pClass, LogicalBlockCount blockCount, size_t blockSize, uint32_t properties, FSContainerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t FSContainer_Create(Class* _Nonnull pClass, bcnt_t blockCount, size_t blockSize, uint32_t properties, FSContainerRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* FSContainer_h */

@@ -18,7 +18,7 @@
 
 // Sets the in-use bit corresponding to the logical block address 'lba' as in-use or not
 // (same as AllocationBitmap_SetInUse())
-static void alloc_bmp_mark_used(uint8_t *bitmap, LogicalBlockAddress lba, bool inUse)
+static void alloc_bmp_mark_used(uint8_t *bitmap, bno_t lba, bool inUse)
 {
     uint8_t* bytePtr = &bitmap[lba >> 3];
     const uint8_t bitNo = 7 - (lba & 0x07);
@@ -31,7 +31,7 @@ static void alloc_bmp_mark_used(uint8_t *bitmap, LogicalBlockAddress lba, bool i
     }
 }
 
-errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, LogicalBlockCount blockCount, size_t blockSize, uid_t uid, gid_t gid, FilePermissions permissions, const char* _Nonnull label)
+errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, bcnt_t blockCount, size_t blockSize, uid_t uid, gid_t gid, FilePermissions permissions, const char* _Nonnull label)
 {
     decl_try_err();
     const TimeInterval curTime = FSGetCurrentTime();
@@ -70,9 +70,9 @@ errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, Logica
     // .        ...
     // Figure out the size and location of the allocation bitmap and root directory
     const uint32_t allocationBitmapByteSize = (blockCount + 7) >> 3;
-    const LogicalBlockCount allocBitmapBlockCount = (allocationBitmapByteSize + (blockSize - 1)) / blockSize;
-    const LogicalBlockAddress rootDirLba = allocBitmapBlockCount + 1;
-    const LogicalBlockAddress rootDirContLba = rootDirLba + 1;
+    const bcnt_t allocBitmapBlockCount = (allocationBitmapByteSize + (blockSize - 1)) / blockSize;
+    const bno_t rootDirLba = allocBitmapBlockCount + 1;
+    const bno_t rootDirContLba = rootDirLba + 1;
 
 
     // Write the volume header
@@ -98,12 +98,12 @@ errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, Logica
     // Write the allocation bitmap
     // Note that we mark the blocks that we already know are in use as in-use
     const size_t nAllocationBitsPerBlock = blockSize << 3;
-    const LogicalBlockAddress nBlocksToAllocate = 1 + allocBitmapBlockCount + 1 + 1; // volume header + alloc bitmap + root dir inode + root dir content
-    LogicalBlockAddress nBlocksAllocated = 0;
+    const bno_t nBlocksToAllocate = 1 + allocBitmapBlockCount + 1 + 1; // volume header + alloc bitmap + root dir inode + root dir content
+    bno_t nBlocksAllocated = 0;
 
-    for (LogicalBlockAddress i = 0; i < allocBitmapBlockCount; i++) {
+    for (bno_t i = 0; i < allocBitmapBlockCount; i++) {
         uint8_t* bbp = bp;
-        LogicalBlockAddress bitNo = 0;
+        bno_t bitNo = 0;
 
         memset(bbp, 0, blockSize);
         while (nBlocksAllocated < __min(nBlocksToAllocate, nAllocationBitsPerBlock)) {

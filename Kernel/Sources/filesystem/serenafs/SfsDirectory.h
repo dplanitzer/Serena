@@ -14,8 +14,8 @@
 
 
 typedef struct sfs_insertion_hint {
-    LogicalBlockAddress lba;
-    size_t              blockOffset;
+    bno_t   lba;
+    size_t  blockOffset;
 } sfs_insertion_hint_t;
 
 
@@ -39,7 +39,7 @@ typedef struct sfs_query {
 typedef struct sfs_query_result {    
     MutablePathComponent* _Nullable mpc;
     ino_t                           id;
-    LogicalBlockAddress             lba;            // LBA of the disk block that holds the directory entry
+    bno_t                           lba;            // LBA of the disk block that holds the directory entry
     size_t                          blockOffset;    // Byte offset to the directory entry relative to the disk block start
     off_t                           fileOffset;     // Byte offset relative to the start of the directory file
     sfs_insertion_hint_t* _Nullable ih;

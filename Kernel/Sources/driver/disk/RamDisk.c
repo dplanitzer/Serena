@@ -10,9 +10,9 @@
 
 
 typedef struct DiskExtent {
-    SListNode           node;
-    LogicalBlockAddress firstSectorIndex;
-    char                data[1];
+    SListNode   node;
+    bno_t       firstSectorIndex;
+    char        data[1];
 } DiskExtent;
 
 
@@ -20,12 +20,12 @@ typedef struct DiskExtent {
 
 // All ivars are protected by the dispatch queue
 final_class_ivars(RamDisk, DiskDriver,
-    SList               extents;            // Sorted ascending by 'firstSectorIndex'
-    LogicalBlockCount   extentSectorCount;  // How many blocks an extent stores
-    scnt_t              sectorCount;
-    size_t              sectorShift;
-    size_t              sectorSize;
-    char                name[MAX_NAME_LENGTH];
+    SList   extents;            // Sorted ascending by 'firstSectorIndex'
+    bcnt_t  extentSectorCount;  // How many blocks an extent stores
+    scnt_t  sectorCount;
+    size_t  sectorShift;
+    size_t  sectorSize;
+    char    name[MAX_NAME_LENGTH];
 );
 
 
@@ -87,14 +87,14 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
 // extent is returned if it exists. Also returns the disk extent that exists and
 // is closest to the given sector index and whose 'firstSectorIndex' is <= the
 // given sector index. 
-static DiskExtent* _Nullable RamDisk_GetDiskExtentForSectorIndex_Locked(RamDiskRef _Nonnull self, LogicalBlockAddress lba, DiskExtent* _Nullable * _Nullable pOutDiskExtentBeforeSectorIndex)
+static DiskExtent* _Nullable RamDisk_GetDiskExtentForSectorIndex_Locked(RamDiskRef _Nonnull self, bno_t lba, DiskExtent* _Nullable * _Nullable pOutDiskExtentBeforeSectorIndex)
 {
     DiskExtent* pPrevExtent = NULL;
     DiskExtent* pExtent = NULL;
-    const LogicalBlockCount extentSectorCount = self->extentSectorCount;
+    const bcnt_t extentSectorCount = self->extentSectorCount;
 
     SList_ForEach(&self->extents, DiskExtent, {
-        const LogicalBlockAddress firstSectorIndex = pCurNode->firstSectorIndex;
+        const bno_t firstSectorIndex = pCurNode->firstSectorIndex;
 
         if (lba >= firstSectorIndex && lba < (firstSectorIndex + extentSectorCount)) {
             pExtent = pCurNode;
@@ -134,7 +134,7 @@ errno_t RamDisk_getSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, u
 // first sector in the newly allocated extent. Remember that we allocate extents
 // on demand which means that the end of 'pPrevExtent' is not necessarily the
 // beginning of the new extent in terms of sector numbers.
-static errno_t RamDisk_AddExtentAfter_Locked(RamDiskRef _Nonnull self, LogicalBlockAddress firstSectorIndex, DiskExtent* _Nullable pPrevExtent, DiskExtent* _Nullable * _Nonnull pOutExtent)
+static errno_t RamDisk_AddExtentAfter_Locked(RamDiskRef _Nonnull self, bno_t firstSectorIndex, DiskExtent* _Nullable pPrevExtent, DiskExtent* _Nullable * _Nonnull pOutExtent)
 {
     decl_try_err();
     DiskExtent* pExtent = NULL;

@@ -88,7 +88,7 @@ bool FSIsPowerOf2(size_t n)
 // MARK: Commands
 ////////////////////////////////////////////////////////////////////////////////
 
-static errno_t block_write(intptr_t fd, const void* _Nonnull buf, LogicalBlockAddress blockAddr, size_t blockSize)
+static errno_t block_write(intptr_t fd, const void* _Nonnull buf, bno_t blockAddr, size_t blockSize)
 {
     if (fwrite(buf, blockSize, 1, (FILE*)fd) == 1) {
         return EOK;

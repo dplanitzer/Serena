@@ -14,12 +14,12 @@
 
 
 open_class(RamContainer, FSContainer,
-    uint8_t* _Nonnull           diskImage;
-    uint8_t* _Nonnull           mappedFlags;    // One flag per block: false -> block not mapped; true -> block is mapped
-    size_t                      blockShift;
-    size_t                      blockMask;
-    LogicalBlockAddress         lowestWrittenToLba;
-    LogicalBlockAddress         highestWrittenToLba;
+    uint8_t* _Nonnull   diskImage;
+    uint8_t* _Nonnull   mappedFlags;    // One flag per block: false -> block not mapped; true -> block is mapped
+    size_t              blockShift;
+    size_t              blockMask;
+    bno_t               lowestWrittenToLba;
+    bno_t               highestWrittenToLba;
     enum DiskImageFormatType    format;
 );
 open_class_funcs(RamContainer, FSContainer,

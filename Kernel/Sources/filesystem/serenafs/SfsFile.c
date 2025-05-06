@@ -85,7 +85,7 @@ void SfsFile_ConvertOffset(SfsFileRef _Nonnull _Locked self, off_t offset, sfs_b
 // Maps the disk block 'lba' if lba is > 0; otherwise allocates a new block.
 // The new block is for read-only if read-only 'mode' is requested and it is
 // suitable for writing back to disk if 'mode' is a replace/update mode.
-static errno_t map_disk_block(SerenaFSRef _Nonnull fs, LogicalBlockAddress lba, MapBlock mode, sfs_bno_t* _Nonnull pOutOnDiskLba, SfsFileBlock* _Nonnull blk)
+static errno_t map_disk_block(SerenaFSRef _Nonnull fs, bno_t lba, MapBlock mode, sfs_bno_t* _Nonnull pOutOnDiskLba, SfsFileBlock* _Nonnull blk)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(fs);
@@ -107,7 +107,7 @@ static errno_t map_disk_block(SerenaFSRef _Nonnull fs, LogicalBlockAddress lba, 
             err = EOK;
         }
         else {
-            LogicalBlockAddress new_lba;
+            bno_t new_lba;
 
             if((err = SfsAllocator_Allocate(&fs->blockAllocator, &new_lba)) == EOK) {
                 err = FSContainer_MapBlock(fsContainer, new_lba, kMapBlock_Cleared, &blk->b);
@@ -140,7 +140,7 @@ errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, MapBlo
     sfs_bmap_t* bmap = &self->bmap;
 
     if (fba < kSFSDirectBlockPointersCount) {
-        LogicalBlockAddress dat_lba = UInt32_BigToHost(bmap->direct[fba]);
+        bno_t dat_lba = UInt32_BigToHost(bmap->direct[fba]);
 
         return map_disk_block(fs, dat_lba, mode, &bmap->direct[fba], blk);
     }
@@ -149,7 +149,7 @@ errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, MapBlo
 
     if (fba < fs->indirectBlockEntryCount) {
         SfsFileBlock i0_block;
-        LogicalBlockAddress i0_lba = UInt32_BigToHost(bmap->indirect);
+        bno_t i0_lba = UInt32_BigToHost(bmap->indirect);
 
         // Get the indirect block
         try(map_disk_block(fs, i0_lba, kMapBlock_Update, &bmap->indirect, &i0_block));
@@ -157,7 +157,7 @@ errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba, MapBlo
 
         // Get the data block
         sfs_bno_t* i0_bmap = (sfs_bno_t*)i0_block.b.data;
-        LogicalBlockAddress dat_lba = UInt32_BigToHost(i0_bmap[fba]);
+        bno_t dat_lba = UInt32_BigToHost(i0_bmap[fba]);
 
         err = map_disk_block(fs, dat_lba, mode, &i0_bmap[fba], blk);
         
@@ -225,7 +225,7 @@ bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
     // Figure out whether indirect blocks need to be trimmed
     const size_t bn_first_i0_to_discard = (bn_first_to_discard < kSFSDirectBlockPointersCount) ? 0 : bn_first_to_discard - kSFSDirectBlockPointersCount;
     const bool is_i0_update = (bn_first_i0_to_discard > 0) ? true : false;
-    const LogicalBlockAddress i0_lba = UInt32_BigToHost(bmap->indirect);
+    const bno_t i0_lba = UInt32_BigToHost(bmap->indirect);
     FSBlock blk = {0};
 
     if (i0_lba > 0) {

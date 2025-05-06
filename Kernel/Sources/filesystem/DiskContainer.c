@@ -57,7 +57,7 @@ void DiskContainer_disconnect(struct DiskContainer* _Nonnull self)
 }
 
 
-errno_t DiskContainer_mapBlock(struct DiskContainer* _Nonnull self, LogicalBlockAddress lba, MapBlock mode, FSBlock* _Nonnull blk)
+errno_t DiskContainer_mapBlock(struct DiskContainer* _Nonnull self, bno_t lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
     return DiskCache_MapBlock(self->diskCache, &self->session, lba, mode, blk);
 }
@@ -67,13 +67,13 @@ errno_t DiskContainer_unmapBlock(struct DiskContainer* _Nonnull self, intptr_t t
     return DiskCache_UnmapBlock(self->diskCache, &self->session, token, mode);
 }
 
-errno_t DiskContainer_prefetchBlock(struct DiskContainer* _Nonnull self, LogicalBlockAddress lba)
+errno_t DiskContainer_prefetchBlock(struct DiskContainer* _Nonnull self, bno_t lba)
 {
     return DiskCache_PrefetchBlock(self->diskCache, &self->session, lba);
 }
 
 
-errno_t DiskContainer_syncBlock(struct DiskContainer* _Nonnull self, LogicalBlockAddress lba)
+errno_t DiskContainer_syncBlock(struct DiskContainer* _Nonnull self, bno_t lba)
 {
     return DiskCache_SyncBlock(self->diskCache, &self->session, lba);
 }
