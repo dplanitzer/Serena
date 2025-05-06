@@ -15,9 +15,9 @@
 #include <driver/IORequest.h>
 #include <System/Disk.h>
 
-// Describes the physical properties of the media that is currently loaded into
+// Describes the physical properties of the disk that is currently loaded into
 // the drive.
-typedef struct MediaInfo {
+typedef struct SensedDisk {
     scnt_t      sectorsPerTrack;
     size_t      heads;
     size_t      cylinders;
@@ -25,7 +25,7 @@ typedef struct MediaInfo {
     scnt_t      rwClusterSize;
     scnt_t      frClusterSize;      // > 0 then formatting is supported and a format call takes 'frClusterSize' sectors as input
     uint32_t    properties;         // media properties
-} MediaInfo;
+} SensedDisk;
 
 
 enum {
@@ -34,6 +34,7 @@ enum {
     kDiskRequest_Format,
     kDiskRequest_GetInfo,
     kDiskRequest_GetGeometry,
+    kDiskRequest_SenseDisk,
 };
 
 
@@ -66,6 +67,11 @@ typedef struct DiskGeometryRequest {
     DiskGeometry* _Nonnull  gp;
 } DiskGeometryRequest;
 
+
+typedef struct SenseDiskRequest {
+    IORequest   s;
+} SenseDiskRequest;
+
     
 // A disk driver manages the data stored on a disk. It provides read and write
 // access to the disk data. Data on a disk is organized in sectors. All sectors
@@ -90,13 +96,27 @@ typedef struct DiskGeometryRequest {
 // number of bytes actually read/written. This number is always a multiple of the
 // sector size.
 //
+// Disk Sensing
+//
 // A disk driver instance always starts out assuming there is no disk in the
-// drive. A disk driver subclass should kick off the disk sensing from an onStart()
-// override and it should eventually call DiskDriver_NoteMediaLoaded() with a
+// drive. This is true even for disk drivers that manage a fixed disk. A disk
+// driver subclass should kick off the disk sensing from an onStart()
+// override and it should eventually call DiskDriver_NoteSensedDisk() with a
 // description of the sensed disk.
+//
+// If a disk is removed from the drive or replaced with a different disk then
+// the disk driver should call DiskDriver_NoteDiskChanged() as soon as it detects
+// this situation. This will put the disk driver into "disk changed mode". This
+// means that all still queued and future disk read/write/format requests will
+// fail with a EDISKCHANGED error. The driver remains in disk-changed-mode until
+// user space (or kernel space) calls DiskDriver_SenseDisk(). The disk driver
+// subclass should check the drive for a disk and determine the disk geometry
+// in response to this call and then call DiskDriver_SensedDisk() with the
+// information about the sensed disk. This will clear disk-change-mode and queued
+// and future disk read/write/format calls will execute on the new disk as
+// expected. 
 open_class(DiskDriver, Driver,
     DispatchQueueRef _Nullable  dispatchQueue;
-    MediaId                     currentMediaId;
     scnt_t                      sectorsPerTrack;
     size_t                      headsPerCylinder;
     size_t                      cylindersPerDisk;
@@ -106,9 +126,12 @@ open_class(DiskDriver, Driver,
     scnt_t                      rwClusterSize;
     scnt_t                      frClusterSize;
     uint32_t                    mediaProperties;
+    uint32_t                    diskId;
     struct __DiskDriverFlags {
         unsigned int        isChsLinear:1;
-        unsigned int        reserved:31;
+        unsigned int        isDiskChangeActive:1;
+        unsigned int        hasDisk:1;
+        unsigned int        reserved:29;
     }                           flags;
 );
 open_class_funcs(DiskDriver, Driver,
@@ -193,6 +216,13 @@ open_class_funcs(DiskDriver, Driver,
     // drive. Returns ENOMEDIUM if no disk is in the drive
     // Default Behavior: returns geometry info for the currently loaded disk
     void (*doGetGeometry)(void* _Nonnull self, DiskGeometryRequest* _Nonnull req);
+
+
+    // Overrides should check whether a disk is in the drive and call
+    // DiskDriver_NoteSensedDisk() with information about the sensed disk if
+    // one is in the drive or with NULL if no disk is in the drive. This will
+    // clear the disk change state of the disk driver.
+    void (*doSenseDisk)(void* _Nonnull self, SenseDiskRequest* _Nonnull req);
 );
 
 
@@ -213,6 +243,8 @@ extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInf
 
 extern errno_t DiskDriver_GetGeometry(DiskDriverRef _Nonnull self, DiskGeometry* pOutInfo);
 
+extern errno_t DiskDriver_SenseDisk(DiskDriverRef _Nonnull self);
+
 
 //
 // Subclassers
@@ -227,15 +259,34 @@ extern errno_t DiskDriver_GetGeometry(DiskDriverRef _Nonnull self, DiskGeometry*
 invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
 
 
-// Must be called by a subclass whenever a new media is loaded into the driver
-// or removed from the drive. Note that DiskDriver assumes that there is no
-// media loaded into the drive, initially. Thus even a fixed disk driver must
-// call this function at creation/start time to indicate that a fixed media has
-// been "loaded" into the drive. If the user removes the disk from the drive
-// then this function must be called with NULL as the info argument; otherwise
-// it must be called with a properly filled in media info record.
-// This function generates the required unique media id. 
-extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable info);
+// Must be called by a subclass in its doSenseDisk() override to indicate whether
+// a disk is in the drive or no disk is in the drive. Note that a DiskDriver
+// assumes that there is no disk loaded into the drive initially. Thus even a
+// fixed disk driver must call this function from its doSenseDisk() override to
+// indicate that a fixed disk has been "loaded" into the drive. If the user
+// removes the disk from the drive then this function must be called with NULL
+// as the info argument; otherwise it must be called with a properly filled in
+// info record.
+extern void DiskDriver_NoteSensedDisk(DiskDriverRef _Nonnull self, const SensedDisk* _Nullable info);
+
+// Informs the DiskDriver base class that the subclass has detected that the
+// disk that's loaded into the drive has changed/was removed from the drive.
+// Calling this function causes the disk driver to go into 'disk-change-mode'.
+// It stays in this mode until SenseDisk() is called.
+extern void DiskDriver_NoteDiskChanged(DiskDriverRef _Nonnull self);
+
+// Returns true if a disk is currently loaded in the drive; false otherwise
+#define DiskDriver_HasDisk(__self) \
+((((DiskDriverRef)__self)->flags.hasDisk) ? true : false)
+
+// Returns true if a disk change is pending and the disk driver base class expects
+// that the subclass calls DiskDriver_NoteSensedDisk() unconditionally even if the
+// subclass thinks that the disk loaded state hasn't changed. Eg the subclass thinks
+// a disk is loaded and the hardware tells it that a disk is still loaded. This just
+// means in this case that the subclass missed the removal of the first disk and
+// the insertion of the second disk.
+#define DiskDriver_IsDiskChangePending(__self) \
+((((DiskDriverRef)__self)->flags.isDiskChangeActive) ? true : false)
 
 
 #define DiskDriver_HandleRequest(__self, __req) \
@@ -264,6 +315,9 @@ invoke_n(doGetInfo, DiskDriver, __self, __req)
 
 #define DiskDriver_DoGetGeometry(__self, __req) \
 invoke_n(doGetGeometry, DiskDriver, __self, __req)
+
+#define DiskDriver_DoSenseDisk(__self, __req) \
+invoke_n(doSenseDisk, DiskDriver, __self, __req)
 
 
 extern void DiskDriver_LsaToChs(DiskDriverRef _Locked _Nonnull self, sno_t lsa, chs_t* _Nonnull chs);

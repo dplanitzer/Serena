@@ -14,7 +14,6 @@
 // All ivars are protected by the dispatch queue
 final_class_ivars(PartitionDriver, DiskDriver,
     DiskDriverRef _Nonnull _Weak    wholeDisk;          // Driver representing the whole disk
-    MediaId                         wholeMediaId;       // Media Id of the whole disk
     sno_t                           lsaStart;           // First sector of the partition
     scnt_t                          sectorCount;        // Partition size in terms of sectors
     size_t                          sectorSize;
@@ -36,7 +35,6 @@ errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull 
 
     try(DiskDriver_Create(class(PartitionDriver), 0, parent, (DriverRef*)&self));
     self->wholeDisk = wholeDisk;
-    self->wholeMediaId = diskInfo.mediaId;
     self->lsaStart = lsaStart;
     self->sectorCount = sectorCount;
     self->sectorSize = diskInfo.sectorSize;
@@ -67,7 +65,7 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     try(DiskDriver_GetGeometry(self->wholeDisk, &wholeGeom));
     try(DiskDriver_GetInfo(self->wholeDisk, &wholeInfo));
 
-    MediaInfo info;
+    SensedDisk info;
     info.sectorsPerTrack = wholeGeom.sectorsPerTrack;
     info.heads = wholeGeom.headsPerCylinder;
     info.cylinders = wholeGeom.cylindersPerDisk;
@@ -78,7 +76,7 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     if (self->isReadOnly) {
         info.properties |= kMediaProperty_IsReadOnly;
     }
-    DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
+    DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
 
     DriverEntry de;

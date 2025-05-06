@@ -241,7 +241,7 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
     return pBlock;
 }
 
-// Returns the block that corresponds to the disk address (disk, mediaId, lba).
+// Returns the block that corresponds to the disk address (sessionId, lba).
 // A new block is created if needed or an existing block is retrieved from the
 // cached list of blocks. The caller must lock the content of the block before
 // doing I/O on it or before handing it to a filesystem.
@@ -251,7 +251,7 @@ errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, const DiskSessio
     DiskBlockRef pBlock;
 
     for (;;) {
-        // Look up the block based on (disk, mediaId, lba)
+        // Look up the block based on (sessionId, lba)
         const size_t idx = DiskBlock_HashKey(s->sessionId, lba) & DISK_BLOCK_HASH_CHAIN_MASK;
         List* chain = &self->diskAddrHash[idx];
     

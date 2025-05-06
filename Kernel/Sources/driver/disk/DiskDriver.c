@@ -18,7 +18,6 @@ errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverR
 
     try(Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, parent, (DriverRef*)&self));
     try(DiskDriver_CreateDispatchQueue(self, &self->dispatchQueue));
-    self->currentMediaId = kMediaId_None;
 
     *pOutSelf = (DriverRef)self;
     return EOK;
@@ -49,35 +48,66 @@ void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
 }
 
 
-void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable info)
+void DiskDriver_NoteSensedDisk(DiskDriverRef _Nonnull self, const SensedDisk* _Nullable info)
 {
-    const scnt_t sectorCount = (info) ? (scnt_t)info->sectorsPerTrack * (scnt_t)info->heads * (scnt_t)info->cylinders : 0;
-    const bool hasMedia = (info && (sectorCount > 0) && (info->sectorSize > 0)) ? true : false;
-
-    self->sectorsPerTrack = info->sectorsPerTrack;
-    self->headsPerCylinder = info->heads;
-    self->cylindersPerDisk = info->cylinders;
-    self->sectorsPerCylinder = self->headsPerCylinder * self->sectorsPerTrack;
-    self->flags.isChsLinear = (info->heads == 1 && info->cylinders == 1);
-
-    self->rwClusterSize = info->rwClusterSize;
-    self->frClusterSize = info->frClusterSize;
-    self->sectorCount = sectorCount;
-    self->sectorSize = info->sectorSize;
-
-    if (hasMedia) {
-        self->mediaProperties = info->properties;
+    if (info) {
+        self->sectorsPerTrack = info->sectorsPerTrack;
+        self->headsPerCylinder = info->heads;
+        self->cylindersPerDisk = info->cylinders;
+        self->sectorsPerCylinder = info->heads * info->sectorsPerTrack;
+        self->flags.isChsLinear = (info->heads == 1 && info->cylinders == 1);
     
-        self->currentMediaId++;
-        while (self->currentMediaId == kMediaId_None) {
-            self->currentMediaId++;
+        self->rwClusterSize = info->rwClusterSize;
+        self->frClusterSize = info->frClusterSize;
+        self->sectorCount = (scnt_t)info->sectorsPerTrack * (scnt_t)info->heads * (scnt_t)info->cylinders;
+        self->sectorSize = info->sectorSize;
+    
+        self->mediaProperties = info->properties;
+        self->flags.hasDisk = 1;
+        self->flags.isDiskChangeActive = 0;
+
+        self->diskId++;
+        if (self->diskId == 0) {
+            // wrap around
+            self->diskId++;
         }
     }
     else {
+        self->sectorsPerTrack = 0;
+        self->headsPerCylinder = 1;
+        self->cylindersPerDisk = 1;
+        self->sectorsPerCylinder = 0;
+        self->flags.isChsLinear = 1;
+    
+        self->rwClusterSize = 1;
+        self->frClusterSize = 1;
+        self->sectorCount = 0;
+        self->sectorSize = 0;
+    
         self->mediaProperties = kMediaProperty_IsReadOnly;
-        self->currentMediaId = kMediaId_None;
+        self->flags.hasDisk = 0;
+        self->flags.isDiskChangeActive = 0;
     }
 }
+
+void DiskDriver_doSenseDisk(DiskDriverRef _Nonnull self, SenseDiskRequest* _Nonnull req)
+{
+
+}
+
+errno_t DiskDriver_SenseDisk(DiskDriverRef _Nonnull self)
+{
+    SenseDiskRequest r;
+
+    IORequest_Init(&r, kDiskRequest_SenseDisk);
+    return DiskDriver_DoIO(self, (IORequest*)&r);
+}
+
+void DiskDriver_NoteDiskChanged(DiskDriverRef _Nonnull self)
+{
+    self->flags.isDiskChangeActive = 1;
+}
+
 
 void DiskDriver_LsaToChs(DiskDriverRef _Locked _Nonnull self, sno_t lsa, chs_t* _Nonnull chs)
 {
@@ -134,6 +164,10 @@ void DiskDriver_strategy(DiskDriverRef _Nonnull self, StrategyRequest* _Nonnull 
             err = EOVERFLOW;
             break;
         }
+        else if (self->flags.isDiskChangeActive) {
+            err = EDISKCHANGE;
+            break;
+        }
         
         while (size >= self->sectorSize) {
             DiskDriver_LsaToChs(self, lsa, &chs);
@@ -179,7 +213,10 @@ void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull re
     const sno_t lsa = req->offset / (off_t)self->sectorSize;
     chs_t chs;
 
-    if (req->byteCount != self->frClusterSize * self->sectorSize) {
+    if (self->flags.isDiskChangeActive) {
+        err = EDISKCHANGE;
+    }
+    else if (req->byteCount != self->frClusterSize * self->sectorSize) {
         err = EINVAL;
     }
     else if (lsa + self->frClusterSize > self->sectorCount) {
@@ -200,13 +237,16 @@ void DiskDriver_doGetInfo(DiskDriverRef _Nonnull self, GetDiskInfoRequest* _Nonn
 {
     DiskInfo* p = req->ip;
     
-    if (self->currentMediaId > 0) {
-        p->mediaId = self->currentMediaId;
-        p->properties = self->mediaProperties;
-        p->sectorSize = self->sectorSize;
+    if (self->flags.isDiskChangeActive) {
+        req->s.status = EDISKCHANGE;
+    }
+    else if (self->flags.hasDisk) {
         p->sectorCount = self->sectorCount;
         p->rwClusterSize = self->rwClusterSize;
         p->frClusterSize = self->frClusterSize;
+        p->sectorSize = self->sectorSize;
+        p->properties = self->mediaProperties;
+        p->diskId = self->diskId;
         req->s.status = EOK;
     }
     else {
@@ -218,7 +258,10 @@ void DiskDriver_doGetGeometry(DiskDriverRef _Nonnull self, DiskGeometryRequest* 
 {
     DiskGeometry* p = req->gp;
 
-    if (self->currentMediaId > 0) {
+    if (self->flags.isDiskChangeActive) {
+        req->s.status = EDISKCHANGE;
+    }
+    else if (self->flags.hasDisk) {
         p->headsPerCylinder = self->headsPerCylinder;
         p->sectorsPerTrack = self->sectorsPerTrack;
         p->cylindersPerDisk = self->cylindersPerDisk;
@@ -257,6 +300,10 @@ void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IORequest* _Nonnull r
 
             case kDiskRequest_GetGeometry:
                 DiskDriver_DoGetGeometry(self, (DiskGeometryRequest*)req);
+                break;
+
+            case kDiskRequest_SenseDisk:
+                DiskDriver_DoSenseDisk(self, (SenseDiskRequest*)req);
                 break;
 
             default:
@@ -390,6 +437,9 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull pCha
             return DiskDriver_Format(self, pChannel, data, byteCount);
         }
 
+        case kDiskCommand_SenseDisk:
+            return DiskDriver_SenseDisk(self);
+
         default:
             return super_n(ioctl, Driver, DiskDriver, self, pChannel, cmd, ap);
     }
@@ -410,6 +460,7 @@ func_def(doFormat, DiskDriver)
 func_def(formatSectors, DiskDriver)
 func_def(doGetInfo, DiskDriver)
 func_def(doGetGeometry, DiskDriver)
+func_def(doSenseDisk, DiskDriver)
 override_func_def(getSeekableRange, DiskDriver, Driver)
 override_func_def(read, DiskDriver, Driver)
 override_func_def(write, DiskDriver, Driver)

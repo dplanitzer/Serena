@@ -10,7 +10,7 @@
 #include "FSUtilities.h"
 
 
-errno_t FSContainer_Create(Class* _Nonnull pClass, MediaId mediaId, LogicalBlockCount blockCount, size_t blockSize, uint32_t properties, FSContainerRef _Nullable * _Nonnull pOutSelf)
+errno_t FSContainer_Create(Class* _Nonnull pClass, LogicalBlockCount blockCount, size_t blockSize, uint32_t properties, FSContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     FSContainerRef self;
@@ -20,7 +20,6 @@ errno_t FSContainer_Create(Class* _Nonnull pClass, MediaId mediaId, LogicalBlock
     if ((err = Object_Create(pClass, 0, (void**)&self)) == EOK) {
         self->blockCount = blockCount;
         self->blockSize = blockSize;
-        self->mediaId = mediaId;
         self->properties = properties;
     }
 

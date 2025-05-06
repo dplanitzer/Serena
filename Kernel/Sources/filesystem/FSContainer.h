@@ -22,7 +22,6 @@
 open_class(FSContainer, Object,
     size_t              blockSize;          // byte size of a logical disk block. A single logical disk block may map to multiple physical blocks. The FSContainer transparently takes care of the mapping
     LogicalBlockCount   blockCount;         // overall number of addressable blocks in this FSContainer
-    MediaId             mediaId;            // media in which the FS container resides
     uint32_t            properties;         // FS properties defined by the FS container 
 );
 open_class_funcs(FSContainer, Object,
@@ -83,9 +82,6 @@ open_class_funcs(FSContainer, Object,
 #define FSContainer_GetBlockSize(__self)\
 ((FSContainerRef)__self)->blockSize
 
-#define FSContainer_GetMediaId(__self)\
-((FSContainerRef)__self)->mediaId
-
 #define FSContainer_GetFSProperties(__self)\
 ((FSContainerRef)__self)->properties
 
@@ -103,12 +99,12 @@ invoke_n(mapBlock, FSContainer, __self, __lba, __mode, __blk)
 #define FSContainer_UnmapBlock(__self, __token, __mode) \
 invoke_n(unmapBlock, FSContainer, __self, __token, __mode)
 
-#define FSContainer_PrefetchBlock(__self, __driverId, __mediaId, __lba) \
-invoke_n(prefetchBlock, FSContainer, __self, __driverId, __mediaId, __lba)
+#define FSContainer_PrefetchBlock(__self, __lba) \
+invoke_n(prefetchBlock, FSContainer, __self, __lba)
 
 
-#define FSContainer_SyncBlock(__self, __driverId, __mediaId, __lba) \
-invoke_n(syncBlock, FSContainer, __self, __driverId, __mediaId, __lba)
+#define FSContainer_SyncBlock(__self, __lba) \
+invoke_n(syncBlock, FSContainer, __self, __lba)
 
 #define FSContainer_Sync(__self) \
 invoke_0(sync, FSContainer, __self)
@@ -121,6 +117,6 @@ invoke_n(getGeometry, FSContainer, __self, __info)
 // Methods for use by FSContainer subclassers.
 //
 
-extern errno_t FSContainer_Create(Class* _Nonnull pClass, MediaId mediaId, LogicalBlockCount blockCount, size_t blockSize, uint32_t properties, FSContainerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t FSContainer_Create(Class* _Nonnull pClass, LogicalBlockCount blockCount, size_t blockSize, uint32_t properties, FSContainerRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* FSContainer_h */

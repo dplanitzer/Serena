@@ -62,7 +62,7 @@ void RamDisk_deinit(RamDiskRef _Nonnull self)
 
 errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
 {
-    MediaInfo info;
+    SensedDisk info;
     info.sectorsPerTrack = self->sectorCount;
     info.heads = 1;
     info.cylinders = 1;
@@ -70,7 +70,7 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
     info.rwClusterSize = 1;
     info.frClusterSize = 1;
     info.properties = 0;
-    DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
+    DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
 
     DriverEntry de;

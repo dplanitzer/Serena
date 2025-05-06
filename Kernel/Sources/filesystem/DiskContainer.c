@@ -33,7 +33,7 @@ errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nul
     DiskSession s;
     DiskCache_OpenSession(diskCache, pChannel, &info, &s);
 
-    try(FSContainer_Create(class(DiskContainer), info.mediaId, info.sectorCount / s.s2bFactor, DiskCache_GetBlockSize(diskCache), fsprops, (FSContainerRef*)&self));
+    try(FSContainer_Create(class(DiskContainer), info.sectorCount / s.s2bFactor, DiskCache_GetBlockSize(diskCache), fsprops, (FSContainerRef*)&self));
     self->diskCache = diskCache;
     self->session = s;
 

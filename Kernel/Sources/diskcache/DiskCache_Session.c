@@ -65,7 +65,7 @@ void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
 
 
 // Triggers an asynchronous loading of the disk block data at the address
-// (disk, mediaId, lba)
+// (sessionId, lba)
 static errno_t _DiskCache_PrefetchBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, bno_t lba)
 {
     decl_try_err();
@@ -93,7 +93,7 @@ static errno_t _DiskCache_PrefetchBlock(DiskCacheRef _Nonnull _Locked self, cons
 }
 
 // Triggers an asynchronous loading of the disk block data at the address
-// (disk, mediaId, lba)
+// (sessionId, lba)
 errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba)
 {
     decl_try_err();

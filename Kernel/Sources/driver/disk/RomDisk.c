@@ -54,7 +54,7 @@ void RomDisk_deinit(RomDiskRef _Nonnull self)
 
 errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
 {
-    MediaInfo info;
+    SensedDisk info;
     info.sectorsPerTrack = self->sectorCount;
     info.heads = 1;
     info.cylinders = 1;
@@ -62,7 +62,7 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     info.rwClusterSize = 1;
     info.frClusterSize = 0;
     info.properties = kMediaProperty_IsReadOnly;
-    DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
+    DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
 
     DriverEntry de;

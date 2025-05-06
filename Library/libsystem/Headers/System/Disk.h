@@ -13,10 +13,6 @@
 
 __CPP_BEGIN
 
-// No media/empty drive
-#define kMediaId_None   0
-
-
 // Disk/media properties
 enum {
     kMediaProperty_IsRemovable = 0x0001,
@@ -26,12 +22,12 @@ enum {
 
 // General information about a disk drive and the currently loaded media
 typedef struct DiskInfo {
-    MediaId     mediaId;            // ID of the currently loaded media; changes with every media eject and insertion; 0 means no media is loaded
-    uint32_t    properties;         // Disk/media properties 
-    size_t      sectorSize;         // size of a sector (physical block) stored on the disk media. Only relevant if you want to display this value to the user or format a disk
     scnt_t      sectorCount;        // number of sectors (physical blocks) stored on the disk media
     scnt_t      rwClusterSize;      // > 1 then the number of consecutive sectors that should be read/written in one go for optimal disk I/O performance (eg drive wants you to read a whole track rather than individual sectors)
     scnt_t      frClusterSize;      // > 0 then formatting is supported and a format call takes 'frClusterSize' sectors as input
+    size_t      sectorSize;         // size of a sector (physical block) stored on the disk media. Only relevant if you want to display this value to the user or format a disk
+    uint32_t    properties;         // Disk/media properties 
+    uint32_t    diskId;             // unique id starting at 1, incremented every time a new disk is inserted into the drive
 } DiskInfo;
 
 // Returns information about a disk drive.
@@ -60,6 +56,14 @@ typedef struct DiskGeometry {
 // data has been written to disk or an error is encountered.
 // format(const void* _Nonnull data, ssize_t byteCount)
 #define kDiskCommand_Format IOResourceCommand(kDriverCommand_SubclassBase + 2)
+
+
+// Checks whether a disk was inserted into the drive and updates the drive state
+// accordingly. You should call this function after receiving a EDISKCHANGE error
+// from any of the other disk related calls. Returns EOK if a disk is in the drive
+// and ENOMEDIUM if no disk is in the drive.
+// sensedisk(void)
+#define kDiskCommand_SenseDisk  IOResourceCommand(kDriverCommand_SubclassBase + 3)
 
 
 #if !defined(__KERNEL__)

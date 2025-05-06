@@ -64,40 +64,54 @@ static const char* _Nullable get_boot_floppy_driver_path(void)
     return NULL;
 }
 
-static void wait_for_disk_change(const char* _Nonnull driverPath, int maxTries, MediaId* _Nonnull mediaId)
+static errno_t get_current_disk_id(const char* _Nonnull driverPath, uint32_t* _Nonnull diskId)
 {
     decl_try_err();
     IOChannelRef chan;
-    int tries = maxTries;
 
     if ((err = Catalog_Open(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan)) == EOK) {
-        while (tries-- > 0) {
+        DiskInfo info;
+
+        err = IOChannel_Ioctl(chan, kDiskCommand_GetInfo, &info);
+        if (err == EOK) {
+            *diskId = info.diskId;
+        }
+    } 
+    IOChannel_Release(chan);
+    return err;
+}
+
+static void wait_for_disk_change(const char* _Nonnull driverPath, uint32_t* _Nonnull diskId)
+{
+    decl_try_err();
+    IOChannelRef chan;
+
+    if ((err = Catalog_Open(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan)) == EOK) {
+        for (;;) {
             DiskInfo info;
 
-            err = IOChannel_Ioctl(chan, kDiskCommand_GetInfo, &info);
+            err = IOChannel_Ioctl(chan, kDiskCommand_SenseDisk);
             if (err == EOK) {
-                if (info.mediaId != *mediaId) {
-                    *mediaId = info.mediaId;
+                IOChannel_Ioctl(chan, kDiskCommand_GetInfo, &info);
+                if (info.diskId != *diskId) {
+                    *diskId = info.diskId;
                     break;
                 }
             }
-            else if (err != ENOMEDIUM) {
-                break;
-            }
 
-            VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(100));
+            VirtualProcessor_Sleep(TimeInterval_MakeSeconds(3));
         }
     } 
     IOChannel_Release(chan);
 }
 
-static void ask_user_for_new_disk(boot_screen_t* _Nonnull bscr, const char* _Nonnull driverPath, MediaId* _Nonnull mediaId)
+static void ask_user_for_new_disk(boot_screen_t* _Nonnull bscr, const char* _Nonnull driverPath, uint32_t* _Nonnull diskId)
 {
     blit_boot_logo(bscr, gFloppyImg_Plane0, gFloppyImg_Width, gFloppyImg_Height);
 
 
     // Wait for the user to insert a different disk
-    wait_for_disk_change(driverPath, INT_MAX, mediaId);
+    wait_for_disk_change(driverPath, diskId);
 
 
     blit_boot_logo(bscr, gSerenaImg_Plane0, gSerenaImg_Width, gSerenaImg_Height);
@@ -138,23 +152,20 @@ catch:
 static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry, boot_screen_t* _Nonnull bscr, FilesystemRef _Nullable * _Nonnull pOutFS)
 {
     decl_try_err();
-    MediaId curMediaId = kMediaId_None;
+    uint32_t diskId = 0;
     FilesystemRef fs;
 
-    // Wait a bit for the disk loaded detection mechanism to actually pick up
-    // that a disk is loaded. This may take a couple hundred milliseconds
-    // depending on how exactly the driver hardware and software work.
-    // We do it this way because we don't want to print a bogus "insert a disk"
-    // to the screen although the disk is (mechanically) already loaded, the
-    // drive mechanics just hasn't picked this fact up yet.
-    wait_for_disk_change(driverPath, 10, &curMediaId);
+
+    err = get_current_disk_id(driverPath, &diskId);
 
 
     // Try to boot from the disk
     while (true) {
         fs = NULL;
         
-        err = start_boot_fs(driverPath, &fs);
+        if (err == EOK) {
+            err = start_boot_fs(driverPath, &fs);
+        }
 
         if (err == EOK) {
             break;
@@ -165,7 +176,8 @@ static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry,
             return err;
         }
 
-        ask_user_for_new_disk(bscr, driverPath, &curMediaId);
+        ask_user_for_new_disk(bscr, driverPath, &diskId);
+        err = EOK;
     }
 
     printf("Booting from %s...\n\n", &driverPath[1]);

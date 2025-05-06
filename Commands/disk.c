@@ -143,12 +143,14 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, 
     }
 
     try_null(fp, fopen(diskPath, "r+"), errno);
+    const int ioc = fileno(fp);
     setbuf(fp, NULL);
 
-    try(IOChannel_Control(fileno(fp), kDiskCommand_GetInfo, &info)); 
+    try(IOChannel_Control(ioc, kDiskCommand_SenseDisk));
+    try(IOChannel_Control(ioc, kDiskCommand_GetInfo, &info)); 
     if (!bQuick) {
-        try(wipe_disk(fileno(fp), &info));
-        File_Seek(fileno(fp), 0ll, NULL, kSeek_Set);
+        try(wipe_disk(ioc, &info));
+        File_Seek(ioc, 0ll, NULL, kSeek_Set);
     }
     try(sefs_format((intptr_t)fp, block_write, info.sectorCount, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label));
     puts("ok");
@@ -341,8 +343,16 @@ catch:
 errno_t cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
 {
     decl_try_err();
+    int fd = -1;
 
-    err = Mount(kMount_Disk, diskPath, atPath, "");
+    err = File_Open(diskPath, kOpen_Read, &fd);
+    if (err == EOK) {
+        err = IOChannel_Control(fd, kDiskCommand_SenseDisk);
+        IOChannel_Close(fd);
+    }
+    if (err == EOK) {
+        err = Mount(kMount_Disk, diskPath, atPath, "");
+    }
 
     return err;
 }

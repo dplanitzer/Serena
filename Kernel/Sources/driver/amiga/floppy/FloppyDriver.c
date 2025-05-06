@@ -51,7 +51,6 @@ errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds
     self->flags.wasMostRecentSeekInward = 0;
     self->flags.shouldResetDiskChangeStepInward = 0;
     self->flags.isOnline = 0;
-    self->flags.hasDisk = 0;
 
     *pOutDisk = self;
     return EOK;
@@ -65,7 +64,6 @@ catch:
 static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
 {
     FloppyDriver_MotorOff(self);
-    FloppyDriver_CancelUpdateHasDiskState(self);
 
     kfree(self->trackBuffer);
     self->trackBuffer = NULL;
@@ -74,33 +72,64 @@ static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
     self->trackCompositionBuffer = NULL;
 }
 
-// Establishes the base state for a newly discovered drive. This means that we
-// move the disk head to track #0 and that we figure out whether a disk is loaded
-// or not.
-static void FloppyDriver_EstablishInitialDriveState(FloppyDriverRef _Nonnull self)
+void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
 {
-    bool didStep;
+    decl_try_err();
     FloppyControllerRef fdc = FloppyDriver_GetController(self);
-    errno_t err;
-    
-    FloppyDriver_InvalidateTrackBuffer(self);
-    
-    err = FloppyDriver_SeekToTrack_0(self, &didStep);
-    if (err == EOK) {
-        if (!didStep) {
-            FloppyDriver_ResetDriveDiskChange(self);
+    bool didStep;
+    bool hasDiskChangeDetected = false;
+
+    if (!self->flags.didResetDrive) {
+        self->flags.didResetDrive = 1;
+
+        FloppyDriver_InvalidateTrackBuffer(self);
+        err = FloppyDriver_SeekToTrack_0(self, &didStep);
+        if (err != EOK) {
+            FloppyDriver_OnHardwareLost(self);
+            return;
         }
 
         self->flags.isOnline = 1;
-        self->flags.hasDisk = ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
-
-        FloppyDriver_OnMediaChanged(self);
-    }
-    else {
-        FloppyDriver_OnHardwareLost(self);
+        hasDiskChangeDetected = true;
     }
 
-    LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
+    if ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
+        FloppyDriver_ResetDriveDiskChange(self);
+        hasDiskChangeDetected = true;
+    }
+
+
+    if (hasDiskChangeDetected || DiskDriver_IsDiskChangePending(self)) {
+        const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
+        const unsigned int hasDisk = ((status & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
+
+        if (hasDisk) {
+            SensedDisk info;
+    
+            info.properties = kMediaProperty_IsRemovable;
+            if ((status & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) {
+                info.properties |= kMediaProperty_IsReadOnly;
+            }
+            info.sectorSize = ADF_SECTOR_DATA_SIZE;
+            info.heads = ADF_DD_HEADS_PER_CYL;
+            info.cylinders = self->cylindersPerDisk;
+            info.sectorsPerTrack = self->sectorsPerTrack;
+            info.rwClusterSize = self->sectorsPerTrack;
+            info.frClusterSize = self->sectorsPerTrack;
+            DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
+        }
+        else {
+            FloppyDriver_InvalidateTrackBuffer(self);
+            DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
+        }
+    }
+
+    LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)DiskDriver_HasDisk(self));
+}
+
+void FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self, SenseDiskRequest* _Nonnull req)
+{
+    _FloppyDriver_doSenseDisk(self);
 }
 
 errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
@@ -121,7 +150,7 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     de.arg = 0;
 
     if ((err = Driver_Publish((DriverRef)self, &de)) == EOK) {
-        if ((err = DispatchQueue_DispatchAsync(DiskDriver_GetDispatchQueue(self), (VoidFunc_1)FloppyDriver_EstablishInitialDriveState, self)) == EOK) {
+        if ((err = DispatchQueue_DispatchAsync(DiskDriver_GetDispatchQueue(self), (VoidFunc_1)_FloppyDriver_doSenseDisk, self)) == EOK) {
             return EOK;
         }
 
@@ -131,44 +160,13 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     return err;
 }
 
-// Called when we've detected that a new disk has been inserted or the disk has been removed
-static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self)
-{
-    FloppyControllerRef fdc = FloppyDriver_GetController(self);
-
-    if (!self->flags.hasDisk) {
-        DiskDriver_NoteMediaLoaded((DiskDriverRef)self, NULL);
-        FloppyDriver_InvalidateTrackBuffer(self);
-        FloppyDriver_ScheduleUpdateHasDiskState(self);
-    }
-    else {
-        MediaInfo info;
-
-        info.properties = kMediaProperty_IsRemovable;
-        if ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) {
-            info.properties |= kMediaProperty_IsReadOnly;
-        }
-        info.sectorsPerTrack = self->sectorsPerTrack;
-        info.heads = ADF_DD_HEADS_PER_CYL;
-        info.cylinders = self->cylindersPerDisk;
-        info.sectorSize = ADF_SECTOR_DATA_SIZE;
-        info.rwClusterSize = self->sectorsPerTrack;
-        info.frClusterSize = self->sectorsPerTrack;
-        DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
-        FloppyDriver_CancelUpdateHasDiskState(self);
-    }
-}
-
 // Called when we've detected a loss of the drive hardware
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self)
 {
     FloppyDriver_MotorOff(self);
     FloppyDriver_InvalidateTrackBuffer(self);
-    
+    DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
     self->flags.isOnline = 0;
-    self->flags.hasDisk = 0;
-
-    FloppyDriver_OnMediaChanged(self);
 }
 
 
@@ -397,11 +395,6 @@ catch:
     return err;
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-// Disk (Present) State
-////////////////////////////////////////////////////////////////////////////////
-
 static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self)
 {
     // We have to step the disk head to trigger a reset of the disk change bit.
@@ -422,56 +415,6 @@ static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self)
 
     FloppyDriver_SeekTo(self, c, self->head);
     self->flags.shouldResetDiskChangeStepInward = !self->flags.shouldResetDiskChangeStepInward;
-}
-
-// Updates the drive's has-disk state
-static void FloppyDriver_UpdateHasDiskState(FloppyDriverRef _Nonnull self)
-{
-    FloppyControllerRef fdc = FloppyDriver_GetController(self);
-
-    if ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
-        FloppyDriver_ResetDriveDiskChange(self);
-
-        self->flags.hasDisk = ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
-
-        if (self->flags.hasDisk) {
-            FloppyDriver_OnMediaChanged(self);
-        }
-    }
-
-    LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
-}
-
-static void FloppyDriver_OnUpdateHasDiskStateCheck(FloppyDriverRef _Nonnull self)
-{
-    if (!self->flags.isOnline) {
-        return;
-    }
-
-    FloppyDriver_UpdateHasDiskState(self);
-
-    if (!self->flags.hasDisk) {
-        FloppyDriver_ScheduleUpdateHasDiskState(self);
-    }
-}
-
-static void FloppyDriver_ScheduleUpdateHasDiskState(FloppyDriverRef _Nonnull self)
-{
-    FloppyDriver_CancelUpdateHasDiskState(self);
-
-    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
-    const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(3));
-    DispatchQueue_DispatchAsyncPeriodically(DiskDriver_GetDispatchQueue(self),
-        deadline,
-        kTimeInterval_Zero,
-        (VoidFunc_1)FloppyDriver_OnUpdateHasDiskStateCheck,
-        self,
-        kUpdateHasDiskStateTag);
-}
-
-static void FloppyDriver_CancelUpdateHasDiskState(FloppyDriverRef _Nonnull self)
-{
-    DispatchQueue_RemoveByTag(DiskDriver_GetDispatchQueue(self), kUpdateHasDiskStateTag);
 }
 
 
@@ -564,13 +507,8 @@ static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t er
             break;
 
         case EDISKCHANGE:
-            FloppyDriver_UpdateHasDiskState(self);
-
-            if (!self->flags.hasDisk) {
-                FloppyDriver_MotorOff(self);
-                err = ENOMEDIUM;
-            }
-            FloppyDriver_OnMediaChanged(self);
+            FloppyDriver_MotorOff(self);
+            DiskDriver_NoteDiskChanged((DiskDriverRef)self);
             break;
 
         default:
@@ -1008,6 +946,7 @@ catch:
 
 class_func_defs(FloppyDriver, DiskDriver,
 override_func_def(deinit, FloppyDriver, Object)
+override_func_def(doSenseDisk, FloppyDriver, DiskDriver)
 override_func_def(onStart, FloppyDriver, Driver)
 override_func_def(getSector, FloppyDriver, DiskDriver)
 override_func_def(putSector, FloppyDriver, DiskDriver)
