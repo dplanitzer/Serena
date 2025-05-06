@@ -11,17 +11,17 @@
 #include <System/_varargs.h>
 
 
-errno_t Mount(MountType type, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const char* _Nonnull params)
+errno_t os_mount(const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)
 {
-    return (errno_t)_syscall(SC_mount, type, containerPath, atDirPath, params);
+    return (errno_t)_syscall(SC_mount, objectType, objectName, atDirPath, params);
 }
 
-errno_t Unmount(const char* _Nonnull atDirPath, UnmountOptions options)
+errno_t os_unmount(const char* _Nonnull atDirPath, UnmountOptions options)
 {
     return (errno_t)_syscall(SC_unmount, atDirPath, options);
 }
 
-errno_t s_fsgetdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
+errno_t os_getfsdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
 {
     return (errno_t)_syscall(SC_fsgetdisk, fsid, buf, bufSize);
 }

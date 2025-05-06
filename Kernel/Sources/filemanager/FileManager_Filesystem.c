@@ -18,13 +18,19 @@
 
 // Establishes and starts the filesystem stored on the disk managed by the disk
 // driver 'diskPath' and returns the filesystem object in 'pOutFs'.
-static errno_t establish_and_start_disk_fs(FileManagerRef _Nonnull self, const char* _Nonnull diskPath, const char* _Nonnull params, FilesystemRef _Nullable * _Nonnull pOutFs)
+static errno_t establish_and_start_disk_fs(FileManagerRef _Nonnull self, const char* _Nonnull fsName, const char* _Nonnull diskPath, const char* _Nonnull params, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
     const unsigned int mode = kOpen_ReadWrite;
     FilesystemRef fs = NULL;
     ResolvedPath rp_disk;
 
+    // SeFS only for now
+    if (!String_Equals(fsName, kMount_SeFS)) {
+        throw(EINVAL);
+    }
+
+    
     // Resolve the path to the disk device file
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, diskPath, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &rp_disk));
 
@@ -77,7 +83,7 @@ static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull
 // Mounts the object 'objectName' of type 'type' at the directory 'atDirPath'.
 // 'params' are optional mount parameters that are passed to the filesystem to
 // mount.
-errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)
+errno_t FileManager_Mount(FileManagerRef _Nonnull self, const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)
 {
     decl_try_err();
     ResolvedPath rp_atDir;
@@ -96,14 +102,11 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const ch
     }
     
 
-    switch (type) {
-        case kMount_Disk:
-            err = establish_and_start_disk_fs(self, objectName, params, &fs);
-            break;
-
-        case kMount_Catalog:
-            err = lookup_catalog(self, objectName, &fs);
-            break;
+    if (String_Equals(objectType, kMount_Catalog)) {
+        err = lookup_catalog(self, objectName, &fs);
+    }
+    else {
+        err = establish_and_start_disk_fs(self, objectType, objectName, params, &fs);
     }
 
 

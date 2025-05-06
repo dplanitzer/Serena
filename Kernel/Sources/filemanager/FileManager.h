@@ -126,7 +126,7 @@ extern errno_t FileManager_Rename(FileManagerRef _Nonnull self, const char* pOld
 // Filesystems
 //
 #ifndef __DISKIMAGE__
-extern errno_t FileManager_Mount(FileManagerRef _Nonnull self, MountType type, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const char* _Nonnull params);
+extern errno_t FileManager_Mount(FileManagerRef _Nonnull self, const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params);
 
 extern errno_t FileManager_Unmount(FileManagerRef _Nonnull self, const char* _Nonnull atDirPath, UnmountOptions options);
 

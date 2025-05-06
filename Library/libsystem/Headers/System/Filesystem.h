@@ -16,11 +16,9 @@
 
 __CPP_BEGIN
 
-enum {
-    kMount_Disk,            // 'objectName' is the path to a disk device
-    kMount_Catalog,         // 'objectName' is a catalog name
-};
-typedef int MountType;
+// Types of mountable objects
+#define kMount_Catalog  ".catalog"
+#define kMount_SeFS     "sefs"
 
 
 // Mountable catalogs
@@ -79,21 +77,17 @@ typedef struct FSInfo {
 #define kFSCommand_GetDiskGeometry  IOResourceCommand(3)
 
 
-#if !defined(__KERNEL__)
-
-// Mounts the object 'objectName' of type 'type' at the directory 'atDirPath'.
+// Mounts the object 'objectName' of type 'objectType' at the directory 'atDirPath'.
 // 'params' are optional mount parameters that are passed to the filesystem to
 // mount.
-extern errno_t Mount(MountType type, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params);
+extern errno_t os_mount(const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params);
 
 // Unmounts the filesystem mounted at the directory 'atDirPath'.
-extern errno_t Unmount(const char* _Nonnull atDirPath, UnmountOptions options);
+extern errno_t os_unmount(const char* _Nonnull atDirPath, UnmountOptions options);
 
 // Returns the path to the disk driver that underpins the filesystem with the
 // given id.
-extern errno_t s_fsgetdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize);
-
-#endif /* __KERNEL__ */
+extern errno_t os_getfsdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize);
 
 __CPP_END
 

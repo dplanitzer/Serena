@@ -217,7 +217,7 @@ static errno_t print_cat_info(const FSInfo* _Nonnull info, int fd)
     decl_try_err();
     char diskName[32];
 
-    try(s_fsgetdisk(info->fsid, diskName, sizeof(diskName)));
+    try(os_getfsdisk(info->fsid, diskName, sizeof(diskName)));
 
     puts("Catalog ID");
     printf("%s       %u\n", diskName, info->fsid);
@@ -235,7 +235,7 @@ static errno_t print_reg_info(const FSInfo* _Nonnull info, int fd)
     char diskName[32];
     char volLabel[64];
 
-    try(s_fsgetdisk(info->fsid, diskName, sizeof(diskName)));
+    try(os_getfsdisk(info->fsid, diskName, sizeof(diskName)));
     try(IOChannel_Control(fd, kFSCommand_GetLabel, volLabel, sizeof(volLabel)));
 
 
@@ -309,7 +309,7 @@ static errno_t cmd_geometry(const char* _Nonnull path)
         try(File_Open(buf, kOpen_Read, &fd));
         err = IOChannel_Control(fd, kFSCommand_GetDiskGeometry, &info);
 
-        try(s_fsgetdisk(fsid, buf, sizeof(buf)));
+        try(os_getfsdisk(fsid, buf, sizeof(buf)));
         path = buf;
     }
     if (err == ENOMEDIUM) {
@@ -351,7 +351,7 @@ errno_t cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
         IOChannel_Close(fd);
     }
     if (err == EOK) {
-        err = Mount(kMount_Disk, diskPath, atPath, "");
+        err = os_mount(kMount_SeFS, diskPath, atPath, "");
     }
 
     return err;
@@ -367,7 +367,7 @@ errno_t cmd_unmount(const char* _Nonnull atPath, bool doForce)
         options |= kUnmount_Forced;
     }
 
-    err = Unmount(atPath, options);
+    err = os_unmount(atPath, options);
 
     return err;
 }

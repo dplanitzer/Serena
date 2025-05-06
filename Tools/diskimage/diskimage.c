@@ -52,7 +52,7 @@ errno_t di_describe_diskimage(const char* _Nonnull dmgPath, DiskImage* _Nonnull 
     long fileSize;
     SMG_Header smgHdr;
 
-    try_null(fp, fopen(dmgPath, "r"), errno);
+    try_null(fp, fopen(dmgPath, "rb"), errno);
     fseek(fp, 0, SEEK_END);
     fileSize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
