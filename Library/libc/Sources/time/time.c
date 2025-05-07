@@ -12,7 +12,7 @@
 
 time_t time(time_t *timer)
 {
-    const TimeInterval ti = MonotonicClock_GetTime();
+    const TimeInterval ti = clock_gettime();
 
     if (timer) {
         *timer = ti.tv_sec;

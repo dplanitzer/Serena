@@ -66,12 +66,8 @@ typedef struct DiskGeometry {
 #define kDiskCommand_SenseDisk  IOResourceCommand(kDriverCommand_SubclassBase + 3)
 
 
-#if !defined(__KERNEL__)
-
 // Synchronously writes all dirty disk blocks back to disk.
-extern void Sync(void);
-
-#endif /* __KERNEL__ */
+extern void os_sync(void);
 
 __CPP_END
 

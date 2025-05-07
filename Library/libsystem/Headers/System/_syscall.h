@@ -17,7 +17,7 @@ __CPP_BEGIN
 enum {
     SC_read = 0,            // errno_t IOChannel_Read(int fd, const char * _Nonnull buffer, size_t nBytesToRead, ssize_t* pOutBytesRead)
     SC_write,               // errno_t IOChannel_Write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
-    SC_delay,               // errno_t Delay(TimeInterval ti)
+    SC_delay,               // errno_t delay(TimeInterval ti)
     SC_dispatch,            // errno_t _DispatchQueue_Dispatch(int od, Dispatch_Closure _Nonnull func, void* _Nullable ctx, uint32_t options, uintptr_t tag)
     SC_alloc_address_space, // errno_t Process_AllocateAddressSpace(int nbytes, void **pOutMem)
     SC_exit,                // _Noreturn Process_Exit(int status)
@@ -52,7 +52,7 @@ enum {
     SC_dispatch_queue_create,   // errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nonnull pOutQueue)
     SC_dispatch_queue_current,  // int DispatchQueue_GetCurrent(void)
     SC_dispose,             // _Object_Dispose(int od)
-    SC_get_monotonic_time,  // TimeInterval MonotonicClock_GetTime(void)
+    SC_get_monotonic_time,  // TimeInterval clock_gettime(void)
     SC_lock_create,         // errno_t lock_create(int* _Nonnull pOutOd)
     SC_lock_trylock,        // errno_t lock_trylock(int od)
     SC_lock_lock,           // errno_t lock_lock(int od)
@@ -68,7 +68,7 @@ enum {
     SC_mount,               // errno_t mount(const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)
     SC_unmount,             // errno_t unmount(const char* _Nonnull atDirPath, UnmountOptions options)
     SC_getgid,              // gid_t Process_GetGroupId(void)
-    SC_sync,                // void Sync(void)
+    SC_sync,                // void sync(void)
     SC_coninit,             // void ConInit(void)
     SC_fsgetdisk,           // errno_t fsgetdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
 };

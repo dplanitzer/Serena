@@ -17,19 +17,15 @@
 
 __CPP_BEGIN
 
-#if !defined(__KERNEL__)
-
 // Blocks the calling execution context for the seconds and nanoseconds specified
 // by 'delay'.
 // @Concurrency: Safe
-extern errno_t Delay(TimeInterval delay);
+extern errno_t clock_wait(TimeInterval delay);
 
 // Returns the current time of the monotonic clock. The monotonic clock starts
 // ticking at boot time and never moves backward.
 // @Concurrency: Safe
-extern TimeInterval MonotonicClock_GetTime(void);
-
-#endif /* __KERNEL__ */
+extern TimeInterval clock_gettime(void);
 
 __CPP_END
 

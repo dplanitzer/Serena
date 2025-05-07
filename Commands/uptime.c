@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
     clap_parse(0, params, argc, argv);
 
     
-    const TimeInterval ti = MonotonicClock_GetTime();
+    const TimeInterval ti = clock_gettime();
     const time_t h = ti.tv_sec / 3600;
     const time_t minsAsSecs = ti.tv_sec - h * 3600;
     const time_t m = minsAsSecs / 60;

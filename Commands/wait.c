@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
     }
 
     
-    Delay(TimeInterval_MakeMilliseconds(ms));
+    clock_wait(TimeInterval_MakeMilliseconds(ms));
 
     return EXIT_SUCCESS;
 }

@@ -73,7 +73,7 @@ static void OnWriteToPipe(void* _Nonnull pValue)
     ssize_t nBytesWritten;
     
     while (true) {
-        Delay(TimeInterval_MakeMilliseconds(20));
+        clock_wait(TimeInterval_MakeMilliseconds(20));
         assertOK(IOChannel_Write(wioc, bytes, nBytesToWrite, &nBytesWritten));
         
         printf("Writer: '%s'-> %d\n", bytes, nBytesWritten);

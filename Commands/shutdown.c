@@ -23,9 +23,9 @@ int main(int argc, char* argv[])
     clap_parse(0, params, argc, argv);
 
     
-    Sync();
+    os_sync();
     
-    fputs("It is now safe to turn power off.\n", stdout);
+    fputs("It is now safe to turn power to your computer off.\n", stdout);
     fputs("\033[?25l", stdout);
 
     for (;;) {
