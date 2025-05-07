@@ -31,7 +31,7 @@ static const char* gAvailablePattern[NUM_PATTERNS] = {
 };
 
 static int gQueue;
-static Lock gLock;
+static os_mutex_t gMutex;
 static int gCurrentPatternIndex;
 static char gCurrentPattern[256];
 
@@ -61,7 +61,7 @@ static void select_and_write_pattern(void)
 
 static void OnWork(void* _Nonnull pValue)
 {
-    assertOK(Lock_Lock(&gLock));
+    assertOK(os_mutex_lock(&gMutex));
     printf("R: %d\n", gCurrentPatternIndex);
 
     // Make sure that we find the expected pattern in the pattern buffer
@@ -71,7 +71,7 @@ static void OnWork(void* _Nonnull pValue)
     // Select a new pattern and write it to the pattern buffer
     select_and_write_pattern();
 
-    assertOK(Lock_Unlock(&gLock));
+    assertOK(os_mutex_unlock(&gMutex));
 
     assertOK(DispatchQueue_DispatchAsync(gQueue, OnWork, NULL));
 }
@@ -79,7 +79,7 @@ static void OnWork(void* _Nonnull pValue)
 
 void lock_test(int argc, char *argv[])
 {
-    assertOK(Lock_Init(&gLock));
+    assertOK(os_mutex_init(&gMutex));
     assertOK(DispatchQueue_Create(0, NUM_VPS, kDispatchQoS_Utility, kDispatchPriority_Normal, &gQueue));
 
     gCurrentPatternIndex = 0;

@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <__stddef.h>
 #include <System/_math.h>
-#include <System/Lock.h>
+#include <System/Mutex.h>
 #include <System/Process.h>
 #include "__malloc.h"
 
@@ -17,8 +17,8 @@
 #define EXPANSION_HEAP_SIZE __Ceil_PowerOf2(64*1024, CPU_PAGE_SIZE)
 
 
-AllocatorRef    __gMainAllocator;
-static Lock     __gMallocLock;
+AllocatorRef        __gMainAllocator;
+static os_mutex_t   __gMallocLock;
 
 
 static errno_t __malloc_expand_backing_store(AllocatorRef _Nonnull pAllocator, size_t minByteCount)
@@ -60,15 +60,15 @@ void __malloc_init(void)
         abort();
     }
 
-    Lock_Init(&__gMallocLock);
+    os_mutex_init(&__gMallocLock);
 }
 
 void __malloc_lock(void)
 {
-    Lock_Lock(&__gMallocLock);
+    os_mutex_lock(&__gMallocLock);
 }
 
 void __malloc_unlock(void)
 {
-    Lock_Unlock(&__gMallocLock);
+    os_mutex_unlock(&__gMallocLock);
 }

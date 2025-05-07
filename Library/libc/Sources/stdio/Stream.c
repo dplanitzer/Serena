@@ -9,26 +9,26 @@
 #include "Stream.h"
 #include <stdlib.h>
 #include <string.h>
-#include <System/Lock.h>
+#include <System/Mutex.h>
 
 
-static FILE*    __gOpenFiles;
-static Lock     __gOpenFilesLock;
+static FILE*        __gOpenFiles;
+static os_mutex_t   __gOpenFilesLock;
 
 
 void __init_open_files_lock(void)
 {
-    Lock_Init(&__gOpenFilesLock);
+    os_mutex_init(&__gOpenFilesLock);
 }
 
 static void __open_files_lock(void)
 {
-    Lock_Lock(&__gOpenFilesLock);
+    os_mutex_lock(&__gOpenFilesLock);
 }
 
 static void __open_files_unlock(void)
 {
-    Lock_Unlock(&__gOpenFilesLock);
+    os_mutex_unlock(&__gOpenFilesLock);
 }
 
 static void __register_open_file(FILE* _Nonnull s)

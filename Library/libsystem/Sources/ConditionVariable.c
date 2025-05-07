@@ -8,7 +8,7 @@
 
 #include <System/ConditionVariable.h>
 #include <System/_syscall.h>
-#include "LockPriv.h"
+#include "MutexPriv.h"
 
 #define CV_SIGNATURE 0x53454d41
 
@@ -52,12 +52,12 @@ errno_t ConditionVariable_Deinit(ConditionVariableRef _Nonnull cv)
     return err;
 }
 
-errno_t ConditionVariable_Signal(ConditionVariableRef _Nonnull cv, LockRef _Nullable lock)
+errno_t ConditionVariable_Signal(ConditionVariableRef _Nonnull cv, os_mutex_t* _Nullable mutex)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
-    ULock* ulock = (ULock*)lock;
+    UMutex* ulock = (UMutex*)mutex;
 
-    if (self->signature == CV_SIGNATURE && ulock->signature == LOCK_SIGNATURE) {
+    if (self->signature == CV_SIGNATURE && ulock->signature == MUTEX_SIGNATURE) {
         return _syscall(SC_cv_wake, self->od, ulock->od, 0);
     }
     else {
@@ -65,12 +65,12 @@ errno_t ConditionVariable_Signal(ConditionVariableRef _Nonnull cv, LockRef _Null
     }
 }
 
-errno_t ConditionVariable_Broadcast(ConditionVariableRef _Nonnull cv, LockRef _Nullable lock)
+errno_t ConditionVariable_Broadcast(ConditionVariableRef _Nonnull cv, os_mutex_t* _Nullable mutex)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
-    ULock* ulock = (ULock*)lock;
+    UMutex* ulock = (UMutex*)mutex;
 
-    if (self->signature == CV_SIGNATURE && ulock->signature == LOCK_SIGNATURE) {
+    if (self->signature == CV_SIGNATURE && ulock->signature == MUTEX_SIGNATURE) {
         return _syscall(SC_cv_wake, self->od, ulock->od, 1);
     }
     else {
@@ -78,12 +78,12 @@ errno_t ConditionVariable_Broadcast(ConditionVariableRef _Nonnull cv, LockRef _N
     }
 }
 
-errno_t ConditionVariable_Wait(ConditionVariableRef _Nonnull cv, LockRef _Nonnull lock, TimeInterval deadline)
+errno_t ConditionVariable_Wait(ConditionVariableRef _Nonnull cv, os_mutex_t* _Nonnull mutex, TimeInterval deadline)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
-    ULock* ulock = (ULock*)lock;
+    UMutex* ulock = (UMutex*)mutex;
 
-    if (self->signature == CV_SIGNATURE && ulock->signature == LOCK_SIGNATURE) {
+    if (self->signature == CV_SIGNATURE && ulock->signature == MUTEX_SIGNATURE) {
         return _syscall(SC_cv_wait, self->od, ulock->od, deadline);
     }
     else {

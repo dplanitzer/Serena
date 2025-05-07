@@ -13,7 +13,7 @@
 #include <System/Error.h>
 #include <System/Types.h>
 #include <System/TimeInterval.h>
-#include <System/Lock.h>
+#include <System/Mutex.h>
 
 __CPP_BEGIN
 
@@ -35,19 +35,19 @@ extern errno_t ConditionVariable_Deinit(ConditionVariableRef _Nonnull cv);
 // Signals the given condition variable and optionally unlocks the given lock
 // if it is not NULL. Signaling a condition variable will wake up one waiter.
 // @Concurrency: Safe
-extern errno_t ConditionVariable_Signal(ConditionVariableRef _Nonnull cv, LockRef _Nullable lock);
+extern errno_t ConditionVariable_Signal(ConditionVariableRef _Nonnull cv, os_mutex_t* _Nullable mutex);
 
 // Broadcasts the given condition variable and optionally unlocks the given lock
 // if it is not NULL. Broadcasting a condition variable will wake up all waiters.
 // @Concurrency: Safe
-extern errno_t ConditionVariable_Broadcast(ConditionVariableRef _Nonnull cv, LockRef _Nullable lock);
+extern errno_t ConditionVariable_Broadcast(ConditionVariableRef _Nonnull cv, os_mutex_t* _Nullable mutex);
 
 // Blocks the caller until the given condition variable has been signaled or
 // broadcast. Automatically and atomically acquires the lock 'lock'. Returns EOK
 // on success and ETIMEOUT if the condition variable isn't signaled before
 // 'deadline'.
 // @Concurrency: Safe
-extern errno_t ConditionVariable_Wait(ConditionVariableRef _Nonnull cv, LockRef _Nonnull lock, TimeInterval deadline);
+extern errno_t ConditionVariable_Wait(ConditionVariableRef _Nonnull cv, os_mutex_t* _Nullable mutex, TimeInterval deadline);
 
 #endif /* __KERNEL__ */
 

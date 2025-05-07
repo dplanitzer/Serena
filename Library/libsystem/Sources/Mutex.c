@@ -1,18 +1,18 @@
 //
-//  Lock.c
+//  Mutex.c
 //  libsystem
 //
 //  Created by Dietmar Planitzer on 3/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "LockPriv.h"
+#include "MutexPriv.h"
 #include <System/_syscall.h>
 
 
-errno_t Lock_Init(LockRef _Nonnull lock)
+errno_t os_mutex_init(os_mutex_t* _Nonnull mutex)
 {
-    ULock* self = (ULock*)lock;
+    UMutex* self = (UMutex*)mutex;
 
     self->signature = 0;
     self->r2 = 0;
@@ -20,17 +20,17 @@ errno_t Lock_Init(LockRef _Nonnull lock)
 
     const errno_t err = _syscall(SC_lock_create, &self->od);
     if (err == EOK) {
-        self->signature = LOCK_SIGNATURE;
+        self->signature = MUTEX_SIGNATURE;
     }
 
     return err;
 }
 
-errno_t Lock_Deinit(LockRef _Nonnull lock)
+errno_t os_mutex_deinit(os_mutex_t* _Nonnull mutex)
 {
-    ULock* self = (ULock*)lock;
+    UMutex* self = (UMutex*)mutex;
 
-    if (self->signature != LOCK_SIGNATURE) {
+    if (self->signature != MUTEX_SIGNATURE) {
         return EINVAL;
     }
 
@@ -41,11 +41,11 @@ errno_t Lock_Deinit(LockRef _Nonnull lock)
     return err;
 }
 
-errno_t Lock_TryLock(LockRef _Nonnull lock)
+errno_t os_mutex_trylock(os_mutex_t* _Nonnull mutex)
 {
-    ULock* self = (ULock*)lock;
+    UMutex* self = (UMutex*)mutex;
 
-    if (self->signature == LOCK_SIGNATURE) {
+    if (self->signature == MUTEX_SIGNATURE) {
         return _syscall(SC_lock_trylock, self->od);
     }
     else {
@@ -53,11 +53,11 @@ errno_t Lock_TryLock(LockRef _Nonnull lock)
     }
 }
 
-errno_t Lock_Lock(LockRef _Nonnull lock)
+errno_t os_mutex_lock(os_mutex_t* _Nonnull mutex)
 {
-    ULock* self = (ULock*)lock;
+    UMutex* self = (UMutex*)mutex;
 
-    if (self->signature == LOCK_SIGNATURE) {
+    if (self->signature == MUTEX_SIGNATURE) {
         return _syscall(SC_lock_lock, self->od);
     }
     else {
@@ -65,11 +65,11 @@ errno_t Lock_Lock(LockRef _Nonnull lock)
     }
 }
 
-errno_t Lock_Unlock(LockRef _Nonnull lock)
+errno_t os_mutex_unlock(os_mutex_t* _Nonnull mutex)
 {
-    ULock* self = (ULock*)lock;
+    UMutex* self = (UMutex*)mutex;
 
-    if (self->signature == LOCK_SIGNATURE) {
+    if (self->signature == MUTEX_SIGNATURE) {
         return _syscall(SC_lock_unlock, self->od);
     }
     else {
