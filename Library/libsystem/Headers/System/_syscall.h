@@ -47,7 +47,7 @@ enum {
     SC_truncate,            // errno_t File_Truncate(const char* _Nonnull path, off_t length)
     SC_ftruncate,           // errno_t FileChannel_Truncate(int fd, off_t length)
     SC_mkfile,              // errno_t File_Create(const char* _Nonnull path, int options, int permissions, int* _Nonnull fd)
-    SC_mkpipe,              // errno_t Pipe_Create(int* _Nonnull rioc, int* _Nonnull wioc)
+    SC_mkpipe,              // errno_t pipe_create(int* _Nonnull rioc, int* _Nonnull wioc)
     SC_dispatch_timer,      // errno_t DispatchQueue_DispatchTimer(int od, TimeInterval deadline, TimeInterval interval, Dispatch_Closure _Nonnull func, void* _Nullable ctx, uintptr_t tag)
     SC_dispatch_queue_create,   // errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nonnull pOutQueue)
     SC_dispatch_queue_current,  // int DispatchQueue_GetCurrent(void)

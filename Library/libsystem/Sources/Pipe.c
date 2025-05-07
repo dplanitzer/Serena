@@ -11,7 +11,7 @@
 #include <System/_varargs.h>
 
 
-errno_t Pipe_Create(int* _Nonnull rioc, int* _Nonnull wioc)
+errno_t os_mkpipe(int* _Nonnull rioc, int* _Nonnull wioc)
 {
     return (errno_t)_syscall(SC_mkpipe, rioc, wioc);
 }

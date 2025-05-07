@@ -13,7 +13,7 @@
 
 __CPP_BEGIN
 
-typedef struct ZorroConfiguration {
+typedef struct os_zorro_conf {
     uint8_t* _Nonnull   start;          // base address
     size_t              physicalSize;   // size of memory space reserved for this board
     size_t              logicalSize;    // size of memory space actually occupied by the board
@@ -24,7 +24,7 @@ typedef struct ZorroConfiguration {
     int8_t              bus;
     int8_t              slot;
     uint8_t             flags;
-} ZorroConfiguration;
+} os_zorro_conf_t;
 
 __CPP_END
 

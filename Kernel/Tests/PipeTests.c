@@ -18,7 +18,7 @@ void pipe_test(int argc, char *argv[])
 {
     int rioc, wioc;
 
-    assertOK(Pipe_Create(&rioc, &wioc));
+    assertOK(os_mkpipe(&rioc, &wioc));
     printf("rioc: %d, wioc: %d\n", rioc, wioc);
 
     const char* pBytesToWrite = "Hello World";
@@ -87,7 +87,7 @@ void pipe2_test(int argc, char *argv[])
     int rioc, wioc;
     int utilityQueue;
 
-    assertOK(Pipe_Create(&rioc, &wioc));
+    assertOK(os_mkpipe(&rioc, &wioc));
 
     assertOK(DispatchQueue_Create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal, &utilityQueue));
 
