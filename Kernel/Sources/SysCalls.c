@@ -377,7 +377,7 @@ SYSCALL_1(lock_unlock, int od)
 }
 
 
-SYSCALL_2(sema_create, int npermits, int* _Nullable pOutOd)
+SYSCALL_2(sem_create, int npermits, int* _Nullable pOutOd)
 {
     if (pArgs->pOutOd == NULL) {
         return EINVAL;
@@ -386,17 +386,17 @@ SYSCALL_2(sema_create, int npermits, int* _Nullable pOutOd)
     return Process_CreateUSemaphore(Process_GetCurrent(), pArgs->npermits, pArgs->pOutOd);
 }
 
-SYSCALL_2(sema_relinquish, int od, int npermits)
+SYSCALL_2(sem_post, int od, int npermits)
 {
     return Process_RelinquishUSemaphore(Process_GetCurrent(), pArgs->od, pArgs->npermits);
 }
 
-SYSCALL_3(sema_acquire, int od, int npermits, TimeInterval deadline)
+SYSCALL_3(sem_wait, int od, int npermits, TimeInterval deadline)
 {
     return Process_AcquireUSemaphore(Process_GetCurrent(), pArgs->od, pArgs->npermits, pArgs->deadline);
 }
 
-SYSCALL_2(sema_tryacquire, int od, int npermits)
+SYSCALL_2(sem_trywait, int od, int npermits)
 {
     return Process_TryAcquireUSemaphore(Process_GetCurrent(), pArgs->od, pArgs->npermits);
 }
@@ -571,10 +571,10 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(lock_trylock),
     REF_SYSCALL(lock_lock),
     REF_SYSCALL(lock_unlock),
-    REF_SYSCALL(sema_create),
-    REF_SYSCALL(sema_relinquish),
-    REF_SYSCALL(sema_acquire),
-    REF_SYSCALL(sema_tryacquire),
+    REF_SYSCALL(sem_create),
+    REF_SYSCALL(sem_post),
+    REF_SYSCALL(sem_wait),
+    REF_SYSCALL(sem_trywait),
     REF_SYSCALL(cv_create),
     REF_SYSCALL(cv_wake),
     REF_SYSCALL(cv_wait),

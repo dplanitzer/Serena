@@ -16,37 +16,32 @@
 
 __CPP_BEGIN
 
-#if !defined(__KERNEL__)
-
-typedef struct Semaphore {
+typedef struct os_sem {
     int d[4];
-} Semaphore;
-typedef Semaphore* SemaphoreRef;
+} os_sem_t;
 
 
 // Initializes a semaphore object with the given number of permits.
-extern errno_t Semaphore_Init(SemaphoreRef _Nonnull sema, int npermits);
+extern errno_t os_sem_init(os_sem_t* _Nonnull sema, int npermits);
 
 // Deinitializes the given semaphore.
-extern errno_t Semaphore_Deinit(SemaphoreRef _Nonnull sema);
+extern errno_t os_sem_deinit(os_sem_t* _Nonnull sema);
 
 
 // Relinquishes the given number of permits to the given semaphore. This makes
 // the permits available for acquisition by other execution contexts.
 // @Concurrency: Safe
-extern errno_t Semaphore_Relinquish(SemaphoreRef _Nonnull sema, int npermits);
+extern errno_t os_sem_post(os_sem_t* _Nonnull sema, int npermits);
 
 // Blocks the caller until 'npermits' can be acquired. Returns EOK on success
 // and ETIMEOUT if the permits could not be acquire before 'deadline'.
 // @Concurrency: Safe
-extern errno_t Semaphore_Acquire(SemaphoreRef _Nonnull sema, int npermits, TimeInterval deadline);
+extern errno_t os_sem_wait(os_sem_t* _Nonnull sema, int npermits, TimeInterval deadline);
 
 // Attempts to acquire 'npermits' without blocking. Returns EOK on success and
 // EBUSY on failure.
 // @Concurrency: Safe
-extern errno_t Semaphore_TryAcquire(SemaphoreRef _Nonnull sema, int npermits);
-
-#endif /* __KERNEL__ */
+extern errno_t os_sem_trywait(os_sem_t* _Nonnull sema, int npermits);
 
 __CPP_END
 
