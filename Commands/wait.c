@@ -71,8 +71,8 @@ int main(int argc, char* argv[])
         }
     }
 
-    
-    clock_wait(TimeInterval_MakeMilliseconds(ms));
+    TimeInterval dur = TimeInterval_MakeMilliseconds(ms);
+    clock_wait(CLOCK_UPTIME, &dur);
 
     return EXIT_SUCCESS;
 }

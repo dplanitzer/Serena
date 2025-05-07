@@ -11,7 +11,7 @@ __ABI_SYSCALL_I  set 1
 
 SC_read                     equ 0
 SC_write                    equ 1
-SC_delay                    equ 2
+SC_clock_wait               equ 2
 SC_dispatch                 equ 3
 SC_alloc_address_space      equ 4
 SC_exit                     equ 5
@@ -46,7 +46,7 @@ SC_dispatch_timer           equ 33
 SC_dispatch_queue_create    equ 34
 SC_dispatch_queue_current   equ 35
 SC_dispose                  equ 36
-SC_get_monotonic_time       equ 37
+SC_clock_gettime            equ 37
 SC_lock_create              equ 38
 SC_lock_trylock             equ 39
 SC_lock_lock                equ 40

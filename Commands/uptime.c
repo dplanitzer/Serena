@@ -23,8 +23,12 @@ int main(int argc, char* argv[])
 {
     clap_parse(0, params, argc, argv);
 
-    
-    const TimeInterval ti = clock_gettime();
+    TimeInterval ti;
+    const errno_t err = clock_gettime(CLOCK_UPTIME, &ti);
+    if (err != EOK) {
+        return EXIT_FAILURE;
+    }
+
     const time_t h = ti.tv_sec / 3600;
     const time_t minsAsSecs = ti.tv_sec - h * 3600;
     const time_t m = minsAsSecs / 60;

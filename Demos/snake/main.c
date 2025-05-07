@@ -265,7 +265,9 @@ static void game_loop(void* ctx)
     input();
     logic();
 
-    DispatchQueue_DispatchAsyncAfter(kDispatchQueue_Main, TimeInterval_Add(clock_gettime(), TimeInterval_MakeMilliseconds(66)), game_loop, NULL, 0);
+    TimeInterval ts;
+    clock_gettime(CLOCK_UPTIME, &ts);
+    DispatchQueue_DispatchAsyncAfter(kDispatchQueue_Main, TimeInterval_Add(ts, TimeInterval_MakeMilliseconds(66)), game_loop, NULL, 0);
 }
 
 void main_closure(int argc, char *argv[])

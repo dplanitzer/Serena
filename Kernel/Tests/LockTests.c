@@ -53,7 +53,7 @@ static void select_and_write_pattern(void)
         dst += nBytesToCopy;
         len -= nBytesToCopy;
 
-       //assertOK(clock_wait(dl));
+       //assertOK(clock_wait(CLOCK_UPTIME, &dl));
     }
 
     printf("W: '%s'\n", gCurrentPattern);

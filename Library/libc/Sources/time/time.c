@@ -12,11 +12,12 @@
 
 time_t time(time_t *timer)
 {
-    const TimeInterval ti = clock_gettime();
-
+    TimeInterval ts;
+    
+    clock_gettime(CLOCK_UPTIME, &ts);
     if (timer) {
-        *timer = ti.tv_sec;
+        *timer = ts.tv_sec;
     }
 
-    return ti.tv_sec;
+    return ts.tv_sec;
 }

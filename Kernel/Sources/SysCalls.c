@@ -12,6 +12,7 @@
 #include <filesystem/IOChannel.h>
 #include <hal/MonotonicClock.h>
 #include <process/Process.h>
+#include <System/Clock.h>
 #include <System/Disk.h>
 #include <System/Filesystem.h>
 #include <System/User.h>
@@ -268,19 +269,25 @@ SYSCALL_1(setumask, uint32_t mask)
     return EOK;
 }
 
-SYSCALL_1(delay, TimeInterval delay)
+SYSCALL_2(clock_wait, int clock, const TimeInterval* _Nullable delay)
 {
-    if (pArgs->delay.tv_nsec < 0 || pArgs->delay.tv_nsec >= ONE_SECOND_IN_NANOS) {
+    if (pArgs->delay == NULL || pArgs->delay->tv_nsec < 0 || pArgs->delay->tv_nsec >= ONE_SECOND_IN_NANOS) {
         return EINVAL;
     }
+    if (pArgs->clock != CLOCK_UPTIME) {
+        return ENODEV;
+    }
 
-    return VirtualProcessor_Sleep(pArgs->delay);
+    return VirtualProcessor_Sleep(*(pArgs->delay));
 }
 
-SYSCALL_1(get_monotonic_time, TimeInterval* _Nullable time)
+SYSCALL_2(clock_gettime, int clock, TimeInterval* _Nullable time)
 {
     if (pArgs->time == NULL) {
         return EINVAL;
+    }
+    if (pArgs->clock != CLOCK_UPTIME) {
+        return ENODEV;
     }
 
     *(pArgs->time) = MonotonicClock_GetCurrentTime();
@@ -524,7 +531,7 @@ SYSCALL_3(fsgetdisk, fsid_t fsid, char* _Nullable buf, size_t bufSize)
 SystemCall gSystemCallTable[] = {
     REF_SYSCALL(read),
     REF_SYSCALL(write),
-    REF_SYSCALL(delay),
+    REF_SYSCALL(clock_wait),
     REF_SYSCALL(dispatch),
     REF_SYSCALL(alloc_address_space),
     REF_SYSCALL(exit),
@@ -559,7 +566,7 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(dispatch_queue_create),
     REF_SYSCALL(dispatch_queue_current),
     REF_SYSCALL(dispose),
-    REF_SYSCALL(get_monotonic_time),
+    REF_SYSCALL(clock_gettime),
     REF_SYSCALL(lock_create),
     REF_SYSCALL(lock_trylock),
     REF_SYSCALL(lock_lock),

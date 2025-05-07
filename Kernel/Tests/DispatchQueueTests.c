@@ -24,7 +24,8 @@ static void OnAsync(void* _Nonnull pValue)
     int val = (int)pValue;
     
     printf("%d\n", val);
-    //clock_wait(TimeInterval_MakeSeconds(2));
+    //TimeInterval dur = TimeInterval_MakeSeconds(2);
+    //clock_wait(clock_uptime, &dur);
     assertOK(DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnAsync, (void*)(val + 1)));
 }
 
@@ -42,9 +43,11 @@ void dq_async_test(int argc, char *argv[])
 static void OnAsyncAfter(void* _Nonnull pValue)
 {
     int val = (int)pValue;
-    
+    TimeInterval ts;
+
     printf("%d\n", val);
-    assertOK(DispatchQueue_DispatchAsyncAfter(kDispatchQueue_Main, TimeInterval_Add(clock_gettime(), TimeInterval_MakeMilliseconds(500)), OnAsyncAfter, (void*)(val + 1), 0));
+    clock_gettime(CLOCK_UPTIME, &ts);
+    assertOK(DispatchQueue_DispatchAsyncAfter(kDispatchQueue_Main, TimeInterval_Add(ts, TimeInterval_MakeMilliseconds(500)), OnAsyncAfter, (void*)(val + 1), 0));
 }
 
 void dq_async_after_test(int argc, char *argv[])
@@ -61,8 +64,9 @@ void dq_async_after_test(int argc, char *argv[])
 static void OnSync(void* _Nonnull pValue)
 {
     int val = (int)pValue;
-    
-    clock_wait(TimeInterval_MakeMilliseconds(500));
+    TimeInterval dur = TimeInterval_MakeMilliseconds(500);
+
+    clock_wait(CLOCK_UPTIME, &dur);
     printf("%d  (Queue: %d)\n", val, DispatchQueue_GetCurrent());
 }
 

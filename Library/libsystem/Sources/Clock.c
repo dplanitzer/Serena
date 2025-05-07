@@ -10,15 +10,12 @@
 #include <System/_syscall.h>
 
 
-errno_t clock_wait(TimeInterval ti)
+errno_t clock_wait(int clock, const TimeInterval* _Nonnull delay)
 {
-    return (errno_t)_syscall(SC_delay, ti);
+    return (errno_t)_syscall(SC_clock_wait, clock, delay);
 }
 
-TimeInterval clock_gettime(void)
+errno_t clock_gettime(int clock, TimeInterval* _Nonnull ts)
 {
-    TimeInterval time;
-
-    _syscall(SC_get_monotonic_time, &time);
-    return time;
+    return (errno_t)_syscall(SC_clock_gettime, clock, ts);
 }
