@@ -526,6 +526,10 @@ errno_t Filesystem_ioctl(FilesystemRef _Nonnull self, IOChannelRef _Nonnull pCha
         case kFSCommand_GetDiskGeometry:
             return ENOTSUP;
 
+        case kFSCommand_Sync:
+            Filesystem_Sync(self);
+            return EOK;
+    
         default:
             return ENOTIOCTLCMD;
     }

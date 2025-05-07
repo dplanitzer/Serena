@@ -77,6 +77,14 @@ typedef struct FSInfo {
 #define kFSCommand_GetDiskGeometry  IOResourceCommand(3)
 
 
+// Instruct the filesystem to flush all cached meta and other data to the disk.
+// Blocks the caller until all data has been synced to disk. Only data belonging
+// to the filesystem to synced. Data belonging to other filesystems remains in
+// the cache and is not touched.
+// fssync(void)
+#define kFSCommand_Sync             IOResourceCommand(4)
+
+
 // Mounts the object 'objectName' of type 'objectType' at the directory 'atDirPath'.
 // 'params' are optional mount parameters that are passed to the filesystem to
 // mount.
