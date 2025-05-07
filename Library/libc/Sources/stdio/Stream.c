@@ -135,18 +135,18 @@ errno_t __fopen_parse_mode(const char* _Nonnull mode, __FILE_Mode* _Nonnull pOut
         sm |= (__kStreamMode_Read | __kStreamMode_Write);
         mode++;
     }
-    if (*mode == 'x') {
-        sm |= __kStreamMode_Exclusive;
+
+
+    // Any Order Modifiers
+    while (*mode != '\0') {
+        switch (*mode) {
+            case 'x':   sm |= __kStreamMode_Exclusive; break;
+            case 'b':   sm |= __kStreamMode_Binary; break;
+            case 't':   sm |= __kStreamMode_Text; break;
+            default:    break;
+        }
         mode++;
-    }
-    if (*mode == 'b') {
-        sm |= __kStreamMode_Binary;
-        mode++;
-    }
-    if (*mode == 't') {
-        sm |= __kStreamMode_Text;
-        mode++;
-    }
+    } 
 
 
     if ((sm & (__kStreamMode_Read|__kStreamMode_Write)) == 0) {
