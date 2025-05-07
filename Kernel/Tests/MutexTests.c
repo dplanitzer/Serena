@@ -1,5 +1,5 @@
 //
-//  LockTests.c
+//  MutexTests.c
 //  Kernel Tests
 //
 //  Created by Dietmar Planitzer on 8/24/24.
@@ -77,7 +77,7 @@ static void OnWork(void* _Nonnull pValue)
 }
 
 
-void lock_test(int argc, char *argv[])
+void mutex_test(int argc, char *argv[])
 {
     assertOK(os_mutex_init(&gMutex));
     assertOK(DispatchQueue_Create(0, NUM_VPS, kDispatchQoS_Utility, kDispatchPriority_Normal, &gQueue));
