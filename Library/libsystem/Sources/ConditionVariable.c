@@ -21,7 +21,7 @@ typedef struct UConditionVariable {
 } UConditionVariable;
 
 
-errno_t ConditionVariable_Init(ConditionVariableRef _Nonnull cv)
+errno_t os_cond_init(os_cond_t* _Nonnull cv)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
 
@@ -29,7 +29,7 @@ errno_t ConditionVariable_Init(ConditionVariableRef _Nonnull cv)
     self->r2 = 0;
     self->r3 = 0;
 
-    const errno_t err = _syscall(SC_cv_create, &self->od);
+    const errno_t err = _syscall(SC_cond_create, &self->od);
     if (err == EOK) {
         self->signature = CV_SIGNATURE;
     }
@@ -37,7 +37,7 @@ errno_t ConditionVariable_Init(ConditionVariableRef _Nonnull cv)
     return err;
 }
 
-errno_t ConditionVariable_Deinit(ConditionVariableRef _Nonnull cv)
+errno_t os_cond_deinit(os_cond_t* _Nonnull cv)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
 
@@ -52,39 +52,52 @@ errno_t ConditionVariable_Deinit(ConditionVariableRef _Nonnull cv)
     return err;
 }
 
-errno_t ConditionVariable_Signal(ConditionVariableRef _Nonnull cv, os_mutex_t* _Nullable mutex)
+errno_t os_cond_signal(os_cond_t* _Nonnull cv, os_mutex_t* _Nullable mutex)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
     UMutex* ulock = (UMutex*)mutex;
 
     if (self->signature == CV_SIGNATURE && ulock->signature == MUTEX_SIGNATURE) {
-        return _syscall(SC_cv_wake, self->od, ulock->od, 0);
+        return _syscall(SC_cond_wake, self->od, ulock->od, 0);
     }
     else {
         return EINVAL;
     }
 }
 
-errno_t ConditionVariable_Broadcast(ConditionVariableRef _Nonnull cv, os_mutex_t* _Nullable mutex)
+errno_t os_cond_broadcast(os_cond_t* _Nonnull cv, os_mutex_t* _Nullable mutex)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
     UMutex* ulock = (UMutex*)mutex;
 
     if (self->signature == CV_SIGNATURE && ulock->signature == MUTEX_SIGNATURE) {
-        return _syscall(SC_cv_wake, self->od, ulock->od, 1);
+        return _syscall(SC_cond_wake, self->od, ulock->od, 1);
     }
     else {
         return EINVAL;
     }
 }
 
-errno_t ConditionVariable_Wait(ConditionVariableRef _Nonnull cv, os_mutex_t* _Nonnull mutex, TimeInterval deadline)
+errno_t os_cond_wait(os_cond_t* _Nonnull cv, os_mutex_t* _Nonnull mutex)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
     UMutex* ulock = (UMutex*)mutex;
 
     if (self->signature == CV_SIGNATURE && ulock->signature == MUTEX_SIGNATURE) {
-        return _syscall(SC_cv_wait, self->od, ulock->od, deadline);
+        return _syscall(SC_cond_timedwait, self->od, ulock->od, NULL);
+    }
+    else {
+        return EINVAL;
+    }
+}
+
+errno_t os_cond_timedwait(os_cond_t* _Nonnull cv, os_mutex_t* _Nonnull mutex, const TimeInterval* _Nonnull deadline)
+{
+    UConditionVariable* self = (UConditionVariable*)cv;
+    UMutex* ulock = (UMutex*)mutex;
+
+    if (self->signature == CV_SIGNATURE && ulock->signature == MUTEX_SIGNATURE) {
+        return _syscall(SC_cond_timedwait, self->od, ulock->od, deadline);
     }
     else {
         return EINVAL;

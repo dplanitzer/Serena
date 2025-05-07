@@ -17,39 +17,39 @@
 
 __CPP_BEGIN
 
-#if !defined(__KERNEL__)
-
-typedef struct ConditionVariable {
+typedef struct os_cond {
     int d[4];
-} ConditionVariable;
-typedef ConditionVariable* ConditionVariableRef;
+} os_cond_t;
 
 
 // Initializes a condition variable object.
-extern errno_t ConditionVariable_Init(ConditionVariableRef _Nonnull cv);
+extern errno_t os_cond_init(os_cond_t* _Nonnull cv);
 
 // Deinitializes the given condition variable.
-extern errno_t ConditionVariable_Deinit(ConditionVariableRef _Nonnull cv);
+extern errno_t os_cond_deinit(os_cond_t* _Nonnull cv);
 
 
 // Signals the given condition variable and optionally unlocks the given lock
 // if it is not NULL. Signaling a condition variable will wake up one waiter.
 // @Concurrency: Safe
-extern errno_t ConditionVariable_Signal(ConditionVariableRef _Nonnull cv, os_mutex_t* _Nullable mutex);
+extern errno_t os_cond_signal(os_cond_t* _Nonnull cv, os_mutex_t* _Nullable mutex);
 
 // Broadcasts the given condition variable and optionally unlocks the given lock
 // if it is not NULL. Broadcasting a condition variable will wake up all waiters.
 // @Concurrency: Safe
-extern errno_t ConditionVariable_Broadcast(ConditionVariableRef _Nonnull cv, os_mutex_t* _Nullable mutex);
+extern errno_t os_cond_broadcast(os_cond_t* _Nonnull cv, os_mutex_t* _Nullable mutex);
+
+// Blocks the caller until the given condition variable has been signaled or
+// broadcast. Automatically and atomically acquires the lock 'lock'.
+// @Concurrency: Safe
+extern errno_t os_cond_wait(os_cond_t* _Nonnull cv, os_mutex_t* _Nullable mutex);
 
 // Blocks the caller until the given condition variable has been signaled or
 // broadcast. Automatically and atomically acquires the lock 'lock'. Returns EOK
 // on success and ETIMEOUT if the condition variable isn't signaled before
 // 'deadline'.
 // @Concurrency: Safe
-extern errno_t ConditionVariable_Wait(ConditionVariableRef _Nonnull cv, os_mutex_t* _Nullable mutex, TimeInterval deadline);
-
-#endif /* __KERNEL__ */
+extern errno_t os_cond_timedwait(os_cond_t* _Nonnull cv, os_mutex_t* _Nullable mutex, const TimeInterval* _Nonnull deadline);
 
 __CPP_END
 

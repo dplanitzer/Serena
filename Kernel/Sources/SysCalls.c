@@ -332,7 +332,7 @@ SYSCALL_0(dispatch_queue_current)
 }
 
 
-SYSCALL_1(cv_create, int* _Nullable pOutOd)
+SYSCALL_1(cond_create, int* _Nullable pOutOd)
 {
     if (pArgs->pOutOd == NULL) {
         return EINVAL;
@@ -341,14 +341,16 @@ SYSCALL_1(cv_create, int* _Nullable pOutOd)
     return Process_CreateUConditionVariable(Process_GetCurrent(), pArgs->pOutOd);
 }
 
-SYSCALL_3(cv_wake, int od, int dlock, unsigned int options)
+SYSCALL_3(cond_wake, int od, int dlock, unsigned int options)
 {
     return Process_WakeUConditionVariable(Process_GetCurrent(), pArgs->od, pArgs->dlock, pArgs->options);
 }
 
-SYSCALL_3(cv_wait, int od, int dlock, TimeInterval deadline)
+SYSCALL_3(cond_timedwait, int od, int dlock, const TimeInterval* _Nullable deadline)
 {
-    return Process_WaitUConditionVariable(Process_GetCurrent(), pArgs->od, pArgs->dlock, pArgs->deadline);
+    const TimeInterval ti = (pArgs->deadline) ? *(pArgs->deadline) : kTimeInterval_Infinity;
+
+    return Process_WaitUConditionVariable(Process_GetCurrent(), pArgs->od, pArgs->dlock, ti);
 }
 
 
@@ -575,9 +577,9 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(sem_post),
     REF_SYSCALL(sem_wait),
     REF_SYSCALL(sem_trywait),
-    REF_SYSCALL(cv_create),
-    REF_SYSCALL(cv_wake),
-    REF_SYSCALL(cv_wait),
+    REF_SYSCALL(cond_create),
+    REF_SYSCALL(cond_wake),
+    REF_SYSCALL(cond_timedwait),
     REF_SYSCALL(dispatch_remove_by_tag),
     REF_SYSCALL(mount),
     REF_SYSCALL(unmount),

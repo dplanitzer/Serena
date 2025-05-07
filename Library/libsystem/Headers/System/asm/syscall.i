@@ -55,9 +55,9 @@ SC_sem_create               equ 42
 SC_sem_post                 equ 43
 SC_sem_wait                 equ 44
 SC_sem_trywait              equ 45
-SC_cv_create                equ 46
-SC_cv_wake                  equ 47
-SC_cv_wait                  equ 48
+SC_cond_create              equ 46
+SC_cond_wake                equ 47
+SC_cond_timedwait           equ 48
 SC_dispatch_remove_by_tag   equ 49
 SC_mount                    equ 50
 SC_unmount                  equ 51
