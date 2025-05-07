@@ -81,10 +81,11 @@ static errno_t get_current_disk_id(const char* _Nonnull driverPath, uint32_t* _N
     return err;
 }
 
-static void wait_for_disk_change(const char* _Nonnull driverPath, uint32_t* _Nonnull diskId)
+static void wait_for_disk_inserted(boot_screen_t* _Nonnull bscr, const char* _Nonnull driverPath, uint32_t* _Nonnull diskId)
 {
     decl_try_err();
     IOChannelRef chan;
+    bool isWaitingForDisk = false;
 
     if ((err = Catalog_Open(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan)) == EOK) {
         for (;;) {
@@ -99,22 +100,19 @@ static void wait_for_disk_change(const char* _Nonnull driverPath, uint32_t* _Non
                 }
             }
 
+            if (!isWaitingForDisk) {
+                blit_boot_logo(bscr, gFloppyImg_Plane0, gFloppyImg_Width, gFloppyImg_Height);
+                isWaitingForDisk = true;
+            }
+
             VirtualProcessor_Sleep(TimeInterval_MakeSeconds(3));
         }
     } 
     IOChannel_Release(chan);
-}
 
-static void ask_user_for_new_disk(boot_screen_t* _Nonnull bscr, const char* _Nonnull driverPath, uint32_t* _Nonnull diskId)
-{
-    blit_boot_logo(bscr, gFloppyImg_Plane0, gFloppyImg_Width, gFloppyImg_Height);
-
-
-    // Wait for the user to insert a different disk
-    wait_for_disk_change(driverPath, diskId);
-
-
-    blit_boot_logo(bscr, gSerenaImg_Plane0, gSerenaImg_Width, gSerenaImg_Height);
+    if (isWaitingForDisk) {
+        blit_boot_logo(bscr, gSerenaImg_Plane0, gSerenaImg_Width, gSerenaImg_Height);
+    }
 }
 
 // SerenaFS is the only FS we support at this time for booting.
@@ -155,40 +153,27 @@ static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry,
     uint32_t diskId = 0;
     FilesystemRef fs;
 
-
-    err = get_current_disk_id(driverPath, &diskId);
-
-
     // Try to boot from the disk
     while (true) {
-        fs = NULL;
-        
-        if (err == EOK) {
-            err = start_boot_fs(driverPath, &fs);
-        }
+        wait_for_disk_inserted(bscr, driverPath, &diskId);
 
+        fs = NULL;
+        err = start_boot_fs(driverPath, &fs);
         if (err == EOK) {
             break;
         }
         if (!shouldRetry) {
             // No disk or no mountable disk. We have a fallback though so bail
             // out and let the caller try another option.
+            *pOutFS = NULL;
             return err;
         }
-
-        ask_user_for_new_disk(bscr, driverPath, &diskId);
-        err = EOK;
     }
 
     printf("Booting from %s...\n\n", &driverPath[1]);
 
     *pOutFS = fs;
     return EOK;
-
-catch:
-    Object_Release(fs);
-    *pOutFS = NULL;
-    return err;
 }
 
 // Locates the boot device and creates the boot filesystem. Halts the machine if

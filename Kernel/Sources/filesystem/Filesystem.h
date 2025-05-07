@@ -95,10 +95,15 @@ enum {
 // filesystem exists. The filesystem will only be destroyed after all the
 // outstanding inodes have been relinquished and all open filesystem channels
 // have been closed. This is taken care of by the FilesystemManager reaper.
-// Stopping a filesystem causes it to flush all pending/cached data to disk
-// (synchronously) and it disconnects the filesystem from its underlying storage.
-// This guarantees that the filesystem will no longer be able to read/write the
-// underlying storage.
+// Note that stopping a filesystem is a two step process: first the filesystem
+// is stopped and then it is disconnected from its underlying storage. This
+// separation exists to allow the file hierarchy to stop a filesystem while
+// holding its lock and then to disconnect it after it has dropped its lock.
+// This is desired because disconnecting a filesystem from its storage first
+// triggers a flush of all still cached data to the storage and thus this
+// process can take a while.
+// Disconnecting a filesystem from its underlying storeage guarantees that the
+// filesystem will no longer be able to read/write the underlying storage.
 // A forced stopped filesystem that hasn't been destructed yet is known as a
 // "zombie" filesystem because it no longer allows you to acquire its root node
 // and all I/O operations will fail with a ENODEV since the filesystem is no

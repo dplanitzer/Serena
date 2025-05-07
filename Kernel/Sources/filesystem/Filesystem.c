@@ -418,8 +418,24 @@ errno_t Filesystem_onStop(FilesystemRef _Nonnull self)
 void Filesystem_Disconnect(FilesystemRef _Nonnull self)
 {
     Lock_Lock(&self->inLock);
-    assert(self->state == kFilesystemState_Stopped);
-    Filesystem_OnDisconnect(self);
+    switch (self->state) {
+        case kFilesystemState_Idle:
+            // Do nothing since the filesystem hasn't actually started yet
+            break;
+
+        case kFilesystemState_Active:
+            // Can not be in active state
+            abort();
+            break;
+
+        case kFilesystemState_Stopped:
+            Filesystem_OnDisconnect(self);
+            break;
+
+        default:
+            abort();
+            break;
+    }
     Lock_Unlock(&self->inLock);
 }
 
