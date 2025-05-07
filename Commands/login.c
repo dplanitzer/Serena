@@ -44,7 +44,7 @@ static char* _Nullable env_alloc(const char* _Nonnull key, const char* _Nonnull 
 static errno_t start_shell(const char* _Nonnull shellPath, const char* _Nonnull homePath)
 {
     decl_try_err();
-    SpawnOptions opts = {0};
+    os_spawn_opts_t opts = {0};
     const char* argv[3];
     const char* envp[5];
     
@@ -111,7 +111,7 @@ static void login_user(void)
 static void on_shell_termination(void* _Nullable ignore)
 {
     decl_try_err();
-    ProcessTerminationStatus pts;
+    os_proc_status_t pts;
 
     err = Process_WaitForTerminationOfChild(-1, &pts);
     if (err == EOK) {
@@ -154,7 +154,7 @@ void main_closure(int argc, char *argv[])
 
 
     // XXX Temp. Fire up the kernel VT100 console
-    System_ConInit();
+    os_coninit();
 
 
     // Open the console and initialize stdin, stdout and stderr

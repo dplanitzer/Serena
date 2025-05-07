@@ -13,12 +13,12 @@
 #include <__stddef.h>
 #include <System/System.h>
 
-void __stdlibc_init(ProcessArguments* _Nonnull argsp)
+void __stdlibc_init(os_procargs_t* _Nonnull argsp)
 {
     __gProcessArguments = argsp;
     environ = argsp->envp;
 
-    System_Init(argsp);
+    os_init(argsp);
     __malloc_init();
     __exit_init();
     __locale_init();

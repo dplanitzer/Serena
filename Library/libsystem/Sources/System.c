@@ -11,12 +11,12 @@
 #include <System/_syscall.h>
 #include <System/_varargs.h>
 
-extern void __UrtInit(ProcessArguments* _Nonnull argsp);
+extern void __UrtInit(os_procargs_t* _Nonnull argsp);
 
 
 static bool __gIsSystemLibInitialized;
 
-void System_Init(ProcessArguments* _Nonnull argsp)
+void os_init(os_procargs_t* _Nonnull argsp)
 {
     if (__gIsSystemLibInitialized) {
         return;
@@ -26,7 +26,7 @@ void System_Init(ProcessArguments* _Nonnull argsp)
     __gIsSystemLibInitialized = true;
 }
 
-errno_t System_ConInit(void)
+errno_t os_coninit(void)
 {
     return (errno_t)_syscall(SC_coninit);
 }

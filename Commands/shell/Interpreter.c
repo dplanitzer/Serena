@@ -159,7 +159,7 @@ static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull s
 {
     decl_try_err();
     Value val;
-    ProcessArguments* pargs = Process_GetArguments();
+    os_procargs_t* pargs = Process_GetArguments();
     char** envp = pargs->envp;
 
     while (*envp) {
@@ -229,7 +229,7 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
     char* cmdPath = NULL;
     const bool needsSearchPath = should_use_search_path(argv[0]);
     const size_t searchPathLen = (needsSearchPath) ? strlen(gSearchPath) : 0;
-    SpawnOptions opts = {0};
+    os_spawn_opts_t opts = {0};
     
     const size_t cmdPathLen = searchPathLen + strlen(argv[0]);
     if (cmdPathLen > PATH_MAX - 1) {
@@ -253,7 +253,7 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
 
 
     // Wait for the command to complete its task
-    ProcessTerminationStatus pts;
+    os_proc_status_t pts;
     Process_WaitForTerminationOfChild(childPid, &pts);
 
 

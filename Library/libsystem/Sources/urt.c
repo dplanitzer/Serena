@@ -14,7 +14,7 @@
 static UrtFunc* __gUrtFuncTable;
 
 
-void __UrtInit(ProcessArguments* _Nonnull argsp)
+void __UrtInit(os_procargs_t* _Nonnull argsp)
 {
     __gUrtFuncTable = argsp->urt_funcs;
 }

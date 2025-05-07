@@ -37,7 +37,7 @@ static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], ssize
     return nbytes;
 }
 
-static errno_t Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull self, const char* argv[], const char* _Nullable env[])
+static errno_t Process_CopyInProcArgs_Locked(ProcessRef _Nonnull self, const char* argv[], const char* _Nullable env[])
 {
     decl_try_err();
     size_t nArgvCount = 0;
@@ -50,11 +50,11 @@ static errno_t Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull self, c
         return E2BIG;
     }
 
-    const ssize_t nbytes_procargs = __Ceil_PowerOf2(sizeof(ProcessArguments) + nbytes_argv_envp, CPU_PAGE_SIZE);
+    const ssize_t nbytes_procargs = __Ceil_PowerOf2(sizeof(os_procargs_t) + nbytes_argv_envp, CPU_PAGE_SIZE);
     try(AddressSpace_Allocate(self->addressSpace, nbytes_procargs, (void**)&self->argumentsBase));
 
-    ProcessArguments* pProcArgs = (ProcessArguments*) self->argumentsBase;
-    char** pProcArgv = (char**)(self->argumentsBase + sizeof(ProcessArguments));
+    os_procargs_t* pProcArgs = (os_procargs_t*) self->argumentsBase;
+    char** pProcArgv = (char**)(self->argumentsBase + sizeof(os_procargs_t));
     char** pProcEnv = (char**)&pProcArgv[nArgvCount + 1];
     char*  pDst = (char*)&pProcEnv[nEnvCount + 1];
     const char** pSrcArgv = (const char**) argv;
@@ -82,7 +82,7 @@ static errno_t Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull self, c
 
 
     // Descriptor
-    pProcArgs->version = sizeof(ProcessArguments);
+    pProcArgs->version = sizeof(os_procargs_t);
     pProcArgs->reserved = 0;
     pProcArgs->arguments_size = nbytes_procargs;
     pProcArgs->argc = nArgvCount;
@@ -136,14 +136,14 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path,
     try(FileManager_OpenExecutable(&self->fm, path, &chan));
 
     // Copy the process arguments into the process address space
-    try(Process_CopyInProcessArguments_Locked(self, argv, env));
+    try(Process_CopyInProcArgs_Locked(self, argv, env));
 
 
     // Load the executable
     try(load_gemdos_executable(self, (FileChannelRef)chan, &imageBase, &entryPoint));
 
     self->imageBase = imageBase;
-    ((ProcessArguments*) self->argumentsBase)->image_base = self->imageBase;
+    ((os_procargs_t*) self->argumentsBase)->image_base = self->imageBase;
 
 
     // Dispatch the invocation of the entry point

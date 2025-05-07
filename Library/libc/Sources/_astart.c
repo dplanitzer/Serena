@@ -27,7 +27,7 @@ extern void main_closure(int argc, char *argv[]);
 // main dispatch queue. Consequently the start function here does not terminate
 // the process when main_closure() returns. Once the process is ready to
 // terminate, one of its closures should invoke exit() with a suitable exit code.
-void start(ProcessArguments* _Nonnull argsp)
+void start(os_procargs_t* _Nonnull argsp)
 {
     __stdlibc_init(argsp);
 

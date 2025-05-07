@@ -56,19 +56,19 @@ gid_t Process_GetGroupId(void)
     return _syscall(SC_getgid);
 }
 
-errno_t Process_Spawn(const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable options, pid_t* _Nullable rpid)
+errno_t Process_Spawn(const char* _Nonnull path, const char* _Nullable argv[], const os_spawn_opts_t* _Nullable options, pid_t* _Nullable rpid)
 {
     return _syscall(SC_spawn_process, path, argv, options, rpid);
 }
 
-errno_t Process_WaitForTerminationOfChild(pid_t pid, ProcessTerminationStatus* _Nullable result)
+errno_t Process_WaitForTerminationOfChild(pid_t pid, os_proc_status_t* _Nullable result)
 {
     return _syscall(SC_waitpid, pid, result);
 }
 
-ProcessArguments* _Nonnull Process_GetArguments(void)
+os_procargs_t* _Nonnull Process_GetArguments(void)
 {
-    return (ProcessArguments*) _syscall(SC_getpargs);
+    return (os_procargs_t*) _syscall(SC_getpargs);
 }
 
 

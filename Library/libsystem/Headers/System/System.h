@@ -37,19 +37,15 @@
 
 __CPP_BEGIN
 
-#if !defined(__KERNEL__)
-
 // Initializes the libSystem services. This function must be called by the high-level
 // language specific initialization code. Ie the C library invokes this function.
 // Application developers do not need to call this function.
 // @Concurrency: Not Safe
-extern void System_Init(ProcessArguments* _Nonnull argsp);
+extern void os_init(os_procargs_t* _Nonnull argsp);
 
 // Shut down the boot screen and initialize the kerne VT100 console
 // XXX for now. Don't use outside of login.
-extern errno_t System_ConInit(void);
-
-#endif /* __KERNEL__ */
+extern errno_t os_coninit(void);
 
 __CPP_END
 

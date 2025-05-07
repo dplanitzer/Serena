@@ -11,12 +11,12 @@
 #include "UDispatchQueue.h"
 
 
-errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable pOptions, pid_t * _Nullable pOutChildPid)
+errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnull path, const char* _Nullable argv[], const os_spawn_opts_t* _Nullable pOptions, pid_t * _Nullable pOutChildPid)
 {
     decl_try_err();
     ProcessRef pChildProc = NULL;
     bool needsUnlock = false;
-    SpawnOptions so = {0};
+    os_spawn_opts_t so = {0};
     DispatchQueueRef terminationNotificationQueue = NULL;
 
     if (pOptions) {

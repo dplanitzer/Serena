@@ -15,8 +15,8 @@ int system(const char *string)
 {
     decl_try_err();
     pid_t shPid;
-    ProcessTerminationStatus pts;
-    SpawnOptions opts = {0};
+    os_proc_status_t pts;
+    os_spawn_opts_t opts = {0};
     const char* argv[4];
 
     if (string == NULL) {

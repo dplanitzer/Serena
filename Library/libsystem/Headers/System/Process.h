@@ -24,16 +24,16 @@ __CPP_BEGIN
 // the last entry in the table contains a NULL.
 // This data structure is set up by the kernel when it processes a Spawn()
 // request. Once set up the kernel neither reads nor writes to this area.
-typedef struct ProcessArguments {
-    size_t                      version;    // sizeof(ProcessArguments)
+typedef struct os_procargs {
+    size_t                      version;        // sizeof(os_procargs_t)
     size_t                      reserved;
-    size_t                      arguments_size; // Size of the area that holds all of ProcessArguments + argv + envp
+    size_t                      arguments_size; // Size of the area that holds all of os_procargs_t + argv + envp
     size_t                      argc;           // Number of command line arguments passed to the process. Argv[0] holds the path to the process through which it was started
     char* _Nullable * _Nonnull  argv;           // Pointer to the base of the command line arguments table. Last entry is NULL
     char* _Nullable * _Nonnull  envp;           // Pointer to the base of the environment table. Last entry holds NULL.
     void* _Nonnull              image_base;     // Pointer to the base of the executable header
     UrtFunc* _Nonnull           urt_funcs;      // Pointer to the URT function table
-} ProcessArguments;
+} os_procargs_t;
 
 
 // Instructs the Process_Spawn() call to set the umask of the newly spawned
@@ -61,7 +61,7 @@ typedef struct ProcessArguments {
 // 'envp' may be NULL pointer. A NULL pointer is equivalent to a table with a
 // single entry that is the NULL pointer. So a NULL 'envp' means that the child
 // process receives an empty environment.
-typedef struct SpawnOptions {
+typedef struct os_spawn_opts {
     const char* _Nullable * _Nullable   envp;
     const char* _Nullable               root_dir;               // Process root directory, if not NULL; otherwise inherited from the parent
     const char* _Nullable               cw_dir;                 // Process current working directory, if not NULL; otherwise inherited from the parent
@@ -72,14 +72,14 @@ typedef struct SpawnOptions {
     Dispatch_Closure _Nullable          notificationClosure;
     void* _Nullable                     notificationContext;
     uint32_t                            options;
-} SpawnOptions;
+} os_spawn_opts_t;
 
 
 // The result of a Process_WaitForTerminationOfChild() system call.
-typedef struct ProcessTerminationStatus {
+typedef struct os_proc_status {
     pid_t   pid;        // PID of the child process
     int     status;     // Child process exit status
-} ProcessTerminationStatus;
+} os_proc_status_t;
 
 
 #if !defined(__KERNEL__)
@@ -103,10 +103,10 @@ extern uid_t Process_GetUserId(void);
 extern gid_t Process_GetGroupId(void);
 
 
-extern errno_t Process_Spawn(const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable options, pid_t* _Nullable rpid);
-extern errno_t Process_WaitForTerminationOfChild(pid_t pid, ProcessTerminationStatus* _Nullable result);
+extern errno_t Process_Spawn(const char* _Nonnull path, const char* _Nullable argv[], const os_spawn_opts_t* _Nullable options, pid_t* _Nullable rpid);
+extern errno_t Process_WaitForTerminationOfChild(pid_t pid, os_proc_status_t* _Nullable result);
 
-extern ProcessArguments* _Nonnull Process_GetArguments(void);
+extern os_procargs_t* _Nonnull Process_GetArguments(void);
 
 
 extern errno_t Process_AllocateAddressSpace(size_t nbytes, void* _Nullable * _Nonnull ptr);
