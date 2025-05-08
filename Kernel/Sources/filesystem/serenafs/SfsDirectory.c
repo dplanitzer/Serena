@@ -24,7 +24,7 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
     off_t offset = IOChannel_GetOffset(ch);
-    DirectoryEntry* dp = buf;
+    os_dirent_t* dp = buf;
     ssize_t nSrcBytesRead = 0;
     ssize_t nDstBytesRead = 0;
 
@@ -57,7 +57,7 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
 
     // Iterate through a contiguous sequence of blocks until we've read all
     // required bytes.
-    while (nSrcBytesToRead > 0 && nDstBytesToRead >= sizeof(DirectoryEntry)) {
+    while (nSrcBytesToRead > 0 && nDstBytesToRead >= sizeof(os_dirent_t)) {
         const ssize_t nRemainderBlockSize = fs->blockAllocator.blockSize - blockOffset;
         ssize_t nBytesToReadInBlock = (nSrcBytesToRead > nRemainderBlockSize) ? nRemainderBlockSize : nSrcBytesToRead;
         SfsFileBlock blk;
@@ -69,14 +69,14 @@ errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
         }
         
         const sfs_dirent_t* sp = (const sfs_dirent_t*)(blk.b.data + blockOffset);
-        while (nBytesToReadInBlock > 0 && nDstBytesToRead >= sizeof(DirectoryEntry)) {
+        while (nBytesToReadInBlock > 0 && nDstBytesToRead >= sizeof(os_dirent_t)) {
             if (sp->id > 0) {
                 dp->inid = UInt32_BigToHost(sp->id);
                 memcpy(dp->name, sp->filename, sp->len);
                 dp->name[sp->len] = '\0';
                 
-                nDstBytesRead += sizeof(DirectoryEntry);
-                nDstBytesToRead -= sizeof(DirectoryEntry);
+                nDstBytesRead += sizeof(os_dirent_t);
+                nDstBytesToRead -= sizeof(os_dirent_t);
                 dp++;
             }
             

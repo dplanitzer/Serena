@@ -116,11 +116,11 @@ static errno_t wipe_disk(int ioc, const DiskInfo* _Nonnull info)
     }
 
     fputs("\033[?25l", stdout);
-    File_Seek(ioc, 0ll, NULL, kSeek_Set);
+    os_seek(ioc, 0ll, NULL, kSeek_Set);
     while (sct < info->sectorCount && err == EOK) {
         printf("%u\n\033[1A", (unsigned)clusterCount);
         
-        err = IOChannel_Control(ioc, kDiskCommand_Format, data, byteCount);
+        err = os_fcall(ioc, kDiskCommand_Format, data, byteCount);
         
         sct += info->frClusterSize;
         clusterCount++;
@@ -146,11 +146,11 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, 
     const int ioc = fileno(fp);
     setbuf(fp, NULL);
 
-    try(IOChannel_Control(ioc, kDiskCommand_SenseDisk));
-    try(IOChannel_Control(ioc, kDiskCommand_GetInfo, &info)); 
+    try(os_fcall(ioc, kDiskCommand_SenseDisk));
+    try(os_fcall(ioc, kDiskCommand_GetInfo, &info)); 
     if (!bQuick) {
         try(wipe_disk(ioc, &info));
-        File_Seek(ioc, 0ll, NULL, kSeek_Set);
+        os_seek(ioc, 0ll, NULL, kSeek_Set);
     }
     try(sefs_format((intptr_t)fp, block_write, info.sectorCount, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label));
     puts("ok");
@@ -184,7 +184,7 @@ static errno_t get_fsid(const char* _Nonnull path, fsid_t* _Nonnull fsid)
 
 
     if (err == EOK) {
-        err = File_GetInfo(p, &info);
+        err = os_getinfo(p, &info);
         if (err == EOK) {
             *fsid = info.fsid;
         }
@@ -236,7 +236,7 @@ static errno_t print_reg_info(const FSInfo* _Nonnull info, int fd)
     char volLabel[64];
 
     try(os_getfsdisk(info->fsid, diskName, sizeof(diskName)));
-    try(IOChannel_Control(fd, kFSCommand_GetLabel, volLabel, sizeof(volLabel)));
+    try(os_fcall(fd, kFSCommand_GetLabel, volLabel, sizeof(volLabel)));
 
 
     if ((info->properties & kFSProperty_IsReadOnly) == kFSProperty_IsReadOnly) {
@@ -265,8 +265,8 @@ static errno_t cmd_info(const char* _Nonnull path)
 
     try(get_fsid(path, &fsid));
     sprintf(buf, "/fs/%u", fsid);
-    try(File_Open(buf, kOpen_Read, &fd));
-    try(IOChannel_Control(fd, kFSCommand_GetInfo, &info));
+    try(os_open(buf, kOpen_Read, &fd));
+    try(os_fcall(fd, kFSCommand_GetInfo, &info));
 
     if ((info.properties & kFSProperty_IsCatalog) == kFSProperty_IsCatalog) {
         err = print_cat_info(&info, fd);
@@ -278,7 +278,7 @@ static errno_t cmd_info(const char* _Nonnull path)
 
 catch:
     if (fd >= 0) {
-        IOChannel_Close(fd);
+        os_close(fd);
     }
 
     return err;
@@ -297,17 +297,17 @@ static errno_t cmd_geometry(const char* _Nonnull path)
     bool hasDisk = true;
 
     if (*path != '\0') {
-        try(File_GetInfo(path, &finf));
+        try(os_getinfo(path, &finf));
     }
     if (finf.type == kFileType_Device) {
-        try(File_Open(path, kOpen_Read, &fd));
-        err = IOChannel_Control(fd, kDiskCommand_GetGeometry, &info);
+        try(os_open(path, kOpen_Read, &fd));
+        err = os_fcall(fd, kDiskCommand_GetGeometry, &info);
     }
     else {
         try(get_fsid(path, &fsid));
         sprintf(buf, "/fs/%u", fsid);
-        try(File_Open(buf, kOpen_Read, &fd));
-        err = IOChannel_Control(fd, kFSCommand_GetDiskGeometry, &info);
+        try(os_open(buf, kOpen_Read, &fd));
+        err = os_fcall(fd, kFSCommand_GetDiskGeometry, &info);
 
         try(os_getfsdisk(fsid, buf, sizeof(buf)));
         path = buf;
@@ -333,7 +333,7 @@ static errno_t cmd_geometry(const char* _Nonnull path)
 
 catch:
     if (fd >= 0) {
-        IOChannel_Close(fd);
+        os_close(fd);
     }
 
     return err;
@@ -345,10 +345,10 @@ errno_t cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
     decl_try_err();
     int fd = -1;
 
-    err = File_Open(diskPath, kOpen_Read, &fd);
+    err = os_open(diskPath, kOpen_Read, &fd);
     if (err == EOK) {
-        err = IOChannel_Control(fd, kDiskCommand_SenseDisk);
-        IOChannel_Close(fd);
+        err = os_fcall(fd, kDiskCommand_SenseDisk);
+        os_close(fd);
     }
     if (err == EOK) {
         err = os_mount(kMount_SeFS, diskPath, atPath, "");

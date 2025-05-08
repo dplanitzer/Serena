@@ -147,7 +147,7 @@ void main_closure(int argc, char *argv[])
 
     // Just exit if the console channels already exist, which means that the
     // user is already logged in
-    if (IOChannel_GetMode(kIOChannel_Stdin) != 0) {
+    if (os_fgetmode(kIOChannel_Stdin) != 0) {
         exit(EXIT_FAILURE);
         /* NOT REACHED */
     }
@@ -158,9 +158,9 @@ void main_closure(int argc, char *argv[])
 
 
     // Open the console and initialize stdin, stdout and stderr
-    File_Open(termPath, kOpen_Read, &fd);
-    File_Open(termPath, kOpen_Write, &fd);
-    File_Open(termPath, kOpen_Write, &fd);
+    os_open(termPath, kOpen_Read, &fd);
+    os_open(termPath, kOpen_Write, &fd);
+    os_open(termPath, kOpen_Write, &fd);
 
     fdreopen(kIOChannel_Stdin, "r", stdin);
     fdreopen(kIOChannel_Stdout, "w", stdout);

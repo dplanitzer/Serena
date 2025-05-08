@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
     clap_parse(0, params, argc, argv);
 
     
-    err = File_Rename(old_path, new_path);
+    err = os_rename(old_path, new_path);
     if (err != EOK) {
         clap_error(argv[0], "%s: %s", old_path, strerror(err));
     }

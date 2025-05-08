@@ -17,42 +17,38 @@
 
 __CPP_BEGIN
 
-typedef struct DirectoryEntry {
+typedef struct os_dirent {
     ino_t       inid;
     char        name[__PATH_COMPONENT_MAX];
-} DirectoryEntry;
+} os_dirent_t;
 
-
-#if !defined(__KERNEL__)
 
 // Creates an empty directory with the name and at the filesystem location specified
 // by 'path'. 'mode' specifies the permissions that should be assigned to the
 // directory.
 // @Concurrency: Safe
-extern errno_t Directory_Create(const char* _Nonnull path, FilePermissions mode);
+extern errno_t os_mkdir(const char* _Nonnull path, FilePermissions mode);
 
 // Opens the directory at the filesystem location 'path' for reading. Call this
 // function to obtain an I/O channel suitable for reading the content of the
 // directory. Call IOChannel_Close() once you are done with the directory.
 // @Concurrency: Safe
-extern errno_t Directory_Open(const char* _Nonnull path, int* _Nonnull ioc);
+extern errno_t os_opendir(const char* _Nonnull path, int* _Nonnull ioc);
 
 // Reads one or more directory entries from the directory identified by 'ioc'.
 // Returns the number of bytes actually read and returns 0 once all directory
 // entries have been read.
-// You can get the current directory entry position by calling File_GetPosition()
+// You can get the current directory entry position by calling os_tell()
 // and you can reestablish a previously saved directory entry position by calling
-// File_Seek() with the result of a previous File_GetPosition() call.
+// os_seek() with the result of a previous os_tell() call.
 // @Concurrency: Safe
-extern errno_t Directory_Read(int ioc, DirectoryEntry* _Nonnull entries, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead);
+extern errno_t os_readdir(int ioc, os_dirent_t* _Nonnull entries, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead);
 
 // Resets the read position of the directory identified by 'ioc' to the beginning.
-// The next Directory_Read call will start reading directory entries from the
+// The next os_readdir() call will start reading directory entries from the
 // beginning of the directory.
 // @Concurrency: Safe
-extern errno_t Directory_Rewind(int ioc);
-
-#endif /* __KERNEL__ */
+extern errno_t os_rewinddir(int ioc);
 
 __CPP_END
 

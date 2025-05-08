@@ -29,7 +29,7 @@ static errno_t _create_directory_recursively(char* _Nonnull path, FilePermission
 
         if (ps) { *ps = '\0'; }
 
-        err = Directory_Create(path, permissions);
+        err = os_mkdir(path, permissions);
         if (ps) { *ps = '/'; }
 
         if (err != EOK && err != EEXIST || ps == NULL) {
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
     for (size_t i = 0; i < paths.count; i++) {
         char* path = (char*)paths.strings[i];
 
-        err = Directory_Create(path, permissions);
+        err = os_mkdir(path, permissions);
         if (err != EOK) {
             if (err == ENOENT && should_create_parents) {
                 err = create_directory_recursively(path, permissions);

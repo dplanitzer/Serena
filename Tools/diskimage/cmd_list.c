@@ -56,7 +56,7 @@ typedef struct list_ctx {
     char                        buf[BUF_SIZE];
     char                        pathbuf[PATH_MAX];
 
-    DirectoryEntry              dirbuf[DIRBUF_SIZE];
+    os_dirent_t                 dirbuf[DIRBUF_SIZE];
 } list_ctx_t;
 
 
@@ -168,7 +168,7 @@ static errno_t iterate_dir(list_ctx_t* _Nonnull self, IOChannelRef _Nonnull chan
             break;
         }
 
-        const DirectoryEntry* dep = self->dirbuf;
+        const os_dirent_t* dep = self->dirbuf;
         
         while (nBytesRead > 0) {
             if (self->flags.printAll || dep->name[0] != '.') {
@@ -178,7 +178,7 @@ static errno_t iterate_dir(list_ctx_t* _Nonnull self, IOChannelRef _Nonnull chan
                 }
             }
 
-            nBytesRead -= sizeof(DirectoryEntry);
+            nBytesRead -= sizeof(os_dirent_t);
             dep++;
         }
     }

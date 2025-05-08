@@ -29,12 +29,12 @@ SC_getuid                   equ 16
 SC_getumask                 equ 17
 SC_setumask                 equ 18
 SC_mkdir                    equ 19
-SC_getfileinfo              equ 20
+SC_getinfo                  equ 20
 SC_opendir                  equ 21
-SC_setfileinfo              equ 22
+SC_setinfo                  equ 22
 SC_access                   equ 23
-SC_fgetfileinfo             equ 24
-SC_fsetfileinfo             equ 25
+SC_fgetinfo                 equ 24
+SC_fsetinfo                 equ 25
 SC_unlink                   equ 26
 SC_rename                   equ 27
 SC_ioctl                    equ 28

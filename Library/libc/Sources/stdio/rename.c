@@ -14,7 +14,7 @@ int rename(const char* oldpath, const char* newpath)
 {
     decl_try_err();
 
-    err = File_Rename(oldpath, newpath);
+    err = os_rename(oldpath, newpath);
     if (err != 0) {
         errno = err;
         return -1;

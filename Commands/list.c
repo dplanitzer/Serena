@@ -58,7 +58,7 @@ typedef struct list_ctx {
     char            buf[BUF_SIZE];
     char            pathbuf[PATH_MAX];
 
-    DirectoryEntry  dirbuf[DIRBUF_SIZE];
+    os_dirent_t     dirbuf[DIRBUF_SIZE];
 } list_ctx_t;
 
 
@@ -81,7 +81,7 @@ static void file_permissions_to_text(FilePermissions perms, char* _Nonnull buf)
 static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
     FileInfo info;
-    const errno_t err = File_GetInfo(path, &info);
+    const errno_t err = os_getinfo(path, &info);
     
     if (err == EOK) {
         itoa(info.linkCount, self->buf, 10);
@@ -108,7 +108,7 @@ static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path
 static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
     FileInfo info;
-    const errno_t err = File_GetInfo(path, &info);
+    const errno_t err = os_getinfo(path, &info);
     
     if (err == EOK) {
         char tc;
@@ -185,12 +185,12 @@ static errno_t iterate_dir(list_ctx_t* _Nonnull self, int dp, const char* _Nonnu
     ssize_t nBytesRead;
 
     while (err == EOK) {
-        err = Directory_Read(dp, self->dirbuf, sizeof(self->dirbuf), &nBytesRead);
+        err = os_readdir(dp, self->dirbuf, sizeof(self->dirbuf), &nBytesRead);
         if (err != EOK || nBytesRead == 0) {
             break;
         }
 
-        const DirectoryEntry* dep = self->dirbuf;
+        const os_dirent_t* dep = self->dirbuf;
         
         while (nBytesRead > 0) {
             if (self->flags.printAll || dep->name[0] != '.') {
@@ -200,7 +200,7 @@ static errno_t iterate_dir(list_ctx_t* _Nonnull self, int dp, const char* _Nonnu
                 }
             }
 
-            nBytesRead -= sizeof(DirectoryEntry);
+            nBytesRead -= sizeof(os_dirent_t);
             dep++;
         }
     }
@@ -213,13 +213,13 @@ static errno_t list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
     decl_try_err();
     int dp;
 
-    try(Directory_Open(path, &dp));
+    try(os_opendir(path, &dp));
     try(iterate_dir(self, dp, path, format_dir_entry));
-    try(Directory_Rewind(dp));
+    try(os_rewinddir(dp));
     try(iterate_dir(self, dp, path, print_dir_entry));
 
 catch:
-    IOChannel_Close(dp);
+    os_close(dp);
     return err;
 }
 
@@ -239,7 +239,7 @@ static bool is_dir(const char* _Nonnull path)
 {
     FileInfo info;
 
-    return (File_GetInfo(path, &info) == EOK && info.type == kFileType_Directory) ? true : false;
+    return (os_getinfo(path, &info) == EOK && info.type == kFileType_Directory) ? true : false;
 }
 
 

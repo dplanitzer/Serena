@@ -52,8 +52,6 @@ typedef enum IOChannelType {
 #define kIOChannel_Stderr   2
 
 
-#if !defined(__KERNEL__)
-
 // Reads up to 'nBytesToRead' bytes from the I/O channel 'ioc' and writes them
 // to the buffer 'buffer'. The buffer must be big enough to hold 'nBytesToRead'
 // bytes. The number of bytes actually read is returned in 'nOutBytesRead'.
@@ -66,7 +64,7 @@ typedef enum IOChannelType {
 // before an error is encountered then the successfully read bytes and EOK is
 // returned.
 // @Concurrency: Safe
-extern errno_t IOChannel_Read(int ioc, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+extern errno_t os_read(int ioc, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
 // Writes up to 'nBytesToWrite' bytes to the I/O channel 'ioc'. The bytes are
 // taken from the buffer 'buffer' which must be big enough to hold 'nBytesToWrite'
@@ -76,7 +74,7 @@ extern errno_t IOChannel_Read(int ioc, void* _Nonnull buffer, size_t nBytesToRea
 // It however returns a suitable error code and 0 in 'nOutBytesWritten' if it
 // encounters an error before it is able to write at least one byte. 
 // @Concurrency: Safe
-extern errno_t IOChannel_Write(int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+extern errno_t os_write(int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
 
 // Closes the given I/O channel. All still pending data is written to the
@@ -87,25 +85,23 @@ extern errno_t IOChannel_Write(int ioc, const void* _Nonnull buffer, size_t nByt
 // closing the channel. The I/O channel is guaranteed to be closed once this
 // function returns. The error returned here is in this sense purely advisory.
 // @Concurrency: Safe
-extern errno_t IOChannel_Close(int ioc);
+extern errno_t os_close(int ioc);
 
 
 // Returns the type of the I/O channel. See the IOChannelType enumeration.
 // @Concurrency: Safe
-extern IOChannelType IOChannel_GetType(int ioc);
+extern IOChannelType os_fgettype(int ioc);
 
 // Returns the mode with which the I/O channel was originally opened. The exact
-// meaning of mode depends on the I/O channel type. Ie see File_Open for the
+// meaning of mode depends on the I/O channel type. Ie see os_open() for the
 // file specific modes.
 // @Concurrency: Safe
-extern unsigned int IOChannel_GetMode(int ioc);
+extern unsigned int os_fgetmode(int ioc);
 
 
 // Invokes a I/O channel specific method on the I/O channel 'ioc'.
 // @Concurrency: Safe
-extern errno_t IOChannel_Control(int ioc, int cmd, ...);
-
-#endif /* __KERNEL__ */
+extern errno_t os_fcall(int ioc, int cmd, ...);
 
 __CPP_END
 

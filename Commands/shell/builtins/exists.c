@@ -26,7 +26,7 @@ static CLAP_DECL(params,
 
 static inline errno_t do_exists(InterpreterRef _Nonnull ip, const char* _Nonnull path)
 {
-    return OpStack_PushBool(ip->opStack, (File_CheckAccess(path, kAccess_Exists) == EOK) ? true : false);
+    return OpStack_PushBool(ip->opStack, (os_access(path, kAccess_Exists) == EOK) ? true : false);
 }
 
 int cmd_exists(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)

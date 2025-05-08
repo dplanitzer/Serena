@@ -11,39 +11,39 @@
 #include <System/_varargs.h>
 
 
-errno_t IOChannel_Read(int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t os_read(int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return (errno_t)_syscall(SC_read, fd, buffer, nBytesToRead, nOutBytesRead);
 }
 
-errno_t IOChannel_Write(int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t os_write(int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return (errno_t)_syscall(SC_write, fd, buffer, nBytesToWrite, nOutBytesWritten);
 }
 
-errno_t IOChannel_Close(int fd)
+errno_t os_close(int fd)
 {
     return (errno_t)_syscall(SC_close, fd);
 }
 
 
-IOChannelType IOChannel_GetType(int fd)
+IOChannelType os_fgettype(int fd)
 {
     long type;
 
-    (void) IOChannel_Control(fd, kIOChannelCommand_GetType, &type);
+    (void) os_fcall(fd, kIOChannelCommand_GetType, &type);
     return type;
 }
 
-unsigned int IOChannel_GetMode(int fd)
+unsigned int os_fgetmode(int fd)
 {
     unsigned int mode;
 
-    const errno_t err = IOChannel_Control(fd, kIOChannelCommand_GetMode, &mode);
+    const errno_t err = os_fcall(fd, kIOChannelCommand_GetMode, &mode);
     return (err == 0) ? mode : 0;
 }
 
-errno_t IOChannel_Control(int fd, int cmd, ...)
+errno_t os_fcall(int fd, int cmd, ...)
 {
     errno_t err;
     va_list ap;

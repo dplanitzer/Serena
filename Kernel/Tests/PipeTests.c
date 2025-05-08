@@ -24,25 +24,25 @@ void pipe_test(int argc, char *argv[])
     const char* pBytesToWrite = "Hello World";
     size_t nBytesToWrite = strlen(pBytesToWrite) + 1;
     ssize_t nBytesWritten = 0;
-    assertOK(IOChannel_Write(wioc, pBytesToWrite, nBytesToWrite, &nBytesWritten));
+    assertOK(os_write(wioc, pBytesToWrite, nBytesToWrite, &nBytesWritten));
     printf("written: %s, nbytes: %zd\n", pBytesToWrite, nBytesWritten);
     assertEquals(nBytesToWrite, nBytesWritten);
 
-    assertOK(IOChannel_Close(wioc));
+    assertOK(os_close(wioc));
 
     char pBuffer[64];
     ssize_t nBytesRead;
-    assertOK(IOChannel_Read(rioc, pBuffer, nBytesWritten, &nBytesRead));
+    assertOK(os_read(rioc, pBuffer, nBytesWritten, &nBytesRead));
     printf("read: %s, nbytes: %zd\n", pBuffer, nBytesRead);
     assertEquals(nBytesToWrite, nBytesWritten);
     assertEquals(0, strcmp(pBuffer, pBytesToWrite));
 
     // Should get EOF now since we already closed the write side
-    assertOK(IOChannel_Read(rioc, pBuffer, 1, &nBytesRead));
+    assertOK(os_read(rioc, pBuffer, 1, &nBytesRead));
     assertEquals(0, nBytesRead);
     printf("write side is closed, read: nbytes: %zd\n", nBytesRead);
 
-    assertOK(IOChannel_Close(rioc));
+    assertOK(os_close(rioc));
     printf("ok\n");
 }
 
@@ -58,7 +58,7 @@ static void OnReadFromPipe(void* _Nonnull pValue)
     while (true) {
         //VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(200));
         buf[0] = '\0';
-        assertOK(IOChannel_Read(rioc, buf, nBytesToRead, &nBytesRead));
+        assertOK(os_read(rioc, buf, nBytesToRead, &nBytesRead));
         buf[nBytesRead] = '\0';
 
         printf("Reader: '%s' -> %d\n", buf, nBytesRead);
@@ -75,7 +75,7 @@ static void OnWriteToPipe(void* _Nonnull pValue)
     
     while (true) {
         clock_wait(CLOCK_UPTIME, &dur);
-        assertOK(IOChannel_Write(wioc, bytes, nBytesToWrite, &nBytesWritten));
+        assertOK(os_write(wioc, bytes, nBytesToWrite, &nBytesWritten));
         
         printf("Writer: '%s'-> %d\n", bytes, nBytesWritten);
     }
