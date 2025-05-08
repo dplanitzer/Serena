@@ -56,7 +56,7 @@ typedef struct list_ctx {
     char                        buf[BUF_SIZE];
     char                        pathbuf[PATH_MAX];
 
-    os_dirent_t                 dirbuf[DIRBUF_SIZE];
+    dirent_t                    dirbuf[DIRBUF_SIZE];
 } list_ctx_t;
 
 
@@ -78,7 +78,7 @@ static void file_permissions_to_text(FilePermissions perms, char* _Nonnull buf)
 
 static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    FileInfo info;
+    finfo_t info;
     const errno_t err = FileManager_GetFileInfo(self->fm, path, &info);
     
     if (err == EOK) {
@@ -98,7 +98,7 @@ static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path
 
 static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    FileInfo info;
+    finfo_t info;
     const errno_t err = FileManager_GetFileInfo(self->fm, path, &info);
     
     if (err == EOK) {
@@ -168,7 +168,7 @@ static errno_t iterate_dir(list_ctx_t* _Nonnull self, IOChannelRef _Nonnull chan
             break;
         }
 
-        const os_dirent_t* dep = self->dirbuf;
+        const dirent_t* dep = self->dirbuf;
         
         while (nBytesRead > 0) {
             if (self->flags.printAll || dep->name[0] != '.') {
@@ -178,7 +178,7 @@ static errno_t iterate_dir(list_ctx_t* _Nonnull self, IOChannelRef _Nonnull chan
                 }
             }
 
-            nBytesRead -= sizeof(os_dirent_t);
+            nBytesRead -= sizeof(dirent_t);
             dep++;
         }
     }
@@ -215,7 +215,7 @@ static errno_t list_file(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 
 static bool is_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
-    FileInfo info;
+    finfo_t info;
 
     return (FileManager_GetFileInfo(self->fm, path, &info) == EOK && info.type == kFileType_Directory) ? true : false;
 }

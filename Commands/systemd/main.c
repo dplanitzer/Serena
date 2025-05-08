@@ -23,7 +23,7 @@ static _Noreturn halt_machine(void)
 static errno_t start_proc(const char* _Nonnull procPath, const char* _Nonnull arg1)
 {
     decl_try_err();
-    os_spawn_opts_t opts = {0};
+    spawn_opts_t opts = {0};
     const char* argv[3];
 
     argv[0] = procPath;

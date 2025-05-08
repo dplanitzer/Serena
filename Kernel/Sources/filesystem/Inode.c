@@ -144,7 +144,7 @@ errno_t Inode_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, I
     }
 }
 
-errno_t Inode_getInfo(InodeRef _Nonnull _Locked self, FileInfo* _Nonnull pOutInfo)
+errno_t Inode_getInfo(InodeRef _Nonnull _Locked self, finfo_t* _Nonnull pOutInfo)
 {
     TimeInterval curTime;
 
@@ -181,7 +181,7 @@ errno_t Inode_getInfo(InodeRef _Nonnull _Locked self, FileInfo* _Nonnull pOutInf
     return EOK;
 }
 
-errno_t Inode_setInfo(InodeRef _Nonnull _Locked self, uid_t uid, gid_t gid, MutableFileInfo* _Nonnull pInfo)
+errno_t Inode_setInfo(InodeRef _Nonnull _Locked self, uid_t uid, gid_t gid, fmutinfo_t* _Nonnull pInfo)
 {
     const uint32_t  modify = pInfo->modify & kModifyFileInfo_All;
 

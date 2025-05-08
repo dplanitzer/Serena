@@ -25,7 +25,7 @@ final_class_ivars(PartitionDriver, DiskDriver,
 errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull name, sno_t lsaStart, scnt_t sectorCount, bool isReadOnly, DiskDriverRef wholeDisk, PartitionDriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    DiskInfo diskInfo;
+    diskinfo_t diskInfo;
     PartitionDriverRef self = NULL;
 
     try(DiskDriver_GetInfo(wholeDisk, &diskInfo));
@@ -59,8 +59,8 @@ errno_t PartitionDriver_createDispatchQueue(PartitionDriverRef _Nonnull self, Di
 errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
 {
     decl_try_err();
-    DiskGeometry wholeGeom;
-    DiskInfo wholeInfo;
+    diskgeom_t wholeGeom;
+    diskinfo_t wholeInfo;
 
     try(DiskDriver_GetGeometry(self->wholeDisk, &wholeGeom));
     try(DiskDriver_GetInfo(self->wholeDisk, &wholeInfo));

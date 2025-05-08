@@ -14,4 +14,4 @@
 char ** environ;
 
 // Private globals
-os_pargs_t* __gProcessArguments;
+pargs_t* __gProcessArguments;

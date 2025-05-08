@@ -68,7 +68,7 @@ open_class_funcs(FSContainer, Object,
     // Returns the geometry of the disk underlying the container. ENOMEDIUM is
     // returned if no disk is in the drive. ENOTSUP is returned if retrieving
     // the geometry information is not supported.
-    errno_t (*getGeometry)(void* _Nonnull self, DiskGeometry* _Nonnull info);
+    errno_t (*getGeometry)(void* _Nonnull self, diskgeom_t* _Nonnull info);
 );
 
 

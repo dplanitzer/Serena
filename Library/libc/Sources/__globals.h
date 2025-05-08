@@ -15,7 +15,7 @@
 
 
 // Private globals
-extern os_pargs_t* __gProcessArguments;
+extern pargs_t* __gProcessArguments;
 extern SList __gAtExitQueue;
 
 #endif /* ___GLOBALS_H */

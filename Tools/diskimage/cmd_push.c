@@ -27,7 +27,7 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
 
     if (err == EOK) {
         // Update the inode metadata
-        MutableFileInfo info;
+        fmutinfo_t info;
 
         info.modify = kModifyFileInfo_Permissions | kModifyFileInfo_UserId | kModifyFileInfo_GroupId;
         info.uid = uid;

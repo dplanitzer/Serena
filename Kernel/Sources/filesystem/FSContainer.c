@@ -61,7 +61,7 @@ errno_t FSContainer_sync(FSContainerRef _Nonnull self)
     return EOK;
 }
 
-errno_t FSContainer_getGeometry(FSContainerRef _Nonnull self, DiskGeometry* _Nonnull info)
+errno_t FSContainer_getGeometry(FSContainerRef _Nonnull self, diskgeom_t* _Nonnull info)
 {
     return ENOTSUP;
 }

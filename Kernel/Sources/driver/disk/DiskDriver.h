@@ -57,14 +57,14 @@ typedef struct FormatRequest {
 
 
 typedef struct GetDiskInfoRequest {
-    IORequest           s;
-    DiskInfo* _Nonnull  ip;
+    IORequest               s;
+    diskinfo_t* _Nonnull    ip;
 } GetDiskInfoRequest;
 
 
 typedef struct DiskGeometryRequest {
     IORequest               s;
-    DiskGeometry* _Nonnull  gp;
+    diskgeom_t* _Nonnull    gp;
 } DiskGeometryRequest;
 
 
@@ -239,9 +239,9 @@ invoke_n(doIO, DiskDriver, __self, __req)
 
 extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nonnull buf, ssize_t byteCount);
 
-extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
+extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, diskinfo_t* pOutInfo);
 
-extern errno_t DiskDriver_GetGeometry(DiskDriverRef _Nonnull self, DiskGeometry* pOutInfo);
+extern errno_t DiskDriver_GetGeometry(DiskDriverRef _Nonnull self, diskgeom_t* pOutInfo);
 
 extern errno_t DiskDriver_SenseDisk(DiskDriverRef _Nonnull self);
 

@@ -50,11 +50,11 @@ static errno_t Process_CopyInProcArgs_Locked(ProcessRef _Nonnull self, const cha
         return E2BIG;
     }
 
-    const ssize_t nbytes_procargs = __Ceil_PowerOf2(sizeof(os_pargs_t) + nbytes_argv_envp, CPU_PAGE_SIZE);
+    const ssize_t nbytes_procargs = __Ceil_PowerOf2(sizeof(pargs_t) + nbytes_argv_envp, CPU_PAGE_SIZE);
     try(AddressSpace_Allocate(self->addressSpace, nbytes_procargs, (void**)&self->argumentsBase));
 
-    os_pargs_t* pProcArgs = (os_pargs_t*) self->argumentsBase;
-    char** pProcArgv = (char**)(self->argumentsBase + sizeof(os_pargs_t));
+    pargs_t* pProcArgs = (pargs_t*) self->argumentsBase;
+    char** pProcArgv = (char**)(self->argumentsBase + sizeof(pargs_t));
     char** pProcEnv = (char**)&pProcArgv[nArgvCount + 1];
     char*  pDst = (char*)&pProcEnv[nEnvCount + 1];
     const char** pSrcArgv = (const char**) argv;
@@ -82,7 +82,7 @@ static errno_t Process_CopyInProcArgs_Locked(ProcessRef _Nonnull self, const cha
 
 
     // Descriptor
-    pProcArgs->version = sizeof(os_pargs_t);
+    pProcArgs->version = sizeof(pargs_t);
     pProcArgs->reserved = 0;
     pProcArgs->arguments_size = nbytes_procargs;
     pProcArgs->argc = nArgvCount;
@@ -143,7 +143,7 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path,
     try(load_gemdos_executable(self, (FileChannelRef)chan, &imageBase, &entryPoint));
 
     self->imageBase = imageBase;
-    ((os_pargs_t*) self->argumentsBase)->image_base = self->imageBase;
+    ((pargs_t*) self->argumentsBase)->image_base = self->imageBase;
 
 
     // Dispatch the invocation of the entry point

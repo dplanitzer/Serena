@@ -19,7 +19,7 @@ static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnul
 
     err = FileManager_CreateDirectory(fm, path, perms);
     if (err == EOK) {
-        MutableFileInfo info;
+        fmutinfo_t info;
 
         info.modify = kModifyFileInfo_UserId | kModifyFileInfo_GroupId;
         info.uid = uid;

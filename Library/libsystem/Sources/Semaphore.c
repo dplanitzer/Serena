@@ -20,7 +20,7 @@ typedef struct USemaphore {
 } USemaphore;
 
 
-errno_t os_sem_init(os_sem_t* _Nonnull sema, int npermits)
+errno_t os_sem_init(sem_t* _Nonnull sema, int npermits)
 {
     USemaphore* self = (USemaphore*)sema;
 
@@ -36,7 +36,7 @@ errno_t os_sem_init(os_sem_t* _Nonnull sema, int npermits)
     return err;
 }
 
-errno_t os_sem_deinit(os_sem_t* _Nonnull sema)
+errno_t os_sem_deinit(sem_t* _Nonnull sema)
 {
     USemaphore* self = (USemaphore*)sema;
 
@@ -51,7 +51,7 @@ errno_t os_sem_deinit(os_sem_t* _Nonnull sema)
     return err;
 }
 
-errno_t os_sem_post(os_sem_t* _Nonnull sema, int npermits)
+errno_t os_sem_post(sem_t* _Nonnull sema, int npermits)
 {
     USemaphore* self = (USemaphore*)sema;
 
@@ -63,7 +63,7 @@ errno_t os_sem_post(os_sem_t* _Nonnull sema, int npermits)
     }
 }
 
-errno_t os_sem_wait(os_sem_t* _Nonnull sema, int npermits, TimeInterval deadline)
+errno_t os_sem_wait(sem_t* _Nonnull sema, int npermits, TimeInterval deadline)
 {
     USemaphore* self = (USemaphore*)sema;
 
@@ -75,7 +75,7 @@ errno_t os_sem_wait(os_sem_t* _Nonnull sema, int npermits, TimeInterval deadline
     }
 }
 
-errno_t os_sem_trywait(os_sem_t* _Nonnull sema, int npermits)
+errno_t os_sem_trywait(sem_t* _Nonnull sema, int npermits)
 {
     USemaphore* self = (USemaphore*)sema;
 

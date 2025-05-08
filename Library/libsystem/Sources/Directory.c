@@ -21,7 +21,7 @@ errno_t os_opendir(const char* _Nonnull path, int* _Nonnull ioc)
     return (errno_t)_syscall(SC_opendir, path, ioc);
 }
 
-errno_t os_readdir(int ioc, os_dirent_t* _Nonnull entries, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
+errno_t os_readdir(int ioc, dirent_t* _Nonnull entries, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
 {
     return (errno_t)_syscall(SC_read, ioc, entries, nBytesToRead, nBytesRead);
 }

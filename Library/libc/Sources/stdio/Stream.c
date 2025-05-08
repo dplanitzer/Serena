@@ -12,8 +12,8 @@
 #include <System/Mutex.h>
 
 
-static FILE*        __gOpenFiles;
-static os_mutex_t   __gOpenFilesLock;
+static FILE*    __gOpenFiles;
+static mutex_t  __gOpenFilesLock;
 
 
 void __init_open_files_lock(void)

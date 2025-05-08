@@ -179,7 +179,7 @@ SYSCALL_1(setcwd, const char* _Nullable path)
     return Process_SetWorkingDirectoryPath(Process_GetCurrent(), pArgs->path);
 }
 
-SYSCALL_2(getfileinfo, const char* _Nullable path, FileInfo* _Nullable pOutInfo)
+SYSCALL_2(getfileinfo, const char* _Nullable path, finfo_t* _Nullable pOutInfo)
 {
     if (pArgs->path == NULL || pArgs->pOutInfo == NULL) {
         return EINVAL;
@@ -188,7 +188,7 @@ SYSCALL_2(getfileinfo, const char* _Nullable path, FileInfo* _Nullable pOutInfo)
     return Process_GetFileInfo(Process_GetCurrent(), pArgs->path, pArgs->pOutInfo);
 }
 
-SYSCALL_2(setfileinfo, const char* _Nullable path, MutableFileInfo* _Nullable pInfo)
+SYSCALL_2(setfileinfo, const char* _Nullable path, fmutinfo_t* _Nullable pInfo)
 {
     if (pArgs->path == NULL || pArgs->pInfo == NULL) {
         return EINVAL;
@@ -197,7 +197,7 @@ SYSCALL_2(setfileinfo, const char* _Nullable path, MutableFileInfo* _Nullable pI
     return Process_SetFileInfo(Process_GetCurrent(), pArgs->path, pArgs->pInfo);
 }
 
-SYSCALL_2(fgetfileinfo, int ioc, FileInfo* _Nullable pOutInfo)
+SYSCALL_2(fgetfileinfo, int ioc, finfo_t* _Nullable pOutInfo)
 {
     if (pArgs->pOutInfo == NULL) {
         return EINVAL;
@@ -206,7 +206,7 @@ SYSCALL_2(fgetfileinfo, int ioc, FileInfo* _Nullable pOutInfo)
     return Process_GetFileInfo_ioc(Process_GetCurrent(), pArgs->ioc, pArgs->pOutInfo);
 }
 
-SYSCALL_2(fsetfileinfo, int ioc, MutableFileInfo* _Nullable pInfo)
+SYSCALL_2(fsetfileinfo, int ioc, fmutinfo_t* _Nullable pInfo)
 {
     if (pArgs->pInfo == NULL) {
         return EINVAL;
@@ -449,7 +449,7 @@ SYSCALL_1(exit, int status)
 // nul-terminated strings. The last entry in the table has to be NULL. All these
 // strings are the command line arguments that should be passed to the new
 // process.
-SYSCALL_4(spawn_process, const char* _Nullable path, const char* _Nullable * _Nullable argv, const os_spawn_opts_t* _Nullable options, pid_t* _Nullable pOutPid)
+SYSCALL_4(spawn_process, const char* _Nullable path, const char* _Nullable * _Nullable argv, const spawn_opts_t* _Nullable options, pid_t* _Nullable pOutPid)
 {
     if (pArgs->path == NULL || pArgs->path[0] == '\0') {
         return EINVAL;
@@ -484,7 +484,7 @@ SYSCALL_0(getpargs)
     return (intptr_t) Process_GetArgumentsBaseAddress(Process_GetCurrent());
 }
 
-SYSCALL_2(waitpid, pid_t pid, os_pstatus_t* _Nullable pOutStatus)
+SYSCALL_2(waitpid, pid_t pid, pstatus_t* _Nullable pOutStatus)
 {
     return Process_WaitForTerminationOfChild(Process_GetCurrent(), pArgs->pid, pArgs->pOutStatus);
 }

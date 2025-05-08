@@ -34,7 +34,7 @@ enum FileType {
 };
 
 
-typedef struct FileInfo {
+typedef struct finfo {
     TimeInterval        accessTime;
     TimeInterval        modificationTime;
     TimeInterval        statusChangeTime;
@@ -47,7 +47,7 @@ typedef struct FileInfo {
     nlink_t             linkCount;
     fsid_t              fsid;
     ino_t               inid;
-} FileInfo;
+} finfo_t;
 
 
 enum ModifyFileInfo {
@@ -61,7 +61,7 @@ enum ModifyFileInfo {
                         | kModifyFileInfo_Permissions
 };
 
-typedef struct MutableFileInfo {
+typedef struct fmutinfo {
     uint32_t            modify;
     TimeInterval        accessTime;
     TimeInterval        modificationTime;
@@ -69,7 +69,7 @@ typedef struct MutableFileInfo {
     gid_t               gid;
     FilePermissions     permissions;
     uint16_t            permissionsModifyMask;  // Only modify permissions whose bit is set here
-} MutableFileInfo;
+} fmutinfo_t;
 
 
 enum AccessMode {
@@ -148,13 +148,13 @@ extern errno_t os_truncate(const char* _Nonnull path, off_t length);
 
 // Returns meta-information about the file located at the filesystem location 'path'.
 // @Concurrency: Safe
-extern errno_t os_getinfo(const char* _Nonnull path, FileInfo* _Nonnull info);
+extern errno_t os_getinfo(const char* _Nonnull path, finfo_t* _Nonnull info);
 
 // Updates the meta-information about the file located at the filesystem location
 // 'path'. Note that only those pieces of the meta-information are modified for
 // which the corresponding flag in 'info.modify' is set.
 // @Concurrency: Safe
-extern errno_t os_setinfo(const char* _Nonnull path, MutableFileInfo* _Nonnull info);
+extern errno_t os_setinfo(const char* _Nonnull path, fmutinfo_t* _Nonnull info);
 
 
 // Checks whether the file at the filesystem location 'path' exists and whether
@@ -181,11 +181,11 @@ extern errno_t os_ftruncate(int ioc, off_t length);
 
 // Similar to os_getinfo() but operates on the open file identified by 'ioc'.
 // @Concurrency: Safe
-extern errno_t os_fgetinfo(int ioc, FileInfo* _Nonnull info);
+extern errno_t os_fgetinfo(int ioc, finfo_t* _Nonnull info);
 
 // Similar to os_setinfo() but operates on the open file identified by 'ioc'.
 // @Concurrency: Safe
-extern errno_t os_fsetinfo(int ioc, MutableFileInfo* _Nonnull info);
+extern errno_t os_fsetinfo(int ioc, fmutinfo_t* _Nonnull info);
 
 __CPP_END
 

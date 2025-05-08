@@ -57,7 +57,7 @@ extern bool Process_IsTerminating(ProcessRef _Nonnull pProc);
 // child processes available or the PID is not the PID of a child process of
 // the receiver. Otherwise blocks the caller until the requested process or any
 // child process (pid == -1) has exited.
-extern errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, pid_t pid, os_pstatus_t* _Nullable pStatus);
+extern errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, pid_t pid, pstatus_t* _Nullable pStatus);
 
 extern int Process_GetId(ProcessRef _Nonnull pProc);
 extern int Process_GetParentId(ProcessRef _Nonnull pProc);
@@ -72,7 +72,7 @@ extern void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
 // Spawns a new process that will be a child of the given process. The spawn
 // arguments specify how the child process should be created, which arguments
 // and environment it will receive and which descriptors it will inherit.
-extern errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnull path, const char* _Nullable argv[], const os_spawn_opts_t* _Nullable options, pid_t * _Nullable pOutChildPid);
+extern errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nullable options, pid_t * _Nullable pOutChildPid);
 
 
 // Disposes the user resource identified by the given descriptor. The resource
@@ -216,16 +216,16 @@ extern errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Non
 extern errno_t Process_CreatePipe(ProcessRef _Nonnull pProc, int* _Nonnull pOutReadChannel, int* _Nonnull pOutWriteChannel);
 
 // Returns information about the file at the given path.
-extern errno_t Process_GetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, FileInfo* _Nonnull pOutInfo);
+extern errno_t Process_GetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, finfo_t* _Nonnull pOutInfo);
 
 // Same as above but with respect to the given I/O channel.
-extern errno_t Process_GetFileInfo_ioc(ProcessRef _Nonnull pProc, int fd, FileInfo* _Nonnull pOutInfo);
+extern errno_t Process_GetFileInfo_ioc(ProcessRef _Nonnull pProc, int fd, finfo_t* _Nonnull pOutInfo);
 
 // Modifies information about the file at the given path.
-extern errno_t Process_SetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, MutableFileInfo* _Nonnull pInfo);
+extern errno_t Process_SetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, fmutinfo_t* _Nonnull pInfo);
 
 // Same as above but with respect to the given I/O channel.
-extern errno_t Process_SetFileInfo_ioc(ProcessRef _Nonnull pProc, int fd, MutableFileInfo* _Nonnull pInfo);
+extern errno_t Process_SetFileInfo_ioc(ProcessRef _Nonnull pProc, int fd, fmutinfo_t* _Nonnull pInfo);
 
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.

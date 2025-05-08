@@ -235,7 +235,7 @@ void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull re
 // drive.
 void DiskDriver_doGetInfo(DiskDriverRef _Nonnull self, GetDiskInfoRequest* _Nonnull req)
 {
-    DiskInfo* p = req->ip;
+    diskinfo_t* p = req->ip;
     
     if (self->flags.isDiskChangeActive) {
         req->s.status = EDISKCHANGE;
@@ -256,7 +256,7 @@ void DiskDriver_doGetInfo(DiskDriverRef _Nonnull self, GetDiskInfoRequest* _Nonn
 
 void DiskDriver_doGetGeometry(DiskDriverRef _Nonnull self, DiskGeometryRequest* _Nonnull req)
 {
-    DiskGeometry* p = req->gp;
+    diskgeom_t* p = req->gp;
 
     if (self->flags.isDiskChangeActive) {
         req->s.status = EDISKCHANGE;
@@ -349,7 +349,7 @@ errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch,
     return err;
 }
 
-errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* _Nonnull info)
+errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, diskinfo_t* _Nonnull info)
 {
     GetDiskInfoRequest r;
 
@@ -359,7 +359,7 @@ errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* _Nonnull info)
     return DiskDriver_DoIO(self, (IORequest*)&r);
 }
 
-errno_t DiskDriver_GetGeometry(DiskDriverRef _Nonnull self, DiskGeometry* _Nonnull info)
+errno_t DiskDriver_GetGeometry(DiskDriverRef _Nonnull self, diskgeom_t* _Nonnull info)
 {
     DiskGeometryRequest r;
 
@@ -377,7 +377,7 @@ errno_t DiskDriver_GetGeometry(DiskDriverRef _Nonnull self, DiskGeometry* _Nonnu
 
 off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
 {
-    DiskInfo info;
+    diskinfo_t info;
     const errno_t err = DiskDriver_GetInfo(self, &info);
     
     return (err == EOK) ? (off_t)info.sectorCount * (off_t)info.sectorSize : 0ll;
@@ -419,13 +419,13 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull pCha
 {
     switch (cmd) {
         case kDiskCommand_GetInfo: {
-            DiskInfo* info = va_arg(ap, DiskInfo*);
+            diskinfo_t* info = va_arg(ap, diskinfo_t*);
             
             return DiskDriver_GetInfo(self, info);
         }
 
         case kDiskCommand_GetGeometry: {
-            DiskGeometry* info = va_arg(ap, DiskGeometry*);
+            diskgeom_t* info = va_arg(ap, diskgeom_t*);
         
             return DiskDriver_GetGeometry(self, info);
         }

@@ -17,8 +17,8 @@
 #define EXPANSION_HEAP_SIZE __Ceil_PowerOf2(64*1024, CPU_PAGE_SIZE)
 
 
-AllocatorRef        __gMainAllocator;
-static os_mutex_t   __gMallocLock;
+AllocatorRef    __gMainAllocator;
+static mutex_t  __gMallocLock;
 
 
 static errno_t __malloc_expand_backing_store(AllocatorRef _Nonnull pAllocator, size_t minByteCount)

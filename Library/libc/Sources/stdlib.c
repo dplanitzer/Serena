@@ -13,7 +13,7 @@
 #include <__stddef.h>
 #include <System/System.h>
 
-void __stdlibc_init(os_pargs_t* _Nonnull argsp)
+void __stdlibc_init(pargs_t* _Nonnull argsp)
 {
     __gProcessArguments = argsp;
     environ = argsp->envp;

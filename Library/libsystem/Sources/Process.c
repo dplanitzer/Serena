@@ -56,19 +56,19 @@ gid_t os_getgid(void)
     return _syscall(SC_getgid);
 }
 
-errno_t os_spawn(const char* _Nonnull path, const char* _Nullable argv[], const os_spawn_opts_t* _Nullable options, pid_t* _Nullable rpid)
+errno_t os_spawn(const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nullable options, pid_t* _Nullable rpid)
 {
     return _syscall(SC_spawn, path, argv, options, rpid);
 }
 
-errno_t os_waitpid(pid_t pid, os_pstatus_t* _Nullable result)
+errno_t os_waitpid(pid_t pid, pstatus_t* _Nullable result)
 {
     return _syscall(SC_waitpid, pid, result);
 }
 
-os_pargs_t* _Nonnull os_getpargs(void)
+pargs_t* _Nonnull os_getpargs(void)
 {
-    return (os_pargs_t*) _syscall(SC_getpargs);
+    return (pargs_t*) _syscall(SC_getpargs);
 }
 
 

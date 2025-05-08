@@ -31,7 +31,7 @@ static const char* gAvailablePattern[NUM_PATTERNS] = {
 };
 
 static int gQueue;
-static os_mutex_t gMutex;
+static mutex_t gMutex;
 static int gCurrentPatternIndex;
 static char gCurrentPattern[256];
 

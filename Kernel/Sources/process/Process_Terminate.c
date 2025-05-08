@@ -69,7 +69,7 @@ errno_t Process_OnChildTermination(ProcessRef _Nonnull pProc, ProcessRef _Nonnul
 // child processes available or the PID is not the PID of a child process of
 // the receiver. Otherwise blocks the caller until the requested process or any
 // child process (pid == -1) has exited.
-errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, pid_t pid, os_pstatus_t* _Nullable pStatus)
+errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, pid_t pid, pstatus_t* _Nullable pStatus)
 {
     decl_try_err();
 

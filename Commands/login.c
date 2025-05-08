@@ -44,7 +44,7 @@ static char* _Nullable env_alloc(const char* _Nonnull key, const char* _Nonnull 
 static errno_t start_shell(const char* _Nonnull shellPath, const char* _Nonnull homePath)
 {
     decl_try_err();
-    os_spawn_opts_t opts = {0};
+    spawn_opts_t opts = {0};
     const char* argv[3];
     const char* envp[5];
     
@@ -111,7 +111,7 @@ static void login_user(void)
 static void on_shell_termination(void* _Nullable ignore)
 {
     decl_try_err();
-    os_pstatus_t pts;
+    pstatus_t pts;
 
     err = os_waitpid(-1, &pts);
     if (err == EOK) {

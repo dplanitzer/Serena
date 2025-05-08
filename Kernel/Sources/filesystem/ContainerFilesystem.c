@@ -42,7 +42,7 @@ errno_t ContainerFilesystem_ioctl(struct ContainerFilesystem* _Nonnull self, IOC
 {
     switch (cmd) {
         case kFSCommand_GetDiskGeometry: {
-            DiskGeometry* info = va_arg(ap, DiskGeometry*);
+            diskgeom_t* info = va_arg(ap, diskgeom_t*);
 
             return FSContainer_GetGeometry(Filesystem_GetContainer(self), info);
         }

@@ -92,16 +92,16 @@ extern errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const c
 extern errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const char* _Nonnull pPath, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Returns information about the file at the given path.
-extern errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, FileInfo* _Nonnull pOutInfo);
+extern errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, finfo_t* _Nonnull pOutInfo);
 
 // Same as above but with respect to the given I/O channel.
-extern errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, FileInfo* _Nonnull pOutInfo);
+extern errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, finfo_t* _Nonnull pOutInfo);
 
 // Modifies information about the file at the given path.
-extern errno_t FileManager_SetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, MutableFileInfo* _Nonnull info);
+extern errno_t FileManager_SetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, fmutinfo_t* _Nonnull info);
 
 // Same as above but with respect to the given I/O channel.
-extern errno_t FileManager_SetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, MutableFileInfo* _Nonnull info);
+extern errno_t FileManager_SetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, fmutinfo_t* _Nonnull info);
 
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.

@@ -14,7 +14,7 @@
 //#define __FORCE_WRITES_SYNC 1
 
 
-void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull chan, const DiskInfo* _Nonnull info, DiskSession* _Nonnull s)
+void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull chan, const diskinfo_t* _Nonnull info, DiskSession* _Nonnull s)
 {
     Lock_Lock(&self->interlock);
 

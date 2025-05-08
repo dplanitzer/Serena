@@ -121,7 +121,7 @@ errno_t SerenaFS_onStop(SerenaFSRef _Nonnull self)
     return EOK;
 }
 
-errno_t SerenaFS_getInfo(SerenaFSRef _Nonnull self, FSInfo* _Nonnull pOutInfo)
+errno_t SerenaFS_getInfo(SerenaFSRef _Nonnull self, fsinfo_t* _Nonnull pOutInfo)
 {
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
 

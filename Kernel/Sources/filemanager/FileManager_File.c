@@ -199,7 +199,7 @@ catch:
 }
 
 // Returns information about the file at the given path.
-errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull path, FileInfo* _Nonnull pOutInfo)
+errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull path, finfo_t* _Nonnull pOutInfo)
 {
     decl_try_err();
     ResolvedPath r;
@@ -215,7 +215,7 @@ errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnu
 }
 
 // Same as above but with respect to the given I/O channel.
-errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, FileInfo* _Nonnull pOutInfo)
+errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, finfo_t* _Nonnull pOutInfo)
 {
     decl_try_err();
 
@@ -233,7 +233,7 @@ errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _
 }
 
 // Modifies information about the file at the given path.
-errno_t FileManager_SetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, MutableFileInfo* _Nonnull info)
+errno_t FileManager_SetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, fmutinfo_t* _Nonnull info)
 {
     decl_try_err();
     ResolvedPath r;
@@ -250,7 +250,7 @@ errno_t FileManager_SetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnu
 }
 
 // Same as above but with respect to the given I/O channel.
-errno_t FileManager_SetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, MutableFileInfo* _Nonnull info)
+errno_t FileManager_SetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, fmutinfo_t* _Nonnull info)
 {
     decl_try_err();
 

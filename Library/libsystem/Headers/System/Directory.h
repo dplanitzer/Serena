@@ -17,10 +17,10 @@
 
 __CPP_BEGIN
 
-typedef struct os_dirent {
+typedef struct dirent {
     ino_t       inid;
     char        name[__PATH_COMPONENT_MAX];
-} os_dirent_t;
+} dirent_t;
 
 
 // Creates an empty directory with the name and at the filesystem location specified
@@ -42,7 +42,7 @@ extern errno_t os_opendir(const char* _Nonnull path, int* _Nonnull ioc);
 // and you can reestablish a previously saved directory entry position by calling
 // os_seek() with the result of a previous os_tell() call.
 // @Concurrency: Safe
-extern errno_t os_readdir(int ioc, os_dirent_t* _Nonnull entries, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead);
+extern errno_t os_readdir(int ioc, dirent_t* _Nonnull entries, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead);
 
 // Resets the read position of the directory identified by 'ioc' to the beginning.
 // The next os_readdir() call will start reading directory entries from the

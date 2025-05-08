@@ -14,7 +14,7 @@
 static UrtFunc* __gUrtFuncTable;
 
 
-void __UrtInit(os_pargs_t* _Nonnull argsp)
+void __UrtInit(pargs_t* _Nonnull argsp)
 {
     __gUrtFuncTable = argsp->urt_funcs;
 }

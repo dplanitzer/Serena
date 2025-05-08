@@ -98,7 +98,7 @@ static errno_t block_write(intptr_t fd, const void* _Nonnull buf, bno_t blockAdd
     }
 }
 
-static errno_t wipe_disk(int ioc, const DiskInfo* _Nonnull info)
+static errno_t wipe_disk(int ioc, const diskinfo_t* _Nonnull info)
 {
     decl_try_err();
     scnt_t sct = 0;
@@ -136,7 +136,7 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, 
 {
     decl_try_err();
     FILE* fp = NULL;
-    DiskInfo info;
+    diskinfo_t info;
 
     if (strcmp(fsType, "sefs")) {
         throw(EINVAL);
@@ -168,7 +168,7 @@ catch:
 static errno_t get_fsid(const char* _Nonnull path, fsid_t* _Nonnull fsid)
 {
     decl_try_err();
-    FileInfo info;
+    finfo_t info;
     char* p = (char*)path;
 
     *fsid = 0;
@@ -212,7 +212,7 @@ errno_t cmd_fsid(const char* _Nonnull path)
 }
 
 
-static errno_t print_cat_info(const FSInfo* _Nonnull info, int fd)
+static errno_t print_cat_info(const fsinfo_t* _Nonnull info, int fd)
 {
     decl_try_err();
     char diskName[32];
@@ -226,7 +226,7 @@ catch:
     return err;
 }
 
-static errno_t print_reg_info(const FSInfo* _Nonnull info, int fd)
+static errno_t print_reg_info(const fsinfo_t* _Nonnull info, int fd)
 {
     decl_try_err();
     const uint64_t size = (uint64_t)info->capacity * (uint64_t)info->blockSize;
@@ -259,7 +259,7 @@ static errno_t cmd_info(const char* _Nonnull path)
 {
     decl_try_err();
     fsid_t fsid;
-    FSInfo info;
+    fsinfo_t info;
     int fd = -1;
     char buf[32];
 
@@ -288,11 +288,11 @@ catch:
 static errno_t cmd_geometry(const char* _Nonnull path)
 {
     decl_try_err();
-    FileInfo finf;
+    finfo_t finf;
     fsid_t fsid;
-    FSInfo fsinf;
+    fsinfo_t fsinf;
     char buf[32];
-    DiskGeometry info;
+    diskgeom_t geom;
     int fd = -1;
     bool hasDisk = true;
 
@@ -301,13 +301,13 @@ static errno_t cmd_geometry(const char* _Nonnull path)
     }
     if (finf.type == kFileType_Device) {
         try(os_open(path, kOpen_Read, &fd));
-        err = os_fcall(fd, kDiskCommand_GetGeometry, &info);
+        err = os_fcall(fd, kDiskCommand_GetGeometry, &geom);
     }
     else {
         try(get_fsid(path, &fsid));
         sprintf(buf, "/fs/%u", fsid);
         try(os_open(buf, kOpen_Read, &fd));
-        err = os_fcall(fd, kFSCommand_GetDiskGeometry, &info);
+        err = os_fcall(fd, kFSCommand_GetDiskGeometry, &geom);
 
         try(os_getfsdisk(fsid, buf, sizeof(buf)));
         path = buf;
@@ -324,7 +324,7 @@ static errno_t cmd_geometry(const char* _Nonnull path)
     // XX formatting
     if (hasDisk) {
         puts("Disk Cylinders Heads Sectors/Track Sectors/Disk Sector Size");
-        printf("%s  %zu  %zu  %zu  %zu  %zu\n", path, info.cylindersPerDisk, info.headsPerCylinder, info.sectorsPerTrack, info.cylindersPerDisk * info.headsPerCylinder * info.sectorsPerTrack, info.sectorSize);
+        printf("%s  %zu  %zu  %zu  %zu  %zu\n", path, geom.cylindersPerDisk, geom.headsPerCylinder, geom.sectorsPerTrack, geom.cylindersPerDisk * geom.headsPerCylinder * geom.sectorsPerTrack, geom.sectorSize);
     }
     else {
         puts("Disk");

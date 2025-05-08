@@ -81,13 +81,13 @@ any_subclass_funcs(Inode,
     // type.
     // Override: Optional
     // Default Behavior: Returns the node's file info
-    errno_t (*getInfo)(void* _Nonnull _Locked self, FileInfo* _Nonnull pOutInfo);
+    errno_t (*getInfo)(void* _Nonnull _Locked self, finfo_t* _Nonnull pOutInfo);
 
     // Modifies one or more attributes stored in the file information of the given
     // node. The node may be of any type.
     // Override: Optional
     // Default Behavior: Updates the inode's file info
-    errno_t (*setInfo)(void* _Nonnull _Locked self, uid_t uid, gid_t gid, MutableFileInfo* _Nonnull pInfo);
+    errno_t (*setInfo)(void* _Nonnull _Locked self, uid_t uid, gid_t gid, fmutinfo_t* _Nonnull pInfo);
 
 
     //

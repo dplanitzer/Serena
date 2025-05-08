@@ -24,16 +24,16 @@ __CPP_BEGIN
 // the last entry in the table contains a NULL.
 // This data structure is set up by the kernel when it processes a Spawn()
 // request. Once set up the kernel neither reads nor writes to this area.
-typedef struct os_pargs {
-    size_t                      version;        // sizeof(os_pargs_t)
+typedef struct pargs {
+    size_t                      version;        // sizeof(pargs_t)
     size_t                      reserved;
-    size_t                      arguments_size; // Size of the area that holds all of os_pargs_t + argv + envp
+    size_t                      arguments_size; // Size of the area that holds all of pargs_t + argv + envp
     size_t                      argc;           // Number of command line arguments passed to the process. Argv[0] holds the path to the process through which it was started
     char* _Nullable * _Nonnull  argv;           // Pointer to the base of the command line arguments table. Last entry is NULL
     char* _Nullable * _Nonnull  envp;           // Pointer to the base of the environment table. Last entry holds NULL.
     void* _Nonnull              image_base;     // Pointer to the base of the executable header
     UrtFunc* _Nonnull           urt_funcs;      // Pointer to the URT function table
-} os_pargs_t;
+} pargs_t;
 
 
 // Instructs the os_spawn() call to set the umask of the newly spawned
@@ -61,7 +61,7 @@ typedef struct os_pargs {
 // 'envp' may be NULL pointer. A NULL pointer is equivalent to a table with a
 // single entry that is the NULL pointer. So a NULL 'envp' means that the child
 // process receives an empty environment.
-typedef struct os_spawn_opts {
+typedef struct spawn_opts {
     const char* _Nullable * _Nullable   envp;
     const char* _Nullable               root_dir;               // Process root directory, if not NULL; otherwise inherited from the parent
     const char* _Nullable               cw_dir;                 // Process current working directory, if not NULL; otherwise inherited from the parent
@@ -72,14 +72,14 @@ typedef struct os_spawn_opts {
     os_disp_func_t _Nullable            notificationClosure;
     void* _Nullable                     notificationContext;
     uint32_t                            options;
-} os_spawn_opts_t;
+} spawn_opts_t;
 
 
 // The result of a os_waitpid() system call.
-typedef struct os_pstatus {
+typedef struct pstatus {
     pid_t   pid;        // PID of the child process
     int     status;     // Child process exit status
-} os_pstatus_t;
+} pstatus_t;
 
 
 extern _Noreturn os_exit(int exit_code);
@@ -101,10 +101,10 @@ extern uid_t os_getuid(void);
 extern gid_t os_getgid(void);
 
 
-extern errno_t os_spawn(const char* _Nonnull path, const char* _Nullable argv[], const os_spawn_opts_t* _Nullable options, pid_t* _Nullable rpid);
-extern errno_t os_waitpid(pid_t pid, os_pstatus_t* _Nullable result);
+extern errno_t os_spawn(const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nullable options, pid_t* _Nullable rpid);
+extern errno_t os_waitpid(pid_t pid, pstatus_t* _Nullable result);
 
-extern os_pargs_t* _Nonnull os_getpargs(void);
+extern pargs_t* _Nonnull os_getpargs(void);
 
 
 extern errno_t os_vmalloc(size_t nbytes, void* _Nullable * _Nonnull ptr);

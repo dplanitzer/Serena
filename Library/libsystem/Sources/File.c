@@ -33,22 +33,22 @@ errno_t os_seek(int ioc, off_t offset, off_t* _Nullable oldpos, int whence)
 }
 
 
-errno_t os_getinfo(const char* _Nonnull path, FileInfo* _Nonnull info)
+errno_t os_getinfo(const char* _Nonnull path, finfo_t* _Nonnull info)
 {
     return (errno_t)_syscall(SC_getinfo, path, info);
 }
 
-errno_t os_setinfo(const char* _Nonnull path, MutableFileInfo* _Nonnull info)
+errno_t os_setinfo(const char* _Nonnull path, fmutinfo_t* _Nonnull info)
 {
     return (errno_t)_syscall(SC_setinfo, path, info);
 }
 
-errno_t os_fgetinfo(int ioc, FileInfo* _Nonnull info)
+errno_t os_fgetinfo(int ioc, finfo_t* _Nonnull info)
 {
     return _syscall(SC_fgetinfo, ioc, info);
 }
 
-errno_t os_fsetinfo(int ioc, MutableFileInfo* _Nonnull info)
+errno_t os_fsetinfo(int ioc, fmutinfo_t* _Nonnull info)
 {
     return (errno_t)_syscall(SC_fsetinfo, ioc, info);
 }

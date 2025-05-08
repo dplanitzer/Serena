@@ -181,7 +181,7 @@ errno_t KfsDirectory_createChannel(KfsDirectoryRef _Nonnull _Locked self, unsign
 errno_t KfsDirectory_read(KfsDirectoryRef _Nonnull _Locked self, DirectoryChannelRef _Nonnull _Locked ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    os_dirent_t* pOutEntry = (os_dirent_t*)pBuffer;
+    dirent_t* pOutEntry = (dirent_t*)pBuffer;
     off_t offset = IOChannel_GetOffset(ch);  // in terms of #entries
     ssize_t nAllDirEntriesRead = 0;
     ssize_t nBytesRead = 0;
@@ -195,13 +195,13 @@ errno_t KfsDirectory_read(KfsDirectoryRef _Nonnull _Locked self, DirectoryChanne
     }
 
     // Read as many entries as we can fit into 'nBytesToRead'
-    while (curEntry && nBytesToRead >= sizeof(os_dirent_t)) {
+    while (curEntry && nBytesToRead >= sizeof(dirent_t)) {
         pOutEntry->inid = curEntry->inid;
         memcpy(pOutEntry->name, curEntry->name, curEntry->nameLength);
         pOutEntry->name[curEntry->nameLength] = '\0';
 
-        nBytesRead += sizeof(os_dirent_t);
-        nBytesToRead -= sizeof(os_dirent_t);
+        nBytesRead += sizeof(dirent_t);
+        nBytesToRead -= sizeof(dirent_t);
 
         nAllDirEntriesRead++;
         pOutEntry++;

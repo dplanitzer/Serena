@@ -252,7 +252,7 @@ open_class_funcs(Filesystem, Object,
     // Returns general information about the filesystem.
     // Override: Optional
     // Default Behavior: Returns ENOTIOCTLCMD
-    errno_t (*getInfo)(void* _Nonnull self, FSInfo* _Nonnull pOutInfo);
+    errno_t (*getInfo)(void* _Nonnull self, fsinfo_t* _Nonnull pOutInfo);
 
     // Returns the filesystem's label. A label is a string that is assigned to a
     // filesystem when it is formatted. However, it may be changed at a later

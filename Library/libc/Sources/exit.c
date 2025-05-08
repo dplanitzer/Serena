@@ -17,7 +17,7 @@
 typedef void (*at_exit_func_t)(void);
 
 
-static os_mutex_t               __gAtExitLock;
+static mutex_t                  __gAtExitLock;
 static at_exit_func_t _Nullable __gAtExitFuncs[AT_EXIT_FUNCS_CAPACITY];
 static int                      __gAtExitFuncsCount;
 static volatile bool            __gAtExitEnabled;

@@ -45,7 +45,7 @@ extern size_t DiskCache_GetBlockSize(DiskCacheRef _Nonnull self);
 // size (eg CD-ROM sector size: 2,352 bytes) then a single sector will be mapped
 // to a single logical block. The remaining bytes will be ignored on write and
 // filled with zeros on read.  
-extern void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull chan, const DiskInfo* _Nonnull info, DiskSession* _Nonnull s);
+extern void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull chan, const diskinfo_t* _Nonnull info, DiskSession* _Nonnull s);
 extern void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s);
 
 extern errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba);

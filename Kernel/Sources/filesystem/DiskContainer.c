@@ -16,7 +16,7 @@ errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nul
 {
     decl_try_err();
     struct DiskContainer* self = NULL;
-    DiskInfo info;
+    diskinfo_t info;
     uint32_t fsprops = 0;
 
     try(IOChannel_Ioctl(pChannel, kDiskCommand_GetInfo, &info));
@@ -83,7 +83,7 @@ errno_t DiskContainer_sync(struct DiskContainer* _Nonnull self)
     return DiskCache_Sync(self->diskCache, &self->session);
 }
 
-errno_t DiskContainer_getGeometry(struct DiskContainer* _Nonnull self, DiskGeometry* _Nonnull info)
+errno_t DiskContainer_getGeometry(struct DiskContainer* _Nonnull self, diskgeom_t* _Nonnull info)
 {
     return IOChannel_Ioctl(self->session.channel, kDiskCommand_GetGeometry, info);
 }

@@ -497,7 +497,7 @@ errno_t Filesystem_close(FilesystemRef _Nonnull _Locked self, IOChannelRef _Nonn
     return EOK;
 }
 
-errno_t Filesystem_getInfo(FilesystemRef _Nonnull self, FSInfo* _Nonnull pOutInfo)
+errno_t Filesystem_getInfo(FilesystemRef _Nonnull self, fsinfo_t* _Nonnull pOutInfo)
 {
     return ENOTIOCTLCMD;
 }
@@ -521,7 +521,7 @@ errno_t Filesystem_ioctl(FilesystemRef _Nonnull self, IOChannelRef _Nonnull pCha
 {
     switch (cmd) {
         case kFSCommand_GetInfo: {
-            FSInfo* info = va_arg(ap, FSInfo*);
+            fsinfo_t* info = va_arg(ap, fsinfo_t*);
 
             return Filesystem_GetInfo(self, info);
         }
