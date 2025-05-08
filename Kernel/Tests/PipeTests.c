@@ -89,8 +89,8 @@ void pipe2_test(int argc, char *argv[])
 
     assertOK(os_mkpipe(&rioc, &wioc));
 
-    assertOK(DispatchQueue_Create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal, &utilityQueue));
+    assertOK(os_disp_create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal, &utilityQueue));
 
-    assertOK(DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnWriteToPipe, (void*)wioc));
-    assertOK(DispatchQueue_DispatchAsync(utilityQueue, OnReadFromPipe, (void*)rioc));
+    assertOK(os_disp_async(kDispatchQueue_Main, OnWriteToPipe, (void*)wioc));
+    assertOK(os_disp_async(utilityQueue, OnReadFromPipe, (void*)rioc));
 }

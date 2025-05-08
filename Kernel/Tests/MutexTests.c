@@ -73,19 +73,19 @@ static void OnWork(void* _Nonnull pValue)
 
     assertOK(os_mutex_unlock(&gMutex));
 
-    assertOK(DispatchQueue_DispatchAsync(gQueue, OnWork, NULL));
+    assertOK(os_disp_async(gQueue, OnWork, NULL));
 }
 
 
 void mutex_test(int argc, char *argv[])
 {
     assertOK(os_mutex_init(&gMutex));
-    assertOK(DispatchQueue_Create(0, NUM_VPS, kDispatchQoS_Utility, kDispatchPriority_Normal, &gQueue));
+    assertOK(os_disp_create(0, NUM_VPS, kDispatchQoS_Utility, kDispatchPriority_Normal, &gQueue));
 
     gCurrentPatternIndex = 0;
     select_and_write_pattern();
 
     for (size_t i = 0; i < NUM_WORKERS; i++) {
-        assertOK(DispatchQueue_DispatchAsync(gQueue, OnWork, NULL));
+        assertOK(os_disp_async(gQueue, OnWork, NULL));
     }
 }

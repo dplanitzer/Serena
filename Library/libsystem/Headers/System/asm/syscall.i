@@ -12,7 +12,7 @@ __ABI_SYSCALL_I  set 1
 SC_read                     equ 0
 SC_write                    equ 1
 SC_clock_wait               equ 2
-SC_dispatch                 equ 3
+SC_disp_schedule            equ 3
 SC_vmalloc                  equ 4
 SC_exit                     equ 5
 SC_spawn                    equ 6
@@ -42,9 +42,9 @@ SC_truncate                 equ 29
 SC_ftruncate                equ 30
 SC_mkfile                   equ 31
 SC_mkpipe                   equ 32
-SC_dispatch_timer           equ 33
-SC_dispatch_queue_create    equ 34
-SC_dispatch_queue_current   equ 35
+SC_disp_timer               equ 33
+SC_disp_create              equ 34
+SC_disp_getcurrent          equ 35
 SC_dispose                  equ 36
 SC_clock_gettime            equ 37
 SC_lock_create              equ 38
@@ -58,7 +58,7 @@ SC_sem_trywait              equ 45
 SC_cond_create              equ 46
 SC_cond_wake                equ 47
 SC_cond_timedwait           equ 48
-SC_dispatch_remove_by_tag   equ 49
+SC_disp_removebytag         equ 49
 SC_mount                    equ 50
 SC_unmount                  equ 51
 SC_getgid                   equ 52

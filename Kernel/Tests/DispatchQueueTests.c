@@ -26,12 +26,12 @@ static void OnAsync(void* _Nonnull pValue)
     printf("%d\n", val);
     //TimeInterval dur = TimeInterval_MakeSeconds(2);
     //clock_wait(clock_uptime, &dur);
-    assertOK(DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnAsync, (void*)(val + 1)));
+    assertOK(os_disp_async(kDispatchQueue_Main, OnAsync, (void*)(val + 1)));
 }
 
 void dq_async_test(int argc, char *argv[])
 {
-    assertOK(DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnAsync, (void*)0));
+    assertOK(os_disp_async(kDispatchQueue_Main, OnAsync, (void*)0));
 }
 
 
@@ -47,12 +47,12 @@ static void OnAsyncAfter(void* _Nonnull pValue)
 
     printf("%d\n", val);
     clock_gettime(CLOCK_UPTIME, &ts);
-    assertOK(DispatchQueue_DispatchAsyncAfter(kDispatchQueue_Main, TimeInterval_Add(ts, TimeInterval_MakeMilliseconds(500)), OnAsyncAfter, (void*)(val + 1), 0));
+    assertOK(os_disp_after(kDispatchQueue_Main, TimeInterval_Add(ts, TimeInterval_MakeMilliseconds(500)), OnAsyncAfter, (void*)(val + 1), 0));
 }
 
 void dq_async_after_test(int argc, char *argv[])
 {
-    assertOK(DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnAsyncAfter, (void*)0));
+    assertOK(os_disp_async(kDispatchQueue_Main, OnAsyncAfter, (void*)0));
 }
 
 
@@ -67,7 +67,7 @@ static void OnSync(void* _Nonnull pValue)
     TimeInterval dur = TimeInterval_MakeMilliseconds(500);
 
     clock_wait(CLOCK_UPTIME, &dur);
-    printf("%d  (Queue: %d)\n", val, DispatchQueue_GetCurrent());
+    printf("%d  (Queue: %d)\n", val, os_disp_getcurrent());
 }
 
 // XXX Note: you can not call this code from the main queue because it ends up
@@ -76,9 +76,9 @@ void dq_sync_test(int argc, char *argv[])
 {
     int queue, i = 0;
 
-    assertOK(DispatchQueue_Create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal, &queue));
+    assertOK(os_disp_create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal, &queue));
     while (true) {
-        DispatchQueue_DispatchSync(queue, OnSync, (void*) i);
+        os_disp_sync(queue, OnSync, (void*) i);
         puts("--------");
         i++;
     }
