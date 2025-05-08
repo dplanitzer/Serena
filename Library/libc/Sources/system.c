@@ -15,7 +15,7 @@ int system(const char *string)
 {
     decl_try_err();
     pid_t shPid;
-    os_proc_status_t pts;
+    os_pstatus_t pts;
     os_spawn_opts_t opts = {0};
     const char* argv[4];
 
@@ -29,13 +29,13 @@ int system(const char *string)
     argv[3] = NULL;
 
 
-    err = Process_Spawn("/System/Commands/shell", argv, &opts, &shPid);
+    err = os_spawn("/System/Commands/shell", argv, &opts, &shPid);
     if (err != EOK) {
         errno = err;
         return -1;
     }
 
-    err = Process_WaitForTerminationOfChild(shPid, &pts);
+    err = os_waitpid(shPid, &pts);
     if (err != EOK) {
         errno = err;
         return -1;

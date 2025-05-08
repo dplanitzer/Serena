@@ -12,7 +12,7 @@ The kernel is generally reentrant. This means that virtual processors continue t
 
 Serena implements a hierarchical process structure similar to POSIX. A process may spawn a number of child processes and it may pass a command line and environment variables to its children. A process accesses I/O resources via I/O channels which are similar to file descriptors in POSIX.
 
-There are two notable differences between the POSIX style process model and the Serena model though: first instead of using fork() followed by exec() to spawn a new process, you use a single function in Serena called Process_Spawn(). This makes spawning a process much faster and significantly less error prone.
+There are two notable differences between the POSIX style process model and the Serena model though: first instead of using fork() followed by exec() to spawn a new process, you use a single function in Serena called os_spawn(). This makes spawning a process much faster and significantly less error prone.
 
 Secondly, a child process does not inherit the file descriptors of its parent by default. The only exception are the file descriptors 0, 1 and 2 which represent the terminal input and output streams. This model is much less error prone compared to the POSIX model where a process has to be careful to close file descriptors that it doesn't want to pass on to a child process before it spawns a child. Doing this was easy in the early days of Unix when applications were pretty much self contained and when there was no support for dynamic libraries. It's the opposite today because applications are far more complex and depend on many 3rd party libraries.
 

@@ -159,7 +159,7 @@ static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull s
 {
     decl_try_err();
     Value val;
-    os_procargs_t* pargs = Process_GetArguments();
+    os_pargs_t* pargs = os_getpargs();
     char** envp = pargs->envp;
 
     while (*envp) {
@@ -249,12 +249,12 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
 
 
     // Spawn the external command
-    try(Process_Spawn(cmdPath, argv, &opts, &childPid));
+    try(os_spawn(cmdPath, argv, &opts, &childPid));
 
 
     // Wait for the command to complete its task
-    os_proc_status_t pts;
-    Process_WaitForTerminationOfChild(childPid, &pts);
+    os_pstatus_t pts;
+    os_waitpid(childPid, &pts);
 
 
     // XXX we always return Void for now (will change once we got value capture support)

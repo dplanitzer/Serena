@@ -27,7 +27,7 @@ static errno_t do_popcd(InterpreterRef _Nonnull ip, const char* proc_name)
     decl_try_err();
 
     if (ip->cdStackTos) {
-        err = Process_SetWorkingDirectory(ip->cdStackTos->path);
+        err = os_setcwd(ip->cdStackTos->path);
         if (err == EOK) {
             CDEntry* ep = ip->cdStackTos;
 

@@ -24,19 +24,19 @@ __CPP_BEGIN
 // the last entry in the table contains a NULL.
 // This data structure is set up by the kernel when it processes a Spawn()
 // request. Once set up the kernel neither reads nor writes to this area.
-typedef struct os_procargs {
-    size_t                      version;        // sizeof(os_procargs_t)
+typedef struct os_pargs {
+    size_t                      version;        // sizeof(os_pargs_t)
     size_t                      reserved;
-    size_t                      arguments_size; // Size of the area that holds all of os_procargs_t + argv + envp
+    size_t                      arguments_size; // Size of the area that holds all of os_pargs_t + argv + envp
     size_t                      argc;           // Number of command line arguments passed to the process. Argv[0] holds the path to the process through which it was started
     char* _Nullable * _Nonnull  argv;           // Pointer to the base of the command line arguments table. Last entry is NULL
     char* _Nullable * _Nonnull  envp;           // Pointer to the base of the environment table. Last entry holds NULL.
     void* _Nonnull              image_base;     // Pointer to the base of the executable header
     UrtFunc* _Nonnull           urt_funcs;      // Pointer to the URT function table
-} os_procargs_t;
+} os_pargs_t;
 
 
-// Instructs the Process_Spawn() call to set the umask of the newly spawned
+// Instructs the os_spawn() call to set the umask of the newly spawned
 // process to the umask field in the spawn arguments struct rather than the
 // umask field of the parent process.
 #define kSpawn_OverrideUserMask     0x0001
@@ -75,43 +75,39 @@ typedef struct os_spawn_opts {
 } os_spawn_opts_t;
 
 
-// The result of a Process_WaitForTerminationOfChild() system call.
-typedef struct os_proc_status {
+// The result of a os_waitpid() system call.
+typedef struct os_pstatus {
     pid_t   pid;        // PID of the child process
     int     status;     // Child process exit status
-} os_proc_status_t;
+} os_pstatus_t;
 
 
-#if !defined(__KERNEL__)
-
-extern _Noreturn Process_Exit(int exit_code);
+extern _Noreturn os_exit(int exit_code);
 
 
-extern errno_t Process_GetWorkingDirectory(char* _Nonnull buffer, size_t bufferSize);
-extern errno_t Process_SetWorkingDirectory(const char* _Nonnull path);
+extern errno_t os_getcwd(char* _Nonnull buffer, size_t bufferSize);
+extern errno_t os_setcwd(const char* _Nonnull path);
 
 
-extern FilePermissions Process_GetUserMask(void);
-extern void Process_SetUserMask(FilePermissions mask);
+extern FilePermissions os_getumask(void);
+extern void os_setumask(FilePermissions mask);
 
 
-extern pid_t Process_GetId(void);
-extern pid_t Process_GetParentId(void);
+extern pid_t os_getpid(void);
+extern pid_t os_getppid(void);
 
 
-extern uid_t Process_GetUserId(void);
-extern gid_t Process_GetGroupId(void);
+extern uid_t os_getuid(void);
+extern gid_t os_getgid(void);
 
 
-extern errno_t Process_Spawn(const char* _Nonnull path, const char* _Nullable argv[], const os_spawn_opts_t* _Nullable options, pid_t* _Nullable rpid);
-extern errno_t Process_WaitForTerminationOfChild(pid_t pid, os_proc_status_t* _Nullable result);
+extern errno_t os_spawn(const char* _Nonnull path, const char* _Nullable argv[], const os_spawn_opts_t* _Nullable options, pid_t* _Nullable rpid);
+extern errno_t os_waitpid(pid_t pid, os_pstatus_t* _Nullable result);
 
-extern os_procargs_t* _Nonnull Process_GetArguments(void);
+extern os_pargs_t* _Nonnull os_getpargs(void);
 
 
-extern errno_t Process_AllocateAddressSpace(size_t nbytes, void* _Nullable * _Nonnull ptr);
-
-#endif /* __KERNEL__ */
+extern errno_t os_vmalloc(size_t nbytes, void* _Nullable * _Nonnull ptr);
 
 __CPP_END
 

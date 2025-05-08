@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
     clap_parse(0, params, argc, argv);
 
     
-    printf("uid=%u, gid=%u\n", Process_GetUserId(), Process_GetGroupId());
+    printf("uid=%u, gid=%u\n", os_getuid(), os_getgid());
 
     return EXIT_SUCCESS;
 }

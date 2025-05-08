@@ -484,7 +484,7 @@ SYSCALL_0(getpargs)
     return (intptr_t) Process_GetArgumentsBaseAddress(Process_GetCurrent());
 }
 
-SYSCALL_2(waitpid, pid_t pid, os_proc_status_t* _Nullable pOutStatus)
+SYSCALL_2(waitpid, pid_t pid, os_pstatus_t* _Nullable pOutStatus)
 {
     return Process_WaitForTerminationOfChild(Process_GetCurrent(), pArgs->pid, pArgs->pOutStatus);
 }

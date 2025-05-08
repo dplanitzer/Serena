@@ -57,7 +57,7 @@ extern bool Process_IsTerminating(ProcessRef _Nonnull pProc);
 // child processes available or the PID is not the PID of a child process of
 // the receiver. Otherwise blocks the caller until the requested process or any
 // child process (pid == -1) has exited.
-extern errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, pid_t pid, os_proc_status_t* _Nullable pStatus);
+extern errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, pid_t pid, os_pstatus_t* _Nullable pStatus);
 
 extern int Process_GetId(ProcessRef _Nonnull pProc);
 extern int Process_GetParentId(ProcessRef _Nonnull pProc);

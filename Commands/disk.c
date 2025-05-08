@@ -179,7 +179,7 @@ static errno_t get_fsid(const char* _Nonnull path, fsid_t* _Nonnull fsid)
             return ENOMEM;
         }
 
-        err = Process_GetWorkingDirectory(p, PATH_MAX);
+        err = os_getcwd(p, PATH_MAX);
     }
 
 

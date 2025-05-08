@@ -13,9 +13,9 @@ SC_read                     equ 0
 SC_write                    equ 1
 SC_clock_wait               equ 2
 SC_dispatch                 equ 3
-SC_alloc_address_space      equ 4
+SC_vmalloc                  equ 4
 SC_exit                     equ 5
-SC_spawn_process            equ 6
+SC_spawn                    equ 6
 SC_getpid                   equ 7
 SC_getppid                  equ 8
 SC_getpargs                 equ 9

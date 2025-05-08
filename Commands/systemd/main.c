@@ -31,7 +31,7 @@ static errno_t start_proc(const char* _Nonnull procPath, const char* _Nonnull ar
     argv[2] = NULL;
 
     // Spawn the process
-    try(Process_Spawn(procPath, argv, &opts, NULL));
+    try(os_spawn(procPath, argv, &opts, NULL));
     
 catch:
     return err;

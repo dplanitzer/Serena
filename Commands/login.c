@@ -69,7 +69,7 @@ static errno_t start_shell(const char* _Nonnull shellPath, const char* _Nonnull 
 
 
     // Spawn the shell
-    try(Process_Spawn(shellPath, argv, &opts, NULL));
+    try(os_spawn(shellPath, argv, &opts, NULL));
 
 
     char** ep = envp;
@@ -95,7 +95,7 @@ static void login_user(void)
     puts("Logging in as admin...\n");
 
     // Make the current directory the user's home directory
-    Process_SetWorkingDirectory(homePath);
+    os_setcwd(homePath);
 
     err = start_shell(shellPath, homePath);
     if (err != EOK) {
@@ -111,9 +111,9 @@ static void login_user(void)
 static void on_shell_termination(void* _Nullable ignore)
 {
     decl_try_err();
-    os_proc_status_t pts;
+    os_pstatus_t pts;
 
-    err = Process_WaitForTerminationOfChild(-1, &pts);
+    err = os_waitpid(-1, &pts);
     if (err == EOK) {
         if (pts.status != EXIT_SUCCESS) {
             gFailedCounter++;

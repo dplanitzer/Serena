@@ -66,5 +66,5 @@ _Noreturn exit(int exit_code)
 
 _Noreturn _Exit(int exit_code)
 {
-    Process_Exit(exit_code);
+    os_exit(exit_code);
 }

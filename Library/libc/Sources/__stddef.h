@@ -31,7 +31,7 @@ extern _Noreturn __abort(const char* _Nonnull pFilename, int lineNum, const char
 
 extern int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder);
 
-extern void __stdlibc_init(os_procargs_t* _Nonnull argsp);
+extern void __stdlibc_init(os_pargs_t* _Nonnull argsp);
 extern void __malloc_init(void);
 extern void __locale_init(void);
 extern void __exit_init(void);
