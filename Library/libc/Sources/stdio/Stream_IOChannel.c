@@ -15,22 +15,22 @@
 
 static errno_t __ioc_read(__IOChannel_FILE_Vars* _Nonnull self, void* pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
-    return os_read(self->ioc, pBuffer, nBytesToRead, pOutBytesRead);
+    return read(self->ioc, pBuffer, nBytesToRead, pOutBytesRead);
 }
 
 static errno_t __ioc_write(__IOChannel_FILE_Vars* _Nonnull self, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
-    return os_write(self->ioc, pBytes, nBytesToWrite, pOutBytesWritten);
+    return write(self->ioc, pBytes, nBytesToWrite, pOutBytesWritten);
 }
 
 static errno_t __ioc_seek(__IOChannel_FILE_Vars* _Nonnull self, long long offset, long long *pOutOldOffset, int whence)
 {
-    return os_seek(self->ioc, offset, pOutOldOffset, whence);
+    return seek(self->ioc, offset, pOutOldOffset, whence);
 }
 
 static errno_t __ioc_close(__IOChannel_FILE_Vars* _Nonnull self)
 {
-    return os_close(self->ioc);
+    return close(self->ioc);
 }
 
 static const FILE_Callbacks __FILE_ioc_callbacks = {
@@ -45,7 +45,7 @@ static const FILE_Callbacks __FILE_ioc_callbacks = {
 errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int ioc, __FILE_Mode sm)
 {
     // The I/O channel must be valid and open
-    const int iocmode = os_fgetmode(ioc);
+    const int iocmode = fgetmode(ioc);
     if (iocmode == 0) {
         return EBADF;
     }
@@ -92,10 +92,10 @@ errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose
 
     // Open/create the file
     if ((sm & __kStreamMode_Create) == __kStreamMode_Create) {
-        try(os_mkfile(filename, options, 0666, &ioc));
+        try(mkfile(filename, options, 0666, &ioc));
     }
     else {
-        try(os_open(filename, options, &ioc));
+        try(open(filename, options, &ioc));
     }
     
     self->v.ioc = ioc;
@@ -112,7 +112,7 @@ errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose
 
 catch:
     if (ioc != -1) {
-        os_close(ioc);
+        close(ioc);
     }
     return err;
 }

@@ -14,7 +14,7 @@ int remove(const char* path)
 {
     decl_try_err();
 
-    err = os_unlink(path);
+    err = unlink(path);
     if (err != 0) {
         errno = err;
         return -1;

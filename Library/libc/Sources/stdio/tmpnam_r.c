@@ -68,7 +68,7 @@ char *__tmpnam_r(char *filename, int* pOutIoc)
 
 
     // Verify that the directory exists
-    if (os_access(dir, kAccess_Readable | kAccess_Searchable) != EOK) {
+    if (access(dir, kAccess_Readable | kAccess_Searchable) != EOK) {
         return NULL;
     }
 
@@ -112,13 +112,13 @@ char *__tmpnam_r(char *filename, int* pOutIoc)
         *p = '\0';
 
         if (pOutIoc) {
-            const errno_t err = os_mkfile(filename, kOpen_ReadWrite | kOpen_Exclusive, FilePermissions_MakeFromOctal(0600), pOutIoc);
+            const errno_t err = mkfile(filename, kOpen_ReadWrite | kOpen_Exclusive, FilePermissions_MakeFromOctal(0600), pOutIoc);
             if (err == EOK) {
                 return filename;
             }
         }
         else {
-            if (os_access(filename, kAccess_Exists) == ENOENT) {
+            if (access(filename, kAccess_Exists) == ENOENT) {
                 return filename;
             }
         }

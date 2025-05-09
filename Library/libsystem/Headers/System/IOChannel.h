@@ -47,9 +47,9 @@ typedef enum IOChannelType {
 
 // Standard I/O channels that are open when a process starts. These channels
 // connect to the terminal input and output streams.
-#define kIOChannel_Stdin    0
-#define kIOChannel_Stdout   1
-#define kIOChannel_Stderr   2
+#define STDIN_FILENO    0
+#define STDOUT_FILENO   1
+#define STDERR_FILENO   2
 
 
 // Reads up to 'nBytesToRead' bytes from the I/O channel 'ioc' and writes them
@@ -64,7 +64,7 @@ typedef enum IOChannelType {
 // before an error is encountered then the successfully read bytes and EOK is
 // returned.
 // @Concurrency: Safe
-extern errno_t os_read(int ioc, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+extern errno_t read(int ioc, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
 // Writes up to 'nBytesToWrite' bytes to the I/O channel 'ioc'. The bytes are
 // taken from the buffer 'buffer' which must be big enough to hold 'nBytesToWrite'
@@ -74,7 +74,7 @@ extern errno_t os_read(int ioc, void* _Nonnull buffer, size_t nBytesToRead, ssiz
 // It however returns a suitable error code and 0 in 'nOutBytesWritten' if it
 // encounters an error before it is able to write at least one byte. 
 // @Concurrency: Safe
-extern errno_t os_write(int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+extern errno_t write(int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
 
 // Closes the given I/O channel. All still pending data is written to the
@@ -85,23 +85,23 @@ extern errno_t os_write(int ioc, const void* _Nonnull buffer, size_t nBytesToWri
 // closing the channel. The I/O channel is guaranteed to be closed once this
 // function returns. The error returned here is in this sense purely advisory.
 // @Concurrency: Safe
-extern errno_t os_close(int ioc);
+extern errno_t close(int ioc);
 
 
 // Returns the type of the I/O channel. See the IOChannelType enumeration.
 // @Concurrency: Safe
-extern IOChannelType os_fgettype(int ioc);
+extern IOChannelType fgettype(int ioc);
 
 // Returns the mode with which the I/O channel was originally opened. The exact
-// meaning of mode depends on the I/O channel type. Ie see os_open() for the
+// meaning of mode depends on the I/O channel type. Ie see open() for the
 // file specific modes.
 // @Concurrency: Safe
-extern unsigned int os_fgetmode(int ioc);
+extern unsigned int fgetmode(int ioc);
 
 
 // Invokes a I/O channel specific method on the I/O channel 'ioc'.
 // @Concurrency: Safe
-extern errno_t os_fcall(int ioc, int cmd, ...);
+extern errno_t fiocall(int ioc, int cmd, ...);
 
 __CPP_END
 

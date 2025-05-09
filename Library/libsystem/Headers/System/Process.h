@@ -75,7 +75,7 @@ typedef struct spawn_opts {
 } spawn_opts_t;
 
 
-// The result of a os_waitpid() system call.
+// The result of a waitpid() system call.
 typedef struct pstatus {
     pid_t   pid;        // PID of the child process
     int     status;     // Child process exit status
@@ -85,29 +85,29 @@ typedef struct pstatus {
 extern _Noreturn os_exit(int exit_code);
 
 
-extern errno_t os_getcwd(char* _Nonnull buffer, size_t bufferSize);
-extern errno_t os_setcwd(const char* _Nonnull path);
+extern errno_t getcwd(char* _Nonnull buffer, size_t bufferSize);
+extern errno_t setcwd(const char* _Nonnull path);
 
 
-extern FilePermissions os_getumask(void);
-extern void os_setumask(FilePermissions mask);
+extern FilePermissions getumask(void);
+extern void setumask(FilePermissions mask);
 
 
-extern pid_t os_getpid(void);
-extern pid_t os_getppid(void);
+extern pid_t getpid(void);
+extern pid_t getppid(void);
 
 
-extern uid_t os_getuid(void);
-extern gid_t os_getgid(void);
+extern uid_t getuid(void);
+extern gid_t getgid(void);
 
 
 extern errno_t os_spawn(const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nullable options, pid_t* _Nullable rpid);
-extern errno_t os_waitpid(pid_t pid, pstatus_t* _Nullable result);
+extern errno_t waitpid(pid_t pid, pstatus_t* _Nullable result);
 
-extern pargs_t* _Nonnull os_getpargs(void);
+extern pargs_t* _Nonnull getpargs(void);
 
 
-extern errno_t os_vmalloc(size_t nbytes, void* _Nullable * _Nonnull ptr);
+extern errno_t vm_alloc(size_t nbytes, void* _Nullable * _Nonnull ptr);
 
 __CPP_END
 

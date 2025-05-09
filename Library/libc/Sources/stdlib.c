@@ -18,7 +18,7 @@ void __stdlibc_init(pargs_t* _Nonnull argsp)
     __gProcessArguments = argsp;
     environ = argsp->envp;
 
-    os_init(argsp);
+    __sysinit(argsp);
     __malloc_init();
     __exit_init();
     __locale_init();

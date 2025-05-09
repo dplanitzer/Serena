@@ -23,12 +23,12 @@ FILE *tmpfile(void)
 
     FILE* fp = fdopen(ioc, "wb+");
     if (fp == NULL) {
-        os_close(ioc);
+        close(ioc);
         return NULL;
     }
 
     //XXX tmp - replace with kOpen_Private once the kernel supports this option
-    os_unlink(path);
+    unlink(path);
 
     return fp;
 }

@@ -35,7 +35,7 @@ int system(const char *string)
         return -1;
     }
 
-    err = os_waitpid(shPid, &pts);
+    err = waitpid(shPid, &pts);
     if (err != EOK) {
         errno = err;
         return -1;

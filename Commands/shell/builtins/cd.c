@@ -26,7 +26,7 @@ static CLAP_DECL(params,
 
 static errno_t do_cd(const char* path, const char* proc_name)
 {
-    const errno_t err = os_setcwd(path);
+    const errno_t err = setcwd(path);
         
     if (err != EOK) {
         print_error(proc_name, path, err);

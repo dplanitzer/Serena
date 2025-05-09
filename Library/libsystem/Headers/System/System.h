@@ -41,11 +41,11 @@ __CPP_BEGIN
 // language specific initialization code. Ie the C library invokes this function.
 // Application developers do not need to call this function.
 // @Concurrency: Not Safe
-extern void os_init(pargs_t* _Nonnull argsp);
+extern void __sysinit(pargs_t* _Nonnull argsp);
 
 // Shut down the boot screen and initialize the kerne VT100 console
 // XXX for now. Don't use outside of login.
-extern errno_t os_coninit(void);
+extern errno_t __coninit(void);
 
 __CPP_END
 

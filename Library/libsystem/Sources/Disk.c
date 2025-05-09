@@ -11,7 +11,7 @@
 #include <System/_varargs.h>
 
 
-void os_sync(void)
+void sync(void)
 {
     _syscall(SC_sync);
 }

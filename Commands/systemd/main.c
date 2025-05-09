@@ -43,8 +43,8 @@ void main_closure(int argc, char *argv[])
 
     
     // Mount kernel object catalogs
-    os_mount(kMount_Catalog, kCatalogName_Drivers, "/dev", "");
-    os_mount(kMount_Catalog, kCatalogName_Filesystems, "/fs", "");
+    mount(kMount_Catalog, kCatalogName_Drivers, "/dev", "");
+    mount(kMount_Catalog, kCatalogName_Filesystems, "/fs", "");
 
 
     // Startup login

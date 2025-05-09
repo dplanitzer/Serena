@@ -95,7 +95,7 @@ static void login_user(void)
     puts("Logging in as admin...\n");
 
     // Make the current directory the user's home directory
-    os_setcwd(homePath);
+    setcwd(homePath);
 
     err = start_shell(shellPath, homePath);
     if (err != EOK) {
@@ -113,7 +113,7 @@ static void on_shell_termination(void* _Nullable ignore)
     decl_try_err();
     pstatus_t pts;
 
-    err = os_waitpid(-1, &pts);
+    err = waitpid(-1, &pts);
     if (err == EOK) {
         if (pts.status != EXIT_SUCCESS) {
             gFailedCounter++;
@@ -147,24 +147,24 @@ void main_closure(int argc, char *argv[])
 
     // Just exit if the console channels already exist, which means that the
     // user is already logged in
-    if (os_fgetmode(kIOChannel_Stdin) != 0) {
+    if (fgetmode(STDIN_FILENO) != 0) {
         exit(EXIT_FAILURE);
         /* NOT REACHED */
     }
 
 
     // XXX Temp. Fire up the kernel VT100 console
-    os_coninit();
+    __coninit();
 
 
     // Open the console and initialize stdin, stdout and stderr
-    os_open(termPath, kOpen_Read, &fd);
-    os_open(termPath, kOpen_Write, &fd);
-    os_open(termPath, kOpen_Write, &fd);
+    open(termPath, kOpen_Read, &fd);
+    open(termPath, kOpen_Write, &fd);
+    open(termPath, kOpen_Write, &fd);
 
-    fdreopen(kIOChannel_Stdin, "r", stdin);
-    fdreopen(kIOChannel_Stdout, "w", stdout);
-    fdreopen(kIOChannel_Stderr, "w", stderr);
+    fdreopen(STDIN_FILENO, "r", stdin);
+    fdreopen(STDOUT_FILENO, "w", stdout);
+    fdreopen(STDERR_FILENO, "w", stderr);
 
 
     printf("\033[36mSerena OS v0.4.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");

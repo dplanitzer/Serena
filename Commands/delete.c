@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
     for (size_t i = 0; i < paths.count; i++) {
         const char* path = paths.strings[i];
 
-        err = os_unlink(path);
+        err = unlink(path);
         if (err != EOK) {
             clap_error(argv[0], "%s: %s", path, strerror(err));
             break;

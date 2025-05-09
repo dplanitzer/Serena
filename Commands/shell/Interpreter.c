@@ -159,7 +159,7 @@ static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull s
 {
     decl_try_err();
     Value val;
-    pargs_t* pargs = os_getpargs();
+    pargs_t* pargs = getpargs();
     char** envp = pargs->envp;
 
     while (*envp) {
@@ -254,7 +254,7 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
 
     // Wait for the command to complete its task
     pstatus_t pts;
-    os_waitpid(childPid, &pts);
+    waitpid(childPid, &pts);
 
 
     // XXX we always return Void for now (will change once we got value capture support)

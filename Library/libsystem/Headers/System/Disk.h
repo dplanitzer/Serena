@@ -67,7 +67,7 @@ typedef struct diskgeom {
 
 
 // Synchronously writes all dirty disk blocks back to disk.
-extern void os_sync(void);
+extern void sync(void);
 
 __CPP_END
 

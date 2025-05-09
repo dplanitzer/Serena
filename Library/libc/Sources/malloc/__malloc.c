@@ -28,7 +28,7 @@ static errno_t __malloc_expand_backing_store(AllocatorRef _Nonnull pAllocator, s
     const size_t nbytes = __min(ceiledSize, EXPANSION_HEAP_SIZE);
     char* ptr;
     
-    err = os_vmalloc(nbytes, (void**)&ptr);
+    err = vm_alloc(nbytes, (void**)&ptr);
     if (err == EOK) {
         MemoryDescriptor md;
 
@@ -47,7 +47,7 @@ void __malloc_init(void)
     char* ptr;
 
     // Get backing store for our initial memory region
-    err = os_vmalloc(INITIAL_HEAP_SIZE, (void**)&ptr);
+    err = vm_alloc(INITIAL_HEAP_SIZE, (void**)&ptr);
     if (err != EOK) {
         abort();
     }

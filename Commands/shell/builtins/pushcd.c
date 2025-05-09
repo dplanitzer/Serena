@@ -32,12 +32,12 @@ static errno_t do_pushcd(InterpreterRef _Nonnull ip, const char* path, const cha
     char* buf = NULL;
     
     try_null(buf, malloc(PATH_MAX), ENOMEM);
-    try(os_getcwd(buf, PATH_MAX));
+    try(getcwd(buf, PATH_MAX));
     try_null(entry, calloc(1, sizeof(CDEntry)), ENOMEM);
     try_null(entry->path, strdup(buf), ENOMEM);
 
     if (*path != '\0') {
-        try(os_setcwd(path));
+        try(setcwd(path));
     }
 
     if (ip->cdStackTos) {

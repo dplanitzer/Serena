@@ -91,7 +91,7 @@ typedef uint32_t    AccessMode;
 #define kOpen_NonBlocking   0x0020
 
 
-// Specifies how a os_seek() call should apply 'offset' to the current file
+// Specifies how a seek() call should apply 'offset' to the current file
 // position.
 enum SeekMode {
     kSeek_Set = 0,      // Set the file position to 'offset'
@@ -111,7 +111,7 @@ enum SeekMode {
 // by passing the kOpen_Truncate option. 'permissions' are the file permissions
 // that are assigned to a newly created file if it is actually created.
 // @Concurrency: Safe
-extern errno_t os_mkfile(const char* _Nonnull path, unsigned int mode, FilePermissions permissions, int* _Nonnull ioc);
+extern errno_t mkfile(const char* _Nonnull path, unsigned int mode, FilePermissions permissions, int* _Nonnull ioc);
 
 // Opens an already existing file located at the filesystem location 'path'.
 // Returns an error if the file does not exist or the caller lacks the necessary
@@ -121,20 +121,20 @@ extern errno_t os_mkfile(const char* _Nonnull path, unsigned int mode, FilePermi
 // data to the file. The file position is disregarded by the write function(s) in
 // this case.
 // @Concurrency: Safe
-extern errno_t os_open(const char* _Nonnull path, unsigned int mode, int* _Nonnull ioc);
+extern errno_t open(const char* _Nonnull path, unsigned int mode, int* _Nonnull ioc);
 
 
 // Returns the current file position. This is the position at which the next
 // read or write operation will start.
 // @Concurrency: Safe
-extern errno_t os_tell(int ioc, off_t* _Nonnull pos);
+extern errno_t tell(int ioc, off_t* _Nonnull pos);
 
 // Sets the current file position. Note that the file position may be set to a
 // value past the current file size. Doing this implicitly expands the size of
 // the file to encompass the new file position. The byte range between the old
 // end of file and the new end of file is automatically filled with zero bytes.
 // @Concurrency: Safe
-extern errno_t os_seek(int ioc, off_t offset, off_t* _Nullable oldpos, int whence);
+extern errno_t seek(int ioc, off_t offset, off_t* _Nullable oldpos, int whence);
 
 
 // Truncates the file at the filesystem location 'path'. If the new length is
@@ -148,24 +148,24 @@ extern errno_t os_truncate(const char* _Nonnull path, off_t length);
 
 // Returns meta-information about the file located at the filesystem location 'path'.
 // @Concurrency: Safe
-extern errno_t os_getinfo(const char* _Nonnull path, finfo_t* _Nonnull info);
+extern errno_t getfileinfo(const char* _Nonnull path, finfo_t* _Nonnull info);
 
 // Updates the meta-information about the file located at the filesystem location
 // 'path'. Note that only those pieces of the meta-information are modified for
 // which the corresponding flag in 'info.modify' is set.
 // @Concurrency: Safe
-extern errno_t os_setinfo(const char* _Nonnull path, fmutinfo_t* _Nonnull info);
+extern errno_t setfileinfo(const char* _Nonnull path, fmutinfo_t* _Nonnull info);
 
 
 // Checks whether the file at the filesystem location 'path' exists and whether
 // it is accessible according to 'mode'. A suitable error is returned otherwise.
 // @Concurrency: Safe
-extern errno_t os_access(const char* _Nonnull path, AccessMode mode);
+extern errno_t access(const char* _Nonnull path, AccessMode mode);
 
 // Deletes the file or (empty) directory located at the filesystem location 'path'.
 // Note that this function deletes empty directories only.
 // @Concurrency: Safe
-extern errno_t os_unlink(const char* _Nonnull path);
+extern errno_t unlink(const char* _Nonnull path);
 
 // Renames a file or directory located at the filesystem location 'oldpath' to
 // the new name and filesystem location at 'newpath'. Both the old and the new
@@ -176,16 +176,16 @@ extern errno_t os_rename(const char* _Nonnull oldpath, const char* _Nonnull newp
 
 // Similar to os_truncate() but operates on the open file identified by 'ioc'.
 // @Concurrency: Safe
-extern errno_t os_ftruncate(int ioc, off_t length);
+extern errno_t ftruncate(int ioc, off_t length);
 
 
-// Similar to os_getinfo() but operates on the open file identified by 'ioc'.
+// Similar to getfileinfo() but operates on the open file identified by 'ioc'.
 // @Concurrency: Safe
-extern errno_t os_fgetinfo(int ioc, finfo_t* _Nonnull info);
+extern errno_t fgetfileinfo(int ioc, finfo_t* _Nonnull info);
 
-// Similar to os_setinfo() but operates on the open file identified by 'ioc'.
+// Similar to setfileinfo() but operates on the open file identified by 'ioc'.
 // @Concurrency: Safe
-extern errno_t os_fsetinfo(int ioc, fmutinfo_t* _Nonnull info);
+extern errno_t fsetfileinfo(int ioc, fmutinfo_t* _Nonnull info);
 
 __CPP_END
 

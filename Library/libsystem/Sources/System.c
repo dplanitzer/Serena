@@ -16,7 +16,7 @@ extern void __UrtInit(pargs_t* _Nonnull argsp);
 
 static bool __gIsSystemLibInitialized;
 
-void os_init(pargs_t* _Nonnull argsp)
+void __sysinit(pargs_t* _Nonnull argsp)
 {
     if (__gIsSystemLibInitialized) {
         return;
@@ -26,7 +26,7 @@ void os_init(pargs_t* _Nonnull argsp)
     __gIsSystemLibInitialized = true;
 }
 
-errno_t os_coninit(void)
+errno_t __coninit(void)
 {
     return (errno_t)_syscall(SC_coninit);
 }

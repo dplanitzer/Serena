@@ -116,11 +116,11 @@ static errno_t wipe_disk(int ioc, const diskinfo_t* _Nonnull info)
     }
 
     fputs("\033[?25l", stdout);
-    os_seek(ioc, 0ll, NULL, kSeek_Set);
+    seek(ioc, 0ll, NULL, kSeek_Set);
     while (sct < info->sectorCount && err == EOK) {
         printf("%u\n\033[1A", (unsigned)clusterCount);
         
-        err = os_fcall(ioc, kDiskCommand_Format, data, byteCount);
+        err = fiocall(ioc, kDiskCommand_Format, data, byteCount);
         
         sct += info->frClusterSize;
         clusterCount++;
@@ -146,11 +146,11 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, 
     const int ioc = fileno(fp);
     setbuf(fp, NULL);
 
-    try(os_fcall(ioc, kDiskCommand_SenseDisk));
-    try(os_fcall(ioc, kDiskCommand_GetInfo, &info)); 
+    try(fiocall(ioc, kDiskCommand_SenseDisk));
+    try(fiocall(ioc, kDiskCommand_GetInfo, &info)); 
     if (!bQuick) {
         try(wipe_disk(ioc, &info));
-        os_seek(ioc, 0ll, NULL, kSeek_Set);
+        seek(ioc, 0ll, NULL, kSeek_Set);
     }
     try(sefs_format((intptr_t)fp, block_write, info.sectorCount, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label));
     puts("ok");
@@ -179,12 +179,12 @@ static errno_t get_fsid(const char* _Nonnull path, fsid_t* _Nonnull fsid)
             return ENOMEM;
         }
 
-        err = os_getcwd(p, PATH_MAX);
+        err = getcwd(p, PATH_MAX);
     }
 
 
     if (err == EOK) {
-        err = os_getinfo(p, &info);
+        err = getfileinfo(p, &info);
         if (err == EOK) {
             *fsid = info.fsid;
         }
@@ -217,7 +217,7 @@ static errno_t print_cat_info(const fsinfo_t* _Nonnull info, int fd)
     decl_try_err();
     char diskName[32];
 
-    try(os_getfsdisk(info->fsid, diskName, sizeof(diskName)));
+    try(fs_getdisk(info->fsid, diskName, sizeof(diskName)));
 
     puts("Catalog ID");
     printf("%s       %u\n", diskName, info->fsid);
@@ -235,8 +235,8 @@ static errno_t print_reg_info(const fsinfo_t* _Nonnull info, int fd)
     char diskName[32];
     char volLabel[64];
 
-    try(os_getfsdisk(info->fsid, diskName, sizeof(diskName)));
-    try(os_fcall(fd, kFSCommand_GetLabel, volLabel, sizeof(volLabel)));
+    try(fs_getdisk(info->fsid, diskName, sizeof(diskName)));
+    try(fiocall(fd, kFSCommand_GetLabel, volLabel, sizeof(volLabel)));
 
 
     if ((info->properties & kFSProperty_IsReadOnly) == kFSProperty_IsReadOnly) {
@@ -265,8 +265,8 @@ static errno_t cmd_info(const char* _Nonnull path)
 
     try(get_fsid(path, &fsid));
     sprintf(buf, "/fs/%u", fsid);
-    try(os_open(buf, kOpen_Read, &fd));
-    try(os_fcall(fd, kFSCommand_GetInfo, &info));
+    try(open(buf, kOpen_Read, &fd));
+    try(fiocall(fd, kFSCommand_GetInfo, &info));
 
     if ((info.properties & kFSProperty_IsCatalog) == kFSProperty_IsCatalog) {
         err = print_cat_info(&info, fd);
@@ -278,7 +278,7 @@ static errno_t cmd_info(const char* _Nonnull path)
 
 catch:
     if (fd >= 0) {
-        os_close(fd);
+        close(fd);
     }
 
     return err;
@@ -297,19 +297,19 @@ static errno_t cmd_geometry(const char* _Nonnull path)
     bool hasDisk = true;
 
     if (*path != '\0') {
-        try(os_getinfo(path, &finf));
+        try(getfileinfo(path, &finf));
     }
     if (finf.type == kFileType_Device) {
-        try(os_open(path, kOpen_Read, &fd));
-        err = os_fcall(fd, kDiskCommand_GetGeometry, &geom);
+        try(open(path, kOpen_Read, &fd));
+        err = fiocall(fd, kDiskCommand_GetGeometry, &geom);
     }
     else {
         try(get_fsid(path, &fsid));
         sprintf(buf, "/fs/%u", fsid);
-        try(os_open(buf, kOpen_Read, &fd));
-        err = os_fcall(fd, kFSCommand_GetDiskGeometry, &geom);
+        try(open(buf, kOpen_Read, &fd));
+        err = fiocall(fd, kFSCommand_GetDiskGeometry, &geom);
 
-        try(os_getfsdisk(fsid, buf, sizeof(buf)));
+        try(fs_getdisk(fsid, buf, sizeof(buf)));
         path = buf;
     }
     if (err == ENOMEDIUM) {
@@ -333,7 +333,7 @@ static errno_t cmd_geometry(const char* _Nonnull path)
 
 catch:
     if (fd >= 0) {
-        os_close(fd);
+        close(fd);
     }
 
     return err;
@@ -345,13 +345,13 @@ errno_t cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
     decl_try_err();
     int fd = -1;
 
-    err = os_open(diskPath, kOpen_Read, &fd);
+    err = open(diskPath, kOpen_Read, &fd);
     if (err == EOK) {
-        err = os_fcall(fd, kDiskCommand_SenseDisk);
-        os_close(fd);
+        err = fiocall(fd, kDiskCommand_SenseDisk);
+        close(fd);
     }
     if (err == EOK) {
-        err = os_mount(kMount_SeFS, diskPath, atPath, "");
+        err = mount(kMount_SeFS, diskPath, atPath, "");
     }
 
     return err;
@@ -367,7 +367,7 @@ errno_t cmd_unmount(const char* _Nonnull atPath, bool doForce)
         options |= kUnmount_Forced;
     }
 
-    err = os_unmount(atPath, options);
+    err = unmount(atPath, options);
 
     return err;
 }

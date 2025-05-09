@@ -81,7 +81,7 @@ static void file_permissions_to_text(FilePermissions perms, char* _Nonnull buf)
 static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
     finfo_t info;
-    const errno_t err = os_getinfo(path, &info);
+    const errno_t err = getfileinfo(path, &info);
     
     if (err == EOK) {
         itoa(info.linkCount, self->buf, 10);
@@ -108,7 +108,7 @@ static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path
 static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
     finfo_t info;
-    const errno_t err = os_getinfo(path, &info);
+    const errno_t err = getfileinfo(path, &info);
     
     if (err == EOK) {
         char tc;
@@ -219,7 +219,7 @@ static errno_t list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
     try(iterate_dir(self, dp, path, print_dir_entry));
 
 catch:
-    os_close(dp);
+    close(dp);
     return err;
 }
 
@@ -239,7 +239,7 @@ static bool is_dir(const char* _Nonnull path)
 {
     finfo_t info;
 
-    return (os_getinfo(path, &info) == EOK && info.type == kFileType_Directory) ? true : false;
+    return (getfileinfo(path, &info) == EOK && info.type == kFileType_Directory) ? true : false;
 }
 
 

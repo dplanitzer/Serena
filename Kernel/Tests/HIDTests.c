@@ -20,12 +20,12 @@ void hid_test(int argc, char *argv[])
     HIDEvent evt;
 
 
-    assertOK(os_open("/dev/hid", kOpen_Read, &fd));
+    assertOK(open("/dev/hid", kOpen_Read, &fd));
     printf("Waiting for events...\n");
 
     while (true) {
         ssize_t nBytesRead;
-        assertOK(os_read(fd, &evt, sizeof(evt), &nBytesRead));
+        assertOK(read(fd, &evt, sizeof(evt), &nBytesRead));
         
         switch (evt.type) {
             case kHIDEventType_KeyDown:

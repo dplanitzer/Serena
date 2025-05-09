@@ -88,14 +88,14 @@ typedef struct fsinfo {
 // Mounts the object 'objectName' of type 'objectType' at the directory 'atDirPath'.
 // 'params' are optional mount parameters that are passed to the filesystem to
 // mount.
-extern errno_t os_mount(const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params);
+extern errno_t mount(const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params);
 
 // Unmounts the filesystem mounted at the directory 'atDirPath'.
-extern errno_t os_unmount(const char* _Nonnull atDirPath, UnmountOptions options);
+extern errno_t unmount(const char* _Nonnull atDirPath, UnmountOptions options);
 
 // Returns the path to the disk driver that underpins the filesystem with the
 // given id.
-extern errno_t os_getfsdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize);
+extern errno_t fs_getdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize);
 
 __CPP_END
 

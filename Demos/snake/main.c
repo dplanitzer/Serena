@@ -66,7 +66,7 @@ static void setup(void)
 {
     setbuf(stdin, NULL);
     setbuf(stdout, NULL);
-    os_fcall(kIOChannel_Stdin, kIOChannelCommand_SetMode, 1, kOpen_NonBlocking);
+    fiocall(STDIN_FILENO, kIOChannelCommand_SetMode, 1, kOpen_NonBlocking);
     cursor_on(false);
 
     game_over = false;
@@ -89,7 +89,7 @@ static void setup(void)
 static void cleanup(void)
 {
     cursor_on(true);
-    os_fcall(kIOChannel_Stdin, kIOChannelCommand_SetMode, 0, kOpen_NonBlocking);
+    fiocall(STDIN_FILENO, kIOChannelCommand_SetMode, 0, kOpen_NonBlocking);
 }
 
 
@@ -168,7 +168,7 @@ static void draw(void)
     b = __strcpy(b, "Press W, A, S, D to move the snake.\n");
     b = __strcpy(b, "Press ESC to quit the game.");
 
-    os_write(kIOChannel_Stdout, buf, b - buf, &nbytes);
+    write(STDOUT_FILENO, buf, b - buf, &nbytes);
 
 
     // Draw the fruit
@@ -185,7 +185,7 @@ static void draw(void)
         *b++ = 'o';
     }
 
-    os_write(kIOChannel_Stdout, buf, b - buf, &nbytes);
+    write(STDOUT_FILENO, buf, b - buf, &nbytes);
 }
 
 static void logic(void)

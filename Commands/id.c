@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
     clap_parse(0, params, argc, argv);
 
     
-    printf("uid=%u, gid=%u\n", os_getuid(), os_getgid());
+    printf("uid=%u, gid=%u\n", getuid(), getgid());
 
     return EXIT_SUCCESS;
 }

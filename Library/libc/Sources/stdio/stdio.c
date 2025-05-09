@@ -35,22 +35,22 @@ void __stdio_init(void)
     _Stdout = (FILE*)&_StdoutObj;
     _Stderr = (FILE*)&_StderrObj;
 
-    if (os_fgetmode(kIOChannel_Stdin) != 0) {
-        __fdopen_init(&_StdinObj, false, kIOChannel_Stdin, __kStreamMode_Read);
+    if (fgetmode(STDIN_FILENO) != 0) {
+        __fdopen_init(&_StdinObj, false, STDIN_FILENO, __kStreamMode_Read);
     }
     else {
         __fopen_null_init((FILE*)&_StdinObj, false, __kStreamMode_Read);
     }
 
-    if (os_fgetmode(kIOChannel_Stdout) != 0) {
-        __fdopen_init(&_StdoutObj, false, kIOChannel_Stdout, __kStreamMode_Write);
+    if (fgetmode(STDOUT_FILENO) != 0) {
+        __fdopen_init(&_StdoutObj, false, STDOUT_FILENO, __kStreamMode_Write);
     }
     else {
         __fopen_null_init((FILE*)&_StdoutObj, false, __kStreamMode_Write);
     }
 
-    if (os_fgetmode(kIOChannel_Stderr) != 0) {
-        __fdopen_init(&_StderrObj, false, kIOChannel_Stderr, __kStreamMode_Write);
+    if (fgetmode(STDERR_FILENO) != 0) {
+        __fdopen_init(&_StderrObj, false, STDERR_FILENO, __kStreamMode_Write);
     }
     else {
         __fopen_null_init((FILE*)&_StderrObj, false, __kStreamMode_Write);

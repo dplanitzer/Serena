@@ -27,7 +27,7 @@ static errno_t do_pwd(InterpreterRef _Nonnull ip, const char* _Nonnull proc_name
     char* buf = malloc(PATH_MAX);
 
     if (buf) {
-        err = os_getcwd(buf, PATH_MAX);
+        err = getcwd(buf, PATH_MAX);
         if (err == EOK) {
             err = OpStack_PushCString(ip->opStack, buf);
         }
