@@ -10,7 +10,7 @@
 #include <System/_syscall.h>
 
 
-errno_t os_mutex_init(mutex_t* _Nonnull mutex)
+errno_t mutex_init(mutex_t* _Nonnull mutex)
 {
     UMutex* self = (UMutex*)mutex;
 
@@ -26,7 +26,7 @@ errno_t os_mutex_init(mutex_t* _Nonnull mutex)
     return err;
 }
 
-errno_t os_mutex_deinit(mutex_t* _Nonnull mutex)
+errno_t mutex_deinit(mutex_t* _Nonnull mutex)
 {
     UMutex* self = (UMutex*)mutex;
 
@@ -41,7 +41,7 @@ errno_t os_mutex_deinit(mutex_t* _Nonnull mutex)
     return err;
 }
 
-errno_t os_mutex_trylock(mutex_t* _Nonnull mutex)
+errno_t mutex_trylock(mutex_t* _Nonnull mutex)
 {
     UMutex* self = (UMutex*)mutex;
 
@@ -53,7 +53,7 @@ errno_t os_mutex_trylock(mutex_t* _Nonnull mutex)
     }
 }
 
-errno_t os_mutex_lock(mutex_t* _Nonnull mutex)
+errno_t mutex_lock(mutex_t* _Nonnull mutex)
 {
     UMutex* self = (UMutex*)mutex;
 
@@ -65,7 +65,7 @@ errno_t os_mutex_lock(mutex_t* _Nonnull mutex)
     }
 }
 
-errno_t os_mutex_unlock(mutex_t* _Nonnull mutex)
+errno_t mutex_unlock(mutex_t* _Nonnull mutex)
 {
     UMutex* self = (UMutex*)mutex;
 

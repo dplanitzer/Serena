@@ -21,7 +21,7 @@ __CPP_BEGIN
 // Data which is written to the pipe using the write I/O channel can be read using
 // the read I/O channel. The data is made available in first-in-first-out order.
 // Note that both I/O channels must be closed to free all pipe resources.
-extern errno_t os_mkpipe(int* _Nonnull rioc, int* _Nonnull wioc);
+extern errno_t mkpipe(int* _Nonnull rioc, int* _Nonnull wioc);
 
 __CPP_END
 

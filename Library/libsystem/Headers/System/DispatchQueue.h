@@ -16,7 +16,7 @@
 
 __CPP_BEGIN
 
-typedef void (*os_disp_func_t)(void* _Nullable arg);
+typedef void (*dispatch_func_t)(void* _Nullable arg);
 
 #define kDispatchQueue_Main 0
 
@@ -46,7 +46,7 @@ typedef void (*os_disp_func_t)(void* _Nullable arg);
 // execution. This function returns with an EINTR if the queue is flushed or
 // terminated by calling DispatchQueue_Terminate().
 // @Concurrency: Safe
-extern errno_t os_disp_sync(int od, os_disp_func_t _Nonnull func, void* _Nullable context);
+extern errno_t dispatch_sync(int od, dispatch_func_t _Nonnull func, void* _Nullable context);
 
 // Schedules the given closure for asynchronous execution on the given dispatch
 // queue. The 'pContext' argument will be passed to the callback. If the queue
@@ -55,18 +55,18 @@ extern errno_t os_disp_sync(int od, os_disp_func_t _Nonnull func, void* _Nullabl
 // concurrent queue then the callback might start executing even while the
 // the currently executing closure is still running.
 // @Concurrency: Safe 
-extern errno_t os_disp_async(int od, os_disp_func_t _Nonnull func, void* _Nullable context);
+extern errno_t dispatch_async(int od, dispatch_func_t _Nonnull func, void* _Nullable context);
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible.
 // @Concurrency: Safe
-extern errno_t os_disp_after(int od, TimeInterval deadline, os_disp_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
+extern errno_t dispatch_after(int od, TimeInterval deadline, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible. The
 // closure will be executed repeatedly every 'interval' duration until removed.
 // @Concurrency: Safe
-extern errno_t os_disp_periodically(int od, TimeInterval deadline, TimeInterval interval, os_disp_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
+extern errno_t dispatch_periodically(int od, TimeInterval deadline, TimeInterval interval, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
 
 
 // Removes all scheduled instances of timers and immediate work items with tag
@@ -75,13 +75,13 @@ extern errno_t os_disp_periodically(int od, TimeInterval deadline, TimeInterval 
 // continue to execute uninterrupted. If on the other side, the work item is
 // still pending and has not executed yet then it will be removed and it will
 // not execute.
-extern errno_t os_disp_removebytag(int od, uintptr_t tag);
+extern errno_t dispatch_removebytag(int od, uintptr_t tag);
 
 
 // Returns the dispatch queue that is associated with the virtual processor that
 // is running the calling code.
 // @Concurrency: Safe
-extern int os_disp_getcurrent(void);
+extern int dispatch_getcurrent(void);
 
 
 // Creates a new dispatch queue. A dispatch queue maintains a list of work items
@@ -107,7 +107,7 @@ extern int os_disp_getcurrent(void);
 // XXX probably want to gate this somewhat behind a capability to prevent a random
 // XXX process from hugging all virtual processors.
 // @Concurrency: Safe
-extern errno_t os_disp_create(int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nonnull pOutQueue);
+extern errno_t dispatch_create(int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nonnull pOutQueue);
 
 // Destroys the dispatch queue. The queue is first terminated if it isn't already
 // in terminated state. All work items and timers which are still queued up are
@@ -116,7 +116,7 @@ extern errno_t os_disp_create(int minConcurrency, int maxConcurrency, int qos, i
 // are purely advisory in nature - they will not stop the queue from being
 // destroyed.
 // @Concurrency: Safe
-extern errno_t os_disp_destroy(int od);
+extern errno_t dispatch_destroy(int od);
 
 
 // Private

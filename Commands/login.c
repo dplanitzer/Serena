@@ -63,7 +63,7 @@ static errno_t start_shell(const char* _Nonnull shellPath, const char* _Nonnull 
     opts.uid = 1000;    // XXX hardcoded for now
     opts.gid = 1000;    // XXX hardcoded for now
     opts.notificationQueue = kDispatchQueue_Main;
-    opts.notificationClosure = (os_disp_func_t)on_shell_termination;
+    opts.notificationClosure = (dispatch_func_t)on_shell_termination;
     opts.notificationContext = NULL;
     opts.options = kSpawn_OverrideUserId | kSpawn_OverrideGroupId | kSpawn_OverrideUserMask | kSpawn_NotifyOnProcessTermination;
 

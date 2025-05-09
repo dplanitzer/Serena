@@ -185,7 +185,7 @@ static errno_t iterate_dir(list_ctx_t* _Nonnull self, int dp, const char* _Nonnu
     ssize_t nBytesRead;
 
     while (err == EOK) {
-        err = os_readdir(dp, self->dirbuf, sizeof(self->dirbuf), &nBytesRead);
+        err = readdir(dp, self->dirbuf, sizeof(self->dirbuf), &nBytesRead);
         if (err != EOK || nBytesRead == 0) {
             break;
         }
@@ -213,9 +213,9 @@ static errno_t list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
     decl_try_err();
     int dp;
 
-    try(os_opendir(path, &dp));
+    try(opendir(path, &dp));
     try(iterate_dir(self, dp, path, format_dir_entry));
-    try(os_rewinddir(dp));
+    try(rewinddir(dp));
     try(iterate_dir(self, dp, path, print_dir_entry));
 
 catch:

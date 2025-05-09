@@ -58,7 +58,7 @@
 // An expansion board
 typedef struct ZorroBoard {
     ListNode        node;
-    os_zorro_conf_t cfg;
+    zorro_conf_t cfg;
 } ZorroBoard;
 
 

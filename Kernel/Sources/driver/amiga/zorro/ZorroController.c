@@ -24,7 +24,7 @@ errno_t ZorroController_Create(DriverRef _Nullable parent, ZorroControllerRef _N
 static errno_t ZorroController_DetectDevices(ZorroControllerRef _Nonnull _Locked self)
 {
     List_ForEach(&self->bus.boards, ZorroBoard,
-        const os_zorro_conf_t* cfg = &pCurNode->cfg;
+        const zorro_conf_t* cfg = &pCurNode->cfg;
     
         if (cfg->type == BOARD_TYPE_RAM && cfg->start && cfg->logicalSize > 0) {
             DriverRef dp;

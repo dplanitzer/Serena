@@ -60,15 +60,15 @@ void __malloc_init(void)
         abort();
     }
 
-    os_mutex_init(&__gMallocLock);
+    mutex_init(&__gMallocLock);
 }
 
 void __malloc_lock(void)
 {
-    os_mutex_lock(&__gMallocLock);
+    mutex_lock(&__gMallocLock);
 }
 
 void __malloc_unlock(void)
 {
-    os_mutex_unlock(&__gMallocLock);
+    mutex_unlock(&__gMallocLock);
 }

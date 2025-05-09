@@ -10,7 +10,7 @@
 #include <klib/Kalloc.h>
 
 
-errno_t ZRamDriver_Create(DriverRef _Nullable parent, const os_zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t ZRamDriver_Create(DriverRef _Nullable parent, const zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     return ZorroDriver_Create(class(ZRamDriver), 0, parent, config, pOutSelf);
 }
@@ -18,7 +18,7 @@ errno_t ZRamDriver_Create(DriverRef _Nullable parent, const os_zorro_conf_t* _No
 errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)
 {
     decl_try_err();
-    const os_zorro_conf_t* cfg = ZorroDriver_GetBoardConfiguration(self);
+    const zorro_conf_t* cfg = ZorroDriver_GetBoardConfiguration(self);
     MemoryDescriptor md = {0};
     char name[5];
 

@@ -21,7 +21,7 @@ typedef struct UConditionVariable {
 } UConditionVariable;
 
 
-errno_t os_cond_init(cond_t* _Nonnull cv)
+errno_t cond_init(cond_t* _Nonnull cv)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
 
@@ -37,7 +37,7 @@ errno_t os_cond_init(cond_t* _Nonnull cv)
     return err;
 }
 
-errno_t os_cond_deinit(cond_t* _Nonnull cv)
+errno_t cond_deinit(cond_t* _Nonnull cv)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
 
@@ -52,7 +52,7 @@ errno_t os_cond_deinit(cond_t* _Nonnull cv)
     return err;
 }
 
-errno_t os_cond_signal(cond_t* _Nonnull cv, mutex_t* _Nullable mutex)
+errno_t cond_signal(cond_t* _Nonnull cv, mutex_t* _Nullable mutex)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
     UMutex* ulock = (UMutex*)mutex;
@@ -65,7 +65,7 @@ errno_t os_cond_signal(cond_t* _Nonnull cv, mutex_t* _Nullable mutex)
     }
 }
 
-errno_t os_cond_broadcast(cond_t* _Nonnull cv, mutex_t* _Nullable mutex)
+errno_t cond_broadcast(cond_t* _Nonnull cv, mutex_t* _Nullable mutex)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
     UMutex* ulock = (UMutex*)mutex;
@@ -78,7 +78,7 @@ errno_t os_cond_broadcast(cond_t* _Nonnull cv, mutex_t* _Nullable mutex)
     }
 }
 
-errno_t os_cond_wait(cond_t* _Nonnull cv, mutex_t* _Nonnull mutex)
+errno_t cond_wait(cond_t* _Nonnull cv, mutex_t* _Nonnull mutex)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
     UMutex* ulock = (UMutex*)mutex;
@@ -91,7 +91,7 @@ errno_t os_cond_wait(cond_t* _Nonnull cv, mutex_t* _Nonnull mutex)
     }
 }
 
-errno_t os_cond_timedwait(cond_t* _Nonnull cv, mutex_t* _Nonnull mutex, const TimeInterval* _Nonnull deadline)
+errno_t cond_timedwait(cond_t* _Nonnull cv, mutex_t* _Nonnull mutex, const TimeInterval* _Nonnull deadline)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
     UMutex* ulock = (UMutex*)mutex;

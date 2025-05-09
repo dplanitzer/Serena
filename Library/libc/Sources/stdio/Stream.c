@@ -18,17 +18,17 @@ static mutex_t  __gOpenFilesLock;
 
 void __init_open_files_lock(void)
 {
-    os_mutex_init(&__gOpenFilesLock);
+    mutex_init(&__gOpenFilesLock);
 }
 
 static void __open_files_lock(void)
 {
-    os_mutex_lock(&__gOpenFilesLock);
+    mutex_lock(&__gOpenFilesLock);
 }
 
 static void __open_files_unlock(void)
 {
-    os_mutex_unlock(&__gOpenFilesLock);
+    mutex_unlock(&__gOpenFilesLock);
 }
 
 static void __register_open_file(FILE* _Nonnull s)

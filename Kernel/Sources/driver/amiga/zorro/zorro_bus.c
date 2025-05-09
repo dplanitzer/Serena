@@ -31,7 +31,7 @@ static uint8_t zorro_read(volatile uint8_t* _Nonnull addr, bool invert, bool isZ
 // NOTE: We do not check whether cards actually return 0 for auto config locations
 // for which they are supposed to return 0 according to the spec because at least
 // some cards do in fact return non-zero values. Eg Commodore A2091 SCSI card.
-static bool zorro_read_config_space(os_zorro_conf_t* _Nonnull cfg, uint8_t busToScan)
+static bool zorro_read_config_space(zorro_conf_t* _Nonnull cfg, uint8_t busToScan)
 {
     const bool isZorro3Machine = busToScan == ZORRO_3_BUS;
     register uint8_t* pAutoConfigBase = (isZorro3Machine) ? ZORRO_3_CONFIG_BASE : ZORRO_2_CONFIG_BASE;
@@ -229,12 +229,12 @@ static uint8_t* _Nonnull zorro2_align_board_address(uint8_t* _Nonnull base_ptr, 
     }
 }
 
-static uint8_t* _Nullable zorro_calculate_base_address_for_board_in_range(const os_zorro_conf_t* _Nonnull cfg, const ZorroBus* _Nonnull bus, uint8_t* board_space_base_addr, uint8_t* board_space_top_addr)
+static uint8_t* _Nullable zorro_calculate_base_address_for_board_in_range(const zorro_conf_t* _Nonnull cfg, const ZorroBus* _Nonnull bus, uint8_t* board_space_base_addr, uint8_t* board_space_top_addr)
 {
     const bool isMemoryBoard = cfg->type == BOARD_TYPE_RAM;
     const bool isZorro3Board = cfg->bus == ZORRO_3_BUS;
     uint8_t* highest_occupied_board_addr = board_space_base_addr;
-    const os_zorro_conf_t* pHighestAllocatedBoard = NULL;
+    const zorro_conf_t* pHighestAllocatedBoard = NULL;
 
     // Find the board with a matching Zorro bus, board type and expansion space
     // address range that has the highest assigned address
@@ -269,7 +269,7 @@ static uint8_t* _Nullable zorro_calculate_base_address_for_board_in_range(const 
     return (board_top_addr <= board_space_top_addr) ? board_base_addr : NULL;
 }
 
-static uint8_t* _Nullable zorro_calculate_base_address_for_board(const os_zorro_conf_t* _Nonnull cfg, const ZorroBus* _Nonnull bus)
+static uint8_t* _Nullable zorro_calculate_base_address_for_board(const zorro_conf_t* _Nonnull cfg, const ZorroBus* _Nonnull bus)
 {
     uint8_t* board_base_addr = NULL;
 

@@ -267,12 +267,12 @@ static void game_loop(void* ctx)
 
     TimeInterval ts;
     clock_gettime(CLOCK_UPTIME, &ts);
-    os_disp_after(kDispatchQueue_Main, TimeInterval_Add(ts, TimeInterval_MakeMilliseconds(66)), game_loop, NULL, 0);
+    dispatch_after(kDispatchQueue_Main, TimeInterval_Add(ts, TimeInterval_MakeMilliseconds(66)), game_loop, NULL, 0);
 }
 
 void main_closure(int argc, char *argv[])
 {
     setup();
 
-    os_disp_async(kDispatchQueue_Main, game_loop, NULL);
+    dispatch_async(kDispatchQueue_Main, game_loop, NULL);
 }

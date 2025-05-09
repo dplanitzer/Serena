@@ -61,7 +61,7 @@ final_class_ivars(Process, Object,
     List                            tombstones;     // Tombstones of child processes that have terminated and have not yet been consumed by waitpid()
     ConditionVariable               tombstoneSignaler;
     DispatchQueueRef _Nullable      terminationNotificationQueue;   // Post the terminationNotificationClosure to this queue on process death, if not NULL
-    os_disp_func_t _Nullable        terminationNotificationClosure;
+    dispatch_func_t _Nullable        terminationNotificationClosure;
     void* _Nullable                 terminationNotificationContext;
 );
 

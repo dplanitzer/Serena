@@ -28,21 +28,21 @@ void __exit_init(void)
     // XXX protect with a lock
     __gAtExitFuncsCount = 0;
     __gAtExitEnabled = true;
-    os_mutex_init(&__gAtExitLock);
+    mutex_init(&__gAtExitLock);
 }
 
 int atexit(void (*func)(void))
 {
     int r = 0;
 
-    os_mutex_lock(&__gAtExitLock);
+    mutex_lock(&__gAtExitLock);
     if (__gAtExitEnabled && __gAtExitFuncsCount < AT_EXIT_FUNCS_CAPACITY) {
         __gAtExitFuncs[__gAtExitFuncsCount++] = func;
     }
     else {
         r = -1;
     }
-    os_mutex_unlock(&__gAtExitLock);
+    mutex_unlock(&__gAtExitLock);
 
     return r;
 }
@@ -50,9 +50,9 @@ int atexit(void (*func)(void))
 _Noreturn exit(int exit_code)
 {
     // Disable the registration of any new atexit handlers.
-    os_mutex_lock(&__gAtExitLock);
+    mutex_lock(&__gAtExitLock);
     __gAtExitEnabled = false;
-    os_mutex_unlock(&__gAtExitLock);
+    mutex_unlock(&__gAtExitLock);
 
 
     // It's safe now to access the atexit table without holding the lock

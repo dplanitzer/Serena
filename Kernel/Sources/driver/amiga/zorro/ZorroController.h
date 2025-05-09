@@ -22,6 +22,6 @@ extern errno_t ZorroController_Create(DriverRef _Nullable parent, ZorroControlle
 // @param config board configuration. It is sufficient to just store the pointer to the configuration
 // @param pOutSelf returns the driver's self
 // @return success/error
-typedef errno_t (*ZorroDriverCreateFunc)(DriverRef _Nullable parent, const os_zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf);
+typedef errno_t (*ZorroDriverCreateFunc)(DriverRef _Nullable parent, const zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* ZorroController_h */
