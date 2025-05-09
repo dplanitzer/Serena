@@ -35,6 +35,7 @@ void ContainerFilesystem_onDisconnect(struct ContainerFilesystem* _Nonnull self)
 
 void ContainerFilesystem_sync(struct ContainerFilesystem* _Nonnull self)
 {
+    super_0(sync, Filesystem, ContainerFilesystem, self);
     FSContainer_Sync(self->fsContainer);
 }
 

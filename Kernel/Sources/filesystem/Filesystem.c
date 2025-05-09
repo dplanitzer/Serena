@@ -357,6 +357,11 @@ void Filesystem_onRelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nonnull 
     Inode_Destroy(pNode);
 }
 
+void Filesystem_syncNodes(FilesystemRef _Nonnull self)
+{
+    //XXX Implement me
+}
+
 
 errno_t Filesystem_Start(FilesystemRef _Nonnull self, const char* _Nonnull params)
 {
@@ -636,6 +641,12 @@ errno_t Filesystem_rename(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked
 
 void Filesystem_sync(FilesystemRef _Nonnull self)
 {
+    Filesystem_SyncNodes(self);
+    Filesystem_OnSync(self);
+}
+
+void Filesystem_onSync(FilesystemRef _Nonnull self)
+{
 }
 
 
@@ -644,6 +655,7 @@ override_func_def(deinit, Filesystem, Object)
 func_def(onAcquireNode, Filesystem)
 func_def(onWritebackNode, Filesystem)
 func_def(onRelinquishNode, Filesystem)
+func_def(syncNodes, Filesystem)
 func_def(onStart, Filesystem)
 func_def(onStop, Filesystem)
 func_def(onDisconnect, Filesystem)
@@ -661,4 +673,5 @@ func_def(unlink, Filesystem)
 func_def(move, Filesystem)
 func_def(rename, Filesystem)
 func_def(sync, Filesystem)
+func_def(onSync, Filesystem)
 );

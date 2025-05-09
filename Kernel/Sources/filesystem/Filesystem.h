@@ -381,6 +381,13 @@ open_class_funcs(Filesystem, Object,
     // Default behavior: unconditionally calls Inode_Destroy()
     void (*onRelinquishNode)(void* _Nonnull self, InodeRef _Nonnull pNode);
 
+    // Invoked from sync() to flush/sync inodes that are marked as modified/
+    // accessed/status changed to the disk cache or disk. The onWritebackNode()
+    // method is invoked for every dirty node.
+    // Override: Optional
+    // Default behavior: calls onWritebackNode() on every dirty node
+    void (*syncNodes)(void* _Nonnull self);
+
 
     //
     // Syncing
@@ -388,7 +395,18 @@ open_class_funcs(Filesystem, Object,
 
     // Called when the filesystem should flush/sync pending and cached data to
     // disk. This function should only return once all data has been synced.
+    // Override: Optional
+    // Default behavior: invokes syncNodes(), onSync() and then flushes dirty
+    //                   disk cache blocks that belong to this filesystem to disk
     void (*sync)(void* _Nonnull self);
+
+    // Called after syncNodes() and before dirty disk cache blocks are written
+    // to disk. Subclassers may override this method to flush out additional data
+    // to the disk cache before the disk cache is flushed to disk.
+    // Override: Optional
+    // Default behavior: invokes syncNodes(), onSync() and then flushes dirty
+    //                   disk cache blocks that belong to this filesystem to disk
+    void (*onSync)(void* _Nonnull self);
 );
 
 
@@ -512,6 +530,11 @@ invoke_0(onStop, Filesystem, __self)
 invoke_0(onDisconnect, Filesystem, __self)
 
 
+#define Filesystem_OnSync(__self) \
+invoke_0(onSync, Filesystem, __self)
+
+
+
 // Acquires the inode with the ID 'id'. This methods guarantees that there will
 // always only be at most one inode instance in memory at any given time and
 // that only one VP can access/modify the inode.
@@ -534,5 +557,8 @@ invoke_n(onWritebackNode, Filesystem, __self, __pNode)
 
 #define Filesystem_OnRelinquishNode(__self, __pNode) \
 invoke_n(onRelinquishNode, Filesystem, __self, __pNode)
+
+#define Filesystem_SyncNodes(__self) \
+invoke_0(syncNodes, Filesystem, __self)
 
 #endif /* Filesystem_h */
