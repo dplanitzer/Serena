@@ -259,7 +259,7 @@ errno_t SfsDirectory_CanAcceptEntry(InodeRef _Nonnull _Locked self, const PathCo
         return ENAMETOOLONG;
     }
 
-    if (type == kFileType_Directory) {
+    if (type == S_IFDIR) {
         // Adding a subdirectory increments our link count by 1
         if (Inode_GetLinkCount(self) >= kSFSLimit_LinkMax) {
             return EMLINK;

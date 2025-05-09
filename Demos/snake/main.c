@@ -66,7 +66,7 @@ static void setup(void)
 {
     setbuf(stdin, NULL);
     setbuf(stdout, NULL);
-    fiocall(STDIN_FILENO, kIOChannelCommand_SetMode, 1, kOpen_NonBlocking);
+    fiocall(STDIN_FILENO, kIOChannelCommand_SetMode, 1, O_NONBLOCK);
     cursor_on(false);
 
     game_over = false;
@@ -89,7 +89,7 @@ static void setup(void)
 static void cleanup(void)
 {
     cursor_on(true);
-    fiocall(STDIN_FILENO, kIOChannelCommand_SetMode, 0, kOpen_NonBlocking);
+    fiocall(STDIN_FILENO, kIOChannelCommand_SetMode, 0, O_NONBLOCK);
 }
 
 

@@ -58,7 +58,7 @@ static errno_t log_open_console(void)
     decl_try_err();
 
     if (gDriverCatalog) {
-        err = Catalog_Open(gDriverCatalog, "/console", kOpen_Write, &gConsoleChannel);
+        err = Catalog_Open(gDriverCatalog, "/console", O_WRONLY, &gConsoleChannel);
     }
     else {
         err = ENODEV;

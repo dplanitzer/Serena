@@ -21,7 +21,7 @@
 static errno_t establish_and_start_disk_fs(FileManagerRef _Nonnull self, const char* _Nonnull fsName, const char* _Nonnull diskPath, const char* _Nonnull params, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
-    const unsigned int mode = kOpen_ReadWrite;
+    const unsigned int mode = O_RDWR;
     FilesystemRef fs = NULL;
     ResolvedPath rp_disk;
 
@@ -37,7 +37,7 @@ static errno_t establish_and_start_disk_fs(FileManagerRef _Nonnull self, const c
 
     // Open the disk driver and establish the filesystem
     Inode_Lock(rp_disk.inode);
-    if (Inode_GetFileType(rp_disk.inode) == kFileType_Device) {
+    if (Inode_GetFileType(rp_disk.inode) == S_IFDEV) {
         err = _FileManager_OpenFile(self, rp_disk.inode, mode);
         if (err == EOK) {
             err = FilesystemManager_EstablishFilesystem(gFilesystemManager, rp_disk.inode, mode, &fs);
@@ -96,7 +96,7 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, const char* _Nonnull obj
 
 
     // Validate the directory where we want to mount
-    if (Inode_GetFileType(rp_atDir.inode) != kFileType_Directory) {
+    if (Inode_GetFileType(rp_atDir.inode) != S_IFDIR) {
         ResolvedPath_Deinit(&rp_atDir);
         return ENOTDIR;
     }

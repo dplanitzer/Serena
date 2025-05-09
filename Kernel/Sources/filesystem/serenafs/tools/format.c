@@ -133,7 +133,7 @@ errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, bcnt_t
     ip->uid = UInt32_HostToBig(uid);
     ip->gid = UInt32_HostToBig(gid);
     ip->permissions = UInt16_HostToBig(permissions);
-    ip->type = kFileType_Directory;
+    ip->type = S_IFDIR;
     ip->bmap.direct[0] = UInt32_HostToBig(rootDirContLba);
     try(block_write(fd, bp, rootDirLba, blockSize));
 

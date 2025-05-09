@@ -18,7 +18,7 @@ errno_t DirectoryChannel_Create(InodeRef _Nonnull pDir, IOChannelRef _Nullable *
     decl_try_err();
     DirectoryChannelRef self;
 
-    try(IOChannel_Create(&kDirectoryChannelClass, kIOChannel_Seekable, kIOChannelType_Directory, kOpen_Read, (IOChannelRef*)&self));
+    try(IOChannel_Create(&kDirectoryChannelClass, kIOChannel_Seekable, kIOChannelType_Directory, O_RDONLY, (IOChannelRef*)&self));
     self->inode = Inode_Reacquire(pDir);
 
 catch:
@@ -55,7 +55,7 @@ errno_t DirectoryChannel_seek(DirectoryChannelRef _Nonnull _Locked self, off_t o
 {
     decl_try_err();
 
-    if (whence == kSeek_Set) {
+    if (whence == SEEK_SET) {
         err = super_n(seek, IOChannel, DirectoryChannel, self, offset, pOutOldPosition, whence);
     }
     else {

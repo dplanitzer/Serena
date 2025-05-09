@@ -39,8 +39,8 @@ typedef enum IOChannelType {
 // Updates the mode of an I/O channel. Enables 'mode' on the channel if 'setOrClear'
 // is != 0 and disables 'mode' if 'setOrClear' == 0.
 // The following modes may be changed:
-// - kOpen_Append
-// - kOpen_NonBlocking
+// - O_APPEND
+// - O_NONBLOCK
 // errno_t set_mode(int ioc, int setOrClear, unsigned int mode)
 #define kIOChannelCommand_SetMode   IOChannelCommand(3)
 

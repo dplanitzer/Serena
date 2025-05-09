@@ -515,7 +515,7 @@ static errno_t get_name_of_node(ino_t idOfNodeToLookup, InodeRef _Nonnull pDir, 
     decl_try_err();
 
     Inode_Lock(pDir);
-    err = SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Readable | kAccess_Searchable);
+    err = SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, R_OK | X_OK);
     if (err == EOK) {
         err = Filesystem_GetNameOfNode(Inode_GetFilesystem(pDir), pDir, idOfNodeToLookup, pc);
     }
@@ -609,7 +609,7 @@ static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _L
     }
 
 
-    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Searchable));
+    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, X_OK));
     try(Filesystem_AcquireParentNode(Inode_GetFilesystem(pDir), pDir, &pParentDir));
 
     if (!Inode_Equals(pDir, pParentDir)) {
@@ -635,7 +635,7 @@ static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _L
         }
 
         Inode_Lock(pMountingDir);
-        err = SecurityManager_CheckNodeAccess(gSecurityManager, pMountingDir, uid, gid, kAccess_Searchable);
+        err = SecurityManager_CheckNodeAccess(gSecurityManager, pMountingDir, uid, gid, X_OK);
         if (err == EOK) {
             err = Filesystem_AcquireParentNode(Inode_GetFilesystem(pMountingDir), pMountingDir, &pParentOfMountingDir);
         }
@@ -661,7 +661,7 @@ static errno_t FileHierarchy_AcquireChildNode(FileHierarchyRef _Nonnull _Locked 
     *pOutChildNode = NULL;
 
     // Ask the filesystem for the inode that is named by the tuple (pDir, pName)
-    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Searchable));
+    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, X_OK));
     try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(pDir), pDir, pName, NULL, &pChildNode));
 
 

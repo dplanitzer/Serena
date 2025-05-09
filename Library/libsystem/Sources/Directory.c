@@ -28,5 +28,5 @@ errno_t readdir(int ioc, dirent_t* _Nonnull entries, size_t nBytesToRead, ssize_
 
 errno_t rewinddir(int ioc)
 {
-    return (errno_t)_syscall(SC_seek, ioc, (off_t)0ll, NULL, kSeek_Set);
+    return (errno_t)_syscall(SC_seek, ioc, (off_t)0ll, NULL, SEEK_SET);
 }

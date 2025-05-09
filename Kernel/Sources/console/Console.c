@@ -27,11 +27,11 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 
     try(DispatchQueue_Create(0, 1, kDispatchQoS_Interactive, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
 
-    try(Catalog_Open(gDriverCatalog, "/hid", kOpen_Read, &self->hidChannel));
+    try(Catalog_Open(gDriverCatalog, "/hid", O_RDONLY, &self->hidChannel));
     try(RingBuffer_Init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     // Open a channel to the framebuffer
-    try(Catalog_Open(gDriverCatalog, "/hw/fb", kOpen_ReadWrite, &self->fbChannel));
+    try(Catalog_Open(gDriverCatalog, "/hw/fb", O_RDWR, &self->fbChannel));
     self->fb = DriverChannel_GetDriverAs(self->fbChannel, GraphicsDriver);
     self->keyMap = (const KeyMap*) gKeyMap_usa;
 
@@ -544,7 +544,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, ConsoleChanne
     decl_try_err();
     HIDEvent evt;
     ssize_t nBytesRead = 0;
-    const bool isNonBlocking = (IOChannel_GetMode(pChannel) & kOpen_NonBlocking) == kOpen_NonBlocking;
+    const bool isNonBlocking = (IOChannel_GetMode(pChannel) & O_NONBLOCK) == O_NONBLOCK;
     const TimeInterval timeout = (isNonBlocking) ? kTimeInterval_Zero : kTimeInterval_Infinity;
 
     while (nBytesRead < nBytesToRead) {

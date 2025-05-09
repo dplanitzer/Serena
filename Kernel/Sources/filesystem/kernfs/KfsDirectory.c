@@ -22,7 +22,7 @@ errno_t KfsDirectory_Create(KernFSRef _Nonnull fs, ino_t inid, FilePermissions p
         class(KfsDirectory),
         (FilesystemRef)fs,
         inid,
-        kFileType_Directory,
+        S_IFDIR,
         1,
         uid,
         gid,
@@ -98,7 +98,7 @@ errno_t KfsDirectory_CanAcceptEntry(KfsDirectoryRef _Nonnull _Locked self, const
         return ENAMETOOLONG;
     }
 
-    if (type == kFileType_Directory) {
+    if (type == S_IFDIR) {
         // Adding a subdirectory increments our link count by 1
         if (Inode_GetLinkCount(self) >= MAX_LINK_COUNT) {
             return EMLINK;

@@ -105,11 +105,11 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
         char tc;
 
         switch (info.type) {
-            case kFileType_Device:              tc = 'h'; break;
-            case kFileType_Directory:           tc = 'd'; break;
-            case kFileType_Filesystem:          tc = 'f'; break;
-            case kFileType_Pipe:                tc = 'p'; break;
-            case kFileType_SymbolicLink:        tc = 'l'; break;
+            case S_IFDEV:              tc = 'h'; break;
+            case S_IFDIR:           tc = 'd'; break;
+            case S_IFFS:          tc = 'f'; break;
+            case S_IFIFO:                tc = 'p'; break;
+            case S_IFLNK:        tc = 'l'; break;
             default:                            tc = '-'; break;
         }
         self->buf[0] = tc;
@@ -193,7 +193,7 @@ static errno_t list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 
     try(FileManager_OpenDirectory(self->fm, path, &chan));
     try(iterate_dir(self, chan, path, format_dir_entry));
-    try(IOChannel_Seek(chan, 0ll, NULL, kSeek_Set));
+    try(IOChannel_Seek(chan, 0ll, NULL, SEEK_SET));
     try(iterate_dir(self, chan, path, print_dir_entry));
 
 catch:
@@ -217,7 +217,7 @@ static bool is_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
     finfo_t info;
 
-    return (FileManager_GetFileInfo(self->fm, path, &info) == EOK && info.type == kFileType_Directory) ? true : false;
+    return (FileManager_GetFileInfo(self->fm, path, &info) == EOK && info.type == S_IFDIR) ? true : false;
 }
 
 

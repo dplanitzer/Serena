@@ -24,7 +24,7 @@ errno_t open(const char* _Nonnull path, unsigned int mode, int* _Nonnull ioc)
 
 errno_t tell(int ioc, off_t* _Nonnull pos)
 {
-    return (errno_t)_syscall(SC_seek, ioc, (off_t)0ll, pos, (int)kSeek_Current);
+    return (errno_t)_syscall(SC_seek, ioc, (off_t)0ll, pos, (int)SEEK_CUR);
 }
 
 errno_t seek(int ioc, off_t offset, off_t* _Nullable oldpos, int whence)
@@ -33,22 +33,22 @@ errno_t seek(int ioc, off_t offset, off_t* _Nullable oldpos, int whence)
 }
 
 
-errno_t getfileinfo(const char* _Nonnull path, finfo_t* _Nonnull info)
+errno_t getfinfo(const char* _Nonnull path, finfo_t* _Nonnull info)
 {
     return (errno_t)_syscall(SC_getinfo, path, info);
 }
 
-errno_t setfileinfo(const char* _Nonnull path, fmutinfo_t* _Nonnull info)
+errno_t setfinfo(const char* _Nonnull path, fmutinfo_t* _Nonnull info)
 {
     return (errno_t)_syscall(SC_setinfo, path, info);
 }
 
-errno_t fgetfileinfo(int ioc, finfo_t* _Nonnull info)
+errno_t fgetfinfo(int ioc, finfo_t* _Nonnull info)
 {
     return _syscall(SC_fgetinfo, ioc, info);
 }
 
-errno_t fsetfileinfo(int ioc, fmutinfo_t* _Nonnull info)
+errno_t fsetfinfo(int ioc, fmutinfo_t* _Nonnull info)
 {
     return (errno_t)_syscall(SC_fsetinfo, ioc, info);
 }
@@ -65,7 +65,7 @@ errno_t ftruncate(int ioc, off_t length)
 }
 
 
-errno_t access(const char* _Nonnull path, AccessMode mode)
+errno_t access(const char* _Nonnull path, access_t mode)
 {
     return (errno_t)_syscall(SC_access, path, mode);
 }

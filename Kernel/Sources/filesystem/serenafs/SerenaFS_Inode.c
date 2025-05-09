@@ -28,7 +28,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
 
     try(SfsAllocator_Allocate(&self->blockAllocator, &inodeLba));
     
-    if (type == kFileType_Directory) {
+    if (type == S_IFDIR) {
         // Write the initial directory content. These are just the '.' and '..'
         // entries
         try(SfsAllocator_Allocate(&self->blockAllocator, &dirContLba));
@@ -120,11 +120,11 @@ errno_t SerenaFS_onAcquireNode(SerenaFSRef _Nonnull self, ino_t id, InodeRef _Nu
     }
 
     switch (ip->type) {
-        case kFileType_Directory:
+        case S_IFDIR:
             pClass = class(SfsDirectory);
             break;
 
-        case kFileType_RegularFile:
+        case S_IFREG:
             pClass = class(SfsRegularFile);
             break;
 

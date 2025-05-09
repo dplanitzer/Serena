@@ -15,7 +15,7 @@
 
 
 // File positions/seeking and directories:
-// The only allowed seeks are of the form seek(kSeek_Set) with an absolute position
+// The only allowed seeks are of the form seek(SEEK_SET) with an absolute position
 // that was previously obtained from another seek or a value of 0 to rewind to the
 // beginning of the directory listing. The meaning of the offset is filesystem
 // specific. Ie it may represent a byte offset into the directory file or it may

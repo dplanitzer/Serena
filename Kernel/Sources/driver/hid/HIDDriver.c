@@ -42,7 +42,7 @@ errno_t HIDDriver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mo
 errno_t HIDDriver_read(DriverRef _Nonnull self, HIDChannelRef _Nonnull pChannel, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    const bool isNonBlocking = (IOChannel_GetMode(pChannel) & kOpen_NonBlocking) == kOpen_NonBlocking;
+    const bool isNonBlocking = (IOChannel_GetMode(pChannel) & O_NONBLOCK) == O_NONBLOCK;
     const TimeInterval timeout = (isNonBlocking) ? kTimeInterval_Zero : kTimeInterval_Infinity;
     HIDEvent* pe = buf;
     ssize_t nBytesRead = 0;

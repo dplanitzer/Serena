@@ -116,7 +116,7 @@ static errno_t wipe_disk(int ioc, const diskinfo_t* _Nonnull info)
     }
 
     fputs("\033[?25l", stdout);
-    seek(ioc, 0ll, NULL, kSeek_Set);
+    seek(ioc, 0ll, NULL, SEEK_SET);
     while (sct < info->sectorCount && err == EOK) {
         printf("%u\n\033[1A", (unsigned)clusterCount);
         
@@ -150,7 +150,7 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, 
     try(fiocall(ioc, kDiskCommand_GetInfo, &info)); 
     if (!bQuick) {
         try(wipe_disk(ioc, &info));
-        seek(ioc, 0ll, NULL, kSeek_Set);
+        seek(ioc, 0ll, NULL, SEEK_SET);
     }
     try(sefs_format((intptr_t)fp, block_write, info.sectorCount, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label));
     puts("ok");
@@ -184,7 +184,7 @@ static errno_t get_fsid(const char* _Nonnull path, fsid_t* _Nonnull fsid)
 
 
     if (err == EOK) {
-        err = getfileinfo(p, &info);
+        err = getfinfo(p, &info);
         if (err == EOK) {
             *fsid = info.fsid;
         }
@@ -265,7 +265,7 @@ static errno_t cmd_info(const char* _Nonnull path)
 
     try(get_fsid(path, &fsid));
     sprintf(buf, "/fs/%u", fsid);
-    try(open(buf, kOpen_Read, &fd));
+    try(open(buf, O_RDONLY, &fd));
     try(fiocall(fd, kFSCommand_GetInfo, &info));
 
     if ((info.properties & kFSProperty_IsCatalog) == kFSProperty_IsCatalog) {
@@ -297,16 +297,16 @@ static errno_t cmd_geometry(const char* _Nonnull path)
     bool hasDisk = true;
 
     if (*path != '\0') {
-        try(getfileinfo(path, &finf));
+        try(getfinfo(path, &finf));
     }
-    if (finf.type == kFileType_Device) {
-        try(open(path, kOpen_Read, &fd));
+    if (finf.type == S_IFDEV) {
+        try(open(path, O_RDONLY, &fd));
         err = fiocall(fd, kDiskCommand_GetGeometry, &geom);
     }
     else {
         try(get_fsid(path, &fsid));
         sprintf(buf, "/fs/%u", fsid);
-        try(open(buf, kOpen_Read, &fd));
+        try(open(buf, O_RDONLY, &fd));
         err = fiocall(fd, kFSCommand_GetDiskGeometry, &geom);
 
         try(fs_getdisk(fsid, buf, sizeof(buf)));
@@ -345,7 +345,7 @@ errno_t cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
     decl_try_err();
     int fd = -1;
 
-    err = open(diskPath, kOpen_Read, &fd);
+    err = open(diskPath, O_RDONLY, &fd);
     if (err == EOK) {
         err = fiocall(fd, kDiskCommand_SenseDisk);
         close(fd);

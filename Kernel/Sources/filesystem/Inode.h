@@ -241,11 +241,11 @@ void Inode_Unlink(InodeRef _Nonnull self);
 
 // Returns true if the node is a directory; false otherwise.
 #define Inode_IsDirectory(__self) \
-    (Inode_GetFileType((InodeRef)__self) == kFileType_Directory)
+    (Inode_GetFileType((InodeRef)__self) == S_IFDIR)
 
 // Returns true if the node is a regular file; false otherwise.
 #define Inode_IsRegularFile(__self) \
-    (Inode_GetFileType((InodeRef)__self) == kFileType_RegularFile)
+    (Inode_GetFileType((InodeRef)__self) == S_IFREG)
 
 
 // Returns the inode id of the parent inode. This function may return 0 because

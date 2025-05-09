@@ -32,7 +32,7 @@ catch:
     return err;
 }
 
-errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeRef _Nonnull _Locked pNode, uid_t uid, gid_t gid, AccessMode mode)
+errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeRef _Nonnull _Locked pNode, uid_t uid, gid_t gid, access_t mode)
 {
     const FilePermissions nodePerms = Inode_GetFilePermissions(pNode);
     FilePermissions reqPerms = 0;
@@ -43,10 +43,10 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
     }
     // XXX
     
-    if ((mode & kAccess_Readable) == kAccess_Readable) {
+    if ((mode & R_OK) == R_OK) {
         reqPerms |= kFilePermission_Read;
     }
-    if ((mode & kAccess_Writable) == kAccess_Writable) {
+    if ((mode & W_OK) == W_OK) {
         reqPerms |= kFilePermission_Write;
 
         // Return EROFS if write permissions are requested but the disk is read-only.
@@ -54,7 +54,7 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
             return EROFS;
         }
     }
-    if ((mode & kAccess_Executable) == kAccess_Executable) {
+    if ((mode & X_OK) == X_OK) {
         reqPerms |= kFilePermission_Execute;
     }
 

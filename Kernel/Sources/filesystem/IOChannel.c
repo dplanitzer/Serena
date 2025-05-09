@@ -24,7 +24,7 @@ errno_t IOChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int c
         Lock_Init(&self->countLock);
         self->ownerCount = 1;
         self->useCount = 0;
-        self->mode = mode & (kOpen_ReadWrite | kOpen_Append | kOpen_NonBlocking);
+        self->mode = mode & (O_RDWR | O_APPEND | O_NONBLOCK);
         self->options = options;
         self->channelType = channelType;
     }
@@ -150,7 +150,7 @@ errno_t IOChannel_Read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize
     decl_try_err();
 
     IOChannel_Lock(self);
-    if ((self->mode & kOpen_Read) == kOpen_Read) {
+    if ((self->mode & O_RDONLY) == O_RDONLY) {
         err = invoke_n(read, IOChannel, self, pBuffer, nBytesToRead, nOutBytesRead);
     } else {
         *nOutBytesRead = 0;
@@ -172,7 +172,7 @@ errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer
     decl_try_err();
 
     IOChannel_Lock(self);
-    if ((self->mode & kOpen_Write) == kOpen_Write) {
+    if ((self->mode & O_WRONLY) == O_WRONLY) {
         err = invoke_n(write, IOChannel, self, pBuffer, nBytesToWrite, nOutBytesWritten);
     } else {
         *nOutBytesWritten = 0;
@@ -186,7 +186,7 @@ errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer
 
 errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutOldPosition, int whence)
 {
-    if (whence == kSeek_Set) {
+    if (whence == SEEK_SET) {
         if (offset >= 0ll) {
             if (pOutOldPosition) {
                 *pOutOldPosition = self->offset;
@@ -199,8 +199,8 @@ errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, off_t offset, off_t* 
             return EINVAL;
         }
     }
-    else if(whence == kSeek_Current || whence == kSeek_End) {
-        const off_t refPos = (whence == kSeek_End) ? IOChannel_GetSeekableRange(self) : self->offset;
+    else if(whence == SEEK_CUR || whence == SEEK_END) {
+        const off_t refPos = (whence == SEEK_END) ? IOChannel_GetSeekableRange(self) : self->offset;
             
         if (offset < 0ll && -offset > refPos) {
             return EINVAL;
@@ -282,7 +282,7 @@ errno_t IOChannel_ioctl(IOChannelRef _Nonnull _Locked self, int cmd, va_list ap)
 
         case kIOChannelCommand_SetMode: {
             int setOrClear = va_arg(ap, int);
-            unsigned int newMode = va_arg(ap, unsigned int) & (kOpen_Append | kOpen_NonBlocking);
+            unsigned int newMode = va_arg(ap, unsigned int) & (O_APPEND | O_NONBLOCK);
 
             if (setOrClear) {
                 self->mode |= newMode;

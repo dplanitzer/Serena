@@ -19,10 +19,10 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
     decl_try_err();
     IOChannelRef chan = NULL;
 
-    err = FileManager_OpenFile(fm, path, kOpen_Write | kOpen_Truncate, &chan);
+    err = FileManager_OpenFile(fm, path, O_WRONLY | O_TRUNC, &chan);
     if (err == ENOENT) {
         // File doesn't exist yet. Create it
-        err = FileManager_CreateFile(fm, path, kOpen_Write, perms, &chan);
+        err = FileManager_CreateFile(fm, path, O_WRONLY, perms, &chan);
     }
 
     if (err == EOK) {

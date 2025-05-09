@@ -179,7 +179,7 @@ SYSCALL_1(setcwd, const char* _Nullable path)
     return Process_SetWorkingDirectoryPath(Process_GetCurrent(), pArgs->path);
 }
 
-SYSCALL_2(getfileinfo, const char* _Nullable path, finfo_t* _Nullable pOutInfo)
+SYSCALL_2(getfinfo, const char* _Nullable path, finfo_t* _Nullable pOutInfo)
 {
     if (pArgs->path == NULL || pArgs->pOutInfo == NULL) {
         return EINVAL;
@@ -188,7 +188,7 @@ SYSCALL_2(getfileinfo, const char* _Nullable path, finfo_t* _Nullable pOutInfo)
     return Process_GetFileInfo(Process_GetCurrent(), pArgs->path, pArgs->pOutInfo);
 }
 
-SYSCALL_2(setfileinfo, const char* _Nullable path, fmutinfo_t* _Nullable pInfo)
+SYSCALL_2(setfinfo, const char* _Nullable path, fmutinfo_t* _Nullable pInfo)
 {
     if (pArgs->path == NULL || pArgs->pInfo == NULL) {
         return EINVAL;
@@ -197,7 +197,7 @@ SYSCALL_2(setfileinfo, const char* _Nullable path, fmutinfo_t* _Nullable pInfo)
     return Process_SetFileInfo(Process_GetCurrent(), pArgs->path, pArgs->pInfo);
 }
 
-SYSCALL_2(fgetfileinfo, int ioc, finfo_t* _Nullable pOutInfo)
+SYSCALL_2(fgetfinfo, int ioc, finfo_t* _Nullable pOutInfo)
 {
     if (pArgs->pOutInfo == NULL) {
         return EINVAL;
@@ -206,7 +206,7 @@ SYSCALL_2(fgetfileinfo, int ioc, finfo_t* _Nullable pOutInfo)
     return Process_GetFileInfo_ioc(Process_GetCurrent(), pArgs->ioc, pArgs->pOutInfo);
 }
 
-SYSCALL_2(fsetfileinfo, int ioc, fmutinfo_t* _Nullable pInfo)
+SYSCALL_2(fsetfinfo, int ioc, fmutinfo_t* _Nullable pInfo)
 {
     if (pArgs->pInfo == NULL) {
         return EINVAL;
@@ -551,12 +551,12 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(getumask),
     REF_SYSCALL(setumask),
     REF_SYSCALL(mkdir),
-    REF_SYSCALL(getfileinfo),
+    REF_SYSCALL(getfinfo),
     REF_SYSCALL(opendir),
-    REF_SYSCALL(setfileinfo),
+    REF_SYSCALL(setfinfo),
     REF_SYSCALL(access),
-    REF_SYSCALL(fgetfileinfo),
-    REF_SYSCALL(fsetfileinfo),
+    REF_SYSCALL(fgetfinfo),
+    REF_SYSCALL(fsetfinfo),
     REF_SYSCALL(unlink),
     REF_SYSCALL(rename),
     REF_SYSCALL(ioctl),

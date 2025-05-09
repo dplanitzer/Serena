@@ -69,7 +69,7 @@ static errno_t get_current_disk_id(const char* _Nonnull driverPath, uint32_t* _N
     decl_try_err();
     IOChannelRef chan;
 
-    if ((err = Catalog_Open(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan)) == EOK) {
+    if ((err = Catalog_Open(gDriverCatalog, driverPath, O_RDWR, &chan)) == EOK) {
         diskinfo_t info;
 
         err = IOChannel_Ioctl(chan, kDiskCommand_GetInfo, &info);
@@ -87,7 +87,7 @@ static void wait_for_disk_inserted(boot_screen_t* _Nonnull bscr, const char* _No
     IOChannelRef chan;
     bool isWaitingForDisk = false;
 
-    if ((err = Catalog_Open(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan)) == EOK) {
+    if ((err = Catalog_Open(gDriverCatalog, driverPath, O_RDWR, &chan)) == EOK) {
         for (;;) {
             diskinfo_t info;
 
@@ -125,7 +125,7 @@ static errno_t start_boot_fs(const char* _Nonnull diskPath, FilesystemRef _Nulla
 
     try(Catalog_AcquireNodeForPath(gDriverCatalog, diskPath, &rp));
     Inode_Lock(rp.inode);
-    err = FilesystemManager_EstablishFilesystem(gFilesystemManager, rp.inode, kOpen_ReadWrite, &fs);
+    err = FilesystemManager_EstablishFilesystem(gFilesystemManager, rp.inode, O_RDWR, &fs);
     Inode_Unlock(rp.inode);
     throw_iferr(err);
 

@@ -81,7 +81,7 @@ static void file_permissions_to_text(FilePermissions perms, char* _Nonnull buf)
 static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
     finfo_t info;
-    const errno_t err = getfileinfo(path, &info);
+    const errno_t err = getfinfo(path, &info);
     
     if (err == EOK) {
         itoa(info.linkCount, self->buf, 10);
@@ -108,17 +108,17 @@ static errno_t format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path
 static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
     finfo_t info;
-    const errno_t err = getfileinfo(path, &info);
+    const errno_t err = getfinfo(path, &info);
     
     if (err == EOK) {
         char tc;
 
         switch (info.type) {
-            case kFileType_Device:              tc = 'h'; break;
-            case kFileType_Directory:           tc = 'd'; break;
-            case kFileType_Filesystem:          tc = 'f'; break;
-            case kFileType_Pipe:                tc = 'p'; break;
-            case kFileType_SymbolicLink:        tc = 'l'; break;
+            case S_IFDEV:              tc = 'h'; break;
+            case S_IFDIR:           tc = 'd'; break;
+            case S_IFFS:          tc = 'f'; break;
+            case S_IFIFO:                tc = 'p'; break;
+            case S_IFLNK:        tc = 'l'; break;
             default:                            tc = '-'; break;
         }
         self->buf[0] = tc;
@@ -239,7 +239,7 @@ static bool is_dir(const char* _Nonnull path)
 {
     finfo_t info;
 
-    return (getfileinfo(path, &info) == EOK && info.type == kFileType_Directory) ? true : false;
+    return (getfinfo(path, &info) == EOK && info.type == S_IFDIR) ? true : false;
 }
 
 

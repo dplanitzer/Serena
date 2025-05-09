@@ -29,7 +29,7 @@ errno_t cmd_pull(const char* _Nonnull srcPath, const char* _Nonnull path, const 
     try_null(buf, malloc(BLOCK_SIZE), ENOMEM);
     try_null(dstPath, create_dst_path(srcPath, path), ENOMEM);
 
-    try(FileManager_OpenFile(&m->fm, srcPath, kOpen_Read, &chan));
+    try(FileManager_OpenFile(&m->fm, srcPath, O_RDONLY, &chan));
     try_null(fp, fopen(dstPath, "wb"), errno);
 
     while (true) {

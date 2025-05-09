@@ -20,7 +20,7 @@ void hid_test(int argc, char *argv[])
     HIDEvent evt;
 
 
-    assertOK(open("/dev/hid", kOpen_Read, &fd));
+    assertOK(open("/dev/hid", O_RDONLY, &fd));
     printf("Waiting for events...\n");
 
     while (true) {

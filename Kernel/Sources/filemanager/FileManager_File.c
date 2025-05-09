@@ -17,7 +17,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
 {
     decl_try_err();
     FilesystemRef fs = Inode_GetFilesystem(pFile);
-    AccessMode accessMode = 0;
+    access_t accessMode = 0;
 
 
     // This must be some kind of file and not a directory
@@ -27,14 +27,14 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
 
 
     // Calculate the desired access mode
-    if ((mode & kOpen_ReadWrite) == 0) {
+    if ((mode & O_RDWR) == 0) {
         return EACCESS;
     }
-    if ((mode & kOpen_Read) == kOpen_Read) {
-        accessMode |= kAccess_Readable;
+    if ((mode & O_RDONLY) == O_RDONLY) {
+        accessMode |= R_OK;
     }
-    if ((mode & kOpen_Write) == kOpen_Write || (mode & kOpen_Truncate) == kOpen_Truncate) {
-        accessMode |= kAccess_Writable;
+    if ((mode & O_WRONLY) == O_WRONLY || (mode & O_TRUNC) == O_TRUNC) {
+        accessMode |= W_OK;
     }
 
 
@@ -43,7 +43,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
     err = SecurityManager_CheckNodeAccess(gSecurityManager, pFile, self->ruid, self->rgid, accessMode);
     if (err == EOK) {
         if (Inode_GetFileSize(pFile) >= 0ll) {
-            if ((mode & kOpen_Truncate) == kOpen_Truncate) {
+            if ((mode & O_TRUNC) == O_TRUNC) {
                 err = Inode_Truncate(pFile, 0);
             }
         }
@@ -88,7 +88,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
     if (err == EOK) {
         // File exists - reject the operation in exclusive mode and open the
         // file otherwise
-        if ((mode & kOpen_Exclusive) == kOpen_Exclusive) {
+        if ((mode & O_EXCL) == O_EXCL) {
             // Exclusive mode: File already exists -> throw an error
             throw(EEXIST);
         }
@@ -105,23 +105,23 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
 
 
         // The user provided read/write mode must match up with the provided (user) permissions
-        if ((mode & kOpen_ReadWrite) == 0) {
+        if ((mode & O_RDWR) == 0) {
             throw(EACCESS);
         }
-        if ((mode & kOpen_Read) == kOpen_Read && !FilePermissions_Has(filePerms, kFilePermissionsClass_User, kFilePermission_Read)) {
+        if ((mode & O_RDONLY) == O_RDONLY && !FilePermissions_Has(filePerms, kFilePermissionsClass_User, kFilePermission_Read)) {
             throw(EACCESS);
         }
-        if ((mode & kOpen_Write) == kOpen_Write && !FilePermissions_Has(filePerms, kFilePermissionsClass_User, kFilePermission_Write)) {
+        if ((mode & O_WRONLY) == O_WRONLY && !FilePermissions_Has(filePerms, kFilePermissionsClass_User, kFilePermission_Write)) {
             throw(EACCESS);
         }
 
 
         // We must have write permissions for the parent directory
-        try(SecurityManager_CheckNodeAccess(gSecurityManager, dir, self->ruid, self->rgid, kAccess_Writable));
+        try(SecurityManager_CheckNodeAccess(gSecurityManager, dir, self->ruid, self->rgid, W_OK));
 
 
         // Create the new file and add it to its parent directory
-        try(Filesystem_CreateNode(pFS, kFileType_RegularFile, dir, name, &dih, self->ruid, self->rgid, filePerms, &ip));
+        try(Filesystem_CreateNode(pFS, S_IFREG, dir, name, &dih, self->ruid, self->rgid, filePerms, &ip));
     }
     else {
         throw(err);
@@ -179,7 +179,7 @@ errno_t FileManager_OpenExecutable(FileManagerRef _Nonnull self, const char* _No
     // correct access mode
     Inode_Lock(r.inode); 
     if (Inode_IsRegularFile(r.inode)) {
-        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, kAccess_Readable | kAccess_Executable);
+        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, R_OK | X_OK);
         if (err == EOK && Inode_GetFileSize(r.inode) < 0ll) {
             // Negative file size means that the file size overflowed
             err = E2BIG;
@@ -191,7 +191,7 @@ errno_t FileManager_OpenExecutable(FileManagerRef _Nonnull self, const char* _No
     Inode_Unlock(r.inode);
     throw_iferr(err);
 
-    err = Inode_CreateChannel(r.inode, kOpen_Read, pOutChannel);
+    err = Inode_CreateChannel(r.inode, O_RDONLY, pOutChannel);
 
 catch:
     ResolvedPath_Deinit(&r);
@@ -281,7 +281,7 @@ errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonn
     if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r)) == EOK) {
         Inode_Lock(r.inode);
         if (Inode_IsRegularFile(r.inode)) {
-            err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, kAccess_Writable);
+            err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, W_OK);
             if (err == EOK) {
                 err = Inode_Truncate(r.inode, length);
             }
@@ -318,13 +318,13 @@ errno_t FileManager_TruncateFile_ioc(FileManagerRef _Nonnull self, IOChannelRef 
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.
-errno_t FileManager_CheckAccess(FileManagerRef _Nonnull self, const char* _Nonnull path, AccessMode mode)
+errno_t FileManager_CheckAccess(FileManagerRef _Nonnull self, const char* _Nonnull path, access_t mode)
 {
     decl_try_err();
     ResolvedPath r;
 
     if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r)) == EOK) {
-        if (mode != kAccess_Exists) {
+        if (mode != F_OK) {
             Inode_Lock(r.inode);
             err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, mode);
             Inode_Unlock(r.inode);
@@ -384,7 +384,7 @@ errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull pa
 
 
     // We must have write permissions for 'pDir'
-    try(SecurityManager_CheckNodeAccess(gSecurityManager, dir, self->ruid, self->rgid, kAccess_Writable));
+    try(SecurityManager_CheckNodeAccess(gSecurityManager, dir, self->ruid, self->rgid, W_OK));
 
 
     try(Filesystem_Unlink(Inode_GetFilesystem(target), target, dir));
@@ -503,9 +503,9 @@ errno_t FileManager_Rename(FileManagerRef _Nonnull self, const char* oldPath, co
 
 
     // Make sure that the parent directories are writeable
-    try(SecurityManager_CheckNodeAccess(gSecurityManager, oldDir, self->ruid, self->rgid, kAccess_Writable));
+    try(SecurityManager_CheckNodeAccess(gSecurityManager, oldDir, self->ruid, self->rgid, W_OK));
     if (oldDir != newDir) {
-        try(SecurityManager_CheckNodeAccess(gSecurityManager, newDir, self->ruid, self->rgid, kAccess_Writable));
+        try(SecurityManager_CheckNodeAccess(gSecurityManager, newDir, self->ruid, self->rgid, W_OK));
     }
 
 

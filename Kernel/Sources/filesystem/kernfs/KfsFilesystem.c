@@ -20,7 +20,7 @@ errno_t KfsFilesystem_Create(KernFSRef _Nonnull kfs, ino_t inid, FilePermissions
         class(KfsFilesystem),
         (FilesystemRef)kfs,
         inid,
-        kFileType_Filesystem,
+        S_IFFS,
         1,
         uid,
         gid,

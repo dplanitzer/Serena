@@ -94,7 +94,7 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
     ssize_t nBytesWritten = 0;
     off_t offset;
 
-    if ((IOChannel_GetMode(ch) & kOpen_Append) == kOpen_Append) {
+    if ((IOChannel_GetMode(ch) & O_APPEND) == O_APPEND) {
         offset = Inode_GetFileSize(self);
     }
     else {

@@ -24,14 +24,12 @@ __CPP_BEGIN
 
 
 // The Inode type.
-enum FileType {
-    kFileType_RegularFile = 0,  // A regular file that stores data
-    kFileType_Directory,        // A directory which stores information about child nodes
-    kFileType_Device,           // A driver which manages a piece of hardware
-    kFileType_Filesystem,       // A mounted filesystem instance
-    kFileType_SymbolicLink,
-    kFileType_Pipe,
-};
+#define S_IFREG 0   /* A regular file that stores data */
+#define S_IFDIR 1   /* A directory which stores information about child nodes */
+#define S_IFDEV 2   /* A driver which manages a piece of hardware */
+#define S_IFFS  3   /* A mounted filesystem instance */
+#define S_IFLNK 4
+#define S_IFIFO 5
 
 
 typedef struct finfo {
@@ -72,43 +70,38 @@ typedef struct fmutinfo {
 } fmutinfo_t;
 
 
-enum AccessMode {
-    kAccess_Readable = 1,
-    kAccess_Writable = 2,
-    kAccess_Executable = 4,
-    kAccess_Searchable = kAccess_Executable,    // For directories
-    kAccess_Exists = 0
-};
-typedef uint32_t    AccessMode;
+#define R_OK    1
+#define W_OK    2
+#define X_OK    4
+#define F_OK    0
+typedef uint32_t    access_t;
 
 
-#define kOpen_Read          0x0001
-#define kOpen_Write         0x0002
-#define kOpen_ReadWrite     (kOpen_Read | kOpen_Write)
-#define kOpen_Append        0x0004
-#define kOpen_Exclusive     0x0008
-#define kOpen_Truncate      0x0010
-#define kOpen_NonBlocking   0x0020
+#define O_RDONLY    0x0001
+#define O_WRONLY    0x0002
+#define O_RDWR      (O_RDONLY | O_WRONLY)
+#define O_APPEND    0x0004
+#define O_EXCL      0x0008
+#define O_TRUNC     0x0010
+#define O_NONBLOCK  0x0020
 
 
 // Specifies how a seek() call should apply 'offset' to the current file
 // position.
-enum SeekMode {
-    kSeek_Set = 0,      // Set the file position to 'offset'
-    kSeek_Current,      // Add 'offset' to the current file position
-    kSeek_End           // Add 'offset' to the end of the file
-};
+#define SEEK_SET    0   /* Set the file position to 'offset' */
+#define SEEK_CUR    1   /* Add 'offset' to the current file position */
+#define SEEK_END    2   /* Add 'offset' to the end of the file */
 
 
 // Creates an empty file at the filesystem location and with the name specified
 // by 'path'. Creating a file is non-exclusive by default which means that the
 // file is created if it does not exist and simply opened in it current state if
 // it does exist. You may request non-exclusive behavior by passing the
-// kOpen_Exclusive option. If the file already exists and you requested exclusive
+// O_EXCL option. If the file already exists and you requested exclusive
 // behavior, then this function will fail and return an EEXIST error. You may
 // request that the newly opened file (relevant in non-exclusive mode) is
 // automatically and atomically truncated to length 0 if it contained some data
-// by passing the kOpen_Truncate option. 'permissions' are the file permissions
+// by passing the O_TRUNC option. 'permissions' are the file permissions
 // that are assigned to a newly created file if it is actually created.
 // @Concurrency: Safe
 extern errno_t mkfile(const char* _Nonnull path, unsigned int mode, FilePermissions permissions, int* _Nonnull ioc);
@@ -116,8 +109,8 @@ extern errno_t mkfile(const char* _Nonnull path, unsigned int mode, FilePermissi
 // Opens an already existing file located at the filesystem location 'path'.
 // Returns an error if the file does not exist or the caller lacks the necessary
 // permissions to successfully open the file. 'mode' specifies whether the file
-// should be opened for reading and/or writing. 'kOpen_Append' may be passed in
-// addition to 'kOpen_Write' to force the system to always append any newly written
+// should be opened for reading and/or writing. 'O_APPEND' may be passed in
+// addition to 'O_WRONLY' to force the system to always append any newly written
 // data to the file. The file position is disregarded by the write function(s) in
 // this case.
 // @Concurrency: Safe
@@ -148,19 +141,19 @@ extern errno_t os_truncate(const char* _Nonnull path, off_t length);
 
 // Returns meta-information about the file located at the filesystem location 'path'.
 // @Concurrency: Safe
-extern errno_t getfileinfo(const char* _Nonnull path, finfo_t* _Nonnull info);
+extern errno_t getfinfo(const char* _Nonnull path, finfo_t* _Nonnull info);
 
 // Updates the meta-information about the file located at the filesystem location
 // 'path'. Note that only those pieces of the meta-information are modified for
 // which the corresponding flag in 'info.modify' is set.
 // @Concurrency: Safe
-extern errno_t setfileinfo(const char* _Nonnull path, fmutinfo_t* _Nonnull info);
+extern errno_t setfinfo(const char* _Nonnull path, fmutinfo_t* _Nonnull info);
 
 
 // Checks whether the file at the filesystem location 'path' exists and whether
 // it is accessible according to 'mode'. A suitable error is returned otherwise.
 // @Concurrency: Safe
-extern errno_t access(const char* _Nonnull path, AccessMode mode);
+extern errno_t access(const char* _Nonnull path, access_t mode);
 
 // Deletes the file or (empty) directory located at the filesystem location 'path'.
 // Note that this function deletes empty directories only.
@@ -179,13 +172,13 @@ extern errno_t os_rename(const char* _Nonnull oldpath, const char* _Nonnull newp
 extern errno_t ftruncate(int ioc, off_t length);
 
 
-// Similar to getfileinfo() but operates on the open file identified by 'ioc'.
+// Similar to getfinfo() but operates on the open file identified by 'ioc'.
 // @Concurrency: Safe
-extern errno_t fgetfileinfo(int ioc, finfo_t* _Nonnull info);
+extern errno_t fgetfinfo(int ioc, finfo_t* _Nonnull info);
 
-// Similar to setfileinfo() but operates on the open file identified by 'ioc'.
+// Similar to setfinfo() but operates on the open file identified by 'ioc'.
 // @Concurrency: Safe
-extern errno_t fsetfileinfo(int ioc, fmutinfo_t* _Nonnull info);
+extern errno_t fsetfinfo(int ioc, fmutinfo_t* _Nonnull info);
 
 __CPP_END
 

@@ -225,7 +225,7 @@ errno_t Process_TruncateFile_ioc(ProcessRef _Nonnull self, int ioc, off_t length
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.
-errno_t Process_CheckAccess(ProcessRef _Nonnull self, const char* _Nonnull path, AccessMode mode)
+errno_t Process_CheckAccess(ProcessRef _Nonnull self, const char* _Nonnull path, access_t mode)
 {
     decl_try_err();
 

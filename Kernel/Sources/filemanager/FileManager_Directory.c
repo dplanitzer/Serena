@@ -25,7 +25,7 @@ static errno_t _FileManager_SetDirectoryPath(FileManagerRef _Nonnull self, const
     // permission
     Inode_Lock(r.inode);
     if (Inode_IsDirectory(r.inode)) {
-        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, kAccess_Searchable);
+        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, X_OK);
     }
     else {
         err = ENOTDIR;
@@ -89,9 +89,9 @@ errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _N
     err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(r.inode), r.inode, dirName, &dih, NULL);
     if (err == ENOENT) {
         // We must have write permissions for the parent directory
-        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, kAccess_Writable);
+        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, W_OK);
         if (err == EOK) {
-            err = Filesystem_CreateNode(Inode_GetFilesystem(r.inode), kFileType_Directory, r.inode, dirName, &dih, self->ruid, self->rgid, dirPerms, &ip);
+            err = Filesystem_CreateNode(Inode_GetFilesystem(r.inode), S_IFDIR, r.inode, dirName, &dih, self->ruid, self->rgid, dirPerms, &ip);
         }
     }
     else if (err == EOK) {
@@ -118,8 +118,8 @@ errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const char* _Non
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
 
     Inode_Lock(r.inode);
-    if (Inode_GetFileType(r.inode) == kFileType_Directory) {
-        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, kAccess_Readable);
+    if (Inode_GetFileType(r.inode) == S_IFDIR) {
+        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, R_OK);
     }
     else {
         err = ENOTDIR;
@@ -127,7 +127,7 @@ errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const char* _Non
     Inode_Unlock(r.inode);
     throw_iferr(err);
     
-    err = Inode_CreateChannel(r.inode, kOpen_Read, pOutChannel);
+    err = Inode_CreateChannel(r.inode, O_RDONLY, pOutChannel);
     
 catch:
     ResolvedPath_Deinit(&r);

@@ -237,7 +237,7 @@ extern errno_t Process_TruncateFile_ioc(ProcessRef _Nonnull pProc, int fd, off_t
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.
-extern errno_t Process_CheckAccess(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, AccessMode mode);
+extern errno_t Process_CheckAccess(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, access_t mode);
 
 // Unlinks the inode at the path 'pPath'.
 extern errno_t Process_Unlink(ProcessRef _Nonnull pProc, const char* _Nonnull pPath);

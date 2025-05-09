@@ -20,7 +20,7 @@ errno_t KfsDevice_Create(KernFSRef _Nonnull fs, ino_t inid, FilePermissions perm
         class(KfsDevice),
         (FilesystemRef)fs,
         inid,
-        kFileType_Device,
+        S_IFDEV,
         1,
         uid,
         gid,

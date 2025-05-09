@@ -52,13 +52,13 @@ errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int io
 
     // Make sure that 'mode' lines up with what the I/O channel can actually
     // do
-    if (((sm & __kStreamMode_Read) != 0) && ((iocmode & kOpen_Read) == 0)) {
+    if (((sm & __kStreamMode_Read) != 0) && ((iocmode & O_RDONLY) == 0)) {
         return EINVAL;
     }
-    if (((sm & __kStreamMode_Write) != 0) && ((iocmode & kOpen_Write) == 0)) {
+    if (((sm & __kStreamMode_Write) != 0) && ((iocmode & O_WRONLY) == 0)) {
         return EINVAL;
     }
-    if (((sm & __kStreamMode_Append) != 0) && ((iocmode & kOpen_Append) == 0)) {
+    if (((sm & __kStreamMode_Append) != 0) && ((iocmode & O_APPEND) == 0)) {
         return EINVAL;
     }
 
@@ -74,19 +74,19 @@ errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose
     int ioc = -1;
 
     if ((sm & __kStreamMode_Read) != 0) {
-        options |= kOpen_Read;
+        options |= O_RDONLY;
     }
     if ((sm & __kStreamMode_Write) != 0) {
-        options |= kOpen_Write;
+        options |= O_WRONLY;
     }
     if ((sm & __kStreamMode_Append) != 0) {
-        options |= kOpen_Append;
+        options |= O_APPEND;
     }
     if ((sm & __kStreamMode_Truncate) != 0) {
-        options |= kOpen_Truncate;
+        options |= O_TRUNC;
     }
     if ((sm & __kStreamMode_Exclusive) != 0) {
-        options |= kOpen_Exclusive;
+        options |= O_EXCL;
     }
 
 

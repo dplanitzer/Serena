@@ -158,9 +158,9 @@ void main_closure(int argc, char *argv[])
 
 
     // Open the console and initialize stdin, stdout and stderr
-    open(termPath, kOpen_Read, &fd);
-    open(termPath, kOpen_Write, &fd);
-    open(termPath, kOpen_Write, &fd);
+    open(termPath, O_RDONLY, &fd);
+    open(termPath, O_WRONLY, &fd);
+    open(termPath, O_WRONLY, &fd);
 
     fdreopen(STDIN_FILENO, "r", stdin);
     fdreopen(STDOUT_FILENO, "w", stdout);
