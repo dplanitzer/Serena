@@ -35,6 +35,8 @@ typedef struct ProcessTombstone {
 final_class_ivars(Process, Object,
     Lock                            lock;
     
+    ListNode                        ptcNode;    // Protected by ProcessManager lock
+
     pid_t                           ppid;       // parent's PID
     pid_t                           pid;        // my PID
 

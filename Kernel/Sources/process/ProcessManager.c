@@ -9,14 +9,22 @@
 #include "ProcessManager.h"
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
-#include <kobj/ObjectArray.h>
+#include <klib/Hash.h>
 #include "ProcessPriv.h"
+
+
+#define HASH_CHAIN_COUNT    16
+#define HASH_CHAIN_MASK     (HASH_CHAIN_COUNT - 1)
+
+#define proc_from_ptc(__ptr) \
+(ProcessRef) (((uint8_t*)__ptr) - offsetof(struct Process, ptcNode))
+
 
 typedef struct ProcessManager {
     Lock                        lock;
-    ObjectArray                 procs;      // XXX list vs hashtable (what we really want)
     ProcessRef _Nonnull         rootProc;
     DispatchQueueRef _Nonnull   reaperQueue;
+    List/*<Process>*/           procTable[HASH_CHAIN_COUNT];     // pid_t -> Process
 } ProcessManager;
 
 
@@ -30,11 +38,16 @@ errno_t ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef _
     ProcessManagerRef self;
     
     try_bang(kalloc(sizeof(ProcessManager), (void**) &self));
-    Lock_Init(&self->lock);
-    try_bang(ObjectArray_Init(&self->procs, 16));
-    try_bang(ObjectArray_Add(&self->procs, (ObjectRef) pRootProc));
-    self->rootProc = pRootProc;
     try_bang(DispatchQueue_Create(1, 1, kDispatchQoS_Realtime, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->reaperQueue));
+    
+    Lock_Init(&self->lock);
+    
+    for (int i = 0; i < HASH_CHAIN_COUNT; i++) {
+        List_Init(&self->procTable[i]);
+    }
+
+    self->rootProc = pRootProc;
+    ProcessManager_Register(self, pRootProc);
 
     *pOutSelf = self;
     return EOK;
@@ -56,19 +69,20 @@ ProcessRef _Nonnull ProcessManager_CopyRootProcess(ProcessManagerRef _Nonnull se
 // once no longer needed.
 ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull self, pid_t pid)
 {
-    ProcessRef pProc = NULL;
+    ProcessRef proc = NULL;
 
     Lock_Lock(&self->lock);
-    for (int i = 0; i < ObjectArray_GetCount(&self->procs); i++) {
-        ProcessRef pCurProc = (ProcessRef) ObjectArray_GetAt(&self->procs, i);
+    List_ForEach(&self->procTable[hash_scalar(pid) & HASH_CHAIN_MASK], ListNode,
+        ProcessRef pCurProc = proc_from_ptc(pCurNode);
 
         if (pCurProc->pid == pid) {
-            pProc = Object_RetainAs(pCurProc, Process);
+            proc = Object_RetainAs(pCurProc, Process);
             break;
         }
-    }
+    );
     Lock_Unlock(&self->lock);
-    return pProc;
+
+    return proc;
 }
 
 // Registers the given process with the process manager. Note that this function
@@ -76,14 +90,12 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
 // that's equal to some other registered process.
 // A process will only become visible to other processes after it has been
 // registered with the process manager. 
-errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pProc)
+void ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pProc)
 {
-    decl_try_err();
-
     Lock_Lock(&self->lock);
-    err = ObjectArray_Add(&self->procs, (ObjectRef) pProc);
+    List_InsertBeforeFirst(&self->procTable[hash_scalar(pProc->pid) & HASH_CHAIN_MASK], &pProc->ptcNode);
+    Object_Retain(pProc);
     Lock_Unlock(&self->lock);
-    return err;
 }
 
 // Deregisters the given process from the process manager. This makes the process
@@ -93,7 +105,8 @@ void ProcessManager_Unregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
 {
     Lock_Lock(&self->lock);
     assert(pProc != self->rootProc);
-    ObjectArray_RemoveIdenticalTo(&self->procs, (ObjectRef) pProc);
+    List_Remove(&self->procTable[hash_scalar(pProc->pid) & HASH_CHAIN_MASK], &pProc->ptcNode);
+    Object_Release(pProc);
     Lock_Unlock(&self->lock);
 }
 

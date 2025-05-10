@@ -83,7 +83,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
     try(Process_AdoptChild_Locked(pProc, pChildProc->pid));
     try(Process_Exec_Locked(pChildProc, path, argv, so.envp));
 
-    try(ProcessManager_Register(gProcessManager, pChildProc));
+    ProcessManager_Register(gProcessManager, pChildProc);
     Object_Release(pChildProc);
 
     Lock_Unlock(&pProc->lock);
