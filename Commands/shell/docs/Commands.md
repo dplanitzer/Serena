@@ -46,6 +46,19 @@ Note that the continue command may only appear inside of a loop body.
 
 `continue`
 
+## `copy`
+
+Copies a file from its current location in the filesystem to a new location in the filesystem hierarchy. Note that copying directories is currently not supported. The copy operation will preserve the permissions of the source file. However the user and group are assigned based on the user and group of the logged in user. The destination path may be a full path which specifies the destination directory and the filename. Or it may just specify the directory. The name and extension of the source file are preserved in this case.
+
+### Signature
+
+`copy <src_path> <dst_path>`
+
+### Parameters
+
+* `src_path`: relative or absolute path to the file to copy
+* `dst_path`: relative or absolute path to the file to the destination directory where teh file should be copied to. May optionally include the filename of the new file
+
 ## `delete`
 
 Deletes one or more directories or files indicated by the provided path(s). A directory must be empty to be eligible for deleting.

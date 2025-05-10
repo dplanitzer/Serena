@@ -122,6 +122,7 @@ SYSTEMD_FILE := $(SYSTEMD_OBJS_DIR)/systemd
 
 CMDS_PROJECT_DIR := $(WORKSPACE_DIR)/Commands
 CMDS_OBJS_DIR := $(OBJS_DIR)/Commands
+COPY_FILE := $(CMDS_OBJS_DIR)/copy
 DELETE_FILE := $(CMDS_OBJS_DIR)/delete
 DISK_FILE := $(CMDS_OBJS_DIR)/disk
 ID_FILE := $(CMDS_OBJS_DIR)/id
@@ -207,7 +208,7 @@ build-rom: $(ROM_FILE)
 build-boot-dmg: $(BOOT_DMG_FILE)
 
 
-$(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(DELETE_FILE) $(DISK_FILE) $(ID_FILE) $(LIST_FILE) $(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) $(SHUTDOWN_FILE) $(TYPE_FILE) $(UPTIME_FILE) $(WAIT_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
+$(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(COPY_FILE) $(DELETE_FILE) $(DISK_FILE) $(ID_FILE) $(LIST_FILE) $(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) $(SHUTDOWN_FILE) $(TYPE_FILE) $(UPTIME_FILE) $(WAIT_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
 	@echo Making boot_disk.adf
 	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DMG_FILE)
 	$(DISKIMAGE) format sefs --label "Serena FD" $(BOOT_DMG_FILE)
@@ -224,6 +225,7 @@ $(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(DELETE_FILE) $(DISK
 	$(DISKIMAGE) push -m=rwxr-xr-x $(SYSTEMD_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(LOGIN_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(SH_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(COPY_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(DELETE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(DISK_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(ID_FILE) /System/Commands/ $(BOOT_DMG_FILE)
