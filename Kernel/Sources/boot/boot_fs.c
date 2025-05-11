@@ -20,14 +20,15 @@
 #include <Catalog.h>
 #include "boot_screen.h"
 
+extern void auto_discover_boot_rd(void);
+
 
 // Finds a RAM or ROM disk to boot from and returns the in-kernel path to the
 // driver if found; NULL otherwise.
 static const char* _Nullable get_boot_mem_driver_path(void)
 {
     static const char* gMemDriverTable[] = {
-        "/ram",
-        "/rom",
+        "/vdisk/rd0",
         NULL
     };
 
@@ -229,6 +230,8 @@ FileHierarchyRef _Nonnull create_root_file_hierarchy(boot_screen_t* _Nonnull bsc
     decl_try_err();
     FilesystemRef fs;
     FileHierarchyRef fh;
+
+    auto_discover_boot_rd();
 
     fs = create_boot_filesystem(bscr);
     if (fs == NULL) {

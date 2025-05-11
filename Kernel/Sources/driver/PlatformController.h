@@ -11,6 +11,8 @@
 
 #include <driver/Driver.h>
 
+struct SMG_Header;
+
 
 // A platform controller is the root driver of a platform. All other drivers are
 // direct or indirect children of the platform controller. It represents the
@@ -27,6 +29,11 @@ open_class_funcs(PlatformController, Driver,
     // Override: Required
     // Default Behavior: Does nothing and returns EOK
     errno_t (*detectDevices)(void* _Nonnull self);
+
+    // Override in a subclass to return a Rom-based disk image from which to boot
+    // the system off. Return NULL if no such image exists and the system should
+    // boot off eg a disk instead.
+    const struct SMG_Header* _Nullable (*getBootImage)(void* _Nonnull self);
 );
 
 
@@ -35,5 +42,16 @@ extern DriverRef gPlatformController;
 
 // Creates a platform controller instance.
 extern errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf);
+
+
+//
+// Subclassers
+//
+
+#define PlatformController_DetectDevices(__self) \
+invoke_0(detectDevices, PlatformController, __self)
+
+#define PlatformController_GetBootImage(__self) \
+invoke_0(getBootImage, PlatformController, __self)
 
 #endif /* PlatformController_h */
