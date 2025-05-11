@@ -15,6 +15,7 @@
 #include <System/Types.h>
 #include <System/Urt.h>
 #include <System/DispatchQueue.h>
+#include <System/IOChannel.h>
 
 __CPP_BEGIN
 
@@ -80,6 +81,22 @@ typedef struct pstatus {
     pid_t   pid;        // PID of the child process
     int     status;     // Child process exit status
 } pstatus_t;
+
+
+// Process specific information
+typedef struct procinfo {
+    pid_t   pid;        // Process pid
+    pid_t   ppid;       // Parent pid
+    size_t  virt_size;  // Size of allocated address space
+} procinfo_t;
+
+// Returns general information about the process.
+// get_procinfo(procinfo_t* _Nonnull pOutInfo)
+#define kProcCommand_GetInfo    IOResourceCommand(0)
+
+// Returns the name of the process.
+// get_procname(char* _Nonnull buf, size_t bufSize)
+#define kProcCommand_GetName    IOResourceCommand(1)
 
 
 extern _Noreturn os_exit(int exit_code);

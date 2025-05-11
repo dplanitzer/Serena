@@ -29,7 +29,8 @@ typedef enum IOChannelType {
     kIOChannelType_Directory,
     kIOChannelType_Pipe,
     kIOChannelType_Driver,
-    kIOChannelType_Filesystem
+    kIOChannelType_Filesystem,
+    kIOChannelType_Process,
 } IOChannelType;
 
 // Returns the mode with which the I/O channel was opened.

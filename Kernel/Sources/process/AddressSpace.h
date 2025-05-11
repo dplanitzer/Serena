@@ -10,17 +10,15 @@
 #define AddressSpace_h
 
 #include <klib/klib.h>
+#include <kobj/AnyRefs.h>
 
 
-struct AddressSpace;
-typedef struct AddressSpace* AddressSpaceRef;
+extern errno_t AddressSpace_Create(AddressSpaceRef _Nullable * _Nonnull pOutSelf);
+extern void AddressSpace_Destroy(AddressSpaceRef _Nullable self);
 
+extern bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull self);
+extern size_t AddressSpace_GetVirtualSize(AddressSpaceRef _Nonnull self);
 
-extern errno_t AddressSpace_Create(AddressSpaceRef _Nullable * _Nonnull pOutSpace);
-extern void AddressSpace_Destroy(AddressSpaceRef _Nullable pSpace);
-
-extern bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull pSpace);
-
-extern errno_t AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, ssize_t count, void* _Nullable * _Nonnull pOutMem);
+extern errno_t AddressSpace_Allocate(AddressSpaceRef _Nonnull self, ssize_t nbytes, void* _Nullable * _Nonnull pOutMem);
 
 #endif /* AddressSpace_h */

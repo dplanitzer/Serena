@@ -47,8 +47,7 @@ void KfsProcess_deinit(KfsProcessRef _Nullable self)
 
 errno_t KfsProcess_createChannel(KfsProcessRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    //XXXreturn Filesystem_Open(self->instance, mode, 0, pOutChannel);
-    return ENOTSUP;
+    return Process_Open(self->instance, mode, 0, pOutChannel);
 }
 
 errno_t KfsProcess_read(KfsProcessRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

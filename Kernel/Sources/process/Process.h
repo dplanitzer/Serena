@@ -164,7 +164,7 @@ extern errno_t Process_SeekChannel(ProcessRef _Nonnull self, int ioc, off_t offs
 
 // Sends a I/O Channel or I/O Resource defined command to the I/O Channel or
 // resource identified by the given descriptor.
-extern errno_t Process_vIoctl(ProcessRef _Nonnull self, int fd, int cmd, va_list ap);
+extern errno_t Process_Iocall(ProcessRef _Nonnull self, int fd, int cmd, va_list ap);
 
 
 //
@@ -255,5 +255,20 @@ extern errno_t Process_Mount(ProcessRef _Nonnull self, const char* _Nonnull obje
 extern errno_t Process_Unmount(ProcessRef _Nonnull self, const char* _Nonnull atDirPath, UnmountOptions options);
 
 extern errno_t Process_GetFilesystemDiskPath(ProcessRef _Nonnull self, fsid_t fsid, char* _Nonnull buf, size_t bufSize);
+
+
+//
+// Introspection
+//
+
+extern errno_t Process_Open(ProcessRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t Process_Close(ProcessRef _Nonnull self, IOChannelRef _Nonnull chan);
+
+
+extern errno_t Process_GetInfo(ProcessRef _Nonnull self, procinfo_t* _Nonnull info);
+extern errno_t Process_GetName(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize);
+
+extern errno_t Process_Ioctl(ProcessRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, ...);
+extern errno_t Process_vIoctl(ProcessRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap);
 
 #endif /* Process_h */

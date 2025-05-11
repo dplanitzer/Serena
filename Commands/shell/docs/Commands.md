@@ -409,6 +409,14 @@ Prepares the computer for power off by writing still cached data to disk. It is 
 
 `shutdown`
 
+## `status`
+
+Prints information about all active processes in the system.
+
+### Signature
+
+`status`
+
 ## `type`
 
 Prints the contents of the file 'path' to the console. Pass the switch '--hex' to print the file contents as a series of hexadecimal numbers.

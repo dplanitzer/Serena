@@ -18,6 +18,7 @@
 class_ref(Any);
 class_ref(Object);
 
+class_ref(AddressSpace);
 class_ref(AnalogJoystickDriver);
 class_ref(Catalog);
 class_ref(ConsoleChannel);
@@ -61,6 +62,7 @@ class_ref(PipeChannel);
 class_ref(Pipe);
 class_ref(PlatformController);
 class_ref(Process);
+class_ref(ProcChannel);
 class_ref(RamDisk);
 class_ref(RomDisk);
 class_ref(SecurityManager);

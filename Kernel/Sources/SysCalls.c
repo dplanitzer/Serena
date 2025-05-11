@@ -231,7 +231,7 @@ SYSCALL_2(ftruncate, int ioc, off_t length)
 
 SYSCALL_3(ioctl, int ioc, int cmd, va_list _Nullable ap)
 {
-    return Process_vIoctl(Process_GetCurrent(), pArgs->ioc, pArgs->cmd, pArgs->ap);
+    return Process_Iocall(Process_GetCurrent(), pArgs->ioc, pArgs->cmd, pArgs->ap);
 }
 
 SYSCALL_2(access, const char* _Nullable path, uint32_t mode)

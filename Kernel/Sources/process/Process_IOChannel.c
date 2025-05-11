@@ -52,7 +52,7 @@ errno_t Process_SeekChannel(ProcessRef _Nonnull self, int ioc, off_t offset, off
 
 // Sends a I/O Channel or I/O Resource defined command to the I/O Channel or
 // resource identified by the given descriptor.
-errno_t Process_vIoctl(ProcessRef _Nonnull self, int ioc, int cmd, va_list ap)
+errno_t Process_Iocall(ProcessRef _Nonnull self, int ioc, int cmd, va_list ap)
 {
     decl_try_err();
     IOChannelRef pChannel;
