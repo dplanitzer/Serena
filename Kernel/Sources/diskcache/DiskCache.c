@@ -156,7 +156,7 @@ static void _DiskCache_RegisterBlock(DiskCacheRef _Nonnull _Locked self, DiskBlo
     self->lruChainGeneration++;
 }
 
-static void _DiskCache_UnregisterBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
+static void _DiskCache_DeregisterBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
 {
     const size_t idx = DiskBlock_Hash(pBlock) & DISK_BLOCK_HASH_CHAIN_MASK;
     List* chain = &self->diskAddrHash[idx];
@@ -232,7 +232,7 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
         //XXX see above
         //_DiskCache_SyncBlock(self, pBlock);
 
-        _DiskCache_UnregisterBlock(self, pBlock);
+        _DiskCache_DeregisterBlock(self, pBlock);
         DiskBlock_SetDiskAddress(pBlock, s->sessionId, lba);
         DiskBlock_PurgeData(pBlock, self->blockSize);
         _DiskCache_RegisterBlock(self, pBlock);

@@ -48,7 +48,7 @@ extern void ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef 
 // Deregisters the given process from the process manager. This makes the process
 // invisible to other processes. Does nothing if the given process isn't
 // registered.
-extern void ProcessManager_Unregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pProc);
+extern void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pProc);
 
 
 // Returns the process reaper queue.

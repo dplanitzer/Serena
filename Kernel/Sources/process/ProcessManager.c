@@ -98,7 +98,7 @@ void ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnul
 // Deregisters the given process from the process manager. This makes the process
 // invisible to other processes. Does nothing if the given process isn't
 // registered.
-void ProcessManager_Unregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pProc)
+void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pProc)
 {
     Lock_Lock(&self->lock);
     assert(pProc != self->rootProc);
