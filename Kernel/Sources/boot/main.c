@@ -34,6 +34,7 @@ boot_screen_t gBootScreen;
 static ConsoleRef gConsole;
 
 
+extern errno_t Process_Publish(ProcessRef _Locked _Nonnull self);
 extern FileHierarchyRef _Nonnull create_root_file_hierarchy(boot_screen_t* _Nonnull bscr);
 extern errno_t drivers_init(void);
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);
@@ -138,8 +139,10 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
 
     // Create the various kernel object catalogs
+    try_bang(Catalog_Create(kCatalogName_Processes, &gProcCatalog));
     try_bang(Catalog_Create(kCatalogName_Filesystems, &gFSCatalog));
     try_bang(Catalog_Create(kCatalogName_Drivers, &gDriverCatalog));
+    try_bang(Filesystem_Publish(Catalog_CopyFilesystem(gProcCatalog)));
     try_bang(Filesystem_Publish(Catalog_CopyFilesystem(gFSCatalog)));
     try_bang(Filesystem_Publish(Catalog_CopyFilesystem(gDriverCatalog)));
 
@@ -168,8 +171,9 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     Object_Release(pRootFh);
 
 
-    // Create the process manager
+    // Create the process manager and publish the root process
     try(ProcessManager_Create(pRootProc, &gProcessManager));
+    Process_Publish(pRootProc);
 
 
     // Get the root process going

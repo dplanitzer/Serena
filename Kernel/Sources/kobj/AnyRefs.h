@@ -51,6 +51,7 @@ class_ref(KernFS);
 class_ref(KfsDirectory);
 class_ref(KfsDevice);
 class_ref(KfsFilesystem);
+class_ref(KfsProcess);
 class_ref(KfsNode);
 class_ref(KeyboardDriver);
 class_ref(LightPenDriver);

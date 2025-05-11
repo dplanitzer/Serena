@@ -58,6 +58,7 @@ errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t
 
     self->ppid = ppid;
     self->pid = Process_GetNextAvailablePID();
+    self->catalogId = kCatalogId_None;
 
     try(IOChannelTable_Init(&self->ioChannelTable));
     try(UResourceTable_Init(&self->uResourcesTable));

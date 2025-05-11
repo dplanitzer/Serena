@@ -114,12 +114,13 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
         char tc;
 
         switch (info.type) {
-            case S_IFDEV:              tc = 'h'; break;
-            case S_IFDIR:           tc = 'd'; break;
-            case S_IFFS:          tc = 'f'; break;
-            case S_IFIFO:                tc = 'p'; break;
-            case S_IFLNK:        tc = 'l'; break;
-            default:                            tc = '-'; break;
+            case S_IFDEV:   tc = 'h'; break;
+            case S_IFDIR:   tc = 'd'; break;
+            case S_IFFS:    tc = 'f'; break;
+            case S_IFPROC:  tc = 'P'; break;
+            case S_IFIFO:   tc = 'p'; break;
+            case S_IFLNK:   tc = 'l'; break;
+            default:        tc = '-'; break;
         }
         self->buf[0] = tc;
 

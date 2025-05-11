@@ -45,6 +45,7 @@ void main_closure(int argc, char *argv[])
     // Mount kernel object catalogs
     mount(kMount_Catalog, kCatalogName_Drivers, "/dev", "");
     mount(kMount_Catalog, kCatalogName_Filesystems, "/fs", "");
+    mount(kMount_Catalog, kCatalogName_Processes, "/proc", "");
 
 
     // Startup login

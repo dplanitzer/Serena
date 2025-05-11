@@ -10,6 +10,7 @@
 #include "KfsDirectory.h"
 #include "KfsDevice.h"
 #include "KfsFilesystem.h"
+#include "KfsProcess.h"
 
 
 // Returns a strong reference to the driver backing the given driver node.
@@ -44,6 +45,10 @@ static errno_t _KernFS_createNode(KernFSRef _Nonnull self, FileType type, InodeR
             try(KfsFilesystem_Create(self, KernFS_GetNextAvailableInodeId(self), permissions, uid, gid, Inode_GetId(dir), (FilesystemRef)extra1, &ip));
             break;
 
+        case S_IFPROC:
+            try(KfsProcess_Create(self, KernFS_GetNextAvailableInodeId(self), permissions, uid, gid, Inode_GetId(dir), (ProcessRef)extra1, &ip));
+            break;
+
         default:
             throw(EIO);
             break;
@@ -74,15 +79,21 @@ catch:
 }
 
 // Creates a new device node in the file system.
-errno_t KernFS_CreateDevice(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull pDriverInstance, intptr_t arg, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t KernFS_CreateDeviceNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull dev, intptr_t arg, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _KernFS_createNode(self, S_IFDEV, dir, name, pDriverInstance, arg, uid, gid, permissions, pOutNode);
+    return _KernFS_createNode(self, S_IFDEV, dir, name, dev, arg, uid, gid, permissions, pOutNode);
 }
 
 // Creates a new filesystem node in the file system.
-errno_t KernFS_CreateFilesystem(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, FilesystemRef _Nonnull fsInstance, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t KernFS_CreateFilesystemNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, FilesystemRef _Nonnull fs, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _KernFS_createNode(self, S_IFFS, dir, name, fsInstance, 0, uid, gid, permissions, pOutNode);
+    return _KernFS_createNode(self, S_IFFS, dir, name, fs, 0, uid, gid, permissions, pOutNode);
+}
+
+// Creates a new process node in the file system.
+errno_t KernFS_CreateProcessNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, ProcessRef _Nonnull proc, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
+{
+    return _KernFS_createNode(self, S_IFPROC, dir, name, proc, 0, uid, gid, permissions, pOutNode);
 }
 
 errno_t KernFS_createNode(KernFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)

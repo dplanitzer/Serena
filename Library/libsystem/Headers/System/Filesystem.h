@@ -24,6 +24,7 @@ __CPP_BEGIN
 // Mountable catalogs
 #define kCatalogName_Drivers        "dev"
 #define kCatalogName_Filesystems    "fs"
+#define kCatalogName_Processes      "proc"
 
 
 enum {

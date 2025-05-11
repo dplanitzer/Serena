@@ -23,6 +23,7 @@ typedef struct Catalog {
 
 CatalogRef _Nonnull  gDriverCatalog;
 CatalogRef _Nonnull  gFSCatalog;
+CatalogRef _Nonnull  gProcCatalog;
 
 
 errno_t Catalog_Create(const char* _Nonnull name, CatalogRef _Nullable * _Nonnull pOutSelf)
@@ -206,7 +207,7 @@ errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, cons
 
     err = _Catalog_AcquireFolder(self, folderId, &pDir);
     if (err == EOK) {
-        err = KernFS_CreateDevice((KernFSRef)self->fs, pDir, &pc, driver, arg, uid, gid, perms, &pNode);
+        err = KernFS_CreateDeviceNode((KernFSRef)self->fs, pDir, &pc, driver, arg, uid, gid, perms, &pNode);
         if (err == EOK) {
             *pOutCatalogId = (CatalogId)Inode_GetId(pNode);
         }
@@ -232,7 +233,33 @@ errno_t Catalog_PublishFilesystem(CatalogRef _Nonnull self, const char* _Nonnull
 
     err = Filesystem_AcquireRootDirectory(self->fs, &pDir);
     if (err == EOK) {
-        err = KernFS_CreateFilesystem((KernFSRef)self->fs, pDir, &pc, fs, uid, gid, perms, &pNode);
+        err = KernFS_CreateFilesystemNode((KernFSRef)self->fs, pDir, &pc, fs, uid, gid, perms, &pNode);
+        if (err == EOK) {
+            *pOutCatalogId = (CatalogId)Inode_GetId(pNode);
+        }
+    }
+
+    Inode_Relinquish(pNode);
+    Inode_Relinquish(pDir);
+
+    return err;
+}
+
+errno_t Catalog_PublishProcess(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, FilePermissions perms, ProcessRef _Nonnull proc, CatalogId* _Nonnull pOutCatalogId)
+{
+    decl_try_err();
+    InodeRef pDir = NULL;
+    InodeRef pNode = NULL;
+    PathComponent pc;
+
+    *pOutCatalogId = kCatalogId_None;
+
+    pc.name = name;
+    pc.count = String_Length(name);
+
+    err = Filesystem_AcquireRootDirectory(self->fs, &pDir);
+    if (err == EOK) {
+        err = KernFS_CreateProcessNode((KernFSRef)self->fs, pDir, &pc, proc, uid, gid, perms, &pNode);
         if (err == EOK) {
             *pOutCatalogId = (CatalogId)Inode_GetId(pNode);
         }

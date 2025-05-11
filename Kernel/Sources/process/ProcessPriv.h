@@ -13,6 +13,7 @@
 #include "AddressSpace.h"
 #include "IOChannelTable.h"
 #include "UResourceTable.h"
+#include <Catalog.h>
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
@@ -39,6 +40,7 @@ final_class_ivars(Process, Object,
 
     pid_t                           ppid;       // parent's PID
     pid_t                           pid;        // my PID
+    CatalogId                       catalogId;  // proc-fs catalog id
 
     DispatchQueueRef _Nonnull _Weak mainDispatchQueue;
     AddressSpaceRef _Nonnull        addressSpace;
@@ -103,5 +105,8 @@ extern void Process_AdoptChild_Locked(ProcessRef _Nonnull self, ProcessRef _Nonn
 extern void Process_AbandonChild_Locked(ProcessRef _Nonnull self, ProcessRef _Nonnull child);
 
 extern void Process_CallUser(VoidFunc_2 _Nonnull f, void* _Nullable arg);
+
+extern errno_t Process_Publish(ProcessRef _Locked _Nonnull self);
+extern errno_t Process_Unpublish(ProcessRef _Locked _Nonnull self);
 
 #endif /* ProcessPriv_h */

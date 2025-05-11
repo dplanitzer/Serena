@@ -24,12 +24,13 @@ __CPP_BEGIN
 
 
 // The Inode type.
-#define S_IFREG 0   /* A regular file that stores data */
-#define S_IFDIR 1   /* A directory which stores information about child nodes */
-#define S_IFDEV 2   /* A driver which manages a piece of hardware */
-#define S_IFFS  3   /* A mounted filesystem instance */
-#define S_IFLNK 4
-#define S_IFIFO 5
+#define S_IFREG     0   /* A regular file that stores data */
+#define S_IFDIR     1   /* A directory which stores information about child nodes */
+#define S_IFDEV     2   /* A driver which manages a piece of hardware */
+#define S_IFFS      3   /* A mounted filesystem instance */
+#define S_IFPROC    4   /* A process */
+#define S_IFLNK     5
+#define S_IFIFO     6
 
 
 typedef struct finfo {

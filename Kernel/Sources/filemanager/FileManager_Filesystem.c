@@ -71,6 +71,9 @@ static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull
     else if (String_Equals(catalogName, kCatalogName_Filesystems)) {
         catalog = gFSCatalog;
     }
+    else if (String_Equals(catalogName, kCatalogName_Processes)) {
+        catalog = gProcCatalog;
+    }
     else {
         *pOutFs = NULL;
         return ENOENT;
@@ -156,6 +159,9 @@ errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t f
     }
     else if (Catalog_IsFsid(gFSCatalog, fsid)) {
         err = Catalog_GetName(gFSCatalog, buf, bufSize);
+    }
+    else if (Catalog_IsFsid(gProcCatalog, fsid)) {
+        err = Catalog_GetName(gProcCatalog, buf, bufSize);
     }
     else {
         if (bufSize < 1) {

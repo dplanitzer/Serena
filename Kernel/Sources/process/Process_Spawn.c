@@ -96,6 +96,8 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull
         ProcessManager_Register(gProcessManager, pChild);
         Object_Release(pChild);
 
+        Process_Publish(pChild);
+        
         err = Process_Exec(pChild, path, argv, opts->envp);
         if (err != EOK) {
             doTermChild = true;

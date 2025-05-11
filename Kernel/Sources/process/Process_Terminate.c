@@ -264,6 +264,7 @@ void _Process_DoTerminate(ProcessRef _Nonnull self)
 
 
     // Finally destroy the process.
+    Process_Unpublish(self);
     ProcessManager_Deregister(gProcessManager, self);
     Object_Release(self);
 }

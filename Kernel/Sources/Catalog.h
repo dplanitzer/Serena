@@ -27,6 +27,7 @@ typedef uint32_t    CatalogId;
 
 extern CatalogRef _Nonnull  gDriverCatalog;
 extern CatalogRef _Nonnull  gFSCatalog;
+extern CatalogRef _Nonnull  gProcCatalog;
 
 
 extern errno_t Catalog_Create(const char* _Nonnull name, CatalogRef _Nullable * _Nonnull pOutSelf);
@@ -77,5 +78,10 @@ extern errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderI
 // directory of the catalog. Returns a suitable error if another entry with the
 // same name already exists.
 extern errno_t Catalog_PublishFilesystem(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, FilePermissions perms, FilesystemRef _Nonnull fs, CatalogId* _Nonnull pOutCatalogId);
+
+// Publish the process 'proc' with the name 'name' in the root directory of the
+// catalog. Returns a suitable error if another entry with the same name already
+// exists.
+extern errno_t Catalog_PublishProcess(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, FilePermissions perms, ProcessRef _Nonnull proc, CatalogId* _Nonnull pOutCatalogId);
 
 #endif /* Catalog_h */
