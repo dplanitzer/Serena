@@ -101,7 +101,7 @@ extern uid_t getuid(void);
 extern gid_t getgid(void);
 
 
-extern errno_t os_spawn(const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nullable options, pid_t* _Nullable rpid);
+extern errno_t os_spawn(const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull options, pid_t* _Nullable rpid);
 extern errno_t waitpid(pid_t pid, pstatus_t* _Nullable result);
 
 extern pargs_t* _Nonnull getpargs(void);

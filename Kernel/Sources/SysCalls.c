@@ -409,11 +409,6 @@ SYSCALL_1(dispose, int od)
     return Process_DisposeUResource(Process_GetCurrent(), pArgs->od);
 }
 
-// Allocates more address space to the calling process. The address space is
-// expanded by 'count' bytes. A pointer to the first byte in the newly allocated
-// address space portion is return in 'pOutMem'. 'pOutMem' is set to NULL and a
-// suitable error is returned if the allocation failed. 'count' must be greater
-// than 0 and a multiple of the CPU page size.
 SYSCALL_2(alloc_address_space, size_t nbytes, void * _Nullable * _Nonnull pOutMem)
 {
     if (pArgs->nbytes > SSIZE_MAX) {
@@ -444,14 +439,9 @@ SYSCALL_1(exit, int status)
     return EOK;
 }
 
-// Spawns a new process which is made the child of the process that is invoking
-// this system call. The 'argv' pointer points to a table that holds pointers to
-// nul-terminated strings. The last entry in the table has to be NULL. All these
-// strings are the command line arguments that should be passed to the new
-// process.
-SYSCALL_4(spawn_process, const char* _Nullable path, const char* _Nullable * _Nullable argv, const spawn_opts_t* _Nullable options, pid_t* _Nullable pOutPid)
+SYSCALL_4(spawn_process, const char* _Nullable path, const char* _Nullable * _Nullable argv, const spawn_opts_t* _Nonnull options, pid_t* _Nullable pOutPid)
 {
-    if (pArgs->path == NULL || pArgs->path[0] == '\0') {
+    if (pArgs->path == NULL || pArgs->path[0] == '\0' || pArgs->options == NULL) {
         return EINVAL;
     }
 

@@ -37,7 +37,7 @@ static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], ssize
     return nbytes;
 }
 
-static errno_t Process_CopyInProcArgs_Locked(ProcessRef _Nonnull self, const char* argv[], const char* _Nullable env[])
+static errno_t copy_in_args(ProcessRef _Nonnull self, const char* argv[], const char* _Nullable env[])
 {
     decl_try_err();
     size_t nArgvCount = 0;
@@ -111,9 +111,13 @@ static errno_t load_gemdos_executable(ProcessRef _Nonnull self, FileChannelRef _
 
 // Loads an executable from the given executable file into the process address
 // space.
+// \param self the process into which the executable image should be loaded
+// \param pExecAddr pointer to a GemDOS formatted executable file in memory
+// \param pArgv the command line arguments for the process. NULL means that the arguments are {path, NULL}
+// \param pEnv the environment for the process. Null means that the process inherits the environment from its parent
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
-errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[])
+static errno_t _proc_exec(ProcessRef _Locked _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[])
 {
     decl_try_err();
     IOChannelRef chan = NULL;
@@ -136,7 +140,7 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path,
     try(FileManager_OpenExecutable(&self->fm, path, &chan));
 
     // Copy the process arguments into the process address space
-    try(Process_CopyInProcArgs_Locked(self, argv, env));
+    try(copy_in_args(self, argv, env));
 
 
     // Load the executable
@@ -159,4 +163,19 @@ catch:
 void Process_CallUser(VoidFunc_2 _Nonnull f, void* _Nullable arg)
 {
     VirtualProcessor_CallAsUser(VirtualProcessor_GetCurrent(), f, arg, NULL);
+}
+
+// Loads an executable from the given executable file into the process address
+// space. This is only meant to get the root process going.
+// \param pProc the process into which the executable image should be loaded
+// \param pExecPath path to a GemDOS executable file
+// XXX expects that the address space is empty at call time
+// XXX the executable format is GemDOS
+errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[])
+{
+    Lock_Lock(&self->lock);
+    const errno_t err = _proc_exec(self, execPath, argv, env);
+    Lock_Unlock(&self->lock);
+
+    return err;
 }

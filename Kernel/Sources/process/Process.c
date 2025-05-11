@@ -43,20 +43,6 @@ errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullab
     return err;
 }
 
-// Loads an executable from the given executable file into the process address
-// space. This is only meant to get the root process going.
-// \param pProc the process into which the executable image should be loaded
-// \param pExecPath path to a GemDOS executable file
-// XXX expects that the address space is empty at call time
-// XXX the executable format is GemDOS
-errno_t RootProcess_Exec(ProcessRef _Nonnull pProc, const char* _Nonnull pExecPath)
-{
-    Lock_Lock(&pProc->lock);
-    const errno_t err = Process_Exec_Locked(pProc, pExecPath, NULL, NULL);
-    Lock_Unlock(&pProc->lock);
-    return err;
-}
-
 
 
 errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutSelf)

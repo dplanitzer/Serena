@@ -173,7 +173,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
 
     // Get the root process going
-    try(RootProcess_Exec(pRootProc, "/System/Commands/systemd"));
+    try(Process_Exec(pRootProc, "/System/Commands/systemd", NULL, NULL));
 
     
     // The boot virtual processor now takes over the duties of running the

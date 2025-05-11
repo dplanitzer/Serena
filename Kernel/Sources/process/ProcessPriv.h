@@ -64,7 +64,7 @@ final_class_ivars(Process, Object,
     List/*<ProcessTombstone>*/      tombstones;     // Tombstones of child processes that have terminated and have not yet been consumed by waitpid()
     ConditionVariable               tombstoneSignaler;
     DispatchQueueRef _Nullable      terminationNotificationQueue;   // Post the terminationNotificationClosure to this queue on process death, if not NULL
-    dispatch_func_t _Nullable        terminationNotificationClosure;
+    dispatch_func_t _Nullable       terminationNotificationClosure;
     void* _Nullable                 terminationNotificationContext;
 );
 
@@ -101,16 +101,6 @@ extern void Process_AdoptChild_Locked(ProcessRef _Nonnull self, ProcessRef _Nonn
 
 // Abandons the given process as a child of the receiver.
 extern void Process_AbandonChild_Locked(ProcessRef _Nonnull self, ProcessRef _Nonnull child);
-
-// Loads an executable from the given executable file into the process address
-// space.
-// \param self the process into which the executable image should be loaded
-// \param pExecAddr pointer to a GemDOS formatted executable file in memory
-// \param pArgv the command line arguments for the process. NULL means that the arguments are {path, NULL}
-// \param pEnv the environment for the process. Null means that the process inherits the environment from its parent
-// XXX expects that the address space is empty at call time
-// XXX the executable format is GemDOS
-extern errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[]);
 
 extern void Process_CallUser(VoidFunc_2 _Nonnull f, void* _Nullable arg);
 

@@ -11,23 +11,16 @@
 #include "UDispatchQueue.h"
 
 
-errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nullable pOptions, pid_t * _Nullable pOutChildPid)
+static errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const spawn_opts_t* _Nonnull opts, ProcessRef _Nullable * _Nonnull pOutChild)
 {
     decl_try_err();
     ProcessRef pChild = NULL;
-    bool needsUnlock = false;
-    spawn_opts_t so = {0};
     DispatchQueueRef terminationNotificationQueue = NULL;
 
-    if (pOptions) {
-        so = *pOptions;
-    }
-
-
-    if ((so.options & kSpawn_NotifyOnProcessTermination) == kSpawn_NotifyOnProcessTermination && so.notificationQueue >= 0 && so.notificationClosure) {
+    if ((opts->options & kSpawn_NotifyOnProcessTermination) == kSpawn_NotifyOnProcessTermination && opts->notificationQueue >= 0 && opts->notificationClosure) {
         UDispatchQueueRef pQueue;
 
-        if ((err = UResourceTable_BeginDirectResourceAccessAs(&self->uResourcesTable, so.notificationQueue, UDispatchQueue, &pQueue)) == EOK) {
+        if ((err = UResourceTable_BeginDirectResourceAccessAs(&self->uResourcesTable, opts->notificationQueue, UDispatchQueue, &pQueue)) == EOK) {
             terminationNotificationQueue = Object_RetainAs(pQueue->dispatchQueue, DispatchQueue);
             UResourceTable_EndDirectResourceAccess(&self->uResourcesTable);
         }
@@ -37,23 +30,20 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull
     }
 
 
-    Lock_Lock(&self->lock);
-    needsUnlock = true;
-
     uid_t childUid = self->fm.ruid;
     gid_t childGid = self->fm.rgid;
     FilePermissions childUMask = FileManager_GetFileCreationMask(&self->fm);
-    if ((so.options & kSpawn_OverrideUserMask) == kSpawn_OverrideUserMask) {
-        childUMask = so.umask & 0777;
+    if ((opts->options & kSpawn_OverrideUserMask) == kSpawn_OverrideUserMask) {
+        childUMask = opts->umask & 0777;
     }
-    if ((so.options & (kSpawn_OverrideUserId|kSpawn_OverrideGroupId)) != 0 && FileManager_GetRealUserId(&self->fm) != 0) {
+    if ((opts->options & (kSpawn_OverrideUserId|kSpawn_OverrideGroupId)) != 0 && FileManager_GetRealUserId(&self->fm) != 0) {
         throw(EPERM);
     }
-    if ((so.options & kSpawn_OverrideUserId) == kSpawn_OverrideUserId) {
-        childUid = so.uid;
+    if ((opts->options & kSpawn_OverrideUserId) == kSpawn_OverrideUserId) {
+        childUid = opts->uid;
     }
-    if ((so.options & kSpawn_OverrideGroupId) == kSpawn_OverrideGroupId) {
-        childGid = so.gid;
+    if ((opts->options & kSpawn_OverrideGroupId) == kSpawn_OverrideGroupId) {
+        childGid = opts->gid;
     }
 
     try(Process_Create(self->pid, self->fm.fileHierarchy, childUid, childGid, self->fm.rootDirectory, self->fm.workingDirectory, childUMask, &pChild));
@@ -65,50 +55,65 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull
 
     if (terminationNotificationQueue) {
         pChild->terminationNotificationQueue = terminationNotificationQueue;
-        pChild->terminationNotificationClosure = so.notificationClosure;
-        pChild->terminationNotificationContext = so.notificationContext;
+        pChild->terminationNotificationClosure = opts->notificationClosure;
+        pChild->terminationNotificationContext = opts->notificationContext;
 
         terminationNotificationQueue = NULL;
     }
 
     IOChannelTable_DupFrom(&pChild->ioChannelTable, &self->ioChannelTable);
 
-    if (so.root_dir && *so.root_dir != '\0') {
-        try(Process_SetRootDirectoryPath(pChild, so.root_dir));
+    if (opts->root_dir && opts->root_dir[0] != '\0') {
+        try(Process_SetRootDirectoryPath(pChild, opts->root_dir));
     }
-    if (so.cw_dir && *so.cw_dir != '\0') {
-        try(Process_SetWorkingDirectoryPath(pChild, so.cw_dir));
+    if (opts->cw_dir && opts->cw_dir[0] != '\0') {
+        try(Process_SetWorkingDirectoryPath(pChild, opts->cw_dir));
     }
 
-    Process_AdoptChild_Locked(self, pChild);
-    try(Process_Exec_Locked(pChild, path, argv, so.envp));
-
-    ProcessManager_Register(gProcessManager, pChild);
-    Object_Release(pChild);
-
-    Lock_Unlock(&self->lock);
-
-    if (pOutChildPid) {
-        *pOutChildPid = pChild->pid;
-    }
+    *pOutChild = pChild;
 
     return EOK;
 
 catch:
-    if (pChild) {
-        Process_AbandonChild_Locked(self, pChild);
-    }
-    if (needsUnlock) {
-        Lock_Unlock(&self->lock);
-    }
-
     Object_Release(pChild);
     Object_Release(terminationNotificationQueue);
 
-    if (pOutChildPid) {
-        *pOutChildPid = 0;
-    }
+    *pOutChild = NULL;
     return err;
+}
+
+errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, pid_t * _Nullable pOutChildPid)
+{
+    decl_try_err();
+    ProcessRef pChild = NULL;
+    bool doTermChild = false;
+
+    Lock_Lock(&self->lock);
+
+    err = proc_create_child(self, opts, &pChild);
+    if (err == EOK) {
+        Process_AdoptChild_Locked(self, pChild);
+        ProcessManager_Register(gProcessManager, pChild);
+        Object_Release(pChild);
+
+        err = Process_Exec(pChild, path, argv, opts->envp);
+        if (err != EOK) {
+            doTermChild = true;
+        }
+    }
+
+    Lock_Unlock(&self->lock);
+
+    if (doTermChild) {
+        Process_Terminate(pChild, 127);
+        pChild = NULL;
+    }
+
+    if (pOutChildPid) {
+        *pOutChildPid = (pChild) ? pChild->pid : 0;
+    }
+
+    return EOK;
 }
 
 // Adopts the process with the given PID as a child. The ppid of 'pOtherProc' must
