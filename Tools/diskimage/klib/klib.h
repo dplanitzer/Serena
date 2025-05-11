@@ -10,7 +10,6 @@
 #define klib_klib_h
 
 #include <klib/Types.h>
-#include <klib/Array.h>
 #include <klib/Atomic.h>
 #include <klib/Memory.h>
 #include <klib/Error.h>

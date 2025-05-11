@@ -11,7 +11,6 @@
 
 #include <klib/Types.h>
 #include <klib/Allocator.h>
-#include <klib/Array.h>
 #include <klib/Assert.h>
 #include <klib/Atomic.h>
 #include <klib/Error.h>
