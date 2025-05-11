@@ -48,7 +48,7 @@ errno_t Process_Close(ProcessRef _Nonnull self, IOChannelRef _Nonnull chan)
     return EOK;
 }
 
-#include <log/Log.h>
+
 errno_t Process_GetInfo(ProcessRef _Nonnull self, procinfo_t* _Nonnull info)
 {
     Lock_Lock(&self->lock);

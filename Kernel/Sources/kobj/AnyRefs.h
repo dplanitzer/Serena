@@ -75,6 +75,7 @@ class_ref(UDispatchQueue);
 class_ref(ULock);
 class_ref(UResource);
 class_ref(USemaphore);
+class_ref(VirtualDiskManager);
 class_ref(ZorroController);
 class_ref(ZorroDriver);
 

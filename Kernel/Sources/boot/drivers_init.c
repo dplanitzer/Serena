@@ -10,6 +10,7 @@
 #include <driver/LogDriver.h>
 #include <driver/NullDriver.h>
 #include <driver/amiga/AmigaController.h>
+#include <driver/disk/VirtualDiskManager.h>
 #include <driver/hid/HIDDriver.h>
 #include <driver/hid/HIDManager.h>
 
@@ -46,6 +47,11 @@ errno_t drivers_init(void)
     // 'null' driver
     try(NullDriver_Create(&gNullDriver));
     try(Driver_Start(gNullDriver));
+
+
+    // 'vdm' driver
+    try(VirtualDiskManager_Create((DriverRef*)&gVirtualDiskManager));
+    try(Driver_Start((DriverRef)gVirtualDiskManager));
 
 catch:
     return err;
