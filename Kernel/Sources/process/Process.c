@@ -75,7 +75,6 @@ errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t
 
     try(IOChannelTable_Init(&self->ioChannelTable));
     try(UResourceTable_Init(&self->uResourcesTable));
-    try(IntArray_Init(&self->childPids, 0));
 
     FileManager_Init(&self->fm, pFileHierarchy, uid, gid, pRootDir, pWorkingDir, fileCreationMask);
 
@@ -103,6 +102,8 @@ catch:
 
 void Process_deinit(ProcessRef _Nonnull self)
 {
+    assert(List_IsEmpty(&self->children));
+    
     IOChannelTable_Deinit(&self->ioChannelTable);
     UResourceTable_Deinit(&self->uResourcesTable);
 
@@ -115,7 +116,6 @@ void Process_deinit(ProcessRef _Nonnull self)
     
     Process_DestroyAllTombstones_Locked(self);
     ConditionVariable_Deinit(&self->tombstoneSignaler);
-    IntArray_Deinit(&self->childPids);
 
     AddressSpace_Destroy(self->addressSpace);
     self->addressSpace = NULL;

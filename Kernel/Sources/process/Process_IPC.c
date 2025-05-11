@@ -12,7 +12,7 @@
 
 
 // Creates an anonymous pipe.
-errno_t Process_CreatePipe(ProcessRef _Nonnull pProc, int* _Nonnull pOutReadChannel, int* _Nonnull pOutWriteChannel)
+errno_t Process_CreatePipe(ProcessRef _Nonnull self, int* _Nonnull pOutReadChannel, int* _Nonnull pOutWriteChannel)
 {
     decl_try_err();
     PipeRef pPipe = NULL;
@@ -23,21 +23,21 @@ errno_t Process_CreatePipe(ProcessRef _Nonnull pProc, int* _Nonnull pOutReadChan
     try(PipeChannel_Create(pPipe, O_RDONLY, &rdChannel));
     try(PipeChannel_Create(pPipe, O_WRONLY, &wrChannel));
 
-    Lock_Lock(&pProc->lock);
+    Lock_Lock(&self->lock);
     needsUnlock = true;
-    try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, rdChannel, pOutReadChannel));
+    try(IOChannelTable_AdoptChannel(&self->ioChannelTable, rdChannel, pOutReadChannel));
     rdChannel = NULL;
-    try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, wrChannel, pOutWriteChannel));
+    try(IOChannelTable_AdoptChannel(&self->ioChannelTable, wrChannel, pOutWriteChannel));
     wrChannel = NULL;
-    Lock_Unlock(&pProc->lock);
+    Lock_Unlock(&self->lock);
     return EOK;
 
 catch:
     if (rdChannel == NULL) {
-        IOChannelTable_ReleaseChannel(&pProc->ioChannelTable, *pOutReadChannel);
+        IOChannelTable_ReleaseChannel(&self->ioChannelTable, *pOutReadChannel);
     }
     if (needsUnlock) {
-        Lock_Unlock(&pProc->lock);
+        Lock_Unlock(&self->lock);
     }
     IOChannel_Release(rdChannel);
     IOChannel_Release(wrChannel);

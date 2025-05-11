@@ -16,9 +16,6 @@
 #define HASH_CHAIN_COUNT    16
 #define HASH_CHAIN_MASK     (HASH_CHAIN_COUNT - 1)
 
-#define proc_from_ptc(__ptr) \
-(ProcessRef) (((uint8_t*)__ptr) - offsetof(struct Process, ptcNode))
-
 
 typedef struct ProcessManager {
     Lock                        lock;
@@ -73,7 +70,7 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
 
     Lock_Lock(&self->lock);
     List_ForEach(&self->procTable[hash_scalar(pid) & HASH_CHAIN_MASK], ListNode,
-        ProcessRef pCurProc = proc_from_ptc(pCurNode);
+        ProcessRef pCurProc = proc_from_ptce(pCurNode);
 
         if (pCurProc->pid == pid) {
             proc = Object_RetainAs(pCurProc, Process);
@@ -93,7 +90,7 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
 void ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pProc)
 {
     Lock_Lock(&self->lock);
-    List_InsertBeforeFirst(&self->procTable[hash_scalar(pProc->pid) & HASH_CHAIN_MASK], &pProc->ptcNode);
+    List_InsertBeforeFirst(&self->procTable[hash_scalar(pProc->pid) & HASH_CHAIN_MASK], &pProc->ptce);
     Object_Retain(pProc);
     Lock_Unlock(&self->lock);
 }
@@ -105,7 +102,7 @@ void ProcessManager_Unregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
 {
     Lock_Lock(&self->lock);
     assert(pProc != self->rootProc);
-    List_Remove(&self->procTable[hash_scalar(pProc->pid) & HASH_CHAIN_MASK], &pProc->ptcNode);
+    List_Remove(&self->procTable[hash_scalar(pProc->pid) & HASH_CHAIN_MASK], &pProc->ptce);
     Object_Release(pProc);
     Lock_Unlock(&self->lock);
 }

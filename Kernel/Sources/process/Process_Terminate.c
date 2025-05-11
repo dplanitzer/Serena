@@ -12,9 +12,9 @@
 
 
 // Frees all tombstones
-void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc)
+void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull self)
 {
-    ProcessTombstone* pCurTombstone = (ProcessTombstone*)pProc->tombstones.first;
+    ProcessTombstone* pCurTombstone = (ProcessTombstone*)self->tombstones.first;
 
     while (pCurTombstone) {
         ProcessTombstone* nxt = (ProcessTombstone*)pCurTombstone->node.next;
@@ -29,36 +29,34 @@ void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc)
 // and posts a termination notification closure if one was provided for the child
 // process. Expects that the child process state does not change while this function
 // is executing.
-errno_t Process_OnChildTermination(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pChildProc)
+errno_t Process_OnChildTermination(ProcessRef _Nonnull self, ProcessRef _Nonnull child)
 {
     ProcessTombstone* pTombstone;
-    const pid_t childPid = pChildProc->pid;
-    const int childExitCode = pChildProc->exitCode;
 
-    if (Process_IsTerminating(pProc)) {
+    if (Process_IsTerminating(self)) {
         // We're terminating ourselves. Let the child know so that it should
         // bother someone else (session leader) with it's tombstone request.
         return ESRCH;
     }
 
     if (kalloc_cleared(sizeof(ProcessTombstone), (void**) &pTombstone) != EOK) {
-        printf("Broken tombstone for %d:%d\n", pProc->pid, childPid);
+        printf("Broken tombstone for %d:%d\n", self->pid, child->pid);
         return EOK;
     }
 
     ListNode_Init(&pTombstone->node);
-    pTombstone->pid = childPid;
-    pTombstone->status = childExitCode;
+    pTombstone->pid = child->pid;
+    pTombstone->status = child->exitCode;
 
-    Lock_Lock(&pProc->lock);
-    Process_AbandonChild_Locked(pProc, childPid);
-    List_InsertAfterLast(&pProc->tombstones, &pTombstone->node);
+    Lock_Lock(&self->lock);
+    Process_AbandonChild_Locked(self, child);
+    List_InsertAfterLast(&self->tombstones, &pTombstone->node);
     
-    ConditionVariable_BroadcastAndUnlock(&pProc->tombstoneSignaler, &pProc->lock);
+    ConditionVariable_BroadcastAndUnlock(&self->tombstoneSignaler, &self->lock);
     
-    if (pChildProc->terminationNotificationQueue) {
-        DispatchQueue_DispatchAsync(pChildProc->terminationNotificationQueue,
-            pChildProc->terminationNotificationClosure, pChildProc->terminationNotificationContext);
+    if (child->terminationNotificationQueue) {
+        DispatchQueue_DispatchAsync(child->terminationNotificationQueue,
+            child->terminationNotificationClosure, child->terminationNotificationContext);
     }
 
     return EOK;
@@ -69,12 +67,12 @@ errno_t Process_OnChildTermination(ProcessRef _Nonnull pProc, ProcessRef _Nonnul
 // child processes available or the PID is not the PID of a child process of
 // the receiver. Otherwise blocks the caller until the requested process or any
 // child process (pid == -1) has exited.
-errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, pid_t pid, pstatus_t* _Nullable pStatus)
+errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull self, pid_t pid, pstatus_t* _Nullable pStatus)
 {
     decl_try_err();
 
-    Lock_Lock(&pProc->lock);
-    if (pid == -1 && List_IsEmpty(&pProc->tombstones)) {
+    Lock_Lock(&self->lock);
+    if (pid == -1 && List_IsEmpty(&self->tombstones)) {
         throw(ECHILD);
     }
 
@@ -85,10 +83,10 @@ errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, pid_t pid, 
 
         if (pid == -1) {
             // Any tombstone is good, return the first one (oldest) that was recorded
-            pTombstone = (ProcessTombstone*)pProc->tombstones.first;
+            pTombstone = (ProcessTombstone*)self->tombstones.first;
         } else {
             // Look for the specific child process
-            List_ForEach(&pProc->tombstones, ProcessTombstone, {
+            List_ForEach(&self->tombstones, ProcessTombstone, {
                 if (pCurNode->pid == pid) {
                     pTombstone = pCurNode;
                     break;
@@ -97,7 +95,17 @@ errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, pid_t pid, 
 
             if (pTombstone == NULL) {
                 // Looks like the child isn't dead yet or 'pid' isn't referring to a child. Make sure it does
-                if (!IntArray_Contains(&pProc->childPids, pid)) {
+                bool hasChild = false;
+
+                List_ForEach(&self->children, ListNode,
+                    ProcessRef pCurProc = proc_from_siblings(pCurNode);
+
+                    if (pCurProc->pid == pid) {
+                        hasChild = true;
+                        break;
+                    }
+                );
+                if (!hasChild) {
                     throw(ECHILD);
                 }
             }
@@ -109,20 +117,20 @@ errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, pid_t pid, 
                 pStatus->status = pTombstone->status;
             }
 
-            List_Remove(&pProc->tombstones, &pTombstone->node);
+            List_Remove(&self->tombstones, &pTombstone->node);
             kfree(pTombstone);
             break;
         }
 
 
         // Wait for a child to terminate
-        try(ConditionVariable_Wait(&pProc->tombstoneSignaler, &pProc->lock, kTimeInterval_Infinity));
+        try(ConditionVariable_Wait(&self->tombstoneSignaler, &self->lock, kTimeInterval_Infinity));
     }
-    Lock_Unlock(&pProc->lock);
+    Lock_Unlock(&self->lock);
     return EOK;
 
 catch:
-    Lock_Unlock(&pProc->lock);
+    Lock_Unlock(&self->lock);
     if (pStatus) {
         pStatus->pid = 0;
         pStatus->status = 0;
@@ -137,16 +145,22 @@ catch:
 // termination concurrently with our termination. The process is inherently
 // racy and thus we need to be defensive about things. Returns 0 if there are
 // no more children.
-static int Process_GetAnyChildPid(ProcessRef _Nonnull pProc)
+static int Process_GetAnyChildPid(ProcessRef _Nonnull self)
 {
-    Lock_Lock(&pProc->lock);
-    const int pid = IntArray_GetFirst(&pProc->childPids, -1);
-    Lock_Unlock(&pProc->lock);
+    int pid = -1;
+
+    Lock_Lock(&self->lock);
+    if (self->children.first) {
+        ProcessRef pChildProc = proc_from_siblings(self->children.first);
+
+        pid = pChildProc->pid;
+    }
+    Lock_Unlock(&self->lock);
     return pid;
 }
 
 // Runs on the kernel main dispatch queue and terminates the given process.
-void _Process_DoTerminate(ProcessRef _Nonnull pProc)
+void _Process_DoTerminate(ProcessRef _Nonnull self)
 {
     // Notes on terminating a process:
     //
@@ -207,16 +221,16 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 
     // Terminate all dispatch queues. This takes care of aborting user space
     // invocations.
-    DispatchQueue_Terminate(pProc->mainDispatchQueue);
+    DispatchQueue_Terminate(self->mainDispatchQueue);
 
 
     // Wait for all dispatch queues to have reached 'terminated' state
-    DispatchQueue_WaitForTerminationCompleted(pProc->mainDispatchQueue);
+    DispatchQueue_WaitForTerminationCompleted(self->mainDispatchQueue);
 
 
     // Terminate all my children and wait for them to be dead
     while (true) {
-        const pid_t pid = Process_GetAnyChildPid(pProc);
+        const pid_t pid = Process_GetAnyChildPid(self);
 
         if (pid <= 0) {
             break;
@@ -225,23 +239,23 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
         ProcessRef pCurChild = ProcessManager_CopyProcessForPid(gProcessManager, pid);
         
         Process_Terminate(pCurChild, 0);
-        Process_WaitForTerminationOfChild(pProc, pid, NULL);
+        Process_WaitForTerminationOfChild(self, pid, NULL);
         Object_Release(pCurChild);
     }
 
 
     // Let our parent know that we're dead now and that it should remember us by
     // commissioning a beautiful tombstone for us.
-    if (!Process_IsRoot(pProc)) {
-        ProcessRef pParentProc = ProcessManager_CopyProcessForPid(gProcessManager, pProc->ppid);
+    if (!Process_IsRoot(self)) {
+        ProcessRef pParentProc = ProcessManager_CopyProcessForPid(gProcessManager, self->ppid);
 
         if (pParentProc) {
-            if (Process_OnChildTermination(pParentProc, pProc) == ESRCH) {
+            if (Process_OnChildTermination(pParentProc, self) == ESRCH) {
                 // XXXsession Try the session leader next. Give up if this fails too.
                 // XXXsession. Unconditionally falling back to the root process for now.
                 // Just drop the tombstone request if no one wants it.
                 ProcessRef pRootProc = ProcessManager_CopyRootProcess(gProcessManager);
-                Process_OnChildTermination(pRootProc, pProc);
+                Process_OnChildTermination(pRootProc, self);
                 Object_Release(pRootProc);
             }
             Object_Release(pParentProc);
@@ -250,8 +264,8 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 
 
     // Finally destroy the process.
-    ProcessManager_Unregister(gProcessManager, pProc);
-    Object_Release(pProc);
+    ProcessManager_Unregister(gProcessManager, self);
+    Object_Release(self);
 }
 
 // Triggers the termination of the given process. The termination may be caused
@@ -261,10 +275,10 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 // be made available to the parent process. Note that the only exit code that
 // is passed to the parent is the one from the first Process_Terminate() call.
 // All others are discarded.
-void Process_Terminate(ProcessRef _Nonnull pProc, int exitCode)
+void Process_Terminate(ProcessRef _Nonnull self, int exitCode)
 {
     // We do not allow exiting the root process
-    if (Process_IsRoot(pProc)) {
+    if (Process_IsRoot(self)) {
         abort();
     }
 
@@ -280,21 +294,21 @@ void Process_Terminate(ProcessRef _Nonnull pProc, int exitCode)
     // freed no system call that might directly or indirectly reference the
     // process is active anymore because all of them have been aborted and
     // unwound before we free the process data structure.
-    if(AtomicBool_Set(&pProc->isTerminating, true)) {
+    if(AtomicBool_Set(&self->isTerminating, true)) {
         return;
     }
 
 
     // Remember the exit code
-    pProc->exitCode = exitCode;
+    self->exitCode = exitCode;
 
 
     // Schedule the actual process termination and destruction on the kernel
     // main dispatch queue.
-    try_bang(DispatchQueue_DispatchAsync(ProcessManager_GetReaperQueue(gProcessManager), (VoidFunc_1) _Process_DoTerminate, pProc));
+    try_bang(DispatchQueue_DispatchAsync(ProcessManager_GetReaperQueue(gProcessManager), (VoidFunc_1) _Process_DoTerminate, self));
 }
 
-bool Process_IsTerminating(ProcessRef _Nonnull pProc)
+bool Process_IsTerminating(ProcessRef _Nonnull self)
 {
-    return pProc->isTerminating;
+    return self->isTerminating;
 }

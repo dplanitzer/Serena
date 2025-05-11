@@ -35,7 +35,7 @@ typedef struct ProcessTombstone {
 final_class_ivars(Process, Object,
     Lock                            lock;
     
-    ListNode                        ptcNode;    // Protected by ProcessManager lock
+    ListNode                        ptce;       // Process table chain entry. Protected by ProcessManager lock
 
     pid_t                           ppid;       // parent's PID
     pid_t                           pid;        // my PID
@@ -59,13 +59,21 @@ final_class_ivars(Process, Object,
     int                             exitCode;       // Exit code of the first exit() call that initiated the termination of this process
 
     // Child process related properties
-    IntArray                        childPids;      // PIDs of all my child processes
-    List                            tombstones;     // Tombstones of child processes that have terminated and have not yet been consumed by waitpid()
+    List/*<Process>*/               children;
+    ListNode                        siblings;
+    List/*<ProcessTombstone>*/      tombstones;     // Tombstones of child processes that have terminated and have not yet been consumed by waitpid()
     ConditionVariable               tombstoneSignaler;
     DispatchQueueRef _Nullable      terminationNotificationQueue;   // Post the terminationNotificationClosure to this queue on process death, if not NULL
     dispatch_func_t _Nullable        terminationNotificationClosure;
     void* _Nullable                 terminationNotificationContext;
 );
+
+#define proc_from_ptce(__ptr) \
+(ProcessRef) (((uint8_t*)__ptr) - offsetof(struct Process, ptce))
+
+#define proc_from_siblings(__ptr) \
+(ProcessRef) (((uint8_t*)__ptr) - offsetof(struct Process, siblings))
+
 
 
 extern errno_t Process_Create(pid_t ppid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutSelf);
@@ -87,12 +95,12 @@ extern errno_t Process_OnChildTermination(ProcessRef _Nonnull self, ProcessRef _
 // Runs on the kernel main dispatch queue and terminates the given process.
 extern void _Process_DoTerminate(ProcessRef _Nonnull self);
 
-// Adopts the process wth the given PID as a child. The ppid of 'pOtherProc' must
-// be the PID of the receiver.
-extern errno_t Process_AdoptChild_Locked(ProcessRef _Nonnull self, pid_t childPid);
+// Adopts the given process as a child. The ppid of 'child' must be the PID of
+// the receiver.
+extern void Process_AdoptChild_Locked(ProcessRef _Nonnull self, ProcessRef _Nonnull child);
 
-// Abandons the process with the given PID as a child of the receiver.
-extern void Process_AbandonChild_Locked(ProcessRef _Nonnull self, pid_t childPid);
+// Abandons the given process as a child of the receiver.
+extern void Process_AbandonChild_Locked(ProcessRef _Nonnull self, ProcessRef _Nonnull child);
 
 // Loads an executable from the given executable file into the process address
 // space.

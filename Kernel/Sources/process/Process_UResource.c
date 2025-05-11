@@ -11,7 +11,7 @@
 
 // Disposes the user resource identified by the given descriptor. The resource
 // is deallocated and removed from the resource table.
-errno_t Process_DisposeUResource(ProcessRef _Nonnull pProc, int od)
+errno_t Process_DisposeUResource(ProcessRef _Nonnull self, int od)
 {
-    return UResourceTable_DisposeResource(&pProc->uResourcesTable, od);
+    return UResourceTable_DisposeResource(&self->uResourcesTable, od);
 }

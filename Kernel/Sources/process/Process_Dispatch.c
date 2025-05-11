@@ -13,13 +13,13 @@
 
 
 // Creates a new UConditionVariable and binds it to the process.
-errno_t Process_CreateUConditionVariable(ProcessRef _Nonnull pProc, int* _Nullable pOutOd)
+errno_t Process_CreateUConditionVariable(ProcessRef _Nonnull self, int* _Nullable pOutOd)
 {
     decl_try_err();
     UConditionVariableRef pCV = NULL;
 
     try(UConditionVariable_Create(&pCV));
-    try(UResourceTable_AdoptResource(&pProc->uResourcesTable, (UResourceRef) pCV, pOutOd));
+    try(UResourceTable_AdoptResource(&self->uResourcesTable, (UResourceRef) pCV, pOutOd));
     pCV = NULL;
     return EOK;
 
@@ -31,15 +31,15 @@ catch:
 
 // Wakes the given condition variable and unlock the associated lock if
 // 'dLock' is not -1. This does a signal or broadcast.
-errno_t Process_WakeUConditionVariable(ProcessRef _Nonnull pProc, int odCV, int odLock, bool bBroadcast)
+errno_t Process_WakeUConditionVariable(ProcessRef _Nonnull self, int odCV, int odLock, bool bBroadcast)
 {
     decl_try_err();
     UConditionVariableRef pCV = NULL;
     ULockRef pLock = NULL;
 
-    if ((err = UResourceTable_AcquireTwoResourcesAs(&pProc->uResourcesTable, odCV, UConditionVariable, &pCV, odLock, ULock, &pLock)) == EOK) {
+    if ((err = UResourceTable_AcquireTwoResourcesAs(&self->uResourcesTable, odCV, UConditionVariable, &pCV, odLock, ULock, &pLock)) == EOK) {
         UConditionVariable_WakeAndUnlock(pCV, pLock, bBroadcast);
-        UResourceTable_RelinquishTwoResources(&pProc->uResourcesTable, pCV, pLock);
+        UResourceTable_RelinquishTwoResources(&self->uResourcesTable, pCV, pLock);
     }
     return err;
 }
@@ -48,28 +48,28 @@ errno_t Process_WakeUConditionVariable(ProcessRef _Nonnull pProc, int odCV, int 
 // wait has timed out. Automatically and atomically acquires the associated
 // lock on wakeup. An ETIMEOUT error is returned if the condition variable is
 // not signaled before 'deadline'.
-errno_t Process_WaitUConditionVariable(ProcessRef _Nonnull pProc, int odCV, int odLock, TimeInterval deadline)
+errno_t Process_WaitUConditionVariable(ProcessRef _Nonnull self, int odCV, int odLock, TimeInterval deadline)
 {
     decl_try_err();
     UConditionVariableRef pCV = NULL;
     ULockRef pLock = NULL;
 
-    if ((err = UResourceTable_AcquireTwoResourcesAs(&pProc->uResourcesTable, odCV, UConditionVariable, &pCV, odLock, ULock, &pLock)) == EOK) {
+    if ((err = UResourceTable_AcquireTwoResourcesAs(&self->uResourcesTable, odCV, UConditionVariable, &pCV, odLock, ULock, &pLock)) == EOK) {
         err = UConditionVariable_Wait(pCV, pLock, deadline);
-        UResourceTable_RelinquishTwoResources(&pProc->uResourcesTable, pCV, pLock);
+        UResourceTable_RelinquishTwoResources(&self->uResourcesTable, pCV, pLock);
     }
     return err;
 }
 
 
 // Creates a new ULock and binds it to the process.
-errno_t Process_CreateULock(ProcessRef _Nonnull pProc, int* _Nullable pOutOd)
+errno_t Process_CreateULock(ProcessRef _Nonnull self, int* _Nullable pOutOd)
 {
     decl_try_err();
     ULockRef pLock = NULL;
 
     try(ULock_Create(&pLock));
-    try(UResourceTable_AdoptResource(&pProc->uResourcesTable, (UResourceRef) pLock, pOutOd));
+    try(UResourceTable_AdoptResource(&self->uResourcesTable, (UResourceRef) pLock, pOutOd));
     pLock = NULL;
     return EOK;
 
@@ -81,55 +81,55 @@ catch:
 
 // Tries taking the given lock. Returns EOK on success and EBUSY if someone else
 // is already holding the lock.
-errno_t Process_TryULock(ProcessRef _Nonnull pProc, int od)
+errno_t Process_TryULock(ProcessRef _Nonnull self, int od)
 {
     decl_try_err();
     ULockRef pLock;
 
-    if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, ULock, &pLock)) == EOK) {
+    if ((err = UResourceTable_BeginDirectResourceAccessAs(&self->uResourcesTable, od, ULock, &pLock)) == EOK) {
         err = (ULock_TryLock(pLock)) ? EOK : EBUSY;
-        UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
+        UResourceTable_EndDirectResourceAccess(&self->uResourcesTable);
     }
     return err;
 }
 
 // Locks the given user lock. The caller will remain blocked until the lock can
 // be successfully acquired or the wait is interrupted for some reason.
-errno_t Process_LockULock(ProcessRef _Nonnull pProc, int od)
+errno_t Process_LockULock(ProcessRef _Nonnull self, int od)
 {
     decl_try_err();
     ULockRef pLock;
 
-    if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, ULock, &pLock)) == EOK) {
+    if ((err = UResourceTable_AcquireResourceAs(&self->uResourcesTable, od, ULock, &pLock)) == EOK) {
         err = ULock_Lock(pLock);
-        UResourceTable_RelinquishResource(&pProc->uResourcesTable, pLock);
+        UResourceTable_RelinquishResource(&self->uResourcesTable, pLock);
     }
     return err;
 }
 
 // Unlocks the given user lock. Returns EOK on success and EPERM if the lock is
 // currently being held by some other virtual processor.
-errno_t Process_UnlockULock(ProcessRef _Nonnull pProc, int od)
+errno_t Process_UnlockULock(ProcessRef _Nonnull self, int od)
 {
     decl_try_err();
     ULockRef pLock;
 
-    if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, ULock, &pLock)) == EOK) {
+    if ((err = UResourceTable_BeginDirectResourceAccessAs(&self->uResourcesTable, od, ULock, &pLock)) == EOK) {
         err = ULock_Unlock(pLock);
-        UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
+        UResourceTable_EndDirectResourceAccess(&self->uResourcesTable);
     }
     return err;
 }
 
 
 // Creates a new USemaphore and binds it to the process.
-errno_t Process_CreateUSemaphore(ProcessRef _Nonnull pProc, int npermits, int* _Nullable pOutOd)
+errno_t Process_CreateUSemaphore(ProcessRef _Nonnull self, int npermits, int* _Nullable pOutOd)
 {
     decl_try_err();
     USemaphoreRef pSema = NULL;
 
     try(USemaphore_Create(npermits, &pSema));
-    try(UResourceTable_AdoptResource(&pProc->uResourcesTable, (UResourceRef) pSema, pOutOd));
+    try(UResourceTable_AdoptResource(&self->uResourcesTable, (UResourceRef) pSema, pOutOd));
     pSema = NULL;
     return EOK;
 
@@ -140,14 +140,14 @@ catch:
 }
 
 // Releases 'npermits' permits to the semaphore.
-errno_t Process_RelinquishUSemaphore(ProcessRef _Nonnull pProc, int od, int npermits)
+errno_t Process_RelinquishUSemaphore(ProcessRef _Nonnull self, int od, int npermits)
 {
     decl_try_err();
     USemaphoreRef pSema;
 
-    if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, USemaphore, &pSema)) == EOK) {
+    if ((err = UResourceTable_BeginDirectResourceAccessAs(&self->uResourcesTable, od, USemaphore, &pSema)) == EOK) {
         USemaphore_Relinquish(pSema, npermits);
-        UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
+        UResourceTable_EndDirectResourceAccess(&self->uResourcesTable);
     }
     return err;
 }
@@ -155,28 +155,28 @@ errno_t Process_RelinquishUSemaphore(ProcessRef _Nonnull pProc, int od, int nper
 // Blocks the caller until 'npermits' can be successfully acquired from the given
 // semaphore. Returns EOK on success and ETIMEOUT if the permits could not be
 // acquired before 'deadline'.
-errno_t Process_AcquireUSemaphore(ProcessRef _Nonnull pProc, int od, int npermits, TimeInterval deadline)
+errno_t Process_AcquireUSemaphore(ProcessRef _Nonnull self, int od, int npermits, TimeInterval deadline)
 {
     decl_try_err();
     USemaphoreRef pSema;
 
-    if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, USemaphore, &pSema)) == EOK) {
+    if ((err = UResourceTable_AcquireResourceAs(&self->uResourcesTable, od, USemaphore, &pSema)) == EOK) {
         err = USemaphore_Acquire(pSema, npermits, deadline);
-        UResourceTable_RelinquishResource(&pProc->uResourcesTable, pSema);
+        UResourceTable_RelinquishResource(&self->uResourcesTable, pSema);
     }
     return err;
 }
 
 // Tries to acquire 'npermits' from the given semaphore. Returns true on success
 // and false otherwise. This function does not block the caller.
-errno_t Process_TryAcquireUSemaphore(ProcessRef _Nonnull pProc, int npermits, int od)
+errno_t Process_TryAcquireUSemaphore(ProcessRef _Nonnull self, int npermits, int od)
 {
     decl_try_err();
     USemaphoreRef pSema;
 
-    if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, USemaphore, &pSema)) == EOK) {
+    if ((err = UResourceTable_BeginDirectResourceAccessAs(&self->uResourcesTable, od, USemaphore, &pSema)) == EOK) {
         err = USemaphore_TryAcquire(pSema, npermits) ? EOK : EBUSY;
-        UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
+        UResourceTable_EndDirectResourceAccess(&self->uResourcesTable);
     }
     return err;
 }
