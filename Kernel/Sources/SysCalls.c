@@ -100,9 +100,8 @@ intptr_t _SYSCALL_##__name(ProcessRef _Nonnull proc, const struct args_##__name*
 
 ////////////////////////////////////////////////////////////////////////////////
 
-intptr_t _syscall_handler(unsigned int* _Nonnull args)
+intptr_t _syscall_handler(VirtualProcessor* _Nonnull vcpu, unsigned int* _Nonnull args)
 {
-    VirtualProcessor* vcpu = VirtualProcessor_GetCurrent();
     ProcessRef curProc = DispatchQueue_GetOwningProcess(vcpu->dispatchQueue);
     const unsigned int nscno = sizeof(gSystemCallTable) / sizeof(syscall_t);
     const unsigned int scno = *args;
