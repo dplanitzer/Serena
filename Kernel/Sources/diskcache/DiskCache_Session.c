@@ -66,7 +66,7 @@ void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
 
 // Triggers an asynchronous loading of the disk block data at the address
 // (sessionId, lba)
-static errno_t _DiskCache_PrefetchBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, bno_t lba)
+static errno_t _DiskCache_PrefetchBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, blkno_t lba)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
@@ -94,7 +94,7 @@ static errno_t _DiskCache_PrefetchBlock(DiskCacheRef _Nonnull _Locked self, cons
 
 // Triggers an asynchronous loading of the disk block data at the address
 // (sessionId, lba)
-errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba)
+errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, blkno_t lba)
 {
     decl_try_err();
 
@@ -130,7 +130,7 @@ errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, const DiskSessi
     return err;
 }
 
-errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba)
+errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, blkno_t lba)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
@@ -153,7 +153,7 @@ errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s,
     return err;
 }
 
-errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba)
+errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, blkno_t lba)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
@@ -174,7 +174,7 @@ errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, 
     return err;
 }
 
-errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba)
+errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, blkno_t lba)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
@@ -195,7 +195,7 @@ errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s
     return err;
 }
 
-errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, bno_t lba, MapBlock mode, FSBlock* _Nonnull blk)
+errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, blkno_t lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;

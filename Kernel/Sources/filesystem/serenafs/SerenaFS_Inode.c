@@ -18,8 +18,8 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const TimeInterval curTime = FSGetCurrentTime();
     ino_t parentInodeId = Inode_GetId(dir);
-    bno_t inodeLba = 0;
-    bno_t dirContLba = 0;
+    blkno_t inodeLba = 0;
+    blkno_t dirContLba = 0;
     off_t fileSize = 0ll;
     InodeRef pNode = NULL;
     FSBlock blk = {0};
@@ -107,7 +107,7 @@ errno_t SerenaFS_onAcquireNode(SerenaFSRef _Nonnull self, ino_t id, InodeRef _Nu
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    const bno_t lba = (bno_t)id;
+    const blkno_t lba = (blkno_t)id;
     Class* pClass;
     InodeRef pNode = NULL;
     FSBlock blk = {0};
@@ -144,7 +144,7 @@ catch:
 errno_t SerenaFS_onWritebackNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    const bno_t lba = (bno_t)Inode_GetId(pNode);
+    const blkno_t lba = (blkno_t)Inode_GetId(pNode);
     const bool doDelete = (Inode_GetLinkCount(pNode) == 0) ? true : false;
     FSBlock blk = {0};
 

@@ -10,7 +10,7 @@
 #include "FSUtilities.h"
 
 
-errno_t FSContainer_Create(Class* _Nonnull pClass, bcnt_t blockCount, size_t blockSize, uint32_t properties, FSContainerRef _Nullable * _Nonnull pOutSelf)
+errno_t FSContainer_Create(Class* _Nonnull pClass, blkcnt_t blockCount, size_t blockSize, uint32_t properties, FSContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     FSContainerRef self;
@@ -32,7 +32,7 @@ void FSContainer_disconnect(FSContainerRef _Nonnull self)
 }
 
 
-errno_t FSContainer_mapBlock(FSContainerRef _Nonnull self, bno_t lba, MapBlock mode, FSBlock* _Nonnull blk)
+errno_t FSContainer_mapBlock(FSContainerRef _Nonnull self, blkno_t lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
     blk->token = 0;
     blk->data = NULL;
@@ -45,13 +45,13 @@ errno_t FSContainer_unmapBlock(FSContainerRef _Nonnull self, intptr_t token, Wri
     return EIO;
 }
 
-errno_t FSContainer_prefetchBlock(FSContainerRef _Nonnull self, bno_t lba)
+errno_t FSContainer_prefetchBlock(FSContainerRef _Nonnull self, blkno_t lba)
 {
     return EOK;
 }
 
 
-errno_t FSContainer_syncBlock(FSContainerRef _Nonnull self, bno_t lba)
+errno_t FSContainer_syncBlock(FSContainerRef _Nonnull self, blkno_t lba)
 {
     return EOK;
 }

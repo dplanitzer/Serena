@@ -9,10 +9,7 @@
 #include <clap.h>
 #include <errno.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <System/Error.h>
-#include <System/File.h>
 
 
 const char* old_path = "";
@@ -30,15 +27,13 @@ CLAP_DECL(params,
 
 int main(int argc, char* argv[])
 {
-    decl_try_err();
-
     clap_parse(0, params, argc, argv);
 
-    
-    err = os_rename(old_path, new_path);
-    if (err != EOK) {
-        clap_error(argv[0], "%s: %s", old_path, strerror(err));
+    if (rename(old_path, new_path) == 0) {
+        return EXIT_SUCCESS;
     }
-
-    return (err == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
+    else {
+        clap_error(argv[0], "%s: %s", old_path, strerror(errno));
+        return EXIT_FAILURE;
+    }
 }

@@ -6,8 +6,8 @@
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 ;
 
-    include "../hal/chipset.i"
-    include "../hal/lowmem.i"
+    include "hal/chipset.i"
+    include "hal/lowmem.i"
 
     xdef _fdc_nano_delay
 

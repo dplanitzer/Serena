@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <System/Mutex.h>
 #include <System/Process.h>
+#include <System/_syscall.h>
 #include <__stddef.h>
 
 
@@ -66,5 +67,5 @@ _Noreturn exit(int exit_code)
 
 _Noreturn _Exit(int exit_code)
 {
-    os_exit(exit_code);
+    _syscall(SC_exit, exit_code);
 }

@@ -16,7 +16,7 @@
 
 typedef struct SfsFileBlock {
     FSBlock     b;
-    bno_t       lba;
+    blkno_t       lba;
     bool        wasAlloced;
     bool        isZeroFill;
 } SfsFileBlock;

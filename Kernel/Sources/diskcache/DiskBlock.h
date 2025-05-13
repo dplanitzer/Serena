@@ -28,7 +28,7 @@ typedef struct DiskBlock {
     ListNode        hashNode;           // Protected by Interlock
     ListNode        lruNode;            // Protected by Interlock
     int             sessionId;          // Protected by Interlock. Address by which a block is identified in the cache
-    bno_t           lba;                // Protected by Interlock. Address by which a block is identified in the cache
+    blkno_t           lba;                // Protected by Interlock. Address by which a block is identified in the cache
     int             shareCount;         // Protected by Interlock
     struct __DiskBlockFlags {
         unsigned int    exclusive:1;    // Protected by Interlock
@@ -44,7 +44,7 @@ typedef struct DiskBlock {
 } DiskBlock;
 
 
-extern errno_t DiskBlock_Create(int sessionId, bno_t lba, size_t blockSize, DiskBlockRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DiskBlock_Create(int sessionId, blkno_t lba, size_t blockSize, DiskBlockRef _Nullable * _Nonnull pOutSelf);
 extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
 
 #define DiskBlock_InUse(__self) \

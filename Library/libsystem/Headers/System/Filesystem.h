@@ -43,8 +43,8 @@ enum {
 
 // Filesystem specific information
 typedef struct fsinfo {
-    bcnt_t      capacity;       // Filesystem capacity in terms of filesystem blocks (if a regular fs) or catalog entries (if a catalog)
-    bcnt_t      count;          // Blocks or entries currently in use/allocated
+    blkcnt_t    capacity;       // Filesystem capacity in terms of filesystem blocks (if a regular fs) or catalog entries (if a catalog)
+    blkcnt_t    count;          // Blocks or entries currently in use/allocated
     size_t      blockSize;      // Size of a block in bytes
     fsid_t      fsid;           // Filesystem ID
     uint32_t    properties;     // Filesystem properties

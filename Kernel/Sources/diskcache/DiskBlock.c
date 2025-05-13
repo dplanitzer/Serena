@@ -10,7 +10,7 @@
 #include <klib/Kalloc.h>
 
 
-errno_t DiskBlock_Create(int sessionId, bno_t lba, size_t blockSize, DiskBlockRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskBlock_Create(int sessionId, blkno_t lba, size_t blockSize, DiskBlockRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskBlock* self = NULL;

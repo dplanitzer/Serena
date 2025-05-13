@@ -45,7 +45,7 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const char* _Nonnull params,
 
     // Make sure that the disk partition actually contains a SerenaFS that we
     // know how to handle.
-    const bcnt_t fscBlockCount = FSContainer_GetBlockCount(fsContainer);
+    const blkcnt_t fscBlockCount = FSContainer_GetBlockCount(fsContainer);
     const size_t fscBlockSize = FSContainer_GetBlockSize(fsContainer);
     const bool fscIsReadOnly = FSContainer_IsReadOnly(fsContainer);
 

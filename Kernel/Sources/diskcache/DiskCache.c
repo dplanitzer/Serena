@@ -192,7 +192,7 @@ void _DiskCache_PrintLruChain(DiskCacheRef _Nonnull _Locked self)
 #endif
 
 
-static errno_t _DiskCache_CreateBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, bno_t lba, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+static errno_t _DiskCache_CreateBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, blkno_t lba, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
     DiskBlockRef pBlock;
@@ -210,7 +210,7 @@ static errno_t _DiskCache_CreateBlock(DiskCacheRef _Nonnull _Locked self, const 
 
 // Finds the oldest cached block that isn't currently in use and re-targets this
 // block to the new disk address.  
-static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, bno_t lba)
+static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, blkno_t lba)
 {
     DiskBlockRef pBlock = NULL;
 
@@ -245,7 +245,7 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
 // A new block is created if needed or an existing block is retrieved from the
 // cached list of blocks. The caller must lock the content of the block before
 // doing I/O on it or before handing it to a filesystem.
-errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, bno_t lba, unsigned int options, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, blkno_t lba, unsigned int options, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
     DiskBlockRef pBlock;

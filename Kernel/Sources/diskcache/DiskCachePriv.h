@@ -180,7 +180,7 @@ extern errno_t _DiskCache_LockBlockContent(DiskCacheRef _Nonnull _Locked self, D
 extern void _DiskCache_UnlockBlockContent(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock);
 extern void _DiskCache_DowngradeBlockContentLock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock);
 
-extern errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, bno_t lba, unsigned int options, DiskBlockRef _Nullable * _Nonnull pOutBlock);
+extern errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, blkno_t lba, unsigned int options, DiskBlockRef _Nullable * _Nonnull pOutBlock);
 extern void _DiskCache_PutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock);
 extern void _DiskCache_UnlockContentAndPutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock);
 

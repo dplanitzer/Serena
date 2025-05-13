@@ -6,8 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_TYPES_H
-#define _SYS_TYPES_H 1
+#ifndef _SYS_TYPES2_H
+#define _SYS_TYPES2_H 1
 
 #include <System/abi/_dmdef.h>
 #include <System/abi/_bool.h>
@@ -18,6 +18,7 @@
 #include <System/abi/_ssize.h>
 #include <System/_errno.h>
 #include <System/_cmndef.h>
+#include <sys/types.h>
 
 __CPP_BEGIN
 
@@ -39,10 +40,6 @@ typedef uint64_t    ino_t;
 #error "Unknown data model"
 #endif
 
-
-// Represents a logical block address and count
-typedef size_t  bno_t;
-typedef bno_t   bcnt_t;
 
 // Represents a logical sector address and count
 typedef size_t  sno_t;
@@ -96,4 +93,4 @@ typedef int         nlink_t;
 
 __CPP_END
 
-#endif /* _SYS_TYPES_H */
+#endif /* _SYS_TYPES2_H */

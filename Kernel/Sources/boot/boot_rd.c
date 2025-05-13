@@ -43,7 +43,7 @@ void auto_discover_boot_rd(void)
         try(Catalog_Open(gDriverCatalog, "/rd0", O_RDWR, &chan));
         try(DiskContainer_Create(chan, &fsContainer));
 
-        for (bno_t lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
+        for (blkno_t lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
             FSBlock blk;
 
             try(FSContainer_MapBlock(fsContainer, lba, kMapBlock_Replace, &blk));

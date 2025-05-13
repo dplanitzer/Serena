@@ -12,7 +12,7 @@
 #include <filesystem/serenafs/tools/format.h>
 
 
-static errno_t block_write(intptr_t fd, const void* _Nonnull buf, bno_t blockAddr, size_t blockSize)
+static errno_t block_write(intptr_t fd, const void* _Nonnull buf, blkno_t blockAddr, size_t blockSize)
 {
     ssize_t bytesWritten;
     const errno_t err = RamContainer_Write((void*)fd, buf, blockSize, blockAddr * blockSize, &bytesWritten);

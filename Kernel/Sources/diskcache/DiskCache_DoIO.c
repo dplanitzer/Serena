@@ -64,8 +64,8 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     // This is experimental: read/write all sectors in a single R/W cluster in one
     // go. This allows us to cache everything from a track right away. This makes
     // sense for track orientated disk drives like the Amiga disk drive. 
-    const bcnt_t nBlocksToCluster = s->rwClusterSize;
-    const bno_t lbaClusterStart = (nBlocksToCluster > 1) ? (pBlock->lba * s->s2bFactor) / s->rwClusterSize * s->rwClusterSize / s->s2bFactor : pBlock->lba;
+    const blkcnt_t nBlocksToCluster = s->rwClusterSize;
+    const blkno_t lbaClusterStart = (nBlocksToCluster > 1) ? (pBlock->lba * s->s2bFactor) / s->rwClusterSize * s->rwClusterSize / s->s2bFactor : pBlock->lba;
     //XXX
 
 
@@ -80,8 +80,8 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     }
     
 #if 1
-    for (bcnt_t i = 0; i < nBlocksToCluster; i++) {
-        const bno_t lba = lbaClusterStart + i;
+    for (blkcnt_t i = 0; i < nBlocksToCluster; i++) {
+        const blkno_t lba = lbaClusterStart + i;
         DiskBlockRef pOther;
 
         if (lba == pBlock->lba) {

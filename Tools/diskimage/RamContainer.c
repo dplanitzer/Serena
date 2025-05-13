@@ -84,7 +84,7 @@ void RamContainer_deinit(RamContainerRef _Nonnull self)
     self->diskImage = NULL;
 }
 
-errno_t RamContainer_mapBlock(struct RamContainer* _Nonnull self, bno_t lba, MapBlock mode, FSBlock* _Nonnull blk)
+errno_t RamContainer_mapBlock(struct RamContainer* _Nonnull self, blkno_t lba, MapBlock mode, FSBlock* _Nonnull blk)
 {
     decl_try_err();
 
@@ -136,7 +136,7 @@ errno_t RamContainer_unmapBlock(struct RamContainer* _Nonnull self, intptr_t tok
         return EOK;
     }
 
-    bno_t lba = token - 1;
+    blkno_t lba = token - 1;
     switch (mode) {
         case kWriteBlock_None:
             self->mappedFlags[lba] = false;
@@ -167,9 +167,9 @@ errno_t RamContainer_unmapBlock(struct RamContainer* _Nonnull self, intptr_t tok
     return err;
 }
 
-static void convert_offset(struct RamContainer* _Nonnull self, off_t offset, bno_t* _Nonnull pOutBlockIdx, ssize_t* _Nonnull pOutBlockOffset)
+static void convert_offset(struct RamContainer* _Nonnull self, off_t offset, blkno_t* _Nonnull pOutBlockIdx, ssize_t* _Nonnull pOutBlockOffset)
 {
-    *pOutBlockIdx = (bno_t)(offset >> (off_t)self->blockShift);
+    *pOutBlockIdx = (blkno_t)(offset >> (off_t)self->blockShift);
     *pOutBlockOffset = (ssize_t)(offset & (off_t)self->blockMask);
 }
 
@@ -209,7 +209,7 @@ errno_t RamContainer_Read(RamContainerRef _Nonnull self, void* _Nonnull buf, ssi
 
     // Get the block index and block offset that corresponds to 'offset'. We start
     // iterating through blocks there.
-    bno_t blockIdx;
+    blkno_t blockIdx;
     ssize_t blockOffset;
     convert_offset(self, offset, &blockIdx, &blockOffset);
 
@@ -280,7 +280,7 @@ errno_t RamContainer_Write(RamContainerRef _Nonnull self, const void* _Nonnull b
 
     // Get the block index and block offset that corresponds to 'offset'. We start
     // iterating through blocks there.
-    bno_t blockIdx;
+    blkno_t blockIdx;
     ssize_t blockOffset;
     convert_offset(self, offset, &blockIdx, &blockOffset);
 
@@ -319,7 +319,7 @@ catch:
 
 void RamContainer_WipeDisk(RamContainerRef _Nonnull self)
 {
-    const bcnt_t blockCount = FSContainer_GetBlockCount(self);
+    const blkcnt_t blockCount = FSContainer_GetBlockCount(self);
 
     memset(self->diskImage, 0, blockCount << self->blockShift);
     
@@ -331,7 +331,7 @@ void RamContainer_WipeDisk(RamContainerRef _Nonnull self)
 errno_t RamContainer_WriteToPath(RamContainerRef _Nonnull self, const char* path)
 {
     decl_try_err();
-    const bcnt_t blockCount = FSContainer_GetBlockCount(self);
+    const blkcnt_t blockCount = FSContainer_GetBlockCount(self);
     const size_t blockSize = FSContainer_GetBlockSize(self);
     FILE* fp;
 
@@ -354,7 +354,7 @@ errno_t RamContainer_WriteToPath(RamContainerRef _Nonnull self, const char* path
         }
     }
 
-    bcnt_t nBlocksToWrite = blockCount;
+    blkcnt_t nBlocksToWrite = blockCount;
     if (self->format == kDiskImage_Serena) {
         nBlocksToWrite = __min(nBlocksToWrite, self->highestWrittenToLba + 1);
     }
