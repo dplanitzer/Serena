@@ -17,7 +17,7 @@ __CPP_BEGIN
 enum {
     SC_read = 0,            // errno_t read(int fd, const char * _Nonnull buffer, size_t nBytesToRead, ssize_t* pOutBytesRead)
     SC_write,               // errno_t write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
-    SC_clock_wait,          // errno_t clock_wait(int clock, const TimeInterval* _Nonnull delay)
+    SC_clock_wait,          // errno_t clock_wait(clockid_t clock, const TimeInterval* _Nonnull delay)
     SC_disp_schedule,       // errno_t disp_schedule(int od, dispatch_func_t _Nonnull func, void* _Nullable ctx, uint32_t options, uintptr_t tag)
     SC_vmalloc,             // errno_t vmalloc(int nbytes, void **pOutMem)
     SC_exit,                // _Noreturn exit(int status)
@@ -52,7 +52,7 @@ enum {
     SC_disp_create,         // errno_t disp_create(int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nonnull pOutQueue)
     SC_disp_getcurrent,     // int disp_getcurrent(void)
     SC_dispose,             // _Object_Dispose(int od)
-    SC_clock_gettime,       // errno_t clock_gettime(int clock, TimeInterval* _Nonnull ts)
+    SC_clock_gettime,       // errno_t clock_gettime(clockid_t clock, TimeInterval* _Nonnull ts)
     SC_lock_create,         // errno_t lock_create(int* _Nonnull pOutOd)
     SC_lock_trylock,        // errno_t lock_trylock(int od)
     SC_lock_lock,           // errno_t lock_lock(int od)

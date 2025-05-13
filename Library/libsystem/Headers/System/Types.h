@@ -13,17 +13,30 @@
 #include <System/abi/_bool.h>
 #include <System/abi/_inttypes.h>
 #include <System/_null.h>
+#include <System/_errno.h>
+#include <System/_cmndef.h>
+#ifndef __SYSTEM_SHIM__
+#include <sys/types.h>
+#else
+//XXX tmp
 #include <System/abi/_off.h>
 #include <System/abi/_size.h>
 #include <System/abi/_ssize.h>
-#include <System/_errno.h>
-#include <System/_cmndef.h>
-#include <sys/types.h>
 
-__CPP_BEGIN
+typedef size_t  blkno_t;
+typedef blkno_t blkcnt_t;
 
-// Various Kernel API types
+
+// Type to identify a clock
+typedef int clockid_t;
+
+
+// Various IDs
 typedef int         pid_t;
+typedef uint32_t    uid_t;
+typedef uint32_t    gid_t;
+typedef uint32_t    id_t;
+
 
 // The non-persistent, globally unique ID of a filesystem. This ID does not survive
 // a system reboot. Id 0 represents a filesystem that does not exist.
@@ -41,6 +54,13 @@ typedef uint64_t    ino_t;
 #endif
 
 
+typedef int             nlink_t;
+typedef unsigned int    mode_t;
+#endif
+
+__CPP_BEGIN
+
+
 // Represents a logical sector address and count
 typedef size_t  sno_t;
 typedef sno_t   scnt_t;
@@ -54,12 +74,6 @@ typedef struct chs {
 
 typedef uint16_t    FilePermissions;
 typedef int8_t      FileType;
-
-typedef uint32_t    uid_t;
-typedef uint32_t    gid_t;
-typedef uint32_t    id_t;
-
-typedef int         nlink_t;
 
 
 #ifndef OFF_MIN

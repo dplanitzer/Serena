@@ -19,9 +19,6 @@ __CPP_BEGIN
 // ms resolution
 #define CLOCKS_PER_SEC  1000l
 
-// Big enough to hold a time value of up to a bit more than 49.5 days on LP32 systems
-typedef unsigned long   clock_t;
-
 // Calendar time
 struct tm {
     int tm_sec;     // Seconds [0, 60]

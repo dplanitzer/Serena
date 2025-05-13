@@ -18,6 +18,9 @@ __CPP_BEGIN
 #include <time.h>
 #else
 
+// Big enough to hold a time value of up to a bit more than 49.5 days on LP32 systems
+typedef unsigned long   clock_t;
+
 // Seconds since 00:00, Jan 1st 1970 UTC
 typedef long time_t;
 

@@ -25,12 +25,12 @@ __CPP_BEGIN
 // Blocks the calling execution context for the seconds and nanoseconds specified
 // by 'delay'.
 // @Concurrency: Safe
-extern errno_t clock_wait(int clock, const TimeInterval* _Nonnull delay);
+extern errno_t clock_wait(clockid_t clock, const TimeInterval* _Nonnull delay);
 
 // Returns the current time of the monotonic clock. The monotonic clock starts
 // ticking at boot time and never moves backward.
 // @Concurrency: Safe
-extern errno_t clock_gettime(int clock, TimeInterval* _Nonnull ts);
+extern errno_t clock_gettime(clockid_t clock, TimeInterval* _Nonnull ts);
 
 __CPP_END
 
