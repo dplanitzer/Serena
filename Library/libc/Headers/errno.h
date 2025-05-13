@@ -14,10 +14,9 @@
 
 __CPP_BEGIN
 
-// XXX make this per VP
-extern int _Errno;
+extern _Errno_t* _Nonnull __vcpuerrno(void);
 
-#define errno _Errno
+#define errno (*__vcpuerrno())
 
 __CPP_END
 

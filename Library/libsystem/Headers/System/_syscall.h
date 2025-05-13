@@ -71,6 +71,7 @@ enum {
     SC_sync,                // void sync(void)
     SC_coninit,             // void ConInit(void)
     SC_fsgetdisk,           // errno_t fsgetdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
+    SC_vcpuerrno,           // errno_t* _Nonnull __vcpuerrno(void)
 };
 
 

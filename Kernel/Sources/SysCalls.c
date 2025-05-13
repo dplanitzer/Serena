@@ -18,14 +18,21 @@
 #include <System/User.h>
 
 
-typedef intptr_t (*syscall_t)(ProcessRef _Nonnull proc, void* _Nonnull);
+typedef intptr_t (*syscall_func_t)(ProcessRef _Nonnull proc, void* _Nonnull);
 
-#define SYSCALL_COUNT   56
-static syscall_t gSystemCallTable[SYSCALL_COUNT];
+typedef struct syscall {
+    syscall_func_t  f;
+    intptr_t        flags;
+} syscall_t;
+
+#define SC_ERRNO 1
+#define SYSCALL_COUNT   57
+static const syscall_t gSystemCallTable[SYSCALL_COUNT];
 
 
-#define REF_SYSCALL(__name) \
-(syscall_t)_SYSCALL_##__name
+#define SYSCALL_ENTRY(__name, __flags) \
+{(syscall_func_t)_SYSCALL_##__name, __flags}
+
 
 #define SYSCALL_0(__name) \
 struct args##__name { \
@@ -99,16 +106,25 @@ intptr_t _syscall_handler(unsigned int* _Nonnull args)
     ProcessRef curProc = DispatchQueue_GetOwningProcess(vcpu->dispatchQueue);
     const unsigned int nscno = sizeof(gSystemCallTable) / sizeof(syscall_t);
     const unsigned int scno = *args;
+    intptr_t r;
+    bool hasErrno;
 
     if (scno < nscno) {
-        syscall_t sc = gSystemCallTable[scno];
-        intptr_t r = sc(curProc, args);
-
-        return r;
+        const syscall_t* sc = &gSystemCallTable[scno];
+        
+        r = sc->f(curProc, args);
+        hasErrno = (sc->flags & SC_ERRNO) == SC_ERRNO;
     }
     else {
-        return ENOSYS;
+        r = ENOSYS;
+        hasErrno = true;
     }
+
+    if (hasErrno && r != 0) {
+        vcpu->errno = (errno_t)r;
+    }
+
+    return r;
 }
 
 
@@ -364,7 +380,7 @@ SYSCALL_1(exit, int status)
     // of the call-as-user and thus this system call will not return to user
     // space anymore. Instead it will return to the dispatch queue main loop.
     VirtualProcessor_Sleep(kTimeInterval_Infinity);
-    return EOK;
+    return 0;
 }
 
 SYSCALL_4(spawn_process, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const spawn_opts_t* _Nonnull options, pid_t* _Nullable pOutPid)
@@ -431,62 +447,68 @@ SYSCALL_3(fsgetdisk, fsid_t fsid, char* _Nonnull buf, size_t bufSize)
     return Process_GetFilesystemDiskPath(proc, pa->fsid, pa->buf, pa->bufSize);
 }
 
+SYSCALL_0(vcpuerr)
+{
+    return (intptr_t)&(VirtualProcessor_GetCurrent()->errno);
+}
 
-static syscall_t gSystemCallTable[SYSCALL_COUNT] = {
-    REF_SYSCALL(read),
-    REF_SYSCALL(write),
-    REF_SYSCALL(clock_wait),
-    REF_SYSCALL(dispatch),
-    REF_SYSCALL(alloc_address_space),
-    REF_SYSCALL(exit),
-    REF_SYSCALL(spawn_process),
-    REF_SYSCALL(getpid),
-    REF_SYSCALL(getppid),
-    REF_SYSCALL(getpargs),
-    REF_SYSCALL(open),
-    REF_SYSCALL(close),
-    REF_SYSCALL(waitpid),
-    REF_SYSCALL(seek),
-    REF_SYSCALL(getcwd),
-    REF_SYSCALL(setcwd),
-    REF_SYSCALL(getuid),
-    REF_SYSCALL(getumask),
-    REF_SYSCALL(setumask),
-    REF_SYSCALL(mkdir),
-    REF_SYSCALL(getfinfo),
-    REF_SYSCALL(opendir),
-    REF_SYSCALL(setfinfo),
-    REF_SYSCALL(access),
-    REF_SYSCALL(fgetfinfo),
-    REF_SYSCALL(fsetfinfo),
-    REF_SYSCALL(unlink),
-    REF_SYSCALL(rename),
-    REF_SYSCALL(ioctl),
-    REF_SYSCALL(truncate),
-    REF_SYSCALL(ftruncate),
-    REF_SYSCALL(mkfile),
-    REF_SYSCALL(mkpipe),
-    REF_SYSCALL(dispatch_timer),
-    REF_SYSCALL(dispatch_queue_create),
-    REF_SYSCALL(dispatch_queue_current),
-    REF_SYSCALL(dispose),
-    REF_SYSCALL(clock_gettime),
-    REF_SYSCALL(lock_create),
-    REF_SYSCALL(lock_trylock),
-    REF_SYSCALL(lock_lock),
-    REF_SYSCALL(lock_unlock),
-    REF_SYSCALL(sem_create),
-    REF_SYSCALL(sem_post),
-    REF_SYSCALL(sem_wait),
-    REF_SYSCALL(sem_trywait),
-    REF_SYSCALL(cond_create),
-    REF_SYSCALL(cond_wake),
-    REF_SYSCALL(cond_timedwait),
-    REF_SYSCALL(dispatch_remove_by_tag),
-    REF_SYSCALL(mount),
-    REF_SYSCALL(unmount),
-    REF_SYSCALL(getgid),
-    REF_SYSCALL(sync),
-    REF_SYSCALL(coninit),
-    REF_SYSCALL(fsgetdisk),
+
+static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
+    SYSCALL_ENTRY(read, SC_ERRNO),
+    SYSCALL_ENTRY(write, SC_ERRNO),
+    SYSCALL_ENTRY(clock_wait, SC_ERRNO),
+    SYSCALL_ENTRY(dispatch, SC_ERRNO),
+    SYSCALL_ENTRY(alloc_address_space, SC_ERRNO),
+    SYSCALL_ENTRY(exit, 0),
+    SYSCALL_ENTRY(spawn_process, SC_ERRNO),
+    SYSCALL_ENTRY(getpid, 0),
+    SYSCALL_ENTRY(getppid, 0),
+    SYSCALL_ENTRY(getpargs, 0),
+    SYSCALL_ENTRY(open, SC_ERRNO),
+    SYSCALL_ENTRY(close, SC_ERRNO),
+    SYSCALL_ENTRY(waitpid, SC_ERRNO),
+    SYSCALL_ENTRY(seek, SC_ERRNO),
+    SYSCALL_ENTRY(getcwd, SC_ERRNO),
+    SYSCALL_ENTRY(setcwd, SC_ERRNO),
+    SYSCALL_ENTRY(getuid, 0),
+    SYSCALL_ENTRY(getumask, 0),
+    SYSCALL_ENTRY(setumask, 0),
+    SYSCALL_ENTRY(mkdir, SC_ERRNO),
+    SYSCALL_ENTRY(getfinfo, SC_ERRNO),
+    SYSCALL_ENTRY(opendir, SC_ERRNO),
+    SYSCALL_ENTRY(setfinfo, SC_ERRNO),
+    SYSCALL_ENTRY(access, SC_ERRNO),
+    SYSCALL_ENTRY(fgetfinfo, SC_ERRNO),
+    SYSCALL_ENTRY(fsetfinfo, SC_ERRNO),
+    SYSCALL_ENTRY(unlink, SC_ERRNO),
+    SYSCALL_ENTRY(rename, SC_ERRNO),
+    SYSCALL_ENTRY(ioctl, SC_ERRNO),
+    SYSCALL_ENTRY(truncate, SC_ERRNO),
+    SYSCALL_ENTRY(ftruncate, SC_ERRNO),
+    SYSCALL_ENTRY(mkfile, SC_ERRNO),
+    SYSCALL_ENTRY(mkpipe, SC_ERRNO),
+    SYSCALL_ENTRY(dispatch_timer, SC_ERRNO),
+    SYSCALL_ENTRY(dispatch_queue_create, SC_ERRNO),
+    SYSCALL_ENTRY(dispatch_queue_current, 0),
+    SYSCALL_ENTRY(dispose, SC_ERRNO),
+    SYSCALL_ENTRY(clock_gettime, SC_ERRNO),
+    SYSCALL_ENTRY(lock_create, SC_ERRNO),
+    SYSCALL_ENTRY(lock_trylock, SC_ERRNO),
+    SYSCALL_ENTRY(lock_lock, SC_ERRNO),
+    SYSCALL_ENTRY(lock_unlock, SC_ERRNO),
+    SYSCALL_ENTRY(sem_create, SC_ERRNO),
+    SYSCALL_ENTRY(sem_post, SC_ERRNO),
+    SYSCALL_ENTRY(sem_wait, SC_ERRNO),
+    SYSCALL_ENTRY(sem_trywait, SC_ERRNO),
+    SYSCALL_ENTRY(cond_create, SC_ERRNO),
+    SYSCALL_ENTRY(cond_wake, SC_ERRNO),
+    SYSCALL_ENTRY(cond_timedwait, SC_ERRNO),
+    SYSCALL_ENTRY(dispatch_remove_by_tag, SC_ERRNO),
+    SYSCALL_ENTRY(mount, SC_ERRNO),
+    SYSCALL_ENTRY(unmount, SC_ERRNO),
+    SYSCALL_ENTRY(getgid, 0),
+    SYSCALL_ENTRY(sync, SC_ERRNO),
+    SYSCALL_ENTRY(coninit, SC_ERRNO),
+    SYSCALL_ENTRY(fsgetdisk, SC_ERRNO),
+    SYSCALL_ENTRY(vcpuerr, 0),
 };

@@ -55,3 +55,8 @@ errno_t dispatch_destroy(int od)
 {
     return _syscall(SC_dispose, od);
 }
+
+errno_t* _Nonnull __vcpuerrno(void)
+{
+    return (errno_t*)_syscall(SC_vcpuerrno);
+}

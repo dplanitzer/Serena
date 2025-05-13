@@ -65,6 +65,7 @@ SC_getgid                   equ 52
 SC_sync                     equ 53
 SC_coninit                  equ 54
 SC_fsgetdisk                equ 55
+SC_vcpuerrno                equ 56
 
 
 ; System call macro.
