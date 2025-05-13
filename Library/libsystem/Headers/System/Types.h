@@ -45,13 +45,7 @@ typedef uint32_t    fsid_t;
 
 // The persistent, filesystem unique ID of a filesystem inode. This ID is only
 // unique with respect to the filesystem to which it belongs.
-#if defined(__ILP32__)
-typedef uint32_t    ino_t;
-#elif defined(__LP64__) || defined(__LLP64__)
-typedef uint64_t    ino_t;
-#else
-#error "Unknown data model"
-#endif
+typedef size_t    ino_t;
 
 
 typedef int             nlink_t;
