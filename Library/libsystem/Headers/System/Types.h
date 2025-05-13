@@ -25,6 +25,7 @@
 
 typedef size_t  blkno_t;
 typedef blkno_t blkcnt_t;
+typedef ssize_t blksize_t;
 
 
 // Type to identify a clock

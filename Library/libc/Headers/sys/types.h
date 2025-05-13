@@ -18,20 +18,21 @@
 
 __CPP_BEGIN
 
-// Represents a logical block address and count
-typedef size_t  blkno_t;
-typedef blkno_t blkcnt_t;
+// Process and user related ids
+typedef int         pid_t;
+typedef uint32_t    uid_t;
+typedef uint32_t    gid_t;
+typedef uint32_t    id_t;
 
 
 // Type to identify a clock
 typedef int clockid_t;
 
 
-// Various IDs
-typedef int         pid_t;
-typedef uint32_t    uid_t;
-typedef uint32_t    gid_t;
-typedef uint32_t    id_t;
+// Represents a logical block address, count and block size
+typedef size_t  blkno_t;
+typedef blkno_t blkcnt_t;
+typedef ssize_t blksize_t;
 
 
 // The non-persistent, globally unique ID of a filesystem. This ID does not survive
