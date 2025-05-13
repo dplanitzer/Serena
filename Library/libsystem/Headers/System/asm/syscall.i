@@ -67,9 +67,6 @@ SC_coninit                  equ 54
 SC_fsgetdisk                equ 55
 
 
-SC_numberOfCalls            equ 56
-
-
 ; System call macro.
 ;
 ; A system call looks like this:

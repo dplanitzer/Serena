@@ -17,410 +17,338 @@
 #include <System/Filesystem.h>
 #include <System/User.h>
 
-typedef intptr_t (*SystemCall)(void* _Nonnull);
+
+typedef intptr_t (*syscall_t)(ProcessRef _Nonnull proc, void* _Nonnull);
+
+#define SYSCALL_COUNT   56
+static syscall_t gSystemCallTable[SYSCALL_COUNT];
+
 
 #define REF_SYSCALL(__name) \
-    (SystemCall)_SYSCALL_##__name
+(syscall_t)_SYSCALL_##__name
 
 #define SYSCALL_0(__name) \
-    struct args##__name { \
-        int scno; \
-    }; \
-    intptr_t _SYSCALL_##__name(const struct args##__name* _Nonnull pArgs)
+struct args##__name { \
+    unsigned int scno; \
+}; \
+intptr_t _SYSCALL_##__name(ProcessRef _Nonnull proc, const struct args##__name* _Nonnull pa)
 
 #define SYSCALL_1(__name, __p1) \
-    struct args##__name { \
-        int scno; \
-        __p1; \
-    }; \
-    intptr_t _SYSCALL_##__name(const struct args##__name* _Nonnull pArgs)
+struct args##__name { \
+    unsigned int scno; \
+    __p1; \
+}; \
+intptr_t _SYSCALL_##__name(ProcessRef _Nonnull proc, const struct args##__name* _Nonnull pa)
 
 #define SYSCALL_2(__name, __p1, __p2) \
-    struct args##__name { \
-        int scno; \
-        __p1; \
-        __p2; \
-    }; \
-    intptr_t _SYSCALL_##__name(const struct args##__name* _Nonnull pArgs)
+struct args##__name { \
+    unsigned int scno; \
+    __p1; \
+    __p2; \
+}; \
+intptr_t _SYSCALL_##__name(ProcessRef _Nonnull proc, const struct args##__name* _Nonnull pa)
 
 #define SYSCALL_3(__name, __p1, __p2, __p3) \
-    struct args##__name { \
-        int scno; \
-        __p1; \
-        __p2; \
-        __p3; \
-    }; \
-    intptr_t _SYSCALL_##__name(const struct args##__name* _Nonnull pArgs)
+struct args##__name { \
+    unsigned int scno; \
+    __p1; \
+    __p2; \
+    __p3; \
+}; \
+intptr_t _SYSCALL_##__name(ProcessRef _Nonnull proc, const struct args##__name* _Nonnull pa)
 
 #define SYSCALL_4(__name, __p1, __p2, __p3, __p4) \
-    struct args_##__name { \
-        int scno; \
-        __p1; \
-        __p2; \
-        __p3; \
-        __p4; \
-    }; \
-    intptr_t _SYSCALL_##__name(const struct args_##__name* _Nonnull pArgs)
+struct args_##__name { \
+    unsigned int scno; \
+    __p1; \
+    __p2; \
+    __p3; \
+    __p4; \
+}; \
+intptr_t _SYSCALL_##__name(ProcessRef _Nonnull proc, const struct args_##__name* _Nonnull pa)
 
 #define SYSCALL_5(__name, __p1, __p2, __p3, __p4, __p5) \
-    struct args_##__name { \
-        int scno; \
-        __p1; \
-        __p2; \
-        __p3; \
-        __p4; \
-        __p5; \
-    }; \
-    intptr_t _SYSCALL_##__name(const struct args_##__name* _Nonnull pArgs)
+struct args_##__name { \
+    unsigned int scno; \
+    __p1; \
+    __p2; \
+    __p3; \
+    __p4; \
+    __p5; \
+}; \
+intptr_t _SYSCALL_##__name(ProcessRef _Nonnull proc, const struct args_##__name* _Nonnull pa)
 
 #define SYSCALL_6(__name, __p1, __p2, __p3, __p4, __p5, __p6) \
-    struct args_##__name { \
-        int scno; \
-        __p1; \
-        __p2; \
-        __p3; \
-        __p4; \
-        __p5; \
-        __p6; \
-    }; \
-    intptr_t _SYSCALL_##__name(const struct args_##__name* _Nonnull pArgs)
+struct args_##__name { \
+    unsigned int scno; \
+    __p1; \
+    __p2; \
+    __p3; \
+    __p4; \
+    __p5; \
+    __p6; \
+}; \
+intptr_t _SYSCALL_##__name(ProcessRef _Nonnull proc, const struct args_##__name* _Nonnull pa)
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-SYSCALL_4(mkfile, const char* _Nullable path, unsigned int mode, uint32_t permissions, int* _Nullable pOutIoc)
+intptr_t _syscall_handler(unsigned int* _Nonnull args)
 {
-    if (pArgs->path == NULL || pArgs->pOutIoc == NULL) {
-        return EINVAL;
-    }
+    VirtualProcessor* vcpu = VirtualProcessor_GetCurrent();
+    ProcessRef curProc = DispatchQueue_GetOwningProcess(vcpu->dispatchQueue);
+    const unsigned int nscno = sizeof(gSystemCallTable) / sizeof(syscall_t);
+    const unsigned int scno = *args;
 
-    return Process_CreateFile(Process_GetCurrent(), pArgs->path, pArgs->mode, (FilePermissions)pArgs->permissions, pArgs->pOutIoc);
+    if (scno < nscno) {
+        syscall_t sc = gSystemCallTable[scno];
+        intptr_t r = sc(curProc, args);
+
+        return r;
+    }
+    else {
+        return ENOSYS;
+    }
 }
 
-SYSCALL_3(open, const char* _Nullable path, unsigned int mode, int* _Nullable pOutIoc)
-{
-    if (pArgs->path == NULL || pArgs->pOutIoc == NULL) {
-        return EINVAL;
-    }
 
-    return Process_OpenFile(Process_GetCurrent(), pArgs->path, pArgs->mode, pArgs->pOutIoc);
+SYSCALL_4(mkfile, const char* _Nonnull path, unsigned int mode, uint32_t permissions, int* _Nonnull pOutIoc)
+{
+    return Process_CreateFile(proc, pa->path, pa->mode, (FilePermissions)pa->permissions, pa->pOutIoc);
 }
 
-SYSCALL_2(opendir, const char* _Nullable path, int* _Nullable pOutIoc)
+SYSCALL_3(open, const char* _Nonnull path, unsigned int mode, int* _Nonnull pOutIoc)
 {
-    if (pArgs->path == NULL || pArgs->pOutIoc == NULL) {
-        return EINVAL;
-    }
-
-    return Process_OpenDirectory(Process_GetCurrent(), pArgs->path, pArgs->pOutIoc);
+    return Process_OpenFile(proc, pa->path, pa->mode, pa->pOutIoc);
 }
 
-SYSCALL_2(mkpipe, int* _Nullable  pOutReadChannel, int* _Nullable  pOutWriteChannel)
+SYSCALL_2(opendir, const char* _Nonnull path, int* _Nonnull pOutIoc)
 {
-    if (pArgs->pOutReadChannel == NULL || pArgs->pOutWriteChannel == NULL) {
-        return EINVAL;
-    }
+    return Process_OpenDirectory(proc, pa->path, pa->pOutIoc);
+}
 
-    return Process_CreatePipe(Process_GetCurrent(), pArgs->pOutReadChannel, pArgs->pOutWriteChannel);
+SYSCALL_2(mkpipe, int* _Nonnull  pOutReadChannel, int* _Nonnull  pOutWriteChannel)
+{
+    return Process_CreatePipe(proc, pa->pOutReadChannel, pa->pOutWriteChannel);
 }
 
 SYSCALL_1(close, int ioc)
 {
-    return Process_CloseChannel(Process_GetCurrent(), pArgs->ioc);
+    return Process_CloseChannel(proc, pa->ioc);
 }
 
-SYSCALL_4(read, int ioc, void* _Nullable buffer, size_t nBytesToRead, ssize_t* _Nullable nBytesRead)
+SYSCALL_4(read, int ioc, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
 {
-    if (pArgs->buffer == NULL || pArgs->nBytesRead == NULL) {
-        return EINVAL;
-    }
-
-    return Process_ReadChannel(Process_GetCurrent(), pArgs->ioc, pArgs->buffer, pArgs->nBytesToRead, pArgs->nBytesRead);
+    return Process_ReadChannel(proc, pa->ioc, pa->buffer, pa->nBytesToRead, pa->nBytesRead);
 }
 
-SYSCALL_4(write, int ioc, const void* _Nullable buffer, size_t nBytesToWrite, ssize_t* _Nullable nBytesWritten)
+SYSCALL_4(write, int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nBytesWritten)
 {
-    if (pArgs->buffer == NULL || pArgs->nBytesWritten == NULL) {
-        return EINVAL;
-    }
-
-    return Process_WriteChannel(Process_GetCurrent(), pArgs->ioc, pArgs->buffer, pArgs->nBytesToWrite, pArgs->nBytesWritten);
+    return Process_WriteChannel(proc, pa->ioc, pa->buffer, pa->nBytesToWrite, pa->nBytesWritten);
 }
 
 SYSCALL_4(seek, int ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence)
 {
-    return Process_SeekChannel(Process_GetCurrent(), pArgs->ioc, pArgs->offset, pArgs->pOutOldPosition, pArgs->whence);
+    return Process_SeekChannel(proc, pa->ioc, pa->offset, pa->pOutOldPosition, pa->whence);
 }
 
-SYSCALL_2(mkdir, const char* _Nullable path, uint32_t mode)
+SYSCALL_2(mkdir, const char* _Nonnull path, uint32_t mode)
 {
-    if (pArgs->path == NULL) {
-        return ENOTDIR;
-    }
-
-    return Process_CreateDirectory(Process_GetCurrent(), pArgs->path, (FilePermissions) pArgs->mode);
+    return Process_CreateDirectory(proc, pa->path, (FilePermissions) pa->mode);
 }
 
-SYSCALL_2(getcwd, char* _Nullable buffer, size_t bufferSize)
+SYSCALL_2(getcwd, char* _Nonnull buffer, size_t bufferSize)
 {
-    if (pArgs->buffer == NULL) {
-        return EINVAL;
-    }
-
-    return Process_GetWorkingDirectoryPath(Process_GetCurrent(), pArgs->buffer, pArgs->bufferSize);
+    return Process_GetWorkingDirectoryPath(proc, pa->buffer, pa->bufferSize);
 }
 
-SYSCALL_1(setcwd, const char* _Nullable path)
+SYSCALL_1(setcwd, const char* _Nonnull path)
 {
-    if (pArgs->path == NULL) {
-        return EINVAL;
-    }
-
-    return Process_SetWorkingDirectoryPath(Process_GetCurrent(), pArgs->path);
+    return Process_SetWorkingDirectoryPath(proc, pa->path);
 }
 
-SYSCALL_2(getfinfo, const char* _Nullable path, finfo_t* _Nullable pOutInfo)
+SYSCALL_2(getfinfo, const char* _Nonnull path, finfo_t* _Nonnull pOutInfo)
 {
-    if (pArgs->path == NULL || pArgs->pOutInfo == NULL) {
-        return EINVAL;
-    }
-
-    return Process_GetFileInfo(Process_GetCurrent(), pArgs->path, pArgs->pOutInfo);
+    return Process_GetFileInfo(proc, pa->path, pa->pOutInfo);
 }
 
-SYSCALL_2(setfinfo, const char* _Nullable path, fmutinfo_t* _Nullable pInfo)
+SYSCALL_2(setfinfo, const char* _Nonnull path, fmutinfo_t* _Nonnull pInfo)
 {
-    if (pArgs->path == NULL || pArgs->pInfo == NULL) {
-        return EINVAL;
-    }
-
-    return Process_SetFileInfo(Process_GetCurrent(), pArgs->path, pArgs->pInfo);
+    return Process_SetFileInfo(proc, pa->path, pa->pInfo);
 }
 
-SYSCALL_2(fgetfinfo, int ioc, finfo_t* _Nullable pOutInfo)
+SYSCALL_2(fgetfinfo, int ioc, finfo_t* _Nonnull pOutInfo)
 {
-    if (pArgs->pOutInfo == NULL) {
-        return EINVAL;
-    }
-
-    return Process_GetFileInfo_ioc(Process_GetCurrent(), pArgs->ioc, pArgs->pOutInfo);
+    return Process_GetFileInfo_ioc(proc, pa->ioc, pa->pOutInfo);
 }
 
-SYSCALL_2(fsetfinfo, int ioc, fmutinfo_t* _Nullable pInfo)
+SYSCALL_2(fsetfinfo, int ioc, fmutinfo_t* _Nonnull pInfo)
 {
-    if (pArgs->pInfo == NULL) {
-        return EINVAL;
-    }
-
-    return Process_SetFileInfo_ioc(Process_GetCurrent(), pArgs->ioc, pArgs->pInfo);
+    return Process_SetFileInfo_ioc(proc, pa->ioc, pa->pInfo);
 }
 
-SYSCALL_2(truncate, const char* _Nullable path, off_t length)
+SYSCALL_2(truncate, const char* _Nonnull path, off_t length)
 {
-    if (pArgs->path == NULL) {
-        return EINVAL;
-    }
-
-    return Process_TruncateFile(Process_GetCurrent(), pArgs->path, pArgs->length);
+    return Process_TruncateFile(proc, pa->path, pa->length);
 }
 
 SYSCALL_2(ftruncate, int ioc, off_t length)
 {
-    return Process_TruncateFile_ioc(Process_GetCurrent(), pArgs->ioc, pArgs->length);
+    return Process_TruncateFile_ioc(proc, pa->ioc, pa->length);
 }
 
 SYSCALL_3(ioctl, int ioc, int cmd, va_list _Nullable ap)
 {
-    return Process_Iocall(Process_GetCurrent(), pArgs->ioc, pArgs->cmd, pArgs->ap);
+    return Process_Iocall(proc, pa->ioc, pa->cmd, pa->ap);
 }
 
-SYSCALL_2(access, const char* _Nullable path, uint32_t mode)
+SYSCALL_2(access, const char* _Nonnull path, uint32_t mode)
 {
-    if (pArgs->path == NULL) {
-        return EINVAL;
-    }
-
-    return Process_CheckAccess(Process_GetCurrent(), pArgs->path, pArgs->mode);
+    return Process_CheckAccess(proc, pa->path, pa->mode);
 }
 
-SYSCALL_1(unlink, const char* _Nullable path)
+SYSCALL_1(unlink, const char* _Nonnull path)
 {
-    return (pArgs->path) ? Process_Unlink(Process_GetCurrent(), pArgs->path) : EINVAL;
+    return Process_Unlink(proc, pa->path);
 }
 
-SYSCALL_2(rename, const char* _Nullable oldPath, const char* _Nullable newPath)
+SYSCALL_2(rename, const char* _Nonnull oldPath, const char* _Nonnull newPath)
 {
-    if (pArgs->oldPath == NULL || pArgs->newPath == NULL) {
-        return EINVAL;
-    }
-
-    return Process_Rename(Process_GetCurrent(), pArgs->oldPath, pArgs->newPath);
+    return Process_Rename(proc, pa->oldPath, pa->newPath);
 }
 
 
 SYSCALL_0(getumask)
 {
-    return Process_GetFileCreationMask(Process_GetCurrent());
+    return Process_GetFileCreationMask(proc);
 }
 
 SYSCALL_1(setumask, uint32_t mask)
 {
-    Process_SetFileCreationMask(Process_GetCurrent(), pArgs->mask);
+    Process_SetFileCreationMask(proc, pa->mask);
     return EOK;
 }
 
-SYSCALL_2(clock_wait, int clock, const TimeInterval* _Nullable delay)
+SYSCALL_2(clock_wait, int clock, const TimeInterval* _Nonnull delay)
 {
-    if (pArgs->delay == NULL || pArgs->delay->tv_nsec < 0 || pArgs->delay->tv_nsec >= ONE_SECOND_IN_NANOS) {
+    if (pa->delay->tv_nsec < 0 || pa->delay->tv_nsec >= ONE_SECOND_IN_NANOS) {
         return EINVAL;
     }
-    if (pArgs->clock != CLOCK_UPTIME) {
+    if (pa->clock != CLOCK_UPTIME) {
         return ENODEV;
     }
 
-    return VirtualProcessor_Sleep(*(pArgs->delay));
+    return VirtualProcessor_Sleep(*(pa->delay));
 }
 
-SYSCALL_2(clock_gettime, int clock, TimeInterval* _Nullable time)
+SYSCALL_2(clock_gettime, int clock, TimeInterval* _Nonnull time)
 {
-    if (pArgs->time == NULL) {
-        return EINVAL;
-    }
-    if (pArgs->clock != CLOCK_UPTIME) {
+    if (pa->clock != CLOCK_UPTIME) {
         return ENODEV;
     }
 
-    *(pArgs->time) = MonotonicClock_GetCurrentTime();
+    *(pa->time) = MonotonicClock_GetCurrentTime();
     return EOK;
 }
 
-SYSCALL_5(dispatch, int od, const VoidFunc_2 _Nullable func, void* _Nullable ctx, uint32_t options, uintptr_t tag)
+SYSCALL_5(dispatch, int od, const VoidFunc_2 _Nonnull func, void* _Nullable ctx, uint32_t options, uintptr_t tag)
 {
-    if (pArgs->func == NULL) {
-        return EINVAL;
-    }
-
-    return Process_DispatchUserClosure(Process_GetCurrent(), pArgs->od, pArgs->func, pArgs->ctx, pArgs->options, pArgs->tag);
+    return Process_DispatchUserClosure(proc, pa->od, pa->func, pa->ctx, pa->options, pa->tag);
 }
 
-SYSCALL_6(dispatch_timer, int od, TimeInterval deadline, TimeInterval interval, const VoidFunc_1 _Nullable func, void* _Nullable ctx, uintptr_t tag)
+SYSCALL_6(dispatch_timer, int od, TimeInterval deadline, TimeInterval interval, const VoidFunc_1 _Nonnull func, void* _Nullable ctx, uintptr_t tag)
 {
-    if (pArgs->func == NULL) {
-        return EINVAL;
-    }
-
-    return Process_DispatchUserTimer(Process_GetCurrent(), pArgs->od, pArgs->deadline, pArgs->interval, pArgs->func, pArgs->ctx, pArgs->tag);
+    return Process_DispatchUserTimer(proc, pa->od, pa->deadline, pa->interval, pa->func, pa->ctx, pa->tag);
 }
 
-SYSCALL_5(dispatch_queue_create, int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nullable pOutQueue)
+SYSCALL_5(dispatch_queue_create, int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nonnull pOutQueue)
 {
-    if (pArgs->pOutQueue == NULL) {
-        return EINVAL;
-    }
-
-    return Process_CreateDispatchQueue(Process_GetCurrent(), pArgs->minConcurrency, pArgs->maxConcurrency, pArgs->qos, pArgs->priority, pArgs->pOutQueue);
+    return Process_CreateDispatchQueue(proc, pa->minConcurrency, pa->maxConcurrency, pa->qos, pa->priority, pa->pOutQueue);
 }
 
 SYSCALL_2(dispatch_remove_by_tag, int od, uintptr_t tag)
 {
-    return Process_DispatchRemoveByTag(Process_GetCurrent(), pArgs->od, pArgs->tag);
+    return Process_DispatchRemoveByTag(proc, pa->od, pa->tag);
 }
 
 SYSCALL_0(dispatch_queue_current)
 {
-    return Process_GetCurrentDispatchQueue(Process_GetCurrent());
+    return Process_GetCurrentDispatchQueue(proc);
 }
 
 
-SYSCALL_1(cond_create, int* _Nullable pOutOd)
+SYSCALL_1(cond_create, int* _Nonnull pOutOd)
 {
-    if (pArgs->pOutOd == NULL) {
-        return EINVAL;
-    }
-
-    return Process_CreateUConditionVariable(Process_GetCurrent(), pArgs->pOutOd);
+    return Process_CreateUConditionVariable(proc, pa->pOutOd);
 }
 
 SYSCALL_3(cond_wake, int od, int dlock, unsigned int options)
 {
-    return Process_WakeUConditionVariable(Process_GetCurrent(), pArgs->od, pArgs->dlock, pArgs->options);
+    return Process_WakeUConditionVariable(proc, pa->od, pa->dlock, pa->options);
 }
 
 SYSCALL_3(cond_timedwait, int od, int dlock, const TimeInterval* _Nullable deadline)
 {
-    const TimeInterval ti = (pArgs->deadline) ? *(pArgs->deadline) : kTimeInterval_Infinity;
+    const TimeInterval ti = (pa->deadline) ? *(pa->deadline) : kTimeInterval_Infinity;
 
-    return Process_WaitUConditionVariable(Process_GetCurrent(), pArgs->od, pArgs->dlock, ti);
+    return Process_WaitUConditionVariable(proc, pa->od, pa->dlock, ti);
 }
 
 
-SYSCALL_1(lock_create, int* _Nullable pOutOd)
+SYSCALL_1(lock_create, int* _Nonnull pOutOd)
 {
-    if (pArgs->pOutOd == NULL) {
-        return EINVAL;
-    }
-
-    return Process_CreateULock(Process_GetCurrent(), pArgs->pOutOd);
+    return Process_CreateULock(proc, pa->pOutOd);
 }
 
 SYSCALL_1(lock_trylock, int od)
 {
-    return Process_TryULock(Process_GetCurrent(), pArgs->od);
+    return Process_TryULock(proc, pa->od);
 }
 
 SYSCALL_1(lock_lock, int od)
 {
-    return Process_LockULock(Process_GetCurrent(), pArgs->od);
+    return Process_LockULock(proc, pa->od);
 }
 
 SYSCALL_1(lock_unlock, int od)
 {
-    return Process_UnlockULock(Process_GetCurrent(), pArgs->od);
+    return Process_UnlockULock(proc, pa->od);
 }
 
 
-SYSCALL_2(sem_create, int npermits, int* _Nullable pOutOd)
+SYSCALL_2(sem_create, int npermits, int* _Nonnull pOutOd)
 {
-    if (pArgs->pOutOd == NULL) {
-        return EINVAL;
-    }
-
-    return Process_CreateUSemaphore(Process_GetCurrent(), pArgs->npermits, pArgs->pOutOd);
+    return Process_CreateUSemaphore(proc, pa->npermits, pa->pOutOd);
 }
 
 SYSCALL_2(sem_post, int od, int npermits)
 {
-    return Process_RelinquishUSemaphore(Process_GetCurrent(), pArgs->od, pArgs->npermits);
+    return Process_RelinquishUSemaphore(proc, pa->od, pa->npermits);
 }
 
 SYSCALL_3(sem_wait, int od, int npermits, TimeInterval deadline)
 {
-    return Process_AcquireUSemaphore(Process_GetCurrent(), pArgs->od, pArgs->npermits, pArgs->deadline);
+    return Process_AcquireUSemaphore(proc, pa->od, pa->npermits, pa->deadline);
 }
 
 SYSCALL_2(sem_trywait, int od, int npermits)
 {
-    return Process_TryAcquireUSemaphore(Process_GetCurrent(), pArgs->od, pArgs->npermits);
+    return Process_TryAcquireUSemaphore(proc, pa->od, pa->npermits);
 }
-
 
 SYSCALL_1(dispose, int od)
 {
-    return Process_DisposeUResource(Process_GetCurrent(), pArgs->od);
+    return Process_DisposeUResource(proc, pa->od);
 }
 
 SYSCALL_2(alloc_address_space, size_t nbytes, void * _Nullable * _Nonnull pOutMem)
 {
-    if (pArgs->nbytes > SSIZE_MAX) {
+    if (pa->nbytes > SSIZE_MAX) {
         return E2BIG;
     }
-    if (pArgs->pOutMem == NULL) {
-        return EINVAL;
-    }
 
-    return Process_AllocateAddressSpace(Process_GetCurrent(),
-        __SSizeByClampingSize(pArgs->nbytes),
-        pArgs->pOutMem);
+    return Process_AllocateAddressSpace(proc, __SSizeByClampingSize(pa->nbytes),
+        pa->pOutMem);
 }
 
 SYSCALL_1(exit, int status)
@@ -428,7 +356,7 @@ SYSCALL_1(exit, int status)
     // Trigger the termination of the process. Note that the actual termination
     // is done asynchronously. That's why we sleep below since we don't want to
     // return to user space anymore.
-    Process_Terminate(Process_GetCurrent(), pArgs->status);
+    Process_Terminate(proc, pa->status);
 
 
     // This wait here will eventually be aborted when the dispatch queue that
@@ -439,62 +367,50 @@ SYSCALL_1(exit, int status)
     return EOK;
 }
 
-SYSCALL_4(spawn_process, const char* _Nullable path, const char* _Nullable * _Nullable argv, const spawn_opts_t* _Nonnull options, pid_t* _Nullable pOutPid)
+SYSCALL_4(spawn_process, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const spawn_opts_t* _Nonnull options, pid_t* _Nullable pOutPid)
 {
-    if (pArgs->path == NULL || pArgs->path[0] == '\0' || pArgs->options == NULL) {
-        return EINVAL;
-    }
-
-    return Process_SpawnChildProcess(Process_GetCurrent(), pArgs->path, pArgs->argv, pArgs->options, pArgs->pOutPid);
+    return Process_SpawnChildProcess(proc, pa->path, pa->argv, pa->options, pa->pOutPid);
 }
 
 SYSCALL_0(getpid)
 {
-    return Process_GetId(Process_GetCurrent());
+    return Process_GetId(proc);
 }
 
 SYSCALL_0(getppid)
 {
-    return Process_GetParentId(Process_GetCurrent());
+    return Process_GetParentId(proc);
 }
 
 SYSCALL_0(getuid)
 {
-    return Process_GetRealUserId(Process_GetCurrent());
+    return Process_GetRealUserId(proc);
 }
 
 SYSCALL_0(getgid)
 {
-    return Process_GetRealGroupId(Process_GetCurrent());
+    return Process_GetRealGroupId(proc);
 }
 
 
 SYSCALL_0(getpargs)
 {
-    return (intptr_t) Process_GetArgumentsBaseAddress(Process_GetCurrent());
+    return (intptr_t) Process_GetArgumentsBaseAddress(proc);
 }
 
 SYSCALL_2(waitpid, pid_t pid, pstatus_t* _Nullable pOutStatus)
 {
-    return Process_WaitForTerminationOfChild(Process_GetCurrent(), pArgs->pid, pArgs->pOutStatus);
+    return Process_WaitForTerminationOfChild(proc, pa->pid, pa->pOutStatus);
 }
 
-SYSCALL_4(mount, const char* _Nullable objectType, const char* _Nullable objectName, const char* _Nullable atDirPath, const char* _Nullable params)
+SYSCALL_4(mount, const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)
 {
-    if (pArgs->objectType == NULL || pArgs->objectName == NULL || pArgs->atDirPath == NULL || pArgs->params == NULL) {
-        return EINVAL;
-    }
-
-    return Process_Mount(Process_GetCurrent(), pArgs->objectType, pArgs->objectName, pArgs->atDirPath, pArgs->params);
+    return Process_Mount(proc, pa->objectType, pa->objectName, pa->atDirPath, pa->params);
 }
 
-SYSCALL_2(unmount, const char* _Nullable atDirPath, UnmountOptions options)
+SYSCALL_2(unmount, const char* _Nonnull atDirPath, UnmountOptions options)
 {
-    if (pArgs->atDirPath == NULL) {
-        return EINVAL;
-    }
-
-    return Process_Unmount(Process_GetCurrent(), pArgs->atDirPath, pArgs->options);
+    return Process_Unmount(proc, pa->atDirPath, pa->options);
 }
 
 SYSCALL_0(sync)
@@ -510,17 +426,13 @@ SYSCALL_0(coninit)
     return SwitchToFullConsole();
 }
 
-SYSCALL_3(fsgetdisk, fsid_t fsid, char* _Nullable buf, size_t bufSize)
+SYSCALL_3(fsgetdisk, fsid_t fsid, char* _Nonnull buf, size_t bufSize)
 {
-    if (pArgs->buf == NULL) {
-        return EINVAL;
-    }
-
-    return Process_GetFilesystemDiskPath(Process_GetCurrent(), pArgs->fsid, pArgs->buf, pArgs->bufSize);
+    return Process_GetFilesystemDiskPath(proc, pa->fsid, pa->buf, pa->bufSize);
 }
 
 
-SystemCall gSystemCallTable[] = {
+static syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     REF_SYSCALL(read),
     REF_SYSCALL(write),
     REF_SYSCALL(clock_wait),

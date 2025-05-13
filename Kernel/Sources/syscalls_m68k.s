@@ -11,8 +11,8 @@
     include <System/asm/errno.i>
     include <System/asm/syscall.i>
 
-    xref _gSystemCallTable
     xref _gVirtualProcessorSchedulerStorage
+    xref __syscall_handler
 
     xdef _SystemCallHandler
 
@@ -62,7 +62,7 @@
 ; ordered from left to right:
 ;
 ; struct Args {
-;    int  systemCallNumber;
+;    unsigned int   systemCallNumber;
 ;    // system call specific arguments from left to right
 ; }
 ;
@@ -76,30 +76,13 @@ _SystemCallHandler:
         lea     ((7 + 6)*4, sp), a2             ; ksp at trap handler entry time was 7 dR and 6 aR (saved register) long words higher up in memory
         move.l  a2, vp_syscall_entry_ksp(a1)
 
-        ; Get the system call number
-        move.l  (a0), d0
-
-        ; Range check the system call number (we treat it as unsigned)
-        cmp.l   #SC_numberOfCalls, d0
-        bhs.s   .Linvalid_syscall
-
-        ; Get the system call entry structure
-        lea     _gSystemCallTable, a1
-        move.l  (a1, d0.l*4), a1
-
         ; Invoke the system call handler. Returns a result in d0
         move.l  a0, -(sp)
-        jsr     (a1)
+        jsr     __syscall_handler
         move.l  (sp)+, a0
-
-.Lsyscall_done:
 
         ; restore the user registers
         movem.l (sp)+, d1 - d7 / a1 - a6
 
         rte
-
-.Linvalid_syscall:
-        move.l  #ENOSYS, d0
-        bra.s   .Lsyscall_done
     einline

@@ -88,6 +88,10 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull
     ProcessRef pChild = NULL;
     bool doTermChild = false;
 
+    if (*path == '\0') {
+        return EINVAL;
+    }
+    
     Lock_Lock(&self->lock);
 
     err = proc_create_child(self, opts, &pChild);
