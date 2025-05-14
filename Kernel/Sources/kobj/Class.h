@@ -9,7 +9,7 @@
 #ifndef Class_h
 #define Class_h
 
-#include <klib/Types.h>
+#include <kern/types.h>
 
 
 // This section stores all class data structures. The class data structures are

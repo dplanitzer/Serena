@@ -10,8 +10,8 @@
 #define di_ConditionVariable_h
 
 #include "Lock.h"
-#include <klib/Error.h>
-#include <klib/TimeInterval.h>
+#include <kern/errno.h>
+#include <System/TimeInterval.h>
 
 
 typedef CONDITION_VARIABLE ConditionVariable;

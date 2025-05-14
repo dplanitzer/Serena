@@ -10,6 +10,7 @@
 #include "KernFSPriv.h"
 #include <filesystem/DirectoryChannel.h>
 #include <filesystem/FSUtilities.h>
+#include <kern/string.h>
 
 
 errno_t KfsDirectory_Create(KernFSRef _Nonnull fs, ino_t inid, FilePermissions permissions, uid_t uid, gid_t gid, ino_t pnid, KfsNodeRef _Nullable * _Nonnull pOutSelf)

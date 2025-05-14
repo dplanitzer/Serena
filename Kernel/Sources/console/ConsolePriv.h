@@ -13,6 +13,7 @@
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/amiga/graphics/GraphicsDriver.h>
+#include <klib/RingBuffer.h>
 #include "Color.h"
 #include "Geometry.h"
 #include "KeyMap.h"

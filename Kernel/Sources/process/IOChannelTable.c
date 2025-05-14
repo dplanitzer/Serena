@@ -7,6 +7,8 @@
 //
 
 #include "IOChannelTable.h"
+#include <kern/kalloc.h>
+
 
 enum {
     kIOChannelTable_PageSize = 256

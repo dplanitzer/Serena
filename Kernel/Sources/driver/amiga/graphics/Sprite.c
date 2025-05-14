@@ -7,7 +7,7 @@
 //
 
 #include "Sprite.h"
-#include <klib/Kalloc.h>
+#include <kern/kalloc.h>
 
 
 // Creates a sprite of size 'width' x 'height' pixels and with position (0, 0).

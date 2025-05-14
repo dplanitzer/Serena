@@ -6,10 +6,13 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "kalloc.h"
 #include "Allocator.h"
-#include "Memory.h"
 #include <dispatcher/Lock.h>
+#include <hal/SystemDescription.h>
+#include <kern/assert.h>
+#include <kern/kalloc.h>
+#include <kern/kernlib.h>
+#include <kern/string.h>
 
 
 static Lock         gLock;

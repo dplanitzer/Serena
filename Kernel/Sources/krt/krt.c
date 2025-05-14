@@ -7,7 +7,7 @@
 //
 
 #include "krt.h"
-#include <klib/Memory.h>
+#include <kern/string.h>
 
 extern long long _rshsint64(long long x, int s);
 extern unsigned long long _rshuint64(unsigned long long x, int s);

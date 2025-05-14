@@ -8,6 +8,7 @@
 
 #include "ProcessPriv.h"
 #include "ProcChannel.h"
+#include <kern/string.h>
 
 
 errno_t Process_Publish(ProcessRef _Locked _Nonnull self)

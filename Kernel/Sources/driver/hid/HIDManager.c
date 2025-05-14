@@ -8,6 +8,9 @@
 
 #include "HIDManagerPriv.h"
 #include <driver/DriverChannel.h>
+#include <hal/Platform.h>
+#include <kern/kalloc.h>
+
 
 extern const uint8_t gUSBHIDKeyFlags[256];
 

@@ -9,9 +9,9 @@
 #ifndef CopperProgram_h
 #define CopperProgram_h
 
-#include <klib/Error.h>
+#include <kern/errno.h>
+#include <kern/types.h>
 #include <klib/List.h>
-#include <klib/Types.h>
 
 
 // Copper instructions

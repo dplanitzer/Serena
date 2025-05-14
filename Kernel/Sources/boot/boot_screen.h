@@ -9,7 +9,7 @@
 #ifndef boot_screen_h
 #define boot_screen_h
 
-#include <klib/Types.h>
+#include <kern/types.h>
 #include <driver/amiga/graphics/GraphicsDriver.h>
 
 typedef struct boot_screen {

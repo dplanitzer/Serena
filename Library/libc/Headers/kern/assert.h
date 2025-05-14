@@ -1,23 +1,25 @@
 //
-//  Assert.h
+//  kern/assert.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/17/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef Assert_h
-#define Assert_h
+#ifndef _KERN_ASSERT_H
+#define _KERN_ASSERT_H 1
 
-#include <klib/Types.h>
-#include <hal/Platform.h>
+#include <System/_cmndef.h>
+#include <System/_noreturn.h>
+
+struct ExceptionStackFrame;
 
 
 extern _Noreturn fatal(const char* _Nonnull format, ...);
 extern _Noreturn fatalError(const char* _Nonnull filename, int line, int err);
 extern _Noreturn fatalAbort(const char* _Nonnull filename, int line);
 extern _Noreturn fatalAssert(const char* _Nonnull filename, int line);
-extern _Noreturn _fatalException(const ExceptionStackFrame* _Nonnull pFrame);
+extern _Noreturn _fatalException(const struct ExceptionStackFrame* _Nonnull pFrame);
 
 
 #define abort() fatalAbort(__func__, __LINE__)
@@ -29,4 +31,4 @@ extern _Noreturn _fatalException(const ExceptionStackFrame* _Nonnull pFrame);
 #define assert(cond)
 #endif
 
-#endif /* Assert_h */
+#endif /* _KERN_ASSERT_H */

@@ -8,6 +8,7 @@
 
 #include "CopperScheduler.h"
 #include <hal/Platform.h>
+#include <kern/assert.h>
 
 static void CopperScheduler_GarbageCollectRetiredPrograms(CopperScheduler* _Nonnull self);
 

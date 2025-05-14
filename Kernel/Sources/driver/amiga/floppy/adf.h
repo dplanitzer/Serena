@@ -9,7 +9,7 @@
 #ifndef adf_h
 #define adf_h
 
-#include <klib/klib.h>
+#include <kern/types.h>
 
 // See http://lclevy.free.fr/adflib/adf_info.html
 #define ADF_MFM_SYNC_SIZE           8

@@ -9,6 +9,8 @@
 #include "MonotonicClock.h"
 #include "InterruptController.h"
 #include <hal/Platform.h>
+#include <hal/SystemDescription.h>
+#include <kern/kernlib.h>
 
 static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock);
 

@@ -1,27 +1,26 @@
 //
-//  Types.h
-//  kernel
+//  kern/kernlib.h
+//  diskimage
 //
-//  Created by Dietmar Planitzer on 7/6/23.
-//  Copyright © 2023 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 5/12/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef Types_h
-#define Types_h
+#ifndef _KERN_KERNLIB_H
+#define _KERN_KERNLIB_H 1
 
-#include <System/abi/_dmdef.h>
-#include <System/abi/_floattypes.h>
-#include <System/abi/_limits.h>
 #include <System/_align.h>
 #include <System/_cmndef.h>
 #include <System/_math.h>
-#include <System/_noreturn.h>
-#include <System/_offsetof.h>
-#include <System/_syslimits.h>
-#include <System/_varargs.h>
-#include <System/Types.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <limits.h>
 
-typedef int32_t Quantums;             // Time unit of the scheduler clock which increments monotonically and once per quantum interrupt
+__CPP_BEGIN
+
+#define ONE_SECOND_IN_NANOS (1000l * 1000l * 1000l)
+#define kQuantums_Infinity      INT32_MAX
+#define kQuantums_MinusInfinity INT32_MIN
 
 
 #define CHAR_PTR_MAX    ((char*)__UINTPTR_MAX)
@@ -29,11 +28,6 @@ typedef int32_t Quantums;             // Time unit of the scheduler clock which 
 
 // Convert a size_t to a ssize_t with clamping
 #define __SSizeByClampingSize(ub) (ssize_t)__min(ub, SSIZE_MAX)
-
-
-// Function types 
-typedef void (*VoidFunc_1)(void*);
-typedef void (*VoidFunc_2)(void*, void*);
 
 
 // Minimum size for types
@@ -125,17 +119,6 @@ extern const char* _Nonnull Int64_ToString(int64_t val, int radix, bool isUpperc
 extern const char* _Nonnull UInt64_ToString(uint64_t val, int base, bool isUppercase, char* _Nonnull pBuffer);
 
 
-// String
-extern ssize_t String_Length(const char* _Nonnull pStr);
-extern ssize_t String_LengthUpTo(const char* _Nonnull pStr, ssize_t strsz);
-
-extern char* _Nonnull String_Copy(char* _Nonnull pDst, const char* _Nonnull pSrc);
-extern char* _Nonnull String_CopyUpTo(char* _Nonnull pDst, const char* _Nonnull pSrc, ssize_t count);
-
-extern bool String_Equals(const char* _Nonnull pLhs, const char* _Nonnull pRhs);
-extern bool String_EqualsUpTo(const char* _Nonnull pLhs, const char* _Nonnull pRhs, ssize_t count);
-
-
 // Required minimum size is (string length byte + sign byte + longest digit sequence + 1 NUL byte) -> 1 + 64 (binary 64bit) + 1 + 1 = 25 bytes
 // A digit string is generated in a canonical representation: string length, sign, digits ..., NUL
 #define DIGIT_BUFFER_CAPACITY 67
@@ -151,4 +134,6 @@ extern char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char*
 
 extern int _atoi(const char *str, char **str_end, int base);
 
-#endif /* Types_h */
+__CPP_END
+
+#endif /* _KERN_KERNLIB_H */

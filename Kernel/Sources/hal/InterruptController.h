@@ -9,7 +9,6 @@
 #ifndef InterruptController_h
 #define InterruptController_h
 
-#include <klib/klib.h>
 #include <dispatcher/Semaphore.h>
 #include <hal/Platform.h>
 

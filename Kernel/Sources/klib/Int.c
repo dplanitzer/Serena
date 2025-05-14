@@ -6,8 +6,9 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Types.h"
-#include "Error.h"
+#include <kern/errno.h>
+#include <kern/types.h>
+#include <kern/kernlib.h>
 
 extern int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder);
 

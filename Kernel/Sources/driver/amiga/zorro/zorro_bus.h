@@ -10,7 +10,7 @@
 #define zorro_bus_h
 
 #include <System/Zorro.h>
-#include <klib/Error.h>
+#include <kern/errno.h>
 #include <klib/List.h>
 
 

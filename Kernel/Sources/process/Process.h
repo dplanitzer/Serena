@@ -9,7 +9,7 @@
 #ifndef Process_h
 #define Process_h
 
-#include <klib/klib.h>
+#include <kern/types.h>
 #include <kobj/Object.h>
 #include <System/File.h>
 #include <System/Filesystem.h>

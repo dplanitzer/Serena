@@ -9,7 +9,7 @@
 #ifndef Hash_h
 #define Hash_h
 
-#include <klib/Types.h>
+#include <kern/types.h>
 
 
 //

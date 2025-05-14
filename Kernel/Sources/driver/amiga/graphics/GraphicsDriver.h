@@ -9,7 +9,6 @@
 #ifndef GraphicsDriver_h
 #define GraphicsDriver_h
 
-#include <klib/klib.h>
 #include <driver/Driver.h>
 #include <System/Framebuffer.h>
 #include "Screen.h"

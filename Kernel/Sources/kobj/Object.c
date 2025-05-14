@@ -7,7 +7,8 @@
 //
 
 #include "Object.h"
-#include <klib/Kalloc.h>
+#include <kern/kalloc.h>
+#include <kern/kernlib.h>
 
 typedef void (*deinit_impl_t)(void* _Nonnull self);
 

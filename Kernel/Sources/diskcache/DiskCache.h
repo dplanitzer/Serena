@@ -9,7 +9,7 @@
 #ifndef DiskCache_h
 #define DiskCache_h
 
-#include <klib/Error.h>
+#include <kern/errno.h>
 #include <kobj/AnyRefs.h>
 #include <filesystem/FSBlock.h>
 #include <filesystem/IOChannel.h>

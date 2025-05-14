@@ -14,7 +14,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <klib/klib.h>
 #include <driver/amiga/floppy/adf.h>
 #include <filemanager/FileHierarchy.h>
 #include <filesystem/DirectoryChannel.h>

@@ -10,7 +10,8 @@
 #include "ConsoleChannel.h"
 #include <Catalog.h>
 #include <driver/hid/HIDChannel.h>
-
+#include <kern/assert.h>
+#include <kern/string.h>
 
 // Creates a new console object. This console will display its output on the
 // provided graphics device.

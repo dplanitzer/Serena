@@ -7,7 +7,7 @@
 //
 
 #include "Surface.h"
-#include <klib/Kalloc.h>
+#include <kern/kalloc.h>
 
 
 // Returns how many planes are needed to store a pixel in the given pixel format.

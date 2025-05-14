@@ -11,7 +11,6 @@
 
 #include <dispatcher/Semaphore.h>
 #include <dispatchqueue/DispatchQueue.h>
-#include <klib/Types.h>
 #include "CopperProgram.h"
 
 

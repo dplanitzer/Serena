@@ -7,6 +7,8 @@
 //
 
 #include "UResourceTable.h"
+#include <kern/kalloc.h>
+
 
 enum {
     kUResourceTable_PageSize = 64

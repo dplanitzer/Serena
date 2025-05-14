@@ -9,8 +9,9 @@
 #ifndef Formatter_h
 #define Formatter_h
 
-#include <klib/Error.h>
-#include <klib/Types.h>
+#include <kern/errno.h>
+#include <kern/kernlib.h>
+#include <kern/types.h>
 
 struct Formatter;
 

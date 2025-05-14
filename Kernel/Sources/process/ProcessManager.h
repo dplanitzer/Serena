@@ -9,7 +9,6 @@
 #ifndef ProcessManager_h
 #define ProcessManager_h
 
-#include <klib/klib.h>
 #include "Process.h"
 
 struct ProcessManager;

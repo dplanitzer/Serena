@@ -9,7 +9,7 @@
 #ifndef KeyMap_h
 #define KeyMap_h
 
-#include <klib/klib.h>
+#include <kern/types.h>
 #include <System/HIDEvent.h>
 #include <System/HIDKeyCodes.h>
 

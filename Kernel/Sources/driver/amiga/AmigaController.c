@@ -13,6 +13,7 @@
 #include <driver/amiga/hid/KeyboardDriver.h>
 #include <driver/amiga/zorro/ZorroController.h>
 #include <filesystem/SerenaDiskImage.h>
+#include <hal/Platform.h>
 #include <System/ByteOrder.h>
 
 

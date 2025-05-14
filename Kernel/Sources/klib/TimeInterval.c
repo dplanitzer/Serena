@@ -6,8 +6,8 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "TimeInterval.h"
-#include <System/abi/_limits.h>
+#include <kern/types.h>
+#include <kern/kernlib.h>
 
 const TimeInterval kTimeInterval_Zero = {0l, 0l};
 const TimeInterval kTimeInterval_Infinity = {LONG_MAX, ONE_SECOND_IN_NANOS};

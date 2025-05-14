@@ -9,7 +9,6 @@
 #ifndef GemDosExecutableLoader_h
 #define GemDosExecutableLoader_h
 
-#include <klib/klib.h>
 #include <filesystem/FileChannel.h>
 #include "AddressSpace.h"
 

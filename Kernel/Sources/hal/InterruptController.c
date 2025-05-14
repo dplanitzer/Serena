@@ -8,6 +8,7 @@
 
 #include "InterruptControllerPriv.h"
 #include <log/Log.h>
+#include <kern/kalloc.h>
 
 
 InterruptController     gInterruptControllerStorage;

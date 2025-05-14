@@ -7,7 +7,7 @@
 //
 
 #include "PartitionDriver.h"
-
+#include <kern/string.h>
 
 #define MAX_NAME_LENGTH 8
 

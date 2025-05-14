@@ -11,6 +11,7 @@
 #include <dispatchqueue/DispatchQueue.h>
 #include <klib/Hash.h>
 #include "ProcessPriv.h"
+#include <kern/kalloc.h>
 
 
 #define HASH_CHAIN_COUNT    16

@@ -9,7 +9,8 @@
 #ifndef HIDEventQueue_h
 #define HIDEventQueue_h
 
-#include <klib/klib.h>
+#include <kern/errno.h>
+#include <kern/types.h>
 #include <System/HIDEvent.h>
 
 struct HIDEventQueue;

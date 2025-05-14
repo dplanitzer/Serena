@@ -7,9 +7,9 @@
 //
 
 #include "zorro_bus.h"
-#include <klib/Assert.h>
-#include <klib/Kalloc.h>
-#include <klib/Memory.h>
+#include <kern/assert.h>
+#include <kern/string.h>
+#include <kern/kalloc.h>
 #include <hal/SystemDescription.h>
 
 

@@ -9,6 +9,7 @@
 #include "SfsRegularFile.h"
 #include "SerenaFSPriv.h"
 #include <filesystem/FileChannel.h>
+#include <kern/string.h>
 
 
 errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
@@ -85,6 +86,12 @@ catch:
     return err;
 }
 
+#ifdef _WIN32
+#define MAX_FILE_SIZE   LONG_MAX
+#else
+#define MAX_FILE_SIZE   kSFSLimit_FileSizeMax
+#endif
+
 errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
@@ -112,11 +119,11 @@ errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChanne
 
     // Limit 'nBytesToWrite' to the maximum possible file size relative to 'offset'.
     if (nBytesToWrite > 0) {
-        if (offset >= kSFSLimit_FileSizeMax) {
+        if (offset >= MAX_FILE_SIZE) {
             throw(EFBIG);
         }
 
-        const off_t nAvailBytes = kSFSLimit_FileSizeMax - offset;
+        const off_t nAvailBytes = MAX_FILE_SIZE - offset;
         if (nAvailBytes <= (off_t)SSIZE_MAX && (ssize_t)nAvailBytes < nBytesToWrite) {
             nBytesToWrite = (ssize_t)nAvailBytes;
         }

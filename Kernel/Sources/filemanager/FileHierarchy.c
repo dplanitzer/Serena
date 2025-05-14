@@ -13,6 +13,7 @@
 #include <filesystem/FSUtilities.h>
 #include <filesystem/kernfs/KernFS.h>
 #include <security/SecurityManager.h>
+#include <kern/string.h>
 
 extern void ResolvedPath_Init(ResolvedPath* _Nonnull self);
 

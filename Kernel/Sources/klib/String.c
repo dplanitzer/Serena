@@ -6,7 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Types.h"
+#include <kern/string.h>
 
 
 ssize_t String_Length(const char* _Nonnull pStr)

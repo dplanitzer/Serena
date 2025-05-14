@@ -7,7 +7,9 @@
 //
 
 #include "SystemDescription.h"
-#include <klib/Memory.h>
+#include <kern/kernlib.h>
+#include <kern/string.h>
+
 
 extern int8_t fpu_get_model(void);
 

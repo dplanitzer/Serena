@@ -9,7 +9,6 @@
 #ifndef IOChannel_h
 #define IOChannel_h
 
-#include <klib/klib.h>
 #include <kobj/Any.h>
 #include <dispatcher/Lock.h>
 #include <System/File.h>

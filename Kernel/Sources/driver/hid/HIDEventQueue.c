@@ -9,6 +9,8 @@
 #include "HIDEventQueue.h"
 #include <dispatcher/Semaphore.h>
 #include <hal/MonotonicClock.h>
+#include <hal/Platform.h>
+#include <kern/kalloc.h>
 
 
 // The event queue stores events in a ring buffer with a size that is a

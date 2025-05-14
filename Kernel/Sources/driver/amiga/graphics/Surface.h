@@ -9,8 +9,8 @@
 #ifndef Surface_h
 #define Surface_h
 
-#include <klib/Error.h>
-#include <klib/Types.h>
+#include <kern/errno.h>
+#include <kern/types.h>
 #include <klib/List.h>
 #include <System/Framebuffer.h>
 

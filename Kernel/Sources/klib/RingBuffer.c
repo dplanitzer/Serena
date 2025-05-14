@@ -7,6 +7,8 @@
 //
 
 #include "RingBuffer.h"
+#include <kern/kalloc.h>
+#include <kern/kernlib.h>
 
 #define kFlag_OwnsBuffer    1
 

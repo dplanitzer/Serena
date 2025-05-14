@@ -11,6 +11,7 @@
 #include "KfsDevice.h"
 #include <driver/Driver.h>
 #include <filesystem/DirectoryChannel.h>
+#include <kern/string.h>
 
 
 // Creates an instance of KernFS.

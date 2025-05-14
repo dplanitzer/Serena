@@ -9,7 +9,9 @@
 #ifndef Lock_h
 #define Lock_h
 
-#include <klib/klib.h>
+#include <kern/errno.h>
+#include <kern/types.h>
+#include <klib/List.h>
 
 
 typedef struct Lock {

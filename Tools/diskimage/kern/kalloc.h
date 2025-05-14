@@ -1,17 +1,16 @@
 //
-//  Kalloc.h
+//  kern/kalloc.h
 //  diskimage
 //
-//  Created by Dietmar Planitzer on 3/12/24.
-//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 8/6/23.
+//  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef klib_Kalloc_h
-#define klib_Kalloc_h
+#ifndef _KERN_KALLOC_H
+#define _KERN_KALLOC_H 1
 
-#include <klib/Types.h>
-#include <klib/Error.h>
-
+#include <kern/errno.h>
+#include <kern/types.h>
 
 // kalloc_options options
 // Allocate from unified memory (accessible to CPU and the chipset)
@@ -42,4 +41,4 @@ extern errno_t kalloc_options(ssize_t nbytes, unsigned int options, void* _Nulla
 // Frees kernel memory allocated with the kalloc() function.
 extern void kfree(void* _Nullable ptr);
 
-#endif /* klib_Kalloc_h */
+#endif /* _KERN_KALLOC_H */

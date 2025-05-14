@@ -9,8 +9,8 @@
 #ifndef Object_h
 #define Object_h
 
+#include <kern/errno.h>
 #include <klib/Atomic.h>
-#include <klib/Error.h>
 #include <kobj/Any.h>
 
 

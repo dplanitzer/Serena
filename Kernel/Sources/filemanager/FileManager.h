@@ -9,7 +9,6 @@
 #ifndef FileManager_h
 #define FileManager_h
 
-#include <klib/klib.h>
 #include <kobj/Object.h>
 #include <System/File.h>
 #include <System/Filesystem.h>

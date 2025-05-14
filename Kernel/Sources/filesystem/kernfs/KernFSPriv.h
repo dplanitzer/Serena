@@ -13,7 +13,6 @@
 #include "KfsNode.h"
 #include <dispatcher/Lock.h>
 #include <filesystem/FSUtilities.h>
-#include <klib/Types.h>
 #include <klib/Hash.h>
 #include <klib/List.h>
 

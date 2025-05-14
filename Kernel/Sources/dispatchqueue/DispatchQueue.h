@@ -9,7 +9,6 @@
 #ifndef DispatchQueue_h
 #define DispatchQueue_h
 
-#include <klib/klib.h>
 #include <kobj/Object.h>
 #include <dispatcher/VirtualProcessorPool.h>
 #include <hal/SystemDescription.h>

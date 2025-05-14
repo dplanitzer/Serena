@@ -7,6 +7,7 @@
 //
 
 #include "ConsolePriv.h"
+#include <kern/string.h>
 
 
 static const RGBColor32 gANSIColors[8] = {

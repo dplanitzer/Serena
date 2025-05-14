@@ -23,6 +23,8 @@
 #include <security/SecurityManager.h>
 #include <System/Filesystem.h>
 #include <Catalog.h>
+#include <kern/kalloc.h>
+#include <kern/string.h>
 #include "BootAllocator.h"
 #include "boot_screen.h"
 

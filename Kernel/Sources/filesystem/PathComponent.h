@@ -9,7 +9,8 @@
 #ifndef PathComponent_h
 #define PathComponent_h
 
-#include <klib/klib.h>
+#include <kern/errno.h>
+#include <kern/types.h>
 
 
 // Describes a single component (name) of a path. A path is a sequence of path

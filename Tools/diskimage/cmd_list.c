@@ -12,20 +12,16 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include <System/_math.h>
 #include <System/Directory.h>
 
 
-#if defined(__ILP32__)
-#define PINID   PRIu32
-#elif defined(__LP64__) || defined(__LLP64__)
-#define PINID   PRIu64
-#else
-#error "Unknown data model"
-#endif
-
 #ifdef _WIN32
+#define PINID   PRIu32
+#define PSIZE   "ld"
 #define lltoa _i64toa
+#else
+#define PINID   PRIu64
+#define PSIZE   "lld"
 #endif
 
 
@@ -124,7 +120,7 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
         file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Other), &self->buf[7]);
         self->buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
-        printf("%s %*d  %*u %*u  %*lld %*" PINID " %s\n",
+        printf("%s %*d  %*u %*u  %*" PSIZE " %*" PINID " %s\n",
             self->buf,
             self->linkCountWidth, info.linkCount,
             self->uidWidth, info.uid,

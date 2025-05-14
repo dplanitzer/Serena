@@ -6,7 +6,7 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <klib/Types.h>
+#include <kern/types.h>
 
 
 // USB Keycode -> kHIDEventModifierFlag_XXX values which are be or'd / and'd into self->modifierFlags.

@@ -8,7 +8,7 @@
 
 #include "IORequest.h"
 #include <dispatcher/Lock.h>
-#include <klib/Kalloc.h>
+#include <kern/kalloc.h>
 #include <klib/List.h>
 #include <System/_math.h>
 

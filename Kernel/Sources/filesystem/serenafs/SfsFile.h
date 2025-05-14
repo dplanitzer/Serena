@@ -9,7 +9,7 @@
 #ifndef SfsFile_h
 #define SfsFile_h
 
-#include <klib/Error.h>
+#include <kern/errno.h>
 #include <filesystem/FSBlock.h>
 #include <filesystem/Inode.h>
 #include "VolumeFormat.h"

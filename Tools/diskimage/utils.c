@@ -28,11 +28,11 @@ char* _Nullable create_dst_path(const char* _Nonnull srcPath, const char* _Nonnu
         }
 
         if (filenameStart) {
-            const size_t filenameLen = strlen(filenameStart);
+            const size_t filenameLen = strlen(filenameStart + 1);
             char* dstPath = malloc(pathLen + filenameLen + 1);
 
             memcpy(dstPath, path, pathLen);
-            memcpy(&dstPath[pathLen], filenameStart, filenameLen);
+            memcpy(&dstPath[pathLen], filenameStart + 1, filenameLen);
             dstPath[pathLen + filenameLen] = '\0';
 
             return dstPath;

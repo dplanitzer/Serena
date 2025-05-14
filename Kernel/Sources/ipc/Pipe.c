@@ -9,6 +9,7 @@
 #include "Pipe.h"
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
+#include <klib/RingBuffer.h>
 #include <System/File.h>
 
 

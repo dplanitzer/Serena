@@ -7,6 +7,8 @@
 //
 
 #include "RamDisk.h"
+#include <kern/kalloc.h>
+#include <kern/string.h>
 
 
 typedef struct DiskExtent {

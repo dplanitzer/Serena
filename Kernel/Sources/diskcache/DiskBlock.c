@@ -7,7 +7,7 @@
 //
 
 #include "DiskBlock.h"
-#include <klib/Kalloc.h>
+#include <kern/kalloc.h>
 
 
 errno_t DiskBlock_Create(int sessionId, blkno_t lba, size_t blockSize, DiskBlockRef _Nullable * _Nonnull pOutSelf)

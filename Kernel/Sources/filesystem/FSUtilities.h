@@ -9,9 +9,8 @@
 #ifndef FSUtilities_h
 #define FSUtilities_h
 
-#include <klib/Types.h>
-#include <System/Error.h>
-#include <System/TimeInterval.h>
+#include <kern/errno.h>
+#include <kern/types.h>
 
 
 // This header file defines functions for use in filesystem implementations.

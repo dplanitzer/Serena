@@ -11,6 +11,7 @@
 #include <filesystem/DirectoryChannel.h>
 #include <filesystem/FSUtilities.h>
 #include <System/ByteOrder.h>
+#include <kern/string.h>
 
 
 // Reads the next set of directory entries. The first entry read is the one

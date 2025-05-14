@@ -9,9 +9,9 @@
 #ifndef Screen_h
 #define Screen_h
 
-#include <klib/Error.h>
+#include <kern/errno.h>
+#include <kern/types.h>
 #include <klib/List.h>
-#include <klib/Types.h>
 #include "CopperProgram.h"
 #include "VideoConfiguration.h"
 #include "Sprite.h"

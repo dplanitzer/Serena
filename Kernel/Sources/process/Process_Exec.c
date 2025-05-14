@@ -9,6 +9,7 @@
 #include "ProcessPriv.h"
 #include "GemDosExecutableLoader.h"
 #include <krt/krt.h>
+#include <kern/string.h>
 
 
 static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], ssize_t maxByteCount, size_t* _Nonnull pOutTableEntryCount)

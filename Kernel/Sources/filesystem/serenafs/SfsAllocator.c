@@ -10,6 +10,7 @@
 #include <filesystem/FSContainer.h>
 #include <filesystem/FSUtilities.h>
 #include <System/ByteOrder.h>
+#include <kern/string.h>
 
 
 void SfsAllocator_Init(SfsAllocator* _Nonnull self)

@@ -15,6 +15,7 @@
 #include <filesystem/kernfs/KernFS.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <klib/List.h>
+#include <kern/kalloc.h>
 
 
 typedef struct fsentry {

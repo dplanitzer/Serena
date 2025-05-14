@@ -14,6 +14,7 @@
 #include <filesystem/Filesystem.h>
 #include <filesystem/IOChannel.h>
 #include <System/Filesystem.h>
+#include <kern/string.h>
 
 
 // Establishes and starts the filesystem stored on the disk managed by the disk

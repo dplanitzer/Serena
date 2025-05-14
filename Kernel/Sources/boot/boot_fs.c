@@ -7,7 +7,6 @@
 //
 
 #include <krt/krt.h>
-#include <klib/klib.h>
 #include <log/Log.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverChannel.h>

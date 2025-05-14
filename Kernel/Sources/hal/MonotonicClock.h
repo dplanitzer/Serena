@@ -9,8 +9,10 @@
 #ifndef MonotonicClock_h
 #define MonotonicClock_h
 
-#include <klib/klib.h>
-#include <hal/SystemDescription.h>
+#include <kern/errno.h>
+#include <kern/types.h>
+
+struct SystemDescription;
 
 
 // Note: Keep in sync with lowmem.i
@@ -23,7 +25,7 @@ typedef struct MonotonicClock {
 
 extern MonotonicClock* _Nonnull gMonotonicClock;
 
-extern errno_t MonotonicClock_CreateForLocalCPU(const SystemDescription* pSysDesc);
+extern errno_t MonotonicClock_CreateForLocalCPU(const struct SystemDescription* pSysDesc);
 
 extern Quantums MonotonicClock_GetCurrentQuantums(void);
 extern TimeInterval MonotonicClock_GetCurrentTime(void);

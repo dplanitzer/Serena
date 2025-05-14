@@ -12,6 +12,7 @@
 #include <diskcache/DiskCache.h>
 #include <driver/DriverChannel.h>
 #include <hal/Platform.h>
+#include <kern/string.h>
 
 
 void open_boot_screen(boot_screen_t* _Nonnull bscr)

@@ -7,6 +7,8 @@
 //
 
 #include "UResource.h"
+#include <kern/kalloc.h>
+
 
 typedef void (*UResource_Deinit_Impl)(void* _Nonnull self);
 

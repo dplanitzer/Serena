@@ -13,6 +13,7 @@
 #include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
 #include <filesystem/SerenaDiskImage.h>
+#include <kern/string.h>
 
 
 // Checks whether the platform controller is able to provide a bootable disk image

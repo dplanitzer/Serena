@@ -12,6 +12,8 @@
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
 #include <log/Log.h>
+#include <kern/kalloc.h>
+#include <kern/string.h>
 
 
 // Initializes an execution stack struct. The execution stack is empty by default

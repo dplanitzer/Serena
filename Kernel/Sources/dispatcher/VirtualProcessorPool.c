@@ -9,6 +9,7 @@
 #include "VirtualProcessorPool.h"
 #include "Lock.h"
 #include "VirtualProcessorScheduler.h"
+#include <kern/kalloc.h>
 
 
 #define REUSE_CACHE_CAPACITY    16

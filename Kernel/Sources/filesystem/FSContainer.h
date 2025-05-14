@@ -9,7 +9,6 @@
 #ifndef FSContainer_h
 #define FSContainer_h
 
-#include <klib/klib.h>
 #include <kobj/Object.h>
 #include <filesystem/FSBlock.h>
 #include <System/Disk.h>

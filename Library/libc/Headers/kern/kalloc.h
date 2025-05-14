@@ -1,17 +1,19 @@
 //
-//  Kalloc.h
+//  kern/kalloc.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/6/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef kalloc_h
-#define kalloc_h
+#ifndef _KERN_KALLOC_H
+#define _KERN_KALLOC_H 1
 
-#include <klib/Types.h>
-#include <klib/Error.h>
-#include <hal/SystemDescription.h>
+#include <kern/errno.h>
+#include <kern/types.h>
+
+struct MemoryDescriptor;
+struct SystemDescription;
 
 
 // kalloc_options options
@@ -49,9 +51,9 @@ extern size_t ksize(void* _Nullable ptr);
 
 // Adds the given memory region as a CPU-only access memory region to the kalloc
 // heap.
-extern errno_t kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc);
+extern errno_t kalloc_add_memory_region(const struct MemoryDescriptor* _Nonnull pMemDesc);
 
 // Initializes the kalloc heap.
-extern errno_t kalloc_init(const SystemDescription* _Nonnull pSysDesc, void* _Nonnull pInitialHeapBottom, void* _Nonnull pInitialHeapTop);
+extern errno_t kalloc_init(const struct SystemDescription* _Nonnull pSysDesc, void* _Nonnull pInitialHeapBottom, void* _Nonnull pInitialHeapTop);
 
-#endif /* kalloc_h */
+#endif /* _KERN_KALLOC_H */

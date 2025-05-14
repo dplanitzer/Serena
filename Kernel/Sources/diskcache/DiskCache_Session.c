@@ -9,6 +9,7 @@
 #include "DiskCachePriv.h"
 #include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverChannel.h>
+#include <kern/string.h>
 
 // Define to force all writes to be synchronous
 //#define __FORCE_WRITES_SYNC 1

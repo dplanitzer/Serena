@@ -9,7 +9,7 @@
 #ifndef VirtualProcessorScheduler_h
 #define VirtualProcessorScheduler_h
 
-#include <klib/klib.h>
+#include <kern/types.h>
 #include <boot/BootAllocator.h>
 #include <hal/SystemDescription.h>
 #include "VirtualProcessor.h"

@@ -9,9 +9,10 @@
 #ifndef Allocator_h
 #define Allocator_h
 
-#include <klib/Error.h>
-#include <hal/Platform.h>
+#include <kern/errno.h>
+#include <kern/types.h>
 
+struct MemoryDescriptor;
 
 struct Allocator;
 typedef struct Allocator* AllocatorRef;
@@ -21,10 +22,10 @@ typedef struct Allocator* AllocatorRef;
 typedef errno_t (*AllocatorGrowFunc)(AllocatorRef _Nonnull allocator, size_t minByteCount);
 
 
-extern AllocatorRef _Nullable __Allocator_Create(const MemoryDescriptor* _Nonnull md, AllocatorGrowFunc _Nullable growFunc);
+extern AllocatorRef _Nullable __Allocator_Create(const struct MemoryDescriptor* _Nonnull md, AllocatorGrowFunc _Nullable growFunc);
 
 // Adds the given memory region to the allocator's available memory pool.
-extern errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull self, const MemoryDescriptor* _Nonnull md);
+extern errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull self, const struct MemoryDescriptor* _Nonnull md);
 
 extern void* _Nullable __Allocator_Allocate(AllocatorRef _Nonnull self, size_t nbytes);
 extern void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull self, void *ptr, size_t new_size);

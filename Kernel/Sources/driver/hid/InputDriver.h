@@ -9,7 +9,6 @@
 #ifndef InputDriver_h
 #define InputDriver_h
 
-#include <klib/klib.h>
 #include <driver/Driver.h>
 #include <System/HID.h>
 

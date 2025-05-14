@@ -10,6 +10,7 @@
 #include "HIDManager.h"
 #include <hal/MonotonicClock.h>
 #include <System/HIDKeyCodes.h>
+#include <kern/kalloc.h>
 
 
 enum {

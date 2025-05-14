@@ -8,6 +8,8 @@
 
 #include "FSUtilities.h"
 #include <hal/MonotonicClock.h>
+#include <kern/kalloc.h>
+#include <kern/kernlib.h>
 
 
 // Returns the current time. This time value is suitable for use as a timestamp

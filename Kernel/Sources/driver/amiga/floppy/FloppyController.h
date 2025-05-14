@@ -9,7 +9,6 @@
 #ifndef FloppyController_h
 #define FloppyController_h
 
-#include <klib/klib.h>
 #include <driver/Driver.h>
 #include <driver/amiga/floppy/FloppyDriver.h>
 

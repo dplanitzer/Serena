@@ -7,6 +7,8 @@
 //
 
 #include "Geometry.h"
+#include <kern/kernlib.h>
+#include <kern/limits.h>
 
 
 const Point Point_Zero = {0, 0};

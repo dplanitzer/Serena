@@ -9,7 +9,7 @@
 #ifndef Log_h
 #define Log_h
 
-#include <klib/Types.h>
+#include <kern/types.h>
 
 
 // Initialize the log package. It's save to call this before kalloc is initialized.

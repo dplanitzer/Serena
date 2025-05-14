@@ -9,6 +9,7 @@
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
 #include <log/Log.h>
+#include <kern/kalloc.h>
 
 
 // Frees all tombstones

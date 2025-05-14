@@ -7,7 +7,7 @@
 //
 
 #include "CopperProgram.h"
-#include <klib/Kalloc.h>
+#include <kern/kalloc.h>
 
 
 errno_t CopperProgram_Create(size_t instrCount, CopperProgram* _Nullable * _Nonnull pOutSelf)

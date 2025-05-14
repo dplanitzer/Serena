@@ -9,7 +9,10 @@
 #ifndef VirtualProcessor_h
 #define VirtualProcessor_h
 
-#include <klib/klib.h>
+#include <kern/errno.h>
+#include <kern/types.h>
+#include <klib/Atomic.h>
+#include <klib/List.h>
 #include <hal/Platform.h>
 #include <hal/SystemDescription.h>
 

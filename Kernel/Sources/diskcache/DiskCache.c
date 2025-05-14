@@ -9,6 +9,8 @@
 #include "DiskCachePriv.h"
 #include <dispatcher/VirtualProcessor.h>
 #include <log/Log.h>
+#include <kern/kalloc.h>
+#include <kern/string.h>
 
 
 DiskCacheRef _Nonnull  gDiskCache;

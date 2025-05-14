@@ -10,6 +10,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <System/TimeInterval.h>
 
 #define ONE_SECOND_IN_NANOS (1000l * 1000l * 1000l)
@@ -52,8 +53,8 @@ AtomicInt AtomicInt_Subtract(volatile AtomicInt* _Nonnull pValue, int decrement)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "Kalloc.h"
-#include "Error.h"
+#include <kern/errno.h>
+#include <kern/kalloc.h>
 #include <stdlib.h>
 
 
@@ -80,7 +81,7 @@ void kfree(void* _Nullable ptr)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <string.h>
+#include <kern/string.h>
 
 ssize_t String_Length(const char* _Nonnull pStr)
 {

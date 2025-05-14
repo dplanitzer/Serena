@@ -9,7 +9,6 @@
 #ifndef Pipe_h
 #define Pipe_h
 
-#include <klib/klib.h>
 #include <kobj/Object.h>
 
 

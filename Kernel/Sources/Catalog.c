@@ -10,6 +10,8 @@
 #include "Catalog.h"
 #include <filemanager/FileHierarchy.h>
 #include <filesystem/kernfs/KernFS.h>
+#include <kern/kalloc.h>
+#include <kern/string.h>
 
 
 typedef struct Catalog {

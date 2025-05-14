@@ -9,7 +9,7 @@
 #ifndef mfm_h
 #define mfm_h
 
-#include <klib/klib.h>
+#include <kern/types.h>
 
 extern void mfm_decode_bits(const uint32_t* _Nonnull input, uint32_t* _Nonnull output, size_t data_size);
 extern void mfm_encode_bits(const uint32_t* _Nonnull input, uint32_t* _Nonnull output, size_t data_size);

@@ -8,7 +8,7 @@
 
 #include "SecurityManager.h"
 #include <filesystem/Filesystem.h>
-#include <klib/Kalloc.h>
+#include <kern/kalloc.h>
 
 typedef struct SecurityManager {
     int dummy;

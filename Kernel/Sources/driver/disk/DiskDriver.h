@@ -9,7 +9,6 @@
 #ifndef DiskDriver_h
 #define DiskDriver_h
 
-#include <klib/klib.h>
 #include <diskcache/DiskCache.h>
 #include <driver/Driver.h>
 #include <driver/IORequest.h>

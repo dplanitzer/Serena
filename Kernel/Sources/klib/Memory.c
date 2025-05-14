@@ -6,7 +6,8 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Memory.h"
+#include <kern/string.h>
+#include <kern/types.h>
 
 #if defined(__ILP32__)
 typedef uint32_t uword_t;

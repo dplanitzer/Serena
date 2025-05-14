@@ -9,7 +9,7 @@
 #ifndef Platform_h
 #define Platform_h
 
-#include <klib/Types.h>
+#include <kern/types.h>
 
 //
 // CPU

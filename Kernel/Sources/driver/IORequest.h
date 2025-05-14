@@ -9,8 +9,8 @@
 #ifndef IORequest_h
 #define IORequest_h
 
-#include <klib/Error.h>
-#include <klib/Types.h>
+#include <kern/errno.h>
+#include <kern/types.h>
 
 struct IORequest;
 
