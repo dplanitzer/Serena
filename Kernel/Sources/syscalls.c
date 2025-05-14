@@ -180,7 +180,7 @@ SYSCALL_2(getcwd, char* _Nonnull buffer, size_t bufferSize)
     return Process_GetWorkingDirectoryPath((ProcessRef)p, pa->buffer, pa->bufferSize);
 }
 
-SYSCALL_1(setcwd, const char* _Nonnull path)
+SYSCALL_1(chdir, const char* _Nonnull path)
 {
     return Process_SetWorkingDirectoryPath((ProcessRef)p, pa->path);
 }
@@ -471,7 +471,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(waitpid, SC_ERRNO),
     SYSCALL_ENTRY(seek, SC_ERRNO),
     SYSCALL_ENTRY(getcwd, SC_ERRNO),
-    SYSCALL_ENTRY(setcwd, SC_ERRNO),
+    SYSCALL_ENTRY(chdir, SC_ERRNO),
     SYSCALL_ENTRY(getuid, 0),
     SYSCALL_ENTRY(getumask, 0),
     SYSCALL_ENTRY(setumask, 0),

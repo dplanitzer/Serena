@@ -17,7 +17,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
 {
     decl_try_err();
     FilesystemRef fs = Inode_GetFilesystem(pFile);
-    access_t accessMode = 0;
+    int accessMode = 0;
 
 
     // This must be some kind of file and not a directory
@@ -318,7 +318,7 @@ errno_t FileManager_TruncateFile_ioc(FileManagerRef _Nonnull self, IOChannelRef 
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.
-errno_t FileManager_CheckAccess(FileManagerRef _Nonnull self, const char* _Nonnull path, access_t mode)
+errno_t FileManager_CheckAccess(FileManagerRef _Nonnull self, const char* _Nonnull path, int mode)
 {
     decl_try_err();
     ResolvedPath r;

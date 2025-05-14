@@ -24,7 +24,7 @@ SC_close                    equ 11
 SC_waitpid                  equ 12
 SC_seek                     equ 13
 SC_getcwd                   equ 14
-SC_setcwd                   equ 15
+SC_chdir                    equ 15
 SC_getuid                   equ 16
 SC_getumask                 equ 17
 SC_setumask                 equ 18

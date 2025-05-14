@@ -10,6 +10,7 @@
 #include "Utilities.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <clap.h>
 
 
@@ -24,14 +25,15 @@ static CLAP_DECL(params,
 );
 
 
-static errno_t do_cd(const char* path, const char* proc_name)
+static int do_cd(const char* path, const char* proc_name)
 {
-    const errno_t err = setcwd(path);
-        
-    if (err != EOK) {
-        print_error(proc_name, path, err);
+    if (chdir(path) == 0) {
+        return EXIT_SUCCESS;
     }
-    return err;
+    else {
+        print_error(proc_name, path, errno);
+        return EXIT_FAILURE;
+    }
 }
 
 int cmd_cd(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
@@ -40,7 +42,7 @@ int cmd_cd(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
     int exitCode;
 
     if (!clap_should_exit(status)) {
-        exitCode = exit_code(do_cd(path, argv[0]));
+        exitCode = do_cd(path, argv[0]);
     }
     else {
         exitCode = clap_exit_code(status);

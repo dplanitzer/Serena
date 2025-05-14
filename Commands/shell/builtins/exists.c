@@ -9,6 +9,7 @@
 #include "Interpreter.h"
 #include "Utilities.h"
 #include <stdlib.h>
+#include <unistd.h>
 #include <clap.h>
 #include <System/File.h>
 
@@ -26,7 +27,7 @@ static CLAP_DECL(params,
 
 static inline errno_t do_exists(InterpreterRef _Nonnull ip, const char* _Nonnull path)
 {
-    return OpStack_PushBool(ip->opStack, (access(path, F_OK) == EOK) ? true : false);
+    return OpStack_PushBool(ip->opStack, (access(path, F_OK) == 0) ? true : false);
 }
 
 int cmd_exists(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)

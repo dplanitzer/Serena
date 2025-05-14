@@ -65,11 +65,6 @@ errno_t ftruncate(int ioc, off_t length)
 }
 
 
-errno_t access(const char* _Nonnull path, access_t mode)
-{
-    return (errno_t)_syscall(SC_access, path, mode);
-}
-
 errno_t unlink(const char* _Nonnull path)
 {
     return (errno_t)_syscall(SC_unlink, path);

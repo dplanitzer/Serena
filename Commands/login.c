@@ -10,7 +10,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <System/System.h>
+#include <unistd.h>
+#include <System/Process.h>
+#include <System/DispatchQueue.h>
+#include <System/Error.h>
+#include <System/File.h>
+
+// Shut down the boot screen and initialize the kerne VT100 console
+// XXX for now. Don't use outside of login.
+extern errno_t __coninit(void);
+
 
 static void on_shell_termination(void* _Nullable ignore);
 
@@ -95,7 +104,7 @@ static void login_user(void)
     puts("Logging in as admin...\n");
 
     // Make the current directory the user's home directory
-    setcwd(homePath);
+    chdir(homePath);
 
     err = start_shell(shellPath, homePath);
     if (err != EOK) {

@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <clap.h>
 
 
@@ -25,7 +26,7 @@ static CLAP_DECL(params,
 );
 
 
-static errno_t do_pushcd(InterpreterRef _Nonnull ip, const char* path, const char* proc_name)
+static int do_pushcd(InterpreterRef _Nonnull ip, const char* path, const char* proc_name)
 {
     decl_try_err();
     CDEntry* entry = NULL;
@@ -37,7 +38,9 @@ static errno_t do_pushcd(InterpreterRef _Nonnull ip, const char* path, const cha
     try_null(entry->path, strdup(buf), ENOMEM);
 
     if (*path != '\0') {
-        try(setcwd(path));
+        if (chdir(path) != 0) {
+            throw(errno);
+        }
     }
 
     if (ip->cdStackTos) {
@@ -45,7 +48,7 @@ static errno_t do_pushcd(InterpreterRef _Nonnull ip, const char* path, const cha
     }
     ip->cdStackTos = entry;
 
-    return EOK;
+    return EXIT_SUCCESS;
 
 catch:
     print_error(proc_name, path, err);
@@ -56,7 +59,7 @@ catch:
     }
     free(entry);
 
-    return err;
+    return EXIT_FAILURE;
 }
 
 int cmd_pushcd(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
@@ -67,7 +70,7 @@ int cmd_pushcd(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
     int exitCode;
 
     if (!clap_should_exit(status)) {
-        exitCode = exit_code(do_pushcd(ip, path, argv[0]));
+        exitCode = do_pushcd(ip, path, argv[0]);
     }
     else {
         exitCode = clap_exit_code(status);

@@ -6,11 +6,13 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include <System/File.h>
 
 #define NUM_RND_CHARS   16
@@ -68,7 +70,7 @@ char *__tmpnam_r(char *filename, int* pOutIoc)
 
 
     // Verify that the directory exists
-    if (access(dir, R_OK | X_OK) != EOK) {
+    if (access(dir, R_OK | X_OK) != 0) {
         return NULL;
     }
 
@@ -118,7 +120,7 @@ char *__tmpnam_r(char *filename, int* pOutIoc)
             }
         }
         else {
-            if (access(filename, F_OK) == ENOENT) {
+            if (access(filename, F_OK) != 0 && errno == ENOENT) {
                 return filename;
             }
         }

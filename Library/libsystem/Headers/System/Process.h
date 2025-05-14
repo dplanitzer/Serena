@@ -103,7 +103,6 @@ extern _Noreturn os_exit(int exit_code);
 
 
 extern errno_t getcwd(char* _Nonnull buffer, size_t bufferSize);
-extern errno_t setcwd(const char* _Nonnull path);
 
 
 extern FilePermissions getumask(void);

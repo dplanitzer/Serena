@@ -32,7 +32,7 @@ catch:
     return err;
 }
 
-errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeRef _Nonnull _Locked pNode, uid_t uid, gid_t gid, access_t mode)
+errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeRef _Nonnull _Locked pNode, uid_t uid, gid_t gid, int mode)
 {
     const FilePermissions nodePerms = Inode_GetFilePermissions(pNode);
     FilePermissions reqPerms = 0;

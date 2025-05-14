@@ -20,11 +20,6 @@ errno_t getcwd(char* _Nonnull buffer, size_t bufferSize)
     return _syscall(SC_getcwd, buffer, bufferSize);
 }
 
-errno_t setcwd(const char* _Nonnull path)
-{
-    return _syscall(SC_setcwd, path);
-}
-
 
 FilePermissions getumask(void)
 {

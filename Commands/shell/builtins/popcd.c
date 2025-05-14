@@ -10,6 +10,7 @@
 #include "Utilities.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <clap.h>
 
 
@@ -22,25 +23,23 @@ static CLAP_DECL(params,
 );
 
 
-static errno_t do_popcd(InterpreterRef _Nonnull ip, const char* proc_name)
+static int do_popcd(InterpreterRef _Nonnull ip, const char* _Nonnull proc_name)
 {
-    decl_try_err();
-
     if (ip->cdStackTos) {
-        err = setcwd(ip->cdStackTos->path);
-        if (err == EOK) {
+        if (chdir(ip->cdStackTos->path) == 0) {
             CDEntry* ep = ip->cdStackTos;
 
             ip->cdStackTos = ep->prev;
             free(ep->path);
             free(ep);
         }
+
+        return EXIT_SUCCESS;
     }
     else {
         fprintf(stderr, "%s: empty stack\n", proc_name);
+        return EXIT_FAILURE;
     }
-
-    return err;
 }
 
 int cmd_popcd(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
@@ -49,7 +48,7 @@ int cmd_popcd(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
     int exitCode;
 
     if (!clap_should_exit(status)) {
-        exitCode = exit_code(do_popcd(ip, argv[0]));
+        exitCode = do_popcd(ip, argv[0]);
     }
     else {
         exitCode = clap_exit_code(status);

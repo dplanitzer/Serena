@@ -75,7 +75,6 @@ typedef struct fmutinfo {
 #define W_OK    2
 #define X_OK    4
 #define F_OK    0
-typedef uint32_t    access_t;
 
 
 #define O_RDONLY    0x0001
@@ -150,11 +149,6 @@ extern errno_t getfinfo(const char* _Nonnull path, finfo_t* _Nonnull info);
 // @Concurrency: Safe
 extern errno_t setfinfo(const char* _Nonnull path, fmutinfo_t* _Nonnull info);
 
-
-// Checks whether the file at the filesystem location 'path' exists and whether
-// it is accessible according to 'mode'. A suitable error is returned otherwise.
-// @Concurrency: Safe
-extern errno_t access(const char* _Nonnull path, access_t mode);
 
 // Deletes the file or (empty) directory located at the filesystem location 'path'.
 // Note that this function deletes empty directories only.

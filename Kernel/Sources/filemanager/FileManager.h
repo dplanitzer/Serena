@@ -112,7 +112,7 @@ extern errno_t FileManager_TruncateFile_ioc(FileManagerRef _Nonnull self, IOChan
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.
-extern errno_t FileManager_CheckAccess(FileManagerRef _Nonnull self, const char* _Nonnull pPath, access_t mode);
+extern errno_t FileManager_CheckAccess(FileManagerRef _Nonnull self, const char* _Nonnull pPath, int mode);
 
 // Unlinks the inode at the path 'pPath'.
 extern errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull pPath);

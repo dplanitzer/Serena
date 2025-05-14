@@ -43,10 +43,6 @@ __CPP_BEGIN
 // @Concurrency: Not Safe
 extern void __sysinit(pargs_t* _Nonnull argsp);
 
-// Shut down the boot screen and initialize the kerne VT100 console
-// XXX for now. Don't use outside of login.
-extern errno_t __coninit(void);
-
 __CPP_END
 
 #endif /* _SYS_SYSTEM_H */
