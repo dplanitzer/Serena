@@ -11,7 +11,7 @@
 
 #include <filesystem/IOChannel.h>
 #include <filesystem/Inode.h>
-#include <System/User.h>
+#include <kern/uid.h>
 
 
 // File positions/seeking and directories:

@@ -15,7 +15,7 @@
 #include <sys/disk.h>
 #include <time.h>
 #include <System/Filesystem.h>
-#include <System/User.h>
+#include <kern/uid.h>
 
 
 typedef intptr_t (*syscall_func_t)(void* _Nonnull p, void* _Nonnull);

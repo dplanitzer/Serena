@@ -23,7 +23,7 @@
 #include <System/Filesystem.h>
 #include <System/FilePermissions.h>
 #include <System/Process.h>
-#include <System/User.h>
+#include <sys/uid.h>
 #include <filesystem/serenafs/tools/format.h>
 
 typedef struct di_permissions_spec {

@@ -18,7 +18,6 @@
 #include <System/FilePermissions.h>
 #include <System/Process.h>
 #include <System/Urt.h>
-#include <System/User.h>
 
 __CPP_BEGIN
 

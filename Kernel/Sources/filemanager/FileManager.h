@@ -12,7 +12,7 @@
 #include <kobj/Object.h>
 #include <System/File.h>
 #include <System/Filesystem.h>
-#include <System/User.h>
+#include <kern/uid.h>
 
 
 typedef struct FileManager {
