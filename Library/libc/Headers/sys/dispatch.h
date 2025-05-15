@@ -1,18 +1,19 @@
 //
-//  DispatchQueue.h
-//  libsystem
+//  sys/dispatch.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_DISPATCH_QUEUE_H
-#define _SYS_DISPATCH_QUEUE_H 1
+#ifndef _SYS_DISPATCH_H
+#define _SYS_DISPATCH_H 1
 
 #include <System/_cmndef.h>
 #include <System/Error.h>
 #include <System/TimeInterval.h>
-#include <System/Types.h>
+#include <stdint.h>
+#include <sys/dispatch.h>
 
 __CPP_BEGIN
 
@@ -39,6 +40,13 @@ typedef void (*dispatch_func_t)(void* _Nullable arg);
 #define kDispatchPriority_Lowest   -6
 
 #define kDispatchPriority_Count     12
+
+
+// Private
+enum {
+    kDispatchOption_Sync = 1,       // Dispatch and then wait for completion
+    kDispatchOption_Coalesce = 2,   // Do not dispatch this request if a request with the same tag is already queued or currently executing
+};
 
 
 // Synchronously executes the given closure. The closure is executed as soon as
@@ -118,13 +126,6 @@ extern errno_t dispatch_create(int minConcurrency, int maxConcurrency, int qos, 
 // @Concurrency: Safe
 extern errno_t dispatch_destroy(int od);
 
-
-// Private
-enum {
-    kDispatchOption_Sync = 1,       // Dispatch and then wait for completion
-    kDispatchOption_Coalesce = 2,   // Do not dispatch this request if a request with the same tag is already queued or currently executing
-};
-
 __CPP_END
 
-#endif /* _SYS_DISPATCH_QUEUE_H */
+#endif /* _SYS_DISPATCH_H */

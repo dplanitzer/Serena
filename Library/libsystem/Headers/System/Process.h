@@ -14,7 +14,7 @@
 #include <System/Error.h>
 #include <System/Types.h>
 #include <System/Urt.h>
-#include <System/DispatchQueue.h>
+#include <sys/dispatch.h>
 
 __CPP_BEGIN
 

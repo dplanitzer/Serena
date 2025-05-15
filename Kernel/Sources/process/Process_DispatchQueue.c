@@ -9,7 +9,6 @@
 #include "ProcessPriv.h"
 #include "UDispatchQueue.h"
 #include <dispatcher/VirtualProcessorPool.h>
-#include <System/DispatchQueue.h>
 
 
 // Creates a new dispatch queue and binds it to the process.

@@ -1,12 +1,12 @@
 //
-//  DispatchQueue.c
-//  libsystem
+//  dispatch.c
+//  libc
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <System/DispatchQueue.h>
+#include <sys/dispatch.h>
 #include <System/_syscall.h>
 
 
@@ -54,9 +54,4 @@ errno_t dispatch_create(int minConcurrency, int maxConcurrency, int qos, int pri
 errno_t dispatch_destroy(int od)
 {
     return _syscall(SC_dispose, od);
-}
-
-errno_t* _Nonnull __vcpuerrno(void)
-{
-    return (errno_t*)_syscall(SC_vcpuerrno);
 }
