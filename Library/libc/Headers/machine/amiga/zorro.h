@@ -1,17 +1,17 @@
 //
-//  Zorro.h
-//  libsystem
+//  machine/amiga/zorro.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 1/18/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_ZORRO_H
-#define _SYS_ZORRO_H 1
+#ifndef _MAC_AMIGA_ZORRO_H
+#define _MAC_AMIGA_ZORRO_H 1
 
 #include <System/_cmndef.h>
 #include <stdint.h>
-#include <stdio.h>
+#include <stddef.h>
 
 __CPP_BEGIN
 
@@ -30,4 +30,4 @@ typedef struct zorro_conf {
 
 __CPP_END
 
-#endif /* _SYS_ZORRO_H */
+#endif /* _MAC_AMIGA_ZORRO_H */

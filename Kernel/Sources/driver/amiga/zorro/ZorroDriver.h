@@ -10,7 +10,7 @@
 #define ZorroDriver_h
 
 #include <driver/Driver.h>
-#include <System/Zorro.h>
+#include <machine/amiga/zorro.h>
 
 
 open_class(ZorroDriver, Driver,

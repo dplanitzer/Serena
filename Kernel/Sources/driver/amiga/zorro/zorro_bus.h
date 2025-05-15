@@ -9,9 +9,9 @@
 #ifndef zorro_bus_h
 #define zorro_bus_h
 
-#include <System/Zorro.h>
 #include <kern/errno.h>
 #include <klib/List.h>
+#include <machine/amiga/zorro.h>
 
 
 // Expansion board types

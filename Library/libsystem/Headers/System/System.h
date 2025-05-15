@@ -25,7 +25,6 @@
 #include <System/TimeInterval.h>
 #include <System/Urt.h>
 #include <System/User.h>
-#include <System/Zorro.h>
 
 __CPP_BEGIN
 
