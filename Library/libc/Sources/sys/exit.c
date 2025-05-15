@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <sys/mutex.h>
 #include <System/Process.h>
-#include <System/_syscall.h>
+#include <sys/_syscall.h>
 #include <__stddef.h>
 
 

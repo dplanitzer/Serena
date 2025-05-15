@@ -1,6 +1,6 @@
 //
 //  syscall.h
-//  libsystem
+//  libc
 //
 //  Created by Dietmar Planitzer on 9/2/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
@@ -10,7 +10,7 @@
 #define _SYS_SYSCALL_H 1
 
 #include <System/_cmndef.h>
-#include <machine/abi/_inttypes.h>
+#include <stdint.h>
 
 __CPP_BEGIN
 

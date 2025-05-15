@@ -7,7 +7,7 @@
 //
 
 #include <sys/semaphore.h>
-#include <System/_syscall.h>
+#include <sys/_syscall.h>
 
 #define SEM_SIGNATURE 0x53454d41
 

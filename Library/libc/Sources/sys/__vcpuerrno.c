@@ -7,7 +7,7 @@
 //
 
 #include <System/Error.h>
-#include <System/_syscall.h>
+#include <sys/_syscall.h>
 
 
 errno_t* _Nonnull __vcpuerrno(void)

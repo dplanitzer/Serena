@@ -7,7 +7,7 @@
 //
 
 #include <System/Process.h>
-#include <System/_syscall.h>
+#include <sys/_syscall.h>
 
 
 _Noreturn os_exit(int exit_code)

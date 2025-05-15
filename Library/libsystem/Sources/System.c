@@ -8,7 +8,7 @@
 
 #include <stdbool.h>
 #include <System/Process.h>
-#include <System/_syscall.h>
+#include <sys/_syscall.h>
 #include <System/_varargs.h>
 
 extern void __UrtInit(pargs_t* _Nonnull argsp);
