@@ -8,7 +8,7 @@
 
 #include "Driver.h"
 #include "DriverChannel.h"
-#include <System/Driver.h>
+#include <sys/driver.h>
 
 #define DriverFromChildNode(__ptr) \
 (DriverRef) (((uint8_t*)__ptr) - offsetof(struct Driver, childNode))

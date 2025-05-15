@@ -11,7 +11,7 @@
 
 #include <kobj/Object.h>
 #include <System/Error.h>
-#include <System/Framebuffer.h>
+#include <sys/fb.h>
 #include <sys/hid.h>
 #include <sys/hidevent.h>
 

@@ -1,6 +1,6 @@
 //
-//  Disk.h
-//  libsystem
+//  sys/disk.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 10/10/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
@@ -9,7 +9,10 @@
 #ifndef _SYS_DISK_H
 #define _SYS_DISK_H 1
 
-#include <System/Driver.h>
+#include <sys/diskgeom.h>
+#include <sys/driver.h>
+#include <sys/types.h>
+#include <stdint.h>
 
 __CPP_BEGIN
 
@@ -35,14 +38,6 @@ typedef struct diskinfo {
 #define kDiskCommand_GetInfo  IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
 
-// Disk geometry information
-typedef struct diskgeom {
-    size_t  headsPerCylinder;
-    size_t  sectorsPerTrack;
-    size_t  cylindersPerDisk;
-    size_t  sectorSize;
-} diskgeom_t;
- 
 // Returns geometry information for the disk that is currently in the drive.
 // ENOMEDIUM is returned if no disk is in the drive.
 // get_geometry(diskgeom_t* _Nonnull pOutGeometry)

@@ -1,5 +1,5 @@
 //
-//  SysCalls.c
+//  syscalls.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/19/21.
@@ -13,7 +13,7 @@
 #include <hal/MonotonicClock.h>
 #include <process/Process.h>
 #include <System/Clock.h>
-#include <System/Disk.h>
+#include <sys/disk.h>
 #include <System/Filesystem.h>
 #include <System/User.h>
 

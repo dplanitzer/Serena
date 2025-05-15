@@ -9,7 +9,7 @@
 #ifndef _SYS_HID_H
 #define _SYS_HID_H 1
 
-#include <System/Driver.h>
+#include <sys/driver.h>
 
 __CPP_BEGIN
 

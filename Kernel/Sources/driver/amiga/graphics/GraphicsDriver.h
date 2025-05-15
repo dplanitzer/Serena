@@ -10,7 +10,7 @@
 #define GraphicsDriver_h
 
 #include <driver/Driver.h>
-#include <System/Framebuffer.h>
+#include <sys/fb.h>
 #include "Screen.h"
 #include "VideoConfiguration.h"
 

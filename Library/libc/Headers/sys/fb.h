@@ -1,15 +1,17 @@
 //
-//  Framebuffer.h
-//  libsystem
+//  sys/fb.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 2/2/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_FRAMEBUFFER_H
-#define _SYS_FRAMEBUFFER_H 1
+#ifndef _SYS_FB_H
+#define _SYS_FB_H 1
 
-#include <System/Driver.h>
+#include <sys/driver.h>
+#include <sys/types.h>
+#include <stdint.h>
 
 __CPP_BEGIN
 
@@ -219,4 +221,4 @@ typedef uint32_t RGBColor32;
 
 __CPP_END
 
-#endif /* _SYS_FRAMEBUFFER_H */
+#endif /* _SYS_FB_H */

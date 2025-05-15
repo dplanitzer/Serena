@@ -12,7 +12,7 @@
 #include <kern/errno.h>
 #include <kern/types.h>
 #include <klib/List.h>
-#include <System/Framebuffer.h>
+#include <sys/fb.h>
 
 
 #define MAX_PLANE_COUNT  6

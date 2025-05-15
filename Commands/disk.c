@@ -17,7 +17,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <System/Directory.h>
-#include <System/Disk.h>
+#include <sys/disk.h>
 #include <System/Error.h>
 #include <System/File.h>
 #include <System/Filesystem.h>

@@ -12,7 +12,7 @@
 #include <diskcache/DiskCache.h>
 #include <driver/Driver.h>
 #include <driver/IORequest.h>
-#include <System/Disk.h>
+#include <sys/disk.h>
 
 // Describes the physical properties of the disk that is currently loaded into
 // the drive.

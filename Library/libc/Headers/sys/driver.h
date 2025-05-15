@@ -1,6 +1,6 @@
 //
-//  Driver.h
-//  libsystem
+//  sys/driver.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 4/14/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.

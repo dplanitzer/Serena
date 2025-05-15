@@ -9,7 +9,7 @@
 #ifndef Color_h
 #define Color_h
 
-#include <System/Framebuffer.h>
+#include <sys/fb.h>
 
 
 typedef enum ColorType {
