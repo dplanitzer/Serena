@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <sys/dispatch.h>
 #include <sys/mutex.h>
 #include <System/TimeInterval.h>
@@ -45,7 +46,7 @@ static void select_and_write_pattern(void)
     char* dst = gCurrentPattern;
     const char* src = gAvailablePattern[gCurrentPatternIndex];
     size_t len = strlen(src) + 1;
-    TimeInterval dl = TimeInterval_MakeMilliseconds(4);
+    struct timespec dl = TimeInterval_MakeMilliseconds(4);
 
     while (len > 0) {
         const size_t nBytesToCopy = __min(len, 4);
@@ -55,7 +56,7 @@ static void select_and_write_pattern(void)
         dst += nBytesToCopy;
         len -= nBytesToCopy;
 
-       //assertOK(clock_wait(CLOCK_UPTIME, &dl));
+       //assertOK(clock_wait(CLOCK_MONOTONIC, &dl));
     }
 
     printf("W: '%s'\n", gCurrentPattern);

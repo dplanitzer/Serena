@@ -12,7 +12,6 @@
 #include <System/_cmndef.h>
 #include <System/ByteOrder.h>
 #include <System/Types.h>
-#include <System/Clock.h>
 #include <System/Directory.h>
 #include <System/Error.h>
 #include <System/File.h>

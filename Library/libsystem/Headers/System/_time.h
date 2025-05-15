@@ -18,6 +18,11 @@ __CPP_BEGIN
 #include <time.h>
 #else
 
+#ifdef _POSIX_SOURCE
+// Type to identify a clock
+typedef int clockid_t;
+#endif
+
 // Big enough to hold a time value of up to a bit more than 49.5 days on LP32 systems
 typedef unsigned long   clock_t;
 

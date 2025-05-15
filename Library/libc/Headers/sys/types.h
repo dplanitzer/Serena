@@ -24,10 +24,6 @@ typedef unsigned int    gid_t;
 typedef unsigned int    id_t;
 
 
-// Type to identify a clock
-typedef int clockid_t;
-
-
 // Represents a logical block address, count and block size
 typedef size_t  blkno_t;
 typedef size_t  blkcnt_t;

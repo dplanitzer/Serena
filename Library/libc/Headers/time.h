@@ -58,6 +58,26 @@ extern size_t strftime(char * restrict s, size_t maxsize, const char * restrict 
 
 extern double difftime(time_t time1, time_t time0);
 
+
+#ifdef _POSIX_SOURCE
+
+// Time counted since the system was booted. This is a monotonic clock that does
+// not undergo adjustments to keep it aligned with a wall time reference clock.
+#define CLOCK_MONOTONIC 0
+
+
+// Blocks the calling execution context for the seconds and nanoseconds specified
+// by 'delay'.
+// @Concurrency: Safe
+extern int clock_wait(clockid_t clock, const struct timespec* _Nonnull delay);
+
+// Returns the current time of the monotonic clock. The monotonic clock starts
+// ticking at boot time and never moves backward.
+// @Concurrency: Safe
+extern int clock_gettime(clockid_t clock, struct timespec* _Nonnull ts);
+
+#endif
+
 __CPP_END
 
 #endif /* _TIME_H */

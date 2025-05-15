@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <System/Clock.h>
-
+#include <time.h>
+#include <System/TimeInterval.h>
 
 typedef struct tim_conv {
     const char*     unit;
@@ -71,8 +71,8 @@ int main(int argc, char* argv[])
         }
     }
 
-    TimeInterval dur = TimeInterval_MakeMilliseconds(ms);
-    clock_wait(CLOCK_UPTIME, &dur);
+    struct timespec dur = TimeInterval_MakeMilliseconds(ms);
+    clock_wait(CLOCK_MONOTONIC, &dur);
 
     return EXIT_SUCCESS;
 }

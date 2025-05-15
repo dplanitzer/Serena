@@ -12,8 +12,8 @@
 #include <filesystem/IOChannel.h>
 #include <hal/MonotonicClock.h>
 #include <process/Process.h>
-#include <System/Clock.h>
 #include <sys/disk.h>
+#include <time.h>
 #include <System/Filesystem.h>
 #include <System/User.h>
 
@@ -252,7 +252,7 @@ SYSCALL_2(clock_wait, int clock, const TimeInterval* _Nonnull delay)
     if (pa->delay->tv_nsec < 0 || pa->delay->tv_nsec >= ONE_SECOND_IN_NANOS) {
         return EINVAL;
     }
-    if (pa->clock != CLOCK_UPTIME) {
+    if (pa->clock != CLOCK_MONOTONIC) {
         return ENODEV;
     }
 
@@ -261,7 +261,7 @@ SYSCALL_2(clock_wait, int clock, const TimeInterval* _Nonnull delay)
 
 SYSCALL_2(clock_gettime, int clock, TimeInterval* _Nonnull time)
 {
-    if (pa->clock != CLOCK_UPTIME) {
+    if (pa->clock != CLOCK_MONOTONIC) {
         return ENODEV;
     }
 

@@ -9,7 +9,7 @@
 #include <clap.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <System/Clock.h>
+#include <time.h>
 
 
 CLAP_DECL(params,
@@ -23,9 +23,8 @@ int main(int argc, char* argv[])
 {
     clap_parse(0, params, argc, argv);
 
-    TimeInterval ti;
-    const errno_t err = clock_gettime(CLOCK_UPTIME, &ti);
-    if (err != EOK) {
+    struct timespec ti;
+    if (clock_gettime(CLOCK_MONOTONIC, &ti) != 0) {
         return EXIT_FAILURE;
     }
 

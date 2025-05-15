@@ -7,14 +7,13 @@
 //
 
 #include <time.h>
-#include <System/Clock.h>
 
 
 time_t time(time_t *timer)
 {
-    TimeInterval ts;
+    struct timespec ts;
     
-    clock_gettime(CLOCK_UPTIME, &ts);
+    clock_gettime(CLOCK_MONOTONIC, &ts);
     if (timer) {
         *timer = ts.tv_sec;
     }

@@ -10,8 +10,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
-#include <System/System.h>
+#include <sys/dispatch.h>
+#include <System/TimeInterval.h>
 #include "Asserts.h"
 
 
@@ -70,10 +72,10 @@ static void OnWriteToPipe(int fds[2])
     const char* bytes = "Hello";
     size_t nBytesToWrite = strlen(bytes);
     ssize_t nBytesWritten;
-    TimeInterval dur = TimeInterval_MakeMilliseconds(20);
+    struct timespec dur = TimeInterval_MakeMilliseconds(20);
     
     while (true) {
-        clock_wait(CLOCK_UPTIME, &dur);
+        clock_wait(CLOCK_MONOTONIC, &dur);
         assertOK(write(fds[PIPE_WR], bytes, nBytesToWrite, &nBytesWritten));
         
         printf("Writer: '%s'-> %d\n", bytes, nBytesWritten);

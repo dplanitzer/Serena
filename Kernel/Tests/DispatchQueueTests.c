@@ -11,7 +11,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <System/System.h>
+#include <time.h>
+#include <sys/dispatch.h>
+#include <System/TimeInterval.h>
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -43,10 +45,10 @@ void dq_async_test(int argc, char *argv[])
 static void OnAsyncAfter(void* _Nonnull pValue)
 {
     int val = (int)pValue;
-    TimeInterval ts;
+    struct timespec ts;
 
     printf("%d\n", val);
-    clock_gettime(CLOCK_UPTIME, &ts);
+    clock_gettime(CLOCK_MONOTONIC, &ts);
     assertOK(dispatch_after(kDispatchQueue_Main, TimeInterval_Add(ts, TimeInterval_MakeMilliseconds(500)), OnAsyncAfter, (void*)(val + 1), 0));
 }
 
@@ -64,9 +66,9 @@ void dq_async_after_test(int argc, char *argv[])
 static void OnSync(void* _Nonnull pValue)
 {
     int val = (int)pValue;
-    TimeInterval dur = TimeInterval_MakeMilliseconds(500);
+    struct timespec dur = TimeInterval_MakeMilliseconds(500);
 
-    clock_wait(CLOCK_UPTIME, &dur);
+    clock_wait(CLOCK_MONOTONIC, &dur);
     printf("%d  (Queue: %d)\n", val, dispatch_getcurrent());
 }
 
