@@ -11,14 +11,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
-#include <System/TimeInterval.h>
+#include <time.h>
 
 #define ONE_SECOND_IN_NANOS (1000l * 1000l * 1000l)
 
 
-const TimeInterval kTimeInterval_Zero = {0l, 0l};
-const TimeInterval kTimeInterval_Infinity = {LONG_MAX, ONE_SECOND_IN_NANOS};
-const TimeInterval kTimeInterval_MinusInfinity = {LONG_MIN, ONE_SECOND_IN_NANOS};
+const struct timespec TIMESPEC_ZERO = {0l, 0l};
+const struct timespec TIMESPEC_INF = {LONG_MAX, ONE_SECOND_IN_NANOS};
+const struct timespec TIMESPEC_NEGINF = {LONG_MIN, ONE_SECOND_IN_NANOS};
 
 
 ////////////////////////////////////////////////////////////////////////////////

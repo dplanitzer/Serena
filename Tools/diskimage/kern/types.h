@@ -9,16 +9,19 @@
 #ifndef _KERN_TYPES_H
 #define _KERN_TYPES_H 1
 
+#include <System/_cmndef.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <time.h>
 #include <sys/types.h>
-#include <System/TimeInterval.h>
 #ifdef _WIN32
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
+#endif
+#ifndef __SIZE_WIDTH
+#define __SIZE_WIDTH 64
 #endif
 
 __CPP_BEGIN

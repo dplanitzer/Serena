@@ -292,7 +292,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     Lock_Lock(&self->lock);
 
     while (self->flags.inUse && err == EOK) {
-        err = ConditionVariable_Wait(&self->cv, &self->lock, kTimeInterval_Infinity);
+        err = ConditionVariable_Wait(&self->cv, &self->lock, TIMESPEC_INF);
     }
     if (err != EOK) {
         Lock_Unlock(&self->lock);
@@ -334,8 +334,8 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 
 
     // Wait for the DMA to complete
-    const TimeInterval now = MonotonicClock_GetCurrentTime();
-    const TimeInterval deadline = TimeInterval_Add(now, TimeInterval_MakeMilliseconds(500));
+    const struct timespec now = MonotonicClock_GetCurrentTime();
+    const struct timespec deadline = timespec_add(now, timespec_from_ms(500));
     err = Semaphore_Acquire(&self->done, deadline);
 
 

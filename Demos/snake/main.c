@@ -18,7 +18,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <sys/dispatch.h>
-#include <System/TimeInterval.h>
+#include <sys/timespec.h>
 #include "utils.h"
 
 
@@ -269,7 +269,7 @@ static void game_loop(void* ctx)
 
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    dispatch_after(kDispatchQueue_Main, TimeInterval_Add(ts, TimeInterval_MakeMilliseconds(66)), game_loop, NULL, 0);
+    dispatch_after(kDispatchQueue_Main, timespec_add(ts, timespec_from_ms(66)), game_loop, NULL, 0);
 }
 
 void main_closure(int argc, char *argv[])

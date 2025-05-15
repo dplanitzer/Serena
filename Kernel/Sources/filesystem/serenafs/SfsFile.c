@@ -27,9 +27,9 @@ errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, ino_t in
         UInt32_BigToHost(ip->gid),
         UInt16_BigToHost(ip->permissions),
         Int64_BigToHost(ip->size),
-        TimeInterval_Make(UInt32_BigToHost(ip->accessTime.tv_sec), UInt32_BigToHost(ip->accessTime.tv_nsec)),
-        TimeInterval_Make(UInt32_BigToHost(ip->modificationTime.tv_sec), UInt32_BigToHost(ip->modificationTime.tv_nsec)),
-        TimeInterval_Make(UInt32_BigToHost(ip->statusChangeTime.tv_sec), UInt32_BigToHost(ip->statusChangeTime.tv_nsec)),
+        timespec_from(UInt32_BigToHost(ip->accessTime.tv_sec), UInt32_BigToHost(ip->accessTime.tv_nsec)),
+        timespec_from(UInt32_BigToHost(ip->modificationTime.tv_sec), UInt32_BigToHost(ip->modificationTime.tv_nsec)),
+        timespec_from(UInt32_BigToHost(ip->statusChangeTime.tv_sec), UInt32_BigToHost(ip->statusChangeTime.tv_nsec)),
         UInt32_BigToHost(ip->pnid),
         (InodeRef*)&self);
 
@@ -47,10 +47,10 @@ errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, ino_t in
 void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, sfs_inode_t* _Nonnull ip)
 {
     SfsFileRef self = (SfsFileRef)pNode;
-    const TimeInterval curTime = FSGetCurrentTime();
-    const TimeInterval accTime = (Inode_IsAccessed(self)) ? curTime : Inode_GetAccessTime(self);
-    const TimeInterval modTime = (Inode_IsUpdated(self)) ? curTime : Inode_GetModificationTime(self);
-    const TimeInterval chgTime = (Inode_IsStatusChanged(self)) ? curTime : Inode_GetStatusChangeTime(self);
+    const struct timespec curTime = FSGetCurrentTime();
+    const struct timespec accTime = (Inode_IsAccessed(self)) ? curTime : Inode_GetAccessTime(self);
+    const struct timespec modTime = (Inode_IsUpdated(self)) ? curTime : Inode_GetModificationTime(self);
+    const struct timespec chgTime = (Inode_IsStatusChanged(self)) ? curTime : Inode_GetStatusChangeTime(self);
 
     ip->size = Int64_HostToBig(Inode_GetFileSize(self));
     ip->accessTime.tv_sec = UInt32_HostToBig(accTime.tv_sec);

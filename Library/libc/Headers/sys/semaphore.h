@@ -11,7 +11,7 @@
 
 #include <System/_cmndef.h>
 #include <System/Error.h>
-#include <System/TimeInterval.h>
+#include <time.h>
 
 __CPP_BEGIN
 
@@ -35,7 +35,7 @@ extern errno_t sem_post(sem_t* _Nonnull sema, int npermits);
 // Blocks the caller until 'npermits' can be acquired. Returns EOK on success
 // and ETIMEOUT if the permits could not be acquire before 'deadline'.
 // @Concurrency: Safe
-extern errno_t sem_wait(sem_t* _Nonnull sema, int npermits, TimeInterval deadline);
+extern errno_t sem_wait(sem_t* _Nonnull sema, int npermits, struct timespec deadline);
 
 // Attempts to acquire 'npermits' without blocking. Returns EOK on success and
 // EBUSY on failure.

@@ -11,7 +11,7 @@
 
 #include <System/_cmndef.h>
 #include <System/Error.h>
-#include <System/TimeInterval.h>
+#include <time.h>
 #include <sys/mutex.h>
 
 __CPP_BEGIN
@@ -48,7 +48,7 @@ extern errno_t cond_wait(cond_t* _Nonnull cv, mutex_t* _Nullable mutex);
 // on success and ETIMEOUT if the condition variable isn't signaled before
 // 'deadline'.
 // @Concurrency: Safe
-extern errno_t cond_timedwait(cond_t* _Nonnull cv, mutex_t* _Nullable mutex, const TimeInterval* _Nonnull deadline);
+extern errno_t cond_timedwait(cond_t* _Nonnull cv, mutex_t* _Nullable mutex, const struct timespec* _Nonnull deadline);
 
 __CPP_END
 

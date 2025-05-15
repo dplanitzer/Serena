@@ -89,7 +89,7 @@ _Semaphore_RelinquishFromInterruptContext:
 
 
 ;-------------------------------------------------------------------------------
-; errno_t Semaphore_AcquireMultiple(Semaphore* _Nonnull sema, int npermits, TimeInterval deadline)
+; errno_t Semaphore_AcquireMultiple(Semaphore* _Nonnull sema, int npermits, struct timespec deadline)
 ; Acquires 'npermits' from the semaphore before the deadline 'deadline' is reached.
 ; This function blocks the caller if 'deadline' is in the future and the semaphore
 ; does not have enough permits available.
@@ -142,7 +142,7 @@ _Semaphore_AcquireMultiple:
 
 
 ;-------------------------------------------------------------------------------
-; errno_t Semaphore_AcquireAll(Semaphore* _Nonnull sema, TimeInterval deadline, int* _Nonnull pOutPermitCount)
+; errno_t Semaphore_AcquireAll(Semaphore* _Nonnull sema, struct timespec deadline, int* _Nonnull pOutPermitCount)
 ; Acquires all permits from the semaphore before the deadline 'deadline' is reached.
 ; This function blocks the caller if 'deadline' is in the future and the semaphore
 ; does not have any permits available.

@@ -22,11 +22,11 @@ enum {
 typedef struct HIDKeyRepeater {
     int8_t          repeatersInUseCount;    // number of repeaters currently in use
     int8_t          reserved[3];
-    TimeInterval    initialKeyRepeatDelay;        // [200ms...3s]
-    TimeInterval    keyRepeatDelay;               // [20ms...2s]
+    struct timespec initialKeyRepeatDelay;        // [200ms...3s]
+    struct timespec keyRepeatDelay;               // [20ms...2s]
 
     // At most one key may be in key repeat state
-    TimeInterval    nextEventTime;
+    struct timespec nextEventTime;
     HIDKeyCode      keyCode;
     uint16_t        state;
 } HIDKeyRepeater;
@@ -41,8 +41,8 @@ errno_t HIDKeyRepeater_Create(HIDKeyRepeaterRef _Nullable * _Nonnull pOutSelf)
     
     try(kalloc_cleared(sizeof(HIDKeyRepeater), (void**) &self));
     self->repeatersInUseCount = 0;
-    self->initialKeyRepeatDelay = TimeInterval_MakeMilliseconds(300);
-    self->keyRepeatDelay = TimeInterval_MakeMilliseconds(100);
+    self->initialKeyRepeatDelay = timespec_from_ms(300);
+    self->keyRepeatDelay = timespec_from_ms(100);
     self->state = kState_Idle;
 
     *pOutSelf = self;
@@ -59,7 +59,7 @@ void HIDKeyRepeater_Destroy(HIDKeyRepeaterRef _Nonnull self)
     kfree(self);
 }
 
-void HIDKeyRepeater_GetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
+void HIDKeyRepeater_GetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay)
 {
     if (pInitialDelay) {
         *pInitialDelay = self->initialKeyRepeatDelay;
@@ -69,7 +69,7 @@ void HIDKeyRepeater_GetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, TimeInte
     }
 }
 
-void HIDKeyRepeater_SetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, TimeInterval initialDelay, TimeInterval repeatDelay)
+void HIDKeyRepeater_SetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, struct timespec initialDelay, struct timespec repeatDelay)
 {
     self->initialKeyRepeatDelay = initialDelay;
     self->keyRepeatDelay = repeatDelay;
@@ -164,7 +164,7 @@ void HIDKeyRepeater_KeyDown(HIDKeyRepeaterRef _Nonnull self, HIDKeyCode keyCode)
     if (shouldAutoRepeatKeyCode(keyCode)) {
         self->state = kState_InitialDelaying;
         self->keyCode = keyCode;
-        self->nextEventTime = TimeInterval_Add(MonotonicClock_GetCurrentTime(), self->initialKeyRepeatDelay);
+        self->nextEventTime = timespec_add(MonotonicClock_GetCurrentTime(), self->initialKeyRepeatDelay);
     }
 }
 
@@ -181,29 +181,29 @@ void HIDKeyRepeater_KeyUp(HIDKeyRepeaterRef _Nonnull self, HIDKeyCode keyCode)
 // generates and posts a new key down/repeat event if such an event is due.
 void HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self)
 {
-    const TimeInterval now = MonotonicClock_GetCurrentTime();
+    const struct timespec now = MonotonicClock_GetCurrentTime();
 
     switch (self->state) {
         case kState_Idle:
             break;
 
         case kState_InitialDelaying:
-            if (TimeInterval_GreaterEquals(now, self->nextEventTime)) {
+            if (timespec_gtq(now, self->nextEventTime)) {
                 self->state = kState_Repeating;
                 HIDManager_ReportKeyboardDeviceChange(gHIDManager, kHIDKeyState_Repeat, self->keyCode);
                 
-                while (TimeInterval_Less(self->nextEventTime, now)) {
-                    self->nextEventTime = TimeInterval_Add(self->nextEventTime, self->keyRepeatDelay);
+                while (timespec_ls(self->nextEventTime, now)) {
+                    self->nextEventTime = timespec_add(self->nextEventTime, self->keyRepeatDelay);
                 }
             }
             break;
 
         case kState_Repeating:
-            if (TimeInterval_GreaterEquals(now, self->nextEventTime)) {
+            if (timespec_gtq(now, self->nextEventTime)) {
                 HIDManager_ReportKeyboardDeviceChange(gHIDManager, kHIDKeyState_Repeat, self->keyCode);
                 
-                while (TimeInterval_Less(self->nextEventTime, now)) {
-                    self->nextEventTime = TimeInterval_Add(self->nextEventTime, self->keyRepeatDelay);
+                while (timespec_ls(self->nextEventTime, now)) {
+                    self->nextEventTime = timespec_add(self->nextEventTime, self->keyRepeatDelay);
                 }
             }
             break;

@@ -56,7 +56,7 @@ static void CopperScheduler_GarbageCollectRetiredPrograms(CopperScheduler* _Nonn
         int ignored;
         SListNode* pCur;
 
-        Semaphore_AcquireAll(&self->retirementSignaler, kTimeInterval_Infinity, &ignored);
+        Semaphore_AcquireAll(&self->retirementSignaler, TIMESPEC_INF, &ignored);
 
         const int irs = cpu_disable_irqs();
         pCur = self->retiredProgs.first;

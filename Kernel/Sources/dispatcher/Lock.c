@@ -69,7 +69,7 @@ errno_t Lock_OnWait(Lock* _Nonnull self)
     const bool isInterruptable = (self->options & kLockOption_InterruptibleLock) != 0 ? true : false;
     const errno_t err = VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                             &self->wait_queue,
-                                            kTimeInterval_Infinity,
+                                            TIMESPEC_INF,
                                             isInterruptable);
 
     if (err == EOK || isInterruptable) {

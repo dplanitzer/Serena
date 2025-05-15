@@ -18,7 +18,7 @@
 
 // Returns the current time. This time value is suitable for use as a timestamp
 // for filesystem objects.
-extern TimeInterval FSGetCurrentTime(void);
+extern struct timespec FSGetCurrentTime(void);
 
 
 // Allocates a memory block. Note that the allocated block is not cleared.

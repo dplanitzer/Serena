@@ -50,6 +50,6 @@ extern void ConditionVariable_WakeAndUnlock(ConditionVariable* _Nonnull pCondVar
 // wait has timed out. Note that this function may return EINTR which means that
 // the ConditionVariable_Wait() call is happening in the context of a system
 // call that should be aborted.
-extern errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock, TimeInterval deadline);
+extern errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock, struct timespec deadline);
 
 #endif /* ConditionVariable_h */

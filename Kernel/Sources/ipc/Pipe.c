@@ -155,7 +155,7 @@ errno_t Pipe_Read(PipeRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesT
                     ConditionVariable_BroadcastAndUnlock(&self->writer, NULL);
                     
                     // Wait for the writer to make data available
-                    if ((err = ConditionVariable_Wait(&self->reader, &self->lock, kTimeInterval_Infinity)) != EOK) {
+                    if ((err = ConditionVariable_Wait(&self->reader, &self->lock, TIMESPEC_INF)) != EOK) {
                         err = (nBytesRead == 0) ? EINTR : EOK;
                         break;
                     }
@@ -197,7 +197,7 @@ errno_t Pipe_Write(PipeRef _Nonnull self, const void* _Nonnull pBytes, ssize_t n
                     ConditionVariable_BroadcastAndUnlock(&self->reader, NULL);
                     
                     // Wait for the reader to make space available
-                    if (( err = ConditionVariable_Wait(&self->writer, &self->lock, kTimeInterval_Infinity)) != EOK) {
+                    if (( err = ConditionVariable_Wait(&self->writer, &self->lock, TIMESPEC_INF)) != EOK) {
                         err = (nBytesWritten == 0) ? EINTR : EOK;
                         break;
                     }

@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <System/TimeInterval.h>
+#include <sys/timespec.h>
 
 typedef struct tim_conv {
     const char*     unit;
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    struct timespec dur = TimeInterval_MakeMilliseconds(ms);
+    struct timespec dur = timespec_from_ms(ms);
     clock_wait(CLOCK_MONOTONIC, &dur);
 
     return EXIT_SUCCESS;

@@ -8,6 +8,7 @@
 
 #include <sys/dispatch.h>
 #include <System/_syscall.h>
+#include <sys/timespec.h>
 
 
 errno_t dispatch_sync(int od, dispatch_func_t _Nonnull func, void* _Nullable context)
@@ -20,12 +21,12 @@ errno_t dispatch_async(int od, dispatch_func_t _Nonnull func, void* _Nullable co
     return _syscall(SC_disp_schedule, od, func, context, (uint32_t)0, 0);
 }
 
-errno_t dispatch_after(int od, TimeInterval deadline, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag)
+errno_t dispatch_after(int od, struct timespec deadline, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
-    return _syscall(SC_disp_timer, od, deadline, kTimeInterval_Zero, func, context, tag);
+    return _syscall(SC_disp_timer, od, deadline, TIMESPEC_ZERO, func, context, tag);
 }
 
-errno_t dispatch_periodically(int od, TimeInterval deadline, TimeInterval interval, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag)
+errno_t dispatch_periodically(int od, struct timespec deadline, struct timespec interval, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
     return _syscall(SC_disp_timer, od, deadline, interval, func, context, tag);
 }

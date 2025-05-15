@@ -105,14 +105,14 @@ InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)
     return kInputType_Keyboard;
 }
 
-static void KeyboardDriver_GetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
+static void KeyboardDriver_GetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay)
 {
     const int irs = cpu_disable_irqs();
     HIDKeyRepeater_GetKeyRepeatDelays(self->keyRepeater, pInitialDelay, pRepeatDelay);
     cpu_restore_irqs(irs);
 }
 
-static void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, TimeInterval initialDelay, TimeInterval repeatDelay)
+static void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, struct timespec initialDelay, struct timespec repeatDelay)
 {
     const int irs = cpu_disable_irqs();
     HIDKeyRepeater_SetKeyRepeatDelays(self->keyRepeater, initialDelay, repeatDelay);
@@ -123,16 +123,16 @@ errno_t KeyboardDriver_ioctl(KeyboardDriverRef _Nonnull self, IOChannelRef _Nonn
 {
     switch (cmd) {
         case kKeyboardCommand_GetKeyRepeatDelays: {
-            TimeInterval* initial = va_arg(ap, TimeInterval*);
-            TimeInterval* repeat = va_arg(ap, TimeInterval*);
+            struct timespec* initial = va_arg(ap, struct timespec*);
+            struct timespec* repeat = va_arg(ap, struct timespec*);
 
             KeyboardDriver_GetKeyRepeatDelays(self, initial, repeat);
             return EOK;
         }
 
         case kKeyboardCommand_SetKeyRepeatDelays: {
-            const TimeInterval initial = va_arg(ap, TimeInterval);
-            const TimeInterval repeat = va_arg(ap, TimeInterval);
+            const struct timespec initial = va_arg(ap, struct timespec);
+            const struct timespec repeat = va_arg(ap, struct timespec);
 
             KeyboardDriver_SetKeyRepeatDelays(self, initial, repeat);
             return EOK;

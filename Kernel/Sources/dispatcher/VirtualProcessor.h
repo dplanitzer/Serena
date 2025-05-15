@@ -189,7 +189,7 @@ void VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP);
 
 
 // Sleep for the given number of seconds
-extern errno_t VirtualProcessor_Sleep(TimeInterval delay);
+extern errno_t VirtualProcessor_Sleep(struct timespec delay);
 
 // Returns the priority of the given VP.
 extern int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull pVP);

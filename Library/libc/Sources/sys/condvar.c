@@ -92,7 +92,7 @@ errno_t cond_wait(cond_t* _Nonnull cv, mutex_t* _Nonnull mutex)
     }
 }
 
-errno_t cond_timedwait(cond_t* _Nonnull cv, mutex_t* _Nonnull mutex, const TimeInterval* _Nonnull deadline)
+errno_t cond_timedwait(cond_t* _Nonnull cv, mutex_t* _Nonnull mutex, const struct timespec* _Nonnull deadline)
 {
     UConditionVariable* self = (UConditionVariable*)cv;
     UMutex* ulock = (UMutex*)mutex;

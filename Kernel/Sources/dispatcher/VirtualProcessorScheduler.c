@@ -81,7 +81,7 @@ errno_t VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull
 {
     decl_try_err();
 
-    pScheduler->quantums_per_quarter_second = Quantums_MakeFromTimeInterval(TimeInterval_MakeMilliseconds(250), QUANTUM_ROUNDING_AWAY_FROM_ZERO);
+    pScheduler->quantums_per_quarter_second = Quantums_MakeFromTimespec(timespec_from_ms(250), QUANTUM_ROUNDING_AWAY_FROM_ZERO);
 
 
     // Resume the idle virtual processor
@@ -230,9 +230,9 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
 
 // Arms a timeout for the given virtual processor. This puts the VP on the timeout
 // queue.
-static void VirtualProcessorScheduler_ArmTimeout(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* pVP, TimeInterval deadline)
+static void VirtualProcessorScheduler_ArmTimeout(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* pVP, struct timespec deadline)
 {
-    pVP->timeout.deadline = Quantums_MakeFromTimeInterval(deadline, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
+    pVP->timeout.deadline = Quantums_MakeFromTimespec(deadline, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
     pVP->timeout.is_valid = true;
     
     register Timeout* pPrevTimeout = NULL;
@@ -271,7 +271,7 @@ static void VirtualProcessorScheduler_CancelTimeout(VirtualProcessorScheduler* _
 // are ordered such that the first one to enter the queue is the first one to
 // leave the queue.
 // Returns a timeout or interrupted error.
-errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, TimeInterval deadline, bool isInterruptable)
+errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, struct timespec deadline, bool isInterruptable)
 {
     VirtualProcessor* pVP = (VirtualProcessor*)pScheduler->running;
 
@@ -288,8 +288,8 @@ errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull pSc
 
     // Put us on the timeout queue if a relevant timeout has been specified.
     // Note that we return immediately if we're already past the deadline
-    if (TimeInterval_Less(deadline, kTimeInterval_Infinity)) {
-        if (TimeInterval_LessEquals(deadline, MonotonicClock_GetCurrentTime())) {
+    if (timespec_ls(deadline, TIMESPEC_INF)) {
+        if (timespec_lsq(deadline, MonotonicClock_GetCurrentTime())) {
             return ETIMEDOUT;
         }
 
@@ -527,7 +527,7 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull pSch
         // Continue to wait as long as there's nothing to finalize
         while (List_IsEmpty(&pScheduler->finalizer_queue)) {
             (void)VirtualProcessorScheduler_WaitOn(pScheduler, &pScheduler->scheduler_wait_queue,
-                                             TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), true);
+                                             timespec_add(MonotonicClock_GetCurrentTime(), timespec_from_sec(1)), true);
         }
         
         // Got some work to do. Save off the needed data in local vars and then

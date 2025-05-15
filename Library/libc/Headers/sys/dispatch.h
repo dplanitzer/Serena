@@ -11,8 +11,8 @@
 
 #include <System/_cmndef.h>
 #include <System/Error.h>
-#include <System/TimeInterval.h>
 #include <stdint.h>
+#include <time.h>
 #include <sys/dispatch.h>
 
 __CPP_BEGIN
@@ -68,13 +68,13 @@ extern errno_t dispatch_async(int od, dispatch_func_t _Nonnull func, void* _Null
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible.
 // @Concurrency: Safe
-extern errno_t dispatch_after(int od, TimeInterval deadline, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
+extern errno_t dispatch_after(int od, struct timespec deadline, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible. The
 // closure will be executed repeatedly every 'interval' duration until removed.
 // @Concurrency: Safe
-extern errno_t dispatch_periodically(int od, TimeInterval deadline, TimeInterval interval, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
+extern errno_t dispatch_periodically(int od, struct timespec deadline, struct timespec interval, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
 
 
 // Removes all scheduled instances of timers and immediate work items with tag

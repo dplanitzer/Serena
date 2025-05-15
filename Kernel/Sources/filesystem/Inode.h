@@ -42,9 +42,9 @@ open_class(Inode, Any,
     int                             state;
 
     Lock                            lock;
-    TimeInterval                    accessTime;
-    TimeInterval                    modificationTime;
-    TimeInterval                    statusChangeTime;
+    struct timespec                 accessTime;
+    struct timespec                 modificationTime;
+    struct timespec                 statusChangeTime;
     off_t                           size;       // File size
     FilesystemRef _Weak _Nonnull    filesystem; // The owning filesystem instance
     ino_t                           inid;       // Filesystem specific ID of the inode
@@ -327,7 +327,7 @@ extern errno_t Inode_Create(Class* _Nonnull pClass,
                     FileType type, int linkCount,
                     uid_t uid, gid_t gid, FilePermissions permissions,
                     off_t size,
-                    TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
+                    struct timespec accessTime, struct timespec modTime, struct timespec statusChangeTime,
                     ino_t pnid,
                     InodeRef _Nullable * _Nonnull pOutNode);
 extern void Inode_Destroy(InodeRef _Nonnull self);

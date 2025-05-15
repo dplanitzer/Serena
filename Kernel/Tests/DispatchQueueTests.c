@@ -13,7 +13,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/dispatch.h>
-#include <System/TimeInterval.h>
+#include <sys/timespec.h>
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -26,7 +26,7 @@ static void OnAsync(void* _Nonnull pValue)
     int val = (int)pValue;
     
     printf("%d\n", val);
-    //TimeInterval dur = TimeInterval_MakeSeconds(2);
+    //struct timespec dur = timespec_from_sec(2);
     //clock_wait(clock_uptime, &dur);
     assertOK(dispatch_async(kDispatchQueue_Main, OnAsync, (void*)(val + 1)));
 }
@@ -49,7 +49,7 @@ static void OnAsyncAfter(void* _Nonnull pValue)
 
     printf("%d\n", val);
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    assertOK(dispatch_after(kDispatchQueue_Main, TimeInterval_Add(ts, TimeInterval_MakeMilliseconds(500)), OnAsyncAfter, (void*)(val + 1), 0));
+    assertOK(dispatch_after(kDispatchQueue_Main, timespec_add(ts, timespec_from_ms(500)), OnAsyncAfter, (void*)(val + 1), 0));
 }
 
 void dq_async_after_test(int argc, char *argv[])
@@ -66,7 +66,7 @@ void dq_async_after_test(int argc, char *argv[])
 static void OnSync(void* _Nonnull pValue)
 {
     int val = (int)pValue;
-    struct timespec dur = TimeInterval_MakeMilliseconds(500);
+    struct timespec dur = timespec_from_ms(500);
 
     clock_wait(CLOCK_MONOTONIC, &dur);
     printf("%d  (Queue: %d)\n", val, dispatch_getcurrent());

@@ -13,7 +13,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/dispatch.h>
-#include <System/TimeInterval.h>
+#include <sys/timespec.h>
 #include "Asserts.h"
 
 
@@ -58,7 +58,7 @@ static void OnReadFromPipe(int fds[2])
     size_t nBytesToRead = sizeof(buf);
     
     while (true) {
-        //VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(200));
+        //VirtualProcessor_Sleep(timespec_from_ms(200));
         buf[0] = '\0';
         assertOK(read(fds[PIPE_RD], buf, nBytesToRead, &nBytesRead));
         buf[nBytesRead] = '\0';
@@ -72,7 +72,7 @@ static void OnWriteToPipe(int fds[2])
     const char* bytes = "Hello";
     size_t nBytesToWrite = strlen(bytes);
     ssize_t nBytesWritten;
-    struct timespec dur = TimeInterval_MakeMilliseconds(20);
+    struct timespec dur = timespec_from_ms(20);
     
     while (true) {
         clock_wait(CLOCK_MONOTONIC, &dur);

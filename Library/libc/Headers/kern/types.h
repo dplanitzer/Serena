@@ -17,11 +17,11 @@
 #include <System/_offsetof.h>
 #include <System/_time.h>
 #include <System/_varargs.h>
-#include <System/TimeInterval.h>
 #include <System/Types.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <sys/timespec.h>
 
 __CPP_BEGIN
 

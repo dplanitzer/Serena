@@ -19,7 +19,7 @@ typedef void (*deinit_impl_t)(void* _Nonnull self);
 
 errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, ino_t id,
     FileType type, int linkCount, uid_t uid, gid_t gid, FilePermissions permissions,
-    off_t size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
+    off_t size, struct timespec accessTime, struct timespec modTime, struct timespec statusChangeTime,
     ino_t pnid,
     InodeRef _Nullable * _Nonnull pOutNode)
 {
@@ -146,7 +146,7 @@ errno_t Inode_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, I
 
 errno_t Inode_getInfo(InodeRef _Nonnull _Locked self, finfo_t* _Nonnull pOutInfo)
 {
-    TimeInterval curTime;
+    struct timespec curTime;
 
     if (Inode_IsModified(self)) {
         curTime = FSGetCurrentTime();

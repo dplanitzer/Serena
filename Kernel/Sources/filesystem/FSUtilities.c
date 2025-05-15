@@ -14,7 +14,7 @@
 
 // Returns the current time. This time value is suitable for use as a timestamp
 // for filesystem objects.
-TimeInterval FSGetCurrentTime(void)
+struct timespec FSGetCurrentTime(void)
 {
     return MonotonicClock_GetCurrentTime();
 }

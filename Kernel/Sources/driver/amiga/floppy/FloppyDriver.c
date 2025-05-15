@@ -244,8 +244,8 @@ static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self)
 
     FloppyDriver_CancelDelayedMotorOff(self);
     
-    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
-    const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(4));
+    const struct timespec curTime = MonotonicClock_GetCurrentTime();
+    const struct timespec deadline = timespec_add(curTime, timespec_from_sec(4));
     DispatchQueue_DispatchAsyncAfter(DiskDriver_GetDispatchQueue(self),
             deadline,
             (VoidFunc_1)FloppyDriver_MotorOff,
@@ -264,7 +264,7 @@ static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
     }
     else if (self->flags.motorState == kMotor_SpinningUp) {
         // Waits for at most 500ms for the motor to reach its target speed
-        const TimeInterval delay = TimeInterval_MakeMilliseconds(10);
+        const struct timespec delay = timespec_from_ms(10);
         FloppyControllerRef fdc = FloppyDriver_GetController(self);
 
         for (int i = 0; i < 50; i++) {
@@ -309,7 +309,7 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self, bool* _
     // Wait 2 ms if there was a write previously and we have to change the head
     // Since this is about resetting the drive we can't assume that we know whether
     // we have to wait 18ms or 2ms. So just wait for 18ms to be safe.
-    try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(18)));
+    try(VirtualProcessor_Sleep(timespec_from_ms(18)));
     
     while ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_AtTrack0) == 0) {
         FloppyController_StepHead(fdc, self->driveState, -1);
@@ -319,12 +319,12 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self, bool* _
             throw(ETIMEDOUT);
         }
 
-        try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(3)));
+        try(VirtualProcessor_Sleep(timespec_from_ms(3)));
     }
     FloppyController_SelectHead(fdc, &self->driveState, 0);
     
     // Head settle time (includes the 100us settle time for the head select)
-    try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(15)));
+    try(VirtualProcessor_Sleep(timespec_from_ms(15)));
     
     self->head = 0;
     self->cylinder = 0;
@@ -356,7 +356,7 @@ static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, 
     const int pre_wait_ms = __max(seek_pre_wait_ms, side_pre_wait_ms);
     
     if (pre_wait_ms > 0) {
-        try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(pre_wait_ms)));
+        try(VirtualProcessor_Sleep(timespec_from_ms(pre_wait_ms)));
     }
     
     
@@ -373,7 +373,7 @@ static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, 
                 self->flags.wasMostRecentSeekInward = 0;
             }
             
-            try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(3)));
+            try(VirtualProcessor_Sleep(timespec_from_ms(3)));
         }
     }
     
@@ -390,7 +390,7 @@ static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, 
     const int settle_us = __max(seek_settle_us, side_settle_us);
     
     if (settle_us > 0) {
-        try(VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(settle_us)));
+        try(VirtualProcessor_Sleep(timespec_from_us(settle_us)));
     }
     
 catch:
@@ -875,7 +875,7 @@ errno_t FloppyDriver_putSector(FloppyDriverRef _Nonnull self, const chs_t* _Nonn
 
     // Write the track back to disk
     try(FloppyDriver_DoSyncIO(self, true));
-    VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200));
+    VirtualProcessor_Sleep(timespec_from_us(1200));
 
 catch:
     return FloppyDriver_FinalizeIO(self, err);
@@ -939,7 +939,7 @@ errno_t FloppyDriver_formatSectors(FloppyDriverRef _Nonnull self, const chs_t* c
 
     // Write the track back to disk
     try(FloppyDriver_DoSyncIO(self, true));
-    VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200));
+    VirtualProcessor_Sleep(timespec_from_us(1200));
 
 catch:
     return FloppyDriver_FinalizeIO(self, err);

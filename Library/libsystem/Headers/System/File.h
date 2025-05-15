@@ -13,8 +13,8 @@
 #include <System/_syslimits.h>
 #include <System/Error.h>
 #include <System/FilePermissions.h>
-#include <System/TimeInterval.h>
 #include <System/Types.h>
+#include <time.h>
 
 __CPP_BEGIN
 
@@ -33,9 +33,9 @@ __CPP_BEGIN
 
 
 typedef struct finfo {
-    TimeInterval        accessTime;
-    TimeInterval        modificationTime;
-    TimeInterval        statusChangeTime;
+    struct timespec     accessTime;
+    struct timespec     modificationTime;
+    struct timespec     statusChangeTime;
     off_t               size;
     uid_t               uid;
     gid_t               gid;
@@ -61,8 +61,8 @@ enum ModifyFileInfo {
 
 typedef struct fmutinfo {
     uint32_t            modify;
-    TimeInterval        accessTime;
-    TimeInterval        modificationTime;
+    struct timespec     accessTime;
+    struct timespec     modificationTime;
     uid_t               uid;
     gid_t               gid;
     FilePermissions     permissions;

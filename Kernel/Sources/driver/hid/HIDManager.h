@@ -31,8 +31,8 @@ extern bool HIDManager_GetLightPenPosition(HIDManagerRef _Nonnull self, int16_t*
 
 
 // Configuring the keyboard
-extern void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay);
-extern void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, TimeInterval initialDelay, TimeInterval repeatDelay);
+extern void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay);
+extern void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec initialDelay, struct timespec repeatDelay);
 
 
 // Returns the keyboard hardware state
@@ -57,6 +57,6 @@ extern void HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self, int* 
 extern uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self);
 
 
-extern errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, TimeInterval timeout, HIDEvent* _Nonnull evt);
+extern errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, struct timespec timeout, HIDEvent* _Nonnull evt);
 
 #endif /* HIDManager_h */

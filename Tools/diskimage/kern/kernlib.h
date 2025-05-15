@@ -9,16 +9,17 @@
 #ifndef _KERN_KERNLIB_H
 #define _KERN_KERNLIB_H 1
 
-#include <System/_align.h>
 #include <System/_cmndef.h>
-#include <System/_math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <limits.h>
+#include <time.h>
 #include <../../../Library/libc/Headers/sys/_fcntl.h>
 #include <../../../Library/libc/Headers/sys/_unistd.h>
+#ifndef __SIZE_WIDTH
+#define __SIZE_WIDTH 64
+#endif
 
-__CPP_BEGIN
 
 //
 // NOTE: All kernel related code must be compiled with a pure C environment. Eg
@@ -27,6 +28,16 @@ __CPP_BEGIN
 //
 // Windows: compile with /std:c11
 //
+
+
+#define __abs(x) (((x) < 0) ? -(x) : (x))
+#define __clamped(v, lw, up) ((v) < (lw) ? (lw) : ((v) > (up) ? (up) : (v)))
+
+#define __Ceil_PowerOf2(x, __align)   (((x) + ((__align)-1)) & ~((__align)-1))
+#define __Floor_PowerOf2(x, __align) ((x) & ~((__align)-1))
+
+#define __Ceil_Ptr_PowerOf2(x, __align)     (void*)(__Ceil_PowerOf2((__uintptr_t)(x), (__uintptr_t)(__align)))
+#define __Floor_Ptr_PowerOf2(x, __align)     (void*)(__Floor_PowerOf2((__uintptr_t)(x), (__uintptr_t)(__align)))
 
 
 #define ONE_SECOND_IN_NANOS (1000l * 1000l * 1000l)
@@ -144,6 +155,18 @@ extern char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, char*
 extern char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char* _Nonnull digits);
 
 extern int _atoi(const char *str, char **str_end, int base);
+
+
+inline struct timespec timespec_from(time_t seconds, long nanoseconds) {
+    struct timespec ts;
+    ts.tv_sec = seconds;
+    ts.tv_nsec = nanoseconds;
+    return ts;
+}
+
+extern const struct timespec    TIMESPEC_ZERO;
+extern const struct timespec    TIMESPEC_INF;
+extern const struct timespec    TIMESPEC_NEGINF;
 
 __CPP_END
 

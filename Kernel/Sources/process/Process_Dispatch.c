@@ -48,7 +48,7 @@ errno_t Process_WakeUConditionVariable(ProcessRef _Nonnull self, int odCV, int o
 // wait has timed out. Automatically and atomically acquires the associated
 // lock on wakeup. An ETIMEOUT error is returned if the condition variable is
 // not signaled before 'deadline'.
-errno_t Process_WaitUConditionVariable(ProcessRef _Nonnull self, int odCV, int odLock, TimeInterval deadline)
+errno_t Process_WaitUConditionVariable(ProcessRef _Nonnull self, int odCV, int odLock, struct timespec deadline)
 {
     decl_try_err();
     UConditionVariableRef pCV = NULL;
@@ -155,7 +155,7 @@ errno_t Process_RelinquishUSemaphore(ProcessRef _Nonnull self, int od, int nperm
 // Blocks the caller until 'npermits' can be successfully acquired from the given
 // semaphore. Returns EOK on success and ETIMEOUT if the permits could not be
 // acquired before 'deadline'.
-errno_t Process_AcquireUSemaphore(ProcessRef _Nonnull self, int od, int npermits, TimeInterval deadline)
+errno_t Process_AcquireUSemaphore(ProcessRef _Nonnull self, int od, int npermits, struct timespec deadline)
 {
     decl_try_err();
     USemaphoreRef pSema;

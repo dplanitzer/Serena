@@ -9,8 +9,8 @@
 #ifndef _SYS_HID_EVENT_H
 #define _SYS_HID_EVENT_H 1
 
-#include <System/TimeInterval.h>
 #include <stdint.h>
+#include <sys/timespec.h>
 
 
 // Event types
@@ -104,7 +104,7 @@ typedef union _HIDEventData {
 // HID event
 typedef struct HIDEvent {
     int32_t         type;
-    TimeInterval    eventTime;
+    struct timespec eventTime;
     HIDEventData    data;
 } HIDEvent;
 

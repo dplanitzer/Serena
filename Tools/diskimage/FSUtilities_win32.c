@@ -12,12 +12,12 @@
 
 // Returns the current time. This time value is suitable for use as a timestamp
 // for filesystem objects.
-TimeInterval FSGetCurrentTime(void)
+struct timespec FSGetCurrentTime(void)
 {
-    TimeInterval ti;
+    struct timespec ts;
 
-    timespec_get(&ti, TIME_UTC);
-    return ti;
+    timespec_get(&ts, TIME_UTC);
+    return ts;
 }
 
 

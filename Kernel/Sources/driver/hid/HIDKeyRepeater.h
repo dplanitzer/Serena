@@ -19,8 +19,8 @@ typedef struct HIDKeyRepeater* HIDKeyRepeaterRef;
 extern errno_t HIDKeyRepeater_Create(HIDKeyRepeaterRef _Nullable * _Nonnull pOutSelf);
 extern void HIDKeyRepeater_Destroy(HIDKeyRepeaterRef _Nonnull self);
 
-extern void HIDKeyRepeater_GetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay);
-extern void HIDKeyRepeater_SetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, TimeInterval initialDelay, TimeInterval repeatDelay);
+extern void HIDKeyRepeater_GetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay);
+extern void HIDKeyRepeater_SetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, struct timespec initialDelay, struct timespec repeatDelay);
 
 // Informs the key repeater that the user is now pressing down the key 'keyCode'.
 // This implicitly cancels an ongoing key repeat of a different key. Note that at

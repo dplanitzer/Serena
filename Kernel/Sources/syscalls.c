@@ -247,7 +247,7 @@ SYSCALL_1(setumask, uint32_t mask)
     return EOK;
 }
 
-SYSCALL_2(clock_wait, int clock, const TimeInterval* _Nonnull delay)
+SYSCALL_2(clock_wait, int clock, const struct timespec* _Nonnull delay)
 {
     if (pa->delay->tv_nsec < 0 || pa->delay->tv_nsec >= ONE_SECOND_IN_NANOS) {
         return EINVAL;
@@ -259,7 +259,7 @@ SYSCALL_2(clock_wait, int clock, const TimeInterval* _Nonnull delay)
     return VirtualProcessor_Sleep(*(pa->delay));
 }
 
-SYSCALL_2(clock_gettime, int clock, TimeInterval* _Nonnull time)
+SYSCALL_2(clock_gettime, int clock, struct timespec* _Nonnull time)
 {
     if (pa->clock != CLOCK_MONOTONIC) {
         return ENODEV;
@@ -274,7 +274,7 @@ SYSCALL_5(dispatch, int od, const VoidFunc_2 _Nonnull func, void* _Nullable ctx,
     return Process_DispatchUserClosure((ProcessRef)p, pa->od, pa->func, pa->ctx, pa->options, pa->tag);
 }
 
-SYSCALL_6(dispatch_timer, int od, TimeInterval deadline, TimeInterval interval, const VoidFunc_1 _Nonnull func, void* _Nullable ctx, uintptr_t tag)
+SYSCALL_6(dispatch_timer, int od, struct timespec deadline, struct timespec interval, const VoidFunc_1 _Nonnull func, void* _Nullable ctx, uintptr_t tag)
 {
     return Process_DispatchUserTimer((ProcessRef)p, pa->od, pa->deadline, pa->interval, pa->func, pa->ctx, pa->tag);
 }
@@ -305,11 +305,11 @@ SYSCALL_3(cond_wake, int od, int dlock, unsigned int options)
     return Process_WakeUConditionVariable((ProcessRef)p, pa->od, pa->dlock, pa->options);
 }
 
-SYSCALL_3(cond_timedwait, int od, int dlock, const TimeInterval* _Nullable deadline)
+SYSCALL_3(cond_timedwait, int od, int dlock, const struct timespec* _Nullable deadline)
 {
-    const TimeInterval ti = (pa->deadline) ? *(pa->deadline) : kTimeInterval_Infinity;
+    const struct timespec ts = (pa->deadline) ? *(pa->deadline) : TIMESPEC_INF;
 
-    return Process_WaitUConditionVariable((ProcessRef)p, pa->od, pa->dlock, ti);
+    return Process_WaitUConditionVariable((ProcessRef)p, pa->od, pa->dlock, ts);
 }
 
 
@@ -344,7 +344,7 @@ SYSCALL_2(sem_post, int od, int npermits)
     return Process_RelinquishUSemaphore((ProcessRef)p, pa->od, pa->npermits);
 }
 
-SYSCALL_3(sem_wait, int od, int npermits, TimeInterval deadline)
+SYSCALL_3(sem_wait, int od, int npermits, struct timespec deadline)
 {
     return Process_AcquireUSemaphore((ProcessRef)p, pa->od, pa->npermits, pa->deadline);
 }
@@ -381,7 +381,7 @@ SYSCALL_1(exit, int status)
     // owns this VP is terminated. This interrupt will be caused by the abort
     // of the call-as-user and thus this system call will not return to user
     // space anymore. Instead it will return to the dispatch queue main loop.
-    VirtualProcessor_Sleep(kTimeInterval_Infinity);
+    VirtualProcessor_Sleep(TIMESPEC_INF);
     return 0;
 }
 

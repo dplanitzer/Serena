@@ -63,7 +63,7 @@ errno_t sem_post(sem_t* _Nonnull sema, int npermits)
     }
 }
 
-errno_t sem_wait(sem_t* _Nonnull sema, int npermits, TimeInterval deadline)
+errno_t sem_wait(sem_t* _Nonnull sema, int npermits, struct timespec deadline)
 {
     USemaphore* self = (USemaphore*)sema;
 

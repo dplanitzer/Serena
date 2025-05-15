@@ -29,8 +29,8 @@ enum {
 
 
 typedef struct Timer {
-    TimeInterval    deadline;           // Time when the timer closure should be executed
-    TimeInterval    interval;
+    struct timespec deadline;           // Time when the timer closure should be executed
+    struct timespec interval;
 } Timer;
 
 

@@ -23,7 +23,6 @@
 #include <System/Filesystem.h>
 #include <System/FilePermissions.h>
 #include <System/Process.h>
-#include <System/TimeInterval.h>
 #include <System/Types.h>
 #include <System/User.h>
 #include <filesystem/serenafs/tools/format.h>
@@ -67,15 +66,15 @@ void fatal(const char* _Nonnull fmt, ...)
 
 // Returns the current time. This time value is suitable for use as a timestamp
 // for filesystem objects.
-TimeInterval FSGetCurrentTime(void)
+struct timespec FSGetCurrentTime(void)
 {
     // XXX consider switching to the clock API for more precision
-    TimeInterval ti;
+    struct timespec ts;
 
-    ti.tv_sec = time(NULL);
-    ti.tv_nsec = 0;
+    ts.tv_sec = time(NULL);
+    ts.tv_nsec = 0;
 
-    return ti;
+    return ts;
 }
 
 bool FSIsPowerOf2(size_t n)

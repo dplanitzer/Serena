@@ -43,14 +43,14 @@ errno_t HIDDriver_read(DriverRef _Nonnull self, HIDChannelRef _Nonnull pChannel,
 {
     decl_try_err();
     const bool isNonBlocking = (IOChannel_GetMode(pChannel) & O_NONBLOCK) == O_NONBLOCK;
-    const TimeInterval timeout = (isNonBlocking) ? kTimeInterval_Zero : kTimeInterval_Infinity;
+    const struct timespec timeout = (isNonBlocking) ? TIMESPEC_ZERO : TIMESPEC_INF;
     HIDEvent* pe = buf;
     ssize_t nBytesRead = 0;
 
     while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
         // Only block waiting for the first event. For all other events we do not
         // wait.
-        const errno_t e1 = HIDManager_GetNextEvent(gHIDManager, (pe == buf) ? timeout : kTimeInterval_Zero, pe);
+        const errno_t e1 = HIDManager_GetNextEvent(gHIDManager, (pe == buf) ? timeout : TIMESPEC_ZERO, pe);
 
         if (e1 != EOK) {
             // Return with an error if we were not able to read any event data at
@@ -71,23 +71,23 @@ errno_t HIDDriver_ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel,
 {
     switch (cmd) {
         case kHIDCommand_GetNextEvent: {
-            const TimeInterval timeout = va_arg(ap, TimeInterval);
+            const struct timespec timeout = va_arg(ap, struct timespec);
             HIDEvent* evt = va_arg(ap, HIDEvent*);
 
             return HIDManager_GetNextEvent(gHIDManager, timeout, evt);
         }
 
         case kHIDCommand_GetKeyRepeatDelays: {
-            TimeInterval* initial = va_arg(ap, TimeInterval*);
-            TimeInterval* repeat = va_arg(ap, TimeInterval*);
+            struct timespec* initial = va_arg(ap, struct timespec*);
+            struct timespec* repeat = va_arg(ap, struct timespec*);
 
             HIDManager_GetKeyRepeatDelays(gHIDManager, initial, repeat);
             return EOK;
         }
 
         case kHIDCommand_SetKeyRepeatDelays: {
-            const TimeInterval initial = va_arg(ap, TimeInterval);
-            const TimeInterval repeat = va_arg(ap, TimeInterval);
+            const struct timespec initial = va_arg(ap, struct timespec);
+            const struct timespec repeat = va_arg(ap, struct timespec);
 
             HIDManager_SetKeyRepeatDelays(gHIDManager, initial, repeat);
             return EOK;

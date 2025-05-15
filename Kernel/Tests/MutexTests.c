@@ -13,7 +13,7 @@
 #include <time.h>
 #include <sys/dispatch.h>
 #include <sys/mutex.h>
-#include <System/TimeInterval.h>
+#include <sys/timespec.h>
 #include <System/_math.h>
 #include "Asserts.h"
 
@@ -46,7 +46,7 @@ static void select_and_write_pattern(void)
     char* dst = gCurrentPattern;
     const char* src = gAvailablePattern[gCurrentPatternIndex];
     size_t len = strlen(src) + 1;
-    struct timespec dl = TimeInterval_MakeMilliseconds(4);
+    struct timespec dl = timespec_from_ms(4);
 
     while (len > 0) {
         const size_t nBytesToCopy = __min(len, 4);

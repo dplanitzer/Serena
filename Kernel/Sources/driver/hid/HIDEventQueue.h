@@ -45,6 +45,6 @@ extern void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type,
 // has arrived or 'timeout' has elapsed. Returns EOK if an event has been
 // successfully dequeued or ETIMEDOUT if no event has arrived and the wait has
 // timed out.
-extern errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, TimeInterval timeout, HIDEvent* _Nonnull pOutEvent);
+extern errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, struct timespec timeout, HIDEvent* _Nonnull pOutEvent);
 
 #endif /* HIDEventQueue_h */

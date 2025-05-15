@@ -298,14 +298,14 @@ void HIDManager_ReportJoystickDeviceChange(HIDManagerRef _Nonnull self, int port
 // MARK: Kernel API
 ////////////////////////////////////////////////////////////////////////////////
 
-void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
+void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay)
 {
     Lock_Lock(&self->lock);
     IOChannel_Ioctl(self->kbChannel, kKeyboardCommand_GetKeyRepeatDelays, pInitialDelay, pRepeatDelay);
     Lock_Unlock(&self->lock);
 }
 
-void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, TimeInterval initialDelay, TimeInterval repeatDelay)
+void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec initialDelay, struct timespec repeatDelay)
 {
     Lock_Lock(&self->lock);
     IOChannel_Ioctl(self->kbChannel, kKeyboardCommand_SetKeyRepeatDelays, initialDelay, repeatDelay);
@@ -519,7 +519,7 @@ uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self)
 // Dequeues and returns the next available event or ETIMEDOUT if no event is
 // available and a timeout > 0 was specified. Returns EAGAIN if no event is
 // available and the timeout is 0.
-errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, TimeInterval timeout, HIDEvent* _Nonnull evt)
+errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, struct timespec timeout, HIDEvent* _Nonnull evt)
 {
     return HIDEventQueue_Get(self->eventQueue, timeout, evt);
 }

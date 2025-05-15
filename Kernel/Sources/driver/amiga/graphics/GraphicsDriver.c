@@ -218,7 +218,7 @@ static void GraphicsDriver_WaitForVerticalBlank_Locked(GraphicsDriverRef _Nonnul
     // some vblank that has happened before this function has been called. Then
     // wait for the actual vblank.
     Semaphore_TryAcquire(&self->vblank_sema);
-    Semaphore_Acquire(&self->vblank_sema, kTimeInterval_Infinity);
+    Semaphore_Acquire(&self->vblank_sema, TIMESPEC_INF);
 }
 
 // Compiles a Copper program to display the null screen. The null screen shows

@@ -122,7 +122,7 @@ void DispatchQueue_WaitForTerminationCompleted(DispatchQueueRef _Nonnull self)
 {
     Lock_Lock(&self->lock);
     while (self->availableConcurrency > 0) {
-        ConditionVariable_Wait(&self->vp_shutdown_signaler, &self->lock, kTimeInterval_Infinity);
+        ConditionVariable_Wait(&self->vp_shutdown_signaler, &self->lock, TIMESPEC_INF);
     }
 
 
@@ -374,7 +374,7 @@ static WorkItem* _Nullable DispatchQueue_AddTimedItem_Locked(DispatchQueueRef _N
     WorkItem* pCurItem = (WorkItem*)self->timer_queue.first;
     
     while (pCurItem) {
-        if (TimeInterval_Greater(pCurItem->u.timer.deadline, pItem->u.timer.deadline)) {
+        if (timespec_gt(pCurItem->u.timer.deadline, pItem->u.timer.deadline)) {
             break;
         }
         
@@ -548,7 +548,7 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
 
     if (isSync) {
         // Wait for the work item completion
-        err = Semaphore_Acquire(&pItem->u.completionSignaler, kTimeInterval_Infinity);
+        err = Semaphore_Acquire(&pItem->u.completionSignaler, TIMESPEC_INF);
 
         Lock_Lock(&self->lock);
 
@@ -586,15 +586,15 @@ catch:
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible. The
 // timer can be referenced with the tag 'tag'.
-errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, TimeInterval deadline, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag)
+errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, struct timespec deadline, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
-    return DispatchQueue_DispatchTimer(self, deadline, kTimeInterval_Zero, (VoidFunc_2)func, context, NULL, 0, 0, tag);
+    return DispatchQueue_DispatchTimer(self, deadline, TIMESPEC_ZERO, (VoidFunc_2)func, context, NULL, 0, 0, tag);
 }
 
 // Asynchronously executes the given closure every 'interval' seconds, on or
 // after 'deadline' until the timer is removed from the dispatch queue. The
 // timer can be referenced with the tag 'tag'.
-errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag)
+errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, struct timespec deadline, struct timespec interval, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
     return DispatchQueue_DispatchTimer(self, deadline, interval, (VoidFunc_2)func, context, NULL, 0, 0, tag);
 }
@@ -602,7 +602,7 @@ errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, 
 // Similar to 'DispatchClosure'. However the function will execute on or after
 // 'deadline'. If 'interval' is not 0 or infinity, then the function will execute
 // every 'interval' ticks until the timer is removed from the queue.
-errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes, uint32_t options, uintptr_t tag)
+errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, struct timespec deadline, struct timespec interval, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes, uint32_t options, uintptr_t tag)
 {
     decl_try_err();
     WorkItem* pItem = NULL;
@@ -636,7 +636,7 @@ errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval
     pItem->u.timer.interval = interval;
     pItem->flags |= kWorkItemFlag_Timer;
 
-    if (TimeInterval_Greater(interval, kTimeInterval_Zero) && !TimeInterval_Equals(interval, kTimeInterval_Infinity)) {
+    if (timespec_gt(interval, TIMESPEC_ZERO) && !timespec_eq(interval, TIMESPEC_INF)) {
         pItem->flags |= kWorkItemFlag_IsRepeating;
     }
 
@@ -697,11 +697,11 @@ static void DispatchQueue_RearmTimedItem_Locked(DispatchQueueRef _Nonnull self, 
 {
     // Repeating timer: rearm it with the next fire date that's in
     // the future (the next fire date we haven't already missed).
-    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
+    const struct timespec curTime = MonotonicClock_GetCurrentTime();
     
     do  {
-        pItem->u.timer.deadline = TimeInterval_Add(pItem->u.timer.deadline, pItem->u.timer.interval);
-    } while (TimeInterval_Less(pItem->u.timer.deadline, curTime));
+        pItem->u.timer.deadline = timespec_add(pItem->u.timer.deadline, pItem->u.timer.interval);
+    } while (timespec_ls(pItem->u.timer.deadline, curTime));
     
     DispatchQueue_AddTimedItem_Locked(self, pItem);
 }
@@ -723,14 +723,14 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
         
         // Wait for work items to arrive or for timers to fire
         while (true) {
-            const TimeInterval now = MonotonicClock_GetCurrentTime();
+            const struct timespec now = MonotonicClock_GetCurrentTime();
 
             // Grab the first timer that's due. We give preference to timers because
             // they are tied to a specific deadline time while immediate work items
             // do not guarantee that they will execute at a specific time. So it's
             // acceptable to push them back on the timeline.
             WorkItem* pFirstTimer = (WorkItem*)self->timer_queue.first;
-            if (pFirstTimer && TimeInterval_LessEquals(pFirstTimer->u.timer.deadline, now)) {
+            if (pFirstTimer && timespec_lsq(pFirstTimer->u.timer.deadline, now)) {
                 pItem = (WorkItem*) SList_RemoveFirst(&self->timer_queue);
                 self->items_queued_count--;
             }
@@ -754,12 +754,12 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
 
             // Compute a deadline for the wait. We do not wait if the deadline
             // is equal to the current time or it's in the past
-            TimeInterval deadline;
+            struct timespec deadline;
 
             if (self->timer_queue.first) {
                 deadline = ((WorkItem*)self->timer_queue.first)->u.timer.deadline;
             } else {
-                deadline = TimeInterval_Add(now, TimeInterval_MakeSeconds(2));
+                deadline = timespec_add(now, timespec_from_sec(2));
             }
 
 

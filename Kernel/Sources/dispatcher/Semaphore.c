@@ -39,7 +39,7 @@ void Semaphore_Deinit(Semaphore* _Nonnull pSemaphore)
 // Invoked by Semaphore_Acquire() if the semaphore doesn't have the expected number
 // of permits.
 // Expects to be called with preemption disabled.
-errno_t Semaphore_OnWaitForPermits(Semaphore* _Nonnull pSemaphore, TimeInterval deadline)
+errno_t Semaphore_OnWaitForPermits(Semaphore* _Nonnull pSemaphore, struct timespec deadline)
 {
     return VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                             &pSemaphore->wait_queue,

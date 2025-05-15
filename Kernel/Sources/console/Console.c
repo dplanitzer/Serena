@@ -546,7 +546,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, ConsoleChanne
     HIDEvent evt;
     ssize_t nBytesRead = 0;
     const bool isNonBlocking = (IOChannel_GetMode(pChannel) & O_NONBLOCK) == O_NONBLOCK;
-    const TimeInterval timeout = (isNonBlocking) ? kTimeInterval_Zero : kTimeInterval_Infinity;
+    const struct timespec timeout = (isNonBlocking) ? TIMESPEC_ZERO : TIMESPEC_INF;
 
     while (nBytesRead < nBytesToRead) {
         // Drop the console lock while getting an event since the get events call
@@ -556,7 +556,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, ConsoleChanne
         Lock_Unlock(&self->lock);
         // XXX Need an API that allows me to read as many events as possible without blocking and that only blocks if there are no events available
         // XXX Or, probably, that's how the event driver read() should work in general
-        errno_t e1 = HIDChannel_GetNextEvent(self->hidChannel, (nBytesRead == 0) ? timeout : kTimeInterval_Zero, &evt);
+        errno_t e1 = HIDChannel_GetNextEvent(self->hidChannel, (nBytesRead == 0) ? timeout : TIMESPEC_ZERO, &evt);
         Lock_Lock(&self->lock);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay

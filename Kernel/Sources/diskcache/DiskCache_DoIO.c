@@ -19,7 +19,7 @@ static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRe
     decl_try_err();
 
     while (pBlock->flags.op == op) {
-        err = ConditionVariable_Wait(&self->condition, &self->interlock, kTimeInterval_Infinity);
+        err = ConditionVariable_Wait(&self->condition, &self->interlock, TIMESPEC_INF);
         if (err != EOK) {
             return err;
         }

@@ -29,7 +29,7 @@ errno_t MonotonicClock_CreateForLocalCPU(const SystemDescription* pSysDesc)
     MonotonicClock* pClock = &gMonotonicClockStorage;
     decl_try_err();
 
-    pClock->current_time = kTimeInterval_Zero;
+    pClock->current_time = TIMESPEC_ZERO;
     pClock->current_quantum = 0;
     pClock->ns_per_quantum = pSysDesc->quantum_duration_ns;
 
@@ -50,7 +50,7 @@ catch:
 }
 
 // Returns the current time of the clock in terms of microseconds.
-TimeInterval MonotonicClock_GetCurrentTime(void)
+struct timespec MonotonicClock_GetCurrentTime(void)
 {
     register const MonotonicClock* pClock = gMonotonicClock;
     register time_t cur_secs;
@@ -72,7 +72,7 @@ TimeInterval MonotonicClock_GetCurrentTime(void)
         // the time
     } while (pClock->current_quantum != chk_quantum);
 
-    return TimeInterval_Make(cur_secs, cur_nanos);
+    return timespec_from(cur_secs, cur_nanos);
 }
 
 static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock)
@@ -94,10 +94,10 @@ static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock)
 // achieve the desired delay. Eg context switch to another virtual processor.
 // Note that this function is only willing to block the caller for at most a
 // millisecond. Longer delays should be done via a scheduler wait().
-bool MonotonicClock_DelayUntil(TimeInterval deadline)
+bool MonotonicClock_DelayUntil(struct timespec deadline)
 {
-    const TimeInterval t_start = MonotonicClock_GetCurrentTime();
-    const TimeInterval t_delta = TimeInterval_Subtract(deadline, t_start);
+    const struct timespec t_start = MonotonicClock_GetCurrentTime();
+    const struct timespec t_delta = timespec_sub(deadline, t_start);
     
     if (t_delta.tv_sec > 0 || (t_delta.tv_sec == 0 && t_delta.tv_nsec > 1000*1000)) {
         return false;
@@ -105,9 +105,9 @@ bool MonotonicClock_DelayUntil(TimeInterval deadline)
     
     // Just spin for now (would be nice to put the CPU to sleep though for a few micros before rechecking the time or so)
     for (;;) {
-        const TimeInterval t_cur = MonotonicClock_GetCurrentTime();
+        const struct timespec t_cur = MonotonicClock_GetCurrentTime();
         
-        if (TimeInterval_GreaterEquals(t_cur, deadline)) {
+        if (timespec_gtq(t_cur, deadline)) {
             return true;
         }
     }
@@ -118,7 +118,7 @@ bool MonotonicClock_DelayUntil(TimeInterval deadline)
 
 // Converts a time interval to a quantum value. The quantum value is rounded
 // based on the 'rounding' parameter.
-Quantums Quantums_MakeFromTimeInterval(TimeInterval ti, int rounding)
+Quantums Quantums_MakeFromTimespec(struct timespec ti, int rounding)
 {
     register MonotonicClock* pClock = gMonotonicClock;
     const int64_t nanos = (int64_t)ti.tv_sec * (int64_t)ONE_SECOND_IN_NANOS + (int64_t)ti.tv_nsec;
@@ -141,12 +141,12 @@ Quantums Quantums_MakeFromTimeInterval(TimeInterval ti, int rounding)
 }
 
 // Converts a quantum value to a time interval.
-TimeInterval TimeInterval_MakeFromQuantums(Quantums quants)
+struct timespec Timespec_MakeFromQuantums(Quantums quants)
 {
     register MonotonicClock* pClock = gMonotonicClock;
     const int64_t ns = (int64_t)quants * (int64_t)pClock->ns_per_quantum;
     const int32_t secs = ns / (int64_t)ONE_SECOND_IN_NANOS;
     const int32_t nanos = ns - ((int64_t)secs * (int64_t)ONE_SECOND_IN_NANOS);
     
-    return TimeInterval_Make(secs, nanos);
+    return timespec_from(secs, nanos);
 }

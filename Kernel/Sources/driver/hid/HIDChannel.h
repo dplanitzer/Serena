@@ -11,7 +11,7 @@
 
 #include <driver/DriverChannel.h>
 #include <sys/hidevent.h>
-#include <System/TimeInterval.h>
+#include <sys/timespec.h>
 
 
 open_class(HIDChannel, DriverChannel,
@@ -22,6 +22,6 @@ open_class_funcs(HIDChannel, DriverChannel,
 
 extern errno_t HIDChannel_Create(DriverRef _Nonnull pDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf);
 
-extern errno_t HIDChannel_GetNextEvent(IOChannelRef _Nonnull self, TimeInterval timeout, HIDEvent* _Nonnull evt);
+extern errno_t HIDChannel_GetNextEvent(IOChannelRef _Nonnull self, struct timespec timeout, HIDEvent* _Nonnull evt);
 
 #endif /* HIDChannel_h */
