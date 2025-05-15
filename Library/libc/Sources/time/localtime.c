@@ -6,7 +6,6 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#define _POSIX_SOURCE
 #include <time.h>
 
 

@@ -12,7 +12,6 @@
 
 #include <ctype.h>
 #include <stdbool.h>
-#define _OPEN_SYS_ITOA_EXT
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

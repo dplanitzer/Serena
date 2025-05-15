@@ -7,7 +7,6 @@
 //
 
 #include "utils.h"
-#define _OPEN_SYS_ITOA_EXT
 #include <stdlib.h>
 #include <stdio.h>
 

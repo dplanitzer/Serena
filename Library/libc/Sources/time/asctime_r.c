@@ -6,7 +6,6 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#define _POSIX_SOURCE
 #include <time.h>
 #include <stdio.h>
 #include "gregorian_calendar.h"

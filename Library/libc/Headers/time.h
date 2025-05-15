@@ -40,25 +40,15 @@ extern time_t time(time_t *timer);
 extern time_t mktime(struct tm *timeptr);
 
 extern struct tm *localtime(const time_t *timer);
+extern struct tm *gmtime(const time_t *timer);
+extern char *asctime(const struct tm *timeptr);
+extern char *ctime(const time_t *timer);
+
+
 #ifdef _POSIX_SOURCE
 extern struct tm *localtime_r(const time_t *timer, struct tm *buf);
-#endif
-
-
-extern struct tm *gmtime(const time_t *timer);
-#ifdef _POSIX_SOURCE
 extern struct tm *gmtime_r(const time_t *timer, struct tm *buf);
-#endif
-
-
-extern char *asctime(const struct tm *timeptr);
-#ifdef _POSIX_SOURCE
 extern char *asctime_r(const struct tm *timeptr, char *buf);
-#endif
-
-
-extern char *ctime(const time_t *timer);
-#ifdef _POSIX_SOURCE
 extern char *ctime_r(const time_t *timer, char *buf);
 #endif
 

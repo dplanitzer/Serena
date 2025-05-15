@@ -11,7 +11,6 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
-#define _OPEN_SYS_ITOA_EXT
 #include <stdlib.h>
 #include <string.h>
 #include <System/Error.h>

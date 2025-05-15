@@ -9,10 +9,8 @@
 #include <clap.h>
 #include <errno.h>
 #include <stdio.h>
-#define _OPEN_SYS_ITOA_EXT
 #include <stdlib.h>
 #include <string.h>
-#define _POSIX_SOURCE
 #include <time.h>
 #include <unistd.h>
 #include <System/Error.h>

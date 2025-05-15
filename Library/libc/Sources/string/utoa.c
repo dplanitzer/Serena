@@ -6,7 +6,6 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#define _OPEN_SYS_ITOA_EXT
 #include <stdlib.h>
 #include <string.h>
 #include <__stddef.h>
