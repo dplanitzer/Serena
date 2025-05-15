@@ -1,18 +1,18 @@
 //
-//  krt.h
-//  crt
+//  kei.h
+//  kernel
 //
 //  Created by Dietmar Planitzer on 2/4/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef krt_h
-#define krt_h
+#ifndef kei_h
+#define kei_h
 
 #include <sys/_kei.h>
 
 extern kei_func_t gKeiTable[];
 
-extern void krt_init(void);
+extern void kei_init(void);
 
-#endif /* krt_h */
+#endif /* kei_h */

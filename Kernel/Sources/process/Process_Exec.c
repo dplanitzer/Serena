@@ -8,7 +8,7 @@
 
 #include "ProcessPriv.h"
 #include "GemDosExecutableLoader.h"
-#include <krt/krt.h>
+#include <kei/kei.h>
 #include <kern/string.h>
 
 

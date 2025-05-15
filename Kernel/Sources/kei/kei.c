@@ -1,12 +1,12 @@
 //
-//  krt.c
-//  crt
+//  kei.c
+//  kernel
 //
 //  Created by Dietmar Planitzer on 2/4/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "krt.h"
+#include "kei.h"
 #include <kern/string.h>
 
 extern long long _rshsint64(long long x, int s);
@@ -21,7 +21,7 @@ extern long long _ui32_64_mul(int x, int y);
 
 kei_func_t gKeiTable[KEI_Count];
 
-void krt_init(void)
+void kei_init(void)
 {
     gKeiTable[KEI_asr64] = (kei_func_t)_rshsint64;
     gKeiTable[KEI_lsr64] = (kei_func_t)_rshuint64;

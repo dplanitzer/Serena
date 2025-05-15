@@ -6,7 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <krt/krt.h>
+#include <kei/kei.h>
 #include <log/Log.h>
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
@@ -163,7 +163,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     // Initialize the Kernel Runtime Services so that we can make it available
     // to userspace in the form of the Userspace Runtime Services.
-    krt_init();
+    kei_init();
     
     
     // Create the root file hierarchy and process.
