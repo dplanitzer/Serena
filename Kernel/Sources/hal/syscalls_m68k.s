@@ -8,8 +8,8 @@
 
 
     include "hal/lowmem.i"
-    include <System/asm/errno.i>
-    include <System/asm/syscall.i>
+    include <machine/asm/errno.i>
+    include <machine/asm/syscall.i>
 
     xref _gVirtualProcessorSchedulerStorage
     xref __syscall_handler

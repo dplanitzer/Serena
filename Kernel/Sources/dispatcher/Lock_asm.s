@@ -7,7 +7,7 @@
 ;
 
     include "../hal/lowmem.i"
-    include <System/asm/errno.i>
+    include <machine/asm/errno.i>
 
     xref _Lock_OnWait
     xref _Lock_WakeUp
