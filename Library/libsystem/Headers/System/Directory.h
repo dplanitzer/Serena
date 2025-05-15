@@ -23,12 +23,6 @@ typedef struct dirent {
 } dirent_t;
 
 
-// Creates an empty directory with the name and at the filesystem location specified
-// by 'path'. 'mode' specifies the permissions that should be assigned to the
-// directory.
-// @Concurrency: Safe
-extern errno_t mkdir(const char* _Nonnull path, FilePermissions mode);
-
 // Opens the directory at the filesystem location 'path' for reading. Call this
 // function to obtain an I/O channel suitable for reading the content of the
 // directory. Call IOChannel_Close() once you are done with the directory.

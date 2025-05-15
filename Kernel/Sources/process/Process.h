@@ -15,6 +15,7 @@
 #include <System/Filesystem.h>
 #include <System/Process.h>
 #include <System/User.h>
+#include <sys/wait.h>
 
 final_class(Process, Object);
 

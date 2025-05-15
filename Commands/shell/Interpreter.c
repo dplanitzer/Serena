@@ -15,7 +15,8 @@
 #define _OPEN_SYS_ITOA_EXT
 #include <stdlib.h>
 #include <string.h>
-#include <System/System.h>
+#include <sys/wait.h>
+#include <System/Process.h>
 
 //
 // Notes:

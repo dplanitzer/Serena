@@ -6,12 +6,14 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
 #include <sys/dispatch.h>
+#include <sys/wait.h>
 #include <System/Process.h>
 #include <System/Error.h>
 #include <System/File.h>
@@ -119,11 +121,9 @@ static void login_user(void)
 // row.
 static void on_shell_termination(void* _Nullable ignore)
 {
-    decl_try_err();
     pstatus_t pts;
 
-    err = waitpid(-1, &pts);
-    if (err == EOK) {
+    if (waitpid(-1, &pts) == 0) {
         if (pts.status != EXIT_SUCCESS) {
             gFailedCounter++;
         }
@@ -134,7 +134,7 @@ static void on_shell_termination(void* _Nullable ignore)
         }
     }
     else {
-        printf("Error: %s.\n", strerror(err));
+        printf("Error: %s.\n", strerror(errno));
         halt_machine();
     }
 

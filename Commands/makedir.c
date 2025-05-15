@@ -11,13 +11,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <System/Error.h>
-#include <System/Directory.h>
+#include <sys/stat.h>
 
 
-static errno_t _create_directory_recursively(char* _Nonnull path, FilePermissions permissions)
+static int _create_directory_recursively(char* _Nonnull path, FilePermissions permissions)
 {
-    decl_try_err();
     char* p = path;
 
     while (*p == '/') {
@@ -29,10 +27,13 @@ static errno_t _create_directory_recursively(char* _Nonnull path, FilePermission
 
         if (ps) { *ps = '\0'; }
 
-        err = mkdir(path, permissions);
+        const int r = mkdir(path, permissions);
         if (ps) { *ps = '/'; }
 
-        if (err != EOK && err != EEXIST || ps == NULL) {
+        if (r != 0 && errno != EEXIST) {
+            return -1;
+        }
+        if (ps == NULL) {
             break;
         }
 
@@ -42,7 +43,7 @@ static errno_t _create_directory_recursively(char* _Nonnull path, FilePermission
         }
     } while(*p != '\0');
 
-    return err;
+    return 0;
 }
 
 // Iterate the path components from the root on down and try creating the
@@ -56,21 +57,23 @@ static errno_t _create_directory_recursively(char* _Nonnull path, FilePermission
 // may now come back with ENOENT because X was empty and it got deleted by
 // another process. We simply start over again from the root of our path in
 // this case.
-static errno_t create_directory_recursively(char* _Nonnull path, FilePermissions permissions)
+static int create_directory_recursively(char* _Nonnull path, FilePermissions permissions)
 {
-    decl_try_err();
     int i = 0;
 
     while (i < 16) {
-        err = _create_directory_recursively(path, permissions);
-        if (err == EOK || err != ENOENT) {
+        if (_create_directory_recursively(path, permissions) == 0) {
             break;
+        }
+        
+        if (errno != ENOENT) {
+            return -1;
         }
 
         i++;
     }
     
-    return err;
+    return 0;
 }
 
 
@@ -91,8 +94,8 @@ CLAP_DECL(params,
 
 int main(int argc, char* argv[])
 {
-    decl_try_err();
     const FilePermissions permissions = FilePermissions_MakeFromOctal(0755);
+    int r = 0;
 
     clap_parse(0, params, argc, argv);
 
@@ -100,21 +103,21 @@ int main(int argc, char* argv[])
     for (size_t i = 0; i < paths.count; i++) {
         char* path = (char*)paths.strings[i];
 
-        err = mkdir(path, permissions);
-        if (err != EOK) {
-            if (err == ENOENT && should_create_parents) {
-                err = create_directory_recursively(path, permissions);
+        r = mkdir(path, permissions);
+        if (r != 0) {
+            if (errno == ENOENT && should_create_parents) {
+                r = create_directory_recursively(path, permissions);
             }
 
-            if (err != EOK) {
-                clap_error(argv[0], "%s: %s", path, strerror(err));
+            if (r != 0) {
+                clap_error(argv[0], "%s: %s", path, strerror(errno));
             }
         }
 
-        if (err != EOK) {
+        if (r != 0) {
             break;
         }
     }
 
-    return (err == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
+    return (r == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

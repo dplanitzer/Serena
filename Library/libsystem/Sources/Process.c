@@ -32,11 +32,6 @@ errno_t os_spawn(const char* _Nonnull path, const char* _Nullable argv[], const 
     return _syscall(SC_spawn, path, argv, options, rpid);
 }
 
-errno_t waitpid(pid_t pid, pstatus_t* _Nullable result)
-{
-    return _syscall(SC_waitpid, pid, result);
-}
-
 pargs_t* _Nonnull getpargs(void)
 {
     return (pargs_t*) _syscall(SC_getpargs);

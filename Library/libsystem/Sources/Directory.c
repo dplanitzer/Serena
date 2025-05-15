@@ -11,11 +11,6 @@
 #include <unistd.h>
 
 
-errno_t mkdir(const char* _Nonnull path, FilePermissions mode)
-{
-    return (errno_t)_syscall(SC_mkdir, path, (uint32_t)mode);
-}
-
 errno_t opendir(const char* _Nonnull path, int* _Nonnull ioc)
 {
     return (errno_t)_syscall(SC_opendir, path, ioc);

@@ -6,9 +6,11 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
+#include <errno.h>
 #include <stdlib.h>
-#include <__stddef.h>
-#include <System/System.h>
+#include <stddef.h>
+#include <sys/wait.h>
+#include <System/Process.h>
 
 
 int system(const char *string)
@@ -20,6 +22,7 @@ int system(const char *string)
     const char* argv[4];
 
     if (string == NULL) {
+        errno = EINVAL;
         return -1;
     }
 
@@ -35,11 +38,9 @@ int system(const char *string)
         return -1;
     }
 
-    err = waitpid(shPid, &pts);
-    if (err != EOK) {
-        errno = err;
+    if (waitpid(shPid, &pts) != 0) {
         return -1;
     }
 
-    return (err == EOK) ? 0 : pts.status;
+    return pts.status;
 }

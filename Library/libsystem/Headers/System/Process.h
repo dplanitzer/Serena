@@ -75,13 +75,6 @@ typedef struct spawn_opts {
 } spawn_opts_t;
 
 
-// The result of a waitpid() system call.
-typedef struct pstatus {
-    pid_t   pid;        // PID of the child process
-    int     status;     // Child process exit status
-} pstatus_t;
-
-
 // Process specific information
 typedef struct procinfo {
     pid_t   pid;        // Process pid
@@ -106,7 +99,6 @@ extern void setumask(FilePermissions mask);
 
 
 extern errno_t os_spawn(const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull options, pid_t* _Nullable rpid);
-extern errno_t waitpid(pid_t pid, pstatus_t* _Nullable result);
 
 extern pargs_t* _Nonnull getpargs(void);
 
