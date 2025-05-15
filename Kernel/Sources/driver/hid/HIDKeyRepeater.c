@@ -9,8 +9,8 @@
 #include "HIDKeyRepeater.h"
 #include "HIDManager.h"
 #include <hal/MonotonicClock.h>
-#include <System/HIDKeyCodes.h>
 #include <kern/kalloc.h>
+#include <sys/hidkeycodes.h>
 
 
 enum {

@@ -7,7 +7,7 @@
 //
 
 #include "GraphicsDriverPriv.h"
-#include <System/HID.h>
+#include <sys/hid.h>
 
 
 // Creates a graphics driver instance which manages the on-board video hardware.

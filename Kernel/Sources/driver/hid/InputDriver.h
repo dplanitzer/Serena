@@ -10,7 +10,7 @@
 #define InputDriver_h
 
 #include <driver/Driver.h>
-#include <System/HID.h>
+#include <sys/hid.h>
 
 
 // An input driver manages a specific input device and translates actions on the

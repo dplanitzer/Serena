@@ -10,7 +10,7 @@
 #define HIDChannel_h
 
 #include <driver/DriverChannel.h>
-#include <System/HIDEvent.h>
+#include <sys/hidevent.h>
 #include <System/TimeInterval.h>
 
 

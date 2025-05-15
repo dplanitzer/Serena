@@ -21,9 +21,6 @@
 #include <System/Filesystem.h>
 #include <System/FilePermissions.h>
 #include <System/Framebuffer.h>
-#include <System/HID.h>
-#include <System/HIDEvent.h>
-#include <System/HIDKeyCodes.h>
 #include <System/Mutex.h>
 #include <System/Process.h>
 #include <System/Semaphore.h>

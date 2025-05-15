@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
-#include <System/System.h>
+#include <sys/hidevent.h>
 #include "Asserts.h"
 
 

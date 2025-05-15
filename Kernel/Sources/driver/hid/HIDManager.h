@@ -12,8 +12,8 @@
 #include <kobj/Object.h>
 #include <System/Error.h>
 #include <System/Framebuffer.h>
-#include <System/HID.h>
-#include <System/HIDEvent.h>
+#include <sys/hid.h>
+#include <sys/hidevent.h>
 
 
 extern HIDManagerRef _Nonnull gHIDManager;

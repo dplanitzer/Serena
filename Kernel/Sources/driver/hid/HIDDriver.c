@@ -9,7 +9,7 @@
 #include "HIDDriver.h"
 #include "HIDChannel.h"
 #include "HIDManager.h"
-#include <System/HID.h>
+#include <sys/hid.h>
 
 final_class_ivars(HIDDriver, Driver,
 );

@@ -1,6 +1,6 @@
 //
-//  HIDEvent.h
-//  kernel
+//  hidevent.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 5/31/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
@@ -10,7 +10,7 @@
 #define _SYS_HID_EVENT_H 1
 
 #include <System/TimeInterval.h>
-#include <System/Types.h>
+#include <stdint.h>
 
 
 // Event types

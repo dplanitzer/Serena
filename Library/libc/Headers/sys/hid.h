@@ -1,6 +1,6 @@
 //
-//  HID.h
-//  libsystem
+//  sys/hid.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 1/12/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.

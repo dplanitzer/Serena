@@ -10,7 +10,7 @@
 #include "JoystickDriver.h"
 #include "LightPenDriver.h"
 #include "MouseDriver.h"
-#include <System/HID.h>
+#include <sys/hid.h>
 #include <kern/assert.h>
 
 #define PORT_COUNT   2
