@@ -8,7 +8,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
-#include <System/Mutex.h>
+#include <sys/mutex.h>
 #include <System/Process.h>
 #include <System/_syscall.h>
 #include <__stddef.h>

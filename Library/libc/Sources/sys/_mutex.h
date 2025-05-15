@@ -1,15 +1,15 @@
 //
-//  MutexPriv.h
-//  libsystem
+//  sys/_mutex.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 3/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_MUTEX_PRIV_H
-#define _SYS_MUTEX_PRIV_H 1
+#ifndef _SYS_PRIV_MUTEX_H
+#define _SYS_PRIV_MUTEX_H 1
 
-#include <System/Mutex.h>
+#include <sys/mutex.h>
 
 __CPP_BEGIN
 
@@ -25,4 +25,4 @@ typedef struct UMutex {
 
 __CPP_END
 
-#endif /* _SYS_MUTEX_PRIV_H */
+#endif /* _SYS_PRIV_MUTEX_H */

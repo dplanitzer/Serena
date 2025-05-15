@@ -1,6 +1,6 @@
 //
-//  Lock.h
-//  libsystem
+//  sys/mutex.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 3/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
@@ -11,7 +11,6 @@
 
 #include <System/_cmndef.h>
 #include <System/Error.h>
-#include <System/Types.h>
 
 __CPP_BEGIN
 

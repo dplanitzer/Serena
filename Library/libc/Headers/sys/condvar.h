@@ -1,19 +1,18 @@
 //
-//  ConditionVariable.h
-//  libsystem
+//  sys/condvar.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 3/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_CONDITION_VARIABLE_H
-#define _SYS_CONDITION_VARIABLE_H 1
+#ifndef _SYS_CONDVAR_H
+#define _SYS_CONDVAR_H 1
 
 #include <System/_cmndef.h>
 #include <System/Error.h>
-#include <System/Types.h>
 #include <System/TimeInterval.h>
-#include <System/Mutex.h>
+#include <sys/mutex.h>
 
 __CPP_BEGIN
 
@@ -53,4 +52,4 @@ extern errno_t cond_timedwait(cond_t* _Nonnull cv, mutex_t* _Nullable mutex, con
 
 __CPP_END
 
-#endif /* _SYS_CONDITION_VARIABLE_H */
+#endif /* _SYS_CONDVAR_H */

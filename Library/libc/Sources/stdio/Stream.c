@@ -9,7 +9,7 @@
 #include "Stream.h"
 #include <stdlib.h>
 #include <string.h>
-#include <System/Mutex.h>
+#include <sys/mutex.h>
 
 
 static FILE*    __gOpenFiles;

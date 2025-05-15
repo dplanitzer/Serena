@@ -13,15 +13,12 @@
 #include <System/ByteOrder.h>
 #include <System/Types.h>
 #include <System/Clock.h>
-#include <System/ConditionVariable.h>
 #include <System/Directory.h>
 #include <System/Error.h>
 #include <System/File.h>
 #include <System/Filesystem.h>
 #include <System/FilePermissions.h>
-#include <System/Mutex.h>
 #include <System/Process.h>
-#include <System/Semaphore.h>
 #include <System/TimeInterval.h>
 #include <System/Urt.h>
 #include <System/User.h>

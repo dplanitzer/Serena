@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <__stddef.h>
 #include <System/_math.h>
-#include <System/Mutex.h>
+#include <sys/mutex.h>
 #include <System/Process.h>
 #include "__malloc.h"
 

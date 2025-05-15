@@ -1,14 +1,15 @@
 //
-//  ConditionVariable.c
-//  libsystem
+//  sys/condvar.c
+//  libc
 //
 //  Created by Dietmar Planitzer on 3/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <System/ConditionVariable.h>
+#include <sys/condvar.h>
 #include <System/_syscall.h>
-#include "MutexPriv.h"
+#include <stddef.h>
+#include "_mutex.h"
 
 #define CV_SIGNATURE 0x53454d41
 

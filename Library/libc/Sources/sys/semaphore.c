@@ -1,12 +1,12 @@
 //
-//  Semaphore.c
-//  libsystem
+//  sys/semaphore.c
+//  libc
 //
 //  Created by Dietmar Planitzer on 3/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <System/Semaphore.h>
+#include <sys/semaphore.h>
 #include <System/_syscall.h>
 
 #define SEM_SIGNATURE 0x53454d41

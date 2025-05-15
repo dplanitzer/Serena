@@ -1,12 +1,12 @@
 //
-//  Mutex.c
-//  libsystem
+//  sys/mutex.c
+//  libc
 //
 //  Created by Dietmar Planitzer on 3/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "MutexPriv.h"
+#include "_mutex.h"
 #include <System/_syscall.h>
 
 

@@ -10,7 +10,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <System/System.h>
+#include <sys/dispatch.h>
+#include <sys/mutex.h>
+#include <System/TimeInterval.h>
 #include <System/_math.h>
 #include "Asserts.h"
 
