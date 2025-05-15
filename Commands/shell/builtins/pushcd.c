@@ -51,7 +51,7 @@ static int do_pushcd(InterpreterRef _Nonnull ip, const char* path, const char* p
     return EXIT_SUCCESS;
 
 catch:
-    print_error(proc_name, path, err);
+    print_error(proc_name, path, errno);
 
     free(buf);
     if (entry) {

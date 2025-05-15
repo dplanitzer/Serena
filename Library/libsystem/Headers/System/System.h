@@ -27,7 +27,6 @@
 #include <System/HIDKeyCodes.h>
 #include <System/IOChannel.h>
 #include <System/Mutex.h>
-#include <System/Pipe.h>
 #include <System/Process.h>
 #include <System/Semaphore.h>
 #include <System/TimeInterval.h>

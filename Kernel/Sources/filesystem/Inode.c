@@ -229,6 +229,24 @@ errno_t Inode_setInfo(InodeRef _Nonnull _Locked self, uid_t uid, gid_t gid, fmut
     return EOK;
 }
 
+errno_t Inode_setOwner(InodeRef _Nonnull _Locked self, uid_t uid, gid_t gid)
+{
+    // Can't change the metadata if the disk is read-only
+    if (Filesystem_IsReadOnly(Inode_GetFilesystem(self))) {
+        return EROFS;
+    }
+    
+    if (uid != (uid_t)-1) {
+        Inode_SetUserId(self, uid);
+    }
+    if (gid != (gid_t)-1) {
+        Inode_SetGroupId(self, gid);
+    }
+    Inode_SetModified(self, kInodeFlag_StatusChanged);
+
+    return EOK;
+}
+
 errno_t Inode_read(InodeRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EIO;
@@ -250,6 +268,7 @@ func_def(deinit, Inode)
 func_def(createChannel, Inode)
 func_def(getInfo, Inode)
 func_def(setInfo, Inode)
+func_def(setOwner, Inode)
 func_def(read, Inode)
 func_def(write, Inode)
 func_def(truncate, Inode)

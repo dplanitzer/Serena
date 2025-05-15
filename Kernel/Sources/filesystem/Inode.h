@@ -89,6 +89,11 @@ any_subclass_funcs(Inode,
     // Default Behavior: Updates the inode's file info
     errno_t (*setInfo)(void* _Nonnull _Locked self, uid_t uid, gid_t gid, fmutinfo_t* _Nonnull pInfo);
 
+    // Sets the user and group id of the inode owner.
+    // Override: Optional
+    // Default Behavior: Updates the inode's owner info
+    errno_t (*setOwner)(void* _Nonnull _Locked self, uid_t uid, gid_t gid);
+
 
     //
     // File Specific Operations
@@ -290,6 +295,9 @@ invoke_n(getInfo, Inode, __self, __pOutInfo)
 
 #define Inode_SetInfo(__self, __uid, __gid, __pInfo) \
 invoke_n(setInfo, Inode, __self, __uid, __gid, __pInfo)
+
+#define Inode_SetOwner(__self, __uid, __gid) \
+invoke_n(setOwner, Inode, __self, __uid, __gid)
 
 
 #define Inode_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \

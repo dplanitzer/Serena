@@ -24,8 +24,8 @@ extern _Noreturn abort(void);
 #define EXIT_FAILURE 1
 
 extern int atexit(void (*func)(void));
-extern _Noreturn exit(int exit_code);
-extern _Noreturn _Exit(int exit_code);
+extern _Noreturn exit(int status);
+extern _Noreturn _Exit(int status);
 
 
 extern int atoi(const char *str);

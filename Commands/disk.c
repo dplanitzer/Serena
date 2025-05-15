@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <time.h>
 #include <System/Directory.h>
 #include <System/Disk.h>
@@ -116,7 +117,7 @@ static errno_t wipe_disk(int ioc, const diskinfo_t* _Nonnull info)
     }
 
     fputs("\033[?25l", stdout);
-    seek(ioc, 0ll, NULL, SEEK_SET);
+    lseek(ioc, 0ll, SEEK_SET);
     while (sct < info->sectorCount && err == EOK) {
         printf("%u\n\033[1A", (unsigned)clusterCount);
         
@@ -150,7 +151,7 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, 
     try(fiocall(ioc, kDiskCommand_GetInfo, &info)); 
     if (!bQuick) {
         try(wipe_disk(ioc, &info));
-        seek(ioc, 0ll, NULL, SEEK_SET);
+        lseek(ioc, 0ll, SEEK_SET);
     }
     try(sefs_format((intptr_t)fp, block_write, info.sectorCount, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label));
     puts("ok");
@@ -179,7 +180,9 @@ static errno_t get_fsid(const char* _Nonnull path, fsid_t* _Nonnull fsid)
             return ENOMEM;
         }
 
-        err = getcwd(p, PATH_MAX);
+        if (getcwd(p, PATH_MAX) != 0) {
+            err = errno;
+        }
     }
 
 

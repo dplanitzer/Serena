@@ -18,8 +18,13 @@
 #include <System/_null.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/_seek.h>
 
 __CPP_BEGIN
+
+//
+// This header file is the kernel version of user space's stdlib.h + unistd.h
+//
 
 #define ONE_SECOND_IN_NANOS (1000l * 1000l * 1000l)
 #define kQuantums_Infinity      INT32_MAX

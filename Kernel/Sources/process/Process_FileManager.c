@@ -196,6 +196,17 @@ errno_t Process_SetFileInfo_ioc(ProcessRef _Nonnull self, int ioc, fmutinfo_t* _
     return err;
 }
 
+errno_t Process_SetFileOwner(ProcessRef _Nonnull self, const char* _Nonnull path, uid_t uid, gid_t gid)
+{
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    err = FileManager_SetFileOwner(&self->fm, path, uid, gid);
+    Lock_Unlock(&self->lock);
+    
+    return err;
+}
+
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
 errno_t Process_TruncateFile(ProcessRef _Nonnull self, const char* _Nonnull path, off_t length)

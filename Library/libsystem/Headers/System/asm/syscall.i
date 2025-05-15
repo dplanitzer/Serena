@@ -22,7 +22,7 @@ SC_getpargs                 equ 9
 SC_open                     equ 10
 SC_close                    equ 11
 SC_waitpid                  equ 12
-SC_seek                     equ 13
+SC_lseek                    equ 13
 SC_getcwd                   equ 14
 SC_chdir                    equ 15
 SC_getuid                   equ 16
@@ -41,7 +41,7 @@ SC_ioctl                    equ 28
 SC_truncate                 equ 29
 SC_ftruncate                equ 30
 SC_mkfile                   equ 31
-SC_mkpipe                   equ 32
+SC_pipe                     equ 32
 SC_disp_timer               equ 33
 SC_disp_create              equ 34
 SC_disp_getcurrent          equ 35
@@ -66,6 +66,7 @@ SC_sync                     equ 53
 SC_coninit                  equ 54
 SC_fsgetdisk                equ 55
 SC_vcpuerrno                equ 56
+SC_chown                    equ 57
 
 
 ; System call macro.

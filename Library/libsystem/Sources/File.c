@@ -22,17 +22,6 @@ errno_t open(const char* _Nonnull path, unsigned int mode, int* _Nonnull ioc)
 }
 
 
-errno_t tell(int ioc, off_t* _Nonnull pos)
-{
-    return (errno_t)_syscall(SC_seek, ioc, (off_t)0ll, pos, (int)SEEK_CUR);
-}
-
-errno_t seek(int ioc, off_t offset, off_t* _Nullable oldpos, int whence)
-{
-    return (errno_t)_syscall(SC_seek, ioc, offset, oldpos, whence);
-}
-
-
 errno_t getfinfo(const char* _Nonnull path, finfo_t* _Nonnull info)
 {
     return (errno_t)_syscall(SC_getinfo, path, info);

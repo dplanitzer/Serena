@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <clap.h>
 
 
@@ -21,17 +22,17 @@ static CLAP_DECL(params,
 );
 
 
-static errno_t do_pwd(InterpreterRef _Nonnull ip, const char* _Nonnull proc_name)
+static int do_pwd(InterpreterRef _Nonnull ip, const char* _Nonnull proc_name)
 {
     decl_try_err();
     char* buf = malloc(PATH_MAX);
 
     if (buf) {
-        err = getcwd(buf, PATH_MAX);
-        if (err == EOK) {
+        if (getcwd(buf, PATH_MAX) == 0) {
             err = OpStack_PushCString(ip->opStack, buf);
         }
         else {
+            err = errno;
             print_error(proc_name, NULL, err);
         }
 
@@ -47,7 +48,7 @@ int cmd_pwd(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
     int exitCode;
 
     if (!clap_should_exit(status)) {
-        exitCode = exit_code(do_pwd(ip, argv[0]));
+        exitCode = do_pwd(ip, argv[0]);
     }
     else {
         exitCode = clap_exit_code(status);

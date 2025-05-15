@@ -267,6 +267,30 @@ errno_t FileManager_SetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _
     return err;
 }
 
+// Modifies information about the file at the given path.
+errno_t FileManager_SetFileOwner(FileManagerRef _Nonnull self, const char* _Nonnull path, uid_t uid, gid_t gid)
+{
+    decl_try_err();
+    ResolvedPath r;
+
+    if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r)) == EOK) {
+        // Only the owner of a file may change its metadata.
+        
+        Inode_Lock(r.inode);
+        if (uid == Inode_GetUserId(self) || SecurityManager_IsSuperuser(gSecurityManager, uid)) {
+            err = Inode_SetOwner(r.inode, self->ruid, self->rgid);
+        }
+        else {
+            err = EPERM;
+        }
+        Inode_Unlock(r.inode);
+    }
+
+    ResolvedPath_Deinit(&r);
+    
+    return err;
+}
+
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
 errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, off_t length)

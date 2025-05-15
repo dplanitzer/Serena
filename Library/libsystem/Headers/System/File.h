@@ -86,12 +86,6 @@ typedef struct fmutinfo {
 #define O_NONBLOCK  0x0020
 
 
-// Specifies how a seek() call should apply 'offset' to the current file
-// position.
-#define SEEK_SET    0   /* Set the file position to 'offset' */
-#define SEEK_CUR    1   /* Add 'offset' to the current file position */
-#define SEEK_END    2   /* Add 'offset' to the end of the file */
-
 
 // Creates an empty file at the filesystem location and with the name specified
 // by 'path'. Creating a file is non-exclusive by default which means that the
@@ -115,19 +109,6 @@ extern errno_t mkfile(const char* _Nonnull path, unsigned int mode, FilePermissi
 // this case.
 // @Concurrency: Safe
 extern errno_t open(const char* _Nonnull path, unsigned int mode, int* _Nonnull ioc);
-
-
-// Returns the current file position. This is the position at which the next
-// read or write operation will start.
-// @Concurrency: Safe
-extern errno_t tell(int ioc, off_t* _Nonnull pos);
-
-// Sets the current file position. Note that the file position may be set to a
-// value past the current file size. Doing this implicitly expands the size of
-// the file to encompass the new file position. The byte range between the old
-// end of file and the new end of file is automatically filled with zero bytes.
-// @Concurrency: Safe
-extern errno_t seek(int ioc, off_t offset, off_t* _Nullable oldpos, int whence);
 
 
 // Truncates the file at the filesystem location 'path'. If the new length is

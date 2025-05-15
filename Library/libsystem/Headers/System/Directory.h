@@ -38,9 +38,8 @@ extern errno_t opendir(const char* _Nonnull path, int* _Nonnull ioc);
 // Reads one or more directory entries from the directory identified by 'ioc'.
 // Returns the number of bytes actually read and returns 0 once all directory
 // entries have been read.
-// You can get the current directory entry position by calling tell()
-// and you can reestablish a previously saved directory entry position by calling
-// seek() with the result of a previous tell() call.
+// You can rewind to the beginning of the directory listing by calling
+// rewinddir().
 // @Concurrency: Safe
 extern errno_t readdir(int ioc, dirent_t* _Nonnull entries, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead);
 

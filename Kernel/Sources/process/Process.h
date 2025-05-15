@@ -227,6 +227,8 @@ extern errno_t Process_SetFileInfo(ProcessRef _Nonnull self, const char* _Nonnul
 // Same as above but with respect to the given I/O channel.
 extern errno_t Process_SetFileInfo_ioc(ProcessRef _Nonnull self, int fd, fmutinfo_t* _Nonnull pInfo);
 
+extern errno_t Process_SetFileOwner(ProcessRef _Nonnull self, const char* _Nonnull path, uid_t uid, gid_t gid);
+
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
 extern errno_t Process_TruncateFile(ProcessRef _Nonnull self, const char* _Nonnull pPath, off_t length);

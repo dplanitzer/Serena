@@ -102,6 +102,8 @@ extern errno_t FileManager_SetFileInfo(FileManagerRef _Nonnull self, const char*
 // Same as above but with respect to the given I/O channel.
 extern errno_t FileManager_SetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, fmutinfo_t* _Nonnull info);
 
+extern errno_t FileManager_SetFileOwner(FileManagerRef _Nonnull self, const char* _Nonnull path, uid_t uid, gid_t gid);
+
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
 extern errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, off_t length);

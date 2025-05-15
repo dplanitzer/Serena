@@ -11,6 +11,9 @@
 
 #include <inttypes.h>
 #include <sys/types.h>
+#include <sys/_seek.h>
+#include <System/_noreturn.h>
+#include <System/Error.h>
 
 __CPP_BEGIN
 
@@ -27,6 +30,71 @@ __CPP_BEGIN
 extern int access(const char* _Nonnull path, int mode);
 
 extern int chdir(const char* _Nonnull path);
+extern int getcwd(char* _Nonnull buffer, size_t bufferSize);
+
+extern int chown(const char* _Nonnull path, uid_t uid, gid_t gid);
+
+// Closes the given I/O channel. All still pending data is written to the
+// underlying device and then all resources allocated to the I/O channel are
+// freed. If this function encounters an error while flushing pending data to
+// the underlying device, then this error is recorded and returned by this
+// function. However, note that the error does not stop this function from
+// closing the channel. The I/O channel is guaranteed to be closed once this
+// function returns. The error returned here is in this sense purely advisory.
+// @Concurrency: Safe
+extern int close(int fd);
+
+extern _Noreturn _exit(int status);
+
+extern uid_t getuid(void);
+extern gid_t getgid(void);
+
+extern pid_t getpid(void);
+extern pid_t getppid(void);
+
+
+// Sets the current file position. Note that the file position may be set to a
+// value past the current file size. Doing this implicitly expands the size of
+// the file to encompass the new file position. The byte range between the old
+// end of file and the new end of file is automatically filled with zero bytes.
+// @Concurrency: Safe
+extern off_t lseek(int fd, off_t offset, int whence);
+
+
+#define PIPE_RD 0
+#define PIPE_WR 1
+
+// Creates an anonymous pipe and returns a read and write I/O channel to the pipe.
+// Data which is written to the pipe using the write I/O channel can be read using
+// the read I/O channel. The data is made available in first-in-first-out order.
+// Note that both I/O channels must be closed to free all pipe resources.
+// The write channel is returned in fds[1] and the read channel in fds[0].
+extern int pipe(int fds[2]);
+
+
+// Reads up to 'nBytesToRead' bytes from the I/O channel 'ioc' and writes them
+// to the buffer 'buffer'. The buffer must be big enough to hold 'nBytesToRead'
+// bytes. The number of bytes actually read is returned in 'nOutBytesRead'.
+// If at least one byte could be read successfully then  'nOutBytesRead' is set
+// to the number of bytes read. If no bytes are available for reading because EOF
+// is encountered then 'nOutBytesRead' is set to 0 and EOK is returned as the
+// function status. If an error is encountered before at least one byte could be
+// successfully read then this function returns 0 in 'nOutBytesRead' and a
+// suitable error code. If however at least one byte could be successfully read
+// before an error is encountered then the successfully read bytes and EOK is
+// returned.
+// @Concurrency: Safe
+extern errno_t read(int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+
+// Writes up to 'nBytesToWrite' bytes to the I/O channel 'ioc'. The bytes are
+// taken from the buffer 'buffer' which must be big enough to hold 'nBytesToWrite'
+// bytes. The number of bytes actually written is returned in 'nOutBytesWritten'.
+// This function returns EOK and the number of successfully written bytes if it
+// is able to write at least one byte successfully before it encounters an error.
+// It however returns a suitable error code and 0 in 'nOutBytesWritten' if it
+// encounters an error before it is able to write at least one byte. 
+// @Concurrency: Safe
+extern errno_t write(int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
 __CPP_END
 

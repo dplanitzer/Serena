@@ -7,6 +7,7 @@
 //
 
 #include <stdio.h>
+#include <unistd.h>
 #include <System/File.h>
 
 extern char *__tmpnam_r(char *filename, int* pOutIoc);
@@ -15,15 +16,15 @@ extern char *__tmpnam_r(char *filename, int* pOutIoc);
 FILE *tmpfile(void)
 {
     char path[L_tmpnam];
-    int ioc;
+    int fd;
 
-    if (__tmpnam_r(path, &ioc) == NULL) {
+    if (__tmpnam_r(path, &fd) == NULL) {
         return NULL;
     }
 
-    FILE* fp = fdopen(ioc, "wb+");
+    FILE* fp = fdopen(fd, "wb+");
     if (fp == NULL) {
-        close(ioc);
+        close(fd);
         return NULL;
     }
 

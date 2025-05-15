@@ -7,8 +7,8 @@
 //
 
 #include <System/Directory.h>
-#include <System/File.h>
 #include <System/_syscall.h>
+#include <unistd.h>
 
 
 errno_t mkdir(const char* _Nonnull path, FilePermissions mode)
@@ -28,5 +28,5 @@ errno_t readdir(int ioc, dirent_t* _Nonnull entries, size_t nBytesToRead, ssize_
 
 errno_t rewinddir(int ioc)
 {
-    return (errno_t)_syscall(SC_seek, ioc, (off_t)0ll, NULL, SEEK_SET);
+    return (errno_t)_syscall(SC_lseek, ioc, (off_t)0ll, NULL, SEEK_SET);
 }

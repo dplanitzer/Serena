@@ -18,6 +18,11 @@
 
 __CPP_BEGIN
 
+#define SEEK_SET    0   /* Set the file position to 'offset' */
+#define SEEK_CUR    1   /* Add 'offset' to the current file position */
+#define SEEK_END    2   /* Add 'offset' to the end of the file */
+
+
 #define ONE_SECOND_IN_NANOS (1000l * 1000l * 1000l)
 #define kQuantums_Infinity      INT32_MAX
 #define kQuantums_MinusInfinity INT32_MIN

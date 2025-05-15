@@ -48,7 +48,17 @@ int atexit(void (*func)(void))
     return r;
 }
 
-_Noreturn exit(int exit_code)
+_Noreturn _exit(int status)
+{
+    _syscall(SC_exit, status);
+}
+
+_Noreturn _Exit(int status)
+{
+    _exit(status);
+}
+
+_Noreturn exit(int status)
 {
     // Disable the registration of any new atexit handlers.
     mutex_lock(&__gAtExitLock);
@@ -62,10 +72,5 @@ _Noreturn exit(int exit_code)
     }
 
 
-    _Exit(exit_code);
-}
-
-_Noreturn _Exit(int exit_code)
-{
-    _syscall(SC_exit, exit_code);
+    _exit(status);
 }

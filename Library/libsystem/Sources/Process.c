@@ -15,11 +15,6 @@ _Noreturn os_exit(int exit_code)
     _syscall(SC_exit, exit_code);
 }
 
-errno_t getcwd(char* _Nonnull buffer, size_t bufferSize)
-{
-    return _syscall(SC_getcwd, buffer, bufferSize);
-}
-
 
 FilePermissions getumask(void)
 {
@@ -31,25 +26,6 @@ void setumask(FilePermissions mask)
     _syscall(SC_setumask, mask);
 }
 
-pid_t getpid(void)
-{
-    return _syscall(SC_getpid);
-}
-
-pid_t getppid(void)
-{
-    return _syscall(SC_getppid);
-}
-
-uid_t getuid(void)
-{
-    return _syscall(SC_getuid);
-}
-
-gid_t getgid(void)
-{
-    return _syscall(SC_getgid);
-}
 
 errno_t os_spawn(const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nullable options, pid_t* _Nullable rpid)
 {

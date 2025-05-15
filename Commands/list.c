@@ -14,6 +14,7 @@
 #include <string.h>
 #define _POSIX_SOURCE
 #include <time.h>
+#include <unistd.h>
 #include <System/Error.h>
 #include <System/Directory.h>
 #include <System/File.h>

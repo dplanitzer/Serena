@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <System/System.h>
 
 
@@ -25,12 +26,20 @@ static errno_t __ioc_write(__IOChannel_FILE_Vars* _Nonnull self, const void* pBy
 
 static errno_t __ioc_seek(__IOChannel_FILE_Vars* _Nonnull self, long long offset, long long *pOutOldOffset, int whence)
 {
-    return seek(self->ioc, offset, pOutOldOffset, whence);
+    const off_t r = lseek(self->ioc, offset, whence);
+
+    if (r >= 0ll) {
+        *pOutOldOffset = r;
+        return EOK;
+    } else {
+        *pOutOldOffset = 0ll;
+        return errno;
+    }
 }
 
 static errno_t __ioc_close(__IOChannel_FILE_Vars* _Nonnull self)
 {
-    return close(self->ioc);
+    return (close(self->ioc) == 0) ? 0 : errno;
 }
 
 static const FILE_Callbacks __FILE_ioc_callbacks = {

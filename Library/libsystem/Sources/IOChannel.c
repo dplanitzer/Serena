@@ -11,21 +11,6 @@
 #include <System/_varargs.h>
 
 
-errno_t read(int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    return (errno_t)_syscall(SC_read, fd, buffer, nBytesToRead, nOutBytesRead);
-}
-
-errno_t write(int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
-{
-    return (errno_t)_syscall(SC_write, fd, buffer, nBytesToWrite, nOutBytesWritten);
-}
-
-errno_t close(int fd)
-{
-    return (errno_t)_syscall(SC_close, fd);
-}
-
 
 IOChannelType fgettype(int fd)
 {

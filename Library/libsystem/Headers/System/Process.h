@@ -102,19 +102,8 @@ typedef struct procinfo {
 extern _Noreturn os_exit(int exit_code);
 
 
-extern errno_t getcwd(char* _Nonnull buffer, size_t bufferSize);
-
-
 extern FilePermissions getumask(void);
 extern void setumask(FilePermissions mask);
-
-
-extern pid_t getpid(void);
-extern pid_t getppid(void);
-
-
-extern uid_t getuid(void);
-extern gid_t getgid(void);
 
 
 extern errno_t os_spawn(const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull options, pid_t* _Nullable rpid);
