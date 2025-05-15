@@ -11,7 +11,6 @@
 #include "Utilities.h"
 #include <stdlib.h>
 #include <clap.h>
-#include <System/IOChannel.h>
 
 
 static const char* prompt = "";

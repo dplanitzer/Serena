@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <fcntl.h>
 #include <System/Error.h>
 #include <System/File.h>
 #include <System/FilePermissions.h>
@@ -47,7 +47,7 @@ static errno_t _copy_file(const char* _Nonnull srcPath, const char* _Nonnull dst
     try(fgetfinfo(sfd, &finf));
     perms = finf.permissions;
     FilePermissions_Add(perms, kFilePermissionsClass_User, kFilePermission_Write);
-    try(mkfile(dstPath, O_WRONLY|O_TRUNC, perms, &dfd));
+    try(creat(dstPath, O_WRONLY|O_TRUNC, perms, &dfd));
 
     while (err == EOK) {
         err = read(sfd, buf, bufSize, &nBytesRead);

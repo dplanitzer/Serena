@@ -9,7 +9,9 @@
 #ifndef _SYS_ZORRO_H
 #define _SYS_ZORRO_H 1
 
-#include <System/IOChannel.h>
+#include <System/_cmndef.h>
+#include <stdint.h>
+#include <stdio.h>
 
 __CPP_BEGIN
 

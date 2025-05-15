@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <fcntl.h>
 #include <time.h>
 #include <System/Directory.h>
 #include <System/Disk.h>

@@ -1,19 +1,22 @@
 //
-//  IOChannel.h
-//  libsystem
+//  sys/_fcntl.h
+//  libc
 //
-//  Created by Dietmar Planitzer on 2/11/24.
-//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 5/14/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_IOCHANNEL_H
-#define _SYS_IOCHANNEL_H 1
+#ifndef _SYS_PRIV_FCNTL_H
+#define _SYS_PRIV_FCNTL_H 1
 
-#include <System/_cmndef.h>
-#include <System/Error.h>
-#include <System/Types.h>
+#define O_RDONLY    0x0001
+#define O_WRONLY    0x0002
+#define O_RDWR      (O_RDONLY | O_WRONLY)
+#define O_APPEND    0x0004
+#define O_EXCL      0x0008
+#define O_TRUNC     0x0010
+#define O_NONBLOCK  0x0020
 
-__CPP_BEGIN
 
 #define IOResourceCommand(__cmd) (__cmd)
 #define IOChannelCommand(__cmd) -(__cmd)
@@ -45,25 +48,4 @@ typedef enum IOChannelType {
 // errno_t set_mode(int ioc, int setOrClear, unsigned int mode)
 #define kIOChannelCommand_SetMode   IOChannelCommand(3)
 
-
-
-
-
-// Returns the type of the I/O channel. See the IOChannelType enumeration.
-// @Concurrency: Safe
-extern IOChannelType fgettype(int ioc);
-
-// Returns the mode with which the I/O channel was originally opened. The exact
-// meaning of mode depends on the I/O channel type. Ie see open() for the
-// file specific modes.
-// @Concurrency: Safe
-extern unsigned int fgetmode(int ioc);
-
-
-// Invokes a I/O channel specific method on the I/O channel 'ioc'.
-// @Concurrency: Safe
-extern errno_t fiocall(int ioc, int cmd, ...);
-
-__CPP_END
-
-#endif /* _SYS_IOCHANNEL_H */
+#endif /* _SYS_PRIV_FCNTL_H */

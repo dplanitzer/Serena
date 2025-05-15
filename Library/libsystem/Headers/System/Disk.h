@@ -65,10 +65,6 @@ typedef struct diskgeom {
 // sensedisk(void)
 #define kDiskCommand_SenseDisk  IOResourceCommand(kDriverCommand_SubclassBase + 3)
 
-
-// Synchronously writes all dirty disk blocks back to disk.
-extern void sync(void);
-
 __CPP_END
 
 #endif /* _SYS_DISK_H */

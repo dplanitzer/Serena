@@ -9,7 +9,7 @@
 #ifndef _SYS_DRIVER_H
 #define _SYS_DRIVER_H 1
 
-#include <System/IOChannel.h>
+#include <System/_cmndef.h>
 
 __CPP_BEGIN
 

@@ -548,6 +548,13 @@ int main(int argc, char* argv[])
     gArgv_Zero = argv[0];
     clap_parse(0, params, argc, argv);
 
+#if 0
+    for (int i = 0; i < argc; i++) {
+        printf("%s ", argv[i]);
+    }
+    printf("\n");
+#endif
+
     init();
 
     if (!strcmp(cmd_id, "create")) {

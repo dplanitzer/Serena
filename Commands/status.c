@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <fcntl.h>
 #include <System/Directory.h>
 #include <System/Error.h>
 #include <System/File.h>

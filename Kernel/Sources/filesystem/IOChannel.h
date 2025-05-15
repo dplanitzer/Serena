@@ -12,7 +12,7 @@
 #include <kobj/Any.h>
 #include <dispatcher/Lock.h>
 #include <System/File.h>
-#include <System/IOChannel.h>
+#include <kern/kernlib.h>
 
 
 // I/O channel ownership and operations tracking:

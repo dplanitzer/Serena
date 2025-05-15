@@ -15,7 +15,6 @@
 #include <System/Types.h>
 #include <System/Urt.h>
 #include <System/DispatchQueue.h>
-#include <System/IOChannel.h>
 
 __CPP_BEGIN
 

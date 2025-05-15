@@ -18,7 +18,8 @@
 #include <System/_null.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <sys/_seek.h>
+#include <sys/_fcntl.h>
+#include <sys/_unistd.h>
 
 __CPP_BEGIN
 

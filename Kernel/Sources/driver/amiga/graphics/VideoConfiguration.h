@@ -9,6 +9,8 @@
 #ifndef VideoConfiguration_h
 #define VideoConfiguration_h
 
+#include <kern/errno.h>
+#include <kern/kernlib.h>
 #include <System/Framebuffer.h>
 
 

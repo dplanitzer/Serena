@@ -8,7 +8,7 @@
 
 #include "Stream.h"
 #include <stdlib.h>
-#include <unistd.h>
+#include <fcntl.h>
 
 
 static __IOChannel_FILE _StdinObj;

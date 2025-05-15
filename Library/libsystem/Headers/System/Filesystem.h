@@ -12,7 +12,6 @@
 #include <System/_cmndef.h>
 #include <System/Error.h>
 #include <System/Types.h>
-#include <System/IOChannel.h>
 
 __CPP_BEGIN
 

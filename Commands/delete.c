@@ -11,8 +11,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <System/Error.h>
-#include <System/File.h>
 
 
 static clap_string_array_t paths = {NULL, 0};
@@ -28,20 +26,17 @@ CLAP_DECL(params,
 
 int main(int argc, char* argv[])
 {
-    decl_try_err();
-
     clap_parse(0, params, argc, argv);
 
     
     for (size_t i = 0; i < paths.count; i++) {
         const char* path = paths.strings[i];
 
-        err = unlink(path);
-        if (err != EOK) {
-            clap_error(argv[0], "%s: %s", path, strerror(err));
-            break;
+        if (remove(path) != 0) {
+            clap_error(argv[0], "%s: %s", path, strerror(errno));
+            return EXIT_FAILURE;
         }
     }
 
-    return (err == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
+    return EXIT_SUCCESS;
 }

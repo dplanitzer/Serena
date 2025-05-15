@@ -1,15 +1,14 @@
 //
-//  IOChannel.c
-//  libsystem
+//  iochannel.c
+//  libc
 //
-//  Created by Dietmar Planitzer on 2/11/24.
-//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 5/14/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <System/IOChannel.h>
+#include <fcntl.h>
 #include <System/_syscall.h>
 #include <System/_varargs.h>
-
 
 
 IOChannelType fgettype(int fd)

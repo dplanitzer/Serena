@@ -10,7 +10,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <fcntl.h>
 #include <System/System.h>
 
 
@@ -101,7 +101,7 @@ errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose
 
     // Open/create the file
     if ((sm & __kStreamMode_Create) == __kStreamMode_Create) {
-        try(mkfile(filename, options, 0666, &ioc));
+        try(creat(filename, options, 0666, &ioc));
     }
     else {
         try(open(filename, options, &ioc));

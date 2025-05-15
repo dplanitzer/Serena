@@ -11,7 +11,7 @@
 
 #include <inttypes.h>
 #include <sys/types.h>
-#include <sys/_seek.h>
+#include <sys/_unistd.h>
 #include <System/_noreturn.h>
 #include <System/Error.h>
 
@@ -51,6 +51,10 @@ extern gid_t getgid(void);
 
 extern pid_t getpid(void);
 extern pid_t getppid(void);
+
+
+// Returns 1 if the I/O channel is connected to a terminal and 0 otherwise.
+extern int isatty(int fd);
 
 
 // Sets the current file position. Note that the file position may be set to a
@@ -94,7 +98,29 @@ extern errno_t read(int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t*
 // It however returns a suitable error code and 0 in 'nOutBytesWritten' if it
 // encounters an error before it is able to write at least one byte. 
 // @Concurrency: Safe
-extern errno_t write(int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+extern errno_t write(int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+
+
+// Truncates the file at the filesystem location 'path'. If the new length is
+// greater than the size of the existing file, then the file is expanded and the
+// newly added data range is zero-filled. If the new length is less than the
+// size of the existing file, then the excess data is removed and the size of
+// the file is set to the new length.
+// @Concurrency: Safe
+extern int truncate(const char* _Nonnull path, off_t length);
+
+// Similar to truncate() but operates on the open file identified by 'ioc'.
+// @Concurrency: Safe
+extern int ftruncate(int fd, off_t length);
+
+// Deletes the file or (empty) directory located at the filesystem location 'path'.
+// Note that this function deletes empty directories only.
+// @Concurrency: Safe
+extern int unlink(const char* _Nonnull path);
+
+
+// Synchronously writes all dirty disk blocks back to disk.
+extern void sync(void);
 
 __CPP_END
 

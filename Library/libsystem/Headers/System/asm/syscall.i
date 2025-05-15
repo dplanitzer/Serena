@@ -40,7 +40,7 @@ SC_rename                   equ 27
 SC_ioctl                    equ 28
 SC_truncate                 equ 29
 SC_ftruncate                equ 30
-SC_mkfile                   equ 31
+SC_creat                    equ 31
 SC_pipe                     equ 32
 SC_disp_timer               equ 33
 SC_disp_create              equ 34

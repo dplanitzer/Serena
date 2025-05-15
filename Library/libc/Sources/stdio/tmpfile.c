@@ -8,7 +8,6 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <System/File.h>
 
 extern char *__tmpnam_r(char *filename, int* pOutIoc);
 
