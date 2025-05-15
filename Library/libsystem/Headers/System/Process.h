@@ -13,7 +13,7 @@
 #include <System/_noreturn.h>
 #include <System/Error.h>
 #include <System/File.h>
-#include <System/Urt.h>
+#include <sys/_kei.h>
 #include <sys/dispatch.h>
 #include <sys/types.h>
 
@@ -33,7 +33,7 @@ typedef struct pargs {
     char* _Nullable * _Nonnull  argv;           // Pointer to the base of the command line arguments table. Last entry is NULL
     char* _Nullable * _Nonnull  envp;           // Pointer to the base of the environment table. Last entry holds NULL.
     void* _Nonnull              image_base;     // Pointer to the base of the executable header
-    UrtFunc* _Nonnull           urt_funcs;      // Pointer to the URT function table
+    kei_func_t* _Nonnull           urt_funcs;      // Pointer to the URT function table
 } pargs_t;
 
 

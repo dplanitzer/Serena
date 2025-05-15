@@ -17,7 +17,6 @@
 #include <System/Filesystem.h>
 #include <System/FilePermissions.h>
 #include <System/Process.h>
-#include <System/Urt.h>
 
 __CPP_BEGIN
 

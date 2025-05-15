@@ -9,9 +9,9 @@
 #ifndef krt_h
 #define krt_h
 
-#include <System/Urt.h>
+#include <sys/_kei.h>
 
-extern UrtFunc gUrtFuncTable[];
+extern kei_func_t gKeiTable[];
 
 extern void krt_init(void);
 

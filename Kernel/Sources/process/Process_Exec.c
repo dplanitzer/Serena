@@ -90,7 +90,7 @@ static errno_t copy_in_args(ProcessRef _Nonnull self, const char* argv[], const 
     pProcArgs->argv = pProcArgv;
     pProcArgs->envp = pProcEnv;
     pProcArgs->image_base = NULL;
-    pProcArgs->urt_funcs = gUrtFuncTable;
+    pProcArgs->urt_funcs = gKeiTable;
 
 catch:
     return err;

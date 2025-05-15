@@ -12,15 +12,15 @@
 
 void *memset(void *dst, int c, size_t count)
 {
-    return ((void* (*)(void*, int, size_t))__gProcessArguments->urt_funcs[kUrtFunc_memset])(dst, c, count);
+    return ((void* (*)(void*, int, size_t))__gProcessArguments->urt_funcs[KEI_memset])(dst, c, count);
 }
 
 void *memcpy(void * _Restrict dst, const void * _Restrict src, size_t count)
 {
-    return ((void* (*)(void* _Restrict, const void* _Restrict, size_t))__gProcessArguments->urt_funcs[kUrtFunc_memcpy])(dst, src, count);
+    return ((void* (*)(void* _Restrict, const void* _Restrict, size_t))__gProcessArguments->urt_funcs[KEI_memcpy])(dst, src, count);
 }
 
 void *memmove(void * _Restrict dst, const void * _Restrict src, size_t count)
 {
-    return ((void* (*)(void* _Restrict, const void* _Restrict, size_t))__gProcessArguments->urt_funcs[kUrtFunc_memmove])(dst, src, count);
+    return ((void* (*)(void* _Restrict, const void* _Restrict, size_t))__gProcessArguments->urt_funcs[KEI_memmove])(dst, src, count);
 }

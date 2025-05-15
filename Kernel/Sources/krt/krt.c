@@ -19,18 +19,18 @@ extern long long _mulint64_020(long long x, long long y);
 extern long long _ui32_64_mul(int x, int y);
 
 
-UrtFunc gUrtFuncTable[kUrtFunc_Count];
+kei_func_t gKeiTable[KEI_Count];
 
 void krt_init(void)
 {
-    gUrtFuncTable[kUrtFunc_asr64] = (UrtFunc)_rshsint64;
-    gUrtFuncTable[kUrtFunc_lsr64] = (UrtFunc)_rshuint64;
-    gUrtFuncTable[kUrtFunc_lsl64] = (UrtFunc)_lshint64;
-    gUrtFuncTable[kUrtFunc_divmods64_64] = (UrtFunc)_divmods64;
-    gUrtFuncTable[kUrtFunc_muls64_64] = (UrtFunc)_mulint64_020;
-    gUrtFuncTable[kUrtFunc_muls32_64] = (UrtFunc)_ui32_64_mul;
+    gKeiTable[KEI_asr64] = (kei_func_t)_rshsint64;
+    gKeiTable[KEI_lsr64] = (kei_func_t)_rshuint64;
+    gKeiTable[KEI_lsl64] = (kei_func_t)_lshint64;
+    gKeiTable[KEI_divmods64_64] = (kei_func_t)_divmods64;
+    gKeiTable[KEI_muls64_64] = (kei_func_t)_mulint64_020;
+    gKeiTable[KEI_muls32_64] = (kei_func_t)_ui32_64_mul;
 
-    gUrtFuncTable[kUrtFunc_memcpy] = (UrtFunc)memcpy;
-    gUrtFuncTable[kUrtFunc_memmove] = (UrtFunc)memmove;
-    gUrtFuncTable[kUrtFunc_memset] = (UrtFunc)memset;
+    gKeiTable[KEI_memcpy] = (kei_func_t)memcpy;
+    gKeiTable[KEI_memmove] = (kei_func_t)memmove;
+    gKeiTable[KEI_memset] = (kei_func_t)memset;
 }
