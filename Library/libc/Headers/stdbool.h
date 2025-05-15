@@ -9,6 +9,6 @@
 #ifndef _STDBOOL_H
 #define _STDBOOL_H 1
 
-#include <System/abi/_bool.h>
+#include <machine/abi/_bool.h>
 
 #endif /* _STDBOOL_H */

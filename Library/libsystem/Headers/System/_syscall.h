@@ -10,7 +10,7 @@
 #define _SYS_SYSCALL_H 1
 
 #include <System/_cmndef.h>
-#include <System/abi/_inttypes.h>
+#include <machine/abi/_inttypes.h>
 
 __CPP_BEGIN
 

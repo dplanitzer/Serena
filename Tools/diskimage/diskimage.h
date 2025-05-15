@@ -13,11 +13,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <kern/types.h>
 #include <System/Error.h>
 #include <System/FilePermissions.h>
-#include <System/Types.h>
 #include <System/User.h>
 #include "DiskImageFormat.h"
+
 
 typedef enum di_slice_type {
     di_slice_type_empty,

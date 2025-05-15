@@ -9,8 +9,6 @@
 #ifndef User_h
 #define User_h
 
-#include <System/Types.h>
-
 enum {
     kUserId_Root = 0,
 };

@@ -1,6 +1,6 @@
 //
 //  _floattypes.h
-//  libsystem
+//  libc
 //
 //  Created by Dietmar Planitzer on 2/8/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
@@ -10,7 +10,7 @@
 #define __ABI_FLOATTYPES_H 1
 
 #include <System/_cmndef.h>
-#include <System/abi/_dmdef.h>
+#include <machine/abi/_dmdef.h>
 
 
 typedef unsigned short  float16_t;

@@ -11,7 +11,7 @@
 
 #include <System/_cmndef.h>
 #include <System/_null.h>
-#include <System/abi/_size.h>
+#include <machine/abi/_size.h>
 #include <malloc.h>
 #include <stdnoreturn.h>
 

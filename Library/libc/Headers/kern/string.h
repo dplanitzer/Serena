@@ -9,8 +9,8 @@
 #ifndef _KERN_STRING_H
 #define _KERN_STRING_H 1
 
-#include <System/abi/_size.h>
-#include <System/abi/_ssize.h>
+#include <machine/abi/_size.h>
+#include <machine/abi/_ssize.h>
 #include <System/_cmndef.h>
 #include <stdbool.h>
 

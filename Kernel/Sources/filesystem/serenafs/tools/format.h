@@ -10,7 +10,13 @@
 #define sefs_format_h
 
 #include <System/Error.h>
-#include <System/Types.h>
+#include <System/File.h>
+#include <stdint.h>
+#ifdef __KERNEL__
+#include <kern/types.h>
+#else
+#include <sys/types.h>
+#endif
 
 
 typedef errno_t (*sefs_block_write_t)(intptr_t fd, const void* _Nonnull buf, blkno_t blockAddr, size_t blockSize);

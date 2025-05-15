@@ -10,7 +10,7 @@
 #include "Utilities.h"
 #include <assert.h>
 #include <string.h>
-#include <System/abi/_dmdef.h>
+#include <machine/abi/_dmdef.h>
 #include <System/_math.h>
 
 #define TUPLE_2(__1, __2) ((__2) << 8) | (__1)

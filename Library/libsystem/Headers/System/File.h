@@ -13,8 +13,13 @@
 #include <System/_syslimits.h>
 #include <System/Error.h>
 #include <System/FilePermissions.h>
-#include <System/Types.h>
+#include <stdint.h>
 #include <time.h>
+#ifdef __KERNEL__
+#include <kern/types.h>
+#else
+#include <sys/types.h>
+#endif
 
 __CPP_BEGIN
 
@@ -30,6 +35,9 @@ __CPP_BEGIN
 #define S_IFPROC    4   /* A process */
 #define S_IFLNK     5
 #define S_IFIFO     6
+
+typedef uint16_t    FilePermissions;
+typedef int8_t      FileType;
 
 
 typedef struct finfo {

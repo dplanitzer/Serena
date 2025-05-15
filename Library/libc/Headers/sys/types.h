@@ -9,9 +9,12 @@
 #ifndef _SYS_TYPES_H
 #define _SYS_TYPES_H 1
 
-#include <System/abi/_off.h>
-#include <System/abi/_size.h>
-#include <System/abi/_ssize.h>
+#include <machine/abi/_off.h>
+#include <machine/abi/_size.h>
+#include <machine/abi/_ssize.h>
+#include <machine/abi/_offlimits.h>
+#include <machine/abi/_sizelimits.h>
+#include <machine/abi/_ssizelimits.h>
 #include <System/_cmndef.h>
 #include <System/_time.h>
 

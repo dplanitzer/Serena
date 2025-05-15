@@ -10,7 +10,7 @@
 #define _SYS_BYTE_ORDER_H 1
 
 #include <System/_cmndef.h>
-#include <System/abi/_inttypes.h>
+#include <stdint.h>
 
 __CPP_BEGIN
 

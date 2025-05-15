@@ -9,8 +9,8 @@
 #ifndef _STDDEF_H
 #define _STDDEF_H 1
 
-#include <System/abi/_dmdef.h>
-#include <System/abi/_size.h>
+#include <machine/abi/_dmdef.h>
+#include <machine/abi/_size.h>
 #include <System/_cmndef.h>
 #include <System/_null.h>
 #include <System/_offsetof.h>

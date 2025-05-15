@@ -6,7 +6,7 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <System/Types.h>
+#include <stdbool.h>
 #include <System/Process.h>
 #include <System/_syscall.h>
 #include <System/_varargs.h>

@@ -1,6 +1,6 @@
 //
 //  _inttypes.h
-//  libsystem
+//  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
@@ -10,7 +10,7 @@
 #define __ABI_INTTYPES_H 1
 
 #include <System/_cmndef.h>
-#include <System/abi/_dmdef.h>
+#include <machine/abi/_dmdef.h>
 
 #ifdef __SYSTEM_SHIM__
 #include <stdint.h>

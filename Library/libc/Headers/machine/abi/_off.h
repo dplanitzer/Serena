@@ -1,6 +1,6 @@
 //
 //  _off.h
-//  libsystem
+//  libc
 //
 //  Created by Dietmar Planitzer on 2/27/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
@@ -9,7 +9,7 @@
 #ifndef __SYS_OFF_H
 #define __SYS_OFF_H 1
 
-#include <System/abi/_dmdef.h>
+#include <machine/abi/_dmdef.h>
 
 typedef __off_t off_t;
 

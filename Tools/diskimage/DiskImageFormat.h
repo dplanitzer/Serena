@@ -11,7 +11,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <System/Types.h>
 
 enum DiskImageFormatType {
     kDiskImage_Amiga_DD_Floppy,

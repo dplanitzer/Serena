@@ -9,9 +9,9 @@
 #ifndef _KERN_KERNLIB_H
 #define _KERN_KERNLIB_H 1
 
-#include <System/abi/_limits.h>
-#include <System/abi/_size.h>
-#include <System/abi/_ssize.h>
+#include <machine/abi/_limits.h>
+#include <machine/abi/_size.h>
+#include <machine/abi/_ssize.h>
 #include <System/_align.h>
 #include <System/_cmndef.h>
 #include <System/_math.h>

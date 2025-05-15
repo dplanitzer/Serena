@@ -9,15 +9,14 @@
 #ifndef _KERN_TYPES_H
 #define _KERN_TYPES_H 1
 
-#include <System/abi/_floattypes.h>
-#include <System/abi/_off.h>
-#include <System/abi/_size.h>
-#include <System/abi/_ssize.h>
+#include <machine/abi/_floattypes.h>
+#include <machine/abi/_off.h>
+#include <machine/abi/_size.h>
+#include <machine/abi/_ssize.h>
 #include <System/_noreturn.h>
 #include <System/_offsetof.h>
 #include <System/_time.h>
 #include <System/_varargs.h>
-#include <System/Types.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>

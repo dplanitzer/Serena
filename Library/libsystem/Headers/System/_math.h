@@ -9,7 +9,7 @@
 #ifndef __SYS_MATH_H
 #define __SYS_MATH_H 1
 
-#include <System/abi/_dmdef.h>
+//#include <machine/abi/_dmdef.h>
 
 #define __abs(x) (((x) < 0) ? -(x) : (x))
 #ifndef __DISKIMAGE__

@@ -1,6 +1,6 @@
 //
 //  _limits.h
-//  libsystem
+//  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
@@ -9,7 +9,7 @@
 #ifndef __ABI_LIMITS_H
 #define __ABI_LIMITS_H 1
 
-#include <System/abi/_dmdef.h>
+#include <machine/abi/_dmdef.h>
 
 #ifdef __SYSTEM_SHIM__
 #include <limits.h>

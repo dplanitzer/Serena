@@ -13,7 +13,7 @@
 #include <System/_syslimits.h>
 #include <System/Error.h>
 #include <System/FilePermissions.h>
-#include <System/Types.h>
+#include <sys/types.h>
 
 __CPP_BEGIN
 

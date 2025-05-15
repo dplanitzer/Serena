@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <System/Error.h>
-#include <System/Types.h>
+#include <sys/types.h>
 
 #if SIZE_WIDTH == 32
 #define ADDR_WIDTH  8

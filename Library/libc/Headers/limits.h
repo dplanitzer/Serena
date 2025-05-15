@@ -9,8 +9,8 @@
 #ifndef _LIMITS_H
 #define _LIMITS_H 1
 
-#include <System/abi/_dmdef.h>
-#include <System/abi/_limits.h>
+#include <machine/abi/_dmdef.h>
+#include <machine/abi/_limits.h>
 #include <stddef.h>
 
 #define SIG_ATOMIC_WIDTH    __INT_WIDTH

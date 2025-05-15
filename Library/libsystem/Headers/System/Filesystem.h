@@ -11,7 +11,8 @@
 
 #include <System/_cmndef.h>
 #include <System/Error.h>
-#include <System/Types.h>
+#include <stdint.h>
+#include <sys/types.h>
 
 __CPP_BEGIN
 
