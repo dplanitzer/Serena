@@ -16,23 +16,6 @@
 
 __CPP_BEGIN
 
-// Types of mountable objects
-#define kMount_Catalog  ".catalog"
-#define kMount_SeFS     "sefs"
-
-
-// Mountable catalogs
-#define kCatalogName_Drivers        "dev"
-#define kCatalogName_Filesystems    "fs"
-#define kCatalogName_Processes      "proc"
-
-
-enum {
-    kUnmount_Forced = 0x0001,   // Force the unmount even if there are still files open
-};
-typedef unsigned int UnmountOptions;
-
-
 // Filesystem properties
 enum {
     kFSProperty_IsCatalog = 0x0001,     // Filesystem is a kernel managed catalog
@@ -84,19 +67,6 @@ typedef struct fsinfo {
 // the cache and is not touched.
 // fssync(void)
 #define kFSCommand_Sync             IOResourceCommand(4)
-
-
-// Mounts the object 'objectName' of type 'objectType' at the directory 'atDirPath'.
-// 'params' are optional mount parameters that are passed to the filesystem to
-// mount.
-extern errno_t mount(const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params);
-
-// Unmounts the filesystem mounted at the directory 'atDirPath'.
-extern errno_t unmount(const char* _Nonnull atDirPath, UnmountOptions options);
-
-// Returns the path to the disk driver that underpins the filesystem with the
-// given id.
-extern errno_t fs_getdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize);
 
 __CPP_END
 

@@ -18,6 +18,7 @@
 #include <time.h>
 #include <System/Directory.h>
 #include <sys/disk.h>
+#include <sys/mount.h>
 #include <System/Error.h>
 #include <System/File.h>
 #include <System/Filesystem.h>
@@ -351,7 +352,9 @@ errno_t cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
         close(fd);
     }
     if (err == EOK) {
-        err = mount(kMount_SeFS, diskPath, atPath, "");
+        if (mount(kMount_SeFS, diskPath, atPath, "") != 0) {
+            err = errno;
+        }
     }
 
     return err;
@@ -367,7 +370,9 @@ errno_t cmd_unmount(const char* _Nonnull atPath, bool doForce)
         options |= kUnmount_Forced;
     }
 
-    err = unmount(atPath, options);
+    if (unmount(atPath, options) != 0) {
+        err = errno;
+    }
 
     return err;
 }

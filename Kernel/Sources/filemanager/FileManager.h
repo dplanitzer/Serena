@@ -13,6 +13,9 @@
 #include <System/File.h>
 #include <System/Filesystem.h>
 #include <kern/uid.h>
+#ifndef __DISKIMAGE__
+#include <sys/mount.h>
+#endif
 
 
 typedef struct FileManager {
