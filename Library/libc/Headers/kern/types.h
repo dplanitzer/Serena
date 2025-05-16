@@ -13,12 +13,12 @@
 #include <machine/abi/_off.h>
 #include <machine/abi/_size.h>
 #include <machine/abi/_ssize.h>
-#include <kern/_noreturn.h>
-#include <kern/_offsetof.h>
+#include <_offsetof.h>
 #include <kern/_time.h>
 #include <kern/_varargs.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdnoreturn.h>
 #include <sys/types.h>
 #include <sys/timespec.h>
 

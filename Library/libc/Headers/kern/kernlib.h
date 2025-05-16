@@ -10,13 +10,12 @@
 #define _KERN_KERNLIB_H 1
 
 #include <machine/abi/_limits.h>
-#include <machine/abi/_size.h>
 #include <machine/abi/_ssize.h>
-#include <kern/_align.h>
 #include <kern/_cmndef.h>
 #include <kern/_math.h>
-#include <kern/_null.h>
+#include <stdalign.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <sys/_fcntl.h>
 #include <sys/_unistd.h>

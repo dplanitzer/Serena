@@ -10,7 +10,7 @@
 #define _LOCALE_H 1
 
 #include <kern/_cmndef.h>
-#include <kern/_null.h>
+#include <_null.h>
 
 __CPP_BEGIN
 
