@@ -8,6 +8,7 @@
 
 #include <__stddef.h>
 #include <stdlib.h>
+#include <sys/proc.h>
 
 
 extern void main_closure(int argc, char *argv[]);

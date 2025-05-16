@@ -16,16 +16,5 @@
 #include <System/File.h>
 #include <System/Filesystem.h>
 #include <System/FilePermissions.h>
-#include <sys/proc.h>
-
-__CPP_BEGIN
-
-// Initializes the libSystem services. This function must be called by the high-level
-// language specific initialization code. Ie the C library invokes this function.
-// Application developers do not need to call this function.
-// @Concurrency: Not Safe
-extern void __sysinit(pargs_t* _Nonnull argsp);
-
-__CPP_END
 
 #endif /* _SYS_SYSTEM_H */

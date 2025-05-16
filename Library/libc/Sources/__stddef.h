@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
-#include <System/System.h>
+#include <sys/proc.h>
 
 #define CPU_PAGE_SIZE   4096
 

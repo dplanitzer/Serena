@@ -8,6 +8,7 @@
 
 #include <__stddef.h>
 #include <stdlib.h>
+#include <sys/proc.h>
 
 
 extern int main(int argc, char *argv[]);

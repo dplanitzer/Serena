@@ -19,7 +19,7 @@
 
 // Shut down the boot screen and initialize the kerne VT100 console
 // XXX for now. Don't use outside of login.
-extern errno_t __coninit(void);
+extern int __coninit(void);
 
 
 static void on_shell_termination(void* _Nullable ignore);

@@ -11,14 +11,18 @@
 #include <string.h>
 #include <__globals.h>
 #include <__stddef.h>
-#include <System/System.h>
+#include <sys/_kei.h>
+#include <sys/proc.h>
+
+extern void __kei_init(pargs_t* _Nonnull argsp);
+
 
 void __stdlibc_init(pargs_t* _Nonnull argsp)
 {
     __gProcessArguments = argsp;
     environ = argsp->envp;
 
-    __sysinit(argsp);
+    __kei_init(argsp);
     __malloc_init();
     __exit_init();
     __locale_init();

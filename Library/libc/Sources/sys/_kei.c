@@ -1,6 +1,6 @@
 //
-//  Urt.c
-//  libsystem
+//  _kei.c
+//  libc
 //
 //  Created by Dietmar Planitzer on 2/4/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
@@ -13,7 +13,7 @@
 static kei_func_t* __gKeiTable;
 
 
-void __UrtInit(pargs_t* _Nonnull argsp)
+void __kei_init(pargs_t* _Nonnull argsp)
 {
     __gKeiTable = argsp->urt_funcs;
 }
