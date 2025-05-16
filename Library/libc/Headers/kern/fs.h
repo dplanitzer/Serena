@@ -1,18 +1,21 @@
 //
-//  Filesystem.h
-//  libsystem
+//  kern/fs.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 12/15/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_FILESYSTEM_H
-#define _SYS_FILESYSTEM_H 1
+#ifndef _KERN_FS_H
+#define _KERN_FS_H 1
 
 #include <System/_cmndef.h>
-#include <System/Error.h>
 #include <stdint.h>
+#ifdef __KERNEL__
+#include <kern/types.h>
+#else
 #include <sys/types.h>
+#endif
 
 __CPP_BEGIN
 
@@ -70,4 +73,4 @@ typedef struct fsinfo {
 
 __CPP_END
 
-#endif /* _SYS_FILESYSTEM_H */
+#endif /* _KERN_FS_H */

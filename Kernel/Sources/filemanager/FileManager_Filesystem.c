@@ -13,7 +13,7 @@
 #include <Catalog.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/IOChannel.h>
-#include <System/Filesystem.h>
+#include <kern/fs.h>
 #include <kern/string.h>
 
 

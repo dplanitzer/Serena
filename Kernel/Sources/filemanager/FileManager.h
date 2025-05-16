@@ -11,7 +11,7 @@
 
 #include <kobj/Object.h>
 #include <System/File.h>
-#include <System/Filesystem.h>
+#include <kern/fs.h>
 #include <kern/uid.h>
 #ifndef __DISKIMAGE__
 #include <sys/mount.h>
