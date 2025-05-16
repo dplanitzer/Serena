@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 #include <sys/_syscall.h>
-#include <System/_varargs.h>
+#include <kern/_varargs.h>
 
 
 int remove(const char* path)

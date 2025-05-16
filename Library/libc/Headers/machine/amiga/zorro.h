@@ -9,7 +9,7 @@
 #ifndef _MAC_AMIGA_ZORRO_H
 #define _MAC_AMIGA_ZORRO_H 1
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 #include <stdint.h>
 #include <stddef.h>
 

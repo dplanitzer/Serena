@@ -7,7 +7,7 @@
 //
 
 #include <stdbool.h>
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 
 extern char *__strcpy(char * _Restrict dst, const char * _Restrict src);
 extern char *__strcat(char * _Restrict dst, const char * _Restrict src);

@@ -11,9 +11,9 @@
 
 #include <machine/abi/_dmdef.h>
 #include <machine/abi/_size.h>
-#include <System/_cmndef.h>
-#include <System/_null.h>
-#include <System/_offsetof.h>
+#include <kern/_cmndef.h>
+#include <kern/_null.h>
+#include <kern/_offsetof.h>
 
 __CPP_BEGIN
 

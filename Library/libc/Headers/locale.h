@@ -9,8 +9,8 @@
 #ifndef _LOCALE_H
 #define _LOCALE_H 1
 
-#include <System/_cmndef.h>
-#include <System/_null.h>
+#include <kern/_cmndef.h>
+#include <kern/_null.h>
 
 __CPP_BEGIN
 

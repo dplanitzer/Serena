@@ -9,7 +9,7 @@
 #ifndef _CTYPE_H
 #define _CTYPE_H 1
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 
 __CPP_BEGIN
 

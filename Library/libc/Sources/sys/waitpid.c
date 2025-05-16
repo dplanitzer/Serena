@@ -8,7 +8,7 @@
 
 #include <sys/wait.h>
 #include <sys/_syscall.h>
-#include <System/_varargs.h>
+#include <kern/_varargs.h>
 
 
 errno_t waitpid(pid_t pid, pstatus_t* _Nullable result)

@@ -9,12 +9,12 @@
 #ifndef _STDALIGN_H
 #define _STDALIGN_H 1
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 
 __CPP_BEGIN
 
 #ifndef __alignof_is_defined
-#include <System/_align.h>
+#include <kern/_align.h>
 #define __alignof_is_defined 1
 #endif
 

@@ -9,8 +9,8 @@
 #ifndef _DIRENT_H
 #define _DIRENT_H 1
 
-#include <System/_cmndef.h>
-#include <System/_syslimits.h>
+#include <kern/_cmndef.h>
+#include <kern/_syslimits.h>
 #include <sys/errno.h>
 #include <sys/types.h>
 #include <sys/_dirent.h>

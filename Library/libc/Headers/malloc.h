@@ -9,7 +9,7 @@
 #ifndef _MALLOC_H
 #define _MALLOC_H 1
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 #include <machine/abi/_size.h>
 
 __CPP_BEGIN

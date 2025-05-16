@@ -9,7 +9,7 @@
 #ifndef __ABI_INTTYPES_H
 #define __ABI_INTTYPES_H 1
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 #include <machine/abi/_dmdef.h>
 
 #ifdef __SYSTEM_SHIM__

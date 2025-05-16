@@ -9,8 +9,8 @@
 #ifndef _KERN_STAT_H
 #define _KERN_STAT_H 1
 
-#include <System/_cmndef.h>
-#include <System/_syslimits.h>
+#include <kern/_cmndef.h>
+#include <kern/_syslimits.h>
 #include <stdint.h>
 #include <time.h>
 #ifdef __KERNEL__

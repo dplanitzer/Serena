@@ -18,7 +18,6 @@ BUILD_DIR := ../build
 TOOLS_DIR := $(BUILD_DIR)/tools
 OBJS_DIR := $(BUILD_DIR)/tools-objs
 LIBS_DIR := ../Library
-LIBSYSTEM_HEADERS_DIR := $(LIBS_DIR)/libsystem/Headers
 LIBCLAP_DIR := $(LIBS_DIR)/libclap
 LIBCLAP_HEADERS_DIR := $(LIBCLAP_DIR)/Headers
 LIBCLAP_SOURCES_DIR := $(LIBCLAP_DIR)/Sources
@@ -114,7 +113,7 @@ DISKIMAGE_KLIB_C_SOURCES := $(wildcard diskimage/klib/*.c)
 ALL_DISKIMAGE_C_SOURCES := $(KERNEL_C_SOURCES) $(KOBJ_C_SOURCES) $(SERENAFS_C_SOURCES) $(SERENAFS_TOOLS_C_SOURCES) $(DISKIMAGE_C_SOURCES) $(DISKIMAGE_DISPATCHER_C_SOURCES) $(DISKIMAGE_KLIB_C_SOURCES)
 
 $(TOOLS_DIR)/diskimage: $(ALL_DISKIMAGE_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(TOOLS_DIR)
-	cl /I diskimage /I $(LIBSYSTEM_HEADERS_DIR) /I $(LIBCLAP_HEADERS_DIR) /I $(KERNEL_DIR) /D__SYSTEM_SHIM__=1 /D__KERNEL__=1 /D__DISKIMAGE__=1 $(DEBUG_FLAGS) /std:c11 /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
+	cl /I diskimage /I $(LIBCLAP_HEADERS_DIR) /I $(KERNEL_DIR) /D__SYSTEM_SHIM__=1 /D__KERNEL__=1 /D__DISKIMAGE__=1 $(DEBUG_FLAGS) /std:c11 /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
 
 
 # --------------------------------------------------------------------------

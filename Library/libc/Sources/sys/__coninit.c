@@ -7,7 +7,7 @@
 //
 
 #include <sys/_syscall.h>
-#include <System/_varargs.h>
+#include <kern/_varargs.h>
 
 
 int __coninit(void)

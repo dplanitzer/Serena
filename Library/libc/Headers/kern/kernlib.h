@@ -12,10 +12,10 @@
 #include <machine/abi/_limits.h>
 #include <machine/abi/_size.h>
 #include <machine/abi/_ssize.h>
-#include <System/_align.h>
-#include <System/_cmndef.h>
-#include <System/_math.h>
-#include <System/_null.h>
+#include <kern/_align.h>
+#include <kern/_cmndef.h>
+#include <kern/_math.h>
+#include <kern/_null.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/_fcntl.h>

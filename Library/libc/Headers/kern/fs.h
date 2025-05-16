@@ -9,7 +9,7 @@
 #ifndef _KERN_FS_H
 #define _KERN_FS_H 1
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 #include <stdint.h>
 #ifdef __KERNEL__
 #include <kern/types.h>

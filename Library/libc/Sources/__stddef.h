@@ -9,7 +9,7 @@
 #ifndef ___STDDEF_H
 #define ___STDDEF_H 1
 
-#include <System/_math.h>
+#include <kern/_math.h>
 #include <stdalign.h>
 #include <stddef.h>
 #include <assert.h>

@@ -9,7 +9,7 @@
 #ifndef _SYS_GREGORIAN_CALENDAR_H
 #define _SYS_GREGORIAN_CALENDAR_H 1
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 #include <machine/abi/_size.h>
 #include <stdbool.h>
 

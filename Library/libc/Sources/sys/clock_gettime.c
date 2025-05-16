@@ -8,7 +8,7 @@
 
 #include <time.h>
 #include <sys/_syscall.h>
-#include <System/_varargs.h>
+#include <kern/_varargs.h>
 
 
 int clock_gettime(clockid_t clock, struct timespec* _Nonnull ts)

@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <kern/_try.h>
-#include <System/_noreturn.h>
+#include <kern/_noreturn.h>
 
 // This is 'errno.h' plus try() macros
 

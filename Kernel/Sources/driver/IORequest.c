@@ -10,7 +10,7 @@
 #include <dispatcher/Lock.h>
 #include <kern/kalloc.h>
 #include <klib/List.h>
-#include <System/_math.h>
+#include <kern/_math.h>
 
 
 #define MAX_CACHED_REQUESTS 8

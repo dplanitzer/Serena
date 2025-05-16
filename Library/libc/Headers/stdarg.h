@@ -9,7 +9,7 @@
 #ifndef _STDARG_H
 #define _STDARG_H 1
 
-#include <System/_cmndef.h>
-#include <System/_varargs.h>
+#include <kern/_cmndef.h>
+#include <kern/_varargs.h>
 
 #endif /* _STDARG_H */

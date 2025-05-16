@@ -10,7 +10,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
-#include <System/_math.h>
+#include <kern/_math.h>
 
 
 #if defined(__ILP32__)

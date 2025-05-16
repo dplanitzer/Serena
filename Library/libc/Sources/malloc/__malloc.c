@@ -8,7 +8,7 @@
 
 #include <stdlib.h>
 #include <__stddef.h>
-#include <System/_math.h>
+#include <kern/_math.h>
 #include <sys/mutex.h>
 #include <sys/vm.h>
 #include "__malloc.h"

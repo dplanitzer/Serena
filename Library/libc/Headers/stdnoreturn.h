@@ -9,6 +9,6 @@
 #ifndef _STDNORETURN_H
 #define _STDNORETURN_H 1
 
-#include <System/_noreturn.h>
+#include <kern/_noreturn.h>
 
 #endif /* _STDNORETURN_H */

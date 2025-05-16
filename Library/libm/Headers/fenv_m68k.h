@@ -9,7 +9,7 @@
 #ifndef _FENV_H
 #define _FENV_H 1
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 #include <machine/abi/_dmdef.h>
 
 __CPP_BEGIN

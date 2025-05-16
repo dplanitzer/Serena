@@ -9,8 +9,8 @@
 #ifndef _KERN_ASSERT_H
 #define _KERN_ASSERT_H 1
 
-#include <System/_cmndef.h>
-#include <System/_noreturn.h>
+#include <kern/_cmndef.h>
+#include <kern/_noreturn.h>
 
 struct ExceptionStackFrame;
 

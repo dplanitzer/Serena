@@ -10,7 +10,7 @@
 #include <stddef.h>
 #include <unistd.h>
 #include <sys/_syscall.h>
-#include <System/_varargs.h>
+#include <kern/_varargs.h>
 
 
 errno_t rewinddir(int ioc)

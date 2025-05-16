@@ -13,7 +13,7 @@
 #include <sys/errno.h>
 #include <sys/types.h>
 #include <sys/_unistd.h>
-#include <System/_noreturn.h>
+#include <kern/_noreturn.h>
 
 __CPP_BEGIN
 

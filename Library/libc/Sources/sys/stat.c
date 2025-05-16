@@ -8,7 +8,7 @@
 
 #include <sys/stat.h>
 #include <sys/_syscall.h>
-#include <System/_varargs.h>
+#include <kern/_varargs.h>
 
 
 errno_t getfinfo(const char* _Nonnull path, finfo_t* _Nonnull info)

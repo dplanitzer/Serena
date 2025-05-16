@@ -9,7 +9,7 @@
 #ifndef _SYS_PRIV_DIRENT_H
 #define _SYS_PRIV_DIRENT_H 1
 
-#include <System/_syslimits.h>
+#include <kern/_syslimits.h>
 #ifdef __KERNEL__
 #include <kern/types.h>
 #else

@@ -11,7 +11,7 @@
 
 #ifdef __SERENA__
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 
 #else /* !__SERENA__ */
 

@@ -9,7 +9,7 @@
 #ifndef _SYS_PROC_H
 #define _SYS_PROC_H 1
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 #include <sys/_kei.h>
 #include <sys/stat.h>
 #include <sys/types.h>

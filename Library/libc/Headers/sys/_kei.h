@@ -9,7 +9,7 @@
 #ifndef __SYS_KEI_H
 #define __SYS_KEI_H 1
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 
 __CPP_BEGIN
 

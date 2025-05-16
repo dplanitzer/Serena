@@ -9,7 +9,7 @@
 #ifndef _SYS_VM_H
 #define _SYS_VM_H 1
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 #include <stddef.h>
 
 __CPP_BEGIN

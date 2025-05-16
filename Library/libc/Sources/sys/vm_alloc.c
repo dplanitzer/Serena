@@ -8,7 +8,7 @@
 
 #include <sys/vm.h>
 #include <sys/_syscall.h>
-#include <System/_varargs.h>
+#include <kern/_varargs.h>
 
 
 int vm_alloc(size_t nbytes, void* _Nullable * _Nonnull ptr)

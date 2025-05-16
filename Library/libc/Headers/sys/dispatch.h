@@ -9,7 +9,7 @@
 #ifndef _SYS_DISPATCH_H
 #define _SYS_DISPATCH_H 1
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 #include <stdint.h>
 #include <time.h>
 #include <sys/dispatch.h>

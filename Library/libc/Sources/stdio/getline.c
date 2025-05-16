@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <System/_math.h>
+#include <kern/_math.h>
 
 
 ssize_t getline(char **line, size_t *n, FILE *s)

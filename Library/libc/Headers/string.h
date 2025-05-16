@@ -9,8 +9,8 @@
 #ifndef _STRING_H
 #define _STRING_H 1
 
-#include <System/_cmndef.h>
-#include <System/_null.h>
+#include <kern/_cmndef.h>
+#include <kern/_null.h>
 #include <machine/abi/_size.h>
 
 __CPP_BEGIN

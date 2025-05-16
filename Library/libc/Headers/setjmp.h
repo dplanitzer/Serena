@@ -9,7 +9,7 @@
 #ifndef _SETJMP_H
 #define _SETJMP_H 1
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 
 __CPP_BEGIN
 

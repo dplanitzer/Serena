@@ -9,7 +9,7 @@
 #ifndef _SYS_SYSCALL_H
 #define _SYS_SYSCALL_H 1
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 #include <stdint.h>
 
 __CPP_BEGIN

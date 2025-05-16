@@ -9,7 +9,7 @@
 #ifndef _KERN_TRY_H
 #define _KERN_TRY_H
 
-#include <System/_cmndef.h>
+#include <kern/_cmndef.h>
 #ifndef __DISKIMAGE__
 #include <kern/_errno.h>
 #endif

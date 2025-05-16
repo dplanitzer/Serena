@@ -9,8 +9,8 @@
 #ifndef _SYS_TIMESPEC_H
 #define _SYS_TIMESPEC_H
 
-#include <System/_cmndef.h>
-#include <System/_time.h>
+#include <kern/_cmndef.h>
+#include <kern/_time.h>
 #include <stdbool.h>
 #include <stdint.h>
 
