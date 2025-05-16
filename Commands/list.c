@@ -7,6 +7,7 @@
 //
 
 #include <clap.h>
+#include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +15,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <System/Error.h>
-#include <System/Directory.h>
 #include <System/File.h>
 #include <System/_math.h>
 

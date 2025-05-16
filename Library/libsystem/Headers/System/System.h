@@ -11,7 +11,6 @@
 
 #include <System/_cmndef.h>
 #include <System/ByteOrder.h>
-#include <System/Directory.h>
 #include <System/Error.h>
 #include <System/File.h>
 #include <System/Filesystem.h>

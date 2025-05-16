@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include <System/Directory.h>
+#include <kern/dirent.h>
 
 
 #ifdef _WIN32

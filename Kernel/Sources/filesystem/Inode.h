@@ -12,7 +12,7 @@
 #include <kobj/Any.h>
 #include <klib/List.h>
 #include <dispatcher/Lock.h>
-#include <System/Directory.h>
+#include <kern/dirent.h>
 #include <System/File.h>
 
 // Inode flags
