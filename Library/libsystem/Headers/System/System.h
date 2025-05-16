@@ -11,7 +11,5 @@
 
 #include <System/_cmndef.h>
 #include <System/Error.h>
-#include <System/File.h>
-#include <System/FilePermissions.h>
 
 #endif /* _SYS_SYSTEM_H */

@@ -15,7 +15,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <System/Error.h>
-#include <System/File.h>
+#include <sys/stat.h>
 #include <System/_math.h>
 
 extern const char* __gc_abbrev_ymon(unsigned m);

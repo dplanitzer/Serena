@@ -1,17 +1,42 @@
 //
-//  FilePermissions.h
-//  libsystem
+//  kern/stat.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_FILE_PERMISSIONS_H
-#define _SYS_FILE_PERMISSIONS_H 1
+#ifndef _KERN_STAT_H
+#define _KERN_STAT_H 1
 
 #include <System/_cmndef.h>
+#include <System/_syslimits.h>
+#include <stdint.h>
+#include <time.h>
+#ifdef __KERNEL__
+#include <kern/types.h>
+#else
+#include <sys/types.h>
+#endif
 
 __CPP_BEGIN
+
+#define PATH_MAX __PATH_MAX
+#define NAME_MAX __PATH_COMPONENT_MAX
+
+
+// The Inode type.
+#define S_IFREG     0   /* A regular file that stores data */
+#define S_IFDIR     1   /* A directory which stores information about child nodes */
+#define S_IFDEV     2   /* A driver which manages a piece of hardware */
+#define S_IFFS      3   /* A mounted filesystem instance */
+#define S_IFPROC    4   /* A process */
+#define S_IFLNK     5
+#define S_IFIFO     6
+
+typedef uint16_t    FilePermissions;
+typedef int8_t      FileType;
+
 
 // File permissions. Every file and directory has 3 sets of permissions associated
 // with it (also knows as "permission classes"):
@@ -85,6 +110,45 @@ enum {
 #define FilePermissions_Set(__permissions, __class, __bits) \
  (__permissions) = ((__permissions) & ~(kFilePermissionsClass_Mask << (__class))) | (((__bits) & kFilePermissionsClass_Mask) << (__class))
 
+
+
+typedef struct finfo {
+    struct timespec     accessTime;
+    struct timespec     modificationTime;
+    struct timespec     statusChangeTime;
+    off_t               size;
+    uid_t               uid;
+    gid_t               gid;
+    FilePermissions     permissions;
+    FileType            type;
+    char                reserved;
+    nlink_t             linkCount;
+    fsid_t              fsid;
+    ino_t               inid;
+} finfo_t;
+
+
+enum ModifyFileInfo {
+    kModifyFileInfo_AccessTime = 1,
+    kModifyFileInfo_ModificationTime = 2,
+    kModifyFileInfo_UserId = 4,
+    kModifyFileInfo_GroupId = 8,
+    kModifyFileInfo_Permissions = 16,
+    kModifyFileInfo_All = kModifyFileInfo_AccessTime | kModifyFileInfo_ModificationTime
+                        | kModifyFileInfo_UserId | kModifyFileInfo_GroupId
+                        | kModifyFileInfo_Permissions
+};
+
+typedef struct fmutinfo {
+    uint32_t            modify;
+    struct timespec     accessTime;
+    struct timespec     modificationTime;
+    uid_t               uid;
+    gid_t               gid;
+    FilePermissions     permissions;
+    uint16_t            permissionsModifyMask;  // Only modify permissions whose bit is set here
+} fmutinfo_t;
+
 __CPP_END
 
-#endif /* _SYS_FILE_PERMISSIONS_H */
+#endif /* _KERN_STAT_H */

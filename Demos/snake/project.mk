@@ -23,7 +23,7 @@ $(SNAKE_OBJS_DIR):
 	$(call mkdir_if_needed,$(SNAKE_OBJS_DIR))
 
 
-$(SNAKE_FILE): $(ASTART_FILE) $(SNAKE_OBJS) $(LIBSYSTEM_FILE) $(LIBC_FILE)
+$(SNAKE_FILE): $(ASTART_FILE) $(SNAKE_OBJS) $(LIBC_FILE)
 	@echo Linking snake
 	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
 

@@ -11,8 +11,8 @@
 
 #include <System/_cmndef.h>
 #include <sys/_kei.h>
+#include <sys/stat.h>
 #include <sys/types.h>
-#include <System/File.h>
 
 __CPP_BEGIN
 

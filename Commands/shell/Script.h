@@ -9,7 +9,6 @@
 #ifndef Script_h
 #define Script_h
 
-#include <System/System.h>
 #include "Lexer.h"
 #include "ConstantsPool.h"
 #include "RunStack.h"

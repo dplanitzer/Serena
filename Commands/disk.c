@@ -20,9 +20,8 @@
 #include <sys/disk.h>
 #include <sys/mount.h>
 #include <System/Error.h>
-#include <System/File.h>
 #include <sys/fs.h>
-#include <System/FilePermissions.h>
+#include <sys/stat.h>
 #include <sys/uid.h>
 #include <filesystem/serenafs/tools/format.h>
 

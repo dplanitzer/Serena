@@ -12,9 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-#include <System/Error.h>
-#include <System/File.h>
-#include <System/FilePermissions.h>
+#include <sys/stat.h>
 
 
 const char* src_path = "";

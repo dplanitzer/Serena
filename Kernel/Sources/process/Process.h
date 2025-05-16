@@ -11,7 +11,7 @@
 
 #include <kern/types.h>
 #include <kobj/Object.h>
-#include <System/File.h>
+#include <kern/stat.h>
 #include <kern/uid.h>
 #include <sys/mount.h>
 #include <sys/proc.h>

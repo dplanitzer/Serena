@@ -139,8 +139,6 @@ WAIT_FILE := $(CMDS_OBJS_DIR)/wait
 
 LIBSYSTEM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libsystem
 LIBSYSTEM_HEADERS_DIR := $(LIBSYSTEM_PROJECT_DIR)/Headers
-LIBSYSTEM_OBJS_DIR := $(OBJS_DIR)/Library/libsystem
-LIBSYSTEM_FILE := $(LIBSYSTEM_OBJS_DIR)/libsystem.a
 
 
 LIBC_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libc
@@ -176,7 +174,6 @@ SNAKE_FILE := $(SNAKE_OBJS_DIR)/snake
 # Project includes
 #
 
-include $(LIBSYSTEM_PROJECT_DIR)/project.mk
 include $(LIBC_PROJECT_DIR)/project.mk
 include $(LIBM_PROJECT_DIR)/project.mk
 include $(LIBCLAP_PROJECT_DIR)/project.mk
@@ -264,7 +261,7 @@ clean:
 	@echo Done
 
 ifdef BOOT_FROM_ROM
-clean-rom: clean-kernel clean-kernel-tests clean-cmds clean-sh clean-libc clean-libsystem
+clean-rom: clean-kernel clean-kernel-tests clean-cmds clean-sh clean-libc
 	@echo Done
 else
 clean-rom: clean-kernel

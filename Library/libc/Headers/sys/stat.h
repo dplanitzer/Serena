@@ -9,9 +9,8 @@
 #ifndef _SYS_STAT_H
 #define _SYS_STAT_H 1
 
-#include <sys/types.h>
-#include <System/FilePermissions.h>
-#include <System/File.h>
+#include <System/Error.h>
+#include <kern/stat.h>
 
 __CPP_BEGIN
 
@@ -20,6 +19,26 @@ __CPP_BEGIN
 // directory.
 // @Concurrency: Safe
 extern int mkdir(const char* _Nonnull path, FilePermissions mode);
+
+// Returns meta-information about the file located at the filesystem location 'path'.
+// @Concurrency: Safe
+extern errno_t getfinfo(const char* _Nonnull path, finfo_t* _Nonnull info);
+
+// Updates the meta-information about the file located at the filesystem location
+// 'path'. Note that only those pieces of the meta-information are modified for
+// which the corresponding flag in 'info.modify' is set.
+// @Concurrency: Safe
+extern errno_t setfinfo(const char* _Nonnull path, fmutinfo_t* _Nonnull info);
+
+
+
+// Similar to getfinfo() but operates on the open file identified by 'ioc'.
+// @Concurrency: Safe
+extern errno_t fgetfinfo(int ioc, finfo_t* _Nonnull info);
+
+// Similar to setfinfo() but operates on the open file identified by 'ioc'.
+// @Concurrency: Safe
+extern errno_t fsetfinfo(int ioc, fmutinfo_t* _Nonnull info);
 
 __CPP_END
 

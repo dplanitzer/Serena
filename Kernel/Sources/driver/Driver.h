@@ -12,7 +12,7 @@
 #include <dispatcher/Lock.h>
 #include <klib/List.h>
 #include <kobj/Object.h>
-#include <System/FilePermissions.h>
+#include <kern/stat.h>
 #include <kern/uid.h>
 #include <Catalog.h>
 

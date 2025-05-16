@@ -15,7 +15,7 @@
 #include <sys/dispatch.h>
 #include <sys/spawn.h>
 #include <sys/wait.h>
-#include <System/File.h>
+#include <sys/stat.h>
 
 // Shut down the boot screen and initialize the kerne VT100 console
 // XXX for now. Don't use outside of login.

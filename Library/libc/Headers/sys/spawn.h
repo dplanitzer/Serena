@@ -10,8 +10,8 @@
 #define _SYS_SPAWN_H 1
 
 #include <System/_cmndef.h>
-#include <System/File.h>
 #include <sys/dispatch.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 
 __CPP_BEGIN

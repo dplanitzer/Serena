@@ -13,7 +13,7 @@
 #include <klib/List.h>
 #include <dispatcher/Lock.h>
 #include <kern/dirent.h>
-#include <System/File.h>
+#include <kern/stat.h>
 
 // Inode flags
 enum {

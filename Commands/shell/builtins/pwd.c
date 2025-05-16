@@ -13,6 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <clap.h>
+#include <sys/stat.h>
 
 
 static CLAP_DECL(params,

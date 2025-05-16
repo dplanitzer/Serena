@@ -10,7 +10,8 @@
 #define StackAllocator_h
 
 #include <stdbool.h>
-#include <System/System.h>
+#include <stddef.h>
+#include <System/Error.h>
 
 struct StackPage;
 

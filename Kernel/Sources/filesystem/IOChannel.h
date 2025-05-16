@@ -11,8 +11,8 @@
 
 #include <kobj/Any.h>
 #include <dispatcher/Lock.h>
-#include <System/File.h>
 #include <kern/kernlib.h>
+#include <kern/stat.h>
 
 
 // I/O channel ownership and operations tracking:

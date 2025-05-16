@@ -9,7 +9,6 @@
 #ifndef Lexer_h
 #define Lexer_h
 
-#include <System/System.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>

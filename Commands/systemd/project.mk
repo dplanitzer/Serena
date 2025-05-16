@@ -23,7 +23,7 @@ $(SYSTEMD_OBJS_DIR):
 	$(call mkdir_if_needed,$(SYSTEMD_OBJS_DIR))
 
 
-$(SYSTEMD_FILE): $(ASTART_FILE) $(SYSTEMD_OBJS) $(LIBSYSTEM_FILE) $(LIBC_FILE)
+$(SYSTEMD_FILE): $(ASTART_FILE) $(SYSTEMD_OBJS) $(LIBC_FILE)
 	@echo Linking systemd
 	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
 

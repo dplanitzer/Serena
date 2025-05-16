@@ -13,9 +13,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <System/Error.h>
-#include <System/File.h>
 #include <sys/proc.h>
+#include <sys/stat.h>
 
 
 CLAP_DECL(params,
