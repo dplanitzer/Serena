@@ -13,9 +13,8 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/dispatch.h>
+#include <sys/spawn.h>
 #include <sys/wait.h>
-#include <System/Process.h>
-#include <System/Error.h>
 #include <System/File.h>
 
 // Shut down the boot screen and initialize the kerne VT100 console
@@ -52,9 +51,8 @@ static char* _Nullable env_alloc(const char* _Nonnull key, const char* _Nonnull 
     return ep;
 }
 
-static errno_t start_shell(const char* _Nonnull shellPath, const char* _Nonnull homePath)
+static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull homePath)
 {
-    decl_try_err();
     spawn_opts_t opts = {0};
     const char* argv[3];
     const char* envp[5];
@@ -80,7 +78,7 @@ static errno_t start_shell(const char* _Nonnull shellPath, const char* _Nonnull 
 
 
     // Spawn the shell
-    try(os_spawn(shellPath, argv, &opts, NULL));
+    const int r = os_spawn(shellPath, argv, &opts, NULL);
 
 
     char** ep = envp;
@@ -89,8 +87,7 @@ static errno_t start_shell(const char* _Nonnull shellPath, const char* _Nonnull 
         ep++;
     }
     
-catch:
-    return err;
+    return r;
 }
 
 // Log the user in. This means:
@@ -99,7 +96,6 @@ catch:
 // - start the user's shell
 static void login_user(void)
 {
-    decl_try_err();
     const char* homePath = "/Users/admin";
     const char* shellPath = "/System/Commands/shell";
 
@@ -108,9 +104,8 @@ static void login_user(void)
     // Make the current directory the user's home directory
     chdir(homePath);
 
-    err = start_shell(shellPath, homePath);
-    if (err != EOK) {
-        printf("Error: %s.\n", strerror(err));
+    if (start_shell(shellPath, homePath) != 0) {
+        printf("Error: %s.\n", strerror(errno));
         halt_machine();
     }
 }

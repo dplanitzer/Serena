@@ -11,7 +11,7 @@
 
 #include <stdlib.h>
 #include "List.h"
-#include <System/Process.h>
+#include <sys/proc.h>
 
 
 // Private globals

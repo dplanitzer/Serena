@@ -1,41 +1,20 @@
 //
-//  Process.h
-//  libsystem
+//  sys/spawn.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_PROCESS_H
-#define _SYS_PROCESS_H 1
+#ifndef _SYS_SPAWN_H
+#define _SYS_SPAWN_H 1
 
 #include <System/_cmndef.h>
-#include <System/_noreturn.h>
-#include <System/Error.h>
 #include <System/File.h>
-#include <sys/_kei.h>
 #include <sys/dispatch.h>
 #include <sys/types.h>
 
 __CPP_BEGIN
-
-// The process arguments descriptor is stored in the process address space and
-// it contains a pointer to the base of the command line arguments and environment
-// variables tables. These tables store pointers to nul-terminated strings and
-// the last entry in the table contains a NULL.
-// This data structure is set up by the kernel when it processes a Spawn()
-// request. Once set up the kernel neither reads nor writes to this area.
-typedef struct pargs {
-    size_t                      version;        // sizeof(pargs_t)
-    size_t                      reserved;
-    size_t                      arguments_size; // Size of the area that holds all of pargs_t + argv + envp
-    size_t                      argc;           // Number of command line arguments passed to the process. Argv[0] holds the path to the process through which it was started
-    char* _Nullable * _Nonnull  argv;           // Pointer to the base of the command line arguments table. Last entry is NULL
-    char* _Nullable * _Nonnull  envp;           // Pointer to the base of the environment table. Last entry holds NULL.
-    void* _Nonnull              image_base;     // Pointer to the base of the executable header
-    kei_func_t* _Nonnull           urt_funcs;      // Pointer to the URT function table
-} pargs_t;
-
 
 // Instructs the os_spawn() call to set the umask of the newly spawned
 // process to the umask field in the spawn arguments struct rather than the
@@ -70,42 +49,14 @@ typedef struct spawn_opts {
     uid_t                               uid;                    // Override user ID
     gid_t                               gid;                    // Override group ID
     int                                 notificationQueue;      // If kSpawn_NotifyOnProcessTermination is set, then this queue will receive termination notifications
-    dispatch_func_t _Nullable            notificationClosure;
+    dispatch_func_t _Nullable           notificationClosure;
     void* _Nullable                     notificationContext;
     uint32_t                            options;
 } spawn_opts_t;
 
 
-// Process specific information
-typedef struct procinfo {
-    pid_t   pid;        // Process pid
-    pid_t   ppid;       // Parent pid
-    size_t  virt_size;  // Size of allocated address space
-} procinfo_t;
-
-// Returns general information about the process.
-// get_procinfo(procinfo_t* _Nonnull pOutInfo)
-#define kProcCommand_GetInfo    IOResourceCommand(0)
-
-// Returns the name of the process.
-// get_procname(char* _Nonnull buf, size_t bufSize)
-#define kProcCommand_GetName    IOResourceCommand(1)
-
-
-extern _Noreturn os_exit(int exit_code);
-
-
-extern FilePermissions getumask(void);
-extern void setumask(FilePermissions mask);
-
-
-extern errno_t os_spawn(const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull options, pid_t* _Nullable rpid);
-
-extern pargs_t* _Nonnull getpargs(void);
-
-
-extern errno_t vm_alloc(size_t nbytes, void* _Nullable * _Nonnull ptr);
+extern int os_spawn(const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull options, pid_t* _Nullable rpid);
 
 __CPP_END
 
-#endif /* _SYS_PROCESS_H */
+#endif /* _SYS_SPAWN_H */

@@ -15,7 +15,7 @@
 #include <System/Directory.h>
 #include <System/Error.h>
 #include <System/File.h>
-#include <System/Process.h>
+#include <sys/proc.h>
 
 
 CLAP_DECL(params,

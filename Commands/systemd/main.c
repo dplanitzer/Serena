@@ -6,11 +6,13 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <System/System.h>
+#include <sys/spawn.h>
+#include <System/Filesystem.h>
 
 
 static _Noreturn halt_machine(void)
@@ -20,9 +22,8 @@ static _Noreturn halt_machine(void)
     /* NOT REACHED */
 }
 
-static errno_t start_proc(const char* _Nonnull procPath, const char* _Nonnull arg1)
+static int start_proc(const char* _Nonnull procPath, const char* _Nonnull arg1)
 {
-    decl_try_err();
     spawn_opts_t opts = {0};
     const char* argv[3];
 
@@ -31,10 +32,7 @@ static errno_t start_proc(const char* _Nonnull procPath, const char* _Nonnull ar
     argv[2] = NULL;
 
     // Spawn the process
-    try(os_spawn(procPath, argv, &opts, NULL));
-    
-catch:
-    return err;
+    return os_spawn(procPath, argv, &opts, NULL);
 }
 
 void main_closure(int argc, char *argv[])
@@ -49,10 +47,9 @@ void main_closure(int argc, char *argv[])
 
 
     // Startup login
-    err = start_proc("/System/Commands/login", "/dev/console");
-    if (err != EOK) {
+    if (start_proc("/System/Commands/login", "/dev/console") != 0) {
         fputs("Error: ", stdout);
-        puts(strerror(err));
+        puts(strerror(errno));
         halt_machine();
     }
 

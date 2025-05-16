@@ -10,7 +10,7 @@
 #include <__stddef.h>
 #include <System/_math.h>
 #include <sys/mutex.h>
-#include <System/Process.h>
+#include <sys/vm.h>
 #include "__malloc.h"
 
 #define INITIAL_HEAP_SIZE   __Ceil_PowerOf2(64*1024, CPU_PAGE_SIZE)
@@ -28,13 +28,15 @@ static errno_t __malloc_expand_backing_store(AllocatorRef _Nonnull pAllocator, s
     const size_t nbytes = __min(ceiledSize, EXPANSION_HEAP_SIZE);
     char* ptr;
     
-    err = vm_alloc(nbytes, (void**)&ptr);
-    if (err == EOK) {
+    if (vm_alloc(nbytes, (void**)&ptr) == 0) {
         MemoryDescriptor md;
 
         md.lower = ptr;
         md.upper = ptr + nbytes;
         err = __Allocator_AddMemoryRegion(pAllocator, &md);
+    }
+    else {
+        err = errno;
     }
 
     return err;
@@ -47,8 +49,7 @@ void __malloc_init(void)
     char* ptr;
 
     // Get backing store for our initial memory region
-    err = vm_alloc(INITIAL_HEAP_SIZE, (void**)&ptr);
-    if (err != EOK) {
+    if (vm_alloc(INITIAL_HEAP_SIZE, (void**)&ptr) != 0) {
         abort();
     }
 

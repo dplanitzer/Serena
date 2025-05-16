@@ -9,8 +9,8 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <sys/spawn.h>
 #include <sys/wait.h>
-#include <System/Process.h>
 
 
 int system(const char *string)
@@ -32,9 +32,7 @@ int system(const char *string)
     argv[3] = NULL;
 
 
-    err = os_spawn("/System/Commands/shell", argv, &opts, &shPid);
-    if (err != EOK) {
-        errno = err;
+    if (os_spawn("/System/Commands/shell", argv, &opts, &shPid) != 0) {
         return -1;
     }
 

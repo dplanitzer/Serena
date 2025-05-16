@@ -14,8 +14,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/proc.h>
+#include <sys/spawn.h>
 #include <sys/wait.h>
-#include <System/Process.h>
 
 //
 // Notes:
@@ -249,7 +250,9 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
 
 
     // Spawn the external command
-    try(os_spawn(cmdPath, argv, &opts, &childPid));
+    if (os_spawn(cmdPath, argv, &opts, &childPid) != 0) {
+        throw(errno);
+    }
 
 
     // Wait for the command to complete its task

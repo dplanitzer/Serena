@@ -7,7 +7,7 @@
 //
 
 #include <stdbool.h>
-#include <System/Process.h>
+#include <sys/proc.h>
 #include <sys/_syscall.h>
 #include <System/_varargs.h>
 

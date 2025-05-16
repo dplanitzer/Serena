@@ -22,7 +22,6 @@
 #include <System/File.h>
 #include <System/Filesystem.h>
 #include <System/FilePermissions.h>
-#include <System/Process.h>
 #include <sys/uid.h>
 #include <filesystem/serenafs/tools/format.h>
 

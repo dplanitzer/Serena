@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <sys/mutex.h>
-#include <System/Process.h>
+#include <sys/proc.h>
 #include <sys/_syscall.h>
 #include <__stddef.h>
 
