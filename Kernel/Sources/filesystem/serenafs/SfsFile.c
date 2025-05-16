@@ -9,7 +9,7 @@
 #include "SfsFile.h"
 #include "SerenaFSPriv.h"
 #include <filesystem/FSUtilities.h>
-#include <System/ByteOrder.h>
+#include <kern/endian.h>
 
 
 errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, ino_t inid, const sfs_inode_t* _Nonnull ip, InodeRef _Nullable * _Nonnull pOutNode)

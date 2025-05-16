@@ -10,7 +10,6 @@
 #define _SYS_SYSTEM_H 1
 
 #include <System/_cmndef.h>
-#include <System/ByteOrder.h>
 #include <System/Error.h>
 #include <System/File.h>
 #include <System/Filesystem.h>

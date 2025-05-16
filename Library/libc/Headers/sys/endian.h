@@ -1,13 +1,13 @@
 //
-//  ByteOrder.h
-//  libsystem
+//  sys/endian.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 3/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_BYTE_ORDER_H
-#define _SYS_BYTE_ORDER_H 1
+#ifndef _SYS_ENDIAN_H
+#define _SYS_ENDIAN_H 1
 
 #include <System/_cmndef.h>
 #include <stdint.h>
@@ -113,4 +113,4 @@ inline uint64_t UInt64_Swap(uint64_t w) {
 
 __CPP_END
 
-#endif /* _SYS_BYTE_ORDER_H */
+#endif /* _SYS_ENDIAN_H */

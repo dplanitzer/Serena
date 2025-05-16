@@ -1,5 +1,5 @@
 //
-//  SerenaFS_Format.c
+//  format.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 11/11/23.
@@ -9,7 +9,11 @@
 #include "format.h"
 #include <stdlib.h>
 #include <string.h>
-#include <System/ByteOrder.h>
+#ifdef __KERNEL__
+#include <kern/endian.h>
+#else
+#include <sys/endian.h>
+#endif
 #include <System/File.h>
 #include <System/_math.h>
 #include <filesystem/FSUtilities.h>

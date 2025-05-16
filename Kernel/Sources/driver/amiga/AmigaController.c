@@ -14,7 +14,7 @@
 #include <driver/amiga/zorro/ZorroController.h>
 #include <filesystem/SerenaDiskImage.h>
 #include <hal/Platform.h>
-#include <System/ByteOrder.h>
+#include <kern/endian.h>
 
 
 final_class_ivars(AmigaController, PlatformController,

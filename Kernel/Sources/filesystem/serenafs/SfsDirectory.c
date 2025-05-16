@@ -10,7 +10,7 @@
 #include "SerenaFSPriv.h"
 #include <filesystem/DirectoryChannel.h>
 #include <filesystem/FSUtilities.h>
-#include <System/ByteOrder.h>
+#include <kern/endian.h>
 #include <kern/string.h>
 
 

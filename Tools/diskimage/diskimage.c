@@ -24,7 +24,7 @@
 #include <filesystem/serenafs/SfsDirectory.h>
 #include <filesystem/serenafs/SfsRegularFile.h>
 #include <clap.h>
-#include <System/ByteOrder.h>
+#include <kern/endian.h>
 
 static const char* gArgv_Zero = "";
 

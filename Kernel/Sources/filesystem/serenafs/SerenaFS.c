@@ -7,7 +7,7 @@
 //
 
 #include "SerenaFSPriv.h"
-#include <System/ByteOrder.h>
+#include <kern/endian.h>
 #include <kern/string.h>
 
 

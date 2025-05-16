@@ -9,7 +9,7 @@
 #include "SfsAllocator.h"
 #include <filesystem/FSContainer.h>
 #include <filesystem/FSUtilities.h>
-#include <System/ByteOrder.h>
+#include <kern/endian.h>
 #include <kern/string.h>
 
 

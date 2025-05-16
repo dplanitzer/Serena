@@ -14,8 +14,8 @@
 #include <string.h>
 #include <filesystem/SerenaDiskImage.h>
 #include <filesystem/FSUtilities.h>
-#include <System/ByteOrder.h>
 #include <kern/diskgeom.h>
+#include <kern/endian.h>
 
 
 errno_t RamContainer_Create(const DiskImageFormat* _Nonnull format, RamContainerRef _Nullable * _Nonnull pOutSelf)
