@@ -10,7 +10,7 @@
 #define LineReader_h
 
 #include <stdbool.h>
-#include <System/System.h>
+#include <System/Error.h>
 
 
 typedef struct LineReader {

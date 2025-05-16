@@ -19,22 +19,6 @@ void __kei_init(pargs_t* _Nonnull argsp)
 }
 
 
-void *__Memset(void *dst, int c, size_t count)
-{
-    return ((void* (*)(void*, int, size_t))__gKeiTable[KEI_memset])(dst, c, count);
-}
-
-void *__Memcpy(void * _Restrict dst, const void * _Restrict src, size_t count)
-{
-    return ((void* (*)(void* _Restrict, const void* _Restrict, size_t))__gKeiTable[KEI_memcpy])(dst, src, count);
-}
-
-void *__Memmove(void * _Restrict dst, const void * _Restrict src, size_t count)
-{
-    return ((void* (*)(void* _Restrict, const void* _Restrict, size_t))__gKeiTable[KEI_memmove])(dst, src, count);
-}
-
-
 long long _rshsint64(long long x, int s)
 {
     return ((long long (*)(long long, int))__gKeiTable[KEI_asr64])(x, s);
