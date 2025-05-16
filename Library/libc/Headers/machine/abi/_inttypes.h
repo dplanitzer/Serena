@@ -12,10 +12,6 @@
 #include <kern/_cmndef.h>
 #include <machine/abi/_dmdef.h>
 
-#ifdef __SYSTEM_SHIM__
-#include <stdint.h>
-#else
-
 #define INT8_WIDTH 8
 #define INT16_WIDTH 16
 #define INT32_WIDTH 32
@@ -165,5 +161,4 @@ typedef unsigned long long  uint_least64_t;
 typedef __uintmax_t uintmax_t;
 typedef __uintptr_t uintptr_t;
 
-#endif /* __SYSTEM_SHIM__ */
 #endif /* __ABI_INTTYPES_H */

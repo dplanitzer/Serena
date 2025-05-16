@@ -9,10 +9,6 @@
 #ifndef __ABI_BOOL_H
 #define __ABI_BOOL_H 1
 
-#ifdef __SYSTEM_SHIM__
-#include <stdbool.h>
-#else
-
 // Note that a boolean value of true must have bit #0 set. All other bits may or
 // may not be set in addition to bit #0. The reason for this design choice is
 // that by requiring only one bit to be set for a true value that we can take
@@ -32,5 +28,4 @@
 #define __bool_true_false_are_defined 1
 #endif
 
-#endif /* __SYSTEM_SHIM__ */
 #endif /* __ABI_BOOL_H */

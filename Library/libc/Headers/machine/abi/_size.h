@@ -11,11 +11,6 @@
 
 #include <machine/abi/_dmdef.h>
 
-#ifdef __SYSTEM_SHIM__
-#include <stddef.h>
-#else
-
 typedef __size_t size_t;
 
-#endif /* __SYSTEM_SHIM__ */
 #endif /* __SYS_SIZE_H */

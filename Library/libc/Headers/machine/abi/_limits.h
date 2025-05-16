@@ -11,10 +11,6 @@
 
 #include <machine/abi/_dmdef.h>
 
-#ifdef __SYSTEM_SHIM__
-#include <limits.h>
-#else
-
 #define BOOL_WIDTH  8
 
 #define CHAR_WIDTH 8
@@ -66,5 +62,4 @@
 
 #define BITINT_MAXWIDTH __ULLONG_WIDTH
 
-#endif /* __SYSTEM_SHIM__ */
 #endif /* __ABI_LIMITS_H */

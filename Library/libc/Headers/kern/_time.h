@@ -14,10 +14,6 @@
 
 __CPP_BEGIN
 
-#ifdef __SYSTEM_SHIM__
-#include <time.h>
-#else
-
 #ifdef _POSIX_SOURCE
 // Type to identify a clock
 typedef int clockid_t;
@@ -33,9 +29,6 @@ struct timespec {
     time_t  tv_sec;
     long    tv_nsec;    // 0..<1billion
 };
-
-#endif /* __SYSTEM_SHIM__ */
-
 
 // Milliseconds
 typedef long mseconds_t;
