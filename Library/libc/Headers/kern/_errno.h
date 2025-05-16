@@ -1,27 +1,15 @@
 //
-//  _errno.h
-//  libsystem
+//  kern/_errno.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 9/6/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __SYS_ERRNO_H
-#define __SYS_ERRNO_H 1
+#ifndef _SYS_PRIV_ERRNO_H
+#define _SYS_PRIV_ERRNO_H 1
 
 #define _EOK            0
-
-#ifdef __SYSTEM_SHIM__
-
-#include <errno.h>
-#ifndef EACCESS
-#define EACCESS EACCES
-#endif
-#ifndef ENOTIOCTLCMD
-#define ENOTIOCTLCMD EINVAL
-#endif
-
-#else
 
 #define ENOMEM          1
 #define ENOMEDIUM       2
@@ -69,8 +57,6 @@
 #define __EFIRST    1
 #define __ELAST     42
 
-#endif  /* __SYSTEM_SHIM__ */
-
 typedef int _Errno_t;
 
-#endif /* __SYS_ERRNO_H */
+#endif /* _SYS_PRIV_ERRNO_H */

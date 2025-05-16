@@ -11,7 +11,7 @@
 
 #include <System/_cmndef.h>
 #ifndef __DISKIMAGE__
-#include <System/_errno.h>
+#include <kern/_errno.h>
 #endif
 
 __CPP_BEGIN
