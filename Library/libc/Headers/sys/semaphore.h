@@ -10,8 +10,8 @@
 #define _SYS_SEMAPHORE_H 1
 
 #include <System/_cmndef.h>
-#include <System/Error.h>
 #include <time.h>
+#include <sys/errno.h>
 
 __CPP_BEGIN
 

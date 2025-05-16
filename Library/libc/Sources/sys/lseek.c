@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <sys/_syscall.h>
 #include <System/_varargs.h>
-#include <System/Error.h>
+#include <sys/errno.h>
 
 
 off_t lseek(int fd, off_t offset, int whence)

@@ -10,7 +10,7 @@
 #define _SYS_MUTEX_H 1
 
 #include <System/_cmndef.h>
-#include <System/Error.h>
+#include <sys/errno.h>
 
 __CPP_BEGIN
 

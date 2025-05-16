@@ -9,12 +9,13 @@
 #ifndef sefs_format_h
 #define sefs_format_h
 
-#include <System/Error.h>
 #include <stdint.h>
 #ifdef __KERNEL__
+#include <kern/errno.h>
 #include <kern/types.h>
 #include <kern/stat.h>
 #else
+#include <sys/errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #endif

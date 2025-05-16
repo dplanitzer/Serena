@@ -22,13 +22,6 @@
 
 #define CPU_PAGE_SIZE   4096
 
-extern _Noreturn __abort(const char* _Nonnull pFilename, int lineNum, const char* _Nonnull pFuncName);
-
-// Halt the machine if the function 'f' does not return EOK. Use this instead of
-// 'try' if you are calling a failable function but based on the design of the
-// code the function you call should never fail in actual reality.
-#define try_bang(f)         { const errno_t _err_ = (f);  if (_err_ != 0) { __abort(__FILE__, __LINE__, __func__); }}
-
 extern int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder);
 
 extern void __stdlibc_init(pargs_t* _Nonnull argsp);

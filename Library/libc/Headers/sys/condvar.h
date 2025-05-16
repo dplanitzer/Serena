@@ -10,8 +10,8 @@
 #define _SYS_CONDVAR_H 1
 
 #include <System/_cmndef.h>
-#include <System/Error.h>
 #include <time.h>
+#include <sys/errno.h>
 #include <sys/mutex.h>
 
 __CPP_BEGIN

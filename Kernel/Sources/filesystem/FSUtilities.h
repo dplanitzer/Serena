@@ -9,8 +9,14 @@
 #ifndef FSUtilities_h
 #define FSUtilities_h
 
+#ifdef __KERNEL__
 #include <kern/errno.h>
 #include <kern/types.h>
+#else
+#include <stdbool.h>
+#include <sys/errno.h>
+#include <sys/types.h>
+#endif
 
 
 // This header file defines functions for use in filesystem implementations.

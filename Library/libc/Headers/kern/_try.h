@@ -1,16 +1,18 @@
 //
-//  Error.h
-//  libsystem
+//  kern/_try.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_ERROR_H
-#define _SYS_ERROR_H
+#ifndef _KERN_TRY_H
+#define _KERN_TRY_H
 
 #include <System/_cmndef.h>
+#ifndef __DISKIMAGE__
 #include <System/_errno.h>
+#endif
 
 __CPP_BEGIN
 
@@ -36,13 +38,6 @@ typedef _Errno_t errno_t;
 // Go to the 'catch' label if 'f' returns a NULL pointer. The pointer is stored
 // in the variable 'p'. 'e' is the error that should be assigned to 'err'
 #define _Try_null(p, f, e)   if ((p = (f)) == NULL) { err = e; goto catch; }
-
-// Halt the machine if the function 'f' does not return EOK. Use this instead of
-// 'try' if you are calling a failable function but based on the design of the
-// code the function you call should never fail in actual reality.
-//XXX not yet
-//#define try_bang(f)         { const errno_t _err_ = (f);  if (_err_ != EOK) { fatalError(__func__, __LINE__, (int) _err_); }}
-//#define try_bang(f)         { const errno_t _err_ = (f);  if (_err_ != 0) { __abort(__FILE__, __LINE__, __func__); }}
 
 // Set 'err' to the given error and go to the 'catch' label if the given pointer
 // is null. Otherwise fall through to the next statement.
@@ -73,4 +68,4 @@ typedef _Errno_t errno_t;
 
 __CPP_END
 
-#endif /* _SYS_ERROR_H */
+#endif /* _KERN_TRY_H */

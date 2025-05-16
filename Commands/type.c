@@ -8,12 +8,11 @@
 
 #include <clap.h>
 #include <ctype.h>
-#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <System/Error.h>
+#include <sys/errno.h>
 #include <sys/types.h>
 
 #if SIZE_WIDTH == 32

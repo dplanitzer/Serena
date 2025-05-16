@@ -13,8 +13,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <kern/errno.h>
 #include <kern/types.h>
-#include <System/Error.h>
 #include <kern/stat.h>
 #include <kern/uid.h>
 #include "DiskImageFormat.h"

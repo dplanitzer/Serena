@@ -10,8 +10,13 @@
 #define _SYS_WAIT_H 1
 
 #include <System/_cmndef.h>
-#include <System/Error.h>
+#ifdef __KERNEL__
+#include <kern/errno.h>
+#include <kern/types.h>
+#else
+#include <sys/errno.h>
 #include <sys/types.h>
+#endif
 
 __CPP_BEGIN
 

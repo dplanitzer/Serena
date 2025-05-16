@@ -13,7 +13,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <System/Error.h>
+#include <sys/errno.h>
 
 struct Allocator;
 typedef struct Allocator* AllocatorRef;

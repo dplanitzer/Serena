@@ -10,10 +10,14 @@
 #define _SYS_DISPATCH_H 1
 
 #include <System/_cmndef.h>
-#include <System/Error.h>
 #include <stdint.h>
 #include <time.h>
 #include <sys/dispatch.h>
+#ifdef __KERNEL__
+#include <kern/errno.h>
+#else
+#include <sys/errno.h>
+#endif
 
 __CPP_BEGIN
 

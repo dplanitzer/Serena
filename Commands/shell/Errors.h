@@ -9,8 +9,8 @@
 #ifndef Errors_h
 #define Errors_h
 
-#include <System/Error.h>
-#include <errno.h>
+#include <sys/errno.h>
+
 
 #define ESYNTAX         -1
 #define EUNDERFLOW      -2

@@ -10,10 +10,10 @@
 #define _UNISTD_H 1
 
 #include <inttypes.h>
+#include <sys/errno.h>
 #include <sys/types.h>
 #include <sys/_unistd.h>
 #include <System/_noreturn.h>
-#include <System/Error.h>
 
 __CPP_BEGIN
 

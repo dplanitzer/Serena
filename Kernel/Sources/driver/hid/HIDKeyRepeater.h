@@ -9,7 +9,7 @@
 #ifndef HIDKeyRepeater_h
 #define HIDKeyRepeater_h
 
-#include <System/Error.h>
+#include <kern/errno.h>
 #include <sys/hidevent.h>
 
 struct HIDKeyRepeater;

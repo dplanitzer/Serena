@@ -9,7 +9,11 @@
 #ifndef _SYS_STAT_H
 #define _SYS_STAT_H 1
 
-#include <System/Error.h>
+#ifdef __KERNEL__
+#include <kern/errno.h>
+#else
+#include <sys/errno.h>
+#endif
 #include <kern/stat.h>
 
 __CPP_BEGIN

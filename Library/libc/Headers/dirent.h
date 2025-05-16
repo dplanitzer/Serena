@@ -11,7 +11,7 @@
 
 #include <System/_cmndef.h>
 #include <System/_syslimits.h>
-#include <System/Error.h>
+#include <sys/errno.h>
 #include <sys/types.h>
 #include <sys/_dirent.h>
 
