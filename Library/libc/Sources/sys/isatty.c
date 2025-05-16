@@ -8,7 +8,7 @@
 
 #include <fcntl.h>
 #include <sys/_syscall.h>
-#include <kern/_varargs.h>
+
 
 int isatty(int fd)
 {

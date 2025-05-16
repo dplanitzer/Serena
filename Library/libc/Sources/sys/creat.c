@@ -8,7 +8,6 @@
 
 #include <fcntl.h>
 #include <sys/_syscall.h>
-#include <kern/_varargs.h>
 
 
 errno_t creat(const char* _Nonnull path, unsigned int mode, FilePermissions permissions, int* _Nonnull ioc)

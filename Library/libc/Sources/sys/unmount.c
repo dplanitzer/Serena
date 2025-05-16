@@ -8,7 +8,6 @@
 
 #include <sys/mount.h>
 #include <sys/_syscall.h>
-#include <kern/_varargs.h>
 
 
 int unmount(const char* _Nonnull atDirPath, UnmountOptions options)

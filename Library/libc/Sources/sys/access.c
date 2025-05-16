@@ -8,7 +8,6 @@
 
 #include <unistd.h>
 #include <sys/_syscall.h>
-#include <kern/_varargs.h>
 
 
 int access(const char* _Nonnull path, int mode)

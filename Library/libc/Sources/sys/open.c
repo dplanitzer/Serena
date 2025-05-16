@@ -8,7 +8,6 @@
 
 #include <fcntl.h>
 #include <sys/_syscall.h>
-#include <kern/_varargs.h>
 
 
 errno_t open(const char* _Nonnull path, unsigned int mode, int* _Nonnull ioc)

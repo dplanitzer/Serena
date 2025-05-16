@@ -8,7 +8,6 @@
 
 #include <sys/proc.h>
 #include <sys/_syscall.h>
-#include <kern/_varargs.h>
 
 
 FilePermissions getumask(void)

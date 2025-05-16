@@ -8,7 +8,6 @@
 
 #include <unistd.h>
 #include <sys/_syscall.h>
-#include <kern/_varargs.h>
 
 
 gid_t getgid(void)

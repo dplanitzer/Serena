@@ -8,7 +8,6 @@
 
 #include <dirent.h>
 #include <sys/_syscall.h>
-#include <kern/_varargs.h>
 
 
 errno_t readdir(int ioc, dirent_t* _Nonnull entries, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)

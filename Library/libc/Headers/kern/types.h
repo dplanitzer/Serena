@@ -15,7 +15,7 @@
 #include <machine/abi/_ssize.h>
 #include <_offsetof.h>
 #include <kern/_time.h>
-#include <kern/_varargs.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdnoreturn.h>

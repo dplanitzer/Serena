@@ -6,10 +6,9 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include <stdarg.h>
 #include <fcntl.h>
 #include <sys/_syscall.h>
-#include <kern/_varargs.h>
-
 
 IOChannelType fgettype(int fd)
 {
