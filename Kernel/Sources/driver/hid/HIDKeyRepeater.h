@@ -10,7 +10,7 @@
 #define HIDKeyRepeater_h
 
 #include <kern/errno.h>
-#include <sys/hidevent.h>
+#include <kpi/hidevent.h>
 
 struct HIDKeyRepeater;
 typedef struct HIDKeyRepeater* HIDKeyRepeaterRef;

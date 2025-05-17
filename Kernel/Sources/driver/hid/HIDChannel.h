@@ -10,8 +10,7 @@
 #define HIDChannel_h
 
 #include <driver/DriverChannel.h>
-#include <sys/hidevent.h>
-#include <sys/timespec.h>
+#include <kpi/hidevent.h>
 
 
 open_class(HIDChannel, DriverChannel,

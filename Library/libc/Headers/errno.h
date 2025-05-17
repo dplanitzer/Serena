@@ -10,7 +10,7 @@
 #define _ERRNO_H 1
 
 #include <kern/_cmndef.h>
-#include <kern/_errno.h>
+#include <kpi/_errno.h>
 
 __CPP_BEGIN
 

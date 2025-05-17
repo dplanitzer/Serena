@@ -11,7 +11,7 @@
 
 #include <kern/errno.h>
 #include <kern/kernlib.h>
-#include <sys/fb.h>
+#include <kpi/fb.h>
 
 
 #define MAX_CLUT_ENTRIES    32

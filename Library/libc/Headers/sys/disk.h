@@ -9,8 +9,8 @@
 #ifndef _SYS_DISK_H
 #define _SYS_DISK_H 1
 
+#include <kpi/driver.h>
 #include <sys/diskgeom.h>
-#include <sys/driver.h>
 #include <sys/types.h>
 #include <stdint.h>
 

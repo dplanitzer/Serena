@@ -8,6 +8,7 @@
 
 #include "ConsolePriv.h"
 #include <kern/string.h>
+#include <kern/timespec.h>
 
 
 static const RGBColor32 gANSIColors[8] = {

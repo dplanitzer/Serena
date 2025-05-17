@@ -12,6 +12,7 @@
 #include <driver/hid/HIDChannel.h>
 #include <kern/assert.h>
 #include <kern/string.h>
+#include <kern/timespec.h>
 #include <kpi/fcntl.h>
 
 

@@ -11,7 +11,8 @@
 #include <hal/MonotonicClock.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
-#include <sys/hidkeycodes.h>
+#include <kpi/hidkeycodes.h>
+#include <kern/timespec.h>
 
 
 enum {

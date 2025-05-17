@@ -13,7 +13,7 @@
 #include "HIDEventQueue.h"
 #include <dispatcher/Lock.h>
 #include <driver/amiga/graphics/GraphicsDriver.h>
-#include <sys/hidkeycodes.h>
+#include <kpi/hidkeycodes.h>
 
 
 // XXX 16 is confirmed to work without overflows on a A2000. Still want to keep

@@ -9,8 +9,9 @@
 #include "HIDDriver.h"
 #include "HIDChannel.h"
 #include "HIDManager.h"
-#include <sys/hid.h>
 #include <kpi/fcntl.h>
+#include <kpi/hid.h>
+#include <kern/timespec.h>
 
 final_class_ivars(HIDDriver, Driver,
 );

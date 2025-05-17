@@ -11,9 +11,9 @@
 
 #include <kobj/Object.h>
 #include <kern/errno.h>
-#include <sys/fb.h>
-#include <sys/hid.h>
-#include <sys/hidevent.h>
+#include <kpi/fb.h>
+#include <kpi/hid.h>
+#include <kpi/hidevent.h>
 
 
 extern HIDManagerRef _Nonnull gHIDManager;

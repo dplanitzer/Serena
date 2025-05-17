@@ -1,13 +1,13 @@
 //
-//  kern/_errno.h
+//  kpi/_errno.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 9/6/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_PRIV_ERRNO_H
-#define _SYS_PRIV_ERRNO_H 1
+#ifndef _KPI_ERRNO_H
+#define _KPI_ERRNO_H 1
 
 #define _EOK            0
 
@@ -59,4 +59,4 @@
 
 typedef int _Errno_t;
 
-#endif /* _SYS_PRIV_ERRNO_H */
+#endif /* _KPI_ERRNO_H */

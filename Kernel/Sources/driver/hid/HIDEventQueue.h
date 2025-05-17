@@ -11,7 +11,7 @@
 
 #include <kern/errno.h>
 #include <kern/types.h>
-#include <sys/hidevent.h>
+#include <kpi/hidevent.h>
 
 struct HIDEventQueue;
 typedef struct HIDEventQueue* HIDEventQueueRef;
