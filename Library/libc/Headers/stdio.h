@@ -13,8 +13,8 @@
 #include <_null.h>
 #include <machine/abi/_size.h>
 #include <machine/abi/_ssize.h>
-#include <kern/_syslimits.h>
 #include <kern/_errno.h>
+#include <kpi/syslimits.h>
 #include <stdarg.h>
 
 __CPP_BEGIN

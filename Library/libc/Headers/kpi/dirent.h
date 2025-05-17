@@ -1,24 +1,20 @@
 //
-//  sys/_dirent.h
+//  kpi/dirent.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_PRIV_DIRENT_H
-#define _SYS_PRIV_DIRENT_H 1
+#ifndef _KPI_DIRENT_H
+#define _KPI_DIRENT_H 1
 
-#include <kern/_syslimits.h>
-#ifdef __KERNEL__
-#include <kern/types.h>
-#else
-#include <sys/types.h>
-#endif
+#include <kpi/syslimits.h>
+#include <kpi/types.h>
 
 typedef struct dirent {
     ino_t   inid;
     char    name[__PATH_COMPONENT_MAX];
 } dirent_t;
 
-#endif /* _SYS_PRIV_DIRENT_H */
+#endif /* _KPI_DIRENT_H */

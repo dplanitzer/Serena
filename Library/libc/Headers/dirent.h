@@ -10,10 +10,9 @@
 #define _DIRENT_H 1
 
 #include <kern/_cmndef.h>
-#include <kern/_syslimits.h>
 #include <sys/errno.h>
 #include <sys/types.h>
-#include <sys/_dirent.h>
+#include <kpi/dirent.h>
 
 __CPP_BEGIN
 

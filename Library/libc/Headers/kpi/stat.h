@@ -9,7 +9,7 @@
 #ifndef _KPI_STAT_H
 #define _KPI_STAT_H 1
 
-#include <kern/_syslimits.h>
+#include <kpi/syslimits.h>
 #include <kpi/_time.h>
 #include <kpi/types.h>
 
