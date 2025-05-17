@@ -8,6 +8,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/_syscall.h>
@@ -46,16 +47,6 @@ int atexit(void (*func)(void))
     mutex_unlock(&__gAtExitLock);
 
     return r;
-}
-
-_Noreturn _exit(int status)
-{
-    _syscall(SC_exit, status);
-}
-
-_Noreturn _Exit(int status)
-{
-    _exit(status);
 }
 
 _Noreturn exit(int status)

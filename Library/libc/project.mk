@@ -10,6 +10,9 @@ MALLOC_OBJS_DIR := $(LIBC_OBJS_DIR)/malloc
 STDIO_SOURCES_DIR := $(LIBC_SOURCES_DIR)/stdio
 STDIO_OBJS_DIR := $(LIBC_OBJS_DIR)/stdio
 
+STDLIB_SOURCES_DIR := $(LIBC_SOURCES_DIR)/stdlib
+STDLIB_OBJS_DIR := $(LIBC_OBJS_DIR)/stdlib
+
 STRING_SOURCES_DIR := $(LIBC_SOURCES_DIR)/string
 STRING_OBJS_DIR := $(LIBC_OBJS_DIR)/string
 
@@ -54,12 +57,13 @@ $(LIBC_OBJS_DIR):
 
 -include $(MALLOC_SOURCES_DIR)/package.mk
 -include $(STDIO_SOURCES_DIR)/package.mk
+-include $(STDLIB_SOURCES_DIR)/package.mk
 -include $(STRING_SOURCES_DIR)/package.mk
 -include $(SYS_SOURCES_DIR)/package.mk
 -include $(TIME_SOURCES_DIR)/package.mk
 
 
-$(LIBC_FILE): $(LIBC_OBJS) $(MALLOC_OBJS) $(STDIO_OBJS) $(STRING_OBJS) $(SYS_OBJS) $(TIME_OBJS)
+$(LIBC_FILE): $(LIBC_OBJS) $(MALLOC_OBJS) $(STDIO_OBJS) $(STDLIB_OBJS) $(STRING_OBJS) $(SYS_OBJS) $(TIME_OBJS)
 	@echo Making libc.a
 	$(LIBTOOL) create $@ $^
 

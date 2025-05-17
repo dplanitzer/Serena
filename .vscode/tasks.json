@@ -134,7 +134,6 @@
             "args": [
                 "make",
                 "clean-libc",
-                "clean-libsystem",
                 "-s",
                 "-R",
                 "--directory=${workspaceFolder}"
