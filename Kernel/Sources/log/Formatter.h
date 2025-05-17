@@ -9,6 +9,7 @@
 #ifndef Formatter_h
 #define Formatter_h
 
+#include <stdarg.h>
 #include <kern/errno.h>
 #include <kern/kernlib.h>
 #include <kern/types.h>

@@ -10,6 +10,7 @@
 #define Platform_h
 
 #include <stdnoreturn.h>
+#include <kern/floattypes.h>
 #include <kern/types.h>
 
 //

@@ -1,6 +1,6 @@
 //
 //  Formatter.c
-//  libc
+//  kernel
 //
 //  Created by Dietmar Planitzer on 1/23/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

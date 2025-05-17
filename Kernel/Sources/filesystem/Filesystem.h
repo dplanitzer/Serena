@@ -9,6 +9,7 @@
 #ifndef Filesystem_h
 #define Filesystem_h
 
+#include <stdarg.h>
 #include <kern/kernlib.h>
 #include <kobj/Object.h>
 #include <klib/List.h>

@@ -10,6 +10,7 @@
 #define Driver_h
 
 #include <dispatcher/Lock.h>
+#include <stdarg.h>
 #include <klib/List.h>
 #include <kobj/Object.h>
 #include <kern/stat.h>

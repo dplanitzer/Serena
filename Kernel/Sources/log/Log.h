@@ -9,6 +9,7 @@
 #ifndef Log_h
 #define Log_h
 
+#include <stdarg.h>
 #include <kern/types.h>
 
 

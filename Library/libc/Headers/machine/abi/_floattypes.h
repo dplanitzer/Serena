@@ -9,10 +9,6 @@
 #ifndef __ABI_FLOATTYPES_H
 #define __ABI_FLOATTYPES_H 1
 
-#include <kern/_cmndef.h>
-#include <machine/abi/_dmdef.h>
-
-
 typedef unsigned short  float16_t;
 typedef float           float32_t;
 typedef double          float64_t;

@@ -11,11 +11,11 @@
 
 #include <kern/_cmndef.h>
 #include <kern/_syslimits.h>
-#include <stdint.h>
-#include <time.h>
+#include <kpi/_time.h>
 #ifdef __KERNEL__
 #include <kern/types.h>
 #else
+#include <stdint.h>
 #include <sys/types.h>
 #endif
 

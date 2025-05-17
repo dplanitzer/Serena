@@ -9,6 +9,7 @@
 #ifndef Process_h
 #define Process_h
 
+#include <stdarg.h>
 #include <kern/types.h>
 #include <kobj/Object.h>
 #include <kern/stat.h>
