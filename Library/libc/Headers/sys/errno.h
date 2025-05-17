@@ -11,7 +11,7 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <kern/_try.h>
+#include <_try.h>
 #include <stdnoreturn.h>
 
 // This is 'errno.h' plus try() macros

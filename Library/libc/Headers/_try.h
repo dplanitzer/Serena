@@ -1,5 +1,5 @@
 //
-//  kern/_try.h
+//  _try.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 2/11/24.

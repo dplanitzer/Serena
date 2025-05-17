@@ -10,7 +10,7 @@
 #define _KERN_ERRNO_H 1
 
 #include <kern/assert.h>
-#include <kern/_try.h>
+#include <_try.h>
 
 // Halt the machine if the function 'f' does not return EOK. Use this instead of
 // 'try' if you are calling a failable function but based on the design of the

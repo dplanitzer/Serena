@@ -23,7 +23,7 @@
 
 typedef int _Errno_t;
 
-#include <../../Library/libc/Headers/kern/_try.h>
+#include <../../Library/libc/Headers/_try.h>
 
 
 // Halt the machine if the function 'f' does not return EOK. Use this instead of
