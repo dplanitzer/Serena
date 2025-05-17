@@ -9,6 +9,6 @@
 #ifndef _SYS_FS_H
 #define _SYS_FS_H 1
 
-#include <kern/fs.h>
+#include <kpi/fs.h>
 
 #endif /* _SYS_FS_H */

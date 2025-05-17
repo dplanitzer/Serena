@@ -24,7 +24,7 @@
 typedef uint32_t CatalogId;
 #define kCatalogId_None 0
 #endif
-#include <kern/fs.h>
+#include <kpi/fs.h>
 #include <kpi/uid.h>
 
 

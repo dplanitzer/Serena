@@ -14,9 +14,9 @@
 #include <process/Process.h>
 #include <sys/disk.h>
 #include <time.h>
-#include <kern/fs.h>
 #include <kern/limits.h>
 #include <kern/timespec.h>
+#include <kpi/fs.h>
 #include <kpi/uid.h>
 
 

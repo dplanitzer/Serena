@@ -13,9 +13,9 @@
 #include <Catalog.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/IOChannel.h>
-#include <kern/fs.h>
 #include <kern/string.h>
 #include <kpi/fcntl.h>
+#include <kpi/fs.h>
 
 
 // Establishes and starts the filesystem stored on the disk managed by the disk

@@ -1,5 +1,5 @@
 //
-//  kern/fs.h
+//  kpi/fs.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 12/15/24.
@@ -9,15 +9,8 @@
 #ifndef _KERN_FS_H
 #define _KERN_FS_H 1
 
-#include <kern/_cmndef.h>
-#include <stdint.h>
-#ifdef __KERNEL__
-#include <kern/types.h>
-#else
-#include <sys/types.h>
-#endif
-
-__CPP_BEGIN
+#include <kpi/types.h>
+#include <kpi/fcntl.h>
 
 // Filesystem properties
 enum {
@@ -29,12 +22,12 @@ enum {
 
 // Filesystem specific information
 typedef struct fsinfo {
-    blkcnt_t    capacity;       // Filesystem capacity in terms of filesystem blocks (if a regular fs) or catalog entries (if a catalog)
-    blkcnt_t    count;          // Blocks or entries currently in use/allocated
-    size_t      blockSize;      // Size of a block in bytes
-    fsid_t      fsid;           // Filesystem ID
-    uint32_t    properties;     // Filesystem properties
-    char        type[12];       // Filesystem type (max 11 characters C string)
+    blkcnt_t        capacity;       // Filesystem capacity in terms of filesystem blocks (if a regular fs) or catalog entries (if a catalog)
+    blkcnt_t        count;          // Blocks or entries currently in use/allocated
+    size_t          blockSize;      // Size of a block in bytes
+    fsid_t          fsid;           // Filesystem ID
+    unsigned int    properties;     // Filesystem properties
+    char            type[12];       // Filesystem type (max 11 characters C string)
 } fsinfo_t;
 
 
@@ -70,7 +63,5 @@ typedef struct fsinfo {
 // the cache and is not touched.
 // fssync(void)
 #define kFSCommand_Sync             IOResourceCommand(4)
-
-__CPP_END
 
 #endif /* _KERN_FS_H */
