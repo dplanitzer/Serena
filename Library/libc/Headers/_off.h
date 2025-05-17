@@ -9,7 +9,7 @@
 #ifndef __SYS_OFF_H
 #define __SYS_OFF_H 1
 
-#include <machine/_dmdef.h>
+#include <_dmdef.h>
 
 typedef __off_t off_t;
 

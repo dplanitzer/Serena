@@ -9,7 +9,7 @@
 #ifndef _STDDEF_H
 #define _STDDEF_H 1
 
-#include <machine/_dmdef.h>
+#include <_dmdef.h>
 #include <_size.h>
 #include <_cmndef.h>
 #include <_null.h>

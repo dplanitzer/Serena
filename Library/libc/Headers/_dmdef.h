@@ -6,8 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __ABI_DMDEF_H
-#define __ABI_DMDEF_H 1
+#ifndef __SYS_DMDEF_H
+#define __SYS_DMDEF_H 1
 
 #if defined(__M68K__)
 #define __ILP32__ 1
@@ -324,4 +324,4 @@ typedef long long __off_t;
     #error("__ssize_t and __size_t must have the same bit width")
 #endif
 
-#endif /* __ABI_DMDEF_H */
+#endif /* __SYS_DMDEF_H */
