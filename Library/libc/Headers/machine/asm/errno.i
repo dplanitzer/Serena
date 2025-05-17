@@ -6,8 +6,8 @@
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 ;
 
-        ifnd __ABI_ERRNO_I
-__ABI_ERRNO_I  set 1
+        ifnd __ERRNO_I
+__ERRNO_I  set 1
 
 EOK             equ 0
 ENOMEM          equ 1
@@ -56,4 +56,4 @@ ENXIO           equ 42
 __EFIRST    equ 1
 __ELAST     equ 42
 
-        endif   ; __ABI_ERRNO_I
+        endif   ; __ERRNO_I

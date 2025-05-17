@@ -1,5 +1,5 @@
 ;
-;  setjmp_m68k.s
+;  machine/arch/m68k/setjmp.s
 ;  libc
 ;
 ;  Created by Dietmar Planitzer on 8/26/23.

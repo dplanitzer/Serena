@@ -6,8 +6,8 @@
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 ;
 
-        ifnd __ABI_SYSCALL_I
-__ABI_SYSCALL_I  set 1
+        ifnd __SYSCALL_I
+__SYSCALL_I  set 1
 
 SC_read                     equ 0
 SC_write                    equ 1
@@ -68,37 +68,4 @@ SC_fsgetdisk                equ 55
 SC_vcpuerrno                equ 56
 SC_chown                    equ 57
 
-
-; System call macro.
-;
-; A system call looks like this:
-;
-; a0.l: -> pointer to argument list base
-;
-; d0.l: <- error number
-;
-; Register a0 holds a pointer to the base of the argument list. Arguments are
-; expected to be ordered from left to right (same as the standard C function
-; call ABI) and the pointer in a0 points to the left-most argument. So the
-; simplest way to pass arguments to a system call is to push them on the user
-; stack starting with the right-most argument and ending with the left-most
-; argument and to then initialize a0 like this:
-;
-; move.l sp, a0
-;
-; If the arguments are first put on the stack and you then call a subroutine
-; which does the actual trap #0 to the kernel, then you want to initialize a0
-; like this:
-;
-; lea 4(sp), a0
-;
-; since the user stack pointer points to the return address on the stack and not
-; the system call number.
-;
-; The system call returns the error code in d0.
-;
-    macro SYSCALL
-    trap    #0
-    endm
-
-        endif   ; __ABI_SYSCALL_I
+        endif   ; __SYSCALL_I
