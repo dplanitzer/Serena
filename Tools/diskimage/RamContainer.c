@@ -16,6 +16,7 @@
 #include <filesystem/FSUtilities.h>
 #include <kern/diskgeom.h>
 #include <kern/endian.h>
+#include <kern/limits.h>
 
 
 errno_t RamContainer_Create(const DiskImageFormat* _Nonnull format, RamContainerRef _Nullable * _Nonnull pOutSelf)

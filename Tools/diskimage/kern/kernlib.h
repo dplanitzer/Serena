@@ -12,13 +12,9 @@
 #include <kern/_cmndef.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <limits.h>
-#include <time.h>
+#include <kern/limits.h>
 #include <../../../Library/libc/Headers/sys/_fcntl.h>
 #include <../../../Library/libc/Headers/sys/_unistd.h>
-#ifndef __SIZE_WIDTH
-#define __SIZE_WIDTH 64
-#endif
 
 
 //

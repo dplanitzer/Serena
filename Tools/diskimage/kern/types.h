@@ -14,34 +14,11 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <time.h>
+#include <kpi/_time.h>
 #include <sys/types.h>
 #ifdef _WIN32
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
-
-#define __OFF_WIDTH 32
-#define __OFF_MIN 0x80000000ll
-#define __OFF_MAX 0x7fffffffll
-
-#define __SIZE_WIDTH 64
-#define __SIZE_MAX 18446744073709551615ul
-
-#define __SSIZE_WIDTH 64
-#define __SSIZE_MIN 0x8000000000000000l
-#define __SSIZE_MAX 0x7fffffffffffffffl
-
-
-#define OFF_WIDTH __OFF_WIDTH
-#define OFF_MIN __OFF_MIN
-#define OFF_MAX __OFF_MAX
-
-#define SIZE_WIDTH __SIZE_WIDTH
-//#define SIZE_MAX __SIZE_MAX
-
-#define SSIZE_WIDTH __SSIZE_WIDTH
-#define SSIZE_MIN __SSIZE_MIN
-#define SSIZE_MAX __SSIZE_MAX
 #endif
 
 __CPP_BEGIN
