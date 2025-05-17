@@ -9,7 +9,7 @@
 #ifndef _TIME_H
 #define _TIME_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <_null.h>
 #include <machine/abi/_size.h>
 #include <kpi/_time.h>

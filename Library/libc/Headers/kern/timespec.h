@@ -9,7 +9,7 @@
 #ifndef _KERN_TIMESPEC_H
 #define _KERN_TIMESPEC_H
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <kpi/_time.h>
 #include <stdbool.h>
 #include <stdint.h>

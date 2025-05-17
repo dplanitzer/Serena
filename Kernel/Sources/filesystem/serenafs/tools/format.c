@@ -14,7 +14,7 @@
 #else
 #include <sys/endian.h>
 #endif
-#include <kern/_math.h>
+#include <_math.h>
 #include <filesystem/FSUtilities.h>
 #include <filesystem/serenafs/VolumeFormat.h>
 

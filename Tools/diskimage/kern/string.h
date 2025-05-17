@@ -9,7 +9,7 @@
 #ifndef _KERN_STRING_H
 #define _KERN_STRING_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <stdbool.h>
 #include <sys/types.h>
 

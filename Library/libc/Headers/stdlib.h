@@ -9,7 +9,7 @@
 #ifndef _STDLIB_H
 #define _STDLIB_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <_null.h>
 #include <machine/abi/_size.h>
 #include <malloc.h>

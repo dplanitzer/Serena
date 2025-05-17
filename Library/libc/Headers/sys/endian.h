@@ -9,7 +9,7 @@
 #ifndef _SYS_ENDIAN_H
 #define _SYS_ENDIAN_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <stdint.h>
 
 __CPP_BEGIN

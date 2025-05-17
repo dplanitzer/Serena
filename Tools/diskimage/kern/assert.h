@@ -10,7 +10,7 @@
 #define _KERN_ASSERT_H 1
 
 #include <assert.h>
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 
 // defined in diskimage.c
 extern void fatal(const char* _Nonnull format, ...);

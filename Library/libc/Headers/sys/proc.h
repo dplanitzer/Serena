@@ -9,7 +9,7 @@
 #ifndef _SYS_PROC_H
 #define _SYS_PROC_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <kpi/proc.h>
 
 __CPP_BEGIN

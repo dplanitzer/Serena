@@ -14,7 +14,7 @@
 #include <sys/dispatch.h>
 #include <sys/mutex.h>
 #include <sys/timespec.h>
-#include <kern/_math.h>
+#include <_math.h>
 #include "Asserts.h"
 
 

@@ -9,7 +9,7 @@
 #ifndef _DIRENT_H
 #define _DIRENT_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <sys/errno.h>
 #include <sys/types.h>
 #include <kpi/dirent.h>

@@ -9,7 +9,7 @@
 #ifndef _KPI_SPAWN_H
 #define _KPI_SPAWN_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <kpi/stat.h>
 #include <kpi/types.h>
 #include <kpi/dispatch.h>

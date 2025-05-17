@@ -9,7 +9,7 @@
 #ifndef _STDIO_H
 #define _STDIO_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <_null.h>
 #include <machine/abi/_size.h>
 #include <machine/abi/_ssize.h>

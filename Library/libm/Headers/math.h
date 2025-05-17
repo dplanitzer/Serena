@@ -9,7 +9,7 @@
 #ifndef _MATH_H
 #define _MATH_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 
 __CPP_BEGIN
 

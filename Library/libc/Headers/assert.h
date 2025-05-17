@@ -6,7 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #ifndef NDEBUG
 #include <stdnoreturn.h>
 #endif /* NDEBUG */

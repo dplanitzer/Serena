@@ -9,7 +9,7 @@
 #ifndef _INTTYPES_H
 #define _INTTYPES_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <stdint.h>
 
 __CPP_BEGIN

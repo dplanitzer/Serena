@@ -10,8 +10,8 @@
 #define _KERN_KERNLIB_H 1
 
 #include <machine/abi/_ssize.h>
-#include <kern/_cmndef.h>
-#include <kern/_math.h>
+#include <_cmndef.h>
+#include <_math.h>
 #include <_offsetof.h>
 #include <stdalign.h>
 #include <stdbool.h>

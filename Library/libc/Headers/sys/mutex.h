@@ -9,7 +9,7 @@
 #ifndef _SYS_MUTEX_H
 #define _SYS_MUTEX_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <sys/errno.h>
 
 __CPP_BEGIN

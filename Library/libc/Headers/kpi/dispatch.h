@@ -9,7 +9,7 @@
 #ifndef _KPI_DISPATCH_H
 #define _KPI_DISPATCH_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 
 typedef void (*dispatch_func_t)(void* _Nullable arg);
 

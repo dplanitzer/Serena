@@ -9,7 +9,7 @@
 #ifndef _KPI_FB_H
 #define _KPI_FB_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <kpi/driver.h>
 #include <kpi/types.h>
 

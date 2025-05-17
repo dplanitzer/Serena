@@ -9,7 +9,7 @@
 #ifndef Builtins_h
 #define Builtins_h
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 
 struct Interpreter;
 

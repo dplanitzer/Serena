@@ -9,7 +9,7 @@
 #ifndef _SYS_WAIT_H
 #define _SYS_WAIT_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <sys/errno.h>
 #include <sys/types.h>
 #include <kpi/wait.h>

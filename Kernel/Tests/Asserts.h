@@ -9,7 +9,7 @@
 #ifndef Asserts_h
 #define Asserts_h 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <sys/errno.h>
 #include <stdio.h>
 

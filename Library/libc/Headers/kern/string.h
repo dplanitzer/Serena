@@ -11,7 +11,7 @@
 
 #include <machine/abi/_size.h>
 #include <machine/abi/_ssize.h>
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <stdbool.h>
 
 __CPP_BEGIN

@@ -9,7 +9,7 @@
 #ifndef _STDALIGN_H
 #define _STDALIGN_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 
 __CPP_BEGIN
 

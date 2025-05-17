@@ -9,7 +9,7 @@
 #ifndef _KERN_ASSERT_H
 #define _KERN_ASSERT_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <stdnoreturn.h>
 
 struct ExceptionStackFrame;

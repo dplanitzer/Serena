@@ -1,5 +1,5 @@
 //
-//  kern/_cmndef.h
+//  _cmndef.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 9/4/23.

@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <sys/errno.h>
 #include <sys/stat.h>
-#include <kern/_math.h>
+#include <_math.h>
 
 extern const char* __gc_abbrev_ymon(unsigned m);
 extern char *__strcpy(char * _Restrict dst, const char * _Restrict src);

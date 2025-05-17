@@ -1,5 +1,5 @@
 //
-//  kern/_math.h
+//  _math.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 9/6/23.
@@ -9,12 +9,11 @@
 #ifndef __SYS_MATH_H
 #define __SYS_MATH_H 1
 
-//#include <machine/abi/_dmdef.h>
-
 #define __abs(x) (((x) < 0) ? -(x) : (x))
-#ifndef __DISKIMAGE__
+#ifndef __MIN_MAX_DEFINED
 #define __min(x, y) (((x) < (y) ? (x) : (y)))
 #define __max(x, y) (((x) > (y) ? (x) : (y)))
+#define __MIN_MAX_DEFINED 1
 #endif
 #define __clamped(v, lw, up) ((v) < (lw) ? (lw) : ((v) > (up) ? (up) : (v)))
 

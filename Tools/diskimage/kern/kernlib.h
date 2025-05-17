@@ -9,7 +9,7 @@
 #ifndef _KERN_KERNLIB_H
 #define _KERN_KERNLIB_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <kern/limits.h>

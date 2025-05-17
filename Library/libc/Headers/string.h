@@ -9,7 +9,7 @@
 #ifndef _STRING_H
 #define _STRING_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <_null.h>
 #include <machine/abi/_size.h>
 

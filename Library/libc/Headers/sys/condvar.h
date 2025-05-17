@@ -9,7 +9,7 @@
 #ifndef _SYS_CONDVAR_H
 #define _SYS_CONDVAR_H 1
 
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <time.h>
 #include <sys/errno.h>
 #include <sys/mutex.h>

@@ -11,7 +11,7 @@
 
 #include <machine/abi/_dmdef.h>
 #include <machine/abi/_size.h>
-#include <kern/_cmndef.h>
+#include <_cmndef.h>
 #include <_null.h>
 #include <_offsetof.h>
 
