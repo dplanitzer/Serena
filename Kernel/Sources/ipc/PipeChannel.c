@@ -8,6 +8,8 @@
 
 #include "PipeChannel.h"
 #include "Pipe.h"
+#include <kpi/fcntl.h>
+
 
 // PipeChannel does not need locking because:
 // - it doesn't support seeking. Thus seeking state is constant

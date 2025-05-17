@@ -10,6 +10,7 @@
 #include "FSManager.h"
 #include <errno.h>
 #include <stdio.h>
+#include <kpi/fcntl.h>
 
 #define BLOCK_SIZE  4096
 

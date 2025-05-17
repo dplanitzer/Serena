@@ -9,6 +9,7 @@
 #include "DiskDriver.h"
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverChannel.h>
+#include <kpi/fcntl.h>
 
 
 errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf)

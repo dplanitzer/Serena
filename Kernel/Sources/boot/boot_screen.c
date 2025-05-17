@@ -13,6 +13,7 @@
 #include <driver/DriverChannel.h>
 #include <hal/Platform.h>
 #include <kern/string.h>
+#include <kpi/fcntl.h>
 
 
 void open_boot_screen(boot_screen_t* _Nonnull bscr)

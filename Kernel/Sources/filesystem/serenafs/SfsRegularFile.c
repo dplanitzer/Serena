@@ -11,6 +11,7 @@
 #include <filesystem/FileChannel.h>
 #include <kern/limits.h>
 #include <kern/string.h>
+#include <kpi/fcntl.h>
 
 
 errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)

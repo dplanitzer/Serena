@@ -12,6 +12,8 @@
 #include "MouseDriver.h"
 #include <sys/hid.h>
 #include <kern/assert.h>
+#include <kpi/fcntl.h>
+
 
 #define PORT_COUNT   2
 

@@ -9,6 +9,7 @@
 #include "GraphicsDriverPriv.h"
 #include <sys/hid.h>
 #include <kern/timespec.h>
+#include <kpi/fcntl.h>
 
 
 // Creates a graphics driver instance which manages the on-board video hardware.

@@ -11,6 +11,7 @@
 #include <filesystem/DirectoryChannel.h>
 #include <filesystem/FileChannel.h>
 #include <security/SecurityManager.h>
+#include <kpi/fcntl.h>
 
 
 errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _Locked pFile, unsigned int mode)

@@ -11,8 +11,8 @@
 
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/_fcntl.h>
 #include <sys/stat.h>
+#include <kpi/fcntl.h>
 
 __CPP_BEGIN
 

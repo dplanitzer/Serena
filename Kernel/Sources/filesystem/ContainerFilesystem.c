@@ -7,6 +7,7 @@
 //
 
 #include "ContainerFilesystem.h"
+#include <kpi/fcntl.h>
 
 
 errno_t ContainerFilesystem_Create(Class* pClass, FSContainerRef _Nonnull pContainer, FilesystemRef _Nullable * _Nonnull pOutFileSys)

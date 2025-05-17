@@ -8,6 +8,7 @@
 
 #include "HIDChannel.h"
 #include "HIDManager.h"
+#include <kpi/fcntl.h>
 
 
 errno_t HIDChannel_Create(DriverRef _Nonnull pDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)

@@ -7,6 +7,7 @@
 //
 
 #include "ConsoleChannel.h"
+#include <kpi/fcntl.h>
 
 
 errno_t ConsoleChannel_Create(ConsoleRef _Nonnull pConsole, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)

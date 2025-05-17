@@ -10,6 +10,7 @@
 #include <driver/DriverChannel.h>
 #include <driver/disk/DiskDriver.h>
 #include <filesystem/IOChannel.h>
+#include <kpi/fcntl.h>
 
 
 errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nullable * _Nonnull pOutSelf)

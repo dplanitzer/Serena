@@ -15,6 +15,7 @@
 #include <filesystem/IOChannel.h>
 #include <kern/fs.h>
 #include <kern/string.h>
+#include <kpi/fcntl.h>
 
 
 // Establishes and starts the filesystem stored on the disk managed by the disk

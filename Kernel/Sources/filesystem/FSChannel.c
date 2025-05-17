@@ -8,6 +8,7 @@
 
 #include "FSChannel.h"
 #include "Filesystem.h"
+#include <kpi/fcntl.h>
 
 
 errno_t FSChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int channelType, unsigned int mode, FilesystemRef _Nonnull fs, IOChannelRef _Nullable * _Nonnull pOutSelf)

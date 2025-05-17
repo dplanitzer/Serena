@@ -12,6 +12,7 @@
 #include <filesystem/IOChannel.h>
 #include <klib/RingBuffer.h>
 #include "Formatter.h"
+#include <kpi/fcntl.h>
 
 
 enum {

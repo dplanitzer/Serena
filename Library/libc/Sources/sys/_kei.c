@@ -8,6 +8,7 @@
 
 #include <sys/_kei.h>
 #include <sys/proc.h>
+#include <stddef.h>
 
 
 static kei_func_t* __gKeiTable;

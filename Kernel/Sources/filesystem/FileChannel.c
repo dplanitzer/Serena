@@ -8,6 +8,8 @@
 
 #include "FileChannel.h"
 #include "Filesystem.h"
+#include <kpi/fcntl.h>
+
 
 // FileChannel uses the Inode lock to protect its seek state
 

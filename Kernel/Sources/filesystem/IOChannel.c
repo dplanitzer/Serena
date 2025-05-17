@@ -8,6 +8,8 @@
 
 #include "IOChannel.h"
 #include <kern/kalloc.h>
+#include <kpi/fcntl.h>
+
 
 typedef errno_t (*IOChannel_Finalize_Impl)(void* _Nonnull self);
 

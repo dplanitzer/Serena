@@ -11,6 +11,8 @@
 #include <hal/Platform.h>
 #include <kern/kalloc.h>
 #include <kern/limits.h>
+#include <kpi/fcntl.h>
+
 
 extern const uint8_t gUSBHIDKeyFlags[256];
 

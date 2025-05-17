@@ -10,6 +10,7 @@
 #include "HIDChannel.h"
 #include "HIDManager.h"
 #include <sys/hid.h>
+#include <kpi/fcntl.h>
 
 final_class_ivars(HIDDriver, Driver,
 );

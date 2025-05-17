@@ -10,6 +10,7 @@
 #include <driver/hid/HIDManager.h>
 #include <driver/hid/HIDKeyRepeater.h>
 #include <hal/InterruptController.h>
+#include <kpi/fcntl.h>
 
 
 // Keycode -> USB HID keyscan codes

@@ -17,6 +17,7 @@
 #include <filesystem/IOChannel.h>
 #include <hal/Platform.h>
 #include <kern/timespec.h>
+#include <kpi/fcntl.h>
 #include <Catalog.h>
 #include "boot_screen.h"
 

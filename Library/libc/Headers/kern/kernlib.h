@@ -18,7 +18,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
-#include <sys/_fcntl.h>
 #include <sys/_unistd.h>
 
 __CPP_BEGIN

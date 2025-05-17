@@ -8,6 +8,7 @@
 
 #include "InputDriver.h"
 #include <driver/DriverChannel.h>
+#include <kpi/fcntl.h>
 
 
 // Returns information about the disk drive and the media loaded into the

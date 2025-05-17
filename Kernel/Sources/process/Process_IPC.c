@@ -8,7 +8,7 @@
 
 #include "ProcessPriv.h"
 #include <ipc/PipeChannel.h>
-
+#include <kpi/fcntl.h>
 
 
 // Creates an anonymous pipe.

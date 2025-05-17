@@ -1,13 +1,13 @@
 //
-//  sys/_fcntl.h
+//  kpi/fcntl.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/14/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_PRIV_FCNTL_H
-#define _SYS_PRIV_FCNTL_H 1
+#ifndef _KPI_FCNTL_H
+#define _KPI_FCNTL_H 1
 
 #define O_RDONLY    0x0001
 #define O_WRONLY    0x0002
@@ -48,4 +48,4 @@ typedef enum IOChannelType {
 // errno_t set_mode(int ioc, int setOrClear, unsigned int mode)
 #define kIOChannelCommand_SetMode   IOChannelCommand(3)
 
-#endif /* _SYS_PRIV_FCNTL_H */
+#endif /* _KPI_FCNTL_H */

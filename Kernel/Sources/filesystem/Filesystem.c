@@ -13,6 +13,7 @@
 #include "FSChannel.h"
 #include <klib/Hash.h>
 #include <kern/timespec.h>
+#include <kpi/fcntl.h>
 
 
 #define IN_CACHED_HASH_CHAINS_COUNT 16

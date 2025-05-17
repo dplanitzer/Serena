@@ -8,6 +8,7 @@
 
 #include "ProcChannel.h"
 #include "Process.h"
+#include <kpi/fcntl.h>
 
 
 errno_t ProcChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int channelType, unsigned int mode, ProcessRef _Nonnull proc, IOChannelRef _Nullable * _Nonnull pOutSelf)

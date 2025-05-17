@@ -8,6 +8,7 @@
 
 #include "DriverChannel.h"
 #include "Driver.h"
+#include <kpi/fcntl.h>
 
 
 errno_t DriverChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int channelType, unsigned int mode, DriverRef _Nonnull pDriver, IOChannelRef _Nullable * _Nonnull pOutSelf)
