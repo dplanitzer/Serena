@@ -12,10 +12,10 @@
 #include <filesystem/IOChannel.h>
 #include <hal/MonotonicClock.h>
 #include <process/Process.h>
-#include <sys/disk.h>
 #include <time.h>
 #include <kern/limits.h>
 #include <kern/timespec.h>
+#include <kpi/disk.h>
 #include <kpi/fs.h>
 #include <kpi/uid.h>
 

@@ -8,6 +8,7 @@
 
 #include "FSContainer.h"
 #include "FSUtilities.h"
+#include <stddef.h>
 
 
 errno_t FSContainer_Create(Class* _Nonnull pClass, blkcnt_t blockCount, size_t blockSize, uint32_t properties, FSContainerRef _Nullable * _Nonnull pOutSelf)

@@ -13,7 +13,7 @@
 #include <kobj/AnyRefs.h>
 #include <filesystem/FSBlock.h>
 #include <filesystem/IOChannel.h>
-#include <sys/disk.h>
+#include <kpi/disk.h>
 
 
 typedef struct DiskSession {

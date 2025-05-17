@@ -10,8 +10,8 @@
 #define FSContainer_h
 
 #include <kobj/Object.h>
-#include <kern/diskgeom.h>
 #include <filesystem/FSBlock.h>
+#include <kpi/disk.h>
 #include <kpi/fs.h>
 
 
