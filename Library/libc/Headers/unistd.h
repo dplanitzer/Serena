@@ -11,9 +11,9 @@
 
 #include <inttypes.h>
 #include <stdnoreturn.h>
+#include <kpi/_unistd.h>
 #include <sys/errno.h>
 #include <sys/types.h>
-#include <sys/_unistd.h>
 
 __CPP_BEGIN
 
