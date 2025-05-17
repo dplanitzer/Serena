@@ -11,7 +11,7 @@
 
 #include <_cmndef.h>
 #include <_null.h>
-#include <machine/abi/_size.h>
+#include <_size.h>
 #include <kpi/_time.h>
 
 __CPP_BEGIN

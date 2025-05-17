@@ -9,7 +9,7 @@
 #ifndef __SYS_SIZE_H
 #define __SYS_SIZE_H 1
 
-#include <machine/abi/_dmdef.h>
+#include <machine/_dmdef.h>
 
 typedef __size_t size_t;
 

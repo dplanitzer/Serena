@@ -9,7 +9,7 @@
 #ifndef _FLOAT_H
 #define _FLOAT_H 1
 
-#include <machine/abi/_dmdef.h>
+#include <machine/_dmdef.h>
 
 #define DECIMAL_DIG 17
 

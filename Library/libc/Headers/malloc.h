@@ -10,7 +10,7 @@
 #define _MALLOC_H 1
 
 #include <_cmndef.h>
-#include <machine/abi/_size.h>
+#include <_size.h>
 
 __CPP_BEGIN
 

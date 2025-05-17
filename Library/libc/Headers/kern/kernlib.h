@@ -9,7 +9,7 @@
 #ifndef _KERN_KERNLIB_H
 #define _KERN_KERNLIB_H 1
 
-#include <machine/abi/_ssize.h>
+#include <_ssize.h>
 #include <_cmndef.h>
 #include <_math.h>
 #include <_offsetof.h>

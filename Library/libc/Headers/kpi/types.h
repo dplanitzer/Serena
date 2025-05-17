@@ -9,9 +9,9 @@
 #ifndef _KPI_TYPES_H
 #define _KPI_TYPES_H 1
 
-#include <machine/abi/_off.h>
-#include <machine/abi/_size.h>
-#include <machine/abi/_ssize.h>
+#include <_off.h>
+#include <_size.h>
+#include <_ssize.h>
 #include <kpi/_time.h>
 
 

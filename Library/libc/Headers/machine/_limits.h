@@ -9,7 +9,7 @@
 #ifndef __ABI_LIMITS_H
 #define __ABI_LIMITS_H 1
 
-#include <machine/abi/_dmdef.h>
+#include <machine/_dmdef.h>
 
 #define BOOL_WIDTH  8
 

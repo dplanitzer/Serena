@@ -10,7 +10,7 @@
 #define __ABI_INTTYPES_H 1
 
 #include <_cmndef.h>
-#include <machine/abi/_dmdef.h>
+#include <machine/_dmdef.h>
 
 #define INT8_WIDTH 8
 #define INT16_WIDTH 16

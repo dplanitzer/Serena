@@ -11,8 +11,8 @@
 
 #include <_cmndef.h>
 #include <_null.h>
-#include <machine/abi/_size.h>
-#include <machine/abi/_ssize.h>
+#include <_size.h>
+#include <_ssize.h>
 #include <kpi/_errno.h>
 #include <kpi/syslimits.h>
 #include <stdarg.h>

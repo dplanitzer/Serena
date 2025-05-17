@@ -9,6 +9,6 @@
 #ifndef _KERN_FLOATTYPES_H
 #define _KERN_FLOATTYPES_H 1
 
-#include <machine/abi/_floattypes.h>
+#include <machine/_floattypes.h>
 
 #endif /* _KERN_FLOATTYPES_H */
