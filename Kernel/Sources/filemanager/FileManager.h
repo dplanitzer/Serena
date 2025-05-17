@@ -12,7 +12,7 @@
 #include <kobj/Object.h>
 #include <kern/fs.h>
 #include <kern/stat.h>
-#include <kern/uid.h>
+#include <kpi/uid.h>
 #ifndef __DISKIMAGE__
 #include <sys/mount.h>
 #endif

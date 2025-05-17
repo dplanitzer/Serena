@@ -11,7 +11,7 @@
 
 #include <filesystem/IOChannel.h>
 #include <filesystem/Inode.h>
-#include <kern/uid.h>
+#include <kpi/uid.h>
 
 
 open_class(FileChannel, IOChannel,

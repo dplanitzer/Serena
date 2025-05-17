@@ -9,13 +9,6 @@
 #ifndef _SYS_UID_H
 #define _SYS_UID_H 1
 
-enum {
-    kUserId_Root = 0,
-};
-
-
-enum {
-    kGroupId_Root = 0
-};
+#include <kpi/uid.h>
 
 #endif /* _SYS_UID_H */

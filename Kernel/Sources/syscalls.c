@@ -17,7 +17,7 @@
 #include <kern/fs.h>
 #include <kern/limits.h>
 #include <kern/timespec.h>
-#include <kern/uid.h>
+#include <kpi/uid.h>
 
 
 typedef intptr_t (*syscall_func_t)(void* _Nonnull p, void* _Nonnull);

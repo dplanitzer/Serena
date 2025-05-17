@@ -1,6 +1,6 @@
 //
-//  _syslimits.h
-//  libsystem
+//  kern/_syslimits.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 9/15/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.

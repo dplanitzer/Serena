@@ -24,7 +24,7 @@ typedef uint32_t CatalogId;
 #define kCatalogId_None 0
 #endif
 #include <kern/fs.h>
-#include <kern/uid.h>
+#include <kpi/uid.h>
 
 
 // Can be used by filesystem subclasses to temporarily store a hint where a new

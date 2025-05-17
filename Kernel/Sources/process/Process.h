@@ -12,7 +12,7 @@
 #include <kern/types.h>
 #include <kobj/Object.h>
 #include <kern/stat.h>
-#include <kern/uid.h>
+#include <kpi/uid.h>
 #include <sys/mount.h>
 #include <sys/proc.h>
 #include <sys/spawn.h>

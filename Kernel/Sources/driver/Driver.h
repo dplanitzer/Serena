@@ -13,7 +13,7 @@
 #include <klib/List.h>
 #include <kobj/Object.h>
 #include <kern/stat.h>
-#include <kern/uid.h>
+#include <kpi/uid.h>
 #include <Catalog.h>
 
 typedef enum DriverOptions {
