@@ -10,7 +10,9 @@
 #include <dispatcher/VirtualProcessor.h>
 #include <log/Log.h>
 #include <kern/kalloc.h>
+#include <kern/limits.h>
 #include <kern/string.h>
+#include <kern/timespec.h>
 
 
 DiskCacheRef _Nonnull  gDiskCache;

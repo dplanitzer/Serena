@@ -13,7 +13,9 @@
 #include <hal/Platform.h>
 #include <log/Log.h>
 #include <kern/kalloc.h>
+#include <kern/limits.h>
 #include <kern/string.h>
+#include <kern/timespec.h>
 
 
 // Initializes an execution stack struct. The execution stack is empty by default

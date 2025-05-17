@@ -7,6 +7,7 @@
 //
 
 #include "DiskCachePriv.h"
+#include <kern/timespec.h>
 
 // Define to force all writes to be synchronous
 //#define __FORCE_WRITES_SYNC 1

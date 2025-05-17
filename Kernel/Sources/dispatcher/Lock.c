@@ -8,6 +8,8 @@
 
 #include "Lock.h"
 #include "VirtualProcessorScheduler.h"
+#include <kern/limits.h>
+#include <kern/timespec.h>
 
 
 void Lock_Init(Lock* _Nonnull self)

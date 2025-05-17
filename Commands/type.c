@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/errno.h>
+#include <sys/limits.h>
 #include <sys/types.h>
 
 #if SIZE_WIDTH == 32

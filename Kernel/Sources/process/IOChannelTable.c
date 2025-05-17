@@ -8,6 +8,7 @@
 
 #include "IOChannelTable.h"
 #include <kern/kalloc.h>
+#include <kern/limits.h>
 
 
 enum {

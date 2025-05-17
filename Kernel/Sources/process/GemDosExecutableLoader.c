@@ -12,6 +12,7 @@
 #include <hal/Platform.h>
 #include <log/Log.h>
 #include <kern/kernlib.h>
+#include <kern/limits.h>
 #include <kern/string.h>
 
 

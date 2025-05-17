@@ -14,6 +14,7 @@
 #include <hal/InterruptController.h>
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
+#include <kern/timespec.h>
 
 
 #define MAX_FLOPPY_DISK_DRIVES  4

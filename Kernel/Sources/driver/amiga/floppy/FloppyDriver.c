@@ -14,6 +14,7 @@
 #include <log/Log.h>
 #include <kern/kalloc.h>
 #include <kern/string.h>
+#include <kern/timespec.h>
 #include "mfm.h"
 
 //#define TRACE_STATE 1

@@ -13,14 +13,11 @@
 #include <machine/abi/_off.h>
 #include <machine/abi/_size.h>
 #include <machine/abi/_ssize.h>
-#include <_offsetof.h>
-#include <kern/_time.h>
+#include <kpi/_time.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdnoreturn.h>
 #include <sys/types.h>
-#include <sys/timespec.h>
 
 __CPP_BEGIN
 

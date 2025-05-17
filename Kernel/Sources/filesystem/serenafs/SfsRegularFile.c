@@ -9,6 +9,7 @@
 #include "SfsRegularFile.h"
 #include "SerenaFSPriv.h"
 #include <filesystem/FileChannel.h>
+#include <kern/limits.h>
 #include <kern/string.h>
 
 

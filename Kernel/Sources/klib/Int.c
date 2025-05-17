@@ -9,6 +9,7 @@
 #include <kern/errno.h>
 #include <kern/types.h>
 #include <kern/kernlib.h>
+#include <kern/limits.h>
 
 extern int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder);
 

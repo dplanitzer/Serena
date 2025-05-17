@@ -11,6 +11,7 @@
 #include <filesystem/DirectoryChannel.h>
 #include <filesystem/FSUtilities.h>
 #include <kern/endian.h>
+#include <kern/limits.h>
 #include <kern/string.h>
 
 

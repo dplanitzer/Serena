@@ -156,18 +156,6 @@ extern char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char*
 
 extern int _atoi(const char *str, char **str_end, int base);
 
-
-inline struct timespec timespec_from(time_t seconds, long nanoseconds) {
-    struct timespec ts;
-    ts.tv_sec = seconds;
-    ts.tv_nsec = nanoseconds;
-    return ts;
-}
-
-extern const struct timespec    TIMESPEC_ZERO;
-extern const struct timespec    TIMESPEC_INF;
-extern const struct timespec    TIMESPEC_NEGINF;
-
 __CPP_END
 
 #endif /* _KERN_KERNLIB_H */

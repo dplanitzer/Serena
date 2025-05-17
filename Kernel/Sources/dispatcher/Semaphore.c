@@ -8,6 +8,7 @@
 
 #include "Semaphore.h"
 #include "VirtualProcessorScheduler.h"
+#include <kern/limits.h>
 
 
 // Initializes a new semaphore with 'value' permits

@@ -16,6 +16,7 @@
 #include <filesystem/serenafs/SerenaFS.h>
 #include <klib/List.h>
 #include <kern/kalloc.h>
+#include <kern/timespec.h>
 
 
 typedef struct fsentry {

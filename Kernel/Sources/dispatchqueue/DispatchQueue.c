@@ -10,6 +10,7 @@
 #include <hal/MonotonicClock.h>
 #include <kern/kalloc.h>
 #include <kern/string.h>
+#include <kern/timespec.h>
 
 
 errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue)

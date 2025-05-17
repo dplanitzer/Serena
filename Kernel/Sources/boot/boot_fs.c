@@ -16,6 +16,7 @@
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/IOChannel.h>
 #include <hal/Platform.h>
+#include <kern/timespec.h>
 #include <Catalog.h>
 #include "boot_screen.h"
 

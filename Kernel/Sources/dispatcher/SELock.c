@@ -8,6 +8,7 @@
 
 #include "SELock.h"
 #include "VirtualProcessorScheduler.h"
+#include <kern/timespec.h>
 
 
 // Initializes a new shared-exclusive lock.

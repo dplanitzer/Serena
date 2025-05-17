@@ -11,6 +11,7 @@
 #include <dispatcher/Lock.h>
 #include <klib/RingBuffer.h>
 #include <kern/stat.h>
+#include <kern/timespec.h>
 
 
 final_class_ivars(Pipe, Object,

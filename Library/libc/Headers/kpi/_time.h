@@ -1,18 +1,13 @@
 //
-//  time.h
-//  libsystem
+//  kpi/_time.h
+//  libc
 //
 //  Created by Dietmar Planitzer on 2/5/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_TIME_H
-#define _SYS_TIME_H 1
-
-#include <kern/_cmndef.h>
-#include <machine/abi/_size.h>
-
-__CPP_BEGIN
+#ifndef _KPI_TIME_H
+#define _KPI_TIME_H 1
 
 #ifdef _POSIX_SOURCE
 // Type to identify a clock
@@ -36,6 +31,4 @@ typedef long mseconds_t;
 // Microseconds
 typedef long useconds_t;
 
-__CPP_END
-
-#endif /* _SYS_TIME_H */
+#endif /* _KPI_TIME_H */

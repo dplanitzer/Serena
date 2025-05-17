@@ -12,6 +12,8 @@
 #include "FileChannel.h"
 #include "FSChannel.h"
 #include <klib/Hash.h>
+#include <kern/timespec.h>
+
 
 #define IN_CACHED_HASH_CHAINS_COUNT 16
 #define IN_CACHED_HASH_CHAINS_MASK  (IN_CACHED_HASH_CHAINS_COUNT - 1)

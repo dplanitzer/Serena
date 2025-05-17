@@ -7,6 +7,7 @@
 //
 
 #include "ProcessPriv.h"
+#include <kern/limits.h>
 
 
 errno_t Process_CloseChannel(ProcessRef _Nonnull self, int ioc)

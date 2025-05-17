@@ -11,6 +11,7 @@
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
 #include <log/Log.h>
+#include <kern/timespec.h>
 
 
 extern void VirtualProcessorScheduler_SwitchContext(void);

@@ -12,11 +12,8 @@
 #include <machine/abi/_off.h>
 #include <machine/abi/_size.h>
 #include <machine/abi/_ssize.h>
-#include <machine/abi/_offlimits.h>
-#include <machine/abi/_sizelimits.h>
-#include <machine/abi/_ssizelimits.h>
 #include <kern/_cmndef.h>
-#include <kern/_time.h>
+#include <kpi/_time.h>
 
 __CPP_BEGIN
 

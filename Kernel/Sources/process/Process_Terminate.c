@@ -10,6 +10,7 @@
 #include "ProcessManager.h"
 #include <log/Log.h>
 #include <kern/kalloc.h>
+#include <kern/timespec.h>
 
 
 // Frees all tombstones

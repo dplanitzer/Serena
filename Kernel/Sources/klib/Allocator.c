@@ -9,6 +9,7 @@
 #include "Allocator.h"
 #include <hal/Platform.h>
 #include <kern/kernlib.h>
+#include <kern/limits.h>
 #include <kern/string.h>
 #include <log/Log.h>
 

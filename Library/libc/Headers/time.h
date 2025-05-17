@@ -12,7 +12,7 @@
 #include <kern/_cmndef.h>
 #include <_null.h>
 #include <machine/abi/_size.h>
-#include <kern/_time.h>
+#include <kpi/_time.h>
 
 __CPP_BEGIN
 

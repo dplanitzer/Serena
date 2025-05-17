@@ -8,7 +8,7 @@
 
 #include "ConditionVariable.h"
 #include "VirtualProcessorScheduler.h"
-
+#include <kern/limits.h>
 
 // Initializes a new condition variable.
 void ConditionVariable_Init(ConditionVariable* _Nonnull pCondVar)

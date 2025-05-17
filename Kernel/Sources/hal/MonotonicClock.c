@@ -11,6 +11,8 @@
 #include <hal/Platform.h>
 #include <hal/SystemDescription.h>
 #include <kern/kernlib.h>
+#include <kern/timespec.h>
+
 
 static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock);
 

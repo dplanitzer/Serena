@@ -9,6 +9,7 @@
 #ifndef Platform_h
 #define Platform_h
 
+#include <stdnoreturn.h>
 #include <kern/types.h>
 
 //
