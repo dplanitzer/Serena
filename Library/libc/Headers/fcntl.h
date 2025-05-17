@@ -39,16 +39,10 @@ extern errno_t creat(const char* _Nonnull path, unsigned int mode, FilePermissio
 // @Concurrency: Safe
 extern errno_t open(const char* _Nonnull path, unsigned int mode, int* _Nonnull ioc);
 
-
-// Returns the type of the I/O channel. See the IOChannelType enumeration.
+// Performs an operation on the given descriptor. The operation is performed on
+// the descriptor itself rather than the underlying resource.
 // @Concurrency: Safe
-extern IOChannelType fgettype(int ioc);
-
-// Returns the mode with which the I/O channel was originally opened. The exact
-// meaning of mode depends on the I/O channel type. Ie see open() for the
-// file specific modes.
-// @Concurrency: Safe
-extern unsigned int fgetmode(int ioc);
+extern int fcntl(int fd, int cmd, ...);
 
 
 // Invokes a I/O channel specific method on the I/O channel 'ioc'.

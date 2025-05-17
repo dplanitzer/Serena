@@ -12,7 +12,7 @@
 
 errno_t ConsoleChannel_Create(ConsoleRef _Nonnull pConsole, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)
 {
-    return DriverChannel_Create(class(ConsoleChannel), 0, kIOChannelType_Terminal, mode, (DriverRef)pConsole, pOutSelf);
+    return DriverChannel_Create(class(ConsoleChannel), 0, SEO_FT_TERMINAL, mode, (DriverRef)pConsole, pOutSelf);
 }
 
 

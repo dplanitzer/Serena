@@ -67,5 +67,6 @@ SC_coninit                  equ 54
 SC_fsgetdisk                equ 55
 SC_vcpuerrno                equ 56
 SC_chown                    equ 57
+SC_fcntl                    equ 58
 
         endif   ; __SYSCALL_I

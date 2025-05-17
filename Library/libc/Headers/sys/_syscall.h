@@ -73,6 +73,7 @@ enum {
     SC_fsgetdisk,           // errno_t fsgetdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
     SC_vcpuerrno,           // errno_t* _Nonnull __vcpuerrno(void)
     SC_chown,               // errno_t chown(const char* _Nonnull path, uid_t uid, gid_t gid)
+    SC_fcntl,               // int fcntl(int fd, int cmd, int* _Nonnull pResult, ...)
 };
 
 

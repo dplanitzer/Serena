@@ -20,7 +20,7 @@ errno_t FileChannel_Create(InodeRef _Nonnull pNode, unsigned int mode, IOChannel
     decl_try_err();
     FileChannelRef self;
 
-    try(IOChannel_Create(&kFileChannelClass, kIOChannel_Seekable, kIOChannelType_File, mode, (IOChannelRef*)&self));
+    try(IOChannel_Create(&kFileChannelClass, kIOChannel_Seekable, SEO_FT_REGULAR, mode, (IOChannelRef*)&self));
     self->inode = Inode_Reacquire(pNode);
 
 catch:

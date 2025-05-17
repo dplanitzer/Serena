@@ -7,8 +7,8 @@
 //
 
 #include "Stream.h"
-#include <stdlib.h>
 #include <fcntl.h>
+#include <stdlib.h>
 
 
 static __IOChannel_FILE _StdinObj;
@@ -36,21 +36,21 @@ void __stdio_init(void)
     _Stdout = (FILE*)&_StdoutObj;
     _Stderr = (FILE*)&_StderrObj;
 
-    if (fgetmode(STDIN_FILENO) != 0) {
+    if (fcntl(STDIN_FILENO, F_GETFL) != -1) {
         __fdopen_init(&_StdinObj, false, STDIN_FILENO, __kStreamMode_Read);
     }
     else {
         __fopen_null_init((FILE*)&_StdinObj, false, __kStreamMode_Read);
     }
 
-    if (fgetmode(STDOUT_FILENO) != 0) {
+    if (fcntl(STDOUT_FILENO, F_GETFL) != -1) {
         __fdopen_init(&_StdoutObj, false, STDOUT_FILENO, __kStreamMode_Write);
     }
     else {
         __fopen_null_init((FILE*)&_StdoutObj, false, __kStreamMode_Write);
     }
 
-    if (fgetmode(STDERR_FILENO) != 0) {
+    if (fcntl(STDERR_FILENO, F_GETFL) != -1) {
         __fdopen_init(&_StderrObj, false, STDERR_FILENO, __kStreamMode_Write);
     }
     else {

@@ -16,7 +16,7 @@ errno_t DriverChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, i
     decl_try_err();
     DriverChannelRef self = NULL;
 
-    if ((err = IOChannel_Create(pClass, options, kIOChannelType_Driver, mode, (IOChannelRef*)&self)) == EOK) {
+    if ((err = IOChannel_Create(pClass, options, SEO_FT_DRIVER, mode, (IOChannelRef*)&self)) == EOK) {
         Lock_Init(&self->lock);
         self->driver = Object_RetainAs(pDriver, Driver);
     }
@@ -50,12 +50,7 @@ void DriverChannel_unlock(DriverChannelRef _Nonnull _Locked self)
 
 errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull _Locked self, int cmd, va_list ap)
 {
-    if (IsIOChannelCommand(cmd)) {
-        return super_n(ioctl, IOChannel, DriverChannel, self, cmd, ap);
-    }
-    else {
-        return Driver_vIoctl(self->driver, (IOChannelRef)self, cmd, ap);
-    }
+    return Driver_vIoctl(self->driver, (IOChannelRef)self, cmd, ap);
 }
 
 errno_t DriverChannel_read(DriverChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

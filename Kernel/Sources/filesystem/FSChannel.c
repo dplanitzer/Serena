@@ -16,7 +16,7 @@ errno_t FSChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int c
     decl_try_err();
     FSChannelRef self = NULL;
 
-    if ((err = IOChannel_Create(pClass, options, kIOChannelType_Driver, mode, (IOChannelRef*)&self)) == EOK) {
+    if ((err = IOChannel_Create(pClass, options, SEO_FT_DRIVER, mode, (IOChannelRef*)&self)) == EOK) {
         self->fs = Object_RetainAs(fs, Filesystem);
     }
 
@@ -38,12 +38,7 @@ errno_t FSChannel_finalize(FSChannelRef _Nonnull self)
 
 errno_t FSChannel_ioctl(FSChannelRef _Nonnull _Locked self, int cmd, va_list ap)
 {
-    if (IsIOChannelCommand(cmd)) {
-        return super_n(ioctl, IOChannel, FSChannel, self, cmd, ap);
-    }
-    else {
-        return Filesystem_vIoctl(self->fs, (IOChannelRef)self, cmd, ap);
-    }
+    return Filesystem_vIoctl(self->fs, (IOChannelRef)self, cmd, ap);
 }
 
 errno_t FSChannel_read(FSChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

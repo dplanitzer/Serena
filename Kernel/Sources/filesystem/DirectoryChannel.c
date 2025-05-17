@@ -20,7 +20,7 @@ errno_t DirectoryChannel_Create(InodeRef _Nonnull pDir, IOChannelRef _Nullable *
     decl_try_err();
     DirectoryChannelRef self;
 
-    try(IOChannel_Create(&kDirectoryChannelClass, kIOChannel_Seekable, kIOChannelType_Directory, O_RDONLY, (IOChannelRef*)&self));
+    try(IOChannel_Create(&kDirectoryChannelClass, kIOChannel_Seekable, SEO_FT_DIRECTORY, O_RDONLY, (IOChannelRef*)&self));
     self->inode = Inode_Reacquire(pDir);
 
 catch:

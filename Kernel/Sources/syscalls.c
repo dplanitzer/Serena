@@ -30,7 +30,7 @@ typedef struct syscall {
 #define SC_ERRNO    1   /* System call returns an error that should be stored in vcpu->errno */
 #define SC_VCPU     2   /* System call expects a vcpu_t* rather than a proc_t* */
 
-#define SYSCALL_COUNT   58
+#define SYSCALL_COUNT   59
 static const syscall_t gSystemCallTable[SYSCALL_COUNT];
 
 
@@ -217,9 +217,14 @@ SYSCALL_2(ftruncate, int ioc, off_t length)
     return Process_TruncateFile_ioc((ProcessRef)p, pa->ioc, pa->length);
 }
 
-SYSCALL_3(ioctl, int ioc, int cmd, va_list _Nullable ap)
+SYSCALL_4(fcntl, int fd, int cmd, int* _Nonnull pResult, va_list _Nullable ap)
 {
-    return Process_Iocall((ProcessRef)p, pa->ioc, pa->cmd, pa->ap);
+    return Process_Fcntl((ProcessRef)p, pa->fd, pa->cmd, pa->pResult, pa->ap);
+}
+
+SYSCALL_3(ioctl, int fd, int cmd, va_list _Nullable ap)
+{
+    return Process_Iocall((ProcessRef)p, pa->fd, pa->cmd, pa->ap);
 }
 
 SYSCALL_2(access, const char* _Nonnull path, uint32_t mode)
@@ -520,5 +525,6 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(coninit, SC_ERRNO),
     SYSCALL_ENTRY(fsgetdisk, SC_ERRNO),
     SYSCALL_ENTRY(vcpuerr, SC_VCPU),
-    SYSCALL_ENTRY(chown, SC_ERRNO)
+    SYSCALL_ENTRY(chown, SC_ERRNO),
+    SYSCALL_ENTRY(fcntl, SC_ERRNO)
 };

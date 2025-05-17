@@ -151,7 +151,7 @@ void main_closure(int argc, char *argv[])
 
     // Just exit if the console channels already exist, which means that the
     // user is already logged in
-    if (fgetmode(STDIN_FILENO) != 0) {
+    if (fcntl(STDIN_FILENO, F_GETFL) != -1) {
         exit(EXIT_FAILURE);
         /* NOT REACHED */
     }

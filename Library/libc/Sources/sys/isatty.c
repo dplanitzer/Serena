@@ -12,8 +12,5 @@
 
 int isatty(int fd)
 {
-    long type;
-    const errno_t err = fiocall(fd, kIOChannelCommand_GetType, &type);
-
-    return (err == 0 && type == kIOChannelType_Terminal) ? 1 : 0;
+    return (fcntl(fd, F_GETTYPE) == SEO_FT_TERMINAL) ? 1 : 0;
 }

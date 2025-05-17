@@ -10,22 +10,6 @@
 #include <fcntl.h>
 #include <sys/_syscall.h>
 
-IOChannelType fgettype(int fd)
-{
-    long type;
-
-    (void) fiocall(fd, kIOChannelCommand_GetType, &type);
-    return type;
-}
-
-unsigned int fgetmode(int fd)
-{
-    unsigned int mode;
-
-    const errno_t err = fiocall(fd, kIOChannelCommand_GetMode, &mode);
-    return (err == 0) ? mode : 0;
-}
-
 errno_t fiocall(int fd, int cmd, ...)
 {
     errno_t err;

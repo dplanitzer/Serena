@@ -157,16 +157,16 @@ extern errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull self, ssize_t co
 // I/O Channels
 //
 
-extern errno_t Process_CloseChannel(ProcessRef _Nonnull self, int ioc);
+extern errno_t Process_CloseChannel(ProcessRef _Nonnull self, int fd);
 
-extern errno_t Process_ReadChannel(ProcessRef _Nonnull self, int ioc, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead);
+extern errno_t Process_ReadChannel(ProcessRef _Nonnull self, int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead);
 
-extern errno_t Process_WriteChannel(ProcessRef _Nonnull self, int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nBytesWritten);
+extern errno_t Process_WriteChannel(ProcessRef _Nonnull self, int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nBytesWritten);
 
-extern errno_t Process_SeekChannel(ProcessRef _Nonnull self, int ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
+extern errno_t Process_SeekChannel(ProcessRef _Nonnull self, int fd, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
 
-// Sends a I/O Channel or I/O Resource defined command to the I/O Channel or
-// resource identified by the given descriptor.
+extern int Process_Fcntl(ProcessRef _Nonnull self, int fd, int cmd, int* _Nonnull pResult, va_list ap);
+
 extern errno_t Process_Iocall(ProcessRef _Nonnull self, int fd, int cmd, va_list ap);
 
 

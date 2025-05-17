@@ -27,7 +27,7 @@ errno_t IOChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int c
         Lock_Init(&self->countLock);
         self->ownerCount = 1;
         self->useCount = 0;
-        self->mode = mode & (O_RDWR | O_APPEND | O_NONBLOCK);
+        self->mode = mode & (O_ACCMODE | O_FILESTATUS);
         self->options = options;
         self->channelType = channelType;
     }
@@ -249,6 +249,55 @@ off_t IOChannel_getSeekableRange(IOChannelRef _Nonnull _Locked self)
 }
 
 
+errno_t IOChannel_vFcntl(IOChannelRef _Nonnull self, int cmd, int* _Nonnull pResult, va_list ap)
+{
+    decl_try_err();
+
+    IOChannel_Lock(self);
+    switch (cmd) {
+        case F_GETFD:
+            *pResult = 0;
+            break;
+
+        case F_GETFL:
+            *pResult = self->mode;
+            break;
+
+        case F_SETFL: {
+            const int flags = va_arg(ap, int);
+
+            self->mode = (flags & O_FILESTATUS);
+            break;
+        }
+
+        case F_UPDTFL: {
+            const int setOrClear = va_arg(ap, int);
+            const int fl = va_arg(ap, int) & O_FILESTATUS;
+
+            if (setOrClear) {
+                self->mode |= fl;
+            }
+            else {
+                self->mode &= ~fl;
+            }
+            break;
+        }
+
+        case F_GETTYPE:
+            *pResult = self->channelType;
+            break;
+
+        default:
+            *pResult = -1;
+            err = EINVAL;
+            break;
+    }
+    IOChannel_Unlock(self);
+
+    return err;
+}
+
+
 errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...)
 {
     decl_try_err();
@@ -274,31 +323,7 @@ errno_t IOChannel_vIoctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
 
 errno_t IOChannel_ioctl(IOChannelRef _Nonnull _Locked self, int cmd, va_list ap)
 {
-    switch (cmd) {
-        case kIOChannelCommand_GetType:
-            *((int*) va_arg(ap, int*)) = self->channelType;
-            return EOK;
-
-        case kIOChannelCommand_GetMode:
-            *((unsigned int*) va_arg(ap, unsigned int*)) = self->mode;
-            return EOK;
-
-        case kIOChannelCommand_SetMode: {
-            int setOrClear = va_arg(ap, int);
-            unsigned int newMode = va_arg(ap, unsigned int) & (O_APPEND | O_NONBLOCK);
-
-            if (setOrClear) {
-                self->mode |= newMode;
-            }
-            else {
-                self->mode &= ~newMode;
-            }
-            return EOK;
-        }
-
-        default:
-            return ENOTIOCTLCMD;
-    }
+    return ENOTIOCTLCMD;
 }
 
 

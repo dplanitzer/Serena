@@ -8,22 +8,22 @@
 
 #include "Stream.h"
 #include <assert.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 
 
-static errno_t __ioc_read(__IOChannel_FILE_Vars* _Nonnull self, void* pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+static errno_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     return read(self->ioc, pBuffer, nBytesToRead, pOutBytesRead);
 }
 
-static errno_t __ioc_write(__IOChannel_FILE_Vars* _Nonnull self, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+static errno_t __fd_write(__IOChannel_FILE_Vars* _Nonnull self, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     return write(self->ioc, pBytes, nBytesToWrite, pOutBytesWritten);
 }
 
-static errno_t __ioc_seek(__IOChannel_FILE_Vars* _Nonnull self, long long offset, long long *pOutOldOffset, int whence)
+static errno_t __fd_seek(__IOChannel_FILE_Vars* _Nonnull self, long long offset, long long *pOutOldOffset, int whence)
 {
     const off_t r = lseek(self->ioc, offset, whence);
 
@@ -36,42 +36,42 @@ static errno_t __ioc_seek(__IOChannel_FILE_Vars* _Nonnull self, long long offset
     }
 }
 
-static errno_t __ioc_close(__IOChannel_FILE_Vars* _Nonnull self)
+static errno_t __fd_close(__IOChannel_FILE_Vars* _Nonnull self)
 {
     return (close(self->ioc) == 0) ? 0 : errno;
 }
 
-static const FILE_Callbacks __FILE_ioc_callbacks = {
-    (FILE_Read)__ioc_read,
-    (FILE_Write)__ioc_write,
-    (FILE_Seek)__ioc_seek,
-    (FILE_Close)__ioc_close
+static const FILE_Callbacks __FILE_fd_callbacks = {
+    (FILE_Read)__fd_read,
+    (FILE_Write)__fd_write,
+    (FILE_Seek)__fd_seek,
+    (FILE_Close)__fd_close
 };
 
 
 
-errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int ioc, __FILE_Mode sm)
+errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int fd, __FILE_Mode sm)
 {
-    // The I/O channel must be valid and open
-    const int iocmode = fgetmode(ioc);
-    if (iocmode == 0) {
+    // The descriptor must be valid and open
+    const int fl = fcntl(fd, F_GETFL);
+    if (fl == -1) {
         return EBADF;
     }
 
-    // Make sure that 'mode' lines up with what the I/O channel can actually
+    // Make sure that 'mode' lines up with what the descriptor can actually
     // do
-    if (((sm & __kStreamMode_Read) != 0) && ((iocmode & O_RDONLY) == 0)) {
+    if (((sm & __kStreamMode_Read) != 0) && ((fl & O_RDONLY) == 0)) {
         return EINVAL;
     }
-    if (((sm & __kStreamMode_Write) != 0) && ((iocmode & O_WRONLY) == 0)) {
+    if (((sm & __kStreamMode_Write) != 0) && ((fl & O_WRONLY) == 0)) {
         return EINVAL;
     }
-    if (((sm & __kStreamMode_Append) != 0) && ((iocmode & O_APPEND) == 0)) {
+    if (((sm & __kStreamMode_Append) != 0) && ((fl & O_APPEND) == 0)) {
         return EINVAL;
     }
 
-    self->v.ioc = ioc;
-    return __fopen_init((FILE*)self, bFreeOnClose, &self->v, &__FILE_ioc_callbacks, sm);
+    self->v.ioc = fd;
+    return __fopen_init((FILE*)self, bFreeOnClose, &self->v, &__FILE_fd_callbacks, sm);
 }
 
 
@@ -107,7 +107,7 @@ errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose
     }
     
     self->v.ioc = ioc;
-    try(__fopen_init((FILE*)self, bFreeOnClose, &self->v, &__FILE_ioc_callbacks, sm));
+    try(__fopen_init((FILE*)self, bFreeOnClose, &self->v, &__FILE_fd_callbacks, sm));
 
 
     // Make sure that the return value of ftell() issued before the first write
@@ -127,5 +127,5 @@ catch:
 
 int fileno(FILE *s)
 {
-    return (s->cb.read == (FILE_Read)__ioc_read) ? ((__IOChannel_FILE*)s)->v.ioc : EOF;
+    return (s->cb.read == (FILE_Read)__fd_read) ? ((__IOChannel_FILE*)s)->v.ioc : EOF;
 }

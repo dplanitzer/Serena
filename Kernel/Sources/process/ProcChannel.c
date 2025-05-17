@@ -16,7 +16,7 @@ errno_t ProcChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int
     decl_try_err();
     ProcChannelRef self = NULL;
 
-    if ((err = IOChannel_Create(pClass, options, kIOChannelType_Driver, mode, (IOChannelRef*)&self)) == EOK) {
+    if ((err = IOChannel_Create(pClass, options, channelType, mode, (IOChannelRef*)&self)) == EOK) {
         self->proc = Object_RetainAs(proc, Process);
     }
 
@@ -38,12 +38,7 @@ errno_t ProcChannel_finalize(ProcChannelRef _Nonnull self)
 
 errno_t ProcChannel_ioctl(ProcChannelRef _Nonnull _Locked self, int cmd, va_list ap)
 {
-    if (IsIOChannelCommand(cmd)) {
-        return super_n(ioctl, IOChannel, ProcChannel, self, cmd, ap);
-    }
-    else {
-        return Process_vIoctl(self->proc, (IOChannelRef)self, cmd, ap);
-    }
+    return Process_vIoctl(self->proc, (IOChannelRef)self, cmd, ap);
 }
 
 errno_t ProcChannel_read(ProcChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

@@ -13,7 +13,7 @@
 
 errno_t HIDChannel_Create(DriverRef _Nonnull pDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)
 {
-    return DriverChannel_Create(class(HIDChannel), 0, kIOChannelType_Driver, mode, pDriver, pOutSelf);
+    return DriverChannel_Create(class(HIDChannel), 0, SEO_FT_DRIVER, mode, pDriver, pOutSelf);
 }
 
 errno_t HIDChannel_GetNextEvent(IOChannelRef _Nonnull self, struct timespec timeout, HIDEvent* _Nonnull evt)
