@@ -11,25 +11,9 @@
 
 #include <kern/_cmndef.h>
 #include <sys/types.h>
+#include <kpi/mount.h>
 
 __CPP_BEGIN
-
-// Types of mountable objects
-#define kMount_Catalog  ".catalog"
-#define kMount_SeFS     "sefs"
-
-
-// Mountable catalogs
-#define kCatalogName_Drivers        "dev"
-#define kCatalogName_Filesystems    "fs"
-#define kCatalogName_Processes      "proc"
-
-
-enum {
-    kUnmount_Forced = 0x0001,   // Force the unmount even if there are still files open
-};
-typedef unsigned int UnmountOptions;
-
 
 // Mounts the object 'objectName' of type 'objectType' at the directory 'atDirPath'.
 // 'params' are optional mount parameters that are passed to the filesystem to

@@ -13,11 +13,11 @@
 #include <stdalign.h>
 #include <stddef.h>
 #include <assert.h>
-#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
+#include <sys/errno.h>
 #include <sys/proc.h>
 
 #define CPU_PAGE_SIZE   4096

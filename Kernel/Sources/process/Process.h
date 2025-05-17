@@ -12,12 +12,12 @@
 #include <stdarg.h>
 #include <kern/types.h>
 #include <kobj/Object.h>
-#include <kern/stat.h>
+#include <kpi/mount.h>
+#include <kpi/proc.h>
+#include <kpi/spawn.h>
+#include <kpi/stat.h>
 #include <kpi/uid.h>
-#include <sys/mount.h>
-#include <sys/proc.h>
-#include <sys/spawn.h>
-#include <sys/wait.h>
+#include <kpi/wait.h>
 
 final_class(Process, Object);
 

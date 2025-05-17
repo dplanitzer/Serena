@@ -11,7 +11,7 @@
 #include <string.h>
 #include <__globals.h>
 #include <__stddef.h>
-#include <sys/_kei.h>
+#include <kpi/kei.h>
 #include <sys/proc.h>
 
 extern void __kei_init(pargs_t* _Nonnull argsp);

@@ -1,25 +1,17 @@
 //
-//  kern/stat.h
+//  kpi/stat.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KERN_STAT_H
-#define _KERN_STAT_H 1
+#ifndef _KPI_STAT_H
+#define _KPI_STAT_H 1
 
-#include <kern/_cmndef.h>
 #include <kern/_syslimits.h>
 #include <kpi/_time.h>
-#ifdef __KERNEL__
-#include <kern/types.h>
-#else
-#include <stdint.h>
-#include <sys/types.h>
-#endif
-
-__CPP_BEGIN
+#include <kpi/types.h>
 
 #define PATH_MAX __PATH_MAX
 #define NAME_MAX __PATH_COMPONENT_MAX
@@ -34,8 +26,8 @@ __CPP_BEGIN
 #define S_IFLNK     5
 #define S_IFIFO     6
 
-typedef uint16_t    FilePermissions;
-typedef int8_t      FileType;
+typedef unsigned short  FilePermissions;
+typedef char            FileType;
 
 
 // File permissions. Every file and directory has 3 sets of permissions associated
@@ -140,15 +132,13 @@ enum ModifyFileInfo {
 };
 
 typedef struct fmutinfo {
-    uint32_t            modify;
+    unsigned int        modify;
     struct timespec     accessTime;
     struct timespec     modificationTime;
     uid_t               uid;
     gid_t               gid;
     FilePermissions     permissions;
-    uint16_t            permissionsModifyMask;  // Only modify permissions whose bit is set here
+    unsigned short      permissionsModifyMask;  // Only modify permissions whose bit is set here
 } fmutinfo_t;
 
-__CPP_END
-
-#endif /* _KERN_STAT_H */
+#endif /* _KPI_STAT_H */

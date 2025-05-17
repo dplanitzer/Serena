@@ -6,7 +6,8 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <sys/_kei.h>
+#include <kpi/kei.h>
+#include <sys/errno.h>
 #include <sys/proc.h>
 #include <stddef.h>
 

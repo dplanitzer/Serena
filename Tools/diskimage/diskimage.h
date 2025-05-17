@@ -15,7 +15,7 @@
 #include <stddef.h>
 #include <kern/errno.h>
 #include <kern/types.h>
-#include <kern/stat.h>
+#include <kpi/stat.h>
 #include <kpi/uid.h>
 #include "DiskImageFormat.h"
 

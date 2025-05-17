@@ -9,7 +9,7 @@
 #ifndef kei_h
 #define kei_h
 
-#include <sys/_kei.h>
+#include <kpi/kei.h>
 
 extern kei_func_t gKeiTable[];
 

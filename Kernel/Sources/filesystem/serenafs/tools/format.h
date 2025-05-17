@@ -13,7 +13,7 @@
 #ifdef __KERNEL__
 #include <kern/errno.h>
 #include <kern/types.h>
-#include <kern/stat.h>
+#include <kpi/stat.h>
 #else
 #include <sys/errno.h>
 #include <sys/types.h>

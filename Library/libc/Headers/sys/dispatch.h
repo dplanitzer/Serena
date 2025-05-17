@@ -12,45 +12,12 @@
 #include <kern/_cmndef.h>
 #include <stdint.h>
 #include <time.h>
-#include <sys/dispatch.h>
-#ifdef __KERNEL__
-#include <kern/errno.h>
-#else
 #include <sys/errno.h>
-#endif
+#include <kpi/dispatch.h>
 
 __CPP_BEGIN
 
-typedef void (*dispatch_func_t)(void* _Nullable arg);
-
 #define kDispatchQueue_Main 0
-
-
-// Quality of Service level. From highest to lowest.
-// kDispatchQoS_Realtime: kernel will minimize the scheduling latency. Realtime is always scheduled before anything else
-// kDispatchQoS_Idle: no guarantee with regards to schedule latency. Only scheduled if there is nothing to schedule for a DISPATCH_QOS_XXX > kDispatchQoS_Idle
-#define kDispatchQoS_Realtime       4
-#define kDispatchQoS_Interactive    3
-#define kDispatchQoS_Utility        2
-#define kDispatchQoS_Background     1
-#define kDispatchQoS_Idle           0
-
-#define kDispatchQoS_Count          5
-
-
-// Priorities per QoS level
-#define kDispatchPriority_Highest   5
-#define kDispatchPriority_Normal    0
-#define kDispatchPriority_Lowest   -6
-
-#define kDispatchPriority_Count     12
-
-
-// Private
-enum {
-    kDispatchOption_Sync = 1,       // Dispatch and then wait for completion
-    kDispatchOption_Coalesce = 2,   // Do not dispatch this request if a request with the same tag is already queued or currently executing
-};
 
 
 // Synchronously executes the given closure. The closure is executed as soon as

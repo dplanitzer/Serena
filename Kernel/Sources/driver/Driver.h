@@ -13,7 +13,7 @@
 #include <stdarg.h>
 #include <klib/List.h>
 #include <kobj/Object.h>
-#include <kern/stat.h>
+#include <kpi/stat.h>
 #include <kpi/uid.h>
 #include <Catalog.h>
 

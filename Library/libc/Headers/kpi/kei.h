@@ -1,17 +1,13 @@
 //
-//  sys/_kei.h
+//  kpi/kei.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 2/12/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __SYS_KEI_H
-#define __SYS_KEI_H 1
-
-#include <kern/_cmndef.h>
-
-__CPP_BEGIN
+#ifndef _KPI_KEI_H
+#define _KPI_KEI_H 1
 
 // The Kernel Express Interface
 enum {
@@ -31,6 +27,4 @@ enum {
 
 typedef void (*kei_func_t)(void);
 
-__CPP_END
-
-#endif /* __SYS_KEI_H */
+#endif /* _KPI_KEI_H */

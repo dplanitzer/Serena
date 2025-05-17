@@ -12,7 +12,7 @@
 #include <filesystem/serenafs/SerenaFS.h>
 #include <assert.h>
 #include <stdlib.h>
-#include <kern/stat.h>
+#include <kpi/stat.h>
 
 
 errno_t FSManager_Create(RamContainerRef _Nonnull fsContainer, FSManagerRef _Nullable * _Nonnull pOutSelf)
