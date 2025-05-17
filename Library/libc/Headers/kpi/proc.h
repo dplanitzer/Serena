@@ -10,7 +10,7 @@
 #define _KPI_PROC_H 1
 
 #include <kpi/kei.h>
-#include <kpi/fcntl.h>
+#include <kpi/ioctl.h>
 #include <kpi/stat.h>
 #include <kpi/types.h>
 

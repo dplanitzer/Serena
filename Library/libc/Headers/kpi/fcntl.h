@@ -57,7 +57,4 @@
 // int fcntl(int fd, F_GETTYPE)
 #define F_GETTYPE   4
 
-
-#define IOResourceCommand(__cmd) (__cmd)
-
 #endif /* _KPI_FCNTL_H */

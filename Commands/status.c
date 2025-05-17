@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/limits.h>
 #include <sys/proc.h>
 #include <sys/stat.h>
@@ -35,8 +36,8 @@ static errno_t show_proc(const char* _Nonnull pidStr)
     sprintf(buf, "/proc/%s", pidStr);
 
     try(open(buf, O_RDONLY, &fd));
-    try(fiocall(fd, kProcCommand_GetInfo, &info));
-    try(fiocall(fd, kProcCommand_GetName, buf, sizeof(buf)));
+    try(ioctl(fd, kProcCommand_GetInfo, &info));
+    try(ioctl(fd, kProcCommand_GetName, buf, sizeof(buf)));
 
     const char* lastPathComponent = strrchr(buf, '/');
     const char* pnam = (lastPathComponent) ? lastPathComponent + 1 : buf;

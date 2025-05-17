@@ -9,7 +9,7 @@
 #ifndef _KPI_DISK_H
 #define _KPI_DISK_H 1
 
-#include <kpi/driver.h>
+#include <kpi/ioctl.h>
 #include <kpi/types.h>
 #include <stdint.h>
 

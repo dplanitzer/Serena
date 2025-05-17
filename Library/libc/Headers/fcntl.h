@@ -44,11 +44,6 @@ extern errno_t open(const char* _Nonnull path, unsigned int mode, int* _Nonnull 
 // @Concurrency: Safe
 extern int fcntl(int fd, int cmd, ...);
 
-
-// Invokes a I/O channel specific method on the I/O channel 'ioc'.
-// @Concurrency: Safe
-extern errno_t fiocall(int ioc, int cmd, ...);
-
 __CPP_END
 
 #endif /* _FCNTL_H */

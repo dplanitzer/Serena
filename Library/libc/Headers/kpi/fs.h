@@ -10,7 +10,7 @@
 #define _KERN_FS_H 1
 
 #include <kpi/types.h>
-#include <kpi/fcntl.h>
+#include <kpi/ioctl.h>
 
 // Filesystem properties
 enum {

@@ -9,7 +9,7 @@
 #ifndef _KPI_HID_H
 #define _KPI_HID_H 1
 
-#include <kpi/driver.h>
+#include <kpi/ioctl.h>
 
 // Types of input drivers
 enum InputType {

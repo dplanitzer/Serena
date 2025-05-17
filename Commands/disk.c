@@ -20,6 +20,7 @@
 #include <sys/errno.h>
 #include <sys/mount.h>
 #include <sys/fs.h>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/uid.h>
 #include <filesystem/serenafs/tools/format.h>
@@ -117,7 +118,7 @@ static errno_t wipe_disk(int ioc, const diskinfo_t* _Nonnull info)
     while (sct < info->sectorCount && err == EOK) {
         printf("%u\n\033[1A", (unsigned)clusterCount);
         
-        err = fiocall(ioc, kDiskCommand_Format, data, byteCount);
+        err = ioctl(ioc, kDiskCommand_Format, data, byteCount);
         
         sct += info->frClusterSize;
         clusterCount++;
@@ -143,8 +144,8 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, 
     const int ioc = fileno(fp);
     setbuf(fp, NULL);
 
-    try(fiocall(ioc, kDiskCommand_SenseDisk));
-    try(fiocall(ioc, kDiskCommand_GetInfo, &info)); 
+    try(ioctl(ioc, kDiskCommand_SenseDisk));
+    try(ioctl(ioc, kDiskCommand_GetInfo, &info)); 
     if (!bQuick) {
         try(wipe_disk(ioc, &info));
         lseek(ioc, 0ll, SEEK_SET);
@@ -235,7 +236,7 @@ static errno_t print_reg_info(const fsinfo_t* _Nonnull info, int fd)
     char volLabel[64];
 
     try(fs_getdisk(info->fsid, diskName, sizeof(diskName)));
-    try(fiocall(fd, kFSCommand_GetLabel, volLabel, sizeof(volLabel)));
+    try(ioctl(fd, kFSCommand_GetLabel, volLabel, sizeof(volLabel)));
 
 
     if ((info->properties & kFSProperty_IsReadOnly) == kFSProperty_IsReadOnly) {
@@ -265,7 +266,7 @@ static errno_t cmd_info(const char* _Nonnull path)
     try(get_fsid(path, &fsid));
     sprintf(buf, "/fs/%u", fsid);
     try(open(buf, O_RDONLY, &fd));
-    try(fiocall(fd, kFSCommand_GetInfo, &info));
+    try(ioctl(fd, kFSCommand_GetInfo, &info));
 
     if ((info.properties & kFSProperty_IsCatalog) == kFSProperty_IsCatalog) {
         err = print_cat_info(&info, fd);
@@ -300,13 +301,13 @@ static errno_t cmd_geometry(const char* _Nonnull path)
     }
     if (finf.type == S_IFDEV) {
         try(open(path, O_RDONLY, &fd));
-        err = fiocall(fd, kDiskCommand_GetGeometry, &geom);
+        err = ioctl(fd, kDiskCommand_GetGeometry, &geom);
     }
     else {
         try(get_fsid(path, &fsid));
         sprintf(buf, "/fs/%u", fsid);
         try(open(buf, O_RDONLY, &fd));
-        err = fiocall(fd, kFSCommand_GetDiskGeometry, &geom);
+        err = ioctl(fd, kFSCommand_GetDiskGeometry, &geom);
 
         try(fs_getdisk(fsid, buf, sizeof(buf)));
         path = buf;
@@ -346,7 +347,7 @@ errno_t cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
 
     err = open(diskPath, O_RDONLY, &fd);
     if (err == EOK) {
-        err = fiocall(fd, kDiskCommand_SenseDisk);
+        err = ioctl(fd, kDiskCommand_SenseDisk);
         close(fd);
     }
     if (err == EOK) {

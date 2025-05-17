@@ -7,10 +7,11 @@
 //
 
 #include <stdarg.h>
-#include <fcntl.h>
+#include <sys/ioctl.h>
 #include <sys/_syscall.h>
 
-errno_t fiocall(int fd, int cmd, ...)
+
+errno_t ioctl(int fd, int cmd, ...)
 {
     errno_t err;
     va_list ap;

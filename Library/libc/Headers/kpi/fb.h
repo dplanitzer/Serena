@@ -10,7 +10,7 @@
 #define _KPI_FB_H 1
 
 #include <_cmndef.h>
-#include <kpi/driver.h>
+#include <kpi/ioctl.h>
 #include <kpi/types.h>
 
 // The pixel formats supported by framebuffers
