@@ -12,7 +12,7 @@
 #include <sys/_syscall.h>
 
 
-errno_t rewinddir(int ioc)
+errno_t rewinddir(DIR* _Nonnull dir)
 {
-    return (errno_t)_syscall(SC_lseek, ioc, (off_t)0ll, NULL, SEEK_SET);
+    return (errno_t)_syscall(SC_lseek, (int)dir - __DIR_BASE, (off_t)0ll, NULL, SEEK_SET);
 }

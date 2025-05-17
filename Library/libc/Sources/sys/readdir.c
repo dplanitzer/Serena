@@ -10,7 +10,7 @@
 #include <sys/_syscall.h>
 
 
-errno_t readdir(int ioc, dirent_t* _Nonnull entries, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
+errno_t readdir(DIR* _Nonnull dir, dirent_t* _Nonnull entries, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
 {
-    return (errno_t)_syscall(SC_read, ioc, entries, nBytesToRead, nBytesRead);
+    return (errno_t)_syscall(SC_read, (int)dir - __DIR_BASE, entries, nBytesToRead, nBytesRead);
 }

@@ -56,16 +56,16 @@ static errno_t show_procs(void)
 {
     decl_try_err();
     static dirent_t eb[4];
-    int fd;
+    DIR* dir;
 
-    err = opendir("/proc", &fd);
-    if (err == EOK) {
+    dir = opendir("/proc");
+    if (dir) {
         ssize_t nBytesRead;
 
         printf("PID  Command  PPID  Memory\n");
 
         while (err == EOK) {
-            err = readdir(fd, eb, sizeof(eb), &nBytesRead);
+            err = readdir(dir, eb, sizeof(eb), &nBytesRead);
             if (err != EOK || nBytesRead == 0) {
                 break;
             }
@@ -83,9 +83,12 @@ static errno_t show_procs(void)
                 dep++;
             }
         }
+        closedir(dir);
+    }
+    else {
+        err = errno;
     }
 
-    close(fd);
     return err;
 }
 

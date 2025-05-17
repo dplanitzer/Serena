@@ -7,10 +7,14 @@
 //
 
 #include <dirent.h>
+#include <stddef.h>
 #include <sys/_syscall.h>
 
 
-errno_t opendir(const char* _Nonnull path, int* _Nonnull fd)
+DIR* _Nullable opendir(const char* _Nonnull path)
 {
-    return (errno_t)_syscall(SC_opendir, path, fd);
+    int fd = -1;
+    const errno_t err = (errno_t)_syscall(SC_opendir, path, &fd);
+
+    return (err == EOK) ? (DIR*)(fd + __DIR_BASE) : NULL;
 }

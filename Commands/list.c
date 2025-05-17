@@ -178,13 +178,13 @@ static errno_t print_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull d
     return print_inode(self, self->pathbuf, entryName);
 }
 
-static errno_t iterate_dir(list_ctx_t* _Nonnull self, int dp, const char* _Nonnull path, dir_iter_t _Nonnull cb)
+static errno_t iterate_dir(list_ctx_t* _Nonnull self, DIR* _Nonnull dir, const char* _Nonnull path, dir_iter_t _Nonnull cb)
 {
     decl_try_err();
     ssize_t nBytesRead;
 
     while (err == EOK) {
-        err = readdir(dp, self->dirbuf, sizeof(self->dirbuf), &nBytesRead);
+        err = readdir(dir, self->dirbuf, sizeof(self->dirbuf), &nBytesRead);
         if (err != EOK || nBytesRead == 0) {
             break;
         }
@@ -210,15 +210,15 @@ static errno_t iterate_dir(list_ctx_t* _Nonnull self, int dp, const char* _Nonnu
 static errno_t list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 {
     decl_try_err();
-    int dp;
+    DIR* dir;
 
-    try(opendir(path, &dp));
-    try(iterate_dir(self, dp, path, format_dir_entry));
-    try(rewinddir(dp));
-    try(iterate_dir(self, dp, path, print_dir_entry));
+    try_null(dir, opendir(path), errno);
+    try(iterate_dir(self, dir, path, format_dir_entry));
+    try(rewinddir(dir));
+    try(iterate_dir(self, dir, path, print_dir_entry));
 
 catch:
-    close(dp);
+    closedir(dir);
     return err;
 }
 
