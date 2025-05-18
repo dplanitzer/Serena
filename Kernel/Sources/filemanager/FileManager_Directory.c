@@ -81,7 +81,7 @@ errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _N
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_PredecessorOfTarget, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
 
     const PathComponent* dirName = &r.lastPathComponent;
-    const FilePermissions dirPerms = ~self->fileCreationMask & (permissions & 0777);
+    const FilePermissions dirPerms = ~self->umask & (permissions & 0777);
 
 
     // Create the new directory and add it to the parent directory if it doesn't

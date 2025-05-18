@@ -24,13 +24,13 @@ typedef struct FileManager {
     InodeRef _Nonnull           rootDirectory;
     InodeRef _Nonnull           workingDirectory;
     
-    FilePermissions             fileCreationMask;   // Mask of file permissions that should be filtered out from user supplied permissions when creating a file system object
-    uid_t                       ruid;               // Real user identity inherited from the parent process / set at spawn time
+    mode_t                      umask;      // Mask of file permissions that should be filtered out from user supplied permissions when creating a file system object
+    uid_t                       ruid;       // Real user identity inherited from the parent process / set at spawn time
     gid_t                       rgid;
 } FileManager;
 
 
-extern void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask);
+extern void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask);
 extern void FileManager_Deinit(FileManagerRef _Nonnull self);
 
 extern uid_t FileManager_GetRealUserId(FileManagerRef _Nonnull self);
@@ -67,13 +67,13 @@ extern errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const cha
 // Files
 //
 
-// Returns the file creation mask of the receiver. Bits cleared in this mask
-// should be removed from the file permissions that user space sent to create a
-// file system object (note that this is the compliment of umask).
-extern FilePermissions FileManager_GetFileCreationMask(FileManagerRef _Nonnull self);
+// Sets the umask. Bits set in 'mask' are cleared in the mode used to create a
+// file. Returns the old umask.
+extern mode_t FileManager_UMask(FileManagerRef _Nonnull self, mode_t mask);
 
-// Sets the file creation mask of the receiver.
-extern void FileManager_SetFileCreationMask(FileManagerRef _Nonnull self, FilePermissions mask);
+// Returns the current umask.
+#define FileManager_GetUMask(__self) \
+(__self)->umask
 
 // Creates a file in the given filesystem location.
 extern errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, unsigned int mode, FilePermissions permissions, IOChannelRef _Nullable * _Nonnull pOutChannel);

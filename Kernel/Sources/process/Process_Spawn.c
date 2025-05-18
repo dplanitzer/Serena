@@ -32,7 +32,7 @@ static errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const spawn_o
 
     uid_t childUid = self->fm.ruid;
     gid_t childGid = self->fm.rgid;
-    FilePermissions childUMask = FileManager_GetFileCreationMask(&self->fm);
+    mode_t childUMask = FileManager_GetUMask(&self->fm);
     if ((opts->options & kSpawn_OverrideUserMask) == kSpawn_OverrideUserMask) {
         childUMask = opts->umask & 0777;
     }

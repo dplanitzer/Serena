@@ -85,23 +85,20 @@ errno_t Process_OpenDirectory(ProcessRef _Nonnull self, const char* _Nonnull pat
 // MARK: File
 //
 
-// Returns the file creation mask of the receiver. Bits cleared in this mask
-// should be removed from the file permissions that user space sent to create a
-// file system object (note that this is the compliment of umask).
-FilePermissions Process_GetFileCreationMask(ProcessRef _Nonnull self)
+mode_t Process_UMask(ProcessRef _Nonnull self, mode_t mask)
 {
-    Lock_Lock(&self->lock);
-    const FilePermissions mask = FileManager_GetFileCreationMask(&self->fm);
-    Lock_Unlock(&self->lock);
-    return mask;
-}
+    mode_t omask;
 
-// Sets the file creation mask of the receiver.
-void Process_SetFileCreationMask(ProcessRef _Nonnull self, FilePermissions mask)
-{
     Lock_Lock(&self->lock);
-    FileManager_SetFileCreationMask(&self->fm, mask);
+    if (mask != SEO_UMASK_NO_CHANGE) {
+        omask = FileManager_UMask(&self->fm, mask);
+    }
+    else {
+        omask = FileManager_GetUMask(&self->fm);
+    }
     Lock_Unlock(&self->lock);
+    
+    return omask;
 }
 
 // Creates a file in the given filesystem location.

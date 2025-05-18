@@ -30,7 +30,7 @@ typedef struct syscall {
 #define SC_ERRNO    1   /* System call returns an error that should be stored in vcpu->errno */
 #define SC_VCPU     2   /* System call expects a vcpu_t* rather than a proc_t* */
 
-#define SYSCALL_COUNT   59
+#define SYSCALL_COUNT   58
 static const syscall_t gSystemCallTable[SYSCALL_COUNT];
 
 
@@ -243,15 +243,9 @@ SYSCALL_2(rename, const char* _Nonnull oldPath, const char* _Nonnull newPath)
 }
 
 
-SYSCALL_0(getumask)
+SYSCALL_1(umask, mode_t mask)
 {
-    return Process_GetFileCreationMask((ProcessRef)p);
-}
-
-SYSCALL_1(setumask, uint32_t mask)
-{
-    Process_SetFileCreationMask((ProcessRef)p, pa->mask);
-    return EOK;
+    return (intptr_t)Process_UMask((ProcessRef)p, pa->mask);
 }
 
 SYSCALL_2(clock_wait, int clock, const struct timespec* _Nonnull delay)
@@ -485,8 +479,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(getcwd, SC_ERRNO),
     SYSCALL_ENTRY(chdir, SC_ERRNO),
     SYSCALL_ENTRY(getuid, 0),
-    SYSCALL_ENTRY(getumask, 0),
-    SYSCALL_ENTRY(setumask, 0),
+    SYSCALL_ENTRY(umask, 0),
     SYSCALL_ENTRY(mkdir, SC_ERRNO),
     SYSCALL_ENTRY(getfinfo, SC_ERRNO),
     SYSCALL_ENTRY(opendir, SC_ERRNO),

@@ -141,4 +141,8 @@ typedef struct fmutinfo {
     unsigned short      permissionsModifyMask;  // Only modify permissions whose bit is set here
 } fmutinfo_t;
 
+
+// Tell umask() to just return the current umask without changing it
+#define SEO_UMASK_NO_CHANGE -1
+
 #endif /* _KPI_STAT_H */

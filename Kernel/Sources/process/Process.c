@@ -45,7 +45,7 @@ errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullab
 
 
 
-errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutSelf)
+errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask, ProcessRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ProcessRef self;
@@ -63,7 +63,7 @@ errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t
     try(IOChannelTable_Init(&self->ioChannelTable));
     try(UResourceTable_Init(&self->uResourcesTable));
 
-    FileManager_Init(&self->fm, pFileHierarchy, uid, gid, pRootDir, pWorkingDir, fileCreationMask);
+    FileManager_Init(&self->fm, pFileHierarchy, uid, gid, pRootDir, pWorkingDir, umask);
 
     List_Init(&self->tombstones);
     ConditionVariable_Init(&self->tombstoneSignaler);

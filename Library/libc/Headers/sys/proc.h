@@ -14,12 +14,7 @@
 
 __CPP_BEGIN
 
-extern FilePermissions getumask(void);
-extern void setumask(FilePermissions mask);
-
-
 extern pargs_t* _Nonnull getpargs(void);
-
 
 __CPP_END
 

@@ -102,7 +102,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
     }
     else if (err == ENOENT) {
         // File does not exist - create it
-        const FilePermissions filePerms = ~self->fileCreationMask & (permissions & 0777);
+        const FilePermissions filePerms = ~self->umask & (permissions & 0777);
 
 
         // The user provided read/write mode must match up with the provided (user) permissions

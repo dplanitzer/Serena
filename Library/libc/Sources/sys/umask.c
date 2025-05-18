@@ -10,12 +10,7 @@
 #include <sys/_syscall.h>
 
 
-FilePermissions getumask(void)
+mode_t umask(mode_t mask)
 {
-    return _syscall(SC_getumask);
-}
-
-void setumask(FilePermissions mask)
-{
-    _syscall(SC_setumask, mask);
+    return _syscall(SC_umask, mask);
 }

@@ -192,13 +192,9 @@ extern errno_t Process_GetWorkingDirectoryPath(ProcessRef _Nonnull self, char* _
 // Files
 //
 
-// Returns the file creation mask of the receiver. Bits cleared in this mask
-// should be removed from the file permissions that user space sent to create a
-// file system object (note that this is the compliment of umask).
-extern FilePermissions Process_GetFileCreationMask(ProcessRef _Nonnull self);
-
-// Sets the file creation mask of the receiver.
-extern void Process_SetFileCreationMask(ProcessRef _Nonnull self, FilePermissions mask);
+// Sets the umask. Bits set in 'mask' are cleared in the mode used to create a
+// file. Returns the old umask.
+extern mode_t Process_UMask(ProcessRef _Nonnull self, mode_t mask);
 
 // Creates a file in the given filesystem location.
 extern errno_t Process_CreateFile(ProcessRef _Nonnull self, const char* _Nonnull pPath, unsigned int mode, FilePermissions permissions, int* _Nonnull pOutDescriptor);

@@ -11,12 +11,12 @@
 #include <filesystem/FSUtilities.h>
 
 
-void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask)
+void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask)
 {
     self->fileHierarchy = Object_RetainAs(pFileHierarchy, FileHierarchy);
     self->rootDirectory = Inode_Reacquire(pRootDir);
     self->workingDirectory = Inode_Reacquire(pWorkingDir);
-    self->fileCreationMask = fileCreationMask;
+    self->umask = umask;
     self->ruid = uid;
     self->rgid = gid;
 }
@@ -42,16 +42,10 @@ gid_t FileManager_GetRealGroupId(FileManagerRef _Nonnull self)
     return self->rgid;
 }
 
-// Returns the file creation mask of the receiver. Bits cleared in this mask
-// should be removed from the file permissions that user space sent to create a
-// file system object (note that this is the compliment of umask).
-FilePermissions FileManager_GetFileCreationMask(FileManagerRef _Nonnull self)
+mode_t FileManager_UMask(FileManagerRef _Nonnull self, mode_t mask)
 {
-    return self->fileCreationMask;
-}
+    const mode_t omask = self->umask;
 
-// Sets the file creation mask of the receiver.
-void FileManager_SetFileCreationMask(FileManagerRef _Nonnull self, FilePermissions mask)
-{
-    self->fileCreationMask = mask & 0777;
+    self->umask = mask & 0777;
+    return omask;
 }
