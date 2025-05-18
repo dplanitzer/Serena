@@ -215,6 +215,17 @@ errno_t Process_SetFileOwner(ProcessRef _Nonnull self, const char* _Nonnull path
     return err;
 }
 
+errno_t Process_SetFileTimestamps(ProcessRef _Nonnull self, const char* _Nonnull path, const struct timespec times[_Nullable 2])
+{
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    err = FileManager_SetFileTimestamps(&self->fm, path, times);
+    Lock_Unlock(&self->lock);
+    
+    return err;
+}
+
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
 errno_t Process_TruncateFile(ProcessRef _Nonnull self, const char* _Nonnull path, off_t length)

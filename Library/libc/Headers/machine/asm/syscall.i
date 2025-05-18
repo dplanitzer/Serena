@@ -68,5 +68,6 @@ SC_vcpuerrno            equ 55
 SC_chown                equ 56
 SC_fcntl                equ 57
 SC_chmod                equ 58
+SC_utimens              equ 59
 
         endif   ; __SYSCALL_I

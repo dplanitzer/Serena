@@ -94,10 +94,15 @@ any_subclass_funcs(Inode,
     // Default Behavior: Updates the inode's mode info
     errno_t (*setMode)(void* _Nonnull _Locked self, mode_t mode);
 
-    // Sets the user and group id of the inode owner.
+    // Sets the user and group id of the inode.
     // Override: Optional
     // Default Behavior: Updates the inode's owner info
     errno_t (*setOwner)(void* _Nonnull _Locked self, uid_t uid, gid_t gid);
+
+    // Sets the access and modification timestamps of the inode.
+    // Override: Optional
+    // Default Behavior: Updates the inode's timestamp info
+    errno_t (*setTimes)(void* _Nonnull _Locked self, const struct timespec times[_Nullable 2]);
 
 
     //
@@ -306,6 +311,9 @@ invoke_n(setMode, Inode, __self, __mode)
 
 #define Inode_SetOwner(__self, __uid, __gid) \
 invoke_n(setOwner, Inode, __self, __uid, __gid)
+
+#define Inode_SetTimes(__self, __times) \
+invoke_n(setTimes, Inode, __self, __times)
 
 
 #define Inode_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \

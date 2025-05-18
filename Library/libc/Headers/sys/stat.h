@@ -11,6 +11,7 @@
 
 #include <_cmndef.h>
 #include <kpi/stat.h>
+#include <kpi/_time.h>
 #include <sys/errno.h>
 
 __CPP_BEGIN
@@ -45,6 +46,11 @@ extern errno_t fsetfinfo(int ioc, fmutinfo_t* _Nonnull info);
 // file permissions encoded in 'mode'.
 // @Concurrency: Safe
 extern int chmod(const char* _Nonnull path, mode_t mode);
+
+// Sets the access and modification date of the file at 'path'. The dates are
+// set to the current time if 'times' is NULL.
+// @Concurrency: Safe
+extern int utimens(const char* _Nonnull path, const struct timespec times[_Nullable 2]);
 
 
 // Sets the process' umask. Bits set in this mask are cleared in the permissions

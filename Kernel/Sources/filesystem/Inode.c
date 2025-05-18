@@ -250,6 +250,32 @@ errno_t Inode_setOwner(InodeRef _Nonnull _Locked self, uid_t uid, gid_t gid)
     return EOK;
 }
 
+errno_t Inode_setTimes(InodeRef _Nonnull _Locked self, const struct timespec times[_Nullable 2])
+{
+    const long acc_ns = (times) ? times[UTIME_ACCESS].tv_nsec : UTIME_NOW;
+    const long mod_ns = (times) ? times[UTIME_MODIFICATION].tv_nsec : UTIME_NOW;
+
+    if (acc_ns != UTIME_OMIT) {
+        if (acc_ns != UTIME_NOW) {
+            self->accessTime = times[UTIME_ACCESS];
+        }
+        else {
+            self->accessTime = FSGetCurrentTime();
+        }
+    }
+    if (mod_ns != UTIME_OMIT) {
+        if (mod_ns != UTIME_NOW) {
+            self->modificationTime = times[UTIME_MODIFICATION];
+        }
+        else {
+            self->modificationTime = FSGetCurrentTime();
+        }
+    }
+    Inode_SetModified(self, kInodeFlag_StatusChanged);
+
+    return EOK;
+}
+
 errno_t Inode_read(InodeRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EIO;
@@ -273,6 +299,7 @@ func_def(getInfo, Inode)
 func_def(setInfo, Inode)
 func_def(setMode, Inode)
 func_def(setOwner, Inode)
+func_def(setTimes, Inode)
 func_def(read, Inode)
 func_def(write, Inode)
 func_def(truncate, Inode)

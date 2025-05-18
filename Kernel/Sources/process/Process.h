@@ -230,6 +230,8 @@ extern errno_t Process_SetFileMode(ProcessRef _Nonnull self, const char* _Nonnul
 
 extern errno_t Process_SetFileOwner(ProcessRef _Nonnull self, const char* _Nonnull path, uid_t uid, gid_t gid);
 
+extern errno_t Process_SetFileTimestamps(ProcessRef _Nonnull self, const char* _Nonnull path, const struct timespec times[_Nullable 2]);
+
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
 extern errno_t Process_TruncateFile(ProcessRef _Nonnull self, const char* _Nonnull pPath, off_t length);

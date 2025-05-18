@@ -142,6 +142,20 @@ typedef struct fmutinfo {
 } fmutinfo_t;
 
 
+// Tells utimens() to set the file timestamp to the current time. Assign to the
+// tv_nsec field.
+#define UTIME_NOW   -1
+
+// Tells utimens() to set the file timestamp to leave the file timestamp
+// unchanged. Assign to the tv_nsec field.
+#define UTIME_OMIT  -2
+
+
+// Order of the utimesns() timestamp
+#define UTIME_ACCESS        0
+#define UTIME_MODIFICATION  1
+
+
 // Tell umask() to just return the current umask without changing it
 #define SEO_UMASK_NO_CHANGE -1
 

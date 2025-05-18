@@ -312,6 +312,30 @@ errno_t FileManager_SetFileOwner(FileManagerRef _Nonnull self, const char* _Nonn
     return err;
 }
 
+errno_t FileManager_SetFileTimestamps(FileManagerRef _Nonnull self, const char* _Nonnull path, const struct timespec times[_Nullable 2])
+{
+    decl_try_err();
+    ResolvedPath r;
+
+    if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r)) == EOK) {
+        // Only the owner of a file may change its metadata.
+        const int isTotalOmit = (times && times[0].tv_nsec == UTIME_OMIT && times[1].tv_nsec == UTIME_OMIT);
+        
+        if (!isTotalOmit) {
+           Inode_Lock(r.inode);
+            err = SecurityManager_CheckNodeStatusUpdatePermission(gSecurityManager, r.inode, self->ruid);
+            if (err == EOK) {
+                err = Inode_SetTimes(r.inode, times);
+            }
+            Inode_Unlock(r.inode);
+        }
+    }
+
+    ResolvedPath_Deinit(&r);
+    
+    return err;
+}
+
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
 errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, off_t length)
