@@ -30,7 +30,7 @@ typedef struct syscall {
 #define SC_ERRNO    1   /* System call returns an error that should be stored in vcpu->errno */
 #define SC_VCPU     2   /* System call expects a vcpu_t* rather than a proc_t* */
 
-#define SYSCALL_COUNT   58
+#define SYSCALL_COUNT   59
 static const syscall_t gSystemCallTable[SYSCALL_COUNT];
 
 
@@ -460,6 +460,11 @@ SYSCALL_3(chown, const char* _Nonnull path, uid_t uid, gid_t gid)
     return Process_SetFileOwner((ProcessRef)p, pa->path, pa->uid, pa->gid);
 }
 
+SYSCALL_2(chmod, const char* _Nonnull path, mode_t mode)
+{
+    return Process_SetFileMode((ProcessRef)p, pa->path, pa->mode);
+}
+
 
 static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
@@ -519,5 +524,6 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fsgetdisk, SC_ERRNO),
     SYSCALL_ENTRY(vcpuerr, SC_VCPU),
     SYSCALL_ENTRY(chown, SC_ERRNO),
-    SYSCALL_ENTRY(fcntl, SC_ERRNO)
+    SYSCALL_ENTRY(fcntl, SC_ERRNO),
+    SYSCALL_ENTRY(chmod, SC_ERRNO),
 };

@@ -80,6 +80,25 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
     }
 }
 
+errno_t SecurityManager_CheckNodeStatusUpdatePermission(SecurityManagerRef _Nonnull self, InodeRef _Nonnull _Locked pNode, uid_t uid)
+{
+    const FilePermissions nodePerms = Inode_GetFilePermissions(pNode);
+    FilePermissions reqPerms = 0;
+
+    // XXX probably temporary until we're getting around to designing a full permission model
+    if (uid == kUserId_Root) {
+        return EOK;
+    }
+    // XXX
+    
+    // Return EROFS if disk is read-only.
+    if (Filesystem_IsReadOnly(Inode_GetFilesystem(pNode))) {
+        return EROFS;
+    }
+
+    return (Inode_GetUserId(pNode) == uid) ? EOK : EPERM;
+}
+
 bool SecurityManager_IsSuperuser(SecurityManagerRef _Nonnull self, uid_t uid)
 {
     return uid == kUserId_Root;

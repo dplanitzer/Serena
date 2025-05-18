@@ -193,6 +193,17 @@ errno_t Process_SetFileInfo_ioc(ProcessRef _Nonnull self, int ioc, fmutinfo_t* _
     return err;
 }
 
+errno_t Process_SetFileMode(ProcessRef _Nonnull self, const char* _Nonnull path, mode_t mode)
+{
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    err = FileManager_SetFileMode(&self->fm, path, mode);
+    Lock_Unlock(&self->lock);
+    
+    return err;
+}
+
 errno_t Process_SetFileOwner(ProcessRef _Nonnull self, const char* _Nonnull path, uid_t uid, gid_t gid)
 {
     decl_try_err();
