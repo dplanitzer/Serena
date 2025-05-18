@@ -208,7 +208,7 @@ errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnu
 
     if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r)) == EOK) {
         Inode_Lock(r.inode);
-        err = Inode_GetInfo(r.inode, pOutInfo);
+        Inode_GetInfo(r.inode, pOutInfo);
         Inode_Unlock(r.inode);
     }
 
@@ -222,10 +222,10 @@ errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _
     decl_try_err();
 
     if (instanceof(pChannel, FileChannel)) {
-        err = FileChannel_GetInfo((FileChannelRef)pChannel, pOutInfo);
+        FileChannel_GetInfo((FileChannelRef)pChannel, pOutInfo);
     }
     else if (instanceof(pChannel, DirectoryChannel)) {
-        err = DirectoryChannel_GetInfo((DirectoryChannelRef)pChannel, pOutInfo);
+        DirectoryChannel_GetInfo((DirectoryChannelRef)pChannel, pOutInfo);
     }
     else {
         err = EBADF;
@@ -246,7 +246,7 @@ errno_t FileManager_SetFileMode(FileManagerRef _Nonnull self, const char* _Nonnu
         Inode_Lock(r.inode);
         err = SecurityManager_CheckNodeStatusUpdatePermission(gSecurityManager, r.inode, self->ruid);
         if (err == EOK) {
-            err = Inode_SetMode(r.inode, mode);
+            Inode_SetMode(r.inode, mode & S_IFMP);
         }
         Inode_Unlock(r.inode);
     }
@@ -268,7 +268,7 @@ errno_t FileManager_SetFileOwner(FileManagerRef _Nonnull self, const char* _Nonn
         Inode_Lock(r.inode);
         err = SecurityManager_CheckNodeStatusUpdatePermission(gSecurityManager, r.inode, self->ruid);
         if (err == EOK) {
-            err = Inode_SetOwner(r.inode, uid, gid);
+            Inode_SetOwner(r.inode, uid, gid);
         }
         Inode_Unlock(r.inode);
     }
@@ -291,7 +291,7 @@ errno_t FileManager_SetFileTimestamps(FileManagerRef _Nonnull self, const char* 
            Inode_Lock(r.inode);
             err = SecurityManager_CheckNodeStatusUpdatePermission(gSecurityManager, r.inode, self->ruid);
             if (err == EOK) {
-                err = Inode_SetTimes(r.inode, times);
+                Inode_SetTimes(r.inode, times);
             }
             Inode_Unlock(r.inode);
         }

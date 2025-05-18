@@ -102,7 +102,7 @@ errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _No
     
     
     // Configure the VP
-    pVP->errno = EOK;
+    pVP->uerrno = 0;
     VirtualProcessor_SetPriority(pVP, params.priority);
     try(VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_Make(params.func, params.context, params.kernelStackSize, params.userStackSize)));
 

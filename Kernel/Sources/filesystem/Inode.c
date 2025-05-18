@@ -143,7 +143,7 @@ errno_t Inode_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, I
     }
 }
 
-errno_t Inode_getInfo(InodeRef _Nonnull _Locked self, struct stat* _Nonnull pOutInfo)
+void Inode_getInfo(InodeRef _Nonnull _Locked self, struct stat* _Nonnull pOutInfo)
 {
     struct timespec curTime;
 
@@ -178,19 +178,15 @@ errno_t Inode_getInfo(InodeRef _Nonnull _Locked self, struct stat* _Nonnull pOut
     pOutInfo->st_blksize = 0;   //XXX fix me
     pOutInfo->st_dev = 0;
     pOutInfo->st_rdev = 0;
-
-    return EOK;
 }
 
-errno_t Inode_setMode(InodeRef _Nonnull _Locked self, mode_t mode)
+void Inode_setMode(InodeRef _Nonnull _Locked self, mode_t mode)
 {
     self->mode = mode;
     Inode_SetModified(self, kInodeFlag_StatusChanged);
-
-    return EOK;
 }
 
-errno_t Inode_setOwner(InodeRef _Nonnull _Locked self, uid_t uid, gid_t gid)
+void Inode_setOwner(InodeRef _Nonnull _Locked self, uid_t uid, gid_t gid)
 {
     if (uid != (uid_t)-1) {
         self->uid = uid;
@@ -199,11 +195,9 @@ errno_t Inode_setOwner(InodeRef _Nonnull _Locked self, uid_t uid, gid_t gid)
         self->gid = gid;
     }
     Inode_SetModified(self, kInodeFlag_StatusChanged);
-
-    return EOK;
 }
 
-errno_t Inode_setTimes(InodeRef _Nonnull _Locked self, const struct timespec times[_Nullable 2])
+void Inode_setTimes(InodeRef _Nonnull _Locked self, const struct timespec times[_Nullable 2])
 {
     const long acc_ns = (times) ? times[UTIME_ACCESS].tv_nsec : UTIME_NOW;
     const long mod_ns = (times) ? times[UTIME_MODIFICATION].tv_nsec : UTIME_NOW;
@@ -225,8 +219,6 @@ errno_t Inode_setTimes(InodeRef _Nonnull _Locked self, const struct timespec tim
         }
     }
     Inode_SetModified(self, kInodeFlag_StatusChanged);
-
-    return EOK;
 }
 
 errno_t Inode_read(InodeRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

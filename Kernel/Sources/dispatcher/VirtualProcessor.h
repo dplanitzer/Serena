@@ -147,7 +147,7 @@ typedef struct VirtualProcessor {
 
     // System call support
     uint32_t                                syscall_entry_ksp;      // saved Kernel stack pointer at the entry of a system call
-    errno_t                                 errno;                  // most recent recorded error
+    errno_t                                 uerrno;                 // most recent recorded error for user space
     
     // Waiting related state
     Timeout                                 timeout;                // The timeout state

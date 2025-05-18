@@ -125,7 +125,7 @@ intptr_t _syscall_handler(VirtualProcessor* _Nonnull vcpu, unsigned int* _Nonnul
     }
 
     if (hasErrno && r != 0) {
-        vcpu->errno = (errno_t)r;
+        vcpu->uerrno = (errno_t)r;
     }
 
     return r;
@@ -442,7 +442,7 @@ SYSCALL_3(fsgetdisk, fsid_t fsid, char* _Nonnull buf, size_t bufSize)
 
 SYSCALL_0(vcpuerr)
 {
-    return (intptr_t)&(((VirtualProcessor*)p)->errno);
+    return (intptr_t)&(((VirtualProcessor*)p)->uerrno);
 }
 
 SYSCALL_3(chown, const char* _Nonnull path, uid_t uid, gid_t gid)

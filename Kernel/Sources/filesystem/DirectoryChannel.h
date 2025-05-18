@@ -36,6 +36,6 @@ extern errno_t DirectoryChannel_Create(InodeRef _Nonnull pDir, IOChannelRef _Nul
 #define DirectoryChannel_GetInode(__self) \
 ((DirectoryChannelRef)(__self))->inode
 
-extern errno_t DirectoryChannel_GetInfo(DirectoryChannelRef _Nonnull self, struct stat* _Nonnull pOutInfo);
+extern void DirectoryChannel_GetInfo(DirectoryChannelRef _Nonnull self, struct stat* _Nonnull pOutInfo);
 
 #endif /* DirectoryChannel_h */
