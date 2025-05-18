@@ -28,14 +28,11 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
 
     if (err == EOK) {
         // Update the inode metadata
-        fmutinfo_t info;
-
-        info.modify = kModifyFileInfo_Permissions | kModifyFileInfo_UserId | kModifyFileInfo_GroupId;
-        info.uid = uid;
-        info.gid = gid;
-        info.permissions = perms;
-        info.permissionsModifyMask = 0xffff;
-        err = FileManager_SetFileInfo_ioc(fm, chan, &info);
+        //XXX use channel versions once they exist
+        err = FileManager_SetFileOwner(fm, path, uid, gid);
+        if (err == EOK) {
+            err = FileManager_SetFileMode(fm, path, perms);
+        }
 
         if (err != EOK) {
             FileManager_Unlink(fm, path);

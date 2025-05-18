@@ -99,12 +99,6 @@ extern errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char*
 // Same as above but with respect to the given I/O channel.
 extern errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, finfo_t* _Nonnull pOutInfo);
 
-// Modifies information about the file at the given path.
-extern errno_t FileManager_SetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, fmutinfo_t* _Nonnull info);
-
-// Same as above but with respect to the given I/O channel.
-extern errno_t FileManager_SetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, fmutinfo_t* _Nonnull info);
-
 extern errno_t FileManager_SetFileMode(FileManagerRef _Nonnull self, const char* _Nonnull path, mode_t mode);
 
 extern errno_t FileManager_SetFileOwner(FileManagerRef _Nonnull self, const char* _Nonnull path, uid_t uid, gid_t gid);

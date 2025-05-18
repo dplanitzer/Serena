@@ -30,7 +30,7 @@ typedef struct syscall {
 #define SC_ERRNO    1   /* System call returns an error that should be stored in vcpu->errno */
 #define SC_VCPU     2   /* System call expects a vcpu_t* rather than a proc_t* */
 
-#define SYSCALL_COUNT   60
+#define SYSCALL_COUNT   58
 static const syscall_t gSystemCallTable[SYSCALL_COUNT];
 
 
@@ -192,19 +192,9 @@ SYSCALL_2(getfinfo, const char* _Nonnull path, finfo_t* _Nonnull pOutInfo)
     return Process_GetFileInfo((ProcessRef)p, pa->path, pa->pOutInfo);
 }
 
-SYSCALL_2(setfinfo, const char* _Nonnull path, fmutinfo_t* _Nonnull pInfo)
-{
-    return Process_SetFileInfo((ProcessRef)p, pa->path, pa->pInfo);
-}
-
 SYSCALL_2(fgetfinfo, int ioc, finfo_t* _Nonnull pOutInfo)
 {
     return Process_GetFileInfo_ioc((ProcessRef)p, pa->ioc, pa->pOutInfo);
-}
-
-SYSCALL_2(fsetfinfo, int ioc, fmutinfo_t* _Nonnull pInfo)
-{
-    return Process_SetFileInfo_ioc((ProcessRef)p, pa->ioc, pa->pInfo);
 }
 
 SYSCALL_2(truncate, const char* _Nonnull path, off_t length)
@@ -493,10 +483,8 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(mkdir, SC_ERRNO),
     SYSCALL_ENTRY(getfinfo, SC_ERRNO),
     SYSCALL_ENTRY(opendir, SC_ERRNO),
-    SYSCALL_ENTRY(setfinfo, SC_ERRNO),
     SYSCALL_ENTRY(access, SC_ERRNO),
     SYSCALL_ENTRY(fgetfinfo, SC_ERRNO),
-    SYSCALL_ENTRY(fsetfinfo, SC_ERRNO),
     SYSCALL_ENTRY(unlink, SC_ERRNO),
     SYSCALL_ENTRY(rename, SC_ERRNO),
     SYSCALL_ENTRY(ioctl, SC_ERRNO),

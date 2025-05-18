@@ -6,8 +6,6 @@
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 ;
 
-    include <machine/asm/syscall.i>
-
     xdef __syscall
 
 

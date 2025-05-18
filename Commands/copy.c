@@ -57,12 +57,8 @@ static errno_t _copy_file(const char* _Nonnull srcPath, const char* _Nonnull dst
     }
 
     if (!FilePermissions_Has(finf.permissions, kFilePermissionsClass_User, kFilePermission_Write)) {
-        fmutinfo_t mfi;
-
-        mfi.modify = kModifyFileInfo_Permissions;
-        mfi.permissions = finf.permissions;
-        mfi.permissionsModifyMask = UINT16_MAX;
-        fsetfinfo(dfd, &mfi);
+        //XXX use fchmod() instead once it exists
+        chmod(dstPath, finf.permissions);
     }
 
 

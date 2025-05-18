@@ -76,15 +76,6 @@ errno_t DirectoryChannel_GetInfo(DirectoryChannelRef _Nonnull self, finfo_t* _No
     return err;
 }
 
-errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, uid_t uid, gid_t gid, fmutinfo_t* _Nonnull pInfo)
-{
-    IOChannel_Lock(self);
-    const errno_t err = Inode_SetInfo(self->inode, uid, gid, pInfo);
-    IOChannel_Unlock(self);
-
-    return err;
-}
-
 
 class_func_defs(DirectoryChannel, IOChannel,
 override_func_def(finalize, DirectoryChannel, IOChannel)

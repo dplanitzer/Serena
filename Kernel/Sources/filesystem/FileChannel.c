@@ -81,15 +81,6 @@ errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, finfo_t* _Nonnull pOut
     return err;
 }
 
-errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, uid_t uid, gid_t gid, fmutinfo_t* _Nonnull pInfo)
-{
-    IOChannel_Lock((IOChannelRef)self);
-    const errno_t err = Inode_SetInfo(self->inode, uid, gid, pInfo);
-    IOChannel_Unlock((IOChannelRef)self);
-    
-    return err;
-}
-
 errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, off_t length)
 {
     if (length < 0ll) {

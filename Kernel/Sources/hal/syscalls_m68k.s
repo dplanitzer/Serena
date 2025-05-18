@@ -9,7 +9,6 @@
 
     include "hal/lowmem.i"
     include <machine/asm/errno.i>
-    include <machine/asm/syscall.i>
 
     xref _gVirtualProcessorSchedulerStorage
     xref __syscall_handler

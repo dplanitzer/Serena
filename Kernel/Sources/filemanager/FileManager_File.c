@@ -234,41 +234,6 @@ errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _
 }
 
 // Modifies information about the file at the given path.
-errno_t FileManager_SetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, fmutinfo_t* _Nonnull info)
-{
-    decl_try_err();
-    ResolvedPath r;
-
-    if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, pPath, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r)) == EOK) {
-        Inode_Lock(r.inode);
-        err = Inode_SetInfo(r.inode, self->ruid, self->rgid, info);
-        Inode_Unlock(r.inode);
-    }
-
-    ResolvedPath_Deinit(&r);
-    
-    return err;
-}
-
-// Same as above but with respect to the given I/O channel.
-errno_t FileManager_SetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, fmutinfo_t* _Nonnull info)
-{
-    decl_try_err();
-
-    if (instanceof(pChannel, FileChannel)) {
-        err = FileChannel_SetInfo((FileChannelRef)pChannel, self->ruid, self->rgid, info);
-    }
-    else if (instanceof(pChannel, DirectoryChannel)) {
-        err = DirectoryChannel_SetInfo((DirectoryChannelRef)pChannel, self->ruid, self->rgid, info);
-    }
-    else {
-        err = EBADF;
-    }
-
-    return err;
-}
-
-// Modifies information about the file at the given path.
 errno_t FileManager_SetFileMode(FileManagerRef _Nonnull self, const char* _Nonnull path, mode_t mode)
 {
     decl_try_err();

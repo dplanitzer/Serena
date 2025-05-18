@@ -220,12 +220,6 @@ extern errno_t Process_GetFileInfo(ProcessRef _Nonnull self, const char* _Nonnul
 // Same as above but with respect to the given I/O channel.
 extern errno_t Process_GetFileInfo_ioc(ProcessRef _Nonnull self, int fd, finfo_t* _Nonnull pOutInfo);
 
-// Modifies information about the file at the given path.
-extern errno_t Process_SetFileInfo(ProcessRef _Nonnull self, const char* _Nonnull pPath, fmutinfo_t* _Nonnull pInfo);
-
-// Same as above but with respect to the given I/O channel.
-extern errno_t Process_SetFileInfo_ioc(ProcessRef _Nonnull self, int fd, fmutinfo_t* _Nonnull pInfo);
-
 extern errno_t Process_SetFileMode(ProcessRef _Nonnull self, const char* _Nonnull path, mode_t mode);
 
 extern errno_t Process_SetFileOwner(ProcessRef _Nonnull self, const char* _Nonnull path, uid_t uid, gid_t gid);

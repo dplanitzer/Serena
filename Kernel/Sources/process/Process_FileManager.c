@@ -167,32 +167,6 @@ errno_t Process_GetFileInfo_ioc(ProcessRef _Nonnull self, int ioc, finfo_t* _Non
     return err;
 }
 
-// Modifies information about the file at the given path.
-errno_t Process_SetFileInfo(ProcessRef _Nonnull self, const char* _Nonnull path, fmutinfo_t* _Nonnull pInfo)
-{
-    decl_try_err();
-
-    Lock_Lock(&self->lock);
-    err = FileManager_SetFileInfo(&self->fm, path, pInfo);
-    Lock_Unlock(&self->lock);
-    
-    return err;
-}
-
-// Same as above but with respect to the given I/O channel.
-errno_t Process_SetFileInfo_ioc(ProcessRef _Nonnull self, int ioc, fmutinfo_t* _Nonnull pInfo)
-{
-    decl_try_err();
-    IOChannelRef pChannel;
-
-    if ((err = IOChannelTable_AcquireChannel(&self->ioChannelTable, ioc, &pChannel)) == EOK) {
-        err = FileManager_SetFileInfo_ioc(&self->fm, pChannel, pInfo);
-        IOChannelTable_RelinquishChannel(&self->ioChannelTable, pChannel);
-    }
-
-    return err;
-}
-
 errno_t Process_SetFileMode(ProcessRef _Nonnull self, const char* _Nonnull path, mode_t mode)
 {
     decl_try_err();

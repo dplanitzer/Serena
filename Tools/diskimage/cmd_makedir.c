@@ -19,12 +19,7 @@ static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnul
 
     err = FileManager_CreateDirectory(fm, path, perms);
     if (err == EOK) {
-        fmutinfo_t info;
-
-        info.modify = kModifyFileInfo_UserId | kModifyFileInfo_GroupId;
-        info.uid = uid;
-        info.gid = gid;
-        err = FileManager_SetFileInfo(fm, path, &info);
+        err = FileManager_SetFileOwner(fm, path, uid, gid);
 
         if (err != EOK) {
             FileManager_Unlink(fm, path);

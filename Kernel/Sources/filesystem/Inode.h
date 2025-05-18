@@ -83,12 +83,6 @@ any_subclass_funcs(Inode,
     // Default Behavior: Returns the node's file info
     errno_t (*getInfo)(void* _Nonnull _Locked self, finfo_t* _Nonnull pOutInfo);
 
-    // Modifies one or more attributes stored in the file information of the given
-    // node. The node may be of any type.
-    // Override: Optional
-    // Default Behavior: Updates the inode's file info
-    errno_t (*setInfo)(void* _Nonnull _Locked self, uid_t uid, gid_t gid, fmutinfo_t* _Nonnull pInfo);
-
     // Sets the mode of the inode.
     // Override: Optional
     // Default Behavior: Updates the inode's mode info
@@ -209,22 +203,13 @@ void Inode_Unlink(InodeRef _Nonnull self);
 #define Inode_GetFilePermissions(__self) \
     ((InodeRef)__self)->permissions
 
-#define Inode_SetFilePermissions(__self, __perms) \
-    ((InodeRef)__self)->permissions = (__perms)
-
 // Returns the User ID of the node.
 #define Inode_GetUserId(__self) \
     ((InodeRef)__self)->uid
 
-#define Inode_SetUserId(__self, __uid) \
-    ((InodeRef)__self)->uid = (__uid)
-
 // Returns the group ID of the node.
 #define Inode_GetGroupId(__self) \
     ((InodeRef)__self)->gid
-
-#define Inode_SetGroupId(__self, __gid) \
-    ((InodeRef)__self)->gid = (__gid)
 
 
 
@@ -302,9 +287,6 @@ invoke_n(createChannel, Inode, __self, __mode, __pOutChannel)
 
 #define Inode_GetInfo(__self, __pOutInfo) \
 invoke_n(getInfo, Inode, __self, __pOutInfo)
-
-#define Inode_SetInfo(__self, __uid, __gid, __pInfo) \
-invoke_n(setInfo, Inode, __self, __uid, __gid, __pInfo)
 
 #define Inode_SetMode(__self, __mode) \
 invoke_n(setMode, Inode, __self, __mode)

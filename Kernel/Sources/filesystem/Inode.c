@@ -181,54 +181,6 @@ errno_t Inode_getInfo(InodeRef _Nonnull _Locked self, finfo_t* _Nonnull pOutInfo
     return EOK;
 }
 
-errno_t Inode_setInfo(InodeRef _Nonnull _Locked self, uid_t uid, gid_t gid, fmutinfo_t* _Nonnull pInfo)
-{
-    const uint32_t  modify = pInfo->modify & kModifyFileInfo_All;
-
-    if (modify == 0) {
-        return EOK;
-    }
-
-    // Only the owner of a file may change its metadata.
-    if (uid != Inode_GetUserId(self) && !SecurityManager_IsSuperuser(gSecurityManager, uid)) {
-        return EPERM;
-    }
-
-    // Can't change the metadata if the disk is read-only
-    if (Filesystem_IsReadOnly(Inode_GetFilesystem(self))) {
-        return EROFS;
-    }
-    
-
-    // We got permissions. Now update the data as requested.
-    if ((modify & kModifyFileInfo_UserId) == kModifyFileInfo_UserId) {
-        Inode_SetUserId(self, pInfo->uid);
-    }
-
-    if ((modify & kModifyFileInfo_GroupId) == kModifyFileInfo_GroupId) {
-        Inode_SetGroupId(self, pInfo->gid);
-    }
-
-    if ((modify & kModifyFileInfo_Permissions) == kModifyFileInfo_Permissions) {
-        const FilePermissions oldPerms = Inode_GetFilePermissions(self);
-        const FilePermissions newPerms = (oldPerms & ~pInfo->permissionsModifyMask) | (pInfo->permissions & pInfo->permissionsModifyMask);
-
-        Inode_SetFilePermissions(self, newPerms);
-    }
-
-    // Update timestamps
-    if ((modify & kModifyFileInfo_AccessTime) == kModifyFileInfo_AccessTime) {
-        Inode_SetAccessTime(self, pInfo->accessTime);
-    }
-    if ((modify & kModifyFileInfo_ModificationTime) == kModifyFileInfo_ModificationTime) {
-        Inode_SetModificationTime(self, pInfo->modificationTime);
-    }
-
-    Inode_SetModified(self, kInodeFlag_StatusChanged);
-
-    return EOK;
-}
-
 errno_t Inode_setMode(InodeRef _Nonnull _Locked self, mode_t mode)
 {
     self->permissions = mode;
@@ -296,7 +248,6 @@ any_subclass_func_defs(Inode,
 func_def(deinit, Inode)
 func_def(createChannel, Inode)
 func_def(getInfo, Inode)
-func_def(setInfo, Inode)
 func_def(setMode, Inode)
 func_def(setOwner, Inode)
 func_def(setTimes, Inode)
