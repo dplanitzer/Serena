@@ -26,7 +26,7 @@ CLAP_DECL(params,
 );
 
 
-static errno_t show_proc(const char* _Nonnull pidStr)
+static int show_proc(const char* _Nonnull pidStr)
 {
     decl_try_err();
     static char buf[PATH_MAX];
@@ -55,32 +55,25 @@ catch:
 static errno_t show_procs(void)
 {
     decl_try_err();
-    static dirent_t eb[4];
     DIR* dir;
 
     dir = opendir("/proc");
     if (dir) {
-        ssize_t nBytesRead;
-
         printf("PID  Command  PPID  Memory\n");
 
-        while (err == EOK) {
-            err = readdir(dir, eb, sizeof(eb), &nBytesRead);
-            if (err != EOK || nBytesRead == 0) {
+        for (;;) {
+            struct dirent* dep = readdir(dir);
+            
+            if (dep == NULL) {
+                err = errno;
                 break;
             }
 
-            const dirent_t* dep = eb;
-            while (nBytesRead > 0) {
-                if (dep->name[0] != '.') {
-                   err = show_proc(dep->name);
-                    if (err != EOK) {
-                        break;
-                    }
+            if (dep->name[0] != '.') {
+                err = show_proc(dep->name);
+                if (err != EOK) {
+                    break;
                 }
-
-                nBytesRead -= sizeof(dirent_t);
-                dep++;
             }
         }
         closedir(dir);

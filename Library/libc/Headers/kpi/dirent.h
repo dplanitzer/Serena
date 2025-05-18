@@ -12,9 +12,9 @@
 #include <kpi/syslimits.h>
 #include <kpi/types.h>
 
-typedef struct dirent {
+struct dirent {
     ino_t   inid;
     char    name[__PATH_COMPONENT_MAX];
-} dirent_t;
+};
 
 #endif /* _KPI_DIRENT_H */

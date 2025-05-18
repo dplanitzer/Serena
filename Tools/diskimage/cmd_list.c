@@ -26,7 +26,7 @@
 
 
 // Buffer holding directory entries
-#define DIRBUF_SIZE 12
+#define ENTBUF_COUNT 16
 
 // Buffer used for various conversions
 #define BUF_SIZE    32
@@ -52,7 +52,7 @@ typedef struct list_ctx {
     char                        buf[BUF_SIZE];
     char                        pathbuf[PATH_MAX];
 
-    dirent_t                    dirbuf[DIRBUF_SIZE];
+    struct dirent               dirbuf[ENTBUF_COUNT];
 } list_ctx_t;
 
 
@@ -165,7 +165,7 @@ static errno_t iterate_dir(list_ctx_t* _Nonnull self, IOChannelRef _Nonnull chan
             break;
         }
 
-        const dirent_t* dep = self->dirbuf;
+        const struct dirent* dep = self->dirbuf;
         
         while (nBytesRead > 0) {
             if (self->flags.printAll || dep->name[0] != '.') {
@@ -175,7 +175,7 @@ static errno_t iterate_dir(list_ctx_t* _Nonnull self, IOChannelRef _Nonnull chan
                 }
             }
 
-            nBytesRead -= sizeof(dirent_t);
+            nBytesRead -= sizeof(struct dirent);
             dep++;
         }
     }
