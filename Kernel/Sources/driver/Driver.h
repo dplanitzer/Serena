@@ -34,7 +34,7 @@ typedef struct BusEntry {
     const char* _Nonnull    name;
     uid_t                   uid;
     gid_t                   gid;
-    FilePermissions         perms;
+    mode_t                  perms;
 } BusEntry;
 
 
@@ -42,7 +42,7 @@ typedef struct DriverEntry {
     const char* _Nonnull    name;
     uid_t                   uid;
     gid_t                   gid;
-    FilePermissions         perms;
+    mode_t                  perms;
     intptr_t                arg;
 } DriverEntry;
 

@@ -95,7 +95,7 @@ errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
-    de.perms = FilePermissions_MakeFromOctal(0444);
+    de.perms = perm_from_octal(0444);
     de.arg = 0;
 
     return Driver_Publish((DriverRef)self, &de);

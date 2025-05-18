@@ -20,7 +20,7 @@ __CPP_BEGIN
 // by 'path'. 'mode' specifies the permissions that should be assigned to the
 // directory.
 // @Concurrency: Safe
-extern int mkdir(const char* _Nonnull path, FilePermissions mode);
+extern int mkdir(const char* _Nonnull path, mode_t mode);
 
 
 // Returns meta-information about the file located at the filesystem location 'path'.

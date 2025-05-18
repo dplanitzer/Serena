@@ -21,13 +21,14 @@
 #include <sys/mount.h>
 #include <sys/fs.h>
 #include <sys/ioctl.h>
+#include <sys/perm.h>
 #include <sys/stat.h>
 #include <sys/uid.h>
 #include <filesystem/serenafs/tools/format.h>
 
 typedef struct di_permissions_spec {
-    FilePermissions p;
-    bool            isValid;
+    mode_t  p;
+    bool    isValid;
 } di_permissions_spec_t;
 
 typedef struct di_owner_spec {
@@ -130,7 +131,7 @@ static errno_t wipe_disk(int ioc, const diskinfo_t* _Nonnull info)
     return err;
 }
 
-errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull diskPath)
+errno_t cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull diskPath)
 {
     decl_try_err();
     FILE* fp = NULL;
@@ -412,21 +413,21 @@ static int parsePermissions(const char* _Nonnull proc_name, const struct clap_pa
             return EXIT_FAILURE;
         }
 
-        out_perms->p = FilePermissions_MakeFromOctal(bits & 0777);
+        out_perms->p = perm_from_octal(bits & 0777);
         out_perms->isValid = true;
     }
     else if (*arg != '\0') {
-        FilePermissions perms[3] = {0, 0, 0};
+        mode_t perms[3] = {0, 0, 0};
         const char* str = arg;
 
         for (int i = 0; i < 3; i++) {
-            FilePermissions t = 0;
+            mode_t t = 0;
 
             for (int j = 0; j < 3; j++) {
                 switch (*str++) {
-                    case 'r': t |= kFilePermission_Read; break;
-                    case 'w': t |= kFilePermission_Write; break;
-                    case 'x': t |= kFilePermission_Execute; break;
+                    case 'r': t |= S_IR; break;
+                    case 'w': t |= S_IW; break;
+                    case 'x': t |= S_IX; break;
                     case '-': break;
                     case '_': break;
                     default:
@@ -443,7 +444,7 @@ static int parsePermissions(const char* _Nonnull proc_name, const struct clap_pa
             return EXIT_FAILURE;
         }
 
-        out_perms->p = FilePermissions_Make(perms[0], perms[1], perms[2]);
+        out_perms->p = perm_from(perms[0], perms[1], perms[2]);
         out_perms->isValid = true;
     }
     else {
@@ -547,7 +548,7 @@ int main(int argc, char* argv[])
     if (!strcmp(cmd_id, "format")) {
         // disk format
         if (!permissions.isValid) {
-            permissions.p = FilePermissions_MakeFromOctal(0777);
+            permissions.p = perm_from_octal(0777);
         }
         if (!owner.isValid) {
             owner.uid = kUserId_Root;

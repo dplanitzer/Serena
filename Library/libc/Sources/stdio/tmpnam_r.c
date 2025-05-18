@@ -13,6 +13,7 @@
 #include <string.h>
 #include <time.h>
 #include <fcntl.h>
+#include <sys/perm.h>
 #include <sys/stat.h>
 
 #define NUM_RND_CHARS   16
@@ -114,7 +115,7 @@ char *__tmpnam_r(char *filename, int* pOutIoc)
         *p = '\0';
 
         if (pOutIoc) {
-            const errno_t err = creat(filename, O_RDWR | O_EXCL, FilePermissions_MakeFromOctal(0600), pOutIoc);
+            const errno_t err = creat(filename, O_RDWR | O_EXCL, perm_from_octal(0600), pOutIoc);
             if (err == EOK) {
                 return filename;
             }

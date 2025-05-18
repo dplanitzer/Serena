@@ -34,7 +34,7 @@ static void alloc_bmp_mark_used(uint8_t *bitmap, blkno_t lba, bool inUse)
     }
 }
 
-errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt_t blockCount, size_t blockSize, uid_t uid, gid_t gid, FilePermissions permissions, const char* _Nonnull label)
+errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt_t blockCount, size_t blockSize, uid_t uid, gid_t gid, mode_t permissions, const char* _Nonnull label)
 {
     decl_try_err();
     const struct timespec curTime = FSGetCurrentTime();
@@ -135,7 +135,7 @@ errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt
     ip->linkCount = Int32_HostToBig(1);
     ip->uid = UInt32_HostToBig(uid);
     ip->gid = UInt32_HostToBig(gid);
-    ip->permissions = UInt16_HostToBig(permissions);
+    ip->permissions = UInt16_HostToBig((uint16_t)permissions);
     ip->type = S_IFDIR;
     ip->bmap.direct[0] = UInt32_HostToBig(rootDirContLba);
     try(block_write(fd, bp, rootDirLba, blockSize));

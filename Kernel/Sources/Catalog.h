@@ -11,6 +11,7 @@
 
 #include <kobj/Object.h>
 #include <filemanager/ResolvedPath.h>
+#include <kpi/perm.h>
 
 
 // The non-persistent, globally unique ID of a published catalog entry.
@@ -55,7 +56,7 @@ extern errno_t Catalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path,
 
 // Publishes a folder with the name 'name' to the catalog. Pass kCatalog_None as
 // the 'parentFolderId' to create the new folder inside the root folder. 
-extern errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId, const char* _Nonnull name, uid_t uid, gid_t gid, FilePermissions perms, CatalogId* _Nonnull pOutFolderId);
+extern errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, CatalogId* _Nonnull pOutFolderId);
 
 
 // Either removes a published entry or a published folder from the catalog.
@@ -72,16 +73,16 @@ extern errno_t Catalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId, C
 // Returns a suitable error if another entry with the same name already exists.
 // 'arg' is an optional argument that will be passed to the Driver_Open() method
 // when the driver needs to be opened.
-extern errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, FilePermissions perms, DriverRef _Nonnull driver, intptr_t arg, CatalogId* _Nonnull pOutCatalogId);
+extern errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, DriverRef _Nonnull driver, intptr_t arg, CatalogId* _Nonnull pOutCatalogId);
 
 // Publish the filesystem instance 'fs' with the name 'name' in the root
 // directory of the catalog. Returns a suitable error if another entry with the
 // same name already exists.
-extern errno_t Catalog_PublishFilesystem(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, FilePermissions perms, FilesystemRef _Nonnull fs, CatalogId* _Nonnull pOutCatalogId);
+extern errno_t Catalog_PublishFilesystem(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, FilesystemRef _Nonnull fs, CatalogId* _Nonnull pOutCatalogId);
 
 // Publish the process 'proc' with the name 'name' in the root directory of the
 // catalog. Returns a suitable error if another entry with the same name already
 // exists.
-extern errno_t Catalog_PublishProcess(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, FilePermissions perms, ProcessRef _Nonnull proc, CatalogId* _Nonnull pOutCatalogId);
+extern errno_t Catalog_PublishProcess(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, ProcessRef _Nonnull proc, CatalogId* _Nonnull pOutCatalogId);
 
 #endif /* Catalog_h */

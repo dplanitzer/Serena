@@ -10,7 +10,7 @@
 #include <sys/_syscall.h>
 
 
-errno_t creat(const char* _Nonnull path, unsigned int mode, FilePermissions permissions, int* _Nonnull ioc)
+errno_t creat(const char* _Nonnull path, unsigned int mode, mode_t permissions, int* _Nonnull ioc)
 {
     return (errno_t)_syscall(SC_creat, path, mode, permissions, ioc);
 }

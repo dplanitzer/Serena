@@ -18,7 +18,7 @@ errno_t Process_Publish(ProcessRef _Locked _Nonnull self)
         char buf[12];
 
         UInt32_ToString(self->pid, 10, false, buf);
-        return Catalog_PublishProcess(gProcCatalog, buf, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0444), self, &self->catalogId);
+        return Catalog_PublishProcess(gProcCatalog, buf, kUserId_Root, kGroupId_Root, perm_from_octal(0444), self, &self->catalogId);
     }
     else {
         return EOK;

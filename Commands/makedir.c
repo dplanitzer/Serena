@@ -11,10 +11,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/perm.h>
 #include <sys/stat.h>
 
 
-static int _create_directory_recursively(char* _Nonnull path, FilePermissions permissions)
+static int _create_directory_recursively(char* _Nonnull path, mode_t permissions)
 {
     char* p = path;
 
@@ -57,7 +58,7 @@ static int _create_directory_recursively(char* _Nonnull path, FilePermissions pe
 // may now come back with ENOENT because X was empty and it got deleted by
 // another process. We simply start over again from the root of our path in
 // this case.
-static int create_directory_recursively(char* _Nonnull path, FilePermissions permissions)
+static int create_directory_recursively(char* _Nonnull path, mode_t permissions)
 {
     int i = 0;
 
@@ -94,7 +95,7 @@ CLAP_DECL(params,
 
 int main(int argc, char* argv[])
 {
-    const FilePermissions permissions = FilePermissions_MakeFromOctal(0755);
+    const mode_t permissions = perm_from_octal(0755);
     int r = 0;
 
     clap_parse(0, params, argc, argv);

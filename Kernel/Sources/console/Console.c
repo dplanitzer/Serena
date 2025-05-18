@@ -14,6 +14,7 @@
 #include <kern/string.h>
 #include <kern/timespec.h>
 #include <kpi/fcntl.h>
+#include <kpi/perm.h>
 
 
 // Creates a new console object. This console will display its output on the
@@ -109,7 +110,7 @@ static errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     de.name = "console";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
-    de.perms = FilePermissions_MakeFromOctal(0666);
+    de.perms = perm_from_octal(0666);
     de.arg = 0;
 
     return Driver_Publish((DriverRef)self, &de);

@@ -108,13 +108,13 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     be.name = "fd-bus";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;
-    be.perms = FilePermissions_MakeFromOctal(0755);
+    be.perms = perm_from_octal(0755);
 
     DriverEntry de;
     de.name = "self";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
-    de.perms = FilePermissions_MakeFromOctal(0666);
+    de.perms = perm_from_octal(0666);
     de.arg = 0;
 
     try(Driver_PublishBus((DriverRef)self, &be, &de));

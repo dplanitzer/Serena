@@ -332,7 +332,7 @@ open_class_funcs(Filesystem, Object,
     // 'permissions' and adds it to the directory 'pDir'. The new node will be
     // added to 'pDir' with the name 'pName'. Returns the newly acquired inode
     // on success and NULL otherwise.
-    errno_t (*createNode)(void* _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
+    errno_t (*createNode)(void* _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Unlink the node 'target' which is an immediate child of 'dir'. Both nodes
     // are guaranteed to be members of the same filesystem. 'target' is guaranteed

@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/perm.h>
 #include <sys/stat.h>
 
 
@@ -35,7 +36,7 @@ static errno_t _copy_file(const char* _Nonnull srcPath, const char* _Nonnull dst
     char* buf = NULL;
     int sfd = -1, dfd = -1;
     finfo_t finf;
-    FilePermissions perms;
+    mode_t perms;
     ssize_t nBytesRead, nBytesWritten;
 
     try_null(buf, malloc(bufSize), ENOMEM);
@@ -44,7 +45,7 @@ static errno_t _copy_file(const char* _Nonnull srcPath, const char* _Nonnull dst
     try(open(srcPath, O_RDONLY, &sfd));
     try(fgetfinfo(sfd, &finf));
     perms = finf.permissions;
-    FilePermissions_Add(perms, kFilePermissionsClass_User, kFilePermission_Write);
+    perm_add(perms, S_ICUSR, S_IW);
     try(creat(dstPath, O_WRONLY|O_TRUNC, perms, &dfd));
 
     while (err == EOK) {
@@ -56,7 +57,7 @@ static errno_t _copy_file(const char* _Nonnull srcPath, const char* _Nonnull dst
         err = write(dfd, buf, nBytesRead, &nBytesWritten);
     }
 
-    if (!FilePermissions_Has(finf.permissions, kFilePermissionsClass_User, kFilePermission_Write)) {
+    if (!perm_has(finf.permissions, S_ICUSR, S_IW)) {
         //XXX use fchmod() instead once it exists
         chmod(dstPath, finf.permissions);
     }

@@ -83,7 +83,7 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     de.name = self->name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
-    de.perms = FilePermissions_MakeFromOctal(0640);
+    de.perms = perm_from_octal(0640);
     de.arg = 0;
 
     try(Driver_Publish((DriverRef)self, &de));

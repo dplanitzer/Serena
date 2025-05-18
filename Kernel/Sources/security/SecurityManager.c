@@ -9,6 +9,7 @@
 #include "SecurityManager.h"
 #include <filesystem/Filesystem.h>
 #include <kern/kalloc.h>
+#include <kpi/perm.h>
 
 typedef struct SecurityManager {
     int dummy;
@@ -34,8 +35,8 @@ catch:
 
 errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeRef _Nonnull _Locked pNode, uid_t uid, gid_t gid, int mode)
 {
-    const FilePermissions nodePerms = Inode_GetFilePermissions(pNode);
-    FilePermissions reqPerms = 0;
+    const mode_t nodePerms = Inode_GetMode(pNode);
+    mode_t reqPerms = 0;
 
     // XXX probably temporary until we're getting around to designing a full permission model
     if (uid == kUserId_Root) {
@@ -44,10 +45,10 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
     // XXX
     
     if ((mode & R_OK) == R_OK) {
-        reqPerms |= kFilePermission_Read;
+        reqPerms |= S_IR;
     }
     if ((mode & W_OK) == W_OK) {
-        reqPerms |= kFilePermission_Write;
+        reqPerms |= S_IW;
 
         // Return EROFS if write permissions are requested but the disk is read-only.
         if (Filesystem_IsReadOnly(Inode_GetFilesystem(pNode))) {
@@ -55,20 +56,20 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
         }
     }
     if ((mode & X_OK) == X_OK) {
-        reqPerms |= kFilePermission_Execute;
+        reqPerms |= S_IX;
     }
 
 
-    FilePermissions finalPerms;
+    mode_t finalPerms;
 
     if (Inode_GetUserId(pNode) == uid) {
-        finalPerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_User);
+        finalPerms = perm_get(nodePerms, S_ICUSR);
     }
     else if (Inode_GetGroupId(pNode) == gid) {
-        finalPerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_Group);
+        finalPerms = perm_get(nodePerms, S_ICGRP);
     }
     else {
-        finalPerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_Other);
+        finalPerms = perm_get(nodePerms, S_ICOTH);
     }
 
 
@@ -82,9 +83,6 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
 
 errno_t SecurityManager_CheckNodeStatusUpdatePermission(SecurityManagerRef _Nonnull self, InodeRef _Nonnull _Locked pNode, uid_t uid)
 {
-    const FilePermissions nodePerms = Inode_GetFilePermissions(pNode);
-    FilePermissions reqPerms = 0;
-
     // XXX probably temporary until we're getting around to designing a full permission model
     if (uid == kUserId_Root) {
         return EOK;

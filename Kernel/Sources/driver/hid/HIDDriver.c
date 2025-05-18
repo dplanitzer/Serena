@@ -28,7 +28,7 @@ errno_t HIDDriver_onStart(DriverRef _Nonnull _Locked self)
     de.name = "hid";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
-    de.perms = FilePermissions_MakeFromOctal(0666);
+    de.perms = perm_from_octal(0666);
     de.arg = 0;
 
     return Driver_Publish(self, &de);

@@ -11,7 +11,7 @@
 #include <process/Process.h>
 
 
-errno_t KfsProcess_Create(KernFSRef _Nonnull kfs, ino_t inid, FilePermissions permissions, uid_t uid, gid_t gid, ino_t pnid, ProcessRef _Nonnull proc, KfsNodeRef _Nullable * _Nonnull pOutSelf)
+errno_t KfsProcess_Create(KernFSRef _Nonnull kfs, ino_t inid, mode_t permissions, uid_t uid, gid_t gid, ino_t pnid, ProcessRef _Nonnull proc, KfsNodeRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     const struct timespec curTime = FSGetCurrentTime();

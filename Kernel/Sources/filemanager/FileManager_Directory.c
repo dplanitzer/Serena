@@ -71,7 +71,7 @@ errno_t FileManager_GetWorkingDirectoryPath(FileManagerRef _Nonnull self, char* 
 
 // Creates a new directory. 'permissions' are the file permissions that should be
 // assigned to the new directory (modulo the file creation mask).
-errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _Nonnull path, FilePermissions permissions)
+errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _Nonnull path, mode_t permissions)
 {
     decl_try_err();
     ResolvedPath r;
@@ -81,7 +81,7 @@ errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _N
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_PredecessorOfTarget, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
 
     const PathComponent* dirName = &r.lastPathComponent;
-    const FilePermissions dirPerms = ~self->umask & (permissions & 0777);
+    const mode_t dirPerms = ~self->umask & (permissions & 0777);
 
 
     // Create the new directory and add it to the parent directory if it doesn't

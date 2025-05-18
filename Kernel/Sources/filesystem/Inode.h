@@ -52,7 +52,7 @@ open_class(Inode, Any,
     nlink_t                         linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
     FileType                        type;
     uint8_t                         flags;
-    FilePermissions                 permissions;
+    mode_t                          mode;
     uid_t                           uid;
     gid_t                           gid;
 );
@@ -200,8 +200,8 @@ void Inode_Unlink(InodeRef _Nonnull self);
 
 
 // Returns the permissions of the node.
-#define Inode_GetFilePermissions(__self) \
-    ((InodeRef)__self)->permissions
+#define Inode_GetMode(__self) \
+    ((InodeRef)__self)->mode
 
 // Returns the User ID of the node.
 #define Inode_GetUserId(__self) \
@@ -323,7 +323,7 @@ invoke_n(truncate, Inode, __self, __length)
 extern errno_t Inode_Create(Class* _Nonnull pClass,
                     FilesystemRef _Nonnull fs, ino_t id,
                     FileType type, int linkCount,
-                    uid_t uid, gid_t gid, FilePermissions permissions,
+                    uid_t uid, gid_t gid, mode_t mode,
                     off_t size,
                     struct timespec accessTime, struct timespec modTime, struct timespec statusChangeTime,
                     ino_t pnid,

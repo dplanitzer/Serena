@@ -40,7 +40,7 @@ final_class_ivars(SerenaFS, ContainerFilesystem,
 );
 
 
-extern errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, sfs_insertion_hint_t* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
+extern errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, sfs_insertion_hint_t* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode);
 extern errno_t SerenaFS_onAcquireNode(SerenaFSRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode);
 extern errno_t SerenaFS_onWritebackNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode);
 

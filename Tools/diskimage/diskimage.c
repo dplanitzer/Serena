@@ -25,6 +25,7 @@
 #include <filesystem/serenafs/SfsRegularFile.h>
 #include <clap.h>
 #include <kern/endian.h>
+#include <kpi/perm.h>
 
 static const char* gArgv_Zero = "";
 
@@ -323,21 +324,21 @@ static int parsePermissions(const char* _Nonnull proc_name, const struct clap_pa
             return EXIT_FAILURE;
         }
 
-        out_perms->p = FilePermissions_MakeFromOctal(bits & 0777);
+        out_perms->p = perm_from_octal(bits & 0777);
         out_perms->isValid = true;
     }
     else if (*arg != '\0') {
-        FilePermissions perms[3] = {0, 0, 0};
+        mode_t perms[3] = {0, 0, 0};
         const char* str = arg;
 
         for (int i = 0; i < 3; i++) {
-            FilePermissions t = 0;
+            mode_t t = 0;
 
             for (int j = 0; j < 3; j++) {
                 switch (*str++) {
-                    case 'r': t |= kFilePermission_Read; break;
-                    case 'w': t |= kFilePermission_Write; break;
-                    case 'x': t |= kFilePermission_Execute; break;
+                    case 'r': t |= S_IR; break;
+                    case 'w': t |= S_IW; break;
+                    case 'x': t |= S_IX; break;
                     case '-': break;
                     case '_': break;
                     default:
@@ -354,7 +355,7 @@ static int parsePermissions(const char* _Nonnull proc_name, const struct clap_pa
             return EXIT_FAILURE;
         }
 
-        out_perms->p = FilePermissions_Make(perms[0], perms[1], perms[2]);
+        out_perms->p = perm_from(perms[0], perms[1], perms[2]);
         out_perms->isValid = true;
     }
     else {
@@ -600,7 +601,7 @@ int main(int argc, char* argv[])
     else if (!strcmp(cmd_id, "format")) {
         // diskimage format
         if (!permissions.isValid) {
-            permissions.p = FilePermissions_MakeFromOctal(0755);
+            permissions.p = perm_from_octal(0755);
         }
         if (!owner.isValid) {
             owner.uid = kUserId_Root;
@@ -616,7 +617,7 @@ int main(int argc, char* argv[])
     else if (!strcmp(cmd_id, "makedir")) {
         // diskimage makedir
         if (!permissions.isValid) {
-            permissions.p = FilePermissions_MakeFromOctal(0755);
+            permissions.p = perm_from_octal(0755);
         }
         if (!owner.isValid) {
             owner.uid = kUserId_Root;
@@ -632,7 +633,7 @@ int main(int argc, char* argv[])
     else if (!strcmp(cmd_id, "push")) {
         // diskimage push
         if (!permissions.isValid) {
-            permissions.p = FilePermissions_MakeFromOctal(0644);
+            permissions.p = perm_from_octal(0644);
         }
         if (!owner.isValid) {
             owner.uid = kUserId_Root;

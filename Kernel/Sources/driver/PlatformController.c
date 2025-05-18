@@ -22,7 +22,7 @@ errno_t PlatformController_onStart(PlatformControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
 
-    try(Catalog_PublishFolder(gDriverCatalog, kCatalogId_None, "hw", kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0755), &((DriverRef)self)->busCatalogId));
+    try(Catalog_PublishFolder(gDriverCatalog, kCatalogId_None, "hw", kUserId_Root, kGroupId_Root, perm_from_octal(0755), &((DriverRef)self)->busCatalogId));
     try(PlatformController_DetectDevices(self));
 
 catch:

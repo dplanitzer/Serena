@@ -11,11 +11,12 @@
 #include <errno.h>
 #include <stdio.h>
 #include <kpi/fcntl.h>
+#include <kpi/perm.h>
 
 #define BLOCK_SIZE  4096
 
 
-static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, FilePermissions perms, uid_t uid, gid_t gid, IOChannelRef _Nullable * _Nonnull pOutChannel)
+static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, mode_t perms, uid_t uid, gid_t gid, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     IOChannelRef chan = NULL;
@@ -43,7 +44,7 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
     return err;
 }
 
-errno_t cmd_push(FilePermissions filePerms, uid_t uid, gid_t gid, const char* _Nonnull srcPath, const char* _Nonnull path, const char* _Nonnull dmgPath)
+errno_t cmd_push(mode_t filePerms, uid_t uid, gid_t gid, const char* _Nonnull srcPath, const char* _Nonnull path, const char* _Nonnull dmgPath)
 {
     decl_try_err();
     RamContainerRef disk = NULL;

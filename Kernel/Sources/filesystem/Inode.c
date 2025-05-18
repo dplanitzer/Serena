@@ -18,7 +18,7 @@ typedef void (*deinit_impl_t)(void* _Nonnull self);
 
 
 errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, ino_t id,
-    FileType type, int linkCount, uid_t uid, gid_t gid, FilePermissions permissions,
+    FileType type, int linkCount, uid_t uid, gid_t gid, mode_t mode,
     off_t size, struct timespec accessTime, struct timespec modTime, struct timespec statusChangeTime,
     ino_t pnid,
     InodeRef _Nullable * _Nonnull pOutNode)
@@ -42,7 +42,7 @@ errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, ino_t i
         self->linkCount = linkCount;
         self->type = type;
         self->flags = 0;
-        self->permissions = permissions;
+        self->mode = mode;
         self->uid = uid;
         self->gid = gid;
     }
@@ -171,7 +171,7 @@ errno_t Inode_getInfo(InodeRef _Nonnull _Locked self, finfo_t* _Nonnull pOutInfo
     pOutInfo->size = Inode_GetFileSize(self);
     pOutInfo->uid = Inode_GetUserId(self);
     pOutInfo->gid = Inode_GetGroupId(self);
-    pOutInfo->permissions = Inode_GetFilePermissions(self);
+    pOutInfo->permissions = Inode_GetMode(self);
     pOutInfo->type = Inode_GetFileType(self);
     pOutInfo->reserved = 0;
     pOutInfo->linkCount = Inode_GetLinkCount(self);
@@ -183,7 +183,7 @@ errno_t Inode_getInfo(InodeRef _Nonnull _Locked self, finfo_t* _Nonnull pOutInfo
 
 errno_t Inode_setMode(InodeRef _Nonnull _Locked self, mode_t mode)
 {
-    self->permissions = mode;
+    self->mode = mode;
     Inode_SetModified(self, kInodeFlag_StatusChanged);
 
     return EOK;

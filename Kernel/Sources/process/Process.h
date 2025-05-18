@@ -197,7 +197,7 @@ extern errno_t Process_GetWorkingDirectoryPath(ProcessRef _Nonnull self, char* _
 extern mode_t Process_UMask(ProcessRef _Nonnull self, mode_t mask);
 
 // Creates a file in the given filesystem location.
-extern errno_t Process_CreateFile(ProcessRef _Nonnull self, const char* _Nonnull pPath, unsigned int mode, FilePermissions permissions, int* _Nonnull pOutDescriptor);
+extern errno_t Process_CreateFile(ProcessRef _Nonnull self, const char* _Nonnull pPath, unsigned int mode, mode_t permissions, int* _Nonnull pOutDescriptor);
 
 // Opens the given file or named resource. Opening directories is handled by the
 // Process_OpenDirectory() function.
@@ -205,7 +205,7 @@ extern errno_t Process_OpenFile(ProcessRef _Nonnull self, const char* _Nonnull p
 
 // Creates a new directory. 'permissions' are the file permissions that should be
 // assigned to the new directory (modulo the file creation mask).
-extern errno_t Process_CreateDirectory(ProcessRef _Nonnull self, const char* _Nonnull pPath, FilePermissions permissions);
+extern errno_t Process_CreateDirectory(ProcessRef _Nonnull self, const char* _Nonnull pPath, mode_t permissions);
 
 // Opens the directory at the given path and returns an I/O channel that represents
 // the open directory.

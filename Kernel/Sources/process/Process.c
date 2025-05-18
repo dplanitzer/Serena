@@ -37,7 +37,7 @@ ProcessRef _Nullable Process_GetCurrent(void)
 errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutProc)
 {
     InodeRef rootDir = FileHierarchy_AcquireRootDirectory(pRootFh);
-    const errno_t err = Process_Create(1, pRootFh, kUserId_Root, kGroupId_Root, rootDir, rootDir, FilePermissions_MakeFromOctal(0022), pOutProc);
+    const errno_t err = Process_Create(1, pRootFh, kUserId_Root, kGroupId_Root, rootDir, rootDir, perm_from_octal(0022), pOutProc);
 
     Inode_Relinquish(rootDir);
     return err;

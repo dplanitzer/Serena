@@ -12,6 +12,7 @@
 #include <filesystem/FileChannel.h>
 #include <security/SecurityManager.h>
 #include <kpi/fcntl.h>
+#include <kpi/perm.h>
 
 
 errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _Locked pFile, unsigned int mode)
@@ -58,7 +59,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
 }
 
 // Creates a file in the given filesystem location.
-errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, unsigned int mode, FilePermissions permissions, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, unsigned int mode, mode_t permissions, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     ResolvedPath r;
@@ -102,17 +103,17 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
     }
     else if (err == ENOENT) {
         // File does not exist - create it
-        const FilePermissions filePerms = ~self->umask & (permissions & 0777);
+        const mode_t filePerms = ~self->umask & (permissions & 0777);
 
 
         // The user provided read/write mode must match up with the provided (user) permissions
         if ((mode & O_RDWR) == 0) {
             throw(EACCESS);
         }
-        if ((mode & O_RDONLY) == O_RDONLY && !FilePermissions_Has(filePerms, kFilePermissionsClass_User, kFilePermission_Read)) {
+        if ((mode & O_RDONLY) == O_RDONLY && !perm_has(filePerms, S_ICUSR, S_IR)) {
             throw(EACCESS);
         }
-        if ((mode & O_WRONLY) == O_WRONLY && !FilePermissions_Has(filePerms, kFilePermissionsClass_User, kFilePermission_Write)) {
+        if ((mode & O_WRONLY) == O_WRONLY && !perm_has(filePerms, S_ICUSR, S_IW)) {
             throw(EACCESS);
         }
 

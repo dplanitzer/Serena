@@ -27,7 +27,7 @@ __CPP_BEGIN
 // by passing the O_TRUNC option. 'permissions' are the file permissions
 // that are assigned to a newly created file if it is actually created.
 // @Concurrency: Safe
-extern errno_t creat(const char* _Nonnull path, unsigned int mode, FilePermissions permissions, int* _Nonnull ioc);
+extern errno_t creat(const char* _Nonnull path, unsigned int mode, mode_t permissions, int* _Nonnull ioc);
 
 // Opens an already existing file located at the filesystem location 'path'.
 // Returns an error if the file does not exist or the caller lacks the necessary

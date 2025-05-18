@@ -67,7 +67,6 @@ typedef void (*VoidFunc_1)(void*);
 typedef void (*VoidFunc_2)(void*, void*);
 
 #include <stdint.h>
-typedef uint16_t    FilePermissions;
 typedef int8_t      FileType;
 
 #endif /* _KPI_TYPES_H */

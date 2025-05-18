@@ -129,7 +129,7 @@ static errno_t _Catalog_AcquireFolder(CatalogRef _Nonnull self, CatalogId folder
 
 // Publishes a folder with the name 'name' to the catalog. Pass kCatalog_None as
 // the 'parentFolderId' to create the new folder inside the root folder. 
-errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId, const char* _Nonnull name, uid_t uid, gid_t gid, FilePermissions perms, CatalogId* _Nonnull pOutFolderId)
+errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, CatalogId* _Nonnull pOutFolderId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -195,7 +195,7 @@ catch:
 }
 
 
-errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, FilePermissions perms, DriverRef _Nonnull driver, intptr_t arg, CatalogId* _Nonnull pOutCatalogId)
+errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, DriverRef _Nonnull driver, intptr_t arg, CatalogId* _Nonnull pOutCatalogId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -221,7 +221,7 @@ errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, cons
     return err;
 }
 
-errno_t Catalog_PublishFilesystem(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, FilePermissions perms, FilesystemRef _Nonnull fs, CatalogId* _Nonnull pOutCatalogId)
+errno_t Catalog_PublishFilesystem(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, FilesystemRef _Nonnull fs, CatalogId* _Nonnull pOutCatalogId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -247,7 +247,7 @@ errno_t Catalog_PublishFilesystem(CatalogRef _Nonnull self, const char* _Nonnull
     return err;
 }
 
-errno_t Catalog_PublishProcess(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, FilePermissions perms, ProcessRef _Nonnull proc, CatalogId* _Nonnull pOutCatalogId)
+errno_t Catalog_PublishProcess(CatalogRef _Nonnull self, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, ProcessRef _Nonnull proc, CatalogId* _Nonnull pOutCatalogId)
 {
     decl_try_err();
     InodeRef pDir = NULL;

@@ -12,6 +12,7 @@
 #include <filesystem/serenafs/SerenaFS.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <kpi/perm.h>
 #include <kpi/stat.h>
 
 
@@ -29,7 +30,7 @@ errno_t FSManager_Create(RamContainerRef _Nonnull fsContainer, FSManagerRef _Nul
 
     try(FileHierarchy_Create(self->fs, &fh));
     rootDir = FileHierarchy_AcquireRootDirectory(fh);
-    FileManager_Init(&self->fm, fh, kUserId_Root, kGroupId_Root, rootDir, rootDir, FilePermissions_MakeFromOctal(0));
+    FileManager_Init(&self->fm, fh, kUserId_Root, kGroupId_Root, rootDir, rootDir, perm_from_octal(0));
     self->isFmUp = true;
 
     Inode_Relinquish(rootDir);

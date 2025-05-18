@@ -10,7 +10,7 @@
 #include <sys/_syscall.h>
 
 
-int mkdir(const char* _Nonnull path, FilePermissions mode)
+int mkdir(const char* _Nonnull path, mode_t mode)
 {
     return (int)_syscall(SC_mkdir, path, (uint32_t)mode);
 }

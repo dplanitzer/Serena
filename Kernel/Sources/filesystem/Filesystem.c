@@ -104,7 +104,7 @@ errno_t Filesystem_Publish(FilesystemRef _Nonnull self)
         char buf[12];
 
         UInt32_ToString(self->fsid, 10, false, buf);
-        return Catalog_PublishFilesystem(gFSCatalog, buf, kUserId_Root, kGroupId_Root, FilePermissions_MakeFromOctal(0444), self, &self->catalogId);
+        return Catalog_PublishFilesystem(gFSCatalog, buf, kUserId_Root, kGroupId_Root, perm_from_octal(0444), self, &self->catalogId);
     }
     else {
         return EOK;
@@ -622,7 +622,7 @@ errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull 
     return EIO;
 }
 
-errno_t Filesystem_createNode(FilesystemRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t Filesystem_createNode(FilesystemRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return EIO;
 }

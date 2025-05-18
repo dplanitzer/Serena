@@ -33,7 +33,7 @@ enum {
     SC_chdir,               // errno_t chdir(const char* _Nonnull path)
     SC_getuid,              // uid_t getuid(void)
     SC_umask,               // mode_t umask(mode_t mask)
-    SC_mkdir,               // errno_t mkdir(const char* _Nonnull path, FilePermissions mode)
+    SC_mkdir,               // errno_t mkdir(const char* _Nonnull path, mode_t mode)
     SC_getinfo,             // errno_t getinfo(const char* _Nonnull path, finfo_t* _Nonnull info)
     SC_opendir,             // errno_t opendir(const char* _Nonnull path, int* _Nonnull fd)
     SC_access,              // errno_t access(const char* _Nonnull path, int mode)

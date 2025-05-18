@@ -13,6 +13,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <kpi/dirent.h>
+#include <kpi/perm.h>
 
 
 #ifdef _WIN32
@@ -59,15 +60,15 @@ typedef struct list_ctx {
 typedef errno_t (*dir_iter_t)(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName);
 
 
-static void file_permissions_to_text(FilePermissions perms, char* _Nonnull buf)
+static void file_permissions_to_text(mode_t perms, char* _Nonnull buf)
 {
-    if ((perms & kFilePermission_Read) == kFilePermission_Read) {
+    if ((perms & S_IR) == S_IR) {
         buf[0] = 'r';
     }
-    if ((perms & kFilePermission_Write) == kFilePermission_Write) {
+    if ((perms & S_IW) == S_IW) {
         buf[1] = 'w';
     }
-    if ((perms & kFilePermission_Execute) == kFilePermission_Execute) {
+    if ((perms & S_IX) == S_IX) {
         buf[2] = 'x';
     }
 }
@@ -115,9 +116,9 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
             self->buf[i] = '-';
         }
 
-        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_User), &self->buf[1]);
-        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Group), &self->buf[4]);
-        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Other), &self->buf[7]);
+        file_permissions_to_text(perm_get(info.permissions, S_ICUSR), &self->buf[1]);
+        file_permissions_to_text(perm_get(info.permissions, S_ICGRP), &self->buf[4]);
+        file_permissions_to_text(perm_get(info.permissions, S_ICOTH), &self->buf[7]);
         self->buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
         printf("%s %*d  %*u %*u  %*" PSIZE " %*" PINID " %s\n",

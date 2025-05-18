@@ -134,7 +134,7 @@ intptr_t _syscall_handler(VirtualProcessor* _Nonnull vcpu, unsigned int* _Nonnul
 
 SYSCALL_4(mkfile, const char* _Nonnull path, unsigned int mode, uint32_t permissions, int* _Nonnull pOutIoc)
 {
-    return Process_CreateFile((ProcessRef)p, pa->path, pa->mode, (FilePermissions)pa->permissions, pa->pOutIoc);
+    return Process_CreateFile((ProcessRef)p, pa->path, pa->mode, (mode_t)pa->permissions, pa->pOutIoc);
 }
 
 SYSCALL_3(open, const char* _Nonnull path, unsigned int mode, int* _Nonnull pOutIoc)
@@ -174,7 +174,7 @@ SYSCALL_4(seek, int ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whe
 
 SYSCALL_2(mkdir, const char* _Nonnull path, uint32_t mode)
 {
-    return Process_CreateDirectory((ProcessRef)p, pa->path, (FilePermissions) pa->mode);
+    return Process_CreateDirectory((ProcessRef)p, pa->path, (mode_t) pa->mode);
 }
 
 SYSCALL_2(getcwd, char* _Nonnull buffer, size_t bufferSize)

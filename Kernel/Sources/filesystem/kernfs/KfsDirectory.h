@@ -34,7 +34,7 @@ open_class_funcs(KfsDirectory, KfsNode,
 );
 
 
-extern errno_t KfsDirectory_Create(KernFSRef _Nonnull fs, ino_t inid, FilePermissions permissions, uid_t uid, gid_t gid, ino_t pnid, KfsNodeRef _Nullable * _Nonnull pOutSelf);
+extern errno_t KfsDirectory_Create(KernFSRef _Nonnull fs, ino_t inid, mode_t permissions, uid_t uid, gid_t gid, ino_t pnid, KfsNodeRef _Nullable * _Nonnull pOutSelf);
 
 extern bool KfsDirectory_IsEmpty(KfsDirectoryRef _Nonnull _Locked self);
 extern errno_t _Nullable KfsDirectory_GetEntryForName(KfsDirectoryRef _Nonnull _Locked self, const PathComponent* _Nonnull pc, KfsDirectoryEntry* _Nullable * _Nonnull pOutEntry);

@@ -93,7 +93,7 @@ errno_t DigitalJoystickDriver_onStart(DigitalJoystickDriverRef _Nonnull _Locked 
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
-    de.perms = FilePermissions_MakeFromOctal(0444);
+    de.perms = perm_from_octal(0444);
     de.arg = 0;
 
     return Driver_Publish((DriverRef)self, &de);
@@ -235,7 +235,7 @@ errno_t AnalogJoystickDriver_onStart(AnalogJoystickDriverRef _Nonnull _Locked se
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
-    de.perms = FilePermissions_MakeFromOctal(0444);
+    de.perms = perm_from_octal(0444);
     de.arg = 0;
 
     return Driver_Publish((DriverRef)self, &de);

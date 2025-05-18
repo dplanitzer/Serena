@@ -43,7 +43,7 @@ typedef struct spawn_opts {
     const char* _Nullable * _Nullable   envp;
     const char* _Nullable               root_dir;               // Process root directory, if not NULL; otherwise inherited from the parent
     const char* _Nullable               cw_dir;                 // Process current working directory, if not NULL; otherwise inherited from the parent
-    FilePermissions                     umask;                  // Override umask
+    mode_t                              umask;                  // Override umask
     uid_t                               uid;                    // Override user ID
     gid_t                               gid;                    // Override group ID
     int                                 notificationQueue;      // If kSpawn_NotifyOnProcessTermination is set, then this queue will receive termination notifications

@@ -149,7 +149,7 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
-    de.perms = FilePermissions_MakeFromOctal(0666);
+    de.perms = perm_from_octal(0666);
     de.arg = 0;
 
     if ((err = Driver_Publish((DriverRef)self, &de)) == EOK) {

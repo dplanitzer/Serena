@@ -51,7 +51,7 @@ errno_t Process_GetWorkingDirectoryPath(ProcessRef _Nonnull self, char* _Nonnull
 
 // Creates a new directory. 'permissions' are the file permissions that should be
 // assigned to the new directory (modulo the file creation mask).
-errno_t Process_CreateDirectory(ProcessRef _Nonnull self, const char* _Nonnull path, FilePermissions permissions)
+errno_t Process_CreateDirectory(ProcessRef _Nonnull self, const char* _Nonnull path, mode_t permissions)
 {
     Lock_Lock(&self->lock);
     const errno_t err = FileManager_CreateDirectory(&self->fm, path, permissions);
@@ -102,7 +102,7 @@ mode_t Process_UMask(ProcessRef _Nonnull self, mode_t mask)
 }
 
 // Creates a file in the given filesystem location.
-errno_t Process_CreateFile(ProcessRef _Nonnull self, const char* _Nonnull path, unsigned int mode, FilePermissions permissions, int* _Nonnull pOutIoc)
+errno_t Process_CreateFile(ProcessRef _Nonnull self, const char* _Nonnull path, unsigned int mode, mode_t permissions, int* _Nonnull pOutIoc)
 {
     decl_try_err();
     IOChannelRef chan;
