@@ -187,12 +187,12 @@ SYSCALL_1(chdir, const char* _Nonnull path)
     return Process_SetWorkingDirectoryPath((ProcessRef)p, pa->path);
 }
 
-SYSCALL_2(getfinfo, const char* _Nonnull path, struct stat* _Nonnull pOutInfo)
+SYSCALL_2(stat, const char* _Nonnull path, struct stat* _Nonnull pOutInfo)
 {
     return Process_GetFileInfo((ProcessRef)p, pa->path, pa->pOutInfo);
 }
 
-SYSCALL_2(fgetfinfo, int ioc, struct stat* _Nonnull pOutInfo)
+SYSCALL_2(fstat, int ioc, struct stat* _Nonnull pOutInfo)
 {
     return Process_GetFileInfo_ioc((ProcessRef)p, pa->ioc, pa->pOutInfo);
 }
@@ -481,10 +481,10 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(getuid, 0),
     SYSCALL_ENTRY(umask, 0),
     SYSCALL_ENTRY(mkdir, SC_ERRNO),
-    SYSCALL_ENTRY(getfinfo, SC_ERRNO),
+    SYSCALL_ENTRY(stat, SC_ERRNO),
     SYSCALL_ENTRY(opendir, SC_ERRNO),
     SYSCALL_ENTRY(access, SC_ERRNO),
-    SYSCALL_ENTRY(fgetfinfo, SC_ERRNO),
+    SYSCALL_ENTRY(fstat, SC_ERRNO),
     SYSCALL_ENTRY(unlink, SC_ERRNO),
     SYSCALL_ENTRY(rename, SC_ERRNO),
     SYSCALL_ENTRY(ioctl, SC_ERRNO),

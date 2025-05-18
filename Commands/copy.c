@@ -43,7 +43,9 @@ static errno_t _copy_file(const char* _Nonnull srcPath, const char* _Nonnull dst
 
 
     try(open(srcPath, O_RDONLY, &sfd));
-    try(fgetfinfo(sfd, &info));
+    if (fstat(sfd, &info) != 0) {
+        throw(errno);
+    }
     perms = S_FPERM(info.st_mode);
     perm_add(perms, S_ICUSR, S_IW);
     try(creat(dstPath, O_WRONLY|O_TRUNC, perms, &dfd));
@@ -80,19 +82,17 @@ static errno_t copy_file(const char* _Nonnull srcPath, const char* _Nonnull dstP
     struct stat info;
     char* dpath;
 
-    err = getfinfo(srcPath, &info);
-    if (err == EOK) {
+    if (stat(srcPath, &info) == 0) {
         if (!S_ISREG(info.st_mode)) {
             return EINVAL;
         }
     }
     else {
-        return err;
+        return errno;
     }
 
 
-    err = getfinfo(dstPath, &info);
-    if (err == EOK) {
+    if (stat(dstPath, &info) == 0) {
         if (S_ISDIR(info.st_mode)) {
             dpath = malloc(PATH_MAX);
             if (dpath == NULL) {

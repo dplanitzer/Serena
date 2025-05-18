@@ -10,12 +10,12 @@
 #include <sys/_syscall.h>
 
 
-errno_t getfinfo(const char* _Nonnull path, struct stat* _Nonnull info)
+errno_t stat(const char* _Nonnull path, struct stat* _Nonnull info)
 {
-    return (errno_t)_syscall(SC_getinfo, path, info);
+    return (errno_t)_syscall(SC_stat, path, info);
 }
 
-errno_t fgetfinfo(int ioc, struct stat* _Nonnull info)
+errno_t fstat(int ioc, struct stat* _Nonnull info)
 {
-    return _syscall(SC_fgetinfo, ioc, info);
+    return _syscall(SC_fstat, ioc, info);
 }

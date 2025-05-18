@@ -76,7 +76,7 @@ static int format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, co
 {
     struct stat info;
     
-    if (getfinfo(path, &info) != 0) {
+    if (stat(path, &info) != 0) {
         return -1;
     }
     
@@ -106,7 +106,7 @@ static int print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, con
     struct stat info;
     char tc;
 
-    if (getfinfo(path, &info) != 0) {
+    if (stat(path, &info) != 0) {
         return -1;
     }
     
@@ -223,7 +223,7 @@ static bool is_dir(const char* _Nonnull path)
 {
     struct stat info;
 
-    return (getfinfo(path, &info) == 0 && S_ISDIR(info.st_mode)) ? true : false;
+    return (stat(path, &info) == 0 && S_ISDIR(info.st_mode)) ? true : false;
 }
 
 

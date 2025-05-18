@@ -185,8 +185,7 @@ static errno_t get_fsid(const char* _Nonnull path, fsid_t* _Nonnull fsid)
 
 
     if (err == EOK) {
-        err = getfinfo(p, &info);
-        if (err == EOK) {
+        if (stat(p, &info) == 0) {
             *fsid = info.st_fsid;
         }
     }
@@ -298,7 +297,9 @@ static errno_t cmd_geometry(const char* _Nonnull path)
     bool hasDisk = true;
 
     if (*path != '\0') {
-        try(getfinfo(path, &info));
+        if (stat(path, &info) != 0) {
+            return errno;
+        }
     }
     if (S_ISDEV(info.st_mode)) {
         try(open(path, O_RDONLY, &fd));
