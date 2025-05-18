@@ -74,23 +74,23 @@ static void file_permissions_to_text(mode_t perms, char* _Nonnull buf)
 
 static int format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    finfo_t info;
+    struct stat info;
     
     if (getfinfo(path, &info) != 0) {
         return -1;
     }
     
-    itoa(info.linkCount, self->buf, 10);
+    itoa(info.st_nlink, self->buf, 10);
     self->linkCountWidth = __max(self->linkCountWidth, strlen(self->buf));
-    itoa(info.uid, self->buf, 10);
+    itoa(info.st_uid, self->buf, 10);
     self->uidWidth = __max(self->uidWidth, strlen(self->buf));
-    itoa(info.gid, self->buf, 10);
+    itoa(info.st_gid, self->buf, 10);
     self->gidWidth = __max(self->gidWidth, strlen(self->buf));
-    lltoa(info.size, self->buf, 10);
+    lltoa(info.st_size, self->buf, 10);
     self->sizeWidth = __max(self->sizeWidth, strlen(self->buf));
 
     // Show time if the date is less than 12 months old; otherwise show date
-    localtime_r(&info.modificationTime.tv_sec, &self->date);
+    localtime_r(&info.st_mtim.tv_sec, &self->date);
     if (self->date.tm_year == self->currentYear || (self->date.tm_year == self->currentYear - 1 && self->date.tm_mon > self->currentMonth)) {
         self->dateWidth = TIME_WIDTH;
     }
@@ -103,14 +103,14 @@ static int format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, co
 
 static int print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    finfo_t info;
+    struct stat info;
     char tc;
 
     if (getfinfo(path, &info) != 0) {
         return -1;
     }
     
-    switch (info.type) {
+    switch (S_FTYPE(info.st_mode)) {
         case S_IFDEV:   tc = 'h'; break;
         case S_IFDIR:   tc = 'd'; break;
         case S_IFFS:    tc = 'f'; break;
@@ -125,19 +125,19 @@ static int print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, con
         self->buf[i] = '-';
     }
 
-    file_permissions_to_text(perm_get(info.permissions, S_ICUSR), &self->buf[1]);
-    file_permissions_to_text(perm_get(info.permissions, S_ICGRP), &self->buf[4]);
-    file_permissions_to_text(perm_get(info.permissions, S_ICOTH), &self->buf[7]);
+    file_permissions_to_text(perm_get(info.st_mode, S_ICUSR), &self->buf[1]);
+    file_permissions_to_text(perm_get(info.st_mode, S_ICGRP), &self->buf[4]);
+    file_permissions_to_text(perm_get(info.st_mode, S_ICOTH), &self->buf[7]);
     self->buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
-    localtime_r(&info.modificationTime.tv_sec, &self->date);
+    localtime_r(&info.st_mtim.tv_sec, &self->date);
         
     printf("%s %*d  %*u %*u  %*lld  ",
         self->buf,
-        self->linkCountWidth, info.linkCount,
-        self->uidWidth, info.uid,
-        self->gidWidth, info.gid,
-        self->sizeWidth, info.size);
+        self->linkCountWidth, info.st_nlink,
+        self->uidWidth, info.st_uid,
+        self->gidWidth, info.st_gid,
+        self->sizeWidth, info.st_size);
     if (self->dateWidth == DATE_WIDTH) {
         printf("%s %d %d  ",
             __gc_abbrev_ymon(self->date.tm_mon + 1),
@@ -221,9 +221,9 @@ static void list_file(list_ctx_t* _Nonnull self, const char* _Nonnull path)
 
 static bool is_dir(const char* _Nonnull path)
 {
-    finfo_t info;
+    struct stat info;
 
-    return (getfinfo(path, &info) == 0 && info.type == S_IFDIR) ? true : false;
+    return (getfinfo(path, &info) == 0 && S_ISDIR(info.st_mode)) ? true : false;
 }
 
 

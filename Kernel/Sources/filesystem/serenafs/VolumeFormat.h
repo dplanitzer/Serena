@@ -21,7 +21,8 @@
 // * Set to 0 when formatting
 // * Do not modify on write (preserve whatever values the reserved bytes have)
 
-typedef uint32_t sfs_bno_t;
+typedef uint32_t sfs_bno_t;     // logical block number
+typedef uint32_t sfs_mode_t;    // file type and permissions. Keep aligned with mode_t
 
 
 enum {
@@ -138,11 +139,9 @@ typedef struct sfs_inode {
     sfs_bno_t       pnid;                   // Id (lba) of the parent inode (directory)
     uint32_t        signature;              // kSFSSignature_Inode
     int32_t         linkCount;
+    sfs_mode_t      mode;
     uint32_t        uid;
     uint32_t        gid;
-    uint16_t        permissions;
-    uint8_t         type;
-    uint8_t         reserved;
     sfs_bmap_t      bmap;
 } sfs_inode_t;
 

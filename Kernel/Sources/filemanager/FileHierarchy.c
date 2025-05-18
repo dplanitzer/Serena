@@ -323,7 +323,7 @@ errno_t FileHierarchy_AttachFilesystem(FileHierarchyRef _Nonnull self, Filesyste
     FHKey* downKey = NULL;
     InodeRef fsRootDir = NULL;
 
-    if (!Inode_IsDirectory(atDir)) {
+    if (!S_ISDIR(Inode_GetMode(atDir))) {
         return ENOTDIR;
     }
 
@@ -781,7 +781,7 @@ errno_t FileHierarchy_AcquireNodeForPath(FileHierarchyRef _Nonnull self, PathRes
 
 
         // The current directory better be an actual directory
-        if (!Inode_IsDirectory(pCurNode)) {
+        if (!S_ISDIR(Inode_GetMode(pCurNode))) {
             throw(ENOTDIR);
         }
 

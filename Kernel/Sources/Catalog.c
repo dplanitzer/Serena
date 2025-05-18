@@ -104,7 +104,7 @@ errno_t Catalog_Open(CatalogRef _Nonnull self, const char* _Nonnull path, unsign
     err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUserId_Root, kGroupId_Root, &rp);
     if (err == EOK) {
         Inode_Lock(rp.inode);
-        if (!Inode_IsDirectory(rp.inode)) {
+        if (!S_ISDIR(Inode_GetMode(rp.inode))) {
             err = Inode_CreateChannel(rp.inode, mode, pOutChannel);
         }
         else {
@@ -143,7 +143,7 @@ errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId
 
     err = _Catalog_AcquireFolder(self, parentFolderId, &pDir);
     if (err == EOK) {
-        err = Filesystem_CreateNode(self->fs, S_IFDIR, pDir, &pc, NULL, uid, gid, perms, &pNode);
+        err = Filesystem_CreateNode(self->fs, pDir, &pc, NULL, uid, gid, __S_MKMODE(S_IFDIR, perms), &pNode);
         if (err == EOK) {
             *pOutFolderId = (CatalogId)Inode_GetId(pNode);
         }

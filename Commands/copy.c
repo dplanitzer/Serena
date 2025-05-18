@@ -35,7 +35,7 @@ static errno_t _copy_file(const char* _Nonnull srcPath, const char* _Nonnull dst
     const size_t bufSize = 1024;
     char* buf = NULL;
     int sfd = -1, dfd = -1;
-    finfo_t finf;
+    struct stat info;
     mode_t perms;
     ssize_t nBytesRead, nBytesWritten;
 
@@ -43,8 +43,8 @@ static errno_t _copy_file(const char* _Nonnull srcPath, const char* _Nonnull dst
 
 
     try(open(srcPath, O_RDONLY, &sfd));
-    try(fgetfinfo(sfd, &finf));
-    perms = finf.permissions;
+    try(fgetfinfo(sfd, &info));
+    perms = S_FPERM(info.st_mode);
     perm_add(perms, S_ICUSR, S_IW);
     try(creat(dstPath, O_WRONLY|O_TRUNC, perms, &dfd));
 
@@ -57,9 +57,9 @@ static errno_t _copy_file(const char* _Nonnull srcPath, const char* _Nonnull dst
         err = write(dfd, buf, nBytesRead, &nBytesWritten);
     }
 
-    if (!perm_has(finf.permissions, S_ICUSR, S_IW)) {
+    if (!perm_has(info.st_mode, S_ICUSR, S_IW)) {
         //XXX use fchmod() instead once it exists
-        chmod(dstPath, finf.permissions);
+        chmod(dstPath, info.st_mode);
     }
 
 
@@ -77,12 +77,12 @@ catch:
 static errno_t copy_file(const char* _Nonnull srcPath, const char* _Nonnull dstPath)
 {
     decl_try_err();
-    finfo_t finf;
+    struct stat info;
     char* dpath;
 
-    err = getfinfo(srcPath, &finf);
+    err = getfinfo(srcPath, &info);
     if (err == EOK) {
-        if (finf.type != S_IFREG) {
+        if (!S_ISREG(info.st_mode)) {
             return EINVAL;
         }
     }
@@ -91,9 +91,9 @@ static errno_t copy_file(const char* _Nonnull srcPath, const char* _Nonnull dstP
     }
 
 
-    err = getfinfo(dstPath, &finf);
+    err = getfinfo(dstPath, &info);
     if (err == EOK) {
-        if (finf.type == S_IFDIR) {
+        if (S_ISDIR(info.st_mode)) {
             dpath = malloc(PATH_MAX);
             if (dpath == NULL) {
                 return ENOMEM;
@@ -118,7 +118,7 @@ static errno_t copy_file(const char* _Nonnull srcPath, const char* _Nonnull dstP
             }
             memcpy(p, fname, fnameLen);
         }
-        else if (finf.type == S_IFREG) {
+        else if (S_ISREG(info.st_mode)) {
             dpath = (char*)dstPath;
         }
         else {

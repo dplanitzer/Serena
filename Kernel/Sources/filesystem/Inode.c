@@ -18,7 +18,7 @@ typedef void (*deinit_impl_t)(void* _Nonnull self);
 
 
 errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, ino_t id,
-    FileType type, int linkCount, uid_t uid, gid_t gid, mode_t mode,
+    mode_t mode, uid_t uid, gid_t gid, int linkCount,
     off_t size, struct timespec accessTime, struct timespec modTime, struct timespec statusChangeTime,
     ino_t pnid,
     InodeRef _Nullable * _Nonnull pOutNode)
@@ -40,11 +40,10 @@ errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, ino_t i
         self->inid = id;
         self->pnid = pnid;
         self->linkCount = linkCount;
-        self->type = type;
-        self->flags = 0;
         self->mode = mode;
         self->uid = uid;
         self->gid = gid;
+        self->flags = 0;
     }
     *pOutNode = self;
     return err;
@@ -131,7 +130,7 @@ errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self)
 
 errno_t Inode_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    switch (Inode_GetFileType(self)) {
+    switch (Inode_GetMode(self) & S_IFMT) {
         case S_IFDIR:
             return DirectoryChannel_Create(self, pOutChannel);
 
@@ -144,7 +143,7 @@ errno_t Inode_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, I
     }
 }
 
-errno_t Inode_getInfo(InodeRef _Nonnull _Locked self, finfo_t* _Nonnull pOutInfo)
+errno_t Inode_getInfo(InodeRef _Nonnull _Locked self, struct stat* _Nonnull pOutInfo)
 {
     struct timespec curTime;
 
@@ -153,30 +152,32 @@ errno_t Inode_getInfo(InodeRef _Nonnull _Locked self, finfo_t* _Nonnull pOutInfo
     }
 
     if (Inode_IsAccessed(self)) {
-        pOutInfo->accessTime = curTime;
+        pOutInfo->st_atim = curTime;
     } else {
-        pOutInfo->accessTime = Inode_GetAccessTime(self);
+        pOutInfo->st_atim = self->accessTime;
     }
     if (Inode_IsUpdated(self)) {
-        pOutInfo->modificationTime = curTime;
+        pOutInfo->st_mtim = curTime;
     } else {
-        pOutInfo->modificationTime = Inode_GetModificationTime(self);
+        pOutInfo->st_mtim = self->modificationTime;
     }
     if (Inode_IsStatusChanged(self)) {
-        pOutInfo->statusChangeTime = curTime;
+        pOutInfo->st_ctim = curTime;
     } else {
-        pOutInfo->statusChangeTime = Inode_GetStatusChangeTime(self);
+        pOutInfo->st_ctim = self->statusChangeTime;
     }
     
-    pOutInfo->size = Inode_GetFileSize(self);
-    pOutInfo->uid = Inode_GetUserId(self);
-    pOutInfo->gid = Inode_GetGroupId(self);
-    pOutInfo->permissions = Inode_GetMode(self);
-    pOutInfo->type = Inode_GetFileType(self);
-    pOutInfo->reserved = 0;
-    pOutInfo->linkCount = Inode_GetLinkCount(self);
-    pOutInfo->fsid = Filesystem_GetId(Inode_GetFilesystem(self));
-    pOutInfo->inid = Inode_GetId(self);
+    pOutInfo->st_size = self->size;
+    pOutInfo->st_uid = self->uid;
+    pOutInfo->st_gid = self->gid;
+    pOutInfo->st_mode = self->mode;
+    pOutInfo->st_nlink = self->linkCount;
+    pOutInfo->st_fsid = Filesystem_GetId(self->filesystem);
+    pOutInfo->st_ino = self->inid;
+    pOutInfo->st_blksize = 0;   //XXX fix me
+    pOutInfo->st_blksize = 0;   //XXX fix me
+    pOutInfo->st_dev = 0;
+    pOutInfo->st_rdev = 0;
 
     return EOK;
 }

@@ -12,7 +12,7 @@
 #include <kern/endian.h>
 
 
-errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, sfs_insertion_hint_t* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, sfs_insertion_hint_t* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, mode_t mode, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
@@ -24,11 +24,11 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     InodeRef pNode = NULL;
     FSBlock blk = {0};
 
-    try(SfsDirectory_CanAcceptEntry(dir, name, type));
+    try(SfsDirectory_CanAcceptEntry(dir, name, mode & S_IFMT));
 
     try(SfsAllocator_Allocate(&self->blockAllocator, &inodeLba));
     
-    if (type == S_IFDIR) {
+    if (S_ISDIR(mode)) {
         // Write the initial directory content. These are just the '.' and '..'
         // entries
         try(SfsAllocator_Allocate(&self->blockAllocator, &dirContLba));
@@ -64,8 +64,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     ip->linkCount = Int32_HostToBig(1);
     ip->uid = UInt32_HostToBig(uid);
     ip->gid = UInt32_HostToBig(gid);
-    ip->permissions = UInt16_HostToBig(permissions);
-    ip->type = type;
+    ip->mode = UInt32_HostToBig(mode);
     ip->bmap.direct[0] = UInt32_HostToBig(dirContLba);
     FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_Deferred);
     blk.token = 0;
@@ -119,7 +118,7 @@ errno_t SerenaFS_onAcquireNode(SerenaFSRef _Nonnull self, ino_t id, InodeRef _Nu
         throw(EIO);
     }
 
-    switch (ip->type) {
+    switch (S_FTYPE(UInt32_BigToHost(ip->mode))) {
         case S_IFDIR:
             pClass = class(SfsDirectory);
             break;

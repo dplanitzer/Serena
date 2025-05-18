@@ -25,7 +25,7 @@ static errno_t _FileManager_SetDirectoryPath(FileManagerRef _Nonnull self, const
     // Make sure that it is actually a directory and that we have at least search
     // permission
     Inode_Lock(r.inode);
-    if (Inode_IsDirectory(r.inode)) {
+    if (S_ISDIR(Inode_GetMode(r.inode))) {
         err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, X_OK);
     }
     else {
@@ -92,7 +92,7 @@ errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _N
         // We must have write permissions for the parent directory
         err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, W_OK);
         if (err == EOK) {
-            err = Filesystem_CreateNode(Inode_GetFilesystem(r.inode), S_IFDIR, r.inode, dirName, &dih, self->ruid, self->rgid, dirPerms, &ip);
+            err = Filesystem_CreateNode(Inode_GetFilesystem(r.inode), r.inode, dirName, &dih, self->ruid, self->rgid, __S_MKMODE(S_IFDIR, dirPerms), &ip);
         }
     }
     else if (err == EOK) {
@@ -119,7 +119,7 @@ errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const char* _Non
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
 
     Inode_Lock(r.inode);
-    if (Inode_GetFileType(r.inode) == S_IFDIR) {
+    if (S_ISDIR(Inode_GetMode(r.inode))) {
         err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, R_OK);
     }
     else {

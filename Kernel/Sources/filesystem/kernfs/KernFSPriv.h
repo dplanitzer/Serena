@@ -55,7 +55,7 @@ extern void _KernFS_AddInode(KernFSRef _Nonnull self, KfsNodeRef _Nonnull ip);
 extern void _KernFS_DestroyInode(KernFSRef _Nonnull self, KfsNodeRef _Nonnull ip);
 extern KfsNodeRef _Nullable _KernFS_GetInode(KernFSRef _Nonnull self, ino_t id);
 
-extern errno_t KernFS_createNode(KernFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode);
+extern errno_t KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, uid_t uid, gid_t gid, mode_t mode, InodeRef _Nullable * _Nonnull pOutNode);
 extern errno_t KernFS_onAcquireNode(KernFSRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode);
 extern errno_t KernFS_onWritebackNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode);
 extern void KernFS_onRelinquishNode(KernFSRef _Nonnull self, InodeRef _Nonnull pNode);

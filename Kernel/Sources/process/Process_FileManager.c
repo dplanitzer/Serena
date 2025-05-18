@@ -143,7 +143,7 @@ errno_t Process_OpenFile(ProcessRef _Nonnull self, const char* _Nonnull path, un
 }
 
 // Returns information about the file at the given path.
-errno_t Process_GetFileInfo(ProcessRef _Nonnull self, const char* _Nonnull path, finfo_t* _Nonnull pOutInfo)
+errno_t Process_GetFileInfo(ProcessRef _Nonnull self, const char* _Nonnull path, struct stat* _Nonnull pOutInfo)
 {
     decl_try_err();
 
@@ -155,7 +155,7 @@ errno_t Process_GetFileInfo(ProcessRef _Nonnull self, const char* _Nonnull path,
 }
 
 // Same as above but with respect to the given I/O channel.
-errno_t Process_GetFileInfo_ioc(ProcessRef _Nonnull self, int ioc, finfo_t* _Nonnull pOutInfo)
+errno_t Process_GetFileInfo_ioc(ProcessRef _Nonnull self, int ioc, struct stat* _Nonnull pOutInfo)
 {
     decl_try_err();
     IOChannelRef pChannel;

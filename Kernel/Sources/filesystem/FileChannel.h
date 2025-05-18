@@ -30,7 +30,7 @@ extern errno_t FileChannel_Create(InodeRef _Nonnull pNode, unsigned int mode, IO
 
 extern off_t FileChannel_GetFileSize(FileChannelRef _Nonnull self);
 
-extern errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, finfo_t* _Nonnull pOutInfo);
+extern errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, struct stat* _Nonnull pOutInfo);
 
 extern errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, off_t length);
 

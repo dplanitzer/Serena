@@ -39,7 +39,7 @@ static errno_t establish_and_start_disk_fs(FileManagerRef _Nonnull self, const c
 
     // Open the disk driver and establish the filesystem
     Inode_Lock(rp_disk.inode);
-    if (Inode_GetFileType(rp_disk.inode) == S_IFDEV) {
+    if (S_ISDEV(Inode_GetMode(rp_disk.inode))) {
         err = _FileManager_OpenFile(self, rp_disk.inode, mode);
         if (err == EOK) {
             err = FilesystemManager_EstablishFilesystem(gFilesystemManager, rp_disk.inode, mode, &fs);
@@ -101,7 +101,7 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, const char* _Nonnull obj
 
 
     // Validate the directory where we want to mount
-    if (Inode_GetFileType(rp_atDir.inode) != S_IFDIR) {
+    if (!S_ISDIR(Inode_GetMode(rp_atDir.inode))) {
         ResolvedPath_Deinit(&rp_atDir);
         return ENOTDIR;
     }

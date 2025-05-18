@@ -25,11 +25,11 @@ extern int mkdir(const char* _Nonnull path, mode_t mode);
 
 // Returns meta-information about the file located at the filesystem location 'path'.
 // @Concurrency: Safe
-extern errno_t getfinfo(const char* _Nonnull path, finfo_t* _Nonnull info);
+extern errno_t getfinfo(const char* _Nonnull path, struct stat* _Nonnull info);
 
 // Similar to getfinfo() but operates on the open file identified by 'ioc'.
 // @Concurrency: Safe
-extern errno_t fgetfinfo(int ioc, finfo_t* _Nonnull info);
+extern errno_t fgetfinfo(int ioc, struct stat* _Nonnull info);
 
 
 // Changes the file permission bits of the file or directory at 'path' to the

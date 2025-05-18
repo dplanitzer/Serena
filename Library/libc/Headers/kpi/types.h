@@ -50,6 +50,10 @@ typedef int             nlink_t;
 typedef unsigned int    mode_t;
 
 
+// Only exists for POSIX source code compatibility. Not used on Serena OS.
+typedef int dev_t;
+
+
 #if defined(__KERNEL__)
 
 // Disk sector address based in cylinder, head, sector notation 

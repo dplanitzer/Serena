@@ -328,11 +328,11 @@ open_class_funcs(Filesystem, Object,
     // General File/Directory Operations
     //
 
-    // Creates a new inode with type 'type', user information 'user', permissions
-    // 'permissions' and adds it to the directory 'pDir'. The new node will be
-    // added to 'pDir' with the name 'pName'. Returns the newly acquired inode
-    // on success and NULL otherwise.
-    errno_t (*createNode)(void* _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode);
+    // Creates a new inode with type 'mode' & S_IFMT, user information 'user',
+    // permissions 'mode' & S_IFMP and adds it to the directory 'pDir'. The new
+    // node will be added to 'pDir' with the name 'pName'. Returns the newly
+    // acquired inode on success and NULL otherwise.
+    errno_t (*createNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, mode_t mode, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Unlink the node 'target' which is an immediate child of 'dir'. Both nodes
     // are guaranteed to be members of the same filesystem. 'target' is guaranteed
@@ -490,8 +490,8 @@ invoke_n(acquireNodeForName, Filesystem, __self, __pDir, __pName, __pDirInsHint,
 invoke_n(getNameOfNode, Filesystem, __self, __pDir, __id, __pName)
 
 
-#define Filesystem_CreateNode(__self, __type, __pDir, __pName, __pDirInsertionHint, __uid, __gid, __permissions, __pOutNode) \
-invoke_n(createNode, Filesystem, __self, __type, __pDir, __pName, __pDirInsertionHint, __uid, __gid, __permissions, __pOutNode)
+#define Filesystem_CreateNode(__self, __pDir, __pName, __pDirInsertionHint, __uid, __gid, __mode, __pOutNode) \
+invoke_n(createNode, Filesystem, __self, __pDir, __pName, __pDirInsertionHint, __uid, __gid, __mode, __pOutNode)
 
 
 #define Filesystem_Unlink(__self, __target, __dir) \

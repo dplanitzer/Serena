@@ -66,7 +66,4 @@ typedef int Quantums;             // Time unit of the scheduler clock which incr
 typedef void (*VoidFunc_1)(void*);
 typedef void (*VoidFunc_2)(void*, void*);
 
-#include <stdint.h>
-typedef int8_t      FileType;
-
 #endif /* _KPI_TYPES_H */

@@ -22,11 +22,10 @@ errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, ino_t in
         pClass,
         (FilesystemRef)fs,
         inid,
-        ip->type,
-        Int32_BigToHost(ip->linkCount),
+        UInt32_BigToHost(ip->mode),
         UInt32_BigToHost(ip->uid),
         UInt32_BigToHost(ip->gid),
-        (mode_t)UInt16_BigToHost(ip->permissions),
+        Int32_BigToHost(ip->linkCount),
         Int64_BigToHost(ip->size),
         timespec_from(UInt32_BigToHost(ip->accessTime.tv_sec), UInt32_BigToHost(ip->accessTime.tv_nsec)),
         timespec_from(UInt32_BigToHost(ip->modificationTime.tv_sec), UInt32_BigToHost(ip->modificationTime.tv_nsec)),
@@ -66,8 +65,7 @@ void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, sfs_inode_t* _Nonnull ip
     ip->linkCount = Int32_HostToBig(Inode_GetLinkCount(self));
     ip->uid = UInt32_HostToBig(Inode_GetUserId(self));
     ip->gid = UInt32_HostToBig(Inode_GetGroupId(self));
-    ip->permissions = UInt16_HostToBig((uint16_t)Inode_GetMode(self));
-    ip->type = Inode_GetFileType(self);
+    ip->mode = UInt32_HostToBig(Inode_GetMode(self));
 
     ip->bmap.indirect = self->bmap.indirect;
     for (size_t i = 0; i < kSFSDirectBlockPointersCount; i++) {

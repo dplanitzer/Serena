@@ -50,11 +50,10 @@ open_class(Inode, Any,
     ino_t                           inid;       // Filesystem specific ID of the inode
     ino_t                           pnid;       // Filesystem specific ID of the parent inode (directory in which inid is stored)
     nlink_t                         linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
-    FileType                        type;
-    uint8_t                         flags;
     mode_t                          mode;
     uid_t                           uid;
     gid_t                           gid;
+    uint32_t                        flags;
 );
 any_subclass_funcs(Inode,
     // Invoked when the last strong reference of the inode has been released.
@@ -81,7 +80,7 @@ any_subclass_funcs(Inode,
     // type.
     // Override: Optional
     // Default Behavior: Returns the node's file info
-    errno_t (*getInfo)(void* _Nonnull _Locked self, finfo_t* _Nonnull pOutInfo);
+    errno_t (*getInfo)(void* _Nonnull _Locked self, struct stat* _Nonnull pOutInfo);
 
     // Sets the mode of the inode.
     // Override: Optional
@@ -199,7 +198,7 @@ extern errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self);
 void Inode_Unlink(InodeRef _Nonnull self);
 
 
-// Returns the permissions of the node.
+// Returns the file type and permissions of the node.
 #define Inode_GetMode(__self) \
     ((InodeRef)__self)->mode
 
@@ -227,25 +226,6 @@ void Inode_Unlink(InodeRef _Nonnull self);
 #define Inode_DecrementFileSize(__self, __delta) \
     ((InodeRef)__self)->size -= (__delta)
 
-
-
-//
-// The following functions may be used by filesystem implementations and code
-// that lives outside of a filesystem. The caller does not have to hold the inode
-// lock to use these functions.
-//
-
-// Returns the type of the node.
-#define Inode_GetFileType(__self) \
-    ((InodeRef)__self)->type
-
-// Returns true if the node is a directory; false otherwise.
-#define Inode_IsDirectory(__self) \
-    (Inode_GetFileType((InodeRef)__self) == S_IFDIR)
-
-// Returns true if the node is a regular file; false otherwise.
-#define Inode_IsRegularFile(__self) \
-    (Inode_GetFileType((InodeRef)__self) == S_IFREG)
 
 
 // Returns the inode id of the parent inode. This function may return 0 because
@@ -321,13 +301,18 @@ invoke_n(truncate, Inode, __self, __length)
 // the inode of type 'type' and 'id' resides. Note that the parent id of the root
 // node of the filesystem should be equal to the root node id.
 extern errno_t Inode_Create(Class* _Nonnull pClass,
-                    FilesystemRef _Nonnull fs, ino_t id,
-                    FileType type, int linkCount,
-                    uid_t uid, gid_t gid, mode_t mode,
-                    off_t size,
-                    struct timespec accessTime, struct timespec modTime, struct timespec statusChangeTime,
-                    ino_t pnid,
-                    InodeRef _Nullable * _Nonnull pOutNode);
+    FilesystemRef _Nonnull pFS,
+    ino_t id,
+    mode_t mode,
+    uid_t uid,
+    gid_t gid,
+    int linkCount,
+    off_t size,
+    struct timespec accessTime,
+    struct timespec modTime,
+    struct timespec statusChangeTime,
+    ino_t pnid,
+    InodeRef _Nullable * _Nonnull pOutNode);
 extern void Inode_Destroy(InodeRef _Nonnull self);
 
 // Unconditionally writes the inode's metadata to disk. Does not write the file

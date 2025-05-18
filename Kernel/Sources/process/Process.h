@@ -215,10 +215,10 @@ extern errno_t Process_OpenDirectory(ProcessRef _Nonnull self, const char* _Nonn
 extern errno_t Process_CreatePipe(ProcessRef _Nonnull self, int* _Nonnull pOutReadChannel, int* _Nonnull pOutWriteChannel);
 
 // Returns information about the file at the given path.
-extern errno_t Process_GetFileInfo(ProcessRef _Nonnull self, const char* _Nonnull pPath, finfo_t* _Nonnull pOutInfo);
+extern errno_t Process_GetFileInfo(ProcessRef _Nonnull self, const char* _Nonnull pPath, struct stat* _Nonnull pOutInfo);
 
 // Same as above but with respect to the given I/O channel.
-extern errno_t Process_GetFileInfo_ioc(ProcessRef _Nonnull self, int fd, finfo_t* _Nonnull pOutInfo);
+extern errno_t Process_GetFileInfo_ioc(ProcessRef _Nonnull self, int fd, struct stat* _Nonnull pOutInfo);
 
 extern errno_t Process_SetFileMode(ProcessRef _Nonnull self, const char* _Nonnull path, mode_t mode);
 

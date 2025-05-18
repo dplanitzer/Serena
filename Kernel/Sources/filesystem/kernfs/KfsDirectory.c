@@ -23,11 +23,10 @@ errno_t KfsDirectory_Create(KernFSRef _Nonnull fs, ino_t inid, mode_t permission
         class(KfsDirectory),
         (FilesystemRef)fs,
         inid,
-        S_IFDIR,
-        1,
+        __S_MKMODE(S_IFDIR, permissions),
         uid,
         gid,
-        permissions,
+        1,
         0ll,
         curTime,
         curTime,
@@ -93,13 +92,13 @@ errno_t KfsDirectory_GetNameOfEntryWithId(KfsDirectoryRef _Nonnull _Locked self,
 // The expectation is that 'self' is locked before this function is called and
 // that 'self' remains locked until after the directory entry has been added to
 // self.
-errno_t KfsDirectory_CanAcceptEntry(KfsDirectoryRef _Nonnull _Locked self, const PathComponent* _Nonnull name, FileType type)
+errno_t KfsDirectory_CanAcceptEntry(KfsDirectoryRef _Nonnull _Locked self, const PathComponent* _Nonnull name, mode_t fileType)
 {
     if (name->count > MAX_NAME_LENGTH) {
         return ENAMETOOLONG;
     }
 
-    if (type == S_IFDIR) {
+    if (S_ISDIR(fileType)) {
         // Adding a subdirectory increments our link count by 1
         if (Inode_GetLinkCount(self) >= MAX_LINK_COUNT) {
             return EMLINK;
@@ -165,7 +164,7 @@ errno_t KfsDirectory_RemoveEntry(KfsDirectoryRef _Nonnull _Locked self, InodeRef
 
     // If this is a directory then unlink it from its parent since we remove a
     // '..' entry that points to the parent
-    if (Inode_IsDirectory(pNodeToRemove)) {
+    if (S_ISDIR(Inode_GetMode(pNodeToRemove))) {
         Inode_Unlink((InodeRef)self);
     }
 

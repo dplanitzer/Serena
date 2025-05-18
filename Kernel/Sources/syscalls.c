@@ -187,12 +187,12 @@ SYSCALL_1(chdir, const char* _Nonnull path)
     return Process_SetWorkingDirectoryPath((ProcessRef)p, pa->path);
 }
 
-SYSCALL_2(getfinfo, const char* _Nonnull path, finfo_t* _Nonnull pOutInfo)
+SYSCALL_2(getfinfo, const char* _Nonnull path, struct stat* _Nonnull pOutInfo)
 {
     return Process_GetFileInfo((ProcessRef)p, pa->path, pa->pOutInfo);
 }
 
-SYSCALL_2(fgetfinfo, int ioc, finfo_t* _Nonnull pOutInfo)
+SYSCALL_2(fgetfinfo, int ioc, struct stat* _Nonnull pOutInfo)
 {
     return Process_GetFileInfo_ioc((ProcessRef)p, pa->ioc, pa->pOutInfo);
 }

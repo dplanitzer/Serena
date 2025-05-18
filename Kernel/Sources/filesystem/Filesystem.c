@@ -249,7 +249,9 @@ retry:
         doBroadcast = (self->inReadingWaiterCount > 0) ? true : false;
     }
 
-    ip->useCount++;
+    if (ip) {
+        ip->useCount++;
+    }
 
 catch:
     if (doBroadcast) {
@@ -622,7 +624,7 @@ errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull 
     return EIO;
 }
 
-errno_t Filesystem_createNode(FilesystemRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t Filesystem_createNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, mode_t mode, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return EIO;
 }

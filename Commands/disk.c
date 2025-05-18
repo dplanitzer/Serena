@@ -167,7 +167,7 @@ catch:
 static errno_t get_fsid(const char* _Nonnull path, fsid_t* _Nonnull fsid)
 {
     decl_try_err();
-    finfo_t info;
+    struct stat info;
     char* p = (char*)path;
 
     *fsid = 0;
@@ -187,7 +187,7 @@ static errno_t get_fsid(const char* _Nonnull path, fsid_t* _Nonnull fsid)
     if (err == EOK) {
         err = getfinfo(p, &info);
         if (err == EOK) {
-            *fsid = info.fsid;
+            *fsid = info.st_fsid;
         }
     }
 
@@ -289,7 +289,7 @@ catch:
 static errno_t cmd_geometry(const char* _Nonnull path)
 {
     decl_try_err();
-    finfo_t finf;
+    struct stat info;
     fsid_t fsid;
     fsinfo_t fsinf;
     char buf[32];
@@ -298,9 +298,9 @@ static errno_t cmd_geometry(const char* _Nonnull path)
     bool hasDisk = true;
 
     if (*path != '\0') {
-        try(getfinfo(path, &finf));
+        try(getfinfo(path, &info));
     }
-    if (finf.type == S_IFDEV) {
+    if (S_ISDEV(info.st_mode)) {
         try(open(path, O_RDONLY, &fd));
         err = ioctl(fd, kDiskCommand_GetGeometry, &geom);
     }

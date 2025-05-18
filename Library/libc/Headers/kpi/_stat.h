@@ -27,4 +27,14 @@
 #define S_IW    02
 #define S_IX    01
 
+// Inode type bits in st_mode
+#define S_IFMT      0xff000000
+#define __S_IFST    24
+
+// Permission bits in st_mode
+#define S_IFMP      (~S_IFMT)
+
+// Make a st_mode from a file type and file permissions
+#define __S_MKMODE(__ftype, __fperm) ((__ftype) | ((__fperm) & S_IFMP))
+
 #endif /* _KPI_PRIV_STAT_H */

@@ -67,7 +67,7 @@ errno_t DirectoryChannel_seek(DirectoryChannelRef _Nonnull _Locked self, off_t o
     return err;
 }
 
-errno_t DirectoryChannel_GetInfo(DirectoryChannelRef _Nonnull self, finfo_t* _Nonnull pOutInfo)
+errno_t DirectoryChannel_GetInfo(DirectoryChannelRef _Nonnull self, struct stat* _Nonnull pOutInfo)
 {
     IOChannel_Lock(self);
     const errno_t err = Inode_GetInfo(self->inode, pOutInfo);

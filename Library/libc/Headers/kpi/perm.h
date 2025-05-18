@@ -48,7 +48,7 @@
 // is expected to be a 3 digit number where each digit represents one of the
 // permission classes.
 #define perm_from_octal(__3_x_3_octal) \
-(__3_x_3_octal)
+((__3_x_3_octal) & S_IFMP)
     
 // Returns the permission bits of '__perms' that correspond to the
 // permissions class '__class'.

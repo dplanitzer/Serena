@@ -72,7 +72,7 @@ off_t FileChannel_GetFileSize(FileChannelRef _Nonnull self)
     return fileSize;
 }
 
-errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, finfo_t* _Nonnull pOutInfo)
+errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, struct stat* _Nonnull pOutInfo)
 {
     IOChannel_Lock((IOChannelRef)self);
     const errno_t err = Inode_GetInfo(self->inode, pOutInfo);

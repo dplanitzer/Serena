@@ -135,8 +135,7 @@ errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt
     ip->linkCount = Int32_HostToBig(1);
     ip->uid = UInt32_HostToBig(uid);
     ip->gid = UInt32_HostToBig(gid);
-    ip->permissions = UInt16_HostToBig((uint16_t)permissions);
-    ip->type = S_IFDIR;
+    ip->mode = UInt32_HostToBig(__S_MKMODE(S_IFDIR, permissions));
     ip->bmap.direct[0] = UInt32_HostToBig(rootDirContLba);
     try(block_write(fd, bp, rootDirLba, blockSize));
 

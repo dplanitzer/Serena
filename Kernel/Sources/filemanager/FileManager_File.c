@@ -23,7 +23,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
 
 
     // This must be some kind of file and not a directory
-    if (Inode_IsDirectory(pFile)) {
+    if (S_ISDIR(Inode_GetMode(pFile))) {
         return EISDIR;
     }
 
@@ -123,7 +123,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
 
 
         // Create the new file and add it to its parent directory
-        try(Filesystem_CreateNode(pFS, S_IFREG, dir, name, &dih, self->ruid, self->rgid, filePerms, &ip));
+        try(Filesystem_CreateNode(pFS, dir, name, &dih, self->ruid, self->rgid, __S_MKMODE(S_IFREG, filePerms), &ip));
     }
     else {
         throw(err);
@@ -180,7 +180,7 @@ errno_t FileManager_OpenExecutable(FileManagerRef _Nonnull self, const char* _No
     // Make sure that the executable is a regular file and that it has the
     // correct access mode
     Inode_Lock(r.inode); 
-    if (Inode_IsRegularFile(r.inode)) {
+    if (S_ISREG(Inode_GetMode(r.inode))) {
         err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, R_OK | X_OK);
         if (err == EOK && Inode_GetFileSize(r.inode) < 0ll) {
             // Negative file size means that the file size overflowed
@@ -201,7 +201,7 @@ catch:
 }
 
 // Returns information about the file at the given path.
-errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull path, finfo_t* _Nonnull pOutInfo)
+errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull path, struct stat* _Nonnull pOutInfo)
 {
     decl_try_err();
     ResolvedPath r;
@@ -217,7 +217,7 @@ errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnu
 }
 
 // Same as above but with respect to the given I/O channel.
-errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, finfo_t* _Nonnull pOutInfo)
+errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, struct stat* _Nonnull pOutInfo)
 {
     decl_try_err();
 
@@ -315,7 +315,7 @@ errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonn
     
     if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r)) == EOK) {
         Inode_Lock(r.inode);
-        if (Inode_IsRegularFile(r.inode)) {
+        if (S_ISREG(Inode_GetMode(r.inode))) {
             err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, W_OK);
             if (err == EOK) {
                 err = Inode_Truncate(r.inode, length);
@@ -398,7 +398,7 @@ errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull pa
     try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(dir), dir, name, NULL, &target));
     Inode_Lock(target);
 
-    if (Inode_IsDirectory(target)) {
+    if (S_ISDIR(Inode_GetMode(target))) {
         // Can not unlink a mountpoint
         if (FileHierarchy_IsAttachmentPoint(self->fileHierarchy, target)) {
             throw(EBUSY);

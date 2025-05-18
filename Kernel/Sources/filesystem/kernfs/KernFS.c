@@ -159,7 +159,7 @@ errno_t KernFS_unlink(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked target,
     decl_try_err();
 
     // A directory must be empty in order to be allowed to unlink it
-    if (Inode_IsDirectory(target) && Inode_GetLinkCount(target) > 1 && KfsDirectory_IsEmpty((KfsDirectoryRef)target)) {
+    if (S_ISDIR(Inode_GetMode(target)) && Inode_GetLinkCount(target) > 1 && KfsDirectory_IsEmpty((KfsDirectoryRef)target)) {
         throw(EBUSY);
     }
 
@@ -175,7 +175,7 @@ errno_t KernFS_link(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode,
 {
     decl_try_err();
 
-    try(KfsDirectory_InsertEntry((KfsDirectoryRef)pDstDir, Inode_GetId(pSrcNode), Inode_IsDirectory(pSrcNode), pName));
+    try(KfsDirectory_InsertEntry((KfsDirectoryRef)pDstDir, Inode_GetId(pSrcNode), S_ISDIR(Inode_GetMode(pSrcNode)), pName));
     Inode_Writeback(pDstDir);
 
     Inode_Link(pSrcNode);
