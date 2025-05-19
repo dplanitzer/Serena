@@ -503,8 +503,6 @@ bool __Allocator_IsManaging(AllocatorRef _Nonnull self, void* _Nullable ptr)
 // Adds the given memory region to the allocator's available memory pool.
 errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull self, const MemoryDescriptor* _Nonnull md)
 {
-    decl_try_err();
-
     if (md->lower == NULL || md->upper == md->lower) {
         return EINVAL;
     }
@@ -520,13 +518,14 @@ errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull self, const MemoryDesc
 
 static errno_t __Allocator_TryExpandBackingStore(AllocatorRef _Nonnull self, size_t minByteCount)
 {
-    return (self->grow_func) ? self->grow_func(self, minByteCount) : ENOMEM;
+    if (self->grow_func && self->grow_func(self, minByteCount)) {
+        return EOK;
+    }
+    return ENOMEM;
 }
 
 void* _Nullable __Allocator_Allocate(AllocatorRef _Nonnull self, size_t nbytes)
 {
-    decl_try_err();
-
     // Return the "empty memory block singleton" if the requested size is 0
     if (nbytes == 0) {
         return (void*)UINTPTR_MAX;
@@ -550,7 +549,7 @@ void* _Nullable __Allocator_Allocate(AllocatorRef _Nonnull self, size_t nbytes)
 
     // Try expanding the backing store if we've exhausted our existing memory regions
     if (ptr == NULL) {
-        if ((err = __Allocator_TryExpandBackingStore(self, nbytes)) == EOK) {
+        if (__Allocator_TryExpandBackingStore(self, nbytes) == EOK) {
             ptr = mem_region_alloc(self->last_region, nbytes);
         }
     }

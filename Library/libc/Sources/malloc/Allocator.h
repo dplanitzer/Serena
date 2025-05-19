@@ -26,8 +26,10 @@ typedef struct MemoryDescriptor {
 } MemoryDescriptor;
 
 
-// Callback that is invoked by the allocator if it needs more backing store
-typedef errno_t (*AllocatorGrowFunc)(AllocatorRef _Nonnull allocator, size_t minByteCount);
+// Callback that is invoked by the allocator if it needs more backing store.
+// Should return true on success and false on failure. Failure will result in a
+// ENOMEM error.
+typedef bool (*AllocatorGrowFunc)(AllocatorRef _Nonnull allocator, size_t minByteCount);
 
 
 extern AllocatorRef _Nullable __Allocator_Create(const MemoryDescriptor* _Nonnull md, AllocatorGrowFunc _Nullable growFunc);

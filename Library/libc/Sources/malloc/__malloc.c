@@ -21,9 +21,8 @@ AllocatorRef    __gMainAllocator;
 static mutex_t  __gMallocLock;
 
 
-static errno_t __malloc_expand_backing_store(AllocatorRef _Nonnull pAllocator, size_t minByteCount)
+static bool __malloc_expand_backing_store(AllocatorRef _Nonnull pAllocator, size_t minByteCount)
 {
-    decl_try_err();
     const size_t ceiledSize = __Ceil_PowerOf2(minByteCount, CPU_PAGE_SIZE);
     const size_t nbytes = __min(ceiledSize, EXPANSION_HEAP_SIZE);
     char* ptr;
@@ -33,13 +32,12 @@ static errno_t __malloc_expand_backing_store(AllocatorRef _Nonnull pAllocator, s
 
         md.lower = ptr;
         md.upper = ptr + nbytes;
-        err = __Allocator_AddMemoryRegion(pAllocator, &md);
-    }
-    else {
-        err = errno;
+        if (__Allocator_AddMemoryRegion(pAllocator, &md) == EOK) {
+            return true;
+        }
     }
 
-    return err;
+    return false;
 }
 
 void __malloc_init(void)
