@@ -37,9 +37,6 @@ static int start_proc(const char* _Nonnull procPath, const char* _Nonnull arg1)
 
 void main_closure(int argc, char *argv[])
 {
-    decl_try_err();
-
-    
     // Mount kernel object catalogs
     mount(kMount_Catalog, kCatalogName_Drivers, "/dev", "");
     mount(kMount_Catalog, kCatalogName_Filesystems, "/fs", "");

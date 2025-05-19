@@ -24,26 +24,23 @@ static CLAP_DECL(params,
 );
 
 
-static errno_t do_input(InterpreterRef _Nonnull ip)
+static void do_input(InterpreterRef _Nonnull ip)
 {
-    decl_try_err();
     LineReaderRef lineReader = NULL;
-
+    
     // XXX figure out what to do about the max length. I.e. should probably be controllable with an argument
-    err = LineReader_Create(40, 0, prompt, &lineReader);
-    if (err == EOK) {
-        err = OpStack_PushCString(ip->opStack, LineReader_ReadLine(lineReader));
+    if (LineReader_Create(40, 0, prompt, &lineReader)) {
+        OpStack_PushCString(ip->opStack, LineReader_ReadLine(lineReader));
         
         if (ip->isInteractive) {
             putchar('\n');
         }
     }
     else {
-        err = OpStack_PushVoid(ip->opStack);
+        OpStack_PushVoid(ip->opStack);
     }
 
     LineReader_Destroy(lineReader);
-    return err;
 }
 
 int cmd_input(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
@@ -52,7 +49,8 @@ int cmd_input(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
     int exitCode;
 
     if (!clap_should_exit(status)) {
-        exitCode = exit_code(do_input(ip));
+        do_input(ip);
+        exitCode = EXIT_SUCCESS;
     }
     else {
         exitCode = clap_exit_code(status);

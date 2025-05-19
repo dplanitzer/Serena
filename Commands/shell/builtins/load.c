@@ -27,23 +27,21 @@ static CLAP_DECL(params,
 );
 
 
-static errno_t do_load(InterpreterRef _Nonnull ip, const char* _Nonnull path, const char* _Nonnull proc_name)
+static int do_load(InterpreterRef _Nonnull ip, const char* _Nonnull path, const char* _Nonnull proc_name)
 {
-    decl_try_err();
     const char* text = NULL;
     size_t len = 0;
-
-    err = read_contents_of_file(path, &text, &len);
+    const errno_t err = read_contents_of_file(path, &text, &len);
+    
     if (err == EOK) {
-        err = OpStack_PushString(ip->opStack, text, len);
+        OpStack_PushString(ip->opStack, text, len);
         free(text);
+        return EXIT_SUCCESS;
     }
-
-    if (err != EOK) {
+    else {
         print_error(proc_name, path, err);
+        return EXIT_FAILURE;
     }
-
-    return err;
 }
 
 int cmd_load(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
@@ -52,7 +50,7 @@ int cmd_load(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
     int exitCode;
 
     if (!clap_should_exit(status)) {
-        exitCode = exit_code(do_load(ip, path, argv[0]));
+        exitCode = do_load(ip, path, argv[0]);
     }
     else {
         exitCode = clap_exit_code(status);

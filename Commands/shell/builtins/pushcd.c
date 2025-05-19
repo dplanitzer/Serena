@@ -12,8 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <clap.h>
 #include <sys/stat.h>
+#include <clap.h>
 
 static const char* path;
 
@@ -28,18 +28,19 @@ static CLAP_DECL(params,
 
 static int do_pushcd(InterpreterRef _Nonnull ip, const char* path, const char* proc_name)
 {
-    decl_try_err();
     CDEntry* entry = NULL;
-    char* buf = NULL;
+    char* buf = malloc(PATH_MAX);
     
-    try_null(buf, malloc(PATH_MAX), ENOMEM);
-    try(getcwd(buf, PATH_MAX));
-    try_null(entry, calloc(1, sizeof(CDEntry)), ENOMEM);
-    try_null(entry->path, strdup(buf), ENOMEM);
+    getcwd(buf, PATH_MAX);
+    entry = calloc(1, sizeof(CDEntry));
+    entry->path = strdup(buf);
 
     if (*path != '\0') {
         if (chdir(path) != 0) {
-            throw(errno);
+            free(entry->path);
+            free(entry);
+            print_error(proc_name, path, errno);
+            return EXIT_FAILURE;
         }
     }
 
@@ -48,18 +49,9 @@ static int do_pushcd(InterpreterRef _Nonnull ip, const char* path, const char* p
     }
     ip->cdStackTos = entry;
 
-    return EXIT_SUCCESS;
-
-catch:
-    print_error(proc_name, path, errno);
-
     free(buf);
-    if (entry) {
-        free(entry->path);
-    }
-    free(entry);
 
-    return EXIT_FAILURE;
+    return EXIT_SUCCESS;
 }
 
 int cmd_pushcd(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)

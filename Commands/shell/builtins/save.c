@@ -29,10 +29,8 @@ static CLAP_DECL(params,
 );
 
 
-static errno_t do_save(const char* _Nonnull text, const char* _Nonnull path, const char* _Nonnull proc_name)
+static int do_save(const char* _Nonnull text, const char* _Nonnull path, const char* _Nonnull proc_name)
 {
-    decl_try_err();
-
     const size_t textLen = strlen(text);
     char mode[3] = {'w', '\0', '\0'};
 
@@ -46,21 +44,16 @@ static errno_t do_save(const char* _Nonnull text, const char* _Nonnull path, con
     FILE* fp = fopen(path, mode);
     if (fp) {
         fwrite(text, textLen, 1, fp);
-
-        if (ferror(fp)) {
-            err = errno;
-        }
         fclose(fp);
     }
+
+    if (fp == NULL || (fp && ferror(fp))) {
+        print_error(proc_name, path, errno);
+        return EXIT_FAILURE;
+    }
     else {
-        err = errno;
+        return EXIT_SUCCESS;
     }
-
-    if (err != EOK) {
-        print_error(proc_name, path, err);
-    }
-
-    return err;
 }
 
 int cmd_save(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
@@ -75,7 +68,7 @@ int cmd_save(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
             exitCode = EXIT_FAILURE;
         }
         else {
-            exitCode = exit_code(do_save(parts.strings[0], parts.strings[2], argv[0]));
+            exitCode = do_save(parts.strings[0], parts.strings[2], argv[0]);
         }
     }
     else {
