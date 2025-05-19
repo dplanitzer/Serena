@@ -39,6 +39,7 @@ typedef struct di_owner_spec {
 
 
 
+static char path_buf[PATH_MAX];
 static const char* gArgv_Zero = "";
 
 void vfatal(const char* _Nonnull fmt, va_list ap)
@@ -93,20 +94,20 @@ static errno_t block_write(intptr_t fd, const void* _Nonnull buf, blkno_t blockA
         return EOK;
     }
     else {
-        return EIO;
+        return errno;
     }
 }
 
-static errno_t wipe_disk(int ioc, const diskinfo_t* _Nonnull info)
+static int wipe_disk(int ioc, const diskinfo_t* _Nonnull info)
 {
-    decl_try_err();
     scnt_t sct = 0;
     size_t clusterCount = 1;
     ssize_t byteCount = info->sectorSize * info->frClusterSize;
+    int ok = 1;
+    
     uint8_t* data = malloc(byteCount);
- 
     if (data == NULL) {
-        return ENOMEM;
+        return 0;
     }
 
     
@@ -116,10 +117,13 @@ static errno_t wipe_disk(int ioc, const diskinfo_t* _Nonnull info)
 
     fputs("\033[?25l", stdout);
     lseek(ioc, 0ll, SEEK_SET);
-    while (sct < info->sectorCount && err == EOK) {
+    while (sct < info->sectorCount) {
         printf("%u\n\033[1A", (unsigned)clusterCount);
         
-        err = ioctl(ioc, kDiskCommand_Format, data, byteCount);
+        if (ioctl(ioc, kDiskCommand_Format, data, byteCount) != 0) {
+            ok = 0;
+            break;
+        }
         
         sct += info->frClusterSize;
         clusterCount++;
@@ -128,115 +132,97 @@ static errno_t wipe_disk(int ioc, const diskinfo_t* _Nonnull info)
 
     free(data);
 
-    return err;
+    return ok;
 }
 
-errno_t cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull diskPath)
+void cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull diskPath)
 {
-    decl_try_err();
     FILE* fp = NULL;
     diskinfo_t info;
 
     if (strcmp(fsType, "sefs")) {
-        throw(EINVAL);
+        errno = EINVAL;
+        return;
     }
 
-    try_null(fp, fopen(diskPath, "r+"), errno);
-    const int ioc = fileno(fp);
-    setbuf(fp, NULL);
+    if ((fp = fopen(diskPath, "r+")) != NULL) {
+        const int fd = fileno(fp);
+        int ok = 1;
 
-    try(ioctl(ioc, kDiskCommand_SenseDisk));
-    try(ioctl(ioc, kDiskCommand_GetInfo, &info)); 
-    if (!bQuick) {
-        try(wipe_disk(ioc, &info));
-        lseek(ioc, 0ll, SEEK_SET);
-    }
-    try(sefs_format((intptr_t)fp, block_write, info.sectorCount, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label));
-    puts("ok");
+        setbuf(fp, NULL);
 
-catch:
-    if (fp) {
+        if (ioctl(fd, kDiskCommand_SenseDisk) != 0) {
+            ioctl(fd, kDiskCommand_GetInfo, &info); 
+            if (!bQuick) {
+                ok = wipe_disk(fd, &info);
+                if (ok) {
+                    lseek(fd, 0ll, SEEK_SET);
+                }
+            }
+            if (ok) {
+                sefs_format((intptr_t)fp, block_write, info.sectorCount, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label);
+            }
+            puts("ok");
+        }
+        
         fclose(fp);
     }
-    return err;
 }
 
 
-// Returns the fsid of teh current working directory if 'path' is an empty string
+// Returns the fsid of the current working directory if 'path' is an empty string
 // and of the filesystem that owns path otherwise.
-static errno_t get_fsid(const char* _Nonnull path, fsid_t* _Nonnull fsid)
+static fsid_t get_fsid(const char* _Nonnull path)
 {
-    decl_try_err();
     struct stat info;
     char* p = (char*)path;
 
-    *fsid = 0;
-
     if (*p == '\0') {
-        p = malloc(PATH_MAX);
-        if (p == NULL) {
-            return ENOMEM;
-        }
-
-        if (getcwd(p, PATH_MAX) != 0) {
-            err = errno;
-        }
+        p = path_buf;
+        getcwd(p, PATH_MAX);
     }
 
 
-    if (err == EOK) {
-        if (stat(p, &info) == 0) {
-            *fsid = info.st_fsid;
-        }
+    if (stat(p, &info) == 0) {
+        return info.st_fsid;
     }
-
-
-    if (p != path) {
-        free(p);
+    else {
+        return -1;
     }
-
-    return err;
 }
 
-errno_t cmd_fsid(const char* _Nonnull path)
+void cmd_fsid(const char* _Nonnull path)
 {
-    decl_try_err();
-    fsid_t fsid;
+    const fsid_t fsid = get_fsid(path);
 
-    err = get_fsid(path, &fsid);
-    if (err == EOK) {
+    if (fsid != -1) {
         printf("%u\n", fsid);
     }
-
-    return err;
 }
 
 
-static errno_t print_cat_info(const fsinfo_t* _Nonnull info, int fd)
+static void print_cat_info(const fsinfo_t* _Nonnull info, int fd)
 {
-    decl_try_err();
     char diskName[32];
 
-    try(fs_getdisk(info->fsid, diskName, sizeof(diskName)));
+    fs_getdisk(info->fsid, diskName, sizeof(diskName));
 
     puts("Catalog ID");
     printf("%s       %u\n", diskName, info->fsid);
-
-catch:
-    return err;
 }
 
-static errno_t print_reg_info(const fsinfo_t* _Nonnull info, int fd)
+static void print_reg_info(const fsinfo_t* _Nonnull info, int fd)
 {
-    decl_try_err();
     const uint64_t size = (uint64_t)info->capacity * (uint64_t)info->blockSize;
     const unsigned fullPerc = info->count * 100 / info->capacity;   // XXX round up to the next %
     const char* status;
     char diskName[32];
     char volLabel[64];
 
-    try(fs_getdisk(info->fsid, diskName, sizeof(diskName)));
-    try(ioctl(fd, kFSCommand_GetLabel, volLabel, sizeof(volLabel)));
+    fs_getdisk(info->fsid, diskName, sizeof(diskName));
+    if (ioctl(fd, kFSCommand_GetLabel, volLabel, sizeof(volLabel)) != 0) {
+        return;
+    }
 
 
     if ((info->properties & kFSProperty_IsReadOnly) == kFSProperty_IsReadOnly) {
@@ -250,44 +236,45 @@ static errno_t print_reg_info(const fsinfo_t* _Nonnull info, int fd)
     // XX formatting
     puts("Disk ID Size   Used   Free Full Status Type Name");
     printf("%s %u %lluK %u %u %u%% %s %s %s\n", diskName, info->fsid, size / 1024ull, info->count, info->capacity - info->count, fullPerc, status, info->type, volLabel);
-
-catch:
-    return err;
 }
 
-static errno_t cmd_info(const char* _Nonnull path)
+static int open_fs(const char* _Nonnull path, fsid_t* _Nullable pfsid)
 {
-    decl_try_err();
-    fsid_t fsid;
-    fsinfo_t info;
+    const fsid_t fsid = get_fsid(path);
     int fd = -1;
     char buf[32];
 
-    try(get_fsid(path, &fsid));
-    sprintf(buf, "/fs/%u", fsid);
-    try(open(buf, O_RDONLY, &fd));
-    try(ioctl(fd, kFSCommand_GetInfo, &info));
-
-    if ((info.properties & kFSProperty_IsCatalog) == kFSProperty_IsCatalog) {
-        err = print_cat_info(&info, fd);
-    }
-    else {
-        err = print_reg_info(&info, fd);
+    if (fsid != -1) {
+        sprintf(buf, "/fs/%u", fsid);
+        
+        if (open(buf, O_RDONLY, &fd) == 0) {
+            if (pfsid) *pfsid = fsid;
+            return fd;
+        }
     }
 
+    return -1;
+}
 
-catch:
-    if (fd >= 0) {
-        close(fd);
+static void cmd_info(const char* _Nonnull path)
+{
+    const int fd = open_fs(path, NULL);
+    fsinfo_t info;
+
+    if (ioctl(fd, kFSCommand_GetInfo, &info) == 0) {
+        if ((info.properties & kFSProperty_IsCatalog) == kFSProperty_IsCatalog) {
+            print_cat_info(&info, fd);
+        }
+        else {
+            print_reg_info(&info, fd);
+        }
     }
-
-    return err;
+    close(fd);
 }
 
 
-static errno_t cmd_geometry(const char* _Nonnull path)
+static void cmd_geometry(const char* _Nonnull path)
 {
-    decl_try_err();
     struct stat info;
     fsid_t fsid;
     fsinfo_t fsinf;
@@ -298,28 +285,33 @@ static errno_t cmd_geometry(const char* _Nonnull path)
 
     if (*path != '\0') {
         if (stat(path, &info) != 0) {
-            return errno;
+            return;
         }
     }
+
     if (S_ISDEV(info.st_mode)) {
-        try(open(path, O_RDONLY, &fd));
-        err = ioctl(fd, kDiskCommand_GetGeometry, &geom);
+        if (open(path, O_RDONLY, &fd) != 0) {
+            return;
+        }
+        ioctl(fd, kDiskCommand_GetGeometry, &geom);
     }
     else {
-        try(get_fsid(path, &fsid));
-        sprintf(buf, "/fs/%u", fsid);
-        try(open(buf, O_RDONLY, &fd));
-        err = ioctl(fd, kFSCommand_GetDiskGeometry, &geom);
+        if ((fd = open_fs(path, &fsid)) >= 0) {
+            ioctl(fd, kFSCommand_GetDiskGeometry, &geom);
+        }
 
-        try(fs_getdisk(fsid, buf, sizeof(buf)));
+        fs_getdisk(fsid, buf, sizeof(buf));
         path = buf;
     }
-    if (err == ENOMEDIUM) {
-        err = EOK;
+    close(fd);
+
+
+    if (errno == ENOMEDIUM) {
+        errno = EOK;
         hasDisk = false;
     }
-    else {
-        throw_iferr(err);
+    else if (errno != 0) {
+        return;
     }
 
 
@@ -332,50 +324,36 @@ static errno_t cmd_geometry(const char* _Nonnull path)
         puts("Disk");
         printf("%s  no disk in drive\n", path);
     }
-
-catch:
-    if (fd >= 0) {
-        close(fd);
-    }
-
-    return err;
 }
 
 
-errno_t cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
+static void sense_disk(const char* _Nonnull diskPath)
 {
-    decl_try_err();
     int fd = -1;
+    const int err = open(diskPath, O_RDONLY, &fd);
 
-    err = open(diskPath, O_RDONLY, &fd);
     if (err == EOK) {
-        err = ioctl(fd, kDiskCommand_SenseDisk);
+        ioctl(fd, kDiskCommand_SenseDisk);
         close(fd);
     }
-    if (err == EOK) {
-        if (mount(kMount_SeFS, diskPath, atPath, "") != 0) {
-            err = errno;
-        }
-    }
+}
 
-    return err;
+void cmd_mount(const char* _Nonnull diskPath, const char* _Nonnull atPath)
+{
+    sense_disk(diskPath);
+    mount(kMount_SeFS, diskPath, atPath, "");
 }
 
 
-errno_t cmd_unmount(const char* _Nonnull atPath, bool doForce)
+void cmd_unmount(const char* _Nonnull atPath, bool doForce)
 {
-    decl_try_err();
     UnmountOptions options = 0;
 
     if (doForce) {
         options |= kUnmount_Forced;
     }
 
-    if (unmount(atPath, options) != 0) {
-        err = errno;
-    }
-
-    return err;
+    unmount(atPath, options);
 }
 
 
@@ -384,20 +362,15 @@ errno_t cmd_unmount(const char* _Nonnull atPath, bool doForce)
 // MARK: Command Line Parsing
 ////////////////////////////////////////////////////////////////////////////////
 
-static errno_t parse_required_ulong(const char* str, char** str_end, size_t* pOutVal)
+static void parse_required_ulong(const char* str, char** str_end, size_t* pOutVal)
 {
     if (!isdigit(*str)) {
         *str_end = (char*)str;
-        return EINVAL;
+        errno = EINVAL;
     }
-
-    errno = 0;
-    *pOutVal = strtoul(str, str_end, 10);
-    if (errno != 0) {
-        return ERANGE;
+    else {
+        *pOutVal = strtoul(str, str_end, 10);
     }
-
-    return EOK;
 }
 
 // -p=rwxrwxrwx | -p=777
@@ -461,30 +434,31 @@ static int parseOwnerId(const char* _Nonnull proc_name, const struct clap_param_
 {
     di_owner_spec_t* owner = (di_owner_spec_t*)param->value;
 
-    decl_try_err();
     char* p = (char*)arg;
     size_t uid, gid;
 
-    try(parse_required_ulong(p, &p, &uid));
-    if (*p == '\0') {
-        owner->uid = (uid_t)uid;
-        owner->gid = (gid_t)uid;
-        owner->isValid = true;
-        return EXIT_SUCCESS;
-    }
-
-    if (*p == ':') {
-        try(parse_required_ulong(p + 1, &p, &gid));
-
+    errno = 0;
+    parse_required_ulong(p, &p, &uid);
+    if (errno == 0) {
         if (*p == '\0') {
             owner->uid = (uid_t)uid;
-            owner->gid = (gid_t)gid;
+            owner->gid = (gid_t)uid;
             owner->isValid = true;
             return EXIT_SUCCESS;
         }
+
+        if (*p == ':') {
+            parse_required_ulong(p + 1, &p, &gid);
+
+            if (errno == 0 && *p == '\0') {
+                owner->uid = (uid_t)uid;
+                owner->gid = (gid_t)gid;
+                owner->isValid = true;
+                return EXIT_SUCCESS;
+            }
+        }
     }
 
-catch:
     clap_param_error(proc_name, param, eo, "invalid ownership specification: '%s'", arg);
     return EXIT_FAILURE;
 }
@@ -542,8 +516,6 @@ CLAP_DECL(params,
 
 int main(int argc, char* argv[])
 {
-    decl_try_err();
-
     clap_parse(0, params, argc, argv);
     
     if (!strcmp(cmd_id, "format")) {
@@ -556,38 +528,38 @@ int main(int argc, char* argv[])
             owner.gid = kGroupId_Root;
             owner.isValid = true;
         }
-        err = cmd_format(should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, vol_label, disk_path);
+        cmd_format(should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, vol_label, disk_path);
     }
     else if (!strcmp(cmd_id, "fsid")) {
         // disk fsid
-        err = cmd_fsid(fs_path);
+        cmd_fsid(fs_path);
     }
     else if (!strcmp(cmd_id, "info")) {
         // disk info
-        err = cmd_info(fs_path);
+        cmd_info(fs_path);
     }
     else if (!strcmp(cmd_id, "geometry")) {
         // disk geometry
-        err = cmd_geometry(disk_path);
+        cmd_geometry(disk_path);
     }
     else if (!strcmp(cmd_id, "mount")) {
         // disk mount
-        err = cmd_mount(disk_path, at_path);
+        cmd_mount(disk_path, at_path);
     }
     else if (!strcmp(cmd_id, "unmount")) {
         // disk unmount
-        err = cmd_unmount(at_path, forced);
+        cmd_unmount(at_path, forced);
     }
     else {
-        err = EINVAL;
+        errno = EINVAL;
     }
 
 
-    if (err == EOK) {
+    if (errno == EOK) {
         return EXIT_SUCCESS;
     }
     else {
-        fatal(strerror(err));
+        fatal(strerror(errno));
         return EXIT_FAILURE;
     }
 }
