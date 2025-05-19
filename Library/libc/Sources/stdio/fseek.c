@@ -28,16 +28,14 @@ int fseek(FILE *s, long offset, int whence)
     }
 
     if (s->flags.mostRecentDirection == __kStreamDirection_Write) {
-        const int e = fflush(s);
-        if (e != 0) {
+        if (fflush(s) != 0) {
             return EOF;
         }
     }
 
-    const errno_t err = s->cb.seek((void*)s->context, (long long)offset, NULL, whence);
-    if (err != 0) {
+    const long long r = s->cb.seek((void*)s->context, (long long)offset, whence);
+    if (r < 0ll) {
         s->flags.hasError = 1;
-        errno = err;
         return EOF;
     }
     if (!(offset == 0ll && whence == SEEK_CUR)) {

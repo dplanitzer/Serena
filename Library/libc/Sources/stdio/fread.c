@@ -26,21 +26,19 @@ size_t fread(void *buffer, size_t size, size_t count, FILE *s)
     }
 
     const size_t nBytesToRead = size * count;
+    ssize_t nBytesRead = s->cb.read((void*)s->context, buffer, nBytesToRead);
     size_t r;
-    ssize_t nBytesRead;
-    const errno_t err = s->cb.read((void*)s->context, buffer, nBytesToRead, &nBytesRead);
 
-    if (err == 0) {
-        if (nBytesRead > 0) {
-            s->flags.hasEof = 0;
-            r = nBytesRead / size;
-        } else {
-            s->flags.hasEof = 1;
-            r = EOF;
-        }
-    } else {
+    if (nBytesRead > 0) {
+        s->flags.hasEof = 0;
+        r = nBytesRead / size;
+    }
+    else if (nBytesRead == 0) {
+        s->flags.hasEof = 1;
+        r = EOF;
+    }
+    else {
         s->flags.hasError = 1;
-        errno = err;
         r = EOF;
     }
 

@@ -21,22 +21,20 @@ int fputc(int ch, FILE *s)
         return EOF;
     }
 
-    int r;
     unsigned char buf = (unsigned char)ch;
-    ssize_t nBytesWritten;
-    const errno_t err = s->cb.write((void*)s->context, &buf, 1, &nBytesWritten);
+    const ssize_t nBytesWritten = s->cb.write((void*)s->context, &buf, 1);
+    int r;
 
-    if (err == 0) {
-        if (nBytesWritten == 1) {
-            s->flags.hasEof = 0;
-            r = (int)buf;
-        } else {
-            s->flags.hasEof = 1;
-            r = EOF;
-        }
-    } else {
+    if (nBytesWritten > 0) {
+        s->flags.hasEof = 0;
+        r = ch;
+    }
+    else if (nBytesWritten == 0) {
+        s->flags.hasEof = 1;
+        r = EOF;
+    }
+    else {
         s->flags.hasError = 1;
-        errno = err;
         r = EOF;
     }
 

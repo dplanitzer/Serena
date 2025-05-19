@@ -13,7 +13,6 @@
 #include <_null.h>
 #include <_size.h>
 #include <_ssize.h>
-#include <kpi/_errno.h>
 #include <kpi/syslimits.h>
 #include <stdarg.h>
 
@@ -43,10 +42,10 @@ typedef struct fpos_t {
 
 
 // A stream defined by a set of callbacks
-typedef _Errno_t (*FILE_Read)(void *self, void *buffer, ssize_t nBytesToRead, ssize_t *pOutBytesRead);
-typedef _Errno_t (*FILE_Write)(void *self, const void *buffer, ssize_t nBytesToWrite, ssize_t *pOutBytesWritten);
-typedef _Errno_t (*FILE_Seek)(void *self, long long offset, long long *outOldOffset, int whence);
-typedef _Errno_t (*FILE_Close)(void *self);
+typedef ssize_t (*FILE_Read)(void *self, void *buffer, ssize_t nBytesToRead);
+typedef ssize_t (*FILE_Write)(void *self, const void *buffer, ssize_t nBytesToWrite);
+typedef long long (*FILE_Seek)(void *self, long long offset, int whence);
+typedef int (*FILE_Close)(void *self);
 
 typedef struct FILE_Callbacks {
     FILE_Read _Nullable     read;

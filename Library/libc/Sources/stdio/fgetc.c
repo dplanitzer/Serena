@@ -21,22 +21,20 @@ int fgetc(FILE *s)
         return EOF;
     }
 
-    int r;
     char buf;
-    ssize_t nBytesRead;
-    const errno_t err = s->cb.read((void*)s->context, &buf, 1, &nBytesRead);
+    ssize_t nBytesRead = s->cb.read((void*)s->context, &buf, 1);
+    int r;
 
-    if (err == 0) {
-        if (nBytesRead == 1) {
-            s->flags.hasEof = 0;
-            r = (int)(unsigned char)buf;
-        } else {
-            s->flags.hasEof = 1;
-            r = EOF;
-        }
-    } else {
+    if (nBytesRead > 0) {
+        s->flags.hasEof = 0;
+        r = (int)(unsigned char)buf;
+    }
+    else if (nBytesRead == 0) {
+        s->flags.hasEof = 1;
+        r = EOF;
+    }
+    else {
         s->flags.hasError = 1;
-        errno = err;
         r = EOF;
     }
 

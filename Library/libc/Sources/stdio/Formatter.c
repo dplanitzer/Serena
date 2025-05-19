@@ -461,7 +461,7 @@ int __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format,
         }
 
         if (ferror(self->stream)) {
-            return -errno;
+            return EOF;
         }
     }
 }

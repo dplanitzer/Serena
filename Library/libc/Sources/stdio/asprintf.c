@@ -25,7 +25,6 @@ int asprintf(char **str_ptr, const char *format, ...)
 
 int vasprintf(char **str_ptr, const char *format, va_list ap)
 {
-    decl_try_err();
     const __FILE_Mode sm = __kStreamMode_Write | __kStreamMode_Truncate | __kStreamMode_Create;
     __Memory_FILE file;
     FILE_Memory mem;
@@ -45,38 +44,32 @@ int vasprintf(char **str_ptr, const char *format, va_list ap)
         mem.initialEof = 0;
         mem.options = 0;
 
-        err = __fopen_memory_init(&file, false, &mem, sm);
+        r = __fopen_memory_init(&file, false, &mem, sm);
     }
     else {
         // Use a null stream to calculate the length of the formatted string
-        err = __fopen_null_init(&file.super, false, sm);
+        r = __fopen_null_init(&file.super, false, sm);
+    }
+    if (r != 0) {
+        return EOF;
     }
 
-    if (err == EOK) {
-        __Formatter_Init(&fmt, &file.super);
-        r = __Formatter_vFormat(&fmt, format, ap);
-        putc('\0', &file.super);
-        __Formatter_Deinit(&fmt);
-        filemem(&file.super, &mq);
-        __fclose(&file.super);
+    __Formatter_Init(&fmt, &file.super);
+    r = __Formatter_vFormat(&fmt, format, ap);
+    putc('\0', &file.super);
+    __Formatter_Deinit(&fmt);
+    filemem(&file.super, &mq);
+    __fclose(&file.super);
 
-        if (str_ptr) {
-            if (r >= 0) {
-                *str_ptr = mq.base;
-            }
-            else {
-                // We told the stream to not free the memory block. Thus we need to free
-                // it if we encountered an error
-                free(mq.base);
-            }
+    if (str_ptr) {
+        if (r >= 0) {
+            *str_ptr = mq.base;
         }
-    }
-    else {
-        r = -err;
-    }
-
-    if (r < 0) {
-        errno = -r;
+        else {
+            // We told the stream to not free the memory block. Thus we need to free
+            // it if we encountered an error
+            free(mq.base);
+        }
     }
     
     return r;

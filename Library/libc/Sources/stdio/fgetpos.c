@@ -16,12 +16,13 @@ int fgetpos(FILE *s, fpos_t *pos)
         return EOF;
     }
 
-    const errno_t err = s->cb.seek((void*)s->context, 0ll, &pos->offset, SEEK_CUR);
-    if (err != 0) {
+    const long long r = s->cb.seek((void*)s->context, 0ll, SEEK_CUR);
+    if (r >= 0ll) {
+        pos->offset = r;
+        return 0;
+    }
+    else {
         s->flags.hasError = 1;
-        errno = err;
         return EOF;
     }
-
-    return 0;
 }

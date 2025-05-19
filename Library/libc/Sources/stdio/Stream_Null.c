@@ -15,16 +15,14 @@
 // wants to know how long the formatted string would be but they don't want the
 // actual data.
 
-static errno_t __null_read(void* _Nonnull self, void* pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+static ssize_t __null_read(void* _Nonnull self, void* pBuffer, ssize_t nBytesToRead)
 {
-    *pOutBytesRead = 0;
-    return EOK;
+    return 0;
 }
 
-static errno_t __null_write(void* _Nonnull self, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+static ssize_t __null_write(void* _Nonnull self, const void* pBytes, ssize_t nBytesToWrite)
 {
-    *pOutBytesWritten = nBytesToWrite;
-    return EOK;
+    return nBytesToWrite;
 }
 
 static const FILE_Callbacks __FILE_null_callbacks = {
@@ -36,7 +34,7 @@ static const FILE_Callbacks __FILE_null_callbacks = {
 
 
 
-errno_t __fopen_null_init(FILE* _Nonnull self, bool bFreeOnClose, __FILE_Mode sm)
+int __fopen_null_init(FILE* _Nonnull self, bool bFreeOnClose, __FILE_Mode sm)
 {
     return __fopen_init(self, bFreeOnClose, NULL, &__FILE_null_callbacks, sm);
 }

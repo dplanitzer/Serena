@@ -25,44 +25,45 @@ int snprintf(char *buffer, size_t bufsiz, const char *format, ...)
 
 int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
 {
-    decl_try_err();
     const bool hasBuffer = (buffer && bufsiz > 0) ? true : false;
     const __FILE_Mode sm = __kStreamMode_Write | __kStreamMode_Truncate | __kStreamMode_Create;
     __Memory_FILE file;
     FILE_Memory mem;
     Formatter fmt;
-    int r = 0;
+    int r;
 
     if (hasBuffer) {
+        buffer[0] = '\0';
+
         mem.base = buffer;
         mem.initialCapacity = bufsiz - 1;
         mem.maximumCapacity = bufsiz - 1;
         mem.initialEof = 0;
         mem.options = 0;
 
-        err = __fopen_memory_init(&file, false, &mem, sm);
+        r = __fopen_memory_init(&file, false, &mem, sm);
     }
     else {
         // Use a null stream to calculate the length of the formatted string
-        err = __fopen_null_init(&file.super, false, sm);
+        r = __fopen_null_init(&file.super, false, sm);
+    }
+    if (r != 0) {
+        return EOF;
     }
 
-    if (err == EOK) {
-        __Formatter_Init(&fmt, &file.super);
-        r = __Formatter_vFormat(&fmt, format, ap);
-        if (r >= 0) {
-            buffer[r] = '\0';
-        }
-        __Formatter_Deinit(&fmt);
-        __fclose(&file.super);
+    __Formatter_Init(&fmt, &file.super);
+    r = __Formatter_vFormat(&fmt, format, ap);
+    if (hasBuffer && r >= 0) {
+        buffer[r] = '\0';
     }
-    else {
-        r = -err;
-    }
+    __Formatter_Deinit(&fmt);
+    __fclose(&file.super);
 
     if (r < 0) {
         errno = -r;
-        buffer[0] = '\0';
+        if (hasBuffer) {
+            buffer[0] = '\0';
+        }
     }
 
     return r;

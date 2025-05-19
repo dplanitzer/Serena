@@ -116,10 +116,10 @@ int __iterate_open_files(__file_func_t _Nonnull f)
 // "t"                          open in translated mode
 //
 // Modifiers are optional and follow the mode. "b" is always implied on Serena OS.
-errno_t __fopen_parse_mode(const char* _Nonnull mode, __FILE_Mode* _Nonnull pOutMode)
+int __fopen_parse_mode(const char* _Nonnull mode, __FILE_Mode* _Nonnull pOutMode)
 {
-    decl_try_err();
     __FILE_Mode sm = 0;
+    int ok = 1;
 
     // Mode
     switch (*mode++) {
@@ -150,33 +150,46 @@ errno_t __fopen_parse_mode(const char* _Nonnull mode, __FILE_Mode* _Nonnull pOut
 
 
     if ((sm & (__kStreamMode_Read|__kStreamMode_Write)) == 0) {
-        err = EINVAL;
+        ok = 0;
     }
     if (((sm & __kStreamMode_Exclusive) == __kStreamMode_Exclusive) && ((sm & __kStreamMode_Write) == 0)) {
-        err = EINVAL;
+        ok = 0;
     }
     if ((sm & (__kStreamMode_Append|__kStreamMode_Truncate)) == (__kStreamMode_Append|__kStreamMode_Truncate)) {
-        err = EINVAL;
+        ok = 0;
     }
     if ((sm & (__kStreamMode_Binary | __kStreamMode_Text)) == (__kStreamMode_Binary | __kStreamMode_Text)) {
-        err = EINVAL;
+        ok = 0;
     }
 
-    *pOutMode = (err == EOK) ? sm : 0;
-    return err;
+    if (ok) {
+        *pOutMode = sm;
+        return 0;
+    }
+    else {
+        errno = EINVAL;
+        return EOF;
+    }
 }
 
-errno_t __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, const FILE_Callbacks* callbacks, __FILE_Mode sm)
+int __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, const FILE_Callbacks* callbacks, __FILE_Mode sm)
 {
+    int ok = 1;
+
     if (callbacks == NULL) {
-        return EINVAL;
+        ok = 0;
     }
 
     if ((sm & __kStreamMode_Read) != 0 && callbacks->read == NULL) {
-        return EINVAL;
+        ok = 0;
     }
     if ((sm & __kStreamMode_Write) != 0 && callbacks->write == NULL) {
-        return EINVAL;
+        ok = 0;
+    }
+
+    if (!ok) {
+        errno = EINVAL;
+        return EOF;
     }
 
     memset(self, 0, sizeof(FILE));
@@ -188,7 +201,7 @@ errno_t __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, cons
 
     __register_open_file(self);
 
-    return EOK;
+    return 0;
 }
 
 // Shuts down the given stream but does not free the 's' memory block. 

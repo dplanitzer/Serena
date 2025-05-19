@@ -26,7 +26,7 @@
 //
 
 
-static errno_t __mem_read(__Memory_FILE_Vars* _Nonnull mp, void* pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+static ssize_t __mem_read(__Memory_FILE_Vars* _Nonnull mp, void* pBuffer, ssize_t nBytesToRead)
 {
     const ssize_t nBytesRead = (ssize_t)__min((size_t)nBytesToRead, mp->eofPosition - mp->currentPosition);
     const ssize_t nBytesToCopy = (ssize_t)__min((size_t)nBytesRead, mp->currentCapacity - mp->currentPosition);
@@ -42,12 +42,11 @@ static errno_t __mem_read(__Memory_FILE_Vars* _Nonnull mp, void* pBuffer, ssize_
         memset(&mp->store[mp->currentPosition], 0, nBytesToZero);
         mp->currentPosition += nBytesToZero;
     }
-    *pOutBytesRead = nBytesRead;
 
-    return EOK;
+    return nBytesRead;
 }
 
-static errno_t __mem_write(__Memory_FILE_Vars* _Nonnull mp, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+static ssize_t __mem_write(__Memory_FILE_Vars* _Nonnull mp, const void* pBytes, ssize_t nBytesToWrite)
 {
     // XXX Generate a disk full error if writing would cause the current position to overflow
     size_t newCurrentPosition = mp->currentPosition + nBytesToWrite;
@@ -82,22 +81,21 @@ static errno_t __mem_write(__Memory_FILE_Vars* _Nonnull mp, const void* pBytes, 
     const ssize_t nBytesWritten = (ssize_t)__min((size_t)nBytesToWrite, mp->currentCapacity - mp->currentPosition);
 
     if (nBytesWritten == 0) {
-        *pOutBytesWritten = 0;
-        return ENOSPC;
+        errno = ENOSPC;
+        return 0;
     }
 
     memcpy(&mp->store[mp->currentPosition], pBytes, nBytesWritten);
     mp->currentPosition += nBytesWritten;
-    *pOutBytesWritten = nBytesWritten;
 
     if (mp->currentPosition > mp->eofPosition) {
         mp->eofPosition = mp->currentPosition;
     }
 
-    return EOK;
+    return nBytesWritten;
 }
 
-static errno_t __mem_seek(__Memory_FILE_Vars* _Nonnull mp, long long offset, long long* _Nullable pOutOldOffset, int whence)
+static long long __mem_seek(__Memory_FILE_Vars* _Nonnull mp, long long offset, int whence)
 {
     long long newOffset;
 
@@ -115,37 +113,36 @@ static errno_t __mem_seek(__Memory_FILE_Vars* _Nonnull mp, long long offset, lon
             break;
 
         default:
-            return EINVAL;
+            errno = EINVAL;
+            return EOF;
     }
 
     if (newOffset < 0 || newOffset > SIZE_MAX) {
-        return EOVERFLOW;
+        errno = EOVERFLOW;
+        return EOF;
     }
 
     // Expand EOF out if we were told to seek past the current EOF. Note that
     // the next __mem_read() and __mem_write() will take care of the range check
     // and actual backing store expansion.
-    const size_t newPosition = (size_t)newOffset;
-    if (newPosition > mp->eofPosition) {
-        mp->eofPosition = newPosition;
+    const size_t oldPos = mp->currentPosition;
+    const size_t newPos = (size_t)newOffset;
+    if (newPos > mp->eofPosition) {
+        mp->eofPosition = newPos;
     }
+    mp->currentPosition = newPos;
 
-    if (pOutOldOffset) {
-        *pOutOldOffset = mp->currentPosition;
-    }
-    mp->currentPosition = newPosition;
-
-    return EOK;
+    return oldPos;
 }
 
-static errno_t __mem_close(__Memory_FILE_Vars* _Nonnull mp)
+static int __mem_close(__Memory_FILE_Vars* _Nonnull mp)
 {
     if (mp->flags.freeOnClose) {
         free(mp->store);
     }
     mp->store = NULL;
 
-    return EOK;
+    return 0;
 }
 
 static const FILE_Callbacks __FILE_mem_callbacks = {
@@ -157,7 +154,7 @@ static const FILE_Callbacks __FILE_mem_callbacks = {
 
 
 
-errno_t __fopen_memory_init(__Memory_FILE* _Nonnull self, bool bFreeOnClose, FILE_Memory *mem, __FILE_Mode sm)
+int __fopen_memory_init(__Memory_FILE* _Nonnull self, bool bFreeOnClose, FILE_Memory *mem, __FILE_Mode sm)
 {
     __Memory_FILE_Vars* mp = &self->v;
 

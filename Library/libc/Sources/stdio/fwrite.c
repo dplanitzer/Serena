@@ -26,21 +26,19 @@ size_t fwrite(const void *buffer, size_t size, size_t count, FILE *s)
     }
 
     const size_t nBytesToWrite = size * count;
-    ssize_t nBytesWritten;
+    const ssize_t nBytesWritten = s->cb.write((void*)s->context, buffer, nBytesToWrite);
     size_t r;
-    const errno_t err = s->cb.write((void*)s->context, buffer, nBytesToWrite, &nBytesWritten);
 
-    if (err == 0) {
-        if (nBytesWritten > 0) {
-            s->flags.hasEof = 0;
-            r = nBytesWritten / size;
-        } else {
-            s->flags.hasEof = 1;
-            r = EOF;
-        }
-    } else {
+    if (nBytesWritten > 0) {
+        s->flags.hasEof = 0;
+        r = nBytesWritten / size;
+    }
+    else if (nBytesWritten == 0) {
+        s->flags.hasEof = 1;
+        r = EOF;
+    }
+    else {
         s->flags.hasError = 1;
-        errno = err;
         r = EOF;
     }
 

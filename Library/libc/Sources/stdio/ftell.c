@@ -13,17 +13,14 @@
 
 long ftell(FILE *s)
 {
-    long long curpos;
-
     if (s->cb.seek == NULL) {
         errno = ESPIPE;
         return (long)EOF;
     }
 
-    const errno_t err = s->cb.seek((void*)s->context, 0ll, &curpos, SEEK_CUR);
-    if (err != 0) {
+    const long long curpos = s->cb.seek((void*)s->context, 0ll, SEEK_CUR);
+    if (curpos < 0ll) {
         s->flags.hasError = 1;
-        errno = err;
         return (long)EOF;
     }
 
