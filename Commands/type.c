@@ -8,11 +8,11 @@
 
 #include <clap.h>
 #include <ctype.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/errno.h>
 #include <sys/limits.h>
 #include <sys/types.h>
 
@@ -24,6 +24,14 @@
 #error "unknown SIZE_WIDTH"
 #endif
 
+
+#define HEX_COLUMNS 16
+#define HEX_LINE_BUF_SIZE (ADDR_WIDTH + 3 + 3*HEX_COLUMNS + 2 + HEX_COLUMNS + 1 + 1)
+static char hex_col_buf[HEX_COLUMNS];
+static char hex_line_buf[HEX_LINE_BUF_SIZE];
+
+#define TEXT_BUF_SIZE   512
+static char text_buf[TEXT_BUF_SIZE];
 
 
 static bool should_quit(void)
@@ -90,81 +98,68 @@ static void format_hex_line(size_t addr, const uint8_t* buf, size_t nbytes, size
     *line   = '\0';
 }
 
-#define HEX_COLUMNS 16
-static errno_t type_hex(const char* _Nonnull path)
+static int type_hex(const char* _Nonnull path)
 {
-    decl_try_err();
-    FILE* fp = NULL;
-    uint8_t* buf = NULL;
-    char* line = NULL;
-    const size_t bufSize = HEX_COLUMNS;
-    const size_t lineLength = ADDR_WIDTH + 3 + 3*HEX_COLUMNS + 2 + HEX_COLUMNS + 1 + 1;
+    FILE* fp = fopen(path, "rb");
+    size_t nBytesRead;
     size_t addr = 0;
+    int hasError = 0;
     
-    errno = 0;
-    try_null(buf, malloc(bufSize), ENOMEM);
-    try_null(line, malloc(lineLength), ENOMEM);
-    try_null(fp, fopen(path, "rb"), errno);
+    if (fp == NULL) {
+        return -1;
+    }
 
     for (;;) {
-        const size_t nBytesRead = fread(buf, 1, bufSize, fp);
-        if (feof(fp) || ferror(fp)) {
+        nBytesRead = fread(hex_col_buf, 1, sizeof(hex_col_buf), fp);
+        if (feof(fp) || (hasError = ferror(fp))) {
             break;
         }
 
-        format_hex_line(addr, buf, nBytesRead, bufSize, line);
-        fwrite(line, lineLength, 1, stdout);
-        if (feof(stdout) || ferror(stdout)) {
+        format_hex_line(addr, hex_col_buf, nBytesRead, sizeof(hex_col_buf), hex_line_buf);
+        fwrite(hex_line_buf, sizeof(hex_line_buf), 1, stdout);
+        if (feof(stdout) || (hasError = ferror(stdout))) {
             break;
         }
 
-        addr += bufSize;
+        addr += sizeof(hex_col_buf);
 #if 0
-    //XXX disabled for now because the Console I/O channel doesn't have a way yet
-    //XXX to switch from blocking to non-blocking mode 
+        //XXX disabled for now because the Console I/O channel doesn't have a way yet
+        //XXX to switch from blocking to non-blocking mode 
         if (should_quit()) {
             fputc('\n', stdout);
             break;
         }
 #endif
     }
-    err = errno;
+    fclose(fp);
 
-catch:
-    if (fp) {
-        fclose(fp);
-    }
-    free(line);
-    free(buf);
-
-    return err;
+    return (hasError) ? -1 : 0;
 }
 
-#define TEXT_BUF_SIZE   512
-static errno_t type_text(const char* _Nonnull path)
+static int type_text(const char* _Nonnull path)
 {
-    decl_try_err();
-    FILE* fp = NULL;
-    uint8_t* buf = NULL;
+    FILE* fp = fopen(path, "r");
+    size_t nBytesRead;
+    int hasError = 0;
     
-    errno = 0;
-    try_null(buf, malloc(TEXT_BUF_SIZE), ENOMEM);
-    try_null(fp, fopen(path, "r"), errno);
+    if (fp == NULL) {
+        return -1;
+    }
 
     for (;;) {
-        const size_t nBytesRead = fread(buf, 1, TEXT_BUF_SIZE, fp);
-        if (feof(fp) || ferror(fp)) {
+        nBytesRead = fread(text_buf, 1, sizeof(text_buf), fp);
+        if (feof(fp) || (hasError = ferror(fp))) {
             break;
         }
 
-        const size_t r = fwrite(buf, 1, nBytesRead, stdout);
-        if (feof(stdout) || ferror(stdout)) {
+        fwrite(text_buf, 1, nBytesRead, stdout);
+        if (feof(stdout) || (hasError = ferror(stdout))) {
             break;
         }
 
 #if 0
-    //XXX disabled for now because the Console I/O channel doesn't have a way yet
-    //XXX to switch from blocking to non-blocking mode 
+        //XXX disabled for now because the Console I/O channel doesn't have a way yet
+        //XXX to switch from blocking to non-blocking mode 
         if (should_quit()) {
             fputc('\n', stdout);
             break;
@@ -172,15 +167,9 @@ static errno_t type_text(const char* _Nonnull path)
 #endif
     }
     fputc('\n', stdout);
-    err = errno;
+    fclose(fp);
 
-catch:
-    if (fp) {
-        fclose(fp);
-    }
-    free(buf);
-
-    return err;
+    return (hasError) ? -1 : 0;
 }
 
 
@@ -199,27 +188,25 @@ CLAP_DECL(params,
 );
 
 
-static errno_t do_type(const char* _Nonnull path, bool isHex, const char* _Nonnull proc_name)
+static int do_type(const char* _Nonnull path, bool isHex)
 {
-    decl_try_err();
-
     if (isHex) {
-        err = type_hex(path);
+        return type_hex(path);
     }
     else {
-        err = type_text(path);
+        return type_text(path);
     }
-
-    if (err != EOK) {
-        clap_error(proc_name, "%s: %s", path, strerror(err));
-    }
-
-    return err;
 }
 
 int main(int argc, char* argv[])
 {
     clap_parse(0, params, argc, argv);
     
-    return do_type(path, is_hex, argv[0]) == EOK ? EXIT_SUCCESS : EXIT_FAILURE;
+    if (do_type(path, is_hex) == 0) {
+        return EXIT_SUCCESS;
+    }
+    else {
+        clap_error(argv[0], "%s: %s", path, strerror(errno));
+        return EXIT_FAILURE;
+    }
 }
