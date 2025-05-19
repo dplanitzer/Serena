@@ -18,7 +18,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
-#include <kpi/_unistd.h>
+#include <kpi/_access.h>
+#include <kpi/_seek.h>
 
 __CPP_BEGIN
 

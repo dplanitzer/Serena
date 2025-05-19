@@ -13,7 +13,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <kern/limits.h>
-#include <../../../Library/libc/Headers/kpi/_unistd.h>
+#include <../../../Library/libc/Headers/kpi/_access.h>
+#include <../../../Library/libc/Headers/kpi/_seek.h>
 
 
 //

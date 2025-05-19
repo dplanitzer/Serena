@@ -13,6 +13,7 @@
 #include <_null.h>
 #include <_size.h>
 #include <_ssize.h>
+#include <kpi/_seek.h>
 #include <kpi/syslimits.h>
 #include <stdarg.h>
 
@@ -30,10 +31,6 @@ __CPP_BEGIN
 #define _IONBF  0
 #define _IOLBF  1
 #define _IOFBF  2
-
-#define SEEK_SET 0
-#define SEEK_CUR 1
-#define SEEK_END 2
 
 
 typedef struct fpos_t {

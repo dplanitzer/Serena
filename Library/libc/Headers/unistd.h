@@ -11,7 +11,8 @@
 
 #include <inttypes.h>
 #include <stdnoreturn.h>
-#include <kpi/_unistd.h>
+#include <kpi/_access.h>
+#include <kpi/_seek.h>
 #include <sys/errno.h>
 #include <sys/types.h>
 
