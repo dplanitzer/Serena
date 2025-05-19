@@ -44,7 +44,6 @@ static errno_t __malloc_expand_backing_store(AllocatorRef _Nonnull pAllocator, s
 
 void __malloc_init(void)
 {
-    decl_try_err();
     MemoryDescriptor md;
     char* ptr;
 

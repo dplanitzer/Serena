@@ -61,13 +61,13 @@ typedef int (*dir_iter_t)(list_ctx_t* _Nonnull self, const char* _Nonnull dirPat
 
 static void file_permissions_to_text(mode_t perms, char* _Nonnull buf)
 {
-    if ((perms & S_IR) == S_IR) {
+    if ((perms & S_IREAD) == S_IREAD) {
         buf[0] = 'r';
     }
-    if ((perms & S_IW) == S_IW) {
+    if ((perms & S_IWRITE) == S_IWRITE) {
         buf[1] = 'w';
     }
-    if ((perms & S_IX) == S_IX) {
+    if ((perms & S_IEXEC) == S_IEXEC) {
         buf[2] = 'x';
     }
 }

@@ -110,10 +110,10 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
         if ((mode & O_RDWR) == 0) {
             throw(EACCESS);
         }
-        if ((mode & O_RDONLY) == O_RDONLY && !perm_has(filePerms, S_ICUSR, S_IR)) {
+        if ((mode & O_RDONLY) == O_RDONLY && !perm_has(filePerms, S_ICUSR, S_IREAD)) {
             throw(EACCESS);
         }
-        if ((mode & O_WRONLY) == O_WRONLY && !perm_has(filePerms, S_ICUSR, S_IW)) {
+        if ((mode & O_WRONLY) == O_WRONLY && !perm_has(filePerms, S_ICUSR, S_IWRITE)) {
             throw(EACCESS);
         }
 

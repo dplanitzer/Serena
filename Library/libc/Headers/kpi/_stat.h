@@ -22,10 +22,11 @@
 #define S_IWOTH 02
 #define S_IXOTH 01
 
-#define S_IRWX  07
-#define S_IR    04
-#define S_IW    02
-#define S_IX    01
+#define S_IRWX      07
+#define S_IREAD     04
+#define S_IWRITE    02
+#define S_IEXEC     01
+
 
 // Inode type bits in st_mode
 #define S_IFMT      0xff000000

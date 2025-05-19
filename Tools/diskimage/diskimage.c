@@ -336,9 +336,9 @@ static int parsePermissions(const char* _Nonnull proc_name, const struct clap_pa
 
             for (int j = 0; j < 3; j++) {
                 switch (*str++) {
-                    case 'r': t |= S_IR; break;
-                    case 'w': t |= S_IW; break;
-                    case 'x': t |= S_IX; break;
+                    case 'r': t |= S_IREAD; break;
+                    case 'w': t |= S_IWRITE; break;
+                    case 'x': t |= S_IEXEC; break;
                     case '-': break;
                     case '_': break;
                     default:

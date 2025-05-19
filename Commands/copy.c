@@ -64,7 +64,7 @@ static int copy_file(const char* _Nonnull srcPath, const struct stat* _Nonnull s
 
     // Need to ensure that the destination file has write permissions so that we
     // can actually copy the data
-    perm_add(perms, S_ICUSR, S_IW);
+    perm_add(perms, S_ICUSR, S_IWRITE);
 
 
     err = open(srcPath, O_RDONLY, &sfd);
@@ -84,7 +84,7 @@ static int copy_file(const char* _Nonnull srcPath, const struct stat* _Nonnull s
 
     // Remove the write rights from the destination if the source doesn't have
     // write rights
-    if (dfd != -1 && !perm_has(srcStat->st_mode, S_ICUSR, S_IW)) {
+    if (dfd != -1 && !perm_has(srcStat->st_mode, S_ICUSR, S_IWRITE)) {
         //XXX use fchmod() instead once it exists
         chmod(dstPath, srcStat->st_mode);
     }

@@ -10,29 +10,39 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <sys/spawn.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 
 
-int system(const char *string)
+static const char* __shellPath = "/System/Commands/shell";
+
+
+static int __has_shell(void)
 {
-    decl_try_err();
+    struct stat st;
+
+    if (stat(__shellPath, &st) == 0) {
+        if (S_ISREG(st.st_mode) && (st.st_mode & (S_IXUSR|S_IXGRP|S_IXOTH)) != 0) {
+            return -1;
+        }
+    }
+    
+    return 0;
+}
+
+static int __system(const char *string)
+{
     pid_t shPid;
     pstatus_t pts;
     spawn_opts_t opts = {0};
     const char* argv[4];
-
-    if (string == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    argv[0] = "shell";
+    
+    argv[0] = __shellPath;
     argv[1] = "-c";
     argv[2] = string;
     argv[3] = NULL;
 
-
-    if (os_spawn("/System/Commands/shell", argv, &opts, &shPid) != 0) {
+    if (os_spawn(__shellPath, argv, &opts, &shPid) != 0) {
         return -1;
     }
 
@@ -41,4 +51,14 @@ int system(const char *string)
     }
 
     return pts.status;
+}
+
+int system(const char *string)
+{
+    if (string) {
+        return __system(string);
+    }
+    else {
+        return __has_shell();
+    }
 }

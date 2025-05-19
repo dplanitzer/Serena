@@ -45,10 +45,10 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
     // XXX
     
     if ((mode & R_OK) == R_OK) {
-        reqPerms |= S_IR;
+        reqPerms |= S_IREAD;
     }
     if ((mode & W_OK) == W_OK) {
-        reqPerms |= S_IW;
+        reqPerms |= S_IWRITE;
 
         // Return EROFS if write permissions are requested but the disk is read-only.
         if (Filesystem_IsReadOnly(Inode_GetFilesystem(pNode))) {
@@ -56,7 +56,7 @@ errno_t SecurityManager_CheckNodeAccess(SecurityManagerRef _Nonnull self, InodeR
         }
     }
     if ((mode & X_OK) == X_OK) {
-        reqPerms |= S_IX;
+        reqPerms |= S_IEXEC;
     }
 
 
