@@ -9,6 +9,7 @@
 #include <clap.h>
 #include <ctype.h>
 #include <dirent.h>
+#include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -17,7 +18,6 @@
 #include <fcntl.h>
 #include <time.h>
 #include <sys/disk.h>
-#include <sys/errno.h>
 #include <sys/mount.h>
 #include <sys/fs.h>
 #include <sys/ioctl.h>

@@ -10,14 +10,16 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/limits.h>
 #include <sys/proc.h>
 #include <sys/stat.h>
 
+
+static char path_buf[PATH_MAX];
 
 CLAP_DECL(params,
     CLAP_VERSION("1.0"),
@@ -26,35 +28,42 @@ CLAP_DECL(params,
 );
 
 
-static int show_proc(const char* _Nonnull pidStr)
+static int open_proc(const char* _Nonnull pidStr)
 {
-    decl_try_err();
-    static char buf[PATH_MAX];
-    procinfo_t info;
     int fd = -1;
 
-    sprintf(buf, "/proc/%s", pidStr);
+    sprintf(path_buf, "/proc/%s", pidStr);
 
-    try(open(buf, O_RDONLY, &fd));
-    try(ioctl(fd, kProcCommand_GetInfo, &info));
-    try(ioctl(fd, kProcCommand_GetName, buf, sizeof(buf)));
-
-    const char* lastPathComponent = strrchr(buf, '/');
-    const char* pnam = (lastPathComponent) ? lastPathComponent + 1 : buf;
-
-    printf("%d  %s  %d  %zu\n", info.pid, pnam, info.ppid, info.virt_size);
-
-catch:
-    if (fd != -1) {
-        close(fd);
+    if (open(path_buf, O_RDONLY, &fd) == 0) {
+        return fd;
     }
-
-    return err;
+    else {
+        return -1;
+    }
 }
 
-static errno_t show_procs(void)
+static void show_proc(const char* _Nonnull pidStr)
 {
-    decl_try_err();
+    procinfo_t info;
+    const int fd = open_proc(pidStr);
+
+    if (fd != -1) {
+        ioctl(fd, kProcCommand_GetInfo, &info);
+        ioctl(fd, kProcCommand_GetName, path_buf, sizeof(path_buf));
+
+        if (errno == 0) {
+            const char* lastPathComponent = strrchr(path_buf, '/');
+            const char* pnam = (lastPathComponent) ? lastPathComponent + 1 : path_buf;
+
+            printf("%d  %s  %d  %zu\n", info.pid, pnam, info.ppid, info.virt_size);
+        }
+
+        close(fd);
+    }
+}
+
+static int show_procs(void)
+{
     DIR* dir;
 
     dir = opendir("/proc");
@@ -65,38 +74,29 @@ static errno_t show_procs(void)
             struct dirent* dep = readdir(dir);
             
             if (dep == NULL) {
-                err = errno;
                 break;
             }
 
             if (dep->name[0] != '.') {
-                err = show_proc(dep->name);
-                if (err != EOK) {
-                    break;
-                }
+                show_proc(dep->name);
             }
         }
         closedir(dir);
     }
-    else {
-        err = errno;
-    }
 
-    return err;
+    return (errno == 0) ? 0 : -1;
 }
 
 
 int main(int argc, char* argv[])
 {
-    decl_try_err();
-
     clap_parse(0, params, argc, argv);
-
     
-    err = show_procs();
-    if (err != EOK) {
-        clap_error(argv[0], "%s", strerror(err));
+    if (show_procs() == 0) {
+        return EXIT_SUCCESS;
     }
-
-    return (err == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
+    else {
+        clap_error(argv[0], "%s", strerror(errno));
+        return EXIT_FAILURE;
+    }
 }
