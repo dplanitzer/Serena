@@ -29,11 +29,10 @@ CLAP_DECL(params,
 
 int main(int argc, char* argv[])
 {
-    bool hasError = false;
-
     clap_parse(0, params, argc, argv);
 
-    
+ 
+    bool hasError = false;
     for (size_t i = 0; i < paths.count; i++) {
         const char* path = paths.strings[i];
 

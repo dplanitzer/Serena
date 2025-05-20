@@ -244,7 +244,7 @@ int main(int argc, char* argv[])
     clap_parse(0, params, argc, argv);
 
     
-    errno_t firstErr = EOK;
+    bool hasError = false;
     const time_t now = time(NULL);
 
     localtime_r(&now, &date);
@@ -272,8 +272,8 @@ int main(int argc, char* argv[])
         }
 
         if (errno != 0) {
-            firstErr = errno;
-            clap_error(argv[0], "%s: %s", path, strerror(firstErr));
+            clap_error(argv[0], "%s: %s", path, strerror(errno));
+            hasError = true;
         }
 
         if (i < (paths.count - 1)) {
@@ -281,5 +281,5 @@ int main(int argc, char* argv[])
         }
     }
 
-    return (firstErr == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
+    return (hasError) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
