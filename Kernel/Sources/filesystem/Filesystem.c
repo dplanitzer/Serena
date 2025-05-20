@@ -507,6 +507,11 @@ errno_t Filesystem_close(FilesystemRef _Nonnull _Locked self, IOChannelRef _Nonn
     return EOK;
 }
 
+size_t Filesystem_getNodeBlockSize(FilesystemRef _Nonnull self, InodeRef _Locked _Nonnull node)
+{
+    return 0;
+}
+
 errno_t Filesystem_getInfo(FilesystemRef _Nonnull self, fsinfo_t* _Nonnull pOutInfo)
 {
     return ENOTIOCTLCMD;
@@ -666,6 +671,7 @@ func_def(onStop, Filesystem)
 func_def(onDisconnect, Filesystem)
 func_def(open, Filesystem)
 func_def(close, Filesystem)
+func_def(getNodeBlockSize, Filesystem)
 func_def(getInfo, Filesystem)
 func_def(getLabel, Filesystem)
 func_def(setLabel, Filesystem)

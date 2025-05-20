@@ -143,7 +143,7 @@ errno_t Inode_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, I
     }
 }
 
-void Inode_getInfo(InodeRef _Nonnull _Locked self, struct stat* _Nonnull pOutInfo)
+void Inode_getInfo(InodeRef _Nonnull _Locked self, struct stat* _Nonnull pi)
 {
     struct timespec curTime;
 
@@ -152,32 +152,32 @@ void Inode_getInfo(InodeRef _Nonnull _Locked self, struct stat* _Nonnull pOutInf
     }
 
     if (Inode_IsAccessed(self)) {
-        pOutInfo->st_atim = curTime;
+        pi->st_atim = curTime;
     } else {
-        pOutInfo->st_atim = self->accessTime;
+        pi->st_atim = self->accessTime;
     }
     if (Inode_IsUpdated(self)) {
-        pOutInfo->st_mtim = curTime;
+        pi->st_mtim = curTime;
     } else {
-        pOutInfo->st_mtim = self->modificationTime;
+        pi->st_mtim = self->modificationTime;
     }
     if (Inode_IsStatusChanged(self)) {
-        pOutInfo->st_ctim = curTime;
+        pi->st_ctim = curTime;
     } else {
-        pOutInfo->st_ctim = self->statusChangeTime;
+        pi->st_ctim = self->statusChangeTime;
     }
     
-    pOutInfo->st_size = self->size;
-    pOutInfo->st_uid = self->uid;
-    pOutInfo->st_gid = self->gid;
-    pOutInfo->st_mode = self->mode;
-    pOutInfo->st_nlink = self->linkCount;
-    pOutInfo->st_fsid = Filesystem_GetId(self->filesystem);
-    pOutInfo->st_ino = self->inid;
-    pOutInfo->st_blksize = 0;   //XXX fix me
-    pOutInfo->st_blksize = 0;   //XXX fix me
-    pOutInfo->st_dev = 0;
-    pOutInfo->st_rdev = 0;
+    pi->st_size = self->size;
+    pi->st_uid = self->uid;
+    pi->st_gid = self->gid;
+    pi->st_mode = self->mode;
+    pi->st_nlink = self->linkCount;
+    pi->st_fsid = Filesystem_GetId(self->filesystem);
+    pi->st_ino = self->inid;
+    pi->st_blksize = Filesystem_GetNodeBlockSize(self->filesystem, self);
+    pi->st_blocks = (pi->st_blksize > 0) ? ((pi->st_size + (pi->st_blksize >> 1)) / pi->st_blksize) : 0;
+    pi->st_dev = 0;
+    pi->st_rdev = 0;
 }
 
 void Inode_setMode(InodeRef _Nonnull _Locked self, mode_t mode)

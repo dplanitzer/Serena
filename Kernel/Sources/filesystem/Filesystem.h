@@ -251,6 +251,14 @@ open_class_funcs(Filesystem, Object,
     errno_t (*close)(void* _Nonnull _Locked self, IOChannelRef _Nonnull pChannel);
 
 
+    // Returns the size of a data block for the given node. A filesystem
+    // implementation may return 0 to indicate that the filesystem storage is
+    // not block based.
+    // Override: Optional
+    // Default Behavior: Container filesystems return the container block size;
+    //                   other types of filesystems return 0
+    size_t (*getNodeBlockSize)(void* _Nonnull self, InodeRef _Locked _Nonnull node);
+
     // Returns general information about the filesystem.
     // Override: Optional
     // Default Behavior: Returns ENOTIOCTLCMD
@@ -461,6 +469,9 @@ invoke_n(open, Filesystem, __self, __mode, __arg, __pOutChannel)
 #define Filesystem_Close(__self, __ch) \
 invoke_n(close, Filesystem, __self, __ch)
 
+
+#define Filesystem_GetNodeBlockSize(__self, __node) \
+invoke_n(getNodeBlockSize, Filesystem, __self, __node)
 
 #define Filesystem_GetInfo(__self, __pOutInfo) \
 invoke_n(getInfo, Filesystem, __self, __pOutInfo)

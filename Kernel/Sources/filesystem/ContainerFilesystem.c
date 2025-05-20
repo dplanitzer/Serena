@@ -34,6 +34,11 @@ void ContainerFilesystem_onDisconnect(struct ContainerFilesystem* _Nonnull self)
     FSContainer_Disconnect(self->fsContainer);
 }
 
+size_t ContainerFilesystem_getNodeBlockSize(struct ContainerFilesystem* _Nonnull self, InodeRef _Locked _Nonnull node)
+{
+    return FSContainer_GetBlockSize(self->fsContainer);
+}
+
 void ContainerFilesystem_sync(struct ContainerFilesystem* _Nonnull self)
 {
     super_0(sync, Filesystem, ContainerFilesystem, self);
@@ -58,6 +63,7 @@ errno_t ContainerFilesystem_ioctl(struct ContainerFilesystem* _Nonnull self, IOC
 class_func_defs(ContainerFilesystem, Filesystem,
 override_func_def(deinit, ContainerFilesystem, Object)
 override_func_def(onDisconnect, ContainerFilesystem, Filesystem)
+override_func_def(getNodeBlockSize, ContainerFilesystem, Filesystem)
 override_func_def(sync, ContainerFilesystem, Filesystem)
 override_func_def(ioctl, ContainerFilesystem, Filesystem)
 );

@@ -27,7 +27,7 @@ int fputc(int ch, FILE *s)
 
     if (nBytesWritten > 0) {
         s->flags.hasEof = 0;
-        r = ch;
+        r = (int)buf;
     }
     else if (nBytesWritten == 0) {
         s->flags.hasEof = 1;
