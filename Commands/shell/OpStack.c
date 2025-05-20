@@ -11,23 +11,15 @@
 
 #define INITIAL_STACK_SIZE  16
 
-errno_t OpStack_Create(OpStack* _Nullable * _Nonnull pOutSelf)
+OpStack* _Nonnull OpStack_Create()
 {
-    decl_try_err();
-    OpStack* self;
+    OpStack* self = calloc(1, sizeof(OpStack));
 
-    try_null(self, calloc(1, sizeof(OpStack)), errno);
-    try_null(self->values, malloc(sizeof(Value) * INITIAL_STACK_SIZE), errno);
+    self->values = malloc(sizeof(Value) * INITIAL_STACK_SIZE);
     self->capacity = INITIAL_STACK_SIZE;
     self->count = 0;
     
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    OpStack_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    return self;
 }
 
 void OpStack_Destroy(OpStack* _Nullable self)

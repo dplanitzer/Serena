@@ -30,7 +30,7 @@ typedef struct EnvironCache {
 } EnvironCache;
 
 
-extern errno_t EnvironCache_Create(struct RunStack* _Nonnull runStack, EnvironCache* _Nullable * _Nonnull pOutSelf);
+extern EnvironCache* _Nonnull EnvironCache_Create(struct RunStack* _Nonnull runStack);
 extern void EnvironCache_Destroy(EnvironCache* _Nullable self);
 
 // Returns a pointer to the cached environment variable table. The returned table

@@ -15,27 +15,19 @@
 #define INITIAL_TEXT_CAPACITY  256
 #define INITIAL_ARGV_CAPACITY  8
 
-errno_t ArgumentVector_Create(ArgumentVector* _Nullable * _Nonnull pOutSelf)
+ArgumentVector* _Nonnull ArgumentVector_Create(void)
 {
-    decl_try_err();
-    ArgumentVector* self;
+    ArgumentVector* self = calloc(1, sizeof(ArgumentVector));
 
-    try_null(self, calloc(1, sizeof(ArgumentVector)), errno);
-    try_null(self->text, malloc(INITIAL_TEXT_CAPACITY * sizeof(char)), errno);
+    self->text = malloc(INITIAL_TEXT_CAPACITY * sizeof(char));
     self->textCapacity = INITIAL_TEXT_CAPACITY;
-    try_null(self->argv, malloc(INITIAL_ARGV_CAPACITY * sizeof(char*)), errno);
+    self->argv = malloc(INITIAL_ARGV_CAPACITY * sizeof(char*));
     self->argvCapacity = INITIAL_ARGV_CAPACITY;
 
     self->text[0] = '\0';
     self->argv[0] = NULL;
 
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    ArgumentVector_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    return self;
 }
 
 void ArgumentVector_Destroy(ArgumentVector* _Nullable self)

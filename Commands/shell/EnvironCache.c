@@ -21,26 +21,18 @@
 static void _EnvironCache_ClearCache(EnvironCache* _Nonnull self);
 
 
-errno_t EnvironCache_Create(struct RunStack* _Nonnull runStack, EnvironCache* _Nullable * _Nonnull pOutSelf)
+EnvironCache* _Nonnull EnvironCache_Create(struct RunStack* _Nonnull runStack)
 {
-    decl_try_err();
-    EnvironCache* self;
+    EnvironCache* self = calloc(1, sizeof(EnvironCache));
 
-    try_null(self, calloc(1, sizeof(EnvironCache)), errno);
-    try_null(self->hashtable, calloc(INITIAL_HASHTABLE_CAPACITY, sizeof(EnvironEntry*)), errno);
+    self->hashtable = calloc(INITIAL_HASHTABLE_CAPACITY, sizeof(EnvironEntry*));
     self->hashtableCapacity = INITIAL_HASHTABLE_CAPACITY;
-    try_null(self->envtable, calloc(INITIAL_ENVTABLE_CAPACITY, sizeof(char*)), errno);
+    self->envtable = calloc(INITIAL_ENVTABLE_CAPACITY, sizeof(char*));
     self->envtableCapacity = INITIAL_ENVTABLE_CAPACITY;
     self->runStack = runStack;
     self->generation = -1;
 
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    EnvironCache_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    return self;
 }
 
 void EnvironCache_Destroy(EnvironCache* _Nullable self)

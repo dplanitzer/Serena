@@ -48,28 +48,19 @@ static void Name_Destroy(Name* _Nullable self)
 
 #define INITIAL_HASHTABLE_CAPACITY  16
 
-static void Namespace_Destroy(Namespace* _Nullable self);
 static void _Namespace_DestroyHashtable(Namespace* _Nonnull self);
 
 
-static errno_t Namespace_Create(Namespace* _Nullable parentNamespace, Namespace* _Nullable * _Nonnull pOutSelf)
+static Namespace* _Nonnull Namespace_Create(Namespace* _Nullable parentNamespace)
 {
-    decl_try_err();
-    Namespace* self;
+    Namespace* self = calloc(1, sizeof(Namespace));
 
-    try_null(self, calloc(1, sizeof(Namespace)), errno);
-    try_null(self->hashtable, calloc(INITIAL_HASHTABLE_CAPACITY, sizeof(Name*)), errno);
+    self->hashtable = calloc(INITIAL_HASHTABLE_CAPACITY, sizeof(Name*));
     self->hashtableCapacity = INITIAL_HASHTABLE_CAPACITY;
     self->parent = parentNamespace;
     self->level = (parentNamespace) ? parentNamespace->level + 1 : 0;
 
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    Namespace_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    return self;
 }
 
 static void Namespace_Destroy(Namespace* _Nullable self)
@@ -168,21 +159,12 @@ catch:
 // NameTable
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t NameTable_Create(NameTable* _Nullable * _Nonnull pOutSelf)
+NameTable* _Nonnull NameTable_Create(void)
 {
-    decl_try_err();
-    NameTable* self;
+    NameTable* self = calloc(1, sizeof(NameTable));
 
-    try_null(self, calloc(1, sizeof(NameTable)), errno);
-    try(NameTable_PushNamespace(self));
-    
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    NameTable_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    NameTable_PushNamespace(self);
+    return self;
 }
 
 void NameTable_Destroy(NameTable* _Nullable self)
@@ -202,16 +184,9 @@ void NameTable_Destroy(NameTable* _Nullable self)
     }
 }
 
-errno_t NameTable_PushNamespace(NameTable* _Nonnull self)
+void NameTable_PushNamespace(NameTable* _Nonnull self)
 {
-    decl_try_err();
-    Namespace* ns;
-
-    try(Namespace_Create(self->currentNamespace, &ns));
-    self->currentNamespace = ns;
-
-catch:
-    return err;
+    self->currentNamespace = Namespace_Create(self->currentNamespace);
 }
 
 errno_t NameTable_PopNamespace(NameTable* _Nonnull self)

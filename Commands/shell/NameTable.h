@@ -41,10 +41,10 @@ typedef struct NameTable {
 typedef errno_t (*NameTableIterator)(void* _Nullable context, const Name* _Nonnull name, int level, bool* _Nonnull pOutDone);
 
 
-extern errno_t NameTable_Create(NameTable* _Nullable * _Nonnull pOutSelf);
+extern NameTable* _Nonnull NameTable_Create(void);
 extern void NameTable_Destroy(NameTable* _Nullable self);
 
-extern errno_t NameTable_PushNamespace(NameTable* _Nonnull self);
+extern void NameTable_PushNamespace(NameTable* _Nonnull self);
 extern errno_t NameTable_PopNamespace(NameTable* _Nonnull self);
 
 // Looks through the namespaces on the namespace stack and returns the top-most

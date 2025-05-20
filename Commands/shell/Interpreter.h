@@ -48,7 +48,7 @@ typedef struct Interpreter {
 typedef Interpreter* InterpreterRef;
 
 
-extern errno_t Interpreter_Create(LineReaderRef _Nonnull lineReader, InterpreterRef _Nullable * _Nonnull pOutSelf);
+extern InterpreterRef _Nonnull Interpreter_Create(LineReaderRef _Nonnull lineReader);
 extern void Interpreter_Destroy(InterpreterRef _Nullable self);
 
 // Interprets 'pScript' and executes all its statements.

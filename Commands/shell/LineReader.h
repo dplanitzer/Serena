@@ -33,7 +33,7 @@ typedef struct LineReader {
 typedef LineReader* LineReaderRef;
 
 
-extern errno_t LineReader_Create(int maxLineLength, int historyCapacity, const char* _Nonnull pPrompt, LineReaderRef _Nullable * _Nonnull pOutReader);
+extern LineReaderRef _Nonnull LineReader_Create(int maxLineLength, int historyCapacity, const char* _Nonnull pPrompt);
 extern void LineReader_Destroy(LineReaderRef _Nullable self);
 
 extern char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self);

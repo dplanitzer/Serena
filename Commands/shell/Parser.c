@@ -30,21 +30,12 @@ static errno_t Parser_ArithmeticExpression(Parser* _Nonnull self, Arithmetic* _N
 static errno_t Parser_Block(Parser* _Nonnull self, Block* _Nullable * _Nonnull pOutBlock);
 
 
-errno_t Parser_Create(Parser* _Nullable * _Nonnull pOutSelf)
+Parser* _Nonnull Parser_Create(void)
 {
-    decl_try_err();
-    Parser* self;
-    
-    try_null(self, calloc(1, sizeof(Parser)), errno);
+    Parser* self = calloc(1, sizeof(Parser));
+
     Lexer_Init(&self->lexer);
-
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    Parser_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    return self;
 }
 
 void Parser_Destroy(Parser* _Nullable self)

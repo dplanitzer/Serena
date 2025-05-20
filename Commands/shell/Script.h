@@ -302,7 +302,7 @@ typedef struct Script {
 
 // The script manages a stack allocator which is used to store all nodes in the
 // AST that the script manages.
-extern errno_t Script_Create(Script* _Nullable * _Nonnull pOutSelf);
+extern Script* _Nonnull Script_Create(void);
 extern void Script_Destroy(Script* _Nullable self);
 extern void Script_Reset(Script* _Nonnull self);
 #ifdef SCRIPT_PRINTING

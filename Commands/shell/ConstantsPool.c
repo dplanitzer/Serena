@@ -51,22 +51,14 @@ static void Constant_Destroy(Constant* _Nullable self)
 static void _ConstantsPool_DestroyHashtable(ConstantsPool* _Nonnull self);
 
 
-errno_t ConstantsPool_Create(ConstantsPool* _Nullable * _Nonnull pOutSelf)
+ConstantsPool* _Nonnull ConstantsPool_Create(void)
 {
-    decl_try_err();
-    ConstantsPool* self;
+    ConstantsPool* self = calloc(1, sizeof(ConstantsPool));
 
-    try_null(self, calloc(1, sizeof(ConstantsPool)), errno);
-    try_null(self->hashtable, calloc(INITIAL_HASHTABLE_CAPACITY, sizeof(Constant*)), errno);
+    self->hashtable = calloc(INITIAL_HASHTABLE_CAPACITY, sizeof(Constant*));
     self->hashtableCapacity = INITIAL_HASHTABLE_CAPACITY;
 
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    ConstantsPool_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    return self;
 }
 
 void ConstantsPool_Destroy(ConstantsPool* _Nullable self)

@@ -24,20 +24,14 @@
 static errno_t StackAllocator_AllocateBackingStore(StackAllocatorRef _Nonnull self, size_t nbytes);
 
 
-errno_t StackAllocator_Create(size_t pageSize, size_t pageCacheCapacity, StackAllocatorRef _Nullable * _Nonnull pOutAllocator)
+StackAllocatorRef _Nonnull StackAllocator_Create(size_t pageSize, size_t pageCacheCapacity)
 {
     StackAllocatorRef self = (StackAllocatorRef)calloc(1, sizeof(StackAllocator));
 
-    if (self) {
-        self->pageSize = (pageSize < 4*HEAP_ALIGNMENT) ? 4*HEAP_ALIGNMENT : pageSize;
-        self->pageCacheBytesCapacity = pageCacheCapacity;
+    self->pageSize = (pageSize < 4*HEAP_ALIGNMENT) ? 4*HEAP_ALIGNMENT : pageSize;
+    self->pageCacheBytesCapacity = pageCacheCapacity;
 
-        *pOutAllocator = self;
-        return 0;
-    }
-
-    *pOutAllocator = NULL;
-    return ENOMEM;
+    return self;
 }
 
 void StackAllocator_Destroy(StackAllocatorRef _Nullable self)

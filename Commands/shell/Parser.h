@@ -21,7 +21,7 @@ typedef struct Parser {
 } Parser;
 
 
-extern errno_t Parser_Create(Parser* _Nullable * _Nonnull pOutSelf);
+extern Parser* _Nonnull Parser_Create(void);
 extern void Parser_Destroy(Parser* _Nullable self);
 
 // Parses the text 'text' and updates the script object 'script' to reflect the

@@ -54,27 +54,18 @@ static void Variable_Destroy(Variable* _Nullable self)
 
 #define INITIAL_HASHTABLE_CAPACITY  16
 
-static void Scope_Destroy(Scope* _Nullable self);
 static void _Scope_DestroyHashtable(Scope* _Nonnull self);
 static void Scope_UndeclareAllVariables(Scope* _Nonnull self);
 
 
-static errno_t Scope_Create(Scope* _Nullable * _Nonnull pOutSelf)
+static Scope* _Nonnull Scope_Create(void)
 {
-    decl_try_err();
-    Scope* self;
+    Scope* self = calloc(1, sizeof(Scope));
 
-    try_null(self, calloc(1, sizeof(Scope)), errno);
-    try_null(self->hashtable, calloc(INITIAL_HASHTABLE_CAPACITY, sizeof(Variable*)), errno);
+    self->hashtable = calloc(INITIAL_HASHTABLE_CAPACITY, sizeof(Variable*));
     self->hashtableCapacity = INITIAL_HASHTABLE_CAPACITY;
 
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    Scope_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    return self;
 }
 
 static void Scope_Destroy(Scope* _Nullable self)
@@ -190,21 +181,12 @@ static void Scope_UndeclareAllVariables(Scope* _Nonnull self)
 #define MAX_SCOPES_TO_CACHE 2
 
 
-errno_t RunStack_Create(RunStack* _Nullable * _Nonnull pOutSelf)
+RunStack* _Nonnull RunStack_Create(void)
 {
-    decl_try_err();
-    RunStack* self;
+    RunStack* self = calloc(1, sizeof(RunStack));
 
-    try_null(self, calloc(1, sizeof(RunStack)), errno);
-    try(RunStack_PushScope(self));
-    
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    RunStack_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    RunStack_PushScope(self);
+    return self;
 }
 
 void RunStack_Destroy(RunStack* _Nullable self)
@@ -235,9 +217,8 @@ void RunStack_Destroy(RunStack* _Nullable self)
     }
 }
 
-errno_t RunStack_PushScope(RunStack* _Nonnull self)
+void RunStack_PushScope(RunStack* _Nonnull self)
 {
-    decl_try_err();
     Scope* scope;
 
     // Reuse a cached scope if possible
@@ -249,7 +230,7 @@ errno_t RunStack_PushScope(RunStack* _Nonnull self)
         self->cachedScopesCount--;
     }
     else {
-        try(Scope_Create(&scope));
+        scope = Scope_Create();
     }
 
 
@@ -263,9 +244,6 @@ errno_t RunStack_PushScope(RunStack* _Nonnull self)
         self->scriptScope = scope;
     }
     self->currentScope = scope;
-
-catch:
-    return err;
 }
 
 errno_t RunStack_PopScope(RunStack* _Nonnull self)

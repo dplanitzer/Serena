@@ -42,8 +42,8 @@
 //   expression is printed to the console if the value is not Void.
 //
 
-static errno_t Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self);
-static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull self);
+static void Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self);
+static void Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull self);
 static errno_t Interpreter_CompoundString(InterpreterRef _Nonnull self, CompoundString* _Nonnull str);
 static errno_t Interpreter_ArithmeticExpression(InterpreterRef _Nonnull self, Arithmetic* _Nonnull expr);
 static inline errno_t Interpreter_Block(InterpreterRef _Nonnull self, Block* _Nonnull block);
@@ -51,33 +51,25 @@ static inline errno_t Interpreter_Block(InterpreterRef _Nonnull self, Block* _No
 
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Interpreter_Create(LineReaderRef _Nonnull lineReader, InterpreterRef _Nullable * _Nonnull pOutSelf)
+InterpreterRef _Nonnull Interpreter_Create(LineReaderRef _Nonnull lineReader)
 {
-    decl_try_err();
-    InterpreterRef self;
+    InterpreterRef self = calloc(1, sizeof(Interpreter));
     
-    try_null(self, calloc(1, sizeof(Interpreter)), ENOMEM);
-    try(StackAllocator_Create(1024, 8192, &self->allocator));
+    self->allocator = StackAllocator_Create(1024, 8192);
     self->lineReader = lineReader;
 
-    try(NameTable_Create(&self->nameTable));
-    try(Interpreter_DeclareInternalCommands(self));
+    self->nameTable = NameTable_Create();
+    Interpreter_DeclareInternalCommands(self);
     
-    try(OpStack_Create(&self->opStack));
+    self->opStack = OpStack_Create();
 
-    try(RunStack_Create(&self->runStack));
-    try(Interpreter_DeclareEnvironmentVariables(self));
+    self->runStack = RunStack_Create();
+    Interpreter_DeclareEnvironmentVariables(self);
     
-    try(EnvironCache_Create(self->runStack, &self->environCache));
-    try(ArgumentVector_Create(&self->argumentVector));
+    self->environCache = EnvironCache_Create(self->runStack);
+    self->argumentVector = ArgumentVector_Create();
 
-    *pOutSelf = self;
-    return 0;
-
-catch:
-    Interpreter_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    return self;
 }
 
 void Interpreter_Destroy(InterpreterRef _Nullable self)
@@ -134,29 +126,24 @@ const char* _Nonnull Interpreter_GetHistoryAt(InterpreterRef _Nonnull self, int 
 }
 
 
-static errno_t Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self)
+static void Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self)
 {
-    decl_try_err();
-
-    try(NameTable_DeclareName(self->nameTable, "cd", cmd_cd));
-    try(NameTable_DeclareName(self->nameTable, "cls", cmd_cls));
-    try(NameTable_DeclareName(self->nameTable, "echo", cmd_echo));
-    try(NameTable_DeclareName(self->nameTable, "exists", cmd_exists));
-    try(NameTable_DeclareName(self->nameTable, "exit", cmd_exit));
-    try(NameTable_DeclareName(self->nameTable, "history", cmd_history));
-    try(NameTable_DeclareName(self->nameTable, "input", cmd_input));
-    try(NameTable_DeclareName(self->nameTable, "load", cmd_load));
-    try(NameTable_DeclareName(self->nameTable, "popcd", cmd_popcd));
-    try(NameTable_DeclareName(self->nameTable, "pushcd", cmd_pushcd));
-    try(NameTable_DeclareName(self->nameTable, "pwd", cmd_pwd));
-    try(NameTable_DeclareName(self->nameTable, "save", cmd_save));
-    try(NameTable_DeclareName(self->nameTable, "vars", cmd_vars));
-
-catch:
-    return err;
+    NameTable_DeclareName(self->nameTable, "cd", cmd_cd);
+    NameTable_DeclareName(self->nameTable, "cls", cmd_cls);
+    NameTable_DeclareName(self->nameTable, "echo", cmd_echo);
+    NameTable_DeclareName(self->nameTable, "exists", cmd_exists);
+    NameTable_DeclareName(self->nameTable, "exit", cmd_exit);
+    NameTable_DeclareName(self->nameTable, "history", cmd_history);
+    NameTable_DeclareName(self->nameTable, "input", cmd_input);
+    NameTable_DeclareName(self->nameTable, "load", cmd_load);
+    NameTable_DeclareName(self->nameTable, "popcd", cmd_popcd);
+    NameTable_DeclareName(self->nameTable, "pushcd", cmd_pushcd);
+    NameTable_DeclareName(self->nameTable, "pwd", cmd_pwd);
+    NameTable_DeclareName(self->nameTable, "save", cmd_save);
+    NameTable_DeclareName(self->nameTable, "vars", cmd_vars);
 }
 
-static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull self)
+static void Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull self)
 {
     decl_try_err();
     Value val;
@@ -177,15 +164,10 @@ static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull s
             // We ignore non-fatal errors here and simply drop the erroneous
             // environment variable because we don't want the shell to die over
             // e.g. a simple redefinition...
-            if (err == ENOMEM) {
-                return err;
-            }
         }
 
         envp++;
     }
-
-    return EOK;
 }
 
 static errno_t Interpreter_PushVariable(InterpreterRef _Nonnull self, VarRef* _Nonnull vref)
@@ -852,7 +834,7 @@ static inline errno_t Interpreter_Block(InterpreterRef _Nonnull self, Block* _No
 {
     decl_try_err();
 
-    try(RunStack_PushScope(self->runStack));
+    RunStack_PushScope(self->runStack);
     try(Interpreter_ExpressionList(self, &block->exprs, false));
     RunStack_PopScope(self->runStack);
 
@@ -871,10 +853,7 @@ errno_t Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull scrip
     //putchar('\n');
 
     if (bPushScope) {
-        err = RunStack_PushScope(self->runStack);
-        if (err != EOK) {
-            return err;
-        }
+        RunStack_PushScope(self->runStack);
     }
 
     self->isInteractive = bInteractive;

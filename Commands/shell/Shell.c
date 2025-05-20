@@ -16,25 +16,17 @@
 #include <string.h>
 
 
-errno_t Shell_Create(bool isInteractive, ShellRef _Nullable * _Nonnull pOutSelf)
+ShellRef _Nonnull Shell_Create(bool isInteractive)
 {
-    decl_try_err();
-    ShellRef self;
-    
-    try_null(self, calloc(1, sizeof(Shell)), ENOMEM);
+    ShellRef self = calloc(1, sizeof(Shell));
+
     if (isInteractive) {
-        try(LineReader_Create(79, 10, ">", &self->lineReader));
+        self->lineReader = LineReader_Create(79, 10, ">");
     }
-    try(Parser_Create(&self->parser));
-    try(Interpreter_Create(self->lineReader, &self->interpreter));
+    self->parser = Parser_Create();
+    self->interpreter = Interpreter_Create(self->lineReader);
 
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    Shell_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    return self;
 }
 
 void Shell_Destroy(ShellRef _Nullable self)
@@ -69,13 +61,11 @@ static void _Shell_ExecuteString(ShellRef _Nonnull self, const char* _Nonnull st
 
 errno_t Shell_Run(ShellRef _Nonnull self)
 {
-    decl_try_err();
-    Script* script = NULL;
-
     if (self->lineReader == NULL) {
-        throw(EINVAL);
+        return EINVAL;
     }
-    try(Script_Create(&script));
+
+    Script* script = Script_Create();
 
     while (true) {
         char* line = LineReader_ReadLine(self->lineReader);
@@ -84,31 +74,26 @@ errno_t Shell_Run(ShellRef _Nonnull self)
         _Shell_ExecuteString(self, line, script, true);    // No script scope in interactive mode
     }
 
-catch:
     Script_Destroy(script);
-    return err;
+    return EOK;
 }
 
 errno_t Shell_RunContentsOfString(ShellRef _Nonnull self, const char* _Nonnull str)
 {
-    decl_try_err();
-    Script* script = NULL;
- 
-    try(Script_Create(&script));
+    Script* script = Script_Create();
+
     _Shell_ExecuteString(self, str, script, false);
 
-catch:
     Script_Destroy(script);
-    return err;
+    return EOK;
 }
 
 errno_t Shell_RunContentsOfFile(ShellRef _Nonnull self, const char* _Nonnull path)
 {
     decl_try_err();
-    Script* script = NULL;
     char* text = NULL;
 
-    try(Script_Create(&script));
+    Script* script = Script_Create();
     try(read_contents_of_file(path, &text, NULL));
     _Shell_ExecuteString(self, text, script, false);
 

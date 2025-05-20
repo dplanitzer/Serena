@@ -41,7 +41,7 @@ typedef struct StackAllocator {
 typedef StackAllocator* StackAllocatorRef;
 
 
-extern errno_t StackAllocator_Create(size_t pageSize, size_t pageCacheCapacity, StackAllocatorRef _Nullable * _Nonnull pOutAllocator);
+extern StackAllocatorRef _Nonnull StackAllocator_Create(size_t pageSize, size_t pageCacheCapacity);
 extern void StackAllocator_Destroy(StackAllocatorRef _Nullable self);
 
 // Allocates 'nbytes' bytes from the top of the stack and guarantees that the

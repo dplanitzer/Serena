@@ -50,10 +50,10 @@ typedef struct RunStack {
 typedef errno_t (*RunStackIterator)(void* _Nullable context, const Variable* _Nonnull v, int level, bool* _Nonnull pOutDone);
 
 
-extern errno_t RunStack_Create(RunStack* _Nullable * _Nonnull pOutSelf);
+extern RunStack* _Nonnull RunStack_Create(void);
 extern void RunStack_Destroy(RunStack* _Nullable self);
 
-extern errno_t RunStack_PushScope(RunStack* _Nonnull self);
+extern void RunStack_PushScope(RunStack* _Nonnull self);
 extern errno_t RunStack_PopScope(RunStack* _Nonnull self);
 
 // Marks the variable named 'name' as public or internal. Public variables are

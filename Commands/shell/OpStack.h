@@ -20,7 +20,7 @@ typedef struct OpStack {
 } OpStack;
 
 
-extern errno_t OpStack_Create(OpStack* _Nullable * _Nonnull pOutSelf);
+extern OpStack* _Nonnull OpStack_Create(void);
 extern void OpStack_Destroy(OpStack* _Nullable self);
 
 // Pushes the given value on top of the operand stack.

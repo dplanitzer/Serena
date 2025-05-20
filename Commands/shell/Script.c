@@ -704,23 +704,15 @@ void Block_Print(Block* _Nonnull self)
 // MARK: Script
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Script_Create(Script* _Nullable * _Nonnull pOutSelf)
+Script* _Nonnull Script_Create(void)
 {
-    decl_try_err();
-    Script* self;
+    Script* self = calloc(1, sizeof(Script));
 
-    try_null(self, calloc(1, sizeof(Script)), errno);
-    try(StackAllocator_Create(512, 4096, &self->allocator));
-    try(ConstantsPool_Create(&self->constantsPool));
+    self->allocator = StackAllocator_Create(512, 4096);
+    self->constantsPool = ConstantsPool_Create();
     ExpressionList_Init(&self->exprs);
 
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    Script_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    return self;
 }
 
 void Script_Reset(Script* _Nonnull self)

@@ -24,7 +24,7 @@ typedef Shell* ShellRef;
 // Creates a shell instance. The shell will be interactive if 'isInteractive' is
 // true. Otherwise the shell will not present a user interface and instead you
 // should use RunContentsOfFile commands to execute shell scripts. 
-extern errno_t Shell_Create(bool isInteractive, ShellRef _Nullable * _Nonnull pOutSelf);
+extern ShellRef _Nonnull Shell_Create(bool isInteractive);
 
 // Destroys the given shell instance.
 

@@ -26,7 +26,7 @@ typedef struct ArgumentVector {
 } ArgumentVector;
 
 
-extern errno_t ArgumentVector_Create(ArgumentVector* _Nullable * _Nonnull pOutSelf);
+extern ArgumentVector* _Nonnull ArgumentVector_Create(void);
 extern void ArgumentVector_Destroy(ArgumentVector* _Nullable self);
 
 #define ArgumentVector_GetArgc(__self) (__self)->argc

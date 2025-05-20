@@ -25,7 +25,7 @@ typedef struct ConstantsPool {
 } ConstantsPool;
 
 
-extern errno_t ConstantsPool_Create(ConstantsPool* _Nullable * _Nonnull pOutSelf);
+extern ConstantsPool* _Nonnull ConstantsPool_Create(void);
 extern void ConstantsPool_Destroy(ConstantsPool* _Nullable self);
 
 // Returns a uniqued string value from the constant pool. The string is added to

@@ -14,12 +14,9 @@
 #include <string.h>
 
 
-errno_t LineReader_Create(int maxLineLength, int historyCapacity, const char* _Nonnull pPrompt, LineReaderRef _Nullable * _Nonnull pOutSelf)
+LineReaderRef _Nonnull LineReader_Create(int maxLineLength, int historyCapacity, const char* _Nonnull pPrompt)
 {
-    decl_try_err();
-    LineReaderRef self;
-    
-    try_null(self, calloc(1, sizeof(LineReader) + maxLineLength + 1), ENOMEM);
+    LineReaderRef self = calloc(1, sizeof(LineReader) + maxLineLength + 1);
     self->lineCapacity = maxLineLength + 1;
     self->lineCount = 0;
     self->x = 0;
@@ -28,25 +25,19 @@ errno_t LineReader_Create(int maxLineLength, int historyCapacity, const char* _N
     self->isDirty = false;
     self->line[0] = '\0';
 
-    try_null(self->history, calloc(historyCapacity, sizeof(char*)), ENOMEM);
+    self->history = calloc(historyCapacity, sizeof(char*));
     self->historyCapacity = historyCapacity;
     self->historyCount = 0;
     self->historyIndex = 0;
 
-    try_null(self->prompt, strdup(pPrompt), ENOMEM);
+    self->prompt = strdup(pPrompt);
 
     // XXX not the best way or place to do it
     setvbuf(stdin, NULL, _IONBF, 0);
     setvbuf(stdout, NULL, _IONBF, 0);
     // XXX
-        
-    *pOutSelf = self;
-    return 0;
-
-catch:
-    LineReader_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    
+    return self;
 }
 
 void LineReader_Destroy(LineReaderRef _Nullable self)
