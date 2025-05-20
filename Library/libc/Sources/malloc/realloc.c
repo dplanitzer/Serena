@@ -7,7 +7,6 @@
 //
 
 #include <stdlib.h>
-#include <errno.h>
 #include "__malloc.h"
 
 
@@ -17,7 +16,7 @@ void *realloc(void *ptr, size_t new_size)
     void* np = __Allocator_Reallocate(__gMainAllocator, ptr, new_size);
 
     if (np == NULL) {
-        errno = ENOMEM;
+        __malloc_nomem();
     }
     __malloc_unlock();
     

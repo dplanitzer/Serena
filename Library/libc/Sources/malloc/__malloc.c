@@ -6,7 +6,9 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#include <errno.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <__stddef.h>
 #include <_math.h>
 #include <sys/mutex.h>
@@ -18,7 +20,28 @@
 
 
 AllocatorRef    __gMainAllocator;
+bool            __gAbortOnNoMem;
 static mutex_t  __gMallocLock;
+
+
+void _abort_on_nomem(void)
+{
+    __malloc_lock();
+    __gAbortOnNoMem = true;
+    __malloc_unlock();
+}
+
+void __malloc_nomem(void)
+{
+    if (!__gAbortOnNoMem) {
+        errno = ENOMEM;
+        return;
+    }
+
+    puts("Out of memory");
+    abort();
+    /* NOT REACHED */
+}
 
 
 static bool __malloc_expand_backing_store(AllocatorRef _Nonnull pAllocator, size_t minByteCount)

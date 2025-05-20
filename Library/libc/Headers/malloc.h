@@ -19,6 +19,12 @@ extern void *calloc(size_t num, size_t size);
 extern void *realloc(void *ptr, size_t new_size);
 extern void free(void *ptr);
 
+// Call this function at the beginning of your main() function to inform the
+// library that all memory allocation functions (malloc, calloc, realloc) should
+// terminate the process if allocating memory is unsuccessful because of a lack
+// of memory.
+extern void _abort_on_nomem(void);
+
 __CPP_END
 
 #endif /* _MALLOC_H */

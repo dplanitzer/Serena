@@ -7,7 +7,6 @@
 //
 
 #include <stdlib.h>
-#include <errno.h>
 #include "__malloc.h"
 
 
@@ -17,7 +16,7 @@ void *malloc(size_t size)
     void* ptr = __Allocator_Allocate(__gMainAllocator, size);
     
     if (ptr == NULL) {
-        errno = ENOMEM;
+        __malloc_nomem();
     }
     __malloc_unlock();
 
