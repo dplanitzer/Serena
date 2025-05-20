@@ -67,6 +67,10 @@ Deletes one or more directories or files indicated by the provided path(s). A di
 
 `delete <path ...>`
 
+### Switches
+
+* `--verbose, -v`: causes delete to print the path of objects as they are being deleted
+
 ### Parameters
 
 * `path ...`: one or more paths to files or directories
