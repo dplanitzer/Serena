@@ -8,12 +8,13 @@
 
 #include <clap.h>
 #include <dirent.h>
+#include <errno.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/errno.h>
 #include <sys/perm.h>
 #include <sys/stat.h>
 #include <_math.h>
@@ -35,28 +36,24 @@ extern char *__strcat(char * _Restrict dst, const char * _Restrict src);
 // Max length of a permission string
 #define PERMISSIONS_STRING_LENGTH  11
 
-typedef struct list_ctx {
-    int             currentYear;
-    int             currentMonth;
-
-    int             linkCountWidth;
-    int             uidWidth;
-    int             gidWidth;
-    int             sizeWidth;
-    int             dateWidth;
-
-    struct Flags {
-        unsigned int printAll:1;
-        unsigned int reserved:31;
-    }               flags;
-
-    struct tm       date;
-    char            buf[BUF_SIZE];
-    char            pathbuf[PATH_MAX];
-} list_ctx_t;
+typedef int (*dir_iter_t)(const char* _Nonnull dirPath, const char* _Nonnull entryName);
 
 
-typedef int (*dir_iter_t)(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName);
+static int  cur_year;
+static int  cur_month;
+
+static int  nlink_w;
+static int  uid_w;
+static int  gid_w;
+static int  size_w;
+static int  date_w;
+
+static bool print_all;
+
+static struct tm    date;
+
+static char         buf[BUF_SIZE];
+static char         path_buf[PATH_MAX];
 
 
 static void file_permissions_to_text(mode_t perms, char* _Nonnull buf)
@@ -72,45 +69,45 @@ static void file_permissions_to_text(mode_t perms, char* _Nonnull buf)
     }
 }
 
-static int format_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
+static int format_inode(const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    struct stat info;
+    struct stat st;
     
-    if (stat(path, &info) != 0) {
+    if (stat(path, &st) != 0) {
         return -1;
     }
     
-    itoa(info.st_nlink, self->buf, 10);
-    self->linkCountWidth = __max(self->linkCountWidth, strlen(self->buf));
-    itoa(info.st_uid, self->buf, 10);
-    self->uidWidth = __max(self->uidWidth, strlen(self->buf));
-    itoa(info.st_gid, self->buf, 10);
-    self->gidWidth = __max(self->gidWidth, strlen(self->buf));
-    lltoa(info.st_size, self->buf, 10);
-    self->sizeWidth = __max(self->sizeWidth, strlen(self->buf));
+    itoa(st.st_nlink, buf, 10);
+    nlink_w = __max(nlink_w, strlen(buf));
+    itoa(st.st_uid, buf, 10);
+    uid_w = __max(uid_w, strlen(buf));
+    itoa(st.st_gid, buf, 10);
+    gid_w = __max(gid_w, strlen(buf));
+    lltoa(st.st_size, buf, 10);
+    size_w = __max(size_w, strlen(buf));
 
     // Show time if the date is less than 12 months old; otherwise show date
-    localtime_r(&info.st_mtim.tv_sec, &self->date);
-    if (self->date.tm_year == self->currentYear || (self->date.tm_year == self->currentYear - 1 && self->date.tm_mon > self->currentMonth)) {
-        self->dateWidth = TIME_WIDTH;
+    localtime_r(&st.st_mtim.tv_sec, &date);
+    if (date.tm_year == cur_year || (date.tm_year == cur_year - 1 && date.tm_mon > cur_month)) {
+        date_w = TIME_WIDTH;
     }
     else {
-        self->dateWidth = DATE_WIDTH;
+        date_w = DATE_WIDTH;
     }
 
     return 0;
 }
 
-static int print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
+static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    struct stat info;
+    struct stat st;
     char tc;
 
-    if (stat(path, &info) != 0) {
+    if (stat(path, &st) != 0) {
         return -1;
     }
     
-    switch (S_FTYPE(info.st_mode)) {
+    switch (S_FTYPE(st.st_mode)) {
         case S_IFDEV:   tc = 'h'; break;
         case S_IFDIR:   tc = 'd'; break;
         case S_IFFS:    tc = 'f'; break;
@@ -119,37 +116,37 @@ static int print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path, con
         case S_IFLNK:   tc = 'l'; break;
         default:        tc = '-'; break;
     }
-    self->buf[0] = tc;
+    buf[0] = tc;
 
     for (int i = 1; i < PERMISSIONS_STRING_LENGTH; i++) {
-        self->buf[i] = '-';
+        buf[i] = '-';
     }
 
-    file_permissions_to_text(perm_get(info.st_mode, S_ICUSR), &self->buf[1]);
-    file_permissions_to_text(perm_get(info.st_mode, S_ICGRP), &self->buf[4]);
-    file_permissions_to_text(perm_get(info.st_mode, S_ICOTH), &self->buf[7]);
-    self->buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
+    file_permissions_to_text(perm_get(st.st_mode, S_ICUSR), &buf[1]);
+    file_permissions_to_text(perm_get(st.st_mode, S_ICGRP), &buf[4]);
+    file_permissions_to_text(perm_get(st.st_mode, S_ICOTH), &buf[7]);
+    buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
-    localtime_r(&info.st_mtim.tv_sec, &self->date);
+    localtime_r(&st.st_mtim.tv_sec, &date);
         
     printf("%s %*d  %*u %*u  %*lld  ",
-        self->buf,
-        self->linkCountWidth, info.st_nlink,
-        self->uidWidth, info.st_uid,
-        self->gidWidth, info.st_gid,
-        self->sizeWidth, info.st_size);
-    if (self->dateWidth == DATE_WIDTH) {
+        buf,
+        nlink_w, st.st_nlink,
+        uid_w, st.st_uid,
+        gid_w, st.st_gid,
+        size_w, st.st_size);
+    if (date_w == DATE_WIDTH) {
         printf("%s %d %d  ",
-            __gc_abbrev_ymon(self->date.tm_mon + 1),
-            self->date.tm_mday,
-            self->date.tm_year + 1900);
+            __gc_abbrev_ymon(date.tm_mon + 1),
+            date.tm_mday,
+            date.tm_year + 1900);
     }
     else {
         printf("%s %d %0.2d:%0.2d  ",
-            __gc_abbrev_ymon(self->date.tm_mon + 1),
-            self->date.tm_mday,
-            self->date.tm_hour,
-            self->date.tm_min);
+            __gc_abbrev_ymon(date.tm_mon + 1),
+            date.tm_mday,
+            date.tm_hour,
+            date.tm_min);
     }
     fputs(entryName, stdout);
     fputc('\n', stdout);
@@ -163,21 +160,21 @@ static void concat_path(char* _Nonnull path, const char* _Nonnull dir, const cha
     __strcat(__strcat(__strcpy(path, dir), "/"), fileName);
 }
 
-static int format_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
+static int format_dir_entry(const char* _Nonnull dirPath, const char* _Nonnull entryName)
 {
-    concat_path(self->pathbuf, dirPath, entryName);
+    concat_path(path_buf, dirPath, entryName);
 
-    return format_inode(self, self->pathbuf, entryName);
+    return format_inode(path_buf, entryName);
 }
 
-static int print_dir_entry(list_ctx_t* _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
+static int print_dir_entry(const char* _Nonnull dirPath, const char* _Nonnull entryName)
 {
-    concat_path(self->pathbuf, dirPath, entryName);
+    concat_path(path_buf, dirPath, entryName);
 
-    return print_inode(self, self->pathbuf, entryName);
+    return print_inode(path_buf, entryName);
 }
 
-static int iterate_dir(list_ctx_t* _Nonnull self, DIR* _Nonnull dir, const char* _Nonnull path, dir_iter_t _Nonnull cb)
+static int iterate_dir(DIR* _Nonnull dir, const char* _Nonnull path, dir_iter_t _Nonnull cb)
 {
     errno = 0;
 
@@ -188,8 +185,8 @@ static int iterate_dir(list_ctx_t* _Nonnull self, DIR* _Nonnull dir, const char*
             break;
         }
 
-        if (self->flags.printAll || dep->name[0] != '.') {
-            if (cb(self, path, dep->name) != 0) {
+        if (print_all || dep->name[0] != '.') {
+            if (cb(path, dep->name) != 0) {
                 break;
             }
         }
@@ -198,32 +195,32 @@ static int iterate_dir(list_ctx_t* _Nonnull self, DIR* _Nonnull dir, const char*
     return (errno == 0) ? 0 : -1;
 }
 
-static void list_dir(list_ctx_t* _Nonnull self, const char* _Nonnull path)
+static void list_dir(const char* _Nonnull path)
 {
     DIR* dir = opendir(path);
 
     if (dir) {
-        if (iterate_dir(self, dir, path, format_dir_entry) == 0) {
+        if (iterate_dir(dir, path, format_dir_entry) == 0) {
             rewinddir(dir);
-            iterate_dir(self, dir, path, print_dir_entry);
+            iterate_dir(dir, path, print_dir_entry);
         }
     
         closedir(dir);
     }
 }
 
-static void list_file(list_ctx_t* _Nonnull self, const char* _Nonnull path)
+static void list_file(const char* _Nonnull path)
 {
-    if (format_inode(self, path, path) == 0) {
-        print_inode(self, path, path);
+    if (format_inode(path, path) == 0) {
+        print_inode(path, path);
     }
 }
 
 static bool is_dir(const char* _Nonnull path)
 {
-    struct stat info;
+    struct stat st;
 
-    return (stat(path, &info) == 0 && S_ISDIR(info.st_mode)) ? true : false;
+    return (stat(path, &st) == 0 && S_ISDIR(st.st_mode)) ? true : false;
 }
 
 
@@ -231,14 +228,13 @@ static bool is_dir(const char* _Nonnull path)
 
 static const char* default_path[1] = {"."};
 static clap_string_array_t paths = {default_path, 1};
-static bool is_print_all = false;
 
 CLAP_DECL(params,
     CLAP_VERSION("1.0"),
     CLAP_HELP(),
     CLAP_USAGE("list [-a | --all] <path>"),
 
-    CLAP_BOOL('a', "all", &is_print_all, "Print entries starting with a '.'"),
+    CLAP_BOOL('a', "all", &print_all, "Print entries starting with a '.'"),
     CLAP_VARARG(&paths)
 );
 
@@ -251,16 +247,10 @@ int main(int argc, char* argv[])
     errno_t firstErr = EOK;
     const time_t now = time(NULL);
 
-    list_ctx_t* self = calloc(1, sizeof(list_ctx_t));
-    if (self == NULL) {
-        return EXIT_FAILURE;
-    }
+    localtime_r(&now, &date);
 
-    localtime_r(&now, &self->date);
-
-    self->currentYear = self->date.tm_year;
-    self->currentMonth = self->date.tm_mon;
-    self->flags.printAll = is_print_all;
+    cur_year = date.tm_year;
+    cur_month = date.tm_mon;
 
     for (size_t i = 0; i < paths.count; i++) {
         const char* path = paths.strings[i];
@@ -274,10 +264,10 @@ int main(int argc, char* argv[])
         
         if (errno == 0) {
             if (isDir) {
-                list_dir(self, path);
+                list_dir(path);
             }
             else {
-                list_file(self, path);
+                list_file(path);
             }
         }
 
@@ -290,7 +280,6 @@ int main(int argc, char* argv[])
             putchar('\n');
         }
     }
-    free(self);
 
     return (firstErr == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
