@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 
 
-#define COPY_BUF_SIZE   1024
+#define COPY_BUF_SIZE   8192
 
 char path_buf[PATH_MAX];
 char copy_buf[COPY_BUF_SIZE];
