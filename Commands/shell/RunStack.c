@@ -14,25 +14,16 @@
 // Variable
 ////////////////////////////////////////////////////////////////////////////////
 
-static void Variable_Destroy(Variable* _Nullable self);
-
-static errno_t Variable_Create(unsigned int modifiers, const char* _Nonnull name, const Value* _Nonnull value, Variable* _Nullable * _Nonnull pOutSelf)
+static Variable* _Nonnull Variable_Create(unsigned int modifiers, const char* _Nonnull name, const Value* _Nonnull value)
 {
     decl_try_err();
-    Variable* self;
+    Variable* self = calloc(1, sizeof(Variable));
 
-    try_null(self, calloc(1, sizeof(Variable)), errno);
-    try_null(self->name, strdup(name), errno);
+    self->name = strdup(name);
     Value_InitCopy(&self->value, value);
     self->modifiers = modifiers;
 
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    Variable_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    return self;
 }
 
 static void Variable_Destroy(Variable* _Nullable self)
@@ -145,7 +136,7 @@ static errno_t Scope_DeclareVariable(Scope* _Nonnull self, unsigned int modifier
         throw(EREDEFVAR);
     }
 
-    try(Variable_Create(modifiers, name, value, &vp));
+    vp = Variable_Create(modifiers, name, value);
     vp->next = self->hashtable[hashIndex];
     self->hashtable[hashIndex] = vp;
 

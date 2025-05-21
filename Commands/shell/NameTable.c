@@ -15,25 +15,15 @@
 // Name
 ////////////////////////////////////////////////////////////////////////////////
 
-static void Name_Destroy(Name* _Nullable self);
-
-static errno_t Name_Create(const char* _Nonnull name, CommandCallback _Nonnull cb, Name* _Nullable * _Nonnull pOutSelf)
+static Name* _Nonnull Name_Create(const char* _Nonnull name, CommandCallback _Nonnull cb)
 {
-    decl_try_err();
     const size_t len = strlen(name);
-    Name* self;
+    Name* self = calloc(1, sizeof(Name) + len);
 
-    try_null(self, calloc(1, sizeof(Name) + len), errno);
     memcpy(self->name, name, len + 1);
     self->cb = cb;
 
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    Name_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    return self;
 }
 
 static void Name_Destroy(Name* _Nullable self)
@@ -145,7 +135,7 @@ static errno_t Namespace_DeclareName(Namespace* _Nonnull self, const char* _Nonn
         throw(EREDEFVAR);
     }
 
-    try(Name_Create(name, cb, &np));
+    np = Name_Create(name, cb);
     np->next = self->hashtable[hashIndex];
     self->hashtable[hashIndex] = np;
 

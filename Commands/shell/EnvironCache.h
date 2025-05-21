@@ -9,7 +9,6 @@
 #ifndef EnvironCache_h
 #define EnvironCache_h
 
-#include "Errors.h"
 #include <stdlib.h>
 
 struct RunStack;

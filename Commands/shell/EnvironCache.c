@@ -10,6 +10,7 @@
 #include "RunStack.h"
 #include "Utilities.h"
 #include <assert.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -117,9 +118,6 @@ static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull 
     const size_t valLen = Value_GetMaxStringLength(&vp->value);
     const size_t kvLen = keyLen + 1 + valLen; // '\0' is already reserved in EnvironEntry
     EnvironEntry* newEntry = malloc(sizeof(EnvironEntry) + kvLen);
-    if (newEntry == NULL) {
-        return errno;
-    }
 
 
     // Create the 'key=value' string
@@ -136,13 +134,13 @@ static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull 
     return EOK;
 }
 
-static errno_t _EnvironCache_BuildEnvironTable(EnvironCache* _Nonnull self)
+static void _EnvironCache_BuildEnvironTable(EnvironCache* _Nonnull self)
 {
     if (self->envtableCount + 1 > self->envtableCapacity) {
         self->envtable = realloc(self->envtable, sizeof(char*) * (self->envtableCount + 1));
         if (self->envtable == NULL) {
             _EnvironCache_ClearCache(self);
-            return errno;
+            return;
         }
     }
 
@@ -160,8 +158,6 @@ static errno_t _EnvironCache_BuildEnvironTable(EnvironCache* _Nonnull self)
         }
     }
     self->envtable[nev] = NULL;
-
-    return EOK;
 }
 
 // Updates the cache if it is out-of-date with respect to the current symbol table
@@ -175,9 +171,8 @@ char* _Nullable * _Nullable EnvironCache_GetEnvironment(EnvironCache* _Nonnull s
         _EnvironCache_ClearCache(self);
 
         if (RunStack_Iterate(self->runStack, (RunStackIterator)_EnvironCache_CollectEnvironmentVariables, self) == EOK) {
-            if (_EnvironCache_BuildEnvironTable(self) == EOK) {
-                self->generation = stGen;
-            }
+            _EnvironCache_BuildEnvironTable(self);
+            self->generation = stGen;
         }
     }
 

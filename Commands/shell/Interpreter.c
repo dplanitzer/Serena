@@ -253,7 +253,8 @@ static errno_t Interpreter_SerializeValue(InterpreterRef _Nonnull self, const Va
 {
     switch (vp->type) {
         case kValue_String:
-            return ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vp), Value_GetLength(vp));
+            ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vp), Value_GetLength(vp));
+            return EOK;
 
         case kValue_Bool:
         case kValue_Integer:
@@ -265,7 +266,7 @@ static errno_t Interpreter_SerializeValue(InterpreterRef _Nonnull self, const Va
 
                 err = Value_ToString(vtos);
                 if (err == EOK) {
-                    err = ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vtos), Value_GetLength(vtos));
+                    ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vtos), Value_GetLength(vtos));
                 }
                 OpStack_Pop(self->opStack);
             }
@@ -294,7 +295,7 @@ static errno_t Interpreter_SerializeCompoundString(InterpreterRef _Nonnull self,
     err = Interpreter_CompoundString(self, str);
     if (err == EOK) {
         const Value* vp = OpStack_GetTos(self->opStack);
-        err = ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vp), Value_GetLength(vp));
+        ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vp), Value_GetLength(vp));
     }
     OpStack_Pop(self->opStack);
     
@@ -306,7 +307,8 @@ static errno_t Interpreter_SerializeInteger(InterpreterRef _Nonnull self, int32_
     char buf[__INT_MAX_BASE_10_DIGITS + 1];
 
     itoa(i32, buf, 10);
-    return ArgumentVector_AppendBytes(self->argumentVector, buf, strlen(buf));
+    ArgumentVector_AppendBytes(self->argumentVector, buf, strlen(buf));
+    return EOK;
 }
 
 static errno_t Interpreter_SerializeArithmeticExpression(InterpreterRef _Nonnull self, Arithmetic* _Nonnull expr)
@@ -319,7 +321,7 @@ static errno_t Interpreter_SerializeArithmeticExpression(InterpreterRef _Nonnull
 
         err = Value_ToString(vp);
         if (err == EOK) {
-            err = ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vp), Value_GetLength(vp));
+            ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vp), Value_GetLength(vp));
             OpStack_Pop(self->opStack);
         }
     }
@@ -332,7 +334,8 @@ static errno_t Interpreter_SerializeCommandFragment(InterpreterRef _Nonnull self
         case kAtom_BacktickString:
         case kAtom_SingleQuoteString:
         case kAtom_Identifier:
-            return ArgumentVector_AppendBytes(self->argumentVector, Atom_GetString(atom), Atom_GetStringLength(atom));
+            ArgumentVector_AppendBytes(self->argumentVector, Atom_GetString(atom), Atom_GetStringLength(atom));
+            return EOK;
 
         case kAtom_Integer:
             return Interpreter_SerializeInteger(self, atom->u.i32);
@@ -386,11 +389,12 @@ static errno_t Interpreter_SerializeCommand(InterpreterRef _Nonnull self, Atom* 
             isFirstAtom = false;
         }
 
-        try(ArgumentVector_EndOfArg(self->argumentVector));
+        ArgumentVector_EndOfArg(self->argumentVector);
         isFirstArg = false;
     }
 
-    try(ArgumentVector_Close(self->argumentVector));
+    ArgumentVector_Close(self->argumentVector);
+    return EOK;
 
 catch:
     return err;

@@ -9,7 +9,6 @@
 #ifndef ArgumentVector_h
 #define ArgumentVector_h
 
-#include "Errors.h"
 #include <stdlib.h>
 
 typedef struct ArgumentVector {
@@ -37,16 +36,16 @@ extern void ArgumentVector_Destroy(ArgumentVector* _Nullable self);
 extern void ArgumentVector_Open(ArgumentVector* _Nonnull self);
 
 // Appends data to the current argument.
-extern errno_t ArgumentVector_AppendCharacter(ArgumentVector* _Nonnull self, char ch);
-extern errno_t ArgumentVector_AppendString(ArgumentVector* _Nonnull self, const char* _Nonnull str);
-extern errno_t ArgumentVector_AppendBytes(ArgumentVector* _Nonnull self, const char* _Nonnull buf, size_t len);
+extern void ArgumentVector_AppendCharacter(ArgumentVector* _Nonnull self, char ch);
+extern void ArgumentVector_AppendString(ArgumentVector* _Nonnull self, const char* _Nonnull str);
+extern void ArgumentVector_AppendBytes(ArgumentVector* _Nonnull self, const char* _Nonnull buf, size_t len);
 
 // Marks the end of the current argument and creates a new argument.
-extern errno_t ArgumentVector_EndOfArg(ArgumentVector* _Nonnull self);
+extern void ArgumentVector_EndOfArg(ArgumentVector* _Nonnull self);
 
 // Closes the argument vector stream. You may call GetArgc() and GetArgv() after
 // closing the stream.
-extern errno_t ArgumentVector_Close(ArgumentVector* _Nonnull self);
+extern void ArgumentVector_Close(ArgumentVector* _Nonnull self);
 
 extern void ArgumentVector_Print(ArgumentVector* _Nonnull self);
 
