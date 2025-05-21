@@ -24,13 +24,13 @@ extern OpStack* _Nonnull OpStack_Create(void);
 extern void OpStack_Destroy(OpStack* _Nullable self);
 
 // Pushes the given value on top of the operand stack.
-extern errno_t OpStack_Push(OpStack* _Nonnull self, const Value* _Nonnull value);
+extern void OpStack_Push(OpStack* _Nonnull self, const Value* _Nonnull value);
 
-extern errno_t OpStack_PushVoid(OpStack* _Nonnull self);
-extern errno_t OpStack_PushBool(OpStack* _Nonnull self, bool flag);
-extern errno_t OpStack_PushInteger(OpStack* _Nonnull self, int32_t i32);
-extern errno_t OpStack_PushCString(OpStack* _Nonnull self, const char* str);
-extern errno_t OpStack_PushString(OpStack* _Nonnull self, const char* str, size_t len);
+extern void OpStack_PushVoid(OpStack* _Nonnull self);
+extern void OpStack_PushBool(OpStack* _Nonnull self, bool flag);
+extern void OpStack_PushInteger(OpStack* _Nonnull self, int32_t i32);
+extern void OpStack_PushCString(OpStack* _Nonnull self, const char* str);
+extern void OpStack_PushString(OpStack* _Nonnull self, const char* str, size_t len);
 
 // Pops all values from the stack.
 extern void OpStack_PopAll(OpStack* _Nonnull self);

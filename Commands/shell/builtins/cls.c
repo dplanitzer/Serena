@@ -23,11 +23,10 @@ static CLAP_DECL(params,
 int cmd_cls(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
 {
     const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    int exitCode;
+    int exitCode = EXIT_SUCCESS;
     
     if (!clap_should_exit(status)) {
         printf("\033[2J\033[H");
-        exitCode = EXIT_SUCCESS;
     }
     else {
         exitCode = clap_exit_code(status);

@@ -25,20 +25,15 @@ static CLAP_DECL(params,
 );
 
 
-static inline errno_t do_exists(InterpreterRef _Nonnull ip, const char* _Nonnull path)
-{
-    return OpStack_PushBool(ip->opStack, (access(path, F_OK) == 0) ? true : false);
-}
-
 int cmd_exists(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
 {
     path = "";
     
     const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    int exitCode;
+    int exitCode = EXIT_SUCCESS;
 
     if (!clap_should_exit(status)) {
-        exitCode = exit_code(do_exists(ip, path));
+        OpStack_PushBool(ip->opStack, (access(path, F_OK) == 0) ? true : false);
     }
     else {
         exitCode = clap_exit_code(status);

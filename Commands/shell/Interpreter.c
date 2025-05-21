@@ -174,7 +174,13 @@ static errno_t Interpreter_PushVariable(InterpreterRef _Nonnull self, VarRef* _N
 {
     Variable* varp = RunStack_GetVariable(self->runStack, vref->scope, vref->name);
     
-    return (varp) ? OpStack_Push(self->opStack, &varp->value) : EUNDEFVAR;
+    if (varp) {
+        OpStack_Push(self->opStack, &varp->value);
+        return EOK;
+     }
+     else {
+        return EUNDEFVAR;
+     }
 }
 
 static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int argc, char** argv, char** envp)
@@ -259,17 +265,15 @@ static errno_t Interpreter_SerializeValue(InterpreterRef _Nonnull self, const Va
         case kValue_Bool:
         case kValue_Integer:
         case kValue_Void: {
-            errno_t err = OpStack_Push(self->opStack, vp);
+            OpStack_Push(self->opStack, vp);
 
+            Value* vtos = OpStack_GetTos(self->opStack);
+
+            const errno_t err = Value_ToString(vtos);
             if (err == EOK) {
-                Value* vtos = OpStack_GetTos(self->opStack);
-
-                err = Value_ToString(vtos);
-                if (err == EOK) {
-                    ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vtos), Value_GetLength(vtos));
-                }
-                OpStack_Pop(self->opStack);
+                ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vtos), Value_GetLength(vtos));
             }
+            OpStack_Pop(self->opStack);
             return err;
         }
 
@@ -439,7 +443,7 @@ static errno_t Interpreter_CompoundString(InterpreterRef _Nonnull self, Compound
         switch (seg->type) {
             case kSegment_EscapeSequence:
             case kSegment_String:
-                err = OpStack_Push(self->opStack, &AS(seg, LiteralSegment)->value);
+                OpStack_Push(self->opStack, &AS(seg, LiteralSegment)->value);
                 break;
 
             case kSegment_ArithmeticExpression:
@@ -464,7 +468,7 @@ static errno_t Interpreter_CompoundString(InterpreterRef _Nonnull self, Compound
             ValueArray_ToString(OpStack_GetNth(self->opStack, nComponents - 1), nComponents);
             OpStack_PopSome(self->opStack, nComponents - 1);
         } else {
-            err = OpStack_PushCString(self->opStack, "");
+            OpStack_PushCString(self->opStack, "");
         }
     }
     return err;
@@ -625,7 +629,7 @@ static errno_t Interpreter_While(InterpreterRef _Nonnull self, WhileArithmetic* 
 
     if (!didLoopProduceValue) {
         // The result of a loop that has never executed its loop body is Void
-        err = OpStack_PushVoid(self->opStack);
+        OpStack_PushVoid(self->opStack);
     }
 
     return err;
@@ -665,7 +669,8 @@ static errno_t Interpreter_ArithmeticExpression(InterpreterRef _Nonnull self, Ar
             return Interpreter_UnaryOp(self, expr);
 
         case kArithmetic_Literal:
-            return OpStack_Push(self->opStack, &AS(expr, LiteralArithmetic)->value);
+            OpStack_Push(self->opStack, &AS(expr, LiteralArithmetic)->value);
+            return EOK;
 
         case kArithmetic_CompoundString:
             return Interpreter_CompoundString(self, AS(expr, CompoundStringArithmetic)->string);
@@ -711,7 +716,7 @@ static errno_t Interpreter_Assignment(InterpreterRef _Nonnull self, AssignmentEx
         OpStack_Pop(self->opStack);
 
         // Result is Void
-        err = OpStack_PushVoid(self->opStack);
+        OpStack_PushVoid(self->opStack);
     }
 
     return err;
@@ -730,7 +735,7 @@ static errno_t Interpreter_VarDeclExpression(InterpreterRef _Nonnull self, VarDe
             OpStack_Pop(self->opStack);
 
             // Result is Void
-            err = OpStack_PushVoid(self->opStack);
+            OpStack_PushVoid(self->opStack);
         }
     }
 
@@ -749,7 +754,7 @@ static errno_t Interpreter_BreakExpression(InterpreterRef _Nonnull self, BreakEx
         err = Interpreter_ArithmeticExpression(self, AS(expr->expr, Arithmetic));
     }
     else {
-        err = OpStack_PushVoid(self->opStack);
+        OpStack_PushVoid(self->opStack);
     }
 
     return (err == EOK) ? EBREAK : err;
@@ -759,7 +764,8 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
 {
     switch (expr->type) {
         case kExpression_Null:
-            return OpStack_PushVoid(self->opStack);
+            OpStack_PushVoid(self->opStack);
+            return EOK;
 
         case kExpression_ArithmeticExpression:
             return Interpreter_ArithmeticExpression(self, AS(expr, ArithmeticExpression)->expr);
@@ -828,7 +834,7 @@ static errno_t Interpreter_ExpressionList(InterpreterRef _Nonnull self, Expressi
     }
     else {
         // Result of an empty expression list is Void
-        err = OpStack_PushVoid(self->opStack);
+        OpStack_PushVoid(self->opStack);
     }
 
     return err;

@@ -35,11 +35,10 @@ static void do_pwd(InterpreterRef _Nonnull ip, const char* _Nonnull proc_name)
 int cmd_pwd(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
 {
     const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    int exitCode;
+    int exitCode = EXIT_SUCCESS;
 
     if (!clap_should_exit(status)) {
         do_pwd(ip, argv[0]);
-        exitCode = EXIT_SUCCESS;
     }
     else {
         exitCode = clap_exit_code(status);

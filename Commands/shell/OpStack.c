@@ -34,15 +34,11 @@ void OpStack_Destroy(OpStack* _Nullable self)
     }
 }
 
-static Value* _Nullable _OpStack_Push(OpStack* _Nonnull self)
+static Value* _Nonnull _OpStack_Push(OpStack* _Nonnull self)
 {
     if (self->count == self->capacity) {
         const size_t newCapacity = self->capacity * 2;
         Value* newValues = realloc(self->values, sizeof(Value) * newCapacity);
-
-        if (newValues == NULL) {
-            return NULL;
-        }
 
         self->values = newValues;
         self->capacity = newCapacity;
@@ -51,85 +47,51 @@ static Value* _Nullable _OpStack_Push(OpStack* _Nonnull self)
     return &self->values[self->count++];
 }
 
-errno_t OpStack_Push(OpStack* _Nonnull self, const Value* _Nonnull value)
+void OpStack_Push(OpStack* _Nonnull self, const Value* _Nonnull value)
+{
+    Value* vp = _OpStack_Push(self);
+    Value_InitCopy(vp, value);
+}
+
+void OpStack_PushVoid(OpStack* _Nonnull self)
+{
+    Value* vp = _OpStack_Push(self);
+    Value_InitVoid(vp);
+}
+
+void OpStack_PushBool(OpStack* _Nonnull self, bool flag)
+{
+    Value* vp = _OpStack_Push(self);
+    Value_InitBool(vp, flag);
+}
+
+void OpStack_PushInteger(OpStack* _Nonnull self, int32_t i32)
+{
+    Value* vp = _OpStack_Push(self);
+    Value_InitInteger(vp, i32);
+}
+
+void OpStack_PushCString(OpStack* _Nonnull self, const char* str)
 {
     Value* vp = _OpStack_Push(self);
 
-    if (vp) {
-        Value_InitCopy(vp, value);
-        return EOK;
-    } else {
-        return ENOMEM;
+    if (*str != '\0') {
+        Value_InitCString(vp, str, 0);
+    }
+    else {
+        Value_InitEmptyString(vp);
     }
 }
 
-errno_t OpStack_PushVoid(OpStack* _Nonnull self)
+void OpStack_PushString(OpStack* _Nonnull self, const char* str, size_t len)
 {
     Value* vp = _OpStack_Push(self);
 
-    if (vp) {
-        Value_InitVoid(vp);
-        return EOK;
-    } else {
-        return ENOMEM;
+    if (len > 0) {
+        Value_InitString(vp, str, len, 0);
     }
-}
-
-errno_t OpStack_PushBool(OpStack* _Nonnull self, bool flag)
-{
-    Value* vp = _OpStack_Push(self);
-
-    if (vp) {
-        Value_InitBool(vp, flag);
-        return EOK;
-    } else {
-        return ENOMEM;
-    }
-}
-
-errno_t OpStack_PushInteger(OpStack* _Nonnull self, int32_t i32)
-{
-    Value* vp = _OpStack_Push(self);
-
-    if (vp) {
-        Value_InitInteger(vp, i32);
-        return EOK;
-    } else {
-        return ENOMEM;
-    }
-}
-
-errno_t OpStack_PushCString(OpStack* _Nonnull self, const char* str)
-{
-    Value* vp = _OpStack_Push(self);
-
-    if (vp) {
-        if (*str != '\0') {
-            return Value_InitCString(vp, str, 0);
-        }
-        else {
-            Value_InitEmptyString(vp);
-            return EOK;
-        }
-    } else {
-        return ENOMEM;
-    }
-}
-
-errno_t OpStack_PushString(OpStack* _Nonnull self, const char* str, size_t len)
-{
-    Value* vp = _OpStack_Push(self);
-
-    if (vp) {
-        if (len > 0) {
-            return Value_InitString(vp, str, len, 0);
-        }
-        else {
-            Value_InitEmptyString(vp);
-            return EOK;
-        }
-    } else {
-        return ENOMEM;
+    else {
+        Value_InitEmptyString(vp);
     }
 }
 
