@@ -13,7 +13,6 @@
 #include <stdnoreturn.h>
 #include <kpi/_access.h>
 #include <kpi/_seek.h>
-#include <sys/errno.h>
 #include <sys/types.h>
 
 __CPP_BEGIN
@@ -89,15 +88,14 @@ extern int pipe(int fds[2]);
 // @Concurrency: Safe
 extern ssize_t read(int fd, void* _Nonnull buf, size_t nbytes);
 
-// Writes up to 'nBytesToWrite' bytes to the I/O channel 'ioc'. The bytes are
-// taken from the buffer 'buffer' which must be big enough to hold 'nBytesToWrite'
-// bytes. The number of bytes actually written is returned in 'nOutBytesWritten'.
-// This function returns 0 and the number of successfully written bytes if it
-// is able to write at least one byte successfully before it encounters an error.
-// It however returns a suitable error code and 0 in 'nOutBytesWritten' if it
-// encounters an error before it is able to write at least one byte. 
+// Writes up to 'nbytes' bytes to the I/O channel 'fd'. The bytes are taken from
+// the buffer 'buf' which must be big enough to hold 'nbytes' bytes. The number
+// of bytes actually written is returned as a positive number. -1 is returned if
+// an error is encountered before at least one byte could be successfully written
+// to the destination. The errno variable is set to a suitable error in this
+// case.
 // @Concurrency: Safe
-extern errno_t write(int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+extern ssize_t write(int fd, const void* _Nonnull buf, size_t nbytes);
 
 
 // Truncates the file at the filesystem location 'path'. If the new length is

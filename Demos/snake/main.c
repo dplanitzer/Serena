@@ -142,7 +142,6 @@ static void input(void)
 
 static void draw(void)
 {
-    ssize_t nbytes;
     char* b = buf;
 
     // Draw the playfield
@@ -170,7 +169,7 @@ static void draw(void)
     b = __strcpy(b, "Press W, A, S, D to move the snake.\n");
     b = __strcpy(b, "Press ESC to quit the game.");
 
-    write(STDOUT_FILENO, buf, b - buf, &nbytes);
+    (void)write(STDOUT_FILENO, buf, b - buf);
 
 
     // Draw the fruit
@@ -187,7 +186,7 @@ static void draw(void)
         *b++ = 'o';
     }
 
-    write(STDOUT_FILENO, buf, b - buf, &nbytes);
+    (void)write(STDOUT_FILENO, buf, b - buf);
 }
 
 static void logic(void)

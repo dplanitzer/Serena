@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/errno.h>
 #include <sys/_syscall.h>
 
 // 2kb

@@ -10,7 +10,14 @@
 #include <sys/_syscall.h>
 
 
-errno_t write(int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+ssize_t write(int fd, const void* _Nonnull buf, size_t nbytes)
 {
-    return (errno_t)_syscall(SC_write, fd, buffer, nBytesToWrite, nOutBytesWritten);
+    ssize_t nBytesWritten;
+
+    if (_syscall(SC_write, fd, buf, nbytes, &nBytesWritten) == 0) {
+        return nBytesWritten;
+    }
+    else {
+        return -1;
+    }
 }

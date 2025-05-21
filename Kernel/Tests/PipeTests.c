@@ -26,8 +26,8 @@ void pipe_test(int argc, char *argv[])
 
     const char* pBytesToWrite = "Hello World";
     size_t nBytesToWrite = strlen(pBytesToWrite) + 1;
-    ssize_t nBytesWritten = 0;
-    assertOK(write(fds[PIPE_WR], pBytesToWrite, nBytesToWrite, &nBytesWritten));
+    ssize_t nBytesWritten = write(fds[PIPE_WR], pBytesToWrite, nBytesToWrite);
+    assertGreaterEqual(0, nBytesWritten);
     printf("written: %s, nbytes: %zd\n", pBytesToWrite, nBytesWritten);
     assertEquals(nBytesToWrite, nBytesWritten);
 
@@ -71,13 +71,13 @@ static void OnWriteToPipe(int fds[2])
 {
     const char* bytes = "Hello";
     size_t nBytesToWrite = strlen(bytes);
-    ssize_t nBytesWritten;
     struct timespec dur = timespec_from_ms(20);
     
     while (true) {
         clock_wait(CLOCK_MONOTONIC, &dur);
-        assertOK(write(fds[PIPE_WR], bytes, nBytesToWrite, &nBytesWritten));
-        
+        const ssize_t nBytesWritten = write(fds[PIPE_WR], bytes, nBytesToWrite);
+        assertGreaterEqual(0, nBytesWritten);
+
         printf("Writer: '%s'-> %d\n", bytes, nBytesWritten);
     }
 }

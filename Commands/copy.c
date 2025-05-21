@@ -38,17 +38,14 @@ CLAP_DECL(params,
 
 static int copy_file_contents(int sfd, int dfd)
 {
-    ssize_t nBytesWritten;
-    int err;
-
     for (;;) {
         const ssize_t nBytesRead = read(sfd, copy_buf, COPY_BUF_SIZE);
         if (nBytesRead <= 0) {
             return (nBytesRead == 0) ? 0 : -1;
         }
 
-        err = write(dfd, copy_buf, nBytesRead, &nBytesWritten);
-        if (err != 0) {
+        const nBytesWritten = write(dfd, copy_buf, nBytesRead);
+        if (nBytesWritten != nBytesRead) {
             return -1;
         }
     }

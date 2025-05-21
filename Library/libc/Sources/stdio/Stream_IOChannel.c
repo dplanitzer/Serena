@@ -12,21 +12,14 @@
 #include <stdlib.h>
 
 
-static ssize_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* pBuffer, ssize_t nBytesToRead)
+static ssize_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* buf, ssize_t nbytes)
 {
-    return read(self->fd, pBuffer, nBytesToRead);
+    return read(self->fd, buf, nbytes);
 }
 
-static ssize_t __fd_write(__IOChannel_FILE_Vars* _Nonnull self, const void* pBytes, ssize_t nBytesToWrite)
+static ssize_t __fd_write(__IOChannel_FILE_Vars* _Nonnull self, const void* buf, ssize_t nbytes)
 {
-    ssize_t nBytesWritten;
-
-    if (write(self->fd, pBytes, nBytesToWrite, &nBytesWritten) == EOK) {
-        return nBytesWritten;
-    }
-    else {
-        return EOF;
-    }
+    return write(self->fd, buf, nbytes);
 }
 
 static long long __fd_seek(__IOChannel_FILE_Vars* _Nonnull self, long long offset, int whence)
