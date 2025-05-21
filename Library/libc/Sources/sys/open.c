@@ -7,10 +7,26 @@
 //
 
 #include <fcntl.h>
+#include <stdarg.h>
 #include <sys/_syscall.h>
 
 
-errno_t open(const char* _Nonnull path, unsigned int mode, int* _Nonnull ioc)
+int open(const char* _Nonnull path, int oflags, ...)
 {
-    return (errno_t)_syscall(SC_open, path, mode, ioc);
+    va_list ap;
+    int fd, r;
+
+    va_start(ap, oflags);
+
+    if ((oflags & O_CREAT) == O_CREAT) {
+        const mode_t mode = va_arg(ap, mode_t);
+
+        r = (int)_syscall(SC_creat, path, oflags, mode, &fd);
+    }
+    else {
+        r = (int)_syscall(SC_open, path, oflags, &fd);
+    }
+
+    va_end(ap);
+    return (r == 0) ? fd : -1;
 }

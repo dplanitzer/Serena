@@ -98,35 +98,31 @@ int __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int fd, __
 
 int __fopen_filename_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, const char *filename, __FILE_Mode sm)
 {
-    unsigned int options = 0;
-    int r;
-    int fd = -1;
+    int oflags = 0;
 
     if ((sm & __kStreamMode_Read) != 0) {
-        options |= O_RDONLY;
+        oflags |= O_RDONLY;
     }
     if ((sm & __kStreamMode_Write) != 0) {
-        options |= O_WRONLY;
+        oflags |= O_WRONLY;
     }
     if ((sm & __kStreamMode_Append) != 0) {
-        options |= O_APPEND;
+        oflags |= O_APPEND;
     }
     if ((sm & __kStreamMode_Truncate) != 0) {
-        options |= O_TRUNC;
+        oflags |= O_TRUNC;
     }
     if ((sm & __kStreamMode_Exclusive) != 0) {
-        options |= O_EXCL;
+        oflags |= O_EXCL;
+    }
+    if ((sm & __kStreamMode_Create) != 0) {
+        oflags |= O_CREAT;
     }
 
 
     // Open/create the file
-    if ((sm & __kStreamMode_Create) == __kStreamMode_Create) {
-        r = creat(filename, options, 0666, &fd);
-    }
-    else {
-        r = open(filename, options, &fd);
-    }
-    if (r != 0) {
+    const int fd = open(filename, oflags, 0666);
+    if (fd < 0) {
         return EOF;
     }
     

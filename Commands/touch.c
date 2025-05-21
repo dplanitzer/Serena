@@ -53,14 +53,15 @@ static int touch(const char* _Nonnull path)
     }
     else if (errno == ENOENT) {
         // File does not exist. Create one
-        int fd;
+        int fd = open(path, O_CREAT|O_EXCL|O_RDWR, 0666);
 
-        if (creat(path, O_RDWR, 0666, &fd) == 0) {
+        if (fd >= 0) {
             close(fd);
             return 0;
         }
-
-        return -1;
+        else {
+            return -1;
+        }
     }
     else {
         return -1;

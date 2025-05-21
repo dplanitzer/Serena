@@ -242,13 +242,13 @@ static void print_reg_info(const fsinfo_t* _Nonnull info, int fd)
 static int open_fs(const char* _Nonnull path, fsid_t* _Nullable pfsid)
 {
     const fsid_t fsid = get_fsid(path);
-    int fd = -1;
     char buf[32];
 
     if (fsid != -1) {
         sprintf(buf, "/fs/%u", fsid);
         
-        if (open(buf, O_RDONLY, &fd) == 0) {
+        const int fd = open(buf, O_RDONLY);
+        if (fd >= 0) {
             if (pfsid) *pfsid = fsid;
             return fd;
         }
@@ -291,7 +291,8 @@ static void cmd_geometry(const char* _Nonnull path)
     }
 
     if (S_ISDEV(info.st_mode)) {
-        if (open(path, O_RDONLY, &fd) != 0) {
+        fd = open(path, O_RDONLY);
+        if (fd < 0) {
             return;
         }
         ioctl(fd, kDiskCommand_GetGeometry, &geom);
@@ -330,10 +331,9 @@ static void cmd_geometry(const char* _Nonnull path)
 
 static void sense_disk(const char* _Nonnull diskPath)
 {
-    int fd = -1;
-    const int err = open(diskPath, O_RDONLY, &fd);
+    const int fd = open(diskPath, O_RDONLY);
 
-    if (err == EOK) {
+    if (fd >= 0) {
         ioctl(fd, kDiskCommand_SenseDisk);
         close(fd);
     }

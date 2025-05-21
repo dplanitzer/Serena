@@ -139,8 +139,6 @@ static void on_shell_termination(void* _Nullable ignore)
 // Invoked at app startup.
 void main_closure(int argc, char *argv[])
 {
-    int fd;
-
     // login <termPath>
     if (argc < 2) {
         exit(EXIT_FAILURE);
@@ -162,9 +160,9 @@ void main_closure(int argc, char *argv[])
 
 
     // Open the console and initialize stdin, stdout and stderr
-    open(termPath, O_RDONLY, &fd);
-    open(termPath, O_WRONLY, &fd);
-    open(termPath, O_WRONLY, &fd);
+    (void)open(termPath, O_RDONLY);
+    (void)open(termPath, O_WRONLY);
+    (void)open(termPath, O_WRONLY);
 
     fdreopen(STDIN_FILENO, "r", stdin);
     fdreopen(STDOUT_FILENO, "w", stdout);

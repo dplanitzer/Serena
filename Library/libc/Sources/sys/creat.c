@@ -10,7 +10,14 @@
 #include <sys/_syscall.h>
 
 
-errno_t creat(const char* _Nonnull path, unsigned int mode, mode_t permissions, int* _Nonnull ioc)
+int creat(const char* _Nonnull path, mode_t mode)
 {
-    return (errno_t)_syscall(SC_creat, path, mode, permissions, ioc);
+    int fd;
+
+    if (_syscall(SC_creat, path, O_WRONLY|O_TRUNC, mode, &fd) == 0) {
+        return fd;
+    }
+    else {
+        return -1;
+    }
 }

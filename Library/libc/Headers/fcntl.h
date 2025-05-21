@@ -16,18 +16,9 @@
 
 __CPP_BEGIN
 
-// Creates an empty file at the filesystem location and with the name specified
-// by 'path'. Creating a file is non-exclusive by default which means that the
-// file is created if it does not exist and simply opened in it current state if
-// it does exist. You may request non-exclusive behavior by passing the
-// O_EXCL option. If the file already exists and you requested exclusive
-// behavior, then this function will fail and return an EEXIST error. You may
-// request that the newly opened file (relevant in non-exclusive mode) is
-// automatically and atomically truncated to length 0 if it contained some data
-// by passing the O_TRUNC option. 'permissions' are the file permissions
-// that are assigned to a newly created file if it is actually created.
+// Same as open() with O_CREAT|O_WRONLY|O_TRUNC.
 // @Concurrency: Safe
-extern errno_t creat(const char* _Nonnull path, unsigned int mode, mode_t permissions, int* _Nonnull ioc);
+extern int creat(const char* _Nonnull path, mode_t mode);
 
 // Opens an already existing file located at the filesystem location 'path'.
 // Returns an error if the file does not exist or the caller lacks the necessary
@@ -37,7 +28,7 @@ extern errno_t creat(const char* _Nonnull path, unsigned int mode, mode_t permis
 // data to the file. The file position is disregarded by the write function(s) in
 // this case.
 // @Concurrency: Safe
-extern errno_t open(const char* _Nonnull path, unsigned int mode, int* _Nonnull ioc);
+extern int open(const char* _Nonnull path, int oflags, ...);
 
 // Performs an operation on the given descriptor. The operation is performed on
 // the descriptor itself rather than the underlying resource.

@@ -53,7 +53,7 @@ static void __generate_rnd_chars(char* buf, unsigned int seed)
     }
 }
 
-char *__tmpnam_r(char *filename, int* pOutIoc)
+char *__tmpnam_r(char *filename, int* pOutFd)
 {
     if (filename == NULL) {
         return NULL;
@@ -114,9 +114,11 @@ char *__tmpnam_r(char *filename, int* pOutIoc)
         // Trailing NUL (we've reserved space for this initially)
         *p = '\0';
 
-        if (pOutIoc) {
-            const errno_t err = creat(filename, O_RDWR | O_EXCL, perm_from_octal(0600), pOutIoc);
-            if (err == EOK) {
+        if (pOutFd) {
+            const int fd = open(filename, O_CREAT|O_EXCL|O_RDWR, 0600);
+
+            if (fd >= 0) {
+                *pOutFd = fd;
                 return filename;
             }
         }

@@ -6,22 +6,21 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <fcntl.h>
 #include <sys/hidevent.h>
 #include "Asserts.h"
 
 
 void hid_test(int argc, char *argv[])
 {
-    int fd;
+    const int fd = open("/dev/hid", O_RDONLY);
     HIDEvent evt;
 
-
-    assertOK(open("/dev/hid", O_RDONLY, &fd));
+    assertGreaterEqual(0, fd);
     printf("Waiting for events...\n");
 
     while (true) {

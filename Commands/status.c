@@ -30,16 +30,10 @@ CLAP_DECL(params,
 
 static int open_proc(const char* _Nonnull pidStr)
 {
-    int fd = -1;
-
     sprintf(path_buf, "/proc/%s", pidStr);
 
-    if (open(path_buf, O_RDONLY, &fd) == 0) {
-        return fd;
-    }
-    else {
-        return -1;
-    }
+    const int fd = open(path_buf, O_RDONLY);
+    return (fd >= 0) ? fd : -1;
 }
 
 static void show_proc(const char* _Nonnull pidStr)
