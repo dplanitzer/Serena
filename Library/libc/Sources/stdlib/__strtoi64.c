@@ -7,17 +7,19 @@
 //
 
 #include <__stddef.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <inttypes.h>
 #include <limits.h>
 
 
-errno_t __strtoi64(const char * _Restrict _Nonnull str, char ** _Restrict str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Restrict _Nonnull result)
+int __strtoi64(const char * _Restrict _Nonnull str, char ** _Restrict str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Restrict _Nonnull result)
 {
     if ((base < 2 && base != 0) || base > 36) {
         *result = 0ll;
-        return EINVAL;
+        errno = EINVAL;
+        return -1;
     }
 
 
@@ -75,7 +77,8 @@ errno_t __strtoi64(const char * _Restrict _Nonnull str, char ** _Restrict str_en
         if (new_val < val || new_val > upper_bound || i > max_digits) {
             if (str_end) *str_end = (char*)&str[i + 1];
             *result = (is_neg) ? min_val : max_val;
-            return ERANGE;
+            errno = ERANGE;
+            return -1;
         }
 
         val = new_val;

@@ -16,6 +16,10 @@ unsigned long strtoul(const char * _Restrict str, char ** _Restrict str_end, int
 {
     long long r;
 
-    errno = __strtoi64(str, str_end, base, 0, ULONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r);
-    return (unsigned long) r;
+    if (__strtoi64(str, str_end, base, 0, ULONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r) == 0) {
+        return (unsigned long) r;
+    }
+    else {
+        return 0;
+    }
 }

@@ -16,8 +16,12 @@ long strtol(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
     long long r;
 
-    errno = __strtoi64(str, str_end, base, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r);
-    return (long) r;
+    if (__strtoi64(str, str_end, base, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r) == 0) {
+        return (long) r;
+    }
+    else {
+        return 0;
+    }
 }
 
 long atol(const char *str)

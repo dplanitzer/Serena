@@ -193,7 +193,7 @@ int filemem(FILE *s, FILE_MemoryQuery *query)
         query->base = mp->store;
         query->eof = mp->eofPosition;
         query->capacity = mp->currentCapacity;
-        return EOK;
+        return 0;
     }
     else {
         query->base = NULL;

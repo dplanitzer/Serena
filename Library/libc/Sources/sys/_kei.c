@@ -7,7 +7,6 @@
 //
 
 #include <kpi/kei.h>
-#include <sys/errno.h>
 #include <sys/proc.h>
 #include <stddef.h>
 
@@ -55,7 +54,7 @@ long long _mulint64_060(long long x, long long y)
 
 int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder)
 {
-    return (errno_t)((int (*)(long long, long long, long long*, long long*))__gKeiTable[KEI_divmods64_64])(dividend, divisor, quotient, remainder);
+    return ((int (*)(long long, long long, long long*, long long*))__gKeiTable[KEI_divmods64_64])(dividend, divisor, quotient, remainder);
 }
 
 long long _divsint64_020(long long dividend, long long divisor)

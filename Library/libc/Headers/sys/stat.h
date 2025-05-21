@@ -12,7 +12,6 @@
 #include <_cmndef.h>
 #include <kpi/stat.h>
 #include <kpi/_time.h>
-#include <sys/errno.h>
 
 __CPP_BEGIN
 

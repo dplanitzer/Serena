@@ -207,17 +207,12 @@ int __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, const FI
 // Shuts down the given stream but does not free the 's' memory block. 
 int __fclose(FILE * _Nonnull s)
 {
-    int r = __fflush(s);
-        
-    const errno_t err = (s->cb.close) ? s->cb.close((void*)s->context) : 0;
-    if (r == 0 && err != 0) {
-        errno = err;
-        r = EOF;
-    }
+    const int r1 = __fflush(s);
+    const int r2 = (s->cb.close) ? s->cb.close((void*)s->context) : 0;
 
     __deregister_open_file(s);
 
-    return r;
+    return (r1 == 0 && r2 == 0) ? 0 : EOF;
 }
 
 // Flushes the buffered data in stream 's'.

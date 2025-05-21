@@ -8,15 +8,13 @@
 
 #include <unistd.h>
 #include <sys/_syscall.h>
-#include <sys/errno.h>
 
 
 off_t lseek(int fd, off_t offset, int whence)
 {
     off_t oldpos;
-    const errno_t err = (errno_t)_syscall(SC_lseek, fd, offset, &oldpos, whence);
-
-    if (err == EOK) {
+    
+    if (_syscall(SC_lseek, fd, offset, &oldpos, whence) == 0) {
         return oldpos;
     }
     else {

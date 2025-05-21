@@ -10,6 +10,7 @@
 #define ___STDDEF_H 1
 
 #include <_math.h>
+#include <errno.h>
 #include <stdalign.h>
 #include <stddef.h>
 #include <assert.h>
@@ -17,7 +18,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
-#include <sys/errno.h>
 #include <sys/proc.h>
 
 #define CPU_PAGE_SIZE   4096
@@ -72,6 +72,6 @@ extern char* _Nonnull __i64toa(int64_t val, ia_sign_format_t sign_mode, i64a_t* 
 extern char* _Nonnull __u32toa(uint32_t val, int radix, bool isUppercase, i32a_t* _Nonnull out);
 extern char* _Nonnull __u64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Nonnull out);
 
-extern errno_t __strtoi64(const char * _Restrict _Nonnull str, char ** _Restrict str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Restrict _Nonnull result);
+extern int __strtoi64(const char * _Restrict _Nonnull str, char ** _Restrict str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Restrict _Nonnull result);
 
 #endif /* ___STDDEF_H */
