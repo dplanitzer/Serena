@@ -29,34 +29,23 @@
 // Reference Counted String
 ////////////////////////////////////////////////////////////////////////////////
 
-static errno_t RCString_CreateWithCapacity(size_t capacity, RCString* _Nullable * _Nonnull pOutString)
+static RCString* _Nonnull RCString_CreateWithCapacity(size_t capacity)
 {
     RCString* self = malloc(sizeof(RCString) + capacity);
 
-    if (self) {
-        self->retainCount = 1;
-        self->capacity = capacity;
-        self->length = 0;
+    self->retainCount = 1;
+    self->capacity = capacity;
+    self->length = 0;
 
-        *pOutString = self;
-        return EOK;
-    }
-    else {
-        *pOutString = NULL;
-        return ENOMEM;
-    }
+    return self;
 }
 
-static errno_t RCString_CreateMutableCopy(RCString* _Nonnull other, RCString* _Nullable * _Nonnull pOutString)
+static RCString* _Nonnull RCString_CreateMutableCopy(RCString* _Nonnull other)
 {
-    RCString* self = NULL;
-    const errno_t err = RCString_CreateWithCapacity(other->length + 1, &self);
+    RCString* self = RCString_CreateWithCapacity(other->length + 1);
 
-    if (err == EOK) {
-        memcpy(self->characters, other->characters, other->length + 1);
-    }
-    *pOutString = self;
-    return err;
+    memcpy(self->characters, other->characters, other->length + 1);
+    return self;
 }
 
 static void RCString_SetCharacters(RCString* _Nonnull self, const char* _Nonnull buf, size_t nbytes)
@@ -86,7 +75,7 @@ static void RCString_Release(RCString* _Nonnull self)
 // Value
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Value_InitCString(Value* _Nonnull self, const char* str, ValueFlags flags)
+void Value_InitCString(Value* _Nonnull self, const char* str, ValueFlags flags)
 {
     const size_t len = strlen(str);
 
@@ -96,19 +85,14 @@ errno_t Value_InitCString(Value* _Nonnull self, const char* str, ValueFlags flag
     if ((flags & kValueFlag_NoCopy) == kValueFlag_NoCopy) {
         self->u.noCopyString.characters = str;
         self->u.noCopyString.length = len;
-        return EOK;
     }
     else {
-        const errno_t err = RCString_CreateWithCapacity(len + 1, &self->u.rcString);
-
-        if (err == EOK) {
-            RCString_SetCharacters(self->u.rcString, str, len);
-        }
-        return err;
+        self->u.rcString = RCString_CreateWithCapacity(len + 1);
+        RCString_SetCharacters(self->u.rcString, str, len);
     }
 }
 
-errno_t Value_InitString(Value* _Nonnull self, const char* buf, size_t nbytes, ValueFlags flags)
+void Value_InitString(Value* _Nonnull self, const char* buf, size_t nbytes, ValueFlags flags)
 {
     self->type = kValue_String;
     self->flags = flags;
@@ -116,15 +100,10 @@ errno_t Value_InitString(Value* _Nonnull self, const char* buf, size_t nbytes, V
     if ((flags & kValueFlag_NoCopy) == kValueFlag_NoCopy) {
         self->u.noCopyString.characters = buf;
         self->u.noCopyString.length = nbytes;
-        return EOK;
     }
     else {
-        const errno_t err = RCString_CreateWithCapacity(nbytes + 1, &self->u.rcString);
-
-        if (err == EOK) {
-            RCString_SetCharacters(self->u.rcString, buf, nbytes);
-        }
-        return err;
+        self->u.rcString = RCString_CreateWithCapacity(nbytes + 1);
+        RCString_SetCharacters(self->u.rcString, buf, nbytes);
     }
 }
 
@@ -186,15 +165,11 @@ const char* _Nonnull Value_GetCharacters(const Value* _Nonnull self)
 
 // Returns a pointer to the mutable characters of a string value; a pointer to
 // an empty string is returned if the value is not a string value.
-char* _Nullable Value_GetMutableCharacters(Value* _Nonnull self)
+char* _Nonnull Value_GetMutableCharacters(Value* _Nonnull self)
 {
     if (self->type == kValue_String) {
         if (self->u.rcString->retainCount > 1) {
-            const errno_t err = RCString_CreateMutableCopy(self->u.rcString, &self->u.rcString);
-
-            if (err != EOK) {
-                return NULL;
-            }
+            self->u.rcString = RCString_CreateMutableCopy(self->u.rcString);
         }
 
         return ((self->flags & kValueFlag_NoCopy) == 0) ? self->u.rcString->characters : self->u.noCopyString.characters;
@@ -204,26 +179,24 @@ char* _Nullable Value_GetMutableCharacters(Value* _Nonnull self)
     }
 }
 
-errno_t Value_Appending(Value* _Nonnull self, const Value* _Nonnull other)
+void Value_Appending(Value* _Nonnull self, const Value* _Nonnull other)
 {
     assert(self->type == kValue_String && other->type == kValue_String);
 
-    decl_try_err();
     const size_t lLen = Value_GetLength(self);
     const size_t rLen = Value_GetLength(other);
 
     if (rLen == 0) {
-        return EOK;
+        return;
     }
 
     if (lLen == 0) {
         Value_Deinit(self);
         Value_InitCopy(self, other);
-        return EOK;
+        return;
     }
 
-    RCString* newString = NULL;
-    try(RCString_CreateWithCapacity(lLen + rLen + 1, &newString));
+    RCString* newString = RCString_CreateWithCapacity(lLen + rLen + 1);
 
     memcpy(newString->characters, self->u.rcString->characters, lLen);
     memcpy(&newString->characters[lLen], other->u.rcString->characters, rLen);
@@ -234,9 +207,6 @@ errno_t Value_Appending(Value* _Nonnull self, const Value* _Nonnull other)
     self->type = kValue_String;
     self->flags = 0;
     self->u.rcString = newString;
-
-catch:
-    return err;
 }
 
 static int xStrcmp(const char* _Nonnull lhs, size_t lhs_len, const char* _Nonnull rhs, size_t rhs_len)
@@ -412,7 +382,8 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
             return EOK;
 
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_Addition):
-            return Value_Appending(lhs_r, rhs);
+            Value_Appending(lhs_r, rhs);
+            return EOK;
 
 
         // Subtraction
@@ -460,29 +431,27 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
 
 // Converts the provided value to its string representation. Does nothing if the
 // value is already a string.
-errno_t Value_ToString(Value* _Nonnull self)
+void Value_ToString(Value* _Nonnull self)
 {
-    return ValueArray_ToString(self, 1);
+    ValueArray_ToString(self, 1);
 }
 
 // Converts the first value in the provided value array to a string that
 // represents the string value of all values in the provided array.
-errno_t ValueArray_ToString(Value _Nonnull values[], size_t nValues)
+void ValueArray_ToString(Value _Nonnull values[], size_t nValues)
 {
-    decl_try_err();
     Value* self = &values[0];
     size_t nchars = 0;
 
     if (nValues == 1 && self->type == kValue_String) {
-        return EOK;
+        return;
     }
 
     for (size_t i = 0; i < nValues; i++) {
         nchars += Value_GetMaxStringLength(&values[i]);
     }
 
-    RCString* newString = NULL;
-    try(RCString_CreateWithCapacity(nchars + 1, &newString));
+    RCString* newString = RCString_CreateWithCapacity(nchars + 1);
 
     nchars = 0;
     for (size_t i = 0; i < nValues; i++) {
@@ -495,9 +464,6 @@ errno_t ValueArray_ToString(Value _Nonnull values[], size_t nValues)
     self->type = kValue_String;
     self->flags = 0;
     self->u.rcString = newString;
-
-catch:
-    return err;
 }
 
 // Returns the max length of the string that represents the value of the Value.
@@ -566,7 +532,7 @@ size_t Value_GetString(const Value* _Nonnull self, size_t bufSize, char* _Nonnul
     return nchars;
 }
 
-errno_t Value_Write(const Value* _Nonnull self, FILE* _Nonnull stream)
+void Value_Write(const Value* _Nonnull self, FILE* _Nonnull stream)
 {
     char buf[__INT_MAX_BASE_10_DIGITS];
 
@@ -591,5 +557,4 @@ errno_t Value_Write(const Value* _Nonnull self, FILE* _Nonnull stream)
         default:
             break;
     }
-    return (ferror(stream) ? ferror(stream) : EOK);
 }

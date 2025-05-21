@@ -30,6 +30,6 @@ extern void ConstantsPool_Destroy(ConstantsPool* _Nullable self);
 
 // Returns a uniqued string value from the constant pool. The string is added to
 // the pool if it doesn't already exist there.
-extern errno_t ConstantsPool_GetStringValue(ConstantsPool* _Nonnull self, const char* _Nonnull str, size_t len, Value* _Nonnull pOutValue);
+extern void ConstantsPool_GetStringValue(ConstantsPool* _Nonnull self, const char* _Nonnull str, size_t len, Value* _Nonnull vp);
 
 #endif  /* ConstantsPool_h */

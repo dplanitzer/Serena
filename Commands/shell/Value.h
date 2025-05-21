@@ -9,11 +9,11 @@
 #ifndef Value_h
 #define Value_h
 
-#include "Errors.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/errno.h>
 
 typedef enum ValueType {
     kValue_Never = 0,           // Bottom type (uninhabited)
@@ -80,8 +80,8 @@ typedef struct Value {
 #define Value_InitEmptyString(__self) \
     Value_InitCString(__self, "", kValueFlag_NoCopy)
 
-extern errno_t Value_InitCString(Value* _Nonnull self, const char* str, ValueFlags flags);
-extern errno_t Value_InitString(Value* _Nonnull self, const char* buf, size_t nbytes, ValueFlags flags);
+extern void Value_InitCString(Value* _Nonnull self, const char* str, ValueFlags flags);
+extern void Value_InitString(Value* _Nonnull self, const char* buf, size_t nbytes, ValueFlags flags);
 
 // Creates an efficient copy of 'other'. The copy is in the sense efficient that
 // 'other' and 'self' will share the same backing store if 'other' is a string.
@@ -117,14 +117,14 @@ extern errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, 
 
 // Converts the provided value to its string representation. Does nothing if the
 // value is already a string.
-extern errno_t Value_ToString(Value* _Nonnull self);
+extern void Value_ToString(Value* _Nonnull self);
 
 // Converts the first value in the provided value array to a string that
 // represents the string value of all values in the provided array.
-extern errno_t ValueArray_ToString(Value _Nonnull values[], size_t nValues);
+extern void ValueArray_ToString(Value _Nonnull values[], size_t nValues);
 
 // Writes the string representation of the given value to the given I/O stream.
-extern errno_t Value_Write(const Value* _Nonnull self, FILE* _Nonnull stream);
+extern void Value_Write(const Value* _Nonnull self, FILE* _Nonnull stream);
 
 // Returns the length of a string value; 0 is returned if the value is not a
 // string.
@@ -138,11 +138,11 @@ extern const char* _Nonnull Value_GetCharacters(const Value* _Nonnull self);
 // is returned if this is not possible. Note that this function triggers a copy-
 // on-write operation if the string backing store is shared with some other
 // value.
-extern char* _Nullable Value_GetMutableCharacters(Value* _Nonnull self);
+extern char* _Nonnull Value_GetMutableCharacters(Value* _Nonnull self);
 
 // Assumes that the receiver and 'other' are strings and concatenates the string
 // values and assigns the result to 'self'.
-extern errno_t Value_Appending(Value* _Nonnull self, const Value* _Nonnull other);
+extern void Value_Appending(Value* _Nonnull self, const Value* _Nonnull other);
 
 // Returns the max length of the string that represents the value of the Value.
 // Note that the actual string returned by Value_GetString() may be shorter,

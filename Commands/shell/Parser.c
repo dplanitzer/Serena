@@ -100,14 +100,14 @@ static errno_t Parser_CompoundString(Parser* _Nonnull self, bool isBacktick, Com
 
         switch (t->id) {
             case kToken_StringSegment:
-                try(ConstantsPool_GetStringValue(self->constantsPool, t->u.string, t->length, &v));
+                ConstantsPool_GetStringValue(self->constantsPool, t->u.string, t->length, &v);
                 seg = Segment_CreateLiteral(self->allocator, kSegment_String, &v);
                 consume();
                 break;
 
             case kToken_EscapeSequence:
                 try(failOnIncomplete(t));
-                try(ConstantsPool_GetStringValue(self->constantsPool, t->u.string, t->length, &v));
+                ConstantsPool_GetStringValue(self->constantsPool, t->u.string, t->length, &v);
                 seg = Segment_CreateLiteral(self->allocator, kSegment_EscapeSequence, &v);
                 consume();
                 break;
@@ -489,7 +489,7 @@ static errno_t Parser_Literal(Parser* _Nonnull self, Arithmetic* _Nullable * _No
             break;
 
         case kToken_SingleQuoteString:
-            try(ConstantsPool_GetStringValue(self->constantsPool, t->u.string, t->length, &v));
+            ConstantsPool_GetStringValue(self->constantsPool, t->u.string, t->length, &v);
             *pOutExpr = Arithmetic_CreateLiteral(self->allocator, hasLeadingWhitespace, &v);
             consume();
             break;

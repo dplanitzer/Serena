@@ -269,12 +269,10 @@ static errno_t Interpreter_SerializeValue(InterpreterRef _Nonnull self, const Va
 
             Value* vtos = OpStack_GetTos(self->opStack);
 
-            const errno_t err = Value_ToString(vtos);
-            if (err == EOK) {
-                ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vtos), Value_GetLength(vtos));
-            }
+            Value_ToString(vtos);
+            ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vtos), Value_GetLength(vtos));
             OpStack_Pop(self->opStack);
-            return err;
+            return EOK;
         }
 
         case kValue_Never:
@@ -323,11 +321,9 @@ static errno_t Interpreter_SerializeArithmeticExpression(InterpreterRef _Nonnull
     if (err == EOK) {
         Value* vp = OpStack_GetTos(self->opStack);
 
-        err = Value_ToString(vp);
-        if (err == EOK) {
-            ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vp), Value_GetLength(vp));
-            OpStack_Pop(self->opStack);
-        }
+        Value_ToString(vp);
+        ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vp), Value_GetLength(vp));
+        OpStack_Pop(self->opStack);
     }
     return err;
 }

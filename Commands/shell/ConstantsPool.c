@@ -14,23 +14,12 @@
 // Constant
 ////////////////////////////////////////////////////////////////////////////////
 
-static void Constant_Destroy(Constant* _Nullable self);
-
-static errno_t Constant_CreateString(const char* _Nonnull str, size_t len, Constant* _Nullable * _Nonnull pOutSelf)
+static Constant* _Nonnull Constant_CreateString(const char* _Nonnull str, size_t len)
 {
-    decl_try_err();
-    Constant* self;
+    Constant* self = calloc(1, sizeof(Constant));
 
-    try_null(self, calloc(1, sizeof(Constant)), errno);
-    try(Value_InitString(&self->value, (char*)str, len, 0));
-
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    Constant_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
+    Value_InitString(&self->value, (char*)str, len, 0);
+    return self;
 }
 
 static void Constant_Destroy(Constant* _Nullable self)
@@ -89,7 +78,7 @@ static void _ConstantsPool_DestroyHashtable(ConstantsPool* _Nonnull self)
     self->hashtableCapacity = 0;
 }
 
-errno_t ConstantsPool_GetStringValue(ConstantsPool* _Nonnull self, const char* _Nonnull str, size_t len, Value* _Nonnull pOutValue)
+void ConstantsPool_GetStringValue(ConstantsPool* _Nonnull self, const char* _Nonnull str, size_t len, Value* _Nonnull vp)
 {
     const size_t hashCode = hash_string(str, len);
     const size_t hashIndex = hashCode % self->hashtableCapacity;
@@ -97,18 +86,15 @@ errno_t ConstantsPool_GetStringValue(ConstantsPool* _Nonnull self, const char* _
 
     while (cp) {
         if (cp->value.type == kValue_String && Value_GetLength(&cp->value) == len && !memcmp(Value_GetCharacters(&cp->value), str, len)) {
-            Value_InitCopy(pOutValue, &cp->value);
-            return EOK;
+            Value_InitCopy(vp, &cp->value);
+            return;
         }
 
         cp = cp->next;
     }
 
-    const errno_t err = Constant_CreateString(str, len, &cp);
-    if (err == EOK) {
-        cp->next = self->hashtable[hashIndex];
-        self->hashtable[hashIndex] = cp;
-        Value_InitCopy(pOutValue, &cp->value);
-    }
-    return err;
+    cp = Constant_CreateString(str, len);
+    cp->next = self->hashtable[hashIndex];
+    self->hashtable[hashIndex] = cp;
+    Value_InitCopy(vp, &cp->value);
 }
