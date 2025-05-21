@@ -10,7 +10,14 @@
 #include <sys/_syscall.h>
 
 
-errno_t read(int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+ssize_t read(int fd, void* _Nonnull buf, size_t nbytes)
 {
-    return (errno_t)_syscall(SC_read, fd, buffer, nBytesToRead, nOutBytesRead);
+    ssize_t nBytesRead;
+
+    if (_syscall(SC_read, fd, buf, nbytes, &nBytesRead) == 0) {
+        return nBytesRead;
+    }
+    else {
+        return -1;
+    }
 }

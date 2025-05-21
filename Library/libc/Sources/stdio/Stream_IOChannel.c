@@ -14,14 +14,7 @@
 
 static ssize_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* pBuffer, ssize_t nBytesToRead)
 {
-    ssize_t nBytesRead;
-
-    if (read(self->fd, pBuffer, nBytesToRead, &nBytesRead) == EOK) {
-        return nBytesRead;
-    }
-    else {
-        return EOF;
-    }
+    return read(self->fd, pBuffer, nBytesToRead);
 }
 
 static ssize_t __fd_write(__IOChannel_FILE_Vars* _Nonnull self, const void* pBytes, ssize_t nBytesToWrite)

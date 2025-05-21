@@ -34,14 +34,14 @@ void pipe_test(int argc, char *argv[])
     assertOK(close(fds[PIPE_WR]));
 
     char pBuffer[64];
-    ssize_t nBytesRead;
-    assertOK(read(fds[PIPE_RD], pBuffer, nBytesWritten, &nBytesRead));
+    ssize_t nBytesRead = read(fds[PIPE_RD], pBuffer, nBytesWritten);
+    assertGreaterEqual(0, nBytesRead);
     printf("read: %s, nbytes: %zd\n", pBuffer, nBytesRead);
     assertEquals(nBytesToWrite, nBytesWritten);
     assertEquals(0, strcmp(pBuffer, pBytesToWrite));
 
     // Should get EOF now since we already closed the write side
-    assertOK(read(fds[PIPE_RD], pBuffer, 1, &nBytesRead));
+    nBytesRead = read(fds[PIPE_RD], pBuffer, 1);
     assertEquals(0, nBytesRead);
     printf("write side is closed, read: nbytes: %zd\n", nBytesRead);
 
@@ -53,14 +53,14 @@ void pipe_test(int argc, char *argv[])
 
 static void OnReadFromPipe(int fds[2])
 {
-    ssize_t nBytesRead;
     char buf[16];
     size_t nBytesToRead = sizeof(buf);
     
     while (true) {
         //VirtualProcessor_Sleep(timespec_from_ms(200));
         buf[0] = '\0';
-        assertOK(read(fds[PIPE_RD], buf, nBytesToRead, &nBytesRead));
+        const ssize_t nBytesRead = read(fds[PIPE_RD], buf, nBytesToRead);
+        assertGreaterEqual(0, nBytesRead);
         buf[nBytesRead] = '\0';
 
         printf("Reader: '%s' -> %d\n", buf, nBytesRead);

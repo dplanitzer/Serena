@@ -24,9 +24,9 @@ void hid_test(int argc, char *argv[])
     printf("Waiting for events...\n");
 
     while (true) {
-        ssize_t nBytesRead;
-        assertOK(read(fd, &evt, sizeof(evt), &nBytesRead));
+        const ssize_t nBytesRead = read(fd, &evt, sizeof(evt));
         
+        assertGreaterEqual(0, nBytesRead);
         switch (evt.type) {
             case kHIDEventType_KeyDown:
             case kHIDEventType_KeyUp:
