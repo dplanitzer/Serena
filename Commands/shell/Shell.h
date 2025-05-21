@@ -35,13 +35,13 @@ extern void Shell_Destroy(ShellRef _Nullable self);
 // it loops around to get the next line. Returns an error if ie the main loop
 // encounters an out-of-memory error. Otherwise blocks until the user explicitly
 // exits the interactive shell.
-extern errno_t Shell_Run(ShellRef _Nonnull self);
+extern int Shell_Run(ShellRef _Nonnull self);
 
 // Interprets the given string as a command or series of commands.
-extern errno_t Shell_RunContentsOfString(ShellRef _Nonnull self, const char* _Nonnull str);
+extern int Shell_RunContentsOfString(ShellRef _Nonnull self, const char* _Nonnull str);
 
 // Interprets the contents of the given file as a shell script and runs the commands
 // in that script, line by line.
-extern errno_t Shell_RunContentsOfFile(ShellRef _Nonnull self, const char* _Nonnull path);
+extern int Shell_RunContentsOfFile(ShellRef _Nonnull self, const char* _Nonnull path);
 
 #endif  /* Shell_h */

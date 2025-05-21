@@ -201,14 +201,14 @@ typedef struct WhileArithmetic {
     struct Block* _Nonnull  body;
 } WhileArithmetic;
 
-extern errno_t Arithmetic_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, const Value* value, Arithmetic* _Nullable * _Nonnull pOutSelf);
-extern errno_t Arithmetic_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, CompoundString* _Nonnull str, Arithmetic* _Nullable * _Nonnull pOutSelf);
-extern errno_t Arithmetic_CreateBinary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ArithmeticType type, Arithmetic* _Nonnull lhs, Arithmetic* _Nonnull rhs, Arithmetic* _Nullable * _Nonnull pOutSelf);
-extern errno_t Arithmetic_CreateUnary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ArithmeticType type, Arithmetic* _Nullable expr, Arithmetic* _Nullable * _Nonnull pOutSelf);
-extern errno_t Arithmetic_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, VarRef* _Nonnull vref, Arithmetic* _Nullable * _Nonnull pOutSelf);
-extern errno_t Arithmetic_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Arithmetic* _Nonnull cond, struct Block* _Nonnull thenBlock, struct Block* _Nullable elseBlock, Arithmetic* _Nullable * _Nonnull pOutSelf);
-extern errno_t Arithmetic_CreateWhile(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Arithmetic* _Nonnull cond, struct Block* _Nonnull body, Arithmetic* _Nullable * _Nonnull pOutSelf);
-extern errno_t Arithmetic_CreateCommand(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nullable * _Nonnull pOutSelf);
+extern Arithmetic* _Nonnull Arithmetic_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, const Value* value);
+extern Arithmetic* _Nonnull Arithmetic_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, CompoundString* _Nonnull str);
+extern Arithmetic* _Nonnull Arithmetic_CreateBinary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ArithmeticType type, Arithmetic* _Nonnull lhs, Arithmetic* _Nonnull rhs);
+extern Arithmetic* _Nonnull Arithmetic_CreateUnary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ArithmeticType type, Arithmetic* _Nullable expr);
+extern Arithmetic* _Nonnull Arithmetic_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, VarRef* _Nonnull vref);
+extern Arithmetic* _Nonnull Arithmetic_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Arithmetic* _Nonnull cond, struct Block* _Nonnull thenBlock, struct Block* _Nullable elseBlock);
+extern Arithmetic* _Nonnull Arithmetic_CreateWhile(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Arithmetic* _Nonnull cond, struct Block* _Nonnull body);
+extern Arithmetic* _Nonnull Arithmetic_CreateCommand(StackAllocatorRef _Nonnull pAllocator);
 extern void CommandArithmetic_AddAtom(CommandArithmetic* _Nonnull self, Atom* _Nonnull atom);
 #ifdef SCRIPT_PRINTING
 extern void Arithmetic_Print(Arithmetic* _Nonnull self);
@@ -258,12 +258,12 @@ typedef struct ContinueExpression {
     Expression  super;
 } ContinueExpression;
 
-extern errno_t Expression_CreateNull(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull expr, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateAssignment(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull lvalue, Arithmetic* _Nonnull rvalue, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateVarDecl(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Arithmetic* _Nonnull expr, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateBreak(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nullable expr, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateContinue(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf);
+extern Expression* _Nonnull Expression_CreateNull(StackAllocatorRef _Nonnull pAllocator);
+extern Expression* _Nonnull Expression_CreateArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull expr);
+extern Expression* _Nonnull Expression_CreateAssignment(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull lvalue, Arithmetic* _Nonnull rvalue);
+extern Expression* _Nonnull Expression_CreateVarDecl(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Arithmetic* _Nonnull expr);
+extern Expression* _Nonnull Expression_CreateBreak(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nullable expr);
+extern Expression* _Nonnull Expression_CreateContinue(StackAllocatorRef _Nonnull pAllocator);
 #ifdef SCRIPT_PRINTING
 extern void Expression_Print(Expression* _Nonnull self);
 #endif
@@ -287,7 +287,7 @@ typedef struct Block {
     ExpressionList  exprs;
 } Block;
 
-extern errno_t Block_Create(StackAllocatorRef _Nonnull pAllocator, Block* _Nullable * _Nonnull pOutSelf);
+extern Block* _Nonnull Block_Create(StackAllocatorRef _Nonnull pAllocator);
 #ifdef SCRIPT_PRINTING
 extern void Block_Print(Block* _Nonnull self);
 #endif

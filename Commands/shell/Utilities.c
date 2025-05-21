@@ -65,40 +65,36 @@ size_t hash_string(const char* _Nonnull str, size_t len)
     return h;
 }
 
-errno_t read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull pOutText, size_t* _Nullable pOutLength)
+int read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull pOutText, size_t* _Nullable pOutLength)
 {
-    decl_try_err();
-    FILE* fp = NULL;
-    char* text = NULL;
+    FILE* fp = fopen(path, "r");
 
-    try_null(fp, fopen(path, "r"), errno);
+    if (fp == NULL) {
+        return -1;
+    }
+
     fseek(fp, 0, SEEK_END);
     const size_t fileSize = ftell(fp);
     rewind(fp);
 
-    try_null(text, malloc(fileSize + 1), errno);
-    if (fileSize > 0ll) {
-        fread(text, fileSize, 1, fp);
-        if (ferror(fp)) {
-            throw(errno);
-        }
-    }
+    char* text = malloc(fileSize + 1);
+    fread(text, fileSize, 1, fp);
     text[fileSize] = '\0';
     fclose(fp);
 
-    *pOutText = text;
-    if (pOutLength) {
-        *pOutLength = fileSize + 1;
+    if (ferror(fp)) {
+        free(text);
+        *pOutText = NULL;
+        if (pOutLength) {
+            *pOutLength = 0;
+        }
     }
-    return EOK;
-
-catch:
-    free(text);
-    fclose(fp);
-
-    *pOutText = NULL;
-    if (pOutLength) {
-        *pOutLength = 0;
+    else {
+        *pOutText = text;
+        if (pOutLength) {
+            *pOutLength = fileSize + 1;
+        }
     }
-    return err;
+    
+    return 0;
 }

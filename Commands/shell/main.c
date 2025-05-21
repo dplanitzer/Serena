@@ -31,8 +31,6 @@ static CLAP_DECL(params,
 
 void main_closure(int argc, char *argv[])
 {
-    decl_try_err();
-
     _abort_on_nomem();
 
     clap_parse(0, params, argc, argv);
@@ -47,22 +45,24 @@ void main_closure(int argc, char *argv[])
             fputs("\n\033[36mSerena Shell v0.4.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n", stdout);
         }
 
-        err = Shell_Run(sh);
+        Shell_Run(sh);
     }
     else {
         // XXX arg_strings[1]... should be passed as arguments to the shell script/command
+        int hasError;
+
         if (arg_isCommand) {
-            err = Shell_RunContentsOfString(sh, arg_strings.strings[0]);
+            hasError = Shell_RunContentsOfString(sh, arg_strings.strings[0]);
         }
         else {
-            err = Shell_RunContentsOfFile(sh, arg_strings.strings[0]);
+            hasError = Shell_RunContentsOfFile(sh, arg_strings.strings[0]);
         }
 
-        if (err != EOK) {
-            print_error(argv[0], arg_strings.strings[0], err);
+        if (hasError) {
+            print_error(argv[0], arg_strings.strings[0], errno);
         }
     }
     Shell_Destroy(sh);
 
-    exit((err == EOK) ? EXIT_SUCCESS : EXIT_FAILURE);
+    exit((errno == 0) ? EXIT_SUCCESS : EXIT_FAILURE);
 }

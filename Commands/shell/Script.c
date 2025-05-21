@@ -319,29 +319,27 @@ void Atom_Print(Atom* _Nonnull self)
 // MARK: ArithmeticExpression
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Arithmetic_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, const Value* value, Arithmetic* _Nullable * _Nonnull pOutSelf)
+Arithmetic* _Nonnull Arithmetic_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, const Value* value)
 {
     LiteralArithmetic* self = StackAllocator_ClearAlloc(pAllocator, sizeof(LiteralArithmetic));
 
     self->super.type = kArithmetic_Literal;
     self->super.hasLeadingWhitespace = hasLeadingWhitespace;
     Value_InitCopy(&self->value, value);
-    *pOutSelf = (Arithmetic*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Arithmetic*)self;
 }
 
-errno_t Arithmetic_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, CompoundString* _Nonnull str, Arithmetic* _Nullable * _Nonnull pOutSelf)
+Arithmetic* _Nonnull Arithmetic_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, CompoundString* _Nonnull str)
 {
     CompoundStringArithmetic* self = StackAllocator_ClearAlloc(pAllocator, sizeof(CompoundStringArithmetic));
 
     self->super.type = kArithmetic_CompoundString;
     self->super.hasLeadingWhitespace = hasLeadingWhitespace;
     self->string = str;
-    *pOutSelf = (Arithmetic*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Arithmetic*)self;
 }
 
-errno_t Arithmetic_CreateBinary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ArithmeticType type, Arithmetic* _Nonnull lhs, Arithmetic* _Nonnull rhs, Arithmetic* _Nullable * _Nonnull pOutSelf)
+Arithmetic* _Nonnull Arithmetic_CreateBinary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ArithmeticType type, Arithmetic* _Nonnull lhs, Arithmetic* _Nonnull rhs)
 {
     BinaryArithmetic* self = StackAllocator_ClearAlloc(pAllocator, sizeof(BinaryArithmetic));
 
@@ -349,33 +347,30 @@ errno_t Arithmetic_CreateBinary(StackAllocatorRef _Nonnull pAllocator, bool hasL
     self->super.hasLeadingWhitespace = hasLeadingWhitespace;
     self->lhs = lhs;
     self->rhs = rhs;
-    *pOutSelf = (Arithmetic*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Arithmetic*)self;
 }
 
-errno_t Arithmetic_CreateUnary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ArithmeticType type, Arithmetic* _Nullable expr, Arithmetic* _Nullable * _Nonnull pOutSelf)
+Arithmetic* _Nonnull Arithmetic_CreateUnary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ArithmeticType type, Arithmetic* _Nullable expr)
 {
     UnaryArithmetic* self = StackAllocator_ClearAlloc(pAllocator, sizeof(UnaryArithmetic));
 
     self->super.type = type;
     self->super.hasLeadingWhitespace = hasLeadingWhitespace;
     self->expr = expr;
-    *pOutSelf = (Arithmetic*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Arithmetic*)self;
 }
 
-errno_t Arithmetic_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, VarRef* _Nonnull vref, Arithmetic* _Nullable * _Nonnull pOutSelf)
+Arithmetic* _Nonnull Arithmetic_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, VarRef* _Nonnull vref)
 {
     VarRefArithmetic* self = StackAllocator_ClearAlloc(pAllocator, sizeof(VarRefArithmetic));
 
     self->super.type = kArithmetic_VarRef;
     self->super.hasLeadingWhitespace = hasLeadingWhitespace;
     self->vref = vref;
-    *pOutSelf = (Arithmetic*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Arithmetic*)self;
 }
 
-errno_t Arithmetic_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Arithmetic* _Nonnull cond, Block* _Nonnull thenBlock, Block* _Nullable elseBlock, Arithmetic* _Nullable * _Nonnull pOutSelf)
+Arithmetic* _Nonnull Arithmetic_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Arithmetic* _Nonnull cond, Block* _Nonnull thenBlock, Block* _Nullable elseBlock)
 {
     IfArithmetic* self = StackAllocator_ClearAlloc(pAllocator, sizeof(IfArithmetic));
 
@@ -384,11 +379,10 @@ errno_t Arithmetic_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, bool hasL
     self->cond = cond;
     self->thenBlock = thenBlock;
     self->elseBlock = elseBlock;
-    *pOutSelf = (Arithmetic*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Arithmetic*)self;
 }
 
-errno_t Arithmetic_CreateWhile(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Arithmetic* _Nonnull cond, Block* _Nonnull body, Arithmetic* _Nullable * _Nonnull pOutSelf)
+Arithmetic* _Nonnull Arithmetic_CreateWhile(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Arithmetic* _Nonnull cond, Block* _Nonnull body)
 {
     WhileArithmetic* self = StackAllocator_ClearAlloc(pAllocator, sizeof(WhileArithmetic));
 
@@ -396,18 +390,16 @@ errno_t Arithmetic_CreateWhile(StackAllocatorRef _Nonnull pAllocator, bool hasLe
     self->super.hasLeadingWhitespace = hasLeadingWhitespace;
     self->cond = cond;
     self->body = body;
-    *pOutSelf = (Arithmetic*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Arithmetic*)self;
 }
 
-errno_t Arithmetic_CreateCommand(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nullable * _Nonnull pOutSelf)
+Arithmetic* _Nonnull Arithmetic_CreateCommand(StackAllocatorRef _Nonnull pAllocator)
 {
     CommandArithmetic* self = StackAllocator_ClearAlloc(pAllocator, sizeof(CommandArithmetic));
 
     self->super.type = kArithmetic_Command;
     self->super.hasLeadingWhitespace = true;
-    *pOutSelf = (Arithmetic*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Arithmetic*)self;
 }
 
 void CommandArithmetic_AddAtom(CommandArithmetic* _Nonnull self, Atom* _Nonnull atom)
@@ -522,37 +514,34 @@ void Arithmetic_Print(Arithmetic* _Nonnull self)
 // MARK: Expression
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Expression_CreateNull(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf)
+Expression* _Nonnull Expression_CreateNull(StackAllocatorRef _Nonnull pAllocator)
 {
     Expression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(Expression));
 
     self->type = kExpression_Null;
-    *pOutSelf = self;
-    return (self) ? EOK : ENOMEM;
+    return (Expression*)self;
 }
 
-errno_t Expression_CreateArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull expr, Expression* _Nullable * _Nonnull pOutSelf)
+Expression* _Nonnull Expression_CreateArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull expr)
 {
     ArithmeticExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(ArithmeticExpression));
 
     self->super.type = kExpression_ArithmeticExpression;
     self->expr = expr;
-    *pOutSelf = (Expression*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Expression*)self;
 }
 
-errno_t Expression_CreateAssignment(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull lvalue, Arithmetic* _Nonnull rvalue, Expression* _Nullable * _Nonnull pOutSelf)
+Expression* _Nonnull Expression_CreateAssignment(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull lvalue, Arithmetic* _Nonnull rvalue)
 {
     AssignmentExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(AssignmentExpression));
 
     self->super.type = kExpression_Assignment;
     self->lvalue = lvalue;
     self->rvalue = rvalue;
-    *pOutSelf = (Expression*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Expression*)self;
 }
 
-errno_t Expression_CreateVarDecl(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Arithmetic* _Nonnull expr, Expression* _Nullable * _Nonnull pOutSelf)
+Expression* _Nonnull Expression_CreateVarDecl(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Arithmetic* _Nonnull expr)
 {
     VarDeclExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(VarDeclExpression));
 
@@ -560,27 +549,24 @@ errno_t Expression_CreateVarDecl(StackAllocatorRef _Nonnull pAllocator, unsigned
     self->vref = vref;
     self->expr = expr;
     self->modifiers = modifiers;
-    *pOutSelf = (Expression*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Expression*)self;
 }
 
-errno_t Expression_CreateBreak(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull expr, Expression* _Nullable * _Nonnull pOutSelf)
+Expression* _Nonnull Expression_CreateBreak(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull expr)
 {
     BreakExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(BreakExpression));
 
     self->super.type = kExpression_Break;
     self->expr = expr;
-    *pOutSelf = (Expression*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Expression*)self;
 }
 
-errno_t Expression_CreateContinue(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf)
+Expression* _Nonnull Expression_CreateContinue(StackAllocatorRef _Nonnull pAllocator)
 {
     ContinueExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(ContinueExpression));
 
     self->super.type = kExpression_Continue;
-    *pOutSelf = (Expression*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Expression*)self;
 }
 
 #ifdef SCRIPT_PRINTING
@@ -680,13 +666,12 @@ void ExpressionList_Print(ExpressionList* _Nonnull self)
 // MARK: Block
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Block_Create(StackAllocatorRef _Nonnull pAllocator, Block* _Nullable * _Nonnull pOutSelf)
+Block* _Nonnull Block_Create(StackAllocatorRef _Nonnull pAllocator)
 {
     Block* self = StackAllocator_ClearAlloc(pAllocator, sizeof(Block));
 
     ExpressionList_Init(&self->exprs);
-    *pOutSelf = self;
-    return (self) ? EOK : ENOMEM;
+    return self;
 }
 
 #ifdef SCRIPT_PRINTING

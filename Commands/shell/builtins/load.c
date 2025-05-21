@@ -31,15 +31,14 @@ static int do_load(InterpreterRef _Nonnull ip, const char* _Nonnull path, const 
 {
     const char* text = NULL;
     size_t len = 0;
-    const errno_t err = read_contents_of_file(path, &text, &len);
     
-    if (err == EOK) {
+    if (read_contents_of_file(path, &text, &len) == 0) {
         OpStack_PushString(ip->opStack, text, len);
         free(text);
         return EXIT_SUCCESS;
     }
     else {
-        print_error(proc_name, path, err);
+        print_error(proc_name, path, errno);
         return EXIT_FAILURE;
     }
 }

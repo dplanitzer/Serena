@@ -422,7 +422,7 @@ static errno_t Parser_Command(Parser* _Nonnull self, Arithmetic* _Nullable * _No
     Arithmetic* expr = NULL;
     Atom* atom = NULL;
 
-    try(Arithmetic_CreateCommand(self->allocator, &expr));
+    expr = Arithmetic_CreateCommand(self->allocator);
     CommandArithmetic* cmd = AS(expr, CommandArithmetic);
 
 
@@ -472,32 +472,32 @@ static errno_t Parser_Literal(Parser* _Nonnull self, Arithmetic* _Nullable * _No
     switch (t->id) {
         case kToken_False:
             Value_InitBool(&v, false);
-            try(Arithmetic_CreateLiteral(self->allocator, hasLeadingWhitespace, &v, pOutExpr));
+            *pOutExpr = Arithmetic_CreateLiteral(self->allocator, hasLeadingWhitespace, &v);
             consume();
             break;
 
         case kToken_True:
             Value_InitBool(&v, true);
-            try(Arithmetic_CreateLiteral(self->allocator, hasLeadingWhitespace, &v, pOutExpr));
+            *pOutExpr = Arithmetic_CreateLiteral(self->allocator, hasLeadingWhitespace, &v);
             consume();
             break;
             
         case kToken_Integer:
             Value_InitInteger(&v, t->u.i32);
-            try(Arithmetic_CreateLiteral(self->allocator, hasLeadingWhitespace, &v, pOutExpr));
+            *pOutExpr = Arithmetic_CreateLiteral(self->allocator, hasLeadingWhitespace, &v);
             consume();
             break;
 
         case kToken_SingleQuoteString:
             try(ConstantsPool_GetStringValue(self->constantsPool, t->u.string, t->length, &v));
-            try(Arithmetic_CreateLiteral(self->allocator, hasLeadingWhitespace, &v, pOutExpr));
+            *pOutExpr = Arithmetic_CreateLiteral(self->allocator, hasLeadingWhitespace, &v);
             consume();
             break;
 
         case kToken_DoubleQuote: {
             CompoundString* str = NULL;
             try(Parser_CompoundString(self, false, &str));
-            try(Arithmetic_CreateCompoundString(self->allocator, hasLeadingWhitespace, str, pOutExpr));
+            *pOutExpr = Arithmetic_CreateCompoundString(self->allocator, hasLeadingWhitespace, str);
             break;
         }
 
@@ -533,7 +533,8 @@ static errno_t Parser_IfExpression(Parser* _Nonnull self, Arithmetic* _Nullable 
         try(Parser_Block(self, &elseBlock));
     }
 
-    return Arithmetic_CreateIfThen(self->allocator, hasLeadingWhitespace, condExpr, thenBlock, elseBlock, pOutExpr);
+    *pOutExpr = Arithmetic_CreateIfThen(self->allocator, hasLeadingWhitespace, condExpr, thenBlock, elseBlock);
+    return EOK;
 
 catch:
     *pOutExpr = NULL;
@@ -556,7 +557,8 @@ static errno_t Parser_WhileExpression(Parser* _Nonnull self, Arithmetic* _Nullab
     try(Parser_ArithmeticExpression(self, &condExpr));
     try(Parser_Block(self, &bodyBlock));
 
-    return Arithmetic_CreateWhile(self->allocator, hasLeadingWhitespace, condExpr, bodyBlock, pOutExpr);
+    *pOutExpr = Arithmetic_CreateWhile(self->allocator, hasLeadingWhitespace, condExpr, bodyBlock);
+    return EOK;
 
 catch:
     *pOutExpr = NULL;
@@ -582,14 +584,14 @@ static errno_t Parser_PrimaryExpression(Parser* _Nonnull self, Arithmetic* _Null
         case kToken_VariableName: {
             VarRef* vref = NULL;
             try(Parser_VarReference(self, &vref));
-            try(Arithmetic_CreateVarRef(self->allocator, hasLeadingWhitespace, vref, pOutExpr));
+            *pOutExpr = Arithmetic_CreateVarRef(self->allocator, hasLeadingWhitespace, vref);
             break;
         }
 
         case kToken_OpeningParenthesis: {
             Arithmetic* expr = NULL;
             try(Parser_ParenthesizedArithmeticExpression(self, &expr));
-            try(Arithmetic_CreateUnary(self->allocator, hasLeadingWhitespace, kArithmetic_Parenthesized, expr, pOutExpr));
+            *pOutExpr = Arithmetic_CreateUnary(self->allocator, hasLeadingWhitespace, kArithmetic_Parenthesized, expr);
             break;
         }
 
@@ -641,7 +643,7 @@ static errno_t Parser_PrefixUnaryExpression(Parser* _Nonnull self, Arithmetic* _
         }
 
         consume();
-        try(Arithmetic_CreateUnary(self->allocator, hasLeadingWhitespace, type, NULL, &expr));
+        expr = Arithmetic_CreateUnary(self->allocator, hasLeadingWhitespace, type, NULL);
         if (curExpr) {
             AS(curExpr, UnaryArithmetic)->expr = expr;
             curExpr = expr;
@@ -702,7 +704,7 @@ static errno_t Parser_Multiplication(Parser* _Nonnull self, Arithmetic* _Nullabl
 
         consume();
         try(Parser_PrefixUnaryExpression(self, &rhs));
-        try(Arithmetic_CreateBinary(self->allocator, hasLeadingWhitespace, type, lhs, rhs, &expr));
+        expr = Arithmetic_CreateBinary(self->allocator, hasLeadingWhitespace, type, lhs, rhs);
         lhs = expr;
         expr = NULL;
     }
@@ -745,7 +747,7 @@ static errno_t Parser_Addition(Parser* _Nonnull self, Arithmetic* _Nullable * _N
 
         consume();
         try(Parser_Multiplication(self, &rhs));
-        try(Arithmetic_CreateBinary(self->allocator, hasLeadingWhitespace, type, lhs, rhs, &expr));
+        expr = Arithmetic_CreateBinary(self->allocator, hasLeadingWhitespace, type, lhs, rhs);
         lhs = expr;
         expr = NULL;
     }
@@ -792,7 +794,7 @@ static errno_t Parser_Comparison(Parser* _Nonnull self, Arithmetic* _Nullable * 
 
         consume();
         try(Parser_Addition(self, &rhs));
-        try(Arithmetic_CreateBinary(self->allocator, hasLeadingWhitespace, type, lhs, rhs, &expr));
+        expr = Arithmetic_CreateBinary(self->allocator, hasLeadingWhitespace, type, lhs, rhs);
         lhs = expr;
         expr = NULL;
     }
@@ -823,7 +825,7 @@ static errno_t Parser_Conjunction(Parser* _Nonnull self, Arithmetic* _Nullable *
 
         consume();
         try(Parser_Comparison(self, &rhs));
-        try(Arithmetic_CreateBinary(self->allocator, hasLeadingWhitespace, kArithmetic_Conjunction, lhs, rhs, &expr));
+        expr = Arithmetic_CreateBinary(self->allocator, hasLeadingWhitespace, kArithmetic_Conjunction, lhs, rhs);
         lhs = expr;
         expr = NULL;
     }
@@ -854,7 +856,7 @@ static errno_t Parser_Disjunction(Parser* _Nonnull self, Arithmetic* _Nullable *
 
         consume();
         try(Parser_Conjunction(self, &rhs));
-        try(Arithmetic_CreateBinary(self->allocator, hasLeadingWhitespace, kArithmetic_Disjunction, lhs, rhs, &expr));
+        expr = Arithmetic_CreateBinary(self->allocator, hasLeadingWhitespace, kArithmetic_Disjunction, lhs, rhs);
         lhs = expr;
         expr = NULL;
     }
@@ -900,7 +902,7 @@ static errno_t Parser_ArithmeticExpression(Parser* _Nonnull self, Arithmetic* _N
 
         consume();
         try(Parser_Command(self, &rhs));
-        try(Arithmetic_CreateBinary(self->allocator, hasLeadingWhitespace, kArithmetic_Pipeline, lhs, rhs, &expr));
+        expr = Arithmetic_CreateBinary(self->allocator, hasLeadingWhitespace, kArithmetic_Pipeline, lhs, rhs);
         lhs = expr;
         expr = NULL;
     }
@@ -951,7 +953,7 @@ static errno_t Parser_VarDeclExpression(Parser* _Nonnull self, Expression* _Null
     try(match(kToken_Assignment));
     try(Parser_ArithmeticExpression(self, &expr));
 
-    try(Expression_CreateVarDecl(self->allocator, modifiers, vref, expr, pOutDecl));
+    *pOutDecl = Expression_CreateVarDecl(self->allocator, modifiers, vref, expr);
     return EOK;
 
 catch:
@@ -966,7 +968,6 @@ catch:
 static errno_t Parser_BreakExpression(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
 {
     decl_try_err();
-    Expression* expr = NULL;
     Arithmetic* arithExpr = NULL;
 
     try(match(kToken_Break));
@@ -986,9 +987,7 @@ static errno_t Parser_BreakExpression(Parser* _Nonnull self, Expression* _Nullab
             break;
     }
 
-    try(Expression_CreateBreak(self->allocator, arithExpr, &expr));
-
-    *pOutExpr = expr;
+    *pOutExpr = Expression_CreateBreak(self->allocator, arithExpr);
     return EOK;
 
 catch:
@@ -1074,7 +1073,7 @@ static errno_t Parser_Expression(Parser* _Nonnull self, bool isNested, Expressio
         case kToken_Ampersand:
         case kToken_Eof:
             // Null expression
-            try(Expression_CreateNull(self->allocator, &expr));
+            expr = Expression_CreateNull(self->allocator);
             break;
 
         case kToken_Public:
@@ -1091,7 +1090,7 @@ static errno_t Parser_Expression(Parser* _Nonnull self, bool isNested, Expressio
 
         case kToken_Continue:
             consume();
-            try(Expression_CreateContinue(self->allocator, &expr));
+            expr = Expression_CreateContinue(self->allocator);
             break;
 
         default: {
@@ -1105,10 +1104,10 @@ static errno_t Parser_Expression(Parser* _Nonnull self, bool isNested, Expressio
 
                 consume();
                 try(Parser_ArithmeticExpression(self, &rvalue));
-                try(Expression_CreateAssignment(self->allocator, arithExpr, rvalue, &expr));
+                expr = Expression_CreateAssignment(self->allocator, arithExpr, rvalue);
             }
             else {
-                try(Expression_CreateArithmeticExpression(self->allocator, arithExpr, &expr));
+                expr = Expression_CreateArithmeticExpression(self->allocator, arithExpr);
             }
         }
     }
@@ -1152,9 +1151,7 @@ static errno_t Parser_ExpressionList(Parser* _Nonnull self, ExpressionList* _Non
 static errno_t Parser_Block(Parser* _Nonnull self, Block* _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
-    Block* block = NULL;
-
-    try(Block_Create(self->allocator, &block));
+    Block* block = Block_Create(self->allocator);
 
     try(match(kToken_OpeningBrace));
     try(Parser_ExpressionList(self, &block->exprs, '}', true));

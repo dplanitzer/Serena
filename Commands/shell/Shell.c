@@ -59,10 +59,11 @@ static void _Shell_ExecuteString(ShellRef _Nonnull self, const char* _Nonnull st
     }
 }
 
-errno_t Shell_Run(ShellRef _Nonnull self)
+int Shell_Run(ShellRef _Nonnull self)
 {
     if (self->lineReader == NULL) {
-        return EINVAL;
+        errno = EINVAL;
+        return -1;
     }
 
     Script* script = Script_Create();
@@ -75,30 +76,29 @@ errno_t Shell_Run(ShellRef _Nonnull self)
     }
 
     Script_Destroy(script);
-    return EOK;
+    return (errno == 0) ? 0 : -1;
 }
 
-errno_t Shell_RunContentsOfString(ShellRef _Nonnull self, const char* _Nonnull str)
+int Shell_RunContentsOfString(ShellRef _Nonnull self, const char* _Nonnull str)
 {
     Script* script = Script_Create();
 
     _Shell_ExecuteString(self, str, script, false);
 
     Script_Destroy(script);
-    return EOK;
+    return (errno == 0) ? 0 : -1;
 }
 
-errno_t Shell_RunContentsOfFile(ShellRef _Nonnull self, const char* _Nonnull path)
+int Shell_RunContentsOfFile(ShellRef _Nonnull self, const char* _Nonnull path)
 {
-    decl_try_err();
     char* text = NULL;
 
     Script* script = Script_Create();
-    try(read_contents_of_file(path, &text, NULL));
-    _Shell_ExecuteString(self, text, script, false);
+    if (read_contents_of_file(path, &text, NULL) == 0) {
+        _Shell_ExecuteString(self, text, script, false);
+        free(text);
+    }
 
-catch:
-    free(text);
     Script_Destroy(script);
-    return err;
+    return (errno == 0) ? 0 : -1;
 }
