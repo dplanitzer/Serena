@@ -10,13 +10,11 @@
 #define _SYS_WAIT_H 1
 
 #include <_cmndef.h>
-#include <sys/errno.h>
-#include <sys/types.h>
 #include <kpi/wait.h>
 
 __CPP_BEGIN
 
-extern errno_t waitpid(pid_t pid, pstatus_t* _Nullable result);
+extern int waitpid(pid_t pid, pstatus_t* _Nullable result);
 
 __CPP_END
 

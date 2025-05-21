@@ -11,13 +11,12 @@
 
 #include <_cmndef.h>
 #include <kpi/ioctl.h>
-#include <sys/errno.h>
 
 __CPP_BEGIN
 
 // Invokes a I/O resource specific method on the descriptor 'fd'.
 // @Concurrency: Safe
-extern errno_t ioctl(int fd, int cmd, ...);
+extern int ioctl(int fd, int cmd, ...);
 
 __CPP_END
 

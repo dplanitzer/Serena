@@ -9,6 +9,7 @@
 #ifndef _SYS_FS_H
 #define _SYS_FS_H 1
 
+#include <_cmndef.h>
 #include <kpi/fs.h>
 
 // Returns the path to the disk driver that underpins the filesystem with the

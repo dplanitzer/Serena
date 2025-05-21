@@ -12,5 +12,5 @@
 
 int vm_alloc(size_t nbytes, void* _Nullable * _Nonnull ptr)
 {
-    return _syscall(SC_vmalloc, nbytes, ptr);
+    return (int)_syscall(SC_vmalloc, nbytes, ptr);
 }

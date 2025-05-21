@@ -11,14 +11,14 @@
 #include <sys/_syscall.h>
 
 
-errno_t ioctl(int fd, int cmd, ...)
+int ioctl(int fd, int cmd, ...)
 {
-    errno_t err;
     va_list ap;
+    int r;
 
     va_start(ap, cmd);
-    err = (errno_t)_syscall(SC_ioctl, fd, cmd, ap);
+    r = (int)_syscall(SC_ioctl, fd, cmd, ap);
     va_end(ap);
 
-    return err;
+    return r;
 }

@@ -10,7 +10,7 @@
 #include <sys/_syscall.h>
 
 
-errno_t waitpid(pid_t pid, pstatus_t* _Nullable result)
+int waitpid(pid_t pid, pstatus_t* _Nullable result)
 {
-    return _syscall(SC_waitpid, pid, result);
+    return (int)_syscall(SC_waitpid, pid, result);
 }
