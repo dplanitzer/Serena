@@ -93,7 +93,7 @@ static errno_t Parser_CompoundString(Parser* _Nonnull self, bool isBacktick, Com
     bool done = false;
 
     try(matchAndSwitchMode(quoteToken, lexerMode));
-    try(CompoundString_Create(self->allocator, &str));
+    str = CompoundString_Create(self->allocator);
 
     while(!done) {
         const Token* t = Lexer_GetToken(&self->lexer);
@@ -101,28 +101,28 @@ static errno_t Parser_CompoundString(Parser* _Nonnull self, bool isBacktick, Com
         switch (t->id) {
             case kToken_StringSegment:
                 try(ConstantsPool_GetStringValue(self->constantsPool, t->u.string, t->length, &v));
-                try(Segment_CreateLiteral(self->allocator, kSegment_String, &v, &seg));
+                seg = Segment_CreateLiteral(self->allocator, kSegment_String, &v);
                 consume();
                 break;
 
             case kToken_EscapeSequence:
                 try(failOnIncomplete(t));
                 try(ConstantsPool_GetStringValue(self->constantsPool, t->u.string, t->length, &v));
-                try(Segment_CreateLiteral(self->allocator, kSegment_EscapeSequence, &v, &seg));
+                seg = Segment_CreateLiteral(self->allocator, kSegment_EscapeSequence, &v);
                 consume();
                 break;
 
             case kToken_EscapedExpression: {
                 Arithmetic* expr = NULL;
                 try(Parser_EscapedArithmeticExpression(self, &expr));
-                try(Segment_CreateArithmeticExpression(self->allocator, expr, &seg));
+                seg = Segment_CreateArithmeticExpression(self->allocator, expr);
                 break;
             }
 
             case kToken_VariableName: {
                 VarRef* vref = NULL;
                 try(Parser_VarReference(self, &vref));
-                try(Segment_CreateVarRef(self->allocator, vref, &seg));
+                seg = Segment_CreateVarRef(self->allocator, vref);
                 break;
             }
 
@@ -209,7 +209,7 @@ static errno_t Parser_VarReference(Parser* _Nonnull self, VarRef* _Nullable * _N
         throw(ESYNTAX);
     }
 
-    try(VarRef_Create(self->allocator, t->u.string, pOutVarRef));
+    *pOutVarRef = VarRef_Create(self->allocator, t->u.string);
     consume();
     return EOK;
 
@@ -250,25 +250,25 @@ static errno_t Parser_CommandPrimaryFragment(Parser* _Nonnull self, Atom* _Nulla
     switch (t->id) {
         case kToken_BacktickString:
             try(failOnIncomplete(t));
-            try(Atom_CreateWithString(self->allocator, kAtom_BacktickString, t->u.string, t->length, hasLeadingWhitespace, pOutAtom));
+            *pOutAtom = Atom_CreateWithString(self->allocator, kAtom_BacktickString, t->u.string, t->length, hasLeadingWhitespace);
             consume();
             break;
 
         case kToken_DoubleBacktick: {
             CompoundString* str = NULL;
             try(Parser_CompoundString(self, true, &str));
-            try(Atom_CreateWithCompoundString(self->allocator, kAtom_DoubleBacktickString, str, hasLeadingWhitespace, pOutAtom));
+            *pOutAtom = Atom_CreateWithCompoundString(self->allocator, kAtom_DoubleBacktickString, str, hasLeadingWhitespace);
             break;
         }
 
         case kToken_Slash:
-            try(Atom_CreateWithCharacter(self->allocator, kAtom_Identifier, t->id, hasLeadingWhitespace, pOutAtom));
+            *pOutAtom = Atom_CreateWithCharacter(self->allocator, kAtom_Identifier, t->id, hasLeadingWhitespace);
             consume();
             break;
 
         case kToken_Identifier:
             try(failOnIncomplete(t));
-            try(Atom_CreateWithString(self->allocator, kAtom_Identifier, t->u.string, t->length, hasLeadingWhitespace, pOutAtom));
+            *pOutAtom = Atom_CreateWithString(self->allocator, kAtom_Identifier, t->u.string, t->length, hasLeadingWhitespace);
             consume();
             break;
 
@@ -330,7 +330,7 @@ static errno_t Parser_CommandSecondaryFragment(Parser* _Nonnull self, Atom* _Nul
         case kToken_Percent:
         case kToken_Plus:
         case kToken_Slash:
-            try(Atom_CreateWithCharacter(self->allocator, kAtom_Identifier, t->id, hasLeadingWhitespace, pOutAtom));
+            *pOutAtom = Atom_CreateWithCharacter(self->allocator, kAtom_Identifier, t->id, hasLeadingWhitespace);
             consume();
             break;
 
@@ -340,38 +340,38 @@ static errno_t Parser_CommandSecondaryFragment(Parser* _Nonnull self, Atom* _Nul
         case kToken_GreaterEqual:
         case kToken_LessEqual:
         case kToken_NotEqual:
-            try(Atom_CreateWithString(self->allocator, kAtom_Identifier, get_op2_token_string(t->id), 2, hasLeadingWhitespace, pOutAtom));
+            *pOutAtom = Atom_CreateWithString(self->allocator, kAtom_Identifier, get_op2_token_string(t->id), 2, hasLeadingWhitespace);
             consume();
             break;
 
         case kToken_BacktickString:
             try(failOnIncomplete(t));
-            try(Atom_CreateWithString(self->allocator, kAtom_BacktickString, t->u.string, t->length, hasLeadingWhitespace, pOutAtom));
+            *pOutAtom = Atom_CreateWithString(self->allocator, kAtom_BacktickString, t->u.string, t->length, hasLeadingWhitespace);
             consume();
             break;
 
         case kToken_DoubleBacktick: {
             CompoundString* str = NULL;
             try(Parser_CompoundString(self, true, &str));
-            try(Atom_CreateWithCompoundString(self->allocator, kAtom_DoubleBacktickString, str, hasLeadingWhitespace, pOutAtom));
+            *pOutAtom = Atom_CreateWithCompoundString(self->allocator, kAtom_DoubleBacktickString, str, hasLeadingWhitespace);
             break;
         }
 
         case kToken_SingleQuoteString:
             try(failOnIncomplete(t));
-            try(Atom_CreateWithString(self->allocator, kAtom_SingleQuoteString, t->u.string, t->length, hasLeadingWhitespace, pOutAtom));
+            *pOutAtom = Atom_CreateWithString(self->allocator, kAtom_SingleQuoteString, t->u.string, t->length, hasLeadingWhitespace);
             consume();
             break;
 
         case kToken_DoubleQuote: {
             CompoundString* str = NULL;
             try(Parser_CompoundString(self, t->id == kToken_DoubleBacktick, &str));
-            try(Atom_CreateWithCompoundString(self->allocator, kAtom_DoubleQuoteString, str, hasLeadingWhitespace, pOutAtom));
+            *pOutAtom = Atom_CreateWithCompoundString(self->allocator, kAtom_DoubleQuoteString, str, hasLeadingWhitespace);
             break;
         }
 
         case kToken_Integer:
-            try(Atom_CreateWithInteger(self->allocator, t->u.i32, hasLeadingWhitespace, pOutAtom));
+            *pOutAtom = Atom_CreateWithInteger(self->allocator, t->u.i32, hasLeadingWhitespace);
             consume();
             break;
 
@@ -386,21 +386,21 @@ static errno_t Parser_CommandSecondaryFragment(Parser* _Nonnull self, Atom* _Nul
         case kToken_Var:
         case kToken_While:
             try(failOnIncomplete(t));
-            try(Atom_CreateWithString(self->allocator, kAtom_Identifier, t->u.string, t->length, hasLeadingWhitespace, pOutAtom));
+            *pOutAtom = Atom_CreateWithString(self->allocator, kAtom_Identifier, t->u.string, t->length, hasLeadingWhitespace);
             consume();
             break;
 
         case kToken_OpeningParenthesis: {
             Arithmetic* expr = NULL;
             try(Parser_ParenthesizedArithmeticExpression(self, &expr));
-            try(Atom_CreateWithArithmeticExpression(self->allocator, expr, hasLeadingWhitespace, pOutAtom));
+            *pOutAtom = Atom_CreateWithArithmeticExpression(self->allocator, expr, hasLeadingWhitespace);
             break;
         }
 
         case kToken_VariableName: {
             VarRef* vref = NULL;
             try(Parser_VarReference(self, &vref));
-            try(Atom_CreateWithVarRef(self->allocator, vref, hasLeadingWhitespace, pOutAtom));
+            *pOutAtom = Atom_CreateWithVarRef(self->allocator, vref, hasLeadingWhitespace);
             break;
         }
 
@@ -947,7 +947,7 @@ static errno_t Parser_VarDeclExpression(Parser* _Nonnull self, Expression* _Null
     if (t->id != kToken_VariableName) {
         throw(ESYNTAX);
     }
-    try(VarRef_Create(self->allocator, t->u.string, &vref));
+    vref = VarRef_Create(self->allocator, t->u.string);
     consume();
 
     try(match(kToken_Assignment));

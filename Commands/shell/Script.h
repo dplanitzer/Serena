@@ -27,7 +27,7 @@ typedef struct VarRef {
     char* _Nonnull  name;
 } VarRef;
 
-extern errno_t VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str, VarRef* _Nullable * _Nonnull pOutSelf);
+extern VarRef* _Nonnull VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str);
 #ifdef SCRIPT_PRINTING
 extern void VarRef_Print(VarRef* _Nonnull self);
 #endif
@@ -61,9 +61,9 @@ typedef struct VarRefSegment {
     VarRef* _Nonnull    vref;
 } VarRefSegment;
 
-extern errno_t Segment_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, SegmentType type, const Value* _Nonnull value, Segment* _Nullable * _Nonnull pOutSelf);
-extern errno_t Segment_CreateArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, struct Arithmetic* _Nonnull expr, Segment* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the ArithmeticExpression
-extern errno_t Segment_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, Segment* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the VarRef
+extern Segment* _Nonnull Segment_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, SegmentType type, const Value* _Nonnull value);
+extern Segment* _Nonnull Segment_CreateArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, struct Arithmetic* _Nonnull expr);  // Takes ownership of the ArithmeticExpression
+extern Segment* _Nonnull Segment_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref);  // Takes ownership of the VarRef
 #ifdef SCRIPT_PRINTING
 extern void Segment_Print(Segment* _Nonnull self);
 #endif
@@ -75,7 +75,7 @@ typedef struct CompoundString {
     Segment* _Nonnull   lastSeg;
 } CompoundString;
 
-extern errno_t CompoundString_Create(StackAllocatorRef _Nonnull pAllocator, CompoundString* _Nullable * _Nonnull pOutSelf);
+extern CompoundString* _Nonnull CompoundString_Create(StackAllocatorRef _Nonnull pAllocator);
 extern void CompoundString_AddSegment(CompoundString* _Nonnull self, Segment* _Nonnull seg);
 #ifdef SCRIPT_PRINTING
 extern void CompoundString_Print(CompoundString* _Nonnull self);
@@ -109,12 +109,12 @@ typedef struct Atom {
     }                       u;
 } Atom;
 
-extern errno_t Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, AtomType type, char ch, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
-extern errno_t Atom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, AtomType type, const char* _Nonnull str, size_t len, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
-extern errno_t Atom_CreateWithInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
-extern errno_t Atom_CreateWithArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, struct Arithmetic* _Nonnull expr, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the ArithmeticExpression
-extern errno_t Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the VarRef
-extern errno_t Atom_CreateWithCompoundString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct CompoundString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the String
+extern Atom* _Nonnull Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, AtomType type, char ch, bool hasLeadingWhitespace);
+extern Atom* _Nonnull Atom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, AtomType type, const char* _Nonnull str, size_t len, bool hasLeadingWhitespace);
+extern Atom* _Nonnull Atom_CreateWithInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, bool hasLeadingWhitespace);
+extern Atom* _Nonnull Atom_CreateWithArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, struct Arithmetic* _Nonnull expr, bool hasLeadingWhitespace);  // Takes ownership of the ArithmeticExpression
+extern Atom* _Nonnull Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, bool hasLeadingWhitespace);  // Takes ownership of the VarRef
+extern Atom* _Nonnull Atom_CreateWithCompoundString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct CompoundString* _Nonnull str, bool hasLeadingWhitespace);  // Takes ownership of the String
 #define Atom_GetStringLength(__self) (__self)->u.stringLength
 #define Atom_GetString(__self) (((const char*)__self) + sizeof(Atom))
 #define Atom_GetMutableString(__self) (((char*)__self) + sizeof(Atom))

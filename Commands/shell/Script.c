@@ -7,7 +7,6 @@
 //
 
 #include "Script.h"
-#include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -19,17 +18,15 @@
 // MARK: VarRef
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str, VarRef* _Nullable * _Nonnull pOutSelf)
+VarRef* _Nonnull VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str)
 {
-    decl_try_err();
     const char* colon = (const char*)strrchr(str, ':');
     const char* scope = (colon) ? str : "";
     const char* name = (colon) ? colon + 1 : str;
     const size_t scopeLen = (colon) ? colon - str : 0;
     const size_t nameLen = strlen(name);
-    VarRef* self = NULL;
-    
-    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(VarRef) + scopeLen + 1 + nameLen + 1), ENOMEM);
+    VarRef* self = StackAllocator_ClearAlloc(pAllocator, sizeof(VarRef) + scopeLen + 1 + nameLen + 1);
+
     self->scope = ((char*)self) + sizeof(VarRef);
     self->name = self->scope + scopeLen + 1;
 
@@ -38,9 +35,7 @@ errno_t VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str, Va
     memcpy(self->name, name, nameLen);
     self->name[nameLen] = '\0';
 
-catch:
-    *pOutSelf = self;
-    return err;
+    return self;
 }
 
 #ifdef SCRIPT_PRINTING
@@ -61,34 +56,31 @@ void VarRef_Print(VarRef* _Nonnull self)
 // MARK: Segment
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Segment_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, SegmentType type, const Value* _Nonnull value, Segment* _Nullable * _Nonnull pOutSelf)
+Segment* _Nonnull Segment_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, SegmentType type, const Value* _Nonnull value)
 {
     LiteralSegment* self = StackAllocator_ClearAlloc(pAllocator, sizeof(LiteralSegment));
 
     self->super.type = type;
     Value_InitCopy(&self->value, value);
-    *pOutSelf = (Segment*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Segment*)self;
 }
 
-errno_t Segment_CreateArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull expr, Segment* _Nullable * _Nonnull pOutSelf)
+Segment* _Nonnull Segment_CreateArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull expr)
 {
     ArithmeticSegment* self = StackAllocator_ClearAlloc(pAllocator, sizeof(ArithmeticSegment));
 
     self->super.type = kSegment_ArithmeticExpression;
     self->expr = expr;
-    *pOutSelf = (Segment*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Segment*)self;
 }
 
-errno_t Segment_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, Segment* _Nullable * _Nonnull pOutSelf)
+Segment* _Nonnull Segment_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref)
 {
     VarRefSegment* self = StackAllocator_ClearAlloc(pAllocator, sizeof(VarRefSegment));
 
     self->super.type = kSegment_VarRef;
     self->vref = vref;
-    *pOutSelf = (Segment*)self;
-    return (self) ? EOK : ENOMEM;
+    return (Segment*)self;
 }
 
 #ifdef SCRIPT_PRINTING
@@ -126,12 +118,9 @@ void Segment_Print(Segment* _Nonnull self)
 // MARK: CompoundString
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t CompoundString_Create(StackAllocatorRef _Nonnull pAllocator, CompoundString* _Nullable * _Nonnull pOutSelf)
+CompoundString* _Nonnull CompoundString_Create(StackAllocatorRef _Nonnull pAllocator)
 {
-    CompoundString* self = StackAllocator_ClearAlloc(pAllocator, sizeof(CompoundString));
-
-    *pOutSelf = self;
-    return (self) ? EOK : ENOMEM;
+    return StackAllocator_ClearAlloc(pAllocator, sizeof(CompoundString));
 }
 
 void CompoundString_AddSegment(CompoundString* _Nonnull self, Segment* _Nonnull seg)
@@ -164,104 +153,67 @@ void CompoundString_Print(CompoundString* _Nonnull self)
 // MARK: Atom
 ////////////////////////////////////////////////////////////////////////////////
 
-static errno_t Atom_Create(StackAllocatorRef _Nonnull pAllocator, AtomType type, size_t nExtraBytes, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+static Atom* _Nonnull Atom_Create(StackAllocatorRef _Nonnull pAllocator, AtomType type, size_t nExtraBytes, bool hasLeadingWhitespace)
 {
-    decl_try_err();
-    Atom* self = NULL;
-    
-    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(Atom) + nExtraBytes), ENOMEM);
+    Atom* self = StackAllocator_ClearAlloc(pAllocator, sizeof(Atom) + nExtraBytes);
+
     self->type = type;
     self->hasLeadingWhitespace = hasLeadingWhitespace;
-
-catch:
-    *pOutSelf = self;
-    return err;
+    return self;
 }
 
-errno_t Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, AtomType type, char ch, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+Atom* _Nonnull Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, AtomType type, char ch, bool hasLeadingWhitespace)
 {
-    decl_try_err();
-    Atom* self = NULL;
-    
-    try(Atom_Create(pAllocator, type, 1 + 1, hasLeadingWhitespace, &self));
+    Atom* self = Atom_Create(pAllocator, type, 1 + 1, hasLeadingWhitespace);
+
     self->u.stringLength = 1;
-    
     char* str = Atom_GetMutableString(self);
     str[0] = ch;
     str[1] = '\0';
-
-catch:
-    *pOutSelf = self;
-    return err;
+    return self;
 }
 
-errno_t Atom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, AtomType type, const char* _Nonnull str, size_t len, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+Atom* _Nonnull Atom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, AtomType type, const char* _Nonnull str, size_t len, bool hasLeadingWhitespace)
 {
-    decl_try_err();
-    Atom* self = NULL;
+    Atom* self = Atom_Create(pAllocator, type, len + 1, hasLeadingWhitespace);
 
-    try(Atom_Create(pAllocator, type, len + 1, hasLeadingWhitespace, &self));    
     self->u.stringLength = len;
-
     char* dst = Atom_GetMutableString(self);
     memcpy(dst, str, len);
     dst[len] = '\0';
-
-catch:
-    *pOutSelf = self;
-    return err;
+    return self;
 }
 
-errno_t Atom_CreateWithInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+Atom* _Nonnull Atom_CreateWithInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, bool hasLeadingWhitespace)
 {
-    decl_try_err();
-    Atom* self = NULL;
+    Atom* self = Atom_Create(pAllocator, kAtom_Integer, 0, hasLeadingWhitespace);
 
-    try(Atom_Create(pAllocator, kAtom_Integer, 0, hasLeadingWhitespace, &self));
     self->u.i32 = i32;
-
-catch:
-    *pOutSelf = self;
-    return err;
+    return self;
 }
 
-errno_t Atom_CreateWithArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull expr, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+Atom* _Nonnull Atom_CreateWithArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull expr, bool hasLeadingWhitespace)
 {
-    decl_try_err();
-    Atom* self = NULL;
+    Atom* self = Atom_Create(pAllocator, kAtom_ArithmeticExpression, 0, hasLeadingWhitespace);
 
-    try(Atom_Create(pAllocator, kAtom_ArithmeticExpression, 0, hasLeadingWhitespace, &self));
     self->u.expr = expr;
-
-catch:
-    *pOutSelf = self;
-    return err;
+    return self;
 }
 
-errno_t Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+Atom* _Nonnull Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, bool hasLeadingWhitespace)
 {
-    decl_try_err();
-    Atom* self = NULL;
+    Atom* self = Atom_Create(pAllocator, kAtom_VariableReference, 0, hasLeadingWhitespace);
 
-    try(Atom_Create(pAllocator, kAtom_VariableReference, 0, hasLeadingWhitespace, &self));
     self->u.vref = vref;
-
-catch:
-    *pOutSelf = self;
-    return err;
+    return self;
 }
 
-errno_t Atom_CreateWithCompoundString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct CompoundString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+Atom* _Nonnull Atom_CreateWithCompoundString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct CompoundString* _Nonnull str, bool hasLeadingWhitespace)
 {
-    decl_try_err();
-    Atom* self = NULL;
+    Atom* self = Atom_Create(pAllocator, type, 0, hasLeadingWhitespace);
 
-    try(Atom_Create(pAllocator, type, 0, hasLeadingWhitespace, &self));
     self->u.qstring = str;
-
-catch:
-    *pOutSelf = self;
-    return err;
+    return self;
 }
 
 #ifdef SCRIPT_PRINTING
