@@ -76,9 +76,10 @@ static void OnSync(void* _Nonnull pValue)
 // XXX blocking on itself. This is expected behavior.
 void dq_sync_test(int argc, char *argv[])
 {
-    int queue, i = 0;
+    const int queue = dispatch_create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal);
+    int i = 0;
 
-    assertOK(dispatch_create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal, &queue));
+    assertGreaterEqual(0, queue);
     while (true) {
         dispatch_sync(queue, OnSync, (void*) i);
         puts("--------");

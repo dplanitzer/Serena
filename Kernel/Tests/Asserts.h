@@ -10,7 +10,6 @@
 #define Asserts_h 1
 
 #include <_cmndef.h>
-#include <sys/errno.h>
 #include <stdio.h>
 
 __CPP_BEGIN
@@ -28,6 +27,7 @@ extern void Assert(const char* _Nonnull pFuncname, int lineNum, const char* _Non
 
 #define assertOK(cond) if ((cond) != 0) { Assert(__func__, __LINE__, #cond); }
 #define assertEquals(expected, actual) if ((expected) != (actual)) { Assert(__func__, __LINE__, #expected); }
+#define assertGreaterEqual(expected, actual) if ((expected) > (actual)) { Assert(__func__, __LINE__, #expected); }
 
 #define assertTrue(actual) if (!(actual)) { Assert(__func__, __LINE__, #actual); }
 #define assertFalse(actual) if (actual) { Assert(__func__, __LINE__, #actual); }

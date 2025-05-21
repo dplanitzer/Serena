@@ -18,6 +18,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <sys/disk.h>
+#include <sys/fs.h>
 #include <sys/mount.h>
 #include <sys/fs.h>
 #include <sys/ioctl.h>

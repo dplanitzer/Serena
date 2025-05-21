@@ -23,10 +23,6 @@ extern int mount(const char* _Nonnull objectType, const char* _Nonnull objectNam
 // Unmounts the filesystem mounted at the directory 'atDirPath'.
 extern int unmount(const char* _Nonnull atDirPath, UnmountOptions options);
 
-// Returns the path to the disk driver that underpins the filesystem with the
-// given id.
-extern int fs_getdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize);
-
 __CPP_END
 
 #endif /* _SYS_MOUNT_H */

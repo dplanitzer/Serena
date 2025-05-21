@@ -86,11 +86,11 @@ static void OnWriteToPipe(int fds[2])
 void pipe2_test(int argc, char *argv[])
 {
     int fds[2];
-    int utilityQueue;
 
     assertOK(pipe(fds));
 
-    assertOK(dispatch_create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal, &utilityQueue));
+    const int utilityQueue = dispatch_create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal);
+    assertGreaterEqual(0, utilityQueue);
     assertOK(dispatch_async(kDispatchQueue_Main, (dispatch_func_t)OnWriteToPipe, fds));
     assertOK(dispatch_async(utilityQueue, (dispatch_func_t)OnReadFromPipe, fds));
 }

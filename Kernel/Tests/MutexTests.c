@@ -82,9 +82,11 @@ static void OnWork(void* _Nonnull pValue)
 
 void mutex_test(int argc, char *argv[])
 {
-    assertOK(mutex_init(&gMutex));
-    assertOK(dispatch_create(0, NUM_VPS, kDispatchQoS_Utility, kDispatchPriority_Normal, &gQueue));
+    gQueue = dispatch_create(0, NUM_VPS, kDispatchQoS_Utility, kDispatchPriority_Normal);
 
+    assertGreaterEqual(0, gQueue);
+    assertOK(mutex_init(&gMutex));
+    
     gCurrentPatternIndex = 0;
     select_and_write_pattern();
 
