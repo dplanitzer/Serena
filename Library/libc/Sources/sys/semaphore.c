@@ -7,6 +7,7 @@
 //
 
 #include <sys/semaphore.h>
+#include <errno.h>
 #include <sys/_syscall.h>
 
 #define SEM_SIGNATURE 0x53454d41
@@ -20,7 +21,7 @@ typedef struct USemaphore {
 } USemaphore;
 
 
-errno_t sem_init(sem_t* _Nonnull sema, int npermits)
+int sem_init(sem_t* _Nonnull sema, int npermits)
 {
     USemaphore* self = (USemaphore*)sema;
 
@@ -28,30 +29,32 @@ errno_t sem_init(sem_t* _Nonnull sema, int npermits)
     self->r2 = 0;
     self->r3 = 0;
 
-    const errno_t err = _syscall(SC_sem_create, npermits, &self->od);
-    if (err == EOK) {
+    if (_syscall(SC_sem_create, npermits, &self->od) == 0) {
         self->signature = SEM_SIGNATURE;
+        return 0;
     }
-
-    return err;
+    else {
+        return -1;
+    }
 }
 
-errno_t sem_deinit(sem_t* _Nonnull sema)
+int sem_deinit(sem_t* _Nonnull sema)
 {
     USemaphore* self = (USemaphore*)sema;
 
     if (self->signature != SEM_SIGNATURE) {
-        return EINVAL;
+        errno = EINVAL;
+        return -1;
     }
 
-    const errno_t err = _syscall(SC_dispose, self->od);
+    const int r = _syscall(SC_dispose, self->od);
     self->signature = 0;
     self->od = 0;
 
-    return err;
+    return r;
 }
 
-errno_t sem_post(sem_t* _Nonnull sema, int npermits)
+int sem_post(sem_t* _Nonnull sema, int npermits)
 {
     USemaphore* self = (USemaphore*)sema;
 
@@ -59,11 +62,12 @@ errno_t sem_post(sem_t* _Nonnull sema, int npermits)
         return _syscall(SC_sem_post, self->od, npermits);
     }
     else {
-        return EINVAL;
+        errno = EINVAL;
+        return -1;
     }
 }
 
-errno_t sem_wait(sem_t* _Nonnull sema, int npermits, struct timespec deadline)
+int sem_wait(sem_t* _Nonnull sema, int npermits, struct timespec deadline)
 {
     USemaphore* self = (USemaphore*)sema;
 
@@ -71,11 +75,12 @@ errno_t sem_wait(sem_t* _Nonnull sema, int npermits, struct timespec deadline)
         return _syscall(SC_sem_wait, self->od, npermits, deadline);
     }
     else {
-        return EINVAL;
+        errno = EINVAL;
+        return -1;
     }
 }
 
-errno_t sem_trywait(sem_t* _Nonnull sema, int npermits)
+int sem_trywait(sem_t* _Nonnull sema, int npermits)
 {
     USemaphore* self = (USemaphore*)sema;
 
@@ -83,6 +88,7 @@ errno_t sem_trywait(sem_t* _Nonnull sema, int npermits)
         return _syscall(SC_sem_trywait, self->od, npermits);
     }
     else {
-        return EINVAL;
+        errno = EINVAL;
+        return -1;
     }
 }

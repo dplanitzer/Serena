@@ -11,7 +11,6 @@
 
 #include <_cmndef.h>
 #include <time.h>
-#include <sys/errno.h>
 
 __CPP_BEGIN
 
@@ -21,26 +20,27 @@ typedef struct sem {
 
 
 // Initializes a semaphore object with the given number of permits.
-extern errno_t sem_init(sem_t* _Nonnull sema, int npermits);
+extern int sem_init(sem_t* _Nonnull sema, int npermits);
 
 // Deinitializes the given semaphore.
-extern errno_t sem_deinit(sem_t* _Nonnull sema);
+extern int sem_deinit(sem_t* _Nonnull sema);
 
 
 // Relinquishes the given number of permits to the given semaphore. This makes
 // the permits available for acquisition by other execution contexts.
 // @Concurrency: Safe
-extern errno_t sem_post(sem_t* _Nonnull sema, int npermits);
+extern int sem_post(sem_t* _Nonnull sema, int npermits);
 
-// Blocks the caller until 'npermits' can be acquired. Returns EOK on success
-// and ETIMEOUT if the permits could not be acquire before 'deadline'.
+// Blocks the caller until 'npermits' can be acquired. Returns 0 on success
+// and -1 and errno set to ETIMEOUT if the permits could not be acquire before
+// 'deadline'.
 // @Concurrency: Safe
-extern errno_t sem_wait(sem_t* _Nonnull sema, int npermits, struct timespec deadline);
+extern int sem_wait(sem_t* _Nonnull sema, int npermits, struct timespec deadline);
 
-// Attempts to acquire 'npermits' without blocking. Returns EOK on success and
-// EBUSY on failure.
+// Attempts to acquire 'npermits' without blocking. Returns 0 on success and -1
+// and errno set to EBUSY otherwise.
 // @Concurrency: Safe
-extern errno_t sem_trywait(sem_t* _Nonnull sema, int npermits);
+extern int sem_trywait(sem_t* _Nonnull sema, int npermits);
 
 __CPP_END
 

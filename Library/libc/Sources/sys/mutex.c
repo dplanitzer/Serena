@@ -7,10 +7,11 @@
 //
 
 #include "_mutex.h"
+#include <errno.h>
 #include <sys/_syscall.h>
 
 
-errno_t mutex_init(mutex_t* _Nonnull mutex)
+int mutex_init(mutex_t* _Nonnull mutex)
 {
     UMutex* self = (UMutex*)mutex;
 
@@ -18,30 +19,32 @@ errno_t mutex_init(mutex_t* _Nonnull mutex)
     self->r2 = 0;
     self->r3 = 0;
 
-    const errno_t err = _syscall(SC_lock_create, &self->od);
-    if (err == EOK) {
+    if (_syscall(SC_lock_create, &self->od) == 0) {
         self->signature = MUTEX_SIGNATURE;
+        return 0;
     }
-
-    return err;
+    else {
+        return -1;
+    }
 }
 
-errno_t mutex_deinit(mutex_t* _Nonnull mutex)
+int mutex_deinit(mutex_t* _Nonnull mutex)
 {
     UMutex* self = (UMutex*)mutex;
 
     if (self->signature != MUTEX_SIGNATURE) {
-        return EINVAL;
+        errno = EINVAL;
+        return -1;
     }
 
-    const errno_t err = _syscall(SC_dispose, self->od);
+    const int r = _syscall(SC_dispose, self->od);
     self->signature = 0;
     self->od = 0;
 
-    return err;
+    return r;
 }
 
-errno_t mutex_trylock(mutex_t* _Nonnull mutex)
+int mutex_trylock(mutex_t* _Nonnull mutex)
 {
     UMutex* self = (UMutex*)mutex;
 
@@ -49,11 +52,12 @@ errno_t mutex_trylock(mutex_t* _Nonnull mutex)
         return _syscall(SC_lock_trylock, self->od);
     }
     else {
-        return EINVAL;
+        errno = EINVAL;
+        return -1;
     }
 }
 
-errno_t mutex_lock(mutex_t* _Nonnull mutex)
+int mutex_lock(mutex_t* _Nonnull mutex)
 {
     UMutex* self = (UMutex*)mutex;
 
@@ -61,11 +65,12 @@ errno_t mutex_lock(mutex_t* _Nonnull mutex)
         return _syscall(SC_lock_lock, self->od);
     }
     else {
-        return EINVAL;
+        errno = EINVAL;
+        return -1;
     }
 }
 
-errno_t mutex_unlock(mutex_t* _Nonnull mutex)
+int mutex_unlock(mutex_t* _Nonnull mutex)
 {
     UMutex* self = (UMutex*)mutex;
 
@@ -73,6 +78,7 @@ errno_t mutex_unlock(mutex_t* _Nonnull mutex)
         return _syscall(SC_lock_unlock, self->od);
     }
     else {
-        return EINVAL;
+        errno = EINVAL;
+        return -1;
     }
 }
