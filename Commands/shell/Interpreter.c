@@ -841,10 +841,9 @@ static inline errno_t Interpreter_Block(InterpreterRef _Nonnull self, Block* _No
     decl_try_err();
 
     RunStack_PushScope(self->runStack);
-    try(Interpreter_ExpressionList(self, &block->exprs, false));
+    err = Interpreter_ExpressionList(self, &block->exprs, false);
     RunStack_PopScope(self->runStack);
 
-catch:
     return err;
 }
 
