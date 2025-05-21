@@ -10,7 +10,17 @@
 #include <sys/_syscall.h>
 
 
-int waitpid(pid_t pid, pstatus_t* _Nullable result)
+pid_t waitpid(pid_t pid, int* _Nullable pstat, int options)
 {
-    return (int)_syscall(SC_waitpid, pid, result);
+    struct _pstatus s;
+
+    if (_syscall(SC_waitpid, pid, &s, options) == 0) {
+        if (pstat) {
+            *pstat = s.status;
+        }
+        return s.pid;
+    }
+    else {
+        return -1;
+    }
 }

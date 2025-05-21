@@ -11,10 +11,24 @@
 
 #include <_cmndef.h>
 #include <kpi/wait.h>
+#include <sys/types.h>
 
 __CPP_BEGIN
 
-extern int waitpid(pid_t pid, pstatus_t* _Nullable result);
+#define WIFEXITED(stat_val) \
+(((stat_val) & _WREASONMASK) == _WNORMTERM)
+
+#define WEXITSTATUS(stat_val) \
+((stat_val) & _WSTATUSMASK)
+
+#define WIFSIGNALED(stat_val) \
+(((stat_val) & _WREASONMASK) == _WSIGNALED)
+
+#define WTERMSIG(stat_val) \
+((stat_val) & _WSIGNUMMASK)
+
+
+extern pid_t waitpid(pid_t pid, int* _Nullable pstat, int options);
 
 __CPP_END
 

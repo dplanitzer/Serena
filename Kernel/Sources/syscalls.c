@@ -407,9 +407,9 @@ SYSCALL_0(getpargs)
     return (intptr_t) Process_GetArgumentsBaseAddress((ProcessRef)p);
 }
 
-SYSCALL_2(waitpid, pid_t pid, pstatus_t* _Nullable pOutStatus)
+SYSCALL_3(waitpid, pid_t pid, struct _pstatus* _Nonnull pOutStatus, int options)
 {
-    return Process_WaitForTerminationOfChild((ProcessRef)p, pa->pid, pa->pOutStatus);
+    return Process_WaitForTerminationOfChild((ProcessRef)p, pa->pid, pa->pOutStatus, pa->options);
 }
 
 SYSCALL_4(mount, const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)

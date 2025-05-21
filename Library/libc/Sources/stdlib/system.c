@@ -32,8 +32,8 @@ static int __has_shell(void)
 
 static int __system(const char *string)
 {
-    pid_t shPid;
-    pstatus_t pts;
+    pid_t sh_pid;
+    int sh_stat;
     spawn_opts_t opts = {0};
     const char* argv[4];
     
@@ -42,15 +42,15 @@ static int __system(const char *string)
     argv[2] = string;
     argv[3] = NULL;
 
-    if (os_spawn(__shellPath, argv, &opts, &shPid) != 0) {
+    if (os_spawn(__shellPath, argv, &opts, &sh_pid) != 0) {
         return -1;
     }
 
-    if (waitpid(shPid, &pts) != 0) {
+    if (waitpid(sh_pid, &sh_stat, 0) < 0) {
         return -1;
     }
 
-    return pts.status;
+    return WEXITSTATUS(sh_stat);
 }
 
 int system(const char *string)

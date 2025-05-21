@@ -116,15 +116,18 @@ static void login_user(void)
 // row.
 static void on_shell_termination(void* _Nullable ignore)
 {
-    pstatus_t pts;
+    int child_stat;
+    const pid_t child_pid = waitpid(-1, &child_stat, WNOHANG);
 
-    if (waitpid(-1, &pts) == 0) {
-        if (pts.status != EXIT_SUCCESS) {
+    if (child_pid > 0) {
+        const int child_ec = WEXITSTATUS(child_stat);
+
+        if (child_ec != EXIT_SUCCESS) {
             gFailedCounter++;
         }
 
         if (gFailedCounter == 2) {
-            printf("Error: unexpected shell termination with status: %d.\n", pts.status);
+            printf("Error: unexpected shell termination with status: %d.\n", child_ec);
             halt_machine();
         }
     }

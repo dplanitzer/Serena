@@ -27,7 +27,7 @@ enum {
     SC_getpargs,            // pargs_t * _Nonnull getpargs(void)
     SC_open,                // errno_t open(const char * _Nonnull name, int options, int* _Nonnull fd)
     SC_close,               // errno_t close(int fd)
-    SC_waitpid,             // errno_t waitpid(pid_t pid, pstatus_t * _Nullable result)
+    SC_waitpid,             // errno_t waitpid(pid_t pid, pstatus_t * _Nullable result, int options)
     SC_lseek,               // errno_t lseek(int fd, off_t offset, off_t * _Nullable newpos, int whence)
     SC_getcwd,              // errno_t getcwd(char* buffer, size_t bufferSize)
     SC_chdir,               // errno_t chdir(const char* _Nonnull path)

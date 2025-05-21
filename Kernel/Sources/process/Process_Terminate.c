@@ -69,7 +69,7 @@ errno_t Process_OnChildTermination(ProcessRef _Nonnull self, ProcessRef _Nonnull
 // child processes available or the PID is not the PID of a child process of
 // the receiver. Otherwise blocks the caller until the requested process or any
 // child process (pid == -1) has exited.
-errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull self, pid_t pid, pstatus_t* _Nullable pStatus)
+errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull self, pid_t pid, struct _pstatus* _Nonnull pStatus, int options)
 {
     decl_try_err();
 
@@ -114,13 +114,17 @@ errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull self, pid_t pid, p
         }
 
         if (pTombstone) {
-            if (pStatus) {
-                pStatus->pid = pTombstone->pid;
-                pStatus->status = pTombstone->status;
-            }
+            pStatus->pid = pTombstone->pid;
+            pStatus->status = pTombstone->status;
 
             List_Remove(&self->tombstones, &pTombstone->node);
             kfree(pTombstone);
+            break;
+        }
+
+        if ((options & WNOHANG) == WNOHANG) {
+            pStatus->pid = 0;
+            pStatus->status = 0;
             break;
         }
 
@@ -128,15 +132,9 @@ errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull self, pid_t pid, p
         // Wait for a child to terminate
         try(ConditionVariable_Wait(&self->tombstoneSignaler, &self->lock, TIMESPEC_INF));
     }
-    Lock_Unlock(&self->lock);
-    return EOK;
 
 catch:
     Lock_Unlock(&self->lock);
-    if (pStatus) {
-        pStatus->pid = 0;
-        pStatus->status = 0;
-    }
     return err;
 }
 
@@ -241,7 +239,7 @@ void _Process_DoTerminate(ProcessRef _Nonnull self)
         ProcessRef pCurChild = ProcessManager_CopyProcessForPid(gProcessManager, pid);
         
         Process_Terminate(pCurChild, 0);
-        Process_WaitForTerminationOfChild(self, pid, NULL);
+        Process_WaitForTerminationOfChild(self, pid, NULL, 0);
         Object_Release(pCurChild);
     }
 
@@ -303,7 +301,7 @@ void Process_Terminate(ProcessRef _Nonnull self, int exitCode)
 
 
     // Remember the exit code
-    self->exitCode = exitCode;
+    self->exitCode = exitCode & _WSTATUSMASK;
 
 
     // Schedule the actual process termination and destruction on the kernel
