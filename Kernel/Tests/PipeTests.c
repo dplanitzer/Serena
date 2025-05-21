@@ -22,30 +22,30 @@ void pipe_test(int argc, char *argv[])
     int fds[2];
 
     assertOK(pipe(fds));
-    printf("rioc: %d, wioc: %d\n", fds[PIPE_RD], fds[PIPE_WR]);
+    printf("rioc: %d, wioc: %d\n", fds[SEO_PIPE_READ], fds[SEO_PIPE_WRITE]);
 
     const char* pBytesToWrite = "Hello World";
     size_t nBytesToWrite = strlen(pBytesToWrite) + 1;
-    ssize_t nBytesWritten = write(fds[PIPE_WR], pBytesToWrite, nBytesToWrite);
+    ssize_t nBytesWritten = write(fds[SEO_PIPE_WRITE], pBytesToWrite, nBytesToWrite);
     assertGreaterEqual(0, nBytesWritten);
     printf("written: %s, nbytes: %zd\n", pBytesToWrite, nBytesWritten);
     assertEquals(nBytesToWrite, nBytesWritten);
 
-    assertOK(close(fds[PIPE_WR]));
+    assertOK(close(fds[SEO_PIPE_WRITE]));
 
     char pBuffer[64];
-    ssize_t nBytesRead = read(fds[PIPE_RD], pBuffer, nBytesWritten);
+    ssize_t nBytesRead = read(fds[SEO_PIPE_READ], pBuffer, nBytesWritten);
     assertGreaterEqual(0, nBytesRead);
     printf("read: %s, nbytes: %zd\n", pBuffer, nBytesRead);
     assertEquals(nBytesToWrite, nBytesWritten);
     assertEquals(0, strcmp(pBuffer, pBytesToWrite));
 
     // Should get EOF now since we already closed the write side
-    nBytesRead = read(fds[PIPE_RD], pBuffer, 1);
+    nBytesRead = read(fds[SEO_PIPE_READ], pBuffer, 1);
     assertEquals(0, nBytesRead);
     printf("write side is closed, read: nbytes: %zd\n", nBytesRead);
 
-    assertOK(close(fds[PIPE_RD]));
+    assertOK(close(fds[SEO_PIPE_READ]));
     printf("ok\n");
 }
 
@@ -59,7 +59,7 @@ static void OnReadFromPipe(int fds[2])
     while (true) {
         //VirtualProcessor_Sleep(timespec_from_ms(200));
         buf[0] = '\0';
-        const ssize_t nBytesRead = read(fds[PIPE_RD], buf, nBytesToRead);
+        const ssize_t nBytesRead = read(fds[SEO_PIPE_READ], buf, nBytesToRead);
         assertGreaterEqual(0, nBytesRead);
         buf[nBytesRead] = '\0';
 
@@ -75,7 +75,7 @@ static void OnWriteToPipe(int fds[2])
     
     while (true) {
         clock_wait(CLOCK_MONOTONIC, &dur);
-        const ssize_t nBytesWritten = write(fds[PIPE_WR], bytes, nBytesToWrite);
+        const ssize_t nBytesWritten = write(fds[SEO_PIPE_WRITE], bytes, nBytesToWrite);
         assertGreaterEqual(0, nBytesWritten);
 
         printf("Writer: '%s'-> %d\n", bytes, nBytesWritten);

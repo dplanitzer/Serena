@@ -65,8 +65,8 @@ extern int isatty(int fd);
 extern off_t lseek(int fd, off_t offset, int whence);
 
 
-#define PIPE_RD 0
-#define PIPE_WR 1
+#define SEO_PIPE_READ 0
+#define SEO_PIPE_WRITE 1
 
 // Creates an anonymous pipe and returns a read and write I/O channel to the pipe.
 // Data which is written to the pipe using the write I/O channel can be read using
