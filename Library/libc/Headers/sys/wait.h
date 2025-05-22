@@ -28,6 +28,7 @@ __CPP_BEGIN
 ((stat_val) & _WSIGNUMMASK)
 
 
+extern pid_t wait(int* _Nullable pstat);
 extern pid_t waitpid(pid_t pid, int* _Nullable pstat, int options);
 
 __CPP_END
