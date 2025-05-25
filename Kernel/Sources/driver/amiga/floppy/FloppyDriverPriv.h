@@ -50,7 +50,6 @@ final_class_ivars(FloppyDriver, DiskDriver,
     ADFSector               sectors[ADF_MAX_SECS_PER_TRACK];    // table of sectorsPerTrack good and bad sectors in the track stored in the track buffer  
     uint16_t* _Nullable     trackBuffer;                        // cached read track data (MFM encoded)
     int16_t                 trackReadWordCount;                 // cached read track buffer size in words
-    int16_t                 gapSize;                            // track gap size
     int16_t                 tbCylinder;                         // cylinder of the track stored in the track buffer; -1 if track buffer is empty
     int16_t                 tbHead;                             // head of the track stored in the track buffer; -1 if track buffer is empty
 

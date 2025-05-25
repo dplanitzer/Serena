@@ -582,8 +582,6 @@ static void FloppyDriver_ParseTrack(FloppyDriverRef _Nonnull self, const chs_t* 
     const uint16_t* pt = self->trackBuffer;
     const uint16_t* pt_start = pt;
     const uint16_t* pt_limit = &self->trackBuffer[self->trackReadWordCount];
-    const uint16_t* pg_start = NULL;
-    const uint16_t* pg_end = NULL;
     int sectorsUntilGap = -1;
     int8_t nSectorsRead = 0;
     ADF_SectorInfo info;
@@ -591,31 +589,25 @@ static void FloppyDriver_ParseTrack(FloppyDriverRef _Nonnull self, const chs_t* 
     FloppyDriver_InvalidateTrackBuffer(self);
 
     while (pt < pt_limit && nSectorsRead < self->sectorsPerTrack) {
-        int nSyncWords = 0;
-
         // Find the next MFM sync mark
-        // We don't verify the pre-sync words because at least WinUAE returns
-        // things like 0x2AAA in some cases instead of the expected 0xAAAA.
+        // We don't verify the pre-sync words. They may be 0x2AAA or 0xAAAA. Or
+        // they are missing altogether because this is the first sector in the
+        // track (also saw missing pre-sync words for first sector after the
+        // gap in WinUAE).
         // We don't mandate 2 0x4489 in a row because we sometimes get just one
         // 0x4489. I.e. the first sector read in and the first sector following
         // the track gap. However, with the track gap you sometimes get 2 0x4489
         // and sometimes just one 0x4489... (this may be WinUAE specific too)
         while (pt < pt_limit) {
             if (*pt == ADF_MFM_SYNC) {
-                pt++; nSyncWords++;
+                pt++;
                 if (*pt == ADF_MFM_SYNC) {
-                    pt++; nSyncWords++;
+                    pt++;
                 }
                 break;
             }
 
             pt++;
-        }
-
-
-        // Pick up the end of the sector gap
-        if (pg_start && pg_end == NULL) {
-            pg_end = pt - nSyncWords;
         }
 
 
@@ -630,15 +622,8 @@ static void FloppyDriver_ParseTrack(FloppyDriverRef _Nonnull self, const chs_t* 
             nSectorsRead++;
         }
         pt += ADF_MFM_SECTOR_SIZE/2;
-
-
-        // Pick up the start of the sector gap
-        if (sectorsUntilGap == 1 && pg_start == NULL) {
-            pg_start = pt;
-        }
     }
 
-    self->gapSize = (pg_start && pg_end) ? pg_end - pg_start : 0;
     self->tbCylinder = chs->c;
     self->tbHead = chs->h;
 
@@ -654,7 +639,6 @@ static void FloppyDriver_ParseTrack(FloppyDriverRef _Nonnull self, const chs_t* 
             s->isHeaderValid ? 'H' : '-', s->isDataValid ? 'D' : '-',
             s);
     }
-    printf(" gap at: %d, gap size: %d\n", (char*)pg_start - (char*)pt_start, 2*self->gapSize);
     printf("\n");
 #endif
 }
