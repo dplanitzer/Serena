@@ -521,7 +521,7 @@ static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t er
 }
 
 
-static bool FloppyDriver_RecognizeSector(FloppyDriverRef _Nonnull self, int16_t offset, uint8_t targetTrack, int* _Nonnull pOutSectorsUntilGap)
+static bool FloppyDriver_ScanSector(FloppyDriverRef _Nonnull self, int16_t offset, uint8_t targetTrack, int* _Nonnull pOutSectorsUntilGap)
 {
     const ADF_MFMSector* mfmSector = (const ADF_MFMSector*)&self->trackBuffer[offset];
     ADF_SectorInfo info;
@@ -575,16 +575,14 @@ static bool FloppyDriver_RecognizeSector(FloppyDriverRef _Nonnull self, int16_t 
     return false;
 }
 
-static void FloppyDriver_ParseTrack(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs)
+static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs)
 {
-    // Build the sector table
     const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(chs);
     const uint16_t* pt = self->trackBuffer;
     const uint16_t* pt_start = pt;
     const uint16_t* pt_limit = &self->trackBuffer[self->trackReadWordCount];
     int sectorsUntilGap = -1;
     int8_t nSectorsRead = 0;
-    ADF_SectorInfo info;
 
     FloppyDriver_InvalidateTrackBuffer(self);
 
@@ -593,21 +591,18 @@ static void FloppyDriver_ParseTrack(FloppyDriverRef _Nonnull self, const chs_t* 
         // We don't verify the pre-sync words. They may be 0x2AAA or 0xAAAA. Or
         // they are missing altogether because this is the first sector in the
         // track (also saw missing pre-sync words for first sector after the
-        // gap in WinUAE).
+        // track gap in WinUAE).
         // We don't mandate 2 0x4489 in a row because we sometimes get just one
         // 0x4489. I.e. the first sector read in and the first sector following
         // the track gap. However, with the track gap you sometimes get 2 0x4489
         // and sometimes just one 0x4489... (this may be WinUAE specific too)
         while (pt < pt_limit) {
-            if (*pt == ADF_MFM_SYNC) {
-                pt++;
+            if (*pt++ == ADF_MFM_SYNC) {
                 if (*pt == ADF_MFM_SYNC) {
                     pt++;
                 }
                 break;
             }
-
-            pt++;
         }
 
 
@@ -618,7 +613,7 @@ static void FloppyDriver_ParseTrack(FloppyDriverRef _Nonnull self, const chs_t* 
 
 
         // Pick up the sector
-        if (FloppyDriver_RecognizeSector(self, pt - pt_start, targetTrack, &sectorsUntilGap)) {
+        if (FloppyDriver_ScanSector(self, pt - pt_start, targetTrack, &sectorsUntilGap)) {
             nSectorsRead++;
         }
         pt += ADF_MFM_SECTOR_SIZE/2;
@@ -651,7 +646,7 @@ static errno_t FloppyDriver_ReadTrack(FloppyDriverRef _Nonnull self, const chs_t
     try(FloppyDriver_EnsureTrackBuffer(self));
     try(FloppyDriver_PrepareIO(self, chs));
     try(FloppyDriver_DoSyncIO(self, false));
-    FloppyDriver_ParseTrack(self, chs);
+    FloppyDriver_ScanTrack(self, chs);
     try(FloppyDriver_FinalizeIO(self, err));
 
 catch:
@@ -777,7 +772,7 @@ errno_t FloppyDriver_putSector(FloppyDriverRef _Nonnull self, const chs_t* _Nonn
             err = FloppyDriver_DoSyncIO(self, false);
 
             if (err == EOK) {
-                FloppyDriver_ParseTrack(self, chs);
+                FloppyDriver_ScanTrack(self, chs);
 
                 if (!FloppyDriver_IsTrackGoodForWriting(self, targetTrack, chs->s)) {
                     self->readErrorCount++;
@@ -853,7 +848,7 @@ errno_t FloppyDriver_putSector(FloppyDriverRef _Nonnull self, const chs_t* _Nonn
 
     // Move the newly composed track to the DMA buffer
     memcpy(self->trackBuffer, self->trackCompositionBuffer, sizeof(uint16_t) * self->trackWriteWordCount);
-    FloppyDriver_ParseTrack(self, chs);
+    FloppyDriver_ScanTrack(self, chs);
 
 
     // Write the track back to disk
@@ -916,7 +911,7 @@ errno_t FloppyDriver_formatSectors(FloppyDriverRef _Nonnull self, const chs_t* c
 
     // Move the newly composed track to the DMA buffer
     memcpy(self->trackBuffer, self->trackCompositionBuffer, sizeof(uint16_t) * self->trackWriteWordCount);
-    FloppyDriver_ParseTrack(self, chs);
+    FloppyDriver_ScanTrack(self, chs);
 
 
     // Write the track back to disk
