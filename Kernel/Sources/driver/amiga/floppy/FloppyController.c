@@ -27,6 +27,7 @@ const DriveParams   kDriveParams_3_5 = {
     INT8_MAX,               // 140ns
     INT8_MAX,               // 280ns
     INT8_MAX,               // 560ns
+    8,
 };
 
 const DriveParams   kDriveParams_5_25 = {
@@ -37,6 +38,7 @@ const DriveParams   kDriveParams_5_25 = {
     INT8_MAX,               // 140ns
     INT8_MAX,               // 280ns
     INT8_MAX,               // 560ns
+    8,
 };
 
 

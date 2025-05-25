@@ -662,7 +662,7 @@ errno_t FloppyDriver_getSector(FloppyDriverRef _Nonnull self, const chs_t* _Nonn
     bool isCacheValid = (self->tbCylinder == chs->c && self->tbHead == chs->h) ? true : false;
     const ADFSector* ps = &self->sectors[chs->s];
 
-    for (int retry = 0; retry < 4; retry++) {
+    for (int8_t retry = 0; retry < self->params->retryCount; retry++) {
         if (!isCacheValid) {
             err = FloppyDriver_ReadTrack(self, chs);
         }
@@ -747,7 +747,7 @@ errno_t FloppyDriver_putSector(FloppyDriverRef _Nonnull self, const chs_t* _Nonn
 
     // Make sure that we got the right track in our track buffer.
     if (self->tbCylinder != chs->c || self->tbHead != chs->h) {
-        for (int retry = 0; retry < 4; retry++) {
+        for (int8_t retry = 0; retry < self->params->retryCount; retry++) {
             FloppyDriver_InvalidateTrackBuffer(self);
             err = FloppyDriver_DoSyncIO(self, false);
 

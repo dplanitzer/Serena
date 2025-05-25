@@ -44,6 +44,7 @@ typedef struct DriveParams {
     int8_t  precomp_01;     // 140ns
     int8_t  precomp_10;     // 280ns
     int8_t  precomp_11;     // 560ns
+    int8_t  retryCount;
 } DriveParams;
 
 
