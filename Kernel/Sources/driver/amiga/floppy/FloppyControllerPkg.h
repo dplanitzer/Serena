@@ -36,6 +36,20 @@ enum Precompensation {
     kPrecompensation_560ns = 3
 };
 
+typedef struct DriveParams {
+    int8_t  driveType;
+    int8_t  heads;
+    int8_t  cylinders;
+    int8_t  precomp_00;     // 0ns
+    int8_t  precomp_01;     // 140ns
+    int8_t  precomp_10;     // 280ns
+    int8_t  precomp_11;     // 560ns
+} DriveParams;
+
+
+extern const DriveParams   kDriveParams_3_5;
+extern const DriveParams   kDriveParams_5_25;
+
 
 extern DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int drive);
 

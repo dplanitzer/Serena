@@ -8,6 +8,7 @@
 
 #include "FloppyDriverPriv.h"
 #include "FloppyControllerPkg.h"
+#include "adf.h"
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>
@@ -16,6 +17,27 @@
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
 #include <kern/timespec.h>
+
+
+const DriveParams   kDriveParams_3_5 = {
+    kDriveType_3_5,
+    ADF_HEADS_PER_CYL,
+    ADF_CYLS_PER_DISK,
+    ADF_CYLS_PER_DISK/2,    // 0ns
+    INT8_MAX,               // 140ns
+    INT8_MAX,               // 280ns
+    INT8_MAX,               // 560ns
+};
+
+const DriveParams   kDriveParams_5_25 = {
+    kDriveType_3_5,
+    2,
+    40,
+    20,                     // 0ns
+    INT8_MAX,               // 140ns
+    INT8_MAX,               // 280ns
+    INT8_MAX,               // 560ns
+};
 
 
 #define MAX_FLOPPY_DISK_DRIVES  4
@@ -89,11 +111,18 @@ static errno_t FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Lock
 
     for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
         DriveState ds = FloppyController_ResetDrive(self, i);
+        const uint32_t dt = FloppyController_GetDriveType(self, &ds);
+        const DriveParams* dp = NULL;
+        FloppyDriverRef drive;
+        
+        switch (dt) {
+            case kDriveType_3_5:    dp = &kDriveParams_3_5; break;
+            case kDriveType_5_25:   dp = &kDriveParams_5_25; break;
+            default:                break;
+        }
 
-        if (FloppyController_GetDriveType(self, &ds) == kDriveType_3_5) {
-            FloppyDriverRef drive;
-            
-            if ((err = FloppyDriver_Create((DriverRef)self, i, ds, &drive)) == EOK) {
+        if (dp) {
+            if ((err = FloppyDriver_Create((DriverRef)self, i, ds, dp, &drive)) == EOK) {
                 err = Driver_StartAdoptChild((DriverRef)self, (DriverRef)drive);
                 if (err != EOK) {
                     Object_Release(drive);
@@ -391,7 +420,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
         VirtualProcessor_Sleep(timespec_from_us(2000));
     }
 
-    
+
     self->flags.inUse = 0;
     ConditionVariable_BroadcastAndUnlock(&self->cv, &self->lock);
 

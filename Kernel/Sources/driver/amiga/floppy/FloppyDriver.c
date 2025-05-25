@@ -27,7 +27,7 @@
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
-errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds, FloppyDriverRef _Nullable * _Nonnull pOutDisk)
+errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds, const DriveParams* _Nonnull params, FloppyDriverRef _Nullable * _Nonnull pOutDisk)
 {
     decl_try_err();
     FloppyDriverRef self;
@@ -36,9 +36,9 @@ errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds
 
     self->drive = drive;
     self->driveState = ds;
+    self->params = params;
 
     // XXX hardcoded to DD for now
-    self->cylindersPerDisk = ADF_DD_CYLS_PER_DISK;
     self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
 
     self->tbCylinder = -1;
@@ -114,8 +114,8 @@ void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
                 info.properties |= kMediaProperty_IsReadOnly;
             }
             info.sectorSize = ADF_SECTOR_DATA_SIZE;
-            info.heads = ADF_DD_HEADS_PER_CYL;
-            info.cylinders = self->cylindersPerDisk;
+            info.heads = ADF_HEADS_PER_CYL;
+            info.cylinders = self->params->cylinders;
             info.sectorsPerTrack = self->sectorsPerTrack;
             info.rwClusterSize = self->sectorsPerTrack;
             info.frClusterSize = self->sectorsPerTrack;
@@ -407,7 +407,7 @@ static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self)
     // a disk is inserted.
     int c = (self->flags.shouldResetDiskChangeStepInward) ? self->cylinder + 1 : self->cylinder - 1;
 
-    if (c > self->cylindersPerDisk - 1) {
+    if (c > self->params->cylinders - 1) {
         c = self->cylinder - 1;
         self->flags.shouldResetDiskChangeStepInward = 0;
     }
@@ -462,20 +462,31 @@ static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, const chs_t
 // Expects that the track buffer is properly prepared for the I/O.
 static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, bool bWrite)
 {
-    uint16_t precompensation;
+    uint16_t precomp;
     int16_t nWords;
 
     if (bWrite) {
-        precompensation = (self->cylinder < self->cylindersPerDisk/2) ? kPrecompensation_0ns : kPrecompensation_140ns;
+        if (self->cylinder <= self->params->precomp_00) {
+            precomp = kPrecompensation_0ns;
+        }
+        else if (self->cylinder <= self->params->precomp_01) {
+            precomp = kPrecompensation_140ns;
+        }
+        else if (self->cylinder <= self->params->precomp_10) {
+            precomp = kPrecompensation_280ns;
+        }
+        else {
+            precomp = kPrecompensation_560ns;
+        }
         nWords = self->trackWriteWordCount;
     }
     else {
-        precompensation = kPrecompensation_0ns;
+        precomp = kPrecompensation_0ns;
         nWords = self->trackReadWordCount;
     }
 
     FloppyControllerRef fdc = FloppyDriver_GetController(self);
-    return FloppyController_Dma(fdc, self->driveState, precompensation, self->trackBuffer, nWords, bWrite);
+    return FloppyController_Dma(fdc, self->driveState, precomp, self->trackBuffer, nWords, bWrite);
 }
 
 // Invoked at the end of a disk I/O operation. Potentially translates the provided

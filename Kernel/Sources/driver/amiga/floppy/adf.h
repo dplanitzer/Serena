@@ -16,18 +16,13 @@
 #define ADF_MFM_SECTOR_SIZE         1080
 #define ADF_SECTOR_DATA_SIZE        512
 #define ADF_GAP_SIZE                1660
+#define ADF_HEADS_PER_CYL           2
+#define ADF_CYLS_PER_DISK           80
 
 #define ADF_DD_SECS_PER_TRACK   11
-#define ADF_DD_HEADS_PER_CYL    2
-#define ADF_DD_CYLS_PER_DISK    80
-
 #define ADF_HD_SECS_PER_TRACK   22
-#define ADF_HD_HEADS_PER_CYL    2
-#define ADF_HD_CYLS_PER_DISK    80
 
 #define ADF_MAX_SECS_PER_TRACK  ADF_HD_SECS_PER_TRACK
-#define ADF_MAX_HEADS_PER_CYL   ADF_HD_HEADS_PER_CYL
-#define ADF_MAX_CYLS_PER_DISK   ADF_HD_CYLS_PER_DISK
 
 
 #define ADF_MFM_PRESYNC     0xAAAA

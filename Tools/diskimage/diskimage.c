@@ -72,19 +72,19 @@ errno_t di_describe_diskimage(const char* _Nonnull dmgPath, DiskImage* _Nonnull 
         pOutInfo->physicalOffset = UInt32_BigToHost(smgHdr.headerSize);
         pOutInfo->physicalSize = UInt32_BigToHost(smgHdr.physicalBlockCount) * pOutInfo->bytesPerSector;
     }
-    else if (fileSize == ADF_DD_CYLS_PER_DISK*ADF_DD_HEADS_PER_CYL*ADF_DD_SECS_PER_TRACK*ADF_SECTOR_DATA_SIZE) {
+    else if (fileSize == ADF_CYLS_PER_DISK*ADF_HEADS_PER_CYL*ADF_DD_SECS_PER_TRACK*ADF_SECTOR_DATA_SIZE) {
         pOutInfo->format = kDiskImage_Amiga_DD_Floppy;
-        pOutInfo->cylindersPerDisk = ADF_DD_CYLS_PER_DISK;
-        pOutInfo->headsPerCylinder = ADF_DD_HEADS_PER_CYL;
+        pOutInfo->cylindersPerDisk = ADF_CYLS_PER_DISK;
+        pOutInfo->headsPerCylinder = ADF_HEADS_PER_CYL;
         pOutInfo->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
         pOutInfo->bytesPerSector = ADF_SECTOR_DATA_SIZE;
         pOutInfo->physicalOffset = 0;
         pOutInfo->physicalSize = pOutInfo->cylindersPerDisk * pOutInfo->headsPerCylinder * pOutInfo->sectorsPerTrack * pOutInfo->bytesPerSector;
     }
-    else if (fileSize == ADF_HD_CYLS_PER_DISK*ADF_HD_HEADS_PER_CYL*ADF_HD_SECS_PER_TRACK*ADF_SECTOR_DATA_SIZE) {
+    else if (fileSize == ADF_CYLS_PER_DISK*ADF_HEADS_PER_CYL*ADF_HD_SECS_PER_TRACK*ADF_SECTOR_DATA_SIZE) {
         pOutInfo->format = kDiskImage_Amiga_DD_Floppy;
-        pOutInfo->cylindersPerDisk = ADF_DD_CYLS_PER_DISK;
-        pOutInfo->headsPerCylinder = ADF_DD_HEADS_PER_CYL;
+        pOutInfo->cylindersPerDisk = ADF_CYLS_PER_DISK;
+        pOutInfo->headsPerCylinder = ADF_HEADS_PER_CYL;
         pOutInfo->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
         pOutInfo->bytesPerSector = ADF_SECTOR_DATA_SIZE;
         pOutInfo->physicalOffset = 0;

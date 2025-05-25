@@ -60,8 +60,8 @@ final_class_ivars(FloppyDriver, DiskDriver,
     uint8_t                 sectorDataBuffer[ADF_SECTOR_DATA_SIZE];
 
     // Disk geometry
-    int8_t                  sectorsPerTrack;
-    int8_t                  cylindersPerDisk;
+    const DriveParams* _Nonnull params;
+    int8_t                      sectorsPerTrack;
 
     int                     readErrorCount;                     // Number of read errors since last disk driver reset / disk change
 
@@ -81,7 +81,7 @@ final_class_ivars(FloppyDriver, DiskDriver,
 );
 
 
-extern errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds, FloppyDriverRef _Nullable * _Nonnull pOutDisk);
+extern errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds, const DriveParams* _Nonnull params, FloppyDriverRef _Nullable * _Nonnull pOutDisk);
 static void FloppyDriver_EstablishInitialDriveState(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self);
