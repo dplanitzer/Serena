@@ -11,6 +11,7 @@
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>
+#include <dispatcher/VirtualProcessor.h>
 #include <hal/InterruptController.h>
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
@@ -31,7 +32,6 @@ final_class_ivars(FloppyController, Driver,
 );
 
 
-extern void fdc_nano_delay(void);
 static void FloppyController_Destroy(FloppyControllerRef _Nullable self);
 static void _FloppyController_SetMotor(FloppyControllerRef _Locked _Nonnull self, DriveState* _Nonnull cb, bool onoff);
 
@@ -76,6 +76,11 @@ static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
     Semaphore_Deinit(&self->done);
     ConditionVariable_Deinit(&self->cv);
     Lock_Deinit(&self->lock);
+}
+
+static void fdc_1us_wait(void)
+{
+    VirtualProcessor_Sleep(timespec_from_us(1));
 }
 
 static errno_t FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked self)
@@ -142,7 +147,7 @@ DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int dr
     // Make sure that the motor is off and then deselect the drive
     Lock_Lock(&self->lock);
     *CIA_REG_8(ciab, CIA_PRB) = r;
-    fdc_nano_delay();
+    fdc_1us_wait();
     *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
     Lock_Unlock(&self->lock);
 
@@ -160,18 +165,18 @@ uint32_t FloppyController_GetDriveType(FloppyControllerRef _Nonnull self, DriveS
 
     // Reset the drive's serial register
     _FloppyController_SetMotor(self, cb, true);
-    fdc_nano_delay();
+    fdc_1us_wait();
     _FloppyController_SetMotor(self, cb, false);
 
     // Read the bits from MSB to LSB
     uint8_t r = *cb;
     for (int bit = 31; bit >= 0; bit--) {
         *CIA_REG_8(ciab, CIA_PRB) = r;
-        fdc_nano_delay();
+        fdc_1us_wait();
         const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
         const uint32_t rdy = (~(r >> CIAA_PRAB_DSKRDY)) & 1u;
         dt |= (rdy << (uint32_t)bit);
-        fdc_nano_delay();
+        fdc_1us_wait();
         *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
     }
 
@@ -188,9 +193,9 @@ uint8_t FloppyController_GetStatus(FloppyControllerRef _Nonnull self, DriveState
 
     Lock_Lock(&self->lock);
     *CIA_REG_8(ciab, CIA_PRB) = cb;
-    fdc_nano_delay();
+    fdc_1us_wait();
     const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
-    fdc_nano_delay();
+    fdc_1us_wait();
     *CIA_REG_8(ciab, CIA_PRB) = cb | CIAB_PRBF_DSKSELALL;
     Lock_Unlock(&self->lock);
 
@@ -206,7 +211,7 @@ static void _FloppyController_SetMotor(FloppyControllerRef _Nonnull _Locked self
     // Make sure that none of the drives are selected since a drive latches the
     // motor state when it is selected 
     *CIA_REG_8(ciab, CIA_PRB) = *CIA_REG_8(ciab, CIA_PRB) | CIAB_PRBF_DSKSELALL;
-    fdc_nano_delay();
+    fdc_1us_wait();
 
 
     // Turn the motor on/off
@@ -216,7 +221,7 @@ static void _FloppyController_SetMotor(FloppyControllerRef _Nonnull _Locked self
 
 
     // Deselect all drives
-    fdc_nano_delay();
+    fdc_1us_wait();
     *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
 }
 
@@ -242,7 +247,7 @@ void FloppyController_SelectHead(FloppyControllerRef _Nonnull self, DriveState* 
 
 
     // Deselect all drives
-    fdc_nano_delay();
+    fdc_1us_wait();
     *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
 
     Lock_Unlock(&self->lock);
@@ -264,15 +269,15 @@ void FloppyController_StepHead(FloppyControllerRef _Nonnull self, DriveState cb,
     // Execute the step pulse
     r |= CIAB_PRBF_DSKSTEP;
     *CIA_REG_8(ciab, CIA_PRB) = r;
-    fdc_nano_delay();
+    fdc_1us_wait();
 
     r &= ~CIAB_PRBF_DSKSTEP;
     *CIA_REG_8(ciab, CIA_PRB) = r;
-    fdc_nano_delay();
+    fdc_1us_wait();
 
     r |= CIAB_PRBF_DSKSTEP;
     *CIA_REG_8(ciab, CIA_PRB) = r;
-    fdc_nano_delay();
+    fdc_1us_wait();
 
 
     // Deselect all drives
@@ -281,14 +286,17 @@ void FloppyController_StepHead(FloppyControllerRef _Nonnull self, DriveState cb,
     Lock_Unlock(&self->lock);
 }
 
-// Synchronously reads/writes 'nWords' 16bit words into the given word buffer.
+// Synchronously reads/writes 'nWords' 16bit words from/to the given word buffer.
 // Blocks the caller until the DMA is available and all words have been
-// transferred from disk.
+// transferred from disk. Returns EOK on success and EDISKChANGE if a disk change
+// has been detected.
 errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite)
 {
     decl_try_err();
+    CIAA_BASE_DECL(ciaa);
     CIAB_BASE_DECL(ciab);
     CHIPSET_BASE_DECL(cs);
+    uint8_t status;
 
     Lock_Lock(&self->lock);
 
@@ -303,9 +311,27 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     self->flags.inUse = 1;
 
 
-    // Select the drive
+    // Select the drive and turn off the DMA
     *CIA_REG_8(ciab, CIA_PRB) = cb;
-    fdc_nano_delay();
+    *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;
+    VirtualProcessor_Sleep(timespec_from_us(1000));
+
+
+    // Check for disk change
+    status = ~(*CIA_REG_8(ciaa, CIA_PRA));
+    if ((status & CIAA_PRAF_DSKCHNG) == CIAA_PRAF_DSKCHNG) {
+        Lock_Unlock(&self->lock);
+        return EDISKCHANGE;
+    }
+
+
+    // Check for disk-write-protected if this is a write
+    if (bWrite) {
+        if ((status & CIAA_PRAF_DSKWPRO) == CIAA_PRAF_DSKWPRO) {
+            Lock_Unlock(&self->lock);
+            return EROFS;
+        }
+    }
 
 
     // Prepare the DMA
@@ -318,7 +344,6 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
         *CHIPSET_REG_16(cs, ADKCON) = 0x9500;
         *CHIPSET_REG_16(cs, DSKSYNC) = ADF_MFM_SYNC;
     }
-    *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;
     *CHIPSET_REG_16(cs, DMACON) = 0x8210;
 
     uint16_t dlen = 0x8000 | (nWords & 0x3fff);
@@ -348,9 +373,25 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     *CHIPSET_REG_16(cs, ADKCON) = 0x400;    // Sync detection off
 
 
+    // Check for disk change
+    if (err == EOK) {
+        status = ~(*CIA_REG_8(ciaa, CIA_PRA));
+        if ((status & CIAA_PRAF_DSKCHNG) == CIAA_PRAF_DSKCHNG) {
+            err = EDISKCHANGE;
+        }
+    }
+
+
     // Deselect all drives
     *CIA_REG_8(ciab, CIA_PRB) = cb | CIAB_PRBF_DSKSELALL;
 
+
+    // Wait for everything to settle if we just completed a write
+    if (bWrite) {
+        VirtualProcessor_Sleep(timespec_from_us(2000));
+    }
+
+    
     self->flags.inUse = 0;
     ConditionVariable_BroadcastAndUnlock(&self->cv, &self->lock);
 

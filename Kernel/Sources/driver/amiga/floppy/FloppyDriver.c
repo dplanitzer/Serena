@@ -437,9 +437,6 @@ static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, const chs_t
     if (!self->flags.isOnline) {
         return ENODEV;
     }
-    if ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
-        return EDISKCHANGE;
-    }
 
 
     // Make sure that the motor is turned on
@@ -478,17 +475,7 @@ static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, bool bWrite)
     }
 
     FloppyControllerRef fdc = FloppyDriver_GetController(self);
-    errno_t err = FloppyController_Dma(fdc, self->driveState, precompensation, self->trackBuffer, nWords, bWrite);
-    const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
-
-    if ((status & kDriveStatus_DiskReady) == 0) {
-        err = ETIMEDOUT;
-    }
-    if ((status & kDriveStatus_DiskChanged) != 0) {
-        err = EDISKCHANGE;
-    }
-
-    return err;
+    return FloppyController_Dma(fdc, self->driveState, precompensation, self->trackBuffer, nWords, bWrite);
 }
 
 // Invoked at the end of a disk I/O operation. Potentially translates the provided
@@ -876,7 +863,6 @@ errno_t FloppyDriver_putSector(FloppyDriverRef _Nonnull self, const chs_t* _Nonn
 
     // Write the track back to disk
     try(FloppyDriver_DoSyncIO(self, true));
-    VirtualProcessor_Sleep(timespec_from_us(1200));
 
 catch:
     return FloppyDriver_FinalizeIO(self, err);
@@ -940,7 +926,6 @@ errno_t FloppyDriver_formatSectors(FloppyDriverRef _Nonnull self, const chs_t* c
 
     // Write the track back to disk
     try(FloppyDriver_DoSyncIO(self, true));
-    VirtualProcessor_Sleep(timespec_from_us(1200));
 
 catch:
     return FloppyDriver_FinalizeIO(self, err);

@@ -15,6 +15,7 @@
 #define ADF_MFM_SYNC_SIZE           8
 #define ADF_MFM_SECTOR_SIZE         1080
 #define ADF_SECTOR_DATA_SIZE        512
+#define ADF_GAP_SIZE                1660
 
 #define ADF_DD_SECS_PER_TRACK   11
 #define ADF_DD_HEADS_PER_CYL    2

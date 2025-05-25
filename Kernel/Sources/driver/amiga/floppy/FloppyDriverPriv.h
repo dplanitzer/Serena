@@ -30,13 +30,10 @@ typedef struct ADFSector {
 } ADFSector;
 
 
-#define ADF_MAX_GAP_LENGTH 1660
-
-// Track size for reading. Big enough to hold all valid sectors in a track plus
-// the biggest possible gap size
-// Comes out to 13,628 bytes
-// AmigaDOS used a 14,716 bytes buffer
-#define ADF_TRACK_READ_SIZE(__sectorsPerTrack) ((__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MAX_GAP_LENGTH)
+// Track size for reading: 1660 + 11 * 1088 -> 13,628 bytes
+// AmigaDOS used a 14,716 bytes buffer (1660 + 12 * 1088 since it didn't use
+// hardware sync).
+#define ADF_TRACK_READ_SIZE(__sectorsPerTrack) (ADF_GAP_SIZE + (__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE))
 
 // Track size for writing 
 #define ADF_TRACK_WRITE_SIZE(__sectorsPerTrack) ((__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MFM_SYNC_SIZE)
