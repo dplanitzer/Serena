@@ -575,7 +575,7 @@ static bool FloppyDriver_ScanSector(FloppyDriverRef _Nonnull self, int16_t offse
     return false;
 }
 
-static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs)
+static errno_t FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs)
 {
     const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(chs);
     const uint16_t* pt = self->trackBuffer;
@@ -613,10 +613,11 @@ static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, const chs_t* _
 
 
         // Pick up the sector
-        if (FloppyDriver_ScanSector(self, pt - pt_start, targetTrack, &sectorsUntilGap)) {
-            nSectorsRead++;
+        if (!FloppyDriver_ScanSector(self, pt - pt_start, targetTrack, &sectorsUntilGap)) {
+            return EIO;
         }
         pt += ADF_MFM_SECTOR_SIZE/2;
+        nSectorsRead++;
     }
 
     self->tbCylinder = chs->c;
@@ -636,6 +637,8 @@ static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, const chs_t* _
     }
     printf("\n");
 #endif
+
+    return EOK;
 }
 
 static errno_t FloppyDriver_ReadTrack(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs)
@@ -646,7 +649,7 @@ static errno_t FloppyDriver_ReadTrack(FloppyDriverRef _Nonnull self, const chs_t
     try(FloppyDriver_EnsureTrackBuffer(self));
     try(FloppyDriver_PrepareIO(self, chs));
     try(FloppyDriver_DoSyncIO(self, false));
-    FloppyDriver_ScanTrack(self, chs);
+    try(FloppyDriver_ScanTrack(self, chs));
     try(FloppyDriver_FinalizeIO(self, err));
 
 catch:
@@ -683,27 +686,6 @@ errno_t FloppyDriver_getSector(FloppyDriverRef _Nonnull self, const chs_t* _Nonn
     }
 
     return err;
-}
-
-// Checks whether the track that is stored in the track buffer is 'targetTrack'
-// and whether all sectors are good except 'targetSector'.
-static bool FloppyDriver_IsTrackGoodForWriting(FloppyDriverRef _Nonnull self, uint8_t targetTrack, uint8_t targetSector)
-{
-    uint8_t nTargetTrack = 0;
-    uint8_t nValidData = 0;
-
-    for (uint8_t i = 0; i < self->sectorsPerTrack; i++) {
-        const ADFSector* s = &self->sectors[i];
-
-        if (s->info.track == targetTrack) {
-            nTargetTrack++;
-        }
-        if (i != targetSector && s->isDataValid) {
-            nValidData++;
-        }
-    }
-
-    return (nTargetTrack == self->sectorsPerTrack) && (nValidData == (self->sectorsPerTrack - 1)) ? true : false;
 }
 
 static void FloppyDriver_BuildSector(FloppyDriverRef _Nonnull self, uint8_t targetTrack, int sector, const void* _Nonnull s_dat, bool isDataValid)
@@ -763,18 +745,14 @@ errno_t FloppyDriver_putSector(FloppyDriverRef _Nonnull self, const chs_t* _Nonn
     try(FloppyDriver_PrepareIO(self, chs));
 
 
-    // Make sure that we got all the sectors of the target track in our track buffer
-    // in a good state. Well we don't care if the sector that we want to write is
-    // defective in the buffer because we're going to override it anyway.
-    if (!FloppyDriver_IsTrackGoodForWriting(self, targetTrack, chs->s)) {
+    // Make sure that we got the right track in our track buffer.
+    if (self->tbCylinder != chs->c || self->tbHead != chs->h) {
         for (int retry = 0; retry < 4; retry++) {
             FloppyDriver_InvalidateTrackBuffer(self);
             err = FloppyDriver_DoSyncIO(self, false);
 
             if (err == EOK) {
-                FloppyDriver_ScanTrack(self, chs);
-
-                if (!FloppyDriver_IsTrackGoodForWriting(self, targetTrack, chs->s)) {
+                if (FloppyDriver_ScanTrack(self, chs) != EOK) {
                     self->readErrorCount++;
                     err = EIO;
                 }
