@@ -149,7 +149,7 @@ catch:
     return err;
 }
 
-errno_t RamDisk_putSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, const uint8_t* _Nonnull data, size_t secSize)
+errno_t RamDisk_putSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, const uint8_t* _Nullable data, size_t secSize)
 {
     decl_try_err();
 
@@ -163,14 +163,19 @@ errno_t RamDisk_putSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, c
     }
 
     if (pExtent) {
-        memcpy(&pExtent->data[(chs->s - pExtent->firstSectorIndex) << self->sectorShift], data, secSize);
+        if (data) {
+            memcpy(&pExtent->data[(chs->s - pExtent->firstSectorIndex) << self->sectorShift], data, secSize);
+        }
+        else {
+            memset(&pExtent->data[(chs->s - pExtent->firstSectorIndex) << self->sectorShift], 0, secSize);
+        }
     }
 
     return err;
 }
 
 
-errno_t RamDisk_formatTrack(RamDiskRef _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize)
+errno_t RamDisk_formatTrack(RamDiskRef _Nonnull self, const chs_t* chs, const void* _Nullable data, size_t secSize)
 {
     chs_t addr;
     errno_t err;
