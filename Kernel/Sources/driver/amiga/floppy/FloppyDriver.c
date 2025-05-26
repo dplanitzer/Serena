@@ -25,6 +25,9 @@
 #endif
 
 
+static const uint8_t gZeroSectorPayload[ADF_SECTOR_DATA_SIZE];
+
+
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
 errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds, const DriveParams* _Nonnull params, FloppyDriverRef _Nullable * _Nonnull pOutDisk)
@@ -793,12 +796,12 @@ catch:
 // Formatting
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t FloppyDriver_formatSectors(FloppyDriverRef _Nonnull self, const chs_t* chs, const void* _Nonnull data0, size_t secSize)
+errno_t FloppyDriver_formatTrack(FloppyDriverRef _Nonnull self, const chs_t* chs, const void* _Nullable trackData, size_t secSize)
 {
     decl_try_err();
     ADF_MFMPhysicalSector* pt;
     const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(chs);
-    const uint8_t* data = data0;
+    const uint8_t* sectorData = (trackData) ? trackData : gZeroSectorPayload;
 
     try(FloppyDriver_PrepareIO(self, chs));
 
@@ -809,8 +812,10 @@ errno_t FloppyDriver_formatSectors(FloppyDriverRef _Nonnull self, const chs_t* c
     pt = (ADF_MFMPhysicalSector*)&self->trackBuffer[ADF_GAP_SIZE/2];
 
     for (uint8_t sec = 0; sec < self->sectorsPerTrack; sec++) {
-        mfm_make_sector(pt, targetTrack, sec, self->sectorsPerTrack - sec, data, true);
-        data += ADF_SECTOR_DATA_SIZE;
+        mfm_make_sector(pt, targetTrack, sec, self->sectorsPerTrack - sec, sectorData, true);
+        if (trackData) {
+            sectorData += ADF_SECTOR_DATA_SIZE;
+        }
         pt++;
     }
     pt->sync[0] = ADF_MFM_PRESYNC;
@@ -852,5 +857,5 @@ override_func_def(doSenseDisk, FloppyDriver, DiskDriver)
 override_func_def(onStart, FloppyDriver, Driver)
 override_func_def(getSector, FloppyDriver, DiskDriver)
 override_func_def(putSector, FloppyDriver, DiskDriver)
-override_func_def(formatSectors, FloppyDriver, DiskDriver)
+override_func_def(formatTrack, FloppyDriver, DiskDriver)
 );

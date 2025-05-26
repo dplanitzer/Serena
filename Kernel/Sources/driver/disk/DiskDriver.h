@@ -201,8 +201,8 @@ open_class_funcs(DiskDriver, Driver,
     // Executes the format action on the dispatch queue. See format() above.
     void (*doFormat)(void* _Nonnull self, FormatRequest* _Nonnull req);
 
-    // Called from doFormat(). Does the actual formatting of a cluster of sectors. 
-    errno_t (*formatSectors)(void* _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize);
+    // Called from doFormat(). Does the actual formatting of a track. 
+    errno_t (*formatTrack)(void* _Nonnull self, const chs_t* chs, const void* _Nullable data, size_t secSize);
 
 
     // Returns information about the disk drive and the media loaded into the
@@ -236,7 +236,7 @@ invoke_n(beginIO, DiskDriver, __self, __req)
 invoke_n(doIO, DiskDriver, __self, __req)
 
 
-extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nonnull buf, unsigned int options);
+extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nullable buf, unsigned int options);
 
 extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, diskinfo_t* pOutInfo);
 
@@ -305,8 +305,8 @@ invoke_n(putSector, DiskDriver, __self, __chs, __data, __secSize)
 #define DiskDriver_DoFormat(__self, __req) \
 invoke_n(doFormat, DiskDriver, __self, __req)
 
-#define DiskDriver_FormatSectors(__self, __chs, __data, __secSize) \
-invoke_n(formatSectors, DiskDriver, __self, __chs, __data, __secSize)
+#define DiskDriver_FormatTrack(__self, __chs, __data, __secSize) \
+invoke_n(formatTrack, DiskDriver, __self, __chs, __data, __secSize)
 
 
 #define DiskDriver_DoGetInfo(__self, __req) \

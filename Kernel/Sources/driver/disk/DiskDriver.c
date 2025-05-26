@@ -201,7 +201,7 @@ void DiskDriver_strategy(DiskDriverRef _Nonnull self, StrategyRequest* _Nonnull 
 }
 
 
-errno_t DiskDriver_formatSectors(DiskDriverRef _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize)
+errno_t DiskDriver_formatTrack(DiskDriverRef _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize)
 {
     return ENOTSUP;
 }
@@ -220,7 +220,7 @@ void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull re
     }
     else {
         DiskDriver_LsaToChs(self, lsa, &chs);
-        err = DiskDriver_FormatSectors(self, &chs, req->data, self->sectorSize);
+        err = DiskDriver_FormatTrack(self, &chs, req->data, self->sectorSize);
     }
 
     if (err == EOK) {
@@ -329,7 +329,7 @@ errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 }
 
 
-errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nonnull buf, unsigned int options)
+errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nullable buf, unsigned int options)
 {
     decl_try_err();
     FormatRequest r;
@@ -457,7 +457,7 @@ func_def(strategy, DiskDriver)
 func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)
 func_def(doFormat, DiskDriver)
-func_def(formatSectors, DiskDriver)
+func_def(formatTrack, DiskDriver)
 func_def(doGetInfo, DiskDriver)
 func_def(doGetGeometry, DiskDriver)
 func_def(doSenseDisk, DiskDriver)

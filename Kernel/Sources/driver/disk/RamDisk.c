@@ -170,7 +170,7 @@ errno_t RamDisk_putSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, c
 }
 
 
-errno_t RamDisk_formatSectors(RamDiskRef _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize)
+errno_t RamDisk_formatTrack(RamDiskRef _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize)
 {
     chs_t addr;
     errno_t err;
@@ -195,5 +195,5 @@ override_func_def(deinit, RamDisk, Object)
 override_func_def(onStart, RamDisk, Driver)
 override_func_def(getSector, RamDisk, DiskDriver)
 override_func_def(putSector, RamDisk, DiskDriver)
-override_func_def(formatSectors, RamDisk, DiskDriver)
+override_func_def(formatTrack, RamDisk, DiskDriver)
 );

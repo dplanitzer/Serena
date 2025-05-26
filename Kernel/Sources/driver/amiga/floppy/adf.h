@@ -56,8 +56,8 @@ typedef struct ADF_MFMChecksum {
 
 
 typedef struct ADF_MFMData {
-    uint32_t    odd_bits[512 / sizeof(uint32_t)];   // MFM odd bits of sector data
-    uint32_t    even_bits[512 / sizeof(uint32_t)];  // MFM even bits of sector data
+    uint32_t    odd_bits[ADF_SECTOR_DATA_SIZE / sizeof(uint32_t)];   // MFM odd bits of sector data
+    uint32_t    even_bits[ADF_SECTOR_DATA_SIZE / sizeof(uint32_t)];  // MFM even bits of sector data
 } ADF_MFMData;
 
 
