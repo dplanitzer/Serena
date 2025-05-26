@@ -38,13 +38,8 @@ errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds
     self->driveState = ds;
     self->params = params;
 
-    // XXX hardcoded to DD for now
-    self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
-
     self->tbCylinder = -1;
     self->tbHead = -1;
-    self->trackReadWordCount = ADF_TRACK_READ_SIZE(self->sectorsPerTrack) / 2;
-    self->trackWriteWordCount = ADF_TRACK_WRITE_SIZE(self->sectorsPerTrack) / 2;
 
     self->head = -1;
     self->cylinder = -1;
@@ -75,7 +70,7 @@ static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
     self->trackCompositionBuffer = NULL;
 }
 
-void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
+static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
 {
     decl_try_err();
     FloppyControllerRef fdc = FloppyDriver_GetController(self);
@@ -135,6 +130,25 @@ void FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self, SenseDiskRequest* _
     _FloppyDriver_doSenseDisk(self);
 }
 
+static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
+{
+    // XXX hardcoded to DD for now
+    self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
+
+    self->trackReadWordCount = ADF_TRACK_READ_SIZE(self->sectorsPerTrack) / 2;
+    self->trackWriteWordCount = ADF_TRACK_WRITE_SIZE(self->sectorsPerTrack) / 2;
+    self->tbCylinder = -1;
+    self->tbHead = -1;
+
+    self->head = -1;
+    self->cylinder = -1;
+
+    FloppyDriver_InvalidateTrackBuffer(self);
+    assert(kalloc_options(sizeof(uint16_t) * self->trackReadWordCount, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer) == EOK);
+
+    _FloppyDriver_doSenseDisk(self);
+}
+
 errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
 {
     decl_try_err();
@@ -153,7 +167,7 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     de.arg = 0;
 
     if ((err = Driver_Publish((DriverRef)self, &de)) == EOK) {
-        if ((err = DispatchQueue_DispatchAsync(DiskDriver_GetDispatchQueue(self), (VoidFunc_1)_FloppyDriver_doSenseDisk, self)) == EOK) {
+        if ((err = DispatchQueue_DispatchAsync(DiskDriver_GetDispatchQueue(self), (VoidFunc_1)FloppyDriver_Reset, self)) == EOK) {
             return EOK;
         }
 
@@ -176,17 +190,6 @@ static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self)
 ////////////////////////////////////////////////////////////////////////////////
 // Track Buffer
 ////////////////////////////////////////////////////////////////////////////////
-
-static errno_t FloppyDriver_EnsureTrackBuffer(FloppyDriverRef _Nonnull self)
-{
-    if (self->trackBuffer) {
-        return EOK;
-    }
-    else {
-        FloppyDriver_InvalidateTrackBuffer(self);
-        return kalloc_options(sizeof(uint16_t) * self->trackReadWordCount, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
-    }
-}
 
 static void FloppyDriver_InvalidateTrackBuffer(FloppyDriverRef _Nonnull self)
 {
@@ -646,7 +649,6 @@ static errno_t FloppyDriver_ReadTrack(FloppyDriverRef _Nonnull self, const chs_t
     decl_try_err();
     
     FloppyDriver_InvalidateTrackBuffer(self);
-    try(FloppyDriver_EnsureTrackBuffer(self));
     try(FloppyDriver_PrepareIO(self, chs));
     try(FloppyDriver_DoSyncIO(self, false));
     try(FloppyDriver_ScanTrack(self, chs));
@@ -740,7 +742,6 @@ errno_t FloppyDriver_putSector(FloppyDriverRef _Nonnull self, const chs_t* _Nonn
 
     const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(chs);
 
-    try(FloppyDriver_EnsureTrackBuffer(self));
     try(FloppyDriver_EnsureTrackCompositionBuffer(self));
     try(FloppyDriver_PrepareIO(self, chs));
 
@@ -848,7 +849,6 @@ errno_t FloppyDriver_formatSectors(FloppyDriverRef _Nonnull self, const chs_t* c
     const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(chs);
     const uint8_t* data = data0;
 
-    try(FloppyDriver_EnsureTrackBuffer(self));
     try(FloppyDriver_EnsureTrackCompositionBuffer(self));
     try(FloppyDriver_PrepareIO(self, chs));
 

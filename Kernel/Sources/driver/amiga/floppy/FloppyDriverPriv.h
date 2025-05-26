@@ -85,7 +85,6 @@ static void FloppyDriver_EstablishInitialDriveState(FloppyDriverRef _Nonnull sel
 static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self);
 
-static errno_t FloppyDriver_EnsureTrackBuffer(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_InvalidateTrackBuffer(FloppyDriverRef _Nonnull self);
 
 static errno_t FloppyDriver_EnsureTrackCompositionBuffer(FloppyDriverRef _Nonnull self);
