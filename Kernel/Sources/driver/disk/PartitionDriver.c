@@ -71,7 +71,6 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     info.cylinders = wholeGeom.cylindersPerDisk;
     info.sectorSize = wholeGeom.sectorSize;
     info.rwClusterSize = wholeInfo.rwClusterSize;
-    info.frClusterSize = wholeInfo.frClusterSize;
     info.properties = wholeInfo.properties;
     if (self->isReadOnly) {
         info.properties |= kMediaProperty_IsReadOnly;

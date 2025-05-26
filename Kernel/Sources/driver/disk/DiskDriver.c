@@ -59,7 +59,6 @@ void DiskDriver_NoteSensedDisk(DiskDriverRef _Nonnull self, const SensedDisk* _N
         self->flags.isChsLinear = (info->heads == 1 && info->cylinders == 1);
     
         self->rwClusterSize = info->rwClusterSize;
-        self->frClusterSize = info->frClusterSize;
         self->sectorCount = (scnt_t)info->sectorsPerTrack * (scnt_t)info->heads * (scnt_t)info->cylinders;
         self->sectorSize = info->sectorSize;
     
@@ -81,7 +80,6 @@ void DiskDriver_NoteSensedDisk(DiskDriverRef _Nonnull self, const SensedDisk* _N
         self->flags.isChsLinear = 1;
     
         self->rwClusterSize = 1;
-        self->frClusterSize = 1;
         self->sectorCount = 0;
         self->sectorSize = 0;
     
@@ -217,7 +215,7 @@ void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull re
     if (self->flags.isDiskChangeActive) {
         err = EDISKCHANGE;
     }
-    else if (lsa + self->frClusterSize > self->sectorCount) {
+    else if (lsa + self->sectorsPerTrack > self->sectorCount) {
         err = ENXIO;
     }
     else {
@@ -226,7 +224,7 @@ void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull re
     }
 
     if (err == EOK) {
-        req->resCount = self->frClusterSize * self->sectorSize;
+        req->resCount = self->sectorsPerTrack * self->sectorSize;
     }
     req->s.status = err;
 }
@@ -244,7 +242,6 @@ void DiskDriver_doGetInfo(DiskDriverRef _Nonnull self, GetDiskInfoRequest* _Nonn
     else if (self->flags.hasDisk) {
         p->sectorCount = self->sectorCount;
         p->rwClusterSize = self->rwClusterSize;
-        p->frClusterSize = self->frClusterSize;
         p->sectorSize = self->sectorSize;
         p->properties = self->mediaProperties;
         p->diskId = self->diskId;
@@ -433,7 +430,7 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull pCha
             return DiskDriver_GetGeometry(self, info);
         }
 
-        case kDiskCommand_Format: {
+        case kDiskCommand_FormatTrack: {
             const void* data = va_arg(ap, const void*);
             const int options = va_arg(ap, unsigned int);
 

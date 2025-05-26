@@ -25,7 +25,6 @@ enum {
 typedef struct diskinfo {
     scnt_t      sectorCount;        // number of sectors (physical blocks) stored on the disk media
     scnt_t      rwClusterSize;      // > 1 then the number of consecutive sectors that should be read/written in one go for optimal disk I/O performance (eg drive wants you to read a whole track rather than individual sectors)
-    scnt_t      frClusterSize;      // > 0 then formatting is supported and a format call takes 'frClusterSize' sectors as input
     size_t      sectorSize;         // size of a sector (physical block) stored on the disk media. Only relevant if you want to display this value to the user or format a disk
     uint32_t    properties;         // Disk/media properties 
     uint32_t    diskId;             // unique id starting at 1, incremented every time a new disk is inserted into the drive
@@ -50,13 +49,14 @@ typedef struct diskgeom {
 #define kDiskCommand_GetGeometry  IOResourceCommand(kDriverCommand_SubclassBase + 1)
 
     
-// Formats 'frClusterSize' consecutive sectors starting at the current channel
-// position. 'data' points to the data that should be written to 'frClusterSize'
-// sectors. 'options' are options that control how the format command should
+// Formats a track of 'sectorsPerTrack' consecutive sectors starting at the
+// current position (rounded down to the closest track start). 'data' points to
+// sectorSize * sectorsPerTrack bytes that should be written to the sectors in
+// the track. 'options' are options that control how the format command should
 // execute. The caller will be blocked until all data has been written to disk
 // or an error is encountered.
 // format(const void* _Nonnull data, unsigned int options)
-#define kDiskCommand_Format IOResourceCommand(kDriverCommand_SubclassBase + 2)
+#define kDiskCommand_FormatTrack    IOResourceCommand(kDriverCommand_SubclassBase + 2)
 
 
 // Checks whether a disk was inserted into the drive and updates the drive state

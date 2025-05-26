@@ -62,7 +62,6 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     info.cylinders = 1;
     info.sectorSize = self->sectorSize;
     info.rwClusterSize = 1;
-    info.frClusterSize = 0;
     info.properties = kMediaProperty_IsReadOnly;
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 

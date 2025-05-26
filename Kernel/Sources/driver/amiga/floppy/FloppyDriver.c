@@ -113,7 +113,6 @@ static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
             info.cylinders = self->params->cylinders;
             info.sectorsPerTrack = self->sectorsPerTrack;
             info.rwClusterSize = self->sectorsPerTrack;
-            info.frClusterSize = self->sectorsPerTrack;
             DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
         }
         else {

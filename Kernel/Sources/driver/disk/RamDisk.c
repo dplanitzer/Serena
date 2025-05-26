@@ -70,7 +70,6 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
     info.cylinders = 1;
     info.sectorSize = self->sectorSize;
     info.rwClusterSize = 1;
-    info.frClusterSize = 1;
     info.properties = 0;
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
@@ -173,7 +172,21 @@ errno_t RamDisk_putSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, c
 
 errno_t RamDisk_formatSectors(RamDiskRef _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize)
 {
-    return RamDisk_putSector(self, chs, data, secSize);
+    chs_t addr;
+    errno_t err;
+
+    addr.c = 0;
+    addr.h = 0;
+    addr.s = 0;
+
+    for (size_t s = 0; s < self->sectorCount; s++) {
+        addr.s = s;
+        
+        if ((err = RamDisk_putSector(self, &addr, data, secSize)) != 0) {
+            return err;
+        }
+    }
+    return EOK;
 }
 
 

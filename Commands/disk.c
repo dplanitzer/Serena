@@ -99,11 +99,10 @@ static errno_t block_write(intptr_t fd, const void* _Nonnull buf, blkno_t blockA
     }
 }
 
-static int wipe_disk(int ioc, const diskinfo_t* _Nonnull info)
+static int wipe_disk(int ioc, const diskgeom_t* _Nonnull geom)
 {
-    scnt_t sct = 0;
-    size_t clusterCount = 1;
-    ssize_t byteCount = info->sectorSize * info->frClusterSize;
+    size_t t = 0, trackCount = geom->cylindersPerDisk * geom->headsPerCylinder;
+    ssize_t byteCount = geom->sectorSize * geom->sectorsPerTrack;
     int ok = 1;
     
     uint8_t* data = malloc(byteCount);
@@ -112,22 +111,21 @@ static int wipe_disk(int ioc, const diskinfo_t* _Nonnull info)
     }
 
     
-    for (size_t i = 0; i < info->frClusterSize; i++) {
-        memset(&data[i * info->sectorSize], i + 1, info->sectorSize);
+    for (size_t i = 0; i < geom->sectorsPerTrack; i++) {
+        memset(&data[i * geom->sectorSize], i + 1, geom->sectorSize);
     }
 
     fputs("\033[?25l", stdout);
     lseek(ioc, 0ll, SEEK_SET);
-    while (sct < info->sectorCount) {
-        printf("%u\n\033[1A", (unsigned)clusterCount);
+    while (t < trackCount) {
+        printf("%u\n\033[1A", (unsigned)(t + 1));
         
-        if (ioctl(ioc, kDiskCommand_Format, data, 0) != 0) {
+        if (ioctl(ioc, kDiskCommand_FormatTrack, data, 0) != 0) {
             ok = 0;
             break;
         }
         
-        sct += info->frClusterSize;
-        clusterCount++;
+        t++;
     }
     fputs("\033[?25h\n", stdout);
 
@@ -139,7 +137,7 @@ static int wipe_disk(int ioc, const diskinfo_t* _Nonnull info)
 void cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull diskPath)
 {
     FILE* fp = NULL;
-    diskinfo_t info;
+    diskgeom_t geom;
 
     if (strcmp(fsType, "sefs")) {
         errno = EINVAL;
@@ -153,15 +151,15 @@ void cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t rootDi
         setbuf(fp, NULL);
 
         if (ioctl(fd, kDiskCommand_SenseDisk) == 0) {
-            ioctl(fd, kDiskCommand_GetInfo, &info); 
+            ioctl(fd, kDiskCommand_GetGeometry, &geom);
             if (!bQuick) {
-                ok = wipe_disk(fd, &info);
+                ok = wipe_disk(fd, &geom);
                 if (ok) {
                     lseek(fd, 0ll, SEEK_SET);
                 }
             }
             if (ok) {
-                sefs_format((intptr_t)fp, block_write, info.sectorCount, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label);
+                sefs_format((intptr_t)fp, block_write, geom.sectorsPerTrack * geom.headsPerCylinder * geom.cylindersPerDisk, geom.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label);
             }
             puts("ok");
         }
