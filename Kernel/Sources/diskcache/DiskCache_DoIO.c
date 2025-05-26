@@ -135,6 +135,7 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     req->s.done = (IODoneFunc)DiskCache_OnDiskRequestDone;
     req->s.context = self;
     req->offset = lbaClusterStart * s->s2bFactor * s->sectorSize;
+    req->options = 0;
     req->iovCount = nBlocksToCluster;
 
 

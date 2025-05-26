@@ -38,12 +38,13 @@ enum {
 
 
 typedef struct StrategyRequest {
-    IORequest   s;
-    off_t       offset;         // <- logical sector address in terms of bytes
-    ssize_t     resCount;       // -> number of bytes read/written
-    size_t      iovCount;       // <- number of I/O vectors in this request
+    IORequest       s;
+    off_t           offset;         // <- logical sector address in terms of bytes
+    unsigned int    options;        // <- read/write options
+    ssize_t         resCount;       // -> number of bytes read/written
+    size_t          iovCount;       // <- number of I/O vectors in this request
 
-    IOVector    iov[1];
+    IOVector        iov[1];
 } StrategyRequest;
 
 
@@ -51,7 +52,8 @@ typedef struct FormatRequest {
     IORequest               s;
     off_t                   offset;     // <- logical sector address in terms of bytes
     const void* _Nonnull    data;       // <- data for all sectors in the cluster to format
-    ssize_t                 byteCount;  // <- number of bytes in 'data'
+    unsigned int            options;    // <- format options
+    ssize_t                 resCount;   // -> number of bytes formatted
 } FormatRequest;
 
 
@@ -236,7 +238,7 @@ invoke_n(beginIO, DiskDriver, __self, __req)
 invoke_n(doIO, DiskDriver, __self, __req)
 
 
-extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nonnull buf, ssize_t byteCount);
+extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nonnull buf, unsigned int options);
 
 extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, diskinfo_t* pOutInfo);
 

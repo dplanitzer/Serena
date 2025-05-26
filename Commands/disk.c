@@ -121,7 +121,7 @@ static int wipe_disk(int ioc, const diskinfo_t* _Nonnull info)
     while (sct < info->sectorCount) {
         printf("%u\n\033[1A", (unsigned)clusterCount);
         
-        if (ioctl(ioc, kDiskCommand_Format, data, byteCount) != 0) {
+        if (ioctl(ioc, kDiskCommand_Format, data, 0) != 0) {
             ok = 0;
             break;
         }

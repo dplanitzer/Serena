@@ -217,9 +217,6 @@ void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull re
     if (self->flags.isDiskChangeActive) {
         err = EDISKCHANGE;
     }
-    else if (req->byteCount != self->frClusterSize * self->sectorSize) {
-        err = EINVAL;
-    }
     else if (lsa + self->frClusterSize > self->sectorCount) {
         err = ENXIO;
     }
@@ -228,6 +225,9 @@ void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull re
         err = DiskDriver_FormatSectors(self, &chs, req->data, self->sectorSize);
     }
 
+    if (err == EOK) {
+        req->resCount = self->frClusterSize * self->sectorSize;
+    }
     req->s.status = err;
 }
 
@@ -332,7 +332,7 @@ errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 }
 
 
-errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nonnull buf, ssize_t byteCount)
+errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nonnull buf, unsigned int options)
 {
     decl_try_err();
     FormatRequest r;
@@ -340,11 +340,12 @@ errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch,
     IORequest_Init(&r, kDiskRequest_Format);
     r.offset = IOChannel_GetOffset(ch);
     r.data = buf;
-    r.byteCount = byteCount;
+    r.options = options;
+    r.resCount = 0;
 
     err = DiskDriver_DoIO(self, (IORequest*)&r);
     if (err == EOK) {
-        IOChannel_IncrementOffsetBy(ch, byteCount);
+        IOChannel_IncrementOffsetBy(ch, r.resCount);
     }
 
     return err;
@@ -391,6 +392,7 @@ static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, IOChannel
 
     IORequest_Init(&r, type);
     r.offset = IOChannel_GetOffset(ch);
+    r.options = 0;
     r.iovCount = 1;
     r.iov[0].data = buf;
     r.iov[0].size = byteCount;
@@ -433,9 +435,9 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull pCha
 
         case kDiskCommand_Format: {
             const void* data = va_arg(ap, const void*);
-            const ssize_t byteCount = va_arg(ap, ssize_t);
+            const int options = va_arg(ap, unsigned int);
 
-            return DiskDriver_Format(self, pChannel, data, byteCount);
+            return DiskDriver_Format(self, pChannel, data, options);
         }
 
         case kDiskCommand_SenseDisk:
