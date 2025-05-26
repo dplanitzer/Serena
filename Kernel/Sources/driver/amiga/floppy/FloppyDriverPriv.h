@@ -38,6 +38,9 @@ typedef struct ADFSector {
 // Track size for writing 
 #define ADF_TRACK_WRITE_SIZE(__sectorsPerTrack) ((__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MFM_SYNC_SIZE)
 
+// Track size for formatting 
+#define ADF_TRACK_FORMAT_SIZE(__sectorsPerTrack) (ADF_GAP_SIZE + (__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MFM_SYNC_SIZE/2)
+
 
 // Dispatch queue timer tags
 #define kDelayedMotorOffTag     ((uintptr_t)0x1000)
@@ -102,7 +105,7 @@ static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, 
 static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self);
 
 static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs);
-static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, bool bWrite);
+static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, int16_t nWords, bool bWrite);
 static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t err);
 
 #define FloppyDriver_TrackFromCylinderAndHead(__chs) (2*(__chs->c) + (__chs->h))

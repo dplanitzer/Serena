@@ -152,7 +152,7 @@ void cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t rootDi
 
         setbuf(fp, NULL);
 
-        if (ioctl(fd, kDiskCommand_SenseDisk) != 0) {
+        if (ioctl(fd, kDiskCommand_SenseDisk) == 0) {
             ioctl(fd, kDiskCommand_GetInfo, &info); 
             if (!bQuick) {
                 ok = wipe_disk(fd, &info);
