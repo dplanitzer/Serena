@@ -90,9 +90,6 @@ static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self);
 
 static void FloppyDriver_InvalidateTrackBuffer(FloppyDriverRef _Nonnull self);
 
-static errno_t FloppyDriver_EnsureTrackCompositionBuffer(FloppyDriverRef _Nonnull self);
-static void FloppyDriver_ResetTrackBuffer(FloppyDriverRef _Nonnull self);
-
 static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_MotorOff(FloppyDriverRef _Nonnull self);
 static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self);
