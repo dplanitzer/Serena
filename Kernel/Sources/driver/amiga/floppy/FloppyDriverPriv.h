@@ -21,26 +21,27 @@ enum {
     kMotor_AtTargetSpeed = 2    // Motor is at target speed, disk read/write is permissible 
 };
 
+enum {
+    kSectorState_Ok =  0,
+    kSectorState_Missing,
+    kSectorState_BadDataChecksum,
+};
 
-typedef struct ADFSector {
+typedef struct CachedSector {
+    uint32_t        state;
     ADF_SectorInfo  info;
-    int16_t         offsetToHeader;     // Offset to first word past the sector sync words (ADF_MFMSector); only valid if 'isHeaderValid' is true
-    bool            isHeaderValid;      // Sector header checksum is okay and the info word values make sense
-    bool            isDataValid;        // Sector data checksum verification was successful; only true if 'isHeaderValid' is true
-} ADFSector;
+    uint32_t        label[4];
+    uint8_t         data[ADF_SECTOR_DATA_SIZE];
+} CachedSector;
 
 
-// Track size for reading: 1660 + 11 * 1088 -> 13,628 bytes
+// DMA track size (R/W): 1660 + 11 * 1088 -> 13,628 bytes
 // AmigaDOS used a 14,716 bytes buffer (1660 + 12 * 1088 since it didn't use
 // hardware sync).
-#define ADF_TRACK_READ_SIZE(__sectorsPerTrack) (ADF_GAP_SIZE + (__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE))
+#define DMA_BYTE_SIZE(__sectorsPerTrack) (ADF_GAP_SIZE + (__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE))
 
-// Track size for writing 
-#define ADF_TRACK_WRITE_SIZE(__sectorsPerTrack) ((__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MFM_SYNC_SIZE)
-
-// Track size for formatting 
-#define ADF_TRACK_FORMAT_SIZE(__sectorsPerTrack) (ADF_GAP_SIZE + (__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MFM_SYNC_SIZE/2)
-
+// Size of the sector cache in bytes
+#define SECTOR_CACHE_BYTE_SIZE(__sectorsPerTrack) (sizeof(CachedSector) * (__sectorsPerTrack))
 
 // Dispatch queue timer tags
 #define kDelayedMotorOffTag     ((uintptr_t)0x1000)
@@ -49,17 +50,14 @@ typedef struct ADFSector {
 // Stores the state of a single floppy drive.
 final_class_ivars(FloppyDriver, DiskDriver,
 
-    // Buffer used to cache a read track
-    ADFSector               sectors[ADF_MAX_SECS_PER_TRACK];    // table of sectorsPerTrack good and bad sectors in the track stored in the track buffer  
-    uint16_t* _Nullable     trackBuffer;                        // cached read track data (MFM encoded)
-    int16_t                 trackReadWordCount;                 // cached read track buffer size in words
-    int16_t                 tbCylinder;                         // cylinder of the track stored in the track buffer; -1 if track buffer is empty
-    int16_t                 tbHead;                             // head of the track stored in the track buffer; -1 if track buffer is empty
+    // DMA buffer
+    uint16_t* _Nonnull      dmaBuffer;
+    int16_t                 dmaReadWordCount;
+    int16_t                 dmaWriteWordCount;
 
-    // Buffer used to compose a track for writing
-    uint16_t* _Nullable     trackCompositionBuffer;
-    int16_t                 trackWriteWordCount;                // number of words to write to a track
-    uint8_t                 sectorDataBuffer[ADF_SECTOR_DATA_SIZE];
+    // Sector cache
+    CachedSector* _Nonnull  sectorCache;
+    int16_t                 scTrackNo;
 
     // Disk geometry
     const DriveParams* _Nonnull params;
@@ -88,8 +86,6 @@ static void FloppyDriver_EstablishInitialDriveState(FloppyDriverRef _Nonnull sel
 static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self);
 
-static void FloppyDriver_InvalidateTrackBuffer(FloppyDriverRef _Nonnull self);
-
 static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_MotorOff(FloppyDriverRef _Nonnull self);
 static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self);
@@ -102,7 +98,7 @@ static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, 
 static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self);
 
 static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs);
-static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, int16_t nWords, bool bWrite);
+static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, bool bWrite);
 static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t err);
 
 #define FloppyDriver_TrackFromCylinderAndHead(__chs) (2*(__chs->c) + (__chs->h))

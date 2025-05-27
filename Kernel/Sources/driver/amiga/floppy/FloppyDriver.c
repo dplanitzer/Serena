@@ -17,16 +17,6 @@
 #include <kern/timespec.h>
 #include "mfm.h"
 
-//#define TRACE_STATE 1
-#ifdef TRACE_STATE
-#define LOG(__drive, fmt, ...) if (self->drive == (__drive)) { printf(fmt, __VA_ARGS__); }
-#else
-#define LOG(drive, fmt, ...)
-#endif
-
-
-static const uint8_t gZeroSectorPayload[ADF_SECTOR_DATA_SIZE];
-
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
@@ -40,9 +30,6 @@ errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds
     self->drive = drive;
     self->driveState = ds;
     self->params = params;
-
-    self->tbCylinder = -1;
-    self->tbHead = -1;
 
     self->head = -1;
     self->cylinder = -1;
@@ -66,11 +53,11 @@ static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
 {
     FloppyDriver_MotorOff(self);
 
-    kfree(self->trackBuffer);
-    self->trackBuffer = NULL;
+    kfree(self->dmaBuffer);
+    self->dmaBuffer = NULL;
 
-    kfree(self->trackCompositionBuffer);
-    self->trackCompositionBuffer = NULL;
+    kfree(self->sectorCache);
+    self->sectorCache = NULL;
 }
 
 static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
@@ -82,8 +69,8 @@ static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
 
     if (!self->flags.didResetDrive) {
         self->flags.didResetDrive = 1;
+        self->scTrackNo = -1;
 
-        FloppyDriver_InvalidateTrackBuffer(self);
         err = FloppyDriver_SeekToTrack_0(self, &didStep);
         if (err != EOK) {
             FloppyDriver_OnHardwareLost(self);
@@ -119,12 +106,10 @@ static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
             DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
         }
         else {
-            FloppyDriver_InvalidateTrackBuffer(self);
+            self->scTrackNo = -1;
             DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
         }
     }
-
-    LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)DiskDriver_HasDisk(self));
 }
 
 void FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self, SenseDiskRequest* _Nonnull req)
@@ -137,17 +122,16 @@ static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
     // XXX hardcoded to DD for now
     self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
 
-    self->trackReadWordCount = ADF_TRACK_READ_SIZE(self->sectorsPerTrack) / 2;
-    self->trackWriteWordCount = ADF_TRACK_WRITE_SIZE(self->sectorsPerTrack) / 2;
-    self->tbCylinder = -1;
-    self->tbHead = -1;
+    self->dmaReadWordCount = DMA_BYTE_SIZE(self->sectorsPerTrack) / 2;
+    self->dmaWriteWordCount = self->dmaReadWordCount + ADF_MFM_SYNC_SIZE/2; /* +2 for the 3bit loss on write DMA bug*/
+    assert(kalloc_options(sizeof(uint16_t) * self->dmaWriteWordCount, KALLOC_OPTION_UNIFIED, (void**) &self->dmaBuffer) == EOK);
+
+    self->scTrackNo = -1;
+    assert(kalloc_options(SECTOR_CACHE_BYTE_SIZE(self->sectorsPerTrack), 0, (void**) &self->sectorCache) == EOK);
 
     self->head = -1;
     self->cylinder = -1;
 
-    FloppyDriver_InvalidateTrackBuffer(self);
-    assert(kalloc_options(sizeof(uint16_t) * self->trackReadWordCount + 2 /* +2 for the 3bit loss on write DMA bug*/, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer) == EOK);
-    assert(kalloc_options(sizeof(uint16_t) * self->trackWriteWordCount, 0, (void**) &self->trackCompositionBuffer) == EOK);
 
     _FloppyDriver_doSenseDisk(self);
 }
@@ -184,22 +168,9 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self)
 {
     FloppyDriver_MotorOff(self);
-    FloppyDriver_InvalidateTrackBuffer(self);
+    self->scTrackNo = -1;
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
     self->flags.isOnline = 0;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Track Buffer
-////////////////////////////////////////////////////////////////////////////////
-
-static void FloppyDriver_InvalidateTrackBuffer(FloppyDriverRef _Nonnull self)
-{
-    self->tbCylinder = -1;
-    self->tbHead = -1;
-
-    memset(self->sectors, 0, sizeof(ADFSector) * self->sectorsPerTrack);
 }
 
 
@@ -451,9 +422,10 @@ static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, const chs_t
 // Invoked to do the actual read/write operation. Also validates that the disk
 // hasn't been yanked out of the drive or changed on us while doing the I/O.
 // Expects that the track buffer is properly prepared for the I/O.
-static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, int16_t nWords, bool bWrite)
+static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, bool bWrite)
 {
     uint16_t precomp;
+    int16_t nWords;
 
     if (bWrite) {
         if (self->cylinder <= self->params->precomp_00) {
@@ -468,13 +440,15 @@ static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, int16_t nWor
         else {
             precomp = kPrecompensation_560ns;
         }
+        nWords = self->dmaWriteWordCount;
     }
     else {
         precomp = kPrecompensation_0ns;
+        nWords = self->dmaReadWordCount;
     }
 
     FloppyControllerRef fdc = FloppyDriver_GetController(self);
-    return FloppyController_Dma(fdc, self->driveState, precomp, self->trackBuffer, nWords, bWrite);
+    return FloppyController_Dma(fdc, self->driveState, precomp, self->dmaBuffer, nWords, bWrite);
 }
 
 // Invoked at the end of a disk I/O operation. Potentially translates the provided
@@ -509,9 +483,9 @@ static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t er
 }
 
 
-static bool FloppyDriver_ScanSector(FloppyDriverRef _Nonnull self, int16_t offset, uint8_t targetTrack, int* _Nonnull pOutSectorsUntilGap)
+static void FloppyDriver_DecodeSector(FloppyDriverRef _Nonnull self, int16_t offset, uint8_t targetTrack)
 {
-    const ADF_MFMSector* mfmSector = (const ADF_MFMSector*)&self->trackBuffer[offset];
+    const ADF_MFMSector* mfmSector = (const ADF_MFMSector*)&self->dmaBuffer[offset];
     ADF_SectorInfo info;
     ADF_Checksum diskChecksum, myChecksum;
 
@@ -524,7 +498,7 @@ static bool FloppyDriver_ScanSector(FloppyDriverRef _Nonnull self, int16_t offse
     myChecksum = mfm_checksum(&mfmSector->info.odd_bits, 2 + 8);
 
     if (diskChecksum != myChecksum) {
-        return false;
+        return;
     }
 
 
@@ -533,48 +507,53 @@ static bool FloppyDriver_ScanSector(FloppyDriverRef _Nonnull self, int16_t offse
 
 
     // Validate the sector info
-    if (info.format == ADF_FORMAT_V1 
-        && info.track == targetTrack
-        && info.sector < self->sectorsPerTrack
-        && info.sectors_until_gap <= self->sectorsPerTrack) {
-        // Record the sector. Note that a sector may appear more than once because
-        // we may have read more data from the disk than fits in a single track.
-        // We keep the first occurrence of a sector and the second occurrence if
-        // the first one has incorrect data and the second one's data is correct.
-        ADFSector* s = &self->sectors[info.sector];
-
-        // Validate the sector data
-        mfm_decode_bits(&mfmSector->data_checksum.odd_bits, &diskChecksum, 1);
-        myChecksum = mfm_checksum(mfmSector->data.odd_bits, 256);
-        const bool diskDataValid = (diskChecksum == myChecksum) ? true : false;
-
-        if (!s->isHeaderValid || (s->isHeaderValid && !s->isDataValid && diskDataValid)) {
-            s->info = info;
-            s->offsetToHeader = offset;
-            s->isHeaderValid = true;
-
-            s->isDataValid = diskDataValid;
-
-            *pOutSectorsUntilGap = info.sectors_until_gap;
-            return true;
-        }
+    if (info.format != ADF_FORMAT_V1
+        || info.track != targetTrack
+        || info.sector >= self->sectorsPerTrack
+        || info.sectors_until_gap > self->sectorsPerTrack) {
+        return;
     }
 
-    return false;
+
+    // Save the decoded header
+    CachedSector* pcs = &self->sectorCache[info.sector];
+    pcs->info.format = info.format;
+    pcs->info.track = info.track;
+    pcs->info.sector = info.sector;
+    pcs->info.sectors_until_gap = info.sectors_until_gap;
+
+
+    // Save the decoded label
+    mfm_decode_bits(mfmSector->label.odd_bits, (uint32_t*)&pcs->label[0], 4);
+
+
+    // Save the decoded sector data
+    mfm_decode_bits(mfmSector->data.odd_bits, (uint32_t*)&pcs->data[0], ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
+
+
+    // Validate the sector data
+    mfm_decode_bits(&mfmSector->data_checksum.odd_bits, &diskChecksum, 1);
+    myChecksum = mfm_checksum(mfmSector->data.odd_bits, 256);
+
+    pcs->state = (diskChecksum == myChecksum) ? kSectorState_Ok : kSectorState_BadDataChecksum;
 }
 
-static errno_t FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs)
+static errno_t FloppyDriver_DecodeTrack(FloppyDriverRef _Nonnull self, uint8_t targetTrack)
 {
-    const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(chs);
-    const uint16_t* pt = self->trackBuffer;
+    CachedSector* psc = self->sectorCache;
+    const uint16_t* pt = self->dmaBuffer;
     const uint16_t* pt_start = pt;
-    const uint16_t* pt_limit = &self->trackBuffer[self->trackReadWordCount];
-    int sectorsUntilGap = -1;
-    int8_t nSectorsRead = 0;
+    const uint16_t* pt_limit = &self->dmaBuffer[self->dmaReadWordCount];
 
-    FloppyDriver_InvalidateTrackBuffer(self);
+    // Invalidate the sector cache
+    for (int i = 0; i < self->sectorsPerTrack; i++) {
+        psc[i].state = kSectorState_Missing;
+    }
+    self->scTrackNo = -1;
 
-    while (pt < pt_limit && nSectorsRead < self->sectorsPerTrack) {
+
+    // Decode the sectors in the track and store them in the sector cache
+    while (pt < pt_limit) {
         // Find the next MFM sync mark
         // We don't verify the pre-sync words. They may be 0x2AAA or 0xAAAA. Or
         // they are missing altogether because this is the first sector in the
@@ -601,48 +580,124 @@ static errno_t FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, const chs_t
 
 
         // Pick up the sector
-        if (!FloppyDriver_ScanSector(self, pt - pt_start, targetTrack, &sectorsUntilGap)) {
-            return EIO;
-        }
+        FloppyDriver_DecodeSector(self, pt - pt_start, targetTrack);
         pt += ADF_MFM_SECTOR_SIZE/2;
-        nSectorsRead++;
     }
 
-    self->tbCylinder = chs->c;
-    self->tbHead = chs->h;
-
-#if 0
-    printf("c: %d, h: %d ---------- tb: %p, limit: %p\n", self->cylinder, self->head, self->trackBuffer, pt_limit);
-    for(int i = 0; i < self->sectorsPerTrack; i++) {
-        const ADFSector* s = &self->sectors[i];
-
-        printf(" s: %*d, sug: %*d, off: %*d, v: %c%c, addr: %p\n",
-            2, s->info.sector,
-            2, s->info.sectors_until_gap,
-            5, s->offsetToHeader*2,
-            s->isHeaderValid ? 'H' : '-', s->isDataValid ? 'D' : '-',
-            s);
+    
+    // Validate the sector cache
+    bool isGood = true;
+    
+    for (int i = 0; i < self->sectorsPerTrack; i++) {
+        if (self->sectorCache[i].state != kSectorState_Ok) {
+            isGood = false;
+            break;
+        }
     }
-    printf("\n");
-#endif
 
-    return EOK;
+    if (isGood) {
+        self->scTrackNo = targetTrack;
+        return EOK;
+    }
+    else {
+        return EIO;
+    }
+}
+
+static void FloppyDriver_EncodeSector(FloppyDriverRef _Nonnull self, struct ADF_MFMPhysicalSector* _Nonnull dma_buf, const CachedSector* _Nonnull s)
+{
+    uint32_t checksum;
+
+    // Sync mark
+    dma_buf->sync[0] = 0;
+    dma_buf->sync[1] = 0;
+    dma_buf->sync[2] = ADF_MFM_SYNC;
+    dma_buf->sync[3] = ADF_MFM_SYNC;
+
+
+    // Sector info
+    mfm_encode_bits((const uint32_t*)&s->info, &dma_buf->payload.info.odd_bits, 1);
+
+
+    // Sector label
+    mfm_encode_bits(s->label, dma_buf->payload.label.odd_bits, 4);
+
+
+    // Header checksum
+    checksum = mfm_checksum(&dma_buf->payload.info.odd_bits, 10);
+    mfm_encode_bits(&checksum, &dma_buf->payload.header_checksum.odd_bits, 1);
+
+
+    // Data and data checksum. Note that we generate an incorrect data checksum
+    // if the this sector is supposed to be a 'defective' sector. Aka a sector
+    // that was originally stored on the disk and where the data checksum didn't
+    // check out when we read it in. We do this to ensure that we do not
+    // accidentally 'resurrect' a defective sector. We want to make sure that it
+    // stays defective after we write it back to disk again.
+    const size_t nLongs = ADF_SECTOR_DATA_SIZE / sizeof(uint32_t);
+
+    mfm_encode_bits((const uint32_t*)s->data, dma_buf->payload.data.odd_bits, nLongs);
+
+    checksum = (s->state == kSectorState_Ok) ? mfm_checksum(dma_buf->payload.data.odd_bits, 2 * nLongs) : 0;
+    mfm_encode_bits(&checksum, &dma_buf->payload.data_checksum.odd_bits, 1);
+}
+
+// Encodes the currently cached track and stores the result in the DMA buffer.
+static void FloppyDriver_EncodeTrack(FloppyDriverRef _Nonnull self)
+{
+    assert(self->scTrackNo != -1);
+
+    // Track gap (1660 bytes)
+    memset(self->dmaBuffer, 0xAA, ADF_GAP_SIZE);
+
+
+    // Sector #0, ... Sector #10
+    ADF_MFMPhysicalSector* pt = (ADF_MFMPhysicalSector*)&self->dmaBuffer[ADF_GAP_SIZE/2];
+    const CachedSector* pcs = &self->sectorCache[0];
+
+    for (int i = 0; i < self->sectorsPerTrack; i++) {
+        FloppyDriver_EncodeSector(self, pt, pcs);
+        pt++;
+        pcs++;
+    }
+
+
+    // Extra words to work around the DMA write bug (dropping 3 last bits)
+    pt->sync[0] = ADF_MFM_PRESYNC;
+    pt->sync[1] = ADF_MFM_PRESYNC;
+
+
+    // Adjust the MFM clock bits in the header and data portions of every sector
+    // to make them compliant with the MFM spec. Note that we do this for the
+    // 1080 bytes of the sector + the word following the sector. The reason is
+    // that bit #0 of the last word in the sector data region may be 1 or 0 and
+    // depending on that, the MSB in the word following the sector has to be
+    // adjusted. So this word may come out as 0xAAAA or 0x2AAA.
+    pt = (ADF_MFMPhysicalSector*)&self->dmaBuffer[ADF_GAP_SIZE/2];
+
+    pt->sync[0] = ADF_MFM_PRESYNC;
+    pt->sync[1] = ADF_MFM_PRESYNC;
+    for (int i = 0; i < self->sectorsPerTrack; i++) {
+        mfm_adj_clock_bits((uint16_t*)&pt->payload, (ADF_MFM_SECTOR_SIZE + ADF_MFM_SYNC_SIZE/2) / 2);
+        pt++;
+    }
 }
 
 static errno_t FloppyDriver_EnsureTrackBuffered(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs)
 {
     decl_try_err();
+    const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(chs);
 
-    if (self->tbCylinder == chs->c && self->tbHead == chs->h) {
+    if (self->scTrackNo == targetTrack) {
         return EOK;
     }
 
     err = FloppyDriver_PrepareIO(self, chs);
     if (err == EOK) {
         for (int8_t retry = 0; retry < self->params->retryCount; retry++) {
-            err = FloppyDriver_DoSyncIO(self, self->trackReadWordCount, false);
+            err = FloppyDriver_DoSyncIO(self, false);
             if (err == EOK) {
-                err = FloppyDriver_ScanTrack(self, chs);
+                err = FloppyDriver_DecodeTrack(self, targetTrack);
             }
             
             if (err == EOK || err != EIO) {
@@ -662,11 +717,9 @@ errno_t FloppyDriver_getSector(FloppyDriverRef _Nonnull self, const chs_t* _Nonn
     const errno_t err = FloppyDriver_EnsureTrackBuffered(self, chs);
 
     if (err == EOK) {
-        const ADFSector* ps = &self->sectors[chs->s];
-        const ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[ps->offsetToHeader];
+        const CachedSector* pcs = &self->sectorCache[chs->s];
 
-        // MFM decode the sector data
-        mfm_decode_bits((const uint32_t*)mfms->data.odd_bits, (uint32_t*)data, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
+        memcpy(data, &pcs->data[0], ADF_SECTOR_DATA_SIZE);
     }
 
     return FloppyDriver_FinalizeIO(self, err);
@@ -680,72 +733,17 @@ errno_t FloppyDriver_putSector(FloppyDriverRef _Nonnull self, const chs_t* _Nonn
     try(FloppyDriver_EnsureTrackBuffered(self, chs));
 
 
-    // Layout:
-    // sector #1, ..., sector #11, gap
-    ADF_MFMPhysicalSector* comp_buf = (ADF_MFMPhysicalSector*)self->trackCompositionBuffer;
+    CachedSector* pcs = &self->sectorCache[chs->s];
+    memcpy(pcs->data, data, ADF_SECTOR_DATA_SIZE);
 
-    for (int i = 0; i < self->sectorsPerTrack; i++) {
-        const void* s_dat;
-        bool is_good;
 
-        if (i != chs->s) {
-            const ADFSector* s = &self->sectors[i];
+    FloppyDriver_EncodeTrack(self);
 
-            if (s->isHeaderValid) {
-                const ADF_MFMSector* s_mfm_dat = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
-                mfm_decode_bits((const uint32_t*)s_mfm_dat->data.odd_bits, (uint32_t*)self->sectorDataBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
-                s_dat = self->sectorDataBuffer;
-                is_good = s->isDataValid;
-            }
-            else {
-                // A sector with a read error. Just fill the sector data with (raw) 0s
-                memset(self->sectorDataBuffer, 0, ADF_SECTOR_DATA_SIZE);
-                s_dat = self->sectorDataBuffer;
-                is_good = false;
-            }
-        }
-        else {
-            s_dat = data;
-            is_good = true;
-        }
 
-        mfm_make_sector(&comp_buf[i], targetTrack, i, self->sectorsPerTrack - i, s_dat, is_good);
+    err = FloppyDriver_PrepareIO(self, chs);
+    if (err == EOK) {
+        err = FloppyDriver_DoSyncIO(self, true);
     }
-
-
-    // Override the start of the gap with a couple 0xAA (0) values. We do this
-    // because the Amiga floppy controller hardware has a bug where it loses the
-    // last 3 bits when writing to disk. Also, we want to minimize the chance
-    // that the new gap may coincidentally contain the start (sync mark) of an
-    // old sector.
-    ADF_MFMPhysicalSector* tcb = (ADF_MFMPhysicalSector*)self->trackCompositionBuffer;
-    memset(&tcb[self->sectorsPerTrack], 0, ADF_MFM_SYNC_SIZE);
-
-
-    // Adjust the MFM clock bits in the header and data portions of every sector
-    // to make them compliant with the MFM spec. Note that we do this for the
-    // 1080 bytes of the sector + the word following the sector. The reason is
-    // that bit #0 of the last word in the sector data region may be 1 or 0 and
-    // depending on that, the MSB in the word following the sector has to be
-    // adjusted. So this word may come out as 0xAAAA or 0x2AAA.  
-    for (int i = 0; i < self->sectorsPerTrack; i++) {
-        const size_t trailerWordCount = (i < self->sectorsPerTrack - 1) ? 2 : ADF_MFM_SYNC_SIZE / 2;
-
-        mfm_adj_clock_bits((uint16_t*)&tcb[i].payload, ADF_MFM_SECTOR_SIZE / 2 + trailerWordCount);
-    }
-
-    // First sector MFM encoded pre-sync words
-    self->trackCompositionBuffer[0] = ADF_MFM_PRESYNC;
-    self->trackCompositionBuffer[1] = ADF_MFM_PRESYNC;
-
-
-    // Move the newly composed track to the DMA buffer
-    memcpy(self->trackBuffer, self->trackCompositionBuffer, sizeof(uint16_t) * self->trackWriteWordCount);
-    FloppyDriver_ScanTrack(self, chs);
-
-
-    // Write the track back to disk
-    try(FloppyDriver_DoSyncIO(self, self->trackWriteWordCount, true));
 
 catch:
     return FloppyDriver_FinalizeIO(self, err);
@@ -759,54 +757,43 @@ catch:
 errno_t FloppyDriver_formatTrack(FloppyDriverRef _Nonnull self, const chs_t* chs, const void* _Nullable trackData, size_t secSize)
 {
     decl_try_err();
-    ADF_MFMPhysicalSector* pt;
     const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(chs);
-    const uint8_t* sectorData = (trackData) ? trackData : gZeroSectorPayload;
+    const int sectorCount = self->sectorsPerTrack;
+    const uint8_t* src = trackData;
+    CachedSector* pcs = self->sectorCache;
 
-    try(FloppyDriver_PrepareIO(self, chs));
+    for (int i = 0; i < sectorCount; i++) {
+        pcs->state = kSectorState_Ok;
+        pcs->info.format = ADF_FORMAT_V1;
+        pcs->info.track = targetTrack;
+        pcs->info.sector = i;
+        pcs->info.sectors_until_gap = sectorCount - i;
+        pcs->label[0] = 0;
+        pcs->label[1] = 0;
+        pcs->label[2] = 0;
+        pcs->label[3] = 0;
 
-
-    // gap, sector #1, ..., sector #11, extra word to work around DMA write bug
-    FloppyDriver_InvalidateTrackBuffer(self);
-    memset(self->trackBuffer, 0xAA, ADF_GAP_SIZE);
-    pt = (ADF_MFMPhysicalSector*)&self->trackBuffer[ADF_GAP_SIZE/2];
-
-    for (uint8_t sec = 0; sec < self->sectorsPerTrack; sec++) {
-        mfm_make_sector(pt, targetTrack, sec, self->sectorsPerTrack - sec, sectorData, true);
-        if (trackData) {
-            sectorData += ADF_SECTOR_DATA_SIZE;
+        if (src) {
+            memcpy(pcs->data, src, ADF_SECTOR_DATA_SIZE);
+            src += ADF_SECTOR_DATA_SIZE;
         }
-        pt++;
+        else {
+            memset(pcs->data, 0, ADF_SECTOR_DATA_SIZE);
+        }
+
+        pcs++;
     }
-    pt->sync[0] = ADF_MFM_PRESYNC;
-    pt->sync[1] = ADF_MFM_PRESYNC;
+    self->scTrackNo = targetTrack;
 
 
+    FloppyDriver_EncodeTrack(self);
 
-    // Adjust the MFM clock bits in the header and data portions of every sector
-    // to make them compliant with the MFM spec. Note that we do this for the
-    // 1080 bytes of the sector + the word following the sector. The reason is
-    // that bit #0 of the last word in the sector data region may be 1 or 0 and
-    // depending on that, the MSB in the word following the sector has to be
-    // adjusted. So this word may come out as 0xAAAA or 0x2AAA.
-    pt = (ADF_MFMPhysicalSector*)&self->trackBuffer[ADF_GAP_SIZE/2];
 
-    pt->sync[0] = ADF_MFM_PRESYNC;
-    pt->sync[1] = ADF_MFM_PRESYNC;
-    for (int i = 0; i < self->sectorsPerTrack; i++) {
-        mfm_adj_clock_bits((uint16_t*)&pt->payload, (ADF_MFM_SECTOR_SIZE + ADF_MFM_SYNC_SIZE/2) / 2);
-        pt++;
+    err = FloppyDriver_PrepareIO(self, chs);
+    if (err == EOK) {
+        err = FloppyDriver_DoSyncIO(self, true);
     }
 
-
-    // Update the sector table and validate the track buffer
-    FloppyDriver_ScanTrack(self, chs);
-
-
-    // Write the track back to disk
-    try(FloppyDriver_DoSyncIO(self, ADF_TRACK_FORMAT_SIZE(self->sectorsPerTrack) / 2, true));
-
-catch:
     return FloppyDriver_FinalizeIO(self, err);
 }
 
