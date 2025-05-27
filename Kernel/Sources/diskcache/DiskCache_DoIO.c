@@ -29,6 +29,103 @@ static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRe
     return EOK;
 }
 
+static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, bool isSync, StrategyRequest* _Nullable * _Nonnull pOutReq)
+{
+    decl_try_err();
+    StrategyRequest* req = NULL;
+
+    // This is experimental: read all sectors in a single R/W cluster in one
+    // go. This allows us to cache everything from a track right away. This makes
+    // sense for track orientated disk drives like the Amiga disk drive. 
+    const blkcnt_t nBlocksToCluster = s->rwClusterSize;
+    const blkno_t lbaClusterStart = (nBlocksToCluster > 1) ? (pBlock->lba * s->s2bFactor) / s->rwClusterSize * s->rwClusterSize / s->s2bFactor : pBlock->lba;
+    const size_t reqSize = sizeof(StrategyRequest) + sizeof(IOVector) * (nBlocksToCluster - 1);
+    size_t idx = 0;
+
+    err = IORequest_Get(kDiskRequest_Read, reqSize, (IORequest**)&req);
+    if (err != EOK) {
+        return err;
+    }
+    
+    for (blkcnt_t i = 0; i < nBlocksToCluster; i++) {
+        const blkno_t lba = lbaClusterStart + i;
+        DiskBlockRef pOther;
+
+        if (lba == pBlock->lba) {
+            pBlock->flags.op = kDiskBlockOp_Read;
+            pBlock->flags.async = (isSync) ? 0 : 1;
+            pBlock->flags.readError = EOK;
+        
+            req->iov[idx].data = pBlock->data;
+            req->iov[idx].token = (intptr_t)pBlock;
+            req->iov[idx].size = self->blockSize - s->trailPadSize;
+            idx++;
+        }
+        else {
+            // We'll request all blocks in the request range that haven't already
+            // been read in earlier. Note that we just ignore blocks that don't
+            // fit our requirements since this is just for prefetching.
+            err = _DiskCache_GetBlock(self, s, lba, kGetBlock_Allocate | kGetBlock_Exclusive, &pOther);
+            if (err == EOK && !pOther->flags.hasData && pOther->flags.op != kDiskBlockOp_Read) {
+                err = _DiskCache_LockBlockContent(self, pOther, kLockMode_Exclusive);
+
+                if (err == EOK) {
+                    // Trigger the async read. Note that endIO() will unlock-and-put the
+                    // block for us.
+                    ASSERT_LOCKED_EXCLUSIVE(pOther);
+                    pOther->flags.op = kDiskBlockOp_Read;
+                    pOther->flags.async = 1;
+                    pOther->flags.readError = EOK;
+
+                    req->iov[idx].data = pOther->data;
+                    req->iov[idx].token = (intptr_t)pOther;
+                    req->iov[idx].size = self->blockSize - s->trailPadSize;
+                    idx++;
+                }
+            }
+            if (err != EOK) {
+                _DiskCache_PutBlock(self, pOther);
+            }
+        }
+    }
+
+    req->s.done = (IODoneFunc)DiskCache_OnDiskRequestDone;
+    req->s.context = self;
+    req->offset = lbaClusterStart * s->s2bFactor * s->sectorSize;
+    req->options = 0;
+    req->iovCount = nBlocksToCluster;
+
+    *pOutReq = req;
+    return err;
+}
+
+static errno_t _DiskCache_CreateWriteRequest(DiskCacheRef _Nonnull _Locked self, const DiskSession* _Nonnull s, DiskBlockRef _Nonnull pBlock, bool isSync, StrategyRequest* _Nullable * _Nonnull pOutReq)
+{
+    decl_try_err();
+    StrategyRequest* req = NULL;
+
+    err = IORequest_Get(kDiskRequest_Write, sizeof(StrategyRequest), (IORequest**)&req);
+    if (err != EOK) {
+        return err;
+    }
+    
+    req->s.done = (IODoneFunc)DiskCache_OnDiskRequestDone;
+    req->s.context = self;
+    req->offset = pBlock->lba * s->s2bFactor * s->sectorSize;
+    req->options = 0;
+    req->iovCount = 1;
+    req->iov[0].data = pBlock->data;
+    req->iov[0].token = (intptr_t)pBlock;
+    req->iov[0].size = self->blockSize - s->trailPadSize;
+
+    pBlock->flags.op = kDiskBlockOp_Write;
+    pBlock->flags.async = (isSync) ? 0 : 1;
+    pBlock->flags.readError = EOK;
+
+    *pOutReq = req;
+    return err;
+}
+
 // Starts an operation to read the contents of the provided block from disk or
 // to write it to disk. Must be called with the block locked in exclusive mode.
 // Waits until the I/O operation is finished if 'isSync' is true. A synchronous
@@ -61,88 +158,26 @@ errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, const DiskSession* _
     }
 
 
-    //XXX
-    // This is experimental: read/write all sectors in a single R/W cluster in one
-    // go. This allows us to cache everything from a track right away. This makes
-    // sense for track orientated disk drives like the Amiga disk drive. 
-    const blkcnt_t nBlocksToCluster = s->rwClusterSize;
-    const blkno_t lbaClusterStart = (nBlocksToCluster > 1) ? (pBlock->lba * s->s2bFactor) / s->rwClusterSize * s->rwClusterSize / s->s2bFactor : pBlock->lba;
-    //XXX
-
-
     // Start a new disk request
-    const int type = (op == kDiskBlockOp_Read) ? kDiskRequest_Read : kDiskRequest_Write;
-    const size_t reqSize = sizeof(StrategyRequest) + sizeof(IOVector) * (nBlocksToCluster - 1);
-    size_t idx = 0;
+    switch (op) {
+        case kDiskBlockOp_Read:
+            err = _DiskCache_CreateReadRequest(self, s, pBlock, isSync, &req);
+            break;
 
-    err = IORequest_Get(type, reqSize, (IORequest**)&req);
-    if (err != EOK) {
-        return err;
+        case kDiskBlockOp_Write:
+            err = _DiskCache_CreateWriteRequest(self, s, pBlock, isSync, &req);
+            break;
+
+        default:
+            abort();
     }
-    
-#if 1
-    for (blkcnt_t i = 0; i < nBlocksToCluster; i++) {
-        const blkno_t lba = lbaClusterStart + i;
-        DiskBlockRef pOther;
 
-        if (lba == pBlock->lba) {
-            pBlock->flags.op = op;
-            pBlock->flags.async = (isSync) ? 0 : 1;
-            pBlock->flags.readError = EOK;
-        
-            req->iov[idx].data = pBlock->data;
-            req->iov[idx].token = (intptr_t)pBlock;
-            req->iov[idx].size = self->blockSize - s->trailPadSize;
-            idx++;
+    if (err == EOK) {
+       err = DiskDriver_BeginIO(s->disk, (IORequest*)req);
+        if (err == EOK && isSync) {
+            err = _DiskCache_WaitIO(self, pBlock, op);
+            // The lock is now held in exclusive mode again, if succeeded
         }
-        else if (op == kDiskBlockOp_Read) {
-            // We'll request all blocks in the request range that haven't already
-            // been read in earlier. Note that we just ignore blocks that don't
-            // fit our requirements since this is just for prefetching.
-            err = _DiskCache_GetBlock(self, s, lba, kGetBlock_Allocate | kGetBlock_Exclusive, &pOther);
-            if (err == EOK && !pOther->flags.hasData && pOther->flags.op != kDiskBlockOp_Read) {
-                err = _DiskCache_LockBlockContent(self, pOther, kLockMode_Exclusive);
-
-                if (err == EOK) {
-                    // Trigger the async read. Note that endIO() will unlock-and-put the
-                    // block for us.
-                    ASSERT_LOCKED_EXCLUSIVE(pOther);
-                    pOther->flags.op = op;
-                    pOther->flags.async = 1;
-                    pOther->flags.readError = EOK;
-                    req->iov[idx].data = pOther->data;
-                    req->iov[idx].token = (intptr_t)pOther;
-                    req->iov[idx].size = self->blockSize - s->trailPadSize;
-                    idx++;
-                }
-            }
-            if (err != EOK) {
-                _DiskCache_PutBlock(self, pOther);
-            }
-        }
-    }
-#else
-    pBlock->flags.op = op;
-    pBlock->flags.async = (isSync) ? 0 : 1;
-    pBlock->flags.readError = EOK;
-
-    req->iov[idx].lba = pBlock->lba;
-    req->iov[idx].data = pBlock->data;
-    req->iov[idx].token = (intptr_t)pBlock;
-    idx++;
-#endif
-
-    req->s.done = (IODoneFunc)DiskCache_OnDiskRequestDone;
-    req->s.context = self;
-    req->offset = lbaClusterStart * s->s2bFactor * s->sectorSize;
-    req->options = 0;
-    req->iovCount = nBlocksToCluster;
-
-
-    err = DiskDriver_BeginIO(s->disk, (IORequest*)req);
-    if (err == EOK && isSync) {
-        err = _DiskCache_WaitIO(self, pBlock, op);
-        // The lock is now held in exclusive mode again, if succeeded
     }
 
     return err;
