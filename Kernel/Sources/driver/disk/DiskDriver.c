@@ -20,6 +20,14 @@ errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverR
     try(Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, parent, (DriverRef*)&self));
     try(DiskDriver_CreateDispatchQueue(self, &self->dispatchQueue));
 
+    // A disk driver always starts out in "no disk in drive" and "disk change is
+    // pending" state until reset() triggered by onStart() figures out what the
+    // truth really is. Whether there's no disk in the drive or there is one and
+    // what the geometry of that disk is. Note that this is the case even for
+    // rigid/fixed platter disk drives.
+    DiskDriver_NoteSensedDisk(self, NULL);
+    self->flags.isDiskChangeActive = 1;
+
     *pOutSelf = (DriverRef)self;
     return EOK;
 

@@ -68,10 +68,9 @@ final_class_ivars(FloppyDriver, DiskDriver,
     struct __fdFlags {
         unsigned int    wasMostRecentSeekInward:1;
         unsigned int    motorState:2;
-        unsigned int    didResetDrive:1;
         unsigned int    shouldResetDiskChangeStepInward:1;  // tells the reset-disk-change function in which direction to step to trigger a reset of the disk change hardware bit
         unsigned int    isOnline:1;                         // true if a drive is connected
-        unsigned int    reserved:26;
+        unsigned int    reserved:27;
     }                       flags;
 );
 
@@ -87,7 +86,7 @@ static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_DelayedMotorOff(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_CancelDelayedMotorOff(FloppyDriverRef _Nonnull self);
 
-static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self, bool* _Nonnull pOutDidStep);
+static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self);
 static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int head);
 
 static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self);

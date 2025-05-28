@@ -62,32 +62,19 @@ static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
 
 static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
 {
-    decl_try_err();
     FloppyControllerRef fdc = FloppyDriver_GetController(self);
-    bool didStep;
-    bool hasDiskChangeDetected = false;
+    bool hasPhysDiskChange = false;
 
-    if (!self->flags.didResetDrive) {
-        self->flags.didResetDrive = 1;
-        self->tbTrackNo = -1;
+    self->tbTrackNo = -1;
 
-        err = FloppyDriver_SeekToTrack_0(self, &didStep);
-        if (err != EOK) {
-            FloppyDriver_OnHardwareLost(self);
-            return;
-        }
-
-        self->flags.isOnline = 1;
-        hasDiskChangeDetected = true;
-    }
 
     if ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
         FloppyDriver_ResetDriveDiskChange(self);
-        hasDiskChangeDetected = true;
+        hasPhysDiskChange = true;
     }
 
 
-    if (hasDiskChangeDetected || DiskDriver_IsDiskChangePending(self)) {
+    if (hasPhysDiskChange || DiskDriver_IsDiskChangePending(self)) {
         const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
         const unsigned int hasDisk = ((status & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
 
@@ -106,7 +93,6 @@ static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
             DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
         }
         else {
-            self->tbTrackNo = -1;
             DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
         }
     }
@@ -119,6 +105,8 @@ void FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self, SenseDiskRequest* _
 
 static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
 {
+    decl_try_err();
+
     // XXX hardcoded to DD for now
     self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
 
@@ -133,7 +121,17 @@ static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
     self->cylinder = -1;
 
 
-    _FloppyDriver_doSenseDisk(self);
+    // Move the head to track 0 so that we know where the head is and figure out
+    // whether we're actually able to talk to the hardware successfully.
+    err = FloppyDriver_SeekToTrack_0(self);
+    if (err == EOK) {
+        self->flags.isOnline = 1;
+        _FloppyDriver_doSenseDisk(self);
+    }
+    else {
+        self->flags.isOnline = 0;
+        FloppyDriver_OnHardwareLost(self);
+    }
 }
 
 errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
@@ -260,13 +258,11 @@ static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
 
 // Seeks to track #0 and selects head #0. Returns ETIMEDOUT if the seek failed
 // because there's probably no drive connected.
-static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self, bool* _Nonnull pOutDidStep)
+static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self)
 {
     decl_try_err();
     FloppyControllerRef fdc = FloppyDriver_GetController(self);
     int steps = 0;
-
-    *pOutDidStep = false;
 
     // Wait 18 ms if we have to reverse the seek direction
     // Wait 2 ms if there was a write previously and we have to change the head
@@ -292,7 +288,6 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self, bool* _
     self->head = 0;
     self->cylinder = 0;
     self->flags.wasMostRecentSeekInward = 0;
-    *pOutDidStep = (steps > 0) ? true : false;
 
 catch:
     return err;

@@ -127,10 +127,10 @@ open_class(DiskDriver, Driver,
     uint32_t                    mediaProperties;
     uint32_t                    diskId;
     struct __DiskDriverFlags {
-        unsigned int        isChsLinear:1;
-        unsigned int        isDiskChangeActive:1;
-        unsigned int        hasDisk:1;
-        unsigned int        reserved:29;
+        unsigned int    isChsLinear:1;
+        unsigned int    isDiskChangeActive:1;
+        unsigned int    hasDisk:1;
+        unsigned int    reserved:29;
     }                           flags;
 );
 open_class_funcs(DiskDriver, Driver,
