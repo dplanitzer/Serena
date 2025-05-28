@@ -405,11 +405,9 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 
 
     // Check for disk change
-    if (err == EOK) {
-        status = ~(*CIA_REG_8(ciaa, CIA_PRA));
-        if ((status & CIAA_PRAF_DSKCHNG) == CIAA_PRAF_DSKCHNG) {
-            err = EDISKCHANGE;
-        }
+    status = ~(*CIA_REG_8(ciaa, CIA_PRA));
+    if ((status & CIAA_PRAF_DSKCHNG) == CIAA_PRAF_DSKCHNG) {
+        err = EDISKCHANGE;
     }
 
 

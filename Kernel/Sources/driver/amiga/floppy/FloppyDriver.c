@@ -231,14 +231,15 @@ static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
         for (int i = 0; i < 50; i++) {
             const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
 
-            if ((status & kDriveStatus_DiskReady) != 0) {
+            if ((status & kDriveStatus_DiskChanged) == kDriveStatus_DiskChanged) {
+                return EDISKCHANGE;
+            }
+            if ((status & kDriveStatus_DiskReady) == kDriveStatus_DiskReady) {
                 self->flags.motorState = kMotor_AtTargetSpeed;
                 return EOK;
             }
-            const errno_t err = VirtualProcessor_Sleep(delay);
-            if (err != EOK) {
-                return EIO;
-            }
+
+            VirtualProcessor_Sleep(delay);
         }
 
         // Timed out. Turn the motor off for now so that another I/O request can
@@ -260,52 +261,55 @@ static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
 // because there's probably no drive connected.
 static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self)
 {
-    decl_try_err();
     FloppyControllerRef fdc = FloppyDriver_GetController(self);
+    const struct timespec ts_3ms = timespec_from_ms(3);
     int steps = 0;
 
     // Wait 18 ms if we have to reverse the seek direction
     // Wait 2 ms if there was a write previously and we have to change the head
     // Since this is about resetting the drive we can't assume that we know whether
     // we have to wait 18ms or 2ms. So just wait for 18ms to be safe.
-    try(VirtualProcessor_Sleep(timespec_from_ms(18)));
+    VirtualProcessor_Sleep(timespec_from_ms(18));
     
-    while ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_AtTrack0) == 0) {
+    while (true) {
+        const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
+
+        if ((status & kDriveStatus_AtTrack0) == kDriveStatus_AtTrack0) {
+            break;
+        }
+
         FloppyController_StepHead(fdc, self->driveState, -1);
         
         steps++;
         if (steps > 80) {
-            throw(ETIMEDOUT);
+            return ETIMEDOUT;
         }
 
-        try(VirtualProcessor_Sleep(timespec_from_ms(3)));
+        VirtualProcessor_Sleep(ts_3ms);
     }
     FloppyController_SelectHead(fdc, &self->driveState, 0);
     
     // Head settle time (includes the 100us settle time for the head select)
-    try(VirtualProcessor_Sleep(timespec_from_ms(15)));
+    VirtualProcessor_Sleep(timespec_from_ms(15));
     
     self->head = 0;
     self->cylinder = 0;
     self->flags.wasMostRecentSeekInward = 0;
 
-catch:
-    return err;
+    return EOK;
 }
 
 // Seeks to the specified cylinder and selects the specified drive head.
 // (0: outermost, 79: innermost, +: inward, -: outward).
-static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int head)
+static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int head)
 {
-    decl_try_err();
     FloppyControllerRef fdc = FloppyDriver_GetController(self);
+    const struct timespec ts_3ms = timespec_from_ms(3);
     const int diff = cylinder - self->cylinder;
     const int cur_dir = (diff >= 0) ? 1 : -1;
     const int last_dir = (self->flags.wasMostRecentSeekInward) ? 1 : -1;
     const int nSteps = __abs(diff);
     const bool change_side = (self->head != head);
-
-//    printf("*** SeekTo(c: %d, h: %d)\n", cylinder, head);
     
     // Wait 18 ms if we have to reverse the seek direction
     // Wait 2 ms if there was a write previously and we have to change the head
@@ -314,7 +318,7 @@ static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, 
     const int pre_wait_ms = __max(seek_pre_wait_ms, side_pre_wait_ms);
     
     if (pre_wait_ms > 0) {
-        try(VirtualProcessor_Sleep(timespec_from_ms(pre_wait_ms)));
+        VirtualProcessor_Sleep(timespec_from_ms(pre_wait_ms));
     }
     
     
@@ -331,7 +335,7 @@ static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, 
                 self->flags.wasMostRecentSeekInward = 0;
             }
             
-            try(VirtualProcessor_Sleep(timespec_from_ms(3)));
+            VirtualProcessor_Sleep(ts_3ms);
         }
     }
     
@@ -348,11 +352,8 @@ static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, 
     const int settle_us = __max(seek_settle_us, side_settle_us);
     
     if (settle_us > 0) {
-        try(VirtualProcessor_Sleep(timespec_from_us(settle_us)));
+        VirtualProcessor_Sleep(timespec_from_us(settle_us));
     }
-    
-catch:
-    return err;
 }
 
 static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self)
@@ -402,7 +403,7 @@ static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, const chs_t
 
     // Seek to the required cylinder and select the required head
     if (self->cylinder != chs->c || self->head != chs->h) {
-        err = FloppyDriver_SeekTo(self, chs->c, chs->h);
+        FloppyDriver_SeekTo(self, chs->c, chs->h);
     }
 
 

@@ -87,7 +87,7 @@ static void FloppyDriver_DelayedMotorOff(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_CancelDelayedMotorOff(FloppyDriverRef _Nonnull self);
 
 static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self);
-static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int head);
+static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int head);
 
 static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self);
 
