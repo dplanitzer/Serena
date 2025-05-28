@@ -467,7 +467,15 @@ static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t er
 
         case EDISKCHANGE:
             FloppyDriver_MotorOff(self);
-            DiskDriver_NoteDiskChanged((DiskDriverRef)self);
+            FloppyDriver_ResetDriveDiskChange(self);
+            const uint8_t status = FloppyController_GetStatus(FloppyDriver_GetController(self), self->driveState);
+            if ((status & kDriveStatus_DiskChanged) == 0) {
+                DiskDriver_NoteDiskChanged((DiskDriverRef)self);
+            }
+            else {
+                DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
+                err = ENOMEDIUM;
+            }
             break;
 
         default:
