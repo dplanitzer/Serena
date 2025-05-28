@@ -94,4 +94,10 @@ typedef struct ADF_SectorInfo
 typedef uint32_t    ADF_SectorLabel[4];
 typedef uint32_t    ADF_Checksum;
 
+typedef struct ADF_Sector {
+    ADF_SectorInfo  info;
+    ADF_SectorLabel label;
+    uint8_t         data[ADF_SECTOR_DATA_SIZE];
+} ADF_Sector;
+
 #endif /* adf_h */

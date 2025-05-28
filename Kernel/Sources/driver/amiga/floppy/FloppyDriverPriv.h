@@ -28,21 +28,14 @@ enum {
     kSectorState_NotUnique,
 };
 
-typedef struct CachedSector {
-    uint32_t        state;
-    ADF_SectorInfo  info;
-    uint32_t        label[4];
-    uint8_t         data[ADF_SECTOR_DATA_SIZE];
-} CachedSector;
-
 
 // DMA track size (R/W): 1660 + 11 * 1088 -> 13,628 bytes
 // AmigaDOS used a 14,716 bytes buffer (1660 + 12 * 1088 since it didn't use
 // hardware sync).
 #define DMA_BYTE_SIZE(__sectorsPerTrack) (ADF_GAP_SIZE + (__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE))
 
-// Size of the sector cache in bytes
-#define SECTOR_CACHE_BYTE_SIZE(__sectorsPerTrack) (sizeof(CachedSector) * (__sectorsPerTrack))
+// Size of the track buffer in bytes
+#define TRACK_BUFFER_BYTE_SIZE(__sectorsPerTrack) (sizeof(ADF_Sector) * (__sectorsPerTrack))
 
 // Dispatch queue timer tags
 #define kDelayedMotorOffTag     ((uintptr_t)0x1000)
@@ -56,9 +49,10 @@ final_class_ivars(FloppyDriver, DiskDriver,
     int16_t                 dmaReadWordCount;
     int16_t                 dmaWriteWordCount;
 
-    // Sector cache
-    CachedSector* _Nonnull  sectorCache;
-    int16_t                 scTrackNo;
+    // Track buffer
+    ADF_Sector* _Nonnull    trackBuffer;
+    int8_t                  tbSectorState[ADF_MAX_SECS_PER_TRACK];
+    int16_t                 tbTrackNo;
 
     // Disk geometry
     const DriveParams* _Nonnull params;
