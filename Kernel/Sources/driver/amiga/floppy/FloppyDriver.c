@@ -517,6 +517,11 @@ static void FloppyDriver_DecodeSector(FloppyDriverRef _Nonnull self, int16_t off
 
     // Save the decoded header
     CachedSector* pcs = &self->sectorCache[info.sector];
+    if (pcs->state != kSectorState_Missing) {
+        pcs->state = kSectorState_NotUnique;
+        return;
+    }
+
     pcs->info.format = info.format;
     pcs->info.track = info.track;
     pcs->info.sector = info.sector;

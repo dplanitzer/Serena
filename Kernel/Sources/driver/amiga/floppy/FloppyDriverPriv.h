@@ -25,6 +25,7 @@ enum {
     kSectorState_Ok =  0,
     kSectorState_Missing,
     kSectorState_BadDataChecksum,
+    kSectorState_NotUnique,
 };
 
 typedef struct CachedSector {
