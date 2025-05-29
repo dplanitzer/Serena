@@ -39,6 +39,7 @@ enum {
 
 // Dispatch queue timer tags
 #define kDelayedMotorOffTag     ((uintptr_t)0x1000)
+#define kDiskChangeCheckTag     ((uintptr_t)0x1001)
 
 
 // Stores the state of a single floppy drive.
@@ -70,7 +71,9 @@ final_class_ivars(FloppyDriver, DiskDriver,
         unsigned int    motorState:2;
         unsigned int    shouldResetDiskChangeStepInward:1;  // tells the reset-disk-change function in which direction to step to trigger a reset of the disk change hardware bit
         unsigned int    isOnline:1;                         // true if a drive is connected
-        unsigned int    reserved:27;
+        unsigned int    dkCount:4;
+        unsigned int    dkCountMax:4;
+        unsigned int    reserved:19;
     }                       flags;
 );
 
@@ -90,6 +93,8 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int head);
 
 static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_CheckDiskChange(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_SetDiskChangeCounter(FloppyDriverRef _Nonnull self);
 
 static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs);
 static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, bool bWrite);
@@ -99,5 +104,6 @@ static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t er
 
 #define FloppyDriver_GetController(__self) \
 Driver_GetParentAs(__self, FloppyController)
+
 
 #endif /* FloppyDriverPriv_h */

@@ -52,6 +52,7 @@ catch:
 static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
 {
     FloppyDriver_MotorOff(self);
+    DispatchQueue_RemoveByTag(DiskDriver_GetDispatchQueue(self), kDiskChangeCheckTag);
 
     kfree(self->dmaBuffer);
     self->dmaBuffer = NULL;
@@ -95,6 +96,7 @@ static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
         else {
             DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
         }
+        FloppyDriver_SetDiskChangeCounter(self);
     }
 }
 
@@ -127,6 +129,7 @@ static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
     if (err == EOK) {
         self->flags.isOnline = 1;
         _FloppyDriver_doSenseDisk(self);
+        DispatchQueue_DispatchAsyncPeriodically(DiskDriver_GetDispatchQueue(self), TIMESPEC_ZERO, timespec_from_ms(800), (VoidFunc_1)FloppyDriver_CheckDiskChange, self, kDiskChangeCheckTag);
     }
     else {
         self->flags.isOnline = 0;
@@ -166,9 +169,45 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self)
 {
     FloppyDriver_MotorOff(self);
+    DispatchQueue_RemoveByTag(DiskDriver_GetDispatchQueue(self), kDiskChangeCheckTag);
     self->tbTrackNo = -1;
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
     self->flags.isOnline = 0;
+}
+
+static void FloppyDriver_CheckDiskChange(FloppyDriverRef _Nonnull self)
+{
+    FloppyControllerRef fdc = FloppyDriver_GetController(self);
+
+    if (DiskDriver_IsDiskChangePending(self)) {
+        return;
+    }
+
+    self->flags.dkCount--;
+    if (self->flags.dkCount == 0) {
+        self->flags.dkCount = self->flags.dkCountMax;
+
+        if ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
+            FloppyDriver_ResetDriveDiskChange(self);
+
+            const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
+            const unsigned int hasDisk = ((status & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
+
+            if (hasDisk) {
+                DiskDriver_NoteDiskChanged((DiskDriverRef)self);
+            }
+            else {
+                DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
+            }
+            FloppyDriver_SetDiskChangeCounter(self);
+        }
+    }
+}
+
+static void FloppyDriver_SetDiskChangeCounter(FloppyDriverRef _Nonnull self)
+{
+    self->flags.dkCountMax = (DiskDriver_HasDisk(self)) ? 1 : 5;
+    self->flags.dkCount = self->flags.dkCountMax;
 }
 
 
@@ -476,6 +515,7 @@ static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t er
                 DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
                 err = ENOMEDIUM;
             }
+            FloppyDriver_SetDiskChangeCounter(self);
             break;
 
         default:
