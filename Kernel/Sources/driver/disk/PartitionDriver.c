@@ -73,7 +73,7 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     info.rwClusterSize = wholeInfo.rwClusterSize;
     info.properties = wholeInfo.properties;
     if (self->isReadOnly) {
-        info.properties |= kMediaProperty_IsReadOnly;
+        info.properties |= kDisk_IsReadOnly;
     }
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 

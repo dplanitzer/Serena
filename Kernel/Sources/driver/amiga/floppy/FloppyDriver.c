@@ -82,9 +82,9 @@ static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
         if (hasDisk) {
             SensedDisk info;
     
-            info.properties = kMediaProperty_IsRemovable;
+            info.properties = kDisk_IsRemovable;
             if ((status & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) {
-                info.properties |= kMediaProperty_IsReadOnly;
+                info.properties |= kDisk_IsReadOnly;
             }
             info.sectorSize = ADF_SECTOR_DATA_SIZE;
             info.heads = ADF_HEADS_PER_CYL;

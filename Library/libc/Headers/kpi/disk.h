@@ -16,8 +16,8 @@
 
 // Disk/media properties
 enum {
-    kMediaProperty_IsRemovable = 0x0001,
-    kMediaProperty_IsReadOnly = 0x0002,
+    kDisk_IsRemovable = 0x0001,
+    kDisk_IsReadOnly = 0x0002,
 };
 
 

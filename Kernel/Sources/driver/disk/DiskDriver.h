@@ -14,15 +14,19 @@
 #include <driver/IORequest.h>
 #include <kpi/disk.h>
 
+
 // Describes the physical properties of the disk that is currently loaded into
-// the drive.
+// the drive. The 'sectorSize', 'cylinders', 'heads' and 'sectorsPerTrack' must
+// be > 0 and accurately describe the geometry of the disk in the drive. If the
+// disk is not formatted then these values should be set to values that the
+// FormatTrack() command is supposed to use to properly format the disk.  
 typedef struct SensedDisk {
     scnt_t      sectorsPerTrack;
     size_t      heads;
     size_t      cylinders;
     size_t      sectorSize;         // > 0 if a media is loaded; should be the default sector size even if no media is loaded; may be 0
     scnt_t      rwClusterSize;
-    uint32_t    properties;         // media properties
+    uint32_t    properties;         // disk properties
 } SensedDisk;
 
 
@@ -124,7 +128,7 @@ open_class(DiskDriver, Driver,
     scnt_t                      sectorCount;        // Number of sectors per media. Is blockCount * s2bFactor
     size_t                      sectorSize;         // Size of a sector in bytes. Usually power-of-2, but may not be. If not, then one sector maps to one logical block with 0 padding at the end
     scnt_t                      rwClusterSize;
-    uint32_t                    mediaProperties;
+    uint32_t                    diskProperties;
     uint32_t                    diskId;
     struct __DiskDriverFlags {
         unsigned int    isChsLinear:1;
