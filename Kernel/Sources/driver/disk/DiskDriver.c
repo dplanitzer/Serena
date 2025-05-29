@@ -171,12 +171,12 @@ void DiskDriver_strategy(DiskDriverRef _Nonnull self, StrategyRequest* _Nonnull 
             err = EOVERFLOW;
             break;
         }
-        else if (!self->flags.hasDisk) {
-            err = ENOMEDIUM;
-            break;
-        }
         else if (self->flags.isDiskChangeActive) {
             err = EDISKCHANGE;
+            break;
+        }
+        else if (!self->flags.hasDisk) {
+            err = ENOMEDIUM;
             break;
         }
         
@@ -227,11 +227,11 @@ void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull re
     if (lsa + self->sectorsPerTrack > self->sectorCount) {
         err = ENXIO;
     }
-    else if (!self->flags.hasDisk) {
-        err = ENOMEDIUM;
-    }
     else if (self->flags.isDiskChangeActive) {
         err = EDISKCHANGE;
+    }
+        else if (!self->flags.hasDisk) {
+        err = ENOMEDIUM;
     }
     else {
         DiskDriver_LsaToChs(self, lsa, &chs);
