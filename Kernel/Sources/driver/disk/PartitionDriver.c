@@ -25,19 +25,23 @@ final_class_ivars(PartitionDriver, DiskDriver,
 errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull name, sno_t lsaStart, scnt_t sectorCount, bool isReadOnly, DiskDriverRef wholeDisk, PartitionDriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    drive_info_t info;
+    disk_info_t di;
     PartitionDriverRef self = NULL;
 
-    try(DiskDriver_GetDriveInfo(wholeDisk, &info));
-    if (lsaStart >= info.sectorCount || sectorCount < 1 || (lsaStart + sectorCount - 1) >= info.sectorCount) {
+    try(DiskDriver_GetDiskInfo(wholeDisk, &di));
+    if (lsaStart >= di.sectorsPerDisk || sectorCount < 1 || (lsaStart + sectorCount - 1) >= di.sectorsPerDisk) {
         throw(EINVAL);
     }
 
-    try(DiskDriver_Create(class(PartitionDriver), 0, parent, (DriverRef*)&self));
+    drive_info_t drvi;
+    drvi.family = kDriveFamily_Fixed;
+    drvi.platter = kPlatter_3_5;
+    drvi.properties = kDrive_Fixed;
+    try(DiskDriver_Create(class(PartitionDriver), 0, parent, &drvi, (DriverRef*)&self));
     self->wholeDisk = wholeDisk;
     self->lsaStart = lsaStart;
     self->sectorCount = sectorCount;
-    self->sectorSize = info.sectorSize;
+    self->sectorSize = di.sectorSize;
     self->isReadOnly = isReadOnly;
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
 

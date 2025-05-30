@@ -121,6 +121,7 @@ typedef struct SenseDiskRequest {
 // expected. 
 open_class(DiskDriver, Driver,
     DispatchQueueRef _Nullable  dispatchQueue;
+    drive_info_t                driveInfo;
     scnt_t                      sectorsPerTrack;
     size_t                      headsPerCylinder;
     size_t                      cylindersPerDisk;
@@ -330,6 +331,6 @@ extern sno_t DiskDriver_ChsToLsa(DiskDriverRef _Locked _Nonnull self, const chs_
 // subclass constructors.
 // 'options' specifies various behaviors of the disk driver. 'parent' is a
 // reference to the bus driver that controls the disk driver.
-extern errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, const drive_info_t* _Nonnull driveInfo, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* DiskDriver_h */

@@ -12,13 +12,14 @@
 #include <kpi/fcntl.h>
 
 
-errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, const drive_info_t* _Nonnull driveInfo, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskDriverRef self = NULL;
 
     try(Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, parent, (DriverRef*)&self));
     try(DiskDriver_CreateDispatchQueue(self, &self->dispatchQueue));
+    self->driveInfo = *driveInfo;
 
     // A disk driver always starts out in "no disk in drive" and "disk change is
     // pending" state until reset() triggered by onStart() figures out what the
@@ -250,20 +251,8 @@ void DiskDriver_doGetDriveInfo(DiskDriverRef _Nonnull self, GetDriveInfoRequest*
 {
     drive_info_t* p = req->ip;
     
-    if (self->flags.isDiskChangeActive) {
-        req->s.status = EDISKCHANGE;
-    }
-    else if (self->flags.hasDisk) {
-        p->sectorCount = self->sectorCount;
-        p->rwClusterSize = self->sectorsPerRdwr;
-        p->sectorSize = self->sectorSize;
-        p->properties = self->diskProperties;
-        p->diskId = self->diskId;
-        req->s.status = EOK;
-    }
-    else {
-        req->s.status = ENOMEDIUM;
-    }
+    p->properties = self->diskProperties;
+    req->s.status = EOK;
 }
 
 void DiskDriver_doGetDiskInfo(DiskDriverRef _Nonnull self, DiskGeometryRequest* _Nonnull req)
@@ -394,10 +383,10 @@ errno_t DiskDriver_GetDiskInfo(DiskDriverRef _Nonnull self, disk_info_t* _Nonnul
 
 off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
 {
-    drive_info_t info;
-    const errno_t err = DiskDriver_GetDriveInfo(self, &info);
+    disk_info_t info;
+    const errno_t err = DiskDriver_GetDiskInfo(self, &info);
     
-    return (err == EOK) ? (off_t)info.sectorCount * (off_t)info.sectorSize : 0ll;
+    return (err == EOK) ? (off_t)info.sectorsPerDisk * (off_t)info.sectorSize : 0ll;
 }
 
 static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, IOChannelRef _Nonnull ch, void* _Nonnull buf, ssize_t byteCount, ssize_t* _Nonnull pOutByteCount)

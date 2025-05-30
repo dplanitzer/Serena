@@ -24,8 +24,12 @@ errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds
 {
     decl_try_err();
     FloppyDriverRef self;
+    drive_info_t dinf;
 
-    try(DiskDriver_Create(class(FloppyDriver), 0, parent, (DriverRef*)&self));
+    dinf.family = kDriveFamily_Floppy;
+    dinf.platter = (params->driveType == kDriveType_3_5) ? kPlatter_3_5 : kPlatter_5_25;
+    dinf.properties = 0;
+    try(DiskDriver_Create(class(FloppyDriver), 0, parent, &dinf, (DriverRef*)&self));
 
     self->drive = drive;
     self->driveState = ds;

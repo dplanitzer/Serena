@@ -32,7 +32,12 @@ errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, co
         throw(EINVAL);
     }
 
-    try(DiskDriver_Create(class(RomDisk), 0, parent, (DriverRef*)&self));
+    drive_info_t drvi;
+    drvi.family = kDriveFamily_ROM;
+    drvi.platter = kPlatter_None;
+    drvi.properties = kDrive_IsReadOnly | kDrive_Fixed;
+
+    try(DiskDriver_Create(class(RomDisk), 0, parent, &drvi, (DriverRef*)&self));
     self->diskImage = pImage;
     self->sectorCount = sectorCount;
     self->sectorShift = siz_log2(sectorSize);

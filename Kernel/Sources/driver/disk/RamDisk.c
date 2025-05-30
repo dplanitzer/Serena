@@ -40,7 +40,12 @@ errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, si
         throw(EINVAL);
     }
 
-    try(DiskDriver_Create(class(RamDisk), 0, parent, (DriverRef*)&self));
+    drive_info_t drvi;
+    drvi.family = kDriveFamily_RAM;
+    drvi.platter = kPlatter_None;
+    drvi.properties = kDrive_Fixed;
+
+    try(DiskDriver_Create(class(RamDisk), 0, parent, &drvi, (DriverRef*)&self));
     SList_Init(&self->extents);
     self->extentSectorCount = __min(extentSectorCount, sectorCount);
     self->sectorCount = sectorCount;

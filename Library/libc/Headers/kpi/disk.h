@@ -14,26 +14,50 @@
 #include <stdint.h>
 
 
-// Disk properties
+// Drive family
 enum {
-    kDisk_IsRemovable = 0x0001,
-    kDisk_IsReadOnly = 0x0002,
+    kDriveFamily_Floppy = 0,
+    kDriveFamily_Fixed,           // aka hard disk
+    kDriveFamily_CD,
+    kDriveFamily_SSD,
+    kDriveFamily_USBStick,
+    kDriveFamily_RAM,
+    kDriveFamily_ROM
 };
 
+// Platter diameter
+enum {
+    kPlatter_None = 0,
+    kPlatter_2_5 = 63,
+    kPlatter_3 = 76,
+    kPlatter_3_5 = 89,
+    kPlatter_5_25 = 133,
+    kPlatter_8 = 203
+};
 
-// General information about a disk drive and the currently loaded media
+// Drive properties
+enum {
+    kDrive_Fixed = 0x0001,
+    kDrive_IsReadOnly = 0x0002,
+};
+
+// Information about the disk drive
 typedef struct drive_info {
-    scnt_t      sectorCount;        // number of sectors (physical blocks) stored on the disk media
-    scnt_t      rwClusterSize;      // > 1 then the number of consecutive sectors that should be read/written in one go for optimal disk I/O performance (eg drive wants you to read a whole track rather than individual sectors)
-    size_t      sectorSize;         // size of a sector (physical block) stored on the disk media. Only relevant if you want to display this value to the user or format a disk
-    uint32_t    properties;         // Disk/media properties 
-    uint32_t    diskId;             // unique id starting at 1, incremented every time a new disk is inserted into the drive
+    uint16_t    family;
+    uint16_t    platter;
+    uint32_t    properties;         // drive properties 
 } drive_info_t;
 
 // Returns information about a disk drive.
 // get_drive_info(drive_info_t* _Nonnull pOutInfo)
 #define kDiskCommand_GetDriveInfo   IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
+
+// Disk properties
+enum {
+    kDisk_IsRemovable = 0x0001,
+    kDisk_IsReadOnly = 0x0002,
+};
 
 // Disk information
 typedef struct disk_info {
