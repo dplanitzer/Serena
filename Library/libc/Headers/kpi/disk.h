@@ -14,7 +14,7 @@
 #include <stdint.h>
 
 
-// Disk/media properties
+// Disk properties
 enum {
     kDisk_IsRemovable = 0x0001,
     kDisk_IsReadOnly = 0x0002,
@@ -35,12 +35,16 @@ typedef struct drive_info {
 #define kDiskCommand_GetDriveInfo   IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
 
-// Disk geometry information
+// Disk information
 typedef struct disk_info {
-    size_t  headsPerCylinder;
-    size_t  sectorsPerTrack;
-    size_t  cylindersPerDisk;
-    size_t  sectorSize;
+    size_t      heads;              // heads per cylinder
+    size_t      cylinders;
+    scnt_t      sectorsPerTrack;
+    scnt_t      sectorsPerDisk;
+    scnt_t      sectorsPerRdwr;     // number of consecutive sectors that the drive hardware reads/writes from/to this disk. Usually 1 but may be the same as 'sectorsPerTrack' if the disk hardware reads/writes whole tracks in a single I/O operation. May be used to implement sector clustering
+    size_t      sectorSize;
+    uint32_t    diskId;             // unique id starting at 1, incremented every time a new disk is inserted into the drive
+    uint32_t    properties;         // Disk properties
 } disk_info_t;
 
 // Returns information about the disk that is currently in the drive.

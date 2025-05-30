@@ -33,14 +33,14 @@ typedef struct pargs {
 
 
 // Process specific information
-typedef struct procinfo {
+typedef struct proc_info {
     pid_t   pid;        // Process pid
     pid_t   ppid;       // Parent pid
     size_t  virt_size;  // Size of allocated address space
-} procinfo_t;
+} proc_info_t;
 
 // Returns general information about the process.
-// get_procinfo(procinfo_t* _Nonnull pOutInfo)
+// get_procinfo(proc_info_t* _Nonnull pOutInfo)
 #define kProcCommand_GetInfo    IOResourceCommand(0)
 
 // Returns the name of the process.

@@ -51,7 +51,7 @@ errno_t Process_Close(ProcessRef _Nonnull self, IOChannelRef _Nonnull chan)
 }
 
 
-errno_t Process_GetInfo(ProcessRef _Nonnull self, procinfo_t* _Nonnull info)
+errno_t Process_GetInfo(ProcessRef _Nonnull self, proc_info_t* _Nonnull info)
 {
     Lock_Lock(&self->lock);
     info->pid = self->pid;
@@ -91,7 +91,7 @@ errno_t Process_vIoctl(ProcessRef _Nonnull self, IOChannelRef _Nonnull pChannel,
 {
     switch (cmd) {
         case kProcCommand_GetInfo: {
-            procinfo_t* info = va_arg(ap, procinfo_t*);
+            proc_info_t* info = va_arg(ap, proc_info_t*);
 
             return Process_GetInfo(self, info);
         }

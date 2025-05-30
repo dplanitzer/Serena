@@ -38,7 +38,7 @@ static int open_proc(const char* _Nonnull pidStr)
 
 static void show_proc(const char* _Nonnull pidStr)
 {
-    procinfo_t info;
+    proc_info_t info;
     const int fd = open_proc(pidStr);
 
     if (fd != -1) {

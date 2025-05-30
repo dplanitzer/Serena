@@ -90,7 +90,7 @@ static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
             info.heads = ADF_HEADS_PER_CYL;
             info.cylinders = self->params->cylinders;
             info.sectorsPerTrack = self->sectorsPerTrack;
-            info.rwClusterSize = self->sectorsPerTrack;
+            info.sectorsPerRdwr = self->sectorsPerTrack;
             DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
         }
         else {

@@ -264,7 +264,7 @@ extern errno_t Process_Open(ProcessRef _Nonnull self, unsigned int mode, intptr_
 extern errno_t Process_Close(ProcessRef _Nonnull self, IOChannelRef _Nonnull chan);
 
 
-extern errno_t Process_GetInfo(ProcessRef _Nonnull self, procinfo_t* _Nonnull info);
+extern errno_t Process_GetInfo(ProcessRef _Nonnull self, proc_info_t* _Nonnull info);
 extern errno_t Process_GetName(ProcessRef _Nonnull self, char* _Nonnull buf, size_t bufSize);
 
 extern errno_t Process_Ioctl(ProcessRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, ...);

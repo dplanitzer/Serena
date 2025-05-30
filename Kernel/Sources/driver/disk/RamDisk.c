@@ -69,7 +69,7 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
     info.heads = 1;
     info.cylinders = 1;
     info.sectorSize = self->sectorSize;
-    info.rwClusterSize = 1;
+    info.sectorsPerRdwr = 1;
     info.properties = 0;
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 

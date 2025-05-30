@@ -99,10 +99,10 @@ static errno_t block_write(intptr_t fd, const void* _Nonnull buf, blkno_t blockA
     }
 }
 
-static int wipe_disk(int ioc, const disk_info_t* _Nonnull geom)
+static int wipe_disk(int ioc, const disk_info_t* _Nonnull ip)
 {
-    size_t t = 0, trackCount = geom->cylindersPerDisk * geom->headsPerCylinder;
-    ssize_t byteCount = geom->sectorSize * geom->sectorsPerTrack;
+    size_t t = 0, trackCount = ip->cylinders * ip->heads;
+    ssize_t byteCount = ip->sectorSize * ip->sectorsPerTrack;
     int ok = 1;
     
     uint8_t* data = malloc(byteCount);
@@ -111,8 +111,8 @@ static int wipe_disk(int ioc, const disk_info_t* _Nonnull geom)
     }
 
     
-    for (size_t i = 0; i < geom->sectorsPerTrack; i++) {
-        memset(&data[i * geom->sectorSize], i + 1, geom->sectorSize);
+    for (size_t i = 0; i < ip->sectorsPerTrack; i++) {
+        memset(&data[i * ip->sectorSize], i + 1, ip->sectorSize);
     }
 
     fputs("\033[?25l", stdout);
@@ -137,7 +137,7 @@ static int wipe_disk(int ioc, const disk_info_t* _Nonnull geom)
 void cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t rootDirGid, const char* _Nonnull fsType, const char* _Nonnull label, const char* _Nonnull diskPath)
 {
     FILE* fp = NULL;
-    disk_info_t geom;
+    disk_info_t info;
 
     if (strcmp(fsType, "sefs")) {
         errno = EINVAL;
@@ -151,15 +151,15 @@ void cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t rootDi
         setbuf(fp, NULL);
 
         if (ioctl(fd, kDiskCommand_SenseDisk) == 0) {
-            ioctl(fd, kDiskCommand_GetDiskInfo, &geom);
+            ioctl(fd, kDiskCommand_GetDiskInfo, &info);
             if (!bQuick) {
-                ok = wipe_disk(fd, &geom);
+                ok = wipe_disk(fd, &info);
                 if (ok) {
                     lseek(fd, 0ll, SEEK_SET);
                 }
             }
             if (ok) {
-                sefs_format((intptr_t)fp, block_write, geom.sectorsPerTrack * geom.headsPerCylinder * geom.cylindersPerDisk, geom.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label);
+                sefs_format((intptr_t)fp, block_write, info.sectorsPerTrack * info.heads * info.cylinders, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label);
             }
             puts("ok");
         }
@@ -274,30 +274,30 @@ static void cmd_info(const char* _Nonnull path)
 
 static void cmd_geometry(const char* _Nonnull path)
 {
-    struct stat info;
+    struct stat st;
     fsid_t fsid;
     fs_info_t fsinf;
     char buf[32];
-    disk_info_t geom;
+    disk_info_t dskinf;
     int fd = -1;
     bool hasDisk = true;
 
     if (*path != '\0') {
-        if (stat(path, &info) != 0) {
+        if (stat(path, &st) != 0) {
             return;
         }
     }
 
-    if (S_ISDEV(info.st_mode)) {
+    if (S_ISDEV(st.st_mode)) {
         fd = open(path, O_RDONLY);
         if (fd < 0) {
             return;
         }
-        ioctl(fd, kDiskCommand_GetDiskInfo, &geom);
+        ioctl(fd, kDiskCommand_GetDiskInfo, &dskinf);
     }
     else {
         if ((fd = open_fs(path, &fsid)) >= 0) {
-            ioctl(fd, kFSCommand_GetDiskInfo, &geom);
+            ioctl(fd, kFSCommand_GetDiskInfo, &dskinf);
         }
 
         fs_getdisk(fsid, buf, sizeof(buf));
@@ -318,7 +318,7 @@ static void cmd_geometry(const char* _Nonnull path)
     // XX formatting
     if (hasDisk) {
         puts("Disk Cylinders Heads Sectors/Track Sectors/Disk Sector Size");
-        printf("%s  %zu  %zu  %zu  %zu  %zu\n", path, geom.cylindersPerDisk, geom.headsPerCylinder, geom.sectorsPerTrack, geom.cylindersPerDisk * geom.headsPerCylinder * geom.sectorsPerTrack, geom.sectorSize);
+        printf("%s  %zu  %zu  %zu  %zu  %zu\n", path, dskinf.cylinders, dskinf.heads, dskinf.sectorsPerTrack, dskinf.sectorsPerDisk, dskinf.sectorSize);
     }
     else {
         puts("Disk");

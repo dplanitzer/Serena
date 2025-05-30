@@ -17,10 +17,10 @@ errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nul
 {
     decl_try_err();
     struct DiskContainer* self = NULL;
-    drive_info_t info;
+    disk_info_t info;
     uint32_t fsprops = 0;
 
-    try(IOChannel_Ioctl(pChannel, kDiskCommand_GetDriveInfo, &info));
+    try(IOChannel_Ioctl(pChannel, kDiskCommand_GetDiskInfo, &info));
 
     if ((info.properties & kDisk_IsReadOnly) == kDisk_IsReadOnly) {
         fsprops |= kFSProperty_IsReadOnly;
@@ -34,7 +34,7 @@ errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nul
     DiskSession s;
     DiskCache_OpenSession(diskCache, pChannel, &info, &s);
 
-    try(FSContainer_Create(class(DiskContainer), info.sectorCount / s.s2bFactor, DiskCache_GetBlockSize(diskCache), fsprops, (FSContainerRef*)&self));
+    try(FSContainer_Create(class(DiskContainer), info.sectorsPerDisk / s.s2bFactor, DiskCache_GetBlockSize(diskCache), fsprops, (FSContainerRef*)&self));
     self->diskCache = diskCache;
     self->session = s;
 

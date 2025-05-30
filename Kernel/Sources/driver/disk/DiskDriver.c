@@ -66,7 +66,7 @@ void DiskDriver_NoteSensedDisk(DiskDriverRef _Nonnull self, const SensedDisk* _N
         self->sectorsPerCylinder = info->heads * info->sectorsPerTrack;
         self->flags.isChsLinear = (info->heads == 1 && info->cylinders == 1);
     
-        self->rwClusterSize = info->rwClusterSize;
+        self->sectorsPerRdwr = info->sectorsPerRdwr;
         self->sectorCount = (scnt_t)info->sectorsPerTrack * (scnt_t)info->heads * (scnt_t)info->cylinders;
         self->sectorSize = info->sectorSize;
     
@@ -87,7 +87,7 @@ void DiskDriver_NoteSensedDisk(DiskDriverRef _Nonnull self, const SensedDisk* _N
         self->sectorsPerCylinder = 0;
         self->flags.isChsLinear = 1;
     
-        self->rwClusterSize = 1;
+        self->sectorsPerRdwr = 1;
         self->sectorCount = 0;
         self->sectorSize = 0;
     
@@ -255,7 +255,7 @@ void DiskDriver_doGetDriveInfo(DiskDriverRef _Nonnull self, GetDriveInfoRequest*
     }
     else if (self->flags.hasDisk) {
         p->sectorCount = self->sectorCount;
-        p->rwClusterSize = self->rwClusterSize;
+        p->rwClusterSize = self->sectorsPerRdwr;
         p->sectorSize = self->sectorSize;
         p->properties = self->diskProperties;
         p->diskId = self->diskId;
@@ -274,10 +274,14 @@ void DiskDriver_doGetDiskInfo(DiskDriverRef _Nonnull self, DiskGeometryRequest* 
         req->s.status = EDISKCHANGE;
     }
     else if (self->flags.hasDisk) {
-        p->headsPerCylinder = self->headsPerCylinder;
+        p->heads = self->headsPerCylinder;
+        p->cylinders = self->cylindersPerDisk;
         p->sectorsPerTrack = self->sectorsPerTrack;
-        p->cylindersPerDisk = self->cylindersPerDisk;
+        p->sectorsPerDisk = self->sectorCount;
         p->sectorSize = self->sectorSize;
+        p->sectorsPerRdwr = self->sectorsPerRdwr;
+        p->diskId = self->diskId;
+        p->properties = self->diskProperties;
         req->s.status = EOK;
     }
     else {

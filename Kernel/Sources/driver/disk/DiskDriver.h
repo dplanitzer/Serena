@@ -25,7 +25,7 @@ typedef struct SensedDisk {
     size_t      heads;
     size_t      cylinders;
     size_t      sectorSize;         // > 0 if a media is loaded; should be the default sector size even if no media is loaded; may be 0
-    scnt_t      rwClusterSize;
+    scnt_t      sectorsPerRdwr;
     uint32_t    properties;         // disk properties
 } SensedDisk;
 
@@ -127,7 +127,7 @@ open_class(DiskDriver, Driver,
     size_t                      sectorsPerCylinder;
     scnt_t                      sectorCount;        // Number of sectors per media. Is blockCount * s2bFactor
     size_t                      sectorSize;         // Size of a sector in bytes. Usually power-of-2, but may not be. If not, then one sector maps to one logical block with 0 padding at the end
-    scnt_t                      rwClusterSize;
+    scnt_t                      sectorsPerRdwr;
     uint32_t                    diskProperties;
     uint32_t                    diskId;
     struct __DiskDriverFlags {

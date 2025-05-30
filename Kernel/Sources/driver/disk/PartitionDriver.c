@@ -59,18 +59,16 @@ errno_t PartitionDriver_createDispatchQueue(PartitionDriverRef _Nonnull self, Di
 errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
 {
     decl_try_err();
-    disk_info_t wholeGeom;
-    drive_info_t wholeInfo;
+    disk_info_t wholeInfo;
 
-    try(DiskDriver_GetDiskInfo(self->wholeDisk, &wholeGeom));
-    try(DiskDriver_GetDriveInfo(self->wholeDisk, &wholeInfo));
+    try(DiskDriver_GetDiskInfo(self->wholeDisk, &wholeInfo));
 
     SensedDisk info;
-    info.sectorsPerTrack = wholeGeom.sectorsPerTrack;
-    info.heads = wholeGeom.headsPerCylinder;
-    info.cylinders = wholeGeom.cylindersPerDisk;
-    info.sectorSize = wholeGeom.sectorSize;
-    info.rwClusterSize = wholeInfo.rwClusterSize;
+    info.sectorsPerTrack = wholeInfo.sectorsPerTrack;
+    info.heads = wholeInfo.heads;
+    info.cylinders = wholeInfo.cylinders;
+    info.sectorSize = wholeInfo.sectorSize;
+    info.sectorsPerRdwr = wholeInfo.sectorsPerRdwr;
     info.properties = wholeInfo.properties;
     if (self->isReadOnly) {
         info.properties |= kDisk_IsReadOnly;

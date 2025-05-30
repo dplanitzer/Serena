@@ -16,7 +16,7 @@
 //#define __FORCE_WRITES_SYNC 1
 
 
-void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull chan, const drive_info_t* _Nonnull info, DiskSession* _Nonnull s)
+void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull chan, const disk_info_t* _Nonnull info, DiskSession* _Nonnull s)
 {
     Lock_Lock(&self->interlock);
 
@@ -24,7 +24,7 @@ void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull cha
     s->disk = DriverChannel_GetDriverAs(chan, DiskDriver);
     s->sessionId = self->nextAvailSessionId;
     s->sectorSize = info->sectorSize;
-    s->rwClusterSize = info->rwClusterSize;
+    s->rwClusterSize = info->sectorsPerRdwr;
     s->activeMappingsCount = 0;
     s->isOpen = true;
 
