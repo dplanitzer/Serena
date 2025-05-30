@@ -200,7 +200,7 @@ void cmd_fsid(const char* _Nonnull path)
 }
 
 
-static void print_cat_info(const fsinfo_t* _Nonnull info, int fd)
+static void print_cat_info(const fs_info_t* _Nonnull info, int fd)
 {
     char diskName[32];
 
@@ -210,7 +210,7 @@ static void print_cat_info(const fsinfo_t* _Nonnull info, int fd)
     printf("%s       %u\n", diskName, info->fsid);
 }
 
-static void print_reg_info(const fsinfo_t* _Nonnull info, int fd)
+static void print_reg_info(const fs_info_t* _Nonnull info, int fd)
 {
     const uint64_t size = (uint64_t)info->capacity * (uint64_t)info->blockSize;
     const unsigned fullPerc = info->count * 100 / info->capacity;   // XXX round up to the next %
@@ -258,7 +258,7 @@ static int open_fs(const char* _Nonnull path, fsid_t* _Nullable pfsid)
 static void cmd_info(const char* _Nonnull path)
 {
     const int fd = open_fs(path, NULL);
-    fsinfo_t info;
+    fs_info_t info;
 
     if (ioctl(fd, kFSCommand_GetInfo, &info) == 0) {
         if ((info.properties & kFSProperty_IsCatalog) == kFSProperty_IsCatalog) {
@@ -276,7 +276,7 @@ static void cmd_geometry(const char* _Nonnull path)
 {
     struct stat info;
     fsid_t fsid;
-    fsinfo_t fsinf;
+    fs_info_t fsinf;
     char buf[32];
     disk_info_t geom;
     int fd = -1;

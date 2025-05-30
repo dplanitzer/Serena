@@ -21,14 +21,14 @@ enum {
 
 
 // Filesystem specific information
-typedef struct fsinfo {
+typedef struct fs_info {
     blkcnt_t        capacity;       // Filesystem capacity in terms of filesystem blocks (if a regular fs) or catalog entries (if a catalog)
     blkcnt_t        count;          // Blocks or entries currently in use/allocated
     size_t          blockSize;      // Size of a block in bytes
     fsid_t          fsid;           // Filesystem ID
     unsigned int    properties;     // Filesystem properties
     char            type[12];       // Filesystem type (max 11 characters C string)
-} fsinfo_t;
+} fs_info_t;
 
 
 //
@@ -36,7 +36,7 @@ typedef struct fsinfo {
 //
 
 // Returns general information about the filesystem.
-// get_fsinfo(fsinfo_t* _Nonnull pOutInfo)
+// get_fsinfo(fs_info_t* _Nonnull pOutInfo)
 #define kFSCommand_GetInfo          IOResourceCommand(0)
 
 // Returns the label of a filesystem. The label is a name that can be assigned
@@ -53,7 +53,7 @@ typedef struct fsinfo {
 // Returns information about the disk that holds the filesystem.
 // ENOMEDIUM is returned if no disk is in the drive. Returns ENOTSUP if the
 // filesystem isn't disk-based.
-// get_geometry(disk_info_t* _Nonnull pOutInfo)
+// get_disk_info(disk_info_t* _Nonnull pOutInfo)
 #define kFSCommand_GetDiskInfo      IOResourceCommand(3)
 
 

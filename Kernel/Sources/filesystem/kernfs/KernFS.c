@@ -122,9 +122,9 @@ catch:
     return err;
 }
 
-errno_t KernFS_getInfo(KernFSRef _Nonnull self, fsinfo_t* _Nonnull pOutInfo)
+errno_t KernFS_getInfo(KernFSRef _Nonnull self, fs_info_t* _Nonnull pOutInfo)
 {
-    memset(pOutInfo, 0, sizeof(fsinfo_t));
+    memset(pOutInfo, 0, sizeof(fs_info_t));
     pOutInfo->fsid = Filesystem_GetId(self);
     pOutInfo->properties |= kFSProperty_IsCatalog;
     memcpy(pOutInfo->type, "kernfs", 7);
