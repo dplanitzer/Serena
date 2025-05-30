@@ -119,7 +119,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull
         *pOutChildPid = (pChild) ? pChild->pid : 0;
     }
 
-    return EOK;
+    return err;
 }
 
 // Adopts the process with the given PID as a child. The ppid of 'pOtherProc' must
