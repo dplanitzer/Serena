@@ -36,7 +36,7 @@ bool mem_size_region(void* _Nullable p0, void* _Nullable p1, size_t stepSize, in
                 break;
             }
 
-            p += stepSize;
+            p = __min(p + stepSize, (uint8_t*)p1);
         }
 
         if (p - pLower > 0) {
@@ -58,7 +58,7 @@ bool mem_size_region(void* _Nullable p0, void* _Nullable p1, size_t stepSize, in
                 break;
             }
 
-            p -= stepSize;
+            p = __max(p - stepSize, (uint8_t*)p1);
         }
 
         if (pUpper - p > 0) {
