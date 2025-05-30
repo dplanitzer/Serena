@@ -102,25 +102,14 @@ static errno_t block_write(intptr_t fd, const void* _Nonnull buf, blkno_t blockA
 static int wipe_disk(int ioc, const disk_info_t* _Nonnull ip)
 {
     size_t t = 0, trackCount = ip->cylinders * ip->heads;
-    ssize_t byteCount = ip->sectorSize * ip->sectorsPerTrack;
     int ok = 1;
     
-    uint8_t* data = malloc(byteCount);
-    if (data == NULL) {
-        return 0;
-    }
-
-    
-    for (size_t i = 0; i < ip->sectorsPerTrack; i++) {
-        memset(&data[i * ip->sectorSize], i + 1, ip->sectorSize);
-    }
-
     fputs("\033[?25l", stdout);
     lseek(ioc, 0ll, SEEK_SET);
     while (t < trackCount) {
         printf("%u\n\033[1A", (unsigned)(t + 1));
         
-        if (ioctl(ioc, kDiskCommand_FormatTrack, data, 0) != 0) {
+        if (ioctl(ioc, kDiskCommand_FormatTrack, NULL, 0) != 0) {
             ok = 0;
             break;
         }
@@ -128,8 +117,6 @@ static int wipe_disk(int ioc, const disk_info_t* _Nonnull ip)
         t++;
     }
     fputs("\033[?25h\n", stdout);
-
-    free(data);
 
     return ok;
 }
