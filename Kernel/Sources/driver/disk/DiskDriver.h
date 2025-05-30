@@ -33,7 +33,7 @@ typedef struct SensedDisk {
 enum {
     kDiskRequest_Read = 1,
     kDiskRequest_Write,
-    kDiskRequest_Format,
+    kDiskRequest_FormatTrack,
     kDiskRequest_GetDriveInfo,
     kDiskRequest_GetDiskInfo,
     kDiskRequest_SenseDisk,
@@ -51,13 +51,13 @@ typedef struct StrategyRequest {
 } StrategyRequest;
 
 
-typedef struct FormatRequest {
+typedef struct FormatTrackRequest {
     IORequest               s;
     off_t                   offset;     // <- logical sector address in terms of bytes
     const void* _Nonnull    data;       // <- data for all sectors in the cluster to format
     unsigned int            options;    // <- format options
     ssize_t                 resCount;   // -> number of bytes formatted
-} FormatRequest;
+} FormatTrackRequest;
 
 
 typedef struct GetDriveInfoRequest {
@@ -204,10 +204,10 @@ open_class_funcs(DiskDriver, Driver,
 
 
     // Executes the format action on the dispatch queue. See format() above.
-    void (*doFormat)(void* _Nonnull self, FormatRequest* _Nonnull req);
+    void (*doFormatTrack)(void* _Nonnull self, FormatTrackRequest* _Nonnull req);
 
     // Called from doFormat(). Does the actual formatting of a track. 
-    errno_t (*formatTrack)(void* _Nonnull self, const chs_t* chs, const void* _Nullable data, size_t secSize);
+    errno_t (*formatTrack)(void* _Nonnull self, const chs_t* chs, const void* _Nullable data, unsigned int options, size_t secSize);
 
 
     // Returns information about the disk drive.
@@ -306,11 +306,11 @@ invoke_n(getSector, DiskDriver, __self, __chs, __data, __secSize)
 invoke_n(putSector, DiskDriver, __self, __chs, __data, __secSize)
 
 
-#define DiskDriver_DoFormat(__self, __req) \
-invoke_n(doFormat, DiskDriver, __self, __req)
+#define DiskDriver_DoFormatTrack(__self, __req) \
+invoke_n(doFormatTrack, DiskDriver, __self, __req)
 
-#define DiskDriver_FormatTrack(__self, __chs, __data, __secSize) \
-invoke_n(formatTrack, DiskDriver, __self, __chs, __data, __secSize)
+#define DiskDriver_FormatTrack(__self, __chs, __data, __options, __secSize) \
+invoke_n(formatTrack, DiskDriver, __self, __chs, __data, __options, __secSize)
 
 
 #define DiskDriver_DoGetDriveInfo(__self, __req) \

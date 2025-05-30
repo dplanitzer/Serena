@@ -214,12 +214,12 @@ void DiskDriver_strategy(DiskDriverRef _Nonnull self, StrategyRequest* _Nonnull 
 }
 
 
-errno_t DiskDriver_formatTrack(DiskDriverRef _Nonnull self, const chs_t* chs, const void* _Nonnull data, size_t secSize)
+errno_t DiskDriver_formatTrack(DiskDriverRef _Nonnull self, const chs_t* chs, const void* _Nonnull data, unsigned int options, size_t secSize)
 {
     return ENOTSUP;
 }
 
-void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull req)
+void DiskDriver_doFormatTrack(DiskDriverRef _Nonnull self, FormatTrackRequest* _Nonnull req)
 {
     decl_try_err();
     const sno_t lsa = req->offset / (off_t)self->sectorSize;
@@ -236,7 +236,7 @@ void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull re
     }
     else {
         DiskDriver_LsaToChs(self, lsa, &chs);
-        err = DiskDriver_FormatTrack(self, &chs, req->data, self->sectorSize);
+        err = DiskDriver_FormatTrack(self, &chs, req->data, req->options, self->sectorSize);
     }
 
     if (err == EOK) {
@@ -295,8 +295,8 @@ void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IORequest* _Nonnull r
                 DiskDriver_Strategy(self, (StrategyRequest*)req);
                 break;
 
-            case kDiskRequest_Format:
-                DiskDriver_DoFormat(self, (FormatRequest*)req);
+            case kDiskRequest_FormatTrack:
+                DiskDriver_DoFormatTrack(self, (FormatTrackRequest*)req);
                 break;
 
             case kDiskRequest_GetDriveInfo:
@@ -339,9 +339,9 @@ errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nullable buf, unsigned int options)
 {
     decl_try_err();
-    FormatRequest r;
+    FormatTrackRequest r;
 
-    IORequest_Init(&r, kDiskRequest_Format);
+    IORequest_Init(&r, kDiskRequest_FormatTrack);
     r.offset = IOChannel_GetOffset(ch);
     r.data = buf;
     r.options = options;
@@ -463,7 +463,7 @@ func_def(handleRequest, DiskDriver)
 func_def(strategy, DiskDriver)
 func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)
-func_def(doFormat, DiskDriver)
+func_def(doFormatTrack, DiskDriver)
 func_def(formatTrack, DiskDriver)
 func_def(doGetDriveInfo, DiskDriver)
 func_def(doGetDiskInfo, DiskDriver)

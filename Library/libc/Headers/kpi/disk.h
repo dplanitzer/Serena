@@ -76,7 +76,12 @@ typedef struct disk_info {
 // get_disk_info(disk_info_t* _Nonnull pOutInfo)
 #define kDiskCommand_GetDiskInfo    IOResourceCommand(kDriverCommand_SubclassBase + 1)
 
-    
+
+// Format options
+enum {
+    kFormatTrack_HeadersProvided = 1,
+};
+
 // Formats a track of 'sectorsPerTrack' consecutive sectors starting at the
 // current position (rounded down to the closest track start). 'data' points to
 // sectorSize * sectorsPerTrack bytes that should be written to the sectors in

@@ -278,7 +278,7 @@ static void cmd_geometry(const char* _Nonnull path)
     fsid_t fsid;
     fs_info_t fsinf;
     char buf[32];
-    disk_info_t dskinf;
+    disk_info_t di;
     int fd = -1;
     bool hasDisk = true;
 
@@ -293,11 +293,11 @@ static void cmd_geometry(const char* _Nonnull path)
         if (fd < 0) {
             return;
         }
-        ioctl(fd, kDiskCommand_GetDiskInfo, &dskinf);
+        ioctl(fd, kDiskCommand_GetDiskInfo, &di);
     }
     else {
         if ((fd = open_fs(path, &fsid)) >= 0) {
-            ioctl(fd, kFSCommand_GetDiskInfo, &dskinf);
+            ioctl(fd, kFSCommand_GetDiskInfo, &di);
         }
 
         fs_getdisk(fsid, buf, sizeof(buf));
@@ -318,7 +318,7 @@ static void cmd_geometry(const char* _Nonnull path)
     // XX formatting
     if (hasDisk) {
         puts("Disk Cylinders Heads Sectors/Track Sectors/Disk Sector Size");
-        printf("%s  %zu  %zu  %zu  %zu  %zu\n", path, dskinf.cylinders, dskinf.heads, dskinf.sectorsPerTrack, dskinf.sectorsPerDisk, dskinf.sectorSize);
+        printf("%s  %zu  %zu  %zu  %zu  %zu\n", path, di.cylinders, di.heads, di.sectorsPerTrack, di.sectorsPerDisk, di.sectorSize);
     }
     else {
         puts("Disk");

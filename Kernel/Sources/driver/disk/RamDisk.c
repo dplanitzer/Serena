@@ -180,11 +180,15 @@ errno_t RamDisk_putSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, c
 }
 
 
-errno_t RamDisk_formatTrack(RamDiskRef _Nonnull self, const chs_t* chs, const void* _Nullable data, size_t secSize)
+errno_t RamDisk_formatTrack(RamDiskRef _Nonnull self, const chs_t* chs, const void* _Nullable data, unsigned int options, size_t secSize)
 {
     chs_t addr;
     errno_t err;
 
+    if (options != 0) {
+        return EINVAL;
+    }
+    
     addr.c = 0;
     addr.h = 0;
     addr.s = 0;

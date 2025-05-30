@@ -101,8 +101,8 @@ static DiskDriverRef _Nonnull _prep_req(PartitionDriverRef _Nonnull self, IORequ
             ((StrategyRequest*)r)->offset += self->lsaStart * self->sectorSize;
             return self->wholeDisk;
 
-        case kDiskRequest_Format:
-            ((FormatRequest*)r)->offset += self->lsaStart * self->sectorSize;
+        case kDiskRequest_FormatTrack:
+            ((FormatTrackRequest*)r)->offset += self->lsaStart * self->sectorSize;
             return self->wholeDisk;
 
         default:
