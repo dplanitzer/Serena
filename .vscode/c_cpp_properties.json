@@ -5,7 +5,6 @@
             "includePath": [
                 "${workspaceFolder}/Kernel/Sources/**",
                 "${workspaceFolder}/Kernel/Tests/**",
-                "${workspaceFolder}/Library/libsystem/Headers/**",
                 "${workspaceFolder}/Library/libc/**",
                 "${workspaceFolder}/Library/libm/**",
                 "${workspaceFolder}/Library/libclap/Headers/**",
@@ -16,7 +15,7 @@
                 "__ILP32__=1",
                 "__M68K__",
                 "__M68882",
-                "TARGET_CPU_68030=1",
+                "TARGET_CPU_68020=1",
                 "__KERNEL__",
                 "__SERENA__",
                 "_OPEN_SYS_ITOA_EXT=1",

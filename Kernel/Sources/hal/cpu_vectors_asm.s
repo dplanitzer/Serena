@@ -140,10 +140,10 @@ _Reset:
         dbra    d0, .L2
 
         ; figure out which type of CPU this is. The required minimum is:
-        ; CPU: MC68030
+        ; CPU: MC68020
         ; FPU: none
         jsr     _cpu_get_model
-        cmp.b   #CPU_MODEL_68030, d0
+        cmp.b   #CPU_MODEL_68020, d0
         bge     .L3
         jmp     _cpu_non_recoverable_error
 .L3:

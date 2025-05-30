@@ -1,6 +1,6 @@
 //
 //  gregorian_calendar.h
-//  libsystem
+//  libc
 //
 //  Created by Dietmar Planitzer on 1/9/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.

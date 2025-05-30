@@ -23,7 +23,7 @@ final_class(DispatchQueue, Object);
 //
 
 // This is a uint32_t which breaks into two parts:
-// Lower 16 bits: user space controllable options (defined in libsystem)
+// Lower 16 bits: user space controllable options (defined in libc)
 // Upper 16 bits: kernel space controllable options (defined here)
 #define kDispatchOptionMask_User    0x0000ffff
 #define kDispatchOptionMask_Kernel  0xffff0000

@@ -1,6 +1,6 @@
 //
 //  Semaphore.h
-//  libsystem
+//  libc
 //
 //  Created by Dietmar Planitzer on 3/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

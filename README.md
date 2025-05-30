@@ -1,6 +1,6 @@
 # About The Project
 
-Serena OS is what you get when modern operating system design and implementation meets vintage hardware. Serena is built around pervasive preemptive concurrency and multiple users. The kernel is object-oriented and designed to be cross-platform and future proof. It currently runs on Amiga systems with a 68030 or better CPU installed.
+Serena OS is what you get when modern operating system design and implementation meets vintage hardware. Serena is built around pervasive preemptive concurrency and multiple users. The kernel is object-oriented and designed to be cross-platform and future proof. It currently runs on Amiga systems with a 68020 or better CPU installed.
 
 https://github.com/user-attachments/assets/c60bad93-5011-49ef-907d-ff006c287c9f
 
@@ -22,7 +22,7 @@ The kernel implements SerenaFS which is a hierarchical file system with permissi
 
 The boot file system is currently RAM-based. The ROM contains a disk image which is created with the diskimage tool and which serves as a template for the RAM disk. This ROM disk image is copied to RAM at boot time.
 
-User space has support for libc, libsystem, libclap and the very beginnings of libm. Libsystem is a library that implements the user space side of the kernel interface. Libclap is a library that implements argument parsing for command line interface programs.
+User space has support for libc, libclap and the very beginnings of libm. Libc implements the standard C library routines and additionally the kernel interface. Libclap is a library that implements argument parsing for command line interface programs.
 
 Serena OS comes with a shell which implements a formally defined shell language. You can find the shell document [here](Commands/shell/README.md).
 
@@ -67,10 +67,10 @@ The level of completeness and correctness of the various modules varies quite a 
 
 The following hardware is supported at this time:
 
-* Amiga 500, 600, 1200 and 2000 with at least 1MB RAM and a 68030 accelerator installed
+* Amiga 500, 600, 1200 and 2000 with at least 1MB RAM and a 68020 accelerator installed
 * Amiga 3000 and 4000
 * Newer than the original chipsets work, but their specific features are not used
-* Motorola 68030, 68040 and 68060 CPU. Note that the CPU has to be at least a 68030 class CPU
+* Motorola 68020, 68030, 68040 and 68060 CPU. Note that the CPU has to be at least a 68020 class CPU
 * Motorola 68881 and 68882 FPU
 * Commodore Amiga floppy disk drive
 * Zorro II and Zorro III RAM expansion boards
@@ -101,11 +101,11 @@ You only need to execute this step once and before you try to build the OS. The 
 
 ### Building the Operating System
 
-Open the Serena project folder in Visual Studio Code and select `Build All` from the `Run Build Task...` menu. This will build the kernel, libsystem, libc, libm and shell and generate a single `Serena.rom` file inside the `Serena/product/Kernel/` folder. This ROM file contains the kernel, user space libraries and the shell.
+Open the Serena project folder in Visual Studio Code and select `Build All` from the `Run Build Task...` menu. This will build the kernel, libc, libm and shell and generate a single `Serena.rom` file inside the `Serena/product/Kernel/` folder. This ROM file contains the kernel, user space libraries and the shell.
 
 ### Running the Operating System
 
-First you'll need to create an Amiga configuration with at least a 68030 CPU (i.e. Amiga 3000 or 4000) in WinUAE if you haven't already. The easiest way to do this is by going to Quickstart and selecting A4000 as the model. Then go to the Hardware/ROM page and update the "Main ROM file" text field such that it points to the `Serena.rom` file inside the `Serena/build/product/` folder on your disk. Then go to the Hardware/Floppy Drives page, enable drive DF0 and point it to the `boot_disk.adf` file inside the `Serena/build/product` directory on your disk. Finally give your virtual Amiga at least 1MB of Fast RAM by going to the Hardware/RAM page and setting the "Slow" entry to 1MB. Save this configuration so that you don't have to recreate it next time you want to run the OS.
+First you'll need to create an Amiga configuration with at least a 68020 CPU (i.e. Amiga 1200, 3000 or 4000) in WinUAE if you haven't already. The easiest way to do this is by going to Quickstart and selecting A4000 as the model. Then go to the Hardware/ROM page and update the "Main ROM file" text field such that it points to the `Serena.rom` file inside the `Serena/build/product/` folder on your disk. Then go to the Hardware/Floppy Drives page, enable drive DF0 and point it to the `boot_disk.adf` file inside the `Serena/build/product` directory on your disk. Finally give your virtual Amiga at least 1MB of Fast RAM by going to the Hardware/RAM page and setting the "Slow" entry to 1MB. Save this configuration so that you don't have to recreate it next time you want to run the OS.
 
 Load the configuration and then hit the Start button or simply double-click the configuration in the Configurations page to run the OS. The emulator should open a screen that shows a boot message and then a shell prompt. See the [shell](Commands/shell/README.md) page for a list of commands that are supported by the shell.
 
