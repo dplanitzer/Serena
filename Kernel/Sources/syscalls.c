@@ -124,11 +124,18 @@ intptr_t _syscall_handler(VirtualProcessor* _Nonnull vcpu, unsigned int* _Nonnul
         hasErrno = true;
     }
 
-    if (hasErrno && r != 0) {
-        vcpu->uerrno = (errno_t)r;
+    if (hasErrno) {
+        if (r != 0) {
+            vcpu->uerrno = (errno_t)r;
+            return -1;
+        }
+        else {
+            return 0;
+        }
     }
-
-    return r;
+    else {
+        return r;
+    }
 }
 
 
