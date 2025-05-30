@@ -62,7 +62,7 @@ errno_t FSContainer_sync(FSContainerRef _Nonnull self)
     return EOK;
 }
 
-errno_t FSContainer_getGeometry(FSContainerRef _Nonnull self, diskgeom_t* _Nonnull info)
+errno_t FSContainer_getDiskInfo(FSContainerRef _Nonnull self, disk_info_t* _Nonnull info)
 {
     return ENOTSUP;
 }
@@ -75,5 +75,5 @@ func_def(unmapBlock, FSContainer)
 func_def(prefetchBlock, FSContainer)
 func_def(syncBlock, FSContainer)
 func_def(sync, FSContainer)
-func_def(getGeometry, FSContainer)
+func_def(getDiskInfo, FSContainer)
 );

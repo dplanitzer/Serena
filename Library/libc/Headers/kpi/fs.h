@@ -50,11 +50,11 @@ typedef struct fsinfo {
 // set_label(const char* _Nonnull buf)
 #define kFSCommand_SetLabel         IOResourceCommand(2)
 
-// Returns geometry information for the disk that holds the filesystem.
+// Returns information about the disk that holds the filesystem.
 // ENOMEDIUM is returned if no disk is in the drive. Returns ENOTSUP if the
 // filesystem isn't disk-based.
-// get_geometry(diskgeom_t* _Nonnull pOutGeometry)
-#define kFSCommand_GetDiskGeometry  IOResourceCommand(3)
+// get_geometry(disk_info_t* _Nonnull pOutInfo)
+#define kFSCommand_GetDiskInfo      IOResourceCommand(3)
 
 
 // Instruct the filesystem to flush all cached meta and other data to the disk.

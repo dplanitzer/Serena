@@ -34,8 +34,8 @@ enum {
     kDiskRequest_Read = 1,
     kDiskRequest_Write,
     kDiskRequest_Format,
-    kDiskRequest_GetInfo,
-    kDiskRequest_GetGeometry,
+    kDiskRequest_GetDriveInfo,
+    kDiskRequest_GetDiskInfo,
     kDiskRequest_SenseDisk,
 };
 
@@ -60,15 +60,15 @@ typedef struct FormatRequest {
 } FormatRequest;
 
 
-typedef struct GetDiskInfoRequest {
+typedef struct GetDriveInfoRequest {
     IORequest               s;
-    diskinfo_t* _Nonnull    ip;
-} GetDiskInfoRequest;
+    drive_info_t* _Nonnull  ip;
+} GetDriveInfoRequest;
 
 
 typedef struct DiskGeometryRequest {
     IORequest               s;
-    diskgeom_t* _Nonnull    gp;
+    disk_info_t* _Nonnull   gp;
 } DiskGeometryRequest;
 
 
@@ -209,16 +209,15 @@ open_class_funcs(DiskDriver, Driver,
     errno_t (*formatTrack)(void* _Nonnull self, const chs_t* chs, const void* _Nullable data, size_t secSize);
 
 
-    // Returns information about the disk drive and the media loaded into the
-    // drive.
-    // Default Behavior: returns info for the currently loaded disk
-    void (*doGetInfo)(void* _Nonnull self, GetDiskInfoRequest* _Nonnull req);
+    // Returns information about the disk drive.
+    // Default Behavior: returns info about the disk drive
+    void (*doGetDriveInfo)(void* _Nonnull self, GetDriveInfoRequest* _Nonnull req);
 
 
     // Returns geometry information about the disk that is currently in the
     // drive. Returns ENOMEDIUM if no disk is in the drive
     // Default Behavior: returns geometry info for the currently loaded disk
-    void (*doGetGeometry)(void* _Nonnull self, DiskGeometryRequest* _Nonnull req);
+    void (*doGetDiskInfo)(void* _Nonnull self, DiskGeometryRequest* _Nonnull req);
 
 
     // Overrides should check whether a disk is in the drive and call
@@ -242,9 +241,9 @@ invoke_n(doIO, DiskDriver, __self, __req)
 
 extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nullable buf, unsigned int options);
 
-extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, diskinfo_t* pOutInfo);
+extern errno_t DiskDriver_GetDriveInfo(DiskDriverRef _Nonnull self, drive_info_t* pOutInfo);
 
-extern errno_t DiskDriver_GetGeometry(DiskDriverRef _Nonnull self, diskgeom_t* pOutInfo);
+extern errno_t DiskDriver_GetDiskInfo(DiskDriverRef _Nonnull self, disk_info_t* pOutInfo);
 
 extern errno_t DiskDriver_SenseDisk(DiskDriverRef _Nonnull self);
 
@@ -313,11 +312,11 @@ invoke_n(doFormat, DiskDriver, __self, __req)
 invoke_n(formatTrack, DiskDriver, __self, __chs, __data, __secSize)
 
 
-#define DiskDriver_DoGetInfo(__self, __req) \
-invoke_n(doGetInfo, DiskDriver, __self, __req)
+#define DiskDriver_DoGetDriveInfo(__self, __req) \
+invoke_n(doGetDriveInfo, DiskDriver, __self, __req)
 
-#define DiskDriver_DoGetGeometry(__self, __req) \
-invoke_n(doGetGeometry, DiskDriver, __self, __req)
+#define DiskDriver_DoGetDiskInfo(__self, __req) \
+invoke_n(doGetDiskInfo, DiskDriver, __self, __req)
 
 #define DiskDriver_DoSenseDisk(__self, __req) \
 invoke_n(doSenseDisk, DiskDriver, __self, __req)

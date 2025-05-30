@@ -245,11 +245,10 @@ void DiskDriver_doFormat(DiskDriverRef _Nonnull self, FormatRequest* _Nonnull re
 }
 
 
-// Returns information about the disk drive and the media loaded into the
-// drive.
-void DiskDriver_doGetInfo(DiskDriverRef _Nonnull self, GetDiskInfoRequest* _Nonnull req)
+// Returns information about the disk drive.
+void DiskDriver_doGetDriveInfo(DiskDriverRef _Nonnull self, GetDriveInfoRequest* _Nonnull req)
 {
-    diskinfo_t* p = req->ip;
+    drive_info_t* p = req->ip;
     
     if (self->flags.isDiskChangeActive) {
         req->s.status = EDISKCHANGE;
@@ -267,9 +266,9 @@ void DiskDriver_doGetInfo(DiskDriverRef _Nonnull self, GetDiskInfoRequest* _Nonn
     }
 }
 
-void DiskDriver_doGetGeometry(DiskDriverRef _Nonnull self, DiskGeometryRequest* _Nonnull req)
+void DiskDriver_doGetDiskInfo(DiskDriverRef _Nonnull self, DiskGeometryRequest* _Nonnull req)
 {
-    diskgeom_t* p = req->gp;
+    disk_info_t* p = req->gp;
 
     if (self->flags.isDiskChangeActive) {
         req->s.status = EDISKCHANGE;
@@ -307,12 +306,12 @@ void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IORequest* _Nonnull r
                 DiskDriver_DoFormat(self, (FormatRequest*)req);
                 break;
 
-            case kDiskRequest_GetInfo:
-                DiskDriver_DoGetInfo(self, (GetDiskInfoRequest*)req);
+            case kDiskRequest_GetDriveInfo:
+                DiskDriver_DoGetDriveInfo(self, (GetDriveInfoRequest*)req);
                 break;
 
-            case kDiskRequest_GetGeometry:
-                DiskDriver_DoGetGeometry(self, (DiskGeometryRequest*)req);
+            case kDiskRequest_GetDiskInfo:
+                DiskDriver_DoGetDiskInfo(self, (DiskGeometryRequest*)req);
                 break;
 
             case kDiskRequest_SenseDisk:
@@ -363,21 +362,21 @@ errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch,
     return err;
 }
 
-errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, diskinfo_t* _Nonnull info)
+errno_t DiskDriver_GetDriveInfo(DiskDriverRef _Nonnull self, drive_info_t* _Nonnull info)
 {
-    GetDiskInfoRequest r;
+    GetDriveInfoRequest r;
 
-    IORequest_Init(&r, kDiskRequest_GetInfo);
+    IORequest_Init(&r, kDiskRequest_GetDriveInfo);
     r.ip = info;
 
     return DiskDriver_DoIO(self, (IORequest*)&r);
 }
 
-errno_t DiskDriver_GetGeometry(DiskDriverRef _Nonnull self, diskgeom_t* _Nonnull info)
+errno_t DiskDriver_GetDiskInfo(DiskDriverRef _Nonnull self, disk_info_t* _Nonnull info)
 {
     DiskGeometryRequest r;
 
-    IORequest_Init(&r, kDiskRequest_GetGeometry);
+    IORequest_Init(&r, kDiskRequest_GetDiskInfo);
     r.gp = info;
 
     return DiskDriver_DoIO(self, (IORequest*)&r);
@@ -391,8 +390,8 @@ errno_t DiskDriver_GetGeometry(DiskDriverRef _Nonnull self, diskgeom_t* _Nonnull
 
 off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
 {
-    diskinfo_t info;
-    const errno_t err = DiskDriver_GetInfo(self, &info);
+    drive_info_t info;
+    const errno_t err = DiskDriver_GetDriveInfo(self, &info);
     
     return (err == EOK) ? (off_t)info.sectorCount * (off_t)info.sectorSize : 0ll;
 }
@@ -433,16 +432,16 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, 
 errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
 {
     switch (cmd) {
-        case kDiskCommand_GetInfo: {
-            diskinfo_t* info = va_arg(ap, diskinfo_t*);
+        case kDiskCommand_GetDriveInfo: {
+            drive_info_t* info = va_arg(ap, drive_info_t*);
             
-            return DiskDriver_GetInfo(self, info);
+            return DiskDriver_GetDriveInfo(self, info);
         }
 
-        case kDiskCommand_GetGeometry: {
-            diskgeom_t* info = va_arg(ap, diskgeom_t*);
+        case kDiskCommand_GetDiskInfo: {
+            disk_info_t* info = va_arg(ap, disk_info_t*);
         
-            return DiskDriver_GetGeometry(self, info);
+            return DiskDriver_GetDiskInfo(self, info);
         }
 
         case kDiskCommand_FormatTrack: {
@@ -473,8 +472,8 @@ func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)
 func_def(doFormat, DiskDriver)
 func_def(formatTrack, DiskDriver)
-func_def(doGetInfo, DiskDriver)
-func_def(doGetGeometry, DiskDriver)
+func_def(doGetDriveInfo, DiskDriver)
+func_def(doGetDiskInfo, DiskDriver)
 func_def(doSenseDisk, DiskDriver)
 override_func_def(getSeekableRange, DiskDriver, Driver)
 override_func_def(read, DiskDriver, Driver)

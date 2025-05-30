@@ -64,10 +64,10 @@ open_class_funcs(FSContainer, Object,
     // FS container to disk(s).
     errno_t (*sync)(void* _Nonnull self);
 
-    // Returns the geometry of the disk underlying the container. ENOMEDIUM is
-    // returned if no disk is in the drive. ENOTSUP is returned if retrieving
-    // the geometry information is not supported.
-    errno_t (*getGeometry)(void* _Nonnull self, diskgeom_t* _Nonnull info);
+    // Returns the information about the disk underlying the container. ENOMEDIUM
+    // is returned if no disk is in the drive. ENOTSUP is returned if retrieving
+    // the disk information is not supported.
+    errno_t (*getDiskInfo)(void* _Nonnull self, disk_info_t* _Nonnull info);
 );
 
 
@@ -108,8 +108,8 @@ invoke_n(syncBlock, FSContainer, __self, __lba)
 #define FSContainer_Sync(__self) \
 invoke_0(sync, FSContainer, __self)
 
-#define FSContainer_GetGeometry(__self, __info) \
-invoke_n(getGeometry, FSContainer, __self, __info)
+#define FSContainer_GetDiskInfo(__self, __info) \
+invoke_n(getDiskInfo, FSContainer, __self, __info)
 
 
 //

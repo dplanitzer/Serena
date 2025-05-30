@@ -25,11 +25,11 @@ final_class_ivars(PartitionDriver, DiskDriver,
 errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull name, sno_t lsaStart, scnt_t sectorCount, bool isReadOnly, DiskDriverRef wholeDisk, PartitionDriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    diskinfo_t diskInfo;
+    drive_info_t info;
     PartitionDriverRef self = NULL;
 
-    try(DiskDriver_GetInfo(wholeDisk, &diskInfo));
-    if (lsaStart >= diskInfo.sectorCount || sectorCount < 1 || (lsaStart + sectorCount - 1) >= diskInfo.sectorCount) {
+    try(DiskDriver_GetDriveInfo(wholeDisk, &info));
+    if (lsaStart >= info.sectorCount || sectorCount < 1 || (lsaStart + sectorCount - 1) >= info.sectorCount) {
         throw(EINVAL);
     }
 
@@ -37,7 +37,7 @@ errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull 
     self->wholeDisk = wholeDisk;
     self->lsaStart = lsaStart;
     self->sectorCount = sectorCount;
-    self->sectorSize = diskInfo.sectorSize;
+    self->sectorSize = info.sectorSize;
     self->isReadOnly = isReadOnly;
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
 
@@ -59,11 +59,11 @@ errno_t PartitionDriver_createDispatchQueue(PartitionDriverRef _Nonnull self, Di
 errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
 {
     decl_try_err();
-    diskgeom_t wholeGeom;
-    diskinfo_t wholeInfo;
+    disk_info_t wholeGeom;
+    drive_info_t wholeInfo;
 
-    try(DiskDriver_GetGeometry(self->wholeDisk, &wholeGeom));
-    try(DiskDriver_GetInfo(self->wholeDisk, &wholeInfo));
+    try(DiskDriver_GetDiskInfo(self->wholeDisk, &wholeGeom));
+    try(DiskDriver_GetDriveInfo(self->wholeDisk, &wholeInfo));
 
     SensedDisk info;
     info.sectorsPerTrack = wholeGeom.sectorsPerTrack;

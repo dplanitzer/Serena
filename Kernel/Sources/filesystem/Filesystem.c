@@ -554,7 +554,7 @@ errno_t Filesystem_ioctl(FilesystemRef _Nonnull self, IOChannelRef _Nonnull pCha
             return Filesystem_SetLabel(self, buf);
         }
 
-        case kFSCommand_GetDiskGeometry:
+        case kFSCommand_GetDiskInfo:
             return ENOTSUP;
 
         case kFSCommand_Sync:

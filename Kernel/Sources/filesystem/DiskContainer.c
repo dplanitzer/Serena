@@ -17,10 +17,10 @@ errno_t DiskContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nul
 {
     decl_try_err();
     struct DiskContainer* self = NULL;
-    diskinfo_t info;
+    drive_info_t info;
     uint32_t fsprops = 0;
 
-    try(IOChannel_Ioctl(pChannel, kDiskCommand_GetInfo, &info));
+    try(IOChannel_Ioctl(pChannel, kDiskCommand_GetDriveInfo, &info));
 
     if ((info.properties & kDisk_IsReadOnly) == kDisk_IsReadOnly) {
         fsprops |= kFSProperty_IsReadOnly;
@@ -84,9 +84,9 @@ errno_t DiskContainer_sync(struct DiskContainer* _Nonnull self)
     return DiskCache_Sync(self->diskCache, &self->session);
 }
 
-errno_t DiskContainer_getGeometry(struct DiskContainer* _Nonnull self, diskgeom_t* _Nonnull info)
+errno_t DiskContainer_getDiskInfo(struct DiskContainer* _Nonnull self, disk_info_t* _Nonnull info)
 {
-    return IOChannel_Ioctl(self->session.channel, kDiskCommand_GetGeometry, info);
+    return IOChannel_Ioctl(self->session.channel, kDiskCommand_GetDiskInfo, info);
 }
 
 
@@ -98,5 +98,5 @@ override_func_def(unmapBlock, DiskContainer, FSContainer)
 override_func_def(prefetchBlock, DiskContainer, FSContainer)
 override_func_def(syncBlock, DiskContainer, FSContainer)
 override_func_def(sync, DiskContainer, FSContainer)
-override_func_def(getGeometry, DiskContainer, FSContainer)
+override_func_def(getDiskInfo, DiskContainer, FSContainer)
 );

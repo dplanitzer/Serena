@@ -72,9 +72,9 @@ static errno_t get_current_disk_id(const char* _Nonnull driverPath, uint32_t* _N
     IOChannelRef chan;
 
     if ((err = Catalog_Open(gDriverCatalog, driverPath, O_RDWR, &chan)) == EOK) {
-        diskinfo_t info;
+        drive_info_t info;
 
-        err = IOChannel_Ioctl(chan, kDiskCommand_GetInfo, &info);
+        err = IOChannel_Ioctl(chan, kDiskCommand_GetDriveInfo, &info);
         if (err == EOK) {
             *diskId = info.diskId;
         }
@@ -91,11 +91,11 @@ static void wait_for_disk_inserted(boot_screen_t* _Nonnull bscr, const char* _No
 
     if ((err = Catalog_Open(gDriverCatalog, driverPath, O_RDWR, &chan)) == EOK) {
         for (;;) {
-            diskinfo_t info;
+            drive_info_t info;
 
             err = IOChannel_Ioctl(chan, kDiskCommand_SenseDisk);
             if (err == EOK) {
-                IOChannel_Ioctl(chan, kDiskCommand_GetInfo, &info);
+                IOChannel_Ioctl(chan, kDiskCommand_GetDriveInfo, &info);
                 if (info.diskId != *diskId) {
                     *diskId = info.diskId;
                     break;

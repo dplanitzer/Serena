@@ -22,31 +22,31 @@ enum {
 
 
 // General information about a disk drive and the currently loaded media
-typedef struct diskinfo {
+typedef struct drive_info {
     scnt_t      sectorCount;        // number of sectors (physical blocks) stored on the disk media
     scnt_t      rwClusterSize;      // > 1 then the number of consecutive sectors that should be read/written in one go for optimal disk I/O performance (eg drive wants you to read a whole track rather than individual sectors)
     size_t      sectorSize;         // size of a sector (physical block) stored on the disk media. Only relevant if you want to display this value to the user or format a disk
     uint32_t    properties;         // Disk/media properties 
     uint32_t    diskId;             // unique id starting at 1, incremented every time a new disk is inserted into the drive
-} diskinfo_t;
+} drive_info_t;
 
 // Returns information about a disk drive.
-// get_info(diskinfo_t* _Nonnull pOutInfo)
-#define kDiskCommand_GetInfo  IOResourceCommand(kDriverCommand_SubclassBase + 0)
+// get_drive_info(drive_info_t* _Nonnull pOutInfo)
+#define kDiskCommand_GetDriveInfo   IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
 
 // Disk geometry information
-typedef struct diskgeom {
+typedef struct disk_info {
     size_t  headsPerCylinder;
     size_t  sectorsPerTrack;
     size_t  cylindersPerDisk;
     size_t  sectorSize;
-} diskgeom_t;
+} disk_info_t;
 
-// Returns geometry information for the disk that is currently in the drive.
+// Returns information about the disk that is currently in the drive.
 // ENOMEDIUM is returned if no disk is in the drive.
-// get_geometry(diskgeom_t* _Nonnull pOutGeometry)
-#define kDiskCommand_GetGeometry  IOResourceCommand(kDriverCommand_SubclassBase + 1)
+// get_disk_info(disk_info_t* _Nonnull pOutInfo)
+#define kDiskCommand_GetDiskInfo    IOResourceCommand(kDriverCommand_SubclassBase + 1)
 
     
 // Formats a track of 'sectorsPerTrack' consecutive sectors starting at the
