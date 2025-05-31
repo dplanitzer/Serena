@@ -133,7 +133,7 @@ static bool mem_check_page_burst_compat(const MemoryDescriptor* _Nonnull pMemDes
 #define PAT1 0xac35ac35
 #define PAT2 0xc35ac35a
 #define PAT3 0x35ac35ac
-    uint32_t* p = (uint32_t*)pMemDesc->lower;
+    volatile uint32_t* p = (volatile uint32_t*)pMemDesc->lower;
     const uint32_t* pu = (const uint32_t*)pMemDesc->upper;
 
     while (p < pu) {
