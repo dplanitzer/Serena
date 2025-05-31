@@ -172,11 +172,6 @@ static void ramsey_configure(const SystemDescription* _Nonnull pSysDesc)
     }
 
 
-    // 68020 doesn't support burst mode
-    if (pSysDesc->cpu_model <= CPU_MODEL_68030) {
-        return;
-    }
-    
     for (int i = 0; i < pSysDesc->motherboard_ram.descriptor_count; i++) {
         const MemoryDescriptor* pMemDesc = &pSysDesc->motherboard_ram.descriptor[i];
 
@@ -267,8 +262,8 @@ void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, char* _Nullabl
     mem_size_motherboard(pSysDesc, pBootServicesMemoryTop);
 
 
-    // Configure the RAM controller
-    if (pSysDesc->chipset_ramsey_version > 0) {
+    // Enable burst mode if possible (note 68020 doesn't support this)
+    if (pSysDesc->chipset_ramsey_version > 0 && pSysDesc->cpu_model > CPU_MODEL_68020) {
         ramsey_configure(pSysDesc);
     }
 }
