@@ -172,6 +172,11 @@ static void ramsey_configure(const SystemDescription* _Nonnull pSysDesc)
     }
 
 
+    // 68020 doesn't support burst mode
+    if (pSysDesc->cpu_model <= CPU_MODEL_68030) {
+        return;
+    }
+    
     for (int i = 0; i < pSysDesc->motherboard_ram.descriptor_count; i++) {
         const MemoryDescriptor* pMemDesc = &pSysDesc->motherboard_ram.descriptor[i];
 
