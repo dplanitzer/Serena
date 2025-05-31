@@ -16,8 +16,8 @@
 
 
 static Lock         gLock;
-static AllocatorRef gUnifiedMemory;       // CPU + Chipset access (memory range [0..<chipset_upper_dma_limit])
-static AllocatorRef gCpuOnlyMemory;       // CPU only access      (memory range [chipset_upper_dma_limit...])
+static AllocatorRef gUnifiedMemory;       // CPU + Chipset access (memory range [0..<chipset_upper_dma_limit]) (Required)
+static AllocatorRef gCpuOnlyMemory;       // CPU only access      (memory range [chipset_upper_dma_limit...]) (Optional - created on demand if no Fast memory exists in the machine and we later pick up a RAM expansion board)
 
 
 static MemoryDescriptor adjusted_memory_descriptor(const MemoryDescriptor* pMemDesc, char* _Nonnull pInitialHeapBottom, char* _Nonnull pInitialHeapTop)
@@ -31,7 +31,7 @@ static MemoryDescriptor adjusted_memory_descriptor(const MemoryDescriptor* pMemD
     return md;
 }
 
-static errno_t create_allocator(MemoryLayout* _Nonnull pMemLayout, char* _Nonnull pInitialHeapBottom, char* _Nonnull pInitialHeapTop, int8_t memoryType, AllocatorRef _Nullable * _Nonnull pOutAllocator)
+static errno_t create_allocator(MemoryLayout* _Nonnull pMemLayout, char* _Nonnull pInitialHeapBottom, char* _Nonnull pInitialHeapTop, int8_t memoryType, bool isOptional, AllocatorRef _Nullable * _Nonnull pOutAllocator)
 {
     decl_try_err();
     int i = 0;
@@ -44,7 +44,7 @@ static errno_t create_allocator(MemoryLayout* _Nonnull pMemLayout, char* _Nonnul
         i++;
     }
     if (i == pMemLayout->descriptor_count) {
-        throw(ENOMEM);
+        throw((isOptional) ? EOK : ENOMEM);
     }
 
 
@@ -79,8 +79,8 @@ errno_t kalloc_init(const SystemDescription* _Nonnull pSysDesc, void* _Nonnull p
     decl_try_err();
 
     Lock_Init(&gLock);
-    try(create_allocator(&pSysDesc->motherboard_ram, pInitialHeapBottom, pInitialHeapTop, MEM_TYPE_UNIFIED_MEMORY, &gUnifiedMemory));
-    try(create_allocator(&pSysDesc->motherboard_ram, pInitialHeapBottom, pInitialHeapTop, MEM_TYPE_MEMORY, &gCpuOnlyMemory));
+    try(create_allocator(&pSysDesc->motherboard_ram, pInitialHeapBottom, pInitialHeapTop, MEM_TYPE_UNIFIED_MEMORY, false, &gUnifiedMemory));
+    try(create_allocator(&pSysDesc->motherboard_ram, pInitialHeapBottom, pInitialHeapTop, MEM_TYPE_MEMORY, true, &gCpuOnlyMemory));
     return EOK;
 
 catch:
@@ -95,7 +95,7 @@ errno_t kalloc_options(size_t nbytes, unsigned int options, void* _Nullable * _N
     void* ptr = NULL;
 
     Lock_Lock(&gLock);
-    if ((options & KALLOC_OPTION_UNIFIED) != 0) {
+    if ((options & KALLOC_OPTION_UNIFIED) != 0 || gCpuOnlyMemory == NULL) {
         ptr = __Allocator_Allocate(gUnifiedMemory, nbytes);
     } else {
         ptr = __Allocator_Allocate(gCpuOnlyMemory, nbytes);
@@ -122,7 +122,7 @@ void kfree(void* _Nullable ptr)
     Lock_Lock(&gLock);
     err = __Allocator_Deallocate(gUnifiedMemory, ptr);
 
-    if (err == ENOTBLK) {
+    if (err == ENOTBLK && gCpuOnlyMemory) {
         try_bang(__Allocator_Deallocate(gCpuOnlyMemory, ptr));
     } else if (err != EOK) {
         abort();
@@ -140,7 +140,7 @@ size_t ksize(void* _Nullable ptr)
     Lock_Lock(&gLock);
     err = __Allocator_GetBlockSize(gUnifiedMemory, ptr, &nbytes);
 
-    if (err == ENOTBLK) {
+    if (err == ENOTBLK && gCpuOnlyMemory) {
         err = __Allocator_GetBlockSize(gCpuOnlyMemory, ptr, &nbytes);
     }
 
@@ -158,12 +158,17 @@ errno_t kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc)
 
     Lock_Lock(&gLock);
     if (pMemDesc->upper < gSystemDescription->chipset_upper_dma_limit) {
-        pAllocator = gUnifiedMemory;
-    } else {
-        pAllocator = gCpuOnlyMemory;
+        err = __Allocator_AddMemoryRegion(gUnifiedMemory, pMemDesc);
     }
-
-    err = __Allocator_AddMemoryRegion(pAllocator, pMemDesc);
+    else if (gCpuOnlyMemory) {
+        err = __Allocator_AddMemoryRegion(gCpuOnlyMemory, pMemDesc);
+    }
+    else {
+        gCpuOnlyMemory = __Allocator_Create(pMemDesc, NULL);
+        if (gCpuOnlyMemory == NULL) {
+            err = ENOMEM;
+        }
+    }
     Lock_Unlock(&gLock);
 
     return err;
