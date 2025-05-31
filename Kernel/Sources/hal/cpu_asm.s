@@ -19,6 +19,8 @@
     xdef _cpu_verify_ram_4b
     xdef _cpu_guarded_read
     xdef _cpu_guarded_write
+    xdef _cpu68k_as_read_byte
+    xdef _cpu68k_as_write_byte
     xdef _cpu_sleep
     xdef _cpu_halt
     xdef _cpu_call_as_user
@@ -387,6 +389,42 @@ _cpu_guarded_write:
         jsr     _pop_exception_stack_frame(pc)
         moveq   #-1, d0
         bra.s   .done
+    einline
+
+
+;-------------------------------------------------------------------------------
+; unsigned int cpu68k_as_read_byte(void* p, int addr_space)
+; Reads a byte from address 'p' in the address space 'addr_space'.
+_cpu68k_as_read_byte:
+    inline
+    cargs   arb_p.l, arb_addr_space.l
+
+        DISABLE_INTERRUPTS d1
+        move.l  arb_p(sp), a0
+        move.l  arb_addr_space(sp), d0
+        movec   d0, sfc
+        moveq   #0, d0
+        moves.b (a0), d0
+        RESTORE_INTERRUPTS d1
+        rts
+    einline
+
+
+;-------------------------------------------------------------------------------
+; void cpu68k_as_write_byte(void* p, int addr_space, unsigned int val)
+; Writes the byte 'val' to address 'p' in the address space 'addr_space'.
+_cpu68k_as_write_byte:
+    inline
+    cargs   awb_p.l, awb_addr_space.l, awb_val.l
+
+        DISABLE_INTERRUPTS d1
+        move.l  awb_p(sp), a0
+        move.l  awb_addr_space(sp), d0
+        movec   d0, dfc
+        move.l  awb_val(sp), d0
+        moves.b d0, (a0)
+        RESTORE_INTERRUPTS d1
+        rts
     einline
 
 

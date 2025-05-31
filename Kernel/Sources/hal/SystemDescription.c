@@ -108,8 +108,9 @@ static void mem_size_motherboard(SystemDescription* pSysDesc, char* _Nullable pB
 static void ramsey_set_page_mode_enabled(bool flag)
 {
     RAMSEY_BASE_DECL(cp);
-    uint8_t r = *RAMSEY_REG_8(cp, RAMSEY_CR);
-    uint8_t ref;
+    volatile uint8_t* p_cr = RAMSEY_REG_8(cp, RAMSEY_CR);
+    uint8_t ref, r = *p_cr;
+
     if (flag) {
         r |= RAMSEY_CRF_PAGE_MODE;
         ref = 0;
@@ -117,12 +118,12 @@ static void ramsey_set_page_mode_enabled(bool flag)
         r &= ~RAMSEY_CRF_PAGE_MODE;
         ref = RAMSEY_CRF_PAGE_MODE;
     }
-    *RAMSEY_REG_8(cp, RAMSEY_CR) = r;
+    *p_cr = r;
 
 
     // Wait for the change to take effect
     do {
-        r = *RAMSEY_REG_8(cp, RAMSEY_CR);
+        r = *p_cr;
     } while ((r & RAMSEY_CRF_PAGE_MODE) == ref);
 }
 
@@ -181,23 +182,25 @@ static void ramsey_configure(const SystemDescription* _Nonnull pSysDesc)
             }
         }
     }
-    
 
+    
     // Note that the refresh delay needs to be < 10us. However RAMSEY automatically
     // selects the right refresh mode by default. So we just leave the refresh
     // setting alone.
     RAMSEY_BASE_DECL(cp);
-    uint8_t r = *RAMSEY_REG_8(cp, RAMSEY_CR);
+    volatile uint8_t* p_cr = RAMSEY_REG_8(cp, RAMSEY_CR);
+    uint8_t r = *p_cr;
+
     r |= RAMSEY_CRF_PAGE_MODE;
     r |= RAMSEY_CRF_BURST_MODE;
     r &= ~RAMSEY_CRF_WRAP;  // Needs to be off for the 68040
 
-    *RAMSEY_REG_8(cp, RAMSEY_CR) = r;
+    *p_cr = r;
 
 
     // Wait for the change to take effect
     do {
-        r = *RAMSEY_REG_8(cp, RAMSEY_CR);
+        r = *p_cr;
     } while ((r & RAMSEY_CRF_BURST_MODE) == 0);
 }
 

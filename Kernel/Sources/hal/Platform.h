@@ -58,6 +58,14 @@
 #define FPU_MAX_STATE_SIZE          216
 
 
+// CPU (68k) address space selector (Alternate function codes)
+#define CPU68K_USER_DATA_SPACE  1
+#define CPU68K_USER_CODE_SPACE  2
+#define CPU68K_SUPER_DATA_SPACE 5
+#define CPU68K_SUPER_CODE_SPACE 6
+#define CPU68K_CPU_SPACE        7
+
+
 // CPU register state
 typedef struct CpuContext {
     
@@ -174,6 +182,9 @@ extern int cpu_verify_ram_4b(void* pSrc);
 
 extern int cpu_guarded_read(void* _Nonnull src, void* _Nonnull buffer, int buffer_size);
 extern int cpu_guarded_write(void* _Nonnull dst, const void* _Nonnull buffer, int buffer_size);
+
+extern unsigned int cpu68k_as_read_byte(void* p, int addr_space);
+extern void cpu68k_as_write_byte(void* p, int addr_space, unsigned int val);
 
 extern void cpu_sleep(int cpu_type);
 extern void cpu_halt(void);
