@@ -39,9 +39,6 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     try(Catalog_Open(gDriverCatalog, "/hw/fb", O_RDWR, &self->fbChannel));
     self->fb = DriverChannel_GetDriverAs(self->fbChannel, GraphicsDriver);
     self->keyMap = (const KeyMap*) gKeyMap_usa;
-
-    self->lineHeight = GLYPH_HEIGHT;
-    self->characterWidth = GLYPH_WIDTH;
     self->compatibilityMode = kCompatibilityMode_ANSI;
 
 
@@ -119,7 +116,17 @@ static errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
 errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking)
 {
     decl_try_err();
-    
+
+    self->gl = kCharacterSet_G0;
+    self->gl_ss23 = -1;
+    self->g[kCharacterSet_G0] = &kFont_VT100_US;
+    self->g[kCharacterSet_G1] = &kFont_VT100_UK;
+    self->g[kCharacterSet_G2] = &kFont_VT100_UK;
+    self->g[kCharacterSet_G3] = &kFont_VT100_LDCS;
+
+    self->lineHeight = Font_GetFontHeight(self->g[kCharacterSet_G0]);
+    self->characterWidth = Font_GetFontWidth(self->g[kCharacterSet_G0]);
+
     self->bounds = Rect_Make(0, 0, self->pixelsWidth / self->characterWidth, self->pixelsHeight / self->lineHeight);
     self->savedCursorState.x = 0;
     self->savedCursorState.y = 0;
@@ -184,6 +191,8 @@ void Console_SetCompatibilityMode_Locked(ConsoleRef _Nonnull self, Compatibility
 
     vtparser_set_mode(&self->vtparser, vtmode);
     self->compatibilityMode = mode;
+
+    self->gl = kCharacterSet_G0;
 }
 
 // Scrolls the content of the console screen. 'clipRect' defines a viewport
@@ -433,7 +442,7 @@ void Console_PrintByte_Locked(ConsoleRef _Nonnull self, unsigned char ch)
         Console_CopyRect_Locked(self, Rect_Make(self->x, self->y, self->bounds.right - 1, self->y + 1), Point_Make(self->x + 1, self->y));
     }
 
-    Console_DrawGlyph_Locked(self, ch, self->x, self->y);
+    Console_DrawChar_Locked(self, ch, self->x, self->y);
     Console_MoveCursor_Locked(self, (self->flags.isAutoWrapEnabled) ? kCursorMovement_AutoWrap : kCursorMovement_Clamp, 1, 0);
 }
 

@@ -61,6 +61,14 @@ static void Console_VT100_Execute_C0_Locked(ConsoleRef _Nonnull self, unsigned c
             Console_MoveCursorTo_Locked(self, 0, self->y);
             break;
             
+        case 0x0e:  // SO (Shift Out)
+            self->gl = kCharacterSet_G1;
+            break;
+
+        case 0x0f:  // SI (Shift In)
+            self->gl = kCharacterSet_G0;
+            break;
+
         case 0x7f:  // DEL (Delete)
             Console_Execute_DEL_Locked(self);
             break;
@@ -451,23 +459,50 @@ static void Console_VT100_CSI_Locked(ConsoleRef _Nonnull self, unsigned char ch)
             Console_Execute_DL_Locked(self, get_csi_parameter(self, 1));
             break;
 
-        case 'N':   // SS2
-            // G2 character set is the same as G0 character set
-            break;
-
-        case 'O':   // SS3
-             // G3 character set is the same as G0 character set
-             break;
-
         default:
             // Ignore
             break;
     }
 }
 
+static void Console_VT100_DECSCS_Locked(ConsoleRef _Nonnull _Locked self, char ch)
+{
+    if (self->vtparser.vt500.num_intermediate_chars > 0) {
+        const int cset = self->vtparser.vt500.intermediate_chars[0] == '(' ? kCharacterSet_G0 : kCharacterSet_G1;
+
+        switch (ch) {
+            case 'A':   self->g[cset] = &kFont_VT100_UK; break;
+            case 'B':   self->g[cset] = &kFont_VT100_US; break;
+            case '0':   self->g[cset] = &kFont_VT100_LDCS; break;
+            case '1':   self->g[cset] = &kFont_VT100_UK; break;
+            case '2':   self->g[cset] = &kFont_VT100_US; break;
+            default:    break;
+        }
+    }
+}
+
 static void Console_VT100_ESC_Locked(ConsoleRef _Nonnull self, unsigned char ch)
 {
     switch (ch) {
+        case '0':   // DEC: SCS 0
+        case '1':   // DEC: SCS 1
+        case '2':   // DEC: SCS 2
+            Console_VT100_DECSCS_Locked(self, ch);
+            break;
+
+        case '7':   // ANSI: DECSC
+            Console_SaveCursorState_Locked(self);
+            break;
+
+        case '8':   // ANSI: DECRC
+            Console_RestoreCursorState_Locked(self);
+            break;
+
+        case 'A':   // DEC: SCS A
+        case 'B':   // DEC: SCS B
+            Console_VT100_DECSCS_Locked(self, ch);
+            break;
+
         case 'D':   // ANSI: IND
             Console_MoveCursor_Locked(self, kCursorMovement_AutoScroll, 0, 1);
             break;
@@ -480,16 +515,16 @@ static void Console_VT100_ESC_Locked(ConsoleRef _Nonnull self, unsigned char ch)
             Console_MoveCursor_Locked(self, kCursorMovement_AutoScroll, -self->x, 1);
             break;
 
-        case '7':   // ANSI: DECSC
-            Console_SaveCursorState_Locked(self);
-            break;
-
-        case '8':   // ANSI: DECRC
-            Console_RestoreCursorState_Locked(self);
-            break;
-
         case 'H':   // ANSI: HTS
             TabStops_InsertStop(&self->hTabStops, self->x);
+            break;
+
+        case 'N':   // DEC: SS2
+        case 'O':   // DEC: SS3
+            if (self->gl_ss23 < 0) {
+                self->gl_ss23 = self->gl;
+                self->gl = (ch == 'N') ? kCharacterSet_G2 : kCharacterSet_G3;
+            }
             break;
 
         case 'Z':   // ANSI: DECID
@@ -498,6 +533,14 @@ static void Console_VT100_ESC_Locked(ConsoleRef _Nonnull self, unsigned char ch)
 
         case 'c':   // ANSI: RIS
             Console_ResetState_Locked(self, true);
+            break;
+
+        case '(':   // DECSCS: G0
+            Console_VT100_DECSCS_Locked(self, kCharacterSet_G0);
+            break;
+
+        case ')':   // DECSCS: G1
+            Console_VT100_DECSCS_Locked(self, kCharacterSet_G1);
             break;
 
         default:
@@ -523,6 +566,11 @@ void Console_VT100_ParseByte_Locked(ConsoleRef _Nonnull self, vt500parse_action_
 
         case VT500PARSE_ACTION_PRINT:
             Console_PrintByte_Locked(self, b);
+            
+            if (self->gl_ss23 >= 0) {
+                self->gl = self->gl_ss23;
+                self->gl_ss23 = -1;
+            }
             break;
 
         default:

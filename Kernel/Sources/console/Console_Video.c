@@ -209,13 +209,15 @@ void Console_EndDrawing_Locked(ConsoleRef _Nonnull self)
 //    HIDManager_UnshieldMouseCursor(gHIDManager);
 }
 
-static void Console_DrawGlyphBitmap_Locked(ConsoleRef _Nonnull self, const uint8_t* _Nonnull pSrc, int xc, int yc, const Color* _Nonnull fgColor, const Color* _Nonnull bgColor)
+static void Console_DrawGlyph_Locked(ConsoleRef _Nonnull self, const Font* _Nonnull font, char ch, int xc, int yc, const Color* _Nonnull fgColor, const Color* _Nonnull bgColor)
 {
+    const char* gp = Font_GetGlyph(font, ch);
+
     for (size_t p = 0; p < self->pixels.planeCount; p++) {
         const int_fast8_t fgOne = fgColor->u.index & (1 << p);
         const int_fast8_t bgOne = bgColor->u.index & (1 << p);
         register const size_t bytesPerRow = self->pixels.bytesPerRow[p];
-        register const uint8_t* sp = pSrc;
+        register const char* sp = gp;
         register uint8_t* dp = (uint8_t*)self->pixels.plane[p] + (yc << 3) * bytesPerRow + xc;
 
         if (fgOne && !bgOne) {
@@ -261,21 +263,21 @@ static void Console_DrawGlyphBitmap_Locked(ConsoleRef _Nonnull self, const uint8
     }
 }
 
-void Console_DrawGlyph_Locked(ConsoleRef _Nonnull self, char glyph, int xc, int yc)
+void Console_DrawChar_Locked(ConsoleRef _Nonnull self, char ch, int xc, int yc)
 {
     const int maxX = self->pixelsWidth >> 3;
     const int maxY = self->pixelsHeight >> 3;
     
     if (xc >= 0 && yc >= 0 && xc < maxX && yc < maxY) {
         if (self->characterRendition.isHidden) {
-            glyph = ' ';
+            ch = ' ';
         }
 
         const Color* fgColor = (self->characterRendition.isReverse) ? &self->backgroundColor : &self->foregroundColor;
         const Color* bgColor = (self->characterRendition.isReverse) ? &self->foregroundColor : &self->backgroundColor;
-        register const uint8_t* pSrc = &font8x8_latin1[glyph][0];
+        const Font* font = self->g[self->gl];
 
-        Console_DrawGlyphBitmap_Locked(self, &font8x8_latin1[glyph][0], xc, yc, fgColor, bgColor);
+        Console_DrawGlyph_Locked(self, font, ch, xc, yc, fgColor, bgColor);
     }
 }
 
@@ -361,11 +363,11 @@ void Console_FillRect_Locked(ConsoleRef _Nonnull self, Rect rect, char ch)
     }
 
     const Color* fgColor = (self->characterRendition.isReverse) ? &self->backgroundColor : &self->foregroundColor;
-    const uint8_t* pGlyphBitmap = &font8x8_latin1[ch][0];
+    const Font* font = self->g[self->gl];
 
     for (int y = r.top; y < r.bottom; y++) {
         for (int x = r.left; x < r.right; x++) {
-            Console_DrawGlyphBitmap_Locked(self, pGlyphBitmap, x, y, fgColor, bgColor);
+            Console_DrawGlyph_Locked(self, font, ch, x, y, fgColor, bgColor);
         }
     }
 }

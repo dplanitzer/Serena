@@ -15,8 +15,10 @@
 #include <driver/amiga/graphics/GraphicsDriver.h>
 #include <klib/RingBuffer.h>
 #include "Color.h"
+#include "Font.h"
 #include "Geometry.h"
 #include "KeyMap.h"
+#include "TabStops.h"
 #include "vtparser.h"
 
 
@@ -44,7 +46,6 @@ typedef enum CompatibilityMode {
 // Unimplemented functionality:
 //  VT100:
 //      - bell
-//      - shift in/out (character set selection)
 //      - answerback message
 //      - (DECSCLM) animated vs non-animated scroll
 //      - (DECSTBM) scroll region
@@ -105,21 +106,14 @@ typedef enum ClearScreenMode {
 } ClearScreenMode;
 
 
-// Stores up to 255 tab stop positions.
-typedef struct TabStops {
-    int8_t* stops;
-    int     count;
-    int     capacity;
-} TabStops;
-
-errno_t TabStops_Init(TabStops* _Nonnull self, int nStops, int tabWidth);
-void TabStops_Deinit(TabStops* _Nonnull self);
-errno_t TabStops_InsertStop(TabStops* _Nonnull self, int xLoc);
-void TabStops_RemoveStop(TabStops* _Nonnull self, int xLoc);
-void TabStops_RemoveAllStops(TabStops* _Nonnull self);
-int TabStops_GetNextStop(TabStops* self, int xLoc, int xWidth);
-int TabStops_GetNextNthStop(TabStops* self, int xLoc, int nth, int xWidth);
-int TabStops_GetPreviousNthStop(TabStops* self, int xLoc, int nth);
+// Gx character sets
+enum CharacterSet {
+    kCharacterSet_G0 = 0,
+    kCharacterSet_G1 = 1,
+    kCharacterSet_G2 = 2,
+    kCharacterSet_G3 = 3,
+    kCharacterSet_Count = 4
+};
 
 
 // Character attributes/rendition state
@@ -141,6 +135,7 @@ typedef struct CharacterRendition {
 // - character set
 // - origin mode
 typedef struct SavedState {
+    int                 gl;     // active character set for GL plane
     int                 x;
     int                 y;
     Color               backgroundColor;
@@ -174,6 +169,9 @@ final_class_ivars(Console, Driver,
     CharacterRendition          characterRendition;
     int                         lineHeight;     // In pixels
     int                         characterWidth; // In pixels
+    int                         gl;
+    int                         gl_ss23;    // GL saved by SS2/SS3 code (< 0 -> no GL saved; >= 0 GL saved)
+    const Font* _Nonnull        g[kCharacterSet_Count];
     TabStops                    hTabStops;
     Rect                        bounds;
     int                         x;
@@ -213,7 +211,7 @@ extern void Console_CursorDidMove_Locked(ConsoleRef _Nonnull self);
 extern void Console_BeginDrawing_Locked(ConsoleRef _Nonnull self);
 extern void Console_EndDrawing_Locked(ConsoleRef _Nonnull self);
 
-extern void Console_DrawGlyph_Locked(ConsoleRef _Nonnull self, char glyph, int x, int y);
+extern void Console_DrawChar_Locked(ConsoleRef _Nonnull self, char ch, int x, int y);
 extern void Console_CopyRect_Locked(ConsoleRef _Nonnull self, Rect srcRect, Point dstLoc);
 extern void Console_FillRect_Locked(ConsoleRef _Nonnull self, Rect rect, char ch);
 
@@ -248,15 +246,6 @@ extern void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines);
 // Keymaps
 //
 extern const unsigned char gKeyMap_usa[];
-
-
-//
-// Fonts
-//
-extern const char font8x8_latin1[128][8];
-extern const char font8x8_dingbat[160][8];
-#define GLYPH_WIDTH     8
-#define GLYPH_HEIGHT    8
 
 
 //
