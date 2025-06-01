@@ -68,10 +68,6 @@ static void Console_VT100_Execute_C0_Locked(ConsoleRef _Nonnull self, unsigned c
         case 0x0f:  // SI (Shift In)
             self->gl = kCharacterSet_G0;
             break;
-
-        case 0x7f:  // DEL (Delete)
-            Console_Execute_DEL_Locked(self);
-            break;
 #if 0            
         // XXX Not supported by VT100 (VT200 thing)
         case 0x84:  // IND (Index)

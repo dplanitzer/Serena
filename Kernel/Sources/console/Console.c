@@ -479,6 +479,13 @@ void Console_Execute_BS_Locked(ConsoleRef _Nonnull self)
 
 void Console_Execute_DEL_Locked(ConsoleRef _Nonnull self)
 {
+    // Destructive DEL (appropriate for replace mode)
+#if 0
+    if (self->x > 0) {
+        Console_MoveCursor_Locked(self, kCursorMovement_Clamp, -1, 0);
+        Console_DrawChar_Locked(self, ' ', self->x, self->y);
+    }
+#endif
     if (self->x < self->bounds.right - 1) {
         // DEL does not change the position.
         Console_CopyRect_Locked(self, Rect_Make(self->x + 1, self->y, self->bounds.right, self->y + 1), Point_Make(self->x, self->y));
