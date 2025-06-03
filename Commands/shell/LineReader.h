@@ -33,10 +33,12 @@ typedef struct LineReader {
 typedef LineReader* LineReaderRef;
 
 
-extern LineReaderRef _Nonnull LineReader_Create(int maxLineLength, int historyCapacity, const char* _Nonnull pPrompt);
+extern LineReaderRef _Nonnull LineReader_Create(int maxLineLength, int historyCapacity);
 extern void LineReader_Destroy(LineReaderRef _Nullable self);
 
 extern char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self);
+
+extern void LineReader_SetPrompt(LineReaderRef _Nonnull self, const char* _Nullable str);
 
 extern int LineReader_GetHistoryCount(LineReaderRef _Nonnull self);
 extern const char* _Nonnull LineReader_GetHistoryAt(LineReaderRef _Nonnull self, int idx);

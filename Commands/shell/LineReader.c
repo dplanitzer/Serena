@@ -14,9 +14,10 @@
 #include <string.h>
 
 
-LineReaderRef _Nonnull LineReader_Create(int maxLineLength, int historyCapacity, const char* _Nonnull pPrompt)
+LineReaderRef _Nonnull LineReader_Create(int maxLineLength, int historyCapacity)
 {
     LineReaderRef self = calloc(1, sizeof(LineReader) + maxLineLength + 1);
+
     self->lineCapacity = maxLineLength + 1;
     self->lineCount = 0;
     self->x = 0;
@@ -29,8 +30,6 @@ LineReaderRef _Nonnull LineReader_Create(int maxLineLength, int historyCapacity,
     self->historyCapacity = historyCapacity;
     self->historyCount = 0;
     self->historyIndex = 0;
-
-    self->prompt = strdup(pPrompt);
 
     // XXX not the best way or place to do it
     setvbuf(stdin, NULL, _IONBF, 0);
@@ -61,9 +60,20 @@ void LineReader_Destroy(LineReaderRef _Nullable self)
     }
 }
 
+void LineReader_SetPrompt(LineReaderRef _Nonnull self, const char* _Nullable str)
+{
+    free(self->prompt);
+    self->prompt = (str && *str != '\0') ? strdup(str) : NULL;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
 static void LineReader_PrintPrompt(LineReaderRef _Nonnull self)
 {
-    printf("%s", self->prompt);
+    if (self->prompt) {
+        printf("%s", self->prompt);
+    }
 }
 
 static void LineReader_PrintInputLine(LineReaderRef _Nonnull self)

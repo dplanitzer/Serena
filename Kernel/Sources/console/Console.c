@@ -13,6 +13,7 @@
 #include <kern/assert.h>
 #include <kern/string.h>
 #include <kern/timespec.h>
+#include <kpi/console.h>
 #include <kpi/fcntl.h>
 #include <kpi/perm.h>
 
@@ -684,6 +685,37 @@ errno_t Console_write(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChan
     return EOK;
 }
 
+errno_t Console_ioctl(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
+{
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    switch (cmd) {
+        case kConsoleCommand_GetScreen: {
+            con_screen_t* info = va_arg(ap, con_screen_t*);
+            
+            info->columns = self->bounds.right;
+            info->rows = self->bounds.bottom;
+            break;
+        }
+
+        case kConsoleCommand_GetCursor: {
+            con_cursor_t* info = va_arg(ap, con_cursor_t*);
+            
+            info->x = self->x;
+            info->y = self->y;
+            break;
+        }
+
+        default:
+            err = ENOTIOCTLCMD;
+            break;
+    }
+    Lock_Unlock(&self->lock);
+
+    return err;
+}
+
 
 class_func_defs(Console, Driver,
 override_func_def(deinit, Console, Object)
@@ -691,4 +723,5 @@ override_func_def(onStart, Console, Driver)
 override_func_def(createChannel, Console, Driver)
 override_func_def(read, Console, Driver)
 override_func_def(write, Console, Driver)
+override_func_def(ioctl, Console, Driver)
 );
