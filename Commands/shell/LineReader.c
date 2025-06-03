@@ -12,9 +12,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/console.h>
+#include <sys/ioctl.h>
+
+static void LineReader_DeleteHistory(LineReaderRef _Nonnull self);
 
 
-LineReaderRef _Nonnull LineReader_Create(int maxLineLength, int historyCapacity)
+LineReaderRef _Nonnull LineReader_Create(int maxLineLength)
 {
     LineReaderRef self = calloc(1, sizeof(LineReader) + maxLineLength + 1);
 
@@ -29,11 +34,6 @@ LineReaderRef _Nonnull LineReader_Create(int maxLineLength, int historyCapacity)
     self->isDirty = false;
     self->line[0] = '\0';
 
-    self->history = calloc(historyCapacity, sizeof(char*));
-    self->historyCapacity = historyCapacity;
-    self->historyCount = 0;
-    self->historyIndex = 0;
-
     // XXX not the best way or place to do it
     setvbuf(stdin, NULL, _IONBF, 0);
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -45,14 +45,7 @@ LineReaderRef _Nonnull LineReader_Create(int maxLineLength, int historyCapacity)
 void LineReader_Destroy(LineReaderRef _Nullable self)
 {
     if (self) {
-        if (self->history) {
-            for (int i = 0; i < self->historyCount; i++) {
-                free(self->history[i]);
-                self->history[i] = NULL;
-            }
-            free(self->history);
-            self->history = NULL;
-        }
+        LineReader_DeleteHistory(self);
         
         free(self->prompt);
         self->prompt = NULL;
@@ -65,6 +58,8 @@ void LineReader_Destroy(LineReaderRef _Nullable self)
         free(self);
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 void LineReader_SetPrompt(LineReaderRef _Nonnull self, const char* _Nullable str)
 {
@@ -80,15 +75,15 @@ void LineReader_SetPrompt(LineReaderRef _Nonnull self, const char* _Nullable str
     }
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-
 static void LineReader_PrintPrompt(LineReaderRef _Nonnull self)
 {
     if (self->prompt) {
         fwrite(self->prompt, self->promptLength, 1, self->fp_out);
     }
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
 
 static void LineReader_PrintInputLine(LineReaderRef _Nonnull self)
 {
@@ -133,6 +128,39 @@ static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull
     fputs("\033[2K\r", self->fp_out);
     LineReader_PrintPrompt(self);
     fputs(self->line, self->fp_out);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Deletes all entries in the history
+static void LineReader_DeleteHistory(LineReaderRef _Nonnull self)
+{
+    if (self->history) {
+        for (int i = 0; i < self->historyCount; i++) {
+            free(self->history[i]);
+            self->history[i] = NULL;
+        }
+
+        free(self->history);
+        self->history = NULL;
+        self->historyCapacity = 0;
+        self->historyCount = 0;
+        self->historyIndex = 0;
+    }
+}
+
+// Sets the history capacity. This is the maximum number of entries the history
+// will keep. Note that changing the history capacity deletes whatever is
+// currently stored in the history. The history capacity is 0 by default.
+void LineReader_SetHistoryCapacity(LineReaderRef _Nonnull self, size_t capacity)
+{
+    LineReader_DeleteHistory(self);
+
+    self->history = calloc(capacity, sizeof(char*));
+    self->historyCapacity = capacity;
+    self->historyCount = 0;
+    self->historyIndex = 0;
 }
 
 // Returns the number of entries that currently exist in the history.
@@ -264,6 +292,9 @@ static void LineReader_MoveHistoryDown(LineReaderRef _Nonnull self)
         self->savedLine = NULL;
     }
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
 
 static void LineReader_MoveCursorLeft(LineReaderRef _Nonnull self)
 {

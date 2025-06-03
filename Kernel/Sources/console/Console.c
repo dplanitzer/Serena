@@ -702,8 +702,8 @@ errno_t Console_ioctl(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, 
         case kConsoleCommand_GetCursor: {
             con_cursor_t* info = va_arg(ap, con_cursor_t*);
             
-            info->x = self->x;
-            info->y = self->y;
+            info->x = self->x + 1;
+            info->y = self->y + 1;
             break;
         }
 
