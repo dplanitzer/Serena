@@ -10,14 +10,19 @@
 #define LineReader_h
 
 #include <stdbool.h>
-#include <sys/errno.h>
+#include <stdio.h>
 
 
 typedef struct LineReader {
+    FILE*   fp_in;
+    FILE*   fp_out;
+
     int     x;
     int     maxX;
 
     const char* prompt;
+    size_t      promptLength;
+    
     char*   savedLine;  // Line saved if 'line' was dirty when user hits crsr-up/down
     bool    isDirty;
 

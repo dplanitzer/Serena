@@ -18,6 +18,9 @@ LineReaderRef _Nonnull LineReader_Create(int maxLineLength, int historyCapacity)
 {
     LineReaderRef self = calloc(1, sizeof(LineReader) + maxLineLength + 1);
 
+    self->fp_in = stdin;
+    self->fp_out = stdout;
+
     self->lineCapacity = maxLineLength + 1;
     self->lineCount = 0;
     self->x = 0;
@@ -56,6 +59,9 @@ void LineReader_Destroy(LineReaderRef _Nullable self)
         free(self->savedLine);
         self->savedLine = NULL;
 
+        self->fp_out = NULL;
+        self->fp_in = NULL;
+
         free(self);
     }
 }
@@ -63,7 +69,15 @@ void LineReader_Destroy(LineReaderRef _Nullable self)
 void LineReader_SetPrompt(LineReaderRef _Nonnull self, const char* _Nullable str)
 {
     free(self->prompt);
-    self->prompt = (str && *str != '\0') ? strdup(str) : NULL;
+
+    if (str && *str != '\0') {
+        self->prompt = strdup(str);
+        self->promptLength = strlen(str);
+    }
+    else {
+        self->prompt = NULL;
+        self->promptLength = 0;
+    }
 }
 
 
@@ -72,14 +86,14 @@ void LineReader_SetPrompt(LineReaderRef _Nonnull self, const char* _Nullable str
 static void LineReader_PrintPrompt(LineReaderRef _Nonnull self)
 {
     if (self->prompt) {
-        printf("%s", self->prompt);
+        fwrite(self->prompt, self->promptLength, 1, self->fp_out);
     }
 }
 
 static void LineReader_PrintInputLine(LineReaderRef _Nonnull self)
 {
     self->line[self->lineCount] = '\0';
-    printf("%s", self->line);
+    fputs(self->line, self->fp_out);
 }
 
 static void LineReader_OnUserInput(LineReaderRef _Nonnull self)
@@ -116,9 +130,9 @@ static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull
         self->x = self->maxX;
     }
 
-    printf("\033[2K\r");
+    fputs("\033[2K\r", self->fp_out);
     LineReader_PrintPrompt(self);
-    printf("%s", self->line);
+    fputs(self->line, self->fp_out);
 }
 
 // Returns the number of entries that currently exist in the history.
@@ -136,15 +150,15 @@ const char* _Nonnull LineReader_GetHistoryAt(LineReaderRef _Nonnull self, int id
 
 static void LineReader_PrintHistory(LineReaderRef _Nonnull self, const char* _Nonnull info)
 {
-    printf("\nafter %s:\n", info);
+    fprintf(self->fp_out, "\nafter %s:\n", info);
     if (self->historyCount > 0) {
         for (int i = self->historyCount - 1; i >= 0; i--) {
             printf("%d:  \"%s\"\n", i, self->history[i]);
         }
     } else {
-        printf("  <empty>\n");
+        fprintf(self->fp_out, "  <empty>\n");
     }
-    printf("sel idx: %d\n", self->historyIndex);
+    fprintf(self->fp_out, "sel idx: %d\n", self->historyIndex);
 }
 
 // Removes all entries in the history that exactly match 'pLine'. Returns true
@@ -254,7 +268,7 @@ static void LineReader_MoveHistoryDown(LineReaderRef _Nonnull self)
 static void LineReader_MoveCursorLeft(LineReaderRef _Nonnull self)
 {
     if (self->x > 0) {
-        printf("\033[D");   // cursor left
+        fwrite("\033[D", 3, 1, self->fp_out);   // cursor left
         self->x--;
     }
 }
@@ -262,20 +276,20 @@ static void LineReader_MoveCursorLeft(LineReaderRef _Nonnull self)
 static void LineReader_MoveCursorRight(LineReaderRef _Nonnull self)
 {
     if (self->x < self->maxX) {
-        printf("\033[C");   // cursor right
+        fwrite("\033[C", 3, 1, self->fp_out);   // cursor right
         self->x++;
     }
 }
 
 static void LineReader_MoveCursorToBeginningOfLine(LineReaderRef _Nonnull self)
 {
-    printf("\015\033[%dC", (int)strlen(self->prompt));
+    fprintf(self->fp_out, "\015\033[%dC", (int)self->promptLength);
     self->x = 0;
 }
 
 static void LineReader_MoveCursorToEndOfLine(LineReaderRef _Nonnull self)
 {
-    printf("\015\033[%dC", (int)strlen(self->prompt) + self->lineCount);
+    fprintf(self->fp_out, "\015\033[%dC", (int)self->promptLength + self->lineCount);
     self->x = self->lineCount;
 }
 
@@ -283,7 +297,7 @@ static void LineReader_ClearScreen(LineReaderRef _Nonnull self)
 {
     // Clear the screen but preserve the current state of the input line. This
     // action does not count as dirtying the input buffer.
-    printf("\033[2J\033[H");
+    fwrite("\033[2J\033[H", 7, 1, self->fp_out);
     LineReader_PrintPrompt(self);
     LineReader_PrintInputLine(self);
 }
@@ -301,39 +315,34 @@ static void LineReader_Backspace(LineReaderRef _Nonnull self)
     self->x--;
     //XXXself->lineCount--;
 
-    putchar(8);
+    fputc(8, self->fp_out);
     LineReader_OnUserInput(self);
 }
 
 // XXX Replace this with a proper ESC sequence parser
 static void LineReader_ReadEscapeSequence(LineReaderRef _Nonnull self)
 {
-    const char lbracket = getchar();    // [
-    const char dir = getchar();         // cursor direction
+    const char lbracket = fgetc(self->fp_in);   // [
+    const char dir = fgetc(self->fp_in);        // cursor direction
 
     switch (dir) {
-        case 'A':
-            // Up
+        case 'A':   // Up
             LineReader_MoveHistoryUp(self);
             break;
 
-        case 'B':
-            // Down
+        case 'B':   // Down
             LineReader_MoveHistoryDown(self);
             break;
 
-        case 'C':
-            // Right
+        case 'C':   // Right
             LineReader_MoveCursorRight(self);
             break;
 
-        case 'D':
-            // Left
+        case 'D':   // Left
             LineReader_MoveCursorLeft(self);
             break;
 
-        default:
-            // Ignore for now
+        default:    // Ignore for now
             break;
     }
 }
@@ -343,15 +352,15 @@ static void LineReader_AcceptCharacter(LineReaderRef _Nonnull self, int ch)
     self->line[self->x] = (char)ch;
 
     if (self->x < self->maxX) {
-        putchar(ch);
+        fputc(ch, self->fp_out);
         self->x++;
         self->lineCount++;
     }
     else {
         // replace mode, auto-wrap off, save cursor position, output character, restore cursor position, auto-wrap on, insertion mode
         // auto-wrap off: to stop the console from scrolling when we hit the bottom right screen corner
-        //XXX not yet printf("\033[4l\033[?7l\0337%c\0338\033[?7h\033[4h", ch);
-        printf("\033[?7l\0337%c\0338\033[?7h", ch);
+        //XXX not yet fprintf(self->fp_out, "\033[4l\033[?7l\0337%c\0338\033[?7h\033[4h", ch);
+        fprintf(self->fp_out, "\033[?7l\0337%c\0338\033[?7h", ch);
     }
 
     if (self->lineCount > self->maxX + 1) {
@@ -374,7 +383,7 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
     self->historyIndex = self->historyCount;
 
     while (!done) {
-        const int ch = getchar();
+        const int ch = fgetc(self->fp_in);
 
         switch (ch) {
             case '\n':
