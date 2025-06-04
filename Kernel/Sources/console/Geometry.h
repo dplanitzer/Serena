@@ -63,6 +63,7 @@ extern const Size Size_Zero;
 ////////////////////////////////////////////////////////////////////////////////
 
 
+// Left and top are inclusive; right and bottom are exclusive
 typedef struct Rect {
     int left, top;
     int right, bottom;

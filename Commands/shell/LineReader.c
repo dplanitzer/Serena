@@ -9,6 +9,8 @@
 #include "LineReader.h"
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
+#include <_math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -16,23 +18,37 @@
 #include <sys/console.h>
 #include <sys/ioctl.h>
 
+enum {
+    kChar_CursorUp = 0x01000000,
+    kChar_CursorDown = 0x01000001,
+    kChar_CursorLeft = 0x01000002,
+    kChar_CursorRight = 0x01000003,
+};
+
+
 static void LineReader_DeleteHistory(LineReaderRef _Nonnull self);
+static void LineReader_SaveLineIfDirty(LineReaderRef _Nonnull self);
+static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull pNewLine);
+static void LineReader_PrintInputLine(LineReaderRef _Nonnull self);
 
 
-LineReaderRef _Nonnull LineReader_Create(int maxLineLength)
+LineReaderRef _Nonnull LineReader_Create(int x, int width)
 {
-    LineReaderRef self = calloc(1, sizeof(LineReader) + maxLineLength + 1);
+    LineReaderRef self = calloc(1, sizeof(LineReader));
 
     self->fp_in = stdin;
     self->fp_out = stdout;
 
-    self->lineCapacity = maxLineLength + 1;
-    self->lineCount = 0;
-    self->x = 0;
-    self->maxX = maxLineLength - 1;
+    self->lrX = x;
+    self->lrWidth = width;
+
+    self->prompt = malloc(8);
+    self->prompt[0] = '\0';
+    self->promptLength = 0;
+    self->promptCapacity = 8;
+
     self->savedLine = NULL;
     self->isDirty = false;
-    self->line[0] = '\0';
 
     // XXX not the best way or place to do it
     setvbuf(stdin, NULL, _IONBF, 0);
@@ -49,6 +65,8 @@ void LineReader_Destroy(LineReaderRef _Nullable self)
         
         free(self->prompt);
         self->prompt = NULL;
+        free(self->line);
+        self->line = NULL;
         free(self->savedLine);
         self->savedLine = NULL;
 
@@ -61,73 +79,87 @@ void LineReader_Destroy(LineReaderRef _Nullable self)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void LineReader_SetPrompt(LineReaderRef _Nonnull self, const char* _Nullable str)
+void LineReader_SetPrompt(LineReaderRef _Nonnull self, const char* _Nonnull str)
 {
-    free(self->prompt);
+    size_t j = 0, len = strlen(str);
 
-    if (str && *str != '\0') {
-        self->prompt = strdup(str);
-        self->promptLength = strlen(str);
-    }
-    else {
-        self->prompt = NULL;
-        self->promptLength = 0;
-    }
-}
+    self->promptLength = 0;
+    self->prompt[0] = '\0';
 
-static void LineReader_PrintPrompt(LineReaderRef _Nonnull self)
-{
-    if (self->prompt) {
-        fwrite(self->prompt, self->promptLength, 1, self->fp_out);
+
+    if ((len + 1) > self->promptCapacity) {
+        self->prompt = realloc(self->prompt, len + 1);
+        self->promptCapacity = len + 1;
     }
+    
+
+    for (size_t i = 0; i < len; i++) {
+        if (isprint(str[i])) {
+            self->prompt[j++] = str[i];
+        }
+    }
+
+    self->prompt[j] = '\0';
+    self->promptLength = j;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void LineReader_PrintInputLine(LineReaderRef _Nonnull self)
+static int tgetc(FILE* _Nonnull fp)
 {
-    self->line[self->lineCount] = '\0';
-    fputs(self->line, self->fp_out);
-}
+    const int ch = fgetc(fp);
 
-static void LineReader_OnUserInput(LineReaderRef _Nonnull self)
-{
-    self->isDirty = true;
-    self->historyIndex = self->historyCount;
-}
+    if (ch == 033) {
+        const char lbracket = fgetc(fp);   // [
+        const char dir = fgetc(fp);        // cursor direction
 
-static void LineReader_SaveLineIfDirty(LineReaderRef _Nonnull self)
-{
-    if (self->isDirty) {
-        free(self->savedLine);
-        self->savedLine = strdup(self->line);
-        self->isDirty = false;
+        switch (dir) {
+            case 'A':   return kChar_CursorUp;
+            case 'B':   return kChar_CursorDown;
+            case 'C':   return kChar_CursorRight;
+            case 'D':   return kChar_CursorLeft;
+            default:    return 0;   // Ignore character
+        }
+    }
+    else {
+        return ch;
     }
 }
 
-// Replaces the content of the input line with the given string and moves the
-// text cursor after the last character in the line. Note that this function
-// does not mark the line reader input as dirty.
-static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull pNewLine)
+static void twrite(FILE* _Nonnull fp, const char* _Nonnull str)
 {
-    memset(self->line, 0, self->lineCapacity);
-    
-    strncpy(self->line, pNewLine, self->lineCapacity - 1);
-    self->lineCount = strlen(pNewLine);
-    if (self->lineCount >= self->lineCapacity) {
-        self->lineCount = self->lineCapacity - 2;
-    }
+    fwrite(str, strlen(str), 1, fp);
+}
 
-    // Move the cursor to the character after the last character of the new line
-    self->x = self->lineCount;
-    if (self->x > self->maxX) {
-        self->x = self->maxX;
-    }
+static void tbs(FILE* _Nonnull fp)
+{
+    fputc(8, fp);
+}
 
-    fputs("\033[2K\r", self->fp_out);
-    LineReader_PrintPrompt(self);
-    fputs(self->line, self->fp_out);
+static void tmovetox(FILE* _Nonnull fp, int x)
+{
+    if (x > 0) {
+        fprintf(fp, "\015\033[%dC", __abs(x));
+    }
+    else {
+        fputc('\r', fp);
+    }
+}
+
+static void tmovex(FILE* _Nonnull fp, int dir)
+{
+    if (dir < 0) {
+        fwrite("\033[D", 3, 1, fp);   // cursor left
+    }
+    else if (dir > 0) {
+        fwrite("\033[C", 3, 1, fp);   // cursor right
+    }
+}
+
+static void tcls(FILE* _Nonnull fp)
+{
+    fwrite("\033[2J\033[H", 7, 1, fp);
 }
 
 
@@ -296,164 +328,258 @@ static void LineReader_MoveHistoryDown(LineReaderRef _Nonnull self)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+static void LineReader_SaveLineIfDirty(LineReaderRef _Nonnull self)
+{
+    if (self->isDirty) {
+        free(self->savedLine);
+        self->savedLine = strdup(self->line);
+        self->isDirty = false;
+    }
+}
+
+// Replaces the content of the input line with the given string and moves the
+// text cursor after the last character in the line. Note that this function
+// does not mark the line reader input as dirty.
+static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull new_line)
+{
+    memset(self->line, ' ', self->textLastCol + 1);
+    self->textLastCol = -1;
+    self->cursorX = 0;
+    
+    for (int i = 0; i <= self->lineLastCol && *new_line != '\0'; i++, new_line++) {
+        self->line[i] = *new_line;
+        self->textLastCol = i;
+    }
+    self->cursorX = __min(self->textLastCol + 1, self->lineLastCol);
+
+
+    tmovetox(self->fp_out, self->inputAreaFirstCol);
+    fwrite(self->line, self->lineLastCol + 1, 1, self->fp_out);
+    tmovetox(self->fp_out, self->inputAreaFirstCol + self->cursorX);
+}
+
+static void LineReader_PrintPrompt(LineReaderRef _Nonnull self)
+{
+    if (self->promptWidth > 0) {
+        tmovetox(self->fp_out, 0);
+        fwrite(self->prompt, self->promptLength, 1, self->fp_out);
+    }
+}
+
+static void LineReader_PrintInputLine(LineReaderRef _Nonnull self)
+{
+    if (self->textLastCol >= 0) {
+        tmovetox(self->fp_out, self->inputAreaFirstCol);
+        fwrite(self->line, self->textLastCol + 1, 1, self->fp_out);
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+static void LineReader_OnUserInput(LineReaderRef _Nonnull self)
+{
+    self->isDirty = true;
+    self->historyIndex = self->historyCount;
+}
+
+static void LineReader_MoveCursorToBeginningOfLine(LineReaderRef _Nonnull self)
+{
+    self->cursorX = 0;
+    tmovetox(self->fp_out, self->inputAreaFirstCol);
+}
+
+static void LineReader_MoveCursorToEndOfLine(LineReaderRef _Nonnull self)
+{
+    self->cursorX = __min(self->textLastCol + 1, self->lineLastCol);
+    tmovetox(self->fp_out, self->inputAreaFirstCol + self->textLastCol + 1);
+}
+
 static void LineReader_MoveCursorLeft(LineReaderRef _Nonnull self)
 {
-    if (self->x > 0) {
-        fwrite("\033[D", 3, 1, self->fp_out);   // cursor left
-        self->x--;
+    if (self->cursorX > 0) {
+        self->cursorX--;
+        tmovex(self->fp_out, -1);
     }
 }
 
 static void LineReader_MoveCursorRight(LineReaderRef _Nonnull self)
 {
-    if (self->x < self->maxX) {
-        fwrite("\033[C", 3, 1, self->fp_out);   // cursor right
-        self->x++;
+    if (self->cursorX <= self->textLastCol && self->cursorX < self->lineLastCol) {
+        self->cursorX++;
+        tmovex(self->fp_out, 1);
     }
-}
-
-static void LineReader_MoveCursorToBeginningOfLine(LineReaderRef _Nonnull self)
-{
-    fprintf(self->fp_out, "\015\033[%dC", (int)self->promptLength);
-    self->x = 0;
-}
-
-static void LineReader_MoveCursorToEndOfLine(LineReaderRef _Nonnull self)
-{
-    fprintf(self->fp_out, "\015\033[%dC", (int)self->promptLength + self->lineCount);
-    self->x = self->lineCount;
 }
 
 static void LineReader_ClearScreen(LineReaderRef _Nonnull self)
 {
     // Clear the screen but preserve the current state of the input line. This
     // action does not count as dirtying the input buffer.
-    fwrite("\033[2J\033[H", 7, 1, self->fp_out);
+    tcls(self->fp_out);
     LineReader_PrintPrompt(self);
     LineReader_PrintInputLine(self);
+    tmovetox(self->fp_out, self->inputAreaFirstCol + self->cursorX);
 }
 
 static void LineReader_Backspace(LineReaderRef _Nonnull self)
 {
-    if (self->x == 0) {
+    if (self->cursorX == 0 || self->textLastCol < 0) {
         return;
     }
 
-    //XXX insert vs replace
-    //for(int i = self->x; i < self->lineCount; i++) {
-    //    self->line[i - 1] = self->line[i];
-    //}
-    self->x--;
-    //XXXself->lineCount--;
 
-    fputc(8, self->fp_out);
+    for (int i = self->cursorX; i <= self->textLastCol; i++) {
+        self->line[i - 1] = self->line[i];
+    }
+    self->line[self->textLastCol] = ' ';
+
+    self->cursorX--;
+    self->textLastCol--;
+
+    tbs(self->fp_out);
+    fwrite(&self->line[self->cursorX], (self->textLastCol + 2) - self->cursorX, 1, self->fp_out);
+    tmovetox(self->fp_out, self->inputAreaFirstCol + self->cursorX);
+
     LineReader_OnUserInput(self);
 }
 
-// XXX Replace this with a proper ESC sequence parser
-static void LineReader_ReadEscapeSequence(LineReaderRef _Nonnull self)
+static void LineReader_InputCharacter(LineReaderRef _Nonnull self, int ch)
 {
-    const char lbracket = fgetc(self->fp_in);   // [
-    const char dir = fgetc(self->fp_in);        // cursor direction
+    self->line[self->cursorX] = ch;
+    fputc(ch, self->fp_out);
 
-    switch (dir) {
-        case 'A':   // Up
-            LineReader_MoveHistoryUp(self);
-            break;
-
-        case 'B':   // Down
-            LineReader_MoveHistoryDown(self);
-            break;
-
-        case 'C':   // Right
-            LineReader_MoveCursorRight(self);
-            break;
-
-        case 'D':   // Left
-            LineReader_MoveCursorLeft(self);
-            break;
-
-        default:    // Ignore for now
-            break;
+    if (self->textLastCol < self->cursorX) {
+        self->textLastCol = self->cursorX;
     }
+    if (self->cursorX < self->lineLastCol) {
+        self->cursorX++;
+    }
+
+    LineReader_OnUserInput(self);
 }
 
-static void LineReader_AcceptCharacter(LineReaderRef _Nonnull self, int ch)
+static int LineReader_CalcLayout(LineReaderRef _Nonnull self)
 {
-    self->line[self->x] = (char)ch;
+    con_screen_t scr;
+    con_cursor_t crs;
 
-    if (self->x < self->maxX) {
-        fputc(ch, self->fp_out);
-        self->x++;
-        self->lineCount++;
+    ioctl(fileno(self->fp_out), kConsoleCommand_GetScreen, &scr);
+    ioctl(fileno(self->fp_out), kConsoleCommand_GetCursor, &crs);
+
+    self->lrY = crs.y - 1;
+    self->promptX = self->lrX;
+    self->promptWidth = self->promptLength;
+
+    self->inputAreaFirstCol = self->promptX + self->promptWidth;
+
+    const int lineLength = ((self->lrWidth >= 0) ? self->lrWidth : scr.columns) - self->promptWidth;
+    const size_t lineCapacity = lineLength + 1;
+
+    if (lineCapacity > 2048) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (self->line) {
+        if (self->lineCapacity < lineCapacity) {
+            self->line = realloc(self->line, lineCapacity);
+            self->lineCapacity = lineCapacity;
+        }
+    }
+    else if (lineCapacity > 0) {
+        self->line = malloc(lineCapacity);
+        self->lineCapacity = lineCapacity;
     }
     else {
-        // replace mode, auto-wrap off, save cursor position, output character, restore cursor position, auto-wrap on, insertion mode
-        // auto-wrap off: to stop the console from scrolling when we hit the bottom right screen corner
-        //XXX not yet fprintf(self->fp_out, "\033[4l\033[?7l\0337%c\0338\033[?7h\033[4h", ch);
-        fprintf(self->fp_out, "\033[?7l\0337%c\0338\033[?7h", ch);
+        free(self->line);
+        self->line = NULL;
+        self->lineCapacity = lineCapacity;
     }
 
-    if (self->lineCount > self->maxX + 1) {
-        self->lineCount = self->maxX + 1;
+    if (self->lineCapacity > 0) {
+        memset(self->line, ' ', lineLength);
+        self->line[lineLength] = '\0';
     }
+    self->cursorX = 0;
+    self->textLastCol = -1;
+    self->lineLastCol = lineLength - 1;
 
-    LineReader_OnUserInput(self);
+    return 0;
 }
 
 char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
 {
-    bool done = false;
+    if (LineReader_CalcLayout(self) < 0) {
+        return "";
+    }
 
-    LineReader_PrintPrompt(self);
-
-    memset(self->line, 0, self->lineCapacity);
-    self->lineCount = 0;
-    self->x = 0;
     self->isDirty = false;
     self->historyIndex = self->historyCount;
 
+
+    // Replace mode, auto-wrap off, cursor on, reset character attributes 
+    twrite(self->fp_out, "\033[4l\033[?7l\033[?25h\033[0m");
+
+
+    // Print the prompt
+    LineReader_PrintPrompt(self);
+
+
+    bool done = false;
     while (!done) {
-        const int ch = fgetc(self->fp_in);
+        const int ch = tgetc(self->fp_in);
 
         switch (ch) {
             case '\n':
+            case EOF:
                 done = true;
                 break;
 
-            case 1:
+            case 1:     // Ctrl-a
                 LineReader_MoveCursorToBeginningOfLine(self);
                 break;
 
-            case 5:
+            case 5:     // Ctrl-e
                 LineReader_MoveCursorToEndOfLine(self);
                 break;
 
-            case 8:
+            case 8:     // Backspace
                 LineReader_Backspace(self);
                 break;
-
-            case 12:
+                
+            case 12:    // Ctrl-l
                 LineReader_ClearScreen(self);
                 break;
 
-            case 033:
-                LineReader_ReadEscapeSequence(self);
+            case kChar_CursorLeft:
+                LineReader_MoveCursorLeft(self);
                 break;
 
-            case EOF:
-                // XXX gotta decide what to do in this case
+            case kChar_CursorRight:
+                LineReader_MoveCursorRight(self);
+                break;
+
+            case kChar_CursorUp:
+                LineReader_MoveHistoryUp(self);
+                break;
+
+            case kChar_CursorDown:
+                LineReader_MoveHistoryDown(self);
                 break;
 
             default:
                 if (isprint(ch)) {
-                    LineReader_AcceptCharacter(self, ch);
+                    LineReader_InputCharacter(self, ch);
                 }
                 break;
         }
     }
 
-    self->line[self->lineCount] = '\0';
+
+    // Replace mode, auto-wrap on, reset character attributes
+    twrite(self->fp_out, "\033[4l\033[?7h\033[0m");
+
+    self->line[self->textLastCol + 1] = '\0';
     LineReader_PushHistory(self, self->line);
 
     return self->line;

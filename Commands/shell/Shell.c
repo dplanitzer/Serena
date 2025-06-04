@@ -21,7 +21,7 @@ ShellRef _Nonnull Shell_Create(bool isInteractive)
     ShellRef self = calloc(1, sizeof(Shell));
 
     if (isInteractive) {
-        self->lineReader = LineReader_Create(79);
+        self->lineReader = LineReader_Create(0, kLineReader_ScreenWidth);
         LineReader_SetPrompt(self->lineReader, ">");
         LineReader_SetHistoryCapacity(self->lineReader, 10);
     }

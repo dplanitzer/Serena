@@ -27,7 +27,7 @@ static CLAP_DECL(params,
 static void do_input(InterpreterRef _Nonnull ip)
 {
     // XXX figure out what to do about the max length. I.e. should probably be controllable with an argument
-    LineReaderRef lineReader = LineReader_Create(40); 
+    LineReaderRef lineReader = LineReader_Create(0, kLineReader_ScreenWidth); 
     LineReader_SetPrompt(lineReader, prompt);
     
     OpStack_PushCString(ip->opStack, LineReader_ReadLine(lineReader));

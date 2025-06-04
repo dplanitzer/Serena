@@ -9,6 +9,7 @@
 #ifndef _KPI_PROC_H
 #define _KPI_PROC_H 1
 
+#include <_cmndef.h>
 #include <kpi/kei.h>
 #include <kpi/ioctl.h>
 #include <kpi/stat.h>
