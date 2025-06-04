@@ -10,14 +10,14 @@
 #define LineReader_h
 
 #include <stdbool.h>
-#include <stdio.h>
+#include <stddef.h>
 
 
 #define kLineReader_ScreenWidth   -1
 
 typedef struct LineReader {
-    FILE*   fp_in;
-    FILE*   fp_out;
+    int     fd_in;
+    int     fd_out;
 
     // Prompt
     char*   prompt;

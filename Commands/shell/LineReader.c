@@ -36,8 +36,8 @@ LineReaderRef _Nonnull LineReader_Create(int x, int width)
 {
     LineReaderRef self = calloc(1, sizeof(LineReader));
 
-    self->fp_in = stdin;
-    self->fp_out = stdout;
+    self->fd_in = STDIN_FILENO;
+    self->fd_out = STDOUT_FILENO;
 
     self->lrX = x;
     self->lrWidth = width;
@@ -49,11 +49,6 @@ LineReaderRef _Nonnull LineReader_Create(int x, int width)
 
     self->savedLine = NULL;
     self->isDirty = false;
-
-    // XXX not the best way or place to do it
-    setvbuf(stdin, NULL, _IONBF, 0);
-    setvbuf(stdout, NULL, _IONBF, 0);
-    // XXX
     
     return self;
 }
@@ -69,9 +64,6 @@ void LineReader_Destroy(LineReaderRef _Nullable self)
         self->line = NULL;
         free(self->savedLine);
         self->savedLine = NULL;
-
-        self->fp_out = NULL;
-        self->fp_in = NULL;
 
         free(self);
     }
@@ -106,15 +98,43 @@ void LineReader_SetPrompt(LineReaderRef _Nonnull self, const char* _Nonnull str)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static int tgetc(FILE* _Nonnull fp)
+// Converts an integer in the range 0...999 to ASCII. Values outside the range
+// are clamped to be inside the range. Returns a pointer to the first character
+// in the buffer. The buffer is NOT NUL terminated.
+static int _Nonnull _titoa(int val, char buf[3])
 {
-    const int ch = fgetc(fp);
+    if (val < 0) { val = 0; }
+    if (val > 999) { val = 999; }
 
-    if (ch == 033) {
-        const char lbracket = fgetc(fp);   // [
-        const char dir = fgetc(fp);        // cursor direction
+    int i = 2;
+    do {
+        buf[i--] = (val % 10) + '0';
+        val /= 10;
+    } while(val);
 
-        switch (dir) {
+    const int len = 2 - i;
+    for (int j = 0; j < len; j++, i++) {
+        buf[j] = buf[i + 1];
+    }
+
+    return len;
+}
+
+static int tgetc(int fd)
+{
+    char buf[2];
+
+    if (read(fd, buf, 1) != 1) {
+        return EOF;
+    }
+
+    if (buf[0] == 033) {
+        // ESC [ <cursor direction>
+        if (read(fd, buf, 2) != 2) {
+            return EOF;
+        }
+
+        switch (buf[1]) {
             case 'A':   return kChar_CursorUp;
             case 'B':   return kChar_CursorDown;
             case 'C':   return kChar_CursorRight;
@@ -123,43 +143,54 @@ static int tgetc(FILE* _Nonnull fp)
         }
     }
     else {
-        return ch;
+        return buf[0];
     }
 }
 
-static void twrite(FILE* _Nonnull fp, const char* _Nonnull str)
+static void twrite(int fd, const char* _Nonnull str)
 {
-    fwrite(str, strlen(str), 1, fp);
+    write(fd, str, strlen(str));
 }
 
-static void tbs(FILE* _Nonnull fp)
+static void tbs(int fd)
 {
-    fputc(8, fp);
+    char bs = 8;
+
+    write(fd, &bs, 1);
 }
 
-static void tmovetox(FILE* _Nonnull fp, int x)
+static void tmovetox(int fd, int x)
 {
+    int len = 1;
+    char buf[8];
+
     if (x > 0) {
-        fprintf(fp, "\015\033[%dC", __abs(x));
+        buf[0] = '\015';
+        buf[1] = '\033';
+        buf[2] = '[';
+        len = _titoa(__abs(x), &buf[3]);
+        buf[3 + len] = 'C';
+        write(fd, buf, len + 4);
     }
     else {
-        fputc('\r', fp);
+        buf[0] = '\r';
+        write(fd, buf, 1);
     }
 }
 
-static void tmovex(FILE* _Nonnull fp, int dir)
+static void tmovex(int fd, int dir)
 {
     if (dir < 0) {
-        fwrite("\033[D", 3, 1, fp);   // cursor left
+        write(fd, "\033[D", 3); // cursor left
     }
     else if (dir > 0) {
-        fwrite("\033[C", 3, 1, fp);   // cursor right
+        write(fd, "\033[C", 3); // cursor right
     }
 }
 
-static void tcls(FILE* _Nonnull fp)
+static void tcls(int fd)
 {
-    fwrite("\033[2J\033[H", 7, 1, fp);
+    write(fd, "\033[2J\033[H", 7);
 }
 
 
@@ -208,18 +239,20 @@ const char* _Nonnull LineReader_GetHistoryAt(LineReaderRef _Nonnull self, int id
     return self->history[idx];
 }
 
+#if 0
 static void LineReader_PrintHistory(LineReaderRef _Nonnull self, const char* _Nonnull info)
 {
-    fprintf(self->fp_out, "\nafter %s:\n", info);
+    printf("\nafter %s:\n", info);
     if (self->historyCount > 0) {
         for (int i = self->historyCount - 1; i >= 0; i--) {
             printf("%d:  \"%s\"\n", i, self->history[i]);
         }
     } else {
-        fprintf(self->fp_out, "  <empty>\n");
+        printf("  <empty>\n");
     }
-    fprintf(self->fp_out, "sel idx: %d\n", self->historyIndex);
+    printf("sel idx: %d\n", self->historyIndex);
 }
+#endif
 
 // Removes all entries in the history that exactly match 'pLine'. Returns true
 // if at least one entry was removed from the stack and false otherwise.
@@ -353,24 +386,24 @@ static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull
     self->cursorX = __min(self->textLastCol + 1, self->lineLastCol);
 
 
-    tmovetox(self->fp_out, self->inputAreaFirstCol);
-    fwrite(self->line, self->lineLastCol + 1, 1, self->fp_out);
-    tmovetox(self->fp_out, self->inputAreaFirstCol + self->cursorX);
+    tmovetox(self->fd_out, self->inputAreaFirstCol);
+    write(self->fd_out, self->line, self->lineLastCol + 1);
+    tmovetox(self->fd_out, self->inputAreaFirstCol + self->cursorX);
 }
 
 static void LineReader_PrintPrompt(LineReaderRef _Nonnull self)
 {
     if (self->promptWidth > 0) {
-        tmovetox(self->fp_out, 0);
-        fwrite(self->prompt, self->promptLength, 1, self->fp_out);
+        tmovetox(self->fd_out, 0);
+        write(self->fd_out, self->prompt, self->promptLength);
     }
 }
 
 static void LineReader_PrintInputLine(LineReaderRef _Nonnull self)
 {
     if (self->textLastCol >= 0) {
-        tmovetox(self->fp_out, self->inputAreaFirstCol);
-        fwrite(self->line, self->textLastCol + 1, 1, self->fp_out);
+        tmovetox(self->fd_out, self->inputAreaFirstCol);
+        write(self->fd_out, self->line, self->textLastCol + 1);
     }
 }
 
@@ -386,20 +419,20 @@ static void LineReader_OnUserInput(LineReaderRef _Nonnull self)
 static void LineReader_MoveCursorToBeginningOfLine(LineReaderRef _Nonnull self)
 {
     self->cursorX = 0;
-    tmovetox(self->fp_out, self->inputAreaFirstCol);
+    tmovetox(self->fd_out, self->inputAreaFirstCol);
 }
 
 static void LineReader_MoveCursorToEndOfLine(LineReaderRef _Nonnull self)
 {
     self->cursorX = __min(self->textLastCol + 1, self->lineLastCol);
-    tmovetox(self->fp_out, self->inputAreaFirstCol + self->textLastCol + 1);
+    tmovetox(self->fd_out, self->inputAreaFirstCol + self->textLastCol + 1);
 }
 
 static void LineReader_MoveCursorLeft(LineReaderRef _Nonnull self)
 {
     if (self->cursorX > 0) {
         self->cursorX--;
-        tmovex(self->fp_out, -1);
+        tmovex(self->fd_out, -1);
     }
 }
 
@@ -407,7 +440,7 @@ static void LineReader_MoveCursorRight(LineReaderRef _Nonnull self)
 {
     if (self->cursorX <= self->textLastCol && self->cursorX < self->lineLastCol) {
         self->cursorX++;
-        tmovex(self->fp_out, 1);
+        tmovex(self->fd_out, 1);
     }
 }
 
@@ -415,10 +448,10 @@ static void LineReader_ClearScreen(LineReaderRef _Nonnull self)
 {
     // Clear the screen but preserve the current state of the input line. This
     // action does not count as dirtying the input buffer.
-    tcls(self->fp_out);
+    tcls(self->fd_out);
     LineReader_PrintPrompt(self);
     LineReader_PrintInputLine(self);
-    tmovetox(self->fp_out, self->inputAreaFirstCol + self->cursorX);
+    tmovetox(self->fd_out, self->inputAreaFirstCol + self->cursorX);
 }
 
 static void LineReader_Backspace(LineReaderRef _Nonnull self)
@@ -436,9 +469,9 @@ static void LineReader_Backspace(LineReaderRef _Nonnull self)
     self->cursorX--;
     self->textLastCol--;
 
-    tbs(self->fp_out);
-    fwrite(&self->line[self->cursorX], (self->textLastCol + 2) - self->cursorX, 1, self->fp_out);
-    tmovetox(self->fp_out, self->inputAreaFirstCol + self->cursorX);
+    tbs(self->fd_out);
+    write(self->fd_out, &self->line[self->cursorX], (self->textLastCol + 2) - self->cursorX);
+    tmovetox(self->fd_out, self->inputAreaFirstCol + self->cursorX);
 
     LineReader_OnUserInput(self);
 }
@@ -446,7 +479,7 @@ static void LineReader_Backspace(LineReaderRef _Nonnull self)
 static void LineReader_InputCharacter(LineReaderRef _Nonnull self, int ch)
 {
     self->line[self->cursorX] = ch;
-    fputc(ch, self->fp_out);
+    write(self->fd_out, &self->line[self->cursorX], 1);
 
     if (self->textLastCol < self->cursorX) {
         self->textLastCol = self->cursorX;
@@ -463,8 +496,8 @@ static int LineReader_CalcLayout(LineReaderRef _Nonnull self)
     con_screen_t scr;
     con_cursor_t crs;
 
-    ioctl(fileno(self->fp_out), kConsoleCommand_GetScreen, &scr);
-    ioctl(fileno(self->fp_out), kConsoleCommand_GetCursor, &crs);
+    ioctl(self->fd_out, kConsoleCommand_GetScreen, &scr);
+    ioctl(self->fd_out, kConsoleCommand_GetCursor, &crs);
 
     self->lrY = crs.y - 1;
     self->promptX = self->lrX;
@@ -518,7 +551,7 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
 
 
     // Replace mode, auto-wrap off, cursor on, reset character attributes 
-    twrite(self->fp_out, "\033[4l\033[?7l\033[?25h\033[0m");
+    twrite(self->fd_out, "\033[4l\033[?7l\033[?25h\033[0m");
 
 
     // Print the prompt
@@ -527,7 +560,7 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
 
     bool done = false;
     while (!done) {
-        const int ch = tgetc(self->fp_in);
+        const int ch = tgetc(self->fd_in);
 
         switch (ch) {
             case '\n':
@@ -577,7 +610,7 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
 
 
     // Replace mode, auto-wrap on, reset character attributes
-    twrite(self->fp_out, "\033[4l\033[?7h\033[0m");
+    twrite(self->fd_out, "\033[4l\033[?7h\033[0m");
 
     self->line[self->textLastCol + 1] = '\0';
     LineReader_PushHistory(self, self->line);
