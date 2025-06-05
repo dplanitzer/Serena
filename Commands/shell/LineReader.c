@@ -23,6 +23,32 @@ enum {
     kChar_CursorDown = 0x01000001,
     kChar_CursorLeft = 0x01000002,
     kChar_CursorRight = 0x01000003,
+    kChar_Home = 0x01000004,
+    kChar_Insert = 0x01000005,
+    kChar_Delete = 127,
+    kChar_PageUp = 0x01000006,
+    kChar_PageDown = 0x01000007,
+    kChar_End = 0x01000008,
+    kChar_F1 = 0x01000009,
+    kChar_F2 = 0x0100000a,
+    kChar_F3 = 0x0100000b,
+    kChar_F4 = 0x0100000c,
+    kChar_F5 = 0x0100000d,
+    kChar_F6 = 0x0100000e,
+    kChar_F7 = 0x0100000f,
+    kChar_F8 = 0x01000010,
+    kChar_F9 = 0x01000011,
+    kChar_F10 = 0x01000012,
+    kChar_F11 = 0x01000013,
+    kChar_F12 = 0x01000014,
+    kChar_F13 = 0x01000015,
+    kChar_F14 = 0x01000016,
+    kChar_F15 = 0x01000017,
+    kChar_F16 = 0x01000018,
+    kChar_F17 = 0x01000019,
+    kChar_F18 = 0x0100001a,
+    kChar_F19 = 0x0100001b,
+    kChar_F20 = 0x0100001c,
 };
 
 
@@ -129,7 +155,7 @@ static int tgetc(int fd)
     }
 
     if (buf[0] == 033) {
-        // ESC [ <cursor direction>
+        // ESC [ <cursor direction> or ESC [ <digits> ~
         if (read(fd, buf, 2) != 2) {
             return EOF;
         }
@@ -139,7 +165,55 @@ static int tgetc(int fd)
             case 'B':   return kChar_CursorDown;
             case 'C':   return kChar_CursorRight;
             case 'D':   return kChar_CursorLeft;
-            default:    return 0;   // Ignore character
+            default: 
+                if (isdigit(buf[1])) {
+                    int i = 0;
+                    char num_buf[8];
+
+                    num_buf[i++] = buf[1];
+                    while (i < 8) {
+                        if (read(fd, &num_buf[i], 1) != 1) {
+                            return EOF;
+                        }
+                        if (!isdigit(num_buf[i])) {
+                            break;
+                        }
+                        i++;
+                    }
+
+                    if (num_buf[i] == '~') {
+                        switch (atoi(num_buf)) {
+                            case 1: return kChar_Home;
+                            case 2: return kChar_Insert;
+                            case 3: return kChar_Delete;
+                            case 5: return kChar_PageUp;
+                            case 6: return kChar_PageDown;
+                            case 8: return kChar_End;
+                            case 11: return kChar_F1;
+                            case 12: return kChar_F2;
+                            case 13: return kChar_F3;
+                            case 14: return kChar_F4;
+                            case 15: return kChar_F5;
+                            case 17: return kChar_F6;
+                            case 18: return kChar_F7;
+                            case 19: return kChar_F8;
+                            case 20: return kChar_F9;
+                            case 21: return kChar_F10;
+                            case 23: return kChar_F11;
+                            case 24: return kChar_F12;
+                            case 25: return kChar_F13;
+                            case 26: return kChar_F14;
+                            case 28: return kChar_F15;
+                            case 29: return kChar_F16;
+                            case 31: return kChar_F17;
+                            case 32: return kChar_F18;
+                            case 33: return kChar_F19;
+                            case 34: return kChar_F20;
+                            default: break;   // Ignore key
+                        }
+                    }
+                }
+                return 0;   // Ignore key;
         }
     }
     else {
