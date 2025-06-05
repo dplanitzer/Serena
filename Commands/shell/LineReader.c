@@ -682,10 +682,12 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
                 break;
 
             case 1:     // Ctrl-a
+            case kChar_Home:
                 LineReader_MoveCursorToBeginningOfLine(self);
                 break;
 
             case 5:     // Ctrl-e
+            case kChar_End:
                 LineReader_MoveCursorToEndOfLine(self);
                 break;
 
