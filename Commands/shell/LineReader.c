@@ -699,22 +699,27 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
                 LineReader_ClearScreen(self);
                 break;
 
+            case 4:     // Ctrl-d
             case kChar_Delete:
                 LineReader_Delete(self);
                 break;
 
+            case 2:     // Ctrl-b
             case kChar_CursorLeft:
                 LineReader_MoveCursorLeft(self);
                 break;
 
+            case 6:     // Ctrl-f
             case kChar_CursorRight:
                 LineReader_MoveCursorRight(self);
                 break;
 
+            case 16:    // Ctrl-p
             case kChar_CursorUp:
                 LineReader_MoveHistoryUp(self);
                 break;
 
+            case 14:    // Ctrl-n
             case kChar_CursorDown:
                 LineReader_MoveHistoryDown(self);
                 break;
