@@ -567,6 +567,28 @@ static void LineReader_Backspace(LineReaderRef _Nonnull self)
     LineReader_OnUserInput(self);
 }
 
+static void LineReader_Delete(LineReaderRef _Nonnull self)
+{
+    if (self->cursorX > self->textLastCol) {
+        return;
+    }
+
+
+    for (int i = self->cursorX + 1; i <= self->textLastCol; i++) {
+        self->line[i - 1] = self->line[i];
+    }
+    self->line[self->textLastCol] = ' ';
+
+    self->textLastCol--;
+
+    tcursoron(self->fd_out, false);
+    write(self->fd_out, &self->line[self->cursorX], (self->textLastCol + 2) - self->cursorX);
+    tmovetox(self->fd_out, self->inputAreaFirstCol + self->cursorX);
+    tcursoron(self->fd_out, true);
+
+    LineReader_OnUserInput(self);
+}
+
 static void LineReader_InputCharacter(LineReaderRef _Nonnull self, int ch)
 {
     self->line[self->cursorX] = ch;
@@ -673,6 +695,10 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
                 
             case 12:    // Ctrl-l
                 LineReader_ClearScreen(self);
+                break;
+
+            case kChar_Delete:
+                LineReader_Delete(self);
                 break;
 
             case kChar_CursorLeft:
