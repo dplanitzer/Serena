@@ -193,6 +193,17 @@ static void tcls(int fd)
     write(fd, "\033[2J\033[H", 7);
 }
 
+static void tcursoron(int fd, bool onoff)
+{
+    if (onoff) {
+        write(fd, "\033[?25h", 6);
+    }
+    else {
+        write(fd, "\033[?25l", 6);
+    }
+
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -386,9 +397,11 @@ static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull
     self->cursorX = __min(self->textLastCol + 1, self->lineLastCol);
 
 
+    tcursoron(self->fd_out, false);
     tmovetox(self->fd_out, self->inputAreaFirstCol);
     write(self->fd_out, self->line, self->lineLastCol + 1);
     tmovetox(self->fd_out, self->inputAreaFirstCol + self->cursorX);
+    tcursoron(self->fd_out, true);
 }
 
 static void LineReader_PrintPrompt(LineReaderRef _Nonnull self)
@@ -448,10 +461,12 @@ static void LineReader_ClearScreen(LineReaderRef _Nonnull self)
 {
     // Clear the screen but preserve the current state of the input line. This
     // action does not count as dirtying the input buffer.
+    tcursoron(self->fd_out, false);
     tcls(self->fd_out);
     LineReader_PrintPrompt(self);
     LineReader_PrintInputLine(self);
     tmovetox(self->fd_out, self->inputAreaFirstCol + self->cursorX);
+    tcursoron(self->fd_out, true);
 }
 
 static void LineReader_Backspace(LineReaderRef _Nonnull self)
@@ -469,9 +484,11 @@ static void LineReader_Backspace(LineReaderRef _Nonnull self)
     self->cursorX--;
     self->textLastCol--;
 
+    tcursoron(self->fd_out, false);
     tbs(self->fd_out);
     write(self->fd_out, &self->line[self->cursorX], (self->textLastCol + 2) - self->cursorX);
     tmovetox(self->fd_out, self->inputAreaFirstCol + self->cursorX);
+    tcursoron(self->fd_out, true);
 
     LineReader_OnUserInput(self);
 }
