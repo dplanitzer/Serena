@@ -75,6 +75,9 @@ LineReaderRef _Nonnull LineReader_Create(int x, int width)
 
     self->savedLine = NULL;
     self->isDirty = false;
+
+    self->flags.isInsertMode = 1;
+    self->flags.hasTermInsertMode = 1;
     
     return self;
 }
@@ -224,6 +227,23 @@ static int tgetc(int fd)
 static void twrite(int fd, const char* _Nonnull str)
 {
     write(fd, str, strlen(str));
+}
+
+static void tinsertc(int fd, char ch)
+{
+    char buf[9];
+
+    buf[0] = '\033';
+    buf[1] = '[';
+    buf[2] = '4';
+    buf[3] = 'h';
+    buf[4] = ch;
+    buf[5] = '\033';
+    buf[6] = '[';
+    buf[7] = '4';
+    buf[8] = 'l';
+
+    write(fd, buf, 9);
 }
 
 static void tbs(int fd)
@@ -591,12 +611,38 @@ static void LineReader_Delete(LineReaderRef _Nonnull self)
 
 static void LineReader_InputCharacter(LineReaderRef _Nonnull self, int ch)
 {
-    self->line[self->cursorX] = ch;
-    write(self->fd_out, &self->line[self->cursorX], 1);
+    const int doInsert = self->flags.isInsertMode && self->cursorX < self->lineLastCol && self->cursorX <= self->textLastCol;
 
-    if (self->textLastCol < self->cursorX) {
-        self->textLastCol = self->cursorX;
+    if (doInsert) {
+        for (int i = self->textLastCol; i >= self->cursorX; i--) {
+            self->line[i + 1] = self->line[i];
+        }
+        self->line[self->cursorX] = ch;
+
+        if (self->flags.hasTermInsertMode) {
+            tinsertc(self->fd_out, self->line[self->cursorX]);
+        }
+        else {
+            tcursoron(self->fd_out, false);
+            write(self->fd_out, &self->line[self->cursorX], __min(self->textLastCol + 2, self->lineLastCol + 1) - self->cursorX);
+            tmovetox(self->fd_out, self->inputAreaFirstCol + self->cursorX + 1);
+            tcursoron(self->fd_out, true);
+        }
+
+        if (self->textLastCol < self->lineLastCol) {
+            self->textLastCol++;
+        }
     }
+    else {
+        self->line[self->cursorX] = ch;
+
+        write(self->fd_out, &self->line[self->cursorX], 1);
+
+        if (self->textLastCol < self->cursorX) {
+            self->textLastCol = self->cursorX;
+        }
+    }
+
     if (self->cursorX < self->lineLastCol) {
         self->cursorX++;
     }
@@ -712,6 +758,11 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
             case 6:     // Ctrl-f
             case kChar_CursorRight:
                 LineReader_MoveCursorRight(self);
+                break;
+
+            case 9:     // Ctrl-i
+            case kChar_Insert:
+                self->flags.isInsertMode = !self->flags.isInsertMode;
                 break;
 
             case 16:    // Ctrl-p

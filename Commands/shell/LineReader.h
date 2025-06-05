@@ -39,7 +39,6 @@ typedef struct LineReader {
     int     promptWidth;
     int     inputAreaFirstCol;
 
-    
     // History buffer
     char*   savedLine;  // Line saved if 'line' was dirty when user hits crsr-up/down
     bool    isDirty;
@@ -48,6 +47,13 @@ typedef struct LineReader {
     int     historyCapacity;
     int     historyCount;
     int     historyIndex;
+
+    // Editor modes
+    struct __Flags {
+        unsigned int    isInsertMode:1;
+        unsigned int    hasTermInsertMode:1;
+        unsigned int    reserved:30;
+    }       flags;
 } LineReader;
 typedef LineReader* LineReaderRef;
 
