@@ -172,7 +172,7 @@ void main_closure(int argc, char *argv[])
     fdreopen(STDERR_FILENO, "w", stderr);
 
 
-    printf("\033[36mSerena OS v0.4.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
+    printf("\033[36mSerena OS v0.5.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
 
     
     // Log the user in and then return from our closure. Our VP will be moved

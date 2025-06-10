@@ -42,7 +42,7 @@ void main_closure(int argc, char *argv[])
         // XXX it properly yet
         //printf("\033[4h");  // Switch the console to insert mode
         if (!arg_isLogin) {
-            fputs("\n\033[36mSerena Shell v0.4.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n", stdout);
+            fputs("\n\033[36mSerena Shell v0.5.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n", stdout);
         }
 
         Shell_Run(sh);
