@@ -7,7 +7,7 @@
 //
 
 #include <sys/stat.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 int stat(const char* _Nonnull path, struct stat* _Nonnull info)

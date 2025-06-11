@@ -38,7 +38,7 @@ enum {
     SC_opendir,             // errno_t opendir(const char* _Nonnull path, int* _Nonnull fd)
     SC_access,              // errno_t access(const char* _Nonnull path, int mode)
     SC_fstat,               // errno_t fstat(int fd, struct stat* _Nonnull info)
-    SC_unlink,              // errno_t unlink(const char* path)
+    SC_unlink,              // errno_t __unlink(const char* path, int mode)
     SC_rename,              // errno_t rename(const char* _Nonnull oldpath, const char* _Nonnull newpath)
     SC_ioctl,               // errno_t fcall(int fd, int cmd, ...)
     SC_truncate,            // errno_t truncate(const char* _Nonnull path, off_t length)

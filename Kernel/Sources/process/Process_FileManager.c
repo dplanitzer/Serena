@@ -241,12 +241,12 @@ errno_t Process_CheckAccess(ProcessRef _Nonnull self, const char* _Nonnull path,
 }
 
 // Unlinks the inode at the path 'path'.
-errno_t Process_Unlink(ProcessRef _Nonnull self, const char* _Nonnull path)
+errno_t Process_Unlink(ProcessRef _Nonnull self, const char* _Nonnull path, int mode)
 {
     decl_try_err();
 
     Lock_Lock(&self->lock);
-    err = FileManager_Unlink(&self->fm, path);
+    err = FileManager_Unlink(&self->fm, path, mode);
     Lock_Unlock(&self->lock);
 
     return err;

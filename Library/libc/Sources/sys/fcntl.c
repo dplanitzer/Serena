@@ -9,7 +9,7 @@
 #include <fcntl.h>
 #include <stdarg.h>
 #include <sys/errno.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 int fcntl(int fd, int cmd, ...)

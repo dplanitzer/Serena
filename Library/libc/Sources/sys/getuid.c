@@ -7,7 +7,7 @@
 //
 
 #include <unistd.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 uid_t getuid(void)

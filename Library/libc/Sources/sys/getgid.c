@@ -7,7 +7,7 @@
 //
 
 #include <unistd.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 gid_t getgid(void)

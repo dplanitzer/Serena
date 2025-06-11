@@ -8,7 +8,7 @@
 
 #include <stdarg.h>
 #include <sys/ioctl.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 int ioctl(int fd, int cmd, ...)

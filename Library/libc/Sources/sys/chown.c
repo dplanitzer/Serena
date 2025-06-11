@@ -7,7 +7,7 @@
 //
 
 #include <unistd.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 int chown(const char* _Nonnull path, uid_t uid, gid_t gid)

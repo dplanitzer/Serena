@@ -7,7 +7,7 @@
 //
 
 #include <unistd.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 int ftruncate(int fd, off_t length)

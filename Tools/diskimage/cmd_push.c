@@ -36,7 +36,7 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
         }
 
         if (err != EOK) {
-            FileManager_Unlink(fm, path);
+            FileManager_Unlink(fm, path, __ULNK_ANY);
         }
     }
 

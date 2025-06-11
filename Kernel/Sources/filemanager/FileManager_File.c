@@ -372,13 +372,14 @@ errno_t FileManager_CheckAccess(FileManagerRef _Nonnull self, const char* _Nonnu
 }
 
 // Unlinks the inode at the path 'path'.
-errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull path)
+errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull path, int mode)
 {
     decl_try_err();
     ResolvedPath r;
     InodeRef dir = NULL;
     InodeRef target = NULL;
 
+    // Get the parent of 'target'
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_PredecessorOfTarget, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
 
     const PathComponent* name = &r.lastPathComponent;
@@ -394,11 +395,35 @@ errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull pa
     }
 
 
-    // Figure out what the target and parent node is
+    // Figure out what the target node is
     try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(dir), dir, name, NULL, &target));
     Inode_Lock(target);
+    const mode_t tmod = Inode_GetMode(target);
 
-    if (S_ISDIR(Inode_GetMode(target))) {
+
+    switch (mode) {
+        case __ULNK_ANY:
+            break;
+
+        case __ULNK_FIL_ONLY:
+            if (S_ISDIR(tmod)) {
+                throw(EISDIR);
+            }
+            break;
+
+        case __ULNK_DIR_ONLY:
+            if (!S_ISDIR(tmod)) {
+                throw(ENOTDIR);
+            }
+            break;
+
+        default:
+            throw(EINVAL);
+            break;
+    }
+
+
+    if (S_ISDIR(tmod)) {
         // Can not unlink a mountpoint
         if (FileHierarchy_IsAttachmentPoint(self->fileHierarchy, target)) {
             throw(EBUSY);
@@ -418,11 +443,11 @@ errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull pa
     }
 
 
-    // We must have write permissions for 'pDir'
-    try(SecurityManager_CheckNodeAccess(gSecurityManager, dir, self->ruid, self->rgid, W_OK));
-
-
-    try(Filesystem_Unlink(Inode_GetFilesystem(target), target, dir));
+    // We must have write permissions for 'dir'
+    err = SecurityManager_CheckNodeAccess(gSecurityManager, dir, self->ruid, self->rgid, W_OK);
+    if (err == EOK) {
+        err = Filesystem_Unlink(Inode_GetFilesystem(target), target, dir);
+    }
 
 catch:
     Inode_UnlockRelinquish(target);

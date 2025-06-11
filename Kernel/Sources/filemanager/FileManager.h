@@ -107,7 +107,7 @@ extern errno_t FileManager_SetFileTimestamps(FileManagerRef _Nonnull self, const
 
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
-extern errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, off_t length);
+extern errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, off_t length);
 
 // Same as above but the file is identified by the given I/O channel.
 extern errno_t FileManager_TruncateFile_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, off_t length);
@@ -115,10 +115,10 @@ extern errno_t FileManager_TruncateFile_ioc(FileManagerRef _Nonnull self, IOChan
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.
-extern errno_t FileManager_CheckAccess(FileManagerRef _Nonnull self, const char* _Nonnull pPath, int mode);
+extern errno_t FileManager_CheckAccess(FileManagerRef _Nonnull self, const char* _Nonnull path, int mode);
 
 // Unlinks the inode at the path 'pPath'.
-extern errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull pPath);
+extern errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull path, int mode);
 
 // Renames the file or directory at 'pOldPath' to the new location 'pNewPath'.
 extern errno_t FileManager_Rename(FileManagerRef _Nonnull self, const char* pOldPath, const char* pNewPath);

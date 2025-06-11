@@ -7,11 +7,11 @@
 //
 
 #include <stdio.h>
-#include <sys/_syscall.h>
+#include <kpi/fcntl.h>
+#include <kpi/syscall.h>
 
 
 int remove(const char* path)
 {
-    //XXX tell unlink to  accept a file or directory
-    return (int)_syscall(SC_unlink, path);
+    return (int)_syscall(SC_unlink, path, __ULNK_ANY);
 }

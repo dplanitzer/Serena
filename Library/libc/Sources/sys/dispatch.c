@@ -7,7 +7,7 @@
 //
 
 #include <sys/dispatch.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 #include <sys/timespec.h>
 
 

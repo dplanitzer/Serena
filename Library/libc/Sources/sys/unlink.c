@@ -7,11 +7,11 @@
 //
 
 #include <unistd.h>
-#include <sys/_syscall.h>
+#include <kpi/fcntl.h>
+#include <kpi/syscall.h>
 
 
 int unlink(const char* _Nonnull path)
 {
-    //XXX tell unlink to  accept a file only
-    return (int)_syscall(SC_unlink, path);
+    return (int)_syscall(SC_unlink, path, __ULNK_FIL_ONLY);
 }

@@ -7,7 +7,7 @@
 //
 
 #include <unistd.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 int getcwd(char* _Nonnull buffer, size_t bufferSize)

@@ -236,10 +236,10 @@ extern errno_t Process_TruncateFile_ioc(ProcessRef _Nonnull self, int fd, off_t 
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.
-extern errno_t Process_CheckAccess(ProcessRef _Nonnull self, const char* _Nonnull pPath, int mode);
+extern errno_t Process_CheckAccess(ProcessRef _Nonnull self, const char* _Nonnull path, int mode);
 
 // Unlinks the inode at the path 'pPath'.
-extern errno_t Process_Unlink(ProcessRef _Nonnull self, const char* _Nonnull pPath);
+extern errno_t Process_Unlink(ProcessRef _Nonnull self, const char* _Nonnull path, int mode);
 
 // Renames the file or directory at 'pOldPath' to the new location 'pNewPath'.
 extern errno_t Process_Rename(ProcessRef _Nonnull self, const char* pOldPath, const char* pNewPath);

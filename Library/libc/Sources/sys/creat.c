@@ -7,7 +7,7 @@
 //
 
 #include <fcntl.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 int creat(const char* _Nonnull path, mode_t mode)

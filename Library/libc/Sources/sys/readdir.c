@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/errno.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 // 2kb
 #define DIRENT_COUNT 8

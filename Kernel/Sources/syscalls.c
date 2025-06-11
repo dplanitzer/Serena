@@ -229,9 +229,9 @@ SYSCALL_2(access, const char* _Nonnull path, uint32_t mode)
     return Process_CheckAccess((ProcessRef)p, pa->path, pa->mode);
 }
 
-SYSCALL_1(unlink, const char* _Nonnull path)
+SYSCALL_2(unlink, const char* _Nonnull path, int mode)
 {
-    return Process_Unlink((ProcessRef)p, pa->path);
+    return Process_Unlink((ProcessRef)p, pa->path, pa->mode);
 }
 
 SYSCALL_2(rename, const char* _Nonnull oldPath, const char* _Nonnull newPath)

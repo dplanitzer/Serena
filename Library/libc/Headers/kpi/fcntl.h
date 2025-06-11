@@ -58,4 +58,10 @@
 // int fcntl(int fd, F_GETTYPE)
 #define F_GETTYPE   4
 
+
+// __unlink() mode
+#define __ULNK_ANY      0
+#define __ULNK_FIL_ONLY 1
+#define __ULNK_DIR_ONLY 2
+
 #endif /* _KPI_FCNTL_H */

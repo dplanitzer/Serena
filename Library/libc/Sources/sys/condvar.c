@@ -7,7 +7,7 @@
 //
 
 #include <sys/condvar.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 #include <errno.h>
 #include <stddef.h>
 #include "_mutex.h"

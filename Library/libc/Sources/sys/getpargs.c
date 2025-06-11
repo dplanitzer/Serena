@@ -7,7 +7,7 @@
 //
 
 #include <sys/proc.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 pargs_t* _Nonnull getpargs(void)

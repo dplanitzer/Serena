@@ -7,7 +7,7 @@
 //
 
 #include <time.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 int clock_wait(clockid_t clock, const struct timespec* _Nonnull delay)

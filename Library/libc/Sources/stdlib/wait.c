@@ -7,7 +7,7 @@
 //
 
 #include <sys/wait.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 pid_t wait(int* _Nullable pstat)

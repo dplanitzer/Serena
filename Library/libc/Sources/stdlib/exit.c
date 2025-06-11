@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 #include <__stddef.h>
 
 

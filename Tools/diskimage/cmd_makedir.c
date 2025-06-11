@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <kpi/fcntl.h>
 #include <kpi/perm.h>
 
 
@@ -23,7 +24,7 @@ static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnul
         err = FileManager_SetFileOwner(fm, path, uid, gid);
 
         if (err != EOK) {
-            FileManager_Unlink(fm, path);
+            FileManager_Unlink(fm, path, __ULNK_ANY);
         }
     }
 

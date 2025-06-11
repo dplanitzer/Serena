@@ -110,10 +110,15 @@ extern int truncate(const char* _Nonnull path, off_t length);
 // @Concurrency: Safe
 extern int ftruncate(int fd, off_t length);
 
-// Deletes the file or (empty) directory located at the filesystem location 'path'.
-// Note that this function deletes empty directories only.
+
+// Deletes the file located at the filesystem location 'path'.
 // @Concurrency: Safe
 extern int unlink(const char* _Nonnull path);
+
+// Deletes the empty directory located at the filesystem location 'path'.
+// Note that this function deletes empty directories only.
+// @Concurrency: Safe
+extern int rmdir(const char* _Nonnull path);
 
 
 // Synchronously writes all dirty disk blocks back to disk.

@@ -8,7 +8,7 @@
 
 #include <sys/semaphore.h>
 #include <errno.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 #define SEM_SIGNATURE 0x53454d41
 

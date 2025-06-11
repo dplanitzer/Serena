@@ -8,7 +8,7 @@
 
 #include "_mutex.h"
 #include <errno.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 int mutex_init(mutex_t* _Nonnull mutex)

@@ -7,7 +7,7 @@
 //
 
 #include <sys/proc.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 mode_t umask(mode_t mask)

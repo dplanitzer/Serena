@@ -7,7 +7,7 @@
 //
 
 #include <sys/stat.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 int mkdir(const char* _Nonnull path, mode_t mode)

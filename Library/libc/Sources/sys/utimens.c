@@ -7,7 +7,7 @@
 //
 
 #include <sys/stat.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 int utimens(const char* _Nonnull path, const struct timespec times[_Nullable 2])

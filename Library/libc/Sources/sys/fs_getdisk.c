@@ -7,7 +7,7 @@
 //
 
 #include <sys/mount.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 int fs_getdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize)

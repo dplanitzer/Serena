@@ -7,7 +7,7 @@
 //
 
 #include <unistd.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 ssize_t read(int fd, void* _Nonnull buf, size_t nbytes)

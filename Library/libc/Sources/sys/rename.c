@@ -7,7 +7,7 @@
 //
 
 #include <stdio.h>
-#include <sys/_syscall.h>
+#include <kpi/syscall.h>
 
 
 int rename(const char* oldpath, const char* newpath)
