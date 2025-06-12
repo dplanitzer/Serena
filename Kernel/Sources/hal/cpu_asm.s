@@ -489,7 +489,8 @@ _cpu_call_as_user:
         ; switch to user mode by dropping bit #13 in the SR register
         and.w   #$dfff, sr
         
-        ; we are now in user mode
+        ; we are now in userspace and that we are from now on working with the
+        ; user stack. Up to this point we worked with the kernel stack
         move.l  d0, -(sp)
         move.l  a1, -(sp)
         jsr     (a0)
@@ -508,8 +509,10 @@ _cpu_call_as_user:
 ; the cpu_call_as_user() call.
 _cpu_return_from_call_as_user:
     inline
-        ; dismiss the (8 byte, format 0) exception stack frame
+        ; dismiss the (8 byte, format 0) exception stack frame from the kernel
+        ; stack
         addq.l  #8, sp
+        
         ; restore the saved registers
         movem.l (sp)+, d2 - d7 / a2 - a6
 
