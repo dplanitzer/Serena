@@ -13,7 +13,8 @@
     xref _gVirtualProcessorSchedulerStorage
     xref __syscall_handler
 
-    xdef _SystemCallHandler
+    xdef _syscall_entry
+    xdef _nosyscall_entry
 
 
 ;-------------------------------------------------------------------------------
@@ -65,7 +66,7 @@
 ;    // system call specific arguments from left to right
 ; }
 ;
-_SystemCallHandler:
+_syscall_entry:
     inline
         ; save the user registers (see description above)
         movem.l d1 - d7 / a0 - a6, -(sp)
@@ -84,5 +85,16 @@ _SystemCallHandler:
         ; restore the user registers
         movem.l (sp)+, d1 - d7 / a0 - a6
 
+        rte
+    einline
+
+
+_nosyscall_entry:
+    inline
+        move.l  a1, -(sp)
+        move.l  _gVirtualProcessorSchedulerStorage + vps_running, a1
+        move.l  #ENOSYS, vp_errno(a1)
+        moveq.l #-1, d0
+        move.l  (sp)+, a1
         rte
     einline

@@ -19,7 +19,8 @@
     xref _OnReset
     xref _OnBoot
     xref __rtecall_VirtualProcessorScheduler_SwitchContext
-    xref _SystemCallHandler
+    xref _syscall_entry
+    xref _nosyscall_entry
     xref _InterruptController_OnInterrupt
     xref _cpu_return_from_call_as_user
     xref _cpu_get_model
@@ -78,22 +79,22 @@ _cpu_vector_table:
     dc.l IRQHandler_L5                  ; 29, Level 5 (Disk, Serial port)
     dc.l IRQHandler_L6                  ; 30, Level 6 (External INT6, CIAB)
     dc.l IRQHandler_NMI                 ; 31, Level 7 (NMI - Unused)
-    dc.l _SystemCallHandler             ; 32, Trap #0
+    dc.l _syscall_entry                 ; 32, Trap #0
     dc.l _cpu_return_from_call_as_user  ; 33, Trap #1
-    dc.l IgnoreTrap                     ; 34, Trap #2
-    dc.l IgnoreTrap                     ; 35, Trap #3
-    dc.l IgnoreTrap                     ; 36, Trap #4
-    dc.l IgnoreTrap                     ; 37, Trap #5
-    dc.l IgnoreTrap                     ; 38, Trap #6
-    dc.l IgnoreTrap                     ; 39, Trap #7
-    dc.l IgnoreTrap                     ; 40, Trap #8
-    dc.l IgnoreTrap                     ; 41, Trap #9
-    dc.l IgnoreTrap                     ; 42, Trap #10
-    dc.l IgnoreTrap                     ; 43, Trap #11
-    dc.l IgnoreTrap                     ; 44, Trap #12
-    dc.l IgnoreTrap                     ; 45, Trap #13
-    dc.l IgnoreTrap                     ; 46, Trap #14
-    dc.l IgnoreTrap                     ; 47, Trap #15
+    dc.l _nosyscall_entry               ; 34, Trap #2
+    dc.l _nosyscall_entry               ; 35, Trap #3
+    dc.l _nosyscall_entry               ; 36, Trap #4
+    dc.l _nosyscall_entry               ; 37, Trap #5
+    dc.l _nosyscall_entry               ; 38, Trap #6
+    dc.l _nosyscall_entry               ; 39, Trap #7
+    dc.l _nosyscall_entry               ; 40, Trap #8
+    dc.l _nosyscall_entry               ; 41, Trap #9
+    dc.l _nosyscall_entry               ; 42, Trap #10
+    dc.l _nosyscall_entry               ; 43, Trap #11
+    dc.l _nosyscall_entry               ; 44, Trap #12
+    dc.l _nosyscall_entry               ; 45, Trap #13
+    dc.l _nosyscall_entry               ; 46, Trap #14
+    dc.l _nosyscall_entry               ; 47, Trap #15
     dc.l IgnoreTrap                     ; 48, FPCP Branch or Set on Unordered Condition
     dc.l IgnoreTrap                     ; 49, FPCP Inexact Result
     dc.l IgnoreTrap                     ; 50, FPCP Divide by Zero
