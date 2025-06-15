@@ -253,7 +253,7 @@ extern errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull self);
 // code and that it should be moved back to the virtual processor pool. This
 // function does not return to the caller. This function should only be invoked
 // from the bottom-most frame on the virtual processor's kernel stack.
-extern _Noreturn VirtualProcesssor_Relinquish(void);
+extern _Noreturn VirtualProcessor_Relinquish(void);
 
 // Terminates the virtual processor that is executing the caller. Does not return
 // to the caller. Note that the actual termination of the virtual processor is

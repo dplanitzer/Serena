@@ -33,7 +33,7 @@
 // is sorted from highest to lowest priority.
 typedef struct ReadyQueue {
     List    priority[VP_PRIORITY_COUNT];
-    uint8_t   populated[VP_PRIORITY_POP_BYTE_COUNT];
+    uint8_t populated[VP_PRIORITY_POP_BYTE_COUNT];
 } ReadyQueue;
 
 
@@ -57,8 +57,8 @@ typedef struct VirtualProcessorScheduler {
 } VirtualProcessorScheduler;
 
 
-#define QuantumAllowanceForPriority(pri) \
-    ((VP_PRIORITY_HIGHEST - (pri)) >> 3) + 1
+#define QuantumAllowanceForPriority(__pri) \
+    ((VP_PRIORITY_HIGHEST - (__pri)) >> 3) + 1
 
 
 extern VirtualProcessorScheduler* _Nonnull gVirtualProcessorScheduler;

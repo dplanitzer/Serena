@@ -11,11 +11,11 @@
 #include "VirtualProcessorScheduler.h"
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
-#include <log/Log.h>
 #include <kern/kalloc.h>
 #include <kern/limits.h>
 #include <kern/string.h>
 #include <kern/timespec.h>
+#include <log/Log.h>
 
 
 // Initializes an execution stack struct. The execution stack is empty by default
@@ -36,21 +36,21 @@ errno_t ExecutionStack_SetMaxSize(ExecutionStack* _Nullable self, size_t size)
     const size_t newSize = (size > 0) ? __Ceil_PowerOf2(size, STACK_ALIGNMENT) : 0;
     
     if (self->size != newSize) {
+        void* nsp = NULL;
+
+        if (newSize > 0) {
+            err = kalloc(newSize, (void**) &nsp);
+            if (err != EOK) {
+                return err;
+            }
+        }
+
         kfree(self->base);
+        self->base = nsp;
         self->size = newSize;
-        // XXX the allocation may fail which means that we should keep the old stack around
-        // XXX so that we can ensure that the VP doesn't suddenly stand there with its pants
-        // XXX way down. However we don't worry about this right now since we'll move to virtual
-        // XXX memory anyway.
-        try(kalloc(self->size, (void**) &self->base));
     }
     
     return EOK;
-
-catch:
-    self->base = NULL;
-    self->size = 0;
-    return err;
 }
 
 // Frees the given stack.
@@ -90,7 +90,7 @@ static const VirtualProcessorVTable gVirtualProcessorVTable = {
 // code and that it should be moved back to the virtual processor pool. This
 // function does not return to the caller. This function should only be invoked
 // from the bottom-most frame on the virtual processor's kernel stack.
-_Noreturn VirtualProcesssor_Relinquish(void)
+_Noreturn VirtualProcessor_Relinquish(void)
 {
     VirtualProcessorPool_RelinquishVirtualProcessor(gVirtualProcessorPool, VirtualProcessor_GetCurrent());
     /* NOT REACHED */
@@ -212,14 +212,14 @@ errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull self, VirtualProce
     //
     // The initial kernel stack frame looks like this:
     // SP + 12: pContext
-    // SP +  8: RTS address (VirtualProcesssor_Relinquish() entry point)
+    // SP +  8: RTS address (VirtualProcessor_Relinquish() entry point)
     // SP +  0: dummy format $0 exception stack frame (8 byte size)
     //
     // See __rtecall_VirtualProcessorScheduler_SwitchContext for an explanation
     // of why we need the dummy exception stack frame.
     uint8_t* sp = (uint8_t*) self->save_area.a[7];
     sp -= 4; *((uint8_t**)sp) = closure.context;
-    sp -= 4; *((uint8_t**)sp) = (uint8_t*)VirtualProcesssor_Relinquish;
+    sp -= 4; *((uint8_t**)sp) = (uint8_t*)VirtualProcessor_Relinquish;
     sp -= 4; *((uint32_t*)sp) = 0;
     sp -= 4; *((uint32_t*)sp) = 0;
     self->save_area.a[7] = (uintptr_t)sp;

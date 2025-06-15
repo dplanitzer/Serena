@@ -10,8 +10,8 @@
 #include <hal/InterruptController.h>
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
-#include <log/Log.h>
 #include <kern/timespec.h>
+#include <log/Log.h>
 
 
 extern void VirtualProcessorScheduler_SwitchContext(void);
