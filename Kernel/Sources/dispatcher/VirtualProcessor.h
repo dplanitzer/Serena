@@ -183,47 +183,47 @@ extern int VirtualProcessor_GetCurrentVpid(void);
 
 // Creates a new virtual processor.
 // \return the new virtual processor; NULL if creation has failed
-extern errno_t VirtualProcessor_Create(VirtualProcessor* _Nullable * _Nonnull pOutVP);
+extern errno_t VirtualProcessor_Create(VirtualProcessor* _Nullable * _Nonnull pOutSelf);
 
-void VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP);
+void VirtualProcessor_Destroy(VirtualProcessor* _Nullable self);
 
 
 // Sleep for the given number of seconds
 extern errno_t VirtualProcessor_Sleep(struct timespec delay);
 
 // Returns the priority of the given VP.
-extern int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull pVP);
+extern int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull self);
 
 // Changes the priority of a virtual processor. Does not immediately reschedule
 // the VP if it is currently running. Instead the VP is allowed to finish its
 // current quanta.
 // XXX might want to change that in the future?
-extern void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull pVP, int priority);
+extern void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int priority);
 
 // Returns true if the given virtual processor is currently suspended; false otherwise.
-extern bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull pVP);
+extern bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull self);
 
 // Suspends the calling virtual processor. This function supports nested calls.
-extern errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP);
+extern errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull self);
 
 // Resumes the given virtual processor. The virtual processor is forcefully
 // resumed if 'force' is true. This means that it is resumed even if the suspension
 // count is > 1.
-extern void VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, bool force);
+extern void VirtualProcessor_Resume(VirtualProcessor* _Nonnull self, bool force);
 
 // Sets the dispatch queue that has acquired the virtual processor and owns it
 // until the virtual processor is relinquished back to the virtual processor
 // pool.
-extern void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nullable pQueue, int concurrencyLaneIndex);
+extern void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull self, void* _Nullable pQueue, int concurrencyLaneIndex);
 
 // Sets the closure which the virtual processor should run when it is resumed.
 // This function may only be called while the VP is suspended.
-extern errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessorClosure closure);
+extern errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull self, VirtualProcessorClosure closure);
 
 // Invokes the given closure in user space. Preserves the kernel integer register
 // state. Note however that this function does not preserve the floating point 
 // register state. Call-as-user invocations can not be nested.
-extern void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull pVP, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable arg);
+extern void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull self, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable arg);
 
 // Aborts an on-going call-as-user invocation and causes the
 // VirtualProcessor_CallAsUser() call to return. Does nothing if the VP is not
@@ -247,7 +247,7 @@ extern void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull pVP, VoidFunc
 //                          the system. Once the system call has finished and the
 //                          call-as-user invocation has been aborted, waits will
 //                          not be interrupted anymore.
-extern errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP);
+extern errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull self);
 
 // Relinquishes the virtual processor which means that it is finished executing
 // code and that it should be moved back to the virtual processor pool. This
@@ -258,13 +258,13 @@ extern _Noreturn VirtualProcesssor_Relinquish(void);
 // Terminates the virtual processor that is executing the caller. Does not return
 // to the caller. Note that the actual termination of the virtual processor is
 // handled by the virtual processor scheduler.
-extern _Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull pVP);
+extern _Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull self);
 
-extern void VirtualProcessor_Dump(VirtualProcessor* _Nonnull pVP);
+extern void VirtualProcessor_Dump(VirtualProcessor* _Nonnull self);
 
 // Subclassers
-extern void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, int priority);
+extern void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull self, int priority);
 
-extern void __func_VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP);
+extern void __func_VirtualProcessor_Destroy(VirtualProcessor* _Nullable self);
 
 #endif /* VirtualProcessor_h */

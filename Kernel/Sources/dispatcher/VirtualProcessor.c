@@ -22,45 +22,45 @@
 // and you need to call ExecutionStack_SetMaxSize() to allocate the stack with
 // the required size.
 // \param pStack the stack object (filled in on return)
-void ExecutionStack_Init(ExecutionStack* _Nonnull pStack)
+void ExecutionStack_Init(ExecutionStack* _Nonnull self)
 {
-    pStack->base = NULL;
-    pStack->size = 0;
+    self->base = NULL;
+    self->size = 0;
 }
 
 // Sets the size of the execution stack to the given size. Does not attempt to preserve
 // the content of the existing stack.
-errno_t ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, size_t size)
+errno_t ExecutionStack_SetMaxSize(ExecutionStack* _Nullable self, size_t size)
 {
     decl_try_err();
     const size_t newSize = (size > 0) ? __Ceil_PowerOf2(size, STACK_ALIGNMENT) : 0;
     
-    if (pStack->size != newSize) {
-        kfree(pStack->base);
-        pStack->size = newSize;
+    if (self->size != newSize) {
+        kfree(self->base);
+        self->size = newSize;
         // XXX the allocation may fail which means that we should keep the old stack around
         // XXX so that we can ensure that the VP doesn't suddenly stand there with its pants
         // XXX way down. However we don't worry about this right now since we'll move to virtual
         // XXX memory anyway.
-        try(kalloc(pStack->size, (void**) &pStack->base));
+        try(kalloc(self->size, (void**) &self->base));
     }
     
     return EOK;
 
 catch:
-    pStack->base = NULL;
-    pStack->size = 0;
+    self->base = NULL;
+    self->size = 0;
     return err;
 }
 
 // Frees the given stack.
 // \param pStack the stack
-void ExecutionStack_Destroy(ExecutionStack* _Nullable pStack)
+void ExecutionStack_Destroy(ExecutionStack* _Nullable self)
 {
-    if (pStack) {
-        kfree(pStack->base);
-        pStack->base = NULL;
-        pStack->size = 0;
+    if (self) {
+        kfree(self->base);
+        self->base = NULL;
+        self->size = 0;
     }
 }
 
@@ -73,12 +73,12 @@ void ExecutionStack_Destroy(ExecutionStack* _Nullable pStack)
 
 // Frees a virtual processor.
 // \param pVP the virtual processor
-void __func_VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP)
+void __func_VirtualProcessor_Destroy(VirtualProcessor* _Nullable self)
 {
-    ListNode_Deinit(&pVP->owner.queue_entry);
-    ExecutionStack_Destroy(&pVP->kernel_stack);
-    ExecutionStack_Destroy(&pVP->user_stack);
-    kfree(pVP);
+    ListNode_Deinit(&self->owner.queue_entry);
+    ExecutionStack_Destroy(&self->kernel_stack);
+    ExecutionStack_Destroy(&self->user_stack);
+    kfree(self);
 }
 
 static const VirtualProcessorVTable gVirtualProcessorVTable = {
@@ -102,72 +102,69 @@ _Noreturn VirtualProcesssor_Relinquish(void)
 //
 // \param pVP the boot virtual processor record
 // \param priority the initial VP priority
-void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, int priority)
+void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull self, int priority)
 {
     static volatile AtomicInt gNextAvailableVpid = 0;
 
-    ListNode_Init(&pVP->rewa_queue_entry);
-    ExecutionStack_Init(&pVP->kernel_stack);
-    ExecutionStack_Init(&pVP->user_stack);
+    ListNode_Init(&self->rewa_queue_entry);
+    ExecutionStack_Init(&self->kernel_stack);
+    ExecutionStack_Init(&self->user_stack);
 
-    pVP->vtable = &gVirtualProcessorVTable;
+    self->vtable = &gVirtualProcessorVTable;
     
-    ListNode_Init(&pVP->owner.queue_entry);
-    pVP->owner.self = pVP;
+    ListNode_Init(&self->owner.queue_entry);
+    self->owner.self = self;
     
-    ListNode_Init(&pVP->timeout.queue_entry);
+    ListNode_Init(&self->timeout.queue_entry);
     
-    pVP->timeout.deadline = kQuantums_Infinity;
-    pVP->timeout.owner = (void*)pVP;
-    pVP->timeout.is_valid = false;
-    pVP->waiting_on_wait_queue = NULL;
-    pVP->wakeup_reason = WAKEUP_REASON_NONE;
+    self->timeout.deadline = kQuantums_Infinity;
+    self->timeout.owner = (void*)self;
+    self->timeout.is_valid = false;
+    self->waiting_on_wait_queue = NULL;
+    self->wakeup_reason = WAKEUP_REASON_NONE;
     
-    pVP->state = kVirtualProcessorState_Ready;
-    pVP->flags = 0;
-    pVP->priority = (int8_t)priority;
-    pVP->suspension_count = 1;
+    self->state = kVirtualProcessorState_Ready;
+    self->flags = 0;
+    self->priority = (int8_t)priority;
+    self->suspension_count = 1;
     
-    pVP->vpid = AtomicInt_Add(&gNextAvailableVpid, 1);
+    self->vpid = AtomicInt_Add(&gNextAvailableVpid, 1);
 
-    pVP->dispatchQueue = NULL;
-    pVP->dispatchQueueConcurrencyLaneIndex = -1;
+    self->dispatchQueue = NULL;
+    self->dispatchQueueConcurrencyLaneIndex = -1;
 }
 
 // Creates a new virtual processor.
 // \return the new virtual processor; NULL if creation has failed
-errno_t VirtualProcessor_Create(VirtualProcessor* _Nullable * _Nonnull pOutVP)
+errno_t VirtualProcessor_Create(VirtualProcessor* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    VirtualProcessor* pVP = NULL;
+    VirtualProcessor* self = NULL;
     
-    try(kalloc_cleared(sizeof(VirtualProcessor), (void**) &pVP));
-    VirtualProcessor_CommonInit(pVP, VP_PRIORITY_NORMAL);
-    
-    *pOutVP = pVP;
-    return EOK;
-    
-catch:
-    kfree(pVP);
-    *pOutVP = NULL;
+    err = kalloc_cleared(sizeof(VirtualProcessor), (void**) &self);
+    if (err == EOK) {
+        VirtualProcessor_CommonInit(self, VP_PRIORITY_NORMAL);
+    }
+
+    *pOutSelf = self;
     return err;
 }
 
-void VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP)
+void VirtualProcessor_Destroy(VirtualProcessor* _Nullable self)
 {
-    if (pVP) {
-        pVP->vtable->destroy(pVP);
+    if (self) {
+        self->vtable->destroy(self);
     }
 }
 
 // Sets the dispatch queue that has acquired the virtual processor and owns it
 // until the virtual processor is relinquished back to the virtual processor
 // pool.
-void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nullable pQueue, int concurrencyLaneIndex)
+void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull self, void* _Nullable pQueue, int concurrencyLaneIndex)
 {
-    VP_ASSERT_ALIVE(pVP);
-    pVP->dispatchQueue = pQueue;
-    pVP->dispatchQueueConcurrencyLaneIndex = concurrencyLaneIndex;
+    VP_ASSERT_ALIVE(self);
+    self->dispatchQueue = pQueue;
+    self->dispatchQueueConcurrencyLaneIndex = concurrencyLaneIndex;
 }
 
 // Sets the closure which the virtual processor should run when it is resumed.
@@ -175,32 +172,32 @@ void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nul
 //
 // \param pVP the virtual processor
 // \param closure the closure description
-errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessorClosure closure)
+errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull self, VirtualProcessorClosure closure)
 {
-    VP_ASSERT_ALIVE(pVP);
-    assert(pVP->suspension_count > 0);
+    VP_ASSERT_ALIVE(self);
+    assert(self->suspension_count > 0);
     assert(closure.kernelStackSize >= VP_MIN_KERNEL_STACK_SIZE);
 
     decl_try_err();
 
     if (closure.kernelStackBase == NULL) {
-        try(ExecutionStack_SetMaxSize(&pVP->kernel_stack, closure.kernelStackSize));
+        try(ExecutionStack_SetMaxSize(&self->kernel_stack, closure.kernelStackSize));
     } else {
-        ExecutionStack_SetMaxSize(&pVP->kernel_stack, 0);
-        pVP->kernel_stack.base = closure.kernelStackBase;
-        pVP->kernel_stack.size = closure.kernelStackSize;
+        ExecutionStack_SetMaxSize(&self->kernel_stack, 0);
+        self->kernel_stack.base = closure.kernelStackBase;
+        self->kernel_stack.size = closure.kernelStackSize;
     }
-    try(ExecutionStack_SetMaxSize(&pVP->user_stack, closure.userStackSize));
+    try(ExecutionStack_SetMaxSize(&self->user_stack, closure.userStackSize));
     
 
     // Initialize the CPU context:
     // Integer state: zeroed out
     // Floating-point state: establishes IEEE 754 standard defaults (non-signaling exceptions, round to nearest, extended precision)
-    memset(&pVP->save_area, 0, sizeof(CpuContext));
-    pVP->save_area.a[7] = (uintptr_t) ExecutionStack_GetInitialTop(&pVP->kernel_stack);
-    pVP->save_area.usp = (uintptr_t) ExecutionStack_GetInitialTop(&pVP->user_stack);
-    pVP->save_area.pc = (uintptr_t) closure.func;
-    pVP->save_area.sr = 0x2000;     // We start out in supervisor mode
+    memset(&self->save_area, 0, sizeof(CpuContext));
+    self->save_area.a[7] = (uintptr_t) ExecutionStack_GetInitialTop(&self->kernel_stack);
+    self->save_area.usp = (uintptr_t) ExecutionStack_GetInitialTop(&self->user_stack);
+    self->save_area.pc = (uintptr_t) closure.func;
+    self->save_area.sr = 0x2000;     // We start out in supervisor mode
 
 
     // User stack:
@@ -220,12 +217,12 @@ errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProces
     //
     // See __rtecall_VirtualProcessorScheduler_SwitchContext for an explanation
     // of why we need the dummy exception stack frame.
-    uint8_t* sp = (uint8_t*) pVP->save_area.a[7];
+    uint8_t* sp = (uint8_t*) self->save_area.a[7];
     sp -= 4; *((uint8_t**)sp) = closure.context;
     sp -= 4; *((uint8_t**)sp) = (uint8_t*)VirtualProcesssor_Relinquish;
     sp -= 4; *((uint32_t*)sp) = 0;
     sp -= 4; *((uint32_t*)sp) = 0;
-    pVP->save_area.a[7] = (uintptr_t)sp;
+    self->save_area.a[7] = (uintptr_t)sp;
 
     return EOK;
 
@@ -236,13 +233,13 @@ catch:
 // Invokes the given closure in user space. Preserves the kernel integer register
 // state. Note however that this function does not preserve the floating point 
 // register state. Call-as-user invocations can not be nested.
-void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull pVP, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable arg)
+void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull self, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable arg)
 {
-    assert((pVP->flags & VP_FLAG_CAU_IN_PROGRESS) == 0);
+    assert((self->flags & VP_FLAG_CAU_IN_PROGRESS) == 0);
 
-    pVP->flags |= VP_FLAG_CAU_IN_PROGRESS;
+    self->flags |= VP_FLAG_CAU_IN_PROGRESS;
     cpu_call_as_user(func, context, arg);
-    pVP->flags &= ~(VP_FLAG_CAU_IN_PROGRESS|VP_FLAG_CAU_ABORTED);
+    self->flags &= ~(VP_FLAG_CAU_IN_PROGRESS|VP_FLAG_CAU_ABORTED);
 }
 
 // Aborts an on-going call-as-user invocation and causes the
@@ -267,19 +264,19 @@ void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull pVP, VoidFunc_2 _Non
 //                          completed. Once the system call has finished and the
 //                          call-as-user invocation has been aborted, waits will
 //                          not be interrupted anymore.
-errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
+errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull self)
 {
     decl_try_err();
-    const bool isCallerRunningOnVpToManipulate = (VirtualProcessor_GetCurrent() == pVP);
+    const bool isCallerRunningOnVpToManipulate = (VirtualProcessor_GetCurrent() == self);
 
     if (!isCallerRunningOnVpToManipulate) {
-        try(VirtualProcessor_Suspend(pVP));
+        try(VirtualProcessor_Suspend(self));
     }
 
-    if ((pVP->flags & VP_FLAG_CAU_IN_PROGRESS) != 0) {
-        pVP->flags |= VP_FLAG_CAU_ABORTED;
+    if ((self->flags & VP_FLAG_CAU_IN_PROGRESS) != 0) {
+        self->flags |= VP_FLAG_CAU_ABORTED;
 
-        if ((pVP->save_area.sr & 0x2000) != 0) {
+        if ((self->save_area.sr & 0x2000) != 0) {
             // Kernel space:
             // let the currently active system call finish and redirect the RTE
             // from the system call back to user space to point to the call-as-user
@@ -292,7 +289,7 @@ errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
             // before it is executing the RTE. So the system call would miss the
             // abort. Changing the RTE return address avoids this problem and
             // ensures that the system call will never miss an abort.
-            uint32_t* pReturnAddress = (uint32_t*)(pVP->syscall_entry_ksp + 2);
+            uint32_t* pReturnAddress = (uint32_t*)(self->syscall_entry_ksp + 2);
             *pReturnAddress = (uint32_t)cpu_abort_call_as_user;
 
 
@@ -301,9 +298,9 @@ errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
             // additional waits on its way back out to user space, then all those
             // (interruptable) waits will be immediately aborted since the call-
             // as-user invocation is now marked as aborted.
-            if (pVP->state == kVirtualProcessorState_Waiting) {
+            if (self->state == kVirtualProcessorState_Waiting) {
                 VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
-                                                 pVP->waiting_on_wait_queue,
+                                                 self->waiting_on_wait_queue,
                                                  INT_MAX,
                                                  WAKEUP_REASON_INTERRUPTED,
                                                  false);
@@ -311,11 +308,11 @@ errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
         } else {
             // User space:
             // redirect the VP to the new call
-            pVP->save_area.pc = (uint32_t)cpu_abort_call_as_user;
+            self->save_area.pc = (uint32_t)cpu_abort_call_as_user;
         }
 
         if (!isCallerRunningOnVpToManipulate) {
-            VirtualProcessor_Resume(pVP, false);
+            VirtualProcessor_Resume(self, false);
         }
     }
 
@@ -326,27 +323,27 @@ catch:
 }
 
 #if 0
-void VirtualProcessor_Dump(VirtualProcessor* _Nonnull pVP)
+void VirtualProcessor_Dump(VirtualProcessor* _Nonnull self)
 {
     for (int i = 0; i < 7; i++) {
-        printf("d%d: %p    a%d: %p\n", i, pVP->save_area.d[i], i, pVP->save_area.a[i]);
+        printf("d%d: %p    a%d: %p\n", i, self->save_area.d[i], i, self->save_area.a[i]);
     }
-    printf("d7: %p   ssp: %p\n", pVP->save_area.d[7], pVP->save_area.a[7]);
-    printf("                usp: %p\n", pVP->save_area.usp);
-    printf("                 pc: %p\n", pVP->save_area.pc);
-    printf("                 sr: %p\n", pVP->save_area.sr);
+    printf("d7: %p   ssp: %p\n", self->save_area.d[7], self->save_area.a[7]);
+    printf("                usp: %p\n", self->save_area.usp);
+    printf("                 pc: %p\n", self->save_area.pc);
+    printf("                 sr: %p\n", self->save_area.sr);
 }
 #endif
 
 // Terminates the virtual processor that is executing the caller. Does not return
 // to the caller. Note that the actual termination of the virtual processor is
 // handled by the virtual processor scheduler.
-_Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull pVP)
+_Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull self)
 {
-    VP_ASSERT_ALIVE(pVP);
-    pVP->flags |= VP_FLAG_TERMINATED;
+    VP_ASSERT_ALIVE(self);
+    self->flags |= VP_FLAG_TERMINATED;
 
-    VirtualProcessorScheduler_TerminateVirtualProcessor(gVirtualProcessorScheduler, pVP);
+    VirtualProcessorScheduler_TerminateVirtualProcessor(gVirtualProcessorScheduler, self);
     // NOT REACHED
 }
 
@@ -376,11 +373,11 @@ errno_t VirtualProcessor_Sleep(struct timespec delay)
 }
 
 // Returns the priority of the given VP.
-int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull pVP)
+int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull self)
 {
-    VP_ASSERT_ALIVE(pVP);
+    VP_ASSERT_ALIVE(self);
     const int sps = VirtualProcessorScheduler_DisablePreemption();
-    const int pri = pVP->priority;
+    const int pri = self->priority;
     
     VirtualProcessorScheduler_RestorePreemption(sps);
     return pri;
@@ -390,31 +387,31 @@ int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull pVP)
 // the VP if it is currently running. Instead the VP is allowed to finish its
 // current quanta.
 // XXX might want to change that in the future?
-void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull pVP, int priority)
+void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int priority)
 {
-    VP_ASSERT_ALIVE(pVP);
+    VP_ASSERT_ALIVE(self);
     const int sps = VirtualProcessorScheduler_DisablePreemption();
     
-    if (pVP->priority != priority) {
-        switch (pVP->state) {
+    if (self->priority != priority) {
+        switch (self->state) {
             case kVirtualProcessorState_Ready:
-                if (pVP->suspension_count == 0) {
-                    VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP);
+                if (self->suspension_count == 0) {
+                    VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, self);
                 }
-                pVP->priority = priority;
-                if (pVP->suspension_count == 0) {
-                    VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP, pVP->priority);
+                self->priority = priority;
+                if (self->suspension_count == 0) {
+                    VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, self, self->priority);
                 }
                 break;
                 
             case kVirtualProcessorState_Waiting:
-                pVP->priority = priority;
+                self->priority = priority;
                 break;
                 
             case kVirtualProcessorState_Running:
-                pVP->priority = priority;
-                pVP->effectivePriority = priority;
-                pVP->quantum_allowance = QuantumAllowanceForPriority(pVP->effectivePriority);
+                self->priority = priority;
+                self->effectivePriority = priority;
+                self->quantum_allowance = QuantumAllowanceForPriority(self->effectivePriority);
                 break;
         }
     }
@@ -422,31 +419,31 @@ void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull pVP, int priority)
 }
 
 // Returns true if the given virtual processor is currently suspended; false otherwise.
-bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull pVP)
+bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull self)
 {
-    VP_ASSERT_ALIVE(pVP);
+    VP_ASSERT_ALIVE(self);
     const int sps = VirtualProcessorScheduler_DisablePreemption();
-    const bool isSuspended = pVP->suspension_count > 0;
+    const bool isSuspended = self->suspension_count > 0;
     VirtualProcessorScheduler_RestorePreemption(sps);
     return isSuspended;
 }
 
 // Suspends the calling virtual processor. This function supports nested calls.
-errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
+errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull self)
 {
-    VP_ASSERT_ALIVE(pVP);
+    VP_ASSERT_ALIVE(self);
     const int sps = VirtualProcessorScheduler_DisablePreemption();
     
-    if (pVP->suspension_count == INT8_MAX) {
+    if (self->suspension_count == INT8_MAX) {
         VirtualProcessorScheduler_RestorePreemption(sps);
         return EINVAL;
     }
     
-    pVP->suspension_count++;
+    self->suspension_count++;
     
-    switch (pVP->state) {
+    switch (self->state) {
         case kVirtualProcessorState_Ready:
-            VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP);
+            VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, self);
             break;
             
         case kVirtualProcessorState_Running:
@@ -471,23 +468,23 @@ errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
 // Resumes the given virtual processor. The virtual processor is forcefully
 // resumed if 'force' is true. This means that it is resumed even if the suspension
 // count is > 1.
-void VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, bool force)
+void VirtualProcessor_Resume(VirtualProcessor* _Nonnull self, bool force)
 {
-    VP_ASSERT_ALIVE(pVP);
+    VP_ASSERT_ALIVE(self);
     const int sps = VirtualProcessorScheduler_DisablePreemption();
     
-    if (pVP->suspension_count > 0) {
-        pVP->suspension_count = force ? 0 : pVP->suspension_count - 1;
+    if (self->suspension_count > 0) {
+        self->suspension_count = force ? 0 : self->suspension_count - 1;
 
-        if (pVP->suspension_count == 0) {
-            switch (pVP->state) {
+        if (self->suspension_count == 0) {
+            switch (self->state) {
                 case kVirtualProcessorState_Ready:
-                    VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP, pVP->priority);
+                    VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, self, self->priority);
                     break;
             
                 case kVirtualProcessorState_Running:
-                    VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP, pVP->priority);
-                    VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, pVP);
+                    VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, self, self->priority);
+                    VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, self);
                     break;
             
                 case kVirtualProcessorState_Waiting:
