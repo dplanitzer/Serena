@@ -51,7 +51,7 @@ void pipe_test(int argc, char *argv[])
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void OnReadFromPipe(int fds[2])
+static void OnReadFromPipe(int fd)
 {
     char buf[16];
     size_t nBytesToRead = sizeof(buf);
@@ -59,7 +59,7 @@ static void OnReadFromPipe(int fds[2])
     while (true) {
         //VirtualProcessor_Sleep(timespec_from_ms(200));
         buf[0] = '\0';
-        const ssize_t nBytesRead = read(fds[SEO_PIPE_READ], buf, nBytesToRead);
+        const ssize_t nBytesRead = read(fd, buf, nBytesToRead);
         assertGreaterEqual(0, nBytesRead);
         buf[nBytesRead] = '\0';
 
@@ -67,7 +67,7 @@ static void OnReadFromPipe(int fds[2])
     }
 }
 
-static void OnWriteToPipe(int fds[2])
+static void OnWriteToPipe(int fd)
 {
     const char* bytes = "Hello";
     size_t nBytesToWrite = strlen(bytes);
@@ -75,7 +75,7 @@ static void OnWriteToPipe(int fds[2])
     
     while (true) {
         clock_wait(CLOCK_MONOTONIC, &dur);
-        const ssize_t nBytesWritten = write(fds[SEO_PIPE_WRITE], bytes, nBytesToWrite);
+        const ssize_t nBytesWritten = write(fd, bytes, nBytesToWrite);
         assertGreaterEqual(0, nBytesWritten);
 
         printf("Writer: '%s'-> %d\n", bytes, nBytesWritten);
@@ -91,6 +91,6 @@ void pipe2_test(int argc, char *argv[])
 
     const int utilityQueue = dispatch_create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal);
     assertGreaterEqual(0, utilityQueue);
-    assertOK(dispatch_async(kDispatchQueue_Main, (dispatch_func_t)OnWriteToPipe, fds));
-    assertOK(dispatch_async(utilityQueue, (dispatch_func_t)OnReadFromPipe, fds));
+    assertOK(dispatch_async(kDispatchQueue_Main, (dispatch_func_t)OnWriteToPipe, (void*)fds[SEO_PIPE_WRITE]));
+    assertOK(dispatch_async(utilityQueue, (dispatch_func_t)OnReadFromPipe, (void*)fds[SEO_PIPE_READ]));
 }
