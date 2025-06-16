@@ -127,7 +127,7 @@ void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorSchedu
     self->ready_queue.populated[popByteIdx] |= (1 << popBitIdx);
 }
 
-// Adds the given virtual processor to the scheduler and makes it eligble for
+// Adds the given virtual processor to the scheduler and makes it eligible for
 // running.
 void VirtualProcessorScheduler_AddVirtualProcessor(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp)
 {
@@ -277,9 +277,7 @@ errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull sel
 {
     VirtualProcessor* vp = (VirtualProcessor*)self->running;
 
-    assert(vp->rewa_queue_entry.next == NULL);
-    assert(vp->rewa_queue_entry.prev == NULL);
-    assert(vp->sched_state != kVirtualProcessorState_Waiting);
+    assert(vp->sched_state == kVirtualProcessorState_Running);
 
     // Immediately return instead of waiting if we are in the middle of an abort
     // of a call-as-user invocation.
@@ -352,9 +350,8 @@ void VirtualProcessorScheduler_WakeUpAllFromInterruptContext(VirtualProcessorSch
     }
 }
 
-// Wakes up, up to 'count' waiters on the wait queue 'pWaitQueue'. The woken up
-// VPs are removed from the wait queue. Expects to be called with preemption
-// disabled.
+// Wakes up, up to 'count' waiters on the wait queue 'waq'. The woken up VPs are
+// removed from the wait queue. Expects to be called with preemption disabled.
 void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull self, List* _Nonnull waq, int count, int wakeUpReason, bool allowContextSwitch)
 {
     register ListNode* pCurNode = waq->first;
