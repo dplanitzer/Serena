@@ -441,24 +441,26 @@ errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull self)
     
     self->suspension_count++;
     
-    switch (self->sched_state) {
-        case kVirtualProcessorState_Ready:
-            VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, self);
-            break;
+    if (self->suspension_count == 1) {
+        switch (self->sched_state) {
+            case kVirtualProcessorState_Ready:
+                VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, self);
+                break;
             
-        case kVirtualProcessorState_Running:
-            // We're running, thus we are not on the ready queue. Do a forced
-            // context switch to some other VP.
-            VirtualProcessorScheduler_SwitchTo(gVirtualProcessorScheduler,
-                                               VirtualProcessorScheduler_GetHighestPriorityReady(gVirtualProcessorScheduler));
-            break;
+            case kVirtualProcessorState_Running:
+                // We're running, thus we are not on the ready queue. Do a forced
+                // context switch to some other VP.
+                VirtualProcessorScheduler_SwitchTo(gVirtualProcessorScheduler,
+                                                   VirtualProcessorScheduler_GetHighestPriorityReady(gVirtualProcessorScheduler));
+                break;
             
-        case kVirtualProcessorState_Waiting:
-            // We do not interrupt the wait. It's just a longer wait
-            break;
+            case kVirtualProcessorState_Waiting:
+                // We do not interrupt the wait. It's just a longer wait
+                break;
             
-        default:
-            abort();            
+            default:
+                abort();
+        }
     }
     
     VirtualProcessorScheduler_RestorePreemption(sps);
