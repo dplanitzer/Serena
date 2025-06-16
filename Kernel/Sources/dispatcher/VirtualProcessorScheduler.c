@@ -115,7 +115,7 @@ void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorSchedu
     assert(vp->rewa_queue_entry.next == NULL);
     assert(vp->suspension_count == 0);
     
-    vp->state = kVirtualProcessorState_Ready;
+    vp->sched_state = kVirtualProcessorState_Ready;
     vp->effectivePriority = effectivePriority;
     vp->quantum_allowance = QuantumAllowanceForPriority(vp->effectivePriority);
     vp->wait_start_time = MonotonicClock_GetCurrentQuantums();
@@ -279,7 +279,7 @@ errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull sel
 
     assert(vp->rewa_queue_entry.next == NULL);
     assert(vp->rewa_queue_entry.prev == NULL);
-    assert(vp->state != kVirtualProcessorState_Waiting);
+    assert(vp->sched_state != kVirtualProcessorState_Waiting);
 
     // Immediately return instead of waiting if we are in the middle of an abort
     // of a call-as-user invocation.
@@ -314,7 +314,7 @@ errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull sel
     
     List_InsertAfter(waq, &vp->rewa_queue_entry, &pvp->rewa_queue_entry);
     
-    vp->state = kVirtualProcessorState_Waiting;
+    vp->sched_state = kVirtualProcessorState_Waiting;
     vp->waiting_on_wait_queue = waq;
     vp->wait_start_time = MonotonicClock_GetCurrentQuantums();
     vp->wakeup_reason = WAKEUP_REASON_NONE;
@@ -369,7 +369,7 @@ void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull se
         register VirtualProcessor* vp = (VirtualProcessor*)pCurNode;
         
         VirtualProcessorScheduler_WakeUpOne(self, waq, vp, wakeUpReason, false);
-        if (pRunCandidate == NULL && (vp->state == kVirtualProcessorState_Ready && vp->suspension_count == 0)) {
+        if (pRunCandidate == NULL && (vp->sched_state == kVirtualProcessorState_Ready && vp->suspension_count == 0)) {
             pRunCandidate = vp;
         }
         pCurNode = pNextNode;
@@ -397,7 +397,7 @@ void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull sel
 
 
     // Nothing to do if we are not waiting
-    if (vp->state != kVirtualProcessorState_Waiting) {
+    if (vp->sched_state != kVirtualProcessorState_Waiting) {
         return;
     }
     
@@ -432,7 +432,7 @@ void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull sel
     } else {
         // The VP is suspended. Move it to ready state so that it will be
         // added to the ready queue once we resume it.
-        vp->state = kVirtualProcessorState_Ready;
+        vp->sched_state = kVirtualProcessorState_Ready;
     }
 }
 
@@ -443,7 +443,7 @@ void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull sel
 // are enabled.
 void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp)
 {
-    if (vp->state == kVirtualProcessorState_Ready
+    if (vp->sched_state == kVirtualProcessorState_Ready
         && vp->suspension_count == 0
         && VirtualProcessorScheduler_IsCooperationEnabled()) {
         VirtualProcessor* pBestReadyVP = VirtualProcessorScheduler_GetHighestPriorityReady(self);

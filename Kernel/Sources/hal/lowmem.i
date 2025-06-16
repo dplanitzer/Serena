@@ -242,7 +242,7 @@ vp_wait_start_time                      so.l    1           ; 4
 vp_wakeup_reason                        so.b    1           ; 1
 vp_priority                             so.b    1           ; 1
 vp_effectivePriority                    so.b    1           ; 1
-vp_state                                so.b    1           ; 1
+vp_sched_state                          so.b    1           ; 1
 vp_flags                                so.b    1           ; 1
 vp_quantum_allowance                    so.b    1           ; 1
 vp_suspension_count                     so.b    1           ; 1

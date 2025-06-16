@@ -123,7 +123,7 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull self, int priority)
     self->waiting_on_wait_queue = NULL;
     self->wakeup_reason = WAKEUP_REASON_NONE;
     
-    self->state = kVirtualProcessorState_Ready;
+    self->sched_state = kVirtualProcessorState_Ready;
     self->flags = 0;
     self->priority = (int8_t)priority;
     self->suspension_count = 1;
@@ -298,7 +298,7 @@ errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull self)
             // additional waits on its way back out to user space, then all those
             // (interruptable) waits will be immediately aborted since the call-
             // as-user invocation is now marked as aborted.
-            if (self->state == kVirtualProcessorState_Waiting) {
+            if (self->sched_state == kVirtualProcessorState_Waiting) {
                 VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
                                                  self->waiting_on_wait_queue,
                                                  INT_MAX,
@@ -393,7 +393,7 @@ void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int priority)
     const int sps = VirtualProcessorScheduler_DisablePreemption();
     
     if (self->priority != priority) {
-        switch (self->state) {
+        switch (self->sched_state) {
             case kVirtualProcessorState_Ready:
                 if (self->suspension_count == 0) {
                     VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, self);
@@ -441,7 +441,7 @@ errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull self)
     
     self->suspension_count++;
     
-    switch (self->state) {
+    switch (self->sched_state) {
         case kVirtualProcessorState_Ready:
             VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, self);
             break;
@@ -473,27 +473,37 @@ void VirtualProcessor_Resume(VirtualProcessor* _Nonnull self, bool force)
     VP_ASSERT_ALIVE(self);
     const int sps = VirtualProcessorScheduler_DisablePreemption();
     
-    if (self->suspension_count > 0) {
-        self->suspension_count = force ? 0 : self->suspension_count - 1;
+    if (self->suspension_count == 0) {
+        VirtualProcessorScheduler_RestorePreemption(sps);
+        return;
+    }
 
-        if (self->suspension_count == 0) {
-            switch (self->state) {
-                case kVirtualProcessorState_Ready:
-                    VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, self, self->priority);
-                    break;
+
+    if (force) {
+        self->suspension_count = 0;
+    }
+    else {
+        self->suspension_count--;
+    }
+
+
+    if (self->suspension_count == 0) {
+        switch (self->sched_state) {
+            case kVirtualProcessorState_Ready:
+                VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, self, self->priority);
+                break;
             
-                case kVirtualProcessorState_Running:
-                    VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, self, self->priority);
-                    VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, self);
-                    break;
+            case kVirtualProcessorState_Running:
+                VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, self, self->priority);
+                VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, self);
+                break;
             
-                case kVirtualProcessorState_Waiting:
-                    // Still in waiting state -> nothing more to do
-                    break;
+            case kVirtualProcessorState_Waiting:
+                // Still in waiting state -> nothing more to do
+                break;
             
-                default:
-                    abort();            
-            }
+            default:
+                abort();
         }
     }
     VirtualProcessorScheduler_RestorePreemption(sps);

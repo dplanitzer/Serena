@@ -158,7 +158,7 @@ typedef struct VirtualProcessor {
     // Scheduling related state
     int8_t                                  priority;               // base priority
     int8_t                                  effectivePriority;      // computed priority used for scheduling
-    uint8_t                                 state;
+    int8_t                                  sched_state;
     uint8_t                                 flags;
     int8_t                                  quantum_allowance;      // How many continuous quantums this VP may run for before the scheduler will consider scheduling some other VP
     int8_t                                  suspension_count;       // > 0 -> VP is suspended

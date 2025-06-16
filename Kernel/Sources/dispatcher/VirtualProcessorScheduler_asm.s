@@ -153,9 +153,9 @@ __rtecall_VirtualProcessorScheduler_SwitchContext:
 
     ; update the VP state to Ready if the state hasn't already been changed to
     ; some other non-Running state like Waiting by the higher-level code
-    cmp.b   #kVirtualProcessorState_Running, vp_state(a0)
+    cmp.b   #kVirtualProcessorState_Running, vp_sched_state(a0)
     bne.s   .1
-    move.b  #kVirtualProcessorState_Ready, vp_state(a0)
+    move.b  #kVirtualProcessorState_Ready, vp_sched_state(a0)
 
 .1:
     lea     vp_save_area(a0), a0
@@ -196,7 +196,7 @@ __rtecall_VirtualProcessorScheduler_RestoreContext:
     move.l  d0, (_gVirtualProcessorSchedulerStorage + vps_scheduled)
 
     ; update the state to Running
-    move.b  #kVirtualProcessorState_Running, vp_state(a0)
+    move.b  #kVirtualProcessorState_Running, vp_sched_state(a0)
     lea     vp_save_area(a0), a0
 
     ; check whether we should restore the FPU state
