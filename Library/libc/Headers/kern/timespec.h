@@ -85,7 +85,7 @@ inline bool timespec_ls(struct timespec t0, struct timespec t1) {
     return (t0.tv_sec < t1.tv_sec || (t0.tv_sec == t1.tv_sec && t0.tv_nsec < t1.tv_nsec));
 }
 
-inline bool timespec_lsq(struct timespec t0, struct timespec t1) {
+inline bool timespec_lseq(struct timespec t0, struct timespec t1) {
     return (t0.tv_sec < t1.tv_sec || (t0.tv_sec == t1.tv_sec && t0.tv_nsec <= t1.tv_nsec));
 }
 
@@ -93,7 +93,7 @@ inline bool timespec_gt(struct timespec t0, struct timespec t1) {
     return (t0.tv_sec > t1.tv_sec || (t0.tv_sec == t1.tv_sec && t0.tv_nsec > t1.tv_nsec));
 }
 
-inline bool timespec_gtq(struct timespec t0, struct timespec t1) {
+inline bool timespec_gteq(struct timespec t0, struct timespec t1) {
     return (t0.tv_sec > t1.tv_sec || (t0.tv_sec == t1.tv_sec && t0.tv_nsec >= t1.tv_nsec));
 }
 

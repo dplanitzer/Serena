@@ -190,7 +190,7 @@ void HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self)
             break;
 
         case kState_InitialDelaying:
-            if (timespec_gtq(now, self->nextEventTime)) {
+            if (timespec_gteq(now, self->nextEventTime)) {
                 self->state = kState_Repeating;
                 HIDManager_ReportKeyboardDeviceChange(gHIDManager, kHIDKeyState_Repeat, self->keyCode);
                 
@@ -201,7 +201,7 @@ void HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self)
             break;
 
         case kState_Repeating:
-            if (timespec_gtq(now, self->nextEventTime)) {
+            if (timespec_gteq(now, self->nextEventTime)) {
                 HIDManager_ReportKeyboardDeviceChange(gHIDManager, kHIDKeyState_Repeat, self->keyCode);
                 
                 while (timespec_ls(self->nextEventTime, now)) {

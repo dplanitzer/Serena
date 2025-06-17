@@ -289,7 +289,7 @@ errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull sel
     // Put us on the timeout queue if a relevant timeout has been specified.
     // Note that we return immediately if we're already past the deadline
     if (timespec_ls(deadline, TIMESPEC_INF)) {
-        if (timespec_lsq(deadline, MonotonicClock_GetCurrentTime())) {
+        if (timespec_lseq(deadline, MonotonicClock_GetCurrentTime())) {
             return ETIMEDOUT;
         }
 

@@ -109,7 +109,7 @@ bool MonotonicClock_DelayUntil(struct timespec deadline)
     for (;;) {
         const struct timespec t_cur = MonotonicClock_GetCurrentTime();
         
-        if (timespec_gtq(t_cur, deadline)) {
+        if (timespec_gteq(t_cur, deadline)) {
             return true;
         }
     }

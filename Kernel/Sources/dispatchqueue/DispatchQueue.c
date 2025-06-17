@@ -731,7 +731,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
             // do not guarantee that they will execute at a specific time. So it's
             // acceptable to push them back on the timeline.
             WorkItem* pFirstTimer = (WorkItem*)self->timer_queue.first;
-            if (pFirstTimer && timespec_lsq(pFirstTimer->u.timer.deadline, now)) {
+            if (pFirstTimer && timespec_lseq(pFirstTimer->u.timer.deadline, now)) {
                 pItem = (WorkItem*) SList_RemoveFirst(&self->timer_queue);
                 self->items_queued_count--;
             }
