@@ -181,12 +181,12 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
 {
     // First, go through the timeout queue and move all VPs whose timeouts have
     // expired to the ready queue.
-    const Quantums curTime = MonotonicClock_GetCurrentQuantums();
+    const Quantums now = MonotonicClock_GetCurrentQuantums();
     
     while (self->timeout_queue.first) {
         register Timeout* ct = (Timeout*)self->timeout_queue.first;
         
-        if (ct->deadline > curTime) {
+        if (ct->deadline > now) {
             break;
         }
         
@@ -196,10 +196,10 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
     
     
     // Second, update the time slice info for the currently running VP
-    register VirtualProcessor* curRunning = (VirtualProcessor*)self->running;
+    register VirtualProcessor* run = (VirtualProcessor*)self->running;
     
-    curRunning->quantum_allowance--;
-    if (curRunning->quantum_allowance > 0) {
+    run->quantum_allowance--;
+    if (run->quantum_allowance > 0) {
         return;
     }
 
@@ -208,11 +208,11 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
     // there's another VP on the ready queue which is more important. If so we
     // context switch to that guy. Otherwise we'll continue to run for another
     // time slice.
-    curRunning->effectivePriority = __max(curRunning->effectivePriority - 1, VP_PRIORITY_LOWEST);
-    curRunning->quantum_allowance = QuantumAllowanceForPriority(curRunning->effectivePriority);
+    run->effectivePriority = __max(run->effectivePriority - 1, VP_PRIORITY_LOWEST);
+    run->quantum_allowance = QuantumAllowanceForPriority(run->effectivePriority);
 
-    register VirtualProcessor* pBestReady = VirtualProcessorScheduler_GetHighestPriorityReady(self);
-    if (pBestReady == NULL || pBestReady->effectivePriority <= curRunning->effectivePriority) {
+    register VirtualProcessor* rdy = VirtualProcessorScheduler_GetHighestPriorityReady(self);
+    if (rdy == NULL || rdy->effectivePriority <= run->effectivePriority) {
         // We didn't find anything better to run. Continue running the currently
         // running VP.
         return;
@@ -221,12 +221,12 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
     
     // Move the currently running VP back to the ready queue and pull the new
     // VP off the ready queue
-    VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(self, pBestReady);
-    VirtualProcessorScheduler_AddVirtualProcessor_Locked(self, curRunning, curRunning->priority);
+    VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(self, rdy);
+    VirtualProcessorScheduler_AddVirtualProcessor_Locked(self, run, run->priority);
 
     
     // Request a context switch
-    self->scheduled = pBestReady;
+    self->scheduled = rdy;
     self->csw_signals |= CSW_SIGNAL_SWITCH;
 }
 
