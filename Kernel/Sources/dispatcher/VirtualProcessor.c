@@ -492,9 +492,6 @@ void VirtualProcessor_Resume(VirtualProcessor* _Nonnull self, bool force)
     if (self->suspension_count == 0) {
         switch (self->sched_state) {
             case kVirtualProcessorState_Ready:
-                VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, self, self->priority);
-                break;
-            
             case kVirtualProcessorState_Running:
                 VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, self, self->priority);
                 VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, self);
