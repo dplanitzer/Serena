@@ -93,7 +93,7 @@ _nosyscall_entry:
     inline
         move.l  a1, -(sp)
         move.l  _gVirtualProcessorSchedulerStorage + vps_running, a1
-        move.l  #ENOSYS, vp_errno(a1)
+        move.l  #ENOSYS, vp_uerrno(a1)
         moveq.l #-1, d0
         move.l  (sp)+, a1
         rte

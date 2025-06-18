@@ -27,7 +27,10 @@ extern MonotonicClock* _Nonnull gMonotonicClock;
 
 extern errno_t MonotonicClock_CreateForLocalCPU(const struct SystemDescription* pSysDesc);
 
+// Returns the current time in terms of quantums
 extern Quantums MonotonicClock_GetCurrentQuantums(void);
+
+// Returns the current time of the clock in terms of microseconds.
 extern struct timespec MonotonicClock_GetCurrentTime(void);
 
 // Blocks the caller until 'deadline'. Returns true if the function did the

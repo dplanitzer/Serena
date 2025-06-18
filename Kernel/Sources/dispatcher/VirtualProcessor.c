@@ -442,6 +442,8 @@ errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull self)
     self->suspension_count++;
     
     if (self->suspension_count == 1) {
+        self->suspension_time = MonotonicClock_GetCurrentQuantums();
+
         switch (self->sched_state) {
             case kVirtualProcessorState_Ready:
                 VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, self);
@@ -455,7 +457,12 @@ errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull self)
                 break;
             
             case kVirtualProcessorState_Waiting:
-                // We do not interrupt the wait. It's just a longer wait
+                // We do not interrupt the wait because we'll just treat it as
+                // a longer-than-expected wait. However we suspend the timeout
+                // while the VP is suspended. The resume will reactive the
+                // timeout and extend it by the amount of time that the VP has
+                // spent in suspended state.
+                VirtualProcessorScheduler_SuspendTimeout(gVirtualProcessorScheduler, self);
                 break;
             
             default:
@@ -498,7 +505,9 @@ void VirtualProcessor_Resume(VirtualProcessor* _Nonnull self, bool force)
                 break;
             
             case kVirtualProcessorState_Waiting:
-                // Still in waiting state -> nothing more to do
+                // Still in waiting state -> just resume the timeout if one is
+                // associated with the wait.
+                VirtualProcessorScheduler_ResumeTimeout(gVirtualProcessorScheduler, self, self->suspension_time);
                 break;
             
             default:

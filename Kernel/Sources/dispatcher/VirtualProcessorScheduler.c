@@ -230,15 +230,13 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
     self->csw_signals |= CSW_SIGNAL_SWITCH;
 }
 
-// Arms a timeout for the given virtual processor. This puts the VP on the timeout
-// queue.
-static void VirtualProcessorScheduler_ArmTimeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* vp, struct timespec deadline)
+// Inserts the timeout entry of the given vp in the global timeout list at the
+// appropriate place.
+static void _arm_timeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp)
 {
-    vp->timeout.deadline = Quantums_MakeFromTimespec(deadline, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
-    vp->timeout.is_valid = true;
-    
     register Timeout* pt = NULL;
     register Timeout* ct = (Timeout*)self->timeout_queue.first;
+
     while (ct) {
         if (ct->deadline > vp->timeout.deadline) {
             break;
@@ -251,14 +249,42 @@ static void VirtualProcessorScheduler_ArmTimeout(VirtualProcessorScheduler* _Non
     List_InsertAfter(&self->timeout_queue, &vp->timeout.queue_entry, &pt->queue_entry);
 }
 
+// Arms a timeout for the given virtual processor. This puts the VP on the timeout
+// queue.
+static void VirtualProcessorScheduler_ArmTimeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp, struct timespec deadline)
+{
+    vp->timeout.deadline = Quantums_MakeFromTimespec(deadline, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
+    vp->timeout.is_valid = true;
+    
+    _arm_timeout(self, vp);
+}
+
 // Cancels an armed timeout for the given virtual processor. Does nothing if
 // no timeout is armed.
-static void VirtualProcessorScheduler_CancelTimeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* vp)
+static void VirtualProcessorScheduler_CancelTimeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp)
 {
     if (vp->timeout.is_valid) {
         List_Remove(&self->timeout_queue, &vp->timeout.queue_entry);
         vp->timeout.deadline = kQuantums_Infinity;
         vp->timeout.is_valid = false;
+    }
+}
+
+// Suspends a scheduled timeout for the given virtual processor. Does nothing if
+// no timeout is armed.
+void VirtualProcessorScheduler_SuspendTimeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp)
+{
+    if (vp->timeout.is_valid) {
+        List_Remove(&self->timeout_queue, &vp->timeout.queue_entry);
+    }
+}
+
+// Resumes a suspended timeout for the given virtual processor.
+void VirtualProcessorScheduler_ResumeTimeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp, Quantums suspensionTime)
+{
+    if (vp->timeout.is_valid) {
+        vp->timeout.deadline += __max(MonotonicClock_GetCurrentQuantums() - suspensionTime, 0);
+        _arm_timeout(self, vp);
     }
 }
 

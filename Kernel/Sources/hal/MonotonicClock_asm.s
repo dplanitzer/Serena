@@ -16,7 +16,7 @@
 
 ;-------------------------------------------------------------------------------
 ; Quantums MonotonicClock_GetCurrentQuantums(void)
-; Returns the current number of quantums
+; Returns the current time in terms of quantums
 _MonotonicClock_GetCurrentQuantums:
     move.l  _gMonotonicClockStorage + mtc_current_quantum, d0
     rts

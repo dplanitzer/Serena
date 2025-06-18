@@ -149,6 +149,9 @@ typedef struct VirtualProcessor {
     uint32_t                                syscall_entry_ksp;      // saved Kernel stack pointer at the entry of a system call
     errno_t                                 uerrno;                 // most recent recorded error for user space
     
+    // Suspension related state
+    Quantums                                suspension_time;        // Absolute time when the VP was suspended
+                             
     // Waiting related state
     Timeout                                 timeout;                // The timeout state
     List* _Nullable                         waiting_on_wait_queue;  // The wait queue this VP is waiting on; NULL if not waiting. Used by the scheduler to wake up on timeout

@@ -51,7 +51,6 @@ catch:
     return err;
 }
 
-// Returns the current time of the clock in terms of microseconds.
 struct timespec MonotonicClock_GetCurrentTime(void)
 {
     register const MonotonicClock* pClock = gMonotonicClock;

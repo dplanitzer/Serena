@@ -137,4 +137,12 @@ extern VirtualProcessor* _Nullable VirtualProcessorScheduler_GetHighestPriorityR
 extern void VirtualProcessorScheduler_SwitchTo(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp);
 extern void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp);
 
+
+// Suspends a scheduled timeout for the given virtual processor. Does nothing if
+// no timeout is armed.
+extern void VirtualProcessorScheduler_SuspendTimeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp);
+
+// Resumes a suspended timeout for the given virtual processor.
+extern void VirtualProcessorScheduler_ResumeTimeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp, Quantums suspensionTime);
+
 #endif /* VirtualProcessorScheduler_h */
