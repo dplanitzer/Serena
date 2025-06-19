@@ -89,7 +89,7 @@ _Semaphore_RelinquishFromInterruptContext:
 
 
 ;-------------------------------------------------------------------------------
-; errno_t Semaphore_AcquireMultiple(Semaphore* _Nonnull sema, int npermits, struct timespec deadline)
+; errno_t Semaphore_AcquireMultiple(Semaphore* _Nonnull sema, int npermits, const struct timespec* _Nonnull deadline)
 ; Acquires 'npermits' from the semaphore before the deadline 'deadline' is reached.
 ; This function blocks the caller if 'deadline' is in the future and the semaphore
 ; does not have enough permits available.
@@ -98,7 +98,7 @@ _Semaphore_RelinquishFromInterruptContext:
 ; semaphore to become available.
 _Semaphore_AcquireMultiple:
     inline
-    cargs sa_saved_d7.l, sa_sema.l, sa_npermits.l, sa_deadline_secs.l, sa_deadline_nanos.l
+    cargs sa_saved_d7.l, sa_sema.l, sa_npermits.l, sa_deadline.l
         move.l  d7, -(sp)
         DISABLE_PREEMPTION d7
 
@@ -110,13 +110,11 @@ _Semaphore_AcquireMultiple:
         bge.s   .csa_claim_permits
 
         ; wait for permits to arrive and then retry
-        move.l  sa_deadline_secs(sp), d0
-        move.l  sa_deadline_nanos(sp), d1
-        move.l  d1, -(sp)
+        move.l  sa_deadline(sp), d0
         move.l  d0, -(sp)
         move.l  a0, -(sp)
         jsr     _Semaphore_OnWaitForPermits
-        add.l   #12, sp
+        addq.l  #8, sp
 
         ; give up if the OnWaitForPermits came back with an error
         tst.l   d0
@@ -142,7 +140,7 @@ _Semaphore_AcquireMultiple:
 
 
 ;-------------------------------------------------------------------------------
-; errno_t Semaphore_AcquireAll(Semaphore* _Nonnull sema, struct timespec deadline, int* _Nonnull pOutPermitCount)
+; errno_t Semaphore_AcquireAll(Semaphore* _Nonnull sema, const struct timespec* _Nonnull deadline, int* _Nonnull pOutPermitCount)
 ; Acquires all permits from the semaphore before the deadline 'deadline' is reached.
 ; This function blocks the caller if 'deadline' is in the future and the semaphore
 ; does not have any permits available.
@@ -152,7 +150,7 @@ _Semaphore_AcquireMultiple:
 ; The number of acquired permits is returned in 'pOutPermitsCount'
 _Semaphore_AcquireAll:
     inline
-    cargs saa_saved_d7.l, saa_sema.l, saa_deadline_secs.l, saa_deadline_nanos.l, saa_out_permits_count_ptr.l
+    cargs saa_saved_d7.l, saa_sema.l, saa_deadline.l, saa_out_permits_count_ptr.l
         move.l  d7, -(sp)
         DISABLE_PREEMPTION d7
 
@@ -164,13 +162,11 @@ _Semaphore_AcquireAll:
         bgt.s   .csaa_claim_permits
 
         ; wait for permits to arrive and then retry
-        move.l  saa_deadline_secs(sp), d0
-        move.l  saa_deadline_nanos(sp), d1
-        move.l  d1, -(sp)
+        move.l  saa_deadline(sp), d0
         move.l  d0, -(sp)
         move.l  a0, -(sp)
         jsr     _Semaphore_OnWaitForPermits
-        add.l   #12, sp
+        addq.l  #8, sp
 
         ; give up if the OnWaitForPermits came back with an error
         tst.l   d0

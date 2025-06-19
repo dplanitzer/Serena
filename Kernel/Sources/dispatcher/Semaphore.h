@@ -45,8 +45,8 @@ extern void Semaphore_RelinquishFromInterruptContext(Semaphore* _Nonnull sema);
 #define Semaphore_Acquire(__self, __deadline) \
 Semaphore_AcquireMultiple(__self, 1, __deadline)
 
-extern errno_t Semaphore_AcquireMultiple(Semaphore* _Nonnull sema, int npermits, struct timespec deadline);
-extern errno_t Semaphore_AcquireAll(Semaphore* _Nonnull pSemaphore, struct timespec deadline, int* _Nonnull pOutPermitCount);
+extern errno_t Semaphore_AcquireMultiple(Semaphore* _Nonnull sema, int npermits, const struct timespec* _Nonnull deadline);
+extern errno_t Semaphore_AcquireAll(Semaphore* _Nonnull pSemaphore, const struct timespec* _Nonnull deadline, int* _Nonnull pOutPermitCount);
 
 
 #define Semaphore_TryAcquire(__self) \

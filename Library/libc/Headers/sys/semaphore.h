@@ -35,7 +35,7 @@ extern int sem_post(sem_t* _Nonnull sema, int npermits);
 // and -1 and errno set to ETIMEOUT if the permits could not be acquire before
 // 'deadline'.
 // @Concurrency: Safe
-extern int sem_wait(sem_t* _Nonnull sema, int npermits, struct timespec deadline);
+extern int sem_wait(sem_t* _Nonnull sema, int npermits, const struct timespec* _Nonnull deadline);
 
 // Attempts to acquire 'npermits' without blocking. Returns 0 on success and -1
 // and errno set to EBUSY otherwise.

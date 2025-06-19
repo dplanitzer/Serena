@@ -67,7 +67,7 @@ int sem_post(sem_t* _Nonnull sema, int npermits)
     }
 }
 
-int sem_wait(sem_t* _Nonnull sema, int npermits, struct timespec deadline)
+int sem_wait(sem_t* _Nonnull sema, int npermits, const struct timespec* _Nonnull deadline)
 {
     USemaphore* self = (USemaphore*)sema;
 

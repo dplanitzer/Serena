@@ -342,7 +342,7 @@ SYSCALL_2(sem_post, int od, int npermits)
     return Process_RelinquishUSemaphore((ProcessRef)p, pa->od, pa->npermits);
 }
 
-SYSCALL_3(sem_wait, int od, int npermits, struct timespec deadline)
+SYSCALL_3(sem_wait, int od, int npermits, const struct timespec* _Nonnull deadline)
 {
     return Process_AcquireUSemaphore((ProcessRef)p, pa->od, pa->npermits, pa->deadline);
 }

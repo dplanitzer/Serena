@@ -142,7 +142,7 @@ extern errno_t Process_RelinquishUSemaphore(ProcessRef _Nonnull self, int od, in
 // Blocks the caller until 'npermits' can be successfully acquired from the given
 // semaphore. Returns EOK on success and ETIMEOUT if the permits could not be
 // acquired before 'deadline'.
-extern errno_t Process_AcquireUSemaphore(ProcessRef _Nonnull self, int od, int npermits, struct timespec deadline);
+extern errno_t Process_AcquireUSemaphore(ProcessRef _Nonnull self, int od, int npermits, const struct timespec* _Nonnull deadline);
 
 // Tries to acquire 'npermits' from the given semaphore. Returns true on success
 // and false otherwise. This function does not block the caller.

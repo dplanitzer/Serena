@@ -549,7 +549,7 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
 
     if (isSync) {
         // Wait for the work item completion
-        err = Semaphore_Acquire(&pItem->u.completionSignaler, TIMESPEC_INF);
+        err = Semaphore_Acquire(&pItem->u.completionSignaler, &TIMESPEC_INF);
 
         Lock_Lock(&self->lock);
 

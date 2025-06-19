@@ -165,7 +165,7 @@ errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, struct timespec timeou
             break;
         }
 
-        err = Semaphore_Acquire(&self->semaphore, timeout);
+        err = Semaphore_Acquire(&self->semaphore, &timeout);
         if (err != EOK) {
             break;
         }

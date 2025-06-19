@@ -401,7 +401,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     MonotonicClock_GetCurrentTime(&now);
     timespec_from_ms(&dly, 500);
     timespec_add(&now, &dly, &deadline);
-    err = Semaphore_Acquire(&self->done, deadline);
+    err = Semaphore_Acquire(&self->done, &deadline);
 
 
     Lock_Lock(&self->lock);
