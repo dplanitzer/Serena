@@ -97,21 +97,20 @@ static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock)
 // millisecond. Longer delays should be done via a scheduler wait().
 bool MonotonicClock_DelayUntil(const struct timespec* _Nonnull deadline)
 {
-    struct timespec t_start, t_delta;
+    struct timespec delta, now;
     
-    MonotonicClock_GetCurrentTime(&t_start);
-    timespec_sub(deadline, &t_start, &t_delta);
+    MonotonicClock_GetCurrentTime(&now);
+    timespec_sub(deadline, &now, &delta);
     
-    if (t_delta.tv_sec > 0 || (t_delta.tv_sec == 0 && t_delta.tv_nsec > 1000*1000)) {
+    if (delta.tv_sec > 0 || (delta.tv_sec == 0 && delta.tv_nsec > 1000*1000)) {
         return false;
     }
     
     // Just spin for now (would be nice to put the CPU to sleep though for a few micros before rechecking the time or so)
     for (;;) {
-        struct timespec t_cur;
-        
-        MonotonicClock_GetCurrentTime(&t_cur); 
-        if (timespec_gteq(t_cur, *deadline)) {
+        MonotonicClock_GetCurrentTime(&now); 
+
+        if (timespec_ge(&now, deadline)) {
             return true;
         }
     }

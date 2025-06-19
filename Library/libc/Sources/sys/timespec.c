@@ -45,6 +45,32 @@ int64_t timespec_ns(struct timespec* _Nonnull ts)
 }
 
 
+bool timespec_eq(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1)
+{
+    return (t0->tv_nsec == t1->tv_nsec && t0->tv_sec == t1->tv_sec) ? true : false;
+}
+
+bool timespec_lt(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1)
+{
+    return (t0->tv_sec < t1->tv_sec || (t0->tv_sec == t1->tv_sec && t0->tv_nsec < t1->tv_nsec)) ? true : false;
+}
+
+bool timespec_le(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1)
+{
+    return (t0->tv_sec < t1->tv_sec || (t0->tv_sec == t1->tv_sec && t0->tv_nsec <= t1->tv_nsec)) ? true : false;
+}
+
+bool timespec_gt(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1)
+{
+    return (t0->tv_sec > t1->tv_sec || (t0->tv_sec == t1->tv_sec && t0->tv_nsec > t1->tv_nsec)) ? true : false;
+}
+
+bool timespec_ge(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1)
+{
+    return (t0->tv_sec > t1->tv_sec || (t0->tv_sec == t1->tv_sec && t0->tv_nsec >= t1->tv_nsec)) ? true : false;
+}
+
+
 void timespec_add(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res)
 {
     res->tv_sec = t0->tv_sec + t1->tv_sec;
@@ -59,13 +85,13 @@ void timespec_add(const struct timespec* _Nonnull t0, const struct timespec* _No
     // See Assembly Language and Systems Programming for the M68000 Family p41
     if ((t0->tv_sec >= 0 && t1->tv_sec >= 0 && res->tv_sec < 0)
         || (t0->tv_sec < 0 && t1->tv_sec < 0 && res->tv_sec >= 0)) {
-        *res = (timespec_isneg(*t0) && timespec_isneg(*t1)) ? TIMESPEC_NEGINF : TIMESPEC_INF;
+        *res = (timespec_isneg(t0) && timespec_isneg(t1)) ? TIMESPEC_NEGINF : TIMESPEC_INF;
     }
 }
 
 void timespec_sub(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res)
 {
-    if (timespec_gt(*t0, *t1)) {
+    if (timespec_gt(t0, t1)) {
         // t0 > t1
         res->tv_sec = t0->tv_sec - t1->tv_sec;
         res->tv_nsec = t0->tv_nsec - t1->tv_nsec;
@@ -95,6 +121,6 @@ void timespec_sub(const struct timespec* _Nonnull t0, const struct timespec* _No
     // See Assembly Language and Systems Programming for the M68000 Family p41
     if ((t0->tv_sec < 0 && t1->tv_sec >= 0 && res->tv_sec >= 0)
         || (t0->tv_sec >= 0 && t1->tv_sec < 0 && res->tv_sec < 0)) {
-        *res = (timespec_isneg(*t0) && timespec_isneg(*t1)) ? TIMESPEC_NEGINF : TIMESPEC_INF;
+        *res = (timespec_isneg(t0) && timespec_isneg(t1)) ? TIMESPEC_NEGINF : TIMESPEC_INF;
     }
 }

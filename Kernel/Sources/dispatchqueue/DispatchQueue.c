@@ -375,7 +375,7 @@ static WorkItem* _Nullable DispatchQueue_AddTimedItem_Locked(DispatchQueueRef _N
     WorkItem* pCurItem = (WorkItem*)self->timer_queue.first;
     
     while (pCurItem) {
-        if (timespec_gt(pCurItem->u.timer.deadline, pItem->u.timer.deadline)) {
+        if (timespec_gt(&pCurItem->u.timer.deadline, &pItem->u.timer.deadline)) {
             break;
         }
         
@@ -637,7 +637,7 @@ errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, struct times
     pItem->u.timer.interval = interval;
     pItem->flags |= kWorkItemFlag_Timer;
 
-    if (timespec_gt(interval, TIMESPEC_ZERO) && !timespec_eq(interval, TIMESPEC_INF)) {
+    if (timespec_gt(&interval, &TIMESPEC_ZERO) && !timespec_eq(&interval, &TIMESPEC_INF)) {
         pItem->flags |= kWorkItemFlag_IsRepeating;
     }
 
@@ -704,7 +704,7 @@ static void DispatchQueue_RearmTimedItem_Locked(DispatchQueueRef _Nonnull self, 
     
     do  {
         timespec_add(&pItem->u.timer.deadline, &pItem->u.timer.interval, &pItem->u.timer.deadline);
-    } while (timespec_ls(pItem->u.timer.deadline, now));
+    } while (timespec_lt(&pItem->u.timer.deadline, &now));
     
     DispatchQueue_AddTimedItem_Locked(self, pItem);
 }
@@ -735,7 +735,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
             // do not guarantee that they will execute at a specific time. So it's
             // acceptable to push them back on the timeline.
             WorkItem* pFirstTimer = (WorkItem*)self->timer_queue.first;
-            if (pFirstTimer && timespec_lseq(pFirstTimer->u.timer.deadline, now)) {
+            if (pFirstTimer && timespec_le(&pFirstTimer->u.timer.deadline, &now)) {
                 pItem = (WorkItem*) SList_RemoveFirst(&self->timer_queue);
                 self->items_queued_count--;
             }

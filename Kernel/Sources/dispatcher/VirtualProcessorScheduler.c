@@ -316,11 +316,11 @@ errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull sel
 
     // Put us on the timeout queue if a relevant timeout has been specified.
     // Note that we return immediately if we're already past the deadline
-    if (timespec_ls(deadline, TIMESPEC_INF)) {
+    if (timespec_lt(&deadline, &TIMESPEC_INF)) {
         struct timespec now;
 
         MonotonicClock_GetCurrentTime(&now);
-        if (timespec_lseq(deadline, now)) {
+        if (timespec_le(&deadline, &now)) {
             return ETIMEDOUT;
         }
 

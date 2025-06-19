@@ -35,7 +35,6 @@
 (__ts)->tv_nsec = 0l
 
 extern void timespec_from_ms(struct timespec* _Nonnull ts, mseconds_t millis);
-
 extern void timespec_from_us(struct timespec* _Nonnull ts, useconds_t micros);
 
 
@@ -43,40 +42,22 @@ extern void timespec_from_us(struct timespec* _Nonnull ts, useconds_t micros);
 (__ts)->tv_sec
 
 extern mseconds_t timespec_ms(struct timespec* _Nonnull ts);
-
 extern useconds_t timespec_us(struct timespec* _Nonnull ts);
-
 extern int64_t timespec_ns(struct timespec* _Nonnull ts);
 
 
-inline bool timespec_isneg(struct timespec ts) {
-    return ts.tv_sec < 0 || ts.tv_nsec < 0;
-}
+#define timespec_isneg(__ts) \
+((__ts)->tv_sec < 0 || (__ts)->tv_nsec < 0)
 
 
-inline bool timespec_eq(struct timespec t0, struct timespec t1) {
-    return t0.tv_nsec == t1.tv_nsec && t0.tv_sec == t1.tv_sec;
-}
-
-inline bool timespec_ls(struct timespec t0, struct timespec t1) {
-    return (t0.tv_sec < t1.tv_sec || (t0.tv_sec == t1.tv_sec && t0.tv_nsec < t1.tv_nsec));
-}
-
-inline bool timespec_lseq(struct timespec t0, struct timespec t1) {
-    return (t0.tv_sec < t1.tv_sec || (t0.tv_sec == t1.tv_sec && t0.tv_nsec <= t1.tv_nsec));
-}
-
-inline bool timespec_gt(struct timespec t0, struct timespec t1) {
-    return (t0.tv_sec > t1.tv_sec || (t0.tv_sec == t1.tv_sec && t0.tv_nsec > t1.tv_nsec));
-}
-
-inline bool timespec_gteq(struct timespec t0, struct timespec t1) {
-    return (t0.tv_sec > t1.tv_sec || (t0.tv_sec == t1.tv_sec && t0.tv_nsec >= t1.tv_nsec));
-}
+extern bool timespec_eq(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1);
+extern bool timespec_lt(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1);
+extern bool timespec_le(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1);
+extern bool timespec_gt(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1);
+extern bool timespec_ge(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1);
 
 
 extern void timespec_add(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res);
-
 extern void timespec_sub(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res);
 
 
