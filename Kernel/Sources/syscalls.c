@@ -254,7 +254,7 @@ SYSCALL_2(clock_wait, int clock, const struct timespec* _Nonnull delay)
         return ENODEV;
     }
 
-    return VirtualProcessor_Sleep(*(pa->delay));
+    return VirtualProcessor_Sleep(pa->delay);
 }
 
 SYSCALL_2(clock_gettime, int clock, struct timespec* _Nonnull time)
@@ -379,7 +379,7 @@ SYSCALL_1(exit, int status)
     // owns this VP is terminated. This interrupt will be caused by the abort
     // of the call-as-user and thus this system call will not return to user
     // space anymore. Instead it will return to the dispatch queue main loop.
-    VirtualProcessor_Sleep(TIMESPEC_INF);
+    VirtualProcessor_Sleep(&TIMESPEC_INF);
     return 0;
 }
 

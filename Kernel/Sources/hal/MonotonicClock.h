@@ -47,7 +47,7 @@ extern bool MonotonicClock_DelayUntil(const struct timespec* _Nonnull deadline);
 
 // Converts a timespec to a quantum value. The quantum value is rounded based
 // on the 'rounding' parameter.
-extern Quantums Quantums_MakeFromTimespec(struct timespec* _Nonnull ts, int rounding);
+extern Quantums Quantums_MakeFromTimespec(const struct timespec* _Nonnull ts, int rounding);
 
 // Converts a quantum value to a timespec.
 extern void Timespec_MakeFromQuantums(struct timespec* _Nonnull ts, Quantums quants);

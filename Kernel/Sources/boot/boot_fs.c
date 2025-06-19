@@ -88,9 +88,9 @@ static void wait_for_disk_inserted(boot_screen_t* _Nonnull bscr, const char* _No
     decl_try_err();
     IOChannelRef chan;
     bool isWaitingForDisk = false;
-    struct timespec ts;
+    struct timespec dur;
 
-    timespec_from_sec(&ts, 3);
+    timespec_from_sec(&dur, 3);
 
     if ((err = Catalog_Open(gDriverCatalog, driverPath, O_RDWR, &chan)) == EOK) {
         for (;;) {
@@ -110,7 +110,7 @@ static void wait_for_disk_inserted(boot_screen_t* _Nonnull bscr, const char* _No
                 isWaitingForDisk = true;
             }
 
-            VirtualProcessor_Sleep(ts);
+            VirtualProcessor_Sleep(&dur);
         }
     } 
     IOChannel_Release(chan);

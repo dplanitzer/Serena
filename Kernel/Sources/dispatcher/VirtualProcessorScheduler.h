@@ -84,7 +84,7 @@ extern void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler* 
 // Expects to be called with preemption disabled. Temporarily reenables
 // preemption when context switching to another VP. Returns to the caller with
 // preemption disabled.
-extern errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull self, List* _Nonnull waq, struct timespec deadline, bool isInterruptable);
+extern errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull self, List* _Nonnull waq, const struct timespec* _Nonnull deadline, bool isInterruptable);
 
 // Adds the given VP from the given wait queue to the ready queue. The VP is removed
 // from the wait queue. The scheduler guarantees that a wakeup operation will never

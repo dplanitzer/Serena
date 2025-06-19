@@ -60,7 +60,7 @@ static void OnReadFromPipe(int fd)
     timespec_from_ms(&dly, 200);
 
     while (true) {
-        //VirtualProcessor_Sleep(dly);
+        //VirtualProcessor_Sleep(&dly);
         buf[0] = '\0';
         const ssize_t nBytesRead = read(fd, buf, nBytesToRead);
         assertGreaterEqual(0, nBytesRead);

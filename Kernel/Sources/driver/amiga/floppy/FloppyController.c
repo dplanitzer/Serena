@@ -107,7 +107,7 @@ static void fdc_1us_wait(void)
     struct timespec ts_1us;
 
     timespec_from_us(&ts_1us, 1);
-    VirtualProcessor_Sleep(ts_1us);
+    VirtualProcessor_Sleep(&ts_1us);
 }
 
 static errno_t FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked self)
@@ -350,7 +350,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;
     struct timespec ts_1ms;
     timespec_from_us(&ts_1ms, 1000);
-    VirtualProcessor_Sleep(ts_1ms);
+    VirtualProcessor_Sleep(&ts_1ms);
 
 
     // Check for disk change
@@ -428,7 +428,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
         struct timespec ts_2ms;
 
         timespec_from_us(&ts_2ms, 2000);
-        VirtualProcessor_Sleep(ts_2ms);
+        VirtualProcessor_Sleep(&ts_2ms);
     }
 
 

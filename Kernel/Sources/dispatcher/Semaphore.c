@@ -44,7 +44,7 @@ errno_t Semaphore_OnWaitForPermits(Semaphore* _Nonnull pSemaphore, struct timesp
 {
     return VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                             &pSemaphore->wait_queue,
-                                            deadline,
+                                            &deadline,
                                             true);
 }
 

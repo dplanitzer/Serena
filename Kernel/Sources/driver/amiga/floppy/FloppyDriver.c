@@ -290,7 +290,7 @@ static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
                 return EOK;
             }
 
-            VirtualProcessor_Sleep(delay);
+            VirtualProcessor_Sleep(&delay);
         }
 
         // Timed out. Turn the motor off for now so that another I/O request can
@@ -324,7 +324,7 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self)
     // Wait 2 ms if there was a write previously and we have to change the head
     // Since this is about resetting the drive we can't assume that we know whether
     // we have to wait 18ms or 2ms. So just wait for 18ms to be safe.
-    VirtualProcessor_Sleep(ts_18ms);
+    VirtualProcessor_Sleep(&ts_18ms);
     
     while (true) {
         const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
@@ -340,12 +340,12 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self)
             return ETIMEDOUT;
         }
 
-        VirtualProcessor_Sleep(ts_3ms);
+        VirtualProcessor_Sleep(&ts_3ms);
     }
     FloppyController_SelectHead(fdc, &self->driveState, 0);
     
     // Head settle time (includes the 100us settle time for the head select)
-    VirtualProcessor_Sleep(ts_15ms);
+    VirtualProcessor_Sleep(&ts_15ms);
     
     self->head = 0;
     self->cylinder = 0;
@@ -376,7 +376,7 @@ static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int
 
     if (pre_wait_ms > 0) {
         timespec_from_ms(&ts_pre_wait, pre_wait_ms);
-        VirtualProcessor_Sleep(ts_pre_wait);
+        VirtualProcessor_Sleep(&ts_pre_wait);
     }
     
     
@@ -393,7 +393,7 @@ static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int
                 self->flags.wasMostRecentSeekInward = 0;
             }
             
-            VirtualProcessor_Sleep(ts_3ms);
+            VirtualProcessor_Sleep(&ts_3ms);
         }
     }
     
@@ -411,7 +411,7 @@ static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int
 
     if (settle_us > 0) {
         timespec_from_us(&ts_settle, settle_us);
-        VirtualProcessor_Sleep(ts_settle);
+        VirtualProcessor_Sleep(&ts_settle);
     }
 }
 

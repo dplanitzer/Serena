@@ -253,9 +253,9 @@ static void _arm_timeout(VirtualProcessorScheduler* _Nonnull self, VirtualProces
 
 // Arms a timeout for the given virtual processor. This puts the VP on the timeout
 // queue.
-static void VirtualProcessorScheduler_ArmTimeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp, struct timespec deadline)
+static void VirtualProcessorScheduler_ArmTimeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp, const struct timespec* _Nonnull deadline)
 {
-    vp->timeout.deadline = Quantums_MakeFromTimespec(&deadline, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
+    vp->timeout.deadline = Quantums_MakeFromTimespec(deadline, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
     vp->timeout.is_valid = true;
     
     _arm_timeout(self, vp);
@@ -301,7 +301,7 @@ void VirtualProcessorScheduler_ResumeTimeout(VirtualProcessorScheduler* _Nonnull
 // are ordered such that the first one to enter the queue is the first one to
 // leave the queue.
 // Returns a timeout or interrupted error.
-errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull self, List* _Nonnull waq, struct timespec deadline, bool isInterruptable)
+errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull self, List* _Nonnull waq, const struct timespec* _Nonnull deadline, bool isInterruptable)
 {
     VirtualProcessor* vp = (VirtualProcessor*)self->running;
 
@@ -316,11 +316,11 @@ errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull sel
 
     // Put us on the timeout queue if a relevant timeout has been specified.
     // Note that we return immediately if we're already past the deadline
-    if (timespec_lt(&deadline, &TIMESPEC_INF)) {
+    if (timespec_lt(deadline, &TIMESPEC_INF)) {
         struct timespec now;
 
         MonotonicClock_GetCurrentTime(&now);
-        if (timespec_le(&deadline, &now)) {
+        if (timespec_le(deadline, &now)) {
             return ETIMEDOUT;
         }
 
@@ -563,7 +563,7 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull self
             
             (void)VirtualProcessorScheduler_WaitOn(self,
                 &self->scheduler_wait_queue,
-                deadline, true);
+                &deadline, true);
         }
         
         // Got some work to do. Save off the needed data in local vars and then

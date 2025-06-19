@@ -55,7 +55,7 @@ void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
             // XXX however we don't want to have to introduce extra calls on it
             // XXX since unmap() calls happen a lot more than session closes. 
             Lock_Unlock(&self->interlock);
-            VirtualProcessor_Sleep(dly);
+            VirtualProcessor_Sleep(&dly);
             Lock_Lock(&self->interlock);
         }
 

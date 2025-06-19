@@ -121,7 +121,7 @@ bool MonotonicClock_DelayUntil(const struct timespec* _Nonnull deadline)
 
 // Converts a time interval to a quantum value. The quantum value is rounded
 // based on the 'rounding' parameter.
-Quantums Quantums_MakeFromTimespec(struct timespec* _Nonnull ts, int rounding)
+Quantums Quantums_MakeFromTimespec(const struct timespec* _Nonnull ts, int rounding)
 {
     register MonotonicClock* pClock = gMonotonicClock;
     const int64_t nanos = (int64_t)ts->tv_sec * (int64_t)ONE_SECOND_IN_NANOS + (int64_t)ts->tv_nsec;
