@@ -251,11 +251,11 @@ static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self)
 
     FloppyDriver_CancelDelayedMotorOff(self);
     
-    struct timespec now, dly;
+    struct timespec now, dly, deadline;
     
     MonotonicClock_GetCurrentTime(&now);
     timespec_from_sec(&dly, 4);
-    const struct timespec deadline = timespec_add(now, dly);
+    timespec_add(&now, &dly, &deadline);
     DispatchQueue_DispatchAsyncAfter(DiskDriver_GetDispatchQueue(self),
             deadline,
             (VoidFunc_1)FloppyDriver_MotorOff,

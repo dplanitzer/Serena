@@ -396,11 +396,11 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 
 
     // Wait for the DMA to complete
-    struct timespec now, dly;
+    struct timespec now, dly, deadline;
     
     MonotonicClock_GetCurrentTime(&now);
     timespec_from_ms(&dly, 500);
-    const struct timespec deadline = timespec_add(now, dly);
+    timespec_add(&now, &dly, &deadline);
     err = Semaphore_Acquire(&self->done, deadline);
 
 

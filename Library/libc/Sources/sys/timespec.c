@@ -29,61 +29,72 @@ void timespec_from_us(struct timespec* _Nonnull ts, useconds_t micros)
 }
 
 
-struct timespec timespec_add(struct timespec t0, struct timespec t1)
+mseconds_t timespec_ms(struct timespec* _Nonnull ts)
 {
-    struct timespec ts;
-    
-    ts.tv_sec = t0.tv_sec + t1.tv_sec;
-    ts.tv_nsec = t0.tv_nsec + t1.tv_nsec;
-    if (ts.tv_nsec >= ONE_SECOND_IN_NANOS) {
-        // handle carry
-        ts.tv_sec++;
-        ts.tv_nsec -= ONE_SECOND_IN_NANOS;
-    }
-    
-    // Saturate on overflow
-    // See Assembly Language and Systems Programming for the M68000 Family p41
-    if ((t0.tv_sec >= 0 && t1.tv_sec >= 0 && ts.tv_sec < 0) || (t0.tv_sec < 0 && t1.tv_sec < 0 && ts.tv_sec >= 0)) {
-        ts = (timespec_isneg(t0) && timespec_isneg(t1)) ? TIMESPEC_NEGINF : TIMESPEC_INF;
-    }
-    
-    return ts;
+    return ts->tv_sec * 1000l + ts->tv_nsec / (1000l * 1000l);
 }
 
-struct timespec timespec_sub(struct timespec t0, struct timespec t1)
+useconds_t timespec_us(struct timespec* _Nonnull ts)
 {
-    struct timespec ts;
+    return ts->tv_sec * 1000l * 1000l + ts->tv_nsec / 1000l;
+}
+
+int64_t timespec_ns(struct timespec* _Nonnull ts)
+{
+    return (int64_t)ts->tv_sec * 1000ll * 1000ll * 1000ll + (int64_t)ts->tv_nsec;
+}
+
+
+void timespec_add(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res)
+{
+    res->tv_sec = t0->tv_sec + t1->tv_sec;
+    res->tv_nsec = t0->tv_nsec + t1->tv_nsec;
+    if (res->tv_nsec >= ONE_SECOND_IN_NANOS) {
+        // handle carry
+        res->tv_sec++;
+        res->tv_nsec -= ONE_SECOND_IN_NANOS;
+    }
     
-    if (timespec_gt(t0, t1)) {
+    // Saturate on overflow
+    // See Assembly Language and Systems Programming for the M68000 Family p41
+    if ((t0->tv_sec >= 0 && t1->tv_sec >= 0 && res->tv_sec < 0)
+        || (t0->tv_sec < 0 && t1->tv_sec < 0 && res->tv_sec >= 0)) {
+        *res = (timespec_isneg(*t0) && timespec_isneg(*t1)) ? TIMESPEC_NEGINF : TIMESPEC_INF;
+    }
+}
+
+void timespec_sub(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res)
+{
+    if (timespec_gt(*t0, *t1)) {
         // t0 > t1
-        ts.tv_sec = t0.tv_sec - t1.tv_sec;
-        ts.tv_nsec = t0.tv_nsec - t1.tv_nsec;
-        if (ts.tv_nsec < 0) {
+        res->tv_sec = t0->tv_sec - t1->tv_sec;
+        res->tv_nsec = t0->tv_nsec - t1->tv_nsec;
+        if (res->tv_nsec < 0) {
             // handle borrow
-            ts.tv_nsec += ONE_SECOND_IN_NANOS;
-            ts.tv_sec--;
+            res->tv_nsec += ONE_SECOND_IN_NANOS;
+            res->tv_sec--;
         }
-    } else {
+    }
+    else {
         // t0 <= t1 -> swap t0 and t1 and negate the result
-        ts.tv_sec = t1.tv_sec - t0.tv_sec;
-        ts.tv_nsec = t1.tv_nsec - t0.tv_nsec;
-        if (ts.tv_nsec < 0) {
+        res->tv_sec = t1->tv_sec - t0->tv_sec;
+        res->tv_nsec = t1->tv_nsec - t0->tv_nsec;
+        if (res->tv_nsec < 0) {
             // handle borrow
-            ts.tv_nsec += ONE_SECOND_IN_NANOS;
-            ts.tv_sec--;
+            res->tv_nsec += ONE_SECOND_IN_NANOS;
+            res->tv_sec--;
         }
-        if (ts.tv_sec != 0) {
-            ts.tv_sec = -ts.tv_sec;
+        if (res->tv_sec != 0) {
+            res->tv_sec = -res->tv_sec;
         } else {
-            ts.tv_nsec = -ts.tv_nsec;
+            res->tv_nsec = -res->tv_nsec;
         }
     }
 
     // Saturate on overflow
     // See Assembly Language and Systems Programming for the M68000 Family p41
-    if ((t0.tv_sec < 0 && t1.tv_sec >= 0 && ts.tv_sec >= 0) || (t0.tv_sec >= 0 && t1.tv_sec < 0 && ts.tv_sec < 0)) {
-        ts = (timespec_isneg(t0) && timespec_isneg(t1)) ? TIMESPEC_NEGINF : TIMESPEC_INF;
+    if ((t0->tv_sec < 0 && t1->tv_sec >= 0 && res->tv_sec >= 0)
+        || (t0->tv_sec >= 0 && t1->tv_sec < 0 && res->tv_sec < 0)) {
+        *res = (timespec_isneg(*t0) && timespec_isneg(*t1)) ? TIMESPEC_NEGINF : TIMESPEC_INF;
     }
-    
-    return ts;
 }

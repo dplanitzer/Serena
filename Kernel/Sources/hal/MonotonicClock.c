@@ -95,12 +95,12 @@ static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock)
 // achieve the desired delay. Eg context switch to another virtual processor.
 // Note that this function is only willing to block the caller for at most a
 // millisecond. Longer delays should be done via a scheduler wait().
-bool MonotonicClock_DelayUntil(struct timespec deadline)
+bool MonotonicClock_DelayUntil(const struct timespec* _Nonnull deadline)
 {
-    struct timespec t_start;
+    struct timespec t_start, t_delta;
     
     MonotonicClock_GetCurrentTime(&t_start);
-    const struct timespec t_delta = timespec_sub(deadline, t_start);
+    timespec_sub(deadline, &t_start, &t_delta);
     
     if (t_delta.tv_sec > 0 || (t_delta.tv_sec == 0 && t_delta.tv_nsec > 1000*1000)) {
         return false;
@@ -111,7 +111,7 @@ bool MonotonicClock_DelayUntil(struct timespec deadline)
         struct timespec t_cur;
         
         MonotonicClock_GetCurrentTime(&t_cur); 
-        if (timespec_gteq(t_cur, deadline)) {
+        if (timespec_gteq(t_cur, *deadline)) {
             return true;
         }
     }
@@ -145,14 +145,11 @@ Quantums Quantums_MakeFromTimespec(struct timespec* _Nonnull ts, int rounding)
 }
 
 // Converts a quantum value to a time interval.
-struct timespec Timespec_MakeFromQuantums(Quantums quants)
+void Timespec_MakeFromQuantums(struct timespec* _Nonnull ts, Quantums quants)
 {
     register MonotonicClock* pClock = gMonotonicClock;
     const int64_t ns = (int64_t)quants * (int64_t)pClock->ns_per_quantum;
-    const int32_t secs = ns / (int64_t)ONE_SECOND_IN_NANOS;
-    const int32_t nanos = ns - ((int64_t)secs * (int64_t)ONE_SECOND_IN_NANOS);
-    struct timespec ts;
-
-    timespec_from(&ts, secs, nanos);
-    return ts;
+    
+    ts->tv_sec = ns / (int64_t)ONE_SECOND_IN_NANOS;
+    ts->tv_nsec = ns - ((int64_t)ts->tv_sec * (int64_t)ONE_SECOND_IN_NANOS);
 }

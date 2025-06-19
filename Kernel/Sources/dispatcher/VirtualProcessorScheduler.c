@@ -549,6 +549,7 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull self
 {
     assert(VirtualProcessor_GetCurrent() == self->bootVirtualProcessor);
     List dead_vps;
+    struct timespec now, dly, deadline;
 
     while (true) {
         List_Init(&dead_vps);
@@ -556,12 +557,13 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull self
 
         // Continue to wait as long as there's nothing to finalize
         while (List_IsEmpty(&self->finalizer_queue)) {
-            struct timespec now, dly;
-
             MonotonicClock_GetCurrentTime(&now);
             timespec_from_sec(&dly, 1);
-            (void)VirtualProcessorScheduler_WaitOn(self, &self->scheduler_wait_queue,
-                                             timespec_add(now, dly), true);
+            timespec_add(&now, &dly, &deadline);
+            
+            (void)VirtualProcessorScheduler_WaitOn(self,
+                &self->scheduler_wait_queue,
+                deadline, true);
         }
         
         // Got some work to do. Save off the needed data in local vars and then

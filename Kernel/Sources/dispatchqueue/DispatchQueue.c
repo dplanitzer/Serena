@@ -703,7 +703,7 @@ static void DispatchQueue_RearmTimedItem_Locked(DispatchQueueRef _Nonnull self, 
     MonotonicClock_GetCurrentTime(&now);
     
     do  {
-        pItem->u.timer.deadline = timespec_add(pItem->u.timer.deadline, pItem->u.timer.interval);
+        timespec_add(&pItem->u.timer.deadline, &pItem->u.timer.interval, &pItem->u.timer.deadline);
     } while (timespec_ls(pItem->u.timer.deadline, now));
     
     DispatchQueue_AddTimedItem_Locked(self, pItem);
@@ -765,7 +765,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
                 deadline = ((WorkItem*)self->timer_queue.first)->u.timer.deadline;
             } else {
                 timespec_from_sec(&dly, 2);
-                deadline = timespec_add(now, dly);
+                timespec_add(&now, &dly, &deadline);
             }
 
 

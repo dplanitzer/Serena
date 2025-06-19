@@ -169,7 +169,7 @@ void HIDKeyRepeater_KeyDown(HIDKeyRepeaterRef _Nonnull self, HIDKeyCode keyCode)
         MonotonicClock_GetCurrentTime(&now);
         self->state = kState_InitialDelaying;
         self->keyCode = keyCode;
-        self->nextEventTime = timespec_add(now, self->initialKeyRepeatDelay);
+        timespec_add(&now, &self->initialKeyRepeatDelay, &self->nextEventTime);
     }
 }
 
@@ -200,7 +200,7 @@ void HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self)
                 HIDManager_ReportKeyboardDeviceChange(gHIDManager, kHIDKeyState_Repeat, self->keyCode);
                 
                 while (timespec_ls(self->nextEventTime, now)) {
-                    self->nextEventTime = timespec_add(self->nextEventTime, self->keyRepeatDelay);
+                    timespec_add(&self->nextEventTime, &self->keyRepeatDelay, &self->nextEventTime);
                 }
             }
             break;
@@ -210,7 +210,7 @@ void HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self)
                 HIDManager_ReportKeyboardDeviceChange(gHIDManager, kHIDKeyState_Repeat, self->keyCode);
                 
                 while (timespec_ls(self->nextEventTime, now)) {
-                    self->nextEventTime = timespec_add(self->nextEventTime, self->keyRepeatDelay);
+                    timespec_add(&self->nextEventTime, &self->keyRepeatDelay, &self->nextEventTime);
                 }
             }
             break;

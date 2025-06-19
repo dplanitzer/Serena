@@ -46,12 +46,13 @@ void dq_async_test(int argc, char *argv[])
 static void OnAsyncAfter(void* _Nonnull pValue)
 {
     int val = (int)pValue;
-    struct timespec ts, dly;
+    struct timespec now, dly, deadline;
 
     printf("%d\n", val);
-    clock_gettime(CLOCK_MONOTONIC, &ts);
+    clock_gettime(CLOCK_MONOTONIC, &now);
     timespec_from_ms(&dly, 500);
-    assertOK(dispatch_after(kDispatchQueue_Main, timespec_add(ts, dly), OnAsyncAfter, (void*)(val + 1), 0));
+    timespec_add(&now, &dly, &deadline);
+    assertOK(dispatch_after(kDispatchQueue_Main, deadline, OnAsyncAfter, (void*)(val + 1), 0));
 }
 
 void dq_async_after_test(int argc, char *argv[])

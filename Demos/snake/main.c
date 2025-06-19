@@ -266,10 +266,11 @@ static void game_loop(void* ctx)
     input();
     logic();
 
-    struct timespec ts, dly;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
+    struct timespec now, dly, deadline;
+    clock_gettime(CLOCK_MONOTONIC, &now);
     timespec_from_ms(&dly, 66);
-    dispatch_after(kDispatchQueue_Main, timespec_add(ts, dly), game_loop, NULL, 0);
+    timespec_add(&now, &dly, &deadline);
+    dispatch_after(kDispatchQueue_Main, deadline, game_loop, NULL, 0);
 }
 
 void main_closure(int argc, char *argv[])

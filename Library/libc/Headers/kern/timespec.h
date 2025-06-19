@@ -30,32 +30,23 @@
 (__ts)->tv_sec = (__seconds); \
 (__ts)->tv_nsec = (__nanoseconds)
 
-
 #define timespec_from_sec(__ts, __seconds) \
 (__ts)->tv_sec = (__seconds); \
 (__ts)->tv_nsec = 0l
-
 
 extern void timespec_from_ms(struct timespec* _Nonnull ts, mseconds_t millis);
 
 extern void timespec_from_us(struct timespec* _Nonnull ts, useconds_t micros);
 
 
-inline time_t timespec_sec(struct timespec ts) {
-    return ts.tv_sec;
-}
+#define timespec_sec(__ts) \
+(__ts)->tv_sec
 
-inline mseconds_t timespec_ms(struct timespec ts) {
-    return ts.tv_sec * 1000l + ts.tv_nsec / (1000l * 1000l);
-}
+extern mseconds_t timespec_ms(struct timespec* _Nonnull ts);
 
-inline useconds_t timespec_us(struct timespec ts) {
-    return ts.tv_sec * 1000l * 1000l + ts.tv_nsec / 1000l;
-}
+extern useconds_t timespec_us(struct timespec* _Nonnull ts);
 
-inline int64_t timespec_ns(struct timespec ts) {
-    return (int64_t)ts.tv_sec * 1000ll * 1000ll * 1000ll + (int64_t)ts.tv_nsec;
-}
+extern int64_t timespec_ns(struct timespec* _Nonnull ts);
 
 
 inline bool timespec_isneg(struct timespec ts) {
@@ -84,9 +75,9 @@ inline bool timespec_gteq(struct timespec t0, struct timespec t1) {
 }
 
 
-extern struct timespec timespec_add(struct timespec t0, struct timespec t1);
+extern void timespec_add(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res);
 
-extern struct timespec timespec_sub(struct timespec t0, struct timespec t1);
+extern void timespec_sub(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res);
 
 
 extern const struct timespec    TIMESPEC_ZERO;
