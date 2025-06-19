@@ -164,6 +164,7 @@ final_class_ivars(Console, Driver,
     int                         pixelsHeight;
     int                         textCursor;
     
+    struct timespec             cursorBlinkInterval;
     Color                       backgroundColor;
     Color                       foregroundColor;
     CharacterRendition          characterRendition;

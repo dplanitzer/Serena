@@ -15,6 +15,20 @@ const struct timespec   TIMESPEC_ZERO = {0l, 0l};
 const struct timespec   TIMESPEC_INF = {LONG_MAX, ONE_SECOND_IN_NANOS};
 const struct timespec   TIMESPEC_NEGINF = {LONG_MIN, ONE_SECOND_IN_NANOS};
 
+
+void timespec_from_ms(struct timespec* _Nonnull ts, mseconds_t millis)
+{
+    ts->tv_sec = millis / 1000l;
+    ts->tv_nsec = (millis - (ts->tv_sec * 1000l)) * 1000l * 1000l;
+}
+
+void timespec_from_us(struct timespec* _Nonnull ts, useconds_t micros)
+{
+    ts->tv_sec = micros / (1000l * 1000l);
+    ts->tv_nsec = (micros - (ts->tv_sec * 1000l * 1000l)) * 1000l;
+}
+
+
 struct timespec timespec_add(struct timespec t0, struct timespec t1)
 {
     struct timespec ts;

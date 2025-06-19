@@ -43,8 +43,8 @@ errno_t HIDKeyRepeater_Create(HIDKeyRepeaterRef _Nullable * _Nonnull pOutSelf)
     
     try(kalloc_cleared(sizeof(HIDKeyRepeater), (void**) &self));
     self->repeatersInUseCount = 0;
-    self->initialKeyRepeatDelay = timespec_from_ms(300);
-    self->keyRepeatDelay = timespec_from_ms(100);
+    timespec_from_ms(&self->initialKeyRepeatDelay, 300);
+    timespec_from_ms(&self->keyRepeatDelay, 100);
     self->state = kState_Idle;
 
     *pOutSelf = self;
@@ -164,9 +164,12 @@ static bool shouldAutoRepeatKeyCode(HIDKeyCode keyCode)
 void HIDKeyRepeater_KeyDown(HIDKeyRepeaterRef _Nonnull self, HIDKeyCode keyCode)
 {
     if (shouldAutoRepeatKeyCode(keyCode)) {
+        struct timespec now;
+
+        MonotonicClock_GetCurrentTime(&now);
         self->state = kState_InitialDelaying;
         self->keyCode = keyCode;
-        self->nextEventTime = timespec_add(MonotonicClock_GetCurrentTime(), self->initialKeyRepeatDelay);
+        self->nextEventTime = timespec_add(now, self->initialKeyRepeatDelay);
     }
 }
 
@@ -183,7 +186,9 @@ void HIDKeyRepeater_KeyUp(HIDKeyRepeaterRef _Nonnull self, HIDKeyCode keyCode)
 // generates and posts a new key down/repeat event if such an event is due.
 void HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self)
 {
-    const struct timespec now = MonotonicClock_GetCurrentTime();
+    struct timespec now;
+
+    MonotonicClock_GetCurrentTime(&now);
 
     switch (self->state) {
         case kState_Idle:

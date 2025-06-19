@@ -13,9 +13,11 @@
 errno_t KfsFilesystem_Create(KernFSRef _Nonnull kfs, ino_t inid, mode_t permissions, uid_t uid, gid_t gid, ino_t pnid, FilesystemRef _Nonnull fs, KfsNodeRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    const struct timespec curTime = FSGetCurrentTime();
+    struct timespec now;
     KfsFilesystemRef self;
 
+    FSGetCurrentTime(&now);
+    
     try(Inode_Create(
         class(KfsFilesystem),
         (FilesystemRef)kfs,
@@ -25,9 +27,9 @@ errno_t KfsFilesystem_Create(KernFSRef _Nonnull kfs, ino_t inid, mode_t permissi
         gid,
         1,
         8,
-        curTime,
-        curTime,
-        curTime,
+        &now,
+        &now,
+        &now,
         pnid,
         (InodeRef*)&self));
     self->instance = Object_RetainAs(fs, Filesystem);

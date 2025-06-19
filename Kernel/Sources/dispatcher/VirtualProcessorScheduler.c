@@ -81,8 +81,10 @@ void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull sdp
 errno_t VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull self)
 {
     decl_try_err();
-
-    self->quantums_per_quarter_second = Quantums_MakeFromTimespec(timespec_from_ms(250), QUANTUM_ROUNDING_AWAY_FROM_ZERO);
+    struct timespec ts;
+    
+    timespec_from_ms(&ts, 250);
+    self->quantums_per_quarter_second = Quantums_MakeFromTimespec(&ts, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
 
 
     // Resume the idle virtual processor
@@ -253,7 +255,7 @@ static void _arm_timeout(VirtualProcessorScheduler* _Nonnull self, VirtualProces
 // queue.
 static void VirtualProcessorScheduler_ArmTimeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp, struct timespec deadline)
 {
-    vp->timeout.deadline = Quantums_MakeFromTimespec(deadline, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
+    vp->timeout.deadline = Quantums_MakeFromTimespec(&deadline, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
     vp->timeout.is_valid = true;
     
     _arm_timeout(self, vp);
@@ -315,7 +317,10 @@ errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull sel
     // Put us on the timeout queue if a relevant timeout has been specified.
     // Note that we return immediately if we're already past the deadline
     if (timespec_ls(deadline, TIMESPEC_INF)) {
-        if (timespec_lseq(deadline, MonotonicClock_GetCurrentTime())) {
+        struct timespec now;
+
+        MonotonicClock_GetCurrentTime(&now);
+        if (timespec_lseq(deadline, now)) {
             return ETIMEDOUT;
         }
 
@@ -551,8 +556,12 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull self
 
         // Continue to wait as long as there's nothing to finalize
         while (List_IsEmpty(&self->finalizer_queue)) {
+            struct timespec now, dly;
+
+            MonotonicClock_GetCurrentTime(&now);
+            timespec_from_sec(&dly, 1);
             (void)VirtualProcessorScheduler_WaitOn(self, &self->scheduler_wait_queue,
-                                             timespec_add(MonotonicClock_GetCurrentTime(), timespec_from_sec(1)), true);
+                                             timespec_add(now, dly), true);
         }
         
         // Got some work to do. Save off the needed data in local vars and then

@@ -26,33 +26,19 @@
 // +/-infinity on overflow/underflow.
 
 
-inline struct timespec timespec_from(time_t seconds, long nanoseconds) {
-    struct timespec ts;
-    ts.tv_sec = seconds;
-    ts.tv_nsec = nanoseconds;
-    return ts;
-}
+#define timespec_from(__ts, __seconds, __nanoseconds) \
+(__ts)->tv_sec = (__seconds); \
+(__ts)->tv_nsec = (__nanoseconds)
 
-inline struct timespec timespec_from_sec(time_t seconds) {
-    struct timespec ts;
-    ts.tv_sec = seconds;
-    ts.tv_nsec = 0l;
-    return ts;
-}
 
-inline struct timespec timespec_from_ms(mseconds_t millis) {
-    struct timespec ts;
-    ts.tv_sec = millis / 1000l;
-    ts.tv_nsec = (millis - (ts.tv_sec * 1000l)) * 1000l * 1000l;
-    return ts;
-}
+#define timespec_from_sec(__ts, __seconds) \
+(__ts)->tv_sec = (__seconds); \
+(__ts)->tv_nsec = 0l
 
-inline struct timespec timespec_from_us(useconds_t micros) {
-    struct timespec ts;
-    ts.tv_sec = micros / (1000l * 1000l);
-    ts.tv_nsec = (micros - (ts.tv_sec * 1000l * 1000l)) * 1000l;
-    return ts;
-}
+
+extern void timespec_from_ms(struct timespec* _Nonnull ts, mseconds_t millis);
+
+extern void timespec_from_us(struct timespec* _Nonnull ts, useconds_t micros);
 
 
 inline time_t timespec_sec(struct timespec ts) {

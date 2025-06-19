@@ -31,7 +31,7 @@ extern errno_t MonotonicClock_CreateForLocalCPU(const struct SystemDescription* 
 extern Quantums MonotonicClock_GetCurrentQuantums(void);
 
 // Returns the current time of the clock in terms of microseconds.
-extern struct timespec MonotonicClock_GetCurrentTime(void);
+extern void MonotonicClock_GetCurrentTime(struct timespec* _Nonnull ts);
 
 // Blocks the caller until 'deadline'. Returns true if the function did the
 // necessary delay and false if the caller should do something else instead to
@@ -47,7 +47,7 @@ extern bool MonotonicClock_DelayUntil(struct timespec deadline);
 
 // Converts a timespec to a quantum value. The quantum value is rounded based
 // on the 'rounding' parameter.
-extern Quantums Quantums_MakeFromTimespec(struct timespec ti, int rounding);
+extern Quantums Quantums_MakeFromTimespec(struct timespec* _Nonnull ts, int rounding);
 
 // Converts a quantum value to a timespec.
 extern struct timespec Timespec_MakeFromQuantums(Quantums quants);

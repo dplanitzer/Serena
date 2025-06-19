@@ -16,7 +16,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    const struct timespec curTime = FSGetCurrentTime();
+    struct timespec now;
     ino_t parentInodeId = Inode_GetId(dir);
     blkno_t inodeLba = 0;
     blkno_t dirContLba = 0;
@@ -24,8 +24,9 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
     InodeRef pNode = NULL;
     FSBlock blk = {0};
 
-    try(SfsDirectory_CanAcceptEntry(dir, name, mode & S_IFMT));
+    FSGetCurrentTime(&now);
 
+    try(SfsDirectory_CanAcceptEntry(dir, name, mode & S_IFMT));
     try(SfsAllocator_Allocate(&self->blockAllocator, &inodeLba));
     
     if (S_ISDIR(mode)) {
@@ -52,8 +53,8 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
     try(FSContainer_MapBlock(fsContainer, inodeLba, kMapBlock_Cleared, &blk));
     sfs_inode_t* ip = (sfs_inode_t*)blk.data;
     ip->size = Int64_HostToBig(fileSize);
-    ip->accessTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
-    ip->accessTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
+    ip->accessTime.tv_sec = UInt32_HostToBig(now.tv_sec);
+    ip->accessTime.tv_nsec = UInt32_HostToBig(now.tv_nsec);
     ip->modificationTime.tv_sec = ip->accessTime.tv_sec;
     ip->modificationTime.tv_nsec = ip->accessTime.tv_nsec;
     ip->statusChangeTime.tv_sec = ip->accessTime.tv_sec;

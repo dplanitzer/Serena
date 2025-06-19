@@ -151,22 +151,22 @@ extern errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self);
 // Inode timestamps
 
 #define Inode_GetAccessTime(__self) \
-    ((InodeRef)__self)->accessTime
+    (&((InodeRef)__self)->accessTime)
 
 #define Inode_SetAccessTime(__self, __time) \
-    ((InodeRef)__self)->accessTime = (__time)
+    ((InodeRef)__self)->accessTime = *(__time)
 
 #define Inode_GetModificationTime(__self) \
-    ((InodeRef)__self)->modificationTime
+    (&((InodeRef)__self)->modificationTime)
 
 #define Inode_SetModificationTime(__self, __time) \
-    ((InodeRef)__self)->modificationTime = (__time)
+    ((InodeRef)__self)->modificationTime = *(__time)
 
 #define Inode_GetStatusChangeTime(__self) \
-    ((InodeRef)__self)->statusChangeTime
+    (&((InodeRef)__self)->statusChangeTime)
 
 #define Inode_SetStatusChangeTime(__self, __time) \
-    ((InodeRef)__self)->statusChangeTime = (__time)
+    ((InodeRef)__self)->statusChangeTime = *(__time)
 
 
 // Inode modified and timestamp changed flags
@@ -308,9 +308,9 @@ extern errno_t Inode_Create(Class* _Nonnull pClass,
     gid_t gid,
     int linkCount,
     off_t size,
-    struct timespec accessTime,
-    struct timespec modTime,
-    struct timespec statusChangeTime,
+    const struct timespec* _Nonnull accessTime,
+    const struct timespec* _Nonnull modTime,
+    const struct timespec* _Nonnull statusChangeTime,
     ino_t pnid,
     InodeRef _Nullable * _Nonnull pOutNode);
 extern void Inode_Destroy(InodeRef _Nonnull self);

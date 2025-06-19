@@ -71,7 +71,8 @@ int main(int argc, char* argv[])
         }
     }
 
-    struct timespec dur = timespec_from_ms(ms);
+    struct timespec dur;
+    timespec_from_ms(&dur, ms);
     clock_wait(CLOCK_MONOTONIC, &dur);
 
     return EXIT_SUCCESS;

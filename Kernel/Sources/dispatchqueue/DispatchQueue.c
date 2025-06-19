@@ -698,11 +698,13 @@ static void DispatchQueue_RearmTimedItem_Locked(DispatchQueueRef _Nonnull self, 
 {
     // Repeating timer: rearm it with the next fire date that's in
     // the future (the next fire date we haven't already missed).
-    const struct timespec curTime = MonotonicClock_GetCurrentTime();
+    struct timespec now;
+    
+    MonotonicClock_GetCurrentTime(&now);
     
     do  {
         pItem->u.timer.deadline = timespec_add(pItem->u.timer.deadline, pItem->u.timer.interval);
-    } while (timespec_ls(pItem->u.timer.deadline, curTime));
+    } while (timespec_ls(pItem->u.timer.deadline, now));
     
     DispatchQueue_AddTimedItem_Locked(self, pItem);
 }
@@ -724,7 +726,9 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
         
         // Wait for work items to arrive or for timers to fire
         while (true) {
-            const struct timespec now = MonotonicClock_GetCurrentTime();
+            struct timespec now;
+            
+            MonotonicClock_GetCurrentTime(&now);
 
             // Grab the first timer that's due. We give preference to timers because
             // they are tied to a specific deadline time while immediate work items
@@ -755,12 +759,13 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
 
             // Compute a deadline for the wait. We do not wait if the deadline
             // is equal to the current time or it's in the past
-            struct timespec deadline;
+            struct timespec deadline, dly;
 
             if (self->timer_queue.first) {
                 deadline = ((WorkItem*)self->timer_queue.first)->u.timer.deadline;
             } else {
-                deadline = timespec_add(now, timespec_from_sec(2));
+                timespec_from_sec(&dly, 2);
+                deadline = timespec_add(now, dly);
             }
 
 

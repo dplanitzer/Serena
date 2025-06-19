@@ -51,7 +51,7 @@ catch:
     return err;
 }
 
-struct timespec MonotonicClock_GetCurrentTime(void)
+void MonotonicClock_GetCurrentTime(struct timespec* _Nonnull ts)
 {
     register const MonotonicClock* pClock = gMonotonicClock;
     register time_t cur_secs;
@@ -73,7 +73,7 @@ struct timespec MonotonicClock_GetCurrentTime(void)
         // the time
     } while (pClock->current_quantum != chk_quantum);
 
-    return timespec_from(cur_secs, cur_nanos);
+    timespec_from(ts, cur_secs, cur_nanos);
 }
 
 static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock)
@@ -97,7 +97,9 @@ static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock)
 // millisecond. Longer delays should be done via a scheduler wait().
 bool MonotonicClock_DelayUntil(struct timespec deadline)
 {
-    const struct timespec t_start = MonotonicClock_GetCurrentTime();
+    struct timespec t_start;
+    
+    MonotonicClock_GetCurrentTime(&t_start);
     const struct timespec t_delta = timespec_sub(deadline, t_start);
     
     if (t_delta.tv_sec > 0 || (t_delta.tv_sec == 0 && t_delta.tv_nsec > 1000*1000)) {
@@ -106,8 +108,9 @@ bool MonotonicClock_DelayUntil(struct timespec deadline)
     
     // Just spin for now (would be nice to put the CPU to sleep though for a few micros before rechecking the time or so)
     for (;;) {
-        const struct timespec t_cur = MonotonicClock_GetCurrentTime();
+        struct timespec t_cur;
         
+        MonotonicClock_GetCurrentTime(&t_cur); 
         if (timespec_gteq(t_cur, deadline)) {
             return true;
         }
@@ -119,10 +122,10 @@ bool MonotonicClock_DelayUntil(struct timespec deadline)
 
 // Converts a time interval to a quantum value. The quantum value is rounded
 // based on the 'rounding' parameter.
-Quantums Quantums_MakeFromTimespec(struct timespec ti, int rounding)
+Quantums Quantums_MakeFromTimespec(struct timespec* _Nonnull ts, int rounding)
 {
     register MonotonicClock* pClock = gMonotonicClock;
-    const int64_t nanos = (int64_t)ti.tv_sec * (int64_t)ONE_SECOND_IN_NANOS + (int64_t)ti.tv_nsec;
+    const int64_t nanos = (int64_t)ts->tv_sec * (int64_t)ONE_SECOND_IN_NANOS + (int64_t)ts->tv_nsec;
     const int64_t quants = nanos / (int64_t)pClock->ns_per_quantum;
     
     switch (rounding) {
@@ -148,6 +151,8 @@ struct timespec Timespec_MakeFromQuantums(Quantums quants)
     const int64_t ns = (int64_t)quants * (int64_t)pClock->ns_per_quantum;
     const int32_t secs = ns / (int64_t)ONE_SECOND_IN_NANOS;
     const int32_t nanos = ns - ((int64_t)secs * (int64_t)ONE_SECOND_IN_NANOS);
-    
-    return timespec_from(secs, nanos);
+    struct timespec ts;
+
+    timespec_from(&ts, secs, nanos);
+    return ts;
 }

@@ -263,7 +263,7 @@ SYSCALL_2(clock_gettime, int clock, struct timespec* _Nonnull time)
         return ENODEV;
     }
 
-    *(pa->time) = MonotonicClock_GetCurrentTime();
+    MonotonicClock_GetCurrentTime(pa->time);
     return EOK;
 }
 

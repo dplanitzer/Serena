@@ -104,7 +104,10 @@ static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
 
 static void fdc_1us_wait(void)
 {
-    VirtualProcessor_Sleep(timespec_from_us(1));
+    struct timespec ts_1us;
+
+    timespec_from_us(&ts_1us, 1);
+    VirtualProcessor_Sleep(ts_1us);
 }
 
 static errno_t FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked self)
@@ -345,7 +348,9 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     // Select the drive and turn off the DMA
     *CIA_REG_8(ciab, CIA_PRB) = cb;
     *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;
-    VirtualProcessor_Sleep(timespec_from_us(1000));
+    struct timespec ts_1ms;
+    timespec_from_us(&ts_1ms, 1000);
+    VirtualProcessor_Sleep(ts_1ms);
 
 
     // Check for disk change
@@ -391,8 +396,11 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 
 
     // Wait for the DMA to complete
-    const struct timespec now = MonotonicClock_GetCurrentTime();
-    const struct timespec deadline = timespec_add(now, timespec_from_ms(500));
+    struct timespec now, dly;
+    
+    MonotonicClock_GetCurrentTime(&now);
+    timespec_from_ms(&dly, 500);
+    const struct timespec deadline = timespec_add(now, dly);
     err = Semaphore_Acquire(&self->done, deadline);
 
 
@@ -417,7 +425,10 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 
     // Wait for everything to settle if we just completed a write
     if (bWrite) {
-        VirtualProcessor_Sleep(timespec_from_us(2000));
+        struct timespec ts_2ms;
+
+        timespec_from_us(&ts_2ms, 2000);
+        VirtualProcessor_Sleep(ts_2ms);
     }
 
 

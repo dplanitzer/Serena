@@ -37,8 +37,9 @@ static void alloc_bmp_mark_used(uint8_t *bitmap, blkno_t lba, bool inUse)
 errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt_t blockCount, size_t blockSize, uid_t uid, gid_t gid, mode_t permissions, const char* _Nonnull label)
 {
     decl_try_err();
-    const struct timespec curTime = FSGetCurrentTime();
+    struct timespec now;
 
+    FSGetCurrentTime(&now);
 
     // Make sure that the disk is compatible with our FS
     if (!FSIsPowerOf2(blockSize)) {
@@ -84,10 +85,10 @@ errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt
     vhp->signature = UInt32_HostToBig(kSFSSignature_SerenaFS);
     vhp->version = UInt32_HostToBig(kSFSVersion_Current);
     vhp->attributes = UInt32_HostToBig(0);
-    vhp->creationTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
-    vhp->creationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
-    vhp->modificationTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
-    vhp->modificationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
+    vhp->creationTime.tv_sec = UInt32_HostToBig(now.tv_sec);
+    vhp->creationTime.tv_nsec = UInt32_HostToBig(now.tv_nsec);
+    vhp->modificationTime.tv_sec = UInt32_HostToBig(now.tv_sec);
+    vhp->modificationTime.tv_nsec = UInt32_HostToBig(now.tv_nsec);
     vhp->volBlockSize = UInt32_HostToBig(blockSize);
     vhp->volBlockCount = UInt32_HostToBig(blockCount);
     vhp->allocBitmapByteSize = UInt32_HostToBig(allocationBitmapByteSize);
@@ -123,12 +124,12 @@ errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt
     sfs_inode_t* ip = (sfs_inode_t*)bp;
     memset(ip, 0, blockSize);
     ip->size = Int64_HostToBig(2 * sizeof(sfs_dirent_t));
-    ip->accessTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
-    ip->accessTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
-    ip->modificationTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
-    ip->modificationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
-    ip->statusChangeTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
-    ip->statusChangeTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
+    ip->accessTime.tv_sec = UInt32_HostToBig(now.tv_sec);
+    ip->accessTime.tv_nsec = UInt32_HostToBig(now.tv_nsec);
+    ip->modificationTime.tv_sec = UInt32_HostToBig(now.tv_sec);
+    ip->modificationTime.tv_nsec = UInt32_HostToBig(now.tv_nsec);
+    ip->statusChangeTime.tv_sec = UInt32_HostToBig(now.tv_sec);
+    ip->statusChangeTime.tv_nsec = UInt32_HostToBig(now.tv_nsec);
     ip->signature = UInt32_HostToBig(kSFSSignature_Inode);
     ip->id = UInt32_HostToBig(rootDirLba);
     ip->pnid = UInt32_HostToBig(rootDirLba);

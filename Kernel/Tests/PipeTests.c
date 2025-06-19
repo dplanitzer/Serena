@@ -55,9 +55,12 @@ static void OnReadFromPipe(int fd)
 {
     char buf[16];
     size_t nBytesToRead = sizeof(buf);
+    struct timespec dly;
     
+    timespec_from_ms(&dly, 200);
+
     while (true) {
-        //VirtualProcessor_Sleep(timespec_from_ms(200));
+        //VirtualProcessor_Sleep(dly);
         buf[0] = '\0';
         const ssize_t nBytesRead = read(fd, buf, nBytesToRead);
         assertGreaterEqual(0, nBytesRead);
@@ -71,7 +74,9 @@ static void OnWriteToPipe(int fd)
 {
     const char* bytes = "Hello";
     size_t nBytesToWrite = strlen(bytes);
-    struct timespec dur = timespec_from_ms(20);
+    struct timespec dur;
+    
+    timespec_from_ms(&dur, 20);
     
     while (true) {
         clock_wait(CLOCK_MONOTONIC, &dur);

@@ -131,7 +131,7 @@ void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const 
 
     HIDEvent* pEvent = &self->data[self->writeIdx++ & self->capacityMask];
     pEvent->type = type;
-    pEvent->eventTime = MonotonicClock_GetCurrentTime();
+    MonotonicClock_GetCurrentTime(&pEvent->eventTime);
     pEvent->data = *pEventData;
     cpu_restore_irqs(irs);
 

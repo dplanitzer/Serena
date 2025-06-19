@@ -350,8 +350,10 @@ _Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull self)
 // Sleep for the given number of seconds.
 errno_t VirtualProcessor_Sleep(struct timespec delay)
 {
-    const struct timespec curTime = MonotonicClock_GetCurrentTime();
-    const struct timespec deadline = timespec_add(curTime, delay);
+    struct timespec now;
+    
+    MonotonicClock_GetCurrentTime(&now);
+    const struct timespec deadline = timespec_add(now, delay);
 
     
     // Use the DelayUntil() facility for short waits and context switching for medium and long waits

@@ -24,7 +24,7 @@
 
 // Returns the current time. This time value is suitable for use as a timestamp
 // for filesystem objects.
-extern struct timespec FSGetCurrentTime(void);
+extern void FSGetCurrentTime(struct timespec* _Nonnull ts);
 
 
 // Allocates a memory block. Note that the allocated block is not cleared.

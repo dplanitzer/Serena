@@ -46,7 +46,9 @@ static void select_and_write_pattern(void)
     char* dst = gCurrentPattern;
     const char* src = gAvailablePattern[gCurrentPatternIndex];
     size_t len = strlen(src) + 1;
-    struct timespec dl = timespec_from_ms(4);
+    struct timespec dl;
+    
+    timespec_from_ms(&dl, 4);
 
     while (len > 0) {
         const size_t nBytesToCopy = __min(len, 4);

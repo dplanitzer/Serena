@@ -82,6 +82,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
 
     // Allocate the text cursor blinking timer
+    timespec_from_ms(&self->cursorBlinkInterval, 500);
     self->flags.isTextCursorBlinkerEnabled = false;
     self->flags.isTextCursorOn = false;
     self->flags.isTextCursorSingleCycleOn = false;
@@ -155,7 +156,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _
         if (self->flags.isTextCursorBlinkerEnabled) {
             try_bang(DispatchQueue_DispatchAsyncPeriodically(self->dispatchQueue, 
                 TIMESPEC_ZERO,
-                timespec_from_ms(500),
+                self->cursorBlinkInterval,
                 (VoidFunc_1)Console_OnTextCursorBlink,
                 self,
                 CURSOR_BLINKER_TAG));

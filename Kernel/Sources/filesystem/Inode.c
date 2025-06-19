@@ -19,7 +19,10 @@ typedef void (*deinit_impl_t)(void* _Nonnull self);
 
 errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, ino_t id,
     mode_t mode, uid_t uid, gid_t gid, int linkCount,
-    off_t size, struct timespec accessTime, struct timespec modTime, struct timespec statusChangeTime,
+    off_t size,
+    const struct timespec* _Nonnull accessTime,
+    const struct timespec* _Nonnull modTime,
+    const struct timespec* _Nonnull statusChangeTime,
     ino_t pnid,
     InodeRef _Nullable * _Nonnull pOutNode)
 {
@@ -32,9 +35,9 @@ errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, ino_t i
         self->state = kInodeState_Reading;
 
         Lock_Init(&self->lock);
-        self->accessTime = accessTime;
-        self->modificationTime = modTime;
-        self->statusChangeTime = statusChangeTime;
+        self->accessTime = *accessTime;
+        self->modificationTime = *modTime;
+        self->statusChangeTime = *statusChangeTime;
         self->size = size;
         self->filesystem = pFS;
         self->inid = id;
@@ -145,24 +148,24 @@ errno_t Inode_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, I
 
 void Inode_getInfo(InodeRef _Nonnull _Locked self, struct stat* _Nonnull pi)
 {
-    struct timespec curTime;
+    struct timespec now;
 
     if (Inode_IsModified(self)) {
-        curTime = FSGetCurrentTime();
+        FSGetCurrentTime(&now);
     }
 
     if (Inode_IsAccessed(self)) {
-        pi->st_atim = curTime;
+        pi->st_atim = now;
     } else {
         pi->st_atim = self->accessTime;
     }
     if (Inode_IsUpdated(self)) {
-        pi->st_mtim = curTime;
+        pi->st_mtim = now;
     } else {
         pi->st_mtim = self->modificationTime;
     }
     if (Inode_IsStatusChanged(self)) {
-        pi->st_ctim = curTime;
+        pi->st_ctim = now;
     } else {
         pi->st_ctim = self->statusChangeTime;
     }
@@ -207,7 +210,7 @@ void Inode_setTimes(InodeRef _Nonnull _Locked self, const struct timespec times[
             self->accessTime = times[UTIME_ACCESS];
         }
         else {
-            self->accessTime = FSGetCurrentTime();
+            FSGetCurrentTime(&self->accessTime);
         }
     }
     if (mod_ns != UTIME_OMIT) {
@@ -215,7 +218,7 @@ void Inode_setTimes(InodeRef _Nonnull _Locked self, const struct timespec times[
             self->modificationTime = times[UTIME_MODIFICATION];
         }
         else {
-            self->modificationTime = FSGetCurrentTime();
+            FSGetCurrentTime(&self->modificationTime);
         }
     }
     Inode_SetModified(self, kInodeFlag_StatusChanged);

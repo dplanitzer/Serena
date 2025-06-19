@@ -47,12 +47,15 @@ void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
 {
     Lock_Lock(&self->interlock);
     if (s->isOpen) {
+        struct timespec dly;
+
+        timespec_from_ms(&dly, 1);
         while (s->activeMappingsCount > 0) {
             // XXX would be nice to rely on the existing condition variable.
             // XXX however we don't want to have to introduce extra calls on it
             // XXX since unmap() calls happen a lot more than session closes. 
             Lock_Unlock(&self->interlock);
-            VirtualProcessor_Sleep(timespec_from_ms(1));
+            VirtualProcessor_Sleep(dly);
             Lock_Lock(&self->interlock);
         }
 

@@ -67,15 +67,11 @@ void fatal(const char* _Nonnull fmt, ...)
 
 // Returns the current time. This time value is suitable for use as a timestamp
 // for filesystem objects.
-struct timespec FSGetCurrentTime(void)
+void FSGetCurrentTime(struct timespec* _Nonnull ts)
 {
     // XXX consider switching to the clock API for more precision
-    struct timespec ts;
-
-    ts.tv_sec = time(NULL);
-    ts.tv_nsec = 0;
-
-    return ts;
+    ts->tv_sec = time(NULL);
+    ts->tv_nsec = 0;
 }
 
 bool FSIsPowerOf2(size_t n)

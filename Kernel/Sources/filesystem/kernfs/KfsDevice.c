@@ -13,9 +13,11 @@
 errno_t KfsDevice_Create(KernFSRef _Nonnull fs, ino_t inid, mode_t permissions, uid_t uid, gid_t gid, ino_t pnid, DriverRef _Nonnull pDriver, intptr_t arg, KfsNodeRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    const struct timespec curTime = FSGetCurrentTime();
+    struct timespec now;
     KfsDeviceRef self;
 
+    FSGetCurrentTime(&now);
+    
     try(Inode_Create(
         class(KfsDevice),
         (FilesystemRef)fs,
@@ -25,9 +27,9 @@ errno_t KfsDevice_Create(KernFSRef _Nonnull fs, ino_t inid, mode_t permissions, 
         gid,
         1,
         8,
-        curTime,
-        curTime,
-        curTime,
+        &now,
+        &now,
+        &now,
         pnid,
         (InodeRef*)&self));
     self->instance = Object_RetainAs(pDriver, Driver);

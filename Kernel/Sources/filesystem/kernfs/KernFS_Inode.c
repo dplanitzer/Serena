@@ -113,16 +113,18 @@ errno_t KernFS_onAcquireNode(KernFSRef _Nonnull self, ino_t inid, InodeRef _Null
 errno_t KernFS_onWritebackNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
     if (Inode_IsModified(pNode)) {
-        const struct timespec curTime = FSGetCurrentTime();
+        struct timespec now;
+        
+        FSGetCurrentTime(&now);
 
         if (Inode_IsAccessed(pNode)) {
-            Inode_SetAccessTime(pNode, curTime);
+            Inode_SetAccessTime(pNode, &now);
         }
         if (Inode_IsUpdated(pNode)) {
-            Inode_SetModificationTime(pNode, curTime);
+            Inode_SetModificationTime(pNode, &now);
         }
         if (Inode_IsStatusChanged(pNode)) {
-            Inode_SetStatusChangeTime(pNode, curTime);
+            Inode_SetStatusChangeTime(pNode, &now);
         }
     }
 

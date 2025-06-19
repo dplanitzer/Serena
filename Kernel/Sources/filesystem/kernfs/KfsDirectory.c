@@ -16,9 +16,11 @@
 errno_t KfsDirectory_Create(KernFSRef _Nonnull fs, ino_t inid, mode_t permissions, uid_t uid, gid_t gid, ino_t pnid, KfsNodeRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    const struct timespec curTime = FSGetCurrentTime();
+    struct timespec now;
     KfsDirectoryRef self;
 
+    FSGetCurrentTime(&now);
+    
     try(Inode_Create(
         class(KfsDirectory),
         (FilesystemRef)fs,
@@ -28,9 +30,9 @@ errno_t KfsDirectory_Create(KernFSRef _Nonnull fs, ino_t inid, mode_t permission
         gid,
         1,
         0ll,
-        curTime,
-        curTime,
-        curTime,
+        &now,
+        &now,
+        &now,
         pnid,
         (InodeRef*)&self));
     try(KfsDirectory_InsertEntry(self, inid, false, &kPathComponent_Self));
