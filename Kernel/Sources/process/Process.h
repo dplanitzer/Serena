@@ -89,7 +89,7 @@ extern errno_t Process_DispatchUserClosure(ProcessRef _Nonnull self, int od, Voi
 
 // Dispatches the execution of the given user closure on the given dispatch queue
 // after the given deadline.
-extern errno_t Process_DispatchUserTimer(ProcessRef _Nonnull self, int od, struct timespec deadline, struct timespec interval, VoidFunc_1 _Nonnull func, void* _Nullable ctx, uintptr_t tag);
+extern errno_t Process_DispatchUserTimer(ProcessRef _Nonnull self, int od, const struct timespec* _Nonnull deadline, const struct timespec* _Nonnull interval, VoidFunc_1 _Nonnull func, void* _Nullable ctx, uintptr_t tag);
 
 extern errno_t Process_DispatchRemoveByTag(ProcessRef _Nonnull self, int od, uintptr_t tag);
 
@@ -114,7 +114,7 @@ extern errno_t Process_WakeUConditionVariable(ProcessRef _Nonnull self, int od, 
 // wait has timed out. Automatically and atomically acquires the associated
 // lock on wakeup. An ETIMEOUT error is returned if the condition variable is
 // not signaled before 'deadline'.
-extern errno_t Process_WaitUConditionVariable(ProcessRef _Nonnull self, int od, int dLock, struct timespec deadline);
+extern errno_t Process_WaitUConditionVariable(ProcessRef _Nonnull self, int od, int dLock, const struct timespec* _Nonnull deadline);
 
 
 // Creates a new ULock and binds it to the process.

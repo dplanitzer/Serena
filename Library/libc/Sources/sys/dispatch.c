@@ -21,12 +21,12 @@ int dispatch_async(int od, dispatch_func_t _Nonnull func, void* _Nullable contex
     return _syscall(SC_disp_schedule, od, func, context, (uint32_t)0, 0);
 }
 
-int dispatch_after(int od, struct timespec deadline, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag)
+int dispatch_after(int od, const struct timespec* _Nonnull deadline, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
-    return _syscall(SC_disp_timer, od, deadline, TIMESPEC_ZERO, func, context, tag);
+    return _syscall(SC_disp_timer, od, deadline, &TIMESPEC_ZERO, func, context, tag);
 }
 
-int dispatch_periodically(int od, struct timespec deadline, struct timespec interval, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag)
+int dispatch_periodically(int od, const struct timespec* _Nonnull deadline, const struct timespec* _Nonnull interval, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
     return _syscall(SC_disp_timer, od, deadline, interval, func, context, tag);
 }

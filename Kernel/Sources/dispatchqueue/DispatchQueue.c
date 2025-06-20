@@ -123,7 +123,7 @@ void DispatchQueue_WaitForTerminationCompleted(DispatchQueueRef _Nonnull self)
 {
     Lock_Lock(&self->lock);
     while (self->availableConcurrency > 0) {
-        ConditionVariable_Wait(&self->vp_shutdown_signaler, &self->lock, TIMESPEC_INF);
+        ConditionVariable_Wait(&self->vp_shutdown_signaler, &self->lock, &TIMESPEC_INF);
     }
 
 
@@ -587,15 +587,15 @@ catch:
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible. The
 // timer can be referenced with the tag 'tag'.
-errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, struct timespec deadline, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag)
+errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, const struct timespec* _Nonnull deadline, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
-    return DispatchQueue_DispatchTimer(self, deadline, TIMESPEC_ZERO, (VoidFunc_2)func, context, NULL, 0, 0, tag);
+    return DispatchQueue_DispatchTimer(self, deadline, &TIMESPEC_ZERO, (VoidFunc_2)func, context, NULL, 0, 0, tag);
 }
 
 // Asynchronously executes the given closure every 'interval' seconds, on or
 // after 'deadline' until the timer is removed from the dispatch queue. The
 // timer can be referenced with the tag 'tag'.
-errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, struct timespec deadline, struct timespec interval, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag)
+errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, const struct timespec* _Nonnull deadline, const struct timespec* _Nonnull interval, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
     return DispatchQueue_DispatchTimer(self, deadline, interval, (VoidFunc_2)func, context, NULL, 0, 0, tag);
 }
@@ -603,7 +603,7 @@ errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, 
 // Similar to 'DispatchClosure'. However the function will execute on or after
 // 'deadline'. If 'interval' is not 0 or infinity, then the function will execute
 // every 'interval' ticks until the timer is removed from the queue.
-errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, struct timespec deadline, struct timespec interval, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes, uint32_t options, uintptr_t tag)
+errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, const struct timespec* _Nonnull deadline, const struct timespec* _Nonnull interval, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes, uint32_t options, uintptr_t tag)
 {
     decl_try_err();
     WorkItem* pItem = NULL;
@@ -633,11 +633,11 @@ errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, struct times
 
     try(DispatchQueue_AcquireWorkItem_Locked(self, func, context, args, nArgBytes, tag, &pItem));
 
-    pItem->u.timer.deadline = deadline;
-    pItem->u.timer.interval = interval;
+    pItem->u.timer.deadline = *deadline;
+    pItem->u.timer.interval = *interval;
     pItem->flags |= kWorkItemFlag_Timer;
 
-    if (timespec_gt(&interval, &TIMESPEC_ZERO) && !timespec_eq(&interval, &TIMESPEC_INF)) {
+    if (timespec_gt(interval, &TIMESPEC_ZERO) && !timespec_eq(interval, &TIMESPEC_INF)) {
         pItem->flags |= kWorkItemFlag_IsRepeating;
     }
 
@@ -774,7 +774,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
             // new work has arrived in the meantime or if not then we are free
             // to relinquish the VP since it hasn't done anything useful for a
             // longer time.
-            const int err = ConditionVariable_Wait(&self->work_available_signaler, &self->lock, deadline);
+            const int err = ConditionVariable_Wait(&self->work_available_signaler, &self->lock, &deadline);
             if (err == ETIMEDOUT && self->availableConcurrency > self->minConcurrency) {
                 mayRelinquish = true;
             }

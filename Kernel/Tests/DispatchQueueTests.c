@@ -52,7 +52,7 @@ static void OnAsyncAfter(void* _Nonnull pValue)
     clock_gettime(CLOCK_MONOTONIC, &now);
     timespec_from_ms(&dly, 500);
     timespec_add(&now, &dly, &deadline);
-    assertOK(dispatch_after(kDispatchQueue_Main, deadline, OnAsyncAfter, (void*)(val + 1), 0));
+    assertOK(dispatch_after(kDispatchQueue_Main, &deadline, OnAsyncAfter, (void*)(val + 1), 0));
 }
 
 void dq_async_after_test(int argc, char *argv[])

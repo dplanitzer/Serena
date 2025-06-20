@@ -136,7 +136,7 @@ static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
     if (err == EOK) {
         self->flags.isOnline = 1;
         _FloppyDriver_doSenseDisk(self);
-        DispatchQueue_DispatchAsyncPeriodically(DiskDriver_GetDispatchQueue(self), TIMESPEC_ZERO, interval, (VoidFunc_1)FloppyDriver_CheckDiskChange, self, kDiskChangeCheckTag);
+        DispatchQueue_DispatchAsyncPeriodically(DiskDriver_GetDispatchQueue(self), &TIMESPEC_ZERO, &interval, (VoidFunc_1)FloppyDriver_CheckDiskChange, self, kDiskChangeCheckTag);
     }
     else {
         self->flags.isOnline = 0;
@@ -257,7 +257,7 @@ static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self)
     timespec_from_sec(&dly, 4);
     timespec_add(&now, &dly, &deadline);
     DispatchQueue_DispatchAsyncAfter(DiskDriver_GetDispatchQueue(self),
-            deadline,
+            &deadline,
             (VoidFunc_1)FloppyDriver_MotorOff,
             self,
             kDelayedMotorOffTag);

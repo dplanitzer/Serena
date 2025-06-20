@@ -38,13 +38,13 @@ extern int dispatch_async(int od, dispatch_func_t _Nonnull func, void* _Nullable
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible.
 // @Concurrency: Safe
-extern int dispatch_after(int od, struct timespec deadline, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
+extern int dispatch_after(int od, const struct timespec* _Nonnull deadline, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible. The
 // closure will be executed repeatedly every 'interval' duration until removed.
 // @Concurrency: Safe
-extern int dispatch_periodically(int od, struct timespec deadline, struct timespec interval, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
+extern int dispatch_periodically(int od, const struct timespec* _Nonnull deadline, const struct timespec* _Nonnull interval, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
 
 
 // Removes all scheduled instances of timers and immediate work items with tag

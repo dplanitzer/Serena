@@ -116,17 +116,17 @@ extern errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, Voi
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible. The
 // timer can be referenced with the tag 'tag'.
-extern errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, struct timespec deadline, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag);
+extern errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, const struct timespec* _Nonnull deadline, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag);
 
 // Asynchronously executes the given closure every 'interval' seconds, on or
 // after 'deadline' until the timer is removed from the dispatch queue. The
 // timer can be referenced with the tag 'tag'.
-extern errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, struct timespec deadline, struct timespec interval, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag);
+extern errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, const struct timespec* _Nonnull deadline, const struct timespec* _Nonnull interval, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag);
 
 // Similar to 'DispatchClosure'. However the function will execute on or after
 // 'deadline'. If 'interval' is not 0 or infinity, then the function will execute
 // every 'interval' ticks until the timer is removed from the queue.
-extern errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, struct timespec deadline, struct timespec interval, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes, uint32_t options, uintptr_t tag);
+extern errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, const struct timespec* _Nonnull deadline, const struct timespec* _Nonnull interval, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes, uint32_t options, uintptr_t tag);
 
 
 // Removes all scheduled instances of timers and immediate work items with tag

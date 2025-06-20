@@ -130,7 +130,7 @@ errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull self, pid_t pid, s
 
 
         // Wait for a child to terminate
-        try(ConditionVariable_Wait(&self->tombstoneSignaler, &self->lock, TIMESPEC_INF));
+        try(ConditionVariable_Wait(&self->tombstoneSignaler, &self->lock, &TIMESPEC_INF));
     }
 
 catch:

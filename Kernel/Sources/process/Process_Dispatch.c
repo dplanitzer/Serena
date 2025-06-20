@@ -48,7 +48,7 @@ errno_t Process_WakeUConditionVariable(ProcessRef _Nonnull self, int odCV, int o
 // wait has timed out. Automatically and atomically acquires the associated
 // lock on wakeup. An ETIMEOUT error is returned if the condition variable is
 // not signaled before 'deadline'.
-errno_t Process_WaitUConditionVariable(ProcessRef _Nonnull self, int odCV, int odLock, struct timespec deadline)
+errno_t Process_WaitUConditionVariable(ProcessRef _Nonnull self, int odCV, int odLock, const struct timespec* _Nonnull deadline)
 {
     decl_try_err();
     UConditionVariableRef pCV = NULL;

@@ -155,8 +155,8 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _
 
         if (self->flags.isTextCursorBlinkerEnabled) {
             try_bang(DispatchQueue_DispatchAsyncPeriodically(self->dispatchQueue, 
-                TIMESPEC_ZERO,
-                self->cursorBlinkInterval,
+                &TIMESPEC_ZERO,
+                &self->cursorBlinkInterval,
                 (VoidFunc_1)Console_OnTextCursorBlink,
                 self,
                 CURSOR_BLINKER_TAG));

@@ -80,7 +80,7 @@ errno_t _DiskCache_LockBlockContent(DiskCacheRef _Nonnull _Locked self, DiskBloc
                 break;
         }
 
-        err = ConditionVariable_Wait(&self->condition, &self->interlock, TIMESPEC_INF);
+        err = ConditionVariable_Wait(&self->condition, &self->interlock, &TIMESPEC_INF);
         if (err != EOK) {
             break;
         }
@@ -121,7 +121,7 @@ errno_t _DiskCache_UpgradeBlockContentLock(DiskCacheRef _Nonnull _Locked self, D
     assert(pBlock->shareCount > 0);
 
     while (pBlock->shareCount > 1 && pBlock->flags.exclusive) {
-        err = ConditionVariable_Wait(&self->condition, &self->interlock, TIMESPEC_INF);
+        err = ConditionVariable_Wait(&self->condition, &self->interlock, &TIMESPEC_INF);
         if (err != EOK) {
             return err;
         }
@@ -289,7 +289,7 @@ errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, const DiskSessio
                 break;
             }
 
-            try_bang(ConditionVariable_Wait(&self->condition, &self->interlock, TIMESPEC_INF));
+            try_bang(ConditionVariable_Wait(&self->condition, &self->interlock, &TIMESPEC_INF));
         }
     }
 

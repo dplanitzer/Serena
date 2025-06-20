@@ -276,5 +276,5 @@ static void _FilesystemManager_ScheduleAutoSync(FilesystemManagerRef _Nonnull se
     struct timespec interval;
 
     timespec_from_sec(&interval, 30);
-    try_bang(DispatchQueue_DispatchAsyncPeriodically(self->dispatchQueue, TIMESPEC_ZERO, interval, (VoidFunc_1) _FilesystemManager_DoBgWork, self, 0));
+    try_bang(DispatchQueue_DispatchAsyncPeriodically(self->dispatchQueue, &TIMESPEC_ZERO, &interval, (VoidFunc_1) _FilesystemManager_DoBgWork, self, 0));
 }

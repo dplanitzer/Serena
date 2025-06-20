@@ -64,7 +64,7 @@ errno_t Process_DispatchUserClosure(ProcessRef _Nonnull self, int od, VoidFunc_2
 
 // Dispatches the execution of the given user closure on the given dispatch queue
 // after the given deadline.
-errno_t Process_DispatchUserTimer(ProcessRef _Nonnull self, int od, struct timespec deadline, struct timespec interval, VoidFunc_1 _Nonnull func, void* _Nullable ctx, uintptr_t tag)
+errno_t Process_DispatchUserTimer(ProcessRef _Nonnull self, int od, const struct timespec* _Nonnull deadline, const struct timespec* _Nonnull interval, VoidFunc_1 _Nonnull func, void* _Nullable ctx, uintptr_t tag)
 {
     decl_try_err();
     UDispatchQueueRef pQueue;

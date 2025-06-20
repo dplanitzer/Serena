@@ -272,7 +272,7 @@ SYSCALL_5(dispatch, int od, const VoidFunc_2 _Nonnull func, void* _Nullable ctx,
     return Process_DispatchUserClosure((ProcessRef)p, pa->od, pa->func, pa->ctx, pa->options, pa->tag);
 }
 
-SYSCALL_6(dispatch_timer, int od, struct timespec deadline, struct timespec interval, const VoidFunc_1 _Nonnull func, void* _Nullable ctx, uintptr_t tag)
+SYSCALL_6(dispatch_timer, int od, const struct timespec* _Nonnull deadline, const struct timespec* _Nonnull interval, const VoidFunc_1 _Nonnull func, void* _Nullable ctx, uintptr_t tag)
 {
     return Process_DispatchUserTimer((ProcessRef)p, pa->od, pa->deadline, pa->interval, pa->func, pa->ctx, pa->tag);
 }
@@ -305,7 +305,7 @@ SYSCALL_3(cond_wake, int od, int dlock, unsigned int options)
 
 SYSCALL_3(cond_timedwait, int od, int dlock, const struct timespec* _Nullable deadline)
 {
-    const struct timespec ts = (pa->deadline) ? *(pa->deadline) : TIMESPEC_INF;
+    const struct timespec* ts = (pa->deadline) ? pa->deadline : &TIMESPEC_INF;
 
     return Process_WaitUConditionVariable((ProcessRef)p, pa->od, pa->dlock, ts);
 }

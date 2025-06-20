@@ -270,7 +270,7 @@ static void game_loop(void* ctx)
     clock_gettime(CLOCK_MONOTONIC, &now);
     timespec_from_ms(&dly, 66);
     timespec_add(&now, &dly, &deadline);
-    dispatch_after(kDispatchQueue_Main, deadline, game_loop, NULL, 0);
+    dispatch_after(kDispatchQueue_Main, &deadline, game_loop, NULL, 0);
 }
 
 void main_closure(int argc, char *argv[])

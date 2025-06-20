@@ -58,7 +58,7 @@ void ConditionVariable_WakeAndUnlock(ConditionVariable* _Nonnull pCondVar, Lock*
 
 // Unlocks 'pLock' and blocks the caller until the condition variable is signaled.
 // It then locks 'pLock' before it returns to the caller.
-errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock, struct timespec deadline)
+errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock, const struct timespec* _Nonnull deadline)
 {
     const int sps = VirtualProcessorScheduler_DisablePreemption();
     const int scs = VirtualProcessorScheduler_DisableCooperation();
@@ -67,7 +67,7 @@ errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonn
     VirtualProcessorScheduler_RestoreCooperation(scs);
     const int err = VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                                      &pCondVar->wait_queue,
-                                                     &deadline,
+                                                     deadline,
                                                      true);
     Lock_Lock(pLock);
 

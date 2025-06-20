@@ -54,7 +54,7 @@ void ConditionVariable_BroadcastAndUnlock(ConditionVariable* pCondVar, Lock* pLo
     }
 }
 
-errno_t ConditionVariable_Wait(ConditionVariable* pCondVar, Lock* pLock, struct timespec deadline)
+errno_t ConditionVariable_Wait(ConditionVariable* pCondVar, Lock* pLock, const struct timespec* _Nonnull deadline)
 {
     return (SleepConditionVariableSRW(pCondVar, pLock, INFINITE, 0) != 0) ? EOK : EINTR;
 }
