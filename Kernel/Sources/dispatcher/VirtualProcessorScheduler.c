@@ -290,22 +290,18 @@ void VirtualProcessorScheduler_ResumeTimeout(VirtualProcessorScheduler* _Nonnull
     }
 }
 
-// Put the currently running VP (the caller) on the given wait queue. Then runs
-// the scheduler to select another VP to run and context switches to the new VP
-// right away.
-// Expects to be called with preemption disabled. Temporarily reenables
-// preemption when context switching to another VP. Returns to the caller with
-// preemption disabled.
-// VPs on the wait queue are ordered by their QoS and effective priority at the
-// time when they enter the wait queue. Additionally VPs with the same priority
-// are ordered such that the first one to enter the queue is the first one to
-// leave the queue.
-// Returns a timeout or interrupted error.
-errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull self, List* _Nonnull waq, const struct timespec* _Nonnull deadline, bool isInterruptable)
+errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull self, List* _Nonnull waq, int options, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
 {
     VirtualProcessor* vp = (VirtualProcessor*)self->running;
+    struct timespec now, deadline;
 
     assert(vp->sched_state == kVirtualProcessorState_Running);
+
+    if (rmtp) {
+        rmtp->tv_sec = 0;
+        rmtp->tv_nsec = 0;
+    }
+
 
     // Immediately return instead of waiting if we are in the middle of an abort
     // of a call-as-user invocation.
@@ -316,18 +312,27 @@ errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull sel
 
     // Put us on the timeout queue if a relevant timeout has been specified.
     // Note that we return immediately if we're already past the deadline
-    if (timespec_lt(deadline, &TIMESPEC_INF)) {
-        struct timespec now;
-
+    if (wtp) {
         MonotonicClock_GetCurrentTime(&now);
-        if (timespec_le(deadline, &now)) {
-            return ETIMEDOUT;
+
+        if ((options & WAIT_ABSTIME) == WAIT_ABSTIME) {
+            deadline = *wtp;
+        }
+        else {
+            timespec_add(&now, wtp, &deadline);
         }
 
-        VirtualProcessorScheduler_ArmTimeout(self, vp, deadline);
+
+        if (timespec_lt(&deadline, &TIMESPEC_INF)) {
+            if (timespec_le(&deadline, &now)) {
+                return ETIMEDOUT;
+            }
+
+            VirtualProcessorScheduler_ArmTimeout(self, vp, &deadline);
+        }
     }
 
-    
+
     // Put us on the wait queue. The wait queue is sorted by the QoS and priority
     // from highest to lowest. VPs which enter the queue first, leave it first.
     register VirtualProcessor* pvp = NULL;
@@ -347,7 +352,8 @@ errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull sel
     vp->waiting_on_wait_queue = waq;
     vp->wait_start_time = MonotonicClock_GetCurrentQuantums();
     vp->wakeup_reason = WAKEUP_REASON_NONE;
-    if (isInterruptable) {
+
+    if ((options & WAIT_INTERRUPTABLE) == WAIT_INTERRUPTABLE) {
         vp->flags |= VP_FLAG_INTERRUPTABLE_WAIT;
     } else {
         vp->flags &= ~VP_FLAG_INTERRUPTABLE_WAIT;
@@ -358,6 +364,15 @@ errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull sel
     VirtualProcessorScheduler_SwitchTo(self,
                                        VirtualProcessorScheduler_GetHighestPriorityReady(self));
     
+    
+    if (rmtp) {
+        MonotonicClock_GetCurrentTime(&now);
+
+        if (timespec_lt(&now, &deadline)) {
+            timespec_sub(&deadline, &now, rmtp);
+        }
+    }
+
     switch (vp->wakeup_reason) {
         case WAKEUP_REASON_INTERRUPTED: return EINTR;
         case WAKEUP_REASON_TIMEOUT:     return ETIMEDOUT;
@@ -563,7 +578,8 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull self
             
             (void)VirtualProcessorScheduler_WaitOn(self,
                 &self->scheduler_wait_queue,
-                &deadline, true);
+                WAIT_INTERRUPTABLE | WAIT_ABSTIME,
+                &deadline, NULL);
         }
         
         // Got some work to do. Save off the needed data in local vars and then

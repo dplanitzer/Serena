@@ -69,10 +69,13 @@ errno_t Lock_Unlock(Lock* _Nonnull self)
 errno_t Lock_OnWait(Lock* _Nonnull self)
 {
     const bool isInterruptable = (self->options & kLockOption_InterruptibleLock) != 0 ? true : false;
+    const int options = (isInterruptable) ? WAIT_INTERRUPTABLE : 0;
+
     const errno_t err = VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                             &self->wait_queue,
-                                            &TIMESPEC_INF,
-                                            isInterruptable);
+                                            options,
+                                            NULL,
+                                            NULL);
 
     if (err == EOK || isInterruptable) {
         return err;

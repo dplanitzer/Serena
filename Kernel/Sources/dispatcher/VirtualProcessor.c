@@ -367,8 +367,9 @@ errno_t VirtualProcessor_Sleep(const struct timespec* _Nonnull delay)
     const int err = VirtualProcessorScheduler_WaitOn(
                             gVirtualProcessorScheduler,
                             &gVirtualProcessorScheduler->sleep_queue, 
+                            WAIT_INTERRUPTABLE | WAIT_ABSTIME,
                             &deadline,
-                            true);
+                            NULL);
     VirtualProcessorScheduler_RestorePreemption(sps);
     
     return (err == EINTR) ? EINTR : EOK;

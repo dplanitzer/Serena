@@ -29,6 +29,11 @@
 #define SCHED_FLAG_VOLUNTARY_CSW_ENABLED   0x01
 
 
+// WaitOn() options
+#define WAIT_INTERRUPTABLE  1
+#define WAIT_ABSTIME        2
+
+
 // The ready queue holds references to all VPs which are ready to run. The queue
 // is sorted from highest to lowest priority.
 typedef struct ReadyQueue {
@@ -84,7 +89,11 @@ extern void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler* 
 // Expects to be called with preemption disabled. Temporarily reenables
 // preemption when context switching to another VP. Returns to the caller with
 // preemption disabled.
-extern errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull self, List* _Nonnull waq, const struct timespec* _Nonnull deadline, bool isInterruptable);
+// Waits until wakeup if 'wtp' is NULL. If 'wtp' is not NULL then 'wtp' is
+// either the maximum duration to wait or the absolute time until to wait. The
+// WAIT_ABSTIME specifies an absolute time. 'rmtp' is an optional timespec that
+// receives the amount of time remaining if the wait was canceled early.  
+extern errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull self, List* _Nonnull waq, int options, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
 
 // Adds the given VP from the given wait queue to the ready queue. The VP is removed
 // from the wait queue. The scheduler guarantees that a wakeup operation will never

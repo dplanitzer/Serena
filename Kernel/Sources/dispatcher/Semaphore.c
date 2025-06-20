@@ -44,8 +44,9 @@ errno_t Semaphore_OnWaitForPermits(Semaphore* _Nonnull pSemaphore, const struct 
 {
     return VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                             &pSemaphore->wait_queue,
+                                            WAIT_INTERRUPTABLE | WAIT_ABSTIME,
                                             deadline,
-                                            true);
+                                            NULL);
 }
 
 // Invoked by Semaphore_Relinquish().

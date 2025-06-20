@@ -67,8 +67,9 @@ errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonn
     VirtualProcessorScheduler_RestoreCooperation(scs);
     const int err = VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                                      &pCondVar->wait_queue,
+                                                     WAIT_INTERRUPTABLE | WAIT_ABSTIME,
                                                      deadline,
-                                                     true);
+                                                     NULL);
     Lock_Lock(pLock);
 
     VirtualProcessorScheduler_RestorePreemption(sps);
