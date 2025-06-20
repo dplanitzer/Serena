@@ -61,20 +61,18 @@ extern double difftime(time_t time1, time_t time0);
 
 #ifdef _POSIX_SOURCE
 
-// Time counted since the system was booted. This is a monotonic clock that does
-// not undergo adjustments to keep it aligned with a wall time reference clock.
-#define CLOCK_MONOTONIC 0
-
-
-// Blocks the calling execution context for the seconds and nanoseconds specified
-// by 'delay'.
-// @Concurrency: Safe
-extern int clock_wait(clockid_t clock, const struct timespec* _Nonnull delay);
-
 // Returns the current time of the monotonic clock. The monotonic clock starts
 // ticking at boot time and never moves backward.
 // @Concurrency: Safe
 extern int clock_gettime(clockid_t clock, struct timespec* _Nonnull ts);
+
+// Blocks the calling execution context for the seconds and nanoseconds specified
+// by 'wtp'. 'wtp' is an absolute point in time if 'flags' includes TIMER_ABSTIME.
+// Otherwise 'wtp' is a duration relative to the current time. 'rmtp' is set to
+// the remaining time if this function wakes up before the specified timeout
+// value.
+// @Concurrency: Safe
+extern int clock_nanosleep(clockid_t clock, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp);
 
 #endif
 

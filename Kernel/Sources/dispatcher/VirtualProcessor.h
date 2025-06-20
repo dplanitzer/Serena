@@ -100,6 +100,11 @@ typedef enum VirtualProcessorState {
 #define VP_FLAG_INTERRUPTABLE_WAIT  0x08    // VirtualProcessorScheduler_WaitOn() should be interruptable
 
 
+// WaitOn() options
+#define WAIT_INTERRUPTABLE  1
+#define WAIT_ABSTIME        2
+
+
 // Reason for a wake up
 // WAKEUP_REASON_NONE means that we are still waiting for a wake up
 #define WAKEUP_REASON_NONE          0
@@ -192,7 +197,7 @@ void VirtualProcessor_Destroy(VirtualProcessor* _Nullable self);
 
 
 // Sleep for the given number of seconds
-extern errno_t VirtualProcessor_Sleep(const struct timespec* _Nonnull ts);
+extern errno_t VirtualProcessor_Sleep(int options, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp);
 
 // Returns the priority of the given VP.
 extern int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull self);

@@ -17,7 +17,7 @@ __CPP_BEGIN
 enum {
     SC_read = 0,            // errno_t read(int fd, const char * _Nonnull buffer, size_t nBytesToRead, ssize_t* pOutBytesRead)
     SC_write,               // errno_t write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
-    SC_clock_wait,          // errno_t clock_wait(clockid_t clock, const struct timespec* _Nonnull delay)
+    SC_clock_nanosleep,     // errno_t clock_nanosleep(clockid_t clock, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
     SC_disp_schedule,       // errno_t disp_schedule(int od, dispatch_func_t _Nonnull func, void* _Nullable ctx, uint32_t options, uintptr_t tag)
     SC_vmalloc,             // errno_t vmalloc(int nbytes, void **pOutMem)
     SC_exit,                // _Noreturn exit(int status)

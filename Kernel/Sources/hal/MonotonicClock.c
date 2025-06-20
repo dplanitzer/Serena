@@ -90,24 +90,39 @@ static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock)
     }
 }
 
-bool MonotonicClock_Delay(const struct timespec* _Nonnull timeout)
+bool MonotonicClock_Delay(bool isAbsTime, const struct timespec* _Nonnull timeout)
 {
-    struct timespec now, deadline;
+    struct timespec now, deadline, delta;
     
     MonotonicClock_GetCurrentTime(&now);
-    timespec_add(&now, timeout, &deadline);
-    
-    if (timeout->tv_sec > 0l || (timeout->tv_sec == 0 && timeout->tv_nsec > 1000l*1000l)) {
+
+    if (isAbsTime) {
+        if (timespec_gt(timeout, &now)) {
+            timespec_sub(timeout, &now, &delta);
+        }
+        else {
+            timespec_clear(&delta);
+        }
+        
+        deadline = *timeout;
+    }
+    else {
+        delta = *timeout;
+        timespec_add(&now, timeout, &deadline);
+    }
+
+    if (delta.tv_sec > 0l || (delta.tv_sec == 0 && delta.tv_nsec > 1000l*1000l)) {
         return false;
     }
-    
+
+
     // Just spin for now (would be nice to put the CPU to sleep though for a few micros before rechecking the time or so)
     for (;;) {
-        MonotonicClock_GetCurrentTime(&now); 
-
         if (timespec_ge(&now, &deadline)) {
             return true;
         }
+
+        MonotonicClock_GetCurrentTime(&now); 
     }
     
     // not reached

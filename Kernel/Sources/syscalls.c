@@ -245,16 +245,23 @@ SYSCALL_1(umask, mode_t mask)
     return (intptr_t)Process_UMask((ProcessRef)p, pa->mask);
 }
 
-SYSCALL_2(clock_wait, int clock, const struct timespec* _Nonnull delay)
+SYSCALL_4(clock_nanosleep, int clock, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
 {
-    if (pa->delay->tv_nsec < 0 || pa->delay->tv_nsec >= ONE_SECOND_IN_NANOS) {
+    if (pa->wtp->tv_nsec < 0 || pa->wtp->tv_nsec >= ONE_SECOND_IN_NANOS) {
         return EINVAL;
     }
     if (pa->clock != CLOCK_MONOTONIC) {
         return ENODEV;
     }
 
-    return VirtualProcessor_Sleep(pa->delay);
+
+    int options = WAIT_INTERRUPTABLE;
+    if ((options & TIMER_ABSTIME) == TIMER_ABSTIME) {
+        options |= WAIT_ABSTIME;
+    }
+
+
+    return VirtualProcessor_Sleep(options, pa->wtp, pa->rmtp);
 }
 
 SYSCALL_2(clock_gettime, int clock, struct timespec* _Nonnull time)
@@ -379,7 +386,7 @@ SYSCALL_1(exit, int status)
     // owns this VP is terminated. This interrupt will be caused by the abort
     // of the call-as-user and thus this system call will not return to user
     // space anymore. Instead it will return to the dispatch queue main loop.
-    VirtualProcessor_Sleep(&TIMESPEC_INF);
+    VirtualProcessor_Sleep(WAIT_ABSTIME, &TIMESPEC_INF, NULL);
     return 0;
 }
 
@@ -471,7 +478,7 @@ SYSCALL_2(utimens, const char* _Nonnull path, const struct timespec times[_Nulla
 static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
     SYSCALL_ENTRY(write, SC_ERRNO),
-    SYSCALL_ENTRY(clock_wait, SC_ERRNO),
+    SYSCALL_ENTRY(clock_nanosleep, SC_ERRNO),
     SYSCALL_ENTRY(dispatch, SC_ERRNO),
     SYSCALL_ENTRY(alloc_address_space, SC_ERRNO),
     SYSCALL_ENTRY(exit, 0),

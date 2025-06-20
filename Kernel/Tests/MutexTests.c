@@ -58,7 +58,7 @@ static void select_and_write_pattern(void)
         dst += nBytesToCopy;
         len -= nBytesToCopy;
 
-       //assertOK(clock_wait(CLOCK_MONOTONIC, &dl));
+       //assertOK(clock_nanosleep(CLOCK_MONOTONIC, 0, &dl, NULL));
     }
 
     printf("W: '%s'\n", gCurrentPattern);

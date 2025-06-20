@@ -110,7 +110,7 @@ static void wait_for_disk_inserted(boot_screen_t* _Nonnull bscr, const char* _No
                 isWaitingForDisk = true;
             }
 
-            VirtualProcessor_Sleep(&dur);
+            VirtualProcessor_Sleep(0, &dur, NULL);
         }
     } 
     IOChannel_Release(chan);

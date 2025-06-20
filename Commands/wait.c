@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
 
     struct timespec dur;
     timespec_from_ms(&dur, ms);
-    clock_wait(CLOCK_MONOTONIC, &dur);
+    clock_nanosleep(CLOCK_MONOTONIC, 0, &dur, NULL);
 
     return EXIT_SUCCESS;
 }

@@ -28,7 +28,7 @@ static void OnAsync(void* _Nonnull pValue)
     printf("%d\n", val);
     //struct timespec dur;
     // timespec_from_sec(&dur, 2);
-    //clock_wait(clock_uptime, &dur);
+    //clock_nanosleep(clock_uptime, 0, &dur, NULL);
     assertOK(dispatch_async(kDispatchQueue_Main, OnAsync, (void*)(val + 1)));
 }
 
@@ -72,7 +72,7 @@ static void OnSync(void* _Nonnull pValue)
     struct timespec dur;
 
     timespec_from_ms(&dur, 500);
-    clock_wait(CLOCK_MONOTONIC, &dur);
+    clock_nanosleep(CLOCK_MONOTONIC, 0, &dur, NULL);
     printf("%d  (Queue: %d)\n", val, dispatch_getcurrent());
 }
 

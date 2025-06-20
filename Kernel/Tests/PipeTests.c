@@ -60,7 +60,7 @@ static void OnReadFromPipe(int fd)
     timespec_from_ms(&dly, 200);
 
     while (true) {
-        //VirtualProcessor_Sleep(&dly);
+        //clock_nanosleep(CLOCK_MONOTONIC, 0, &dly, NULL);
         buf[0] = '\0';
         const ssize_t nBytesRead = read(fd, buf, nBytesToRead);
         assertGreaterEqual(0, nBytesRead);
@@ -79,7 +79,7 @@ static void OnWriteToPipe(int fd)
     timespec_from_ms(&dur, 20);
     
     while (true) {
-        clock_wait(CLOCK_MONOTONIC, &dur);
+        clock_nanosleep(CLOCK_MONOTONIC, 0, &dur, NULL);
         const ssize_t nBytesWritten = write(fd, bytes, nBytesToWrite);
         assertGreaterEqual(0, nBytesWritten);
 

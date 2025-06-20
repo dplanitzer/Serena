@@ -274,10 +274,9 @@ static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
     }
     else if (self->flags.motorState == kMotor_SpinningUp) {
         // Waits for at most 500ms for the motor to reach its target speed
-        struct timespec delay;
-        
-        timespec_from_ms(&delay, 10);
         FloppyControllerRef fdc = FloppyDriver_GetController(self);
+        struct timespec delay;        
+        timespec_from_ms(&delay, 10);
 
         for (int i = 0; i < 50; i++) {
             const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
@@ -290,7 +289,7 @@ static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
                 return EOK;
             }
 
-            VirtualProcessor_Sleep(&delay);
+            VirtualProcessor_Sleep(0, &delay, NULL);
         }
 
         // Timed out. Turn the motor off for now so that another I/O request can
@@ -324,7 +323,7 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self)
     // Wait 2 ms if there was a write previously and we have to change the head
     // Since this is about resetting the drive we can't assume that we know whether
     // we have to wait 18ms or 2ms. So just wait for 18ms to be safe.
-    VirtualProcessor_Sleep(&ts_18ms);
+    VirtualProcessor_Sleep(0, &ts_18ms, NULL);
     
     while (true) {
         const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
@@ -340,12 +339,12 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self)
             return ETIMEDOUT;
         }
 
-        VirtualProcessor_Sleep(&ts_3ms);
+        VirtualProcessor_Sleep(0, &ts_3ms, NULL);
     }
     FloppyController_SelectHead(fdc, &self->driveState, 0);
     
     // Head settle time (includes the 100us settle time for the head select)
-    VirtualProcessor_Sleep(&ts_15ms);
+    VirtualProcessor_Sleep(0, &ts_15ms, NULL);
     
     self->head = 0;
     self->cylinder = 0;
@@ -376,7 +375,7 @@ static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int
 
     if (pre_wait_ms > 0) {
         timespec_from_ms(&ts_pre_wait, pre_wait_ms);
-        VirtualProcessor_Sleep(&ts_pre_wait);
+        VirtualProcessor_Sleep(0, &ts_pre_wait, NULL);
     }
     
     
@@ -393,7 +392,7 @@ static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int
                 self->flags.wasMostRecentSeekInward = 0;
             }
             
-            VirtualProcessor_Sleep(&ts_3ms);
+            VirtualProcessor_Sleep(0, &ts_3ms, NULL);
         }
     }
     
@@ -411,7 +410,7 @@ static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int
 
     if (settle_us > 0) {
         timespec_from_us(&ts_settle, settle_us);
-        VirtualProcessor_Sleep(&ts_settle);
+        VirtualProcessor_Sleep(0, &ts_settle, NULL);
     }
 }
 

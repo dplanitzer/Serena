@@ -29,11 +29,6 @@
 #define SCHED_FLAG_VOLUNTARY_CSW_ENABLED   0x01
 
 
-// WaitOn() options
-#define WAIT_INTERRUPTABLE  1
-#define WAIT_ABSTIME        2
-
-
 // The ready queue holds references to all VPs which are ready to run. The queue
 // is sorted from highest to lowest priority.
 typedef struct ReadyQueue {

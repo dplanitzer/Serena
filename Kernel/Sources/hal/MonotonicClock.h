@@ -38,7 +38,7 @@ extern void MonotonicClock_GetCurrentTime(struct timespec* _Nonnull ts);
 // achieve the desired delay. Eg context switch to another virtual processor.
 // Note that this function is only willing to block the caller for at most a few
 // milliseconds. Longer delays should be done via a scheduler wait().
-extern bool MonotonicClock_Delay(const struct timespec* _Nonnull timeout);
+extern bool MonotonicClock_Delay(bool isAbsTime, const struct timespec* _Nonnull timeout);
 
 
 // Rounding modes for struct timespec to Quantums conversion

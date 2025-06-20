@@ -348,10 +348,10 @@ _Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull self)
 }
 
 // Sleep for the given number of seconds.
-errno_t VirtualProcessor_Sleep(const struct timespec* _Nonnull delay)
+errno_t VirtualProcessor_Sleep(int options, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
 {
     // Use the Delay() facility for short waits and context switching for medium and long waits
-    if (MonotonicClock_Delay(delay)) {
+    if (MonotonicClock_Delay((options & WAIT_ABSTIME) != 0, wtp)) {
         return EOK;
     }
     
@@ -361,9 +361,9 @@ errno_t VirtualProcessor_Sleep(const struct timespec* _Nonnull delay)
     const int err = VirtualProcessorScheduler_WaitOn(
                             gVirtualProcessorScheduler,
                             &gVirtualProcessorScheduler->sleep_queue, 
-                            WAIT_INTERRUPTABLE,
-                            delay,
-                            NULL);
+                            WAIT_INTERRUPTABLE | options,
+                            wtp,
+                            rmtp);
     VirtualProcessorScheduler_RestorePreemption(sps);
     
     return (err == EINTR) ? EINTR : EOK;
