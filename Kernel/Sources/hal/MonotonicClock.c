@@ -90,19 +90,14 @@ static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock)
     }
 }
 
-// Blocks the caller until 'deadline'. Returns true if the function did the
-// necessary delay and false if the caller should do something else instead to
-// achieve the desired delay. Eg context switch to another virtual processor.
-// Note that this function is only willing to block the caller for at most a
-// millisecond. Longer delays should be done via a scheduler wait().
-bool MonotonicClock_DelayUntil(const struct timespec* _Nonnull deadline)
+bool MonotonicClock_Delay(const struct timespec* _Nonnull timeout)
 {
-    struct timespec delta, now;
+    struct timespec now, deadline;
     
     MonotonicClock_GetCurrentTime(&now);
-    timespec_sub(deadline, &now, &delta);
+    timespec_add(&now, timeout, &deadline);
     
-    if (delta.tv_sec > 0 || (delta.tv_sec == 0 && delta.tv_nsec > 1000*1000)) {
+    if (timeout->tv_sec > 0l || (timeout->tv_sec == 0 && timeout->tv_nsec > 1000l*1000l)) {
         return false;
     }
     
@@ -110,7 +105,7 @@ bool MonotonicClock_DelayUntil(const struct timespec* _Nonnull deadline)
     for (;;) {
         MonotonicClock_GetCurrentTime(&now); 
 
-        if (timespec_ge(&now, deadline)) {
+        if (timespec_ge(&now, &deadline)) {
             return true;
         }
     }

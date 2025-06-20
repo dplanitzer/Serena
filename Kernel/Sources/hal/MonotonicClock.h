@@ -33,12 +33,12 @@ extern Quantums MonotonicClock_GetCurrentQuantums(void);
 // Returns the current time of the clock in terms of microseconds.
 extern void MonotonicClock_GetCurrentTime(struct timespec* _Nonnull ts);
 
-// Blocks the caller until 'deadline'. Returns true if the function did the
+// Blocks the caller for 'timeout'. Returns true if the function did the
 // necessary delay and false if the caller should do something else instead to
 // achieve the desired delay. Eg context switch to another virtual processor.
 // Note that this function is only willing to block the caller for at most a few
 // milliseconds. Longer delays should be done via a scheduler wait().
-extern bool MonotonicClock_DelayUntil(const struct timespec* _Nonnull deadline);
+extern bool MonotonicClock_Delay(const struct timespec* _Nonnull timeout);
 
 
 // Rounding modes for struct timespec to Quantums conversion

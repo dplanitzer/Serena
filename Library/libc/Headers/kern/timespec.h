@@ -60,6 +60,10 @@ extern bool timespec_ge(const struct timespec* _Nonnull t0, const struct timespe
 extern void timespec_add(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res);
 extern void timespec_sub(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res);
 
+#define timespec_clear(__ts) \
+(__ts)->tv_sec = 0; \
+(__ts)->tv_nsec = 0
+
 
 extern const struct timespec    TIMESPEC_ZERO;
 extern const struct timespec    TIMESPEC_INF;

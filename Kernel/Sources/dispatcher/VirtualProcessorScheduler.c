@@ -297,15 +297,13 @@ errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull sel
 
     assert(vp->sched_state == kVirtualProcessorState_Running);
 
-    if (rmtp) {
-        rmtp->tv_sec = 0;
-        rmtp->tv_nsec = 0;
-    }
-
 
     // Immediately return instead of waiting if we are in the middle of an abort
     // of a call-as-user invocation.
     if ((vp->flags & (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) == (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) {
+        if (rmtp) {
+            timespec_clear(rmtp);   // User space won't see this value anyway
+        }
         return EINTR;
     }
 
@@ -325,6 +323,9 @@ errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull sel
 
         if (timespec_lt(&deadline, &TIMESPEC_INF)) {
             if (timespec_le(&deadline, &now)) {
+                if (rmtp) {
+                    timespec_clear(rmtp);
+                }
                 return ETIMEDOUT;
             }
 
@@ -370,6 +371,9 @@ errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull sel
 
         if (timespec_lt(&now, &deadline)) {
             timespec_sub(&deadline, &now, rmtp);
+        }
+        else {
+            timespec_clear(rmtp);
         }
     }
 
