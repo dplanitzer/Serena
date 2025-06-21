@@ -52,7 +52,7 @@ extern int64_t timespec_ns(struct timespec* _Nonnull ts);
 ((__ts)->tv_sec != 0 || (__ts)->tv_nsec != 0)
 
 #define timespec_isvalid(__ts) \
-((__ts)->tv_sec >=0 && (__ts)->tv_nsec < 1000l*1000l*1000l)
+((__ts)->tv_sec >=0 && (__ts)->tv_nsec < NSEC_PER_SEC)
 
 
 #define timespec_clear(__ts) \

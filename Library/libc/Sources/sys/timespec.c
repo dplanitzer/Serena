@@ -16,30 +16,30 @@ const struct timespec   TIMESPEC_INF = {LONG_MAX, NSEC_PER_SEC-1l};
 
 void timespec_from_ms(struct timespec* _Nonnull ts, mseconds_t millis)
 {
-    ts->tv_sec = millis / 1000l;
-    ts->tv_nsec = (millis - (ts->tv_sec * 1000l)) * 1000l * 1000l;
+    ts->tv_sec = millis / MSEC_PER_SEC;
+    ts->tv_nsec = (millis - (ts->tv_sec * MSEC_PER_SEC)) * 1000000l;
 }
 
 void timespec_from_us(struct timespec* _Nonnull ts, useconds_t micros)
 {
-    ts->tv_sec = micros / (1000l * 1000l);
-    ts->tv_nsec = (micros - (ts->tv_sec * 1000l * 1000l)) * 1000l;
+    ts->tv_sec = micros / USEC_PER_SEC;
+    ts->tv_nsec = (micros - (ts->tv_sec * USEC_PER_SEC)) * 1000l;
 }
 
 
 mseconds_t timespec_ms(struct timespec* _Nonnull ts)
 {
-    return ts->tv_sec * 1000l + ts->tv_nsec / (1000l * 1000l);
+    return ts->tv_sec * MSEC_PER_SEC + ts->tv_nsec / 1000000l;
 }
 
 useconds_t timespec_us(struct timespec* _Nonnull ts)
 {
-    return ts->tv_sec * 1000l * 1000l + ts->tv_nsec / 1000l;
+    return ts->tv_sec * USEC_PER_SEC + ts->tv_nsec / 1000l;
 }
 
 int64_t timespec_ns(struct timespec* _Nonnull ts)
 {
-    return (int64_t)ts->tv_sec * 1000ll * 1000ll * 1000ll + (int64_t)ts->tv_nsec;
+    return (int64_t)ts->tv_sec * (int64_t)NSEC_PER_SEC + (int64_t)ts->tv_nsec;
 }
 
 
