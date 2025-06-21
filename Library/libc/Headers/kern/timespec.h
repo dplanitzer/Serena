@@ -60,11 +60,20 @@ extern int64_t timespec_ns(struct timespec* _Nonnull ts);
 (__ts)->tv_nsec = 0
 
 
-extern bool timespec_eq(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1);
-extern bool timespec_lt(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1);
-extern bool timespec_le(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1);
-extern bool timespec_gt(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1);
-extern bool timespec_ge(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1);
+#define timespec_eq(__t0, __t1) \
+((__t0)->tv_sec == (__t1)->tv_sec && (__t0)->tv_nsec == (__t1)->tv_nsec)
+
+#define timespec_lt(__t0, __t1) \
+((__t0)->tv_sec < (__t1)->tv_sec || ((__t0)->tv_sec == (__t1)->tv_sec && (__t0)->tv_nsec < (__t1)->tv_nsec))
+
+#define timespec_le(__t0, __t1) \
+((__t0)->tv_sec < (__t1)->tv_sec || ((__t0)->tv_sec == (__t1)->tv_sec && (__t0)->tv_nsec <= (__t1)->tv_nsec))
+
+#define timespec_gt(__t0, __t1) \
+((__t0)->tv_sec > (__t1)->tv_sec || ((__t0)->tv_sec == (__t1)->tv_sec && (__t0)->tv_nsec > (__t1)->tv_nsec))
+
+#define timespec_ge(__t0, __t1) \
+((__t0)->tv_sec > (__t1)->tv_sec || ((__t0)->tv_sec == (__t1)->tv_sec && (__t0)->tv_nsec >= (__t1)->tv_nsec))
 
 
 extern void timespec_add(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res);
