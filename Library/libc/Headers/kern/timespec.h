@@ -17,10 +17,9 @@
 
 
 // 'struct timespec' represents time as measured in seconds and nanoseconds.
-// All functions expect timespec inputs in canonical form - meaning the
-// nanoseconds field is in the range [0..1000_000_000). Negative timespec
-// values are represented with a negative seconds field if seconds != 0 and a
-// negative nanoseconds field if seconds == 0 and nanoseconds != 0.
+// All functions expect timespec inputs in normalized form - meaning the
+// seconds field is in the range [0..LONGMAX] and the nanoseconds field is in
+// the range [0..1000_000_000).
 //
 // Timespec is a saturating type. This means that a time value is set to
 // +/-infinity on overflow/underflow.
