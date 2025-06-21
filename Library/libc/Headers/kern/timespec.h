@@ -15,7 +15,6 @@
 #include <stdint.h>
 
 
-
 // 'struct timespec' represents time as measured in seconds and nanoseconds.
 // All functions expect timespec inputs in normalized form - meaning the
 // seconds field is in the range [0..LONGMAX] and the nanoseconds field is in
@@ -23,6 +22,10 @@
 //
 // Timespec is a saturating type. This means that a time value is set to
 // +/-infinity on overflow/underflow.
+//
+// Note that all timespec functions assume that they receive a valid timespec as
+// input. The only exception is timespec_normalize() which you can use to
+// convert a valid or non-valid timespec into a valid timespec.
 
 
 #define timespec_from(__ts, __seconds, __nanoseconds) \
@@ -66,6 +69,12 @@ extern bool timespec_ge(const struct timespec* _Nonnull t0, const struct timespe
 
 extern void timespec_add(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res);
 extern void timespec_sub(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res);
+
+
+// Normalizes the given timespec in the sense that it accepts a timespec for
+// which timespec_isvalid() returns false and it adjusts the timespec such that
+// timespec_isvalid() will return true on it.
+extern void timespec_normalize(struct timespec* _Nonnull ts);
 
 
 extern const struct timespec    TIMESPEC_ZERO;
