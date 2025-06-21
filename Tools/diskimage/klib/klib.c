@@ -17,8 +17,7 @@
 
 
 const struct timespec TIMESPEC_ZERO = {0l, 0l};
-const struct timespec TIMESPEC_INF = {LONG_MAX, ONE_SECOND_IN_NANOS};
-const struct timespec TIMESPEC_NEGINF = {LONG_MIN, ONE_SECOND_IN_NANOS};
+const struct timespec TIMESPEC_INF = {LONG_MAX, ONE_SECOND_IN_NANOS-1l};
 
 
 ////////////////////////////////////////////////////////////////////////////////

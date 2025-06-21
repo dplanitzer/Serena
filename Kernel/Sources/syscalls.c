@@ -247,7 +247,7 @@ SYSCALL_1(umask, mode_t mask)
 
 SYSCALL_4(clock_nanosleep, int clock, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
 {
-    if (pa->wtp->tv_nsec < 0 || pa->wtp->tv_nsec >= ONE_SECOND_IN_NANOS) {
+    if (!timespec_isvalid(pa->wtp)) {
         return EINVAL;
     }
     if (pa->clock != CLOCK_MONOTONIC) {

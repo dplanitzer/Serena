@@ -46,8 +46,16 @@ extern useconds_t timespec_us(struct timespec* _Nonnull ts);
 extern int64_t timespec_ns(struct timespec* _Nonnull ts);
 
 
-#define timespec_isneg(__ts) \
-((__ts)->tv_sec < 0 || (__ts)->tv_nsec < 0)
+#define timespec_isset(__ts) \
+((__ts)->tv_sec != 0 || (__ts)->tv_nsec != 0)
+
+#define timespec_isvalid(__ts) \
+((__ts)->tv_sec >=0 && (__ts)->tv_nsec < 1000l*1000l*1000l)
+
+
+#define timespec_clear(__ts) \
+(__ts)->tv_sec = 0; \
+(__ts)->tv_nsec = 0
 
 
 extern bool timespec_eq(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1);
@@ -60,13 +68,8 @@ extern bool timespec_ge(const struct timespec* _Nonnull t0, const struct timespe
 extern void timespec_add(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res);
 extern void timespec_sub(const struct timespec* _Nonnull t0, const struct timespec* _Nonnull t1, struct timespec* _Nonnull res);
 
-#define timespec_clear(__ts) \
-(__ts)->tv_sec = 0; \
-(__ts)->tv_nsec = 0
-
 
 extern const struct timespec    TIMESPEC_ZERO;
 extern const struct timespec    TIMESPEC_INF;
-extern const struct timespec    TIMESPEC_NEGINF;
 
 #endif /* _KERN_TIMESPEC_H */
