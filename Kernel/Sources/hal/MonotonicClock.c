@@ -64,9 +64,9 @@ void MonotonicClock_GetCurrentTime(struct timespec* _Nonnull ts)
         chk_quantum = pClock->current_quantum;
         
         cur_nanos += chipset_get_quantum_timer_elapsed_ns();
-        if (cur_nanos >= ONE_SECOND_IN_NANOS) {
+        if (cur_nanos >= NSEC_PER_SEC) {
             cur_secs++;
-            cur_nanos -= ONE_SECOND_IN_NANOS;
+            cur_nanos -= NSEC_PER_SEC;
         }
         
         // Do it again if there was a quantum transition while we were busy computing
@@ -84,9 +84,9 @@ static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock)
     
     // update the metric time
     pClock->current_time.tv_nsec += pClock->ns_per_quantum;
-    if (pClock->current_time.tv_nsec >= ONE_SECOND_IN_NANOS) {
+    if (pClock->current_time.tv_nsec >= NSEC_PER_SEC) {
         pClock->current_time.tv_sec++;
-        pClock->current_time.tv_nsec -= ONE_SECOND_IN_NANOS;
+        pClock->current_time.tv_nsec -= NSEC_PER_SEC;
     }
 }
 
@@ -134,7 +134,7 @@ bool MonotonicClock_Delay(bool isAbsTime, const struct timespec* _Nonnull timeou
 Quantums Quantums_MakeFromTimespec(const struct timespec* _Nonnull ts, int rounding)
 {
     register MonotonicClock* pClock = gMonotonicClock;
-    const int64_t nanos = (int64_t)ts->tv_sec * (int64_t)ONE_SECOND_IN_NANOS + (int64_t)ts->tv_nsec;
+    const int64_t nanos = (int64_t)ts->tv_sec * (int64_t)NSEC_PER_SEC + (int64_t)ts->tv_nsec;
     const int64_t quants = nanos / (int64_t)pClock->ns_per_quantum;
     
     switch (rounding) {
@@ -159,6 +159,6 @@ void Timespec_MakeFromQuantums(struct timespec* _Nonnull ts, Quantums quants)
     register MonotonicClock* pClock = gMonotonicClock;
     const int64_t ns = (int64_t)quants * (int64_t)pClock->ns_per_quantum;
     
-    ts->tv_sec = ns / (int64_t)ONE_SECOND_IN_NANOS;
-    ts->tv_nsec = ns - ((int64_t)ts->tv_sec * (int64_t)ONE_SECOND_IN_NANOS);
+    ts->tv_sec = ns / (int64_t)NSEC_PER_SEC;
+    ts->tv_nsec = ns - ((int64_t)ts->tv_sec * (int64_t)NSEC_PER_SEC);
 }

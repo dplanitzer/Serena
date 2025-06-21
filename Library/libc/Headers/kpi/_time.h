@@ -22,6 +22,12 @@ typedef int clockid_t;
 // If specified then the wait time passed to clock_nanosleep() is an absolute
 // time; otherwise the wait time is interpreted as a duration.
 #define TIMER_ABSTIME   2
+
+
+// Time conversion factors
+#define NSEC_PER_SEC    1000000000l
+#define USEC_PER_SEC    1000000l
+#define MSEC_PER_SEC    1000l
 #endif
 
 

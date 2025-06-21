@@ -12,12 +12,11 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <time.h>
-
-#define ONE_SECOND_IN_NANOS (1000l * 1000l * 1000l)
+#include <kpi/_time.h>
 
 
 const struct timespec TIMESPEC_ZERO = {0l, 0l};
-const struct timespec TIMESPEC_INF = {LONG_MAX, ONE_SECOND_IN_NANOS-1l};
+const struct timespec TIMESPEC_INF = {LONG_MAX, NSEC_PER_SEC-1l};
 
 
 ////////////////////////////////////////////////////////////////////////////////

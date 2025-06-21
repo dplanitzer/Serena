@@ -10,11 +10,8 @@
 #include <limits.h>
 
 
-#define ONE_SECOND_IN_NANOS (1000l * 1000l * 1000l)
-
-
 const struct timespec   TIMESPEC_ZERO = {0l, 0l};
-const struct timespec   TIMESPEC_INF = {LONG_MAX, ONE_SECOND_IN_NANOS-1l};
+const struct timespec   TIMESPEC_INF = {LONG_MAX, NSEC_PER_SEC-1l};
 
 
 void timespec_from_ms(struct timespec* _Nonnull ts, mseconds_t millis)
@@ -77,9 +74,9 @@ void timespec_add(const struct timespec* _Nonnull t0, const struct timespec* _No
     res->tv_sec = t0->tv_sec + t1->tv_sec;
     res->tv_nsec = t0->tv_nsec + t1->tv_nsec;
 
-    if (res->tv_nsec >= ONE_SECOND_IN_NANOS) {
+    if (res->tv_nsec >= NSEC_PER_SEC) {
         res->tv_sec++;
-        res->tv_nsec -= ONE_SECOND_IN_NANOS;
+        res->tv_nsec -= NSEC_PER_SEC;
     }
     
     // Check for overflow
@@ -95,7 +92,7 @@ void timespec_sub(const struct timespec* _Nonnull t0, const struct timespec* _No
     
     if (res->tv_nsec < 0) {
         res->tv_sec--;
-        res->tv_nsec += ONE_SECOND_IN_NANOS;
+        res->tv_nsec += NSEC_PER_SEC;
     }
 
     // Check for underflow
@@ -115,9 +112,9 @@ void timespec_normalize(struct timespec* _Nonnull ts)
 
 
     // Handle overflow in nanoseconds
-    while(ts->tv_nsec >= ONE_SECOND_IN_NANOS) {
+    while(ts->tv_nsec >= NSEC_PER_SEC) {
 		ts->tv_sec++;
-		ts->tv_nsec -= ONE_SECOND_IN_NANOS;
+		ts->tv_nsec -= NSEC_PER_SEC;
 	}
 	
     if (ts->tv_sec < 0) {
@@ -130,7 +127,7 @@ void timespec_normalize(struct timespec* _Nonnull ts)
     // Handle underflow in nanoseconds
 	while(ts->tv_nsec < 0) {
 		ts->tv_sec--;
-		ts->tv_nsec += ONE_SECOND_IN_NANOS;
+		ts->tv_nsec += NSEC_PER_SEC;
 	}
 
     if (ts->tv_sec < 0) {

@@ -27,7 +27,6 @@ __CPP_BEGIN
 // This header file is the kernel version of user space's stdlib.h + unistd.h
 //
 
-#define ONE_SECOND_IN_NANOS (1000l * 1000l * 1000l)
 #define kQuantums_Infinity      INT32_MAX
 #define kQuantums_MinusInfinity INT32_MIN
 
