@@ -66,13 +66,20 @@ extern double difftime(time_t time1, time_t time0);
 // @Concurrency: Safe
 extern int clock_gettime(clockid_t clock, struct timespec* _Nonnull ts);
 
-// Blocks the calling execution context for the seconds and nanoseconds specified
+// Suspends the calling execution context for the seconds and nanoseconds specified
 // by 'wtp'. 'wtp' is an absolute point in time if 'flags' includes TIMER_ABSTIME.
 // Otherwise 'wtp' is a duration relative to the current time. 'rmtp' is set to
 // the remaining time if this function wakes up before the specified timeout
 // value.
 // @Concurrency: Safe
 extern int clock_nanosleep(clockid_t clock, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp);
+
+
+// Suspends the calling execution context for the specified time. The time may
+// be specified with a resolution of nanoseconds. Returns the amount of unslept
+// time if the function is interrupted for some reason. Returns 0 on success and
+// -1 on failure or if woken up early.
+extern int nanosleep(const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp);
 
 #endif
 

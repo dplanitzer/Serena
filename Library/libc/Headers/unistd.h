@@ -13,6 +13,7 @@
 #include <stdnoreturn.h>
 #include <kpi/_access.h>
 #include <kpi/_seek.h>
+#include <kpi/_time.h>
 #include <sys/types.h>
 
 __CPP_BEGIN
@@ -123,6 +124,15 @@ extern int rmdir(const char* _Nonnull path);
 
 // Synchronously writes all dirty disk blocks back to disk.
 extern void sync(void);
+
+
+// Suspends the caller execution context for at least 'seconds' seconds or until
+// the sleep is interrupted.
+extern unsigned int sleep(unsigned int seconds);
+
+// Same as sleep but works in terms of microseconds rather than seconds. Returns
+// 0 on success and -1 on failure.
+extern int usleep(useconds_t us);
 
 __CPP_END
 
