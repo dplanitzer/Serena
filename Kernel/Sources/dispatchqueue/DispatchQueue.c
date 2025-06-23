@@ -173,6 +173,20 @@ void DispatchQueue_deinit(DispatchQueueRef _Nonnull self)
 // and acquires a virtual processor from the virtual processor pool if necessary.
 // The virtual processor is attached to the dispatch queue and remains attached
 // until it is relinquished by the queue.
+static void DispatchQueue_AttachVirtualProcessor_Locked(DispatchQueueRef _Nonnull self, VirtualProcessor* _Nonnull vp, int conLaneIdx)
+{
+    assert(conLaneIdx >= 0 && conLaneIdx < self->maxConcurrency);
+
+    VirtualProcessor_SetDispatchQueue(vp, self, conLaneIdx);
+    self->concurrency_lanes[conLaneIdx].vp = vp;
+    self->concurrency_lanes[conLaneIdx].active_item = NULL;
+    self->availableConcurrency++;
+}
+
+// Makes sure that we have enough virtual processors attached to the dispatch queue
+// and acquires a virtual processor from the virtual processor pool if necessary.
+// The virtual processor is attached to the dispatch queue and remains attached
+// until it is relinquished by the queue.
 static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull self)
 {
     decl_try_err();
@@ -197,38 +211,32 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
         assert(conLaneIdx != -1);
 
         const int priority = self->qos * kDispatchPriority_Count + (self->priority + kDispatchPriority_Count / 2) + VP_PRIORITIES_RESERVED_LOW;
-        VirtualProcessor* pVP = NULL;
-        try(VirtualProcessorPool_AcquireVirtualProcessor(
+        VirtualProcessor* vp = NULL;
+        err = VirtualProcessorPool_AcquireVirtualProcessor(
                                             self->virtual_processor_pool,
                                             VirtualProcessorParameters_Make((VoidFunc_1)DispatchQueue_Run, self, VP_DEFAULT_KERNEL_STACK_SIZE, VP_DEFAULT_USER_STACK_SIZE, priority),
-                                            &pVP));
-
-        VirtualProcessor_SetDispatchQueue(pVP, self, conLaneIdx);
-        self->concurrency_lanes[conLaneIdx].vp = pVP;
-        self->concurrency_lanes[conLaneIdx].active_item = NULL;
-        self->availableConcurrency++;
-
-        VirtualProcessor_Resume(pVP, false);
+                                            &vp);
+        if (err == EOK) {
+            DispatchQueue_AttachVirtualProcessor_Locked(self, vp, conLaneIdx);
+            VirtualProcessor_Resume(vp, false);
+        }
     }
 
-    return EOK;
-
-catch:
     return err;
 }
 
-// Relinquishes the given virtual processor. The associated concurrency lane is
+// Detaches the given virtual processor. The associated concurrency lane is
 // freed up and the virtual processor is returned to the virtual processor pool
 // after it has been detached from the dispatch queue. This method should only
 // be called right before returning from the Dispatch_Run() method which is the
 // method that runs on the virtual processor to execute work items.
-static void DispatchQueue_RelinquishVirtualProcessor_Locked(DispatchQueueRef _Nonnull self, VirtualProcessor* _Nonnull pVP)
+static void DispatchQueue_DetachVirtualProcessor_Locked(DispatchQueueRef _Nonnull self, VirtualProcessor* _Nonnull vp)
 {
-    const int conLaneIdx = pVP->dispatchQueueConcurrencyLaneIndex;
+    const int conLaneIdx = vp->dispatchQueueConcurrencyLaneIndex;
 
     assert(conLaneIdx >= 0 && conLaneIdx < self->maxConcurrency);
 
-    VirtualProcessor_SetDispatchQueue(pVP, NULL, -1);
+    VirtualProcessor_SetDispatchQueue(vp, NULL, -1);
     self->concurrency_lanes[conLaneIdx].vp = NULL;
     self->concurrency_lanes[conLaneIdx].active_item = NULL;
     self->availableConcurrency--;
@@ -694,7 +702,7 @@ void DispatchQueue_Flush(DispatchQueueRef _Nonnull self)
 // MARK: Queue Main Loop
 ////////////////////////////////////////////////////////////////////////////////
 
-static void DispatchQueue_RearmTimedItem_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem)
+static void _rearm_timer(DispatchQueueRef _Nonnull _Locked self, WorkItem* _Nonnull pItem)
 {
     // Repeating timer: rearm it with the next fire date that's in
     // the future (the next fire date we haven't already missed).
@@ -709,6 +717,67 @@ static void DispatchQueue_RearmTimedItem_Locked(DispatchQueueRef _Nonnull self, 
     DispatchQueue_AddTimedItem_Locked(self, pItem);
 }
 
+// Wait for work items to arrive or for timers to fire
+static WorkItem* _Nullable _wait_next_workitem(DispatchQueueRef _Nonnull _Locked self)
+{
+    WorkItem* pItem = NULL;
+    bool mayRelinquish = false;
+    struct timespec now, deadline, dly;
+
+    while (true) {
+        MonotonicClock_GetCurrentTime(&now);
+
+        // Grab the first timer that's due. We give preference to timers because
+        // they are tied to a specific deadline time while immediate work items
+        // do not guarantee that they will execute at a specific time. So it's
+        // acceptable to push them back on the timeline.
+        WorkItem* pFirstTimer = (WorkItem*)self->timer_queue.first;
+        if (pFirstTimer && timespec_le(&pFirstTimer->u.timer.deadline, &now)) {
+            pItem = (WorkItem*) SList_RemoveFirst(&self->timer_queue);
+            self->items_queued_count--;
+        }
+
+
+        // Grab the first work item if no timer is due
+        if (pItem == NULL) {
+            pItem = (WorkItem*) SList_RemoveFirst(&self->item_queue);
+            self->items_queued_count--;
+        }
+
+
+
+        // We're done with this loop if we got an item to execute, we're
+        // supposed to terminate or we got no item and it's okay to
+        // relinquish this VP
+        if (pItem != NULL || self->state >= kQueueState_Terminating || (pItem == NULL && mayRelinquish)) {
+            break;
+        }
+            
+
+        // Compute a deadline for the wait. We do not wait if the deadline
+        // is equal to the current time or it's in the past
+        if (self->timer_queue.first) {
+            deadline = ((WorkItem*)self->timer_queue.first)->u.timer.deadline;
+        } else {
+            timespec_from_sec(&dly, 2);
+            timespec_add(&now, &dly, &deadline);
+        }
+
+
+        // Wait for work. This drops the queue lock while we're waiting. This
+        // call may return with a ETIMEDOUT error. This is fine. Either some
+        // new work has arrived in the meantime or if not then we are free
+        // to relinquish the VP since it hasn't done anything useful for a
+        // longer time.
+        const int err = ConditionVariable_Wait(&self->work_available_signaler, &self->lock, &deadline);
+        if (err == ETIMEDOUT && self->availableConcurrency > self->minConcurrency) {
+            mayRelinquish = true;
+        }
+    }
+
+    return pItem;
+}
+
 void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
 {
     VirtualProcessor* pVP = VirtualProcessor_GetCurrent();
@@ -721,64 +790,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
     Lock_Lock(&self->lock);
 
     while (true) {
-        WorkItem* pItem = NULL;
-        bool mayRelinquish = false;
-        
-        // Wait for work items to arrive or for timers to fire
-        while (true) {
-            struct timespec now;
-            
-            MonotonicClock_GetCurrentTime(&now);
-
-            // Grab the first timer that's due. We give preference to timers because
-            // they are tied to a specific deadline time while immediate work items
-            // do not guarantee that they will execute at a specific time. So it's
-            // acceptable to push them back on the timeline.
-            WorkItem* pFirstTimer = (WorkItem*)self->timer_queue.first;
-            if (pFirstTimer && timespec_le(&pFirstTimer->u.timer.deadline, &now)) {
-                pItem = (WorkItem*) SList_RemoveFirst(&self->timer_queue);
-                self->items_queued_count--;
-            }
-
-
-            // Grab the first work item if no timer is due
-            if (pItem == NULL) {
-                pItem = (WorkItem*) SList_RemoveFirst(&self->item_queue);
-                self->items_queued_count--;
-            }
-
-
-
-            // We're done with this loop if we got an item to execute, we're
-            // supposed to terminate or we got no item and it's okay to
-            // relinquish this VP
-            if (pItem != NULL || self->state >= kQueueState_Terminating || (pItem == NULL && mayRelinquish)) {
-                break;
-            }
-            
-
-            // Compute a deadline for the wait. We do not wait if the deadline
-            // is equal to the current time or it's in the past
-            struct timespec deadline, dly;
-
-            if (self->timer_queue.first) {
-                deadline = ((WorkItem*)self->timer_queue.first)->u.timer.deadline;
-            } else {
-                timespec_from_sec(&dly, 2);
-                timespec_add(&now, &dly, &deadline);
-            }
-
-
-            // Wait for work. This drops the queue lock while we're waiting. This
-            // call may return with a ETIMEDOUT error. This is fine. Either some
-            // new work has arrived in the meantime or if not then we are free
-            // to relinquish the VP since it hasn't done anything useful for a
-            // longer time.
-            const int err = ConditionVariable_Wait(&self->work_available_signaler, &self->lock, &deadline);
-            if (err == ETIMEDOUT && self->availableConcurrency > self->minConcurrency) {
-                mayRelinquish = true;
-            }
-        }
+        WorkItem* pItem = _wait_next_workitem(self);
 
         
         // Relinquish this VP if we did not get an item to execute or the queue
@@ -822,7 +834,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
         if (pItem) {
             // Move the work item back to the item cache if possible or destroy it
             if ((pItem->flags & kWorkItemFlag_IsRepeating) == kWorkItemFlag_IsRepeating && self->state == kQueueState_Running) {
-                DispatchQueue_RearmTimedItem_Locked(self, pItem);
+                _rearm_timer(self, pItem);
             }
             else {
                 DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
@@ -830,7 +842,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
         }
     }
 
-    DispatchQueue_RelinquishVirtualProcessor_Locked(self, pVP);
+    DispatchQueue_DetachVirtualProcessor_Locked(self, pVP);
 
     if (self->state >= kQueueState_Terminating) {
         ConditionVariable_SignalAndUnlock(&self->vp_shutdown_signaler, &self->lock);
