@@ -718,7 +718,7 @@ static void _rearm_timer(DispatchQueueRef _Nonnull _Locked self, WorkItem* _Nonn
 }
 
 // Wait for work items to arrive or for timers to fire
-static WorkItem* _Nullable _wait_next_workitem(DispatchQueueRef _Nonnull _Locked self)
+static WorkItem* _Nullable _get_next_work(DispatchQueueRef _Nonnull _Locked self)
 {
     WorkItem* pItem = NULL;
     bool mayRelinquish = false;
@@ -746,10 +746,9 @@ static WorkItem* _Nullable _wait_next_workitem(DispatchQueueRef _Nonnull _Locked
 
 
 
-        // We're done with this loop if we got an item to execute, we're
-        // supposed to terminate or we got no item and it's okay to
-        // relinquish this VP
-        if (pItem != NULL || self->state >= kQueueState_Terminating || (pItem == NULL && mayRelinquish)) {
+        // We're done with this loop if we got an item to execute or we got no
+        // item and it's okay to relinquish this VP
+        if (pItem != NULL || (pItem == NULL && mayRelinquish)) {
             break;
         }
             
@@ -789,13 +788,12 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
     // - while executing a work item
     Lock_Lock(&self->lock);
 
-    while (true) {
-        WorkItem* pItem = _wait_next_workitem(self);
+    while (self->state == kQueueState_Running) {
+        WorkItem* pItem = _get_next_work(self);
 
         
-        // Relinquish this VP if we did not get an item to execute or the queue
-        // is terminating
-        if (pItem == NULL || self->state >= kQueueState_Terminating) {
+        // Relinquish this VP if we did not get an item to execute
+        if (pItem == NULL) {
             break;
         }
 
@@ -805,7 +803,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
 
 
         // Drop the lock. We do not want to hold it while the closure is executing
-        // and we are (if needed) signaling completion.
+        // and we are (if needed) signaling a completion.
         Lock_Unlock(&self->lock);
 
 
