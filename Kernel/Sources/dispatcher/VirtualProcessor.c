@@ -347,28 +347,6 @@ _Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull self)
     // NOT REACHED
 }
 
-// Sleep for the given number of seconds.
-errno_t VirtualProcessor_Sleep(int options, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
-{
-    // Use the Delay() facility for short waits and context switching for medium and long waits
-    if (MonotonicClock_Delay((options & WAIT_ABSTIME) != 0, wtp)) {
-        return EOK;
-    }
-    
-    
-    // This is a medium or long wait -> context switch away
-    int sps = VirtualProcessorScheduler_DisablePreemption();
-    const int err = VirtualProcessorScheduler_WaitOn(
-                            gVirtualProcessorScheduler,
-                            &gVirtualProcessorScheduler->sleep_queue, 
-                            WAIT_INTERRUPTABLE | options,
-                            wtp,
-                            rmtp);
-    VirtualProcessorScheduler_RestorePreemption(sps);
-    
-    return (err == EINTR) ? EINTR : EOK;
-}
-
 // Returns the priority of the given VP.
 int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull self)
 {
@@ -415,14 +393,42 @@ void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int priority)
     VirtualProcessorScheduler_RestorePreemption(sps);
 }
 
-// Returns true if the given virtual processor is currently suspended; false otherwise.
-bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull self)
+// Sleep for the given number of seconds.
+errno_t VirtualProcessor_Sleep(int options, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
 {
-    VP_ASSERT_ALIVE(self);
-    const int sps = VirtualProcessorScheduler_DisablePreemption();
-    const bool isSuspended = self->suspension_count > 0;
+    // Use the Delay() facility for short waits and context switching for medium and long waits
+    if (MonotonicClock_Delay((options & WAIT_ABSTIME) != 0, wtp)) {
+        return EOK;
+    }
+    
+    
+    // This is a medium or long wait -> context switch away
+    int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int err = VirtualProcessorScheduler_WaitOn(
+                            gVirtualProcessorScheduler,
+                            &gVirtualProcessorScheduler->sleep_queue, 
+                            WAIT_INTERRUPTABLE | options,
+                            wtp,
+                            rmtp);
     VirtualProcessorScheduler_RestorePreemption(sps);
-    return isSuspended;
+    
+    return (err == EINTR) ? EINTR : EOK;
+}
+
+// Yields the remainder of the current quantum to other VPs.
+void VirtualProcessor_Yield(void)
+{
+    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    VirtualProcessor* self = (VirtualProcessor*)gVirtualProcessorScheduler->running;
+
+    assert(self->sched_state == kVirtualProcessorState_Running && self->suspension_count == 0);
+
+    VirtualProcessorScheduler_AddVirtualProcessor_Locked(
+        gVirtualProcessorScheduler, self, self->priority);
+    VirtualProcessorScheduler_SwitchTo(gVirtualProcessorScheduler,
+        VirtualProcessorScheduler_GetHighestPriorityReady(gVirtualProcessorScheduler));
+    
+    VirtualProcessorScheduler_RestorePreemption(sps);
 }
 
 // Suspends the calling virtual processor. This function supports nested calls.
@@ -512,4 +518,14 @@ void VirtualProcessor_Resume(VirtualProcessor* _Nonnull self, bool force)
         }
     }
     VirtualProcessorScheduler_RestorePreemption(sps);
+}
+
+// Returns true if the given virtual processor is currently suspended; false otherwise.
+bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull self)
+{
+    VP_ASSERT_ALIVE(self);
+    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    const bool isSuspended = self->suspension_count > 0;
+    VirtualProcessorScheduler_RestorePreemption(sps);
+    return isSuspended;
 }

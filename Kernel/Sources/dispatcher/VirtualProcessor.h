@@ -196,9 +196,6 @@ extern errno_t VirtualProcessor_Create(VirtualProcessor* _Nullable * _Nonnull pO
 void VirtualProcessor_Destroy(VirtualProcessor* _Nullable self);
 
 
-// Sleep for the given number of seconds
-extern errno_t VirtualProcessor_Sleep(int options, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp);
-
 // Returns the priority of the given VP.
 extern int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull self);
 
@@ -208,8 +205,12 @@ extern int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull self);
 // XXX might want to change that in the future?
 extern void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int priority);
 
-// Returns true if the given virtual processor is currently suspended; false otherwise.
-extern bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull self);
+
+// Sleep for the given number of seconds
+extern errno_t VirtualProcessor_Sleep(int options, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp);
+
+// Yields the remainder of the current quantum to other VPs.
+extern void VirtualProcessor_Yield(void);
 
 // Suspends the calling virtual processor. This function supports nested calls.
 extern errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull self);
@@ -218,6 +219,10 @@ extern errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull self);
 // resumed if 'force' is true. This means that it is resumed even if the suspension
 // count is > 1.
 extern void VirtualProcessor_Resume(VirtualProcessor* _Nonnull self, bool force);
+
+// Returns true if the given virtual processor is currently suspended; false otherwise.
+extern bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull self);
+
 
 // Sets the dispatch queue that has acquired the virtual processor and owns it
 // until the virtual processor is relinquished back to the virtual processor

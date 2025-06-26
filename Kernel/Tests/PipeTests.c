@@ -90,7 +90,7 @@ static void OnWriteToPipe(int fd)
 
 void pipe2_test(int argc, char *argv[])
 {
-    int fds[2];
+    static int fds[2];
 
     assertOK(pipe(fds));
 
