@@ -724,7 +724,7 @@ static WorkItem* _Nullable _get_next_work(DispatchQueueRef _Nonnull _Locked self
     bool mayRelinquish = false;
     struct timespec now, deadline, dly;
 
-    while (true) {
+    for (;;) {
         MonotonicClock_GetCurrentTime(&now);
 
         // Grab the first timer that's due. We give preference to timers because
@@ -734,22 +734,24 @@ static WorkItem* _Nullable _get_next_work(DispatchQueueRef _Nonnull _Locked self
         WorkItem* pFirstTimer = (WorkItem*)self->timer_queue.first;
         if (pFirstTimer && timespec_le(&pFirstTimer->u.timer.deadline, &now)) {
             pItem = (WorkItem*) SList_RemoveFirst(&self->timer_queue);
-            self->items_queued_count--;
         }
 
 
         // Grab the first work item if no timer is due
         if (pItem == NULL) {
             pItem = (WorkItem*) SList_RemoveFirst(&self->item_queue);
-            self->items_queued_count--;
         }
 
 
+        // We're done if we got an item or we got no item and it is okay to
+        // relinquish this VP
+        if (pItem) {
+            self->items_queued_count--;
+            return pItem;
+        }
 
-        // We're done with this loop if we got an item to execute or we got no
-        // item and it's okay to relinquish this VP
-        if (pItem != NULL || (pItem == NULL && mayRelinquish)) {
-            break;
+        if (mayRelinquish) {
+            return NULL;
         }
             
 
@@ -768,13 +770,15 @@ static WorkItem* _Nullable _get_next_work(DispatchQueueRef _Nonnull _Locked self
         // new work has arrived in the meantime or if not then we are free
         // to relinquish the VP since it hasn't done anything useful for a
         // longer time.
-        const int err = ConditionVariable_Wait(&self->work_available_signaler, &self->lock, &deadline);
+        const errno_t err = ConditionVariable_Wait(&self->work_available_signaler, &self->lock, &deadline);
+        if (self->state != kQueueState_Running) {
+            return NULL;
+        }
+
         if (err == ETIMEDOUT && self->availableConcurrency > self->minConcurrency) {
             mayRelinquish = true;
         }
     }
-
-    return pItem;
 }
 
 void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
