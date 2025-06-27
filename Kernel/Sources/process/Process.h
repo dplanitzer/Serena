@@ -149,6 +149,12 @@ extern errno_t Process_AcquireUSemaphore(ProcessRef _Nonnull self, int od, int n
 extern errno_t Process_TryAcquireUSemaphore(ProcessRef _Nonnull self, int npermits, int od);
 
 
+extern errno_t Process_CreateUWaitQueue(ProcessRef _Nonnull self, int* _Nullable pOutOd);
+extern errno_t Process_Wait_UWaitQueue(ProcessRef _Nonnull self, int od);
+extern errno_t Process_TimedWait_UWaitQueue(ProcessRef _Nonnull self, int od, int options, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp);
+extern errno_t Process_Wakeup_UWaitQueue(ProcessRef _Nonnull self, int od, int options);
+
+
 // Allocates more (user) address space to the given process.
 extern errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull self, ssize_t count, void* _Nullable * _Nonnull pOutMem);
 

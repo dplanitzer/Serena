@@ -74,6 +74,10 @@ enum {
     SC_chmod,               // errno_t chmod(const char* _Nonnull path, mode_t mode)
     SC_utimens,             // errno_t utimens(const char* _Nonnull path, const struct timespec times[_Nullable 2])
     SC_sched_yield,         // void sched_yield(void)
+    SC_waq_create,          // int waq_create(void)
+    SC_waq_wait,            // int waq_wait(int q)
+    SC_waq_timedwait,       // int waq_timedwait(int q, int options, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
+    SC_waq_wakeup,          // int waq_wakeup(int q, int flags)
 };
 
 
