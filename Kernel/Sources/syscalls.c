@@ -30,7 +30,7 @@ typedef struct syscall {
 #define SC_ERRNO    1   /* System call returns an error that should be stored in vcpu->errno */
 #define SC_VCPU     2   /* System call expects a vcpu_t* rather than a proc_t* */
 
-#define SYSCALL_COUNT   63
+#define SYSCALL_COUNT   52
 static const syscall_t gSystemCallTable[SYSCALL_COUNT];
 
 
@@ -299,66 +299,6 @@ SYSCALL_0(dispatch_queue_current)
     return Process_GetCurrentDispatchQueue((ProcessRef)p);
 }
 
-
-SYSCALL_1(cond_create, int* _Nonnull pOutOd)
-{
-    return Process_CreateUConditionVariable((ProcessRef)p, pa->pOutOd);
-}
-
-SYSCALL_3(cond_wake, int od, int dlock, unsigned int options)
-{
-    return Process_WakeUConditionVariable((ProcessRef)p, pa->od, pa->dlock, pa->options);
-}
-
-SYSCALL_3(cond_timedwait, int od, int dlock, const struct timespec* _Nullable deadline)
-{
-    const struct timespec* ts = (pa->deadline) ? pa->deadline : &TIMESPEC_INF;
-
-    return Process_WaitUConditionVariable((ProcessRef)p, pa->od, pa->dlock, ts);
-}
-
-
-SYSCALL_1(lock_create, int* _Nonnull pOutOd)
-{
-    return Process_CreateULock((ProcessRef)p, pa->pOutOd);
-}
-
-SYSCALL_1(lock_trylock, int od)
-{
-    return Process_TryULock((ProcessRef)p, pa->od);
-}
-
-SYSCALL_1(lock_lock, int od)
-{
-    return Process_LockULock((ProcessRef)p, pa->od);
-}
-
-SYSCALL_1(lock_unlock, int od)
-{
-    return Process_UnlockULock((ProcessRef)p, pa->od);
-}
-
-
-SYSCALL_2(sem_create, int npermits, int* _Nonnull pOutOd)
-{
-    return Process_CreateUSemaphore((ProcessRef)p, pa->npermits, pa->pOutOd);
-}
-
-SYSCALL_2(sem_post, int od, int npermits)
-{
-    return Process_RelinquishUSemaphore((ProcessRef)p, pa->od, pa->npermits);
-}
-
-SYSCALL_3(sem_wait, int od, int npermits, const struct timespec* _Nonnull deadline)
-{
-    return Process_AcquireUSemaphore((ProcessRef)p, pa->od, pa->npermits, pa->deadline);
-}
-
-SYSCALL_2(sem_trywait, int od, int npermits)
-{
-    return Process_TryAcquireUSemaphore((ProcessRef)p, pa->od, pa->npermits);
-}
-
 SYSCALL_1(dispose, int od)
 {
     return Process_DisposeUResource((ProcessRef)p, pa->od);
@@ -537,17 +477,6 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(dispatch_queue_current, 0),
     SYSCALL_ENTRY(dispose, SC_ERRNO),
     SYSCALL_ENTRY(clock_gettime, SC_ERRNO),
-    SYSCALL_ENTRY(lock_create, SC_ERRNO),
-    SYSCALL_ENTRY(lock_trylock, SC_ERRNO),
-    SYSCALL_ENTRY(lock_lock, SC_ERRNO),
-    SYSCALL_ENTRY(lock_unlock, SC_ERRNO),
-    SYSCALL_ENTRY(sem_create, SC_ERRNO),
-    SYSCALL_ENTRY(sem_post, SC_ERRNO),
-    SYSCALL_ENTRY(sem_wait, SC_ERRNO),
-    SYSCALL_ENTRY(sem_trywait, SC_ERRNO),
-    SYSCALL_ENTRY(cond_create, SC_ERRNO),
-    SYSCALL_ENTRY(cond_wake, SC_ERRNO),
-    SYSCALL_ENTRY(cond_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(dispatch_remove_by_tag, SC_ERRNO),
     SYSCALL_ENTRY(mount, SC_ERRNO),
     SYSCALL_ENTRY(unmount, SC_ERRNO),

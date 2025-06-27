@@ -103,52 +103,6 @@ extern int Process_GetCurrentDispatchQueue(ProcessRef _Nonnull self);
 extern errno_t Process_CreateDispatchQueue(ProcessRef _Nonnull self, int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nullable pOutDescriptor);
 
 
-// Creates a new UConditionVariable and binds it to the process.
-extern errno_t Process_CreateUConditionVariable(ProcessRef _Nonnull self, int* _Nullable pOutOd);
-
-// Wakes the given condition variable and unlock the associated lock if
-// 'dLock' is not -1. This does a signal or broadcast.
-extern errno_t Process_WakeUConditionVariable(ProcessRef _Nonnull self, int od, int dLock, bool bBroadcast);
-
-// Blocks the caller until the condition variable has received a signal or the
-// wait has timed out. Automatically and atomically acquires the associated
-// lock on wakeup. An ETIMEOUT error is returned if the condition variable is
-// not signaled before 'deadline'.
-extern errno_t Process_WaitUConditionVariable(ProcessRef _Nonnull self, int od, int dLock, const struct timespec* _Nonnull deadline);
-
-
-// Creates a new ULock and binds it to the process.
-extern errno_t Process_CreateULock(ProcessRef _Nonnull self, int* _Nullable pOutLock);
-
-// Tries taking the given lock. Returns EOK on success and EBUSY if someone else
-// is already holding the lock.
-extern errno_t Process_TryULock(ProcessRef _Nonnull self, int od);
-
-// Locks the given user lock. The caller will remain blocked until the lock can
-// be successfully acquired or the wait is interrupted for some reason.
-extern errno_t Process_LockULock(ProcessRef _Nonnull self, int od);
-
-// Unlocks the given user lock. Returns EOK on success and EPERM if the lock is
-// currently being held by some other virtual processor.
-extern errno_t Process_UnlockULock(ProcessRef _Nonnull self, int od);
-
-
-// Creates a new USemaphore and binds it to the process.
-extern errno_t Process_CreateUSemaphore(ProcessRef _Nonnull self, int npermits, int* _Nullable pOutOd);
-
-// Releases 'npermits' permits to the semaphore.
-extern errno_t Process_RelinquishUSemaphore(ProcessRef _Nonnull self, int od, int npermits);
-
-// Blocks the caller until 'npermits' can be successfully acquired from the given
-// semaphore. Returns EOK on success and ETIMEOUT if the permits could not be
-// acquired before 'deadline'.
-extern errno_t Process_AcquireUSemaphore(ProcessRef _Nonnull self, int od, int npermits, const struct timespec* _Nonnull deadline);
-
-// Tries to acquire 'npermits' from the given semaphore. Returns true on success
-// and false otherwise. This function does not block the caller.
-extern errno_t Process_TryAcquireUSemaphore(ProcessRef _Nonnull self, int npermits, int od);
-
-
 extern errno_t Process_CreateUWaitQueue(ProcessRef _Nonnull self, int* _Nullable pOutOd);
 extern errno_t Process_Wait_UWaitQueue(ProcessRef _Nonnull self, int od);
 extern errno_t Process_TimedWait_UWaitQueue(ProcessRef _Nonnull self, int od, int options, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp);
