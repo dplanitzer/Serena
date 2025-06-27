@@ -2,83 +2,109 @@
 //  sys/mutex.c
 //  libc
 //
-//  Created by Dietmar Planitzer on 3/21/24.
-//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 6/26/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "_mutex.h"
 #include <errno.h>
+#include <stdbool.h>
 #include <kpi/syscall.h>
+#include <sys/mutex.h>
+#include <sys/waitqueue.h>
+
+#define MUTEX_SIGNATURE 0x4c4f434b
 
 
-int mutex_init(mutex_t* _Nonnull mutex)
+int mutex_init(mutex_t* _Nonnull self)
 {
-    UMutex* self = (UMutex*)mutex;
+    self->spinlock = SPINLOCK_INIT;
+    self->state = 0;
+    self->contention = 0;
+    self->signature = MUTEX_SIGNATURE;
+    self->wait_queue = waq_create();
 
-    self->signature = 0;
-    self->r2 = 0;
-    self->r3 = 0;
-
-    if (_syscall(SC_lock_create, &self->od) == 0) {
-        self->signature = MUTEX_SIGNATURE;
+    if (self->wait_queue >= 0) {
         return 0;
     }
     else {
+        self->signature = 0;
         return -1;
     }
 }
 
-int mutex_deinit(mutex_t* _Nonnull mutex)
+int mutex_deinit(mutex_t* _Nonnull self)
 {
-    UMutex* self = (UMutex*)mutex;
+    if (self->signature != MUTEX_SIGNATURE) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    const int r = _syscall(SC_dispose, self->wait_queue);
+    self->signature = 0;
+    self->wait_queue = -1;
+
+    return r;
+}
+
+int mutex_trylock(mutex_t* _Nonnull self)
+{
+    if (self->signature != MUTEX_SIGNATURE) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    spin_lock(&self->spinlock);
+    if (self->state == 0) {
+        self->state = 1;
+        spin_unlock(&self->spinlock);
+        return 0;
+    }
+    spin_unlock(&self->spinlock);
+
+    errno = EBUSY;
+    return -1;
+}
+
+int mutex_lock(mutex_t* _Nonnull self)
+{
+    if (self->signature != MUTEX_SIGNATURE) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    for (;;) {
+        spin_lock(&self->spinlock);
+        if (self->state == 0) {
+            self->state = 1;
+            spin_unlock(&self->spinlock);
+            return 0;
+        }
+
+        self->contention++;
+        spin_unlock(&self->spinlock);
+        waq_wait(self->wait_queue);
+    }
+}
+
+int mutex_unlock(mutex_t* _Nonnull self)
+{
+    bool doWakeup = false;
 
     if (self->signature != MUTEX_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
 
-    const int r = _syscall(SC_dispose, self->od);
-    self->signature = 0;
-    self->od = 0;
+    spin_lock(&self->spinlock);
+    self->state = 0;
 
-    return r;
-}
-
-int mutex_trylock(mutex_t* _Nonnull mutex)
-{
-    UMutex* self = (UMutex*)mutex;
-
-    if (self->signature == MUTEX_SIGNATURE) {
-        return _syscall(SC_lock_trylock, self->od);
+    if (self->contention > 0) {
+        self->contention--;
+        doWakeup = true;
     }
-    else {
-        errno = EINVAL;
-        return -1;
-    }
-}
+    spin_unlock(&self->spinlock);
 
-int mutex_lock(mutex_t* _Nonnull mutex)
-{
-    UMutex* self = (UMutex*)mutex;
-
-    if (self->signature == MUTEX_SIGNATURE) {
-        return _syscall(SC_lock_lock, self->od);
-    }
-    else {
-        errno = EINVAL;
-        return -1;
-    }
-}
-
-int mutex_unlock(mutex_t* _Nonnull mutex)
-{
-    UMutex* self = (UMutex*)mutex;
-
-    if (self->signature == MUTEX_SIGNATURE) {
-        return _syscall(SC_lock_unlock, self->od);
-    }
-    else {
-        errno = EINVAL;
-        return -1;
+    if (doWakeup) {
+        waq_wakeup(self->wait_queue, WAKE_ONE);
     }
 }

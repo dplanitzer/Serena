@@ -20,7 +20,7 @@ typedef struct spinlock {
     char        pad[3];
 } spinlock_t;
 
-#define SPINLOCK_INIT   {0}
+#define SPINLOCK_INIT   (spinlock_t){0,0,0,0}
 
 
 // Blocks the caller until the spin lock has been acquired.

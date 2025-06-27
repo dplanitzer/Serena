@@ -25,6 +25,7 @@ typedef struct UConditionVariable {
 
 int cond_init(cond_t* _Nonnull cv)
 {
+#if 0
     UConditionVariable* self = (UConditionVariable*)cv;
 
     self->signature = 0;
@@ -38,10 +39,15 @@ int cond_init(cond_t* _Nonnull cv)
     else {
         return -1;
     }
+#else
+    errno = ENOTSUP;
+    return -1;
+#endif
 }
 
 int cond_deinit(cond_t* _Nonnull cv)
 {
+#if 0
     UConditionVariable* self = (UConditionVariable*)cv;
 
     if (self->signature != CV_SIGNATURE) {
@@ -54,10 +60,15 @@ int cond_deinit(cond_t* _Nonnull cv)
     self->od = 0;
 
     return r;
+#else
+    errno = ENOTSUP;
+    return -1;
+#endif
 }
 
 int cond_signal(cond_t* _Nonnull cv, mutex_t* _Nullable mutex)
 {
+#if 0
     UConditionVariable* self = (UConditionVariable*)cv;
     UMutex* ulock = (UMutex*)mutex;
 
@@ -68,10 +79,15 @@ int cond_signal(cond_t* _Nonnull cv, mutex_t* _Nullable mutex)
         errno = EINVAL;
         return -1;
     }
+#else
+    errno = ENOTSUP;
+    return -1;
+#endif
 }
 
 int cond_broadcast(cond_t* _Nonnull cv, mutex_t* _Nullable mutex)
 {
+#if 0
     UConditionVariable* self = (UConditionVariable*)cv;
     UMutex* ulock = (UMutex*)mutex;
 
@@ -82,10 +98,15 @@ int cond_broadcast(cond_t* _Nonnull cv, mutex_t* _Nullable mutex)
         errno = EINVAL;
         return -1;
     }
+#else
+    errno = ENOTSUP;
+    return -1;
+#endif
 }
 
 int cond_wait(cond_t* _Nonnull cv, mutex_t* _Nonnull mutex)
 {
+#if 0
     UConditionVariable* self = (UConditionVariable*)cv;
     UMutex* ulock = (UMutex*)mutex;
 
@@ -96,10 +117,15 @@ int cond_wait(cond_t* _Nonnull cv, mutex_t* _Nonnull mutex)
         errno = EINVAL;
         return -1;
     }
+#else
+    errno = ENOTSUP;
+    return -1;
+#endif
 }
 
 int cond_timedwait(cond_t* _Nonnull cv, mutex_t* _Nonnull mutex, const struct timespec* _Nonnull deadline)
 {
+#if 0
     UConditionVariable* self = (UConditionVariable*)cv;
     UMutex* ulock = (UMutex*)mutex;
 
@@ -110,4 +136,8 @@ int cond_timedwait(cond_t* _Nonnull cv, mutex_t* _Nonnull mutex, const struct ti
         errno = EINVAL;
         return -1;
     }
+#else
+    errno = ENOTSUP;
+    return -1;
+#endif
 }

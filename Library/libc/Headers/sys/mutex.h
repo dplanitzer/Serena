@@ -10,11 +10,16 @@
 #define _SYS_MUTEX_H 1
 
 #include <_cmndef.h>
+#include <sys/spinlock.h>
 
 __CPP_BEGIN
 
 typedef struct mutex {
-    int d[4];
+    spinlock_t  spinlock;
+    int         state;
+    int         contention;
+    int         signature;
+    int         wait_queue;
 } mutex_t;
 
 
