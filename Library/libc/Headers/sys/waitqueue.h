@@ -15,6 +15,9 @@
 
 __CPP_BEGIN
 
+// Requests that wakeup() wakes up all vcpus on the wait queue.
+#define WAKE_ALL    0
+
 // Requests that wakeup() wakes up at most one vcpu instead of all.
 #define WAKE_ONE    1
 

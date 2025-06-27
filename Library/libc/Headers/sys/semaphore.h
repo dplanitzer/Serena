@@ -11,11 +11,16 @@
 
 #include <_cmndef.h>
 #include <time.h>
+#include <sys/spinlock.h>
 
 __CPP_BEGIN
 
 typedef struct sem {
-    int d[4];
+    spinlock_t  spinlock;
+    int         permits;
+    int         waiters;
+    int         signature;
+    int         wait_queue;
 } sem_t;
 
 
@@ -31,11 +36,16 @@ extern int sem_deinit(sem_t* _Nonnull sema);
 // @Concurrency: Safe
 extern int sem_post(sem_t* _Nonnull sema, int npermits);
 
-// Blocks the caller until 'npermits' can be acquired. Returns 0 on success
-// and -1 and errno set to ETIMEOUT if the permits could not be acquire before
-// 'deadline'.
+// Blocks the caller until 'npermits' have been successfully acquired. Returns 0
+// on success and -1 and on failure.
 // @Concurrency: Safe
-extern int sem_wait(sem_t* _Nonnull sema, int npermits, const struct timespec* _Nonnull deadline);
+extern int sem_wait(sem_t* _Nonnull sema, int npermits);
+
+// Like sem_wait() but allows the specification of a timeout value. 'wtp' is
+// an absolute point in time if 'flags' includes TIMER_ABSTIME and a duration
+// relative to the current time otherwise. 
+// @Concurrency: Safe
+extern int sem_timedwait(sem_t* _Nonnull self, int npermits, int flags, const struct timespec* _Nonnull wtp);
 
 // Attempts to acquire 'npermits' without blocking. Returns 0 on success and -1
 // and errno set to EBUSY otherwise.
