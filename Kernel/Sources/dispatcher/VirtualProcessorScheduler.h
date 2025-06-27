@@ -12,6 +12,7 @@
 #include <kern/types.h>
 #include <boot/BootAllocator.h>
 #include <hal/SystemDescription.h>
+#include <kern/limits.h>
 #include "VirtualProcessor.h"
 
 

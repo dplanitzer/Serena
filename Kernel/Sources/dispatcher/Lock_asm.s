@@ -24,7 +24,6 @@ lock_value              so.l    1    ; bit #7 == 1 -> lock is in acquired state;
 lock_wait_queue_first   so.l    1
 lock_wait_queue_last    so.l    1
 lock_owner_vpid         so.l    1
-lock_options            so.l    1
 lock_SIZEOF             so
 
 
