@@ -335,7 +335,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     Lock_Lock(&self->lock);
 
     while (self->flags.inUse && err == EOK) {
-        err = ConditionVariable_Wait(&self->cv, &self->lock, &TIMESPEC_INF);
+        err = ConditionVariable_Wait(&self->cv, &self->lock);
     }
     if (err != EOK) {
         Lock_Unlock(&self->lock);

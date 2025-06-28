@@ -123,7 +123,7 @@ void DispatchQueue_WaitForTerminationCompleted(DispatchQueueRef _Nonnull self)
 {
     Lock_Lock(&self->lock);
     while (self->availableConcurrency > 0) {
-        ConditionVariable_Wait(&self->vp_shutdown_signaler, &self->lock, &TIMESPEC_INF);
+        ConditionVariable_Wait(&self->vp_shutdown_signaler, &self->lock);
     }
 
 
@@ -770,7 +770,7 @@ static WorkItem* _Nullable _get_next_work(DispatchQueueRef _Nonnull _Locked self
         // new work has arrived in the meantime or if not then we are free
         // to relinquish the VP since it hasn't done anything useful for a
         // longer time.
-        const errno_t err = ConditionVariable_Wait(&self->work_available_signaler, &self->lock, &deadline);
+        const errno_t err = ConditionVariable_TimedWait(&self->work_available_signaler, &self->lock, &deadline);
         if (self->state != kQueueState_Running) {
             return NULL;
         }

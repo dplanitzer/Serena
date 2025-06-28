@@ -202,7 +202,7 @@ retry:
 
         if (isReading) {
             self->inReadingWaiterCount++;
-            try_bang(ConditionVariable_Wait(&self->inCondVar, &self->inLock, &TIMESPEC_INF));
+            try_bang(ConditionVariable_Wait(&self->inCondVar, &self->inLock));
             self->inReadingWaiterCount--;
             goto retry;
         }

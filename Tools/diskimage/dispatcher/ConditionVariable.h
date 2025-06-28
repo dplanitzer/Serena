@@ -20,6 +20,7 @@ extern void ConditionVariable_Init(ConditionVariable* pCondVar);
 extern void ConditionVariable_Deinit(ConditionVariable* pCondVar);
 extern void ConditionVariable_Broadcast(ConditionVariable* pCondVar);
 extern void ConditionVariable_BroadcastAndUnlock(ConditionVariable* pCondVar, Lock* pLock);
-extern errno_t ConditionVariable_Wait(ConditionVariable* pCondVar, Lock* pLock, const struct timespec* _Nonnull deadline);
+extern errno_t ConditionVariable_Wait(ConditionVariable* pCondVar, Lock* pLock);
+extern errno_t ConditionVariable_TimedWait(ConditionVariable* pCondVar, Lock* pLock, const struct timespec* _Nonnull deadline);
 
 #endif /* di_ConditionVariable_h */

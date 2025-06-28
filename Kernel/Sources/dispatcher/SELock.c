@@ -45,7 +45,7 @@ static errno_t _SELock_AcquireSharedLockSlow(SELock* _Nonnull self)
     decl_try_err();
 
     for (;;) {
-        err = ConditionVariable_Wait(&self->cv, &self->lock, &TIMESPEC_INF);
+        err = ConditionVariable_Wait(&self->cv, &self->lock);
         if (err != EOK) {
             break;
         }
@@ -99,7 +99,7 @@ static errno_t _SELock_AcquireExclusiveLockSlow(SELock* _Nonnull self)
     decl_try_err();
 
     for (;;) {
-        err = ConditionVariable_Wait(&self->cv, &self->lock, &TIMESPEC_INF);
+        err = ConditionVariable_Wait(&self->cv, &self->lock);
         if (err != EOK) {
             break;
         }
