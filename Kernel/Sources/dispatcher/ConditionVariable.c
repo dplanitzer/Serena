@@ -52,11 +52,15 @@ void _ConditionVariable_Wakeup(ConditionVariable* _Nonnull pCondVar, bool broadc
 // It then locks 'pLock' before it returns to the caller.
 errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock)
 {
+    // Note that we disable preemption while unlocking and entering the wait.
+    // The reason is that we want to ensure that noone else can grab the lock,
+    // do a signal and then unlock between us unlocking and trying to enter the
+    // wait. If we would allow this, then we would miss a wakeup. An alternative
+    // strategy to this one here would be to use a stateful wait (aka signalling
+    // wait).
     const int sps = VirtualProcessorScheduler_DisablePreemption();
-    const int scs = VirtualProcessorScheduler_DisableCooperation();
     
     Lock_Unlock(pLock);
-    VirtualProcessorScheduler_RestoreCooperation(scs);
     const int err = VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                                      &pCondVar->wait_queue,
                                                      WAIT_INTERRUPTABLE,
@@ -74,10 +78,8 @@ errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonn
 errno_t ConditionVariable_TimedWait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock, const struct timespec* _Nonnull deadline)
 {
     const int sps = VirtualProcessorScheduler_DisablePreemption();
-    const int scs = VirtualProcessorScheduler_DisableCooperation();
     
     Lock_Unlock(pLock);
-    VirtualProcessorScheduler_RestoreCooperation(scs);
     const int err = VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                                      &pCondVar->wait_queue,
                                                      WAIT_INTERRUPTABLE | WAIT_ABSTIME,

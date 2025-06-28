@@ -70,7 +70,6 @@ void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull sdp
     self->running = NULL;
     self->scheduled = VirtualProcessorScheduler_GetHighestPriorityReady(self);
     self->csw_signals |= CSW_SIGNAL_SWITCH;
-    self->flags |= SCHED_FLAG_VOLUNTARY_CSW_ENABLED;
     VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(self, self->scheduled);
     
     assert(self->scheduled == self->bootVirtualProcessor);
@@ -491,8 +490,7 @@ void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull sel
 void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp)
 {
     if (vp->sched_state == kVirtualProcessorState_Ready
-        && vp->suspension_count == 0
-        && VirtualProcessorScheduler_IsCooperationEnabled()) {
+        && vp->suspension_count == 0) {
         VirtualProcessor* pBestReadyVP = VirtualProcessorScheduler_GetHighestPriorityReady(self);
         
         if (pBestReadyVP == vp && vp->effectivePriority >= self->running->effectivePriority) {

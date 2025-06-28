@@ -26,10 +26,6 @@
 #define CSW_HW_HAS_FPU      0x01
 
 
-// Set if voluntary context switches are enabled (which is the default). Disabling this will stop wakeup() calls from doing CSWs
-#define SCHED_FLAG_VOLUNTARY_CSW_ENABLED   0x01
-
-
 // The ready queue holds references to all VPs which are ready to run. The queue
 // is sorted from highest to lowest priority.
 typedef struct ReadyQueue {
@@ -115,10 +111,6 @@ extern void VirtualProcessorScheduler_WakeUpAllFromInterruptContext(VirtualProce
 
 extern int VirtualProcessorScheduler_DisablePreemption(void);
 extern void VirtualProcessorScheduler_RestorePreemption(int sps);
-
-extern int VirtualProcessorScheduler_DisableCooperation(void);
-extern void VirtualProcessorScheduler_RestoreCooperation(int sps);
-extern int VirtualProcessorScheduler_IsCooperationEnabled(void);
 
 // Gives the virtual processor scheduler opportunities to run tasks that take
 // care of internal duties. This function must be called from the boot virtual

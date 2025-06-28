@@ -13,9 +13,6 @@
 
     xdef _VirtualProcessorScheduler_DisablePreemption
     xdef _VirtualProcessorScheduler_RestorePreemption
-    xdef _VirtualProcessorScheduler_DisableCooperation
-    xdef _VirtualProcessorScheduler_RestoreCooperation
-    xdef _VirtualProcessorScheduler_IsCooperationEnabled
     xdef _VirtualProcessorScheduler_SwitchContext
     xdef _VirtualProcessorScheduler_SwitchToBootVirtualProcessor
     xdef __rtecall_VirtualProcessorScheduler_SwitchContext
@@ -37,37 +34,6 @@ _VirtualProcessorScheduler_RestorePreemption:
     cargs rp_state.l
     move.l  rp_state(sp), d0
     RESTORE_PREEMPTION d0
-    rts
-
-
-;-------------------------------------------------------------------------------
-; int VirtualProcessorScheduler_DisableCooperation(void)
-; Disable voluntary context switches. These are context switches which are triggered
-; by a call to wakeup()
-_VirtualProcessorScheduler_DisableCooperation:
-    DISABLE_COOPERATION d0
-    rts
-
-
-;-------------------------------------------------------------------------------
-; void VirtualProcessorScheduler_RestoreCooperation(int sps)
-; Restores the given cooperation state. Voluntary context switches are reenabled if
-; they were enabled before and disabled otherwise
-_VirtualProcessorScheduler_RestoreCooperation:
-    cargs   rc_state.l
-    move.l  rc_state(sp), d0
-    RESTORE_COOPERATION d0
-    rts
-
-
-;-------------------------------------------------------------------------------
-; int VirtualProcessorScheduler_IsCooperationEnabled(void)
-; Returns true if voluntary context switches are currently enabled.
-_VirtualProcessorScheduler_IsCooperationEnabled:
-    btst    #SCHED_FLAG_VOLUNTARY_CSW_ENABLED, _gVirtualProcessorSchedulerStorage + vps_flags
-    sne     d0
-    ext.w   d0
-    ext.l   d0
     rts
 
 

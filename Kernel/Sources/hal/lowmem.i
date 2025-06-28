@@ -139,7 +139,6 @@ mtc_SIZEOF                      so
 ; The VirtualProcessorScheduler
 CSWB_SIGNAL_SWITCH                  equ     0
 CSWB_HW_HAS_FPU                     equ     0
-SCHED_FLAG_VOLUNTARY_CSW_ENABLED    equ     0
 
 VP_PRIORITY_COUNT                   equ     64
 
@@ -332,25 +331,6 @@ cop_SIZEOF                      so
 ; Sets the current preemption state based on the saved state in a register
     macro RESTORE_PREEMPTION
     move.w  \1, sr
-    endm
-
-; Disable voluntary context switches. These are context switches which are triggered
-; by a call to wakeup()
-    macro DISABLE_COOPERATION
-    bclr    #SCHED_FLAG_VOLUNTARY_CSW_ENABLED, _gVirtualProcessorSchedulerStorage + vps_flags
-    sne     \1
-    endm
-
-; Restores the given cooperation state. Voluntary context switches are reenabled if
-; they were enabled before and disabled otherwise
-    macro   RESTORE_COOPERATION
-    tst.b   \1
-    bne.s   .\@rc1
-    bclr    #SCHED_FLAG_VOLUNTARY_CSW_ENABLED, _gVirtualProcessorSchedulerStorage + vps_flags
-    bra.s   .\@rc2
-.\@rc1:
-    bset    #SCHED_FLAG_VOLUNTARY_CSW_ENABLED, _gVirtualProcessorSchedulerStorage + vps_flags
-.\@rc2:
     endm
 
 
