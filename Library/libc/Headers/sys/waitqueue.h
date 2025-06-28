@@ -48,14 +48,14 @@ extern int wsq_create(void);
 // Waits on the wait queue if no signals are pending. Wakes up as soon as a signal
 // is sent to the wait queue. Returns the pending signals in 'psigs'. Note that
 // this calls consumes all pending signals.
-extern int wsq_wait(int q, unsigned int* _Nonnull psigs);
+extern int wsq_wait(int q, unsigned int* _Nullable psigs);
 
 // Waits on the wait queue until another vcpu calls wakeup() on the queue or
 // until the timeout 'wtp' is reached. Whatever comes first. 'wtp' is by default
 // interpreted as a duration that will be added to the current time. Pass
 // TIMER_ABSTIME if 'wtp' should be interpreted as an absolute point in time
 // instead.
-extern int wsq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp, unsigned int* _Nonnull psigs);
+extern int wsq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp, unsigned int* _Nullable psigs);
 
 // Sends a signal to the wait queue and wakes up one or all waiters. 'sigs' is
 // the set of signals that should be sent. These signals are merged into the

@@ -32,8 +32,6 @@ void UWaitQueue_deinit(UWaitQueueRef _Nonnull self)
     List_Deinit(&self->queue);
 }
 
-// 'pOutSigs' has to be non-null if this is a signalling wait queue. Otherwise
-// it should be NULL.
 errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self, unsigned int* _Nullable pOutSigs)
 {
     decl_try_err();
@@ -42,7 +40,9 @@ errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self, unsigned int* _Nullable pOu
 
     do {
         if (isSignalling && self->psigs) {
-            *pOutSigs = self->psigs;
+            if (pOutSigs) {
+                *pOutSigs = self->psigs;
+            }
             self->psigs = 0;
             break;
         }
@@ -70,7 +70,9 @@ errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const str
     
     do {
         if (isSignalling && self->psigs) {
-            *pOutSigs = self->psigs;
+            if (pOutSigs) {
+                *pOutSigs = self->psigs;
+            }
             self->psigs = 0;
             break;
         }

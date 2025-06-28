@@ -51,12 +51,12 @@ int wsq_create(void)
     }
 }
 
-int wsq_wait(int q, unsigned int* _Nonnull psigs)
+int wsq_wait(int q, unsigned int* _Nullable psigs)
 {
     return (int)_syscall(SC_waq_wait, q, psigs);
 }
 
-int wsq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp, unsigned int* _Nonnull psigs)
+int wsq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp, unsigned int* _Nullable psigs)
 {
     return (int)_syscall(SC_waq_timedwait, q, flags, wtp, psigs);
 }

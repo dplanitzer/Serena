@@ -10,134 +10,111 @@
 #include <kpi/syscall.h>
 #include <errno.h>
 #include <stddef.h>
-#include "_mutex.h"
+#include <sys/waitqueue.h>
 
 #define CV_SIGNATURE 0x53454d41
-
-// Must be sizeof(UConditionVariable) <= 16 
-typedef struct UConditionVariable {
-    int             od;
-    unsigned int    signature;
-    int             r2;
-    int             r3;
-} UConditionVariable;
+#define CV_SIGNAL 1
 
 
-int cond_init(cond_t* _Nonnull cv)
+int cond_init(cond_t* _Nonnull self)
 {
-#if 0
-    UConditionVariable* self = (UConditionVariable*)cv;
+    self->spinlock = SPINLOCK_INIT;
+    self->waiters = 0;
+    self->signature = CV_SIGNATURE;
+    self->wait_queue = wsq_create();
 
-    self->signature = 0;
-    self->r2 = 0;
-    self->r3 = 0;
-
-    if (_syscall(SC_cond_create, &self->od) == 0) {
-        self->signature = CV_SIGNATURE;
+    if (self->wait_queue >= 0) {
         return 0;
     }
     else {
+        self->signature = 0;
         return -1;
     }
-#else
-    errno = ENOTSUP;
-    return -1;
-#endif
 }
 
-int cond_deinit(cond_t* _Nonnull cv)
+int cond_deinit(cond_t* _Nonnull self)
 {
-#if 0
-    UConditionVariable* self = (UConditionVariable*)cv;
+    if (self->signature != CV_SIGNATURE) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    const int r = _syscall(SC_dispose, self->wait_queue);
+    self->signature = 0;
+    self->wait_queue = -1;
+
+    return r;
+}
+
+static int _cond_wakeup(cond_t* _Nonnull self, int flags)
+{
+    bool doWakeup = false;
 
     if (self->signature != CV_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
 
-    const int r = _syscall(SC_dispose, self->od);
-    self->signature = 0;
-    self->od = 0;
+    spin_lock(&self->spinlock);
+    if (self->waiters > 0) {
+        if ((flags & WAKE_ONE) == WAKE_ONE) {
+            self->waiters--;
+        }
+        else {
+            self->waiters = 0;
+        }
 
-    return r;
-#else
-    errno = ENOTSUP;
-    return -1;
-#endif
+        doWakeup = true;
+    }
+    spin_unlock(&self->spinlock);
+
+    if (doWakeup) {
+        wsq_signal(self->wait_queue, flags, CV_SIGNAL);
+    }
 }
 
-int cond_signal(cond_t* _Nonnull cv, mutex_t* _Nullable mutex)
+int cond_signal(cond_t* _Nonnull self)
 {
-#if 0
-    UConditionVariable* self = (UConditionVariable*)cv;
-    UMutex* ulock = (UMutex*)mutex;
+    return _cond_wakeup(self, WAKE_ONE);
+}
 
-    if (self->signature == CV_SIGNATURE && ulock->signature == MUTEX_SIGNATURE) {
-        return _syscall(SC_cond_wake, self->od, ulock->od, 0);
-    }
-    else {
+int cond_broadcast(cond_t* _Nonnull self)
+{
+    return _cond_wakeup(self, WAKE_ALL);
+}
+
+// We use a signalling wait queue here to ensure that after we've dropped the
+// murex lock and the producer takes the mutex lock, signals and drops the mutex
+// lock before we are able to enter the wait, that we don't lose the fact that
+// the producer signalled us. We would miss this wakeup with a stateless wait
+// queue.
+static int _cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags, const struct timespec* _Nullable wtp)
+{
+    if (self->signature != CV_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
-#else
-    errno = ENOTSUP;
-    return -1;
-#endif
-}
 
-int cond_broadcast(cond_t* _Nonnull cv, mutex_t* _Nullable mutex)
-{
-#if 0
-    UConditionVariable* self = (UConditionVariable*)cv;
-    UMutex* ulock = (UMutex*)mutex;
+    spin_lock(&self->spinlock);
+    self->waiters++;
+    spin_unlock(&self->spinlock);
 
-    if (self->signature == CV_SIGNATURE && ulock->signature == MUTEX_SIGNATURE) {
-        return _syscall(SC_cond_wake, self->od, ulock->od, 1);
+    mutex_unlock(mutex);
+    if (wtp) {
+        wsq_timedwait(self->wait_queue, flags, wtp, NULL);
     }
     else {
-        errno = EINVAL;
-        return -1;
+        wsq_wait(self->wait_queue, NULL);
     }
-#else
-    errno = ENOTSUP;
-    return -1;
-#endif
+    mutex_lock(mutex);
 }
 
-int cond_wait(cond_t* _Nonnull cv, mutex_t* _Nonnull mutex)
+int cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex)
 {
-#if 0
-    UConditionVariable* self = (UConditionVariable*)cv;
-    UMutex* ulock = (UMutex*)mutex;
-
-    if (self->signature == CV_SIGNATURE && ulock->signature == MUTEX_SIGNATURE) {
-        return _syscall(SC_cond_timedwait, self->od, ulock->od, NULL);
-    }
-    else {
-        errno = EINVAL;
-        return -1;
-    }
-#else
-    errno = ENOTSUP;
-    return -1;
-#endif
+    return _cond_wait(self, mutex, 0, NULL);
 }
 
-int cond_timedwait(cond_t* _Nonnull cv, mutex_t* _Nonnull mutex, const struct timespec* _Nonnull deadline)
+int cond_timedwait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags, const struct timespec* _Nonnull wtp)
 {
-#if 0
-    UConditionVariable* self = (UConditionVariable*)cv;
-    UMutex* ulock = (UMutex*)mutex;
-
-    if (self->signature == CV_SIGNATURE && ulock->signature == MUTEX_SIGNATURE) {
-        return _syscall(SC_cond_timedwait, self->od, ulock->od, deadline);
-    }
-    else {
-        errno = EINVAL;
-        return -1;
-    }
-#else
-    errno = ENOTSUP;
-    return -1;
-#endif
+    return _cond_wait(self, mutex, flags, wtp);
 }
