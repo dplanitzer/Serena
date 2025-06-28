@@ -12,18 +12,18 @@
 #include <sys/waitqueue.h>
 
 
-errno_t UWaitQueue_Create(UWaitQueueRef _Nullable * _Nonnull pOutSelf)
+errno_t UWaitQueue_Create(int flags, UWaitQueueRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    UWaitQueueRef self;
+    UWaitQueueRef self = NULL;
 
     try(UResource_AbstractCreate(&kUWaitQueueClass, (UResourceRef*)&self));
     List_Init(&self->queue);
-    *pOutSelf = self;
-    return EOK;
+    self->flags = flags & __UWQ_SIGNALLING;
+    self->psigs = 0;
 
 catch:
-    *pOutSelf = NULL;
+    *pOutSelf = self;
     return err;
 }
 
@@ -32,41 +32,76 @@ void UWaitQueue_deinit(UWaitQueueRef _Nonnull self)
     List_Deinit(&self->queue);
 }
 
-errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self)
+// 'pOutSigs' has to be non-null if this is a signalling wait queue. Otherwise
+// it should be NULL.
+errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self, unsigned int* _Nullable pOutSigs)
 {
+    decl_try_err();
+    const bool isSignalling = UWaitQueue_IsSignalling(self);
     const int sps = VirtualProcessorScheduler_DisablePreemption();
-    const int err = VirtualProcessorScheduler_WaitOn(
+
+    do {
+        if (isSignalling && self->psigs) {
+            *pOutSigs = self->psigs;
+            self->psigs = 0;
+            break;
+        }
+
+        // Waiting temporarily reenables preemption
+        err = VirtualProcessorScheduler_WaitOn(
                             gVirtualProcessorScheduler,
                             &self->queue, 
                             WAIT_INTERRUPTABLE,
                             NULL,
                             NULL);
+    } while (isSignalling && err == EOK);
+
     VirtualProcessorScheduler_RestorePreemption(sps);
-    
+
     return err;
 }
 
-errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
+errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs)
 {
+    decl_try_err();
+    const int waitopts = options & TIMER_ABSTIME;
+    const bool isSignalling = UWaitQueue_IsSignalling(self);
     const int sps = VirtualProcessorScheduler_DisablePreemption();
-    const int err = VirtualProcessorScheduler_WaitOn(
+    
+    do {
+        if (isSignalling && self->psigs) {
+            *pOutSigs = self->psigs;
+            self->psigs = 0;
+            break;
+        }
+
+        // Waiting temporarily reenables preemption
+        err = VirtualProcessorScheduler_WaitOn(
                             gVirtualProcessorScheduler,
                             &self->queue, 
-                            WAIT_INTERRUPTABLE | options,
+                            WAIT_INTERRUPTABLE | waitopts,
                             wtp,
-                            rmtp);
+                            NULL);
+    } while (isSignalling && err == EOK);
+
     VirtualProcessorScheduler_RestorePreemption(sps);
     
     return err;
 }
 
-void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags)
+void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags, unsigned int sigs)
 {
+    const bool isSignalling = UWaitQueue_IsSignalling(self);
+    const int wakecount = ((flags & WAKE_ONE) == WAKE_ONE) ? 1 : INT_MAX;
     const int sps = VirtualProcessorScheduler_DisablePreemption();
     
+    if (isSignalling) {
+        self->psigs |= sigs;
+    }
+
     VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
                                          &self->queue,
-                                         ((flags & WAKE_ONE) == WAKE_ONE) ? 1 : INT_MAX,
+                                         wakecount,
                                          WAKEUP_REASON_FINISHED,
                                          true);
     VirtualProcessorScheduler_RestorePreemption(sps);

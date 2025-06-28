@@ -112,7 +112,7 @@ int sem_timedwait(sem_t* _Nonnull self, int npermits, int flags, const struct ti
 
         self->waiters++;
         spin_unlock(&self->spinlock);
-        waq_timedwait(self->wait_queue, flags, wtp, NULL);
+        waq_timedwait(self->wait_queue, flags, wtp);
     }
 }
 

@@ -420,24 +420,24 @@ SYSCALL_0(sched_yield)
     return EOK;
 }
 
-SYSCALL_1(waq_create, int* _Nonnull pOutOd)
+SYSCALL_2(waq_create, int flags, int* _Nonnull pOutOd)
 {
-    return Process_CreateUWaitQueue((ProcessRef)p, pa->pOutOd);
+    return Process_CreateUWaitQueue((ProcessRef)p, pa->flags, pa->pOutOd);
 }
 
-SYSCALL_1(waq_wait, int od)
+SYSCALL_2(waq_wait, int od, unsigned int* _Nullable pOutSigs)
 {
-    return Process_Wait_UWaitQueue((ProcessRef)p, pa->od);
+    return Process_Wait_UWaitQueue((ProcessRef)p, pa->od, pa->pOutSigs);
 }
 
-SYSCALL_4(waq_timedwait, int od, int options, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
+SYSCALL_4(waq_timedwait, int od, int options, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs)
 {
-    return Process_TimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->options, pa->wtp, pa->rmtp);
+    return Process_TimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->options, pa->wtp, pa->pOutSigs);
 }
 
-SYSCALL_2(waq_wakeup, int od, int flags)
+SYSCALL_3(waq_wakeup, int od, int flags, unsigned int sigs)
 {
-    return Process_Wakeup_UWaitQueue((ProcessRef)p, pa->od, pa->flags);
+    return Process_Wakeup_UWaitQueue((ProcessRef)p, pa->od, pa->flags, pa->sigs);
 }
 
 
