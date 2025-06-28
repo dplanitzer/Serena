@@ -45,26 +45,12 @@ extern errno_t UResourceTable_AcquireResource(UResourceTable* _Nonnull self, int
 #define UResourceTable_AcquireResourceAs(__self, __desc, __className, __pOutResource) \
 UResourceTable_AcquireResource(__self, __desc, &k##__className##Class, (UResourceRef*)__pOutResource)
 
-// Same as above but acquires two resources at the same time. Only succeeds if
-// both resources can be acquired successfully.
-extern errno_t UResourceTable_AcquireTwoResources(UResourceTable* _Nonnull self,
-    int desc1, Class* _Nonnull pExpectedClass1, UResourceRef _Nullable * _Nonnull pOutResource1,
-    int desc2, Class* _Nonnull pExpectedClass2, UResourceRef _Nullable * _Nonnull pOutResource2);
-
-#define UResourceTable_AcquireTwoResourcesAs(__self, __desc1, __className1, __pOutResource1, __desc2, __className2, __pOutResource2) \
-UResourceTable_AcquireTwoResources(__self, __desc1, &k##__className1##Class, (UResourceRef*)__pOutResource1, __desc2, &k##__className2##Class, (UResourceRef*)__pOutResource2)
-
 // Relinquishes the given resource. The resource must have been acquired previously
 // by calling UResourceTable_AcquireResource(). Note that the resource may be
 // freed by this function. It is not safe to continue to use the resource reference
 // once this function returns.
 #define UResourceTable_RelinquishResource(__self, __pResource) \
 UResource_EndOperation(__pResource)
-
-// Same as above but relinquishes two resources at the same time
-#define UResourceTable_RelinquishTwoResources(__self, __pResource1, __pResource2) \
-UResource_EndOperation(__pResource1); \
-UResource_EndOperation(__pResource2)
 
 
 // Begins direct access on the resource identified by the descriptor 'desc'.
