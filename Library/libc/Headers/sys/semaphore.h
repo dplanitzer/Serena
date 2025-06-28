@@ -32,7 +32,8 @@ extern int sem_deinit(sem_t* _Nonnull sema);
 
 
 // Relinquishes the given number of permits to the given semaphore. This makes
-// the permits available for acquisition by other execution contexts.
+// the permits available for acquisition by other execution contexts. Note that
+// 'npermits' must be > 0. ERANGE is returned if this is not the case.
 // @Concurrency: Safe
 extern int sem_post(sem_t* _Nonnull sema, int npermits);
 

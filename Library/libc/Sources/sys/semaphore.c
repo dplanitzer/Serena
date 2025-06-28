@@ -54,6 +54,11 @@ int sem_post(sem_t* _Nonnull self, int npermits)
         return -1;
     }
 
+    if (npermits <= 0) {
+        errno = ERANGE;
+        return -1;
+    }
+
     spin_lock(&self->spinlock);
     self->permits += npermits;
 
@@ -72,6 +77,11 @@ int sem_wait(sem_t* _Nonnull self, int npermits)
 {
     if (self->signature != SEM_SIGNATURE) {
         errno = EINVAL;
+        return -1;
+    }
+
+    if (npermits <= 0) {
+        errno = ERANGE;
         return -1;
     }
 
@@ -99,6 +109,11 @@ int sem_timedwait(sem_t* _Nonnull self, int npermits, int flags, const struct ti
         return -1;
     }
 
+    if (npermits <= 0) {
+        errno = ERANGE;
+        return -1;
+    }
+
     for (;;) {
         spin_lock(&self->spinlock);
         const int take_permits = (self->permits >= npermits) ? npermits : self->permits;
@@ -120,6 +135,11 @@ int sem_trywait(sem_t* _Nonnull self, int npermits)
 {
     if (self->signature != SEM_SIGNATURE) {
         errno = EINVAL;
+        return -1;
+    }
+
+    if (npermits <= 0) {
+        errno = ERANGE;
         return -1;
     }
 

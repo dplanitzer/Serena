@@ -91,6 +91,10 @@ errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const str
 
 void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags, unsigned int sigs)
 {
+    if (sigs == 0) {
+        return;
+    }
+    
     const bool isSignalling = UWaitQueue_IsSignalling(self);
     const int wakecount = ((flags & WAKE_ONE) == WAKE_ONE) ? 1 : INT_MAX;
     const int sps = VirtualProcessorScheduler_DisablePreemption();
