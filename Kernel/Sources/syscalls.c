@@ -394,7 +394,7 @@ SYSCALL_3(fsgetdisk, fsid_t fsid, char* _Nonnull buf, size_t bufSize)
     return Process_GetFilesystemDiskPath((ProcessRef)p, pa->fsid, pa->buf, pa->bufSize);
 }
 
-SYSCALL_0(vcpuerr)
+SYSCALL_0(vcpu_errno)
 {
     return (intptr_t)&(((VirtualProcessor*)p)->uerrno);
 }
@@ -484,7 +484,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(sync, SC_ERRNO),
     SYSCALL_ENTRY(coninit, SC_ERRNO),
     SYSCALL_ENTRY(fsgetdisk, SC_ERRNO),
-    SYSCALL_ENTRY(vcpuerr, SC_VCPU),
+    SYSCALL_ENTRY(vcpu_errno, SC_VCPU),
     SYSCALL_ENTRY(chown, SC_ERRNO),
     SYSCALL_ENTRY(fcntl, SC_ERRNO),
     SYSCALL_ENTRY(chmod, SC_ERRNO),

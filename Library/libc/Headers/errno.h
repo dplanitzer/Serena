@@ -14,9 +14,9 @@
 
 __CPP_BEGIN
 
-extern _Errno_t* _Nonnull __vcpuerrno(void);
+extern _Errno_t* _Nonnull __vcpu_errno(void);
 
-#define errno (*__vcpuerrno())
+#define errno (*__vcpu_errno())
 
 __CPP_END
 

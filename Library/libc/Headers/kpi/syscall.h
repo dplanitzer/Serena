@@ -57,7 +57,7 @@ enum {
     SC_sync,                // void sync(void)
     SC_coninit,             // void ConInit(void)
     SC_fsgetdisk,           // errno_t fsgetdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
-    SC_vcpuerrno,           // errno_t* _Nonnull __vcpuerrno(void)
+    SC_vcpu_errno,          // errno_t* _Nonnull __vcpu_errno(void)
     SC_chown,               // errno_t chown(const char* _Nonnull path, uid_t uid, gid_t gid)
     SC_fcntl,               // int fcntl(int fd, int cmd, int* _Nonnull pResult, ...)
     SC_chmod,               // errno_t chmod(const char* _Nonnull path, mode_t mode)
