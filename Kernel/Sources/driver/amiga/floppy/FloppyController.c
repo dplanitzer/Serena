@@ -433,7 +433,8 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 
 
     self->flags.inUse = 0;
-    ConditionVariable_BroadcastAndUnlock(&self->cv, &self->lock);
+    ConditionVariable_Broadcast(&self->cv);
+    Lock_Unlock(&self->lock);
 
     return (err == EOK) ? EOK : EIO;
 }

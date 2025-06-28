@@ -114,7 +114,8 @@ void DispatchQueue_Terminate(DispatchQueueRef _Nonnull self)
 
     // We want to wake _all_ VPs up here since all of them need to relinquish
     // themselves.
-    ConditionVariable_BroadcastAndUnlock(&self->work_available_signaler, &self->lock);
+    ConditionVariable_Broadcast(&self->work_available_signaler);
+    Lock_Unlock(&self->lock);
 }
 
 // Waits until the dispatch queue has reached 'terminated' state which means that
@@ -550,7 +551,8 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
         throw(err);
     }
 
-    ConditionVariable_SignalAndUnlock(&self->work_available_signaler, &self->lock);
+    ConditionVariable_Signal(&self->work_available_signaler);
+    Lock_Unlock(&self->lock);
     isLocked = false;
     // Queue is now unlocked
 
@@ -657,7 +659,8 @@ errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, const struct
         throw(err);
     }
 
-    ConditionVariable_SignalAndUnlock(&self->work_available_signaler, &self->lock);
+    ConditionVariable_Signal(&self->work_available_signaler);
+    Lock_Unlock(&self->lock);
 
     return EOK;
 
@@ -847,10 +850,9 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
     DispatchQueue_DetachVirtualProcessor_Locked(self, pVP);
 
     if (self->state >= kQueueState_Terminating) {
-        ConditionVariable_SignalAndUnlock(&self->vp_shutdown_signaler, &self->lock);
-    } else {
-        Lock_Unlock(&self->lock);
+        ConditionVariable_Signal(&self->vp_shutdown_signaler);
     }
+    Lock_Unlock(&self->lock);
 }
 
 

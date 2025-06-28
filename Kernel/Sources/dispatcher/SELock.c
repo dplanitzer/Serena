@@ -197,11 +197,9 @@ errno_t SELock_Unlock(SELock* _Nonnull self)
     }
 
     if (doBroadcast) {
-        ConditionVariable_BroadcastAndUnlock(&self->cv, &self->lock);
+        ConditionVariable_Broadcast(&self->cv);
     }
-    else {
-        Lock_Unlock(&self->lock);
-    }
+    Lock_Unlock(&self->lock);
 
     return err;
 }

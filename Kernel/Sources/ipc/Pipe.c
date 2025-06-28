@@ -100,8 +100,9 @@ void Pipe_Open(PipeRef _Nonnull self, int end)
             abort();
     }
 
-    ConditionVariable_BroadcastAndUnlock(&self->reader, NULL);
-    ConditionVariable_BroadcastAndUnlock(&self->writer, &self->lock);
+    ConditionVariable_Broadcast(&self->reader);
+    ConditionVariable_Broadcast(&self->writer);
+    Lock_Unlock(&self->lock);
 }
 
 void Pipe_Close(PipeRef _Nonnull self, int end)
@@ -124,8 +125,9 @@ void Pipe_Close(PipeRef _Nonnull self, int end)
             abort();
     }
 
-    ConditionVariable_BroadcastAndUnlock(&self->reader, NULL);
-    ConditionVariable_BroadcastAndUnlock(&self->writer, &self->lock);
+    ConditionVariable_Broadcast(&self->reader);
+    ConditionVariable_Broadcast(&self->writer);
+    Lock_Unlock(&self->lock);
 }
 
 // Reads up to 'nBytes' from the pipe or until all readable data has been returned.
@@ -153,7 +155,7 @@ errno_t Pipe_Read(PipeRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesT
                 if (true /*allowBlocking*/) {
                     // Be sure to wake the writer before we go to sleep and drop the lock
                     // so that it can produce and add data for us.
-                    ConditionVariable_BroadcastAndUnlock(&self->writer, NULL);
+                    ConditionVariable_Broadcast(&self->writer);
                     
                     // Wait for the writer to make data available
                     if ((err = ConditionVariable_Wait(&self->reader, &self->lock)) != EOK) {
@@ -195,7 +197,7 @@ errno_t Pipe_Write(PipeRef _Nonnull self, const void* _Nonnull pBytes, ssize_t n
                 if (true /*allowBlocking*/) {
                     // Be sure to wake the reader before we go to sleep and drop the lock
                     // so that it can consume data and make space available to us.
-                    ConditionVariable_BroadcastAndUnlock(&self->reader, NULL);
+                    ConditionVariable_Broadcast(&self->reader);
                     
                     // Wait for the reader to make space available
                     if (( err = ConditionVariable_Wait(&self->writer, &self->lock)) != EOK) {

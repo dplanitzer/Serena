@@ -54,7 +54,8 @@ errno_t Process_OnChildTermination(ProcessRef _Nonnull self, ProcessRef _Nonnull
     Process_AbandonChild_Locked(self, child);
     List_InsertAfterLast(&self->tombstones, &pTombstone->node);
     
-    ConditionVariable_BroadcastAndUnlock(&self->tombstoneSignaler, &self->lock);
+    ConditionVariable_Broadcast(&self->tombstoneSignaler);
+    Lock_Unlock(&self->lock);
     
     if (child->terminationNotificationQueue) {
         DispatchQueue_DispatchAsync(child->terminationNotificationQueue,

@@ -41,17 +41,14 @@ void ConditionVariable_Deinit(ConditionVariable* pCondVar)
 {
 }
 
+void ConditionVariable_Signal(ConditionVariable* pCondVar)
+{
+    WakeConditionVariable(pCondVar);
+}
+
 void ConditionVariable_Broadcast(ConditionVariable* pCondVar)
 {
     WakeAllConditionVariable(pCondVar);
-}
-
-void ConditionVariable_BroadcastAndUnlock(ConditionVariable* pCondVar, Lock* pLock)
-{
-    WakeAllConditionVariable(pCondVar);
-    if (pLock) {
-        ReleaseSRWLockExclusive(pLock);
-    }
 }
 
 errno_t ConditionVariable_Wait(ConditionVariable* pCondVar, Lock* pLock)

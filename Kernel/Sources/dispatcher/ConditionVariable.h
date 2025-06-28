@@ -26,25 +26,11 @@ extern void ConditionVariable_Deinit(ConditionVariable* _Nonnull pCondVar);
 
 // Signals the condition variable. This will wake up one waiter.
 #define ConditionVariable_Signal(__self) \
-ConditionVariable_WakeAndUnlock(__self, NULL, false)
+_ConditionVariable_Wakeup(__self, false)
 
 // Broadcasts the condition variable. This will wake up all waiters.
 #define ConditionVariable_Broadcast(__self) \
-ConditionVariable_WakeAndUnlock(__self, NULL, true)
-
-// Signals the condition variable and optionally unlocks the provided lock. This
-// will wake up one waiter.
-#define ConditionVariable_SignalAndUnlock(__self, __pLock) \
-ConditionVariable_WakeAndUnlock(__self, __pLock, false)
-
-// Broadcasts the condition variable and optionally unlocks the provided lock.
-// This will wake up all waiters.
-#define ConditionVariable_BroadcastAndUnlock(__self, __pLock) \
-ConditionVariable_WakeAndUnlock(__self, __pLock, true)
-
-// Wakes up one or all waiters on the condition variable and optionally unlocks
-// the provided lock.
-extern void ConditionVariable_WakeAndUnlock(ConditionVariable* _Nonnull pCondVar, Lock* _Nullable pLock, bool broadcast);
+_ConditionVariable_Wakeup(__self, true)
 
 // Blocks the caller until the condition variable has received a signal or the
 // wait has timed out. Note that this function may return EINTR which means that
@@ -52,6 +38,11 @@ extern void ConditionVariable_WakeAndUnlock(ConditionVariable* _Nonnull pCondVar
 // call that should be aborted.
 extern errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock);
 
+// Version of Wait() with an absolute timeout.
 extern errno_t ConditionVariable_TimedWait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock, const struct timespec* _Nonnull deadline);
+
+
+// Wakes up one or all waiters on the condition variable.
+extern void _ConditionVariable_Wakeup(ConditionVariable* _Nonnull pCondVar, bool broadcast);
 
 #endif /* ConditionVariable_h */
