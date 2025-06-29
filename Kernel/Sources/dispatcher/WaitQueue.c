@@ -38,6 +38,16 @@ errno_t WaitQueue_Deinit(WaitQueue* self)
 // @Entry Condition: 'vp' must not be in an active abort
 static errno_t _do_wait(WaitQueue* _Nonnull self, int flags, VirtualProcessorScheduler* _Nonnull ps, VirtualProcessor* _Nonnull vp)
 {
+    assert(vp->sched_state == kVirtualProcessorState_Running);
+
+
+    // Immediately return instead of waiting if we are in the middle of an abort
+    // of a call-as-user invocation.
+    if ((vp->flags & (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) == (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) {
+        return EINTR;
+    }
+
+
     // Put us on the wait queue. The wait queue is sorted by the QoS and priority
     // from highest to lowest. VPs which enter the queue first, leave it first.
     register VirtualProcessor* pvp = NULL;
@@ -73,6 +83,7 @@ static errno_t _do_wait(WaitQueue* _Nonnull self, int flags, VirtualProcessorSch
     switch (vp->wakeup_reason) {
         case WAKEUP_REASON_INTERRUPTED: return EINTR;
         case WAKEUP_REASON_TIMEOUT:     return ETIMEDOUT;
+        case WAKEUP_REASON_SIGNALLED:   return EOK;     // Note that the arrival of a signal is the desired outcome for a sigwait()/sigtimedwait(). Remember, this is not POSIX
         default:                        return EOK;
     }
 }
@@ -82,16 +93,6 @@ errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int flags)
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     VirtualProcessor* vp = (VirtualProcessor*)ps->running;
 
-    assert(vp->sched_state == kVirtualProcessorState_Running);
-
-
-    // Immediately return instead of waiting if we are in the middle of an abort
-    // of a call-as-user invocation.
-    if ((vp->flags & (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) == (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) {
-        return EINTR;
-    }
-
-
     return _do_wait(self, flags, ps, vp);
 }
 
@@ -100,16 +101,7 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct ti
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     VirtualProcessor* vp = (VirtualProcessor*)ps->running;
     struct timespec now, deadline;
-
-    // Immediately return instead of waiting if we are in the middle of an abort
-    // of a call-as-user invocation.
-    if ((vp->flags & (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) == (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) {
-        if (rmtp) {
-            timespec_clear(rmtp);   // User space won't see this value anyway
-        }
-        return EINTR;
-    }
-
+    bool hasArmedTimer = false;
 
     // Put us on the timeout queue if a relevant timeout has been specified.
     // Note that we return immediately if we're already past the deadline
@@ -132,11 +124,15 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct ti
         }
 
         VirtualProcessorScheduler_ArmTimeout(ps, vp, &deadline);
+        hasArmedTimer = true;
     }
 
 
     // Now wait
     const errno_t err = _do_wait(self, flags, ps, vp);
+    if (err != EOK && hasArmedTimer) {
+        VirtualProcessorScheduler_CancelTimeout(ps, vp);
+    }
 
 
     // Calculate the unslept time, if requested
@@ -149,6 +145,74 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct ti
         else {
             timespec_clear(rmtp);
         }
+    }
+
+    return err;
+}
+
+errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, int flags, unsigned int* _Nullable pOutSigs)
+{
+    decl_try_err();
+    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
+    VirtualProcessor* vp = (VirtualProcessor*)ps->running;
+
+    do {
+        const uint32_t psigs = vp->psigs & vp->sigmask;
+
+        if (psigs) {
+            if (pOutSigs) {
+                *pOutSigs = psigs;
+            }
+
+            vp->psigs &= ~vp->sigmask;
+            break;
+        }
+
+        // Waiting temporarily reenables preemption
+        err = _do_wait(self, flags, ps, vp);
+    } while (err == EOK);
+
+    return err;
+}
+
+errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp, unsigned int* _Nullable pOutSigs)
+{
+    decl_try_err();
+    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
+    VirtualProcessor* vp = (VirtualProcessor*)ps->running;
+    struct timespec now, abst, remt;
+    
+    // Convert a relative timeout to an absolute timeout because it makes it
+    // easier to deal with spurious wakeups and we won't accumulate math errors
+    // caused by time resolution limitations.
+    if ((flags & WAIT_ABSTIME) == WAIT_ABSTIME) {
+        abst = *wtp;
+    }
+    else {
+        MonotonicClock_GetCurrentTime(&now);
+        timespec_add(&now, wtp, &abst);
+    }
+
+
+    do {
+        const uint32_t psigs = vp->psigs & vp->sigmask;
+
+        if (psigs) {
+            if (pOutSigs) {
+                *pOutSigs = psigs;
+            }
+
+            vp->psigs &= ~vp->sigmask;
+            break;
+        }
+
+        // Waiting temporarily reenables preemption
+        err = WaitQueue_TimedWait(self, flags, &abst, &remt);
+    } while (err == EOK);
+    
+
+    if (rmtp) {
+        *rmtp = remt;
     }
 
     return err;
@@ -261,6 +325,21 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
 
     return isReady;
 }
+
+void WaitQueue_Signal(WaitQueue* _Nonnull self, int flags, unsigned int sigs)
+{
+    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
+    VirtualProcessor* vp = (VirtualProcessor*)ps->running;
+    const uint32_t fsigs = sigs & vp->sigmask;
+
+    if (fsigs) {
+        vp->psigs |= fsigs;
+
+        WaitQueue_Wakeup(self, flags, WAKEUP_REASON_SIGNALLED);
+    }
+}
+
+
 
 void WaitQueue_SuspendOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp)
 {

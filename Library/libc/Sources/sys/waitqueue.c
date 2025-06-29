@@ -10,11 +10,11 @@
 #include <kpi/syscall.h>
 
 
-int waq_create(void)
+int wq_create(int policy)
 {
     int q;
 
-    if (_syscall(SC_waq_create, 0, &q) == 0) {
+    if (_syscall(SC_wq_create, policy, &q) == 0) {
         return q;
     }
     else {
@@ -22,46 +22,34 @@ int waq_create(void)
     }
 }
 
-int waq_wait(int q)
+int wq_wait(int q)
 {
-    return (int)_syscall(SC_waq_wait, q, NULL);
+    return (int)_syscall(SC_wq_wait, q);
 }
 
-int waq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp)
+int wq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp)
 {
-    return (int)_syscall(SC_waq_timedwait, q, flags, wtp, NULL);
+    return (int)_syscall(SC_wq_timedwait, q, flags, wtp);
 }
 
-int waq_wakeup(int q, int flags)
+int wq_wakeup(int q, int flags)
 {
-    return (int)_syscall(SC_waq_wakeup, q, flags, 0);
+    return (int)_syscall(SC_wq_wakeup, q, flags);
 }
 
 
 
-int wsq_create(void)
+int wq_sigwait(int q, unsigned int* _Nullable psigs)
 {
-    int q;
-
-    if (_syscall(SC_waq_create, __UWQ_SIGNALLING, &q) == 0) {
-        return q;
-    }
-    else {
-        return -1;
-    }
+    return (int)_syscall(SC_wq_sigwait, q, psigs);
 }
 
-int wsq_wait(int q, unsigned int* _Nullable psigs)
+int wq_sigtimedwait(int q, int flags, const struct timespec* _Nonnull wtp, unsigned int* _Nullable psigs)
 {
-    return (int)_syscall(SC_waq_wait, q, psigs);
+    return (int)_syscall(SC_wq_sigtimedwait, q, flags, wtp, psigs);
 }
 
-int wsq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp, unsigned int* _Nullable psigs)
+int wq_signal(int q, int flags, unsigned int sigs)
 {
-    return (int)_syscall(SC_waq_timedwait, q, flags, wtp, psigs);
-}
-
-int wsq_signal(int q, int flags, unsigned int sigs)
-{
-    return (int)_syscall(SC_waq_wakeup, q, flags, sigs);
+    return (int)_syscall(SC_wq_signal, q, flags, sigs);
 }

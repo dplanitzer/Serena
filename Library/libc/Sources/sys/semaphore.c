@@ -20,7 +20,7 @@ int sem_init(sem_t* _Nonnull self, int npermits)
     self->permits = npermits;
     self->waiters = 0;
     self->signature = SEM_SIGNATURE;
-    self->wait_queue = waq_create();
+    self->wait_queue = wq_create(WAITQUEUE_FIFO);
 
     if (self->wait_queue >= 0) {
         return 0;
@@ -69,7 +69,7 @@ int sem_post(sem_t* _Nonnull self, int npermits)
     spin_unlock(&self->spinlock);
 
     if (doWakeup) {
-        waq_wakeup(self->wait_queue, WAKE_ONE);
+        wq_wakeup(self->wait_queue, WAKE_ONE);
     }
 }
 
@@ -98,7 +98,7 @@ int sem_wait(sem_t* _Nonnull self, int npermits)
 
         self->waiters++;
         spin_unlock(&self->spinlock);
-        waq_wait(self->wait_queue);
+        wq_wait(self->wait_queue);
     }
 }
 
@@ -127,7 +127,7 @@ int sem_timedwait(sem_t* _Nonnull self, int npermits, int flags, const struct ti
 
         self->waiters++;
         spin_unlock(&self->spinlock);
-        waq_timedwait(self->wait_queue, flags, wtp);
+        wq_timedwait(self->wait_queue, flags, wtp);
     }
 }
 

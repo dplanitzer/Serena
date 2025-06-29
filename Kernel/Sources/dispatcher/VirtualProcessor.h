@@ -145,7 +145,11 @@ typedef struct VirtualProcessor {
     
     // Suspension related state
     Quantums                                suspension_time;        // Absolute time when the VP was suspended
-                             
+
+    // Signals
+    uint32_t                                psigs;                  // Pending signals (sent to the VP, but not yet consumed by sigwait())
+    uint32_t                                sigmask;                // Which signals should cause a wakeup on arrival
+
     // Waiting related state
     Timeout                                 timeout;                // The timeout state
     struct WaitQueue* _Nullable             waiting_on_wait_queue;  // The wait queue this VP is waiting on; NULL if not waiting. Used by the scheduler to wake up on timeout
@@ -193,6 +197,10 @@ extern int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull self);
 // current quanta.
 // XXX might want to change that in the future?
 extern void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int priority);
+
+
+// Atomically updates the current signal mask and returns the old mask.
+extern errno_t VirtualProcessor_SetSignalMask(VirtualProcessor* _Nonnull self, int op, uint32_t mask, uint32_t* _Nullable pOutMask);
 
 
 // Sleep for the given number of seconds

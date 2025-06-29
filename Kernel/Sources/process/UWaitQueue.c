@@ -9,20 +9,29 @@
 #include "UWaitQueue.h"
 #include <dispatcher/VirtualProcessorScheduler.h>
 #include <kern/limits.h>
-#include <sys/waitqueue.h>
+#include <kpi/waitqueue.h>
 
 
-errno_t UWaitQueue_Create(int flags, UWaitQueueRef _Nullable * _Nonnull pOutSelf)
+errno_t UWaitQueue_Create(int policy, UWaitQueueRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     UWaitQueueRef self = NULL;
 
-    try(UResource_AbstractCreate(&kUWaitQueueClass, (UResourceRef*)&self));
-    WaitQueue_Init(&self->wq);
-    self->flags = flags & __UWQ_SIGNALLING;
-    self->psigs = 0;
+    switch (policy) {
+        case WAITQUEUE_FIFO:
+            break;
 
-catch:
+        default:
+            *pOutSelf = NULL;
+            return EINVAL;
+    }
+
+    err = UResource_AbstractCreate(&kUWaitQueueClass, (UResourceRef*)&self);
+    if (err == EOK) {
+        WaitQueue_Init(&self->wq);
+        self->policy = policy;
+    }
+
     *pOutSelf = self;
     return err;
 }
@@ -32,75 +41,79 @@ void UWaitQueue_deinit(UWaitQueueRef _Nonnull self)
     WaitQueue_Deinit(&self->wq);
 }
 
-errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self, unsigned int* _Nullable pOutSigs)
+errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self)
 {
     decl_try_err();
-    const bool isSignalling = UWaitQueue_IsSignalling(self);
     const int sps = preempt_disable();
 
-    do {
-        if (isSignalling && self->psigs) {
-            if (pOutSigs) {
-                *pOutSigs = self->psigs;
-            }
-            self->psigs = 0;
-            break;
-        }
-
-        // Waiting temporarily reenables preemption
-        err = WaitQueue_Wait(&self->wq, WAIT_INTERRUPTABLE);
-    } while (isSignalling && err == EOK);
-
+    err = WaitQueue_Wait(&self->wq, WAIT_INTERRUPTABLE);
     preempt_restore(sps);
 
     return err;
 }
 
-errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs)
+errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const struct timespec* _Nonnull wtp)
 {
     decl_try_err();
-    const int waitopts = options & TIMER_ABSTIME;
-    const bool isSignalling = UWaitQueue_IsSignalling(self);
     const int sps = preempt_disable();
     
-    do {
-        if (isSignalling && self->psigs) {
-            if (pOutSigs) {
-                *pOutSigs = self->psigs;
-            }
-            self->psigs = 0;
-            break;
-        }
-
-        // Waiting temporarily reenables preemption
-        err = WaitQueue_TimedWait(&self->wq, 
-                            WAIT_INTERRUPTABLE | waitopts,
+    err = WaitQueue_TimedWait(&self->wq, 
+                            WAIT_INTERRUPTABLE | options,
                             wtp,
                             NULL);
-    } while (isSignalling && err == EOK);
 
     preempt_restore(sps);
     
     return err;
 }
 
-void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags, unsigned int sigs)
+errno_t UWaitQueue_SigWait(UWaitQueueRef _Nonnull self, unsigned int* _Nullable pOutSigs)
 {
-    if (sigs == 0) {
-        return;
-    }
+    decl_try_err();
+    const int sps = preempt_disable();
+
+    err = WaitQueue_SigWait(&self->wq, WAIT_INTERRUPTABLE, pOutSigs);
+    preempt_restore(sps);
+
+    return err;
+}
+
+errno_t UWaitQueue_SigTimedWait(UWaitQueueRef _Nonnull self, int options, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs)
+{
+    decl_try_err();
+    const int sps = preempt_disable();
     
-    const bool isSignalling = UWaitQueue_IsSignalling(self);
+    err = WaitQueue_SigTimedWait(&self->wq, 
+                            WAIT_INTERRUPTABLE | options,
+                            wtp,
+                            NULL,
+                            pOutSigs);
+
+    preempt_restore(sps);
+    
+    return err;
+}
+
+
+void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags)
+{
     const int wflags = ((flags & WAKE_ONE) == WAKE_ONE) ? WAKEUP_ONE : WAKEUP_ALL;
     const int sps = preempt_disable();
     
-    if (isSignalling) {
-        self->psigs |= sigs;
-    }
-
     WaitQueue_Wakeup(&self->wq,
                         wflags | WAKEUP_CSW,
                         WAKEUP_REASON_FINISHED);
+    preempt_restore(sps);
+}
+
+void UWaitQueue_Signal(UWaitQueueRef _Nonnull self, int flags, unsigned int sigs)
+{
+    const int wflags = ((flags & WAKE_ONE) == WAKE_ONE) ? WAKEUP_ONE : WAKEUP_ALL;
+    const int sps = preempt_disable();
+    
+    WaitQueue_Signal(&self->wq,
+                        wflags | WAKEUP_CSW,
+                        sigs);
     preempt_restore(sps);
 }
 

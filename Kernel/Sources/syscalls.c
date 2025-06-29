@@ -31,7 +31,7 @@ typedef struct syscall {
 #define SC_ERRNO    1   /* System call returns an error that should be stored in vcpu->errno */
 #define SC_VCPU     2   /* System call expects a vcpu_t* rather than a proc_t* */
 
-#define SYSCALL_COUNT   52
+#define SYSCALL_COUNT   55
 static const syscall_t gSystemCallTable[SYSCALL_COUNT];
 
 
@@ -421,24 +421,39 @@ SYSCALL_0(sched_yield)
     return EOK;
 }
 
-SYSCALL_2(waq_create, int flags, int* _Nonnull pOutOd)
+SYSCALL_2(wq_create, int policy, int* _Nonnull pOutOd)
 {
-    return Process_CreateUWaitQueue((ProcessRef)p, pa->flags, pa->pOutOd);
+    return Process_CreateUWaitQueue((ProcessRef)p, pa->policy, pa->pOutOd);
 }
 
-SYSCALL_2(waq_wait, int od, unsigned int* _Nullable pOutSigs)
+SYSCALL_1(wq_wait, int od)
 {
-    return Process_Wait_UWaitQueue((ProcessRef)p, pa->od, pa->pOutSigs);
+    return Process_Wait_UWaitQueue((ProcessRef)p, pa->od);
 }
 
-SYSCALL_4(waq_timedwait, int od, int options, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs)
+SYSCALL_3(wq_timedwait, int od, int options, const struct timespec* _Nonnull wtp)
 {
-    return Process_TimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->options, pa->wtp, pa->pOutSigs);
+    return Process_TimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->options, pa->wtp);
 }
 
-SYSCALL_3(waq_wakeup, int od, int flags, unsigned int sigs)
+SYSCALL_2(wq_wakeup, int od, int flags)
 {
-    return Process_Wakeup_UWaitQueue((ProcessRef)p, pa->od, pa->flags, pa->sigs);
+    return Process_Wakeup_UWaitQueue((ProcessRef)p, pa->od, pa->flags);
+}
+
+SYSCALL_2(wq_sigwait, int od, unsigned int* _Nullable pOutSigs)
+{
+    return Process_SigWait_UWaitQueue((ProcessRef)p, pa->od, pa->pOutSigs);
+}
+
+SYSCALL_4(wq_sigtimedwait, int od, int options, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs)
+{
+    return Process_SigTimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->options, pa->wtp, pa->pOutSigs);
+}
+
+SYSCALL_3(wq_signal, int od, int flags, unsigned int sigs)
+{
+    return Process_Signal_UWaitQueue((ProcessRef)p, pa->od, pa->flags, pa->sigs);
 }
 
 
@@ -491,8 +506,11 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(chmod, SC_ERRNO),
     SYSCALL_ENTRY(utimens, SC_ERRNO),
     SYSCALL_ENTRY(sched_yield, 0),
-    SYSCALL_ENTRY(waq_create, SC_ERRNO),
-    SYSCALL_ENTRY(waq_wait, SC_ERRNO),
-    SYSCALL_ENTRY(waq_timedwait, SC_ERRNO),
-    SYSCALL_ENTRY(waq_wakeup, SC_ERRNO),
+    SYSCALL_ENTRY(wq_create, SC_ERRNO),
+    SYSCALL_ENTRY(wq_wait, SC_ERRNO),
+    SYSCALL_ENTRY(wq_timedwait, SC_ERRNO),
+    SYSCALL_ENTRY(wq_wakeup, SC_ERRNO),
+    SYSCALL_ENTRY(wq_sigwait, SC_ERRNO),
+    SYSCALL_ENTRY(wq_sigtimedwait, SC_ERRNO),
+    SYSCALL_ENTRY(wq_signal, SC_ERRNO),
 };

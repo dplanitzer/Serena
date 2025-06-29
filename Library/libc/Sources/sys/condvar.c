@@ -21,7 +21,7 @@ int cond_init(cond_t* _Nonnull self)
     self->spinlock = SPINLOCK_INIT;
     self->waiters = 0;
     self->signature = CV_SIGNATURE;
-    self->wait_queue = wsq_create();
+    self->wait_queue = wq_create(WAITQUEUE_FIFO);
 
     if (self->wait_queue >= 0) {
         return 0;
@@ -69,7 +69,7 @@ static int _cond_wakeup(cond_t* _Nonnull self, int flags)
     spin_unlock(&self->spinlock);
 
     if (doWakeup) {
-        wsq_signal(self->wait_queue, flags, CV_SIGNAL);
+        wq_signal(self->wait_queue, flags, CV_SIGNAL);
     }
 }
 
@@ -101,10 +101,10 @@ static int _cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags,
 
     mutex_unlock(mutex);
     if (wtp) {
-        wsq_timedwait(self->wait_queue, flags, wtp, NULL);
+        wq_sigtimedwait(self->wait_queue, flags, wtp, NULL);
     }
     else {
-        wsq_wait(self->wait_queue, NULL);
+        wq_sigwait(self->wait_queue, NULL);
     }
     mutex_lock(mutex);
 }

@@ -17,19 +17,18 @@
 
 open_class(UWaitQueue, UResource,
     WaitQueue       wq;
-    unsigned int    flags;
-    unsigned int    psigs;
+    unsigned int    policy;
 );
 open_class_funcs(UWaitQueue, UResource,
 );
 
-extern errno_t UWaitQueue_Create(int flags, UWaitQueueRef _Nullable * _Nonnull pOutSelf);
+extern errno_t UWaitQueue_Create(int policy, UWaitQueueRef _Nullable * _Nonnull pOutSelf);
 
-#define UWaitQueue_IsSignalling(__self) \
-(((__self)->flags & __UWQ_SIGNALLING) == __UWQ_SIGNALLING)
-
-extern errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self, unsigned int* _Nullable pOutSigs);
-extern errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs);
-extern void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags, unsigned int sigs);
+extern errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self);
+extern errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const struct timespec* _Nonnull wtp);
+extern errno_t UWaitQueue_SigWait(UWaitQueueRef _Nonnull self, unsigned int* _Nullable pOutSigs);
+extern errno_t UWaitQueue_SigTimedWait(UWaitQueueRef _Nonnull self, int options, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs);
+extern void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags);
+extern void UWaitQueue_Signal(UWaitQueueRef _Nonnull self, int flags, unsigned int sigs);
 
 #endif /* UWaitQueue_h */

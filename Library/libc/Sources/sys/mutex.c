@@ -21,7 +21,7 @@ int mutex_init(mutex_t* _Nonnull self)
     self->state = 0;
     self->contention = 0;
     self->signature = MUTEX_SIGNATURE;
-    self->wait_queue = waq_create();
+    self->wait_queue = wq_create(WAITQUEUE_FIFO);
 
     if (self->wait_queue >= 0) {
         return 0;
@@ -82,7 +82,7 @@ int mutex_lock(mutex_t* _Nonnull self)
 
         self->contention++;
         spin_unlock(&self->spinlock);
-        waq_wait(self->wait_queue);
+        wq_wait(self->wait_queue);
     }
 }
 
@@ -105,6 +105,6 @@ int mutex_unlock(mutex_t* _Nonnull self)
     spin_unlock(&self->spinlock);
 
     if (doWakeup) {
-        waq_wakeup(self->wait_queue, WAKE_ONE);
+        wq_wakeup(self->wait_queue, WAKE_ONE);
     }
 }

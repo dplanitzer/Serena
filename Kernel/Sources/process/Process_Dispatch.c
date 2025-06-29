@@ -10,12 +10,12 @@
 #include "UWaitQueue.h"
 
 
-errno_t Process_CreateUWaitQueue(ProcessRef _Nonnull self, int flags, int* _Nullable pOutOd)
+errno_t Process_CreateUWaitQueue(ProcessRef _Nonnull self, int policy, int* _Nullable pOutOd)
 {
     decl_try_err();
     UWaitQueueRef p = NULL;
 
-    try(UWaitQueue_Create(flags, &p));
+    try(UWaitQueue_Create(policy, &p));
     try(UResourceTable_AdoptResource(&self->uResourcesTable, (UResourceRef) p, pOutOd));
     p = NULL;
     return EOK;
@@ -26,37 +26,74 @@ catch:
     return err;
 }
 
-errno_t Process_Wait_UWaitQueue(ProcessRef _Nonnull self, int od, unsigned int* _Nullable pOutSigs)
+errno_t Process_Wait_UWaitQueue(ProcessRef _Nonnull self, int od)
 {
     decl_try_err();
     UWaitQueueRef p;
 
     if ((err = UResourceTable_AcquireResourceAs(&self->uResourcesTable, od, UWaitQueue, &p)) == EOK) {
-        err = UWaitQueue_Wait(p, pOutSigs);
+        err = UWaitQueue_Wait(p);
         UResourceTable_RelinquishResource(&self->uResourcesTable, p);
     }
     return err;
 }
 
-errno_t Process_TimedWait_UWaitQueue(ProcessRef _Nonnull self, int od, int options, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs)
+errno_t Process_TimedWait_UWaitQueue(ProcessRef _Nonnull self, int od, int options, const struct timespec* _Nonnull wtp)
 {
     decl_try_err();
     UWaitQueueRef p;
 
     if ((err = UResourceTable_AcquireResourceAs(&self->uResourcesTable, od, UWaitQueue, &p)) == EOK) {
-        err = UWaitQueue_TimedWait(p, options, wtp, pOutSigs);
+        err = UWaitQueue_TimedWait(p, options, wtp);
         UResourceTable_RelinquishResource(&self->uResourcesTable, p);
     }
     return err;
 }
 
-errno_t Process_Wakeup_UWaitQueue(ProcessRef _Nonnull self, int od, int flags, unsigned int sigs)
+errno_t Process_SigWait_UWaitQueue(ProcessRef _Nonnull self, int od, unsigned int* _Nullable pOutSigs)
+{
+    decl_try_err();
+    UWaitQueueRef p;
+
+    if ((err = UResourceTable_AcquireResourceAs(&self->uResourcesTable, od, UWaitQueue, &p)) == EOK) {
+        err = UWaitQueue_SigWait(p, pOutSigs);
+        UResourceTable_RelinquishResource(&self->uResourcesTable, p);
+    }
+    return err;
+}
+
+errno_t Process_SigTimedWait_UWaitQueue(ProcessRef _Nonnull self, int od, int options, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs)
+{
+    decl_try_err();
+    UWaitQueueRef p;
+
+    if ((err = UResourceTable_AcquireResourceAs(&self->uResourcesTable, od, UWaitQueue, &p)) == EOK) {
+        err = UWaitQueue_SigTimedWait(p, options, wtp, pOutSigs);
+        UResourceTable_RelinquishResource(&self->uResourcesTable, p);
+    }
+    return err;
+}
+
+
+errno_t Process_Wakeup_UWaitQueue(ProcessRef _Nonnull self, int od, int flags)
 {
     decl_try_err();
     UWaitQueueRef p;
 
     if ((err = UResourceTable_BeginDirectResourceAccessAs(&self->uResourcesTable, od, UWaitQueue, &p)) == EOK) {
-        UWaitQueue_Wakeup(p, flags, sigs);
+        UWaitQueue_Wakeup(p, flags);
+        UResourceTable_EndDirectResourceAccess(&self->uResourcesTable);
+    }
+    return err;
+}
+
+errno_t Process_Signal_UWaitQueue(ProcessRef _Nonnull self, int od, int flags, unsigned int sigs)
+{
+    decl_try_err();
+    UWaitQueueRef p;
+
+    if ((err = UResourceTable_BeginDirectResourceAccessAs(&self->uResourcesTable, od, UWaitQueue, &p)) == EOK) {
+        UWaitQueue_Signal(p, flags, sigs);
         UResourceTable_EndDirectResourceAccess(&self->uResourcesTable);
     }
     return err;

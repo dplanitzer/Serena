@@ -16,6 +16,7 @@
 #include <kern/limits.h>
 #include <kern/string.h>
 #include <kern/timespec.h>
+#include <kpi/vcpu.h>
 #include <log/Log.h>
 
 WaitQueue   gSleepQueue;    // VPs which block in a sleep() call wait on this wait queue
@@ -120,6 +121,9 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull self, int priority)
     
     ListNode_Init(&self->timeout.queue_entry);
     
+    self->psigs = 0;
+    self->sigmask = UINT32_MAX;
+
     self->timeout.deadline = kQuantums_Infinity;
     self->timeout.owner = (void*)self;
     self->timeout.is_valid = false;
@@ -520,4 +524,38 @@ bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull self)
     const bool isSuspended = self->suspension_count > 0;
     preempt_restore(sps);
     return isSuspended;
+}
+
+// Atomically updates the current signal mask and returns the old mask.
+errno_t VirtualProcessor_SetSignalMask(VirtualProcessor* _Nonnull self, int op, uint32_t mask, uint32_t* _Nullable pOutMask)
+{
+    decl_try_err();
+    VP_ASSERT_ALIVE(self);
+    const int sps = preempt_disable();
+    const uint32_t oldMask = self->sigmask;
+
+    switch (op) {
+        case SIGMASK_OP_REPLACE:
+            self->sigmask = mask;
+            break;
+
+        case SIGMASK_OP_ENABLE:
+            self->sigmask |= mask;
+            break;
+
+        case SIGMASK_OP_DISABLE:
+            self->sigmask &= ~mask;
+            break;
+
+        default:
+            err = EINVAL;
+            break;
+    }
+
+    if (err == EOK && pOutMask) {
+        *pOutMask = oldMask;
+    }
+
+    preempt_restore(sps);
+    return err;
 }

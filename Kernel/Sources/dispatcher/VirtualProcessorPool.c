@@ -103,6 +103,8 @@ errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _No
     
     // Configure the VP
     pVP->uerrno = 0;
+    pVP->psigs = 0;
+    pVP->sigmask = UINT32_MAX;
     VirtualProcessor_SetPriority(pVP, params.priority);
     try(VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_Make(params.func, params.context, params.kernelStackSize, params.userStackSize)));
 
