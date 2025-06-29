@@ -27,7 +27,7 @@ void Semaphore_Deinit(Semaphore* _Nonnull self)
 // @Entry Condition: preemption disabled
 errno_t Semaphore_OnWaitForPermits(Semaphore* _Nonnull self, const struct timespec* _Nonnull deadline)
 {
-    return WaitQueue_Wait(&self->wq,
+    return WaitQueue_TimedWait(&self->wq,
                         WAIT_INTERRUPTABLE | WAIT_ABSTIME,
                         deadline,
                         NULL);

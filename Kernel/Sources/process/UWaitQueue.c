@@ -48,10 +48,7 @@ errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self, unsigned int* _Nullable pOu
         }
 
         // Waiting temporarily reenables preemption
-        err = WaitQueue_Wait(&self->wq, 
-                            WAIT_INTERRUPTABLE,
-                            NULL,
-                            NULL);
+        err = WaitQueue_Wait(&self->wq, WAIT_INTERRUPTABLE);
     } while (isSignalling && err == EOK);
 
     preempt_restore(sps);
@@ -76,7 +73,7 @@ errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const str
         }
 
         // Waiting temporarily reenables preemption
-        err = WaitQueue_Wait(&self->wq, 
+        err = WaitQueue_TimedWait(&self->wq, 
                             WAIT_INTERRUPTABLE | waitopts,
                             wtp,
                             NULL);

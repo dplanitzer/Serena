@@ -49,12 +49,14 @@ extern errno_t WaitQueue_Deinit(WaitQueue* self);
 // Expects to be called with preemption disabled. Temporarily reenables
 // preemption when context switching to another VP. Returns to the caller with
 // preemption disabled.
-// Waits until wakeup if 'wtp' is NULL. If 'wtp' is not NULL then 'wtp' is
+// @Entry Condition: preemption disabled
+extern errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int flags);
+
+// Same as wait() but with support for timeouts. If 'wtp' is not NULL then 'wtp' is
 // either the maximum duration to wait or the absolute time until to wait. The
 // WAIT_ABSTIME specifies an absolute time. 'rmtp' is an optional timespec that
 // receives the amount of time remaining if the wait was canceled early.
-// @Entry Condition: preemption disabled
-extern errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
+extern errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
 
 // Adds the given VP from the given wait queue to the ready queue. The VP is removed
 // from the wait queue. The scheduler guarantees that a wakeup operation will never

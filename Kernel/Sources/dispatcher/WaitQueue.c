@@ -33,51 +33,11 @@ errno_t WaitQueue_Deinit(WaitQueue* self)
     return err;
 }
 
-errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int options, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
+// @Entry Condition: preemption disabled
+// @Entry Condition: 'vp' must be in running state
+// @Entry Condition: 'vp' must not be in an active abort
+static errno_t _do_wait(WaitQueue* _Nonnull self, int flags, VirtualProcessorScheduler* _Nonnull ps, VirtualProcessor* _Nonnull vp)
 {
-    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
-    VirtualProcessor* vp = (VirtualProcessor*)ps->running;
-    struct timespec now, deadline;
-
-    assert(vp->sched_state == kVirtualProcessorState_Running);
-
-
-    // Immediately return instead of waiting if we are in the middle of an abort
-    // of a call-as-user invocation.
-    if ((vp->flags & (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) == (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) {
-        if (rmtp) {
-            timespec_clear(rmtp);   // User space won't see this value anyway
-        }
-        return EINTR;
-    }
-
-
-    // Put us on the timeout queue if a relevant timeout has been specified.
-    // Note that we return immediately if we're already past the deadline
-    if (wtp) {
-        MonotonicClock_GetCurrentTime(&now);
-
-        if ((options & WAIT_ABSTIME) == WAIT_ABSTIME) {
-            deadline = *wtp;
-        }
-        else {
-            timespec_add(&now, wtp, &deadline);
-        }
-
-
-        if (timespec_lt(&deadline, &TIMESPEC_INF)) {
-            if (timespec_le(&deadline, &now)) {
-                if (rmtp) {
-                    timespec_clear(rmtp);
-                }
-                return ETIMEDOUT;
-            }
-
-            VirtualProcessorScheduler_ArmTimeout(ps, vp, &deadline);
-        }
-    }
-
-
     // Put us on the wait queue. The wait queue is sorted by the QoS and priority
     // from highest to lowest. VPs which enter the queue first, leave it first.
     register VirtualProcessor* pvp = NULL;
@@ -98,7 +58,7 @@ errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int options, const struct times
     vp->wait_start_time = MonotonicClock_GetCurrentQuantums();
     vp->wakeup_reason = WAKEUP_REASON_NONE;
 
-    if ((options & WAIT_INTERRUPTABLE) == WAIT_INTERRUPTABLE) {
+    if ((flags & WAIT_INTERRUPTABLE) == WAIT_INTERRUPTABLE) {
         vp->flags |= VP_FLAG_INTERRUPTABLE_WAIT;
     } else {
         vp->flags &= ~VP_FLAG_INTERRUPTABLE_WAIT;
@@ -110,6 +70,76 @@ errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int options, const struct times
             VirtualProcessorScheduler_GetHighestPriorityReady(ps));
     
     
+    switch (vp->wakeup_reason) {
+        case WAKEUP_REASON_INTERRUPTED: return EINTR;
+        case WAKEUP_REASON_TIMEOUT:     return ETIMEDOUT;
+        default:                        return EOK;
+    }
+}
+
+errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int flags)
+{
+    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
+    VirtualProcessor* vp = (VirtualProcessor*)ps->running;
+
+    assert(vp->sched_state == kVirtualProcessorState_Running);
+
+
+    // Immediately return instead of waiting if we are in the middle of an abort
+    // of a call-as-user invocation.
+    if ((vp->flags & (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) == (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) {
+        return EINTR;
+    }
+
+
+    return _do_wait(self, flags, ps, vp);
+}
+
+errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
+{
+    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
+    VirtualProcessor* vp = (VirtualProcessor*)ps->running;
+    struct timespec now, deadline;
+
+    // Immediately return instead of waiting if we are in the middle of an abort
+    // of a call-as-user invocation.
+    if ((vp->flags & (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) == (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) {
+        if (rmtp) {
+            timespec_clear(rmtp);   // User space won't see this value anyway
+        }
+        return EINTR;
+    }
+
+
+    // Put us on the timeout queue if a relevant timeout has been specified.
+    // Note that we return immediately if we're already past the deadline
+    MonotonicClock_GetCurrentTime(&now);
+
+    if ((flags & WAIT_ABSTIME) == WAIT_ABSTIME) {
+        deadline = *wtp;
+    }
+    else {
+        timespec_add(&now, wtp, &deadline);
+    }
+
+
+    if (timespec_lt(&deadline, &TIMESPEC_INF)) {
+        if (timespec_le(&deadline, &now)) {
+            if (rmtp) {
+                timespec_clear(rmtp);
+            }
+            return ETIMEDOUT;
+        }
+
+        VirtualProcessorScheduler_ArmTimeout(ps, vp, &deadline);
+    }
+
+
+    // Now wait
+    const errno_t err = _do_wait(self, flags, ps, vp);
+
+
+    // Calculate the unslept time, if requested
     if (rmtp) {
         MonotonicClock_GetCurrentTime(&now);
 
@@ -121,11 +151,7 @@ errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int options, const struct times
         }
     }
 
-    switch (vp->wakeup_reason) {
-        case WAKEUP_REASON_INTERRUPTED: return EINTR;
-        case WAKEUP_REASON_TIMEOUT:     return ETIMEDOUT;
-        default:                        return EOK;
-    }
+    return err;
 }
 
 // Adds all VPs on the given list to the ready queue. The VPs are removed from

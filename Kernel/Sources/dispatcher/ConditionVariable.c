@@ -48,10 +48,7 @@ errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull self, Lock* _Nonnull 
     const int sps = preempt_disable();
     
     Lock_Unlock(pLock);
-    const int err = WaitQueue_Wait(&self->wq,
-                                WAIT_INTERRUPTABLE,
-                                NULL,
-                                NULL);
+    const int err = WaitQueue_Wait(&self->wq, WAIT_INTERRUPTABLE);
     Lock_Lock(pLock);
 
     preempt_restore(sps);
@@ -66,7 +63,7 @@ errno_t ConditionVariable_TimedWait(ConditionVariable* _Nonnull self, Lock* _Non
     const int sps = preempt_disable();
     
     Lock_Unlock(pLock);
-    const int err = WaitQueue_Wait(&self->wq,
+    const int err = WaitQueue_TimedWait(&self->wq,
                                 WAIT_INTERRUPTABLE | WAIT_ABSTIME,
                                 deadline,
                                 NULL);

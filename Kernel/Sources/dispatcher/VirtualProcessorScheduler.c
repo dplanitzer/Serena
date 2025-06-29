@@ -383,7 +383,7 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull self
 
         // Continue to wait as long as there's nothing to finalize
         while (List_IsEmpty(&self->finalizer_queue)) {
-            (void)WaitQueue_Wait(&gSchedulerWaitQueue,
+            (void)WaitQueue_TimedWait(&gSchedulerWaitQueue,
                                 WAIT_INTERRUPTABLE,
                                 &timeout,
                                 NULL);

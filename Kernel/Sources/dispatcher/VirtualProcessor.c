@@ -406,7 +406,7 @@ errno_t VirtualProcessor_Sleep(int options, const struct timespec* _Nonnull wtp,
     
     // This is a medium or long wait -> context switch away
     int sps = preempt_disable();
-    const int err = WaitQueue_Wait(&gSleepQueue, 
+    const int err = WaitQueue_TimedWait(&gSleepQueue, 
                             WAIT_INTERRUPTABLE | options,
                             wtp,
                             rmtp);
