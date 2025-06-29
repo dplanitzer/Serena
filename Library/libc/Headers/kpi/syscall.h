@@ -70,6 +70,8 @@ enum {
     SC_wq_sigwait,          // int wq_sigwait(int q, unsigned int* _Nullable sigs)
     SC_wq_sigtimedwait,     // int wq_sigtimedwait(int q, int options, const struct timespec* _Nonnull wtp, unsigned int* _Nullable sigs)
     SC_wq_signal,           // int wq_signal(int q, int flags, unsigned int sigs)
+    SC_vcpu_self,           // int vcpu_self(void)
+    SC_vcpu_sigmask,        // int vcpu_sigmask(int op, unsigned int mask, unsigned int* _Nullable oldmask)
 };
 
 

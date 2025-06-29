@@ -31,7 +31,7 @@ typedef struct syscall {
 #define SC_ERRNO    1   /* System call returns an error that should be stored in vcpu->errno */
 #define SC_VCPU     2   /* System call expects a vcpu_t* rather than a proc_t* */
 
-#define SYSCALL_COUNT   55
+#define SYSCALL_COUNT   57
 static const syscall_t gSystemCallTable[SYSCALL_COUNT];
 
 
@@ -456,6 +456,16 @@ SYSCALL_3(wq_signal, int od, int flags, unsigned int sigs)
     return Process_Signal_UWaitQueue((ProcessRef)p, pa->od, pa->flags, pa->sigs);
 }
 
+SYSCALL_0(vcpu_self)
+{
+    return (intptr_t)((VirtualProcessor*)p)->vpid;
+}
+
+SYSCALL_3(vcpu_sigmask, int op, unsigned int mask, unsigned int* _Nullable oldmask)
+{
+    return VirtualProcessor_SetSignalMask((VirtualProcessor*)p, pa->op, pa->mask, pa->oldmask);
+}
+
 
 static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
@@ -513,4 +523,6 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(wq_sigwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_sigtimedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_signal, SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_self, SC_VCPU),
+    SYSCALL_ENTRY(vcpu_sigmask, SC_VCPU|SC_ERRNO),
 };
