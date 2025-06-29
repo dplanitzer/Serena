@@ -18,13 +18,23 @@
 struct VirtualProcessor;
 
 
-// Wait() options
+// wait() options
 #define WAIT_INTERRUPTABLE  1
 #define WAIT_ABSTIME        2
 
 
+// Requests that wakeup() wakes up all vcpus on the wait queue.
+#define WAKEUP_ALL  0
+
+// Requests that wakeup() wakes up at most one vcpu instead of all.
+#define WAKEUP_ONE  1
+
+// Allow wakeup() to do a context switch
+#define WAKEUP_CSW  2
+
+
 // Reason for a wake up
-// WAKEUP_REASON_NONE means that we are still waiting for a wake up
+// WAKEUP_REASON_NONE means that we are still waiting for a wakeup
 #define WAKEUP_REASON_NONE          0
 #define WAKEUP_REASON_FINISHED      1
 #define WAKEUP_REASON_INTERRUPTED   2
@@ -64,31 +74,25 @@ extern errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const st
 // result in a virtual processor wakeup. If the wait queue is empty then no wakeups
 // will happen.
 // @Entry Condition: preemption disabled
-extern void WaitQueue_WakeUpOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp, int wakeUpReason, bool allowContextSwitch);
+extern void WaitQueue_WakeupOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp, int reason, bool allowContextSwitch);
 
 // Wakes up up to 'count' waiters on the wait queue. The woken up VPs are
 // removed from the wait queue. Expects to be called with preemption disabled.
 // @Entry Condition: preemption disabled
-extern void WaitQueue_WakeUpSome(WaitQueue* _Nonnull self, int count, int wakeUpReason, bool allowContextSwitch);
-
-// Adds all VPs on the given list to the ready queue. The VPs are removed from
-// the wait queue.
-// @Entry Condition: preemption disabled
-#define WaitQueue_WakeUpAll(__self, __allowContextSwitch) \
-    WaitQueue_WakeUpSome(__self, INT_MAX, WAKEUP_REASON_FINISHED, __allowContextSwitch);
+extern void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int reason);
 
 // Adds all VPs on the given list to the ready queue. The VPs are removed from
 // the wait queue. Expects to be called from an interrupt context and thus defers
 // context switches until the return from the interrupt context.
 // @Entry Condition: preemption disabled
-extern void WaitQueue_WakeUpAllFromInterrupt(WaitQueue* _Nonnull self);
+extern void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self);
 
 // Suspends an ongoing wait. This should be called if a VP that is currently
 // waiting on this queue is suspended.
-extern void WaitQueue_Suspend(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp);
+extern void WaitQueue_SuspendOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp);
 
 // Resumes an ongoing wait. This should be called if a VP that is currently
 // waiting on this queue is resumed.
-extern void WaitQueue_Resume(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp);
+extern void WaitQueue_ResumeOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp);
 
 #endif /* WaitQueue_h */

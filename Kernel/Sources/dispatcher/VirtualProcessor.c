@@ -302,10 +302,9 @@ errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull self)
             // (interruptable) waits will be immediately aborted since the call-
             // as-user invocation is now marked as aborted.
             if (self->sched_state == kVirtualProcessorState_Waiting) {
-                WaitQueue_WakeUpSome(self->waiting_on_wait_queue,
-                                    INT_MAX,
-                                    WAKEUP_REASON_INTERRUPTED,
-                                    false);
+                WaitQueue_Wakeup(self->waiting_on_wait_queue,
+                                    WAKEUP_ALL,
+                                    WAKEUP_REASON_INTERRUPTED);
             }
         } else {
             // User space:
@@ -460,7 +459,7 @@ errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull self)
                 break;
             
             case kVirtualProcessorState_Waiting:
-                WaitQueue_Suspend(self->waiting_on_wait_queue, self);
+                WaitQueue_SuspendOne(self->waiting_on_wait_queue, self);
                 break;
             
             default:
@@ -503,7 +502,7 @@ void VirtualProcessor_Resume(VirtualProcessor* _Nonnull self, bool force)
                 break;
             
             case kVirtualProcessorState_Waiting:
-                WaitQueue_Resume(self->waiting_on_wait_queue, self);
+                WaitQueue_ResumeOne(self->waiting_on_wait_queue, self);
                 break;
             
             default:

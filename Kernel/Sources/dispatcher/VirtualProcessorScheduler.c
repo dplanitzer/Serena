@@ -193,7 +193,7 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
         }
         
         VirtualProcessor* vp = (VirtualProcessor*)ct->owner;
-        WaitQueue_WakeUpOne(vp->waiting_on_wait_queue, vp, WAKEUP_REASON_TIMEOUT, false);
+        WaitQueue_WakeupOne(vp->waiting_on_wait_queue, vp, WAKEUP_REASON_TIMEOUT, false);
     }
     
     
@@ -351,7 +351,7 @@ _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorSc
     
     if (dead_vps_count >= FINALIZE_NOW_THRESHOLD && gSchedulerWaitQueue.q.first != NULL) {
         // The scheduler VP is currently waiting for work. Let's wake it up.
-        WaitQueue_WakeUpOne(&gSchedulerWaitQueue,
+        WaitQueue_WakeupOne(&gSchedulerWaitQueue,
                         self->bootVirtualProcessor,
                         WAKEUP_REASON_INTERRUPTED,
                         true);

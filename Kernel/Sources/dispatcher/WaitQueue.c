@@ -154,10 +154,11 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct ti
     return err;
 }
 
+
 // Adds all VPs on the given list to the ready queue. The VPs are removed from
 // the wait queue. Expects to be called from an interrupt context and thus defers
 // context switches until the return from the interrupt context.
-void WaitQueue_WakeUpAllFromInterrupt(WaitQueue* _Nonnull self)
+void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self)
 {
     register ListNode* cnp = self->q.first;    
     
@@ -165,37 +166,39 @@ void WaitQueue_WakeUpAllFromInterrupt(WaitQueue* _Nonnull self)
     while (cnp) {
         register ListNode* nnp = cnp->next;
         
-        WaitQueue_WakeUpOne(self, (VirtualProcessor*)cnp, WAKEUP_REASON_FINISHED, false);
+        WaitQueue_WakeupOne(self, (VirtualProcessor*)cnp, WAKEUP_REASON_FINISHED, false);
         cnp = nnp;
     }
 }
 
 // Wakes up, up to 'count' waiters on the wait queue. The woken up VPs are
 // removed from the wait queue. Expects to be called with preemption disabled.
-void WaitQueue_WakeUpSome(WaitQueue* _Nonnull self, int count, int wakeUpReason, bool allowContextSwitch)
+void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int reason)
 {
     register ListNode* pCurNode = self->q.first;
-    register int i = 0;
+    register bool isWakeupOne = ((flags & WAKEUP_ONE) == WAKEUP_ONE);
     VirtualProcessor* pRunCandidate = NULL;
     
     
-    // First pass: make all waiting VPs ready and collect as many VPs to run as
-    // we got CPU cores on this machine.
-    while (pCurNode && i < count) {
+    // Make all waiting VPs ready and find a VP to potentially context switch to.
+    while (pCurNode) {
         register ListNode* pNextNode = pCurNode->next;
         register VirtualProcessor* vp = (VirtualProcessor*)pCurNode;
         
-        WaitQueue_WakeUpOne(self, vp, wakeUpReason, false);
+        WaitQueue_WakeupOne(self, vp, reason, false);
         if (pRunCandidate == NULL && (vp->sched_state == kVirtualProcessorState_Ready && vp->suspension_count == 0)) {
             pRunCandidate = vp;
         }
+        if (isWakeupOne) {
+            break;
+        }
+
         pCurNode = pNextNode;
-        i++;
     }
     
     
-    // Second pass: start running all the VPs that we collected in pass one.
-    if (allowContextSwitch && pRunCandidate) {
+    // Set the VP that we found running if context switches are allowed.
+    if ((flags & WAKEUP_CSW) == WAKEUP_CSW && pRunCandidate) {
         VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, pRunCandidate);
     }
 }
@@ -208,7 +211,7 @@ void WaitQueue_WakeUpSome(WaitQueue* _Nonnull self, int count, int wakeUpReason,
 // uninterruptible wait or that was suspended while being in a wait state will
 // not get woken up.
 // May be called from an interrupt context.
-void WaitQueue_WakeUpOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp, int wakeUpReason, bool allowContextSwitch)
+void WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp, int reason, bool allowContextSwitch)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
 
@@ -220,7 +223,7 @@ void WaitQueue_WakeUpOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
     
 
     // Do not wake up the virtual processor if it is in an uninterruptible wait.
-    if (wakeUpReason == WAKEUP_REASON_INTERRUPTED && (vp->flags & VP_FLAG_INTERRUPTABLE_WAIT) == 0) {
+    if (reason == WAKEUP_REASON_INTERRUPTED && (vp->flags & VP_FLAG_INTERRUPTABLE_WAIT) == 0) {
         return;
     }
 
@@ -232,15 +235,15 @@ void WaitQueue_WakeUpOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
     VirtualProcessorScheduler_CancelTimeout(ps, vp);
     
     vp->waiting_on_wait_queue = NULL;
-    vp->wakeup_reason = wakeUpReason;
+    vp->wakeup_reason = reason;
     vp->flags &= ~VP_FLAG_INTERRUPTABLE_WAIT;
     
     
     if (vp->suspension_count == 0) {
         // Make the VP ready and adjust it's effective priority based on the
         // time it has spent waiting
-        const int32_t quatersSlept = (MonotonicClock_GetCurrentQuantums() - vp->wait_start_time) / ps->quantums_per_quarter_second;
-        const int8_t boostedPriority = __min(vp->effectivePriority + __min(quatersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
+        const int32_t quartersSlept = (MonotonicClock_GetCurrentQuantums() - vp->wait_start_time) / ps->quantums_per_quarter_second;
+        const int8_t boostedPriority = __min(vp->effectivePriority + __min(quartersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
         VirtualProcessorScheduler_AddVirtualProcessor_Locked(ps, vp, boostedPriority);
         
         if (allowContextSwitch) {
@@ -253,7 +256,7 @@ void WaitQueue_WakeUpOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
     }
 }
 
-void WaitQueue_Suspend(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp)
+void WaitQueue_SuspendOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp)
 {
     // We do not interrupt the wait because we'll just treat it as
     // a longer-than-expected wait. However we suspend the timeout
@@ -263,7 +266,7 @@ void WaitQueue_Suspend(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnu
     VirtualProcessorScheduler_SuspendTimeout(gVirtualProcessorScheduler, vp);
 }
 
-void WaitQueue_Resume(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp)
+void WaitQueue_ResumeOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp)
 {
     // Still in waiting state -> just resume the timeout if one is
     // associated with the wait.

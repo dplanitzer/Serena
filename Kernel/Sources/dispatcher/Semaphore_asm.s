@@ -10,7 +10,7 @@
 
     xref _Semaphore_OnWaitForPermits
     xref _Semaphore_WakeUp
-    xref _WaitQueue_WakeUpAllFromInterrupt
+    xref _WaitQueue_WakeupAllFromInterrupt
 
     xdef _Semaphore_AcquireMultiple
     xdef _Semaphore_AcquireAll
@@ -76,7 +76,7 @@ _Semaphore_RelinquishFromInterrupt:
         ; move all the waiters back to the ready queue
         move.l  d0, -(sp)
         pea     sema_wait_queue_first(a0)
-        jsr     _WaitQueue_WakeUpAllFromInterrupt
+        jsr     _WaitQueue_WakeupAllFromInterrupt
         addq.l  #4, sp
         move.l  (sp)+, d0
 

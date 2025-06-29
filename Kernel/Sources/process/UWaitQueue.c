@@ -91,17 +91,16 @@ void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags, unsigned int sigs
     }
     
     const bool isSignalling = UWaitQueue_IsSignalling(self);
-    const int wakecount = ((flags & WAKE_ONE) == WAKE_ONE) ? 1 : INT_MAX;
+    const int wflags = ((flags & WAKE_ONE) == WAKE_ONE) ? WAKEUP_ONE : WAKEUP_ALL;
     const int sps = preempt_disable();
     
     if (isSignalling) {
         self->psigs |= sigs;
     }
 
-    WaitQueue_WakeUpSome(&self->wq,
-                        wakecount,
-                        WAKEUP_REASON_FINISHED,
-                        true);
+    WaitQueue_Wakeup(&self->wq,
+                        wflags | WAKEUP_CSW,
+                        WAKEUP_REASON_FINISHED);
     preempt_restore(sps);
 }
 

@@ -26,12 +26,12 @@ void ConditionVariable_Deinit(ConditionVariable* _Nonnull self)
 // Signals the given condition variable.
 void _ConditionVariable_Wakeup(ConditionVariable* _Nonnull self, bool broadcast)
 {
+    const int flags = (broadcast) ? WAKEUP_ALL : WAKEUP_ONE;
     const int sps = preempt_disable();
     
-    WaitQueue_WakeUpSome(&self->wq,
-                        (broadcast) ? INT_MAX : 1,
-                        WAKEUP_REASON_FINISHED,
-                        true);
+    WaitQueue_Wakeup(&self->wq,
+                        flags | WAKEUP_CSW,
+                        WAKEUP_REASON_FINISHED);
     preempt_restore(sps);
 }
 
