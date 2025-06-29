@@ -9,14 +9,14 @@
 #ifndef Lock_h
 #define Lock_h
 
+#include <dispatcher/WaitQueue.h>
 #include <kern/errno.h>
 #include <kern/types.h>
-#include <klib/List.h>
 
 
 typedef struct Lock {
     volatile uint32_t   value;
-    List                wait_queue;
+    WaitQueue           wq;
     int                 owner_vpid;     // ID of the VP that is currently holding the lock
 } Lock;
 
@@ -25,11 +25,8 @@ typedef struct Lock {
 // - ownership tracking is turned on and violations will trigger a fatal error condition
 extern void Lock_Init(Lock* _Nonnull self);
 
-// Deinitializes a lock. The lock is automatically unlocked if the calling code
-// is holding the lock. Returns EPERM if non-fatal ownership validation is
-// enabled, the lock is currently being held and the caller is not the owner of
-// the lock. Otherwise EOK is returned.
-extern errno_t Lock_Deinit(Lock* _Nonnull self);
+// Deinitializes a lock.
+extern void Lock_Deinit(Lock* _Nonnull self);
 
 
 // Attempts to acquire the given lock. True is return if the lock has been

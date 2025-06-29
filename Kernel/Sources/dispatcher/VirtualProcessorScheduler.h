@@ -48,8 +48,6 @@ typedef struct VirtualProcessorScheduler {
     int8_t                              reserved[1];
     Quantums                            quantums_per_quarter_second;    // 1/4 second in terms of quantums
     List                                timeout_queue;                  // Timeout queue managed by the scheduler. Sorted ascending by timer deadlines
-    List                                sleep_queue;                    // VPs which block in a sleep() call wait on this wait queue
-    List                                scheduler_wait_queue;           // The scheduler VP waits on this queue
     List                                finalizer_queue;
 } VirtualProcessorScheduler;
 
@@ -75,39 +73,13 @@ extern void VirtualProcessorScheduler_AddVirtualProcessor(VirtualProcessorSchedu
 
 extern void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler* _Nonnull self);
 
-// Put the currently running VP (the caller) on the given wait queue. Then runs
-// the scheduler to select another VP to run and context switches to the new VP
-// right away.
-// Expects to be called with preemption disabled. Temporarily reenables
-// preemption when context switching to another VP. Returns to the caller with
-// preemption disabled.
-// Waits until wakeup if 'wtp' is NULL. If 'wtp' is not NULL then 'wtp' is
-// either the maximum duration to wait or the absolute time until to wait. The
-// WAIT_ABSTIME specifies an absolute time. 'rmtp' is an optional timespec that
-// receives the amount of time remaining if the wait was canceled early.  
-extern errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull self, List* _Nonnull waq, int options, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
+// Arms a timeout for the given virtual processor. This puts the VP on the timeout
+// queue.
+extern void VirtualProcessorScheduler_ArmTimeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp, const struct timespec* _Nonnull deadline);
 
-// Adds the given VP from the given wait queue to the ready queue. The VP is removed
-// from the wait queue. The scheduler guarantees that a wakeup operation will never
-// fail with an error. This doesn't mean that calling this function will always
-// result in a virtual processor wakeup. If the wait queue is empty then no wakeups
-// will happen.
-extern void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull self, List* _Nonnull waq, VirtualProcessor* _Nonnull vp, int wakeUpReason, bool allowContextSwitch);
-
-// Wakes up up to 'count' waiters on the wait queue 'pWaitQueue'. The woken up
-// VPs are removed from the wait queue. Expects to be called with preemption
-// disabled.
-extern void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull self, List* _Nonnull waq, int count, int wakeUpReason, bool allowContextSwitch);
-
-// Adds all VPs on the given list to the ready queue. The VPs are removed from
-// the wait queue.
-#define VirtualProcessorScheduler_WakeUpAll(__self, __waq, __allowContextSwitch) \
-    VirtualProcessorScheduler_WakeUpSome(__self, __waq, INT_MAX, WAKEUP_REASON_FINISHED, __allowContextSwitch);
-
-// Adds all VPs on the given list to the ready queue. The VPs are removed from
-// the wait queue. Expects to be called from an interrupt context and thus defers
-// context switches until the return from the interrupt context.
-extern void VirtualProcessorScheduler_WakeUpAllFromInterruptContext(VirtualProcessorScheduler* _Nonnull self, List* _Nonnull waq);
+// Cancels an armed timeout for the given virtual processor. Does nothing if
+// no timeout is armed.
+extern void VirtualProcessorScheduler_CancelTimeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp);
 
 extern int VirtualProcessorScheduler_DisablePreemption(void);
 extern void VirtualProcessorScheduler_RestorePreemption(int sps);

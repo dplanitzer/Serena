@@ -51,9 +51,8 @@ typedef struct SELock {
 // Initializes a new shared-exclusive lock.
 extern void SELock_Init(SELock* _Nonnull self);
 
-// Deinitializes a lock. Returns an error and leaves the lock state unchanged if
-// the lock is currently locked.
-extern errno_t SELock_Deinit(SELock* _Nonnull self);
+// Deinitializes a lock.
+extern void SELock_Deinit(SELock* _Nonnull self);
 
 
 // Blocks the caller until the lock can be taken successfully in shared mode. If

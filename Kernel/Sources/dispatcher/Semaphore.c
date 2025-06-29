@@ -7,53 +7,35 @@
 //
 
 #include "Semaphore.h"
-#include "VirtualProcessorScheduler.h"
-#include <kern/limits.h>
 
 
 // Initializes a new semaphore with 'value' permits
-void Semaphore_Init(Semaphore* _Nonnull pSemaphore, int value)
+void Semaphore_Init(Semaphore* _Nonnull self, int value)
 {
-    pSemaphore->value = value;
-    List_Init(&pSemaphore->wait_queue);
+    self->value = value;
+    WaitQueue_Init(&self->wq);
 }
 
-// Deinitializes the semaphore. All virtual processors that are still waiting
-// for permits on this semaphore are woken up with an EINTR error.
-void Semaphore_Deinit(Semaphore* _Nonnull pSemaphore)
+// Deinitializes the semaphore.
+void Semaphore_Deinit(Semaphore* _Nonnull self)
 {
-    if (!List_IsEmpty(&pSemaphore->wait_queue)) {
-        // Wake up all the guys that are still waiting on us and tell them that the
-        // wait has been interrupted.
-        const int sps = VirtualProcessorScheduler_DisablePreemption();
-        VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
-                                             &pSemaphore->wait_queue,
-                                             INT_MAX,
-                                             WAKEUP_REASON_INTERRUPTED,
-                                             true);
-        VirtualProcessorScheduler_RestorePreemption(sps);
-    }
-
-    List_Deinit(&pSemaphore->wait_queue);
+    assert(WaitQueue_Deinit(&self->wq) == EOK);
 }
 
-// Invoked by Semaphore_Acquire() if the semaphore doesn't have the expected number
-// of permits.
-// Expects to be called with preemption disabled.
-errno_t Semaphore_OnWaitForPermits(Semaphore* _Nonnull pSemaphore, const struct timespec* _Nonnull deadline)
+// Invoked by Semaphore_Acquire() if the semaphore doesn't have the expected
+// number of permits.
+// @Entry Condition: preemption disabled
+errno_t Semaphore_OnWaitForPermits(Semaphore* _Nonnull self, const struct timespec* _Nonnull deadline)
 {
-    return VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
-                                            &pSemaphore->wait_queue,
-                                            WAIT_INTERRUPTABLE | WAIT_ABSTIME,
-                                            deadline,
-                                            NULL);
+    return WaitQueue_Wait(&self->wq,
+                        WAIT_INTERRUPTABLE | WAIT_ABSTIME,
+                        deadline,
+                        NULL);
 }
 
 // Invoked by Semaphore_Relinquish().
-// Expects to be called with preemption disabled.
-void Semaphore_WakeUp(Semaphore* _Nullable pSemaphore)
+// @Entry Condition: preemption disabled
+void Semaphore_WakeUp(Semaphore* _Nullable self)
 {
-    VirtualProcessorScheduler_WakeUpAll(gVirtualProcessorScheduler,
-                                        &pSemaphore->wait_queue,
-                                        true);
+    WaitQueue_WakeUpAll(&self->wq, true);
 }

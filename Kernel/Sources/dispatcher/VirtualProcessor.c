@@ -9,6 +9,7 @@
 #include "VirtualProcessor.h"
 #include "VirtualProcessorPool.h"
 #include "VirtualProcessorScheduler.h"
+#include "WaitQueue.h"
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
 #include <kern/kalloc.h>
@@ -16,6 +17,8 @@
 #include <kern/string.h>
 #include <kern/timespec.h>
 #include <log/Log.h>
+
+WaitQueue   gSleepQueue;    // VPs which block in a sleep() call wait on this wait queue
 
 
 // Initializes an execution stack struct. The execution stack is empty by default
@@ -299,11 +302,10 @@ errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull self)
             // (interruptable) waits will be immediately aborted since the call-
             // as-user invocation is now marked as aborted.
             if (self->sched_state == kVirtualProcessorState_Waiting) {
-                VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
-                                                 self->waiting_on_wait_queue,
-                                                 INT_MAX,
-                                                 WAKEUP_REASON_INTERRUPTED,
-                                                 false);
+                WaitQueue_WakeUpSome(self->waiting_on_wait_queue,
+                                    INT_MAX,
+                                    WAKEUP_REASON_INTERRUPTED,
+                                    false);
             }
         } else {
             // User space:
@@ -404,9 +406,7 @@ errno_t VirtualProcessor_Sleep(int options, const struct timespec* _Nonnull wtp,
     
     // This is a medium or long wait -> context switch away
     int sps = VirtualProcessorScheduler_DisablePreemption();
-    const int err = VirtualProcessorScheduler_WaitOn(
-                            gVirtualProcessorScheduler,
-                            &gVirtualProcessorScheduler->sleep_queue, 
+    const int err = WaitQueue_Wait(&gSleepQueue, 
                             WAIT_INTERRUPTABLE | options,
                             wtp,
                             rmtp);

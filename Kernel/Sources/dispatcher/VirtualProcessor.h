@@ -16,6 +16,8 @@
 #include <hal/Platform.h>
 #include <hal/SystemDescription.h>
 
+struct WaitQueue;
+
 
 // A kernel or user execution stack
 typedef struct ExecutionStack {
@@ -97,20 +99,7 @@ typedef enum VirtualProcessorState {
 #define VP_FLAG_TERMINATED          0x01    // VirtualProcessor_Terminate() was called on the VP
 #define VP_FLAG_CAU_IN_PROGRESS     0x02    // VirtualProcessor_CallAsUser() is in progress
 #define VP_FLAG_CAU_ABORTED         0x04    // VirtualProcessor_AbortCallAsUser() has been called and the VirtualProcessor_CallAsUser() is unwinding
-#define VP_FLAG_INTERRUPTABLE_WAIT  0x08    // VirtualProcessorScheduler_WaitOn() should be interruptable
-
-
-// WaitOn() options
-#define WAIT_INTERRUPTABLE  1
-#define WAIT_ABSTIME        2
-
-
-// Reason for a wake up
-// WAKEUP_REASON_NONE means that we are still waiting for a wake up
-#define WAKEUP_REASON_NONE          0
-#define WAKEUP_REASON_FINISHED      1
-#define WAKEUP_REASON_INTERRUPTED   2
-#define WAKEUP_REASON_TIMEOUT       3
+#define VP_FLAG_INTERRUPTABLE_WAIT  0x08    // WaitQueue_Wait() should be interruptable
 
 
 struct VirtualProcessor;
@@ -159,7 +148,7 @@ typedef struct VirtualProcessor {
                              
     // Waiting related state
     Timeout                                 timeout;                // The timeout state
-    List* _Nullable                         waiting_on_wait_queue;  // The wait queue this VP is waiting on; NULL if not waiting. Used by the scheduler to wake up on timeout
+    struct WaitQueue* _Nullable             waiting_on_wait_queue;  // The wait queue this VP is waiting on; NULL if not waiting. Used by the scheduler to wake up on timeout
     Quantums                                wait_start_time;        // Time when we entered waiting state
     int8_t                                  wakeup_reason;
     

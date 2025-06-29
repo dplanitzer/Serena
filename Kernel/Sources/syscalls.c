@@ -7,6 +7,7 @@
 //
 
 #include <dispatcher/VirtualProcessor.h>
+#include <dispatcher/WaitQueue.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/IOChannel.h>

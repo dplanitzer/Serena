@@ -23,7 +23,7 @@ typedef struct SELock {
 } SELock;
 
 extern void SELock_Init(SELock* self);
-extern errno_t SELock_Deinit(SELock* self);
+extern void SELock_Deinit(SELock* self);
 extern errno_t SELock_LockShared(SELock* self);
 extern errno_t SELock_LockExclusive(SELock* self);
 extern errno_t SELock_Unlock(SELock* self);

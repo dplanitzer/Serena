@@ -12,10 +12,11 @@
 #include <UResource.h>
 #include <klib/List.h>
 #include <kpi/_time.h>
+#include <dispatcher/WaitQueue.h>
 
 
 open_class(UWaitQueue, UResource,
-    List            queue;
+    WaitQueue       wq;
     unsigned int    flags;
     unsigned int    psigs;
 );

@@ -10,8 +10,7 @@
 
     xref _Semaphore_OnWaitForPermits
     xref _Semaphore_WakeUp
-    xref _VirtualProcessorScheduler_WakeUpAllFromInterruptContext
-    xref _gVirtualProcessorScheduler
+    xref _WaitQueue_WakeUpAllFromInterruptContext
 
     xdef _Semaphore_AcquireMultiple
     xdef _Semaphore_AcquireAll
@@ -77,9 +76,8 @@ _Semaphore_RelinquishFromInterruptContext:
         ; move all the waiters back to the ready queue
         move.l  d0, -(sp)
         pea     sema_wait_queue_first(a0)
-        move.l  _gVirtualProcessorScheduler, -(sp)
-        jsr     _VirtualProcessorScheduler_WakeUpAllFromInterruptContext
-        addq.l  #8, sp
+        jsr     _WaitQueue_WakeUpAllFromInterruptContext
+        addq.l  #4, sp
         move.l  (sp)+, d0
 
 .srfic_done:

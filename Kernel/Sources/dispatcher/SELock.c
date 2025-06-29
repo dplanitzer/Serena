@@ -21,23 +21,15 @@ void SELock_Init(SELock* _Nonnull self)
     self->state = kSELState_Unlocked;
 }
 
-// Deinitializes a lock. Returns an error and leaves the lock state unchanged if
-// the lock is currently locked.
-errno_t SELock_Deinit(SELock* _Nonnull self)
+// Deinitializes a lock.
+void SELock_Deinit(SELock* _Nonnull self)
 {
-    decl_try_err();
-
     Lock_Lock(&self->lock);
-    if (self->state != kSELState_Unlocked) {
-        err = EPERM;
-    }
+    assert(self->state == kSELState_Unlocked);
     Lock_Unlock(&self->lock);
 
-    if (err == EOK) {
-        ConditionVariable_Deinit(&self->cv);
-        Lock_Deinit(&self->lock);
-    }
-    return err;
+    ConditionVariable_Deinit(&self->cv);
+    Lock_Deinit(&self->lock);
 }
 
 static errno_t _SELock_AcquireSharedLockSlow(SELock* _Nonnull self)

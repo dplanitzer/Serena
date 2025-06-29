@@ -18,7 +18,7 @@ errno_t UWaitQueue_Create(int flags, UWaitQueueRef _Nullable * _Nonnull pOutSelf
     UWaitQueueRef self = NULL;
 
     try(UResource_AbstractCreate(&kUWaitQueueClass, (UResourceRef*)&self));
-    List_Init(&self->queue);
+    WaitQueue_Init(&self->wq);
     self->flags = flags & __UWQ_SIGNALLING;
     self->psigs = 0;
 
@@ -29,7 +29,7 @@ catch:
 
 void UWaitQueue_deinit(UWaitQueueRef _Nonnull self)
 {
-    List_Deinit(&self->queue);
+    WaitQueue_Deinit(&self->wq);
 }
 
 errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self, unsigned int* _Nullable pOutSigs)
@@ -48,9 +48,7 @@ errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self, unsigned int* _Nullable pOu
         }
 
         // Waiting temporarily reenables preemption
-        err = VirtualProcessorScheduler_WaitOn(
-                            gVirtualProcessorScheduler,
-                            &self->queue, 
+        err = WaitQueue_Wait(&self->wq, 
                             WAIT_INTERRUPTABLE,
                             NULL,
                             NULL);
@@ -78,9 +76,7 @@ errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const str
         }
 
         // Waiting temporarily reenables preemption
-        err = VirtualProcessorScheduler_WaitOn(
-                            gVirtualProcessorScheduler,
-                            &self->queue, 
+        err = WaitQueue_Wait(&self->wq, 
                             WAIT_INTERRUPTABLE | waitopts,
                             wtp,
                             NULL);
@@ -105,11 +101,10 @@ void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags, unsigned int sigs
         self->psigs |= sigs;
     }
 
-    VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
-                                         &self->queue,
-                                         wakecount,
-                                         WAKEUP_REASON_FINISHED,
-                                         true);
+    WaitQueue_WakeUpSome(&self->wq,
+                        wakecount,
+                        WAKEUP_REASON_FINISHED,
+                        true);
     VirtualProcessorScheduler_RestorePreemption(sps);
 }
 

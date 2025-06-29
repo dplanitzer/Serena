@@ -13,16 +13,15 @@
 
 
 typedef struct ConditionVariable {
-    List    wait_queue;
+    WaitQueue   wq;
 } ConditionVariable;
 
 
 // Initializes a new condition variable.
-extern void ConditionVariable_Init(ConditionVariable* _Nonnull pCondVar);
+extern void ConditionVariable_Init(ConditionVariable* _Nonnull self);
 
-// Deinitializes the condition variables. All virtual processors that are still
-// waiting on the conditional variable are woken up with an EINTR error.
-extern void ConditionVariable_Deinit(ConditionVariable* _Nonnull pCondVar);
+// Deinitializes the condition variables.
+extern void ConditionVariable_Deinit(ConditionVariable* _Nonnull self);
 
 // Signals the condition variable. This will wake up one waiter.
 #define ConditionVariable_Signal(__self) \
@@ -36,13 +35,13 @@ _ConditionVariable_Wakeup(__self, true)
 // wait has timed out. Note that this function may return EINTR which means that
 // the ConditionVariable_Wait() call is happening in the context of a system
 // call that should be aborted.
-extern errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock);
+extern errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull self, Lock* _Nonnull pLock);
 
 // Version of Wait() with an absolute timeout.
-extern errno_t ConditionVariable_TimedWait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock, const struct timespec* _Nonnull deadline);
+extern errno_t ConditionVariable_TimedWait(ConditionVariable* _Nonnull self, Lock* _Nonnull pLock, const struct timespec* _Nonnull deadline);
 
 
 // Wakes up one or all waiters on the condition variable.
-extern void _ConditionVariable_Wakeup(ConditionVariable* _Nonnull pCondVar, bool broadcast);
+extern void _ConditionVariable_Wakeup(ConditionVariable* _Nonnull self, bool broadcast);
 
 #endif /* ConditionVariable_h */

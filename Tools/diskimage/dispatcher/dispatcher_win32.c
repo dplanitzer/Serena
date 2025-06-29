@@ -72,9 +72,8 @@ void SELock_Init(SELock* self)
     self->state = kSELState_Unlocked;
 }
 
-errno_t SELock_Deinit(SELock* self)
+void SELock_Deinit(SELock* self)
 {
-    return EOK;
 }
 
 errno_t SELock_LockShared(SELock* self)

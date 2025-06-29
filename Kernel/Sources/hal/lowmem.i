@@ -157,14 +157,10 @@ vps_reserved                        so.b    1       ; 1
 vps_quantums_per_quarter_second     so.l    1       ; 4
 vps_timeout_queue_first             so.l    1       ; 4
 vps_timeout_queue_last              so.l    1       ; 4
-vps_sleep_queue_first               so.l    1       ; 4
-vps_sleep_queue_last                so.l    1       ; 4
-vps_scheduler_wait_queue_first      so.l    1       ; 4
-vps_scheduler_wait_queue_last       so.l    1       ; 4
 vps_finalizer_queue_first           so.l    1       ; 4
 vps_finalizer_queue_last            so.l    1       ; 4
 vps_SIZEOF                          so
-    ifeq (vps_SIZEOF == 580)
+    ifeq (vps_SIZEOF == 564)
         fail "VirtualProcessorScheduler structure size is incorrect."
     endif
 
