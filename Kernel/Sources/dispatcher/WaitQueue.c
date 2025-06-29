@@ -178,15 +178,15 @@ void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int reason)
     register ListNode* pCurNode = self->q.first;
     register bool isWakeupOne = ((flags & WAKEUP_ONE) == WAKEUP_ONE);
     VirtualProcessor* pRunCandidate = NULL;
-    
+
     
     // Make all waiting VPs ready and find a VP to potentially context switch to.
     while (pCurNode) {
         register ListNode* pNextNode = pCurNode->next;
         register VirtualProcessor* vp = (VirtualProcessor*)pCurNode;
-        
-        WaitQueue_WakeupOne(self, vp, reason, false);
-        if (pRunCandidate == NULL && (vp->sched_state == kVirtualProcessorState_Ready && vp->suspension_count == 0)) {
+        register const bool isReady = WaitQueue_WakeupOne(self, vp, reason, false);
+
+        if (pRunCandidate == NULL && isReady) {
             pRunCandidate = vp;
         }
         if (isWakeupOne) {
@@ -195,7 +195,7 @@ void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int reason)
 
         pCurNode = pNextNode;
     }
-    
+        
     
     // Set the VP that we found running if context switches are allowed.
     if ((flags & WAKEUP_CSW) == WAKEUP_CSW && pRunCandidate) {
@@ -209,22 +209,24 @@ void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int reason)
 // will always result in a virtual processor wakeup. If the wait queue is empty
 // then no wakeups will happen. Also a virtual processor that sits in an
 // uninterruptible wait or that was suspended while being in a wait state will
-// not get woken up.
+// not get woken up. Returns true if the VP has been made ready to run; false
+// otherwise.
 // May be called from an interrupt context.
-void WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp, int reason, bool allowContextSwitch)
+bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp, int reason, bool allowContextSwitch)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
+    bool isReady;
 
 
     // Nothing to do if we are not waiting
     if (vp->sched_state != kVirtualProcessorState_Waiting) {
-        return;
+        return false;
     }
     
 
     // Do not wake up the virtual processor if it is in an uninterruptible wait.
     if (reason == WAKEUP_REASON_INTERRUPTED && (vp->flags & VP_FLAG_INTERRUPTABLE_WAIT) == 0) {
-        return;
+        return false;
     }
 
 
@@ -249,11 +251,15 @@ void WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
         if (allowContextSwitch) {
             VirtualProcessorScheduler_MaybeSwitchTo(ps, vp);
         }
+        isReady = true;
     } else {
         // The VP is suspended. Move it to ready state so that it will be
         // added to the ready queue once we resume it.
         vp->sched_state = kVirtualProcessorState_Ready;
+        isReady = false;
     }
+
+    return isReady;
 }
 
 void WaitQueue_SuspendOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp)

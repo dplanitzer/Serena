@@ -72,9 +72,9 @@ extern errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const st
 // from the wait queue. The scheduler guarantees that a wakeup operation will never
 // fail with an error. This doesn't mean that calling this function will always
 // result in a virtual processor wakeup. If the wait queue is empty then no wakeups
-// will happen.
+// will happen. Returns true if the vp has been made ready to run; false otherwise.
 // @Entry Condition: preemption disabled
-extern void WaitQueue_WakeupOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp, int reason, bool allowContextSwitch);
+extern bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp, int reason, bool allowContextSwitch);
 
 // Wakes up up to 'count' waiters on the wait queue. The woken up VPs are
 // removed from the wait queue. Expects to be called with preemption disabled.
