@@ -44,11 +44,11 @@ void CopperScheduler_Deinit(CopperScheduler* _Nonnull self)
 // !! They can not be shared.
 void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull self, const CopperProgram* _Nonnull pOddFieldProg, const CopperProgram* _Nullable pEvenFieldProg)
 {
-    const int irs = cpu_disable_irqs();
+    const int irs = irq_disable();
     self->readyEvenFieldProg = pEvenFieldProg;
     self->readyOddFieldProg = pOddFieldProg;
     self->flags |= COPF_CONTEXT_SWITCH_REQ;
-    cpu_restore_irqs(irs);
+    irq_restore(irs);
 }
 
 static void CopperScheduler_GarbageCollectRetiredPrograms(CopperScheduler* _Nonnull self)
@@ -59,11 +59,11 @@ static void CopperScheduler_GarbageCollectRetiredPrograms(CopperScheduler* _Nonn
 
         Semaphore_AcquireAll(&self->retirementSignaler, &TIMESPEC_INF, &ignored);
 
-        const int irs = cpu_disable_irqs();
+        const int irs = irq_disable();
         pCur = self->retiredProgs.first;
         self->retiredProgs.first = NULL;
         self->retiredProgs.last = NULL;
-        cpu_restore_irqs(irs);
+        irq_restore(irs);
 
         while (pCur) {
             SListNode* pNext = pCur->next;

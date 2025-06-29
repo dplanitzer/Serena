@@ -20,7 +20,7 @@ void WaitQueue_Init(WaitQueue* _Nonnull self)
 errno_t WaitQueue_Deinit(WaitQueue* self)
 {
     decl_try_err();
-    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int sps = preempt_disable();
 
     if (List_IsEmpty(&self->q)) {
         List_Deinit(&self->q);
@@ -29,7 +29,7 @@ errno_t WaitQueue_Deinit(WaitQueue* self)
         err = EBUSY;
     }
 
-    VirtualProcessorScheduler_RestorePreemption(sps);
+    preempt_restore(sps);
     return err;
 }
 

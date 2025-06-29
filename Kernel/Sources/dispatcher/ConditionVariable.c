@@ -26,13 +26,13 @@ void ConditionVariable_Deinit(ConditionVariable* _Nonnull self)
 // Signals the given condition variable.
 void _ConditionVariable_Wakeup(ConditionVariable* _Nonnull self, bool broadcast)
 {
-    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int sps = preempt_disable();
     
     WaitQueue_WakeUpSome(&self->wq,
                         (broadcast) ? INT_MAX : 1,
                         WAKEUP_REASON_FINISHED,
                         true);
-    VirtualProcessorScheduler_RestorePreemption(sps);
+    preempt_restore(sps);
 }
 
 // Unlocks 'pLock' and blocks the caller until the condition variable is signaled.
@@ -45,7 +45,7 @@ errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull self, Lock* _Nonnull 
     // wait. If we would allow this, then we would miss a wakeup. An alternative
     // strategy to this one here would be to use a stateful wait (aka signalling
     // wait).
-    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int sps = preempt_disable();
     
     Lock_Unlock(pLock);
     const int err = WaitQueue_Wait(&self->wq,
@@ -54,7 +54,7 @@ errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull self, Lock* _Nonnull 
                                 NULL);
     Lock_Lock(pLock);
 
-    VirtualProcessorScheduler_RestorePreemption(sps);
+    preempt_restore(sps);
     
     return err;
 }
@@ -63,7 +63,7 @@ errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull self, Lock* _Nonnull 
 // It then locks 'pLock' before it returns to the caller.
 errno_t ConditionVariable_TimedWait(ConditionVariable* _Nonnull self, Lock* _Nonnull pLock, const struct timespec* _Nonnull deadline)
 {
-    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int sps = preempt_disable();
     
     Lock_Unlock(pLock);
     const int err = WaitQueue_Wait(&self->wq,
@@ -72,7 +72,7 @@ errno_t ConditionVariable_TimedWait(ConditionVariable* _Nonnull self, Lock* _Non
                                 NULL);
     Lock_Lock(pLock);
 
-    VirtualProcessorScheduler_RestorePreemption(sps);
+    preempt_restore(sps);
     
     return err;
 }

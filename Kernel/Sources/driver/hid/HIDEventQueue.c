@@ -90,9 +90,9 @@ static inline int HIDEventQueue_WritableCount_Locked(HIDEventQueueRef _Nonnull s
 // Returns true if the queue is empty.
 bool HIDEventQueue_IsEmpty(HIDEventQueueRef _Nonnull self)
 {
-    const int irs = cpu_disable_irqs();
+    const int irs = irq_disable();
     const bool r = HIDEventQueue_IsEmpty_Locked(self);
-    cpu_restore_irqs(irs);
+    irq_restore(irs);
 
     return r;
 }
@@ -101,19 +101,19 @@ bool HIDEventQueue_IsEmpty(HIDEventQueueRef _Nonnull self)
 // the oldest event every time it overflows.
 size_t HIDEventQueue_GetOverflowCount(HIDEventQueueRef _Nonnull self)
 {
-    const int irs = cpu_disable_irqs();
+    const int irs = irq_disable();
     const size_t overflowCount = self->overflowCount;
-    cpu_restore_irqs(irs);
+    irq_restore(irs);
     return overflowCount;
 }
 
 // Removes all events from the queue.
 void HIDEventQueue_RemoveAll(HIDEventQueueRef _Nonnull self)
 {
-    const int irs = cpu_disable_irqs();
+    const int irs = irq_disable();
     self->readIdx = 0;
     self->writeIdx = 0;
-    cpu_restore_irqs(irs);
+    irq_restore(irs);
 }
 
 // Posts the given event to the queue. This event replaces the oldest event
@@ -121,7 +121,7 @@ void HIDEventQueue_RemoveAll(HIDEventQueueRef _Nonnull self)
 // interrupt context.
 void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const HIDEventData* _Nonnull pEventData)
 {
-    const int irs = cpu_disable_irqs();
+    const int irs = irq_disable();
 
     if (HIDEventQueue_IsFull_Locked(self)) {
         // Queue is full - remove the oldest report
@@ -133,7 +133,7 @@ void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const 
     pEvent->type = type;
     MonotonicClock_GetCurrentTime(&pEvent->eventTime);
     pEvent->data = *pEventData;
-    cpu_restore_irqs(irs);
+    irq_restore(irs);
 
     Semaphore_RelinquishFromInterruptContext(&self->semaphore);
 }
@@ -148,13 +148,13 @@ errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, struct timespec timeou
     decl_try_err();
 
     while (true) {
-        const int irs = cpu_disable_irqs();
+        const int irs = irq_disable();
         const bool hasEvent = !HIDEventQueue_IsEmpty_Locked(self);
 
         if (hasEvent) {
             *pOutEvent = self->data[self->readIdx++ & self->capacityMask];
         }
-        cpu_restore_irqs(irs);
+        irq_restore(irs);
 
         if (hasEvent) {
             err = EOK;

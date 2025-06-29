@@ -108,16 +108,16 @@ InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)
 
 static void KeyboardDriver_GetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay)
 {
-    const int irs = cpu_disable_irqs();
+    const int irs = irq_disable();
     HIDKeyRepeater_GetKeyRepeatDelays(self->keyRepeater, pInitialDelay, pRepeatDelay);
-    cpu_restore_irqs(irs);
+    irq_restore(irs);
 }
 
 static void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, struct timespec initialDelay, struct timespec repeatDelay)
 {
-    const int irs = cpu_disable_irqs();
+    const int irs = irq_disable();
     HIDKeyRepeater_SetKeyRepeatDelays(self->keyRepeater, initialDelay, repeatDelay);
-    cpu_restore_irqs(irs);
+    irq_restore(irs);
 }
 
 errno_t KeyboardDriver_ioctl(KeyboardDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
@@ -164,9 +164,9 @@ void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self)
 
 void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull self)
 {
-    // const int = cpu_disable_irqs();
+    // const int = irq_disable();
     HIDKeyRepeater_Tick(self->keyRepeater);
-    // cpu_restore_irqs(irs);
+    // irq_restore(irs);
 }
 
 

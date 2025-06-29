@@ -81,9 +81,6 @@ extern void VirtualProcessorScheduler_ArmTimeout(VirtualProcessorScheduler* _Non
 // no timeout is armed.
 extern void VirtualProcessorScheduler_CancelTimeout(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp);
 
-extern int VirtualProcessorScheduler_DisablePreemption(void);
-extern void VirtualProcessorScheduler_RestorePreemption(int sps);
-
 // Gives the virtual processor scheduler opportunities to run tasks that take
 // care of internal duties. This function must be called from the boot virtual
 // processor. This function does not return to the caller. 

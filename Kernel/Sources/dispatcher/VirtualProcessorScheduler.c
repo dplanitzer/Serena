@@ -134,10 +134,10 @@ void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorSchedu
 void VirtualProcessorScheduler_AddVirtualProcessor(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp)
 {
     // Protect against our scheduling code
-    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int sps = preempt_disable();
     
     VirtualProcessorScheduler_AddVirtualProcessor_Locked(self, vp, vp->priority);
-    VirtualProcessorScheduler_RestorePreemption(sps);
+    preempt_restore(sps);
 }
 
 // Takes the given virtual processor off the ready queue.
@@ -331,7 +331,7 @@ _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorSc
     
     // We don't need to save the old preemption state because this VP is going
     // away and we will never context switch back to it
-    (void) VirtualProcessorScheduler_DisablePreemption();
+    (void) preempt_disable();
     
     // Put the VP on the finalization queue
     List_InsertAfterLast(&self->finalizer_queue, &vp->rewa_queue_entry);
@@ -379,7 +379,7 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull self
     
     while (true) {
         List_Init(&dead_vps);
-        const int sps = VirtualProcessorScheduler_DisablePreemption();
+        const int sps = preempt_disable();
 
         // Continue to wait as long as there's nothing to finalize
         while (List_IsEmpty(&self->finalizer_queue)) {
@@ -394,7 +394,7 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull self
         dead_vps = self->finalizer_queue;
         List_Deinit(&self->finalizer_queue);
         
-        VirtualProcessorScheduler_RestorePreemption(sps);
+        preempt_restore(sps);
         
         
         // XXX

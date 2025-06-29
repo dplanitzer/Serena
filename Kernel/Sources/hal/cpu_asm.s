@@ -11,9 +11,9 @@
 
     xref _cpu_non_recoverable_error
 
-    xdef _cpu_enable_irqs
-    xdef _cpu_disable_irqs
-    xdef _cpu_restore_irqs
+    xdef _irq_enable
+    xdef _irq_disable
+    xdef _irq_restore
     xdef _cpu_set_irq_stack_pointer
     xdef _cpu_get_model
     xdef _cpu_verify_ram_4b
@@ -31,25 +31,25 @@
 
 
 ;-------------------------------------------------------------------------------
-; void cpu_enable_irqs(void)
+; void irq_enable(void)
 ; Enables interrupt handling.
-_cpu_enable_irqs:
+_irq_enable:
     and.w   #$f8ff, sr
     rts
 
 ;-------------------------------------------------------------------------------
-; int cpu_disable_irqs(void)
+; int irq_disable(void)
 ; Disables interrupt handling and returns the previous interrupt handling state.
 ; Returns the old IRQ state
-_cpu_disable_irqs:
+_irq_disable:
     DISABLE_INTERRUPTS d0
     rts
 
 
 ;-------------------------------------------------------------------------------
-; void cpu_restore_irqs(int state)
+; void irq_restore(int state)
 ; Restores the given interrupt handling state.
-_cpu_restore_irqs:
+_irq_restore:
     cargs cri_state.l
     move.l  cri_state(sp), d0
     RESTORE_INTERRUPTS d0

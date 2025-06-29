@@ -90,10 +90,10 @@ static errno_t InterruptController_AddInterruptHandler(InterruptControllerRef _N
     
     
     // Atomically (with respect to the IRQ handler for this CPU) install the new handlers
-    const int sis = cpu_disable_irqs();
+    const int sis = irq_disable();
     pController->handlers[interruptId].start = pNewHandlers;
     pController->handlers[interruptId].count = newCount;
-    cpu_restore_irqs(sis);
+    irq_restore(sis);
     
     
     // Enable the IRQ source
@@ -210,10 +210,10 @@ errno_t InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnu
 
     
     // Atomically (with respect to the IRQ handler for this CPU) install the new handlers
-    const int sis = cpu_disable_irqs();
+    const int sis = irq_disable();
     pController->handlers[interruptId].start = pNewHandlers;
     pController->handlers[interruptId].count = newCount;
-    cpu_restore_irqs(sis);
+    irq_restore(sis);
     
     
     // Free the old handler array

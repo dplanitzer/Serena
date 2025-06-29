@@ -125,7 +125,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     
     
     // Enable interrupts
-    cpu_enable_irqs();
+    irq_enable();
 
     
     // Initialize the kernel logging package 

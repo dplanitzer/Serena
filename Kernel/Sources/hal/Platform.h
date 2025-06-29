@@ -172,10 +172,6 @@ typedef struct ExceptionStackFrame {
 typedef void (*Cpu_UserClosure)(void* _Nullable context, void* _Nullable arg);
 
 
-extern void cpu_enable_irqs(void);
-extern int cpu_disable_irqs(void);
-extern void cpu_restore_irqs(int state);
-
 extern const char* _Nonnull cpu_get_model_name(int8_t cpu_model);
 
 extern int cpu_verify_ram_4b(void* pSrc);
@@ -200,6 +196,23 @@ extern _Noreturn mem_non_recoverable_error(void);
 // FPU
 //
 extern const char* _Nonnull fpu_get_model_name(int8_t fpu_model);
+
+
+//
+// Preemption (Context Switching)
+//
+
+extern int preempt_disable(void);
+extern void preempt_restore(int sps);
+
+
+//
+// IRQs
+//
+
+extern void irq_enable(void);
+extern int irq_disable(void);
+extern void irq_restore(int state);
 
 
 //

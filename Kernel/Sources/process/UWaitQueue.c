@@ -36,7 +36,7 @@ errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self, unsigned int* _Nullable pOu
 {
     decl_try_err();
     const bool isSignalling = UWaitQueue_IsSignalling(self);
-    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int sps = preempt_disable();
 
     do {
         if (isSignalling && self->psigs) {
@@ -54,7 +54,7 @@ errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self, unsigned int* _Nullable pOu
                             NULL);
     } while (isSignalling && err == EOK);
 
-    VirtualProcessorScheduler_RestorePreemption(sps);
+    preempt_restore(sps);
 
     return err;
 }
@@ -64,7 +64,7 @@ errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const str
     decl_try_err();
     const int waitopts = options & TIMER_ABSTIME;
     const bool isSignalling = UWaitQueue_IsSignalling(self);
-    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int sps = preempt_disable();
     
     do {
         if (isSignalling && self->psigs) {
@@ -82,7 +82,7 @@ errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const str
                             NULL);
     } while (isSignalling && err == EOK);
 
-    VirtualProcessorScheduler_RestorePreemption(sps);
+    preempt_restore(sps);
     
     return err;
 }
@@ -95,7 +95,7 @@ void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags, unsigned int sigs
     
     const bool isSignalling = UWaitQueue_IsSignalling(self);
     const int wakecount = ((flags & WAKE_ONE) == WAKE_ONE) ? 1 : INT_MAX;
-    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int sps = preempt_disable();
     
     if (isSignalling) {
         self->psigs |= sigs;
@@ -105,7 +105,7 @@ void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags, unsigned int sigs
                         wakecount,
                         WAKEUP_REASON_FINISHED,
                         true);
-    VirtualProcessorScheduler_RestorePreemption(sps);
+    preempt_restore(sps);
 }
 
 class_func_defs(UWaitQueue, UResource,

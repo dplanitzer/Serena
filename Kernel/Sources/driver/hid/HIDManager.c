@@ -333,7 +333,7 @@ static inline bool KeyMap_IsKeyDown(const uint32_t* _Nonnull pKeyMap, uint16_t k
 void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode* _Nullable pKeysToCheck, int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, int* _Nonnull nKeysDown)
 {
     int oi = 0;
-    const int irs = cpu_disable_irqs();
+    const int irs = irq_disable();
     
     if (nKeysToCheck > 0 && pKeysToCheck) {
         if (pKeysDown) {
@@ -368,7 +368,7 @@ void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode*
             }
         }
     }
-    cpu_restore_irqs(irs);
+    irq_restore(irs);
     
     *nKeysDown = oi;
 }
@@ -497,18 +497,18 @@ void HIDManager_UnshieldMouseCursor(HIDManagerRef _Nonnull self)
 // Returns the current mouse location in screen space.
 void HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self, int* _Nonnull pOutX, int* _Nonnull pOutY)
 {
-    const int irs = cpu_disable_irqs();
+    const int irs = irq_disable();
     *pOutX = self->mouseX;
     *pOutY = self->mouseY;
-    cpu_restore_irqs(irs);
+    irq_restore(irs);
 }
 
 // Returns a bit mask of all the mouse buttons that are currently pressed.
 uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self)
 {
-    const int irs = cpu_disable_irqs();
+    const int irs = irq_disable();
     const uint32_t buttons = self->mouseButtons;
-    cpu_restore_irqs(irs);
+    irq_restore(irs);
     return buttons;
 }
 
