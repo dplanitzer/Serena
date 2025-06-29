@@ -226,3 +226,20 @@ void WaitQueue_WakeUpOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
         vp->sched_state = kVirtualProcessorState_Ready;
     }
 }
+
+void WaitQueue_Suspend(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp)
+{
+    // We do not interrupt the wait because we'll just treat it as
+    // a longer-than-expected wait. However we suspend the timeout
+    // while the VP is suspended. The resume will reactive the
+    // timeout and extend it by the amount of time that the VP has
+    // spent in suspended state.
+    VirtualProcessorScheduler_SuspendTimeout(gVirtualProcessorScheduler, vp);
+}
+
+void WaitQueue_Resume(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp)
+{
+    // Still in waiting state -> just resume the timeout if one is
+    // associated with the wait.
+    VirtualProcessorScheduler_ResumeTimeout(gVirtualProcessorScheduler, vp, vp->suspension_time);
+}

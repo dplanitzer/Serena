@@ -81,4 +81,12 @@ extern void WaitQueue_WakeUpSome(WaitQueue* _Nonnull self, int count, int wakeUp
 // @Entry Condition: preemption disabled
 extern void WaitQueue_WakeUpAllFromInterruptContext(WaitQueue* _Nonnull self);
 
+// Suspends an ongoing wait. This should be called if a VP that is currently
+// waiting on this queue is suspended.
+extern void WaitQueue_Suspend(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp);
+
+// Resumes an ongoing wait. This should be called if a VP that is currently
+// waiting on this queue is resumed.
+extern void WaitQueue_Resume(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp);
+
 #endif /* WaitQueue_h */
