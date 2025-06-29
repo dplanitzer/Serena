@@ -63,7 +63,6 @@ int sem_post(sem_t* _Nonnull self, int npermits)
     self->permits += npermits;
 
     if (self->waiters > 0) {
-        self->waiters--;
         doWakeup = true;
     }
     spin_unlock(&self->spinlock);
@@ -75,6 +74,8 @@ int sem_post(sem_t* _Nonnull self, int npermits)
 
 int sem_wait(sem_t* _Nonnull self, int npermits)
 {
+    bool didWakeup = false;
+
     if (self->signature != SEM_SIGNATURE) {
         errno = EINVAL;
         return -1;
@@ -87,6 +88,10 @@ int sem_wait(sem_t* _Nonnull self, int npermits)
 
     for (;;) {
         spin_lock(&self->spinlock);
+        if (didWakeup) {
+            self->waiters--;
+        }
+
         const int take_permits = (self->permits >= npermits) ? npermits : self->permits;
 
         self->permits -= take_permits;
@@ -99,11 +104,14 @@ int sem_wait(sem_t* _Nonnull self, int npermits)
         self->waiters++;
         spin_unlock(&self->spinlock);
         wq_wait(self->wait_queue);
+        didWakeup = true;
     }
 }
 
 int sem_timedwait(sem_t* _Nonnull self, int npermits, int flags, const struct timespec* _Nonnull wtp)
 {
+    bool didWakeup = false;
+
     if (self->signature != SEM_SIGNATURE) {
         errno = EINVAL;
         return -1;
@@ -116,6 +124,10 @@ int sem_timedwait(sem_t* _Nonnull self, int npermits, int flags, const struct ti
 
     for (;;) {
         spin_lock(&self->spinlock);
+        if (didWakeup) {
+            self->waiters--;
+        }
+
         const int take_permits = (self->permits >= npermits) ? npermits : self->permits;
 
         self->permits -= take_permits;
@@ -128,6 +140,7 @@ int sem_timedwait(sem_t* _Nonnull self, int npermits, int flags, const struct ti
         self->waiters++;
         spin_unlock(&self->spinlock);
         wq_timedwait(self->wait_queue, flags, wtp);
+        didWakeup = true;
     }
 }
 

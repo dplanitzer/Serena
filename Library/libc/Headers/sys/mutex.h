@@ -17,7 +17,7 @@ __CPP_BEGIN
 typedef struct mutex {
     spinlock_t  spinlock;
     int         state;
-    int         contention;
+    int         waiters;
     int         signature;
     int         wait_queue;
 } mutex_t;

@@ -57,13 +57,6 @@ static int _cond_wakeup(cond_t* _Nonnull self, int flags)
 
     spin_lock(&self->spinlock);
     if (self->waiters > 0) {
-        if ((flags & WAKE_ONE) == WAKE_ONE) {
-            self->waiters--;
-        }
-        else {
-            self->waiters = 0;
-        }
-
         doWakeup = true;
     }
     spin_unlock(&self->spinlock);
@@ -106,6 +99,11 @@ static int _cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags,
     else {
         wq_sigwait(self->wait_queue, NULL);
     }
+
+    spin_lock(&self->spinlock);
+    self->waiters--;
+    spin_unlock(&self->spinlock);
+
     mutex_lock(mutex);
 }
 

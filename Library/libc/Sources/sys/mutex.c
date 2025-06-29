@@ -19,7 +19,7 @@ int mutex_init(mutex_t* _Nonnull self)
 {
     self->spinlock = SPINLOCK_INIT;
     self->state = 0;
-    self->contention = 0;
+    self->waiters = 0;
     self->signature = MUTEX_SIGNATURE;
     self->wait_queue = wq_create(WAITQUEUE_FIFO);
 
@@ -67,6 +67,8 @@ int mutex_trylock(mutex_t* _Nonnull self)
 
 int mutex_lock(mutex_t* _Nonnull self)
 {
+    bool didWakeup = false;
+
     if (self->signature != MUTEX_SIGNATURE) {
         errno = EINVAL;
         return -1;
@@ -74,15 +76,20 @@ int mutex_lock(mutex_t* _Nonnull self)
 
     for (;;) {
         spin_lock(&self->spinlock);
+        if (didWakeup) {
+            self->waiters--;
+        }
+
         if (self->state == 0) {
             self->state = 1;
             spin_unlock(&self->spinlock);
             return 0;
         }
 
-        self->contention++;
+        self->waiters++;
         spin_unlock(&self->spinlock);
         wq_wait(self->wait_queue);
+        didWakeup = true;
     }
 }
 
@@ -98,8 +105,7 @@ int mutex_unlock(mutex_t* _Nonnull self)
     spin_lock(&self->spinlock);
     self->state = 0;
 
-    if (self->contention > 0) {
-        self->contention--;
+    if (self->waiters > 0) {
         doWakeup = true;
     }
     spin_unlock(&self->spinlock);
