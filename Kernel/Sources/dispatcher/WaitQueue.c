@@ -157,7 +157,7 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct ti
 // Adds all VPs on the given list to the ready queue. The VPs are removed from
 // the wait queue. Expects to be called from an interrupt context and thus defers
 // context switches until the return from the interrupt context.
-void WaitQueue_WakeUpAllFromInterruptContext(WaitQueue* _Nonnull self)
+void WaitQueue_WakeUpAllFromInterrupt(WaitQueue* _Nonnull self)
 {
     register ListNode* cnp = self->q.first;    
     

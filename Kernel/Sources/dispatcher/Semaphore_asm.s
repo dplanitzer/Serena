@@ -10,12 +10,12 @@
 
     xref _Semaphore_OnWaitForPermits
     xref _Semaphore_WakeUp
-    xref _WaitQueue_WakeUpAllFromInterruptContext
+    xref _WaitQueue_WakeUpAllFromInterrupt
 
     xdef _Semaphore_AcquireMultiple
     xdef _Semaphore_AcquireAll
     xdef _Semaphore_RelinquishMultiple
-    xdef _Semaphore_RelinquishFromInterruptContext
+    xdef _Semaphore_RelinquishFromInterrupt
     xdef _Semaphore_TryAcquireMultiple
     xdef _Semaphore_TryAcquireAll
 
@@ -57,11 +57,11 @@ _Semaphore_RelinquishMultiple:
 
 
 ;-------------------------------------------------------------------------------
-; void Semaphore_RelinquishFromInterruptContext(Semaphore* _Nonnull sema)
+; void Semaphore_RelinquishFromInterrupt(Semaphore* _Nonnull sema)
 ; Releases one permit to the semaphore. This function expects to be called from
 ; the interrupt context and thus it does not trigger an immediate context switch
 ; since context switches are deferred until we return from the interrupt.
-_Semaphore_RelinquishFromInterruptContext:
+_Semaphore_RelinquishFromInterrupt:
     inline
     cargs srfic_sema_ptr.l
         move.l  srfic_sema_ptr(sp), a0
@@ -76,7 +76,7 @@ _Semaphore_RelinquishFromInterruptContext:
         ; move all the waiters back to the ready queue
         move.l  d0, -(sp)
         pea     sema_wait_queue_first(a0)
-        jsr     _WaitQueue_WakeUpAllFromInterruptContext
+        jsr     _WaitQueue_WakeUpAllFromInterrupt
         addq.l  #4, sp
         move.l  (sp)+, d0
 

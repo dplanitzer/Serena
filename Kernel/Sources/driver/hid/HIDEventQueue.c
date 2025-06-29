@@ -135,7 +135,7 @@ void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const 
     pEvent->data = *pEventData;
     irq_restore(irs);
 
-    Semaphore_RelinquishFromInterruptContext(&self->semaphore);
+    Semaphore_RelinquishFromInterrupt(&self->semaphore);
 }
 
 // Removes the oldest event from the queue and returns a copy of it. Blocks the

@@ -58,13 +58,13 @@ extern void GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self, int* 
 
 // Light Pen
 extern void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled);
-extern bool GraphicsDriver_GetLightPenPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY);
+extern bool GraphicsDriver_GetLightPenPositionFromInterrupt(GraphicsDriverRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY);
 
 
 // Mouse Cursor
 extern errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat);
 extern void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y);
-extern void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int x, int y);
+extern void GraphicsDriver_SetMouseCursorPositionFromInterrupt(GraphicsDriverRef _Nonnull self, int x, int y);
 
 
 // Introspection

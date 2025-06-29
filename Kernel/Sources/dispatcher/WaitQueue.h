@@ -81,7 +81,7 @@ extern void WaitQueue_WakeUpSome(WaitQueue* _Nonnull self, int count, int wakeUp
 // the wait queue. Expects to be called from an interrupt context and thus defers
 // context switches until the return from the interrupt context.
 // @Entry Condition: preemption disabled
-extern void WaitQueue_WakeUpAllFromInterruptContext(WaitQueue* _Nonnull self);
+extern void WaitQueue_WakeUpAllFromInterrupt(WaitQueue* _Nonnull self);
 
 // Suspends an ongoing wait. This should be called if a VP that is currently
 // waiting on this queue is suspended.

@@ -83,7 +83,7 @@ catch:
 // Returns the current position of the light pen if the light pen triggered.
 bool HIDManager_GetLightPenPosition(HIDManagerRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY)
 {
-    return GraphicsDriver_GetLightPenPositionFromInterruptContext(self->fb, pPosX, pPosY);
+    return GraphicsDriver_GetLightPenPositionFromInterrupt(self->fb, pPosX, pPosY);
 }
 
 // Reports a key down, repeat or up from a keyboard device. This function updates
@@ -174,10 +174,10 @@ void HIDManager_ReportMouseDeviceChange(HIDManagerRef _Nonnull self, int16_t xDe
         if (self->mouseCursorVisibility != kMouseCursor_Hidden) {
             if (self->isMouseShieldActive
                 && mx >= self->shieldingLeft && mx < self->shieldingRight && my >= self->shieldingTop && my < self->shieldingBottom) {
-                GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->fb, INT_MIN, INT_MIN);
+                GraphicsDriver_SetMouseCursorPositionFromInterrupt(self->fb, INT_MIN, INT_MIN);
             }
             else {
-                GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->fb, mx, my);
+                GraphicsDriver_SetMouseCursorPositionFromInterrupt(self->fb, mx, my);
                 if (self->mouseCursorVisibility == kMouseCursor_HiddenUntilMove) {
                     self->mouseCursorVisibility = kMouseCursor_Visible;
                 }

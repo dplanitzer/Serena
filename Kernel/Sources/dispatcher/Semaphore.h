@@ -34,7 +34,7 @@ Semaphore_RelinquishMultiple(__self, 1)
 extern void Semaphore_RelinquishMultiple(Semaphore* _Nonnull self, int npermits);
 
 // Releases one permit to the semaphore from an interrupt context.
-extern void Semaphore_RelinquishFromInterruptContext(Semaphore* _Nonnull self);
+extern void Semaphore_RelinquishFromInterrupt(Semaphore* _Nonnull self);
 
 
 // Blocks the caller until the semaphore has at least one permit available or

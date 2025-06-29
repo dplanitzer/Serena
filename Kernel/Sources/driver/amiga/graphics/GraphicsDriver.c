@@ -60,7 +60,7 @@ catch:
 void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self)
 {
     CopperScheduler_Run(&self->copperScheduler);
-    Semaphore_RelinquishFromInterruptContext(&self->vblank_sema);
+    Semaphore_RelinquishFromInterrupt(&self->vblank_sema);
 }
 
 static errno_t GraphicsDriver_onStart(DriverRef _Nonnull _Locked self)
@@ -831,7 +831,7 @@ void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool ena
 }
 
 // Returns the current position of the light pen if the light pen triggered.
-bool GraphicsDriver_GetLightPenPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY)
+bool GraphicsDriver_GetLightPenPositionFromInterrupt(GraphicsDriverRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY)
 {
     CHIPSET_BASE_DECL(cp);
     bool r = false;
@@ -895,11 +895,11 @@ errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uin
 void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y)
 {
     Driver_Lock(self);
-    GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self, x, y);
+    GraphicsDriver_SetMouseCursorPositionFromInterrupt(self, x, y);
     Driver_Unlock(self);
 }
 
-void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int x, int y)
+void GraphicsDriver_SetMouseCursorPositionFromInterrupt(GraphicsDriverRef _Nonnull self, int x, int y)
 {
     const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
     const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);

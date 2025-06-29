@@ -149,7 +149,7 @@ errno_t InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef 
     handler.priority = priority;
     handler.flags = 0;
     handler.type = INTERRUPT_HANDLER_TYPE_COUNTING_SEMAPHORE;
-    handler.closure = (InterruptHandler_Closure) Semaphore_RelinquishFromInterruptContext;
+    handler.closure = (InterruptHandler_Closure) Semaphore_RelinquishFromInterrupt;
     handler.context = pSemaphore;
     
     return InterruptController_AddInterruptHandler(pController, interruptId, &handler, pOutId);

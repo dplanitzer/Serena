@@ -132,7 +132,7 @@ static void CopperScheduler_ContextSwitch(CopperScheduler* _Nonnull self)
 
 
     if (doSignal) {
-        Semaphore_RelinquishFromInterruptContext(&self->retirementSignaler);
+        Semaphore_RelinquishFromInterrupt(&self->retirementSignaler);
     }
 }
 
