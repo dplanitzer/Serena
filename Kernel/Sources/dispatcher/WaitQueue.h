@@ -89,7 +89,7 @@ extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, int flags, const
 // @Entry Condition: preemption disabled
 extern bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp, int reason, bool allowContextSwitch);
 
-// Wakes up up to 'count' waiters on the wait queue. The woken up VPs are
+// Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue. Expects to be called with preemption disabled.
 // @Entry Condition: preemption disabled
 extern void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int reason);

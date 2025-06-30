@@ -48,20 +48,8 @@ static errno_t _do_wait(WaitQueue* _Nonnull self, int flags, VirtualProcessorSch
     }
 
 
-    // Put us on the wait queue. The wait queue is sorted by the QoS and priority
-    // from highest to lowest. VPs which enter the queue first, leave it first.
-    register VirtualProcessor* pvp = NULL;
-    register VirtualProcessor* cvp = (VirtualProcessor*)self->q.first;
-    while (cvp) {
-        if (cvp->effectivePriority < vp->effectivePriority) {
-            break;
-        }
-        
-        pvp = cvp;
-        cvp = (VirtualProcessor*)cvp->rewa_queue_entry.next;
-    }
-    
-    List_InsertAfter(&self->q, &vp->rewa_queue_entry, &pvp->rewa_queue_entry);
+    // FIFO order.
+    List_InsertAfterLast(&self->q, &vp->rewa_queue_entry);
     
     vp->sched_state = kVirtualProcessorState_Waiting;
     vp->waiting_on_wait_queue = self;
@@ -219,54 +207,6 @@ errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, int flags, const struct
 }
 
 
-// Adds all VPs on the given list to the ready queue. The VPs are removed from
-// the wait queue. Expects to be called from an interrupt context and thus defers
-// context switches until the return from the interrupt context.
-void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self)
-{
-    register ListNode* cnp = self->q.first;    
-    
-    // Make all waiting VPs ready to run but do not trigger a context switch.
-    while (cnp) {
-        register ListNode* nnp = cnp->next;
-        
-        WaitQueue_WakeupOne(self, (VirtualProcessor*)cnp, WAKEUP_REASON_FINISHED, false);
-        cnp = nnp;
-    }
-}
-
-// Wakes up, up to 'count' waiters on the wait queue. The woken up VPs are
-// removed from the wait queue. Expects to be called with preemption disabled.
-void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int reason)
-{
-    register ListNode* pCurNode = self->q.first;
-    register bool isWakeupOne = ((flags & WAKEUP_ONE) == WAKEUP_ONE);
-    VirtualProcessor* pRunCandidate = NULL;
-
-    
-    // Make all waiting VPs ready and find a VP to potentially context switch to.
-    while (pCurNode) {
-        register ListNode* pNextNode = pCurNode->next;
-        register VirtualProcessor* vp = (VirtualProcessor*)pCurNode;
-        register const bool isReady = WaitQueue_WakeupOne(self, vp, reason, false);
-
-        if (pRunCandidate == NULL && isReady) {
-            pRunCandidate = vp;
-        }
-        if (isWakeupOne) {
-            break;
-        }
-
-        pCurNode = pNextNode;
-    }
-        
-    
-    // Set the VP that we found running if context switches are allowed.
-    if ((flags & WAKEUP_CSW) == WAKEUP_CSW && pRunCandidate) {
-        VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, pRunCandidate);
-    }
-}
-
 // Adds the given VP from the given wait queue to the ready queue. The VP is
 // removed from the wait queue. The scheduler guarantees that a wakeup operation
 // will never fail with an error. This doesn't mean that calling this function
@@ -324,6 +264,54 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
     }
 
     return isReady;
+}
+
+// Wakes up either one or all waiters on the wait queue. The woken up VPs are
+// removed from the wait queue. Expects to be called with preemption disabled.
+void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int reason)
+{
+    register ListNode* cp = self->q.first;
+    register bool isWakeupOne = ((flags & WAKEUP_ONE) == WAKEUP_ONE);
+    VirtualProcessor* pRunCandidate = NULL;
+
+    
+    // Make all waiting VPs ready and find a VP to potentially context switch to.
+    while (cp) {
+        register ListNode* np = cp->next;
+        register VirtualProcessor* vp = (VirtualProcessor*)cp;
+        register const bool isReady = WaitQueue_WakeupOne(self, vp, reason, false);
+
+        if (pRunCandidate == NULL && isReady) {
+            pRunCandidate = vp;
+        }
+        if (isWakeupOne) {
+            break;
+        }
+
+        cp = np;
+    }
+        
+    
+    // Set the VP that we found running if context switches are allowed.
+    if ((flags & WAKEUP_CSW) == WAKEUP_CSW && pRunCandidate) {
+        VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, pRunCandidate);
+    }
+}
+
+// Adds all VPs on the given list to the ready queue. The VPs are removed from
+// the wait queue. Expects to be called from an interrupt context and thus defers
+// context switches until the return from the interrupt context.
+void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self)
+{
+    register ListNode* cp = self->q.first;    
+    
+    // Make all waiting VPs ready to run but do not trigger a context switch.
+    while (cp) {
+        register ListNode* np = cp->next;
+        
+        WaitQueue_WakeupOne(self, (VirtualProcessor*)cp, WAKEUP_REASON_FINISHED, false);
+        cp = np;
+    }
 }
 
 void WaitQueue_Signal(WaitQueue* _Nonnull self, int flags, unsigned int sigs)
