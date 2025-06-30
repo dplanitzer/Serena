@@ -34,7 +34,7 @@ void delay_us(useconds_t us)
     
     
     // This is a medium or long wait -> context switch away
-    (void)_sleep(0, &wt, NULL);
+    (void)_sleep(&gSleepQueue, 0, &wt, NULL);
 }
 
 void delay_ms(mseconds_t ms)
@@ -48,10 +48,10 @@ void delay_sec(time_t sec)
 }
 
 // Sleep for the given number of seconds.
-errno_t _sleep(int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
+errno_t _sleep(WaitQueue* _Nonnull wq, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
 {
     const int sps = preempt_disable();
-    const int err = WaitQueue_TimedWait(&gSleepQueue, flags, wtp, rmtp);
+    const int err = WaitQueue_TimedWait(wq, flags, wtp, rmtp);
     preempt_restore(sps);
     
     return err;

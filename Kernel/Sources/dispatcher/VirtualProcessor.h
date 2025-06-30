@@ -203,9 +203,6 @@ extern void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int pr
 extern errno_t VirtualProcessor_SetSignalMask(VirtualProcessor* _Nonnull self, int op, uint32_t mask, uint32_t* _Nullable pOutMask);
 
 
-// Sleep for the given number of seconds
-extern errno_t VirtualProcessor_Sleep(int options, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp);
-
 // Yields the remainder of the current quantum to other VPs.
 extern void VirtualProcessor_Yield(void);
 

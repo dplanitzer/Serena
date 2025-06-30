@@ -6,13 +6,14 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
+#include <dispatcher/delay.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <dispatcher/WaitQueue.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/IOChannel.h>
 #include <hal/MonotonicClock.h>
-#include <process/Process.h>
+#include <process/ProcessPriv.h>
 #include <time.h>
 #include <kern/limits.h>
 #include <kern/timespec.h>
@@ -257,12 +258,19 @@ SYSCALL_4(clock_nanosleep, int clock, int flags, const struct timespec* _Nonnull
 
 
     int options = WAIT_INTERRUPTABLE;
-    if ((options & TIMER_ABSTIME) == TIMER_ABSTIME) {
+    if ((pa->flags & TIMER_ABSTIME) == TIMER_ABSTIME) {
         options |= WAIT_ABSTIME;
     }
 
 
-    return VirtualProcessor_Sleep(options, pa->wtp, pa->rmtp);
+        // Use the Delay() facility for short waits and context switching for medium and long waits
+    if (MonotonicClock_Delay((pa->flags & TIMER_ABSTIME) != 0, pa->wtp)) {
+        return EOK;
+    }
+    
+    
+    // This is a medium or long wait -> context switch away
+    return _sleep(&((ProcessRef)p)->sleepQueue, options, pa->wtp, pa->rmtp);
 }
 
 SYSCALL_2(clock_gettime, int clock, struct timespec* _Nonnull time)
@@ -315,8 +323,11 @@ SYSCALL_2(alloc_address_space, size_t nbytes, void * _Nullable * _Nonnull pOutMe
         pa->pOutMem);
 }
 
+// XXX Will be removed when we'll do the process termination algorithm
+static WaitQueue gHackQueue;
+
 SYSCALL_1(exit, int status)
-{
+{    
     // Trigger the termination of the process. Note that the actual termination
     // is done asynchronously. That's why we sleep below since we don't want to
     // return to user space anymore.
@@ -327,7 +338,7 @@ SYSCALL_1(exit, int status)
     // owns this VP is terminated. This interrupt will be caused by the abort
     // of the call-as-user and thus this system call will not return to user
     // space anymore. Instead it will return to the dispatch queue main loop.
-    VirtualProcessor_Sleep(WAIT_ABSTIME, &TIMESPEC_INF, NULL);
+    _sleep(&gHackQueue, WAIT_INTERRUPTABLE|WAIT_ABSTIME, &TIMESPEC_INF, NULL);
     return 0;
 }
 

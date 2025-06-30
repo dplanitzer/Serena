@@ -63,6 +63,7 @@ errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t
     try(IOChannelTable_Init(&self->ioChannelTable));
     try(UResourceTable_Init(&self->uResourcesTable));
 
+    WaitQueue_Init(&self->sleepQueue);
     FileManager_Init(&self->fm, pFileHierarchy, uid, gid, pRootDir, pWorkingDir, umask);
 
     List_Init(&self->tombstones);
@@ -94,6 +95,7 @@ void Process_deinit(ProcessRef _Nonnull self)
     IOChannelTable_Deinit(&self->ioChannelTable);
     UResourceTable_Deinit(&self->uResourcesTable);
 
+    WaitQueue_Deinit(&self->sleepQueue);
     FileManager_Deinit(&self->fm);
 
     Object_Release(self->terminationNotificationQueue);

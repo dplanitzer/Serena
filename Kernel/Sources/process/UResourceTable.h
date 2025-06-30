@@ -10,7 +10,7 @@
 #define UResourceTable_h
 
 #include <dispatcher/Lock.h>
-#include <UResource.h>
+#include <process/UResource.h>
 
 
 typedef struct UResourceTable {

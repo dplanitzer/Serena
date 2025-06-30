@@ -16,6 +16,7 @@
 #include <Catalog.h>
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
+#include <dispatcher/WaitQueue.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <filemanager/FileManager.h>
 
@@ -48,10 +49,13 @@ final_class_ivars(Process, Object,
     // Resources
     IOChannelTable                  ioChannelTable;     // I/O channels (aka sharable resources)
     UResourceTable                  uResourcesTable;    // Process private resources (aka non-sharable resources)
-
+    
     // File manager
     FileManager                     fm;
     
+    // All VPs that belong to this process and are currently in sleep()
+    WaitQueue                       sleepQueue;
+
     // Process image
     char* _Nullable _Weak           imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
     char* _Nullable _Weak           argumentsBase;  // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
