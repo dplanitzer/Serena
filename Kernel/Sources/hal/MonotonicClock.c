@@ -90,43 +90,18 @@ static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock)
     }
 }
 
-bool MonotonicClock_Delay(bool isAbsTime, const struct timespec* _Nonnull timeout)
+void MonotonicClock_Delay(long ns)
 {
     struct timespec now, deadline, delta;
     
     MonotonicClock_GetCurrentTime(&now);
-
-    if (isAbsTime) {
-        if (timespec_gt(timeout, &now)) {
-            timespec_sub(timeout, &now, &delta);
-        }
-        else {
-            timespec_clear(&delta);
-        }
-        
-        deadline = *timeout;
-    }
-    else {
-        delta = *timeout;
-        timespec_add(&now, timeout, &deadline);
-    }
-
-    if (delta.tv_sec > 0l || (delta.tv_sec == 0 && delta.tv_nsec > 1000l*1000l)) {
-        return false;
-    }
-
+    timespec_from(&delta, 0, ns);
+    timespec_add(&now, &delta, &deadline);
 
     // Just spin for now (would be nice to put the CPU to sleep though for a few micros before rechecking the time or so)
-    for (;;) {
-        if (timespec_ge(&now, &deadline)) {
-            return true;
-        }
-
-        MonotonicClock_GetCurrentTime(&now); 
+    while (timespec_lt(&now, &deadline)) {
+        MonotonicClock_GetCurrentTime(&now);
     }
-    
-    // not reached
-    return true;
 }
 
 // Converts a time interval to a quantum value. The quantum value is rounded

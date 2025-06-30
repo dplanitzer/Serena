@@ -263,12 +263,6 @@ SYSCALL_4(clock_nanosleep, int clock, int flags, const struct timespec* _Nonnull
     }
 
 
-        // Use the Delay() facility for short waits and context switching for medium and long waits
-    if (MonotonicClock_Delay((pa->flags & TIMER_ABSTIME) != 0, pa->wtp)) {
-        return EOK;
-    }
-    
-    
     // This is a medium or long wait -> context switch away
     return _sleep(&((ProcessRef)p)->sleepQueue, options, pa->wtp, pa->rmtp);
 }

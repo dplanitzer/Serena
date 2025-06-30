@@ -15,37 +15,48 @@
 static WaitQueue   gSleepQueue;    // VPs which block in a delay_xx() call wait on this wait queue
 
 
-
 void delay_init(void)
 {
     WaitQueue_Init(&gSleepQueue);
 }
 
-void delay_us(useconds_t us)
+static void _delay_by(const struct timespec* _Nonnull wtp)
 {
-    struct timespec wt;
-
-    timespec_from_us(&wt, us);
-
     // Use the Delay() facility for short waits and context switching for medium and long waits
-    if (MonotonicClock_Delay(false, &wt)) {
+    if (wtp->tv_sec == 0 && wtp->tv_nsec < MONOTONIC_DELAY_MAX_NSEC) {
+        MonotonicClock_Delay(wtp->tv_nsec);
         return;
     }
     
     
     // This is a medium or long wait -> context switch away
-    (void)_sleep(&gSleepQueue, 0, &wt, NULL);
+    (void)_sleep(&gSleepQueue, 0, wtp, NULL);
+}
+
+void delay_us(useconds_t us)
+{
+    struct timespec ts;
+
+    timespec_from_us(&ts, us);
+    _delay_by(&ts);
 }
 
 void delay_ms(mseconds_t ms)
 {
-    delay_us(ms * 1000l);
+    struct timespec ts;
+
+    timespec_from_ms(&ts, ms);
+    _delay_by(&ts);
 }
 
-void delay_sec(time_t sec)
+void delay_sec(time_t secs)
 {
-    delay_us(sec * USEC_PER_SEC);
+    struct timespec ts;
+
+    timespec_from(&ts, secs, 0);
+    _delay_by(&ts);
 }
+
 
 // Sleep for the given number of seconds.
 errno_t _sleep(WaitQueue* _Nonnull wq, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)

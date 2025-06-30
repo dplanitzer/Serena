@@ -14,6 +14,9 @@
 
 struct SystemDescription;
 
+// At most 1ms
+#define MONOTONIC_DELAY_MAX_NSEC    1000000l
+
 
 // Note: Keep in sync with lowmem.i
 typedef struct MonotonicClock {
@@ -33,12 +36,10 @@ extern Quantums MonotonicClock_GetCurrentQuantums(void);
 // Returns the current time of the clock in terms of microseconds.
 extern void MonotonicClock_GetCurrentTime(struct timespec* _Nonnull ts);
 
-// Blocks the caller for 'timeout'. Returns true if the function did the
-// necessary delay and false if the caller should do something else instead to
-// achieve the desired delay. Eg context switch to another virtual processor.
-// Note that this function is only willing to block the caller for at most a few
-// milliseconds. Longer delays should be done via a scheduler wait().
-extern bool MonotonicClock_Delay(bool isAbsTime, const struct timespec* _Nonnull timeout);
+// Blocks the caller for 'ns' nanoseconds. This functions blocks for at most
+// MONOTONIC_DELAY_MAX_NSEC and the delay is implemented as a hard spin.
+// Longer delays should be implemented with the help of a wait queue. 
+extern void MonotonicClock_Delay(long ns);
 
 
 // Rounding modes for struct timespec to Quantums conversion
