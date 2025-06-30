@@ -8,6 +8,7 @@
 
 #include <kei/kei.h>
 #include <log/Log.h>
+#include <dispatcher/delay.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverChannel.h>
 #include <driver/amiga/graphics/GraphicsDriver.h>
@@ -16,7 +17,6 @@
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/IOChannel.h>
 #include <hal/Platform.h>
-#include <kern/timespec.h>
 #include <kpi/fcntl.h>
 #include <Catalog.h>
 #include "boot_screen.h"
@@ -88,9 +88,6 @@ static void wait_for_disk_inserted(boot_screen_t* _Nonnull bscr, const char* _No
     decl_try_err();
     IOChannelRef chan;
     bool isWaitingForDisk = false;
-    struct timespec dur;
-
-    timespec_from_sec(&dur, 3);
 
     if ((err = Catalog_Open(gDriverCatalog, driverPath, O_RDWR, &chan)) == EOK) {
         for (;;) {
@@ -110,7 +107,7 @@ static void wait_for_disk_inserted(boot_screen_t* _Nonnull bscr, const char* _No
                 isWaitingForDisk = true;
             }
 
-            VirtualProcessor_Sleep(0, &dur, NULL);
+            delay_sec(3);
         }
     } 
     IOChannel_Release(chan);

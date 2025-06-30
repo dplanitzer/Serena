@@ -9,6 +9,7 @@
 #include "FloppyDriverPriv.h"
 #include "FloppyControllerPkg.h"
 #include "adf.h"
+#include <dispatcher/delay.h>
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>
@@ -102,14 +103,6 @@ static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
-static void fdc_1us_wait(void)
-{
-    struct timespec ts_1us;
-
-    timespec_from_us(&ts_1us, 1);
-    VirtualProcessor_Sleep(0, &ts_1us, NULL);
-}
-
 static errno_t FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
@@ -181,7 +174,7 @@ DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int dr
     // Make sure that the motor is off and then deselect the drive
     Lock_Lock(&self->lock);
     *CIA_REG_8(ciab, CIA_PRB) = r;
-    fdc_1us_wait();
+    delay_us(1);
     *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
     Lock_Unlock(&self->lock);
 
@@ -199,18 +192,18 @@ uint32_t FloppyController_GetDriveType(FloppyControllerRef _Nonnull self, DriveS
 
     // Reset the drive's serial register
     _FloppyController_SetMotor(self, cb, true);
-    fdc_1us_wait();
+    delay_us(1);
     _FloppyController_SetMotor(self, cb, false);
 
     // Read the bits from MSB to LSB
     uint8_t r = *cb;
     for (int bit = 31; bit >= 0; bit--) {
         *CIA_REG_8(ciab, CIA_PRB) = r;
-        fdc_1us_wait();
+        delay_us(1);
         const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
         const uint32_t rdy = (~(r >> CIAA_PRAB_DSKRDY)) & 1u;
         dt |= (rdy << (uint32_t)bit);
-        fdc_1us_wait();
+        delay_us(1);
         *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
     }
 
@@ -227,9 +220,9 @@ uint8_t FloppyController_GetStatus(FloppyControllerRef _Nonnull self, DriveState
 
     Lock_Lock(&self->lock);
     *CIA_REG_8(ciab, CIA_PRB) = cb;
-    fdc_1us_wait();
+    delay_us(1);
     const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
-    fdc_1us_wait();
+    delay_us(1);
     *CIA_REG_8(ciab, CIA_PRB) = cb | CIAB_PRBF_DSKSELALL;
     Lock_Unlock(&self->lock);
 
@@ -245,7 +238,7 @@ static void _FloppyController_SetMotor(FloppyControllerRef _Nonnull _Locked self
     // Make sure that none of the drives are selected since a drive latches the
     // motor state when it is selected 
     *CIA_REG_8(ciab, CIA_PRB) = *CIA_REG_8(ciab, CIA_PRB) | CIAB_PRBF_DSKSELALL;
-    fdc_1us_wait();
+    delay_us(1);
 
 
     // Turn the motor on/off
@@ -255,7 +248,7 @@ static void _FloppyController_SetMotor(FloppyControllerRef _Nonnull _Locked self
 
 
     // Deselect all drives
-    fdc_1us_wait();
+    delay_us(1);
     *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
 }
 
@@ -281,7 +274,7 @@ void FloppyController_SelectHead(FloppyControllerRef _Nonnull self, DriveState* 
 
 
     // Deselect all drives
-    fdc_1us_wait();
+    delay_us(1);
     *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
 
     Lock_Unlock(&self->lock);
@@ -303,15 +296,15 @@ void FloppyController_StepHead(FloppyControllerRef _Nonnull self, DriveState cb,
     // Execute the step pulse
     r |= CIAB_PRBF_DSKSTEP;
     *CIA_REG_8(ciab, CIA_PRB) = r;
-    fdc_1us_wait();
+    delay_us(1);
 
     r &= ~CIAB_PRBF_DSKSTEP;
     *CIA_REG_8(ciab, CIA_PRB) = r;
-    fdc_1us_wait();
+    delay_us(1);
 
     r |= CIAB_PRBF_DSKSTEP;
     *CIA_REG_8(ciab, CIA_PRB) = r;
-    fdc_1us_wait();
+    delay_us(1);
 
 
     // Deselect all drives
@@ -348,9 +341,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     // Select the drive and turn off the DMA
     *CIA_REG_8(ciab, CIA_PRB) = cb;
     *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;
-    struct timespec ts_1ms;
-    timespec_from_us(&ts_1ms, 1000);
-    VirtualProcessor_Sleep(0, &ts_1ms, NULL);
+    delay_ms(1);
 
 
     // Check for disk change
@@ -425,10 +416,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 
     // Wait for everything to settle if we just completed a write
     if (bWrite) {
-        struct timespec ts_2ms;
-
-        timespec_from_us(&ts_2ms, 2000);
-        VirtualProcessor_Sleep(0, &ts_2ms, NULL);
+        delay_ms(2);
     }
 
 

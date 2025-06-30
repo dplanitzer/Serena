@@ -35,7 +35,6 @@ errno_t WaitQueue_Deinit(WaitQueue* self)
 
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-// @Entry Condition: 'vp' must not be in an active abort
 static errno_t _do_wait(WaitQueue* _Nonnull self, int flags, VirtualProcessorScheduler* _Nonnull ps, VirtualProcessor* _Nonnull vp)
 {
     assert(vp->sched_state == kVirtualProcessorState_Running);

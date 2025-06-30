@@ -10,6 +10,7 @@
 #include <log/Log.h>
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
+#include <dispatcher/delay.h>
 #include <dispatcher/VirtualProcessorScheduler.h>
 #include <dispatcher/VirtualProcessorPool.h>
 #include <dispatchqueue/DispatchQueue.h>
@@ -105,7 +106,11 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     // Initialize the kernel heap
     try_bang(kalloc_init(pSysDesc, gInitialHeapBottom, gInitialHeapTop));
+
     
+    // Initialize the kernel delay service
+    delay_init();
+
 
     // Initialize the interrupt controller
     try_bang(InterruptController_CreateForLocalCPU());
