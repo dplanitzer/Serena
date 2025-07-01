@@ -16,10 +16,8 @@
 #include <kern/limits.h>
 #include <kern/string.h>
 #include <kern/timespec.h>
-#include <kpi/vcpu.h>
+#include <kpi/signal.h>
 #include <log/Log.h>
-
-WaitQueue   gSleepQueue;    // VPs which block in a sleep() call wait on this wait queue
 
 
 // Initializes an execution stack struct. The execution stack is empty by default
@@ -504,6 +502,102 @@ bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull self)
     const bool isSuspended = self->suspension_count > 0;
     preempt_restore(sps);
     return isSuspended;
+}
+
+errno_t VirtualProcessor_SigWait(WaitQueue* _Nonnull swq, int flags, unsigned int* _Nullable pOutSigs)
+{
+    decl_try_err();
+    const int sps = preempt_disable();
+    VirtualProcessor* self = (VirtualProcessor*)gVirtualProcessorScheduler->running;
+
+    do {
+        const uint32_t psigs = self->psigs & self->sigmask;
+
+        if (psigs) {
+            if (pOutSigs) {
+                *pOutSigs = psigs;
+            }
+
+            self->psigs &= ~self->sigmask;
+            break;
+        }
+
+        // Waiting temporarily reenables preemption
+        err = WaitQueue_Wait(swq, flags);
+    } while (err == EOK);
+
+    preempt_restore(sps);
+
+    return err;
+}
+
+errno_t VirtualProcessor_SigTimedWait(WaitQueue* _Nonnull swq, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp, unsigned int* _Nullable pOutSigs)
+{
+    decl_try_err();
+    struct timespec now, abst, remt;
+    
+    // Convert a relative timeout to an absolute timeout because it makes it
+    // easier to deal with spurious wakeups and we won't accumulate math errors
+    // caused by time resolution limitations.
+    if ((flags & WAIT_ABSTIME) == WAIT_ABSTIME) {
+        abst = *wtp;
+    }
+    else {
+        MonotonicClock_GetCurrentTime(&now);
+        timespec_add(&now, wtp, &abst);
+    }
+
+
+    const int sps = preempt_disable();
+    VirtualProcessor* self = (VirtualProcessor*)gVirtualProcessorScheduler->running;
+
+    do {
+        const uint32_t psigs = self->psigs & self->sigmask;
+
+        if (psigs) {
+            if (pOutSigs) {
+                *pOutSigs = psigs;
+            }
+
+            self->psigs &= ~self->sigmask;
+            break;
+        }
+
+        // Waiting temporarily reenables preemption
+        err = WaitQueue_TimedWait(swq, flags, &abst, &remt);
+    } while (err == EOK);
+
+    preempt_restore(sps);
+
+
+    if (rmtp) {
+        *rmtp = remt;
+    }
+
+    return err;
+}
+
+errno_t VirtualProcessor_SendSignal(VirtualProcessor* _Nonnull self, WaitQueue* _Nonnull swq, int signo)
+{
+    if (signo == 0) {
+        return EOK;
+    }
+    if (signo < 1 || signo > 32) {
+        return EINVAL;
+    }
+
+    const int sps = preempt_disable();
+    const uint32_t sigbit = 1 << (signo - 1);
+    const uint32_t nsigs = sigbit & self->sigmask;
+
+    if (nsigs) {
+        self->psigs |= nsigs;
+
+        WaitQueue_WakeupOne(swq, self, WAKEUP_REASON_SIGNALLED, true);
+    }
+    preempt_restore(sps);
+
+    return EOK;
 }
 
 // Atomically updates the current signal mask and returns the old mask.

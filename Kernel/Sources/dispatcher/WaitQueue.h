@@ -64,21 +64,11 @@ extern errno_t WaitQueue_Deinit(WaitQueue* self);
 // @Entry Condition: preemption disabled
 extern errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int flags);
 
-// Same as wait() but will be woken up by signals. Returns the signals and clears
-// the pending signals of the calling VP.
-// @Entry Condition: preemption disabled
-extern errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, int flags, unsigned int* _Nullable pOutSigs);
-
 // Same as wait() but with support for timeouts. If 'wtp' is not NULL then 'wtp' is
 // either the maximum duration to wait or the absolute time until to wait. The
 // WAIT_ABSTIME specifies an absolute time. 'rmtp' is an optional timespec that
 // receives the amount of time remaining if the wait was canceled early.
 extern errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
-
-// Same as timedwait() but will be woken up by signals. Returns the signals and
-// clears the pending signals of the calling VP.
-// @Entry Condition: preemption disabled
-extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp, unsigned int* _Nullable pOutSigs);
 
 
 // Adds the given VP from the given wait queue to the ready queue. The VP is removed
@@ -86,6 +76,7 @@ extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, int flags, const
 // fail with an error. This doesn't mean that calling this function will always
 // result in a virtual processor wakeup. If the wait queue is empty then no wakeups
 // will happen. Returns true if the vp has been made ready to run; false otherwise.
+// @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
 extern bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp, int reason, bool allowContextSwitch);
 
@@ -98,6 +89,7 @@ extern void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int reason);
 // the wait queue. Expects to be called from an interrupt context and thus defers
 // context switches until the return from the interrupt context.
 // @Entry Condition: preemption disabled
+// @Interrupt Context: Safe
 extern void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self);
 
 // Sends a signal to the wait queue. This will wake up one or all VPs that have

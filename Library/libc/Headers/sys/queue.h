@@ -1,15 +1,17 @@
 //
-//  List.h
+//  sys/queue.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 2/17/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _LIST_H
-#define _LIST_H 1
+#ifndef _SYS_QUEUE_H
+#define _SYS_QUEUE_H 1
 
-#include <__stddef.h>
+#include <_cmndef.h>
+#include <_null.h>
+#include <stdbool.h>
 
 //
 // A singly linked list.
@@ -84,4 +86,4 @@ static inline bool SList_IsEmpty(SList* _Nonnull pList) {
     } \
 }
 
-#endif /* _LIST_H */
+#endif /* _SYS_QUEUE_H */

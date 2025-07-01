@@ -26,9 +26,6 @@ extern errno_t UWaitQueue_Create(int policy, UWaitQueueRef _Nullable * _Nonnull 
 
 extern errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self);
 extern errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const struct timespec* _Nonnull wtp);
-extern errno_t UWaitQueue_SigWait(UWaitQueueRef _Nonnull self, unsigned int* _Nullable pOutSigs);
-extern errno_t UWaitQueue_SigTimedWait(UWaitQueueRef _Nonnull self, int options, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs);
 extern void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags);
-extern void UWaitQueue_Signal(UWaitQueueRef _Nonnull self, int flags, unsigned int sigs);
 
 #endif /* UWaitQueue_h */

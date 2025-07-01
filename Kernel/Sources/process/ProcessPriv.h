@@ -56,6 +56,9 @@ final_class_ivars(Process, Object,
     // All VPs that belong to this process and are currently in sleep()
     WaitQueue                       sleepQueue;
 
+    // Wait queue used for sig_xxx() functions
+    WaitQueue                       siwaQueue;
+    
     // Process image
     char* _Nullable _Weak           imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
     char* _Nullable _Weak           argumentsBase;  // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment

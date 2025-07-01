@@ -1,12 +1,12 @@
 //
-//  List.c
+//  sys/queue.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 2/17/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "List.h"
+#include <sys/queue.h>
 
 
 //

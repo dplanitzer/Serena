@@ -8,22 +8,44 @@
 
 #include <sys/vcpu.h>
 #include <kpi/syscall.h>
+#include "_vcpu.h"
 
 
-int vcpu_self(void)
+vcpuid_t vcpu_self(void)
 {
-    return (int)_syscall(SC_vcpu_self);
+    return (vcpuid_t)_syscall(SC_vcpu_self);
 }
 
-unsigned int vcpu_getsigmask(void)
+intptr_t __vcpu_getdata(void)
 {
-    unsigned int mask;
-
-    (void)_syscall(SC_vcpu_sigmask, SIGMASK_OP_ENABLE, 0, &mask);
-    return mask;
+    return (intptr_t)_syscall(SC_vcpu_getdata);
 }
 
-int vcpu_setsigmask(int op, unsigned int mask, unsigned int* _Nullable oldmask)
+void __vcpu_setdata(intptr_t data)
 {
-    return (int)_syscall(SC_vcpu_sigmask, op, mask, oldmask);
+    (void)_syscall(SC_vcpu_setdata, data);
+}
+
+
+SList gVcpus;
+vcpu_t  gMainVcpu;
+
+void __vcpu_init(void)
+{
+    SList_Init(&gVcpus);
+    vcpu_init(&gMainVcpu);
+    SList_InsertAfterLast(&gVcpus, &gMainVcpu.node);
+}
+
+void vcpu_init(vcpu_t* _Nonnull self)
+{
+    SListNode_Init(&self->node);
+    SListNode_Init(&self->wq_node);
+    self->id = vcpu_self();
+    __vcpu_setdata((intptr_t) self);
+}
+
+vcpu_t* _Nonnull __vcpu_self(void)
+{
+    return (vcpu_t*)__vcpu_getdata();
 }

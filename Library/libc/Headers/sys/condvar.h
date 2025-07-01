@@ -12,15 +12,15 @@
 #include <_cmndef.h>
 #include <time.h>
 #include <sys/mutex.h>
+#include <sys/queue.h>
 #include <sys/spinlock.h>
 
 __CPP_BEGIN
 
 typedef struct cond {
     spinlock_t  spinlock;
-    int         waiters;
+    SList       wait_queue;
     int         signature;
-    int         wait_queue;
 } cond_t;
 
 

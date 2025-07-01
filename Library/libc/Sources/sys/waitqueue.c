@@ -36,20 +36,3 @@ int wq_wakeup(int q, int flags)
 {
     return (int)_syscall(SC_wq_wakeup, q, flags);
 }
-
-
-
-int wq_sigwait(int q, unsigned int* _Nullable psigs)
-{
-    return (int)_syscall(SC_wq_sigwait, q, psigs);
-}
-
-int wq_sigtimedwait(int q, int flags, const struct timespec* _Nonnull wtp, unsigned int* _Nullable psigs)
-{
-    return (int)_syscall(SC_wq_sigtimedwait, q, flags, wtp, psigs);
-}
-
-int wq_signal(int q, int flags, unsigned int sigs)
-{
-    return (int)_syscall(SC_wq_signal, q, flags, sigs);
-}

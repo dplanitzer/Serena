@@ -10,14 +10,16 @@
 #define _SYS_VCPU_H 1
 
 #include <_cmndef.h>
+#include <stdint.h>
+#include <kpi/types.h>
 #include <kpi/vcpu.h>
 
 __CPP_BEGIN
 
-extern int vcpu_self(void);
+extern vcpuid_t vcpu_self(void);
 
-extern unsigned int vcpu_getsigmask(void);
-extern int vcpu_setsigmask(int op, unsigned int mask, unsigned int* _Nullable oldmask);
+extern intptr_t __vcpu_getdata(void);
+extern void __vcpu_setdata(intptr_t data);
 
 __CPP_END
 

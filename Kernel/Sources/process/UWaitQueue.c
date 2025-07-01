@@ -67,33 +67,6 @@ errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const str
     return err;
 }
 
-errno_t UWaitQueue_SigWait(UWaitQueueRef _Nonnull self, unsigned int* _Nullable pOutSigs)
-{
-    decl_try_err();
-    const int sps = preempt_disable();
-
-    err = WaitQueue_SigWait(&self->wq, WAIT_INTERRUPTABLE, pOutSigs);
-    preempt_restore(sps);
-
-    return err;
-}
-
-errno_t UWaitQueue_SigTimedWait(UWaitQueueRef _Nonnull self, int options, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs)
-{
-    decl_try_err();
-    const int sps = preempt_disable();
-    
-    err = WaitQueue_SigTimedWait(&self->wq, 
-                            WAIT_INTERRUPTABLE | options,
-                            wtp,
-                            NULL,
-                            pOutSigs);
-
-    preempt_restore(sps);
-    
-    return err;
-}
-
 
 void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags)
 {
@@ -103,17 +76,6 @@ void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags)
     WaitQueue_Wakeup(&self->wq,
                         wflags | WAKEUP_CSW,
                         WAKEUP_REASON_FINISHED);
-    preempt_restore(sps);
-}
-
-void UWaitQueue_Signal(UWaitQueueRef _Nonnull self, int flags, unsigned int sigs)
-{
-    const int wflags = ((flags & WAKE_ONE) == WAKE_ONE) ? WAKEUP_ONE : WAKEUP_ALL;
-    const int sps = preempt_disable();
-    
-    WaitQueue_Signal(&self->wq,
-                        wflags | WAKEUP_CSW,
-                        sigs);
     preempt_restore(sps);
 }
 

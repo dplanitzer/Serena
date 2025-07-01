@@ -32,7 +32,7 @@ typedef struct syscall {
 #define SC_ERRNO    1   /* System call returns an error that should be stored in vcpu->errno */
 #define SC_VCPU     2   /* System call expects a vcpu_t* rather than a proc_t* */
 
-#define SYSCALL_COUNT   57
+#define SYSCALL_COUNT   59
 static const syscall_t gSystemCallTable[SYSCALL_COUNT];
 
 
@@ -446,19 +446,30 @@ SYSCALL_2(wq_wakeup, int od, int flags)
     return Process_Wakeup_UWaitQueue((ProcessRef)p, pa->od, pa->flags);
 }
 
-SYSCALL_2(wq_sigwait, int od, unsigned int* _Nullable pOutSigs)
+SYSCALL_1(sig_wait, unsigned int* _Nullable pOutSigs)
 {
-    return Process_SigWait_UWaitQueue((ProcessRef)p, pa->od, pa->pOutSigs);
+    ProcessRef pp = (ProcessRef)p;
+
+    return VirtualProcessor_SigWait(&pp->siwaQueue, WAIT_INTERRUPTABLE, pa->pOutSigs);
 }
 
-SYSCALL_4(wq_sigtimedwait, int od, int options, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs)
+SYSCALL_3(sig_timedwait, int flags, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs)
 {
-    return Process_SigTimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->options, pa->wtp, pa->pOutSigs);
+    ProcessRef pp = (ProcessRef)p;
+
+    return VirtualProcessor_SigTimedWait(&pp->siwaQueue, pa->flags | WAIT_INTERRUPTABLE, pa->wtp, NULL, pa->pOutSigs);
 }
 
-SYSCALL_3(wq_signal, int od, int flags, unsigned int sigs)
+SYSCALL_2(sig_raise, int vcpu, int signo)
 {
-    return Process_Signal_UWaitQueue((ProcessRef)p, pa->od, pa->flags, pa->sigs);
+#if 0
+    ProcessRef pp = (ProcessRef)p;
+    VirtualProcessor* vp = NULL;    //XXX look up vp based on id
+
+    return VirtualProcessor_SendSignal(vp, &pp->siwaQueue, pa->signo);
+#else
+    return ENOTSUP;
+#endif
 }
 
 SYSCALL_0(vcpu_self)
@@ -466,9 +477,20 @@ SYSCALL_0(vcpu_self)
     return (intptr_t)((VirtualProcessor*)p)->vpid;
 }
 
-SYSCALL_3(vcpu_sigmask, int op, unsigned int mask, unsigned int* _Nullable oldmask)
+SYSCALL_3(sig_setmask, int op, unsigned int mask, unsigned int* _Nullable oldmask)
 {
     return VirtualProcessor_SetSignalMask((VirtualProcessor*)p, pa->op, pa->mask, pa->oldmask);
+}
+
+SYSCALL_0(vcpu_getdata)
+{
+    return ((VirtualProcessor*)p)->udata;
+}
+
+SYSCALL_1(vcpu_setdata, intptr_t data)
+{
+    ((VirtualProcessor*)p)->udata = pa->data;
+    return EOK;
 }
 
 
@@ -525,9 +547,11 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(wq_wait, SC_ERRNO),
     SYSCALL_ENTRY(wq_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_wakeup, SC_ERRNO),
-    SYSCALL_ENTRY(wq_sigwait, SC_ERRNO),
-    SYSCALL_ENTRY(wq_sigtimedwait, SC_ERRNO),
-    SYSCALL_ENTRY(wq_signal, SC_ERRNO),
+    SYSCALL_ENTRY(sig_wait, SC_ERRNO),
+    SYSCALL_ENTRY(sig_timedwait, SC_ERRNO),
+    SYSCALL_ENTRY(sig_raise, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_self, SC_VCPU),
-    SYSCALL_ENTRY(vcpu_sigmask, SC_VCPU|SC_ERRNO),
+    SYSCALL_ENTRY(sig_setmask, SC_VCPU|SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_getdata, SC_VCPU),
+    SYSCALL_ENTRY(vcpu_setdata, SC_VCPU),
 };

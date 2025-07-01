@@ -137,84 +137,14 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct ti
     return err;
 }
 
-errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, int flags, unsigned int* _Nullable pOutSigs)
-{
-    decl_try_err();
-    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
-    VirtualProcessor* vp = (VirtualProcessor*)ps->running;
 
-    do {
-        const uint32_t psigs = vp->psigs & vp->sigmask;
-
-        if (psigs) {
-            if (pOutSigs) {
-                *pOutSigs = psigs;
-            }
-
-            vp->psigs &= ~vp->sigmask;
-            break;
-        }
-
-        // Waiting temporarily reenables preemption
-        err = _do_wait(self, flags, ps, vp);
-    } while (err == EOK);
-
-    return err;
-}
-
-errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp, unsigned int* _Nullable pOutSigs)
-{
-    decl_try_err();
-    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
-    VirtualProcessor* vp = (VirtualProcessor*)ps->running;
-    struct timespec now, abst, remt;
-    
-    // Convert a relative timeout to an absolute timeout because it makes it
-    // easier to deal with spurious wakeups and we won't accumulate math errors
-    // caused by time resolution limitations.
-    if ((flags & WAIT_ABSTIME) == WAIT_ABSTIME) {
-        abst = *wtp;
-    }
-    else {
-        MonotonicClock_GetCurrentTime(&now);
-        timespec_add(&now, wtp, &abst);
-    }
-
-
-    do {
-        const uint32_t psigs = vp->psigs & vp->sigmask;
-
-        if (psigs) {
-            if (pOutSigs) {
-                *pOutSigs = psigs;
-            }
-
-            vp->psigs &= ~vp->sigmask;
-            break;
-        }
-
-        // Waiting temporarily reenables preemption
-        err = WaitQueue_TimedWait(self, flags, &abst, &remt);
-    } while (err == EOK);
-    
-
-    if (rmtp) {
-        *rmtp = remt;
-    }
-
-    return err;
-}
-
-
-// Adds the given VP from the given wait queue to the ready queue. The VP is
-// removed from the wait queue. The scheduler guarantees that a wakeup operation
-// will never fail with an error. This doesn't mean that calling this function
-// will always result in a virtual processor wakeup. If the wait queue is empty
-// then no wakeups will happen. Also a virtual processor that sits in an
-// uninterruptible wait or that was suspended while being in a wait state will
-// not get woken up. Returns true if the VP has been made ready to run; false
-// otherwise.
-// May be called from an interrupt context.
+// Adds the given VP from the given wait queue to the ready queue. The VP is removed
+// from the wait queue. The scheduler guarantees that a wakeup operation will never
+// fail with an error. This doesn't mean that calling this function will always
+// result in a virtual processor wakeup. If the wait queue is empty then no wakeups
+// will happen. Returns true if the vp has been made ready to run; false otherwise.
+// @Interrupt Context: Safe
+// @Entry Condition: preemption disabled
 bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp, int reason, bool allowContextSwitch)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
@@ -312,20 +242,6 @@ void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self)
         cp = np;
     }
 }
-
-void WaitQueue_Signal(WaitQueue* _Nonnull self, int flags, unsigned int sigs)
-{
-    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
-    VirtualProcessor* vp = (VirtualProcessor*)ps->running;
-    const uint32_t fsigs = sigs & vp->sigmask;
-
-    if (fsigs) {
-        vp->psigs |= fsigs;
-
-        WaitQueue_Wakeup(self, flags, WAKEUP_REASON_SIGNALLED);
-    }
-}
-
 
 
 void WaitQueue_SuspendOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp)

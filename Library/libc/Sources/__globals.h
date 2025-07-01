@@ -10,8 +10,8 @@
 #define ___GLOBALS_H 1
 
 #include <stdlib.h>
-#include "List.h"
 #include <sys/proc.h>
+#include <sys/queue.h>
 
 
 // Private globals

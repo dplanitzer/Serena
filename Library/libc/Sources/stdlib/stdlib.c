@@ -13,6 +13,7 @@
 #include <__stddef.h>
 #include <kpi/kei.h>
 #include <sys/proc.h>
+#include <sys/_vcpu.h>
 
 extern void __kei_init(pargs_t* _Nonnull argsp);
 
@@ -23,6 +24,7 @@ void __stdlibc_init(pargs_t* _Nonnull argsp)
     environ = argsp->envp;
 
     __kei_init(argsp);
+    __vcpu_init();
     __malloc_init();
     __exit_init();
     __locale_init();

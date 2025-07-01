@@ -226,6 +226,7 @@ vp_owner_queue_entry_prev               so.l    1           ; 4
 vp_owner_self                           so.l    1           ; 4
 vp_syscall_entry_ksp                    so.l    1           ; 4
 vp_uerrno                               so.l    1           ; 4
+vp_udata                                so.l    1           ; 4
 vp_suspension_time                      so.l    1           ; 4
 vp_psigs                                so.l    1           ; 4
 vp_sigmask                              so.l    1           ; 4
@@ -249,7 +250,7 @@ vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
 vp_reserved2                            so.b    3           ; 3
 vp_SIZEOF                       so
-    ifeq (vp_SIZEOF == 508)
+    ifeq (vp_SIZEOF == 512)
         fail "VirtualProcessor structure size is incorrect."
     endif
 

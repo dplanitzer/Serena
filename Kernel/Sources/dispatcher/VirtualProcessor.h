@@ -142,6 +142,7 @@ typedef struct VirtualProcessor {
     // System call support
     uint32_t                                syscall_entry_ksp;      // saved Kernel stack pointer at the entry of a system call
     errno_t                                 uerrno;                 // most recent recorded error for user space
+    intptr_t                                udata;                  // user space data associated with this VP
     
     // Suspension related state
     Quantums                                suspension_time;        // Absolute time when the VP was suspended
@@ -198,6 +199,16 @@ extern int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull self);
 // XXX might want to change that in the future?
 extern void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int priority);
 
+
+// Blocks the VP until at least one of the signals enabled in the VPs signal mask
+// arrives. Clears all pending signals and returns them.
+extern errno_t VirtualProcessor_SigWait(struct WaitQueue* _Nonnull swq, int flags, unsigned int* _Nullable pOutSigs);
+
+// Same as sigwait() but with a timeout.
+extern errno_t VirtualProcessor_SigTimedWait(struct WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp, unsigned int* _Nullable pOutSigs);
+
+// Sends a signal to the given VP. Note that the signal number is 1-based.
+extern errno_t VirtualProcessor_SendSignal(VirtualProcessor* _Nonnull self, struct WaitQueue* _Nonnull swq, int signo);
 
 // Atomically updates the current signal mask and returns the old mask.
 extern errno_t VirtualProcessor_SetSignalMask(VirtualProcessor* _Nonnull self, int op, uint32_t mask, uint32_t* _Nullable pOutMask);
