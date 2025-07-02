@@ -13,6 +13,7 @@
 #include <kern/types.h>
 #include <klib/Atomic.h>
 #include <klib/List.h>
+#include <kpi/signal.h>
 #include <hal/Platform.h>
 #include <hal/SystemDescription.h>
 
@@ -148,8 +149,8 @@ typedef struct VirtualProcessor {
     Quantums                                suspension_time;        // Absolute time when the VP was suspended
 
     // Signals
-    uint32_t                                psigs;                  // Pending signals (sent to the VP, but not yet consumed by sigwait())
-    uint32_t                                sigmask;                // Which signals should cause a wakeup on arrival
+    sigset_t                                psigs;                  // Pending signals (sent to the VP, but not yet consumed by sigwait())
+    sigset_t                                sigmask;                // Which signals should cause a wakeup on arrival
 
     // Waiting related state
     Timeout                                 timeout;                // The timeout state
@@ -202,16 +203,16 @@ extern void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int pr
 
 // Blocks the VP until at least one of the signals enabled in the VPs signal mask
 // arrives. Clears all pending signals and returns them.
-extern errno_t VirtualProcessor_SigWait(struct WaitQueue* _Nonnull swq, int flags, unsigned int* _Nullable pOutSigs);
+extern errno_t VirtualProcessor_SigWait(struct WaitQueue* _Nonnull swq, int flags, sigset_t* _Nullable pOutSigs);
 
 // Same as sigwait() but with a timeout.
-extern errno_t VirtualProcessor_SigTimedWait(struct WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp, unsigned int* _Nullable pOutSigs);
+extern errno_t VirtualProcessor_SigTimedWait(struct WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp, sigset_t* _Nullable pOutSigs);
 
 // Sends a signal to the given VP. Note that the signal number is 1-based.
 extern errno_t VirtualProcessor_SendSignal(VirtualProcessor* _Nonnull self, struct WaitQueue* _Nonnull swq, int signo);
 
 // Atomically updates the current signal mask and returns the old mask.
-extern errno_t VirtualProcessor_SetSignalMask(VirtualProcessor* _Nonnull self, int op, uint32_t mask, uint32_t* _Nullable pOutMask);
+extern errno_t VirtualProcessor_SetSignalMask(VirtualProcessor* _Nonnull self, int op, sigset_t mask, sigset_t* _Nullable pOutMask);
 
 
 // Yields the remainder of the current quantum to other VPs.

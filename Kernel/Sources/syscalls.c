@@ -19,6 +19,7 @@
 #include <kern/timespec.h>
 #include <kpi/disk.h>
 #include <kpi/fs.h>
+#include <kpi/signal.h>
 #include <kpi/uid.h>
 
 
@@ -446,14 +447,14 @@ SYSCALL_2(wq_wakeup, int od, int flags)
     return Process_Wakeup_UWaitQueue((ProcessRef)p, pa->od, pa->flags);
 }
 
-SYSCALL_1(sig_wait, unsigned int* _Nullable pOutSigs)
+SYSCALL_1(sig_wait, sigset_t* _Nullable pOutSigs)
 {
     ProcessRef pp = (ProcessRef)p;
 
     return VirtualProcessor_SigWait(&pp->siwaQueue, WAIT_INTERRUPTABLE, pa->pOutSigs);
 }
 
-SYSCALL_3(sig_timedwait, int flags, const struct timespec* _Nonnull wtp, unsigned int* _Nullable pOutSigs)
+SYSCALL_3(sig_timedwait, int flags, const struct timespec* _Nonnull wtp, sigset_t* _Nullable pOutSigs)
 {
     ProcessRef pp = (ProcessRef)p;
 
@@ -477,7 +478,7 @@ SYSCALL_0(vcpu_self)
     return (intptr_t)((VirtualProcessor*)p)->vpid;
 }
 
-SYSCALL_3(sig_setmask, int op, unsigned int mask, unsigned int* _Nullable oldmask)
+SYSCALL_3(sig_setmask, int op, sigset_t mask, sigset_t* _Nullable oldmask)
 {
     return VirtualProcessor_SetSignalMask((VirtualProcessor*)p, pa->op, pa->mask, pa->oldmask);
 }

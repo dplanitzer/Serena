@@ -504,14 +504,14 @@ bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull self)
     return isSuspended;
 }
 
-errno_t VirtualProcessor_SigWait(WaitQueue* _Nonnull swq, int flags, unsigned int* _Nullable pOutSigs)
+errno_t VirtualProcessor_SigWait(WaitQueue* _Nonnull swq, int flags, sigset_t* _Nullable pOutSigs)
 {
     decl_try_err();
     const int sps = preempt_disable();
     VirtualProcessor* self = (VirtualProcessor*)gVirtualProcessorScheduler->running;
 
     do {
-        const uint32_t psigs = self->psigs & self->sigmask;
+        const sigset_t psigs = self->psigs & self->sigmask;
 
         if (psigs) {
             if (pOutSigs) {
@@ -531,7 +531,7 @@ errno_t VirtualProcessor_SigWait(WaitQueue* _Nonnull swq, int flags, unsigned in
     return err;
 }
 
-errno_t VirtualProcessor_SigTimedWait(WaitQueue* _Nonnull swq, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp, unsigned int* _Nullable pOutSigs)
+errno_t VirtualProcessor_SigTimedWait(WaitQueue* _Nonnull swq, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp, sigset_t* _Nullable pOutSigs)
 {
     decl_try_err();
     struct timespec now, abst, remt;
@@ -552,7 +552,7 @@ errno_t VirtualProcessor_SigTimedWait(WaitQueue* _Nonnull swq, int flags, const 
     VirtualProcessor* self = (VirtualProcessor*)gVirtualProcessorScheduler->running;
 
     do {
-        const uint32_t psigs = self->psigs & self->sigmask;
+        const sigset_t psigs = self->psigs & self->sigmask;
 
         if (psigs) {
             if (pOutSigs) {
@@ -601,23 +601,23 @@ errno_t VirtualProcessor_SendSignal(VirtualProcessor* _Nonnull self, WaitQueue* 
 }
 
 // Atomically updates the current signal mask and returns the old mask.
-errno_t VirtualProcessor_SetSignalMask(VirtualProcessor* _Nonnull self, int op, uint32_t mask, uint32_t* _Nullable pOutMask)
+errno_t VirtualProcessor_SetSignalMask(VirtualProcessor* _Nonnull self, int op, sigset_t mask, sigset_t* _Nullable pOutMask)
 {
     decl_try_err();
     VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
-    const uint32_t oldMask = self->sigmask;
+    const sigset_t oldMask = self->sigmask;
 
     switch (op) {
-        case SIGMASK_OP_REPLACE:
+        case SIG_SETMASK:
             self->sigmask = mask;
             break;
 
-        case SIGMASK_OP_ENABLE:
+        case SIG_BLOCK:
             self->sigmask |= mask;
             break;
 
-        case SIGMASK_OP_DISABLE:
+        case SIG_UNBLOCK:
             self->sigmask &= ~mask;
             break;
 
