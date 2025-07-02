@@ -447,18 +447,18 @@ SYSCALL_2(wq_wakeup, int od, int flags)
     return Process_Wakeup_UWaitQueue((ProcessRef)p, pa->od, pa->flags);
 }
 
-SYSCALL_1(sig_wait, sigset_t* _Nullable pOutSigs)
+SYSCALL_2(sig_wait, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs)
 {
     ProcessRef pp = (ProcessRef)p;
 
-    return VirtualProcessor_SigWait(&pp->siwaQueue, WAIT_INTERRUPTABLE, pa->pOutSigs);
+    return VirtualProcessor_SigWait(&pp->siwaQueue, WAIT_INTERRUPTABLE, pa->mask, pa->pOutSigs);
 }
 
-SYSCALL_3(sig_timedwait, int flags, const struct timespec* _Nonnull wtp, sigset_t* _Nullable pOutSigs)
+SYSCALL_4(sig_timedwait, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp)
 {
     ProcessRef pp = (ProcessRef)p;
 
-    return VirtualProcessor_SigTimedWait(&pp->siwaQueue, pa->flags | WAIT_INTERRUPTABLE, pa->wtp, NULL, pa->pOutSigs);
+    return VirtualProcessor_SigTimedWait(&pp->siwaQueue, pa->mask, pa->pOutSigs, pa->flags | WAIT_INTERRUPTABLE, pa->wtp);
 }
 
 SYSCALL_2(sig_raise, int vcpu, int signo)

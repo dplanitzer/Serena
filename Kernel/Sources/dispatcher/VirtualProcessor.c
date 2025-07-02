@@ -504,21 +504,19 @@ bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull self)
     return isSuspended;
 }
 
-errno_t VirtualProcessor_SigWait(WaitQueue* _Nonnull swq, int flags, sigset_t* _Nullable pOutSigs)
+errno_t VirtualProcessor_SigWait(WaitQueue* _Nonnull swq, int flags, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs)
 {
     decl_try_err();
     const int sps = preempt_disable();
     VirtualProcessor* self = (VirtualProcessor*)gVirtualProcessorScheduler->running;
+    const sigset_t sigmask = (mask) ? *mask : self->sigmask;
 
     do {
-        const sigset_t psigs = self->psigs & self->sigmask;
+        const sigset_t psigs = self->psigs & sigmask;
 
         if (psigs) {
-            if (pOutSigs) {
-                *pOutSigs = psigs;
-            }
-
-            self->psigs &= ~self->sigmask;
+            *pOutSigs = psigs;
+            self->psigs &= ~sigmask;
             break;
         }
 
@@ -531,48 +529,41 @@ errno_t VirtualProcessor_SigWait(WaitQueue* _Nonnull swq, int flags, sigset_t* _
     return err;
 }
 
-errno_t VirtualProcessor_SigTimedWait(WaitQueue* _Nonnull swq, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp, sigset_t* _Nullable pOutSigs)
+errno_t VirtualProcessor_SigTimedWait(WaitQueue* _Nonnull swq, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp)
 {
     decl_try_err();
-    struct timespec now, abst, remt;
+    struct timespec now, deadline;
     
     // Convert a relative timeout to an absolute timeout because it makes it
     // easier to deal with spurious wakeups and we won't accumulate math errors
     // caused by time resolution limitations.
     if ((flags & WAIT_ABSTIME) == WAIT_ABSTIME) {
-        abst = *wtp;
+        deadline = *wtp;
     }
     else {
         MonotonicClock_GetCurrentTime(&now);
-        timespec_add(&now, wtp, &abst);
+        timespec_add(&now, wtp, &deadline);
     }
 
 
     const int sps = preempt_disable();
     VirtualProcessor* self = (VirtualProcessor*)gVirtualProcessorScheduler->running;
+    const sigset_t sigmask = (mask) ? *mask : self->sigmask;
 
     do {
         const sigset_t psigs = self->psigs & self->sigmask;
 
         if (psigs) {
-            if (pOutSigs) {
-                *pOutSigs = psigs;
-            }
-
+            *pOutSigs = psigs;
             self->psigs &= ~self->sigmask;
             break;
         }
 
         // Waiting temporarily reenables preemption
-        err = WaitQueue_TimedWait(swq, flags, &abst, &remt);
+        err = WaitQueue_TimedWait(swq, flags, &deadline, NULL);
     } while (err == EOK);
 
     preempt_restore(sps);
-
-
-    if (rmtp) {
-        *rmtp = remt;
-    }
 
     return err;
 }
@@ -582,16 +573,15 @@ errno_t VirtualProcessor_SendSignal(VirtualProcessor* _Nonnull self, WaitQueue* 
     if (signo == 0) {
         return EOK;
     }
-    if (signo < 1 || signo > 32) {
+    if (signo < SIGMIN || signo > SIGMAX) {
         return EINVAL;
     }
 
     const int sps = preempt_disable();
     const uint32_t sigbit = 1 << (signo - 1);
-    const uint32_t nsigs = sigbit & self->sigmask;
 
-    if (nsigs) {
-        self->psigs |= nsigs;
+    if (sigbit) {
+        self->psigs |= sigbit;
 
         WaitQueue_WakeupOne(swq, self, WAKEUP_REASON_SIGNALLED, true);
     }

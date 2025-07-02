@@ -7,21 +7,22 @@
 //
 
 #include <sys/condvar.h>
-#include <sys/signal.h>
 #include <kpi/syscall.h>
 #include <errno.h>
 #include <stddef.h>
 #include "_vcpu.h"
 
 #define CV_SIGNATURE 0x53454d41
-#define CV_SIGNAL 1
 
 
 int cond_init(cond_t* _Nonnull self)
 {
     self->spinlock = SPINLOCK_INIT;
-    SList_Init(&self->wait_queue);
     self->signature = CV_SIGNATURE;
+
+    SList_Init(&self->wait_queue);
+    sigemptyset(&self->wait_mask);
+    sigaddset(&self->wait_mask, SIGCV);
 
     return 0;
 }
@@ -63,7 +64,7 @@ int cond_signal(cond_t* _Nonnull self)
     if (vp_node) {
         vcpu_t* vp = vcpu_from_wq_node(vp_node);
 
-        sig_raise(vp->id, CV_SIGNAL);
+        sig_raise(vp->id, SIGCV);
     }
 }
 
@@ -84,7 +85,7 @@ int cond_broadcast(cond_t* _Nonnull self)
     SList_ForEach(&wq, SListNode, {
         vcpu_t* vp = vcpu_from_wq_node(pCurNode);
 
-        sig_raise(vp->id, CV_SIGNAL);
+        sig_raise(vp->id, SIGCV);
         pCurNode->next = NULL;
     });
 }
@@ -102,6 +103,7 @@ static int _cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags,
     }
 
     vcpu_t* vp = __vcpu_self();
+    sigset_t sigs;
 
     spin_lock(&self->spinlock);
     SList_InsertAfterLast(&self->wait_queue, &vp->wq_node);
@@ -109,10 +111,10 @@ static int _cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags,
 
     mutex_unlock(mutex);
     if (wtp) {
-        sig_timedwait(flags, wtp, NULL);
+        sig_timedwait(&self->wait_mask, &sigs, flags, wtp);
     }
     else {
-        sig_wait(NULL);
+        sig_wait(&self->wait_mask, &sigs);
     }
 
     mutex_lock(mutex);

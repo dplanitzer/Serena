@@ -68,9 +68,9 @@ static errno_t _do_wait(WaitQueue* _Nonnull self, int flags, VirtualProcessorSch
     
     
     switch (vp->wakeup_reason) {
-        case WAKEUP_REASON_INTERRUPTED: return EINTR;
+        case WAKEUP_REASON_INTERRUPTED: return EINTR;   // XXX merge with SIGNALLED
+        case WAKEUP_REASON_SIGNALLED:   return EINTR;
         case WAKEUP_REASON_TIMEOUT:     return ETIMEDOUT;
-        case WAKEUP_REASON_SIGNALLED:   return EOK;     // Note that the arrival of a signal is the desired outcome for a sigwait()/sigtimedwait(). Remember, this is not POSIX
         default:                        return EOK;
     }
 }

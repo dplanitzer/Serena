@@ -10,17 +10,17 @@
 #include <kpi/syscall.h>
 
 
-int sig_wait(sigset_t* _Nullable sigs)
+int sig_wait(const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs)
 {
-    return (int)_syscall(SC_sig_wait, sigs);
+    return (int)_syscall(SC_sig_wait, mask, sigs);
 }
 
-int sig_timedwait(int flags, const struct timespec* _Nonnull wtp, sigset_t* _Nullable sigs)
+int sig_timedwait(const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs, int flags, const struct timespec* _Nonnull wtp)
 {
-    return (int)_syscall(SC_sig_timedwait, flags, wtp, sigs);
+    return (int)_syscall(SC_sig_timedwait, mask, sigs, flags, wtp);
 }
 
-int sig_raise(int vcpuid, int signo)
+int sig_raise(vcpuid_t vcpuid, int signo)
 {
     return (int)_syscall(SC_sig_raise, vcpuid, signo);
 }

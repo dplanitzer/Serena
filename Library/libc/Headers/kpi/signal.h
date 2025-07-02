@@ -25,4 +25,9 @@ typedef  unsigned int sigset_t;
 #define SIGMIN  1
 #define SIGMAX  32
 
+#define SIGKILL 1
+#define SIGCV   2
+
+#define SIG_NONMASKABLE (SIGKILL)
+
 #endif /* _KPI_VCPU_H */

@@ -203,10 +203,10 @@ extern void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int pr
 
 // Blocks the VP until at least one of the signals enabled in the VPs signal mask
 // arrives. Clears all pending signals and returns them.
-extern errno_t VirtualProcessor_SigWait(struct WaitQueue* _Nonnull swq, int flags, sigset_t* _Nullable pOutSigs);
+extern errno_t VirtualProcessor_SigWait(struct WaitQueue* _Nonnull swq, int flags, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs);
 
 // Same as sigwait() but with a timeout.
-extern errno_t VirtualProcessor_SigTimedWait(struct WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp, sigset_t* _Nullable pOutSigs);
+extern errno_t VirtualProcessor_SigTimedWait(struct WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp);
 
 // Sends a signal to the given VP. Note that the signal number is 1-based.
 extern errno_t VirtualProcessor_SendSignal(VirtualProcessor* _Nonnull self, struct WaitQueue* _Nonnull swq, int signo);
