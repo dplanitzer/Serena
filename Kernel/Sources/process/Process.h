@@ -109,7 +109,7 @@ extern errno_t Process_Wait_UWaitQueue(ProcessRef _Nonnull self, int od);
 extern errno_t Process_SigWait_UWaitQueue(ProcessRef _Nonnull self, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs);
 extern errno_t Process_TimedWait_UWaitQueue(ProcessRef _Nonnull self, int od, int flags, const struct timespec* _Nonnull wtp);
 extern errno_t Process_SigTimedWait_UWaitQueue(ProcessRef _Nonnull self, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp);
-extern errno_t Process_Wakeup_UWaitQueue(ProcessRef _Nonnull self, int od, int options);
+extern errno_t Process_Wakeup_UWaitQueue(ProcessRef _Nonnull self, int od, int flags, int signo);
 
 
 // Allocates more (user) address space to the given process.

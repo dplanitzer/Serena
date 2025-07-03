@@ -68,7 +68,7 @@ int sem_post(sem_t* _Nonnull self, int npermits)
     spin_unlock(&self->spinlock);
 
     if (doWakeup) {
-        wq_wakeup(self->wait_queue, WAKE_ONE);
+        wq_wakeup(self->wait_queue, WAKE_ONE, 0);
     }
 }
 

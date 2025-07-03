@@ -12,7 +12,6 @@
 #include <_cmndef.h>
 #include <time.h>
 #include <sys/mutex.h>
-#include <sys/queue.h>
 #include <sys/signal.h>
 #include <sys/spinlock.h>
 
@@ -20,8 +19,8 @@ __CPP_BEGIN
 
 typedef struct cond {
     spinlock_t  spinlock;
-    SList       wait_queue;
     sigset_t    wait_mask;
+    int         wait_queue;
     int         signature;
 } cond_t;
 

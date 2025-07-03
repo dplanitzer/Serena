@@ -29,6 +29,6 @@ extern errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self);
 extern errno_t UWaitQueue_SigWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs);
 extern errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int flags, const struct timespec* _Nonnull wtp);
 extern errno_t UWaitQueue_SigTimedWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp);
-extern void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags);
+extern void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags, int signo);
 
 #endif /* UWaitQueue_h */

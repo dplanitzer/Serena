@@ -8,9 +8,9 @@
 
 #include <sys/condvar.h>
 #include <kpi/syscall.h>
+#include <sys/waitqueue.h>
 #include <errno.h>
 #include <stddef.h>
-#include "_vcpu.h"
 
 #define CV_SIGNATURE 0x53454d41
 
@@ -20,9 +20,14 @@ int cond_init(cond_t* _Nonnull self)
     self->spinlock = SPINLOCK_INIT;
     self->signature = CV_SIGNATURE;
 
-    SList_Init(&self->wait_queue);
     sigemptyset(&self->wait_mask);
-    sigaddset(&self->wait_mask, SIGCV);
+    sigaddset(&self->wait_mask, SIGSYNCH);
+
+    self->wait_queue = wq_create(WAITQUEUE_FIFO);
+    if (self->wait_queue < 0) {
+        self->signature = 0;
+        return -1;
+    }
 
     return 0;
 }
@@ -34,60 +39,29 @@ int cond_deinit(cond_t* _Nonnull self)
         return -1;
     }
 
-    spin_lock(&self->spinlock);
-    const bool isEmpty = SList_IsEmpty(&self->wait_queue);
-    spin_unlock(&self->spinlock);
+    const int r = _syscall(SC_dispose, self->wait_queue);
     self->signature = 0;
-
-    if (isEmpty) {
-        return 0;
-    }
-    else {
-        errno = EBUSY;
-        return -1;
-    }
+    self->wait_queue = -1;
 }
 
 int cond_signal(cond_t* _Nonnull self)
 {
-    SListNode* vp_node = NULL;
-
     if (self->signature != CV_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
 
-    spin_lock(&self->spinlock);
-    vp_node = SList_RemoveFirst(&self->wait_queue);
-    spin_unlock(&self->spinlock);
-
-    if (vp_node) {
-        vcpu_t* vp = vcpu_from_wq_node(vp_node);
-
-        sig_raise(vp->id, SIGCV);
-    }
+    wq_wakeup(self->wait_queue, WAKE_ONE, SIGSYNCH);
 }
 
 int cond_broadcast(cond_t* _Nonnull self)
 {
-    SList wq = {NULL, NULL};
-
     if (self->signature != CV_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
 
-    spin_lock(&self->spinlock);
-    wq = self->wait_queue;
-    SList_Init(&self->wait_queue);
-    spin_unlock(&self->spinlock);
-
-    SList_ForEach(&wq, SListNode, {
-        vcpu_t* vp = vcpu_from_wq_node(pCurNode);
-
-        sig_raise(vp->id, SIGCV);
-        pCurNode->next = NULL;
-    });
+    wq_wakeup(self->wait_queue, WAKE_ALL, SIGSYNCH);
 }
 
 // We use a signalling wait queue here to ensure that after we've dropped the
@@ -97,24 +71,19 @@ int cond_broadcast(cond_t* _Nonnull self)
 // queue.
 static int _cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags, const struct timespec* _Nullable wtp)
 {
+    sigset_t sigs;
+
     if (self->signature != CV_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
 
-    vcpu_t* vp = __vcpu_self();
-    sigset_t sigs;
-
-    spin_lock(&self->spinlock);
-    SList_InsertAfterLast(&self->wait_queue, &vp->wq_node);
-    spin_unlock(&self->spinlock);
-
     mutex_unlock(mutex);
     if (wtp) {
-        sig_timedwait(&self->wait_mask, &sigs, flags, wtp);
+        wq_sigtimedwait(self->wait_queue, &self->wait_mask, &sigs, flags, wtp);
     }
     else {
-        sig_wait(&self->wait_mask, &sigs);
+        wq_sigwait(self->wait_queue, &self->wait_mask, &sigs);
     }
 
     mutex_lock(mutex);

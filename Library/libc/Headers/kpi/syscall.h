@@ -66,7 +66,7 @@ enum {
     SC_wq_create,           // int wq_create(int policy)
     SC_wq_wait,             // int wq_wait(int q)
     SC_wq_timedwait,        // int wq_timedwait(int q, int options, const struct timespec* _Nonnull wtp)
-    SC_wq_wakeup,           // int wq_wakeup(int q, int flags)
+    SC_wq_wakeup,           // int wq_wakeup(int q, int flags, int signo)
     SC_sig_wait,            // int sig_wait(const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs)
     SC_sig_timedwait,       // int sig_timedwait(const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs, int flags, const struct timespec* _Nonnull wtp)
     SC_sig_raise,           // int sig_raise(int vcpuid, int signo)

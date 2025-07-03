@@ -111,6 +111,6 @@ int mutex_unlock(mutex_t* _Nonnull self)
     spin_unlock(&self->spinlock);
 
     if (doWakeup) {
-        wq_wakeup(self->wait_queue, WAKE_ONE);
+        wq_wakeup(self->wait_queue, WAKE_ONE, 0);
     }
 }

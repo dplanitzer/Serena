@@ -52,8 +52,12 @@ extern int wq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp);
 // instead.
 extern int wq_sigtimedwait(int q, const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs, int flags, const struct timespec* _Nonnull wtp);
 
-// Wakes up either one or all vcpus waiting on the wait queue.  
-extern int wq_wakeup(int q, int flags);
+// Wakes up a single waiter or all waiters on the wait queue depending on how
+// the 'flags' are configured. 'signo' must be a valid signal number in order
+// to wake up a sigwait(), sigtimedwait(), wait() or timedwait(). If 'signo' is
+// 0 then this function will only wake up a wait() or timedwait() but not a
+// sigwait() nor a sigtimedwait(). 
+extern int wq_wakeup(int q, int flags, int signo);
 
 __CPP_END
 

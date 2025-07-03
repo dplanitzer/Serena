@@ -94,11 +94,12 @@ errno_t UWaitQueue_SigTimedWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nu
 }
 
 
-void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags)
+void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags, int signo)
 {
     const int wflags = ((flags & WAKE_ONE) == WAKE_ONE) ? WAKEUP_ONE : WAKEUP_ALL;
     const int sps = preempt_disable();
     
+    // XXX handle signo
     WaitQueue_Wakeup(&self->wq,
                         wflags | WAKEUP_CSW,
                         WAKEUP_REASON_FINISHED);

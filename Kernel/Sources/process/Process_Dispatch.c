@@ -75,13 +75,13 @@ errno_t Process_SigTimedWait_UWaitQueue(ProcessRef _Nonnull self, int od, const 
 }
 
 
-errno_t Process_Wakeup_UWaitQueue(ProcessRef _Nonnull self, int od, int flags)
+errno_t Process_Wakeup_UWaitQueue(ProcessRef _Nonnull self, int od, int flags, int signo)
 {
     decl_try_err();
     UWaitQueueRef p;
 
     if ((err = UResourceTable_BeginDirectResourceAccessAs(&self->uResourcesTable, od, UWaitQueue, &p)) == EOK) {
-        UWaitQueue_Wakeup(p, flags);
+        UWaitQueue_Wakeup(p, flags, signo);
         UResourceTable_EndDirectResourceAccess(&self->uResourcesTable);
     }
     return err;

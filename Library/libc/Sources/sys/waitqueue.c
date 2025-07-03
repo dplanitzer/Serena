@@ -42,7 +42,7 @@ int wq_sigtimedwait(int q, const sigset_t* _Nullable mask, sigset_t* _Nonnull si
     return (int)_syscall(SC_wq_sigtimedwait, q, mask, sigs, flags, wtp);
 }
 
-int wq_wakeup(int q, int flags)
+int wq_wakeup(int q, int flags, int signo)
 {
     return (int)_syscall(SC_wq_wakeup, q, flags);
 }

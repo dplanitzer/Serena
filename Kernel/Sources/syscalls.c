@@ -454,9 +454,9 @@ SYSCALL_5(wq_sigtimedwait, int od, const sigset_t* _Nullable mask, sigset_t* _No
     return Process_SigTimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->mask, pa->pOutSigs, pa->flags, pa->wtp);
 }
 
-SYSCALL_2(wq_wakeup, int od, int flags)
+SYSCALL_3(wq_wakeup, int od, int flags, int signo)
 {
-    return Process_Wakeup_UWaitQueue((ProcessRef)p, pa->od, pa->flags);
+    return Process_Wakeup_UWaitQueue((ProcessRef)p, pa->od, pa->flags, pa->signo);
 }
 
 SYSCALL_2(sig_wait, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs)
