@@ -70,6 +70,8 @@ int sem_post(sem_t* _Nonnull self, int npermits)
     if (doWakeup) {
         wq_wakeup(self->wait_queue, WAKE_ONE, 0);
     }
+
+    return 0;
 }
 
 int sem_wait(sem_t* _Nonnull self, int npermits)
@@ -106,6 +108,7 @@ int sem_wait(sem_t* _Nonnull self, int npermits)
         wq_wait(self->wait_queue);
         didWakeup = true;
     }
+    /* NOT REACHED */
 }
 
 int sem_timedwait(sem_t* _Nonnull self, int npermits, int flags, const struct timespec* _Nonnull wtp)
@@ -142,6 +145,7 @@ int sem_timedwait(sem_t* _Nonnull self, int npermits, int flags, const struct ti
         wq_timedwait(self->wait_queue, flags, wtp);
         didWakeup = true;
     }
+    /* NOT REACHED */
 }
 
 int sem_trywait(sem_t* _Nonnull self, int npermits)

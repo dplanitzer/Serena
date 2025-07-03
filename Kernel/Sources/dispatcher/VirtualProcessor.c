@@ -120,13 +120,13 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull self, int priority)
     ListNode_Init(&self->timeout.queue_entry);
     
     self->psigs = 0;
-    self->sigmask = UINT32_MAX;
+    self->sigmask = 0;
 
     self->timeout.deadline = kQuantums_Infinity;
     self->timeout.owner = (void*)self;
     self->timeout.is_valid = false;
     self->waiting_on_wait_queue = NULL;
-    self->wakeup_reason = WAKEUP_REASON_NONE;
+    self->wakeup_reason = 0;
     
     self->sched_state = kVirtualProcessorState_Ready;
     self->flags = 0;
@@ -306,7 +306,7 @@ errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull self)
             if (self->sched_state == kVirtualProcessorState_Waiting) {
                 WaitQueue_Wakeup(self->waiting_on_wait_queue,
                                     WAKEUP_ALL,
-                                    WAKEUP_REASON_INTERRUPTED);
+                                    SIGKILL);
             }
         } else {
             // User space:
@@ -510,19 +510,20 @@ errno_t VirtualProcessor_SetSignalMask(VirtualProcessor* _Nonnull self, int op, 
     decl_try_err();
     VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
+    const sigset_t newMask = mask & SIG_NONMASKABLE;
     const sigset_t oldMask = self->sigmask;
 
     switch (op) {
         case SIG_SETMASK:
-            self->sigmask = mask;
+            self->sigmask = newMask;
             break;
 
         case SIG_BLOCK:
-            self->sigmask |= mask;
+            self->sigmask |= newMask;
             break;
 
         case SIG_UNBLOCK:
-            self->sigmask &= ~mask;
+            self->sigmask &= ~newMask;
             break;
 
         default:

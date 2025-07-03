@@ -193,7 +193,7 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
         }
         
         VirtualProcessor* vp = (VirtualProcessor*)ct->owner;
-        WaitQueue_WakeupOne(vp->waiting_on_wait_queue, vp, 0, WAKEUP_REASON_TIMEOUT);
+        WaitQueue_WakeupOne(vp->waiting_on_wait_queue, vp, WAKEUP_TIMEDOUT, 0);
     }
     
     
@@ -354,7 +354,7 @@ _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorSc
         WaitQueue_WakeupOne(&gSchedulerWaitQueue,
                         self->bootVirtualProcessor,
                         WAKEUP_CSW,
-                        WAKEUP_REASON_FINISHED);
+                        0);
     } else {
         // Do a forced context switch to whoever is ready
         // NOTE: we do NOT put the currently running VP back on the ready queue

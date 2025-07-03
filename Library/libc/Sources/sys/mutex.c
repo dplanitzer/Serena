@@ -91,6 +91,7 @@ int mutex_lock(mutex_t* _Nonnull self)
         wq_wait(self->wait_queue);
         didWakeup = true;
     }
+    /* NOT REACHED */
 }
 
 int mutex_unlock(mutex_t* _Nonnull self)
@@ -113,4 +114,6 @@ int mutex_unlock(mutex_t* _Nonnull self)
     if (doWakeup) {
         wq_wakeup(self->wait_queue, WAKE_ONE, 0);
     }
+    
+    return 0;
 }

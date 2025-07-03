@@ -81,7 +81,7 @@ errno_t Process_Wakeup_UWaitQueue(ProcessRef _Nonnull self, int od, int flags, i
     UWaitQueueRef p;
 
     if ((err = UResourceTable_BeginDirectResourceAccessAs(&self->uResourcesTable, od, UWaitQueue, &p)) == EOK) {
-        UWaitQueue_Wakeup(p, flags, signo);
+        err = UWaitQueue_Wakeup(p, flags, signo);
         UResourceTable_EndDirectResourceAccess(&self->uResourcesTable);
     }
     return err;

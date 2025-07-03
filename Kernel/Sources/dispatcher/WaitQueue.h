@@ -33,14 +33,8 @@ struct VirtualProcessor;
 // Allow wakeup() to do a context switch
 #define WAKEUP_CSW  2
 
-
-// Reason for a wake up
-// WAKEUP_REASON_NONE means that we are still waiting for a wakeup
-#define WAKEUP_REASON_NONE          0
-#define WAKEUP_REASON_FINISHED      1
-#define WAKEUP_REASON_INTERRUPTED   2
-#define WAKEUP_REASON_TIMEOUT       3
-#define WAKEUP_REASON_SIGNALLED     4
+// Wakeup due to hitting the wait timeout
+#define WAKEUP_TIMEDOUT  4
 
 
 typedef struct WaitQueue {
@@ -83,12 +77,12 @@ extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* 
 // will happen. Returns true if the vp has been made ready to run; false otherwise.
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
-extern bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp, int flags, int reason);
+extern bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp, int flags, int signo);
 
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue. Expects to be called with preemption disabled.
 // @Entry Condition: preemption disabled
-extern void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int reason);
+extern void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int signo);
 
 // Adds all VPs on the given list to the ready queue. The VPs are removed from
 // the wait queue. Expects to be called from an interrupt context and thus defers

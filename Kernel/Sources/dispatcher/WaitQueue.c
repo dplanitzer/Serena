@@ -53,7 +53,7 @@ static errno_t _do_wait(WaitQueue* _Nonnull self, int flags, VirtualProcessorSch
     vp->sched_state = kVirtualProcessorState_Waiting;
     vp->waiting_on_wait_queue = self;
     vp->wait_start_time = MonotonicClock_GetCurrentQuantums();
-    vp->wakeup_reason = WAKEUP_REASON_NONE;
+    vp->wakeup_reason = 0;
 
     if ((flags & WAIT_INTERRUPTABLE) == WAIT_INTERRUPTABLE) {
         vp->flags |= VP_FLAG_INTERRUPTABLE_WAIT;
@@ -67,11 +67,14 @@ static errno_t _do_wait(WaitQueue* _Nonnull self, int flags, VirtualProcessorSch
             VirtualProcessorScheduler_GetHighestPriorityReady(ps));
     
     
-    switch (vp->wakeup_reason) {
-        case WAKEUP_REASON_INTERRUPTED: return EINTR;   // XXX merge with SIGNALLED
-        case WAKEUP_REASON_SIGNALLED:   return EINTR;
-        case WAKEUP_REASON_TIMEOUT:     return ETIMEDOUT;
-        default:                        return EOK;
+    if (vp->wakeup_reason) {
+        return ETIMEDOUT;
+    }
+    else if (vp->psigs) {
+        return EINTR;
+    }
+    else {
+        return EOK;
     }
 }
 
@@ -202,30 +205,6 @@ errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullab
 }
 
 
-#if 0
-errno_t VirtualProcessor_SendSignal(VirtualProcessor* _Nonnull self, WaitQueue* _Nonnull swq, int signo)
-{
-    if (signo == 0) {
-        return EOK;
-    }
-    if (signo < SIGMIN || signo > SIGMAX) {
-        return EINVAL;
-    }
-
-    const int sps = preempt_disable();
-    const uint32_t sigbit = 1 << (signo - 1);
-
-    if (sigbit) {
-        self->psigs |= sigbit;
-
-        WaitQueue_WakeupOne(swq, self, wakeup_csw, WAKEUP_REASON_SIGNALLED);
-    }
-    preempt_restore(sps);
-
-    return EOK;
-}
-#endif
-
 // Adds the given VP from the given wait queue to the ready queue. The VP is removed
 // from the wait queue. The scheduler guarantees that a wakeup operation will never
 // fail with an error. This doesn't mean that calling this function will always
@@ -233,10 +212,21 @@ errno_t VirtualProcessor_SendSignal(VirtualProcessor* _Nonnull self, WaitQueue* 
 // will happen. Returns true if the vp has been made ready to run; false otherwise.
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
-bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp, int flags, int reason)
+bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp, int flags, int signo)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     bool isReady;
+
+
+    // Update the signal state if a signal was provided
+    if (signo) {
+        const sigset_t sigbit = 1 << (signo - 1);
+
+        vp->psigs |= sigbit;
+        if ((sigbit & ~vp->sigmask) == 0) {
+            return false;
+        }
+    }
 
 
     // Nothing to do if we are not waiting
@@ -246,7 +236,7 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
     
 
     // Do not wake up the virtual processor if it is in an uninterruptible wait.
-    if (reason == WAKEUP_REASON_INTERRUPTED && (vp->flags & VP_FLAG_INTERRUPTABLE_WAIT) == 0) {
+    if (signo && (vp->flags & VP_FLAG_INTERRUPTABLE_WAIT) == 0) {
         return false;
     }
 
@@ -258,7 +248,7 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
     VirtualProcessorScheduler_CancelTimeout(ps, vp);
     
     vp->waiting_on_wait_queue = NULL;
-    vp->wakeup_reason = reason;
+    vp->wakeup_reason = (flags & WAKEUP_TIMEDOUT) == WAKEUP_TIMEDOUT ? 1 : 0;
     vp->flags &= ~VP_FLAG_INTERRUPTABLE_WAIT;
     
     
@@ -285,10 +275,11 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
 
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue. Expects to be called with preemption disabled.
-void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int reason)
+void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int signo)
 {
     register ListNode* cp = self->q.first;
     register bool isWakeupOne = ((flags & WAKEUP_ONE) == WAKEUP_ONE);
+    int woFlags = flags & WAKEUP_TIMEDOUT;
     VirtualProcessor* pRunCandidate = NULL;
 
     
@@ -296,7 +287,7 @@ void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int reason)
     while (cp) {
         register ListNode* np = cp->next;
         register VirtualProcessor* vp = (VirtualProcessor*)cp;
-        register const bool isReady = WaitQueue_WakeupOne(self, vp, 0, reason);
+        register const bool isReady = WaitQueue_WakeupOne(self, vp, woFlags, signo);
 
         if (pRunCandidate == NULL && isReady) {
             pRunCandidate = vp;
@@ -326,7 +317,7 @@ void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self)
     while (cp) {
         register ListNode* np = cp->next;
         
-        WaitQueue_WakeupOne(self, (VirtualProcessor*)cp, 0, WAKEUP_REASON_FINISHED);
+        WaitQueue_WakeupOne(self, (VirtualProcessor*)cp, 0, 0);
         cp = np;
     }
 }

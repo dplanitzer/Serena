@@ -42,6 +42,8 @@ int cond_deinit(cond_t* _Nonnull self)
     const int r = _syscall(SC_dispose, self->wait_queue);
     self->signature = 0;
     self->wait_queue = -1;
+
+    return 0;
 }
 
 int cond_signal(cond_t* _Nonnull self)
@@ -52,6 +54,7 @@ int cond_signal(cond_t* _Nonnull self)
     }
 
     wq_wakeup(self->wait_queue, WAKE_ONE, SIGSYNCH);
+    return 0;
 }
 
 int cond_broadcast(cond_t* _Nonnull self)
@@ -62,6 +65,7 @@ int cond_broadcast(cond_t* _Nonnull self)
     }
 
     wq_wakeup(self->wait_queue, WAKE_ALL, SIGSYNCH);
+    return 0;
 }
 
 // We use a signalling wait queue here to ensure that after we've dropped the
@@ -87,6 +91,8 @@ static int _cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags,
     }
 
     mutex_lock(mutex);
+
+    return 0;
 }
 
 int cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex)
