@@ -8,7 +8,7 @@
 
 #include <errno.h>
 #include <limits.h>
-#include <sys/signal.h>
+#include <signal.h>
 
 
 int sigemptyset(sigset_t* _Nonnull set)

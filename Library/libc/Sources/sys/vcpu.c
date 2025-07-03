@@ -16,6 +16,19 @@ vcpuid_t vcpu_self(void)
     return (vcpuid_t)_syscall(SC_vcpu_self);
 }
 
+sigset_t vcpu_sigmask(void)
+{
+    sigset_t mask;
+
+    (void)_syscall(SC_vcpu_setsigmask, SIG_BLOCK, 0, &mask);
+    return mask;
+}
+
+int vcpu_setsigmask(int op, sigset_t mask, sigset_t* _Nullable oldmask)
+{
+    return (int)_syscall(SC_vcpu_setsigmask, op, mask, oldmask);
+}
+
 intptr_t __vcpu_getdata(void)
 {
     return (intptr_t)_syscall(SC_vcpu_getdata);

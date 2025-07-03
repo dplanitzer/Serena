@@ -64,7 +64,6 @@ errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t
     try(UResourceTable_Init(&self->uResourcesTable));
 
     WaitQueue_Init(&self->sleepQueue);
-    WaitQueue_Init(&self->siwaQueue);
     FileManager_Init(&self->fm, pFileHierarchy, uid, gid, pRootDir, pWorkingDir, umask);
 
     List_Init(&self->tombstones);
@@ -109,7 +108,6 @@ void Process_deinit(ProcessRef _Nonnull self)
     AddressSpace_Destroy(self->addressSpace);
 
     WaitQueue_Deinit(&self->sleepQueue);
-    WaitQueue_Deinit(&self->siwaQueue);
 
     self->addressSpace = NULL;
     self->imageBase = NULL;

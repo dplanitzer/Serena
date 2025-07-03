@@ -46,10 +46,10 @@ extern int wq_sigwait(int q, const sigset_t* _Nullable mask, sigset_t* _Nonnull 
 // instead.
 extern int wq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp);
 
-// Like sig_wait() but limits the waiting time to the timeout 'wtp'. 'wtp' is by
-// default interpreted as a duration that will be added to the current time. Pass
-// TIMER_ABSTIME if 'wtp' should be interpreted as an absolute point in time
-// instead.
+// Like wq_sigwait() but limits the waiting time to the timeout 'wtp'. 'wtp' is
+// by default interpreted as a duration that will be added to the current time.
+// Pass TIMER_ABSTIME if 'wtp' should be interpreted as an absolute point in
+// time instead.
 extern int wq_sigtimedwait(int q, const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs, int flags, const struct timespec* _Nonnull wtp);
 
 // Wakes up a single waiter or all waiters on the wait queue depending on how

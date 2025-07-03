@@ -83,6 +83,31 @@ errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int flags)
     return _do_wait(self, flags, ps, vp);
 }
 
+errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, int flags, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs)
+{
+    decl_try_err();
+    const int sps = preempt_disable();
+    VirtualProcessor* vp = (VirtualProcessor*)gVirtualProcessorScheduler->running;
+    const sigset_t sigmask = (mask) ? *mask : vp->sigmask;
+
+    do {
+        const sigset_t psigs = vp->psigs & sigmask;
+
+        if (psigs) {
+            *pOutSigs = psigs;
+            vp->psigs &= ~sigmask;
+            break;
+        }
+
+        // Waiting temporarily reenables preemption
+        err = WaitQueue_Wait(self, flags);
+    } while (err == EOK);
+
+    preempt_restore(sps);
+
+    return err;
+}
+
 errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
@@ -137,6 +162,69 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct ti
     return err;
 }
 
+errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp)
+{
+    decl_try_err();
+    struct timespec now, deadline;
+    
+    // Convert a relative timeout to an absolute timeout because it makes it
+    // easier to deal with spurious wakeups and we won't accumulate math errors
+    // caused by time resolution limitations.
+    if ((flags & WAIT_ABSTIME) == WAIT_ABSTIME) {
+        deadline = *wtp;
+    }
+    else {
+        MonotonicClock_GetCurrentTime(&now);
+        timespec_add(&now, wtp, &deadline);
+    }
+
+
+    const int sps = preempt_disable();
+    VirtualProcessor* vp = (VirtualProcessor*)gVirtualProcessorScheduler->running;
+    const sigset_t sigmask = (mask) ? *mask : vp->sigmask;
+
+    do {
+        const sigset_t psigs = vp->psigs & vp->sigmask;
+
+        if (psigs) {
+            *pOutSigs = psigs;
+            vp->psigs &= ~vp->sigmask;
+            break;
+        }
+
+        // Waiting temporarily reenables preemption
+        err = WaitQueue_TimedWait(self, flags, &deadline, NULL);
+    } while (err == EOK);
+
+    preempt_restore(sps);
+
+    return err;
+}
+
+
+#if 0
+errno_t VirtualProcessor_SendSignal(VirtualProcessor* _Nonnull self, WaitQueue* _Nonnull swq, int signo)
+{
+    if (signo == 0) {
+        return EOK;
+    }
+    if (signo < SIGMIN || signo > SIGMAX) {
+        return EINVAL;
+    }
+
+    const int sps = preempt_disable();
+    const uint32_t sigbit = 1 << (signo - 1);
+
+    if (sigbit) {
+        self->psigs |= sigbit;
+
+        WaitQueue_WakeupOne(swq, self, WAKEUP_REASON_SIGNALLED, true);
+    }
+    preempt_restore(sps);
+
+    return EOK;
+}
+#endif
 
 // Adds the given VP from the given wait queue to the ready queue. The VP is removed
 // from the wait queue. The scheduler guarantees that a wakeup operation will never

@@ -33,7 +33,7 @@ typedef struct syscall {
 #define SC_ERRNO    1   /* System call returns an error that should be stored in vcpu->errno */
 #define SC_VCPU     2   /* System call expects a vcpu_t* rather than a proc_t* */
 
-#define SYSCALL_COUNT   61
+#define SYSCALL_COUNT   58
 static const syscall_t gSystemCallTable[SYSCALL_COUNT];
 
 
@@ -459,38 +459,12 @@ SYSCALL_3(wq_wakeup, int od, int flags, int signo)
     return Process_Wakeup_UWaitQueue((ProcessRef)p, pa->od, pa->flags, pa->signo);
 }
 
-SYSCALL_2(sig_wait, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs)
-{
-    ProcessRef pp = (ProcessRef)p;
-
-    return VirtualProcessor_SigWait(&pp->siwaQueue, WAIT_INTERRUPTABLE, pa->mask, pa->pOutSigs);
-}
-
-SYSCALL_4(sig_timedwait, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp)
-{
-    ProcessRef pp = (ProcessRef)p;
-
-    return VirtualProcessor_SigTimedWait(&pp->siwaQueue, pa->mask, pa->pOutSigs, pa->flags | WAIT_INTERRUPTABLE, pa->wtp);
-}
-
-SYSCALL_2(sig_raise, int vcpu, int signo)
-{
-#if 0
-    ProcessRef pp = (ProcessRef)p;
-    VirtualProcessor* vp = NULL;    //XXX look up vp based on id
-
-    return VirtualProcessor_SendSignal(vp, &pp->siwaQueue, pa->signo);
-#else
-    return ENOTSUP;
-#endif
-}
-
 SYSCALL_0(vcpu_self)
 {
     return (intptr_t)((VirtualProcessor*)p)->vpid;
 }
 
-SYSCALL_3(sig_setmask, int op, sigset_t mask, sigset_t* _Nullable oldmask)
+SYSCALL_3(vcpu_setsigmask, int op, sigset_t mask, sigset_t* _Nullable oldmask)
 {
     return VirtualProcessor_SetSignalMask((VirtualProcessor*)p, pa->op, pa->mask, pa->oldmask);
 }
@@ -560,11 +534,8 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(wq_wait, SC_ERRNO),
     SYSCALL_ENTRY(wq_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_wakeup, SC_ERRNO),
-    SYSCALL_ENTRY(sig_wait, SC_ERRNO),
-    SYSCALL_ENTRY(sig_timedwait, SC_ERRNO),
-    SYSCALL_ENTRY(sig_raise, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_self, SC_VCPU),
-    SYSCALL_ENTRY(sig_setmask, SC_VCPU|SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_setsigmask, SC_VCPU|SC_ERRNO),
     SYSCALL_ENTRY(vcpu_getdata, SC_VCPU),
     SYSCALL_ENTRY(vcpu_setdata, SC_VCPU),
     SYSCALL_ENTRY(wq_sigwait, SC_ERRNO),

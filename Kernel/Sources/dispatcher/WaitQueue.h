@@ -14,6 +14,7 @@
 #include <kern/types.h>
 #include <kern/limits.h>
 #include <klib/List.h>
+#include <kpi/signal.h>
 
 struct VirtualProcessor;
 
@@ -64,11 +65,15 @@ extern errno_t WaitQueue_Deinit(WaitQueue* self);
 // @Entry Condition: preemption disabled
 extern errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int flags);
 
+extern errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, int flags, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs);
+
 // Same as wait() but with support for timeouts. If 'wtp' is not NULL then 'wtp' is
 // either the maximum duration to wait or the absolute time until to wait. The
 // WAIT_ABSTIME specifies an absolute time. 'rmtp' is an optional timespec that
 // receives the amount of time remaining if the wait was canceled early.
 extern errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
+
+extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp);
 
 
 // Adds the given VP from the given wait queue to the ready queue. The VP is removed

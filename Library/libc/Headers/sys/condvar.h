@@ -9,10 +9,9 @@
 #ifndef _SYS_CONDVAR_H
 #define _SYS_CONDVAR_H 1
 
-#include <_cmndef.h>
+#include <signal.h>
 #include <time.h>
 #include <sys/mutex.h>
-#include <sys/signal.h>
 #include <sys/spinlock.h>
 
 __CPP_BEGIN

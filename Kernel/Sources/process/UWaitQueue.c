@@ -57,7 +57,7 @@ errno_t UWaitQueue_SigWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nullabl
     decl_try_err();
     const int sps = preempt_disable();
 
-    err = VirtualProcessor_SigWait(&self->wq, WAIT_INTERRUPTABLE, mask, pOutSigs);
+    err = WaitQueue_SigWait(&self->wq, WAIT_INTERRUPTABLE, mask, pOutSigs);
     preempt_restore(sps);
 
     return err;
@@ -83,7 +83,7 @@ errno_t UWaitQueue_SigTimedWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nu
     decl_try_err();
     const int sps = preempt_disable();
     
-    err = VirtualProcessor_SigTimedWait(&self->wq,
+    err = WaitQueue_SigTimedWait(&self->wq,
                             mask, pOutSigs,
                             WAIT_INTERRUPTABLE | flags,
                             wtp);
