@@ -353,7 +353,7 @@ _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorSc
         // The scheduler VP is currently waiting for work. Let's wake it up.
         WaitQueue_WakeupOne(&gSchedulerWaitQueue,
                         self->bootVirtualProcessor,
-                        WAKEUP_REASON_INTERRUPTED,
+                        WAKEUP_REASON_FINISHED,
                         true);
     } else {
         // Do a forced context switch to whoever is ready
@@ -384,7 +384,7 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull self
         // Continue to wait as long as there's nothing to finalize
         while (List_IsEmpty(&self->finalizer_queue)) {
             (void)WaitQueue_TimedWait(&gSchedulerWaitQueue,
-                                WAIT_INTERRUPTABLE,
+                                0,
                                 &timeout,
                                 NULL);
         }
