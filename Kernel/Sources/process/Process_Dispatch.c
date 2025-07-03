@@ -38,13 +38,37 @@ errno_t Process_Wait_UWaitQueue(ProcessRef _Nonnull self, int od)
     return err;
 }
 
-errno_t Process_TimedWait_UWaitQueue(ProcessRef _Nonnull self, int od, int options, const struct timespec* _Nonnull wtp)
+errno_t Process_SigWait_UWaitQueue(ProcessRef _Nonnull self, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs)
 {
     decl_try_err();
     UWaitQueueRef p;
 
     if ((err = UResourceTable_AcquireResourceAs(&self->uResourcesTable, od, UWaitQueue, &p)) == EOK) {
-        err = UWaitQueue_TimedWait(p, options, wtp);
+        err = UWaitQueue_SigWait(p, mask, pOutSigs);
+        UResourceTable_RelinquishResource(&self->uResourcesTable, p);
+    }
+    return err;
+}
+
+errno_t Process_TimedWait_UWaitQueue(ProcessRef _Nonnull self, int od, int flags, const struct timespec* _Nonnull wtp)
+{
+    decl_try_err();
+    UWaitQueueRef p;
+
+    if ((err = UResourceTable_AcquireResourceAs(&self->uResourcesTable, od, UWaitQueue, &p)) == EOK) {
+        err = UWaitQueue_TimedWait(p, flags, wtp);
+        UResourceTable_RelinquishResource(&self->uResourcesTable, p);
+    }
+    return err;
+}
+
+errno_t Process_SigTimedWait_UWaitQueue(ProcessRef _Nonnull self, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp)
+{
+    decl_try_err();
+    UWaitQueueRef p;
+
+    if ((err = UResourceTable_AcquireResourceAs(&self->uResourcesTable, od, UWaitQueue, &p)) == EOK) {
+        err = UWaitQueue_SigTimedWait(p, mask, pOutSigs, flags, wtp);
         UResourceTable_RelinquishResource(&self->uResourcesTable, p);
     }
     return err;

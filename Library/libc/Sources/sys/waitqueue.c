@@ -27,9 +27,19 @@ int wq_wait(int q)
     return (int)_syscall(SC_wq_wait, q);
 }
 
+int wq_sigwait(int q, const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs)
+{
+    return (int)_syscall(SC_wq_sigwait, q, mask, sigs);
+}
+
 int wq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp)
 {
     return (int)_syscall(SC_wq_timedwait, q, flags, wtp);
+}
+
+int wq_sigtimedwait(int q, const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs, int flags, const struct timespec* _Nonnull wtp)
+{
+    return (int)_syscall(SC_wq_sigtimedwait, q, mask, sigs, flags, wtp);
 }
 
 int wq_wakeup(int q, int flags)

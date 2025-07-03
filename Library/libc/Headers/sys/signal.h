@@ -24,13 +24,11 @@ extern int sigdelset(sigset_t* _Nonnull set, int signo);
 extern int sigismember(const sigset_t* _Nonnull set, int signo);
 
 
-// Atomically and temporarily replaces the signal mask of the calling vcpu with
-// 'mask' if not NULL and then checks whether at least one signal enabled by the
-// mask is pending. This signal and all other pending and enabled signals are
-// returned in 'sigs' and then cleared from the pending signal set. If 'mask'
-// is NULL then the current signal mask of the calling vcpu is used. The
-// original signal mask of the vcpu is reestablished after the wait completes
-// and before this call returns.
+// Atomically replaces the current signal mask with 'mask' and waits for the
+// arrival of a signal that is not blocked by the signal mask in effect. All
+// unblocked signals are returned and cleared from the pending signal set. If
+// 'mask' is NULL then the current signal mask is used. The original signal mask
+// is restored after the wait has completed.
 extern int sig_wait(const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs);
 
 // Like sig_wait() but limits the waiting time to the timeout 'wtp'. 'wtp' is by

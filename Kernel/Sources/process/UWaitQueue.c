@@ -52,15 +52,41 @@ errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self)
     return err;
 }
 
-errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int options, const struct timespec* _Nonnull wtp)
+errno_t UWaitQueue_SigWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs)
+{
+    decl_try_err();
+    const int sps = preempt_disable();
+
+    err = VirtualProcessor_SigWait(&self->wq, WAIT_INTERRUPTABLE, mask, pOutSigs);
+    preempt_restore(sps);
+
+    return err;
+}
+
+errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int flags, const struct timespec* _Nonnull wtp)
 {
     decl_try_err();
     const int sps = preempt_disable();
     
     err = WaitQueue_TimedWait(&self->wq, 
-                            WAIT_INTERRUPTABLE | options,
+                            WAIT_INTERRUPTABLE | flags,
                             wtp,
                             NULL);
+
+    preempt_restore(sps);
+    
+    return err;
+}
+
+errno_t UWaitQueue_SigTimedWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp)
+{
+    decl_try_err();
+    const int sps = preempt_disable();
+    
+    err = VirtualProcessor_SigTimedWait(&self->wq,
+                            mask, pOutSigs,
+                            WAIT_INTERRUPTABLE | flags,
+                            wtp);
 
     preempt_restore(sps);
     

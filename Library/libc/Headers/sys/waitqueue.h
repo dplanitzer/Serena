@@ -12,6 +12,7 @@
 #include <_cmndef.h>
 #include <_null.h>
 #include <kpi/_time.h>
+#include <kpi/signal.h>
 #include <kpi/waitqueue.h>
 
 __CPP_BEGIN
@@ -31,12 +32,25 @@ extern int wq_create(int policy);
 // Waits on the wait queue until another vcpu calls wakeup() on the queue.
 extern int wq_wait(int q);
 
+// Atomically replaces the current signal mask with 'mask' and waits for the
+// arrival of a signal that is not blocked by the signal mask in effect. All
+// unblocked signals are returned and cleared from the pending signal set. If
+// 'mask' is NULL then the current signal mask is used. The original signal mask
+// is restored after the wait has completed.
+extern int wq_sigwait(int q, const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs);
+
 // Waits on the wait queue until another vcpu calls wakeup() on the queue or
 // until the timeout 'wtp' is reached. Whatever comes first. 'wtp' is by default
 // interpreted as a duration that will be added to the current time. Pass
 // TIMER_ABSTIME if 'wtp' should be interpreted as an absolute point in time
 // instead.
 extern int wq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp);
+
+// Like sig_wait() but limits the waiting time to the timeout 'wtp'. 'wtp' is by
+// default interpreted as a duration that will be added to the current time. Pass
+// TIMER_ABSTIME if 'wtp' should be interpreted as an absolute point in time
+// instead.
+extern int wq_sigtimedwait(int q, const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs, int flags, const struct timespec* _Nonnull wtp);
 
 // Wakes up either one or all vcpus waiting on the wait queue.  
 extern int wq_wakeup(int q, int flags);

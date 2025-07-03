@@ -33,7 +33,7 @@ typedef struct syscall {
 #define SC_ERRNO    1   /* System call returns an error that should be stored in vcpu->errno */
 #define SC_VCPU     2   /* System call expects a vcpu_t* rather than a proc_t* */
 
-#define SYSCALL_COUNT   59
+#define SYSCALL_COUNT   61
 static const syscall_t gSystemCallTable[SYSCALL_COUNT];
 
 
@@ -437,9 +437,21 @@ SYSCALL_1(wq_wait, int od)
     return Process_Wait_UWaitQueue((ProcessRef)p, pa->od);
 }
 
-SYSCALL_3(wq_timedwait, int od, int options, const struct timespec* _Nonnull wtp)
+SYSCALL_3(wq_sigwait, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs)
 {
-    return Process_TimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->options, pa->wtp);
+    ProcessRef pp = (ProcessRef)p;
+
+    return Process_SigWait_UWaitQueue((ProcessRef)p, pa->od, pa->mask, pa->pOutSigs);
+}
+
+SYSCALL_3(wq_timedwait, int od, int flags, const struct timespec* _Nonnull wtp)
+{
+    return Process_TimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->flags, pa->wtp);
+}
+
+SYSCALL_5(wq_sigtimedwait, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp)
+{
+    return Process_SigTimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->mask, pa->pOutSigs, pa->flags, pa->wtp);
 }
 
 SYSCALL_2(wq_wakeup, int od, int flags)
@@ -555,4 +567,6 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(sig_setmask, SC_VCPU|SC_ERRNO),
     SYSCALL_ENTRY(vcpu_getdata, SC_VCPU),
     SYSCALL_ENTRY(vcpu_setdata, SC_VCPU),
+    SYSCALL_ENTRY(wq_sigwait, SC_ERRNO),
+    SYSCALL_ENTRY(wq_sigtimedwait, SC_ERRNO),
 };

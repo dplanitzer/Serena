@@ -74,6 +74,8 @@ enum {
     SC_sig_setmask,         // int sig_setmask(int op, sigset_t mask, sigset_t* _Nullable oldmask)
     SC_vcpu_getdata,        // intptr_t __vcpu_getdata(void)
     SC_vcpu_setdata,        // void __vcpu_setdata(intptr_t data)
+    SC_wq_sigwait,          // int wq_sigwait(int q, const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs)
+    SC_wq_sigtimedwait,     // int wq_sigtimedwait(int q, const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs, int flags, const struct timespec* _Nonnull wtp)
 };
 
 
