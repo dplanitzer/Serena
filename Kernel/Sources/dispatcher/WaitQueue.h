@@ -83,7 +83,7 @@ extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* 
 // will happen. Returns true if the vp has been made ready to run; false otherwise.
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
-extern bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp, int reason, bool allowContextSwitch);
+extern bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp, int flags, int reason);
 
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue. Expects to be called with preemption disabled.
@@ -96,13 +96,6 @@ extern void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int reason);
 // @Entry Condition: preemption disabled
 // @Interrupt Context: Safe
 extern void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self);
-
-// Sends a signal to the wait queue. This will wake up one or all VPs that have
-// at least one of the signals enabled in their signal mask that is listed in
-// 'sigs'. Does nothing if 'sigs' is 0 or none of the signals are enabled in the
-// VPs signal mask.
-// @Entry Condition: preemption disabled
-extern void WaitQueue_Signal(WaitQueue* _Nonnull self, int flags, unsigned int sigs);
 
 
 // Suspends an ongoing wait. This should be called if a VP that is currently

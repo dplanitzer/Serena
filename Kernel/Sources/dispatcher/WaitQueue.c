@@ -218,7 +218,7 @@ errno_t VirtualProcessor_SendSignal(VirtualProcessor* _Nonnull self, WaitQueue* 
     if (sigbit) {
         self->psigs |= sigbit;
 
-        WaitQueue_WakeupOne(swq, self, WAKEUP_REASON_SIGNALLED, true);
+        WaitQueue_WakeupOne(swq, self, wakeup_csw, WAKEUP_REASON_SIGNALLED);
     }
     preempt_restore(sps);
 
@@ -233,7 +233,7 @@ errno_t VirtualProcessor_SendSignal(VirtualProcessor* _Nonnull self, WaitQueue* 
 // will happen. Returns true if the vp has been made ready to run; false otherwise.
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
-bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp, int reason, bool allowContextSwitch)
+bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp, int flags, int reason)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     bool isReady;
@@ -269,7 +269,7 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
         const int8_t boostedPriority = __min(vp->effectivePriority + __min(quartersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
         VirtualProcessorScheduler_AddVirtualProcessor_Locked(ps, vp, boostedPriority);
         
-        if (allowContextSwitch) {
+        if ((flags & WAKEUP_CSW) == WAKEUP_CSW) {
             VirtualProcessorScheduler_MaybeSwitchTo(ps, vp);
         }
         isReady = true;
@@ -296,7 +296,7 @@ void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int reason)
     while (cp) {
         register ListNode* np = cp->next;
         register VirtualProcessor* vp = (VirtualProcessor*)cp;
-        register const bool isReady = WaitQueue_WakeupOne(self, vp, reason, false);
+        register const bool isReady = WaitQueue_WakeupOne(self, vp, 0, reason);
 
         if (pRunCandidate == NULL && isReady) {
             pRunCandidate = vp;
@@ -326,7 +326,7 @@ void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self)
     while (cp) {
         register ListNode* np = cp->next;
         
-        WaitQueue_WakeupOne(self, (VirtualProcessor*)cp, WAKEUP_REASON_FINISHED, false);
+        WaitQueue_WakeupOne(self, (VirtualProcessor*)cp, 0, WAKEUP_REASON_FINISHED);
         cp = np;
     }
 }
