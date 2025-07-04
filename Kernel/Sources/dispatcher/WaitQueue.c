@@ -67,14 +67,10 @@ static errno_t _do_wait(WaitQueue* _Nonnull self, int flags, VirtualProcessorSch
             VirtualProcessorScheduler_GetHighestPriorityReady(ps));
     
     
-    if (vp->wakeup_reason) {
-        return ETIMEDOUT;
-    }
-    else if (vp->psigs) {
-        return EINTR;
-    }
-    else {
-        return EOK;
+    switch (vp->wakeup_reason) {
+        case WRES_SIGNAL:   return EINTR;
+        case WRES_TIMEOUT:  return ETIMEDOUT;
+        default:            return EOK;
     }
 }
 
@@ -218,12 +214,18 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
     bool isReady;
 
 
-    // Update the signal state if a signal was provided
-    if (signo) {
+    // Update the signal state if a real signal was provided
+    if (signo >= SIGMIN && signo <= SIGMAX) {
         const sigset_t sigbit = 1 << (signo - 1);
 
         vp->psigs |= sigbit;
         if ((sigbit & ~vp->sigmask) == 0) {
+            return false;
+        }
+
+        
+        // Do not wake up the virtual processor if it is in an uninterruptible wait.
+        if ((vp->flags & VP_FLAG_INTERRUPTABLE_WAIT) == 0) {
             return false;
         }
     }
@@ -235,23 +237,21 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
     }
     
 
-    // Do not wake up the virtual processor if it is in an uninterruptible wait.
-    if (signo && (vp->flags & VP_FLAG_INTERRUPTABLE_WAIT) == 0) {
-        return false;
-    }
-
-
     // Finish the wait. Remove the VP from the wait queue, the timeout queue and
     // store the wake reason.
     List_Remove(&self->q, &vp->rewa_queue_entry);
-    
     VirtualProcessorScheduler_CancelTimeout(ps, vp);
     
     vp->waiting_on_wait_queue = NULL;
-    vp->wakeup_reason = (flags & WAKEUP_TIMEDOUT) == WAKEUP_TIMEDOUT ? 1 : 0;
     vp->flags &= ~VP_FLAG_INTERRUPTABLE_WAIT;
     
+    switch (signo) {
+        case SIGNULL:       vp->wakeup_reason = WRES_WAKEUP; break;
+        case SIGTIMEOUT:    vp->wakeup_reason = WRES_TIMEOUT; break;
+        default:            vp->wakeup_reason = WRES_SIGNAL; break;
+    }
     
+
     if (vp->suspension_count == 0) {
         // Make the VP ready and adjust it's effective priority based on the
         // time it has spent waiting
@@ -279,7 +279,6 @@ void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int signo)
 {
     register ListNode* cp = self->q.first;
     register bool isWakeupOne = ((flags & WAKEUP_ONE) == WAKEUP_ONE);
-    int woFlags = flags & WAKEUP_TIMEDOUT;
     VirtualProcessor* pRunCandidate = NULL;
 
     
@@ -287,7 +286,7 @@ void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int signo)
     while (cp) {
         register ListNode* np = cp->next;
         register VirtualProcessor* vp = (VirtualProcessor*)cp;
-        register const bool isReady = WaitQueue_WakeupOne(self, vp, woFlags, signo);
+        register const bool isReady = WaitQueue_WakeupOne(self, vp, 0, signo);
 
         if (pRunCandidate == NULL && isReady) {
             pRunCandidate = vp;

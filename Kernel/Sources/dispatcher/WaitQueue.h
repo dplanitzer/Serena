@@ -33,8 +33,20 @@ struct VirtualProcessor;
 // Allow wakeup() to do a context switch
 #define WAKEUP_CSW  2
 
-// Wakeup due to hitting the wait timeout
-#define WAKEUP_TIMEDOUT  4
+
+// Wait result/wakeup reason
+typedef int8_t  wres_t;
+
+#define WRES_WAKEUP     1
+#define WRES_SIGNAL     2
+#define WRES_TIMEOUT    3
+
+
+// Pseudo signals for use with Wakeup()
+// SIGNULL: wakeup and do not change the pending signals
+// SIGTIMEOUT: wakeup because the wait timer expired. Does not change the pending signals
+#define SIGNULL     0
+#define SIGTIMEOUT  (SIGMAX + 1)
 
 
 typedef struct WaitQueue {
