@@ -15,6 +15,7 @@
 
 
 // A (counting) semaphore
+// Note: Interruptable
 typedef struct Semaphore {
     volatile int    value;
     WaitQueue       wq;

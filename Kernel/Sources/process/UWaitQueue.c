@@ -46,7 +46,7 @@ errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self)
     decl_try_err();
     const int sps = preempt_disable();
 
-    err = WaitQueue_Wait(&self->wq, WAIT_INTERRUPTABLE);
+    err = WaitQueue_Wait(&self->wq, NULL);
     preempt_restore(sps);
 
     return err;
@@ -57,7 +57,7 @@ errno_t UWaitQueue_SigWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nullabl
     decl_try_err();
     const int sps = preempt_disable();
 
-    err = WaitQueue_SigWait(&self->wq, WAIT_INTERRUPTABLE, mask, osigs);
+    err = WaitQueue_SigWait(&self->wq, mask, osigs);
     preempt_restore(sps);
 
     return err;
@@ -68,10 +68,7 @@ errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int flags, const struc
     decl_try_err();
     const int sps = preempt_disable();
     
-    err = WaitQueue_TimedWait(&self->wq, 
-                            WAIT_INTERRUPTABLE | flags,
-                            wtp,
-                            NULL);
+    err = WaitQueue_TimedWait(&self->wq, NULL, flags, wtp, NULL);
 
     preempt_restore(sps);
     
@@ -83,10 +80,7 @@ errno_t UWaitQueue_SigTimedWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nu
     decl_try_err();
     const int sps = preempt_disable();
     
-    err = WaitQueue_SigTimedWait(&self->wq,
-                            mask, osigs,
-                            WAIT_INTERRUPTABLE | flags,
-                            wtp);
+    err = WaitQueue_SigTimedWait(&self->wq, mask, osigs, flags, wtp);
 
     preempt_restore(sps);
     

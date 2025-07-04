@@ -39,7 +39,7 @@ errno_t Lock_Unlock(Lock* _Nonnull self)
 // @Entry Condition: preemption disabled
 errno_t Lock_OnWait(Lock* _Nonnull self)
 {
-    const errno_t err = WaitQueue_Wait(&self->wq, 0);
+    const errno_t err = WaitQueue_Wait(&self->wq, &SIGSET_BLOCK_ALL);
     if (err == EOK) {
         return err;
     }

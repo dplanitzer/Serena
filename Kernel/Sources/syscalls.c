@@ -258,14 +258,14 @@ SYSCALL_4(clock_nanosleep, int clock, int flags, const struct timespec* _Nonnull
     }
 
 
-    int options = WAIT_INTERRUPTABLE;
+    int options = 0;
     if ((pa->flags & TIMER_ABSTIME) == TIMER_ABSTIME) {
         options |= WAIT_ABSTIME;
     }
 
 
     // This is a medium or long wait -> context switch away
-    return _sleep(&((ProcessRef)p)->sleepQueue, options, pa->wtp, pa->rmtp);
+    return _sleep(&((ProcessRef)p)->sleepQueue, NULL, options, pa->wtp, pa->rmtp);
 }
 
 SYSCALL_2(clock_gettime, int clock, struct timespec* _Nonnull time)
@@ -333,7 +333,7 @@ SYSCALL_1(exit, int status)
     // owns this VP is terminated. This interrupt will be caused by the abort
     // of the call-as-user and thus this system call will not return to user
     // space anymore. Instead it will return to the dispatch queue main loop.
-    _sleep(&gHackQueue, WAIT_INTERRUPTABLE|WAIT_ABSTIME, &TIMESPEC_INF, NULL);
+    _sleep(&gHackQueue, NULL, WAIT_ABSTIME, &TIMESPEC_INF, NULL);
     return 0;
 }
 

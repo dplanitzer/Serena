@@ -20,7 +20,6 @@ struct VirtualProcessor;
 
 
 // wait() options
-#define WAIT_INTERRUPTABLE  1
 #define WAIT_ABSTIME        2
 
 
@@ -49,6 +48,10 @@ typedef int8_t  wres_t;
 #define SIGTIMEOUT  (SIGMAX + 1)
 
 
+extern const sigset_t SIGSET_BLOCK_ALL;
+extern const sigset_t SIGSET_BLOCK_NONE;
+
+
 typedef struct WaitQueue {
     List    q;
 } WaitQueue;
@@ -68,15 +71,15 @@ extern errno_t WaitQueue_Deinit(WaitQueue* self);
 // Temporarily reenables preemption when context switching to another VP.
 // Returns to the caller with preemption disabled.
 // @Entry Condition: preemption disabled
-extern errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int flags);
+extern errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask);
 
-extern errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, int flags, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs);
+extern errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs);
 
 // Same as wait() but with support for timeouts. If 'wtp' is not NULL then 'wtp' is
 // either the maximum duration to wait or the absolute time until to wait. The
 // WAIT_ABSTIME specifies an absolute time. 'rmtp' is an optional timespec that
 // receives the amount of time remaining if the wait was canceled early.
-extern errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
+extern errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
 
 extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs, int flags, const struct timespec* _Nonnull wtp);
 

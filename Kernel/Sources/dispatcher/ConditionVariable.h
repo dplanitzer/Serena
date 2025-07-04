@@ -12,6 +12,7 @@
 #include "Lock.h"
 
 
+// Note: Interruptable
 typedef struct ConditionVariable {
     WaitQueue   wq;
 } ConditionVariable;

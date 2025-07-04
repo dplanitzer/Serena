@@ -12,6 +12,10 @@
 #include "VirtualProcessorScheduler.h"
 
 
+const sigset_t SIGSET_BLOCK_ALL = UINT32_MAX;
+const sigset_t SIGSET_BLOCK_NONE = 0;
+
+
 void WaitQueue_Init(WaitQueue* _Nonnull self)
 {
     List_Init(&self->q);
@@ -36,11 +40,13 @@ errno_t WaitQueue_Deinit(WaitQueue* self)
 
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-static wres_t _do_wait(WaitQueue* _Nonnull self, int flags)
+static wres_t _one_shot_wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nullable osigs)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     VirtualProcessor* vp = (VirtualProcessor*)ps->running;
-    const bool isInterruptable = (flags & WAIT_INTERRUPTABLE) == WAIT_INTERRUPTABLE;
+    const sigset_t oldMask = vp->sigmask;
+    const sigset_t theMask = (mask) ? *mask : oldMask;
+    const sigset_t availSigs = vp->psigs & ~theMask;
 
     assert(vp->sched_state == kVirtualProcessorState_Running);
 
@@ -51,9 +57,14 @@ static wres_t _do_wait(WaitQueue* _Nonnull self, int flags)
         return WRES_SIGNAL;
     }
 
-    if (isInterruptable && (vp->psigs & ~vp->sigmask) != 0) {
+    if (availSigs) {
+        if (osigs) {
+            *osigs = availSigs;
+            vp->psigs &= ~availSigs;
+        }
         return WRES_SIGNAL;
     }
+    vp->sigmask = theMask;
 
 
     // FIFO order.
@@ -64,62 +75,46 @@ static wres_t _do_wait(WaitQueue* _Nonnull self, int flags)
     vp->wait_start_time = MonotonicClock_GetCurrentQuantums();
     vp->wakeup_reason = 0;
 
-    if (isInterruptable) {
-        vp->flags |= VP_FLAG_INTERRUPTABLE_WAIT;
-    } else {
-        vp->flags &= ~VP_FLAG_INTERRUPTABLE_WAIT;
-    }
-
     
     // Find another VP to run and context switch to it
     VirtualProcessorScheduler_SwitchTo(ps,
             VirtualProcessorScheduler_GetHighestPriorityReady(ps));
     
+    vp->sigmask = oldMask;
     return vp->wakeup_reason;
 }
 
 // @Entry Condition: preemption disabled
-errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int flags)
+errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask)
 {
-    switch (_do_wait(self, flags)) {
+    VirtualProcessor* vp = (VirtualProcessor*)gVirtualProcessorScheduler->running;
+    const sigset_t theMask = (mask) ? *mask & ~SIG_NONMASKABLE : vp->sigmask;
+
+    switch (_one_shot_wait(self, &theMask, NULL)) {
         case WRES_WAKEUP:   return EOK;
         default:            return EINTR;
     }
 }
 
-errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, int flags, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs)
+errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs)
 {
     const int sps = preempt_disable();
     VirtualProcessor* vp = (VirtualProcessor*)gVirtualProcessorScheduler->running;
-    const sigset_t oldMask = vp->sigmask;
+    const sigset_t theMask = (mask) ? *mask & ~SIG_NONMASKABLE : vp->sigmask;
 
-    if (mask) {
-        vp->sigmask = *mask & ~SIG_NONMASKABLE;
-    }
+    while (_one_shot_wait(self, &theMask, osigs) != WRES_SIGNAL);
 
-    for (;;) {
-        const sigset_t psigs = vp->psigs & ~vp->sigmask;
-
-        if (psigs) {
-            *osigs = psigs;
-            vp->psigs &= ~psigs;
-            break;
-        }
-
-        _do_wait(self, flags);
-    }
-
-    vp->sigmask = oldMask;
     preempt_restore(sps);
 
     return EOK;
 }
 
 // @Entry Condition: preemption disabled
-errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
+errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     VirtualProcessor* vp = (VirtualProcessor*)ps->running;
+    const sigset_t theMask = (mask) ? *mask & ~SIG_NONMASKABLE : vp->sigmask;
     struct timespec now, deadline;
     bool hasArmedTimer = false;
 
@@ -149,7 +144,7 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct ti
 
 
     // Now wait
-    const wres_t res = _do_wait(self, flags);
+    const wres_t res = _one_shot_wait(self, &theMask, NULL);
     if (hasArmedTimer) {
         VirtualProcessorScheduler_CancelTimeout(ps, vp);
     }
@@ -193,27 +188,16 @@ errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullab
 
 
     const int sps = preempt_disable();
-    VirtualProcessor* vp = (VirtualProcessor*)gVirtualProcessorScheduler->running;
-    const sigset_t oldMask = vp->sigmask;
-
-    if (mask) {
-        vp->sigmask = *mask & ~SIG_NONMASKABLE;
-    }
-
-    while (err != ETIMEDOUT) {
-        const sigset_t psigs = vp->psigs & ~vp->sigmask;
-
-        if (psigs) {
-            *osigs = psigs;
-            vp->psigs &= ~psigs;
+    for (;;) {
+        err = WaitQueue_TimedWait(self, mask, flags, &deadline, NULL);
+        if (err == EINTR) {
             err = EOK;
             break;
         }
-
-        err = WaitQueue_TimedWait(self, flags, &deadline, NULL);
+        if (err == ETIMEDOUT) {
+            break;
+        }
     }
-
-    vp->sigmask = oldMask;
     preempt_restore(sps);
 
     return err;
@@ -236,12 +220,6 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
         if ((sigbit & ~vp->sigmask) == 0) {
             return false;
         }
-
-        
-        // Do not wake up the virtual processor if it is in an uninterruptible wait.
-        if ((vp->flags & VP_FLAG_INTERRUPTABLE_WAIT) == 0) {
-            return false;
-        }
     }
 
 
@@ -257,7 +235,6 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
     VirtualProcessorScheduler_CancelTimeout(ps, vp);
     
     vp->waiting_on_wait_queue = NULL;
-    vp->flags &= ~VP_FLAG_INTERRUPTABLE_WAIT;
     
     switch (signo) {
         case SIGNULL:       vp->wakeup_reason = WRES_WAKEUP; break;
