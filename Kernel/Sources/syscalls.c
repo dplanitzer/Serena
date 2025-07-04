@@ -440,8 +440,10 @@ SYSCALL_1(wq_wait, int od)
 SYSCALL_3(wq_sigwait, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs)
 {
     ProcessRef pp = (ProcessRef)p;
+    const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
+    const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
 
-    return Process_SigWait_UWaitQueue((ProcessRef)p, pa->od, pa->mask, pa->osigs);
+    return Process_SigWait_UWaitQueue((ProcessRef)p, pa->od, pmask, pa->osigs);
 }
 
 SYSCALL_3(wq_timedwait, int od, int flags, const struct timespec* _Nonnull wtp)
@@ -451,7 +453,10 @@ SYSCALL_3(wq_timedwait, int od, int flags, const struct timespec* _Nonnull wtp)
 
 SYSCALL_5(wq_sigtimedwait, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs, int flags, const struct timespec* _Nonnull wtp)
 {
-    return Process_SigTimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->mask, pa->osigs, pa->flags, pa->wtp);
+    const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
+    const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
+
+    return Process_SigTimedWait_UWaitQueue((ProcessRef)p, pa->od, pmask, pa->osigs, pa->flags, pa->wtp);
 }
 
 SYSCALL_3(wq_wakeup, int od, int flags, int signo)
@@ -466,7 +471,7 @@ SYSCALL_0(vcpu_self)
 
 SYSCALL_3(vcpu_setsigmask, int op, sigset_t mask, sigset_t* _Nullable oldmask)
 {
-    return VirtualProcessor_SetSignalMask((VirtualProcessor*)p, pa->op, pa->mask, pa->oldmask);
+    return VirtualProcessor_SetSignalMask((VirtualProcessor*)p, pa->op, pa->mask & ~SIGSET_NONMASKABLES, pa->oldmask);
 }
 
 SYSCALL_0(vcpu_getdata)

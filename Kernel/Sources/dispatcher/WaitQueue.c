@@ -87,10 +87,7 @@ static wres_t _one_shot_wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable
 // @Entry Condition: preemption disabled
 errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask)
 {
-    VirtualProcessor* vp = (VirtualProcessor*)gVirtualProcessorScheduler->running;
-    const sigset_t theMask = (mask) ? *mask & ~SIG_NONMASKABLE : vp->sigmask;
-
-    switch (_one_shot_wait(self, &theMask, NULL)) {
+    switch (_one_shot_wait(self, mask, NULL)) {
         case WRES_WAKEUP:   return EOK;
         default:            return EINTR;
     }
@@ -99,11 +96,7 @@ errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask)
 errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs)
 {
     const int sps = preempt_disable();
-    VirtualProcessor* vp = (VirtualProcessor*)gVirtualProcessorScheduler->running;
-    const sigset_t theMask = (mask) ? *mask & ~SIG_NONMASKABLE : vp->sigmask;
-
-    while (_one_shot_wait(self, &theMask, osigs) != WRES_SIGNAL);
-
+    while (_one_shot_wait(self, mask, osigs) != WRES_SIGNAL);
     preempt_restore(sps);
 
     return EOK;
@@ -114,7 +107,6 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable 
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     VirtualProcessor* vp = (VirtualProcessor*)ps->running;
-    const sigset_t theMask = (mask) ? *mask & ~SIG_NONMASKABLE : vp->sigmask;
     struct timespec now, deadline;
     bool hasArmedTimer = false;
 
@@ -144,7 +136,7 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable 
 
 
     // Now wait
-    const wres_t res = _one_shot_wait(self, &theMask, NULL);
+    const wres_t res = _one_shot_wait(self, mask, NULL);
     if (hasArmedTimer) {
         VirtualProcessorScheduler_CancelTimeout(ps, vp);
     }

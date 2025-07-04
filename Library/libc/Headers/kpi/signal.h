@@ -28,6 +28,6 @@ typedef  unsigned int sigset_t;
 #define SIGKILL     1
 #define SIGSYNCH    2
 
-#define SIG_NONMASKABLE (1 << SIGKILL)
+#define SIGSET_NONMASKABLES (1 << SIGKILL)
 
 #endif /* _KPI_VCPU_H */
