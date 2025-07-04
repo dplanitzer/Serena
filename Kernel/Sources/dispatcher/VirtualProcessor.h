@@ -17,6 +17,7 @@
 #include <hal/Platform.h>
 #include <hal/SystemDescription.h>
 
+struct VirtualProcessor;
 struct WaitQueue;
 
 
@@ -102,9 +103,6 @@ typedef enum VirtualProcessorState {
 #define VP_FLAG_CAU_ABORTED         0x04    // VirtualProcessor_AbortCallAsUser() has been called and the VirtualProcessor_CallAsUser() is unwinding
 
 
-struct VirtualProcessor;
-
-
 // A timeout
 typedef struct Timeout {
     ListNode    queue_entry;            // Timeout queue if the VP is waiting with a timeout
@@ -116,7 +114,7 @@ typedef struct Timeout {
 
 // Overridable functions for virtual processors
 typedef struct VirtualProcessorVTable {
-    void    (* _Nonnull destroy)(struct VirtualProcessor* _Nonnull pVP);
+    void    (*destroy)(struct VirtualProcessor* _Nonnull self);
 } VirtualProcessorVTable;
 
 
@@ -127,7 +125,7 @@ typedef struct VirtualProcessor {
     CpuContext                              save_area;
     ExecutionStack                          kernel_stack;
     ExecutionStack                          user_stack;
-    AtomicInt                               vpid;                   // unique VP id (>= 1; 0 is reserved to indicate the absence of a VPID)
+    vcpuid_t                                vpid;                   // unique VP id (>= 1; 0 is reserved to indicate the absence of a VPID)
 
     // VP owner
     ListNode                                owner_qe;               // VP Pool if relinquished; process if acquired

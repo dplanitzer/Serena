@@ -130,7 +130,7 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull self, int priority)
     self->priority = (int8_t)priority;
     self->suspension_count = 1;
     
-    self->vpid = AtomicInt_Add(&gNextAvailableVpid, 1);
+    self->vpid = (vcpuid_t)AtomicInt_Add(&gNextAvailableVpid, 1);
 
     self->dispatchQueue = NULL;
     self->dispatchQueueConcurrencyLaneIndex = -1;
@@ -343,8 +343,12 @@ _Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull self)
     VP_ASSERT_ALIVE(self);
     self->flags |= VP_FLAG_TERMINATED;
 
+    // NOTE: We don't need to save the old preemption state because this VP is
+    // going away and we will never context switch back to it. The context switch
+    // will reenable preemption.
+    (void) preempt_disable();
     VirtualProcessorScheduler_TerminateVirtualProcessor(gVirtualProcessorScheduler, self);
-    // NOT REACHED
+    /* NOT REACHED */
 }
 
 // Returns the priority of the given VP.

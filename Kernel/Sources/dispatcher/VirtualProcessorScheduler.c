@@ -324,16 +324,9 @@ void VirtualProcessorScheduler_SwitchTo(VirtualProcessorScheduler* _Nonnull self
 
 // Terminates the given virtual processor that is executing the caller. Does not
 // return to the caller. The VP must already have been marked as terminating.
+// @Entry Condition: preemption disabled
 _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp)
 {
-    assert((vp->flags & VP_FLAG_TERMINATED) == VP_FLAG_TERMINATED);
-    assert(vp == self->running);
-    
-    // We don't need to save the old preemption state because this VP is going
-    // away and we will never context switch back to it
-    (void) preempt_disable();
-    
-    // Put the VP on the finalization queue
     List_InsertAfterLast(&self->finalizer_queue, &vp->rewa_qe);
     
     
@@ -363,7 +356,7 @@ _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorSc
                                            VirtualProcessorScheduler_GetHighestPriorityReady(self));
     }
     
-    // NOT REACHED
+    /* NOT REACHED */
 }
 
 // Gives the virtual processor scheduler opportunities to run tasks that take
