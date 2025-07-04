@@ -33,9 +33,10 @@ errno_t WaitQueue_Deinit(WaitQueue* self)
     return err;
 }
 
+
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-static errno_t _do_wait(WaitQueue* _Nonnull self, int flags, VirtualProcessorScheduler* _Nonnull ps, VirtualProcessor* _Nonnull vp)
+static wres_t _do_wait(WaitQueue* _Nonnull self, int flags, VirtualProcessorScheduler* _Nonnull ps, VirtualProcessor* _Nonnull vp)
 {
     assert(vp->sched_state == kVirtualProcessorState_Running);
 
@@ -66,12 +67,7 @@ static errno_t _do_wait(WaitQueue* _Nonnull self, int flags, VirtualProcessorSch
     VirtualProcessorScheduler_SwitchTo(ps,
             VirtualProcessorScheduler_GetHighestPriorityReady(ps));
     
-    
-    switch (vp->wakeup_reason) {
-        case WRES_SIGNAL:   return EINTR;
-        case WRES_TIMEOUT:  return ETIMEDOUT;
-        default:            return EOK;
-    }
+    return vp->wakeup_reason;
 }
 
 errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int flags)
@@ -79,7 +75,10 @@ errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int flags)
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     VirtualProcessor* vp = (VirtualProcessor*)ps->running;
 
-    return _do_wait(self, flags, ps, vp);
+    switch (_do_wait(self, flags, ps, vp)) {
+        case WRES_WAKEUP:   return EOK;
+        default:            return EINTR;
+    }
 }
 
 errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, int flags, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs)
@@ -140,8 +139,8 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct ti
 
 
     // Now wait
-    const errno_t err = _do_wait(self, flags, ps, vp);
-    if (err != EOK && hasArmedTimer) {
+    const wres_t res = _do_wait(self, flags, ps, vp);
+    if (hasArmedTimer) {
         VirtualProcessorScheduler_CancelTimeout(ps, vp);
     }
 
@@ -158,7 +157,12 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct ti
         }
     }
 
-    return err;
+
+    switch (res) {
+        case WRES_SIGNAL:   return EINTR;
+        case WRES_TIMEOUT:  return ETIMEDOUT;
+        default:            return EOK;
+    }
 }
 
 errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp)
