@@ -70,7 +70,7 @@ extern errno_t WaitQueue_Deinit(WaitQueue* self);
 // @Entry Condition: preemption disabled
 extern errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int flags);
 
-extern errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, int flags, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs);
+extern errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, int flags, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs);
 
 // Same as wait() but with support for timeouts. If 'wtp' is not NULL then 'wtp' is
 // either the maximum duration to wait or the absolute time until to wait. The
@@ -78,7 +78,7 @@ extern errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, int flags, const sigs
 // receives the amount of time remaining if the wait was canceled early.
 extern errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
 
-extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp);
+extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs, int flags, const struct timespec* _Nonnull wtp);
 
 
 // Sends 'vp' the signal 'signo' and wakes it up. The signal may be one of the
@@ -106,10 +106,12 @@ extern void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self);
 
 // Suspends an ongoing wait. This should be called if a VP that is currently
 // waiting on this queue is suspended.
+// @Entry Condition: preemption disabled
 extern void WaitQueue_SuspendOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp);
 
 // Resumes an ongoing wait. This should be called if a VP that is currently
 // waiting on this queue is resumed.
+// @Entry Condition: preemption disabled
 extern void WaitQueue_ResumeOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp);
 
 #endif /* WaitQueue_h */

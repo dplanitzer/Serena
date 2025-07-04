@@ -510,7 +510,7 @@ errno_t VirtualProcessor_SetSignalMask(VirtualProcessor* _Nonnull self, int op, 
     decl_try_err();
     VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
-    const sigset_t newMask = mask & SIG_NONMASKABLE;
+    const sigset_t newMask = mask & ~SIG_NONMASKABLE;
     const sigset_t oldMask = self->sigmask;
 
     switch (op) {

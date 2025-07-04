@@ -26,9 +26,9 @@ open_class_funcs(UWaitQueue, UResource,
 extern errno_t UWaitQueue_Create(int policy, UWaitQueueRef _Nullable * _Nonnull pOutSelf);
 
 extern errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self);
-extern errno_t UWaitQueue_SigWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs);
+extern errno_t UWaitQueue_SigWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs);
 extern errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int flags, const struct timespec* _Nonnull wtp);
-extern errno_t UWaitQueue_SigTimedWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp);
+extern errno_t UWaitQueue_SigTimedWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs, int flags, const struct timespec* _Nonnull wtp);
 extern errno_t UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags, int signo);
 
 #endif /* UWaitQueue_h */

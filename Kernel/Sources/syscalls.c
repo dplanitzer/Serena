@@ -437,11 +437,11 @@ SYSCALL_1(wq_wait, int od)
     return Process_Wait_UWaitQueue((ProcessRef)p, pa->od);
 }
 
-SYSCALL_3(wq_sigwait, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs)
+SYSCALL_3(wq_sigwait, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs)
 {
     ProcessRef pp = (ProcessRef)p;
 
-    return Process_SigWait_UWaitQueue((ProcessRef)p, pa->od, pa->mask, pa->pOutSigs);
+    return Process_SigWait_UWaitQueue((ProcessRef)p, pa->od, pa->mask, pa->osigs);
 }
 
 SYSCALL_3(wq_timedwait, int od, int flags, const struct timespec* _Nonnull wtp)
@@ -449,9 +449,9 @@ SYSCALL_3(wq_timedwait, int od, int flags, const struct timespec* _Nonnull wtp)
     return Process_TimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->flags, pa->wtp);
 }
 
-SYSCALL_5(wq_sigtimedwait, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp)
+SYSCALL_5(wq_sigtimedwait, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs, int flags, const struct timespec* _Nonnull wtp)
 {
-    return Process_SigTimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->mask, pa->pOutSigs, pa->flags, pa->wtp);
+    return Process_SigTimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->mask, pa->osigs, pa->flags, pa->wtp);
 }
 
 SYSCALL_3(wq_wakeup, int od, int flags, int signo)
