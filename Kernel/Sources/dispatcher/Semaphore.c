@@ -37,5 +37,5 @@ errno_t Semaphore_OnWaitForPermits(Semaphore* _Nonnull self, const struct timesp
 // @Entry Condition: preemption disabled
 void Semaphore_WakeUp(Semaphore* _Nullable self)
 {
-    WaitQueue_Wakeup(&self->wq, WAKEUP_ALL | WAKEUP_CSW, 0);
+    WaitQueue_Wakeup(&self->wq, WAKEUP_ALL | WAKEUP_CSW, SIGNULL);
 }

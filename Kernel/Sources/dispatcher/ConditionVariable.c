@@ -29,7 +29,7 @@ void _ConditionVariable_Wakeup(ConditionVariable* _Nonnull self, bool broadcast)
     const int flags = (broadcast) ? WAKEUP_ALL : WAKEUP_ONE;
     const int sps = preempt_disable();
     
-    WaitQueue_Wakeup(&self->wq, flags | WAKEUP_CSW, 0);
+    WaitQueue_Wakeup(&self->wq, flags | WAKEUP_CSW, SIGNULL);
     preempt_restore(sps);
 }
 

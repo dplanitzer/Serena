@@ -354,7 +354,7 @@ _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorSc
         WaitQueue_WakeupOne(&gSchedulerWaitQueue,
                         self->bootVirtualProcessor,
                         WAKEUP_CSW,
-                        0);
+                        SIGNULL);
     } else {
         // Do a forced context switch to whoever is ready
         // NOTE: we do NOT put the currently running VP back on the ready queue

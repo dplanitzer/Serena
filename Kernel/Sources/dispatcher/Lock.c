@@ -51,5 +51,5 @@ errno_t Lock_OnWait(Lock* _Nonnull self)
 // @Entry Condition: preemption disabled
 void Lock_WakeUp(Lock* _Nullable self)
 {
-    WaitQueue_Wakeup(&self->wq, WAKEUP_ALL | WAKEUP_CSW, 0);
+    WaitQueue_Wakeup(&self->wq, WAKEUP_ALL | WAKEUP_CSW, SIGNULL);
 }

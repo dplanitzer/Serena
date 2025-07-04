@@ -43,7 +43,7 @@ typedef int8_t  wres_t;
 
 
 // Pseudo signals for use with Wakeup()
-// SIGNULL: wakeup and do not change the pending signals
+// SIGNULL: wakeup and do not change the pending signals. Use this for edge-triggered wakeups
 // SIGTIMEOUT: wakeup because the wait timer expired. Does not change the pending signals
 #define SIGNULL     0
 #define SIGTIMEOUT  (SIGMAX + 1)
@@ -65,9 +65,8 @@ extern errno_t WaitQueue_Deinit(WaitQueue* self);
 // Put the currently running VP (the caller) on the given wait queue. Then runs
 // the scheduler to select another VP to run and context switches to the new VP
 // right away.
-// Expects to be called with preemption disabled. Temporarily reenables
-// preemption when context switching to another VP. Returns to the caller with
-// preemption disabled.
+// Temporarily reenables preemption when context switching to another VP.
+// Returns to the caller with preemption disabled.
 // @Entry Condition: preemption disabled
 extern errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, int flags);
 
@@ -82,23 +81,24 @@ extern errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, int flags, const st
 extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull pOutSigs, int flags, const struct timespec* _Nonnull wtp);
 
 
-// Adds the given VP from the given wait queue to the ready queue. The VP is removed
-// from the wait queue. The scheduler guarantees that a wakeup operation will never
-// fail with an error. This doesn't mean that calling this function will always
-// result in a virtual processor wakeup. If the wait queue is empty then no wakeups
-// will happen. Returns true if the vp has been made ready to run; false otherwise.
+// Sends 'vp' the signal 'signo' and wakes it up. The signal may be one of the
+// pseudo signals or a real signal. Pseudo signal SIGNULL just wakes up 'vp'
+// without updating the pending signals of 'vp'. Use SIGNULL to execute an
+// edge-triggered wakeup. SIGTIMEOUT wakes up 'vp' and indicates that a timed
+// wait has reached its time limit. SIGTIMEOUT is not added to the pending
+// signals of 'vp'. 
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
 extern bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp, int flags, int signo);
 
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
-// removed from the wait queue. Expects to be called with preemption disabled.
+// removed from the wait queue.
 // @Entry Condition: preemption disabled
 extern void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int signo);
 
-// Adds all VPs on the given list to the ready queue. The VPs are removed from
-// the wait queue. Expects to be called from an interrupt context and thus defers
-// context switches until the return from the interrupt context.
+// Wakes up all VPs on the wait queue. Expects to be called from an interrupt
+// context and thus defers context switches until the return from the interrupt
+// context.
 // @Entry Condition: preemption disabled
 // @Interrupt Context: Safe
 extern void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self);
