@@ -26,95 +26,85 @@ typedef struct VirtualProcessorPool {
 VirtualProcessorPoolRef gVirtualProcessorPool;
 
 
-errno_t VirtualProcessorPool_Create(VirtualProcessorPoolRef _Nullable * _Nonnull pOutPool)
+errno_t VirtualProcessorPool_Create(VirtualProcessorPoolRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    VirtualProcessorPool* pPool;
+    VirtualProcessorPool* self;
     
-    try(kalloc_cleared(sizeof(VirtualProcessorPool), (void**) &pPool));
-    List_Init(&pPool->inuse_queue);
-    List_Init(&pPool->reuse_queue);
-    Lock_Init(&pPool->lock);
-    pPool->inuse_count = 0;
-    pPool->reuse_count = 0;
-    pPool->reuse_capacity = REUSE_CACHE_CAPACITY;
-    *pOutPool = pPool;
+    try(kalloc_cleared(sizeof(VirtualProcessorPool), (void**) &self));
+    List_Init(&self->inuse_queue);
+    List_Init(&self->reuse_queue);
+    Lock_Init(&self->lock);
+    self->reuse_capacity = REUSE_CACHE_CAPACITY;
+    *pOutSelf = self;
     return EOK;
     
 catch:
-    VirtualProcessorPool_Destroy(pPool);
-    *pOutPool = NULL;
+    VirtualProcessorPool_Destroy(self);
+    *pOutSelf = NULL;
     return err;
 }
 
-void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable pPool)
+void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable self)
 {
-    if (pPool) {
-        List_Deinit(&pPool->inuse_queue);
-        List_Deinit(&pPool->reuse_queue);
-        Lock_Deinit(&pPool->lock);
-        kfree(pPool);
+    if (self) {
+        List_Deinit(&self->inuse_queue);
+        List_Deinit(&self->reuse_queue);
+        Lock_Deinit(&self->lock);
+        kfree(self);
     }
 }
 
-errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, VirtualProcessorParameters params, VirtualProcessor* _Nonnull * _Nonnull pOutVP)
+errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, VirtualProcessorParameters params, VirtualProcessor* _Nonnull * _Nonnull pOutVP)
 {
     decl_try_err();
-    VirtualProcessor* pVP = NULL;
-    bool needsUnlock = false;
+    VirtualProcessor* vp = NULL;
 
-    Lock_Lock(&pool->lock);
-    needsUnlock = true;
+    Lock_Lock(&self->lock);
 
     // Try to reuse a cached VP
-    VirtualProcessorOwner* pCurVP = (VirtualProcessorOwner*)pool->reuse_queue.first;
-    while (pCurVP) {
-        if (VirtualProcessor_IsSuspended(pCurVP->self)) {
-            pVP = pCurVP->self;
+    List_ForEach(&self->reuse_queue, ListNode, {
+        VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
+
+        if (VirtualProcessor_IsSuspended(cvp)) {
+            vp = cvp;
             break;
         }
-        pCurVP = (VirtualProcessorOwner*)pCurVP->queue_entry.next;
-    }
+    });
         
-    if (pVP) {
-        List_Remove(&pool->reuse_queue, &pVP->owner.queue_entry);
-        pool->reuse_count--;
+    if (vp) {
+        List_Remove(&self->reuse_queue, &vp->owner_qe);
+        self->reuse_count--;
         
-        List_InsertBeforeFirst(&pool->inuse_queue, &pVP->owner.queue_entry);
-        pool->inuse_count++;
+        List_InsertBeforeFirst(&self->inuse_queue, &vp->owner_qe);
+        self->inuse_count++;
     }
     
-    Lock_Unlock(&pool->lock);
-    needsUnlock = false;
+    Lock_Unlock(&self->lock);
     
     
     // Create a new VP if we were not able to reuse a cached one
-    if (pVP == NULL) {
-        try(VirtualProcessor_Create(&pVP));
+    if (vp == NULL) {
+        try(VirtualProcessor_Create(&vp));
 
-        Lock_Lock(&pool->lock);
-        needsUnlock = true;
-        List_InsertBeforeFirst(&pool->inuse_queue, &pVP->owner.queue_entry);
-        pool->inuse_count++;
-        needsUnlock = false;
-        Lock_Unlock(&pool->lock);
+        Lock_Lock(&self->lock);
+        List_InsertBeforeFirst(&self->inuse_queue, &vp->owner_qe);
+        self->inuse_count++;
+        Lock_Unlock(&self->lock);
     }
     
     
     // Configure the VP
-    pVP->uerrno = 0;
-    pVP->psigs = 0;
-    pVP->sigmask = 0;
-    VirtualProcessor_SetPriority(pVP, params.priority);
-    try(VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_Make(params.func, params.context, params.kernelStackSize, params.userStackSize)));
+    vp->uerrno = 0;
+    vp->psigs = 0;
+    vp->sigmask = 0;
+    VirtualProcessor_SetPriority(vp, params.priority);
+    try(VirtualProcessor_SetClosure(vp, VirtualProcessorClosure_Make(params.func, params.context, params.kernelStackSize, params.userStackSize)));
 
-    *pOutVP = pVP;
+    *pOutVP = vp;
     return EOK;
 
 catch:
-    if (needsUnlock) {
-        Lock_Unlock(&pool->lock);
-    }
     *pOutVP = NULL;
     return err;
 }
@@ -122,35 +112,35 @@ catch:
 // Relinquishes the given VP back to the reuse pool if possible. If the reuse
 // pool is full then the given VP is suspended and scheduled for finalization
 // instead. Note that the VP is suspended in any case.
-_Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, VirtualProcessor* _Nonnull pVP)
+_Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, VirtualProcessor* _Nonnull vp)
 {
     bool didReuse = false;
 
     // Null out the dispatch queue reference in any case since the VP should no
     // longer be associated with a queue.
-    VirtualProcessor_SetDispatchQueue(pVP, NULL, -1);
+    VirtualProcessor_SetDispatchQueue(vp, NULL, -1);
 
 
     // Try to cache the VP
-    Lock_Lock(&pool->lock);
+    Lock_Lock(&self->lock);
     
-    List_Remove(&pool->inuse_queue, &pVP->owner.queue_entry);
-    pool->inuse_count--;
+    List_Remove(&self->inuse_queue, &vp->owner_qe);
+    self->inuse_count--;
 
-    if (pool->reuse_count < pool->reuse_capacity) {
-        List_InsertBeforeFirst(&pool->reuse_queue, &pVP->owner.queue_entry);
-        pool->reuse_count++;
+    if (self->reuse_count < self->reuse_capacity) {
+        List_InsertBeforeFirst(&self->reuse_queue, &vp->owner_qe);
+        self->reuse_count++;
         didReuse = true;
     }
-    Lock_Unlock(&pool->lock);
+    Lock_Unlock(&self->lock);
     
 
     // Suspend the VP if we decided to reuse it and schedule it for finalization
     // (termination) otherwise.
     if (didReuse) {
-        try_bang(VirtualProcessor_Suspend(pVP));
+        try_bang(VirtualProcessor_Suspend(vp));
     } else {
-        VirtualProcessor_Terminate(pVP);
+        VirtualProcessor_Terminate(vp);
     }
     /* NOT REACHED */
 }

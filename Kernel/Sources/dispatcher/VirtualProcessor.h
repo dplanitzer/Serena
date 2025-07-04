@@ -115,12 +115,6 @@ typedef struct Timeout {
 } Timeout;
 
 
-typedef struct VirtualProcessorOwner {
-    ListNode                            queue_entry;
-    struct VirtualProcessor* _Nonnull   self;
-} VirtualProcessorOwner;
-
-
 // Overridable functions for virtual processors
 typedef struct VirtualProcessorVTable {
     void    (* _Nonnull destroy)(struct VirtualProcessor* _Nonnull pVP);
@@ -129,7 +123,7 @@ typedef struct VirtualProcessorVTable {
 
 // Note: Keep in sync with lowmem.i
 typedef struct VirtualProcessor {
-    ListNode                                rewa_queue_entry;       // A VP is either on the ready (re) queue or a wait (wa) queue
+    ListNode                                rewa_qe;                // A VP is either on the ready (re) queue or a wait (wa) queue
     const VirtualProcessorVTable* _Nonnull  vtable;
     CpuContext                              save_area;
     ExecutionStack                          kernel_stack;
@@ -137,7 +131,7 @@ typedef struct VirtualProcessor {
     AtomicInt                               vpid;                   // unique VP id (>= 1; 0 is reserved to indicate the absence of a VPID)
 
     // VP owner
-    VirtualProcessorOwner                   owner;
+    ListNode                                owner_qe;               // VP Pool if relinquished; process if acquired
 
     // System call support
     uint32_t                                syscall_entry_ksp;      // saved Kernel stack pointer at the entry of a system call
@@ -174,6 +168,9 @@ typedef struct VirtualProcessor {
 
 
 #define VP_ASSERT_ALIVE(p)   assert((p->flags & VP_FLAG_TERMINATED) == 0)
+
+#define VP_FROM_OWNER_NODE(__ptr) \
+(VirtualProcessor*) (((uint8_t*)__ptr) - offsetof(struct VirtualProcessor, owner_qe))
 
 
 // Returns a reference to the currently running virtual processor. This is the

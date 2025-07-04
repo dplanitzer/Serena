@@ -113,8 +113,8 @@ catch:
 void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp, int effectivePriority)
 {
     assert(vp != NULL);
-    assert(vp->rewa_queue_entry.prev == NULL);
-    assert(vp->rewa_queue_entry.next == NULL);
+    assert(vp->rewa_qe.prev == NULL);
+    assert(vp->rewa_qe.next == NULL);
     assert(vp->suspension_count == 0);
     
     vp->sched_state = kVirtualProcessorState_Ready;
@@ -122,7 +122,7 @@ void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorSchedu
     vp->quantum_allowance = QuantumAllowanceForPriority(vp->effectivePriority);
     vp->wait_start_time = MonotonicClock_GetCurrentQuantums();
     
-    List_InsertAfterLast(&self->ready_queue.priority[vp->effectivePriority], &vp->rewa_queue_entry);
+    List_InsertAfterLast(&self->ready_queue.priority[vp->effectivePriority], &vp->rewa_qe);
     
     const int popByteIdx = vp->effectivePriority >> 3;
     const int popBitIdx = vp->effectivePriority - (popByteIdx << 3);
@@ -145,7 +145,7 @@ void VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(VirtualProcessorSch
 {
     register const int pri = vp->effectivePriority;
     
-    List_Remove(&self->ready_queue.priority[pri], &vp->rewa_queue_entry);
+    List_Remove(&self->ready_queue.priority[pri], &vp->rewa_qe);
     
     if (List_IsEmpty(&self->ready_queue.priority[pri])) {
         const int i = pri >> 3;
@@ -334,7 +334,7 @@ _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorSc
     (void) preempt_disable();
     
     // Put the VP on the finalization queue
-    List_InsertAfterLast(&self->finalizer_queue, &vp->rewa_queue_entry);
+    List_InsertAfterLast(&self->finalizer_queue, &vp->rewa_qe);
     
     
     // Check whether there are too many VPs on the finalizer queue. If so then we
@@ -413,7 +413,7 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull self
         // Finalize VPs which have exited
         VirtualProcessor* pCurVP = (VirtualProcessor*)dead_vps.first;
         while (pCurVP) {
-            VirtualProcessor* pNextVP = (VirtualProcessor*)pCurVP->rewa_queue_entry.next;
+            VirtualProcessor* pNextVP = (VirtualProcessor*)pCurVP->rewa_qe.next;
             
             VirtualProcessor_Destroy(pCurVP);
             pCurVP = pNextVP;
@@ -429,7 +429,7 @@ static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorSche
         
         while (pCurVP) {
             printf("{pri: %d}, ", pCurVP->priority);
-            pCurVP = (VirtualProcessor*)pCurVP->rewa_queue_entry.next;
+            pCurVP = (VirtualProcessor*)pCurVP->rewa_qe.next;
         }
     }
     printf("\n");

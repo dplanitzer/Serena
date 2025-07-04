@@ -212,8 +212,8 @@ kVirtualProcessorState_Running      equ 1   ; VP is running
 kVirtualProcessorState_Waiting      equ 2   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
 
     clrso
-vp_rewa_queue_entry_next                so.l    1           ; 4
-vp_rewa_queue_entry_prev                so.l    1           ; 4
+vp_rewa_qe_next                         so.l    1           ; 4
+vp_rewa_qe_prev                         so.l    1           ; 4
 vp_vtable                               so.l    1           ; 4
 vp_save_area                            so.b    cpu_SIZEOF  ; 400
 vp_kernel_stack_base                    so.l    1           ; 4
@@ -221,17 +221,16 @@ vp_kernel_stack_size                    so.l    1           ; 4
 vp_user_stack_base                      so.l    1           ; 4
 vp_user_stack_size                      so.l    1           ; 4
 vp_vpid                                 so.l    1           ; 4
-vp_owner_queue_entry_next               so.l    1           ; 4
-vp_owner_queue_entry_prev               so.l    1           ; 4
-vp_owner_self                           so.l    1           ; 4
+vp_owner_qe_next                        so.l    1           ; 4
+vp_owner_qe_prev                        so.l    1           ; 4
 vp_syscall_entry_ksp                    so.l    1           ; 4
 vp_uerrno                               so.l    1           ; 4
 vp_udata                                so.l    1           ; 4
 vp_suspension_time                      so.l    1           ; 4
 vp_psigs                                so.l    1           ; 4
 vp_sigmask                              so.l    1           ; 4
-vp_timeout_queue_entry_next             so.l    1           ; 4
-vp_timeout_queue_entry_prev             so.l    1           ; 4
+vp_timeout_qe_next                      so.l    1           ; 4
+vp_timeout_qe_prev                      so.l    1           ; 4
 vp_timeout_deadline                     so.l    1           ; 4
 vp_timeout_owner                        so.l    1           ; 4
 vp_timeout_is_valid                     so.b    1           ; 1
@@ -250,7 +249,7 @@ vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
 vp_reserved2                            so.b    3           ; 3
 vp_SIZEOF                       so
-    ifeq (vp_SIZEOF == 512)
+    ifeq (vp_SIZEOF == 508)
         fail "VirtualProcessor structure size is incorrect."
     endif
 

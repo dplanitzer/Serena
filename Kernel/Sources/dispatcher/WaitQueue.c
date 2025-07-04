@@ -68,7 +68,7 @@ static wres_t _one_shot_wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable
 
 
     // FIFO order.
-    List_InsertAfterLast(&self->q, &vp->rewa_queue_entry);
+    List_InsertAfterLast(&self->q, &vp->rewa_qe);
     
     vp->sched_state = kVirtualProcessorState_Waiting;
     vp->waiting_on_wait_queue = self;
@@ -223,7 +223,7 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
 
     // Finish the wait. Remove the VP from the wait queue, the timeout queue and
     // store the wake reason.
-    List_Remove(&self->q, &vp->rewa_queue_entry);
+    List_Remove(&self->q, &vp->rewa_qe);
     VirtualProcessorScheduler_CancelTimeout(ps, vp);
     
     vp->waiting_on_wait_queue = NULL;

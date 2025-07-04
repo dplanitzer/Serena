@@ -77,7 +77,7 @@ void ExecutionStack_Destroy(ExecutionStack* _Nullable self)
 // \param pVP the virtual processor
 void __func_VirtualProcessor_Destroy(VirtualProcessor* _Nullable self)
 {
-    ListNode_Deinit(&self->owner.queue_entry);
+    ListNode_Deinit(&self->owner_qe);
     ExecutionStack_Destroy(&self->kernel_stack);
     ExecutionStack_Destroy(&self->user_stack);
     kfree(self);
@@ -108,15 +108,13 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull self, int priority)
 {
     static volatile AtomicInt gNextAvailableVpid = 0;
 
-    ListNode_Init(&self->rewa_queue_entry);
+    ListNode_Init(&self->rewa_qe);
     ExecutionStack_Init(&self->kernel_stack);
     ExecutionStack_Init(&self->user_stack);
 
     self->vtable = &gVirtualProcessorVTable;
     
-    ListNode_Init(&self->owner.queue_entry);
-    self->owner.self = self;
-    
+    ListNode_Init(&self->owner_qe);    
     ListNode_Init(&self->timeout.queue_entry);
     
     self->psigs = 0;
