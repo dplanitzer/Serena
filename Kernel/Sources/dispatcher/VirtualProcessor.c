@@ -125,12 +125,13 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull self, int priority)
     self->waiting_on_wait_queue = NULL;
     self->wakeup_reason = 0;
     
-    self->sched_state = kVirtualProcessorState_Ready;
+    self->sched_state = SCHED_STATE_READY;
     self->flags = 0;
     self->priority = (int8_t)priority;
     self->suspension_count = 1;
     
     self->vpid = (vcpuid_t)AtomicInt_Add(&gNextAvailableVpid, 1);
+    self->lifecycle_state = VP_LIFECYCLE_ALIVE;
 
     self->dispatchQueue = NULL;
     self->dispatchQueueConcurrencyLaneIndex = -1;
@@ -300,7 +301,7 @@ errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull self)
             // additional waits on its way back out to user space, then all those
             // (interruptable) waits will be immediately aborted since the call-
             // as-user invocation is now marked as aborted.
-            if (self->sched_state == kVirtualProcessorState_Waiting) {
+            if (self->sched_state == SCHED_STATE_WAITING) {
                 WaitQueue_Wakeup(self->waiting_on_wait_queue,
                                     WAKEUP_ALL,
                                     SIGKILL);
@@ -341,7 +342,7 @@ void VirtualProcessor_Dump(VirtualProcessor* _Nonnull self)
 _Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull self)
 {
     VP_ASSERT_ALIVE(self);
-    self->flags |= VP_FLAG_TERMINATED;
+    self->lifecycle_state = VP_LIFECYCLE_TERMINATING;
 
     // NOTE: We don't need to save the old preemption state because this VP is
     // going away and we will never context switch back to it. The context switch
@@ -373,7 +374,7 @@ void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int priority)
     
     if (self->priority != priority) {
         switch (self->sched_state) {
-            case kVirtualProcessorState_Ready:
+            case SCHED_STATE_READY:
                 if (self->suspension_count == 0) {
                     VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, self);
                 }
@@ -383,11 +384,11 @@ void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int priority)
                 }
                 break;
                 
-            case kVirtualProcessorState_Waiting:
+            case SCHED_STATE_WAITING:
                 self->priority = priority;
                 break;
                 
-            case kVirtualProcessorState_Running:
+            case SCHED_STATE_RUNNING:
                 self->priority = priority;
                 self->effectivePriority = priority;
                 self->quantum_allowance = QuantumAllowanceForPriority(self->effectivePriority);
@@ -403,7 +404,7 @@ void VirtualProcessor_Yield(void)
     const int sps = preempt_disable();
     VirtualProcessor* self = (VirtualProcessor*)gVirtualProcessorScheduler->running;
 
-    assert(self->sched_state == kVirtualProcessorState_Running && self->suspension_count == 0);
+    assert(self->sched_state == SCHED_STATE_RUNNING && self->suspension_count == 0);
 
     VirtualProcessorScheduler_AddVirtualProcessor_Locked(
         gVirtualProcessorScheduler, self, self->priority);
@@ -430,18 +431,18 @@ errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull self)
         self->suspension_time = MonotonicClock_GetCurrentQuantums();
 
         switch (self->sched_state) {
-            case kVirtualProcessorState_Ready:
+            case SCHED_STATE_READY:
                 VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, self);
                 break;
             
-            case kVirtualProcessorState_Running:
+            case SCHED_STATE_RUNNING:
                 // We're running, thus we are not on the ready queue. Do a forced
                 // context switch to some other VP.
                 VirtualProcessorScheduler_SwitchTo(gVirtualProcessorScheduler,
                                                    VirtualProcessorScheduler_GetHighestPriorityReady(gVirtualProcessorScheduler));
                 break;
             
-            case kVirtualProcessorState_Waiting:
+            case SCHED_STATE_WAITING:
                 WaitQueue_SuspendOne(self->waiting_on_wait_queue, self);
                 break;
             
@@ -478,13 +479,13 @@ void VirtualProcessor_Resume(VirtualProcessor* _Nonnull self, bool force)
 
     if (self->suspension_count == 0) {
         switch (self->sched_state) {
-            case kVirtualProcessorState_Ready:
-            case kVirtualProcessorState_Running:
+            case SCHED_STATE_READY:
+            case SCHED_STATE_RUNNING:
                 VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, self, self->priority);
                 VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, self);
                 break;
             
-            case kVirtualProcessorState_Waiting:
+            case SCHED_STATE_WAITING:
                 WaitQueue_ResumeOne(self->waiting_on_wait_queue, self);
                 break;
             

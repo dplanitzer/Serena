@@ -117,7 +117,7 @@ void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorSchedu
     assert(vp->rewa_qe.next == NULL);
     assert(vp->suspension_count == 0);
     
-    vp->sched_state = kVirtualProcessorState_Ready;
+    vp->sched_state = SCHED_STATE_READY;
     vp->effectivePriority = effectivePriority;
     vp->quantum_allowance = QuantumAllowanceForPriority(vp->effectivePriority);
     vp->wait_start_time = MonotonicClock_GetCurrentQuantums();
@@ -297,7 +297,7 @@ void VirtualProcessorScheduler_ResumeTimeout(VirtualProcessorScheduler* _Nonnull
 // are enabled.
 void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull self, VirtualProcessor* _Nonnull vp)
 {
-    if (vp->sched_state == kVirtualProcessorState_Ready
+    if (vp->sched_state == SCHED_STATE_READY
         && vp->suspension_count == 0) {
         VirtualProcessor* pBestReadyVP = VirtualProcessorScheduler_GetHighestPriorityReady(self);
         

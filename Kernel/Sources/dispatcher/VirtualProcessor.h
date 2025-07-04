@@ -59,12 +59,18 @@ typedef struct VirtualProcessorClosure {
     ((VirtualProcessorClosure) {__pFunc, __pContext, __pKernelStackBase, __kernelStackSize, 0})
 
 
-// The current state of a virtual processor
-typedef enum VirtualProcessorState {
-    kVirtualProcessorState_Ready = 0,       // VP is able to run and is currently sitting on the ready queue
-    kVirtualProcessorState_Running,         // VP is running
-    kVirtualProcessorState_Waiting          // VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
-} VirtualProcessorState;
+// Scheduler state
+enum {
+    SCHED_STATE_READY = 0,      // VP is able to run and is currently sitting on the ready queue
+    SCHED_STATE_RUNNING,        // VP is running
+    SCHED_STATE_WAITING         // VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
+};
+
+// VP lifecycle state
+enum {
+    VP_LIFECYCLE_ALIVE = 0,
+    VP_LIFECYCLE_TERMINATING,
+};
 
 
 // The virtual processor flags
@@ -98,7 +104,6 @@ typedef enum VirtualProcessorState {
 
 
 // VP flags
-#define VP_FLAG_TERMINATED          0x01    // VirtualProcessor_Terminate() was called on the VP
 #define VP_FLAG_CAU_IN_PROGRESS     0x02    // VirtualProcessor_CallAsUser() is in progress
 #define VP_FLAG_CAU_ABORTED         0x04    // VirtualProcessor_AbortCallAsUser() has been called and the VirtualProcessor_CallAsUser() is unwinding
 
@@ -155,7 +160,9 @@ typedef struct VirtualProcessor {
     uint8_t                                 flags;
     int8_t                                  quantum_allowance;      // How many continuous quantums this VP may run for before the scheduler will consider scheduling some other VP
     int8_t                                  suspension_count;       // > 0 -> VP is suspended
-    int8_t                                  reserved[1];
+
+    // Lifecycle state
+    int8_t                                  lifecycle_state;
 
     // Dispatch queue state
     void* _Nullable _Weak                   dispatchQueue;                      // Dispatch queue this VP is currently assigned to
@@ -164,7 +171,7 @@ typedef struct VirtualProcessor {
 } VirtualProcessor;
 
 
-#define VP_ASSERT_ALIVE(p)   assert((p->flags & VP_FLAG_TERMINATED) == 0)
+#define VP_ASSERT_ALIVE(p)   assert(p->lifecycle_state == VP_LIFECYCLE_ALIVE)
 
 #define VP_FROM_OWNER_NODE(__ptr) \
 (VirtualProcessor*) (((uint8_t*)__ptr) - offsetof(struct VirtualProcessor, owner_qe))

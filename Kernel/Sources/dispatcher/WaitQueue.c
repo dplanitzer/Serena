@@ -48,7 +48,7 @@ static wres_t _one_shot_wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable
     const sigset_t theMask = (mask) ? *mask : oldMask;
     const sigset_t availSigs = vp->psigs & ~theMask;
 
-    assert(vp->sched_state == kVirtualProcessorState_Running);
+    assert(vp->sched_state == SCHED_STATE_RUNNING);
 
 
     // Immediately return instead of waiting if we are in the middle of an abort
@@ -70,7 +70,7 @@ static wres_t _one_shot_wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable
     // FIFO order.
     List_InsertAfterLast(&self->q, &vp->rewa_qe);
     
-    vp->sched_state = kVirtualProcessorState_Waiting;
+    vp->sched_state = SCHED_STATE_WAITING;
     vp->waiting_on_wait_queue = self;
     vp->wait_start_time = MonotonicClock_GetCurrentQuantums();
     vp->wakeup_reason = 0;
@@ -216,7 +216,7 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
 
 
     // Nothing to do if we are not waiting
-    if (vp->sched_state != kVirtualProcessorState_Waiting) {
+    if (vp->sched_state != SCHED_STATE_WAITING) {
         return false;
     }
     
@@ -249,7 +249,7 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
     } else {
         // The VP is suspended. Move it to ready state so that it will be
         // added to the ready queue once we resume it.
-        vp->sched_state = kVirtualProcessorState_Ready;
+        vp->sched_state = SCHED_STATE_READY;
         isReady = false;
     }
 

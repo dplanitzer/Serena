@@ -207,9 +207,9 @@ cpu_SIZEOF         so
 
 
 ; The VirtualProcessor
-kVirtualProcessorState_Ready        equ 0   ; VP is able to run but currently sitting on the ready queue
-kVirtualProcessorState_Running      equ 1   ; VP is running
-kVirtualProcessorState_Waiting      equ 2   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
+SCHED_STATE_READY        equ 0   ; VP is able to run but currently sitting on the ready queue
+SCHED_STATE_RUNNING      equ 1   ; VP is running
+SCHED_STATE_WAITING      equ 2   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
 
     clrso
 vp_rewa_qe_next                         so.l    1           ; 4
