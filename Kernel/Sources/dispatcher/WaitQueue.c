@@ -91,10 +91,14 @@ errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, int flags, const sigset_t* _
 {
     const int sps = preempt_disable();
     VirtualProcessor* vp = (VirtualProcessor*)gVirtualProcessorScheduler->running;
-    const sigset_t sigmask = (mask) ? *mask & ~SIG_NONMASKABLE : vp->sigmask;
+    const sigset_t oldMask = vp->sigmask;
+
+    if (mask) {
+        vp->sigmask = *mask & ~SIG_NONMASKABLE;
+    }
 
     for (;;) {
-        const sigset_t psigs = vp->psigs & ~sigmask;
+        const sigset_t psigs = vp->psigs & ~vp->sigmask;
 
         if (psigs) {
             *osigs = psigs;
@@ -105,6 +109,7 @@ errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, int flags, const sigset_t* _
         _do_wait(self, flags);
     }
 
+    vp->sigmask = oldMask;
     preempt_restore(sps);
 
     return EOK;
@@ -189,10 +194,14 @@ errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullab
 
     const int sps = preempt_disable();
     VirtualProcessor* vp = (VirtualProcessor*)gVirtualProcessorScheduler->running;
-    const sigset_t sigmask = (mask) ? *mask & ~SIG_NONMASKABLE : vp->sigmask;
+    const sigset_t oldMask = vp->sigmask;
+
+    if (mask) {
+        vp->sigmask = *mask & ~SIG_NONMASKABLE;
+    }
 
     while (err != ETIMEDOUT) {
-        const sigset_t psigs = vp->psigs & ~sigmask;
+        const sigset_t psigs = vp->psigs & ~vp->sigmask;
 
         if (psigs) {
             *osigs = psigs;
@@ -204,6 +213,7 @@ errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullab
         err = WaitQueue_TimedWait(self, flags, &deadline, NULL);
     }
 
+    vp->sigmask = oldMask;
     preempt_restore(sps);
 
     return err;
