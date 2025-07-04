@@ -232,7 +232,6 @@ vp_sigmask                              so.l    1           ; 4
 vp_timeout_qe_next                      so.l    1           ; 4
 vp_timeout_qe_prev                      so.l    1           ; 4
 vp_timeout_deadline                     so.l    1           ; 4
-vp_timeout_owner                        so.l    1           ; 4
 vp_timeout_is_valid                     so.b    1           ; 1
 vp_timeout_reserved                     so.b    3           ; 3
 vp_waiting_on_wait_queue                so.l    1           ; 4
@@ -249,7 +248,7 @@ vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
 vp_reserved2                            so.b    3           ; 3
 vp_SIZEOF                       so
-    ifeq (vp_SIZEOF == 508)
+    ifeq (vp_SIZEOF == 504)
         fail "VirtualProcessor structure size is incorrect."
     endif
 

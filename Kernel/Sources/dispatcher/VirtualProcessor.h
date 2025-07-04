@@ -107,11 +107,10 @@ struct VirtualProcessor;
 
 // A timeout
 typedef struct Timeout {
-    ListNode                            queue_entry;            // Timeout queue if the VP is waiting with a timeout
-    Quantums                            deadline;               // Absolute timeout in quantums
-    struct VirtualProcessor* _Nullable  owner;
-    bool                                is_valid;               // True if we are waiting with a timeout; false otherwise
-    int8_t                              reserved[3];
+    ListNode    queue_entry;            // Timeout queue if the VP is waiting with a timeout
+    Quantums    deadline;               // Absolute timeout in quantums
+    bool        is_valid;               // True if we are waiting with a timeout; false otherwise
+    int8_t      reserved[3];
 } Timeout;
 
 
@@ -171,6 +170,9 @@ typedef struct VirtualProcessor {
 
 #define VP_FROM_OWNER_NODE(__ptr) \
 (VirtualProcessor*) (((uint8_t*)__ptr) - offsetof(struct VirtualProcessor, owner_qe))
+
+#define VP_FROM_TIMEOUT(__ptr) \
+(VirtualProcessor*) (((uint8_t*)__ptr) - offsetof(struct VirtualProcessor, timeout))
 
 
 // Returns a reference to the currently running virtual processor. This is the

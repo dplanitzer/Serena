@@ -121,7 +121,6 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull self, int priority)
     self->sigmask = 0;
 
     self->timeout.deadline = kQuantums_Infinity;
-    self->timeout.owner = (void*)self;
     self->timeout.is_valid = false;
     self->waiting_on_wait_queue = NULL;
     self->wakeup_reason = 0;

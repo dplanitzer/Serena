@@ -192,7 +192,7 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
             break;
         }
         
-        VirtualProcessor* vp = (VirtualProcessor*)ct->owner;
+        VirtualProcessor* vp = VP_FROM_TIMEOUT(ct);
         WaitQueue_WakeupOne(vp->waiting_on_wait_queue, vp, 0, SIGTIMEOUT);
     }
     
