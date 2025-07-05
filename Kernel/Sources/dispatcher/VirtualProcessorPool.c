@@ -85,11 +85,12 @@ errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _No
     
     
     // Configure the VP
+    try(VirtualProcessor_SetClosure(vp, VirtualProcessorClosure_Make(params.func, params.context, params.kernelStackSize, params.userStackSize)));
+    VirtualProcessor_SetPriority(vp, params.priority);
     vp->uerrno = 0;
     vp->psigs = 0;
     vp->sigmask = 0;
-    VirtualProcessor_SetPriority(vp, params.priority);
-    try(VirtualProcessor_SetClosure(vp, VirtualProcessorClosure_Make(params.func, params.context, params.kernelStackSize, params.userStackSize)));
+    vp->lifecycle_state = VP_LIFECYCLE_ACQUIRED;
 
 catch:
     *pOutVP = vp;
@@ -122,6 +123,7 @@ _Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRe
     // Suspend the VP if we decided to reuse it and schedule it for finalization
     // (termination) otherwise.
     if (doReuse) {
+        vp->lifecycle_state = VP_LIFECYCLE_RELINQUISHED;
         try_bang(VirtualProcessor_Suspend(vp));
     } else {
         VirtualProcessor_Terminate(vp);

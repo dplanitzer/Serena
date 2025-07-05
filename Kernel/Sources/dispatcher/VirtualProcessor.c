@@ -131,7 +131,7 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull self, int priority)
     self->suspension_count = 1;
     
     self->vpid = (vcpuid_t)AtomicInt_Add(&gNextAvailableVpid, 1);
-    self->lifecycle_state = VP_LIFECYCLE_ALIVE;
+    self->lifecycle_state = VP_LIFECYCLE_RELINQUISHED;
 
     self->dispatchQueue = NULL;
     self->dispatchQueueConcurrencyLaneIndex = -1;

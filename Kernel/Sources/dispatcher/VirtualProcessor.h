@@ -68,8 +68,9 @@ enum {
 
 // VP lifecycle state
 enum {
-    VP_LIFECYCLE_ALIVE = 0,
-    VP_LIFECYCLE_TERMINATING,
+    VP_LIFECYCLE_RELINQUISHED = 0,  // VP is in the reuse pool
+    VP_LIFECYCLE_ACQUIRED,          // VP is assigned to a process and in use
+    VP_LIFECYCLE_TERMINATING,       // VP is in the process of terminating
 };
 
 
@@ -171,7 +172,7 @@ typedef struct VirtualProcessor {
 } VirtualProcessor;
 
 
-#define VP_ASSERT_ALIVE(p)   assert(p->lifecycle_state == VP_LIFECYCLE_ALIVE)
+#define VP_ASSERT_ALIVE(p)   assert(p->lifecycle_state != VP_LIFECYCLE_TERMINATING)
 
 #define VP_FROM_OWNER_NODE(__ptr) \
 (VirtualProcessor*) (((uint8_t*)__ptr) - offsetof(struct VirtualProcessor, owner_qe))
