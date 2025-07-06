@@ -12,10 +12,6 @@
 #include "VirtualProcessorScheduler.h"
 
 
-const sigset_t SIGSET_BLOCK_ALL = UINT32_MAX;
-const sigset_t SIGSET_BLOCK_NONE = 0;
-
-
 void WaitQueue_Init(WaitQueue* _Nonnull self)
 {
     List_Init(&self->q);
@@ -198,21 +194,10 @@ errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullab
 
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
-bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp, int flags, int signo)
+bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp, int flags, wres_t reason)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     bool isReady;
-
-
-    // Update the signal state if a real signal was provided
-    if (signo >= SIGMIN && signo <= SIGMAX) {
-        const sigset_t sigbit = 1 << (signo - 1);
-
-        vp->psigs |= sigbit;
-        if ((sigbit & ~vp->sigmask) == 0) {
-            return false;
-        }
-    }
 
 
     // Nothing to do if we are not waiting
@@ -227,12 +212,7 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
     VirtualProcessorScheduler_CancelTimeout(ps, vp);
     
     vp->waiting_on_wait_queue = NULL;
-    
-    switch (signo) {
-        case SIGNULL:       vp->wakeup_reason = WRES_WAKEUP; break;
-        case SIGTIMEOUT:    vp->wakeup_reason = WRES_TIMEOUT; break;
-        default:            vp->wakeup_reason = WRES_SIGNAL; break;
-    }
+    vp->wakeup_reason = reason;
     
 
     if (vp->suspension_count == 0) {
@@ -259,7 +239,7 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue. Expects to be called with preemption disabled.
 // @Entry Condition: preemption disabled
-void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int signo)
+void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, wres_t reason)
 {
     register ListNode* cp = self->q.first;
     register bool isWakeupOne = ((flags & WAKEUP_ONE) == WAKEUP_ONE);
@@ -270,7 +250,7 @@ void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int signo)
     while (cp) {
         register ListNode* np = cp->next;
         register VirtualProcessor* vp = (VirtualProcessor*)cp;
-        register const bool isReady = WaitQueue_WakeupOne(self, vp, 0, signo);
+        register const bool isReady = WaitQueue_WakeupOne(self, vp, 0, reason);
 
         if (pRunCandidate == NULL && isReady) {
             pRunCandidate = vp;
@@ -301,7 +281,7 @@ void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self)
     while (cp) {
         register ListNode* np = cp->next;
         
-        WaitQueue_WakeupOne(self, (VirtualProcessor*)cp, 0, 0);
+        WaitQueue_WakeupOne(self, (VirtualProcessor*)cp, 0, WRES_WAKEUP);
         cp = np;
     }
 }

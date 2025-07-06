@@ -8,10 +8,12 @@
 
 #include <sys/condvar.h>
 #include <kpi/syscall.h>
+#include <sys/timespec.h>
 #include <sys/waitqueue.h>
 #include <errno.h>
 #include <stddef.h>
 
+extern int __mutex_unlock(mutex_t* _Nonnull self);
 #define CV_SIGNATURE 0x53454d41
 
 
@@ -46,26 +48,25 @@ int cond_deinit(cond_t* _Nonnull self)
     return 0;
 }
 
-int cond_signal(cond_t* _Nonnull self)
+int _cond_wakeup(cond_t* _Nonnull self, int flags)
 {
     if (self->signature != CV_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
 
-    wq_wakeup(self->wait_queue, WAKE_ONE, SIGSYNCH);
+    wq_wakeup(self->wait_queue, flags);
     return 0;
+}
+
+int cond_signal(cond_t* _Nonnull self)
+{
+    return _cond_wakeup(self, WAKE_ONE);
 }
 
 int cond_broadcast(cond_t* _Nonnull self)
 {
-    if (self->signature != CV_SIGNATURE) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    wq_wakeup(self->wait_queue, WAKE_ALL, SIGSYNCH);
-    return 0;
+    return _cond_wakeup(self, WAKE_ALL);
 }
 
 // We use a signalling wait queue here to ensure that after we've dropped the
@@ -75,21 +76,17 @@ int cond_broadcast(cond_t* _Nonnull self)
 // queue.
 static int _cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags, const struct timespec* _Nullable wtp)
 {
-    sigset_t sigs;
-
     if (self->signature != CV_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
 
-    mutex_unlock(mutex);
-    if (wtp) {
-        wq_sigtimedwait(self->wait_queue, &self->wait_mask, &sigs, flags, wtp);
+    if (__mutex_unlock(mutex) == 1) {
+        wq_timedwakewait(self->wait_queue, mutex->wait_queue, &self->wait_mask, flags, wtp);
     }
     else {
-        wq_sigwait(self->wait_queue, &self->wait_mask, &sigs);
+        wq_timedwait(self->wait_queue, &self->wait_mask, flags, wtp);
     }
-
     mutex_lock(mutex);
 
     return 0;
@@ -97,7 +94,7 @@ static int _cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags,
 
 int cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex)
 {
-    return _cond_wait(self, mutex, 0, NULL);
+    return _cond_wait(self, mutex, TIMER_ABSTIME, &TIMESPEC_INF);
 }
 
 int cond_timedwait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags, const struct timespec* _Nonnull wtp)

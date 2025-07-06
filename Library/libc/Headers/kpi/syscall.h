@@ -64,15 +64,16 @@ enum {
     SC_utimens,             // errno_t utimens(const char* _Nonnull path, const struct timespec times[_Nullable 2])
     SC_sched_yield,         // void sched_yield(void)
     SC_wq_create,           // int wq_create(int policy)
-    SC_wq_wait,             // int wq_wait(int q)
-    SC_wq_timedwait,        // int wq_timedwait(int q, int options, const struct timespec* _Nonnull wtp)
-    SC_wq_wakeup,           // int wq_wakeup(int q, int flags, int signo)
+    SC_wq_wait,             // int wq_wait(int q, const sigset_t* _Nullable mask)
+    SC_wq_timedwait,        // int wq_timedwait(int q, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp)
+    SC_wq_wakeup,           // int wq_wakeup(int q, int flags)
     SC_vcpu_self,           // int vcpu_self(void)
     SC_vcpu_setsigmask,     // int vcpu_setsigmask(int op, sigset_t mask, sigset_t* _Nullable oldmask)
     SC_vcpu_getdata,        // intptr_t __vcpu_getdata(void)
     SC_vcpu_setdata,        // void __vcpu_setdata(intptr_t data)
-    SC_wq_sigwait,          // int wq_sigwait(int q, const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs)
-    SC_wq_sigtimedwait,     // int wq_sigtimedwait(int q, const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs, int flags, const struct timespec* _Nonnull wtp)
+    SC_sigwait,             // int sigwait(const sigset_t* _Nullable mask, const sigset_t* _Nonnull set)
+    SC_sigtimedwait,        // int sigtimedwait(const sigset_t* _Nullable mask, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp)
+    SC_wq_timedwakewait,    // int wq_timedwakewait(int q, int oq, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp)
 };
 
 

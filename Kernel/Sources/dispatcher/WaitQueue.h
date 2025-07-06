@@ -41,17 +41,6 @@ typedef int8_t  wres_t;
 #define WRES_TIMEOUT    3
 
 
-// Pseudo signals for use with Wakeup()
-// SIGNULL: wakeup and do not change the pending signals. Use this for edge-triggered wakeups
-// SIGTIMEOUT: wakeup because the wait timer expired. Does not change the pending signals
-#define SIGNULL     0
-#define SIGTIMEOUT  (SIGMAX + 1)
-
-
-extern const sigset_t SIGSET_BLOCK_ALL;
-extern const sigset_t SIGSET_BLOCK_NONE;
-
-
 typedef struct WaitQueue {
     List    q;
 } WaitQueue;
@@ -65,11 +54,10 @@ extern void WaitQueue_Init(WaitQueue* _Nonnull self);
 extern errno_t WaitQueue_Deinit(WaitQueue* self);
 
 
-// Put the currently running VP (the caller) on the given wait queue. Then runs
-// the scheduler to select another VP to run and context switches to the new VP
-// right away.
-// Temporarily reenables preemption when context switching to another VP.
-// Returns to the caller with preemption disabled.
+// Checks whether the caller has signals pending and returns immediately if that's
+// the case. Otherwise puts the caller to sleep until the a wakup() is executed
+// by some other VP. Note that this function does not consume/clear any pending
+// signals. It's the responsibility of the caller to do this if desired.
 // @Entry Condition: preemption disabled
 extern errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask);
 
@@ -84,20 +72,17 @@ extern errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nu
 extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs, int flags, const struct timespec* _Nonnull wtp);
 
 
-// Sends 'vp' the signal 'signo' and wakes it up. The signal may be one of the
-// pseudo signals or a real signal. Pseudo signal SIGNULL just wakes up 'vp'
-// without updating the pending signals of 'vp'. Use SIGNULL to execute an
-// edge-triggered wakeup. SIGTIMEOUT wakes up 'vp' and indicates that a timed
-// wait has reached its time limit. SIGTIMEOUT is not added to the pending
-// signals of 'vp'. 
+// Wakes up 'vp' if it is currently in waiting state. The wakeup reason is
+// specified by 'reason'. 'flags' controls whether context switching to 'vp'
+// is allowed or should not be done. 
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
-extern bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp, int flags, int signo);
+extern bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp, int flags, wres_t reason);
 
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue.
 // @Entry Condition: preemption disabled
-extern void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, int signo);
+extern void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, wres_t reason);
 
 // Wakes up all VPs on the wait queue. Expects to be called from an interrupt
 // context and thus defers context switches until the return from the interrupt

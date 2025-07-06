@@ -105,11 +105,10 @@ extern errno_t Process_CreateDispatchQueue(ProcessRef _Nonnull self, int minConc
 
 
 extern errno_t Process_CreateUWaitQueue(ProcessRef _Nonnull self, int policy, int* _Nullable pOutOd);
-extern errno_t Process_Wait_UWaitQueue(ProcessRef _Nonnull self, int od);
-extern errno_t Process_SigWait_UWaitQueue(ProcessRef _Nonnull self, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs);
-extern errno_t Process_TimedWait_UWaitQueue(ProcessRef _Nonnull self, int od, int flags, const struct timespec* _Nonnull wtp);
-extern errno_t Process_SigTimedWait_UWaitQueue(ProcessRef _Nonnull self, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs, int flags, const struct timespec* _Nonnull wtp);
-extern errno_t Process_Wakeup_UWaitQueue(ProcessRef _Nonnull self, int od, int flags, int signo);
+extern errno_t Process_Wait_UWaitQueue(ProcessRef _Nonnull self, int q, const sigset_t* _Nullable mask);
+extern errno_t Process_TimedWait_UWaitQueue(ProcessRef _Nonnull self, int q, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp);
+extern errno_t Process_TimedWakeWait_UWaitQueue(ProcessRef _Nonnull self, int q, int oq, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp);
+extern errno_t Process_Wakeup_UWaitQueue(ProcessRef _Nonnull self, int q, int flags);
 
 
 // Allocates more (user) address space to the given process.

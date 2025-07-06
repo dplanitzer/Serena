@@ -13,14 +13,22 @@
 #include <_null.h>
 #include <kpi/_time.h>
 #include <kpi/signal.h>
+#include <kpi/types.h>
 #include <kpi/waitqueue.h>
 
 __CPP_BEGIN
 
-// A wait queue allows a set of vcpus to wait for something interesting to
-// happen and for one or multiple vcpus to notify waiting vcpus that something
-// interesting has happened. Waiting vcpus are put to sleep and they consume no
-// real CPU time until they are woken up.
+// A wait queue implements an edge-triggered wait mechanism. This means that
+// wake ups are done without sending a signal and thus a wake up will only
+// affect a virtual processor that is blocked on a wq_wait() or wq_timewait()
+// at the time the wq_wakeup() call is executed. This kind of waiting model
+// requires that you always write code in such a way that it maintains its own
+// state that allows it to decide whether a wakeup was a spurious wakeup or an
+// actual wakeup. The advantage of this waiting model is that it is very low
+// overhead since it mostly ignores signals. Signals only matter in the sense
+// that they may cause spurious wake ups. However the wai calls allow you to
+// temporarily replace the signal mask of the virtual processor which should
+// help in avoiding spurious wakeups caused by unexpected signals.
 
 
 // Creates a wait queue with wait policy 'policy'. Returns the wait queue
@@ -29,39 +37,27 @@ __CPP_BEGIN
 extern int wq_create(int policy);
 
 
-// Waits on the wait queue until another vcpu calls wakeup() on the queue.
-// Returns EOK if the wakeup was done by sending a null signal and EINTR if the
-// wakeup was done by sending a real signal.
-extern int wq_wait(int q);
+// Blocks the caller until either an edge-triggered wakeup happens or until a
+// signal arrives. This function returns immediately without entering the wait
+// state if a unblocked signal is pending. 'mask' is installed as the signal
+// mask if it isn't NULL. Only signals not blocked by 'mask' will be able to
+// wake up the wait. This function returns EOK when it is woken up by a
+// wq_wakeup() call and EINTR if it is woken up by the reception of a signal.
+extern int wq_wait(int q, const sigset_t* _Nullable mask);
 
-// Atomically replaces the current signal mask with 'mask' and waits for the
-// arrival of a signal that is not blocked by the signal mask in effect. All
-// unblocked signals are returned and cleared from the pending signal set. If
-// 'mask' is NULL then the current signal mask is used. The original signal mask
-// is restored after the wait has completed. Returns EOK if woken up by a signal.
-extern int wq_sigwait(int q, const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs);
+// Same as wq_wait() but allows you to specify a timeout. The timeout is a
+// duration by default. Pass TIMER_ABSTIME in 'flags' to make it an absolute
+// time value. Returns ETIMEDOUT if the timeout is reached.
+extern int wq_timedwait(int q, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp);
 
-// Waits on the wait queue until another vcpu calls wakeup() on the queue or
-// until the timeout 'wtp' is reached. Whatever comes first. 'wtp' is by default
-// interpreted as a duration that will be added to the current time. Pass
-// TIMER_ABSTIME if 'wtp' should be interpreted as an absolute point in time
-// instead. Returns EOK if woken up by a null or real signal and ETIMEDOUT if
-// the waiting time has elapsed.
-extern int wq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp);
+// Atomically wakes one waiter on wait queue 'oq' up and then enters the wait
+// state on the wait queue 'q'. Otherwise just like wq_timedwait(). 
+extern int wq_timedwakewait(int q, int oq, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp);
 
-// Like wq_sigwait() but limits the waiting time to the timeout 'wtp'. 'wtp' is
-// by default interpreted as a duration that will be added to the current time.
-// Pass TIMER_ABSTIME if 'wtp' should be interpreted as an absolute point in
-// time instead. Returns EOK when woken up by a signal and ETIMEDOUT if the
-// waiting time has elapsed.
-extern int wq_sigtimedwait(int q, const sigset_t* _Nullable mask, sigset_t* _Nonnull sigs, int flags, const struct timespec* _Nonnull wtp);
-
-// Wakes up a single waiter or all waiters on the wait queue depending on how
-// the 'flags' are configured. 'signo' must be a valid signal number in order
-// to wake up a sigwait(), sigtimedwait(), wait() or timedwait(). If 'signo' is
-// 0 then this function will only wake up a wait() or timedwait() but not a
-// sigwait() nor a sigtimedwait(). A 0 'signo' is known as a null signal.
-extern int wq_wakeup(int q, int flags, int signo);
+// Wakes up one or all waiters currently blocked on the wait queue 'q'. Note
+// that this function does not send a signal. Thus it will only wake up waiters
+// that are currently blocked in a wq_wait() or wq_timedwait() call.
+extern int wq_wakeup(int q, int flags);
 
 __CPP_END
 

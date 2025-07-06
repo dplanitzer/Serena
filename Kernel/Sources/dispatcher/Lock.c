@@ -7,6 +7,7 @@
 //
 
 #include "Lock.h"
+#include "VirtualProcessor.h"
 
 extern errno_t _Lock_Unlock(Lock* _Nonnull self);
 
@@ -51,5 +52,5 @@ errno_t Lock_OnWait(Lock* _Nonnull self)
 // @Entry Condition: preemption disabled
 void Lock_WakeUp(Lock* _Nullable self)
 {
-    WaitQueue_Wakeup(&self->wq, WAKEUP_ALL | WAKEUP_CSW, SIGNULL);
+    WaitQueue_Wakeup(&self->wq, WAKEUP_ALL | WAKEUP_CSW, WRES_WAKEUP);
 }

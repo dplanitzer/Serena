@@ -20,6 +20,10 @@
 #include <log/Log.h>
 
 
+const sigset_t SIGSET_BLOCK_ALL = UINT32_MAX;
+const sigset_t SIGSET_BLOCK_NONE = 0;
+
+
 // Initializes an execution stack struct. The execution stack is empty by default
 // and you need to call ExecutionStack_SetMaxSize() to allocate the stack with
 // the required size.
@@ -304,7 +308,7 @@ errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull self)
             if (self->sched_state == SCHED_STATE_WAITING) {
                 WaitQueue_Wakeup(self->waiting_on_wait_queue,
                                     WAKEUP_ALL,
-                                    SIGKILL);
+                                    WRES_WAKEUP);
             }
         } else {
             // User space:
@@ -538,4 +542,25 @@ errno_t VirtualProcessor_SetSignalMask(VirtualProcessor* _Nonnull self, int op, 
 
     preempt_restore(sps);
     return err;
+}
+
+// @Entry Condition: preemption disabled
+errno_t VirtualProcessor_Signal(VirtualProcessor* _Nonnull self, int signo)
+{
+    if (signo < SIGMIN || signo > SIGMAX) {
+        return EINVAL;
+    }
+
+
+    const sigset_t sigbit = 1 << (signo - 1);
+
+    self->psigs |= sigbit;
+    if ((sigbit & ~self->sigmask) == 0) {
+        return false;
+    }
+
+
+    if (self->sched_state == SCHED_STATE_WAITING) {
+        WaitQueue_WakeupOne(self->waiting_on_wait_queue, self, 0, WRES_SIGNAL);
+    }
 }

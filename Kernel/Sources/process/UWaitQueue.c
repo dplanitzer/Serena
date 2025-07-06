@@ -41,46 +41,36 @@ void UWaitQueue_deinit(UWaitQueueRef _Nonnull self)
     WaitQueue_Deinit(&self->wq);
 }
 
-errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self)
+errno_t UWaitQueue_Wait(UWaitQueueRef _Nonnull self, const sigset_t* _Nullable mask)
 {
     decl_try_err();
     const int sps = preempt_disable();
 
-    err = WaitQueue_Wait(&self->wq, NULL);
+    err = WaitQueue_Wait(&self->wq, mask);
     preempt_restore(sps);
 
     return err;
 }
 
-errno_t UWaitQueue_SigWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs)
-{
-    decl_try_err();
-    const int sps = preempt_disable();
-
-    err = WaitQueue_SigWait(&self->wq, mask, osigs);
-    preempt_restore(sps);
-
-    return err;
-}
-
-errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, int flags, const struct timespec* _Nonnull wtp)
+errno_t UWaitQueue_TimedWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp)
 {
     decl_try_err();
     const int sps = preempt_disable();
     
-    err = WaitQueue_TimedWait(&self->wq, NULL, flags, wtp, NULL);
+    err = WaitQueue_TimedWait(&self->wq, mask, flags, wtp, NULL);
 
     preempt_restore(sps);
     
     return err;
 }
 
-errno_t UWaitQueue_SigTimedWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs, int flags, const struct timespec* _Nonnull wtp)
+errno_t UWaitQueue_TimedWakeWait(UWaitQueueRef _Nonnull self, UWaitQueueRef _Nonnull other, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp)
 {
     decl_try_err();
     const int sps = preempt_disable();
     
-    err = WaitQueue_SigTimedWait(&self->wq, mask, osigs, flags, wtp);
+    WaitQueue_Wakeup(&other->wq, WAKEUP_ONE | WAKEUP_CSW, WRES_WAKEUP);
+    err = WaitQueue_TimedWait(&self->wq, mask, flags, wtp, NULL);
 
     preempt_restore(sps);
     
@@ -88,16 +78,12 @@ errno_t UWaitQueue_SigTimedWait(UWaitQueueRef _Nonnull self, const sigset_t* _Nu
 }
 
 
-errno_t UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags, int signo)
+void UWaitQueue_Wakeup(UWaitQueueRef _Nonnull self, int flags)
 {
-    if (signo < 0 || signo > SIGMAX) {
-        return EINVAL;
-    }
-
     const int wflags = ((flags & WAKE_ONE) == WAKE_ONE) ? WAKEUP_ONE : WAKEUP_ALL;
     const int sps = preempt_disable();
     
-    WaitQueue_Wakeup(&self->wq, wflags | WAKEUP_CSW, signo);
+    WaitQueue_Wakeup(&self->wq, wflags | WAKEUP_CSW, WRES_WAKEUP);
     preempt_restore(sps);
 }
 

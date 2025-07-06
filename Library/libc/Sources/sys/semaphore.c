@@ -68,7 +68,7 @@ int sem_post(sem_t* _Nonnull self, int npermits)
     spin_unlock(&self->spinlock);
 
     if (doWakeup) {
-        wq_wakeup(self->wait_queue, WAKE_ONE, 0);
+        wq_wakeup(self->wait_queue, WAKE_ONE);
     }
 
     return 0;
@@ -105,7 +105,7 @@ int sem_wait(sem_t* _Nonnull self, int npermits)
 
         self->waiters++;
         spin_unlock(&self->spinlock);
-        wq_wait(self->wait_queue);
+        wq_wait(self->wait_queue, NULL);
         didWakeup = true;
     }
     /* NOT REACHED */
@@ -142,7 +142,7 @@ int sem_timedwait(sem_t* _Nonnull self, int npermits, int flags, const struct ti
 
         self->waiters++;
         spin_unlock(&self->spinlock);
-        wq_timedwait(self->wait_queue, flags, wtp);
+        wq_timedwait(self->wait_queue, NULL, flags, wtp);
         didWakeup = true;
     }
     /* NOT REACHED */

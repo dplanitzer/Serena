@@ -33,7 +33,7 @@ typedef struct syscall {
 #define SC_ERRNO    1   /* System call returns an error that should be stored in vcpu->errno */
 #define SC_VCPU     2   /* System call expects a vcpu_t* rather than a proc_t* */
 
-#define SYSCALL_COUNT   58
+#define SYSCALL_COUNT   59
 static const syscall_t gSystemCallTable[SYSCALL_COUNT];
 
 
@@ -432,36 +432,61 @@ SYSCALL_2(wq_create, int policy, int* _Nonnull pOutOd)
     return Process_CreateUWaitQueue((ProcessRef)p, pa->policy, pa->pOutOd);
 }
 
-SYSCALL_1(wq_wait, int od)
-{
-    return Process_Wait_UWaitQueue((ProcessRef)p, pa->od);
-}
-
-SYSCALL_3(wq_sigwait, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs)
+SYSCALL_2(wq_wait, int q, const sigset_t* _Nullable mask)
 {
     ProcessRef pp = (ProcessRef)p;
     const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
     const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
 
+    return Process_Wait_UWaitQueue(pp, pa->q, pa->mask);
+}
+
+SYSCALL_4(wq_timedwait, int q, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp)
+{
+    ProcessRef pp = (ProcessRef)p;
+    const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
+    const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
+
+    return Process_TimedWait_UWaitQueue(pp, pa->q, pa->mask, pa->flags, pa->wtp);
+}
+
+SYSCALL_5(wq_timedwakewait, int q, int oq, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp)
+{
+    ProcessRef pp = (ProcessRef)p;
+    const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
+    const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
+
+    return Process_TimedWakeWait_UWaitQueue(pp, pa->q, pa->oq, pa->mask, pa->flags, pa->wtp);
+}
+
+SYSCALL_2(wq_wakeup, int q, int flags)
+{
+    return Process_Wakeup_UWaitQueue((ProcessRef)p, pa->q, pa->flags);
+}
+
+SYSCALL_2(sigwait, const sigset_t* _Nullable mask, const sigset_t* _Nonnull set)
+{
+#if 0
+    ProcessRef pp = (ProcessRef)p;
+    const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
+    const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
+
     return Process_SigWait_UWaitQueue((ProcessRef)p, pa->od, pmask, pa->osigs);
+#else
+    return 0;
+#endif
 }
 
-SYSCALL_3(wq_timedwait, int od, int flags, const struct timespec* _Nonnull wtp)
+SYSCALL_4(sigtimedwait, const sigset_t* _Nullable mask, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp)
 {
-    return Process_TimedWait_UWaitQueue((ProcessRef)p, pa->od, pa->flags, pa->wtp);
-}
-
-SYSCALL_5(wq_sigtimedwait, int od, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs, int flags, const struct timespec* _Nonnull wtp)
-{
+#if 0
     const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
     const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
 
     return Process_SigTimedWait_UWaitQueue((ProcessRef)p, pa->od, pmask, pa->osigs, pa->flags, pa->wtp);
-}
-
-SYSCALL_3(wq_wakeup, int od, int flags, int signo)
-{
-    return Process_Wakeup_UWaitQueue((ProcessRef)p, pa->od, pa->flags, pa->signo);
+#else
+    return 0;
+#endif
 }
 
 SYSCALL_0(vcpu_self)
@@ -543,6 +568,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vcpu_setsigmask, SC_VCPU|SC_ERRNO),
     SYSCALL_ENTRY(vcpu_getdata, SC_VCPU),
     SYSCALL_ENTRY(vcpu_setdata, SC_VCPU),
-    SYSCALL_ENTRY(wq_sigwait, SC_ERRNO),
-    SYSCALL_ENTRY(wq_sigtimedwait, SC_ERRNO),
+    SYSCALL_ENTRY(sigwait, SC_ERRNO),
+    SYSCALL_ENTRY(sigtimedwait, SC_ERRNO),
+    SYSCALL_ENTRY(wq_timedwakewait, SC_ERRNO),
 };

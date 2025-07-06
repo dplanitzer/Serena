@@ -21,6 +21,10 @@ struct VirtualProcessor;
 struct WaitQueue;
 
 
+extern const sigset_t SIGSET_BLOCK_ALL;
+extern const sigset_t SIGSET_BLOCK_NONE;
+
+
 // A kernel or user execution stack
 typedef struct ExecutionStack {
     char* _Nullable base;
@@ -207,6 +211,9 @@ extern void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int pr
 
 // Atomically updates the current signal mask and returns the old mask.
 extern errno_t VirtualProcessor_SetSignalMask(VirtualProcessor* _Nonnull self, int op, sigset_t mask, sigset_t* _Nullable pOutMask);
+
+// @Entry Condition: preemption disabled
+extern errno_t VirtualProcessor_Signal(VirtualProcessor* _Nonnull self, int signo);
 
 
 // Yields the remainder of the current quantum to other VPs.

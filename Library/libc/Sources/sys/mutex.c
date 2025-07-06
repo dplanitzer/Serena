@@ -88,13 +88,13 @@ int mutex_lock(mutex_t* _Nonnull self)
 
         self->waiters++;
         spin_unlock(&self->spinlock);
-        wq_wait(self->wait_queue);
+        wq_wait(self->wait_queue, NULL);
         didWakeup = true;
     }
     /* NOT REACHED */
 }
 
-int mutex_unlock(mutex_t* _Nonnull self)
+int __mutex_unlock(mutex_t* _Nonnull self)
 {
     bool doWakeup = false;
 
@@ -111,9 +111,18 @@ int mutex_unlock(mutex_t* _Nonnull self)
     }
     spin_unlock(&self->spinlock);
 
-    if (doWakeup) {
-        wq_wakeup(self->wait_queue, WAKE_ONE, 0);
+    return (doWakeup) ? 1 : 0;
+}
+
+int mutex_unlock(mutex_t* _Nonnull self)
+{
+    const int r = __mutex_unlock(self);
+
+    if (r == 1) {
+        wq_wakeup(self->wait_queue, WAKE_ONE);
+        return 0;
     }
-    
-    return 0;
+    else {
+        return r;
+    }
 }
