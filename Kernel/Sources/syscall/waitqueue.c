@@ -10,6 +10,7 @@
 #include <dispatcher/WaitQueue.h>
 #include <kern/timespec.h>
 #include <kpi/signal.h>
+#include <kpi/waitqueue.h>
 #include <process/UWaitQueue.h>
 
 
@@ -19,7 +20,19 @@ SYSCALL_2(wq_create, int policy, int* _Nonnull pOutOd)
     ProcessRef pp = (ProcessRef)p;
     UWaitQueueRef pq = NULL;
 
-    try(UWaitQueue_Create(pa->policy, &pq));
+    switch (pa->policy) {
+        case WAITQUEUE_FIFO:
+            break;
+
+        default:
+            *(pa->pOutOd) = -1;
+            return EINVAL;
+    }
+
+    try(UResource_AbstractCreate(&kUWaitQueueClass, (UResourceRef*)&pq));
+    WaitQueue_Init(&pq->wq);
+    pq->policy = pa->policy;
+
     try(UResourceTable_AdoptResource(&pp->uResourcesTable, (UResourceRef) pq, pa->pOutOd));
     return EOK;
 
@@ -38,7 +51,9 @@ SYSCALL_2(wq_wait, int q, const sigset_t* _Nullable mask)
     UWaitQueueRef pq;
 
     if ((err = UResourceTable_AcquireResourceAs(&pp->uResourcesTable, pa->q, UWaitQueue, &pq)) == EOK) {
-        err = UWaitQueue_Wait(pq, pa->mask);
+        const int sps = preempt_disable();
+        err = WaitQueue_Wait(&pq->wq, pa->mask);
+        preempt_restore(sps);
         UResourceTable_RelinquishResource(&pp->uResourcesTable, pq);
     }
     return err;
@@ -53,7 +68,9 @@ SYSCALL_4(wq_timedwait, int q, const sigset_t* _Nullable mask, int flags, const 
     UWaitQueueRef pq;
 
     if ((err = UResourceTable_AcquireResourceAs(&pp->uResourcesTable, pa->q, UWaitQueue, &pq)) == EOK) {
-        err = UWaitQueue_TimedWait(pq, pa->mask, pa->flags, pa->wtp);
+        const int sps = preempt_disable();
+        err = WaitQueue_TimedWait(&pq->wq, pa->mask, pa->flags, pa->wtp, NULL);
+        preempt_restore(sps);
         UResourceTable_RelinquishResource(&pp->uResourcesTable, pq);
     }
     return err;
@@ -69,7 +86,10 @@ SYSCALL_5(wq_timedwakewait, int q, int oq, const sigset_t* _Nullable mask, int f
     UWaitQueueRef opq;
 
     if ((err = UResourceTable_AcquireTwoResourcesAs(&pp->uResourcesTable, pa->q, UWaitQueue, &pq, pa->oq, UWaitQueue, &opq)) == EOK) {
-        err = UWaitQueue_TimedWakeWait(pq, opq, pa->mask, pa->flags, pa->wtp);
+        const int sps = preempt_disable();
+        WaitQueue_Wakeup(&opq->wq, WAKEUP_ONE | WAKEUP_CSW, WRES_WAKEUP);
+        err = WaitQueue_TimedWait(&pq->wq, pa->mask, pa->flags, pa->wtp, NULL);
+        preempt_restore(sps);
         UResourceTable_RelinquishTwoResources(&pp->uResourcesTable, pq, opq);
     }
     return err;
@@ -78,11 +98,14 @@ SYSCALL_5(wq_timedwakewait, int q, int oq, const sigset_t* _Nullable mask, int f
 SYSCALL_2(wq_wakeup, int q, int flags)
 {
     decl_try_err();
+    const int wflags = ((pa->flags & WAKE_ONE) == WAKE_ONE) ? WAKEUP_ONE : WAKEUP_ALL;
     ProcessRef pp = (ProcessRef)p;
     UWaitQueueRef pq;
 
     if ((err = UResourceTable_BeginDirectResourceAccessAs(&pp->uResourcesTable, pa->q, UWaitQueue, &pq)) == EOK) {
-        UWaitQueue_Wakeup(pq, pa->flags);
+        const int sps = preempt_disable();
+        WaitQueue_Wakeup(&pq->wq, wflags | WAKEUP_CSW, WRES_WAKEUP);
+        preempt_restore(sps);
         UResourceTable_EndDirectResourceAccess(&pp->uResourcesTable);
     }
     return err;
