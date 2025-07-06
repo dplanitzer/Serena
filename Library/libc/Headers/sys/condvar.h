@@ -18,7 +18,6 @@ __CPP_BEGIN
 
 typedef struct cond {
     spinlock_t  spinlock;
-    sigset_t    wait_mask;
     int         wait_queue;
     int         signature;
 } cond_t;

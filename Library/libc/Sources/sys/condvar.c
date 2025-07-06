@@ -22,9 +22,6 @@ int cond_init(cond_t* _Nonnull self)
     self->spinlock = SPINLOCK_INIT;
     self->signature = CV_SIGNATURE;
 
-    sigemptyset(&self->wait_mask);
-    sigaddset(&self->wait_mask, SIGSYNCH);
-
     self->wait_queue = wq_create(WAITQUEUE_FIFO);
     if (self->wait_queue < 0) {
         self->signature = 0;
@@ -83,10 +80,10 @@ static int _cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags,
 
     const int r = __mutex_unlock(mutex);
     if (r == 1) {
-        wq_timedwakewait(self->wait_queue, mutex->wait_queue, &self->wait_mask, flags, wtp);
+        wq_timedwakewait(self->wait_queue, mutex->wait_queue, NULL, flags, wtp);
     }
     else if (r == 0) {
-        wq_timedwait(self->wait_queue, &self->wait_mask, flags, wtp);
+        wq_timedwait(self->wait_queue, NULL, flags, wtp);
     }
     mutex_lock(mutex);
 

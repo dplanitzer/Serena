@@ -9,7 +9,8 @@
 #ifndef _KPI_VCPU_H
 #define _KPI_VCPU_H 1
 
-typedef  unsigned int sigset_t;
+typedef unsigned int sigset_t;
+typedef volatile int sig_atomic_t;
 
 
 // Replace the whole signal mask
@@ -26,8 +27,8 @@ typedef  unsigned int sigset_t;
 #define SIGMAX  32
 
 #define SIGKILL     1
-#define SIGSYNCH    2
 
 #define SIGSET_NONMASKABLES (1 << SIGKILL)
+#define SIGSET_URGENT       (1 << SIGKILL)
 
 #endif /* _KPI_VCPU_H */
