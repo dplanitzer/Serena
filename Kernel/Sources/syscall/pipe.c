@@ -1,20 +1,20 @@
 //
-//  Process_IPC.c
+//  pipe.c
 //  kernel
 //
-//  Created by Dietmar Planitzer on 3/31/24.
-//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 7/6/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "ProcessPriv.h"
+#include "syscalldecls.h"
 #include <ipc/PipeChannel.h>
 #include <kpi/fcntl.h>
 
 
-// Creates an anonymous pipe.
-errno_t Process_CreatePipe(ProcessRef _Nonnull self, int* _Nonnull pOutReadChannel, int* _Nonnull pOutWriteChannel)
+SYSCALL_2(mkpipe, int* _Nonnull pOutReadChannel, int* _Nonnull pOutWriteChannel)
 {
     decl_try_err();
+    ProcessRef pp = (ProcessRef)p;
     PipeRef pPipe = NULL;
     IOChannelRef rdChannel = NULL, wrChannel = NULL;
     bool needsUnlock = false;
@@ -23,21 +23,21 @@ errno_t Process_CreatePipe(ProcessRef _Nonnull self, int* _Nonnull pOutReadChann
     try(PipeChannel_Create(pPipe, O_RDONLY, &rdChannel));
     try(PipeChannel_Create(pPipe, O_WRONLY, &wrChannel));
 
-    Lock_Lock(&self->lock);
+    Lock_Lock(&pp->lock);
     needsUnlock = true;
-    try(IOChannelTable_AdoptChannel(&self->ioChannelTable, rdChannel, pOutReadChannel));
+    try(IOChannelTable_AdoptChannel(&pp->ioChannelTable, rdChannel, pa->pOutReadChannel));
     rdChannel = NULL;
-    try(IOChannelTable_AdoptChannel(&self->ioChannelTable, wrChannel, pOutWriteChannel));
+    try(IOChannelTable_AdoptChannel(&pp->ioChannelTable, wrChannel, pa->pOutWriteChannel));
     wrChannel = NULL;
-    Lock_Unlock(&self->lock);
+    Lock_Unlock(&pp->lock);
     return EOK;
 
 catch:
     if (rdChannel == NULL) {
-        IOChannelTable_ReleaseChannel(&self->ioChannelTable, *pOutReadChannel);
+        IOChannelTable_ReleaseChannel(&pp->ioChannelTable, *(pa->pOutReadChannel));
     }
     if (needsUnlock) {
-        Lock_Unlock(&self->lock);
+        Lock_Unlock(&pp->lock);
     }
     IOChannel_Release(rdChannel);
     IOChannel_Release(wrChannel);

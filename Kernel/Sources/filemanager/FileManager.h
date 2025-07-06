@@ -76,18 +76,18 @@ extern mode_t FileManager_UMask(FileManagerRef _Nonnull self, mode_t mask);
 (__self)->umask
 
 // Creates a file in the given filesystem location.
-extern errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, unsigned int mode, mode_t permissions, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, int oflags, mode_t mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Opens the given file or named resource. Opening directories is handled by the
-// Process_OpenDirectory() function.
-extern errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+// FileManager_OpenDirectory() function.
+extern errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, int oflags, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Opens an executable file.
 extern errno_t FileManager_OpenExecutable(FileManagerRef _Nonnull self, const char* _Nonnull path, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
-// Creates a new directory. 'permissions' are the file permissions that should be
+// Creates a new directory. 'mode' are the file permissions that should be
 // assigned to the new directory (modulo the file creation mask).
-extern errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _Nonnull pPath, mode_t permissions);
+extern errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _Nonnull pPath, mode_t mode);
 
 // Opens the directory at the given path and returns an I/O channel that represents
 // the open directory.
@@ -140,6 +140,6 @@ extern errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, f
 // Internal
 //
 
-extern errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _Locked pFile, unsigned int mode);
+extern errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _Locked pFile, int oflags);
 
 #endif /* FileManager_h */

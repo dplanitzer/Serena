@@ -64,10 +64,10 @@ static errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const spawn_o
     IOChannelTable_DupFrom(&pChild->ioChannelTable, &self->ioChannelTable);
 
     if (opts->root_dir && opts->root_dir[0] != '\0') {
-        try(Process_SetRootDirectoryPath(pChild, opts->root_dir));
+        try(FileManager_SetRootDirectoryPath(&pChild->fm, opts->root_dir));
     }
     if (opts->cw_dir && opts->cw_dir[0] != '\0') {
-        try(Process_SetWorkingDirectoryPath(pChild, opts->cw_dir));
+        try(FileManager_SetWorkingDirectoryPath(&pChild->fm, opts->cw_dir));
     }
 
     *pOutChild = pChild;

@@ -14,7 +14,7 @@ int creat(const char* _Nonnull path, mode_t mode)
 {
     int fd;
 
-    if (_syscall(SC_creat, path, O_WRONLY|O_TRUNC, mode, &fd) == 0) {
+    if (_syscall(SC_mkfile, path, O_WRONLY|O_TRUNC, mode, &fd) == 0) {
         return fd;
     }
     else {

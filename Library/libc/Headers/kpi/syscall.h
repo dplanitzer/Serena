@@ -43,7 +43,7 @@ enum {
     SC_ioctl,               // errno_t fcall(int fd, int cmd, ...)
     SC_truncate,            // errno_t truncate(const char* _Nonnull path, off_t length)
     SC_ftruncate,           // errno_t ftruncate(int fd, off_t length)
-    SC_creat,               // errno_t creat(const char* _Nonnull path, int options, int permissions, int* _Nonnull fd)
+    SC_mkfile,              // errno_t mkfile(const char* _Nonnull path, int options, int permissions, int* _Nonnull fd)
     SC_pipe,                // errno_t pipe(int* _Nonnull rioc, int* _Nonnull wioc)
     SC_disp_timer,          // errno_t disp_timer(int od, struct timespec deadline, struct timespec interval, dispatch_func_t _Nonnull func, void* _Nullable ctx, uintptr_t tag)
     SC_disp_create,         // errno_t disp_create(int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nonnull pOutQueue)

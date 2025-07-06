@@ -31,7 +31,6 @@ SYSCALL_REF(ioctl);
 SYSCALL_REF(mkfile);
 SYSCALL_REF(open);
 SYSCALL_REF(opendir);
-SYSCALL_REF(mkpipe);
 SYSCALL_REF(mkdir);
 SYSCALL_REF(getcwd);
 SYSCALL_REF(chdir);
@@ -43,13 +42,16 @@ SYSCALL_REF(access);
 SYSCALL_REF(unlink);
 SYSCALL_REF(rename);
 SYSCALL_REF(umask);
+SYSCALL_REF(chown);
+SYSCALL_REF(chmod);
+SYSCALL_REF(utimens);
+
+SYSCALL_REF(mkpipe);
+
 SYSCALL_REF(mount);
 SYSCALL_REF(unmount);
 SYSCALL_REF(sync);
 SYSCALL_REF(fsgetdisk);
-SYSCALL_REF(chown);
-SYSCALL_REF(chmod);
-SYSCALL_REF(utimens);
 
 SYSCALL_REF(exit);
 SYSCALL_REF(spawn_process);

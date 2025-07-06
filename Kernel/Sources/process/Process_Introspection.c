@@ -39,7 +39,7 @@ errno_t Process_Open(ProcessRef _Nonnull self, unsigned int mode, intptr_t arg, 
 {
     decl_try_err();
 
-    //XXX note that Process_OpenFile() is holding the lock
+    //XXX note that the open() syscall is holding the lock
     err = ProcChannel_Create(class(ProcChannel), 0, SEO_FT_PROCESS, mode, self, pOutChannel);
 
     return err;

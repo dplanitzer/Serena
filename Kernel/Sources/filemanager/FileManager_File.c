@@ -15,7 +15,7 @@
 #include <kpi/perm.h>
 
 
-errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _Locked pFile, unsigned int mode)
+errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _Locked pFile, int oflags)
 {
     decl_try_err();
     FilesystemRef fs = Inode_GetFilesystem(pFile);
@@ -29,13 +29,13 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
 
 
     // Calculate the desired access mode
-    if ((mode & O_RDWR) == 0) {
+    if ((oflags & O_RDWR) == 0) {
         return EACCESS;
     }
-    if ((mode & O_RDONLY) == O_RDONLY) {
+    if ((oflags & O_RDONLY) == O_RDONLY) {
         accessMode |= R_OK;
     }
-    if ((mode & O_WRONLY) == O_WRONLY || (mode & O_TRUNC) == O_TRUNC) {
+    if ((oflags & O_WRONLY) == O_WRONLY || (oflags & O_TRUNC) == O_TRUNC) {
         accessMode |= W_OK;
     }
 
@@ -45,7 +45,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
     err = SecurityManager_CheckNodeAccess(gSecurityManager, pFile, self->ruid, self->rgid, accessMode);
     if (err == EOK) {
         if (Inode_GetFileSize(pFile) >= 0ll) {
-            if ((mode & O_TRUNC) == O_TRUNC) {
+            if ((oflags & O_TRUNC) == O_TRUNC) {
                 err = Inode_Truncate(pFile, 0);
             }
         }
@@ -59,7 +59,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
 }
 
 // Creates a file in the given filesystem location.
-errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, unsigned int mode, mode_t permissions, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, int oflags, mode_t mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     ResolvedPath r;
@@ -90,30 +90,30 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
     if (err == EOK) {
         // File exists - reject the operation in exclusive mode and open the
         // file otherwise
-        if ((mode & O_EXCL) == O_EXCL) {
+        if ((oflags & O_EXCL) == O_EXCL) {
             // Exclusive mode: File already exists -> throw an error
             throw(EEXIST);
         }
         else {
             Inode_Lock(ip);
-            err = _FileManager_OpenFile(self, ip, mode);
+            err = _FileManager_OpenFile(self, ip, oflags);
             Inode_Unlock(ip);
             throw_iferr(err);
         }
     }
     else if (err == ENOENT) {
         // File does not exist - create it
-        const mode_t filePerms = ~self->umask & (permissions & 0777);
+        const mode_t filePerms = ~self->umask & (mode & 0777);
 
 
         // The user provided read/write mode must match up with the provided (user) permissions
-        if ((mode & O_RDWR) == 0) {
+        if ((oflags & O_RDWR) == 0) {
             throw(EACCESS);
         }
-        if ((mode & O_RDONLY) == O_RDONLY && !perm_has(filePerms, S_ICUSR, S_IREAD)) {
+        if ((oflags & O_RDONLY) == O_RDONLY && !perm_has(filePerms, S_ICUSR, S_IREAD)) {
             throw(EACCESS);
         }
-        if ((mode & O_WRONLY) == O_WRONLY && !perm_has(filePerms, S_ICUSR, S_IWRITE)) {
+        if ((oflags & O_WRONLY) == O_WRONLY && !perm_has(filePerms, S_ICUSR, S_IWRITE)) {
             throw(EACCESS);
         }
 
@@ -131,7 +131,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
 
 
     // Create the file channel
-    try(FileChannel_Create(ip, mode, pOutChannel));
+    try(FileChannel_Create(ip, oflags, pOutChannel));
 
 catch:
     Inode_Relinquish(ip);
@@ -143,8 +143,8 @@ catch:
 }
 
 // Opens the given file or named resource. Opening directories is handled by the
-// Process_OpenDirectory() function.
-errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+// FileManager_OpenDirectory() function.
+errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull path, int oflags, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     ResolvedPath r;
@@ -154,11 +154,11 @@ errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull 
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
 
     Inode_Lock(r.inode);
-    err = _FileManager_OpenFile(self, r.inode, mode);
+    err = _FileManager_OpenFile(self, r.inode, oflags);
     Inode_Unlock(r.inode);
     throw_iferr(err);
 
-    err = Inode_CreateChannel(r.inode, mode, pOutChannel);
+    err = Inode_CreateChannel(r.inode, oflags, pOutChannel);
 
 catch:
     ResolvedPath_Deinit(&r);
