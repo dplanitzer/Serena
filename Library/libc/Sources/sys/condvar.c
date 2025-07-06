@@ -81,15 +81,16 @@ static int _cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags,
         return -1;
     }
 
-    if (__mutex_unlock(mutex) == 1) {
+    const int r = __mutex_unlock(mutex);
+    if (r == 1) {
         wq_timedwakewait(self->wait_queue, mutex->wait_queue, &self->wait_mask, flags, wtp);
     }
-    else {
+    else if (r == 0) {
         wq_timedwait(self->wait_queue, &self->wait_mask, flags, wtp);
     }
     mutex_lock(mutex);
 
-    return 0;
+    return (r >= 0) ? 0 : -1;
 }
 
 int cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex)
