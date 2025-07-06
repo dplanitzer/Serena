@@ -7,7 +7,6 @@
 //
 
 #include "syscalldecls.h"
-#include <dispatcher/delay.h>
 #include <hal/MonotonicClock.h>
 #include <kern/timespec.h>
 
@@ -29,7 +28,12 @@ SYSCALL_4(clock_nanosleep, int clock, int flags, const struct timespec* _Nonnull
 
 
     // This is a medium or long wait -> context switch away
-    return _sleep(&((ProcessRef)p)->sleepQueue, NULL, options, pa->wtp, pa->rmtp);
+    ProcessRef pp = (ProcessRef)p;
+    const int sps = preempt_disable();
+    const int err = WaitQueue_TimedWait(&pp->sleepQueue, NULL, options, pa->wtp, pa->rmtp);
+    preempt_restore(sps);
+    
+    return err;
 }
 
 SYSCALL_2(clock_gettime, int clock, struct timespec* _Nonnull time)

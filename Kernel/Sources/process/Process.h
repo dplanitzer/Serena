@@ -69,33 +69,11 @@ extern errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _
 extern errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[]);
 
 
-// Disposes the user resource identified by the given descriptor. The resource
-// is deallocated and removed from the resource table.
-extern errno_t Process_DisposeUResource(ProcessRef _Nonnull self, int od);
-
-
 extern errno_t Process_CreateUWaitQueue(ProcessRef _Nonnull self, int policy, int* _Nullable pOutOd);
 extern errno_t Process_Wait_UWaitQueue(ProcessRef _Nonnull self, int q, const sigset_t* _Nullable mask);
 extern errno_t Process_TimedWait_UWaitQueue(ProcessRef _Nonnull self, int q, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp);
 extern errno_t Process_TimedWakeWait_UWaitQueue(ProcessRef _Nonnull self, int q, int oq, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp);
 extern errno_t Process_Wakeup_UWaitQueue(ProcessRef _Nonnull self, int q, int flags);
-
-
-//
-// I/O Channels
-//
-
-extern errno_t Process_CloseChannel(ProcessRef _Nonnull self, int fd);
-
-extern errno_t Process_ReadChannel(ProcessRef _Nonnull self, int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead);
-
-extern errno_t Process_WriteChannel(ProcessRef _Nonnull self, int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nBytesWritten);
-
-extern errno_t Process_SeekChannel(ProcessRef _Nonnull self, int fd, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
-
-extern int Process_Fcntl(ProcessRef _Nonnull self, int fd, int cmd, int* _Nonnull pResult, va_list ap);
-
-extern errno_t Process_Iocall(ProcessRef _Nonnull self, int fd, int cmd, va_list ap);
 
 
 //

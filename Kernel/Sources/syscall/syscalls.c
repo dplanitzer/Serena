@@ -50,7 +50,6 @@ intptr_t _syscall_handler(VirtualProcessor* _Nonnull vcpu, unsigned int* _Nonnul
 }
 
 
-SYSCALL_REF(ioctl);
 SYSCALL_REF(dispose);
 SYSCALL_REF(coninit);
 
@@ -63,14 +62,17 @@ SYSCALL_REF(dispatch_queue_create);
 SYSCALL_REF(dispatch_remove_by_tag);
 SYSCALL_REF(dispatch_queue_current);
 
-SYSCALL_REF(mkfile);
-SYSCALL_REF(open);
-SYSCALL_REF(opendir);
-SYSCALL_REF(mkpipe);
 SYSCALL_REF(close);
 SYSCALL_REF(read);
 SYSCALL_REF(write);
 SYSCALL_REF(seek);
+SYSCALL_REF(fcntl);
+SYSCALL_REF(ioctl);
+
+SYSCALL_REF(mkfile);
+SYSCALL_REF(open);
+SYSCALL_REF(opendir);
+SYSCALL_REF(mkpipe);
 SYSCALL_REF(mkdir);
 SYSCALL_REF(getcwd);
 SYSCALL_REF(chdir);
@@ -78,7 +80,6 @@ SYSCALL_REF(stat);
 SYSCALL_REF(fstat);
 SYSCALL_REF(truncate);
 SYSCALL_REF(ftruncate);
-SYSCALL_REF(fcntl);
 SYSCALL_REF(access);
 SYSCALL_REF(unlink);
 SYSCALL_REF(rename);

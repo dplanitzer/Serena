@@ -37,26 +37,6 @@ SYSCALL_2(mkpipe, int* _Nonnull  pOutReadChannel, int* _Nonnull  pOutWriteChanne
     return Process_CreatePipe((ProcessRef)p, pa->pOutReadChannel, pa->pOutWriteChannel);
 }
 
-SYSCALL_1(close, int ioc)
-{
-    return Process_CloseChannel((ProcessRef)p, pa->ioc);
-}
-
-SYSCALL_4(read, int ioc, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
-{
-    return Process_ReadChannel((ProcessRef)p, pa->ioc, pa->buffer, pa->nBytesToRead, pa->nBytesRead);
-}
-
-SYSCALL_4(write, int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nBytesWritten)
-{
-    return Process_WriteChannel((ProcessRef)p, pa->ioc, pa->buffer, pa->nBytesToWrite, pa->nBytesWritten);
-}
-
-SYSCALL_4(seek, int ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence)
-{
-    return Process_SeekChannel((ProcessRef)p, pa->ioc, pa->offset, pa->pOutOldPosition, pa->whence);
-}
-
 SYSCALL_2(mkdir, const char* _Nonnull path, uint32_t mode)
 {
     return Process_CreateDirectory((ProcessRef)p, pa->path, (mode_t) pa->mode);
@@ -90,11 +70,6 @@ SYSCALL_2(truncate, const char* _Nonnull path, off_t length)
 SYSCALL_2(ftruncate, int ioc, off_t length)
 {
     return Process_TruncateFile_ioc((ProcessRef)p, pa->ioc, pa->length);
-}
-
-SYSCALL_4(fcntl, int fd, int cmd, int* _Nonnull pResult, va_list _Nullable ap)
-{
-    return Process_Fcntl((ProcessRef)p, pa->fd, pa->cmd, pa->pResult, pa->ap);
 }
 
 SYSCALL_2(access, const char* _Nonnull path, uint32_t mode)
