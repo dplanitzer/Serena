@@ -11,9 +11,9 @@
 #include "_vcpu.h"
 
 
-vcpuid_t vcpu_self(void)
+vcpuid_t vcpu_getid(void)
 {
-    return (vcpuid_t)_syscall(SC_vcpu_self);
+    return (vcpuid_t)_syscall(SC_vcpu_getid);
 }
 
 sigset_t vcpu_sigmask(void)
@@ -54,7 +54,7 @@ void vcpu_init(vcpu_t* _Nonnull self)
 {
     SListNode_Init(&self->node);
     SListNode_Init(&self->wq_node);
-    self->id = vcpu_self();
+    self->id = vcpu_getid();
     __vcpu_setdata((intptr_t) self);
 }
 

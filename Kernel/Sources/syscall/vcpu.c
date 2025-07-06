@@ -14,7 +14,7 @@ SYSCALL_0(vcpu_errno)
     return (intptr_t)&(((VirtualProcessor*)p)->uerrno);
 }
 
-SYSCALL_0(vcpu_self)
+SYSCALL_0(vcpu_getid)
 {
     return (intptr_t)((VirtualProcessor*)p)->vpid;
 }

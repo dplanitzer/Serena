@@ -17,7 +17,7 @@
 
 __CPP_BEGIN
 
-extern vcpuid_t vcpu_self(void);
+extern vcpuid_t vcpu_getid(void);
 
 extern sigset_t vcp_sigmask(void);
 extern int vcpu_setsigmask(int op, sigset_t mask, sigset_t* _Nullable oldmask);

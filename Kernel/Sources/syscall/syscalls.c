@@ -9,47 +9,6 @@
 #include "syscalldecls.h"
 
 
-#define SYSCALL_COUNT   59
-static const syscall_t gSystemCallTable[SYSCALL_COUNT];
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-intptr_t _syscall_handler(VirtualProcessor* _Nonnull vcpu, unsigned int* _Nonnull args)
-{
-    ProcessRef curProc = DispatchQueue_GetOwningProcess(vcpu->dispatchQueue);
-    const unsigned int nscno = sizeof(gSystemCallTable) / sizeof(syscall_t);
-    const unsigned int scno = *args;
-    intptr_t r;
-    bool hasErrno;
-
-    if (scno < nscno) {
-        const syscall_t* sc = &gSystemCallTable[scno];
-        void* p = ((sc->flags & SC_VCPU) == SC_VCPU) ? (void*)vcpu : (void*)curProc;
-
-        r = sc->f(p, args);
-        hasErrno = (sc->flags & SC_ERRNO) == SC_ERRNO;
-    }
-    else {
-        r = ENOSYS;
-        hasErrno = true;
-    }
-
-    if (hasErrno) {
-        if (r != 0) {
-            vcpu->uerrno = (errno_t)r;
-            return -1;
-        }
-        else {
-            return 0;
-        }
-    }
-    else {
-        return r;
-    }
-}
-
-
 SYSCALL_REF(dispose);
 SYSCALL_REF(coninit);
 
@@ -115,11 +74,15 @@ SYSCALL_REF(wq_timedwakewait);
 SYSCALL_REF(sched_yield);
 
 SYSCALL_REF(vcpu_errno);
-SYSCALL_REF(vcpu_self);
+SYSCALL_REF(vcpu_getid);
 SYSCALL_REF(vcpu_setsigmask);
 SYSCALL_REF(vcpu_getdata);
 SYSCALL_REF(vcpu_setdata);
 
+
+////////////////////////////////////////////////////////////////////////////////
+
+#define SYSCALL_COUNT   59
 
 static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
@@ -174,7 +137,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(wq_wait, SC_ERRNO),
     SYSCALL_ENTRY(wq_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_wakeup, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_self, SC_VCPU),
+    SYSCALL_ENTRY(vcpu_getid, SC_VCPU),
     SYSCALL_ENTRY(vcpu_setsigmask, SC_VCPU|SC_ERRNO),
     SYSCALL_ENTRY(vcpu_getdata, SC_VCPU),
     SYSCALL_ENTRY(vcpu_setdata, SC_VCPU),
@@ -182,3 +145,39 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(sigtimedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_timedwakewait, SC_ERRNO),
 };
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+intptr_t _syscall_handler(VirtualProcessor* _Nonnull vcpu, unsigned int* _Nonnull args)
+{
+    ProcessRef curProc = DispatchQueue_GetOwningProcess(vcpu->dispatchQueue);
+    const unsigned int scno = *args;
+    intptr_t r;
+    bool hasErrno;
+
+    if (scno < SYSCALL_COUNT) {
+        const syscall_t* sc = &gSystemCallTable[scno];
+        void* p = ((sc->flags & SC_VCPU) == SC_VCPU) ? (void*)vcpu : (void*)curProc;
+
+        r = sc->f(p, args);
+        hasErrno = (sc->flags & SC_ERRNO) == SC_ERRNO;
+    }
+    else {
+        r = ENOSYS;
+        hasErrno = true;
+    }
+
+    if (hasErrno) {
+        if (r != 0) {
+            vcpu->uerrno = (errno_t)r;
+            return -1;
+        }
+        else {
+            return 0;
+        }
+    }
+    else {
+        return r;
+    }
+}
