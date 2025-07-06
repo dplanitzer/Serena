@@ -7,6 +7,7 @@
 //
 
 #include "syscalldecls.h"
+#include <process/AddressSpace.h>
 
 
 SYSCALL_2(alloc_address_space, size_t nbytes, void * _Nullable * _Nonnull pOutMem)
@@ -15,7 +16,7 @@ SYSCALL_2(alloc_address_space, size_t nbytes, void * _Nullable * _Nonnull pOutMe
         return E2BIG;
     }
 
-    return Process_AllocateAddressSpace((ProcessRef)p,
-        __SSizeByClampingSize(pa->nbytes),
-        pa->pOutMem);
+    return AddressSpace_Allocate(((ProcessRef)p)->addressSpace,
+            __SSizeByClampingSize(pa->nbytes),
+            pa->pOutMem);
 }

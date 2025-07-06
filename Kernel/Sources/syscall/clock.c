@@ -9,8 +9,6 @@
 #include "syscalldecls.h"
 #include <dispatcher/delay.h>
 #include <hal/MonotonicClock.h>
-#include <time.h>
-#include <kern/limits.h>
 #include <kern/timespec.h>
 
 

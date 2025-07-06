@@ -9,7 +9,7 @@
 #ifndef UDispatchQueue_h
 #define UDispatchQueue_h
 
-#include <UResource.h>
+#include <process/UResource.h>
 #include <dispatchqueue/DispatchQueue.h>
 
 

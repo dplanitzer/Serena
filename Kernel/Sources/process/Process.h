@@ -55,16 +55,6 @@ extern bool Process_IsTerminating(ProcessRef _Nonnull self);
 // child process (pid == -1) has exited.
 extern errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull self, pid_t pid, struct _pstatus* _Nonnull pStatus, int options);
 
-extern int Process_GetId(ProcessRef _Nonnull self);
-extern int Process_GetParentId(ProcessRef _Nonnull self);
-
-extern uid_t Process_GetRealUserId(ProcessRef _Nonnull self);
-extern gid_t Process_GetRealGroupId(ProcessRef _Nonnull self);
-
-// Returns the base address of the process arguments area. The address is
-// relative to the process address space.
-extern void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull self);
-
 // Spawns a new process that will be a child of the given process. The spawn
 // arguments specify how the child process should be created, which arguments
 // and environment it will receive and which descriptors it will inherit.
@@ -84,35 +74,11 @@ extern errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execP
 extern errno_t Process_DisposeUResource(ProcessRef _Nonnull self, int od);
 
 
-// Dispatches the execution of the given user closure on the given dispatch queue
-// with the given options. 
-extern errno_t Process_DispatchUserClosure(ProcessRef _Nonnull self, int od, VoidFunc_2 _Nonnull func, void* _Nullable ctx, uint32_t options, uintptr_t tag);
-
-// Dispatches the execution of the given user closure on the given dispatch queue
-// after the given deadline.
-extern errno_t Process_DispatchUserTimer(ProcessRef _Nonnull self, int od, const struct timespec* _Nonnull deadline, const struct timespec* _Nonnull interval, VoidFunc_1 _Nonnull func, void* _Nullable ctx, uintptr_t tag);
-
-extern errno_t Process_DispatchRemoveByTag(ProcessRef _Nonnull self, int od, uintptr_t tag);
-
-// Returns the dispatch queue associated with the virtual processor on which the
-// calling code is running. Note this function assumes that it will ALWAYS be
-// called from a system call context and thus the caller will necessarily run in
-// the context of a (process owned) dispatch queue.
-extern int Process_GetCurrentDispatchQueue(ProcessRef _Nonnull self);
-
-// Creates a new dispatch queue and binds it to the process.
-extern errno_t Process_CreateDispatchQueue(ProcessRef _Nonnull self, int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nullable pOutDescriptor);
-
-
 extern errno_t Process_CreateUWaitQueue(ProcessRef _Nonnull self, int policy, int* _Nullable pOutOd);
 extern errno_t Process_Wait_UWaitQueue(ProcessRef _Nonnull self, int q, const sigset_t* _Nullable mask);
 extern errno_t Process_TimedWait_UWaitQueue(ProcessRef _Nonnull self, int q, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp);
 extern errno_t Process_TimedWakeWait_UWaitQueue(ProcessRef _Nonnull self, int q, int oq, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp);
 extern errno_t Process_Wakeup_UWaitQueue(ProcessRef _Nonnull self, int q, int flags);
-
-
-// Allocates more (user) address space to the given process.
-extern errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull self, ssize_t count, void* _Nullable * _Nonnull pOutMem);
 
 
 //

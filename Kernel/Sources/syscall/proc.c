@@ -8,10 +8,6 @@
 
 #include "syscalldecls.h"
 #include <dispatcher/delay.h>
-#include <time.h>
-#include <kern/limits.h>
-#include <kern/timespec.h>
-#include <kpi/uid.h>
 
 
 // XXX Will be removed when we'll do the process termination algorithm
@@ -40,27 +36,27 @@ SYSCALL_4(spawn_process, const char* _Nonnull path, const char* _Nullable * _Nul
 
 SYSCALL_0(getpid)
 {
-    return Process_GetId((ProcessRef)p);
+    return ((ProcessRef)p)->pid;
 }
 
 SYSCALL_0(getppid)
 {
-    return Process_GetParentId((ProcessRef)p);
+    return ((ProcessRef)p)->ppid;
 }
 
 SYSCALL_0(getuid)
 {
-    return Process_GetRealUserId((ProcessRef)p);
+    return FileManager_GetRealUserId(&((ProcessRef)p)->fm);
 }
 
 SYSCALL_0(getgid)
 {
-    return Process_GetRealGroupId((ProcessRef)p);
+    return FileManager_GetRealGroupId(&((ProcessRef)p)->fm);
 }
 
 SYSCALL_0(getpargs)
 {
-    return (intptr_t) Process_GetArgumentsBaseAddress((ProcessRef)p);
+    return (intptr_t) ((ProcessRef)p)->argumentsBase;
 }
 
 SYSCALL_3(waitpid, pid_t pid, struct _pstatus* _Nonnull pOutStatus, int options)
