@@ -69,13 +69,6 @@ extern errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _
 extern errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[]);
 
 
-extern errno_t Process_CreateUWaitQueue(ProcessRef _Nonnull self, int policy, int* _Nullable pOutOd);
-extern errno_t Process_Wait_UWaitQueue(ProcessRef _Nonnull self, int q, const sigset_t* _Nullable mask);
-extern errno_t Process_TimedWait_UWaitQueue(ProcessRef _Nonnull self, int q, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp);
-extern errno_t Process_TimedWakeWait_UWaitQueue(ProcessRef _Nonnull self, int q, int oq, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp);
-extern errno_t Process_Wakeup_UWaitQueue(ProcessRef _Nonnull self, int q, int flags);
-
-
 //
 // Introspection
 //

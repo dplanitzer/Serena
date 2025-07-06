@@ -9,7 +9,7 @@
 #ifndef UWaitQueue_h
 #define UWaitQueue_h
 
-#include <UResource.h>
+#include <process/UResource.h>
 #include <klib/List.h>
 #include <kpi/_time.h>
 #include <kpi/signal.h>
