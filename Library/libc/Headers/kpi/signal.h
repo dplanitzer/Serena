@@ -31,4 +31,10 @@ typedef volatile int sig_atomic_t;
 #define SIGSET_NONMASKABLES (1 << SIGKILL)
 #define SIGSET_URGENT       (1 << SIGKILL)
 
+
+typedef struct siginfo {
+    int     signo;      // Signal number
+//    pid_t   pid;        // Originating process
+} siginfo_t;
+
 #endif /* _KPI_VCPU_H */

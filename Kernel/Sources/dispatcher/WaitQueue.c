@@ -36,7 +36,7 @@ errno_t WaitQueue_Deinit(WaitQueue* self)
 
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-static wres_t _one_shot_wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nullable osigs)
+static wres_t _one_shot_wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     VirtualProcessor* vp = (VirtualProcessor*)ps->running;
@@ -54,10 +54,6 @@ static wres_t _one_shot_wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable
     }
 
     if (availSigs) {
-        if (osigs) {
-            *osigs = availSigs;
-            vp->psigs &= ~availSigs;
-        }
         return WRES_SIGNAL;
     }
     vp->sigmask = theMask;
@@ -81,25 +77,7 @@ static wres_t _one_shot_wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable
 }
 
 // @Entry Condition: preemption disabled
-errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask)
-{
-    switch (_one_shot_wait(self, mask, NULL)) {
-        case WRES_WAKEUP:   return EOK;
-        default:            return EINTR;
-    }
-}
-
-errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs)
-{
-    const int sps = preempt_disable();
-    while (_one_shot_wait(self, mask, osigs) != WRES_SIGNAL);
-    preempt_restore(sps);
-
-    return EOK;
-}
-
-// @Entry Condition: preemption disabled
-errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
+static errno_t _one_shot_timedwait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     VirtualProcessor* vp = (VirtualProcessor*)ps->running;
@@ -123,7 +101,7 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable 
             if (rmtp) {
                 timespec_clear(rmtp);
             }
-            return ETIMEDOUT;
+            return WRES_TIMEOUT;
         }
 
         VirtualProcessorScheduler_ArmTimeout(ps, vp, &deadline);
@@ -132,7 +110,7 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable 
 
 
     // Now wait
-    const wres_t res = _one_shot_wait(self, mask, NULL);
+    const wres_t res = _one_shot_wait(self, mask);
     if (hasArmedTimer) {
         VirtualProcessorScheduler_CancelTimeout(ps, vp);
     }
@@ -150,17 +128,78 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable 
         }
     }
 
+    return res;
+}
 
-    switch (res) {
+static int _best_pending_sig(VirtualProcessor* _Nonnull vp, const sigset_t* _Nonnull set)
+{
+    const sigset_t avail_sigs = vp->psigs & *set;
+
+    if (avail_sigs) {
+        for (int i = 0; i < SIGMAX; i++) {
+            const sigset_t sigbit = avail_sigs & (1 << i);
+            
+            if (sigbit) {
+                return i + 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+
+// @Entry Condition: preemption disabled
+errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask)
+{
+    switch (_one_shot_wait(self, mask)) {
+        case WRES_WAKEUP:   return EOK;
+        default:            return EINTR;
+    }
+}
+
+// @Entry Condition: preemption disabled
+errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
+{
+    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
+    VirtualProcessor* vp = (VirtualProcessor*)ps->running;
+    const sigset_t mask = vp->sigmask & ~(*set);    // temporarily unblock signals in 'set'
+
+    for (;;) {
+        if (_one_shot_wait(self, &mask) == WRES_SIGNAL) {
+            if (info) {
+                const int signo = _best_pending_sig(vp, set);
+
+                if (signo) {
+                    info->signo = signo;
+                    return EOK;
+                }
+            }
+
+            return EINTR;
+        }
+    }
+
+    /* NOT REACHED */
+}
+
+// @Entry Condition: preemption disabled
+errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
+{
+    switch (_one_shot_timedwait(self, mask, flags, wtp, rmtp)) {
         case WRES_SIGNAL:   return EINTR;
         case WRES_TIMEOUT:  return ETIMEDOUT;
         default:            return EOK;
     }
 }
 
-errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs, int flags, const struct timespec* _Nonnull wtp)
+// @Entry Condition: preemption disabled
+errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info)
 {
-    decl_try_err();
+    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
+    VirtualProcessor* vp = (VirtualProcessor*)ps->running;
+    const sigset_t mask = vp->sigmask & ~(*set);    // temporarily unblock signals in 'set'
     struct timespec now, deadline;
     
     // Convert a relative timeout to an absolute timeout because it makes it
@@ -175,20 +214,28 @@ errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullab
     }
 
 
-    const int sps = preempt_disable();
     for (;;) {
-        err = WaitQueue_TimedWait(self, mask, flags, &deadline, NULL);
-        if (err == EINTR) {
-            err = EOK;
-            break;
-        }
-        if (err == ETIMEDOUT) {
-            break;
+        switch (_one_shot_timedwait(self, &mask, flags, &deadline, NULL)) {
+            case WRES_WAKEUP:   // Spurious wakeup
+                break;
+
+            case WRES_SIGNAL:
+                if (info) {
+                    const int signo = _best_pending_sig(vp, set);
+
+                    if (signo) {
+                        info->signo = signo;
+                        return EOK;
+                    }
+                }
+                return EINTR;
+
+            case WRES_TIMEOUT:
+                return ETIMEDOUT;
         }
     }
-    preempt_restore(sps);
 
-    return err;
+    /* NOT REACHED */
 }
 
 

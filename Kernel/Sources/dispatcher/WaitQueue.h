@@ -61,7 +61,8 @@ extern errno_t WaitQueue_Deinit(WaitQueue* self);
 // @Entry Condition: preemption disabled
 extern errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask);
 
-extern errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs);
+// @Entry Condition: preemption disabled
+extern errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, const sigset_t* _Nonnull set, siginfo_t* _Nullable info);
 
 // Same as wait() but with support for timeouts. If 'wtp' is not NULL then 'wtp' is
 // either the maximum duration to wait or the absolute time until to wait. The
@@ -69,7 +70,8 @@ extern errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, const sigset_t* _Null
 // receives the amount of time remaining if the wait was canceled early.
 extern errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
 
-extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, sigset_t* _Nonnull osigs, int flags, const struct timespec* _Nonnull wtp);
+// @Entry Condition: preemption disabled
+extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info);
 
 
 // Wakes up 'vp' if it is currently in waiting state. The wakeup reason is

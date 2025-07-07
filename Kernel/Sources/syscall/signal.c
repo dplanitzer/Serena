@@ -12,27 +12,35 @@
 #include <kpi/signal.h>
 
 
-SYSCALL_2(sigwait, const sigset_t* _Nullable mask, const sigset_t* _Nonnull set)
+SYSCALL_2(sigwait, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
 {
-#if 0
+    decl_try_err();
     ProcessRef pp = (ProcessRef)p;
-    const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
-    const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
 
-    return Process_SigWait_UWaitQueue((ProcessRef)p, pa->od, pmask, pa->osigs);
-#else
-    return 0;
-#endif
+    const int sps = preempt_disable();
+    err = WaitQueue_SigWait(&pp->siwaQueue, pa->set, pa->info);
+    preempt_restore(sps);
+    return err;
 }
 
-SYSCALL_4(sigtimedwait, const sigset_t* _Nullable mask, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp)
+SYSCALL_4(sigtimedwait, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info)
 {
-#if 0
-    const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
-    const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
+    decl_try_err();
+    ProcessRef pp = (ProcessRef)p;
 
-    return Process_SigTimedWait_UWaitQueue((ProcessRef)p, pa->od, pmask, pa->osigs, pa->flags, pa->wtp);
-#else
-    return 0;
-#endif
+    const int sps = preempt_disable();
+    err = WaitQueue_SigTimedWait(&pp->siwaQueue, pa->set, pa->flags, pa->wtp, pa->info);
+    preempt_restore(sps);
+    return err;
+}
+
+SYSCALL_1(sigpending, sigset_t* _Nonnull set)
+{
+    decl_try_err();
+    VirtualProcessor* vp = (VirtualProcessor*)p;
+
+    const int sps = preempt_disable();
+    *(pa->set) = vp->psigs & ~vp->sigmask;
+    preempt_restore(sps);
+    return EOK;
 }

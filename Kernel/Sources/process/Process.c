@@ -34,10 +34,10 @@ ProcessRef _Nullable Process_GetCurrent(void)
 }
 
 
-errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutProc)
+errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf)
 {
     InodeRef rootDir = FileHierarchy_AcquireRootDirectory(pRootFh);
-    const errno_t err = Process_Create(1, pRootFh, kUserId_Root, kGroupId_Root, rootDir, rootDir, perm_from_octal(0022), pOutProc);
+    const errno_t err = Process_Create(1, pRootFh, kUserId_Root, kGroupId_Root, rootDir, rootDir, perm_from_octal(0022), pOutSelf);
 
     Inode_Relinquish(rootDir);
     return err;
@@ -64,6 +64,7 @@ errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t
     try(UResourceTable_Init(&self->uResourcesTable));
 
     WaitQueue_Init(&self->sleepQueue);
+    WaitQueue_Init(&self->siwaQueue);
     FileManager_Init(&self->fm, pFileHierarchy, uid, gid, pRootDir, pWorkingDir, umask);
 
     List_Init(&self->tombstones);
@@ -107,6 +108,7 @@ void Process_deinit(ProcessRef _Nonnull self)
 
     AddressSpace_Destroy(self->addressSpace);
 
+    WaitQueue_Deinit(&self->siwaQueue);
     WaitQueue_Deinit(&self->sleepQueue);
 
     self->addressSpace = NULL;

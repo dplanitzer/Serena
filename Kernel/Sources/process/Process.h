@@ -12,12 +12,8 @@
 #include <stdarg.h>
 #include <kern/types.h>
 #include <kobj/Object.h>
-#include <kpi/mount.h>
 #include <kpi/proc.h>
 #include <kpi/spawn.h>
-#include <kpi/stat.h>
-#include <kpi/uid.h>
-#include <kpi/signal.h>
 #include <kpi/wait.h>
 
 final_class(Process, Object);
@@ -33,7 +29,7 @@ extern ProcessRef _Nullable Process_GetCurrent(void);
 
 
 // Creates the root process which is the first process of the OS.
-extern errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutProc);
+extern errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf);
 
 
 // Triggers the termination of the given process. The termination may be caused

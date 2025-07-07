@@ -66,6 +66,7 @@ SYSCALL_REF(alloc_address_space);
 
 SYSCALL_REF(sigwait);
 SYSCALL_REF(sigtimedwait);
+SYSCALL_REF(sigpending);
 
 SYSCALL_REF(wq_create);
 SYSCALL_REF(wq_wait);
@@ -84,7 +85,7 @@ SYSCALL_REF(vcpu_setdata);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SYSCALL_COUNT   59
+#define SYSCALL_COUNT   60
 
 static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
@@ -146,6 +147,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(sigwait, SC_ERRNO),
     SYSCALL_ENTRY(sigtimedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_timedwakewait, SC_ERRNO),
+    SYSCALL_ENTRY(sigpending, SC_VCPU|SC_ERRNO),
 };
 
 ////////////////////////////////////////////////////////////////////////////////
