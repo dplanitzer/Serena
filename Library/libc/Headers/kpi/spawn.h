@@ -32,6 +32,14 @@
 // dispatch queue and closure.
 #define kSpawn_NotifyOnProcessTermination   0x0008
 
+// A new process group should be created with the new process being the group
+// leader. The id of the new group will be equal to the pid of the new process.
+#define kSpawn_NewProcessGroup  0x0010
+
+// A new session should be created with the new process being the session leader.
+// The id of the new session will be equal to the pid of the new process.
+#define kSpawn_NewSession       0x0020
+
 
 // The 'envp' pointer points to a table of nul-terminated strings of the form
 // 'key=value'. The last entry in the table has to be NULL. All these strings

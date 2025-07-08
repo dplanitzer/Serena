@@ -57,6 +57,8 @@ SYSCALL_REF(exit);
 SYSCALL_REF(spawn_process);
 SYSCALL_REF(getpid);
 SYSCALL_REF(getppid);
+SYSCALL_REF(getpgrp);
+SYSCALL_REF(getsid);
 SYSCALL_REF(getuid);
 SYSCALL_REF(getgid);
 SYSCALL_REF(getpargs);
@@ -86,7 +88,7 @@ SYSCALL_REF(vcpu_setdata);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SYSCALL_COUNT   61
+#define SYSCALL_COUNT   63
 
 static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
@@ -150,6 +152,8 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(wq_timedwakewait, SC_ERRNO),
     SYSCALL_ENTRY(sigpending, SC_VCPU|SC_ERRNO),
     SYSCALL_ENTRY(vcpu_getgrp, SC_VCPU),
+    SYSCALL_ENTRY(getpgrp, 0),
+    SYSCALL_ENTRY(getsid, 0),
 };
 
 ////////////////////////////////////////////////////////////////////////////////

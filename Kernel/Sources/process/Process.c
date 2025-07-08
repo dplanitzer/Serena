@@ -16,13 +16,6 @@ override_func_def(deinit, Process, Object)
 );
 
 
-// Returns the next PID available for use by a new process.
-static pid_t Process_GetNextAvailablePID(void)
-{
-    static volatile AtomicInt gNextAvailablePid = 0;
-    return AtomicInt_Increment(&gNextAvailablePid);
-}
-
 // Returns the process associated with the calling execution context. Returns
 // NULL if the execution context is not associated with a process. This will
 // never be the case inside of a system call.
@@ -37,7 +30,7 @@ ProcessRef _Nullable Process_GetCurrent(void)
 errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf)
 {
     InodeRef rootDir = FileHierarchy_AcquireRootDirectory(pRootFh);
-    const errno_t err = Process_Create(1, pRootFh, kUserId_Root, kGroupId_Root, rootDir, rootDir, perm_from_octal(0022), pOutSelf);
+    const errno_t err = Process_Create(1, 1, 1, 1, pRootFh, kUserId_Root, kGroupId_Root, rootDir, rootDir, perm_from_octal(0022), pOutSelf);
 
     Inode_Relinquish(rootDir);
     return err;
@@ -45,7 +38,7 @@ errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullab
 
 
 
-errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask, ProcessRef _Nullable * _Nonnull pOutSelf)
+errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask, ProcessRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ProcessRef self;
@@ -56,8 +49,10 @@ errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t
 
     Lock_Init(&self->lock);
 
+    self->pid = pid;
     self->ppid = ppid;
-    self->pid = Process_GetNextAvailablePID();
+    self->pgrp = pgrp;
+    self->sid = sid;
     self->catalogId = kCatalogId_None;
 
     try(IOChannelTable_Init(&self->ioChannelTable));

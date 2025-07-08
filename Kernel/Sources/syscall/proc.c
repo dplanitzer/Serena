@@ -44,6 +44,16 @@ SYSCALL_0(getppid)
     return ((ProcessRef)p)->ppid;
 }
 
+SYSCALL_0(getpgrp)
+{
+    return ((ProcessRef)p)->pgrp;
+}
+
+SYSCALL_0(getsid)
+{
+    return ((ProcessRef)p)->sid;
+}
+
 SYSCALL_0(getuid)
 {
     return FileManager_GetRealUserId(&((ProcessRef)p)->fm);

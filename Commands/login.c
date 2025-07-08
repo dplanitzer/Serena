@@ -74,7 +74,12 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
     opts.notificationQueue = kDispatchQueue_Main;
     opts.notificationClosure = (dispatch_func_t)on_shell_termination;
     opts.notificationContext = NULL;
-    opts.options = kSpawn_OverrideUserId | kSpawn_OverrideGroupId | kSpawn_OverrideUserMask | kSpawn_NotifyOnProcessTermination;
+    opts.options = kSpawn_NewProcessGroup
+        | kSpawn_NewSession
+        | kSpawn_OverrideUserId
+        | kSpawn_OverrideGroupId
+        | kSpawn_OverrideUserMask
+        | kSpawn_NotifyOnProcessTermination;
 
 
     // Spawn the shell

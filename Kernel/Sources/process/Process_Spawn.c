@@ -11,6 +11,13 @@
 #include "UDispatchQueue.h"
 
 
+// Returns the next PID available for use by a new process.
+static pid_t make_unique_pid(void)
+{
+    static volatile AtomicInt gNextAvailablePid = 1;
+    return AtomicInt_Increment(&gNextAvailablePid);
+}
+
 static errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const spawn_opts_t* _Nonnull opts, ProcessRef _Nullable * _Nonnull pOutChild)
 {
     decl_try_err();
@@ -46,7 +53,12 @@ static errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const spawn_o
         childGid = opts->gid;
     }
 
-    try(Process_Create(self->pid, self->fm.fileHierarchy, childUid, childGid, self->fm.rootDirectory, self->fm.workingDirectory, childUMask, &pChild));
+
+    const pid_t child_pid = make_unique_pid();
+    const pid_t child_pgrp = (opts->options & kSpawn_NewProcessGroup) == kSpawn_NewProcessGroup ? child_pid : self->pgrp;
+    const pid_t child_sid = (opts->options & kSpawn_NewSession) == kSpawn_NewSession ? child_pid : self->sid;
+
+    try(Process_Create(child_pid, self->pid, child_pgrp, child_sid, self->fm.fileHierarchy, childUid, childGid, self->fm.rootDirectory, self->fm.workingDirectory, childUMask, &pChild));
 
 
     // Note that we do not lock the child process although we're reaching directly

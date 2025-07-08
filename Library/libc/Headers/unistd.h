@@ -52,7 +52,8 @@ extern gid_t getgid(void);
 
 extern pid_t getpid(void);
 extern pid_t getppid(void);
-
+extern pid_t getpgrp(void);
+extern pid_t getsid(void);
 
 // Returns 1 if the I/O channel is connected to a terminal and 0 otherwise.
 extern int isatty(int fd);
