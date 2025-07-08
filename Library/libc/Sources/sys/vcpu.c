@@ -7,6 +7,7 @@
 //
 
 #include <sys/vcpu.h>
+#include <sys/spinlock.h>
 #include <kpi/syscall.h>
 #include "_vcpu.h"
 
@@ -19,6 +20,18 @@ vcpuid_t vcpu_getid(void)
 vcpuid_t vcpu_getgrp(void)
 {
     return (vcpuid_t)_syscall(SC_vcpu_getgrp);
+}
+
+vcpuid_t vcpu_make_grp(void)
+{
+    static spinlock_t l;
+    static vcpuid_t id;
+
+    spin_lock(&l);
+    const newid = ++id;
+    spin_unlock(&l);
+
+    return newid;
 }
 
 sigset_t vcpu_sigmask(void)

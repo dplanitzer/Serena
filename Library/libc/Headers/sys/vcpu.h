@@ -20,6 +20,9 @@ __CPP_BEGIN
 extern vcpuid_t vcpu_getid(void);
 extern vcpuid_t vcpu_getgrp(void);
 
+// Generates a unique vcpu group id
+extern vcpuid_t vcpu_make_grp(void);
+
 extern sigset_t vcpu_sigmask(void);
 extern int vcpu_setsigmask(int op, sigset_t mask, sigset_t* _Nullable oldmask);
 
