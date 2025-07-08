@@ -19,6 +19,11 @@ SYSCALL_0(vcpu_getid)
     return (intptr_t)((VirtualProcessor*)p)->vpid;
 }
 
+SYSCALL_0(vcpu_getgrp)
+{
+    return (intptr_t)((VirtualProcessor*)p)->vpgid;
+}
+
 SYSCALL_3(vcpu_setsigmask, int op, sigset_t mask, sigset_t* _Nullable oldmask)
 {
     return VirtualProcessor_SetSignalMask((VirtualProcessor*)p, pa->op, pa->mask & ~SIGSET_NONMASKABLES, pa->oldmask);

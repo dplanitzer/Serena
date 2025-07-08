@@ -136,6 +136,7 @@ typedef struct VirtualProcessor {
     ExecutionStack                          kernel_stack;
     ExecutionStack                          user_stack;
     vcpuid_t                                vpid;                   // unique VP id (>= 1; 0 is reserved to indicate the absence of a VPID)
+    vcpuid_t                                vpgid;                  // virtual processor group id. Assigned at acquisition time 
 
     // VP owner
     ListNode                                owner_qe;               // VP Pool if relinquished; process if acquired

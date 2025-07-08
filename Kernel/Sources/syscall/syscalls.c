@@ -78,6 +78,7 @@ SYSCALL_REF(sched_yield);
 
 SYSCALL_REF(vcpu_errno);
 SYSCALL_REF(vcpu_getid);
+SYSCALL_REF(vcpu_getgrp);
 SYSCALL_REF(vcpu_setsigmask);
 SYSCALL_REF(vcpu_getdata);
 SYSCALL_REF(vcpu_setdata);
@@ -85,7 +86,7 @@ SYSCALL_REF(vcpu_setdata);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SYSCALL_COUNT   60
+#define SYSCALL_COUNT   61
 
 static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
@@ -148,6 +149,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(sigtimedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_timedwakewait, SC_ERRNO),
     SYSCALL_ENTRY(sigpending, SC_VCPU|SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_getgrp, SC_VCPU),
 };
 
 ////////////////////////////////////////////////////////////////////////////////

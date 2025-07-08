@@ -191,6 +191,8 @@ static void DispatchQueue_AttachVirtualProcessor_Locked(DispatchQueueRef _Nonnul
 static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull self)
 {
     decl_try_err();
+    VirtualProcessor* vp = NULL;
+    VirtualProcessorParameters params;
 
     // Acquire a new virtual processor if we haven't already filled up all
     // concurrency lanes available to us and one of the following is true:
@@ -211,11 +213,16 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
         }
         assert(conLaneIdx != -1);
 
-        const int priority = self->qos * kDispatchPriority_Count + (self->priority + kDispatchPriority_Count / 2) + VP_PRIORITIES_RESERVED_LOW;
-        VirtualProcessor* vp = NULL;
+        params.func = (VoidFunc_1)DispatchQueue_Run;
+        params.context = self;
+        params.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
+        params.userStackSize = VP_DEFAULT_USER_STACK_SIZE;
+        params.vpgid = 0;
+        params.priority = self->qos * kDispatchPriority_Count + (self->priority + kDispatchPriority_Count / 2) + VP_PRIORITIES_RESERVED_LOW;
+
         err = VirtualProcessorPool_AcquireVirtualProcessor(
                                             self->virtual_processor_pool,
-                                            VirtualProcessorParameters_Make((VoidFunc_1)DispatchQueue_Run, self, VP_DEFAULT_KERNEL_STACK_SIZE, VP_DEFAULT_USER_STACK_SIZE, priority),
+                                            &params,
                                             &vp);
         if (err == EOK) {
             DispatchQueue_AttachVirtualProcessor_Locked(self, vp, conLaneIdx);

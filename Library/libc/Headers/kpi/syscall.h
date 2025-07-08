@@ -75,6 +75,7 @@ enum {
     SC_sigtimedwait,        // int sigtimedwait(const sigset_t* _Nullable mask, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info)
     SC_wq_timedwakewait,    // int wq_timedwakewait(int q, int oq, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp)
     SC_sigpending,          // int sigpending(sigset_t* _Nonnull set)
+    SC_vcpu_getgrp,         // int vcpu_getgrp(void)
 };
 
 

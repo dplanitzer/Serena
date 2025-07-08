@@ -16,6 +16,11 @@ vcpuid_t vcpu_getid(void)
     return (vcpuid_t)_syscall(SC_vcpu_getid);
 }
 
+vcpuid_t vcpu_getgrp(void)
+{
+    return (vcpuid_t)_syscall(SC_vcpu_getgrp);
+}
+
 sigset_t vcpu_sigmask(void)
 {
     sigset_t mask;

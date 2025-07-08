@@ -13,15 +13,13 @@
 
 
 typedef struct VirtualProcessorParameters {
-    VoidFunc_1 _Nonnull   func;
-    void* _Nullable _Weak       context;
-    size_t                      kernelStackSize;
-    size_t                      userStackSize;
-    int                         priority;
+    VoidFunc_1 _Nonnull     func;
+    void* _Nullable _Weak   context;
+    size_t                  kernelStackSize;
+    size_t                  userStackSize;
+    vcpuid_t                vpgid;
+    int                     priority;
 } VirtualProcessorParameters;
-
-#define VirtualProcessorParameters_Make(__pFunc, __pContext, __kernelStackSize, __userStackSize, __priority) \
-    ((VirtualProcessorParameters) {__pFunc, __pContext, __kernelStackSize, __userStackSize, __priority})
 
 
 struct VirtualProcessorPool;
@@ -33,7 +31,7 @@ extern VirtualProcessorPoolRef _Nonnull gVirtualProcessorPool;
 extern errno_t VirtualProcessorPool_Create(VirtualProcessorPoolRef _Nullable * _Nonnull pOutSelf);
 extern void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable self);
 
-extern errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, VirtualProcessorParameters params, VirtualProcessor* _Nonnull * _Nonnull pOutVP);
+extern errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, const VirtualProcessorParameters* _Nonnull params, VirtualProcessor* _Nonnull * _Nonnull pOutVP);
 extern _Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, VirtualProcessor* _Nonnull vp);
 
 #endif /* VirtualProcessorPool_h */

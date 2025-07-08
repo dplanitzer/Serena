@@ -51,7 +51,7 @@ void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable self)
     }
 }
 
-errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, VirtualProcessorParameters params, VirtualProcessor* _Nonnull * _Nonnull pOutVP)
+errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, const VirtualProcessorParameters* _Nonnull params, VirtualProcessor* _Nonnull * _Nonnull pOutVP)
 {
     decl_try_err();
     VirtualProcessor* vp = NULL;
@@ -85,11 +85,12 @@ errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _No
     
     
     // Configure the VP
-    try(VirtualProcessor_SetClosure(vp, VirtualProcessorClosure_Make(params.func, params.context, params.kernelStackSize, params.userStackSize)));
-    VirtualProcessor_SetPriority(vp, params.priority);
+    try(VirtualProcessor_SetClosure(vp, VirtualProcessorClosure_Make(params->func, params->context, params->kernelStackSize, params->userStackSize)));
+    VirtualProcessor_SetPriority(vp, params->priority);
     vp->uerrno = 0;
     vp->psigs = 0;
     vp->sigmask = 0;
+    vp->vpgid = params->vpgid;
     vp->lifecycle_state = VP_LIFECYCLE_ACQUIRED;
 
 catch:
