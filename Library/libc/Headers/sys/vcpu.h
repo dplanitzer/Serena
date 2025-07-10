@@ -40,6 +40,8 @@ extern _Noreturn vcpu_relinquish_self(void);
 extern int vcpu_suspend(vcpu_t _Nullable vcpu);
 extern void vcpu_resume(vcpu_t _Nonnull vcpu);
 
+extern void vcpu_yield(void);
+
 __CPP_END
 
 #endif /* _SYS_VCPU_H */

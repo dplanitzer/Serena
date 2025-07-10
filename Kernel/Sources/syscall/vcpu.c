@@ -97,3 +97,9 @@ SYSCALL_1(vcpu_resume, vcpuid_t id)
 
     return EOK;
 }
+
+SYSCALL_0(vcpu_yield)
+{
+    VirtualProcessor_Yield();
+    return EOK;
+}

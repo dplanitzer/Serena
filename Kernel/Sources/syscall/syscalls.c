@@ -76,8 +76,6 @@ SYSCALL_REF(wq_timedwait);
 SYSCALL_REF(wq_wakeup);
 SYSCALL_REF(wq_timedwakewait);
 
-SYSCALL_REF(sched_yield);
-
 SYSCALL_REF(vcpu_errno);
 SYSCALL_REF(vcpu_getid);
 SYSCALL_REF(vcpu_getgrp);
@@ -88,6 +86,7 @@ SYSCALL_REF(vcpu_acquire);
 SYSCALL_REF(vcpu_relinquish_self);
 SYSCALL_REF(vcpu_suspend);
 SYSCALL_REF(vcpu_resume);
+SYSCALL_REF(vcpu_yield);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -142,7 +141,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(fcntl, SC_ERRNO),
     SYSCALL_ENTRY(chmod, SC_ERRNO),
     SYSCALL_ENTRY(utimens, SC_ERRNO),
-    SYSCALL_ENTRY(sched_yield, 0),
+    SYSCALL_ENTRY(vcpu_yield, 0),
     SYSCALL_ENTRY(wq_create, SC_ERRNO),
     SYSCALL_ENTRY(wq_wait, SC_ERRNO),
     SYSCALL_ENTRY(wq_timedwait, SC_ERRNO),

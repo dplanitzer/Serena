@@ -32,9 +32,6 @@ extern void mutex_test(int argc, char *argv[]);
 extern void pipe_test(int argc, char *argv[]);
 extern void pipe2_test(int argc, char *argv[]);
 
-// Sched
-extern void sched_yield_test(int argc, char *argv[]);
-
 // Sema
 extern void sema_test(int argc, char *argv[]);
 
@@ -44,6 +41,7 @@ extern void fopen_memory_variable_size_test(int argc, char *argv[]);
 
 // Vcpu
 extern void acquire_vcpu_test(int argc, char *argv[]);
+
 
 typedef void (*test_func_t)(int argc, char *argv[]);
 
@@ -72,13 +70,11 @@ static const test_t gTests[] = {
     {"pipe", pipe_test, false},
     {"pipe2", pipe2_test, true},
 
-    {"sched_yield", sched_yield_test, true},
-
     {"sema", sema_test, true},
 
     {"stdio", fopen_memory_fixed_size_test, false},
     {"stdio2", fopen_memory_variable_size_test, false},
-    
+
     {"", NULL}
 };
 

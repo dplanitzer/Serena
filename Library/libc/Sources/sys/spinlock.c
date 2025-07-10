@@ -7,13 +7,13 @@
 //
 
 #include <sys/spinlock.h>
-#include <sched.h>
+#include <sys/vcpu.h>
 
 
 void spin_lock(volatile spinlock_t* _Nonnull l)
 {
     while(atomic_flag_test_and_set(&l->lock)) {
-        sched_yield();
+        vcpu_yield();
     }
 }
 

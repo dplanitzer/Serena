@@ -6,7 +6,6 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <sched.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -19,7 +18,7 @@ static void vcpu_main(const char* _Nonnull str)
 {
     for (;;) {
         puts(str);
-        sched_yield();
+        vcpu_yield();
     }
 }
 

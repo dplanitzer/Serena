@@ -152,3 +152,8 @@ _Noreturn vcpu_relinquish_self(void)
     _vcpu_relinquish(vcpu_self());
     /* NOT REACHED */
 }
+
+void vcpu_yield(void)
+{
+    (void)_syscall(SC_vcpu_yield);
+}

@@ -62,7 +62,7 @@ enum {
     SC_fcntl,               // int fcntl(int fd, int cmd, int* _Nonnull pResult, ...)
     SC_chmod,               // errno_t chmod(const char* _Nonnull path, mode_t mode)
     SC_utimens,             // errno_t utimens(const char* _Nonnull path, const struct timespec times[_Nullable 2])
-    SC_sched_yield,         // void sched_yield(void)
+    SC_vcpu_yield,          // void vcpu_yield(void)
     SC_wq_create,           // int wq_create(int policy)
     SC_wq_wait,             // int wq_wait(int q, const sigset_t* _Nullable mask)
     SC_wq_timedwait,        // int wq_timedwait(int q, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp)
