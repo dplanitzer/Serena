@@ -11,7 +11,7 @@
 
 #include <_cmndef.h>
 
-typedef void (*dispatch_func_t)(void* _Nullable arg);
+typedef void (*os_dispatch_func_t)(void* _Nullable arg);
 
 // Quality of Service level. From highest to lowest.
 // kDispatchQoS_Realtime: kernel will minimize the scheduling latency. Realtime is always scheduled before anything else

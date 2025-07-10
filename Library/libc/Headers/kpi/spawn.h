@@ -55,7 +55,7 @@ typedef struct spawn_opts {
     uid_t                               uid;                    // Override user ID
     gid_t                               gid;                    // Override group ID
     int                                 notificationQueue;      // If kSpawn_NotifyOnProcessTermination is set, then this queue will receive termination notifications
-    dispatch_func_t _Nullable           notificationClosure;
+    os_dispatch_func_t _Nullable           notificationClosure;
     void* _Nullable                     notificationContext;
     unsigned int                        options;
 } spawn_opts_t;

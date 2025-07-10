@@ -29,12 +29,12 @@ static void OnAsync(void* _Nonnull pValue)
     //struct timespec dur;
     // timespec_from_sec(&dur, 2);
     //clock_nanosleep(clock_uptime, 0, &dur, NULL);
-    assertOK(dispatch_async(kDispatchQueue_Main, OnAsync, (void*)(val + 1)));
+    assertOK(os_dispatch_async(kDispatchQueue_Main, OnAsync, (void*)(val + 1)));
 }
 
 void dq_async_test(int argc, char *argv[])
 {
-    assertOK(dispatch_async(kDispatchQueue_Main, OnAsync, (void*)0));
+    assertOK(os_dispatch_async(kDispatchQueue_Main, OnAsync, (void*)0));
 }
 
 
@@ -52,12 +52,12 @@ static void OnAsyncAfter(void* _Nonnull pValue)
     clock_gettime(CLOCK_MONOTONIC, &now);
     timespec_from_ms(&dly, 500);
     timespec_add(&now, &dly, &deadline);
-    assertOK(dispatch_after(kDispatchQueue_Main, &deadline, OnAsyncAfter, (void*)(val + 1), 0));
+    assertOK(os_dispatch_after(kDispatchQueue_Main, &deadline, OnAsyncAfter, (void*)(val + 1), 0));
 }
 
 void dq_async_after_test(int argc, char *argv[])
 {
-    assertOK(dispatch_async(kDispatchQueue_Main, OnAsyncAfter, (void*)0));
+    assertOK(os_dispatch_async(kDispatchQueue_Main, OnAsyncAfter, (void*)0));
 }
 
 
@@ -73,19 +73,19 @@ static void OnSync(void* _Nonnull pValue)
 
     timespec_from_ms(&dur, 500);
     clock_nanosleep(CLOCK_MONOTONIC, 0, &dur, NULL);
-    printf("%d  (Queue: %d)\n", val, dispatch_getcurrent());
+    printf("%d  (Queue: %d)\n", val, os_dispatch_getcurrent());
 }
 
 // XXX Note: you can not call this code from the main queue because it ends up
 // XXX blocking on itself. This is expected behavior.
 void dq_sync_test(int argc, char *argv[])
 {
-    const int queue = dispatch_create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal);
+    const int queue = os_dispatch_create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal);
     int i = 0;
 
     assertGreaterEqual(0, queue);
     while (true) {
-        dispatch_sync(queue, OnSync, (void*) i);
+        os_dispatch_sync(queue, OnSync, (void*) i);
         puts("--------");
         i++;
     }

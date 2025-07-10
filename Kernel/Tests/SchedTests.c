@@ -26,10 +26,10 @@ static void OnWriteString(const char* _Nonnull str)
 void sched_yield_test(int argc, char *argv[])
 {
     static const char* gStr[CONCURRENCY] = {"A", "B"};
-    const int dq = dispatch_create(CONCURRENCY, CONCURRENCY, kDispatchQoS_Utility, kDispatchPriority_Normal);
+    const int dq = os_dispatch_create(CONCURRENCY, CONCURRENCY, kDispatchQoS_Utility, kDispatchPriority_Normal);
     assertGreaterEqual(0, dq);
 
     for (int i = 0; i < CONCURRENCY; i++) {
-        assertOK(dispatch_async(dq, (dispatch_func_t)OnWriteString, (void*)gStr[i]));
+        assertOK(os_dispatch_async(dq, (os_dispatch_func_t)OnWriteString, (void*)gStr[i]));
     }
 }

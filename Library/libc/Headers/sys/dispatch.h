@@ -24,7 +24,7 @@ __CPP_BEGIN
 // execution. This function returns with an EINTR if the queue is flushed or
 // terminated by calling DispatchQueue_Terminate().
 // @Concurrency: Safe
-extern int dispatch_sync(int od, dispatch_func_t _Nonnull func, void* _Nullable context);
+extern int os_dispatch_sync(int od, os_dispatch_func_t _Nonnull func, void* _Nullable context);
 
 // Schedules the given closure for asynchronous execution on the given dispatch
 // queue. The 'pContext' argument will be passed to the callback. If the queue
@@ -33,18 +33,18 @@ extern int dispatch_sync(int od, dispatch_func_t _Nonnull func, void* _Nullable 
 // concurrent queue then the callback might start executing even while the
 // the currently executing closure is still running.
 // @Concurrency: Safe 
-extern int dispatch_async(int od, dispatch_func_t _Nonnull func, void* _Nullable context);
+extern int os_dispatch_async(int od, os_dispatch_func_t _Nonnull func, void* _Nullable context);
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible.
 // @Concurrency: Safe
-extern int dispatch_after(int od, const struct timespec* _Nonnull deadline, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
+extern int os_dispatch_after(int od, const struct timespec* _Nonnull deadline, os_dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible. The
 // closure will be executed repeatedly every 'interval' duration until removed.
 // @Concurrency: Safe
-extern int dispatch_periodically(int od, const struct timespec* _Nonnull deadline, const struct timespec* _Nonnull interval, dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
+extern int os_dispatch_periodically(int od, const struct timespec* _Nonnull deadline, const struct timespec* _Nonnull interval, os_dispatch_func_t _Nonnull func, void* _Nullable context, uintptr_t tag);
 
 
 // Removes all scheduled instances of timers and immediate work items with tag
@@ -53,13 +53,13 @@ extern int dispatch_periodically(int od, const struct timespec* _Nonnull deadlin
 // continue to execute uninterrupted. If on the other side, the work item is
 // still pending and has not executed yet then it will be removed and it will
 // not execute.
-extern int dispatch_removebytag(int od, uintptr_t tag);
+extern int os_dispatch_removebytag(int od, uintptr_t tag);
 
 
 // Returns the dispatch queue that is associated with the virtual processor that
 // is running the calling code.
 // @Concurrency: Safe
-extern int dispatch_getcurrent(void);
+extern int os_dispatch_getcurrent(void);
 
 
 // Creates a new dispatch queue. A dispatch queue maintains a list of work items
@@ -86,7 +86,7 @@ extern int dispatch_getcurrent(void);
 // XXX probably want to gate this somewhat behind a capability to prevent a random
 // XXX process from hugging all virtual processors.
 // @Concurrency: Safe
-extern int dispatch_create(int minConcurrency, int maxConcurrency, int qos, int priority);
+extern int os_dispatch_create(int minConcurrency, int maxConcurrency, int qos, int priority);
 
 // Destroys the dispatch queue. The queue is first terminated if it isn't already
 // in terminated state. All work items and timers which are still queued up are
@@ -95,7 +95,7 @@ extern int dispatch_create(int minConcurrency, int maxConcurrency, int qos, int 
 // are purely advisory in nature - they will not stop the queue from being
 // destroyed.
 // @Concurrency: Safe
-extern int dispatch_destroy(int od);
+extern int os_dispatch_destroy(int od);
 
 __CPP_END
 

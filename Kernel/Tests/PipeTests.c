@@ -94,8 +94,8 @@ void pipe2_test(int argc, char *argv[])
 
     assertOK(pipe(fds));
 
-    const int utilityQueue = dispatch_create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal);
+    const int utilityQueue = os_dispatch_create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal);
     assertGreaterEqual(0, utilityQueue);
-    assertOK(dispatch_async(kDispatchQueue_Main, (dispatch_func_t)OnWriteToPipe, (void*)fds[SEO_PIPE_WRITE]));
-    assertOK(dispatch_async(utilityQueue, (dispatch_func_t)OnReadFromPipe, (void*)fds[SEO_PIPE_READ]));
+    assertOK(os_dispatch_async(kDispatchQueue_Main, (os_dispatch_func_t)OnWriteToPipe, (void*)fds[SEO_PIPE_WRITE]));
+    assertOK(os_dispatch_async(utilityQueue, (os_dispatch_func_t)OnReadFromPipe, (void*)fds[SEO_PIPE_READ]));
 }

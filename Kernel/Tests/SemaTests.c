@@ -53,7 +53,7 @@ static void philosopher(int* num)
 
 void sema_test(int argc, char *argv[])
 {
-    gQueue = dispatch_create(NUM, NUM, kDispatchQoS_Utility, kDispatchPriority_Normal);
+    gQueue = os_dispatch_create(NUM, NUM, kDispatchQoS_Utility, kDispatchPriority_Normal);
 
     assertGreaterEqual(0, gQueue);
     assertOK(sem_init(&room, NUM-1));
@@ -63,6 +63,6 @@ void sema_test(int argc, char *argv[])
     }
 
     for (int i = 0; i < NUM; i++) {
-        assertOK(dispatch_async(gQueue, (dispatch_func_t)philosopher, &phil[i]));
+        assertOK(os_dispatch_async(gQueue, (os_dispatch_func_t)philosopher, &phil[i]));
     }
 }

@@ -78,13 +78,13 @@ static void OnWork(void* _Nonnull pValue)
 
     assertOK(mutex_unlock(&gMutex));
 
-    assertOK(dispatch_async(gQueue, OnWork, NULL));
+    assertOK(os_dispatch_async(gQueue, OnWork, NULL));
 }
 
 
 void mutex_test(int argc, char *argv[])
 {
-    gQueue = dispatch_create(0, NUM_VPS, kDispatchQoS_Utility, kDispatchPriority_Normal);
+    gQueue = os_dispatch_create(0, NUM_VPS, kDispatchQoS_Utility, kDispatchPriority_Normal);
 
     assertGreaterEqual(0, gQueue);
     assertOK(mutex_init(&gMutex));
@@ -93,6 +93,6 @@ void mutex_test(int argc, char *argv[])
     select_and_write_pattern();
 
     for (size_t i = 0; i < NUM_WORKERS; i++) {
-        assertOK(dispatch_async(gQueue, OnWork, NULL));
+        assertOK(os_dispatch_async(gQueue, OnWork, NULL));
     }
 }
