@@ -55,6 +55,8 @@ errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarc
     self->sid = sid;
     self->catalogId = kCatalogId_None;
 
+    List_Init(&self->vpQueue);
+
     try(IOChannelTable_Init(&self->ioChannelTable));
     try(UResourceTable_Init(&self->uResourcesTable));
 
@@ -106,6 +108,8 @@ void Process_deinit(ProcessRef _Nonnull self)
     WaitQueue_Deinit(&self->siwaQueue);
     WaitQueue_Deinit(&self->sleepQueue);
 
+    List_Deinit(&self->vpQueue);
+    
     self->addressSpace = NULL;
     self->imageBase = NULL;
     self->argumentsBase = NULL;
@@ -115,4 +119,66 @@ void Process_deinit(ProcessRef _Nonnull self)
     self->ppid = 0;
 
     Lock_Deinit(&self->lock);
+}
+
+errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const vcpu_acquire_params_t* _Nonnull params, vcpuid_t* _Nonnull idp)
+{
+    decl_try_err();
+    VirtualProcessor* vp = NULL;
+    VirtualProcessorParameters kp;
+
+    *idp = 0;
+
+    kp.func = (VoidFunc_1)params->func;
+    kp.context = params->context;
+    kp.ret_func = cpu_relinquish_from_user;
+    kp.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
+    kp.userStackSize = __max(params->user_stack_size, VP_DEFAULT_USER_STACK_SIZE);
+    kp.vpgid = params->vpgid;
+    kp.priority = params->priority;
+    kp.isUser = true;
+
+    Lock_Lock(&self->lock);
+
+    if (!self->isTerminating) {
+        err = VirtualProcessorPool_AcquireVirtualProcessor(
+                                            gVirtualProcessorPool,
+                                            &kp,
+                                            &vp);
+        if (err == EOK) {
+            vp->proc = self;
+            List_InsertAfterLast(&self->vpQueue, &vp->owner_qe);
+            *idp = vp->vpid;
+
+            if ((params->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
+                VirtualProcessor_Resume(vp, false);
+            }
+        }
+    }
+    else {
+        err = ESRCH;
+    }
+
+    Lock_Unlock(&self->lock);
+
+    return err;
+}
+void _vcpu_relinquish_self(void)
+{
+    VirtualProcessor* vp = VirtualProcessor_GetCurrent();
+
+    Process_RelinquishVirtualProcessor(vp->proc, vp);
+    /* NOT REACHED */
+}
+
+void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, VirtualProcessor* _Nonnull vp)
+{
+    Lock_Lock(&self->lock);
+    assert(vp->proc == self);
+    List_Remove(&self->vpQueue, &vp->owner_qe);
+    vp->proc = NULL;
+    Lock_Unlock(&self->lock);
+
+    VirtualProcessorPool_RelinquishVirtualProcessor(gVirtualProcessorPool, VirtualProcessor_GetCurrent());
+    /* NOT REACHED */
 }

@@ -45,6 +45,9 @@ final_class_ivars(Process, Object,
     pid_t                           sid;        // (Login) session id. I'm the session leader if sid == pid 
     CatalogId                       catalogId;  // proc-fs catalog id
 
+    // VPs
+    List                            vpQueue;    // List of VPs [lock]
+
     DispatchQueueRef _Nonnull _Weak mainDispatchQueue;
     AddressSpaceRef _Nonnull        addressSpace;
 

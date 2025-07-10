@@ -57,6 +57,11 @@ void __vcpu_setdata(intptr_t data)
     (void)_syscall(SC_vcpu_setdata, data);
 }
 
+void vcpu_relinquish_self(void)
+{
+    (void)_syscall(SC_vcpu_relinquish_self);
+}
+
 
 SList gVcpus;
 vcpu_t  gMainVcpu;

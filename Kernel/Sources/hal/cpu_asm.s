@@ -26,6 +26,7 @@
     xdef _cpu_call_as_user
     xdef _cpu_abort_call_as_user
     xdef _cpu_return_from_call_as_user
+    xdef _cpu_relinquish_from_user
     xdef _fpu_get_model
 
 
@@ -534,4 +535,15 @@ _cpu_abort_call_as_user:
         trap    #1
         ; NOT REACHED
         ; (the return happens through _cpu_return_from_call_as_user)
+    einline
+
+
+;-----------------------------------------------------------------------
+; void cpu_relinquish_from_user(void)
+; Invoked by user space when it no longer needs the virtual processor and wants
+; to relinquish it.
+_cpu_relinquish_from_user:
+    inline
+        trap #2
+        ; NOT REACHED
     einline

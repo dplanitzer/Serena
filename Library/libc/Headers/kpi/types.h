@@ -68,7 +68,8 @@ typedef struct chs {
 typedef int Quantums;             // Time unit of the scheduler clock which increments monotonically and once per quantum interrupt
 
 
-// Function types 
+// Function types
+typedef void (*VoidFunc_0)(void);
 typedef void (*VoidFunc_1)(void*);
 typedef void (*VoidFunc_2)(void*, void*);
 

@@ -63,6 +63,7 @@ SYSCALL_REF(getuid);
 SYSCALL_REF(getgid);
 SYSCALL_REF(getpargs);
 SYSCALL_REF(waitpid);
+SYSCALL_REF(proc_acquire_vcpu);
 
 SYSCALL_REF(alloc_address_space);
 
@@ -84,11 +85,12 @@ SYSCALL_REF(vcpu_getgrp);
 SYSCALL_REF(vcpu_setsigmask);
 SYSCALL_REF(vcpu_getdata);
 SYSCALL_REF(vcpu_setdata);
+SYSCALL_REF(vcpu_relinquish_self);
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SYSCALL_COUNT   63
+#define SYSCALL_COUNT   65
 
 static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
@@ -154,21 +156,23 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vcpu_getgrp, SC_VCPU),
     SYSCALL_ENTRY(getpgrp, 0),
     SYSCALL_ENTRY(getsid, 0),
+    SYSCALL_ENTRY(proc_acquire_vcpu, SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_relinquish_self, SC_VCPU),
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 
 
-intptr_t _syscall_handler(VirtualProcessor* _Nonnull vcpu, unsigned int* _Nonnull args)
+intptr_t _syscall_handler(VirtualProcessor* _Nonnull vp, unsigned int* _Nonnull args)
 {
-    ProcessRef curProc = DispatchQueue_GetOwningProcess(vcpu->dispatchQueue);
+    ProcessRef curProc = (vp->proc) ? vp->proc : DispatchQueue_GetOwningProcess(vp->dispatchQueue);
     const unsigned int scno = *args;
     intptr_t r;
     bool hasErrno;
 
     if (scno < SYSCALL_COUNT) {
         const syscall_t* sc = &gSystemCallTable[scno];
-        void* p = ((sc->flags & SC_VCPU) == SC_VCPU) ? (void*)vcpu : (void*)curProc;
+        void* p = ((sc->flags & SC_VCPU) == SC_VCPU) ? (void*)vp : (void*)curProc;
 
         r = sc->f(p, args);
         hasErrno = (sc->flags & SC_ERRNO) == SC_ERRNO;
@@ -180,7 +184,7 @@ intptr_t _syscall_handler(VirtualProcessor* _Nonnull vcpu, unsigned int* _Nonnul
 
     if (hasErrno) {
         if (r != 0) {
-            vcpu->uerrno = (errno_t)r;
+            vp->uerrno = (errno_t)r;
             return -1;
         }
         else {

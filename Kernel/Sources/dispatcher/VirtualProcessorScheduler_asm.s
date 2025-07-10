@@ -105,7 +105,7 @@ _VirtualProcessorScheduler_SwitchToBootVirtualProcessor:
 ; Since we are only running the restore half of the context switch in this case,
 ; the expectation of this function here is that someone already pushed an
 ; exception stack frame on the kernel stack of the VP we want to switch to.
-; That's why VirtualProcessor_SetClosure() pushes a dummy format $0 exception
+; That's why cpu_make_callout() pushes a dummy format $0 exception
 ; stack frame on the stack.
 ; 
 ; Expected base stack frame layout at entry:

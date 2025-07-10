@@ -39,3 +39,12 @@ SYSCALL_1(vcpu_setdata, intptr_t data)
     ((VirtualProcessor*)p)->udata = pa->data;
     return EOK;
 }
+
+SYSCALL_0(vcpu_relinquish_self)
+{
+    VirtualProcessor* pp = (VirtualProcessor*)p;
+
+    Process_RelinquishVirtualProcessor(pp->proc, pp);
+    /* NOT REACHED */
+    return 0;
+}

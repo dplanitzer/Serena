@@ -85,12 +85,28 @@ errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _No
     
     
     // Configure the VP
-    try(VirtualProcessor_SetClosure(vp, VirtualProcessorClosure_Make(params->func, params->context, params->kernelStackSize, params->userStackSize)));
+    VirtualProcessorClosure cl;
+    cl.func = (VoidFunc_1)params->func;
+    cl.context = params->context;
+    cl.ret_func = params->ret_func;
+    cl.kernelStackBase = NULL;
+    cl.kernelStackSize = params->kernelStackSize;
+    cl.userStackSize = params->userStackSize;
+    cl.isUser = params->isUser;
+
+    try(VirtualProcessor_SetClosure(vp, &cl));
     VirtualProcessor_SetPriority(vp, params->priority);
+    if (params->isUser) {
+        vp->flags |= VP_FLAG_USER_OWNED;
+    }
+    else {
+        vp->flags &= ~VP_FLAG_USER_OWNED;
+    }
     vp->uerrno = 0;
     vp->psigs = 0;
     vp->sigmask = 0;
     vp->vpgid = params->vpgid;
+    vp->proc = NULL;
     vp->lifecycle_state = VP_LIFECYCLE_ACQUIRED;
 
 catch:

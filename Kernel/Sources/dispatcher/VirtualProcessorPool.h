@@ -10,15 +10,18 @@
 #define VirtualProcessorPool_h
 
 #include "VirtualProcessor.h"
+#include <stdbool.h>
 
 
 typedef struct VirtualProcessorParameters {
     VoidFunc_1 _Nonnull     func;
     void* _Nullable _Weak   context;
+    VoidFunc_0 _Nullable    ret_func;
     size_t                  kernelStackSize;
     size_t                  userStackSize;
     vcpuid_t                vpgid;
     int                     priority;
+    bool                    isUser;
 } VirtualProcessorParameters;
 
 

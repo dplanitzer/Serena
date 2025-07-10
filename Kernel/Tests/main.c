@@ -42,6 +42,8 @@ extern void sema_test(int argc, char *argv[]);
 extern void fopen_memory_fixed_size_test(int argc, char *argv[]);
 extern void fopen_memory_variable_size_test(int argc, char *argv[]);
 
+// Vcpu
+extern void acquire_vcpu_test(int argc, char *argv[]);
 
 typedef void (*test_func_t)(int argc, char *argv[]);
 
@@ -53,6 +55,8 @@ typedef struct test {
 
 
 static const test_t gTests[] = {
+    {"acq_vcpu", acquire_vcpu_test, true},
+
     {"console", interactive_console_test, false},
 
     {"file", overwrite_file_test, false},
@@ -74,6 +78,7 @@ static const test_t gTests[] = {
 
     {"stdio", fopen_memory_fixed_size_test, false},
     {"stdio2", fopen_memory_variable_size_test, false},
+    
     {"", NULL}
 };
 

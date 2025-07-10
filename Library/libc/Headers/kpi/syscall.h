@@ -78,6 +78,8 @@ enum {
     SC_vcpu_getgrp,         // int vcpu_getgrp(void)
     SC_getpgrp,             // pid_t getpgrp(void)
     SC_getsid,              // pid_t getsid(void)
+    SC_acquire_vcpu,        // int proc_acquire_vcpu(const vcpu_acquire_params_t* _Nonnull params, vcpuid_t* _Nonnull idp)
+    SC_vcpu_relinquish_self,    // void SC_vcpu_relinquish_self(void)
 };
 
 

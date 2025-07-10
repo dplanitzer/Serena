@@ -29,7 +29,7 @@ typedef struct pargs {
     char* _Nullable * _Nonnull  argv;           // Pointer to the base of the command line arguments table. Last entry is NULL
     char* _Nullable * _Nonnull  envp;           // Pointer to the base of the environment table. Last entry holds NULL.
     void* _Nonnull              image_base;     // Pointer to the base of the executable header
-    kei_func_t* _Nonnull           urt_funcs;      // Pointer to the URT function table
+    kei_func_t* _Nonnull        urt_funcs;      // Pointer to the URT function table
 } pargs_t;
 
 
@@ -47,5 +47,18 @@ typedef struct proc_info {
 // Returns the name of the process.
 // get_procname(char* _Nonnull buf, size_t bufSize)
 #define kProcCommand_GetName    IOResourceCommand(1)
+
+
+// Acquire the VP and immediately resume it
+#define VCPU_ACQUIRE_RESUMED    1
+
+typedef struct vcpu_acquire_params {
+    void                    (* _Nonnull func)(void);
+    void* _Nullable         context;
+    size_t                  user_stack_size;
+    vcpuid_t                vpgid;
+    int                     priority;
+    unsigned int            flags;
+} vcpu_acquire_params_t;
 
 #endif /* _KPI_PROC_H */

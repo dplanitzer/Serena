@@ -215,10 +215,12 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
 
         params.func = (VoidFunc_1)DispatchQueue_Run;
         params.context = self;
+        params.ret_func = NULL;
         params.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
         params.userStackSize = VP_DEFAULT_USER_STACK_SIZE;
         params.vpgid = 0;
         params.priority = self->qos * kDispatchPriority_Count + (self->priority + kDispatchPriority_Count / 2) + VP_PRIORITIES_RESERVED_LOW;
+        params.isUser = false;
 
         err = VirtualProcessorPool_AcquireVirtualProcessor(
                                             self->virtual_processor_pool,

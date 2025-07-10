@@ -46,21 +46,14 @@ extern errno_t ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, size_
 // point, a context parameter that will be passed to the closure function and the
 // kernel plus user stack size.
 typedef struct VirtualProcessorClosure {
-    VoidFunc_1 _Nonnull   func;
-    void* _Nullable _Weak       context;
-    char* _Nullable             kernelStackBase;    // Optional base address of a pre-allocated kernel stack
-    size_t                      kernelStackSize;
-    size_t                      userStackSize;
+    VoidFunc_1 _Nonnull     func;
+    void* _Nullable _Weak   context;
+    VoidFunc_0 _Nullable    ret_func;
+    char* _Nullable         kernelStackBase;    // Optional base address of a pre-allocated kernel stack
+    size_t                  kernelStackSize;
+    size_t                  userStackSize;
+    bool                    isUser;
 } VirtualProcessorClosure;
-
-#define VirtualProcessorClosure_Make(__pFunc, __pContext, __kernelStackSize, __userStackSize) \
-    ((VirtualProcessorClosure) {__pFunc, __pContext, NULL, __kernelStackSize, __userStackSize})
-
-// Creates a virtual processor closure with the given function and context parameter.
-// The closure will run on a pre-allocated kernel stack. Note that the kernel stack
-// must stay allocated until the virtual processor is terminated.
-#define VirtualProcessorClosure_MakeWithPreallocatedKernelStack(__pFunc, __pContext, __pKernelStackBase, __kernelStackSize) \
-    ((VirtualProcessorClosure) {__pFunc, __pContext, __pKernelStackBase, __kernelStackSize, 0})
 
 
 // Scheduler state
@@ -111,6 +104,7 @@ enum {
 // VP flags
 #define VP_FLAG_CAU_IN_PROGRESS     0x02    // VirtualProcessor_CallAsUser() is in progress
 #define VP_FLAG_CAU_ABORTED         0x04    // VirtualProcessor_AbortCallAsUser() has been called and the VirtualProcessor_CallAsUser() is unwinding
+#define VP_FLAG_USER_OWNED          0x08    // THis VP is owned by a user process
 
 
 // A timeout
@@ -169,6 +163,9 @@ typedef struct VirtualProcessor {
 
     // Lifecycle state
     int8_t                                  lifecycle_state;
+
+    // Process
+    void* _Nullable _Weak                   proc;                   // Process owning this VP (optional for now)
 
     // Dispatch queue state
     void* _Nullable _Weak                   dispatchQueue;                      // Dispatch queue this VP is currently assigned to
@@ -239,7 +236,7 @@ extern void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull self, vo
 
 // Sets the closure which the virtual processor should run when it is resumed.
 // This function may only be called while the VP is suspended.
-extern errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull self, VirtualProcessorClosure closure);
+extern errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull self, const VirtualProcessorClosure* _Nonnull closure);
 
 // Invokes the given closure in user space. Preserves the kernel integer register
 // state. Note however that this function does not preserve the floating point 

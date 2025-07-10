@@ -245,11 +245,12 @@ vp_flags                                so.b    1           ; 1
 vp_quantum_allowance                    so.b    1           ; 1
 vp_suspension_count                     so.b    1           ; 1
 vp_reserved                             so.b    1           ; 1
+vp_proc                                 so.l    1           ; 4
 vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
 vp_reserved2                            so.b    3           ; 3
 vp_SIZEOF                       so
-    ifeq (vp_SIZEOF == 508)
+    ifeq (vp_SIZEOF == 512)
         fail "VirtualProcessor structure size is incorrect."
     endif
 

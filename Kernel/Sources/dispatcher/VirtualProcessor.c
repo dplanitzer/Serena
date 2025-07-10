@@ -179,57 +179,32 @@ void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull self, void* _Nu
 //
 // \param pVP the virtual processor
 // \param closure the closure description
-errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull self, VirtualProcessorClosure closure)
+errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull self, const VirtualProcessorClosure* _Nonnull closure)
 {
     VP_ASSERT_ALIVE(self);
     assert(self->suspension_count > 0);
-    assert(closure.kernelStackSize >= VP_MIN_KERNEL_STACK_SIZE);
+    assert(closure->kernelStackSize >= VP_MIN_KERNEL_STACK_SIZE);
 
     decl_try_err();
 
-    if (closure.kernelStackBase == NULL) {
-        try(ExecutionStack_SetMaxSize(&self->kernel_stack, closure.kernelStackSize));
+    if (closure->kernelStackBase == NULL) {
+        try(ExecutionStack_SetMaxSize(&self->kernel_stack, closure->kernelStackSize));
     } else {
         ExecutionStack_SetMaxSize(&self->kernel_stack, 0);
-        self->kernel_stack.base = closure.kernelStackBase;
-        self->kernel_stack.size = closure.kernelStackSize;
+        self->kernel_stack.base = closure->kernelStackBase;
+        self->kernel_stack.size = closure->kernelStackSize;
     }
-    try(ExecutionStack_SetMaxSize(&self->user_stack, closure.userStackSize));
+    try(ExecutionStack_SetMaxSize(&self->user_stack, closure->userStackSize));
     
 
-    // Initialize the CPU context:
-    // Integer state: zeroed out
-    // Floating-point state: establishes IEEE 754 standard defaults (non-signaling exceptions, round to nearest, extended precision)
-    memset(&self->save_area, 0, sizeof(CpuContext));
-    self->save_area.a[7] = (uintptr_t) ExecutionStack_GetInitialTop(&self->kernel_stack);
-    self->save_area.usp = (uintptr_t) ExecutionStack_GetInitialTop(&self->user_stack);
-    self->save_area.pc = (uintptr_t) closure.func;
-    self->save_area.sr = 0x2000;     // We start out in supervisor mode
-
-
-    // User stack:
-    //
-    // Note that we do not set up an initial stack frame on the user stack because
-    // user space calls have to be done via cpu_call_as_user() and this function
-    // takes care of setting up a frame on the user stack that will eventually
-    // lead the user space code back to kernel space.
-    //
-    //
-    // Kernel stack:
-    //
-    // The initial kernel stack frame looks like this:
-    // SP + 12: pContext
-    // SP +  8: RTS address (VirtualProcessor_Relinquish() entry point)
-    // SP +  0: dummy format $0 exception stack frame (8 byte size)
-    //
-    // See __rtecall_VirtualProcessorScheduler_SwitchContext for an explanation
-    // of why we need the dummy exception stack frame.
-    uint8_t* sp = (uint8_t*) self->save_area.a[7];
-    sp -= 4; *((uint8_t**)sp) = closure.context;
-    sp -= 4; *((uint8_t**)sp) = (uint8_t*)VirtualProcessor_Relinquish;
-    sp -= 4; *((uint32_t*)sp) = 0;
-    sp -= 4; *((uint32_t*)sp) = 0;
-    self->save_area.a[7] = (uintptr_t)sp;
+    // Initialize the CPU context
+    cpu_make_callout(&self->save_area, 
+        (void*)ExecutionStack_GetInitialTop(&self->kernel_stack),
+        (void*)ExecutionStack_GetInitialTop(&self->user_stack),
+        false,
+        closure->func,
+        closure->context,
+        (closure->ret_func) ? closure->ret_func : (VoidFunc_0)VirtualProcessor_Relinquish);
 
     return EOK;
 

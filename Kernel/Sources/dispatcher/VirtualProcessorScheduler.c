@@ -476,7 +476,17 @@ static VirtualProcessor* _Nonnull BootVirtualProcessor_Create(BootAllocator* _No
 
     // Create the VP
     VirtualProcessor_CommonInit(vp, VP_PRIORITY_HIGHEST);
-    try_bang(VirtualProcessor_SetClosure(vp, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((VoidFunc_1)fn, ctx, pKernelStackBase, kernelStackSize)));
+
+    VirtualProcessorClosure cl;
+    cl.func = (VoidFunc_1)fn;
+    cl.context = ctx;
+    cl.ret_func = NULL;
+    cl.kernelStackBase = pKernelStackBase;
+    cl.kernelStackSize = kernelStackSize;
+    cl.userStackSize = 0;
+    cl.isUser = false;
+
+    try_bang(VirtualProcessor_SetClosure(vp, &cl));
     vp->save_area.sr |= 0x0700;    // IRQs should be disabled by default
     vp->suspension_count = 0;
     
@@ -507,7 +517,17 @@ static VirtualProcessor* _Nonnull IdleVirtualProcessor_Create(BootAllocator* _No
 
     // Create the VP
     VirtualProcessor_CommonInit(vp, VP_PRIORITY_LOWEST);
-    try_bang(VirtualProcessor_SetClosure(vp, VirtualProcessorClosure_MakeWithPreallocatedKernelStack(IdleVirtualProcessor_Run, NULL, pKernelStackBase, kernelStackSize)));
+
+    VirtualProcessorClosure cl;
+    cl.func = (VoidFunc_1)IdleVirtualProcessor_Run;
+    cl.context = NULL;
+    cl.ret_func = NULL;
+    cl.kernelStackBase = pKernelStackBase;
+    cl.kernelStackSize = kernelStackSize;
+    cl.userStackSize = 0;
+    cl.isUser = false;
+
+    try_bang(VirtualProcessor_SetClosure(vp, &cl));
 
     return vp;
 }

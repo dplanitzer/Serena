@@ -29,6 +29,8 @@ extern int vcpu_setsigmask(int op, sigset_t mask, sigset_t* _Nullable oldmask);
 extern intptr_t __vcpu_getdata(void);
 extern void __vcpu_setdata(intptr_t data);
 
+extern void vcpu_relinquish_self(void);
+
 __CPP_END
 
 #endif /* _SYS_VCPU_H */
