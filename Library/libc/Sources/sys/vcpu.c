@@ -6,23 +6,44 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <sys/vcpu.h>
+#include "_vcpu.h"
 #include <sys/spinlock.h>
 #include <kpi/syscall.h>
-#include "_vcpu.h"
 
 
-vcpuid_t vcpu_getid(void)
+int vcpu_acquire(const vcpu_acquire_params_t* _Nonnull params, vcpuid_t* _Nonnull idp)
 {
-    return (vcpuid_t)_syscall(SC_vcpu_getid);
+    return (int) _syscall(SC_vcpu_acquire, params, idp);
 }
 
-vcpuid_t vcpu_getgrp(void)
+void vcpu_relinquish_self(void)
 {
-    return (vcpuid_t)_syscall(SC_vcpu_getgrp);
+    (void)_syscall(SC_vcpu_relinquish_self);
 }
 
-vcpuid_t vcpu_make_grp(void)
+
+SList       g_all_vcpus;
+struct vcpu g_main_vcpu;
+
+void __vcpu_init(void)
+{
+    SList_Init(&g_all_vcpus);
+    vcpu_init(&g_main_vcpu, 0);
+    SList_InsertAfterLast(&g_all_vcpus, &g_main_vcpu.node);
+}
+
+
+void vcpu_init(vcpu_t _Nonnull self, vcpuid_t groupid)
+{
+    SListNode_Init(&self->node);
+    self->id = (vcpuid_t)_syscall(SC_vcpu_getid);
+    self->groupid = groupid;
+
+    (void)_syscall(SC_vcpu_setdata, (intptr_t)self);
+}
+
+
+vcpuid_t new_vcpu_groupid(void)
 {
     static spinlock_t l;
     static vcpuid_t id;
@@ -32,6 +53,22 @@ vcpuid_t vcpu_make_grp(void)
     spin_unlock(&l);
 
     return newid;
+}
+
+
+vcpu_t vcpu_self(void)
+{
+    return (vcpu_t)_syscall(SC_vcpu_getdata);
+}
+
+vcpuid_t vcpu_id(vcpu_t self)
+{
+    return self->id;
+}
+
+vcpuid_t vcpu_groupid(vcpu_t self)
+{
+    return self->groupid;
 }
 
 sigset_t vcpu_sigmask(void)
@@ -45,43 +82,4 @@ sigset_t vcpu_sigmask(void)
 int vcpu_setsigmask(int op, sigset_t mask, sigset_t* _Nullable oldmask)
 {
     return (int)_syscall(SC_vcpu_setsigmask, op, mask, oldmask);
-}
-
-intptr_t __vcpu_getdata(void)
-{
-    return (intptr_t)_syscall(SC_vcpu_getdata);
-}
-
-void __vcpu_setdata(intptr_t data)
-{
-    (void)_syscall(SC_vcpu_setdata, data);
-}
-
-void vcpu_relinquish_self(void)
-{
-    (void)_syscall(SC_vcpu_relinquish_self);
-}
-
-
-SList gVcpus;
-vcpu_t  gMainVcpu;
-
-void __vcpu_init(void)
-{
-    SList_Init(&gVcpus);
-    vcpu_init(&gMainVcpu);
-    SList_InsertAfterLast(&gVcpus, &gMainVcpu.node);
-}
-
-void vcpu_init(vcpu_t* _Nonnull self)
-{
-    SListNode_Init(&self->node);
-    SListNode_Init(&self->wq_node);
-    self->id = vcpu_getid();
-    __vcpu_setdata((intptr_t) self);
-}
-
-vcpu_t* _Nonnull __vcpu_self(void)
-{
-    return (vcpu_t*)__vcpu_getdata();
 }

@@ -14,20 +14,20 @@
 #include <_offsetof.h>
 #include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/vcpu.h>
 
 
-typedef struct vcpu {
+struct vcpu {
     SListNode   node;
-    SListNode   wq_node;
     vcpuid_t    id;
-} vcpu_t;
+    vcpuid_t    groupid;
+};
 
 
 extern void __vcpu_init(void);
-extern void vcpu_init(vcpu_t* _Nonnull self);
-extern vcpu_t* _Nonnull __vcpu_self(void);
+extern void vcpu_init(vcpu_t _Nonnull self, vcpuid_t groupid);
 
-#define vcpu_from_wq_node(__ptr) \
-(vcpu_t*) (((uint8_t*)__ptr) - offsetof(struct vcpu, wq_node))
+//#define vcpu_from_wq_node(__ptr) \
+//(vcpu_t*) (((uint8_t*)__ptr) - offsetof(struct vcpu, wq_node))
 
 #endif /* __SYS_VCPU_H */

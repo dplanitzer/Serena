@@ -17,17 +17,23 @@
 
 __CPP_BEGIN
 
-extern vcpuid_t vcpu_getid(void);
-extern vcpuid_t vcpu_getgrp(void);
+struct vcpu;
+typedef struct vcpu* vcpu_t;
 
-// Generates a unique vcpu group id
-extern vcpuid_t vcpu_make_grp(void);
+
+// Generates a new process-wide unique vcpu group id
+extern vcpuid_t new_vcpu_groupid(void);
+
+
+extern vcpu_t vcpu_self(void);
+
+extern vcpuid_t vcpu_id(vcpu_t self);
+extern vcpuid_t vcpu_groupid(vcpu_t self);
+
 
 extern sigset_t vcpu_sigmask(void);
 extern int vcpu_setsigmask(int op, sigset_t mask, sigset_t* _Nullable oldmask);
 
-extern intptr_t __vcpu_getdata(void);
-extern void __vcpu_setdata(intptr_t data);
 
 extern int vcpu_acquire(const vcpu_acquire_params_t* _Nonnull params, vcpuid_t* _Nonnull idp);
 extern void vcpu_relinquish_self(void);
