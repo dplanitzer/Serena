@@ -22,7 +22,7 @@ typedef struct syscall {
 } syscall_t;
 
 #define SC_ERRNO    1   /* System call returns an error that should be stored in vcpu->errno */
-#define SC_VCPU     2   /* System call expects a vcpu_t* rather than a proc_t* */
+#define SC_VP       2   /* System call expects a VirtualProcessor* rather than a Process* */
 
 
 #define SYSCALL_REF(__name) \

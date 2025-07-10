@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KPI_VCPU_H
-#define _KPI_VCPU_H 1
+#ifndef _KPI_SIGNAL_H
+#define _KPI_SIGNAL_H 1
 
 typedef unsigned int sigset_t;
 typedef volatile int sig_atomic_t;
@@ -37,4 +37,4 @@ typedef struct siginfo {
 //    pid_t   pid;        // Originating process
 } siginfo_t;
 
-#endif /* _KPI_VCPU_H */
+#endif /* _KPI_SIGNAL_H */

@@ -73,8 +73,3 @@ SYSCALL_3(waitpid, pid_t pid, struct _pstatus* _Nonnull pOutStatus, int options)
 {
     return Process_WaitForTerminationOfChild((ProcessRef)p, pa->pid, pa->pOutStatus, pa->options);
 }
-
-SYSCALL_2(proc_acquire_vcpu, const vcpu_acquire_params_t* _Nonnull params, vcpuid_t* _Nonnull idp)
-{
-    return Process_AcquireVirtualProcessor((ProcessRef)p, pa->params, pa->idp);
-}

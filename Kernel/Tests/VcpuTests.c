@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/dispatch.h>
-#include <sys/proc.h>
 #include <sys/vcpu.h>
 #include "Asserts.h"
 
@@ -39,6 +38,6 @@ void acquire_vcpu_test(int argc, char *argv[])
         params.priority = 24;
         params.vpgid = 0;
         params.flags = VCPU_ACQUIRE_RESUMED;
-        assertOK(proc_acquire_vcpu(&params, &gId[i]));
+        assertOK(vcpu_acquire(&params, &gId[i]));
     }
 }

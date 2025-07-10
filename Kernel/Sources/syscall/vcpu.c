@@ -7,6 +7,7 @@
 //
 
 #include "syscalldecls.h"
+#include <kpi/vcpu.h>
 
 
 SYSCALL_0(vcpu_errno)
@@ -38,6 +39,11 @@ SYSCALL_1(vcpu_setdata, intptr_t data)
 {
     ((VirtualProcessor*)p)->udata = pa->data;
     return EOK;
+}
+
+SYSCALL_2(vcpu_acquire, const vcpu_acquire_params_t* _Nonnull params, vcpuid_t* _Nonnull idp)
+{
+    return Process_AcquireVirtualProcessor((ProcessRef)p, pa->params, pa->idp);
 }
 
 SYSCALL_0(vcpu_relinquish_self)

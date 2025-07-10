@@ -63,7 +63,6 @@ SYSCALL_REF(getuid);
 SYSCALL_REF(getgid);
 SYSCALL_REF(getpargs);
 SYSCALL_REF(waitpid);
-SYSCALL_REF(proc_acquire_vcpu);
 
 SYSCALL_REF(alloc_address_space);
 
@@ -85,6 +84,7 @@ SYSCALL_REF(vcpu_getgrp);
 SYSCALL_REF(vcpu_setsigmask);
 SYSCALL_REF(vcpu_getdata);
 SYSCALL_REF(vcpu_setdata);
+SYSCALL_REF(vcpu_acquire);
 SYSCALL_REF(vcpu_relinquish_self);
 
 
@@ -135,7 +135,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(sync, SC_ERRNO),
     SYSCALL_ENTRY(coninit, SC_ERRNO),
     SYSCALL_ENTRY(fsgetdisk, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_errno, SC_VCPU),
+    SYSCALL_ENTRY(vcpu_errno, SC_VP),
     SYSCALL_ENTRY(chown, SC_ERRNO),
     SYSCALL_ENTRY(fcntl, SC_ERRNO),
     SYSCALL_ENTRY(chmod, SC_ERRNO),
@@ -145,19 +145,19 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(wq_wait, SC_ERRNO),
     SYSCALL_ENTRY(wq_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_wakeup, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_getid, SC_VCPU),
-    SYSCALL_ENTRY(vcpu_setsigmask, SC_VCPU|SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_getdata, SC_VCPU),
-    SYSCALL_ENTRY(vcpu_setdata, SC_VCPU),
+    SYSCALL_ENTRY(vcpu_getid, SC_VP),
+    SYSCALL_ENTRY(vcpu_setsigmask, SC_VP|SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_getdata, SC_VP),
+    SYSCALL_ENTRY(vcpu_setdata, SC_VP),
     SYSCALL_ENTRY(sigwait, SC_ERRNO),
     SYSCALL_ENTRY(sigtimedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_timedwakewait, SC_ERRNO),
-    SYSCALL_ENTRY(sigpending, SC_VCPU|SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_getgrp, SC_VCPU),
+    SYSCALL_ENTRY(sigpending, SC_VP|SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_getgrp, SC_VP),
     SYSCALL_ENTRY(getpgrp, 0),
     SYSCALL_ENTRY(getsid, 0),
-    SYSCALL_ENTRY(proc_acquire_vcpu, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_relinquish_self, SC_VCPU),
+    SYSCALL_ENTRY(vcpu_acquire, SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_relinquish_self, SC_VP),
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -172,7 +172,7 @@ intptr_t _syscall_handler(VirtualProcessor* _Nonnull vp, unsigned int* _Nonnull 
 
     if (scno < SYSCALL_COUNT) {
         const syscall_t* sc = &gSystemCallTable[scno];
-        void* p = ((sc->flags & SC_VCPU) == SC_VCPU) ? (void*)vp : (void*)curProc;
+        void* p = ((sc->flags & SC_VP) == SC_VP) ? (void*)vp : (void*)curProc;
 
         r = sc->f(p, args);
         hasErrno = (sc->flags & SC_ERRNO) == SC_ERRNO;

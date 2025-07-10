@@ -15,6 +15,7 @@
 #include <kobj/Object.h>
 #include <kpi/proc.h>
 #include <kpi/spawn.h>
+#include <kpi/vcpu.h>
 #include <kpi/wait.h>
 
 final_class(Process, Object);
