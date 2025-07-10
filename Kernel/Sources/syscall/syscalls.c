@@ -86,11 +86,13 @@ SYSCALL_REF(vcpu_getdata);
 SYSCALL_REF(vcpu_setdata);
 SYSCALL_REF(vcpu_acquire);
 SYSCALL_REF(vcpu_relinquish_self);
+SYSCALL_REF(vcpu_suspend);
+SYSCALL_REF(vcpu_resume);
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SYSCALL_COUNT   65
+#define SYSCALL_COUNT   67
 
 static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
@@ -158,6 +160,8 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(getsid, 0),
     SYSCALL_ENTRY(vcpu_acquire, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_relinquish_self, SC_VP),
+    SYSCALL_ENTRY(vcpu_suspend, SC_VP|SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_resume, SC_ERRNO),
 };
 
 ////////////////////////////////////////////////////////////////////////////////

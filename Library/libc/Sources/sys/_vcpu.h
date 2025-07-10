@@ -18,14 +18,15 @@
 
 
 struct vcpu {
-    SListNode   node;
-    vcpuid_t    id;
-    vcpuid_t    groupid;
+    ListNode                node;
+    vcpuid_t                id;
+    vcpuid_t                groupid;
+    vcpu_start_t _Nullable  func;
+    void* _Nullable         arg;
 };
 
 
 extern void __vcpu_init(void);
-extern void vcpu_init(vcpu_t _Nonnull self, vcpuid_t groupid);
 
 //#define vcpu_from_wq_node(__ptr) \
 //(vcpu_t*) (((uint8_t*)__ptr) - offsetof(struct vcpu, wq_node))

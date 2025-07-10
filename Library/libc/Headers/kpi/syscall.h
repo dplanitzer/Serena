@@ -80,6 +80,8 @@ enum {
     SC_getsid,              // pid_t getsid(void)
     SC_vcpu_acquire,        // int vcpu_acquire(const vcpu_acquire_params_t* _Nonnull params, vcpuid_t* _Nonnull idp)
     SC_vcpu_relinquish_self,    // void SC_vcpu_relinquish_self(void)
+    SC_vcpu_suspend,        // int vcpu_suspend(vcpuid_t vcpu)
+    SC_vcpu_resume,         // int vcpu_resume(vcpuid_t vcpu)
 };
 
 

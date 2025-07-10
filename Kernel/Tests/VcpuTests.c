@@ -27,17 +27,18 @@ static void vcpu_main(const char* _Nonnull str)
 void acquire_vcpu_test(int argc, char *argv[])
 {
     static const char* gStr[CONCURRENCY] = {"A", "B"};
-    static vcpuid_t gId[CONCURRENCY];
+    static vcpu_t gId[CONCURRENCY];
 
     for (int i = 0; i < CONCURRENCY; i++) {
         vcpu_acquire_params_t params;
 
-        params.func = (void (*)(void))vcpu_main;
-        params.context = gStr[i];
-        params.user_stack_size = 0;
+        params.func = (vcpu_start_t)vcpu_main;
+        params.arg = gStr[i];
+        params.stack_size = 0;
         params.priority = 24;
-        params.vpgid = 0;
+        params.groupid = 0;
         params.flags = VCPU_ACQUIRE_RESUMED;
-        assertOK(vcpu_acquire(&params, &gId[i]));
+        gId[i] = vcpu_acquire(&params);
+        assertNotNULL(gId[i]);
     }
 }

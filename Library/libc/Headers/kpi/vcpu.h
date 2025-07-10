@@ -11,14 +11,19 @@
 
 #include <kpi/types.h>
 
+#define VCPUID_SELF 0
+
+
 // Acquire the VP and immediately resume it
 #define VCPU_ACQUIRE_RESUMED    1
 
+typedef void (*vcpu_start_t)(void* _Nullable);
+
 typedef struct vcpu_acquire_params {
-    void                    (* _Nonnull func)(void);
-    void* _Nullable         context;
-    size_t                  user_stack_size;
-    vcpuid_t                vpgid;
+    vcpu_start_t _Nullable  func;
+    void* _Nullable         arg;
+    size_t                  stack_size;
+    vcpuid_t                groupid;
     int                     priority;
     unsigned int            flags;
 } vcpu_acquire_params_t;

@@ -54,3 +54,46 @@ SYSCALL_0(vcpu_relinquish_self)
     /* NOT REACHED */
     return 0;
 }
+
+SYSCALL_1(vcpu_suspend, vcpuid_t id)
+{
+    decl_try_err();
+    VirtualProcessor* vp = (VirtualProcessor*)p;
+    ProcessRef pp = vp->proc;
+
+    if (pa->id == VCPUID_SELF) {
+        err = VirtualProcessor_Suspend(vp);
+    }
+    else {
+        Lock_Lock(&pp->lock);
+        List_ForEach(&pp->vpQueue, ListNode, {
+            VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
+
+            if (cvp->vpid == pa->id) {
+                err = VirtualProcessor_Suspend(cvp);
+                break;
+            }
+        });
+        Lock_Unlock(&pp->lock);
+    }
+
+    return err;
+}
+
+SYSCALL_1(vcpu_resume, vcpuid_t id)
+{
+    ProcessRef pp = (ProcessRef)p;
+
+    Lock_Lock(&pp->lock);
+    List_ForEach(&pp->vpQueue, ListNode, {
+        VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
+
+        if (cvp->vpid == pa->id) {
+            VirtualProcessor_Resume(cvp, false);
+            break;
+        }
+    });
+    Lock_Unlock(&pp->lock);
+
+    return EOK;
+}

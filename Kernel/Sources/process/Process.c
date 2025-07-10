@@ -130,11 +130,11 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const vcpu_acq
     *idp = 0;
 
     kp.func = (VoidFunc_1)params->func;
-    kp.context = params->context;
+    kp.context = params->arg;
     kp.ret_func = cpu_relinquish_from_user;
     kp.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
-    kp.userStackSize = __max(params->user_stack_size, VP_DEFAULT_USER_STACK_SIZE);
-    kp.vpgid = params->vpgid;
+    kp.userStackSize = __max(params->stack_size, VP_DEFAULT_USER_STACK_SIZE);
+    kp.vpgid = params->groupid;
     kp.priority = params->priority;
     kp.isUser = true;
 
