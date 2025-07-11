@@ -1,0 +1,390 @@
+//
+//  dispatch.c
+//  libdispatch
+//
+//  Created by Dietmar Planitzer on 7/10/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
+//
+
+#include "dispatch_priv.h"
+#include <errno.h>
+#include <limits.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+static int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self);
+
+
+dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
+{
+    dispatch_t self = NULL;
+    
+    if (attr->maxConcurrency < 1 || attr->maxConcurrency > INT8_MAX || attr->minConcurrency > attr->maxConcurrency) {
+        errno = EINVAL;
+        return NULL;
+    }
+    if (attr->qos < 0 || attr->qos >= DISPATCH_QOS_COUNT) {
+        errno = EINVAL;
+        return NULL;
+    }
+    if (attr->priority < DISPATCH_PRI_LOWEST || attr->priority >= DISPATCH_PRI_HIGHEST) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+
+    self = calloc(1, sizeof(struct dispatch));
+    if (self == NULL) {
+        return NULL;
+    }
+
+    if (mutex_init(&self->mutex) != 0) {
+        free(self);
+        return NULL;
+    }
+
+    self->attr = *attr;
+    self->attr.cb = &self->cb;
+    if (attr->cb) {
+        self->cb = *(attr->cb);
+    }
+
+    self->workers = LIST_INIT;
+    self->worker_count = 0;
+    self->item_cache = SLIST_INIT;
+    self->item_cache_count = 0;
+    self->zombies = SLIST_INIT;
+    self->state = _DISPATCHER_STATE_ACTIVE;
+
+    if (cond_init(&self->cond) != 0) {
+        dispatch_destroy(self);
+        return NULL;
+    }
+
+    for (size_t i = 0; i < attr->minConcurrency; i++) {
+        if (_dispatch_acquire_worker(self) != 0) {
+            dispatch_destroy(self);
+            return NULL;
+        }
+    }
+
+    return self;
+}
+
+int dispatch_destroy(dispatch_t _Nullable self)
+{
+    if (self) {
+        if (self->state < _DISPATCHER_STATE_TERMINATED || !SList_IsEmpty(&self->zombies)) {
+            errno = EBUSY;
+            return -1;
+        }
+
+
+        SList_ForEach(&self->item_cache, ListNode, {
+            dispatch_cachable_item_t cip = (dispatch_cachable_item_t)pCurNode;
+
+            free(cip);
+        });
+        self->item_cache = SLIST_INIT;
+
+        self->workers = LIST_INIT;
+        self->zombies = SLIST_INIT;
+        cond_deinit(&self->cond);
+        mutex_deinit(&self->mutex);
+
+        free(self);
+    }
+
+    return 0;
+}
+
+static int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self)
+{
+    dispatch_worker_t worker = _dispatch_worker_create(&self->attr, self);
+
+    if (worker) {
+        List_InsertAfterLast(&self->workers, &worker->worker_qe);
+        self->worker_count++;
+
+        return 0;
+    }
+
+    return -1;
+}
+
+_Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker)
+{
+    List_Remove(&self->workers, &worker->worker_qe);
+    self->worker_count--;
+
+    _dispatch_worker_destroy(worker);
+
+    cond_broadcast(&self->cond);
+    mutex_unlock(&self->mutex);
+
+    vcpu_relinquish_self();
+}
+
+static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
+{
+    dispatch_worker_t best_wp = NULL;
+    size_t best_wc = SIZE_MAX;
+
+    if (item->state != DISPATCH_STATE_IDLE) {
+        errno = EBUSY;
+        return -1;
+    }
+
+
+    // Acquire a worker if we don't have one
+    // XXX improve this and take advantage of max concurrency
+    if (self->worker_count == 0) {
+        if (_dispatch_acquire_worker(self) != 0) {
+            return -1;
+        }
+    }
+
+
+    // Find the worker with the least amount fo work scheduled
+    if (self->worker_count > 1) {
+        List_ForEach(&self->workers, ListNode, {
+            dispatch_worker_t cwp = queue_entry_as(pCurNode, worker_qe, dispatch_worker);
+
+            if (cwp->work_count < best_wc) {
+                best_wc = cwp->work_count;
+                best_wp = cwp;
+            }
+        });
+    }
+    else {
+        best_wp = (dispatch_worker_t)self->workers.first;
+    }
+
+
+    // Enqueue the work item at the worker that we found and notify it
+    _dispatch_worker_submit(best_wp, item);
+
+    return 0;
+}
+
+static int _dispatch_join(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
+{
+    int r = 0;
+
+    while (item->state < DISPATCH_STATE_DONE) {
+        r = cond_wait(&self->cond, &self->mutex);
+        if (r != 0) {
+            break;
+        }
+    }
+
+    dispatch_item_t pip = NULL;
+    SList_ForEach(&self->zombies, ListNode, {
+        dispatch_item_t cip = (dispatch_item_t)pCurNode;
+
+        if (cip == item) {
+            break;
+        }
+        pip = cip;
+    });
+    SList_Remove(&self->zombies, &pip->qe, &item->qe);
+
+    return r;
+}
+
+void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
+{
+    SList_InsertAfterLast(&self->zombies, &item->qe);
+    cond_broadcast(&self->cond);
+}
+
+static dispatch_cachable_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, size_t nbytes, dispatch_item_func_t itemFunc, int8_t type, uint8_t flags)
+{
+    dispatch_cachable_item_t pip = NULL;
+    dispatch_cachable_item_t ip = NULL;
+
+    SList_ForEach(&self->item_cache, ListNode, {
+        dispatch_cachable_item_t cip = (dispatch_cachable_item_t)pCurNode;
+
+        if (cip->size >= nbytes) {
+            SList_Remove(&self->item_cache, &pip->super.qe, &cip->super.qe);
+            self->item_cache_count--;
+            ip = cip;
+            break;
+        }
+
+        pip = cip;
+    });
+
+    if (ip == NULL) {
+        ip = malloc(nbytes);
+    }
+
+    if (ip) {
+        ip->size = nbytes;
+        ip->super.qe = SLISTNODE_INIT;
+        ip->super.itemFunc = itemFunc;
+        ip->super.retireFunc = NULL;
+        ip->super.version = type;
+        ip->super.state = DISPATCH_STATE_IDLE;
+        ip->super.flags = flags;
+        ip->super.reserved = 0;
+    }
+
+    return ip;
+}
+
+void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_cachable_item_t _Nonnull item)
+{
+    if (self->item_cache_count >= DISPATCH_MAX_CACHE_COUNT) {
+        free(item);
+        return;
+    }
+
+    SList_InsertBeforeFirst(&self->item_cache, &item->super.qe);
+    self->item_cache_count++;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: API
+
+
+int dispatch_submit(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
+{
+    int r;
+
+    mutex_lock(&self->mutex);
+    if (self->state == _DISPATCHER_STATE_ACTIVE) {
+        r = _dispatch_submit(self, item);
+    }
+    else {
+        errno = ETERMINATED;
+        r = -1;
+    }
+    mutex_unlock(&self->mutex);
+    return r;
+}
+
+int dispatch_join(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
+{
+    mutex_lock(&self->mutex);
+    const int r = _dispatch_join(self, item);
+    mutex_unlock(&self->mutex);
+    return r;
+}
+
+
+static void _async_adapter_func(dispatch_item_t _Nonnull item)
+{
+    dispatch_async_item_t async_item = (dispatch_async_item_t)item;
+
+    async_item->func(async_item->context);
+}
+
+int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func, void* _Nullable context)
+{
+    int r = -1;
+
+    mutex_lock(&self->mutex);
+    if (self->state == _DISPATCHER_STATE_ACTIVE) {
+       dispatch_cachable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_async_item), _async_adapter_func, _DISPATCH_ITEM_TYPE_ASYNC, 0);
+    
+        if (item) {
+            ((dispatch_async_item_t)item)->func = func;
+            ((dispatch_async_item_t)item)->context = context;
+            r = _dispatch_submit(self, (dispatch_item_t)item);
+            if (r != 0) {
+                _dispatch_cache_item(self, item);
+            }
+        }
+    }
+    else {
+        errno = ETERMINATED;
+    }
+    mutex_unlock(&self->mutex);
+
+    return r;
+}
+
+
+static void _sync_adapter_func(dispatch_item_t _Nonnull item)
+{
+    dispatch_sync_item_t sync_item = (dispatch_sync_item_t)item;
+
+    sync_item->result = sync_item->func(sync_item->context);
+}
+
+int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, void* _Nullable context)
+{
+    int r = -1;
+
+    mutex_lock(&self->mutex);
+    if (self->state == _DISPATCHER_STATE_ACTIVE) {
+        dispatch_cachable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_sync_item), _sync_adapter_func, _DISPATCH_ITEM_TYPE_SYNC, DISPATCH_ITEM_JOINABLE);
+    
+        if (item) {
+            ((dispatch_sync_item_t)item)->func = func;
+            ((dispatch_sync_item_t)item)->context = context;
+            ((dispatch_sync_item_t)item)->result = 0;
+            if (_dispatch_submit(self, (dispatch_item_t)item) == 0) {
+                r = _dispatch_join(self, (dispatch_item_t)item);
+                if (r == 0) {
+                    r = ((dispatch_sync_item_t)item)->result;
+                }
+            }
+            _dispatch_cache_item(self, item);
+        }
+    }
+    else {
+        errno = ETERMINATED;
+    }
+    mutex_unlock(&self->mutex);
+
+    return r;
+}
+
+
+void dispatch_terminate(dispatch_t _Nonnull self, bool cancel)
+{
+    mutex_lock(&self->mutex);
+    if (self->state == _DISPATCHER_STATE_ACTIVE) {
+        self->state = _DISPATCHER_STATE_TERMINATING;
+
+        if (cancel) {
+            List_ForEach(&self->workers, ListNode, {
+                dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+
+                _dispatch_worker_drain(cwp);
+            });
+        }
+    }
+    mutex_unlock(&self->mutex);
+}
+
+int dispatch_await_termination(dispatch_t _Nonnull self)
+{
+    int r;
+
+    mutex_lock(&self->mutex);
+    switch (self->state) {
+        case _DISPATCHER_STATE_ACTIVE:
+            errno = ESRCH;
+            int r = -1;
+            goto out;
+
+        case _DISPATCHER_STATE_TERMINATED:
+            r = 0;
+            goto out;
+    }
+
+    
+    while (self->worker_count > 0) {
+        cond_wait(&self->cond, &self->mutex);
+    }
+    self->state = _DISPATCHER_STATE_TERMINATED;
+    r = 0;
+
+out:
+    mutex_unlock(&self->mutex);
+    return r;
+}

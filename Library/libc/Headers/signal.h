@@ -48,14 +48,10 @@ extern int sigtimedwait(const sigset_t* _Nonnull set, int flags, const struct ti
 // pending signals and it does not trigger signal handlers.
 extern int sigpending(sigset_t* _Nonnull set);
 
-#if 0
-
 // Sends a signal to a process, process group, virtual processor or virtual
 // processor group. 'scope' specifies to which scope the target identified by
 // 'id' belongs. 'signo' is the number of the signal that should be sent.
 extern int sigsend(int scope, id_t id, int signo);
-
-#endif
 
 __CPP_END
 

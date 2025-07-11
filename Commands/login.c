@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
-#include <sys/dispatch.h>
+#include <sys/os_dispatch.h>
 #include <sys/spawn.h>
 #include <sys/wait.h>
 #include <sys/stat.h>

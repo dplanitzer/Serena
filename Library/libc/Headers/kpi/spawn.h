@@ -12,7 +12,7 @@
 #include <_cmndef.h>
 #include <kpi/stat.h>
 #include <kpi/types.h>
-#include <kpi/dispatch.h>
+#include <kpi/os_dispatch.h>
 
 // Instructs the os_spawn() call to set the umask of the newly spawned
 // process to the umask field in the spawn arguments struct rather than the

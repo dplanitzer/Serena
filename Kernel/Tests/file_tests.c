@@ -1,5 +1,5 @@
 //
-//  FileTests.c
+//  file_tests.c
 //  Kernel Tests
 //
 //  Created by Dietmar Planitzer on 11/22/24.

@@ -158,6 +158,12 @@ LIBCLAP_OBJS_DIR := $(OBJS_DIR)/Library/libclap
 LIBCLAP_FILE := $(LIBCLAP_OBJS_DIR)/libclap.a
 
 
+LIBDISPATCH_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libdispatch
+LIBDISPATCH_HEADERS_DIR := $(LIBDISPATCH_PROJECT_DIR)/Headers
+LIBDISPATCH_OBJS_DIR := $(OBJS_DIR)/Library/libdispatch
+LIBDISPATCH_FILE := $(LIBDISPATCH_OBJS_DIR)/libdispatch.a
+
+
 #---------------------------------------------------------------------------
 # Demos
 #
@@ -174,6 +180,7 @@ SNAKE_FILE := $(SNAKE_OBJS_DIR)/snake
 include $(LIBC_PROJECT_DIR)/project.mk
 include $(LIBM_PROJECT_DIR)/project.mk
 include $(LIBCLAP_PROJECT_DIR)/project.mk
+include $(LIBDISPATCH_PROJECT_DIR)/project.mk
 
 include $(KERNEL_PROJECT_DIR)/project.mk
 include $(KERNEL_TESTS_PROJECT_DIR)/project.mk

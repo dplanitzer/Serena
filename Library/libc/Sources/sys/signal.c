@@ -24,3 +24,8 @@ int sigpending(sigset_t* _Nonnull set)
 {
     return (int)_syscall(SC_sigpending, set);
 }
+
+int sigsend(int scope, id_t id, int signo)
+{
+    return (int)_syscall(SC_sigsend, scope, id, signo);
+}

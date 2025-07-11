@@ -1,13 +1,13 @@
 //
-//  kpi/dispatch.h
+//  kpi/os_dispatch.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KPI_DISPATCH_H
-#define _KPI_DISPATCH_H 1
+#ifndef _KPI_OS_DISPATCH_H
+#define _KPI_OS_DISPATCH_H 1
 
 #include <_cmndef.h>
 
@@ -39,4 +39,4 @@ enum {
     kDispatchOption_Coalesce = 2,   // Do not dispatch this request if a request with the same tag is already queued or currently executing
 };
 
-#endif /* _KPI_DISPATCH_H */
+#endif /* _KPI_OS_DISPATCH_H */

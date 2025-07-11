@@ -6,13 +6,13 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_DISPATCH_H
-#define _SYS_DISPATCH_H 1
+#ifndef _SYS_OS_DISPATCH_H
+#define _SYS_OS_DISPATCH_H 1
 
 #include <_cmndef.h>
 #include <stdint.h>
 #include <time.h>
-#include <kpi/dispatch.h>
+#include <kpi/os_dispatch.h>
 
 __CPP_BEGIN
 
@@ -99,4 +99,4 @@ extern int os_dispatch_destroy(int od);
 
 __CPP_END
 
-#endif /* _SYS_DISPATCH_H */
+#endif /* _SYS_OS_DISPATCH_H */

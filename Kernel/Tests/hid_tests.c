@@ -1,5 +1,5 @@
 //
-//  HIDTests.c
+//  hid_tests.c
 //  Kernel Tests
 //
 //  Created by Dietmar Planitzer on 1/17/25.

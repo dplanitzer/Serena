@@ -1,5 +1,5 @@
 //
-//  SemaTests.c
+//  semaphore_tests.c
 //  Kernel Tests
 //
 //  Created by Dietmar Planitzer on 7/8/25.
@@ -12,7 +12,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/dispatch.h>
+#include <sys/os_dispatch.h>
 #include <sys/semaphore.h>
 #include <sys/timespec.h>
 #include <_math.h>

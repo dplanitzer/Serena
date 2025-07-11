@@ -1,5 +1,5 @@
 //
-//  ConsoleTests.c
+//  console_tests.c
 //  Kernel Tests
 //
 //  Created by Dietmar Planitzer on 7/9/23.

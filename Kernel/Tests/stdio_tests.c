@@ -1,5 +1,5 @@
 //
-//  StdioTests.c
+//  stdio_tests.c
 //  Kernel Tests
 //
 //  Created by Dietmar Planitzer on 1/30/24.

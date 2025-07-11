@@ -11,6 +11,7 @@
 
 #include <_cmndef.h>
 #include <_null.h>
+#include <_offsetof.h>
 #include <stdbool.h>
 
 //
@@ -27,6 +28,9 @@ typedef struct List {
     ListNode* _Nullable last;
 } List;
 
+
+#define LISTNODE_INIT   (ListNode){NULL, NULL}
+#define LIST_INIT       (List){NULL, NULL}
 
 static inline void List_Init(List* _Nonnull pList) {
     pList->first = NULL;
@@ -103,6 +107,9 @@ typedef struct SList {
 } SList;
 
 
+#define SLISTNODE_INIT  (SListNode){NULL}
+#define SLIST_INIT      (SList){NULL, NULL}
+
 static inline void SList_Init(SList* _Nonnull pList) {
     pList->first = NULL;
     pList->last = NULL;
@@ -169,5 +176,9 @@ static inline bool SList_IsEmpty(SList* _Nonnull pList) {
         pCurNode = pNextNode; \
     } \
 }
+
+
+#define queue_entry_as(__qe_ptr, __qe_field_name, __type) \
+(struct __type*) (((char*)__qe_ptr) - offsetof(struct __type, __qe_field_name))
 
 #endif /* _SYS_QUEUE_H */

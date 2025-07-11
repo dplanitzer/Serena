@@ -17,7 +17,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <time.h>
-#include <sys/dispatch.h>
+#include <sys/os_dispatch.h>
 #include <sys/timespec.h>
 #include "utils.h"
 

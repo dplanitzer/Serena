@@ -27,9 +27,15 @@ typedef volatile int sig_atomic_t;
 #define SIGMAX  32
 
 #define SIGKILL     1
+#define SIGDISPATCH 2
+
 
 #define SIGSET_NONMASKABLES (1 << SIGKILL)
 #define SIGSET_URGENT       (1 << SIGKILL)
+
+
+#define SIG_SCOPE_VCPU          0
+#define SIG_SCOPE_VCPU_GROUP    1
 
 
 typedef struct siginfo {

@@ -1,5 +1,5 @@
 //
-//  MutexTests.c
+//  mutex_tests.c
 //  Kernel Tests
 //
 //  Created by Dietmar Planitzer on 8/24/24.
@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <sys/dispatch.h>
+#include <sys/os_dispatch.h>
 #include <sys/mutex.h>
 #include <sys/timespec.h>
 #include <_math.h>

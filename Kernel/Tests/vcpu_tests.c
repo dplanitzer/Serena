@@ -1,5 +1,5 @@
 //
-//  VcpuTests.c
+//  vcpu_tests.c
 //  Kernel Tests
 //
 //  Created by Dietmar Planitzer on 7/9/25.
@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/dispatch.h>
+#include <sys/os_dispatch.h>
 #include <sys/vcpu.h>
 #include "Asserts.h"
 

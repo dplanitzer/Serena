@@ -6,7 +6,7 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <sys/dispatch.h>
+#include <sys/os_dispatch.h>
 #include <kpi/syscall.h>
 #include <sys/timespec.h>
 

@@ -1,5 +1,5 @@
 //
-//  PipeTests.c
+//  pipe_tests.c
 //  Kernel Tests
 //
 //  Created by Dietmar Planitzer on 2/20/24.
@@ -12,7 +12,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/dispatch.h>
+#include <sys/os_dispatch.h>
 #include <sys/timespec.h>
 #include "Asserts.h"
 
