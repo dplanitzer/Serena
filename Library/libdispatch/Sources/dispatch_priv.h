@@ -13,8 +13,8 @@
 #include <signal.h>
 #include <stdnoreturn.h>
 #include <sys/condvar.h>
+#include <sys/timespec.h>
 #include <sys/vcpu.h>
-#include <stdio.h>
 
 __CPP_BEGIN
 
@@ -37,6 +37,7 @@ typedef struct dispatch_worker* dispatch_worker_t;
 extern dispatch_worker_t _Nullable _dispatch_worker_create(const dispatch_attr_t* _Nonnull attr, dispatch_t _Nonnull owner);
 extern void _dispatch_worker_destroy(dispatch_worker_t _Nullable self);
 
+extern void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self);
 extern void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self);
 
@@ -58,7 +59,7 @@ struct dispatch {
     dispatch_attr_t         attr;
     dispatch_callbacks_t    cb;
 
-    List                    workers;
+    List                    workers;        // Each worker has its own work item queue
     size_t                  worker_count;
 
     SList                   zombies;        // Items that are done and joinable
@@ -66,28 +67,32 @@ struct dispatch {
     SList                   item_cache;
     size_t                  item_cache_count;
 
+    SList                   timers;         // The timer queue is shared by all workers
+    SList                   timer_cache;
+    size_t                  timer_cache_count;
+
     volatile int            state;
 };
 
 
-#define DISPATCH_MAX_CACHE_COUNT    8
+#define _DISPATCH_MAX_ITEM_CACHE_COUNT  8
 
-struct dispatch_cachable_item {
+struct dispatch_cacheable_item {
     struct dispatch_item    super;
     size_t                  size;
 };
-typedef struct dispatch_cachable_item* dispatch_cacheable_item_t;
+typedef struct dispatch_cacheable_item* dispatch_cacheable_item_t;
 
 
 struct dispatch_async_item {
-    struct dispatch_cachable_item   super;
+    struct dispatch_cacheable_item  super;
     dispatch_async_func_t _Nonnull  func;
     void* _Nullable                 context;
 };
 typedef struct dispatch_async_item* dispatch_async_item_t;
 
 struct dispatch_sync_item {
-    struct dispatch_cachable_item   super;
+    struct dispatch_cacheable_item  super;
     dispatch_sync_func_t _Nonnull   func;
     void* _Nullable                 context;
     int                             result;
@@ -95,8 +100,23 @@ struct dispatch_sync_item {
 typedef struct dispatch_sync_item* dispatch_sync_item_t;
 
 
+#define _DISPATCH_TIMER_REPEATING       1
+#define _DISPATCH_MAX_TIMER_CACHE_COUNT 4
+
+struct dispatch_timer {
+    SListNode                   timer_qe;
+    struct timespec             deadline;   // Time when the timer fires next
+    struct timespec             interval;   // Time interval until next time the timer should fire (if repeating) 
+    dispatch_item_t _Nonnull    item;
+    int                         flags;
+};
+typedef struct dispatch_timer* dispatch_timer_t;
+
+
+extern void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_cacheable_item_t _Nonnull item);
+extern void _dispatch_cache_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
 
 extern _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker);
 

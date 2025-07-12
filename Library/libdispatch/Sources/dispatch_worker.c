@@ -8,6 +8,7 @@
 
 #include "dispatch_priv.h"
 #include <stdlib.h>
+#include <time.h>
 
 #define VP_PRIORITIES_RESERVED_LOW  2
 
@@ -62,6 +63,11 @@ void _dispatch_worker_destroy(dispatch_worker_t _Nullable self)
     }
 }
 
+void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self)
+{
+    sigsend(SIG_SCOPE_VCPU, self->id, SIGDISPATCH);
+}
+
 void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
     if (self->cb->insert_item == NULL) {
@@ -71,25 +77,8 @@ void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_i
         self->cb->insert_item(item, &self->work_queue);
     }
     self->work_count++;
-    item->state = DISPATCH_STATE_PENDING;
 
-    sigsend(SIG_SCOPE_VCPU, self->id, SIGDISPATCH);
-}
-
-static void _dispatch_worker_retire_item(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
-{
-    if ((item->flags & DISPATCH_ITEM_JOINABLE) != 0) {
-        _dispatch_zombify_item(self->owner, item);
-    }
-    else if ((item->flags & _DISPATCH_ITEM_CACHEABLE) != 0) {
-        _dispatch_cache_item(self->owner, (dispatch_cacheable_item_t)item);
-    }
-    else if (item->retireFunc) {
-        item->retireFunc(item);
-    }
-    else {
-        free(item);
-    }
+    _dispatch_worker_wakeup(self);
 }
 
 // Cancels all items that are still on the worker's work queue
@@ -98,7 +87,7 @@ void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self)
     SList_ForEach(&self->work_queue, SListNode, {
         dispatch_item_t cip = (dispatch_item_t)pCurNode;
 
-        _dispatch_worker_retire_item(self, cip);
+        _dispatch_retire_item(self->owner, cip);
     });
 
     self->work_queue = SLIST_INIT;
@@ -106,13 +95,32 @@ void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self)
 }
 
 
-static dispatch_item_t _Nullable _get_next_item(dispatch_worker_t _Nonnull self, mutex_t* _Nonnull mp)
+static dispatch_item_t _Nullable _get_next_item(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Nonnull mp)
 {
-    volatile int* statep = &self->owner->state;
+    dispatch_t q = self->owner;
+    volatile int* statep = &q->state;
+    struct timespec now, delay, deadline;
     dispatch_item_t item;
     siginfo_t si;
 
     while (*statep == _DISPATCHER_STATE_ACTIVE) {
+        clock_gettime(CLOCK_MONOTONIC, &now);
+
+        // Grab the first timer that's due. We give preference to timers because
+        // they are tied to a specific deadline time while immediate work items
+        // do not guarantee that they will execute at a specific time. So it's
+        // acceptable to push them back on the timeline.
+        dispatch_timer_t ftp = (dispatch_timer_t)q->timers.first;
+        if (ftp && timespec_le(&ftp->deadline, &now)) {
+            SList_RemoveFirst(&q->timers);
+            item = ftp->item;
+            _dispatch_cache_timer(q, ftp);
+
+            return item;
+        }
+
+
+        // Next grab a work item if there's one queued
         if (self->cb->remove_item == NULL) {
             item = (dispatch_item_t) SList_RemoveFirst(&self->work_queue);
         }
@@ -126,8 +134,23 @@ static dispatch_item_t _Nullable _get_next_item(dispatch_worker_t _Nonnull self,
         }
 
 
+        // Compute a deadline for the wait. We do not wait if the deadline
+        // is equal to the current time or it's in the past
+        if (q->timers.first) {
+            deadline = ((dispatch_timer_t)q->timers.first)->deadline;
+        } else {
+            timespec_from_sec(&delay, 2);
+            timespec_add(&now, &delay, &deadline);
+        }
+
+
+        // Wait for work. This drops the queue lock while we're waiting. This
+        // call may return with a ETIMEDOUT error. This is fine. Either some
+        // new work has arrived in the meantime or if not then we are free
+        // to relinquish the VP since it hasn't done anything useful for a
+        // longer time.
         mutex_unlock(mp);
-        sigwait(&self->hotsigs, &si);
+        sigtimedwait(&self->hotsigs, TIMER_ABSTIME, &deadline, &si);
         mutex_lock(mp);
     }
 
@@ -157,7 +180,7 @@ static void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
         mutex_lock(mp);
         item->state = DISPATCH_STATE_DONE;
 
-        _dispatch_worker_retire_item(self, item);
+        _dispatch_retire_item(self->owner, item);
     }
 
     // Takes care of unlocking 'mp'

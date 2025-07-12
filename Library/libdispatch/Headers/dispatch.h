@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/timespec.h>
 #include <sys/queue.h>
 
 __CPP_BEGIN
@@ -162,6 +163,12 @@ extern int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnu
 // the dispatch_sync() result.
 typedef int (*dispatch_sync_func_t)(void* _Nullable context);
 extern int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, void* _Nullable context);
+
+
+extern int dispatch_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item, int flags, const struct timespec* _Nonnull deadline, const struct timespec* _Nullable interval);
+extern void dispatch_cancel_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
+
+extern int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_async_func_t _Nonnull func, void* _Nullable context);
 
 
 // Initiates the termination of a dispatcher. Note that termination is an

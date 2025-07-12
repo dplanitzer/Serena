@@ -20,9 +20,7 @@ static dispatch_t gDispatcher;
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: DispatchAsync
-////////////////////////////////////////////////////////////////////////////////
+// MARK: dispatch_async
 
 static void OnAsync(void* _Nonnull pValue)
 {
@@ -47,32 +45,7 @@ void dq_async_test(int argc, char *argv[])
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: DispatchAsyncAfter
-////////////////////////////////////////////////////////////////////////////////
-
-static void OnAsyncAfter(void* _Nonnull pValue)
-{
-    int val = (int)pValue;
-    struct timespec now, dly, deadline;
-
-    printf("%d\n", val);
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    timespec_from_ms(&dly, 500);
-    timespec_add(&now, &dly, &deadline);
-    assertOK(os_dispatch_after(kDispatchQueue_Main, &deadline, OnAsyncAfter, (void*)(val + 1), 0));
-}
-
-void dq_async_after_test(int argc, char *argv[])
-{
-    assertOK(os_dispatch_async(kDispatchQueue_Main, OnAsyncAfter, (void*)0));
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: DispatchSync
-////////////////////////////////////////////////////////////////////////////////
+// MARK: dispatch_sync
 
 static int OnSync(void* _Nonnull pValue)
 {
@@ -103,4 +76,28 @@ void dq_sync_test(int argc, char *argv[])
         puts("--------");
         i++;
     }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: dispatch_after
+
+static struct timespec DELAY_500MS;
+
+static void OnAsyncAfter(void* _Nonnull pValue)
+{
+    int val = (int)pValue;
+
+    printf("%d\n", val);
+    assertOK(dispatch_after(gDispatcher, 0, &DELAY_500MS, (dispatch_async_func_t)OnAsyncAfter, (void*)(val + 1)));
+}
+
+void dq_async_after_test(int argc, char *argv[])
+{
+    dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
+    gDispatcher = dispatch_create(&attr);
+    assertNotNULL(gDispatcher);
+
+    timespec_from_ms(&DELAY_500MS, 500);
+    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsyncAfter, (void*)0));
 }
