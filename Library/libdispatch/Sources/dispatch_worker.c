@@ -81,11 +81,14 @@ static void _dispatch_worker_retire_item(dispatch_worker_t _Nonnull _Locked self
     if ((item->flags & DISPATCH_ITEM_JOINABLE) != 0) {
         _dispatch_zombify_item(self->owner, item);
     }
-    else if (item->version < _DISPATCH_ITEM_TYPE_BASE) {
-        _dispatch_cache_item(self->owner, (dispatch_cachable_item_t)item);
+    else if ((item->flags & _DISPATCH_ITEM_CACHEABLE) != 0) {
+        _dispatch_cache_item(self->owner, (dispatch_cacheable_item_t)item);
     }
     else if (item->retireFunc) {
         item->retireFunc(item);
+    }
+    else {
+        free(item);
     }
 }
 

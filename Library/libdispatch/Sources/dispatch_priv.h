@@ -41,14 +41,9 @@ extern void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dis
 extern void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self);
 
 
-// Item types (stored in item.version field). Note that positive item type
-// numbers are for the public API and negative item type numbers are for
-// internal use.
-// NOTE: _dispatch_worker_retire_item() assumes that all internal types should
-// be cached
-#define _DISPATCH_ITEM_TYPE_BASE    0       /* dispatch_item_t */
-#define _DISPATCH_ITEM_TYPE_ASYNC   -1      /* dispatch_async_item_t */
-#define _DISPATCH_ITEM_TYPE_SYNC    -2      /* dispatch_sync_item_t */
+// Internal item flags
+#define _DISPATCH_ITEM_PUBLIC_MASK  0x00ff
+#define _DISPATCH_ITEM_CACHEABLE    0x100
 
 
 // Dispatcher state
@@ -81,7 +76,7 @@ struct dispatch_cachable_item {
     struct dispatch_item    super;
     size_t                  size;
 };
-typedef struct dispatch_cachable_item* dispatch_cachable_item_t;
+typedef struct dispatch_cachable_item* dispatch_cacheable_item_t;
 
 
 struct dispatch_async_item {
@@ -101,7 +96,7 @@ typedef struct dispatch_sync_item* dispatch_sync_item_t;
 
 
 extern void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
-extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_cachable_item_t _Nonnull item);
+extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_cacheable_item_t _Nonnull item);
 
 extern _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker);
 
