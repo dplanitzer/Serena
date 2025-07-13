@@ -104,6 +104,14 @@ typedef struct dispatch_item* dispatch_item_t;
 #define DISPATCH_PRI_COUNT     12
 
 
+// Information about the current state of concurrency.
+typedef struct dispatch_concurrency_info {
+    size_t  minimum;    // Minimum required number of workers
+    size_t  maximum;    // Maximum allowed number of workers
+    size_t  current;    // Number of workers currently assigned to the dispatcher
+} dispatch_concurrency_info_t;
+
+
 // Optional dispatch callbacks. A dispatcher implements a FIFO work queue by
 // default. You may override the item insertion and retrieval functions to
 // implement a custom queuing and dequeuing algorithm. The 'insert_item'
@@ -204,6 +212,30 @@ extern void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_i
 // First here means the timer or work item that would execute soonest. Timers
 // are cancelled before work items. At most one timer or work item is cancelled.
 extern void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _Nonnull func);
+
+
+// Returns a reference to the current dispatcher. The current dispatcher is the
+// dispatcher that manages and owns the vcpu on which the caller is executing.
+// Note that this function may return NULL. This happens when the vcpu is not
+// owned by any dispatcher. This function will always return a valid dispatcher
+// reference if called from inside an item function. The dispatcher in this case
+// is the dispatcher on which the item is running.
+extern dispatch_t _Nullable dispatch_current(void);
+
+// Retruns a reference to the item that is currently executing on the caller's
+// vcpu. This is the item for which the caller is doing work. Note that this
+// function returns NULL if it is called from outside an item context. It will
+// never return NULL if called from inside am item context.
+extern dispatch_item_t _Nullable dispatch_current_item(void);
+
+
+extern int dispatch_priority(dispatch_t _Nonnull self);
+extern int dispatch_setpriority(dispatch_t _Nonnull self, int priority);
+
+extern int dispatch_qos(dispatch_t _Nonnull self);
+extern int dispatch_setqos(dispatch_t _Nonnull self, int qos);
+
+extern void dispatch_concurrency_info(dispatch_t _Nonnull self, dispatch_concurrency_info_t* _Nonnull info);
 
 
 // Initiates the termination of a dispatcher. Note that termination is an

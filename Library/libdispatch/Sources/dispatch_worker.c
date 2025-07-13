@@ -36,15 +36,17 @@ dispatch_worker_t _Nullable _dispatch_worker_create(const dispatch_attr_t* _Nonn
     sigemptyset(&self->hotsigs);
     sigaddset(&self->hotsigs, SIGDISPATCH);
 
-    vcpu_attr_t params;
-    params.func = (vcpu_func_t)_dispatch_worker_run;
-    params.arg = self;
-    params.stack_size = 0;
-    params.groupid = new_vcpu_groupid();
-    params.priority = attr->qos * DISPATCH_PRI_COUNT + (attr->priority + DISPATCH_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
-    params.flags = 0;
+    vcpu_attr_t r_attr;
+    r_attr.func = (vcpu_func_t)_dispatch_worker_run;
+    r_attr.arg = self;
+    r_attr.stack_size = 0;
+    r_attr.groupid = new_vcpu_groupid();
+    r_attr.priority = attr->qos * DISPATCH_PRI_COUNT + (attr->priority + DISPATCH_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
+    r_attr.flags = 0;
+    r_attr.owner_key = __os_dispatch_key;
+    r_attr.owner_value = self;
 
-    self->vcpu = vcpu_acquire(&params);
+    self->vcpu = vcpu_acquire(&r_attr);
     if (self->vcpu == NULL) {
         free(self);
         return NULL;

@@ -16,6 +16,9 @@
 static int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self);
 
 
+//vcpu_key_t __os_dispatch_key;
+
+
 dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
 {
     dispatch_t self = NULL;
@@ -689,6 +692,65 @@ void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _
     if (item) {
         _dispatch_do_cancel_item(self, flags, item);
     }
+    mutex_unlock(&self->mutex);
+}
+
+
+dispatch_t _Nullable dispatch_current(void)
+{
+    dispatch_worker_t wp = _dispatch_worker_current();
+    return (wp) ? wp->owner : NULL;
+}
+
+dispatch_item_t _Nullable dispatch_current_item(void)
+{
+    dispatch_worker_t wp = _dispatch_worker_current();
+    // It is safe to access worker.current here without taking the dispatcher
+    // lock because (a) the fact we got a worker pointer proofs that the caller
+    // is executing in the context of this worker and (b) the only way for the
+    // caller to execute in this context is that it is executing in the context
+    // of an active item and (c) the worker.context field can not change (is
+    // effectively constant) as long as this function here executes because by
+    // executing this function we prevent the item context from going away before
+    // we're done here.
+    return (wp) ? wp->current.item : NULL;
+}
+
+
+int dispatch_priority(dispatch_t _Nonnull self)
+{
+    mutex_lock(&self->mutex);
+    const int r = self->attr.priority;
+    mutex_unlock(&self->mutex);
+    return r;
+}
+
+int dispatch_setpriority(dispatch_t _Nonnull self, int priority)
+{
+    //XXX implement me
+    return ENOTSUP;
+}
+
+int dispatch_qos(dispatch_t _Nonnull self)
+{
+    mutex_lock(&self->mutex);
+    const int r = self->attr.qos;
+    mutex_unlock(&self->mutex);
+    return r;
+}
+
+int dispatch_setqos(dispatch_t _Nonnull self, int qos)
+{
+    //XXX implement me
+    return ENOTSUP;
+}
+
+void dispatch_concurrency_info(dispatch_t _Nonnull self, dispatch_concurrency_info_t* _Nonnull info)
+{
+    mutex_lock(&self->mutex);
+    info->minimum = self->attr.minConcurrency;
+    info->maximum = self->attr.maxConcurrency;
+    info->current = self->worker_count;
     mutex_unlock(&self->mutex);
 }
 

@@ -48,6 +48,9 @@ struct vcpu {
 
 extern void __vcpu_init(void);
 
+// For libdispatch
+extern vcpu_key_t __os_dispatch_key;
+
 //#define vcpu_from_wq_node(__ptr) \
 //(vcpu_t*) (((uint8_t*)__ptr) - offsetof(struct vcpu, wq_node))
 

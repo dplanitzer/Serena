@@ -21,6 +21,10 @@ static List         g_all_vcpus;
 static struct vcpu  g_main_vcpu;
 static List         g_vcpu_keys;
 
+// For libdispatch
+struct vcpu_key     g_dispatch_key;
+vcpu_key_t          __os_dispatch_key;
+
 
 void __vcpu_init(void)
 {
@@ -38,9 +42,16 @@ void __vcpu_init(void)
     g_main_vcpu.specific_tab = NULL;
     g_main_vcpu.specific_capacity = 0;
     (void)_syscall(SC_vcpu_setdata, (intptr_t)&g_main_vcpu);
-
-
     List_InsertAfterLast(&g_all_vcpus, &g_main_vcpu.qe);
+
+
+    // Init the vcpu_key_t for libdispatch. We do it here so that libdispatch
+    // can access the key without having to go through a lock (which would be
+    // necessary if it would have to allocate it dynamically itself).
+    g_dispatch_key.qe = LISTNODE_INIT;
+    g_dispatch_key.destructor = NULL;
+    __os_dispatch_key = &g_dispatch_key;
+    List_InsertAfterLast(&g_vcpu_keys, &g_dispatch_key.qe);
 }
 
 
@@ -193,7 +204,7 @@ vcpu_key_t _Nullable vcpu_key_create(vcpu_destructor_t _Nullable destructor)
 
 void vcpu_key_delete(vcpu_key_t _Nullable key)
 {
-    if (key) {
+    if (key && key != __os_dispatch_key) {
         spin_lock(&g_lock);
         List_Remove(&g_vcpu_keys, &key->qe);
         spin_unlock(&g_lock);

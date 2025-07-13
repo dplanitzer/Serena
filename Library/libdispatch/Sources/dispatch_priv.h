@@ -89,6 +89,10 @@ extern dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _N
 extern bool _dispatch_worker_cancel_item(dispatch_worker_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
 extern void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self);
 
+extern vcpu_key_t __os_dispatch_key;
+#define _dispatch_worker_current() \
+(dispatch_worker_t)vcpu_specific(__os_dispatch_key)
+
 
 // Internal item flags
 #define _DISPATCH_ITEM_PUBLIC_MASK  0x00ff
