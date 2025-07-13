@@ -21,6 +21,9 @@ __CPP_BEGIN
 struct vcpu;
 typedef struct vcpu* vcpu_t;
 
+struct vcpu_key;
+typedef struct vcpu_key* vcpu_key_t;
+
 
 // Generates a new process-wide unique vcpu group id
 extern vcpuid_t new_vcpu_groupid(void);
@@ -41,6 +44,13 @@ extern int vcpu_suspend(vcpu_t _Nullable vcpu);
 extern void vcpu_resume(vcpu_t _Nonnull vcpu);
 
 extern void vcpu_yield(void);
+
+
+extern vcpu_key_t _Nullable vcpu_key_create(void (* _Nullable destructor)(void*));
+extern void vcpu_key_delete(vcpu_key_t _Nullable key);
+
+extern void *vcpu_specific(vcpu_key_t _Nonnull key);
+extern int vcpu_setspecific(vcpu_key_t _Nonnull key, const void* _Nullable value);
 
 __CPP_END
 

@@ -11,28 +11,35 @@
 #include <sys/spinlock.h>
 #include <kpi/syscall.h>
 
+static void _vcpu_destroy_specific(vcpu_t _Nonnull self);
 static _Noreturn _vcpu_relinquish(vcpu_t _Nonnull self);
 
 
 static spinlock_t   g_lock;
 static List         g_all_vcpus;
 static struct vcpu  g_main_vcpu;
+static List         g_vcpu_keys;
 
 
 void __vcpu_init(void)
 {
     g_lock = SPINLOCK_INIT;
-    List_Init(&g_all_vcpus);
+    g_all_vcpus = LIST_INIT;
+    g_vcpu_keys = LIST_INIT;
 
 
     // Init the user space data for the main vcpu
-    ListNode_Init(&g_main_vcpu.node);
+    g_main_vcpu.qe = LISTNODE_INIT;
     g_main_vcpu.id = (vcpuid_t)_syscall(SC_vcpu_getid);
     g_main_vcpu.groupid = 0;
+    g_main_vcpu.func = NULL;
+    g_main_vcpu.arg = 0;
+    g_main_vcpu.specific_tab = NULL;
+    g_main_vcpu.specific_capacity = 0;
     (void)_syscall(SC_vcpu_setdata, (intptr_t)&g_main_vcpu);
 
 
-    List_InsertAfterLast(&g_all_vcpus, &g_main_vcpu.node);
+    List_InsertAfterLast(&g_all_vcpus, &g_main_vcpu.qe);
 }
 
 
@@ -87,6 +94,14 @@ void vcpu_resume(vcpu_t _Nonnull vcpu)
     (void)_syscall(SC_vcpu_resume, vcpu->id);
 }
 
+void vcpu_yield(void)
+{
+    (void)_syscall(SC_vcpu_yield);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: Acquire/Relinquish
 
 static _Noreturn __vcpu_start(vcpu_t self)
 {
@@ -123,7 +138,7 @@ vcpu_t _Nullable vcpu_acquire(const vcpu_acquire_params_t* _Nonnull params)
     }
 
     spin_lock(&g_lock);
-    List_InsertAfterLast(&g_all_vcpus, &self->node);
+    List_InsertAfterLast(&g_all_vcpus, &self->qe);
     spin_unlock(&g_lock);
 
 
@@ -136,10 +151,11 @@ vcpu_t _Nullable vcpu_acquire(const vcpu_acquire_params_t* _Nonnull params)
 static _Noreturn _vcpu_relinquish(vcpu_t _Nonnull self)
 {
     spin_lock(&g_lock);
-    List_Remove(&g_all_vcpus, &self->node);
+    List_Remove(&g_all_vcpus, &self->qe);
     spin_unlock(&g_lock);
 
     if (self != &g_main_vcpu) {
+        _vcpu_destroy_specific(self);
         free(self);
     }
 
@@ -153,7 +169,105 @@ _Noreturn vcpu_relinquish_self(void)
     /* NOT REACHED */
 }
 
-void vcpu_yield(void)
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: Specific
+
+vcpu_key_t _Nullable vcpu_key_create(vcpu_destructor_t _Nullable destructor)
 {
-    (void)_syscall(SC_vcpu_yield);
+    vcpu_key_t key = malloc(sizeof(struct vcpu_key));
+
+    if (key) {
+        key->qe = LISTNODE_INIT;
+        key->destructor = destructor;
+
+        spin_lock(&g_lock);
+        List_InsertAfterLast(&g_vcpu_keys, &key->qe);
+        spin_unlock(&g_lock);
+    }
+    return key;
+}
+
+void vcpu_key_delete(vcpu_key_t _Nullable key)
+{
+    if (key) {
+        spin_lock(&g_lock);
+        List_Remove(&g_vcpu_keys, &key->qe);
+        spin_unlock(&g_lock);
+
+        free(key);
+    }
+}
+
+static vcpu_destructor_t _Nullable _vcpu_key_destructor(vcpu_key_t _Nonnull key)
+{
+    vcpu_destructor_t dstr = NULL;
+
+    spin_lock(&g_lock);
+    List_ForEach(&g_vcpu_keys, ListNode, {
+        vcpu_key_t cep = (vcpu_key_t)pCurNode;
+
+        if (cep == key) {
+            dstr = cep->destructor;
+            break; 
+        }
+    });
+
+    spin_unlock(&g_lock);
+
+    return dstr;
+}
+
+static void _vcpu_destroy_specific(vcpu_t _Nonnull self)
+{
+    for (int i = 0; i < self->specific_capacity; i++) {
+        if (self->specific_tab[i].key) {
+            vcpu_destructor_t dstr = _vcpu_key_destructor(self->specific_tab[i].key);
+
+            if (dstr) {
+                dstr(self->specific_tab[i].value);
+            }
+        }
+    }
+
+    free(self->specific_tab);
+    self->specific_tab = NULL;
+}
+
+void *vcpu_specific(vcpu_key_t _Nonnull key)
+{
+    vcpu_t self = vcpu_self();
+
+    for (int i = 0; i < self->specific_capacity; i++) {
+        if (self->specific_tab[i].key == key) {
+            return self->specific_tab[i].value;
+        }
+    }
+
+    return NULL;
+}
+
+int vcpu_setspecific(vcpu_key_t _Nonnull key, const void* _Nullable value)
+{
+    vcpu_t self = vcpu_self();
+    int availSlotIdx = 0;
+
+    for (int i = self->specific_capacity - 1; i >= 0; i--) {
+        if (self->specific_tab[i].key != NULL) {
+            availSlotIdx = i + 1;
+            break;
+        }
+    }
+
+    if (availSlotIdx >= self->specific_capacity) {
+        int new_capacity = self->specific_capacity + VCPU_DATA_ENTRIES_GROW_BY;
+        vcpu_specific_t new_tab = realloc(self->specific_tab, new_capacity * sizeof(struct vcpu_specific));
+
+        if (new_tab == NULL) {
+            return -1;
+        }
+    }
+
+    self->specific_tab[availSlotIdx].key = key;
+    self->specific_tab[availSlotIdx].value = value;
 }

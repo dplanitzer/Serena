@@ -17,12 +17,31 @@
 #include <sys/vcpu.h>
 
 
+typedef void (*vcpu_destructor_t)(void*);
+
+struct vcpu_key {
+    ListNode                    qe;
+    vcpu_destructor_t _Nullable destructor;
+};
+
+
+#define VCPU_DATA_ENTRIES_GROW_BY   4
+
+struct vcpu_specific {
+    vcpu_key_t _Nullable    key;
+    const void* _Nullable   value;
+};
+typedef struct vcpu_specific* vcpu_specific_t;
+
+
 struct vcpu {
-    ListNode                node;
+    ListNode                qe;
     vcpuid_t                id;
     vcpuid_t                groupid;
     vcpu_start_t _Nullable  func;
     void* _Nullable         arg;
+    vcpu_specific_t         specific_tab;
+    int                     specific_capacity;
 };
 
 
