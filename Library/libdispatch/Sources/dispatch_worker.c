@@ -120,6 +120,19 @@ bool _dispatch_worker_cancel_item(dispatch_worker_t _Nonnull self, int flags, di
     return false;
 }
 
+dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull self, dispatch_item_func_t _Nonnull func)
+{
+    SList_ForEach(&self->work_queue, ListNode, {
+        dispatch_item_t cip = (dispatch_item_t)pCurNode;
+
+        if (cip->func == func) {
+            return cip;
+        }
+    });
+
+    return NULL;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Work Loop
@@ -205,7 +218,7 @@ static void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
         mutex_unlock(mp);
 
 
-        item->itemFunc(item);
+        item->func(item);
 
 
         mutex_lock(mp);

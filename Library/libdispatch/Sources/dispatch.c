@@ -250,11 +250,25 @@ static void _dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_
     });
 }
 
+static dispatch_item_t _Nullable _dispatch_find_item(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func)
+{
+    List_ForEach(&self->workers, ListNode, {
+        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+        dispatch_item_t ip = _dispatch_worker_find_item(cwp, func);
+
+        if (ip) {
+            return ip;
+        }
+    });
+
+    return NULL;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Item Cache
 
-static dispatch_cacheable_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, size_t nbytes, dispatch_item_func_t itemFunc, uint16_t flags)
+static dispatch_cacheable_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, size_t nbytes, dispatch_item_func_t func, uint16_t flags)
 {
     dispatch_cacheable_item_t pip = NULL;
     dispatch_cacheable_item_t ip = NULL;
@@ -278,7 +292,7 @@ static dispatch_cacheable_item_t _Nullable _dispatch_acquire_cached_item(dispatc
 
     if (ip) {
         ip->size = nbytes;
-        ip->super.itemFunc = itemFunc;
+        ip->super.func = func;
         ip->super.retireFunc = NULL;
         ip->super.flags = flags;
         ip->super.state = DISPATCH_STATE_IDLE;
@@ -362,6 +376,19 @@ static void _dispatch_cancel_timer(dispatch_t _Nonnull self, int flags, dispatch
         ptp = ctp;
         ctp = ntp;
     }
+}
+
+static dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func)
+{
+    SList_ForEach(&self->timers, ListNode, {
+        dispatch_timer_t ctp = (dispatch_timer_t)pCurNode;
+
+        if (ctp->item->func == func) {
+            return ctp;
+        }
+    });
+
+    return NULL;
 }
 
 static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
@@ -630,9 +657,8 @@ int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespe
 }
 
 
-void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
 {
-    mutex_lock(&self->mutex);
     if (item->state == DISPATCH_STATE_PENDING) {
         if ((item->flags & _DISPATCH_ITEM_TIMED) != 0) {
             _dispatch_cancel_timer(self, flags, item);
@@ -640,6 +666,28 @@ void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _
         else {
             _dispatch_cancel_item(self, flags, item);
         }
+    }
+}
+
+void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+{
+    mutex_lock(&self->mutex);
+    _dispatch_do_cancel_item(self, flags, item);
+    mutex_unlock(&self->mutex);
+}
+
+void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _Nonnull func)
+{
+    mutex_lock(&self->mutex);
+    dispatch_timer_t timer = _dispatch_find_timer(self, func);
+    dispatch_item_t item = (timer) ? timer->item : NULL;
+
+    if (item == NULL) {
+        item = _dispatch_find_item(self, func);
+    }
+
+    if (item) {
+        _dispatch_do_cancel_item(self, flags, item);
     }
     mutex_unlock(&self->mutex);
 }

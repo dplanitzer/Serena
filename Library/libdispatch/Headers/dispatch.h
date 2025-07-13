@@ -54,8 +54,8 @@ typedef void (*dispatch_retire_func_t)(struct dispatch_item* _Nonnull item);
 
 // The base type of a dispatch item. Embed this structure in your item
 // specialization (must be the first field in your structure). You are expected
-// to set up the 'itemFunc' field and the 'flags' field. All other fields will
-// be initialized properly by dispatch_submit().
+// to set up the 'func' field and the 'flags' field. All other fields will be
+// initialized properly by dispatch_submit().
 //
 // Note that a particular item instance can be queued at most once with a
 // dispatcher. It is fine to re-submit it once it has completed execution but it
@@ -69,7 +69,7 @@ typedef void (*dispatch_retire_func_t)(struct dispatch_item* _Nonnull item);
 //                   same item at the same time would make the state inconsistent. 
 struct dispatch_item {
     SListNode                           qe;
-    dispatch_item_func_t _Nonnull       itemFunc;
+    dispatch_item_func_t _Nonnull       func;
     dispatch_retire_func_t _Nullable    retireFunc;
     uint16_t                            flags;
     volatile int8_t                     state;
@@ -79,8 +79,8 @@ typedef struct dispatch_item* dispatch_item_t;
 
 
 // A convenience macro to initialize a dispatch item before it is submitted to
-// a dispatcher. Note that you still need to set up 'itemFunc' and possibly
-// 'flags' before you submit the item.
+// a dispatcher. Note that you still need to set up 'func' and possibly 'flags'
+// before you submit the item.
 #define DISPATCH_ITEM_INIT  (struct dispatch_item){0}
 
 
@@ -199,6 +199,11 @@ extern int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct 
 // if it isn't joinable. It is marked as cancelled and added to the result
 // queue if it is joinable.
 extern void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
+
+// Cancels the first scheduled timer or work item that matches function 'func'.
+// First here means the timer or work item that would execute soonest. Timers
+// are cancelled before work items. At most one timer or work item is cancelled.
+extern void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _Nonnull func);
 
 
 // Initiates the termination of a dispatcher. Note that termination is an
