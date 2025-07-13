@@ -115,3 +115,38 @@ void dq_repeating_test(int argc, char *argv[])
     timespec_from_ms(&DELAY_250MS, 250);
     assertOK(dispatch_repeating(gDispatcher, 0, &DELAY_250MS, &DELAY_250MS, (dispatch_async_func_t)OnRepeating, NULL));
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: dispatch_terminate
+
+static void OnAsync2(intptr_t _Nonnull value)
+{
+    printf("async: %d\n", (int)value);
+}
+
+static void OnRepeating2(intptr_t _Nonnull value)
+{
+    printf("timer: %d\n", (int)value);
+}
+
+// Should print async 1 - 3, timer 1 and then terminate
+void dq_terminate_test(int argc, char *argv[])
+{
+    dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
+    gDispatcher = dispatch_create(&attr);
+    assertNotNULL(gDispatcher);
+
+    timespec_from_ms(&DELAY_500MS, 500);
+    assertOK(dispatch_repeating(gDispatcher, 0, &DELAY_500MS, &DELAY_500MS, (dispatch_async_func_t)OnRepeating2, (void*)1));
+    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync2, (void*)1));
+    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync2, (void*)2));
+    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync2, (void*)3));
+
+    printf("Terminating...\n");
+    dispatch_terminate(gDispatcher, false);
+    assertOK(dispatch_await_termination(gDispatcher));
+    printf("Terminated.\n");
+    assertOK(dispatch_destroy(gDispatcher));
+    printf("Success!\n");
+}

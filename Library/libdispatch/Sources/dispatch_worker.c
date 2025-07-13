@@ -93,11 +93,11 @@ void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_i
 // Cancels all items that are still on the worker's work queue
 void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self)
 {
-    SList_ForEach(&self->work_queue, SListNode, {
-        dispatch_item_t cip = (dispatch_item_t)pCurNode;
+    while (!SList_IsEmpty(&self->work_queue)) {
+        dispatch_item_t cip = (dispatch_item_t)SList_RemoveFirst(&self->work_queue);
 
         _dispatch_retire_item(self->owner, cip);
-    });
+    }
 
     self->work_queue = SLIST_INIT;
     self->work_count = 0;
@@ -144,12 +144,11 @@ dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull 
 static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Nonnull mp, dispatch_work_t* _Nonnull wp)
 {
     dispatch_t q = self->owner;
-    volatile int* statep = &q->state;
     struct timespec now, delay, deadline;
     dispatch_item_t item;
     siginfo_t si;
 
-    while (*statep == _DISPATCHER_STATE_ACTIVE) {
+    for (;;) {
         clock_gettime(CLOCK_MONOTONIC, &now);
 
         // Grab the first timer that's due. We give preference to timers because
@@ -182,6 +181,10 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Non
             return 0;
         }
 
+        if (q->state > _DISPATCHER_STATE_ACTIVE && self->work_count == 0) {
+            return 1;
+        }
+
 
         // Compute a deadline for the wait. We do not wait if the deadline
         // is equal to the current time or it's in the past
@@ -202,8 +205,6 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Non
         sigtimedwait(&self->hotsigs, TIMER_ABSTIME, &deadline, &si);
         mutex_lock(mp);
     }
-
-    return 1;
 }
 
 static void _dispatch_worker_run(dispatch_worker_t _Nonnull self)

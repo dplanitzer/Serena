@@ -150,6 +150,15 @@ _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch
     vcpu_relinquish_self();
 }
 
+static void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self)
+{
+    List_ForEach(&self->workers, ListNode, {
+        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+
+        _dispatch_worker_wakeup(cwp);
+    });
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Work Items
@@ -359,11 +368,11 @@ void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _
 
 static void _dispatch_drain_timers(dispatch_t _Nonnull _Locked self)
 {
-    SList_ForEach(&self->timers, ListNode, {
-        dispatch_timer_t ctp = (dispatch_timer_t)pCurNode;
+    while (!SList_IsEmpty(&self->timers)) {
+        dispatch_timer_t ctp = (dispatch_timer_t)SList_RemoveFirst(&self->timers);
 
         _dispatch_retire_timer(self, ctp);
-    });
+    }
 }
 
 static void _dispatch_cancel_timer(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
@@ -437,11 +446,7 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_
     // Notify all workers.
     // XXX improve this. Not ideal that we might cause a wakeup storm where we
     // XXX wake up all workers though only one is needed to execute the timer.
-    List_ForEach(&self->workers, ListNode, {
-        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
-
-        _dispatch_worker_wakeup(cwp);
-    });
+    _dispatch_wakeup_all_workers(self);
 
     return 0;
 }
@@ -797,6 +802,10 @@ void dispatch_terminate(dispatch_t _Nonnull self, bool cancel)
         }
         // Timers are drained no matter what
         _dispatch_drain_timers(self);
+
+
+        // Wake up all workers to inform them about the state change
+        _dispatch_wakeup_all_workers(self);
     }
     mutex_unlock(&self->mutex);
 }

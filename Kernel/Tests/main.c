@@ -14,11 +14,12 @@
 // Console
 extern void interactive_console_test(int argc, char *argv[]);
 
-// Dispatch Queue
+// Dispatcher
 extern void dq_async_test(int argc, char *argv[]);
 extern void dq_after_test(int argc, char *argv[]);
 extern void dq_repeating_test(int argc, char *argv[]);
 extern void dq_sync_test(int argc, char *argv[]);
+extern void dq_terminate_test(int argc, char *argv[]);
 
 // File
 extern void overwrite_file_test(int argc, char *argv[]);
@@ -64,6 +65,7 @@ static const test_t gTests[] = {
     {"dq_async", dq_async_test, true},
     {"dq_rep", dq_repeating_test, true},
     {"dq_sync", dq_sync_test, true},
+    {"dq_term", dq_terminate_test, true},
 
     {"hid", hid_test, false},
 

@@ -140,11 +140,11 @@ typedef struct dispatch_attr {
 
 // Initializes a dispatch attribute object to set up a serial queue with
 // interactive priority.
-#define DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE       (dispatch_attr_t){1, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRI_NORMAL, NULL}
+#define DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE       (dispatch_attr_t){1, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRI_NORMAL, NULL, NULL}
 
 // Initializes a dispatch attribute object to set up a concurrent queue with
 // '__n' virtual processors and utility priority.
-#define DISPATCH_ATTR_INIT_CONCURRENT_UTILITY(__n)  (dispatch_attr_t){1, __n, DISPATCH_QOS_UTILITY, DISPATCH_PRI_NORMAL, NULL}
+#define DISPATCH_ATTR_INIT_CONCURRENT_UTILITY(__n)  (dispatch_attr_t){1, __n, DISPATCH_QOS_UTILITY, DISPATCH_PRI_NORMAL, NULL, NULL}
 
 
 // Creates a new dispatcher based on the provided dispatcher attributes.
