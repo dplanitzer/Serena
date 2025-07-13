@@ -315,7 +315,7 @@ void _dispatch_cache_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _N
     self->timer_cache_count++;
 }
 
-static void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
+void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
 {
     _dispatch_retire_item(self, timer->item);
     timer->item = NULL;
@@ -377,17 +377,19 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_
     return 0;
 }
 
-static int _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
+int _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
 {
     // Repeating timer: rearm it with the next fire date that's in
     // the future (the next fire date we haven't already missed).
     struct timespec now;
-    
     clock_gettime(CLOCK_MONOTONIC, &now);
     
+    timer->timer_qe = SLISTNODE_INIT;
+    timer->item->state = DISPATCH_STATE_IDLE;
+
     do  {
         timespec_add(&timer->deadline, &timer->interval, &timer->deadline);
-    } while (timespec_lt(&timer->deadline, &now));
+    } while (timespec_le(&timer->deadline, &now) && timespec_gt(&timer->interval, &TIMESPEC_ZERO));
     
     return _dispatch_arm_timer(self, timer);
 }
@@ -413,7 +415,6 @@ static int _dispatch_timer(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     }
     timer->timer_qe = SLISTNODE_INIT;
     timer->item = item;
-    timer->flags = 0;
 
     if ((flags & TIMER_ABSTIME) == TIMER_ABSTIME) {
         timer->deadline = *deadline;
@@ -426,7 +427,10 @@ static int _dispatch_timer(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     }
     if (interval && timespec_lt(interval, &TIMESPEC_INF)) {
         timer->interval = *interval;
-        timer->flags |= _DISPATCH_TIMER_REPEATING;
+        item->flags |= _DISPATCH_ITEM_RESUBMIT;
+    }
+    else {
+        item->flags &= ~_DISPATCH_ITEM_RESUBMIT;
     }
 
 
@@ -577,7 +581,7 @@ void dispatch_cancel_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull it
     mutex_unlock(&self->mutex);
 }
 
-int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_async_func_t _Nonnull func, void* _Nullable context)
+int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nullable itp, dispatch_async_func_t _Nonnull func, void* _Nullable context)
 {
     int r = -1;
 
@@ -588,7 +592,7 @@ int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _
         if (item) {
             ((dispatch_async_item_t)item)->func = func;
             ((dispatch_async_item_t)item)->context = context;
-            r = _dispatch_timer(self, (dispatch_item_t)item, flags, wtp, NULL);
+            r = _dispatch_timer(self, (dispatch_item_t)item, flags, wtp, itp);
             if (r != 0) {
                 _dispatch_cache_item(self, item);
             }
@@ -602,6 +606,15 @@ int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _
     return r;
 }
 
+int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_async_func_t _Nonnull func, void* _Nullable context)
+{
+    return _dispatch_convenience_timer(self, flags, wtp, NULL, func, context);
+}
+
+int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable context)
+{
+    return _dispatch_convenience_timer(self, flags, wtp, itp, func, context);
+}
 
 void dispatch_terminate(dispatch_t _Nonnull self, bool cancel)
 {

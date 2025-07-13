@@ -17,20 +17,19 @@
 #include "Asserts.h"
 
 static dispatch_t gDispatcher;
+static int gCounter;
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: dispatch_async
 
-static void OnAsync(void* _Nonnull pValue)
+static void OnAsync(void* _Nonnull ign)
 {
-    int val = (int)pValue;
-    
-    printf("%d\n", val);
+    printf("%d\n", gCounter++);
     //struct timespec dur;
     // timespec_from_sec(&dur, 2);
     //clock_nanosleep(clock_uptime, 0, &dur, NULL);
-    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync, (void*)(val + 1)));
+    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync, NULL));
 }
 
 void dq_async_test(int argc, char *argv[])
@@ -40,21 +39,20 @@ void dq_async_test(int argc, char *argv[])
     gDispatcher = dispatch_create(&attr);
     assertNotNULL(gDispatcher);
 
-    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync, (void*)0));
+    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync, NULL));
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: dispatch_sync
 
-static int OnSync(void* _Nonnull pValue)
+static int OnSync(void* _Nonnull ign)
 {
-    int val = (int)pValue;
     struct timespec dur;
 
     timespec_from_ms(&dur, 500);
     clock_nanosleep(CLOCK_MONOTONIC, 0, &dur, NULL);
-    printf("%d\n", val);
+    printf("%d\n", gCounter++);
 //    printf("%d  (Queue: %d)\n", val, os_dispatch_getcurrent());
     return 1234;
 }
@@ -67,14 +65,11 @@ void dq_sync_test(int argc, char *argv[])
     gDispatcher = dispatch_create(&attr);
     assertNotNULL(gDispatcher);
 
-    int i = 0;
-
     while (true) {
-        const int r = dispatch_sync(gDispatcher, (dispatch_sync_func_t)OnSync, (void*) i);
+        const int r = dispatch_sync(gDispatcher, (dispatch_sync_func_t)OnSync, NULL);
 
         assertEquals(1234, r);
         puts("--------");
-        i++;
     }
 }
 
@@ -84,20 +79,39 @@ void dq_sync_test(int argc, char *argv[])
 
 static struct timespec DELAY_500MS;
 
-static void OnAsyncAfter(void* _Nonnull pValue)
+static void OnAfter(void* _Nonnull ign)
 {
-    int val = (int)pValue;
-
-    printf("%d\n", val);
-    assertOK(dispatch_after(gDispatcher, 0, &DELAY_500MS, (dispatch_async_func_t)OnAsyncAfter, (void*)(val + 1)));
+    printf("%d\n", gCounter++);
+    assertOK(dispatch_after(gDispatcher, 0, &DELAY_500MS, (dispatch_async_func_t)OnAfter, NULL));
 }
 
-void dq_async_after_test(int argc, char *argv[])
+void dq_after_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
     gDispatcher = dispatch_create(&attr);
     assertNotNULL(gDispatcher);
 
     timespec_from_ms(&DELAY_500MS, 500);
-    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsyncAfter, (void*)0));
+    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAfter, NULL));
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: dispatch_repeating
+
+static struct timespec DELAY_250MS;
+
+static void OnRepeating(void* _Nonnull ign)
+{
+    printf("%d\n", gCounter++);
+}
+
+void dq_repeating_test(int argc, char *argv[])
+{
+    dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
+    gDispatcher = dispatch_create(&attr);
+    assertNotNULL(gDispatcher);
+
+    timespec_from_ms(&DELAY_250MS, 250);
+    assertOK(dispatch_repeating(gDispatcher, 0, &DELAY_250MS, &DELAY_250MS, (dispatch_async_func_t)OnRepeating, NULL));
 }

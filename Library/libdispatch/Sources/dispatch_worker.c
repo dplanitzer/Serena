@@ -27,6 +27,9 @@ dispatch_worker_t _Nullable _dispatch_worker_create(const dispatch_attr_t* _Nonn
     self->work_queue = SLIST_INIT;
     self->work_count = 0;
 
+    self->current.timer = NULL;
+    self->current.item = NULL;
+
     self->cb = attr->cb;
     self->owner = owner;
 
@@ -95,7 +98,9 @@ void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self)
 }
 
 
-static dispatch_item_t _Nullable _get_next_item(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Nonnull mp)
+// Get more work for the caller. Returns 0 if work is available and != 0 if
+// there is no more work and the worker should relinquish itself. 
+static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Nonnull mp, dispatch_work_t* _Nonnull wp)
 {
     dispatch_t q = self->owner;
     volatile int* statep = &q->state;
@@ -113,10 +118,10 @@ static dispatch_item_t _Nullable _get_next_item(dispatch_worker_t _Nonnull _Lock
         dispatch_timer_t ftp = (dispatch_timer_t)q->timers.first;
         if (ftp && timespec_le(&ftp->deadline, &now)) {
             SList_RemoveFirst(&q->timers);
-            item = ftp->item;
-            _dispatch_cache_timer(q, ftp);
+            wp->timer = ftp;
+            wp->item = ftp->item;
 
-            return item;
+            return 0;
         }
 
 
@@ -130,7 +135,10 @@ static dispatch_item_t _Nullable _get_next_item(dispatch_worker_t _Nonnull _Lock
 
         if (item) {
             self->work_count--;
-            return item;
+            wp->timer = NULL;
+            wp->item = item;
+
+            return 0;
         }
 
 
@@ -154,7 +162,7 @@ static dispatch_item_t _Nullable _get_next_item(dispatch_worker_t _Nonnull _Lock
         mutex_lock(mp);
     }
 
-    return NULL;
+    return 1;
 }
 
 static void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
@@ -163,12 +171,9 @@ static void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
 
     mutex_lock(mp);
 
-    for (;;) {
-        dispatch_item_t item = _get_next_item(self, mp);
-
-        if (item == NULL) {
-            break;
-        }
+    while (!_get_next_work(self, mp, &self->current)) {
+        dispatch_timer_t timer = self->current.timer;
+        dispatch_item_t item = self->current.item;
 
         item->state = DISPATCH_STATE_EXECUTING;
         mutex_unlock(mp);
@@ -180,7 +185,18 @@ static void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
         mutex_lock(mp);
         item->state = DISPATCH_STATE_DONE;
 
-        _dispatch_retire_item(self->owner, item);
+
+        if (timer) {
+            if ((item->flags & _DISPATCH_ITEM_RESUBMIT) != 0) {
+                _dispatch_rearm_timer(self->owner, timer);
+            }
+            else {
+                _dispatch_retire_timer(self->owner, timer);
+            }
+        }
+        else {
+            _dispatch_retire_item(self->owner, item);
+        }
     }
 
     // Takes care of unlocking 'mp'

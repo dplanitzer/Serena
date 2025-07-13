@@ -18,11 +18,57 @@
 
 __CPP_BEGIN
 
+#define _DISPATCH_MAX_ITEM_CACHE_COUNT  8
+
+struct dispatch_cacheable_item {
+    struct dispatch_item    super;
+    size_t                  size;
+};
+typedef struct dispatch_cacheable_item* dispatch_cacheable_item_t;
+
+
+struct dispatch_async_item {
+    struct dispatch_cacheable_item  super;
+    dispatch_async_func_t _Nonnull  func;
+    void* _Nullable                 context;
+};
+typedef struct dispatch_async_item* dispatch_async_item_t;
+
+struct dispatch_sync_item {
+    struct dispatch_cacheable_item  super;
+    dispatch_sync_func_t _Nonnull   func;
+    void* _Nullable                 context;
+    int                             result;
+};
+typedef struct dispatch_sync_item* dispatch_sync_item_t;
+
+
+#define _DISPATCH_MAX_TIMER_CACHE_COUNT 4
+
+// A particular timer instance may appear at most once on the timer queue.
+struct dispatch_timer {
+    SListNode                   timer_qe;
+    struct timespec             deadline;   // Time when the timer fires next
+    struct timespec             interval;   // Time interval until next time the timer should fire (if repeating) 
+    dispatch_item_t _Nonnull    item;
+};
+typedef struct dispatch_timer* dispatch_timer_t;
+
+
+
+typedef struct dispatch_work {
+    dispatch_timer_t _Nullable  timer;  // timer of 'item' if it is timed; NULL otherwise
+    dispatch_item_t _Nullable   item;   // points to the currently executing item; NULL if worker isn't executing anything
+} dispatch_work_t;
+
+
 struct dispatch_worker {
     ListNode                                worker_qe;
 
     SList                                   work_queue;
     size_t                                  work_count;
+
+    dispatch_work_t                         current;    // Currently executing work
 
     vcpu_t _Nonnull                         vcpu;
     vcpuid_t                                id;
@@ -44,7 +90,15 @@ extern void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self);
 
 // Internal item flags
 #define _DISPATCH_ITEM_PUBLIC_MASK  0x00ff
+
+// Item is owned by the dispatcher and should be moved back to the work item
+// cache when done.
 #define _DISPATCH_ITEM_CACHEABLE    0x100
+
+// Item should be automatically resubmit after done. Eg it is controlled by a
+// repeating timer and the timer wasn't cancelled. Thus the associated timer
+// should be rearmed with the next fire date.
+#define _DISPATCH_ITEM_RESUBMIT     0x200
 
 
 // Dispatcher state
@@ -74,46 +128,9 @@ struct dispatch {
     volatile int            state;
 };
 
-
-#define _DISPATCH_MAX_ITEM_CACHE_COUNT  8
-
-struct dispatch_cacheable_item {
-    struct dispatch_item    super;
-    size_t                  size;
-};
-typedef struct dispatch_cacheable_item* dispatch_cacheable_item_t;
-
-
-struct dispatch_async_item {
-    struct dispatch_cacheable_item  super;
-    dispatch_async_func_t _Nonnull  func;
-    void* _Nullable                 context;
-};
-typedef struct dispatch_async_item* dispatch_async_item_t;
-
-struct dispatch_sync_item {
-    struct dispatch_cacheable_item  super;
-    dispatch_sync_func_t _Nonnull   func;
-    void* _Nullable                 context;
-    int                             result;
-};
-typedef struct dispatch_sync_item* dispatch_sync_item_t;
-
-
-#define _DISPATCH_TIMER_REPEATING       1
-#define _DISPATCH_MAX_TIMER_CACHE_COUNT 4
-
-struct dispatch_timer {
-    SListNode                   timer_qe;
-    struct timespec             deadline;   // Time when the timer fires next
-    struct timespec             interval;   // Time interval until next time the timer should fire (if repeating) 
-    dispatch_item_t _Nonnull    item;
-    int                         flags;
-};
-typedef struct dispatch_timer* dispatch_timer_t;
-
-
+extern int _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
 extern void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
+extern void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
 extern void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_cacheable_item_t _Nonnull item);
 extern void _dispatch_cache_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);

@@ -56,6 +56,17 @@ typedef void (*dispatch_retire_func_t)(struct dispatch_item* _Nonnull item);
 // specialization (must be the first field in your structure). You are expected
 // to set up the 'itemFunc' field and the 'flags' field. All other fields will
 // be initialized properly by dispatch_submit().
+//
+// Note that a particular item instance can be queued at most once with a
+// dispatcher. It is fine to re-submit it once it has completed execution but it
+// can not be in pending or executing state more than once at the same time.
+// Also note that an item may not be submitted to multiple dispatchers at the
+// same time. The reasons are:
+// serial queue: submitting the same item multiple times makes no sense since it
+//               can only execute once at a time. Just execute it and then re-
+//               submit.
+// concurrent queue: items have state and having two or more vcpus execute the
+//                   same item at the same time would make the state inconsistent. 
 struct dispatch_item {
     SListNode                           qe;
     dispatch_item_func_t _Nonnull       itemFunc;
@@ -165,10 +176,26 @@ typedef int (*dispatch_sync_func_t)(void* _Nullable context);
 extern int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, void* _Nullable context);
 
 
+// Schedules a one-shot or repeating timer which will execute 'item'. The timer
+// is one-shot if 'interval' is NULL or TIMESPEC_INF. The one-shot timer will
+// fire at 'deadline'. 'deadline' is an absolute time if 'flags' contains
+// TIMER_ABSTIME and otherwise it is a duration relative to the current time.
+// The timer is repeating if 'interval' is not NULL and it will first fire at
+// 'deadline' and then repeat every 'interval' nanoseconds.
 extern int dispatch_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item, int flags, const struct timespec* _Nonnull deadline, const struct timespec* _Nullable interval);
+
+// Cancels a scheduled timer and removes it from the dispatcher. Note that if
+// the timer is currently executing that the timer will finish normally. However
+// it will not get rescheduled anymore.
 extern void dispatch_cancel_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
 
+
+// Convenience function to execute 'func' after 'wtp' nanoseconds or at the
+// absolute time 'wtp' if 'flags' contains TIMER_ABSTIME.
 extern int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_async_func_t _Nonnull func, void* _Nullable context);
+
+// Convenience function to repeatedly execute 'func'.
+extern int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable context);
 
 
 // Initiates the termination of a dispatcher. Note that termination is an
