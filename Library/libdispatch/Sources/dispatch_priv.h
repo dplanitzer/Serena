@@ -85,6 +85,7 @@ extern void _dispatch_worker_destroy(dispatch_worker_t _Nullable self);
 
 extern void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self);
 extern void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
+extern bool _dispatch_worker_cancel_item(dispatch_worker_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
 extern void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self);
 
 
@@ -99,6 +100,9 @@ extern void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self);
 // repeating timer and the timer wasn't cancelled. Thus the associated timer
 // should be rearmed with the next fire date.
 #define _DISPATCH_ITEM_RESUBMIT     0x200
+
+// The item is associated with a dispatch_timer_t.
+#define _DISPATCH_ITEM_TIMED        0x400
 
 
 // Dispatcher state

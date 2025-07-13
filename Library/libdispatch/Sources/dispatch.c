@@ -237,6 +237,19 @@ void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
     cond_broadcast(&self->cond);
 }
 
+// Assumes that 'item' is a work item and not a timer
+static void _dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+{
+    List_ForEach(&self->workers, ListNode, {
+        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+
+        if (_dispatch_worker_cancel_item(cwp, flags, item)) {
+            item->state = DISPATCH_STATE_CANCELLED;
+            break;
+        }
+    });
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Item Cache
@@ -331,6 +344,26 @@ static void _dispatch_drain_timers(dispatch_t _Nonnull _Locked self)
     });
 }
 
+static void _dispatch_cancel_timer(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+{
+    dispatch_timer_t ptp = NULL;
+    dispatch_timer_t ctp = (dispatch_timer_t)self->timers.first;
+
+    while (ctp) {
+        dispatch_timer_t ntp = (dispatch_timer_t)ctp->timer_qe.next;
+
+        if (ctp->item == item) {
+            SList_Remove(&self->timers, &ptp->timer_qe, &ctp->timer_qe);
+            ctp->item->state = DISPATCH_STATE_CANCELLED;
+            _dispatch_retire_timer(self, ctp);
+            break;
+        }
+
+        ptp = ctp;
+        ctp = ntp;
+    }
+}
+
 static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
 {
     dispatch_timer_t ptp = NULL;
@@ -346,8 +379,9 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_
     }
 
 
-    timer->item->state = DISPATCH_STATE_PENDING;
     timer->item->qe = SLISTNODE_INIT;
+    timer->item->flags |= _DISPATCH_ITEM_TIMED;
+    timer->item->state = DISPATCH_STATE_PENDING;
 
 
     // Put the timer on the timer queue. The timer queue is sorted by absolute
@@ -560,27 +594,6 @@ int dispatch_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item, int 
     return r;
 }
 
-void dispatch_cancel_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
-{
-    dispatch_timer_t ptp = NULL;
-    dispatch_timer_t ctp;
-
-    mutex_lock(&self->mutex);
-    ctp = (dispatch_timer_t)self->timers.first;
-    while (ctp) {
-        dispatch_timer_t ntp = (dispatch_timer_t)ctp->timer_qe.next;
-
-        if (ctp->item == item) {
-            SList_Remove(&self->timers, &ptp->timer_qe, &ctp->timer_qe);
-            _dispatch_retire_timer(self, ctp);
-        }
-
-        ptp = ctp;
-        ctp = ntp;
-    }
-    mutex_unlock(&self->mutex);
-}
-
 int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nullable itp, dispatch_async_func_t _Nonnull func, void* _Nullable context)
 {
     int r = -1;
@@ -615,6 +628,22 @@ int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespe
 {
     return _dispatch_convenience_timer(self, flags, wtp, itp, func, context);
 }
+
+
+void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+{
+    mutex_lock(&self->mutex);
+    if (item->state == DISPATCH_STATE_PENDING) {
+        if ((item->flags & _DISPATCH_ITEM_TIMED) != 0) {
+            _dispatch_cancel_timer(self, flags, item);
+        }
+        else {
+            _dispatch_cancel_item(self, flags, item);
+        }
+    }
+    mutex_unlock(&self->mutex);
+}
+
 
 void dispatch_terminate(dispatch_t _Nonnull self, bool cancel)
 {

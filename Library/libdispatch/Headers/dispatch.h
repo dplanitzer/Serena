@@ -131,7 +131,7 @@ typedef struct dispatch_attr {
 // interactive priority.
 #define DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE       (dispatch_attr_t){1, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRI_NORMAL, NULL}
 
-// Initailizes a dispatch attribute object to set up a concurrent queue with
+// Initializes a dispatch attribute object to set up a concurrent queue with
 // '__n' virtual processors and utility priority.
 #define DISPATCH_ATTR_INIT_CONCURRENT_UTILITY(__n)  (dispatch_attr_t){1, __n, DISPATCH_QOS_UTILITY, DISPATCH_PRI_NORMAL, NULL}
 
@@ -184,11 +184,6 @@ extern int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull
 // 'deadline' and then repeat every 'interval' nanoseconds.
 extern int dispatch_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item, int flags, const struct timespec* _Nonnull deadline, const struct timespec* _Nullable interval);
 
-// Cancels a scheduled timer and removes it from the dispatcher. Note that if
-// the timer is currently executing that the timer will finish normally. However
-// it will not get rescheduled anymore.
-extern void dispatch_cancel_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
-
 
 // Convenience function to execute 'func' after 'wtp' nanoseconds or at the
 // absolute time 'wtp' if 'flags' contains TIMER_ABSTIME.
@@ -196,6 +191,14 @@ extern int dispatch_after(dispatch_t _Nonnull self, int flags, const struct time
 
 // Convenience function to repeatedly execute 'func'.
 extern int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable context);
+
+
+// Cancels a scheduled work item or timer and removes it from the dispatcher.
+// Note that the work item or timer will finish normally if it is currently
+// executing. However it will not get rescheduled anymore. The item is retired
+// if it isn't joinable. It is marked as cancelled and added to the result
+// queue if it is joinable.
+extern void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
 
 
 // Initiates the termination of a dispatcher. Note that termination is an

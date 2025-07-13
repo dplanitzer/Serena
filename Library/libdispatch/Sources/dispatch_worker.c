@@ -66,6 +66,10 @@ void _dispatch_worker_destroy(dispatch_worker_t _Nullable self)
     }
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: SPI
+
 void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self)
 {
     sigsend(SIG_SCOPE_VCPU, self->id, SIGDISPATCH);
@@ -97,6 +101,28 @@ void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self)
     self->work_count = 0;
 }
 
+bool _dispatch_worker_cancel_item(dispatch_worker_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+{
+    dispatch_item_t pip = NULL;
+
+    SList_ForEach(&self->work_queue, ListNode, {
+        dispatch_item_t cip = (dispatch_item_t)pCurNode;
+
+        if (cip == item) {
+            SList_Remove(&self->work_queue, &pip->qe, &cip->qe);
+            _dispatch_retire_item(self->owner, cip);
+            return true;
+        }
+
+        pip = cip;
+    });
+
+    return false;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: Work Loop
 
 // Get more work for the caller. Returns 0 if work is available and != 0 if
 // there is no more work and the worker should relinquish itself. 
