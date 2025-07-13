@@ -126,12 +126,15 @@ typedef struct dispatch_callbacks {
 } dispatch_callbacks_t;
 
 
+#define DISPATCH_MAX_NAME_LENGTH    15
+
 typedef struct dispatch_attr {
     size_t  minConcurrency;
     size_t  maxConcurrency;
     int     qos;
     int     priority;
     dispatch_callbacks_t* _Nullable cb;
+    const char* _Nullable   name;   // Length limited to DISPATCH_MAX_NAME_LENGTH
 } dispatch_attr_t;
 
 
@@ -236,6 +239,8 @@ extern int dispatch_qos(dispatch_t _Nonnull self);
 extern int dispatch_setqos(dispatch_t _Nonnull self, int qos);
 
 extern void dispatch_concurrency_info(dispatch_t _Nonnull self, dispatch_concurrency_info_t* _Nonnull info);
+
+extern int dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t buflen);
 
 
 // Initiates the termination of a dispatcher. Note that termination is an

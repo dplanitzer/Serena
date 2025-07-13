@@ -135,6 +135,8 @@ struct dispatch {
     size_t                  timer_cache_count;
 
     volatile int            state;
+
+    char                    name[DISPATCH_MAX_NAME_LENGTH + 1];
 };
 
 extern int _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);

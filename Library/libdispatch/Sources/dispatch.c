@@ -11,6 +11,7 @@
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 static int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self);
@@ -73,6 +74,10 @@ dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
             dispatch_destroy(self);
             return NULL;
         }
+    }
+
+    if (attr->name && attr->name[0] != '\0') {
+        strncpy(self->name, attr->name, DISPATCH_MAX_NAME_LENGTH);
     }
 
     return self;
@@ -752,6 +757,28 @@ void dispatch_concurrency_info(dispatch_t _Nonnull self, dispatch_concurrency_in
     info->maximum = self->attr.maxConcurrency;
     info->current = self->worker_count;
     mutex_unlock(&self->mutex);
+}
+
+int dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t buflen)
+{
+    int r = 0;
+
+    mutex_lock(&self->mutex);
+    const size_t len = strlen(self->name);
+
+    if (buflen == 0) {
+        r = -1;
+        goto out;
+    }
+    if (buflen < (len + 1)) {
+        errno = ERANGE;
+        r = -1;
+    }
+    strcpy(buf, self->name);
+
+out:
+    mutex_unlock(&self->mutex);
+    return r;
 }
 
 
