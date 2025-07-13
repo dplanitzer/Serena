@@ -121,7 +121,7 @@ void Process_deinit(ProcessRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
-errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const vcpu_acquire_params_t* _Nonnull params, vcpuid_t* _Nonnull idp)
+errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const vcpu_attr_t* _Nonnull params, vcpuid_t* _Nonnull idp)
 {
     decl_try_err();
     VirtualProcessor* vp = NULL;

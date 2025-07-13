@@ -7,6 +7,7 @@
 //
 
 #include "_vcpu.h"
+#include <errno.h>
 #include <stdlib.h>
 #include <sys/spinlock.h>
 #include <kpi/syscall.h>
@@ -113,26 +114,28 @@ static _Noreturn __vcpu_start(vcpu_t self)
     /* NOT REACHED */
 }
 
-vcpu_t _Nullable vcpu_acquire(const vcpu_acquire_params_t* _Nonnull params)
+vcpu_t _Nullable vcpu_acquire(const vcpu_attr_t* _Nonnull attr)
 {
     vcpu_t self = calloc(1, sizeof(struct vcpu));
-    vcpu_acquire_params_t r_params;
+    vcpu_attr_t r_attr;
 
     if (self == NULL) {
         return NULL;
     }
 
-    self->groupid = params->groupid;
-    self->func = params->func;
-    self->arg = params->arg;
+    self->groupid = attr->groupid;
+    self->func = attr->func;
+    self->arg = attr->arg;
+    self->owner_specific.key = attr->owner_key;
+    self->owner_specific.value = attr->owner_value;
 
 
-    r_params = *params;
-    r_params.func = (vcpu_start_t)__vcpu_start;
-    r_params.arg = self;
-    r_params.flags = params->flags & ~VCPU_ACQUIRE_RESUMED;
+    r_attr = *attr;
+    r_attr.func = (vcpu_func_t)__vcpu_start;
+    r_attr.arg = self;
+    r_attr.flags = attr->flags & ~VCPU_ACQUIRE_RESUMED;
 
-    if (_syscall(SC_vcpu_acquire, &r_params, &self->id) < 0) {
+    if (_syscall(SC_vcpu_acquire, &r_attr, &self->id) < 0) {
         free(self);
         return NULL;
     }
@@ -142,7 +145,7 @@ vcpu_t _Nullable vcpu_acquire(const vcpu_acquire_params_t* _Nonnull params)
     spin_unlock(&g_lock);
 
 
-    if ((params->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
+    if ((attr->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
         vcpu_resume(self);
     }
     return self;
@@ -232,11 +235,24 @@ static void _vcpu_destroy_specific(vcpu_t _Nonnull self)
 
     free(self->specific_tab);
     self->specific_tab = NULL;
+
+
+    if (self->owner_specific.key) {
+        vcpu_destructor_t owner_dstr = _vcpu_key_destructor(self->owner_specific.key);
+
+        if (owner_dstr) {
+            owner_dstr(self->owner_specific.value);
+        }
+    }
 }
 
 void *vcpu_specific(vcpu_key_t _Nonnull key)
 {
     vcpu_t self = vcpu_self();
+
+    if (self->owner_specific.key == key) {
+        return self->owner_specific.value;
+    }
 
     for (int i = 0; i < self->specific_capacity; i++) {
         if (self->specific_tab[i].key == key) {
@@ -251,6 +267,11 @@ int vcpu_setspecific(vcpu_key_t _Nonnull key, const void* _Nullable value)
 {
     vcpu_t self = vcpu_self();
     int availSlotIdx = 0;
+
+    if (self->owner_specific.key == key) {
+        errno = EPERM;
+        return -1;
+    }
 
     for (int i = self->specific_capacity - 1; i >= 0; i--) {
         if (self->specific_tab[i].key != NULL) {
@@ -270,4 +291,6 @@ int vcpu_setspecific(vcpu_key_t _Nonnull key, const void* _Nullable value)
 
     self->specific_tab[availSlotIdx].key = key;
     self->specific_tab[availSlotIdx].value = value;
+
+    return 0;
 }

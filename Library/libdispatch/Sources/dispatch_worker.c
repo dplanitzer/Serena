@@ -36,8 +36,8 @@ dispatch_worker_t _Nullable _dispatch_worker_create(const dispatch_attr_t* _Nonn
     sigemptyset(&self->hotsigs);
     sigaddset(&self->hotsigs, SIGDISPATCH);
 
-    vcpu_acquire_params_t params;
-    params.func = (vcpu_start_t)_dispatch_worker_run;
+    vcpu_attr_t params;
+    params.func = (vcpu_func_t)_dispatch_worker_run;
     params.arg = self;
     params.stack_size = 0;
     params.groupid = new_vcpu_groupid();

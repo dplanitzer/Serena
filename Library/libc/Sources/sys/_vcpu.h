@@ -38,8 +38,9 @@ struct vcpu {
     ListNode                qe;
     vcpuid_t                id;
     vcpuid_t                groupid;
-    vcpu_start_t _Nullable  func;
+    vcpu_func_t _Nullable  func;
     void* _Nullable         arg;
+    struct vcpu_specific    owner_specific;
     vcpu_specific_t         specific_tab;
     int                     specific_capacity;
 };

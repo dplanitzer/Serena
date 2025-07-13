@@ -13,19 +13,27 @@
 
 #define VCPUID_SELF 0
 
+struct vcpu;
+typedef struct vcpu* vcpu_t;
+
+struct vcpu_key;
+typedef struct vcpu_key* vcpu_key_t;
+
 
 // Acquire the VP and immediately resume it
 #define VCPU_ACQUIRE_RESUMED    1
 
-typedef void (*vcpu_start_t)(void* _Nullable);
+typedef void (*vcpu_func_t)(void* _Nullable);
 
-typedef struct vcpu_acquire_params {
-    vcpu_start_t _Nullable  func;
+typedef struct vcpu_attr {
+    vcpu_func_t _Nullable   func;
     void* _Nullable         arg;
     size_t                  stack_size;
     vcpuid_t                groupid;
     int                     priority;
     unsigned int            flags;
-} vcpu_acquire_params_t;
+    vcpu_key_t _Nullable    owner_key;
+    const void* _Nullable   owner_value;
+} vcpu_attr_t;
 
 #endif /* _KPI_VCPU_H */

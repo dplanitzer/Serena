@@ -41,7 +41,7 @@ SYSCALL_1(vcpu_setdata, intptr_t data)
     return EOK;
 }
 
-SYSCALL_2(vcpu_acquire, const vcpu_acquire_params_t* _Nonnull params, vcpuid_t* _Nonnull idp)
+SYSCALL_2(vcpu_acquire, const vcpu_attr_t* _Nonnull params, vcpuid_t* _Nonnull idp)
 {
     return Process_AcquireVirtualProcessor((ProcessRef)p, pa->params, pa->idp);
 }

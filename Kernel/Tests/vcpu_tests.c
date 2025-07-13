@@ -29,9 +29,9 @@ void acquire_vcpu_test(int argc, char *argv[])
     static vcpu_t gId[CONCURRENCY];
 
     for (int i = 0; i < CONCURRENCY; i++) {
-        vcpu_acquire_params_t params;
+        vcpu_attr_t params;
 
-        params.func = (vcpu_start_t)vcpu_main;
+        params.func = (vcpu_func_t)vcpu_main;
         params.arg = gStr[i];
         params.stack_size = 0;
         params.priority = 24;

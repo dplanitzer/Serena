@@ -66,7 +66,7 @@ extern errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _
 // XXX the executable format is GemDOS
 extern errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[]);
 
-extern errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const vcpu_acquire_params_t* _Nonnull params, vcpuid_t* _Nonnull idp);
+extern errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const vcpu_attr_t* _Nonnull params, vcpuid_t* _Nonnull idp);
 extern void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, VirtualProcessor* _Nonnull vp);
 
 
