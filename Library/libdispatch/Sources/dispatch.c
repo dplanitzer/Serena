@@ -257,19 +257,6 @@ void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
     cond_broadcast(&self->cond);
 }
 
-// Assumes that 'item' is a work item and not a timer
-static void _dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
-{
-    List_ForEach(&self->workers, ListNode, {
-        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
-
-        if (_dispatch_worker_cancel_item(cwp, flags, item)) {
-            item->state = DISPATCH_STATE_CANCELLED;
-            break;
-        }
-    });
-}
-
 static dispatch_item_t _Nullable _dispatch_find_item(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func)
 {
     List_ForEach(&self->workers, ListNode, {
@@ -435,13 +422,30 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
 
 static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
 {
-    if (item->state == DISPATCH_STATE_PENDING) {
-        if ((item->flags & _DISPATCH_ITEM_TIMED) != 0) {
-            _dispatch_cancel_timer(self, flags, item);
-        }
-        else {
-            _dispatch_cancel_item(self, flags, item);
-        }
+    switch (item->state) {
+        case DISPATCH_STATE_PENDING:
+            item->state = DISPATCH_STATE_CANCELLED;
+            
+            if ((item->flags & _DISPATCH_ITEM_TIMED) != 0) {
+                _dispatch_cancel_timer(self, flags, item);
+            }
+            else {
+                List_ForEach(&self->workers, ListNode, {
+                    dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+
+                    if (_dispatch_worker_cancel_item(cwp, flags, item)) {
+                        break;
+                    }
+                });
+            }
+            break;
+
+        case DISPATCH_STATE_EXECUTING:
+            item->state = DISPATCH_STATE_CANCELLED;
+            break;
+
+        default:
+            break;
     }
 }
 

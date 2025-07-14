@@ -101,10 +101,9 @@ extern vcpu_key_t __os_dispatch_key;
 // cache when done.
 #define _DISPATCH_ITEM_CACHEABLE    0x100
 
-// Item should be automatically resubmit after done. Eg it is controlled by a
-// repeating timer and the timer wasn't cancelled. Thus the associated timer
-// should be rearmed with the next fire date.
-#define _DISPATCH_ITEM_RESUBMIT     0x200
+// The item is associated with a repeating timer. Should be auto-resubmitted if
+// not cancelled. 
+#define _DISPATCH_ITEM_REPEATING    0x200
 
 // The item is associated with a dispatch_timer_t.
 #define _DISPATCH_ITEM_TIMED        0x400

@@ -234,11 +234,15 @@ static void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
 
 
         mutex_lock(mp);
-        item->state = DISPATCH_STATE_DONE;
+        if (item->state != DISPATCH_STATE_CANCELLED) {
+            item->state = DISPATCH_STATE_DONE;
+        }
 
 
         if (timer) {
-            if ((item->flags & _DISPATCH_ITEM_RESUBMIT) != 0 && self->owner->state == _DISPATCHER_STATE_ACTIVE) {
+            if ((item->flags & _DISPATCH_ITEM_REPEATING) != 0
+                && item->state != DISPATCH_STATE_CANCELLED
+                && self->owner->state == _DISPATCHER_STATE_ACTIVE) {
                 _dispatch_rearm_timer(self->owner, timer);
             }
             else {

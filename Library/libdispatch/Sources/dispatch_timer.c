@@ -65,7 +65,6 @@ void _dispatch_cancel_timer(dispatch_t _Nonnull self, int flags, dispatch_item_t
 
         if (ctp->item == item) {
             SList_Remove(&self->timers, &ptp->timer_qe, &ctp->timer_qe);
-            ctp->item->state = DISPATCH_STATE_CANCELLED;
             _dispatch_retire_timer(self, ctp);
             break;
         }
@@ -180,10 +179,10 @@ static int _dispatch_timer(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     }
     if (interval && timespec_lt(interval, &TIMESPEC_INF)) {
         timer->interval = *interval;
-        item->flags |= _DISPATCH_ITEM_RESUBMIT;
+        item->flags |= _DISPATCH_ITEM_REPEATING;
     }
     else {
-        item->flags &= ~_DISPATCH_ITEM_RESUBMIT;
+        item->flags &= ~_DISPATCH_ITEM_REPEATING;
     }
 
 
