@@ -7,6 +7,7 @@
 //
 
 #include "dispatch_priv.h"
+#include <errno.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -144,6 +145,7 @@ dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull 
 static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Nonnull mp, dispatch_work_t* _Nonnull wp)
 {
     dispatch_t q = self->owner;
+    bool mayRelinquish = false;
     struct timespec now, delay, deadline;
     dispatch_item_t item;
     siginfo_t si;
@@ -184,6 +186,9 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Non
         if (q->state > _DISPATCHER_STATE_ACTIVE && self->work_count == 0) {
             return 1;
         }
+        if (mayRelinquish) {
+            return 1;
+        }
 
 
         // Compute a deadline for the wait. We do not wait if the deadline
@@ -202,8 +207,12 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Non
         // to relinquish the VP since it hasn't done anything useful for a
         // longer time.
         mutex_unlock(mp);
-        sigtimedwait(&self->hotsigs, TIMER_ABSTIME, &deadline, &si);
+        const int err = sigtimedwait(&self->hotsigs, TIMER_ABSTIME, &deadline, &si);
         mutex_lock(mp);
+
+        if (err == ETIMEDOUT && q->worker_count > q->attr.minConcurrency) {
+            mayRelinquish = true;
+        }
     }
 }
 

@@ -137,6 +137,25 @@ static int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self)
     return -1;
 }
 
+// Ensures that there are enough workers available for the current work load
+// plus one.
+static int _dispatch_ensure_workers_available(dispatch_t _Nonnull self)
+{
+    // Acquire a new virtual processor if we haven't already filled up all
+    // concurrency lanes available to us and one of the following is true:
+    // - we don't own any workers at all
+    // - we have < minConcurrency workers (remember that this can be 0)
+    // XXX - we've queued up at least 4 work items and < maxConcurrency workers
+    if (self->state > _DISPATCHER_STATE_ACTIVE) {
+        return -1;
+    }
+    if (self->worker_count >= self->attr.maxConcurrency) {
+        return 0;
+    }
+
+    return _dispatch_acquire_worker(self);
+}
+
 _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker)
 {
     List_Remove(&self->workers, &worker->worker_qe);
@@ -175,11 +194,8 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
 
 
     // Acquire a worker if we don't have one
-    // XXX improve this and take advantage of max concurrency
-    if (self->worker_count == 0) {
-        if (_dispatch_acquire_worker(self) != 0) {
-            return -1;
-        }
+    if (_dispatch_ensure_workers_available(self) != 0) {
+        return -1;
     }
 
 
@@ -415,11 +431,8 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_
     
 
     // Acquire a worker if we don't have one
-    // XXX improve this and take advantage of max concurrency
-    if (self->worker_count == 0) {
-        if (_dispatch_acquire_worker(self) != 0) {
-            return -1;
-        }
+    if (_dispatch_ensure_workers_available(self) != 0) {
+        return -1;
     }
 
 
