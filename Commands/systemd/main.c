@@ -11,8 +11,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <sys/mount.h>
 #include <sys/spawn.h>
+#include <sys/timespec.h>
 
 
 static _Noreturn halt_machine(void)
@@ -35,7 +37,7 @@ static int start_proc(const char* _Nonnull procPath, const char* _Nonnull arg1)
     return os_spawn(procPath, argv, &opts, NULL);
 }
 
-void main_closure(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     // Mount kernel object catalogs
     mount(kMount_Catalog, kCatalogName_Drivers, "/dev", "");
@@ -50,5 +52,6 @@ void main_closure(int argc, char *argv[])
         halt_machine();
     }
 
-    // Don't exit
+    // Don't exit (doing it this cheepo way for now. Should keep an eye on its children though)
+    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
 }
