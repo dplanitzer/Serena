@@ -6,12 +6,12 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
+#include <dispatch.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <sys/os_dispatch.h>
 #include <sys/mutex.h>
 #include <sys/timespec.h>
 #include <_math.h>
@@ -33,7 +33,7 @@ static const char* gAvailablePattern[NUM_PATTERNS] = {
     "About that and whether ships aren't the fastest of them all!",
 };
 
-static int gQueue;
+static dispatch_t gDispatcher;
 static mutex_t gMutex;
 static int gCurrentPatternIndex;
 static char gCurrentPattern[256];
@@ -78,21 +78,23 @@ static void OnWork(void* _Nonnull pValue)
 
     assertOK(mutex_unlock(&gMutex));
 
-    assertOK(os_dispatch_async(gQueue, OnWork, NULL));
+    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnWork, NULL));
 }
 
 
 void mutex_test(int argc, char *argv[])
 {
-    gQueue = os_dispatch_create(0, NUM_VPS, kDispatchQoS_Utility, kDispatchPriority_Normal);
+    dispatch_attr_t attr = DISPATCH_ATTR_INIT_CONCURRENT_UTILITY(NUM_VPS);
 
-    assertGreaterEqual(0, gQueue);
+    gDispatcher = dispatch_create(&attr);
+    assertNotNULL(gDispatcher);
+
     assertOK(mutex_init(&gMutex));
     
     gCurrentPatternIndex = 0;
     select_and_write_pattern();
 
     for (size_t i = 0; i < NUM_WORKERS; i++) {
-        assertOK(os_dispatch_async(gQueue, OnWork, NULL));
+        assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnWork, NULL));
     }
 }

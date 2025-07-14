@@ -9,7 +9,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/os_dispatch.h>
 #include <sys/vcpu.h>
 #include "Asserts.h"
 
@@ -29,7 +28,7 @@ void acquire_vcpu_test(int argc, char *argv[])
     static vcpu_t gId[CONCURRENCY];
 
     for (int i = 0; i < CONCURRENCY; i++) {
-        vcpu_attr_t attr;
+        vcpu_attr_t attr = VCPU_ATTR_INIT;
 
         attr.func = (vcpu_func_t)vcpu_main;
         attr.arg = gStr[i];

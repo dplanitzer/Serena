@@ -29,6 +29,8 @@ typedef struct vcpu_attr {
     const void* _Nullable   owner_value;
 } vcpu_attr_t;
 
+#define VCPU_ATTR_INIT  {0}
+
 
 // Generates a new process-wide unique vcpu group id
 extern vcpuid_t new_vcpu_groupid(void);

@@ -6,15 +6,18 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
+#include <dispatch.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/os_dispatch.h>
 #include <sys/timespec.h>
 #include "Asserts.h"
+
+static int fds[2];
+static dispatch_t gDispatcher;
 
 
 void pipe_test(int argc, char *argv[])
@@ -90,12 +93,12 @@ static void OnWriteToPipe(int fd)
 
 void pipe2_test(int argc, char *argv[])
 {
-    static int fds[2];
-
     assertOK(pipe(fds));
 
-    const int utilityQueue = os_dispatch_create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal);
-    assertGreaterEqual(0, utilityQueue);
-    assertOK(os_dispatch_async(kDispatchQueue_Main, (os_dispatch_func_t)OnWriteToPipe, (void*)fds[SEO_PIPE_WRITE]));
-    assertOK(os_dispatch_async(utilityQueue, (os_dispatch_func_t)OnReadFromPipe, (void*)fds[SEO_PIPE_READ]));
+    dispatch_attr_t attr = DISPATCH_ATTR_INIT_CONCURRENT_UTILITY(2);
+    gDispatcher = dispatch_create(&attr);
+    assertNotNULL(gDispatcher);
+
+    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnWriteToPipe, (void*)fds[SEO_PIPE_WRITE]));
+    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnReadFromPipe, (void*)fds[SEO_PIPE_READ]));
 }

@@ -6,13 +6,13 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include <dispatch.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/os_dispatch.h>
 #include <sys/semaphore.h>
 #include <sys/timespec.h>
 #include <_math.h>
@@ -26,7 +26,7 @@
 static sem_t room;
 static sem_t chopstick[NUM];
 static int phil[NUM] = { 0, 1, 2, 3, 4 };
-static int gQueue;
+static dispatch_t gDispatcher;
 
 
 static void philosopher(int* num)
@@ -53,9 +53,11 @@ static void philosopher(int* num)
 
 void sema_test(int argc, char *argv[])
 {
-    gQueue = os_dispatch_create(NUM, NUM, kDispatchQoS_Utility, kDispatchPriority_Normal);
+    dispatch_attr_t attr = DISPATCH_ATTR_INIT_CONCURRENT_UTILITY(NUM);
 
-    assertGreaterEqual(0, gQueue);
+    gDispatcher = dispatch_create(&attr);
+
+    assertNotNULL(gDispatcher);
     assertOK(sem_init(&room, NUM-1));
     
     for (int i = 0; i < NUM; i++) {
@@ -63,6 +65,6 @@ void sema_test(int argc, char *argv[])
     }
 
     for (int i = 0; i < NUM; i++) {
-        assertOK(os_dispatch_async(gQueue, (os_dispatch_func_t)philosopher, &phil[i]));
+        assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)philosopher, &phil[i]));
     }
 }
