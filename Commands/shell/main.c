@@ -29,7 +29,7 @@ static CLAP_DECL(params,
 );
 
 
-void main_closure(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     _abort_on_nomem();
 
