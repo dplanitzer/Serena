@@ -128,7 +128,7 @@ static _Noreturn __vcpu_start(vcpu_t self)
 vcpu_t _Nullable vcpu_acquire(const vcpu_attr_t* _Nonnull attr)
 {
     vcpu_t self = calloc(1, sizeof(struct vcpu));
-    vcpu_attr_t r_attr;
+    _vcpu_acquire_attr_t r_attr;
 
     if (self == NULL) {
         return NULL;
@@ -141,10 +141,13 @@ vcpu_t _Nullable vcpu_acquire(const vcpu_attr_t* _Nonnull attr)
     self->owner_specific.value = attr->owner_value;
 
 
-    r_attr = *attr;
     r_attr.func = (vcpu_func_t)__vcpu_start;
     r_attr.arg = self;
+    r_attr.stack_size = attr->stack_size;
+    r_attr.groupid = attr->groupid;
+    r_attr.priority = attr->priority;
     r_attr.flags = attr->flags & ~VCPU_ACQUIRE_RESUMED;
+    r_attr.data = (intptr_t)self;
 
     if (_syscall(SC_vcpu_acquire, &r_attr, &self->id) < 0) {
         free(self);

@@ -121,7 +121,7 @@ void Process_deinit(ProcessRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
-errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const vcpu_attr_t* _Nonnull params, vcpuid_t* _Nonnull idp)
+errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _Nonnull idp)
 {
     decl_try_err();
     VirtualProcessor* vp = NULL;
@@ -129,13 +129,13 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const vcpu_att
 
     *idp = 0;
 
-    kp.func = (VoidFunc_1)params->func;
-    kp.context = params->arg;
+    kp.func = (VoidFunc_1)attr->func;
+    kp.context = attr->arg;
     kp.ret_func = cpu_relinquish_from_user;
     kp.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
-    kp.userStackSize = __max(params->stack_size, VP_DEFAULT_USER_STACK_SIZE);
-    kp.vpgid = params->groupid;
-    kp.priority = params->priority;
+    kp.userStackSize = __max(attr->stack_size, VP_DEFAULT_USER_STACK_SIZE);
+    kp.vpgid = attr->groupid;
+    kp.priority = attr->priority;
     kp.isUser = true;
 
     Lock_Lock(&self->lock);
@@ -147,10 +147,11 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const vcpu_att
                                             &vp);
         if (err == EOK) {
             vp->proc = self;
+            vp->udata = attr->data;
             List_InsertAfterLast(&self->vpQueue, &vp->owner_qe);
             *idp = vp->vpid;
 
-            if ((params->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
+            if ((attr->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
                 VirtualProcessor_Resume(vp, false);
             }
         }

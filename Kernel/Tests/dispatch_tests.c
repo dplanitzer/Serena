@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <sys/os_dispatch.h>
 #include <sys/timespec.h>
 #include "Asserts.h"
 
@@ -52,13 +51,10 @@ static int OnSync(void* _Nonnull ign)
 
     timespec_from_ms(&dur, 500);
     clock_nanosleep(CLOCK_MONOTONIC, 0, &dur, NULL);
-    printf("%d\n", gCounter++);
-//    printf("%d  (Queue: %d)\n", val, os_dispatch_getcurrent());
+    printf("%d (Dispatcher: %p)\n", gCounter++, dispatch_current());
     return 1234;
 }
 
-// XXX Note: you can not call this code from the main queue because it ends up
-// XXX blocking on itself. This is expected behavior.
 void dq_sync_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;

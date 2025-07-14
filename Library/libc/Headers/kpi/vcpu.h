@@ -25,15 +25,14 @@ typedef struct vcpu_key* vcpu_key_t;
 
 typedef void (*vcpu_func_t)(void* _Nullable);
 
-typedef struct vcpu_attr {
+typedef struct _vcpu_acquire_attr {
     vcpu_func_t _Nullable   func;
     void* _Nullable         arg;
     size_t                  stack_size;
     vcpuid_t                groupid;
     int                     priority;
     unsigned int            flags;
-    vcpu_key_t _Nullable    owner_key;
-    const void* _Nullable   owner_value;
-} vcpu_attr_t;
+    intptr_t                data;
+} _vcpu_acquire_attr_t;
 
 #endif /* _KPI_VCPU_H */

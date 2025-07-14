@@ -18,6 +18,18 @@
 
 __CPP_BEGIN
 
+typedef struct vcpu_attr {
+    vcpu_func_t _Nullable   func;
+    void* _Nullable         arg;
+    size_t                  stack_size;
+    vcpuid_t                groupid;
+    int                     priority;
+    unsigned int            flags;
+    vcpu_key_t _Nullable    owner_key;
+    const void* _Nullable   owner_value;
+} vcpu_attr_t;
+
+
 // Generates a new process-wide unique vcpu group id
 extern vcpuid_t new_vcpu_groupid(void);
 

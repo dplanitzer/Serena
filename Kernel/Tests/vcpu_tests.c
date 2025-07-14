@@ -29,15 +29,15 @@ void acquire_vcpu_test(int argc, char *argv[])
     static vcpu_t gId[CONCURRENCY];
 
     for (int i = 0; i < CONCURRENCY; i++) {
-        vcpu_attr_t params;
+        vcpu_attr_t attr;
 
-        params.func = (vcpu_func_t)vcpu_main;
-        params.arg = gStr[i];
-        params.stack_size = 0;
-        params.priority = 24;
-        params.groupid = 0;
-        params.flags = VCPU_ACQUIRE_RESUMED;
-        gId[i] = vcpu_acquire(&params);
+        attr.func = (vcpu_func_t)vcpu_main;
+        attr.arg = gStr[i];
+        attr.stack_size = 0;
+        attr.priority = 24;
+        attr.groupid = 0;
+        attr.flags = VCPU_ACQUIRE_RESUMED;
+        gId[i] = vcpu_acquire(&attr);
         assertNotNULL(gId[i]);
     }
 }
