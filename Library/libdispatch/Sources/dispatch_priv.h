@@ -144,9 +144,10 @@ extern void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_ite
 extern void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
 extern void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_cacheable_item_t _Nonnull item);
-extern int _dispatch_ensure_workers_available(dispatch_t _Nonnull self);
 extern void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self);
 extern dispatch_cacheable_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, size_t nbytes, dispatch_item_func_t func, uint16_t flags);
+extern int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self);
+
 
 extern dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func);
 extern void _dispatch_cancel_timer(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
