@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
-#include <sys/os_dispatch.h>
 #include <sys/spawn.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
@@ -71,19 +70,20 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
     opts.umask = 0022;  // XXX hardcoded for now
     opts.uid = 1000;    // XXX hardcoded for now
     opts.gid = 1000;    // XXX hardcoded for now
-    opts.notificationQueue = kDispatchQueue_Main;
-    opts.notificationClosure = (os_dispatch_func_t)on_shell_termination;
+    opts.notificationQueue = 0; //kDispatchQueue_Main;
+    opts.notificationClosure = NULL; //(os_dispatch_func_t)on_shell_termination;
     opts.notificationContext = NULL;
     opts.options = kSpawn_NewProcessGroup
         | kSpawn_NewSession
         | kSpawn_OverrideUserId
         | kSpawn_OverrideGroupId
-        | kSpawn_OverrideUserMask
-        | kSpawn_NotifyOnProcessTermination;
+        | kSpawn_OverrideUserMask;
+        //| kSpawn_NotifyOnProcessTermination;
 
 
     // Spawn the shell
-    const int r = os_spawn(shellPath, argv, &opts, NULL);
+    pid_t childPid;
+    const int r = os_spawn(shellPath, argv, &opts, &childPid);
 
 
     char** ep = envp;
@@ -92,6 +92,15 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
         ep++;
     }
     
+    // XXX enable dispatch queue based notifications again
+    // XXX broken for now. Typing exit in the login shell will throw an error
+    // XXX because this waitpid() here consumes the pid and the waitpid() in
+    // XXX on_shell_termination() can't get the pid anymore.
+    int child_stat;
+    waitpid(childPid, &child_stat, 0);
+    on_shell_termination(NULL);
+    // XXX enable dispatch queue based notifications again
+
     return r;
 }
 
@@ -144,8 +153,7 @@ static void on_shell_termination(void* _Nullable ignore)
     login_user();
 }
 
-// Invoked at app startup.
-void main_closure(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     // login <termPath>
     if (argc < 2) {

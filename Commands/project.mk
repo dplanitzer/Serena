@@ -48,7 +48,7 @@ $(LIST_FILE): $(CSTART_FILE) $(CMDS_OBJS_DIR)/list.o $(LIBC_FILE) $(LIBCLAP_FILE
 	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
 
 
-$(LOGIN_FILE): $(ASTART_FILE) $(CMDS_OBJS_DIR)/login.o $(LIBC_FILE)
+$(LOGIN_FILE): $(CSTART_FILE) $(CMDS_OBJS_DIR)/login.o $(LIBC_FILE)
 	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
 
 
