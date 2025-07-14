@@ -19,6 +19,7 @@
 __CPP_BEGIN
 
 typedef struct vcpu_attr {
+    int                     version;                // Version 0
     vcpu_func_t _Nullable   func;
     void* _Nullable         arg;
     size_t                  stack_size;
