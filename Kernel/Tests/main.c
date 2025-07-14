@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include <sys/timespec.h>
+
 
 // Console
 extern void interactive_console_test(int argc, char *argv[]);
@@ -83,7 +86,7 @@ static const test_t gTests[] = {
 };
 
 
-void main_closure(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     if (argc < 2) {
         puts("Need a test name");
@@ -114,19 +117,18 @@ void main_closure(int argc, char *argv[])
     }
 
     if (testToRun) {
-        fputs("Test: ", stdout);
-        puts(name);
+        printf("Running Test: %s\n", name);
         testToRun->func(argc, argv);
 
-        if (!testToRun->keepMainRunning) {
+        if (testToRun->keepMainRunning) {
+            clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
+        }
+        else {
             exit(0);
         }
     }
     else {
-        fputs("Unknown test '", stdout);
-        fputs(name, stdout);
-        fputs("'\n", stdout);
-
+        printf("Unknown test '%s'\n", name);
         exit(1);
     }
 }
