@@ -578,26 +578,29 @@ out:
 }
 
 
-dispatch_worker_t _Nullable _dispatch_prepare_enter_main(void)
+static bool _dispatch_prepare_enter_main(void)
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
 
     if (DISPATCH_MAIN->signature == 0) {
-        if (_dispatch_init(DISPATCH_MAIN, &attr, _DISPATCH_ADOPT_VCPU)) {
-            return (dispatch_worker_t)DISPATCH_MAIN->workers.first;
-        }
+        return _dispatch_init(DISPATCH_MAIN, &attr, _DISPATCH_ADOPT_VCPU);
     }
 
-    return NULL;
+    return false;
+}
+
+static _Noreturn _dispatch_run_main(void)
+{
+    _dispatch_worker_run((dispatch_worker_t)DISPATCH_MAIN->workers.first);
 }
 
 _Noreturn dispatch_enter_main(dispatch_async_func_t _Nonnull func, void* _Nullable arg)
 {
-    dispatch_worker_t worker = _dispatch_prepare_enter_main();
-            
-    if (worker && !dispatch_async(DISPATCH_MAIN, func, arg)) {
-        _dispatch_worker_run(worker);
-        exit(0);
+    if (_dispatch_prepare_enter_main()) {
+        if (!dispatch_async(DISPATCH_MAIN, func, arg)) {
+            _dispatch_run_main();
+            exit(0);
+        }
     }
 
     abort();
@@ -606,11 +609,11 @@ _Noreturn dispatch_enter_main(dispatch_async_func_t _Nonnull func, void* _Nullab
 
 void dispatch_enter_main_repeating(int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
 {
-    dispatch_worker_t worker = _dispatch_prepare_enter_main();
-            
-    if (worker && !dispatch_repeating(DISPATCH_MAIN, flags, wtp, itp, func, arg)) {
-        _dispatch_worker_run(worker);
-        exit(0);
+    if (_dispatch_prepare_enter_main()) {
+        if (!dispatch_repeating(DISPATCH_MAIN, flags, wtp, itp, func, arg)) {
+            _dispatch_run_main();
+            exit(0);
+        }
     }
 
     abort();
