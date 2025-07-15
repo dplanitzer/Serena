@@ -61,6 +61,10 @@ typedef struct dispatch_work {
 } dispatch_work_t;
 
 
+// _dispatch_worker_create() mode
+#define _DISPATCH_ACQUIRE_VCPU  0
+#define _DISPATCH_ADOPT_VCPU    1
+
 struct dispatch_worker {
     ListNode                                worker_qe;
 
@@ -81,8 +85,7 @@ struct dispatch_worker {
 };
 typedef struct dispatch_worker* dispatch_worker_t;
 
-extern dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner);
-extern dispatch_worker_t _Nullable _dispatch_worker_create_by_adopting_caller_vcpu(dispatch_t _Nonnull owner);
+extern dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner, int mode);
 extern void _dispatch_worker_destroy(dispatch_worker_t _Nullable self);
 
 extern void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self);

@@ -14,19 +14,9 @@
 #define VP_PRIORITIES_RESERVED_LOW  2
 
 
-dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner)
+static bool _dispatch_worker_acquire_vcpu(dispatch_worker_t _Nonnull self)
 {
-    dispatch_worker_t self = calloc(1, sizeof(struct dispatch_worker));
-
-    if (self == NULL) {
-        return NULL;
-    }
-
-    self->cb = owner->attr.cb;
-    self->owner = owner;
-
-    sigemptyset(&self->hotsigs);
-    sigaddset(&self->hotsigs, SIGDISPATCH);
+    dispatch_t owner = self->owner;
 
     vcpu_attr_t r_attr;
     r_attr.func = (vcpu_func_t)_dispatch_worker_run;
@@ -37,31 +27,50 @@ dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner)
     r_attr.flags = 0;
 
     self->vcpu = vcpu_acquire(&r_attr);
-    if (self->vcpu == NULL) {
-        free(self);
-        return NULL;
+    if (self->vcpu) {
+        self->id = vcpu_id(self->vcpu);
+
+        vcpu_resume(self->vcpu);
+        return true;
     }
-    self->id = vcpu_id(self->vcpu);
 
-    vcpu_resume(self->vcpu);
-
-    return self;
+    return false;
 }
 
-dispatch_worker_t _Nullable _dispatch_worker_create_by_adopting_caller_vcpu(dispatch_t _Nonnull owner)
+static void _dispatch_worker_adopt_current_vcpu(dispatch_worker_t _Nonnull self)
+{
+    self->vcpu = vcpu_self();
+    self->id = vcpu_id(self->vcpu);
+}
+
+
+dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner, int mode)
 {
     dispatch_worker_t self = calloc(1, sizeof(struct dispatch_worker));
 
     if (self) {
         self->cb = owner->attr.cb;
         self->owner = owner;
-        self->isMainWorker = true;
 
         sigemptyset(&self->hotsigs);
         sigaddset(&self->hotsigs, SIGDISPATCH);
 
-        self->vcpu = vcpu_self();
-        self->id = vcpu_id(self->vcpu);
+
+        switch (mode) {
+            case _DISPATCH_ACQUIRE_VCPU:
+                if (!_dispatch_worker_acquire_vcpu(self)) {
+                    free(self);
+                    return NULL;
+                }
+                break;
+
+            case _DISPATCH_ADOPT_VCPU:
+                _dispatch_worker_adopt_current_vcpu(self);
+                break;
+
+            default:
+                abort();
+        }
     }
 
     return self;

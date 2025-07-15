@@ -131,7 +131,7 @@ int dispatch_destroy(dispatch_t _Nullable self)
 
 int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self)
 {
-    dispatch_worker_t worker = _dispatch_worker_create(self);
+    dispatch_worker_t worker = _dispatch_worker_create(self, _DISPATCH_ACQUIRE_VCPU);
 
     if (worker) {
         List_InsertAfterLast(&self->workers, &worker->worker_qe);
@@ -583,7 +583,7 @@ dispatch_worker_t _Nullable _dispatch_prepare_enter_main(void)
         if (_dispatch_init(DISPATCH_MAIN, &attr, vcpu_groupid(vcpu_self()))) {
             DISPATCH_MAIN->attr.minConcurrency = 1;
 
-            dispatch_worker_t worker = _dispatch_worker_create_by_adopting_caller_vcpu(DISPATCH_MAIN);
+            dispatch_worker_t worker = _dispatch_worker_create(DISPATCH_MAIN, _DISPATCH_ADOPT_VCPU);
             if (worker) {
                 List_InsertAfterLast(&DISPATCH_MAIN->workers, &worker->worker_qe);
                 DISPATCH_MAIN->worker_count++;
