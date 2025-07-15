@@ -82,7 +82,7 @@ void _dispatch_worker_destroy(dispatch_worker_t _Nullable self)
     if (self) {
         self->owner = NULL;
         self->cb = NULL;
-        // vcpu is relinquished via _dispatch_relinquish_worker()
+        // vcpu is relinquished by _dispatch_relinquish_worker()
         free(self);
     }
 }

@@ -157,6 +157,7 @@ extern void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_it
 extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_cacheable_item_t _Nonnull item);
 extern void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self);
 extern dispatch_cacheable_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, size_t nbytes, dispatch_item_func_t func, uint16_t flags);
+static int _dispatch_acquire_worker_with_ownership(dispatch_t _Nonnull _Locked self, int ownership);
 extern int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self);
 extern bool _dispatch_isactive(dispatch_t _Nonnull _Locked self);
 

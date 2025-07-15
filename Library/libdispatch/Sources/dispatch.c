@@ -18,7 +18,7 @@
 static struct dispatch  g_main_dispatcher;
 dispatch_t DISPATCH_MAIN = &g_main_dispatcher;
 
-static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Nonnull attr, vcpuid_t groupid)
+static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Nonnull attr, int ownership)
 {
     if (attr->maxConcurrency < 1 || attr->maxConcurrency > INT8_MAX || attr->minConcurrency > attr->maxConcurrency) {
         errno = EINVAL;
@@ -44,7 +44,7 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
         self->cb = *(attr->cb);
     }
 
-    self->groupid = groupid;
+    self->groupid = (ownership == _DISPATCH_ACQUIRE_VCPU) ? new_vcpu_groupid() : vcpu_groupid(vcpu_self());
     self->workers = LIST_INIT;
     self->worker_count = 0;
     self->item_cache = SLIST_INIT;
@@ -61,7 +61,7 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
     }
 
     for (size_t i = 0; i < attr->minConcurrency; i++) {
-        if (_dispatch_acquire_worker(self) != 0) {
+        if (_dispatch_acquire_worker_with_ownership(self, ownership) != 0) {
             return false;
         }
     }
@@ -78,13 +78,13 @@ dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
     dispatch_t self = calloc(1, sizeof(struct dispatch));
     
     if (self) {
-        if (_dispatch_init(self, attr, new_vcpu_groupid())) {
+        if (_dispatch_init(self, attr, _DISPATCH_ACQUIRE_VCPU)) {
             return self;
         }
 
-        self->signature = _DISPATCH_SIGNATURE;
-        self->state = _DISPATCHER_STATE_TERMINATED;
-        dispatch_destroy(self);
+        if (self->state == _DISPATCHER_STATE_ACTIVE) {
+            dispatch_destroy(self);
+        }
     }
     return NULL;
 }
@@ -129,9 +129,9 @@ int dispatch_destroy(dispatch_t _Nullable self)
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Workers
 
-int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self)
+static int _dispatch_acquire_worker_with_ownership(dispatch_t _Nonnull _Locked self, int ownership)
 {
-    dispatch_worker_t worker = _dispatch_worker_create(self, _DISPATCH_ACQUIRE_VCPU);
+    dispatch_worker_t worker = _dispatch_worker_create(self, ownership);
 
     if (worker) {
         List_InsertAfterLast(&self->workers, &worker->worker_qe);
@@ -141,6 +141,11 @@ int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self)
     }
 
     return -1;
+}
+
+int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self)
+{
+    return _dispatch_acquire_worker_with_ownership(self, _DISPATCH_ACQUIRE_VCPU);
 }
 
 _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker)
@@ -578,18 +583,8 @@ dispatch_worker_t _Nullable _dispatch_prepare_enter_main(void)
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
 
     if (DISPATCH_MAIN->signature == 0) {
-        attr.minConcurrency = 0;
-
-        if (_dispatch_init(DISPATCH_MAIN, &attr, vcpu_groupid(vcpu_self()))) {
-            DISPATCH_MAIN->attr.minConcurrency = 1;
-
-            dispatch_worker_t worker = _dispatch_worker_create(DISPATCH_MAIN, _DISPATCH_ADOPT_VCPU);
-            if (worker) {
-                List_InsertAfterLast(&DISPATCH_MAIN->workers, &worker->worker_qe);
-                DISPATCH_MAIN->worker_count++;
-    
-                return worker;
-            }
+        if (_dispatch_init(DISPATCH_MAIN, &attr, _DISPATCH_ADOPT_VCPU)) {
+            return (dispatch_worker_t)DISPATCH_MAIN->workers.first;
         }
     }
 
