@@ -265,12 +265,9 @@ static void game_loop(void* ctx)
         exit(0);
     }
 
-
     draw();
     input();
     logic();
-
-    dispatch_after(DISPATCH_MAIN, 0, &game_loop_delay, game_loop, NULL);
 }
 
 
@@ -278,7 +275,7 @@ int main(int argc, char *argv[])
 {
     setup();
 
-    dispatch_enter_main((dispatch_async_func_t)game_loop, NULL);
+    dispatch_enter_main_repeating(0, &TIMESPEC_ZERO, &game_loop_delay, (dispatch_async_func_t)game_loop, NULL);
     /* NOT REACHED */
     return 0;
 }

@@ -283,8 +283,8 @@ int vcpu_setspecific(vcpu_key_t _Nonnull key, const void* _Nullable value)
     int availSlotIdx = 0;
 
     if (self->owner_specific.key == key) {
-        errno = EPERM;
-        return -1;
+        self->owner_specific.value = value;
+        return 0;
     }
 
     for (int i = self->specific_capacity - 1; i >= 0; i--) {
@@ -301,6 +301,9 @@ int vcpu_setspecific(vcpu_key_t _Nonnull key, const void* _Nullable value)
         if (new_tab == NULL) {
             return -1;
         }
+
+        self->specific_tab = new_tab;
+        self->specific_capacity = new_capacity;
     }
 
     self->specific_tab[availSlotIdx].key = key;

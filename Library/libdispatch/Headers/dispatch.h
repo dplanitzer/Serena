@@ -256,6 +256,11 @@ extern int dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t bu
 // this function does not return.
 extern _Noreturn dispatch_enter_main(dispatch_async_func_t _Nonnull func, void* _Nullable arg);
 
+// Similar to dispatch_enter_main() but schedules a repeating timer. Note that
+// canceling the timer will not cause this function here to return. The
+// dispatcher will stay active.
+extern _Noreturn dispatch_enter_main_repeating(int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg);
+
 
 // Initiates the termination of a dispatcher. Note that termination is an
 // inherently asynchronous operation that may take a while. This function will

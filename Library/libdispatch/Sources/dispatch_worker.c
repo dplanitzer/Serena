@@ -57,12 +57,15 @@ dispatch_worker_t _Nullable _dispatch_worker_create_by_adopting_caller_vcpu(disp
     if (self) {
         self->cb = owner->attr.cb;
         self->owner = owner;
+        self->isMainWorker = true;
 
         sigemptyset(&self->hotsigs);
         sigaddset(&self->hotsigs, SIGDISPATCH);
 
         self->vcpu = vcpu_self();
         self->id = vcpu_id(self->vcpu);
+
+        vcpu_setspecific(__os_dispatch_key, self);
     }
 
     return self;

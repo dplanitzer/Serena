@@ -57,10 +57,8 @@ extern int vcpu_setsigmask(int op, sigset_t mask, sigset_t* _Nullable oldmask);
 // fields in the 'attr' record. The vcpu API guarantees that retrieving the
 // owner value (by calling vcpu_specific() with the owner key) will always be O(1)
 // and the lowest latency compared to all other vcpu data retrieval operations.
-// Also please note that the owner value can not be changed at runtime. The
-// vcpu_setspecific() function will reject all attempts to change the owner
-// value with a EPERM error. Thus the owner value is a very convenient, efficient
-// and safe way to associate your own data structure with a newly acquired vcpu. 
+// The owner value is a very convenient and efficient way to associate your own
+// data structure with a newly acquired vcpu. 
 extern vcpu_t _Nullable vcpu_acquire(const vcpu_attr_t* _Nonnull attr);
 
 // Relinquishes the vcpu on which this call is executed back to the system and

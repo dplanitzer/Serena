@@ -145,6 +145,8 @@ int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self)
 
 _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker)
 {
+    const bool isMainWorker = worker->isMainWorker;
+
     List_Remove(&self->workers, &worker->worker_qe);
     self->worker_count--;
 
@@ -153,7 +155,9 @@ _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch
     cond_broadcast(&self->cond);
     mutex_unlock(&self->mutex);
 
-    vcpu_relinquish_self();
+    if (!isMainWorker) {
+        vcpu_relinquish_self();
+    }
 }
 
 void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self)
@@ -569,13 +573,13 @@ out:
 }
 
 
-_Noreturn dispatch_enter_main(dispatch_async_func_t _Nonnull func, void* _Nullable arg)
+dispatch_worker_t _Nullable _dispatch_prepare_enter_main(void)
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
 
     if (DISPATCH_MAIN->signature == 0) {
         attr.minConcurrency = 0;
-        
+
         if (_dispatch_init(DISPATCH_MAIN, &attr, vcpu_groupid(vcpu_self()))) {
             DISPATCH_MAIN->attr.minConcurrency = 1;
 
@@ -584,11 +588,34 @@ _Noreturn dispatch_enter_main(dispatch_async_func_t _Nonnull func, void* _Nullab
                 List_InsertAfterLast(&DISPATCH_MAIN->workers, &worker->worker_qe);
                 DISPATCH_MAIN->worker_count++;
     
-                if (!dispatch_async(DISPATCH_MAIN, func, arg)) {
-                    _dispatch_worker_run(worker);
-                }
+                return worker;
             }
         }
+    }
+
+    return NULL;
+}
+
+_Noreturn dispatch_enter_main(dispatch_async_func_t _Nonnull func, void* _Nullable arg)
+{
+    dispatch_worker_t worker = _dispatch_prepare_enter_main();
+            
+    if (worker && !dispatch_async(DISPATCH_MAIN, func, arg)) {
+        _dispatch_worker_run(worker);
+        exit(0);
+    }
+
+    abort();
+    /* NOT REACHED */
+}
+
+void dispatch_enter_main_repeating(int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
+{
+    dispatch_worker_t worker = _dispatch_prepare_enter_main();
+            
+    if (worker && !dispatch_repeating(DISPATCH_MAIN, flags, wtp, itp, func, arg)) {
+        _dispatch_worker_run(worker);
+        exit(0);
     }
 
     abort();

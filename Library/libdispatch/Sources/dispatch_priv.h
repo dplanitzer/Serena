@@ -76,6 +76,8 @@ struct dispatch_worker {
 
     const dispatch_callbacks_t* _Nonnull    cb;
     dispatch_t _Nonnull                     owner;
+
+    bool                                    isMainWorker;   // Worker managing the main vcpu in the context of a main dispatcher
 };
 typedef struct dispatch_worker* dispatch_worker_t;
 
