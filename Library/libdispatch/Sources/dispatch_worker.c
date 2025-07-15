@@ -35,8 +35,6 @@ dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner)
     r_attr.groupid = owner->groupid;
     r_attr.priority = owner->attr.qos * DISPATCH_PRI_COUNT + (owner->attr.priority + DISPATCH_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
     r_attr.flags = 0;
-    r_attr.owner_key = __os_dispatch_key;
-    r_attr.owner_value = self;
 
     self->vcpu = vcpu_acquire(&r_attr);
     if (self->vcpu == NULL) {
@@ -64,8 +62,6 @@ dispatch_worker_t _Nullable _dispatch_worker_create_by_adopting_caller_vcpu(disp
 
         self->vcpu = vcpu_self();
         self->id = vcpu_id(self->vcpu);
-
-        vcpu_setspecific(__os_dispatch_key, self);
     }
 
     return self;
@@ -231,6 +227,8 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Non
 void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
 {
     mutex_t* mp = &(self->owner->mutex);
+
+    vcpu_setspecific(__os_dispatch_key, self);
 
     mutex_lock(mp);
 

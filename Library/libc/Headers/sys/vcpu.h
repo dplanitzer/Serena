@@ -26,8 +26,6 @@ typedef struct vcpu_attr {
     vcpuid_t                groupid;
     int                     priority;
     unsigned int            flags;
-    vcpu_key_t _Nullable    owner_key;
-    const void* _Nullable   owner_value;
 } vcpu_attr_t;
 
 #define VCPU_ATTR_INIT  {0}
@@ -51,14 +49,6 @@ extern int vcpu_setsigmask(int op, sigset_t mask, sigset_t* _Nullable oldmask);
 // id. Note that you should use the new_vcpu_groupid() function to generate a
 // unique group id to ensure that your group id will not clash with the group
 // id that some other library wants to use.
-// The creator/owner of the vcpu may assign 'owner data' to the vcpu at
-// acquisition time. You do this be generating a unique vcpu_key_t with a
-// vcpu_key_create() call and by setting the 'owner_key' and the 'owner_value'
-// fields in the 'attr' record. The vcpu API guarantees that retrieving the
-// owner value (by calling vcpu_specific() with the owner key) will always be O(1)
-// and the lowest latency compared to all other vcpu data retrieval operations.
-// The owner value is a very convenient and efficient way to associate your own
-// data structure with a newly acquired vcpu. 
 extern vcpu_t _Nullable vcpu_acquire(const vcpu_attr_t* _Nonnull attr);
 
 // Relinquishes the vcpu on which this call is executed back to the system and

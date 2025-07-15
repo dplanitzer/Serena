@@ -25,6 +25,7 @@ struct vcpu_key {
 };
 
 
+#define VCPU_DATA_INLINE_CAPACITY   2
 #define VCPU_DATA_ENTRIES_GROW_BY   4
 
 struct vcpu_specific {
@@ -40,7 +41,7 @@ struct vcpu {
     vcpuid_t                groupid;
     vcpu_func_t _Nullable  func;
     void* _Nullable         arg;
-    struct vcpu_specific    owner_specific;
+    struct vcpu_specific    specific_inline[VCPU_DATA_INLINE_CAPACITY];
     vcpu_specific_t         specific_tab;
     int                     specific_capacity;
 };

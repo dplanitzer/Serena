@@ -137,8 +137,6 @@ vcpu_t _Nullable vcpu_acquire(const vcpu_attr_t* _Nonnull attr)
     self->groupid = attr->groupid;
     self->func = attr->func;
     self->arg = attr->arg;
-    self->owner_specific.key = attr->owner_key;
-    self->owner_specific.value = attr->owner_value;
 
 
     r_attr.func = (vcpu_func_t)__vcpu_start;
@@ -235,28 +233,30 @@ static vcpu_destructor_t _Nullable _vcpu_key_destructor(vcpu_key_t _Nonnull key)
     return dstr;
 }
 
-static void _vcpu_destroy_specific(vcpu_t _Nonnull self)
+static void _vcpu_destroy_specifics(vcpu_specific_t _Nonnull tab, int tabsiz)
 {
-    for (int i = 0; i < self->specific_capacity; i++) {
-        if (self->specific_tab[i].key) {
-            vcpu_destructor_t dstr = _vcpu_key_destructor(self->specific_tab[i].key);
+    for (int i = 0; i < tabsiz; i++) {
+        if (tab[i].key) {
+            vcpu_destructor_t dstr = _vcpu_key_destructor(tab[i].key);
 
             if (dstr) {
-                dstr(self->specific_tab[i].value);
+                dstr(tab[i].value);
             }
         }
+
+        tab[i].key = NULL;
+        tab[i].value = NULL;
     }
+}
 
-    free(self->specific_tab);
-    self->specific_tab = NULL;
-
-
-    if (self->owner_specific.key) {
-        vcpu_destructor_t owner_dstr = _vcpu_key_destructor(self->owner_specific.key);
-
-        if (owner_dstr) {
-            owner_dstr(self->owner_specific.value);
-        }
+static void _vcpu_destroy_specific(vcpu_t _Nonnull self)
+{
+    _vcpu_destroy_specifics(self->specific_inline, VCPU_DATA_INLINE_CAPACITY);
+    
+    if (self->specific_capacity > 0) {
+        _vcpu_destroy_specifics(self->specific_tab, self->specific_capacity);
+        free(self->specific_tab);
+        self->specific_tab = NULL;
     }
 }
 
@@ -264,8 +264,10 @@ void *vcpu_specific(vcpu_key_t _Nonnull key)
 {
     vcpu_t self = vcpu_self();
 
-    if (self->owner_specific.key == key) {
-        return self->owner_specific.value;
+    for (int i = 0; i < VCPU_DATA_INLINE_CAPACITY; i++) {
+        if (self->specific_inline[i].key == key) {
+            return self->specific_inline[i].value;
+        }
     }
 
     for (int i = 0; i < self->specific_capacity; i++) {
@@ -282,11 +284,14 @@ int vcpu_setspecific(vcpu_key_t _Nonnull key, const void* _Nullable value)
     vcpu_t self = vcpu_self();
     int availSlotIdx = 0;
 
-    if (self->owner_specific.key == key) {
-        self->owner_specific.value = value;
-        return 0;
+    for (int i = 0; i < VCPU_DATA_INLINE_CAPACITY; i++) {
+        if (self->specific_inline[i].key == key) {
+            self->specific_inline[i].value = value;
+            return 0;
+        }
     }
 
+    
     for (int i = self->specific_capacity - 1; i >= 0; i--) {
         if (self->specific_tab[i].key != NULL) {
             availSlotIdx = i + 1;
