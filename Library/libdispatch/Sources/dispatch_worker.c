@@ -44,19 +44,20 @@ static void _dispatch_worker_adopt_current_vcpu(dispatch_worker_t _Nonnull self)
 }
 
 
-dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner, int mode)
+dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner, int ownership)
 {
     dispatch_worker_t self = calloc(1, sizeof(struct dispatch_worker));
 
     if (self) {
         self->cb = owner->attr.cb;
         self->owner = owner;
+        self->ownership = ownership;
 
         sigemptyset(&self->hotsigs);
         sigaddset(&self->hotsigs, SIGDISPATCH);
 
 
-        switch (mode) {
+        switch (ownership) {
             case _DISPATCH_ACQUIRE_VCPU:
                 if (!_dispatch_worker_acquire_vcpu(self)) {
                     free(self);

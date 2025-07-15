@@ -61,7 +61,7 @@ typedef struct dispatch_work {
 } dispatch_work_t;
 
 
-// _dispatch_worker_create() mode
+// _dispatch_worker_create() ownership mode
 #define _DISPATCH_ACQUIRE_VCPU  0
 #define _DISPATCH_ADOPT_VCPU    1
 
@@ -81,11 +81,11 @@ struct dispatch_worker {
     const dispatch_callbacks_t* _Nonnull    cb;
     dispatch_t _Nonnull                     owner;
 
-    bool                                    isMainWorker;   // Worker managing the main vcpu in the context of a main dispatcher
+    int                                     ownership;  // _DISPATCH_XXX_VCPU; tells us whether the worker acquired or adopted its vcpu
 };
 typedef struct dispatch_worker* dispatch_worker_t;
 
-extern dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner, int mode);
+extern dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner, int ownership);
 extern void _dispatch_worker_destroy(dispatch_worker_t _Nullable self);
 
 extern void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self);

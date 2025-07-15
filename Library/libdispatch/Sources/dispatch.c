@@ -145,7 +145,7 @@ int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self)
 
 _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker)
 {
-    const bool isMainWorker = worker->isMainWorker;
+    const int ownership = worker->ownership;
 
     List_Remove(&self->workers, &worker->worker_qe);
     self->worker_count--;
@@ -155,7 +155,7 @@ _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch
     cond_broadcast(&self->cond);
     mutex_unlock(&self->mutex);
 
-    if (!isMainWorker) {
+    if (ownership == _DISPATCH_ACQUIRE_VCPU) {
         vcpu_relinquish_self();
     }
 }
