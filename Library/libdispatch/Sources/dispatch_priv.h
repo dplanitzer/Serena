@@ -11,9 +11,6 @@
 
 #include <dispatch.h>
 #include <signal.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdnoreturn.h>
 #include <sys/condvar.h>
 #include <sys/timespec.h>
 #include <sys/vcpu.h>
@@ -32,14 +29,14 @@ typedef struct dispatch_cacheable_item* dispatch_cacheable_item_t;
 struct dispatch_async_item {
     struct dispatch_cacheable_item  super;
     dispatch_async_func_t _Nonnull  func;
-    void* _Nullable                 context;
+    void* _Nullable                 arg;
 };
 typedef struct dispatch_async_item* dispatch_async_item_t;
 
 struct dispatch_sync_item {
     struct dispatch_cacheable_item  super;
     dispatch_sync_func_t _Nonnull   func;
-    void* _Nullable                 context;
+    void* _Nullable                 arg;
     int                             result;
 };
 typedef struct dispatch_sync_item* dispatch_sync_item_t;
@@ -82,7 +79,8 @@ struct dispatch_worker {
 };
 typedef struct dispatch_worker* dispatch_worker_t;
 
-extern dispatch_worker_t _Nullable _dispatch_worker_create(const dispatch_attr_t* _Nonnull attr, dispatch_t _Nonnull owner);
+extern dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner);
+extern dispatch_worker_t _Nullable _dispatch_worker_create_by_adopting_caller_vcpu(dispatch_t _Nonnull owner);
 extern void _dispatch_worker_destroy(dispatch_worker_t _Nullable self);
 
 extern void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self);
@@ -90,6 +88,8 @@ extern void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dis
 extern dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull self, dispatch_item_func_t _Nonnull func);
 extern bool _dispatch_worker_cancel_item(dispatch_worker_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
 extern void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self);
+
+extern void _dispatch_worker_run(dispatch_worker_t _Nonnull self);
 
 extern vcpu_key_t __os_dispatch_key;
 #define _dispatch_worker_current() \
@@ -125,6 +125,7 @@ struct dispatch {
     cond_t                  cond;
     dispatch_attr_t         attr;
     dispatch_callbacks_t    cb;
+    vcpuid_t                groupid;
     uint32_t                signature;
 
     List                    workers;        // Each worker has its own work item queue

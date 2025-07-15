@@ -50,7 +50,7 @@ LIBC_CC_DONTWARN := -dontwarn=214
 .PHONY: clean-libc $(LIBC_OBJS_DIR)
 
 
-build-libc: $(LIBC_FILE) $(ASTART_FILE) $(CSTART_FILE)
+build-libc: $(LIBC_FILE) $(CSTART_FILE)
 
 $(LIBC_OBJS): | $(LIBC_OBJS_DIR)
 
@@ -83,11 +83,7 @@ $(LIBC_OBJS_DIR)/%.o : $(LIBC_SOURCES_DIR)/%.s
 	@$(AS) $(USER_ASM_CONFIG) $(LIBC_ASM_INCLUDES) -o $@ $<
 
 
-# start() function(s)
-$(ASTART_FILE) : $(LIBC_ASTART_C_SOURCE) | $(LIBC_OBJS_DIR)
-	@echo $<
-	@$(CC) $(USER_CC_CONFIG) $(CC_OPT_SETTING) $(CC_PREPROC_DEFS) $(LIBC_C_INCLUDES) -o $@ $<
-
+# start() function
 $(CSTART_FILE) : $(LIBC_CSTART_C_SOURCE) | $(LIBC_OBJS_DIR)
 	@echo $<
 	@$(CC) $(USER_CC_CONFIG) $(CC_OPT_SETTING) $(CC_PREPROC_DEFS) $(LIBC_C_INCLUDES) -o $@ $<

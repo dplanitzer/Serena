@@ -15,32 +15,27 @@
 #include <time.h>
 
 
-dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
+static struct dispatch  g_main_dispatcher;
+dispatch_t DISPATCH_MAIN = &g_main_dispatcher;
+
+static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Nonnull attr, vcpuid_t groupid)
 {
-    dispatch_t self = NULL;
-    
     if (attr->maxConcurrency < 1 || attr->maxConcurrency > INT8_MAX || attr->minConcurrency > attr->maxConcurrency) {
         errno = EINVAL;
-        return NULL;
+        return false;
     }
     if (attr->qos < 0 || attr->qos >= DISPATCH_QOS_COUNT) {
         errno = EINVAL;
-        return NULL;
+        return false;
     }
     if (attr->priority < DISPATCH_PRI_LOWEST || attr->priority >= DISPATCH_PRI_HIGHEST) {
         errno = EINVAL;
-        return NULL;
+        return false;
     }
 
-
-    self = calloc(1, sizeof(struct dispatch));
-    if (self == NULL) {
-        return NULL;
-    }
 
     if (mutex_init(&self->mutex) != 0) {
-        free(self);
-        return NULL;
+        return false;
     }
 
     self->attr = *attr;
@@ -49,6 +44,7 @@ dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
         self->cb = *(attr->cb);
     }
 
+    self->groupid = groupid;
     self->workers = LIST_INIT;
     self->worker_count = 0;
     self->item_cache = SLIST_INIT;
@@ -61,14 +57,12 @@ dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
     self->signature = _DISPATCH_SIGNATURE;
 
     if (cond_init(&self->cond) != 0) {
-        dispatch_destroy(self);
-        return NULL;
+        return false;
     }
 
     for (size_t i = 0; i < attr->minConcurrency; i++) {
         if (_dispatch_acquire_worker(self) != 0) {
-            dispatch_destroy(self);
-            return NULL;
+            return false;
         }
     }
 
@@ -76,7 +70,23 @@ dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
         strncpy(self->name, attr->name, DISPATCH_MAX_NAME_LENGTH);
     }
 
-    return self;
+    return true;
+}
+
+dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
+{
+    dispatch_t self = calloc(1, sizeof(struct dispatch));
+    
+    if (self) {
+        if (_dispatch_init(self, attr, new_vcpu_groupid())) {
+            return self;
+        }
+
+        self->signature = _DISPATCH_SIGNATURE;
+        self->state = _DISPATCHER_STATE_TERMINATED;
+        dispatch_destroy(self);
+    }
+    return NULL;
 }
 
 int dispatch_destroy(dispatch_t _Nullable self)
@@ -121,7 +131,7 @@ int dispatch_destroy(dispatch_t _Nullable self)
 
 int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self)
 {
-    dispatch_worker_t worker = _dispatch_worker_create(&self->attr, self);
+    dispatch_worker_t worker = _dispatch_worker_create(self);
 
     if (worker) {
         List_InsertAfterLast(&self->workers, &worker->worker_qe);
@@ -365,10 +375,10 @@ void _async_adapter_func(dispatch_item_t _Nonnull item)
 {
     dispatch_async_item_t async_item = (dispatch_async_item_t)item;
 
-    async_item->func(async_item->context);
+    async_item->func(async_item->arg);
 }
 
-int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func, void* _Nullable context)
+int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
 {
     int r = -1;
 
@@ -378,7 +388,7 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
     
         if (item) {
             ((dispatch_async_item_t)item)->func = func;
-            ((dispatch_async_item_t)item)->context = context;
+            ((dispatch_async_item_t)item)->arg = arg;
             r = _dispatch_submit(self, (dispatch_item_t)item);
             if (r != 0) {
                 _dispatch_cache_item(self, item);
@@ -395,10 +405,10 @@ static void _sync_adapter_func(dispatch_item_t _Nonnull item)
 {
     dispatch_sync_item_t sync_item = (dispatch_sync_item_t)item;
 
-    sync_item->result = sync_item->func(sync_item->context);
+    sync_item->result = sync_item->func(sync_item->arg);
 }
 
-int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, void* _Nullable context)
+int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, void* _Nullable arg)
 {
     int r = -1;
 
@@ -408,7 +418,7 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
     
         if (item) {
             ((dispatch_sync_item_t)item)->func = func;
-            ((dispatch_sync_item_t)item)->context = context;
+            ((dispatch_sync_item_t)item)->arg = arg;
             ((dispatch_sync_item_t)item)->result = 0;
             if (_dispatch_submit(self, (dispatch_item_t)item) == 0) {
                 r = _dispatch_join(self, (dispatch_item_t)item);
@@ -556,6 +566,33 @@ int dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t buflen)
 out:
     mutex_unlock(&self->mutex);
     return r;
+}
+
+
+_Noreturn dispatch_enter_main(dispatch_async_func_t _Nonnull func, void* _Nullable arg)
+{
+    dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
+
+    if (DISPATCH_MAIN->signature == 0) {
+        attr.minConcurrency = 0;
+        
+        if (_dispatch_init(DISPATCH_MAIN, &attr, vcpu_groupid(vcpu_self()))) {
+            DISPATCH_MAIN->attr.minConcurrency = 1;
+
+            dispatch_worker_t worker = _dispatch_worker_create_by_adopting_caller_vcpu(DISPATCH_MAIN);
+            if (worker) {
+                List_InsertAfterLast(&DISPATCH_MAIN->workers, &worker->worker_qe);
+                DISPATCH_MAIN->worker_count++;
+    
+                if (!dispatch_async(DISPATCH_MAIN, func, arg)) {
+                    _dispatch_worker_run(worker);
+                }
+            }
+        }
+    }
+
+    abort();
+    /* NOT REACHED */
 }
 
 

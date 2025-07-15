@@ -212,7 +212,7 @@ int dispatch_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item, int 
     return r;
 }
 
-int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nullable itp, dispatch_async_func_t _Nonnull func, void* _Nullable context)
+int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nullable itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
 {
     int r = -1;
 
@@ -222,7 +222,7 @@ int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, const struc
     
         if (item) {
             ((dispatch_async_item_t)item)->func = func;
-            ((dispatch_async_item_t)item)->context = context;
+            ((dispatch_async_item_t)item)->arg = arg;
             r = _dispatch_timer(self, (dispatch_item_t)item, flags, wtp, itp);
             if (r != 0) {
                 _dispatch_cache_item(self, item);
@@ -234,12 +234,12 @@ int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, const struc
     return r;
 }
 
-int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_async_func_t _Nonnull func, void* _Nullable context)
+int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
 {
-    return _dispatch_convenience_timer(self, flags, wtp, NULL, func, context);
+    return _dispatch_convenience_timer(self, flags, wtp, NULL, func, arg);
 }
 
-int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable context)
+int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
 {
-    return _dispatch_convenience_timer(self, flags, wtp, itp, func, context);
+    return _dispatch_convenience_timer(self, flags, wtp, itp, func, arg);
 }

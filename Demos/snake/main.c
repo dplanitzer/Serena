@@ -11,19 +11,21 @@
 //
 
 #include <ctype.h>
+#include <dispatch.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
 #include <time.h>
-#include <sys/os_dispatch.h>
 #include <sys/timespec.h>
 #include "utils.h"
 
 
 #define PLAYFIELD_WIDTH 40
 #define PLAYFIELD_HEIGHT 20
+
+static struct timespec game_loop_delay;
 
 static int playfield_x, playfield_y;
 
@@ -75,6 +77,8 @@ static void setup(void)
     snake_body_len = 0;
     key = 0;
     score = 0;
+
+    timespec_from_ms(&game_loop_delay, 66);
 
     playfield_x = (80 - (PLAYFIELD_WIDTH + 2)) / 2;
     playfield_y = 0;
@@ -266,16 +270,15 @@ static void game_loop(void* ctx)
     input();
     logic();
 
-    struct timespec now, dly, deadline;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    timespec_from_ms(&dly, 66);
-    timespec_add(&now, &dly, &deadline);
-    os_dispatch_after(kDispatchQueue_Main, &deadline, game_loop, NULL, 0);
+    dispatch_after(DISPATCH_MAIN, 0, &game_loop_delay, game_loop, NULL);
 }
 
-void main_closure(int argc, char *argv[])
+
+int main(int argc, char *argv[])
 {
     setup();
 
-    os_dispatch_async(kDispatchQueue_Main, game_loop, NULL);
+    dispatch_enter_main((dispatch_async_func_t)game_loop, NULL);
+    /* NOT REACHED */
+    return 0;
 }

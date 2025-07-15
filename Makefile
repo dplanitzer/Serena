@@ -142,7 +142,6 @@ LIBC_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libc
 LIBC_HEADERS_DIR := $(LIBC_PROJECT_DIR)/Headers
 LIBC_OBJS_DIR := $(OBJS_DIR)/Library/libc
 LIBC_FILE := $(LIBC_OBJS_DIR)/libc.a
-ASTART_FILE := $(LIBC_OBJS_DIR)/_astart.o
 CSTART_FILE := $(LIBC_OBJS_DIR)/_cstart.o
 
 

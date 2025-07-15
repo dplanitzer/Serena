@@ -13,25 +13,16 @@
 
 #define VP_PRIORITIES_RESERVED_LOW  2
 
-static void _dispatch_worker_run(dispatch_worker_t _Nonnull self);
 
-
-dispatch_worker_t _Nullable _dispatch_worker_create(const dispatch_attr_t* _Nonnull attr, dispatch_t _Nonnull owner)
+dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner)
 {
-    dispatch_worker_t self = malloc(sizeof(struct dispatch_worker));
+    dispatch_worker_t self = calloc(1, sizeof(struct dispatch_worker));
 
     if (self == NULL) {
         return NULL;
     }
 
-    self->worker_qe = LISTNODE_INIT;
-    self->work_queue = SLIST_INIT;
-    self->work_count = 0;
-
-    self->current.timer = NULL;
-    self->current.item = NULL;
-
-    self->cb = attr->cb;
+    self->cb = owner->attr.cb;
     self->owner = owner;
 
     sigemptyset(&self->hotsigs);
@@ -41,8 +32,8 @@ dispatch_worker_t _Nullable _dispatch_worker_create(const dispatch_attr_t* _Nonn
     r_attr.func = (vcpu_func_t)_dispatch_worker_run;
     r_attr.arg = self;
     r_attr.stack_size = 0;
-    r_attr.groupid = new_vcpu_groupid();
-    r_attr.priority = attr->qos * DISPATCH_PRI_COUNT + (attr->priority + DISPATCH_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
+    r_attr.groupid = owner->groupid;
+    r_attr.priority = owner->attr.qos * DISPATCH_PRI_COUNT + (owner->attr.priority + DISPATCH_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
     r_attr.flags = 0;
     r_attr.owner_key = __os_dispatch_key;
     r_attr.owner_value = self;
@@ -55,6 +46,24 @@ dispatch_worker_t _Nullable _dispatch_worker_create(const dispatch_attr_t* _Nonn
     self->id = vcpu_id(self->vcpu);
 
     vcpu_resume(self->vcpu);
+
+    return self;
+}
+
+dispatch_worker_t _Nullable _dispatch_worker_create_by_adopting_caller_vcpu(dispatch_t _Nonnull owner)
+{
+    dispatch_worker_t self = calloc(1, sizeof(struct dispatch_worker));
+
+    if (self) {
+        self->cb = owner->attr.cb;
+        self->owner = owner;
+
+        sigemptyset(&self->hotsigs);
+        sigaddset(&self->hotsigs, SIGDISPATCH);
+
+        self->vcpu = vcpu_self();
+        self->id = vcpu_id(self->vcpu);
+    }
 
     return self;
 }
@@ -216,7 +225,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Non
     }
 }
 
-static void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
+void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
 {
     mutex_t* mp = &(self->owner->mutex);
 

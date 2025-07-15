@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdnoreturn.h>
 #include <sys/timespec.h>
 #include <sys/queue.h>
 
@@ -21,6 +22,12 @@ __CPP_BEGIN
 struct dispatch;
 struct dispatch_item;
 typedef struct dispatch* dispatch_t;
+
+
+// The main dispatcher. This is a serial dispatcher that owns the main vcpu. The
+// main dispatcher is started by calling dispatch_enter_main() from the main
+// vcpu.
+extern dispatch_t DISPATCH_MAIN;
 
 
 // The function responsible for implementing the work of an item.
@@ -177,15 +184,15 @@ extern int dispatch_join(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item
 // a single argument asynchronously. The item is created, managed and retired by
 // the dispatcher itself. The asynchronous function can not return a result. Use
 // dispatch_sync() instead if you need a result back from the function.   
-typedef void (*dispatch_async_func_t)(void* _Nullable context);
-extern int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func, void* _Nullable context);
+typedef void (*dispatch_async_func_t)(void* _Nullable arg);
+extern int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func, void* _Nullable arg);
 
 
 // A convenience function to synchronously execute a function on the dispatcher
 // queue. The function may return an int size value. This value is returned as
 // the dispatch_sync() result.
-typedef int (*dispatch_sync_func_t)(void* _Nullable context);
-extern int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, void* _Nullable context);
+typedef int (*dispatch_sync_func_t)(void* _Nullable arg);
+extern int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, void* _Nullable arg);
 
 
 // Schedules a one-shot or repeating timer which will execute 'item'. The timer
@@ -199,10 +206,10 @@ extern int dispatch_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull ite
 
 // Convenience function to execute 'func' after 'wtp' nanoseconds or at the
 // absolute time 'wtp' if 'flags' contains TIMER_ABSTIME.
-extern int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_async_func_t _Nonnull func, void* _Nullable context);
+extern int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_async_func_t _Nonnull func, void* _Nullable arg);
 
 // Convenience function to repeatedly execute 'func'.
-extern int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable context);
+extern int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg);
 
 
 // Cancels a scheduled work item or timer and removes it from the dispatcher.
@@ -242,6 +249,12 @@ extern int dispatch_setqos(dispatch_t _Nonnull self, int qos);
 extern void dispatch_concurrency_info(dispatch_t _Nonnull self, dispatch_concurrency_info_t* _Nonnull info);
 
 extern int dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t buflen);
+
+
+// Starts the main dispatcher and schedules 'func' to be executed as the first
+// function on the main dispatcher. Must be called from the main vcpu. Note that
+// this function does not return.
+extern _Noreturn dispatch_enter_main(dispatch_async_func_t _Nonnull func, void* _Nullable arg);
 
 
 // Initiates the termination of a dispatcher. Note that termination is an
