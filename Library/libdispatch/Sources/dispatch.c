@@ -232,7 +232,7 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
 
 void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
-    if ((item->flags & DISPATCH_ITEM_JOINABLE) != 0) {
+    if ((item->flags & DISPATCH_ITEM_AWAITABLE) != 0) {
         _dispatch_zombify_item(self, item);
     }
     else if ((item->flags & _DISPATCH_ITEM_CACHEABLE) != 0) {
@@ -246,7 +246,7 @@ void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     }
 }
 
-static int _dispatch_join(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
+static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
     int r = 0;
 
@@ -371,10 +371,10 @@ int dispatch_submit(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
     return r;
 }
 
-int dispatch_join(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
+int dispatch_await(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     mutex_lock(&self->mutex);
-    const int r = _dispatch_join(self, item);
+    const int r = _dispatch_await(self, item);
     mutex_unlock(&self->mutex);
     return r;
 }
@@ -423,14 +423,14 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
 
     mutex_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-        dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_sync_item), _sync_adapter_func, _DISPATCH_ITEM_CACHEABLE | DISPATCH_ITEM_JOINABLE);
+        dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_sync_item), _sync_adapter_func, _DISPATCH_ITEM_CACHEABLE | DISPATCH_ITEM_AWAITABLE);
     
         if (item) {
             ((dispatch_sync_item_t)item)->func = func;
             ((dispatch_sync_item_t)item)->arg = arg;
             ((dispatch_sync_item_t)item)->result = 0;
             if (_dispatch_submit(self, (dispatch_item_t)item) == 0) {
-                r = _dispatch_join(self, (dispatch_item_t)item);
+                r = _dispatch_await(self, (dispatch_item_t)item);
                 if (r == 0) {
                     r = ((dispatch_sync_item_t)item)->result;
                 }

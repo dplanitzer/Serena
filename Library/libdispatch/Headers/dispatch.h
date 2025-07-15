@@ -23,6 +23,58 @@ struct dispatch;
 struct dispatch_item;
 typedef struct dispatch* dispatch_t;
 
+// A dispatcher or dispatch queue manages a FIFO queue of work items and
+// dispatches those items to a set of virtual processors for execution. A
+// serial dispatcher is a dispatcher that operates a single virtual processor
+// while a concurrent dispatcher operates at least two virtual processors (and
+// potentially many more than two).
+//
+// A dispatcher may have a fixed number of virtual processors associated with it
+// or it may be configured such that it has the freedom to automatically
+// relinquish and acquire virtual processors as needed.
+//
+// There are fundamentally two different ways to dispatch work to a dispatcher.
+//
+// Work may be dispatched asynchronously. This means that you create a work item
+// and that you submit it to the dispatcher without indicating that the item
+// should be awaitable. Submitting the item to the dispatcher transfers ownership
+// of the item to the dispatcher. The dispatcher executes the item and then
+// retires it by calling the retire function of the item once the item is done
+// doing its work. There is no way to get back a result from a non-awaitable
+// item. This is how you create and dispatch an asynchronous item:
+//
+// dispatch_item_t my_item = create_my_item(...);
+//
+// dispatch_submit(my_dispatcher, my_item);
+//
+// Work may be dispatched synchronously. This means that you create a work item
+// mark it as awaitable, submit it, await it and then you retire it to free up
+// all resources used by the item.
+//
+// Dispatching an item synchronously enables you to receive the result of the
+// computation that the work item did. However you are fully responsible for
+// managing the work item life time. The item will not be automatically retired
+// by the dispatcher after the item is done. You have to do that yourself after
+// you've awaited the item and retrieved its result.
+//
+// This is how you create and dispatch a synchronous item:
+//
+// dispatch_item_t my_item = create_my_item(...)
+//
+// my_item->flags |= DISPATCH_ITEM_AWAITABLE;
+// dispatch_submit(my_dispatcher, my_item);
+// ...
+// dispatch_await(my_dispatcher, my_item);
+// const int result = my_item->result;
+// free_my_item(my_item);
+//
+// The nature of a work item
+//
+// A work item represents an invocation and as such observes value semantics.
+// The function that is used to execute an item is a reference type - but the
+// item itself is a value type. Thus a work item can not be submitted more than
+// once and be associated with more than one dispatcher at the same time.
+ 
 
 // The main dispatcher. This is a serial dispatcher that owns the main vcpu. The
 // main dispatcher is started by calling dispatch_enter_main() from the main
@@ -39,11 +91,12 @@ typedef void (*dispatch_item_func_t)(struct dispatch_item* _Nonnull item);
 typedef void (*dispatch_retire_func_t)(struct dispatch_item* _Nonnull item);
 
 
-// Marks an item as joinable. This means that the item is able to produce and
-// deliver a result. You have to call dispatch_join() on a joinable item. The
-// call will block until the item has finished processing. It is then safe to
+// Marks an item as awaitable. This means that the item will produce a result
+// and that you want to wait for the item to finish its run. You wait for an
+// item to finish its execution by calling dispatch_await() on it. The call
+// will block until the item has finished processing. It is then safe to
 // access the item to retrieve its result.
-#define DISPATCH_ITEM_JOINABLE  1
+#define DISPATCH_ITEM_AWAITABLE  1
 
 
 // The state of an item. Items start out in idle state and transition to pending
@@ -73,7 +126,7 @@ typedef void (*dispatch_retire_func_t)(struct dispatch_item* _Nonnull item);
 //               can only execute once at a time. Just execute it and then re-
 //               submit.
 // concurrent queue: items have state and having two or more vcpus execute the
-//                   same item at the same time would make the state inconsistent. 
+//                   same item at the same time would make the state inconsistent.
 struct dispatch_item {
     SListNode                           qe;
     dispatch_item_func_t _Nonnull       func;
@@ -160,7 +213,8 @@ extern dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr
 
 // Destroys the given dispatcher. Returns -1 and sets errno to EBUSY if the
 // dispatcher wasn't terminated, is still in the process of terminating or there
-// are still unjoined joinable dispatch items outstanding.
+// are still awaitable items available on which dispatch_await() should be
+// called.
 extern int dispatch_destroy(dispatch_t _Nullable self);
 
 
@@ -168,16 +222,18 @@ extern int dispatch_destroy(dispatch_t _Nullable self);
 // asynchronously executed as soon as possible. Note that the dispatcher takes
 // ownership of 'item' until the item is done processing. Once an item is done
 // processing the dispatcher either calls the 'retireFunc' of the item, if the
-// item is not joinable, or it enqueues the item on a result queue if it is
-// joinable. A joinable item must be joined by calling dispatch_join() on it.
+// item is not awaitable, or it enqueues the item on a result queue if it is
+// awaitable. You are required to call dispatch_await() on an awaitable item.
+// This will remove the item from the result queue and transfer ownership of the
+// item back to you.
 extern int dispatch_submit(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
 
 // Waits for the execution of 'item' to finish and removes the item from the
 // result queue. Note that this function does not call the 'retireFunc' of the
-// item. You are expected to retire the item after dispatch_join() returns and
-// you no longer need access to 'item'. This function effectively transfers
-// ownership of 'item' back to you.
-extern int dispatch_join(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
+// item. You are expected to retire the item after dispatch_await() has returned
+// and you no longer need access to the result data stored in 'item'. This
+// function effectively transfers ownership of 'item' back to you.
+extern int dispatch_await(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
 
 
 // Convenience function which creates a simple item to execute a function with
@@ -215,8 +271,8 @@ extern int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct 
 // Cancels a scheduled work item or timer and removes it from the dispatcher.
 // Note that the work item or timer will finish normally if it is currently
 // executing. However it will not get rescheduled anymore. The item is retired
-// if it isn't joinable. It is marked as cancelled and added to the result
-// queue if it is joinable.
+// if it isn't awaitable. It is marked as cancelled and added to the result
+// queue if it is awaitable.
 extern void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
 
 // Cancels the first scheduled timer or work item that matches function 'func'.
