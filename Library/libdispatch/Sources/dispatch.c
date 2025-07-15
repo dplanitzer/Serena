@@ -58,6 +58,7 @@ dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
     self->timer_cache = SLIST_INIT;
     self->timer_cache_count = 0;
     self->state = _DISPATCHER_STATE_ACTIVE;
+    self->signature = _DISPATCH_SIGNATURE;
 
     if (cond_init(&self->cond) != 0) {
         dispatch_destroy(self);
@@ -324,18 +325,28 @@ void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_cacheable_i
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
 
+bool _dispatch_isactive(dispatch_t _Nonnull _Locked self)
+{
+    if (self->signature != _DISPATCH_SIGNATURE) {
+        errno = EINVAL;
+        return false;
+    }
+    if (self->state != _DISPATCHER_STATE_ACTIVE) {
+        errno = ETERMINATED;
+        return false;
+    }
+
+    return true;
+}
+
 int dispatch_submit(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
-    int r;
+    int r = -1;
 
     mutex_lock(&self->mutex);
-    if (self->state == _DISPATCHER_STATE_ACTIVE) {
+    if (_dispatch_isactive(self)) {
         item->flags &= _DISPATCH_ITEM_PUBLIC_MASK;
         r = _dispatch_submit(self, item);
-    }
-    else {
-        errno = ETERMINATED;
-        r = -1;
     }
     mutex_unlock(&self->mutex);
     return r;
@@ -362,7 +373,7 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
     int r = -1;
 
     mutex_lock(&self->mutex);
-    if (self->state == _DISPATCHER_STATE_ACTIVE) {
+    if (_dispatch_isactive(self)) {
        dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_async_item), _async_adapter_func, _DISPATCH_ITEM_CACHEABLE);
     
         if (item) {
@@ -373,9 +384,6 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
                 _dispatch_cache_item(self, item);
             }
         }
-    }
-    else {
-        errno = ETERMINATED;
     }
     mutex_unlock(&self->mutex);
 
@@ -395,7 +403,7 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
     int r = -1;
 
     mutex_lock(&self->mutex);
-    if (self->state == _DISPATCHER_STATE_ACTIVE) {
+    if (_dispatch_isactive(self)) {
         dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_sync_item), _sync_adapter_func, _DISPATCH_ITEM_CACHEABLE | DISPATCH_ITEM_JOINABLE);
     
         if (item) {
@@ -410,9 +418,6 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
             }
             _dispatch_cache_item(self, item);
         }
-    }
-    else {
-        errno = ETERMINATED;
     }
     mutex_unlock(&self->mutex);
 

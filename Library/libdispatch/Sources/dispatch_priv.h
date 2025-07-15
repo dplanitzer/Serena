@@ -11,6 +11,8 @@
 
 #include <dispatch.h>
 #include <signal.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdnoreturn.h>
 #include <sys/condvar.h>
 #include <sys/timespec.h>
@@ -115,11 +117,15 @@ extern vcpu_key_t __os_dispatch_key;
 #define _DISPATCHER_STATE_TERMINATED    2
 
 
+// 'disp'
+#define _DISPATCH_SIGNATURE 0x64697370
+
 struct dispatch {
     mutex_t                 mutex;
     cond_t                  cond;
     dispatch_attr_t         attr;
     dispatch_callbacks_t    cb;
+    uint32_t                signature;
 
     List                    workers;        // Each worker has its own work item queue
     size_t                  worker_count;
@@ -146,6 +152,7 @@ extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_cach
 extern void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self);
 extern dispatch_cacheable_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, size_t nbytes, dispatch_item_func_t func, uint16_t flags);
 extern int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self);
+extern bool _dispatch_isactive(dispatch_t _Nonnull _Locked self);
 
 
 extern dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func);

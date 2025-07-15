@@ -201,16 +201,12 @@ static int _dispatch_timer(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
 
 int dispatch_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item, int flags, const struct timespec* _Nonnull deadline, const struct timespec* _Nullable interval)
 {
-    int r;
+    int r = -1;
 
     mutex_lock(&self->mutex);
-    if (self->state == _DISPATCHER_STATE_ACTIVE) {
+    if (_dispatch_isactive(self)) {
         item->flags &= _DISPATCH_ITEM_PUBLIC_MASK;
         r = _dispatch_timer(self, item, flags, deadline, interval);
-    }
-    else {
-        errno = ETERMINATED;
-        r = -1;
     }
     mutex_unlock(&self->mutex);
     return r;
@@ -221,7 +217,7 @@ int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, const struc
     int r = -1;
 
     mutex_lock(&self->mutex);
-    if (self->state == _DISPATCHER_STATE_ACTIVE) {
+    if (_dispatch_isactive(self)) {
        dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_async_item), _async_adapter_func, _DISPATCH_ITEM_CACHEABLE);
     
         if (item) {
@@ -232,9 +228,6 @@ int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, const struc
                 _dispatch_cache_item(self, item);
             }
         }
-    }
-    else {
-        errno = ETERMINATED;
     }
     mutex_unlock(&self->mutex);
 
