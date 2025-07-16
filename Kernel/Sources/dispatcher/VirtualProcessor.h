@@ -17,6 +17,7 @@
 #include <hal/Platform.h>
 #include <hal/SystemDescription.h>
 
+struct Process;
 struct VirtualProcessor;
 struct WaitQueue;
 
@@ -165,7 +166,7 @@ typedef struct VirtualProcessor {
     int8_t                                  lifecycle_state;
 
     // Process
-    void* _Nullable _Weak                   proc;                   // Process owning this VP (optional for now)
+    struct Process* _Nullable _Weak         proc;                   // Process owning this VP (optional for now)
 
     // Dispatch queue state
     void* _Nullable _Weak                   dispatchQueue;                      // Dispatch queue this VP is currently assigned to

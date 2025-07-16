@@ -14,7 +14,7 @@
 SYSCALL_2(mkpipe, int* _Nonnull pOutReadChannel, int* _Nonnull pOutWriteChannel)
 {
     decl_try_err();
-    ProcessRef pp = (ProcessRef)p;
+    ProcessRef pp = vp->proc;
     PipeRef pPipe = NULL;
     IOChannelRef rdChannel = NULL, wrChannel = NULL;
     bool needsUnlock = false;

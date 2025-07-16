@@ -126,7 +126,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(sync, SC_ERRNO),
     SYSCALL_ENTRY(coninit, SC_ERRNO),
     SYSCALL_ENTRY(fsgetdisk, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_errno, SC_VP),
+    SYSCALL_ENTRY(vcpu_errno, 0),
     SYSCALL_ENTRY(chown, SC_ERRNO),
     SYSCALL_ENTRY(fcntl, SC_ERRNO),
     SYSCALL_ENTRY(chmod, SC_ERRNO),
@@ -136,20 +136,20 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(wq_wait, SC_ERRNO),
     SYSCALL_ENTRY(wq_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_wakeup, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_getid, SC_VP),
-    SYSCALL_ENTRY(vcpu_setsigmask, SC_VP|SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_getdata, SC_VP),
-    SYSCALL_ENTRY(vcpu_setdata, SC_VP),
+    SYSCALL_ENTRY(vcpu_getid, 0),
+    SYSCALL_ENTRY(vcpu_setsigmask, SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_getdata, 0),
+    SYSCALL_ENTRY(vcpu_setdata, 0),
     SYSCALL_ENTRY(sigwait, SC_ERRNO),
     SYSCALL_ENTRY(sigtimedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_timedwakewait, SC_ERRNO),
-    SYSCALL_ENTRY(sigpending, SC_VP|SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_getgrp, SC_VP),
+    SYSCALL_ENTRY(sigpending, SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_getgrp, 0),
     SYSCALL_ENTRY(getpgrp, 0),
     SYSCALL_ENTRY(getsid, 0),
     SYSCALL_ENTRY(vcpu_acquire, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_relinquish_self, SC_VP),
-    SYSCALL_ENTRY(vcpu_suspend, SC_VP|SC_ERRNO),
+    SYSCALL_ENTRY(vcpu_relinquish_self, 0),
+    SYSCALL_ENTRY(vcpu_suspend, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_resume, SC_ERRNO),
     SYSCALL_ENTRY(sigsend, SC_ERRNO),
 };
@@ -159,16 +159,14 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
 
 intptr_t _syscall_handler(VirtualProcessor* _Nonnull vp, unsigned int* _Nonnull args)
 {
-    ProcessRef curProc = vp->proc;
     const unsigned int scno = *args;
     intptr_t r;
     bool hasErrno;
     
     if (scno < SYSCALL_COUNT) {
         const syscall_t* sc = &gSystemCallTable[scno];
-        void* p = ((sc->flags & SC_VP) == SC_VP) ? (void*)vp : (void*)curProc;
 
-        r = sc->f(p, args);
+        r = sc->f(vp, args);
         hasErrno = (sc->flags & SC_ERRNO) == SC_ERRNO;
     }
     else {

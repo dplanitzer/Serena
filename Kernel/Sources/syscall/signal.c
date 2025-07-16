@@ -15,7 +15,7 @@
 SYSCALL_2(sigwait, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
 {
     decl_try_err();
-    ProcessRef pp = (ProcessRef)p;
+    ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
     err = WaitQueue_SigWait(&pp->siwaQueue, pa->set, pa->info);
@@ -26,7 +26,7 @@ SYSCALL_2(sigwait, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
 SYSCALL_4(sigtimedwait, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info)
 {
     decl_try_err();
-    ProcessRef pp = (ProcessRef)p;
+    ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
     err = WaitQueue_SigTimedWait(&pp->siwaQueue, pa->set, pa->flags, pa->wtp, pa->info);
@@ -37,9 +37,8 @@ SYSCALL_4(sigtimedwait, const sigset_t* _Nonnull set, int flags, const struct ti
 SYSCALL_1(sigpending, sigset_t* _Nonnull set)
 {
     decl_try_err();
-    VirtualProcessor* vp = (VirtualProcessor*)p;
-
     const int sps = preempt_disable();
+
     *(pa->set) = vp->psigs & ~vp->sigmask;
     preempt_restore(sps);
     return EOK;
@@ -57,7 +56,7 @@ static errno_t _sendsig(VirtualProcessor* _Nonnull vp, int signo)
 SYSCALL_3(sigsend, int scope, id_t id, int signo)
 {
     decl_try_err();
-    ProcessRef pp = (ProcessRef)p;
+    ProcessRef pp = vp->proc;
     bool foundIt = false;
 
     Lock_Lock(&pp->lock);

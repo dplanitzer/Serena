@@ -16,7 +16,7 @@
 SYSCALL_4(mount, const char* _Nonnull objectType, const char* _Nonnull objectName, const char* _Nonnull atDirPath, const char* _Nonnull params)
 {
     decl_try_err();
-    ProcessRef pp = (ProcessRef)p;
+    ProcessRef pp = vp->proc;
 
     Lock_Lock(&pp->lock);
     err = FileManager_Mount(&pp->fm, pa->objectType, pa->objectName, pa->atDirPath, pa->params);
@@ -27,7 +27,7 @@ SYSCALL_4(mount, const char* _Nonnull objectType, const char* _Nonnull objectNam
 SYSCALL_2(unmount, const char* _Nonnull atDirPath, UnmountOptions options)
 {
     decl_try_err();
-    ProcessRef pp = (ProcessRef)p;
+    ProcessRef pp = vp->proc;
 
     Lock_Lock(&pp->lock);
     err = FileManager_Unmount(&pp->fm, pa->atDirPath, pa->options);
@@ -44,7 +44,7 @@ SYSCALL_0(sync)
 SYSCALL_3(fsgetdisk, fsid_t fsid, char* _Nonnull buf, size_t bufSize)
 {
     decl_try_err();
-    ProcessRef pp = (ProcessRef)p;
+    ProcessRef pp = vp->proc;
 
     Lock_Lock(&pp->lock);
     err = FileManager_GetFilesystemDiskPath(&pp->fm, pa->fsid, pa->buf, pa->bufSize);

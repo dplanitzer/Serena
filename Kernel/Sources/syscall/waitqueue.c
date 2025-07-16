@@ -17,7 +17,7 @@
 SYSCALL_2(wq_create, int policy, int* _Nonnull pOutOd)
 {
     decl_try_err();
-    ProcessRef pp = (ProcessRef)p;
+    ProcessRef pp = vp->proc;
     UWaitQueueRef pq = NULL;
 
     switch (pa->policy) {
@@ -47,7 +47,7 @@ SYSCALL_2(wq_wait, int q, const sigset_t* _Nullable mask)
     decl_try_err();
     const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
     const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
-    ProcessRef pp = (ProcessRef)p;
+    ProcessRef pp = vp->proc;
     UWaitQueueRef pq;
 
     if ((err = UResourceTable_AcquireResourceAs(&pp->uResourcesTable, pa->q, UWaitQueue, &pq)) == EOK) {
@@ -64,7 +64,7 @@ SYSCALL_4(wq_timedwait, int q, const sigset_t* _Nullable mask, int flags, const 
     decl_try_err();
     const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
     const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
-    ProcessRef pp = (ProcessRef)p;
+    ProcessRef pp = vp->proc;
     UWaitQueueRef pq;
 
     if ((err = UResourceTable_AcquireResourceAs(&pp->uResourcesTable, pa->q, UWaitQueue, &pq)) == EOK) {
@@ -81,7 +81,7 @@ SYSCALL_5(wq_timedwakewait, int q, int oq, const sigset_t* _Nullable mask, int f
     decl_try_err();
     const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
     const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
-    ProcessRef pp = (ProcessRef)p;
+    ProcessRef pp = vp->proc;
     UWaitQueueRef pq;
     UWaitQueueRef opq;
 
@@ -99,7 +99,7 @@ SYSCALL_2(wq_wakeup, int q, int flags)
 {
     decl_try_err();
     const int wflags = ((pa->flags & WAKE_ONE) == WAKE_ONE) ? WAKEUP_ONE : WAKEUP_ALL;
-    ProcessRef pp = (ProcessRef)p;
+    ProcessRef pp = vp->proc;
     UWaitQueueRef pq;
 
     if ((err = UResourceTable_BeginDirectResourceAccessAs(&pp->uResourcesTable, pa->q, UWaitQueue, &pq)) == EOK) {

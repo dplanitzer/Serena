@@ -16,7 +16,7 @@ SYSCALL_2(alloc_address_space, size_t nbytes, void * _Nullable * _Nonnull pOutMe
         return E2BIG;
     }
 
-    return AddressSpace_Allocate(((ProcessRef)p)->addressSpace,
+    return AddressSpace_Allocate(vp->proc->addressSpace,
             __SSizeByClampingSize(pa->nbytes),
             pa->pOutMem);
 }

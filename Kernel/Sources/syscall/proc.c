@@ -11,52 +11,52 @@
 
 SYSCALL_1(exit, int status)
 {    
-    Process_Terminate((ProcessRef)p, pa->status);
+    Process_Terminate(vp->proc, pa->status);
     /* NOT REACHED */
     return 0;
 }
 
 SYSCALL_4(spawn_process, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const spawn_opts_t* _Nonnull options, pid_t* _Nullable pOutPid)
 {
-    return Process_SpawnChildProcess((ProcessRef)p, pa->path, pa->argv, pa->options, pa->pOutPid);
+    return Process_SpawnChildProcess(vp->proc, pa->path, pa->argv, pa->options, pa->pOutPid);
 }
 
 SYSCALL_0(getpid)
 {
-    return ((ProcessRef)p)->pid;
+    return vp->proc->pid;
 }
 
 SYSCALL_0(getppid)
 {
-    return ((ProcessRef)p)->ppid;
+    return vp->proc->ppid;
 }
 
 SYSCALL_0(getpgrp)
 {
-    return ((ProcessRef)p)->pgrp;
+    return vp->proc->pgrp;
 }
 
 SYSCALL_0(getsid)
 {
-    return ((ProcessRef)p)->sid;
+    return vp->proc->sid;
 }
 
 SYSCALL_0(getuid)
 {
-    return FileManager_GetRealUserId(&((ProcessRef)p)->fm);
+    return FileManager_GetRealUserId(&vp->proc->fm);
 }
 
 SYSCALL_0(getgid)
 {
-    return FileManager_GetRealGroupId(&((ProcessRef)p)->fm);
+    return FileManager_GetRealGroupId(&vp->proc->fm);
 }
 
 SYSCALL_0(getpargs)
 {
-    return (intptr_t) ((ProcessRef)p)->argumentsBase;
+    return (intptr_t) vp->proc->argumentsBase;
 }
 
 SYSCALL_3(waitpid, pid_t pid, struct _pstatus* _Nonnull pOutStatus, int options)
 {
-    return Process_WaitForTerminationOfChild((ProcessRef)p, pa->pid, pa->pOutStatus, pa->options);
+    return Process_WaitForTerminationOfChild(vp->proc, pa->pid, pa->pOutStatus, pa->options);
 }

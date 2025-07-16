@@ -28,7 +28,7 @@ SYSCALL_4(clock_nanosleep, int clock, int flags, const struct timespec* _Nonnull
 
 
     // This is a medium or long wait -> context switch away
-    ProcessRef pp = (ProcessRef)p;
+    ProcessRef pp = vp->proc;
     const int sps = preempt_disable();
     const int err = WaitQueue_TimedWait(&pp->sleepQueue, NULL, options, pa->wtp, pa->rmtp);
     preempt_restore(sps);

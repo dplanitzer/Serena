@@ -11,7 +11,7 @@
 
 SYSCALL_1(dispose, int od)
 {
-    ProcessRef pp = (ProcessRef)p;
+    ProcessRef pp = vp->proc;
 
     return UResourceTable_DisposeResource(&pp->uResourcesTable, pa->od);
 }
