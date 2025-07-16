@@ -103,18 +103,18 @@ extern vcpu_key_t __os_dispatch_key;
 
 
 // Internal item flags
-#define _DISPATCH_FLAG_PUBLIC_MASK  0x00ff
+#define _DISPATCH_SUBMIT_PUBLIC_MASK    0x00ff
 
 // Item is owned by the dispatcher and should be moved back to the work item
 // cache when done.
-#define _DISPATCH_FLAG_CACHEABLE    0x100
+#define _DISPATCH_SUBMIT_CACHEABLE      0x100
 
 // The item is associated with a repeating timer. Should be auto-resubmitted if
 // not cancelled. 
-#define _DISPATCH_FLAG_REPEATING    0x200
+#define _DISPATCH_SUBMIT_REPEATING      0x200
 
 // The item is associated with a dispatch_timer_t.
-#define _DISPATCH_FLAG_TIMED        0x400
+#define _DISPATCH_SUBMIT_TIMED          0x400
 
 
 // Dispatcher state
@@ -137,7 +137,7 @@ struct dispatch {
     List                    workers;        // Each worker has its own work item queue
     size_t                  worker_count;
 
-    SList                   zombies;        // Items that are done and joinable
+    SList                   zombie_items;   // Items that are done and joinable
 
     SList                   item_cache;
     size_t                  item_cache_count;

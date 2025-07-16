@@ -13,7 +13,7 @@
 #include "Asserts.h"
 
 
-static void vcpu_main(const char* _Nonnull str)
+static void test_loop(const char* _Nonnull str)
 {
     for (;;) {
         puts(str);
@@ -30,7 +30,7 @@ void acquire_vcpu_test(int argc, char *argv[])
     for (int i = 0; i < CONCURRENCY; i++) {
         vcpu_attr_t attr = VCPU_ATTR_INIT;
 
-        attr.func = (vcpu_func_t)vcpu_main;
+        attr.func = (vcpu_func_t)test_loop;
         attr.arg = gStr[i];
         attr.stack_size = 0;
         attr.priority = 24;

@@ -274,7 +274,7 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
 
 
         if (timer) {
-            if ((item->flags & _DISPATCH_FLAG_REPEATING) != 0
+            if ((item->flags & _DISPATCH_SUBMIT_REPEATING) != 0
                 && item->state != DISPATCH_STATE_CANCELLED
                 && self->owner->state == _DISPATCHER_STATE_ACTIVE) {
                 _dispatch_rearm_timer(self->owner, timer);

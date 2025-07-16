@@ -68,7 +68,7 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
     self->worker_count = 0;
     self->item_cache = SLIST_INIT;
     self->item_cache_count = 0;
-    self->zombies = SLIST_INIT;
+    self->zombie_items = SLIST_INIT;
     self->timers = SLIST_INIT;
     self->timer_cache = SLIST_INIT;
     self->timer_cache_count = 0;
@@ -111,7 +111,7 @@ dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
 int dispatch_destroy(dispatch_t _Nullable self)
 {
     if (self && self != g_main_dispatcher) {
-        if (self->state < _DISPATCHER_STATE_TERMINATED || !SList_IsEmpty(&self->zombies)) {
+        if (self->state < _DISPATCHER_STATE_TERMINATED || !SList_IsEmpty(&self->zombie_items)) {
             errno = EBUSY;
             return -1;
         }
@@ -132,7 +132,7 @@ int dispatch_destroy(dispatch_t _Nullable self)
         self->item_cache = SLIST_INIT;
 
         self->workers = LIST_INIT;
-        self->zombies = SLIST_INIT;
+        self->zombie_items = SLIST_INIT;
         self->timers = SLIST_INIT;
 
         cond_deinit(&self->cond);
@@ -241,7 +241,7 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, int flags, dispatc
 
     item->state = DISPATCH_STATE_PENDING;
     item->qe = SLISTNODE_INIT;
-    item->flags = (uint16_t)(flags & ~DISPATCH_FLAG_ABSTIME);
+    item->flags = (uint16_t)(flags & ~DISPATCH_SUBMIT_ABSTIME);
 
 
     // Enqueue the work item at the worker that we found and notify it
@@ -252,10 +252,10 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, int flags, dispatc
 
 void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
-    if ((item->flags & DISPATCH_FLAG_AWAITABLE) != 0) {
+    if ((item->flags & DISPATCH_SUBMIT_AWAITABLE) != 0) {
         _dispatch_zombify_item(self, item);
     }
-    else if ((item->flags & _DISPATCH_FLAG_CACHEABLE) != 0) {
+    else if ((item->flags & _DISPATCH_SUBMIT_CACHEABLE) != 0) {
         _dispatch_cache_item(self, (dispatch_cacheable_item_t)item);
     }
     else if (item->retireFunc) {
@@ -278,7 +278,7 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     }
 
     dispatch_item_t pip = NULL;
-    SList_ForEach(&self->zombies, ListNode, {
+    SList_ForEach(&self->zombie_items, ListNode, {
         dispatch_item_t cip = (dispatch_item_t)pCurNode;
 
         if (cip == item) {
@@ -286,14 +286,14 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
         }
         pip = cip;
     });
-    SList_Remove(&self->zombies, &pip->qe, &item->qe);
+    SList_Remove(&self->zombie_items, &pip->qe, &item->qe);
 
     return r;
 }
 
 void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
-    SList_InsertAfterLast(&self->zombies, &item->qe);
+    SList_InsertAfterLast(&self->zombie_items, &item->qe);
     cond_broadcast(&self->cond);
 }
 
@@ -384,7 +384,7 @@ int dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnul
 
     mutex_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-        r = _dispatch_submit(self, flags & _DISPATCH_FLAG_PUBLIC_MASK, item);
+        r = _dispatch_submit(self, flags & _DISPATCH_SUBMIT_PUBLIC_MASK, item);
     }
     mutex_unlock(&self->mutex);
     return r;
@@ -417,7 +417,7 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
         if (item) {
             ((dispatch_async_item_t)item)->func = func;
             ((dispatch_async_item_t)item)->arg = arg;
-            r = _dispatch_submit(self, _DISPATCH_FLAG_CACHEABLE, (dispatch_item_t)item);
+            r = _dispatch_submit(self, _DISPATCH_SUBMIT_CACHEABLE, (dispatch_item_t)item);
             if (r != 0) {
                 _dispatch_cache_item(self, item);
             }
@@ -448,7 +448,7 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
             ((dispatch_sync_item_t)item)->func = func;
             ((dispatch_sync_item_t)item)->arg = arg;
             ((dispatch_sync_item_t)item)->result = 0;
-            if (_dispatch_submit(self, _DISPATCH_FLAG_CACHEABLE | DISPATCH_FLAG_AWAITABLE, (dispatch_item_t)item) == 0) {
+            if (_dispatch_submit(self, _DISPATCH_SUBMIT_CACHEABLE | DISPATCH_SUBMIT_AWAITABLE, (dispatch_item_t)item) == 0) {
                 r = _dispatch_await(self, (dispatch_item_t)item);
                 if (r == 0) {
                     r = ((dispatch_sync_item_t)item)->result;
@@ -469,7 +469,7 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
         case DISPATCH_STATE_PENDING:
             item->state = DISPATCH_STATE_CANCELLED;
             
-            if ((item->flags & _DISPATCH_FLAG_TIMED) != 0) {
+            if ((item->flags & _DISPATCH_SUBMIT_TIMED) != 0) {
                 _dispatch_cancel_timer(self, flags, item);
             }
             else {

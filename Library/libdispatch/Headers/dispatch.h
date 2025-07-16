@@ -61,7 +61,7 @@ typedef struct dispatch* dispatch_t;
 //
 // dispatch_item_t my_item = create_my_item(...)
 //
-// dispatch_submit(my_dispatcher, DISPATCH_FLAG_AWAITABLE, my_item);
+// dispatch_submit(my_dispatcher, DISPATCH_SUBMIT_AWAITABLE, my_item);
 // ...
 // dispatch_await(my_dispatcher, my_item);
 // const int result = my_item->result;
@@ -90,11 +90,11 @@ typedef void (*dispatch_retire_func_t)(struct dispatch_item* _Nonnull item);
 // will block until the item has finished processing. It is then safe to
 // access the item to retrieve its result. Note that a timer-based item is
 // never awaitable.
-#define DISPATCH_FLAG_AWAITABLE  1
+#define DISPATCH_SUBMIT_AWAITABLE   1
 
 // Specifies that the deadline of a timer-based work item is an absolute time
 // value instead of a duration relative to the current time.
-#define DISPATCH_FLAG_ABSTIME   TIMER_ABSTIME
+#define DISPATCH_SUBMIT_ABSTIME     TIMER_ABSTIME
 
 
 // The state of an item. Items start out in idle state and transition to pending
