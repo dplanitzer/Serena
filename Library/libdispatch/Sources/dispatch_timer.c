@@ -102,7 +102,6 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_
 
 
     timer->item->qe = SLISTNODE_INIT;
-    timer->item->flags |= _DISPATCH_FLAG_TIMED;
     timer->item->state = DISPATCH_STATE_PENDING;
 
 
@@ -167,7 +166,6 @@ static int _dispatch_timer(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     }
     timer->timer_qe = SLISTNODE_INIT;
     timer->item = item;
-    item->flags = (uint16_t)(flags & ~(DISPATCH_FLAG_ABSTIME|DISPATCH_FLAG_AWAITABLE));
 
     if ((flags & DISPATCH_FLAG_ABSTIME) == DISPATCH_FLAG_ABSTIME) {
         timer->deadline = *deadline;
@@ -178,6 +176,11 @@ static int _dispatch_timer(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
         clock_gettime(CLOCK_MONOTONIC, &now);
         timespec_add(&now, deadline, &timer->deadline);
     }
+
+
+    item->flags = (uint16_t)(flags & ~(DISPATCH_FLAG_ABSTIME|DISPATCH_FLAG_AWAITABLE));
+    item->flags |= _DISPATCH_FLAG_TIMED;
+    
     if (interval && timespec_lt(interval, &TIMESPEC_INF)) {
         timer->interval = *interval;
         item->flags |= _DISPATCH_FLAG_REPEATING;

@@ -126,7 +126,7 @@ static void OnRepeating2(intptr_t _Nonnull value)
     printf("timer: %d\n", (int)value);
 }
 
-// Should print async 1 - 3, timer 1 and then terminate
+// Should print async 1 - 3 and then terminate
 void dq_terminate_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
