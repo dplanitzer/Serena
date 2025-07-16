@@ -42,6 +42,13 @@ catch:
     return err;
 }
 
+SYSCALL_1(wq_dispose, int q)
+{
+    ProcessRef pp = vp->proc;
+
+    return UResourceTable_DisposeResource(&pp->uResourcesTable, pa->q);
+}
+
 SYSCALL_2(wq_wait, int q, const sigset_t* _Nullable mask)
 {
     decl_try_err();

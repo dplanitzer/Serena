@@ -38,7 +38,7 @@ int cond_deinit(cond_t* _Nonnull self)
         return -1;
     }
 
-    const int r = _syscall(SC_dispose, self->wait_queue);
+    const int r = _syscall(SC_wq_dispose, self->wait_queue);
     self->signature = 0;
     self->wait_queue = -1;
 

@@ -9,7 +9,6 @@
 #include "syscalldecls.h"
 
 
-SYSCALL_REF(dispose);
 SYSCALL_REF(coninit);
 
 SYSCALL_REF(clock_gettime);
@@ -66,6 +65,7 @@ SYSCALL_REF(sigpending);
 SYSCALL_REF(sigsend);
 
 SYSCALL_REF(wq_create);
+SYSCALL_REF(wq_dispose);
 SYSCALL_REF(wq_wait);
 SYSCALL_REF(wq_timedwait);
 SYSCALL_REF(wq_wakeup);
@@ -118,7 +118,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(ftruncate, SC_ERRNO),
     SYSCALL_ENTRY(mkfile, SC_ERRNO),
     SYSCALL_ENTRY(mkpipe, SC_ERRNO),
-    SYSCALL_ENTRY(dispose, SC_ERRNO),
+    SYSCALL_ENTRY(wq_dispose, SC_ERRNO),
     SYSCALL_ENTRY(clock_gettime, SC_ERRNO),
     SYSCALL_ENTRY(mount, SC_ERRNO),
     SYSCALL_ENTRY(unmount, SC_ERRNO),
