@@ -524,6 +524,14 @@ void dispatch_cancel_current_item(int flags)
     }
 }
 
+bool dispatch_item_cancelled(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
+{
+    mutex_lock(&self->mutex);
+    const bool r = (item->state == DISPATCH_STATE_CANCELLED) ? true : false;
+    mutex_unlock(&self->mutex);
+    return r;
+}
+
 
 dispatch_t _Nullable dispatch_current_queue(void)
 {

@@ -283,6 +283,9 @@ extern void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_f
 // from outside an item context.
 extern void dispatch_cancel_current_item(int flags);
 
+// Returns true if the given item is in cancelled state; false otherwise.
+extern bool dispatch_item_cancelled(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
+
 
 // Returns a reference to the main dispatcher. There's exactly one main
 // dispatcher per process. It is a serial queue and manages the main vcpu.
