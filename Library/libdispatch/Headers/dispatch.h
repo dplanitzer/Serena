@@ -284,6 +284,11 @@ extern void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_i
 // are cancelled before work items. At most one timer or work item is cancelled.
 extern void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _Nonnull func);
 
+// Cancels the current item/timer. The current item is the work item that is
+// active and belongs to the caller. Does nothing if this function is called
+// from outside an item context.
+extern void dispatch_cancel_current_item(int flags);
+
 
 // Returns a reference to the current dispatcher. The current dispatcher is the
 // dispatcher that manages and owns the vcpu on which the caller is executing.
@@ -291,7 +296,7 @@ extern void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_f
 // owned by any dispatcher. This function will always return a valid dispatcher
 // reference if called from inside an item function. The dispatcher in this case
 // is the dispatcher on which the item is running.
-extern dispatch_t _Nullable dispatch_current(void);
+extern dispatch_t _Nullable dispatch_current_queue(void);
 
 // Retruns a reference to the item that is currently executing on the caller's
 // vcpu. This is the item for which the caller is doing work. Note that this

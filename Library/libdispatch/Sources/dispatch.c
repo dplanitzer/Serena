@@ -496,8 +496,17 @@ void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _
     mutex_unlock(&self->mutex);
 }
 
+void dispatch_cancel_current_item(int flags)
+{
+    dispatch_worker_t wp = _dispatch_worker_current();
 
-dispatch_t _Nullable dispatch_current(void)
+    if (wp && wp->current.item) {
+        dispatch_cancel_item(wp->owner, flags, wp->current.item);
+    }
+}
+
+
+dispatch_t _Nullable dispatch_current_queue(void)
 {
     dispatch_worker_t wp = _dispatch_worker_current();
     return (wp) ? wp->owner : NULL;

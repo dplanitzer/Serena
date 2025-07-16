@@ -51,7 +51,7 @@ static int OnSync(void* _Nonnull ign)
 
     timespec_from_ms(&dur, 500);
     clock_nanosleep(CLOCK_MONOTONIC, 0, &dur, NULL);
-    printf("%d (Dispatcher: %p)\n", gCounter++, dispatch_current());
+    printf("%d (Dispatcher: %p)\n", gCounter++, dispatch_current_queue());
     return 1234;
 }
 
