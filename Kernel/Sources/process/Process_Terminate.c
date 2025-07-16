@@ -315,9 +315,6 @@ void Process_Terminate(ProcessRef _Nonnull self, int exitCode)
 
 
     _Process_DoTerminate(self);
-    // Schedule the actual process termination and destruction on the kernel
-    // main dispatch queue.
-//    try_bang(DispatchQueue_DispatchAsync(ProcessManager_GetReaperQueue(gProcessManager), (VoidFunc_1) _Process_DoTerminate, self));
 }
 
 bool Process_IsTerminating(ProcessRef _Nonnull self)

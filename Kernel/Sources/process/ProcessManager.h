@@ -49,8 +49,4 @@ extern void ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef 
 // registered.
 extern void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pProc);
 
-
-// Returns the process reaper queue.
-extern DispatchQueueRef _Nonnull ProcessManager_GetReaperQueue(ProcessManagerRef _Nonnull self);
-
 #endif /* ProcessManager_h */

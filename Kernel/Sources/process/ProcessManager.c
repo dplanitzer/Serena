@@ -8,7 +8,6 @@
 
 #include "ProcessManager.h"
 #include <dispatcher/Lock.h>
-#include <dispatchqueue/DispatchQueue.h>
 #include <klib/Hash.h>
 #include "ProcessPriv.h"
 #include <kern/kalloc.h>
@@ -21,7 +20,6 @@
 typedef struct ProcessManager {
     Lock                        lock;
     ProcessRef _Nonnull         rootProc;
-    DispatchQueueRef _Nonnull   reaperQueue;
     List/*<Process>*/           procTable[HASH_CHAIN_COUNT];     // pid_t -> Process
 } ProcessManager;
 
@@ -36,7 +34,6 @@ errno_t ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef _
     ProcessManagerRef self;
     
     try_bang(kalloc(sizeof(ProcessManager), (void**) &self));
-    try_bang(DispatchQueue_Create(1, 1, kDispatchQoS_Realtime, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->reaperQueue));
     
     Lock_Init(&self->lock);
     
@@ -106,10 +103,4 @@ void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
     List_Remove(&self->procTable[hash_scalar(pProc->pid) & HASH_CHAIN_MASK], &pProc->ptce);
     Object_Release(pProc);
     Lock_Unlock(&self->lock);
-}
-
-// Returns the process reaper queue.
-DispatchQueueRef _Nonnull ProcessManager_GetReaperQueue(ProcessManagerRef _Nonnull self)
-{
-    return self->reaperQueue;
 }
