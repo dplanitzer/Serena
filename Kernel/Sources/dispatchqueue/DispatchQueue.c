@@ -104,14 +104,6 @@ void DispatchQueue_Terminate(DispatchQueueRef _Nonnull self)
     DispatchQueue_Flush_Locked(self);
 
 
-    // Abort all ongoing call-as-user invocations.
-    for (int i = 0; i < self->maxConcurrency; i++) {
-        if (self->concurrency_lanes[i].vp != NULL) {
-            VirtualProcessor_AbortCallAsUser(self->concurrency_lanes[i].vp);
-        }
-    }
-
-
     // We want to wake _all_ VPs up here since all of them need to relinquish
     // themselves.
     ConditionVariable_Broadcast(&self->work_available_signaler);
