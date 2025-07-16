@@ -11,6 +11,7 @@
 #include <log/Log.h>
 #include <kern/kalloc.h>
 #include <kern/timespec.h>
+#include <dispatchqueue/DispatchQueue.h>
 
 
 // Frees all tombstones
@@ -161,7 +162,7 @@ static int Process_GetAnyChildPid(ProcessRef _Nonnull self)
 }
 
 // Runs on the kernel main dispatch queue and terminates the given process.
-void _Process_DoTerminate(ProcessRef _Nonnull self)
+static _Noreturn _Process_DoTerminate(ProcessRef _Nonnull self)
 {
     // Notes on terminating a process:
     //
@@ -220,14 +221,6 @@ void _Process_DoTerminate(ProcessRef _Nonnull self)
     // (magically) disappear before all its children have terminated.
 
 
-    // Terminate all dispatch queues. This takes care of aborting user space
-    // invocations.
-    DispatchQueue_Terminate(self->mainDispatchQueue);
-
-
-    // Wait for all dispatch queues to have reached 'terminated' state
-    DispatchQueue_WaitForTerminationCompleted(self->mainDispatchQueue);
-
 
     // Terminate all my children and wait for them to be dead
     while (true) {
@@ -243,6 +236,17 @@ void _Process_DoTerminate(ProcessRef _Nonnull self)
         Process_WaitForTerminationOfChild(self, pid, NULL, 0);
         Object_Release(pCurChild);
     }
+
+
+    // Take myself out from the VP list
+    VirtualProcessor* me_vp = VirtualProcessor_GetCurrent();
+
+    Lock_Lock(&self->lock);
+    List_Remove(&self->vpQueue, &me_vp->owner_qe);
+    Lock_Unlock(&self->lock);
+
+
+    // XXX Terminate all other VPs and wait until they are all gone
 
 
     // Let our parent know that we're dead now and that it should remember us by
@@ -264,10 +268,15 @@ void _Process_DoTerminate(ProcessRef _Nonnull self)
     }
 
 
-    // Finally destroy the process.
+    // Destroy the process.
     Process_Unpublish(self);
     ProcessManager_Deregister(gProcessManager, self);
     Object_Release(self);
+
+
+    // Finally relinquish myself
+    VirtualProcessorPool_RelinquishVirtualProcessor(gVirtualProcessorPool, me_vp);
+    /* NOT REACHED */
 }
 
 // Triggers the termination of the given process. The termination may be caused
@@ -305,9 +314,10 @@ void Process_Terminate(ProcessRef _Nonnull self, int exitCode)
     self->exitCode = exitCode & _WSTATUSMASK;
 
 
+    _Process_DoTerminate(self);
     // Schedule the actual process termination and destruction on the kernel
     // main dispatch queue.
-    try_bang(DispatchQueue_DispatchAsync(ProcessManager_GetReaperQueue(gProcessManager), (VoidFunc_1) _Process_DoTerminate, self));
+//    try_bang(DispatchQueue_DispatchAsync(ProcessManager_GetReaperQueue(gProcessManager), (VoidFunc_1) _Process_DoTerminate, self));
 }
 
 bool Process_IsTerminating(ProcessRef _Nonnull self)

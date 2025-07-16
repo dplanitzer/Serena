@@ -10,6 +10,8 @@
 #include "GemDosExecutableLoader.h"
 #include <kei/kei.h>
 #include <kern/string.h>
+#include <dispatcher/VirtualProcessor.h>
+#include <dispatchqueue/DispatchQueue.h>
 
 
 static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], ssize_t maxByteCount, size_t* _Nonnull pOutTableEntryCount)
@@ -151,19 +153,23 @@ static errno_t _proc_exec(ProcessRef _Locked _Nonnull self, const char* _Nonnull
     ((pargs_t*) self->argumentsBase)->image_base = self->imageBase;
 
 
-    // Dispatch the invocation of the entry point
-    try(DispatchQueue_DispatchClosure(self->mainDispatchQueue, (VoidFunc_2)Process_CallUser, entryPoint, self->argumentsBase, 0, 0, 0));
+    _vcpu_acquire_attr_t attr;
+    attr.func = (vcpu_func_t)entryPoint;
+    attr.arg = self->argumentsBase;
+    attr.data = 0;
+    attr.priority = kDispatchQoS_Interactive * kDispatchPriority_Count + (kDispatchPriority_Normal + kDispatchPriority_Count / 2) + VP_PRIORITIES_RESERVED_LOW;
+    attr.stack_size = 0;
+    attr.groupid = 0;
+    attr.flags = VCPU_ACQUIRE_RESUMED;
+
+    vcpuid_t vid;
+    try(Process_AcquireVirtualProcessor(self, &attr, &vid));
 
 catch:
     //XXX free the executable image if an error occurred
     IOChannel_Release(chan);
 
     return err;
-}
-
-void Process_CallUser(VoidFunc_2 _Nonnull f, void* _Nullable arg)
-{
-    VirtualProcessor_CallAsUser(VirtualProcessor_GetCurrent(), f, arg, NULL);
 }
 
 // Loads an executable from the given executable file into the process address
@@ -174,9 +180,9 @@ void Process_CallUser(VoidFunc_2 _Nonnull f, void* _Nullable arg)
 // XXX the executable format is GemDOS
 errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[])
 {
-    Lock_Lock(&self->lock);
+//    Lock_Lock(&self->lock);
     const errno_t err = _proc_exec(self, execPath, argv, env);
-    Lock_Unlock(&self->lock);
+//    Lock_Unlock(&self->lock);
 
     return err;
 }

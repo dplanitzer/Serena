@@ -17,7 +17,6 @@
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
 #include <dispatcher/WaitQueue.h>
-#include <dispatchqueue/DispatchQueue.h>
 #include <filemanager/FileManager.h>
 
 
@@ -48,7 +47,6 @@ final_class_ivars(Process, Object,
     // VPs
     List                            vpQueue;    // List of VPs [lock]
 
-    DispatchQueueRef _Nonnull _Weak mainDispatchQueue;
     AddressSpaceRef _Nonnull        addressSpace;
 
     // Resources
@@ -106,17 +104,12 @@ extern void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull self);
 // is executing.
 extern errno_t Process_OnChildTermination(ProcessRef _Nonnull self, ProcessRef _Nonnull pChildProc);
 
-// Runs on the kernel main dispatch queue and terminates the given process.
-extern void _Process_DoTerminate(ProcessRef _Nonnull self);
-
 // Adopts the given process as a child. The ppid of 'child' must be the PID of
 // the receiver.
 extern void Process_AdoptChild_Locked(ProcessRef _Nonnull self, ProcessRef _Nonnull child);
 
 // Abandons the given process as a child of the receiver.
 extern void Process_AbandonChild_Locked(ProcessRef _Nonnull self, ProcessRef _Nonnull child);
-
-extern void Process_CallUser(VoidFunc_2 _Nonnull f, void* _Nullable arg);
 
 extern errno_t Process_Publish(ProcessRef _Locked _Nonnull self);
 extern errno_t Process_Unpublish(ProcessRef _Locked _Nonnull self);

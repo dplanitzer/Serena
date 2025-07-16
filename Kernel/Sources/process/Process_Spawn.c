@@ -123,7 +123,10 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull
     Lock_Unlock(&self->lock);
 
     if (doTermChild) {
-        Process_Terminate(pChild, 127);
+        //XXX We just want to release the resources of the child process. But we
+        //XXX do not want to notify its parent ('self') since the spawn has failed.
+        Object_Release(pChild);
+        //Process_Terminate(pChild, 127);
         pChild = NULL;
     }
 

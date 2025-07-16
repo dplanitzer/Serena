@@ -170,11 +170,11 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
 
 intptr_t _syscall_handler(VirtualProcessor* _Nonnull vp, unsigned int* _Nonnull args)
 {
-    ProcessRef curProc = (vp->proc) ? vp->proc : DispatchQueue_GetOwningProcess(vp->dispatchQueue);
+    ProcessRef curProc = vp->proc;
     const unsigned int scno = *args;
     intptr_t r;
     bool hasErrno;
-
+    
     if (scno < SYSCALL_COUNT) {
         const syscall_t* sc = &gSystemCallTable[scno];
         void* p = ((sc->flags & SC_VP) == SC_VP) ? (void*)vp : (void*)curProc;

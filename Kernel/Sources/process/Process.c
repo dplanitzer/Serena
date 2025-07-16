@@ -42,8 +42,6 @@ errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarc
 {
     decl_try_err();
     ProcessRef self;
-    UDispatchQueueRef pMainQueue = NULL;
-    int mainQueueDesc = -1;
     
     try(Object_Create(class(Process), 0, (void**)&self));
 
@@ -67,20 +65,12 @@ errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarc
     List_Init(&self->tombstones);
     ConditionVariable_Init(&self->tombstoneSignaler);
 
-    try(UDispatchQueue_Create(0, 1, kDispatchQoS_Interactive, kDispatchPriority_Normal, gVirtualProcessorPool, self, &pMainQueue));
-    self->mainDispatchQueue = pMainQueue->dispatchQueue;
-    try(UResourceTable_AdoptResource(&self->uResourcesTable, (UResourceRef) pMainQueue, &mainQueueDesc));
-    DispatchQueue_SetDescriptor(self->mainDispatchQueue, mainQueueDesc);
-    assert(mainQueueDesc == 0);
-
     try(AddressSpace_Create(&self->addressSpace));
 
     *pOutSelf = self;
     return EOK;
 
 catch:
-    UResource_Dispose(pMainQueue);
-    self->mainDispatchQueue = NULL;
     Object_Release(self);
     *pOutSelf = NULL;
     return err;
@@ -113,7 +103,6 @@ void Process_deinit(ProcessRef _Nonnull self)
     self->addressSpace = NULL;
     self->imageBase = NULL;
     self->argumentsBase = NULL;
-    self->mainDispatchQueue = NULL;
 
     self->pid = 0;
     self->ppid = 0;

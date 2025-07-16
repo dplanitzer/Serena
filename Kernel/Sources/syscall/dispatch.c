@@ -14,6 +14,8 @@
 
 SYSCALL_5(dispatch_queue_create, int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nonnull pOutQueue)
 {
+    return ENOTSUP;
+#if 0
     decl_try_err();
     ProcessRef pp = (ProcessRef)p;
     UDispatchQueueRef pQueue = NULL;
@@ -28,10 +30,13 @@ catch:
     UResource_Dispose(pQueue);
     *(pa->pOutQueue) = -1;
     return err;
+#endif
 }
 
 SYSCALL_5(dispatch, int od, const VoidFunc_2 _Nonnull func, void* _Nullable ctx, uint32_t uOptions, uintptr_t tag)
 {
+    return ENOTSUP;
+#if 0
     decl_try_err();
     ProcessRef pp = (ProcessRef)p;
     const uint32_t options = pa->uOptions & kDispatchOptionMask_User;
@@ -51,10 +56,13 @@ SYSCALL_5(dispatch, int od, const VoidFunc_2 _Nonnull func, void* _Nullable ctx,
     }
 
     return err;
+#endif
 }
 
 SYSCALL_6(dispatch_timer, int od, const struct timespec* _Nonnull deadline, const struct timespec* _Nonnull interval, const VoidFunc_1 _Nonnull func, void* _Nullable ctx, uintptr_t tag)
 {
+    return ENOTSUP;
+#if 0
     decl_try_err();
     ProcessRef pp = (ProcessRef)p;
     UDispatchQueueRef pQueue;
@@ -64,10 +72,13 @@ SYSCALL_6(dispatch_timer, int od, const struct timespec* _Nonnull deadline, cons
         UResourceTable_EndDirectResourceAccess(&pp->uResourcesTable);
     }
     return err;
+#endif
 }
 
 SYSCALL_2(dispatch_remove_by_tag, int od, uintptr_t tag)
 {
+    return ENOTSUP;
+#if 0
     decl_try_err();
     ProcessRef pp = (ProcessRef)p;
     UDispatchQueueRef pQueue;
@@ -77,9 +88,13 @@ SYSCALL_2(dispatch_remove_by_tag, int od, uintptr_t tag)
         UResourceTable_EndDirectResourceAccess(&pp->uResourcesTable);
     }
     return err;
+#endif
 }
 
 SYSCALL_0(dispatch_queue_current)
 {
+    return 0;
+#if 0
     return DispatchQueue_GetDescriptor(DispatchQueue_GetCurrent());
+#endif
 }

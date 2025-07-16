@@ -7,25 +7,12 @@
 //
 
 #include "syscalldecls.h"
-#include <dispatcher/delay.h>
 
-
-// XXX Will be removed when we'll do the process termination algorithm
-static WaitQueue gHackQueue;
 
 SYSCALL_1(exit, int status)
 {    
-    // Trigger the termination of the process. Note that the actual termination
-    // is done asynchronously. That's why we sleep below since we don't want to
-    // return to user space anymore.
     Process_Terminate((ProcessRef)p, pa->status);
-
-
-    // This wait here will eventually be aborted when the dispatch queue that
-    // owns this VP is terminated. This interrupt will be caused by the abort
-    // of the call-as-user and thus this system call will not return to user
-    // space anymore. Instead it will return to the dispatch queue main loop.
-    _sleep(&gHackQueue, NULL, WAIT_ABSTIME, &TIMESPEC_INF, NULL);
+    /* NOT REACHED */
     return 0;
 }
 
