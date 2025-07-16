@@ -73,7 +73,6 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
     self->timer_cache = SLIST_INIT;
     self->timer_cache_count = 0;
     self->state = _DISPATCHER_STATE_ACTIVE;
-    self->signature = _DISPATCH_SIGNATURE;
 
     if (cond_init(&self->cond) != 0) {
         return false;
@@ -366,10 +365,6 @@ void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_cacheable_i
 
 bool _dispatch_isactive(dispatch_t _Nonnull _Locked self)
 {
-    if (self->signature != _DISPATCH_SIGNATURE) {
-        errno = EINVAL;
-        return false;
-    }
     if (self->state != _DISPATCHER_STATE_ACTIVE) {
         errno = ETERMINATED;
         return false;

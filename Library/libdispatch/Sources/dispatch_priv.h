@@ -123,16 +123,12 @@ extern vcpu_key_t __os_dispatch_key;
 #define _DISPATCHER_STATE_TERMINATED    2
 
 
-// 'disp'
-#define _DISPATCH_SIGNATURE 0x64697370
-
 struct dispatch {
     mutex_t                 mutex;
     cond_t                  cond;
     dispatch_attr_t         attr;
     dispatch_callbacks_t    cb;
     vcpuid_t                groupid;
-    uint32_t                signature;
 
     List                    workers;        // Each worker has its own work item queue
     size_t                  worker_count;
