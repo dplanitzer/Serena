@@ -164,24 +164,27 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Non
 {
     dispatch_t q = self->owner;
     bool mayRelinquish = false;
-    struct timespec now, delay, deadline;
+    struct timespec now, deadline;
     dispatch_item_t item;
+    int flags;
     siginfo_t si;
 
     for (;;) {
-        clock_gettime(CLOCK_MONOTONIC, &now);
-
         // Grab the first timer that's due. We give preference to timers because
         // they are tied to a specific deadline time while immediate work items
         // do not guarantee that they will execute at a specific time. So it's
         // acceptable to push them back on the timeline.
         dispatch_timer_t ftp = (dispatch_timer_t)q->timers.first;
-        if (ftp && timespec_le(&ftp->deadline, &now)) {
-            SList_RemoveFirst(&q->timers);
-            wp->timer = ftp;
-            wp->item = ftp->item;
+        if (ftp) {
+            clock_gettime(CLOCK_MONOTONIC, &now);
 
-            return 0;
+            if (timespec_le(&ftp->deadline, &now)) {
+                SList_RemoveFirst(&q->timers);
+                wp->timer = ftp;
+                wp->item = ftp->item;
+
+                return 0;
+            }
         }
 
 
@@ -213,9 +216,10 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Non
         // is equal to the current time or it's in the past
         if (q->timers.first) {
             deadline = ((dispatch_timer_t)q->timers.first)->deadline;
+            flags = TIMER_ABSTIME;
         } else {
-            timespec_from_sec(&delay, 2);
-            timespec_add(&now, &delay, &deadline);
+            timespec_from_sec(&deadline, 2);
+            flags = 0;
         }
 
 
@@ -225,7 +229,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Non
         // to relinquish the VP since it hasn't done anything useful for a
         // longer time.
         mutex_unlock(mp);
-        const int err = sigtimedwait(&self->hotsigs, TIMER_ABSTIME, &deadline, &si);
+        const int err = sigtimedwait(&self->hotsigs, flags, &deadline, &si);
         mutex_lock(mp);
 
         if (err == ETIMEDOUT && q->worker_count > q->attr.minConcurrency) {
