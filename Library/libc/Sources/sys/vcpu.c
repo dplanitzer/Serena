@@ -73,6 +73,11 @@ vcpu_t _Nonnull vcpu_self(void)
     return (vcpu_t)_syscall(SC_vcpu_getdata);
 }
 
+vcpu_t _Nonnull vcpu_main(void)
+{
+    return &g_main_vcpu;
+}
+
 vcpuid_t vcpu_id(vcpu_t _Nonnull self)
 {
     return self->id;
@@ -81,14 +86,6 @@ vcpuid_t vcpu_id(vcpu_t _Nonnull self)
 vcpuid_t vcpu_groupid(vcpu_t _Nonnull self)
 {
     return self->groupid;
-}
-
-sigset_t vcpu_sigmask(void)
-{
-    sigset_t mask;
-
-    (void)_syscall(SC_vcpu_setsigmask, SIG_BLOCK, 0, &mask);
-    return mask;
 }
 
 int vcpu_setsigmask(int op, sigset_t mask, sigset_t* _Nullable oldmask)

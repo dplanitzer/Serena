@@ -35,12 +35,17 @@ typedef struct vcpu_attr {
 extern vcpuid_t new_vcpu_groupid(void);
 
 
+// Returns the identity of the vcpu on which the caller is executing.
 extern vcpu_t _Nonnull vcpu_self(void);
+
+// Returns the identity of the main vcpu of the calling process. The main vcpu
+// of a process is the first vcpu that got attached to the process.
+extern vcpu_t _Nonnull vcpu_main(void);
+
 
 extern vcpuid_t vcpu_id(vcpu_t _Nonnull self);
 extern vcpuid_t vcpu_groupid(vcpu_t _Nonnull self);
 
-extern sigset_t vcpu_sigmask(void);
 extern int vcpu_setsigmask(int op, sigset_t mask, sigset_t* _Nullable oldmask);
 
 // Acquires a vcpu. 'attr' specifies various attributes and how the vcpu should
