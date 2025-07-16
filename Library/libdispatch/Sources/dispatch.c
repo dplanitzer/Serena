@@ -178,7 +178,7 @@ void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self)
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Work Items
 
-static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
+static int _dispatch_submit(dispatch_t _Nonnull _Locked self, int flags, dispatch_item_t _Nonnull item)
 {
     dispatch_worker_t best_wp = NULL;
     size_t best_wc = SIZE_MAX;
@@ -222,6 +222,7 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
 
     item->state = DISPATCH_STATE_PENDING;
     item->qe = SLISTNODE_INIT;
+    item->flags = (uint16_t)(flags & ~DISPATCH_FLAG_ABSTIME);
 
 
     // Enqueue the work item at the worker that we found and notify it
@@ -232,10 +233,10 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
 
 void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
-    if ((item->flags & DISPATCH_ITEM_AWAITABLE) != 0) {
+    if ((item->flags & DISPATCH_FLAG_AWAITABLE) != 0) {
         _dispatch_zombify_item(self, item);
     }
-    else if ((item->flags & _DISPATCH_ITEM_CACHEABLE) != 0) {
+    else if ((item->flags & _DISPATCH_FLAG_CACHEABLE) != 0) {
         _dispatch_cache_item(self, (dispatch_cacheable_item_t)item);
     }
     else if (item->retireFunc) {
@@ -295,7 +296,7 @@ static dispatch_item_t _Nullable _dispatch_find_item(dispatch_t _Nonnull self, d
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Item Cache
 
-dispatch_cacheable_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, size_t nbytes, dispatch_item_func_t func, uint16_t flags)
+dispatch_cacheable_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, size_t nbytes, dispatch_item_func_t func)
 {
     dispatch_cacheable_item_t pip = NULL;
     dispatch_cacheable_item_t ip = NULL;
@@ -321,7 +322,7 @@ dispatch_cacheable_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _No
         ip->size = nbytes;
         ip->super.func = func;
         ip->super.retireFunc = NULL;
-        ip->super.flags = flags;
+        ip->super.flags = 0;
         ip->super.state = DISPATCH_STATE_IDLE;
         ip->super.reserved = 0;
     }
@@ -358,14 +359,13 @@ bool _dispatch_isactive(dispatch_t _Nonnull _Locked self)
     return true;
 }
 
-int dispatch_submit(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
+int dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
 {
     int r = -1;
 
     mutex_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-        item->flags &= _DISPATCH_ITEM_PUBLIC_MASK;
-        r = _dispatch_submit(self, item);
+        r = _dispatch_submit(self, flags & _DISPATCH_FLAG_PUBLIC_MASK, item);
     }
     mutex_unlock(&self->mutex);
     return r;
@@ -393,12 +393,12 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
 
     mutex_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-       dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_async_item), _async_adapter_func, _DISPATCH_ITEM_CACHEABLE);
+       dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_async_item), _async_adapter_func);
     
         if (item) {
             ((dispatch_async_item_t)item)->func = func;
             ((dispatch_async_item_t)item)->arg = arg;
-            r = _dispatch_submit(self, (dispatch_item_t)item);
+            r = _dispatch_submit(self, _DISPATCH_FLAG_CACHEABLE, (dispatch_item_t)item);
             if (r != 0) {
                 _dispatch_cache_item(self, item);
             }
@@ -423,13 +423,13 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
 
     mutex_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-        dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_sync_item), _sync_adapter_func, _DISPATCH_ITEM_CACHEABLE | DISPATCH_ITEM_AWAITABLE);
+        dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_sync_item), _sync_adapter_func);
     
         if (item) {
             ((dispatch_sync_item_t)item)->func = func;
             ((dispatch_sync_item_t)item)->arg = arg;
             ((dispatch_sync_item_t)item)->result = 0;
-            if (_dispatch_submit(self, (dispatch_item_t)item) == 0) {
+            if (_dispatch_submit(self, _DISPATCH_FLAG_CACHEABLE | DISPATCH_FLAG_AWAITABLE, (dispatch_item_t)item) == 0) {
                 r = _dispatch_await(self, (dispatch_item_t)item);
                 if (r == 0) {
                     r = ((dispatch_sync_item_t)item)->result;
@@ -450,7 +450,7 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
         case DISPATCH_STATE_PENDING:
             item->state = DISPATCH_STATE_CANCELLED;
             
-            if ((item->flags & _DISPATCH_ITEM_TIMED) != 0) {
+            if ((item->flags & _DISPATCH_FLAG_TIMED) != 0) {
                 _dispatch_cancel_timer(self, flags, item);
             }
             else {

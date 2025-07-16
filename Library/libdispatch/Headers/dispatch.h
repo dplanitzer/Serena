@@ -61,8 +61,7 @@ typedef struct dispatch* dispatch_t;
 //
 // dispatch_item_t my_item = create_my_item(...)
 //
-// my_item->flags |= DISPATCH_ITEM_AWAITABLE;
-// dispatch_submit(my_dispatcher, my_item);
+// dispatch_submit(my_dispatcher, DISPATCH_FLAG_AWAITABLE, my_item);
 // ...
 // dispatch_await(my_dispatcher, my_item);
 // const int result = my_item->result;
@@ -74,7 +73,7 @@ typedef struct dispatch* dispatch_t;
 // The function that is used to execute an item is a reference type - but the
 // item itself is a value type. Thus a work item can not be submitted more than
 // once and be associated with more than one dispatcher at the same time.
- 
+
 
 // The main dispatcher. This is a serial dispatcher that owns the main vcpu. The
 // main dispatcher is started by calling dispatch_enter_main() from the main
@@ -95,8 +94,13 @@ typedef void (*dispatch_retire_func_t)(struct dispatch_item* _Nonnull item);
 // and that you want to wait for the item to finish its run. You wait for an
 // item to finish its execution by calling dispatch_await() on it. The call
 // will block until the item has finished processing. It is then safe to
-// access the item to retrieve its result.
-#define DISPATCH_ITEM_AWAITABLE  1
+// access the item to retrieve its result. Note that a timer-based item is
+// never awaitable.
+#define DISPATCH_FLAG_AWAITABLE  1
+
+// Specifies that the deadline of a timer-based work item is an absolute time
+// value instead of a duration relative to the current time.
+#define DISPATCH_FLAG_ABSTIME   TIMER_ABSTIME
 
 
 // The state of an item. Items start out in idle state and transition to pending
@@ -225,8 +229,8 @@ extern int dispatch_destroy(dispatch_t _Nullable self);
 // item is not awaitable, or it enqueues the item on a result queue if it is
 // awaitable. You are required to call dispatch_await() on an awaitable item.
 // This will remove the item from the result queue and transfer ownership of the
-// item back to you.
-extern int dispatch_submit(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
+// item back to you. 'flags' specifies whether the item is awaitable, etc.
+extern int dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
 
 // Waits for the execution of 'item' to finish and removes the item from the
 // result queue. Note that this function does not call the 'retireFunc' of the

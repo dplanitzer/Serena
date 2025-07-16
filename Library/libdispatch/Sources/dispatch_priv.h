@@ -102,18 +102,18 @@ extern vcpu_key_t __os_dispatch_key;
 
 
 // Internal item flags
-#define _DISPATCH_ITEM_PUBLIC_MASK  0x00ff
+#define _DISPATCH_FLAG_PUBLIC_MASK  0x00ff
 
 // Item is owned by the dispatcher and should be moved back to the work item
 // cache when done.
-#define _DISPATCH_ITEM_CACHEABLE    0x100
+#define _DISPATCH_FLAG_CACHEABLE    0x100
 
 // The item is associated with a repeating timer. Should be auto-resubmitted if
 // not cancelled. 
-#define _DISPATCH_ITEM_REPEATING    0x200
+#define _DISPATCH_FLAG_REPEATING    0x200
 
 // The item is associated with a dispatch_timer_t.
-#define _DISPATCH_ITEM_TIMED        0x400
+#define _DISPATCH_FLAG_TIMED        0x400
 
 
 // Dispatcher state
@@ -156,7 +156,7 @@ extern void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_ti
 extern void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_cacheable_item_t _Nonnull item);
 extern void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self);
-extern dispatch_cacheable_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, size_t nbytes, dispatch_item_func_t func, uint16_t flags);
+extern dispatch_cacheable_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, size_t nbytes, dispatch_item_func_t func);
 static int _dispatch_acquire_worker_with_ownership(dispatch_t _Nonnull _Locked self, int ownership);
 extern int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self);
 extern bool _dispatch_isactive(dispatch_t _Nonnull _Locked self);

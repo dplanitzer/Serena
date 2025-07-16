@@ -102,7 +102,7 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_
 
 
     timer->item->qe = SLISTNODE_INIT;
-    timer->item->flags |= _DISPATCH_ITEM_TIMED;
+    timer->item->flags |= _DISPATCH_FLAG_TIMED;
     timer->item->state = DISPATCH_STATE_PENDING;
 
 
@@ -167,8 +167,9 @@ static int _dispatch_timer(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     }
     timer->timer_qe = SLISTNODE_INIT;
     timer->item = item;
+    item->flags = (uint16_t)(flags & ~(DISPATCH_FLAG_ABSTIME|DISPATCH_FLAG_AWAITABLE));
 
-    if ((flags & TIMER_ABSTIME) == TIMER_ABSTIME) {
+    if ((flags & DISPATCH_FLAG_ABSTIME) == DISPATCH_FLAG_ABSTIME) {
         timer->deadline = *deadline;
     }
     else {
@@ -179,10 +180,10 @@ static int _dispatch_timer(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     }
     if (interval && timespec_lt(interval, &TIMESPEC_INF)) {
         timer->interval = *interval;
-        item->flags |= _DISPATCH_ITEM_REPEATING;
+        item->flags |= _DISPATCH_FLAG_REPEATING;
     }
     else {
-        item->flags &= ~_DISPATCH_ITEM_REPEATING;
+        item->flags &= ~_DISPATCH_FLAG_REPEATING;
     }
 
 
@@ -205,8 +206,7 @@ int dispatch_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item, int 
 
     mutex_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-        item->flags &= _DISPATCH_ITEM_PUBLIC_MASK;
-        r = _dispatch_timer(self, item, flags, deadline, interval);
+        r = _dispatch_timer(self, item, flags & _DISPATCH_FLAG_PUBLIC_MASK, deadline, interval);
     }
     mutex_unlock(&self->mutex);
     return r;
@@ -218,12 +218,12 @@ int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, const struc
 
     mutex_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-       dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_async_item), _async_adapter_func, _DISPATCH_ITEM_CACHEABLE);
+       dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_async_item), _async_adapter_func);
     
         if (item) {
             ((dispatch_async_item_t)item)->func = func;
             ((dispatch_async_item_t)item)->arg = arg;
-            r = _dispatch_timer(self, (dispatch_item_t)item, flags, wtp, itp);
+            r = _dispatch_timer(self, (dispatch_item_t)item, flags | _DISPATCH_FLAG_CACHEABLE, wtp, itp);
             if (r != 0) {
                 _dispatch_cache_item(self, item);
             }
