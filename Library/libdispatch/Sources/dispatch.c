@@ -13,12 +13,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/spinlock.h>
 
 
-static struct dispatch  g_main_dispatcher;
-dispatch_t DISPATCH_MAIN = &g_main_dispatcher;
+static dispatch_t _Nullable g_main_dispatcher;
+static struct dispatch      g_main_dispatcher_rec;
+static volatile spinlock_t  g_main_lock;    // bss init corresponds to SPINLOCK_INIT
 
-static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Nonnull attr, int ownership)
+
+static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Nonnull attr, int adoption)
 {
     if (attr->maxConcurrency < 1 || attr->maxConcurrency > INT8_MAX || attr->minConcurrency > attr->maxConcurrency) {
         errno = EINVAL;
@@ -44,7 +47,23 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
         self->cb = *(attr->cb);
     }
 
-    self->groupid = (ownership == _DISPATCH_ACQUIRE_VCPU) ? new_vcpu_groupid() : vcpu_groupid(vcpu_self());
+    switch (adoption) {
+        case _DISPATCH_ACQUIRE_VCPU:
+            self->groupid = new_vcpu_groupid();
+            break;
+
+        case _DISPATCH_ADOPT_CALLER_VCPU:
+            self->groupid = vcpu_groupid(vcpu_self());
+            break;
+
+        case _DISPATCH_ADOPT_MAIN_VCPU:
+            self->groupid = vcpu_groupid(vcpu_main());
+            break;
+
+        default:
+            abort();
+    }
+
     self->workers = LIST_INIT;
     self->worker_count = 0;
     self->item_cache = SLIST_INIT;
@@ -61,7 +80,7 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
     }
 
     for (size_t i = 0; i < attr->minConcurrency; i++) {
-        if (_dispatch_acquire_worker_with_ownership(self, ownership) != 0) {
+        if (_dispatch_acquire_worker_with_ownership(self, adoption) != 0) {
             return false;
         }
     }
@@ -91,7 +110,7 @@ dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
 
 int dispatch_destroy(dispatch_t _Nullable self)
 {
-    if (self) {
+    if (self && self != g_main_dispatcher) {
         if (self->state < _DISPATCHER_STATE_TERMINATED || !SList_IsEmpty(&self->zombies)) {
             errno = EBUSY;
             return -1;
@@ -150,7 +169,7 @@ int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self)
 
 _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker)
 {
-    const int ownership = worker->ownership;
+    const int adoption = worker->adoption;
 
     List_Remove(&self->workers, &worker->worker_qe);
     self->worker_count--;
@@ -160,7 +179,7 @@ _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch
     cond_broadcast(&self->cond);
     mutex_unlock(&self->mutex);
 
-    if (ownership == _DISPATCH_ACQUIRE_VCPU) {
+    if (adoption == _DISPATCH_ACQUIRE_VCPU) {
         vcpu_relinquish_self();
     }
 }
@@ -587,53 +606,48 @@ out:
 }
 
 
-static bool _dispatch_prepare_enter_main(void)
+dispatch_t _Nonnull dispatch_main_queue(void)
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
+    dispatch_t p = NULL;
 
-    if (DISPATCH_MAIN->signature == 0) {
-        return _dispatch_init(DISPATCH_MAIN, &attr, _DISPATCH_ADOPT_VCPU);
-    }
-
-    return false;
-}
-
-static _Noreturn _dispatch_run_main(void)
-{
-    _dispatch_worker_run((dispatch_worker_t)DISPATCH_MAIN->workers.first);
-}
-
-_Noreturn dispatch_enter_main(dispatch_async_func_t _Nonnull func, void* _Nullable arg)
-{
-    if (_dispatch_prepare_enter_main()) {
-        if (!dispatch_async(DISPATCH_MAIN, func, arg)) {
-            _dispatch_run_main();
-            exit(0);
+    // spinlock: it's fine because there's virtually no contention on this lock
+    //           once the main dispatcher has been allocated. There shouldn't be
+    //           any contention on the lock while we're allocating the dispatcher
+    //           because nobody besides the main vcpu should be in here at that
+    //           time.
+    // _DISPATCH_ADOPT_MAIN_VCPU: theoretically this may be called from some
+    //           secondary vcpu before the main vcpu gets a chance to set things
+    //           up.
+    spin_lock(&g_main_lock);
+    if (g_main_dispatcher == NULL) {
+        if (!_dispatch_init(&g_main_dispatcher_rec, &attr, _DISPATCH_ADOPT_MAIN_VCPU)) {
+            abort();
         }
+
+        g_main_dispatcher = &g_main_dispatcher_rec;
     }
 
-    abort();
-    /* NOT REACHED */
+    p = g_main_dispatcher;
+    spin_unlock(&g_main_lock);
+
+    return p;
 }
 
-void dispatch_enter_main_repeating(int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
+_Noreturn dispatch_run_main_queue(void)
 {
-    if (_dispatch_prepare_enter_main()) {
-        if (!dispatch_repeating(DISPATCH_MAIN, flags, wtp, itp, func, arg)) {
-            _dispatch_run_main();
-            exit(0);
-        }
+    if (vcpu_self() != vcpu_main()) {
+        abort();
     }
 
-    abort();
-    /* NOT REACHED */
+    _dispatch_worker_run((dispatch_worker_t)dispatch_main_queue()->workers.first);
 }
 
 
 void dispatch_terminate(dispatch_t _Nonnull self, bool cancel)
 {
     mutex_lock(&self->mutex);
-    if (self->state == _DISPATCHER_STATE_ACTIVE) {
+    if (self != g_main_dispatcher && self->state == _DISPATCHER_STATE_ACTIVE) {
         self->state = _DISPATCHER_STATE_TERMINATING;
 
         if (cancel) {

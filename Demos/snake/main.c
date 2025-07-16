@@ -275,7 +275,8 @@ int main(int argc, char *argv[])
 {
     setup();
 
-    dispatch_enter_main_repeating(0, &TIMESPEC_ZERO, &game_loop_delay, (dispatch_async_func_t)game_loop, NULL);
+    dispatch_repeating(dispatch_main_queue(), 0, &TIMESPEC_ZERO, &game_loop_delay, (dispatch_async_func_t)game_loop, NULL);
+    dispatch_run_main_queue();
     /* NOT REACHED */
     return 0;
 }

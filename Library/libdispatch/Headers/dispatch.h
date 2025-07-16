@@ -75,12 +75,6 @@ typedef struct dispatch* dispatch_t;
 // once and be associated with more than one dispatcher at the same time.
 
 
-// The main dispatcher. This is a serial dispatcher that owns the main vcpu. The
-// main dispatcher is started by calling dispatch_enter_main() from the main
-// vcpu.
-extern dispatch_t DISPATCH_MAIN;
-
-
 // The function responsible for implementing the work of an item.
 typedef void (*dispatch_item_func_t)(struct dispatch_item* _Nonnull item);
 
@@ -290,6 +284,16 @@ extern void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_f
 extern void dispatch_cancel_current_item(int flags);
 
 
+// Returns a reference to the main dispatcher. There's exactly one main
+// dispatcher per process. It is a serial queue and manages the main vcpu.
+// Note that you must call the dispatch_run_main_queue() function on the main
+// vcpu to make the main dispatcher work. The typical usage scenario is this:
+// 
+// dispatch_t main_q = dispatch_main_queue();
+// dispatch_async(main_q, my_async_func, my_arg);
+// dispatch_run_main_queue(main_q);
+extern dispatch_t _Nonnull dispatch_main_queue(void);
+
 // Returns a reference to the current dispatcher. The current dispatcher is the
 // dispatcher that manages and owns the vcpu on which the caller is executing.
 // Note that this function may return NULL. This happens when the vcpu is not
@@ -316,15 +320,13 @@ extern void dispatch_concurrency_info(dispatch_t _Nonnull self, dispatch_concurr
 extern int dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t buflen);
 
 
-// Starts the main dispatcher and schedules 'func' to be executed as the first
-// function on the main dispatcher. Must be called from the main vcpu. Note that
-// this function does not return.
-extern _Noreturn dispatch_enter_main(dispatch_async_func_t _Nonnull func, void* _Nullable arg);
-
-// Similar to dispatch_enter_main() but schedules a repeating timer. Note that
-// canceling the timer will not cause this function here to return. The
-// dispatcher will stay active.
-extern _Noreturn dispatch_enter_main_repeating(int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg);
+// Runs the main dispatcher. Note that this function must be called from the
+// main vcpu. The process will be terminated if this function is called from
+// any other vcpu. Call this function after you have submitted the necessary
+// work items to the main dispatcher. See dispatch_main_queue() for how to do
+// this. Note that this function will never return. Call exit() from a work
+// item to terminate the process.
+extern _Noreturn dispatch_run_main_queue(void);
 
 
 // Initiates the termination of a dispatcher. Note that termination is an
@@ -335,7 +337,8 @@ extern _Noreturn dispatch_enter_main_repeating(int flags, const struct timespec*
 // 'cancel' if all pending items should be allowed to execute before the
 // dispatcher completes termination. Note that the dispatcher will no longer
 // accept new items as soon as this function returns. Any attempt to submit a
-// new item to the dispatcher will be rejected with an ETERMINATED error.
+// new item to the dispatcher will be rejected with an ETERMINATED error. Note
+// that you can not terminate the main dispatcher.
 extern void dispatch_terminate(dispatch_t _Nonnull self, bool cancel);
 
 // Blocks the caller until the dispatcher has completed termination. It is safe

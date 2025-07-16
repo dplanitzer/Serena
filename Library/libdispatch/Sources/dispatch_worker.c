@@ -37,27 +37,33 @@ static bool _dispatch_worker_acquire_vcpu(dispatch_worker_t _Nonnull self)
     return false;
 }
 
-static void _dispatch_worker_adopt_current_vcpu(dispatch_worker_t _Nonnull self)
+static void _dispatch_worker_adopt_caller_vcpu(dispatch_worker_t _Nonnull self)
 {
     self->vcpu = vcpu_self();
     self->id = vcpu_id(self->vcpu);
 }
 
+static void _dispatch_worker_adopt_main_vcpu(dispatch_worker_t _Nonnull self)
+{
+    self->vcpu = vcpu_main();
+    self->id = vcpu_id(self->vcpu);
+}
 
-dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner, int ownership)
+
+dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner, int adoption)
 {
     dispatch_worker_t self = calloc(1, sizeof(struct dispatch_worker));
 
     if (self) {
         self->cb = owner->attr.cb;
         self->owner = owner;
-        self->ownership = ownership;
+        self->adoption = adoption;
 
         sigemptyset(&self->hotsigs);
         sigaddset(&self->hotsigs, SIGDISPATCH);
 
 
-        switch (ownership) {
+        switch (adoption) {
             case _DISPATCH_ACQUIRE_VCPU:
                 if (!_dispatch_worker_acquire_vcpu(self)) {
                     free(self);
@@ -65,8 +71,12 @@ dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner, i
                 }
                 break;
 
-            case _DISPATCH_ADOPT_VCPU:
-                _dispatch_worker_adopt_current_vcpu(self);
+            case _DISPATCH_ADOPT_CALLER_VCPU:
+                _dispatch_worker_adopt_caller_vcpu(self);
+                break;
+
+            case _DISPATCH_ADOPT_MAIN_VCPU:
+                _dispatch_worker_adopt_main_vcpu(self);
                 break;
 
             default:

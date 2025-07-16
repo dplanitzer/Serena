@@ -61,9 +61,10 @@ typedef struct dispatch_work {
 } dispatch_work_t;
 
 
-// _dispatch_worker_create() ownership mode
-#define _DISPATCH_ACQUIRE_VCPU  0
-#define _DISPATCH_ADOPT_VCPU    1
+// _dispatch_worker_create() adoption mode
+#define _DISPATCH_ACQUIRE_VCPU      0
+#define _DISPATCH_ADOPT_CALLER_VCPU 1
+#define _DISPATCH_ADOPT_MAIN_VCPU   2
 
 struct dispatch_worker {
     ListNode                                worker_qe;
@@ -81,7 +82,7 @@ struct dispatch_worker {
     const dispatch_callbacks_t* _Nonnull    cb;
     dispatch_t _Nonnull                     owner;
 
-    int                                     ownership;  // _DISPATCH_XXX_VCPU; tells us whether the worker acquired or adopted its vcpu
+    int                                     adoption;  // _DISPATCH_XXX_VCPU; tells us whether the worker acquired or adopted its vcpu
 };
 typedef struct dispatch_worker* dispatch_worker_t;
 
