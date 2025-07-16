@@ -24,12 +24,6 @@ final_class(Process, Object);
 extern ProcessRef _Nonnull  gRootProcess;
 
 
-// Returns the process associated with the calling execution context. Returns
-// NULL if the execution context is not associated with a process. This will
-// never be the case inside of a system call.
-extern ProcessRef _Nullable Process_GetCurrent(void);
-
-
 // Creates the root process which is the first process of the OS.
 extern errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf);
 

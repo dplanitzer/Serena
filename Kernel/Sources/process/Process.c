@@ -7,24 +7,13 @@
 //
 
 #include "ProcessPriv.h"
-#include "UDispatchQueue.h"
+#include <dispatcher/VirtualProcessorPool.h>
 #include <filemanager/FileHierarchy.h>
 
 
 class_func_defs(Process, Object,
 override_func_def(deinit, Process, Object)
 );
-
-
-// Returns the process associated with the calling execution context. Returns
-// NULL if the execution context is not associated with a process. This will
-// never be the case inside of a system call.
-ProcessRef _Nullable Process_GetCurrent(void)
-{
-    DispatchQueueRef pQueue = DispatchQueue_GetCurrent();
-
-    return (pQueue != NULL) ? DispatchQueue_GetOwningProcess(pQueue) : NULL;
-}
 
 
 errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf)
@@ -84,11 +73,6 @@ void Process_deinit(ProcessRef _Nonnull self)
     UResourceTable_Deinit(&self->uResourcesTable);
 
     FileManager_Deinit(&self->fm);
-
-    Object_Release(self->terminationNotificationQueue);
-    self->terminationNotificationQueue = NULL;
-    self->terminationNotificationClosure = NULL;
-    self->terminationNotificationContext = NULL;
     
     Process_DestroyAllTombstones_Locked(self);
     ConditionVariable_Deinit(&self->tombstoneSignaler);

@@ -8,7 +8,6 @@
 
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
-#include "UDispatchQueue.h"
 
 
 // Returns the next PID available for use by a new process.
@@ -22,20 +21,6 @@ static errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const spawn_o
 {
     decl_try_err();
     ProcessRef pChild = NULL;
-    DispatchQueueRef terminationNotificationQueue = NULL;
-
-    if ((opts->options & kSpawn_NotifyOnProcessTermination) == kSpawn_NotifyOnProcessTermination && opts->notificationQueue >= 0 && opts->notificationClosure) {
-        UDispatchQueueRef pQueue;
-
-        if ((err = UResourceTable_BeginDirectResourceAccessAs(&self->uResourcesTable, opts->notificationQueue, UDispatchQueue, &pQueue)) == EOK) {
-            terminationNotificationQueue = Object_RetainAs(pQueue->dispatchQueue, DispatchQueue);
-            UResourceTable_EndDirectResourceAccess(&self->uResourcesTable);
-        }
-        else {
-            throw(err);
-        }
-    }
-
 
     uid_t childUid = self->fm.ruid;
     gid_t childGid = self->fm.rgid;
@@ -65,14 +50,6 @@ static errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const spawn_o
     // into its state. Locking isn't necessary because nobody outside this function
     // here can see the child process yet and thus call functions on it.
 
-    if (terminationNotificationQueue) {
-        pChild->terminationNotificationQueue = terminationNotificationQueue;
-        pChild->terminationNotificationClosure = opts->notificationClosure;
-        pChild->terminationNotificationContext = opts->notificationContext;
-
-        terminationNotificationQueue = NULL;
-    }
-
     IOChannelTable_DupFrom(&pChild->ioChannelTable, &self->ioChannelTable);
 
     if (opts->root_dir && opts->root_dir[0] != '\0') {
@@ -88,7 +65,6 @@ static errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const spawn_o
 
 catch:
     Object_Release(pChild);
-    Object_Release(terminationNotificationQueue);
 
     *pOutChild = NULL;
     return err;

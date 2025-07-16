@@ -15,12 +15,6 @@ SYSCALL_REF(coninit);
 SYSCALL_REF(clock_gettime);
 SYSCALL_REF(clock_nanosleep);
 
-SYSCALL_REF(dispatch);
-SYSCALL_REF(dispatch_timer);
-SYSCALL_REF(dispatch_queue_create);
-SYSCALL_REF(dispatch_remove_by_tag);
-SYSCALL_REF(dispatch_queue_current);
-
 SYSCALL_REF(close);
 SYSCALL_REF(read);
 SYSCALL_REF(write);
@@ -92,13 +86,12 @@ SYSCALL_REF(vcpu_yield);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SYSCALL_COUNT   68
+#define SYSCALL_COUNT   63
 
 static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
     SYSCALL_ENTRY(write, SC_ERRNO),
     SYSCALL_ENTRY(clock_nanosleep, SC_ERRNO),
-    SYSCALL_ENTRY(dispatch, SC_ERRNO),
     SYSCALL_ENTRY(alloc_address_space, SC_ERRNO),
     SYSCALL_ENTRY(exit, 0),
     SYSCALL_ENTRY(spawn_process, SC_ERRNO),
@@ -125,12 +118,8 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(ftruncate, SC_ERRNO),
     SYSCALL_ENTRY(mkfile, SC_ERRNO),
     SYSCALL_ENTRY(mkpipe, SC_ERRNO),
-    SYSCALL_ENTRY(dispatch_timer, SC_ERRNO),
-    SYSCALL_ENTRY(dispatch_queue_create, SC_ERRNO),
-    SYSCALL_ENTRY(dispatch_queue_current, 0),
     SYSCALL_ENTRY(dispose, SC_ERRNO),
     SYSCALL_ENTRY(clock_gettime, SC_ERRNO),
-    SYSCALL_ENTRY(dispatch_remove_by_tag, SC_ERRNO),
     SYSCALL_ENTRY(mount, SC_ERRNO),
     SYSCALL_ENTRY(unmount, SC_ERRNO),
     SYSCALL_ENTRY(getgid, 0),

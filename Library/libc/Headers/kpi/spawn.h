@@ -30,6 +30,7 @@
 // Tells the kernel that it should notify the parent process when the child
 // process terminates for some reason. The parent process must specify a
 // dispatch queue and closure.
+//XXX dead. Will be replaced with libdispatch integration
 #define kSpawn_NotifyOnProcessTermination   0x0008
 
 // A new process group should be created with the new process being the group

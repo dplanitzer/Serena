@@ -57,11 +57,6 @@ errno_t Process_OnChildTermination(ProcessRef _Nonnull self, ProcessRef _Nonnull
     
     ConditionVariable_Broadcast(&self->tombstoneSignaler);
     Lock_Unlock(&self->lock);
-    
-    if (child->terminationNotificationQueue) {
-        DispatchQueue_DispatchAsync(child->terminationNotificationQueue,
-            child->terminationNotificationClosure, child->terminationNotificationContext);
-    }
 
     return EOK;
 }
