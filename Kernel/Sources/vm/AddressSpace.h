@@ -16,6 +16,8 @@
 extern errno_t AddressSpace_Create(AddressSpaceRef _Nullable * _Nonnull pOutSelf);
 extern void AddressSpace_Destroy(AddressSpaceRef _Nullable self);
 
+extern void AddressSpace_UnmapAll(AddressSpaceRef _Nonnull self);
+
 extern bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull self);
 extern size_t AddressSpace_GetVirtualSize(AddressSpaceRef _Nonnull self);
 

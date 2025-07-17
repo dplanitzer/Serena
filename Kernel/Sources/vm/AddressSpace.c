@@ -54,23 +54,33 @@ catch:
 void AddressSpace_Destroy(AddressSpaceRef _Nullable self)
 {
     if (self) {
-        MemBlocks* pCurMemBlocks = (MemBlocks*)self->mblocks.first;
+        AddressSpace_UnmapAll(self);
 
-        while (pCurMemBlocks) {
-            MemBlocks* pNextMemBlocks = (MemBlocks*)pCurMemBlocks->node.next;
-
-            for (int i = 0; i < pCurMemBlocks->count; i++) {
-                kfree(pCurMemBlocks->blocks[i].mem);
-                pCurMemBlocks->blocks[i].mem = NULL;
-                pCurMemBlocks->blocks[i].size = 0;
-            }
-
-            SListNode_Deinit(&pCurMemBlocks->node);
-            kfree(pCurMemBlocks);
-
-            pCurMemBlocks = pNextMemBlocks;
-        }
+        Lock_Deinit(&self->lock);
+        kfree(self);
     }
+}
+
+void AddressSpace_UnmapAll(AddressSpaceRef _Nonnull self)
+{
+    MemBlocks* cp = (MemBlocks*)self->mblocks.first;
+
+    while (cp) {
+        MemBlocks* np = (MemBlocks*)cp->node.next;
+
+        for (size_t i = 0; i < cp->count; i++) {
+            kfree(cp->blocks[i].mem);
+            cp->blocks[i].mem = NULL;
+            cp->blocks[i].size = 0;
+        }
+
+        SListNode_Deinit(&cp->node);
+        kfree(cp);
+
+        cp = np;
+    }
+
+    SList_Deinit(&self->mblocks);
 }
 
 bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull self)
@@ -105,8 +115,8 @@ size_t AddressSpace_GetVirtualSize(AddressSpaceRef _Nonnull self)
 errno_t AddressSpace_Allocate(AddressSpaceRef _Nonnull self, ssize_t nbytes, void* _Nullable * _Nonnull pOutMem)
 {
     decl_try_err();
-    MemBlocks* pMemBlocks = NULL;
-    char* pMem = NULL;
+    MemBlocks* bp = NULL;
+    char* p = NULL;
 
     if (nbytes == 0) {
         return EINVAL;
@@ -123,30 +133,29 @@ errno_t AddressSpace_Allocate(AddressSpaceRef _Nonnull self, ssize_t nbytes, voi
     // request
     if (SList_IsEmpty(&self->mblocks)
         || ((MemBlocks*)self->mblocks.last)->count == MEM_BLOCKS_CAPACITY) {
-        try(kalloc_cleared(sizeof(MemBlocks), (void**) &pMemBlocks));
-        SListNode_Init(&pMemBlocks->node);
-        SList_InsertAfterLast(&self->mblocks, &pMemBlocks->node);
+        try(kalloc_cleared(sizeof(MemBlocks), (void**) &bp));
+        SListNode_Init(&bp->node);
+        SList_InsertAfterLast(&self->mblocks, &bp->node);
     } else {
-        pMemBlocks = (MemBlocks*)self->mblocks.last;
+        bp = (MemBlocks*)self->mblocks.last;
     }
 
 
     // Allocate the memory block
-    try(kalloc(nbytes, (void**) &pMem));
+    try(kalloc(nbytes, (void**) &p));
 
 
     // Add the memory block to our list
-    pMemBlocks->blocks[pMemBlocks->count].mem = pMem;
-    pMemBlocks->blocks[pMemBlocks->count].size = nbytes;
-    pMemBlocks->count++;
+    bp->blocks[bp->count].mem = p;
+    bp->blocks[bp->count].size = nbytes;
+    bp->count++;
 
     Lock_Unlock(&self->lock);
 
-    *pOutMem = pMem;
+    *pOutMem = p;
     return EOK;
 
 catch:
-    kfree(pMem);
     Lock_Unlock(&self->lock);
     *pOutMem = NULL;
     return err;

@@ -181,8 +181,11 @@ static void _proc_notify_parent(ProcessRef _Nonnull self)
 
 // Zombify the process by freeing resources we no longer need at this point. The
 // calling VP is the only one left touching the process. So this is safe.
-void Process_Zombify(ProcessRef _Nonnull self)
+void _proc_zombify(ProcessRef _Nonnull self)
 {
+    AddressSpace_UnmapAll(self->addressSpace);
+    FileManager_Deinit(&self->fm);
+
     self->state = PS_ZOMBIE;
 }
 
@@ -222,7 +225,7 @@ void Process_Terminate(ProcessRef _Nonnull self, int exitCode)
     _proc_abort_vcpus(self);
     _proc_reap_vcpus(self);
 
-    Process_Zombify(self);
+    _proc_zombify(self);
 
     _proc_notify_parent(self);
 

@@ -95,8 +95,6 @@ extern void uwq_destroy(UWaitQueue* _Nullable self);
 extern errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask, ProcessRef _Nullable * _Nonnull pOutSelf);
 extern void Process_deinit(ProcessRef _Nonnull self);
 
-extern void Process_Zombify(ProcessRef _Nonnull self);
-
 // Returns true if the process is the root process
 #define Process_IsRoot(__self) ((__self)->pid == 1)
 

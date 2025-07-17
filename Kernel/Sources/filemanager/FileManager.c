@@ -23,13 +23,19 @@ void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pF
 
 void FileManager_Deinit(FileManagerRef _Nonnull self)
 {
-    Inode_Relinquish(self->workingDirectory);
-    self->workingDirectory = NULL;
-    Inode_Relinquish(self->rootDirectory);
-    self->rootDirectory = NULL;
+    if (self->workingDirectory) {
+        Inode_Relinquish(self->workingDirectory);
+        self->workingDirectory = NULL;
+    }
+    if (self->rootDirectory) {
+        Inode_Relinquish(self->rootDirectory);
+        self->rootDirectory = NULL;
+    }
 
-    Object_Release(self->fileHierarchy);
-    self->fileHierarchy = NULL;
+    if (self->fileHierarchy) {
+        Object_Release(self->fileHierarchy);
+        self->fileHierarchy = NULL;
+    }
 }
 
 uid_t FileManager_GetRealUserId(FileManagerRef _Nonnull self)

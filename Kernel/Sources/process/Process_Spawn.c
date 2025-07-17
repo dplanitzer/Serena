@@ -97,7 +97,6 @@ catch:
 
     if (err != EOK && pChild) {
         ProcessManager_Deregister(gProcessManager, pChild);
-        Process_Zombify(pChild);
         Object_Release(pChild);
         pChild = NULL;
     }
