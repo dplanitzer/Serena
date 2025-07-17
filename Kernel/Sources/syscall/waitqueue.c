@@ -9,44 +9,105 @@
 #include "syscalldecls.h"
 #include <dispatcher/WaitQueue.h>
 #include <kern/timespec.h>
+#include <klib/Hash.h>
+#include <kern/kalloc.h>
+#include <klib/List.h>
 #include <kpi/signal.h>
 #include <kpi/waitqueue.h>
-#include <process/UWaitQueue.h>
 
 
-SYSCALL_2(wq_create, int policy, int* _Nonnull pOutOd)
+static errno_t uwq_create(int policy, UWaitQueue* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    UWaitQueue* self = NULL;
+
+    if (policy != WAITQUEUE_FIFO) {
+        *pOutSelf = NULL;
+        return EINVAL;
+    }
+
+    err = kalloc(sizeof(UWaitQueue), (void**)&self);
+    if (err == EOK) {
+        ListNode_Init(&self->qe);
+        WaitQueue_Init(&self->wq);
+        self->policy = policy;
+        self->id = -1;
+    }
+
+    *pOutSelf = self;
+    return err;
+}
+
+void uwq_destroy(UWaitQueue* _Nullable self)
+{
+    if (self) {
+        WaitQueue_Deinit(&self->wq);
+        kfree(self);
+    }
+}
+
+
+SYSCALL_2(wq_create, int policy, int* _Nonnull pOutQ)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    UWaitQueueRef pq = NULL;
+    UWaitQueue* uwp = NULL;
+    int q = -1;
 
-    switch (pa->policy) {
-        case WAITQUEUE_FIFO:
-            break;
-
-        default:
-            *(pa->pOutOd) = -1;
-            return EINVAL;
+    err = uwq_create(pa->policy, &uwp);
+    if (err == EOK) {
+        const int sps = preempt_disable();
+        
+        q = pp->nextAvailWaitQueueId++;
+        uwp->id = q;
+        List_InsertAfterLast(&pp->waitQueueTable[hash_scalar(q) & UWQ_HASH_CHAIN_MASK], &uwp->qe);
+        preempt_restore(sps);
     }
+    *(pa->pOutQ) = q;
 
-    try(UResource_AbstractCreate(&kUWaitQueueClass, (UResourceRef*)&pq));
-    WaitQueue_Init(&pq->wq);
-    pq->policy = pa->policy;
-
-    try(UResourceTable_AdoptResource(&pp->uResourcesTable, (UResourceRef) pq, pa->pOutOd));
-    return EOK;
-
-catch:
-    UResource_Dispose(pq);
-    *(pa->pOutOd) = -1;
     return err;
+}
+
+// @Entry Condition: preemption disabled
+static UWaitQueue* _Nullable _find_uwq(ProcessRef _Nonnull pp, int q)
+{
+    List_ForEach(&pp->waitQueueTable[hash_scalar(q) & UWQ_HASH_CHAIN_MASK], ListNode,
+        UWaitQueue* cwp = (UWaitQueue*)pCurNode;
+
+        if (cwp->id == q) {
+            return cwp;
+        }
+    );
+
+    return NULL;
 }
 
 SYSCALL_1(wq_dispose, int q)
 {
+    decl_try_err();
     ProcessRef pp = vp->proc;
 
-    return UResourceTable_DisposeResource(&pp->uResourcesTable, pa->q);
+    const int sps = preempt_disable();
+    UWaitQueue* uwp = _find_uwq(pp, pa->q);
+    
+    if (uwp) {
+        if (List_IsEmpty(&uwp->wq.q)) {
+            List_Remove(&pp->waitQueueTable[hash_scalar(pa->q) & UWQ_HASH_CHAIN_MASK], &uwp->qe);
+        }
+        else {
+            err = EBUSY;
+        }
+    }
+    else {
+        err = EBADF;
+    }
+    preempt_restore(sps);
+    
+    if (err == EOK && uwp) {
+        uwq_destroy(uwp);
+    }
+
+    return err;
 }
 
 SYSCALL_2(wq_wait, int q, const sigset_t* _Nullable mask)
@@ -55,14 +116,12 @@ SYSCALL_2(wq_wait, int q, const sigset_t* _Nullable mask)
     const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
     const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
     ProcessRef pp = vp->proc;
-    UWaitQueueRef pq;
 
-    if ((err = UResourceTable_AcquireResourceAs(&pp->uResourcesTable, pa->q, UWaitQueue, &pq)) == EOK) {
-        const int sps = preempt_disable();
-        err = WaitQueue_Wait(&pq->wq, pmask);
-        preempt_restore(sps);
-        UResourceTable_RelinquishResource(&pp->uResourcesTable, pq);
-    }
+    const int sps = preempt_disable();
+    UWaitQueue* uwp = _find_uwq(pp, pa->q);
+
+    err = (uwp) ? WaitQueue_Wait(&uwp->wq, pmask) : EBADF;
+    preempt_restore(sps);
     return err;
 }
 
@@ -72,14 +131,12 @@ SYSCALL_4(wq_timedwait, int q, const sigset_t* _Nullable mask, int flags, const 
     const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
     const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
     ProcessRef pp = vp->proc;
-    UWaitQueueRef pq;
 
-    if ((err = UResourceTable_AcquireResourceAs(&pp->uResourcesTable, pa->q, UWaitQueue, &pq)) == EOK) {
-        const int sps = preempt_disable();
-        err = WaitQueue_TimedWait(&pq->wq, pmask, pa->flags, pa->wtp, NULL);
-        preempt_restore(sps);
-        UResourceTable_RelinquishResource(&pp->uResourcesTable, pq);
-    }
+    const int sps = preempt_disable();
+    UWaitQueue* uwp = _find_uwq(pp, pa->q);
+
+    err = (uwp) ? WaitQueue_TimedWait(&uwp->wq, pmask, pa->flags, pa->wtp, NULL) : EBADF;
+    preempt_restore(sps);
     return err;
 }
 
@@ -89,16 +146,19 @@ SYSCALL_5(wq_timedwakewait, int q, int oq, const sigset_t* _Nullable mask, int f
     const sigset_t newMask = (pa->mask) ? *(pa->mask) & ~SIGSET_NONMASKABLES : 0;
     const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
     ProcessRef pp = vp->proc;
-    UWaitQueueRef pq;
-    UWaitQueueRef opq;
 
-    if ((err = UResourceTable_AcquireTwoResourcesAs(&pp->uResourcesTable, pa->q, UWaitQueue, &pq, pa->oq, UWaitQueue, &opq)) == EOK) {
-        const int sps = preempt_disable();
-        WaitQueue_Wakeup(&opq->wq, WAKEUP_ONE | WAKEUP_CSW, WRES_WAKEUP);
-        err = WaitQueue_TimedWait(&pq->wq, pmask, pa->flags, pa->wtp, NULL);
-        preempt_restore(sps);
-        UResourceTable_RelinquishTwoResources(&pp->uResourcesTable, pq, opq);
+    const int sps = preempt_disable();
+    UWaitQueue* uwp = _find_uwq(pp, pa->q);
+    UWaitQueue* owp = _find_uwq(pp, pa->oq);
+
+    if (uwp && owp) {
+        WaitQueue_Wakeup(&owp->wq, WAKEUP_ONE | WAKEUP_CSW, WRES_WAKEUP);
+        err = WaitQueue_TimedWait(&uwp->wq, pmask, pa->flags, pa->wtp, NULL);
     }
+    else {
+        err = EBADF;
+    }
+    preempt_restore(sps);
     return err;
 }
 
@@ -107,13 +167,16 @@ SYSCALL_2(wq_wakeup, int q, int flags)
     decl_try_err();
     const int wflags = ((pa->flags & WAKE_ONE) == WAKE_ONE) ? WAKEUP_ONE : WAKEUP_ALL;
     ProcessRef pp = vp->proc;
-    UWaitQueueRef pq;
 
-    if ((err = UResourceTable_BeginDirectResourceAccessAs(&pp->uResourcesTable, pa->q, UWaitQueue, &pq)) == EOK) {
-        const int sps = preempt_disable();
-        WaitQueue_Wakeup(&pq->wq, wflags | WAKEUP_CSW, WRES_WAKEUP);
-        preempt_restore(sps);
-        UResourceTable_EndDirectResourceAccess(&pp->uResourcesTable);
+    const int sps = preempt_disable();
+    UWaitQueue* uwp = _find_uwq(pp, pa->q);
+
+    if (uwp) {
+        WaitQueue_Wakeup(&uwp->wq, wflags | WAKEUP_CSW, WRES_WAKEUP);
     }
+    else {
+        err = EBADF;
+    }
+    preempt_restore(sps);
     return err;
 }

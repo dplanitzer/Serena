@@ -45,7 +45,11 @@ errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarc
     List_Init(&self->vpQueue);
 
     try(IOChannelTable_Init(&self->ioChannelTable));
-    try(UResourceTable_Init(&self->uResourcesTable));
+
+    for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
+        List_Init(&self->waitQueueTable[i]);
+    }
+    self->nextAvailWaitQueueId = 0;
 
     WaitQueue_Init(&self->sleepQueue);
     WaitQueue_Init(&self->siwaQueue);
@@ -70,7 +74,6 @@ void Process_deinit(ProcessRef _Nonnull self)
     assert(List_IsEmpty(&self->children));
     
     IOChannelTable_Deinit(&self->ioChannelTable);
-    UResourceTable_Deinit(&self->uResourcesTable);
 
     FileManager_Deinit(&self->fm);
     
@@ -78,6 +81,14 @@ void Process_deinit(ProcessRef _Nonnull self)
     ConditionVariable_Deinit(&self->tombstoneSignaler);
 
     AddressSpace_Destroy(self->addressSpace);
+
+    for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
+        List_ForEach(&self->waitQueueTable[i], ListNode, {
+            UWaitQueue* cwp = (UWaitQueue*)pCurNode;
+
+            uwq_destroy(cwp);
+        });
+    }
 
     WaitQueue_Deinit(&self->siwaQueue);
     WaitQueue_Deinit(&self->sleepQueue);

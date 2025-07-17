@@ -12,7 +12,6 @@
 #include "Process.h"
 #include "AddressSpace.h"
 #include "IOChannelTable.h"
-#include "UResourceTable.h"
 #include <Catalog.h>
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
@@ -33,6 +32,17 @@ typedef struct ProcessTombstone {
 } ProcessTombstone;
 
 
+#define UWQ_HASH_CHAIN_COUNT    4
+#define UWQ_HASH_CHAIN_MASK     (UWQ_HASH_CHAIN_COUNT - 1)
+
+typedef struct UWaitQueue {
+    ListNode        qe;
+    WaitQueue       wq;
+    unsigned int    policy;
+    int             id;
+} UWaitQueue;
+
+
 final_class_ivars(Process, Object,
     Lock                            lock;
     
@@ -49,13 +59,16 @@ final_class_ivars(Process, Object,
 
     AddressSpaceRef _Nonnull        addressSpace;
 
-    // Resources
+    // I/O Channels
     IOChannelTable                  ioChannelTable;     // I/O channels (aka sharable resources)
-    UResourceTable                  uResourcesTable;    // Process private resources (aka non-sharable resources)
     
     // File manager
     FileManager                     fm;
-    
+
+    // UWaitQueues
+    List/*<UWaitQueue>*/            waitQueueTable[UWQ_HASH_CHAIN_COUNT];   // wait queue descriptor -> UWaitQueue
+    int                             nextAvailWaitQueueId;
+
     // All VPs that belong to this process and are currently in sleep()
     WaitQueue                       sleepQueue;
     
@@ -83,6 +96,7 @@ final_class_ivars(Process, Object,
 #define proc_from_siblings(__ptr) \
 (ProcessRef) (((uint8_t*)__ptr) - offsetof(struct Process, siblings))
 
+extern void uwq_destroy(UWaitQueue* _Nullable self);
 
 
 extern errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask, ProcessRef _Nullable * _Nonnull pOutSelf);
