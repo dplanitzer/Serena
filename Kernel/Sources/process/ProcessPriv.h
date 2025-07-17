@@ -10,13 +10,13 @@
 #define ProcessPriv_h
 
 #include "Process.h"
-#include "AddressSpace.h"
 #include "IOChannelTable.h"
 #include <Catalog.h>
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
 #include <dispatcher/WaitQueue.h>
 #include <filemanager/FileManager.h>
+#include <vm/AddressSpace.h>
 
 
 // A process tombstone is created by a process that voluntarily or involuntarily

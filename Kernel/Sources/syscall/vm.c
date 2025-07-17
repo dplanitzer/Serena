@@ -7,7 +7,7 @@
 //
 
 #include "syscalldecls.h"
-#include <process/AddressSpace.h>
+#include <vm/AddressSpace.h>
 
 
 SYSCALL_2(alloc_address_space, size_t nbytes, void * _Nullable * _Nonnull pOutMem)

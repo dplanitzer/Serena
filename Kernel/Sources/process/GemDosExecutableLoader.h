@@ -10,7 +10,7 @@
 #define GemDosExecutableLoader_h
 
 #include <filesystem/FileChannel.h>
-#include "AddressSpace.h"
+#include <vm/AddressSpace.h>
 
 // <http://toshyp.atari.org/en/005005.html> and Atari GEMDOS Reference Manual
 // Why?? 'cause it's easy
