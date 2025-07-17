@@ -36,7 +36,7 @@ errno_t Process_OnChildTermination(ProcessRef _Nonnull self, ProcessRef _Nonnull
 {
     ProcessTombstone* pTombstone;
 
-    if (Process_IsTerminating(self)) {
+    if (self->state >= PS_ZOMBIFYING) {
         // We're terminating ourselves. Let the child know so that it should
         // bother someone else (session leader) with it's tombstone request.
         return ESRCH;
@@ -156,68 +156,12 @@ static int Process_GetAnyChildPid(ProcessRef _Nonnull self)
     return pid;
 }
 
-// Runs on the kernel main dispatch queue and terminates the given process.
-static _Noreturn _Process_DoTerminate(ProcessRef _Nonnull self)
+
+
+// Force quit all child processes and reap their corpses. Do not return to the
+// caller until all of them are dead and gone.
+static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 {
-    // Notes on terminating a process:
-    //
-    // All VPs belonging to a process are executing call-as-user invocations. The
-    // first step of terminating a process is to abort all these invocations. This
-    // is done by terminating all dispatch queues that belong to the process first.
-    //
-    // What does aborting a call-as-user invocation mean?
-    // 1) If a VP is currently executing in user space then the user space
-    //    invocation is aborted and the VP returns back to the dispatch queue
-    //    main loop.
-    // 2) If a VP is currently executing inside a system call then this system
-    //    call has to first complete and we then abort the user space invocation
-    //    that led to the system call when the system call would normally return
-    //    to user space. So the return to user space is redirected to a piece of
-    //    code that aborts the user space invocation. The VP then returns back
-    //    to the dispatch queue main loop.
-    // 3) A VP may be in waiting state because it executed a system call that
-    //    invoked a blocking function. This wait will be interrupted/aborted as
-    //    a side-effect of aborting the call-as-user invocation. Additionally all
-    //    further abortable waits that the VP wants to take are immediately aborted
-    //    until the VP has left the system call. This auto-abort does not apply
-    //    to non-abortable waits like Lock_Lock.
-    // 
-    // Terminating a dispatch queue means that all queued up work items and timers
-    // are flushed from the queue and that the queue relinquishes all its VPs. The
-    // queue also stops accepting new work.
-    //
-    // A word on process termination and system calls:
-    //
-    // A system call MUST complete its run before the process data structures can
-    // be freed. This is required because a system call manipulates kernel state
-    // and we must ensure that every state manipulation is properly finalized
-    // before we continue.
-    // Note also that a system call that takes a kernel lock must eventually drop
-    // this lock (it can not endlessly hold it) and it is expected to drop the
-    // lock ASAP (it can not take unnecessarily long to release the lock). That's
-    // why it is fine that Lock_Lock() is not interruptable even in the face of
-    // the ability to terminate a process voluntarily/involuntarily.
-    // The top-level system call handler checks whether a process is terminating
-    // and it aborts the user space invocation that led to the system call. This
-    // is the only required process termination check in a system call. All other
-    // checks are voluntarily.
-    // That said, every wait also does a check for process termination and the
-    // wait immediately returns with an EINTR if the process is in the process of
-    // being terminated. The only exception to this is the wait that Lock_Lock()
-    // does since this kind of lock is a kernel lock that is used to preserve the
-    // integrity of kernel data structures.
-
-    // Notes on terminating a process tree:
-    //
-    // If a process terminates voluntarily or involuntarily then it'll by default
-    // also terminate all its children, grand-children, etc processes. Every
-    // process in the tree first terminates its children before it completes its
-    // own termination. Doing it this way ensures that a parent process won't
-    // (magically) disappear before all its children have terminated.
-
-
-
-    // Terminate all my children and wait for them to be dead
     while (true) {
         const pid_t pid = Process_GetAnyChildPid(self);
 
@@ -231,21 +175,34 @@ static _Noreturn _Process_DoTerminate(ProcessRef _Nonnull self)
         Process_WaitForTerminationOfChild(self, pid, NULL, 0);
         Object_Release(pCurChild);
     }
+}
 
+// Take the calling VP out from the process' VP list since it will relinquish
+// itself at the very end of the process termination sequence.
+static void _proc_detach_calling_vcpu(ProcessRef _Nonnull self)
+{
+    Process_DetachVirtualProcessor(self, VirtualProcessor_GetCurrent());
+}
 
-    // Take myself out from the VP list
-    VirtualProcessor* me_vp = VirtualProcessor_GetCurrent();
+// Initiate an abort on every virtual processor attached to ourselves. Note that
+// the VP that is running the process termination code has already taking itself
+// out from the VP list.
+static void _proc_abort_vcpus(ProcessRef _Nonnull self)
+{
 
-    Lock_Lock(&self->lock);
-    List_Remove(&self->vpQueue, &me_vp->owner_qe);
-    Lock_Unlock(&self->lock);
+}
 
+// Wait for all vcpus to relinquish themselves from the process. Only return
+// once all vcpus are gone and no longer touch the process object.
+static void _proc_reap_vcpus(ProcessRef _Nonnull self)
+{
 
-    // XXX Terminate all other VPs and wait until they are all gone
+}
 
-
-    // Let our parent know that we're dead now and that it should remember us by
-    // commissioning a beautiful tombstone for us.
+// Let our parent know that we're dead now and that it should remember us by
+// commissioning a beautiful tombstone for us.
+static void _proc_notify_parent(ProcessRef _Nonnull self)
+{
     if (!Process_IsRoot(self)) {
         ProcessRef pParentProc = ProcessManager_CopyProcessForPid(gProcessManager, self->ppid);
 
@@ -261,16 +218,37 @@ static _Noreturn _Process_DoTerminate(ProcessRef _Nonnull self)
             Object_Release(pParentProc);
         }
     }
+}
+
+// Zombify the process by freeing resources we no longer need at this point. The
+// calling VP is the only one left touching the process. So this is safe.
+void Process_Zombify(ProcessRef _Nonnull self)
+{
+    self->state = PS_ZOMBIE;
+}
+
+// Runs on the kernel main dispatch queue and terminates the given process.
+static _Noreturn _proc_terminate(ProcessRef _Nonnull self)
+{
+    _proc_terminate_and_reap_children(self);
+
+    _proc_detach_calling_vcpu(self);
+    _proc_abort_vcpus(self);
+    _proc_reap_vcpus(self);
+
+    Process_Zombify(self);
+
+    _proc_notify_parent(self);
 
 
     // Destroy the process.
-    Process_Unpublish(self);
     ProcessManager_Deregister(gProcessManager, self);
     Object_Release(self);
 
-
     // Finally relinquish myself
-    VirtualProcessorPool_RelinquishVirtualProcessor(gVirtualProcessorPool, me_vp);
+    VirtualProcessorPool_RelinquishVirtualProcessor(
+        gVirtualProcessorPool,
+        VirtualProcessor_GetCurrent());
     /* NOT REACHED */
 }
 
@@ -289,30 +267,17 @@ void Process_Terminate(ProcessRef _Nonnull self, int exitCode)
     }
 
 
-    // Mark the process atomically as terminating. Leave now if some other VP
-    // belonging to this process has already kicked off the termination. Note
-    // that if multiple VPs concurrently execute a Process_Terminate(), that
-    // at most one of them is able to get past this gate to kick off the
-    // termination. All other VPs will return and their system calls will be
-    // aborted. Also note that the Process data structure stays alive until
-    // after _all_ VPs (including the first one) have returned from their
-    // (aborted) system calls. So by the time the process data structure is
-    // freed no system call that might directly or indirectly reference the
-    // process is active anymore because all of them have been aborted and
-    // unwound before we free the process data structure.
-    if(AtomicBool_Set(&self->isTerminating, true)) {
-        return;
+    Lock_Lock(&self->lock);
+    const int isExiting = self->state >= PS_ZOMBIFYING;
+    
+    if (!isExiting) {
+        self->state = PS_ZOMBIFYING;
+        self->exitCode = exitCode & _WSTATUSMASK;
     }
+    Lock_Unlock(&self->lock);
 
 
-    // Remember the exit code
-    self->exitCode = exitCode & _WSTATUSMASK;
-
-
-    _Process_DoTerminate(self);
-}
-
-bool Process_IsTerminating(ProcessRef _Nonnull self)
-{
-    return self->isTerminating;
+    if (!isExiting) {
+        _proc_terminate(self);
+    }
 }

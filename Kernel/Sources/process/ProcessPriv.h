@@ -32,6 +32,13 @@ typedef struct ProcessTombstone {
 } ProcessTombstone;
 
 
+// Process states
+#define PS_ALIVE      0
+#define PS_ZOMBIFYING 1
+#define PS_ZOMBIE     2
+
+
+// Userspace wait queues
 #define UWQ_HASH_CHAIN_COUNT    4
 #define UWQ_HASH_CHAIN_MASK     (UWQ_HASH_CHAIN_COUNT - 1)
 
@@ -48,6 +55,7 @@ final_class_ivars(Process, Object,
     
     ListNode                        ptce;       // Process table chain entry. Protected by ProcessManager lock
 
+    int                             state;
     pid_t                           pid;        // my PID
     pid_t                           ppid;       // parent's PID
     pid_t                           pgrp;       // Group id. I'm the group leader if pgrp == pid
@@ -80,7 +88,6 @@ final_class_ivars(Process, Object,
     char* _Nullable _Weak           argumentsBase;  // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
 
     // Process termination
-    AtomicBool                      isTerminating;  // true if the process is going through the termination process
     int                             exitCode;       // Exit code of the first exit() call that initiated the termination of this process
 
     // Child process related properties
@@ -101,6 +108,8 @@ extern void uwq_destroy(UWaitQueue* _Nullable self);
 
 extern errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask, ProcessRef _Nullable * _Nonnull pOutSelf);
 extern void Process_deinit(ProcessRef _Nonnull self);
+
+extern void Process_Zombify(ProcessRef _Nonnull self);
 
 // Frees all tombstones
 extern void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull self);

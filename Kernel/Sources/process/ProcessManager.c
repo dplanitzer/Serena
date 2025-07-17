@@ -33,17 +33,18 @@ errno_t ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef _
     decl_try_err();
     ProcessManagerRef self;
     
-    try_bang(kalloc(sizeof(ProcessManager), (void**) &self));
+    try(kalloc(sizeof(ProcessManager), (void**) &self));
     
     Lock_Init(&self->lock);
     
-    for (int i = 0; i < HASH_CHAIN_COUNT; i++) {
+    for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
         List_Init(&self->procTable[i]);
     }
 
     self->rootProc = pRootProc;
-    ProcessManager_Register(self, pRootProc);
+    err = ProcessManager_Register(self, pRootProc);
 
+catch:
     *pOutSelf = self;
     return EOK;
 }
@@ -85,22 +86,31 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
 // that's equal to some other registered process.
 // A process will only become visible to other processes after it has been
 // registered with the process manager. 
-void ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pProc)
+errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
 {
+    decl_try_err();
+
     Lock_Lock(&self->lock);
-    List_InsertBeforeFirst(&self->procTable[hash_scalar(pProc->pid) & HASH_CHAIN_MASK], &pProc->ptce);
-    Object_Retain(pProc);
+    err = Process_Publish(pp);
+    if (err == EOK) {
+        List_InsertBeforeFirst(&self->procTable[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->ptce);
+        Object_Retain(pp);
+    }
     Lock_Unlock(&self->lock);
+
+    return err;
 }
 
 // Deregisters the given process from the process manager. This makes the process
 // invisible to other processes. Does nothing if the given process isn't
 // registered.
-void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pProc)
+void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
 {
     Lock_Lock(&self->lock);
-    assert(pProc != self->rootProc);
-    List_Remove(&self->procTable[hash_scalar(pProc->pid) & HASH_CHAIN_MASK], &pProc->ptce);
-    Object_Release(pProc);
+    assert(pp != self->rootProc);
+
+    Process_Unpublish(pp);
+    List_Remove(&self->procTable[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->ptce);
+    Object_Release(pp);
     Lock_Unlock(&self->lock);
 }

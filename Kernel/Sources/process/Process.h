@@ -37,9 +37,6 @@ extern errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef 
 // All others are discarded.
 extern void Process_Terminate(ProcessRef _Nonnull self, int exitCode);
 
-// Returns true if the process is marked for termination and false otherwise.
-extern bool Process_IsTerminating(ProcessRef _Nonnull self);
-
 // Waits for the child process with the given PID to terminate and returns the
 // termination status. Returns ECHILD if there are no tombstones of terminated
 // child processes available or the PID is not the PID of a child process of
@@ -62,6 +59,7 @@ extern errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execP
 
 extern errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _Nonnull idp);
 extern void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, VirtualProcessor* _Nonnull vp);
+extern void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, VirtualProcessor* _Nonnull vp);
 
 
 //

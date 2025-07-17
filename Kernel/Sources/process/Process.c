@@ -36,6 +36,7 @@ errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarc
 
     Lock_Init(&self->lock);
 
+    self->state = PS_ALIVE;
     self->pid = pid;
     self->ppid = ppid;
     self->pgrp = pgrp;
@@ -124,46 +125,43 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
 
     Lock_Lock(&self->lock);
 
-    if (!self->isTerminating) {
-        err = VirtualProcessorPool_AcquireVirtualProcessor(
-                                            gVirtualProcessorPool,
-                                            &kp,
-                                            &vp);
-        if (err == EOK) {
-            vp->proc = self;
-            vp->udata = attr->data;
-            List_InsertAfterLast(&self->vpQueue, &vp->owner_qe);
-            *idp = vp->vpid;
-
-            if ((attr->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
-                VirtualProcessor_Resume(vp, false);
-            }
-        }
-    }
-    else {
-        err = ESRCH;
+    if (self->state >= PS_ZOMBIFYING) {
+        throw(EINTR);
     }
 
+    try(VirtualProcessorPool_AcquireVirtualProcessor(
+            gVirtualProcessorPool,
+            &kp,
+            &vp));
+
+    vp->proc = self;
+    vp->udata = attr->data;
+    List_InsertAfterLast(&self->vpQueue, &vp->owner_qe);
+    *idp = vp->vpid;
+
+    if ((attr->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
+        VirtualProcessor_Resume(vp, false);
+    }
+
+catch:
     Lock_Unlock(&self->lock);
 
     return err;
 }
-void _vcpu_relinquish_self(void)
-{
-    VirtualProcessor* vp = VirtualProcessor_GetCurrent();
-
-    Process_RelinquishVirtualProcessor(vp->proc, vp);
-    /* NOT REACHED */
-}
 
 void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, VirtualProcessor* _Nonnull vp)
 {
-    Lock_Lock(&self->lock);
+    Process_DetachVirtualProcessor(self, vp);
+    VirtualProcessorPool_RelinquishVirtualProcessor(gVirtualProcessorPool, VirtualProcessor_GetCurrent());
+    /* NOT REACHED */
+}
+
+void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, VirtualProcessor* _Nonnull vp)
+{
     assert(vp->proc == self);
+
+    Lock_Lock(&self->lock);
     List_Remove(&self->vpQueue, &vp->owner_qe);
     vp->proc = NULL;
     Lock_Unlock(&self->lock);
-
-    VirtualProcessorPool_RelinquishVirtualProcessor(gVirtualProcessorPool, VirtualProcessor_GetCurrent());
-    /* NOT REACHED */
 }

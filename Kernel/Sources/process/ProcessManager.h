@@ -42,11 +42,11 @@ extern ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _
 // that's equal to some other registered process.
 // A process will only become visible to other processes after it has been
 // registered with the process manager.
-extern void ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pProc);
+extern errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp);
 
 // Deregisters the given process from the process manager. This makes the process
 // invisible to other processes. Does nothing if the given process isn't
 // registered.
-extern void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pProc);
+extern void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp);
 
 #endif /* ProcessManager_h */

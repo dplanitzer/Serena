@@ -74,7 +74,6 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull
 {
     decl_try_err();
     ProcessRef pChild = NULL;
-    bool doTermChild = false;
 
     if (*path == '\0') {
         return EINVAL;
@@ -82,27 +81,24 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull
     
     Lock_Lock(&self->lock);
 
-    err = proc_create_child(self, opts, &pChild);
-    if (err == EOK) {
-        Process_AdoptChild_Locked(self, pChild);
-        ProcessManager_Register(gProcessManager, pChild);
-        Object_Release(pChild);
+    try(proc_create_child(self, opts, &pChild));
+    
+    Process_AdoptChild_Locked(self, pChild);
+    try(ProcessManager_Register(gProcessManager, pChild));
+    //XXX Should remove this release because we're adopting the child and thus
+    // this release is wrong. However Catalog_Unpublish leaks its ref to the
+    // child process and this ends up balancing this bug here 
+    Object_Release(pChild);
 
-        Process_Publish(pChild);
-        
-        err = Process_Exec(pChild, path, argv, opts->envp);
-        if (err != EOK) {
-            doTermChild = true;
-        }
-    }
+    try(Process_Exec(pChild, path, argv, opts->envp));
 
+catch:
     Lock_Unlock(&self->lock);
 
-    if (doTermChild) {
-        //XXX We just want to release the resources of the child process. But we
-        //XXX do not want to notify its parent ('self') since the spawn has failed.
+    if (err != EOK && pChild) {
+        ProcessManager_Deregister(gProcessManager, pChild);
+        Process_Zombify(pChild);
         Object_Release(pChild);
-        //Process_Terminate(pChild, 127);
         pChild = NULL;
     }
 

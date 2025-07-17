@@ -180,7 +180,6 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     // Create the process manager and publish the root process
     try(ProcessManager_Create(pRootProc, &gProcessManager));
-    Process_Publish(pRootProc);
 
 
     // Get the root process going
