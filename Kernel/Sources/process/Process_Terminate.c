@@ -8,130 +8,89 @@
 
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
-#include <log/Log.h>
-#include <kern/kalloc.h>
+#include <dispatcher/VirtualProcessorPool.h>
 #include <kern/timespec.h>
-#include <dispatchqueue/DispatchQueue.h>
+#include <log/Log.h>
 
 
-// Frees all tombstones
-void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull self)
+// Called by the given child process to notify its parent about its death.
+static errno_t _proc_on_child_termination(ProcessRef _Nonnull self, ProcessRef _Nonnull child)
 {
-    ProcessTombstone* pCurTombstone = (ProcessTombstone*)self->tombstones.first;
-
-    while (pCurTombstone) {
-        ProcessTombstone* nxt = (ProcessTombstone*)pCurTombstone->node.next;
-
-        kfree(pCurTombstone);
-        pCurTombstone = nxt;
-    }
-}
-
-// Called by the given child process tp notify its parent about its death.
-// Creates a new tombstone for the given child process with the given exit status
-// and posts a termination notification closure if one was provided for the child
-// process. Expects that the child process state does not change while this function
-// is executing.
-errno_t Process_OnChildTermination(ProcessRef _Nonnull self, ProcessRef _Nonnull child)
-{
-    ProcessTombstone* pTombstone;
-
     if (self->state >= PS_ZOMBIFYING) {
-        // We're terminating ourselves. Let the child know so that it should
-        // bother someone else (session leader) with it's tombstone request.
         return ESRCH;
     }
 
-    if (kalloc_cleared(sizeof(ProcessTombstone), (void**) &pTombstone) != EOK) {
-        printf("Broken tombstone for %d:%d\n", self->pid, child->pid);
-        return EOK;
-    }
-
-    ListNode_Init(&pTombstone->node);
-    pTombstone->pid = child->pid;
-    pTombstone->status = child->exitCode;
 
     Lock_Lock(&self->lock);
-    Process_AbandonChild_Locked(self, child);
-    List_InsertAfterLast(&self->tombstones, &pTombstone->node);
-    
-    ConditionVariable_Broadcast(&self->tombstoneSignaler);
+    ConditionVariable_Broadcast(&self->procTermSignaler);
     Lock_Unlock(&self->lock);
 
     return EOK;
 }
 
 // Waits for the child process with the given PID to terminate and returns the
-// termination status. Returns ECHILD if there are no tombstones of terminated
-// child processes available or the PID is not the PID of a child process of
-// the receiver. Otherwise blocks the caller until the requested process or any
-// child process (pid == -1) has exited.
+// termination status. Returns ECHILD if the child process 'pid' is still active.
+// Otherwise blocks the caller until the requested process or any child process
+// (pid == -1) has exited.
 errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull self, pid_t pid, struct _pstatus* _Nonnull pStatus, int options)
 {
     decl_try_err();
+    ProcessRef zp = NULL;
 
     Lock_Lock(&self->lock);
-    if (pid == -1 && List_IsEmpty(&self->tombstones)) {
-        throw(ECHILD);
-    }
+    for (;;) {
+        bool hasChildWithPid = false;
 
-    
-    // Need to wait for a child to terminate
-    while (true) {
-        const ProcessTombstone* pTombstone = NULL;
+        List_ForEach(&self->children, ListNode, {
+            ProcessRef cpp = proc_from_siblings(pCurNode);
 
-        if (pid == -1) {
-            // Any tombstone is good, return the first one (oldest) that was recorded
-            pTombstone = (ProcessTombstone*)self->tombstones.first;
-        } else {
-            // Look for the specific child process
-            List_ForEach(&self->tombstones, ProcessTombstone, {
-                if (pCurNode->pid == pid) {
-                    pTombstone = pCurNode;
+            if (pid == -1 || cpp->pid == pid) {
+                hasChildWithPid = true;
+
+                if (cpp->state == PS_ZOMBIE) {
+                    zp = cpp;
+                    List_Remove(&self->children, &zp->siblings);
                     break;
                 }
-            })
-
-            if (pTombstone == NULL) {
-                // Looks like the child isn't dead yet or 'pid' isn't referring to a child. Make sure it does
-                bool hasChild = false;
-
-                List_ForEach(&self->children, ListNode,
-                    ProcessRef pCurProc = proc_from_siblings(pCurNode);
-
-                    if (pCurProc->pid == pid) {
-                        hasChild = true;
-                        break;
-                    }
-                );
-                if (!hasChild) {
-                    throw(ECHILD);
-                }
             }
+        });
+
+        if (!hasChildWithPid) {
+            err = ECHILD;
+            break;
         }
 
-        if (pTombstone) {
-            pStatus->pid = pTombstone->pid;
-            pStatus->status = pTombstone->status;
-
-            List_Remove(&self->tombstones, &pTombstone->node);
-            kfree(pTombstone);
+        if (zp) {
             break;
         }
 
         if ((options & WNOHANG) == WNOHANG) {
-            pStatus->pid = 0;
-            pStatus->status = 0;
+            err = ECHILD;
             break;
         }
 
 
         // Wait for a child to terminate
-        try(ConditionVariable_Wait(&self->tombstoneSignaler, &self->lock));
+        err = ConditionVariable_Wait(&self->procTermSignaler, &self->lock);
+        if (err != EOK) {
+            break;
+        }
+    }
+    Lock_Unlock(&self->lock);
+
+
+    if (zp) {
+        pStatus->pid = zp->pid;
+        pStatus->status = zp->exitCode;
+
+        ProcessManager_Deregister(gProcessManager, zp);
+        Object_Release(zp);
+    }
+    else {
+        pStatus->pid = 0;
+        pStatus->status = 0;
     }
 
-catch:
-    Lock_Unlock(&self->lock);
     return err;
 }
 
@@ -207,12 +166,12 @@ static void _proc_notify_parent(ProcessRef _Nonnull self)
         ProcessRef pParentProc = ProcessManager_CopyProcessForPid(gProcessManager, self->ppid);
 
         if (pParentProc) {
-            if (Process_OnChildTermination(pParentProc, self) == ESRCH) {
+            if (_proc_on_child_termination(pParentProc, self) == ESRCH) {
                 // XXXsession Try the session leader next. Give up if this fails too.
                 // XXXsession. Unconditionally falling back to the root process for now.
                 // Just drop the tombstone request if no one wants it.
                 ProcessRef pRootProc = ProcessManager_CopyRootProcess(gProcessManager);
-                Process_OnChildTermination(pRootProc, self);
+                _proc_on_child_termination(pRootProc, self);
                 Object_Release(pRootProc);
             }
             Object_Release(pParentProc);
@@ -225,31 +184,6 @@ static void _proc_notify_parent(ProcessRef _Nonnull self)
 void Process_Zombify(ProcessRef _Nonnull self)
 {
     self->state = PS_ZOMBIE;
-}
-
-// Runs on the kernel main dispatch queue and terminates the given process.
-static _Noreturn _proc_terminate(ProcessRef _Nonnull self)
-{
-    _proc_terminate_and_reap_children(self);
-
-    _proc_detach_calling_vcpu(self);
-    _proc_abort_vcpus(self);
-    _proc_reap_vcpus(self);
-
-    Process_Zombify(self);
-
-    _proc_notify_parent(self);
-
-
-    // Destroy the process.
-    ProcessManager_Deregister(gProcessManager, self);
-    Object_Release(self);
-
-    // Finally relinquish myself
-    VirtualProcessorPool_RelinquishVirtualProcessor(
-        gVirtualProcessorPool,
-        VirtualProcessor_GetCurrent());
-    /* NOT REACHED */
 }
 
 // Triggers the termination of the given process. The termination may be caused
@@ -277,7 +211,25 @@ void Process_Terminate(ProcessRef _Nonnull self, int exitCode)
     Lock_Unlock(&self->lock);
 
 
-    if (!isExiting) {
-        _proc_terminate(self);
+    if (isExiting) {
+        return;
     }
+
+
+    _proc_terminate_and_reap_children(self);
+
+    _proc_detach_calling_vcpu(self);
+    _proc_abort_vcpus(self);
+    _proc_reap_vcpus(self);
+
+    Process_Zombify(self);
+
+    _proc_notify_parent(self);
+
+    
+    // Finally relinquish myself
+    VirtualProcessorPool_RelinquishVirtualProcessor(
+        gVirtualProcessorPool,
+        VirtualProcessor_GetCurrent());
+    /* NOT REACHED */
 }

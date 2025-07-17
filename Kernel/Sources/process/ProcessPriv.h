@@ -19,19 +19,6 @@
 #include <vm/AddressSpace.h>
 
 
-// A process tombstone is created by a process that voluntarily or involuntarily
-// exits. It records the PID and status of the exiting process. The tombstone is
-// added to the parent process of the process that exits.
-// This data structure is created by the exiting (child) process and is then
-// handed over to the parent process which takes ownership. Once this happens
-// the data structure is protected by the parent's lock.
-typedef struct ProcessTombstone {
-    ListNode    node;
-    int         pid;        // PID of process that exited
-    int         status;     // Exit status
-} ProcessTombstone;
-
-
 // Process states
 #define PS_ALIVE      0
 #define PS_ZOMBIFYING 1
@@ -93,8 +80,7 @@ final_class_ivars(Process, Object,
     // Child process related properties
     List/*<Process>*/               children;
     ListNode                        siblings;
-    List/*<ProcessTombstone>*/      tombstones;     // Tombstones of child processes that have terminated and have not yet been consumed by waitpid()
-    ConditionVariable               tombstoneSignaler;
+    ConditionVariable               procTermSignaler;
 );
 
 #define proc_from_ptce(__ptr) \
@@ -111,18 +97,8 @@ extern void Process_deinit(ProcessRef _Nonnull self);
 
 extern void Process_Zombify(ProcessRef _Nonnull self);
 
-// Frees all tombstones
-extern void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull self);
-
 // Returns true if the process is the root process
 #define Process_IsRoot(__self) ((__self)->pid == 1)
-
-// Called by the given child process tp notify its parent about its death.
-// Creates a new tombstone for the given child process with the given exit status
-// and posts a termination notification closure if one was provided for the child
-// process. Expects that the child process state does not change while this function
-// is executing.
-extern errno_t Process_OnChildTermination(ProcessRef _Nonnull self, ProcessRef _Nonnull pChildProc);
 
 // Adopts the given process as a child. The ppid of 'child' must be the PID of
 // the receiver.

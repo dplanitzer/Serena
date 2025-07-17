@@ -56,8 +56,7 @@ errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarc
     WaitQueue_Init(&self->siwaQueue);
     FileManager_Init(&self->fm, pFileHierarchy, uid, gid, pRootDir, pWorkingDir, umask);
 
-    List_Init(&self->tombstones);
-    ConditionVariable_Init(&self->tombstoneSignaler);
+    ConditionVariable_Init(&self->procTermSignaler);
 
     try(AddressSpace_Create(&self->addressSpace));
 
@@ -75,13 +74,10 @@ void Process_deinit(ProcessRef _Nonnull self)
     assert(List_IsEmpty(&self->children));
     
     IOChannelTable_Deinit(&self->ioChannelTable);
-
     FileManager_Deinit(&self->fm);
-    
-    Process_DestroyAllTombstones_Locked(self);
-    ConditionVariable_Deinit(&self->tombstoneSignaler);
-
     AddressSpace_Destroy(self->addressSpace);
+
+    ConditionVariable_Deinit(&self->procTermSignaler);
 
     for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
         List_ForEach(&self->waitQueueTable[i], ListNode, {
