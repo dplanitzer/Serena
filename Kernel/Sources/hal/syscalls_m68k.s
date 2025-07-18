@@ -71,10 +71,7 @@ _syscall_entry:
         ; save the user registers (see description above)
         movem.l d1 - d7 / a0 - a6, -(sp)
 
-        ; save the ksp as it was at syscall entry (needed to be able to abort call-as-user invocations)
         move.l  _gVirtualProcessorSchedulerStorage + vps_running, a1
-        lea     ((7 + 7)*4, sp), a2             ; ksp at trap handler entry time was 7 dR and 7 aR (saved register) long words higher up in memory
-        move.l  a2, vp_syscall_entry_ksp(a1)
 
         ; Invoke the system call handler. Returns a result in d0
         move.l  a0, -(sp)

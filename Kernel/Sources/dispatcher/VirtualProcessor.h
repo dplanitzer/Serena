@@ -136,7 +136,6 @@ typedef struct VirtualProcessor {
     ListNode                                owner_qe;               // VP Pool if relinquished; process if acquired
 
     // System call support
-    uint32_t                                syscall_entry_ksp;      // saved Kernel stack pointer at the entry of a system call
     errno_t                                 uerrno;                 // most recent recorded error for user space
     intptr_t                                udata;                  // user space data associated with this VP
     
