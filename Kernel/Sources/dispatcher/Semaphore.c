@@ -13,13 +13,13 @@
 void Semaphore_Init(Semaphore* _Nonnull self, int value)
 {
     self->value = value;
-    WaitQueue_Init(&self->wq);
+    wq_init(&self->wq);
 }
 
 // Deinitializes the semaphore.
 void Semaphore_Deinit(Semaphore* _Nonnull self)
 {
-    assert(WaitQueue_Deinit(&self->wq) == EOK);
+    assert(wq_deinit(&self->wq) == EOK);
 }
 
 // Invoked by Semaphore_Acquire() if the semaphore doesn't have the expected
@@ -27,7 +27,7 @@ void Semaphore_Deinit(Semaphore* _Nonnull self)
 // @Entry Condition: preemption disabled
 errno_t Semaphore_OnWaitForPermits(Semaphore* _Nonnull self, const struct timespec* _Nonnull deadline)
 {
-    return WaitQueue_TimedWait(&self->wq,
+    return wq_timedwait(&self->wq,
                         NULL,
                         WAIT_ABSTIME,
                         deadline,
@@ -38,5 +38,5 @@ errno_t Semaphore_OnWaitForPermits(Semaphore* _Nonnull self, const struct timesp
 // @Entry Condition: preemption disabled
 void Semaphore_WakeUp(Semaphore* _Nullable self)
 {
-    WaitQueue_Wakeup(&self->wq, WAKEUP_ALL | WAKEUP_CSW, WRES_WAKEUP);
+    wq_wake(&self->wq, WAKEUP_ALL | WAKEUP_CSW, WRES_WAKEUP);
 }

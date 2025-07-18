@@ -16,10 +16,10 @@
 #include <kpi/signal.h>
 #include <machine/Platform.h>
 #include <machine/SystemDescription.h>
+#include <sched/waitqueue.h>
 
 struct Process;
 struct VirtualProcessor;
-struct WaitQueue;
 
 
 extern const sigset_t SIGSET_BLOCK_ALL;
@@ -148,7 +148,7 @@ typedef struct VirtualProcessor {
 
     // Waiting related state
     Timeout                                 timeout;                // The timeout state
-    struct WaitQueue* _Nullable             waiting_on_wait_queue;  // The wait queue this VP is waiting on; NULL if not waiting. Used by the scheduler to wake up on timeout
+    waitqueue_t _Nullable                   waiting_on_wait_queue;  // The wait queue this VP is waiting on; NULL if not waiting. Used by the scheduler to wake up on timeout
     Quantums                                wait_start_time;        // Time when we entered waiting state
     int8_t                                  wakeup_reason;
     

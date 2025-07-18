@@ -14,13 +14,13 @@
 // Initializes a new condition variable.
 void ConditionVariable_Init(ConditionVariable* _Nonnull self)
 {
-    WaitQueue_Init(&self->wq);
+    wq_init(&self->wq);
 }
 
 // Deinitializes the condition variable.
 void ConditionVariable_Deinit(ConditionVariable* _Nonnull self)
 {
-    assert(WaitQueue_Deinit(&self->wq) == EOK);
+    assert(wq_deinit(&self->wq) == EOK);
 }
 
 // Signals the given condition variable.
@@ -29,7 +29,7 @@ void _ConditionVariable_Wakeup(ConditionVariable* _Nonnull self, bool broadcast)
     const int flags = (broadcast) ? WAKEUP_ALL : WAKEUP_ONE;
     const int sps = preempt_disable();
     
-    WaitQueue_Wakeup(&self->wq, flags | WAKEUP_CSW, WRES_WAKEUP);
+    wq_wake(&self->wq, flags | WAKEUP_CSW, WRES_WAKEUP);
     preempt_restore(sps);
 }
 
@@ -46,7 +46,7 @@ errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull self, Lock* _Nonnull 
     const int sps = preempt_disable();
     
     Lock_Unlock(pLock);
-    const int err = WaitQueue_Wait(&self->wq, NULL);
+    const int err = wq_wait(&self->wq, NULL);
     Lock_Lock(pLock);
 
     preempt_restore(sps);
@@ -61,7 +61,7 @@ errno_t ConditionVariable_TimedWait(ConditionVariable* _Nonnull self, Lock* _Non
     const int sps = preempt_disable();
     
     Lock_Unlock(pLock);
-    const int err = WaitQueue_TimedWait(&self->wq,
+    const int err = wq_timedwait(&self->wq,
                                 NULL,
                                 WAIT_ABSTIME,
                                 deadline,

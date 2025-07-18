@@ -7,9 +7,9 @@
 //
 
 #include "syscalldecls.h"
-#include <dispatcher/WaitQueue.h>
 #include <kern/timespec.h>
 #include <kpi/signal.h>
+#include <sched/waitqueue.h>
 
 
 SYSCALL_2(sigwait, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
@@ -18,7 +18,7 @@ SYSCALL_2(sigwait, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
-    err = WaitQueue_SigWait(&pp->siwaQueue, pa->set, pa->info);
+    err = wq_sigwait(&pp->siwaQueue, pa->set, pa->info);
     preempt_restore(sps);
     return err;
 }
@@ -29,7 +29,7 @@ SYSCALL_4(sigtimedwait, const sigset_t* _Nonnull set, int flags, const struct ti
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
-    err = WaitQueue_SigTimedWait(&pp->siwaQueue, pa->set, pa->flags, pa->wtp, pa->info);
+    err = wq_sigtimedwait(&pp->siwaQueue, pa->set, pa->flags, pa->wtp, pa->info);
     preempt_restore(sps);
     return err;
 }

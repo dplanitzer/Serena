@@ -163,7 +163,7 @@ static void _proc_abort_vcpus(ProcessRef _Nonnull self)
 
 // Wait for all vcpus to relinquish themselves from the process. Only return
 // once all vcpus are gone and no longer touch the process object.
-static WaitQueue gHackQueue;
+static struct waitqueue gHackQueue;
 static void _proc_reap_vcpus(ProcessRef _Nonnull self)
 {
     bool done = false;
@@ -175,7 +175,7 @@ static void _proc_reap_vcpus(ProcessRef _Nonnull self)
         //VirtualProcessor_Yield();
         struct timespec delay;
         timespec_from_ms(&delay, 10);
-        WaitQueue_TimedWait(&gHackQueue, NULL, 0, &delay, NULL);
+        wq_timedwait(&gHackQueue, NULL, 0, &delay, NULL);
 
         Lock_Lock(&self->lock);
         if (self->vpQueue.first == NULL) {

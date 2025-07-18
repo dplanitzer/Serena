@@ -7,13 +7,12 @@
 //
 
 #include "syscalldecls.h"
-#include <dispatcher/WaitQueue.h>
 #include <kern/timespec.h>
 #include <klib/Hash.h>
 #include <kern/kalloc.h>
 #include <klib/List.h>
 #include <kpi/signal.h>
-#include <kpi/waitqueue.h>
+#include <sched/waitqueue.h>
 
 
 static errno_t uwq_create(int policy, UWaitQueue* _Nullable * _Nonnull pOutSelf)
@@ -29,7 +28,7 @@ static errno_t uwq_create(int policy, UWaitQueue* _Nullable * _Nonnull pOutSelf)
     err = kalloc(sizeof(UWaitQueue), (void**)&self);
     if (err == EOK) {
         ListNode_Init(&self->qe);
-        WaitQueue_Init(&self->wq);
+        wq_init(&self->wq);
         self->policy = policy;
         self->id = -1;
     }
@@ -41,7 +40,7 @@ static errno_t uwq_create(int policy, UWaitQueue* _Nullable * _Nonnull pOutSelf)
 void uwq_destroy(UWaitQueue* _Nullable self)
 {
     if (self) {
-        WaitQueue_Deinit(&self->wq);
+        wq_deinit(&self->wq);
         kfree(self);
     }
 }
@@ -120,7 +119,7 @@ SYSCALL_2(wq_wait, int q, const sigset_t* _Nullable mask)
     const int sps = preempt_disable();
     UWaitQueue* uwp = _find_uwq(pp, pa->q);
 
-    err = (uwp) ? WaitQueue_Wait(&uwp->wq, pmask) : EBADF;
+    err = (uwp) ? wq_wait(&uwp->wq, pmask) : EBADF;
     preempt_restore(sps);
     return err;
 }
@@ -135,7 +134,7 @@ SYSCALL_4(wq_timedwait, int q, const sigset_t* _Nullable mask, int flags, const 
     const int sps = preempt_disable();
     UWaitQueue* uwp = _find_uwq(pp, pa->q);
 
-    err = (uwp) ? WaitQueue_TimedWait(&uwp->wq, pmask, pa->flags, pa->wtp, NULL) : EBADF;
+    err = (uwp) ? wq_timedwait(&uwp->wq, pmask, pa->flags, pa->wtp, NULL) : EBADF;
     preempt_restore(sps);
     return err;
 }
@@ -152,8 +151,8 @@ SYSCALL_5(wq_timedwakewait, int q, int oq, const sigset_t* _Nullable mask, int f
     UWaitQueue* owp = _find_uwq(pp, pa->oq);
 
     if (uwp && owp) {
-        WaitQueue_Wakeup(&owp->wq, WAKEUP_ONE | WAKEUP_CSW, WRES_WAKEUP);
-        err = WaitQueue_TimedWait(&uwp->wq, pmask, pa->flags, pa->wtp, NULL);
+        wq_wake(&owp->wq, WAKEUP_ONE | WAKEUP_CSW, WRES_WAKEUP);
+        err = wq_timedwait(&uwp->wq, pmask, pa->flags, pa->wtp, NULL);
     }
     else {
         err = EBADF;
@@ -172,7 +171,7 @@ SYSCALL_2(wq_wakeup, int q, int flags)
     UWaitQueue* uwp = _find_uwq(pp, pa->q);
 
     if (uwp) {
-        WaitQueue_Wakeup(&uwp->wq, wflags | WAKEUP_CSW, WRES_WAKEUP);
+        wq_wake(&uwp->wq, wflags | WAKEUP_CSW, WRES_WAKEUP);
     }
     else {
         err = EBADF;

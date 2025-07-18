@@ -9,16 +9,16 @@
 #ifndef Semaphore_h
 #define Semaphore_h
 
-#include <dispatcher/WaitQueue.h>
 #include <kern/errno.h>
 #include <kern/types.h>
+#include <sched/waitqueue.h>
 
 
 // A (counting) semaphore
 // Note: Interruptable
 typedef struct Semaphore {
-    volatile int    value;
-    WaitQueue       wq;
+    volatile int        value;
+    struct waitqueue    wq;
 } Semaphore;
 
 

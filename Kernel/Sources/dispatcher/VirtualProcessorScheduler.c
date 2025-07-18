@@ -7,7 +7,6 @@
 //
 
 #include "VirtualProcessorScheduler.h"
-#include "WaitQueue.h"
 #include <machine/InterruptController.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
@@ -25,7 +24,7 @@ static VirtualProcessor* _Nonnull IdleVirtualProcessor_Create(BootAllocator* _No
 
 VirtualProcessorScheduler   gVirtualProcessorSchedulerStorage;
 VirtualProcessorScheduler*  gVirtualProcessorScheduler = &gVirtualProcessorSchedulerStorage;
-WaitQueue                   gSchedulerWaitQueue;           // The scheduler VP waits on this queue
+struct waitqueue            gSchedulerWaitQueue;           // The scheduler VP waits on this queue
 
 
 // Initializes the virtual processor scheduler and sets up the boot virtual
@@ -54,7 +53,7 @@ void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull sdp
     }
     
     List_Init(&self->timeout_queue);
-    WaitQueue_Init(&gSchedulerWaitQueue);
+    wq_init(&gSchedulerWaitQueue);
     List_Init(&self->finalizer_queue);
 
     for (int i = 0; i < VP_PRIORITY_COUNT; i++) {
@@ -193,7 +192,7 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
         }
         
         VirtualProcessor* vp = VP_FROM_TIMEOUT(ct);
-        WaitQueue_WakeupOne(vp->waiting_on_wait_queue, vp, 0, WRES_TIMEOUT);
+        wq_wakeone(vp->waiting_on_wait_queue, vp, 0, WRES_TIMEOUT);
     }
     
     
@@ -344,7 +343,7 @@ _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorSc
     
     if (dead_vps_count >= FINALIZE_NOW_THRESHOLD && gSchedulerWaitQueue.q.first != NULL) {
         // The scheduler VP is currently waiting for work. Let's wake it up.
-        WaitQueue_WakeupOne(&gSchedulerWaitQueue,
+        wq_wakeone(&gSchedulerWaitQueue,
                         self->bootVirtualProcessor,
                         WAKEUP_CSW,
                         WRES_WAKEUP);
@@ -376,7 +375,7 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull self
 
         // Continue to wait as long as there's nothing to finalize
         while (List_IsEmpty(&self->finalizer_queue)) {
-            (void)WaitQueue_TimedWait(&gSchedulerWaitQueue,
+            (void)wq_timedwait(&gSchedulerWaitQueue,
                                 &SIGSET_BLOCK_ALL,
                                 0,
                                 &timeout,

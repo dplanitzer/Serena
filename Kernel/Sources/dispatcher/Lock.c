@@ -15,14 +15,14 @@ extern errno_t _Lock_Unlock(Lock* _Nonnull self);
 void Lock_Init(Lock* _Nonnull self)
 {
     self->value = 0;
-    WaitQueue_Init(&self->wq);
+    wq_init(&self->wq);
     self->owner_vpid = 0;
 }
 
 void Lock_Deinit(Lock* _Nonnull self)
 {
     assert(Lock_GetOwnerVpid(self) == 0);
-    assert(WaitQueue_Deinit(&self->wq) == EOK);
+    assert(wq_deinit(&self->wq) == EOK);
 }
 
 // Unlocks the lock.
@@ -40,7 +40,7 @@ errno_t Lock_Unlock(Lock* _Nonnull self)
 // @Entry Condition: preemption disabled
 errno_t Lock_OnWait(Lock* _Nonnull self)
 {
-    const errno_t err = WaitQueue_Wait(&self->wq, &SIGSET_BLOCK_ALL);
+    const errno_t err = wq_wait(&self->wq, &SIGSET_BLOCK_ALL);
     if (err == EOK) {
         return err;
     }
@@ -52,5 +52,5 @@ errno_t Lock_OnWait(Lock* _Nonnull self)
 // @Entry Condition: preemption disabled
 void Lock_WakeUp(Lock* _Nullable self)
 {
-    WaitQueue_Wakeup(&self->wq, WAKEUP_ALL | WAKEUP_CSW, WRES_WAKEUP);
+    wq_wake(&self->wq, WAKEUP_ALL | WAKEUP_CSW, WRES_WAKEUP);
 }

@@ -14,7 +14,7 @@
 
 // Note: Interruptable
 typedef struct ConditionVariable {
-    WaitQueue   wq;
+    struct waitqueue    wq;
 } ConditionVariable;
 
 

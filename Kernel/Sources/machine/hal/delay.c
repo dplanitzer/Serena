@@ -7,17 +7,17 @@
 //
 
 #include <machine/delay.h>
-#include <dispatcher/WaitQueue.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
 #include <kern/timespec.h>
+#include <sched/waitqueue.h>
 
-static WaitQueue   gSleepQueue;    // VPs which block in a delay_xx() call wait on this wait queue
+static struct waitqueue gSleepQueue;    // VPs which block in a delay_xx() call wait on this wait queue
 
 
 void delay_init(void)
 {
-    WaitQueue_Init(&gSleepQueue);
+    wq_init(&gSleepQueue);
 }
 
 static void _delay_by(const struct timespec* _Nonnull wtp)
@@ -31,7 +31,7 @@ static void _delay_by(const struct timespec* _Nonnull wtp)
     
     // This is a medium or long wait -> context switch away
     const int sps = preempt_disable();
-    const int err = WaitQueue_TimedWait(&gSleepQueue, NULL, 0, wtp, NULL);
+    const int err = wq_timedwait(&gSleepQueue, NULL, 0, wtp, NULL);
     preempt_restore(sps);
 }
 

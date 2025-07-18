@@ -1,5 +1,5 @@
 //
-//  WaitQueue.h
+//  waitqueue.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 6/28/25.
@@ -15,6 +15,8 @@
 #include <kern/limits.h>
 #include <klib/List.h>
 #include <kpi/signal.h>
+#include <kpi/waitqueue.h>
+
 
 struct VirtualProcessor;
 
@@ -41,17 +43,18 @@ typedef int8_t  wres_t;
 #define WRES_TIMEOUT    3
 
 
-typedef struct WaitQueue {
+struct waitqueue {
     List    q;
-} WaitQueue;
+};
+typedef struct waitqueue* waitqueue_t;
 
 
 
-extern void WaitQueue_Init(WaitQueue* _Nonnull self);
+extern void wq_init(waitqueue_t _Nonnull self);
 
 // Returns EBUSY and leaves the queue initialized, if there are still waiters on
 // the wait queue.
-extern errno_t WaitQueue_Deinit(WaitQueue* self);
+extern errno_t wq_deinit(waitqueue_t _Nonnull self);
 
 
 // Checks whether the caller has signals pending and returns immediately if that's
@@ -59,19 +62,19 @@ extern errno_t WaitQueue_Deinit(WaitQueue* self);
 // by some other VP. Note that this function does not consume/clear any pending
 // signals. It's the responsibility of the caller to do this if desired.
 // @Entry Condition: preemption disabled
-extern errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask);
+extern errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask);
 
 // @Entry Condition: preemption disabled
-extern errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, const sigset_t* _Nonnull set, siginfo_t* _Nullable info);
+extern errno_t wq_sigwait(waitqueue_t _Nonnull self, const sigset_t* _Nonnull set, siginfo_t* _Nullable info);
 
 // Same as wait() but with support for timeouts. If 'wtp' is not NULL then 'wtp' is
 // either the maximum duration to wait or the absolute time until to wait. The
 // WAIT_ABSTIME specifies an absolute time. 'rmtp' is an optional timespec that
 // receives the amount of time remaining if the wait was canceled early.
-extern errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
+extern errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
 
 // @Entry Condition: preemption disabled
-extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info);
+extern errno_t wq_sigtimedwait(waitqueue_t _Nonnull self, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info);
 
 
 // Wakes up 'vp' if it is currently in waiting state. The wakeup reason is
@@ -79,29 +82,29 @@ extern errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* 
 // is allowed or should not be done. 
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
-extern bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp, int flags, wres_t reason);
+extern bool wq_wakeone(waitqueue_t _Nonnull self, struct VirtualProcessor* _Nonnull vp, int flags, wres_t reason);
 
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue.
 // @Entry Condition: preemption disabled
-extern void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, wres_t reason);
+extern void wq_wake(waitqueue_t _Nonnull self, int flags, wres_t reason);
 
 // Wakes up all VPs on the wait queue. Expects to be called from an interrupt
 // context and thus defers context switches until the return from the interrupt
 // context.
 // @Entry Condition: preemption disabled
 // @Interrupt Context: Safe
-extern void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self);
+extern void wq_wake_irq(waitqueue_t _Nonnull self);
 
 
 // Suspends an ongoing wait. This should be called if a VP that is currently
 // waiting on this queue is suspended.
 // @Entry Condition: preemption disabled
-extern void WaitQueue_SuspendOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp);
+extern void wq_suspendone(waitqueue_t _Nonnull self, struct VirtualProcessor* _Nonnull vp);
 
 // Resumes an ongoing wait. This should be called if a VP that is currently
 // waiting on this queue is resumed.
 // @Entry Condition: preemption disabled
-extern void WaitQueue_ResumeOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp);
+extern void wq_resumeone(waitqueue_t _Nonnull self, struct VirtualProcessor* _Nonnull vp);
 
 #endif /* WaitQueue_h */

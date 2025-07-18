@@ -14,8 +14,8 @@
 #include <Catalog.h>
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
-#include <dispatcher/WaitQueue.h>
 #include <filemanager/FileManager.h>
+#include <sched/waitqueue.h>
 #include <vm/AddressSpace.h>
 
 
@@ -30,10 +30,10 @@
 #define UWQ_HASH_CHAIN_MASK     (UWQ_HASH_CHAIN_COUNT - 1)
 
 typedef struct UWaitQueue {
-    ListNode        qe;
-    WaitQueue       wq;
-    unsigned int    policy;
-    int             id;
+    ListNode            qe;
+    struct waitqueue    wq;
+    unsigned int        policy;
+    int                 id;
 } UWaitQueue;
 
 
@@ -65,10 +65,10 @@ final_class_ivars(Process, Object,
     int                             nextAvailWaitQueueId;
 
     // All VPs that belong to this process and are currently in sleep()
-    WaitQueue                       sleepQueue;
+    struct waitqueue                sleepQueue;
     
     // All VPs blocking on a sigwait() or sigtimedwait()
-    WaitQueue                       siwaQueue;
+    struct waitqueue                siwaQueue;
     
     // Process image
     char* _Nullable _Weak           imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments

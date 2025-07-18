@@ -9,7 +9,6 @@
 #include "VirtualProcessor.h"
 #include "VirtualProcessorPool.h"
 #include "VirtualProcessorScheduler.h"
-#include "WaitQueue.h"
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
 #include <kern/kalloc.h>
@@ -319,7 +318,7 @@ errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull self)
                 break;
             
             case SCHED_STATE_WAITING:
-                WaitQueue_SuspendOne(self->waiting_on_wait_queue, self);
+                wq_suspendone(self->waiting_on_wait_queue, self);
                 break;
             
             default:
@@ -362,7 +361,7 @@ void VirtualProcessor_Resume(VirtualProcessor* _Nonnull self, bool force)
                 break;
             
             case SCHED_STATE_WAITING:
-                WaitQueue_ResumeOne(self->waiting_on_wait_queue, self);
+                wq_resumeone(self->waiting_on_wait_queue, self);
                 break;
             
             default:
@@ -433,6 +432,6 @@ errno_t VirtualProcessor_Signal(VirtualProcessor* _Nonnull self, int signo)
 
 
     if (self->sched_state == SCHED_STATE_WAITING) {
-        WaitQueue_WakeupOne(self->waiting_on_wait_queue, self, WAKEUP_CSW, WRES_SIGNAL);
+        wq_wakeone(self->waiting_on_wait_queue, self, WAKEUP_CSW, WRES_SIGNAL);
     }
 }

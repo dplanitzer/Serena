@@ -1,23 +1,23 @@
 //
-//  WaitQueue.c
+//  waitqueue.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 6/28/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "WaitQueue.h"
+#include "waitqueue.h"
+#include <dispatcher/VirtualProcessorScheduler.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
-#include "VirtualProcessorScheduler.h"
 
 
-void WaitQueue_Init(WaitQueue* _Nonnull self)
+void wq_init(waitqueue_t _Nonnull self)
 {
     List_Init(&self->q);
 }
 
-errno_t WaitQueue_Deinit(WaitQueue* self)
+errno_t wq_deinit(waitqueue_t _Nonnull self)
 {
     decl_try_err();
     const int sps = preempt_disable();
@@ -36,7 +36,7 @@ errno_t WaitQueue_Deinit(WaitQueue* self)
 
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-static wres_t _one_shot_wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask)
+static wres_t _one_shot_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     VirtualProcessor* vp = (VirtualProcessor*)ps->running;
@@ -71,7 +71,7 @@ static wres_t _one_shot_wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable
 }
 
 // @Entry Condition: preemption disabled
-static errno_t _one_shot_timedwait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
+static errno_t _one_shot_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     VirtualProcessor* vp = (VirtualProcessor*)ps->running;
@@ -145,7 +145,7 @@ static int _best_pending_sig(VirtualProcessor* _Nonnull vp, const sigset_t* _Non
 
 
 // @Entry Condition: preemption disabled
-errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask)
+errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask)
 {
     switch (_one_shot_wait(self, mask)) {
         case WRES_WAKEUP:   return EOK;
@@ -154,7 +154,7 @@ errno_t WaitQueue_Wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask)
 }
 
 // @Entry Condition: preemption disabled
-errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
+errno_t wq_sigwait(waitqueue_t _Nonnull self, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     VirtualProcessor* vp = (VirtualProcessor*)ps->running;
@@ -180,7 +180,7 @@ errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, const sigset_t* _Nonnull set
 }
 
 // @Entry Condition: preemption disabled
-errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
+errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
 {
     switch (_one_shot_timedwait(self, mask, flags, wtp, rmtp)) {
         case WRES_SIGNAL:   return EINTR;
@@ -190,7 +190,7 @@ errno_t WaitQueue_TimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nullable 
 }
 
 // @Entry Condition: preemption disabled
-errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info)
+errno_t wq_sigtimedwait(waitqueue_t _Nonnull self, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     VirtualProcessor* vp = (VirtualProcessor*)ps->running;
@@ -237,7 +237,7 @@ errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nonnul
 
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
-bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp, int flags, wres_t reason)
+bool wq_wakeone(waitqueue_t _Nonnull self, VirtualProcessor* _Nonnull vp, int flags, wres_t reason)
 {
     VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
     bool isReady;
@@ -282,7 +282,7 @@ bool WaitQueue_WakeupOne(WaitQueue* _Nonnull self, VirtualProcessor* _Nonnull vp
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue. Expects to be called with preemption disabled.
 // @Entry Condition: preemption disabled
-void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, wres_t reason)
+void wq_wake(waitqueue_t _Nonnull self, int flags, wres_t reason)
 {
     register ListNode* cp = self->q.first;
     register bool isWakeupOne = ((flags & WAKEUP_ONE) == WAKEUP_ONE);
@@ -293,7 +293,7 @@ void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, wres_t reason)
     while (cp) {
         register ListNode* np = cp->next;
         register VirtualProcessor* vp = (VirtualProcessor*)cp;
-        register const bool isReady = WaitQueue_WakeupOne(self, vp, 0, reason);
+        register const bool isReady = wq_wakeone(self, vp, 0, reason);
 
         if (pRunCandidate == NULL && isReady) {
             pRunCandidate = vp;
@@ -316,7 +316,7 @@ void WaitQueue_Wakeup(WaitQueue* _Nonnull self, int flags, wres_t reason)
 // the wait queue. Expects to be called from an interrupt context and thus defers
 // context switches until the return from the interrupt context.
 // @Entry Condition: preemption disabled
-void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self)
+void wq_wake_irq(waitqueue_t _Nonnull self)
 {
     register ListNode* cp = self->q.first;    
     
@@ -324,14 +324,14 @@ void WaitQueue_WakeupAllFromInterrupt(WaitQueue* _Nonnull self)
     while (cp) {
         register ListNode* np = cp->next;
         
-        WaitQueue_WakeupOne(self, (VirtualProcessor*)cp, 0, WRES_WAKEUP);
+        wq_wakeone(self, (VirtualProcessor*)cp, 0, WRES_WAKEUP);
         cp = np;
     }
 }
 
 
 // @Entry Condition: preemption disabled
-void WaitQueue_SuspendOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp)
+void wq_suspendone(waitqueue_t _Nonnull self, struct VirtualProcessor* _Nonnull vp)
 {
     // We do not interrupt the wait because we'll just treat it as
     // a longer-than-expected wait. However we suspend the timeout
@@ -342,7 +342,7 @@ void WaitQueue_SuspendOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _No
 }
 
 // @Entry Condition: preemption disabled
-void WaitQueue_ResumeOne(WaitQueue* _Nonnull self, struct VirtualProcessor* _Nonnull vp)
+void wq_resumeone(waitqueue_t _Nonnull self, struct VirtualProcessor* _Nonnull vp)
 {
     // Still in waiting state -> just resume the timeout if one is
     // associated with the wait.

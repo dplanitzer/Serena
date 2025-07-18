@@ -9,14 +9,14 @@
 #ifndef Lock_h
 #define Lock_h
 
-#include <dispatcher/WaitQueue.h>
 #include <kern/errno.h>
 #include <kern/types.h>
+#include <sched/waitqueue.h>
 
 
 typedef struct Lock {
     volatile uint32_t   value;
-    WaitQueue           wq;
+    struct waitqueue    wq;
     int                 owner_vpid;     // ID of the VP that is currently holding the lock
 } Lock;
 

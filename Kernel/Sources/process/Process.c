@@ -52,8 +52,8 @@ errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarc
     }
     self->nextAvailWaitQueueId = 0;
 
-    WaitQueue_Init(&self->sleepQueue);
-    WaitQueue_Init(&self->siwaQueue);
+    wq_init(&self->sleepQueue);
+    wq_init(&self->siwaQueue);
     FileManager_Init(&self->fm, pFileHierarchy, uid, gid, pRootDir, pWorkingDir, umask);
 
     ConditionVariable_Init(&self->procTermSignaler);
@@ -87,8 +87,8 @@ void Process_deinit(ProcessRef _Nonnull self)
         });
     }
 
-    WaitQueue_Deinit(&self->siwaQueue);
-    WaitQueue_Deinit(&self->sleepQueue);
+    wq_deinit(&self->siwaQueue);
+    wq_deinit(&self->sleepQueue);
 
     List_Deinit(&self->vpQueue);
     
