@@ -35,10 +35,8 @@ void cpu_make_callout(CpuContext* _Nonnull cp, void* _Nonnull ksp, void* _Nonnul
 
     // User stack:
     //
-    // Note that we do not set up an initial stack frame on the user stack because
-    // user space calls have to be done via cpu_call_as_user() and this function
-    // takes care of setting up a frame on the user stack that will eventually
-    // lead the user space code back to kernel space.
+    // We push the argument and a rts return address that will invoke 'ret_func'
+    // when the top-level user space function attempts to return.
     //
     //
     // Kernel stack:

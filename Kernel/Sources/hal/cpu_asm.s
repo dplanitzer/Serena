@@ -23,9 +23,6 @@
     xdef _cpu68k_as_write_byte
     xdef _cpu_sleep
     xdef _cpu_halt
-    xdef _cpu_call_as_user
-    xdef _cpu_abort_call_as_user
-    xdef _cpu_return_from_call_as_user
     xdef _cpu_relinquish_from_user
     xdef _cpu_abort_vcpu_from_uspace
     xdef _fpu_get_model
@@ -454,88 +451,6 @@ _cpu_halt:
     inline
         stop    #$2700
         bra.s   _cpu_halt
-    einline
-
-
-;-----------------------------------------------------------------------
-; void cpu_call_as_user(Cpu_UserClosure _Nonnull func, void* _Nullable context, void* _Nullable arg)
-; Invokes the given closure in user space. Preserves the kernel integer register
-; state. Note however that this function does not preserve the floating point 
-; register state.
-_cpu_call_as_user:
-    inline
-    cargs cau_func_ptr.l, cau_context_ptr.l, cau_arg_ptr.l
-        move.l  cau_func_ptr(sp), a0
-        move.l  cau_context_ptr(sp), a1
-        move.l  cau_arg_ptr(sp), d0
-
-        movem.l d2 - d7 / a2 - a6, -(sp)
-
-        ; zero out all integer registers to ensure that we do not leak kernel
-        ; state into user space. We do not need to zero a0, a1 and d0 because
-        ; they hold the closure and context pointers which the user space knows
-        ; about anyway.
-        moveq.l #0, d1
-        moveq.l #0, d2
-        moveq.l #0, d3
-        moveq.l #0, d4
-        moveq.l #0, d5
-        moveq.l #0, d6
-        moveq.l #0, d7
-        move.l  d1, a2
-        move.l  d1, a3
-        move.l  d1, a4
-        move.l  d1, a5
-        move.l  d1, a6
-
-        ; switch to user mode by dropping bit #13 in the SR register
-        and.w   #$dfff, sr
-        
-        ; we are now in userspace and that we are from now on working with the
-        ; user stack. Up to this point we worked with the kernel stack
-        move.l  d0, -(sp)
-        move.l  a1, -(sp)
-        jsr     (a0)
-        addq.l  #8, sp
-
-        ; go back to superuser mode
-        trap    #1
-        ; NOT REACHED
-        ; (the return happens through _cpu_return_from_call_as_user)
-    einline
-
-
-;-----------------------------------------------------------------------
-; void cpu_return_from_call_as_user(void)
-; Invoked from trap#1 to switch us back into superuser mode and to return from
-; the cpu_call_as_user() call.
-_cpu_return_from_call_as_user:
-    inline
-        ; dismiss the (8 byte, format 0) exception stack frame from the kernel
-        ; stack
-        addq.l  #8, sp
-        
-        ; restore the saved registers
-        movem.l (sp)+, d2 - d7 / a2 - a6
-
-        ; return with a rts. The sp register now points to the return address
-        ; from which _cpu_call_as_user was called
-        rts
-    einline
-
-
-;-----------------------------------------------------------------------
-; void cpu_abort_call_as_user(void)
-; Aborts the currently active user space call that is running on the same virtual
-; processor that executes cpu_abort_call_as_user. This is the CPU specific low-
-; level half of the VirtualProcessor_AbortCallAsUser() function. Note that aborting
-; a user space call leaves the user space stack in an indeterminate state since
-; the stack is not unrolled.
-_cpu_abort_call_as_user:
-    inline
-        trap    #1
-        ; NOT REACHED
-        ; (the return happens through _cpu_return_from_call_as_user)
     einline
 
 

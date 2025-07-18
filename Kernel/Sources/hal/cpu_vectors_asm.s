@@ -22,7 +22,6 @@
     xref _syscall_entry
     xref _nosyscall_entry
     xref _InterruptController_OnInterrupt
-    xref _cpu_return_from_call_as_user
     xref _cpu_get_model
     xref _fpu_get_model
     xref _SystemDescription_Init
@@ -81,7 +80,7 @@ _cpu_vector_table:
     dc.l IRQHandler_L6                  ; 30, Level 6 (External INT6, CIAB)
     dc.l IRQHandler_NMI                 ; 31, Level 7 (NMI - Unused)
     dc.l _syscall_entry                 ; 32, Trap #0
-    dc.l _cpu_return_from_call_as_user  ; 33, Trap #1
+    dc.l _nosyscall_entry               ; 33, Trap #1
     dc.l __vcpu_relinquish_self         ; 34, Trap #2
     dc.l _nosyscall_entry               ; 35, Trap #3
     dc.l _nosyscall_entry               ; 36, Trap #4

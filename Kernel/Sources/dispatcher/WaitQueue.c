@@ -47,12 +47,6 @@ static wres_t _one_shot_wait(WaitQueue* _Nonnull self, const sigset_t* _Nullable
     assert(vp->sched_state == SCHED_STATE_RUNNING);
 
 
-    // Immediately return instead of waiting if we are in the middle of an abort
-    // of a call-as-user invocation.
-    if ((vp->flags & (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) == (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) {
-        return WRES_SIGNAL;
-    }
-
     if (availSigs) {
         return WRES_SIGNAL;
     }

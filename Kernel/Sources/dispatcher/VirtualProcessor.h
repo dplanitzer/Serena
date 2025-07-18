@@ -103,10 +103,8 @@ enum {
 
 
 // VP flags
-#define VP_FLAG_CAU_IN_PROGRESS     0x02    // VirtualProcessor_CallAsUser() is in progress
-#define VP_FLAG_CAU_ABORTED         0x04    // VirtualProcessor_AbortCallAsUser() has been called and the VirtualProcessor_CallAsUser() is unwinding
-#define VP_FLAG_USER_OWNED          0x08    // This VP is owned by a user process
-#define VP_FLAG_ABORTED_USPACE      0x10    // Aborted this VP while it was running in userspace
+#define VP_FLAG_USER_OWNED          0x02    // This VP is owned by a user process
+#define VP_FLAG_ABORTED_USPACE      0x04    // Aborted this VP while it was running in userspace
 
 
 // A timeout
@@ -239,35 +237,6 @@ extern void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull self, vo
 // Sets the closure which the virtual processor should run when it is resumed.
 // This function may only be called while the VP is suspended.
 extern errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull self, const VirtualProcessorClosure* _Nonnull closure);
-
-// Invokes the given closure in user space. Preserves the kernel integer register
-// state. Note however that this function does not preserve the floating point 
-// register state. Call-as-user invocations can not be nested.
-extern void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull self, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable arg);
-
-// Aborts an on-going call-as-user invocation and causes the
-// VirtualProcessor_CallAsUser() call to return. Does nothing if the VP is not
-// currently executing a call-as-user invocation.
-// Note that aborting a call-as-user invocation leaves the virtual processor's
-// userspace stack in an indeterminate state. Consequently a call-as-user
-// invocation should only be aborted if you no longer care about the state of
-// the userspace. Eg if the goal is to terminate a process that may be in the
-// middle of executing userspace code.
-// What exactly happens when userspace code execution is aborted depends on
-// whether the userspace code is currently executing in userspace or a system
-// call:
-// 1) running in userspace: execution is immediately aborted and no attempt is
-//                          made to unwind the userspace stack or to free any
-//                          userspace resources.
-// 2) executing a system call: the system call is allowed to run to completion.
-//                          However all interruptable waits will be interrupted
-//                          no matter whether the VP is currently sitting in an
-//                          interruptable wait or it enters it. This behavior
-//                          will stay in effect until the VP has returned from
-//                          the system. Once the system call has finished and the
-//                          call-as-user invocation has been aborted, waits will
-//                          not be interrupted anymore.
-extern errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull self);
 
 // Relinquishes the virtual processor which means that it is finished executing
 // code and that it should be moved back to the virtual processor pool. This

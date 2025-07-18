@@ -187,9 +187,6 @@ extern void cpu_halt(void);
 
 extern void cpu_make_callout(CpuContext* _Nonnull cp, void* _Nonnull ksp, void* _Nonnull usp, bool isUser, VoidFunc_1 _Nonnull func, void* _Nullable arg, VoidFunc_0 _Nonnull ret_func);
 
-extern void cpu_call_as_user(Cpu_UserClosure _Nonnull func, void* _Nullable context, void* _Nullable arg);
-extern void cpu_abort_call_as_user(void);
-
 extern void cpu_relinquish_from_user(void);
 
 extern _Noreturn cpu_non_recoverable_error(void);
