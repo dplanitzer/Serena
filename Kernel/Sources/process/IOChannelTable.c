@@ -30,6 +30,12 @@ catch:
 
 void IOChannelTable_Deinit(IOChannelTable* _Nonnull self)
 {
+    IOChannelTable_ReleaseAll(self);
+    Lock_Deinit(&self->lock);
+}
+
+void IOChannelTable_ReleaseAll(IOChannelTable* _Nonnull self)
+{
     IOChannelRef* table;
     size_t channelCount;
 
@@ -49,8 +55,6 @@ void IOChannelTable_Deinit(IOChannelTable* _Nonnull self)
         }
     }
     kfree(table);
-
-    Lock_Deinit(&self->lock);
 }
 
 // Finds an empty slot in the I/O channel table and stores the I/O channel there.

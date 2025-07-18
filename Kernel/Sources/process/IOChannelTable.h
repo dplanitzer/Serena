@@ -63,4 +63,7 @@ extern errno_t IOChannelTable_DupChannelTo(IOChannelTable* _Nonnull self, int io
 // Dups all I/O channels from 'pOther' to self. Expects that self is empty.
 extern errno_t IOChannelTable_DupFrom(IOChannelTable* _Nonnull self, IOChannelTable* _Nonnull pOther);
 
+// Release all I/O channels.
+extern void IOChannelTable_ReleaseAll(IOChannelTable* _Nonnull self);
+
 #endif /* IOChannelTable_h */

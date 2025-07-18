@@ -183,6 +183,7 @@ static void _proc_notify_parent(ProcessRef _Nonnull self)
 // calling VP is the only one left touching the process. So this is safe.
 void _proc_zombify(ProcessRef _Nonnull self)
 {
+    IOChannelTable_ReleaseAll(&self->ioChannelTable);
     AddressSpace_UnmapAll(self->addressSpace);
     FileManager_Deinit(&self->fm);
 
