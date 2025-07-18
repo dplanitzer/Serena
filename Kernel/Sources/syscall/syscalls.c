@@ -174,6 +174,13 @@ intptr_t _syscall_handler(VirtualProcessor* _Nonnull vp, unsigned int* _Nonnull 
         hasErrno = true;
     }
 
+
+    if ((vp->psigs & _SIGBIT(SIGKILL)) != 0) {
+        Process_RelinquishVirtualProcessor(vp->proc, vp);
+        /* NOT REACHED */
+    }
+
+
     if (hasErrno) {
         if (r != 0) {
             vp->uerrno = (errno_t)r;

@@ -37,6 +37,9 @@ extern void mutex_test(int argc, char *argv[]);
 extern void pipe_test(int argc, char *argv[]);
 extern void pipe2_test(int argc, char *argv[]);
 
+// Proc
+extern void proc_exit_test(int argc, char *argv[]);
+
 // Sema
 extern void sema_test(int argc, char *argv[]);
 
@@ -76,6 +79,8 @@ static const test_t gTests[] = {
 
     {"pipe", pipe_test, false},
     {"pipe2", pipe2_test, true},
+
+    {"proc_exit", proc_exit_test, true},
 
     {"sema", sema_test, true},
 

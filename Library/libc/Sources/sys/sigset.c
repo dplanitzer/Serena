@@ -30,7 +30,7 @@ int sigaddset(sigset_t* _Nonnull set, int signo)
         return -1;
     }
 
-    *set |= (1 << (signo - 1));
+    *set |= _SIGBIT(signo);
     return 0;
 }
 
@@ -41,7 +41,7 @@ int sigdelset(sigset_t* _Nonnull set, int signo)
         return -1;
     }
 
-    *set &= ~(1 << (signo - 1));
+    *set &= ~_SIGBIT(signo);
     return 0;
 }
 
@@ -52,7 +52,7 @@ int sigismember(const sigset_t* _Nonnull set, int signo)
         return -1;
     }
 
-    if (*set & (1 << (signo - 1))) {
+    if (*set & _SIGBIT(signo)) {
         return 1;
     }
     else {

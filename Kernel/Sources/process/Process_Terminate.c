@@ -12,6 +12,8 @@
 #include <kern/timespec.h>
 #include <log/Log.h>
 
+extern void cpu_abort_vcpu_from_uspace(void);
+
 
 // Called by the given child process to notify its parent about its death.
 static errno_t _proc_on_child_termination(ProcessRef _Nonnull self, ProcessRef _Nonnull child)
@@ -148,14 +150,64 @@ static void _proc_detach_calling_vcpu(ProcessRef _Nonnull self)
 // out from the VP list.
 static void _proc_abort_vcpus(ProcessRef _Nonnull self)
 {
+    Lock_Lock(&self->lock);
+    List_ForEach(&self->vpQueue, ListNode, {
+        VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
 
+        const int sps = preempt_disable();
+        VirtualProcessor_Signal(cvp, SIGKILL);
+        preempt_restore(sps);
+    });
+    Lock_Unlock(&self->lock);
 }
 
 // Wait for all vcpus to relinquish themselves from the process. Only return
 // once all vcpus are gone and no longer touch the process object.
+static WaitQueue gHackQueue;
 static void _proc_reap_vcpus(ProcessRef _Nonnull self)
 {
+    bool done = false;
 
+    while (!done) {
+#if 1
+        //XXX Can't use yield() here because the currently implemented scheduler
+        //XXX algorithm is too weak and ends up starving some vps
+        //VirtualProcessor_Yield();
+        struct timespec delay;
+        timespec_from_ms(&delay, 10);
+        WaitQueue_TimedWait(&gHackQueue, NULL, 0, &delay, NULL);
+
+        Lock_Lock(&self->lock);
+        if (self->vpQueue.first == NULL) {
+            done = true;
+        }
+        Lock_Unlock(&self->lock);
+#else
+        Lock_Lock(&self->lock);
+        if (self->vpQueue.first) {
+            List_ForEach(&self->vpQueue, ListNode, {
+                VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
+
+                VirtualProcessor_Suspend(cvp);
+
+               // printf("sr: %x, vp: %p\n", (int)cvp->save_area.sr, cvp);
+                if ((cvp->save_area.sr & 0x2000) == 0 && (cvp->flags & VP_FLAG_ABORTED_USPACE) == 0) {
+                    printf("caught in uspace -> %p\n", cvp);
+                    // User space:
+                    // redirect the VP to the new call
+                    cvp->save_area.pc = (uint32_t)cpu_abort_vcpu_from_uspace;
+                    cvp->flags |= VP_FLAG_ABORTED_USPACE;
+                }
+
+                VirtualProcessor_Resume(cvp, true);
+            });
+        }
+        else {
+            done = true;
+        }
+        Lock_Unlock(&self->lock);
+#endif
+    }
 }
 
 // Let our parent know that we're dead now and that it should remember us by

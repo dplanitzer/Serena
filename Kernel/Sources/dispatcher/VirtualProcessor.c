@@ -527,7 +527,7 @@ errno_t VirtualProcessor_Signal(VirtualProcessor* _Nonnull self, int signo)
     }
 
 
-    const sigset_t sigbit = 1 << (signo - 1);
+    const sigset_t sigbit = _SIGBIT(signo);
 
     self->psigs |= sigbit;
     if ((sigbit & ~self->sigmask) == 0) {
@@ -536,6 +536,6 @@ errno_t VirtualProcessor_Signal(VirtualProcessor* _Nonnull self, int signo)
 
 
     if (self->sched_state == SCHED_STATE_WAITING) {
-        WaitQueue_WakeupOne(self->waiting_on_wait_queue, self, 0, WRES_SIGNAL);
+        WaitQueue_WakeupOne(self->waiting_on_wait_queue, self, WAKEUP_CSW, WRES_SIGNAL);
     }
 }

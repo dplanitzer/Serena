@@ -105,7 +105,8 @@ enum {
 // VP flags
 #define VP_FLAG_CAU_IN_PROGRESS     0x02    // VirtualProcessor_CallAsUser() is in progress
 #define VP_FLAG_CAU_ABORTED         0x04    // VirtualProcessor_AbortCallAsUser() has been called and the VirtualProcessor_CallAsUser() is unwinding
-#define VP_FLAG_USER_OWNED          0x08    // THis VP is owned by a user process
+#define VP_FLAG_USER_OWNED          0x08    // This VP is owned by a user process
+#define VP_FLAG_ABORTED_USPACE      0x10    // Aborted this VP while it was running in userspace
 
 
 // A timeout

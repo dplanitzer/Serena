@@ -27,6 +27,7 @@
     xdef _cpu_abort_call_as_user
     xdef _cpu_return_from_call_as_user
     xdef _cpu_relinquish_from_user
+    xdef _cpu_abort_vcpu_from_uspace
     xdef _fpu_get_model
 
 
@@ -547,3 +548,17 @@ _cpu_relinquish_from_user:
         trap #2
         ; NOT REACHED
     einline
+
+
+;-----------------------------------------------------------------------
+; void cpu_abort_vcpu_from_uspace(void)
+; Aborts a vcpu that is running in user space.
+_cpu_abort_vcpu_from_uspace:
+    inline
+        move.l  #0, -(sp)
+        move.l  #4, -(sp)   ; SC_exit
+        move.l  sp, a0
+        trap    #0
+        ; NOT REACHED
+    einline
+

@@ -102,11 +102,7 @@ errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _No
     else {
         vp->flags &= ~VP_FLAG_USER_OWNED;
     }
-    vp->uerrno = 0;
-    vp->psigs = 0;
-    vp->sigmask = 0;
     vp->vpgid = params->vpgid;
-    vp->proc = NULL;
     vp->lifecycle_state = VP_LIFECYCLE_ACQUIRED;
 
 catch:
@@ -140,9 +136,16 @@ _Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRe
     // Suspend the VP if we decided to reuse it and schedule it for finalization
     // (termination) otherwise.
     if (doReuse) {
+        vp->proc = NULL;
+        vp->uerrno = 0;
+        vp->psigs = 0;
+        vp->sigmask = 0;
+        vp->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_ABORTED_USPACE);
         vp->lifecycle_state = VP_LIFECYCLE_RELINQUISHED;
+
         try_bang(VirtualProcessor_Suspend(vp));
-    } else {
+    }
+    else {
         VirtualProcessor_Terminate(vp);
     }
     /* NOT REACHED */

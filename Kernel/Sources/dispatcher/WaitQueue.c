@@ -172,7 +172,7 @@ errno_t WaitQueue_SigWait(WaitQueue* _Nonnull self, const sigset_t* _Nonnull set
                 const int signo = _best_pending_sig(vp, set);
 
                 if (signo) {
-                    vp->psigs &= ~(1 << (signo - 1));
+                    vp->psigs &= ~_SIGBIT(signo);
                     info->signo = signo;
                     return EOK;
                 }
@@ -225,7 +225,7 @@ errno_t WaitQueue_SigTimedWait(WaitQueue* _Nonnull self, const sigset_t* _Nonnul
                     const int signo = _best_pending_sig(vp, set);
 
                     if (signo) {
-                        vp->psigs &= ~(1 << (signo - 1));
+                        vp->psigs &= ~_SIGBIT(signo);
                         info->signo = signo;
                         return EOK;
                     }

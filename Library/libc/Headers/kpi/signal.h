@@ -33,6 +33,8 @@ typedef volatile int sig_atomic_t;
 #define SIGSET_NONMASKABLES (1 << SIGKILL)
 #define SIGSET_URGENT       (1 << SIGKILL)
 
+#define _SIGBIT(__signo) (1 << ((__signo) - 1))
+
 
 #define SIG_SCOPE_VCPU          0
 #define SIG_SCOPE_VCPU_GROUP    1
