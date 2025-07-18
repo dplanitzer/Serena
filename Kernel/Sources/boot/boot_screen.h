@@ -10,7 +10,7 @@
 #define boot_screen_h
 
 #include <kern/types.h>
-#include <driver/amiga/graphics/GraphicsDriver.h>
+#include <machine/amiga/graphics/GraphicsDriver.h>
 
 typedef struct boot_screen {
     GraphicsDriverRef _Nullable gd;

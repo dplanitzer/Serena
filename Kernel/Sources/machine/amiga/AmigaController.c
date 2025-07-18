@@ -7,13 +7,13 @@
 //
 
 #include "AmigaController.h"
-#include <driver/amiga/floppy/FloppyController.h>
-#include <driver/amiga/graphics/GraphicsDriver.h>
-#include <driver/amiga/hid/GamePortController.h>
-#include <driver/amiga/hid/KeyboardDriver.h>
-#include <driver/amiga/zorro/ZorroController.h>
 #include <filesystem/SerenaDiskImage.h>
 #include <machine/Platform.h>
+#include <machine/amiga/floppy/FloppyController.h>
+#include <machine/amiga/graphics/GraphicsDriver.h>
+#include <machine/amiga/hid/GamePortController.h>
+#include <machine/amiga/hid/KeyboardDriver.h>
+#include <machine/amiga/zorro/ZorroController.h>
 #include <kern/endian.h>
 
 

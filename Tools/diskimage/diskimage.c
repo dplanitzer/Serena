@@ -14,7 +14,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <driver/amiga/floppy/adf.h>
 #include <filemanager/FileHierarchy.h>
 #include <filesystem/DirectoryChannel.h>
 #include <filesystem/FileChannel.h>
@@ -23,6 +22,7 @@
 #include <filesystem/serenafs/SerenaFS.h>
 #include <filesystem/serenafs/SfsDirectory.h>
 #include <filesystem/serenafs/SfsRegularFile.h>
+#include <machine/amiga/floppy/adf.h>
 #include <clap.h>
 #include <kern/endian.h>
 #include <kpi/perm.h>

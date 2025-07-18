@@ -12,8 +12,8 @@
 #include "Console.h"
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
-#include <driver/amiga/graphics/GraphicsDriver.h>
 #include <klib/RingBuffer.h>
+#include <machine/amiga/graphics/GraphicsDriver.h>
 #include "Color.h"
 #include "Font.h"
 #include "Geometry.h"

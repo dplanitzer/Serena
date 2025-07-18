@@ -10,7 +10,7 @@
 #define FloppyController_h
 
 #include <driver/Driver.h>
-#include <driver/amiga/floppy/FloppyDriver.h>
+#include <machine/amiga/floppy/FloppyDriver.h>
 
 
 // The floppy controller. The Amiga has just one single floppy DMA channel

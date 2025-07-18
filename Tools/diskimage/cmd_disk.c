@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <driver/amiga/floppy/adf.h>
+#include <machine/amiga/floppy/adf.h>
 
 
 //

@@ -9,10 +9,10 @@
 #include <driver/DriverChannel.h>
 #include <driver/LogDriver.h>
 #include <driver/NullDriver.h>
-#include <driver/amiga/AmigaController.h>
 #include <driver/disk/VirtualDiskManager.h>
 #include <driver/hid/HIDDriver.h>
 #include <driver/hid/HIDManager.h>
+#include <machine/amiga/AmigaController.h>
 
 
 // Creates and starts the platform controller which in turn discovers all platform

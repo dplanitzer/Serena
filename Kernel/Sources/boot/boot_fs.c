@@ -11,12 +11,12 @@
 #include <dispatcher/delay.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverChannel.h>
-#include <driver/amiga/graphics/GraphicsDriver.h>
 #include <driver/disk/DiskDriver.h>
 #include <filemanager/FileHierarchy.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/IOChannel.h>
 #include <machine/Platform.h>
+#include <machine/amiga/graphics/GraphicsDriver.h>
 #include <kpi/fcntl.h>
 #include <Catalog.h>
 #include "boot_screen.h"
