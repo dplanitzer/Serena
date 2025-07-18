@@ -14,9 +14,9 @@
 #include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>
 #include <dispatcher/VirtualProcessor.h>
-#include <hal/InterruptController.h>
-#include <hal/MonotonicClock.h>
-#include <hal/Platform.h>
+#include <machine/InterruptController.h>
+#include <machine/MonotonicClock.h>
+#include <machine/Platform.h>
 #include <kern/timespec.h>
 
 

@@ -7,8 +7,8 @@
 //
 
 #include "WaitQueue.h"
-#include <hal/MonotonicClock.h>
-#include <hal/Platform.h>
+#include <machine/MonotonicClock.h>
+#include <machine/Platform.h>
 #include "VirtualProcessorScheduler.h"
 
 

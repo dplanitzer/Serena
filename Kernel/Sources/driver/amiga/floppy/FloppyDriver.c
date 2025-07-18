@@ -10,8 +10,8 @@
 #include <dispatcher/delay.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <dispatchqueue/DispatchQueue.h>
-#include <hal/MonotonicClock.h>
-#include <hal/Platform.h>
+#include <machine/MonotonicClock.h>
+#include <machine/Platform.h>
 #include <log/Log.h>
 #include <kern/kalloc.h>
 #include <kern/string.h>

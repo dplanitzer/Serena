@@ -7,7 +7,7 @@
 //
 
 #include "syscalldecls.h"
-#include <hal/MonotonicClock.h>
+#include <machine/MonotonicClock.h>
 #include <kern/timespec.h>
 
 

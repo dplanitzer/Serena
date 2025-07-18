@@ -10,7 +10,7 @@
 #define InterruptController_h
 
 #include <dispatcher/Semaphore.h>
-#include <hal/Platform.h>
+#include <machine/Platform.h>
 
 
 #define INTERRUPT_HANDLER_PRIORITY_LOWEST   -128

@@ -11,7 +11,7 @@
 
 #include <kobj/Object.h>
 #include <dispatcher/VirtualProcessorPool.h>
-#include <hal/SystemDescription.h>
+#include <machine/SystemDescription.h>
 #include <kpi/os_dispatch.h>
 
 final_class(DispatchQueue, Object);

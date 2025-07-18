@@ -7,7 +7,7 @@
 //
 
 #include "DispatchQueuePriv.h"
-#include <hal/MonotonicClock.h>
+#include <machine/MonotonicClock.h>
 #include <kern/kalloc.h>
 #include <kern/string.h>
 #include <kern/timespec.h>

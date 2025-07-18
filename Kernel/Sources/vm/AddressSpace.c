@@ -8,7 +8,7 @@
 
 #include "AddressSpace.h"
 #include <dispatcher/Lock.h>
-#include <hal/Platform.h>
+#include <machine/Platform.h>
 #include <klib/List.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>

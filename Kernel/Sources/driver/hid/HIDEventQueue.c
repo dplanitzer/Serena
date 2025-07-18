@@ -8,8 +8,8 @@
 
 #include "HIDEventQueue.h"
 #include <dispatcher/Semaphore.h>
-#include <hal/MonotonicClock.h>
-#include <hal/Platform.h>
+#include <machine/MonotonicClock.h>
+#include <machine/Platform.h>
 #include <kern/kalloc.h>
 
 

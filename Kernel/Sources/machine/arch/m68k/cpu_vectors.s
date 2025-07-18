@@ -1,5 +1,5 @@
 ;
-;  cpu_vectors_asm.s
+;  machine/arch/m68k/cpu_vectors.s
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 2/2/21.
@@ -11,8 +11,8 @@
 ; Trap, exception and interrupt handlers.
 ;
 
-    include "chipset.i"
-    include "lowmem.i"
+    include <machine/amiga/chipset.i>
+    include <machine/lowmem.i>
 
     xref _fatalError
     xref _chipset_reset

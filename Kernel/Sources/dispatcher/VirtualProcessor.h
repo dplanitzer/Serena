@@ -14,8 +14,8 @@
 #include <klib/Atomic.h>
 #include <klib/List.h>
 #include <kpi/signal.h>
-#include <hal/Platform.h>
-#include <hal/SystemDescription.h>
+#include <machine/Platform.h>
+#include <machine/SystemDescription.h>
 
 struct Process;
 struct VirtualProcessor;
@@ -122,7 +122,7 @@ typedef struct VirtualProcessorVTable {
 } VirtualProcessorVTable;
 
 
-// Note: Keep in sync with lowmem.i
+// Note: Keep in sync with machine/hal/lowmem.i
 typedef struct VirtualProcessor {
     ListNode                                rewa_qe;                // A VP is either on the ready (re) queue or a wait (wa) queue
     const VirtualProcessorVTable* _Nonnull  vtable;

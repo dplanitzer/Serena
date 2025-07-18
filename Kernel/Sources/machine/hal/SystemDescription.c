@@ -6,7 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "SystemDescription.h"
+#include <machine/SystemDescription.h>
 #include <kern/kernlib.h>
 #include <kern/string.h>
 

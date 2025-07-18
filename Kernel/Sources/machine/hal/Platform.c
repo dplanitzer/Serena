@@ -6,7 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Platform.h"
+#include <machine/Platform.h>
 
 //
 // CPU

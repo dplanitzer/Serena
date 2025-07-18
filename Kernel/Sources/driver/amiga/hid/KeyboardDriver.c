@@ -9,7 +9,7 @@
 #include "KeyboardDriver.h"
 #include <driver/hid/HIDManager.h>
 #include <driver/hid/HIDKeyRepeater.h>
-#include <hal/InterruptController.h>
+#include <machine/InterruptController.h>
 #include <kpi/fcntl.h>
 
 

@@ -6,10 +6,10 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "MonotonicClock.h"
-#include "InterruptController.h"
-#include <hal/Platform.h>
-#include <hal/SystemDescription.h>
+#include <machine/MonotonicClock.h>
+#include <machine/InterruptController.h>
+#include <machine/Platform.h>
+#include <machine/SystemDescription.h>
 #include <kern/kernlib.h>
 #include <kern/timespec.h>
 

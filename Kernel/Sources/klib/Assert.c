@@ -7,7 +7,7 @@
 //
 
 #include <kern/assert.h>
-#include <hal/Platform.h>
+#include <machine/Platform.h>
 #include <kern/kernlib.h>
 #include <log/Log.h>
 

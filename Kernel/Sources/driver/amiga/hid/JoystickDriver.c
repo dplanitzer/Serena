@@ -8,7 +8,7 @@
 
 #include "JoystickDriver.h"
 #include <driver/hid/HIDManager.h>
-#include <hal/InterruptController.h>
+#include <machine/InterruptController.h>
 
 
 

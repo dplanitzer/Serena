@@ -9,10 +9,10 @@
 #ifndef SystemDescription_h
 #define SystemDescription_h
 
-#include "Platform.h"
+#include <machine/Platform.h>
 
 // The system description
-// Note: Keep in sync with lowmem.i
+// Note: Keep in sync with machine/hal/lowmem.i
 typedef struct SystemDescription {
     int8_t          cpu_model;
     int8_t          fpu_model;

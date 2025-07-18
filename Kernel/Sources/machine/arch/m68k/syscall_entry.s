@@ -1,5 +1,5 @@
 ;
-;  syscalls_m68k.s
+;  machine/arch/m68k/syscall_entry.s
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 4/4/21.
@@ -7,7 +7,7 @@
 ;
 
 
-    include "hal/lowmem.i"
+    include <machine/lowmem.i>
     include <machine/asm/errno.i>
 
     xref _gVirtualProcessorSchedulerStorage

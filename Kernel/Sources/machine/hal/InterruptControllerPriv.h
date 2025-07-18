@@ -9,7 +9,7 @@
 #ifndef InterruptControllerPriv_h
 #define InterruptControllerPriv_h
 
-#include "InterruptController.h"
+#include <machine/InterruptController.h>
 #include <dispatcher/Lock.h>
 
 
@@ -30,14 +30,14 @@ typedef struct InterruptHandler {
 } InterruptHandler;
 
 
-// Keep in sync with lowmem.i
+// Keep in sync with machine/hal/lowmem.i
 typedef struct InterruptHandlerArray {
     InterruptHandler* _Nonnull  start;  // points to the first handler
     int                         count;
 } InterruptHandlerArray;
 
 
-// Keep in sync with lowmem.i
+// Keep in sync with machine/hal/lowmem.i
 typedef struct InterruptController {
     InterruptHandlerArray   handlers[INTERRUPT_ID_COUNT];
     int                     nextAvailableId;    // Next available interrupt handler ID

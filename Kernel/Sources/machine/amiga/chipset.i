@@ -1,5 +1,5 @@
 ;
-;  chipset.i
+;  machine/amiga/chipset.i
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 2/2/21.

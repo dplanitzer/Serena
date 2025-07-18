@@ -10,7 +10,7 @@
 #include <kern/assert.h>
 #include <kern/string.h>
 #include <kern/kalloc.h>
-#include <hal/SystemDescription.h>
+#include <machine/SystemDescription.h>
 
 
 // Reads a byte value from the given Zorro auto configuration address

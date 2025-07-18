@@ -1,13 +1,13 @@
 ;
-;  cpu_asm.s
+;  machine/arch/m68k/cpu_asm.s
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 2/4/21.
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 ;
 
-    include "chipset.i"
-    include "lowmem.i"
+    include <machine/amiga/chipset.i>
+    include <machine/lowmem.i>
 
     xref _cpu_non_recoverable_error
 

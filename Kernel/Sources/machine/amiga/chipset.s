@@ -1,5 +1,5 @@
 ;
-;  chipset_asm.s
+;  machine/amiga/chipset.s
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 2/2/21.
@@ -7,7 +7,7 @@
 ;
 
     include "chipset.i"
-    include "lowmem.i"
+    include <machine/lowmem.i>
 
 
     xref _gCopperSchedulerStorage

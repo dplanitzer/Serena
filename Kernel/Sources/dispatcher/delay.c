@@ -8,8 +8,8 @@
 
 #include "delay.h"
 #include "WaitQueue.h"
-#include <hal/MonotonicClock.h>
-#include <hal/Platform.h>
+#include <machine/MonotonicClock.h>
+#include <machine/Platform.h>
 #include <kern/timespec.h>
 
 static WaitQueue   gSleepQueue;    // VPs which block in a delay_xx() call wait on this wait queue

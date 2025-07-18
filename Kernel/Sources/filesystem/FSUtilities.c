@@ -7,7 +7,7 @@
 //
 
 #include "FSUtilities.h"
-#include <hal/MonotonicClock.h>
+#include <machine/MonotonicClock.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 

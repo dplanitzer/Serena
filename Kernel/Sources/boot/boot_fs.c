@@ -16,7 +16,7 @@
 #include <filemanager/FileHierarchy.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/IOChannel.h>
-#include <hal/Platform.h>
+#include <machine/Platform.h>
 #include <kpi/fcntl.h>
 #include <Catalog.h>
 #include "boot_screen.h"

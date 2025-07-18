@@ -7,7 +7,7 @@
 //
 
 #include "Screen.h"
-#include <hal/Platform.h>
+#include <machine/Platform.h>
 #include <kern/kalloc.h>
 
 

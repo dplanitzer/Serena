@@ -16,9 +16,9 @@
 #include <dispatchqueue/DispatchQueue.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
-#include <hal/InterruptController.h>
-#include <hal/MonotonicClock.h>
-#include <hal/Platform.h>
+#include <machine/InterruptController.h>
+#include <machine/MonotonicClock.h>
+#include <machine/Platform.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>
 #include <security/SecurityManager.h>

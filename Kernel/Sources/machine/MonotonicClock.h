@@ -18,7 +18,7 @@ struct SystemDescription;
 #define MONOTONIC_DELAY_MAX_NSEC    1000000l
 
 
-// Note: Keep in sync with lowmem.i
+// Note: Keep in sync with machine/hal/lowmem.i
 typedef struct MonotonicClock {
     volatile struct timespec    current_time;
     volatile Quantums           current_quantum;    // Current scheduler time in terms of elapsed quantums since boot

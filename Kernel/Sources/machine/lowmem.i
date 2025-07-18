@@ -1,5 +1,5 @@
 ;
-;  lowmem.i
+;  machine/lowmem.i
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 2/2/21.

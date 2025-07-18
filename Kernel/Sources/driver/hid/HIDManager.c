@@ -8,7 +8,7 @@
 
 #include "HIDManagerPriv.h"
 #include <driver/DriverChannel.h>
-#include <hal/Platform.h>
+#include <machine/Platform.h>
 #include <kern/kalloc.h>
 #include <kern/limits.h>
 #include <kpi/fcntl.h>

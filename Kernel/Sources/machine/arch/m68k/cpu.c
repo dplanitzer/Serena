@@ -1,12 +1,12 @@
 //
-//  cpu_m68k.c
+//  machine/arch/m68k/cpu.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/9/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Platform.h"
+#include <machine/Platform.h>
 #include <kern/string.h>
 #include <kern/types.h>
 

@@ -8,9 +8,9 @@
 
 #include "VirtualProcessorScheduler.h"
 #include "WaitQueue.h"
-#include <hal/InterruptController.h>
-#include <hal/MonotonicClock.h>
-#include <hal/Platform.h>
+#include <machine/InterruptController.h>
+#include <machine/MonotonicClock.h>
+#include <machine/Platform.h>
 #include <kern/timespec.h>
 #include <log/Log.h>
 

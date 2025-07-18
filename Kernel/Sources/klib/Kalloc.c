@@ -8,7 +8,7 @@
 
 #include "Allocator.h"
 #include <dispatcher/Lock.h>
-#include <hal/SystemDescription.h>
+#include <machine/SystemDescription.h>
 #include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>

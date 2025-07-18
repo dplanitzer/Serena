@@ -10,7 +10,7 @@
 #define BootAllocator_h
 
 #include <kern/types.h>
-#include <hal/SystemDescription.h>
+#include <machine/SystemDescription.h>
 
 
 typedef struct BootAllocator {

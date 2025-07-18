@@ -11,7 +11,7 @@
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
 #include <driver/DriverChannel.h>
-#include <hal/Platform.h>
+#include <machine/Platform.h>
 #include <kern/string.h>
 #include <kpi/fcntl.h>
 

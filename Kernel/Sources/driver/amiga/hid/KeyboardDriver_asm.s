@@ -7,8 +7,8 @@
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 ;
 
-    include "hal/chipset.i"
-    include "hal/lowmem.i"
+    include <machine/amiga/chipset.i>
+    include <machine/lowmem.i>
 
     xdef _ksb_init
     xdef _ksb_receive_key

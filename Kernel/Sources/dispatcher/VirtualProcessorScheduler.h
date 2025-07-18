@@ -11,7 +11,7 @@
 
 #include <kern/types.h>
 #include <boot/BootAllocator.h>
-#include <hal/SystemDescription.h>
+#include <machine/SystemDescription.h>
 #include <kern/limits.h>
 #include "VirtualProcessor.h"
 
@@ -34,7 +34,7 @@ typedef struct ReadyQueue {
 } ReadyQueue;
 
 
-// Note: Keep in sync with lowmem.i
+// Note: Keep in sync with machine/hal/lowmem.i
 typedef struct VirtualProcessorScheduler {
     volatile VirtualProcessor* _Nonnull running;                        // Currently running VP
     VirtualProcessor* _Nullable         scheduled;                      // The VP that should be moved to the running state by the context switcher
