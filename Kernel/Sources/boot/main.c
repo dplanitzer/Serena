@@ -10,7 +10,6 @@
 #include <log/Log.h>
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
-#include <dispatcher/delay.h>
 #include <dispatcher/VirtualProcessorScheduler.h>
 #include <dispatcher/VirtualProcessorPool.h>
 #include <dispatchqueue/DispatchQueue.h>
@@ -19,6 +18,7 @@
 #include <machine/InterruptController.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
+#include <machine/delay.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>
 #include <security/SecurityManager.h>

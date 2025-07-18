@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "delay.h"
-#include "WaitQueue.h"
+#include <machine/delay.h>
+#include <dispatcher/WaitQueue.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
 #include <kern/timespec.h>
@@ -30,7 +30,9 @@ static void _delay_by(const struct timespec* _Nonnull wtp)
     
     
     // This is a medium or long wait -> context switch away
-    (void)_sleep(&gSleepQueue, NULL, 0, wtp, NULL);
+    const int sps = preempt_disable();
+    const int err = WaitQueue_TimedWait(&gSleepQueue, NULL, 0, wtp, NULL);
+    preempt_restore(sps);
 }
 
 void delay_us(useconds_t us)
@@ -55,15 +57,4 @@ void delay_sec(time_t secs)
 
     timespec_from(&ts, secs, 0);
     _delay_by(&ts);
-}
-
-
-// Sleep for the given number of seconds.
-errno_t _sleep(WaitQueue* _Nonnull wq, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
-{
-    const int sps = preempt_disable();
-    const int err = WaitQueue_TimedWait(wq, mask, flags, wtp, rmtp);
-    preempt_restore(sps);
-    
-    return err;
 }

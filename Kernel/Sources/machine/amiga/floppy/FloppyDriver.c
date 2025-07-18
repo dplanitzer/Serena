@@ -7,15 +7,15 @@
 //
 
 #include "FloppyDriverPriv.h"
-#include <dispatcher/delay.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <dispatchqueue/DispatchQueue.h>
-#include <machine/MonotonicClock.h>
-#include <machine/Platform.h>
 #include <log/Log.h>
 #include <kern/kalloc.h>
 #include <kern/string.h>
 #include <kern/timespec.h>
+#include <machine/MonotonicClock.h>
+#include <machine/Platform.h>
+#include <machine/delay.h>
 #include "mfm.h"
 
 

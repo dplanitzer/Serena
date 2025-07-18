@@ -9,7 +9,6 @@
 #include "FloppyDriverPriv.h"
 #include "FloppyControllerPkg.h"
 #include "adf.h"
-#include <dispatcher/delay.h>
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>
@@ -17,6 +16,7 @@
 #include <machine/InterruptController.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
+#include <machine/delay.h>
 #include <kern/timespec.h>
 
 

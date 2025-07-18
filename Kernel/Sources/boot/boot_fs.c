@@ -8,7 +8,6 @@
 
 #include <kei/kei.h>
 #include <log/Log.h>
-#include <dispatcher/delay.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverChannel.h>
 #include <driver/disk/DiskDriver.h>
@@ -16,6 +15,7 @@
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/IOChannel.h>
 #include <machine/Platform.h>
+#include <machine/delay.h>
 #include <machine/amiga/graphics/GraphicsDriver.h>
 #include <kpi/fcntl.h>
 #include <Catalog.h>
