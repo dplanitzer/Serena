@@ -17,6 +17,7 @@
 #include <kpi/vcpu.h>
 #include <machine/Platform.h>
 #include <machine/SystemDescription.h>
+#include <sched/vcpu_stack.h>
 #include <sched/waitqueue.h>
 
 struct Process;
@@ -25,23 +26,6 @@ struct vcpu;
 
 extern const sigset_t SIGSET_BLOCK_ALL;
 extern const sigset_t SIGSET_BLOCK_NONE;
-
-
-// A kernel or user execution stack
-typedef struct vcpu_stack {
-    char* _Nullable base;
-    size_t          size;
-} vcpu_stack_t;
-
-
-extern void vcpu_stack_Init(vcpu_stack_t* _Nonnull self);
-extern void vcpu_stack_destroy(vcpu_stack_t* _Nullable self);
-
-extern errno_t vcpu_stack_setmaxsize(vcpu_stack_t* _Nullable self, size_t size);
-
-#define vcpu_stack_initialtop(__self) \
-    ((size_t)((__self)->base + (__self)->size))
-
 
 
 // This structure describes a virtual processor closure which is a function entry
