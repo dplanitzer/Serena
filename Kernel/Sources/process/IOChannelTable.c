@@ -22,7 +22,7 @@ errno_t IOChannelTable_Init(IOChannelTable* _Nonnull self)
 
     try(kalloc_cleared(sizeof(IOChannelRef) * kIOChannelTable_PageSize, (void**)&self->table));
     self->tableCapacity = kIOChannelTable_PageSize;
-    Lock_Init(&self->lock);
+    mtx_init(&self->mtx);
 
 catch:
     return err;
@@ -31,7 +31,7 @@ catch:
 void IOChannelTable_Deinit(IOChannelTable* _Nonnull self)
 {
     IOChannelTable_ReleaseAll(self);
-    Lock_Deinit(&self->lock);
+    mtx_deinit(&self->mtx);
 }
 
 void IOChannelTable_ReleaseAll(IOChannelTable* _Nonnull self)
@@ -39,13 +39,13 @@ void IOChannelTable_ReleaseAll(IOChannelTable* _Nonnull self)
     IOChannelRef* table;
     size_t channelCount;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     table = self->table;
     channelCount = self->channelCount;
     self->table = NULL;
     self->tableCapacity = 0;
     self->channelCount = 0;
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     for (size_t i = 0, cc = 0; cc < channelCount; i++) {
         if (table[i]) {
@@ -67,7 +67,7 @@ errno_t IOChannelTable_AdoptChannel(IOChannelTable* _Nonnull self, IOChannelRef 
     size_t ioc = 0;
     bool hasSlot = false;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     for (size_t i = 0; i < self->tableCapacity; i++) {
         if (self->table[i] == NULL) {
@@ -83,14 +83,14 @@ errno_t IOChannelTable_AdoptChannel(IOChannelTable* _Nonnull self, IOChannelRef 
 
     self->table[ioc] = pChannel;
     self->channelCount++;
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     *pOutIoc = ioc;
     return EOK;
 
 
 catch:
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     *pOutIoc = -1;
     return err;
 }
@@ -109,7 +109,7 @@ errno_t IOChannelTable_ReleaseChannel(IOChannelTable* _Nonnull self, int ioc)
     // Do the actual channel release outside the table lock because the release
     // may take some time to execute. Ie it's synchronously draining some buffered
     // data.
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     if (ioc < 0 || ioc > self->tableCapacity || self->table[ioc] == NULL) {
         throw(EBADF);
     }
@@ -117,12 +117,12 @@ errno_t IOChannelTable_ReleaseChannel(IOChannelTable* _Nonnull self, int ioc)
     pChannel = self->table[ioc];
     self->table[ioc] = NULL;
     self->channelCount--;
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return IOChannel_Release(pChannel);
 
 catch:
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     return err;
 }
 
@@ -135,7 +135,7 @@ errno_t IOChannelTable_AcquireChannel(IOChannelTable* _Nonnull self, int ioc, IO
     decl_try_err();
     IOChannelRef pChannel = NULL;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     if (ioc < 0 || ioc > self->tableCapacity || self->table[ioc] == NULL) {
         throw(EBADF);
     }
@@ -144,7 +144,7 @@ errno_t IOChannelTable_AcquireChannel(IOChannelTable* _Nonnull self, int ioc, IO
     IOChannel_BeginOperation(pChannel);
 
 catch:
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     *pOutChannel = pChannel;
     return err;
 }
@@ -157,7 +157,7 @@ errno_t IOChannelTable_DupChannel(IOChannelTable* _Nonnull self, int ioc, int mi
     size_t newIoc = 0;
     bool hasSlot = false;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     if (ioc < 0 || ioc > self->tableCapacity || self->table[ioc] == NULL) {
         throw(EBADF);
@@ -179,14 +179,14 @@ errno_t IOChannelTable_DupChannel(IOChannelTable* _Nonnull self, int ioc, int mi
     self->table[newIoc] = pChannel;
     IOChannel_Retain(pChannel);
     self->channelCount++;
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     *pOutNewIoc = newIoc;
     return EOK;
 
 
 catch:
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     *pOutNewIoc = -1;
     return err;
 }
@@ -199,7 +199,7 @@ errno_t IOChannelTable_DupChannelTo(IOChannelTable* _Nonnull self, int ioc, int 
     decl_try_err();
     IOChannelRef pChannelToClose = NULL;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     if (ioc < 0 || ioc > self->tableCapacity || self->table[ioc] == NULL) {
         throw(EBADF);
@@ -217,7 +217,7 @@ errno_t IOChannelTable_DupChannelTo(IOChannelTable* _Nonnull self, int ioc, int 
     IOChannel_Retain(pChannel);
 
 catch:
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     // We release the old channel outside the table lock because the release can
     // take a while. Ie buffered data is drained.
@@ -235,8 +235,8 @@ errno_t IOChannelTable_DupFrom(IOChannelTable* _Nonnull self, IOChannelTable* _N
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
-    Lock_Lock(&pOther->lock);
+    mtx_lock(&self->mtx);
+    mtx_lock(&pOther->mtx);
 
     if (self->tableCapacity != pOther->tableCapacity) {
         throw(EINVAL);
@@ -252,8 +252,8 @@ errno_t IOChannelTable_DupFrom(IOChannelTable* _Nonnull self, IOChannelTable* _N
     }
 
 catch:
-    Lock_Unlock(&pOther->lock);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&pOther->mtx);
+    mtx_unlock(&self->mtx);
 
     return err;
 }

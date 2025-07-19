@@ -29,7 +29,7 @@ errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, in
     SList_Init(&self->item_queue);
     SList_Init(&self->timer_queue);
     SList_Init(&self->item_cache_queue);
-    Lock_Init(&self->lock);
+    mtx_init(&self->lock);
     ConditionVariable_Init(&self->work_available_signaler);
     ConditionVariable_Init(&self->vp_shutdown_signaler);
     self->owning_process = pProc;
@@ -91,9 +91,9 @@ void DispatchQueue_Terminate(DispatchQueueRef _Nonnull self)
     // accepting new work items and repeatable timers from rescheduling. This
     // will also cause the VPs to exit their work loop and to relinquish
     // themselves.
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->lock);
     if (self->state >= kQueueState_Terminating) {
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->lock);
         return;
     }
     self->state = kQueueState_Terminating;
@@ -107,14 +107,14 @@ void DispatchQueue_Terminate(DispatchQueueRef _Nonnull self)
     // We want to wake _all_ VPs up here since all of them need to relinquish
     // themselves.
     ConditionVariable_Broadcast(&self->work_available_signaler);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->lock);
 }
 
 // Waits until the dispatch queue has reached 'terminated' state which means that
 // all VPs have been relinquished.
 void DispatchQueue_WaitForTerminationCompleted(DispatchQueueRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->lock);
     while (self->availableConcurrency > 0) {
         ConditionVariable_Wait(&self->vp_shutdown_signaler, &self->lock);
     }
@@ -122,7 +122,7 @@ void DispatchQueue_WaitForTerminationCompleted(DispatchQueueRef _Nonnull self)
 
     // The queue is now in terminated state
     self->state = kQueueState_Terminated;
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->lock);
 }
 
 // Deallocates the dispatch queue. Expects that the queue is in 'terminated' state.
@@ -143,7 +143,7 @@ static void _DispatchQueue_Destroy(DispatchQueueRef _Nonnull self)
     }
     SList_Deinit(&self->item_cache_queue);
     
-    Lock_Deinit(&self->lock);
+    mtx_deinit(&self->lock);
     ConditionVariable_Deinit(&self->work_available_signaler);
     ConditionVariable_Deinit(&self->vp_shutdown_signaler);
     self->owning_process = NULL;
@@ -517,17 +517,17 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
     }
 
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->lock);
     isLocked = true;
     if (self->state >= kQueueState_Terminating) {
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->lock);
         return ETERMINATED;
     }
 
 
     if ((options & kDispatchOption_Coalesce) == kDispatchOption_Coalesce) {
         if (DispatchQueue_HasItemWithTag_Locked(self, tag)) {
-            Lock_Unlock(&self->lock);
+            mtx_unlock(&self->lock);
             return EOK;
         }
     }
@@ -553,7 +553,7 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
     }
 
     ConditionVariable_Signal(&self->work_available_signaler);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->lock);
     isLocked = false;
     // Queue is now unlocked
 
@@ -562,7 +562,7 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
         // Wait for the work item completion
         err = Semaphore_Acquire(&pItem->u.completionSignaler, &TIMESPEC_INF);
 
-        Lock_Lock(&self->lock);
+        mtx_lock(&self->lock);
 
         if (err == EOK) {
             if ((pItem->flags & kWorkItemFlag_IsInterrupted) == kWorkItemFlag_IsInterrupted) {
@@ -574,21 +574,21 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
         }
 
         DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->lock);
     }
 
     return err;
 
 catch:
     if (!isLocked) {
-        Lock_Lock(&self->lock);
+        mtx_lock(&self->lock);
         isLocked = true;
     }
     if (pItem) {
         DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
     }
     if (isLocked) {
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->lock);
     }
 
     return err;
@@ -627,16 +627,16 @@ errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, const struct
         return EINVAL;
     }
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->lock);
     if (self->state >= kQueueState_Terminating) {
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->lock);
         return ETERMINATED;
     }
 
 
     if ((options & kDispatchOption_Coalesce) == kDispatchOption_Coalesce) {
         if (DispatchQueue_HasItemWithTag_Locked(self, tag)) {
-            Lock_Unlock(&self->lock);
+            mtx_unlock(&self->lock);
             return EOK;
         }
     }
@@ -661,7 +661,7 @@ errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, const struct
     }
 
     ConditionVariable_Signal(&self->work_available_signaler);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->lock);
 
     return EOK;
 
@@ -669,7 +669,7 @@ catch:
     if (pItem) {
         DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->lock);
 
     return err;
 }
@@ -683,11 +683,11 @@ catch:
 // will not execute.
 bool DispatchQueue_RemoveByTag(DispatchQueueRef _Nonnull self, uintptr_t tag)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->lock);
     // Queue termination state isn't relevant here
     const bool r0 = DispatchQueue_RemoveWorkItem_Locked(self, &self->item_queue, tag);
     const bool r1 = DispatchQueue_RemoveWorkItem_Locked(self, &self->timer_queue, tag);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->lock);
     return (r0 || r1) ? true : false;
 }
 
@@ -695,9 +695,9 @@ bool DispatchQueue_RemoveByTag(DispatchQueueRef _Nonnull self, uintptr_t tag)
 // Removes all queued work items, one-shot and repeatable timers from the queue.
 void DispatchQueue_Flush(DispatchQueueRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->lock);
     DispatchQueue_Flush_Locked(self);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->lock);
 }
 
 
@@ -794,7 +794,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
     // We hold the lock at all times except:
     // - while waiting for work
     // - while executing a work item
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->lock);
 
     while (self->state == kQueueState_Running) {
         WorkItem* pItem = _get_next_work(self);
@@ -812,7 +812,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
 
         // Drop the lock. We do not want to hold it while the closure is executing
         // and we are (if needed) signaling a completion.
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->lock);
 
 
         // Execute the work item
@@ -830,7 +830,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
 
 
         // Reacquire the lock
-        Lock_Lock(&self->lock);
+        mtx_lock(&self->lock);
 
 
         // Deactivate the item
@@ -853,7 +853,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
     if (self->state >= kQueueState_Terminating) {
         ConditionVariable_Signal(&self->vp_shutdown_signaler);
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->lock);
 }
 
 

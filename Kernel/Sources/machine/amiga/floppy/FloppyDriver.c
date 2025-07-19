@@ -15,7 +15,7 @@
 #include <kern/timespec.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
-#include <machine/delay.h>
+#include <sched/delay.h>
 #include "mfm.h"
 
 

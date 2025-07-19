@@ -132,7 +132,7 @@ void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull self, Color color)
 
 void Console_OnTextCursorBlink(ConsoleRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     
     self->flags.isTextCursorOn = !self->flags.isTextCursorOn;
     if (self->flags.isTextCursorVisible) {
@@ -140,7 +140,7 @@ void Console_OnTextCursorBlink(ConsoleRef _Nonnull self)
     }
     self->flags.isTextCursorSingleCycleOn = false;
 
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }
 
 static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _Nonnull self)

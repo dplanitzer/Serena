@@ -1,28 +1,28 @@
 //
-//  dispatcher.c
+//  sched_win32.c
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 3/10/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Lock.h"
+#include "mtx.h"
 
-void Lock_Init(Lock* self)
+void mtx_init(mtx_t* self)
 {
     InitializeSRWLock(self);
 }   
 
-void Lock_Deinit(Lock* self)
+void mtx_deinit(mtx_t* self)
 {
 }
 
-void Lock_Lock(Lock* self)
+void mtx_lock(mtx_t* self)
 {
     AcquireSRWLockExclusive(self);
 }
 
-void Lock_Unlock(Lock* self)
+void mtx_unlock(mtx_t* self)
 {
     ReleaseSRWLockExclusive(self);
 }
@@ -30,7 +30,7 @@ void Lock_Unlock(Lock* self)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "ConditionVariable.h"
+#include <dispatcher/ConditionVariable.h>
 
 void ConditionVariable_Init(ConditionVariable* pCondVar)
 {
@@ -51,46 +51,46 @@ void ConditionVariable_Broadcast(ConditionVariable* pCondVar)
     WakeAllConditionVariable(pCondVar);
 }
 
-errno_t ConditionVariable_Wait(ConditionVariable* pCondVar, Lock* pLock)
+errno_t ConditionVariable_Wait(ConditionVariable* pCondVar, mtx_t* mtx)
 {
-    return (SleepConditionVariableSRW(pCondVar, pLock, INFINITE, 0) != 0) ? EOK : EINTR;
+    return (SleepConditionVariableSRW(pCondVar, mtx, INFINITE, 0) != 0) ? EOK : EINTR;
 }
 
-errno_t ConditionVariable_TimedWait(ConditionVariable* pCondVar, Lock* pLock, const struct timespec* _Nonnull deadline)
+errno_t ConditionVariable_TimedWait(ConditionVariable* pCondVar, mtx_t* mtx, const struct timespec* _Nonnull deadline)
 {
-    return (SleepConditionVariableSRW(pCondVar, pLock, INFINITE, 0) != 0) ? EOK : EINTR;
+    return (SleepConditionVariableSRW(pCondVar, mtx, INFINITE, 0) != 0) ? EOK : EINTR;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "SELock.h"
+#include <dispatcher/SELock.h>
 
-void SELock_Init(SELock* self)
+void SEmtx_init(SELock* self)
 {
     InitializeSRWLock(&self->lock);
     self->state = kSELState_Unlocked;
 }
 
-void SELock_Deinit(SELock* self)
+void SEmtx_deinit(SELock* self)
 {
 }
 
-errno_t SELock_LockShared(SELock* self)
+errno_t SEmtx_lock_Shared(SELock* self)
 {
     AcquireSRWLockShared(&self->lock);
     self->state = kSELState_LockedShared;
     return EOK;
 }
 
-errno_t SELock_LockExclusive(SELock* self)
+errno_t SEmtx_lock_Exclusive(SELock* self)
 {
     AcquireSRWLockExclusive(&self->lock);
     self->state = kSELState_LockedExclusive;
     return EOK;
 }
 
-errno_t SELock_Unlock(SELock* self)
+errno_t SEmtx_unlock(SELock* self)
 {
     switch (self->state) {
         case kSELState_Unlocked:

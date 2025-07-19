@@ -11,15 +11,15 @@
 
 #include <kobj/Any.h>
 #include <klib/List.h>
-#include <dispatcher/Lock.h>
 #include <kpi/dirent.h>
 #include <kpi/stat.h>
+#include <sched/mtx.h>
 
 // Inode flags
 enum {
-    kInodeFlag_Accessed = 0x04,         // [Inode lock] access date needs update
-    kInodeFlag_Updated = 0x02,          // [Inode lock] mod date needs update
-    kInodeFlag_StatusChanged = 0x08,    // [Inode lock] status changed date needs update
+    kInodeFlag_Accessed = 0x04,         // [Inode mtx] access date needs update
+    kInodeFlag_Updated = 0x02,          // [Inode mtx] mod date needs update
+    kInodeFlag_StatusChanged = 0x08,    // [Inode mtx] status changed date needs update
 };
 
 
@@ -41,7 +41,7 @@ open_class(Inode, Any,
     int                             useCount;       // Number of clients currently using this inode. Incremented on acquisition and decremented on relinquishing (protected by Filesystem.inLock)
     int                             state;
 
-    Lock                            lock;
+    mtx_t                           mtx;
     struct timespec                 accessTime;
     struct timespec                 modificationTime;
     struct timespec                 statusChangeTime;
@@ -121,7 +121,7 @@ any_subclass_funcs(Inode,
 
 
 //
-// The following functions may be called without holding the inode lock.
+// The following functions may be called without holding the inode mtx.
 //
 
 // Reacquiring and relinquishing an existing inode
@@ -138,14 +138,14 @@ extern errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self);
 //
 
 #define Inode_Lock(__self) \
-    Lock_Lock(&((InodeRef)__self)->lock)
+    mtx_lock(&((InodeRef)__self)->mtx)
 
 #define Inode_Unlock(__self) \
-    Lock_Unlock(&((InodeRef)__self)->lock)
+    mtx_unlock(&((InodeRef)__self)->mtx)
 
 
 //
-// The caller must hold the inode lock while calling any of the functions below.
+// The caller must hold the inode mtx while calling any of the functions below.
 //
 
 // Inode timestamps

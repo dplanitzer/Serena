@@ -10,10 +10,10 @@
 #define ConsolePriv_h
 
 #include "Console.h"
-#include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <klib/RingBuffer.h>
 #include <machine/amiga/graphics/GraphicsDriver.h>
+#include <sched/mtx.h>
 #include "Color.h"
 #include "Font.h"
 #include "Geometry.h"
@@ -146,7 +146,7 @@ typedef struct SavedState {
 
 // The console object.
 final_class_ivars(Console, Driver,
-    Lock                        lock;
+    mtx_t                       mtx;
     DispatchQueueRef _Nonnull   dispatchQueue;
 
     vtparser_t                  vtparser;

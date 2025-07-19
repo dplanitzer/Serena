@@ -9,7 +9,8 @@
 #ifndef ConditionVariable_h
 #define ConditionVariable_h
 
-#include "Lock.h"
+#include <sched/mtx.h>
+#include <sched/waitqueue.h>
 
 
 // Note: Interruptable
@@ -36,10 +37,10 @@ _ConditionVariable_Wakeup(__self, true)
 // wait has timed out. Note that this function may return EINTR which means that
 // the ConditionVariable_Wait() call is happening in the context of a system
 // call that should be aborted.
-extern errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull self, Lock* _Nonnull pLock);
+extern errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull self, mtx_t* _Nonnull pLock);
 
 // Version of Wait() with an absolute timeout.
-extern errno_t ConditionVariable_TimedWait(ConditionVariable* _Nonnull self, Lock* _Nonnull pLock, const struct timespec* _Nonnull deadline);
+extern errno_t ConditionVariable_TimedWait(ConditionVariable* _Nonnull self, mtx_t* _Nonnull pLock, const struct timespec* _Nonnull deadline);
 
 
 // Wakes up one or all waiters on the condition variable.

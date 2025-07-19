@@ -34,7 +34,7 @@ errno_t Inode_Create(Class* _Nonnull pClass, FilesystemRef _Nonnull pFS, ino_t i
         self->useCount = 0;
         self->state = kInodeState_Reading;
 
-        Lock_Init(&self->lock);
+        mtx_init(&self->mtx);
         self->accessTime = *accessTime;
         self->modificationTime = *modTime;
         self->statusChangeTime = *statusChangeTime;
@@ -81,7 +81,7 @@ void Inode_Destroy(InodeRef _Nullable self)
 {
     if (self) {
         self->filesystem = NULL;
-        Lock_Deinit(&self->lock);
+        mtx_deinit(&self->mtx);
 
         _Inode_Deinit(self);
         FSDeallocate(self);

@@ -28,7 +28,7 @@ errno_t DiskCache_Create(size_t blockSize, size_t maxBlockCount, DiskCacheRef _N
     
     try(kalloc_cleared(sizeof(DiskCache), (void**) &self));
 
-    Lock_Init(&self->interlock);
+    mtx_init(&self->interlock);
     ConditionVariable_Init(&self->condition);
     List_Init(&self->lruChain);
 

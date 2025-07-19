@@ -6,7 +6,7 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <machine/delay.h>
+#include "delay.h"
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
 #include <kern/timespec.h>

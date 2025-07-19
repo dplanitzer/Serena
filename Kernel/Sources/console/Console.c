@@ -29,7 +29,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 
     try(Driver_Create(class(Console), 0, NULL, (DriverRef*)&self));
     
-    Lock_Init(&self->lock);
+    mtx_init(&self->mtx);
 
     try(DispatchQueue_Create(0, 1, kDispatchQoS_Interactive, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
 
@@ -82,7 +82,7 @@ void Console_deinit(ConsoleRef _Nonnull self)
     self->keyMap = NULL;
     TabStops_Deinit(&self->hTabStops);
         
-    Lock_Deinit(&self->lock);
+    mtx_deinit(&self->mtx);
 
     IOChannel_Release(self->fbChannel);
     self->fbChannel = NULL;
@@ -574,11 +574,11 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, ConsoleChanne
         // may block and holding the lock while being blocked for a potentially
         // long time would prevent any other process from working with the
         // console
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->mtx);
         // XXX Need an API that allows me to read as many events as possible without blocking and that only blocks if there are no events available
         // XXX Or, probably, that's how the event driver read() should work in general
         errno_t e1 = HIDChannel_GetNextEvent(self->hidChannel, (nBytesRead == 0) ? timeout : TIMESPEC_ZERO, &evt);
-        Lock_Lock(&self->lock);
+        mtx_lock(&self->mtx);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay
         if (e1 != EOK) {
@@ -624,7 +624,7 @@ errno_t Console_read(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChann
     ssize_t nBytesRead = 0;
     ssize_t nTmpBytesRead;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     // First check whether we got a partial key byte sequence sitting in our key
     // mapping buffer and copy that one out.
@@ -653,7 +653,7 @@ errno_t Console_read(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChann
         }
     }
 
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     *nOutBytesRead = nBytesRead;
     return err;
@@ -669,7 +669,7 @@ errno_t Console_write(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChan
     const unsigned char* pChars = pBuffer;
     const unsigned char* pCharsEnd = pChars + nBytesToWrite;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     
     Console_BeginDrawing_Locked(self);
     while (pChars < pCharsEnd) {
@@ -680,7 +680,7 @@ errno_t Console_write(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChan
     Console_EndDrawing_Locked(self);
     
     *nOutBytesWritten = nBytesToWrite;
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return EOK;
 }
@@ -689,7 +689,7 @@ errno_t Console_ioctl(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, 
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     switch (cmd) {
         case kConsoleCommand_GetScreen: {
             con_screen_t* info = va_arg(ap, con_screen_t*);
@@ -711,7 +711,7 @@ errno_t Console_ioctl(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, 
             err = ENOTIOCTLCMD;
             break;
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return err;
 }

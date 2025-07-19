@@ -42,7 +42,7 @@
 
 
 // May be applied to a pointer declaration. The object the pointer points to is
-// expected to be locked by ie calling Lock_Lock() on the object.
+// expected to be locked by ie calling mtx_lock() on the object.
 #ifndef _Locked
 #define _Locked
 #endif

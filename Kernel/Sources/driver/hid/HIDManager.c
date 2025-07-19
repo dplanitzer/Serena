@@ -27,7 +27,7 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
     
     try(kalloc_cleared(sizeof(HIDManager), (void**)&self));
 
-    Lock_Init(&self->lock);
+    mtx_init(&self->mtx);
 
     self->keyFlags = gUSBHIDKeyFlags;
     self->isMouseMoveReportingEnabled = false;
@@ -302,16 +302,16 @@ void HIDManager_ReportJoystickDeviceChange(HIDManagerRef _Nonnull self, int port
 
 void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     IOChannel_Ioctl(self->kbChannel, kKeyboardCommand_GetKeyRepeatDelays, pInitialDelay, pRepeatDelay);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }
 
 void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec initialDelay, struct timespec repeatDelay)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     IOChannel_Ioctl(self->kbChannel, kKeyboardCommand_SetKeyRepeatDelays, initialDelay, repeatDelay);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }
 
 static inline bool KeyMap_IsKeyDown(const uint32_t* _Nonnull pKeyMap, uint16_t keycode)
@@ -375,29 +375,29 @@ void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode*
 
 errno_t HIDManager_GetPortDevice(HIDManagerRef _Nonnull self, int port, InputType* _Nullable pOutType)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     const errno_t err = IOChannel_Ioctl(self->gpChannel, kGamePortCommand_GetPortDevice, port, pOutType);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     return err;
 }
 
 errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, InputType type)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     const errno_t err = IOChannel_Ioctl(self->gpChannel, kGamePortCommand_SetPortDevice, port, type);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     return err;
 }
 
 errno_t HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat, int hotSpotX, int hotSpotY)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     const errno_t err = GraphicsDriver_SetMouseCursor(self->fb, planes, width, height, pixelFormat);
     if (err == EOK) {
         self->hotSpotX = __max(__min(hotSpotX, INT16_MAX), INT16_MIN);
         self->hotSpotY = __max(__min(hotSpotY, INT16_MAX), INT16_MIN);
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     return err;
 }
 
@@ -409,7 +409,7 @@ errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCu
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     self->mouseCursorVisibility = mode;
     switch (mode) {
         case kMouseCursor_Hidden:
@@ -432,15 +432,15 @@ errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCu
             err = EINVAL;
             break;
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     return err;
 }
 
 MouseCursorVisibility HIDManager_GetMouseCursorVisibility(HIDManagerRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     const MouseCursorVisibility mode = self->mouseCursorVisibility;
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return mode;
 }
@@ -451,7 +451,7 @@ errno_t HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, 
         return EINVAL;
     }
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     int l = x;
     int r = x + width;
@@ -480,18 +480,18 @@ errno_t HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, 
         GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MIN, INT_MIN);
     }
 
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }
 
 void HIDManager_UnshieldMouseCursor(HIDManagerRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     self->isMouseShieldActive = false;
     
     if (self->mouseCursorVisibility == kMouseCursor_Visible) {
         GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouseX, self->mouseY);
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }
 
 // Returns the current mouse location in screen space.

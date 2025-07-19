@@ -23,7 +23,7 @@ errno_t KernFS_Create(KernFSRef _Nullable * _Nonnull pOutSelf)
     try(Filesystem_Create(&kKernFSClass, (FilesystemRef*)&self));
     try(FSAllocateCleared(sizeof(List) * IN_HASH_CHAINS_COUNT, (void**)&self->inOwned));
 
-    Lock_Init(&self->inOwnedLock);
+    mtx_init(&self->inOwnedLock);
     self->nextAvailableInodeId = 1;
 
     *pOutSelf = self;
@@ -42,15 +42,15 @@ void KernFS_deinit(KernFSRef _Nonnull self)
             Inode_Destroy((InodeRef)KfsNodeFromHashChainPointer(pCurNode));
         )
     }
-    Lock_Deinit(&self->inOwnedLock);
+    mtx_deinit(&self->inOwnedLock);
 }
 
 ino_t KernFS_GetNextAvailableInodeId(KernFSRef _Nonnull self)
 {
-    Lock_Lock(&self->inOwnedLock);
+    mtx_lock(&self->inOwnedLock);
     ino_t id = self->nextAvailableInodeId;
     self->nextAvailableInodeId++;
-    Lock_Unlock(&self->inOwnedLock);
+    mtx_unlock(&self->inOwnedLock);
     
     return id;
 }
@@ -59,9 +59,9 @@ void _KernFS_AddInode(KernFSRef _Nonnull self, KfsNodeRef _Nonnull ip)
 {
     const size_t idx = IN_HASH_INDEX(Inode_GetId(ip));
 
-    Lock_Lock(&self->inOwnedLock);
+    mtx_lock(&self->inOwnedLock);
     List_InsertBeforeFirst(&self->inOwned[idx], &ip->inChain);
-    Lock_Unlock(&self->inOwnedLock);
+    mtx_unlock(&self->inOwnedLock);
 }
 
 void _KernFS_DestroyInode(KernFSRef _Nonnull self, KfsNodeRef _Nonnull ip)
@@ -69,7 +69,7 @@ void _KernFS_DestroyInode(KernFSRef _Nonnull self, KfsNodeRef _Nonnull ip)
     const ino_t id = Inode_GetId(ip);
     const size_t idx = IN_HASH_INDEX(id);
 
-    Lock_Lock(&self->inOwnedLock);
+    mtx_lock(&self->inOwnedLock);
     List_ForEach(&self->inOwned[idx], struct KfsNode,
         KfsNodeRef curNode = KfsNodeFromHashChainPointer(pCurNode);
 
@@ -79,7 +79,7 @@ void _KernFS_DestroyInode(KernFSRef _Nonnull self, KfsNodeRef _Nonnull ip)
             break;
         }
     )
-    Lock_Unlock(&self->inOwnedLock);
+    mtx_unlock(&self->inOwnedLock);
 }
 
 KfsNodeRef _Nullable _KernFS_GetInode(KernFSRef _Nonnull self, ino_t id)
@@ -87,7 +87,7 @@ KfsNodeRef _Nullable _KernFS_GetInode(KernFSRef _Nonnull self, ino_t id)
     const size_t idx = IN_HASH_INDEX(id);
     KfsNodeRef theNode = NULL;
 
-    Lock_Lock(&self->inOwnedLock);
+    mtx_lock(&self->inOwnedLock);
     List_ForEach(&self->inOwned[idx], struct KfsNode,
         KfsNodeRef curNode = KfsNodeFromHashChainPointer(pCurNode);
 
@@ -96,7 +96,7 @@ KfsNodeRef _Nullable _KernFS_GetInode(KernFSRef _Nonnull self, ino_t id)
             break;
         }
     )
-    Lock_Unlock(&self->inOwnedLock);
+    mtx_unlock(&self->inOwnedLock);
 
     return theNode;
 }

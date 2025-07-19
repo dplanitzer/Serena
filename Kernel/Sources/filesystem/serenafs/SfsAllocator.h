@@ -10,16 +10,16 @@
 #define SfsAllocator_h
 
 #include <kobj/Any.h>
-#include <dispatcher/Lock.h>
+#include <sched/mtx.h>
 #include "VolumeFormat.h"
 
 
 typedef struct SfsAllocator {
-    Lock                    lock;                   // Protects all block allocation related state
+    mtx_t                   mtx;                    // Protects all block allocation related state
 
     uint8_t* _Nullable      bitmap;
     size_t                  bitmapByteSize;
-    blkno_t                   bitmapLba;              // Info for writing the allocation bitmap back to disk
+    blkno_t                 bitmapLba;              // Info for writing the allocation bitmap back to disk
     blkcnt_t                bitmapBlockCount;       // -"-
 
     uint8_t* _Nullable      dirtyBitmapBlocks;      // Each bit represents a block of the bitmap that has changed and needs to be committed to disk

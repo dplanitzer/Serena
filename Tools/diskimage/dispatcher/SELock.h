@@ -22,10 +22,10 @@ typedef struct SELock {
     int         state;
 } SELock;
 
-extern void SELock_Init(SELock* self);
-extern void SELock_Deinit(SELock* self);
-extern errno_t SELock_LockShared(SELock* self);
-extern errno_t SELock_LockExclusive(SELock* self);
-extern errno_t SELock_Unlock(SELock* self);
+extern void SEmtx_init(SELock* self);
+extern void SEmtx_deinit(SELock* self);
+extern errno_t SEmtx_lock_Shared(SELock* self);
+extern errno_t SEmtx_lock_Exclusive(SELock* self);
+extern errno_t SEmtx_unlock(SELock* self);
 
 #endif /* di_SELock_h */

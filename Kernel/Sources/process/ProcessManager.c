@@ -7,10 +7,10 @@
 //
 
 #include "ProcessManager.h"
-#include <dispatcher/Lock.h>
 #include <klib/Hash.h>
 #include "ProcessPriv.h"
 #include <kern/kalloc.h>
+#include <sched/mtx.h>
 
 
 #define HASH_CHAIN_COUNT    16
@@ -18,7 +18,7 @@
 
 
 typedef struct ProcessManager {
-    Lock                        lock;
+    mtx_t                       mtx;
     ProcessRef _Nonnull         rootProc;
     List/*<Process>*/           procTable[HASH_CHAIN_COUNT];     // pid_t -> Process
 } ProcessManager;
@@ -35,7 +35,7 @@ errno_t ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef _
     
     try(kalloc(sizeof(ProcessManager), (void**) &self));
     
-    Lock_Init(&self->lock);
+    mtx_init(&self->mtx);
     
     for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
         List_Init(&self->procTable[i]);
@@ -67,7 +67,7 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
 {
     ProcessRef proc = NULL;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     List_ForEach(&self->procTable[hash_scalar(pid) & HASH_CHAIN_MASK], ListNode,
         ProcessRef pCurProc = proc_from_ptce(pCurNode);
 
@@ -76,7 +76,7 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
             break;
         }
     );
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return proc;
 }
@@ -90,13 +90,13 @@ errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Non
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     err = Process_Publish(pp);
     if (err == EOK) {
         List_InsertBeforeFirst(&self->procTable[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->ptce);
         Object_Retain(pp);
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return err;
 }
@@ -106,11 +106,11 @@ errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Non
 // registered.
 void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     assert(pp != self->rootProc);
 
     Process_Unpublish(pp);
     List_Remove(&self->procTable[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->ptce);
     Object_Release(pp);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }

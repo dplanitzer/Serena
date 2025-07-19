@@ -16,12 +16,12 @@
 void SfsAllocator_Init(SfsAllocator* _Nonnull self)
 {
     memset(self, 0, sizeof(SfsAllocator));
-    Lock_Init(&self->lock);
+    mtx_init(&self->mtx);
 }
 
 void SfsAllocator_Deinit(SfsAllocator* _Nonnull self)
 {
-    Lock_Deinit(&self->lock);
+    mtx_deinit(&self->mtx);
 }
 
 errno_t SfsAllocator_Start(SfsAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer, const sfs_vol_header_t* _Nonnull vhp, size_t blockSize)
@@ -103,7 +103,7 @@ errno_t SfsAllocator_Allocate(SfsAllocator* _Nonnull self, blkno_t* _Nonnull pOu
     decl_try_err();
     blkno_t lba = 0;    // Safe because LBA #0 is the volume header which is always allocated when the FS is mounted
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     for (blkno_t i = 1; i < self->volumeBlockCount; i++) {
         if (!AllocationBitmap_IsBlockInUse(self->bitmap, i)) {
@@ -117,7 +117,7 @@ errno_t SfsAllocator_Allocate(SfsAllocator* _Nonnull self, blkno_t* _Nonnull pOu
 
     AllocationBitmap_SetBlockInUse(self->bitmap, lba, true);
     AllocationBitmap_SetBlockInUse(self->dirtyBitmapBlocks, (lba >> 3) / self->blockSize, true);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     *pOutLba = lba;
     return EOK;
@@ -126,7 +126,7 @@ catch:
     if (lba > 0) {
         AllocationBitmap_SetBlockInUse(self->bitmap, lba, false);
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     *pOutLba = 0;
 
     return err;
@@ -138,10 +138,10 @@ void SfsAllocator_Deallocate(SfsAllocator* _Nonnull self, blkno_t lba)
         return;
     }
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     AllocationBitmap_SetBlockInUse(self->bitmap, lba, false);
     AllocationBitmap_SetBlockInUse(self->dirtyBitmapBlocks, (lba >> 3) / self->blockSize, true);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }
 
 blkcnt_t SfsAllocator_GetAllocatedBlockCount(SfsAllocator* _Nonnull self)
@@ -149,7 +149,7 @@ blkcnt_t SfsAllocator_GetAllocatedBlockCount(SfsAllocator* _Nonnull self)
     decl_try_err();
     blkcnt_t count = 0;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     for (blkno_t i = 0; i < self->volumeBlockCount; i++) {
         if (AllocationBitmap_IsBlockInUse(self->bitmap, i)) {
@@ -157,7 +157,7 @@ blkcnt_t SfsAllocator_GetAllocatedBlockCount(SfsAllocator* _Nonnull self)
         }
     }
 
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return count;
 }
@@ -167,7 +167,7 @@ errno_t SfsAllocator_CommitToDisk(SfsAllocator* _Nonnull self, FSContainerRef _N
     decl_try_err();
     FSBlock blk = {0};
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     for (blkno_t i = 0; i < self->bitmapBlockCount; i++) {
         if (AllocationBitmap_IsBlockInUse(self->dirtyBitmapBlocks, i)) {
@@ -190,7 +190,7 @@ errno_t SfsAllocator_CommitToDisk(SfsAllocator* _Nonnull self, FSContainerRef _N
         }
     }
 
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return err;
 }

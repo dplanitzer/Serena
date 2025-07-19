@@ -24,7 +24,7 @@ errno_t IOChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int c
 
     if ((err = kalloc_cleared(pClass->instanceSize, (void**) &self)) == EOK) {
         self->super.clazz = pClass;
-        Lock_Init(&self->countLock);
+        mtx_init(&self->countLock);
         self->ownerCount = 1;
         self->useCount = 0;
         self->mode = mode & (O_ACCMODE | O_FILESTATUS);
@@ -59,7 +59,7 @@ static errno_t _IOChannel_Finalize(IOChannelRef _Nonnull self)
         pCurClass = pCurClass->super;
     }
 
-    Lock_Deinit(&self->countLock);
+    mtx_deinit(&self->countLock);
     kfree(self);
 
     return err;
@@ -67,9 +67,9 @@ static errno_t _IOChannel_Finalize(IOChannelRef _Nonnull self)
 
 IOChannelRef IOChannel_Retain(IOChannelRef _Nonnull self)
 {
-    Lock_Lock(&self->countLock);
+    mtx_lock(&self->countLock);
     self->ownerCount++;
-    Lock_Unlock(&self->countLock);
+    mtx_unlock(&self->countLock);
 
     return self;
 }
@@ -79,7 +79,7 @@ errno_t IOChannel_Release(IOChannelRef _Nullable self)
     if (self) {
         bool doFinalize = false;
 
-        Lock_Lock(&self->countLock);
+        mtx_lock(&self->countLock);
         if (self->ownerCount >= 1) {
             self->ownerCount--;
             if (self->ownerCount == 0 && self->useCount == 0) {
@@ -87,7 +87,7 @@ errno_t IOChannel_Release(IOChannelRef _Nullable self)
                 doFinalize = true;
             }
         }
-        Lock_Unlock(&self->countLock);
+        mtx_unlock(&self->countLock);
 
         if (doFinalize) {
             // Can be triggered at most once. Thus no need to hold the lock while
@@ -100,16 +100,16 @@ errno_t IOChannel_Release(IOChannelRef _Nullable self)
 
 void IOChannel_BeginOperation(IOChannelRef _Nonnull self)
 {
-    Lock_Lock(&self->countLock);
+    mtx_lock(&self->countLock);
     self->useCount++;
-    Lock_Unlock(&self->countLock);
+    mtx_unlock(&self->countLock);
 }
 
 void IOChannel_EndOperation(IOChannelRef _Nonnull self)
 {
     bool doFinalize = false;
 
-    Lock_Lock(&self->countLock);
+    mtx_lock(&self->countLock);
     if (self->useCount >= 1) {
         self->useCount--;
         if (self->useCount == 0 && self->ownerCount == 0) {
@@ -117,7 +117,7 @@ void IOChannel_EndOperation(IOChannelRef _Nonnull self)
             doFinalize = true;
         }
     }
-    Lock_Unlock(&self->countLock);
+    mtx_unlock(&self->countLock);
 
     if (doFinalize) {
         // Can be triggered at most once. Thus no need to hold the lock while

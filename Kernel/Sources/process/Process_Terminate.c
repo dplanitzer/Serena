@@ -23,9 +23,9 @@ static errno_t _proc_on_child_termination(ProcessRef _Nonnull self, ProcessRef _
     }
 
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     ConditionVariable_Broadcast(&self->procTermSignaler);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return EOK;
 }
@@ -39,7 +39,7 @@ errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull self, pid_t pid, s
     decl_try_err();
     ProcessRef zp = NULL;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     for (;;) {
         bool hasChildWithPid = false;
 
@@ -73,12 +73,12 @@ errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull self, pid_t pid, s
 
 
         // Wait for a child to terminate
-        err = ConditionVariable_Wait(&self->procTermSignaler, &self->lock);
+        err = ConditionVariable_Wait(&self->procTermSignaler, &self->mtx);
         if (err != EOK) {
             break;
         }
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
 
     if (zp) {
@@ -107,13 +107,13 @@ static int Process_GetAnyChildPid(ProcessRef _Nonnull self)
 {
     int pid = -1;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     if (self->children.first) {
         ProcessRef pChildProc = proc_from_siblings(self->children.first);
 
         pid = pChildProc->pid;
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     return pid;
 }
 
@@ -150,7 +150,7 @@ static void _proc_detach_calling_vcpu(ProcessRef _Nonnull self)
 // out from the VP list.
 static void _proc_abort_vcpus(ProcessRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     List_ForEach(&self->vpQueue, ListNode, {
         VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
 
@@ -158,7 +158,7 @@ static void _proc_abort_vcpus(ProcessRef _Nonnull self)
         VirtualProcessor_Signal(cvp, SIGKILL);
         preempt_restore(sps);
     });
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }
 
 // Wait for all vcpus to relinquish themselves from the process. Only return
@@ -177,13 +177,13 @@ static void _proc_reap_vcpus(ProcessRef _Nonnull self)
         timespec_from_ms(&delay, 10);
         wq_timedwait(&gHackQueue, NULL, 0, &delay, NULL);
 
-        Lock_Lock(&self->lock);
+        mtx_lock(&self->mtx);
         if (self->vpQueue.first == NULL) {
             done = true;
         }
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->mtx);
 #else
-        Lock_Lock(&self->lock);
+        mtx_lock(&self->mtx);
         if (self->vpQueue.first) {
             List_ForEach(&self->vpQueue, ListNode, {
                 VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
@@ -205,7 +205,7 @@ static void _proc_reap_vcpus(ProcessRef _Nonnull self)
         else {
             done = true;
         }
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->mtx);
 #endif
     }
 }
@@ -257,14 +257,14 @@ void Process_Terminate(ProcessRef _Nonnull self, int exitCode)
     }
 
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     const int isExiting = self->state >= PS_ZOMBIFYING;
     
     if (!isExiting) {
         self->state = PS_ZOMBIFYING;
         self->exitCode = exitCode & _WSTATUSMASK;
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
 
     if (isExiting) {

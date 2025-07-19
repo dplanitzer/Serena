@@ -79,7 +79,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull
         return EINVAL;
     }
     
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     try(proc_create_child(self, opts, &pChild));
     
@@ -93,7 +93,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull
     try(Process_Exec(pChild, path, argv, opts->envp));
 
 catch:
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     if (err != EOK && pChild) {
         ProcessManager_Deregister(gProcessManager, pChild);

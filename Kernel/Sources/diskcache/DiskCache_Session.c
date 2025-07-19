@@ -10,7 +10,7 @@
 #include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverChannel.h>
 #include <kern/string.h>
-#include <machine/delay.h>
+#include <sched/delay.h>
 
 
 // Define to force all writes to be synchronous
@@ -19,7 +19,7 @@
 
 void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull chan, const disk_info_t* _Nonnull info, DiskSession* _Nonnull s)
 {
-    Lock_Lock(&self->interlock);
+    mtx_lock(&self->interlock);
 
     s->channel = IOChannel_Retain(chan);
     s->disk = DriverChannel_GetDriverAs(chan, DiskDriver);
@@ -41,20 +41,20 @@ void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull cha
     self->nextAvailSessionId++;
     assert(self->nextAvailSessionId >= 0);  // no wrap around
 
-    Lock_Unlock(&self->interlock);
+    mtx_unlock(&self->interlock);
 }
 
 void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
 {
-    Lock_Lock(&self->interlock);
+    mtx_lock(&self->interlock);
     if (s->isOpen) {
         while (s->activeMappingsCount > 0) {
             // XXX would be nice to rely on the existing condition variable.
             // XXX however we don't want to have to introduce extra calls on it
             // XXX since unmap() calls happen a lot more than session closes. 
-            Lock_Unlock(&self->interlock);
+            mtx_unlock(&self->interlock);
             delay_ms(1);
-            Lock_Lock(&self->interlock);
+            mtx_lock(&self->interlock);
         }
 
         IOChannel_Release(s->channel);
@@ -63,7 +63,7 @@ void DiskCache_CloseSession(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
         s->sessionId = 0;
         s->isOpen = false;
     }
-    Lock_Unlock(&self->interlock);
+    mtx_unlock(&self->interlock);
 }
 
 
@@ -101,14 +101,14 @@ errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnul
 {
     decl_try_err();
 
-    Lock_Lock(&self->interlock);
+    mtx_lock(&self->interlock);
     if (s->isOpen) {
         err = _DiskCache_PrefetchBlock(self, s, lba);
     }
     else {
         err = ENODEV;
     }
-    Lock_Unlock(&self->interlock);
+    mtx_unlock(&self->interlock);
 
     return err;
 }
@@ -138,7 +138,7 @@ errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s,
     decl_try_err();
     DiskBlockRef pBlock = NULL;
 
-    Lock_Lock(&self->interlock);
+    mtx_lock(&self->interlock);
 
     if (s->isOpen) {
         // Find the block and only sync it if no one else is currently using it
@@ -151,7 +151,7 @@ errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s,
         err = ENODEV;
     }
 
-    Lock_Unlock(&self->interlock);
+    mtx_unlock(&self->interlock);
 
     return err;
 }
@@ -161,7 +161,7 @@ errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, 
     decl_try_err();
     DiskBlockRef pBlock = NULL;
 
-    Lock_Lock(&self->interlock);
+    mtx_lock(&self->interlock);
 
     if (s->isOpen) {
         if ((err = _DiskCache_GetBlock(self, s, lba, 0, &pBlock)) == EOK) {
@@ -173,7 +173,7 @@ errno_t DiskCache_PinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, 
         err = ENODEV;
     }
 
-    Lock_Unlock(&self->interlock);
+    mtx_unlock(&self->interlock);
     return err;
 }
 
@@ -182,7 +182,7 @@ errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s
     decl_try_err();
     DiskBlockRef pBlock = NULL;
 
-    Lock_Lock(&self->interlock);
+    mtx_lock(&self->interlock);
 
     if (s->isOpen) {
         if ((err = _DiskCache_GetBlock(self, s, lba, 0, &pBlock)) == EOK) {
@@ -194,7 +194,7 @@ errno_t DiskCache_UnpinBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s
         err = ENODEV;
     }
 
-    Lock_Unlock(&self->interlock);
+    mtx_unlock(&self->interlock);
     return err;
 }
 
@@ -207,7 +207,7 @@ errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, 
     blk->data = NULL;
 
 
-    Lock_Lock(&self->interlock);
+    mtx_lock(&self->interlock);
 
     if (!s->isOpen) {
         throw(ENODEV);
@@ -219,7 +219,7 @@ errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, 
     // Lock for exclusive mode in all other cases.
     err = _DiskCache_GetBlock(self, s, lba, kGetBlock_Allocate | kGetBlock_RecentUse, &pBlock);
     if (err != EOK) {
-        Lock_Unlock(&self->interlock);
+        mtx_unlock(&self->interlock);
         return err;
     }
 
@@ -227,7 +227,7 @@ errno_t DiskCache_MapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s, 
     err = _DiskCache_LockBlockContent(self, pBlock, lockMode);
     if (err != EOK) {
         _DiskCache_PutBlock(self, pBlock);
-        Lock_Unlock(&self->interlock);
+        mtx_unlock(&self->interlock);
         return err;
     }
 
@@ -288,7 +288,7 @@ catch:
         }
     }
 
-    Lock_Unlock(&self->interlock);
+    mtx_unlock(&self->interlock);
 
     return err;
 }
@@ -308,7 +308,7 @@ errno_t DiskCache_UnmapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s
     }
 #endif
 
-    Lock_Lock(&self->interlock);
+    mtx_lock(&self->interlock);
 
     if (!s->isOpen) {
         throw(ENODEV);
@@ -347,7 +347,7 @@ errno_t DiskCache_UnmapBlock(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s
     _DiskCache_UnlockContentAndPutBlock(self, pBlock);
 
 catch:
-    Lock_Unlock(&self->interlock);
+    mtx_unlock(&self->interlock);
 
     return err;
 }
@@ -358,7 +358,7 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
 {
     decl_try_err();
 
-    Lock_Lock(&self->interlock);
+    mtx_lock(&self->interlock);
     if (!s->isOpen) {
         throw(ENODEV);
     }
@@ -400,7 +400,7 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
     }
 
 catch:
-    Lock_Unlock(&self->interlock);
+    mtx_unlock(&self->interlock);
 
     return err;
 }

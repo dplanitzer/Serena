@@ -1,5 +1,5 @@
 ;
-;  Lock_asm.s
+;  mtx_asm.s
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 8/12/23.
@@ -9,14 +9,14 @@
     include <machine/lowmem.i>
     include <machine/errno.i>
 
-    xref _Lock_OnWait
-    xref _Lock_WakeUp
+    xref _mtx_onwait
+    xref _mtx_wake
     xref _VirtualProcessor_GetCurrentVpid
 
-    xdef _Lock_TryLock
-    xdef _Lock_Lock
-    xdef __Lock_Unlock
-    xdef _Lock_GetOwnerVpid
+    xdef _mtx_trylock
+    xdef _mtx_lock
+    xdef __mtx_unlock
+    xdef _mtx_ownerid
 
 
     clrso
@@ -28,10 +28,10 @@ lock_SIZEOF             so
 
 
 ;-------------------------------------------------------------------------------
-; bool Lock_TryLock(Lock* _Nonnull self)
+; bool mtx_trylock(mtx_t* _Nonnull self)
 ; Attempts to acquire the lock. Returns true if successful and false if the lock
 ; is being held by another virtual processor.
-_Lock_TryLock:
+_mtx_trylock:
     inline
     cargs lta_saved_d7.l, lta_lock_ptr.l
 
@@ -62,9 +62,9 @@ _Lock_TryLock:
 
 
 ;-------------------------------------------------------------------------------
-; errno_t Lock_Lock(Lock* _Nonnull self)
+; errno_t mtx_lock(mtx_t* _Nonnull self)
 ; Acquires the lock. Blocks the caller if the lock is not available.
-_Lock_Lock:
+_mtx_lock:
     inline
     cargs la_saved_d7.l, la_lock_ptr.l
 
@@ -89,7 +89,7 @@ _Lock_Lock:
     beq.s   .la_acquired_slow
 
     move.l  a0, -(sp)
-    jsr     _Lock_OnWait
+    jsr     _mtx_onwait
     addq.l  #4, sp
 
     ; give up if the OnWait came back with an error
@@ -122,9 +122,9 @@ _Lock_Lock:
 
 
 ;-------------------------------------------------------------------------------
-; errno_t _Lock_Unlock(Lock* _Nonnull self)
+; errno_t _mtx_unlock(mtx_t* _Nonnull self)
 ; Unlocks the lock.
-__Lock_Unlock:
+__mtx_unlock:
     inline
     cargs lr_saved_d7.l, lr_lock_ptr.l
 
@@ -146,7 +146,7 @@ __Lock_Unlock:
 
     ; move all the waiters back to the ready queue
     move.l  a0, -(sp)
-    jsr     _Lock_WakeUp
+    jsr     _mtx_wake
     addq.l  #4, sp
 
     RESTORE_PREEMPTION d7
@@ -164,10 +164,10 @@ __Lock_Unlock:
 
 
 ;-------------------------------------------------------------------------------
-; int Lock_GetOwnerVpid(Lock* _Nonnull self)
+; int mtx_ownerid(mtx_t* _Nonnull self)
 ; Returns the ID of the virtual processor that is currently holding the lock.
 ; Zero is returned if none is holding the lock.
-_Lock_GetOwnerVpid:
+_mtx_ownerid:
     inline
     cargs lgovpid_saved_d7.l, lgovpid_lock_ptr.l
 

@@ -8,13 +8,13 @@
 
 #include "VirtualProcessorPool.h"
 #include "VirtualProcessorScheduler.h"
-#include "Lock.h"
 #include <kern/kalloc.h>
+#include <sched/mtx.h>
 
 
 #define REUSE_CACHE_CAPACITY    16
 typedef struct VirtualProcessorPool {
-    Lock    lock;
+    mtx_t   mtx;
     List    reuse_queue;        // VPs available for reuse
     int     reuse_count;        // count of how many VPs are in the reuse queue
     int     reuse_capacity;     // reuse cache will not store more than this. If a VP exits while the cache is at max capacity -> VP will exit for good and get finalized
@@ -31,7 +31,7 @@ errno_t VirtualProcessorPool_Create(VirtualProcessorPoolRef _Nullable * _Nonnull
     
     try(kalloc_cleared(sizeof(VirtualProcessorPool), (void**) &self));
     List_Init(&self->reuse_queue);
-    Lock_Init(&self->lock);
+    mtx_init(&self->mtx);
     self->reuse_capacity = REUSE_CACHE_CAPACITY;
     *pOutSelf = self;
     return EOK;
@@ -46,7 +46,7 @@ void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable self)
 {
     if (self) {
         List_Deinit(&self->reuse_queue);
-        Lock_Deinit(&self->lock);
+        mtx_deinit(&self->mtx);
         kfree(self);
     }
 }
@@ -56,7 +56,7 @@ errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _No
     decl_try_err();
     VirtualProcessor* vp = NULL;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     // Try to reuse a cached VP
     List_ForEach(&self->reuse_queue, ListNode, {
@@ -75,7 +75,7 @@ errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _No
         self->reuse_count--;
     }
     
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     
     
     // Create a new VP if we were not able to reuse a cached one
@@ -123,14 +123,14 @@ _Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRe
 
 
     // Try to cache the VP
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     if (self->reuse_count < self->reuse_capacity) {
         List_InsertBeforeFirst(&self->reuse_queue, &vp->owner_qe);
         self->reuse_count++;
         doReuse = true;
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     
 
     // Suspend the VP if we decided to reuse it and schedule it for finalization

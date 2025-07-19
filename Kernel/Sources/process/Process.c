@@ -34,7 +34,7 @@ errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarc
     
     try(Object_Create(class(Process), 0, (void**)&self));
 
-    Lock_Init(&self->lock);
+    mtx_init(&self->mtx);
 
     self->state = PS_ALIVE;
     self->pid = pid;
@@ -99,7 +99,7 @@ void Process_deinit(ProcessRef _Nonnull self)
     self->pid = 0;
     self->ppid = 0;
 
-    Lock_Deinit(&self->lock);
+    mtx_deinit(&self->mtx);
 }
 
 errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _Nonnull idp)
@@ -119,7 +119,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     kp.priority = attr->priority;
     kp.isUser = true;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     if (self->state >= PS_ZOMBIFYING) {
         throw(EINTR);
@@ -140,7 +140,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     }
 
 catch:
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return err;
 }
@@ -156,8 +156,8 @@ void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, VirtualProcessor* 
 {
     assert(vp->proc == self);
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     List_Remove(&self->vpQueue, &vp->owner_qe);
     vp->proc = NULL;
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }

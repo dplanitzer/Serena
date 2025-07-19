@@ -10,11 +10,11 @@
 #define GraphicsDriverPriv_h
 
 #include "GraphicsDriver.h"
-#include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>
 #include <machine/InterruptController.h>
 #include <machine/Platform.h>
 #include <klib/List.h>
+#include <sched/mtx.h>
 #include "CopperProgram.h"
 #include "CopperScheduler.h"
 #include "Screen.h"

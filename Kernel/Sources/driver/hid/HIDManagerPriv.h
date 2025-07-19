@@ -11,9 +11,9 @@
 
 #include "HIDManager.h"
 #include "HIDEventQueue.h"
-#include <dispatcher/Lock.h>
 #include <kpi/hidkeycodes.h>
 #include <machine/amiga/graphics/GraphicsDriver.h>
+#include <sched/mtx.h>
 
 
 // XXX 16 is confirmed to work without overflows on a A2000. Still want to keep
@@ -42,7 +42,7 @@ typedef struct LogicalJoystick {
 // logical keyboard and multiple mice and other devices such as a joystick or
 // light pen may contribute to the state of the logical mouse.
 typedef struct HIDManager {
-    Lock                        lock;
+    mtx_t                       mtx;
 
     // Input Drivers
     IOChannelRef _Nullable      kbChannel;

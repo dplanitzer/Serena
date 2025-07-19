@@ -11,10 +11,10 @@
 
 #include "KernFS.h"
 #include "KfsNode.h"
-#include <dispatcher/Lock.h>
 #include <filesystem/FSUtilities.h>
 #include <klib/Hash.h>
 #include <klib/List.h>
+#include <sched/mtx.h>
 
 
 //
@@ -43,7 +43,7 @@
 // - onWritebackNode: do nothing
 // - onRelinquishNode: delete the node from 'inOwned' if linkCount == 0; do nothing otherwise
 final_class_ivars(KernFS, Filesystem,
-    Lock            inOwnedLock;
+    mtx_t           inOwnedLock;
     List* _Nonnull  inOwned;            // <KfsNode>
     ino_t           nextAvailableInodeId;
 );

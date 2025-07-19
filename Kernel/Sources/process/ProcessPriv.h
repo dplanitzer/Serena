@@ -13,8 +13,8 @@
 #include "IOChannelTable.h"
 #include <Catalog.h>
 #include <dispatcher/ConditionVariable.h>
-#include <dispatcher/Lock.h>
 #include <filemanager/FileManager.h>
+#include <sched/mtx.h>
 #include <sched/waitqueue.h>
 #include <vm/AddressSpace.h>
 
@@ -38,7 +38,7 @@ typedef struct UWaitQueue {
 
 
 final_class_ivars(Process, Object,
-    Lock                            lock;
+    mtx_t                           mtx;
     
     ListNode                        ptce;       // Process table chain entry. Protected by ProcessManager lock
 
@@ -50,7 +50,7 @@ final_class_ivars(Process, Object,
     CatalogId                       catalogId;  // proc-fs catalog id
 
     // VPs
-    List                            vpQueue;    // List of VPs [lock]
+    List                            vpQueue;    // List of VPs [mtx]
 
     AddressSpaceRef _Nonnull        addressSpace;
 

@@ -7,11 +7,11 @@
 //
 
 #include "AddressSpace.h"
-#include <dispatcher/Lock.h>
 #include <machine/Platform.h>
 #include <klib/List.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
+#include <sched/mtx.h>
 
 
 typedef struct MemEntry {
@@ -29,7 +29,7 @@ typedef struct MemBlocks {
 
 typedef struct AddressSpace {
     SList   mblocks;
-    Lock    lock;
+    mtx_t   mtx;
 } AddressSpace;
 
 
@@ -40,7 +40,7 @@ errno_t AddressSpace_Create(AddressSpaceRef _Nullable * _Nonnull pOutSelf)
 
     try(kalloc_cleared(sizeof(AddressSpace), (void**) &self));
     SList_Init(&self->mblocks);
-    Lock_Init(&self->lock);
+    mtx_init(&self->mtx);
 
     *pOutSelf = self;
     return EOK;
@@ -56,7 +56,7 @@ void AddressSpace_Destroy(AddressSpaceRef _Nullable self)
     if (self) {
         AddressSpace_UnmapAll(self);
 
-        Lock_Deinit(&self->lock);
+        mtx_deinit(&self->mtx);
         kfree(self);
     }
 }
@@ -85,9 +85,9 @@ void AddressSpace_UnmapAll(AddressSpaceRef _Nonnull self)
 
 bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     const bool isEmpty = SList_IsEmpty(&self->mblocks) || ((MemBlocks*) self->mblocks.first)->count == 0;
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return isEmpty;
 }
@@ -96,13 +96,13 @@ size_t AddressSpace_GetVirtualSize(AddressSpaceRef _Nonnull self)
 {
     size_t siz = 0;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     SList_ForEach(&self->mblocks, MemBlocks,
         for (size_t i = 0; i < pCurNode->count; i++) {
             siz += pCurNode->blocks[i].size;
         }
     );
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return siz;
 }
@@ -126,7 +126,7 @@ errno_t AddressSpace_Allocate(AddressSpaceRef _Nonnull self, ssize_t nbytes, voi
     }
 
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     // We don't need to free the MemBlocks if the allocation of the memory block
     // below fails because we can always keep it around for the next allocation
@@ -150,13 +150,13 @@ errno_t AddressSpace_Allocate(AddressSpaceRef _Nonnull self, ssize_t nbytes, voi
     bp->blocks[bp->count].size = nbytes;
     bp->count++;
 
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     *pOutMem = p;
     return EOK;
 
 catch:
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     *pOutMem = NULL;
     return err;
 }

@@ -7,15 +7,15 @@
 //
 
 #include "Allocator.h"
-#include <dispatcher/Lock.h>
 #include <machine/SystemDescription.h>
 #include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <kern/string.h>
+#include <sched/mtx.h>
 
 
-static Lock         gLock;
+static mtx_t        gLock;
 static AllocatorRef gUnifiedMemory;       // CPU + Chipset access (memory range [0..<chipset_upper_dma_limit]) (Required)
 static AllocatorRef gCpuOnlyMemory;       // CPU only access      (memory range [chipset_upper_dma_limit...]) (Optional - created on demand if no Fast memory exists in the machine and we later pick up a RAM expansion board)
 
@@ -78,7 +78,7 @@ errno_t kalloc_init(const SystemDescription* _Nonnull pSysDesc, void* _Nonnull p
 {
     decl_try_err();
 
-    Lock_Init(&gLock);
+    mtx_init(&gLock);
     try(create_allocator(&pSysDesc->motherboard_ram, pInitialHeapBottom, pInitialHeapTop, MEM_TYPE_UNIFIED_MEMORY, false, &gUnifiedMemory));
     try(create_allocator(&pSysDesc->motherboard_ram, pInitialHeapBottom, pInitialHeapTop, MEM_TYPE_MEMORY, true, &gCpuOnlyMemory));
     return EOK;
@@ -94,7 +94,7 @@ errno_t kalloc_options(size_t nbytes, unsigned int options, void* _Nullable * _N
     decl_try_err();
     void* ptr = NULL;
 
-    Lock_Lock(&gLock);
+    mtx_lock(&gLock);
     if ((options & KALLOC_OPTION_UNIFIED) != 0 || gCpuOnlyMemory == NULL) {
         ptr = __Allocator_Allocate(gUnifiedMemory, nbytes);
     } else {
@@ -103,7 +103,7 @@ errno_t kalloc_options(size_t nbytes, unsigned int options, void* _Nullable * _N
             ptr = __Allocator_Allocate(gUnifiedMemory, nbytes);
         }
     }
-    Lock_Unlock(&gLock);
+    mtx_unlock(&gLock);
 
     // Zero the memory if requested
     if (ptr && (options & KALLOC_OPTION_CLEAR) != 0) {
@@ -119,7 +119,7 @@ void kfree(void* _Nullable ptr)
 {
     decl_try_err();
 
-    Lock_Lock(&gLock);
+    mtx_lock(&gLock);
     err = __Allocator_Deallocate(gUnifiedMemory, ptr);
 
     if (err == ENOTBLK && gCpuOnlyMemory) {
@@ -127,7 +127,7 @@ void kfree(void* _Nullable ptr)
     } else if (err != EOK) {
         abort();
     }
-    Lock_Unlock(&gLock);
+    mtx_unlock(&gLock);
 }
 
 // Returns the gross size of the given memory block. The gross size may be a bit
@@ -137,14 +137,14 @@ size_t ksize(void* _Nullable ptr)
     decl_try_err();
     size_t nbytes = 0;
 
-    Lock_Lock(&gLock);
+    mtx_lock(&gLock);
     err = __Allocator_GetBlockSize(gUnifiedMemory, ptr, &nbytes);
 
     if (err == ENOTBLK && gCpuOnlyMemory) {
         err = __Allocator_GetBlockSize(gCpuOnlyMemory, ptr, &nbytes);
     }
 
-    Lock_Unlock(&gLock);
+    mtx_unlock(&gLock);
 
     return nbytes;
 }
@@ -156,7 +156,7 @@ errno_t kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc)
     decl_try_err();
     AllocatorRef pAllocator;
 
-    Lock_Lock(&gLock);
+    mtx_lock(&gLock);
     if (pMemDesc->upper < gSystemDescription->chipset_upper_dma_limit) {
         err = __Allocator_AddMemoryRegion(gUnifiedMemory, pMemDesc);
     }
@@ -169,7 +169,7 @@ errno_t kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc)
             err = ENOMEM;
         }
     }
-    Lock_Unlock(&gLock);
+    mtx_unlock(&gLock);
 
     return err;
 }

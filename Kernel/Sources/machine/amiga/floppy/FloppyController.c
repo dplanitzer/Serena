@@ -10,14 +10,14 @@
 #include "FloppyControllerPkg.h"
 #include "adf.h"
 #include <dispatcher/ConditionVariable.h>
-#include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <machine/InterruptController.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
-#include <machine/delay.h>
 #include <kern/timespec.h>
+#include <sched/delay.h>
+#include <sched/mtx.h>
 
 
 const DriveParams   kDriveParams_3_5 = {
@@ -46,7 +46,7 @@ const DriveParams   kDriveParams_5_25 = {
 #define MAX_FLOPPY_DISK_DRIVES  4
 
 final_class_ivars(FloppyController, Driver,
-    Lock                lock;       // Used to ensure that we issue commands to the hardware atomically since all drives share the same CIA and DMA register set
+    mtx_t               mtx;       // Used to ensure that we issue commands to the hardware atomically since all drives share the same CIA and DMA register set
     ConditionVariable   cv;
     Semaphore           done;       // Semaphore indicating whether the DMA is done
     InterruptHandlerID  irqHandler;
@@ -69,7 +69,7 @@ errno_t FloppyController_Create(DriverRef _Nullable parent, FloppyControllerRef 
     
     try(Driver_Create(class(FloppyController), 0, parent, (DriverRef*)&self));
 
-    Lock_Init(&self->lock);
+    mtx_init(&self->mtx);
     ConditionVariable_Init(&self->cv);
     Semaphore_Init(&self->done, 0);
         
@@ -100,7 +100,7 @@ static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
         
     Semaphore_Deinit(&self->done);
     ConditionVariable_Deinit(&self->cv);
-    Lock_Deinit(&self->lock);
+    mtx_deinit(&self->mtx);
 }
 
 static errno_t FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked self)
@@ -172,11 +172,11 @@ DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int dr
     r &= ~(1 << (CIAB_PRBB_DSKSEL0 + (drive & 0x03)));
 
     // Make sure that the motor is off and then deselect the drive
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     *CIA_REG_8(ciab, CIA_PRB) = r;
     delay_us(1);
     *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return r;
 }
@@ -188,7 +188,7 @@ uint32_t FloppyController_GetDriveType(FloppyControllerRef _Nonnull self, DriveS
     CIAB_BASE_DECL(ciab);
     uint32_t dt = 0;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     // Reset the drive's serial register
     _FloppyController_SetMotor(self, cb, true);
@@ -207,7 +207,7 @@ uint32_t FloppyController_GetDriveType(FloppyControllerRef _Nonnull self, DriveS
         *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
     }
 
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return dt;
 }
@@ -218,13 +218,13 @@ uint8_t FloppyController_GetStatus(FloppyControllerRef _Nonnull self, DriveState
     CIAA_BASE_DECL(ciaa);
     CIAB_BASE_DECL(ciab);
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     *CIA_REG_8(ciab, CIA_PRB) = cb;
     delay_us(1);
     const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
     delay_us(1);
     *CIA_REG_8(ciab, CIA_PRB) = cb | CIAB_PRBF_DSKSELALL;
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return ~r & (CIAA_PRAF_DSKRDY | CIAA_PRAF_DSKTK0 | CIAA_PRAF_DSKWPRO | CIAA_PRAF_DSKCHNG);
 }
@@ -256,16 +256,16 @@ static void _FloppyController_SetMotor(FloppyControllerRef _Nonnull _Locked self
 // the motor to reach its final speed.
 void FloppyController_SetMotor(FloppyControllerRef _Nonnull self, DriveState* _Nonnull cb, bool onoff)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     _FloppyController_SetMotor(self, cb, onoff);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }
 
 void FloppyController_SelectHead(FloppyControllerRef _Nonnull self, DriveState* _Nonnull cb, int head)
 {
     CIAB_BASE_DECL(ciab);
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     // Update the disk side bit
     const uint8_t r = (head == 0) ? *cb | CIAB_PRBF_DSKSIDE : *cb & ~CIAB_PRBF_DSKSIDE;
@@ -277,7 +277,7 @@ void FloppyController_SelectHead(FloppyControllerRef _Nonnull self, DriveState* 
     delay_us(1);
     *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
 
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }
 
 // Steps the drive head one cylinder towards the inside (+1) or the outside (-1)
@@ -286,7 +286,7 @@ void FloppyController_StepHead(FloppyControllerRef _Nonnull self, DriveState cb,
 {
     CIAB_BASE_DECL(ciab);
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     // Update the seek direction bit
     uint8_t r = (delta < 0) ? cb | CIAB_PRBF_DSKDIR : cb & ~CIAB_PRBF_DSKDIR;
@@ -310,7 +310,7 @@ void FloppyController_StepHead(FloppyControllerRef _Nonnull self, DriveState cb,
     // Deselect all drives
     *CIA_REG_8(ciab, CIA_PRB) = cb | CIAB_PRBF_DSKSELALL;
 
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }
 
 // Synchronously reads/writes 'nWords' 16bit words from/to the given word buffer.
@@ -325,13 +325,13 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     CHIPSET_BASE_DECL(cs);
     uint8_t status;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     while (self->flags.inUse && err == EOK) {
-        err = ConditionVariable_Wait(&self->cv, &self->lock);
+        err = ConditionVariable_Wait(&self->cv, &self->mtx);
     }
     if (err != EOK) {
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->mtx);
         return EIO;
     }
 
@@ -347,7 +347,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     // Check for disk change
     status = ~(*CIA_REG_8(ciaa, CIA_PRA));
     if ((status & CIAA_PRAF_DSKCHNG) == CIAA_PRAF_DSKCHNG) {
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->mtx);
         return EDISKCHANGE;
     }
 
@@ -355,7 +355,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     // Check for disk-write-protected if this is a write
     if (bWrite) {
         if ((status & CIAA_PRAF_DSKWPRO) == CIAA_PRAF_DSKWPRO) {
-            Lock_Unlock(&self->lock);
+            mtx_unlock(&self->mtx);
             return EROFS;
         }
     }
@@ -383,7 +383,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     *CHIPSET_REG_16(cs, DSKLEN) = dlen;
     *CHIPSET_REG_16(cs, DSKLEN) = dlen;
 
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
 
     // Wait for the DMA to complete
@@ -395,7 +395,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     err = Semaphore_Acquire(&self->done, &deadline);
 
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
 
     // Turn DMA off
     *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;   // Floppy DMA off
@@ -422,7 +422,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 
     self->flags.inUse = 0;
     ConditionVariable_Broadcast(&self->cv);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return (err == EOK) ? EOK : EIO;
 }

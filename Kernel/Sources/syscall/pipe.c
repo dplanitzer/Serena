@@ -23,13 +23,13 @@ SYSCALL_2(mkpipe, int* _Nonnull pOutReadChannel, int* _Nonnull pOutWriteChannel)
     try(PipeChannel_Create(pPipe, O_RDONLY, &rdChannel));
     try(PipeChannel_Create(pPipe, O_WRONLY, &wrChannel));
 
-    Lock_Lock(&pp->lock);
+    mtx_lock(&pp->mtx);
     needsUnlock = true;
     try(IOChannelTable_AdoptChannel(&pp->ioChannelTable, rdChannel, pa->pOutReadChannel));
     rdChannel = NULL;
     try(IOChannelTable_AdoptChannel(&pp->ioChannelTable, wrChannel, pa->pOutWriteChannel));
     wrChannel = NULL;
-    Lock_Unlock(&pp->lock);
+    mtx_unlock(&pp->mtx);
     return EOK;
 
 catch:
@@ -37,7 +37,7 @@ catch:
         IOChannelTable_ReleaseChannel(&pp->ioChannelTable, *(pa->pOutReadChannel));
     }
     if (needsUnlock) {
-        Lock_Unlock(&pp->lock);
+        mtx_unlock(&pp->mtx);
     }
     IOChannel_Release(rdChannel);
     IOChannel_Release(wrChannel);

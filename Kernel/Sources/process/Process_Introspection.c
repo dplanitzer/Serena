@@ -53,11 +53,11 @@ errno_t Process_Close(ProcessRef _Nonnull self, IOChannelRef _Nonnull chan)
 
 errno_t Process_GetInfo(ProcessRef _Nonnull self, proc_info_t* _Nonnull info)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     info->pid = self->pid;
     info->ppid = self->ppid;
     info->virt_size = AddressSpace_GetVirtualSize(self->addressSpace);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return EOK;
 }
@@ -68,7 +68,7 @@ errno_t Process_GetName(ProcessRef _Nonnull self, char* _Nonnull buf, size_t buf
         return ERANGE;
     }
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     decl_try_err();
     const pargs_t* pa = (const pargs_t*)self->argumentsBase;
     const char* arg0 = pa->argv[0];
@@ -83,7 +83,7 @@ errno_t Process_GetName(ProcessRef _Nonnull self, char* _Nonnull buf, size_t buf
         return ERANGE;
     }
 
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     return err;
 }
 

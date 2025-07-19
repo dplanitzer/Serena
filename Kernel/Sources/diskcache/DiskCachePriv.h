@@ -14,8 +14,8 @@
 #include <klib/Hash.h>
 #include <klib/List.h>
 #include <dispatcher/ConditionVariable.h>
-#include <dispatcher/Lock.h>
 #include <driver/disk/DiskDriver.h>
+#include <sched/mtx.h>
 
 
 //
@@ -159,7 +159,7 @@ enum {
 
 
 typedef struct DiskCache {
-    Lock                        interlock;
+    mtx_t                       interlock;
     ConditionVariable           condition;
     int                         nextAvailSessionId;
     size_t                      lruChainGeneration;     // Incremented every time the LRU chain is modified

@@ -29,7 +29,7 @@ errno_t InterruptController_CreateForLocalCPU(void)
     pController->spuriousInterruptCount = 0;
     pController->uninitializedInterruptCount = 0;
     
-    Lock_Init(&pController->lock);
+    mtx_init(&pController->mtx);
     return EOK;
 
 catch:
@@ -60,7 +60,7 @@ static errno_t InterruptController_AddInterruptHandler(InterruptControllerRef _N
     
     assert(pHandler->identity == 0);
 
-    Lock_Lock(&pController->lock);
+    mtx_lock(&pController->mtx);
     needsUnlock = true;
 
     // Allocate a new handler array
@@ -106,12 +106,12 @@ static errno_t InterruptController_AddInterruptHandler(InterruptControllerRef _N
     kfree(pOldHandlers);
     
     *pOutId = handlerId;
-    Lock_Unlock(&pController->lock);
+    mtx_unlock(&pController->mtx);
     return EOK;
 
 catch:
     if (needsUnlock) {
-        Lock_Unlock(&pController->lock);
+        mtx_unlock(&pController->mtx);
     }
     *pOutId = 0;
     return err;
@@ -166,7 +166,7 @@ errno_t InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnu
         return EOK;
     }
     
-    Lock_Lock(&pController->lock);
+    mtx_lock(&pController->mtx);
     needsUnlock = true;
     
     // Find out which interrupt ID this handler handles
@@ -181,7 +181,7 @@ errno_t InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnu
     }
     
     if (interruptId == -1) {
-        Lock_Unlock(&pController->lock);
+        mtx_unlock(&pController->mtx);
         return EOK;
     }
     
@@ -219,12 +219,12 @@ errno_t InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnu
     // Free the old handler array
     kfree(pOldHandlers);
     
-    Lock_Unlock(&pController->lock);
+    mtx_unlock(&pController->mtx);
     return EOK;
 
 catch:
     if (needsUnlock) {
-        Lock_Unlock(&pController->lock);
+        mtx_unlock(&pController->mtx);
     }
     return err;
 }
@@ -253,7 +253,7 @@ static InterruptHandler* _Nullable InterruptController_GetInterruptHandlerForID_
 // requests. A disabled interrupt handler ignores interrupt requests.
 void InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId, bool enabled)
 {
-    Lock_Lock(&pController->lock);
+    mtx_lock(&pController->mtx);
     
     InterruptHandler* pHandler = InterruptController_GetInterruptHandlerForID_Locked(pController, handlerId);
     assert(pHandler != NULL);
@@ -263,26 +263,26 @@ void InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonn
         pHandler->flags &= ~INTERRUPT_HANDLER_FLAG_ENABLED;
     }
 
-    Lock_Unlock(&pController->lock);
+    mtx_unlock(&pController->mtx);
 }
 
 // Returns true if the given interrupt handler is enabled; false otherwise.
 bool InterruptController_IsInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId)
 {
-    Lock_Lock(&pController->lock);
+    mtx_lock(&pController->mtx);
     
     InterruptHandler* pHandler = InterruptController_GetInterruptHandlerForID_Locked(pController, handlerId);
     assert(pHandler != NULL);
     const bool enabled = (pHandler->flags & INTERRUPT_HANDLER_FLAG_ENABLED) != 0 ? true : false;
     
-    Lock_Unlock(&pController->lock);
+    mtx_unlock(&pController->mtx);
     return enabled;
 }
 
 #if 0
 void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
 {
-    Lock_Lock(&pController->lock);
+    mtx_lock(&pController->mtx);
     
     printf("InterruptController = {\n");
     for (int i = 0; i < INTERRUPT_ID_COUNT; i++) {
@@ -307,7 +307,7 @@ void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
         printf("  },\n");
     }
     printf("}\n");
-    Lock_Unlock(&pController->lock);
+    mtx_unlock(&pController->mtx);
 }
 #endif
 

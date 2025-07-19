@@ -7,9 +7,9 @@
 //
 
 #include "IORequest.h"
-#include <dispatcher/Lock.h>
 #include <kern/kalloc.h>
 #include <klib/List.h>
+#include <sched/mtx.h>
 #include <_math.h>
 
 
@@ -22,9 +22,9 @@ typedef struct CachedIORequest {
 
 
 // All 0 by default by virtue of being in the BSS
-static Lock gLock;
-static List gCache;
-static int  gCacheCount;
+static mtx_t    gLock;
+static List     gCache;
+static int      gCacheCount;
 
 
 // Allocates IORequests as a multiple of 16 bytes
@@ -37,7 +37,7 @@ errno_t IORequest_Get(int type, size_t reqSize, IORequest* _Nullable * _Nonnull 
     
     assert(targetSize <= UINT16_MAX);
 
-    Lock_Lock(&gLock);
+    mtx_lock(&gLock);
 
     if (gCacheCount > 0) {
         CachedIORequest* cr = NULL;
@@ -58,7 +58,7 @@ errno_t IORequest_Get(int type, size_t reqSize, IORequest* _Nullable * _Nonnull 
         }
     }
 
-    Lock_Unlock(&gLock);
+    mtx_unlock(&gLock);
 
     if (req == NULL) {
         err = kalloc(targetSize, (void**)&req);
@@ -88,7 +88,7 @@ void IORequest_Put(IORequest* _Nullable req)
     if (req) {
         bool didCache = false;
 
-        Lock_Lock(&gLock);
+        mtx_lock(&gLock);
 
         if (gCacheCount < MAX_CACHED_REQUESTS) {
             const size_t actSize = req->size;
@@ -103,7 +103,7 @@ void IORequest_Put(IORequest* _Nullable req)
             didCache = true;
         }
 
-        Lock_Unlock(&gLock);
+        mtx_unlock(&gLock);
 
         if (!didCache) {
             kfree(req);

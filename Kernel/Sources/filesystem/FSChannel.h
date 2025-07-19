@@ -10,7 +10,6 @@
 #define FSChannel_h
 
 #include <filesystem/IOChannel.h>
-#include <dispatcher/Lock.h>
 
 
 open_class(FSChannel, IOChannel,

@@ -12,9 +12,9 @@
 
 
 // Initializes a new shared-exclusive lock.
-void SELock_Init(SELock* _Nonnull self)
+void SEmtx_init(SELock* _Nonnull self)
 {
-    Lock_Init(&self->lock);
+    mtx_init(&self->mtx);
     ConditionVariable_Init(&self->cv);
     self->exclusiveOwnerVpId = 0;
     self->ownerCount = 0;
@@ -22,14 +22,14 @@ void SELock_Init(SELock* _Nonnull self)
 }
 
 // Deinitializes a lock.
-void SELock_Deinit(SELock* _Nonnull self)
+void SEmtx_deinit(SELock* _Nonnull self)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     assert(self->state == kSELState_Unlocked);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     ConditionVariable_Deinit(&self->cv);
-    Lock_Deinit(&self->lock);
+    mtx_deinit(&self->mtx);
 }
 
 static errno_t _SELock_AcquireSharedLockSlow(SELock* _Nonnull self)
@@ -37,7 +37,7 @@ static errno_t _SELock_AcquireSharedLockSlow(SELock* _Nonnull self)
     decl_try_err();
 
     for (;;) {
-        err = ConditionVariable_Wait(&self->cv, &self->lock);
+        err = ConditionVariable_Wait(&self->cv, &self->mtx);
         if (err != EOK) {
             break;
         }
@@ -56,11 +56,11 @@ static errno_t _SELock_AcquireSharedLockSlow(SELock* _Nonnull self)
 // the lock was initialized with the kLockOption_InterruptibleLock option, then
 // this function may be interrupted by another VP and it returns EINTR if this
 // happens.
-errno_t SELock_LockShared(SELock* _Nonnull self)
+errno_t SEmtx_lock_Shared(SELock* _Nonnull self)
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     switch (self->state) {
         case kSELState_Unlocked:
             self->state = kSELState_LockedShared;
@@ -81,7 +81,7 @@ errno_t SELock_LockShared(SELock* _Nonnull self)
         default:
             abort(); break;
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return err;
 }
@@ -91,7 +91,7 @@ static errno_t _SELock_AcquireExclusiveLockSlow(SELock* _Nonnull self)
     decl_try_err();
 
     for (;;) {
-        err = ConditionVariable_Wait(&self->cv, &self->lock);
+        err = ConditionVariable_Wait(&self->cv, &self->mtx);
         if (err != EOK) {
             break;
         }
@@ -110,11 +110,11 @@ static errno_t _SELock_AcquireExclusiveLockSlow(SELock* _Nonnull self)
 // If the lock was initialized with the kLockOption_InterruptibleLock option,
 // then this function may be interrupted by another VP and it returns EINTR if
 // this happens.
-errno_t SELock_LockExclusive(SELock* _Nonnull self)
+errno_t SEmtx_lock_Exclusive(SELock* _Nonnull self)
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     switch (self->state) {
         case kSELState_Unlocked:
             self->state = kSELState_LockedExclusive;
@@ -138,19 +138,19 @@ errno_t SELock_LockExclusive(SELock* _Nonnull self)
         default:
             abort(); break;
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return EOK;
 }
 
 
 // Unlocks the lock.
-errno_t SELock_Unlock(SELock* _Nonnull self)
+errno_t SEmtx_unlock(SELock* _Nonnull self)
 {
     decl_try_err();
     bool doBroadcast = false;
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     switch (self->state) {
         case kSELState_LockedShared:
             if (self->ownerCount == 1) {
@@ -191,7 +191,7 @@ errno_t SELock_Unlock(SELock* _Nonnull self)
     if (doBroadcast) {
         ConditionVariable_Broadcast(&self->cv);
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     return err;
 }

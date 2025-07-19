@@ -14,8 +14,8 @@
 #include "SfsDirectory.h"
 #include "SfsFile.h"
 #include "VolumeFormat.h"
-#include <dispatcher/Lock.h>
 #include <filesystem/FSUtilities.h>
+#include <sched/mtx.h>
 
 
 // SerenaFS Locking:
@@ -31,7 +31,7 @@ final_class_ivars(SerenaFS, ContainerFilesystem,
     uint32_t                blockMask;
     size_t                  indirectBlockEntryCount;    // Number of block pointers in an indirect block
 
-    Lock                    moveLock;                   // To make the move operation atomic
+    mtx_t                   moveLock;                   // To make the move operation atomic
 
     struct {
         unsigned int    isAccessUpdateOnReadEnabled:1;  // true if updates to the access-date on read operations are enabled

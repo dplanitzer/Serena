@@ -21,7 +21,7 @@ errno_t SerenaFS_Create(FSContainerRef _Nonnull pContainer, SerenaFSRef _Nullabl
     assert(sizeof(sfs_mode_t) == sizeof(mode_t));
     
     try(ContainerFilesystem_Create(&kSerenaFSClass, pContainer, (FilesystemRef*)&self));
-    Lock_Init(&self->moveLock);
+    mtx_init(&self->moveLock);
     SfsAllocator_Init(&self->blockAllocator);
 
     *pOutSelf = self;
@@ -37,7 +37,7 @@ void SerenaFS_deinit(SerenaFSRef _Nonnull self)
     FSDeallocate(self->emptyReadOnlyBlock);
     self->emptyReadOnlyBlock = NULL;
     
-    Lock_Deinit(&self->moveLock);
+    mtx_deinit(&self->moveLock);
     SfsAllocator_Deinit(&self->blockAllocator);
 }
 
@@ -245,7 +245,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode
     // given time that might move directories around in the filesystem. This ie
     // ensures that the result that we get from calling IsAscendentOfDirectory()
     // stays meaningful while we are busy executing the move.
-    Lock_Lock(&self->moveLock);
+    mtx_lock(&self->moveLock);
 
     if (isMovingDir && SfsDirectory_IsAncestorOf(pNode, pSrcDir, pDstDir)) {
         // oldpath is an ancestor of newpath (Don't allow moving a directory inside of itself)
@@ -273,7 +273,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode
     }
 
 catch:
-    Lock_Unlock(&self->moveLock);
+    mtx_unlock(&self->moveLock);
     return err;
 }
 

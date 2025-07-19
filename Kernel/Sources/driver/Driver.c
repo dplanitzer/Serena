@@ -22,7 +22,7 @@ errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _
 
     try(Object_Create(pClass, 0, (void**)&self));
 
-    Lock_Init(&self->lock);
+    mtx_init(&self->mtx);
     List_Init(&self->children);
     ListNode_Init(&self->childNode);
     self->parent = parent;

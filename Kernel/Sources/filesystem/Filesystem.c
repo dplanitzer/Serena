@@ -62,7 +62,7 @@ errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOut
     
     self->fsid = Filesystem_GetNextAvailableId();
     ConditionVariable_Init(&self->inCondVar);
-    Lock_Init(&self->inLock);
+    mtx_init(&self->inLock);
     List_Init(&self->inReadingCache);
     self->state = kFilesystemState_Idle;
 #ifndef __DISKIMAGE__
@@ -93,7 +93,7 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
     self->inReading = NULL;
 
     List_Deinit(&self->inReadingCache);
-    Lock_Deinit(&self->inLock);
+    mtx_deinit(&self->inLock);
     ConditionVariable_Deinit(&self->inCondVar);
 }
 
@@ -232,9 +232,9 @@ retry:
         
         err = _Filesystem_PrepReadingNode(self, id, &rdp);
         if (err == EOK) {
-            Lock_Unlock(&self->inLock);
+            mtx_unlock(&self->inLock);
             err = Filesystem_OnAcquireNode(self, id, &ip);
-            Lock_Lock(&self->inLock);
+            mtx_lock(&self->inLock);
 
             _Filesystem_FinReadingNode(self, rdp);
         }
@@ -264,17 +264,17 @@ catch:
 
 errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t id, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    Lock_Lock(&self->inLock);
+    mtx_lock(&self->inLock);
     const errno_t err = _Filesystem_AcquireNodeWithId(self, id, pOutNode);
-    Lock_Unlock(&self->inLock);
+    mtx_unlock(&self->inLock);
     return err;
 }
 
 InodeRef _Nonnull _Locked Filesystem_ReacquireNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode)
 {
-    Lock_Lock(&self->inLock);
+    mtx_lock(&self->inLock);
     pNode->useCount++;
-    Lock_Unlock(&self->inLock);
+    mtx_unlock(&self->inLock);
 
     return pNode;
 }
@@ -287,7 +287,7 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
         return EOK;
     }
     
-    Lock_Lock(&self->inLock);
+    mtx_lock(&self->inLock);
 
     if (pNode->useCount == 1) {
         // We know that no one else has a reference to the inode. So taking its
@@ -306,7 +306,7 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
             // Drop the inode management lock. The writeback may be done
             // synchronously and may be time consuming. Don't block other processes
             // from acquiring/relinquishing inodes in the meantime 
-            Lock_Unlock(&self->inLock);
+            mtx_unlock(&self->inLock);
 
             if (!Filesystem_IsReadOnly(self)) {
                 err = Inode_Writeback(pNode);
@@ -315,7 +315,7 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
                 err = EROFS;
             }
             
-            Lock_Lock(&self->inLock);
+            mtx_lock(&self->inLock);
         }
         Inode_Unlock(pNode);
     }
@@ -338,7 +338,7 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
         doDestroy = true;
     }
 
-    Lock_Unlock(&self->inLock);
+    mtx_unlock(&self->inLock);
 
     if (doDestroy) {
         Filesystem_OnRelinquishNode(self, pNode);
@@ -373,7 +373,7 @@ errno_t Filesystem_Start(FilesystemRef _Nonnull self, const char* _Nonnull param
     decl_try_err();
     FSProperties fs_props;
 
-    Lock_Lock(&self->inLock);
+    mtx_lock(&self->inLock);
     switch (self->state) {
         case kFilesystemState_Active:   throw(EBUSY); break;
         case kFilesystemState_Stopped:  throw(ENXIO); break;
@@ -391,7 +391,7 @@ errno_t Filesystem_Start(FilesystemRef _Nonnull self, const char* _Nonnull param
     }
 
 catch:
-    Lock_Unlock(&self->inLock);
+    mtx_unlock(&self->inLock);
     return err;
 }
 
@@ -404,7 +404,7 @@ errno_t Filesystem_Stop(FilesystemRef _Nonnull self, bool forced)
 {
     decl_try_err();
 
-    Lock_Lock(&self->inLock);
+    mtx_lock(&self->inLock);
     if (self->state != kFilesystemState_Active) {
         throw(ENXIO);
     }
@@ -416,7 +416,7 @@ errno_t Filesystem_Stop(FilesystemRef _Nonnull self, bool forced)
     self->state = kFilesystemState_Stopped;
 
 catch:
-    Lock_Unlock(&self->inLock);
+    mtx_unlock(&self->inLock);
     return err;
 }
 
@@ -427,7 +427,7 @@ errno_t Filesystem_onStop(FilesystemRef _Nonnull self)
 
 void Filesystem_Disconnect(FilesystemRef _Nonnull self)
 {
-    Lock_Lock(&self->inLock);
+    mtx_lock(&self->inLock);
     switch (self->state) {
         case kFilesystemState_Idle:
             // Do nothing since the filesystem hasn't actually started yet
@@ -446,7 +446,7 @@ void Filesystem_Disconnect(FilesystemRef _Nonnull self)
             abort();
             break;
     }
-    Lock_Unlock(&self->inLock);
+    mtx_unlock(&self->inLock);
 }
 
 void Filesystem_onDisconnect(FilesystemRef _Nonnull self)
@@ -457,7 +457,7 @@ bool Filesystem_CanDestroy(FilesystemRef _Nonnull self)
 {
     bool ok;
 
-    Lock_Lock(&self->inLock);
+    mtx_lock(&self->inLock);
     if (self->state == kFilesystemState_Active) {
         ok = false;
     }
@@ -467,7 +467,7 @@ bool Filesystem_CanDestroy(FilesystemRef _Nonnull self)
     else {
         ok = true;
     }
-    Lock_Unlock(&self->inLock);
+    mtx_unlock(&self->inLock);
     
     return ok;
 }
@@ -476,7 +476,7 @@ errno_t Filesystem_open(FilesystemRef _Nonnull _Locked self, unsigned int mode, 
 {
     decl_try_err();
 
-    Lock_Lock(&self->inLock);
+    mtx_lock(&self->inLock);
     if (self->state == kFilesystemState_Active) {
         err = FSChannel_Create(class(FSChannel), 0, SEO_FT_FILESYSTEM, mode, self, pOutChannel);
         if (err == EOK) {
@@ -486,7 +486,7 @@ errno_t Filesystem_open(FilesystemRef _Nonnull _Locked self, unsigned int mode, 
     else {
         err = ENXIO;
     }
-    Lock_Unlock(&self->inLock);
+    mtx_unlock(&self->inLock);
 
     return err;
 }
@@ -495,14 +495,14 @@ errno_t Filesystem_close(FilesystemRef _Nonnull _Locked self, IOChannelRef _Nonn
 {
     decl_try_err();
 
-    Lock_Lock(&self->inLock);
+    mtx_lock(&self->inLock);
     if (self->openChannelsCount > 0) {
         self->openChannelsCount--;
     }
     else {
         err = EBADF;
     }
-    Lock_Unlock(&self->inLock);
+    mtx_unlock(&self->inLock);
 
     return EOK;
 }
@@ -583,14 +583,14 @@ errno_t Filesystem_AcquireRootDirectory(FilesystemRef _Nonnull self, InodeRef _N
 {
     decl_try_err();
 
-    Lock_Lock(&self->inLock);
+    mtx_lock(&self->inLock);
     if (self->state == kFilesystemState_Active) {
         err = _Filesystem_AcquireNodeWithId(self, self->rootDirectoryId, pOutDir);
     }
     else {
         err = ENXIO;
     }
-    Lock_Unlock(&self->inLock);
+    mtx_unlock(&self->inLock);
     return err;
 }
 

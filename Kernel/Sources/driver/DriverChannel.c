@@ -17,7 +17,7 @@ errno_t DriverChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, i
     DriverChannelRef self = NULL;
 
     if ((err = IOChannel_Create(pClass, options, SEO_FT_DRIVER, mode, (IOChannelRef*)&self)) == EOK) {
-        Lock_Init(&self->lock);
+        mtx_init(&self->mtx);
         self->driver = Object_RetainAs(pDriver, Driver);
     }
 
@@ -28,7 +28,7 @@ errno_t DriverChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, i
 errno_t DriverChannel_finalize(DriverChannelRef _Nonnull self)
 {
     if (self->driver) {
-        Lock_Deinit(&self->lock);
+        mtx_deinit(&self->mtx);
         Driver_Close(self->driver, (IOChannelRef)self);
         
         Object_Release(self->driver);
@@ -40,12 +40,12 @@ errno_t DriverChannel_finalize(DriverChannelRef _Nonnull self)
 
 void DriverChannel_lock(DriverChannelRef _Nonnull self)
 {
-  try_bang(Lock_Lock(&self->lock));
+  try_bang(mtx_lock(&self->mtx));
 }
 
 void DriverChannel_unlock(DriverChannelRef _Nonnull _Locked self)
 {
-  try_bang(Lock_Unlock(&self->lock));
+  try_bang(mtx_unlock(&self->mtx));
 }
 
 errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull _Locked self, int cmd, va_list ap)

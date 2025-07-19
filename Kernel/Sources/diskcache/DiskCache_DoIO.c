@@ -248,7 +248,7 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, StrategyRequest* _N
     errno_t status = req->s.status;
     const int type = req->s.type;
 
-    Lock_Lock(&self->interlock);
+    mtx_lock(&self->interlock);
     for (size_t i = 0; i < req->iovCount; i++) {
         DiskBlockRef pBlock = (DiskBlockRef)req->iov[i].token;
 
@@ -265,7 +265,7 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, StrategyRequest* _N
 
         _DiskCache_OnBlockRequestDone(self, pBlock, type, status);
     }
-    Lock_Unlock(&self->interlock);
+    mtx_unlock(&self->interlock);
 
     IORequest_Put((IORequest*)req);
 }

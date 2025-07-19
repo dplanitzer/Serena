@@ -8,14 +8,14 @@
 
 #include "Pipe.h"
 #include <dispatcher/ConditionVariable.h>
-#include <dispatcher/Lock.h>
 #include <klib/RingBuffer.h>
 #include <kern/timespec.h>
 #include <kpi/stat.h>
+#include <sched/mtx.h>
 
 
 final_class_ivars(Pipe, Object,
-    Lock                lock;
+    mtx_t               mtx;
     ConditionVariable   reader;
     ConditionVariable   writer;
     size_t              readerCount;
@@ -33,7 +33,7 @@ errno_t Pipe_Create(size_t bufferSize, PipeRef _Nullable * _Nonnull pOutPipe)
 
     try(Object_Create(class(Pipe), 0, (void**)&self));
     
-    Lock_Init(&self->lock);
+    mtx_init(&self->mtx);
     ConditionVariable_Init(&self->reader);
     ConditionVariable_Init(&self->writer);
     self->readerCount = 0;
@@ -54,39 +54,39 @@ void Pipe_deinit(PipeRef _Nullable self)
     RingBuffer_Deinit(&self->buffer);
     ConditionVariable_Deinit(&self->reader);
     ConditionVariable_Deinit(&self->writer);
-    Lock_Deinit(&self->lock);
+    mtx_deinit(&self->mtx);
 }
 
 // Returns the number of bytes that can be read from the pipe without blocking.
 size_t Pipe_GetNonBlockingReadableCount(PipeRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     const size_t nbytes = RingBuffer_ReadableCount(&self->buffer);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     return nbytes;
 }
 
 // Returns the number of bytes can be written without blocking.
 size_t Pipe_GetNonBlockingWritableCount(PipeRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     const size_t nbytes = RingBuffer_WritableCount(&self->buffer);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     return nbytes;
 }
 
 // Returns the maximum number of bytes that the pipe is capable at storing.
 size_t Pipe_GetCapacity(PipeRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     const size_t nbytes = self->buffer.capacity;
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     return nbytes;
 }
 
 void Pipe_Open(PipeRef _Nonnull self, int end)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     switch (end) {
         case kPipeEnd_Read:
             self->readerCount++;
@@ -102,12 +102,12 @@ void Pipe_Open(PipeRef _Nonnull self, int end)
 
     ConditionVariable_Broadcast(&self->reader);
     ConditionVariable_Broadcast(&self->writer);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }
 
 void Pipe_Close(PipeRef _Nonnull self, int end)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     switch (end) {
         case kPipeEnd_Read:
             if (self->readerCount > 0) {
@@ -127,7 +127,7 @@ void Pipe_Close(PipeRef _Nonnull self, int end)
 
     ConditionVariable_Broadcast(&self->reader);
     ConditionVariable_Broadcast(&self->writer);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }
 
 // Reads up to 'nBytes' from the pipe or until all readable data has been returned.
@@ -140,7 +140,7 @@ errno_t Pipe_Read(PipeRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesT
     ssize_t nBytesRead = 0;
 
     if (nBytesToRead > 0) {
-        Lock_Lock(&self->lock);
+        mtx_lock(&self->mtx);
 
         while (nBytesRead < nBytesToRead && self->readerCount > 0) {
             const int nChunkSize = RingBuffer_GetBytes(&self->buffer, &((char*)pBuffer)[nBytesRead], nBytesToRead - nBytesRead);
@@ -158,7 +158,7 @@ errno_t Pipe_Read(PipeRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesT
                     ConditionVariable_Broadcast(&self->writer);
                     
                     // Wait for the writer to make data available
-                    if ((err = ConditionVariable_Wait(&self->reader, &self->lock)) != EOK) {
+                    if ((err = ConditionVariable_Wait(&self->reader, &self->mtx)) != EOK) {
                         err = (nBytesRead == 0) ? EINTR : EOK;
                         break;
                     }
@@ -169,7 +169,7 @@ errno_t Pipe_Read(PipeRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesT
             }
         }
 
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->mtx);
     }
 
     *nOutBytesRead = nBytesRead;
@@ -182,7 +182,7 @@ errno_t Pipe_Write(PipeRef _Nonnull self, const void* _Nonnull pBytes, ssize_t n
     ssize_t nBytesWritten = 0;
 
     if (nBytesToWrite > 0) {
-        Lock_Lock(&self->lock);
+        mtx_lock(&self->mtx);
         
         while (nBytesWritten < nBytesToWrite && self->writerCount > 0) {
             const int nChunkSize = RingBuffer_PutBytes(&self->buffer, &((char*)pBytes)[nBytesWritten], nBytesToWrite - nBytesWritten);
@@ -200,7 +200,7 @@ errno_t Pipe_Write(PipeRef _Nonnull self, const void* _Nonnull pBytes, ssize_t n
                     ConditionVariable_Broadcast(&self->reader);
                     
                     // Wait for the reader to make space available
-                    if (( err = ConditionVariable_Wait(&self->writer, &self->lock)) != EOK) {
+                    if (( err = ConditionVariable_Wait(&self->writer, &self->mtx)) != EOK) {
                         err = (nBytesWritten == 0) ? EINTR : EOK;
                         break;
                     }
@@ -211,7 +211,7 @@ errno_t Pipe_Write(PipeRef _Nonnull self, const void* _Nonnull pBytes, ssize_t n
             }
         }
 
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->mtx);
     }
 
     *nOutBytesWritten = nBytesWritten;    

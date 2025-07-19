@@ -10,7 +10,7 @@
 #define InterruptControllerPriv_h
 
 #include <machine/InterruptController.h>
-#include <dispatcher/Lock.h>
+#include <sched/mtx.h>
 
 
 #define INTERRUPT_HANDLER_TYPE_DIRECT               0
@@ -44,7 +44,7 @@ typedef struct InterruptController {
     int                     spuriousInterruptCount;
     int                     uninitializedInterruptCount;
     int                     nonMaskableInterruptCount;
-    Lock                    lock;
+    mtx_t                   mtx;
 } InterruptController;
 
 #endif /* InterruptControllerPriv_h */

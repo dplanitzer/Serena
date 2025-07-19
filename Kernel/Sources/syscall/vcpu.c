@@ -71,7 +71,7 @@ SYSCALL_1(vcpu_suspend, vcpuid_t id)
         err = VirtualProcessor_Suspend(vp);
     }
     else {
-        Lock_Lock(&pp->lock);
+        mtx_lock(&pp->mtx);
         List_ForEach(&pp->vpQueue, ListNode, {
             VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
 
@@ -80,7 +80,7 @@ SYSCALL_1(vcpu_suspend, vcpuid_t id)
                 break;
             }
         });
-        Lock_Unlock(&pp->lock);
+        mtx_unlock(&pp->mtx);
     }
 
     return err;
@@ -90,7 +90,7 @@ SYSCALL_1(vcpu_resume, vcpuid_t id)
 {
     ProcessRef pp = vp->proc;
 
-    Lock_Lock(&pp->lock);
+    mtx_lock(&pp->mtx);
     List_ForEach(&pp->vpQueue, ListNode, {
         VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
 
@@ -99,7 +99,7 @@ SYSCALL_1(vcpu_resume, vcpuid_t id)
             break;
         }
     });
-    Lock_Unlock(&pp->lock);
+    mtx_unlock(&pp->mtx);
 
     return EOK;
 }

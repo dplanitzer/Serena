@@ -59,7 +59,7 @@ SYSCALL_3(sigsend, int scope, id_t id, int signo)
     ProcessRef pp = vp->proc;
     bool foundIt = false;
 
-    Lock_Lock(&pp->lock);
+    mtx_lock(&pp->mtx);
     List_ForEach(&pp->vpQueue, ListNode, {
         VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
 
@@ -73,7 +73,7 @@ SYSCALL_3(sigsend, int scope, id_t id, int signo)
             foundIt = true;
         }
     });
-    Lock_Unlock(&pp->lock);
+    mtx_unlock(&pp->mtx);
 
     if (!foundIt) {
         err = ESRCH;

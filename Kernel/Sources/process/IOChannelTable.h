@@ -9,15 +9,15 @@
 #ifndef IOChannelTable_h
 #define IOChannelTable_h
 
-#include <dispatcher/Lock.h>
 #include <filesystem/IOChannel.h>
+#include <sched/mtx.h>
 
 
 typedef struct IOChannelTable {
     IOChannelRef _Nullable * _Nonnull   table;
     size_t                              tableCapacity;
     size_t                              channelCount;
-    Lock                                lock;
+    mtx_t                               mtx;
 } IOChannelTable;
 
 

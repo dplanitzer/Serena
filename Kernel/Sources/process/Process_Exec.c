@@ -180,9 +180,9 @@ catch:
 // XXX the executable format is GemDOS
 errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[])
 {
-//    Lock_Lock(&self->lock);
+//    mtx_lock(&self->mtx);
     const errno_t err = _proc_exec(self, execPath, argv, env);
-//    Lock_Unlock(&self->lock);
+//    mtx_unlock(&self->mtx);
 
     return err;
 }

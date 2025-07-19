@@ -35,7 +35,7 @@ void _ConditionVariable_Wakeup(ConditionVariable* _Nonnull self, bool broadcast)
 
 // Unlocks 'pLock' and blocks the caller until the condition variable is signaled.
 // It then locks 'pLock' before it returns to the caller.
-errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull self, Lock* _Nonnull pLock)
+errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull self, mtx_t* _Nonnull mtx)
 {
     // Note that we disable preemption while unlocking and entering the wait.
     // The reason is that we want to ensure that noone else can grab the lock,
@@ -45,9 +45,9 @@ errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull self, Lock* _Nonnull 
     // wait).
     const int sps = preempt_disable();
     
-    Lock_Unlock(pLock);
+    mtx_unlock(mtx);
     const int err = wq_wait(&self->wq, NULL);
-    Lock_Lock(pLock);
+    mtx_lock(mtx);
 
     preempt_restore(sps);
     
@@ -56,17 +56,17 @@ errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull self, Lock* _Nonnull 
 
 // Unlocks 'pLock' and blocks the caller until the condition variable is signaled.
 // It then locks 'pLock' before it returns to the caller.
-errno_t ConditionVariable_TimedWait(ConditionVariable* _Nonnull self, Lock* _Nonnull pLock, const struct timespec* _Nonnull deadline)
+errno_t ConditionVariable_TimedWait(ConditionVariable* _Nonnull self, mtx_t* _Nonnull mtx, const struct timespec* _Nonnull deadline)
 {
     const int sps = preempt_disable();
     
-    Lock_Unlock(pLock);
+    mtx_unlock(mtx);
     const int err = wq_timedwait(&self->wq,
                                 NULL,
                                 WAIT_ABSTIME,
                                 deadline,
                                 NULL);
-    Lock_Lock(pLock);
+    mtx_lock(mtx);
 
     preempt_restore(sps);
     

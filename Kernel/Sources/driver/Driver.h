@@ -9,12 +9,12 @@
 #ifndef Driver_h
 #define Driver_h
 
-#include <dispatcher/Lock.h>
 #include <stdarg.h>
 #include <klib/List.h>
 #include <kobj/Object.h>
 #include <kpi/stat.h>
 #include <kpi/uid.h>
+#include <sched/mtx.h>
 #include <Catalog.h>
 
 typedef enum DriverOptions {
@@ -138,7 +138,7 @@ typedef struct DriverEntry {
 // card functionality plus a child driver for the sound chip and another child
 // driver for the CD-ROM drive.
 open_class(Driver, Object,
-    Lock                        lock;
+    mtx_t                       mtx;
     DriverRef _Nullable _Weak   parent;
     ListNode/*<Driver>*/        childNode;
     List/*<Driver>*/            children;
@@ -287,16 +287,16 @@ extern errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, Driv
 
 // Locks the driver instance
 #define Driver_Lock(__self) \
-Lock_Lock(&((DriverRef)__self)->lock)
+mtx_lock(&((DriverRef)__self)->mtx)
 
 // Unlocks the driver instance
 #define Driver_Unlock(__self) \
-Lock_Unlock(&((DriverRef)__self)->lock)
+mtx_unlock(&((DriverRef)__self)->mtx)
 
 // Returns a reference to the driver lock. For use cases like integrating with
 // a condition variable
 #define Driver_GetLock(__self) \
-(&((DriverRef)(__self))->lock)
+(&((DriverRef)(__self))->mtx)
 
 
 #define Driver_OnStart(__self) \

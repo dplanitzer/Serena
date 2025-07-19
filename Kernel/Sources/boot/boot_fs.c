@@ -15,9 +15,9 @@
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/IOChannel.h>
 #include <machine/Platform.h>
-#include <machine/delay.h>
 #include <machine/amiga/graphics/GraphicsDriver.h>
 #include <kpi/fcntl.h>
+#include <sched/delay.h>
 #include <Catalog.h>
 #include "boot_screen.h"
 

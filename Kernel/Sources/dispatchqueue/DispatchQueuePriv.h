@@ -11,9 +11,9 @@
 
 #include "DispatchQueue.h"
 #include <dispatcher/ConditionVariable.h>
-#include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>
 #include <dispatcher/VirtualProcessorScheduler.h>
+#include <sched/mtx.h>
 
 
 //
@@ -90,7 +90,7 @@ final_class_ivars(DispatchQueue, Object,
     SList                               item_queue;         // SList<WorkItem> Queue of work items that should be executed as soon as possible
     SList                               timer_queue;        // SList<WorkItem> Queue of items that should be executed on or after their deadline
     SList                               item_cache_queue;   // SList<WorkItem> Cache of reusable work items
-    Lock                                lock;
+    mtx_t                               lock;
     ConditionVariable                   work_available_signaler;    // Used by the queue to indicate to its VPs that a new work item/timer has been enqueued
     ConditionVariable                   vp_shutdown_signaler;       // Used by a VP to indicate that it has relinquished itself because the queue is in the process of shutting down
     ProcessRef _Nullable _Weak          owning_process;             // The process that owns this queue

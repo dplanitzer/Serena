@@ -18,9 +18,9 @@
 #include <machine/InterruptController.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
-#include <machine/delay.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>
+#include <sched/delay.h>
 #include <security/SecurityManager.h>
 #include <sys/mount.h>
 #include <Catalog.h>

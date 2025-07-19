@@ -7,7 +7,6 @@
 //
 
 #include "FilesystemManager.h"
-#include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/disk/DiskDriver.h>
 #include <filesystem/DiskContainer.h>
@@ -17,6 +16,7 @@
 #include <klib/List.h>
 #include <kern/kalloc.h>
 #include <kern/timespec.h>
+#include <sched/mtx.h>
 
 
 typedef struct fsentry {
@@ -66,7 +66,7 @@ catch:
 // reaper queue.
 typedef struct FilesystemManager {
     DispatchQueueRef _Nonnull   dispatchQueue;
-    Lock                        lock;
+    mtx_t                       mtx;
     List                        filesystems;    // List<FSEntry>
     List                        reaperQueue;    // List<FSEntry>
 } FilesystemManager;
@@ -85,7 +85,7 @@ errno_t FilesystemManager_Create(FilesystemManagerRef _Nullable * _Nonnull pOutS
 
     try(kalloc_cleared(sizeof(FilesystemManager), (void**)&self));
     try(DispatchQueue_Create(0, 1, kDispatchQoS_Background, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
-    Lock_Init(&self->lock);
+    mtx_init(&self->mtx);
 
     _FilesystemManager_ScheduleAutoSync(self);
 
@@ -109,9 +109,9 @@ errno_t FilesystemManager_EstablishFilesystem(FilesystemManagerRef _Nonnull self
     Object_Release(fsContainer);
     IOChannel_Release(chan);
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     List_InsertAfterLast(&self->filesystems, &entry->node);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     *pOutFs = fs;
     return EOK;
 
@@ -177,21 +177,21 @@ void FilesystemManager_DisbandFilesystem(FilesystemManagerRef _Nonnull self, Fil
 
     if (Filesystem_CanDestroy(fs)) {
         // Destroy the FS now
-        Lock_Lock(&self->lock);
+        mtx_lock(&self->mtx);
         fsentry_t* ep = _fsentry_for_fsid(self, Filesystem_GetId(fs));
 
         List_Remove(&self->filesystems, &ep->node);
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->mtx);
         fsentry_destroy(ep);
     }
     else {
         // Hand the FS over to our reaper queue
-        Lock_Lock(&self->lock);
+        mtx_lock(&self->mtx);
         fsentry_t* ep = _fsentry_for_fsid(self, Filesystem_GetId(fs));
 
         List_Remove(&self->filesystems, &ep->node);
         List_InsertAfterLast(&self->reaperQueue, &ep->node);
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->mtx);
     }
 }
 
@@ -199,7 +199,7 @@ errno_t FilesystemManager_AcquireDriverNodeForFsid(FilesystemManagerRef _Nonnull
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     fsentry_t* ep = _fsentry_for_fsid(self, fsid);
 
     if (ep) {
@@ -210,19 +210,19 @@ errno_t FilesystemManager_AcquireDriverNodeForFsid(FilesystemManagerRef _Nonnull
         *pOutNode = NULL;
         err = ENODEV;
     }
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
     
     return err;
 }
 
 void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     // XXX change this to run the syncs outside of the lock
     List_ForEach(&self->filesystems, fsentry_t,
         Filesystem_Sync(pCurNode->fs);
     );
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 }
 
 static void _FilesystemManager_ReapFilesystem(FilesystemManagerRef _Nonnull self, List* _Nonnull queue, fsentry_t* _Nonnull ep)
@@ -238,10 +238,10 @@ static void _FilesystemManager_Reaper(FilesystemManagerRef _Nonnull self)
 
     // Take a snapshot of the reaper queue so that we can do our work without
     // having to hold the lock.
-    Lock_Lock(&self->lock);
+    mtx_lock(&self->mtx);
     queue = self->reaperQueue;
     List_Init(&self->reaperQueue);
-    Lock_Unlock(&self->lock);
+    mtx_unlock(&self->mtx);
 
     
     // Kill as many filesystems as we can
@@ -255,12 +255,12 @@ static void _FilesystemManager_Reaper(FilesystemManagerRef _Nonnull self)
 
 
         // Put the rest back on the reaper queue
-        Lock_Lock(&self->lock);
+        mtx_lock(&self->mtx);
         List_ForEach(&queue, fsentry_t,
             List_Remove(&queue, &pCurNode->node);
             List_InsertBeforeFirst(&self->reaperQueue, &pCurNode->node);
         );
-        Lock_Unlock(&self->lock);
+        mtx_unlock(&self->mtx);
     }
 }
 

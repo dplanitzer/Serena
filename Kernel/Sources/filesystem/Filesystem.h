@@ -14,7 +14,7 @@
 #include <kobj/Object.h>
 #include <klib/List.h>
 #include <dispatcher/ConditionVariable.h>
-#include <dispatcher/Lock.h>
+#include <sched/mtx.h>
 #include "Inode.h"
 #include "PathComponent.h"
 #ifndef __DISKIMAGE__
@@ -179,7 +179,7 @@ enum {
 open_class(Filesystem, Object,
     fsid_t              fsid;
     ConditionVariable   inCondVar;
-    Lock                inLock;
+    mtx_t               inLock;
     List* _Nonnull      inCached;   // List<Inode>
     size_t              inCachedCount;
     List* _Nonnull      inReading;  // List<RDnode>

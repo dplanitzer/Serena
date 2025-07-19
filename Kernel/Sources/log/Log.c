@@ -7,11 +7,11 @@
 //
 
 #include "Log.h"
-#include <dispatcher/Lock.h>
+#include "Formatter.h"
 #include <Catalog.h>
 #include <filesystem/IOChannel.h>
 #include <klib/RingBuffer.h>
-#include "Formatter.h"
+#include <sched/mtx.h>
 #include <kpi/fcntl.h>
 
 
@@ -22,7 +22,7 @@ enum {
 
 #define LOG_BUFFER_SIZE 256
 
-static Lock             gLock;
+static mtx_t            gLock;
 static IOChannelRef     gConsoleChannel;
 static struct Formatter gFormatter;
 static RingBuffer       gRingBuffer;
@@ -48,7 +48,7 @@ static void _log_sink(struct Formatter* _Nonnull self, const char* _Nonnull buf,
 
 void log_init(void)
 {
-    Lock_Init(&gLock);
+    mtx_init(&gLock);
     gCurrentSink = kSink_RingBuffer;
     RingBuffer_InitWithBuffer(&gRingBuffer, gLogBuffer, LOG_BUFFER_SIZE);
     Formatter_Init(&gFormatter, _log_sink, NULL);
@@ -72,7 +72,7 @@ bool log_switch_to_console(void)
     decl_try_err();
     bool r = false;
 
-    Lock_Lock(&gLock);
+    mtx_lock(&gLock);
 
     if (gCurrentSink != kSink_Console) {
         err = log_open_console();
@@ -82,30 +82,30 @@ bool log_switch_to_console(void)
         }
     }
 
-    Lock_Unlock(&gLock);
+    mtx_unlock(&gLock);
     return r;
 }
 
 
 void log_write(const char* _Nonnull buf, ssize_t nbytes)
 {
-    Lock_Lock(&gLock);
+    mtx_lock(&gLock);
     _log_sink(&gFormatter, buf, nbytes);
-    Lock_Unlock(&gLock);
+    mtx_unlock(&gLock);
 }
 
 ssize_t log_read(void* _Nonnull buf, ssize_t nBytesToRead)
 {
     ssize_t nbytes;
 
-    Lock_Lock(&gLock);
+    mtx_lock(&gLock);
     if (gCurrentSink == kSink_RingBuffer) {
         nbytes = RingBuffer_GetBytes(&gRingBuffer, buf, nBytesToRead);
     }
     else {
         nbytes = 0;
     }
-    Lock_Unlock(&gLock);
+    mtx_unlock(&gLock);
     return nbytes;
 }
 
@@ -125,7 +125,7 @@ void printf(const char* _Nonnull format, ...)
 
 void vprintf(const char* _Nonnull format, va_list ap)
 {
-    Lock_Lock(&gLock);
+    mtx_lock(&gLock);
     Formatter_vFormat(&gFormatter, format, ap);
-    Lock_Unlock(&gLock);
+    mtx_unlock(&gLock);
 }

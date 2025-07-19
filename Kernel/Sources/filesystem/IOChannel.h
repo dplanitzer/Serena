@@ -11,9 +11,9 @@
 
 #include <stdarg.h>
 #include <kobj/Any.h>
-#include <dispatcher/Lock.h>
 #include <kern/kernlib.h>
 #include <kpi/stat.h>
+#include <sched/mtx.h>
 
 
 // I/O channel ownership and operations tracking:
@@ -84,7 +84,7 @@
 // Only mode (1) is supported by the I/O channel class at this time. Support for
 // the other modes is planned for the future.
 open_class(IOChannel, Any,
-    Lock        countLock;
+    mtx_t       countLock;
     int32_t     ownerCount;     // countLock
     int32_t     useCount;       // countLock
     uint16_t    mode;           // Constant
