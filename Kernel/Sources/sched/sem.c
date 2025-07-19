@@ -1,31 +1,31 @@
 //
-//  Semaphore.c
+//  sem.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/10/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Semaphore.h"
+#include "sem.h"
 
 
 // Initializes a new semaphore with 'value' permits
-void Semaphore_Init(Semaphore* _Nonnull self, int value)
+void sem_init(sem_t* _Nonnull self, int value)
 {
     self->value = value;
     wq_init(&self->wq);
 }
 
 // Deinitializes the semaphore.
-void Semaphore_Deinit(Semaphore* _Nonnull self)
+void sem_deinit(sem_t* _Nonnull self)
 {
     assert(wq_deinit(&self->wq) == EOK);
 }
 
-// Invoked by Semaphore_Acquire() if the semaphore doesn't have the expected
+// Invoked by sem_acquire() if the semaphore doesn't have the expected
 // number of permits.
 // @Entry Condition: preemption disabled
-errno_t Semaphore_OnWaitForPermits(Semaphore* _Nonnull self, const struct timespec* _Nonnull deadline)
+errno_t sem_onwait(sem_t* _Nonnull self, const struct timespec* _Nonnull deadline)
 {
     return wq_timedwait(&self->wq,
                         NULL,
@@ -34,9 +34,9 @@ errno_t Semaphore_OnWaitForPermits(Semaphore* _Nonnull self, const struct timesp
                         NULL);
 }
 
-// Invoked by Semaphore_Relinquish().
+// Invoked by sem_relinquish().
 // @Entry Condition: preemption disabled
-void Semaphore_WakeUp(Semaphore* _Nullable self)
+void sem_wake(sem_t* _Nullable self)
 {
     wq_wake(&self->wq, WAKEUP_ALL | WAKEUP_CSW, WRES_WAKEUP);
 }

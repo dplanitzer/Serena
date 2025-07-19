@@ -299,7 +299,7 @@ static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull se
 static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem)
 {
     if ((pItem->flags & kWorkItemFlag_IsSync) == kWorkItemFlag_IsSync) {
-        Semaphore_Deinit(&pItem->u.completionSignaler);
+        sem_deinit(&pItem->u.completionSignaler);
     }
 
     SListNode_Deinit(&pItem->queue_entry);
@@ -330,7 +330,7 @@ static void DispatchQueue_SignalWorkItemCompletion(DispatchQueueRef _Nonnull sel
         else {
             pItem->flags &= ~kWorkItemFlag_IsInterrupted;
         }
-        Semaphore_Relinquish(&pItem->u.completionSignaler);
+        sem_relinquish(&pItem->u.completionSignaler);
     }
 }
 
@@ -539,7 +539,7 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
     if (isSync) {
         // We tell the executing VP to NOT relinquish the item because we will
         // do it here once the item has signaled completion
-        Semaphore_Init(&pItem->u.completionSignaler, 0);
+        sem_init(&pItem->u.completionSignaler, 0);
         pItem->flags |= kWorkItemFlag_IsSync;
     }
 
@@ -560,7 +560,7 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
 
     if (isSync) {
         // Wait for the work item completion
-        err = Semaphore_Acquire(&pItem->u.completionSignaler, &TIMESPEC_INF);
+        err = sem_acquire(&pItem->u.completionSignaler, &TIMESPEC_INF);
 
         mtx_lock(&self->lock);
 

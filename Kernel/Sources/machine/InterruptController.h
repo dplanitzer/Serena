@@ -9,8 +9,8 @@
 #ifndef InterruptController_h
 #define InterruptController_h
 
-#include <dispatcher/Semaphore.h>
 #include <machine/Platform.h>
+#include <sched/sem.h>
 
 
 #define INTERRUPT_HANDLER_PRIORITY_LOWEST   -128
@@ -47,7 +47,7 @@ extern errno_t InterruptController_AddDirectInterruptHandler(InterruptController
 
 // Registers a counting semaphore which will receive a release call for every
 // occurrence of an interrupt with ID 'interruptId'.
-extern errno_t InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, int priority, Semaphore* _Nonnull pSemaphore, InterruptHandlerID* _Nonnull pOutId);
+extern errno_t InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, int priority, sem_t* _Nonnull pSemaphore, InterruptHandlerID* _Nonnull pOutId);
 
 // Removes the interrupt handler for the given handler ID. Does nothing if no
 // such handler is registered.

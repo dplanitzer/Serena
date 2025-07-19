@@ -1,5 +1,5 @@
 //
-//  Semaphore.h
+//  semaphore.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 3/21/24.

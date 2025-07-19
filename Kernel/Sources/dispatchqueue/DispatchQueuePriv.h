@@ -10,10 +10,10 @@
 #define DispatchQueuePriv_h
 
 #include "DispatchQueue.h"
-#include <dispatcher/Semaphore.h>
 #include <dispatcher/VirtualProcessorScheduler.h>
 #include <sched/cnd.h>
 #include <sched/mtx.h>
+#include <sched/sem.h>
 
 
 //
@@ -42,7 +42,7 @@ typedef struct WorkItem {
     uintptr_t           tag;
     union {
         Timer       timer;
-        Semaphore   completionSignaler;
+        sem_t       completionSignaler;
     }                   u;
     uint16_t            args_byte_size;
     uint8_t             flags;

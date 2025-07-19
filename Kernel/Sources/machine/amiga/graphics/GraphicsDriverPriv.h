@@ -10,11 +10,11 @@
 #define GraphicsDriverPriv_h
 
 #include "GraphicsDriver.h"
-#include <dispatcher/Semaphore.h>
 #include <machine/InterruptController.h>
 #include <machine/Platform.h>
 #include <klib/List.h>
 #include <sched/mtx.h>
+#include <sched/sem.h>
 #include "CopperProgram.h"
 #include "CopperScheduler.h"
 #include "Screen.h"
@@ -26,7 +26,7 @@ final_class_ivars(GraphicsDriver, Driver,
     Sprite* _Nonnull    mouseCursor;
     CopperScheduler     copperScheduler;
     InterruptHandlerID  vb_irq_handler;
-    Semaphore           vblank_sema;
+    sem_t               vblank_sema;
     List                surfaces;
     List                screens;
     int                 nextSurfaceId;

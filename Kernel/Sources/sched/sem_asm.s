@@ -1,5 +1,5 @@
 ;
-;  Semaphore_asm.s
+;  sem_asm.s
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 2/10/21.
@@ -8,16 +8,16 @@
 
     include <machine/lowmem.i>
 
-    xref _Semaphore_OnWaitForPermits
-    xref _Semaphore_WakeUp
+    xref _sem_onwait
+    xref _sem_wake
     xref _wq_wake_irq
 
-    xdef _Semaphore_AcquireMultiple
-    xdef _Semaphore_AcquireAll
-    xdef _Semaphore_RelinquishMultiple
-    xdef _Semaphore_RelinquishFromInterrupt
-    xdef _Semaphore_TryAcquireMultiple
-    xdef _Semaphore_TryAcquireAll
+    xdef _sem_acquire_multiple
+    xdef _sem_acquireall
+    xdef _sem_relinquish_multiple
+    xdef _sem_relinquish_irq
+    xdef _sem_tryacquire_multiple
+    xdef _sem_tryacquireall
 
 
     clrso
@@ -28,9 +28,9 @@ sema_SIZEOF             so
 
 
 ;-------------------------------------------------------------------------------
-; void Semaphore_RelinquishMultiple(Semaphore* _Nonnull sema, int npermits)
+; void sem_relinquish_multiple(sem_t* _Nonnull sema, int npermits)
 ; Releases 'npermits' permits to the semaphore.
-_Semaphore_RelinquishMultiple:
+_sem_relinquish_multiple:
     inline
     cargs sr_sema_ptr.l, sr_npermits.l
         move.l  sr_sema_ptr(sp), a0
@@ -46,7 +46,7 @@ _Semaphore_RelinquishMultiple:
         ; move all the waiters back to the ready queue
         move.l  d0, -(sp)
         move.l  a0, -(sp)
-        jsr     _Semaphore_WakeUp
+        jsr     _sem_wake
         addq.l  #4, sp
         move.l  (sp)+, d0
 
@@ -57,11 +57,11 @@ _Semaphore_RelinquishMultiple:
 
 
 ;-------------------------------------------------------------------------------
-; void Semaphore_RelinquishFromInterrupt(Semaphore* _Nonnull sema)
+; void sem_relinquish_irq(sem_t* _Nonnull sema)
 ; Releases one permit to the semaphore. This function expects to be called from
 ; the interrupt context and thus it does not trigger an immediate context switch
 ; since context switches are deferred until we return from the interrupt.
-_Semaphore_RelinquishFromInterrupt:
+_sem_relinquish_irq:
     inline
     cargs srfic_sema_ptr.l
         move.l  srfic_sema_ptr(sp), a0
@@ -87,14 +87,14 @@ _Semaphore_RelinquishFromInterrupt:
 
 
 ;-------------------------------------------------------------------------------
-; errno_t Semaphore_AcquireMultiple(Semaphore* _Nonnull sema, int npermits, const struct timespec* _Nonnull deadline)
+; errno_t sem_acquire_multiple(sem_t* _Nonnull sema, int npermits, const struct timespec* _Nonnull deadline)
 ; Acquires 'npermits' from the semaphore before the deadline 'deadline' is reached.
 ; This function blocks the caller if 'deadline' is in the future and the semaphore
 ; does not have enough permits available.
 ; This function is guaranteed to not block if 'deadline' is in the past. Returns
 ; an error code indicating whether the function has timed out waiting for the
 ; semaphore to become available.
-_Semaphore_AcquireMultiple:
+_sem_acquire_multiple:
     inline
     cargs sa_saved_d7.l, sa_sema.l, sa_npermits.l, sa_deadline.l
         move.l  d7, -(sp)
@@ -111,7 +111,7 @@ _Semaphore_AcquireMultiple:
         move.l  sa_deadline(sp), d0
         move.l  d0, -(sp)
         move.l  a0, -(sp)
-        jsr     _Semaphore_OnWaitForPermits
+        jsr     _sem_onwait
         addq.l  #8, sp
 
         ; give up if the OnWaitForPermits came back with an error
@@ -138,7 +138,7 @@ _Semaphore_AcquireMultiple:
 
 
 ;-------------------------------------------------------------------------------
-; errno_t Semaphore_AcquireAll(Semaphore* _Nonnull sema, const struct timespec* _Nonnull deadline, int* _Nonnull pOutPermitCount)
+; errno_t sem_acquireall(sem_t* _Nonnull sema, const struct timespec* _Nonnull deadline, int* _Nonnull pOutPermitCount)
 ; Acquires all permits from the semaphore before the deadline 'deadline' is reached.
 ; This function blocks the caller if 'deadline' is in the future and the semaphore
 ; does not have any permits available.
@@ -146,7 +146,7 @@ _Semaphore_AcquireMultiple:
 ; an error code indicating whether the function has timed out waiting for the
 ; semaphore to become available.
 ; The number of acquired permits is returned in 'pOutPermitsCount'
-_Semaphore_AcquireAll:
+_sem_acquireall:
     inline
     cargs saa_saved_d7.l, saa_sema.l, saa_deadline.l, saa_out_permits_count_ptr.l
         move.l  d7, -(sp)
@@ -163,7 +163,7 @@ _Semaphore_AcquireAll:
         move.l  saa_deadline(sp), d0
         move.l  d0, -(sp)
         move.l  a0, -(sp)
-        jsr     _Semaphore_OnWaitForPermits
+        jsr     _sem_onwait
         addq.l  #8, sp
 
         ; give up if the OnWaitForPermits came back with an error
@@ -192,10 +192,10 @@ _Semaphore_AcquireAll:
 
 
 ;-------------------------------------------------------------------------------
-; bool Semaphore_TryAcquireMultiple(Semaphore* _Nonnull sema, int npermits)
+; bool sem_tryacquire_multiple(sem_t* _Nonnull sema, int npermits)
 ; Tries to acquire 'npermits' from the semaphore. Returns true if the acquisition
 ; was successful and false otherwise. This function does not block.
-_Semaphore_TryAcquireMultiple:
+_sem_tryacquire_multiple:
     inline
     cargs sta_saved_d7.l, sta_sema.l, sta_npermits.l
         move.l  d7, -(sp)
@@ -223,12 +223,12 @@ _Semaphore_TryAcquireMultiple:
 
 
 ;-------------------------------------------------------------------------------
-; int Semaphore_TryAcquireAll(Semaphore* _Nonnull sema)
+; int sem_tryacquireall(sem_t* _Nonnull sema)
 ; Drains all available permits from the semaphore. Returns how many permits the
 ; function was able to acquire. This function does not block. A value of 0 is
 ; returned if no permits were available; otherwise the number of acquired permits
 ; is returned.
-_Semaphore_TryAcquireAll:
+_sem_tryacquireall:
     inline
     cargs sd_saved_d7.l, sd_sema.l
         move.l  d7, -(sp)

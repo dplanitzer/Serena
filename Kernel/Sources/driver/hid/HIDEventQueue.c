@@ -7,17 +7,17 @@
 //
 
 #include "HIDEventQueue.h"
-#include <dispatcher/Semaphore.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
 #include <kern/kalloc.h>
+#include <sched/sem.h>
 
 
 // The event queue stores events in a ring buffer with a size that is a
 // power-of-2 number.
 // See: <https://www.snellman.net/blog/archive/2016-12-13-ring-buffers/>
 typedef struct HIDEventQueue {
-    Semaphore   semaphore;
+    sem_t       semaphore;
     uint8_t     capacity;
     uint8_t     capacityMask;
     uint8_t     readIdx;
@@ -41,7 +41,7 @@ errno_t HIDEventQueue_Create(size_t capacity, HIDEventQueueRef _Nullable * _Nonn
     
     assert(powerOfTwoCapacity <= UINT8_MAX/2);
     try(kalloc_cleared(sizeof(HIDEventQueue) + (powerOfTwoCapacity - 1) * sizeof(HIDEvent), (void**) &self));
-    Semaphore_Init(&self->semaphore, 0);
+    sem_init(&self->semaphore, 0);
     self->capacity = powerOfTwoCapacity;
     self->capacityMask = powerOfTwoCapacity - 1;
     self->readIdx = 0;
@@ -57,7 +57,7 @@ catch:
 void HIDEventQueue_Destroy(HIDEventQueueRef _Nonnull self)
 {
     if (self) {
-        Semaphore_Deinit(&self->semaphore);
+        sem_deinit(&self->semaphore);
         kfree(self);
     }
 }
@@ -135,7 +135,7 @@ void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const 
     pEvent->data = *pEventData;
     irq_restore(irs);
 
-    Semaphore_RelinquishFromInterrupt(&self->semaphore);
+    sem_relinquish_irq(&self->semaphore);
 }
 
 // Removes the oldest event from the queue and returns a copy of it. Blocks the
@@ -165,7 +165,7 @@ errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, struct timespec timeou
             break;
         }
 
-        err = Semaphore_Acquire(&self->semaphore, &timeout);
+        err = sem_acquire(&self->semaphore, &timeout);
         if (err != EOK) {
             break;
         }

@@ -139,7 +139,7 @@ errno_t InterruptController_AddDirectInterruptHandler(InterruptControllerRef _No
 
 // Registers a counting semaphore which will receive a release call for every
 // occurrence of an interrupt with ID 'interruptId'.
-errno_t InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, int priority, Semaphore* _Nonnull pSemaphore, InterruptHandlerID* _Nonnull pOutId)
+errno_t InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, int priority, sem_t* _Nonnull pSemaphore, InterruptHandlerID* _Nonnull pOutId)
 {
     InterruptHandler handler;
     
@@ -149,7 +149,7 @@ errno_t InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef 
     handler.priority = priority;
     handler.flags = 0;
     handler.type = INTERRUPT_HANDLER_TYPE_COUNTING_SEMAPHORE;
-    handler.closure = (InterruptHandler_Closure) Semaphore_RelinquishFromInterrupt;
+    handler.closure = (InterruptHandler_Closure) sem_relinquish_irq;
     handler.context = pSemaphore;
     
     return InterruptController_AddInterruptHandler(pController, interruptId, &handler, pOutId);

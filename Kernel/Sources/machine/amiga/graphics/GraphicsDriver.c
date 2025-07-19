@@ -36,7 +36,7 @@ errno_t GraphicsDriver_Create(DriverRef _Nullable parent, GraphicsDriverRef _Nul
 
 
     // Initialize vblank tools
-    Semaphore_Init(&self->vblank_sema, 0);
+    sem_init(&self->vblank_sema, 0);
     try(InterruptController_AddDirectInterruptHandler(
         gInterruptController,
         INTERRUPT_ID_VERTICAL_BLANK,
@@ -60,7 +60,7 @@ catch:
 void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self)
 {
     CopperScheduler_Run(&self->copperScheduler);
-    Semaphore_RelinquishFromInterrupt(&self->vblank_sema);
+    sem_relinquish_irq(&self->vblank_sema);
 }
 
 static errno_t GraphicsDriver_onStart(DriverRef _Nonnull _Locked self)
@@ -219,8 +219,8 @@ static void GraphicsDriver_WaitForVerticalBlank_Locked(GraphicsDriverRef _Nonnul
     // First purge the vblank sema to ensure that we don't accidentally pick up
     // some vblank that has happened before this function has been called. Then
     // wait for the actual vblank.
-    Semaphore_TryAcquire(&self->vblank_sema);
-    Semaphore_Acquire(&self->vblank_sema, &TIMESPEC_INF);
+    sem_tryacquire(&self->vblank_sema);
+    sem_acquire(&self->vblank_sema, &TIMESPEC_INF);
 }
 
 // Compiles a Copper program to display the null screen. The null screen shows

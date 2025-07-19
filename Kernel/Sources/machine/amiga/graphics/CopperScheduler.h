@@ -9,8 +9,8 @@
 #ifndef CopperScheduler_h
 #define CopperScheduler_h
 
-#include <dispatcher/Semaphore.h>
 #include <dispatchqueue/DispatchQueue.h>
+#include <sched/sem.h>
 #include "CopperProgram.h"
 
 
@@ -25,7 +25,7 @@ typedef struct CopperScheduler {
 
     uint32_t                        flags;
 
-    Semaphore                       retirementSignaler;
+    sem_t                           retirementSignaler;
     SList                           retiredProgs;
     DispatchQueueRef _Nonnull       retiredProgsCollector;
 } CopperScheduler;

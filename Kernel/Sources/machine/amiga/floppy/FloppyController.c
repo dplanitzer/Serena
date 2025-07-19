@@ -9,7 +9,6 @@
 #include "FloppyDriverPriv.h"
 #include "FloppyControllerPkg.h"
 #include "adf.h"
-#include <dispatcher/Semaphore.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <machine/InterruptController.h>
 #include <machine/MonotonicClock.h>
@@ -18,6 +17,7 @@
 #include <sched/cnd.h>
 #include <sched/delay.h>
 #include <sched/mtx.h>
+#include <sched/sem.h>
 
 
 const DriveParams   kDriveParams_3_5 = {
@@ -48,7 +48,7 @@ const DriveParams   kDriveParams_5_25 = {
 final_class_ivars(FloppyController, Driver,
     mtx_t               mtx;       // Used to ensure that we issue commands to the hardware atomically since all drives share the same CIA and DMA register set
     cnd_t               cv;
-    Semaphore           done;       // Semaphore indicating whether the DMA is done
+    sem_t               done;       // Semaphore indicating whether the DMA is done
     InterruptHandlerID  irqHandler;
     struct __fdcFlags {
         unsigned int        inUse:1;
@@ -71,7 +71,7 @@ errno_t FloppyController_Create(DriverRef _Nullable parent, FloppyControllerRef 
 
     mtx_init(&self->mtx);
     cnd_init(&self->cv);
-    Semaphore_Init(&self->done, 0);
+    sem_init(&self->done, 0);
         
     try(InterruptController_AddSemaphoreInterruptHandler(gInterruptController,
                                                          INTERRUPT_ID_DISK_BLOCK,
@@ -98,7 +98,7 @@ static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
     }
     self->irqHandler = 0;
         
-    Semaphore_Deinit(&self->done);
+    sem_deinit(&self->done);
     cnd_deinit(&self->cv);
     mtx_deinit(&self->mtx);
 }
@@ -392,7 +392,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     MonotonicClock_GetCurrentTime(&now);
     timespec_from_ms(&dly, 500);
     timespec_add(&now, &dly, &deadline);
-    err = Semaphore_Acquire(&self->done, &deadline);
+    err = sem_acquire(&self->done, &deadline);
 
 
     mtx_lock(&self->mtx);

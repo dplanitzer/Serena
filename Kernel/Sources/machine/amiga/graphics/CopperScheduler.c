@@ -21,7 +21,7 @@ void CopperScheduler_Init(CopperScheduler* _Nonnull self)
     self->runningEvenFieldProg = NULL;
     self->runningOddFieldProg = NULL;
     self->flags = 0;
-    Semaphore_Init(&self->retirementSignaler, 0);
+    sem_init(&self->retirementSignaler, 0);
     SList_Init(&self->retiredProgs);
     try_bang(DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, gVirtualProcessorPool, NULL, &self->retiredProgsCollector));
     try_bang(DispatchQueue_DispatchAsync(self->retiredProgsCollector, (VoidFunc_1)CopperScheduler_GarbageCollectRetiredPrograms, self));
@@ -31,7 +31,7 @@ void CopperScheduler_Deinit(CopperScheduler* _Nonnull self)
 {
     Object_Release(self->retiredProgsCollector);
     self->retiredProgsCollector = NULL;
-    Semaphore_Deinit(&self->retirementSignaler);
+    sem_deinit(&self->retirementSignaler);
     SList_Deinit(&self->retiredProgs);
 }
 
@@ -57,7 +57,7 @@ static void CopperScheduler_GarbageCollectRetiredPrograms(CopperScheduler* _Nonn
         int ignored;
         SListNode* pCur;
 
-        Semaphore_AcquireAll(&self->retirementSignaler, &TIMESPEC_INF, &ignored);
+        sem_acquireall(&self->retirementSignaler, &TIMESPEC_INF, &ignored);
 
         const int irs = irq_disable();
         pCur = self->retiredProgs.first;
@@ -132,7 +132,7 @@ static void CopperScheduler_ContextSwitch(CopperScheduler* _Nonnull self)
 
 
     if (doSignal) {
-        Semaphore_RelinquishFromInterrupt(&self->retirementSignaler);
+        sem_relinquish_irq(&self->retirementSignaler);
     }
 }
 
