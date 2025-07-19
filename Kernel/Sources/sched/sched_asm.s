@@ -1,5 +1,5 @@
 ;
-;  VirtualProcessorScheduler_asm.i
+;  sched_asm.s
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 2/23/21.
@@ -8,14 +8,14 @@
 
     include <machine/lowmem.i>
 
-    xref _gVirtualProcessorSchedulerStorage
+    xref _g_sched_storage
     xref _cpu_non_recoverable_error
 
     xdef _preempt_disable
     xdef _preempt_restore
-    xdef _VirtualProcessorScheduler_SwitchContext
-    xdef _VirtualProcessorScheduler_SwitchToBootVirtualProcessor
-    xdef __rtecall_VirtualProcessorScheduler_SwitchContext
+    xdef _sched_switch_ctx
+    xdef _sched_switch_to_boot_vcpu
+    xdef __rtecall_sched_switch_ctx
 
 
 ;-------------------------------------------------------------------------------
@@ -38,11 +38,11 @@ _preempt_restore:
 
 
 ;-------------------------------------------------------------------------------
-; void VirtualProcessorScheduler_SwitchContext(void)
+; void sched_switch_ctx(void)
 ; Invokes the context switcher. Expects that preemption is disabled and that the
 ; scheduler set up a CSW request. Enables preemption as it switches to another
 ; VP. Once this function returns to the caller preemption is disabled again.
-_VirtualProcessorScheduler_SwitchContext:
+_sched_switch_ctx:
     inline
         ; push a format $0 exception stack frame on the stack. The PC field in
         ; that frame points to our rts instruction.
@@ -50,7 +50,7 @@ _VirtualProcessorScheduler_SwitchContext:
         lea     .csw_return(pc), a0
         move.l  a0, -(sp)               ; PC
         move.w  sr, -(sp)               ; SR
-        jmp     __rtecall_VirtualProcessorScheduler_SwitchContext
+        jmp     __rtecall_sched_switch_ctx
 
 .csw_return:
         rts
@@ -58,21 +58,21 @@ _VirtualProcessorScheduler_SwitchContext:
 
 
 ;-------------------------------------------------------------------------------
-; void VirtualProcessorScheduler_SwitchToBootVirtualProcessor(void)
+; void sched_switch_to_boot_vcpu(void)
 ; Triggers the very first context switch to the boot virtual processor. This call
 ; transfers the CPU to the boot virtual processor execution context and does not
 ; return to the caller.
 ; Expects to be called with interrupts turned off.
-_VirtualProcessorScheduler_SwitchToBootVirtualProcessor:
+_sched_switch_to_boot_vcpu:
     inline
-        jmp     __rtecall_VirtualProcessorScheduler_RestoreContext
+        jmp     __rtecall_sched_restore_ctx
         ; NOT REACHED
         jmp _cpu_non_recoverable_error
     einline
 
 
 ;-------------------------------------------------------------------------------
-; void __rtecall_VirtualProcessorScheduler_SwitchContext(void)
+; void __rtecall_sched_switch_ctx(void)
 ; Saves the CPU state of the currently running VP and restores the CPU state of
 ; the scheduled VP. Expects that it is called with an exception stack frame on
 ; top of the stack that is based on a format $0 frame. You want to call this
@@ -82,7 +82,7 @@ _VirtualProcessorScheduler_SwitchToBootVirtualProcessor:
 ;
 ; There are 2 ways to trigger a full context switch:
 ; 1) a timer interrupt
-; 2) a call to _VirtualProcessorScheduler_SwitchContext
+; 2) a call to _sched_switch_ctx
 ; The CPU will push a format $0 exception stack frame on the kernel stack of the
 ; outgoing VP in the first case while the VPS_SwitchContext() function pushes a
 ; handcrafted format $0 exception stack frame on the kernel stack of the outgoing
@@ -101,7 +101,7 @@ _VirtualProcessorScheduler_SwitchToBootVirtualProcessor:
 ; when we restore the VP to running state.
 ;
 ; There is one way to do a half context switch:
-; 1) a call to _VirtualProcessorScheduler_SwitchToBootVirtualProcessor
+; 1) a call to _sched_switch_to_boot_vcpu
 ; Since we are only running the restore half of the context switch in this case,
 ; the expectation of this function here is that someone already pushed an
 ; exception stack frame on the kernel stack of the VP we want to switch to.
@@ -112,10 +112,10 @@ _VirtualProcessorScheduler_SwitchToBootVirtualProcessor:
 ; SP + 6: 2 bytes exception stack frame format indicator (usually $0)
 ; SP + 2: PC
 ; SP + 0: SR
-__rtecall_VirtualProcessorScheduler_SwitchContext:
+__rtecall_sched_switch_ctx:
     ; save the integer state
-    move.l  a0, (_gVirtualProcessorSchedulerStorage + vps_csw_scratch)
-    move.l  (_gVirtualProcessorSchedulerStorage + vps_running), a0
+    move.l  a0, (_g_sched_storage + vps_csw_scratch)
+    move.l  (_g_sched_storage + vps_running), a0
 
     ; update the VP state to Ready if the state hasn't already been changed to
     ; some other non-Running state like Waiting by the higher-level code
@@ -128,7 +128,7 @@ __rtecall_VirtualProcessorScheduler_SwitchContext:
 
     ; save all registers including the ssp
     movem.l d0 - d7 / a0 - a7, (a0)
-    move.l  (_gVirtualProcessorSchedulerStorage + vps_csw_scratch), cpu_a0(a0)
+    move.l  (_g_sched_storage + vps_csw_scratch), cpu_a0(a0)
 
     ; save the usp
     move.l  usp, a1
@@ -139,8 +139,8 @@ __rtecall_VirtualProcessorScheduler_SwitchContext:
     move.l  2(sp), cpu_pc(a0)
 
     ; check whether we should save the FPU state
-    btst    #CSWB_HW_HAS_FPU, _gVirtualProcessorSchedulerStorage + vps_csw_hw
-    beq.s   __rtecall_VirtualProcessorScheduler_RestoreContext
+    btst    #CSWB_HW_HAS_FPU, _g_sched_storage + vps_csw_hw
+    beq.s   __rtecall_sched_restore_ctx
 
     ; save the FPU state. Note that the 68060 fmovem.l instruction does not
     ; support moving > 1 register at a time
@@ -150,23 +150,23 @@ __rtecall_VirtualProcessorScheduler_SwitchContext:
     fmovem.l    fpsr, cpu_fpsr(a0)
     fmovem.l    fpiar, cpu_fpiar(a0)
 
-__rtecall_VirtualProcessorScheduler_RestoreContext:
+__rtecall_sched_restore_ctx:
     ; consume the CSW switch signal
-    bclr    #CSWB_SIGNAL_SWITCH, _gVirtualProcessorSchedulerStorage + vps_csw_signals
+    bclr    #CSWB_SIGNAL_SWITCH, _g_sched_storage + vps_csw_signals
 
     ; it's safe to trash all registers here 'cause we'll override them anyway
     ; make the scheduled VP the running VP and clear out vps_scheduled
-    move.l  (_gVirtualProcessorSchedulerStorage + vps_scheduled), a0
-    move.l  a0, (_gVirtualProcessorSchedulerStorage + vps_running)
+    move.l  (_g_sched_storage + vps_scheduled), a0
+    move.l  a0, (_g_sched_storage + vps_running)
     moveq.l #0, d0
-    move.l  d0, (_gVirtualProcessorSchedulerStorage + vps_scheduled)
+    move.l  d0, (_g_sched_storage + vps_scheduled)
 
     ; update the state to Running
     move.b  #SCHED_STATE_RUNNING, vp_sched_state(a0)
     lea     vp_save_area(a0), a0
 
     ; check whether we should restore the FPU state
-    btst    #CSWB_HW_HAS_FPU, _gVirtualProcessorSchedulerStorage + vps_csw_hw
+    btst    #CSWB_HW_HAS_FPU, _g_sched_storage + vps_csw_hw
     beq.s   .2
 
     ; restore the FPU state. Note that the 68060 fmovem.l instruction does not

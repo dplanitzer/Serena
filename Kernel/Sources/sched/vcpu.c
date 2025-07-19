@@ -7,8 +7,8 @@
 //
 
 #include "vcpu.h"
+#include "sched.h"
 #include <dispatcher/VirtualProcessorPool.h>
-#include <dispatcher/VirtualProcessorScheduler.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
 #include <kern/kalloc.h>
@@ -223,7 +223,7 @@ _Noreturn vcpu_terminate(vcpu_t _Nonnull self)
     // going away and we will never context switch back to it. The context switch
     // will reenable preemption.
     (void) preempt_disable();
-    VirtualProcessorScheduler_TerminateVirtualProcessor(gVirtualProcessorScheduler, self);
+    sched_terminate_vcpu(g_sched, self);
     /* NOT REACHED */
 }
 
@@ -251,11 +251,11 @@ void vcpu_setpriority(vcpu_t _Nonnull self, int priority)
         switch (self->sched_state) {
             case SCHED_STATE_READY:
                 if (self->suspension_count == 0) {
-                    VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, self);
+                    sched_remove_vcpu_locked(g_sched, self);
                 }
                 self->priority = priority;
                 if (self->suspension_count == 0) {
-                    VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, self, self->priority);
+                    sched_add_vcpu_locked(g_sched, self, self->priority);
                 }
                 break;
                 
@@ -277,14 +277,14 @@ void vcpu_setpriority(vcpu_t _Nonnull self, int priority)
 void vcpu_yield(void)
 {
     const int sps = preempt_disable();
-    vcpu_t self = (vcpu_t)gVirtualProcessorScheduler->running;
+    vcpu_t self = (vcpu_t)g_sched->running;
 
     assert(self->sched_state == SCHED_STATE_RUNNING && self->suspension_count == 0);
 
-    VirtualProcessorScheduler_AddVirtualProcessor_Locked(
-        gVirtualProcessorScheduler, self, self->priority);
-    VirtualProcessorScheduler_SwitchTo(gVirtualProcessorScheduler,
-        VirtualProcessorScheduler_GetHighestPriorityReady(gVirtualProcessorScheduler));
+    sched_add_vcpu_locked(
+        g_sched, self, self->priority);
+    sched_switch_to(g_sched,
+        sched_highest_priority_ready(g_sched));
     
     preempt_restore(sps);
 }
@@ -307,14 +307,14 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
 
         switch (self->sched_state) {
             case SCHED_STATE_READY:
-                VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, self);
+                sched_remove_vcpu_locked(g_sched, self);
                 break;
             
             case SCHED_STATE_RUNNING:
                 // We're running, thus we are not on the ready queue. Do a forced
                 // context switch to some other VP.
-                VirtualProcessorScheduler_SwitchTo(gVirtualProcessorScheduler,
-                                                   VirtualProcessorScheduler_GetHighestPriorityReady(gVirtualProcessorScheduler));
+                sched_switch_to(g_sched,
+                                                   sched_highest_priority_ready(g_sched));
                 break;
             
             case SCHED_STATE_WAITING:
@@ -356,8 +356,8 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
         switch (self->sched_state) {
             case SCHED_STATE_READY:
             case SCHED_STATE_RUNNING:
-                VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, self, self->priority);
-                VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, self);
+                sched_add_vcpu_locked(g_sched, self, self->priority);
+                sched_maybe_switch_to(g_sched, self);
                 break;
             
             case SCHED_STATE_WAITING:

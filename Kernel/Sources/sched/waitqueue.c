@@ -7,7 +7,7 @@
 //
 
 #include "waitqueue.h"
-#include <dispatcher/VirtualProcessorScheduler.h>
+#include "sched.h"
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
 
@@ -38,7 +38,7 @@ errno_t wq_deinit(waitqueue_t _Nonnull self)
 // @Entry Condition: 'vp' must be in running state
 static wres_t _one_shot_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask)
 {
-    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
+    sched_t ps = g_sched;
     vcpu_t vp = (vcpu_t)ps->running;
     const sigset_t oldMask = vp->sigmask;
     const sigset_t theMask = (mask) ? *mask : oldMask;
@@ -63,8 +63,8 @@ static wres_t _one_shot_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullabl
 
     
     // Find another VP to run and context switch to it
-    VirtualProcessorScheduler_SwitchTo(ps,
-            VirtualProcessorScheduler_GetHighestPriorityReady(ps));
+    sched_switch_to(ps,
+            sched_highest_priority_ready(ps));
     
     vp->sigmask = oldMask;
     return vp->wakeup_reason;
@@ -73,7 +73,7 @@ static wres_t _one_shot_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullabl
 // @Entry Condition: preemption disabled
 static errno_t _one_shot_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
 {
-    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
+    sched_t ps = g_sched;
     vcpu_t vp = (vcpu_t)ps->running;
     struct timespec now, deadline;
     bool hasArmedTimer = false;
@@ -98,7 +98,7 @@ static errno_t _one_shot_timedwait(waitqueue_t _Nonnull self, const sigset_t* _N
             return WRES_TIMEOUT;
         }
 
-        VirtualProcessorScheduler_ArmTimeout(ps, vp, &deadline);
+        sched_arm_timeout(ps, vp, &deadline);
         hasArmedTimer = true;
     }
 
@@ -106,7 +106,7 @@ static errno_t _one_shot_timedwait(waitqueue_t _Nonnull self, const sigset_t* _N
     // Now wait
     const wres_t res = _one_shot_wait(self, mask);
     if (hasArmedTimer) {
-        VirtualProcessorScheduler_CancelTimeout(ps, vp);
+        sched_cancel_timeout(ps, vp);
     }
 
 
@@ -156,7 +156,7 @@ errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask)
 // @Entry Condition: preemption disabled
 errno_t wq_sigwait(waitqueue_t _Nonnull self, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
 {
-    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
+    sched_t ps = g_sched;
     vcpu_t vp = (vcpu_t)ps->running;
     const sigset_t mask = vp->sigmask & ~(*set);    // temporarily unblock signals in 'set'
 
@@ -192,7 +192,7 @@ errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, 
 // @Entry Condition: preemption disabled
 errno_t wq_sigtimedwait(waitqueue_t _Nonnull self, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info)
 {
-    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
+    sched_t ps = g_sched;
     vcpu_t vp = (vcpu_t)ps->running;
     const sigset_t mask = vp->sigmask & ~(*set);    // temporarily unblock signals in 'set'
     struct timespec now, deadline;
@@ -239,7 +239,7 @@ errno_t wq_sigtimedwait(waitqueue_t _Nonnull self, const sigset_t* _Nonnull set,
 // @Entry Condition: preemption disabled
 bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t reason)
 {
-    VirtualProcessorScheduler* ps = gVirtualProcessorScheduler;
+    sched_t ps = g_sched;
     bool isReady;
 
 
@@ -252,7 +252,7 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
     // Finish the wait. Remove the VP from the wait queue, the timeout queue and
     // store the wake reason.
     List_Remove(&self->q, &vp->rewa_qe);
-    VirtualProcessorScheduler_CancelTimeout(ps, vp);
+    sched_cancel_timeout(ps, vp);
     
     vp->waiting_on_wait_queue = NULL;
     vp->wakeup_reason = reason;
@@ -263,10 +263,10 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
         // time it has spent waiting
         const int32_t quartersSlept = (MonotonicClock_GetCurrentQuantums() - vp->wait_start_time) / ps->quantums_per_quarter_second;
         const int8_t boostedPriority = __min(vp->effectivePriority + __min(quartersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
-        VirtualProcessorScheduler_AddVirtualProcessor_Locked(ps, vp, boostedPriority);
+        sched_add_vcpu_locked(ps, vp, boostedPriority);
         
         if ((flags & WAKEUP_CSW) == WAKEUP_CSW) {
-            VirtualProcessorScheduler_MaybeSwitchTo(ps, vp);
+            sched_maybe_switch_to(ps, vp);
         }
         isReady = true;
     } else {
@@ -308,7 +308,7 @@ void wq_wake(waitqueue_t _Nonnull self, int flags, wres_t reason)
     
     // Set the VP that we found running if context switches are allowed.
     if ((flags & WAKEUP_CSW) == WAKEUP_CSW && pRunCandidate) {
-        VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, pRunCandidate);
+        sched_maybe_switch_to(g_sched, pRunCandidate);
     }
 }
 
@@ -338,7 +338,7 @@ void wq_suspendone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp)
     // while the VP is suspended. The resume will reactive the
     // timeout and extend it by the amount of time that the VP has
     // spent in suspended state.
-    VirtualProcessorScheduler_SuspendTimeout(gVirtualProcessorScheduler, vp);
+    sched_suspend_timeout(g_sched, vp);
 }
 
 // @Entry Condition: preemption disabled
@@ -346,5 +346,5 @@ void wq_resumeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     // Still in waiting state -> just resume the timeout if one is
     // associated with the wait.
-    VirtualProcessorScheduler_ResumeTimeout(gVirtualProcessorScheduler, vp, vp->suspension_time);
+    sched_resume_timeout(g_sched, vp, vp->suspension_time);
 }

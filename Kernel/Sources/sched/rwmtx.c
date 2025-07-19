@@ -7,7 +7,7 @@
 //
 
 #include "rwmtx.h"
-#include <dispatcher/VirtualProcessorScheduler.h>
+#include "sched.h"
 #include <kern/timespec.h>
 
 

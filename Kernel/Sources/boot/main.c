@@ -10,7 +10,6 @@
 #include <log/Log.h>
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
-#include <dispatcher/VirtualProcessorScheduler.h>
 #include <dispatcher/VirtualProcessorPool.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <filemanager/FilesystemManager.h>
@@ -21,6 +20,7 @@
 #include <process/Process.h>
 #include <process/ProcessManager.h>
 #include <sched/delay.h>
+#include <sched/sched.h>
 #include <security/SecurityManager.h>
 #include <sys/mount.h>
 #include <Catalog.h>
@@ -82,7 +82,7 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 
 
     // Initialize the scheduler
-    VirtualProcessorScheduler_CreateForLocalCPU(pSysDesc, &boot_alloc, (VoidFunc_1)OnStartup, pSysDesc);
+    sched_create(pSysDesc, &boot_alloc, (VoidFunc_1)OnStartup, pSysDesc);
 
 
     // Don't need the boot allocator anymore
@@ -92,7 +92,7 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 
     // Do the first ever context switch over to the boot virtual processor
     // execution context.
-    VirtualProcessorScheduler_SwitchToBootVirtualProcessor();
+    sched_switch_to_boot_vcpu();
 }
 
 // Invoked by onBoot(). The code here runs in the boot virtual processor execution
@@ -122,7 +122,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     
     // Inform the scheduler that the heap exists now and that it should finish
     // its boot related initialization sequence
-    try_bang(VirtualProcessorScheduler_FinishBoot(gVirtualProcessorScheduler));
+    try_bang(sched_finish_boot(g_sched));
     
     
     // Initialize the virtual processor pool
@@ -190,7 +190,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     
     // The boot virtual processor now takes over the duties of running the
     // virtual processor scheduler service tasks.
-    VirtualProcessorScheduler_Run(gVirtualProcessorScheduler);
+    sched_run_chores(g_sched);
 
 catch:
     printf("Error: unable to complete startup: %d\nHalting.\n", err);

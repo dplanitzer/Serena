@@ -18,7 +18,7 @@
     xref _chipset_reset
     xref _OnReset
     xref _OnBoot
-    xref __rtecall_VirtualProcessorScheduler_SwitchContext
+    xref __rtecall_sched_switch_ctx
     xref _syscall_entry
     xref _nosyscall_entry
     xref _InterruptController_OnInterrupt
@@ -26,7 +26,7 @@
     xref _fpu_get_model
     xref _SystemDescription_Init
     xref _gInterruptControllerStorage
-    xref _gVirtualProcessorSchedulerStorage
+    xref _g_sched_storage
     xref __fatalException
     xref __vcpu_relinquish_self
 
@@ -442,6 +442,6 @@ irq_handler_exter:
 ; Otherwise do the context switch which will implicitly do the rte.
 irq_handler_done:
     movem.l (sp)+, d0 - d1 / d7 / a0 - a1
-    btst    #0, (_gVirtualProcessorSchedulerStorage + vps_csw_signals)
-    bne.l   __rtecall_VirtualProcessorScheduler_SwitchContext
+    btst    #0, (_g_sched_storage + vps_csw_signals)
+    bne.l   __rtecall_sched_switch_ctx
     rte

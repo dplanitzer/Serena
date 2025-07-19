@@ -9,7 +9,7 @@
         ifnd LOWMEM_I
 LOWMEM_I    set 1
 
-    xref _gVirtualProcessorSchedulerStorage
+    xref _g_sched_storage
 
 
 ; CPU models
@@ -136,7 +136,7 @@ mtc_SIZEOF                      so
     endif
 
 
-; The VirtualProcessorScheduler
+; The vcpu scheduler
 CSWB_SIGNAL_SWITCH                  equ     0
 CSWB_HW_HAS_FPU                     equ     0
 
@@ -161,7 +161,7 @@ vps_finalizer_queue_first           so.l    1       ; 4
 vps_finalizer_queue_last            so.l    1       ; 4
 vps_SIZEOF                          so
     ifeq (vps_SIZEOF == 564)
-        fail "VirtualProcessorScheduler structure size is incorrect."
+        fail "sched_t structure size is incorrect."
     endif
 
 

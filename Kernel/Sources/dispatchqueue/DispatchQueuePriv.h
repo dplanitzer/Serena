@@ -10,9 +10,9 @@
 #define DispatchQueuePriv_h
 
 #include "DispatchQueue.h"
-#include <dispatcher/VirtualProcessorScheduler.h>
 #include <sched/cnd.h>
 #include <sched/mtx.h>
+#include <sched/sched.h>
 #include <sched/sem.h>
 
 

@@ -1,12 +1,12 @@
 //
-//  VirtualProcessorScheduler.c
+//  sched.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/23/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "VirtualProcessorScheduler.h"
+#include "sched.h"
 #include <machine/InterruptController.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
@@ -14,17 +14,17 @@
 #include <log/Log.h>
 
 
-extern void VirtualProcessorScheduler_SwitchContext(void);
+extern void sched_switch_ctx(void);
 
-static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorScheduler* _Nonnull self);
+static void sched_dump_rdyq_locked(sched_t _Nonnull self);
 
-static vcpu_t _Nonnull BootVirtualProcessor_Create(BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx);
-static vcpu_t _Nonnull IdleVirtualProcessor_Create(BootAllocator* _Nonnull bap);
+static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx);
+static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap);
 
 
-VirtualProcessorScheduler   gVirtualProcessorSchedulerStorage;
-VirtualProcessorScheduler*  gVirtualProcessorScheduler = &gVirtualProcessorSchedulerStorage;
-struct waitqueue            gSchedulerWaitQueue;           // The scheduler VP waits on this queue
+struct sched        g_sched_storage;
+sched_t             g_sched = &g_sched_storage;
+struct waitqueue    gSchedulerWaitQueue;           // The scheduler VP waits on this queue
 
 
 // Initializes the virtual processor scheduler and sets up the boot virtual
@@ -33,18 +33,18 @@ struct waitqueue            gSchedulerWaitQueue;           // The scheduler VP w
 // 'pContext' argument. The first context switch from the machine reset context
 // to the boot virtual processor context is triggered by calling the
 // VirtualProcessorScheduler_IncipientContextSwitch() function. 
-void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull sdp, BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx)
+void sched_create(SystemDescription* _Nonnull sdp, BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx)
 {
     // Stored in the BSS. Thus starts out zeroed.
-    VirtualProcessorScheduler* self = &gVirtualProcessorSchedulerStorage;
+    sched_t self = &g_sched_storage;
 
 
     // Initialize the boot virtual processor
-    self->bootVirtualProcessor = BootVirtualProcessor_Create(bap, fn, ctx);
+    self->boot_vp = boot_vcpu_create(bap, fn, ctx);
 
 
     // Initialize the idle virtual processor
-    self->idleVirtualProcessor = IdleVirtualProcessor_Create(bap);
+    self->idle_vp = idle_vcpu_create(bap);
 
 
     // Initialize the scheduler
@@ -62,22 +62,22 @@ void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull sdp
     for (int i = 0; i < VP_PRIORITY_POP_BYTE_COUNT; i++) {
         self->ready_queue.populated[i] = 0;
     }
-    VirtualProcessorScheduler_AddVirtualProcessor_Locked(
+    sched_add_vcpu_locked(
         self,
-        self->bootVirtualProcessor,
-        self->bootVirtualProcessor->priority);
+        self->boot_vp,
+        self->boot_vp->priority);
     
     self->running = NULL;
-    self->scheduled = VirtualProcessorScheduler_GetHighestPriorityReady(self);
+    self->scheduled = sched_highest_priority_ready(self);
     self->csw_signals |= CSW_SIGNAL_SWITCH;
-    VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(self, self->scheduled);
+    sched_remove_vcpu_locked(self, self->scheduled);
     
-    assert(self->scheduled == self->bootVirtualProcessor);
+    assert(self->scheduled == self->boot_vp);
 }
 
 // Called from OnStartup() after the heap has been created. Finishes the scheduler
 // initialization.
-errno_t VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull self)
+errno_t sched_finish_boot(sched_t _Nonnull self)
 {
     decl_try_err();
     struct timespec ts;
@@ -87,7 +87,7 @@ errno_t VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull
 
 
     // Resume the idle virtual processor
-    vcpu_resume(self->idleVirtualProcessor, false);
+    vcpu_resume(self->idle_vp, false);
     
 
     // Hook us up with the quantum timer interrupt
@@ -95,7 +95,7 @@ errno_t VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull
     try(InterruptController_AddDirectInterruptHandler(gInterruptController,
                                                   INTERRUPT_ID_QUANTUM_TIMER,
                                                   INTERRUPT_HANDLER_PRIORITY_HIGHEST - 1,
-                                                  (InterruptHandler_Closure)VirtualProcessorScheduler_OnEndOfQuantum,
+                                                  (InterruptHandler_Closure)sched_quantum_irq,
                                                   self,
                                                   &irqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, irqHandler, true);
@@ -109,7 +109,7 @@ catch:
 // Adds the given virtual processor with the given effective priority to the
 // ready queue and resets its time slice length to the length implied by its
 // effective priority.
-void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorScheduler* _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority)
+void sched_add_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority)
 {
     assert(vp != NULL);
     assert(vp->rewa_qe.prev == NULL);
@@ -130,17 +130,17 @@ void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorSchedu
 
 // Adds the given virtual processor to the scheduler and makes it eligible for
 // running.
-void VirtualProcessorScheduler_AddVirtualProcessor(VirtualProcessorScheduler* _Nonnull self, vcpu_t _Nonnull vp)
+void sched_add_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     // Protect against our scheduling code
     const int sps = preempt_disable();
     
-    VirtualProcessorScheduler_AddVirtualProcessor_Locked(self, vp, vp->priority);
+    sched_add_vcpu_locked(self, vp, vp->priority);
     preempt_restore(sps);
 }
 
 // Takes the given virtual processor off the ready queue.
-void VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(VirtualProcessorScheduler* _Nonnull self, vcpu_t _Nonnull vp)
+void sched_remove_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     register const int pri = vp->effectivePriority;
     
@@ -157,7 +157,7 @@ void VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(VirtualProcessorSch
 // Find the best VP to run next and return it. Null is returned if no VP is ready
 // to run. This will only happen if this function is called from the quantum
 // interrupt while the idle VP is the running VP.
-vcpu_t _Nullable VirtualProcessorScheduler_GetHighestPriorityReady(VirtualProcessorScheduler* _Nonnull self)
+vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self)
 {
     for (int i = VP_PRIORITY_POP_BYTE_COUNT - 1; i >= 0; i--) {
         register const uint8_t pop = self->ready_queue.populated[i];
@@ -178,7 +178,7 @@ vcpu_t _Nullable VirtualProcessorScheduler_GetHighestPriorityReady(VirtualProces
 }
 
 // Invoked at the end of every quantum.
-void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnull self)
+void sched_quantum_irq(sched_t _Nonnull self)
 {
     // First, go through the timeout queue and move all VPs whose timeouts have
     // expired to the ready queue.
@@ -212,7 +212,7 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
     run->effectivePriority = __max(run->effectivePriority - 1, VP_PRIORITY_LOWEST);
     run->quantum_allowance = QuantumAllowanceForPriority(run->effectivePriority);
 
-    register vcpu_t rdy = VirtualProcessorScheduler_GetHighestPriorityReady(self);
+    register vcpu_t rdy = sched_highest_priority_ready(self);
     if (rdy == NULL || rdy->effectivePriority <= run->effectivePriority) {
         // We didn't find anything better to run. Continue running the currently
         // running VP.
@@ -222,8 +222,8 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
     
     // Move the currently running VP back to the ready queue and pull the new
     // VP off the ready queue
-    VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(self, rdy);
-    VirtualProcessorScheduler_AddVirtualProcessor_Locked(self, run, run->priority);
+    sched_remove_vcpu_locked(self, rdy);
+    sched_add_vcpu_locked(self, run, run->priority);
 
     
     // Request a context switch
@@ -233,7 +233,7 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
 
 // Inserts the timeout entry of the given vp in the global timeout list at the
 // appropriate place.
-static void _arm_timeout(VirtualProcessorScheduler* _Nonnull self, vcpu_t _Nonnull vp)
+static void _arm_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     register clock_timeout_t* pt = NULL;
     register clock_timeout_t* ct = (clock_timeout_t*)self->timeout_queue.first;
@@ -252,7 +252,7 @@ static void _arm_timeout(VirtualProcessorScheduler* _Nonnull self, vcpu_t _Nonnu
 
 // Arms a timeout for the given virtual processor. This puts the VP on the timeout
 // queue.
-void VirtualProcessorScheduler_ArmTimeout(VirtualProcessorScheduler* _Nonnull self, vcpu_t _Nonnull vp, const struct timespec* _Nonnull deadline)
+void sched_arm_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, const struct timespec* _Nonnull deadline)
 {
     vp->timeout.deadline = Quantums_MakeFromTimespec(deadline, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
     vp->timeout.is_valid = true;
@@ -262,7 +262,7 @@ void VirtualProcessorScheduler_ArmTimeout(VirtualProcessorScheduler* _Nonnull se
 
 // Cancels an armed timeout for the given virtual processor. Does nothing if
 // no timeout is armed.
-void VirtualProcessorScheduler_CancelTimeout(VirtualProcessorScheduler* _Nonnull self, vcpu_t _Nonnull vp)
+void sched_cancel_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     if (vp->timeout.is_valid) {
         List_Remove(&self->timeout_queue, &vp->timeout.queue_entry);
@@ -273,7 +273,7 @@ void VirtualProcessorScheduler_CancelTimeout(VirtualProcessorScheduler* _Nonnull
 
 // Suspends a scheduled timeout for the given virtual processor. Does nothing if
 // no timeout is armed.
-void VirtualProcessorScheduler_SuspendTimeout(VirtualProcessorScheduler* _Nonnull self, vcpu_t _Nonnull vp)
+void sched_suspend_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     if (vp->timeout.is_valid) {
         List_Remove(&self->timeout_queue, &vp->timeout.queue_entry);
@@ -281,7 +281,7 @@ void VirtualProcessorScheduler_SuspendTimeout(VirtualProcessorScheduler* _Nonnul
 }
 
 // Resumes a suspended timeout for the given virtual processor.
-void VirtualProcessorScheduler_ResumeTimeout(VirtualProcessorScheduler* _Nonnull self, vcpu_t _Nonnull vp, Quantums suspensionTime)
+void sched_resume_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, Quantums suspensionTime)
 {
     if (vp->timeout.is_valid) {
         vp->timeout.deadline += __max(MonotonicClock_GetCurrentQuantums() - suspensionTime, 0);
@@ -294,17 +294,17 @@ void VirtualProcessorScheduler_ResumeTimeout(VirtualProcessorScheduler* _Nonnull
 // voluntary (cooperative) context switch which means that it will only happen
 // if we are not running in the interrupt context and voluntary context switches
 // are enabled.
-void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull self, vcpu_t _Nonnull vp)
+void sched_maybe_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     if (vp->sched_state == SCHED_STATE_READY
         && vp->suspension_count == 0) {
-        vcpu_t pBestReadyVP = VirtualProcessorScheduler_GetHighestPriorityReady(self);
+        vcpu_t pBestReadyVP = sched_highest_priority_ready(self);
         
         if (pBestReadyVP == vp && vp->effectivePriority >= self->running->effectivePriority) {
             vcpu_t pCurRunning = (vcpu_t)self->running;
             
-            VirtualProcessorScheduler_AddVirtualProcessor_Locked(self, pCurRunning, pCurRunning->priority);
-            VirtualProcessorScheduler_SwitchTo(self, vp);
+            sched_add_vcpu_locked(self, pCurRunning, pCurRunning->priority);
+            sched_switch_to(self, vp);
         }
     }
 }
@@ -313,18 +313,18 @@ void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull
 // and on the ready queue. Immediately context switches to the VP.
 // Expects that the call has already added the currently running VP to a wait
 // queue or the finalizer queue.
-void VirtualProcessorScheduler_SwitchTo(VirtualProcessorScheduler* _Nonnull self, vcpu_t _Nonnull vp)
+void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
-    VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(self, vp);
+    sched_remove_vcpu_locked(self, vp);
     self->scheduled = vp;
     self->csw_signals |= CSW_SIGNAL_SWITCH;
-    VirtualProcessorScheduler_SwitchContext();
+    sched_switch_ctx();
 }
 
 // Terminates the given virtual processor that is executing the caller. Does not
 // return to the caller. The VP must already have been marked as terminating.
 // @Entry Condition: preemption disabled
-_Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorScheduler* _Nonnull self, vcpu_t _Nonnull vp)
+_Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     List_InsertAfterLast(&self->finalizer_queue, &vp->rewa_qe);
     
@@ -344,15 +344,15 @@ _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorSc
     if (dead_vps_count >= FINALIZE_NOW_THRESHOLD && gSchedulerWaitQueue.q.first != NULL) {
         // The scheduler VP is currently waiting for work. Let's wake it up.
         wq_wakeone(&gSchedulerWaitQueue,
-                        self->bootVirtualProcessor,
+                        self->boot_vp,
                         WAKEUP_CSW,
                         WRES_WAKEUP);
     } else {
         // Do a forced context switch to whoever is ready
         // NOTE: we do NOT put the currently running VP back on the ready queue
         // because it is dead.
-        VirtualProcessorScheduler_SwitchTo(self,
-                                           VirtualProcessorScheduler_GetHighestPriorityReady(self));
+        sched_switch_to(self,
+                                           sched_highest_priority_ready(self));
     }
     
     /* NOT REACHED */
@@ -361,9 +361,9 @@ _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorSc
 // Gives the virtual processor scheduler opportunities to run tasks that take
 // care of internal duties. This function must be called from the boot virtual
 // processor. This function does not return to the caller. 
-_Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull self)
+_Noreturn sched_run_chores(sched_t _Nonnull self)
 {
-    assert(vcpu_current() == self->bootVirtualProcessor);
+    assert(vcpu_current() == self->boot_vp);
     List dead_vps;
     struct timespec now, timeout, deadline;
 
@@ -414,7 +414,7 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull self
 }
 
 #if 0
-static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorScheduler* _Nonnull self)
+static void sched_dump_rdyq_locked(sched_t _Nonnull self)
 {
     for (int i = 0; i < VP_PRIORITY_COUNT; i++) {
         vcpu_t pCurVP = (vcpu_t)self->ready_queue.priority[i].first;
@@ -440,12 +440,12 @@ static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorSche
 
 vcpu_t vcpu_current(void)
 {
-    return (vcpu_t) gVirtualProcessorSchedulerStorage.running;
+    return (vcpu_t) g_sched_storage.running;
 }
 
 int vcpu_currentid(void)
 {
-    return gVirtualProcessorSchedulerStorage.running->vpid;
+    return g_sched_storage.running->vpid;
 }
 
 
@@ -461,7 +461,7 @@ int vcpu_currentid(void)
 // duties for the scheduler.
 // \param pVP the boot virtual processor record
 // \param closure the closure that should be invoked by the virtual processor
-static vcpu_t _Nonnull BootVirtualProcessor_Create(BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx)
+static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx)
 {
     // Stored in the BSS. Thus starts out zeroed.
     static struct vcpu gBootVirtualProcessorStorage;
@@ -498,11 +498,11 @@ static vcpu_t _Nonnull BootVirtualProcessor_Create(BootAllocator* _Nonnull bap, 
 // MARK: Idle Virtual Processor
 ////////////////////////////////////////////////////////////////////////////////
 
-static void IdleVirtualProcessor_Run(void* _Nullable ctx);
+static void idle_vcpu_run(void* _Nullable ctx);
 
 // Creates an idle virtual processor. The scheduler schedules this VP if no other
 // one is in state ready.
-static vcpu_t _Nonnull IdleVirtualProcessor_Create(BootAllocator* _Nonnull bap)
+static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
 {
         // Stored in the BSS. Thus starts out zeroed.
     static struct vcpu gIdleVirtualProcessorStorage;
@@ -518,7 +518,7 @@ static vcpu_t _Nonnull IdleVirtualProcessor_Create(BootAllocator* _Nonnull bap)
     vcpu_cominit(vp, VP_PRIORITY_LOWEST);
 
     VirtualProcessorClosure cl;
-    cl.func = (VoidFunc_1)IdleVirtualProcessor_Run;
+    cl.func = (VoidFunc_1)idle_vcpu_run;
     cl.context = NULL;
     cl.ret_func = NULL;
     cl.kernelStackBase = pKernelStackBase;
@@ -533,7 +533,7 @@ static vcpu_t _Nonnull IdleVirtualProcessor_Create(BootAllocator* _Nonnull bap)
 
 // Puts the CPU to sleep until an interrupt occurs. The interrupt will give the
 // scheduler a chance to run some other virtual processor if one is ready.
-static void IdleVirtualProcessor_Run(void* _Nullable ctx)
+static void idle_vcpu_run(void* _Nullable ctx)
 {
     while (true) {
         cpu_sleep(gSystemDescription->cpu_model);

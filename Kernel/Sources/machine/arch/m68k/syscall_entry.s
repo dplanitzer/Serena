@@ -10,7 +10,7 @@
     include <machine/lowmem.i>
     include <machine/errno.i>
 
-    xref _gVirtualProcessorSchedulerStorage
+    xref _g_sched_storage
     xref __syscall_handler
 
     xdef _syscall_entry
@@ -71,7 +71,7 @@ _syscall_entry:
         ; save the user registers (see description above)
         movem.l d1 - d7 / a0 - a6, -(sp)
 
-        move.l  _gVirtualProcessorSchedulerStorage + vps_running, a1
+        move.l  _g_sched_storage + vps_running, a1
 
         ; Invoke the system call handler. Returns a result in d0
         move.l  a0, -(sp)
@@ -89,7 +89,7 @@ _syscall_entry:
 _nosyscall_entry:
     inline
         move.l  a1, -(sp)
-        move.l  _gVirtualProcessorSchedulerStorage + vps_running, a1
+        move.l  _g_sched_storage + vps_running, a1
         move.l  #ENOSYS, vp_uerrno(a1)
         moveq.l #-1, d0
         move.l  (sp)+, a1

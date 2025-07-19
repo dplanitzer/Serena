@@ -7,7 +7,7 @@
 //
 
 #include "cnd.h"
-#include <dispatcher/VirtualProcessorScheduler.h>
+#include "sched.h"
 #include <kern/assert.h>
 
 
