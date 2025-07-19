@@ -7,6 +7,7 @@
 //
 
 #include "sched.h"
+#include "vcpu.h"
 #include <machine/InterruptController.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
@@ -185,7 +186,7 @@ void sched_quantum_irq(sched_t _Nonnull self)
     const Quantums now = MonotonicClock_GetCurrentQuantums();
     
     while (self->timeout_queue.first) {
-        register clock_timeout_t* ct = (clock_timeout_t*)self->timeout_queue.first;
+        register sched_timeout_t* ct = (sched_timeout_t*)self->timeout_queue.first;
         
         if (ct->deadline > now) {
             break;
@@ -235,8 +236,8 @@ void sched_quantum_irq(sched_t _Nonnull self)
 // appropriate place.
 static void _arm_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
-    register clock_timeout_t* pt = NULL;
-    register clock_timeout_t* ct = (clock_timeout_t*)self->timeout_queue.first;
+    register sched_timeout_t* pt = NULL;
+    register sched_timeout_t* ct = (sched_timeout_t*)self->timeout_queue.first;
 
     while (ct) {
         if (ct->deadline > vp->timeout.deadline) {
@@ -244,7 +245,7 @@ static void _arm_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
         }
         
         pt = ct;
-        ct = (clock_timeout_t*)ct->queue_entry.next;
+        ct = (sched_timeout_t*)ct->queue_entry.next;
     }
     
     List_InsertAfter(&self->timeout_queue, &vp->timeout.queue_entry, &pt->queue_entry);

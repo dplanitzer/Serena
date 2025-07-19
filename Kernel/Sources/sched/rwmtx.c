@@ -7,7 +7,7 @@
 //
 
 #include "rwmtx.h"
-#include "sched.h"
+#include "vcpu.h"
 #include <kern/timespec.h>
 
 

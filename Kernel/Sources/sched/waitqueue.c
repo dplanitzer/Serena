@@ -7,7 +7,7 @@
 //
 
 #include "waitqueue.h"
-#include "sched.h"
+#include "vcpu.h"
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
 

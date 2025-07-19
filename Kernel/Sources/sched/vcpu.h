@@ -19,6 +19,7 @@
 #include <machine/SystemDescription.h>
 #include <sched/vcpu_stack.h>
 #include <sched/waitqueue.h>
+#include <sched/sched.h>
 
 struct Process;
 struct vcpu;
@@ -42,7 +43,7 @@ typedef struct VirtualProcessorClosure {
 } VirtualProcessorClosure;
 
 
-// Scheduler state
+// VP scheduling state
 enum {
     SCHED_STATE_READY = 0,      // VP is able to run and is currently sitting on the ready queue
     SCHED_STATE_RUNNING,        // VP is running
@@ -72,33 +73,9 @@ enum {
 #define VP_DEFAULT_USER_STACK_SIZE      CPU_PAGE_SIZE
 
 
-// Virtual processor priorities
-#define VP_PRIORITY_HIGHEST     63
-#define VP_PRIORITY_REALTIME    56
-#define VP_PRIORITY_NORMAL      42
-#define VP_PRIORITY_LOWEST      0
-
-#define VP_PRIORITY_COUNT       64
-#define VP_PRIORITY_POP_BYTE_COUNT  ((VP_PRIORITY_COUNT + 7) / 8)
-
-
-// The top 2 and the bottom 2 priorities are reserved for the scheduler
-#define VP_PRIORITIES_RESERVED_HIGH 2
-#define VP_PRIORITIES_RESERVED_LOW  2
-
-
 // VP flags
 #define VP_FLAG_USER_OWNED          0x02    // This VP is owned by a user process
 #define VP_FLAG_ABORTED_USPACE      0x04    // Aborted this VP while it was running in userspace
-
-
-// A timeout
-typedef struct clock_timeout {
-    ListNode    queue_entry;            // Timeout queue if the VP is waiting with a timeout
-    Quantums    deadline;               // Absolute timeout in quantums
-    bool        is_valid;               // True if we are waiting with a timeout; false otherwise
-    int8_t      reserved[3];
-} clock_timeout_t;
 
 
 // Overridable functions for virtual processors
@@ -133,7 +110,7 @@ struct vcpu {
     sigset_t                        sigmask;                // Which signals should cause a wakeup on arrival
 
     // Waiting related state
-    clock_timeout_t                 timeout;                // The timeout state
+    sched_timeout_t                 timeout;                // The timeout state
     waitqueue_t _Nullable           waiting_on_wait_queue;  // The wait queue this VP is waiting on; NULL if not waiting. Used by the scheduler to wake up on timeout
     Quantums                        wait_start_time;        // Time when we entered waiting state
     int8_t                          wakeup_reason;

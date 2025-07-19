@@ -12,8 +12,34 @@
 #include <kern/types.h>
 #include <boot/BootAllocator.h>
 #include <machine/SystemDescription.h>
+#include <kern/errno.h>
 #include <kern/limits.h>
-#include <sched/vcpu.h>
+#include <klib/List.h>
+#include <kpi/vcpu.h>
+
+
+// Virtual processor priorities
+#define VP_PRIORITY_HIGHEST     63
+#define VP_PRIORITY_REALTIME    56
+#define VP_PRIORITY_NORMAL      42
+#define VP_PRIORITY_LOWEST      0
+
+#define VP_PRIORITY_COUNT       64
+#define VP_PRIORITY_POP_BYTE_COUNT  ((VP_PRIORITY_COUNT + 7) / 8)
+
+
+// The top 2 and the bottom 2 priorities are reserved for the scheduler
+#define VP_PRIORITIES_RESERVED_HIGH 2
+#define VP_PRIORITIES_RESERVED_LOW  2
+
+
+// A timeout
+typedef struct sched_timeout {
+    ListNode    queue_entry;            // Timeout queue if the VP is waiting with a timeout
+    Quantums    deadline;               // Absolute timeout in quantums
+    bool        is_valid;               // True if we are waiting with a timeout; false otherwise
+    int8_t      reserved[3];
+} sched_timeout_t;
 
 
 // Set if the context switcher should activate the VP set in 'scheduled' and
@@ -47,7 +73,7 @@ struct sched {
     uint8_t                     flags;                          // Scheduler flags
     int8_t                      reserved[1];
     Quantums                    quantums_per_quarter_second;    // 1/4 second in terms of quantums
-    List                        timeout_queue;                  // clock_timeout_t queue managed by the scheduler. Sorted ascending by timer deadlines
+    List/*<sched_timeout_t>*/   timeout_queue;                  // sched_timeout_t queue managed by the scheduler. Sorted ascending by timer deadlines
     List                        finalizer_queue;
 };
 typedef struct sched* sched_t;
