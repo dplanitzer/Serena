@@ -11,7 +11,7 @@
 
 #include "GraphicsDriver.h"
 #include <machine/InterruptController.h>
-#include <machine/Platform.h>
+#include <machine/amiga/chipset.h>
 #include <klib/List.h>
 #include <sched/mtx.h>
 #include <sched/sem.h>

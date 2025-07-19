@@ -13,7 +13,6 @@
 #include <kern/string.h>
 #include <kern/timespec.h>
 #include <machine/MonotonicClock.h>
-#include <machine/Platform.h>
 #include <sched/delay.h>
 #include <sched/vcpu.h>
 #include "mfm.h"

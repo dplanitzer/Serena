@@ -7,11 +7,11 @@
 //
 
 #include "Allocator.h"
-#include <machine/Platform.h>
 #include <kern/kernlib.h>
 #include <kern/limits.h>
 #include <kern/string.h>
 #include <log/Log.h>
+#include <machine/Platform.h>
 
 
 #if defined(__ILP32__)

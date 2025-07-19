@@ -9,6 +9,7 @@
 #include "JoystickDriver.h"
 #include <driver/hid/HIDManager.h>
 #include <machine/InterruptController.h>
+#include <machine/amiga/chipset.h>
 
 
 

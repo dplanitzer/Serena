@@ -7,8 +7,8 @@
 //
 
 #include "ZRamDriver.h"
-#include <machine/Platform.h>
 #include <kern/kalloc.h>
+#include <machine/Platform.h>
 
 
 errno_t ZRamDriver_Create(DriverRef _Nullable parent, const zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf)

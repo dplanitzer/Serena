@@ -12,6 +12,7 @@
 #include <kern/kalloc.h>
 #include <machine/cpu.h>
 #include <machine/SystemDescription.h>
+#include <machine/amiga/chipset.h>
 
 
 // Reads a byte value from the given Zorro auto configuration address

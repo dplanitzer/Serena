@@ -11,7 +11,7 @@
 #include <machine/csw.h>
 #include <machine/InterruptController.h>
 #include <machine/MonotonicClock.h>
-#include <machine/Platform.h>
+#include <machine/amiga/chipset.h>
 #include <kern/timespec.h>
 #include <log/Log.h>
 

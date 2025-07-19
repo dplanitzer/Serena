@@ -11,7 +11,6 @@
 #include "vcpu_pool.h"
 #include <machine/csw.h>
 #include <machine/MonotonicClock.h>
-#include <machine/Platform.h>
 #include <kern/kalloc.h>
 #include <kern/limits.h>
 #include <kern/string.h>

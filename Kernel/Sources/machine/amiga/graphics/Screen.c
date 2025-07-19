@@ -7,8 +7,8 @@
 //
 
 #include "Screen.h"
-#include <machine/Platform.h>
 #include <kern/kalloc.h>
+#include <machine/amiga/chipset.h>
 
 
 // Creates a screen object.

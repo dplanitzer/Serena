@@ -6,12 +6,12 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <machine/MonotonicClock.h>
-#include <machine/InterruptController.h>
-#include <machine/Platform.h>
-#include <machine/SystemDescription.h>
 #include <kern/kernlib.h>
 #include <kern/timespec.h>
+#include <machine/MonotonicClock.h>
+#include <machine/InterruptController.h>
+#include <machine/SystemDescription.h>
+#include <machine/amiga/chipset.h>
 
 
 static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock);

@@ -9,7 +9,6 @@
 #ifndef InterruptController_h
 #define InterruptController_h
 
-#include <machine/Platform.h>
 #include <sched/sem.h>
 
 

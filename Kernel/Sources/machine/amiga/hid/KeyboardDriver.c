@@ -9,8 +9,10 @@
 #include "KeyboardDriver.h"
 #include <driver/hid/HIDManager.h>
 #include <driver/hid/HIDKeyRepeater.h>
-#include <machine/InterruptController.h>
 #include <kpi/fcntl.h>
+#include <machine/InterruptController.h>
+#include <machine/Platform.h>
+#include <machine/amiga/chipset.h>
 
 
 // Keycode -> USB HID keyscan codes

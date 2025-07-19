@@ -8,10 +8,10 @@
 
 #include "HIDManagerPriv.h"
 #include <driver/DriverChannel.h>
-#include <machine/Platform.h>
 #include <kern/kalloc.h>
 #include <kern/limits.h>
 #include <kpi/fcntl.h>
+#include <machine/Platform.h>
 
 
 extern const uint8_t gUSBHIDKeyFlags[256];

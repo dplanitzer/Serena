@@ -1,12 +1,12 @@
 //
-//  Platform.c
+//  chipset.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/31/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <machine/Platform.h>
+#include "chipset.h"
 
 
 //

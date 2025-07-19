@@ -7,9 +7,9 @@
 //
 
 #include "CopperScheduler.h"
-#include <machine/Platform.h>
 #include <kern/assert.h>
 #include <kern/timespec.h>
+#include <machine/amiga/chipset.h>
 
 static void CopperScheduler_GarbageCollectRetiredPrograms(CopperScheduler* _Nonnull self);
 

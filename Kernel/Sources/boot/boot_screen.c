@@ -11,9 +11,9 @@
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
 #include <driver/DriverChannel.h>
-#include <machine/Platform.h>
 #include <kern/string.h>
 #include <kpi/fcntl.h>
+#include <machine/amiga/chipset.h>
 
 
 void open_boot_screen(boot_screen_t* _Nonnull bscr)

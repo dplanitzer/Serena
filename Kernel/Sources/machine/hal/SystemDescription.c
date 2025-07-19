@@ -10,6 +10,7 @@
 #include <kern/string.h>
 #include <machine/cpu.h>
 #include <machine/SystemDescription.h>
+#include <machine/amiga/chipset.h>
 
 
 extern int8_t fpu_get_model(void);

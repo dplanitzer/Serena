@@ -9,7 +9,7 @@
 #include "MouseDriver.h"
 #include <driver/hid/HIDManager.h>
 #include <machine/InterruptController.h>
-
+#include <machine/amiga/chipset.h>
 
 
 final_class_ivars(MouseDriver, InputDriver,

@@ -7,9 +7,9 @@
 //
 
 #include "HIDEventQueue.h"
+#include <kern/kalloc.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
-#include <kern/kalloc.h>
 #include <sched/sem.h>
 
 

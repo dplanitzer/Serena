@@ -9,6 +9,7 @@
 #include "ConsolePriv.h"
 #include <kern/string.h>
 #include <kern/timespec.h>
+#include <machine/amiga/chipset.h>
 
 
 static const RGBColor32 gANSIColors[8] = {
