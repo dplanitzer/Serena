@@ -9,6 +9,7 @@
 #include "BootAllocator.h"
 #include <kern/assert.h>
 #include <kern/kernlib.h>
+#include <machine/cpu.h>
 
 
 void BootAllocator_Init(BootAllocator* _Nonnull pAlloc, SystemDescription* _Nonnull pSysDesc)

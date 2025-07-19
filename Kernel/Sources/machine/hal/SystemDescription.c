@@ -6,9 +6,10 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <machine/SystemDescription.h>
 #include <kern/kernlib.h>
 #include <kern/string.h>
+#include <machine/cpu.h>
+#include <machine/SystemDescription.h>
 
 
 extern int8_t fpu_get_model(void);

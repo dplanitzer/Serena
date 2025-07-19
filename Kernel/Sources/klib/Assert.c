@@ -7,9 +7,9 @@
 //
 
 #include <kern/assert.h>
-#include <machine/Platform.h>
 #include <kern/kernlib.h>
 #include <log/Log.h>
+#include <machine/cpu.h>
 
 
 _Noreturn fatal(const char* _Nonnull format, ...)

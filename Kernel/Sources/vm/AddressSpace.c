@@ -7,10 +7,10 @@
 //
 
 #include "AddressSpace.h"
-#include <machine/Platform.h>
 #include <klib/List.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
+#include <machine/cpu.h>
 #include <sched/mtx.h>
 
 

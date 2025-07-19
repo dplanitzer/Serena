@@ -15,7 +15,7 @@
 #include <klib/List.h>
 #include <kpi/signal.h>
 #include <kpi/vcpu.h>
-#include <machine/Platform.h>
+#include <machine/cpu.h>
 #include <machine/SystemDescription.h>
 #include <sched/vcpu_stack.h>
 #include <sched/waitqueue.h>

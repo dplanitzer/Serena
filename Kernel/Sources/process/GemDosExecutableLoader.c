@@ -9,11 +9,11 @@
 #include "GemDosExecutableLoader.h"
 #include <filesystem/Filesystem.h>
 #include <filesystem/FileChannel.h>
-#include <machine/Platform.h>
-#include <log/Log.h>
 #include <kern/kernlib.h>
 #include <kern/limits.h>
 #include <kern/string.h>
+#include <log/Log.h>
+#include <machine/cpu.h>
 
 
 static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _Nonnull self, uint8_t* _Nonnull pRelocBase, uint8_t* pTextBase)

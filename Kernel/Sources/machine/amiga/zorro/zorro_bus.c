@@ -10,6 +10,7 @@
 #include <kern/assert.h>
 #include <kern/string.h>
 #include <kern/kalloc.h>
+#include <machine/cpu.h>
 #include <machine/SystemDescription.h>
 
 

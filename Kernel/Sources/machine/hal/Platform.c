@@ -8,66 +8,6 @@
 
 #include <machine/Platform.h>
 
-//
-// CPU
-//
-
-// Returns the model name of the CPU
-const char* _Nonnull cpu_get_model_name(int8_t cpu_model)
-{
-    switch (cpu_model) {
-        case CPU_MODEL_68000:
-            return "68000";
-            
-        case CPU_MODEL_68010:
-            return "68010";
-            
-        case CPU_MODEL_68020:
-            return "68020";
-            
-        case CPU_MODEL_68030:
-            return "68030";
-            
-        case CPU_MODEL_68040:
-            return "68040";
-            
-        case CPU_MODEL_68060:
-            return "68060";
-            
-        default:
-            return "??";
-    }
-}
-
-
-//
-// FPU
-//
-
-// Returns the model name of the FPU
-const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
-{
-    switch (fpu_model) {
-        case FPU_MODEL_NONE:
-            return "none";
-            
-        case FPU_MODEL_68881:
-            return "68881";
-            
-        case FPU_MODEL_68882:
-            return "68882";
-            
-        case FPU_MODEL_68040:
-            return "68040";
-            
-        case FPU_MODEL_68060:
-            return "68060";
-            
-        default:
-            return "??";
-    }
-}
-
 
 //
 // Chipset

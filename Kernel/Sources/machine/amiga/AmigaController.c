@@ -8,6 +8,7 @@
 
 #include "AmigaController.h"
 #include <filesystem/SerenaDiskImage.h>
+#include <machine/cpu.h>
 #include <machine/Platform.h>
 #include <machine/amiga/floppy/FloppyController.h>
 #include <machine/amiga/graphics/GraphicsDriver.h>
