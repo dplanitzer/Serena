@@ -10,9 +10,9 @@
 #define DispatchQueue_h
 
 #include <kobj/Object.h>
-#include <dispatcher/VirtualProcessorPool.h>
 #include <machine/SystemDescription.h>
 #include <kpi/os_dispatch.h>
+#include <sched/vcpu_pool.h>
 
 final_class(DispatchQueue, Object);
 
@@ -53,7 +53,7 @@ final_class(DispatchQueue, Object);
 // number > 0 to this argument to ensure that the queue will always have at least
 // this number of virtual processors available. Eg to ensure a certain minimum
 // latency from when a work item is scheduled to when it executes.
-extern errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
+extern errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, vcpu_pool_t _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
 
 // Terminates the dispatch queue. This does:
 // *) an abort of ongoing call-as-user operations on all VPs attached to the queue

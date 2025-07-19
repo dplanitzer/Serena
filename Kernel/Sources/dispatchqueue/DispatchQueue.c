@@ -13,7 +13,7 @@
 #include <kern/timespec.h>
 
 
-errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
+errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, vcpu_pool_t _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
 {
     decl_try_err();
     DispatchQueueRef self = NULL;
@@ -214,7 +214,7 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
         params.priority = self->qos * kDispatchPriority_Count + (self->priority + kDispatchPriority_Count / 2) + VP_PRIORITIES_RESERVED_LOW;
         params.isUser = false;
 
-        err = VirtualProcessorPool_AcquireVirtualProcessor(
+        err = vcpu_pool_acquire(
                                             self->virtual_processor_pool,
                                             &params,
                                             &vp);

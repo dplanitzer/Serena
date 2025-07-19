@@ -8,9 +8,9 @@
 
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
-#include <dispatcher/VirtualProcessorPool.h>
 #include <kern/timespec.h>
 #include <log/Log.h>
+#include <sched/vcpu_pool.h>
 
 extern void cpu_abort_vcpu_from_uspace(void);
 
@@ -284,8 +284,8 @@ void Process_Terminate(ProcessRef _Nonnull self, int exitCode)
 
     
     // Finally relinquish myself
-    VirtualProcessorPool_RelinquishVirtualProcessor(
-        gVirtualProcessorPool,
+    vcpu_pool_relinquish(
+        g_vcpu_pool,
         vcpu_current());
     /* NOT REACHED */
 }

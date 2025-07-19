@@ -1,48 +1,38 @@
 //
-//  VirtualProcessorPool.c
+//  vcpu_pool.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 4/14/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "VirtualProcessorPool.h"
+#include "vcpu_pool.h"
+#include "sched.h"
 #include <kern/kalloc.h>
-#include <sched/mtx.h>
-#include <sched/sched.h>
 
 
-#define REUSE_CACHE_CAPACITY    16
-typedef struct VirtualProcessorPool {
-    mtx_t   mtx;
-    List    reuse_queue;        // VPs available for reuse
-    int     reuse_count;        // count of how many VPs are in the reuse queue
-    int     reuse_capacity;     // reuse cache will not store more than this. If a VP exits while the cache is at max capacity -> VP will exit for good and get finalized
-} VirtualProcessorPool;
+vcpu_pool_t g_vcpu_pool;
 
 
-VirtualProcessorPoolRef gVirtualProcessorPool;
-
-
-errno_t VirtualProcessorPool_Create(VirtualProcessorPoolRef _Nullable * _Nonnull pOutSelf)
+errno_t vcpu_pool_create(vcpu_pool_t _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    VirtualProcessorPool* self;
+    vcpu_pool_t self;
     
-    try(kalloc_cleared(sizeof(VirtualProcessorPool), (void**) &self));
+    try(kalloc_cleared(sizeof(struct vcpu_pool), (void**) &self));
     List_Init(&self->reuse_queue);
     mtx_init(&self->mtx);
-    self->reuse_capacity = REUSE_CACHE_CAPACITY;
+    self->reuse_capacity = 16;
     *pOutSelf = self;
     return EOK;
     
 catch:
-    VirtualProcessorPool_Destroy(self);
+    vcpu_pool_destroy(self);
     *pOutSelf = NULL;
     return err;
 }
 
-void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable self)
+void vcpu_pool_destroy(vcpu_pool_t _Nullable self)
 {
     if (self) {
         List_Deinit(&self->reuse_queue);
@@ -51,7 +41,7 @@ void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable self)
     }
 }
 
-errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, const VirtualProcessorParameters* _Nonnull params, vcpu_t _Nonnull * _Nonnull pOutVP)
+errno_t vcpu_pool_acquire(vcpu_pool_t _Nonnull self, const VirtualProcessorParameters* _Nonnull params, vcpu_t _Nonnull * _Nonnull pOutVP)
 {
     decl_try_err();
     vcpu_t vp = NULL;
@@ -113,7 +103,7 @@ catch:
 // Relinquishes the given VP back to the reuse pool if possible. If the reuse
 // pool is full then the given VP is suspended and scheduled for finalization
 // instead. Note that the VP is suspended in any case.
-_Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, vcpu_t _Nonnull vp)
+_Noreturn vcpu_pool_relinquish(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     bool doReuse = false;
 

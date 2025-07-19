@@ -8,7 +8,7 @@
 
 #include "vcpu.h"
 #include "sched.h"
-#include <dispatcher/VirtualProcessorPool.h>
+#include "vcpu_pool.h"
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
 #include <kern/kalloc.h>
@@ -97,7 +97,7 @@ static struct vcpu_vtable gVirtualProcessorVTable = {
 // from the bottom-most frame on the virtual processor's kernel stack.
 _Noreturn vcpu_relinquish(void)
 {
-    VirtualProcessorPool_RelinquishVirtualProcessor(gVirtualProcessorPool, vcpu_current());
+    vcpu_pool_relinquish(g_vcpu_pool, vcpu_current());
     /* NOT REACHED */
 }
 

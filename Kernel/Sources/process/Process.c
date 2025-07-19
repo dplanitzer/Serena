@@ -7,8 +7,8 @@
 //
 
 #include "ProcessPriv.h"
-#include <dispatcher/VirtualProcessorPool.h>
 #include <filemanager/FileHierarchy.h>
+#include <sched/vcpu_pool.h>
 
 
 class_func_defs(Process, Object,
@@ -125,8 +125,8 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
         throw(EINTR);
     }
 
-    try(VirtualProcessorPool_AcquireVirtualProcessor(
-            gVirtualProcessorPool,
+    try(vcpu_pool_acquire(
+            g_vcpu_pool,
             &kp,
             &vp));
 
@@ -148,7 +148,7 @@ catch:
 void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp)
 {
     Process_DetachVirtualProcessor(self, vp);
-    VirtualProcessorPool_RelinquishVirtualProcessor(gVirtualProcessorPool, vcpu_current());
+    vcpu_pool_relinquish(g_vcpu_pool, vcpu_current());
     /* NOT REACHED */
 }
 

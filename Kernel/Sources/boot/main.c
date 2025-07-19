@@ -10,7 +10,6 @@
 #include <log/Log.h>
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
-#include <dispatcher/VirtualProcessorPool.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
@@ -21,6 +20,7 @@
 #include <process/ProcessManager.h>
 #include <sched/delay.h>
 #include <sched/sched.h>
+#include <sched/vcpu_pool.h>
 #include <security/SecurityManager.h>
 #include <sys/mount.h>
 #include <Catalog.h>
@@ -126,7 +126,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     
     
     // Initialize the virtual processor pool
-    try_bang(VirtualProcessorPool_Create(&gVirtualProcessorPool));
+    try_bang(vcpu_pool_create(&g_vcpu_pool));
     
     
     // Enable interrupts

@@ -95,7 +95,7 @@ final_class_ivars(DispatchQueue, Object,
     cnd_t                               vp_shutdown_signaler;       // Used by a VP to indicate that it has relinquished itself because the queue is in the process of shutting down
     ProcessRef _Nullable _Weak          owning_process;             // The process that owns this queue
     int                                 descriptor;                 // The user space descriptor of this queue
-    VirtualProcessorPoolRef _Nonnull    virtual_processor_pool;     // Pool from which the queue should retrieve virtual processors
+    vcpu_pool_t _Nonnull                virtual_processor_pool;     // Pool from which the queue should retrieve virtual processors
     int                                 items_queued_count;         // Number of work items queued up (item_queue && timer_queue)
     volatile int8_t                     state;                      // The current dispatch queue state
     int8_t                              minConcurrency;             // Minimum number of concurrency lanes that we are required to maintain. So we should not allow availableConcurrency to fall below this when we think we want to voluntarily relinquish a VP
