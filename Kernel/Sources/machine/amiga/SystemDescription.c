@@ -227,33 +227,7 @@ void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, char* _Nullabl
     pSysDesc->chipset_version = (int8_t)chipset_get_version();
     pSysDesc->chipset_ramsey_version = (int8_t)chipset_get_ramsey_version();
     pSysDesc->chipset_upper_dma_limit = chipset_get_upper_dma_limit(pSysDesc->chipset_version);
-
-    // Compute the quantum timer parameters:
-    //
-    // Amiga system clock:
-    //  NTSC    28.63636 MHz
-    //  PAL     28.37516 MHz
-    //
-    // CIA B timer A clock:
-    //   NTSC    0.715909 MHz (1/10th CPU clock)     [1.3968255 us]
-    //   PAL     0.709379 MHz                        [1.4096836 us]
-    //
-    // Quantum duration:
-    //   NTSC    16.761906 ms    [12000 timer clock cycles]
-    //   PAL     17.621045 ms    [12500 timer clock cycles]
-    //
-    // The quantum duration is chosen such that:
-    // - it is approx 16ms - 17ms
-    // - the value is a positive integer in terms of nanoseconds to avoid accumulating / rounding errors as time progresses
-    //
-    // The ns_per_quantum_timer_cycle value is rounded such that:
-    // ns_per_quantum_timer_cycle * quantum_duration_cycles <= quantum_duration_ns
-    const bool is_ntsc = chipset_is_ntsc();
-    
-    pSysDesc->ns_per_quantum_timer_cycle = (is_ntsc) ? 1396 : 1409;
-    pSysDesc->quantum_duration_cycles = (is_ntsc) ? 12000 : 12500;
-    pSysDesc->quantum_duration_ns = (is_ntsc) ? 16761906 : 17621045;
-    
+        
 
     // Initialize Gary. We assume that Gary is around if Ramsey is around
     if (pSysDesc->chipset_ramsey_version > 0) {

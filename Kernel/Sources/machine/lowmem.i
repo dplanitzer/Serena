@@ -113,13 +113,10 @@ sd_fpu_model                    so.b    1       ; 1
 sd_cipset_version               so.b    1       ; 1
 sd_chipset_ramsey_version       so.b    1       ; 1
 sd_chipset_upper_dma_limit      so.l    1       ; 4
-sd_quantum_duration_ns          so.l    1       ; 4
-sd_quantum_duration_cycles      so.w    1       ; 2
-sd_ns_per_quantum_timer_cycle   so.w    1       ; 2
 sd_memory_descriptor_count      so.l    1       ; 4
 sd_memory_descriptor            so.b    12*8    ; 12 * 8
-sd_SIZEOF                       so              ; 116
-    ifeq (sd_SIZEOF == 116)
+sd_SIZEOF                       so              ; 108
+    ifeq (sd_SIZEOF == 108)
         fail "SystemDescription structure size is incorrect."
     endif
 
@@ -130,8 +127,10 @@ mtc_current_time_seconds        so.l    1       ; 4
 mtc_current_time_nanoseconds    so.l    1       ; 4
 mtc_current_quantum             so.l    1       ; 4
 mtc_ns_per_quantum              so.l    1       ; 4
-mtc_SIZEOF                      so
-    ifeq (mtc_SIZEOF == 16)
+mtc_quantum_duration_cycles     so.w    1       ; 2
+mtc_ns_per_quantum_timer_cycle  so.w    1       ; 2
+mtc_SIZEOF                      so              ; 20
+    ifeq (mtc_SIZEOF == 20)
         fail "MonotonicClock structure size is incorrect."
     endif
 

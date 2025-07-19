@@ -689,13 +689,6 @@ extern char* chipset_get_upper_dma_limit(int chipset_version);
 extern void chipset_enable_interrupt(int interruptId);
 extern void chipset_disable_interrupt(int interruptId);
 
-
-#define INTERRUPT_ID_QUANTUM_TIMER  INTERRUPT_ID_CIA_A_TIMER_B
-
-extern void chipset_start_quantum_timer(void);
-extern void chipset_stop_quantum_timer(void);
-extern int32_t chipset_get_quantum_timer_elapsed_ns(void);
-
 extern uint32_t chipset_get_hsync_counter(void);
 
 #endif /* _CHIPSET_H */

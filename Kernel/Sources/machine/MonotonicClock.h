@@ -17,12 +17,16 @@ struct SystemDescription;
 // At most 1ms
 #define MONOTONIC_DELAY_MAX_NSEC    1000000l
 
+#define INTERRUPT_ID_QUANTUM_TIMER  INTERRUPT_ID_CIA_A_TIMER_B
+
 
 // Note: Keep in sync with machine/hal/lowmem.i
 typedef struct MonotonicClock {
     volatile struct timespec    current_time;
     volatile Quantums           current_quantum;    // Current scheduler time in terms of elapsed quantums since boot
     int32_t                     ns_per_quantum;     // duration of a quantum in terms of nanoseconds
+    int16_t                     quantum_duration_cycles;    // Quantum duration in terms of timer cycles
+    int16_t                     ns_per_quantum_timer_cycle; // Length of a quantum timer cycle in nanoseconds
 } MonotonicClock;
 
 

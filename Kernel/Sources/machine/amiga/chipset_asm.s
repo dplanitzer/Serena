@@ -15,9 +15,6 @@
     xdef _chipset_reset
     xdef _chipset_enable_interrupt
     xdef _chipset_disable_interrupt
-    xdef _chipset_start_quantum_timer
-    xdef _chipset_stop_quantum_timer
-    xdef _chipset_get_quantum_timer_elapsed_ns
 
 
 ;-------------------------------------------------------------------------------
@@ -166,71 +163,4 @@ cdi_ciab_interrupts:
     ; fall through
 
 cdi_done:
-    rts
-
-
-;-------------------------------------------------------------------------------
-; void chipset_start_quantum_timer(void)
-; Starts the quantum timer running. This timer is used to implement context switching.
-; Uses timer B in CIA A.
-;
-; Amiga system clock:
-;   NTSC    28.63636 MHz
-;   PAL     28.37516 MHz
-;
-; CIA A timer B clock:
-;   NTSC    0.715909 MHz (1/10th CPU clock)     [1.3968255 us]
-;   PAL     0.709379 MHz                        [1.4096836 us]
-;
-; Quantum duration:
-;   NTSC    16.761906 ms    [12000 timer clock cycles]
-;   PAL     17.621045 ms    [12500 timer clock cycles]
-;
-; The quantum duration is chosen such that:
-; - it is approx 16ms - 17ms
-; - the value is a positive integer in terms of nanoseconds to avoid accumulating / rounding errors as time progresses
-;
-_chipset_start_quantum_timer:
-    ; stop the timer
-    jsr     _chipset_stop_quantum_timer
-
-    ; load the timer with the new ticks value
-    move.w  SYS_DESC_BASE + sd_quantum_duration_cycles, d0
-    move.b  d0, CIAATBLO
-    lsr.w   #8, d0
-    move.b  d0, CIAATBHI
-
-    ; start the timer
-    move.b  CIAACRB, d0
-    or.b    #%00010001, d0
-    and.b   #%10010001, d0
-    move.b  d0, CIAACRB
-
-    rts
-
-
-;-------------------------------------------------------------------------------
-; void chipset_stop_quantum_timer(void)
-; Stops the quantum timer.
-_chipset_stop_quantum_timer:
-    move.b  CIAACRB, d1
-    and.b   #%11101110, d1
-    move.b  d1, CIAACRB
-    rts
-
-
-;-------------------------------------------------------------------------------
-; int32_t chipset_get_quantum_timer_elapsed_ns(void)
-; Returns the amount of nanoseconds that have elapsed in the current quantum.
-_chipset_get_quantum_timer_elapsed_ns:
-    ; read the current timer value
-    moveq.l #0, d1
-    move.b  CIAATBHI, d1
-    asl.w   #8, d1
-    move.b  CIAATBLO, d1
-
-    ; elapsed_ns = (quantum_duration_cycles - current_cycles) * ns_per_cycle
-    move.w  SYS_DESC_BASE + sd_quantum_duration_cycles, d0
-    sub.w   d1, d0
-    muls    SYS_DESC_BASE + sd_ns_per_quantum_timer_cycle, d0
     rts
