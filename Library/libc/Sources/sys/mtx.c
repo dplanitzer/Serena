@@ -94,7 +94,7 @@ int mtx_lock(mtx_t* _Nonnull self)
     /* NOT REACHED */
 }
 
-int __mutex_unlock(mtx_t* _Nonnull self)
+int __mtx_unlock(mtx_t* _Nonnull self)
 {
     bool doWakeup = false;
 
@@ -116,7 +116,7 @@ int __mutex_unlock(mtx_t* _Nonnull self)
 
 int mtx_unlock(mtx_t* _Nonnull self)
 {
-    const int r = __mutex_unlock(self);
+    const int r = __mtx_unlock(self);
 
     if (r == 1) {
         wq_wakeup(self->wait_queue, WAKE_ONE);

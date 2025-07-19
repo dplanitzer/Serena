@@ -11,7 +11,7 @@
 
 #include <dispatch.h>
 #include <signal.h>
-#include <sys/condvar.h>
+#include <sys/cnd.h>
 #include <sys/timespec.h>
 #include <sys/vcpu.h>
 
@@ -124,8 +124,8 @@ extern vcpu_key_t __os_dispatch_key;
 
 
 struct dispatch {
-    mtx_t                 mutex;
-    cond_t                  cond;
+    mtx_t                   mutex;
+    cnd_t                   cond;
     dispatch_attr_t         attr;
     dispatch_callbacks_t    cb;
     vcpuid_t                groupid;

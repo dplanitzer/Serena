@@ -1,26 +1,26 @@
 //
-//  sys/condvar.c
+//  sys/cnd.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 3/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <sys/condvar.h>
+#include <sys/cnd.h>
 #include <kpi/syscall.h>
 #include <sys/timespec.h>
 #include <sys/waitqueue.h>
 #include <errno.h>
 #include <stddef.h>
 
-extern int __mutex_unlock(mtx_t* _Nonnull self);
-#define CV_SIGNATURE 0x53454d41
+extern int __mtx_unlock(mtx_t* _Nonnull self);
+#define CND_SIGNATURE 0x53454d41
 
 
-int cond_init(cond_t* _Nonnull self)
+int cnd_init(cnd_t* _Nonnull self)
 {
     self->spinlock = SPINLOCK_INIT;
-    self->signature = CV_SIGNATURE;
+    self->signature = CND_SIGNATURE;
 
     self->wait_queue = wq_create(WAITQUEUE_FIFO);
     if (self->wait_queue < 0) {
@@ -31,9 +31,9 @@ int cond_init(cond_t* _Nonnull self)
     return 0;
 }
 
-int cond_deinit(cond_t* _Nonnull self)
+int cnd_deinit(cnd_t* _Nonnull self)
 {
-    if (self->signature != CV_SIGNATURE) {
+    if (self->signature != CND_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
@@ -45,9 +45,9 @@ int cond_deinit(cond_t* _Nonnull self)
     return 0;
 }
 
-int _cond_wakeup(cond_t* _Nonnull self, int flags)
+int _cond_wakeup(cnd_t* _Nonnull self, int flags)
 {
-    if (self->signature != CV_SIGNATURE) {
+    if (self->signature != CND_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
@@ -56,12 +56,12 @@ int _cond_wakeup(cond_t* _Nonnull self, int flags)
     return 0;
 }
 
-int cond_signal(cond_t* _Nonnull self)
+int cnd_signal(cnd_t* _Nonnull self)
 {
     return _cond_wakeup(self, WAKE_ONE);
 }
 
-int cond_broadcast(cond_t* _Nonnull self)
+int cnd_broadcast(cnd_t* _Nonnull self)
 {
     return _cond_wakeup(self, WAKE_ALL);
 }
@@ -71,14 +71,14 @@ int cond_broadcast(cond_t* _Nonnull self)
 // lock before we are able to enter the wait, that we don't lose the fact that
 // the producer signalled us. We would miss this wakeup with a stateless wait
 // queue.
-static int _cond_wait(cond_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const struct timespec* _Nullable wtp)
+static int _cond_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const struct timespec* _Nullable wtp)
 {
-    if (self->signature != CV_SIGNATURE) {
+    if (self->signature != CND_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
 
-    const int r = __mutex_unlock(mutex);
+    const int r = __mtx_unlock(mutex);
     if (r == 1) {
         wq_timedwakewait(self->wait_queue, mutex->wait_queue, NULL, flags, wtp);
     }
@@ -90,12 +90,12 @@ static int _cond_wait(cond_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, c
     return (r >= 0) ? 0 : -1;
 }
 
-int cond_wait(cond_t* _Nonnull self, mtx_t* _Nonnull mutex)
+int cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex)
 {
     return _cond_wait(self, mutex, TIMER_ABSTIME, &TIMESPEC_INF);
 }
 
-int cond_timedwait(cond_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const struct timespec* _Nonnull wtp)
+int cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const struct timespec* _Nonnull wtp)
 {
     return _cond_wait(self, mutex, flags, wtp);
 }

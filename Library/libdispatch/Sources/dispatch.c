@@ -74,7 +74,7 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
     self->timer_cache_count = 0;
     self->state = _DISPATCHER_STATE_ACTIVE;
 
-    if (cond_init(&self->cond) != 0) {
+    if (cnd_init(&self->cond) != 0) {
         return false;
     }
 
@@ -134,7 +134,7 @@ int dispatch_destroy(dispatch_t _Nullable self)
         self->zombie_items = SLIST_INIT;
         self->timers = SLIST_INIT;
 
-        cond_deinit(&self->cond);
+        cnd_deinit(&self->cond);
         mtx_deinit(&self->mutex);
 
         free(self);
@@ -175,7 +175,7 @@ _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch
 
     _dispatch_worker_destroy(worker);
 
-    cond_broadcast(&self->cond);
+    cnd_broadcast(&self->cond);
     mtx_unlock(&self->mutex);
 
     if (adoption == _DISPATCH_ACQUIRE_VCPU) {
@@ -270,7 +270,7 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     int r = 0;
 
     while (item->state < DISPATCH_STATE_DONE) {
-        r = cond_wait(&self->cond, &self->mutex);
+        r = cnd_wait(&self->cond, &self->mutex);
         if (r != 0) {
             break;
         }
@@ -293,7 +293,7 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
 void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
     SList_InsertAfterLast(&self->zombie_items, &item->qe);
-    cond_broadcast(&self->cond);
+    cnd_broadcast(&self->cond);
 }
 
 static dispatch_item_t _Nullable _dispatch_find_item(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func)
@@ -688,7 +688,7 @@ int dispatch_await_termination(dispatch_t _Nonnull self)
 
     
     while (self->worker_count > 0) {
-        cond_wait(&self->cond, &self->mutex);
+        cnd_wait(&self->cond, &self->mutex);
     }
     self->state = _DISPATCHER_STATE_TERMINATED;
     r = 0;
