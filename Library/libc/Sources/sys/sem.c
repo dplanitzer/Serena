@@ -1,12 +1,12 @@
 //
-//  sys/semaphore.c
+//  sys/sem.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 3/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <sys/semaphore.h>
+#include <sys/sem.h>
 #include <errno.h>
 #include <kpi/syscall.h>
 #include <sys/waitqueue.h>

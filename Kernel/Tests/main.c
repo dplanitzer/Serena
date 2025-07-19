@@ -41,7 +41,7 @@ extern void pipe2_test(int argc, char *argv[]);
 extern void proc_exit_test(int argc, char *argv[]);
 
 // Sema
-extern void sema_test(int argc, char *argv[]);
+extern void sem_test(int argc, char *argv[]);
 
 // Stdio
 extern void fopen_memory_fixed_size_test(int argc, char *argv[]);
@@ -82,7 +82,7 @@ static const test_t gTests[] = {
 
     {"proc_exit", proc_exit_test, true},
 
-    {"sema", sema_test, true},
+    {"sem", sem_test, true},
 
     {"stdio", fopen_memory_fixed_size_test, false},
     {"stdio2", fopen_memory_variable_size_test, false},

@@ -13,7 +13,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/semaphore.h>
+#include <sys/sem.h>
 #include <sys/timespec.h>
 #include <_math.h>
 #include "Asserts.h"
@@ -51,7 +51,7 @@ static void philosopher(int* num)
     }
 }
 
-void sema_test(int argc, char *argv[])
+void sem_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_CONCURRENT_UTILITY(NUM);
 
