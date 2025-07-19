@@ -9,11 +9,11 @@
 #include "FileHierarchy.h"
 #include "FilesystemManager.h"
 #include <klib/Hash.h>
-#include <dispatcher/SELock.h>
 #include <filesystem/FSUtilities.h>
 #include <filesystem/kernfs/KernFS.h>
-#include <security/SecurityManager.h>
 #include <kern/string.h>
+#include <sched/rwmtx.h>
+#include <security/SecurityManager.h>
 
 extern void ResolvedPath_Init(ResolvedPath* _Nonnull self);
 
@@ -69,7 +69,7 @@ typedef struct FHKey {
     (hash_scalar(((size_t)__direction) + ((size_t)__fsid) + ((size_t)__inid)) & HASH_CHAINS_MASK)
 
 final_class_ivars(FileHierarchy, Object,
-    SELock              lock;
+    rwmtx_t             lock;
     FsNode* _Nonnull    root;
     InodeRef _Nonnull   rootDirectory;
     List                hashChain[HASH_CHAINS_COUNT];   // Chains of FHKey
@@ -194,7 +194,7 @@ errno_t FileHierarchy_Create(FilesystemRef _Nonnull rootFS, FileHierarchyRef _Nu
     FileHierarchyRef self;
 
     try(Object_Create(class(FileHierarchy), 0, (void**)&self));
-    SEmtx_init(&self->lock);
+    rwmtx_init(&self->lock);
     
     for (int i = 0; i < HASH_CHAINS_COUNT; i++) {
         List_Init(&self->hashChain[i]);
@@ -224,7 +224,7 @@ void FileHierarchy_deinit(FileHierarchyRef _Nullable self)
         self->root = NULL;
     }
 
-    SEmtx_deinit(&self->lock);
+    rwmtx_deinit(&self->lock);
 }
 
 
@@ -327,7 +327,7 @@ errno_t FileHierarchy_AttachFilesystem(FileHierarchyRef _Nonnull self, Filesyste
         return ENOTDIR;
     }
 
-    try_bang(SEmtx_lock_Exclusive(&self->lock));
+    try_bang(rwmtx_wrlock(&self->lock));
 
     // Make sure that the filesystem that owns 'atDir' exists in our file hierarchy
     atFsNode = _FileHierarchy_GetFsNode(self, Inode_GetFilesystemId(atDir));
@@ -349,7 +349,7 @@ errno_t FileHierarchy_AttachFilesystem(FileHierarchyRef _Nonnull self, Filesyste
 
     List_InsertAfterLast(&atFsNode->attachmentPoints, &atNode->sibling);
 
-    try_bang(SEmtx_unlock(&self->lock));
+    try_bang(rwmtx_unlock(&self->lock));
     return EOK;
 
 catch:
@@ -357,7 +357,7 @@ catch:
     destroy_key(downKey);
     destroy_atnode(atNode);
 
-    try_bang(SEmtx_unlock(&self->lock));
+    try_bang(rwmtx_unlock(&self->lock));
 
     return err;
 }
@@ -399,7 +399,7 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
     List keys;
 
     List_Init(&keys);
-    try_bang(SEmtx_lock_Exclusive(&self->lock));
+    try_bang(rwmtx_wrlock(&self->lock));
 
     // Make sure that the FS that we want to detach, isn't the root FS
     if (Inode_Equals(self->rootDirectory, dir)) {
@@ -438,7 +438,7 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
         _FileHierarchy_CollectKeysForAtNode(self, atNode, &keys);
     }
 
-    try_bang(SEmtx_unlock(&self->lock));
+    try_bang(rwmtx_unlock(&self->lock));
 
     // Now that we've dropped the lock, do the time consuming stuff (disbanding
     // an FS may push data to the disk and block for a while).
@@ -453,7 +453,7 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
     return EOK;
 
 catch:
-    try_bang(SEmtx_unlock(&self->lock));
+    try_bang(rwmtx_unlock(&self->lock));
     return err;
 }
 
@@ -461,9 +461,9 @@ catch:
 // filesystem.
 bool FileHierarchy_IsAttachmentPoint(FileHierarchyRef _Nonnull self, InodeRef _Nonnull inode)
 {
-    SEmtx_lock_Shared(&self->lock);
+    rwmtx_rdlock(&self->lock);
     const bool r = (_FileHierarchy_GetAtNode(self, inode, kKeyType_Downlink) != NULL) ? true : false;
-    SEmtx_unlock(&self->lock);
+    rwmtx_unlock(&self->lock);
     return r;
 }
 
@@ -535,7 +535,7 @@ errno_t FileHierarchy_GetPath(FileHierarchyRef _Nonnull self, InodeRef _Nonnull 
     decl_try_err();
     MutablePathComponent pc;
 
-    try_bang(SEmtx_lock_Shared(&self->lock));
+    try_bang(rwmtx_rdlock(&self->lock));
     InodeRef pCurDir = Inode_Reacquire(node);
 
     if (bufferSize < 1) {
@@ -580,13 +580,13 @@ errno_t FileHierarchy_GetPath(FileHierarchyRef _Nonnull self, InodeRef _Nonnull 
     
     memcpy(pBuffer, p, &pBuffer[bufferSize] - p);
     Inode_Relinquish(pCurDir);
-    try_bang(SEmtx_unlock(&self->lock));
+    try_bang(rwmtx_unlock(&self->lock));
     return EOK;
 
 catch:
     Inode_Relinquish(pCurDir);
     pBuffer[0] = '\0';
-    try_bang(SEmtx_unlock(&self->lock));
+    try_bang(rwmtx_unlock(&self->lock));
     return err;
 }
 
@@ -757,7 +757,7 @@ errno_t FileHierarchy_AcquireNodeForPath(FileHierarchyRef _Nonnull self, PathRes
         return ENOENT;
     }
 
-    try_bang(SEmtx_lock_Shared(&self->lock));
+    try_bang(rwmtx_rdlock(&self->lock));
 
     // Start with the root directory if the path starts with a '/' and the
     // current working directory otherwise
@@ -808,7 +808,7 @@ errno_t FileHierarchy_AcquireNodeForPath(FileHierarchyRef _Nonnull self, PathRes
         Inode_Lock(pCurNode);
     }
     Inode_Unlock(pCurNode);
-    try_bang(SEmtx_unlock(&self->lock));
+    try_bang(rwmtx_unlock(&self->lock));
 
 
     // Note that we move ownership of the target node to the result structure
@@ -818,7 +818,7 @@ errno_t FileHierarchy_AcquireNodeForPath(FileHierarchyRef _Nonnull self, PathRes
 
 catch:
     Inode_UnlockRelinquish(pCurNode);
-    try_bang(SEmtx_unlock(&self->lock));
+    try_bang(rwmtx_unlock(&self->lock));
     return err;
 }
 

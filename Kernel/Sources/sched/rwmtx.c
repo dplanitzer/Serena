@@ -1,18 +1,18 @@
 //
-//  SELock.c
+//  rwmtx.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 4/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "SELock.h"
-#include "VirtualProcessorScheduler.h"
+#include "rwmtx.h"
+#include <dispatcher/VirtualProcessorScheduler.h>
 #include <kern/timespec.h>
 
 
 // Initializes a new shared-exclusive lock.
-void SEmtx_init(SELock* _Nonnull self)
+void rwmtx_init(rwmtx_t* _Nonnull self)
 {
     mtx_init(&self->mtx);
     ConditionVariable_Init(&self->cv);
@@ -22,7 +22,7 @@ void SEmtx_init(SELock* _Nonnull self)
 }
 
 // Deinitializes a lock.
-void SEmtx_deinit(SELock* _Nonnull self)
+void rwmtx_deinit(rwmtx_t* _Nonnull self)
 {
     mtx_lock(&self->mtx);
     assert(self->state == kSELState_Unlocked);
@@ -32,7 +32,7 @@ void SEmtx_deinit(SELock* _Nonnull self)
     mtx_deinit(&self->mtx);
 }
 
-static errno_t _SELock_AcquireSharedLockSlow(SELock* _Nonnull self)
+static errno_t _SELock_AcquireSharedLockSlow(rwmtx_t* _Nonnull self)
 {
     decl_try_err();
 
@@ -56,7 +56,7 @@ static errno_t _SELock_AcquireSharedLockSlow(SELock* _Nonnull self)
 // the lock was initialized with the kLockOption_InterruptibleLock option, then
 // this function may be interrupted by another VP and it returns EINTR if this
 // happens.
-errno_t SEmtx_lock_Shared(SELock* _Nonnull self)
+errno_t rwmtx_rdlock(rwmtx_t* _Nonnull self)
 {
     decl_try_err();
 
@@ -86,7 +86,7 @@ errno_t SEmtx_lock_Shared(SELock* _Nonnull self)
     return err;
 }
 
-static errno_t _SELock_AcquireExclusiveLockSlow(SELock* _Nonnull self)
+static errno_t _SELock_AcquireExclusiveLockSlow(rwmtx_t* _Nonnull self)
 {
     decl_try_err();
 
@@ -110,7 +110,7 @@ static errno_t _SELock_AcquireExclusiveLockSlow(SELock* _Nonnull self)
 // If the lock was initialized with the kLockOption_InterruptibleLock option,
 // then this function may be interrupted by another VP and it returns EINTR if
 // this happens.
-errno_t SEmtx_lock_Exclusive(SELock* _Nonnull self)
+errno_t rwmtx_wrlock(rwmtx_t* _Nonnull self)
 {
     decl_try_err();
 
@@ -145,7 +145,7 @@ errno_t SEmtx_lock_Exclusive(SELock* _Nonnull self)
 
 
 // Unlocks the lock.
-errno_t SEmtx_unlock(SELock* _Nonnull self)
+errno_t rwmtx_unlock(rwmtx_t* _Nonnull self)
 {
     decl_try_err();
     bool doBroadcast = false;

@@ -64,33 +64,33 @@ errno_t ConditionVariable_TimedWait(ConditionVariable* pCondVar, mtx_t* mtx, con
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <dispatcher/SELock.h>
+#include "rwmtx.h"
 
-void SEmtx_init(SELock* self)
+void rwmtx_init(rwmtx_t* self)
 {
     InitializeSRWLock(&self->lock);
     self->state = kSELState_Unlocked;
 }
 
-void SEmtx_deinit(SELock* self)
+void rwmtx_deinit(rwmtx_t* self)
 {
 }
 
-errno_t SEmtx_lock_Shared(SELock* self)
+errno_t rwmtx_rdlock(rwmtx_t* self)
 {
     AcquireSRWLockShared(&self->lock);
     self->state = kSELState_LockedShared;
     return EOK;
 }
 
-errno_t SEmtx_lock_Exclusive(SELock* self)
+errno_t rwmtx_wrlock(rwmtx_t* self)
 {
     AcquireSRWLockExclusive(&self->lock);
     self->state = kSELState_LockedExclusive;
     return EOK;
 }
 
-errno_t SEmtx_unlock(SELock* self)
+errno_t rwmtx_unlock(rwmtx_t* self)
 {
     switch (self->state) {
         case kSELState_Unlocked:

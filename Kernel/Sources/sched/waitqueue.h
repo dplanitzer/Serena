@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef WaitQueue_h
-#define WaitQueue_h
+#ifndef _WAITQUEUE_H
+#define _WAITQUEUE_H 1
 
 #include <kern/errno.h>
 #include <kern/timespec.h>
@@ -107,4 +107,4 @@ extern void wq_suspendone(waitqueue_t _Nonnull self, struct VirtualProcessor* _N
 // @Entry Condition: preemption disabled
 extern void wq_resumeone(waitqueue_t _Nonnull self, struct VirtualProcessor* _Nonnull vp);
 
-#endif /* WaitQueue_h */
+#endif /* _WAITQUEUE_H */

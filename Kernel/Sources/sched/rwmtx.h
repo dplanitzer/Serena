@@ -1,15 +1,15 @@
 //
-//  SELock.h
+//  rwmtx.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 4/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef SELock_h
-#define SELock_h
+#ifndef _RWMTX_H
+#define _RWMTX_H 1
 
-#include "ConditionVariable.h"
+#include <dispatcher/ConditionVariable.h>
 #include <sched/mtx.h>
 
 enum {
@@ -39,20 +39,20 @@ enum {
 // multiple times (aka recursive locking). However the lock does not currently
 // track the identity of shared-mode lock owners. So it's important to follow
 // the locking protocol exactly to avoid problems.
-typedef struct SELock {
+typedef struct rwmtx_t {
     mtx_t               mtx;    // The management lock is not interruptible since it protects a very short code sequence and this keeps things simpler
     ConditionVariable   cv;     // The CV is always interruptible
     int                 exclusiveOwnerVpId;     // ID of the VP that is holding the lock in exclusive-mode; 0 if unlocked or locked in shared-mode
     int32_t             ownerCount;             // Count of shared-mode lock owners or recursion count of the exclusive-mode lock owner
     int32_t             state;
-} SELock;
+} rwmtx_t;
 
 
 // Initializes a new shared-exclusive lock.
-extern void SEmtx_init(SELock* _Nonnull self);
+extern void rwmtx_init(rwmtx_t* _Nonnull self);
 
 // Deinitializes a lock.
-extern void SEmtx_deinit(SELock* _Nonnull self);
+extern void rwmtx_deinit(rwmtx_t* _Nonnull self);
 
 
 // Blocks the caller until the lock can be taken successfully in shared mode. If
@@ -60,18 +60,18 @@ extern void SEmtx_deinit(SELock* _Nonnull self);
 // this function may be interrupted by another VP and it returns EINTR if this
 // happens. It is permissible for a virtual processor to take a shared lock
 // multiple times.
-extern errno_t SEmtx_lock_Shared(SELock* _Nonnull self);
+extern errno_t rwmtx_rdlock(rwmtx_t* _Nonnull self);
 
 // Blocks the caller until the lock can be taken successfully in exclusive mode.
 // If the lock was initialized with the kLockOption_InterruptibleLock option,
 // then this function may be interrupted by another VP and it returns EINTR if
 // this happens. A virtual processor may take a lock exclusively multiple times.
-extern errno_t SEmtx_lock_Exclusive(SELock* _Nonnull self);
+extern errno_t rwmtx_wrlock(rwmtx_t* _Nonnull self);
 
 // Unlocks the lock. Returns EPERM if the caller does not hold the lock and the
 // lock was not initialized with the kLockOption_FatalOwnershipViolations option.
 // A call to fatalError() is triggered if fatal ownership violation checks are
 // enabled and the caller does not hold the lock. Otherwise returns EOK.
-extern errno_t SEmtx_unlock(SELock* _Nonnull self);
+extern errno_t rwmtx_unlock(rwmtx_t* _Nonnull self);
 
-#endif /* SELock_h */
+#endif /* _RWMTX_H */

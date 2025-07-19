@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef Delay_h
-#define Delay_h
+#ifndef _DELAY_H
+#define _DELAY_H 1
 
 #include <kern/errno.h>
 #include <kern/types.h>
@@ -23,4 +23,4 @@ extern void delay_us(useconds_t us);
 extern void delay_ms(mseconds_t ms);
 extern void delay_sec(time_t sec);
 
-#endif /* Delay_h */
+#endif /* _DELAY_H */

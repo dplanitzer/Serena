@@ -6,8 +6,8 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef Mtx_h
-#define Mtx_h
+#ifndef _MTX_H
+#define _MTX_H 1
 
 #include <kern/errno.h>
 #include <kern/types.h>
@@ -45,4 +45,4 @@ extern errno_t mtx_unlock(mtx_t* _Nonnull self);
 // Zero is returned if none is holding the lock.
 extern int mtx_ownerid(mtx_t* _Nonnull self);
 
-#endif /* Mtx_h */
+#endif /* _MTX_H */
