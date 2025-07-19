@@ -45,7 +45,7 @@ int cnd_deinit(cnd_t* _Nonnull self)
     return 0;
 }
 
-int _cond_wakeup(cnd_t* _Nonnull self, int flags)
+int _cnd_awake(cnd_t* _Nonnull self, int flags)
 {
     if (self->signature != CND_SIGNATURE) {
         errno = EINVAL;
@@ -58,12 +58,12 @@ int _cond_wakeup(cnd_t* _Nonnull self, int flags)
 
 int cnd_signal(cnd_t* _Nonnull self)
 {
-    return _cond_wakeup(self, WAKE_ONE);
+    return _cnd_awake(self, WAKE_ONE);
 }
 
 int cnd_broadcast(cnd_t* _Nonnull self)
 {
-    return _cond_wakeup(self, WAKE_ALL);
+    return _cnd_awake(self, WAKE_ALL);
 }
 
 // We use a signalling wait queue here to ensure that after we've dropped the
@@ -71,7 +71,7 @@ int cnd_broadcast(cnd_t* _Nonnull self)
 // lock before we are able to enter the wait, that we don't lose the fact that
 // the producer signalled us. We would miss this wakeup with a stateless wait
 // queue.
-static int _cond_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const struct timespec* _Nullable wtp)
+static int _cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const struct timespec* _Nullable wtp)
 {
     if (self->signature != CND_SIGNATURE) {
         errno = EINVAL;
@@ -92,10 +92,10 @@ static int _cond_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, co
 
 int cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex)
 {
-    return _cond_wait(self, mutex, TIMER_ABSTIME, &TIMESPEC_INF);
+    return _cnd_wait(self, mutex, TIMER_ABSTIME, &TIMESPEC_INF);
 }
 
 int cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const struct timespec* _Nonnull wtp)
 {
-    return _cond_wait(self, mutex, flags, wtp);
+    return _cnd_wait(self, mutex, flags, wtp);
 }
