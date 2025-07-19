@@ -206,7 +206,7 @@ cpu_SIZEOF         so
     endif
 
 
-; The VirtualProcessor
+; The vcpu
 SCHED_STATE_READY        equ 0   ; VP is able to run but currently sitting on the ready queue
 SCHED_STATE_RUNNING      equ 1   ; VP is running
 SCHED_STATE_WAITING      equ 2   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
@@ -250,7 +250,7 @@ vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
 vp_reserved2                            so.b    3           ; 3
 vp_SIZEOF                       so
     ifeq (vp_SIZEOF == 508)
-        fail "VirtualProcessor structure size is incorrect."
+        fail "vcpu structure size is incorrect."
     endif
 
 

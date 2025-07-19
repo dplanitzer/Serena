@@ -7,7 +7,6 @@
 //
 
 #include "FloppyDriverPriv.h"
-#include <dispatcher/VirtualProcessor.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <log/Log.h>
 #include <kern/kalloc.h>
@@ -16,6 +15,7 @@
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
 #include <sched/delay.h>
+#include <sched/vcpu.h>
 #include "mfm.h"
 
 

@@ -9,6 +9,7 @@
 #ifndef _KPI_TYPES_H
 #define _KPI_TYPES_H 1
 
+#include <_cmndef.h>
 #include <_off.h>
 #include <_size.h>
 #include <_ssize.h>

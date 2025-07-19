@@ -1,14 +1,14 @@
 //
-//  VirtualProcessor.c
+//  vcpu.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/21/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "VirtualProcessor.h"
-#include "VirtualProcessorPool.h"
-#include "VirtualProcessorScheduler.h"
+#include "vcpu.h"
+#include <dispatcher/VirtualProcessorPool.h>
+#include <dispatcher/VirtualProcessorScheduler.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
 #include <kern/kalloc.h>
@@ -24,10 +24,10 @@ const sigset_t SIGSET_BLOCK_NONE = 0;
 
 
 // Initializes an execution stack struct. The execution stack is empty by default
-// and you need to call ExecutionStack_SetMaxSize() to allocate the stack with
+// and you need to call vcpu_stack_setmaxsize() to allocate the stack with
 // the required size.
 // \param pStack the stack object (filled in on return)
-void ExecutionStack_Init(ExecutionStack* _Nonnull self)
+void vcpu_stack_Init(vcpu_stack_t* _Nonnull self)
 {
     self->base = NULL;
     self->size = 0;
@@ -35,7 +35,7 @@ void ExecutionStack_Init(ExecutionStack* _Nonnull self)
 
 // Sets the size of the execution stack to the given size. Does not attempt to preserve
 // the content of the existing stack.
-errno_t ExecutionStack_SetMaxSize(ExecutionStack* _Nullable self, size_t size)
+errno_t vcpu_stack_setmaxsize(vcpu_stack_t* _Nullable self, size_t size)
 {
     decl_try_err();
     const size_t newSize = (size > 0) ? __Ceil_PowerOf2(size, STACK_ALIGNMENT) : 0;
@@ -60,7 +60,7 @@ errno_t ExecutionStack_SetMaxSize(ExecutionStack* _Nullable self, size_t size)
 
 // Frees the given stack.
 // \param pStack the stack
-void ExecutionStack_Destroy(ExecutionStack* _Nullable self)
+void vcpu_stack_destroy(vcpu_stack_t* _Nullable self)
 {
     if (self) {
         kfree(self->base);
@@ -72,22 +72,22 @@ void ExecutionStack_Destroy(ExecutionStack* _Nullable self)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: VirtualProcessor
+// MARK: vcpu
 ////////////////////////////////////////////////////////////////////////////////
 
 
 // Frees a virtual processor.
 // \param pVP the virtual processor
-void __func_VirtualProcessor_Destroy(VirtualProcessor* _Nullable self)
+void __func_vcpu_destroy(vcpu_t _Nullable self)
 {
     ListNode_Deinit(&self->owner_qe);
-    ExecutionStack_Destroy(&self->kernel_stack);
-    ExecutionStack_Destroy(&self->user_stack);
+    vcpu_stack_destroy(&self->kernel_stack);
+    vcpu_stack_destroy(&self->user_stack);
     kfree(self);
 }
 
-static const VirtualProcessorVTable gVirtualProcessorVTable = {
-    __func_VirtualProcessor_Destroy
+static struct vcpu_vtable gVirtualProcessorVTable = {
+    __func_vcpu_destroy
 };
 
 
@@ -95,9 +95,9 @@ static const VirtualProcessorVTable gVirtualProcessorVTable = {
 // code and that it should be moved back to the virtual processor pool. This
 // function does not return to the caller. This function should only be invoked
 // from the bottom-most frame on the virtual processor's kernel stack.
-_Noreturn VirtualProcessor_Relinquish(void)
+_Noreturn vcpu_relinquish(void)
 {
-    VirtualProcessorPool_RelinquishVirtualProcessor(gVirtualProcessorPool, VirtualProcessor_GetCurrent());
+    VirtualProcessorPool_RelinquishVirtualProcessor(gVirtualProcessorPool, vcpu_current());
     /* NOT REACHED */
 }
 
@@ -107,13 +107,13 @@ _Noreturn VirtualProcessor_Relinquish(void)
 //
 // \param pVP the boot virtual processor record
 // \param priority the initial VP priority
-void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull self, int priority)
+void vcpu_cominit(vcpu_t _Nonnull self, int priority)
 {
     static volatile AtomicInt gNextAvailableVpid = 0;
 
     ListNode_Init(&self->rewa_qe);
-    ExecutionStack_Init(&self->kernel_stack);
-    ExecutionStack_Init(&self->user_stack);
+    vcpu_stack_Init(&self->kernel_stack);
+    vcpu_stack_Init(&self->user_stack);
 
     self->vtable = &gVirtualProcessorVTable;
     
@@ -142,21 +142,21 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull self, int priority)
 
 // Creates a new virtual processor.
 // \return the new virtual processor; NULL if creation has failed
-errno_t VirtualProcessor_Create(VirtualProcessor* _Nullable * _Nonnull pOutSelf)
+errno_t vcpu_create(vcpu_t _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    VirtualProcessor* self = NULL;
+    vcpu_t self = NULL;
     
-    err = kalloc_cleared(sizeof(VirtualProcessor), (void**) &self);
+    err = kalloc_cleared(sizeof(struct vcpu), (void**) &self);
     if (err == EOK) {
-        VirtualProcessor_CommonInit(self, VP_PRIORITY_NORMAL);
+        vcpu_cominit(self, VP_PRIORITY_NORMAL);
     }
 
     *pOutSelf = self;
     return err;
 }
 
-void VirtualProcessor_Destroy(VirtualProcessor* _Nullable self)
+void vcpu_destroy(vcpu_t _Nullable self)
 {
     if (self) {
         self->vtable->destroy(self);
@@ -166,7 +166,7 @@ void VirtualProcessor_Destroy(VirtualProcessor* _Nullable self)
 // Sets the dispatch queue that has acquired the virtual processor and owns it
 // until the virtual processor is relinquished back to the virtual processor
 // pool.
-void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull self, void* _Nullable pQueue, int concurrencyLaneIndex)
+void vcpu_setdq(vcpu_t _Nonnull self, void* _Nullable pQueue, int concurrencyLaneIndex)
 {
     VP_ASSERT_ALIVE(self);
     self->dispatchQueue = pQueue;
@@ -178,7 +178,7 @@ void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull self, void* _Nu
 //
 // \param pVP the virtual processor
 // \param closure the closure description
-errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull self, const VirtualProcessorClosure* _Nonnull closure)
+errno_t vcpu_setclosure(vcpu_t _Nonnull self, const VirtualProcessorClosure* _Nonnull closure)
 {
     VP_ASSERT_ALIVE(self);
     assert(self->suspension_count > 0);
@@ -187,23 +187,23 @@ errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull self, const Virtua
     decl_try_err();
 
     if (closure->kernelStackBase == NULL) {
-        try(ExecutionStack_SetMaxSize(&self->kernel_stack, closure->kernelStackSize));
+        try(vcpu_stack_setmaxsize(&self->kernel_stack, closure->kernelStackSize));
     } else {
-        ExecutionStack_SetMaxSize(&self->kernel_stack, 0);
+        vcpu_stack_setmaxsize(&self->kernel_stack, 0);
         self->kernel_stack.base = closure->kernelStackBase;
         self->kernel_stack.size = closure->kernelStackSize;
     }
-    try(ExecutionStack_SetMaxSize(&self->user_stack, closure->userStackSize));
+    try(vcpu_stack_setmaxsize(&self->user_stack, closure->userStackSize));
     
 
     // Initialize the CPU context
     cpu_make_callout(&self->save_area, 
-        (void*)ExecutionStack_GetInitialTop(&self->kernel_stack),
-        (void*)ExecutionStack_GetInitialTop(&self->user_stack),
+        (void*)vcpu_stack_initialtop(&self->kernel_stack),
+        (void*)vcpu_stack_initialtop(&self->user_stack),
         false,
         closure->func,
         closure->context,
-        (closure->ret_func) ? closure->ret_func : (VoidFunc_0)VirtualProcessor_Relinquish);
+        (closure->ret_func) ? closure->ret_func : (VoidFunc_0)vcpu_relinquish);
 
     return EOK;
 
@@ -214,7 +214,7 @@ catch:
 // Terminates the virtual processor that is executing the caller. Does not return
 // to the caller. Note that the actual termination of the virtual processor is
 // handled by the virtual processor scheduler.
-_Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull self)
+_Noreturn vcpu_terminate(vcpu_t _Nonnull self)
 {
     VP_ASSERT_ALIVE(self);
     self->lifecycle_state = VP_LIFECYCLE_TERMINATING;
@@ -228,7 +228,7 @@ _Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull self)
 }
 
 // Returns the priority of the given VP.
-int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull self)
+int vcpu_priority(vcpu_t _Nonnull self)
 {
     VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
@@ -242,7 +242,7 @@ int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull self)
 // the VP if it is currently running. Instead the VP is allowed to finish its
 // current quanta.
 // XXX might want to change that in the future?
-void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int priority)
+void vcpu_setpriority(vcpu_t _Nonnull self, int priority)
 {
     VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
@@ -274,10 +274,10 @@ void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull self, int priority)
 }
 
 // Yields the remainder of the current quantum to other VPs.
-void VirtualProcessor_Yield(void)
+void vcpu_yield(void)
 {
     const int sps = preempt_disable();
-    VirtualProcessor* self = (VirtualProcessor*)gVirtualProcessorScheduler->running;
+    vcpu_t self = (vcpu_t)gVirtualProcessorScheduler->running;
 
     assert(self->sched_state == SCHED_STATE_RUNNING && self->suspension_count == 0);
 
@@ -290,7 +290,7 @@ void VirtualProcessor_Yield(void)
 }
 
 // Suspends the calling virtual processor. This function supports nested calls.
-errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull self)
+errno_t vcpu_suspend(vcpu_t _Nonnull self)
 {
     VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
@@ -333,7 +333,7 @@ errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull self)
 // Resumes the given virtual processor. The virtual processor is forcefully
 // resumed if 'force' is true. This means that it is resumed even if the suspension
 // count is > 1.
-void VirtualProcessor_Resume(VirtualProcessor* _Nonnull self, bool force)
+void vcpu_resume(vcpu_t _Nonnull self, bool force)
 {
     VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
@@ -372,7 +372,7 @@ void VirtualProcessor_Resume(VirtualProcessor* _Nonnull self, bool force)
 }
 
 // Returns true if the given virtual processor is currently suspended; false otherwise.
-bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull self)
+bool vcpu_suspended(vcpu_t _Nonnull self)
 {
     VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
@@ -382,7 +382,7 @@ bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull self)
 }
 
 // Atomically updates the current signal mask and returns the old mask.
-errno_t VirtualProcessor_SetSignalMask(VirtualProcessor* _Nonnull self, int op, sigset_t mask, sigset_t* _Nullable pOutMask)
+errno_t vcpu_setsigmask(vcpu_t _Nonnull self, int op, sigset_t mask, sigset_t* _Nullable pOutMask)
 {
     decl_try_err();
     VP_ASSERT_ALIVE(self);
@@ -416,7 +416,7 @@ errno_t VirtualProcessor_SetSignalMask(VirtualProcessor* _Nonnull self, int op, 
 }
 
 // @Entry Condition: preemption disabled
-errno_t VirtualProcessor_Signal(VirtualProcessor* _Nonnull self, int signo)
+errno_t vcpu_sendsignal(vcpu_t _Nonnull self, int signo)
 {
     if (signo < SIGMIN || signo > SIGMAX) {
         return EINVAL;

@@ -9,7 +9,6 @@
 #include "FloppyDriverPriv.h"
 #include "FloppyControllerPkg.h"
 #include "adf.h"
-#include <dispatcher/VirtualProcessor.h>
 #include <machine/InterruptController.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
@@ -18,6 +17,7 @@
 #include <sched/delay.h>
 #include <sched/mtx.h>
 #include <sched/sem.h>
+#include <sched/vcpu.h>
 
 
 const DriveParams   kDriveParams_3_5 = {

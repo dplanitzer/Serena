@@ -11,7 +11,7 @@
 
     xref _mtx_onwait
     xref _mtx_wake
-    xref _VirtualProcessor_GetCurrentVpid
+    xref _vcpu_currentid
 
     xdef _mtx_trylock
     xdef _mtx_lock
@@ -43,7 +43,7 @@ _mtx_trylock:
     bne.s   .lta_lock_is_busy
 
     ; acquired the lock
-    jsr     _VirtualProcessor_GetCurrentVpid
+    jsr     _vcpu_currentid
     move.l  lta_lock_ptr(sp), a0
     move.l  d0, lock_owner_vpid(a0)
 
@@ -102,7 +102,7 @@ _mtx_lock:
     RESTORE_PREEMPTION d7
 
 .la_acquired_lock:
-    jsr     _VirtualProcessor_GetCurrentVpid
+    jsr     _vcpu_currentid
     move.l  la_lock_ptr(sp), a0
     move.l  d0, lock_owner_vpid(a0)
 
@@ -131,7 +131,7 @@ __mtx_unlock:
     move.l  d7, -(sp)
 
     ; make sure that we actually own the lock before we attempt to unlock it
-    jsr     _VirtualProcessor_GetCurrentVpid
+    jsr     _vcpu_currentid
     move.l  lr_lock_ptr(sp), a0
     move.l  lock_owner_vpid(a0), d1
     cmp.l   d0, d1

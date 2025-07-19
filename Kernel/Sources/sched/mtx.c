@@ -7,7 +7,7 @@
 //
 
 #include "mtx.h"
-#include <dispatcher/VirtualProcessor.h>
+#include "vcpu.h"
 
 extern errno_t _mtx_unlock(mtx_t* _Nonnull self);
 

@@ -99,7 +99,7 @@ static errno_t _SELock_AcquireExclusiveLockSlow(rwmtx_t* _Nonnull self)
         if (self->state == kSELState_Unlocked) {
             self->state = kSELState_LockedExclusive;
             self->ownerCount = 1;
-            self->exclusiveOwnerVpId = VirtualProcessor_GetCurrentVpid();
+            self->exclusiveOwnerVpId = vcpu_currentid();
             break;
         }
     }
@@ -119,7 +119,7 @@ errno_t rwmtx_wrlock(rwmtx_t* _Nonnull self)
         case kSELState_Unlocked:
             self->state = kSELState_LockedExclusive;
             self->ownerCount = 1;
-            self->exclusiveOwnerVpId = VirtualProcessor_GetCurrentVpid();
+            self->exclusiveOwnerVpId = vcpu_currentid();
             break;
 
         case kSELState_LockedShared:
@@ -127,7 +127,7 @@ errno_t rwmtx_wrlock(rwmtx_t* _Nonnull self)
             break;
 
         case kSELState_LockedExclusive:
-            if (self->exclusiveOwnerVpId == VirtualProcessor_GetCurrentVpid()) {
+            if (self->exclusiveOwnerVpId == vcpu_currentid()) {
                 self->ownerCount++;
             }
             else {
@@ -164,7 +164,7 @@ errno_t rwmtx_unlock(rwmtx_t* _Nonnull self)
             break;
 
         case kSELState_LockedExclusive:
-            if (self->exclusiveOwnerVpId != VirtualProcessor_GetCurrentVpid()) {
+            if (self->exclusiveOwnerVpId != vcpu_currentid()) {
                 err = EPERM;
             }
             else {

@@ -51,20 +51,20 @@ void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable self)
     }
 }
 
-errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, const VirtualProcessorParameters* _Nonnull params, VirtualProcessor* _Nonnull * _Nonnull pOutVP)
+errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, const VirtualProcessorParameters* _Nonnull params, vcpu_t _Nonnull * _Nonnull pOutVP)
 {
     decl_try_err();
-    VirtualProcessor* vp = NULL;
+    vcpu_t vp = NULL;
 
     mtx_lock(&self->mtx);
 
     // Try to reuse a cached VP
     List_ForEach(&self->reuse_queue, ListNode, {
-        VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
+        vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
         // Make sure that the VP is suspended at this point. It may still be in
         // the process of finishing the suspend. See relinquish() below
-        if (VirtualProcessor_IsSuspended(cvp)) {
+        if (vcpu_suspended(cvp)) {
             vp = cvp;
             break;
         }
@@ -80,7 +80,7 @@ errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _No
     
     // Create a new VP if we were not able to reuse a cached one
     if (vp == NULL) {
-        try(VirtualProcessor_Create(&vp));
+        try(vcpu_create(&vp));
     }
     
     
@@ -94,8 +94,8 @@ errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _No
     cl.userStackSize = params->userStackSize;
     cl.isUser = params->isUser;
 
-    try(VirtualProcessor_SetClosure(vp, &cl));
-    VirtualProcessor_SetPriority(vp, params->priority);
+    try(vcpu_setclosure(vp, &cl));
+    vcpu_setpriority(vp, params->priority);
     if (params->isUser) {
         vp->flags |= VP_FLAG_USER_OWNED;
     }
@@ -113,13 +113,13 @@ catch:
 // Relinquishes the given VP back to the reuse pool if possible. If the reuse
 // pool is full then the given VP is suspended and scheduled for finalization
 // instead. Note that the VP is suspended in any case.
-_Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, VirtualProcessor* _Nonnull vp)
+_Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, vcpu_t _Nonnull vp)
 {
     bool doReuse = false;
 
     // Null out the dispatch queue reference in any case since the VP should no
     // longer be associated with a queue.
-    VirtualProcessor_SetDispatchQueue(vp, NULL, -1);
+    vcpu_setdq(vp, NULL, -1);
 
 
     // Try to cache the VP
@@ -143,10 +143,10 @@ _Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRe
         vp->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_ABORTED_USPACE);
         vp->lifecycle_state = VP_LIFECYCLE_RELINQUISHED;
 
-        try_bang(VirtualProcessor_Suspend(vp));
+        try_bang(vcpu_suspend(vp));
     }
     else {
-        VirtualProcessor_Terminate(vp);
+        vcpu_terminate(vp);
     }
     /* NOT REACHED */
 }

@@ -166,11 +166,11 @@ void DispatchQueue_deinit(DispatchQueueRef _Nonnull self)
 // and acquires a virtual processor from the virtual processor pool if necessary.
 // The virtual processor is attached to the dispatch queue and remains attached
 // until it is relinquished by the queue.
-static void DispatchQueue_AttachVirtualProcessor_Locked(DispatchQueueRef _Nonnull self, VirtualProcessor* _Nonnull vp, int conLaneIdx)
+static void DispatchQueue_AttachVirtualProcessor_Locked(DispatchQueueRef _Nonnull self, vcpu_t _Nonnull vp, int conLaneIdx)
 {
     assert(conLaneIdx >= 0 && conLaneIdx < self->maxConcurrency);
 
-    VirtualProcessor_SetDispatchQueue(vp, self, conLaneIdx);
+    vcpu_setdq(vp, self, conLaneIdx);
     self->concurrency_lanes[conLaneIdx].vp = vp;
     self->concurrency_lanes[conLaneIdx].active_item = NULL;
     self->availableConcurrency++;
@@ -183,7 +183,7 @@ static void DispatchQueue_AttachVirtualProcessor_Locked(DispatchQueueRef _Nonnul
 static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull self)
 {
     decl_try_err();
-    VirtualProcessor* vp = NULL;
+    vcpu_t vp = NULL;
     VirtualProcessorParameters params;
 
     // Acquire a new virtual processor if we haven't already filled up all
@@ -220,7 +220,7 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
                                             &vp);
         if (err == EOK) {
             DispatchQueue_AttachVirtualProcessor_Locked(self, vp, conLaneIdx);
-            VirtualProcessor_Resume(vp, false);
+            vcpu_resume(vp, false);
         }
     }
 
@@ -232,13 +232,13 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
 // after it has been detached from the dispatch queue. This method should only
 // be called right before returning from the Dispatch_Run() method which is the
 // method that runs on the virtual processor to execute work items.
-static void DispatchQueue_DetachVirtualProcessor_Locked(DispatchQueueRef _Nonnull self, VirtualProcessor* _Nonnull vp)
+static void DispatchQueue_DetachVirtualProcessor_Locked(DispatchQueueRef _Nonnull self, vcpu_t _Nonnull vp)
 {
     const int conLaneIdx = vp->dispatchQueueConcurrencyLaneIndex;
 
     assert(conLaneIdx >= 0 && conLaneIdx < self->maxConcurrency);
 
-    VirtualProcessor_SetDispatchQueue(vp, NULL, -1);
+    vcpu_setdq(vp, NULL, -1);
     self->concurrency_lanes[conLaneIdx].vp = NULL;
     self->concurrency_lanes[conLaneIdx].active_item = NULL;
     self->availableConcurrency--;
@@ -444,7 +444,7 @@ static bool DispatchQueue_HasItemWithTag_Locked(DispatchQueueRef _Nonnull self, 
 // from the virtual processor pool.
 DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void)
 {
-    return (DispatchQueueRef) VirtualProcessor_GetCurrent()->dispatchQueue;
+    return (DispatchQueueRef) vcpu_current()->dispatchQueue;
 }
 
 
@@ -787,7 +787,7 @@ static WorkItem* _Nullable _get_next_work(DispatchQueueRef _Nonnull _Locked self
 
 void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
 {
-    VirtualProcessor* pVP = VirtualProcessor_GetCurrent();
+    vcpu_t pVP = vcpu_current();
     ConcurrencyLane* pConLane = &self->concurrency_lanes[pVP->dispatchQueueConcurrencyLaneIndex];
 
 

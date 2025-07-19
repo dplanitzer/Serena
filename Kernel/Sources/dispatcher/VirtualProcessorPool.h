@@ -9,8 +9,8 @@
 #ifndef VirtualProcessorPool_h
 #define VirtualProcessorPool_h
 
-#include "VirtualProcessor.h"
 #include <stdbool.h>
+#include <sched/vcpu.h>
 
 
 typedef struct VirtualProcessorParameters {
@@ -34,7 +34,7 @@ extern VirtualProcessorPoolRef _Nonnull gVirtualProcessorPool;
 extern errno_t VirtualProcessorPool_Create(VirtualProcessorPoolRef _Nullable * _Nonnull pOutSelf);
 extern void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable self);
 
-extern errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, const VirtualProcessorParameters* _Nonnull params, VirtualProcessor* _Nonnull * _Nonnull pOutVP);
-extern _Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, VirtualProcessor* _Nonnull vp);
+extern errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, const VirtualProcessorParameters* _Nonnull params, vcpu_t _Nonnull * _Nonnull pOutVP);
+extern _Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _Nonnull self, vcpu_t _Nonnull vp);
 
 #endif /* VirtualProcessorPool_h */

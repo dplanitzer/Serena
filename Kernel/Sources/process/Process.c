@@ -105,7 +105,7 @@ void Process_deinit(ProcessRef _Nonnull self)
 errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _Nonnull idp)
 {
     decl_try_err();
-    VirtualProcessor* vp = NULL;
+    vcpu_t vp = NULL;
     VirtualProcessorParameters kp;
 
     *idp = 0;
@@ -136,7 +136,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     *idp = vp->vpid;
 
     if ((attr->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
-        VirtualProcessor_Resume(vp, false);
+        vcpu_resume(vp, false);
     }
 
 catch:
@@ -145,14 +145,14 @@ catch:
     return err;
 }
 
-void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, VirtualProcessor* _Nonnull vp)
+void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp)
 {
     Process_DetachVirtualProcessor(self, vp);
-    VirtualProcessorPool_RelinquishVirtualProcessor(gVirtualProcessorPool, VirtualProcessor_GetCurrent());
+    VirtualProcessorPool_RelinquishVirtualProcessor(gVirtualProcessorPool, vcpu_current());
     /* NOT REACHED */
 }
 
-void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, VirtualProcessor* _Nonnull vp)
+void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp)
 {
     assert(vp->proc == self);
 

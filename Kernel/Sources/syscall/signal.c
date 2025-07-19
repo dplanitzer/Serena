@@ -44,10 +44,10 @@ SYSCALL_1(sigpending, sigset_t* _Nonnull set)
     return EOK;
 }
 
-static errno_t _sendsig(VirtualProcessor* _Nonnull vp, int signo)
+static errno_t _sendsig(vcpu_t _Nonnull vp, int signo)
 {
     const int sps = preempt_disable();
-    const errno_t err = VirtualProcessor_Signal(vp, signo);
+    const errno_t err = vcpu_sendsignal(vp, signo);
     preempt_restore(sps);
 
     return err;
@@ -61,7 +61,7 @@ SYSCALL_3(sigsend, int scope, id_t id, int signo)
 
     mtx_lock(&pp->mtx);
     List_ForEach(&pp->vpQueue, ListNode, {
-        VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
+        vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
         if (pa->scope == SIG_SCOPE_VCPU && pa->id == cvp->vpid) {
             _sendsig(cvp, pa->signo);

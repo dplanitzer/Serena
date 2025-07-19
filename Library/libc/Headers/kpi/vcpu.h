@@ -10,14 +10,13 @@
 #define _KPI_VCPU_H 1
 
 #include <kpi/types.h>
+#include <stdint.h>
 
 #define VCPUID_SELF 0
 
+
 struct vcpu;
 typedef struct vcpu* vcpu_t;
-
-struct vcpu_key;
-typedef struct vcpu_key* vcpu_key_t;
 
 
 // Acquire the VP and immediately resume it

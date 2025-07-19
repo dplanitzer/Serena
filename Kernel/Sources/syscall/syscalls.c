@@ -157,7 +157,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
 ////////////////////////////////////////////////////////////////////////////////
 
 
-intptr_t _syscall_handler(VirtualProcessor* _Nonnull vp, unsigned int* _Nonnull args)
+intptr_t _syscall_handler(vcpu_t _Nonnull vp, unsigned int* _Nonnull args)
 {
     const unsigned int scno = *args;
     intptr_t r;

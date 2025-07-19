@@ -7,10 +7,10 @@
 //
 
 #include "DiskCachePriv.h"
-#include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverChannel.h>
 #include <kern/string.h>
 #include <sched/delay.h>
+#include <sched/vcpu.h>
 
 
 // Define to force all writes to be synchronous

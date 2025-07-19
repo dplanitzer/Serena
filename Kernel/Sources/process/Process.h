@@ -10,13 +10,13 @@
 #define Process_h
 
 #include <stdarg.h>
-#include <dispatcher/VirtualProcessor.h>
 #include <kern/types.h>
 #include <kobj/Object.h>
 #include <kpi/proc.h>
 #include <kpi/spawn.h>
 #include <kpi/vcpu.h>
 #include <kpi/wait.h>
+#include <sched/vcpu.h>
 
 final_class(Process, Object);
 
@@ -58,8 +58,8 @@ extern errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _
 extern errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[]);
 
 extern errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _Nonnull idp);
-extern void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, VirtualProcessor* _Nonnull vp);
-extern void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, VirtualProcessor* _Nonnull vp);
+extern void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp);
+extern void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp);
 
 
 //

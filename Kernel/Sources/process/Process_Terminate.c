@@ -142,7 +142,7 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 // itself at the very end of the process termination sequence.
 static void _proc_detach_calling_vcpu(ProcessRef _Nonnull self)
 {
-    Process_DetachVirtualProcessor(self, VirtualProcessor_GetCurrent());
+    Process_DetachVirtualProcessor(self, vcpu_current());
 }
 
 // Initiate an abort on every virtual processor attached to ourselves. Note that
@@ -152,10 +152,10 @@ static void _proc_abort_vcpus(ProcessRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     List_ForEach(&self->vpQueue, ListNode, {
-        VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
+        vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
         const int sps = preempt_disable();
-        VirtualProcessor_Signal(cvp, SIGKILL);
+        vcpu_sendsignal(cvp, SIGKILL);
         preempt_restore(sps);
     });
     mtx_unlock(&self->mtx);
@@ -172,7 +172,7 @@ static void _proc_reap_vcpus(ProcessRef _Nonnull self)
 #if 1
         //XXX Can't use yield() here because the currently implemented scheduler
         //XXX algorithm is too weak and ends up starving some vps
-        //VirtualProcessor_Yield();
+        //vcpu_yield();
         struct timespec delay;
         timespec_from_ms(&delay, 10);
         wq_timedwait(&gHackQueue, NULL, 0, &delay, NULL);
@@ -186,9 +186,9 @@ static void _proc_reap_vcpus(ProcessRef _Nonnull self)
         mtx_lock(&self->mtx);
         if (self->vpQueue.first) {
             List_ForEach(&self->vpQueue, ListNode, {
-                VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
+                vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
-                VirtualProcessor_Suspend(cvp);
+                vcpu_suspend(cvp);
 
                // printf("sr: %x, vp: %p\n", (int)cvp->save_area.sr, cvp);
                 if ((cvp->save_area.sr & 0x2000) == 0 && (cvp->flags & VP_FLAG_ABORTED_USPACE) == 0) {
@@ -199,7 +199,7 @@ static void _proc_reap_vcpus(ProcessRef _Nonnull self)
                     cvp->flags |= VP_FLAG_ABORTED_USPACE;
                 }
 
-                VirtualProcessor_Resume(cvp, true);
+                vcpu_resume(cvp, true);
             });
         }
         else {
@@ -286,6 +286,6 @@ void Process_Terminate(ProcessRef _Nonnull self, int exitCode)
     // Finally relinquish myself
     VirtualProcessorPool_RelinquishVirtualProcessor(
         gVirtualProcessorPool,
-        VirtualProcessor_GetCurrent());
+        vcpu_current());
     /* NOT REACHED */
 }

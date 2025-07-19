@@ -27,7 +27,7 @@ SYSCALL_0(vcpu_getgrp)
 
 SYSCALL_3(vcpu_setsigmask, int op, sigset_t mask, sigset_t* _Nullable oldmask)
 {
-    return VirtualProcessor_SetSignalMask(vp, pa->op, pa->mask & ~SIGSET_NONMASKABLES, pa->oldmask);
+    return vcpu_setsigmask(vp, pa->op, pa->mask & ~SIGSET_NONMASKABLES, pa->oldmask);
 }
 
 SYSCALL_0(vcpu_getdata)
@@ -49,7 +49,7 @@ SYSCALL_2(vcpu_acquire, const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _No
 // Trap #2
 void _vcpu_relinquish_self(void)
 {
-    VirtualProcessor* vp = VirtualProcessor_GetCurrent();
+    vcpu_t vp = vcpu_current();
 
     Process_RelinquishVirtualProcessor(vp->proc, vp);
     /* NOT REACHED */
@@ -68,15 +68,15 @@ SYSCALL_1(vcpu_suspend, vcpuid_t id)
     ProcessRef pp = vp->proc;
 
     if (pa->id == VCPUID_SELF) {
-        err = VirtualProcessor_Suspend(vp);
+        err = vcpu_suspend(vp);
     }
     else {
         mtx_lock(&pp->mtx);
         List_ForEach(&pp->vpQueue, ListNode, {
-            VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
+            vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
             if (cvp->vpid == pa->id) {
-                err = VirtualProcessor_Suspend(cvp);
+                err = vcpu_suspend(cvp);
                 break;
             }
         });
@@ -92,10 +92,10 @@ SYSCALL_1(vcpu_resume, vcpuid_t id)
 
     mtx_lock(&pp->mtx);
     List_ForEach(&pp->vpQueue, ListNode, {
-        VirtualProcessor* cvp = VP_FROM_OWNER_NODE(pCurNode);
+        vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
         if (cvp->vpid == pa->id) {
-            VirtualProcessor_Resume(cvp, false);
+            vcpu_resume(cvp, false);
             break;
         }
     });
@@ -106,6 +106,6 @@ SYSCALL_1(vcpu_resume, vcpuid_t id)
 
 SYSCALL_0(vcpu_yield)
 {
-    VirtualProcessor_Yield();
+    vcpu_yield();
     return EOK;
 }

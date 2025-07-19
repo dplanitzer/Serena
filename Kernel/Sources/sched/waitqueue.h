@@ -18,7 +18,7 @@
 #include <kpi/waitqueue.h>
 
 
-struct VirtualProcessor;
+struct vcpu;
 
 
 // wait() options
@@ -82,7 +82,7 @@ extern errno_t wq_sigtimedwait(waitqueue_t _Nonnull self, const sigset_t* _Nonnu
 // is allowed or should not be done. 
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
-extern bool wq_wakeone(waitqueue_t _Nonnull self, struct VirtualProcessor* _Nonnull vp, int flags, wres_t reason);
+extern bool wq_wakeone(waitqueue_t _Nonnull self, struct vcpu* _Nonnull vp, int flags, wres_t reason);
 
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue.
@@ -100,11 +100,11 @@ extern void wq_wake_irq(waitqueue_t _Nonnull self);
 // Suspends an ongoing wait. This should be called if a VP that is currently
 // waiting on this queue is suspended.
 // @Entry Condition: preemption disabled
-extern void wq_suspendone(waitqueue_t _Nonnull self, struct VirtualProcessor* _Nonnull vp);
+extern void wq_suspendone(waitqueue_t _Nonnull self, struct vcpu* _Nonnull vp);
 
 // Resumes an ongoing wait. This should be called if a VP that is currently
 // waiting on this queue is resumed.
 // @Entry Condition: preemption disabled
-extern void wq_resumeone(waitqueue_t _Nonnull self, struct VirtualProcessor* _Nonnull vp);
+extern void wq_resumeone(waitqueue_t _Nonnull self, struct vcpu* _Nonnull vp);
 
 #endif /* _WAITQUEUE_H */

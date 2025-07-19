@@ -18,6 +18,10 @@
 
 __CPP_BEGIN
 
+struct vcpu_key;
+typedef struct vcpu_key* vcpu_key_t;
+
+
 typedef struct vcpu_attr {
     int                     version;                // Version 0
     vcpu_func_t _Nullable   func;
