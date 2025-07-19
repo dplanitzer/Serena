@@ -156,4 +156,8 @@ typedef struct ExceptionStackFrame {
 } ExceptionStackFrame;
 #pragma pack()
 
+
+extern unsigned int cpu68k_as_read_byte(void* p, int addr_space);
+extern void cpu68k_as_write_byte(void* p, int addr_space, unsigned int val);
+
 #endif /* _CPU_M68K_H */
