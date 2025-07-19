@@ -17,7 +17,6 @@
     xdef _chipset_disable_interrupt
     xdef _chipset_start_quantum_timer
     xdef _chipset_stop_quantum_timer
-    xdef _chipset_get_quantum_timer_duration_ns
     xdef _chipset_get_quantum_timer_elapsed_ns
 
 
@@ -217,14 +216,6 @@ _chipset_stop_quantum_timer:
     move.b  CIAACRB, d1
     and.b   #%11101110, d1
     move.b  d1, CIAACRB
-    rts
-
-
-;-------------------------------------------------------------------------------
-; int32_t chipset_get_quantum_timer_duration_ns(void)
-; Returns the length of a quantum in terms of nanoseconds.
-_chipset_get_quantum_timer_duration_ns:
-    move.l  SYS_DESC_BASE + sd_quantum_duration_ns, d0
     rts
 
 

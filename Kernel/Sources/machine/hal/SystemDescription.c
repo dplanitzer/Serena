@@ -248,8 +248,6 @@ void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, char* _Nullabl
     //
     // The ns_per_quantum_timer_cycle value is rounded such that:
     // ns_per_quantum_timer_cycle * quantum_duration_cycles <= quantum_duration_ns
-    // to ensure that we do not end up in a situation where the result of this product would return a quantum duration in
-    // nanoseconds that's longer than what chipset_get_quantum_timer_duration_ns() returns.
     const bool is_ntsc = chipset_is_ntsc();
     
     pSysDesc->ns_per_quantum_timer_cycle = (is_ntsc) ? 1396 : 1409;
