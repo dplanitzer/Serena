@@ -11,7 +11,7 @@
 
 #include <signal.h>
 #include <time.h>
-#include <sys/mutex.h>
+#include <sys/mtx.h>
 #include <sys/spinlock.h>
 
 __CPP_BEGIN
@@ -44,7 +44,7 @@ extern int cond_broadcast(cond_t* _Nonnull cv);
 // broadcast. Atomically unlocks 'mutex' and enters the wait state. Acquires 
 // 'mutex' after wakeup.
 // @Concurrency: Safe
-extern int cond_wait(cond_t* _Nonnull cv, mutex_t* _Nullable mutex);
+extern int cond_wait(cond_t* _Nonnull cv, mtx_t* _Nullable mutex);
 
 // Blocks the caller until the given condition variable has been signaled or
 // broadcast. Atomically unlocks 'mutex' and enters the wait state. Acquires 
@@ -52,7 +52,7 @@ extern int cond_wait(cond_t* _Nonnull cv, mutex_t* _Nullable mutex);
 // Returns 0 on success and -1 and errno set to ETIMEOUT if the condition
 // variable isn't signaled before the point in time defined by 'wtp'.
 // @Concurrency: Safe
-extern int cond_timedwait(cond_t* _Nonnull cv, mutex_t* _Nullable mutex, int flags, const struct timespec* _Nonnull wtp);
+extern int cond_timedwait(cond_t* _Nonnull cv, mtx_t* _Nullable mutex, int flags, const struct timespec* _Nonnull wtp);
 
 __CPP_END
 

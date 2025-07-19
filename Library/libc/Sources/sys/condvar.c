@@ -13,7 +13,7 @@
 #include <errno.h>
 #include <stddef.h>
 
-extern int __mutex_unlock(mutex_t* _Nonnull self);
+extern int __mutex_unlock(mtx_t* _Nonnull self);
 #define CV_SIGNATURE 0x53454d41
 
 
@@ -71,7 +71,7 @@ int cond_broadcast(cond_t* _Nonnull self)
 // lock before we are able to enter the wait, that we don't lose the fact that
 // the producer signalled us. We would miss this wakeup with a stateless wait
 // queue.
-static int _cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags, const struct timespec* _Nullable wtp)
+static int _cond_wait(cond_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const struct timespec* _Nullable wtp)
 {
     if (self->signature != CV_SIGNATURE) {
         errno = EINVAL;
@@ -85,17 +85,17 @@ static int _cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags,
     else if (r == 0) {
         wq_timedwait(self->wait_queue, NULL, flags, wtp);
     }
-    mutex_lock(mutex);
+    mtx_lock(mutex);
 
     return (r >= 0) ? 0 : -1;
 }
 
-int cond_wait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex)
+int cond_wait(cond_t* _Nonnull self, mtx_t* _Nonnull mutex)
 {
     return _cond_wait(self, mutex, TIMER_ABSTIME, &TIMESPEC_INF);
 }
 
-int cond_timedwait(cond_t* _Nonnull self, mutex_t* _Nonnull mutex, int flags, const struct timespec* _Nonnull wtp)
+int cond_timedwait(cond_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, const struct timespec* _Nonnull wtp)
 {
     return _cond_wait(self, mutex, flags, wtp);
 }

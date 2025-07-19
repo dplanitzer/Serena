@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <sys/mutex.h>
+#include <sys/mtx.h>
 #include <sys/timespec.h>
 #include <_math.h>
 #include "Asserts.h"
@@ -34,7 +34,7 @@ static const char* gAvailablePattern[NUM_PATTERNS] = {
 };
 
 static dispatch_t gDispatcher;
-static mutex_t gMutex;
+static mtx_t gMutex;
 static int gCurrentPatternIndex;
 static char gCurrentPattern[256];
 
@@ -66,7 +66,7 @@ static void select_and_write_pattern(void)
 
 static void OnWork(void* _Nonnull pValue)
 {
-    assertOK(mutex_lock(&gMutex));
+    assertOK(mtx_lock(&gMutex));
     printf("R: %d\n", gCurrentPatternIndex);
 
     // Make sure that we find the expected pattern in the pattern buffer
@@ -76,20 +76,20 @@ static void OnWork(void* _Nonnull pValue)
     // Select a new pattern and write it to the pattern buffer
     select_and_write_pattern();
 
-    assertOK(mutex_unlock(&gMutex));
+    assertOK(mtx_unlock(&gMutex));
 
     assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnWork, NULL));
 }
 
 
-void mutex_test(int argc, char *argv[])
+void mtx_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_CONCURRENT_UTILITY(NUM_VPS);
 
     gDispatcher = dispatch_create(&attr);
     assertNotNULL(gDispatcher);
 
-    assertOK(mutex_init(&gMutex));
+    assertOK(mtx_init(&gMutex));
     
     gCurrentPatternIndex = 0;
     select_and_write_pattern();

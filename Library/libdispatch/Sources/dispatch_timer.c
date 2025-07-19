@@ -207,11 +207,11 @@ int dispatch_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item, int 
 {
     int r = -1;
 
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
         r = _dispatch_timer(self, item, flags & _DISPATCH_SUBMIT_PUBLIC_MASK, deadline, interval);
     }
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
     return r;
 }
 
@@ -219,7 +219,7 @@ int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, const struc
 {
     int r = -1;
 
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
        dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_async_item), _async_adapter_func);
     
@@ -232,7 +232,7 @@ int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, const struc
             }
         }
     }
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
 
     return r;
 }

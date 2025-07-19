@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <__stddef.h>
 #include <_math.h>
-#include <sys/mutex.h>
+#include <sys/mtx.h>
 #include <sys/vm.h>
 #include "__malloc.h"
 
@@ -21,7 +21,7 @@
 
 AllocatorRef    __gMainAllocator;
 bool            __gAbortOnNoMem;
-static mutex_t  __gMallocLock;
+static mtx_t  __gMallocLock;
 
 
 void _abort_on_nomem(void)
@@ -81,15 +81,15 @@ void __malloc_init(void)
         abort();
     }
 
-    mutex_init(&__gMallocLock);
+    mtx_init(&__gMallocLock);
 }
 
 void __malloc_lock(void)
 {
-    mutex_lock(&__gMallocLock);
+    mtx_lock(&__gMallocLock);
 }
 
 void __malloc_unlock(void)
 {
-    mutex_unlock(&__gMallocLock);
+    mtx_unlock(&__gMallocLock);
 }

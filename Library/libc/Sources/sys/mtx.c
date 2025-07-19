@@ -1,5 +1,5 @@
 //
-//  sys/mutex.c
+//  sys/mtx.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 6/26/25.
@@ -9,18 +9,18 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <kpi/syscall.h>
-#include <sys/mutex.h>
+#include <sys/mtx.h>
 #include <sys/waitqueue.h>
 
-#define MUTEX_SIGNATURE 0x4c4f434b
+#define MTX_SIGNATURE 0x4c4f434b
 
 
-int mutex_init(mutex_t* _Nonnull self)
+int mtx_init(mtx_t* _Nonnull self)
 {
     self->spinlock = SPINLOCK_INIT;
     self->state = 0;
     self->waiters = 0;
-    self->signature = MUTEX_SIGNATURE;
+    self->signature = MTX_SIGNATURE;
     self->wait_queue = wq_create(WAITQUEUE_FIFO);
 
     if (self->wait_queue >= 0) {
@@ -32,9 +32,9 @@ int mutex_init(mutex_t* _Nonnull self)
     }
 }
 
-int mutex_deinit(mutex_t* _Nonnull self)
+int mtx_deinit(mtx_t* _Nonnull self)
 {
-    if (self->signature != MUTEX_SIGNATURE) {
+    if (self->signature != MTX_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
@@ -46,9 +46,9 @@ int mutex_deinit(mutex_t* _Nonnull self)
     return r;
 }
 
-int mutex_trylock(mutex_t* _Nonnull self)
+int mtx_trylock(mtx_t* _Nonnull self)
 {
-    if (self->signature != MUTEX_SIGNATURE) {
+    if (self->signature != MTX_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
@@ -65,11 +65,11 @@ int mutex_trylock(mutex_t* _Nonnull self)
     return -1;
 }
 
-int mutex_lock(mutex_t* _Nonnull self)
+int mtx_lock(mtx_t* _Nonnull self)
 {
     bool didWakeup = false;
 
-    if (self->signature != MUTEX_SIGNATURE) {
+    if (self->signature != MTX_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
@@ -94,11 +94,11 @@ int mutex_lock(mutex_t* _Nonnull self)
     /* NOT REACHED */
 }
 
-int __mutex_unlock(mutex_t* _Nonnull self)
+int __mutex_unlock(mtx_t* _Nonnull self)
 {
     bool doWakeup = false;
 
-    if (self->signature != MUTEX_SIGNATURE) {
+    if (self->signature != MTX_SIGNATURE) {
         errno = EINVAL;
         return -1;
     }
@@ -114,7 +114,7 @@ int __mutex_unlock(mutex_t* _Nonnull self)
     return (doWakeup) ? 1 : 0;
 }
 
-int mutex_unlock(mutex_t* _Nonnull self)
+int mtx_unlock(mtx_t* _Nonnull self)
 {
     const int r = __mutex_unlock(self);
 

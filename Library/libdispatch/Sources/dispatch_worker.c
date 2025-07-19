@@ -170,7 +170,7 @@ dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull 
 
 // Get more work for the caller. Returns 0 if work is available and != 0 if
 // there is no more work and the worker should relinquish itself. 
-static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Nonnull mp, dispatch_work_t* _Nonnull wp)
+static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mtx_t* _Nonnull mp, dispatch_work_t* _Nonnull wp)
 {
     dispatch_t q = self->owner;
     bool mayRelinquish = false;
@@ -238,9 +238,9 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Non
         // new work has arrived in the meantime or if not then we are free
         // to relinquish the VP since it hasn't done anything useful for a
         // longer time.
-        mutex_unlock(mp);
+        mtx_unlock(mp);
         const int err = sigtimedwait(&self->hotsigs, flags, &deadline, &si);
-        mutex_lock(mp);
+        mtx_lock(mp);
 
         if (err == ETIMEDOUT && q->worker_count > q->attr.minConcurrency) {
             mayRelinquish = true;
@@ -250,24 +250,24 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mutex_t* _Non
 
 void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
 {
-    mutex_t* mp = &(self->owner->mutex);
+    mtx_t* mp = &(self->owner->mutex);
 
     vcpu_setspecific(__os_dispatch_key, self);
 
-    mutex_lock(mp);
+    mtx_lock(mp);
 
     while (!_get_next_work(self, mp, &self->current)) {
         dispatch_timer_t timer = self->current.timer;
         dispatch_item_t item = self->current.item;
 
         item->state = DISPATCH_STATE_EXECUTING;
-        mutex_unlock(mp);
+        mtx_unlock(mp);
 
 
         item->func(item);
 
 
-        mutex_lock(mp);
+        mtx_lock(mp);
         if (item->state != DISPATCH_STATE_CANCELLED) {
             item->state = DISPATCH_STATE_DONE;
         }

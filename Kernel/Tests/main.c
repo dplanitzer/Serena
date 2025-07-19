@@ -31,7 +31,7 @@ extern void overwrite_file_test(int argc, char *argv[]);
 extern void hid_test(int argc, char *argv[]);
 
 // Mutex
-extern void mutex_test(int argc, char *argv[]);
+extern void mtx_test(int argc, char *argv[]);
 
 // Pipe
 extern void pipe_test(int argc, char *argv[]);
@@ -75,7 +75,7 @@ static const test_t gTests[] = {
 
     {"hid", hid_test, false},
 
-    {"mutex", mutex_test, true},
+    {"mtx", mtx_test, true},
 
     {"pipe", pipe_test, false},
     {"pipe2", pipe2_test, true},

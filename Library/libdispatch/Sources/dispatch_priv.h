@@ -124,7 +124,7 @@ extern vcpu_key_t __os_dispatch_key;
 
 
 struct dispatch {
-    mutex_t                 mutex;
+    mtx_t                 mutex;
     cond_t                  cond;
     dispatch_attr_t         attr;
     dispatch_callbacks_t    cb;

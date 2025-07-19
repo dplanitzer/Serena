@@ -37,7 +37,7 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
     }
 
 
-    if (mutex_init(&self->mutex) != 0) {
+    if (mtx_init(&self->mutex) != 0) {
         return false;
     }
 
@@ -135,7 +135,7 @@ int dispatch_destroy(dispatch_t _Nullable self)
         self->timers = SLIST_INIT;
 
         cond_deinit(&self->cond);
-        mutex_deinit(&self->mutex);
+        mtx_deinit(&self->mutex);
 
         free(self);
     }
@@ -176,7 +176,7 @@ _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch
     _dispatch_worker_destroy(worker);
 
     cond_broadcast(&self->cond);
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
 
     if (adoption == _DISPATCH_ACQUIRE_VCPU) {
         vcpu_relinquish_self();
@@ -377,19 +377,19 @@ int dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnul
 {
     int r = -1;
 
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
         r = _dispatch_submit(self, flags & _DISPATCH_SUBMIT_PUBLIC_MASK, item);
     }
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
     return r;
 }
 
 int dispatch_await(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     const int r = _dispatch_await(self, item);
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
     return r;
 }
 
@@ -405,7 +405,7 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
 {
     int r = -1;
 
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
        dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_async_item), _async_adapter_func);
     
@@ -418,7 +418,7 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
             }
         }
     }
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
 
     return r;
 }
@@ -435,7 +435,7 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
 {
     int r = -1;
 
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
         dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_sync_item), _sync_adapter_func);
     
@@ -452,7 +452,7 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
             _dispatch_cache_item(self, item);
         }
     }
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
 
     return r;
 }
@@ -489,14 +489,14 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
 
 void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
 {
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     _dispatch_do_cancel_item(self, flags, item);
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
 }
 
 void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _Nonnull func)
 {
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     dispatch_timer_t timer = _dispatch_find_timer(self, func);
     dispatch_item_t item = (timer) ? timer->item : NULL;
 
@@ -507,7 +507,7 @@ void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _
     if (item) {
         _dispatch_do_cancel_item(self, flags, item);
     }
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
 }
 
 void dispatch_cancel_current_item(int flags)
@@ -521,9 +521,9 @@ void dispatch_cancel_current_item(int flags)
 
 bool dispatch_item_cancelled(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     const bool r = (item->state == DISPATCH_STATE_CANCELLED) ? true : false;
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
     return r;
 }
 
@@ -551,9 +551,9 @@ dispatch_item_t _Nullable dispatch_current_item(void)
 
 int dispatch_priority(dispatch_t _Nonnull self)
 {
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     const int r = self->attr.priority;
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
     return r;
 }
 
@@ -565,9 +565,9 @@ int dispatch_setpriority(dispatch_t _Nonnull self, int priority)
 
 int dispatch_qos(dispatch_t _Nonnull self)
 {
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     const int r = self->attr.qos;
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
     return r;
 }
 
@@ -579,18 +579,18 @@ int dispatch_setqos(dispatch_t _Nonnull self, int qos)
 
 void dispatch_concurrency_info(dispatch_t _Nonnull self, dispatch_concurrency_info_t* _Nonnull info)
 {
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     info->minimum = self->attr.minConcurrency;
     info->maximum = self->attr.maxConcurrency;
     info->current = self->worker_count;
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
 }
 
 int dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t buflen)
 {
     int r = 0;
 
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     const size_t len = strlen(self->name);
 
     if (buflen == 0) {
@@ -604,7 +604,7 @@ int dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t buflen)
     strcpy(buf, self->name);
 
 out:
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
     return r;
 }
 
@@ -649,7 +649,7 @@ _Noreturn dispatch_run_main_queue(void)
 
 void dispatch_terminate(dispatch_t _Nonnull self, bool cancel)
 {
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     if (self != g_main_dispatcher && self->state == _DISPATCHER_STATE_ACTIVE) {
         self->state = _DISPATCHER_STATE_TERMINATING;
 
@@ -667,14 +667,14 @@ void dispatch_terminate(dispatch_t _Nonnull self, bool cancel)
         // Wake up all workers to inform them about the state change
         _dispatch_wakeup_all_workers(self);
     }
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
 }
 
 int dispatch_await_termination(dispatch_t _Nonnull self)
 {
     int r;
 
-    mutex_lock(&self->mutex);
+    mtx_lock(&self->mutex);
     switch (self->state) {
         case _DISPATCHER_STATE_ACTIVE:
             errno = ESRCH;
@@ -694,6 +694,6 @@ int dispatch_await_termination(dispatch_t _Nonnull self)
     r = 0;
 
 out:
-    mutex_unlock(&self->mutex);
+    mtx_unlock(&self->mutex);
     return r;
 }
