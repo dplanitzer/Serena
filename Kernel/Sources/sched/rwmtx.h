@@ -9,7 +9,7 @@
 #ifndef _RWMTX_H
 #define _RWMTX_H 1
 
-#include <dispatcher/ConditionVariable.h>
+#include <sched/cnd.h>
 #include <sched/mtx.h>
 
 enum {
@@ -40,11 +40,11 @@ enum {
 // track the identity of shared-mode lock owners. So it's important to follow
 // the locking protocol exactly to avoid problems.
 typedef struct rwmtx_t {
-    mtx_t               mtx;    // The management lock is not interruptible since it protects a very short code sequence and this keeps things simpler
-    ConditionVariable   cv;     // The CV is always interruptible
-    int                 exclusiveOwnerVpId;     // ID of the VP that is holding the lock in exclusive-mode; 0 if unlocked or locked in shared-mode
-    int32_t             ownerCount;             // Count of shared-mode lock owners or recursion count of the exclusive-mode lock owner
-    int32_t             state;
+    mtx_t       mtx;    // The management lock is not interruptible since it protects a very short code sequence and this keeps things simpler
+    cnd_t       cv;     // The CV is always interruptible
+    int         exclusiveOwnerVpId;     // ID of the VP that is holding the lock in exclusive-mode; 0 if unlocked or locked in shared-mode
+    int32_t     ownerCount;             // Count of shared-mode lock owners or recursion count of the exclusive-mode lock owner
+    int32_t     state;
 } rwmtx_t;
 
 

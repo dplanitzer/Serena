@@ -13,7 +13,7 @@
 #include <kern/kernlib.h>
 #include <kobj/Object.h>
 #include <klib/List.h>
-#include <dispatcher/ConditionVariable.h>
+#include <sched/cnd.h>
 #include <sched/mtx.h>
 #include "Inode.h"
 #include "PathComponent.h"
@@ -178,7 +178,7 @@ enum {
 //
 open_class(Filesystem, Object,
     fsid_t              fsid;
-    ConditionVariable   inCondVar;
+    cnd_t               inCondVar;
     mtx_t               inLock;
     List* _Nonnull      inCached;   // List<Inode>
     size_t              inCachedCount;

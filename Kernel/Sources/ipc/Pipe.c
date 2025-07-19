@@ -7,17 +7,17 @@
 //
 
 #include "Pipe.h"
-#include <dispatcher/ConditionVariable.h>
 #include <klib/RingBuffer.h>
 #include <kern/timespec.h>
 #include <kpi/stat.h>
+#include <sched/cnd.h>
 #include <sched/mtx.h>
 
 
 final_class_ivars(Pipe, Object,
     mtx_t               mtx;
-    ConditionVariable   reader;
-    ConditionVariable   writer;
+    cnd_t               reader;
+    cnd_t               writer;
     size_t              readerCount;
     size_t              writerCount;
     RingBuffer          buffer;
@@ -34,8 +34,8 @@ errno_t Pipe_Create(size_t bufferSize, PipeRef _Nullable * _Nonnull pOutPipe)
     try(Object_Create(class(Pipe), 0, (void**)&self));
     
     mtx_init(&self->mtx);
-    ConditionVariable_Init(&self->reader);
-    ConditionVariable_Init(&self->writer);
+    cnd_init(&self->reader);
+    cnd_init(&self->writer);
     self->readerCount = 0;
     self->writerCount = 0;
     try(RingBuffer_Init(&self->buffer, __max(bufferSize, 1)));
@@ -52,8 +52,8 @@ catch:
 void Pipe_deinit(PipeRef _Nullable self)
 {
     RingBuffer_Deinit(&self->buffer);
-    ConditionVariable_Deinit(&self->reader);
-    ConditionVariable_Deinit(&self->writer);
+    cnd_deinit(&self->reader);
+    cnd_deinit(&self->writer);
     mtx_deinit(&self->mtx);
 }
 
@@ -100,8 +100,8 @@ void Pipe_Open(PipeRef _Nonnull self, int end)
             abort();
     }
 
-    ConditionVariable_Broadcast(&self->reader);
-    ConditionVariable_Broadcast(&self->writer);
+    cnd_broadcast(&self->reader);
+    cnd_broadcast(&self->writer);
     mtx_unlock(&self->mtx);
 }
 
@@ -125,8 +125,8 @@ void Pipe_Close(PipeRef _Nonnull self, int end)
             abort();
     }
 
-    ConditionVariable_Broadcast(&self->reader);
-    ConditionVariable_Broadcast(&self->writer);
+    cnd_broadcast(&self->reader);
+    cnd_broadcast(&self->writer);
     mtx_unlock(&self->mtx);
 }
 
@@ -155,10 +155,10 @@ errno_t Pipe_Read(PipeRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesT
                 if (true /*allowBlocking*/) {
                     // Be sure to wake the writer before we go to sleep and drop the lock
                     // so that it can produce and add data for us.
-                    ConditionVariable_Broadcast(&self->writer);
+                    cnd_broadcast(&self->writer);
                     
                     // Wait for the writer to make data available
-                    if ((err = ConditionVariable_Wait(&self->reader, &self->mtx)) != EOK) {
+                    if ((err = cnd_wait(&self->reader, &self->mtx)) != EOK) {
                         err = (nBytesRead == 0) ? EINTR : EOK;
                         break;
                     }
@@ -197,10 +197,10 @@ errno_t Pipe_Write(PipeRef _Nonnull self, const void* _Nonnull pBytes, ssize_t n
                 if (true /*allowBlocking*/) {
                     // Be sure to wake the reader before we go to sleep and drop the lock
                     // so that it can consume data and make space available to us.
-                    ConditionVariable_Broadcast(&self->reader);
+                    cnd_broadcast(&self->reader);
                     
                     // Wait for the reader to make space available
-                    if (( err = ConditionVariable_Wait(&self->writer, &self->mtx)) != EOK) {
+                    if (( err = cnd_wait(&self->writer, &self->mtx)) != EOK) {
                         err = (nBytesWritten == 0) ? EINTR : EOK;
                         break;
                     }

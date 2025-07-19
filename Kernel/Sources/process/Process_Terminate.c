@@ -24,7 +24,7 @@ static errno_t _proc_on_child_termination(ProcessRef _Nonnull self, ProcessRef _
 
 
     mtx_lock(&self->mtx);
-    ConditionVariable_Broadcast(&self->procTermSignaler);
+    cnd_broadcast(&self->procTermSignaler);
     mtx_unlock(&self->mtx);
 
     return EOK;
@@ -73,7 +73,7 @@ errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull self, pid_t pid, s
 
 
         // Wait for a child to terminate
-        err = ConditionVariable_Wait(&self->procTermSignaler, &self->mtx);
+        err = cnd_wait(&self->procTermSignaler, &self->mtx);
         if (err != EOK) {
             break;
         }

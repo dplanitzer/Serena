@@ -30,33 +30,33 @@ void mtx_unlock(mtx_t* self)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <dispatcher/ConditionVariable.h>
+#include "cnd.h"
 
-void ConditionVariable_Init(ConditionVariable* pCondVar)
+void cnd_init(cnd_t* pCondVar)
 {
     InitializeConditionVariable(pCondVar);
 }
 
-void ConditionVariable_Deinit(ConditionVariable* pCondVar)
+void cnd_deinit(cnd_t* pCondVar)
 {
 }
 
-void ConditionVariable_Signal(ConditionVariable* pCondVar)
+void cnd_signal(cnd_t* pCondVar)
 {
     WakeConditionVariable(pCondVar);
 }
 
-void ConditionVariable_Broadcast(ConditionVariable* pCondVar)
+void cnd_broadcast(cnd_t* pCondVar)
 {
     WakeAllConditionVariable(pCondVar);
 }
 
-errno_t ConditionVariable_Wait(ConditionVariable* pCondVar, mtx_t* mtx)
+errno_t cnd_wait(cnd_t* pCondVar, mtx_t* mtx)
 {
     return (SleepConditionVariableSRW(pCondVar, mtx, INFINITE, 0) != 0) ? EOK : EINTR;
 }
 
-errno_t ConditionVariable_TimedWait(ConditionVariable* pCondVar, mtx_t* mtx, const struct timespec* _Nonnull deadline)
+errno_t cnd_timedwait(cnd_t* pCondVar, mtx_t* mtx, const struct timespec* _Nonnull deadline)
 {
     return (SleepConditionVariableSRW(pCondVar, mtx, INFINITE, 0) != 0) ? EOK : EINTR;
 }

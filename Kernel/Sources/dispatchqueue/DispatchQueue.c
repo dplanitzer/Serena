@@ -30,8 +30,8 @@ errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, in
     SList_Init(&self->timer_queue);
     SList_Init(&self->item_cache_queue);
     mtx_init(&self->lock);
-    ConditionVariable_Init(&self->work_available_signaler);
-    ConditionVariable_Init(&self->vp_shutdown_signaler);
+    cnd_init(&self->work_available_signaler);
+    cnd_init(&self->vp_shutdown_signaler);
     self->owning_process = pProc;
     self->descriptor = -1;
     self->virtual_processor_pool = vpPoolRef;
@@ -106,7 +106,7 @@ void DispatchQueue_Terminate(DispatchQueueRef _Nonnull self)
 
     // We want to wake _all_ VPs up here since all of them need to relinquish
     // themselves.
-    ConditionVariable_Broadcast(&self->work_available_signaler);
+    cnd_broadcast(&self->work_available_signaler);
     mtx_unlock(&self->lock);
 }
 
@@ -116,7 +116,7 @@ void DispatchQueue_WaitForTerminationCompleted(DispatchQueueRef _Nonnull self)
 {
     mtx_lock(&self->lock);
     while (self->availableConcurrency > 0) {
-        ConditionVariable_Wait(&self->vp_shutdown_signaler, &self->lock);
+        cnd_wait(&self->vp_shutdown_signaler, &self->lock);
     }
 
 
@@ -144,8 +144,8 @@ static void _DispatchQueue_Destroy(DispatchQueueRef _Nonnull self)
     SList_Deinit(&self->item_cache_queue);
     
     mtx_deinit(&self->lock);
-    ConditionVariable_Deinit(&self->work_available_signaler);
-    ConditionVariable_Deinit(&self->vp_shutdown_signaler);
+    cnd_deinit(&self->work_available_signaler);
+    cnd_deinit(&self->vp_shutdown_signaler);
     self->owning_process = NULL;
     self->virtual_processor_pool = NULL;
 }
@@ -552,7 +552,7 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
         throw(err);
     }
 
-    ConditionVariable_Signal(&self->work_available_signaler);
+    cnd_signal(&self->work_available_signaler);
     mtx_unlock(&self->lock);
     isLocked = false;
     // Queue is now unlocked
@@ -660,7 +660,7 @@ errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, const struct
         throw(err);
     }
 
-    ConditionVariable_Signal(&self->work_available_signaler);
+    cnd_signal(&self->work_available_signaler);
     mtx_unlock(&self->lock);
 
     return EOK;
@@ -774,7 +774,7 @@ static WorkItem* _Nullable _get_next_work(DispatchQueueRef _Nonnull _Locked self
         // new work has arrived in the meantime or if not then we are free
         // to relinquish the VP since it hasn't done anything useful for a
         // longer time.
-        const errno_t err = ConditionVariable_TimedWait(&self->work_available_signaler, &self->lock, &deadline);
+        const errno_t err = cnd_timedwait(&self->work_available_signaler, &self->lock, &deadline);
         if (self->state != kQueueState_Running) {
             return NULL;
         }
@@ -851,7 +851,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
     DispatchQueue_DetachVirtualProcessor_Locked(self, pVP);
 
     if (self->state >= kQueueState_Terminating) {
-        ConditionVariable_Signal(&self->vp_shutdown_signaler);
+        cnd_signal(&self->vp_shutdown_signaler);
     }
     mtx_unlock(&self->lock);
 }

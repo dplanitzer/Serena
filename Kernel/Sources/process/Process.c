@@ -56,7 +56,7 @@ errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarc
     wq_init(&self->siwaQueue);
     FileManager_Init(&self->fm, pFileHierarchy, uid, gid, pRootDir, pWorkingDir, umask);
 
-    ConditionVariable_Init(&self->procTermSignaler);
+    cnd_init(&self->procTermSignaler);
 
     try(AddressSpace_Create(&self->addressSpace));
 
@@ -77,7 +77,7 @@ void Process_deinit(ProcessRef _Nonnull self)
     FileManager_Deinit(&self->fm);
     AddressSpace_Destroy(self->addressSpace);
 
-    ConditionVariable_Deinit(&self->procTermSignaler);
+    cnd_deinit(&self->procTermSignaler);
 
     for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
         List_ForEach(&self->waitQueueTable[i], ListNode, {

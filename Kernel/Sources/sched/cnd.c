@@ -1,30 +1,30 @@
 //
-//  ConditionVariable.c
+//  cnd.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 4/7/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "ConditionVariable.h"
-#include "VirtualProcessorScheduler.h"
+#include "cnd.h"
+#include <dispatcher/VirtualProcessorScheduler.h>
 #include <kern/assert.h>
 
 
 // Initializes a new condition variable.
-void ConditionVariable_Init(ConditionVariable* _Nonnull self)
+void cnd_init(cnd_t* _Nonnull self)
 {
     wq_init(&self->wq);
 }
 
 // Deinitializes the condition variable.
-void ConditionVariable_Deinit(ConditionVariable* _Nonnull self)
+void cnd_deinit(cnd_t* _Nonnull self)
 {
     assert(wq_deinit(&self->wq) == EOK);
 }
 
 // Signals the given condition variable.
-void _ConditionVariable_Wakeup(ConditionVariable* _Nonnull self, bool broadcast)
+void _cnd_wake(cnd_t* _Nonnull self, bool broadcast)
 {
     const int flags = (broadcast) ? WAKEUP_ALL : WAKEUP_ONE;
     const int sps = preempt_disable();
@@ -35,7 +35,7 @@ void _ConditionVariable_Wakeup(ConditionVariable* _Nonnull self, bool broadcast)
 
 // Unlocks 'pLock' and blocks the caller until the condition variable is signaled.
 // It then locks 'pLock' before it returns to the caller.
-errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull self, mtx_t* _Nonnull mtx)
+errno_t cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx)
 {
     // Note that we disable preemption while unlocking and entering the wait.
     // The reason is that we want to ensure that noone else can grab the lock,
@@ -56,7 +56,7 @@ errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull self, mtx_t* _Nonnull
 
 // Unlocks 'pLock' and blocks the caller until the condition variable is signaled.
 // It then locks 'pLock' before it returns to the caller.
-errno_t ConditionVariable_TimedWait(ConditionVariable* _Nonnull self, mtx_t* _Nonnull mtx, const struct timespec* _Nonnull deadline)
+errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx, const struct timespec* _Nonnull deadline)
 {
     const int sps = preempt_disable();
     

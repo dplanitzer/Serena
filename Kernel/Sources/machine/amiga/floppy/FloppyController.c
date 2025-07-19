@@ -9,13 +9,13 @@
 #include "FloppyDriverPriv.h"
 #include "FloppyControllerPkg.h"
 #include "adf.h"
-#include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Semaphore.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <machine/InterruptController.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
 #include <kern/timespec.h>
+#include <sched/cnd.h>
 #include <sched/delay.h>
 #include <sched/mtx.h>
 
@@ -47,7 +47,7 @@ const DriveParams   kDriveParams_5_25 = {
 
 final_class_ivars(FloppyController, Driver,
     mtx_t               mtx;       // Used to ensure that we issue commands to the hardware atomically since all drives share the same CIA and DMA register set
-    ConditionVariable   cv;
+    cnd_t               cv;
     Semaphore           done;       // Semaphore indicating whether the DMA is done
     InterruptHandlerID  irqHandler;
     struct __fdcFlags {
@@ -70,7 +70,7 @@ errno_t FloppyController_Create(DriverRef _Nullable parent, FloppyControllerRef 
     try(Driver_Create(class(FloppyController), 0, parent, (DriverRef*)&self));
 
     mtx_init(&self->mtx);
-    ConditionVariable_Init(&self->cv);
+    cnd_init(&self->cv);
     Semaphore_Init(&self->done, 0);
         
     try(InterruptController_AddSemaphoreInterruptHandler(gInterruptController,
@@ -99,7 +99,7 @@ static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
     self->irqHandler = 0;
         
     Semaphore_Deinit(&self->done);
-    ConditionVariable_Deinit(&self->cv);
+    cnd_deinit(&self->cv);
     mtx_deinit(&self->mtx);
 }
 
@@ -328,7 +328,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     mtx_lock(&self->mtx);
 
     while (self->flags.inUse && err == EOK) {
-        err = ConditionVariable_Wait(&self->cv, &self->mtx);
+        err = cnd_wait(&self->cv, &self->mtx);
     }
     if (err != EOK) {
         mtx_unlock(&self->mtx);
@@ -421,7 +421,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 
 
     self->flags.inUse = 0;
-    ConditionVariable_Broadcast(&self->cv);
+    cnd_broadcast(&self->cv);
     mtx_unlock(&self->mtx);
 
     return (err == EOK) ? EOK : EIO;

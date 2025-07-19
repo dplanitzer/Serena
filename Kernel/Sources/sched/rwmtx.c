@@ -15,7 +15,7 @@
 void rwmtx_init(rwmtx_t* _Nonnull self)
 {
     mtx_init(&self->mtx);
-    ConditionVariable_Init(&self->cv);
+    cnd_init(&self->cv);
     self->exclusiveOwnerVpId = 0;
     self->ownerCount = 0;
     self->state = kSELState_Unlocked;
@@ -28,7 +28,7 @@ void rwmtx_deinit(rwmtx_t* _Nonnull self)
     assert(self->state == kSELState_Unlocked);
     mtx_unlock(&self->mtx);
 
-    ConditionVariable_Deinit(&self->cv);
+    cnd_deinit(&self->cv);
     mtx_deinit(&self->mtx);
 }
 
@@ -37,7 +37,7 @@ static errno_t _SELock_AcquireSharedLockSlow(rwmtx_t* _Nonnull self)
     decl_try_err();
 
     for (;;) {
-        err = ConditionVariable_Wait(&self->cv, &self->mtx);
+        err = cnd_wait(&self->cv, &self->mtx);
         if (err != EOK) {
             break;
         }
@@ -91,7 +91,7 @@ static errno_t _SELock_AcquireExclusiveLockSlow(rwmtx_t* _Nonnull self)
     decl_try_err();
 
     for (;;) {
-        err = ConditionVariable_Wait(&self->cv, &self->mtx);
+        err = cnd_wait(&self->cv, &self->mtx);
         if (err != EOK) {
             break;
         }
@@ -189,7 +189,7 @@ errno_t rwmtx_unlock(rwmtx_t* _Nonnull self)
     }
 
     if (doBroadcast) {
-        ConditionVariable_Broadcast(&self->cv);
+        cnd_broadcast(&self->cv);
     }
     mtx_unlock(&self->mtx);
 

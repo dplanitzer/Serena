@@ -13,8 +13,8 @@
 #include "DiskBlock.h"
 #include <klib/Hash.h>
 #include <klib/List.h>
-#include <dispatcher/ConditionVariable.h>
 #include <driver/disk/DiskDriver.h>
+#include <sched/cnd.h>
 #include <sched/mtx.h>
 
 
@@ -160,7 +160,7 @@ enum {
 
 typedef struct DiskCache {
     mtx_t                       interlock;
-    ConditionVariable           condition;
+    cnd_t                       condition;
     int                         nextAvailSessionId;
     size_t                      lruChainGeneration;     // Incremented every time the LRU chain is modified
     List/*<DiskBlock>*/         lruChain;               // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used

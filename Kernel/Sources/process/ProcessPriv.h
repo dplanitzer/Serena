@@ -12,8 +12,8 @@
 #include "Process.h"
 #include "IOChannelTable.h"
 #include <Catalog.h>
-#include <dispatcher/ConditionVariable.h>
 #include <filemanager/FileManager.h>
+#include <sched/cnd.h>
 #include <sched/mtx.h>
 #include <sched/waitqueue.h>
 #include <vm/AddressSpace.h>
@@ -80,7 +80,7 @@ final_class_ivars(Process, Object,
     // Child process related properties
     List/*<Process>*/               children;
     ListNode                        siblings;
-    ConditionVariable               procTermSignaler;
+    cnd_t                           procTermSignaler;
 );
 
 #define proc_from_ptce(__ptr) \

@@ -29,7 +29,7 @@ errno_t DiskCache_Create(size_t blockSize, size_t maxBlockCount, DiskCacheRef _N
     try(kalloc_cleared(sizeof(DiskCache), (void**) &self));
 
     mtx_init(&self->interlock);
-    ConditionVariable_Init(&self->condition);
+    cnd_init(&self->condition);
     List_Init(&self->lruChain);
 
     self->nextAvailSessionId = 1;
@@ -80,7 +80,7 @@ errno_t _DiskCache_LockBlockContent(DiskCacheRef _Nonnull _Locked self, DiskBloc
                 break;
         }
 
-        err = ConditionVariable_Wait(&self->condition, &self->interlock);
+        err = cnd_wait(&self->condition, &self->interlock);
         if (err != EOK) {
             break;
         }
@@ -108,7 +108,7 @@ void _DiskCache_UnlockBlockContent(DiskCacheRef _Nonnull _Locked self, DiskBlock
         abort();
     }
 
-    ConditionVariable_Broadcast(&self->condition);
+    cnd_broadcast(&self->condition);
 }
 
 #if 0
@@ -121,7 +121,7 @@ errno_t _DiskCache_UpgradeBlockContentLock(DiskCacheRef _Nonnull _Locked self, D
     assert(pBlock->shareCount > 0);
 
     while (pBlock->shareCount > 1 && pBlock->flags.exclusive) {
-        err = ConditionVariable_Wait(&self->condition, &self->interlock);
+        err = cnd_wait(&self->condition, &self->interlock);
         if (err != EOK) {
             return err;
         }
@@ -289,7 +289,7 @@ errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, const DiskSessio
                 break;
             }
 
-            try_bang(ConditionVariable_Wait(&self->condition, &self->interlock));
+            try_bang(cnd_wait(&self->condition, &self->interlock));
         }
     }
 
@@ -318,7 +318,7 @@ void _DiskCache_PutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnu
         assert(pBlock->flags.op == kDiskBlockOp_Idle);
 
         // Wake the wait() in _DiskCache_GetBlock()
-        ConditionVariable_Broadcast(&self->condition);
+        cnd_broadcast(&self->condition);
     }
 }
 

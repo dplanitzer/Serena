@@ -61,7 +61,7 @@ errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOut
     try(FSAllocateCleared(sizeof(List) * IN_READING_HASH_CHAINS_COUNT, (void**)&self->inReading));
     
     self->fsid = Filesystem_GetNextAvailableId();
-    ConditionVariable_Init(&self->inCondVar);
+    cnd_init(&self->inCondVar);
     mtx_init(&self->inLock);
     List_Init(&self->inReadingCache);
     self->state = kFilesystemState_Idle;
@@ -94,7 +94,7 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
 
     List_Deinit(&self->inReadingCache);
     mtx_deinit(&self->inLock);
-    ConditionVariable_Deinit(&self->inCondVar);
+    cnd_deinit(&self->inCondVar);
 }
 
 errno_t Filesystem_Publish(FilesystemRef _Nonnull self)
@@ -202,7 +202,7 @@ retry:
 
         if (isReading) {
             self->inReadingWaiterCount++;
-            try_bang(ConditionVariable_Wait(&self->inCondVar, &self->inLock));
+            try_bang(cnd_wait(&self->inCondVar, &self->inLock));
             self->inReadingWaiterCount--;
             goto retry;
         }
@@ -255,7 +255,7 @@ retry:
 
 catch:
     if (doBroadcast) {
-        ConditionVariable_Broadcast(&self->inCondVar);
+        cnd_broadcast(&self->inCondVar);
     }
 
     *pOutNode = ip;

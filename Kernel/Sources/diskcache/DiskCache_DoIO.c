@@ -20,7 +20,7 @@ static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRe
     decl_try_err();
 
     while (pBlock->flags.op == op) {
-        err = ConditionVariable_Wait(&self->condition, &self->interlock);
+        err = cnd_wait(&self->condition, &self->interlock);
         if (err != EOK) {
             return err;
         }
@@ -236,7 +236,7 @@ static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, Di
     }
     else {
         // Wake up WaitIO()
-        ConditionVariable_Broadcast(&self->condition);
+        cnd_broadcast(&self->condition);
         // Will return with the lock held in exclusive or shared mode depending
         // on the type of I/O operation we did
     }
