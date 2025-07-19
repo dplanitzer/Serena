@@ -10,6 +10,7 @@
 #include "ProcessManager.h"
 #include <kern/timespec.h>
 #include <log/Log.h>
+#include <machine/csw.h>
 #include <sched/vcpu_pool.h>
 
 extern void cpu_abort_vcpu_from_uspace(void);
@@ -154,9 +155,9 @@ static void _proc_abort_vcpus(ProcessRef _Nonnull self)
     List_ForEach(&self->vpQueue, ListNode, {
         vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
-        const int sps = preempt_disable();
+        const int sps = csw_disable();
         vcpu_sendsignal(cvp, SIGKILL);
-        preempt_restore(sps);
+        csw_restore(sps);
     });
     mtx_unlock(&self->mtx);
 }

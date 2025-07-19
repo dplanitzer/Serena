@@ -9,6 +9,7 @@
 #include "syscalldecls.h"
 #include <kern/timespec.h>
 #include <kpi/signal.h>
+#include <machine/csw.h>
 #include <sched/waitqueue.h>
 
 
@@ -17,9 +18,9 @@ SYSCALL_2(sigwait, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    const int sps = preempt_disable();
+    const int sps = csw_disable();
     err = wq_sigwait(&pp->siwaQueue, pa->set, pa->info);
-    preempt_restore(sps);
+    csw_restore(sps);
     return err;
 }
 
@@ -28,27 +29,27 @@ SYSCALL_4(sigtimedwait, const sigset_t* _Nonnull set, int flags, const struct ti
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    const int sps = preempt_disable();
+    const int sps = csw_disable();
     err = wq_sigtimedwait(&pp->siwaQueue, pa->set, pa->flags, pa->wtp, pa->info);
-    preempt_restore(sps);
+    csw_restore(sps);
     return err;
 }
 
 SYSCALL_1(sigpending, sigset_t* _Nonnull set)
 {
     decl_try_err();
-    const int sps = preempt_disable();
+    const int sps = csw_disable();
 
     *(pa->set) = vp->psigs & ~vp->sigmask;
-    preempt_restore(sps);
+    csw_restore(sps);
     return EOK;
 }
 
 static errno_t _sendsig(vcpu_t _Nonnull vp, int signo)
 {
-    const int sps = preempt_disable();
+    const int sps = csw_disable();
     const errno_t err = vcpu_sendsignal(vp, signo);
-    preempt_restore(sps);
+    csw_restore(sps);
 
     return err;
 }

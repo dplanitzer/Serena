@@ -13,6 +13,7 @@
 #include <dispatchqueue/DispatchQueue.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
+#include <machine/csw.h>
 #include <machine/InterruptController.h>
 #include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
@@ -92,7 +93,7 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 
     // Do the first ever context switch over to the boot virtual processor
     // execution context.
-    sched_switch_to_boot_vcpu();
+    csw_switch_to_boot_vcpu();
 }
 
 // Invoked by onBoot(). The code here runs in the boot virtual processor execution

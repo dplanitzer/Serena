@@ -1,5 +1,5 @@
 ;
-;  sched_asm.s
+;  csw.s
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 2/23/21.
@@ -11,26 +11,26 @@
     xref _g_sched_storage
     xref _cpu_non_recoverable_error
 
-    xdef _preempt_disable
-    xdef _preempt_restore
-    xdef _sched_switch_ctx
-    xdef _sched_switch_to_boot_vcpu
-    xdef __rtecall_sched_switch_ctx
+    xdef _csw_disable
+    xdef _csw_restore
+    xdef _csw_switch
+    xdef _csw_switch_to_boot_vcpu
+    xdef __csw_rte_switch
 
 
 ;-------------------------------------------------------------------------------
-; int preempt_disable(void)
+; int csw_disable(void)
 ; Disables preemption and returns the previous preemption state.
-_preempt_disable:
+_csw_disable:
     DISABLE_PREEMPTION d0
     rts
 
 
 ;-------------------------------------------------------------------------------
-; void preempt_restore(int sps)
+; void csw_restore(int sps)
 ; Restores the preemption state to 'sps'. Note that this function call wipes out
 ; the condition codes and tracing enabled state.
-_preempt_restore:
+_csw_restore:
     cargs rp_state.l
     move.l  rp_state(sp), d0
     RESTORE_PREEMPTION d0
@@ -38,11 +38,11 @@ _preempt_restore:
 
 
 ;-------------------------------------------------------------------------------
-; void sched_switch_ctx(void)
+; void csw_switch(void)
 ; Invokes the context switcher. Expects that preemption is disabled and that the
 ; scheduler set up a CSW request. Enables preemption as it switches to another
 ; VP. Once this function returns to the caller preemption is disabled again.
-_sched_switch_ctx:
+_csw_switch:
     inline
         ; push a format $0 exception stack frame on the stack. The PC field in
         ; that frame points to our rts instruction.
@@ -50,7 +50,7 @@ _sched_switch_ctx:
         lea     .csw_return(pc), a0
         move.l  a0, -(sp)               ; PC
         move.w  sr, -(sp)               ; SR
-        jmp     __rtecall_sched_switch_ctx
+        jmp     __csw_rte_switch
 
 .csw_return:
         rts
@@ -58,21 +58,21 @@ _sched_switch_ctx:
 
 
 ;-------------------------------------------------------------------------------
-; void sched_switch_to_boot_vcpu(void)
+; void csw_switch_to_boot_vcpu(void)
 ; Triggers the very first context switch to the boot virtual processor. This call
 ; transfers the CPU to the boot virtual processor execution context and does not
 ; return to the caller.
 ; Expects to be called with interrupts turned off.
-_sched_switch_to_boot_vcpu:
+_csw_switch_to_boot_vcpu:
     inline
-        jmp     __rtecall_sched_restore_ctx
+        jmp     __csw_rte_restore
         ; NOT REACHED
         jmp _cpu_non_recoverable_error
     einline
 
 
 ;-------------------------------------------------------------------------------
-; void __rtecall_sched_switch_ctx(void)
+; void __csw_rte_switch(void)
 ; Saves the CPU state of the currently running VP and restores the CPU state of
 ; the scheduled VP. Expects that it is called with an exception stack frame on
 ; top of the stack that is based on a format $0 frame. You want to call this
@@ -82,7 +82,7 @@ _sched_switch_to_boot_vcpu:
 ;
 ; There are 2 ways to trigger a full context switch:
 ; 1) a timer interrupt
-; 2) a call to _sched_switch_ctx
+; 2) a call to _csw_switch
 ; The CPU will push a format $0 exception stack frame on the kernel stack of the
 ; outgoing VP in the first case while the VPS_SwitchContext() function pushes a
 ; handcrafted format $0 exception stack frame on the kernel stack of the outgoing
@@ -101,7 +101,7 @@ _sched_switch_to_boot_vcpu:
 ; when we restore the VP to running state.
 ;
 ; There is one way to do a half context switch:
-; 1) a call to _sched_switch_to_boot_vcpu
+; 1) a call to _csw_switch_to_boot_vcpu
 ; Since we are only running the restore half of the context switch in this case,
 ; the expectation of this function here is that someone already pushed an
 ; exception stack frame on the kernel stack of the VP we want to switch to.
@@ -112,7 +112,7 @@ _sched_switch_to_boot_vcpu:
 ; SP + 6: 2 bytes exception stack frame format indicator (usually $0)
 ; SP + 2: PC
 ; SP + 0: SR
-__rtecall_sched_switch_ctx:
+__csw_rte_switch:
     ; save the integer state
     move.l  a0, (_g_sched_storage + vps_csw_scratch)
     move.l  (_g_sched_storage + vps_running), a0
@@ -140,7 +140,7 @@ __rtecall_sched_switch_ctx:
 
     ; check whether we should save the FPU state
     btst    #CSWB_HW_HAS_FPU, _g_sched_storage + vps_csw_hw
-    beq.s   __rtecall_sched_restore_ctx
+    beq.s   __csw_rte_restore
 
     ; save the FPU state. Note that the 68060 fmovem.l instruction does not
     ; support moving > 1 register at a time
@@ -150,7 +150,7 @@ __rtecall_sched_switch_ctx:
     fmovem.l    fpsr, cpu_fpsr(a0)
     fmovem.l    fpiar, cpu_fpiar(a0)
 
-__rtecall_sched_restore_ctx:
+__csw_rte_restore:
     ; consume the CSW switch signal
     bclr    #CSWB_SIGNAL_SWITCH, _g_sched_storage + vps_csw_signals
 

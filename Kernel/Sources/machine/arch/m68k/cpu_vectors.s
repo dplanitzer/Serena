@@ -18,7 +18,7 @@
     xref _chipset_reset
     xref _OnReset
     xref _OnBoot
-    xref __rtecall_sched_switch_ctx
+    xref __csw_rte_switch
     xref _syscall_entry
     xref _nosyscall_entry
     xref _InterruptController_OnInterrupt
@@ -443,5 +443,5 @@ irq_handler_exter:
 irq_handler_done:
     movem.l (sp)+, d0 - d1 / d7 / a0 - a1
     btst    #0, (_g_sched_storage + vps_csw_signals)
-    bne.l   __rtecall_sched_switch_ctx
+    bne.l   __csw_rte_switch
     rte

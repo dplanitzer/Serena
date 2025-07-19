@@ -46,7 +46,7 @@ void cpu_make_callout(CpuContext* _Nonnull cp, void* _Nonnull ksp, void* _Nonnul
     // SP +  8: RTS address ('ret_func' entry point)
     // SP +  0: dummy format $0 exception stack frame (8 byte size)
     //
-    // See __rtecall_sched_switch_ctx for an explanation
+    // See __csw_rte_switch for an explanation
     // of why we need the dummy exception stack frame.
     if (isUser) {
         uint8_t* sp_u = (uint8_t*) cp->usp;

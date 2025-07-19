@@ -94,7 +94,6 @@ extern sched_t _Nonnull g_sched;
 extern void sched_create(SystemDescription* _Nonnull sdp, BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx);
 
 extern errno_t sched_finish_boot(sched_t _Nonnull self);
-extern _Noreturn sched_switch_to_boot_vcpu(void);
 
 extern void sched_add_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 

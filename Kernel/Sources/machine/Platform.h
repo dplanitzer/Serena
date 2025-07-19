@@ -200,14 +200,6 @@ extern const char* _Nonnull fpu_get_model_name(int8_t fpu_model);
 
 
 //
-// Preemption (Context Switching)
-//
-
-extern int preempt_disable(void);
-extern void preempt_restore(int sps);
-
-
-//
 // IRQs
 //
 

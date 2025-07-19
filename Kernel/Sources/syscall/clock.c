@@ -7,8 +7,9 @@
 //
 
 #include "syscalldecls.h"
-#include <machine/MonotonicClock.h>
 #include <kern/timespec.h>
+#include <machine/csw.h>
+#include <machine/MonotonicClock.h>
 
 
 SYSCALL_4(clock_nanosleep, int clock, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
@@ -29,9 +30,9 @@ SYSCALL_4(clock_nanosleep, int clock, int flags, const struct timespec* _Nonnull
 
     // This is a medium or long wait -> context switch away
     ProcessRef pp = vp->proc;
-    const int sps = preempt_disable();
+    const int sps = csw_disable();
     const int err = wq_timedwait(&pp->sleepQueue, NULL, options, pa->wtp, pa->rmtp);
-    preempt_restore(sps);
+    csw_restore(sps);
     
     return err;
 }

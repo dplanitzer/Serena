@@ -12,6 +12,7 @@
 #include <kern/timespec.h>
 #include <kpi/signal.h>
 #include <log/Log.h>
+#include <machine/csw.h>
 
 
 const sigset_t SIGSET_BLOCK_ALL = UINT32_MAX;
@@ -23,7 +24,7 @@ errno_t vcpu_setsigmask(vcpu_t _Nonnull self, int op, sigset_t mask, sigset_t* _
 {
     decl_try_err();
     VP_ASSERT_ALIVE(self);
-    const int sps = preempt_disable();
+    const int sps = csw_disable();
     const sigset_t oldMask = self->sigmask;
 
     switch (op) {
@@ -48,7 +49,7 @@ errno_t vcpu_setsigmask(vcpu_t _Nonnull self, int op, sigset_t mask, sigset_t* _
         *pOutMask = oldMask;
     }
 
-    preempt_restore(sps);
+    csw_restore(sps);
     return err;
 }
 

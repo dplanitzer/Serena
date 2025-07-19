@@ -12,6 +12,7 @@
 #include <kern/kalloc.h>
 #include <klib/List.h>
 #include <kpi/signal.h>
+#include <machine/csw.h>
 #include <sched/waitqueue.h>
 
 
@@ -55,12 +56,12 @@ SYSCALL_2(wq_create, int policy, int* _Nonnull pOutQ)
 
     err = uwq_create(pa->policy, &uwp);
     if (err == EOK) {
-        const int sps = preempt_disable();
+        const int sps = csw_disable();
         
         q = pp->nextAvailWaitQueueId++;
         uwp->id = q;
         List_InsertAfterLast(&pp->waitQueueTable[hash_scalar(q) & UWQ_HASH_CHAIN_MASK], &uwp->qe);
-        preempt_restore(sps);
+        csw_restore(sps);
     }
     *(pa->pOutQ) = q;
 
@@ -86,7 +87,7 @@ SYSCALL_1(wq_dispose, int q)
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    const int sps = preempt_disable();
+    const int sps = csw_disable();
     UWaitQueue* uwp = _find_uwq(pp, pa->q);
     
     if (uwp) {
@@ -100,7 +101,7 @@ SYSCALL_1(wq_dispose, int q)
     else {
         err = EBADF;
     }
-    preempt_restore(sps);
+    csw_restore(sps);
     
     if (err == EOK && uwp) {
         uwq_destroy(uwp);
@@ -116,11 +117,11 @@ SYSCALL_2(wq_wait, int q, const sigset_t* _Nullable mask)
     const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
     ProcessRef pp = vp->proc;
 
-    const int sps = preempt_disable();
+    const int sps = csw_disable();
     UWaitQueue* uwp = _find_uwq(pp, pa->q);
 
     err = (uwp) ? wq_wait(&uwp->wq, pmask) : EBADF;
-    preempt_restore(sps);
+    csw_restore(sps);
     return err;
 }
 
@@ -131,11 +132,11 @@ SYSCALL_4(wq_timedwait, int q, const sigset_t* _Nullable mask, int flags, const 
     const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
     ProcessRef pp = vp->proc;
 
-    const int sps = preempt_disable();
+    const int sps = csw_disable();
     UWaitQueue* uwp = _find_uwq(pp, pa->q);
 
     err = (uwp) ? wq_timedwait(&uwp->wq, pmask, pa->flags, pa->wtp, NULL) : EBADF;
-    preempt_restore(sps);
+    csw_restore(sps);
     return err;
 }
 
@@ -146,7 +147,7 @@ SYSCALL_5(wq_timedwakewait, int q, int oq, const sigset_t* _Nullable mask, int f
     const sigset_t* pmask = (pa->mask) ? &newMask : NULL;
     ProcessRef pp = vp->proc;
 
-    const int sps = preempt_disable();
+    const int sps = csw_disable();
     UWaitQueue* uwp = _find_uwq(pp, pa->q);
     UWaitQueue* owp = _find_uwq(pp, pa->oq);
 
@@ -157,7 +158,7 @@ SYSCALL_5(wq_timedwakewait, int q, int oq, const sigset_t* _Nullable mask, int f
     else {
         err = EBADF;
     }
-    preempt_restore(sps);
+    csw_restore(sps);
     return err;
 }
 
@@ -167,7 +168,7 @@ SYSCALL_2(wq_wakeup, int q, int flags)
     const int wflags = ((pa->flags & WAKE_ONE) == WAKE_ONE) ? WAKEUP_ONE : WAKEUP_ALL;
     ProcessRef pp = vp->proc;
 
-    const int sps = preempt_disable();
+    const int sps = csw_disable();
     UWaitQueue* uwp = _find_uwq(pp, pa->q);
 
     if (uwp) {
@@ -176,6 +177,6 @@ SYSCALL_2(wq_wakeup, int q, int flags)
     else {
         err = EBADF;
     }
-    preempt_restore(sps);
+    csw_restore(sps);
     return err;
 }
