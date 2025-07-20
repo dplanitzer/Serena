@@ -213,6 +213,11 @@ extern _Noreturn vcpu_terminate(vcpu_t _Nonnull self);
 
 extern void vcpu_dump(vcpu_t _Nonnull self);
 
+// These functions expect to be called in userspace.
+extern void vcpu_uret_relinquish_self(void);
+extern void vcpu_uret_exit(void);
+
+
 // Subclassers
 extern void vcpu_cominit(vcpu_t _Nonnull self, int priority);
 

@@ -46,15 +46,6 @@ SYSCALL_2(vcpu_acquire, const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _No
     return Process_AcquireVirtualProcessor(vp->proc, pa->attr, pa->idp);
 }
 
-// Trap #2
-void _vcpu_relinquish_self(void)
-{
-    vcpu_t vp = vcpu_current();
-
-    Process_RelinquishVirtualProcessor(vp->proc, vp);
-    /* NOT REACHED */
-}
-
 SYSCALL_0(vcpu_relinquish_self)
 {
     Process_RelinquishVirtualProcessor(vp->proc, vp);

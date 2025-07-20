@@ -23,8 +23,6 @@
     xdef _cpu68k_as_write_byte
     xdef _cpu_sleep
     xdef _cpu_halt
-    xdef _vcpu_uret_relinquish_self
-    xdef _vcpu_uret_exit
     xdef _fpu_get_model
 
 
@@ -452,30 +450,3 @@ _cpu_halt:
         stop    #$2700
         bra.s   _cpu_halt
     einline
-
-
-;-----------------------------------------------------------------------
-; void vcpu_uret_relinquish_self(void)
-; Invoked when the top-level function of a secondary vcpu returns. This will
-; trigger a relinquish of the vcpu.
-_vcpu_uret_relinquish_self:
-    inline
-        move.l  #59, -(sp)   ; SC_vcpu_relinquish_self
-        move.l  sp, a0
-        trap    #0
-        ; NOT REACHED
-    einline
-
-
-;-----------------------------------------------------------------------
-; void vcpu_uret_exit(void)
-; Aborts a vcpu that is running in user space.
-_vcpu_uret_exit:
-    inline
-        move.l  #0, -(sp)
-        move.l  #4, -(sp)   ; SC_exit
-        move.l  sp, a0
-        trap    #0
-        ; NOT REACHED
-    einline
-

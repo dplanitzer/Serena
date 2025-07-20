@@ -1,13 +1,13 @@
 //
-//  syscall.h
+//  kpi/syscall.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 9/2/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_SYSCALL_H
-#define _SYS_SYSCALL_H 1
+#ifndef _KPI_SYSCALL_H
+#define _KPI_SYSCALL_H 1
 
 #include <_cmndef.h>
 #include <stdint.h>
@@ -85,4 +85,4 @@ extern intptr_t _syscall(int scno, ...);
 
 __CPP_END
 
-#endif /* _SYS_SYSCALL_H */
+#endif /* _KPI_SYSCALL_H */
