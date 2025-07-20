@@ -29,9 +29,10 @@ extern int cpu_guarded_write(void* _Nonnull dst, const void* _Nonnull buffer, in
 extern void cpu_sleep(int cpu_type);
 extern void cpu_halt(void);
 
-extern void cpu_make_callout(CpuContext* _Nonnull cp, void* _Nonnull ksp, void* _Nonnull usp, bool isUser, VoidFunc_1 _Nonnull func, void* _Nullable arg, VoidFunc_0 _Nonnull ret_func);
+extern void cpu_make_callout(mcontext_t* _Nonnull cp, void* _Nonnull ksp, void* _Nonnull usp, bool isUser, VoidFunc_1 _Nonnull func, void* _Nullable arg, VoidFunc_0 _Nonnull ret_func);
 
 extern void cpu_relinquish_from_user(void);
+extern void cpu_abort_vcpu_from_uspace(void);
 
 extern _Noreturn cpu_non_recoverable_error(void);
 extern _Noreturn mem_non_recoverable_error(void);

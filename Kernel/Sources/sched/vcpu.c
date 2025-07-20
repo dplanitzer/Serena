@@ -136,12 +136,11 @@ errno_t vcpu_setclosure(vcpu_t _Nonnull self, const VirtualProcessorClosure* _No
     }
     try(vcpu_stack_setmaxsize(&self->user_stack, closure->userStackSize));
     
-
     // Initialize the CPU context
     cpu_make_callout(&self->save_area, 
         (void*)vcpu_stack_initialtop(&self->kernel_stack),
         (void*)vcpu_stack_initialtop(&self->user_stack),
-        false,
+        closure->isUser,
         closure->func,
         closure->context,
         (closure->ret_func) ? closure->ret_func : (VoidFunc_0)vcpu_relinquish);

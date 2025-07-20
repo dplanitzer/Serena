@@ -164,7 +164,7 @@ vps_SIZEOF                          so
     endif
 
 
-; The CpuContext
+; The mcontext_t
     clrso
 cpu_d0              so.l    1       ; 4
 cpu_d1              so.l    1       ; 4
@@ -201,7 +201,7 @@ cpu_fpiar           so.l    1       ; 4
 
 cpu_SIZEOF         so
     ifeq (cpu_SIZEOF == 400)
-        fail "CpuContext structure size is incorrect."
+        fail "mcontext_t structure size is incorrect."
     endif
 
 

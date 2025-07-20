@@ -9,7 +9,6 @@
 #ifndef _CLOCK_H
 #define _CLOCK_H 1
 
-#include <kern/errno.h>
 #include <kern/types.h>
 
 struct SystemDescription;

@@ -72,16 +72,16 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
 // \param func the function to invoke
 // \param arg the pointer-sized argument to pass to 'func'
 // \param ret_func the function that should be invoked when 'func' returns
-void cpu_make_callout(CpuContext* _Nonnull cp, void* _Nonnull ksp, void* _Nonnull usp, bool isUser, VoidFunc_1 _Nonnull func, void* _Nullable arg, VoidFunc_0 _Nonnull ret_func)
+void cpu_make_callout(mcontext_t* _Nonnull cp, void* _Nonnull ksp, void* _Nonnull usp, bool isUser, VoidFunc_1 _Nonnull func, void* _Nullable arg, VoidFunc_0 _Nonnull ret_func)
 {
     // Initialize the CPU context:
     // Integer state: zeroed out
     // Floating-point state: establishes IEEE 754 standard defaults (non-signaling exceptions, round to nearest, extended precision)
-    memset(cp, 0, sizeof(CpuContext));
+    memset(cp, 0, sizeof(mcontext_t));
     cp->a[7] = (uintptr_t) ksp;
     cp->usp = (uintptr_t) usp;
     cp->pc = (uintptr_t) func;
-    cp->sr = (isUser) ? 0 : 0x2000;
+    cp->sr = (isUser) ? 0 : CPU_SR_S;
 
 
     // User stack:

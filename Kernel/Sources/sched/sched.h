@@ -11,6 +11,7 @@
 
 #include <kern/types.h>
 #include <boot/BootAllocator.h>
+#include <machine/cpu.h>
 #include <machine/SystemDescription.h>
 #include <kern/errno.h>
 #include <kern/limits.h>
@@ -138,6 +139,6 @@ extern void sched_resume_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, Quan
 
 
 // @HAL Requirement: Must be called from the monotonic clock IRQ handler second
-extern void sched_quantum_irq(void);
+extern void sched_quantum_irq(excpt_frame_t* _Nonnull efp);
 
 #endif /* _SCHED_H */

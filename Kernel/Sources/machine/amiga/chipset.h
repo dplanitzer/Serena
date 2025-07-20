@@ -97,6 +97,22 @@
 #define CIA_IRCF_TB         0x02
 #define CIA_IRCF_TA         0x01
 
+#define CIA_CRAF_START      0x01
+#define CIA_CRAF_PBON       0x02
+#define CIA_CRAF_OUTMODE    0x04
+#define CIA_CRAF_RUNMODE    0x08
+#define CIA_CRAF_LOAD       0x10
+#define CIA_CRAF_INMODE     0x20
+#define CIA_CRAF_SPMODE     0x40
+#define CIA_CRAF_UNUSED     0x80
+
+#define CIA_CRBF_START          0x01
+#define CIA_CRBF_PBON           0x02
+#define CIA_CRBF_OUTMODE        0x04
+#define CIA_CRBF_RUNMODE        0x08
+#define CIA_CRBF_LOAD           0x10
+#define CIA_CRBF_INMODE_MASK    0x60
+#define CIA_CRBF_ALARM          0x80
 
 
 //

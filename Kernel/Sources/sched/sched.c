@@ -165,7 +165,7 @@ vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self)
 }
 
 // Invoked at the end of every quantum.
-void sched_quantum_irq(void)
+void sched_quantum_irq(excpt_frame_t* _Nonnull efp)
 {
     register sched_t self = g_sched;
 
@@ -184,10 +184,19 @@ void sched_quantum_irq(void)
         wq_wakeone(vp->waiting_on_wait_queue, vp, 0, WRES_TIMEOUT);
     }
     
-    
-    // Second, update the time slice info for the currently running VP
+
     register vcpu_t run = (vcpu_t)self->running;
-    
+
+    // Redirect the currently running VP to exit() if it is running in user mode
+    // and it has a force-quit pending
+    if (excpt_frame_isuser(efp) && (run->psigs & _SIGBIT(SIGKILL)) && (run->flags & VP_FLAG_ABORTED_USPACE) == 0) {
+        excpt_frame_setpc(efp, cpu_abort_vcpu_from_uspace);
+        run->flags |= VP_FLAG_ABORTED_USPACE;
+        return;
+    }
+
+
+    // Update the time slice info for the currently running VP
     run->quantum_allowance--;
     if (run->quantum_allowance > 0) {
         return;

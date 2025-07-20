@@ -89,7 +89,7 @@ typedef struct vcpu_vtable* vcpu_vtable_t;
 struct vcpu {
     ListNode                        rewa_qe;                // A VP is either on the ready (re) queue or a wait (wa) queue
     vcpu_vtable_t _Nonnull          vtable;
-    CpuContext                      save_area;
+    mcontext_t                      save_area;
     vcpu_stack_t                    kernel_stack;
     vcpu_stack_t                    user_stack;
     vcpuid_t                        vpid;                   // unique VP id (>= 1; 0 is reserved to indicate the absence of a VPID)

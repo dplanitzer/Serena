@@ -13,7 +13,6 @@
 #include <machine/csw.h>
 #include <sched/vcpu_pool.h>
 
-extern void cpu_abort_vcpu_from_uspace(void);
 
 
 // Called by the given child process to notify its parent about its death.

@@ -54,8 +54,19 @@
 #define CPU68K_CPU_SPACE        7
 
 
-// CPU register state
-typedef struct CpuContext {
+// Status register
+#define CPU_SR_TRACE        0x8000
+#define CPU_SR_S            0x2000
+#define CPU_SR_IE_MASK      0x700
+#define CPU_SR_X            0x10
+#define CPU_SR_N            0x08
+#define CPU_SR_Z            0x04
+#define CPU_SR_V            0x02
+#define CPU_SR_C            0x01
+
+
+// CPU register state (keep in sync with lowmem.i)
+typedef struct mcontext {
     
     // Integer state. 68000 or better
     uint32_t    d[8];
@@ -71,12 +82,12 @@ typedef struct CpuContext {
     uint32_t    fpcr;
     uint32_t    fpsr;
     uint32_t    fpiar;
-} CpuContext;
+} mcontext_t;
 
 
 // Exception stack frame
 #pragma pack(1)
-typedef struct ExceptionStackFrame {
+typedef struct excpt_frame {
     uint16_t    sr;
     uintptr_t   pc;
 
@@ -153,8 +164,17 @@ typedef struct ExceptionStackFrame {
             uint16_t    ir[18];
         }   fb;
     }       u;
-} ExceptionStackFrame;
+} excpt_frame_t;
 #pragma pack()
+
+#define excpt_frame_isuser(__ef) \
+(((__ef)->sr & CPU_SR_S) == 0)
+
+#define excpt_frame_getpc(__ef) \
+((__ef)->pc)
+
+#define excpt_frame_setpc(__ef, __pc) \
+(__ef)->pc = (uintptr_t)(__pc)
 
 
 extern unsigned int cpu68k_as_read_byte(void* p, int addr_space);

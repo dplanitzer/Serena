@@ -30,7 +30,7 @@ static void just_wait(const char* _Nonnull str)
 }
 
 
-#define CONCURRENCY 2
+#define CONCURRENCY 4
 void proc_exit_test(int argc, char *argv[])
 {
     static const char* gStr[CONCURRENCY] = {"WAIT", "SPIN"};
@@ -38,7 +38,7 @@ void proc_exit_test(int argc, char *argv[])
 
     for (size_t i = 0; i < CONCURRENCY; i++) {
         vcpu_attr_t attr = VCPU_ATTR_INIT;
-        size_t r = 0; //i%2;    //XXX
+        size_t r = i%2;
 
         attr.func = (vcpu_func_t)((r) ? spin_loop : just_wait);
         attr.arg = gStr[r];
