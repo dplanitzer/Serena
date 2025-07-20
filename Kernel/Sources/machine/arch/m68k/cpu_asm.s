@@ -23,8 +23,8 @@
     xdef _cpu68k_as_write_byte
     xdef _cpu_sleep
     xdef _cpu_halt
-    xdef _cpu_relinquish_from_user
-    xdef _cpu_abort_vcpu_from_uspace
+    xdef _vcpu_uret_relinquish_self
+    xdef _vcpu_uret_exit
     xdef _fpu_get_model
 
 
@@ -455,20 +455,22 @@ _cpu_halt:
 
 
 ;-----------------------------------------------------------------------
-; void cpu_relinquish_from_user(void)
-; Invoked by user space when it no longer needs the virtual processor and wants
-; to relinquish it.
-_cpu_relinquish_from_user:
+; void vcpu_uret_relinquish_self(void)
+; Invoked when the top-level function of a secondary vcpu returns. This will
+; trigger a relinquish of the vcpu.
+_vcpu_uret_relinquish_self:
     inline
-        trap #2
+        move.l  #59, -(sp)   ; SC_vcpu_relinquish_self
+        move.l  sp, a0
+        trap    #0
         ; NOT REACHED
     einline
 
 
 ;-----------------------------------------------------------------------
-; void cpu_abort_vcpu_from_uspace(void)
+; void vcpu_uret_exit(void)
 ; Aborts a vcpu that is running in user space.
-_cpu_abort_vcpu_from_uspace:
+_vcpu_uret_exit:
     inline
         move.l  #0, -(sp)
         move.l  #4, -(sp)   ; SC_exit

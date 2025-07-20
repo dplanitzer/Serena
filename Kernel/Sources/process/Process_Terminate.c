@@ -169,7 +169,6 @@ static void _proc_reap_vcpus(ProcessRef _Nonnull self)
     bool done = false;
 
     while (!done) {
-#if 1
         //XXX Can't use yield() here because the currently implemented scheduler
         //XXX algorithm is too weak and ends up starving some vps
         //vcpu_yield();
@@ -182,31 +181,6 @@ static void _proc_reap_vcpus(ProcessRef _Nonnull self)
             done = true;
         }
         mtx_unlock(&self->mtx);
-#else
-        mtx_lock(&self->mtx);
-        if (self->vpQueue.first) {
-            List_ForEach(&self->vpQueue, ListNode, {
-                vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
-
-                vcpu_suspend(cvp);
-
-               // printf("sr: %x, vp: %p\n", (int)cvp->save_area.sr, cvp);
-                if ((cvp->save_area.sr & 0x2000) == 0 && (cvp->flags & VP_FLAG_ABORTED_USPACE) == 0) {
-                    printf("caught in uspace -> %p\n", cvp);
-                    // User space:
-                    // redirect the VP to the new call
-                    cvp->save_area.pc = (uint32_t)cpu_abort_vcpu_from_uspace;
-                    cvp->flags |= VP_FLAG_ABORTED_USPACE;
-                }
-
-                vcpu_resume(cvp, true);
-            });
-        }
-        else {
-            done = true;
-        }
-        mtx_unlock(&self->mtx);
-#endif
     }
 }
 

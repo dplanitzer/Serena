@@ -28,7 +28,6 @@
     xref _gInterruptControllerStorage
     xref _g_sched_storage
     xref __fatalException
-    xref __vcpu_relinquish_self
     xref _clock_irq
     xref _sched_quantum_irq
 
@@ -83,7 +82,7 @@ _cpu_vector_table:
     dc.l IRQHandler_NMI                 ; 31, Level 7 (NMI - Unused)
     dc.l _syscall_entry                 ; 32, Trap #0
     dc.l _nosyscall_entry               ; 33, Trap #1
-    dc.l __vcpu_relinquish_self         ; 34, Trap #2
+    dc.l _nosyscall_entry               ; 34, Trap #2
     dc.l _nosyscall_entry               ; 35, Trap #3
     dc.l _nosyscall_entry               ; 36, Trap #4
     dc.l _nosyscall_entry               ; 37, Trap #5

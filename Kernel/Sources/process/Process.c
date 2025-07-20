@@ -110,16 +110,16 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
 
     *idp = 0;
 
+    mtx_lock(&self->mtx);
+
     kp.func = (VoidFunc_1)attr->func;
     kp.context = attr->arg;
-    kp.ret_func = cpu_relinquish_from_user;
+    kp.ret_func = (self->vpQueue.first) ? vcpu_uret_relinquish_self : vcpu_uret_exit;
     kp.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
     kp.userStackSize = __max(attr->stack_size, VP_DEFAULT_USER_STACK_SIZE);
     kp.vpgid = attr->groupid;
     kp.priority = attr->priority;
     kp.isUser = true;
-
-    mtx_lock(&self->mtx);
 
     if (self->state >= PS_ZOMBIFYING) {
         throw(EINTR);

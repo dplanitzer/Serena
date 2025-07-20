@@ -19,7 +19,7 @@ enum {
     SC_write,               // errno_t write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
     SC_clock_nanosleep,     // errno_t clock_nanosleep(clockid_t clock, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
     SC_vmalloc,             // errno_t vmalloc(int nbytes, void **pOutMem)
-    SC_exit,                // _Noreturn exit(int status)
+    SC_exit,                // _Noreturn exit(int status)   [vcpu_uret_exit]
     SC_spawn,               // errno_t spawn(cost char* _Nonnull path, const char* _Nullable argv[], spawn_opts_t * _Nullable options, pid_t * _Nullable rpid)
     SC_getpid,              // pid_t getpid(void)
     SC_getppid,             // pid_t getppid(void)
@@ -74,7 +74,7 @@ enum {
     SC_getpgrp,             // pid_t getpgrp(void)
     SC_getsid,              // pid_t getsid(void)
     SC_vcpu_acquire,        // int vcpu_acquire(const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _Nonnull idp)
-    SC_vcpu_relinquish_self,    // void SC_vcpu_relinquish_self(void)
+    SC_vcpu_relinquish_self,    // void SC_vcpu_relinquish_self(void)   [_vcpu_uret_relinquish]
     SC_vcpu_suspend,        // int vcpu_suspend(vcpuid_t vcpu)
     SC_vcpu_resume,         // int vcpu_resume(vcpuid_t vcpu)
     SC_sigsend,             // sigsend(int scope, id_t id, int signo)
