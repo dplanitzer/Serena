@@ -16,7 +16,7 @@
 // for filesystem objects.
 void FSGetCurrentTime(struct timespec* _Nonnull ts)
 {
-    MonotonicClock_GetCurrentTime(ts);
+    MonotonicClock_GetCurrentTime(gMonotonicClock, ts);
 }
 
 

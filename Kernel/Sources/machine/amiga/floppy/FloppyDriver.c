@@ -253,7 +253,7 @@ static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self)
     
     struct timespec now, dly, deadline;
     
-    MonotonicClock_GetCurrentTime(&now);
+    MonotonicClock_GetCurrentTime(gMonotonicClock, &now);
     timespec_from_sec(&dly, 4);
     timespec_add(&now, &dly, &deadline);
     DispatchQueue_DispatchAsyncAfter(DiskDriver_GetDispatchQueue(self),

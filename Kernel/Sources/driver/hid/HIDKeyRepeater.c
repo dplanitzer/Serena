@@ -166,7 +166,7 @@ void HIDKeyRepeater_KeyDown(HIDKeyRepeaterRef _Nonnull self, HIDKeyCode keyCode)
     if (shouldAutoRepeatKeyCode(keyCode)) {
         struct timespec now;
 
-        MonotonicClock_GetCurrentTime(&now);
+        MonotonicClock_GetCurrentTime(gMonotonicClock, &now);
         self->state = kState_InitialDelaying;
         self->keyCode = keyCode;
         timespec_add(&now, &self->initialKeyRepeatDelay, &self->nextEventTime);
@@ -188,7 +188,7 @@ void HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self)
 {
     struct timespec now;
 
-    MonotonicClock_GetCurrentTime(&now);
+    MonotonicClock_GetCurrentTime(gMonotonicClock, &now);
 
     switch (self->state) {
         case kState_Idle:

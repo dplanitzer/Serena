@@ -58,7 +58,7 @@ static wres_t _one_shot_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullabl
     
     vp->sched_state = SCHED_STATE_WAITING;
     vp->waiting_on_wait_queue = self;
-    vp->wait_start_time = MonotonicClock_GetCurrentQuantums();
+    vp->wait_start_time = MonotonicClock_GetCurrentQuantums(gMonotonicClock);
     vp->wakeup_reason = 0;
 
     
@@ -80,7 +80,7 @@ static errno_t _one_shot_timedwait(waitqueue_t _Nonnull self, const sigset_t* _N
 
     // Put us on the timeout queue if a relevant timeout has been specified.
     // Note that we return immediately if we're already past the deadline
-    MonotonicClock_GetCurrentTime(&now);
+    MonotonicClock_GetCurrentTime(gMonotonicClock, &now);
 
     if ((flags & WAIT_ABSTIME) == WAIT_ABSTIME) {
         deadline = *wtp;
@@ -112,7 +112,7 @@ static errno_t _one_shot_timedwait(waitqueue_t _Nonnull self, const sigset_t* _N
 
     // Calculate the unslept time, if requested
     if (rmtp) {
-        MonotonicClock_GetCurrentTime(&now);
+        MonotonicClock_GetCurrentTime(gMonotonicClock, &now);
 
         if (timespec_lt(&now, &deadline)) {
             timespec_sub(&deadline, &now, rmtp);
@@ -204,7 +204,7 @@ errno_t wq_sigtimedwait(waitqueue_t _Nonnull self, const sigset_t* _Nonnull set,
         deadline = *wtp;
     }
     else {
-        MonotonicClock_GetCurrentTime(&now);
+        MonotonicClock_GetCurrentTime(gMonotonicClock, &now);
         timespec_add(&now, wtp, &deadline);
     }
 
@@ -261,7 +261,7 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
     if (vp->suspension_count == 0) {
         // Make the VP ready and adjust it's effective priority based on the
         // time it has spent waiting
-        const int32_t quartersSlept = (MonotonicClock_GetCurrentQuantums() - vp->wait_start_time) / ps->quantums_per_quarter_second;
+        const int32_t quartersSlept = (MonotonicClock_GetCurrentQuantums(gMonotonicClock) - vp->wait_start_time) / ps->quantums_per_quarter_second;
         const int8_t boostedPriority = __min(vp->effectivePriority + __min(quartersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
         sched_add_vcpu_locked(ps, vp, boostedPriority);
         

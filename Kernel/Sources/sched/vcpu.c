@@ -244,7 +244,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     self->suspension_count++;
     
     if (self->suspension_count == 1) {
-        self->suspension_time = MonotonicClock_GetCurrentQuantums();
+        self->suspension_time = MonotonicClock_GetCurrentQuantums(gMonotonicClock);
 
         switch (self->sched_state) {
             case SCHED_STATE_READY:

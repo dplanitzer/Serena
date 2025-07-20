@@ -24,7 +24,7 @@ static void _delay_by(const struct timespec* _Nonnull wtp)
 {
     // Use the Delay() facility for short waits and context switching for medium and long waits
     if (wtp->tv_sec == 0 && wtp->tv_nsec < MONOTONIC_DELAY_MAX_NSEC) {
-        MonotonicClock_Delay(wtp->tv_nsec);
+        MonotonicClock_Delay(gMonotonicClock, wtp->tv_nsec);
         return;
     }
     

@@ -43,6 +43,6 @@ SYSCALL_2(clock_gettime, int clock, struct timespec* _Nonnull time)
         return ENODEV;
     }
 
-    MonotonicClock_GetCurrentTime(pa->time);
+    MonotonicClock_GetCurrentTime(gMonotonicClock, pa->time);
     return EOK;
 }

@@ -131,7 +131,7 @@ void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const 
 
     HIDEvent* pEvent = &self->data[self->writeIdx++ & self->capacityMask];
     pEvent->type = type;
-    MonotonicClock_GetCurrentTime(&pEvent->eventTime);
+    MonotonicClock_GetCurrentTime(gMonotonicClock, &pEvent->eventTime);
     pEvent->data = *pEventData;
     irq_restore(irs);
 

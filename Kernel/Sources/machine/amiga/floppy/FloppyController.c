@@ -389,7 +389,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     // Wait for the DMA to complete
     struct timespec now, dly, deadline;
     
-    MonotonicClock_GetCurrentTime(&now);
+    MonotonicClock_GetCurrentTime(gMonotonicClock, &now);
     timespec_from_ms(&dly, 500);
     timespec_add(&now, &dly, &deadline);
     err = sem_acquire(&self->done, &deadline);

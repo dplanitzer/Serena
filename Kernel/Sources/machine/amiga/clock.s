@@ -9,13 +9,10 @@
     include "chipset.i"
     include <machine/lowmem.i>
 
-    xref _gMonotonicClockStorage
-
 
     xdef _mclk_start_quantum_timer
     xdef _mclk_stop_quantum_timer
     xdef _mclk_get_quantum_timer_elapsed_ns
-    xdef _MonotonicClock_GetCurrentQuantums
 
 
 ;-------------------------------------------------------------------------------
@@ -90,12 +87,4 @@ _mclk_get_quantum_timer_elapsed_ns:
     move.w  mtc_quantum_duration_cycles(a0), d0
     sub.w   d1, d0
     muls    mtc_ns_per_quantum_timer_cycle(a0), d0
-    rts
-
-
-;-------------------------------------------------------------------------------
-; Quantums MonotonicClock_GetCurrentQuantums(void)
-; Returns the current time in terms of quantums
-_MonotonicClock_GetCurrentQuantums:
-    move.l  _gMonotonicClockStorage + mtc_current_quantum, d0
     rts

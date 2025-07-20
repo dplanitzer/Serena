@@ -118,7 +118,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     
     // Initialize the monotonic clock
-    try_bang(MonotonicClock_CreateForLocalCPU(pSysDesc));
+    try_bang(MonotonicClock_Init(gMonotonicClock, pSysDesc));
 
     
     // Inform the scheduler that the heap exists now and that it should finish

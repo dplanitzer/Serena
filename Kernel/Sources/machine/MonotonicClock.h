@@ -32,18 +32,19 @@ typedef struct MonotonicClock {
 
 extern MonotonicClock* _Nonnull gMonotonicClock;
 
-extern errno_t MonotonicClock_CreateForLocalCPU(const struct SystemDescription* pSysDesc);
+extern errno_t MonotonicClock_Init(MonotonicClock* _Nonnull self, const struct SystemDescription* pSysDesc);
 
 // Returns the current time in terms of quantums
-extern Quantums MonotonicClock_GetCurrentQuantums(void);
+#define MonotonicClock_GetCurrentQuantums(__self) \
+((__self)->current_quantum)
 
 // Returns the current time of the clock in terms of microseconds.
-extern void MonotonicClock_GetCurrentTime(struct timespec* _Nonnull ts);
+extern void MonotonicClock_GetCurrentTime(MonotonicClock* _Nonnull self, struct timespec* _Nonnull ts);
 
 // Blocks the caller for 'ns' nanoseconds. This functions blocks for at most
 // MONOTONIC_DELAY_MAX_NSEC and the delay is implemented as a hard spin.
 // Longer delays should be implemented with the help of a wait queue. 
-extern void MonotonicClock_Delay(long ns);
+extern void MonotonicClock_Delay(MonotonicClock* _Nonnull self, long ns);
 
 
 // Rounding modes for struct timespec to Quantums conversion
@@ -52,9 +53,9 @@ extern void MonotonicClock_Delay(long ns);
 
 // Converts a timespec to a quantum value. The quantum value is rounded based
 // on the 'rounding' parameter.
-extern Quantums Quantums_MakeFromTimespec(const struct timespec* _Nonnull ts, int rounding);
+extern Quantums MonotonicClock_time2quantums(MonotonicClock* _Nonnull self, const struct timespec* _Nonnull ts, int rounding);
 
 // Converts a quantum value to a timespec.
-extern void Timespec_MakeFromQuantums(struct timespec* _Nonnull ts, Quantums quants);
+extern void MonotonicClock_quantums2time(MonotonicClock* _Nonnull self, Quantums quants, struct timespec* _Nonnull ts);
 
 #endif /* MonotonicClock_h */
