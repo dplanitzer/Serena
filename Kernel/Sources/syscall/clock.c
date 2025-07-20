@@ -8,8 +8,8 @@
 
 #include "syscalldecls.h"
 #include <kern/timespec.h>
+#include <machine/clock.h>
 #include <machine/csw.h>
-#include <machine/MonotonicClock.h>
 
 
 SYSCALL_4(clock_nanosleep, int clock, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
@@ -43,6 +43,6 @@ SYSCALL_2(clock_gettime, int clock, struct timespec* _Nonnull time)
         return ENODEV;
     }
 
-    MonotonicClock_GetCurrentTime(gMonotonicClock, pa->time);
+    clock_gettime(g_mono_clock, pa->time);
     return EOK;
 }

@@ -9,8 +9,8 @@
 #include "vcpu.h"
 #include "sched.h"
 #include "vcpu_pool.h"
+#include <machine/clock.h>
 #include <machine/csw.h>
-#include <machine/MonotonicClock.h>
 #include <kern/kalloc.h>
 #include <kern/limits.h>
 #include <kern/string.h>
@@ -244,7 +244,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     self->suspension_count++;
     
     if (self->suspension_count == 1) {
-        self->suspension_time = MonotonicClock_GetCurrentQuantums(gMonotonicClock);
+        self->suspension_time = clock_getticks(g_mono_clock);
 
         switch (self->sched_state) {
             case SCHED_STATE_READY:

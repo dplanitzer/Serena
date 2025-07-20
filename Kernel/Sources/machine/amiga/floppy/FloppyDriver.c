@@ -12,7 +12,7 @@
 #include <kern/kalloc.h>
 #include <kern/string.h>
 #include <kern/timespec.h>
-#include <machine/MonotonicClock.h>
+#include <machine/clock.h>
 #include <sched/delay.h>
 #include <sched/vcpu.h>
 #include "mfm.h"
@@ -253,7 +253,7 @@ static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self)
     
     struct timespec now, dly, deadline;
     
-    MonotonicClock_GetCurrentTime(gMonotonicClock, &now);
+    clock_gettime(g_mono_clock, &now);
     timespec_from_sec(&dly, 4);
     timespec_add(&now, &dly, &deadline);
     DispatchQueue_DispatchAsyncAfter(DiskDriver_GetDispatchQueue(self),

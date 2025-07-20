@@ -1,5 +1,5 @@
 //
-//  MonotonicClock.c
+//  clock.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/11/21.
@@ -8,20 +8,20 @@
 
 #include <kern/kernlib.h>
 #include <kern/timespec.h>
-#include <machine/MonotonicClock.h>
+#include <machine/clock.h>
 #include <machine/InterruptController.h>
 #include <machine/SystemDescription.h>
 #include <machine/amiga/chipset.h>
 
-extern void mclk_start_quantum_timer(const MonotonicClock* _Nonnull self);
+extern void mclk_start_quantum_timer(const clock_ref_t _Nonnull self);
 extern void mclk_stop_quantum_timer(void);
-extern int32_t mclk_get_quantum_timer_elapsed_ns(const MonotonicClock* _Nonnull self);
+extern int32_t mclk_get_quantum_timer_elapsed_ns(const clock_ref_t _Nonnull self);
 
 
-static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock);
+static void clock_irq(clock_ref_t _Nonnull pClock);
 
-static MonotonicClock  gMonotonicClockStorage;
-MonotonicClock* gMonotonicClock = &gMonotonicClockStorage;
+static struct clock g_mono_clock_storage;
+clock_ref_t g_mono_clock = &g_mono_clock_storage;
 
 
 // CIA timer usage:
@@ -30,7 +30,7 @@ MonotonicClock* gMonotonicClock = &gMonotonicClockStorage;
 
 // Initializes the monotonic clock. The monotonic clock uses the quantum timer
 // as its time base.
-errno_t MonotonicClock_Init(MonotonicClock* _Nonnull self, const SystemDescription* pSysDesc)
+errno_t clock_init_mono(clock_ref_t _Nonnull self, const SystemDescription* pSysDesc)
 {
     decl_try_err();
     const bool is_ntsc = chipset_is_ntsc();
@@ -66,7 +66,7 @@ errno_t MonotonicClock_Init(MonotonicClock* _Nonnull self, const SystemDescripti
     try(InterruptController_AddDirectInterruptHandler(gInterruptController,
                                                       INTERRUPT_ID_QUANTUM_TIMER,
                                                       INTERRUPT_HANDLER_PRIORITY_HIGHEST,
-                                                      (InterruptHandler_Closure)MonotonicClock_OnInterrupt,
+                                                      (InterruptHandler_Closure)clock_irq,
                                                       self,
                                                       &irqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, irqHandler, true);
@@ -77,7 +77,21 @@ catch:
     return err;
 }
 
-void MonotonicClock_GetCurrentTime(MonotonicClock* _Nonnull self, struct timespec* _Nonnull ts)
+static void clock_irq(clock_ref_t _Nonnull pClock)
+{
+    // update the scheduler clock
+    pClock->current_quantum++;
+    
+    
+    // update the metric time
+    pClock->current_time.tv_nsec += pClock->ns_per_quantum;
+    if (pClock->current_time.tv_nsec >= NSEC_PER_SEC) {
+        pClock->current_time.tv_sec++;
+        pClock->current_time.tv_nsec -= NSEC_PER_SEC;
+    }
+}
+
+void clock_gettime(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts)
 {
     register time_t cur_secs;
     register long cur_nanos;
@@ -101,37 +115,23 @@ void MonotonicClock_GetCurrentTime(MonotonicClock* _Nonnull self, struct timespe
     timespec_from(ts, cur_secs, cur_nanos);
 }
 
-static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock)
-{
-    // update the scheduler clock
-    pClock->current_quantum++;
-    
-    
-    // update the metric time
-    pClock->current_time.tv_nsec += pClock->ns_per_quantum;
-    if (pClock->current_time.tv_nsec >= NSEC_PER_SEC) {
-        pClock->current_time.tv_sec++;
-        pClock->current_time.tv_nsec -= NSEC_PER_SEC;
-    }
-}
-
-void MonotonicClock_Delay(MonotonicClock* _Nonnull self, long ns)
+void clock_delay(clock_ref_t _Nonnull self, long ns)
 {
     struct timespec now, deadline, delta;
     
-    MonotonicClock_GetCurrentTime(self, &now);
+    clock_gettime(self, &now);
     timespec_from(&delta, 0, ns);
     timespec_add(&now, &delta, &deadline);
 
     // Just spin for now (would be nice to put the CPU to sleep though for a few micros before rechecking the time or so)
     while (timespec_lt(&now, &deadline)) {
-        MonotonicClock_GetCurrentTime(self, &now);
+        clock_gettime(self, &now);
     }
 }
 
 // Converts a time interval to a quantum value. The quantum value is rounded
 // based on the 'rounding' parameter.
-Quantums MonotonicClock_time2quantums(MonotonicClock* _Nonnull self, const struct timespec* _Nonnull ts, int rounding)
+Quantums clock_time2quantums(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts, int rounding)
 {
     const int64_t nanos = (int64_t)ts->tv_sec * (int64_t)NSEC_PER_SEC + (int64_t)ts->tv_nsec;
     const int64_t quants = nanos / (int64_t)self->ns_per_quantum;
@@ -153,7 +153,7 @@ Quantums MonotonicClock_time2quantums(MonotonicClock* _Nonnull self, const struc
 }
 
 // Converts a quantum value to a time interval.
-void MonotonicClock_quantums2time(MonotonicClock* _Nonnull self, Quantums quants, struct timespec* _Nonnull ts)
+void clock_quantums2time(clock_ref_t _Nonnull self, Quantums quants, struct timespec* _Nonnull ts)
 {
     const int64_t ns = (int64_t)quants * (int64_t)self->ns_per_quantum;
     

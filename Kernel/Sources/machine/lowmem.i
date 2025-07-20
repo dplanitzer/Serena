@@ -121,7 +121,7 @@ sd_SIZEOF                       so              ; 108
     endif
 
 
-; The MonotonicClock object
+; The struct clock object
     clrso
 mtc_current_time_seconds        so.l    1       ; 4
 mtc_current_time_nanoseconds    so.l    1       ; 4
@@ -131,7 +131,7 @@ mtc_quantum_duration_cycles     so.w    1       ; 2
 mtc_ns_per_quantum_timer_cycle  so.w    1       ; 2
 mtc_SIZEOF                      so              ; 20
     ifeq (mtc_SIZEOF == 20)
-        fail "MonotonicClock structure size is incorrect."
+        fail "clock_ref_t structure size is incorrect."
     endif
 
 

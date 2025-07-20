@@ -7,8 +7,8 @@
 //
 
 #include "delay.h"
+#include <machine/clock.h>
 #include <machine/csw.h>
-#include <machine/MonotonicClock.h>
 #include <kern/timespec.h>
 #include <sched/waitqueue.h>
 
@@ -23,8 +23,8 @@ void delay_init(void)
 static void _delay_by(const struct timespec* _Nonnull wtp)
 {
     // Use the Delay() facility for short waits and context switching for medium and long waits
-    if (wtp->tv_sec == 0 && wtp->tv_nsec < MONOTONIC_DELAY_MAX_NSEC) {
-        MonotonicClock_Delay(gMonotonicClock, wtp->tv_nsec);
+    if (wtp->tv_sec == 0 && wtp->tv_nsec < CLOCK_DELAY_MAX_NSEC) {
+        clock_delay(g_mono_clock, wtp->tv_nsec);
         return;
     }
     

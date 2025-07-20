@@ -13,9 +13,9 @@
 #include <dispatchqueue/DispatchQueue.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
+#include <machine/clock.h>
 #include <machine/csw.h>
 #include <machine/InterruptController.h>
-#include <machine/MonotonicClock.h>
 #include <machine/Platform.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>
@@ -118,7 +118,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     
     // Initialize the monotonic clock
-    try_bang(MonotonicClock_Init(gMonotonicClock, pSysDesc));
+    try_bang(clock_init_mono(g_mono_clock, pSysDesc));
 
     
     // Inform the scheduler that the heap exists now and that it should finish

@@ -8,7 +8,7 @@
 
 #include "HIDEventQueue.h"
 #include <kern/kalloc.h>
-#include <machine/MonotonicClock.h>
+#include <machine/clock.h>
 #include <machine/Platform.h>
 #include <sched/sem.h>
 
@@ -131,7 +131,7 @@ void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const 
 
     HIDEvent* pEvent = &self->data[self->writeIdx++ & self->capacityMask];
     pEvent->type = type;
-    MonotonicClock_GetCurrentTime(gMonotonicClock, &pEvent->eventTime);
+    clock_gettime(g_mono_clock, &pEvent->eventTime);
     pEvent->data = *pEventData;
     irq_restore(irs);
 

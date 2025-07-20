@@ -1,13 +1,13 @@
 //
-//  MonotonicClock.h
+//  clock.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/11/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef MonotonicClock_h
-#define MonotonicClock_h
+#ifndef _CLOCK_H
+#define _CLOCK_H 1
 
 #include <kern/errno.h>
 #include <kern/types.h>
@@ -15,36 +15,37 @@
 struct SystemDescription;
 
 // At most 1ms
-#define MONOTONIC_DELAY_MAX_NSEC    1000000l
+#define CLOCK_DELAY_MAX_NSEC    1000000l
 
 #define INTERRUPT_ID_QUANTUM_TIMER  INTERRUPT_ID_CIA_A_TIMER_B
 
 
 // Note: Keep in sync with machine/hal/lowmem.i
-typedef struct MonotonicClock {
+struct clock {
     volatile struct timespec    current_time;
     volatile Quantums           current_quantum;    // Current scheduler time in terms of elapsed quantums since boot
     int32_t                     ns_per_quantum;     // duration of a quantum in terms of nanoseconds
     int16_t                     quantum_duration_cycles;    // Quantum duration in terms of timer cycles
     int16_t                     ns_per_quantum_timer_cycle; // Length of a quantum timer cycle in nanoseconds
-} MonotonicClock;
+};
+typedef struct clock* clock_ref_t;
 
 
-extern MonotonicClock* _Nonnull gMonotonicClock;
+extern clock_ref_t _Nonnull g_mono_clock;
 
-extern errno_t MonotonicClock_Init(MonotonicClock* _Nonnull self, const struct SystemDescription* pSysDesc);
+extern errno_t clock_init_mono(clock_ref_t _Nonnull self, const struct SystemDescription* pSysDesc);
 
 // Returns the current time in terms of quantums
-#define MonotonicClock_GetCurrentQuantums(__self) \
+#define clock_getticks(__self) \
 ((__self)->current_quantum)
 
 // Returns the current time of the clock in terms of microseconds.
-extern void MonotonicClock_GetCurrentTime(MonotonicClock* _Nonnull self, struct timespec* _Nonnull ts);
+extern void clock_gettime(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts);
 
 // Blocks the caller for 'ns' nanoseconds. This functions blocks for at most
-// MONOTONIC_DELAY_MAX_NSEC and the delay is implemented as a hard spin.
+// CLOCK_DELAY_MAX_NSEC and the delay is implemented as a hard spin.
 // Longer delays should be implemented with the help of a wait queue. 
-extern void MonotonicClock_Delay(MonotonicClock* _Nonnull self, long ns);
+extern void clock_delay(clock_ref_t _Nonnull self, long ns);
 
 
 // Rounding modes for struct timespec to Quantums conversion
@@ -53,9 +54,9 @@ extern void MonotonicClock_Delay(MonotonicClock* _Nonnull self, long ns);
 
 // Converts a timespec to a quantum value. The quantum value is rounded based
 // on the 'rounding' parameter.
-extern Quantums MonotonicClock_time2quantums(MonotonicClock* _Nonnull self, const struct timespec* _Nonnull ts, int rounding);
+extern Quantums clock_time2quantums(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts, int rounding);
 
 // Converts a quantum value to a timespec.
-extern void MonotonicClock_quantums2time(MonotonicClock* _Nonnull self, Quantums quants, struct timespec* _Nonnull ts);
+extern void clock_quantums2time(clock_ref_t _Nonnull self, Quantums quants, struct timespec* _Nonnull ts);
 
-#endif /* MonotonicClock_h */
+#endif /* _CLOCK_H */

@@ -8,9 +8,9 @@
 
 #include "sched.h"
 #include "vcpu.h"
+#include <machine/clock.h>
 #include <machine/csw.h>
 #include <machine/InterruptController.h>
-#include <machine/MonotonicClock.h>
 #include <machine/amiga/chipset.h>
 #include <kern/timespec.h>
 #include <log/Log.h>
@@ -83,7 +83,7 @@ errno_t sched_finish_boot(sched_t _Nonnull self)
     struct timespec ts;
     
     timespec_from_ms(&ts, 250);
-    self->quantums_per_quarter_second = MonotonicClock_time2quantums(gMonotonicClock, &ts, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
+    self->quantums_per_quarter_second = clock_time2quantums(g_mono_clock, &ts, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
 
 
     // Resume the idle virtual processor
@@ -119,7 +119,7 @@ void sched_add_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effect
     vp->sched_state = SCHED_STATE_READY;
     vp->effectivePriority = effectivePriority;
     vp->quantum_allowance = QuantumAllowanceForPriority(vp->effectivePriority);
-    vp->wait_start_time = MonotonicClock_GetCurrentQuantums(gMonotonicClock);
+    vp->wait_start_time = clock_getticks(g_mono_clock);
     
     List_InsertAfterLast(&self->ready_queue.priority[vp->effectivePriority], &vp->rewa_qe);
     
@@ -182,7 +182,7 @@ void sched_quantum_irq(sched_t _Nonnull self)
 {
     // First, go through the timeout queue and move all VPs whose timeouts have
     // expired to the ready queue.
-    const Quantums now = MonotonicClock_GetCurrentQuantums(gMonotonicClock);
+    const Quantums now = clock_getticks(g_mono_clock);
     
     while (self->timeout_queue.first) {
         register sched_timeout_t* ct = (sched_timeout_t*)self->timeout_queue.first;
@@ -254,7 +254,7 @@ static void _arm_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 // queue.
 void sched_arm_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, const struct timespec* _Nonnull deadline)
 {
-    vp->timeout.deadline = MonotonicClock_time2quantums(gMonotonicClock, deadline, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
+    vp->timeout.deadline = clock_time2quantums(g_mono_clock, deadline, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
     vp->timeout.is_valid = true;
     
     _arm_timeout(self, vp);
@@ -284,7 +284,7 @@ void sched_suspend_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 void sched_resume_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, Quantums suspensionTime)
 {
     if (vp->timeout.is_valid) {
-        vp->timeout.deadline += __max(MonotonicClock_GetCurrentQuantums(gMonotonicClock) - suspensionTime, 0);
+        vp->timeout.deadline += __max(clock_getticks(g_mono_clock) - suspensionTime, 0);
         _arm_timeout(self, vp);
     }
 }

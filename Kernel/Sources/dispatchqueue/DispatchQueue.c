@@ -7,7 +7,7 @@
 //
 
 #include "DispatchQueuePriv.h"
-#include <machine/MonotonicClock.h>
+#include <machine/clock.h>
 #include <kern/kalloc.h>
 #include <kern/string.h>
 #include <kern/timespec.h>
@@ -712,7 +712,7 @@ static void _rearm_timer(DispatchQueueRef _Nonnull _Locked self, WorkItem* _Nonn
     // the future (the next fire date we haven't already missed).
     struct timespec now;
     
-    MonotonicClock_GetCurrentTime(gMonotonicClock, &now);
+    clock_gettime(g_mono_clock, &now);
     
     do  {
         timespec_add(&pItem->u.timer.deadline, &pItem->u.timer.interval, &pItem->u.timer.deadline);
@@ -729,7 +729,7 @@ static WorkItem* _Nullable _get_next_work(DispatchQueueRef _Nonnull _Locked self
     struct timespec now, deadline, dly;
 
     for (;;) {
-        MonotonicClock_GetCurrentTime(gMonotonicClock, &now);
+        clock_gettime(g_mono_clock, &now);
 
         // Grab the first timer that's due. We give preference to timers because
         // they are tied to a specific deadline time while immediate work items

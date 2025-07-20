@@ -16,7 +16,7 @@
 
 
 ;-------------------------------------------------------------------------------
-; void mclk_start_quantum_timer(const MonotonicClock* _Nonnull self)
+; void mclk_start_quantum_timer(const clock_ref_t _Nonnull self)
 ; Starts the quantum timer running. This timer is used to implement context switching.
 ; Uses timer B in CIA A.
 ;
@@ -70,7 +70,7 @@ _mclk_stop_quantum_timer:
 
 
 ;-------------------------------------------------------------------------------
-; int32_t mclk_get_quantum_timer_elapsed_ns(const MonotonicClock* _Nonnull self)
+; int32_t mclk_get_quantum_timer_elapsed_ns(const clock_ref_t _Nonnull self)
 ; Returns the amount of nanoseconds that have elapsed in the current quantum.
 _mclk_get_quantum_timer_elapsed_ns:
     cargs cgqte_clock_ptr.l

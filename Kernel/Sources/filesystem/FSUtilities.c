@@ -7,7 +7,7 @@
 //
 
 #include "FSUtilities.h"
-#include <machine/MonotonicClock.h>
+#include <machine/clock.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 
@@ -16,7 +16,7 @@
 // for filesystem objects.
 void FSGetCurrentTime(struct timespec* _Nonnull ts)
 {
-    MonotonicClock_GetCurrentTime(gMonotonicClock, ts);
+    clock_gettime(g_mono_clock, ts);
 }
 
 

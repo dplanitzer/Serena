@@ -8,7 +8,7 @@
 
 #include "HIDKeyRepeater.h"
 #include "HIDManager.h"
-#include <machine/MonotonicClock.h>
+#include <machine/clock.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <kpi/hidkeycodes.h>
@@ -166,7 +166,7 @@ void HIDKeyRepeater_KeyDown(HIDKeyRepeaterRef _Nonnull self, HIDKeyCode keyCode)
     if (shouldAutoRepeatKeyCode(keyCode)) {
         struct timespec now;
 
-        MonotonicClock_GetCurrentTime(gMonotonicClock, &now);
+        clock_gettime(g_mono_clock, &now);
         self->state = kState_InitialDelaying;
         self->keyCode = keyCode;
         timespec_add(&now, &self->initialKeyRepeatDelay, &self->nextEventTime);
@@ -188,7 +188,7 @@ void HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self)
 {
     struct timespec now;
 
-    MonotonicClock_GetCurrentTime(gMonotonicClock, &now);
+    clock_gettime(g_mono_clock, &now);
 
     switch (self->state) {
         case kState_Idle:

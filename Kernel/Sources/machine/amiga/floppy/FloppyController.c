@@ -9,8 +9,8 @@
 #include "FloppyDriverPriv.h"
 #include "FloppyControllerPkg.h"
 #include "adf.h"
+#include <machine/clock.h>
 #include <machine/InterruptController.h>
-#include <machine/MonotonicClock.h>
 #include <machine/amiga/chipset.h>
 #include <kern/timespec.h>
 #include <sched/cnd.h>
@@ -389,7 +389,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     // Wait for the DMA to complete
     struct timespec now, dly, deadline;
     
-    MonotonicClock_GetCurrentTime(gMonotonicClock, &now);
+    clock_gettime(g_mono_clock, &now);
     timespec_from_ms(&dly, 500);
     timespec_add(&now, &dly, &deadline);
     err = sem_acquire(&self->done, &deadline);
