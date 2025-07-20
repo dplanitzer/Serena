@@ -16,9 +16,6 @@
 // CPU Context Switcher API (used by the scheduler)
 //
 
-extern int csw_disable(void);
-extern void csw_restore(int sps);
-
 extern void csw_switch(void);
 extern _Noreturn csw_switch_to_boot_vcpu(void);
 

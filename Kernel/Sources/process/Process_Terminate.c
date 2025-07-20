@@ -154,9 +154,9 @@ static void _proc_abort_vcpus(ProcessRef _Nonnull self)
     List_ForEach(&self->vpQueue, ListNode, {
         vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
-        const int sps = csw_disable();
+        const int sps = preempt_disable();
         vcpu_sendsignal(cvp, SIGKILL);
-        csw_restore(sps);
+        preempt_restore(sps);
     });
     mtx_unlock(&self->mtx);
 }

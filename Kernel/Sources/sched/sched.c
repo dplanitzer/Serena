@@ -120,10 +120,10 @@ void sched_add_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effect
 void sched_add_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     // Protect against our scheduling code
-    const int sps = csw_disable();
+    const int sps = preempt_disable();
     
     sched_add_vcpu_locked(self, vp, vp->priority);
-    csw_restore(sps);
+    preempt_restore(sps);
 }
 
 // Takes the given virtual processor off the ready queue.
@@ -369,7 +369,7 @@ _Noreturn sched_run_chores(sched_t _Nonnull self)
     
     while (true) {
         List_Init(&dead_vps);
-        const int sps = csw_disable();
+        const int sps = preempt_disable();
 
         // Continue to wait as long as there's nothing to finalize
         while (List_IsEmpty(&self->finalizer_queue)) {
@@ -385,7 +385,7 @@ _Noreturn sched_run_chores(sched_t _Nonnull self)
         dead_vps = self->finalizer_queue;
         List_Deinit(&self->finalizer_queue);
         
-        csw_restore(sps);
+        preempt_restore(sps);
         
         
         // XXX

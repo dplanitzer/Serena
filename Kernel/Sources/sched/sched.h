@@ -111,6 +111,13 @@ extern void sched_cancel_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 // processor. This function does not return to the caller. 
 extern _Noreturn sched_run_chores(sched_t _Nonnull self);
 
+// Disable and restore preemptive context switches. Scheduling and cooperative
+// context switches will continue to function as expected. Also note that if a
+// VP A disables preemptive context switches and it then does a cooperative
+// context switch to VP B, that VP B will run with preemption enabled.  
+extern int preempt_disable(void);
+extern void preempt_restore(int sps);
+
 
 //
 // The following functions are for use by the vcpu implementation.

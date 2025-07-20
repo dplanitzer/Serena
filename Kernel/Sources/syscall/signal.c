@@ -18,9 +18,9 @@ SYSCALL_2(sigwait, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    const int sps = csw_disable();
+    const int sps = preempt_disable();
     err = wq_sigwait(&pp->siwaQueue, pa->set, pa->info);
-    csw_restore(sps);
+    preempt_restore(sps);
     return err;
 }
 
@@ -29,27 +29,27 @@ SYSCALL_4(sigtimedwait, const sigset_t* _Nonnull set, int flags, const struct ti
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    const int sps = csw_disable();
+    const int sps = preempt_disable();
     err = wq_sigtimedwait(&pp->siwaQueue, pa->set, pa->flags, pa->wtp, pa->info);
-    csw_restore(sps);
+    preempt_restore(sps);
     return err;
 }
 
 SYSCALL_1(sigpending, sigset_t* _Nonnull set)
 {
     decl_try_err();
-    const int sps = csw_disable();
+    const int sps = preempt_disable();
 
     *(pa->set) = vp->psigs & ~vp->sigmask;
-    csw_restore(sps);
+    preempt_restore(sps);
     return EOK;
 }
 
 static errno_t _sendsig(vcpu_t _Nonnull vp, int signo)
 {
-    const int sps = csw_disable();
+    const int sps = preempt_disable();
     const errno_t err = vcpu_sendsignal(vp, signo);
-    csw_restore(sps);
+    preempt_restore(sps);
 
     return err;
 }

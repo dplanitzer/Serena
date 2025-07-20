@@ -11,30 +11,9 @@
     xref _g_sched_storage
     xref _cpu_non_recoverable_error
 
-    xdef _csw_disable
-    xdef _csw_restore
     xdef _csw_switch
     xdef _csw_switch_to_boot_vcpu
     xdef __csw_rte_switch
-
-
-;-------------------------------------------------------------------------------
-; int csw_disable(void)
-; Disables preemption and returns the previous preemption state.
-_csw_disable:
-    DISABLE_PREEMPTION d0
-    rts
-
-
-;-------------------------------------------------------------------------------
-; void csw_restore(int sps)
-; Restores the preemption state to 'sps'. Note that this function call wipes out
-; the condition codes and tracing enabled state.
-_csw_restore:
-    cargs rp_state.l
-    move.l  rp_state(sp), d0
-    RESTORE_PREEMPTION d0
-    rts
 
 
 ;-------------------------------------------------------------------------------

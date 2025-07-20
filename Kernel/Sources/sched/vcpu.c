@@ -162,7 +162,7 @@ _Noreturn vcpu_terminate(vcpu_t _Nonnull self)
     // NOTE: We don't need to save the old preemption state because this VP is
     // going away and we will never context switch back to it. The context switch
     // will reenable preemption.
-    (void) csw_disable();
+    (void) preempt_disable();
     sched_terminate_vcpu(g_sched, self);
     /* NOT REACHED */
 }
@@ -171,10 +171,10 @@ _Noreturn vcpu_terminate(vcpu_t _Nonnull self)
 int vcpu_priority(vcpu_t _Nonnull self)
 {
     VP_ASSERT_ALIVE(self);
-    const int sps = csw_disable();
+    const int sps = preempt_disable();
     const int pri = self->priority;
     
-    csw_restore(sps);
+    preempt_restore(sps);
     return pri;
 }
 
@@ -185,7 +185,7 @@ int vcpu_priority(vcpu_t _Nonnull self)
 void vcpu_setpriority(vcpu_t _Nonnull self, int priority)
 {
     VP_ASSERT_ALIVE(self);
-    const int sps = csw_disable();
+    const int sps = preempt_disable();
     
     if (self->priority != priority) {
         switch (self->sched_state) {
@@ -210,13 +210,13 @@ void vcpu_setpriority(vcpu_t _Nonnull self, int priority)
                 break;
         }
     }
-    csw_restore(sps);
+    preempt_restore(sps);
 }
 
 // Yields the remainder of the current quantum to other VPs.
 void vcpu_yield(void)
 {
-    const int sps = csw_disable();
+    const int sps = preempt_disable();
     vcpu_t self = (vcpu_t)g_sched->running;
 
     assert(self->sched_state == SCHED_STATE_RUNNING && self->suspension_count == 0);
@@ -226,17 +226,17 @@ void vcpu_yield(void)
     sched_switch_to(g_sched,
         sched_highest_priority_ready(g_sched));
     
-    csw_restore(sps);
+    preempt_restore(sps);
 }
 
 // Suspends the calling virtual processor. This function supports nested calls.
 errno_t vcpu_suspend(vcpu_t _Nonnull self)
 {
     VP_ASSERT_ALIVE(self);
-    const int sps = csw_disable();
+    const int sps = preempt_disable();
     
     if (self->suspension_count == INT8_MAX) {
-        csw_restore(sps);
+        preempt_restore(sps);
         return EINVAL;
     }
     
@@ -266,7 +266,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
         }
     }
     
-    csw_restore(sps);
+    preempt_restore(sps);
     return EOK;
 }
 
@@ -276,10 +276,10 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
 void vcpu_resume(vcpu_t _Nonnull self, bool force)
 {
     VP_ASSERT_ALIVE(self);
-    const int sps = csw_disable();
+    const int sps = preempt_disable();
     
     if (self->suspension_count == 0) {
-        csw_restore(sps);
+        preempt_restore(sps);
         return;
     }
 
@@ -308,15 +308,15 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
                 abort();
         }
     }
-    csw_restore(sps);
+    preempt_restore(sps);
 }
 
 // Returns true if the given virtual processor is currently suspended; false otherwise.
 bool vcpu_suspended(vcpu_t _Nonnull self)
 {
     VP_ASSERT_ALIVE(self);
-    const int sps = csw_disable();
+    const int sps = preempt_disable();
     const bool isSuspended = self->suspension_count > 0;
-    csw_restore(sps);
+    preempt_restore(sps);
     return isSuspended;
 }
