@@ -17,8 +17,6 @@ struct SystemDescription;
 // At most 1ms
 #define CLOCK_DELAY_MAX_NSEC    1000000l
 
-#define INTERRUPT_ID_QUANTUM_TIMER  INTERRUPT_ID_CIA_A_TIMER_B
-
 
 // Note: Keep in sync with machine/hal/lowmem.i
 struct clock {
@@ -33,7 +31,11 @@ typedef struct clock* clock_ref_t;
 
 extern clock_ref_t _Nonnull g_mono_clock;
 
-extern errno_t clock_init_mono(clock_ref_t _Nonnull self, const struct SystemDescription* pSysDesc);
+// Initializes the monotonic clock. Note that the clock is disabled by default.
+// Call clock_enable() once the system is ready to accept clock interrupts.
+extern void clock_init_mono(clock_ref_t _Nonnull self, const struct SystemDescription* pSysDesc);
+
+extern void clock_enable(clock_ref_t _Nonnull self);
 
 // Returns the current time in terms of quantums
 #define clock_getticks(__self) \
@@ -58,5 +60,8 @@ extern Quantums clock_time2quantums(clock_ref_t _Nonnull self, const struct time
 
 // Converts a quantum value to a timespec.
 extern void clock_quantums2time(clock_ref_t _Nonnull self, Quantums quants, struct timespec* _Nonnull ts);
+
+// @HAL Requirement: Must be called from the monotonic clock IRQ handler first
+extern void clock_irq(void);
 
 #endif /* _CLOCK_H */

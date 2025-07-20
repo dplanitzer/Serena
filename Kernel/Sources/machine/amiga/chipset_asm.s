@@ -44,8 +44,8 @@ _chipset_reset:
     move.b  #0, CIAACRB
     move.b  #0, CIABCRA
     move.b  #0, CIABCRB
-    move.b  #0, CIAAICR
-    move.b  #0, CIABICR
+    move.b  #$7f, CIAAICR
+    move.b  #$7f, CIABICR
 
     ; clear pending IRQs
     move.b  CIAAICR, d0

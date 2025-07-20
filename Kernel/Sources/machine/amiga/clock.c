@@ -18,21 +18,18 @@ extern void mclk_stop_quantum_timer(void);
 extern int32_t mclk_get_quantum_timer_elapsed_ns(const clock_ref_t _Nonnull self);
 
 
-static void clock_irq(clock_ref_t _Nonnull pClock);
-
 static struct clock g_mono_clock_storage;
 clock_ref_t g_mono_clock = &g_mono_clock_storage;
 
 
-// CIA timer usage:
-// CIA B timer A: monotonic clock tick counter
+// Hardware timer usage:
+// Amiga: CIA_A_TIMER_B -> monotonic clock ticks
 
 
 // Initializes the monotonic clock. The monotonic clock uses the quantum timer
 // as its time base.
-errno_t clock_init_mono(clock_ref_t _Nonnull self, const SystemDescription* pSysDesc)
+void clock_init_mono(clock_ref_t _Nonnull self, const SystemDescription* pSysDesc)
 {
-    decl_try_err();
     const bool is_ntsc = chipset_is_ntsc();
 
     // Compute the quantum timer parameters:
@@ -41,7 +38,7 @@ errno_t clock_init_mono(clock_ref_t _Nonnull self, const SystemDescription* pSys
     //  NTSC    28.63636 MHz
     //  PAL     28.37516 MHz
     //
-    // CIA B timer A clock:
+    // CIA A timer B clock:
     //   NTSC    0.715909 MHz (1/10th CPU clock)     [1.3968255 us]
     //   PAL     0.709379 MHz                        [1.4096836 us]
     //
@@ -62,32 +59,29 @@ errno_t clock_init_mono(clock_ref_t _Nonnull self, const SystemDescription* pSys
     self->quantum_duration_cycles = (is_ntsc) ? 12000 : 12500;
     self->ns_per_quantum_timer_cycle = (is_ntsc) ? 1396 : 1409;
 
-    InterruptHandlerID irqHandler;
-    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
-                                                      INTERRUPT_ID_QUANTUM_TIMER,
-                                                      INTERRUPT_HANDLER_PRIORITY_HIGHEST,
-                                                      (InterruptHandler_Closure)clock_irq,
-                                                      self,
-                                                      &irqHandler));
-    InterruptController_SetInterruptHandlerEnabled(gInterruptController, irqHandler, true);
-
     mclk_start_quantum_timer(self);
-
-catch:
-    return err;
 }
 
-static void clock_irq(clock_ref_t _Nonnull pClock)
+void clock_enable(clock_ref_t _Nonnull self)
 {
+    CIAA_BASE_DECL(ciaap);
+
+    *CIA_REG_8(ciaap, CIA_ICR) = CIA_IRCF_SC|CIA_IRCF_TB;
+}
+
+void clock_irq(void)
+{
+    register clock_ref_t self = g_mono_clock;
+
     // update the scheduler clock
-    pClock->current_quantum++;
+    self->current_quantum++;
     
     
     // update the metric time
-    pClock->current_time.tv_nsec += pClock->ns_per_quantum;
-    if (pClock->current_time.tv_nsec >= NSEC_PER_SEC) {
-        pClock->current_time.tv_sec++;
-        pClock->current_time.tv_nsec -= NSEC_PER_SEC;
+    self->current_time.tv_nsec += self->ns_per_quantum;
+    if (self->current_time.tv_nsec >= NSEC_PER_SEC) {
+        self->current_time.tv_sec++;
+        self->current_time.tv_nsec -= NSEC_PER_SEC;
     }
 }
 

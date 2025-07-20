@@ -15,6 +15,9 @@
 #include <kern/timespec.h>
 #include <log/Log.h>
 
+// Hardware timer usage:
+// Amiga: CIA_A_TIMER_B -> quantum ticks
+
 
 static void sched_dump_rdyq_locked(sched_t _Nonnull self);
 
@@ -77,7 +80,7 @@ void sched_create(SystemDescription* _Nonnull sdp, BootAllocator* _Nonnull bap, 
 
 // Called from OnStartup() after the heap has been created. Finishes the scheduler
 // initialization.
-errno_t sched_finish_boot(sched_t _Nonnull self)
+void sched_finish_boot(sched_t _Nonnull self)
 {
     decl_try_err();
     struct timespec ts;
@@ -88,22 +91,6 @@ errno_t sched_finish_boot(sched_t _Nonnull self)
 
     // Resume the idle virtual processor
     vcpu_resume(self->idle_vp, false);
-    
-
-    // Hook us up with the quantum timer interrupt
-    InterruptHandlerID irqHandler;
-    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
-                                                  INTERRUPT_ID_QUANTUM_TIMER,
-                                                  INTERRUPT_HANDLER_PRIORITY_HIGHEST - 1,
-                                                  (InterruptHandler_Closure)sched_quantum_irq,
-                                                  self,
-                                                  &irqHandler));
-    InterruptController_SetInterruptHandlerEnabled(gInterruptController, irqHandler, true);
-
-    return EOK;
-
-catch:
-    return err;
 }
 
 // Adds the given virtual processor with the given effective priority to the
@@ -178,8 +165,10 @@ vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self)
 }
 
 // Invoked at the end of every quantum.
-void sched_quantum_irq(sched_t _Nonnull self)
+void sched_quantum_irq(void)
 {
+    register sched_t self = g_sched;
+
     // First, go through the timeout queue and move all VPs whose timeouts have
     // expired to the ready queue.
     const Quantums now = clock_getticks(g_mono_clock);

@@ -89,6 +89,15 @@
 
 #define CIAB_PRBB_DSKSEL0   3
 
+#define CIA_IRCF_IR         0x80
+#define CIA_IRCF_SC         0x80
+#define CIA_IRCF_FLG        0x10
+#define CIA_IRCF_SP         0x08
+#define CIA_IRCF_ALRM       0x04
+#define CIA_IRCF_TB         0x02
+#define CIA_IRCF_TA         0x01
+
+
 
 //
 // GARY Chip
@@ -657,7 +666,7 @@
 #define INTERRUPT_ID_CIA_A_FLAG                     18
 #define INTERRUPT_ID_CIA_A_SP                       17
 #define INTERRUPT_ID_CIA_A_ALARM                    16
-#define INTERRUPT_ID_CIA_A_TIMER_B                  15
+//#define INTERRUPT_ID_CIA_A_TIMER_B                  15    // Direct Hook: monotonic clock + scheduler
 #define INTERRUPT_ID_CIA_A_TIMER_A                  14
 
 #define INTERRUPT_ID_EXTERN                         13

@@ -29,6 +29,8 @@
     xref _g_sched_storage
     xref __fatalException
     xref __vcpu_relinquish_self
+    xref _clock_irq
+    xref _sched_quantum_irq
 
     xdef _cpu_vector_table
     xdef _cpu_non_recoverable_error
@@ -288,7 +290,8 @@ IRQHandler_L2:
 irq_handler_ciaa_tb:
     btst    #ICRB_TB, d7
     beq.s   irq_handler_ciaa_alarm
-    CALL_IRQ_HANDLERS irc_handlers_CIA_A_TIMER_B
+    jsr     _clock_irq
+    jsr     _sched_quantum_irq
 
 irq_handler_ciaa_alarm:
     btst    #ICRB_ALRM, d7

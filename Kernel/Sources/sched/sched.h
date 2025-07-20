@@ -93,11 +93,9 @@ extern sched_t _Nonnull g_sched;
 // VirtualProcessorScheduler_IncipientContextSwitch() function. 
 extern void sched_create(SystemDescription* _Nonnull sdp, BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx);
 
-extern errno_t sched_finish_boot(sched_t _Nonnull self);
+extern void sched_finish_boot(sched_t _Nonnull self);
 
 extern void sched_add_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp);
-
-extern void sched_quantum_irq(sched_t _Nonnull self);
 
 // Arms a timeout for the given virtual processor. This puts the VP on the timeout
 // queue.
@@ -137,5 +135,9 @@ extern void sched_suspend_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 
 // Resumes a suspended timeout for the given virtual processor.
 extern void sched_resume_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, Quantums suspensionTime);
+
+
+// @HAL Requirement: Must be called from the monotonic clock IRQ handler second
+extern void sched_quantum_irq(void);
 
 #endif /* _SCHED_H */
