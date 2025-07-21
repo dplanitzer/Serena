@@ -31,19 +31,12 @@ typedef volatile int sig_atomic_t;
 
 
 #define _SIGBIT(__signo) (1 << ((__signo) - 1))
-
+#define _ISPROCSIG(__signo) ((__signo) >= SIGMIN && (__signo) < SIGMAX/2)
 
 #define SIGSET_NONMASKABLES _SIGBIT(SIGKILL)
-#define SIGSET_URGENT       _SIGBIT(SIGKILL)
 
 
 #define SIG_SCOPE_VCPU          0
 #define SIG_SCOPE_VCPU_GROUP    1
-
-
-typedef struct siginfo {
-    int     signo;      // Signal number
-//    pid_t   pid;        // Originating process
-} siginfo_t;
 
 #endif /* _KPI_SIGNAL_H */

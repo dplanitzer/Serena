@@ -177,7 +177,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mtx_t* _Nonnu
     struct timespec now, deadline;
     dispatch_item_t item;
     int flags;
-    siginfo_t si;
+    int si;
 
     for (;;) {
         // Grab the first timer that's due. We give preference to timers because

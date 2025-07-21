@@ -90,20 +90,18 @@ static int _best_pending_sig(vcpu_t _Nonnull self, sigset_t _Nonnull set)
 }
 
 // @Entry Condition: preemption disabled
-errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
+errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo)
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
 
     for (;;) {
         if (wq_prim_wait(wq, set) == WRES_SIGNAL) {
-            if (info) {
-                const int signo = _best_pending_sig(vp, *set);
+            const int best_signo = _best_pending_sig(vp, *set);
 
-                if (signo) {
-                    vp->pending_sigs &= ~_SIGBIT(signo);
-                    info->signo = signo;
-                    return EOK;
-                }
+            if (best_signo) {
+                vp->pending_sigs &= ~_SIGBIT(best_signo);
+                *signo = best_signo;
+                return EOK;
             }
 
             return EINTR;
@@ -114,7 +112,7 @@ errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, sigi
 }
 
 // @Entry Condition: preemption disabled
-errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info)
+errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo)
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
     struct timespec now, deadline;
@@ -136,17 +134,16 @@ errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set,
             case WRES_WAKEUP:   // Spurious wakeup
                 break;
 
-            case WRES_SIGNAL:
-                if (info) {
-                    const int signo = _best_pending_sig(vp, *set);
+            case WRES_SIGNAL: {
+                const int best_signo = _best_pending_sig(vp, *set);
 
-                    if (signo) {
-                        vp->pending_sigs &= ~_SIGBIT(signo);
-                        info->signo = signo;
-                        return EOK;
-                    }
+                if (best_signo) {
+                    vp->pending_sigs &= ~_SIGBIT(best_signo);
+                    *signo = best_signo;
+                    return EOK;
                 }
                 return EINTR;
+            }
 
             case WRES_TIMEOUT:
                 return ETIMEDOUT;

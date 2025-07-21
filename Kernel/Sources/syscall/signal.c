@@ -13,24 +13,24 @@
 #include <sched/waitqueue.h>
 
 
-SYSCALL_2(sigwait, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
+SYSCALL_2(sigwait, const sigset_t* _Nonnull set, int* _Nullable signo)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
-    err = vcpu_sigwait(&pp->siwaQueue, pa->set, pa->info);
+    err = vcpu_sigwait(&pp->siwaQueue, pa->set, pa->signo);
     preempt_restore(sps);
     return err;
 }
 
-SYSCALL_4(sigtimedwait, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info)
+SYSCALL_4(sigtimedwait, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nullable signo)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
-    err = vcpu_sigtimedwait(&pp->siwaQueue, pa->set, pa->flags, pa->wtp, pa->info);
+    err = vcpu_sigtimedwait(&pp->siwaQueue, pa->set, pa->flags, pa->wtp, pa->signo);
     preempt_restore(sps);
     return err;
 }

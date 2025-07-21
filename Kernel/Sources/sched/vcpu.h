@@ -175,10 +175,10 @@ extern errno_t vcpu_setsigmask(vcpu_t _Nonnull self, int op, sigset_t mask, sigs
 extern errno_t vcpu_sendsignal(vcpu_t _Nonnull self, int signo);
 
 // @Entry Condition: preemption disabled
-extern errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, siginfo_t* _Nullable info);
+extern errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo);
 
 // @Entry Condition: preemption disabled
-extern errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info);
+extern errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo);
 
 
 // Yields the remainder of the current quantum to other VPs.

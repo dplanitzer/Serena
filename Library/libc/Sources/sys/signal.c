@@ -10,14 +10,14 @@
 #include <kpi/syscall.h>
 
 
-int sigwait(const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
+int sigwait(const sigset_t* _Nonnull set, int* _Nonnull signo)
 {
-    return (int)_syscall(SC_sigwait, set, info);
+    return (int)_syscall(SC_sigwait, set, signo);
 }
 
-int sigtimedwait(const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info)
+int sigtimedwait(const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo)
 {
-    return (int)_syscall(SC_sigtimedwait, set, flags, wtp, info);
+    return (int)_syscall(SC_sigtimedwait, set, flags, wtp, signo);
 }
 
 int sigpending(sigset_t* _Nonnull set)
