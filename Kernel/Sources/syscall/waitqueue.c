@@ -136,18 +136,18 @@ SYSCALL_3(wq_timedwait, int q, int flags, const struct timespec* _Nonnull wtp)
     return err;
 }
 
-SYSCALL_4(wq_timedwakewait, int q, int oq, int flags, const struct timespec* _Nonnull wtp)
+SYSCALL_4(wq_wakeup_then_timedwait, int q1, int q2, int flags, const struct timespec* _Nonnull wtp)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
-    UWaitQueue* uwp = _find_uwq(pp, pa->q);
-    UWaitQueue* owp = _find_uwq(pp, pa->oq);
+    UWaitQueue* uwp_to_wake = _find_uwq(pp, pa->q1);
+    UWaitQueue* uwp_to_wait = _find_uwq(pp, pa->q2);
 
-    if (uwp && owp) {
-        wq_wake(&owp->wq, WAKEUP_ONE | WAKEUP_CSW, WRES_WAKEUP);
-        err = wq_timedwait(&uwp->wq, NULL, pa->flags, pa->wtp, NULL);
+    if (uwp_to_wake && uwp_to_wait) {
+        wq_wake(&uwp_to_wake->wq, WAKEUP_ONE | WAKEUP_CSW, WRES_WAKEUP);
+        err = wq_timedwait(&uwp_to_wait->wq, NULL, pa->flags, pa->wtp, NULL);
     }
     else {
         err = EBADF;

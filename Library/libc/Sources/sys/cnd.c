@@ -80,7 +80,7 @@ static int _cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mutex, int flags, con
 
     const int r = __mtx_unlock(mutex);
     if (r == 1) {
-        wq_timedwakewait(self->wait_queue, mutex->wait_queue, flags, wtp);
+        wq_wakeup_then_timedwait(mutex->wait_queue, self->wait_queue, flags, wtp);
     }
     else if (r == 0) {
         wq_timedwait(self->wait_queue, flags, wtp);
