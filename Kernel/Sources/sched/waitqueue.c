@@ -34,12 +34,14 @@ errno_t wq_deinit(waitqueue_t _Nonnull self)
 }
 
 
+// The basic non-time-limited wait primitive. This function waits on the wait
+// queue until it is explicitly woken up by one of the wake() calls or a signal
+// arrives that is in the signal set 'mask'.
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-static wres_t _one_shot_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask)
+wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask)
 {
-    sched_t ps = g_sched;
-    vcpu_t vp = (vcpu_t)ps->running;
+    vcpu_t vp = (vcpu_t)g_sched->running;
     const sigset_t oldMask = vp->sigmask;
     const sigset_t theMask = (mask) ? *mask : oldMask;
     const sigset_t availSigs = vp->psigs & ~theMask;
@@ -63,18 +65,18 @@ static wres_t _one_shot_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullabl
 
     
     // Find another VP to run and context switch to it
-    sched_switch_to(ps,
-            sched_highest_priority_ready(ps));
+    sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     
     vp->sigmask = oldMask;
     return vp->wakeup_reason;
 }
 
+// Same as wq_prim_wait() but cancels the wait once the wait deadline specified
+// by 'wtp' has arrived.
 // @Entry Condition: preemption disabled
-static errno_t _one_shot_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
+wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
 {
-    sched_t ps = g_sched;
-    vcpu_t vp = (vcpu_t)ps->running;
+    vcpu_t vp = (vcpu_t)g_sched->running;
     struct timespec now, deadline;
     bool hasArmedTimer = false;
 
@@ -98,15 +100,15 @@ static errno_t _one_shot_timedwait(waitqueue_t _Nonnull self, const sigset_t* _N
             return WRES_TIMEOUT;
         }
 
-        sched_arm_timeout(ps, vp, &deadline);
+        sched_arm_timeout(g_sched, vp, &deadline);
         hasArmedTimer = true;
     }
 
 
     // Now wait
-    const wres_t res = _one_shot_wait(self, mask);
+    const wres_t res = wq_prim_wait(self, mask);
     if (hasArmedTimer) {
-        sched_cancel_timeout(ps, vp);
+        sched_cancel_timeout(g_sched, vp);
     }
 
 
@@ -125,113 +127,25 @@ static errno_t _one_shot_timedwait(waitqueue_t _Nonnull self, const sigset_t* _N
     return res;
 }
 
-static int _best_pending_sig(vcpu_t _Nonnull vp, const sigset_t* _Nonnull set)
-{
-    const sigset_t avail_sigs = vp->psigs & *set;
-
-    if (avail_sigs) {
-        for (int i = 0; i < SIGMAX; i++) {
-            const sigset_t sigbit = avail_sigs & (1 << i);
-            
-            if (sigbit) {
-                return i + 1;
-            }
-        }
-    }
-
-    return 0;
-}
-
 
 
 // @Entry Condition: preemption disabled
 errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask)
 {
-    switch (_one_shot_wait(self, mask)) {
+    switch (wq_prim_wait(self, mask)) {
         case WRES_WAKEUP:   return EOK;
         default:            return EINTR;
     }
 }
 
 // @Entry Condition: preemption disabled
-errno_t wq_sigwait(waitqueue_t _Nonnull self, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
-{
-    sched_t ps = g_sched;
-    vcpu_t vp = (vcpu_t)ps->running;
-    const sigset_t mask = vp->sigmask & ~(*set);    // temporarily unblock signals in 'set'
-
-    for (;;) {
-        if (_one_shot_wait(self, &mask) == WRES_SIGNAL) {
-            if (info) {
-                const int signo = _best_pending_sig(vp, set);
-
-                if (signo) {
-                    vp->psigs &= ~_SIGBIT(signo);
-                    info->signo = signo;
-                    return EOK;
-                }
-            }
-
-            return EINTR;
-        }
-    }
-
-    /* NOT REACHED */
-}
-
-// @Entry Condition: preemption disabled
 errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
 {
-    switch (_one_shot_timedwait(self, mask, flags, wtp, rmtp)) {
+    switch (wq_prim_timedwait(self, mask, flags, wtp, rmtp)) {
         case WRES_SIGNAL:   return EINTR;
         case WRES_TIMEOUT:  return ETIMEDOUT;
         default:            return EOK;
     }
-}
-
-// @Entry Condition: preemption disabled
-errno_t wq_sigtimedwait(waitqueue_t _Nonnull self, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info)
-{
-    sched_t ps = g_sched;
-    vcpu_t vp = (vcpu_t)ps->running;
-    const sigset_t mask = vp->sigmask & ~(*set);    // temporarily unblock signals in 'set'
-    struct timespec now, deadline;
-    
-    // Convert a relative timeout to an absolute timeout because it makes it
-    // easier to deal with spurious wakeups and we won't accumulate math errors
-    // caused by time resolution limitations.
-    if ((flags & WAIT_ABSTIME) == WAIT_ABSTIME) {
-        deadline = *wtp;
-    }
-    else {
-        clock_gettime(g_mono_clock, &now);
-        timespec_add(&now, wtp, &deadline);
-    }
-
-
-    for (;;) {
-        switch (_one_shot_timedwait(self, &mask, flags, &deadline, NULL)) {
-            case WRES_WAKEUP:   // Spurious wakeup
-                break;
-
-            case WRES_SIGNAL:
-                if (info) {
-                    const int signo = _best_pending_sig(vp, set);
-
-                    if (signo) {
-                        vp->psigs &= ~_SIGBIT(signo);
-                        info->signo = signo;
-                        return EOK;
-                    }
-                }
-                return EINTR;
-
-            case WRES_TIMEOUT:
-                return ETIMEDOUT;
-        }
-    }
-
-    /* NOT REACHED */
 }
 
 

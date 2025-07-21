@@ -57,6 +57,19 @@ extern void wq_init(waitqueue_t _Nonnull self);
 extern errno_t wq_deinit(waitqueue_t _Nonnull self);
 
 
+// The basic non-time-limited wait primitive. This function waits on the wait
+// queue until it is explicitly woken up by one of the wake() calls or a signal
+// arrives that is in the signal set 'mask'.
+// @Entry Condition: preemption disabled
+// @Entry Condition: 'vp' must be in running state
+extern wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask);
+
+// Same as wq_prim_wait() but cancels the wait once the wait deadline specified
+// by 'wtp' has arrived.
+// @Entry Condition: preemption disabled
+extern wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
+
+
 // Checks whether the caller has signals pending and returns immediately if that's
 // the case. Otherwise puts the caller to sleep until the a wakup() is executed
 // by some other VP. Note that this function does not consume/clear any pending
@@ -64,17 +77,11 @@ extern errno_t wq_deinit(waitqueue_t _Nonnull self);
 // @Entry Condition: preemption disabled
 extern errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask);
 
-// @Entry Condition: preemption disabled
-extern errno_t wq_sigwait(waitqueue_t _Nonnull self, const sigset_t* _Nonnull set, siginfo_t* _Nullable info);
-
 // Same as wait() but with support for timeouts. If 'wtp' is not NULL then 'wtp' is
 // either the maximum duration to wait or the absolute time until to wait. The
 // WAIT_ABSTIME specifies an absolute time. 'rmtp' is an optional timespec that
 // receives the amount of time remaining if the wait was canceled early.
 extern errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
-
-// @Entry Condition: preemption disabled
-extern errno_t wq_sigtimedwait(waitqueue_t _Nonnull self, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info);
 
 
 // Wakes up 'vp' if it is currently in waiting state. The wakeup reason is

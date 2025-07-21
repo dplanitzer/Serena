@@ -12,6 +12,7 @@
 #include <kern/timespec.h>
 #include <kpi/signal.h>
 #include <log/Log.h>
+#include <machine/clock.h>
 #include <machine/csw.h>
 
 
@@ -72,4 +73,90 @@ errno_t vcpu_sendsignal(vcpu_t _Nonnull self, int signo)
     if (self->sched_state == SCHED_STATE_WAITING) {
         wq_wakeone(self->waiting_on_wait_queue, self, WAKEUP_CSW, WRES_SIGNAL);
     }
+}
+
+static int _best_pending_sig(vcpu_t _Nonnull self, sigset_t _Nonnull set)
+{
+    const sigset_t avail_sigs = self->psigs & set;
+
+    if (avail_sigs) {
+        for (int i = SIGMIN-1; i < SIGMAX; i++) {
+            const sigset_t sigbit = avail_sigs & (1 << i);
+            
+            if (sigbit) {
+                return i + 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+// @Entry Condition: preemption disabled
+errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, siginfo_t* _Nullable info)
+{
+    vcpu_t vp = (vcpu_t)g_sched->running;
+    const sigset_t mask = vp->sigmask & ~(*set);    // temporarily unblock signals in 'set'
+
+    for (;;) {
+        if (wq_prim_wait(wq, &mask) == WRES_SIGNAL) {
+            if (info) {
+                const int signo = _best_pending_sig(vp, *set);
+
+                if (signo) {
+                    vp->psigs &= ~_SIGBIT(signo);
+                    info->signo = signo;
+                    return EOK;
+                }
+            }
+
+            return EINTR;
+        }
+    }
+
+    /* NOT REACHED */
+}
+
+// @Entry Condition: preemption disabled
+errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, siginfo_t* _Nullable info)
+{
+    vcpu_t vp = (vcpu_t)g_sched->running;
+    const sigset_t mask = vp->sigmask & ~(*set);    // temporarily unblock signals in 'set'
+    struct timespec now, deadline;
+    
+    // Convert a relative timeout to an absolute timeout because it makes it
+    // easier to deal with spurious wakeups and we won't accumulate math errors
+    // caused by time resolution limitations.
+    if ((flags & WAIT_ABSTIME) == WAIT_ABSTIME) {
+        deadline = *wtp;
+    }
+    else {
+        clock_gettime(g_mono_clock, &now);
+        timespec_add(&now, wtp, &deadline);
+    }
+
+
+    for (;;) {
+        switch (wq_prim_timedwait(wq, &mask, flags, &deadline, NULL)) {
+            case WRES_WAKEUP:   // Spurious wakeup
+                break;
+
+            case WRES_SIGNAL:
+                if (info) {
+                    const int signo = _best_pending_sig(vp, *set);
+
+                    if (signo) {
+                        vp->psigs &= ~_SIGBIT(signo);
+                        info->signo = signo;
+                        return EOK;
+                    }
+                }
+                return EINTR;
+
+            case WRES_TIMEOUT:
+                return ETIMEDOUT;
+        }
+    }
+
+    /* NOT REACHED */
 }
