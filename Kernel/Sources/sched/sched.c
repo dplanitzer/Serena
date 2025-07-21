@@ -189,7 +189,7 @@ void sched_quantum_irq(excpt_frame_t* _Nonnull efp)
 
     // Redirect the currently running VP to exit() if it is running in user mode
     // and it has a force-quit pending
-    if (excpt_frame_isuser(efp) && (run->psigs & _SIGBIT(SIGKILL)) && (run->flags & VP_FLAG_ABORTED_USPACE) == 0) {
+    if (excpt_frame_isuser(efp) && (run->pending_sigs & _SIGBIT(SIGKILL)) && (run->flags & VP_FLAG_ABORTED_USPACE) == 0) {
         excpt_frame_setpc(efp, vcpu_uret_exit);
         run->flags |= VP_FLAG_ABORTED_USPACE;
         return;
@@ -374,7 +374,7 @@ _Noreturn sched_run_chores(sched_t _Nonnull self)
         // Continue to wait as long as there's nothing to finalize
         while (List_IsEmpty(&self->finalizer_queue)) {
             (void)wq_timedwait(&gSchedulerWaitQueue,
-                                &SIGSET_BLOCK_ALL,
+                                &SIGSET_IGNORE_ALL,
                                 0,
                                 &timeout,
                                 NULL);

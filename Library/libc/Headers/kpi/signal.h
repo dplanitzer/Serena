@@ -30,10 +30,11 @@ typedef volatile int sig_atomic_t;
 #define SIGDISPATCH 2
 
 
-#define SIGSET_NONMASKABLES (1 << SIGKILL)
-#define SIGSET_URGENT       (1 << SIGKILL)
-
 #define _SIGBIT(__signo) (1 << ((__signo) - 1))
+
+
+#define SIGSET_NONMASKABLES _SIGBIT(SIGKILL)
+#define SIGSET_URGENT       _SIGBIT(SIGKILL)
 
 
 #define SIG_SCOPE_VCPU          0

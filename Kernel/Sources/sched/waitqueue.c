@@ -36,23 +36,23 @@ errno_t wq_deinit(waitqueue_t _Nonnull self)
 
 // The basic non-time-limited wait primitive. This function waits on the wait
 // queue until it is explicitly woken up by one of the wake() calls or a signal
-// arrives that is in the signal set 'mask'.
+// arrives that is in the signal set 'set'. Note that 'set' is accepted as is
+// and this function does _not_ ensure that non-maskable signals are added to
+// 'set'. It's your responsibility to do this if so desired. Enables just
+// non-maskable signals if 'set' is NULL.
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask)
+wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set)
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
-    const sigset_t oldMask = vp->sigmask;
-    const sigset_t theMask = (mask) ? *mask : oldMask;
-    const sigset_t availSigs = vp->psigs & ~theMask;
+    const sigset_t hot_sigs = (set) ? *set : SIGSET_NONMASKABLES;
 
     assert(vp->sched_state == SCHED_STATE_RUNNING);
 
 
-    if (availSigs) {
+    if ((vp->pending_sigs & hot_sigs) != 0) {
         return WRES_SIGNAL;
     }
-    vp->sigmask = theMask;
 
 
     // FIFO order.
@@ -61,13 +61,13 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask)
     vp->sched_state = SCHED_STATE_WAITING;
     vp->waiting_on_wait_queue = self;
     vp->wait_start_time = clock_getticks(g_mono_clock);
+    vp->wait_sigs = hot_sigs;
     vp->wakeup_reason = 0;
 
     
     // Find another VP to run and context switch to it
     sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     
-    vp->sigmask = oldMask;
     return vp->wakeup_reason;
 }
 
@@ -130,18 +130,18 @@ wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable ma
 
 
 // @Entry Condition: preemption disabled
-errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask)
+errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set)
 {
-    switch (wq_prim_wait(self, mask)) {
+    switch (wq_prim_wait(self, set)) {
         case WRES_WAKEUP:   return EOK;
         default:            return EINTR;
     }
 }
 
 // @Entry Condition: preemption disabled
-errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
+errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
 {
-    switch (wq_prim_timedwait(self, mask, flags, wtp, rmtp)) {
+    switch (wq_prim_timedwait(self, set, flags, wtp, rmtp)) {
         case WRES_SIGNAL:   return EINTR;
         case WRES_TIMEOUT:  return ETIMEDOUT;
         default:            return EOK;
@@ -153,7 +153,6 @@ errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, 
 // @Entry Condition: preemption disabled
 bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t reason)
 {
-    sched_t ps = g_sched;
     bool isReady;
 
 
@@ -166,7 +165,7 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
     // Finish the wait. Remove the VP from the wait queue, the timeout queue and
     // store the wake reason.
     List_Remove(&self->q, &vp->rewa_qe);
-    sched_cancel_timeout(ps, vp);
+    sched_cancel_timeout(g_sched, vp);
     
     vp->waiting_on_wait_queue = NULL;
     vp->wakeup_reason = reason;
@@ -175,12 +174,12 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
     if (vp->suspension_count == 0) {
         // Make the VP ready and adjust it's effective priority based on the
         // time it has spent waiting
-        const int32_t quartersSlept = (clock_getticks(g_mono_clock) - vp->wait_start_time) / ps->quantums_per_quarter_second;
+        const int32_t quartersSlept = (clock_getticks(g_mono_clock) - vp->wait_start_time) / g_sched->quantums_per_quarter_second;
         const int8_t boostedPriority = __min(vp->effectivePriority + __min(quartersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
-        sched_add_vcpu_locked(ps, vp, boostedPriority);
+        sched_add_vcpu_locked(g_sched, vp, boostedPriority);
         
         if ((flags & WAKEUP_CSW) == WAKEUP_CSW) {
-            sched_maybe_switch_to(ps, vp);
+            sched_maybe_switch_to(g_sched, vp);
         }
         isReady = true;
     } else {

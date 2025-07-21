@@ -38,10 +38,11 @@ SYSCALL_4(sigtimedwait, const sigset_t* _Nonnull set, int flags, const struct ti
 SYSCALL_1(sigpending, sigset_t* _Nonnull set)
 {
     decl_try_err();
-    const int sps = preempt_disable();
 
-    *(pa->set) = vp->psigs & ~vp->sigmask;
+    const int sps = preempt_disable();
+    *(pa->set) = vp->pending_sigs;
     preempt_restore(sps);
+    
     return EOK;
 }
 

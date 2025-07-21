@@ -59,10 +59,13 @@ extern errno_t wq_deinit(waitqueue_t _Nonnull self);
 
 // The basic non-time-limited wait primitive. This function waits on the wait
 // queue until it is explicitly woken up by one of the wake() calls or a signal
-// arrives that is in the signal set 'mask'.
+// arrives that is in the signal set 'set'. Note that 'set' is accepted as is
+// and this function does _not_ ensure that non-maskable signals are added to
+// 'set'. It's your responsibility to do this if so desired. Enables just
+// non-maskable signals if 'set' is NULL.
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-extern wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask);
+extern wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set);
 
 // Same as wq_prim_wait() but cancels the wait once the wait deadline specified
 // by 'wtp' has arrived.
@@ -70,18 +73,24 @@ extern wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable 
 extern wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
 
 
-// Checks whether the caller has signals pending and returns immediately if that's
-// the case. Otherwise puts the caller to sleep until the a wakup() is executed
+// Checks whether the caller has signals pending that are members of the signal
+// set 'set' and returns immediately if that's the case. Note that 'set' is
+// taken verbatim if provided. This function does not automatically add the
+// non-maskable signals to the set if they are missing. It is your responsibility
+// to do that if so desired. Puts the caller to sleep until a wakeup() is executed
 // by some other VP. Note that this function does not consume/clear any pending
-// signals. It's the responsibility of the caller to do this if desired.
+// signals. It's the responsibility of the caller to do this if so desired.
+// Note: most callers should pass NULL for 'set'. Passing something else is a
+// special case that is only relevant if you do not want to be woken up by a
+// vcpu abort.
 // @Entry Condition: preemption disabled
-extern errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask);
+extern errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set);
 
 // Same as wait() but with support for timeouts. If 'wtp' is not NULL then 'wtp' is
 // either the maximum duration to wait or the absolute time until to wait. The
 // WAIT_ABSTIME specifies an absolute time. 'rmtp' is an optional timespec that
 // receives the amount of time remaining if the wait was canceled early.
-extern errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
+extern errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp);
 
 
 // Wakes up 'vp' if it is currently in waiting state. The wakeup reason is

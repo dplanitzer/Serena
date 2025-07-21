@@ -25,8 +25,7 @@ struct Process;
 struct vcpu;
 
 
-extern const sigset_t SIGSET_BLOCK_ALL;
-extern const sigset_t SIGSET_BLOCK_NONE;
+extern const sigset_t SIGSET_IGNORE_ALL;
 
 
 // This structure describes a virtual processor closure which is a function entry
@@ -106,13 +105,13 @@ struct vcpu {
     Quantums                        suspension_time;        // Absolute time when the VP was suspended
 
     // Signals
-    sigset_t                        psigs;                  // Pending signals (sent to the VP, but not yet consumed by sigwait())
-    sigset_t                        sigmask;                // Which signals should cause a wakeup on arrival
+    sigset_t                        pending_sigs;           // Pending signals (sent to the VP, but not yet consumed by sigwait())
 
     // Waiting related state
     sched_timeout_t                 timeout;                // The timeout state
     waitqueue_t _Nullable           waiting_on_wait_queue;  // The wait queue this VP is waiting on; NULL if not waiting. Used by the scheduler to wake up on timeout
     Quantums                        wait_start_time;        // Time when we entered waiting state
+    sigset_t                        wait_sigs;              // Which signals should cause a wakeup on arrival
     int8_t                          wakeup_reason;
     
     // Scheduling related state

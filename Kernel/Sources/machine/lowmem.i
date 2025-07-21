@@ -226,8 +226,7 @@ vp_owner_qe_prev                        so.l    1           ; 4
 vp_uerrno                               so.l    1           ; 4
 vp_udata                                so.l    1           ; 4
 vp_suspension_time                      so.l    1           ; 4
-vp_psigs                                so.l    1           ; 4
-vp_sigmask                              so.l    1           ; 4
+vp_pending_sigs                         so.l    1           ; 4
 vp_timeout_qe_next                      so.l    1           ; 4
 vp_timeout_qe_prev                      so.l    1           ; 4
 vp_timeout_deadline                     so.l    1           ; 4
@@ -235,6 +234,7 @@ vp_timeout_is_valid                     so.b    1           ; 1
 vp_timeout_reserved                     so.b    3           ; 3
 vp_waiting_on_wait_queue                so.l    1           ; 4
 vp_wait_start_time                      so.l    1           ; 4
+vp_wait_sigs                            so.l    1           ; 4
 vp_wakeup_reason                        so.b    1           ; 1
 vp_priority                             so.b    1           ; 1
 vp_effectivePriority                    so.b    1           ; 1

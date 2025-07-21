@@ -40,7 +40,7 @@ errno_t mtx_unlock(mtx_t* _Nonnull self)
 // @Entry Condition: preemption disabled
 errno_t mtx_onwait(mtx_t* _Nonnull self)
 {
-    const errno_t err = wq_wait(&self->wq, &SIGSET_BLOCK_ALL);
+    const errno_t err = wq_wait(&self->wq, &SIGSET_IGNORE_ALL);
     if (err == EOK) {
         return err;
     }

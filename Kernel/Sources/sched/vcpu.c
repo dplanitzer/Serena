@@ -61,12 +61,12 @@ void vcpu_cominit(vcpu_t _Nonnull self, int priority)
     ListNode_Init(&self->owner_qe);    
     ListNode_Init(&self->timeout.queue_entry);
     
-    self->psigs = 0;
-    self->sigmask = 0;
+    self->pending_sigs = 0;
 
     self->timeout.deadline = kQuantums_Infinity;
     self->timeout.is_valid = false;
     self->waiting_on_wait_queue = NULL;
+    self->wait_sigs = 0;
     self->wakeup_reason = 0;
     
     self->sched_state = SCHED_STATE_READY;
