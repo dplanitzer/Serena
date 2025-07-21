@@ -22,19 +22,19 @@ int wq_create(int policy)
     }
 }
 
-int wq_wait(int q, const sigset_t* _Nullable mask)
+int wq_wait(int q)
 {
-    return (int)_syscall(SC_wq_wait, q, mask);
+    return (int)_syscall(SC_wq_wait, q);
 }
 
-int wq_timedwait(int q, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp)
+int wq_timedwait(int q, int flags, const struct timespec* _Nonnull wtp)
 {
-    return (int)_syscall(SC_wq_timedwait, q, mask, flags, wtp);
+    return (int)_syscall(SC_wq_timedwait, q, flags, wtp);
 }
 
-int wq_timedwakewait(int q, int oq, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nonnull wtp)
+int wq_timedwakewait(int q, int oq, int flags, const struct timespec* _Nonnull wtp)
 {
-    return (int)_syscall(SC_wq_timedwakewait, q, oq, mask, flags, wtp);
+    return (int)_syscall(SC_wq_timedwakewait, q, oq, flags, wtp);
 }
 
 int wq_wakeup(int q, int flags)

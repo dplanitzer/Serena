@@ -88,7 +88,7 @@ int mtx_lock(mtx_t* _Nonnull self)
 
         self->waiters++;
         spin_unlock(&self->spinlock);
-        wq_wait(self->wait_queue, NULL);
+        wq_wait(self->wait_queue);
         didWakeup = true;
     }
     /* NOT REACHED */

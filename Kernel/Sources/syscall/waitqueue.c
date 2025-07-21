@@ -110,38 +110,35 @@ SYSCALL_1(wq_dispose, int q)
     return err;
 }
 
-SYSCALL_2(wq_wait, int q, const sigset_t* _Nullable set)
+SYSCALL_1(wq_wait, int q)
 {
     decl_try_err();
-    const sigset_t r_set = (pa->set) ? *(pa->set) | SIGSET_NONMASKABLES : SIGSET_NONMASKABLES;
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
     UWaitQueue* uwp = _find_uwq(pp, pa->q);
 
-    err = (uwp) ? wq_wait(&uwp->wq, &r_set) : EBADF;
+    err = (uwp) ? wq_wait(&uwp->wq, NULL) : EBADF;
     preempt_restore(sps);
     return err;
 }
 
-SYSCALL_4(wq_timedwait, int q, const sigset_t* _Nullable set, int flags, const struct timespec* _Nonnull wtp)
+SYSCALL_3(wq_timedwait, int q, int flags, const struct timespec* _Nonnull wtp)
 {
     decl_try_err();
-    const sigset_t r_set = (pa->set) ? *(pa->set) | SIGSET_NONMASKABLES : SIGSET_NONMASKABLES;
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
     UWaitQueue* uwp = _find_uwq(pp, pa->q);
 
-    err = (uwp) ? wq_timedwait(&uwp->wq, &r_set, pa->flags, pa->wtp, NULL) : EBADF;
+    err = (uwp) ? wq_timedwait(&uwp->wq, NULL, pa->flags, pa->wtp, NULL) : EBADF;
     preempt_restore(sps);
     return err;
 }
 
-SYSCALL_5(wq_timedwakewait, int q, int oq, const sigset_t* _Nullable set, int flags, const struct timespec* _Nonnull wtp)
+SYSCALL_4(wq_timedwakewait, int q, int oq, int flags, const struct timespec* _Nonnull wtp)
 {
     decl_try_err();
-    const sigset_t r_set = (pa->set) ? *(pa->set) | SIGSET_NONMASKABLES : SIGSET_NONMASKABLES;
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
@@ -150,7 +147,7 @@ SYSCALL_5(wq_timedwakewait, int q, int oq, const sigset_t* _Nullable set, int fl
 
     if (uwp && owp) {
         wq_wake(&owp->wq, WAKEUP_ONE | WAKEUP_CSW, WRES_WAKEUP);
-        err = wq_timedwait(&uwp->wq, &r_set, pa->flags, pa->wtp, NULL);
+        err = wq_timedwait(&uwp->wq, NULL, pa->flags, pa->wtp, NULL);
     }
     else {
         err = EBADF;
