@@ -114,3 +114,57 @@ void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
     Object_Release(pp);
     mtx_unlock(&self->mtx);
 }
+
+errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, int scope, id_t id, int signo)
+{
+    decl_try_err();
+    bool hasMatched = false;
+
+    mtx_lock(&self->mtx);
+    for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
+        List_ForEach(&self->procTable[i], ListNode,
+            ProcessRef cp = proc_from_ptce(pCurNode);
+            int doSend;
+
+            switch (scope) {
+                case SIG_SCOPE_PROC:
+                    doSend = (id == cp->pid);
+                    break;
+
+                case SIG_SCOPE_PROC_CHILDREN:
+                    doSend = (id == cp->ppid);
+                    break;
+
+                case SIG_SCOPE_PROC_GROUP:
+                    doSend = (id == cp->pgrp);
+                    break;
+
+                case SIG_SCOPE_SESSION:
+                    doSend = (id == cp->sid);
+                    break;
+
+                default:
+                    abort();
+            }
+
+            if (doSend) {
+                err = Process_SendSignal(cp, SIG_SCOPE_PROC, 0, signo);
+                if (err != EOK) {
+                    break;
+                }
+                hasMatched = true;
+            }
+        );
+
+        if (err != EOK) {
+            break;
+        }
+    }
+    mtx_unlock(&self->mtx);
+
+    if (!hasMatched && err == EOK) {
+        err = ESRCH;
+    }
+
+    return err;
+}

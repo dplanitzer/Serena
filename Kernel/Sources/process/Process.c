@@ -161,3 +161,60 @@ void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp
     vp->proc = NULL;
     mtx_unlock(&self->mtx);
 }
+
+static errno_t _sigsend(vcpu_t _Nonnull vp, int signo)
+{
+    const int sps = preempt_disable();
+    const errno_t err = vcpu_sendsignal(vp, signo);
+    preempt_restore(sps);
+    
+    return err;
+}
+
+errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int signo)
+{
+    decl_try_err();
+    bool hasMatched = false;
+
+    if (scope == SIG_SCOPE_VCPU && id == 0) {
+        return _sigsend(vcpu_current(), signo);
+    }
+
+    mtx_lock(&self->mtx);
+    List_ForEach(&self->vpQueue, ListNode, {
+        vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
+        int doSend;
+
+        switch (scope) {
+            case SIG_SCOPE_VCPU:
+                doSend = (id == cvp->vpid);
+                break;
+
+            case SIG_SCOPE_VCPU_GROUP:
+                doSend = (id == cvp->vpgid);
+                break;
+
+            case SIG_SCOPE_PROC:
+                doSend = 1;
+                break;
+
+            default:
+                abort();
+        }
+
+        if (doSend) {
+            err = _sigsend(cvp, signo);
+            if (err != EOK) {
+                break;
+            }
+            hasMatched = true;
+        }
+    });
+    mtx_unlock(&self->mtx);
+
+    if (!hasMatched && err == EOK) {
+        err = ESRCH;
+    }
+
+    return err;
+}

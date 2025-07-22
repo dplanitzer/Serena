@@ -58,6 +58,10 @@ extern errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _
 extern void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp);
 extern void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp);
 
+// Sends the signal 'signo' to the process 'self'. The supported signalling
+// scopes are: VCPU, VCPU_GROUP and PROC.
+extern errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int signo);
+
 
 //
 // Introspection

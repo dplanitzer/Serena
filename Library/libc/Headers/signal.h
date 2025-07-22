@@ -38,7 +38,14 @@ extern int sigpending(sigset_t* _Nonnull set);
 
 // Sends a signal to a process, process group, virtual processor or virtual
 // processor group. 'scope' specifies to which scope the target identified by
-// 'id' belongs. 'signo' is the number of the signal that should be sent.
+// 'id' belongs. 'signo' is the number of the signal that should be sent. If
+// 'scope' is SIG_SCOPE_PROC and 'id' is 0 then the calling process is targeted.
+// If 'scope' is SIG_SCOPE_VCPU and 'id' is 0 then the calling vcpu is targeted.
+// If 'scope' is SIG_SCOPE_PROC_CHILDREN and 'id' is 0 then all children of the
+// calling process are targeted. If 'scope' is SIG_SCOPE_PROC_GROUP and 'id' is
+// 0 then all members of the process group are targeted. If 'scope' is
+// SIG_SCOPE_SESSION and 'id' is 0 then the session to which the calling process
+// belongs is targeted. 
 extern int sigsend(int scope, id_t id, int signo);
 
 __CPP_END

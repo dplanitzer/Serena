@@ -10,6 +10,7 @@
 #include <kern/timespec.h>
 #include <kpi/signal.h>
 #include <machine/csw.h>
+#include <process/ProcessManager.h>
 #include <sched/waitqueue.h>
 
 
@@ -64,26 +65,48 @@ SYSCALL_3(sigsend, int scope, id_t id, int signo)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    bool foundIt = false;
 
-    mtx_lock(&pp->mtx);
-    List_ForEach(&pp->vpQueue, ListNode, {
-        vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
+    switch (pa->scope) {
+        case SIG_SCOPE_VCPU:
+        case SIG_SCOPE_VCPU_GROUP:
+            err = Process_SendSignal(pp, pa->scope, pa->id, pa->signo);
+            break;
 
-        if (pa->scope == SIG_SCOPE_VCPU && pa->id == cvp->vpid) {
-            _sendsig(cvp, pa->signo);
-            foundIt = true;
+        case SIG_SCOPE_PROC:
+            if (pa->id == 0) {
+                err = Process_SendSignal(pp, SIG_SCOPE_PROC, pa->id, pa->signo);
+            }
+            else {
+                err = ProcessManager_SendSignal(gProcessManager, SIG_SCOPE_PROC, pa->id, pa->signo);
+            }
+            break;
+
+        case SIG_SCOPE_PROC_CHILDREN: {
+            const pid_t pid = (pa->id == 0) ? pp->pid : pa->id;
+            err = ProcessManager_SendSignal(gProcessManager, pa->scope, pid, pa->signo);
             break;
         }
-        else if (pa->scope == SIG_SCOPE_VCPU_GROUP && pa->id == cvp->vpgid) {
-            _sendsig(cvp, pa->signo);
-            foundIt = true;
-        }
-    });
-    mtx_unlock(&pp->mtx);
 
-    if (!foundIt) {
-        err = ESRCH;
+        case SIG_SCOPE_PROC_GROUP: {
+            const pid_t pgrp = (pa->id == 0) ? pp->pgrp : pa->id;
+            err = ProcessManager_SendSignal(gProcessManager, pa->scope, pgrp, pa->signo);
+            break;
+        }
+
+        case SIG_SCOPE_SESSION: {
+            const pid_t sid = (pa->id == 0) ? pp->sid : pa->id;
+
+            if (sid == pp->sid) {
+                err = ProcessManager_SendSignal(gProcessManager, pa->scope, sid, pa->signo);
+            }
+            else {
+                err = EPERM;
+            }
+            break;
+        }
+
+        default:
+            abort();
     }
 
     return err;

@@ -37,7 +37,11 @@ typedef volatile int sig_atomic_t;
 #define SIGSET_URGENTS      _SIGBIT(SIGKILL)
 
 
-#define SIG_SCOPE_VCPU          0
-#define SIG_SCOPE_VCPU_GROUP    1
+#define SIG_SCOPE_VCPU          0   /* vcpu inside this process */
+#define SIG_SCOPE_VCPU_GROUP    1   /* vcpu group inside this process */
+#define SIG_SCOPE_PROC          2   /* process with pid */
+#define SIG_SCOPE_PROC_CHILDREN 3   /* all immediate children of process with pid */
+#define SIG_SCOPE_PROC_GROUP    4   /* all processes in group with process group id */
+#define SIG_SCOPE_SESSION       5   /* all processes in this session */
 
 #endif /* _KPI_SIGNAL_H */
