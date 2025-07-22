@@ -13,12 +13,17 @@
 
 #define WNOHANG 1
 
-#define _WSTATUSMASK    0x0000ffff
-#define _WSIGNUMMASK    0x00ff0000
-#define _WREASONMASK    0x0f000000
+#define _WSTATUSMASK    0x00ffffff
+#define _WREASONMASK    0xff000000
 
-#define _WNORMTERM      0x00
-#define _WSIGNALED      0x01
+#define _WNORMTERM      0
+#define _WSIGNALED      (1 << 24)
+
+#define WMAKEEXITED(__status) \
+(((__status) & _WSTATUSMASK) | _WNORMTERM)
+
+#define WMAKESIGNALED(__signo) \
+(((__signo) & _WSTATUSMASK) | _WSIGNALED)
 
 
 // The result of a waitpid() system call.

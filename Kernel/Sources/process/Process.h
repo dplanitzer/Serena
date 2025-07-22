@@ -32,7 +32,7 @@ extern errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef 
 // that this function never returns. It turns the calling process into a zombie
 // and notifies the parent process so that it will eventually reap the zombie
 // and free the it for good.
-extern _Noreturn Process_Terminate(ProcessRef _Nonnull self, int exitCode);
+extern _Noreturn Process_Exit(ProcessRef _Nonnull self, int exitCode);
 
 // Waits for the child process with the given PID to terminate and returns the
 // termination status. Returns ECHILD if there are no tombstones of terminated

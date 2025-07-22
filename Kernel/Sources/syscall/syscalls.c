@@ -7,6 +7,7 @@
 //
 
 #include "syscalldecls.h"
+#include <kpi/wait.h>
 
 
 SYSCALL_REF(coninit);
@@ -176,7 +177,7 @@ intptr_t _syscall_handler(vcpu_t _Nonnull vp, unsigned int* _Nonnull args)
 
 
     if ((vp->pending_sigs & _SIGBIT(SIGKILL)) != 0) {
-        Process_Terminate(vp->proc, 0);
+        Process_Exit(vp->proc, WMAKESIGNALED(SIGKILL));
         /* NOT REACHED */
     }
 

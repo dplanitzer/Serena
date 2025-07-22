@@ -1,5 +1,5 @@
 //
-//  Process_Terminate.c
+//  Process_Exit.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/12/23.
@@ -9,6 +9,7 @@
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
 #include <kern/timespec.h>
+#include <kpi/wait.h>
 #include <log/Log.h>
 #include <machine/csw.h>
 #include <sched/vcpu_pool.h>
@@ -132,7 +133,7 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 
         ProcessRef pCurChild = ProcessManager_CopyProcessForPid(gProcessManager, pid);
         
-        Process_Terminate(pCurChild, 0);
+        Process_Exit(pCurChild, WMAKEEXITED(0));    //XXX send SIGKILL instead
         Process_WaitForTerminationOfChild(self, pid, NULL, 0);
         Object_Release(pCurChild);
     }
@@ -216,7 +217,7 @@ void _proc_zombify(ProcessRef _Nonnull self)
     self->state = PS_ZOMBIE;
 }
 
-_Noreturn Process_Terminate(ProcessRef _Nonnull self, int exitCode)
+_Noreturn Process_Exit(ProcessRef _Nonnull self, int exitCode)
 {
     // We do not allow exiting the root process
     if (Process_IsRoot(self)) {

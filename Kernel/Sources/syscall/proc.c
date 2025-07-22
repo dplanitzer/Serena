@@ -7,11 +7,12 @@
 //
 
 #include "syscalldecls.h"
+#include <kpi/wait.h>
 
 
 SYSCALL_1(exit, int status)
 {    
-    Process_Terminate(vp->proc, pa->status);
+    Process_Exit(vp->proc, WMAKEEXITED(pa->status));
     /* NOT REACHED */
     return 0;
 }

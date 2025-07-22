@@ -15,17 +15,18 @@
 
 __CPP_BEGIN
 
-#define WIFEXITED(stat_val) \
-(((stat_val) & _WREASONMASK) == _WNORMTERM)
+#define WIFEXITED(__code) \
+(((__code) & _WREASONMASK) == _WNORMTERM)
 
-#define WEXITSTATUS(stat_val) \
-((stat_val) & _WSTATUSMASK)
+#define WEXITSTATUS(__code) \
+((__code) & _WSTATUSMASK)
 
-#define WIFSIGNALED(stat_val) \
-(((stat_val) & _WREASONMASK) == _WSIGNALED)
 
-#define WTERMSIG(stat_val) \
-((stat_val) & _WSIGNUMMASK)
+#define WIFSIGNALED(__code) \
+(((__code) & _WREASONMASK) == _WSIGNALED)
+
+#define WTERMSIG(__code) \
+((__code) & _WSTATUSMASK)
 
 
 extern pid_t wait(int* _Nullable pstat);
