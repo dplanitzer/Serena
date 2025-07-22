@@ -1,5 +1,5 @@
 //
-//  misc.c
+//  sys_misc.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/5/25.

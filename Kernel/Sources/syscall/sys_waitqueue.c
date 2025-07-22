@@ -1,5 +1,5 @@
 //
-//  waitqueue.c
+//  sys_waitqueue.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/5/25.

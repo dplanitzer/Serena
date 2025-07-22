@@ -1,5 +1,5 @@
 //
-//  signal.c
+//  sys_signal.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/5/25.

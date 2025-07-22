@@ -1,5 +1,5 @@
 //
-//  pipe.c
+//  sys_pipe.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/6/25.
