@@ -32,15 +32,14 @@ static bool inject_sigurgent_call(excpt_frame_t* _Nonnull efp)
 {
     const uintptr_t upc = excpt_frame_getpc(efp);
 
-    if (upc < (uintptr_t)sigurgent || upc > (uintptr_t)sigurgent_end) {
-        cpu_push_user_rts(excpt_frame_getpc(efp));
-        
-        excpt_frame_setpc(efp, sigurgent);
-        return true;
-    }
-    else {
+    if (upc >= (uintptr_t)sigurgent && upc < (uintptr_t)sigurgent_end) {
         return false;
     }
+
+    cpu_push_user_rts(excpt_frame_getpc(efp));
+    excpt_frame_setpc(efp, sigurgent);
+    
+    return true;
 }
 
 
