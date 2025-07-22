@@ -28,14 +28,11 @@ extern ProcessRef _Nonnull  gRootProcess;
 extern errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf);
 
 
-// Triggers the termination of the given process. The termination may be caused
-// voluntarily (some VP currently owned by the process triggers this call) or
-// involuntarily (some other process triggers this call). Note that the actual
-// termination is done asynchronously. 'exitCode' is the exit code that should
-// be made available to the parent process. Note that the only exit code that
-// is passed to the parent is the one from the first Process_Terminate() call.
-// All others are discarded.
-extern void Process_Terminate(ProcessRef _Nonnull self, int exitCode);
+// Terminates the calling process and stores 'exitCode' as the exit code. Note
+// that this function never returns. It turns the calling process into a zombie
+// and notifies the parent process so that it will eventually reap the zombie
+// and free the it for good.
+extern _Noreturn Process_Terminate(ProcessRef _Nonnull self, int exitCode);
 
 // Waits for the child process with the given PID to terminate and returns the
 // termination status. Returns ECHILD if there are no tombstones of terminated

@@ -189,9 +189,9 @@ void sched_quantum_irq(excpt_frame_t* _Nonnull efp)
 
     // Redirect the currently running VP to exit() if it is running in user mode
     // and it has a force-quit pending
-    if (excpt_frame_isuser(efp) && (run->pending_sigs & _SIGBIT(SIGKILL)) && (run->flags & VP_FLAG_ABORTED_USPACE) == 0) {
+    if (excpt_frame_isuser(efp) && (run->pending_sigs & _SIGBIT(SIGKILL)) && (run->flags & VP_FLAG_URET_EXITING) == 0) {
         excpt_frame_setpc(efp, vcpu_uret_exit);
-        run->flags |= VP_FLAG_ABORTED_USPACE;
+        run->flags |= VP_FLAG_URET_EXITING;
         return;
     }
 

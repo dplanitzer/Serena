@@ -216,14 +216,7 @@ void _proc_zombify(ProcessRef _Nonnull self)
     self->state = PS_ZOMBIE;
 }
 
-// Triggers the termination of the given process. The termination may be caused
-// voluntarily (some VP currently owned by the process triggers this call) or
-// involuntarily (some other process triggers this call). Note that the actual
-// termination is done asynchronously. 'exitCode' is the exit code that should
-// be made available to the parent process. Note that the only exit code that
-// is passed to the parent is the one from the first Process_Terminate() call.
-// All others are discarded.
-void Process_Terminate(ProcessRef _Nonnull self, int exitCode)
+_Noreturn Process_Terminate(ProcessRef _Nonnull self, int exitCode)
 {
     // We do not allow exiting the root process
     if (Process_IsRoot(self)) {
@@ -241,25 +234,31 @@ void Process_Terminate(ProcessRef _Nonnull self, int exitCode)
     mtx_unlock(&self->mtx);
 
 
-    if (isExiting) {
-        return;
-    }
+    if (!isExiting) {
+        // This is the first vcpu going through the exit. It will act as the
+        // termination/exit coordinator.
+        _proc_terminate_and_reap_children(self);
 
+        _proc_detach_calling_vcpu(self);
+        _proc_abort_vcpus(self);
+        _proc_reap_vcpus(self);
 
-    _proc_terminate_and_reap_children(self);
+        _proc_zombify(self);
 
-    _proc_detach_calling_vcpu(self);
-    _proc_abort_vcpus(self);
-    _proc_reap_vcpus(self);
-
-    _proc_zombify(self);
-
-    _proc_notify_parent(self);
+        _proc_notify_parent(self);
 
     
-    // Finally relinquish myself
-    vcpu_pool_relinquish(
-        g_vcpu_pool,
-        vcpu_current());
+        // Finally relinquish myself
+        vcpu_pool_relinquish(
+            g_vcpu_pool,
+            vcpu_current());
+    }
+    else {
+        // This is any of the other vcpus in the process that we are shutting
+        // down. Just relinquish yourself. The exit coordinator is blocked
+        // waiting for all the other vcpus to relinquish before it will proceed
+        // with the process zombification.
+        Process_RelinquishVirtualProcessor(self, vcpu_current());
+    }
     /* NOT REACHED */
 }

@@ -176,7 +176,7 @@ intptr_t _syscall_handler(vcpu_t _Nonnull vp, unsigned int* _Nonnull args)
 
 
     if ((vp->pending_sigs & _SIGBIT(SIGKILL)) != 0) {
-        Process_RelinquishVirtualProcessor(vp->proc, vp);
+        Process_Terminate(vp->proc, 0);
         /* NOT REACHED */
     }
 
