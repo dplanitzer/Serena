@@ -7,6 +7,8 @@
 ;
 
     xdef __syscall
+    xdef _sigurgent
+    xdef _sigurgent_end
 
 
 ; System call.
@@ -44,4 +46,16 @@
 __syscall:
     lea.l   4(sp), a0
     trap    #0
+    rts
+
+
+;-------------------------------------------------------------------------------
+; void sigurgent(void)
+; void sigurgent_end(void)
+_sigurgent:
+    move.l  #63, -(sp)   ; SC_sigurgent
+    move.l  sp, a0
+    trap    #0
+    rts
+_sigurgent_end:
     rts

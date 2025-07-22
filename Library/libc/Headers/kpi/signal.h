@@ -34,6 +34,7 @@ typedef volatile int sig_atomic_t;
 #define _ISPROCSIG(__signo) ((__signo) >= SIGMIN && (__signo) < SIGMAX/2)
 
 #define SIGSET_NONMASKABLES _SIGBIT(SIGKILL)
+#define SIGSET_URGENTS      _SIGBIT(SIGKILL)
 
 
 #define SIG_SCOPE_VCPU          0

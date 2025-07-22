@@ -164,6 +164,9 @@ vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self)
     return NULL;
 }
 
+extern void sigurgent(void);
+extern void sigurgent_end(void);
+
 // Invoked at the end of every quantum.
 void sched_quantum_irq(excpt_frame_t* _Nonnull efp)
 {
@@ -187,12 +190,16 @@ void sched_quantum_irq(excpt_frame_t* _Nonnull efp)
 
     register vcpu_t run = (vcpu_t)self->running;
 
-    // Redirect the currently running VP to exit() if it is running in user mode
-    // and it has a force-quit pending
-    if (excpt_frame_isuser(efp) && (run->pending_sigs & _SIGBIT(SIGKILL)) && (run->flags & VP_FLAG_URET_EXITING) == 0) {
-        excpt_frame_setpc(efp, vcpu_uret_exit);
-        run->flags |= VP_FLAG_URET_EXITING;
-        return;
+    // Redirect the currently running VP to sigurgent() if it is running in user
+    // mode, has an urgent signal pending and we haven't already triggered a
+    // redirect previously
+    if (excpt_frame_isuser(efp) && (run->pending_sigs & SIGSET_URGENTS)) {
+        const uintptr_t upc = excpt_frame_getpc(efp);
+
+        if (upc < (uintptr_t)sigurgent || upc > (uintptr_t)sigurgent_end) {
+            excpt_frame_setpc(efp, sigurgent);
+            return;
+        }
     }
 
 

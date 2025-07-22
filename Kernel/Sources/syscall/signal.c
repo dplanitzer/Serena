@@ -13,6 +13,11 @@
 #include <sched/waitqueue.h>
 
 
+SYSCALL_0(sigurgent)
+{
+    return EOK;
+}
+
 SYSCALL_2(sigwait, const sigset_t* _Nonnull set, int* _Nullable signo)
 {
     decl_try_err();

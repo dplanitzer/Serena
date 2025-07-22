@@ -74,7 +74,6 @@ enum {
 
 // VP flags
 #define VP_FLAG_USER_OWNED      0x02    // This VP is owned by a user process
-#define VP_FLAG_URET_EXITING    0x04    // vcpu_uret_exit() is active
 
 
 // Overridable functions for virtual processors
