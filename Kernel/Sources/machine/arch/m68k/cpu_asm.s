@@ -24,6 +24,7 @@
     xdef _cpu_sleep
     xdef _cpu_halt
     xdef _fpu_get_model
+    xdef _cpu_push_user_rts
 
 
 
@@ -449,4 +450,19 @@ _cpu_halt:
     inline
         stop    #$2700
         bra.s   _cpu_halt
+    einline
+
+
+;-------------------------------------------------------------------------------
+; void cpu_push_user_rts(uintptr_t pc)
+; Pushes a return-from-subroutine frame onto the user stack which will send the
+; CPU to 'pc' when a return-from-subroutine instruction is executed.
+_cpu_push_user_rts:
+    inline
+    cargs cpur_pc.l
+        move.l  cpur_pc(sp), a0
+        move.l  usp, a1
+        move.l  a0, -(a1)
+        move.l  a1, usp
+        rts
     einline

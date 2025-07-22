@@ -192,11 +192,12 @@ void sched_quantum_irq(excpt_frame_t* _Nonnull efp)
 
     // Redirect the currently running VP to sigurgent() if it is running in user
     // mode, has an urgent signal pending and we haven't already triggered a
-    // redirect previously
+    // redirect previously.
     if (excpt_frame_isuser(efp) && (run->pending_sigs & SIGSET_URGENTS)) {
         const uintptr_t upc = excpt_frame_getpc(efp);
 
         if (upc < (uintptr_t)sigurgent || upc > (uintptr_t)sigurgent_end) {
+            cpu_push_user_rts(excpt_frame_getpc(efp));
             excpt_frame_setpc(efp, sigurgent);
             return;
         }
