@@ -25,11 +25,6 @@ SYSCALL_0(vcpu_getgrp)
     return (intptr_t)vp->vpgid;
 }
 
-SYSCALL_3(vcpu_setsigmask, int op, sigset_t mask, sigset_t* _Nullable oldmask)
-{
-    return vcpu_setsigmask(vp, pa->op, pa->mask & ~SIGSET_NONMASKABLES, pa->oldmask);
-}
-
 SYSCALL_0(vcpu_getdata)
 {
     return vp->udata;

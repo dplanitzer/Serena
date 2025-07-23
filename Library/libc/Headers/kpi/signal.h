@@ -13,16 +13,6 @@ typedef unsigned int sigset_t;
 typedef volatile int sig_atomic_t;
 
 
-// Replace the whole signal mask
-#define SIG_SETMASK 0
-
-// Enable the signals specified in the provided mask
-#define SIG_BLOCK  1
-
-// Disable the signals specified in the provided mask
-#define SIG_UNBLOCK 2
-
-
 #define SIGMIN  1
 #define SIGMAX  32
 
@@ -43,5 +33,8 @@ typedef volatile int sig_atomic_t;
 #define SIG_SCOPE_PROC_CHILDREN 3   /* all immediate children of process with pid */
 #define SIG_SCOPE_PROC_GROUP    4   /* all processes in group with process group id */
 #define SIG_SCOPE_SESSION       5   /* all processes in this session */
+
+#define SIG_ROUTE_DISABLE       0
+#define SIG_ROUTE_ENABLE        1
 
 #endif /* _KPI_SIGNAL_H */

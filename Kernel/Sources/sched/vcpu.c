@@ -62,6 +62,7 @@ void vcpu_cominit(vcpu_t _Nonnull self, int priority)
     ListNode_Init(&self->timeout.queue_entry);
     
     self->pending_sigs = 0;
+    self->proc_sigs_enabled = 0;
 
     self->timeout.deadline = kQuantums_Infinity;
     self->timeout.is_valid = false;

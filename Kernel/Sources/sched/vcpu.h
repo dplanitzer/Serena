@@ -105,6 +105,7 @@ struct vcpu {
 
     // Signals
     sigset_t                        pending_sigs;           // Pending signals (sent to the VP, but not yet consumed by sigwait())
+    int                             proc_sigs_enabled;      // > 0 means that this VP will accept signals that targeted the process
 
     // Waiting related state
     sched_timeout_t                 timeout;                // The timeout state
@@ -167,11 +168,17 @@ extern int vcpu_priority(vcpu_t _Nonnull self);
 extern void vcpu_setpriority(vcpu_t _Nonnull self, int priority);
 
 
-// Atomically updates the current signal mask and returns the old mask.
-extern errno_t vcpu_setsigmask(vcpu_t _Nonnull self, int op, sigset_t mask, sigset_t* _Nullable pOutMask);
+// Atomically updates the routing information for process-targeted signals.
+extern errno_t vcpu_sigroute(vcpu_t _Nonnull self, int op);
 
-// @Entry Condition: preemption disabled
-extern errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo);
+// Forcefully turn process-targeted signal routing off for the given VP.
+extern void vcpu_sigrouteoff(vcpu_t _Nonnull self);
+
+// Sends the signal 'signo' to 'self'. The signal is added to the pending signal
+// list if either 'isProc' is false or 'isProc' is true and reception of
+// process-targeted signals is enabled for 'self'. Otherwise the signal is not
+// added to the pending signal list and ignored.
+extern errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, bool isProc);
 
 // @Entry Condition: preemption disabled
 extern errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo);

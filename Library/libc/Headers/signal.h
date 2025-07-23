@@ -23,6 +23,18 @@ extern int sigdelset(sigset_t* _Nonnull set, int signo);
 extern int sigismember(const sigset_t* _Nonnull set, int signo);
 
 
+// Updates the signal routing table that determines which vcpu should receive a
+// signal that is sent to the process (from the outside or the inside). Signals
+// which target the process are by default not routed at all and are subject to
+// default processing. Use this function to enable a vcpu to receive a process
+// targeted signal or to turn the reception of signals off for a particular vcpu.
+// 'scope' may be SIG_SCOPE_VCPU or SIG_SCOPE_VCPU_GROUP. Routing is enabled if
+// 'op' is SIG_ROUTE_ENABLE and disabled if 'op' is SIG_ROUTE_DISABLE. Note that
+// the enabled state is reference counted. This means that if you enable a route
+// to a vcpu X twice, that you must disable it twice to truly disable the routing
+// of signals to this vcpu.
+extern int sigroute(int scope, id_t id, int op);
+
 // Blocks the caller until one of the signals in 'set' is delivered to the vcpu.
 // Returns the highest priority pending signal in 'signo' and clears it from the
 // list of pending signals.

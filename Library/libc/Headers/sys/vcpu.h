@@ -12,7 +12,6 @@
 #include <_cmndef.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
-#include <kpi/signal.h>
 #include <kpi/types.h>
 #include <kpi/vcpu.h>
 
@@ -49,8 +48,6 @@ extern vcpu_t _Nonnull vcpu_main(void);
 
 extern vcpuid_t vcpu_id(vcpu_t _Nonnull self);
 extern vcpuid_t vcpu_groupid(vcpu_t _Nonnull self);
-
-extern int vcpu_setsigmask(int op, sigset_t mask, sigset_t* _Nullable oldmask);
 
 // Acquires a vcpu. 'attr' specifies various attributes and how the vcpu should
 // be acquired. Returns the id of the newly acquired vcpu on success and -1 if

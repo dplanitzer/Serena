@@ -19,57 +19,71 @@
 const sigset_t SIGSET_IGNORE_ALL = 0;
 
 
-// Atomically updates the current signal mask and returns the old mask.
-errno_t vcpu_setsigmask(vcpu_t _Nonnull self, int op, sigset_t mask, sigset_t* _Nullable pOutMask)
+// Atomically updates the routing information for process-targeted signals.
+errno_t vcpu_sigroute(vcpu_t _Nonnull self, int op)
 {
-#if 0
     decl_try_err();
     VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
-    const sigset_t oldMask = self->sigmask;
 
     switch (op) {
-        case SIG_SETMASK:
-            self->sigmask = mask;
+        case SIG_ROUTE_DISABLE:
+            if (self->proc_sigs_enabled > 0) {
+                self->proc_sigs_enabled--;
+            }
+            else {
+                err = EOVERFLOW;
+            }
             break;
 
-        case SIG_BLOCK:
-            self->sigmask |= mask;
-            break;
-
-        case SIG_UNBLOCK:
-            self->sigmask &= ~mask;
+        case SIG_ROUTE_ENABLE:
+            if (self->proc_sigs_enabled < INT_MAX) {
+                self->proc_sigs_enabled++;
+            }
+            else {
+                err = EOVERFLOW;
+            }
             break;
 
         default:
             err = EINVAL;
             break;
     }
-
-    if (err == EOK && pOutMask) {
-        *pOutMask = oldMask;
-    }
-
     preempt_restore(sps);
+
     return err;
-#endif
-    return ENOTSUP;
 }
 
-// @Entry Condition: preemption disabled
-errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo)
+// Forcefully turn process-targeted signal routing off for the given VP.
+void vcpu_sigrouteoff(vcpu_t _Nonnull self)
 {
+    const int sps = preempt_disable();
+
+    self->proc_sigs_enabled = 0;
+    preempt_restore(sps);
+}
+
+errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, bool isProc)
+{
+    decl_try_err();
+
     if (signo < SIGMIN || signo > SIGMAX) {
         return EINVAL;
     }
 
+    const int sps = preempt_disable();
+    if (!isProc || (isProc && self->proc_sigs_enabled > 0)) {
+        const sigset_t sigbit = _SIGBIT(signo);
+        
+        self->pending_sigs |= sigbit;
 
-    const sigset_t sigbit = _SIGBIT(signo);
-    self->pending_sigs |= sigbit;
-
-    if (self->sched_state == SCHED_STATE_WAITING && (self->wait_sigs & sigbit) != 0) {
-        wq_wakeone(self->waiting_on_wait_queue, self, WAKEUP_CSW, WRES_SIGNAL);
+        if (self->sched_state == SCHED_STATE_WAITING && (self->wait_sigs & sigbit) != 0) {
+            wq_wakeone(self->waiting_on_wait_queue, self, WAKEUP_CSW, WRES_SIGNAL);
+        }
     }
+    preempt_restore(sps);
+
+    return err;
 }
 
 static int _best_pending_sig(vcpu_t _Nonnull self, sigset_t _Nonnull set)

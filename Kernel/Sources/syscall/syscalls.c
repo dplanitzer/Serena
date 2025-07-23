@@ -64,6 +64,7 @@ SYSCALL_REF(sigwait);
 SYSCALL_REF(sigtimedwait);
 SYSCALL_REF(sigpending);
 SYSCALL_REF(sigsend);
+SYSCALL_REF(sigroute);
 SYSCALL_REF(sigurgent);
 
 SYSCALL_REF(wq_create);
@@ -76,7 +77,6 @@ SYSCALL_REF(wq_wakeup_then_timedwait);
 SYSCALL_REF(vcpu_errno);
 SYSCALL_REF(vcpu_getid);
 SYSCALL_REF(vcpu_getgrp);
-SYSCALL_REF(vcpu_setsigmask);
 SYSCALL_REF(vcpu_getdata);
 SYSCALL_REF(vcpu_setdata);
 SYSCALL_REF(vcpu_acquire);
@@ -139,7 +139,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(wq_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_wakeup, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_getid, 0),
-    SYSCALL_ENTRY(vcpu_setsigmask, SC_ERRNO),
+    SYSCALL_ENTRY(sigroute, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_getdata, 0),
     SYSCALL_ENTRY(vcpu_setdata, 0),
     SYSCALL_ENTRY(sigwait, SC_ERRNO),

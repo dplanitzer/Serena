@@ -10,6 +10,11 @@
 #include <kpi/syscall.h>
 
 
+int sigroute(int scope, id_t id, int op)
+{
+    return (int)_syscall(SC_sigroute, scope, id, op);
+}
+
 int sigwait(const sigset_t* _Nonnull set, int* _Nonnull signo)
 {
     return (int)_syscall(SC_sigwait, set, signo);

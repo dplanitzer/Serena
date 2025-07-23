@@ -88,11 +88,6 @@ vcpuid_t vcpu_groupid(vcpu_t _Nonnull self)
     return self->groupid;
 }
 
-int vcpu_setsigmask(int op, sigset_t mask, sigset_t* _Nullable oldmask)
-{
-    return (int)_syscall(SC_vcpu_setsigmask, op, mask, oldmask);
-}
-
 int vcpu_suspend(vcpu_t _Nullable vcpu)
 {
     return (int)_syscall(SC_vcpu_suspend, (vcpu) ? vcpu->id : VCPUID_SELF);
