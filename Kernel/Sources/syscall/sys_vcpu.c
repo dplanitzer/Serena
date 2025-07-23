@@ -17,12 +17,12 @@ SYSCALL_0(vcpu_errno)
 
 SYSCALL_0(vcpu_getid)
 {
-    return (intptr_t)vp->vpid;
+    return (intptr_t)vp->id;
 }
 
 SYSCALL_0(vcpu_getgrp)
 {
-    return (intptr_t)vp->vpgid;
+    return (intptr_t)vp->groupid;
 }
 
 SYSCALL_0(vcpu_getdata)
@@ -61,7 +61,7 @@ SYSCALL_1(vcpu_suspend, vcpuid_t id)
         List_ForEach(&pp->vpQueue, ListNode, {
             vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
-            if (cvp->vpid == pa->id) {
+            if (cvp->id == pa->id) {
                 err = vcpu_suspend(cvp);
                 break;
             }
@@ -80,7 +80,7 @@ SYSCALL_1(vcpu_resume, vcpuid_t id)
     List_ForEach(&pp->vpQueue, ListNode, {
         vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
-        if (cvp->vpid == pa->id) {
+        if (cvp->id == pa->id) {
             vcpu_resume(cvp, false);
             break;
         }

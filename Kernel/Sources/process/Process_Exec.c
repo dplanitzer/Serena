@@ -159,7 +159,7 @@ static errno_t _proc_exec(ProcessRef _Locked _Nonnull self, const char* _Nonnull
     attr.data = 0;
     attr.priority = kDispatchQoS_Interactive * kDispatchPriority_Count + (kDispatchPriority_Normal + kDispatchPriority_Count / 2) + VP_PRIORITIES_RESERVED_LOW;
     attr.stack_size = 0;
-    attr.groupid = 0;
+    attr.groupid = VCPUID_MAIN_GROUP;
     attr.flags = VCPU_ACQUIRE_RESUMED;
 
     vcpuid_t vid;

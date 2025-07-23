@@ -90,8 +90,8 @@ struct vcpu {
     mcontext_t                      save_area;
     vcpu_stack_t                    kernel_stack;
     vcpu_stack_t                    user_stack;
-    vcpuid_t                        vpid;                   // unique VP id (>= 1; 0 is reserved to indicate the absence of a VPID)
-    vcpuid_t                        vpgid;                  // virtual processor group id. Assigned at acquisition time 
+    vcpuid_t                        id;                     // unique VP id (>= 1; 0 is reserved to indicate the absence of a vcpuid; vcpuids are process relative and assigned at acquisition time)
+    vcpuid_t                        groupid;                // virtual processor group id. Assigned at acquisition time 
 
     // VP owner
     ListNode                        owner_qe;               // VP Pool if relinquished; process if acquired

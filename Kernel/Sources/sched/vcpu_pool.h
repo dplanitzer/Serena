@@ -20,7 +20,8 @@ typedef struct VirtualProcessorParameters {
     VoidFunc_0 _Nullable    ret_func;
     size_t                  kernelStackSize;
     size_t                  userStackSize;
-    vcpuid_t                vpgid;
+    vcpuid_t                id;
+    vcpuid_t                groupid;
     int                     priority;
     bool                    isUser;
 } VirtualProcessorParameters;

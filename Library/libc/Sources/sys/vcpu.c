@@ -36,7 +36,7 @@ void __vcpu_init(void)
     // Init the user space data for the main vcpu
     g_main_vcpu.qe = LISTNODE_INIT;
     g_main_vcpu.id = (vcpuid_t)_syscall(SC_vcpu_getid);
-    g_main_vcpu.groupid = 0;
+    g_main_vcpu.groupid = VCPUID_MAIN_GROUP;
     g_main_vcpu.func = NULL;
     g_main_vcpu.arg = 0;
     g_main_vcpu.specific_tab = NULL;

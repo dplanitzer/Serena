@@ -219,8 +219,8 @@ vp_kernel_stack_base                    so.l    1           ; 4
 vp_kernel_stack_size                    so.l    1           ; 4
 vp_user_stack_base                      so.l    1           ; 4
 vp_user_stack_size                      so.l    1           ; 4
-vp_vpid                                 so.l    1           ; 4
-vp_vpgid                                so.l    1           ; 4
+vp_id                                   so.l    1           ; 4
+vp_groupid                              so.l    1           ; 4
 vp_owner_qe_next                        so.l    1           ; 4
 vp_owner_qe_prev                        so.l    1           ; 4
 vp_uerrno                               so.l    1           ; 4

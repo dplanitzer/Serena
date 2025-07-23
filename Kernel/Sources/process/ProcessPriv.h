@@ -50,6 +50,7 @@ final_class_ivars(Process, Object,
 
     // VPs
     List                            vpQueue;    // List of VPs [mtx]
+    vcpuid_t                        next_avail_vcpuid;
 
     AddressSpaceRef _Nonnull        addressSpace;
 

@@ -44,6 +44,7 @@ errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarc
     self->catalogId = kCatalogId_None;
 
     List_Init(&self->vpQueue);
+    self->next_avail_vcpuid = VCPUID_MAIN + 1;
 
     try(IOChannelTable_Init(&self->ioChannelTable));
 
@@ -107,13 +108,21 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     *idp = 0;
 
     mtx_lock(&self->mtx);
+    const bool isMainVcpu = self->vpQueue.first == NULL;
 
     kp.func = (VoidFunc_1)attr->func;
     kp.context = attr->arg;
     kp.ret_func = (self->vpQueue.first) ? vcpu_uret_relinquish_self : vcpu_uret_exit;
     kp.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
     kp.userStackSize = __max(attr->stack_size, VP_DEFAULT_USER_STACK_SIZE);
-    kp.vpgid = attr->groupid;
+    if (isMainVcpu) {
+        kp.id = VCPUID_MAIN;
+        kp.groupid = VCPUID_MAIN_GROUP;
+    }
+    else {
+        kp.id = self->next_avail_vcpuid++;
+        kp.groupid = attr->groupid;
+    }
     kp.priority = attr->priority;
     kp.isUser = true;
 
@@ -129,7 +138,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     vp->proc = self;
     vp->udata = attr->data;
     List_InsertAfterLast(&self->vpQueue, &vp->owner_qe);
-    *idp = vp->vpid;
+    *idp = vp->id;
 
     if ((attr->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
         vcpu_resume(vp, false);
@@ -175,12 +184,12 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
 
         switch (scope) {
             case SIG_SCOPE_VCPU:
-                doSend = (id == cvp->vpid);
+                doSend = (id == cvp->id);
                 isProc = false;
                 break;
 
             case SIG_SCOPE_VCPU_GROUP:
-                doSend = (id == cvp->vpgid);
+                doSend = (id == cvp->groupid);
                 isProc = false;
                 break;
 

@@ -378,7 +378,7 @@ vcpu_t vcpu_current(void)
 
 int vcpu_currentid(void)
 {
-    return g_sched_storage.running->vpid;
+    return g_sched_storage.running->id;
 }
 
 

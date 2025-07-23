@@ -13,6 +13,9 @@
 #include <stdint.h>
 
 #define VCPUID_SELF 0
+#define VCPUID_MAIN 1
+
+#define VCPUID_MAIN_GROUP   1
 
 
 struct vcpu;

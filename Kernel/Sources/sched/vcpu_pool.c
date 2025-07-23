@@ -92,7 +92,8 @@ errno_t vcpu_pool_acquire(vcpu_pool_t _Nonnull self, const VirtualProcessorParam
     else {
         vp->flags &= ~VP_FLAG_USER_OWNED;
     }
-    vp->vpgid = params->vpgid;
+    vp->id = params->id;
+    vp->groupid = params->groupid;
     vp->lifecycle_state = VP_LIFECYCLE_ACQUIRED;
 
 catch:
@@ -127,6 +128,8 @@ _Noreturn vcpu_pool_relinquish(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp)
     // (termination) otherwise.
     if (doReuse) {
         vp->proc = NULL;
+        vp->id = 0;
+        vp->groupid = 0;
         vp->uerrno = 0;
         vp->pending_sigs = 0;
         vp->proc_sigs_enabled = 0;

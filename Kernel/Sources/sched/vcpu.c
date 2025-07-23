@@ -50,8 +50,6 @@ _Noreturn vcpu_relinquish(void)
 // \param priority the initial VP priority
 void vcpu_cominit(vcpu_t _Nonnull self, int priority)
 {
-    static volatile AtomicInt gNextAvailableVpid = 0;
-
     ListNode_Init(&self->rewa_qe);
     vcpu_stack_Init(&self->kernel_stack);
     vcpu_stack_Init(&self->user_stack);
@@ -75,7 +73,7 @@ void vcpu_cominit(vcpu_t _Nonnull self, int priority)
     self->priority = (int8_t)priority;
     self->suspension_count = 1;
     
-    self->vpid = (vcpuid_t)AtomicInt_Add(&gNextAvailableVpid, 1);
+    self->id = 0;
     self->lifecycle_state = VP_LIFECYCLE_RELINQUISHED;
 
     self->dispatchQueue = NULL;

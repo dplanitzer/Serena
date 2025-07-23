@@ -185,6 +185,7 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
     decl_try_err();
     vcpu_t vp = NULL;
     VirtualProcessorParameters params;
+    static AtomicInt gNextAvailVcpuid = 2;
 
     // Acquire a new virtual processor if we haven't already filled up all
     // concurrency lanes available to us and one of the following is true:
@@ -210,7 +211,8 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
         params.ret_func = NULL;
         params.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
         params.userStackSize = VP_DEFAULT_USER_STACK_SIZE;
-        params.vpgid = 0;
+        params.id = AtomicInt_Increment(&gNextAvailVcpuid);
+        params.groupid = VCPUID_MAIN_GROUP;
         params.priority = self->qos * kDispatchPriority_Count + (self->priority + kDispatchPriority_Count / 2) + VP_PRIORITIES_RESERVED_LOW;
         params.isUser = false;
 

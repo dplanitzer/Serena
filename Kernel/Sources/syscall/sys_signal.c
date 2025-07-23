@@ -35,7 +35,7 @@ SYSCALL_3(sigroute, int scope, id_t id, int op)
         List_ForEach(&pp->vpQueue, ListNode, 
             vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
-            if (cvp->vpid == pa->id) {
+            if (cvp->id == pa->id) {
                 the_vp = cvp;
                 break;
             }
