@@ -252,31 +252,30 @@ _Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code)
     mtx_unlock(&self->mtx);
 
 
-    if (!isExiting) {
-        // This is the first vcpu going through the exit. It will act as the
-        // termination/exit coordinator.
-        _proc_terminate_and_reap_children(self);
-
-        _proc_detach_calling_vcpu(self);
-        _proc_abort_vcpus(self);
-        _proc_reap_vcpus(self);
-
-        _proc_zombify(self);
-
-        _proc_notify_parent(self);
-
-    
-        // Finally relinquish myself
-        vcpu_pool_relinquish(
-            g_vcpu_pool,
-            vcpu_current());
-    }
-    else {
+    if (isExiting) {
         // This is any of the other vcpus in the process that we are shutting
         // down. Just relinquish yourself. The exit coordinator is blocked
         // waiting for all the other vcpus to relinquish before it will proceed
         // with the process zombification.
         Process_RelinquishVirtualProcessor(self, vcpu_current());
+        /* NOT REACHED */
     }
+
+
+    // This is the first vcpu going through the exit. It will act as the
+    // termination/exit coordinator.
+    _proc_terminate_and_reap_children(self);
+
+    _proc_detach_calling_vcpu(self);
+    _proc_abort_vcpus(self);
+    _proc_reap_vcpus(self);
+
+    _proc_zombify(self);
+
+    _proc_notify_parent(self);
+
+    
+    // Finally relinquish myself
+    vcpu_pool_relinquish(g_vcpu_pool, vcpu_current());
     /* NOT REACHED */
 }
