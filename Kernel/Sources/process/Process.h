@@ -28,18 +28,16 @@ extern ProcessRef _Nonnull  gRootProcess;
 extern errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf);
 
 
-// Terminates the calling process and stores 'exitCode' as the exit code. Note
-// that this function never returns. It turns the calling process into a zombie
-// and notifies the parent process so that it will eventually reap the zombie
-// and free the it for good.
-extern _Noreturn Process_Exit(ProcessRef _Nonnull self, int exitCode);
+// Terminates the calling process and stores 'reason' and 'code' as the exit
+// reason and code respectively. Note that this function never returns. It turns
+// the calling process into a zombie and notifies the parent process so that it
+// will eventually reap the zombie and free the it for good.
+extern _Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code);
 
 // Waits for the child process with the given PID to terminate and returns the
-// termination status. Returns ECHILD if there are no tombstones of terminated
-// child processes available or the PID is not the PID of a child process of
-// the receiver. Otherwise blocks the caller until the requested process or any
-// child process (pid == -1) has exited.
-extern errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull self, pid_t pid, struct _pstatus* _Nonnull pStatus, int options);
+// termination status. Returns ECHILD if the function was told to wait for a
+// specific process or process group and the process or group does not exist.
+extern errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps);
 
 // Spawns a new process that will be a child of the given process. The spawn
 // arguments specify how the child process should be created, which arguments

@@ -12,7 +12,7 @@
 
 SYSCALL_1(exit, int status)
 {    
-    Process_Exit(vp->proc, WMAKEEXITED(pa->status));
+    Process_Exit(vp->proc, JREASON_EXIT, pa->status);
     /* NOT REACHED */
     return 0;
 }
@@ -57,7 +57,7 @@ SYSCALL_0(getpargs)
     return (intptr_t) vp->proc->argumentsBase;
 }
 
-SYSCALL_3(waitpid, pid_t pid, struct _pstatus* _Nonnull pOutStatus, int options)
+SYSCALL_5(proc_timedjoin, int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps)
 {
-    return Process_WaitForTerminationOfChild(vp->proc, pa->pid, pa->pOutStatus, pa->options);
+    return Process_TimedJoin(vp->proc, pa->scope, pa->id, pa->flags, pa->wtp, pa->ps);
 }

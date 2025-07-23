@@ -56,7 +56,7 @@ SYSCALL_REF(getsid);
 SYSCALL_REF(getuid);
 SYSCALL_REF(getgid);
 SYSCALL_REF(getpargs);
-SYSCALL_REF(waitpid);
+SYSCALL_REF(proc_timedjoin);
 
 SYSCALL_REF(alloc_address_space);
 
@@ -102,7 +102,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(getpargs, 0),
     SYSCALL_ENTRY(open, SC_ERRNO),
     SYSCALL_ENTRY(close, SC_ERRNO),
-    SYSCALL_ENTRY(waitpid, SC_ERRNO),
+    SYSCALL_ENTRY(proc_timedjoin, SC_ERRNO),
     SYSCALL_ENTRY(seek, SC_ERRNO),
     SYSCALL_ENTRY(getcwd, SC_ERRNO),
     SYSCALL_ENTRY(chdir, SC_ERRNO),
@@ -179,7 +179,7 @@ intptr_t _syscall_handler(vcpu_t _Nonnull vp, unsigned int* _Nonnull args)
 
 
     if ((vp->pending_sigs & _SIGBIT(SIGKILL)) != 0) {
-        Process_Exit(vp->proc, WMAKESIGNALED(SIGKILL));
+        Process_Exit(vp->proc, JREASON_SIGNALED, SIGKILL);
         /* NOT REACHED */
     }
 

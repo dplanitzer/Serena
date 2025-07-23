@@ -15,86 +15,102 @@
 #include <sched/vcpu_pool.h>
 
 
-
-// Called by the given child process to notify its parent about its death.
-static errno_t _proc_on_child_termination(ProcessRef _Nonnull self, ProcessRef _Nonnull child)
+static ProcessRef _Nullable _find_matching_zombie(ProcessRef _Nonnull self, int scope, pid_t id, bool* _Nonnull pOutExists)
 {
-    if (self->state >= PS_ZOMBIFYING) {
-        return ESRCH;
-    }
+    List_ForEach(&self->children, ListNode,
+        ProcessRef cpp = proc_from_siblings(pCurNode);
+        int hasMatch;
 
+        *pOutExists = false;
+        switch (scope) {
+            case JOIN_PROC:
+                if (cpp->pid == id) {
+                    *pOutExists = true;
+                    return (cpp->state == PS_ZOMBIE) ? cpp : NULL;
+                }
+                hasMatch = 0;
+                break;
 
-    mtx_lock(&self->mtx);
-    cnd_broadcast(&self->procTermSignaler);
-    mtx_unlock(&self->mtx);
+            case JOIN_PROC_GROUP:
+                hasMatch = cpp->pgrp == id;
+                break;
 
-    return EOK;
+            case JOIN_ANY:
+                hasMatch = 1;
+                break;
+        }
+
+        if (hasMatch) {
+            *pOutExists = true;
+            if (cpp->state == PS_ZOMBIE) {
+                return cpp;
+            }
+        }
+    );
+
+    return NULL;
 }
 
 // Waits for the child process with the given PID to terminate and returns the
-// termination status. Returns ECHILD if the child process 'pid' is still active.
-// Otherwise blocks the caller until the requested process or any child process
-// (pid == -1) has exited.
-errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull self, pid_t pid, struct _pstatus* _Nonnull pStatus, int options)
+// termination status. Returns ECHILD if the function was told to wait for a
+// specific process or process group and the process or group does not exist.
+errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps)
 {
     decl_try_err();
     ProcessRef zp = NULL;
+    bool exists = false;
+    sigset_t hot_sigs = _SIGBIT(SIGCHILD);
+    int signo;
 
-    mtx_lock(&self->mtx);
+    switch (scope) {
+        case JOIN_PROC:
+        case JOIN_PROC_GROUP:
+        case JOIN_ANY:
+            break;
+
+        default:
+            return EINVAL;
+    }
+
+
     for (;;) {
-        bool hasChildWithPid = false;
+        mtx_lock(&self->mtx);
 
-        List_ForEach(&self->children, ListNode, {
-            ProcessRef cpp = proc_from_siblings(pCurNode);
-
-            if (pid == -1 || cpp->pid == pid) {
-                hasChildWithPid = true;
-
-                if (cpp->state == PS_ZOMBIE) {
-                    zp = cpp;
-                    List_Remove(&self->children, &zp->siblings);
-                    break;
-                }
-            }
-        });
-
-        if (!hasChildWithPid) {
-            err = ECHILD;
-            break;
-        }
-
+        zp = _find_matching_zombie(self, scope, id, &exists);
         if (zp) {
+            List_Remove(&self->children, &zp->siblings);
+            mtx_unlock(&self->mtx);
             break;
         }
 
-        if ((options & WNOHANG) == WNOHANG) {
-            err = ECHILD;
-            break;
+        if (!exists) {
+            mtx_unlock(&self->mtx);
+            return ECHILD;
         }
 
+        if (timespec_eq(wtp, &TIMESPEC_ZERO)) {
+            mtx_unlock(&self->mtx);
+            return ETIMEDOUT;
+        }
 
-        // Wait for a child to terminate
-        err = cnd_wait(&self->procTermSignaler, &self->mtx);
+        mtx_unlock(&self->mtx);
+        
+
+        err = vcpu_sigtimedwait(&self->siwaQueue, &hot_sigs, flags, wtp, &signo);
         if (err != EOK) {
-            break;
+            return err;
         }
     }
-    mtx_unlock(&self->mtx);
 
 
-    if (zp) {
-        pStatus->pid = zp->pid;
-        pStatus->status = zp->exitCode;
+    ps->pid = zp->pid;
+    ps->reason = zp->exit_reason;
+    ps->u.status = zp->exit_code;
 
-        ProcessManager_Deregister(gProcessManager, zp);
-        Object_Release(zp);
-    }
-    else {
-        pStatus->pid = 0;
-        pStatus->status = 0;
-    }
+    ProcessManager_Deregister(gProcessManager, zp);
+    Object_Release(zp);
 
-    return err;
+    return EOK;
 }
 
 // Returns the PID of *any* of the receiver's children. This is used by the
@@ -126,6 +142,7 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 {
     while (true) {
         const pid_t pid = Process_GetAnyChildPid(self);
+        struct proc_status ps;
 
         if (pid <= 0) {
             break;
@@ -133,8 +150,8 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 
         ProcessRef pCurChild = ProcessManager_CopyProcessForPid(gProcessManager, pid);
         
-        Process_Exit(pCurChild, WMAKEEXITED(0));    //XXX send SIGKILL instead
-        Process_WaitForTerminationOfChild(self, pid, NULL, 0);
+        Process_Exit(pCurChild, JREASON_EXIT, 0);    //XXX send SIGKILL instead
+        Process_TimedJoin(self, JOIN_PROC, pid, 0, &TIMESPEC_INF, &ps);
         Object_Release(pCurChild);
     }
 }
@@ -188,19 +205,7 @@ static void _proc_reap_vcpus(ProcessRef _Nonnull self)
 static void _proc_notify_parent(ProcessRef _Nonnull self)
 {
     if (!Process_IsRoot(self)) {
-        ProcessRef pParentProc = ProcessManager_CopyProcessForPid(gProcessManager, self->ppid);
-
-        if (pParentProc) {
-            if (_proc_on_child_termination(pParentProc, self) == ESRCH) {
-                // XXXsession Try the session leader next. Give up if this fails too.
-                // XXXsession. Unconditionally falling back to the root process for now.
-                // Just drop the tombstone request if no one wants it.
-                ProcessRef pRootProc = ProcessManager_CopyRootProcess(gProcessManager);
-                _proc_on_child_termination(pRootProc, self);
-                Object_Release(pRootProc);
-            }
-            Object_Release(pParentProc);
-        }
+        ProcessManager_SendSignal(gProcessManager, self->sid, SIG_SCOPE_PROC, self->ppid, SIGCHILD);
     }
 }
 
@@ -215,7 +220,7 @@ void _proc_zombify(ProcessRef _Nonnull self)
     self->state = PS_ZOMBIE;
 }
 
-_Noreturn Process_Exit(ProcessRef _Nonnull self, int exitCode)
+_Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code)
 {
     // We do not allow exiting the root process
     if (Process_IsRoot(self)) {
@@ -228,7 +233,8 @@ _Noreturn Process_Exit(ProcessRef _Nonnull self, int exitCode)
     
     if (!isExiting) {
         self->state = PS_ZOMBIFYING;
-        self->exitCode = exitCode & _WSTATUSMASK;
+        self->exit_reason = reason;
+        self->exit_code = code;
     }
     mtx_unlock(&self->mtx);
 

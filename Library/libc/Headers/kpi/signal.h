@@ -17,11 +17,11 @@ typedef volatile int sig_atomic_t;
 #define SIGMAX  32
 
 #define SIGKILL     1
-#define SIGDISPATCH 2
+#define SIGCHILD    2
+#define SIGDISPATCH 3
 
 
 #define _SIGBIT(__signo) (1 << ((__signo) - 1))
-#define _ISPROCSIG(__signo) ((__signo) >= SIGMIN && (__signo) < SIGMAX/2)
 
 #define SIGSET_NONMASKABLES _SIGBIT(SIGKILL)
 #define SIGSET_URGENTS      _SIGBIT(SIGKILL)

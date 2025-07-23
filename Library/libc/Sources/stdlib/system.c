@@ -7,6 +7,7 @@
 //
 
 #include <errno.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <sys/spawn.h>
@@ -33,24 +34,33 @@ static int __has_shell(void)
 static int __system(const char *string)
 {
     pid_t sh_pid;
-    int sh_stat;
+    int r = 0;
     spawn_opts_t opts = {0};
     const char* argv[4];
-    
+    struct proc_status ps;
+
     argv[0] = __shellPath;
     argv[1] = "-c";
     argv[2] = string;
     argv[3] = NULL;
 
+    // Enable SIGCHILD reception
+    sigroute(SIG_SCOPE_VCPU, 0, SIG_ROUTE_ENABLE);
+
     if (os_spawn(__shellPath, argv, &opts, &sh_pid) != 0) {
-        return -1;
+        r = -1;
+        goto out;
     }
 
-    if (waitpid(sh_pid, &sh_stat, 0) < 0) {
-        return -1;
+    if (proc_join(JOIN_PROC, sh_pid, &ps) < 0) {
+        r = -1;
+        goto out;
     }
 
-    return WEXITSTATUS(sh_stat);
+out:
+    sigroute(SIG_SCOPE_VCPU, 0, SIG_ROUTE_DISABLE);
+
+    return (r == 0) ? (ps.reason == JREASON_EXIT) ? ps.u.status : EXIT_FAILURE : -1;
 }
 
 int system(const char *string)

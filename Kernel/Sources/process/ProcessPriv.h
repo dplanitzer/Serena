@@ -13,7 +13,6 @@
 #include "IOChannelTable.h"
 #include <Catalog.h>
 #include <filemanager/FileManager.h>
-#include <sched/cnd.h>
 #include <sched/mtx.h>
 #include <sched/waitqueue.h>
 #include <vm/AddressSpace.h>
@@ -75,12 +74,12 @@ final_class_ivars(Process, Object,
     char* _Nullable _Weak           argumentsBase;  // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
 
     // Process termination
-    int                             exitCode;       // Exit code of the first exit() call that initiated the termination of this process
+    int16_t                         exit_reason;    // Exit code of the first exit() call that initiated the termination of this process
+    int16_t                         exit_code;
 
     // Child process related properties
     List/*<Process>*/               children;
     ListNode                        siblings;
-    cnd_t                           procTermSignaler;
 );
 
 #define proc_from_ptce(__ptr) \

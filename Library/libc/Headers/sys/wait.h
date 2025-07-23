@@ -12,25 +12,12 @@
 #include <_cmndef.h>
 #include <kpi/wait.h>
 #include <sys/types.h>
+#include <sys/timespec.h>
 
 __CPP_BEGIN
 
-#define WIFEXITED(__code) \
-(((__code) & _WREASONMASK) == _WNORMTERM)
-
-#define WEXITSTATUS(__code) \
-((__code) & _WSTATUSMASK)
-
-
-#define WIFSIGNALED(__code) \
-(((__code) & _WREASONMASK) == _WSIGNALED)
-
-#define WTERMSIG(__code) \
-((__code) & _WSTATUSMASK)
-
-
-extern pid_t wait(int* _Nullable pstat);
-extern pid_t waitpid(pid_t pid, int* _Nullable pstat, int options);
+extern int proc_join(int scope, pid_t id, struct proc_status* _Nonnull ps);
+extern int proc_timedjoin(int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps);
 
 __CPP_END
 

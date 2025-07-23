@@ -7,6 +7,7 @@
 //
 
 #include <errno.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -94,10 +95,10 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
     
     // XXX enable dispatch queue based notifications again
     // XXX broken for now. Typing exit in the login shell will throw an error
-    // XXX because this waitpid() here consumes the pid and the waitpid() in
+    // XXX because this proc_join() here consumes the pid and the proc_join() in
     // XXX on_shell_termination() can't get the pid anymore.
-    int child_stat;
-    waitpid(childPid, &child_stat, 0);
+    struct proc_status ps;
+    proc_join(JOIN_PROC, childPid, &ps);
     on_shell_termination(NULL);
     // XXX enable dispatch queue based notifications again
 
@@ -130,24 +131,23 @@ static void login_user(void)
 // row.
 static void on_shell_termination(void* _Nullable ignore)
 {
-    int child_stat;
-    const pid_t child_pid = waitpid(-1, &child_stat, WNOHANG);
+    struct proc_status ps;
+    const int r = proc_timedjoin(JOIN_ANY, 0, 0, &TIMESPEC_ZERO, &ps);
 
-    if (child_pid > 0) {
-        const int child_ec = WEXITSTATUS(child_stat);
-
-        if (child_ec != EXIT_SUCCESS) {
-            gFailedCounter++;
-        }
-
-        if (gFailedCounter == 2) {
-            printf("Error: unexpected shell termination with status: %d.\n", child_ec);
-            halt_machine();
-        }
-    }
-    else {
+    if (r == -1) {
         printf("Error: %s.\n", strerror(errno));
         halt_machine();
+        /* NOT REACHED */
+    }
+
+    if ((ps.reason == JREASON_EXIT && ps.u.status != EXIT_SUCCESS) || ps.reason != JREASON_EXIT) {
+        gFailedCounter++;
+    }
+
+    if (gFailedCounter == 2) {
+        printf("Error: unexpected shell (%d) termination with status: %d:%d.\n", ps.pid, ps.reason, ps.u.status);
+        halt_machine();
+        /* NOT REACHED */
     }
 
     login_user();
@@ -184,6 +184,10 @@ int main(int argc, char *argv[])
     fdreopen(STDOUT_FILENO, "w", stdout);
     fdreopen(STDERR_FILENO, "w", stderr);
 
+
+    // Enable SIGCHILD reception
+    sigroute(SIG_SCOPE_VCPU, 0, SIG_ROUTE_ENABLE);
+    
 
     printf("\033[36mSerena OS v0.5.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
 

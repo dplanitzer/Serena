@@ -7,6 +7,7 @@
 //
 
 #include <assert.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,6 +36,11 @@ int main(int argc, char *argv[])
 
     clap_parse(0, params, argc, argv);
     const bool isInteractive = (arg_strings.count == 0) ? true : false;
+
+    
+    // Enable SIGCHILD reception
+    sigroute(SIG_SCOPE_VCPU, 0, SIG_ROUTE_ENABLE);
+
 
     ShellRef sh = Shell_Create(isInteractive);
     if (isInteractive) {

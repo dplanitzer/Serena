@@ -244,8 +244,8 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
 
 
     // Wait for the command to complete its task
-    int child_stat;
-    waitpid(childPid, &child_stat, 0);
+    struct proc_status ps;
+    proc_join(JOIN_PROC, childPid, &ps);
 
 
     // XXX we always return Void for now (will change once we got value capture support)
