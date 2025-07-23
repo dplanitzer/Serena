@@ -51,6 +51,6 @@ extern void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRe
 
 // Send the signal 'signo' to one or multiple process(es) based on the given
 // signalling scope.
-extern errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, int scope, id_t id, int signo);
+extern errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, id_t sender_sid, int scope, id_t id, int signo);
 
 #endif /* ProcessManager_h */

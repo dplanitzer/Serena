@@ -55,7 +55,7 @@ SYSCALL_1(sigpending, sigset_t* _Nonnull set)
 static errno_t _sendsig(vcpu_t _Nonnull vp, int signo)
 {
     const int sps = preempt_disable();
-    const errno_t err = vcpu_sendsignal(vp, signo);
+    const errno_t err = vcpu_sigsend(vp, signo);
     preempt_restore(sps);
 
     return err;
@@ -77,19 +77,19 @@ SYSCALL_3(sigsend, int scope, id_t id, int signo)
                 err = Process_SendSignal(pp, SIG_SCOPE_PROC, pa->id, pa->signo);
             }
             else {
-                err = ProcessManager_SendSignal(gProcessManager, SIG_SCOPE_PROC, pa->id, pa->signo);
+                err = ProcessManager_SendSignal(gProcessManager, pp->sid, SIG_SCOPE_PROC, pa->id, pa->signo);
             }
             break;
 
         case SIG_SCOPE_PROC_CHILDREN: {
             const pid_t pid = (pa->id == 0) ? pp->pid : pa->id;
-            err = ProcessManager_SendSignal(gProcessManager, pa->scope, pid, pa->signo);
+            err = ProcessManager_SendSignal(gProcessManager, pp->sid, pa->scope, pid, pa->signo);
             break;
         }
 
         case SIG_SCOPE_PROC_GROUP: {
             const pid_t pgrp = (pa->id == 0) ? pp->pgrp : pa->id;
-            err = ProcessManager_SendSignal(gProcessManager, pa->scope, pgrp, pa->signo);
+            err = ProcessManager_SendSignal(gProcessManager, pp->sid, pa->scope, pgrp, pa->signo);
             break;
         }
 
@@ -97,7 +97,7 @@ SYSCALL_3(sigsend, int scope, id_t id, int signo)
             const pid_t sid = (pa->id == 0) ? pp->sid : pa->id;
 
             if (sid == pp->sid) {
-                err = ProcessManager_SendSignal(gProcessManager, pa->scope, sid, pa->signo);
+                err = ProcessManager_SendSignal(gProcessManager, pp->sid, pa->scope, sid, pa->signo);
             }
             else {
                 err = EPERM;

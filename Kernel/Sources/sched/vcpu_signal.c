@@ -57,7 +57,7 @@ errno_t vcpu_setsigmask(vcpu_t _Nonnull self, int op, sigset_t mask, sigset_t* _
 }
 
 // @Entry Condition: preemption disabled
-errno_t vcpu_sendsignal(vcpu_t _Nonnull self, int signo)
+errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo)
 {
     if (signo < SIGMIN || signo > SIGMAX) {
         return EINVAL;

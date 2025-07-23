@@ -156,7 +156,7 @@ static void _proc_abort_vcpus(ProcessRef _Nonnull self)
         vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
         const int sps = preempt_disable();
-        vcpu_sendsignal(cvp, SIGKILL);
+        vcpu_sigsend(cvp, SIGKILL);
         preempt_restore(sps);
     });
     mtx_unlock(&self->mtx);

@@ -115,7 +115,7 @@ void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
     mtx_unlock(&self->mtx);
 }
 
-errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, int scope, id_t id, int signo)
+errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, id_t sender_sid, int scope, id_t id, int signo)
 {
     decl_try_err();
     bool hasMatched = false;
@@ -148,7 +148,13 @@ errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, int scope, id
             }
 
             if (doSend) {
-                err = Process_SendSignal(cp, SIG_SCOPE_PROC, 0, signo);
+                if (sender_sid == cp->sid) {
+                   err = Process_SendSignal(cp, SIG_SCOPE_PROC, 0, signo);
+                }
+                else {
+                    err = EPERM;
+                }
+
                 if (err != EOK) {
                     break;
                 }

@@ -165,7 +165,7 @@ void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp
 static errno_t _sigsend(vcpu_t _Nonnull vp, int signo)
 {
     const int sps = preempt_disable();
-    const errno_t err = vcpu_sendsignal(vp, signo);
+    const errno_t err = vcpu_sigsend(vp, signo);
     preempt_restore(sps);
     
     return err;

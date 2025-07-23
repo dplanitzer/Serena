@@ -171,7 +171,7 @@ extern void vcpu_setpriority(vcpu_t _Nonnull self, int priority);
 extern errno_t vcpu_setsigmask(vcpu_t _Nonnull self, int op, sigset_t mask, sigset_t* _Nullable pOutMask);
 
 // @Entry Condition: preemption disabled
-extern errno_t vcpu_sendsignal(vcpu_t _Nonnull self, int signo);
+extern errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo);
 
 // @Entry Condition: preemption disabled
 extern errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo);
