@@ -11,6 +11,7 @@
 #include <kern/timespec.h>
 #include <kpi/wait.h>
 #include <log/Log.h>
+#include <machine/clock.h>
 #include <machine/csw.h>
 #include <sched/vcpu_pool.h>
 
@@ -58,6 +59,7 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
 {
     decl_try_err();
     ProcessRef zp = NULL;
+    struct timespec deadline;
     bool exists = false;
     sigset_t hot_sigs = _SIGBIT(SIGCHILD);
     int signo;
@@ -70,6 +72,17 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
 
         default:
             return EINVAL;
+    }
+
+
+    if ((flags & TIMER_ABSTIME) == 0) {
+        struct timespec now;
+
+        clock_gettime(g_mono_clock, &now);
+        timespec_add(&now, wtp, &deadline);
+    }
+    else {
+        deadline = *wtp;
     }
 
 
@@ -96,7 +109,7 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
         mtx_unlock(&self->mtx);
         
 
-        err = vcpu_sigtimedwait(&self->siwaQueue, &hot_sigs, flags, wtp, &signo);
+        err = vcpu_sigtimedwait(&self->siwaQueue, &hot_sigs, flags | TIMER_ABSTIME, &deadline, &signo);
         if (err != EOK) {
             return err;
         }
