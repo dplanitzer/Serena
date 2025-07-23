@@ -82,7 +82,8 @@ struct dispatch_worker {
     const dispatch_callbacks_t* _Nonnull    cb;
     dispatch_t _Nonnull                     owner;
 
-    int                                     adoption;  // _DISPATCH_XXX_VCPU; tells us whether the worker acquired or adopted its vcpu
+    int8_t                                  adoption;  // _DISPATCH_XXX_VCPU; tells us whether the worker acquired or adopted its vcpu
+    bool                                    allow_relinquish;   // whether the worker is free to relinquish or not
 };
 typedef struct dispatch_worker* dispatch_worker_t;
 

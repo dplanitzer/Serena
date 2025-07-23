@@ -26,6 +26,7 @@ static bool _dispatch_worker_acquire_vcpu(dispatch_worker_t _Nonnull self)
     r_attr.priority = owner->attr.qos * DISPATCH_PRI_COUNT + (owner->attr.priority + DISPATCH_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
     r_attr.flags = 0;
 
+    self->allow_relinquish = true;
     self->vcpu = vcpu_acquire(&r_attr);
     if (self->vcpu) {
         self->id = vcpu_id(self->vcpu);
@@ -39,12 +40,16 @@ static bool _dispatch_worker_acquire_vcpu(dispatch_worker_t _Nonnull self)
 
 static void _dispatch_worker_adopt_caller_vcpu(dispatch_worker_t _Nonnull self)
 {
+    //XXX not allowing the main vcpu to relinquish for now. Should revisit in the future and enable this
+    self->allow_relinquish = false;
     self->vcpu = vcpu_self();
     self->id = vcpu_id(self->vcpu);
 }
 
 static void _dispatch_worker_adopt_main_vcpu(dispatch_worker_t _Nonnull self)
 {
+    //XXX not allowing the main vcpu to relinquish for now. Should revisit in the future and enable this
+    self->allow_relinquish = false;
     self->vcpu = vcpu_main();
     self->id = vcpu_id(self->vcpu);
 }
@@ -176,8 +181,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mtx_t* _Nonnu
     bool mayRelinquish = false;
     struct timespec now, deadline;
     dispatch_item_t item;
-    int flags;
-    int si;
+    int flags, si;
 
     for (;;) {
         // Grab the first timer that's due. We give preference to timers because
@@ -227,9 +231,13 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mtx_t* _Nonnu
         if (q->timers.first) {
             deadline = ((dispatch_timer_t)q->timers.first)->deadline;
             flags = TIMER_ABSTIME;
-        } else {
+        }
+        else if (self->allow_relinquish) {
             timespec_from_sec(&deadline, 2);
             flags = 0;
+        }
+        else {
+            deadline = TIMESPEC_INF;
         }
 
 
@@ -242,7 +250,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mtx_t* _Nonnu
         const int err = sigtimedwait(&self->hotsigs, flags, &deadline, &si);
         mtx_lock(mp);
 
-        if (err == ETIMEDOUT && q->worker_count > q->attr.minConcurrency) {
+        if (err == ETIMEDOUT && q->worker_count > q->attr.minConcurrency && self->allow_relinquish) {
             mayRelinquish = true;
         }
     }
