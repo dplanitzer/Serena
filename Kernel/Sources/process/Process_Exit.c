@@ -153,19 +153,23 @@ static int Process_GetAnyChildPid(ProcessRef _Nonnull self)
 // caller until all of them are dead and gone.
 static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 {
-    while (true) {
-        const pid_t pid = Process_GetAnyChildPid(self);
-        struct proc_status ps;
+    mtx_lock(&self->mtx);
+    const int hasChildren = self->children.first != NULL;
+    mtx_unlock(&self->mtx);
 
-        if (pid <= 0) {
-            break;
+
+    if (hasChildren) {
+        vcpu_sigroute(vcpu_current(), SIG_ROUTE_ENABLE);
+        ProcessManager_SendSignal(gProcessManager, self->sid, SIG_SCOPE_PROC_CHILDREN, self->pid, SIGKILL);
+
+        for (;;) {
+            struct proc_status ps;
+
+            if (Process_TimedJoin(self, JOIN_ANY, 0, 0, &TIMESPEC_INF, &ps) == ECHILD) {
+                break;
+            }
         }
-
-        ProcessRef pCurChild = ProcessManager_CopyProcessForPid(gProcessManager, pid);
-        
-        Process_Exit(pCurChild, JREASON_EXIT, 0);    //XXX send SIGKILL instead
-        Process_TimedJoin(self, JOIN_PROC, pid, 0, &TIMESPEC_INF, &ps);
-        Object_Release(pCurChild);
+        vcpu_sigrouteoff(vcpu_current());
     }
 }
 
@@ -186,6 +190,7 @@ static void _proc_abort_vcpus(ProcessRef _Nonnull self)
         vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
         vcpu_sigsend(cvp, SIGKILL, false);
+        vcpu_sigrouteoff(cvp);
     });
     mtx_unlock(&self->mtx);
 }
@@ -264,12 +269,11 @@ _Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code)
 
     // This is the first vcpu going through the exit. It will act as the
     // termination/exit coordinator.
-    _proc_terminate_and_reap_children(self);
-
     _proc_detach_calling_vcpu(self);
     _proc_abort_vcpus(self);
     _proc_reap_vcpus(self);
 
+    _proc_terminate_and_reap_children(self);
     _proc_zombify(self);
 
     _proc_notify_parent(self);
