@@ -218,3 +218,8 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
 
     return err;
 }
+
+void Process_Exception(ProcessRef _Nonnull self, excpt_info_t* _Nonnull ei)
+{
+    Process_Exit(self, JREASON_EXCEPTION, ei->code);
+}

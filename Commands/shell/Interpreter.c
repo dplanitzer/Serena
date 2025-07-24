@@ -246,6 +246,9 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
     // Wait for the command to complete its task
     struct proc_status ps;
     proc_join(JOIN_PROC, childPid, &ps);
+    if (ps.reason == JREASON_EXCEPTION) {
+        fprintf(stderr, "%s crashed: %d\n", argv[0], ps.u.excptno);
+    }
 
 
     // XXX we always return Void for now (will change once we got value capture support)

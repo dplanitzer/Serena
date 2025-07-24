@@ -12,6 +12,7 @@
 #include <stdarg.h>
 #include <kern/types.h>
 #include <kobj/Object.h>
+#include <kpi/exception.h>
 #include <kpi/proc.h>
 #include <kpi/spawn.h>
 #include <kpi/vcpu.h>
@@ -22,6 +23,9 @@ final_class(Process, Object);
 
 
 extern ProcessRef _Nonnull  gRootProcess;
+
+#define Process_GetCurrent() \
+g_sched->running->proc
 
 
 // Creates the root process which is the first process of the OS.
@@ -59,6 +63,9 @@ extern void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Non
 // Sends the signal 'signo' to the process 'self'. The supported signalling
 // scopes are: VCPU, VCPU_GROUP and PROC.
 extern errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int signo);
+
+// Notifies the process that the calling vcpu has hit a CPU exception.
+extern void Process_Exception(ProcessRef _Nonnull self, excpt_info_t* _Nonnull ei);
 
 
 //

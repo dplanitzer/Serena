@@ -58,3 +58,11 @@ void proc_exit_test(int argc, char *argv[])
     puts("Exiting");
     exit(0);
 }
+
+int movesr(void) = "\tmove.w\tsr, d0\n";
+
+void proc_exception_test(int argc, char *argv[])
+{
+    const int r = movesr();
+    printf("sr: %d\n", r);
+}

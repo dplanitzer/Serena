@@ -9,7 +9,9 @@
 #include <kern/assert.h>
 #include <kern/string.h>
 #include <kern/types.h>
+#include <kpi/exception.h>
 #include <machine/cpu.h>
+#include <process/Process.h>
 
 
 // Returns the model name of the CPU
@@ -66,8 +68,95 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
 void cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp)
 {
     fsave_frame_t* fpufp = sfp;
+    excpt_info_t ei;
 
-    _fatalException(efp);
+    if (!excpt_frame_isuser(efp)) {
+        _fatalException(efp);
+        /* NOT REACHED */
+    }
+
+
+    ei.cpu_code = excpt_frame_getvecnum(efp);
+    ei.addr = NULL;
+
+    switch (ei.cpu_code) {
+        case EXCPT_NUM_ZERO_DIV:
+            ei.code = EXCPT_DIV_ZERO;
+            ei.addr = (void*)efp->u.f2.addr;
+            break;
+
+        case EXCPT_NUM_ILL_INSTR:
+        case EXCPT_NUM_LINE_A:
+        case EXCPT_NUM_LINE_F:
+        case EXCPT_NUM_COPROC:
+        case EXCPT_NUM_FORMAT:
+        case EXCPT_NUM_EMU:
+        case EXCPT_NUM_TRACE:
+            ei.code = EXCPT_ILLEGAL;
+            ei.addr = (void*)efp->pc;
+            break;
+
+        case EXCPT_NUM_CHK:
+        case EXCPT_NUM_TRAPX:
+            ei.code = EXCPT_INTR;
+            ei.addr = (void*)efp->u.f2.addr;
+            break;
+
+        case EXCPT_NUM_TRAP_0:
+        case EXCPT_NUM_TRAP_1:
+        case EXCPT_NUM_TRAP_2:
+        case EXCPT_NUM_TRAP_3:
+        case EXCPT_NUM_TRAP_4:
+        case EXCPT_NUM_TRAP_5:
+        case EXCPT_NUM_TRAP_6:
+        case EXCPT_NUM_TRAP_7:
+        case EXCPT_NUM_TRAP_8:
+        case EXCPT_NUM_TRAP_9:
+        case EXCPT_NUM_TRAP_10:
+        case EXCPT_NUM_TRAP_11:
+        case EXCPT_NUM_TRAP_12:
+        case EXCPT_NUM_TRAP_13:
+        case EXCPT_NUM_TRAP_14:
+        case EXCPT_NUM_TRAP_15:
+            ei.code = EXCPT_INTR;
+            ei.addr = (void*)efp->pc;
+            break;
+
+        case EXCPT_NUM_FPU_BR_UO:
+        case EXCPT_NUM_FPU_INEXACT:
+        case EXCPT_NUM_FPU_DIV_ZERO:
+        case EXCPT_NUM_FPU_UNDERFLOW:
+        case EXCPT_NUM_FPU_OP_ERR:
+        case EXCPT_NUM_FPU_OVERFLOW:
+        case EXCPT_NUM_FPU_SNAN:
+        case EXCPT_NUM_FPU_UNIMPL_TY:
+            ei.code = EXCPT_FPE;
+            ei.addr = (void*)efp->pc;
+            break;
+
+
+        case EXCPT_NUM_BUS_ERR:
+            ei.code = EXCPT_BUS;
+            ei.addr = (void*)efp->pc;
+            break;
+
+        case EXCPT_NUM_ADR_ERR:
+        case EXCPT_NUM_PRIV_VIO:
+        case EXCPT_NUM_MMU_CONF_ERR:
+        case EXCPT_NUM_MMU_ILL_OP:
+        case EXCPT_NUM_MMU_ACCESS_VIO:
+        case EXCPT_NUM_UNIMPL_EA:
+        case EXCPT_NUM_UNIMPL_INT:
+            ei.code = EXCPT_SEGV;
+            ei.addr = (void*)efp->pc;  //XXX find real fault address
+            break;
+
+        default:
+            _fatalException(efp);
+            /* NOT REACHED */
+    }
+
+    Process_Exception(Process_GetCurrent(), &ei);
 }
 
 // Sets up the provided CPU context and kernel/user stack with a function invocation

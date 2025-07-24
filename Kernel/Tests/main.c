@@ -38,6 +38,7 @@ extern void pipe_test(int argc, char *argv[]);
 extern void pipe2_test(int argc, char *argv[]);
 
 // Proc
+extern void proc_exception_test(int argc, char *argv[]);
 extern void proc_exit_test(int argc, char *argv[]);
 
 // Sema
@@ -80,6 +81,7 @@ static const test_t gTests[] = {
     {"pipe", pipe_test, false},
     {"pipe2", pipe2_test, true},
 
+    {"proc_excpt", proc_exception_test, false},
     {"proc_exit", proc_exit_test, true},
 
     {"sem", sem_test, true},

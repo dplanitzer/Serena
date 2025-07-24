@@ -16,8 +16,9 @@
 #define JOIN_ANY        2   /* Join any child process */
 
 
-#define JREASON_EXIT       0
-#define JREASON_SIGNALED   1
+#define JREASON_EXIT        0
+#define JREASON_SIGNAL      1
+#define JREASON_EXCEPTION   2
 
 
 // The result of a waitpid() system call.
@@ -27,6 +28,7 @@ struct proc_status {
     union {
         int status;     // child process exit status
         int signo;      // signal that caused the process to terminate
+        int excptno;    // exception that caused the process to terminate
     }       u;
 };
 

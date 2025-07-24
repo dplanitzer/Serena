@@ -179,7 +179,7 @@ intptr_t _syscall_handler(vcpu_t _Nonnull vp, unsigned int* _Nonnull args)
 
 
     if ((vp->pending_sigs & _SIGBIT(SIGKILL)) != 0) {
-        Process_Exit(vp->proc, JREASON_SIGNALED, SIGKILL);
+        Process_Exit(vp->proc, JREASON_SIGNAL, SIGKILL);
         /* NOT REACHED */
     }
 
