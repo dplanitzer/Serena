@@ -48,7 +48,11 @@ _Noreturn fatalAssert(const char* _Nonnull filename, int line)
     fatal("Assert: %s:%d", filename, line);
 }
 
-_Noreturn _fatalException(const excpt_frame_t* _Nonnull pFrame)
+_Noreturn _fatalException(const excpt_frame_t* _Nonnull efp)
 {
-    fatal("Exception: %hhx, Format %hhx, PC %p, SR %hx", pFrame->fv.vector >> 2, pFrame->fv.format, pFrame->pc, pFrame->sr);
+    fatal("Exception: %hhx, Format %hhx, PC %p, SR %hx", 
+        excpt_frame_getvecnum(efp),
+        excpt_frame_getformat(efp),
+        excpt_frame_getpc(efp),
+        excpt_frame_getsr(efp));
 }

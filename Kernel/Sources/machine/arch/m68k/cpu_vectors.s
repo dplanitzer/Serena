@@ -24,6 +24,7 @@
     xref _InterruptController_OnInterrupt
     xref _cpu_get_model
     xref _fpu_get_model
+    xref _cpu_exception
     xref _SystemDescription_Init
     xref _gInterruptControllerStorage
     xref _g_sched_storage
@@ -36,8 +37,6 @@
     xdef _mem_non_recoverable_error
 
     ; so that we can get the address information from the assembler
-    xdef IgnoreTrap
-    xdef FatalException
     xdef IRQHandler_L1
     xdef IRQHandler_L2
     xdef IRQHandler_L3
@@ -50,28 +49,28 @@
 _cpu_vector_table:
     dc.l RESET_STACK_BASE               ; 00, Reset SSP
     dc.l _Reset                         ; 01, Reset PC
-    dc.l FatalException                 ; 02, Bus error / Access fault
-    dc.l FatalException                 ; 03, Address error
-    dc.l FatalException                 ; 04, Illegal Instruction
-    dc.l FatalException                 ; 05, Zero Divide
-    dc.l FatalException                 ; 06, CHK, CHK2 Instruction
-    dc.l FatalException                 ; 07, cpTRAPcc, TRAPcc, TRAPV Instructions
-    dc.l FatalException                 ; 08, Privilege Violation
-    dc.l IgnoreTrap                     ; 09, Trace
-    dc.l FatalException                 ; 10, Line 1010 Emulator (Unimplemented A-Line Opcode)
-    dc.l FatalException                 ; 11, Line 1111 Emulator (Unimplemented F-Line Opcode) / Floating-Point Unimplemented Instruction / Floating-Point Disabled
-    dc.l FatalException                 ; 12, Emulator Interrupt (68060)
-    dc.l FatalException                 ; 13, Coprocessor Protocol Violation (68020 / 68030)
-    dc.l FatalException                 ; 14, Format Error
+    dc.l __cpu_exception                ; 02, Bus error / Access fault
+    dc.l __cpu_exception                ; 03, Address error
+    dc.l __cpu_exception                ; 04, Illegal Instruction
+    dc.l __cpu_exception                ; 05, Zero Divide
+    dc.l __cpu_exception                ; 06, CHK, CHK2 Instruction
+    dc.l __cpu_exception                ; 07, cpTRAPcc, TRAPcc, TRAPV Instructions
+    dc.l __cpu_exception                ; 08, Privilege Violation
+    dc.l __cpu_exception                ; 09, Trace
+    dc.l __cpu_exception                ; 10, Line 1010 Emulator (Unimplemented A-Line Opcode)
+    dc.l __cpu_exception                ; 11, Line 1111 Emulator (Unimplemented F-Line Opcode) / Floating-Point Unimplemented Instruction / Floating-Point Disabled
+    dc.l __cpu_exception                ; 12, Emulator Interrupt (68060)
+    dc.l __cpu_exception                ; 13, Coprocessor Protocol Violation (68020 / 68030)
+    dc.l __cpu_exception                ; 14, Format Error
     dc.l IRQHandler_Unitialized         ; 15, Uninitialized Interrupt Vector
-    dc.l IgnoreTrap                     ; 16, Reserved
-    dc.l IgnoreTrap                     ; 17, Reserved
-    dc.l IgnoreTrap                     ; 18, Reserved
-    dc.l IgnoreTrap                     ; 19, Reserved
-    dc.l IgnoreTrap                     ; 20, Reserved
-    dc.l IgnoreTrap                     ; 21, Reserved
-    dc.l IgnoreTrap                     ; 22, Reserved
-    dc.l IgnoreTrap                     ; 23, Reserved
+    dc.l __cpu_exception                ; 16, Reserved
+    dc.l __cpu_exception                ; 17, Reserved
+    dc.l __cpu_exception                ; 18, Reserved
+    dc.l __cpu_exception                ; 19, Reserved
+    dc.l __cpu_exception                ; 20, Reserved
+    dc.l __cpu_exception                ; 21, Reserved
+    dc.l __cpu_exception                ; 22, Reserved
+    dc.l __cpu_exception                ; 23, Reserved
     dc.l IRQHandler_Spurious            ; 24, Spurious Interrupt
     dc.l IRQHandler_L1                  ; 25, Level 1 (Soft-IRQ, Disk, Serial port)
     dc.l IRQHandler_L2                  ; 26, Level 2 (External INT2, CIAA)
@@ -84,35 +83,35 @@ _cpu_vector_table:
     dc.l _nosyscall_entry               ; 33, Trap #1
     dc.l _nosyscall_entry               ; 34, Trap #2
     dc.l _nosyscall_entry               ; 35, Trap #3
-    dc.l _nosyscall_entry               ; 36, Trap #4
-    dc.l _nosyscall_entry               ; 37, Trap #5
-    dc.l _nosyscall_entry               ; 38, Trap #6
-    dc.l _nosyscall_entry               ; 39, Trap #7
-    dc.l _nosyscall_entry               ; 40, Trap #8
-    dc.l _nosyscall_entry               ; 41, Trap #9
-    dc.l _nosyscall_entry               ; 42, Trap #10
-    dc.l _nosyscall_entry               ; 43, Trap #11
-    dc.l _nosyscall_entry               ; 44, Trap #12
-    dc.l _nosyscall_entry               ; 45, Trap #13
-    dc.l _nosyscall_entry               ; 46, Trap #14
-    dc.l _nosyscall_entry               ; 47, Trap #15
-    dc.l IgnoreTrap                     ; 48, FPCP Branch or Set on Unordered Condition
-    dc.l IgnoreTrap                     ; 49, FPCP Inexact Result
-    dc.l IgnoreTrap                     ; 50, FPCP Divide by Zero
-    dc.l IgnoreTrap                     ; 51, FPCP Underflow
-    dc.l IgnoreTrap                     ; 52, FPCP Operand Error
-    dc.l IgnoreTrap                     ; 53, FPCP Overflow
-    dc.l IgnoreTrap                     ; 54, FPCP Signaling NAN
-    dc.l FatalException                 ; 55, FPCP Unimplemented Data Type (68040+)
-    dc.l FatalException                 ; 56, PMMU Configuration Error (68851 / 68030)
-    dc.l FatalException                 ; 57, PMMU Illegal Operation Error (68851)
-    dc.l FatalException                 ; 58, PMMU Access Level Violation Error (68851)
-    dc.l IgnoreTrap                     ; 59, Reserved
-    dc.l FatalException                 ; 60, Unimplemented Effective Address (68060)
-    dc.l FatalException                 ; 61, Unimplemented Integer Instruction (68060)
-    dc.l IgnoreTrap                     ; 62, Reserved
-    dc.l IgnoreTrap                     ; 63, Reserved
-    dcb.l 192, IgnoreTrap               ; 64, User-Defined Vectors (192)
+    dc.l __cpu_exception                ; 36, Trap #4
+    dc.l __cpu_exception                ; 37, Trap #5
+    dc.l __cpu_exception                ; 38, Trap #6
+    dc.l __cpu_exception                ; 39, Trap #7
+    dc.l __cpu_exception                ; 40, Trap #8
+    dc.l __cpu_exception                ; 41, Trap #9
+    dc.l __cpu_exception                ; 42, Trap #10
+    dc.l __cpu_exception                ; 43, Trap #11
+    dc.l __cpu_exception                ; 44, Trap #12
+    dc.l __cpu_exception                ; 45, Trap #13
+    dc.l __cpu_exception                ; 46, Trap #14
+    dc.l __cpu_exception                ; 47, Trap #15
+    dc.l __fpu_exception                ; 48, FPCP Branch or Set on Unordered Condition
+    dc.l __fpu_exception                ; 49, FPCP Inexact Result
+    dc.l __fpu_exception                ; 50, FPCP Divide by Zero
+    dc.l __fpu_exception                ; 51, FPCP Underflow
+    dc.l __fpu_exception                ; 52, FPCP Operand Error
+    dc.l __fpu_exception                ; 53, FPCP Overflow
+    dc.l __fpu_exception                ; 54, FPCP Signaling NAN
+    dc.l __fpu_exception                ; 55, FPCP Unimplemented Data Type (68040+)
+    dc.l __cpu_exception                ; 56, PMMU Configuration Error (68851 / 68030)
+    dc.l __cpu_exception                ; 57, PMMU Illegal Operation Error (68851)
+    dc.l __cpu_exception                ; 58, PMMU Access Level Violation Error (68851)
+    dc.l __cpu_exception                ; 59, Reserved
+    dc.l __cpu_exception                ; 60, Unimplemented Effective Address (68060)
+    dc.l __cpu_exception                ; 61, Unimplemented Integer Instruction (68060)
+    dc.l __cpu_exception                ; 62, Reserved
+    dc.l __cpu_exception                ; 63, Reserved
+    dcb.l 192, __cpu_exception          ; 64, User-Defined Vectors (192)
 
 
 ;-------------------------------------------------------------------------------
@@ -191,20 +190,43 @@ _mem_non_recoverable_error:
 
 
 ;-------------------------------------------------------------------------------
-; Default trap handler. This just returns.
-    align 2
-IgnoreTrap:
+; Invokes the cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp) function.
+; See 68020UM, p6-27
+__cpu_exception:
+    movem.l d0 - d1 / a0 - a1, -(sp)
+    
+    move.l  #0, -(sp)
+    pea     16(sp)
+    jsr     _cpu_exception
+    addq.w  #8, sp
+
+    movem.l (sp)+, d0 - d1 / a0 - a1
     rte
 
 
 ;-------------------------------------------------------------------------------
-; Fatal exception handler. We halt the machine since we can not recover from
-; this kind of exception. Expects that SSP points to the base of the exception
-; stack frame.
-FatalException:
-    move.l  sp, -(sp)
-    jsr     __fatalException
-    ; NOT REACHED
+; Invokes the cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp) function.
+; See 68881/68882UM, p5-11
+__fpu_exception:
+    inline
+        fsave       -(sp)
+        movem.l     d0 - d1 / a0 - a1, -(sp)
+        move.b      (sp), d0
+        beq.s       .L1
+        clr.l       d0
+        move.b      17(sp), d0       ; get exception frame size
+        bset        #3, 16(sp, d0)   ; set bit #27 of BIU
+
+        pea         16(sp)
+        pea         16(sp, d0)
+        jsr         _cpu_exception
+        addq.w      #8, sp
+
+.L1:    
+        movem.l     (sp)+, d0 - d1 / a0 - a1
+        frestore    (sp)+
+        rte
+    einline
 
 
 ;-------------------------------------------------------------------------------

@@ -32,6 +32,12 @@ extern void cpu_halt(void);
 extern void cpu_make_callout(mcontext_t* _Nonnull cp, void* _Nonnull ksp, void* _Nonnull usp, bool isUser, VoidFunc_1 _Nonnull func, void* _Nullable arg, VoidFunc_0 _Nonnull ret_func);
 extern void cpu_push_user_rts(uintptr_t pc);
 
+// Called by the HAL when a CPU exception is triggered. 'efp' is the CPU
+// exception frame on the kernel stack and 'sfp' is an optional and platform
+// specific secondary exception frame. Eg 'sfp' is the fsave state frame of a
+// 68881/68882 co-processor if it triggered an exception.
+extern void cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp);
+
 extern _Noreturn cpu_non_recoverable_error(void);
 extern _Noreturn mem_non_recoverable_error(void);
 

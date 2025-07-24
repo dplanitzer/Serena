@@ -6,9 +6,10 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "cpu.h"
+#include <kern/assert.h>
 #include <kern/string.h>
 #include <kern/types.h>
+#include <machine/cpu.h>
 
 
 // Returns the model name of the CPU
@@ -60,6 +61,13 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
         default:
             return "??";
     }
+}
+
+void cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp)
+{
+    fsave_frame_t* fpufp = sfp;
+
+    _fatalException(efp);
 }
 
 // Sets up the provided CPU context and kernel/user stack with a function invocation

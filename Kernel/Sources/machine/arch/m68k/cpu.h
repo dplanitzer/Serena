@@ -85,16 +85,81 @@ typedef struct mcontext {
 } mcontext_t;
 
 
-// Exception stack frame
+#define EXCPT_OFFSET_RESET_SSP  0
+#define EXCPT_OFFSET_RESET_PC   4
+#define EXCPT_OFFSET_BUS_ERR    8
+#define EXCPT_OFFSET_ADR_ERR    12
+#define EXCPT_OFFSET_ILL_INSTR  16
+#define EXCPT_OFFSET_ZERO_DIV   20
+#define EXCPT_OFFSET_CHK        24
+#define EXCPT_OFFSET_TRAPX      28
+#define EXCPT_OFFSET_PRIV_VIO   32
+#define EXCPT_OFFSET_TRACE      36
+#define EXCPT_OFFSET_LINE_A     40
+#define EXCPT_OFFSET_LINE_F     44
+#define EXCPT_OFFSET_EMU        48
+#define EXCPT_OFFSET_COPROC     52
+#define EXCPT_OFFSET_FORMAT     56
+#define EXCPT_OFFSET_UNINIT_IRQ 60
+#define EXCPT_OFFSET_RESV_16    64
+#define EXCPT_OFFSET_RESV_17    68
+#define EXCPT_OFFSET_RESV_18    72
+#define EXCPT_OFFSET_RESV_19    76
+#define EXCPT_OFFSET_RESV_20    80
+#define EXCPT_OFFSET_RESV_21    84
+#define EXCPT_OFFSET_RESV_22    88
+#define EXCPT_OFFSET_RESV_23    92
+#define EXCPT_OFFSET_IRQ_1      100
+#define EXCPT_OFFSET_IRQ_2      104
+#define EXCPT_OFFSET_IRQ_3      108
+#define EXCPT_OFFSET_IRQ_4      112
+#define EXCPT_OFFSET_IRQ_5      116
+#define EXCPT_OFFSET_IRQ_6      120
+#define EXCPT_OFFSET_IRQ_7      124
+#define EXCPT_OFFSET_TRAP_0     128
+#define EXCPT_OFFSET_TRAP_1     132
+#define EXCPT_OFFSET_TRAP_2     136
+#define EXCPT_OFFSET_TRAP_3     140
+#define EXCPT_OFFSET_TRAP_4     144
+#define EXCPT_OFFSET_TRAP_5     148
+#define EXCPT_OFFSET_TRAP_6     152
+#define EXCPT_OFFSET_TRAP_7     156
+#define EXCPT_OFFSET_TRAP_8     160
+#define EXCPT_OFFSET_TRAP_9     164
+#define EXCPT_OFFSET_TRAP_10    168
+#define EXCPT_OFFSET_TRAP_11    172
+#define EXCPT_OFFSET_TRAP_12    176
+#define EXCPT_OFFSET_TRAP_13    180
+#define EXCPT_OFFSET_TRAP_14    184
+#define EXCPT_OFFSET_TRAP_15    188
+#define EXCPT_OFFSET_FPU_BR_UO      192
+#define EXCPT_OFFSET_FPU_INEXACT    196
+#define EXCPT_OFFSET_FPU_DIV_ZERO   200
+#define EXCPT_OFFSET_FPU_UNDERFLOW  204
+#define EXCPT_OFFSET_FPU_OP_ERR     208
+#define EXCPT_OFFSET_FPU_OVERFLOW   212
+#define EXCPT_OFFSET_FPU_SNAN       216
+#define EXCPT_OFFSET_FPU_UNIMPL_TY  220
+#define EXCPT_OFFSET_MMU_CONF_ERR   224
+#define EXCPT_OFFSET_MMU_ILL_OP     228
+#define EXCPT_OFFSET_MMU_ACCESS_VIO 232
+#define EXCPT_OFFSET_RESV_59    236
+#define EXCPT_OFFSET_UNIMPL_EA  240
+#define EXCPT_OFFSET_UNIMPL_INT 244
+#define EXCPT_OFFSET_RESV_62    248
+#define EXCPT_OFFSET_RESV_63    252
+#define EXCPT_OFFSET_USER_VEC   256
+
+#define EXCPT_NUM_USER_VECS     192
+
+
+// CPU exception stack frame
+// 68020UM, p6-27
 #pragma pack(1)
 typedef struct excpt_frame {
     uint16_t    sr;
     uintptr_t   pc;
-
-    struct {
-        uint16_t  format: 4;
-        uint16_t  vector: 12;
-    }       fv;
+    uint16_t    fv;
     
     union {
         struct Format2 {
@@ -167,6 +232,9 @@ typedef struct excpt_frame {
 } excpt_frame_t;
 #pragma pack()
 
+#define excpt_frame_getsr(__ef) \
+((__ef)->sr)
+
 #define excpt_frame_isuser(__ef) \
 (((__ef)->sr & CPU_SR_S) == 0)
 
@@ -175,6 +243,90 @@ typedef struct excpt_frame {
 
 #define excpt_frame_setpc(__ef, __pc) \
 (__ef)->pc = (uintptr_t)(__pc)
+
+#define excpt_frame_getformat(__ef) \
+((__ef)->fv >> 12)
+
+#define excpt_frame_getvecoff(__ef) \
+((__ef)->fv & 0x0fff)
+
+#define excpt_frame_getvecnum(__ef) \
+(excpt_frame_getvecoff(__ef) >> 2)
+
+
+// FPU exception stack frame
+// 68881/68882UM, p6-28
+struct m68881_idle_frame {
+    uint16_t    format;
+    uint16_t    reserved;
+    uint16_t    cmd_ccr;
+    uint16_t    reserved2;
+    uint32_t    ex_oper[3];
+    uint32_t    oper_reg;
+    uint32_t    biu_flags;
+};
+
+struct m68881_busy_frame {
+    uint16_t    format;
+    uint16_t    reserved;
+    uint32_t    reg[45];
+};
+
+
+struct m68882_idle_frame {
+    uint16_t    format;
+    uint16_t    reserved;
+    uint16_t    cmd_ccr;
+    uint32_t    reg[8];
+    uint32_t    ex_oper[3];
+    uint32_t    oper_reg;
+    uint32_t    biu_flags;
+};
+
+struct m68882_busy_frame {
+    uint16_t    format;
+    uint16_t    reserved;
+    uint32_t    reg[53];
+};
+
+
+typedef struct fsave_frame {
+    uint16_t    format;
+    uint16_t    reserved;
+
+    union m68881_2_extended_frame {
+        struct m68881_idle_frame    idle881;
+        struct m68881_busy_frame    busy881;
+        struct m68882_idle_frame    idle882;
+        struct m68882_busy_frame    busy882;
+    }           u;
+} fsave_frame_t;
+
+#define fsave_frame_isnull(__sfp) \
+(((__sfp)->format >> 8) == 0)
+
+#define fsave_frame_getformat(__sfp) \
+((__sfp)->format & 0xff)
+
+
+// 68881/68882 frame formats
+#define FSAVE_FORMAT_881_IDLE   0x18
+#define FSAVE_FORMAT_881_BUSY   0xb4
+#define FSAVE_FORMAT_882_IDLE   0x38
+#define FSAVE_FORMAT_882_BUSY   0xd4
+
+
+// BIU flags
+#define BIU_OP_REG_24_31_VALID  (1 << 20)
+#define BIU_OP_REG_16_23_VALID  (1 << 21)
+#define BIU_OP_REG_8_15_VALID   (1 << 22)
+#define BIU_OP_REG_0_7_VALID    (1 << 23)
+#define BIU_OP_MEM_MV_PENDING   (1 << 26)
+#define BIU_FP_EXCPT_PENDING    (1 << 27)
+#define BIU_ACC_OP_REG_EXPECTED (1 << 28)
+#define BIU_PENDING_INSTR_TYPE  (1 << 29)
+#define BIU_INSTR_PENDING       (1 << 30)
+#define BIU_PROTO_VIO_PENDING   (1 << 31)
 
 
 extern unsigned int cpu68k_as_read_byte(void* p, int addr_space);

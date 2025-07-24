@@ -19,7 +19,7 @@ extern _Noreturn fatal(const char* _Nonnull format, ...);
 extern _Noreturn fatalError(const char* _Nonnull filename, int line, int err);
 extern _Noreturn fatalAbort(const char* _Nonnull filename, int line);
 extern _Noreturn fatalAssert(const char* _Nonnull filename, int line);
-extern _Noreturn _fatalException(const struct excpt_frame* _Nonnull pFrame);
+extern _Noreturn _fatalException(const struct excpt_frame* _Nonnull efp);
 
 
 #define abort() fatalAbort(__func__, __LINE__)
