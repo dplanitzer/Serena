@@ -25,7 +25,7 @@ typedef struct excpt_ctx {
 } excpt_ctx_t;
 
 
-typedef void (*excpt_handler_t)(const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ctx);
+typedef void (*excpt_handler_t)(void* _Nullable arg, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ctx);
 
 
 #define EXCPT_ILLEGAL   1   /* illegal/undefined/privileged instruction */

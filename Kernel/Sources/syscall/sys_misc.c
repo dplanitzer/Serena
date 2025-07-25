@@ -17,7 +17,7 @@ SYSCALL_0(coninit)
     return SwitchToFullConsole();
 }
 
-SYSCALL_3(excpt_sethandler, int scope, int flags, excpt_handler_t _Nullable handler)
+SYSCALL_4(excpt_sethandler, int scope, int flags, excpt_handler_t _Nullable handler, void* _Nullable arg)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
@@ -27,10 +27,11 @@ SYSCALL_3(excpt_sethandler, int scope, int flags, excpt_handler_t _Nullable hand
         case EXCPT_SCOPE_VCPU:
             old_handler = vp->excpt_handler;
             vp->excpt_handler = pa->handler;
+            vp->excpt_arg = pa->arg;
             break;
 
         case EXCPT_SCOPE_PROC:
-            old_handler = Process_SetExceptionHandler(vp->proc, pa->handler);
+            old_handler = Process_SetExceptionHandler(vp->proc, pa->handler, pa->arg);
             break;
 
         default:

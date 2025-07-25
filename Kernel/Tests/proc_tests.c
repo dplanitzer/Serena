@@ -70,8 +70,9 @@ void proc_excpt_exit_test(int argc, char *argv[])
 }
 
 
-static void ex_handler(const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ctx)
+static void ex_handler(void* arg, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ctx)
 {
+    printf("arg: %s\n", arg);
     printf("code: %d\n", ei->code);
     printf("cpu_code: %d\n", ei->cpu_code);
     printf("addr: %p\n", ei->addr);
@@ -81,7 +82,7 @@ static void ex_handler(const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ct
 
 void proc_excpt_handler_test(int argc, char *argv[])
 {
-    excpt_sethandler(EXCPT_SCOPE_PROC, 0, ex_handler);
+    excpt_sethandler(EXCPT_SCOPE_PROC, 0, ex_handler, "good");
     
     const int r = movesr();
     printf("sr: %d\n", r);

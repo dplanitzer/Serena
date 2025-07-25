@@ -219,20 +219,24 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
     return err;
 }
 
-excpt_handler_t Process_SetExceptionHandler(ProcessRef _Nonnull self, excpt_handler_t _Nullable handler)
+excpt_handler_t Process_SetExceptionHandler(ProcessRef _Nonnull self, excpt_handler_t _Nullable handler, void* _Nullable arg)
 {
     excpt_handler_t oh = self->excpt_handler;
 
     self->excpt_handler = handler;
+    self->excpt_arg = arg;
     return oh;
 }
 
 excpt_handler_t _Nonnull Process_Exception(ProcessRef _Nonnull self, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ec)
 {
-    excpt_handler_t handler = vcpu_current()->excpt_handler;
+    vcpu_t vp = vcpu_current();
+    excpt_handler_t handler = vp->excpt_handler;
+    void* arg = vp->excpt_arg;
 
     if (handler == NULL) {
         handler = self->excpt_handler;
+        arg = self->excpt_arg;
     }
 
     if (handler == NULL) {
@@ -249,6 +253,7 @@ excpt_handler_t _Nonnull Process_Exception(ProcessRef _Nonnull self, const excpt
 
     usp = sp_push_ptr(usp, (void*)ec_usp);
     usp = sp_push_ptr(usp, (void*)ei_usp);
+    usp = sp_push_ptr(usp, arg);
 
     usp = sp_push_rts(usp, (void*)0);
     usp_set(usp);

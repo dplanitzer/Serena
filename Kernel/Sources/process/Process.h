@@ -67,7 +67,7 @@ extern errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, 
 // Notifies the process that the calling vcpu has hit a CPU exception.
 extern excpt_handler_t _Nonnull Process_Exception(ProcessRef _Nonnull self, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ec);
 
-extern excpt_handler_t Process_SetExceptionHandler(ProcessRef _Nonnull self, excpt_handler_t _Nullable handler);
+extern excpt_handler_t Process_SetExceptionHandler(ProcessRef _Nonnull self, excpt_handler_t _Nullable handler, void* _Nullable arg);
 
 
 //
