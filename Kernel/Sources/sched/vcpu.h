@@ -13,6 +13,7 @@
 #include <kern/types.h>
 #include <klib/Atomic.h>
 #include <klib/List.h>
+#include <kpi/exception.h>
 #include <kpi/signal.h>
 #include <kpi/vcpu.h>
 #include <machine/cpu.h>
@@ -99,6 +100,9 @@ struct vcpu {
     // System call support
     errno_t                         uerrno;                 // most recent recorded error for user space
     intptr_t                        udata;                  // user space data associated with this VP
+    
+    // Exceptions support
+    excpt_handler_t                 excpt_handler;
     
     // Suspension related state
     Quantums                        suspension_time;        // Absolute time when the VP was suspended

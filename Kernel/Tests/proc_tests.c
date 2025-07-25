@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <sys/exception.h>
 #include <sys/timespec.h>
 #include <sys/vcpu.h>
 #include "Asserts.h"
@@ -59,10 +60,29 @@ void proc_exit_test(int argc, char *argv[])
     exit(0);
 }
 
+
 int movesr(void) = "\tmove.w\tsr, d0\n";
 
-void proc_exception_test(int argc, char *argv[])
+void proc_excpt_exit_test(int argc, char *argv[])
 {
+    const int r = movesr();
+    printf("sr: %d\n", r);
+}
+
+
+static void ex_handler(const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ctx)
+{
+    printf("code: %d\n", ei->code);
+    printf("cpu_code: %d\n", ei->cpu_code);
+    printf("addr: %p\n", ei->addr);
+
+    exit(0);
+}
+
+void proc_excpt_handler_test(int argc, char *argv[])
+{
+    excpt_sethandler(EXCPT_SCOPE_PROC, 0, ex_handler);
+    
     const int r = movesr();
     printf("sr: %d\n", r);
 }

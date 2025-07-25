@@ -225,6 +225,7 @@ vp_owner_qe_next                        so.l    1           ; 4
 vp_owner_qe_prev                        so.l    1           ; 4
 vp_uerrno                               so.l    1           ; 4
 vp_udata                                so.l    1           ; 4
+vp_excpt_handler                        so.l    1           ; 4
 vp_suspension_time                      so.l    1           ; 4
 vp_pending_sigs                         so.l    1           ; 4
 vp_proc_sigs_enabled                    so.l    1           ; 4
@@ -249,7 +250,7 @@ vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
 vp_reserved2                            so.b    3           ; 3
 vp_SIZEOF                       so
-    ifeq (vp_SIZEOF == 512)
+    ifeq (vp_SIZEOF == 516)
         fail "vcpu structure size is incorrect."
     endif
 

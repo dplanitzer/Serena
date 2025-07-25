@@ -79,6 +79,7 @@ enum {
     SC_vcpu_resume,         // int vcpu_resume(vcpuid_t vcpu)
     SC_sigsend,             // sigsend(int scope, id_t id, int signo)
     SC_sigurgent,           // void sigurgent(void)
+    SC_excpt_sethandler,    // excpt_handler_t _Nullable excpt_sethandler(int scope, int flags, excpt_handler_t _Nullable handler)
 };
 
 

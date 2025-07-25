@@ -65,10 +65,11 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
     }
 }
 
-void cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp)
+excpt_handler_t _Nonnull cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp)
 {
     fsave_frame_t* fpufp = sfp;
     excpt_info_t ei;
+    excpt_ctx_t ec;
 
     if (!excpt_frame_isuser(efp)) {
         _fatalException(efp);
@@ -92,13 +93,14 @@ void cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp)
         case EXCPT_NUM_FORMAT:
         case EXCPT_NUM_EMU:
         case EXCPT_NUM_TRACE:
+        case EXCPT_NUM_PRIV_VIO:
             ei.code = EXCPT_ILLEGAL;
             ei.addr = (void*)efp->pc;
             break;
 
         case EXCPT_NUM_CHK:
         case EXCPT_NUM_TRAPX:
-            ei.code = EXCPT_INTR;
+            ei.code = EXCPT_TRAP;
             ei.addr = (void*)efp->u.f2.addr;
             break;
 
@@ -118,7 +120,7 @@ void cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp)
         case EXCPT_NUM_TRAP_13:
         case EXCPT_NUM_TRAP_14:
         case EXCPT_NUM_TRAP_15:
-            ei.code = EXCPT_INTR;
+            ei.code = EXCPT_TRAP;
             ei.addr = (void*)efp->pc;
             break;
 
@@ -141,7 +143,6 @@ void cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp)
             break;
 
         case EXCPT_NUM_ADR_ERR:
-        case EXCPT_NUM_PRIV_VIO:
         case EXCPT_NUM_MMU_CONF_ERR:
         case EXCPT_NUM_MMU_ILL_OP:
         case EXCPT_NUM_MMU_ACCESS_VIO:
@@ -156,7 +157,7 @@ void cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp)
             /* NOT REACHED */
     }
 
-    Process_Exception(Process_GetCurrent(), &ei);
+    return Process_Exception(Process_GetCurrent(), &ei, &ec);
 }
 
 // Sets up the provided CPU context and kernel/user stack with a function invocation

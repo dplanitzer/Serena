@@ -193,12 +193,14 @@ _mem_non_recoverable_error:
 ; Invokes the cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp) function.
 ; See 68020UM, p6-27
 __cpu_exception:
+    subq.w  #8, sp      ; Push a null RTE frame which will be used to invoke the user space exception handler
     movem.l d0 - d1 / a0 - a1, -(sp)
     
     move.l  #0, -(sp)
-    pea     16(sp)
+    pea     (4 + 16 + 8)(sp)
     jsr     _cpu_exception
     addq.w  #8, sp
+    move.l  d0, (16 + 2)(sp)
 
     movem.l (sp)+, d0 - d1 / a0 - a1
     rte
@@ -209,22 +211,26 @@ __cpu_exception:
 ; See 68881/68882UM, p5-11
 __fpu_exception:
     inline
-        fsave       -(sp)
+        subq.w      #8, sp      ; Push a null RTE frame which will be used to invoke the user space exception handler
         movem.l     d0 - d1 / a0 - a1, -(sp)
+
+        fsave       -(sp)
         move.b      (sp), d0
         beq.s       .L1
         clr.l       d0
-        move.b      17(sp), d0       ; get exception frame size
-        bset        #3, 16(sp, d0)   ; set bit #27 of BIU
+        move.b      1(sp), d0       ; get exception frame size
+        bset        #3, (sp, d0)    ; set bit #27 of BIU
 
-        pea         16(sp)
-        pea         16(sp, d0)
+        move.l      sp, -(sp)
+        pea         (4 + 16 + 8)(sp, d0)
         jsr         _cpu_exception
         addq.w      #8, sp
+        move.b      1(sp), d1       ; get exception frame size
+        move.l      d0, (16 + 2)(sp, d1)
 
 .L1:    
-        movem.l     (sp)+, d0 - d1 / a0 - a1
         frestore    (sp)+
+        movem.l     (sp)+, d0 - d1 / a0 - a1
         rte
     einline
 

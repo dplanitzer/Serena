@@ -219,7 +219,39 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
     return err;
 }
 
-void Process_Exception(ProcessRef _Nonnull self, excpt_info_t* _Nonnull ei)
+excpt_handler_t Process_SetExceptionHandler(ProcessRef _Nonnull self, excpt_handler_t _Nullable handler)
 {
-    Process_Exit(self, JREASON_EXCEPTION, ei->code);
+    excpt_handler_t oh = self->excpt_handler;
+
+    self->excpt_handler = handler;
+    return oh;
+}
+
+excpt_handler_t _Nonnull Process_Exception(ProcessRef _Nonnull self, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ec)
+{
+    excpt_handler_t handler = vcpu_current()->excpt_handler;
+
+    if (handler == NULL) {
+        handler = self->excpt_handler;
+    }
+
+    if (handler == NULL) {
+        Process_Exit(self, JREASON_EXCEPTION, ei->code);
+        /* NOT REACHED */
+    }
+
+
+    uintptr_t usp = usp_get();
+    usp = sp_push_bytes(usp, ei, sizeof(excpt_info_t));
+    uintptr_t ei_usp = usp;
+    usp = sp_push_bytes(usp, ec, sizeof(excpt_ctx_t));
+    uintptr_t ec_usp = usp;
+
+    usp = sp_push_ptr(usp, (void*)ec_usp);
+    usp = sp_push_ptr(usp, (void*)ei_usp);
+
+    usp = sp_push_rts(usp, (void*)0);
+    usp_set(usp);
+
+    return handler;
 }

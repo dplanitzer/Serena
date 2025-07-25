@@ -62,6 +62,8 @@ void vcpu_cominit(vcpu_t _Nonnull self, int priority)
     self->pending_sigs = 0;
     self->proc_sigs_enabled = 0;
 
+    self->excpt_handler = NULL;
+    
     self->timeout.deadline = kQuantums_Infinity;
     self->timeout.is_valid = false;
     self->waiting_on_wait_queue = NULL;

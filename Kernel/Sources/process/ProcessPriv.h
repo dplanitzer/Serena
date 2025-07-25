@@ -74,6 +74,9 @@ final_class_ivars(Process, Object,
     char* _Nullable _Weak           imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
     char* _Nullable _Weak           argumentsBase;  // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
 
+    // Exceptions support
+    excpt_handler_t                 excpt_handler;
+    
     // Process termination
     int16_t                         exit_reason;    // Exit code of the first exit() call that initiated the termination of this process
     int16_t                         exit_code;

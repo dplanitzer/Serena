@@ -28,10 +28,10 @@ typedef struct excpt_ctx {
 typedef void (*excpt_handler_t)(const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ctx);
 
 
-#define EXCPT_ILLEGAL   0   /* illegal/undefined instruction */
-#define EXCPT_INTR      1   /* (software) interrupt, trap */
-#define EXCPT_DIV_ZERO  2   /* integer division by zero */
-#define EXCPT_FPE       3   /* floating-point exception */
+#define EXCPT_ILLEGAL   1   /* illegal/undefined/privileged instruction */
+#define EXCPT_TRAP      2   /* (software) interrupt, trap */
+#define EXCPT_DIV_ZERO  3   /* integer division by zero */
+#define EXCPT_FPE       4   /* floating-point exception */
 #define EXCPT_BUS       5   /* bus error (accessed unmapped memory) */
 #define EXCPT_SEGV      6   /* segmentation violation */
 
