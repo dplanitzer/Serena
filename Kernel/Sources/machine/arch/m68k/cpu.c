@@ -197,22 +197,56 @@ void cpu_make_callout(mcontext_t* _Nonnull cp, void* _Nonnull ksp, void* _Nonnul
     // See __csw_rte_switch for an explanation
     // of why we need the dummy exception stack frame.
     if (isUser) {
-        uint8_t* sp_u = (uint8_t*) cp->usp;
-        sp_u -= 4; *((uint8_t**)sp_u) = arg;
-        sp_u -= 4; *((uint8_t**)sp_u) = (uint8_t*)ret_func;
-        cp->usp = (uintptr_t)sp_u;
+        uintptr_t usp = cp->usp;
+        usp = sp_push_ptr(usp, arg);
+        usp = sp_push_rts(usp, (void*)ret_func);
+        cp->usp = usp;
 
-        uint8_t* sp_k = (uint8_t*) cp->a[7];
-        sp_k -= 4; *((uint32_t*)sp_k) = 0;
-        sp_k -= 4; *((uint32_t*)sp_k) = 0;
-        cp->a[7] = (uintptr_t)sp_k;
+        cp->a[7] = sp_push_null_rte(cp->a[7]);
     }
     else {
-        uint8_t* sp = (uint8_t*) cp->a[7];
-        sp -= 4; *((uint8_t**)sp) = arg;
-        sp -= 4; *((uint8_t**)sp) = (uint8_t*)ret_func;
-        sp -= 4; *((uint32_t*)sp) = 0;
-        sp -= 4; *((uint32_t*)sp) = 0;
-        cp->a[7] = (uintptr_t)sp;
+        uintptr_t ksp = cp->a[7];
+        ksp = sp_push_ptr(ksp, arg);
+        ksp = sp_push_rts(ksp, (void*)ret_func);
+        ksp = sp_push_null_rte(ksp);
+        cp->a[7] = ksp;
     }
+}
+
+
+uintptr_t sp_push_ptr(uintptr_t sp, void* _Nonnull ptr)
+{
+    uint32_t* p_sp = (uint32_t*)sp;
+
+    p_sp--;
+    *p_sp = (uint32_t)ptr;
+    return (uintptr_t)p_sp;
+}
+
+uintptr_t sp_push_bytes(uintptr_t sp, const void* _Nonnull p, size_t nbytes)
+{
+    char* p_sp = (char*)sp;
+    const char* p_src = (const char*)p;
+
+    p_sp -= nbytes;
+    if (((uintptr_t)p_sp & 1) != 0) {
+        p_sp--;
+    }
+    uintptr_t nsp = (uintptr_t)p_sp;
+
+    while (nbytes > 0) {
+        *p_sp++ = *p_src++;
+        nbytes--;
+    }
+
+    return nsp;
+}
+
+uintptr_t sp_push_null_rte(uintptr_t sp)
+{
+    uint32_t* p_sp = (uint32_t*)sp;
+
+    p_sp--; *p_sp = 0;
+    p_sp--; *p_sp = 0;
+    return (uintptr_t)p_sp;
 }

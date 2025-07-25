@@ -36,7 +36,7 @@ static bool inject_sigurgent_call(excpt_frame_t* _Nonnull efp)
         return false;
     }
 
-    cpu_push_user_rts(excpt_frame_getpc(efp));
+    usp_set(sp_push_rts(usp_get(), (void*)excpt_frame_getpc(efp)));
     excpt_frame_setpc(efp, sigurgent);
     
     return true;

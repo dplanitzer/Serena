@@ -332,4 +332,6 @@ typedef struct fsave_frame {
 extern unsigned int cpu68k_as_read_byte(void* p, int addr_space);
 extern void cpu68k_as_write_byte(void* p, int addr_space, unsigned int val);
 
+extern uintptr_t sp_push_null_rte(uintptr_t sp);
+
 #endif /* _CPU_M68K_H */

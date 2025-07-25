@@ -1,12 +1,12 @@
 //
-//  vcpu_stack.c
+//  stack.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/21/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "vcpu_stack.h"
+#include "stack.h"
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <kern/limits.h>
@@ -14,18 +14,28 @@
 
 
 // Initializes an execution stack struct. The execution stack is empty by default
-// and you need to call vcpu_stack_setmaxsize() to allocate the stack with
+// and you need to call stk_setmaxsize() to allocate the stack with
 // the required size.
 // \param pStack the stack object (filled in on return)
-void vcpu_stack_Init(vcpu_stack_t* _Nonnull self)
+void stk_init(stk_t* _Nonnull self)
 {
     self->base = NULL;
     self->size = 0;
 }
 
+// Frees the given stack.
+void stk_destroy(stk_t* _Nullable self)
+{
+    if (self) {
+        kfree(self->base);
+        self->base = NULL;
+        self->size = 0;
+    }
+}
+
 // Sets the size of the execution stack to the given size. Does not attempt to preserve
 // the content of the existing stack.
-errno_t vcpu_stack_setmaxsize(vcpu_stack_t* _Nullable self, size_t size)
+errno_t stk_setmaxsize(stk_t* _Nullable self, size_t size)
 {
     decl_try_err();
     const size_t newSize = (size > 0) ? __Ceil_PowerOf2(size, STACK_ALIGNMENT) : 0;
@@ -46,15 +56,4 @@ errno_t vcpu_stack_setmaxsize(vcpu_stack_t* _Nullable self, size_t size)
     }
     
     return EOK;
-}
-
-// Frees the given stack.
-// \param pStack the stack
-void vcpu_stack_destroy(vcpu_stack_t* _Nullable self)
-{
-    if (self) {
-        kfree(self->base);
-        self->base = NULL;
-        self->size = 0;
-    }
 }

@@ -22,8 +22,8 @@
 void __func_vcpu_destroy(vcpu_t _Nullable self)
 {
     ListNode_Deinit(&self->owner_qe);
-    vcpu_stack_destroy(&self->kernel_stack);
-    vcpu_stack_destroy(&self->user_stack);
+    stk_destroy(&self->kernel_stack);
+    stk_destroy(&self->user_stack);
     kfree(self);
 }
 
@@ -51,8 +51,8 @@ _Noreturn vcpu_relinquish(void)
 void vcpu_cominit(vcpu_t _Nonnull self, int priority)
 {
     ListNode_Init(&self->rewa_qe);
-    vcpu_stack_Init(&self->kernel_stack);
-    vcpu_stack_Init(&self->user_stack);
+    stk_init(&self->kernel_stack);
+    stk_init(&self->user_stack);
 
     self->vtable = &gVirtualProcessorVTable;
     
@@ -127,18 +127,18 @@ errno_t vcpu_setclosure(vcpu_t _Nonnull self, const VirtualProcessorClosure* _No
     decl_try_err();
 
     if (closure->kernelStackBase == NULL) {
-        try(vcpu_stack_setmaxsize(&self->kernel_stack, closure->kernelStackSize));
+        try(stk_setmaxsize(&self->kernel_stack, closure->kernelStackSize));
     } else {
-        vcpu_stack_setmaxsize(&self->kernel_stack, 0);
+        stk_setmaxsize(&self->kernel_stack, 0);
         self->kernel_stack.base = closure->kernelStackBase;
         self->kernel_stack.size = closure->kernelStackSize;
     }
-    try(vcpu_stack_setmaxsize(&self->user_stack, closure->userStackSize));
+    try(stk_setmaxsize(&self->user_stack, closure->userStackSize));
     
     // Initialize the CPU context
     cpu_make_callout(&self->save_area, 
-        (void*)vcpu_stack_initialtop(&self->kernel_stack),
-        (void*)vcpu_stack_initialtop(&self->user_stack),
+        (void*)stk_getinitialsp(&self->kernel_stack),
+        (void*)stk_getinitialsp(&self->user_stack),
         closure->isUser,
         closure->func,
         closure->context,

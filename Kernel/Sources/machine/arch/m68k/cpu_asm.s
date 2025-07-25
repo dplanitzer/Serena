@@ -24,7 +24,8 @@
     xdef _cpu_sleep
     xdef _cpu_halt
     xdef _fpu_get_model
-    xdef _cpu_push_user_rts
+    xdef _usp_get
+    xdef _usp_set
 
 
 
@@ -454,15 +455,21 @@ _cpu_halt:
 
 
 ;-------------------------------------------------------------------------------
-; void cpu_push_user_rts(uintptr_t pc)
-; Pushes a return-from-subroutine frame onto the user stack which will send the
-; CPU to 'pc' when a return-from-subroutine instruction is executed.
-_cpu_push_user_rts:
+; uintptr_t usp_get(void)
+; Returns the current user stack pointer.
+_usp_get:
+        move.l  usp, a0
+        move.l  a0, d0
+        rts
+
+
+;-------------------------------------------------------------------------------
+; void usp_set(uintptr_t sp)
+; Updates the current user stack pointer to 'sp'.
+_usp_set:
     inline
-    cargs cpur_pc.l
-        move.l  cpur_pc(sp), a0
-        move.l  usp, a1
-        move.l  a0, -(a1)
-        move.l  a1, usp
+    cargs usps_pc.l
+        move.l  usps_pc(sp), a0
+        move.l  a0, usp
         rts
     einline
