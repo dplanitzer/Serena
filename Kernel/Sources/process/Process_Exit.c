@@ -109,7 +109,7 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
         mtx_unlock(&self->mtx);
         
 
-        err = vcpu_sigtimedwait(&self->siwaQueue, &hot_sigs, flags | TIMER_ABSTIME, &deadline, &signo);
+        err = vcpu_sigtimedwait(&self->siwa_queue, &hot_sigs, flags | TIMER_ABSTIME, &deadline, &signo);
         if (err != EOK) {
             return err;
         }
@@ -186,7 +186,7 @@ static void _proc_detach_calling_vcpu(ProcessRef _Nonnull self)
 static void _proc_abort_vcpus(ProcessRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
-    List_ForEach(&self->vpQueue, ListNode, {
+    List_ForEach(&self->vcpu_queue, ListNode, {
         vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
         vcpu_sigsend(cvp, SIGKILL, false);
@@ -211,7 +211,7 @@ static void _proc_reap_vcpus(ProcessRef _Nonnull self)
         wq_timedwait(&gHackQueue, NULL, 0, &delay, NULL);
 
         mtx_lock(&self->mtx);
-        if (self->vpQueue.first == NULL) {
+        if (self->vcpu_queue.first == NULL) {
             done = true;
         }
         mtx_unlock(&self->mtx);

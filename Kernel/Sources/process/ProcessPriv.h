@@ -48,11 +48,14 @@ final_class_ivars(Process, Object,
     pid_t                           sid;        // (Login) session id. I'm the session leader if sid == pid 
     CatalogId                       catalogId;  // proc-fs catalog id
 
-    // VPs
-    List                            vpQueue;    // List of VPs [mtx]
-    vcpuid_t                        next_avail_vcpuid;
-
+    // Process image
     AddressSpaceRef _Nonnull        addressSpace;
+    char* _Nullable _Weak           imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
+    char* _Nullable _Weak           argumentsBase;  // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
+
+    // VPs
+    List                            vcpu_queue;     // List of VPs [mtx]
+    vcpuid_t                        next_avail_vcpuid;
 
     // I/O Channels
     IOChannelTable                  ioChannelTable;     // I/O channels (aka sharable resources)
@@ -65,15 +68,11 @@ final_class_ivars(Process, Object,
     int                             nextAvailWaitQueueId;
 
     // All VPs that belong to this process and are currently in sleep()
-    struct waitqueue                sleepQueue;
+    struct waitqueue                sleep_queue;
     
     // All VPs blocking on a sigwait() or sigtimedwait()
-    struct waitqueue                siwaQueue;
+    struct waitqueue                siwa_queue;
     
-    // Process image
-    char* _Nullable _Weak           imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
-    char* _Nullable _Weak           argumentsBase;  // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
-
     // Exceptions support
     excpt_handler_t                 excpt_handler;
     

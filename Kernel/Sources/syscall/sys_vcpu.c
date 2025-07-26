@@ -58,14 +58,14 @@ SYSCALL_1(vcpu_suspend, vcpuid_t id)
     }
     else {
         mtx_lock(&pp->mtx);
-        List_ForEach(&pp->vpQueue, ListNode, {
+        List_ForEach(&pp->vcpu_queue, ListNode,
             vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
             if (cvp->id == pa->id) {
                 err = vcpu_suspend(cvp);
                 break;
             }
-        });
+        );
         mtx_unlock(&pp->mtx);
     }
 
@@ -77,14 +77,14 @@ SYSCALL_1(vcpu_resume, vcpuid_t id)
     ProcessRef pp = vp->proc;
 
     mtx_lock(&pp->mtx);
-    List_ForEach(&pp->vpQueue, ListNode, {
+    List_ForEach(&pp->vcpu_queue, ListNode,
         vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
         if (cvp->id == pa->id) {
             vcpu_resume(cvp, false);
             break;
         }
-    });
+    );
     mtx_unlock(&pp->mtx);
 
     return EOK;

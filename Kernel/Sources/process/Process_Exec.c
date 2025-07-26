@@ -189,5 +189,5 @@ errno_t Process_BuildExecImage(ProcessRef _Nonnull self, const char* _Nonnull ex
 
 void Process_ResumeMainVirtualProcessor(ProcessRef _Nonnull self)
 {
-    vcpu_resume(VP_FROM_OWNER_NODE(self->vpQueue.first), false);
+    vcpu_resume(VP_FROM_OWNER_NODE(self->vcpu_queue.first), false);
 }

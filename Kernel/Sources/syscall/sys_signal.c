@@ -32,7 +32,7 @@ SYSCALL_3(sigroute, int scope, id_t id, int op)
 
     mtx_lock(&pp->mtx);
     if (pa->id != 0) {
-        List_ForEach(&pp->vpQueue, ListNode, 
+        List_ForEach(&pp->vcpu_queue, ListNode, 
             vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
             if (cvp->id == pa->id) {
@@ -60,7 +60,7 @@ SYSCALL_2(sigwait, const sigset_t* _Nonnull set, int* _Nullable signo)
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
-    err = vcpu_sigwait(&pp->siwaQueue, pa->set, pa->signo);
+    err = vcpu_sigwait(&pp->siwa_queue, pa->set, pa->signo);
     preempt_restore(sps);
     return err;
 }
@@ -71,7 +71,7 @@ SYSCALL_4(sigtimedwait, const sigset_t* _Nonnull set, int flags, const struct ti
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
-    err = vcpu_sigtimedwait(&pp->siwaQueue, pa->set, pa->flags, pa->wtp, pa->signo);
+    err = vcpu_sigtimedwait(&pp->siwa_queue, pa->set, pa->flags, pa->wtp, pa->signo);
     preempt_restore(sps);
     return err;
 }

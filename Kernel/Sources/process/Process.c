@@ -53,7 +53,7 @@ errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonn
     self->sid = (sid == 0) ? self->pid : sid;
     self->catalogId = kCatalogId_None;
 
-    List_Init(&self->vpQueue);
+    List_Init(&self->vcpu_queue);
     self->next_avail_vcpuid = VCPUID_MAIN + 1;
 
     try(IOChannelTable_Init(&self->ioChannelTable));
@@ -63,18 +63,17 @@ errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonn
     }
     self->nextAvailWaitQueueId = 0;
 
-    wq_init(&self->sleepQueue);
-    wq_init(&self->siwaQueue);
+    wq_init(&self->sleep_queue);
+    wq_init(&self->siwa_queue);
     FileManager_Init(&self->fm, pFileHierarchy, uid, gid, pRootDir, pWorkingDir, umask);
 
     try(AddressSpace_Create(&self->addressSpace));
 
-    *pOutSelf = self;
-    return EOK;
-
 catch:
-    Object_Release(self);
-    *pOutSelf = NULL;
+    *pOutSelf = self;
+    if (err != EOK) {
+        Object_Release(self);
+    }
     return err;
 }
 
@@ -94,10 +93,10 @@ void Process_deinit(ProcessRef _Nonnull self)
         });
     }
 
-    wq_deinit(&self->siwaQueue);
-    wq_deinit(&self->sleepQueue);
+    wq_deinit(&self->siwa_queue);
+    wq_deinit(&self->sleep_queue);
 
-    List_Deinit(&self->vpQueue);
+    List_Deinit(&self->vcpu_queue);
     
     self->addressSpace = NULL;
     self->imageBase = NULL;
@@ -118,11 +117,11 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     *idp = 0;
 
     mtx_lock(&self->mtx);
-    const bool isMainVcpu = self->vpQueue.first == NULL;
+    const bool isMainVcpu = self->vcpu_queue.first == NULL;
 
     kp.func = (VoidFunc_1)attr->func;
     kp.context = attr->arg;
-    kp.ret_func = (self->vpQueue.first) ? vcpu_uret_relinquish_self : vcpu_uret_exit;
+    kp.ret_func = (self->vcpu_queue.first) ? vcpu_uret_relinquish_self : vcpu_uret_exit;
     kp.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
     kp.userStackSize = __max(attr->stack_size, VP_DEFAULT_USER_STACK_SIZE);
     if (isMainVcpu) {
@@ -147,7 +146,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
 
     vp->proc = self;
     vp->udata = attr->data;
-    List_InsertAfterLast(&self->vpQueue, &vp->owner_qe);
+    List_InsertAfterLast(&self->vcpu_queue, &vp->owner_qe);
     *idp = vp->id;
 
     if ((attr->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
@@ -172,7 +171,7 @@ void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp
     assert(vp->proc == self);
 
     mtx_lock(&self->mtx);
-    List_Remove(&self->vpQueue, &vp->owner_qe);
+    List_Remove(&self->vcpu_queue, &vp->owner_qe);
     vp->proc = NULL;
     mtx_unlock(&self->mtx);
 }
@@ -187,7 +186,7 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
     }
 
     mtx_lock(&self->mtx);
-    List_ForEach(&self->vpQueue, ListNode, {
+    List_ForEach(&self->vcpu_queue, ListNode,
         vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
         int doSend;
         bool isProc;
@@ -219,7 +218,7 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
             }
             hasMatched = true;
         }
-    });
+    );
     mtx_unlock(&self->mtx);
 
     if (!hasMatched && err == EOK) {
