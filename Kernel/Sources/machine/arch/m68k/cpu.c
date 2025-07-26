@@ -67,6 +67,7 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
 
 excpt_handler_t _Nonnull cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp)
 {
+    vcpu_t vp = vcpu_current();
     fsave_frame_t* fpufp = sfp;
     excpt_info_t ei;
     excpt_ctx_t ec;
@@ -75,7 +76,6 @@ excpt_handler_t _Nonnull cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nulla
         _fatalException(efp);
         /* NOT REACHED */
     }
-
 
     ei.cpu_code = excpt_frame_getvecnum(efp);
     ei.addr = NULL;
@@ -157,12 +157,20 @@ excpt_handler_t _Nonnull cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nulla
             /* NOT REACHED */
     }
 
-    return Process_Exception(Process_GetCurrent(), &ei, &ec);
+    if ((vp->flags & VP_FLAG_HANDLING_EXCPT) != 0) {
+        // double fault -> exit
+        Process_Exit(vp->proc, JREASON_EXCEPTION, ei.code);
+        /* NOT REACHED */
+    }
+
+    return Process_Exception(vp->proc, vp, &ei, &ec);
 }
 
 void cpu_exception_return(void)
 {
-    Process_ExceptionReturn(Process_GetCurrent());
+    vcpu_t vp = vcpu_current();
+
+    Process_ExceptionReturn(vp->proc, vp);
 }
 
 // Sets up the provided CPU context and kernel/user stack with a function invocation

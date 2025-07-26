@@ -75,6 +75,7 @@ enum {
 
 // VP flags
 #define VP_FLAG_USER_OWNED      0x02    // This VP is owned by a user process
+#define VP_FLAG_HANDLING_EXCPT  0x04    // Set while the VP is handling a CPU exception
 
 
 // Overridable functions for virtual processors

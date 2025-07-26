@@ -133,7 +133,7 @@ _Noreturn vcpu_pool_relinquish(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp)
         vp->uerrno = 0;
         vp->pending_sigs = 0;
         vp->proc_sigs_enabled = 0;
-        vp->flags &= ~(VP_FLAG_USER_OWNED);
+        vp->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_HANDLING_EXCPT);
         vp->lifecycle_state = VP_LIFECYCLE_RELINQUISHED;
 
         try_bang(vcpu_suspend(vp));

@@ -63,7 +63,7 @@ void proc_exit_test(int argc, char *argv[])
 
 int movesr(void) = "\tmove.w\tsr, d0\n";
 
-void proc_excpt_exit_test(int argc, char *argv[])
+void proc_excpt_crash_test(int argc, char *argv[])
 {
     const int r = movesr();
     // -> process should have exited with an exception status

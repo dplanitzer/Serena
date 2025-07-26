@@ -228,11 +228,12 @@ excpt_handler_t Process_SetExceptionHandler(ProcessRef _Nonnull self, excpt_hand
     return oh;
 }
 
-excpt_handler_t _Nonnull Process_Exception(ProcessRef _Nonnull self, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ec)
+excpt_handler_t _Nonnull Process_Exception(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ec)
 {
-    vcpu_t vp = vcpu_current();
     excpt_handler_t handler = vp->excpt_handler;
     void* arg = vp->excpt_arg;
+
+    vp->flags |= VP_FLAG_HANDLING_EXCPT;
 
     if (handler == NULL) {
         handler = self->excpt_handler;
@@ -261,11 +262,13 @@ excpt_handler_t _Nonnull Process_Exception(ProcessRef _Nonnull self, const excpt
     return handler;
 }
 
-void Process_ExceptionReturn(ProcessRef _Nonnull self)
+void Process_ExceptionReturn(ProcessRef _Nonnull self, vcpu_t _Nonnull vp)
 {
     uintptr_t usp = usp_get();
     usp += sizeof(char*) * 3;   // arg, ei, ec
     usp += sizeof(excpt_ctx_t);
     usp += sizeof(excpt_info_t);
     usp_set(usp);
+
+    vp->flags &= ~VP_FLAG_HANDLING_EXCPT;
 }
