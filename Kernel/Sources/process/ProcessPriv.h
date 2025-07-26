@@ -101,13 +101,6 @@ extern void Process_deinit(ProcessRef _Nonnull self);
 // Returns true if the process is the root process
 #define Process_IsRoot(__self) ((__self)->pid == 1)
 
-// Adopts the given process as a child. The ppid of 'child' must be the PID of
-// the receiver.
-extern void Process_AdoptChild_Locked(ProcessRef _Nonnull self, ProcessRef _Nonnull child);
-
-// Abandons the given process as a child of the receiver.
-extern void Process_AbandonChild_Locked(ProcessRef _Nonnull self, ProcessRef _Nonnull child);
-
 extern errno_t Process_Publish(ProcessRef _Locked _Nonnull self);
 extern errno_t Process_Unpublish(ProcessRef _Locked _Nonnull self);
 

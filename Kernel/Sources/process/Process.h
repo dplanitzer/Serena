@@ -46,15 +46,14 @@ extern errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, 
 // Spawns a new process that will be a child of the given process. The spawn
 // arguments specify how the child process should be created, which arguments
 // and environment it will receive and which descriptors it will inherit.
-extern errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, pid_t * _Nullable pOutChildPid);
+extern errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, pid_t * _Nullable pOutChildPid);
 
-// Loads an executable from the given executable file into the process address
-// space. This is only meant to get the root process going.
+// Prepares the image of the process by replacing the current image with a new
+// executable image loaded from 'execPath'.
 // \param self the process into which the executable image should be loaded
-// \param pExecPath path to a GemDOS executable file
-// XXX expects that the address space is empty at call time
-// XXX the executable format is GemDOS
-extern errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[]);
+// \param execPath path to a GemDOS executable file
+extern errno_t Process_BuildExecImage(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[]);
+extern void Process_ResumeMainVirtualProcessor(ProcessRef _Nonnull self);
 
 extern errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _Nonnull idp);
 extern void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp);

@@ -70,7 +70,7 @@ catch:
     return err;
 }
 
-errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, pid_t * _Nullable pOutChildPid)
+errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, pid_t * _Nullable pOutChildPid)
 {
     decl_try_err();
     ProcessRef pChild = NULL;
@@ -79,24 +79,31 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull self, const char* _Nonnull
         return EINVAL;
     }
     
+    // Create the child process
     mtx_lock(&self->mtx);
+    err = proc_create_child(self, opts, &pChild);
+    mtx_unlock(&self->mtx);
+    throw_iferr(err);
 
-    try(proc_create_child(self, opts, &pChild));
-    
-    Process_AdoptChild_Locked(self, pChild);
+
+    // Prepare the executable image
+    try(Process_BuildExecImage(pChild, path, argv, opts->envp));
+
+
+    // Register the new process with the process manager
     try(ProcessManager_Register(gProcessManager, pChild));
+    List_InsertAfterLast(&self->children, &pChild->siblings);
     //XXX Should remove this release because we're adopting the child and thus
     // this release is wrong. However Catalog_Unpublish leaks its ref to the
     // child process and this ends up balancing this bug here 
     Object_Release(pChild);
 
-    try(Process_Exec(pChild, path, argv, opts->envp));
+
+    // Start the child process running
+    Process_ResumeMainVirtualProcessor(pChild);
 
 catch:
-    mtx_unlock(&self->mtx);
-
     if (err != EOK && pChild) {
-        ProcessManager_Deregister(gProcessManager, pChild);
         Object_Release(pChild);
         pChild = NULL;
     }
@@ -106,17 +113,4 @@ catch:
     }
 
     return err;
-}
-
-// Adopts the process with the given PID as a child. The ppid of 'pOtherProc' must
-// be the PID of the receiver.
-void Process_AdoptChild_Locked(ProcessRef _Nonnull self, ProcessRef _Nonnull child)
-{
-    List_InsertAfterLast(&self->children, &child->siblings);
-}
-
-// Abandons the process with the given PID as a child of the receiver.
-void Process_AbandonChild_Locked(ProcessRef _Nonnull self, ProcessRef _Nonnull child)
-{
-    List_Remove(&self->children, &child->siblings);
 }

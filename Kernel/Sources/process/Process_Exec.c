@@ -160,7 +160,7 @@ static errno_t _proc_exec(ProcessRef _Locked _Nonnull self, const char* _Nonnull
     attr.priority = kDispatchQoS_Interactive * kDispatchPriority_Count + (kDispatchPriority_Normal + kDispatchPriority_Count / 2) + VP_PRIORITIES_RESERVED_LOW;
     attr.stack_size = 0;
     attr.groupid = VCPUID_MAIN_GROUP;
-    attr.flags = VCPU_ACQUIRE_RESUMED;
+    attr.flags = 0;
 
     vcpuid_t vid;
     try(Process_AcquireVirtualProcessor(self, &attr, &vid));
@@ -178,11 +178,16 @@ catch:
 // \param pExecPath path to a GemDOS executable file
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
-errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[])
+errno_t Process_BuildExecImage(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[])
 {
 //    mtx_lock(&self->mtx);
     const errno_t err = _proc_exec(self, execPath, argv, env);
 //    mtx_unlock(&self->mtx);
 
     return err;
+}
+
+void Process_ResumeMainVirtualProcessor(ProcessRef _Nonnull self)
+{
+    vcpu_resume(VP_FROM_OWNER_NODE(self->vpQueue.first), false);
 }

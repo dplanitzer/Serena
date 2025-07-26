@@ -187,7 +187,8 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     // Get the root process going
     const char* systemd = "/System/Commands/systemd";
     const char* argv[2] = {systemd, NULL};
-    try(Process_Exec(pRootProc, systemd, argv, NULL));
+    try(Process_BuildExecImage(pRootProc, systemd, argv, NULL));
+    Process_ResumeMainVirtualProcessor(pRootProc);
 
     
     // The boot virtual processor now takes over the duties of running the
