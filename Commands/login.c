@@ -71,15 +71,11 @@ static int start_shell(const char* _Nonnull shellPath, const char* _Nonnull home
     opts.umask = 0022;  // XXX hardcoded for now
     opts.uid = 1000;    // XXX hardcoded for now
     opts.gid = 1000;    // XXX hardcoded for now
-    opts.notificationQueue = 0; //kDispatchQueue_Main;
-    opts.notificationClosure = NULL; //(os_dispatch_func_t)on_shell_termination;
-    opts.notificationContext = NULL;
     opts.options = kSpawn_NewProcessGroup
         | kSpawn_NewSession
         | kSpawn_OverrideUserId
         | kSpawn_OverrideGroupId
         | kSpawn_OverrideUserMask;
-        //| kSpawn_NotifyOnProcessTermination;
 
 
     // Spawn the shell

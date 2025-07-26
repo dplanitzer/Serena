@@ -27,12 +27,6 @@
 // group id. Parent process must be the superuser (XXX for now).
 #define kSpawn_OverrideGroupId      0x0004
 
-// Tells the kernel that it should notify the parent process when the child
-// process terminates for some reason. The parent process must specify a
-// dispatch queue and closure.
-//XXX dead. Will be replaced with libdispatch integration
-#define kSpawn_NotifyOnProcessTermination   0x0008
-
 // A new process group should be created with the new process being the group
 // leader. The id of the new group will be equal to the pid of the new process.
 #define kSpawn_NewProcessGroup  0x0010
@@ -55,9 +49,6 @@ typedef struct spawn_opts {
     mode_t                              umask;                  // Override umask
     uid_t                               uid;                    // Override user ID
     gid_t                               gid;                    // Override group ID
-    int                                 notificationQueue;      // If kSpawn_NotifyOnProcessTermination is set, then this queue will receive termination notifications
-    os_dispatch_func_t _Nullable           notificationClosure;
-    void* _Nullable                     notificationContext;
     unsigned int                        options;
 } spawn_opts_t;
 
