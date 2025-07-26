@@ -84,7 +84,11 @@ static void ex_handler(void* arg, const excpt_info_t* _Nonnull ei, excpt_ctx_t* 
 
 void proc_excpt_handler_test(int argc, char *argv[])
 {
-    excpt_sethandler(EXCPT_SCOPE_PROC, 0, ex_handler, "exiting from handler");
+    excpt_handler_t h;
+
+    h.func = ex_handler;
+    h.arg = "exiting fro mhandler";
+    excpt_sethandler(EXCPT_SCOPE_PROC, 0, &h, NULL);
     
     const int r = movesr();
     // -> process should have exited with (regular) status 0
@@ -103,7 +107,11 @@ static void ex_handler2(void* arg, const excpt_info_t* _Nonnull ei, excpt_ctx_t*
 
 void proc_excpt_return_test(int argc, char *argv[])
 {
-    excpt_sethandler(EXCPT_SCOPE_PROC, 0, ex_handler2, "returning from handler");
+    excpt_handler_t h;
+
+    h.func = ex_handler2;
+    h.arg = "returning from handler";
+    excpt_sethandler(EXCPT_SCOPE_PROC, 0, &h, NULL);
     
     const int r = movesr();
     // -> process should have returned from ex_handler2

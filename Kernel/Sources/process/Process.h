@@ -65,14 +65,14 @@ extern void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Non
 extern errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int signo);
 
 // Notifies the process that the calling vcpu has hit a CPU exception.
-extern excpt_handler_t _Nonnull Process_Exception(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ec);
+extern excpt_func_t _Nonnull Process_Exception(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ec);
 
 // Notifies the process that the calling vcpu has returned from a user space
 // exception handler. This function should pop off whatever data the exception()
 // function has put on the user stack.
 extern void Process_ExceptionReturn(ProcessRef _Nonnull self, vcpu_t _Nonnull vp);
  
-extern excpt_handler_t Process_SetExceptionHandler(ProcessRef _Nonnull self, excpt_handler_t _Nullable handler, void* _Nullable arg);
+extern void Process_SetExceptionHandler(ProcessRef _Nonnull self, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler);
 
 
 //

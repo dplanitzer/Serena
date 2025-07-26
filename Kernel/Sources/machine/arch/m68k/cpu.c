@@ -65,7 +65,7 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
     }
 }
 
-excpt_handler_t _Nonnull cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp)
+excpt_func_t _Nonnull cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp)
 {
     vcpu_t vp = vcpu_current();
     fsave_frame_t* fpufp = sfp;

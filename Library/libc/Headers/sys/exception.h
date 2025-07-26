@@ -12,6 +12,6 @@
 #include <_cmndef.h>
 #include <kpi/exception.h>
 
-extern excpt_handler_t _Nullable excpt_sethandler(int scope, int flags, excpt_handler_t _Nullable handler, void* _Nullable arg);
+extern int excpt_sethandler(int scope, int flags, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler);
 
 #endif /* _SYS_EXCEPTION_H */

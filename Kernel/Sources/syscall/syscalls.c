@@ -157,7 +157,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(vcpu_resume, SC_ERRNO),
     SYSCALL_ENTRY(sigsend, SC_ERRNO),
     SYSCALL_ENTRY(sigurgent, 0),
-    SYSCALL_ENTRY(excpt_sethandler, 0),
+    SYSCALL_ENTRY(excpt_sethandler, SC_ERRNO),
 };
 
 ////////////////////////////////////////////////////////////////////////////////

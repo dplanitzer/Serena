@@ -219,28 +219,25 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
     return err;
 }
 
-excpt_handler_t Process_SetExceptionHandler(ProcessRef _Nonnull self, excpt_handler_t _Nullable handler, void* _Nullable arg)
+void Process_SetExceptionHandler(ProcessRef _Nonnull self, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
 {
-    excpt_handler_t oh = self->excpt_handler;
-
-    self->excpt_handler = handler;
-    self->excpt_arg = arg;
-    return oh;
+    if (old_handler) {
+        *old_handler = self->excpt_handler;
+    }
+    self->excpt_handler = *handler;
 }
 
-excpt_handler_t _Nonnull Process_Exception(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ec)
+excpt_func_t _Nonnull Process_Exception(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ec)
 {
-    excpt_handler_t handler = vp->excpt_handler;
-    void* arg = vp->excpt_arg;
+    const excpt_handler_t* h = &vp->excpt_handler;
 
     vp->flags |= VP_FLAG_HANDLING_EXCPT;
 
-    if (handler == NULL) {
-        handler = self->excpt_handler;
-        arg = self->excpt_arg;
+    if (h->func == NULL) {
+        h = &self->excpt_handler;
     }
 
-    if (handler == NULL) {
+    if (h->func == NULL) {
         Process_Exit(self, JREASON_EXCEPTION, ei->code);
         /* NOT REACHED */
     }
@@ -254,12 +251,12 @@ excpt_handler_t _Nonnull Process_Exception(ProcessRef _Nonnull self, vcpu_t _Non
 
     usp = sp_push_ptr(usp, (void*)ec_usp);
     usp = sp_push_ptr(usp, (void*)ei_usp);
-    usp = sp_push_ptr(usp, arg);
+    usp = sp_push_ptr(usp, h->arg);
 
     usp = sp_push_rts(usp, (void*)excpt_return);
     usp_set(usp);
 
-    return handler;
+    return h->func;
 }
 
 void Process_ExceptionReturn(ProcessRef _Nonnull self, vcpu_t _Nonnull vp)

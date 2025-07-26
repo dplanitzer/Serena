@@ -103,8 +103,7 @@ struct vcpu {
     intptr_t                        udata;                  // user space data associated with this VP
     
     // Exceptions support
-    excpt_handler_t _Nullable       excpt_handler;
-    void* _Nullable                 excpt_arg;
+    excpt_handler_t                 excpt_handler;
     
     // Suspension related state
     Quantums                        suspension_time;        // Absolute time when the VP was suspended

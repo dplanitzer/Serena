@@ -75,8 +75,7 @@ final_class_ivars(Process, Object,
     char* _Nullable _Weak           argumentsBase;  // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
 
     // Exceptions support
-    excpt_handler_t _Nullable       excpt_handler;
-    void* _Nullable                 excpt_arg;
+    excpt_handler_t                 excpt_handler;
     
     // Process termination
     int16_t                         exit_reason;    // Exit code of the first exit() call that initiated the termination of this process
