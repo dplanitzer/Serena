@@ -255,8 +255,17 @@ excpt_handler_t _Nonnull Process_Exception(ProcessRef _Nonnull self, const excpt
     usp = sp_push_ptr(usp, (void*)ei_usp);
     usp = sp_push_ptr(usp, arg);
 
-    usp = sp_push_rts(usp, (void*)0);
+    usp = sp_push_rts(usp, (void*)excpt_return);
     usp_set(usp);
 
     return handler;
+}
+
+void Process_ExceptionReturn(ProcessRef _Nonnull self)
+{
+    uintptr_t usp = usp_get();
+    usp += sizeof(char*) * 3;   // arg, ei, ec
+    usp += sizeof(excpt_ctx_t);
+    usp += sizeof(excpt_info_t);
+    usp_set(usp);
 }

@@ -66,6 +66,8 @@ int movesr(void) = "\tmove.w\tsr, d0\n";
 void proc_excpt_exit_test(int argc, char *argv[])
 {
     const int r = movesr();
+    // -> process should have exited with an exception status
+    // -> should not print
     printf("sr: %d\n", r);
 }
 
@@ -82,8 +84,29 @@ static void ex_handler(void* arg, const excpt_info_t* _Nonnull ei, excpt_ctx_t* 
 
 void proc_excpt_handler_test(int argc, char *argv[])
 {
-    excpt_sethandler(EXCPT_SCOPE_PROC, 0, ex_handler, "good");
+    excpt_sethandler(EXCPT_SCOPE_PROC, 0, ex_handler, "exiting from handler");
     
     const int r = movesr();
+    // -> process should have exited with (regular) status 0
+    // -> should not print
+    printf("sr: %d\n", r);
+}
+
+
+static void ex_handler2(void* arg, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ctx)
+{
+    printf("arg: %s\n", arg);
+    printf("code: %d\n", ei->code);
+    printf("cpu_code: %d\n", ei->cpu_code);
+    printf("addr: %p\n", ei->addr);
+}
+
+void proc_excpt_return_test(int argc, char *argv[])
+{
+    excpt_sethandler(EXCPT_SCOPE_PROC, 0, ex_handler2, "returning from handler");
+    
+    const int r = movesr();
+    // -> process should have returned from ex_handler2
+    // -> should not print and instead invoke ex_handler2 again
     printf("sr: %d\n", r);
 }

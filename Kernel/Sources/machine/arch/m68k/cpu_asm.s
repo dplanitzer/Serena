@@ -14,7 +14,7 @@
     xdef _irq_enable
     xdef _irq_disable
     xdef _irq_restore
-    xdef _cpu_set_irq_stack_pointer
+    xdef _excpt_return
     xdef _cpu_get_model
     xdef _cpu_verify_ram_4b
     xdef _cpu_guarded_read
@@ -53,6 +53,13 @@ _irq_restore:
     move.l  cri_state(sp), d0
     RESTORE_INTERRUPTS d0
     rts
+
+
+;-------------------------------------------------------------------------------
+; void excpt_return(void)
+_excpt_return:
+    trap    #1
+    ; NOT REACHED
 
 
 ;-------------------------------------------------------------------------------

@@ -160,6 +160,11 @@ excpt_handler_t _Nonnull cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nulla
     return Process_Exception(Process_GetCurrent(), &ei, &ec);
 }
 
+void cpu_exception_return(void)
+{
+    Process_ExceptionReturn(Process_GetCurrent());
+}
+
 // Sets up the provided CPU context and kernel/user stack with a function invocation
 // frame that is suitable as the first frame that a VP will execute.
 //
