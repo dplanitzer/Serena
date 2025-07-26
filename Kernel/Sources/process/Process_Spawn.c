@@ -70,10 +70,10 @@ catch:
     return err;
 }
 
-errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, pid_t * _Nullable pOutChildPid)
+errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, pid_t* _Nullable pOutPid)
 {
     decl_try_err();
-    ProcessRef pChild = NULL;
+    ProcessRef cp = NULL;
 
     if (*path == '\0') {
         return EINVAL;
@@ -81,35 +81,34 @@ errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, 
     
     // Create the child process
     mtx_lock(&self->mtx);
-    err = proc_create_child(self, opts, &pChild);
+    err = proc_create_child(self, opts, &cp);
     mtx_unlock(&self->mtx);
     throw_iferr(err);
 
 
     // Prepare the executable image
-    try(Process_BuildExecImage(pChild, path, argv, opts->envp));
+    try(Process_BuildExecImage(cp, path, argv, opts->envp));
 
 
     // Register the new process with the process manager
-    try(ProcessManager_Register(gProcessManager, pChild));
-    List_InsertAfterLast(&self->children, &pChild->siblings);
+    try(ProcessManager_Register(gProcessManager, cp));
+    List_InsertAfterLast(&self->children, &cp->siblings);
     //XXX Should remove this release because we're adopting the child and thus
     // this release is wrong. However Catalog_Unpublish leaks its ref to the
     // child process and this ends up balancing this bug here 
-    Object_Release(pChild);
+    Object_Release(cp);
 
 
     // Start the child process running
-    Process_ResumeMainVirtualProcessor(pChild);
+    Process_ResumeMainVirtualProcessor(cp);
 
 catch:
-    if (err != EOK && pChild) {
-        Object_Release(pChild);
-        pChild = NULL;
+    if (err == EOK) {
+        *pOutPid = cp->pid;
     }
-
-    if (pOutChildPid) {
-        *pOutChildPid = (pChild) ? pChild->pid : 0;
+    else {
+        Object_Release(cp);
+        *pOutPid = 0;
     }
 
     return err;

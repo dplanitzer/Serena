@@ -46,7 +46,7 @@ extern errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, 
 // Spawns a new process that will be a child of the given process. The spawn
 // arguments specify how the child process should be created, which arguments
 // and environment it will receive and which descriptors it will inherit.
-extern errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, pid_t * _Nullable pOutChildPid);
+extern errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, pid_t* _Nullable pOutPid);
 
 // Prepares the image of the process by replacing the current image with a new
 // executable image loaded from 'execPath'.
