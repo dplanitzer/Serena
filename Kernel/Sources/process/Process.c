@@ -16,10 +16,18 @@ override_func_def(deinit, Process, Object)
 );
 
 
+// Returns the next PID available for use by a new process.
+static pid_t make_unique_pid(void)
+{
+    static volatile AtomicInt g_prev_pid = 0;
+    return AtomicInt_Increment(&g_prev_pid);
+}
+
+
 errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf)
 {
     InodeRef rootDir = FileHierarchy_AcquireRootDirectory(pRootFh);
-    const errno_t err = Process_Create(1, 1, 1, 1, pRootFh, kUserId_Root, kGroupId_Root, rootDir, rootDir, perm_from_octal(0022), pOutSelf);
+    const errno_t err = Process_Create(1, 0, 0, pRootFh, kUserId_Root, kGroupId_Root, rootDir, rootDir, perm_from_octal(0022), pOutSelf);
 
     Inode_Relinquish(rootDir);
     return err;
@@ -27,20 +35,22 @@ errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullab
 
 
 
-errno_t Process_Create(pid_t pid, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask, ProcessRef _Nullable * _Nonnull pOutSelf)
+errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask, ProcessRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ProcessRef self;
     
+    assert(ppid > 0);
+
     try(Object_Create(class(Process), 0, (void**)&self));
 
     mtx_init(&self->mtx);
 
     self->state = PS_ALIVE;
-    self->pid = pid;
+    self->pid = make_unique_pid();
     self->ppid = ppid;
-    self->pgrp = pgrp;
-    self->sid = sid;
+    self->pgrp = (pgrp == 0) ? self->pid : pgrp;
+    self->sid = (sid == 0) ? self->pid : sid;
     self->catalogId = kCatalogId_None;
 
     List_Init(&self->vpQueue);

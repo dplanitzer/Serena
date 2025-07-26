@@ -10,63 +10,53 @@
 #include "ProcessManager.h"
 
 
-// Returns the next PID available for use by a new process.
-static pid_t make_unique_pid(void)
-{
-    static volatile AtomicInt gNextAvailablePid = 1;
-    return AtomicInt_Increment(&gNextAvailablePid);
-}
-
 static errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const spawn_opts_t* _Nonnull opts, ProcessRef _Nullable * _Nonnull pOutChild)
 {
     decl_try_err();
-    ProcessRef pChild = NULL;
+    ProcessRef cp = NULL;
 
-    uid_t childUid = self->fm.ruid;
-    gid_t childGid = self->fm.rgid;
-    mode_t childUMask = FileManager_GetUMask(&self->fm);
+    uid_t ch_uid = self->fm.ruid;
+    gid_t ch_gid = self->fm.rgid;
+    mode_t ch_umask = FileManager_GetUMask(&self->fm);
     if ((opts->options & kSpawn_OverrideUserMask) == kSpawn_OverrideUserMask) {
-        childUMask = opts->umask & 0777;
+        ch_umask = opts->umask & 0777;
     }
     if ((opts->options & (kSpawn_OverrideUserId|kSpawn_OverrideGroupId)) != 0 && FileManager_GetRealUserId(&self->fm) != 0) {
         throw(EPERM);
     }
     if ((opts->options & kSpawn_OverrideUserId) == kSpawn_OverrideUserId) {
-        childUid = opts->uid;
+        ch_uid = opts->uid;
     }
     if ((opts->options & kSpawn_OverrideGroupId) == kSpawn_OverrideGroupId) {
-        childGid = opts->gid;
+        ch_gid = opts->gid;
     }
 
 
-    const pid_t child_pid = make_unique_pid();
-    const pid_t child_pgrp = (opts->options & kSpawn_NewProcessGroup) == kSpawn_NewProcessGroup ? child_pid : self->pgrp;
-    const pid_t child_sid = (opts->options & kSpawn_NewSession) == kSpawn_NewSession ? child_pid : self->sid;
+    const pid_t ch_pgrp = (opts->options & kSpawn_NewProcessGroup) == kSpawn_NewProcessGroup ? 0 : self->pgrp;
+    const pid_t ch_sid = (opts->options & kSpawn_NewSession) == kSpawn_NewSession ? 0 : self->sid;
 
-    try(Process_Create(child_pid, self->pid, child_pgrp, child_sid, self->fm.fileHierarchy, childUid, childGid, self->fm.rootDirectory, self->fm.workingDirectory, childUMask, &pChild));
+    try(Process_Create(self->pid, ch_pgrp, ch_sid, self->fm.fileHierarchy, ch_uid, ch_gid, self->fm.rootDirectory, self->fm.workingDirectory, ch_umask, &cp));
 
 
     // Note that we do not lock the child process although we're reaching directly
     // into its state. Locking isn't necessary because nobody outside this function
     // here can see the child process yet and thus call functions on it.
 
-    IOChannelTable_DupFrom(&pChild->ioChannelTable, &self->ioChannelTable);
+    IOChannelTable_DupFrom(&cp->ioChannelTable, &self->ioChannelTable);
 
     if (opts->root_dir && opts->root_dir[0] != '\0') {
-        try(FileManager_SetRootDirectoryPath(&pChild->fm, opts->root_dir));
+        try(FileManager_SetRootDirectoryPath(&cp->fm, opts->root_dir));
     }
     if (opts->cw_dir && opts->cw_dir[0] != '\0') {
-        try(FileManager_SetWorkingDirectoryPath(&pChild->fm, opts->cw_dir));
+        try(FileManager_SetWorkingDirectoryPath(&cp->fm, opts->cw_dir));
     }
 
-    *pOutChild = pChild;
-
-    return EOK;
-
 catch:
-    Object_Release(pChild);
+    *pOutChild = cp;
+    if (err != EOK) {
+        Object_Release(cp);
+    }
 
-    *pOutChild = NULL;
     return err;
 }
 
