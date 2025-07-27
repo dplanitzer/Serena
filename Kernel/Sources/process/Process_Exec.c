@@ -14,6 +14,32 @@
 #include <sched/vcpu.h>
 
 
+static errno_t _proc_acquire_main_vcpu(ProcessRef _Nonnull self, vcpu_func_t _Nonnull entryPoint, void* _Nonnull procargs, vcpu_t _Nonnull * _Nullable pOutVcpu)
+{
+    decl_try_err();
+    vcpu_t vp = NULL;
+    VirtualProcessorParameters kp;
+
+    kp.func = (VoidFunc_1)entryPoint;
+    kp.context = procargs;
+    kp.ret_func = (VoidFunc_0)vcpu_uret_exit;
+    kp.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
+    kp.userStackSize = VP_DEFAULT_USER_STACK_SIZE;
+    kp.id = VCPUID_MAIN;
+    kp.groupid = VCPUID_MAIN_GROUP;
+    kp.priority = kDispatchQoS_Interactive * kDispatchPriority_Count + (kDispatchPriority_Normal + kDispatchPriority_Count / 2) + VP_PRIORITIES_RESERVED_LOW;
+    kp.isUser = true;
+
+    err = vcpu_pool_acquire(g_vcpu_pool, &kp, &vp);
+    if (err == EOK) {
+        vp->proc = self;
+        vp->udata = 0;
+    }
+
+    *pOutVcpu = vp;
+    return err;
+}
+
 static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], ssize_t maxByteCount, size_t* _Nonnull pOutTableEntryCount)
 {
     ssize_t nbytes = 0;
@@ -153,17 +179,9 @@ static errno_t _proc_exec(ProcessRef _Locked _Nonnull self, const char* _Nonnull
     ((pargs_t*) self->argumentsBase)->image_base = self->imageBase;
 
 
-    _vcpu_acquire_attr_t attr;
-    attr.func = (vcpu_func_t)entryPoint;
-    attr.arg = self->argumentsBase;
-    attr.data = 0;
-    attr.priority = kDispatchQoS_Interactive * kDispatchPriority_Count + (kDispatchPriority_Normal + kDispatchPriority_Count / 2) + VP_PRIORITIES_RESERVED_LOW;
-    attr.stack_size = 0;
-    attr.groupid = VCPUID_MAIN_GROUP;
-    attr.flags = 0;
-
-    vcpuid_t vid;
-    try(Process_AcquireVirtualProcessor(self, &attr, &vid));
+    vcpu_t main_vp;
+    try(_proc_acquire_main_vcpu(self, (vcpu_func_t)entryPoint, self->argumentsBase, &main_vp));
+    List_InsertAfterLast(&self->vcpu_queue, &main_vp->owner_qe);
 
 catch:
     //XXX free the executable image if an error occurred
@@ -180,9 +198,16 @@ catch:
 // XXX the executable format is GemDOS
 errno_t Process_BuildExecImage(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[])
 {
-//    mtx_lock(&self->mtx);
-    const errno_t err = _proc_exec(self, execPath, argv, env);
-//    mtx_unlock(&self->mtx);
+    decl_try_err();
+
+    mtx_lock(&self->mtx);
+    if (!vcpu_aborting(vcpu_current())) {
+        err = _proc_exec(self, execPath, argv, env);
+    }
+    else {
+        err = EINTR;
+    }
+    mtx_unlock(&self->mtx);
 
     return err;
 }

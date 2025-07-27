@@ -114,47 +114,37 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     vcpu_t vp = NULL;
     VirtualProcessorParameters kp;
 
-    *idp = 0;
-
     mtx_lock(&self->mtx);
     if (vcpu_aborting(vcpu_current())) {
         throw(EINTR);
     }
 
-    const bool isMainVcpu = self->vcpu_queue.first == NULL;
-
     kp.func = (VoidFunc_1)attr->func;
     kp.context = attr->arg;
-    kp.ret_func = (self->vcpu_queue.first) ? vcpu_uret_relinquish_self : vcpu_uret_exit;
+    kp.ret_func = vcpu_uret_relinquish_self;
     kp.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
     kp.userStackSize = __max(attr->stack_size, VP_DEFAULT_USER_STACK_SIZE);
-    if (isMainVcpu) {
-        kp.id = VCPUID_MAIN;
-        kp.groupid = VCPUID_MAIN_GROUP;
-    }
-    else {
-        kp.id = self->next_avail_vcpuid++;
-        kp.groupid = attr->groupid;
-    }
+    kp.id = self->next_avail_vcpuid++;
+    kp.groupid = attr->groupid;
     kp.priority = attr->priority;
     kp.isUser = true;
 
-    try(vcpu_pool_acquire(
-            g_vcpu_pool,
-            &kp,
-            &vp));
+    try(vcpu_pool_acquire(g_vcpu_pool, &kp, &vp));
 
     vp->proc = self;
     vp->udata = attr->data;
     List_InsertAfterLast(&self->vcpu_queue, &vp->owner_qe);
-    *idp = vp->id;
-
-    if ((attr->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
-        vcpu_resume(vp, false);
-    }
 
 catch:
     mtx_unlock(&self->mtx);
+
+    if (err == EOK) {
+        *idp = vp->id;
+
+        if ((attr->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
+            vcpu_resume(vp, false);
+        }
+    }
 
     return err;
 }
