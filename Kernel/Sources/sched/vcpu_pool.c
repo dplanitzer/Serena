@@ -128,6 +128,7 @@ _Noreturn vcpu_pool_relinquish(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp)
     // (termination) otherwise.
     if (doReuse) {
         vp->proc = NULL;
+        vp->udata = 0;
         vp->id = 0;
         vp->groupid = 0;
         vp->uerrno = 0;

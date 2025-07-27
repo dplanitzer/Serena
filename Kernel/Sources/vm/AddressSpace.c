@@ -7,11 +7,9 @@
 //
 
 #include "AddressSpace.h"
-#include <klib/List.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <machine/cpu.h>
-#include <sched/mtx.h>
 
 
 typedef struct MemEntry {
@@ -27,60 +25,38 @@ typedef struct MemBlocks {
 } MemBlocks;
 
 
-typedef struct AddressSpace {
-    SList   mblocks;
-    mtx_t   mtx;
-} AddressSpace;
-
-
 errno_t AddressSpace_Create(AddressSpaceRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     AddressSpaceRef self;
 
-    try(kalloc_cleared(sizeof(AddressSpace), (void**) &self));
-    SList_Init(&self->mblocks);
-    mtx_init(&self->mtx);
+    err = kalloc_cleared(sizeof(AddressSpace), (void**) &self);
+    if (err == EOK) {
+        AddressSpace_Init(self);
+    }
 
     *pOutSelf = self;
-    return EOK;
-
-catch:
-    AddressSpace_Destroy(self);
-    *pOutSelf = NULL;
     return err;
 }
 
 void AddressSpace_Destroy(AddressSpaceRef _Nullable self)
 {
     if (self) {
-        AddressSpace_UnmapAll(self);
-
-        mtx_deinit(&self->mtx);
+        AddressSpace_Deinit(self);
         kfree(self);
     }
 }
 
-void AddressSpace_UnmapAll(AddressSpaceRef _Nonnull self)
+void AddressSpace_Init(AddressSpaceRef _Nonnull self)
 {
-    MemBlocks* cp = (MemBlocks*)self->mblocks.first;
+    SList_Init(&self->mblocks);
+    mtx_init(&self->mtx);
+}
 
-    while (cp) {
-        MemBlocks* np = (MemBlocks*)cp->node.next;
-
-        for (size_t i = 0; i < cp->count; i++) {
-            kfree(cp->blocks[i].mem);
-            cp->blocks[i].mem = NULL;
-            cp->blocks[i].size = 0;
-        }
-
-        SListNode_Deinit(&cp->node);
-        kfree(cp);
-
-        cp = np;
-    }
-
-    SList_Deinit(&self->mblocks);
+void AddressSpace_Deinit(AddressSpaceRef _Nonnull self)
+{
+    AddressSpace_UnmapAll(self);
+    mtx_deinit(&self->mtx);
 }
 
 bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull self)
@@ -159,4 +135,34 @@ catch:
     mtx_unlock(&self->mtx);
     *pOutMem = NULL;
     return err;
+}
+
+void AddressSpace_UnmapAll(AddressSpaceRef _Nonnull self)
+{
+    MemBlocks* cp = (MemBlocks*)self->mblocks.first;
+
+    while (cp) {
+        MemBlocks* np = (MemBlocks*)cp->node.next;
+
+        for (size_t i = 0; i < cp->count; i++) {
+            kfree(cp->blocks[i].mem);
+            cp->blocks[i].mem = NULL;
+            cp->blocks[i].size = 0;
+        }
+
+        SListNode_Deinit(&cp->node);
+        kfree(cp);
+
+        cp = np;
+    }
+
+    SList_Deinit(&self->mblocks);
+}
+
+void AddressSpace_AdoptMappingsFrom(AddressSpaceRef _Nonnull self, AddressSpaceRef _Nonnull other)
+{
+    mtx_lock(&self->mtx);
+    self->mblocks = other->mblocks;
+    SList_Init(&other->mblocks);
+    mtx_unlock(&self->mtx);
 }
