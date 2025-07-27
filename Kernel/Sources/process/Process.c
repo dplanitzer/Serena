@@ -67,7 +67,7 @@ errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonn
     wq_init(&self->siwa_queue);
     FileManager_Init(&self->fm, pFileHierarchy, uid, gid, pRootDir, pWorkingDir, umask);
 
-    try(AddressSpace_Create(&self->addressSpace));
+    try(AddressSpace_Create(&self->addr_space));
 
 catch:
     *pOutSelf = self;
@@ -83,7 +83,7 @@ void Process_deinit(ProcessRef _Nonnull self)
     
     IOChannelTable_Deinit(&self->ioChannelTable);
     FileManager_Deinit(&self->fm);
-    AddressSpace_Destroy(self->addressSpace);
+    AddressSpace_Destroy(self->addr_space);
 
     for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
         List_ForEach(&self->waitQueueTable[i], ListNode, {
@@ -98,9 +98,8 @@ void Process_deinit(ProcessRef _Nonnull self)
 
     List_Deinit(&self->vcpu_queue);
     
-    self->addressSpace = NULL;
-    self->imageBase = NULL;
-    self->argumentsBase = NULL;
+    self->addr_space = NULL;
+    self->pargs_base = NULL;
 
     self->pid = 0;
     self->ppid = 0;

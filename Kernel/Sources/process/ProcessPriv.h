@@ -49,9 +49,8 @@ final_class_ivars(Process, Object,
     CatalogId                       catalogId;  // proc-fs catalog id
 
     // Process image
-    AddressSpaceRef _Nonnull        addressSpace;
-    char* _Nullable _Weak           imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
-    char* _Nullable _Weak           argumentsBase;  // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
+    AddressSpaceRef _Nonnull        addr_space;
+    char* _Nullable _Weak           pargs_base; // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
 
     // VPs
     List                            vcpu_queue;     // List of VPs [mtx]

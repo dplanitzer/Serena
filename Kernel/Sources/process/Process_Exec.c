@@ -166,13 +166,13 @@ static errno_t _proc_build_exec_image(ProcessRef _Locked _Nonnull self, const ch
     }
 
     // XXX for now to keep loading simpler
-    assert(self->imageBase == NULL);
+    assert(self->pargs_base == NULL);
 
 
     // Create a new address space which we'll use to build the new process image
     AddressSpace_Init(&as);
 
-    
+
     // Open the executable file and lock it
     try(FileManager_OpenExecutable(&self->fm, path, &chan));
 
@@ -183,10 +183,8 @@ static errno_t _proc_build_exec_image(ProcessRef _Locked _Nonnull self, const ch
 
     // Load the executable
     try(_proc_img_load_exec_file(&as, (FileChannelRef)chan, &imageBase, &entryPoint));
-
     pargs->image_base = imageBase;
-    self->imageBase = imageBase;
-    self->argumentsBase = (char*)pargs;
+    self->pargs_base = (char*)pargs;
 
 
     // Create the new main vcpu
@@ -198,7 +196,7 @@ static errno_t _proc_build_exec_image(ProcessRef _Locked _Nonnull self, const ch
 
     // Install the new memory mappings in our address space and remove the old
     // mappings
-    AddressSpace_AdoptMappingsFrom(self->addressSpace, &as);
+    AddressSpace_AdoptMappingsFrom(self->addr_space, &as);
 
 
 catch:

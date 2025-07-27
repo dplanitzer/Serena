@@ -54,7 +54,7 @@ SYSCALL_0(getgid)
 
 SYSCALL_0(getpargs)
 {
-    return (intptr_t) vp->proc->argumentsBase;
+    return (intptr_t) vp->proc->pargs_base;
 }
 
 SYSCALL_5(proc_timedjoin, int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps)
