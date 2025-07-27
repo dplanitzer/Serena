@@ -137,7 +137,7 @@ catch:
     return err;
 }
 
-void AddressSpace_UnmapAll(AddressSpaceRef _Nonnull self)
+static void _AddressSpace_UnmapAll(AddressSpaceRef _Nonnull _Locked self)
 {
     MemBlocks* cp = (MemBlocks*)self->mblocks.first;
 
@@ -159,9 +159,18 @@ void AddressSpace_UnmapAll(AddressSpaceRef _Nonnull self)
     SList_Deinit(&self->mblocks);
 }
 
+void AddressSpace_UnmapAll(AddressSpaceRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    _AddressSpace_UnmapAll(self);
+    mtx_unlock(&self->mtx);
+}
+
 void AddressSpace_AdoptMappingsFrom(AddressSpaceRef _Nonnull self, AddressSpaceRef _Nonnull other)
 {
     mtx_lock(&self->mtx);
+    _AddressSpace_UnmapAll(self);
+
     self->mblocks = other->mblocks;
     SList_Init(&other->mblocks);
     mtx_unlock(&self->mtx);

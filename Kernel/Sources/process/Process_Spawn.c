@@ -82,7 +82,7 @@ errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, 
 
 
     // Prepare the executable image
-    try(Process_BuildExecImage(cp, path, argv, opts->envp));
+    try(Process_Exec(cp, path, argv, opts->envp, false));
 
 
     // Register the new process with the process manager

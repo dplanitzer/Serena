@@ -80,6 +80,7 @@ enum {
     SC_sigsend,             // sigsend(int scope, id_t id, int signo)
     SC_sigurgent,           // void sigurgent(void)
     SC_excpt_sethandler,    // int excpt_sethandler(int scope, int flags, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
+    SC_proc_exec,           // int proc_exec(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable * _Nullable envp)
 };
 
 

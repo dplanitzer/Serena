@@ -49,10 +49,11 @@ extern errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, 
 extern errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, pid_t* _Nullable pOutPid);
 
 // Prepares the image of the process by replacing the current image with a new
-// executable image loaded from 'execPath'.
+// executable image loaded from 'execPath'. Note that this function does not
+// relinquish the calling vcpu. This must be done by the caller.
 // \param self the process into which the executable image should be loaded
 // \param execPath path to a GemDOS executable file
-extern errno_t Process_BuildExecImage(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[]);
+extern errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[], bool resumed);
 extern void Process_ResumeMainVirtualProcessor(ProcessRef _Nonnull self);
 
 extern errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _Nonnull idp);

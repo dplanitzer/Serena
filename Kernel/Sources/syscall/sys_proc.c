@@ -8,6 +8,7 @@
 
 #include "syscalldecls.h"
 #include <kpi/wait.h>
+#include <sched/vcpu_pool.h>
 
 
 SYSCALL_1(exit, int status)
@@ -20,6 +21,18 @@ SYSCALL_1(exit, int status)
 SYSCALL_4(spawn_process, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const spawn_opts_t* _Nonnull options, pid_t* _Nullable pOutPid)
 {
     return Process_SpawnChild(vp->proc, pa->path, pa->argv, pa->options, pa->pOutPid);
+}
+
+SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp)
+{
+    const errno_t err = Process_Exec(vp->proc, pa->path, pa->argv, pa->envp, true);
+
+    if (err == EOK) {
+        vcpu_pool_relinquish(g_vcpu_pool, vp);
+        /* NOT REACHED */
+    }
+
+    return err;
 }
 
 SYSCALL_0(getpid)

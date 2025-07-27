@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include <sys/exception.h>
 #include <sys/timespec.h>
 #include <sys/vcpu.h>
@@ -117,4 +118,17 @@ void proc_excpt_return_test(int argc, char *argv[])
     // -> process should have returned from ex_handler2
     // -> should not print and instead invoke ex_handler2 again
     printf("sr: %d\n", r);
+}
+
+void proc_exec_test(int argc, char *argv[])
+{
+    printf("About to exec...\n");
+
+    const char* argv2[3];
+
+    argv2[0] = "test";
+    argv2[1] = "list";
+    argv2[2] = NULL;
+
+    assertOK(proc_exec("test", argv2, NULL));
 }

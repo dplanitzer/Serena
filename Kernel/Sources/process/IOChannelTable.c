@@ -257,3 +257,18 @@ catch:
 
     return err;
 }
+
+void IOChannelTable_ReleaseExecChannels(IOChannelTable* _Nonnull self)
+{
+    size_t channelCount;
+
+    mtx_lock(&self->mtx);
+    for (size_t i = 3, cc = 3; cc < self->channelCount; i++) {
+        if (self->table[i]) {
+            IOChannel_Release(self->table[i]);
+            self->table[i] = NULL;
+            cc++;
+        }
+    }
+    mtx_unlock(&self->mtx);
+}

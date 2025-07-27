@@ -59,6 +59,7 @@ SYSCALL_REF(getuid);
 SYSCALL_REF(getgid);
 SYSCALL_REF(getpargs);
 SYSCALL_REF(proc_timedjoin);
+SYSCALL_REF(proc_exec);
 
 SYSCALL_REF(alloc_address_space);
 
@@ -90,7 +91,7 @@ SYSCALL_REF(vcpu_yield);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SYSCALL_COUNT   65
+#define SYSCALL_COUNT   66
 
 static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
@@ -158,6 +159,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(sigsend, SC_ERRNO),
     SYSCALL_ENTRY(sigurgent, 0),
     SYSCALL_ENTRY(excpt_sethandler, SC_ERRNO),
+    SYSCALL_ENTRY(proc_exec, SC_ERRNO),
 };
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -40,7 +40,7 @@ static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], ssize
     return nbytes;
 }
 
-static errno_t _proc_img_copy_args_env(AddressSpaceRef _Nonnull as, const char* argv[], const char* _Nullable env[], pargs_t* _Nonnull * _Nullable procargs)
+static errno_t _proc_img_copy_args_env(proc_img_t* _Nonnull pimg, const char* argv[], const char* _Nullable env[])
 {
     decl_try_err();
     size_t nArgvCount = 0;
@@ -56,7 +56,7 @@ static errno_t _proc_img_copy_args_env(AddressSpaceRef _Nonnull as, const char* 
 
 
     const ssize_t nbytes_procargs = __Ceil_PowerOf2(sizeof(pargs_t) + nbytes_argv_envp, CPU_PAGE_SIZE);
-    err = AddressSpace_Allocate(as, nbytes_procargs, (void**)&pargs);
+    err = AddressSpace_Allocate(&pimg->as, nbytes_procargs, (void**)&pargs);
     if (err != EOK) {
         return err;
     }
@@ -99,7 +99,7 @@ static errno_t _proc_img_copy_args_env(AddressSpaceRef _Nonnull as, const char* 
     pargs->image_base = NULL;
     pargs->urt_funcs = gKeiTable;
 
-    *procargs = pargs;
+    pimg->pargs = (char*)pargs;
 
     return err;
 }
@@ -128,13 +128,13 @@ static errno_t _proc_img_acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void
 
 // Loads an executable from the given executable file into the process address
 // space.
-static errno_t _proc_img_load_exec_file(AddressSpaceRef _Nonnull as, FileChannelRef _Locked chan, void** pImageBase, void** pEntryPoint)
+static errno_t _proc_img_load_exec_file(proc_img_t* _Nonnull pimg, FileChannelRef _Locked chan)
 {
     decl_try_err();
     GemDosExecutableLoader loader;
 
-    GemDosExecutableLoader_Init(&loader, as);
-    err = GemDosExecutableLoader_Load(&loader, chan, pImageBase, pEntryPoint);
+    GemDosExecutableLoader_Init(&loader, &pimg->as);
+    err = GemDosExecutableLoader_Load(&loader, chan, &pimg->base, &pimg->entry_point);
     GemDosExecutableLoader_Deinit(&loader);
 
     return err;
@@ -146,17 +146,13 @@ static errno_t _proc_img_load_exec_file(AddressSpaceRef _Nonnull as, FileChannel
 // \param path path to the executable file
 // \param argv the command line arguments for the process. NULL means that the arguments are {path, NULL}
 // \param env the environment for the process. Null means that the process inherits the environment from its parent
-// XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
-static errno_t _proc_build_exec_image(ProcessRef _Locked _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[])
+static errno_t _proc_build_exec_image(ProcessRef _Nonnull _Locked self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[], proc_img_t* _Nonnull pimg)
 {
     decl_try_err();
     IOChannelRef chan = NULL;
-    void* imageBase = NULL;
-    void* entryPoint = NULL;
     pargs_t* pargs = NULL;
     const char* null_sptr[1] = {NULL};
-    AddressSpace as;
 
     if (argv == NULL) {
         argv = null_sptr;
@@ -165,66 +161,89 @@ static errno_t _proc_build_exec_image(ProcessRef _Locked _Nonnull self, const ch
         env = null_sptr;
     }
 
-    // XXX for now to keep loading simpler
-    assert(self->pargs_base == NULL);
-
-
-    // Create a new address space which we'll use to build the new process image
-    AddressSpace_Init(&as);
-
 
     // Open the executable file and lock it
     try(FileManager_OpenExecutable(&self->fm, path, &chan));
 
 
     // Copy the process arguments into the process address space
-    try(_proc_img_copy_args_env(&as, argv, env, &pargs));
+    try(_proc_img_copy_args_env(pimg, argv, env));
 
 
     // Load the executable
-    try(_proc_img_load_exec_file(&as, (FileChannelRef)chan, &imageBase, &entryPoint));
-    pargs->image_base = imageBase;
-    self->pargs_base = (char*)pargs;
+    try(_proc_img_load_exec_file(pimg, (FileChannelRef)chan));
+    pargs->image_base = pimg->base;
 
 
     // Create the new main vcpu
-    vcpu_t main_vp;
-    try(_proc_img_acquire_main_vcpu((vcpu_func_t)entryPoint, pargs, &main_vp));
-    List_InsertAfterLast(&self->vcpu_queue, &main_vp->owner_qe);
-    main_vp->proc = self;
-
-
-    // Install the new memory mappings in our address space and remove the old
-    // mappings
-    AddressSpace_AdoptMappingsFrom(self->addr_space, &as);
+    try(_proc_img_acquire_main_vcpu((vcpu_func_t)pimg->entry_point, pimg->pargs, &pimg->main_vp));
 
 
 catch:
     //XXX free the executable image if an error occurred
     IOChannel_Release(chan);
-    AddressSpace_Deinit(&as);
 
     return err;
 }
 
-// Loads an executable from the given executable file into the process address
-// space. This is only meant to get the root process going.
-// \param pProc the process into which the executable image should be loaded
-// \param pExecPath path to a GemDOS executable file
-// XXX expects that the address space is empty at call time
-// XXX the executable format is GemDOS
-errno_t Process_BuildExecImage(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[])
+errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[], bool resumed)
 {
     decl_try_err();
+    proc_img_t pimg = (proc_img_t){0};
+
+    AddressSpace_Init(&pimg.as);
 
     mtx_lock(&self->mtx);
-    if (!vcpu_aborting(vcpu_current())) {
-        err = _proc_build_exec_image(self, execPath, argv, env);
+
+    // We only permit calling Process_Exit() from another process if that other
+    // process is building us (thus there's no vcpu assigned to 'self' at this
+    // point).
+    assert(List_IsEmpty(&self->vcpu_queue)
+        || (!List_IsEmpty(&self->vcpu_queue) && vcpu_current()->proc == self));
+
+    
+    // Don't do an exec() if we are in the process of being shut down
+    if (vcpu_aborting(vcpu_current())) {
+        throw(EINTR);
     }
-    else {
-        err = EINTR;
+
+
+    // Create the new exec image
+    try(_proc_build_exec_image(self, execPath, argv, env, &pimg));
+
+    
+    // We now got:
+    // - a new address space with the executable image mapped in
+    // - a new vcpu suitable to act as a main vcpu
+    // we'll now demolish the existing executable image and install the new
+    // address map and main vcpu
+    if (!List_IsEmpty(&self->vcpu_queue)) {
+        List_Remove(&self->vcpu_queue, &vcpu_current()->owner_qe);
+        _proc_abort_other_vcpus(self);
+
+        mtx_unlock(&self->mtx);
+        _proc_reap_vcpus(self);
+        mtx_lock(&self->mtx);
+
+        IOChannelTable_ReleaseExecChannels(&self->ioChannelTable);
     }
+
+    
+    AddressSpace_AdoptMappingsFrom(self->addr_space, &pimg.as);
+    List_InsertAfterLast(&self->vcpu_queue, &pimg.main_vp->owner_qe);
+    pimg.main_vp->proc = self;
+    self->pargs_base = pimg.pargs;
+
+
+catch:
     mtx_unlock(&self->mtx);
+
+    AddressSpace_Deinit(&pimg.as);
+
+
+    if (resumed) {
+        vcpu_resume(pimg.main_vp, false);
+    }
 
     return err;
 }

@@ -41,6 +41,7 @@ extern void pipe2_test(int argc, char *argv[]);
 extern void proc_excpt_crash_test(int argc, char *argv[]);
 extern void proc_excpt_handler_test(int argc, char *argv[]);
 extern void proc_excpt_return_test(int argc, char *argv[]);
+extern void proc_exec_test(int argc, char *argv[]);
 extern void proc_exit_test(int argc, char *argv[]);
 
 // Sema
@@ -86,6 +87,7 @@ static const test_t gTests[] = {
     {"proc_excpt_crash", proc_excpt_crash_test, false},
     {"proc_excpt_handler", proc_excpt_handler_test, false},
     {"proc_excpt_ret", proc_excpt_return_test, false},
+    {"proc_exec", proc_exec_test, false},
     {"proc_exit", proc_exit_test, true},
 
     {"sem", sem_test, true},

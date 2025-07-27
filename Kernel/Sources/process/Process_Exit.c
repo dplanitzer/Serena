@@ -188,7 +188,7 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 // Initiate an abort on every virtual processor attached to ourselves. Note that
 // the VP that is running the process termination code has already taking itself
 // out from the VP list.
-static void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self)
+void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self)
 {
     List_ForEach(&self->vcpu_queue, ListNode, {
         vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
@@ -201,7 +201,7 @@ static void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self)
 // Wait for all vcpus to relinquish themselves from the process. Only return
 // once all vcpus are gone and no longer touch the process object.
 static struct waitqueue gHackQueue;
-static void _proc_reap_vcpus(ProcessRef _Nonnull self)
+void _proc_reap_vcpus(ProcessRef _Nonnull self)
 {
     bool done = false;
 

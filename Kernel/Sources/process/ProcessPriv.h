@@ -36,6 +36,15 @@ typedef struct UWaitQueue {
 } UWaitQueue;
 
 
+typedef struct proc_img {
+    AddressSpace        as;
+    vcpu_t _Nullable    main_vp;
+    void* _Nullable     base;
+    void* _Nullable     entry_point;
+    char* _Nullable     pargs;
+} proc_img_t;
+
+
 final_class_ivars(Process, Object,
     mtx_t                           mtx;
     
@@ -105,5 +114,8 @@ extern void Process_deinit(ProcessRef _Nonnull self);
 
 extern errno_t Process_Publish(ProcessRef _Locked _Nonnull self);
 extern errno_t Process_Unpublish(ProcessRef _Locked _Nonnull self);
+
+extern void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self);
+extern void _proc_reap_vcpus(ProcessRef _Nonnull self);
 
 #endif /* ProcessPriv_h */
