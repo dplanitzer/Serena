@@ -15,6 +15,18 @@
 #include <machine/csw.h>
 #include <sched/vcpu_pool.h>
 
+// Operations that are mutual exclusive in the context of exiting a process:
+// - exit
+// - spawn child
+// - exec
+// - acquire vcpu
+// - relinquish vcpu
+// - distribute process level signal to vcpu(s)
+// Exclusion is provided by 'mtx'. One important factor here is that exit and exec
+// send SIGKILL to the vcpus in the process and they do this while holding 'mtx'.
+// Thus operation like 'spawn child', 'acquire vcpu' should take 'mtx' and then
+// check whether SIGKILL is pending. If it is return with EINTR since the vcpu is
+// in the process of getting shot down.
 
 static ProcessRef _Nullable _find_matching_zombie(ProcessRef _Nonnull self, int scope, pid_t id, bool* _Nonnull pOutExists)
 {
@@ -173,26 +185,17 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
     }
 }
 
-// Take the calling VP out from the process' VP list since it will relinquish
-// itself at the very end of the process termination sequence.
-static void _proc_detach_calling_vcpu(ProcessRef _Nonnull self)
-{
-    Process_DetachVirtualProcessor(self, vcpu_current());
-}
-
 // Initiate an abort on every virtual processor attached to ourselves. Note that
 // the VP that is running the process termination code has already taking itself
 // out from the VP list.
-static void _proc_abort_vcpus(ProcessRef _Nonnull self)
+static void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self)
 {
-    mtx_lock(&self->mtx);
     List_ForEach(&self->vcpu_queue, ListNode, {
         vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
 
         vcpu_sigsend(cvp, SIGKILL, false);
         vcpu_sigrouteoff(cvp);
     });
-    mtx_unlock(&self->mtx);
 }
 
 // Wait for all vcpus to relinquish themselves from the process. Only return
@@ -247,17 +250,25 @@ _Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code)
 
 
     mtx_lock(&self->mtx);
-    const int isExiting = self->state >= PS_ZOMBIFYING;
+    const int isExitCoordinator = self->state < PS_ZOMBIFYING;
     
-    if (!isExiting) {
+    if (isExitCoordinator) {
         self->state = PS_ZOMBIFYING;
         self->exit_reason = reason;
         self->exit_code = code;
+
+
+        // This is the first vcpu going through the exit. It will act as the
+        // termination/exit coordinator.
+        // Take myself out from the vcpu list and send all other vcpus in the
+        // process an abort signal.
+        List_Remove(&self->vcpu_queue, &vcpu_current()->owner_qe);
+        _proc_abort_other_vcpus(self);
     }
     mtx_unlock(&self->mtx);
 
 
-    if (isExiting) {
+    if (!isExitCoordinator) {
         // This is any of the other vcpus in the process that we are shutting
         // down. Just relinquish yourself. The exit coordinator is blocked
         // waiting for all the other vcpus to relinquish before it will proceed
@@ -267,10 +278,6 @@ _Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code)
     }
 
 
-    // This is the first vcpu going through the exit. It will act as the
-    // termination/exit coordinator.
-    _proc_detach_calling_vcpu(self);
-    _proc_abort_vcpus(self);
     _proc_reap_vcpus(self);
 
     _proc_terminate_and_reap_children(self);

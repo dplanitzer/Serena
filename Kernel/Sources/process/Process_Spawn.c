@@ -71,7 +71,12 @@ errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, 
     
     // Create the child process
     mtx_lock(&self->mtx);
-    err = proc_create_child(self, opts, &cp);
+    if (!vcpu_aborting(vcpu_current())) {
+        err = proc_create_child(self, opts, &cp);
+    }
+    else {
+        err = EINTR;
+    }
     mtx_unlock(&self->mtx);
     throw_iferr(err);
 

@@ -117,6 +117,10 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     *idp = 0;
 
     mtx_lock(&self->mtx);
+    if (vcpu_aborting(vcpu_current())) {
+        throw(EINTR);
+    }
+
     const bool isMainVcpu = self->vcpu_queue.first == NULL;
 
     kp.func = (VoidFunc_1)attr->func;
@@ -134,10 +138,6 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     }
     kp.priority = attr->priority;
     kp.isUser = true;
-
-    if (self->state >= PS_ZOMBIFYING) {
-        throw(EINTR);
-    }
 
     try(vcpu_pool_acquire(
             g_vcpu_pool,

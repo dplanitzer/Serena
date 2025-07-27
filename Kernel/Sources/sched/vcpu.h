@@ -185,6 +185,13 @@ extern void vcpu_sigrouteoff(vcpu_t _Nonnull self);
 // added to the pending signal list and ignored.
 extern errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, bool isProc);
 
+// Returns a copy of the pending signals
+extern sigset_t vcpu_sigpending(vcpu_t _Nonnull self);
+
+// Returns true if the vcpu is in aborting state. Meaning that it has received a
+// SIGKILL and that it will relinquish soon.
+extern bool vcpu_aborting(vcpu_t _Nonnull self);
+
 // @Entry Condition: preemption disabled
 extern errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo);
 
