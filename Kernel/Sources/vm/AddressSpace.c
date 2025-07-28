@@ -48,17 +48,11 @@ bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull self)
 
 size_t AddressSpace_GetVirtualSize(AddressSpaceRef _Nonnull self)
 {
-    size_t siz = 0;
-
     mtx_lock(&self->mtx);
-    SList_ForEach(&self->mblocks, MemBlocks,
-        for (size_t i = 0; i < pCurNode->count; i++) {
-            siz += pCurNode->blocks[i].size;
-        }
-    );
+    const size_t vsize = self->virt_size;
     mtx_unlock(&self->mtx);
 
-    return siz;
+    return vsize;
 }
 
 // Allocates more address space to the calling process. The address space is
@@ -103,15 +97,12 @@ errno_t AddressSpace_Allocate(AddressSpaceRef _Nonnull self, ssize_t nbytes, voi
     bp->blocks[bp->count].mem = p;
     bp->blocks[bp->count].size = nbytes;
     bp->count++;
-
-    mtx_unlock(&self->mtx);
-
-    *pOutMem = p;
-    return EOK;
+    self->virt_size += nbytes;
 
 catch:
     mtx_unlock(&self->mtx);
-    *pOutMem = NULL;
+
+    *pOutMem = p;
     return err;
 }
 
@@ -134,7 +125,8 @@ static void _AddressSpace_UnmapAll(AddressSpaceRef _Nonnull _Locked self)
         cp = np;
     }
 
-    SList_Deinit(&self->mblocks);
+    SList_Init(&self->mblocks);
+    self->virt_size = 0;
 }
 
 void AddressSpace_UnmapAll(AddressSpaceRef _Nonnull self)
@@ -150,6 +142,7 @@ void AddressSpace_AdoptMappingsFrom(AddressSpaceRef _Nonnull self, AddressSpaceR
     _AddressSpace_UnmapAll(self);
 
     self->mblocks = other->mblocks;
+    self->virt_size = other->virt_size;
     SList_Init(&other->mblocks);
     mtx_unlock(&self->mtx);
 }
