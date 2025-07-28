@@ -195,6 +195,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     sched_run_chores(g_sched);
 
 catch:
+    irq_disable();
     printf("Error: unable to complete startup: %d\nHalting.\n", err);
     while(1);
     /* NOT REACHED */
