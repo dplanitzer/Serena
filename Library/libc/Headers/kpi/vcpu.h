@@ -22,6 +22,27 @@ struct vcpu;
 typedef struct vcpu* vcpu_t;
 
 
+// Quality of Service level. From highest to lowest.
+// VCPU_QOS_REALTIME: kernel will minimize the scheduling latency. Realtime is always scheduled before anything else
+// VCPU_QOS_IDLE: no guarantee with regards to schedule latency. Only scheduled if there is nothing to schedule for a DISPATCH_QOS_XXX > VCPU_QOS_IDLE
+#define VCPU_QOS_REALTIME       4
+#define VCPU_QOS_INTERACTIVE    3
+#define VCPU_QOS_UTILITY        2
+#define VCPU_QOS_BACKGROUND     1
+#define VCPU_QOS_IDLE           0
+
+#define VCPU_QOS_COUNT          5
+
+
+// Priorities per QoS level
+#define VCPU_PRI_HIGHEST   5
+#define VCPU_PRI_NORMAL    0
+#define VCPU_PRI_LOWEST   -6
+
+#define VCPU_PRI_COUNT     12
+
+
+
 // Acquire the VP and immediately resume it
 #define VCPU_ACQUIRE_RESUMED    1
 

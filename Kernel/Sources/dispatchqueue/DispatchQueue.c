@@ -209,7 +209,7 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
         params.userStackSize = VP_DEFAULT_USER_STACK_SIZE;
         params.id = AtomicInt_Increment(&gNextAvailVcpuid);
         params.groupid = VCPUID_MAIN_GROUP;
-        params.priority = self->qos * kDispatchPriority_Count + (self->priority + kDispatchPriority_Count / 2) + VP_PRIORITIES_RESERVED_LOW;
+        params.priority = self->qos * VCPU_PRI_COUNT + (self->priority + VCPU_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
         params.isUser = false;
 
         err = vcpu_pool_acquire(g_vcpu_pool, &params, &vp);

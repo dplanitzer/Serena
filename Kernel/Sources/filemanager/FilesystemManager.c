@@ -84,7 +84,7 @@ errno_t FilesystemManager_Create(FilesystemManagerRef _Nullable * _Nonnull pOutS
     FilesystemManagerRef self;
 
     try(kalloc_cleared(sizeof(FilesystemManager), (void**)&self));
-    try(DispatchQueue_Create(0, 1, kDispatchQoS_Background, 0, (DispatchQueueRef*)&self->dispatchQueue));
+    try(DispatchQueue_Create(0, 1, VCPU_QOS_BACKGROUND, 0, (DispatchQueueRef*)&self->dispatchQueue));
     mtx_init(&self->mtx);
 
     _FilesystemManager_ScheduleAutoSync(self);

@@ -11,7 +11,7 @@
 
 #include <kobj/Object.h>
 #include <machine/SystemDescription.h>
-#include <kpi/os_dispatch.h>
+#include <kpi/vcpu.h>
 
 final_class(DispatchQueue, Object);
 
@@ -21,11 +21,10 @@ final_class(DispatchQueue, Object);
 // Dispatch Options
 //
 
-// This is a uint32_t which breaks into two parts:
-// Lower 16 bits: user space controllable options (defined in libc)
-// Upper 16 bits: kernel space controllable options (defined here)
-#define kDispatchOptionMask_User    0x0000ffff
-#define kDispatchOptionMask_Kernel  0xffff0000
+enum {
+    kDispatchOption_Sync = 1,       // Dispatch and then wait for completion
+    kDispatchOption_Coalesce = 2,   // Do not dispatch this request if a request with the same tag is already queued or currently executing
+};
 
 
 //

@@ -23,7 +23,7 @@ void CopperScheduler_Init(CopperScheduler* _Nonnull self)
     self->flags = 0;
     sem_init(&self->retirementSignaler, 0);
     SList_Init(&self->retiredProgs);
-    try_bang(DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, &self->retiredProgsCollector));
+    try_bang(DispatchQueue_Create(0, 1, VCPU_QOS_UTILITY, VCPU_PRI_NORMAL, &self->retiredProgsCollector));
     try_bang(DispatchQueue_DispatchAsync(self->retiredProgsCollector, (VoidFunc_1)CopperScheduler_GarbageCollectRetiredPrograms, self));
 }
 

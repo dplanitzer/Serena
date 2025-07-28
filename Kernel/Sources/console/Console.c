@@ -31,7 +31,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     
     mtx_init(&self->mtx);
 
-    try(DispatchQueue_Create(0, 1, kDispatchQoS_Interactive, 0, (DispatchQueueRef*)&self->dispatchQueue));
+    try(DispatchQueue_Create(0, 1, VCPU_QOS_INTERACTIVE, 0, (DispatchQueueRef*)&self->dispatchQueue));
 
     try(Catalog_Open(gDriverCatalog, "/hid", O_RDONLY, &self->hidChannel));
     try(RingBuffer_Init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
