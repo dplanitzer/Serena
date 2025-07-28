@@ -14,6 +14,7 @@
 
 #define INITIAL_SIZE    32
 #define GROW_SIZE       64
+#define MAX_FD_COUNT    512
 
 
 void IOChannelTable_Init(IOChannelTable* _Nonnull self)
@@ -68,11 +69,18 @@ static errno_t _ioct_ensure_size(IOChannelTable* _Nonnull _Locked self, int max_
         new_table_size = __max(max_fd_needed + 1, INITIAL_SIZE);
     }
 
+    new_table_size = __min(new_table_size, MAX_FD_COUNT);
+    if (max_fd_needed >= new_table_size) {
+        return EMFILE;
+    }
+
+
     void* new_table = NULL;
     const errno_t err = kalloc_cleared(sizeof(IOChannelRef) * new_table_size, &new_table);
     if (err != EOK) {
         return err;
     }
+
 
     if (self->table) {
         memcpy(new_table, self->table, sizeof(IOChannelRef) * self->table_size);
@@ -102,19 +110,14 @@ static errno_t _ioct_alloc_fd(IOChannelTable* _Nonnull _Locked self, int min_fd,
 
         const errno_t err = _ioct_ensure_size(self, self->table_size + 1);
         if (err != EOK) {
+            *out_fd = -1;
             return err;
         }
     }
 
-    if (new_fd >= 0) {
-        self->max_fd_num = __max(self->max_fd_num, new_fd);
-        *out_fd = new_fd;
-        return EOK;
-    }
-    else {
-        *out_fd = -1;
-        return EMFILE;
-    }
+    self->max_fd_num = __max(self->max_fd_num, new_fd);
+    *out_fd = new_fd;
+    return EOK;
 }
 
 static IOChannelRef _Nullable _ioct_free_fd(IOChannelTable* _Nonnull _Locked self, int fd)
