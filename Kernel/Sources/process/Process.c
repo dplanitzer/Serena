@@ -34,15 +34,9 @@ errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullab
 }
 
 
-
-errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask, ProcessRef _Nullable * _Nonnull pOutSelf)
+void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask)
 {
-    decl_try_err();
-    ProcessRef self;
-    
     assert(ppid > 0);
-
-    try(Object_Create(class(Process), 0, (void**)&self));
 
     mtx_init(&self->mtx);
     AddressSpace_Init(&self->addr_space);
@@ -66,13 +60,20 @@ errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonn
 
     wq_init(&self->sleep_queue);
     wq_init(&self->siwa_queue);
-    FileManager_Init(&self->fm, pFileHierarchy, uid, gid, pRootDir, pWorkingDir, umask);
+    FileManager_Init(&self->fm, fh, uid, gid, pRootDir, pWorkingDir, umask);
+}
 
-catch:
-    *pOutSelf = self;
-    if (err != EOK) {
-        Object_Release(self);
+errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask, ProcessRef _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    ProcessRef self;
+    
+    err = Object_Create(class(Process), 0, (void**)&self);
+    if (err == EOK) {
+        Process_Init(self, ppid, pgrp, sid, fh, uid, gid, pRootDir, pWorkingDir, umask);
     }
+
+    *pOutSelf = self;
     return err;
 }
 

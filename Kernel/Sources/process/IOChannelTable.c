@@ -84,6 +84,7 @@ static errno_t _ioct_ensure_size(IOChannelTable* _Nonnull _Locked self, int max_
 
     if (self->table) {
         memcpy(new_table, self->table, sizeof(IOChannelRef) * self->table_size);
+        kfree(self->table);
     }
     self->table = new_table;
     self->table_size = new_table_size;

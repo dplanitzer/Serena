@@ -106,7 +106,7 @@ extern void uwq_destroy(UWaitQueue* _Nullable self);
 // and must be provided. 'pgrp' is an exiting process group id if > 0; if == 0
 // then the new process will be the leader of a new process group with a group
 // id equal to its pid. Same for 'sid'.
-extern errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull pFileHierarchy, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask, ProcessRef _Nullable * _Nonnull pOutSelf);
+extern errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask, ProcessRef _Nullable * _Nonnull pOutSelf);
 extern void Process_deinit(ProcessRef _Nonnull self);
 
 // Returns true if the process is the root process
