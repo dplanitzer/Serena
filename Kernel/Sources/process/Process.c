@@ -103,9 +103,18 @@ void Process_deinit(ProcessRef _Nonnull self)
     mtx_deinit(&self->mtx);
 }
 
-errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpuid_t* _Nonnull idp)
+static void _vcpu_relinquish_self(void)
+{
+    vcpu_t vp = vcpu_current();
+
+    Process_RelinquishVirtualProcessor(vp->proc, vp);
+    /* NOT REACHED */
+}
+
+errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_acquire_attr_t* _Nonnull attr, vcpu_t _Nullable * _Nonnull pOutVp)
 {
     decl_try_err();
+    const bool is_uproc = (self != gKernelProcess) ? true : false;
     vcpu_t vp = NULL;
     VirtualProcessorParameters kp;
 
@@ -116,13 +125,13 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
 
     kp.func = (VoidFunc_1)attr->func;
     kp.context = attr->arg;
-    kp.ret_func = vcpu_uret_relinquish_self;
+    kp.ret_func = (is_uproc) ? vcpu_uret_relinquish_self : _vcpu_relinquish_self;
     kp.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
-    kp.userStackSize = __max(attr->stack_size, VP_DEFAULT_USER_STACK_SIZE);
+    kp.userStackSize = (is_uproc) ? __max(attr->stack_size, VP_DEFAULT_USER_STACK_SIZE) : 0;
     kp.id = self->next_avail_vcpuid++;
     kp.groupid = attr->groupid;
     kp.priority = attr->priority;
-    kp.isUser = true;
+    kp.isUser = is_uproc;
 
     try(vcpu_pool_acquire(g_vcpu_pool, &kp, &vp));
 
@@ -134,7 +143,7 @@ catch:
     mtx_unlock(&self->mtx);
 
     if (err == EOK) {
-        *idp = vp->id;
+        *pOutVp = vp;
 
         if ((attr->flags & VCPU_ACQUIRE_RESUMED) == VCPU_ACQUIRE_RESUMED) {
             vcpu_resume(vp, false);
