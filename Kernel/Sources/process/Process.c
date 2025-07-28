@@ -57,7 +57,7 @@ errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonn
     List_Init(&self->vcpu_queue);
     self->next_avail_vcpuid = VCPUID_MAIN + 1;
 
-    try(IOChannelTable_Init(&self->ioChannelTable));
+    IOChannelTable_Init(&self->ioChannelTable);
 
     for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
         List_Init(&self->waitQueueTable[i]);
