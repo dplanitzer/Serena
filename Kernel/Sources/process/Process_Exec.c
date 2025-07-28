@@ -166,7 +166,6 @@ static errno_t _proc_build_exec_image(ProcessRef _Nonnull _Locked self, const ch
 
 
 catch:
-    //XXX free the executable image if an error occurred
     IOChannel_Release(chan);
 
     return err;
@@ -191,7 +190,7 @@ static void _proc_img_deactivate_current(ProcessRef _Nonnull self)
 
 static void _proc_img_activate(ProcessRef _Nonnull self, const proc_img_t* _Nonnull pimg)
 {
-    AddressSpace_AdoptMappingsFrom(self->addr_space, &pimg->as);
+    AddressSpace_AdoptMappingsFrom(&self->addr_space, &pimg->as);
     List_InsertAfterLast(&self->vcpu_queue, &pimg->main_vp->owner_qe);
     pimg->main_vp->proc = self;
     self->pargs_base = pimg->pargs;

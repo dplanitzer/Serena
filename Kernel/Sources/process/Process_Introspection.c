@@ -56,7 +56,7 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, proc_info_t* _Nonnull info)
     mtx_lock(&self->mtx);
     info->pid = self->pid;
     info->ppid = self->ppid;
-    info->virt_size = AddressSpace_GetVirtualSize(self->addr_space);
+    info->virt_size = AddressSpace_GetVirtualSize(&self->addr_space);
     mtx_unlock(&self->mtx);
 
     return EOK;

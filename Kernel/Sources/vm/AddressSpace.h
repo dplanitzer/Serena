@@ -21,9 +21,6 @@ typedef struct AddressSpace {
 } AddressSpace;
 
 
-extern errno_t AddressSpace_Create(AddressSpaceRef _Nullable * _Nonnull pOutSelf);
-extern void AddressSpace_Destroy(AddressSpaceRef _Nullable self);
-
 extern void AddressSpace_Init(AddressSpaceRef _Nonnull self);
 extern void AddressSpace_Deinit(AddressSpaceRef _Nonnull self);
 

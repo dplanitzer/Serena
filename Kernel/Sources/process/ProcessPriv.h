@@ -58,7 +58,7 @@ final_class_ivars(Process, Object,
     CatalogId                       catalogId;  // proc-fs catalog id
 
     // Process image
-    AddressSpaceRef _Nonnull        addr_space;
+    AddressSpace                    addr_space;
     char* _Nullable _Weak           pargs_base; // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
 
     // VPs

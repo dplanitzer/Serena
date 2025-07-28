@@ -25,28 +25,6 @@ typedef struct MemBlocks {
 } MemBlocks;
 
 
-errno_t AddressSpace_Create(AddressSpaceRef _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    AddressSpaceRef self;
-
-    err = kalloc_cleared(sizeof(AddressSpace), (void**) &self);
-    if (err == EOK) {
-        AddressSpace_Init(self);
-    }
-
-    *pOutSelf = self;
-    return err;
-}
-
-void AddressSpace_Destroy(AddressSpaceRef _Nullable self)
-{
-    if (self) {
-        AddressSpace_Deinit(self);
-        kfree(self);
-    }
-}
-
 void AddressSpace_Init(AddressSpaceRef _Nonnull self)
 {
     SList_Init(&self->mblocks);
