@@ -186,6 +186,31 @@ catch:
     return err;
 }
 
+static void _proc_img_deactivate_current(ProcessRef _Nonnull self)
+{
+    if (List_IsEmpty(&self->vcpu_queue)) {
+        return;
+    }
+
+    
+    List_Remove(&self->vcpu_queue, &vcpu_current()->owner_qe);
+    _proc_abort_other_vcpus(self);
+
+    mtx_unlock(&self->mtx);
+    _proc_reap_vcpus(self);
+    mtx_lock(&self->mtx);
+
+    IOChannelTable_ReleaseExecChannels(&self->ioChannelTable);
+}
+
+static void _proc_img_activate(ProcessRef _Nonnull self, const proc_img_t* _Nonnull pimg)
+{
+    AddressSpace_AdoptMappingsFrom(self->addr_space, &pimg->as);
+    List_InsertAfterLast(&self->vcpu_queue, &pimg->main_vp->owner_qe);
+    pimg->main_vp->proc = self;
+    self->pargs_base = pimg->pargs;
+}
+
 errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, const char* _Nullable argv[], const char* _Nullable env[], bool resumed)
 {
     decl_try_err();
@@ -217,22 +242,8 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
     // - a new vcpu suitable to act as a main vcpu
     // we'll now demolish the existing executable image and install the new
     // address map and main vcpu
-    if (!List_IsEmpty(&self->vcpu_queue)) {
-        List_Remove(&self->vcpu_queue, &vcpu_current()->owner_qe);
-        _proc_abort_other_vcpus(self);
-
-        mtx_unlock(&self->mtx);
-        _proc_reap_vcpus(self);
-        mtx_lock(&self->mtx);
-
-        IOChannelTable_ReleaseExecChannels(&self->ioChannelTable);
-    }
-
-    
-    AddressSpace_AdoptMappingsFrom(self->addr_space, &pimg.as);
-    List_InsertAfterLast(&self->vcpu_queue, &pimg.main_vp->owner_qe);
-    pimg.main_vp->proc = self;
-    self->pargs_base = pimg.pargs;
+    _proc_img_deactivate_current(self);
+    _proc_img_activate(self, &pimg);
 
 
 catch:
