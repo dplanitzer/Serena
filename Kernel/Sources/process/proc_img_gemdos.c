@@ -1,32 +1,26 @@
 //
-//  GemDosExecutableLoader.c
+//  proc_img_gemdos.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/25/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "GemDosExecutableLoader.h"
-#include <filesystem/Filesystem.h>
-#include <filesystem/FileChannel.h>
-#include <kern/kernlib.h>
-#include <kern/limits.h>
+#include "proc_img_gemdos.h"
 #include <kern/string.h>
-#include <log/Log.h>
-#include <machine/cpu.h>
 
 
-static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _Nonnull self, uint8_t* _Nonnull pRelocBase, uint8_t* pTextBase)
+static void _proc_img_gemdos_reloc(proc_img_t* _Nonnull self, uint8_t* _Nonnull reloc_base, uint8_t* txt_base)
 {
-    const int32_t firstRelocOffset = *((uint32_t*)pRelocBase);
+    const int32_t firstRelocOffset = *((uint32_t*)reloc_base);
 
     if (firstRelocOffset == 0) {
-        return EOK;
+        return;
     }
 
-    const uint32_t offset = (uint32_t)pTextBase;
+    const uint32_t offset = (uint32_t)txt_base;
     uint8_t* pLoc = (uint8_t*) (offset + firstRelocOffset);
-    uint8_t* p = (uint8_t*) (pRelocBase + sizeof(uint32_t));
+    uint8_t* p = (uint8_t*) (reloc_base + sizeof(uint32_t));
     bool done = false;
 
     *((uint32_t*) pLoc) += offset;
@@ -49,24 +43,18 @@ static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _N
                 break;
         }
     }
-    
-    return EOK;
 }
 
-errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, FileChannelRef _Nonnull chan, void* _Nullable * _Nonnull pOutImageBase, void* _Nullable * _Nonnull pOutEntryPoint)
+errno_t _proc_img_load_gemdos_exec(proc_img_t* _Nonnull self, FileChannelRef _Nonnull chan)
 {
     decl_try_err();
     off_t fileSize = FileChannel_GetFileSize(chan);
     off_t fileOffset;
-    GemDosExecutableHeader hdr;
+    gemdos_hdr_t hdr;
     ssize_t nBytesRead;
 
-    *pOutImageBase = NULL;
-    *pOutEntryPoint = NULL;
-
-
     // Do some basic file size validation
-    if (fileSize < sizeof(GemDosExecutableHeader)) {
+    if (fileSize < sizeof(gemdos_hdr_t)) {
         throw(ENOEXEC);
     }
     else if (fileSize > SIZE_MAX) {
@@ -87,7 +75,7 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, FileC
 
 
     // Validate the header (somewhat anyway)
-    if (nBytesRead < sizeof(GemDosExecutableHeader)) {
+    if (nBytesRead < sizeof(gemdos_hdr_t)) {
         throw(ENOEXEC);
     }
 
@@ -108,46 +96,44 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, FileC
 
 
     // Allocate the text, data and BSS segments 
-    const size_t nbytes_to_read = sizeof(GemDosExecutableHeader) + hdr.text_size + hdr.data_size;
+    const size_t nbytes_to_read = sizeof(gemdos_hdr_t) + hdr.text_size + hdr.data_size;
     const size_t fileOffset_to_reloc = nbytes_to_read + hdr.symbol_table_size;
     const size_t reloc_size = (size_t)(fileSize - fileOffset_to_reloc);
     const size_t nbytes_to_alloc = __Ceil_PowerOf2(nbytes_to_read + __max(hdr.bss_size, reloc_size), CPU_PAGE_SIZE);
-    uint8_t* pImageBase = NULL;
-    try(AddressSpace_Allocate(self->addressSpace, nbytes_to_alloc, (void**)&pImageBase));
+    uint8_t* img_base = NULL;
+    try(AddressSpace_Allocate(&self->as, nbytes_to_alloc, (void**)&img_base));
 
 
     // Read the executable header, text and data segments into memory
     IOChannel_Seek((IOChannelRef)chan, 0ll, NULL, SEEK_SET);
-    try(IOChannel_Read((IOChannelRef)chan, pImageBase, nbytes_to_read, &nBytesRead));
+    try(IOChannel_Read((IOChannelRef)chan, img_base, nbytes_to_read, &nBytesRead));
     if (nBytesRead != nbytes_to_read) {
         throw(EIO);
     }
 
 
     // Read the relocation information into memory
-    uint8_t* pRelocBase = pImageBase + nbytes_to_read;
+    uint8_t* reloc_base = img_base + nbytes_to_read;
     IOChannel_Seek((IOChannelRef)chan, fileOffset_to_reloc, NULL, SEEK_SET);
-    try(IOChannel_Read((IOChannelRef)chan, pRelocBase, reloc_size, &nBytesRead));
+    try(IOChannel_Read((IOChannelRef)chan, reloc_base, reloc_size, &nBytesRead));
     if (nBytesRead != reloc_size) {
         throw(EIO);
     }
 
 
     // Relocate the executable
-    uint8_t* pTextBase = pImageBase + sizeof(GemDosExecutableHeader);
-    try(GemDosExecutableLoader_RelocExecutable(self, pRelocBase, pTextBase));
+    uint8_t* txt_base = img_base + sizeof(gemdos_hdr_t);
+    _proc_img_gemdos_reloc(self, reloc_base, txt_base);
 
 
     // Initialize the BSS segment
-    memset(pImageBase + nbytes_to_read, 0, hdr.bss_size);
+    memset(img_base + nbytes_to_read, 0, hdr.bss_size);
 
 
     // Return the result pointers
-    *pOutImageBase = pImageBase; 
-    *pOutEntryPoint = pTextBase;
+    self->base = img_base; 
+    self->entry_point = txt_base;
 
 catch:
-    // XXX should free pImageBase if it exists
-
     return err;
 }

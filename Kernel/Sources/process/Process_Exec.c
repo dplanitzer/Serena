@@ -7,7 +7,7 @@
 //
 
 #include "ProcessPriv.h"
-#include "GemDosExecutableLoader.h"
+#include "proc_img_gemdos.h"
 #include <kei/kei.h>
 #include <kern/string.h>
 #include <dispatchqueue/DispatchQueue.h>
@@ -128,20 +128,6 @@ static errno_t _proc_img_acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void
 
 // Loads an executable from the given executable file into the process address
 // space.
-static errno_t _proc_img_load_exec_file(proc_img_t* _Nonnull pimg, FileChannelRef _Locked chan)
-{
-    decl_try_err();
-    GemDosExecutableLoader loader;
-
-    GemDosExecutableLoader_Init(&loader, &pimg->as);
-    err = GemDosExecutableLoader_Load(&loader, chan, &pimg->base, &pimg->entry_point);
-    GemDosExecutableLoader_Deinit(&loader);
-
-    return err;
-}
-
-// Loads an executable from the given executable file into the process address
-// space.
 // \param self the process into which the executable image should be loaded
 // \param path path to the executable file
 // \param argv the command line arguments for the process. NULL means that the arguments are {path, NULL}
@@ -171,7 +157,7 @@ static errno_t _proc_build_exec_image(ProcessRef _Nonnull _Locked self, const ch
 
 
     // Load the executable
-    try(_proc_img_load_exec_file(pimg, (FileChannelRef)chan));
+    try(_proc_img_load_gemdos_exec(pimg, (FileChannelRef)chan));
     pargs->image_base = pimg->base;
 
 
@@ -192,7 +178,7 @@ static void _proc_img_deactivate_current(ProcessRef _Nonnull self)
         return;
     }
 
-    
+
     List_Remove(&self->vcpu_queue, &vcpu_current()->owner_qe);
     _proc_abort_other_vcpus(self);
 
