@@ -25,7 +25,6 @@ typedef struct AddressSpace {
 extern void AddressSpace_Init(AddressSpaceRef _Nonnull self);
 extern void AddressSpace_Deinit(AddressSpaceRef _Nonnull self);
 
-extern bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull self);
 extern size_t AddressSpace_GetVirtualSize(AddressSpaceRef _Nonnull self);
 
 // Allocates a memory block of size 'nbytes' and adds it to the address space.

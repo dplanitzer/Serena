@@ -37,15 +37,6 @@ void AddressSpace_Deinit(AddressSpaceRef _Nonnull self)
     mtx_deinit(&self->mtx);
 }
 
-bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull self)
-{
-    mtx_lock(&self->mtx);
-    const bool isEmpty = SList_IsEmpty(&self->mblocks) || ((MemBlocks*) self->mblocks.first)->count == 0;
-    mtx_unlock(&self->mtx);
-
-    return isEmpty;
-}
-
 size_t AddressSpace_GetVirtualSize(AddressSpaceRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
