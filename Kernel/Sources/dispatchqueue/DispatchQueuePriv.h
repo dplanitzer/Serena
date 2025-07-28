@@ -87,25 +87,22 @@ enum QueueState {
 
 #define MAX_ITEM_CACHE_COUNT    8
 final_class_ivars(DispatchQueue, Object,
-    SList                               item_queue;         // SList<WorkItem> Queue of work items that should be executed as soon as possible
-    SList                               timer_queue;        // SList<WorkItem> Queue of items that should be executed on or after their deadline
-    SList                               item_cache_queue;   // SList<WorkItem> Cache of reusable work items
-    mtx_t                               lock;
-    cnd_t                               work_available_signaler;    // Used by the queue to indicate to its VPs that a new work item/timer has been enqueued
-    cnd_t                               vp_shutdown_signaler;       // Used by a VP to indicate that it has relinquished itself because the queue is in the process of shutting down
-    ProcessRef _Nullable _Weak          owning_process;             // The process that owns this queue
-    int                                 descriptor;                 // The user space descriptor of this queue
-    vcpu_pool_t _Nonnull                virtual_processor_pool;     // Pool from which the queue should retrieve virtual processors
-    int                                 items_queued_count;         // Number of work items queued up (item_queue && timer_queue)
-    volatile int8_t                     state;                      // The current dispatch queue state
-    int8_t                              minConcurrency;             // Minimum number of concurrency lanes that we are required to maintain. So we should not allow availableConcurrency to fall below this when we think we want to voluntarily relinquish a VP
-    int8_t                              maxConcurrency;             // Maximum number of concurrency lanes we are allowed to allocate and use
-    int8_t                              availableConcurrency;       // Number of concurrency lanes we have acquired and are available for use
-    int8_t                              qos;
-    int8_t                              priority;
-    int8_t                              item_cache_capacity;
-    int8_t                              item_cache_count;
-    ConcurrencyLane                     concurrency_lanes[1];       // Up to 'maxConcurrency' concurrency lanes
+    SList               item_queue;         // SList<WorkItem> Queue of work items that should be executed as soon as possible
+    SList               timer_queue;        // SList<WorkItem> Queue of items that should be executed on or after their deadline
+    SList               item_cache_queue;   // SList<WorkItem> Cache of reusable work items
+    mtx_t               lock;
+    cnd_t               work_available_signaler;    // Used by the queue to indicate to its VPs that a new work item/timer has been enqueued
+    cnd_t               vp_shutdown_signaler;       // Used by a VP to indicate that it has relinquished itself because the queue is in the process of shutting down
+    int                 items_queued_count;         // Number of work items queued up (item_queue && timer_queue)
+    volatile int8_t     state;                      // The current dispatch queue state
+    int8_t              minConcurrency;             // Minimum number of concurrency lanes that we are required to maintain. So we should not allow availableConcurrency to fall below this when we think we want to voluntarily relinquish a VP
+    int8_t              maxConcurrency;             // Maximum number of concurrency lanes we are allowed to allocate and use
+    int8_t              availableConcurrency;       // Number of concurrency lanes we have acquired and are available for use
+    int8_t              qos;
+    int8_t              priority;
+    int8_t              item_cache_capacity;
+    int8_t              item_cache_count;
+    ConcurrencyLane     concurrency_lanes[1];       // Up to 'maxConcurrency' concurrency lanes
 );
 
 

@@ -46,7 +46,7 @@ static void DiskDriver_deinit(DiskDriverRef _Nonnull self)
 
 errno_t DiskDriver_createDispatchQueue(DiskDriverRef _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
 {
-    return DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, g_vcpu_pool, NULL, pOutQueue);
+    return DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, pOutQueue);
 }
 
 void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)

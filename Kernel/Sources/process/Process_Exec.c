@@ -12,6 +12,7 @@
 #include <kern/string.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <sched/vcpu.h>
+#include <sched/vcpu_pool.h>
 
 
 static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], ssize_t maxByteCount, size_t* _Nonnull pOutTableEntryCount)

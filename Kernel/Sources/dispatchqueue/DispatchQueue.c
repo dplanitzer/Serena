@@ -11,9 +11,10 @@
 #include <kern/kalloc.h>
 #include <kern/string.h>
 #include <kern/timespec.h>
+#include <sched/vcpu_pool.h>
 
 
-errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, vcpu_pool_t _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
+errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
 {
     decl_try_err();
     DispatchQueueRef self = NULL;
@@ -32,9 +33,6 @@ errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, in
     mtx_init(&self->lock);
     cnd_init(&self->work_available_signaler);
     cnd_init(&self->vp_shutdown_signaler);
-    self->owning_process = pProc;
-    self->descriptor = -1;
-    self->virtual_processor_pool = vpPoolRef;
     self->state = kQueueState_Running;
     self->minConcurrency = (int8_t)minConcurrency;
     self->maxConcurrency = (int8_t)maxConcurrency;
@@ -146,8 +144,6 @@ static void _DispatchQueue_Destroy(DispatchQueueRef _Nonnull self)
     mtx_deinit(&self->lock);
     cnd_deinit(&self->work_available_signaler);
     cnd_deinit(&self->vp_shutdown_signaler);
-    self->owning_process = NULL;
-    self->virtual_processor_pool = NULL;
 }
 
 // Destroys the dispatch queue. The queue is first terminated if it isn't already
@@ -216,10 +212,7 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
         params.priority = self->qos * kDispatchPriority_Count + (self->priority + kDispatchPriority_Count / 2) + VP_PRIORITIES_RESERVED_LOW;
         params.isUser = false;
 
-        err = vcpu_pool_acquire(
-                                            self->virtual_processor_pool,
-                                            &params,
-                                            &vp);
+        err = vcpu_pool_acquire(g_vcpu_pool, &params, &vp);
         if (err == EOK) {
             DispatchQueue_AttachVirtualProcessor_Locked(self, vp, conLaneIdx);
             vcpu_resume(vp, false);
@@ -447,29 +440,6 @@ static bool DispatchQueue_HasItemWithTag_Locked(DispatchQueueRef _Nonnull self, 
 DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void)
 {
     return (DispatchQueueRef) vcpu_current()->dispatchQueue;
-}
-
-
-// Returns the process that owns the dispatch queue. Returns NULL if the dispatch
-// queue is not owned by any particular process. Eg the kernel main dispatch queue.
-ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonnull self)
-{
-    return self->owning_process;
-}
-
-// Sets the dispatch queue descriptor
-// Not concurrency safe
-void DispatchQueue_SetDescriptor(DispatchQueueRef _Nonnull self, int desc)
-{
-    self->descriptor = desc;
-}
-
-// Returns the dispatch queue descriptor and -1 if no descriptor has been set on
-// the queue.
-// Not concurrency safe
-int DispatchQueue_GetDescriptor(DispatchQueueRef _Nonnull self)
-{
-    return self->descriptor;
 }
 
 
