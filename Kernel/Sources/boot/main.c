@@ -173,21 +173,21 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     kei_init();
     
     
-    // Create the root file hierarchy and process.
+    // Create the root file hierarchy
     FileHierarchyRef pRootFh = create_root_file_hierarchy(&gBootScreen);
-    ProcessRef pRootProc;
-    try(RootProcess_Create(pRootFh, &pRootProc));
+
+
+    // Create the kerneld process
+    KernelProcess_Init(pRootFh, &gKernelProcess);
     Object_Release(pRootFh);
 
 
     // Create the process manager and publish the root process
-    try(ProcessManager_Create(pRootProc, &gProcessManager));
+    try(ProcessManager_Create(gKernelProcess, &gProcessManager));
 
 
-    // Get the root process going
-    const char* systemd = "/System/Commands/systemd";
-    const char* argv[2] = {systemd, NULL};
-    try(Process_Exec(pRootProc, systemd, argv, NULL, true));
+    // Spawn systemd
+    try(KernelProcess_SpawnSystemd(gKernelProcess));
 
     
     // The boot virtual processor now takes over the duties of running the

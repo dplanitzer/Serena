@@ -99,11 +99,15 @@ errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, 
 
 catch:
     if (err == EOK) {
-        *pOutPid = cp->pid;
+        if (pOutPid) {
+            *pOutPid = cp->pid;
+        }
     }
     else {
         Object_Release(cp);
-        *pOutPid = 0;
+        if (pOutPid) {
+            *pOutPid = 0;
+        }
     }
 
     return err;

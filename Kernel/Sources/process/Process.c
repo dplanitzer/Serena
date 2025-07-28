@@ -10,6 +10,13 @@
 #include <filemanager/FileHierarchy.h>
 #include <sched/vcpu_pool.h>
 
+static const char*      g_systemd_argv[2] = { "/System/Commands/systemd", NULL };
+static const char*      g_kernel_argv[2] = { "kerneld", NULL };
+static const char*      g_kernel_env[1] = { NULL };
+static pargs_t          g_kernel_pargs;
+static struct Process   g_kernel_proc_storage;
+ProcessRef _Nonnull gKernelProcess;
+
 
 class_func_defs(Process, Object,
 override_func_def(deinit, Process, Object)
@@ -21,16 +28,6 @@ static pid_t make_unique_pid(void)
 {
     static volatile AtomicInt g_prev_pid = 0;
     return AtomicInt_Increment(&g_prev_pid);
-}
-
-
-errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf)
-{
-    InodeRef rootDir = FileHierarchy_AcquireRootDirectory(pRootFh);
-    const errno_t err = Process_Create(1, 0, 0, pRootFh, kUserId_Root, kGroupId_Root, rootDir, rootDir, perm_from_octal(0022), pOutSelf);
-
-    Inode_Relinquish(rootDir);
-    return err;
 }
 
 
@@ -265,4 +262,40 @@ void Process_ExceptionReturn(ProcessRef _Nonnull self, vcpu_t _Nonnull vp)
     usp_set(usp);
 
     vp->flags &= ~VP_FLAG_HANDLING_EXCPT;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Kernel Process
+
+void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf)
+{
+    InodeRef rootDir = FileHierarchy_AcquireRootDirectory(pRootFh);
+    
+    Process_Init(&g_kernel_proc_storage, 1, 0, 0, pRootFh, kUserId_Root, kGroupId_Root, rootDir, rootDir, perm_from_octal(0022));
+    Inode_Relinquish(rootDir);
+
+    g_kernel_pargs.version = sizeof(pargs_t);
+    g_kernel_pargs.argc = 1;
+    g_kernel_pargs.argv = g_kernel_argv;
+    g_kernel_pargs.envp = g_kernel_env;
+    g_kernel_proc_storage.pargs_base = (char*)&g_kernel_pargs;
+
+    vcpu_t main_vp = vcpu_current();
+    main_vp->proc = &g_kernel_proc_storage;
+    main_vp->id = VCPUID_MAIN;
+    main_vp->groupid = VCPUID_MAIN_GROUP;
+    List_InsertAfterLast(&g_kernel_proc_storage.vcpu_queue, &main_vp->owner_qe);
+
+    *pOutSelf = &g_kernel_proc_storage;
+}
+
+errno_t KernelProcess_SpawnSystemd(ProcessRef _Nonnull self)
+{
+    spawn_opts_t opts = (spawn_opts_t){0};
+
+    opts.options = kSpawn_NewProcessGroup | kSpawn_NewSession;
+
+    return Process_SpawnChild(self, g_systemd_argv[0], g_systemd_argv, &opts, NULL);
 }

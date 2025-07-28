@@ -22,14 +22,19 @@
 final_class(Process, Object);
 
 
-extern ProcessRef _Nonnull  gRootProcess;
+extern ProcessRef _Nonnull  gKernelProcess;
 
 #define Process_GetCurrent() \
 g_sched->running->proc
 
 
-// Creates the root process which is the first process of the OS.
-extern errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf);
+// Initializes the kerneld process and adopts the calling vcpu as kerneld's main
+// vcpu.
+extern void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf);
+
+// Spawns systemd from the kernel process context.
+extern errno_t KernelProcess_SpawnSystemd(ProcessRef _Nonnull self);
+
 
 
 // Terminates the calling process and stores 'reason' and 'code' as the exit

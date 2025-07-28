@@ -88,7 +88,7 @@ void proc_excpt_handler_test(int argc, char *argv[])
     excpt_handler_t h;
 
     h.func = ex_handler;
-    h.arg = "exiting fro mhandler";
+    h.arg = "exiting from handler";
     excpt_sethandler(EXCPT_SCOPE_PROC, 0, &h, NULL);
     
     const int r = movesr();
