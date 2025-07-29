@@ -144,15 +144,12 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
 // caller until all of them are dead and gone.
 static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 {
-    mtx_lock(&self->mtx);
-    const int hasChildren = self->children.first != NULL;
-    mtx_unlock(&self->mtx);
+    decl_try_err();
 
-
-    if (hasChildren) {
-        vcpu_sigroute(vcpu_current(), SIG_ROUTE_ENABLE);
-        ProcessManager_SendSignal(gProcessManager, self->sid, SIG_SCOPE_PROC_CHILDREN, self->pid, SIGKILL);
-
+    vcpu_sigroute(vcpu_current(), SIG_ROUTE_ENABLE);
+    
+    err = ProcessManager_SendSignal(gProcessManager, self->sid, SIG_SCOPE_PROC_CHILDREN, self->pid, SIGKILL);
+    if (err == EOK) {
         for (;;) {
             struct proc_status ps;
 
@@ -160,8 +157,9 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
                 break;
             }
         }
-        vcpu_sigrouteoff(vcpu_current());
     }
+
+    vcpu_sigrouteoff(vcpu_current());
 }
 
 // Initiate an abort on every virtual processor attached to ourselves. Note that

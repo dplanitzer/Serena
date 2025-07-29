@@ -168,7 +168,7 @@ errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, id_t sender_s
     }
     mtx_unlock(&self->mtx);
 
-    if (!hasMatched && err == EOK) {
+    if (err == EOK && !hasMatched) {
         err = ESRCH;
     }
 
