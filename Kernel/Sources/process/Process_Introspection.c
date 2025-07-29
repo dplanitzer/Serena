@@ -37,17 +37,7 @@ errno_t Process_Unpublish(ProcessRef _Locked _Nonnull self)
 
 errno_t Process_Open(ProcessRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    decl_try_err();
-
-    //XXX note that the open() syscall is holding the lock
-    err = ProcChannel_Create(class(ProcChannel), 0, SEO_FT_PROCESS, mode, self, pOutChannel);
-
-    return err;
-}
-
-errno_t Process_Close(ProcessRef _Nonnull self, IOChannelRef _Nonnull chan)
-{
-    return EOK;
+    return ProcChannel_Create(class(ProcChannel), 0, SEO_FT_PROCESS, mode, self->pid, pOutChannel);
 }
 
 

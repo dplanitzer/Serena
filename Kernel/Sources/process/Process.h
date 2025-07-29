@@ -85,7 +85,6 @@ extern void Process_SetExceptionHandler(ProcessRef _Nonnull self, const excpt_ha
 //
 
 extern errno_t Process_Open(ProcessRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
-extern errno_t Process_Close(ProcessRef _Nonnull self, IOChannelRef _Nonnull chan);
 
 
 extern errno_t Process_GetInfo(ProcessRef _Nonnull self, proc_info_t* _Nonnull info);
