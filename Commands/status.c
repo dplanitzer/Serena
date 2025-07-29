@@ -52,7 +52,7 @@ static void show_proc(const char* _Nonnull pidStr)
             const char* pnam = (lastPathComponent) ? lastPathComponent + 1 : path_buf;
 
             ultoa((unsigned long)info.virt_size, num_buf, 10);
-            printf("%d  %s  %zu  %s  %s  %d  %d  %d\n", info.pid, pnam, info.vcpu_count, (info.pid > 1) ? num_buf : "-", state_name[info.state], info.pgrp, info.sid, info.ppid);
+            printf("%d  %s  %zu  %s  %s  %d  %d  %d  %d\n", info.pid, pnam, info.vcpu_count, (info.pid > 1) ? num_buf : "-", state_name[info.state], info.uid, info.sid, info.pgrp, info.ppid);
         }
 
         close(fd);
@@ -65,7 +65,7 @@ static int show_procs(void)
 
     dir = opendir("/proc");
     if (dir) {
-        printf("PID  Command  #VP  Memory  State  PGRP SID PPID\n");
+        printf("PID  Command  #VP  Memory  State  UID  SID  PGRP  PPID\n");
 
         for (;;) {
             struct dirent* dep = readdir(dir);

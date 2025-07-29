@@ -47,6 +47,7 @@ typedef struct proc_info {
     size_t  vcpu_count; // Number of vcpus currently assigned to the process
     size_t  virt_size;  // Size of allocated address space
     int     state;      // Current process state (PROC_STATE_XXX)
+    uid_t   uid;        // User owning this process
 } proc_info_t;
 
 // Returns general information about the process.

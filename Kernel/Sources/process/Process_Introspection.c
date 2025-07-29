@@ -96,6 +96,7 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, proc_info_t* _Nonnull info)
     info->sid = self->sid;
     info->vcpu_count = self->vcpu_count;
     info->state = _proc_calc_state(self);
+    info->uid = FileManager_GetRealUserId(&self->fm);
     mtx_unlock(&self->mtx);
 
     info->virt_size = AddressSpace_GetVirtualSize(&self->addr_space);
