@@ -38,6 +38,24 @@ static int open_proc(const char* _Nonnull pidStr)
     return (fd >= 0) ? fd : -1;
 }
 
+static void fmt_mem_size(size_t msize, char* _Nonnull buf)
+{
+#define N_UNITS 4
+    static const char* postfix[N_UNITS] = { "", "K", "M", "G" };
+    int pi = 0;
+
+    for (;;) {
+        if (msize < 1024 || pi == N_UNITS) {
+            ultoa((unsigned long)msize, buf, 10);
+            strcat(buf, postfix[pi]);
+            break;
+        }
+
+        msize >>= 10;
+        pi++;
+    }
+}
+
 static void show_proc(const char* _Nonnull pidStr)
 {
     proc_info_t info;
@@ -51,8 +69,14 @@ static void show_proc(const char* _Nonnull pidStr)
             const char* lastPathComponent = strrchr(path_buf, '/');
             const char* pnam = (lastPathComponent) ? lastPathComponent + 1 : path_buf;
 
-            ultoa((unsigned long)info.virt_size, num_buf, 10);
-            printf("%d  %s  %zu  %s  %s  %d  %d  %d  %d\n", info.pid, pnam, info.vcpu_count, (info.pid > 1) ? num_buf : "-", state_name[info.state], info.uid, info.sid, info.pgrp, info.ppid);
+            if (info.pid > 1) {
+                fmt_mem_size(info.virt_size, num_buf);
+            }
+            else {
+                strcpy(num_buf, "-");
+            }
+
+            printf("%d  %s  %zu  %s  %s  %d  %d  %d  %d\n", info.pid, pnam, info.vcpu_count, num_buf, state_name[info.state], info.uid, info.sid, info.pgrp, info.ppid);
         }
 
         close(fd);
