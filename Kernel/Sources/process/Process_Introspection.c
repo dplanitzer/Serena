@@ -51,6 +51,42 @@ errno_t Process_Close(ProcessRef _Nonnull self, IOChannelRef _Nonnull chan)
 }
 
 
+static int _proc_calc_state(ProcessRef _Nonnull _Locked self)
+{
+    if (self->state >= PROC_LIFECYCLE_ZOMBIFYING) {
+        return PROC_STATE_ZOMBIE;
+    }
+
+
+    // Process is waiting if all vcpus are waiting
+    // Process is suspended if all vcpus are suspended
+    size_t nwaiting = 0, nsuspended = 0;
+    List_ForEach(&self->vcpu_queue, ListNode,
+        vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
+
+        if (cvp->suspension_count > 0) {
+            nsuspended++;
+        }
+        else if (cvp->sched_state != SCHED_STATE_RUNNING) {
+            nwaiting++;
+        }
+        else {
+            break;
+        }
+    );
+
+
+    if (self->vcpu_count == nwaiting) {
+        return PROC_STATE_WAITING;
+    }
+    else if (self->vcpu_count == nsuspended) {
+        return PROC_STATE_SUSPENDED;
+    }
+    else {
+        return PROC_STATE_RUNNING;
+    }
+}
+
 errno_t Process_GetInfo(ProcessRef _Nonnull self, proc_info_t* _Nonnull info)
 {
     mtx_lock(&self->mtx);
@@ -59,6 +95,7 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, proc_info_t* _Nonnull info)
     info->pgrp = self->pgrp;
     info->sid = self->sid;
     info->vcpu_count = self->vcpu_count;
+    info->state = _proc_calc_state(self);
     mtx_unlock(&self->mtx);
 
     info->virt_size = AddressSpace_GetVirtualSize(&self->addr_space);

@@ -33,6 +33,11 @@ typedef struct pargs {
 } pargs_t;
 
 
+#define PROC_STATE_RUNNING      0
+#define PROC_STATE_WAITING      1
+#define PROC_STATE_SUSPENDED    2
+#define PROC_STATE_ZOMBIE       3
+
 // Process specific information
 typedef struct proc_info {
     pid_t   ppid;       // Parent pid
@@ -41,6 +46,7 @@ typedef struct proc_info {
     pid_t   sid;        // Session id
     size_t  vcpu_count; // Number of vcpus currently assigned to the process
     size_t  virt_size;  // Size of allocated address space
+    int     state;      // Current process state (PROC_STATE_XXX)
 } proc_info_t;
 
 // Returns general information about the process.

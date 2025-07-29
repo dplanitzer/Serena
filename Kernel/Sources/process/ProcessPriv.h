@@ -19,9 +19,9 @@
 
 
 // Process states
-#define PS_ALIVE      0
-#define PS_ZOMBIFYING 1
-#define PS_ZOMBIE     2
+#define PROC_LIFECYCLE_ACTIVE       0
+#define PROC_LIFECYCLE_ZOMBIFYING   1
+#define PROC_LIFECYCLE_ZOMBIE       2
 
 
 // Userspace wait queues

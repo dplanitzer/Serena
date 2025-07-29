@@ -39,7 +39,7 @@ static ProcessRef _Nullable _find_matching_zombie(ProcessRef _Nonnull self, int 
             case JOIN_PROC:
                 if (cpp->pid == id) {
                     *pOutExists = true;
-                    return (cpp->state == PS_ZOMBIE) ? cpp : NULL;
+                    return (cpp->state == PROC_LIFECYCLE_ZOMBIE) ? cpp : NULL;
                 }
                 hasMatch = 0;
                 break;
@@ -55,7 +55,7 @@ static ProcessRef _Nullable _find_matching_zombie(ProcessRef _Nonnull self, int 
 
         if (hasMatch) {
             *pOutExists = true;
-            if (cpp->state == PS_ZOMBIE) {
+            if (cpp->state == PROC_LIFECYCLE_ZOMBIE) {
                 return cpp;
             }
         }
@@ -238,7 +238,7 @@ void _proc_zombify(ProcessRef _Nonnull self)
     AddressSpace_UnmapAll(&self->addr_space);
     FileManager_Deinit(&self->fm);
 
-    self->state = PS_ZOMBIE;
+    self->state = PROC_LIFECYCLE_ZOMBIE;
 }
 
 _Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code)
@@ -250,10 +250,10 @@ _Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code)
 
 
     mtx_lock(&self->mtx);
-    const int isExitCoordinator = self->state < PS_ZOMBIFYING;
+    const int isExitCoordinator = self->state < PROC_LIFECYCLE_ZOMBIFYING;
     
     if (isExitCoordinator) {
-        self->state = PS_ZOMBIFYING;
+        self->state = PROC_LIFECYCLE_ZOMBIFYING;
         self->exit_reason = reason;
         self->exit_code = code;
 
