@@ -63,6 +63,7 @@ final_class_ivars(Process, Object,
 
     // VPs
     List                            vcpu_queue;     // List of VPs [mtx]
+    size_t                          vcpu_count;
     vcpuid_t                        next_avail_vcpuid;
 
     // I/O Channels

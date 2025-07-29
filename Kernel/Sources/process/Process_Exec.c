@@ -180,6 +180,7 @@ static void _proc_img_deactivate_current(ProcessRef _Nonnull self)
 
 
     List_Remove(&self->vcpu_queue, &vcpu_current()->owner_qe);
+    self->vcpu_count--;
     _proc_abort_other_vcpus(self);
 
     mtx_unlock(&self->mtx);
@@ -193,6 +194,7 @@ static void _proc_img_activate(ProcessRef _Nonnull self, const proc_img_t* _Nonn
 {
     AddressSpace_AdoptMappingsFrom(&self->addr_space, &pimg->as);
     List_InsertAfterLast(&self->vcpu_queue, &pimg->main_vp->owner_qe);
+    self->vcpu_count++;
     pimg->main_vp->proc = self;
     self->pargs_base = pimg->pargs;
 }

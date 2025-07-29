@@ -138,6 +138,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     vp->proc = self;
     vp->udata = attr->data;
     List_InsertAfterLast(&self->vcpu_queue, &vp->owner_qe);
+    self->vcpu_count++;
 
 catch:
     mtx_unlock(&self->mtx);
@@ -167,6 +168,7 @@ void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp
     mtx_lock(&self->mtx);
     List_Remove(&self->vcpu_queue, &vp->owner_qe);
     vp->proc = NULL;
+    self->vcpu_count--;
     mtx_unlock(&self->mtx);
 }
 

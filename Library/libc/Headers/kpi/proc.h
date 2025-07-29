@@ -35,8 +35,11 @@ typedef struct pargs {
 
 // Process specific information
 typedef struct proc_info {
-    pid_t   pid;        // Process pid
     pid_t   ppid;       // Parent pid
+    pid_t   pid;        // Process pid
+    pid_t   pgrp;       // Process group id
+    pid_t   sid;        // Session id
+    size_t  vcpu_count; // Number of vcpus currently assigned to the process
     size_t  virt_size;  // Size of allocated address space
 } proc_info_t;
 

@@ -54,10 +54,14 @@ errno_t Process_Close(ProcessRef _Nonnull self, IOChannelRef _Nonnull chan)
 errno_t Process_GetInfo(ProcessRef _Nonnull self, proc_info_t* _Nonnull info)
 {
     mtx_lock(&self->mtx);
-    info->pid = self->pid;
     info->ppid = self->ppid;
-    info->virt_size = AddressSpace_GetVirtualSize(&self->addr_space);
+    info->pid = self->pid;
+    info->pgrp = self->pgrp;
+    info->sid = self->sid;
+    info->vcpu_count = self->vcpu_count;
     mtx_unlock(&self->mtx);
+
+    info->virt_size = AddressSpace_GetVirtualSize(&self->addr_space);
 
     return EOK;
 }

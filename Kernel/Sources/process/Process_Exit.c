@@ -263,6 +263,7 @@ _Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code)
         // Take myself out from the vcpu list and send all other vcpus in the
         // process an abort signal.
         List_Remove(&self->vcpu_queue, &vcpu_current()->owner_qe);
+        self->vcpu_count--;
         _proc_abort_other_vcpus(self);
     }
     mtx_unlock(&self->mtx);
