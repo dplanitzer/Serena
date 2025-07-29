@@ -76,8 +76,6 @@ errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonn
 
 void Process_deinit(ProcessRef _Nonnull self)
 {
-    assert(List_IsEmpty(&self->children));
-    
     IOChannelTable_Deinit(&self->ioChannelTable);
     FileManager_Deinit(&self->fm);
 

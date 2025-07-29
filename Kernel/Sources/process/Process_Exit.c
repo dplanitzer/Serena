@@ -138,27 +138,6 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
     return EOK;
 }
 
-// Returns the PID of *any* of the receiver's children. This is used by the
-// termination code to terminate all children. We don't care about the order
-// in which we terminate the children but we do care that we trigger the
-// termination of all of them. Keep in mind that a child may itself trigger its
-// termination concurrently with our termination. The process is inherently
-// racy and thus we need to be defensive about things. Returns 0 if there are
-// no more children.
-static int Process_GetAnyChildPid(ProcessRef _Nonnull self)
-{
-    int pid = -1;
-
-    mtx_lock(&self->mtx);
-    if (self->children.first) {
-        ProcessRef pChildProc = proc_from_siblings(self->children.first);
-
-        pid = pChildProc->pid;
-    }
-    mtx_unlock(&self->mtx);
-    return pid;
-}
-
 
 
 // Force quit all child processes and reap their corpses. Do not return to the
