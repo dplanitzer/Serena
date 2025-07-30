@@ -28,40 +28,19 @@
 // check whether SIGKILL is pending. If it is return with EINTR since the vcpu is
 // in the process of getting shot down.
 
+
 static ProcessRef _Nullable _find_matching_zombie(ProcessRef _Nonnull self, int scope, pid_t id, bool* _Nonnull pOutExists)
 {
-    List_ForEach(&self->children, ListNode,
-        ProcessRef cpp = proc_from_siblings(pCurNode);
-        int hasMatch;
+    switch (scope) {
+        case JOIN_PROC:
+            return ProcessManager_CopyZombieOfParent(gProcessManager, self->pid, id, pOutExists);
 
-        *pOutExists = false;
-        switch (scope) {
-            case JOIN_PROC:
-                if (cpp->pid == id) {
-                    *pOutExists = true;
-                    return (cpp->state == PROC_LIFECYCLE_ZOMBIE) ? cpp : NULL;
-                }
-                hasMatch = 0;
-                break;
+        case JOIN_PROC_GROUP:
+            return ProcessManager_CopyGroupZombieOfParent(gProcessManager, self->pid, id, pOutExists);
 
-            case JOIN_PROC_GROUP:
-                hasMatch = cpp->pgrp == id;
-                break;
-
-            case JOIN_ANY:
-                hasMatch = 1;
-                break;
-        }
-
-        if (hasMatch) {
-            *pOutExists = true;
-            if (cpp->state == PROC_LIFECYCLE_ZOMBIE) {
-                return cpp;
-            }
-        }
-    );
-
-    return NULL;
+        case JOIN_ANY:
+            return ProcessManager_CopyAnyZombieOfParent(gProcessManager, self->pid, pOutExists);
+    }
 }
 
 // Waits for the child process with the given PID to terminate and returns the
@@ -103,7 +82,6 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
 
         zp = _find_matching_zombie(self, scope, id, &exists);
         if (zp) {
-            List_Remove(&self->children, &zp->siblings);
             mtx_unlock(&self->mtx);
             break;
         }
@@ -133,7 +111,8 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
     ps->u.status = zp->exit_code;
 
     ProcessManager_Deregister(gProcessManager, zp);
-    Object_Release(zp);
+    Object_Release(zp); // necessary because of the _find_matching_zombie() above
+    Object_Release(zp); //XXX actually not clear why necessary. Shouldn't be
 
     return EOK;
 }

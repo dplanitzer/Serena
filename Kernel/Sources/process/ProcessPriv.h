@@ -47,15 +47,20 @@ typedef struct proc_img {
 
 final_class_ivars(Process, Object,
     mtx_t                           mtx;
-    
-    ListNode                        ptce;       // Process table chain entry. Protected by ProcessManager lock
 
-    int                             state;
+    // Process relationship information (owned & protected by ProcessManager)
+    ListNode                        ptce;       // Process table chain entry.
+    List/*<Process>*/               children;
+    ListNode                        siblings;
+
     pid_t                           pid;        // my PID
     pid_t                           ppid;       // parent's PID
     pid_t                           pgrp;       // Group id. I'm the group leader if pgrp == pid
     pid_t                           sid;        // (Login) session id. I'm the session leader if sid == pid 
     CatalogId                       catalogId;  // proc-fs catalog id
+
+    // Process lifecycle state
+    int                             state;
 
     // Process image
     AddressSpace                    addr_space;
@@ -88,10 +93,6 @@ final_class_ivars(Process, Object,
     // Process termination
     int16_t                         exit_reason;    // Exit code of the first exit() call that initiated the termination of this process
     int16_t                         exit_code;
-
-    // Child process related properties
-    List/*<Process>*/               children;
-    ListNode                        siblings;
 );
 
 #define proc_from_ptce(__ptr) \

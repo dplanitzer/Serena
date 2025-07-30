@@ -87,7 +87,6 @@ errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, 
 
     // Register the new process with the process manager
     try(ProcessManager_Register(gProcessManager, cp));
-    List_InsertAfterLast(&self->children, &cp->siblings);
     //XXX Should remove this release because we're adopting the child and thus
     // this release is wrong. However Catalog_Unpublish leaks its ref to the
     // child process and this ends up balancing this bug here 

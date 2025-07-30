@@ -24,18 +24,6 @@ extern ProcessManagerRef _Nonnull  gProcessManager;
 // Creates the process manager. The provided process becomes the root process.
 extern errno_t ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef _Nullable * _Nonnull pOutSelf);
 
-// Returns a strong reference to the root process. This is the process that has
-// no parent but all other processes are directly or indirectly descendants of
-// the root process. The root process never changes identity and never goes
-// away.
-extern ProcessRef _Nonnull ProcessManager_CopyRootProcess(ProcessManagerRef _Nonnull self);
-
-// Looks up the process for the given PID. Returns NULL if no such process is
-// registered with the process manager and otherwise returns a strong reference
-// to the process object. The caller is responsible for releasing the reference
-// once no longer needed.
-extern ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull self, int pid);
-
 
 // Registers the given process with the process manager. Note that this function
 // does not validate whether the process is already registered or has a PID
@@ -48,6 +36,32 @@ extern errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessR
 // invisible to other processes. Does nothing if the given process isn't
 // registered.
 extern void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp);
+
+
+// Returns a strong reference to the root process. This is the process that has
+// no parent but all other processes are directly or indirectly descendants of
+// the root process. The root process never changes identity and never goes
+// away.
+extern ProcessRef _Nonnull ProcessManager_CopyRootProcess(ProcessManagerRef _Nonnull self);
+
+// Looks up the process for the given PID. Returns NULL if no such process is
+// registered with the process manager and otherwise returns a strong reference
+// to the process object. The caller is responsible for releasing the reference
+// once no longer needed.
+extern ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull self, int pid);
+
+// Returns the process 'pid' if it is a child of 'ppid' and it is in a zombie
+// state.
+extern ProcessRef _Nullable ProcessManager_CopyZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, pid_t pid, bool* _Nonnull pOutExists);
+
+// Returns the first member of the process group 'pgrp' that is a child of the
+// process 'ppid' and which is in zombie state.
+extern ProcessRef _Nullable ProcessManager_CopyGroupZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, pid_t pgrp, bool* _Nonnull pOutAnyExists);
+
+// Returns the first process that is a child of 'ppid' and which is in a
+// zombie state.
+extern ProcessRef _Nullable ProcessManager_CopyAnyZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, bool* _Nonnull pOutAnyExists);
+
 
 // Send the signal 'signo' to one or multiple process(es) based on the given
 // signalling scope.

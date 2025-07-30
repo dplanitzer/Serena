@@ -49,20 +49,67 @@ catch:
     return EOK;
 }
 
-// Returns a strong reference to the root process. This is the process that has
-// no parent but all other processes are directly or indirectly descendants of
-// the root process. The root process never changes identity and never goes
-// away.
+errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
+{
+    decl_try_err();
+    ProcessRef the_parent = NULL;
+
+    mtx_lock(&self->mtx);
+    err = Process_Publish(pp);
+    if (err == EOK) {
+        if (pp->pid != pp->ppid) {
+            List_ForEach(&self->procTable[hash_scalar(pp->ppid) & HASH_CHAIN_MASK], ListNode,
+                ProcessRef parent_p = proc_from_ptce(pCurNode);
+
+                if (parent_p->pid == pp->ppid) {
+                    the_parent = parent_p;
+                    break;
+                }
+            );
+            assert(the_parent != NULL);
+
+            List_InsertAfterLast(&the_parent->children, &pp->siblings);
+        }
+
+        List_InsertBeforeFirst(&self->procTable[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->ptce);
+        Object_Retain(pp);
+    }
+    mtx_unlock(&self->mtx);
+
+    return err;
+}
+
+void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
+{
+    ProcessRef the_parent = NULL;
+
+    mtx_lock(&self->mtx);
+    assert(pp != self->rootProc);
+
+    Process_Unpublish(pp);
+    List_ForEach(&self->procTable[hash_scalar(pp->ppid) & HASH_CHAIN_MASK], ListNode,
+        ProcessRef parent_p = proc_from_ptce(pCurNode);
+
+        if (parent_p->pid == pp->ppid) {
+            the_parent = parent_p;
+            break;
+        }
+    );
+    assert(the_parent != NULL);
+
+    List_Remove(&the_parent->children, &pp->siblings);
+    List_Remove(&self->procTable[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->ptce);
+    Object_Release(pp);
+    mtx_unlock(&self->mtx);
+}
+
+
 ProcessRef _Nonnull ProcessManager_CopyRootProcess(ProcessManagerRef _Nonnull self)
 {
     // rootProc is a constant value, so no locking needed
     return Object_RetainAs(self->rootProc, Process);
 }
 
-// Looks up the process for the given PID. Returns NULL if no such process is
-// registered with the process manager and otherwise returns a strong reference
-// to the process object. The caller is responsible for releasing the reference
-// once no longer needed.
 ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull self, pid_t pid)
 {
     ProcessRef proc = NULL;
@@ -81,38 +128,90 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
     return proc;
 }
 
-// Registers the given process with the process manager. Note that this function
-// does not validate whether the process is already registered or has a PID
-// that's equal to some other registered process.
-// A process will only become visible to other processes after it has been
-// registered with the process manager. 
-errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
+ProcessRef _Nullable ProcessManager_CopyZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, pid_t pid, bool* _Nonnull pOutExists)
 {
-    decl_try_err();
+    ProcessRef the_p = NULL;
+
+    *pOutExists = false;
 
     mtx_lock(&self->mtx);
-    err = Process_Publish(pp);
-    if (err == EOK) {
-        List_InsertBeforeFirst(&self->procTable[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->ptce);
-        Object_Retain(pp);
-    }
+    List_ForEach(&self->procTable[hash_scalar(pid) & HASH_CHAIN_MASK], ListNode,
+        ProcessRef child_p = proc_from_ptce(pCurNode);
+
+        if (child_p->pid == pid && child_p->ppid == ppid) {
+            *pOutExists = true;
+
+            if (Process_GetLifecycleState(child_p) == PROC_LIFECYCLE_ZOMBIE) {
+                the_p = Object_RetainAs(child_p, Process);
+            }
+            break;
+        }
+    );
     mtx_unlock(&self->mtx);
 
-    return err;
+    return the_p;
 }
 
-// Deregisters the given process from the process manager. This makes the process
-// invisible to other processes. Does nothing if the given process isn't
-// registered.
-void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
+ProcessRef _Nullable ProcessManager_CopyGroupZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, pid_t pgrp, bool* _Nonnull pOutAnyExists)
 {
-    mtx_lock(&self->mtx);
-    assert(pp != self->rootProc);
+    ProcessRef the_p = NULL;
 
-    Process_Unpublish(pp);
-    List_Remove(&self->procTable[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->ptce);
-    Object_Release(pp);
+    *pOutAnyExists = false;
+
+    mtx_lock(&self->mtx);
+    List_ForEach(&self->procTable[hash_scalar(ppid) & HASH_CHAIN_MASK], ListNode,
+        ProcessRef parent_p = proc_from_ptce(pCurNode);
+
+        if (parent_p->pid == ppid) {
+            List_ForEach(&parent_p->children, ListNode,
+                ProcessRef child_p = proc_from_siblings(pCurNode);
+
+                if (child_p->pgrp == pgrp) {
+                    *pOutAnyExists = true;
+
+                    if (Process_GetLifecycleState(child_p) == PROC_LIFECYCLE_ZOMBIE) {
+                        the_p = Object_RetainAs(child_p, Process);
+                        break;
+                    }
+                }
+            );
+
+            break;
+        }
+    );
     mtx_unlock(&self->mtx);
+
+    return the_p;
+}
+
+ProcessRef _Nullable ProcessManager_CopyAnyZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, bool* _Nonnull pOutAnyExists)
+{
+    ProcessRef the_p = NULL;
+
+    *pOutAnyExists = false;
+
+    mtx_lock(&self->mtx);
+    List_ForEach(&self->procTable[hash_scalar(ppid) & HASH_CHAIN_MASK], ListNode,
+        ProcessRef parent_p = proc_from_ptce(pCurNode);
+
+        if (parent_p->pid == ppid) {
+            List_ForEach(&parent_p->children, ListNode,
+                ProcessRef child_p = proc_from_siblings(pCurNode);
+
+                *pOutAnyExists = true;
+                if (Process_GetLifecycleState(child_p) == PROC_LIFECYCLE_ZOMBIE) {
+                    the_p = Object_RetainAs(child_p, Process);
+                    break;
+                }
+
+            );
+
+            break;
+        }
+    );
+    mtx_unlock(&self->mtx);
+
+    return the_p;
 }
 
 errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, id_t sender_sid, int scope, id_t id, int signo)

@@ -101,6 +101,15 @@ void Process_deinit(ProcessRef _Nonnull self)
     mtx_deinit(&self->mtx);
 }
 
+int Process_GetLifecycleState(ProcessRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    const int state = self->state;
+    mtx_unlock(&self->mtx);
+
+    return state;
+}
+
 static void _vcpu_relinquish_self(void)
 {
     vcpu_t vp = vcpu_current();

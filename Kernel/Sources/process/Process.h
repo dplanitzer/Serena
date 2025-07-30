@@ -37,6 +37,9 @@ extern errno_t KernelProcess_SpawnSystemd(ProcessRef _Nonnull self);
 
 
 
+// Returns the current process lifecycle state.
+extern int Process_GetLifecycleState(ProcessRef _Nonnull self);
+
 // Terminates the calling process and stores 'reason' and 'code' as the exit
 // reason and code respectively. Note that this function never returns. It turns
 // the calling process into a zombie and notifies the parent process so that it
