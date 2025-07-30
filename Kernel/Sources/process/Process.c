@@ -316,6 +316,7 @@ void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable 
     main_vp->id = VCPUID_MAIN;
     main_vp->groupid = VCPUID_MAIN_GROUP;
     List_InsertAfterLast(&g_kernel_proc_storage.vcpu_queue, &main_vp->owner_qe);
+    g_kernel_proc_storage.vcpu_count++;
 
     *pOutSelf = &g_kernel_proc_storage;
 }
