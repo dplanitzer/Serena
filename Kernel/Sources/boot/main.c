@@ -138,29 +138,33 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     log_init();
 
 
-    // Create the disk cache
-    try_bang(DiskCache_Create(512, SystemDescription_GetRamSize(pSysDesc) >> 5, &gDiskCache));
+    // Create the process manager
+    try(ProcessManager_Create(&gProcessManager));
 
 
     // Create the security manager
-    try_bang(SecurityManager_Create(&gSecurityManager));
+    try(SecurityManager_Create(&gSecurityManager));
+
+
+    // Create the disk cache
+    try(DiskCache_Create(512, SystemDescription_GetRamSize(pSysDesc) >> 5, &gDiskCache));
 
 
     // Create the various kernel object catalogs
-    try_bang(Catalog_Create(kCatalogName_Processes, &gProcCatalog));
-    try_bang(Catalog_Create(kCatalogName_Filesystems, &gFSCatalog));
-    try_bang(Catalog_Create(kCatalogName_Drivers, &gDriverCatalog));
-    try_bang(Filesystem_Publish(Catalog_CopyFilesystem(gProcCatalog)));
-    try_bang(Filesystem_Publish(Catalog_CopyFilesystem(gFSCatalog)));
-    try_bang(Filesystem_Publish(Catalog_CopyFilesystem(gDriverCatalog)));
+    try(Catalog_Create(kCatalogName_Processes, &gProcCatalog));
+    try(Catalog_Create(kCatalogName_Filesystems, &gFSCatalog));
+    try(Catalog_Create(kCatalogName_Drivers, &gDriverCatalog));
+    try(Filesystem_Publish(Catalog_CopyFilesystem(gProcCatalog)));
+    try(Filesystem_Publish(Catalog_CopyFilesystem(gFSCatalog)));
+    try(Filesystem_Publish(Catalog_CopyFilesystem(gDriverCatalog)));
 
     
     // Create the filesystem manager
-    try_bang(FilesystemManager_Create(&gFilesystemManager));
+    try(FilesystemManager_Create(&gFilesystemManager));
 
 
     // Detect hardware and initialize drivers
-    try_bang(drivers_init());
+    try(drivers_init());
 
 
     // Open the boot screen and show the boot logo
@@ -176,14 +180,10 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     FileHierarchyRef pRootFh = create_root_file_hierarchy(&gBootScreen);
 
 
-    // Create the kerneld process
+    // Create the kerneld process and publish it
     KernelProcess_Init(pRootFh, &gKernelProcess);
-    Object_Release(pRootFh);
-
-
-    // Create the process manager and publish the kernel process
-    try(ProcessManager_Create(&gProcessManager));
     try(ProcessManager_Register(gProcessManager, gKernelProcess));
+    Object_Release(pRootFh);
 
 
     // Spawn systemd
