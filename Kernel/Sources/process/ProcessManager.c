@@ -70,7 +70,7 @@ errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Non
             ProcessRef the_parent = _get_proc_by_pid(self, pp->ppid);
             assert(the_parent != NULL);
 
-            List_InsertAfterLast(&the_parent->children, &pp->siblings);
+            SList_InsertAfterLast(&the_parent->children, &pp->siblings);
         }
 
         SList_InsertBeforeFirst(&self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->ptce);
@@ -90,8 +90,18 @@ void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
     ProcessRef the_parent = _get_proc_by_pid(self, pp->ppid);
     assert(the_parent != NULL);
 
-    List_Remove(&the_parent->children, &pp->siblings);
+    ProcessRef prev_child = NULL;
+    SList_ForEach(&the_parent->children, ListNode,
+        ProcessRef cp = proc_from_siblings(pCurNode);
 
+        if (cp->pid == pp->pid) {
+            SList_Remove(&the_parent->children, &prev_child->siblings, &pp->siblings);
+            break;
+        }
+        prev_child = cp;
+    );
+
+    
     ProcessRef prev_p = NULL;
     SList* pid_chain = &self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK];
     SList_ForEach(pid_chain, ListNode,
@@ -151,7 +161,7 @@ static ProcessRef _Nullable _get_any_zombie_of_parent(ProcessManagerRef _Nonnull
 
     *pOutAnyExists = false;
     if (parent_p) {
-        List_ForEach(&parent_p->children, ListNode,
+        SList_ForEach(&parent_p->children, ListNode,
             ProcessRef child_p = proc_from_siblings(pCurNode);
 
             if (pgrp == 0 || (pgrp > 0 && child_p->pgrp == pgrp)) {
@@ -219,7 +229,7 @@ errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, id_t sender_s
             if ((the_p = _get_proc_by_pid(self, id)) != NULL) {
                 hasMatch = (the_p->children.first != NULL);
 
-                List_ForEach(&the_p->children, ListNode, 
+                SList_ForEach(&the_p->children, ListNode, 
                     ProcessRef child_p = proc_from_siblings(pCurNode);
 
                     if (child_p->sid == sender_sid) {

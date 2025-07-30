@@ -50,8 +50,8 @@ final_class_ivars(Process, Object,
 
     // Process relationship information (owned & protected by ProcessManager)
     SListNode                       ptce;       // Process table chain entry.
-    List/*<Process>*/               children;
-    ListNode                        siblings;
+    SList/*<Process>*/              children;
+    SListNode                       siblings;
 
     pid_t                           pid;        // my PID
     pid_t                           ppid;       // parent's PID
