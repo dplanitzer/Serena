@@ -8,6 +8,7 @@
 
 #include "ProcessPriv.h"
 #include <filemanager/FileHierarchy.h>
+#include <kern/kalloc.h>
 #include <sched/vcpu_pool.h>
 
 static const char*      g_systemd_argv[2] = { "/System/Commands/systemd", NULL };
@@ -17,10 +18,6 @@ static pargs_t          g_kernel_pargs;
 static struct Process   g_kernel_proc_storage;
 ProcessRef _Nonnull gKernelProcess;
 
-
-class_func_defs(Process, Object,
-override_func_def(deinit, Process, Object)
-);
 
 
 // Returns the next PID available for use by a new process.
@@ -65,7 +62,7 @@ errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonn
     decl_try_err();
     ProcessRef self;
     
-    err = Object_Create(class(Process), 0, (void**)&self);
+    err = kalloc_cleared(sizeof(Process), (void**)&self);
     if (err == EOK) {
         Process_Init(self, ppid, pgrp, sid, fh, uid, gid, pRootDir, pWorkingDir, umask);
     }
@@ -74,7 +71,7 @@ errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonn
     return err;
 }
 
-void Process_deinit(ProcessRef _Nonnull self)
+static void _proc_deinit(ProcessRef _Nonnull self)
 {
     IOChannelTable_Deinit(&self->ioChannelTable);
     FileManager_Deinit(&self->fm);
@@ -99,6 +96,20 @@ void Process_deinit(ProcessRef _Nonnull self)
     self->ppid = 0;
 
     mtx_deinit(&self->mtx);
+}
+
+ProcessRef _Nonnull Process_Retain(ProcessRef _Nonnull self)
+{
+    rc_retain(&self->retainCount);
+    return self;
+}
+
+void Process_Release(ProcessRef _Nullable self)
+{
+    if (self && rc_release(&self->retainCount)) {
+        _proc_deinit(self);
+        kfree(self);
+    }
 }
 
 int Process_GetLifecycleState(ProcessRef _Nonnull self)

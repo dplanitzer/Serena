@@ -33,7 +33,7 @@ errno_t KfsProcess_Create(KernFSRef _Nonnull kfs, ino_t inid, mode_t permissions
         &now,
         pnid,
         (InodeRef*)&self));
-    self->instance = Object_RetainAs(proc, Process);
+    self->instance = Process_Retain(proc);
 
 catch:
     *pOutSelf = (KfsNodeRef)self;
@@ -42,7 +42,7 @@ catch:
 
 void KfsProcess_deinit(KfsProcessRef _Nullable self)
 {
-    Object_Release(self->instance);
+    Process_Release(self->instance);
     self->instance = NULL;
 }
 

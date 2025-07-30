@@ -13,6 +13,7 @@
 #include "IOChannelTable.h"
 #include <Catalog.h>
 #include <filemanager/FileManager.h>
+#include <machine/rc.h>
 #include <sched/mtx.h>
 #include <sched/waitqueue.h>
 #include <vm/AddressSpace.h>
@@ -45,7 +46,9 @@ typedef struct proc_img {
 } proc_img_t;
 
 
-final_class_ivars(Process, Object,
+typedef struct Process {
+    ref_count_t                     retainCount;
+    
     mtx_t                           mtx;
 
     // Process relationship information (owned & protected by ProcessManager)
@@ -93,7 +96,7 @@ final_class_ivars(Process, Object,
     // Process termination
     int16_t                         exit_reason;    // Exit code of the first exit() call that initiated the termination of this process
     int16_t                         exit_code;
-);
+} Process;
 
 #define proc_from_ptce(__ptr) \
 (ProcessRef) (((uint8_t*)__ptr) - offsetof(struct Process, ptce))

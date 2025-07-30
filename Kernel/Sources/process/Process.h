@@ -11,15 +11,13 @@
 
 #include <stdarg.h>
 #include <kern/types.h>
-#include <kobj/Object.h>
+#include <kobj/Any.h>
 #include <kpi/exception.h>
 #include <kpi/proc.h>
 #include <kpi/spawn.h>
 #include <kpi/vcpu.h>
 #include <kpi/wait.h>
 #include <sched/vcpu.h>
-
-final_class(Process, Object);
 
 
 extern ProcessRef _Nonnull  gKernelProcess;
@@ -37,6 +35,9 @@ extern void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nu
 // Spawns systemd from the kernel process context.
 extern errno_t KernelProcess_SpawnSystemd(ProcessRef _Nonnull self);
 
+
+extern ProcessRef _Nonnull Process_Retain(ProcessRef _Nonnull self);
+extern void Process_Release(ProcessRef _Nullable self);
 
 
 // Returns the current process lifecycle state.

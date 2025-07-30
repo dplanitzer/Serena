@@ -74,7 +74,7 @@ errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Non
         }
 
         SList_InsertBeforeFirst(&self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->ptce);
-        Object_Retain(pp);
+        Process_Retain(pp);
     }
     mtx_unlock(&self->mtx);
 
@@ -115,7 +115,7 @@ void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
     );
     mtx_unlock(&self->mtx);
 
-    Object_Release(pp);
+    Process_Release(pp);
 }
 
 
@@ -125,7 +125,7 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
 
     ProcessRef the_p = _get_proc_by_pid(self, pid);
     if (the_p) {
-        Object_Retain(the_p);
+        Process_Retain(the_p);
     }
 
     mtx_unlock(&self->mtx);
@@ -143,7 +143,7 @@ ProcessRef _Nullable ProcessManager_CopyZombieOfParent(ProcessManagerRef _Nonnul
         *pOutExists = true;
 
         if (Process_GetLifecycleState(child_p) == PROC_LIFECYCLE_ZOMBIE) {
-            the_p = Object_RetainAs(child_p, Process);
+            the_p = Process_Retain(child_p);
         }
     }
     else {
@@ -183,7 +183,7 @@ ProcessRef _Nullable ProcessManager_CopyGroupZombieOfParent(ProcessManagerRef _N
 
     ProcessRef the_p = _get_any_zombie_of_parent(self, ppid, pgrp, pOutAnyExists);
     if (the_p) {
-        Object_Retain(the_p);
+        Process_Retain(the_p);
     }
 
     mtx_unlock(&self->mtx);
@@ -197,7 +197,7 @@ ProcessRef _Nullable ProcessManager_CopyAnyZombieOfParent(ProcessManagerRef _Non
 
     ProcessRef the_p = _get_any_zombie_of_parent(self, ppid, 0, pOutAnyExists);
     if (the_p) {
-        Object_Retain(the_p);
+        Process_Retain(the_p);
     }
 
     mtx_unlock(&self->mtx);

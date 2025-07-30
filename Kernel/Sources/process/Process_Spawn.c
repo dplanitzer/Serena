@@ -54,7 +54,7 @@ static errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const spawn_o
 catch:
     *pOutChild = cp;
     if (err != EOK) {
-        Object_Release(cp);
+        Process_Release(cp);
     }
 
     return err;
@@ -90,7 +90,7 @@ errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, 
     //XXX Should remove this release because we're adopting the child and thus
     // this release is wrong. However Catalog_Unpublish leaks its ref to the
     // child process and this ends up balancing this bug here 
-    Object_Release(cp);
+    Process_Release(cp);
 
 
     // Start the child process running
@@ -103,7 +103,7 @@ catch:
         }
     }
     else {
-        Object_Release(cp);
+        Process_Release(cp);
         if (pOutPid) {
             *pOutPid = 0;
         }

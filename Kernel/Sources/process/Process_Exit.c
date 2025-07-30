@@ -111,8 +111,8 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
     ps->u.status = zp->exit_code;
 
     ProcessManager_Deregister(gProcessManager, zp);
-    Object_Release(zp); // necessary because of the _find_matching_zombie() above
-    Object_Release(zp); //XXX actually not clear why necessary. Shouldn't be
+    Process_Release(zp); // necessary because of the _find_matching_zombie() above
+    Process_Release(zp); //XXX actually not clear why necessary. Shouldn't be
 
     return EOK;
 }

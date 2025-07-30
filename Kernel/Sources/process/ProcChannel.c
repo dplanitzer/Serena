@@ -32,7 +32,7 @@ errno_t ProcChannel_ioctl(ProcChannelRef _Nonnull _Locked self, int cmd, va_list
 
     if (p) {
         err = Process_vIoctl(p, (IOChannelRef)self, cmd, ap);
-        Object_Release(p);
+        Process_Release(p);
     }
     else {
         err = ESRCH;
