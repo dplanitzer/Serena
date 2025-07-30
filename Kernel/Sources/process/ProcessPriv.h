@@ -46,15 +46,20 @@ typedef struct proc_img {
 } proc_img_t;
 
 
-typedef struct Process {
-    ref_count_t                     retainCount;
-    
-    mtx_t                           mtx;
-
-    // Process relationship information (owned & protected by ProcessManager)
-    SListNode                       ptce;       // Process table chain entry.
+// Process relationship information (owned & protected by ProcessManager)
+typedef struct proc_rel {
+    SListNode                       pid_qe;     // pid_table chain entry.
     SList/*<Process>*/              children;
-    SListNode                       siblings;
+    SListNode                       child_qe;
+} proc_rel_t;
+
+
+
+typedef struct Process {
+    proc_rel_t                      rel;        // process relationships maintained by the process manager. Must be the first field here
+
+    ref_count_t                     retainCount;
+    mtx_t                           mtx;
 
     pid_t                           pid;        // my PID
     pid_t                           ppid;       // parent's PID
@@ -97,12 +102,6 @@ typedef struct Process {
     int16_t                         exit_reason;    // Exit code of the first exit() call that initiated the termination of this process
     int16_t                         exit_code;
 } Process;
-
-#define proc_from_ptce(__ptr) \
-(ProcessRef) (((uint8_t*)__ptr) - offsetof(struct Process, ptce))
-
-#define proc_from_siblings(__ptr) \
-(ProcessRef) (((uint8_t*)__ptr) - offsetof(struct Process, siblings))
 
 extern void uwq_destroy(UWaitQueue* _Nullable self);
 
