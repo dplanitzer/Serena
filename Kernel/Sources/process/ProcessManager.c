@@ -137,33 +137,37 @@ ProcessRef _Nullable ProcessManager_CopyZombieOfParent(ProcessManagerRef _Nonnul
     return the_p;
 }
 
-ProcessRef _Nullable ProcessManager_CopyGroupZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, pid_t pgrp, bool* _Nonnull pOutAnyExists)
+static ProcessRef _Nullable _get_any_zombie_of_parent(ProcessManagerRef _Nonnull _Locked self, pid_t ppid, pid_t pgrp, bool* _Nonnull pOutAnyExists)
 {
-    ProcessRef the_p = NULL;
+    ProcessRef parent_p = _get_proc_by_pid(self, ppid);
 
     *pOutAnyExists = false;
+    if (parent_p) {
+        List_ForEach(&parent_p->children, ListNode,
+            ProcessRef child_p = proc_from_siblings(pCurNode);
 
-    mtx_lock(&self->mtx);
-    List_ForEach(&self->procTable[hash_scalar(ppid) & HASH_CHAIN_MASK], ListNode,
-        ProcessRef parent_p = proc_from_ptce(pCurNode);
+            if (pgrp == 0 || (pgrp > 0 && child_p->pgrp == pgrp)) {
+                *pOutAnyExists = true;
 
-        if (parent_p->pid == ppid) {
-            List_ForEach(&parent_p->children, ListNode,
-                ProcessRef child_p = proc_from_siblings(pCurNode);
-
-                if (child_p->pgrp == pgrp) {
-                    *pOutAnyExists = true;
-
-                    if (Process_GetLifecycleState(child_p) == PROC_LIFECYCLE_ZOMBIE) {
-                        the_p = Object_RetainAs(child_p, Process);
-                        break;
-                    }
+                if (Process_GetLifecycleState(child_p) == PROC_LIFECYCLE_ZOMBIE) {
+                    return child_p;
                 }
-            );
+            }
+        );
+    }
 
-            break;
-        }
-    );
+    return NULL;
+}
+
+ProcessRef _Nullable ProcessManager_CopyGroupZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, pid_t pgrp, bool* _Nonnull pOutAnyExists)
+{
+    mtx_lock(&self->mtx);
+
+    ProcessRef the_p = _get_any_zombie_of_parent(self, ppid, pgrp, pOutAnyExists);
+    if (the_p) {
+        Object_Retain(the_p);
+    }
+
     mtx_unlock(&self->mtx);
 
     return the_p;
@@ -171,29 +175,13 @@ ProcessRef _Nullable ProcessManager_CopyGroupZombieOfParent(ProcessManagerRef _N
 
 ProcessRef _Nullable ProcessManager_CopyAnyZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, bool* _Nonnull pOutAnyExists)
 {
-    ProcessRef the_p = NULL;
-
-    *pOutAnyExists = false;
-
     mtx_lock(&self->mtx);
-    List_ForEach(&self->procTable[hash_scalar(ppid) & HASH_CHAIN_MASK], ListNode,
-        ProcessRef parent_p = proc_from_ptce(pCurNode);
 
-        if (parent_p->pid == ppid) {
-            List_ForEach(&parent_p->children, ListNode,
-                ProcessRef child_p = proc_from_siblings(pCurNode);
+    ProcessRef the_p = _get_any_zombie_of_parent(self, ppid, 0, pOutAnyExists);
+    if (the_p) {
+        Object_Retain(the_p);
+    }
 
-                *pOutAnyExists = true;
-                if (Process_GetLifecycleState(child_p) == PROC_LIFECYCLE_ZOMBIE) {
-                    the_p = Object_RetainAs(child_p, Process);
-                    break;
-                }
-
-            );
-
-            break;
-        }
-    );
     mtx_unlock(&self->mtx);
 
     return the_p;
