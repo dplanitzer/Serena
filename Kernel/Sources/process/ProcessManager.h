@@ -38,12 +38,6 @@ extern errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessR
 extern void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp);
 
 
-// Returns a strong reference to the root process. This is the process that has
-// no parent but all other processes are directly or indirectly descendants of
-// the root process. The root process never changes identity and never goes
-// away.
-extern ProcessRef _Nonnull ProcessManager_CopyRootProcess(ProcessManagerRef _Nonnull self);
-
 // Looks up the process for the given PID. Returns NULL if no such process is
 // registered with the process manager and otherwise returns a strong reference
 // to the process object. The caller is responsible for releasing the reference

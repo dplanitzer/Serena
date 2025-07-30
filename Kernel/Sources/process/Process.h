@@ -24,6 +24,8 @@ final_class(Process, Object);
 
 extern ProcessRef _Nonnull  gKernelProcess;
 
+#define PID_KERNEL  1
+
 #define Process_GetCurrent() \
 g_sched->running->proc
 

@@ -18,9 +18,8 @@
 
 
 typedef struct ProcessManager {
-    mtx_t                       mtx;
-    ProcessRef _Nonnull         rootProc;
-    List/*<Process>*/           procTable[HASH_CHAIN_COUNT];     // pid_t -> Process
+    mtx_t               mtx;
+    List/*<Process>*/   procTable[HASH_CHAIN_COUNT];     // pid_t -> Process
 } ProcessManager;
 
 
@@ -41,7 +40,6 @@ errno_t ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef _
         List_Init(&self->procTable[i]);
     }
 
-    self->rootProc = pRootProc;
     err = ProcessManager_Register(self, pRootProc);
 
 catch:
@@ -49,23 +47,30 @@ catch:
     return EOK;
 }
 
+// Returns a weak reference to the process named by 'pid'. NULL if such a process
+// does not exist.
+static ProcessRef _Nullable _get_proc_by_pid(ProcessManagerRef _Nonnull _Locked self, pid_t pid)
+{
+    List_ForEach(&self->procTable[hash_scalar(pid) & HASH_CHAIN_MASK], ListNode,
+        ProcessRef cp = proc_from_ptce(pCurNode);
+
+        if (cp->pid == pid) {
+            return cp;
+        }
+    );
+
+    return NULL;
+}
+
 errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
 {
     decl_try_err();
-    ProcessRef the_parent = NULL;
 
     mtx_lock(&self->mtx);
     err = Process_Publish(pp);
     if (err == EOK) {
         if (pp->pid != pp->ppid) {
-            List_ForEach(&self->procTable[hash_scalar(pp->ppid) & HASH_CHAIN_MASK], ListNode,
-                ProcessRef parent_p = proc_from_ptce(pCurNode);
-
-                if (parent_p->pid == pp->ppid) {
-                    the_parent = parent_p;
-                    break;
-                }
-            );
+            ProcessRef the_parent = _get_proc_by_pid(self, pp->ppid);
             assert(the_parent != NULL);
 
             List_InsertAfterLast(&the_parent->children, &pp->siblings);
@@ -81,72 +86,52 @@ errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Non
 
 void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
 {
-    ProcessRef the_parent = NULL;
+    assert(pp->pid != PID_KERNEL);
 
     mtx_lock(&self->mtx);
-    assert(pp != self->rootProc);
-
     Process_Unpublish(pp);
-    List_ForEach(&self->procTable[hash_scalar(pp->ppid) & HASH_CHAIN_MASK], ListNode,
-        ProcessRef parent_p = proc_from_ptce(pCurNode);
-
-        if (parent_p->pid == pp->ppid) {
-            the_parent = parent_p;
-            break;
-        }
-    );
+    ProcessRef the_parent = _get_proc_by_pid(self, pp->ppid);
     assert(the_parent != NULL);
 
     List_Remove(&the_parent->children, &pp->siblings);
     List_Remove(&self->procTable[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->ptce);
-    Object_Release(pp);
     mtx_unlock(&self->mtx);
+
+    Object_Release(pp);
 }
 
-
-ProcessRef _Nonnull ProcessManager_CopyRootProcess(ProcessManagerRef _Nonnull self)
-{
-    // rootProc is a constant value, so no locking needed
-    return Object_RetainAs(self->rootProc, Process);
-}
 
 ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull self, pid_t pid)
 {
-    ProcessRef proc = NULL;
-
     mtx_lock(&self->mtx);
-    List_ForEach(&self->procTable[hash_scalar(pid) & HASH_CHAIN_MASK], ListNode,
-        ProcessRef pCurProc = proc_from_ptce(pCurNode);
 
-        if (pCurProc->pid == pid) {
-            proc = Object_RetainAs(pCurProc, Process);
-            break;
-        }
-    );
+    ProcessRef the_p = _get_proc_by_pid(self, pid);
+    if (the_p) {
+        Object_Retain(the_p);
+    }
+
     mtx_unlock(&self->mtx);
 
-    return proc;
+    return the_p;
 }
 
 ProcessRef _Nullable ProcessManager_CopyZombieOfParent(ProcessManagerRef _Nonnull self, pid_t ppid, pid_t pid, bool* _Nonnull pOutExists)
 {
+    mtx_lock(&self->mtx);
+    ProcessRef child_p = _get_proc_by_pid(self, pid);
     ProcessRef the_p = NULL;
 
-    *pOutExists = false;
+    if (child_p && child_p->ppid == ppid) {
+        *pOutExists = true;
 
-    mtx_lock(&self->mtx);
-    List_ForEach(&self->procTable[hash_scalar(pid) & HASH_CHAIN_MASK], ListNode,
-        ProcessRef child_p = proc_from_ptce(pCurNode);
-
-        if (child_p->pid == pid && child_p->ppid == ppid) {
-            *pOutExists = true;
-
-            if (Process_GetLifecycleState(child_p) == PROC_LIFECYCLE_ZOMBIE) {
-                the_p = Object_RetainAs(child_p, Process);
-            }
-            break;
+        if (Process_GetLifecycleState(child_p) == PROC_LIFECYCLE_ZOMBIE) {
+            the_p = Object_RetainAs(child_p, Process);
         }
-    );
+    }
+    else {
+        *pOutExists = false;
+    }
+
     mtx_unlock(&self->mtx);
 
     return the_p;
