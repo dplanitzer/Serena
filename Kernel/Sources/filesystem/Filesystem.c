@@ -11,8 +11,9 @@
 #include "DirectoryChannel.h"
 #include "FileChannel.h"
 #include "FSChannel.h"
-#include <klib/Hash.h>
 #include <kern/timespec.h>
+#include <klib/Atomic.h>
+#include <klib/Hash.h>
 #include <kpi/fcntl.h>
 
 

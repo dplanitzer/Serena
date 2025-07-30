@@ -41,7 +41,7 @@ void* _Nonnull Object_Retain(void* _Nonnull self)
 {
     ObjectRef s = (ObjectRef)self;
 
-    AtomicInt_Increment(&s->retainCount);
+    rc_retain(&s->retainCount);
     return self;
 }
 
@@ -73,12 +73,6 @@ void Object_Release(void* _Nullable self)
 {
     ObjectRef s = (ObjectRef)self;
 
-    if (s == NULL) {
-        return;
-    }
-
-    const AtomicInt rc = AtomicInt_Decrement(&s->retainCount);
-
     // Note that we trigger the deallocation when the reference count transitions
     // from 1 to 0. The VP that caused this transition is the one that executes
     // the deallocation code. If another VP calls Release() while we are
@@ -86,7 +80,7 @@ void Object_Release(void* _Nullable self)
     // second deallocation will be triggered. The reference count simply becomes
     // negative which is fine. In that sense a negative reference count signals
     // that the object is dead.
-    if (rc == 0) {
+    if (s && rc_release(&s->retainCount)) {
         _Object_Deinit(s);
         kfree(s);
     }

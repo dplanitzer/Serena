@@ -13,6 +13,7 @@
 #include <limits.h>
 #include <time.h>
 #include <kpi/_time.h>
+#include <windows.h>
 
 
 const struct timespec TIMESPEC_ZERO = {0l, 0l};
@@ -108,4 +109,29 @@ char* _Nonnull String_CopyUpTo(char* _Nonnull pDst, const char* _Nonnull pSrc, s
     }
 
     return pDst;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+#include <machine/rc.h>
+
+void rc_retain(volatile ref_count_t* _Nonnull rc)
+{
+    InterlockedIncrement((volatile LONG*)rc);
+}
+
+bool rc_release(volatile ref_count_t* _Nonnull rc)
+{
+    if (InterlockedDecrement((volatile LONG*)rc) == 0) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+int rc_getcount(volatile ref_count_t* _Nonnull rc)
+{
+    return *rc;
 }

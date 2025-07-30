@@ -10,14 +10,14 @@
 #define Object_h
 
 #include <kern/errno.h>
-#include <klib/Atomic.h>
 #include <kobj/Any.h>
+#include <machine/rc.h>
 
 
 // The Object class is the top type of all reference objects which use a
 // standard reference counting memory management model.
 open_class(Object, Any,
-    AtomicInt   retainCount;
+    volatile ref_count_t    retainCount;
 );
 any_subclass_funcs(Object,
     // Invoked when the last strong reference of the object has been released.
@@ -59,6 +59,6 @@ extern void Object_Release(void* _Nullable self);
 
 // For debugging purposes only: returns the current retain count.
 #define Object_GetRetainCount(__self) \
-    (((ObjectRef)(__self))->retainCount)
+rc_getcount(&(ObjectRef)(__self))->retainCount)
 
 #endif /* Object_h */
