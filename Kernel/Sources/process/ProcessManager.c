@@ -19,7 +19,7 @@
 
 typedef struct ProcessManager {
     mtx_t               mtx;
-    List/*<Process>*/   procTable[HASH_CHAIN_COUNT];     // pid_t -> Process
+    SList/*<Process>*/  pid_table[HASH_CHAIN_COUNT];     // pid_t -> Process
 } ProcessManager;
 
 
@@ -36,7 +36,7 @@ errno_t ProcessManager_Create(ProcessManagerRef _Nullable * _Nonnull pOutSelf)
     mtx_init(&self->mtx);
     
     for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
-        List_Init(&self->procTable[i]);
+        SList_Init(&self->pid_table[i]);
     }
 
 catch:
@@ -48,7 +48,7 @@ catch:
 // does not exist.
 static ProcessRef _Nullable _get_proc_by_pid(ProcessManagerRef _Nonnull _Locked self, pid_t pid)
 {
-    List_ForEach(&self->procTable[hash_scalar(pid) & HASH_CHAIN_MASK], ListNode,
+    SList_ForEach(&self->pid_table[hash_scalar(pid) & HASH_CHAIN_MASK], ListNode,
         ProcessRef cp = proc_from_ptce(pCurNode);
 
         if (cp->pid == pid) {
@@ -73,7 +73,7 @@ errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Non
             List_InsertAfterLast(&the_parent->children, &pp->siblings);
         }
 
-        List_InsertBeforeFirst(&self->procTable[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->ptce);
+        SList_InsertBeforeFirst(&self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->ptce);
         Object_Retain(pp);
     }
     mtx_unlock(&self->mtx);
@@ -91,7 +91,18 @@ void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
     assert(the_parent != NULL);
 
     List_Remove(&the_parent->children, &pp->siblings);
-    List_Remove(&self->procTable[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->ptce);
+
+    ProcessRef prev_p = NULL;
+    SList* pid_chain = &self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK];
+    SList_ForEach(pid_chain, ListNode,
+        ProcessRef cp = proc_from_ptce(pCurNode);
+
+        if (cp->pid == pp->pid) {
+            SList_Remove(pid_chain, &prev_p->ptce, &pp->ptce);
+            break;
+        }
+        prev_p = cp;
+    );
     mtx_unlock(&self->mtx);
 
     Object_Release(pp);
@@ -224,7 +235,7 @@ errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, id_t sender_s
 
         case SIG_SCOPE_PROC_GROUP:
             for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
-                List_ForEach(&self->procTable[i], ListNode,
+                SList_ForEach(&self->pid_table[i], ListNode,
                     ProcessRef cp = proc_from_ptce(pCurNode);
 
                     if (cp->pgrp == id) {
@@ -244,7 +255,7 @@ errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, id_t sender_s
 
         case SIG_SCOPE_SESSION:
             for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
-                List_ForEach(&self->procTable[i], ListNode,
+                SList_ForEach(&self->pid_table[i], ListNode,
                     ProcessRef cp = proc_from_ptce(pCurNode);
 
                     if (cp->sid == id) {

@@ -49,7 +49,7 @@ final_class_ivars(Process, Object,
     mtx_t                           mtx;
 
     // Process relationship information (owned & protected by ProcessManager)
-    ListNode                        ptce;       // Process table chain entry.
+    SListNode                       ptce;       // Process table chain entry.
     List/*<Process>*/               children;
     ListNode                        siblings;
 
