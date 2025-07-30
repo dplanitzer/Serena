@@ -38,7 +38,6 @@ boot_screen_t gBootScreen;
 static ConsoleRef gConsole;
 
 
-extern errno_t Process_Publish(ProcessRef _Locked _Nonnull self);
 extern FileHierarchyRef _Nonnull create_root_file_hierarchy(boot_screen_t* _Nonnull bscr);
 extern errno_t drivers_init(void);
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);

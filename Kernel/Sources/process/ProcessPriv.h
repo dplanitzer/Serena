@@ -51,6 +51,7 @@ typedef struct proc_rel {
     SListNode           pid_qe;     // pid_table chain entry.
     SList/*<Process>*/  children;
     SListNode           child_qe;
+    CatalogId           cat_id;     // proc-fs catalog id
 } proc_rel_t;
 
 
@@ -65,7 +66,6 @@ typedef struct Process {
     pid_t                           ppid;       // parent's PID
     pid_t                           pgrp;       // Group id. I'm the group leader if pgrp == pid
     pid_t                           sid;        // (Login) session id. I'm the session leader if sid == pid 
-    CatalogId                       catalogId;  // proc-fs catalog id
 
     // Process lifecycle state
     int                             state;
@@ -115,9 +115,6 @@ extern void Process_deinit(ProcessRef _Nonnull self);
 
 // Returns true if the process is the root process
 #define Process_IsRoot(__self) ((__self)->pid == 1)
-
-extern errno_t Process_Publish(ProcessRef _Locked _Nonnull self);
-extern errno_t Process_Unpublish(ProcessRef _Locked _Nonnull self);
 
 extern void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self);
 extern void _proc_reap_vcpus(ProcessRef _Nonnull self);

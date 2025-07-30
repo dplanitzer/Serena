@@ -41,7 +41,6 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     self->ppid = ppid;
     self->pgrp = (pgrp == 0) ? self->pid : pgrp;
     self->sid = (sid == 0) ? self->pid : sid;
-    self->catalogId = kCatalogId_None;
 
     List_Init(&self->vcpu_queue);
     self->next_avail_vcpuid = VCPUID_MAIN + 1;

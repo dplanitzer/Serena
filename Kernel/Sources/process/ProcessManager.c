@@ -69,20 +69,28 @@ static ProcessRef _Nullable _get_proc_by_pid(ProcessManagerRef _Nonnull _Locked 
 errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
 {
     decl_try_err();
+    static char g_pid_buf[DIGIT_BUFFER_CAPACITY];
 
     mtx_lock(&self->mtx);
-    err = Process_Publish(pp);
-    if (err == EOK) {
-        if (pp->pid != pp->ppid) {
-            ProcessRef the_parent = _get_proc_by_pid(self, pp->ppid);
-            assert(the_parent != NULL);
 
-            SList_InsertAfterLast(&the_parent->rel.children, &pp->rel.child_qe);
-        }
-
-        SList_InsertBeforeFirst(&self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->rel.pid_qe);
-        Process_Retain(pp);
+    if (pp->rel.cat_id != kCatalogId_None) {
+        throw(EBUSY);
     }
+
+    UInt32_ToString(pp->pid, 10, false, g_pid_buf);
+    try(Catalog_PublishProcess(gProcCatalog, g_pid_buf, kUserId_Root, kGroupId_Root, perm_from_octal(0444), pp, &pp->rel.cat_id));
+    
+    if (pp->pid != pp->ppid) {
+        ProcessRef the_parent = _get_proc_by_pid(self, pp->ppid);
+        assert(the_parent != NULL);
+
+        SList_InsertAfterLast(&the_parent->rel.children, &pp->rel.child_qe);
+    }
+
+    SList_InsertBeforeFirst(&self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->rel.pid_qe);
+    Process_Retain(pp);
+
+catch:
     mtx_unlock(&self->mtx);
 
     return err;
@@ -90,10 +98,15 @@ errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Non
 
 void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
 {
-    assert(pp->pid != PID_KERNEL);
-
     mtx_lock(&self->mtx);
-    Process_Unpublish(pp);
+
+    assert(pp->pid != PID_KERNEL);
+    assert(pp->rel.cat_id != kCatalogId_None);
+
+    Catalog_Unpublish(gProcCatalog, kCatalogId_None, pp->rel.cat_id);
+    pp->rel.cat_id = kCatalogId_None;
+
+
     ProcessRef the_parent = _get_proc_by_pid(self, pp->ppid);
     assert(the_parent != NULL);
 
@@ -120,8 +133,8 @@ void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
         }
         prev_p = cp;
     );
-    mtx_unlock(&self->mtx);
 
+    mtx_unlock(&self->mtx);
     Process_Release(pp);
 }
 
