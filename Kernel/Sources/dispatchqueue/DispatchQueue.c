@@ -12,6 +12,7 @@
 #include <kern/string.h>
 #include <kern/timespec.h>
 #include <process/Process.h>
+#include <sched/vcpu_pool.h>
 
 
 errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
@@ -200,16 +201,35 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
         }
         assert(conLaneIdx != -1);
 
-        _vcpu_acquire_attr_t attr;
-        attr.func = (vcpu_func_t)DispatchQueue_Run;
-        attr.arg = self;
-        attr.stack_size = 0;
-        attr.groupid = VCPUID_MAIN_GROUP;
-        attr.priority = self->qos * VCPU_PRI_COUNT + (self->priority + VCPU_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
-        attr.flags = 0;
-        attr.data = 0;
+        if (gKernelProcess) {
+            _vcpu_acquire_attr_t attr;
+            attr.func = (vcpu_func_t)DispatchQueue_Run;
+            attr.arg = self;
+            attr.stack_size = 0;
+            attr.groupid = VCPUID_MAIN_GROUP;
+            attr.priority = self->qos * VCPU_PRI_COUNT + (self->priority + VCPU_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
+            attr.flags = 0;
+            attr.data = 0;
 
-        err = Process_AcquireVirtualProcessor(gKernelProcess, &attr, &vp);
+            err = Process_AcquireVirtualProcessor(gKernelProcess, &attr, &vp);
+        }
+        else {
+            //XXX tmp because some drivers create a dispatch queue before the kernel process exists
+            VirtualProcessorParameters params;
+            static AtomicInt gNextAvailVcpuid = 2;
+
+            params.func = (VoidFunc_1)DispatchQueue_Run;
+            params.context = self;
+            params.ret_func = NULL;
+            params.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
+            params.userStackSize = VP_DEFAULT_USER_STACK_SIZE;
+            params.id = AtomicInt_Increment(&gNextAvailVcpuid);
+            params.groupid = VCPUID_MAIN_GROUP;
+            params.priority = self->qos * VCPU_PRI_COUNT + (self->priority + VCPU_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
+            params.isUser = false;
+
+            err = vcpu_pool_acquire(g_vcpu_pool, &params, &vp);
+        }
         if (err == EOK) {
             DispatchQueue_AttachVirtualProcessor_Locked(self, vp, conLaneIdx);
             vcpu_resume(vp, false);

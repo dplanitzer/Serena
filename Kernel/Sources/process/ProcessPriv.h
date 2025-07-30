@@ -63,7 +63,7 @@ final_class_ivars(Process, Object,
 
     // VPs
     List                            vcpu_queue;     // List of VPs [mtx]
-//    size_t                          vcpu_count;   //XXX putting this here for some reason makes boot crash on A4000T + 68060 and A2000 + 68030 machines
+    size_t                          vcpu_count;
     vcpuid_t                        next_avail_vcpuid;
 
     // I/O Channels
@@ -92,8 +92,6 @@ final_class_ivars(Process, Object,
     // Child process related properties
     List/*<Process>*/               children;
     ListNode                        siblings;
-
-    size_t                          vcpu_count; //XXX see above
 );
 
 #define proc_from_ptce(__ptr) \
