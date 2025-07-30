@@ -35,6 +35,7 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     mtx_init(&self->mtx);
     AddressSpace_Init(&self->addr_space);
 
+    self->retainCount = RC_INIT;
     self->state = PROC_LIFECYCLE_ACTIVE;
     self->pid = make_unique_pid();
     self->ppid = ppid;

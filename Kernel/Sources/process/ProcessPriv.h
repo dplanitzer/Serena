@@ -48,9 +48,9 @@ typedef struct proc_img {
 
 // Process relationship information (owned & protected by ProcessManager)
 typedef struct proc_rel {
-    SListNode                       pid_qe;     // pid_table chain entry.
-    SList/*<Process>*/              children;
-    SListNode                       child_qe;
+    SListNode           pid_qe;     // pid_table chain entry.
+    SList/*<Process>*/  children;
+    SListNode           child_qe;
 } proc_rel_t;
 
 

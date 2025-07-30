@@ -112,7 +112,6 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
 
     ProcessManager_Deregister(gProcessManager, zp);
     Process_Release(zp); // necessary because of the _find_matching_zombie() above
-    Process_Release(zp); //XXX actually not clear why necessary. Shouldn't be
 
     return EOK;
 }

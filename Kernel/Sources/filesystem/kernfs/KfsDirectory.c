@@ -173,6 +173,8 @@ errno_t KfsDirectory_RemoveEntry(KfsDirectoryRef _Nonnull _Locked self, InodeRef
 
     // Mark the directory as modified
     Inode_SetModified(self, kInodeFlag_Updated | kInodeFlag_StatusChanged);
+
+    return EOK;
 }
 
 errno_t KfsDirectory_createChannel(KfsDirectoryRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)

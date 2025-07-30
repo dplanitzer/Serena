@@ -30,7 +30,7 @@ errno_t Object_Create(Class* _Nonnull pClass, size_t extraByteCount, void* _Null
     err = kalloc_cleared(pClass->instanceSize + extraByteCount, (void**) &pObject);
     if (err == EOK) {
         pObject->super.clazz = pClass;
-        pObject->retainCount = 1;
+        pObject->retainCount = RC_INIT;
     }
     *pOutObject = pObject;
 

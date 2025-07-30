@@ -18,6 +18,8 @@
 typedef int ref_count_t;
 
 
+#define RC_INIT 1
+
 // Atomically increments the retain count 'rc'.
 extern void rc_retain(volatile ref_count_t* _Nonnull rc);
 
