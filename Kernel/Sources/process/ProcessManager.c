@@ -190,59 +190,100 @@ ProcessRef _Nullable ProcessManager_CopyAnyZombieOfParent(ProcessManagerRef _Non
 errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, id_t sender_sid, int scope, id_t id, int signo)
 {
     decl_try_err();
-    bool hasMatched = false;
+    bool hasMatch = false, hasSidMatch = false, hasSuccess = false;
+    size_t succ_count = 0;
+    ProcessRef the_p;
 
     mtx_lock(&self->mtx);
-    for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
-        List_ForEach(&self->procTable[i], ListNode,
-            ProcessRef cp = proc_from_ptce(pCurNode);
-            int doSend;
-
-            switch (scope) {
-                case SIG_SCOPE_PROC:
-                    doSend = (id == cp->pid);
-                    break;
-
-                case SIG_SCOPE_PROC_CHILDREN:
-                    doSend = (id == cp->ppid);
-                    break;
-
-                case SIG_SCOPE_PROC_GROUP:
-                    doSend = (id == cp->pgrp);
-                    break;
-
-                case SIG_SCOPE_SESSION:
-                    doSend = (id == cp->sid);
-                    break;
-
-                default:
-                    abort();
+    switch (scope) {
+        case SIG_SCOPE_PROC:
+            if ((the_p = _get_proc_by_pid(self, id)) != NULL) {
+                hasMatch = true;
+                if (the_p->sid == sender_sid) {
+                    hasSidMatch = true;
+                    err = Process_SendSignal(the_p, SIG_SCOPE_PROC, 0, signo);
+                    hasSuccess = (err == EOK);
+                }
             }
-
-            if (doSend) {
-                if (sender_sid == cp->sid) {
-                   err = Process_SendSignal(cp, SIG_SCOPE_PROC, 0, signo);
-                }
-                else {
-                    err = EPERM;
-                }
-
-                if (err != EOK) {
-                    break;
-                }
-                hasMatched = true;
-            }
-        );
-
-        if (err != EOK) {
             break;
-        }
+
+        case SIG_SCOPE_PROC_CHILDREN:
+            if ((the_p = _get_proc_by_pid(self, id)) != NULL) {
+                hasMatch = (the_p->children.first != NULL);
+
+                List_ForEach(&the_p->children, ListNode, 
+                    ProcessRef child_p = proc_from_siblings(pCurNode);
+
+                    if (child_p->sid == sender_sid) {
+                        hasSidMatch = true;
+                        err = Process_SendSignal(child_p, SIG_SCOPE_PROC, 0, signo);
+                        if (err == EOK) {
+                            hasSuccess = true;
+                        }
+                    }
+                );
+            }
+            break;
+
+        case SIG_SCOPE_PROC_GROUP:
+            for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
+                List_ForEach(&self->procTable[i], ListNode,
+                    ProcessRef cp = proc_from_ptce(pCurNode);
+
+                    if (cp->pgrp == id) {
+                        hasMatch = true;
+
+                        if (cp->sid == sender_sid) {
+                            hasSidMatch = true;
+                            err = Process_SendSignal(cp, SIG_SCOPE_PROC, 0, signo);
+                            if (err == EOK) {
+                                hasSuccess = true;
+                            }
+                        }
+                    }
+                );
+            }
+            break;
+
+        case SIG_SCOPE_SESSION:
+            for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
+                List_ForEach(&self->procTable[i], ListNode,
+                    ProcessRef cp = proc_from_ptce(pCurNode);
+
+                    if (cp->sid == id) {
+                        hasMatch = true;
+                        
+                        if (cp->sid == sender_sid) {
+                            hasSidMatch = true;
+                            err = Process_SendSignal(cp, SIG_SCOPE_PROC, 0, signo);
+                            if (err == EOK) {
+                                hasSuccess = true;
+                            }
+                        }
+                    }
+                );
+            }
+            break;
+
+        default:
+            hasMatch = true;
+            hasSidMatch = true;
+            err = EINVAL;
+            break;
     }
     mtx_unlock(&self->mtx);
 
-    if (err == EOK && !hasMatched) {
-        err = ESRCH;
-    }
 
-    return err;
+    if (!hasMatch) {
+        return ESRCH;
+    }
+    else if (!hasSidMatch) {
+        return EPERM;
+    }
+    else if (!hasSuccess) {
+        return err;
+    }
+    else {
+        return EOK;
+    }
 }
