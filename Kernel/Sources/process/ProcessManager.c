@@ -7,8 +7,8 @@
 //
 
 #include "ProcessManager.h"
-#include <klib/Hash.h>
 #include "ProcessPriv.h"
+#include <klib/Hash.h>
 #include <kern/kalloc.h>
 #include <sched/mtx.h>
 
@@ -26,8 +26,7 @@ typedef struct ProcessManager {
 ProcessManagerRef   gProcessManager;
 
 
-// Creates the process manager. The provided process becomes the root process.
-errno_t ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef _Nullable * _Nonnull pOutSelf)
+errno_t ProcessManager_Create(ProcessManagerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ProcessManagerRef self;
@@ -39,8 +38,6 @@ errno_t ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef _
     for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
         List_Init(&self->procTable[i]);
     }
-
-    err = ProcessManager_Register(self, pRootProc);
 
 catch:
     *pOutSelf = self;
@@ -252,7 +249,7 @@ errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, id_t sender_s
 
                     if (cp->sid == id) {
                         hasMatch = true;
-                        
+
                         if (cp->sid == sender_sid) {
                             hasSidMatch = true;
                             err = Process_SendSignal(cp, SIG_SCOPE_PROC, 0, signo);

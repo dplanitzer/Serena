@@ -21,8 +21,8 @@ typedef struct ProcessManager* ProcessManagerRef;
 extern ProcessManagerRef _Nonnull  gProcessManager;
 
 
-// Creates the process manager. The provided process becomes the root process.
-extern errno_t ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef _Nullable * _Nonnull pOutSelf);
+// Creates the process manager.
+extern errno_t ProcessManager_Create(ProcessManagerRef _Nullable * _Nonnull pOutSelf);
 
 
 // Registers the given process with the process manager. Note that this function

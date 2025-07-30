@@ -182,8 +182,9 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     Object_Release(pRootFh);
 
 
-    // Create the process manager and publish the root process
-    try(ProcessManager_Create(gKernelProcess, &gProcessManager));
+    // Create the process manager and publish the kernel process
+    try(ProcessManager_Create(&gProcessManager));
+    try(ProcessManager_Register(gProcessManager, gKernelProcess));
 
 
     // Spawn systemd
