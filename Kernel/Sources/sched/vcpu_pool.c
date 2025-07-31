@@ -50,7 +50,7 @@ errno_t vcpu_pool_acquire(vcpu_pool_t _Nonnull self, const VirtualProcessorParam
 
     // Try to reuse a cached VP
     List_ForEach(&self->reuse_queue, ListNode, {
-        vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
+        vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
         // Make sure that the VP is suspended at this point. It may still be in
         // the process of finishing the suspend. See relinquish() below

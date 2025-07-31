@@ -29,7 +29,7 @@ static int _proc_calc_state(ProcessRef _Nonnull _Locked self)
     // Process is suspended if all vcpus are suspended
     size_t nwaiting = 0, nsuspended = 0;
     List_ForEach(&self->vcpu_queue, ListNode,
-        vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
+        vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
         if (cvp->suspension_count > 0) {
             nsuspended++;

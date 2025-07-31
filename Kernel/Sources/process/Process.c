@@ -201,7 +201,7 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
 
     mtx_lock(&self->mtx);
     List_ForEach(&self->vcpu_queue, ListNode,
-        vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
+        vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
         int doSend;
         bool isProc;
 

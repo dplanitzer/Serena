@@ -142,7 +142,7 @@ struct vcpu {
 
 #define VP_ASSERT_ALIVE(p)   assert(p->lifecycle_state != VP_LIFECYCLE_TERMINATING)
 
-#define VP_FROM_OWNER_NODE(__ptr) \
+#define vcpu_from_owner_qe(__ptr) \
 (vcpu_t) (((uint8_t*)__ptr) - offsetof(struct vcpu, owner_qe))
 
 #define VP_FROM_TIMEOUT(__ptr) \

@@ -65,7 +65,7 @@ SYSCALL_1(vcpu_suspend, vcpuid_t id)
     else {
         mtx_lock(&pp->mtx);
         List_ForEach(&pp->vcpu_queue, ListNode,
-            vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
+            vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
             if (cvp->id == pa->id) {
                 err = vcpu_suspend(cvp);
@@ -84,7 +84,7 @@ SYSCALL_1(vcpu_resume, vcpuid_t id)
 
     mtx_lock(&pp->mtx);
     List_ForEach(&pp->vcpu_queue, ListNode,
-        vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
+        vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
         if (cvp->id == pa->id) {
             vcpu_resume(cvp, false);

@@ -125,7 +125,6 @@ extern void preempt_restore(int sps);
 
 // Terminates the given virtual processor that is executing the caller. Does not
 // return to the caller. The VP must already have been marked as terminating.
-// @Entry Condition: preemption disabled
 extern _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 
 extern void sched_add_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority);

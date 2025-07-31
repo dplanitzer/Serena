@@ -146,7 +146,7 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self)
 {
     List_ForEach(&self->vcpu_queue, ListNode, {
-        vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
+        vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
         vcpu_sigsend(cvp, SIGKILL, false);
         vcpu_sigrouteoff(cvp);

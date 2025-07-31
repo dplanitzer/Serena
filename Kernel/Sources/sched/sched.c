@@ -256,10 +256,15 @@ void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 
 // Terminates the given virtual processor that is executing the caller. Does not
 // return to the caller. The VP must already have been marked as terminating.
-// @Entry Condition: preemption disabled
 _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
-    List_InsertAfterLast(&self->finalizer_queue, &vp->rewa_qe);
+    // NOTE: We don't need to save the old preemption state because this VP is
+    // going away and we will never context switch back to it. The context switch
+    // will reenable preemption.
+    (void) preempt_disable();
+
+
+    List_InsertAfterLast(&self->finalizer_queue, &vp->owner_qe);
     
     
     // Check whether there are too many VPs on the finalizer queue. If so then we
@@ -276,16 +281,12 @@ _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
     
     if (dead_vps_count >= FINALIZE_NOW_THRESHOLD && gSchedulerWaitQueue.q.first != NULL) {
         // The scheduler VP is currently waiting for work. Let's wake it up.
-        wq_wakeone(&gSchedulerWaitQueue,
-                        self->boot_vp,
-                        WAKEUP_CSW,
-                        WRES_WAKEUP);
+        wq_wakeone(&gSchedulerWaitQueue, self->boot_vp, WAKEUP_CSW, WRES_WAKEUP);
     } else {
         // Do a forced context switch to whoever is ready
         // NOTE: we do NOT put the currently running VP back on the ready queue
         // because it is dead.
-        sched_switch_to(self,
-                                           sched_highest_priority_ready(self));
+        sched_switch_to(self, sched_highest_priority_ready(self));
     }
     
     /* NOT REACHED */
@@ -296,7 +297,6 @@ _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 // processor. This function does not return to the caller. 
 _Noreturn sched_run_chores(sched_t _Nonnull self)
 {
-    assert(vcpu_current() == self->boot_vp);
     List dead_vps;
     struct timespec now, timeout, deadline;
 
@@ -336,13 +336,11 @@ _Noreturn sched_run_chores(sched_t _Nonnull self)
         // XXX
         
         // Finalize VPs which have exited
-        vcpu_t pCurVP = (vcpu_t)dead_vps.first;
-        while (pCurVP) {
-            vcpu_t pNextVP = (vcpu_t)pCurVP->rewa_qe.next;
-            
-            vcpu_destroy(pCurVP);
-            pCurVP = pNextVP;
-        }
+        List_ForEach(&dead_vps, ListNode,
+            vcpu_t cp = vcpu_from_owner_qe(pCurNode);
+
+            vcpu_destroy(cp);
+        );
     }
 }
 

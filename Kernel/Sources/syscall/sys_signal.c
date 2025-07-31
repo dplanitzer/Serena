@@ -33,7 +33,7 @@ SYSCALL_3(sigroute, int scope, id_t id, int op)
     mtx_lock(&pp->mtx);
     if (pa->id != 0) {
         List_ForEach(&pp->vcpu_queue, ListNode, 
-            vcpu_t cvp = VP_FROM_OWNER_NODE(pCurNode);
+            vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
             if (cvp->id == pa->id) {
                 the_vp = cvp;

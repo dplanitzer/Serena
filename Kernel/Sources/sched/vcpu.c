@@ -160,10 +160,6 @@ _Noreturn vcpu_terminate(vcpu_t _Nonnull self)
     VP_ASSERT_ALIVE(self);
     self->lifecycle_state = VP_LIFECYCLE_TERMINATING;
 
-    // NOTE: We don't need to save the old preemption state because this VP is
-    // going away and we will never context switch back to it. The context switch
-    // will reenable preemption.
-    (void) preempt_disable();
     sched_terminate_vcpu(g_sched, self);
     /* NOT REACHED */
 }

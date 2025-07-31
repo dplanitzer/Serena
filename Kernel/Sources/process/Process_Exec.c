@@ -249,5 +249,5 @@ catch:
 
 void Process_ResumeMainVirtualProcessor(ProcessRef _Nonnull self)
 {
-    vcpu_resume(VP_FROM_OWNER_NODE(self->vcpu_queue.first), false);
+    vcpu_resume(vcpu_from_owner_qe(self->vcpu_queue.first), false);
 }
