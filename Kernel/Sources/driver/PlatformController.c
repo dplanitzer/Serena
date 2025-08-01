@@ -10,9 +10,6 @@
 #include <Catalog.h>
 
 
-DriverRef gPlatformController;
-
-
 errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     return Driver_Create(pClass, 0, NULL, pOutSelf);

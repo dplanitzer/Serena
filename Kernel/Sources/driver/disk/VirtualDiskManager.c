@@ -11,9 +11,6 @@
 #include "RomDisk.h"
 
 
-VirtualDiskManagerRef    gVirtualDiskManager;
-
-
 final_class_ivars(VirtualDiskManager, Driver,
 );
 
@@ -66,7 +63,7 @@ catch:
 
 errno_t VirtualDiskManager_CreateRomDisk(VirtualDiskManagerRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nonnull image)
 {
-        decl_try_err();
+    decl_try_err();
     DriverRef dd;
 
     try(RomDisk_Create((DriverRef)self, name, image, sectorSize, sectorCount, false, (RomDiskRef*)&dd));

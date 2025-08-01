@@ -11,6 +11,8 @@
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
 #include <dispatchqueue/DispatchQueue.h>
+#include <driver/DriverManager.h>
+#include <driver/hid/HIDManager.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
 #include <machine/clock.h>
@@ -164,7 +166,10 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
 
     // Detect hardware and initialize drivers
-    try(drivers_init());
+    try(HIDManager_Create(&gHIDManager));
+    try(DriverManager_Create(&gDriverManager));
+    try(DriverManager_Start(gDriverManager));
+    try(HIDManager_Start(gHIDManager));
 
 
     // Open the boot screen and show the boot logo

@@ -12,8 +12,6 @@
 #include <driver/Driver.h>
 
 
-extern VirtualDiskManagerRef    gVirtualDiskManager;
-
 final_class(VirtualDiskManager, Driver);
 
 extern errno_t VirtualDiskManager_Create(DriverRef _Nullable * _Nonnull pOutSelf);

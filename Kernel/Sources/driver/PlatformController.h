@@ -37,9 +37,6 @@ open_class_funcs(PlatformController, Driver,
 );
 
 
-extern DriverRef gPlatformController;
-
-
 // Creates a platform controller instance.
 extern errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf);
 
