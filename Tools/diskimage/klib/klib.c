@@ -13,41 +13,10 @@
 #include <limits.h>
 #include <time.h>
 #include <kpi/_time.h>
-#include <windows.h>
 
 
 const struct timespec TIMESPEC_ZERO = {0l, 0l};
 const struct timespec TIMESPEC_INF = {LONG_MAX, NSEC_PER_SEC-1l};
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-#include "Atomic.h"
-
-// Atomically assign 'newValue' to the atomic bool stored in the given memory
-// location and returns the previous value.
-AtomicBool AtomicBool_Set(volatile AtomicBool* _Nonnull pValue, bool newValue)
-{
-    AtomicBool oldValue = *pValue;
-    *pValue = newValue;
-    return oldValue;
-}
-
-// Atomically adds the 'increment' value to the integer stored in the given
-// memory location and returns the new value.
-AtomicInt AtomicInt_Add(volatile AtomicInt* _Nonnull pValue, int increment)
-{
-    *pValue += increment;
-    return *pValue;
-}
-
-// Atomically subtracts the 'decrement' value from the integer stored in the given
-// memory location and returns the new value.
-AtomicInt AtomicInt_Subtract(volatile AtomicInt* _Nonnull pValue, int decrement)
-{
-    *pValue -= decrement;
-    return *pValue;
-}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -109,29 +78,4 @@ char* _Nonnull String_CopyUpTo(char* _Nonnull pDst, const char* _Nonnull pSrc, s
     }
 
     return pDst;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-#include <machine/rc.h>
-
-void rc_retain(volatile ref_count_t* _Nonnull rc)
-{
-    InterlockedIncrement((volatile LONG*)rc);
-}
-
-bool rc_release(volatile ref_count_t* _Nonnull rc)
-{
-    if (InterlockedDecrement((volatile LONG*)rc) == 0) {
-        return true;
-    }
-    else {
-        return false;
-    }
-}
-
-int rc_getcount(volatile ref_count_t* _Nonnull rc)
-{
-    return *rc;
 }
