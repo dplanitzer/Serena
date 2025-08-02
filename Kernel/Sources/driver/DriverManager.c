@@ -69,3 +69,18 @@ FilesystemRef _Nonnull DriverManager_GetCatalog(DriverManagerRef _Nonnull self)
 {
     return Catalog_GetFilesystem(gDriverCatalog);
 }
+
+errno_t DriverManager_Open(DriverManagerRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+{
+    return Catalog_Open(gDriverCatalog, path, mode, pOutChannel);
+}
+
+errno_t DriverManager_HasDriver(DriverManagerRef _Nonnull self, const char* _Nonnull path)
+{
+    return Catalog_IsPublished(gDriverCatalog, path);
+}
+
+errno_t DriverManager_AcquireNodeForPath(DriverManagerRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp)
+{
+    return Catalog_AcquireNodeForPath(gDriverCatalog, path, rp);
+}

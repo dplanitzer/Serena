@@ -9,6 +9,7 @@
 #ifndef DriverManager_h
 #define DriverManager_h
 
+#include <filemanager/ResolvedPath.h>
 #include <kern/errno.h>
 #include <kern/types.h>
 #include <kobj/AnyRefs.h>
@@ -32,5 +33,11 @@ extern errno_t DriverManager_Start(DriverManagerRef _Nonnull self);
 
 // Returns the filesystem that represents the /dev catalog.
 extern FilesystemRef _Nonnull DriverManager_GetCatalog(DriverManagerRef _Nonnull self);
+
+
+extern errno_t DriverManager_Open(DriverManagerRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t DriverManager_HasDriver(DriverManagerRef _Nonnull self, const char* _Nonnull path);
+
+extern errno_t DriverManager_AcquireNodeForPath(DriverManagerRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp);
 
 #endif /* DriverManager_h */

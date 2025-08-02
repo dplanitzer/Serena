@@ -43,7 +43,7 @@ void auto_discover_boot_rd(void)
     else {
         try(VirtualDiskManager_CreateRamDisk((VirtualDiskManagerRef)gDriverManager->virtualDiskDriver, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128));
 
-        try(Catalog_Open(gDriverCatalog, "/rd0", O_RDWR, &chan));
+        try(DriverManager_Open(gDriverManager, "/rd0", O_RDWR, &chan));
         try(DiskContainer_Create(chan, &fsContainer));
 
         for (blkno_t lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {

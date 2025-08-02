@@ -8,7 +8,7 @@
 
 #include "Log.h"
 #include "Formatter.h"
-#include <Catalog.h>
+#include <driver/DriverManager.h>
 #include <filesystem/IOChannel.h>
 #include <klib/RingBuffer.h>
 #include <sched/mtx.h>
@@ -58,8 +58,8 @@ static errno_t log_open_console(void)
 {
     decl_try_err();
 
-    if (gDriverCatalog) {
-        err = Catalog_Open(gDriverCatalog, "/console", O_WRONLY, &gConsoleChannel);
+    if (gDriverManager) {
+        err = DriverManager_Open(gDriverManager, "/console", O_WRONLY, &gConsoleChannel);
     }
     else {
         err = ENODEV;

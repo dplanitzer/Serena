@@ -8,6 +8,7 @@
 
 #include "HIDManagerPriv.h"
 #include <driver/DriverChannel.h>
+#include <driver/DriverManager.h>
 #include <kern/kalloc.h>
 #include <kern/limits.h>
 #include <kpi/fcntl.h>
@@ -51,7 +52,7 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
     decl_try_err();
 
     // Open a channel to the framebuffer
-    try(Catalog_Open(gDriverCatalog, "/hw/fb", O_RDWR, &self->fbChannel));
+    try(DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &self->fbChannel));
     self->fb = DriverChannel_GetDriverAs(self->fbChannel, GraphicsDriver);
 
     int w, h;
@@ -64,11 +65,11 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
 
 
     // Open the keyboard driver
-    try(Catalog_Open(gDriverCatalog, "/hw/kb", O_RDWR, &self->kbChannel));
+    try(DriverManager_Open(gDriverManager, "/hw/kb", O_RDWR, &self->kbChannel));
 
 
     // Open the game port driver
-    try(Catalog_Open(gDriverCatalog, "/hw/gp-bus/self", O_RDWR, &self->gpChannel));
+    try(DriverManager_Open(gDriverManager, "/hw/gp-bus/self", O_RDWR, &self->gpChannel));
 
 catch:
     return err;

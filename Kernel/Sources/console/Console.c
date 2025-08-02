@@ -8,7 +8,7 @@
 
 #include "ConsolePriv.h"
 #include "ConsoleChannel.h"
-#include <Catalog.h>
+#include <driver/DriverManager.h>
 #include <driver/hid/HIDChannel.h>
 #include <kern/assert.h>
 #include <kern/string.h>
@@ -33,11 +33,11 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 
     try(DispatchQueue_Create(0, 1, VCPU_QOS_INTERACTIVE, 0, (DispatchQueueRef*)&self->dispatchQueue));
 
-    try(Catalog_Open(gDriverCatalog, "/hid", O_RDONLY, &self->hidChannel));
+    try(DriverManager_Open(gDriverManager, "/hid", O_RDONLY, &self->hidChannel));
     try(RingBuffer_Init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     // Open a channel to the framebuffer
-    try(Catalog_Open(gDriverCatalog, "/hw/fb", O_RDWR, &self->fbChannel));
+    try(DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &self->fbChannel));
     self->fb = DriverChannel_GetDriverAs(self->fbChannel, GraphicsDriver);
     self->keyMap = (const KeyMap*) gKeyMap_usa;
     self->compatibilityMode = kCompatibilityMode_ANSI;
