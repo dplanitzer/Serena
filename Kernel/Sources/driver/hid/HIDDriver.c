@@ -25,7 +25,7 @@ errno_t HIDDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 
 errno_t HIDDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    DriverEntry1 de;
+    DriverEntry de;
     de.dirId = Driver_GetParentDirectoryId(self);
     de.name = "hid";
     de.uid = kUserId_Root;

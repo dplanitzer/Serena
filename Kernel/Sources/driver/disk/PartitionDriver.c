@@ -81,7 +81,7 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
 
-    DriverEntry1 de;
+    DriverEntry de;
     de.dirId = Driver_GetParentDirectoryId(self);
     de.name = self->name;
     de.uid = kUserId_Root;

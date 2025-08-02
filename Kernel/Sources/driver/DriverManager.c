@@ -86,7 +86,7 @@ errno_t DriverManager_AcquireNodeForPath(DriverManagerRef _Nonnull self, const c
 }
 
 
-errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver, const DriverEntry1* _Nonnull de)
+errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver, const DriverEntry* _Nonnull de)
 {
     return Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, driver, de->arg, &driver->driverCatalogId);
 }

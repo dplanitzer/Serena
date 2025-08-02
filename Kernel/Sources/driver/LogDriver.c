@@ -21,7 +21,7 @@ errno_t LogDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 
 errno_t LogDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    DriverEntry1 de;
+    DriverEntry de;
     de.dirId = Driver_GetParentDirectoryId(self);
     de.name = "klog";
     de.uid = kUserId_Root;

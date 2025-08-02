@@ -91,7 +91,7 @@ errno_t DigitalJoystickDriver_onStart(DigitalJoystickDriverRef _Nonnull _Locked 
     name[4] = '0' + self->port;
     name[5] = '\0';
 
-    DriverEntry1 de;
+    DriverEntry de;
     de.dirId = Driver_GetParentDirectoryId(self);
     de.name = name;
     de.uid = kUserId_Root;
@@ -234,7 +234,7 @@ errno_t AnalogJoystickDriver_onStart(AnalogJoystickDriverRef _Nonnull _Locked se
     name[4] = '0' + self->port;
     name[5] = '\0';
 
-    DriverEntry1 de;
+    DriverEntry de;
     de.dirId = Driver_GetParentDirectoryId(self);
     de.name = name;
     de.uid = kUserId_Root;

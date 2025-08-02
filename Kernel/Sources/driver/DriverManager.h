@@ -24,14 +24,14 @@ typedef struct DirEntry {
     mode_t                  perms;
 } DirEntry;
 
-typedef struct DriverEntry1 {
+typedef struct DriverEntry {
     CatalogId               dirId;
     const char* _Nonnull    name;
     uid_t                   uid;
     gid_t                   gid;
     mode_t                  perms;
     intptr_t                arg;
-} DriverEntry1;
+} DriverEntry;
 
 
 typedef struct DriverManager {
@@ -63,7 +63,7 @@ extern errno_t DriverManager_AcquireNodeForPath(DriverManagerRef _Nonnull self, 
 
 // Publishes the driver instance to the driver catalog with the given name. This
 // method should be called from a onStart() override.
-extern errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver, const DriverEntry1* _Nonnull de);
+extern errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver, const DriverEntry* _Nonnull de);
 
 // Removes the driver instance from the driver catalog.
 extern void DriverManager_Unpublish(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver);

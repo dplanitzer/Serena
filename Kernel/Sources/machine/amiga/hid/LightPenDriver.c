@@ -93,7 +93,7 @@ errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
     name[4] = '0' + self->port;
     name[5] = '\0';
 
-    DriverEntry1 de;
+    DriverEntry de;
     de.dirId = Driver_GetParentDirectoryId(self);
     de.name = name;
     de.uid = kUserId_Root;

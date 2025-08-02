@@ -90,7 +90,7 @@ errno_t MouseDriver_onStart(MouseDriverRef _Nonnull _Locked self)
     name[5] = '0' + self->port;
     name[6] = '\0';
 
-    DriverEntry1 de;
+    DriverEntry de;
     de.dirId = Driver_GetParentDirectoryId(self);
     de.name = name;
     de.uid = kUserId_Root;

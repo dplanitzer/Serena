@@ -66,7 +66,7 @@ void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull sel
 
 static errno_t GraphicsDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    DriverEntry1 de;
+    DriverEntry de;
     de.dirId = Driver_GetParentDirectoryId(self);
     de.name = "fb";
     de.uid = kUserId_Root;

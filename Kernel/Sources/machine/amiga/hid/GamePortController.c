@@ -127,7 +127,7 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
 
     try(DriverManager_CreateDirectory(gDriverManager, &be, &self->busDirId));
 
-    DriverEntry1 de;
+    DriverEntry de;
     de.dirId = self->busDirId;
     de.name = "self";
     de.uid = kUserId_Root;

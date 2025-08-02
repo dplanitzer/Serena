@@ -30,7 +30,7 @@ errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)
     name[3] = '0' + cfg->slot;
     name[4] = '\0';
 
-    DriverEntry1 de;
+    DriverEntry de;
     de.dirId = Driver_GetParentDirectoryId(self);
     de.name = name;
     de.uid = kUserId_Root;

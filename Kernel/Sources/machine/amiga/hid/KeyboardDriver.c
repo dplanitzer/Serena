@@ -94,7 +94,7 @@ static void KeyboardDriver_deinit(KeyboardDriverRef _Nonnull self)
 
 errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    DriverEntry1 de;
+    DriverEntry de;
     de.dirId = Driver_GetParentDirectoryId(self);
     de.name = "kb";
     de.uid = kUserId_Root;

@@ -104,7 +104,7 @@ static errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     // Start cursor blinking
     Console_SetCursorBlinkingEnabled_Locked(self, true);
 
-    DriverEntry1 de;
+    DriverEntry de;
     de.dirId = Driver_GetParentDirectoryId(self);
     de.name = "console";
     de.uid = kUserId_Root;

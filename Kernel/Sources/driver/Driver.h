@@ -29,23 +29,6 @@ typedef enum DriverState {
     kDriverState_Terminated
 } DriverState;
 
-#if 1
-typedef struct BusEntry {
-    const char* _Nonnull    name;
-    uid_t                   uid;
-    gid_t                   gid;
-    mode_t                  perms;
-} BusEntry;
-
-
-typedef struct DriverEntry {
-    const char* _Nonnull    name;
-    uid_t                   uid;
-    gid_t                   gid;
-    mode_t                  perms;
-    intptr_t                arg;
-} DriverEntry;
-#endif
 
 // A driver object manages a device. A device is a piece of hardware while a
 // driver is the software that manages the hardware.

@@ -20,7 +20,7 @@ errno_t NullDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 
 errno_t NullDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    DriverEntry1 de;
+    DriverEntry de;
     de.dirId = Driver_GetParentDirectoryId(self);
     de.name = "null";
     de.uid = kUserId_Root;
