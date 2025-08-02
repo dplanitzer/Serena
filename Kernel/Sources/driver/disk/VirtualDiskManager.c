@@ -9,37 +9,47 @@
 #include "VirtualDiskManager.h"
 #include "RamDisk.h"
 #include "RomDisk.h"
+#include <driver/DriverManager.h>
 
 
 final_class_ivars(VirtualDiskManager, Driver,
+    CatalogId   busDirId;
 );
 
 
 errno_t VirtualDiskManager_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(VirtualDiskManager), 0, NULL, pOutSelf);
+    return Driver_Create(class(VirtualDiskManager), 0, NULL, kCatalogId_None, pOutSelf);
 }
 
-errno_t VirtualDiskManager_onStart(DriverRef _Nonnull _Locked self)
+errno_t VirtualDiskManager_onStart(VirtualDiskManagerRef _Nonnull _Locked self)
 {
     decl_try_err();
 
-    BusEntry be;
+    DirEntry be;
+    be.dirId = Driver_GetParentDirectoryId(self);
     be.name = "vdisk";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;
     be.perms = perm_from_octal(0755);
 
-    DriverEntry de;
+    try(DriverManager_CreateDirectory(gDriverManager, &be, &self->busDirId));
+    ((DriverRef)self)->busCatalogId = self->busDirId;
+
+    DriverEntry1 de;
+    de.dirId = self->busDirId;
     de.name = "self";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    try(Driver_PublishBus((DriverRef)self, &be, &de));
+    try(DriverManager_Publish(gDriverManager, (DriverRef)self, &de));
 
 catch:
+    if (err != EOK) {
+        DriverManager_RemoveDirectory(gDriverManager, self->busDirId);
+    }
     return err;
 }
 
@@ -48,7 +58,7 @@ errno_t VirtualDiskManager_CreateRamDisk(VirtualDiskManagerRef _Nonnull self, co
     decl_try_err();
     DriverRef dd;
 
-    try(RamDisk_Create((DriverRef)self, name, sectorSize, sectorCount, extentSectorCount, (RamDiskRef*)&dd));
+    try(RamDisk_Create((DriverRef)self, self->busDirId, name, sectorSize, sectorCount, extentSectorCount, (RamDiskRef*)&dd));
     try(Driver_StartAdoptChild((DriverRef)self, dd));
 
     return EOK;
@@ -66,7 +76,7 @@ errno_t VirtualDiskManager_CreateRomDisk(VirtualDiskManagerRef _Nonnull self, co
     decl_try_err();
     DriverRef dd;
 
-    try(RomDisk_Create((DriverRef)self, name, image, sectorSize, sectorCount, false, (RomDiskRef*)&dd));
+    try(RomDisk_Create((DriverRef)self, self->busDirId, name, image, sectorSize, sectorCount, false, (RomDiskRef*)&dd));
     try(Driver_StartAdoptChild((DriverRef)self, dd));
 
     return EOK;

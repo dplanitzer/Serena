@@ -7,6 +7,7 @@
 //
 
 #include "LightPenDriver.h"
+#include <driver/DriverManager.h>
 #include <driver/hid/HIDManager.h>
 #include <machine/InterruptController.h>
 #include <machine/amiga/chipset.h>
@@ -31,7 +32,7 @@ final_class_ivars(LightPenDriver, InputDriver,
 extern void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull self);
 
 
-errno_t LightPenDriver_Create(DriverRef _Nullable parent, int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t LightPenDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -41,7 +42,7 @@ errno_t LightPenDriver_Create(DriverRef _Nullable parent, int port, DriverRef _N
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(LightPenDriver), kDriver_Exclusive, parent, (DriverRef*)&self));
+    try(Driver_Create(class(LightPenDriver), kDriver_Exclusive, NULL, parentDirId, (DriverRef*)&self));
     
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
     self->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;
@@ -92,14 +93,15 @@ errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
     name[4] = '0' + self->port;
     name[5] = '\0';
 
-    DriverEntry de;
+    DriverEntry1 de;
+    de.dirId = Driver_GetParentDirectoryId(self);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0444);
     de.arg = 0;
 
-    return Driver_Publish((DriverRef)self, &de);
+    return DriverManager_Publish(gDriverManager, (DriverRef)self, &de);
 }
 
 InputType LightPenDriver_getInputType(LightPenDriverRef _Nonnull self)

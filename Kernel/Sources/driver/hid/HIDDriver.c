@@ -9,6 +9,7 @@
 #include "HIDDriver.h"
 #include "HIDChannel.h"
 #include "HIDManager.h"
+#include <driver/DriverManager.h>
 #include <kpi/fcntl.h>
 #include <kpi/hid.h>
 #include <kern/timespec.h>
@@ -19,19 +20,20 @@ final_class_ivars(HIDDriver, Driver,
 
 errno_t HIDDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(HIDDriver), 0, NULL, pOutSelf);
+    return Driver_Create(class(HIDDriver), 0, NULL, kCatalogId_None, pOutSelf);
 }
 
 errno_t HIDDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    DriverEntry de;
+    DriverEntry1 de;
+    de.dirId = Driver_GetParentDirectoryId(self);
     de.name = "hid";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    return DriverManager_Publish(gDriverManager, self, &de);
 }
 
 errno_t HIDDriver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)

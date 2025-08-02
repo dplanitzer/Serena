@@ -27,7 +27,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     ConsoleRef self;
 
-    try(Driver_Create(class(Console), 0, NULL, (DriverRef*)&self));
+    try(Driver_Create(class(Console), 0, NULL, kCatalogId_None, (DriverRef*)&self));
     
     mtx_init(&self->mtx);
 
@@ -104,14 +104,15 @@ static errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     // Start cursor blinking
     Console_SetCursorBlinkingEnabled_Locked(self, true);
 
-    DriverEntry de;
+    DriverEntry1 de;
+    de.dirId = Driver_GetParentDirectoryId(self);
     de.name = "console";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    return Driver_Publish((DriverRef)self, &de);
+    return DriverManager_Publish(gDriverManager, (DriverRef)self, &de);
 }
 
 errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking)

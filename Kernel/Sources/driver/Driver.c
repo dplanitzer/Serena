@@ -15,7 +15,7 @@
 (DriverRef) (((uint8_t*)__ptr) - offsetof(struct Driver, childNode))
 
 
-errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DriverRef self = NULL;
@@ -28,6 +28,7 @@ errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _
     self->parent = parent;
     self->options = options;
     self->state = kDriverState_Inactive;
+    self->parentDirectoryId = parentDirectoryId;
 
     *pOutSelf = self;
     return EOK;
@@ -269,7 +270,7 @@ errno_t Driver_onPublish(DriverRef _Nonnull _Locked self)
     return EOK;
 }
 
-static CatalogId Driver_GetParentBusCatalogId(DriverRef _Nonnull _Locked self)
+CatalogId Driver_GetParentBusCatalogId(DriverRef _Nonnull _Locked self)
 {
     return (self->parent) ? Driver_GetBusCatalogId(self->parent) : kCatalogId_None;
 }

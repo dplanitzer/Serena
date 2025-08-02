@@ -10,6 +10,7 @@
 #include "JoystickDriver.h"
 #include "LightPenDriver.h"
 #include "MouseDriver.h"
+#include <driver/DriverManager.h>
 #include <kern/assert.h>
 #include <kpi/fcntl.h>
 #include <kpi/hid.h>
@@ -19,12 +20,13 @@
 
 
 final_class_ivars(GamePortController, Driver,
+    CatalogId   busDirId;
 );
 
 
-errno_t GamePortController_Create(DriverRef _Nullable parent, GamePortControllerRef _Nullable * _Nonnull pOutSelf)
+errno_t GamePortController_Create(CatalogId parentDirId, GamePortControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(GamePortController), kDriver_Exclusive, parent, (DriverRef*)pOutSelf);
+    return Driver_Create(class(GamePortController), kDriver_Exclusive, NULL, parentDirId, (DriverRef*)pOutSelf);
 }
 
 static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType* _Nullable pOutType)
@@ -49,16 +51,16 @@ static errno_t GamePortController_CreateInputDriver(GamePortControllerRef _Nonnu
 {
     switch (type) {
         case kInputType_Mouse:
-            return MouseDriver_Create((DriverRef)self, port, pOutDriver);
+            return MouseDriver_Create(self->busDirId, port, pOutDriver);
 
         case kInputType_DigitalJoystick:
-            return DigitalJoystickDriver_Create((DriverRef)self, port, pOutDriver);
+            return DigitalJoystickDriver_Create(self->busDirId, port, pOutDriver);
 
         case kInputType_AnalogJoystick:
-            return AnalogJoystickDriver_Create((DriverRef)self, port, pOutDriver);
+            return AnalogJoystickDriver_Create(self->busDirId, port, pOutDriver);
 
         case kInputType_LightPen:
-            return LightPenDriver_Create((DriverRef)self, port, pOutDriver);
+            return LightPenDriver_Create(self->busDirId, port, pOutDriver);
 
         default:
             abort();
@@ -116,26 +118,32 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
 
-    BusEntry be;
+    DirEntry be;
+    be.dirId = Driver_GetParentDirectoryId(self);
     be.name = "gp-bus";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;
     be.perms = perm_from_octal(0755);
 
-    DriverEntry de;
+    try(DriverManager_CreateDirectory(gDriverManager, &be, &self->busDirId));
+    ((DriverRef)self)->busCatalogId = self->busDirId;
+
+    DriverEntry1 de;
+    de.dirId = self->busDirId;
     de.name = "self";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    if ((err = Driver_PublishBus((DriverRef)self, &be, &de)) == EOK) {
-        err = GamePortController_SetPortDevice_Locked(self, 0, kInputType_Mouse);
-        if (err != EOK) {
-            Driver_Unpublish((DriverRef)self);
-        }
-    }
+    try(DriverManager_Publish(gDriverManager, (DriverRef)self, &de));
+    try(GamePortController_SetPortDevice_Locked(self, 0, kInputType_Mouse));
     
+catch:
+    if (err != EOK) {
+        DriverManager_Unpublish(gDriverManager, (DriverRef)self);
+        DriverManager_RemoveDirectory(gDriverManager, self->busDirId);
+    }
     return err;
 }
 

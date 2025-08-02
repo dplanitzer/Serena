@@ -18,7 +18,7 @@
 final_class(GraphicsDriver, Driver);
 
 
-extern errno_t GraphicsDriver_Create(DriverRef _Nullable parent, GraphicsDriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t GraphicsDriver_Create(CatalogId parentDirId, GraphicsDriverRef _Nullable * _Nonnull pOutSelf);
 
 // Surfaces
 extern errno_t GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int* _Nonnull pOutId);

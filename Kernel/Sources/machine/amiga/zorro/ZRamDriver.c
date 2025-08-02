@@ -7,13 +7,14 @@
 //
 
 #include "ZRamDriver.h"
+#include <driver/DriverManager.h>
 #include <kern/kalloc.h>
 #include <machine/Platform.h>
 
 
-errno_t ZRamDriver_Create(DriverRef _Nullable parent, const zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t ZRamDriver_Create(CatalogId parentDirId, const zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return ZorroDriver_Create(class(ZRamDriver), 0, parent, config, pOutSelf);
+    return ZorroDriver_Create(class(ZRamDriver), 0, parentDirId, config, pOutSelf);
 }
 
 errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)
@@ -29,14 +30,15 @@ errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)
     name[3] = '0' + cfg->slot;
     name[4] = '\0';
 
-    DriverEntry de;
+    DriverEntry1 de;
+    de.dirId = Driver_GetParentDirectoryId(self);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0440);
     de.arg = 0;
 
-    if ((err = Driver_Publish((DriverRef)self, &de)) == EOK) {
+    if ((err = DriverManager_Publish(gDriverManager, self, &de)) == EOK) {
         md.lower = cfg->start;
         md.upper = cfg->start + cfg->logicalSize;
         md.type = MEM_TYPE_MEMORY;

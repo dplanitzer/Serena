@@ -7,6 +7,7 @@
 //
 
 #include "RomDisk.h"
+#include <driver/DriverManager.h>
 #include <kern/kalloc.h>
 #include <kern/string.h>
 
@@ -23,7 +24,7 @@ final_class_ivars(RomDisk, DiskDriver,
 );
 
 
-errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, const void* _Nonnull pImage, size_t sectorSize, scnt_t sectorCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
+errno_t RomDisk_Create(DriverRef _Nullable parent, CatalogId parentDirId, const char* _Nonnull name, const void* _Nonnull pImage, size_t sectorSize, scnt_t sectorCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     RomDiskRef self = NULL;
@@ -37,7 +38,7 @@ errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, co
     drvi.platter = kPlatter_None;
     drvi.properties = kDrive_IsReadOnly | kDrive_Fixed;
 
-    try(DiskDriver_Create(class(RomDisk), 0, parent, &drvi, (DriverRef*)&self));
+    try(DiskDriver_Create(class(RomDisk), 0, NULL, parentDirId, &drvi, (DriverRef*)&self));
     self->diskImage = pImage;
     self->sectorCount = sectorCount;
     self->sectorShift = siz_log2(sectorSize);
@@ -71,14 +72,15 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
 
-    DriverEntry de;
+    DriverEntry1 de;
+    de.dirId = Driver_GetParentDirectoryId(self);
     de.name = self->name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0444);
     de.arg = 0;
 
-    return Driver_Publish((DriverRef)self, &de);
+    return DriverManager_Publish(gDriverManager, (DriverRef)self, &de);
 }
 
 errno_t RomDisk_getSector(RomDiskRef _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize)

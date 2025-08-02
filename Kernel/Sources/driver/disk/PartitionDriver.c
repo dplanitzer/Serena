@@ -7,6 +7,7 @@
 //
 
 #include "PartitionDriver.h"
+#include <driver/DriverManager.h>
 #include <kern/string.h>
 
 #define MAX_NAME_LENGTH 8
@@ -22,7 +23,7 @@ final_class_ivars(PartitionDriver, DiskDriver,
 );
 
 
-errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull name, sno_t lsaStart, scnt_t sectorCount, bool isReadOnly, DiskDriverRef wholeDisk, PartitionDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t PartitionDriver_Create(DriverRef _Nullable parent, CatalogId parentDirId, const char* _Nonnull name, sno_t lsaStart, scnt_t sectorCount, bool isReadOnly, DiskDriverRef wholeDisk, PartitionDriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     disk_info_t di;
@@ -37,7 +38,7 @@ errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull 
     drvi.family = kDriveFamily_Fixed;
     drvi.platter = kPlatter_3_5;
     drvi.properties = kDrive_Fixed;
-    try(DiskDriver_Create(class(PartitionDriver), 0, parent, &drvi, (DriverRef*)&self));
+    try(DiskDriver_Create(class(PartitionDriver), 0, NULL, parentDirId, &drvi, (DriverRef*)&self));
     self->wholeDisk = wholeDisk;
     self->lsaStart = lsaStart;
     self->sectorCount = sectorCount;
@@ -80,14 +81,15 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
 
-    DriverEntry de;
+    DriverEntry1 de;
+    de.dirId = Driver_GetParentDirectoryId(self);
     de.name = self->name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0640);
     de.arg = 0;
 
-    try(Driver_Publish((DriverRef)self, &de));
+    try(DriverManager_Publish(gDriverManager, (DriverRef)self, &de));
 
 catch:
     return err;

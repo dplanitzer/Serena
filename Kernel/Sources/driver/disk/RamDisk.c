@@ -7,6 +7,7 @@
 //
 
 #include "RamDisk.h"
+#include <driver/DriverManager.h>
 #include <kern/kalloc.h>
 #include <kern/string.h>
 
@@ -31,7 +32,7 @@ final_class_ivars(RamDisk, DiskDriver,
 );
 
 
-errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount, RamDiskRef _Nullable * _Nonnull pOutSelf)
+errno_t RamDisk_Create(DriverRef _Nullable parent, CatalogId parentDirId, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount, RamDiskRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     RamDiskRef self = NULL;
@@ -45,7 +46,7 @@ errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, si
     drvi.platter = kPlatter_None;
     drvi.properties = kDrive_Fixed;
 
-    try(DiskDriver_Create(class(RamDisk), 0, parent, &drvi, (DriverRef*)&self));
+    try(DiskDriver_Create(class(RamDisk), 0, NULL, parentDirId, &drvi, (DriverRef*)&self));
     SList_Init(&self->extents);
     self->extentSectorCount = __min(extentSectorCount, sectorCount);
     self->sectorCount = sectorCount;
@@ -79,14 +80,15 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, &info);
 
 
-    DriverEntry de;
+    DriverEntry1 de;
+    de.dirId = Driver_GetParentDirectoryId(self);
     de.name = self->name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    return Driver_Publish((DriverRef)self, &de);
+    return DriverManager_Publish(gDriverManager, (DriverRef)self, &de);
 }
 
 // Tries to find the disk extent that contains the given sector index. This disk

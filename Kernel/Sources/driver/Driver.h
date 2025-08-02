@@ -29,7 +29,7 @@ typedef enum DriverState {
     kDriverState_Terminated
 } DriverState;
 
-
+#if 1
 typedef struct BusEntry {
     const char* _Nonnull    name;
     uid_t                   uid;
@@ -45,7 +45,7 @@ typedef struct DriverEntry {
     mode_t                  perms;
     intptr_t                arg;
 } DriverEntry;
-
+#endif
 
 // A driver object manages a device. A device is a piece of hardware while a
 // driver is the software that manages the hardware.
@@ -146,6 +146,7 @@ open_class(Driver, Object,
     uint8_t                     flags;
     int8_t                      state;
     int                         openCount;
+    CatalogId                   parentDirectoryId;  // /dev directory in which the driver lives 
     CatalogId                   driverCatalogId;
     CatalogId                   busCatalogId;
     intptr_t                    tag;
@@ -277,8 +278,13 @@ extern intptr_t Driver_GetTag(DriverRef _Nonnull self);
 //
 
 // Create a driver instance.
-extern errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf);
 
+
+// Returns the parent directory of the driver. This is the directory in which
+// the driver bus directories or the driver node itself lives.
+#define Driver_GetParentDirectoryId(__self) \
+((DriverRef)__self)->parentDirectoryId
 
 // Returns true if the driver is in active state; false otherwise
 #define Driver_IsActive(__self) \
@@ -312,6 +318,8 @@ invoke_0(onPublish, Driver, __self)
 #define Driver_OnUnpublish(__self) \
 invoke_0(onUnpublish, Driver, __self)
 
+
+extern CatalogId Driver_GetParentBusCatalogId(DriverRef _Nonnull _Locked self);
 
 // Publishes the driver instance to the driver catalog with the given name. This
 // method should be called from a onStart() override.

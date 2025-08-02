@@ -9,12 +9,12 @@
 #include "ZorroDriver.h"
 
 
-errno_t ZorroDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, const zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t ZorroDriver_Create(Class* _Nonnull pClass, DriverOptions options, CatalogId parentDirId, const zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ZorroDriverRef self;
 
-    if ((err = Driver_Create(pClass, options, parent, (DriverRef*)&self)) == EOK) {
+    if ((err = Driver_Create(pClass, options, NULL, parentDirId, (DriverRef*)&self)) == EOK) {
         self->boardConfig = config;
     }
 

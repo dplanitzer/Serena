@@ -7,6 +7,7 @@
 //
 
 #include "GraphicsDriverPriv.h"
+#include <Driver/DriverManager.h>
 #include <kern/timespec.h>
 #include <kpi/fcntl.h>
 #include <kpi/hid.h>
@@ -16,12 +17,12 @@
 // We assume that video is turned off at the time this function is called and
 // video remains turned off until a screen has been created and is made the
 // current screen.
-errno_t GraphicsDriver_Create(DriverRef _Nullable parent, GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t GraphicsDriver_Create(CatalogId parentDirId, GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     GraphicsDriverRef self;
     
-    try(Driver_Create(class(GraphicsDriver), 0, parent, (DriverRef*)&self));
+    try(Driver_Create(class(GraphicsDriver), 0, NULL, parentDirId, (DriverRef*)&self));
     self->nextSurfaceId = 1;
     self->nextScreenId = 1;
 
@@ -65,14 +66,15 @@ void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull sel
 
 static errno_t GraphicsDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    DriverEntry de;
+    DriverEntry1 de;
+    de.dirId = Driver_GetParentDirectoryId(self);
     de.name = "fb";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    return DriverManager_Publish(gDriverManager, self, &de);
 }
 
 errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)

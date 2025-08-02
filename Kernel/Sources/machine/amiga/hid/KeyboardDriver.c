@@ -7,6 +7,7 @@
 //
 
 #include "KeyboardDriver.h"
+#include <driver/DriverManager.h>
 #include <driver/hid/HIDManager.h>
 #include <driver/hid/HIDKeyRepeater.h>
 #include <kpi/fcntl.h>
@@ -45,12 +46,12 @@ extern void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self);
 extern void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull self);
 
 
-errno_t KeyboardDriver_Create(DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t KeyboardDriver_Create(CatalogId parentDirId, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     KeyboardDriverRef self;
     
-    try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, parent, (DriverRef*)&self));
+    try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, NULL, parentDirId, (DriverRef*)&self));
     
     self->keyCodeMap = gUSBHIDKeycodes;
     try(HIDKeyRepeater_Create(&self->keyRepeater));
@@ -91,16 +92,17 @@ static void KeyboardDriver_deinit(KeyboardDriverRef _Nonnull self)
     self->keyRepeater = NULL;
 }
 
-errno_t KeyboardDriver_onStart(KeyboardDriverRef _Nonnull _Locked self)
+errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    DriverEntry de;
+    DriverEntry1 de;
+    de.dirId = Driver_GetParentDirectoryId(self);
     de.name = "kb";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0444);
     de.arg = 0;
 
-    return Driver_Publish((DriverRef)self, &de);
+    return DriverManager_Publish(gDriverManager, self, &de);
 }
 
 InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)

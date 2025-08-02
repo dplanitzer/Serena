@@ -9,16 +9,18 @@
 #include "ZorroController.h"
 #include "zorro_bus.h"
 #include "ZRamDriver.h"
+#include <driver/DriverManager.h>
 
 
 final_class_ivars(ZorroController, Driver,
     ZorroBus    bus;
+    CatalogId   busDirId;
 );
 
 
-errno_t ZorroController_Create(DriverRef _Nullable parent, ZorroControllerRef _Nullable * _Nonnull pOutSelf)
+errno_t ZorroController_Create(CatalogId parentDirId, ZorroControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(ZorroController), 0, parent, (DriverRef*)pOutSelf);
+    return Driver_Create(class(ZorroController), 0, NULL, parentDirId, (DriverRef*)pOutSelf);
 }
 
 static errno_t ZorroController_DetectDevices(ZorroControllerRef _Nonnull _Locked self)
@@ -29,7 +31,7 @@ static errno_t ZorroController_DetectDevices(ZorroControllerRef _Nonnull _Locked
         if (cfg->type == BOARD_TYPE_RAM && cfg->start && cfg->logicalSize > 0) {
             DriverRef dp;
     
-            if (ZRamDriver_Create((DriverRef)self, cfg, &dp) == EOK) {
+            if (ZRamDriver_Create(self->busDirId, cfg, &dp) == EOK) {
                 Driver_StartAdoptChild((DriverRef)self, dp);
             }
         }
@@ -42,21 +44,25 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
 
-    BusEntry be;
+    DirEntry be;
+    be.dirId = Driver_GetParentDirectoryId(self);
     be.name = "zorro-bus";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;
     be.perms = perm_from_octal(0755);
 
-    DriverEntry de;
+    try(DriverManager_CreateDirectory(gDriverManager, &be, &self->busDirId));
+    ((DriverRef)self)->busCatalogId = self->busDirId;
+
+    DriverEntry1 de;
+    de.dirId = self->busDirId;
     de.name = "self";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    try(Driver_PublishBus((DriverRef)self, &be, &de));
-
+    try(DriverManager_Publish(gDriverManager, (DriverRef)self, &de));
 
     // Auto config the Zorro bus
     zorro_auto_config(&self->bus);
@@ -66,6 +72,10 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
     err = ZorroController_DetectDevices(self);
 
 catch:
+    if (err != EOK) {
+        DriverManager_Unpublish(gDriverManager, (DriverRef)self);
+        DriverManager_RemoveDirectory(gDriverManager, self->busDirId);
+    }
     return err;
 }
 

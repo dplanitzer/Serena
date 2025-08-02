@@ -84,3 +84,33 @@ errno_t DriverManager_AcquireNodeForPath(DriverManagerRef _Nonnull self, const c
 {
     return Catalog_AcquireNodeForPath(gDriverCatalog, path, rp);
 }
+
+
+errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver, const DriverEntry1* _Nonnull de)
+{
+    return Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, driver, de->arg, &driver->driverCatalogId);
+}
+
+// Removes the driver instance from the driver catalog.
+void DriverManager_Unpublish(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver)
+{
+    if (driver->driverCatalogId != kCatalogId_None) {
+        Catalog_Unpublish(gDriverCatalog, Driver_GetParentDirectoryId(driver), driver->driverCatalogId);
+        driver->driverCatalogId = kCatalogId_None;
+    }
+}
+
+errno_t DriverManager_CreateDirectory(DriverManagerRef _Nonnull self, const DirEntry* _Nonnull be, CatalogId* _Nonnull pOutDirId)
+{
+    return Catalog_PublishFolder(gDriverCatalog, be->dirId, be->name, be->uid, be->gid, be->perms, pOutDirId);
+}
+
+errno_t DriverManager_RemoveDirectory(DriverManagerRef _Nonnull self, CatalogId dirId)
+{
+    if (dirId != kCatalogId_None) {
+        return Catalog_Unpublish(gDriverCatalog, dirId, kCatalogId_None);
+    }
+    else {
+        return EOK;
+    }
+}

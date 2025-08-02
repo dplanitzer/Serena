@@ -9,6 +9,7 @@
 #include "FloppyDriverPriv.h"
 #include "FloppyControllerPkg.h"
 #include "adf.h"
+#include <driver/DriverManager.h>
 #include <machine/clock.h>
 #include <machine/InterruptController.h>
 #include <machine/amiga/chipset.h>
@@ -50,6 +51,7 @@ final_class_ivars(FloppyController, Driver,
     cnd_t               cv;
     sem_t               done;       // Semaphore indicating whether the DMA is done
     InterruptHandlerID  irqHandler;
+    CatalogId           busDirId;
     struct __fdcFlags {
         unsigned int        inUse:1;
         unsigned int        reserved:31;
@@ -62,12 +64,12 @@ static void _FloppyController_SetMotor(FloppyControllerRef _Locked _Nonnull self
 
 
 // Creates the floppy controller
-errno_t FloppyController_Create(DriverRef _Nullable parent, FloppyControllerRef _Nullable * _Nonnull pOutSelf)
+errno_t FloppyController_Create(CatalogId parentDirId, FloppyControllerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     FloppyControllerRef self;
     
-    try(Driver_Create(class(FloppyController), 0, parent, (DriverRef*)&self));
+    try(Driver_Create(class(FloppyController), 0, NULL, parentDirId, (DriverRef*)&self));
 
     mtx_init(&self->mtx);
     cnd_init(&self->cv);
@@ -120,7 +122,7 @@ static errno_t FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Lock
         }
 
         if (dp) {
-            if ((err = FloppyDriver_Create((DriverRef)self, i, ds, dp, &drive)) == EOK) {
+            if ((err = FloppyDriver_Create(self, i, ds, dp, self->busDirId, &drive)) == EOK) {
                 err = Driver_StartAdoptChild((DriverRef)self, (DriverRef)drive);
                 if (err != EOK) {
                     Object_Release(drive);
@@ -136,20 +138,25 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
 
-    BusEntry be;
+    DirEntry be;
+    be.dirId = Driver_GetParentDirectoryId(self);
     be.name = "fd-bus";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;
     be.perms = perm_from_octal(0755);
 
-    DriverEntry de;
+    try(DriverManager_CreateDirectory(gDriverManager, &be, &self->busDirId));
+    ((DriverRef)self)->busCatalogId = self->busDirId;
+
+    DriverEntry1 de;
+    de.dirId = self->busDirId;
     de.name = "self";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    try(Driver_PublishBus((DriverRef)self, &be, &de));
+    try(DriverManager_Publish(gDriverManager, (DriverRef)self, &de));
 
     
     // Discover as many floppy drives as possible. We ignore drives that generate
@@ -157,6 +164,10 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     err = FloppyController_DetectDevices(self);
 
 catch:
+    if (err != EOK) {
+        DriverManager_Unpublish(gDriverManager, (DriverRef)self);
+        DriverManager_RemoveDirectory(gDriverManager, self->busDirId);
+    }
     return err;
 }
 

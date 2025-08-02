@@ -7,6 +7,7 @@
 //
 
 #include "LogDriver.h"
+#include <driver/DriverManager.h>
 #include <log/Log.h>
 
 final_class_ivars(LogDriver, Driver,
@@ -15,19 +16,20 @@ final_class_ivars(LogDriver, Driver,
 
 errno_t LogDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(LogDriver), kDriver_Exclusive, NULL, pOutSelf);
+    return Driver_Create(class(LogDriver), kDriver_Exclusive, NULL, kCatalogId_None, pOutSelf);
 }
 
 errno_t LogDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    DriverEntry de;
+    DriverEntry1 de;
+    de.dirId = Driver_GetParentDirectoryId(self);
     de.name = "klog";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0440);
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    return DriverManager_Publish(gDriverManager, self, &de);
 }
 
 errno_t LogDriver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

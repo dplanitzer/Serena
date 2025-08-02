@@ -7,6 +7,7 @@
 //
 
 #include "JoystickDriver.h"
+#include <driver/DriverManager.h>
 #include <driver/hid/HIDManager.h>
 #include <machine/InterruptController.h>
 #include <machine/amiga/chipset.h>
@@ -31,7 +32,7 @@ final_class_ivars(DigitalJoystickDriver, InputDriver,
 extern void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull self);
 
 
-errno_t DigitalJoystickDriver_Create(DriverRef _Nullable parent, int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t DigitalJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -42,7 +43,7 @@ errno_t DigitalJoystickDriver_Create(DriverRef _Nullable parent, int port, Drive
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(DigitalJoystickDriver), kDriver_Exclusive, parent, (DriverRef*)&self));
+    try(Driver_Create(class(DigitalJoystickDriver), kDriver_Exclusive, NULL, parentDirId, (DriverRef*)&self));
     
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
@@ -90,14 +91,15 @@ errno_t DigitalJoystickDriver_onStart(DigitalJoystickDriverRef _Nonnull _Locked 
     name[4] = '0' + self->port;
     name[5] = '\0';
 
-    DriverEntry de;
+    DriverEntry1 de;
+    de.dirId = Driver_GetParentDirectoryId(self);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0444);
     de.arg = 0;
 
-    return Driver_Publish((DriverRef)self, &de);
+    return DriverManager_Publish(gDriverManager, (DriverRef)self, &de);
 }
 
 InputType DigitalJoystickDriver_getInputType(DigitalJoystickDriverRef _Nonnull self)
@@ -176,7 +178,7 @@ final_class_ivars(AnalogJoystickDriver, InputDriver,
 extern void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull self);
 
 
-errno_t AnalogJoystickDriver_Create(DriverRef _Nullable parent, int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AnalogJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -186,7 +188,7 @@ errno_t AnalogJoystickDriver_Create(DriverRef _Nullable parent, int port, Driver
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(AnalogJoystickDriver), kDriver_Exclusive, parent, (DriverRef*)&self));
+    try(Driver_Create(class(AnalogJoystickDriver), kDriver_Exclusive, NULL, parentDirId, (DriverRef*)&self));
     
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potdat = (port == 0) ? CHIPSET_REG_16(cp, POT0DAT) : CHIPSET_REG_16(cp, POT1DAT);
@@ -232,14 +234,15 @@ errno_t AnalogJoystickDriver_onStart(AnalogJoystickDriverRef _Nonnull _Locked se
     name[4] = '0' + self->port;
     name[5] = '\0';
 
-    DriverEntry de;
+    DriverEntry1 de;
+    de.dirId = Driver_GetParentDirectoryId(self);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0444);
     de.arg = 0;
 
-    return Driver_Publish((DriverRef)self, &de);
+    return DriverManager_Publish(gDriverManager, (DriverRef)self, &de);
 }
 
 InputType AnalogJoystickDriver_getInputType(AnalogJoystickDriverRef _Nonnull self)

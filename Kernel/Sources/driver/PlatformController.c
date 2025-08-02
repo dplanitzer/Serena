@@ -7,19 +7,27 @@
 //
 
 #include "PlatformController.h"
-#include <Catalog.h>
+#include "DriverManager.h"
 
 
 errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(pClass, 0, NULL, pOutSelf);
+    return Driver_Create(pClass, 0, NULL, kCatalogId_None, pOutSelf);
 }
 
 errno_t PlatformController_onStart(PlatformControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
 
-    try(Catalog_PublishFolder(gDriverCatalog, kCatalogId_None, "hw", kUserId_Root, kGroupId_Root, perm_from_octal(0755), &((DriverRef)self)->busCatalogId));
+    DirEntry de;
+    de.dirId = kCatalogId_None;
+    de.name = "hw";
+    de.uid = kUserId_Root;
+    de.gid = kGroupId_Root;
+    de.perms = perm_from_octal(0755);
+
+    try(DriverManager_CreateDirectory(gDriverManager, &de, &self->hardwareDirectoryId));
+    ((DriverRef)self)->busCatalogId = self->hardwareDirectoryId;
     try(PlatformController_DetectDevices(self));
 
 catch:

@@ -24,34 +24,35 @@ final_class_ivars(AmigaController, PlatformController,
 errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked self)
 {
     decl_try_err();
+    const CatalogId hwDirId = PlatformController_GetHardwareDirectoryId(self);
     
     // Graphics Driver
     GraphicsDriverRef fb = NULL;
-    try(GraphicsDriver_Create((DriverRef)self, &fb));
+    try(GraphicsDriver_Create(hwDirId, &fb));
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)fb));
 
 
     // Keyboard
     DriverRef kb;
-    try(KeyboardDriver_Create((DriverRef)self, &kb));
+    try(KeyboardDriver_Create(hwDirId, &kb));
     try(Driver_StartAdoptChild((DriverRef)self, kb));
 
 
     // GamePort
     GamePortControllerRef gpc = NULL;
-    try(GamePortController_Create((DriverRef)self, &gpc));
+    try(GamePortController_Create(hwDirId, &gpc));
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)gpc));
 
 
     // Floppy Bus
     FloppyControllerRef fdc = NULL;
-    try(FloppyController_Create((DriverRef)self, &fdc));
+    try(FloppyController_Create(hwDirId, &fdc));
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)fdc));
 
 
     // Zorro Bus
     ZorroControllerRef zorroController = NULL;
-    try(ZorroController_Create((DriverRef)self, &zorroController));
+    try(ZorroController_Create(hwDirId, &zorroController));
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)zorroController));
 
 catch:

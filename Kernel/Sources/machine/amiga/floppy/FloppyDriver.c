@@ -8,6 +8,7 @@
 
 #include "FloppyDriverPriv.h"
 #include <dispatchqueue/DispatchQueue.h>
+#include <driver/DriverManager.h>
 #include <log/Log.h>
 #include <kern/kalloc.h>
 #include <kern/string.h>
@@ -20,7 +21,7 @@
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
-errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds, const DriveParams* _Nonnull params, FloppyDriverRef _Nullable * _Nonnull pOutDisk)
+errno_t FloppyDriver_Create(FloppyControllerRef _Nullable fc, int drive, DriveState ds, const DriveParams* _Nonnull params, CatalogId parentDirId, FloppyDriverRef _Nullable * _Nonnull pOutDisk)
 {
     decl_try_err();
     FloppyDriverRef self;
@@ -29,8 +30,9 @@ errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds
     dinf.family = kDriveFamily_Floppy;
     dinf.platter = (params->driveType == kDriveType_3_5) ? kPlatter_3_5 : kPlatter_5_25;
     dinf.properties = 0;
-    try(DiskDriver_Create(class(FloppyDriver), 0, parent, &dinf, (DriverRef*)&self));
+    try(DiskDriver_Create(class(FloppyDriver), 0, NULL, parentDirId, &dinf, (DriverRef*)&self));
 
+    self->fc = fc;
     self->drive = drive;
     self->driveState = ds;
     self->params = params;
@@ -67,20 +69,19 @@ static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
 
 static void _FloppyDriver_doSenseDisk(FloppyDriverRef _Nonnull self)
 {
-    FloppyControllerRef fdc = FloppyDriver_GetController(self);
     bool hasPhysDiskChange = false;
 
     self->tbTrackNo = -1;
 
 
-    if ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
+    if ((FloppyController_GetStatus(self->fc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
         FloppyDriver_ResetDriveDiskChange(self);
         hasPhysDiskChange = true;
     }
 
 
     if (hasPhysDiskChange || DiskDriver_IsDiskChangePending(self)) {
-        const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
+        const uint8_t status = FloppyController_GetStatus(self->fc, self->driveState);
         const unsigned int hasDisk = ((status & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
 
         if (hasDisk) {
@@ -154,21 +155,21 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     name[2] = '0' + self->drive;
     name[3] = '\0';
 
-    DriverEntry de;
+    DriverEntry1 de;
+    de.dirId = Driver_GetParentDirectoryId(self);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    if ((err = Driver_Publish((DriverRef)self, &de)) == EOK) {
-        if ((err = DispatchQueue_DispatchAsync(DiskDriver_GetDispatchQueue(self), (VoidFunc_1)FloppyDriver_Reset, self)) == EOK) {
-            return EOK;
-        }
+    try(DriverManager_Publish(gDriverManager, (DriverRef)self, &de));
+    try(DispatchQueue_DispatchAsync(DiskDriver_GetDispatchQueue(self), (VoidFunc_1)FloppyDriver_Reset, self));
 
-        Driver_Unpublish((DriverRef)self);
+catch:
+    if (err != EOK) {
+        DriverManager_Unpublish(gDriverManager, (DriverRef)self);
     }
-
     return err;
 }
 
@@ -184,8 +185,6 @@ static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self)
 
 static void FloppyDriver_CheckDiskChange(FloppyDriverRef _Nonnull self)
 {
-    FloppyControllerRef fdc = FloppyDriver_GetController(self);
-
     if (DiskDriver_IsDiskChangePending(self)) {
         return;
     }
@@ -194,10 +193,10 @@ static void FloppyDriver_CheckDiskChange(FloppyDriverRef _Nonnull self)
     if (self->flags.dkCount == 0) {
         self->flags.dkCount = self->flags.dkCountMax;
 
-        if ((FloppyController_GetStatus(fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
+        if ((FloppyController_GetStatus(self->fc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
             FloppyDriver_ResetDriveDiskChange(self);
 
-            const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
+            const uint8_t status = FloppyController_GetStatus(self->fc, self->driveState);
             const unsigned int hasDisk = ((status & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
 
             if (hasDisk) {
@@ -234,7 +233,7 @@ static void FloppyDriver_MotorOff(FloppyDriverRef _Nonnull self)
     // this function in this case to resync out software state with the hardware
     // state.
     if (self->flags.isOnline) {
-        FloppyController_SetMotor(FloppyDriver_GetController(self), &self->driveState, false);
+        FloppyController_SetMotor(self->fc, &self->driveState, false);
     }
     self->flags.motorState = kMotor_Off;
 
@@ -245,7 +244,7 @@ static void FloppyDriver_MotorOff(FloppyDriverRef _Nonnull self)
 static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self)
 {
     if (self->flags.motorState == kMotor_Off) {
-        FloppyController_SetMotor(FloppyDriver_GetController(self), &self->driveState, true);
+        FloppyController_SetMotor(self->fc, &self->driveState, true);
         self->flags.motorState = kMotor_SpinningUp;
     }
 
@@ -274,10 +273,9 @@ static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
     }
     else if (self->flags.motorState == kMotor_SpinningUp) {
         // Waits for at most 500ms for the motor to reach its target speed
-        FloppyControllerRef fdc = FloppyDriver_GetController(self);
 
         for (int i = 0; i < 50; i++) {
-            const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
+            const uint8_t status = FloppyController_GetStatus(self->fc, self->driveState);
 
             if ((status & kDriveStatus_DiskChanged) == kDriveStatus_DiskChanged) {
                 return EDISKCHANGE;
@@ -309,7 +307,6 @@ static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
 // because there's probably no drive connected.
 static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self)
 {
-    FloppyControllerRef fdc = FloppyDriver_GetController(self);
     int steps = 0;
 
     // Wait 18 ms if we have to reverse the seek direction
@@ -319,13 +316,13 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self)
     delay_ms(18);
     
     while (true) {
-        const uint8_t status = FloppyController_GetStatus(fdc, self->driveState);
+        const uint8_t status = FloppyController_GetStatus(self->fc, self->driveState);
 
         if ((status & kDriveStatus_AtTrack0) == kDriveStatus_AtTrack0) {
             break;
         }
 
-        FloppyController_StepHead(fdc, self->driveState, -1);
+        FloppyController_StepHead(self->fc, self->driveState, -1);
         
         steps++;
         if (steps > 80) {
@@ -334,7 +331,7 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self)
 
         delay_ms(3);
     }
-    FloppyController_SelectHead(fdc, &self->driveState, 0);
+    FloppyController_SelectHead(self->fc, &self->driveState, 0);
     
     // Head settle time (includes the 100us settle time for the head select)
     delay_ms(15);
@@ -350,7 +347,6 @@ static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self)
 // (0: outermost, 79: innermost, +: inward, -: outward).
 static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int head)
 {
-    FloppyControllerRef fdc = FloppyDriver_GetController(self);
     const int diff = cylinder - self->cylinder;
     const int cur_dir = (diff >= 0) ? 1 : -1;
     const int last_dir = (self->flags.wasMostRecentSeekInward) ? 1 : -1;
@@ -371,7 +367,7 @@ static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int
     // Seek if necessary
     if (nSteps > 0) {
         for (int i = nSteps; i > 0; i--) {
-            FloppyController_StepHead(fdc, self->driveState, cur_dir);     
+            FloppyController_StepHead(self->fc, self->driveState, cur_dir);     
             
             self->cylinder += cur_dir;
             
@@ -387,7 +383,7 @@ static void FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int
     
     // Switch heads if necessary
     if (change_side) {
-        FloppyController_SelectHead(fdc, &self->driveState, head);
+        FloppyController_SelectHead(self->fc, &self->driveState, head);
         self->head = head;
     }
     
@@ -434,7 +430,6 @@ static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self)
 static errno_t FloppyDriver_PrepareIO(FloppyDriverRef _Nonnull self, const chs_t* _Nonnull chs)
 {
     decl_try_err();
-    FloppyControllerRef fdc = FloppyDriver_GetController(self);
 
     // Make sure we still got the drive hardware and that the disk hasn't changed
     // on us
@@ -489,8 +484,7 @@ static errno_t FloppyDriver_DoSyncIO(FloppyDriverRef _Nonnull self, bool bWrite)
         nWords = self->dmaReadWordCount;
     }
 
-    FloppyControllerRef fdc = FloppyDriver_GetController(self);
-    return FloppyController_Dma(fdc, self->driveState, precomp, self->dmaBuffer, nWords, bWrite);
+    return FloppyController_Dma(self->fc, self->driveState, precomp, self->dmaBuffer, nWords, bWrite);
 }
 
 // Invoked at the end of a disk I/O operation. Potentially translates the provided
@@ -514,7 +508,7 @@ static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t er
         case EDISKCHANGE:
             FloppyDriver_MotorOff(self);
             FloppyDriver_ResetDriveDiskChange(self);
-            const uint8_t status = FloppyController_GetStatus(FloppyDriver_GetController(self), self->driveState);
+            const uint8_t status = FloppyController_GetStatus(self->fc, self->driveState);
             if ((status & kDriveStatus_DiskChanged) == 0) {
                 DiskDriver_NoteDiskChanged((DiskDriverRef)self);
             }

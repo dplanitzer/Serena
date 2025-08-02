@@ -7,6 +7,7 @@
 //
 
 #include "NullDriver.h"
+#include <driver/DriverManager.h>
 
 final_class_ivars(NullDriver, Driver,
 );
@@ -14,19 +15,20 @@ final_class_ivars(NullDriver, Driver,
 
 errno_t NullDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(NullDriver), 0, NULL, pOutSelf);
+    return Driver_Create(class(NullDriver), 0, NULL, kCatalogId_None, pOutSelf);
 }
 
 errno_t NullDriver_onStart(DriverRef _Nonnull _Locked self)
 {
-    DriverEntry de;
+    DriverEntry1 de;
+    de.dirId = Driver_GetParentDirectoryId(self);
     de.name = "null";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    return DriverManager_Publish(gDriverManager, self, &de);
 }
 
 errno_t NullDriver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
