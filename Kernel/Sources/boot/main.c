@@ -153,11 +153,11 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
 
     // Create the various kernel object catalogs
-    try(Catalog_Create(kCatalogName_Processes, &gProcCatalog));
-    try(Catalog_Create(kCatalogName_Filesystems, &gFSCatalog));
-    try(Catalog_Create(kCatalogName_Drivers, &gDriverCatalog));
-    try(Filesystem_Publish(Catalog_CopyFilesystem(gProcCatalog)));
+    try(Catalog_Create(&gFSCatalog));
+    try(Catalog_Create(&gProcCatalog));
+    try(Catalog_Create(&gDriverCatalog));
     try(Filesystem_Publish(Catalog_CopyFilesystem(gFSCatalog)));
+    try(Filesystem_Publish(Catalog_CopyFilesystem(gProcCatalog)));
     try(Filesystem_Publish(Catalog_CopyFilesystem(gDriverCatalog)));
 
     

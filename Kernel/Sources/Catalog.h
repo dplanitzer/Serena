@@ -23,18 +23,12 @@ typedef uint32_t    CatalogId;
 #define kCatalogId_None   0
 
 
-#define kMaxCatalogNameLength   7
-
-
 extern CatalogRef _Nonnull  gDriverCatalog;
 extern CatalogRef _Nonnull  gFSCatalog;
 extern CatalogRef _Nonnull  gProcCatalog;
 
 
-extern errno_t Catalog_Create(const char* _Nonnull name, CatalogRef _Nullable * _Nonnull pOutSelf);
-
-// Returns the catalog name
-extern errno_t Catalog_GetName(CatalogRef _Nonnull self, char* _Nonnull buf, size_t bufSize);
+extern errno_t Catalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf);
 
 extern FilesystemRef _Nonnull Catalog_CopyFilesystem(CatalogRef _Nonnull self);
 

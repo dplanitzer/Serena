@@ -156,22 +156,37 @@ errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t f
         err = FileHierarchy_GetPath(self->fileHierarchy, ip, self->rootDirectory, kUserId_Root, kGroupId_Root /*self->ruid, self->rgid*/, buf, bufSize);
         Inode_Relinquish(ip);
     }
-    else if (Catalog_IsFsid(gDriverCatalog, fsid)) {
-        err = Catalog_GetName(gDriverCatalog, buf, bufSize);
-    }
-    else if (Catalog_IsFsid(gFSCatalog, fsid)) {
-        err = Catalog_GetName(gFSCatalog, buf, bufSize);
-    }
-    else if (Catalog_IsFsid(gProcCatalog, fsid)) {
-        err = Catalog_GetName(gProcCatalog, buf, bufSize);
-    }
     else {
+        const char* name;
+        size_t nameLength;
+
         if (bufSize < 1) {
-            err = ERANGE;
+            return ERANGE;
+        }
+
+        *buf = '\0';
+
+        if (Catalog_IsFsid(gDriverCatalog, fsid)) {
+            name = kCatalogName_Drivers;
+        }
+        else if (Catalog_IsFsid(gFSCatalog, fsid)) {
+            name = kCatalogName_Filesystems;
+        }
+        else if (Catalog_IsFsid(gProcCatalog, fsid)) {
+            name = kCatalogName_Processes;
         }
         else {
-            *buf = '\0';
+            return EOK;
         }
+
+        nameLength = String_Length(name);
+
+        if (bufSize < (nameLength + 1)) {
+            return ERANGE;
+        }
+
+        memcpy(buf, name, nameLength);
+        buf[nameLength] = '\0';
     }
 
     return err;

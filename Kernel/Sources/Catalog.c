@@ -19,7 +19,6 @@ typedef struct Catalog {
     FileHierarchyRef _Nonnull   fh;
     InodeRef _Nonnull           rootDirectory;
     uint8_t                     nameLength;
-    char                        name[kMaxCatalogNameLength];
 } Catalog;
 
 
@@ -28,15 +27,10 @@ CatalogRef _Nonnull  gFSCatalog;
 CatalogRef _Nonnull  gProcCatalog;
 
 
-errno_t Catalog_Create(const char* _Nonnull name, CatalogRef _Nullable * _Nonnull pOutSelf)
+errno_t Catalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    const size_t cnlen = String_Length(name);
     CatalogRef self;
-    
-    if (cnlen > kMaxCatalogNameLength) {
-        throw(ERANGE);
-    }
 
     try(kalloc_cleared(sizeof(Catalog), (void**) &self));
     
@@ -44,8 +38,6 @@ errno_t Catalog_Create(const char* _Nonnull name, CatalogRef _Nullable * _Nonnul
     try(Filesystem_Start(self->fs, ""));
     try(FileHierarchy_Create(self->fs, &self->fh));
     try(Filesystem_AcquireRootDirectory(self->fs, &self->rootDirectory));
-    self->nameLength = cnlen;
-    memcpy(self->name, name, cnlen);
 
     *pOutSelf = self;
     return EOK;
@@ -53,21 +45,6 @@ errno_t Catalog_Create(const char* _Nonnull name, CatalogRef _Nullable * _Nonnul
 catch:
     *pOutSelf = NULL;
     return err;
-}
-
-errno_t Catalog_GetName(CatalogRef _Nonnull self, char* _Nonnull buf, size_t bufSize)
-{
-    if (bufSize < 1) {
-        return ERANGE;
-    }
-    if (bufSize < (self->nameLength + 1)) {
-        *buf = '\0';
-        return ERANGE;
-    }
-
-    memcpy(buf, self->name, self->nameLength);
-    buf[self->nameLength] = '\0';
-    return EOK;
 }
 
 FilesystemRef _Nonnull Catalog_CopyFilesystem(CatalogRef _Nonnull self)
