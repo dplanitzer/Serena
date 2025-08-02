@@ -25,6 +25,10 @@ extern ProcessManagerRef _Nonnull  gProcessManager;
 extern errno_t ProcessManager_Create(ProcessManagerRef _Nullable * _Nonnull pOutSelf);
 
 
+// Returns the filesystem that represents the /proc catalog.
+extern FilesystemRef _Nonnull ProcessManager_GetCatalog(ProcessManagerRef _Nonnull self);
+
+
 // Registers the given process with the process manager. Note that this function
 // does not validate whether the process is already registered or has a PID
 // that's equal to some other registered process.

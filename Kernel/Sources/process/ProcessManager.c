@@ -8,6 +8,7 @@
 
 #include "ProcessManager.h"
 #include "ProcessPriv.h"
+#include <Catalog.h>
 #include <klib/Hash.h>
 #include <kern/kalloc.h>
 #include <sched/mtx.h>
@@ -49,6 +50,11 @@ errno_t ProcessManager_Create(ProcessManagerRef _Nullable * _Nonnull pOutSelf)
 catch:
     *pOutSelf = self;
     return EOK;
+}
+
+FilesystemRef _Nonnull ProcessManager_GetCatalog(ProcessManagerRef _Nonnull self)
+{
+    return Catalog_GetFilesystem(gProcCatalog);
 }
 
 // Returns a weak reference to the process named by 'pid'. NULL if such a process

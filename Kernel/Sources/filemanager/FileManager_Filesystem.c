@@ -10,12 +10,14 @@
 #include "FileManager.h"
 #include "FileHierarchy.h"
 #include "FilesystemManager.h"
-#include <Catalog.h>
+#include <driver/DriverManager.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/IOChannel.h>
 #include <kern/string.h>
 #include <kpi/fcntl.h>
 #include <kpi/fs.h>
+#include <process/ProcessManager.h>
+#include <Catalog.h>
 
 
 // Establishes and starts the filesystem stored on the disk managed by the disk
@@ -65,23 +67,23 @@ catch:
 static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull catalogName, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
-    CatalogRef catalog = NULL;
+    FilesystemRef fs = NULL;
 
     if (String_Equals(catalogName, kCatalogName_Drivers)) {
-        catalog = gDriverCatalog;
+        fs = DriverManager_GetCatalog(gDriverManager);
     }
     else if (String_Equals(catalogName, kCatalogName_Filesystems)) {
-        catalog = gFSCatalog;
+        fs = FilesystemManager_GetCatalog(gFilesystemManager);
     }
     else if (String_Equals(catalogName, kCatalogName_Processes)) {
-        catalog = gProcCatalog;
+        fs = ProcessManager_GetCatalog(gProcessManager);
     }
     else {
         *pOutFs = NULL;
         return ENOENT;
     }
 
-    *pOutFs = Catalog_CopyFilesystem(catalog);
+    *pOutFs = Object_RetainAs(fs, Filesystem);
     return EOK;
 }
 
@@ -157,30 +159,29 @@ errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t f
         Inode_Relinquish(ip);
     }
     else {
-        const char* name;
-        size_t nameLength;
-
         if (bufSize < 1) {
             return ERANGE;
         }
-
         *buf = '\0';
 
-        if (Catalog_IsFsid(gDriverCatalog, fsid)) {
+
+        const char* name;
+
+        if (DriverManager_GetCatalog(gDriverManager)->fsid == fsid) {
             name = kCatalogName_Drivers;
         }
-        else if (Catalog_IsFsid(gFSCatalog, fsid)) {
+        else if (FilesystemManager_GetCatalog(gFilesystemManager)->fsid == fsid) {
             name = kCatalogName_Filesystems;
         }
-        else if (Catalog_IsFsid(gProcCatalog, fsid)) {
+        else if (ProcessManager_GetCatalog(gProcessManager)->fsid == fsid) {
             name = kCatalogName_Processes;
         }
         else {
             return EOK;
         }
 
-        nameLength = String_Length(name);
 
+        const size_t nameLength = String_Length(name);
         if (bufSize < (nameLength + 1)) {
             return ERANGE;
         }

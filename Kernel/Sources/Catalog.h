@@ -30,10 +30,7 @@ extern CatalogRef _Nonnull  gProcCatalog;
 
 extern errno_t Catalog_Create(CatalogRef _Nullable * _Nonnull pOutSelf);
 
-extern FilesystemRef _Nonnull Catalog_CopyFilesystem(CatalogRef _Nonnull self);
-
-// Returns true if the catalog owns the filesystem with id 'fsid'.
-extern bool Catalog_IsFsid(CatalogRef _Nonnull self, fsid_t fsid);
+extern FilesystemRef _Nonnull Catalog_GetFilesystem(CatalogRef _Nonnull self);
 
 // Returns EOK if an entry  is published at the in-kernel path 'path'. Otherwise
 // ENOENT is returned.

@@ -29,4 +29,8 @@ extern errno_t DriverManager_Create(DriverManagerRef _Nullable * _Nonnull pOutSe
 
 extern errno_t DriverManager_Start(DriverManagerRef _Nonnull self);
 
+
+// Returns the filesystem that represents the /dev catalog.
+extern FilesystemRef _Nonnull DriverManager_GetCatalog(DriverManagerRef _Nonnull self);
+
 #endif /* DriverManager_h */

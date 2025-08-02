@@ -47,14 +47,9 @@ catch:
     return err;
 }
 
-FilesystemRef _Nonnull Catalog_CopyFilesystem(CatalogRef _Nonnull self)
+FilesystemRef _Nonnull Catalog_GetFilesystem(CatalogRef _Nonnull self)
 {
-    return Object_RetainAs(self->fs, Filesystem);
-}
-
-bool Catalog_IsFsid(CatalogRef _Nonnull self, fsid_t fsid)
-{
-    return (Filesystem_GetId(self->fs) == fsid) ? true : false;
+    return self->fs;
 }
 
 errno_t Catalog_IsPublished(CatalogRef _Nonnull self, const char* _Nonnull path)

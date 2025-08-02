@@ -156,9 +156,9 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     try(Catalog_Create(&gFSCatalog));
     try(Catalog_Create(&gProcCatalog));
     try(Catalog_Create(&gDriverCatalog));
-    try(Filesystem_Publish(Catalog_CopyFilesystem(gFSCatalog)));
-    try(Filesystem_Publish(Catalog_CopyFilesystem(gProcCatalog)));
-    try(Filesystem_Publish(Catalog_CopyFilesystem(gDriverCatalog)));
+    try(Filesystem_Publish(Catalog_GetFilesystem(gFSCatalog)));
+    try(Filesystem_Publish(Catalog_GetFilesystem(gProcCatalog)));
+    try(Filesystem_Publish(Catalog_GetFilesystem(gDriverCatalog)));
 
     
     // Create the filesystem manager

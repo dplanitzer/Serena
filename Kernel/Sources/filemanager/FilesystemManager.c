@@ -17,6 +17,7 @@
 #include <kern/kalloc.h>
 #include <kern/timespec.h>
 #include <sched/mtx.h>
+#include <Catalog.h>
 
 
 typedef struct fsentry {
@@ -92,6 +93,11 @@ errno_t FilesystemManager_Create(FilesystemManagerRef _Nullable * _Nonnull pOutS
 catch:
     *pOutSelf = self;
     return err;
+}
+
+FilesystemRef _Nonnull FilesystemManager_GetCatalog(FilesystemManagerRef _Nonnull self)
+{
+    return Catalog_GetFilesystem(gFSCatalog);
 }
 
 errno_t FilesystemManager_EstablishFilesystem(FilesystemManagerRef _Nonnull self, InodeRef _Locked _Nonnull driverNode, unsigned int mode, FilesystemRef _Nullable * _Nonnull pOutFs)

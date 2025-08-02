@@ -14,6 +14,7 @@
 #include "hid/HIDManager.h"
 #include <kern/Kalloc.h>
 #include <machine/amiga/AmigaController.h>
+#include <Catalog.h>
 
 
 DriverManagerRef gDriverManager;
@@ -62,4 +63,9 @@ errno_t DriverManager_Start(DriverManagerRef _Nonnull self)
 
 catch:
     return err;
+}
+
+FilesystemRef _Nonnull DriverManager_GetCatalog(DriverManagerRef _Nonnull self)
+{
+    return Catalog_GetFilesystem(gDriverCatalog);
 }
