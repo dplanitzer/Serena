@@ -69,7 +69,7 @@ errno_t FloppyController_Create(CatalogId parentDirId, FloppyControllerRef _Null
     decl_try_err();
     FloppyControllerRef self;
     
-    try(Driver_Create(class(FloppyController), 0, NULL, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(FloppyController), 0, parentDirId, (DriverRef*)&self));
 
     mtx_init(&self->mtx);
     cnd_init(&self->cv);
@@ -146,7 +146,6 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     be.perms = perm_from_octal(0755);
 
     try(DriverManager_CreateDirectory(gDriverManager, &be, &self->busDirId));
-    ((DriverRef)self)->busCatalogId = self->busDirId;
 
     DriverEntry1 de;
     de.dirId = self->busDirId;

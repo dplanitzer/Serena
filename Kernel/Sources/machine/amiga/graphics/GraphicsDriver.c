@@ -22,7 +22,7 @@ errno_t GraphicsDriver_Create(CatalogId parentDirId, GraphicsDriverRef _Nullable
     decl_try_err();
     GraphicsDriverRef self;
     
-    try(Driver_Create(class(GraphicsDriver), 0, NULL, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(GraphicsDriver), 0, parentDirId, (DriverRef*)&self));
     self->nextSurfaceId = 1;
     self->nextScreenId = 1;
 

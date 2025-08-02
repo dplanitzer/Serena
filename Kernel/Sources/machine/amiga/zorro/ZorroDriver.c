@@ -14,7 +14,7 @@ errno_t ZorroDriver_Create(Class* _Nonnull pClass, DriverOptions options, Catalo
     decl_try_err();
     ZorroDriverRef self;
 
-    if ((err = Driver_Create(pClass, options, NULL, parentDirId, (DriverRef*)&self)) == EOK) {
+    if ((err = Driver_Create(pClass, options, parentDirId, (DriverRef*)&self)) == EOK) {
         self->boardConfig = config;
     }
 

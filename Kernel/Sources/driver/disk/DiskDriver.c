@@ -12,12 +12,12 @@
 #include <kpi/fcntl.h>
 
 
-errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, CatalogId parentDirId, const drive_info_t* _Nonnull driveInfo, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, CatalogId parentDirId, const drive_info_t* _Nonnull driveInfo, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskDriverRef self = NULL;
 
-    try(Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, NULL, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, parentDirId, (DriverRef*)&self));
     try(DiskDriver_CreateDispatchQueue(self, &self->dispatchQueue));
     self->driveInfo = *driveInfo;
 

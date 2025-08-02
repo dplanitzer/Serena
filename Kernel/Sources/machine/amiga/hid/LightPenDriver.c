@@ -42,7 +42,7 @@ errno_t LightPenDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullab
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(LightPenDriver), kDriver_Exclusive, NULL, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(LightPenDriver), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
     
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
     self->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;

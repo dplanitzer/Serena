@@ -12,7 +12,7 @@
 
 errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(pClass, 0, NULL, kCatalogId_None, pOutSelf);
+    return Driver_Create(pClass, 0, kCatalogId_None, pOutSelf);
 }
 
 errno_t PlatformController_onStart(PlatformControllerRef _Nonnull _Locked self)
@@ -27,7 +27,6 @@ errno_t PlatformController_onStart(PlatformControllerRef _Nonnull _Locked self)
     de.perms = perm_from_octal(0755);
 
     try(DriverManager_CreateDirectory(gDriverManager, &de, &self->hardwareDirectoryId));
-    ((DriverRef)self)->busCatalogId = self->hardwareDirectoryId;
     try(PlatformController_DetectDevices(self));
 
 catch:

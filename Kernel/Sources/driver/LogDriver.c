@@ -16,7 +16,7 @@ final_class_ivars(LogDriver, Driver,
 
 errno_t LogDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(LogDriver), kDriver_Exclusive, NULL, kCatalogId_None, pOutSelf);
+    return Driver_Create(class(LogDriver), kDriver_Exclusive, kCatalogId_None, pOutSelf);
 }
 
 errno_t LogDriver_onStart(DriverRef _Nonnull _Locked self)

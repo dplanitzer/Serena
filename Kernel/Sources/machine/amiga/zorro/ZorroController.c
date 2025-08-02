@@ -20,7 +20,7 @@ final_class_ivars(ZorroController, Driver,
 
 errno_t ZorroController_Create(CatalogId parentDirId, ZorroControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(ZorroController), 0, NULL, parentDirId, (DriverRef*)pOutSelf);
+    return Driver_Create(class(ZorroController), 0, parentDirId, (DriverRef*)pOutSelf);
 }
 
 static errno_t ZorroController_DetectDevices(ZorroControllerRef _Nonnull _Locked self)
@@ -52,7 +52,6 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
     be.perms = perm_from_octal(0755);
 
     try(DriverManager_CreateDirectory(gDriverManager, &be, &self->busDirId));
-    ((DriverRef)self)->busCatalogId = self->busDirId;
 
     DriverEntry1 de;
     de.dirId = self->busDirId;

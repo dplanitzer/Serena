@@ -26,7 +26,7 @@ final_class_ivars(GamePortController, Driver,
 
 errno_t GamePortController_Create(CatalogId parentDirId, GamePortControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(GamePortController), kDriver_Exclusive, NULL, parentDirId, (DriverRef*)pOutSelf);
+    return Driver_Create(class(GamePortController), kDriver_Exclusive, parentDirId, (DriverRef*)pOutSelf);
 }
 
 static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType* _Nullable pOutType)
@@ -126,7 +126,6 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
     be.perms = perm_from_octal(0755);
 
     try(DriverManager_CreateDirectory(gDriverManager, &be, &self->busDirId));
-    ((DriverRef)self)->busCatalogId = self->busDirId;
 
     DriverEntry1 de;
     de.dirId = self->busDirId;

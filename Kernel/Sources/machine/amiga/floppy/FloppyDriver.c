@@ -21,7 +21,7 @@
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
-errno_t FloppyDriver_Create(FloppyControllerRef _Nullable fc, int drive, DriveState ds, const DriveParams* _Nonnull params, CatalogId parentDirId, FloppyDriverRef _Nullable * _Nonnull pOutDisk)
+errno_t FloppyDriver_Create(FloppyControllerRef _Nonnull fc, int drive, DriveState ds, const DriveParams* _Nonnull params, CatalogId parentDirId, FloppyDriverRef _Nullable * _Nonnull pOutDisk)
 {
     decl_try_err();
     FloppyDriverRef self;
@@ -30,7 +30,7 @@ errno_t FloppyDriver_Create(FloppyControllerRef _Nullable fc, int drive, DriveSt
     dinf.family = kDriveFamily_Floppy;
     dinf.platter = (params->driveType == kDriveType_3_5) ? kPlatter_3_5 : kPlatter_5_25;
     dinf.properties = 0;
-    try(DiskDriver_Create(class(FloppyDriver), 0, NULL, parentDirId, &dinf, (DriverRef*)&self));
+    try(DiskDriver_Create(class(FloppyDriver), 0, parentDirId, &dinf, (DriverRef*)&self));
 
     self->fc = fc;
     self->drive = drive;

@@ -23,7 +23,7 @@ final_class_ivars(PartitionDriver, DiskDriver,
 );
 
 
-errno_t PartitionDriver_Create(DriverRef _Nullable parent, CatalogId parentDirId, const char* _Nonnull name, sno_t lsaStart, scnt_t sectorCount, bool isReadOnly, DiskDriverRef wholeDisk, PartitionDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t PartitionDriver_Create(CatalogId parentDirId, const char* _Nonnull name, sno_t lsaStart, scnt_t sectorCount, bool isReadOnly, DiskDriverRef wholeDisk, PartitionDriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     disk_info_t di;
@@ -38,7 +38,7 @@ errno_t PartitionDriver_Create(DriverRef _Nullable parent, CatalogId parentDirId
     drvi.family = kDriveFamily_Fixed;
     drvi.platter = kPlatter_3_5;
     drvi.properties = kDrive_Fixed;
-    try(DiskDriver_Create(class(PartitionDriver), 0, NULL, parentDirId, &drvi, (DriverRef*)&self));
+    try(DiskDriver_Create(class(PartitionDriver), 0, parentDirId, &drvi, (DriverRef*)&self));
     self->wholeDisk = wholeDisk;
     self->lsaStart = lsaStart;
     self->sectorCount = sectorCount;

@@ -24,7 +24,7 @@ final_class_ivars(RomDisk, DiskDriver,
 );
 
 
-errno_t RomDisk_Create(DriverRef _Nullable parent, CatalogId parentDirId, const char* _Nonnull name, const void* _Nonnull pImage, size_t sectorSize, scnt_t sectorCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
+errno_t RomDisk_Create(CatalogId parentDirId, const char* _Nonnull name, const void* _Nonnull pImage, size_t sectorSize, scnt_t sectorCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     RomDiskRef self = NULL;
@@ -38,7 +38,7 @@ errno_t RomDisk_Create(DriverRef _Nullable parent, CatalogId parentDirId, const 
     drvi.platter = kPlatter_None;
     drvi.properties = kDrive_IsReadOnly | kDrive_Fixed;
 
-    try(DiskDriver_Create(class(RomDisk), 0, NULL, parentDirId, &drvi, (DriverRef*)&self));
+    try(DiskDriver_Create(class(RomDisk), 0, parentDirId, &drvi, (DriverRef*)&self));
     self->diskImage = pImage;
     self->sectorCount = sectorCount;
     self->sectorShift = siz_log2(sectorSize);

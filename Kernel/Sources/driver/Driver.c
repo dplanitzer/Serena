@@ -8,6 +8,7 @@
 
 #include "Driver.h"
 #include "DriverChannel.h"
+#include "DriverManager.h"
 #include <kpi/fcntl.h>
 
 
@@ -15,7 +16,7 @@
 (DriverRef) (((uint8_t*)__ptr) - offsetof(struct Driver, childNode))
 
 
-errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DriverRef self = NULL;
@@ -25,7 +26,6 @@ errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _
     mtx_init(&self->mtx);
     List_Init(&self->children);
     ListNode_Init(&self->childNode);
-    self->parent = parent;
     self->options = options;
     self->state = kDriverState_Inactive;
     self->parentDirectoryId = parentDirectoryId;
@@ -41,8 +41,6 @@ catch:
 
 void Driver_deinit(DriverRef _Nonnull self)
 {
-    self->parent = NULL;
-    
     List_ForEach(&self->children, struct Driver,
         DriverRef pCurDriver = DriverFromChildNode(pCurNode);
 
@@ -142,7 +140,7 @@ errno_t Driver_Terminate(DriverRef _Nonnull self)
         return err;
     }
 
-    Driver_Unpublish(self);
+    DriverManager_Unpublish(gDriverManager, self);
 
 
     // Stop myself
@@ -265,84 +263,6 @@ errno_t Driver_Ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, in
 }
 
 
-errno_t Driver_onPublish(DriverRef _Nonnull _Locked self)
-{
-    return EOK;
-}
-
-CatalogId Driver_GetParentBusCatalogId(DriverRef _Nonnull _Locked self)
-{
-    return (self->parent) ? Driver_GetBusCatalogId(self->parent) : kCatalogId_None;
-}
-
-errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const DriverEntry* _Nonnull de)
-{
-    decl_try_err();
-    const CatalogId parentBusCatalogId = Driver_GetParentBusCatalogId(self);
-
-    if ((err = Catalog_PublishDriver(gDriverCatalog, parentBusCatalogId, de->name, de->uid, de->gid, de->perms, self, de->arg, &self->driverCatalogId)) == EOK) {
-        if ((err = Driver_OnPublish(self)) == EOK) {
-            return EOK;
-        }
-
-        Catalog_Unpublish(gDriverCatalog, parentBusCatalogId, self->driverCatalogId);
-    }
-    return err;
-}
-
-errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const BusEntry* _Nonnull be, const DriverEntry* _Nullable de)
-{
-    decl_try_err();
-    bool hasBus = false;
-    bool hasSelf = false;
-    const CatalogId parentBusCatalogId = Driver_GetParentBusCatalogId(self);
-
-    try(Catalog_PublishFolder(gDriverCatalog, parentBusCatalogId, be->name, be->uid, be->gid, be->perms, &self->busCatalogId));
-    hasBus = true;
-
-    if (de && de->name[0] != '\0') {
-        try(Catalog_PublishDriver(gDriverCatalog, self->busCatalogId, de->name, de->uid, de->gid, de->perms, self, de->arg, &self->driverCatalogId));
-        hasSelf = true;
-    }
-
-    try(Driver_OnPublish(self));
-    return EOK;
-
-catch:
-    if (hasSelf) {
-        Catalog_Unpublish(gDriverCatalog, self->busCatalogId, self->driverCatalogId);
-    }
-    if (hasBus) {
-        Catalog_Unpublish(gDriverCatalog, self->busCatalogId, kCatalogId_None);
-    }
-    return err;
-}
-
-void Driver_onUnpublish(DriverRef _Nonnull _Locked self)
-{
-}
-
-// Removes the driver instance from the driver catalog.
-void Driver_Unpublish(DriverRef _Nonnull _Locked self)
-{
-    CatalogId parentBusCatalogId = Driver_GetParentBusCatalogId(self);
-
-    Driver_OnUnpublish(self);
-    Catalog_Unpublish(gDriverCatalog, parentBusCatalogId, self->driverCatalogId);
-}
-
-// Returns the bus driver catalog ID of the bus that the receiver represents.
-// Returns kCatalogId_None if the receiver does not manage a bus.
-CatalogId Driver_GetBusCatalogId(DriverRef _Nonnull self)
-{
-    //Driver_Lock(self);
-    // XXX gets called at onStart() time and the parent typically is inside its onStart() and thus locked too
-    const CatalogId id = self->busCatalogId;
-    //Driver_Unlock(self);
-    return id;
-}
-
-
 errno_t Driver_SetTag(DriverRef _Nonnull self, intptr_t tag)
 {
     Driver_Lock(self);
@@ -442,8 +362,6 @@ class_func_defs(Driver, Object,
 override_func_def(deinit, Driver, Object)
 func_def(onStart, Driver)
 func_def(onStop, Driver)
-func_def(onPublish, Driver)
-func_def(onUnpublish, Driver)
 func_def(open, Driver)
 func_def(createChannel, Driver)
 func_def(close, Driver)

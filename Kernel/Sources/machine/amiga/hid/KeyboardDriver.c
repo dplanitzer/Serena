@@ -51,7 +51,7 @@ errno_t KeyboardDriver_Create(CatalogId parentDirId, DriverRef _Nullable * _Nonn
     decl_try_err();
     KeyboardDriverRef self;
     
-    try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, NULL, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
     
     self->keyCodeMap = gUSBHIDKeycodes;
     try(HIDKeyRepeater_Create(&self->keyRepeater));

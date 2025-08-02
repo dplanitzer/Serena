@@ -19,7 +19,7 @@ final_class_ivars(VirtualDiskManager, Driver,
 
 errno_t VirtualDiskManager_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(VirtualDiskManager), 0, NULL, kCatalogId_None, pOutSelf);
+    return Driver_Create(class(VirtualDiskManager), 0, kCatalogId_None, pOutSelf);
 }
 
 errno_t VirtualDiskManager_onStart(VirtualDiskManagerRef _Nonnull _Locked self)
@@ -34,7 +34,6 @@ errno_t VirtualDiskManager_onStart(VirtualDiskManagerRef _Nonnull _Locked self)
     be.perms = perm_from_octal(0755);
 
     try(DriverManager_CreateDirectory(gDriverManager, &be, &self->busDirId));
-    ((DriverRef)self)->busCatalogId = self->busDirId;
 
     DriverEntry1 de;
     de.dirId = self->busDirId;
@@ -58,7 +57,7 @@ errno_t VirtualDiskManager_CreateRamDisk(VirtualDiskManagerRef _Nonnull self, co
     decl_try_err();
     DriverRef dd;
 
-    try(RamDisk_Create((DriverRef)self, self->busDirId, name, sectorSize, sectorCount, extentSectorCount, (RamDiskRef*)&dd));
+    try(RamDisk_Create(self->busDirId, name, sectorSize, sectorCount, extentSectorCount, (RamDiskRef*)&dd));
     try(Driver_StartAdoptChild((DriverRef)self, dd));
 
     return EOK;
@@ -76,7 +75,7 @@ errno_t VirtualDiskManager_CreateRomDisk(VirtualDiskManagerRef _Nonnull self, co
     decl_try_err();
     DriverRef dd;
 
-    try(RomDisk_Create((DriverRef)self, self->busDirId, name, image, sectorSize, sectorCount, false, (RomDiskRef*)&dd));
+    try(RomDisk_Create(self->busDirId, name, image, sectorSize, sectorCount, false, (RomDiskRef*)&dd));
     try(Driver_StartAdoptChild((DriverRef)self, dd));
 
     return EOK;

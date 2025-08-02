@@ -22,6 +22,6 @@ final_class(RamDisk, DiskDriver);
 // Creates a new ROM disk instance. The disk data is provided by the contiguous
 // memory block 'pDiskImage' which contains 'sectorCount' sectors of size
 // 'sectorSize'. 'sectorSize' must be a power-of-2.
-extern errno_t RamDisk_Create(DriverRef _Nullable parent, CatalogId parentDirId, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount, RamDiskRef _Nullable * _Nonnull pOutSelf);
+extern errno_t RamDisk_Create(CatalogId parentDirId, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount, RamDiskRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* RamDisk_h */

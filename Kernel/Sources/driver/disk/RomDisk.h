@@ -31,6 +31,6 @@ final_class(RomDisk, DiskDriver);
 // deallocated.
 // Note that the provided disk image is expected to be initialized with a valid
 // file system since there is no way to write to this disk.
-extern errno_t RomDisk_Create(DriverRef _Nullable parent, CatalogId parentDirId, const char* _Nonnull name, const void* _Nonnull pImage, size_t blockSize, scnt_t blockCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf);
+extern errno_t RomDisk_Create(CatalogId parentDirId, const char* _Nonnull name, const void* _Nonnull pImage, size_t blockSize, scnt_t blockCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* RomDisk_h */

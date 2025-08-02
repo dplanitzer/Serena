@@ -138,18 +138,16 @@ typedef struct DriverEntry {
 // card functionality plus a child driver for the sound chip and another child
 // driver for the CD-ROM drive.
 open_class(Driver, Object,
-    mtx_t                       mtx;
-    DriverRef _Nullable _Weak   parent;
-    ListNode/*<Driver>*/        childNode;
-    List/*<Driver>*/            children;
-    uint16_t                    options;
-    uint8_t                     flags;
-    int8_t                      state;
-    int                         openCount;
-    CatalogId                   parentDirectoryId;  // /dev directory in which the driver lives 
-    CatalogId                   driverCatalogId;
-    CatalogId                   busCatalogId;
-    intptr_t                    tag;
+    mtx_t                   mtx;
+    ListNode/*<Driver>*/    childNode;
+    List/*<Driver>*/        children;
+    uint16_t                options;
+    uint8_t                 flags;
+    int8_t                  state;
+    int                     openCount;
+    CatalogId               parentDirectoryId;  // /dev directory in which the driver lives 
+    CatalogId               driverCatalogId;
+    intptr_t                tag;
 );
 open_class_funcs(Driver, Object,
     
@@ -167,21 +165,6 @@ open_class_funcs(Driver, Object,
     // Override: Optional
     // Default Behavior: Unpublishes the driver
     void (*onStop)(void* _Nonnull _Locked self);
-
-
-    // Invoked as part of the publishing the driver to the driver catalog. A
-    // subclass may override this method to do extra work after the driver has
-    // been published.
-    // Override: Optional
-    // Default behavior: does nothing
-    errno_t (*onPublish)(void* _Nonnull _Locked self);
-
-    // Invoked after the driver has been removed from the driver catalog. A
-    // subclass may override this method to do extra work before the driver is
-    // unpublished.
-    // Override: Optional
-    // Default behavior: does nothing
-    void (*onUnpublish)(void* _Nonnull _Locked self);
 
    
     // Invoked as the result of calling Driver_Open(). A driver subclass may
@@ -278,7 +261,7 @@ extern intptr_t Driver_GetTag(DriverRef _Nonnull self);
 //
 
 // Create a driver instance.
-extern errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf);
 
 
 // Returns the parent directory of the driver. This is the directory in which
@@ -312,41 +295,6 @@ invoke_0(onStart, Driver, __self)
 invoke_0(onStop, Driver, __self)
 
 
-#define Driver_OnPublish(__self) \
-invoke_0(onPublish, Driver, __self)
-
-#define Driver_OnUnpublish(__self) \
-invoke_0(onUnpublish, Driver, __self)
-
-
-extern CatalogId Driver_GetParentBusCatalogId(DriverRef _Nonnull _Locked self);
-
-// Publishes the driver instance to the driver catalog with the given name. This
-// method should be called from a onStart() override.
-extern errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const DriverEntry* _Nonnull de);
-
-// Publishes the receiver to the driver catalog as a bus owner and controller.
-// This means that a directory is created in the driver catalog to represent the
-// bus. The properties of this directory are defined by the bus entry 'be' struct.
-// Then, optionally, a driver entry is published to the driver catalog as an
-// immediate child of the bus directory. The properties of this driver entry are
-// defined by the 'de' struct. The purpose of the driver entry is to allow a
-// user space application to get information about the bus itself and to control
-// various aspects of it. However a bus controller is not required to provide
-// such an entry. The name of the controller driver entry should be "self".
-// All children of the bus controller will be added to the bus directory of this
-// controller.
-extern errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const BusEntry* _Nonnull be, const DriverEntry* _Nullable de);
-
-// Removes the driver instance from the driver catalog. Called as part of the
-// driver termination process.
-extern void Driver_Unpublish(DriverRef _Nonnull _Locked self);
-
-// Returns the bus driver catalog ID of the bus that the receiver represents.
-// Returns kCatalogId_None if the receiver does not manage a bus.
-extern CatalogId Driver_GetBusCatalogId(DriverRef _Nonnull self);
-
-
 // Creates an I/O channel that connects the driver to a user space application
 // or a kernel space service
 #define Driver_CreateChannel(__self, __mode, __arg, __pOutChannel) \
@@ -356,13 +304,6 @@ invoke_n(createChannel, Driver, __self, __mode, __arg, __pOutChannel)
 // Returns the size of the seekable range
 #define Driver_GetSeekableRange(__self) \
 invoke_0(getSeekableRange, Driver, __self)
-
-
-#define Driver_GetParent(__self) \
-(((DriverRef)(__self))->parent)
-
-#define Driver_GetParentAs(__self, __class) \
-((__class##Ref)Driver_GetParent(__self))
 
 
 // Adds the given driver as a child to the receiver. Call this function from a
