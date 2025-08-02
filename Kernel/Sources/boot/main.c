@@ -140,12 +140,16 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     log_init();
 
 
+    // Create the security manager
+    try(SecurityManager_Create(&gSecurityManager));
+
+
     // Create the process manager
     try(ProcessManager_Create(&gProcessManager));
 
 
-    // Create the security manager
-    try(SecurityManager_Create(&gSecurityManager));
+    // Create the filesystem manager
+    try(FilesystemManager_Create(&gFilesystemManager));
 
 
     // Create the disk cache
@@ -160,10 +164,6 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     try(Filesystem_Publish(Catalog_GetFilesystem(gProcCatalog)));
     try(Filesystem_Publish(Catalog_GetFilesystem(gDriverCatalog)));
 
-    
-    // Create the filesystem manager
-    try(FilesystemManager_Create(&gFilesystemManager));
-
 
     // Detect hardware and initialize drivers
     try(HIDManager_Create(&gHIDManager));
@@ -174,11 +174,6 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     // Open the boot screen and show the boot logo
     open_boot_screen(&gBootScreen);
-
-
-    // Initialize the Kernel Runtime Services so that we can make it available
-    // to userspace in the form of the Userspace Runtime Services.
-    kei_init();
     
     
     // Create the root file hierarchy
@@ -189,6 +184,15 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     KernelProcess_Init(pRootFh, &gKernelProcess);
     try(ProcessManager_Register(gProcessManager, gKernelProcess));
     Object_Release(pRootFh);
+
+
+    // Start the filesystem management services
+    try(FilesystemManager_Start(gFilesystemManager));
+
+
+    // Initialize the Kernel Runtime Services so that we can make it available
+    // to userspace in the form of the Userspace Runtime Services.
+    kei_init();
 
 
     // Spawn systemd

@@ -85,15 +85,25 @@ errno_t FilesystemManager_Create(FilesystemManagerRef _Nullable * _Nonnull pOutS
     FilesystemManagerRef self;
 
     try(kalloc_cleared(sizeof(FilesystemManager), (void**)&self));
-    try(DispatchQueue_Create(0, 1, VCPU_QOS_BACKGROUND, 0, (DispatchQueueRef*)&self->dispatchQueue));
     mtx_init(&self->mtx);
-
-    _FilesystemManager_ScheduleAutoSync(self);
 
 catch:
     *pOutSelf = self;
     return err;
 }
+
+errno_t FilesystemManager_Start(FilesystemManagerRef _Nonnull self)
+{
+    decl_try_err();
+
+    err = DispatchQueue_Create(0, 1, VCPU_QOS_BACKGROUND, 0, (DispatchQueueRef*)&self->dispatchQueue);
+    if (err == EOK) {
+        _FilesystemManager_ScheduleAutoSync(self);
+    }
+
+    return err;
+}
+
 
 FilesystemRef _Nonnull FilesystemManager_GetCatalog(FilesystemManagerRef _Nonnull self)
 {
