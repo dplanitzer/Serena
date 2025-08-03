@@ -43,6 +43,7 @@ class_ref(FSChannel);
 class_ref(FSContainer);
 class_ref(GamePortController);
 class_ref(GraphicsDriver);
+class_ref(Handler);
 class_ref(HIDChannel);
 class_ref(HIDManager);
 class_ref(Inode);

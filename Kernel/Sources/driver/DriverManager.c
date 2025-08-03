@@ -8,6 +8,7 @@
 
 #include "DriverManager.h"
 #include "Driver.h"
+#include <handler/Handler.h>
 #include <kern/Kalloc.h>
 #include <Catalog.h>
 #include <klib/Hash.h>
@@ -99,23 +100,23 @@ DriverRef _Nullable DriverManager_CopyDriverForId(DriverManagerRef _Nonnull self
     return dp;
 }
 
-errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver, const DriverEntry* _Nonnull de)
+errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry* _Nonnull de)
 {
     decl_try_err();
     dentry_t ep = NULL;
 
     mtx_lock(&self->mtx);
 
-    if (driver->id != 0) {
+    if ((de->driver && de->driver->id != 0) || (de->handler && de->handler->id != 0)) {
         throw(EBUSY);
     }
 
     try(kalloc_cleared(sizeof(struct dentry), (void**)&ep));
-    try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, driver, de->arg, &ep->id));
+    try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, de->driver, de->arg, &ep->id));
 
     SList_InsertBeforeFirst(&self->id_table[hash_scalar(ep->id) & HASH_CHAIN_MASK], &ep->qe);
-    ep->driver = Object_RetainAs(driver, Driver);
-    driver->id = ep->id;
+    ep->driver = Object_RetainAs(de->driver, Driver);
+    de->driver->id = ep->id;
 
 catch:
     mtx_unlock(&self->mtx);

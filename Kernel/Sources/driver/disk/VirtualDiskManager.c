@@ -43,9 +43,11 @@ errno_t VirtualDiskManager_onStart(VirtualDiskManagerRef _Nonnull _Locked self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
+    de.handler = NULL;
+    de.driver = (DriverRef)self;
     de.arg = 0;
 
-    try(DriverManager_Publish(gDriverManager, (DriverRef)self, &de));
+    try(DriverManager_Publish(gDriverManager, &de));
 
 catch:
     if (err != EOK) {

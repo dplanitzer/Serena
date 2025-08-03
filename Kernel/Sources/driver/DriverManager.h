@@ -31,6 +31,8 @@ typedef struct DriverEntry {
     uid_t                   uid;
     gid_t                   gid;
     mode_t                  perms;
+    HandlerRef _Nullable    handler;
+    DriverRef _Nullable     driver;
     intptr_t                arg;
 } DriverEntry;
 
@@ -59,7 +61,7 @@ extern errno_t DriverManager_AcquireNodeForPath(DriverManagerRef _Nonnull self, 
 
 // Publishes the driver instance to the driver catalog with the given name. This
 // method should be called from a onStart() override.
-extern errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver, const DriverEntry* _Nonnull de);
+extern errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry* _Nonnull de);
 
 // Removes the driver instance from the driver catalog.
 extern void DriverManager_Unpublish(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver);

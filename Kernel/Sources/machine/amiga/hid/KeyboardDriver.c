@@ -100,9 +100,11 @@ errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0444);
+    de.handler = NULL;
+    de.driver = (DriverRef)self;
     de.arg = 0;
 
-    return DriverManager_Publish(gDriverManager, self, &de);
+    return DriverManager_Publish(gDriverManager, &de);
 }
 
 void KeyboardDriver_onStop(DriverRef _Nonnull _Locked self)

@@ -97,9 +97,11 @@ errno_t DigitalJoystickDriver_onStart(DigitalJoystickDriverRef _Nonnull _Locked 
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0444);
+    de.handler = NULL;
+    de.driver = (DriverRef)self;
     de.arg = 0;
 
-    return DriverManager_Publish(gDriverManager, (DriverRef)self, &de);
+    return DriverManager_Publish(gDriverManager, &de);
 }
 
 void DigitalJoystickDriver_onStop(DriverRef _Nonnull _Locked self)
@@ -246,9 +248,11 @@ errno_t AnalogJoystickDriver_onStart(AnalogJoystickDriverRef _Nonnull _Locked se
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0444);
+    de.handler = NULL;
+    de.driver = (DriverRef)self;
     de.arg = 0;
 
-    return DriverManager_Publish(gDriverManager, (DriverRef)self, &de);
+    return DriverManager_Publish(gDriverManager, &de);
 }
 
 void AnalogJoystickDriver_onStop(DriverRef _Nonnull _Locked self)

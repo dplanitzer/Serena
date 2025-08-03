@@ -36,9 +36,11 @@ errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0440);
+    de.handler = NULL;
+    de.driver = (DriverRef)self;
     de.arg = 0;
 
-    if ((err = DriverManager_Publish(gDriverManager, self, &de)) == EOK) {
+    if ((err = DriverManager_Publish(gDriverManager, &de)) == EOK) {
         md.lower = cfg->start;
         md.upper = cfg->start + cfg->logicalSize;
         md.type = MEM_TYPE_MEMORY;
