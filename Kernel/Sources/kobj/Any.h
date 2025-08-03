@@ -88,7 +88,7 @@ any_class(Any);
 
 
 // Do not call these functions directly. Use the macros defined above instead.
-extern bool _instanceof(AnyRef _Nonnull self, Class* _Nonnull targetType);
+extern bool _instanceof(AnyRef _Nonnull self, const Class* _Nonnull targetType);
 extern Class* _Nonnull _superimplementationof(Class* _Nonnull staticType, size_t methodOffset);
 
 #endif /* Any_h */

@@ -8,6 +8,7 @@
 
 #include "KfsSpecial.h"
 #include <driver/Driver.h>
+#include <handler/Handler.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/FSUtilities.h>
 
@@ -52,7 +53,12 @@ errno_t KfsSpecial_createChannel(KfsSpecialRef _Nonnull _Locked self, unsigned i
 {
     switch (Inode_GetMode(self) & S_IFMT) {
         case S_IFDEV:
-            return Driver_Open((DriverRef)self->instance, mode, self->arg, pOutChannel);
+            if (instanceof(self->instance, Driver)) {
+                return Driver_Open((DriverRef)self->instance, mode, self->arg, pOutChannel);
+            }
+            else {
+                return Handler_Open((HandlerRef)self->instance, mode, self->arg, pOutChannel);
+            }
 
         case S_IFFS:
             return Filesystem_Open((FilesystemRef)self->instance, mode, 0, pOutChannel);

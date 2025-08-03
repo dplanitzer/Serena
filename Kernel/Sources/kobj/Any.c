@@ -12,16 +12,16 @@
 
 any_class_def(Any);
 
-bool _instanceof(AnyRef _Nonnull self, Class* _Nonnull targetType)
+bool _instanceof(AnyRef _Nonnull self, const Class* _Nonnull targetType)
 {
-    Class* curTargetType = targetType;
-    Class* anyType = classof(self);
+    Class* myCurType = classof(self);
 
-    while (curTargetType) {
-        if (anyType == curTargetType) {
+    while (myCurType) {
+        if (myCurType == targetType) {
             return true;
         }
-        curTargetType = curTargetType->super;
+
+        myCurType = myCurType->super;
     }
 
     return false;
