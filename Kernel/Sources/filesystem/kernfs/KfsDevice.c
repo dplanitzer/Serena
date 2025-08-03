@@ -10,7 +10,7 @@
 #include <filesystem/FSUtilities.h>
 
 
-errno_t KfsDevice_Create(KernFSRef _Nonnull fs, ino_t inid, mode_t permissions, uid_t uid, gid_t gid, ino_t pnid, DriverRef _Nonnull pDriver, intptr_t arg, KfsNodeRef _Nullable * _Nonnull pOutSelf)
+errno_t KfsDevice_Create(KernFSRef _Nonnull fs, ino_t inid, mode_t mode, uid_t uid, gid_t gid, ino_t pnid, DriverRef _Nonnull pDriver, intptr_t arg, KfsNodeRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     struct timespec now;
@@ -22,7 +22,7 @@ errno_t KfsDevice_Create(KernFSRef _Nonnull fs, ino_t inid, mode_t permissions, 
         class(KfsDevice),
         (FilesystemRef)fs,
         inid,
-        __S_MKMODE(S_IFDEV, permissions),
+        mode,
         uid,
         gid,
         1,

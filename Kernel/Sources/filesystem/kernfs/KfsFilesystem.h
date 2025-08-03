@@ -20,6 +20,6 @@ open_class_funcs(KfsFilesystem, KfsNode,
 );
 
 
-extern errno_t KfsFilesystem_Create(KernFSRef _Nonnull kfs, ino_t inid, mode_t permissions, uid_t uid, gid_t gid, ino_t pnid, FilesystemRef _Nonnull fs, KfsNodeRef _Nullable * _Nonnull pOutSelf);
+extern errno_t KfsFilesystem_Create(KernFSRef _Nonnull kfs, ino_t inid, mode_t mode, uid_t uid, gid_t gid, ino_t pnid, FilesystemRef _Nonnull fs, KfsNodeRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* KfsFilesystem_h */

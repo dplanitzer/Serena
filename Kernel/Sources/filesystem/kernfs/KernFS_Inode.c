@@ -13,18 +13,6 @@
 #include "KfsProcess.h"
 
 
-// Returns a strong reference to the driver backing the given driver node.
-// Returns NULL if the given node is not a driver node.
-DriverRef _Nullable KernFS_CopyDriverForNode(KernFSRef _Nonnull self, InodeRef _Nonnull pNode)
-{
-    if (S_ISDEV(Inode_GetMode(pNode))) {
-        return Object_RetainAs(((KfsDeviceRef)pNode)->instance, Driver);
-    }
-    else {
-        return NULL;
-    }
-}
-
 static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable extra1, intptr_t extra2, uid_t uid, gid_t gid, mode_t mode, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();

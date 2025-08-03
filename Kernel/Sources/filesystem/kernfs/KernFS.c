@@ -8,7 +8,6 @@
 
 #include "KernFSPriv.h"
 #include "KfsDirectory.h"
-#include "KfsDevice.h"
 #include <driver/Driver.h>
 #include <filesystem/DirectoryChannel.h>
 #include <kern/string.h>
