@@ -36,16 +36,6 @@ typedef struct DriverEntry {
 } DriverEntry;
 
 
-#define DM_HASH_CHAIN_COUNT 16
-#define DM_HASH_CHAIN_MASK  (DM_HASH_CHAIN_COUNT - 1)
-
-
-typedef struct DriverManager {
-    mtx_t               mtx;
-    SList/*<dentry_t>*/ id_table[DM_HASH_CHAIN_COUNT];  // did_t -> dentry_t
-} DriverManager;
-
-
 extern DriverManagerRef gDriverManager;
 
 

@@ -11,9 +11,6 @@
 
 #include "Process.h"
 
-struct ProcessManager;
-typedef struct ProcessManager* ProcessManagerRef;
-
 
 // The process manager manages the set of processes that are alive and globally
 // visible. Globally visible here means that it is possible to look up the

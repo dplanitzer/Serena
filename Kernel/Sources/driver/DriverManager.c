@@ -20,6 +20,15 @@ struct dentry {
 typedef struct dentry* dentry_t;
 
 
+#define HASH_CHAIN_COUNT 16
+#define HASH_CHAIN_MASK  (HASH_CHAIN_COUNT - 1)
+
+struct DriverManager {
+    mtx_t               mtx;
+    SList/*<dentry_t>*/ id_table[HASH_CHAIN_COUNT];  // did_t -> dentry_t
+};
+
+
 DriverManagerRef gDriverManager;
 
 
@@ -28,10 +37,10 @@ errno_t DriverManager_Create(DriverManagerRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     DriverManagerRef self;
 
-    try(kalloc_cleared(sizeof(DriverManager), (void**)&self));
+    try(kalloc_cleared(sizeof(struct DriverManager), (void**)&self));
     mtx_init(&self->mtx);
 
-    for (size_t i = 0; i < DM_HASH_CHAIN_COUNT; i++) {
+    for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
         SList_Init(&self->id_table[i]);
     }
 
@@ -66,7 +75,7 @@ errno_t DriverManager_AcquireNodeForPath(DriverManagerRef _Nonnull self, const c
 // entry exists.
 static dentry_t _Nullable _get_dentry_by_id(DriverManagerRef _Nonnull _Locked self, did_t id)
 {
-    SList_ForEach(&self->id_table[hash_scalar(id) & DM_HASH_CHAIN_MASK], ListNode,
+    SList_ForEach(&self->id_table[hash_scalar(id) & HASH_CHAIN_MASK], ListNode,
         dentry_t ep = (dentry_t)pCurNode;
 
         if (ep->driver->id == id) {
@@ -101,7 +110,7 @@ errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, DriverRef _Nonnull
     try(kalloc_cleared(sizeof(struct dentry), (void**)&ep));
     try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, driver, de->arg, &driver->id));
 
-    SList_InsertBeforeFirst(&self->id_table[hash_scalar(driver->id) & DM_HASH_CHAIN_MASK], &ep->qe);
+    SList_InsertBeforeFirst(&self->id_table[hash_scalar(driver->id) & HASH_CHAIN_MASK], &ep->qe);
     ep->driver = Object_RetainAs(driver, Driver);
 
 catch:
@@ -130,7 +139,7 @@ void DriverManager_Unpublish(DriverManagerRef _Nonnull self, DriverRef _Nonnull 
     Catalog_Unpublish(gDriverCatalog, Driver_GetParentDirectoryId(driver), id);
     
     dentry_t prev_ep = NULL;
-    SList* id_chain = &self->id_table[hash_scalar(id) & DM_HASH_CHAIN_MASK];
+    SList* id_chain = &self->id_table[hash_scalar(id) & HASH_CHAIN_MASK];
     SList_ForEach(id_chain, ListNode,
         dentry_t ep = (dentry_t)pCurNode;
 
