@@ -36,6 +36,11 @@ errno_t HIDDriver_onStart(DriverRef _Nonnull _Locked self)
     return DriverManager_Publish(gDriverManager, self, &de);
 }
 
+void HIDDriver_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 errno_t HIDDriver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return HIDChannel_Create(self, mode, pOutChannel);
@@ -152,6 +157,7 @@ errno_t HIDDriver_ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel,
 
 class_func_defs(HIDDriver, Driver,
 override_func_def(onStart, HIDDriver, Driver)
+override_func_def(onStop, HIDDriver, Driver)
 override_func_def(createChannel, HIDDriver, Driver)
 override_func_def(read, HIDDriver, Driver)
 override_func_def(ioctl, HIDDriver, Driver)

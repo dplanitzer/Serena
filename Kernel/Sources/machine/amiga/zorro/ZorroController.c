@@ -78,7 +78,13 @@ catch:
     return err;
 }
 
+void ZorroController_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 
 class_func_defs(ZorroController, Driver,
 override_func_def(onStart, ZorroController, Driver)
+override_func_def(onStop, ZorroController, Driver)
 );

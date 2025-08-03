@@ -77,6 +77,11 @@ static errno_t GraphicsDriver_onStart(DriverRef _Nonnull _Locked self)
     return DriverManager_Publish(gDriverManager, self, &de);
 }
 
+void GraphicsDriver_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
 {
     switch (cmd) {
@@ -928,5 +933,6 @@ errno_t GraphicsDriver_GetVideoConfigurationRange(GraphicsDriverRef _Nonnull sel
 
 class_func_defs(GraphicsDriver, Driver,
 override_func_def(onStart, GraphicsDriver, Driver)
+override_func_def(onStop, GraphicsDriver, Driver)
 override_func_def(ioctl, GraphicsDriver, Driver)
 );

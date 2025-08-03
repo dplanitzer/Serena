@@ -105,6 +105,11 @@ errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
     return DriverManager_Publish(gDriverManager, self, &de);
 }
 
+void KeyboardDriver_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)
 {
     return kInputType_Keyboard;
@@ -177,6 +182,7 @@ void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull self)
 class_func_defs(KeyboardDriver, InputDriver,
 override_func_def(deinit, KeyboardDriver, Object)
 override_func_def(onStart, KeyboardDriver, Driver)
+override_func_def(onStop, KeyboardDriver, Driver)
 override_func_def(getInputType, KeyboardDriver, InputDriver)
 override_func_def(ioctl, KeyboardDriver, Driver)
 );

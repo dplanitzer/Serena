@@ -102,6 +102,11 @@ errno_t DigitalJoystickDriver_onStart(DigitalJoystickDriverRef _Nonnull _Locked 
     return DriverManager_Publish(gDriverManager, (DriverRef)self, &de);
 }
 
+void DigitalJoystickDriver_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 InputType DigitalJoystickDriver_getInputType(DigitalJoystickDriverRef _Nonnull self)
 {
     return kInputType_DigitalJoystick;
@@ -152,6 +157,7 @@ void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull self)
 class_func_defs(DigitalJoystickDriver, InputDriver,
 override_func_def(deinit, DigitalJoystickDriver, Object)
 override_func_def(onStart, DigitalJoystickDriver, Driver)
+override_func_def(onStop, DigitalJoystickDriver, Driver)
 override_func_def(getInputType, DigitalJoystickDriver, InputDriver)
 );
 
@@ -245,6 +251,11 @@ errno_t AnalogJoystickDriver_onStart(AnalogJoystickDriverRef _Nonnull _Locked se
     return DriverManager_Publish(gDriverManager, (DriverRef)self, &de);
 }
 
+void AnalogJoystickDriver_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 InputType AnalogJoystickDriver_getInputType(AnalogJoystickDriverRef _Nonnull self)
 {
     return kInputType_AnalogJoystick;
@@ -306,5 +317,6 @@ void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull self)
 class_func_defs(AnalogJoystickDriver, InputDriver,
 override_func_def(deinit, AnalogJoystickDriver, Object)
 override_func_def(onStart, AnalogJoystickDriver, Driver)
+override_func_def(onStop, AnalogJoystickDriver, Driver)
 override_func_def(getInputType, AnalogJoystickDriver, InputDriver)
 );

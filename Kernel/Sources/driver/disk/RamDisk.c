@@ -91,6 +91,11 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
     return DriverManager_Publish(gDriverManager, (DriverRef)self, &de);
 }
 
+void RamDisk_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 // Tries to find the disk extent that contains the given sector index. This disk
 // extent is returned if it exists. Also returns the disk extent that exists and
 // is closest to the given sector index and whose 'firstSectorIndex' is <= the
@@ -209,6 +214,7 @@ errno_t RamDisk_formatTrack(RamDiskRef _Nonnull self, const chs_t* chs, const vo
 class_func_defs(RamDisk, DiskDriver,
 override_func_def(deinit, RamDisk, Object)
 override_func_def(onStart, RamDisk, Driver)
+override_func_def(onStop, RamDisk, Driver)
 override_func_def(getSector, RamDisk, DiskDriver)
 override_func_def(putSector, RamDisk, DiskDriver)
 override_func_def(formatTrack, RamDisk, DiskDriver)

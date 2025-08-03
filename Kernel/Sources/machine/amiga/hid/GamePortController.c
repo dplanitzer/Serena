@@ -146,6 +146,11 @@ catch:
     return err;
 }
 
+void GamePortController_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
 {
     switch (cmd) {
@@ -171,5 +176,6 @@ errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelR
 
 class_func_defs(GamePortController, Driver,
 override_func_def(onStart, GamePortController, Driver)
+override_func_def(onStop, GamePortController, Driver)
 override_func_def(ioctl, GamePortController, Driver)
 );

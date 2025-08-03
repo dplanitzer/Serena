@@ -95,6 +95,11 @@ catch:
     return err;
 }
 
+void PartitionDriver_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 static DiskDriverRef _Nonnull _prep_req(PartitionDriverRef _Nonnull self, IORequest* _Nonnull r)
 {
     switch (r->type) {
@@ -127,6 +132,7 @@ errno_t PartitionDriver_doIO(PartitionDriverRef _Nonnull self, IORequest* _Nonnu
 class_func_defs(PartitionDriver, DiskDriver,
 override_func_def(createDispatchQueue, PartitionDriver, DiskDriver)
 override_func_def(onStart, PartitionDriver, Driver)
+override_func_def(onStop, PartitionDriver, Driver)
 override_func_def(beginIO, PartitionDriver, DiskDriver)
 override_func_def(doIO, PartitionDriver, DiskDriver)
 );

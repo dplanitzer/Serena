@@ -173,6 +173,11 @@ catch:
     return err;
 }
 
+void FloppyDriver_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 // Called when we've detected a loss of the drive hardware
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self)
 {
@@ -862,6 +867,7 @@ class_func_defs(FloppyDriver, DiskDriver,
 override_func_def(deinit, FloppyDriver, Object)
 override_func_def(doSenseDisk, FloppyDriver, DiskDriver)
 override_func_def(onStart, FloppyDriver, Driver)
+override_func_def(onStop, FloppyDriver, Driver)
 override_func_def(getSector, FloppyDriver, DiskDriver)
 override_func_def(putSector, FloppyDriver, DiskDriver)
 override_func_def(formatTrack, FloppyDriver, DiskDriver)

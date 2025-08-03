@@ -115,6 +115,11 @@ static errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     return DriverManager_Publish(gDriverManager, (DriverRef)self, &de);
 }
 
+void Console_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking)
 {
     decl_try_err();
@@ -721,6 +726,7 @@ errno_t Console_ioctl(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, 
 class_func_defs(Console, Driver,
 override_func_def(deinit, Console, Object)
 override_func_def(onStart, Console, Driver)
+override_func_def(onStop, Console, Driver)
 override_func_def(createChannel, Console, Driver)
 override_func_def(read, Console, Driver)
 override_func_def(write, Console, Driver)

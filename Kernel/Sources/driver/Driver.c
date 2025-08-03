@@ -140,8 +140,6 @@ errno_t Driver_Terminate(DriverRef _Nonnull self)
         return err;
     }
 
-    DriverManager_Unpublish(gDriverManager, self);
-
 
     // Stop myself
     Driver_OnStop(self);

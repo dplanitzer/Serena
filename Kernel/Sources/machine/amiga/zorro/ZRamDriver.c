@@ -48,6 +48,12 @@ errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)
     return err;
 }
 
+void ZRamDriver_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 class_func_defs(ZRamDriver, ZorroDriver,
 override_func_def(onStart, ZRamDriver, Driver)
+override_func_def(onStop, ZRamDriver, Driver)
 );

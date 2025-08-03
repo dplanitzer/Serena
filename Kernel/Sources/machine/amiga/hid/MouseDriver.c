@@ -101,6 +101,11 @@ errno_t MouseDriver_onStart(MouseDriverRef _Nonnull _Locked self)
     return DriverManager_Publish(gDriverManager, (DriverRef)self, &de);
 }
 
+void MouseDriver_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 InputType MouseDriver_getInputType(MouseDriverRef _Nonnull self)
 {
     return kInputType_Mouse;
@@ -168,5 +173,6 @@ void MouseDriver_OnInterrupt(MouseDriverRef _Nonnull self)
 class_func_defs(MouseDriver, InputDriver,
 override_func_def(deinit, MouseDriver, Object)
 override_func_def(onStart, MouseDriver, Driver)
+override_func_def(onStop, MouseDriver, Driver)
 override_func_def(getInputType, MouseDriver, InputDriver)
 );

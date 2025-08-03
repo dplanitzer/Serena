@@ -52,6 +52,11 @@ catch:
     return err;
 }
 
+void VirtualDiskManager_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 errno_t VirtualDiskManager_CreateRamDisk(VirtualDiskManagerRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount)
 {
     decl_try_err();
@@ -91,4 +96,5 @@ catch:
 
 class_func_defs(VirtualDiskManager, Driver,
 override_func_def(onStart, VirtualDiskManager, Driver)
+override_func_def(onStop, VirtualDiskManager, Driver)
 );

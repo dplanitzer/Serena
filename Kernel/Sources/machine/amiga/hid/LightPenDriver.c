@@ -104,6 +104,11 @@ errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
     return DriverManager_Publish(gDriverManager, (DriverRef)self, &de);
 }
 
+void LightPenDriver_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 InputType LightPenDriver_getInputType(LightPenDriverRef _Nonnull self)
 {
     return kInputType_LightPen;
@@ -162,5 +167,6 @@ void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull self)
 class_func_defs(LightPenDriver, InputDriver,
 override_func_def(deinit, LightPenDriver, Object)
 override_func_def(onStart, LightPenDriver, Driver)
+override_func_def(onStop, LightPenDriver, Driver)
 override_func_def(getInputType, LightPenDriver, InputDriver)
 );

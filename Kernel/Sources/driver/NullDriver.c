@@ -31,6 +31,11 @@ errno_t NullDriver_onStart(DriverRef _Nonnull _Locked self)
     return DriverManager_Publish(gDriverManager, self, &de);
 }
 
+void NullDriver_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 errno_t NullDriver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     // Always return EOF
@@ -47,6 +52,7 @@ errno_t NullDriver_write(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel
 
 class_func_defs(NullDriver, Driver,
 override_func_def(onStart, NullDriver, Driver)
+override_func_def(onStop, NullDriver, Driver)
 override_func_def(read, NullDriver, Driver)
 override_func_def(write, NullDriver, Driver)
 );

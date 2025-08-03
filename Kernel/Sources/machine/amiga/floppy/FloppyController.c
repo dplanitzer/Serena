@@ -170,6 +170,11 @@ catch:
     return err;
 }
 
+void FloppyController_onStop(DriverRef _Nonnull _Locked self)
+{
+    DriverManager_Unpublish(gDriverManager, self);
+}
+
 DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int drive)
 {
     CIAB_BASE_DECL(ciab);
@@ -441,4 +446,5 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
 class_func_defs(FloppyController, Driver,
 override_func_def(deinit, FloppyController, Object)
 override_func_def(onStart, FloppyController, Driver)
+override_func_def(onStop, FloppyController, Driver)
 );
