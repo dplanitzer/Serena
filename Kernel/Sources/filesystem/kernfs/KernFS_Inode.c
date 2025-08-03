@@ -9,11 +9,11 @@
 #include "KernFSPriv.h"
 #include "KfsDirectory.h"
 #include "KfsDevice.h"
-#include "KfsFilesystem.h"
 #include "KfsProcess.h"
+#include "KfsSpecial.h"
 
 
-static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable extra1, intptr_t extra2, uid_t uid, gid_t gid, mode_t mode, InodeRef _Nullable * _Nonnull pOutNode)
+static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, ObjectRef _Nullable obj, intptr_t arg, uid_t uid, gid_t gid, mode_t mode, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     KfsNodeRef ip = NULL;
@@ -26,15 +26,15 @@ static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Lo
             break;
 
         case S_IFDEV:
-            try(KfsDevice_Create(self, KernFS_GetNextAvailableInodeId(self), mode, uid, gid, Inode_GetId(dir), (DriverRef)extra1, extra2, &ip));
+            try(KfsDevice_Create(self, KernFS_GetNextAvailableInodeId(self), mode, uid, gid, Inode_GetId(dir), (DriverRef)obj, arg, &ip));
             break;
 
         case S_IFFS:
-            try(KfsFilesystem_Create(self, KernFS_GetNextAvailableInodeId(self), mode, uid, gid, Inode_GetId(dir), (FilesystemRef)extra1, &ip));
+            try(KfsSpecial_Create(self, KernFS_GetNextAvailableInodeId(self), mode, uid, gid, Inode_GetId(dir), obj, arg, &ip));
             break;
 
         case S_IFPROC:
-            try(KfsProcess_Create(self, KernFS_GetNextAvailableInodeId(self), mode, uid, gid, Inode_GetId(dir), (ProcessRef)extra1, &ip));
+            try(KfsProcess_Create(self, KernFS_GetNextAvailableInodeId(self), mode, uid, gid, Inode_GetId(dir), (ProcessRef)obj, &ip));
             break;
 
         default:
@@ -67,21 +67,21 @@ catch:
 }
 
 // Creates a new device node in the file system.
-errno_t KernFS_CreateDeviceNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull dev, intptr_t arg, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t KernFS_CreateDeviceNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, ObjectRef _Nonnull drvOrHnd, intptr_t arg, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _KernFS_createNode(self, dir, name, dev, arg, uid, gid, __S_MKMODE(S_IFDEV, permissions), pOutNode);
+    return _KernFS_createNode(self, dir, name, drvOrHnd, arg, uid, gid, __S_MKMODE(S_IFDEV, permissions), pOutNode);
 }
 
 // Creates a new filesystem node in the file system.
 errno_t KernFS_CreateFilesystemNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, FilesystemRef _Nonnull fs, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _KernFS_createNode(self, dir, name, fs, 0, uid, gid, __S_MKMODE(S_IFFS, permissions), pOutNode);
+    return _KernFS_createNode(self, dir, name, (ObjectRef)fs, 0, uid, gid, __S_MKMODE(S_IFFS, permissions), pOutNode);
 }
 
 // Creates a new process node in the file system.
 errno_t KernFS_CreateProcessNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, ProcessRef _Nonnull proc, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _KernFS_createNode(self, dir, name, proc, 0, uid, gid, __S_MKMODE(S_IFPROC, permissions), pOutNode);
+    return _KernFS_createNode(self, dir, name, (ObjectRef)proc, 0, uid, gid, __S_MKMODE(S_IFPROC, permissions), pOutNode);
 }
 
 errno_t KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, uid_t uid, gid_t gid, mode_t mode, InodeRef _Nullable * _Nonnull pOutNode)

@@ -112,7 +112,7 @@ errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry*
     }
 
     try(kalloc_cleared(sizeof(struct dentry), (void**)&ep));
-    try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, de->driver, de->arg, &ep->id));
+    try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, (ObjectRef)de->driver, de->arg, &ep->id));
 
     SList_InsertBeforeFirst(&self->id_table[hash_scalar(ep->id) & HASH_CHAIN_MASK], &ep->qe);
     ep->driver = Object_RetainAs(de->driver, Driver);

@@ -167,7 +167,7 @@ catch:
 }
 
 
-errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, DriverRef _Nonnull driver, intptr_t arg, CatalogId* _Nonnull pOutCatalogId)
+errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, ObjectRef _Nonnull driverOrHandler, intptr_t arg, CatalogId* _Nonnull pOutCatalogId)
 {
     decl_try_err();
     InodeRef pDir = NULL;
@@ -181,7 +181,7 @@ errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, cons
 
     err = _Catalog_AcquireFolder(self, folderId, &pDir);
     if (err == EOK) {
-        err = KernFS_CreateDeviceNode((KernFSRef)self->fs, pDir, &pc, driver, arg, uid, gid, perms, &pNode);
+        err = KernFS_CreateDeviceNode((KernFSRef)self->fs, pDir, &pc, driverOrHandler, arg, uid, gid, perms, &pNode);
         if (err == EOK) {
             *pOutCatalogId = (CatalogId)Inode_GetId(pNode);
         }

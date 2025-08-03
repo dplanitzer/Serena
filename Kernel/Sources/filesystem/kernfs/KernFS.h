@@ -19,7 +19,7 @@ final_class(KernFS, Filesystem);
 extern errno_t KernFS_Create(KernFSRef _Nullable * _Nonnull pOutSelf);
 
 // Creates a new device node in the file system.
-extern errno_t KernFS_CreateDeviceNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull dev, intptr_t arg, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode);
+extern errno_t KernFS_CreateDeviceNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, ObjectRef _Nonnull drvOrHnd, intptr_t arg, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode);
 
 // Creates a new filesystem node in the file system.
 extern errno_t KernFS_CreateFilesystemNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, FilesystemRef _Nonnull fs, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode);
