@@ -8,7 +8,6 @@
 
 #include "KernFSPriv.h"
 #include "KfsDirectory.h"
-#include "KfsDevice.h"
 #include "KfsProcess.h"
 #include "KfsSpecial.h"
 
@@ -26,9 +25,6 @@ static errno_t _KernFS_createNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Lo
             break;
 
         case S_IFDEV:
-            try(KfsDevice_Create(self, KernFS_GetNextAvailableInodeId(self), mode, uid, gid, Inode_GetId(dir), (DriverRef)obj, arg, &ip));
-            break;
-
         case S_IFFS:
             try(KfsSpecial_Create(self, KernFS_GetNextAvailableInodeId(self), mode, uid, gid, Inode_GetId(dir), obj, arg, &ip));
             break;

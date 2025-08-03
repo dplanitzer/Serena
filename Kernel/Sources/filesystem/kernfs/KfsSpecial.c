@@ -7,6 +7,7 @@
 //
 
 #include "KfsSpecial.h"
+#include <driver/Driver.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/FSUtilities.h>
 
@@ -49,7 +50,16 @@ void KfsSpecial_deinit(KfsSpecialRef _Nullable self)
 
 errno_t KfsSpecial_createChannel(KfsSpecialRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return Filesystem_Open(self->instance, mode, 0, pOutChannel);
+    switch (Inode_GetMode(self) & S_IFMT) {
+        case S_IFDEV:
+            return Driver_Open((DriverRef)self->instance, mode, self->arg, pOutChannel);
+
+        case S_IFFS:
+            return Filesystem_Open((FilesystemRef)self->instance, mode, 0, pOutChannel);
+
+        default:
+            return EBADF;
+    }
 }
 
 errno_t KfsSpecial_read(KfsSpecialRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
