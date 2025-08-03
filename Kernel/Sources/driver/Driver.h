@@ -122,14 +122,14 @@ typedef enum DriverState {
 // driver for the CD-ROM drive.
 open_class(Driver, Object,
     mtx_t                   mtx;
-    ListNode/*<Driver>*/    childNode;
+    did_t                   id;                 // unique driver id assigned by driver manager on publish()
+    CatalogId               parentDirectoryId;  // /dev directory in which the driver lives 
     List/*<Driver>*/        children;
+    ListNode/*<Driver>*/    child_qe;
     uint16_t                options;
     uint8_t                 flags;
     int8_t                  state;
     int                     openCount;
-    CatalogId               parentDirectoryId;  // /dev directory in which the driver lives 
-    CatalogId               driverCatalogId;
     intptr_t                tag;
 );
 open_class_funcs(Driver, Object,

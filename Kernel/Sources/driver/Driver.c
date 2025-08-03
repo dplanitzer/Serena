@@ -12,8 +12,8 @@
 #include <kpi/fcntl.h>
 
 
-#define DriverFromChildNode(__ptr) \
-(DriverRef) (((uint8_t*)__ptr) - offsetof(struct Driver, childNode))
+#define driver_from_child_qe(__ptr) \
+(DriverRef) (((uint8_t*)__ptr) - offsetof(struct Driver, child_qe))
 
 
 errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf)
@@ -25,7 +25,7 @@ errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, CatalogId p
 
     mtx_init(&self->mtx);
     List_Init(&self->children);
-    ListNode_Init(&self->childNode);
+    ListNode_Init(&self->child_qe);
     self->options = options;
     self->state = kDriverState_Inactive;
     self->parentDirectoryId = parentDirectoryId;
@@ -42,7 +42,7 @@ catch:
 void Driver_deinit(DriverRef _Nonnull self)
 {
     List_ForEach(&self->children, struct Driver,
-        DriverRef pCurDriver = DriverFromChildNode(pCurNode);
+        DriverRef pCurDriver = driver_from_child_qe(pCurNode);
 
         Object_Release(pCurDriver);
     );
@@ -125,7 +125,7 @@ errno_t Driver_Terminate(DriverRef _Nonnull self)
     // The list of child drivers is now frozen and can not change anymore.
     // Synchronously terminate all our child drivers
     List_ForEach(&self->children, struct Driver,
-        err = Driver_Terminate(DriverFromChildNode(pCurNode));
+        err = Driver_Terminate(driver_from_child_qe(pCurNode));
         if (err != EOK) {
             break;
         }
@@ -295,7 +295,7 @@ void Driver_AddChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild)
 void Driver_AdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull _Consuming pChild)
 {
     if (Driver_IsActive(self)) {
-        List_InsertAfterLast(&self->children, &pChild->childNode);
+        List_InsertAfterLast(&self->children, &pChild->child_qe);
     }
 }
 
@@ -322,7 +322,7 @@ void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChi
     }
 
     List_ForEach(&self->children, struct Driver,
-        DriverRef pCurDriver = DriverFromChildNode(pCurNode);
+        DriverRef pCurDriver = driver_from_child_qe(pCurNode);
 
         if (pCurDriver == pChild) {
             isChild = true;
@@ -331,7 +331,7 @@ void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChi
     );
 
     if (isChild) {
-        List_Remove(&self->children, &pChild->childNode);
+        List_Remove(&self->children, &pChild->child_qe);
         Object_Release(pChild);
     }
 }
@@ -345,7 +345,7 @@ DriverRef _Nullable Driver_GetChildWithTag(DriverRef _Nonnull _Locked self, intp
     }
 
     List_ForEach(&self->children, struct Driver,
-        DriverRef pCurDriver = DriverFromChildNode(pCurNode);
+        DriverRef pCurDriver = driver_from_child_qe(pCurNode);
 
         if (pCurDriver->tag == tag) {
             return pCurDriver;

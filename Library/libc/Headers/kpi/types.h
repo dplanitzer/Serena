@@ -21,6 +21,7 @@ typedef int             pid_t;
 typedef unsigned int    uid_t;
 typedef unsigned int    gid_t;
 typedef unsigned int    vcpuid_t;
+typedef unsigned int    did_t;
 typedef unsigned int    id_t;
 
 
