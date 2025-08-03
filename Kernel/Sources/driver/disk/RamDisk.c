@@ -95,7 +95,7 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
 
 void RamDisk_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, self);
+    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
 }
 
 // Tries to find the disk extent that contains the given sector index. This disk

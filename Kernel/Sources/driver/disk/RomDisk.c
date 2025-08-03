@@ -87,7 +87,7 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
 
 void RomDisk_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, self);
+    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
 }
 
 errno_t RomDisk_getSector(RomDiskRef _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize)

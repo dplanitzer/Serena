@@ -58,7 +58,7 @@ catch:
 
 void VirtualDiskManager_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, self);
+    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
 }
 
 errno_t VirtualDiskManager_CreateRamDisk(VirtualDiskManagerRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount)

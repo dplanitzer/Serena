@@ -99,7 +99,7 @@ catch:
 
 void PartitionDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, self);
+    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
 }
 
 static DiskDriverRef _Nonnull _prep_req(PartitionDriverRef _Nonnull self, IORequest* _Nonnull r)

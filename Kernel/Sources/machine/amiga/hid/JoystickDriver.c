@@ -106,7 +106,7 @@ errno_t DigitalJoystickDriver_onStart(DigitalJoystickDriverRef _Nonnull _Locked 
 
 void DigitalJoystickDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, self);
+    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
 }
 
 InputType DigitalJoystickDriver_getInputType(DigitalJoystickDriverRef _Nonnull self)
@@ -257,7 +257,7 @@ errno_t AnalogJoystickDriver_onStart(AnalogJoystickDriverRef _Nonnull _Locked se
 
 void AnalogJoystickDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, self);
+    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
 }
 
 InputType AnalogJoystickDriver_getInputType(AnalogJoystickDriverRef _Nonnull self)

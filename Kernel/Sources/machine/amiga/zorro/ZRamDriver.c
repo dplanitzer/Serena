@@ -52,7 +52,7 @@ errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)
 
 void ZRamDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, self);
+    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
 }
 
 class_func_defs(ZRamDriver, ZorroDriver,

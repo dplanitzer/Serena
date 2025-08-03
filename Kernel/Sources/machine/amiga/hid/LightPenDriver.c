@@ -108,7 +108,7 @@ errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
 
 void LightPenDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, self);
+    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
 }
 
 InputType LightPenDriver_getInputType(LightPenDriverRef _Nonnull self)

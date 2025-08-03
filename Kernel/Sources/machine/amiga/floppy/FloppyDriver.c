@@ -170,14 +170,14 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
 
 catch:
     if (err != EOK) {
-        DriverManager_Unpublish(gDriverManager, (DriverRef)self);
+        DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
     }
     return err;
 }
 
 void FloppyDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, self);
+    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
 }
 
 // Called when we've detected a loss of the drive hardware

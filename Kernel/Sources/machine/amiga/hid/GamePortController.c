@@ -142,7 +142,7 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
     
 catch:
     if (err != EOK) {
-        DriverManager_Unpublish(gDriverManager, (DriverRef)self);
+        DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
         DriverManager_RemoveDirectory(gDriverManager, self->busDirId);
     }
     return err;
@@ -150,7 +150,7 @@ catch:
 
 void GamePortController_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, self);
+    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
 }
 
 errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)

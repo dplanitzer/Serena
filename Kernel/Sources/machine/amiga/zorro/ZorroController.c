@@ -74,7 +74,7 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
 
 catch:
     if (err != EOK) {
-        DriverManager_Unpublish(gDriverManager, (DriverRef)self);
+        DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
         DriverManager_RemoveDirectory(gDriverManager, self->busDirId);
     }
     return err;
@@ -82,7 +82,7 @@ catch:
 
 void ZorroController_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, self);
+    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
 }
 
 

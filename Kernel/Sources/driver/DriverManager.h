@@ -64,7 +64,7 @@ extern errno_t DriverManager_AcquireNodeForPath(DriverManagerRef _Nonnull self, 
 extern errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry* _Nonnull de);
 
 // Removes the driver instance from the driver catalog.
-extern void DriverManager_Unpublish(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver);
+extern void DriverManager_Unpublish(DriverManagerRef _Nonnull self, did_t id);
 
 // Publishes the receiver to the driver catalog as a bus owner and controller.
 // This means that a directory is created in the driver catalog to represent the

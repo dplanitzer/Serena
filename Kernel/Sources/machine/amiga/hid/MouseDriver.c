@@ -105,7 +105,7 @@ errno_t MouseDriver_onStart(MouseDriverRef _Nonnull _Locked self)
 
 void MouseDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, self);
+    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
 }
 
 InputType MouseDriver_getInputType(MouseDriverRef _Nonnull self)

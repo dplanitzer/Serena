@@ -166,7 +166,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
 
 catch:
     if (err != EOK) {
-        DriverManager_Unpublish(gDriverManager, (DriverRef)self);
+        DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
         DriverManager_RemoveDirectory(gDriverManager, self->busDirId);
     }
     return err;
@@ -174,7 +174,7 @@ catch:
 
 void FloppyController_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, self);
+    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
 }
 
 DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int drive)

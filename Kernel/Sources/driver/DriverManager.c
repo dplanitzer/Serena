@@ -18,6 +18,8 @@
 
 struct dentry {
     SListNode   qe;
+    CatalogId   dirId;
+    HandlerRef  handler;
     DriverRef   driver;
     did_t       id;
 };
@@ -77,14 +79,25 @@ errno_t DriverManager_AcquireNodeForPath(DriverManagerRef _Nonnull self, const c
 
 // Returns a reference to the driver entry for driver id 'id'. NULL if such
 // entry exists.
-static dentry_t _Nullable _get_dentry_by_id(DriverManagerRef _Nonnull _Locked self, did_t id)
+static dentry_t _Nullable _get_dentry_by_id(DriverManagerRef _Nonnull _Locked self, did_t id, SList* _Nullable * _Nullable pOutChain, dentry_t _Nullable * _Nullable pOutPrevEntry)
 {
-    SList_ForEach(&self->id_table[hash_scalar(id) & HASH_CHAIN_MASK], ListNode,
+    SList* the_chain = &self->id_table[hash_scalar(id) & HASH_CHAIN_MASK];
+    dentry_t prev_ep = NULL;
+
+    SList_ForEach(the_chain, ListNode,
         dentry_t ep = (dentry_t)pCurNode;
 
         if (ep->id == id) {
+            if (pOutChain) {
+                *pOutChain = the_chain;
+            }
+            if (pOutPrevEntry) {
+                *pOutPrevEntry = prev_ep;
+            }
             return ep;
         }
+
+        prev_ep = ep;
     );
 
     return NULL;
@@ -93,7 +106,7 @@ static dentry_t _Nullable _get_dentry_by_id(DriverManagerRef _Nonnull _Locked se
 DriverRef _Nullable DriverManager_CopyDriverForId(DriverManagerRef _Nonnull self, did_t id)
 {
     mtx_lock(&self->mtx);
-    const dentry_t ep = _get_dentry_by_id(self, id);
+    const dentry_t ep = _get_dentry_by_id(self, id, NULL, NULL);
     DriverRef dp = (ep) ? Object_RetainAs(ep->driver, Driver) : NULL;
     mtx_unlock(&self->mtx);
 
@@ -103,6 +116,7 @@ DriverRef _Nullable DriverManager_CopyDriverForId(DriverManagerRef _Nonnull self
 errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry* _Nonnull de)
 {
     decl_try_err();
+    ObjectRef entity = (de->handler) ? (ObjectRef)de->handler : (ObjectRef)de->driver;
     dentry_t ep = NULL;
 
     mtx_lock(&self->mtx);
@@ -112,11 +126,18 @@ errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry*
     }
 
     try(kalloc_cleared(sizeof(struct dentry), (void**)&ep));
-    try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, (ObjectRef)de->driver, de->arg, &ep->id));
+    try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, entity, de->arg, &ep->id));
 
     SList_InsertBeforeFirst(&self->id_table[hash_scalar(ep->id) & HASH_CHAIN_MASK], &ep->qe);
-    ep->driver = Object_RetainAs(de->driver, Driver);
-    de->driver->id = ep->id;
+    ep->dirId = de->dirId;
+    if (de->handler) {
+        ep->handler = Object_RetainAs(de->handler, Handler);
+        ep->handler->id = ep->id;
+    }
+    if (de->driver) {
+        ep->driver = Object_RetainAs(de->driver, Driver);
+        de->driver->id = ep->id;
+    }
 
 catch:
     mtx_unlock(&self->mtx);
@@ -129,37 +150,37 @@ catch:
 }
 
 // Removes the driver instance from the driver catalog.
-void DriverManager_Unpublish(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver)
+void DriverManager_Unpublish(DriverManagerRef _Nonnull self, did_t id)
 {
-    dentry_t the_ep = NULL;
+    SList* the_chain = NULL;
+    dentry_t the_ep = NULL, prev_ep = NULL;
+    DriverRef driver = NULL;
+    HandlerRef handler = NULL;
 
     mtx_lock(&self->mtx);
-    const id = driver->id;
 
-    if (id == 0) {
+    the_ep = _get_dentry_by_id(self, id, &the_chain, &prev_ep);
+    if (the_ep == NULL) {
         mtx_unlock(&self->mtx);
         return;
     }
 
-    Catalog_Unpublish(gDriverCatalog, Driver_GetParentDirectoryId(driver), id);
-    
-    dentry_t prev_ep = NULL;
-    SList* id_chain = &self->id_table[hash_scalar(id) & HASH_CHAIN_MASK];
-    SList_ForEach(id_chain, ListNode,
-        dentry_t ep = (dentry_t)pCurNode;
+    if (the_ep->handler) {
+        the_ep->handler->id = 0;
+        handler = the_ep->handler;
+    }
+    if (the_ep->driver) {
+        the_ep->driver->id = 0;
+        driver = the_ep->driver;
+    }
 
-        if (ep->id == id) {
-            SList_Remove(id_chain, &prev_ep->qe, &ep->qe);
-            the_ep = ep;
-            break;
-        }
-        prev_ep = ep;
-    );
-
-    driver->id = 0;
+    Catalog_Unpublish(gDriverCatalog, the_ep->dirId, id);
+    SList_Remove(the_chain, &prev_ep->qe, &the_ep->qe);
 
     mtx_unlock(&self->mtx);
     
+
+    Object_Release(handler);
     Object_Release(driver);
     kfree(the_ep);
 }

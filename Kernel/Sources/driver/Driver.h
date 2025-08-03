@@ -247,6 +247,11 @@ extern intptr_t Driver_GetTag(DriverRef _Nonnull self);
 extern errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf);
 
 
+// Returns the globally unique driver id. The id is assigned when the driver is
+// published.
+#define Driver_GetId(__self) \
+((DriverRef)__self)->id
+
 // Returns the parent directory of the driver. This is the directory in which
 // the driver bus directories or the driver node itself lives.
 #define Driver_GetParentDirectoryId(__self) \

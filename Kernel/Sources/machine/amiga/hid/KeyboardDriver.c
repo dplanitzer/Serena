@@ -109,7 +109,7 @@ errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
 
 void KeyboardDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, self);
+    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
 }
 
 InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)
