@@ -12,10 +12,13 @@
 #include <Catalog.h>
 #include <klib/Hash.h>
 #include <kern/kalloc.h>
+#include <sched/mtx.h>
+
 
 struct dentry {
     SListNode   qe;
     DriverRef   driver;
+    did_t       id;
 };
 typedef struct dentry* dentry_t;
 
@@ -78,7 +81,7 @@ static dentry_t _Nullable _get_dentry_by_id(DriverManagerRef _Nonnull _Locked se
     SList_ForEach(&self->id_table[hash_scalar(id) & HASH_CHAIN_MASK], ListNode,
         dentry_t ep = (dentry_t)pCurNode;
 
-        if (ep->driver->id == id) {
+        if (ep->id == id) {
             return ep;
         }
     );
@@ -108,10 +111,11 @@ errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, DriverRef _Nonnull
     }
 
     try(kalloc_cleared(sizeof(struct dentry), (void**)&ep));
-    try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, driver, de->arg, &driver->id));
+    try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, driver, de->arg, &ep->id));
 
-    SList_InsertBeforeFirst(&self->id_table[hash_scalar(driver->id) & HASH_CHAIN_MASK], &ep->qe);
+    SList_InsertBeforeFirst(&self->id_table[hash_scalar(ep->id) & HASH_CHAIN_MASK], &ep->qe);
     ep->driver = Object_RetainAs(driver, Driver);
+    driver->id = ep->id;
 
 catch:
     mtx_unlock(&self->mtx);
@@ -143,7 +147,7 @@ void DriverManager_Unpublish(DriverManagerRef _Nonnull self, DriverRef _Nonnull 
     SList_ForEach(id_chain, ListNode,
         dentry_t ep = (dentry_t)pCurNode;
 
-        if (ep->driver->id == id) {
+        if (ep->id == id) {
             SList_Remove(id_chain, &prev_ep->qe, &ep->qe);
             the_ep = ep;
             break;
