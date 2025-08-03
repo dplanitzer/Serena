@@ -182,7 +182,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     // Create the kerneld process and publish it
     KernelProcess_Init(pRootFh, &gKernelProcess);
-    try(ProcessManager_Register(gProcessManager, gKernelProcess));
+    try(ProcessManager_Publish(gProcessManager, gKernelProcess));
     Object_Release(pRootFh);
 
 

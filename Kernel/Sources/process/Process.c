@@ -20,14 +20,6 @@ ProcessRef _Nonnull gKernelProcess;
 
 
 
-// Returns the next PID available for use by a new process.
-static pid_t make_unique_pid(void)
-{
-    static volatile AtomicInt g_prev_pid = 0;
-    return AtomicInt_Increment(&g_prev_pid);
-}
-
-
 void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRef _Nonnull fh, uid_t uid, gid_t gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, mode_t umask)
 {
     assert(ppid > 0);
@@ -37,10 +29,10 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
 
     self->retainCount = RC_INIT;
     self->state = PROC_LIFECYCLE_ACTIVE;
-    self->pid = make_unique_pid();
+    self->pid = 0;
     self->ppid = ppid;
-    self->pgrp = (pgrp == 0) ? self->pid : pgrp;
-    self->sid = (sid == 0) ? self->pid : sid;
+    self->pgrp = pgrp;
+    self->sid = sid;
 
     List_Init(&self->vcpu_queue);
     self->next_avail_vcpuid = VCPUID_MAIN + 1;

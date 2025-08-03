@@ -27,6 +27,7 @@
 
 typedef struct ProcessManager {
     mtx_t               mtx;
+    pid_t               nextPid;
     SList/*<Process>*/  pid_table[HASH_CHAIN_COUNT];     // pid_t -> Process
 } ProcessManager;
 
@@ -42,7 +43,8 @@ errno_t ProcessManager_Create(ProcessManagerRef _Nullable * _Nonnull pOutSelf)
     try(kalloc(sizeof(ProcessManager), (void**) &self));
     
     mtx_init(&self->mtx);
-    
+    self->nextPid = 1;
+
     for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
         SList_Init(&self->pid_table[i]);
     }
@@ -72,17 +74,25 @@ static ProcessRef _Nullable _get_proc_by_pid(ProcessManagerRef _Nonnull _Locked 
     return NULL;
 }
 
-errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
+errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
 {
     decl_try_err();
     static char g_pid_buf[DIGIT_BUFFER_CAPACITY];
 
     mtx_lock(&self->mtx);
 
-    if (pp->rel.cat_id != kCatalogId_None) {
+    if (pp->pid != 0) {
         throw(EBUSY);
     }
 
+    pp->pid = self->nextPid++;
+    if (pp->pgrp == 0) {
+        pp->pgrp = pp->pid;
+    }
+    if (pp->sid == 0) {
+        pp->sid = pp->pid;
+    }
+    
     UInt32_ToString(pp->pid, 10, false, g_pid_buf);
     try(Catalog_PublishProcess(gProcCatalog, g_pid_buf, kUserId_Root, kGroupId_Root, perm_from_octal(0444), pp, &pp->rel.cat_id));
     
@@ -102,11 +112,15 @@ catch:
     return err;
 }
 
-void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
+void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp)
 {
     mtx_lock(&self->mtx);
 
-    assert(pp->pid != PID_KERNEL);
+    if (pp->pid == 0) {
+        mtx_unlock(&self->mtx);
+        return;
+    }
+
     assert(pp->rel.cat_id != kCatalogId_None);
 
     Catalog_Unpublish(gProcCatalog, kCatalogId_None, pp->rel.cat_id);

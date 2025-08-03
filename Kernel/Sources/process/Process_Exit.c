@@ -110,7 +110,7 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
     ps->reason = zp->exit_reason;
     ps->u.status = zp->exit_code;
 
-    ProcessManager_Deregister(gProcessManager, zp);
+    ProcessManager_Unpublish(gProcessManager, zp);
     Process_Release(zp); // necessary because of the _find_matching_zombie() above
 
     return EOK;

@@ -29,17 +29,15 @@ extern errno_t ProcessManager_Create(ProcessManagerRef _Nullable * _Nonnull pOut
 extern FilesystemRef _Nonnull ProcessManager_GetCatalog(ProcessManagerRef _Nonnull self);
 
 
-// Registers the given process with the process manager. Note that this function
-// does not validate whether the process is already registered or has a PID
-// that's equal to some other registered process.
+// Publishes the given process and assigns it a unique pid.
 // A process will only become visible to other processes after it has been
-// registered with the process manager.
-extern errno_t ProcessManager_Register(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp);
+// published.
+extern errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp);
 
-// Deregisters the given process from the process manager. This makes the process
+// Unpublishes the given process from the process manager. This makes the process
 // invisible to other processes. Does nothing if the given process isn't
-// registered.
-extern void ProcessManager_Deregister(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp);
+// published.
+extern void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnull pp);
 
 
 // Looks up the process for the given PID. Returns NULL if no such process is

@@ -88,7 +88,7 @@ errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, 
 
 
     // Register the new process with the process manager
-    try(ProcessManager_Register(gProcessManager, cp));
+    try(ProcessManager_Publish(gProcessManager, cp));
     Process_Release(cp);
 
 
