@@ -12,14 +12,9 @@
 #include <diskcache/DiskCache.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverManager.h>
-#include <driver/LogDriver.h>
-#include <driver/NullDriver.h>
-#include <driver/disk/VirtualDiskManager.h>
-#include <driver/hid/HIDDriver.h>
 #include <driver/hid/HIDManager.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
-#include <machine/amiga/AmigaController.h>
 #include <machine/clock.h>
 #include <machine/csw.h>
 #include <machine/InterruptController.h>
@@ -45,6 +40,7 @@ boot_screen_t gBootScreen;
 static ConsoleRef gConsole;
 
 
+extern errno_t drivers_init(void);
 extern FileHierarchyRef _Nonnull create_root_file_hierarchy(boot_screen_t* _Nonnull bscr);
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);
 static void OnMain(void);
@@ -99,41 +95,6 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
     // Do the first ever context switch over to the boot virtual processor
     // execution context.
     csw_switch_to_boot_vcpu();
-}
-
-static errno_t drivers_init(void)
-{
-    decl_try_err();
-
-    // Platform controller
-    try(PlatformController_Create(class(AmigaController), (DriverRef*)&gPlatformController));
-    try(Driver_Start((DriverRef)gPlatformController));
-
-
-    // 'hid' driver
-    DriverRef hidDriver;
-    try(HIDDriver_Create(&hidDriver));
-    try(Driver_Start(hidDriver));
-
-
-    // 'klog' driver
-    DriverRef logDriver;
-    try(LogDriver_Create(&logDriver));
-    try(Driver_Start(logDriver));
-
-        
-    // 'null' driver
-    DriverRef nullDriver;
-    try(NullDriver_Create(&nullDriver));
-    try(Driver_Start(nullDriver));
-
-
-    // 'vdm' driver
-    try(VirtualDiskManager_Create((DriverRef*)&gVirtualDiskManager));
-    try(Driver_Start((DriverRef)gVirtualDiskManager));
-
-catch:
-    return err;
 }
 
 // Invoked by onBoot(). The code here runs in the boot virtual processor execution
