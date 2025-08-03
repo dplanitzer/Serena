@@ -9,6 +9,8 @@
 #include "PlatformController.h"
 #include "DriverManager.h"
 
+PlatformControllerRef gPlatformController;
+
 
 errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf)
 {

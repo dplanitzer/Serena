@@ -14,6 +14,8 @@
 
 final_class(VirtualDiskManager, Driver);
 
+extern VirtualDiskManagerRef gVirtualDiskManager;
+
 extern errno_t VirtualDiskManager_Create(DriverRef _Nullable * _Nonnull pOutSelf);
 
 extern errno_t VirtualDiskManager_CreateRamDisk(VirtualDiskManagerRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount);

@@ -43,11 +43,6 @@ typedef struct DriverEntry {
 typedef struct DriverManager {
     mtx_t               mtx;
     SList/*<dentry_t>*/ id_table[DM_HASH_CHAIN_COUNT];  // did_t -> dentry_t
-    DriverRef           platformController;
-    DriverRef           hidDriver;
-    DriverRef           logDriver;
-    DriverRef           nullDriver;
-    DriverRef           virtualDiskDriver;
 } DriverManager;
 
 
@@ -55,8 +50,6 @@ extern DriverManagerRef gDriverManager;
 
 
 extern errno_t DriverManager_Create(DriverManagerRef _Nullable * _Nonnull pOutSelf);
-
-extern errno_t DriverManager_Start(DriverManagerRef _Nonnull self);
 
 
 // Returns the filesystem that represents the /dev catalog.

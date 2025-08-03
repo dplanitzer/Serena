@@ -11,6 +11,8 @@
 #include "RomDisk.h"
 #include <driver/DriverManager.h>
 
+VirtualDiskManagerRef gVirtualDiskManager;
+
 
 final_class_ivars(VirtualDiskManager, Driver,
     CatalogId   busDirId;

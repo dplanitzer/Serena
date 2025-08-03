@@ -24,7 +24,7 @@
 void auto_discover_boot_rd(void)
 {
     decl_try_err();
-    const SMG_Header* _Nonnull smg_hdr = PlatformController_GetBootImage(gDriverManager->platformController);
+    const SMG_Header* _Nonnull smg_hdr = PlatformController_GetBootImage(gPlatformController);
 
     if (smg_hdr == NULL) {
         return;
@@ -38,10 +38,10 @@ void auto_discover_boot_rd(void)
     const char* dmg = ((const char*)smg_hdr) + smg_hdr->headerSize;
 
     if ((smg_hdr->options & SMG_OPTION_READONLY) == SMG_OPTION_READONLY) {
-        try(VirtualDiskManager_CreateRomDisk((VirtualDiskManagerRef)gDriverManager->virtualDiskDriver, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, dmg));
+        try(VirtualDiskManager_CreateRomDisk(gVirtualDiskManager, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, dmg));
     }
     else {
-        try(VirtualDiskManager_CreateRamDisk((VirtualDiskManagerRef)gDriverManager->virtualDiskDriver, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128));
+        try(VirtualDiskManager_CreateRamDisk(gVirtualDiskManager, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128));
 
         try(DriverManager_Open(gDriverManager, "/rd0", O_RDWR, &chan));
         try(DiskContainer_Create(chan, &fsContainer));
