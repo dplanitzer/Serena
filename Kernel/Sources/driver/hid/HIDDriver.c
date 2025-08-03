@@ -9,7 +9,6 @@
 #include "HIDDriver.h"
 #include "HIDChannel.h"
 #include "HIDManager.h"
-#include <driver/DriverManager.h>
 #include <kpi/fcntl.h>
 #include <kpi/hid.h>
 #include <kern/timespec.h>
@@ -35,12 +34,12 @@ errno_t HIDDriver_onStart(DriverRef _Nonnull _Locked self)
     de.driver = (DriverRef)self;
     de.arg = 0;
 
-    return DriverManager_Publish(gDriverManager, &de);
+    return Driver_Publish(self, &de);
 }
 
 void HIDDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+    Driver_Unpublish(self);
 }
 
 errno_t HIDDriver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)

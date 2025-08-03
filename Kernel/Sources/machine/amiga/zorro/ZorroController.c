@@ -63,7 +63,7 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
     de.driver = (DriverRef)self;
     de.arg = 0;
 
-    try(DriverManager_Publish(gDriverManager, &de));
+    try(Driver_Publish(self, &de));
 
     // Auto config the Zorro bus
     zorro_auto_config(&self->bus);
@@ -74,7 +74,7 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
 
 catch:
     if (err != EOK) {
-        DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+        Driver_Unpublish(self);
         DriverManager_RemoveDirectory(gDriverManager, self->busDirId);
     }
     return err;
@@ -82,7 +82,7 @@ catch:
 
 void ZorroController_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+    Driver_Unpublish(self);
 }
 
 

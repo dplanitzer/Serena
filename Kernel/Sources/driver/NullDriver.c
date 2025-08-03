@@ -7,7 +7,6 @@
 //
 
 #include "NullDriver.h"
-#include <driver/DriverManager.h>
 
 final_class_ivars(NullDriver, Driver,
 );
@@ -30,12 +29,12 @@ errno_t NullDriver_onStart(DriverRef _Nonnull _Locked self)
     de.driver = (DriverRef)self;
     de.arg = 0;
 
-    return DriverManager_Publish(gDriverManager, &de);
+    return Driver_Publish(self, &de);
 }
 
 void NullDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+    Driver_Unpublish(self);
 }
 
 errno_t NullDriver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

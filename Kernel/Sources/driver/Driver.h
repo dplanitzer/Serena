@@ -30,6 +30,18 @@ typedef enum DriverState {
 } DriverState;
 
 
+typedef struct DriverEntry {
+    CatalogId               dirId;
+    const char* _Nonnull    name;
+    uid_t                   uid;
+    gid_t                   gid;
+    mode_t                  perms;
+    HandlerRef _Nullable    handler;
+    DriverRef _Nullable     driver;
+    intptr_t                arg;
+} DriverEntry;
+
+
 // A driver object manages a device. A device is a piece of hardware while a
 // driver is the software that manages the hardware.
 //
@@ -150,6 +162,13 @@ open_class_funcs(Driver, Object,
     void (*onStop)(void* _Nonnull _Locked self);
 
    
+    // Publish the driver. Should be called from the onStart() override.
+    errno_t (*publish)(void* _Nonnull self, const DriverEntry* _Nonnull de);
+
+    // Unpublishes the driver. Should be called from the onStop() override.
+    void (*unpublish)(void* _Nonnull self);
+
+
     // Invoked as the result of calling Driver_Open(). A driver subclass may
     // override this method to create a driver specific I/O channel object. The
     // default implementation creates a DriverChannel instance which supports
@@ -260,6 +279,15 @@ extern errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, Cata
 // Returns true if the driver is in active state; false otherwise
 #define Driver_IsActive(__self) \
 (((DriverRef)__self)->state == kDriverState_Active ? true : false)
+
+
+// Publish the driver. Should be called from the onStart() override.
+#define Driver_Publish(__self, __de) \
+invoke_n(publish, Driver, __self, __de)
+
+// Unpublishes the driver. Should be called from the onStop() override.
+#define Driver_Unpublish(__self) \
+invoke_0(unpublish, Driver, __self)
 
 
 // Locks the driver instance

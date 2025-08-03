@@ -7,7 +7,6 @@
 //
 
 #include "PartitionDriver.h"
-#include <driver/DriverManager.h>
 #include <kern/string.h>
 
 #define MAX_NAME_LENGTH 8
@@ -91,7 +90,7 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     de.driver = (DriverRef)self;
     de.arg = 0;
 
-    try(DriverManager_Publish(gDriverManager, &de));
+    try(Driver_Publish(self, &de));
 
 catch:
     return err;
@@ -99,7 +98,7 @@ catch:
 
 void PartitionDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+    Driver_Unpublish(self);
 }
 
 static DiskDriverRef _Nonnull _prep_req(PartitionDriverRef _Nonnull self, IORequest* _Nonnull r)

@@ -114,12 +114,12 @@ static errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     de.driver = (DriverRef)self;
     de.arg = 0;
 
-    return DriverManager_Publish(gDriverManager, &de);
+    return Driver_Publish(self, &de);
 }
 
 void Console_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+    Driver_Unpublish(self);
 }
 
 errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking)

@@ -137,12 +137,12 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
     de.driver = (DriverRef)self;
     de.arg = 0;
 
-    try(DriverManager_Publish(gDriverManager, &de));
+    try(Driver_Publish(self, &de));
     try(GamePortController_SetPortDevice_Locked(self, 0, kInputType_Mouse));
     
 catch:
     if (err != EOK) {
-        DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+        Driver_Unpublish(self);
         DriverManager_RemoveDirectory(gDriverManager, self->busDirId);
     }
     return err;
@@ -150,7 +150,7 @@ catch:
 
 void GamePortController_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+    Driver_Unpublish(self);
 }
 
 errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)

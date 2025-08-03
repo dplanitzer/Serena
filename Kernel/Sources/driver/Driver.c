@@ -153,6 +153,19 @@ errno_t Driver_Terminate(DriverRef _Nonnull self)
 }
 
 
+// Publish the driver. Should be called from the onStart() override.
+errno_t Driver_publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de)
+{
+    return DriverManager_Publish(gDriverManager, de);
+}
+
+// Unpublishes the driver. Should be called from the onStop() override.
+void Driver_unpublish(DriverRef _Nonnull self)
+{
+    DriverManager_Unpublish(gDriverManager, self->id);
+}
+
+
 
 errno_t Driver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
@@ -360,6 +373,8 @@ class_func_defs(Driver, Object,
 override_func_def(deinit, Driver, Object)
 func_def(onStart, Driver)
 func_def(onStop, Driver)
+func_def(publish, Driver)
+func_def(unpublish, Driver)
 func_def(open, Driver)
 func_def(createChannel, Driver)
 func_def(close, Driver)

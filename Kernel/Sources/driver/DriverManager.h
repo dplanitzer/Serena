@@ -10,6 +10,7 @@
 #define DriverManager_h
 
 #include <Catalog.h>
+#include <driver/Driver.h>
 #include <filemanager/ResolvedPath.h>
 #include <kern/errno.h>
 #include <kern/types.h>
@@ -24,17 +25,6 @@ typedef struct DirEntry {
     gid_t                   gid;
     mode_t                  perms;
 } DirEntry;
-
-typedef struct DriverEntry {
-    CatalogId               dirId;
-    const char* _Nonnull    name;
-    uid_t                   uid;
-    gid_t                   gid;
-    mode_t                  perms;
-    HandlerRef _Nullable    handler;
-    DriverRef _Nullable     driver;
-    intptr_t                arg;
-} DriverEntry;
 
 
 extern DriverManagerRef gDriverManager;

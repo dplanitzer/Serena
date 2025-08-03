@@ -7,7 +7,6 @@
 //
 
 #include "RomDisk.h"
-#include <driver/DriverManager.h>
 #include <kern/kalloc.h>
 #include <kern/string.h>
 
@@ -82,12 +81,12 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     de.driver = (DriverRef)self;
     de.arg = 0;
 
-    return DriverManager_Publish(gDriverManager, &de);
+    return Driver_Publish(self, &de);
 }
 
 void RomDisk_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+    Driver_Unpublish(self);
 }
 
 errno_t RomDisk_getSector(RomDiskRef _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize)

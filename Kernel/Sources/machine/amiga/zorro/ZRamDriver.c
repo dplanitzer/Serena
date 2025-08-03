@@ -7,7 +7,6 @@
 //
 
 #include "ZRamDriver.h"
-#include <driver/DriverManager.h>
 #include <kern/kalloc.h>
 #include <machine/Platform.h>
 
@@ -40,7 +39,7 @@ errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)
     de.driver = (DriverRef)self;
     de.arg = 0;
 
-    if ((err = DriverManager_Publish(gDriverManager, &de)) == EOK) {
+    if ((err = Driver_Publish(self, &de)) == EOK) {
         md.lower = cfg->start;
         md.upper = cfg->start + cfg->logicalSize;
         md.type = MEM_TYPE_MEMORY;
@@ -52,7 +51,7 @@ errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)
 
 void ZRamDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+    Driver_Unpublish(self);
 }
 
 class_func_defs(ZRamDriver, ZorroDriver,

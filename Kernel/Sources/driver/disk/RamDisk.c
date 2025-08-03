@@ -7,7 +7,6 @@
 //
 
 #include "RamDisk.h"
-#include <driver/DriverManager.h>
 #include <kern/kalloc.h>
 #include <kern/string.h>
 
@@ -90,12 +89,12 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
     de.driver = (DriverRef)self;
     de.arg = 0;
 
-    return DriverManager_Publish(gDriverManager, &de);
+    return Driver_Publish(self, &de);
 }
 
 void RamDisk_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+    Driver_Unpublish(self);
 }
 
 // Tries to find the disk extent that contains the given sector index. This disk

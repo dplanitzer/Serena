@@ -157,7 +157,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     de.driver = (DriverRef)self;
     de.arg = 0;
 
-    try(DriverManager_Publish(gDriverManager, &de));
+    try(Driver_Publish(self, &de));
 
     
     // Discover as many floppy drives as possible. We ignore drives that generate
@@ -166,7 +166,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
 
 catch:
     if (err != EOK) {
-        DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+        Driver_Unpublish(self);
         DriverManager_RemoveDirectory(gDriverManager, self->busDirId);
     }
     return err;
@@ -174,7 +174,7 @@ catch:
 
 void FloppyController_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+    Driver_Unpublish(self);
 }
 
 DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int drive)

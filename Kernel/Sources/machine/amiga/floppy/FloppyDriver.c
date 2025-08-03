@@ -8,7 +8,6 @@
 
 #include "FloppyDriverPriv.h"
 #include <dispatchqueue/DispatchQueue.h>
-#include <driver/DriverManager.h>
 #include <log/Log.h>
 #include <kern/kalloc.h>
 #include <kern/string.h>
@@ -165,19 +164,19 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     de.driver = (DriverRef)self;
     de.arg = 0;
 
-    try(DriverManager_Publish(gDriverManager, &de));
+    try(Driver_Publish(self, &de));
     try(DispatchQueue_DispatchAsync(DiskDriver_GetDispatchQueue(self), (VoidFunc_1)FloppyDriver_Reset, self));
 
 catch:
     if (err != EOK) {
-        DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+        Driver_Unpublish(self);
     }
     return err;
 }
 
 void FloppyDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+    Driver_Unpublish(self);
 }
 
 // Called when we've detected a loss of the drive hardware

@@ -7,7 +7,6 @@
 //
 
 #include "JoystickDriver.h"
-#include <driver/DriverManager.h>
 #include <driver/hid/HIDManager.h>
 #include <machine/InterruptController.h>
 #include <machine/amiga/chipset.h>
@@ -101,12 +100,12 @@ errno_t DigitalJoystickDriver_onStart(DigitalJoystickDriverRef _Nonnull _Locked 
     de.driver = (DriverRef)self;
     de.arg = 0;
 
-    return DriverManager_Publish(gDriverManager, &de);
+    return Driver_Publish(self, &de);
 }
 
 void DigitalJoystickDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+    Driver_Unpublish(self);
 }
 
 InputType DigitalJoystickDriver_getInputType(DigitalJoystickDriverRef _Nonnull self)
@@ -252,12 +251,12 @@ errno_t AnalogJoystickDriver_onStart(AnalogJoystickDriverRef _Nonnull _Locked se
     de.driver = (DriverRef)self;
     de.arg = 0;
 
-    return DriverManager_Publish(gDriverManager, &de);
+    return Driver_Publish(self, &de);
 }
 
 void AnalogJoystickDriver_onStop(DriverRef _Nonnull _Locked self)
 {
-    DriverManager_Unpublish(gDriverManager, Driver_GetId(self));
+    Driver_Unpublish(self);
 }
 
 InputType AnalogJoystickDriver_getInputType(AnalogJoystickDriverRef _Nonnull self)
