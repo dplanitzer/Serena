@@ -14,6 +14,8 @@
 #include <kern/errno.h>
 #include <kern/types.h>
 #include <kobj/AnyRefs.h>
+#include <sched/mtx.h>
+
 
 
 typedef struct DirEntry {
@@ -34,12 +36,18 @@ typedef struct DriverEntry {
 } DriverEntry;
 
 
+#define DM_HASH_CHAIN_COUNT 16
+#define DM_HASH_CHAIN_MASK  (DM_HASH_CHAIN_COUNT - 1)
+
+
 typedef struct DriverManager {
-    DriverRef   platformController;
-    DriverRef   hidDriver;
-    DriverRef   logDriver;
-    DriverRef   nullDriver;
-    DriverRef   virtualDiskDriver;
+    mtx_t               mtx;
+    SList/*<dentry_t>*/ id_table[DM_HASH_CHAIN_COUNT];  // did_t -> dentry_t
+    DriverRef           platformController;
+    DriverRef           hidDriver;
+    DriverRef           logDriver;
+    DriverRef           nullDriver;
+    DriverRef           virtualDiskDriver;
 } DriverManager;
 
 
@@ -53,6 +61,12 @@ extern errno_t DriverManager_Start(DriverManagerRef _Nonnull self);
 
 // Returns the filesystem that represents the /dev catalog.
 extern FilesystemRef _Nonnull DriverManager_GetCatalog(DriverManagerRef _Nonnull self);
+
+
+// Returns a strong reference to the driver with the given driver id. Returns NULL
+// if no such driver exists.
+extern DriverRef _Nullable DriverManager_CopyDriverForId(DriverManagerRef _Nonnull self, did_t id);
+
 
 
 extern errno_t DriverManager_Open(DriverManagerRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
