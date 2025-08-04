@@ -522,7 +522,7 @@ uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self)
 // Dequeues and returns the next available event or ETIMEDOUT if no event is
 // available and a timeout > 0 was specified. Returns EAGAIN if no event is
 // available and the timeout is 0.
-errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, struct timespec timeout, HIDEvent* _Nonnull evt)
+errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timespec* _Nonnull timeout, HIDEvent* _Nonnull evt)
 {
     return HIDEventQueue_Get(self->eventQueue, timeout, evt);
 }

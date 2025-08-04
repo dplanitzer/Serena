@@ -143,7 +143,7 @@ void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const 
 // has arrived or 'timeout' has elapsed. Returns EOK if an event has been
 // successfully dequeued or ETIMEDOUT if no event has arrived and the wait has
 // timed out. Returns EAGAIN if timeout is 0 and no event is pending.
-errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, struct timespec timeout, HIDEvent* _Nonnull pOutEvent)
+errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, const struct timespec* _Nonnull timeout, HIDEvent* _Nonnull pOutEvent)
 {
     decl_try_err();
 
@@ -160,12 +160,12 @@ errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, struct timespec timeou
             err = EOK;
             break;
         }
-        if (timeout.tv_sec <= 0 && timeout.tv_nsec <= 0) {
+        if (timeout->tv_sec <= 0 && timeout->tv_nsec <= 0) {
             err = EAGAIN;
             break;
         }
 
-        err = sem_acquire(&self->semaphore, &timeout);
+        err = sem_acquire(&self->semaphore, timeout);
         if (err != EOK) {
             break;
         }

@@ -8,7 +8,7 @@
 
 #include <driver/DriverManager.h>
 #include <driver/disk/VirtualDiskManager.h>
-#include <driver/hid/HIDDriver.h>
+#include <handler/HIDHandler.h>
 #include <handler/LogHandler.h>
 #include <handler/NullHandler.h>
 #include <machine/amiga/AmigaController.h>
@@ -29,9 +29,10 @@ errno_t drivers_init(void)
 
 
     // 'hid' driver
-    DriverRef hidDriver;
-    try(HIDDriver_Create(&hidDriver));
-    try(Driver_Start(hidDriver));
+    de.name = "hid";
+    de.perms = perm_from_octal(0666);
+    try(HIDHandler_Create(&de.handler));
+    try(DriverManager_Publish(gDriverManager, &de));
 
 
     // 'klog' driver

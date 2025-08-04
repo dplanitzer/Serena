@@ -9,12 +9,12 @@
 #include "ConsolePriv.h"
 #include "ConsoleChannel.h"
 #include <driver/DriverManager.h>
-#include <driver/hid/HIDChannel.h>
 #include <kern/assert.h>
 #include <kern/string.h>
 #include <kern/timespec.h>
 #include <kpi/console.h>
 #include <kpi/fcntl.h>
+#include <kpi/hid.h>
 #include <kpi/perm.h>
 
 
@@ -575,7 +575,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, ConsoleChanne
     HIDEvent evt;
     ssize_t nBytesRead = 0;
     const bool isNonBlocking = (IOChannel_GetMode(pChannel) & O_NONBLOCK) == O_NONBLOCK;
-    const struct timespec timeout = (isNonBlocking) ? TIMESPEC_ZERO : TIMESPEC_INF;
+    const struct timespec* timp = (isNonBlocking) ? &TIMESPEC_ZERO : &TIMESPEC_INF;
 
     while (nBytesRead < nBytesToRead) {
         // Drop the console lock while getting an event since the get events call
@@ -585,7 +585,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, ConsoleChanne
         mtx_unlock(&self->mtx);
         // XXX Need an API that allows me to read as many events as possible without blocking and that only blocks if there are no events available
         // XXX Or, probably, that's how the event driver read() should work in general
-        errno_t e1 = HIDChannel_GetNextEvent(self->hidChannel, (nBytesRead == 0) ? timeout : TIMESPEC_ZERO, &evt);
+        errno_t e1 = IOChannel_Ioctl(self->hidChannel, kHIDCommand_GetNextEvent, (nBytesRead == 0) ? timp : &TIMESPEC_ZERO, &evt);
         mtx_lock(&self->mtx);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay
