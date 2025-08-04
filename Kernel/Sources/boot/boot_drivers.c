@@ -7,9 +7,9 @@
 //
 
 #include <driver/DriverManager.h>
-#include <driver/LogDriver.h>
 #include <driver/disk/VirtualDiskManager.h>
 #include <driver/hid/HIDDriver.h>
+#include <handler/LogHandler.h>
 #include <handler/NullHandler.h>
 #include <machine/amiga/AmigaController.h>
 
@@ -22,7 +22,7 @@ errno_t drivers_init(void)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
 
-    
+
     // Platform controller
     try(PlatformController_Create(class(AmigaController), (DriverRef*)&gPlatformController));
     try(Driver_Start((DriverRef)gPlatformController));
@@ -35,15 +35,15 @@ errno_t drivers_init(void)
 
 
     // 'klog' driver
-    DriverRef logDriver;
-    try(LogDriver_Create(&logDriver));
-    try(Driver_Start(logDriver));
+    de.name = "klog";
+    de.perms = perm_from_octal(0440);
+    try(LogHandler_Create(&de.handler));
+    try(DriverManager_Publish(gDriverManager, &de));
 
         
     // 'null' driver
     de.name = "null";
     de.perms = perm_from_octal(0666);
-    de.handler = NULL;
     try(NullHandler_Create(&de.handler));
     try(DriverManager_Publish(gDriverManager, &de));
 
