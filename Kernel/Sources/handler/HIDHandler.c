@@ -69,18 +69,18 @@ errno_t HIDHandler_ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, in
         }
 
         case kHIDCommand_GetKeyRepeatDelays: {
-            struct timespec* initial = va_arg(ap, struct timespec*);
-            struct timespec* repeat = va_arg(ap, struct timespec*);
+            struct timespec* initialp = va_arg(ap, struct timespec*);
+            struct timespec* repeatp = va_arg(ap, struct timespec*);
 
-            HIDManager_GetKeyRepeatDelays(gHIDManager, initial, repeat);
+            HIDManager_GetKeyRepeatDelays(gHIDManager, initialp, repeatp);
             return EOK;
         }
 
         case kHIDCommand_SetKeyRepeatDelays: {
-            const struct timespec initial = va_arg(ap, struct timespec);
-            const struct timespec repeat = va_arg(ap, struct timespec);
+            const struct timespec* initialp = va_arg(ap, struct timespec*);
+            const struct timespec* repeatp = va_arg(ap, struct timespec*);
 
-            HIDManager_SetKeyRepeatDelays(gHIDManager, initial, repeat);
+            HIDManager_SetKeyRepeatDelays(gHIDManager, initialp, repeatp);
             return EOK;
         }
 

@@ -123,7 +123,7 @@ static void KeyboardDriver_GetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, s
     irq_restore(irs);
 }
 
-static void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, struct timespec initialDelay, struct timespec repeatDelay)
+static void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
 {
     const int irs = irq_disable();
     HIDKeyRepeater_SetKeyRepeatDelays(self->keyRepeater, initialDelay, repeatDelay);
@@ -142,10 +142,10 @@ errno_t KeyboardDriver_ioctl(KeyboardDriverRef _Nonnull self, IOChannelRef _Nonn
         }
 
         case kKeyboardCommand_SetKeyRepeatDelays: {
-            const struct timespec initial = va_arg(ap, struct timespec);
-            const struct timespec repeat = va_arg(ap, struct timespec);
+            const struct timespec* initialp = va_arg(ap, struct timespec*);
+            const struct timespec* repeatp = va_arg(ap, struct timespec*);
 
-            KeyboardDriver_SetKeyRepeatDelays(self, initial, repeat);
+            KeyboardDriver_SetKeyRepeatDelays(self, initialp, repeatp);
             return EOK;
         }
 

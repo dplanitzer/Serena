@@ -71,10 +71,10 @@ void HIDKeyRepeater_GetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, struct t
     }
 }
 
-void HIDKeyRepeater_SetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, struct timespec initialDelay, struct timespec repeatDelay)
+void HIDKeyRepeater_SetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
 {
-    self->initialKeyRepeatDelay = initialDelay;
-    self->keyRepeatDelay = repeatDelay;
+    self->initialKeyRepeatDelay = *initialDelay;
+    self->keyRepeatDelay = *repeatDelay;
 }
 
 // Returns true if the given key should be auto-repeated

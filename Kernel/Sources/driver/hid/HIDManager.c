@@ -308,7 +308,7 @@ void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec*
     mtx_unlock(&self->mtx);
 }
 
-void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec initialDelay, struct timespec repeatDelay)
+void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
 {
     mtx_lock(&self->mtx);
     IOChannel_Ioctl(self->kbChannel, kKeyboardCommand_SetKeyRepeatDelays, initialDelay, repeatDelay);

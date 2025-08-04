@@ -32,7 +32,7 @@ extern bool HIDManager_GetLightPenPosition(HIDManagerRef _Nonnull self, int16_t*
 
 // Configuring the keyboard
 extern void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay);
-extern void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec initialDelay, struct timespec repeatDelay);
+extern void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay);
 
 
 // Returns the keyboard hardware state

@@ -47,7 +47,7 @@ typedef int MouseCursorVisibility;
 // no event has arrived before timeout. Returns EAGAIN if timeout is 0 and no
 // event is pending. Note that this call disregards the O_NONBLOCK mode
 // on the I/O channel.
-// get_next_event(struct timespec timeout, HIDEvent* _Nonnull evt)
+// get_next_event(const struct timespec* _Nonnull timeout, HIDEvent* _Nonnull evt)
 #define kHIDCommand_GetNextEvent IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
 
@@ -58,7 +58,7 @@ typedef int MouseCursorVisibility;
 
 // Sets the initial delay for automatic key repeats and the delay between
 // successive synthesized key presses.
-// set_key_repeat_delays(struct timespec initialDelay, struct timespec repeatDelay)
+// set_key_repeat_delays(const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
 #define kHIDCommand_SetKeyRepeatDelays IOResourceCommand(kDriverCommand_SubclassBase + 2)
 
 
@@ -124,7 +124,7 @@ typedef struct InputInfo {
 
 // Sets the initial delay for automatic key repeats and the delay between
 // successive synthesized key presses.
-// set_key_repeat_delays(struct timespec initialDelay, struct timespec repeatDelay)
+// set_key_repeat_delays(const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
 #define kKeyboardCommand_SetKeyRepeatDelays IOResourceCommand(kDriverCommand_SubclassBase + 1)
 
 
