@@ -14,34 +14,39 @@
 #include <kobj/Object.h>
 
 
-// driver for the CD-ROM drive.
+// A handler (or I/O handler) is an object that implements the policy that is
+// used to regulate access to a driver and the interaction with a driver. Eg a
+// handler controls how many I/O channels can be open at the same time, who can
+// open an I/O channel and what operations are supported on a channel. Although
+// most handlers sit on top of a driver instance, a handler is not required to
+// interact with a driver. A handler may implement all mechanics on its own or
+// employ the help of some other object.
 open_class(Handler, Object,
     did_t   id;
 );
 open_class_funcs(Handler, Object,
     
-    // Invoked as the result of calling Driver_Open(). A driver subclass may
-    // override this method to create a driver specific I/O channel object. The
-    // default implementation creates a DriverChannel instance which supports
-    // read, write, ioctl operations.
+    // Opens an I/O channel to the handler.
     // Override: Optional
-    // Default Behavior: Creates a DriverChannel instance
+    // Default Behavior: returns EPERM
     errno_t (*open)(void* _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
-    // Invoked as the result of calling Driver_Close().
+    // Closes the given I/O channel.
     // Override: Optional
     // Default Behavior: Does nothing and returns EOK
     errno_t (*close)(void* _Nonnull _Locked self, IOChannelRef _Nonnull pChannel);
 
 
-    // Invoked as the result of calling Driver_Read(). A driver subclass should
-    // override this method to implement support for the read() system call.
+    // Reads up to 'nBytesToRead' consecutive bytes from the underlying data
+    // source and returns them in 'buf'. The actual amount of bytes read is
+    // returned in 'nOutBytesRead' and returns a suitable status. Note that this
+    // function will always either read at least one byte and return EOK or it
+    // will read no bytes and return some error.
     // Override: Optional
     // Default Behavior: Returns EBADF
     errno_t (*read)(void* _Nonnull self, IOChannelRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
-    // Invoked as the result of calling Driver_Write(). A driver subclass should
-    // override this method to implement support for the write() system call.
+    // Writes up to 'nBytesToWrite' bytes from 'buf' to the underlying data source.
     // Override: Optional
     // Default Behavior: Returns EBADF
     errno_t (*write)(void* _Nonnull self, IOChannelRef _Nonnull ioc, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
@@ -52,8 +57,8 @@ open_class_funcs(Handler, Object,
     // Default Behavior: Returns EPIPE
     errno_t (*seek)(void* _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
     
-    // Invoked as the result of calling Handler_Ioctl(). A driver subclass should
-    // override this method to implement support for the ioctl() system call.
+    // Executes the handler specific function 'cmd' with command specific
+    // arguments 'ap'.
     // Override: Optional
     // Default Behavior: Returns ENOTIOCTLCMD
     errno_t (*ioctl)(void* _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap);

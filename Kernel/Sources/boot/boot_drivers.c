@@ -8,16 +8,21 @@
 
 #include <driver/DriverManager.h>
 #include <driver/LogDriver.h>
-#include <driver/NullDriver.h>
 #include <driver/disk/VirtualDiskManager.h>
 #include <driver/hid/HIDDriver.h>
+#include <handler/NullHandler.h>
 #include <machine/amiga/AmigaController.h>
 
 
 errno_t drivers_init(void)
 {
     decl_try_err();
+    DriverEntry de = (DriverEntry){0};
 
+    de.uid = kUserId_Root;
+    de.gid = kGroupId_Root;
+
+    
     // Platform controller
     try(PlatformController_Create(class(AmigaController), (DriverRef*)&gPlatformController));
     try(Driver_Start((DriverRef)gPlatformController));
@@ -36,9 +41,11 @@ errno_t drivers_init(void)
 
         
     // 'null' driver
-    DriverRef nullDriver;
-    try(NullDriver_Create(&nullDriver));
-    try(Driver_Start(nullDriver));
+    de.name = "null";
+    de.perms = perm_from_octal(0666);
+    de.handler = NULL;
+    try(NullHandler_Create(&de.handler));
+    try(DriverManager_Publish(gDriverManager, &de));
 
 
     // 'vdm' driver
