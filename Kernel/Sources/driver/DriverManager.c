@@ -8,7 +8,7 @@
 
 #include "DriverManager.h"
 #include "Driver.h"
-#include <handler/Handler.h>
+#include <handler/DriverHandler.h>
 #include <kern/Kalloc.h>
 #include <Catalog.h>
 #include <klib/Hash.h>
@@ -113,10 +113,23 @@ DriverRef _Nullable DriverManager_CopyDriverForId(DriverManagerRef _Nonnull self
     return dp;
 }
 
+static errno_t _create_std_handler(IOCategory category, DriverRef _Nonnull driver, HandlerRef _Nullable * _Nonnull pOutHandler)
+{
+    Class* cl;
+
+    switch (category) {
+        case kIOCategory_Keyboard:  cl = class(DriverHandler); break;
+        default: return EINVAL;
+    }
+
+    return DriverHandler_Create(cl, driver, pOutHandler);
+}
+
 errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry* _Nonnull de)
 {
     decl_try_err();
-    ObjectRef entity = (de->handler) ? (ObjectRef)de->handler : (ObjectRef)de->driver;
+    HandlerRef handler = NULL;
+    ObjectRef catEntity = NULL;
     dentry_t ep = NULL;
 
     mtx_lock(&self->mtx);
@@ -126,12 +139,28 @@ errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry*
     }
 
     try(kalloc_cleared(sizeof(struct dentry), (void**)&ep));
-    try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, entity, de->arg, &ep->id));
+
+    if (de->handler) {
+        handler = Object_RetainAs(de->handler, Handler);
+    }
+    else if (de->category > 0) {
+        try(_create_std_handler(de->category, de->driver, &handler));
+    }
+
+
+    if (handler) {
+        catEntity = (ObjectRef)handler;
+    }
+    else {
+        catEntity = (ObjectRef)de->driver;
+    }
+
+    try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, catEntity, de->arg, &ep->id));
 
     SList_InsertBeforeFirst(&self->id_table[hash_scalar(ep->id) & HASH_CHAIN_MASK], &ep->qe);
     ep->dirId = de->dirId;
-    if (de->handler) {
-        ep->handler = Object_RetainAs(de->handler, Handler);
+    if (handler) {
+        ep->handler = handler;
         ep->handler->id = ep->id;
     }
     if (de->driver) {
@@ -143,6 +172,7 @@ catch:
     mtx_unlock(&self->mtx);
 
     if (err != EOK) {
+        Object_Release(handler);
         kfree(ep);
     }
 

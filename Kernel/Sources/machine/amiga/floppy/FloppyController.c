@@ -153,6 +153,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
+    de.category = 0;
     de.handler = NULL;
     de.driver = (DriverRef)self;
     de.arg = 0;

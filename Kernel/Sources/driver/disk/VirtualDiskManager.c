@@ -45,6 +45,7 @@ errno_t VirtualDiskManager_Start(VirtualDiskManagerRef _Nonnull self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
+    de.category = 0;
     de.handler = (HandlerRef)self;
     de.driver = NULL;
     de.arg = 0;

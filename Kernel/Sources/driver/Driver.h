@@ -30,12 +30,18 @@ typedef enum DriverState {
 } DriverState;
 
 
+typedef enum IOCategory {
+    kIOCategory_Keyboard = 1,
+} IOCategory;
+
+
 typedef struct DriverEntry {
     CatalogId               dirId;
     const char* _Nonnull    name;
     uid_t                   uid;
     gid_t                   gid;
     mode_t                  perms;
+    IOCategory              category;
     HandlerRef _Nullable    handler;
     DriverRef _Nullable     driver;
     intptr_t                arg;

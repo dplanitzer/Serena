@@ -223,15 +223,12 @@ errno_t SwitchToFullConsole(void)
     // Initialize the console
     try(Console_Create(&gConsole));
 
-    DriverEntry de;
-    de.dirId = 0;
+    DriverEntry de = (DriverEntry){0};
     de.name = "console";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
     de.handler = (HandlerRef)gConsole;
-    de.driver = NULL;
-    de.arg = 0;
     try(DriverManager_Publish(gDriverManager, &de));
 
     Console_Start(gConsole);
