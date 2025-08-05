@@ -11,6 +11,7 @@
 
 #include "Console.h"
 #include <dispatchqueue/DispatchQueue.h>
+#include <handler/HandlerChannel.h>
 #include <klib/RingBuffer.h>
 #include <machine/amiga/graphics/GraphicsDriver.h>
 #include <sched/mtx.h>
@@ -145,7 +146,7 @@ typedef struct SavedState {
 
 
 // The console object.
-final_class_ivars(Console, Driver,
+final_class_ivars(Console, Handler,
     mtx_t                       mtx;
     DispatchQueueRef _Nonnull   dispatchQueue;
 
@@ -241,6 +242,27 @@ extern void Console_Execute_DEL_Locked(ConsoleRef _Nonnull self);
 extern void Console_Execute_DCH_Locked(ConsoleRef _Nonnull self, int nChars);
 extern void Console_Execute_IL_Locked(ConsoleRef _Nonnull self, int nLines);
 extern void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines);
+
+
+//
+// Console Channel
+//
+
+// Big enough to hold the result of a key mapping and the longest possible
+// terminal report message.
+#define MAX_MESSAGE_LENGTH kKeyMap_MaxByteSequenceLength
+
+// The console I/O channel
+//
+// Takes care of mapping a USB key scan code to a character or character sequence.
+// We may leave partial character sequences in the buffer if a Console_Read() didn't
+// read all bytes of a sequence. The next Console_Read() will first receive the
+// remaining buffered bytes before it receives bytes from new events.
+typedef struct ConsoleChannel{
+    char    rdBuffer[MAX_MESSAGE_LENGTH];   // Holds a full or partial byte sequence produced by a key down event
+    int8_t  rdCount;                        // Number of bytes stored in the buffer
+    int8_t  rdIndex;                        // Index of first byte in the buffer where a partial byte sequence begins
+} ConsoleChannel;
 
 
 //

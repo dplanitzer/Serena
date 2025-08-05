@@ -7,7 +7,7 @@
 //
 
 #include "ConsolePriv.h"
-#include "ConsoleChannel.h"
+#include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
 #include <kern/assert.h>
 #include <kern/string.h>
@@ -93,8 +93,10 @@ void Console_deinit(ConsoleRef _Nonnull self)
     self->hidChannel = NULL;
 }
 
-static errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
+void Console_Start(ConsoleRef _Nonnull self)
 {
+    mtx_lock(&self->mtx);
+
     // Clear the console screen
     Console_BeginDrawing_Locked(self);
     Console_ClearScreen_Locked(self, kClearScreenMode_WholeAndScrollback);
@@ -104,22 +106,7 @@ static errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     // Start cursor blinking
     Console_SetCursorBlinkingEnabled_Locked(self, true);
 
-    DriverEntry de;
-    de.dirId = Driver_GetParentDirectoryId(self);
-    de.name = "console";
-    de.uid = kUserId_Root;
-    de.gid = kGroupId_Root;
-    de.perms = perm_from_octal(0666);
-    de.handler = NULL;
-    de.driver = (DriverRef)self;
-    de.arg = 0;
-
-    return Driver_Publish(self, &de);
-}
-
-void Console_onStop(DriverRef _Nonnull _Locked self)
-{
-    Driver_Unpublish(self);
+    mtx_unlock(&self->mtx);
 }
 
 errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking)
@@ -523,13 +510,14 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
 }
 
 
-errno_t Console_createChannel(ConsoleRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Console_open(ConsoleRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return ConsoleChannel_Create(self, mode, pOutChannel);
+    return HandlerChannel_Create((HandlerRef)self, 0, SEO_FT_TERMINAL, mode, sizeof(ConsoleChannel), pOutChannel);
 }
 
-static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChannel, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
+    ConsoleChannel* chp = HandlerChannel_GetExtrasAs(pChannel, ConsoleChannel);
     ssize_t nBytesRead = 0;
 
     while (nBytesRead < nBytesToRead) {
@@ -546,22 +534,22 @@ static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, Con
                 break;
             }
 
-            pChannel->rdBuffer[pChannel->rdCount++] = b;
+            chp->rdBuffer[chp->rdCount++] = b;
         }
         if (done) {
             break;
         }
 
         int i = 0;
-        while (nBytesRead < nBytesToRead && pChannel->rdCount > 0) {
-            pBuffer[nBytesRead++] = pChannel->rdBuffer[i++];
-            pChannel->rdCount--;
+        while (nBytesRead < nBytesToRead && chp->rdCount > 0) {
+            pBuffer[nBytesRead++] = chp->rdBuffer[i++];
+            chp->rdCount--;
         }
 
-        if (pChannel->rdCount > 0) {
+        if (chp->rdCount > 0) {
             // We ran out of space in the buffer that the user gave us. Remember
             // which bytes we need to copy next time read() is called.
-            pChannel->rdIndex = i;
+            chp->rdIndex = i;
             break;
         }
     }
@@ -569,11 +557,12 @@ static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, Con
     *nOutBytesRead = nBytesRead;
 }
 
-static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChannel, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     HIDEvent evt;
     ssize_t nBytesRead = 0;
+    ConsoleChannel* chp = HandlerChannel_GetExtrasAs(pChannel, ConsoleChannel);
     const bool isNonBlocking = (IOChannel_GetMode(pChannel) & O_NONBLOCK) == O_NONBLOCK;
     const struct timespec* timp = (isNonBlocking) ? &TIMESPEC_ZERO : &TIMESPEC_INF;
 
@@ -599,18 +588,18 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, ConsoleChanne
         }
 
 
-        pChannel->rdCount = KeyMap_Map(self->keyMap, &evt.data.key, pChannel->rdBuffer, MAX_MESSAGE_LENGTH);
+        chp->rdCount = KeyMap_Map(self->keyMap, &evt.data.key, chp->rdBuffer, MAX_MESSAGE_LENGTH);
 
         int i = 0;
-        while (nBytesRead < nBytesToRead && pChannel->rdCount > 0) {
-            pBuffer[nBytesRead++] = pChannel->rdBuffer[i++];
-            pChannel->rdCount--;
+        while (nBytesRead < nBytesToRead && chp->rdCount > 0) {
+            pBuffer[nBytesRead++] = chp->rdBuffer[i++];
+            chp->rdCount--;
         }
 
-        if (pChannel->rdCount > 0) {
+        if (chp->rdCount > 0) {
             // We ran out of space in the buffer that the user gave us. Remember
             // which bytes we need to copy next time read() is called.
-            pChannel->rdIndex = i;
+            chp->rdIndex = i;
             break;
         }
     }
@@ -623,9 +612,10 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, ConsoleChanne
 // data, no terminal reports and no events are available. It tries to do a
 // non-blocking read as hard as possible even if it can't fully fill the user
 // provided buffer. 
-errno_t Console_read(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Console_read(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
+    ConsoleChannel* chp = HandlerChannel_GetExtrasAs(pChannel, ConsoleChannel);
     char* pChars = pBuffer;
     HIDEvent evt;
     int evtCount;
@@ -636,9 +626,9 @@ errno_t Console_read(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChann
 
     // First check whether we got a partial key byte sequence sitting in our key
     // mapping buffer and copy that one out.
-    while (nBytesRead < nBytesToRead && pChannel->rdCount > 0) {
-        pChars[nBytesRead++] = pChannel->rdBuffer[pChannel->rdIndex++];
-        pChannel->rdCount--;
+    while (nBytesRead < nBytesToRead && chp->rdCount > 0) {
+        pChars[nBytesRead++] = chp->rdBuffer[chp->rdIndex++];
+        chp->rdCount--;
     }
 
 
@@ -672,7 +662,7 @@ errno_t Console_read(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChann
 // \param pBytes the byte sequence
 // \param nBytes the number of bytes to write
 // \return the number of bytes written; a negative error code if an error was encountered
-errno_t Console_write(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t Console_write(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     const unsigned char* pChars = pBuffer;
     const unsigned char* pCharsEnd = pChars + nBytesToWrite;
@@ -725,12 +715,10 @@ errno_t Console_ioctl(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, 
 }
 
 
-class_func_defs(Console, Driver,
+class_func_defs(Console, Handler,
 override_func_def(deinit, Console, Object)
-override_func_def(onStart, Console, Driver)
-override_func_def(onStop, Console, Driver)
-override_func_def(createChannel, Console, Driver)
-override_func_def(read, Console, Driver)
-override_func_def(write, Console, Driver)
-override_func_def(ioctl, Console, Driver)
+override_func_def(open, Console, Handler)
+override_func_def(read, Console, Handler)
+override_func_def(write, Console, Handler)
+override_func_def(ioctl, Console, Handler)
 );
