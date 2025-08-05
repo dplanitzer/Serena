@@ -21,7 +21,7 @@ errno_t NullHandler_Create(HandlerRef _Nullable * _Nonnull pOutSelf)
 
 errno_t NullHandler_open(HandlerRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return HandlerChannel_Create(self, 0, SEO_FT_DRIVER, mode, pOutChannel);
+    return HandlerChannel_Create(self, 0, SEO_FT_DRIVER, mode, 0, pOutChannel);
 }
 
 errno_t NullHandler_read(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

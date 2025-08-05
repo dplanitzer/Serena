@@ -25,7 +25,7 @@ errno_t HIDHandler_Create(HandlerRef _Nullable * _Nonnull pOutSelf)
 
 errno_t HIDHandler_open(HandlerRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return HandlerChannel_Create(self, 0, SEO_FT_DRIVER, mode, pOutChannel);
+    return HandlerChannel_Create(self, 0, SEO_FT_DRIVER, mode, 0, pOutChannel);
 }
 
 // Returns events in the order oldest to newest. As many events are returned as

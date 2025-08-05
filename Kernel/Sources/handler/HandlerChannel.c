@@ -8,14 +8,18 @@
 
 #include "HandlerChannel.h"
 #include "Handler.h"
+#include <kern/kalloc.h>
 
 
-errno_t HandlerChannel_Create(HandlerRef _Nonnull hnd, IOChannelOptions options, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t HandlerChannel_Create(HandlerRef _Nonnull hnd, IOChannelOptions options, int channelType, unsigned int mode, size_t nExtraBytes, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     HandlerChannelRef self;
 
     try(IOChannel_Create(&kHandlerChannelClass, options, channelType, mode, (IOChannelRef*)&self));
+    if (nExtraBytes > 0) {
+        try(kalloc_cleared(nExtraBytes, (void**)&self->extras));
+    }
     self->hnd = Object_RetainAs(hnd, Handler);
 
 catch:
@@ -30,6 +34,9 @@ errno_t HandlerChannel_finalize(HandlerChannelRef _Nonnull self)
     Object_Release(self->hnd);
     self->hnd = NULL;
 
+    kfree(self->extras);
+    self->extras = NULL;
+    
     return err;
 }
 
