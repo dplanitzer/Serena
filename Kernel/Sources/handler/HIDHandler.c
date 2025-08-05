@@ -23,7 +23,7 @@ errno_t HIDHandler_Create(HandlerRef _Nullable * _Nonnull pOutSelf)
     return Object_Create(class(HIDHandler), 0, (void**)pOutSelf);
 }
 
-errno_t HIDHandler_open(HandlerRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t HIDHandler_open(HandlerRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return HandlerChannel_Create(self, 0, SEO_FT_DRIVER, mode, 0, pOutChannel);
 }

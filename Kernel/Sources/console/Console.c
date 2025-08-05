@@ -27,7 +27,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     ConsoleRef self;
 
-    try(Driver_Create(class(Console), 0, kCatalogId_None, (DriverRef*)&self));
+    try(Object_Create(class(Console), 0, (void**)&self));
     
     mtx_init(&self->mtx);
 

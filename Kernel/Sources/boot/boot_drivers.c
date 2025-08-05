@@ -50,8 +50,8 @@ errno_t drivers_init(void)
 
 
     // 'vdm' driver
-    try(VirtualDiskManager_Create((DriverRef*)&gVirtualDiskManager));
-    try(Driver_Start((DriverRef)gVirtualDiskManager));
+    try(VirtualDiskManager_Create(&gVirtualDiskManager));
+    try(VirtualDiskManager_Start(gVirtualDiskManager));
 
 catch:
     return err;

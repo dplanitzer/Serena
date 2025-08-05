@@ -9,27 +9,29 @@
 #include "VirtualDiskManager.h"
 #include "RamDisk.h"
 #include "RomDisk.h"
+#include <handler/HandlerChannel.h>
 #include <driver/DriverManager.h>
+#include <kpi/fcntl.h>
 
 VirtualDiskManagerRef gVirtualDiskManager;
 
 
-final_class_ivars(VirtualDiskManager, Driver,
+final_class_ivars(VirtualDiskManager, Handler,
     CatalogId   busDirId;
 );
 
 
-errno_t VirtualDiskManager_Create(DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t VirtualDiskManager_Create(VirtualDiskManagerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(VirtualDiskManager), 0, kCatalogId_None, pOutSelf);
+    return Object_Create(class(VirtualDiskManager), 0, (void**)pOutSelf);
 }
 
-errno_t VirtualDiskManager_onStart(VirtualDiskManagerRef _Nonnull _Locked self)
+errno_t VirtualDiskManager_Start(VirtualDiskManagerRef _Nonnull self)
 {
     decl_try_err();
 
     DirEntry be;
-    be.dirId = Driver_GetParentDirectoryId(self);
+    be.dirId = 0;
     be.name = "vdisk";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;
@@ -43,11 +45,11 @@ errno_t VirtualDiskManager_onStart(VirtualDiskManagerRef _Nonnull _Locked self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
-    de.handler = NULL;
-    de.driver = (DriverRef)self;
+    de.handler = (HandlerRef)self;
+    de.driver = NULL;
     de.arg = 0;
 
-    try(Driver_Publish(self, &de));
+    try(DriverManager_Publish(gDriverManager, &de));
 
 catch:
     if (err != EOK) {
@@ -56,9 +58,9 @@ catch:
     return err;
 }
 
-void VirtualDiskManager_onStop(DriverRef _Nonnull _Locked self)
+errno_t VirtualDiskManager_open(VirtualDiskManagerRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    Driver_Unpublish(self);
+    return HandlerChannel_Create((HandlerRef)self, 0, SEO_FT_DRIVER, mode, 0, pOutChannel);
 }
 
 errno_t VirtualDiskManager_CreateRamDisk(VirtualDiskManagerRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount)
@@ -98,7 +100,6 @@ catch:
 }
 
 
-class_func_defs(VirtualDiskManager, Driver,
-override_func_def(onStart, VirtualDiskManager, Driver)
-override_func_def(onStop, VirtualDiskManager, Driver)
+class_func_defs(VirtualDiskManager, Handler,
+override_func_def(open, VirtualDiskManager, Handler)
 );
