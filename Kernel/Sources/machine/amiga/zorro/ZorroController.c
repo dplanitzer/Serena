@@ -60,8 +60,7 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
     de.category = 0;
-    de.handler = NULL;
-    de.driver = (DriverRef)self;
+    de.driver = (HandlerRef)self;
     de.arg = 0;
 
     try(Driver_Publish(self, &de));

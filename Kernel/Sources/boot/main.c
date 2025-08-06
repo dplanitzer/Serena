@@ -228,7 +228,7 @@ errno_t SwitchToFullConsole(void)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
-    de.handler = (HandlerRef)gConsole;
+    de.driver = (HandlerRef)gConsole;
     try(DriverManager_Publish(gDriverManager, &de));
 
     Console_Start(gConsole);

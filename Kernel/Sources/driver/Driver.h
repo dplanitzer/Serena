@@ -42,8 +42,7 @@ typedef struct DriverEntry {
     gid_t                   gid;
     mode_t                  perms;
     IOCategory              category;
-    HandlerRef _Nullable    handler;
-    DriverRef _Nullable     driver;
+    HandlerRef _Nullable    driver;
     intptr_t                arg;
 } DriverEntry;
 
@@ -140,7 +139,6 @@ typedef struct DriverEntry {
 // driver for the CD-ROM drive.
 open_class(Driver, Handler,
     mtx_t                   mtx;
-    did_t                   id;                 // unique driver id assigned by driver manager on publish()
     CatalogId               parentDirectoryId;  // /dev directory in which the driver lives 
     List/*<Driver>*/        children;
     ListNode/*<Driver>*/    child_qe;

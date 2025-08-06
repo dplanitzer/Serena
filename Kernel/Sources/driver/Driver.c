@@ -162,7 +162,7 @@ errno_t Driver_publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de)
 // Unpublishes the driver. Should be called from the onStop() override.
 void Driver_unpublish(DriverRef _Nonnull self)
 {
-    DriverManager_Unpublish(gDriverManager, self->id);
+    DriverManager_Unpublish(gDriverManager, Handler_GetId(self));
 }
 
 

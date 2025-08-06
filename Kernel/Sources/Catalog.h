@@ -58,13 +58,13 @@ extern errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentF
 extern errno_t Catalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId, CatalogId entryId);
 
 
-// Publish the driver instance 'driver' with the name 'name' as a child of the
-// bus directory 'folderId', in the driver catalog. The device is published
-// as a child of the root directory if 'folderId' is kCatalogId_None.
+// Publish the handler instance 'handler' with the name 'name' as a child of the
+// directory 'folderId', in the driver catalog. The handler is published as a
+// child of the root directory if 'folderId' is kCatalogId_None.
 // Returns a suitable error if another entry with the same name already exists.
-// 'arg' is an optional argument that will be passed to the Driver_Open() method
+// 'arg' is an optional argument that will be passed to the Handler_Open() method
 // when the driver needs to be opened.
-extern errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, ObjectRef _Nonnull driverOrHandler, intptr_t arg, CatalogId* _Nonnull pOutCatalogId);
+extern errno_t Catalog_PublishHandler(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, HandlerRef _Nonnull handler, intptr_t arg, CatalogId* _Nonnull pOutCatalogId);
 
 // Publish the filesystem instance 'fs' with the name 'name' in the root
 // directory of the catalog. Returns a suitable error if another entry with the

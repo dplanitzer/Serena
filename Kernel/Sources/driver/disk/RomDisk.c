@@ -78,8 +78,7 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0444);
     de.category = 0;
-    de.handler = NULL;
-    de.driver = (DriverRef)self;
+    de.driver = (HandlerRef)self;
     de.arg = 0;
 
     return Driver_Publish(self, &de);

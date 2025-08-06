@@ -17,11 +17,10 @@
 
 
 struct dentry {
-    SListNode   qe;
-    CatalogId   dirId;
-    HandlerRef  handler;
-    DriverRef   driver;
-    did_t       id;
+    SListNode           qe;
+    CatalogId           dirId;
+    HandlerRef _Nonnull driver;
+    did_t               id;
 };
 typedef struct dentry* dentry_t;
 
@@ -113,18 +112,6 @@ DriverRef _Nullable DriverManager_CopyDriverForId(DriverManagerRef _Nonnull self
     return dp;
 }
 
-static errno_t _create_std_handler(IOCategory category, DriverRef _Nonnull driver, HandlerRef _Nullable * _Nonnull pOutHandler)
-{
-    Class* cl;
-
-    switch (category) {
-        case kIOCategory_Keyboard:  cl = class(DriverHandler); break;
-        default: return EINVAL;
-    }
-
-    return DriverHandler_Create(cl, driver, pOutHandler);
-}
-
 errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry* _Nonnull de)
 {
     decl_try_err();
@@ -134,37 +121,17 @@ errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry*
 
     mtx_lock(&self->mtx);
 
-    if ((de->driver && de->driver->id != 0) || (de->handler && de->handler->id != 0)) {
+    if (de->driver && de->driver->id != 0) {
         throw(EBUSY);
     }
 
     try(kalloc_cleared(sizeof(struct dentry), (void**)&ep));
-
-    if (de->handler) {
-        handler = Object_RetainAs(de->handler, Handler);
-    }
-    else if (de->category > 0) {
-        try(_create_std_handler(de->category, de->driver, &handler));
-    }
-
-
-    if (handler) {
-        catEntity = (ObjectRef)handler;
-    }
-    else {
-        catEntity = (ObjectRef)de->driver;
-    }
-
-    try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, catEntity, de->arg, &ep->id));
+    try(Catalog_PublishHandler(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, de->driver, de->arg, &ep->id));
 
     SList_InsertBeforeFirst(&self->id_table[hash_scalar(ep->id) & HASH_CHAIN_MASK], &ep->qe);
     ep->dirId = de->dirId;
-    if (handler) {
-        ep->handler = handler;
-        ep->handler->id = ep->id;
-    }
     if (de->driver) {
-        ep->driver = Object_RetainAs(de->driver, Driver);
+        ep->driver = Object_RetainAs(de->driver, Handler);
         de->driver->id = ep->id;
     }
 
@@ -184,8 +151,7 @@ void DriverManager_Unpublish(DriverManagerRef _Nonnull self, did_t id)
 {
     SList* the_chain = NULL;
     dentry_t the_ep = NULL, prev_ep = NULL;
-    DriverRef driver = NULL;
-    HandlerRef handler = NULL;
+    HandlerRef driver = NULL;
 
     mtx_lock(&self->mtx);
 
@@ -195,10 +161,6 @@ void DriverManager_Unpublish(DriverManagerRef _Nonnull self, did_t id)
         return;
     }
 
-    if (the_ep->handler) {
-        the_ep->handler->id = 0;
-        handler = the_ep->handler;
-    }
     if (the_ep->driver) {
         the_ep->driver->id = 0;
         driver = the_ep->driver;
@@ -210,7 +172,6 @@ void DriverManager_Unpublish(DriverManagerRef _Nonnull self, did_t id)
     mtx_unlock(&self->mtx);
     
 
-    Object_Release(handler);
     Object_Release(driver);
     kfree(the_ep);
 }

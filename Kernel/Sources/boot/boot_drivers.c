@@ -31,21 +31,21 @@ errno_t drivers_init(void)
     // 'hid' driver
     de.name = "hid";
     de.perms = perm_from_octal(0666);
-    try(HIDHandler_Create(&de.handler));
+    try(HIDHandler_Create(&de.driver));
     try(DriverManager_Publish(gDriverManager, &de));
 
 
     // 'klog' driver
     de.name = "klog";
     de.perms = perm_from_octal(0440);
-    try(LogHandler_Create(&de.handler));
+    try(LogHandler_Create(&de.driver));
     try(DriverManager_Publish(gDriverManager, &de));
 
         
     // 'null' driver
     de.name = "null";
     de.perms = perm_from_octal(0666);
-    try(NullHandler_Create(&de.handler));
+    try(NullHandler_Create(&de.driver));
     try(DriverManager_Publish(gDriverManager, &de));
 
 

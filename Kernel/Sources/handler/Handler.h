@@ -64,6 +64,8 @@ open_class_funcs(Handler, Object,
     errno_t (*ioctl)(void* _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap);
 );
 
+#define Handler_GetId(__self) \
+((HandlerRef)__self)->id
 
 #define Handler_Open(__self, __mode, __arg, __pOutChannel) \
 invoke_n(open, Handler, __self, __mode, __arg, __pOutChannel)
