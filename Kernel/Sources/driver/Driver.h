@@ -139,6 +139,7 @@ typedef struct DriverEntry {
 // driver for the CD-ROM drive.
 open_class(Driver, Handler,
     mtx_t                   mtx;
+    did_t                   id;     // unique id assigned at publish time
     CatalogId               parentDirectoryId;  // /dev directory in which the driver lives 
     List/*<Driver>*/        children;
     ListNode/*<Driver>*/    child_qe;

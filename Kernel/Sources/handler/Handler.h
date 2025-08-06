@@ -22,7 +22,6 @@
 // interact with a driver. A handler may implement all mechanics on its own or
 // employ the help of some other object.
 open_class(Handler, Object,
-    did_t   id;
 );
 open_class_funcs(Handler, Object,
     
@@ -63,9 +62,6 @@ open_class_funcs(Handler, Object,
     // Default Behavior: Returns ENOTIOCTLCMD
     errno_t (*ioctl)(void* _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap);
 );
-
-#define Handler_GetId(__self) \
-((HandlerRef)__self)->id
 
 #define Handler_Open(__self, __mode, __arg, __pOutChannel) \
 invoke_n(open, Handler, __self, __mode, __arg, __pOutChannel)

@@ -49,9 +49,13 @@ extern errno_t DriverManager_HasDriver(DriverManagerRef _Nonnull self, const cha
 extern errno_t DriverManager_AcquireNodeForPath(DriverManagerRef _Nonnull self, const char* _Nonnull path, ResolvedPath* _Nonnull rp);
 
 
-// Publishes the driver instance to the driver catalog with the given name. This
-// method should be called from a onStart() override.
-extern errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry* _Nonnull de);
+// Publishes the driver instance to the driver catalog with the given name and
+// returns the globally unique id that has been assigned to this driver
+// publication. This method should be called from a Driver.onStart() override.
+// Note that it is perfectly fine to publish the same driver instance multiple
+// times as long as each instance is published under a different name. Each
+// published instance is assigned a separate unique id.
+extern errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId);
 
 // Removes the driver instance from the driver catalog.
 extern void DriverManager_Unpublish(DriverManagerRef _Nonnull self, did_t id);

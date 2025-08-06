@@ -49,7 +49,7 @@ errno_t VirtualDiskManager_Start(VirtualDiskManagerRef _Nonnull self)
     de.driver = (HandlerRef)self;
     de.arg = 0;
 
-    try(DriverManager_Publish(gDriverManager, &de));
+    try(DriverManager_Publish(gDriverManager, &de, NULL));
 
 catch:
     if (err != EOK) {

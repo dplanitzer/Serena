@@ -112,7 +112,7 @@ DriverRef _Nullable DriverManager_CopyDriverForId(DriverManagerRef _Nonnull self
     return dp;
 }
 
-errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry* _Nonnull de)
+errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId)
 {
     decl_try_err();
     HandlerRef handler = NULL;
@@ -121,18 +121,14 @@ errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry*
 
     mtx_lock(&self->mtx);
 
-    if (de->driver && de->driver->id != 0) {
-        throw(EBUSY);
-    }
-
     try(kalloc_cleared(sizeof(struct dentry), (void**)&ep));
     try(Catalog_PublishHandler(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, de->driver, de->arg, &ep->id));
 
     SList_InsertBeforeFirst(&self->id_table[hash_scalar(ep->id) & HASH_CHAIN_MASK], &ep->qe);
     ep->dirId = de->dirId;
-    if (de->driver) {
-        ep->driver = Object_RetainAs(de->driver, Handler);
-        de->driver->id = ep->id;
+    ep->driver = Object_RetainAs(de->driver, Handler);
+    if (pOutId) {
+        *pOutId = ep->id;
     }
 
 catch:
@@ -162,7 +158,6 @@ void DriverManager_Unpublish(DriverManagerRef _Nonnull self, did_t id)
     }
 
     if (the_ep->driver) {
-        the_ep->driver->id = 0;
         driver = the_ep->driver;
     }
 
