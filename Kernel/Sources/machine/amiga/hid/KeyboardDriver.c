@@ -151,7 +151,7 @@ errno_t KeyboardDriver_ioctl(KeyboardDriverRef _Nonnull self, IOChannelRef _Nonn
         }
 
         default:
-            return super_n(ioctl, Driver, KeyboardDriver, self, pChannel, cmd, ap);
+            return super_n(ioctl, Handler, KeyboardDriver, self, pChannel, cmd, ap);
     }
 }
 
@@ -186,5 +186,5 @@ override_func_def(deinit, KeyboardDriver, Object)
 override_func_def(onStart, KeyboardDriver, Driver)
 override_func_def(onStop, KeyboardDriver, Driver)
 override_func_def(getInputType, KeyboardDriver, InputDriver)
-override_func_def(ioctl, KeyboardDriver, Driver)
+override_func_def(ioctl, KeyboardDriver, Handler)
 );

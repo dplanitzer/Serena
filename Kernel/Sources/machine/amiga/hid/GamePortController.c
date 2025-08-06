@@ -172,7 +172,7 @@ errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelR
         }
 
         default:
-            return super_n(ioctl, Driver, GamePortController, self, pChannel, cmd, ap);
+            return super_n(ioctl, Handler, GamePortController, self, pChannel, cmd, ap);
     }
 }
 
@@ -180,5 +180,5 @@ errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelR
 class_func_defs(GamePortController, Driver,
 override_func_def(onStart, GamePortController, Driver)
 override_func_def(onStop, GamePortController, Driver)
-override_func_def(ioctl, GamePortController, Driver)
+override_func_def(ioctl, GamePortController, Handler)
 );

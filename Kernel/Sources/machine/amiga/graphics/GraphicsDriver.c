@@ -210,7 +210,7 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
 
 
         default:
-            return super_n(ioctl, Driver, GraphicsDriver, self, pChannel, cmd, ap);
+            return super_n(ioctl, Handler, GraphicsDriver, self, pChannel, cmd, ap);
     }
 }
 
@@ -936,5 +936,5 @@ errno_t GraphicsDriver_GetVideoConfigurationRange(GraphicsDriverRef _Nonnull sel
 class_func_defs(GraphicsDriver, Driver,
 override_func_def(onStart, GraphicsDriver, Driver)
 override_func_def(onStop, GraphicsDriver, Driver)
-override_func_def(ioctl, GraphicsDriver, Driver)
+override_func_def(ioctl, GraphicsDriver, Handler)
 );

@@ -31,6 +31,7 @@ errno_t HandlerChannel_finalize(HandlerChannelRef _Nonnull self)
 {
     decl_try_err();
 
+    err = Handler_Close(self->hnd, (IOChannelRef)self);
     Object_Release(self->hnd);
     self->hnd = NULL;
 

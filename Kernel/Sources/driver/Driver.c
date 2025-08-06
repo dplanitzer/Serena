@@ -204,7 +204,7 @@ errno_t Driver_Open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IO
 
     Driver_Lock(self);
     if (Driver_IsActive(self)) {
-        err = invoke_n(open, Driver, self, mode, arg, pOutChannel);
+        err = Handler_Open(self, mode, arg, pOutChannel);
     }
     else {
         err = ENODEV;
@@ -231,7 +231,7 @@ errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 
     Driver_Lock(self);
     if (Driver_IsActive(self)) {
-        err = invoke_n(close, Driver, self, pChannel);
+        err = Handler_Close(self, pChannel);
     }
     else {
         err = ENODEV;
@@ -241,38 +241,10 @@ errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
     return err;
 }
 
-errno_t Driver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    return EBADF;
-}
-
-errno_t Driver_write(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
-{
-    return EBADF;
-}
-
 off_t Driver_getSeekableRange(DriverRef _Nonnull self)
 {
     return 0ll;
 }
-
-errno_t Driver_ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
-{
-    return ENOTIOCTLCMD;
-}
-
-errno_t Driver_Ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, ...)
-{
-    decl_try_err();
-
-    va_list ap;
-    va_start(ap, cmd);
-    err = Driver_vIoctl(self, pChannel, cmd, ap);
-    va_end(ap);
-
-    return err;
-}
-
 
 errno_t Driver_SetTag(DriverRef _Nonnull self, intptr_t tag)
 {
@@ -369,17 +341,14 @@ DriverRef _Nullable Driver_GetChildWithTag(DriverRef _Nonnull _Locked self, intp
 }
 
 
-class_func_defs(Driver, Object,
+class_func_defs(Driver, Handler,
 override_func_def(deinit, Driver, Object)
 func_def(onStart, Driver)
 func_def(onStop, Driver)
 func_def(publish, Driver)
 func_def(unpublish, Driver)
-func_def(open, Driver)
+override_func_def(open, Driver, Handler)
 func_def(createChannel, Driver)
-func_def(close, Driver)
-func_def(read, Driver)
-func_def(write, Driver)
+override_func_def(close, Driver, Handler)
 func_def(getSeekableRange, Driver)
-func_def(ioctl, Driver)
 );

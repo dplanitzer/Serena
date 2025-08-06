@@ -10,8 +10,8 @@
 #define Driver_h
 
 #include <stdarg.h>
+#include <handler/Handler.h>
 #include <klib/List.h>
-#include <kobj/Object.h>
 #include <kpi/stat.h>
 #include <kpi/uid.h>
 #include <sched/mtx.h>
@@ -138,7 +138,7 @@ typedef struct DriverEntry {
 // a CD-ROM driver can be represented by a parent driver that manages the overall
 // card functionality plus a child driver for the sound chip and another child
 // driver for the CD-ROM drive.
-open_class(Driver, Object,
+open_class(Driver, Handler,
     mtx_t                   mtx;
     did_t                   id;                 // unique driver id assigned by driver manager on publish()
     CatalogId               parentDirectoryId;  // /dev directory in which the driver lives 
@@ -150,7 +150,7 @@ open_class(Driver, Object,
     int                     openCount;
     intptr_t                tag;
 );
-open_class_funcs(Driver, Object,
+open_class_funcs(Driver, Handler,
     
     // Invoked as the result of calling Driver_Start(). A driver subclass should
     // override this method to reset the hardware, configure it such that
@@ -175,37 +175,12 @@ open_class_funcs(Driver, Object,
     void (*unpublish)(void* _Nonnull self);
 
 
-    // Invoked as the result of calling Driver_Open(). A driver subclass may
-    // override this method to create a driver specific I/O channel object. The
-    // default implementation creates a DriverChannel instance which supports
-    // read, write, ioctl operations.
-    // Override: Optional
-    // Default Behavior: Creates a DriverChannel instance
-    errno_t (*open)(void* _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
-
     // Invoked by the open() function to create the driver channel that should
     // be returned to the caller.
     // Override: Optional
     // Default Behavior: returns a DriverChannel instance
     errno_t (*createChannel)(void* _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
-    // Invoked as the result of calling Driver_Close().
-    // Override: Optional
-    // Default Behavior: Does nothing and returns EOK
-    errno_t (*close)(void* _Nonnull _Locked self, IOChannelRef _Nonnull pChannel);
-
-
-    // Invoked as the result of calling Driver_Read(). A driver subclass should
-    // override this method to implement support for the read() system call.
-    // Override: Optional
-    // Default Behavior: Returns EBADF
-    errno_t (*read)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
-
-    // Invoked as the result of calling Driver_Write(). A driver subclass should
-    // override this method to implement support for the write() system call.
-    // Override: Optional
-    // Default Behavior: Returns EBADF
-    errno_t (*write)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
     // Invoked by the driver channel to get the size of the seekable space. The
     // maximum position to which a client is allowed to seek is this value minus
@@ -213,12 +188,6 @@ open_class_funcs(Driver, Object,
     // Override: Optional
     // Default Behavior: Returns 0
     off_t (*getSeekableRange)(void* _Nonnull self);
-    
-    // Invoked as the result of calling Driver_Ioctl(). A driver subclass should
-    // override this method to implement support for the ioctl() system call.
-    // Override: Optional
-    // Default Behavior: Returns ENOTIOCTLCMD
-    errno_t (*ioctl)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap);
 );
 
 
@@ -242,15 +211,13 @@ extern errno_t Driver_Open(DriverRef _Nonnull self, unsigned int mode, intptr_t 
 extern errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel);
 
 #define Driver_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
-invoke_n(read, Driver, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
+Handler_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
 #define Driver_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
-invoke_n(write, Driver, __self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
-
-extern errno_t Driver_Ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, ...);
+Handler_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
 #define Driver_vIoctl(__self, __chan, __cmd, __ap) \
-invoke_n(ioctl, Driver, __self, __chan, __cmd, __ap)
+Handler_vIoctl(__self, __chan, __cmd, __ap)
 
 
 // Set a tag on the driver. A tag is a value that a controller driver may assign

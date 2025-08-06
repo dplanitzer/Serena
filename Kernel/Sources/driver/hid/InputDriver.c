@@ -56,7 +56,7 @@ errno_t InputDriver_ioctl(InputDriverRef _Nonnull self, IOChannelRef _Nonnull pC
         }
 
         default:
-            return super_n(ioctl, Driver, InputDriver, self, pChannel, cmd, ap);
+            return super_n(ioctl, Handler, InputDriver, self, pChannel, cmd, ap);
     }
 }
 
@@ -64,5 +64,5 @@ errno_t InputDriver_ioctl(InputDriverRef _Nonnull self, IOChannelRef _Nonnull pC
 class_func_defs(InputDriver, Driver,
 func_def(getInfo, InputDriver)
 func_def(getInputType, InputDriver)
-override_func_def(ioctl, InputDriver, Driver)
+override_func_def(ioctl, InputDriver, Handler)
 );
