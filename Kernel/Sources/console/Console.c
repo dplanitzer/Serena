@@ -7,8 +7,8 @@
 //
 
 #include "ConsolePriv.h"
-#include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
+#include <handler/HandlerChannel.h>
 #include <kern/assert.h>
 #include <kern/string.h>
 #include <kern/timespec.h>
@@ -38,7 +38,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 
     // Open a channel to the framebuffer
     try(DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &self->fbChannel));
-    self->fb = DriverChannel_GetDriverAs(self->fbChannel, GraphicsDriver);
+    self->fb = HandlerChannel_GetHandlerAs(self->fbChannel, GraphicsDriver);
     self->keyMap = (const KeyMap*) gKeyMap_usa;
     self->compatibilityMode = kCompatibilityMode_ANSI;
 

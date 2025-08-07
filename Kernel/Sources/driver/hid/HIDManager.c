@@ -7,8 +7,8 @@
 //
 
 #include "HIDManagerPriv.h"
-#include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
+#include <handler/HandlerChannel.h>
 #include <kern/kalloc.h>
 #include <kern/limits.h>
 #include <kpi/fcntl.h>
@@ -53,7 +53,7 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
 
     // Open a channel to the framebuffer
     try(DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &self->fbChannel));
-    self->fb = DriverChannel_GetDriverAs(self->fbChannel, GraphicsDriver);
+    self->fb = HandlerChannel_GetHandlerAs(self->fbChannel, GraphicsDriver);
 
     int w, h;
     GraphicsDriver_GetDisplaySize(self->fb, &w, &h);

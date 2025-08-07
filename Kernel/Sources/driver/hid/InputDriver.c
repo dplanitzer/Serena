@@ -7,7 +7,6 @@
 //
 
 #include "InputDriver.h"
-#include <driver/DriverChannel.h>
 #include <kpi/fcntl.h>
 
 

@@ -177,7 +177,7 @@ open_class_funcs(Driver, Handler,
     // Invoked by the open() function to create the driver channel that should
     // be returned to the caller.
     // Override: Optional
-    // Default Behavior: returns a DriverChannel instance
+    // Default Behavior: returns a HandlerChannel instance
     errno_t (*createChannel)(void* _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
 );
 

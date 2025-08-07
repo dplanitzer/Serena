@@ -8,7 +8,6 @@
 
 #include <kei/kei.h>
 #include <log/Log.h>
-#include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
 #include <driver/disk/DiskDriver.h>
 #include <filemanager/FileHierarchy.h>

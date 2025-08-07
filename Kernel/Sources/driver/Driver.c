@@ -7,8 +7,8 @@
 //
 
 #include "Driver.h"
-#include "DriverChannel.h"
 #include "DriverManager.h"
+#include <handler/HandlerChannel.h>
 #include <kpi/fcntl.h>
 
 
@@ -170,13 +170,7 @@ void Driver_unpublish(DriverRef _Nonnull self)
 
 errno_t Driver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    IOChannelOptions iocOpts = 0;
-
-    if ((self->options & kDriver_Seekable) == kDriver_Seekable) {
-        iocOpts |= kIOChannel_Seekable;
-    }
-    
-    return DriverChannel_Create(class(DriverChannel), iocOpts, SEO_FT_DRIVER, mode, self, pOutChannel);
+    return HandlerChannel_Create((HandlerRef)self, SEO_FT_DRIVER, mode, 0, pOutChannel);
 }
 
 errno_t Driver_open(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)

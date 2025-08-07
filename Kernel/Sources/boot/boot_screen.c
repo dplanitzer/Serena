@@ -9,8 +9,8 @@
 #include "boot_screen.h"
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
-#include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
+#include <handler/HandlerChannel.h>
 #include <kern/string.h>
 #include <kpi/fcntl.h>
 #include <machine/amiga/chipset.h>
@@ -45,7 +45,7 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
     memset(bscr, 0, sizeof(boot_screen_t));
 
     if ((err = DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &chan)) == EOK) {
-        gd = DriverChannel_GetDriverAs(chan, GraphicsDriver);
+        gd = HandlerChannel_GetHandlerAs(chan, GraphicsDriver);
 
         // Create the surface and screen
         GraphicsDriver_CreateSurface(gd, cfg.width, cfg.height, kPixelFormat_RGB_Indexed1, &srf);
