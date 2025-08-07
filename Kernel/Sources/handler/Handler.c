@@ -10,18 +10,9 @@
 #include <filesystem/IOChannel.h>
 
 
-errno_t Handler_Create(Class* _Nonnull pClass, unsigned options, HandlerRef _Nullable * _Nonnull pOutSelf)
+errno_t Handler_Create(Class* _Nonnull pClass, HandlerRef _Nullable * _Nonnull pOutSelf)
 {
-    decl_try_err();
-    HandlerRef self;
-
-    err = Object_Create(pClass, 0, (void**)&self);
-    if (err == EOK) {
-        self->options = options;
-    }
-
-    *pOutSelf = self;
-    return err;
+    return Object_Create(pClass, 0, (void**)pOutSelf);
 }
 
 errno_t Handler_open(HandlerRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
@@ -46,16 +37,14 @@ errno_t Handler_write(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, const
 
 errno_t Handler_seek(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
-    if ((self->options & kHandler_Seekable) == 0) {
-        return ESPIPE;
-    }
+    return ESPIPE;
+}
 
+errno_t Handler_DoSeek(HandlerRef _Nonnull self, off_t* _Nonnull posp, off_t maxPos, off_t offset, int whence)
+{
     if (whence == SEEK_SET) {
         if (offset >= 0ll) {
-            ioc->offset = offset;
-            if (pOutNewPos) {
-                *pOutNewPos = offset;
-            }
+            *posp = offset;
             return EOK;
         }
         else {
@@ -63,7 +52,7 @@ errno_t Handler_seek(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t 
         }
     }
     else if(whence == SEEK_CUR || whence == SEEK_END) {
-        const off_t refPos = (whence == SEEK_END) ? Handler_GetSeekableRange(self) : ioc->offset;
+        const off_t refPos = (whence == SEEK_END) ? maxPos : *posp;
         
         if (offset < 0ll && -offset > refPos) {
             return EINVAL;
@@ -75,21 +64,13 @@ errno_t Handler_seek(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t 
                 return EOVERFLOW;
             }
 
-            ioc->offset = newOffset;
-            if (pOutNewPos) {
-                *pOutNewPos = newOffset;
-            }
+            *posp = newOffset;
             return EOK;
         }
     }
     else {
         return EINVAL;
     }
-}
-
-off_t Handler_getSeekableRange(HandlerRef _Nonnull self)
-{
-    return 0ll;
 }
 
 errno_t Handler_ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap)
@@ -114,6 +95,5 @@ func_def(close, Handler)
 func_def(read, Handler)
 func_def(write, Handler)
 func_def(seek, Handler)
-func_def(getSeekableRange, Handler)
 func_def(ioctl, Handler)
 );

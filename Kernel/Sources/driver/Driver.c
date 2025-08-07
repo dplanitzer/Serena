@@ -21,7 +21,7 @@ errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId parent
     decl_try_err();
     DriverRef self = NULL;
 
-    try(Handler_Create(pClass, options & kHandler_OptionsMask, (HandlerRef*)&self));
+    try(Handler_Create(pClass, (HandlerRef*)&self));
 
     mtx_init(&self->mtx);
     List_Init(&self->children);

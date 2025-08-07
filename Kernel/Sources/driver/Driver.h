@@ -18,8 +18,7 @@
 #include <Catalog.h>
 
 enum {
-    kDriver_Seekable = kHandler_Seekable,   // Driver defines a seekable space and driver channel should allow seeking with the seek() system call
-    kDriver_Exclusive = 16,                 // At most one I/O channel can be open at any given time. Attempts to open more will generate a EBUSY error
+    kDriver_Exclusive = 1,  // At most one I/O channel can be open at any given time. Attempts to open more will generate a EBUSY error
 };
 
 typedef enum DriverState {

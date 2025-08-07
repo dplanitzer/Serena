@@ -18,7 +18,7 @@ final_class_ivars(LogHandler, Handler,
 
 errno_t LogHandler_Create(HandlerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Handler_Create(class(LogHandler), 0, (HandlerRef*)pOutSelf);
+    return Handler_Create(class(LogHandler), (HandlerRef*)pOutSelf);
 }
 
 errno_t LogHandler_open(HandlerRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)

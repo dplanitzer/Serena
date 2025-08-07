@@ -27,7 +27,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     ConsoleRef self;
 
-    try(Handler_Create(class(Console), 0, (HandlerRef*)&self));
+    try(Handler_Create(class(Console), (HandlerRef*)&self));
     
     mtx_init(&self->mtx);
 

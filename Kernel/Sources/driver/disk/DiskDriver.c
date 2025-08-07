@@ -16,7 +16,7 @@ errno_t DiskDriver_Create(Class* _Nonnull pClass, unsigned options, CatalogId pa
     decl_try_err();
     DiskDriverRef self = NULL;
 
-    try(Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(pClass, kDriver_Exclusive, parentDirId, (DriverRef*)&self));
     try(DiskDriver_CreateDispatchQueue(self, &self->dispatchQueue));
     self->driveInfo = *driveInfo;
 
@@ -380,12 +380,26 @@ errno_t DiskDriver_GetDiskInfo(DiskDriverRef _Nonnull self, disk_info_t* _Nonnul
 // I/O Channel API
 //
 
-off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
+errno_t DiskDriver_seek(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
+    decl_try_err();
     disk_info_t info;
-    const errno_t err = DiskDriver_GetDiskInfo(self, &info);
-    
-    return (err == EOK) ? (off_t)info.sectorsPerDisk * (off_t)info.sectorSize : 0ll;
+
+    //XXX integrate with new locking model
+//    mtx_lock(&self->mtx);
+    err = DiskDriver_GetDiskInfo(self, &info);
+    if (err == EOK) {
+        const off_t diskSize = (off_t)info.sectorsPerDisk * (off_t)info.sectorSize;
+
+        err = Handler_DoSeek((HandlerRef)self, &ioc->offset, (diskSize > 0ll) ? diskSize - 1ll : 0ll, offset, whence);
+        
+        if (err == EOK && pOutNewPos) {
+            *pOutNewPos = ioc->offset;
+        }
+    }
+//    mtx_unlock(&self->mtx);
+
+    return err;
 }
 
 static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, IOChannelRef _Nonnull ch, void* _Nonnull buf, ssize_t byteCount, ssize_t* _Nonnull pOutByteCount)
@@ -467,8 +481,8 @@ func_def(formatTrack, DiskDriver)
 func_def(doGetDriveInfo, DiskDriver)
 func_def(doGetDiskInfo, DiskDriver)
 func_def(doSenseDisk, DiskDriver)
-override_func_def(getSeekableRange, DiskDriver, Handler)
 override_func_def(read, DiskDriver, Handler)
 override_func_def(write, DiskDriver, Handler)
+override_func_def(seek, DiskDriver, Handler)
 override_func_def(ioctl, DiskDriver, Handler)
 );

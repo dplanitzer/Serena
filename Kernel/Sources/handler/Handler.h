@@ -22,7 +22,6 @@
 // interact with a driver. A handler may implement all mechanics on its own or
 // employ the help of some other object.
 open_class(Handler, Object,
-    unsigned int    options;
 );
 open_class_funcs(Handler, Object,
     
@@ -53,18 +52,13 @@ open_class_funcs(Handler, Object,
 
 
     // Sets the current position of the I/O channel 'ioc' based on 'offset' and
-    // 'whence' and returns the previous position.
+    // 'whence' and returns the new position. The default implementation returns
+    // ESPIPE to indicate that seeking is not supported. You should override
+    // this function and call Handler_DoSeek() from your override to implement
+    // seeking if seeking capabilities are desired.
     // Override: Optional
-    // Default Behavior: Updates the I/O channel's current position if
-    //                   Handler_Seekable was specified; Returns ESPIPE otherwise
+    // Default Behavior: Returns ESPIPE otherwise
     errno_t (*seek)(void* _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
-    
-    // Returns the maximum allowable position for seeking. This position is also
-    // known as the "end" of the medium. You must override this function if you
-    // create the handler instance with the Handler_Seekable option.
-    // Override: Optional
-    // Default Behavior: Returns 0
-    off_t (*getSeekableRange)(void* _Nonnull self);
 
 
     // Executes the handler specific function 'cmd' with command specific
@@ -101,17 +95,8 @@ extern errno_t Handler_Ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc
 //
 
 
-// Handler_Create() options
-enum {
-    kHandler_Seekable = 1,  // Handler should allow seeking
-};
+extern errno_t Handler_Create(Class* _Nonnull pClass, HandlerRef _Nullable * _Nonnull pOutSelf);
 
-#define kHandler_OptionsMask    0x0f
-
-
-extern errno_t Handler_Create(Class* _Nonnull pClass, unsigned options, HandlerRef _Nullable * _Nonnull pOutSelf);
-
-#define Handler_GetSeekableRange(__self) \
-invoke_0(getSeekableRange, Handler, __self)
+extern errno_t Handler_DoSeek(HandlerRef _Nonnull self, off_t* _Nonnull posp, off_t maxPos, off_t offset, int whence);
 
 #endif /* Handler_h */
