@@ -56,7 +56,7 @@ open_class_funcs(Handler, Object,
     // 'whence' and returns the previous position.
     // Override: Optional
     // Default Behavior: Updates the I/O channel's current position if
-    //                   Handler_Seekable was specified; Returns EPIPE otherwise
+    //                   Handler_Seekable was specified; Returns ESPIPE otherwise
     errno_t (*seek)(void* _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
     
     // Returns the maximum allowable position for seeking. This position is also

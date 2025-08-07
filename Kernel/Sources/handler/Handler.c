@@ -47,7 +47,7 @@ errno_t Handler_write(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, const
 errno_t Handler_seek(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence)
 {
     if ((self->options & kHandler_Seekable) == 0) {
-        return EPIPE;
+        return ESPIPE;
     }
 
     if (whence == SEEK_SET) {
