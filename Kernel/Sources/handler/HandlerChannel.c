@@ -59,9 +59,9 @@ errno_t HandlerChannel_write(HandlerChannelRef _Nonnull _Locked self, const void
     return Handler_Write(self->hnd, (IOChannelRef)self, pBuffer, nBytesToWrite, nOutBytesWritten);
 }
 
-errno_t HandlerChannel_seek(HandlerChannelRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutOldPosition, int whence)
+errno_t HandlerChannel_seek(HandlerChannelRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
-    return Handler_Seek(self->hnd, (IOChannelRef)self, offset, pOutOldPosition, whence);
+    return Handler_Seek(self->hnd, (IOChannelRef)self, offset, pOutNewPos, whence);
 }
 
 errno_t HandlerChannel_ioctl(HandlerChannelRef _Nonnull self, int cmd, va_list ap)

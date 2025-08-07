@@ -42,14 +42,14 @@ SYSCALL_4(write, int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssiz
     return err;
 }
 
-SYSCALL_4(seek, int fd, off_t offset, off_t* _Nullable pOutOldPosition, int whence)
+SYSCALL_4(seek, int fd, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
     IOChannelRef pChannel;
 
     if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
-        err = IOChannel_Seek(pChannel, pa->offset, pa->pOutOldPosition, pa->whence);
+        err = IOChannel_Seek(pChannel, pa->offset, pa->pOutNewPos, pa->whence);
         IOChannelTable_RelinquishChannel(&pp->ioChannelTable, pChannel);
     }
     return err;

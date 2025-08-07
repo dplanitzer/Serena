@@ -187,15 +187,14 @@ errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer
 }
 
 
-errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutOldPosition, int whence)
+errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
     if (whence == SEEK_SET) {
         if (offset >= 0ll) {
-            if (pOutOldPosition) {
-                *pOutOldPosition = self->offset;
-            }
-
             self->offset = offset;
+            if (pOutNewPos) {
+                *pOutNewPos = offset;
+            }
             return EOK;
         }
         else {
@@ -215,10 +214,10 @@ errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, off_t offset, off_t* 
                 return EOVERFLOW;
             }
 
-            if (pOutOldPosition) {
-                *pOutOldPosition = self->offset;
-            }
             self->offset = newOffset;
+            if (pOutNewPos) {
+                *pOutNewPos = newOffset;
+            }
             return EOK;
         }
     }
@@ -227,15 +226,14 @@ errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, off_t offset, off_t* 
     }
 }
 
-errno_t IOChannel_Seek(IOChannelRef _Nonnull self, off_t offset, off_t* pOutOldPosition, int whence)
+errno_t IOChannel_Seek(IOChannelRef _Nonnull self, off_t offset, off_t* pOutNewPos, int whence)
 {
     decl_try_err();
 
     IOChannel_Lock(self);
     if ((self->options & kIOChannel_Seekable) == kIOChannel_Seekable) {
-        err = invoke_n(seek, IOChannel, self, offset, pOutOldPosition, whence);
+        err = invoke_n(seek, IOChannel, self, offset, pOutNewPos, whence);
     } else {
-        *pOutOldPosition = 0ll;
         err = ESPIPE;
     }
     IOChannel_Unlock(self);

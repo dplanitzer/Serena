@@ -87,8 +87,8 @@ invoke_n(read, Handler, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutByt
 #define Handler_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
 invoke_n(write, Handler, __self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
-#define Handler_Seek(__self, __pChannel, __offset, __pOutOldPosition, __whence) \
-invoke_n(seek, Handler, __self, __pChannel, __offset, __pOutOldPosition, __whence)
+#define Handler_Seek(__self, __pChannel, __offset, pOutNewPos, __whence) \
+invoke_n(seek, Handler, __self, __pChannel, __offset, pOutNewPos, __whence)
 
 #define Handler_vIoctl(__self, __chan, __cmd, __ap) \
 invoke_n(ioctl, Handler, __self, __chan, __cmd, __ap)

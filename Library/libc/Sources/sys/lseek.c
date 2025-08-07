@@ -12,10 +12,10 @@
 
 off_t lseek(int fd, off_t offset, int whence)
 {
-    off_t oldpos;
+    off_t newpos;
     
-    if (_syscall(SC_lseek, fd, offset, &oldpos, whence) == 0) {
-        return oldpos;
+    if (_syscall(SC_lseek, fd, offset, &newpos, whence) == 0) {
+        return newpos;
     }
     else {
         return -1ll;

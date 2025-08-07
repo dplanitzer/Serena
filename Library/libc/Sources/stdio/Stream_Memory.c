@@ -125,14 +125,13 @@ static long long __mem_seek(__Memory_FILE_Vars* _Nonnull mp, long long offset, i
     // Expand EOF out if we were told to seek past the current EOF. Note that
     // the next __mem_read() and __mem_write() will take care of the range check
     // and actual backing store expansion.
-    const size_t oldPos = mp->currentPosition;
     const size_t newPos = (size_t)newOffset;
     if (newPos > mp->eofPosition) {
         mp->eofPosition = newPos;
     }
     mp->currentPosition = newPos;
 
-    return oldPos;
+    return newPos;
 }
 
 static int __mem_close(__Memory_FILE_Vars* _Nonnull mp)

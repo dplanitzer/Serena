@@ -170,7 +170,7 @@ any_subclass_funcs(IOChannel,
 
 extern errno_t IOChannel_Read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 extern errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
-extern errno_t IOChannel_Seek(IOChannelRef _Nonnull self, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
+extern errno_t IOChannel_Seek(IOChannelRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence);
 
 extern errno_t IOChannel_vFcntl(IOChannelRef _Nonnull self, int cmd, int* _Nonnull pResult, va_list ap);
 

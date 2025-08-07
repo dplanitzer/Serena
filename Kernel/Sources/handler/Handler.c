@@ -44,7 +44,7 @@ errno_t Handler_write(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, const
     return EBADF;
 }
 
-errno_t Handler_seek(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence)
+errno_t Handler_seek(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
     if ((self->options & kHandler_Seekable) == 0) {
         return ESPIPE;
@@ -52,11 +52,10 @@ errno_t Handler_seek(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t 
 
     if (whence == SEEK_SET) {
         if (offset >= 0ll) {
-            if (pOutOldPosition) {
-                *pOutOldPosition = ioc->offset;
-            }
-
             ioc->offset = offset;
+            if (pOutNewPos) {
+                *pOutNewPos = offset;
+            }
             return EOK;
         }
         else {
@@ -76,10 +75,10 @@ errno_t Handler_seek(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t 
                 return EOVERFLOW;
             }
 
-            if (pOutOldPosition) {
-                *pOutOldPosition = ioc->offset;
-            }
             ioc->offset = newOffset;
+            if (pOutNewPos) {
+                *pOutNewPos = newOffset;
+            }
             return EOK;
         }
     }

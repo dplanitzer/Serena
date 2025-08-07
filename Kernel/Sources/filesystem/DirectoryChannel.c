@@ -53,12 +53,12 @@ errno_t DirectoryChannel_read(DirectoryChannelRef _Nonnull _Locked self, void* _
     return Inode_Read(self->inode, self, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
-errno_t DirectoryChannel_seek(DirectoryChannelRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutOldPosition, int whence)
+errno_t DirectoryChannel_seek(DirectoryChannelRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
     decl_try_err();
 
     if (whence == SEEK_SET) {
-        err = super_n(seek, IOChannel, DirectoryChannel, self, offset, pOutOldPosition, whence);
+        err = super_n(seek, IOChannel, DirectoryChannel, self, offset, pOutNewPos, whence);
     }
     else {
         err = EINVAL;
