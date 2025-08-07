@@ -8,7 +8,6 @@
 
 #include "DriverManager.h"
 #include "Driver.h"
-#include <handler/DriverHandler.h>
 #include <kern/Kalloc.h>
 #include <Catalog.h>
 #include <klib/Hash.h>
