@@ -11,12 +11,12 @@
 #include <kern/kalloc.h>
 
 
-errno_t HandlerChannel_Create(HandlerRef _Nonnull hnd, IOChannelOptions options, int channelType, unsigned int mode, size_t nExtraBytes, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t HandlerChannel_Create(HandlerRef _Nonnull hnd, int channelType, unsigned int mode, size_t nExtraBytes, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     HandlerChannelRef self;
 
-    try(IOChannel_Create(&kHandlerChannelClass, options, channelType, mode, (IOChannelRef*)&self));
+    try(IOChannel_Create(&kHandlerChannelClass, 0, channelType, mode, (IOChannelRef*)&self));
     if (nExtraBytes > 0) {
         try(kalloc_cleared(nExtraBytes, (void**)&self->extras));
     }

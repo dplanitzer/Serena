@@ -512,7 +512,7 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
 
 errno_t Console_open(ConsoleRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return HandlerChannel_Create((HandlerRef)self, 0, SEO_FT_TERMINAL, mode, sizeof(ConsoleChannel), pOutChannel);
+    return HandlerChannel_Create((HandlerRef)self, SEO_FT_TERMINAL, mode, sizeof(ConsoleChannel), pOutChannel);
 }
 
 static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

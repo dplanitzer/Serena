@@ -20,7 +20,10 @@ open_class_funcs(HandlerChannel, IOChannel,
 );
 
 
-extern errno_t HandlerChannel_Create(HandlerRef _Nonnull hnd, IOChannelOptions options, int channelType, unsigned int mode, size_t nExtraBytes, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t HandlerChannel_Create(HandlerRef _Nonnull hnd, int channelType, unsigned int mode, size_t nExtraBytes, IOChannelRef _Nullable * _Nonnull pOutChannel);
+
+#define HandlerChannel_GetHandlerAs(__self, __class) \
+((__class##Ref)((HandlerChannelRef)__self)->hnd)
 
 #define HandlerChannel_GetExtrasAs(__self, __type) \
 ((__type*)((HandlerChannelRef)__self)->extras)

@@ -60,7 +60,7 @@ catch:
 
 errno_t VirtualDiskManager_open(VirtualDiskManagerRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return HandlerChannel_Create((HandlerRef)self, 0, SEO_FT_DRIVER, mode, 0, pOutChannel);
+    return HandlerChannel_Create((HandlerRef)self, SEO_FT_DRIVER, mode, 0, pOutChannel);
 }
 
 errno_t VirtualDiskManager_CreateRamDisk(VirtualDiskManagerRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount)
