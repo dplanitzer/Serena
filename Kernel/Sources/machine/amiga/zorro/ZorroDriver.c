@@ -9,7 +9,7 @@
 #include "ZorroDriver.h"
 
 
-errno_t ZorroDriver_Create(Class* _Nonnull pClass, DriverOptions options, CatalogId parentDirId, const zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t ZorroDriver_Create(Class* _Nonnull pClass, unsigned options, CatalogId parentDirId, const zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ZorroDriverRef self;

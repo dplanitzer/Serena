@@ -17,10 +17,10 @@
 #include <sched/mtx.h>
 #include <Catalog.h>
 
-typedef enum DriverOptions {
-    kDriver_Exclusive = 1,    // At most one I/O channel can be open at any given time. Attempts to open more will generate a EBUSY error
-    kDriver_Seekable = 2,       // Driver defines a seekable space and driver channel should allow seeking with the seek() system call
-} DriverOptions;
+enum {
+    kDriver_Seekable = kHandler_Seekable,   // Driver defines a seekable space and driver channel should allow seeking with the seek() system call
+    kDriver_Exclusive = 16,                 // At most one I/O channel can be open at any given time. Attempts to open more will generate a EBUSY error
+};
 
 typedef enum DriverState {
     kDriverState_Inactive = 0,
@@ -179,14 +179,6 @@ open_class_funcs(Driver, Handler,
     // Override: Optional
     // Default Behavior: returns a DriverChannel instance
     errno_t (*createChannel)(void* _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
-
-
-    // Invoked by the driver channel to get the size of the seekable space. The
-    // maximum position to which a client is allowed to seek is this value minus
-    // one.
-    // Override: Optional
-    // Default Behavior: Returns 0
-    off_t (*getSeekableRange)(void* _Nonnull self);
 );
 
 
@@ -235,7 +227,7 @@ extern intptr_t Driver_GetTag(DriverRef _Nonnull self);
 //
 
 // Create a driver instance.
-extern errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf);
 
 
 // Returns the globally unique driver id. The id is assigned when the driver is
@@ -291,7 +283,7 @@ invoke_n(createChannel, Driver, __self, __mode, __arg, __pOutChannel)
 
 // Returns the size of the seekable range
 #define Driver_GetSeekableRange(__self) \
-invoke_0(getSeekableRange, Driver, __self)
+Handler_GetSeekableRange(__self)
 
 
 // Adds the given driver as a child to the receiver. Call this function from a

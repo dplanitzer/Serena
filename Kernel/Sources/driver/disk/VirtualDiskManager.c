@@ -23,7 +23,7 @@ final_class_ivars(VirtualDiskManager, Handler,
 
 errno_t VirtualDiskManager_Create(VirtualDiskManagerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Object_Create(class(VirtualDiskManager), 0, (void**)pOutSelf);
+    return Handler_Create(class(VirtualDiskManager), 0, (HandlerRef*)pOutSelf);
 }
 
 errno_t VirtualDiskManager_Start(VirtualDiskManagerRef _Nonnull self)

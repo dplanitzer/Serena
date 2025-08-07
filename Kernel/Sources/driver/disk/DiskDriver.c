@@ -12,7 +12,7 @@
 #include <kpi/fcntl.h>
 
 
-errno_t DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, CatalogId parentDirId, const drive_info_t* _Nonnull driveInfo, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskDriver_Create(Class* _Nonnull pClass, unsigned options, CatalogId parentDirId, const drive_info_t* _Nonnull driveInfo, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskDriverRef self = NULL;
@@ -468,7 +468,7 @@ func_def(formatTrack, DiskDriver)
 func_def(doGetDriveInfo, DiskDriver)
 func_def(doGetDiskInfo, DiskDriver)
 func_def(doSenseDisk, DiskDriver)
-override_func_def(getSeekableRange, DiskDriver, Driver)
+override_func_def(getSeekableRange, DiskDriver, Handler)
 override_func_def(read, DiskDriver, Handler)
 override_func_def(write, DiskDriver, Handler)
 override_func_def(ioctl, DiskDriver, Handler)

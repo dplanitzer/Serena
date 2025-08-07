@@ -22,6 +22,7 @@
 // interact with a driver. A handler may implement all mechanics on its own or
 // employ the help of some other object.
 open_class(Handler, Object,
+    unsigned int    options;
 );
 open_class_funcs(Handler, Object,
     
@@ -50,18 +51,29 @@ open_class_funcs(Handler, Object,
     // Default Behavior: Returns EBADF
     errno_t (*write)(void* _Nonnull self, IOChannelRef _Nonnull ioc, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
+
     // Sets the current position of the I/O channel 'ioc' based on 'offset' and
     // 'whence' and returns the previous position.
     // Override: Optional
-    // Default Behavior: Returns EPIPE
+    // Default Behavior: Updates the I/O channel's current position if
+    //                   Handler_Seekable was specified; Returns EPIPE otherwise
     errno_t (*seek)(void* _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
     
+    // Returns the maximum allowable position for seeking. This position is also
+    // known as the "end" of the medium. You must override this function if you
+    // create the handler instance with the Handler_Seekable option.
+    // Override: Optional
+    // Default Behavior: Returns 0
+    off_t (*getSeekableRange)(void* _Nonnull self);
+
+
     // Executes the handler specific function 'cmd' with command specific
     // arguments 'ap'.
     // Override: Optional
     // Default Behavior: Returns ENOTIOCTLCMD
     errno_t (*ioctl)(void* _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap);
 );
+
 
 #define Handler_Open(__self, __mode, __arg, __pOutChannel) \
 invoke_n(open, Handler, __self, __mode, __arg, __pOutChannel)
@@ -82,5 +94,24 @@ invoke_n(seek, Handler, __self, __pChannel, __offset, __pOutOldPosition, __whenc
 invoke_n(ioctl, Handler, __self, __chan, __cmd, __ap)
 
 extern errno_t Handler_Ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, ...);
+
+
+//
+// Subclassers
+//
+
+
+// Handler_Create() options
+enum {
+    kHandler_Seekable = 1,  // Handler should allow seeking
+};
+
+#define kHandler_OptionsMask    0x0f
+
+
+extern errno_t Handler_Create(Class* _Nonnull pClass, unsigned options, HandlerRef _Nullable * _Nonnull pOutSelf);
+
+#define Handler_GetSeekableRange(__self) \
+invoke_0(getSeekableRange, Handler, __self)
 
 #endif /* Handler_h */

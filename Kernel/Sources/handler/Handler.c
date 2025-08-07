@@ -7,7 +7,22 @@
 //
 
 #include "Handler.h"
+#include <filesystem/IOChannel.h>
 
+
+errno_t Handler_Create(Class* _Nonnull pClass, unsigned options, HandlerRef _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    HandlerRef self;
+
+    err = Object_Create(pClass, 0, (void**)&self);
+    if (err == EOK) {
+        self->options = options;
+    }
+
+    *pOutSelf = self;
+    return err;
+}
 
 errno_t Handler_open(HandlerRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
@@ -31,7 +46,51 @@ errno_t Handler_write(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, const
 
 errno_t Handler_seek(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence)
 {
-    return EPIPE;
+    if ((self->options & kHandler_Seekable) == 0) {
+        return EPIPE;
+    }
+
+    if (whence == SEEK_SET) {
+        if (offset >= 0ll) {
+            if (pOutOldPosition) {
+                *pOutOldPosition = ioc->offset;
+            }
+
+            ioc->offset = offset;
+            return EOK;
+        }
+        else {
+            return EINVAL;
+        }
+    }
+    else if(whence == SEEK_CUR || whence == SEEK_END) {
+        const off_t refPos = (whence == SEEK_END) ? Handler_GetSeekableRange(self) : ioc->offset;
+        
+        if (offset < 0ll && -offset > refPos) {
+            return EINVAL;
+        }
+        else {
+            const off_t newOffset = refPos + offset;
+
+            if (newOffset < 0ll) {
+                return EOVERFLOW;
+            }
+
+            if (pOutOldPosition) {
+                *pOutOldPosition = ioc->offset;
+            }
+            ioc->offset = newOffset;
+            return EOK;
+        }
+    }
+    else {
+        return EINVAL;
+    }
+}
+
+off_t Handler_getSeekableRange(HandlerRef _Nonnull self)
+{
+    return 0ll;
 }
 
 errno_t Handler_ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap)
@@ -56,5 +115,6 @@ func_def(close, Handler)
 func_def(read, Handler)
 func_def(write, Handler)
 func_def(seek, Handler)
+func_def(getSeekableRange, Handler)
 func_def(ioctl, Handler)
 );

@@ -20,7 +20,7 @@ final_class_ivars(HIDHandler, Handler,
 
 errno_t HIDHandler_Create(HandlerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Object_Create(class(HIDHandler), 0, (void**)pOutSelf);
+    return Handler_Create(class(HIDHandler), 0, (HandlerRef*)pOutSelf);
 }
 
 errno_t HIDHandler_open(HandlerRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)

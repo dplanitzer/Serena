@@ -16,12 +16,12 @@
 (DriverRef) (((uint8_t*)__ptr) - offsetof(struct Driver, child_qe))
 
 
-errno_t Driver_Create(Class* _Nonnull pClass, DriverOptions options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DriverRef self = NULL;
 
-    try(Object_Create(pClass, 0, (void**)&self));
+    try(Handler_Create(pClass, options & kHandler_OptionsMask, (HandlerRef*)&self));
 
     mtx_init(&self->mtx);
     List_Init(&self->children);
@@ -242,11 +242,6 @@ errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
     return err;
 }
 
-off_t Driver_getSeekableRange(DriverRef _Nonnull self)
-{
-    return 0ll;
-}
-
 errno_t Driver_SetTag(DriverRef _Nonnull self, intptr_t tag)
 {
     Driver_Lock(self);
@@ -351,5 +346,4 @@ func_def(unpublish, Driver)
 override_func_def(open, Driver, Handler)
 func_def(createChannel, Driver)
 override_func_def(close, Driver, Handler)
-func_def(getSeekableRange, Driver)
 );
