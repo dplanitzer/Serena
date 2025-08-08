@@ -20,7 +20,8 @@
 
 
 final_class_ivars(GamePortController, Driver,
-    CatalogId   busDirId;
+    CatalogId           busDirId;
+    DriverRef _Nullable portDriver[PORT_COUNT];
 );
 
 
@@ -29,20 +30,13 @@ errno_t GamePortController_Create(CatalogId parentDirId, GamePortControllerRef _
     return Driver_Create(class(GamePortController), kDriver_Exclusive, parentDirId, (DriverRef*)pOutSelf);
 }
 
-static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType* _Nullable pOutType)
+static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType* _Nonnull pOutType)
 {
-    DriverRef dp;
-
-    if (pOutType == NULL) {
-        return EINVAL;
-    }
-
     if (port < 0 || port >= PORT_COUNT) {
         return EINVAL;
     }
 
-    dp = Driver_GetChildWithTag((DriverRef)self, port);
-    *pOutType = (dp) ? InputDriver_GetInputType(dp) : kInputType_None;
+    *pOutType = (self->portDriver[port]) ? InputDriver_GetInputType(self->portDriver[port]) : kInputType_None;
 
     return EOK;
 }
@@ -70,8 +64,6 @@ static errno_t GamePortController_CreateInputDriver(GamePortControllerRef _Nonnu
 static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _Nonnull _Locked self, int port, InputType type)
 {
     decl_try_err();
-    DriverRef pOldDriver = NULL;
-    DriverRef pNewDriver = NULL;
 
     if (port < 0 || port >= PORT_COUNT) {
         return EINVAL;
@@ -89,15 +81,15 @@ static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _No
     }
 
 
-    pOldDriver = Driver_GetChildWithTag((DriverRef)self, port);
-    if (pOldDriver) {
-        Driver_Terminate((DriverRef)pOldDriver);
-        Driver_RemoveChild((DriverRef)self, pOldDriver);
+    if (self->portDriver[port]) {
+        Driver_Terminate(self->portDriver[port]);
+        Driver_RemoveChild((DriverRef)self, self->portDriver[port]);
+        self->portDriver[port] = NULL;
     }
 
     if (type != kInputType_None) {
-        try(GamePortController_CreateInputDriver(self, port, type, &pNewDriver));
-        try(Driver_StartAdoptChild((DriverRef)self, pNewDriver));
+        try(GamePortController_CreateInputDriver(self, port, type, &self->portDriver[port]));
+        try(Driver_StartAdoptChild((DriverRef)self, self->portDriver[port]));
     }
 
 catch:

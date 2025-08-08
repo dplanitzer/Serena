@@ -210,17 +210,6 @@ Handler_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten
 Handler_vIoctl(__self, __chan, __cmd, __ap)
 
 
-// Set a tag on the driver. A tag is a value that a controller driver may assign
-// to one of its child drivers. It can then look up a child based on its tag.
-// Note that a tag must be set on a driver before its start() method is called
-// and once set, the tag can not be changed anymore.
-extern errno_t Driver_SetTag(DriverRef _Nonnull self, intptr_t tag);
-
-// Returns the driver's tag. 0 is returned if the driver has no tag assigned to
-// it.
-extern intptr_t Driver_GetTag(DriverRef _Nonnull self);
-
-
 //
 // Subclassers
 //
@@ -278,11 +267,6 @@ invoke_0(onStop, Driver, __self)
 // or a kernel space service
 #define Driver_CreateChannel(__self, __mode, __arg, __pOutChannel) \
 invoke_n(createChannel, Driver, __self, __mode, __arg, __pOutChannel)
-
-
-// Returns the size of the seekable range
-#define Driver_GetSeekableRange(__self) \
-Handler_GetSeekableRange(__self)
 
 
 // Adds the given driver as a child to the receiver. Call this function from a

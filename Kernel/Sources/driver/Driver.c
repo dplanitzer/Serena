@@ -236,29 +236,6 @@ errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
     return err;
 }
 
-errno_t Driver_SetTag(DriverRef _Nonnull self, intptr_t tag)
-{
-    Driver_Lock(self);
-    if (self->state != kDriverState_Inactive) {
-        return EBUSY;
-    }
-
-    self->tag = tag;
-    Driver_Unlock(self);
-    return EOK;
-}
-
-// Returns the driver's tag. 0 is returned if the driver has no tag assigned to
-// it.
-intptr_t Driver_GetTag(DriverRef _Nonnull self)
-{
-    Driver_Lock(self);
-    const intptr_t tag = self->tag;
-    Driver_Unlock(self);
-    return tag;
-}
-
-
 // Adds the given driver as a child to the receiver.
 void Driver_AddChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild)
 {
