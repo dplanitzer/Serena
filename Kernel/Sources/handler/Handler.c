@@ -40,7 +40,7 @@ errno_t Handler_seek(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t 
     return ESPIPE;
 }
 
-errno_t Handler_DoSeek(HandlerRef _Nonnull self, off_t* _Nonnull posp, off_t maxPos, off_t offset, int whence)
+errno_t seek_to(off_t* _Nonnull posp, off_t maxPos, off_t offset, int whence)
 {
     if (whence == SEEK_SET) {
         if (offset >= 0ll) {

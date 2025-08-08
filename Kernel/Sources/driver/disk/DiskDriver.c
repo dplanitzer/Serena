@@ -391,7 +391,7 @@ errno_t DiskDriver_seek(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, 
     if (err == EOK) {
         const off_t diskSize = (off_t)info.sectorsPerDisk * (off_t)info.sectorSize;
 
-        err = Handler_DoSeek((HandlerRef)self, &ioc->offset, (diskSize > 0ll) ? diskSize - 1ll : 0ll, offset, whence);
+        err = seek_to(&ioc->offset, (diskSize > 0ll) ? diskSize - 1ll : 0ll, offset, whence);
         
         if (err == EOK && pOutNewPos) {
             *pOutNewPos = ioc->offset;

@@ -54,7 +54,7 @@ open_class_funcs(Handler, Object,
     // Sets the current position of the I/O channel 'ioc' based on 'offset' and
     // 'whence' and returns the new position. The default implementation returns
     // ESPIPE to indicate that seeking is not supported. You should override
-    // this function and call Handler_DoSeek() from your override to implement
+    // this function and call seek_to() from your override to implement
     // seeking if seeking capabilities are desired.
     // Override: Optional
     // Default Behavior: Returns ESPIPE otherwise
@@ -97,6 +97,11 @@ extern errno_t Handler_Ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc
 
 extern errno_t Handler_Create(Class* _Nonnull pClass, HandlerRef _Nullable * _Nonnull pOutSelf);
 
-extern errno_t Handler_DoSeek(HandlerRef _Nonnull self, off_t* _Nonnull posp, off_t maxPos, off_t offset, int whence);
+// Implements the logic of a seek() system call. 'posp' is a pointer to the
+// current seek position and this position is updated based on 'offset' and
+// 'whence'. 'maxPos' is the maximum allowable seek position. 'maxPos' is only
+// used by this function if whence is SEEK_END. It is ignored for all other
+// 'whence' values.
+extern errno_t seek_to(off_t* _Nonnull posp, off_t maxPos, off_t offset, int whence);
 
 #endif /* Handler_h */
