@@ -48,13 +48,6 @@ void Driver_deinit(DriverRef _Nonnull self)
     );
 }
 
-// Starts the driver. A driver may only be started once. It can not be restarted
-// after it has been stopped. A driver is started after the hardware has been
-// detected and the driver instance created. The driver should reset the hardware
-// and bring it to an idle state. If the driver detects an error while resetting
-// the hardware, it should record this error internally and return it from the
-// first action method (read, write, etc) that is invoked.
-// Note that the actual start code is always executed asynchronously.
 errno_t Driver_Start(DriverRef _Nonnull self)
 {
     decl_try_err();
@@ -86,14 +79,6 @@ errno_t Driver_onStart(DriverRef _Nonnull _Locked self)
 }
 
 
-
-void Driver_onStop(DriverRef _Nonnull _Locked self)
-{
-}
-
-// Terminates a driver. A terminated driver does not access its underlying hardware
-// anymore. Terminating a driver also terminates all of its child drivers. Once a
-// driver has been terminated, it can not be restarted anymore.
 errno_t Driver_Terminate(DriverRef _Nonnull self)
 {
     decl_try_err();
@@ -152,14 +137,16 @@ errno_t Driver_Terminate(DriverRef _Nonnull self)
     return EOK;
 }
 
+void Driver_onStop(DriverRef _Nonnull _Locked self)
+{
+}
 
-// Publish the driver. Should be called from the onStart() override.
+
 errno_t Driver_publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de)
 {
     return DriverManager_Publish(gDriverManager, de, &self->id);
 }
 
-// Unpublishes the driver. Should be called from the onStop() override.
 void Driver_unpublish(DriverRef _Nonnull self)
 {
     DriverManager_Unpublish(gDriverManager, self->id);

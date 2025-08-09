@@ -21,12 +21,12 @@ enum {
     kDriver_Exclusive = 1,  // At most one I/O channel can be open at any given time. Attempts to open more will generate a EBUSY error
 };
 
-typedef enum DriverState {
+enum {
     kDriverState_Inactive = 0,
     kDriverState_Active,
     kDriverState_Terminating,
     kDriverState_Terminated
-} DriverState;
+};
 
 
 typedef enum IOCategory {
@@ -239,9 +239,13 @@ Handler_vIoctl(__self, __chan, __cmd, __ap)
 // Subclassers
 //
 
-// Create a driver instance.
+// Creates a new driver instance.
 extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf);
 
+
+// Returns true if the driver is in active state; false otherwise
+#define Driver_IsActive(__self) \
+(((DriverRef)__self)->state == kDriverState_Active ? true : false)
 
 // Returns the globally unique driver id. The id is assigned when the driver is
 // published.
@@ -253,10 +257,6 @@ extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId
 #define Driver_GetParentDirectoryId(__self) \
 ((DriverRef)__self)->parentDirectoryId
 
-// Returns true if the driver is in active state; false otherwise
-#define Driver_IsActive(__self) \
-(((DriverRef)__self)->state == kDriverState_Active ? true : false)
-
 
 // Publish the driver. Should be called from the onStart() override.
 #define Driver_Publish(__self, __de) \
@@ -265,12 +265,6 @@ invoke_n(publish, Driver, __self, __de)
 // Unpublishes the driver. Should be called from the onStop() override.
 #define Driver_Unpublish(__self) \
 invoke_0(unpublish, Driver, __self)
-
-
-// Returns a reference to the driver lock. For use cases like integrating with
-// a condition variable
-#define Driver_GetLock(__self) \
-(&((DriverRef)(__self))->mtx)
 
 
 #define Driver_OnStart(__self) \
