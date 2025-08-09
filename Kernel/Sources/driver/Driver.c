@@ -59,7 +59,7 @@ errno_t Driver_Start(DriverRef _Nonnull self)
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->mtx);
     switch (self->state) {
         case kDriverState_Active:
             err = EBUSY;
@@ -75,7 +75,7 @@ errno_t Driver_Start(DriverRef _Nonnull self)
             Driver_OnStart(self);
             break;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->mtx);
 
     return err;
 }
@@ -99,7 +99,7 @@ errno_t Driver_Terminate(DriverRef _Nonnull self)
     decl_try_err();
 
     // Change the state to terminating. 
-    Driver_Lock(self);
+    mtx_lock(&self->mtx);
     switch (self->state) {
         case kDriverState_Terminating:
         case kDriverState_Terminated:
@@ -115,7 +115,7 @@ errno_t Driver_Terminate(DriverRef _Nonnull self)
             }
             break;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->mtx);
 
     if (err != EOK) {
         return err;
@@ -132,11 +132,11 @@ errno_t Driver_Terminate(DriverRef _Nonnull self)
     );
 
 
-    Driver_Lock(self);
+    mtx_lock(&self->mtx);
 
     if (err != EOK) {
         self->state = kDriverState_Active;
-        Driver_Unlock(self);
+        mtx_unlock(&self->mtx);
         return err;
     }
 
@@ -147,7 +147,7 @@ errno_t Driver_Terminate(DriverRef _Nonnull self)
 
     // And mark the driver as terminated
     self->state = kDriverState_Terminated;
-    Driver_Unlock(self);
+    mtx_unlock(&self->mtx);
 
     return EOK;
 }
@@ -197,14 +197,14 @@ errno_t Driver_Open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IO
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->mtx);
     if (Driver_IsActive(self)) {
         err = Handler_Open(self, mode, arg, pOutChannel);
     }
     else {
         err = ENODEV;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->mtx);
 
     return err;
 }
@@ -224,14 +224,14 @@ errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->mtx);
     if (Driver_IsActive(self)) {
         err = Handler_Close(self, pChannel);
     }
     else {
         err = ENODEV;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->mtx);
 
     return err;
 }

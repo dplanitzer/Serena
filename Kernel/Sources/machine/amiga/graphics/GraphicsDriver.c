@@ -24,6 +24,7 @@ errno_t GraphicsDriver_Create(CatalogId parentDirId, GraphicsDriverRef _Nullable
     try(Driver_Create(class(GraphicsDriver), 0, parentDirId, (DriverRef*)&self));
     self->nextSurfaceId = 1;
     self->nextScreenId = 1;
+    mtx_init(&self->io_mtx);
 
 
     // Allocate the Copper tools
@@ -400,8 +401,9 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
 
 errno_t GraphicsDriver_SetCurrentScreen(GraphicsDriverRef _Nonnull self, int screenId)
 {
-    Driver_Lock(self);
     decl_try_err();
+
+    mtx_lock(&self->io_mtx);
     Screen* scr = _GraphicsDriver_GetScreenForId(self, screenId);
     if (scr || screenId == 0) {
         err = GraphicsDriver_SetCurrentScreen_Locked(self, scr);
@@ -409,15 +411,15 @@ errno_t GraphicsDriver_SetCurrentScreen(GraphicsDriverRef _Nonnull self, int scr
     else {
         err = EINVAL;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
 int GraphicsDriver_GetCurrentScreen(GraphicsDriverRef _Nonnull self)
 {
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     int id = (self->screen) ? Surface_GetId(self->screen) : 0;
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return id;
 }
 
@@ -427,7 +429,7 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     Screen* scr = self->screen;
 
     if (scr && (self->flags.isNewCopperProgNeeded || Screen_NeedsUpdate(scr))) {
@@ -442,13 +444,13 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
         }
     }
 
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
 void GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
 {
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     if (self->screen) {
         Screen_GetPixelSize(self->screen, pOutWidth, pOutHeight);
     }
@@ -456,7 +458,7 @@ void GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self, int* _Nonnul
         *pOutWidth = 0;
         *pOutHeight = 0;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
 }
 
 
@@ -498,13 +500,13 @@ errno_t GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull self, int width,
 {
     Surface* srf;
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     const errno_t err = Surface_Create(_GraphicsDriver_GetNewSurfaceId(self), width, height, pixelFormat, &srf);
     if (err == EOK) {
         List_InsertBeforeFirst(&self->surfaces, &srf->chain);
         *pOutId = Surface_GetId(srf);
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
@@ -512,7 +514,7 @@ errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, int id)
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
 
     if (srf) {
@@ -526,7 +528,7 @@ errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, int id)
     else {
         err = EINVAL;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
@@ -534,7 +536,7 @@ errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, int id, S
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
 
     if (srf) {
@@ -545,7 +547,7 @@ errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, int id, S
     else {
         err = EINVAL;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return EOK;
 }
 
@@ -553,7 +555,7 @@ errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, int id, MapPi
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
     if (srf) {
         err = Surface_Map(srf, mode, pOutMapping);
@@ -561,7 +563,7 @@ errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, int id, MapPi
     else {
         err = ENOTSUP;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
@@ -569,7 +571,7 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id)
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
     if (srf) {
         err = Surface_Unmap(srf);
@@ -577,7 +579,7 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id)
     else {
         err = ENOTSUP;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
@@ -618,7 +620,7 @@ static Screen* _Nullable _GraphicsDriver_GetScreenForId(GraphicsDriverRef _Nonnu
 
 errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, int surfaceId, int* _Nonnull pOutId)
 {
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
 
     decl_try_err();
     Screen* scr;
@@ -638,7 +640,7 @@ errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const Video
         err = EINVAL;
     }
 
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
@@ -646,7 +648,7 @@ errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, int id)
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
     if (scr) {
         if (!Screen_IsVisible(scr)) {
@@ -659,13 +661,13 @@ errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, int id)
     else {
         err = EINVAL;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
 errno_t GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, int id, VideoConfiguration* _Nonnull pOutVidConfig)
 {
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     decl_try_err();
     Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
     if (scr) {
@@ -674,7 +676,7 @@ errno_t GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, in
     else {
         err = EINVAL;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
@@ -683,7 +685,7 @@ errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, int id, siz
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
     if (scr) {
         err = Screen_SetCLUTEntry(scr, idx, color);
@@ -691,7 +693,7 @@ errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, int id, siz
     else {
         err = EINVAL;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
@@ -701,7 +703,7 @@ errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, s
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
     if (scr) {
         err = Screen_SetCLUTEntries(scr, idx, count, entries);
@@ -709,7 +711,7 @@ errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, s
     else {
         err = EINVAL;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
@@ -734,7 +736,7 @@ errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int screen
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     Screen* scr = _GraphicsDriver_GetScreenForId(self, screenId);
     if (scr) {
         int sprIdx;
@@ -746,7 +748,7 @@ errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int screen
         err = EINVAL;
         *pOutSpriteId = 0;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
@@ -759,7 +761,7 @@ errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int spr
         return EOK;
     }
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     Screen* scr = _GraphicsDriver_GetScreenForId(self, GET_SCREEN_ID(spriteId));
     if (scr) {
         err = Screen_RelinquishSprite(scr, GET_SPRITE_IDX(spriteId));
@@ -767,7 +769,7 @@ errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int spr
     else {
         err = EINVAL;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
@@ -775,7 +777,7 @@ errno_t GraphicsDriver_SetSpritePixels(GraphicsDriverRef _Nonnull self, int spri
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     Screen* scr = _GraphicsDriver_GetScreenForId(self, GET_SCREEN_ID(spriteId));
     if (scr) {
         err = Screen_SetSpritePixels(scr, GET_SPRITE_IDX(spriteId), planes);
@@ -783,7 +785,7 @@ errno_t GraphicsDriver_SetSpritePixels(GraphicsDriverRef _Nonnull self, int spri
     else {
         err = EINVAL;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
@@ -792,7 +794,7 @@ errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int sp
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     Screen* scr = _GraphicsDriver_GetScreenForId(self, GET_SCREEN_ID(spriteId));
     if (scr) {
         err = Screen_SetSpritePosition(scr, GET_SPRITE_IDX(spriteId), x, y);
@@ -800,7 +802,7 @@ errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int sp
     else {
         err = EINVAL;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
@@ -809,7 +811,7 @@ errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spr
 {
     decl_try_err();
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     Screen* scr = _GraphicsDriver_GetScreenForId(self, GET_SCREEN_ID(spriteId));
     if (scr) {
         err = Screen_SetSpriteVisible(scr, GET_SPRITE_IDX(spriteId), isVisible);
@@ -817,7 +819,7 @@ errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spr
     else {
         err = EINVAL;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 
@@ -830,12 +832,12 @@ errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spr
 // Enables / disables the h/v raster position latching triggered by a light pen.
 void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled)
 {
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     if (self->flags.isLightPenEnabled != enabled) {
         self->flags.isLightPenEnabled = enabled;
         self->flags.isNewCopperProgNeeded = 1;
     }
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
 }
 
 // Returns the current position of the light pen if the light pen triggered.
@@ -889,10 +891,10 @@ errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uin
         return ENOTSUP;
     }
 
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     Sprite_SetPixels(self->mouseCursor, planes);
     self->flags.isNewCopperProgNeeded = 1;
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return EOK;
 }
 
@@ -902,9 +904,9 @@ errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uin
 // if either 'x' or 'y' is == INT_MIN
 void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y)
 {
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     GraphicsDriver_SetMouseCursorPositionFromInterrupt(self, x, y);
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
 }
 
 void GraphicsDriver_SetMouseCursorPositionFromInterrupt(GraphicsDriverRef _Nonnull self, int x, int y)
@@ -925,9 +927,9 @@ void GraphicsDriver_SetMouseCursorPositionFromInterrupt(GraphicsDriverRef _Nonnu
 
 errno_t GraphicsDriver_GetVideoConfigurationRange(GraphicsDriverRef _Nonnull self, VideoConfigurationRange* _Nonnull config, size_t bufSize, size_t* _Nonnull pIter)
 {
-    Driver_Lock(self);
+    mtx_lock(&self->io_mtx);
     const errno_t err = VideoConfiguration_GetNext(config, bufSize, pIter);
-    Driver_Unlock(self);
+    mtx_unlock(&self->io_mtx);
     return err;
 }
 

@@ -267,14 +267,6 @@ invoke_n(publish, Driver, __self, __de)
 invoke_0(unpublish, Driver, __self)
 
 
-// Locks the driver instance
-#define Driver_Lock(__self) \
-mtx_lock(&((DriverRef)__self)->mtx)
-
-// Unlocks the driver instance
-#define Driver_Unlock(__self) \
-mtx_unlock(&((DriverRef)__self)->mtx)
-
 // Returns a reference to the driver lock. For use cases like integrating with
 // a condition variable
 #define Driver_GetLock(__self) \

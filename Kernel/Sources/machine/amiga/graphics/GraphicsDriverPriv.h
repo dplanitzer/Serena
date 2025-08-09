@@ -21,6 +21,7 @@
 
 
 final_class_ivars(GraphicsDriver, Driver,
+    mtx_t               io_mtx;
     Screen* _Nonnull    screen;
     Sprite* _Nonnull    nullSprite;
     Sprite* _Nonnull    mouseCursor;
