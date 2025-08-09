@@ -171,7 +171,6 @@ open_class(Driver, Handler,
     uint8_t                 flags;
     int8_t                  state;  //XXX should be atomic_int
     int                     openCount;
-    intptr_t                tag;
 );
 open_class_funcs(Driver, Handler,
     
@@ -315,9 +314,5 @@ extern errno_t Driver_StartAdoptChild(DriverRef _Nonnull _Locked self, DriverRef
 // Removes the given driver from the receiver. The given driver has to be a child
 // of the receiver. Call this function from a onStop() override.
 extern void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild);
-
-// Returns a reference to the child driver with tag 'tag'. NULL is returned if
-// no such child driver exists.
-extern DriverRef _Nullable Driver_GetChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag);
 
 #endif /* Driver_h */

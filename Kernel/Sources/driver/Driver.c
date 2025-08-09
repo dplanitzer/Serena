@@ -282,25 +282,6 @@ void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChi
     }
 }
 
-// Returns a reference to the child driver with tag 'tag'. NULL is returned if
-// no such child driver exists.
-DriverRef _Nullable Driver_GetChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag)
-{
-    if (!Driver_IsActive(self)) {
-        return NULL;
-    }
-
-    List_ForEach(&self->children, struct Driver,
-        DriverRef pCurDriver = driver_from_child_qe(pCurNode);
-
-        if (pCurDriver->tag == tag) {
-            return pCurDriver;
-        }
-    );
-
-    return NULL;
-}
-
 
 class_func_defs(Driver, Handler,
 override_func_def(deinit, Driver, Object)
