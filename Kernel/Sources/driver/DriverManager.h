@@ -75,4 +75,8 @@ extern errno_t DriverManager_CreateDirectory(DriverManagerRef _Nonnull self, con
 
 extern errno_t DriverManager_RemoveDirectory(DriverManagerRef _Nonnull self, CatalogId dirId);
 
+
+// Called by a driver when it is ready for reaping.
+extern void DriverManager_ReapDriver(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver);
+
 #endif /* DriverManager_h */

@@ -37,10 +37,10 @@ _cnd_wake(__self, true)
 // wait has timed out. Note that this function may return EINTR which means that
 // the cnd_wait() call is happening in the context of a system call that should
 // be aborted.
-extern errno_t cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull pLock);
+extern errno_t cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx);
 
 // Version of Wait() with an absolute timeout.
-extern errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull pLock, const struct timespec* _Nonnull deadline);
+extern errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx, const struct timespec* _Nonnull deadline);
 
 
 // Wakes up one or all waiters on the condition variable.

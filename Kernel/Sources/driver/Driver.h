@@ -14,18 +14,37 @@
 #include <klib/List.h>
 #include <kpi/stat.h>
 #include <kpi/uid.h>
+#include <sched/cnd.h>
 #include <sched/mtx.h>
 #include <Catalog.h>
 
+// Driver instantiation option. Used by subclassers to request specific default
+// behavior from the Driver class.
 enum {
     kDriver_Exclusive = 1,  // At most one I/O channel can be open at any given time. Attempts to open more will generate a EBUSY error
 };
 
+
+// Driver stop reason. Used to indicate why a driver instance should be stopped.
+enum {
+    kDriverStop_Shutdown = 0,   // An orderly driver shutdown
+    kDriverStop_HardwareLost,   // Driver should stop because the hardware was unexpectedly lost. Eg user disconnected the hardware without going through the user interface to do this in an orderly fashion
+    kDriverStop_Abort,          // Driver detected a fatal error condition and is unable to continue
+};
+
+
+// Driver state. Used internally by the Driver class.
 enum {
     kDriverState_Inactive = 0,
     kDriverState_Active,
-    kDriverState_Terminating,
-    kDriverState_Terminated
+    kDriverState_Stopping,
+    kDriverState_Stopped
+};
+
+
+// Driver flags. Used internally by the Driver class.
+enum {
+    kDriverFlag_NoMoreChildren = 1,
 };
 
 
@@ -52,10 +71,14 @@ typedef struct DriverEntry {
 //
 // -- The Driver Lifecycle --
 //
-// A driver has a lifecycle:
-// - create: driver was just created
+// Every driver instance goes through a lifecycle. The various lifecycle stages
+// are:
+// - created: driver was just created
 // - active: entered by calling Driver_Start()
-// - terminating: entered by calling Driver_Terminate()
+// - stopping: entered by calling Driver_Stop() with a stop reason
+// - stopped: entered by calling Driver_WaitForStopped()
+// - ready for destroy: the driver may be destroyed once Driver_WaitForStopped()
+//                      returns
 //
 // A driver must be started by calling Driver_Start() before any other driver
 // function is called. It is however possible to release a driver reference by
@@ -73,11 +96,35 @@ typedef struct DriverEntry {
 // IOChannel_Close() on the channel. IOChannel_Close() in turn invokes
 // Driver_Close().
 //
-// A driver may be voluntarily terminated by calling Driver_Terminate(). This
-// function must be called before the last reference to the driver is released
-// by calling Object_Release(). Note however that Driver_Terminate() will only
-// terminate the driver if there are no more channels open. It returns EBUSY as
-// long as there is at least one channel still open.
+// A driver may be voluntarily terminated by calling Driver_Stop() with the.
+// kDriverStop_Shutdown parameter. This indicates to the driver system that the
+// driver wants to stop in a voluntarily and orderly fashion. If the driver is
+// a bus controller (driver) then this stop will be automatically propagated to
+// all the child drivers and the child drivers will be able to use I/O services
+// of the bus driver to orderly shut down themselves.
+//
+// For example, a SCSI bus driver that stops will stop all of its bus clients by
+// calling Driver_Stop() on them with the same reason that was passed to the
+// SCSI bus driver. If the reason is kDriverStop_Shutdown then bus clients like
+// a SCSI disk driver will be able to use the I/O services of the SCSI bus driver
+// to park the head of the disk.
+//
+// If however the stop reason is kDriverStop_Abort or kDriverStop_HardwareLoss
+// then the bus client drivers would not be allowed to use the SCSI bus driver
+// I/O services since either the SCSI bus driver is in an undetermined state or
+// it is no longer able to access the SCSI hardware.
+// 
+// The next stop after calling Driver_Stop() is to invoke Driver_WaitForStopped().
+// A driver may deploy asynchronous services internally and the shutdown of those
+// services is triggered by the Driver_Stop() call. However it can take a while
+// for those services to complete their shutdown. This is why it is necessary to
+// wait by calling Driver_WaitForStopped() before you release the driver instance
+// by calling Object_Release(). Note that the wait-for-stopped function also
+// waits until after all open I/O channels on the driver have been closed.
+//
+// Note that when you stop a published driver, that the driver manager will
+// automatically take care of doing a Driver_WaitForStopped() and it will
+// release the stopped driver. This process is called 'driver reaping'.
 //
 // A typical driver lifecycle looks like this:
 //
@@ -87,13 +134,12 @@ typedef struct DriverEntry {
 //       IOChannel_Read()
 //       ...
 //     Driver_Close()
-//   Driver_Terminate()
+//   Driver_Stop()
+//   Driver_WaitForStopped()
 // Object_Release()
 //
-// Note that I/O channels are really used in connection with drivers to track
-// when a driver is in use. A driver can not be terminated while it is still
-// being used by someone (a channel is still open). Thus you must access a
-// driver through a channel.
+// Note that an important purpose of I/O channels is to enable the driver system
+// to track whether a driver is in active use.
 //
 //
 // -- Drivers, Concurrency and Exclusivity --
@@ -138,6 +184,26 @@ typedef struct DriverEntry {
 // its own specialized I/O operations queueing mechanism.
 //
 //
+// -- The Driver Lifecycle and I/O Operations Locks --
+//
+// Every driver owns and manages two important locks.
+//
+// The first one is the lifecycle management lock. This lock is owned and
+// managed by the Driver base class and subclasses do not need to worry about
+// the details of this lock. This lock is used to protect the integrity of the
+// driver state and it is used to ensure atomicity and exclusivity of the
+// start(), stop(), open() and close() driver functions.
+//
+// The second lock is the I/O operations lock which is owned and managed by the
+// Driver subclass. it is used to protect the integrity of the I/O related
+// hardware and software state of the Driver subclass. It is also used to ensure
+// atomicity and exclusivity of teh read(), write() and ioctl() functions.
+//
+// It is the responsibility of a Driver subclass writer to implement the I/O
+// operations lock and that it is acquired and released at the appropriate
+// times.
+//
+//
 // -- The Children of a Driver --
 //
 // A driver may create and manage child drivers. Child drivers are attached to
@@ -163,6 +229,7 @@ typedef struct DriverEntry {
 //
 open_class(Driver, Handler,
     mtx_t                   mtx;    // lifecycle management lock
+    cnd_t                   cnd;
     did_t                   id;     // unique id assigned at publish time
     CatalogId               parentDirectoryId;  // /dev directory in which the driver lives 
     List/*<Driver>*/        children;
@@ -171,6 +238,7 @@ open_class(Driver, Handler,
     uint8_t                 flags;
     int8_t                  state;  //XXX should be atomic_int
     int                     openCount;
+    int8_t                  stopReason;
 );
 open_class_funcs(Driver, Handler,
     
@@ -182,12 +250,21 @@ open_class_funcs(Driver, Handler,
     // Default Behavior: Returns EOK and does nothing
     errno_t (*onStart)(void* _Nonnull _Locked self);
 
-    // Invoked as the result of calling Driver_Terminate(). A driver subclass
-    // should override this method and configure the hardware such that it is in
-    // an idle and powered-down state.
+    // Invoked as the result of calling Driver_Stop(). A driver subclass should
+    // override this method and configure the hardware such that it is in an
+    // idle and (if possible) powered-down state.
     // Override: Optional
-    // Default Behavior: Unpublishes the driver
+    // Default Behavior: Does nothing
     void (*onStop)(void* _Nonnull _Locked self);
+
+    // Invoked as the result of calling Driver_WaitForStopped(). A driver
+    // subclass that deploys asynchronous processes as part of its implementation
+    // should override this method and wait for those processes to be terminated.
+    // The shutdown of those processes should be triggered from an onStop()
+    // override.
+    // Override: Optional
+    // Default Behavior: Does nothing
+    void (*onWaitForStopped)(void* _Nonnull self);
 
    
     // Invoked by the open() function to create the driver channel that should
@@ -226,10 +303,30 @@ open_class_funcs(Driver, Handler,
 // publish its catalog entry to the driver catalog.
 extern errno_t Driver_Start(DriverRef _Nonnull self);
 
-// Terminates the driver. This function blocks the caller until the termination
-// has completed. Note that the termination will only complete after all still
-// queued driver requested have finished executing.
-extern errno_t Driver_Terminate(DriverRef _Nonnull self);
+// Stops the driver. 'reason' specifies the reason why the driver should be
+// stopped. This method first stops all children of the receiver and it then
+// changes the state to stopping and it finally invokes the onStop() lifecycle
+// method. A driver subclass should override onStop() and program the hardware
+// in such a way that it is effectively disabled and no longer active. A child
+// driver which is told to stop by its controlling parent (bus) driver should
+// check the reason for the stop: The reason 'shutdown' indicates that the stop
+// is orderly and was voluntarily triggered. The parent driver is still active
+// and willing to accept I/O requests. The child driver may issue I/O requests
+// to its parent to eg park the head of its harddisk (assuming the child driver
+// manages a harddisk). A reason of 'abort' or 'hardware-lost' indicates that
+// the stop is not orderly and that the parent/bus and the child driver are no
+// longer able to access the hardware. A driver should simply free resources
+// and not attempt to access hardware or issues I/O requests to its parent driver
+// in this case. 
+extern void Driver_Stop(DriverRef _Nonnull self, int reason);
+
+// Waits until the driver has finished its shutdown sequence. This specifically
+// means that the caller is guaranteed that once this function returns that:
+// *) no more I/O channels are open referencing the driver
+// *) no more asynchronous processes are active and referencing this driver
+// The driver can be safely freed by calling Object_Release() once this function
+// has returned.
+extern void Driver_WaitForStopped(DriverRef _Nonnull self);
 
 
 // Opens an I/O channel to the driver with the mode 'mode'. EOK and the channel
@@ -240,14 +337,20 @@ extern errno_t Driver_Open(DriverRef _Nonnull self, unsigned int mode, intptr_t 
 // Closes the given driver channel.
 extern errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel);
 
+
 #define Driver_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
 Handler_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
 #define Driver_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
 Handler_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
+
 #define Driver_vIoctl(__self, __chan, __cmd, __ap) \
 Handler_vIoctl(__self, __chan, __cmd, __ap)
+
+
+// Returns true if there are open I/O channels referencing this driver.
+extern bool Driver_HasOpenChannels(DriverRef _Nonnull self);
 
 
 //
@@ -287,6 +390,9 @@ invoke_0(onStart, Driver, __self)
 
 #define Driver_OnStop(__self) \
 invoke_0(onStop, Driver, __self)
+
+#define Driver_OnWaitForStopped(__self) \
+invoke_0(onWaitForStopped, Driver, __self)
 
 
 // Creates an I/O channel that connects the driver to a user space application

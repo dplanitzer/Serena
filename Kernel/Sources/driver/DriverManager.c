@@ -184,3 +184,16 @@ errno_t DriverManager_RemoveDirectory(DriverManagerRef _Nonnull self, CatalogId 
         return EOK;
     }
 }
+
+
+void DriverManager_ReapDriver(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver)
+{
+    //XXX Implement me
+    // - have a serial dispatch queue
+    // - have a reaper queue
+    // - add the driver to the reaper queue
+    // - check once per minute hasOpenChannels():
+    // -- if true -> do nothing
+    // -- if false -> call Driver_WaitForStopped(), then call Object_Release() on the driver
+    //XXX Implement me
+}

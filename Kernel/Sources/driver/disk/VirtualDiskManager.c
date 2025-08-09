@@ -75,7 +75,7 @@ errno_t VirtualDiskManager_CreateRamDisk(VirtualDiskManagerRef _Nonnull self, co
 
 catch:
     if (dd) {
-        Driver_Terminate(dd);
+        Driver_Stop(dd, kDriverStop_Shutdown);
         Object_Release(dd);
     }
     return err;
@@ -93,7 +93,7 @@ errno_t VirtualDiskManager_CreateRomDisk(VirtualDiskManagerRef _Nonnull self, co
 
 catch:
     if (dd) {
-        Driver_Terminate(dd);
+        Driver_Stop(dd, kDriverStop_Shutdown);
         Object_Release(dd);
     }
     return err;

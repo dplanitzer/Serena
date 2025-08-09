@@ -168,7 +168,7 @@ static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _No
 
 
     if (self->portDriver[port]) {
-        Driver_Terminate(self->portDriver[port]);
+        Driver_Stop(self->portDriver[port], kDriverStop_Shutdown);
         Driver_RemoveChild((DriverRef)self, self->portDriver[port]);
         self->portDriver[port] = NULL;
     }

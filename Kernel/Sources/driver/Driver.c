@@ -24,6 +24,8 @@ errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId parent
     try(Handler_Create(pClass, (HandlerRef*)&self));
 
     mtx_init(&self->mtx);
+    cnd_init(&self->cnd);
+
     List_Init(&self->children);
     ListNode_Init(&self->child_qe);
     self->options = options;
@@ -41,6 +43,19 @@ catch:
 
 void Driver_deinit(DriverRef _Nonnull self)
 {
+    switch (self->state) {
+        case kDriverState_Stopping:
+            Driver_WaitForStopped(self);
+            break;
+
+        case kDriverState_Inactive:
+        case kDriverState_Stopped:
+            break;
+
+        case kDriverState_Active:
+            abort();
+    }
+
     List_ForEach(&self->children, struct Driver,
         DriverRef pCurDriver = driver_from_child_qe(pCurNode);
 
@@ -58,8 +73,8 @@ errno_t Driver_Start(DriverRef _Nonnull self)
             err = EBUSY;
             break;
 
-        case kDriverState_Terminating:
-        case kDriverState_Terminated:
+        case kDriverState_Stopping:
+        case kDriverState_Stopped:
             err = ENODEV;
             break;
             
@@ -79,65 +94,83 @@ errno_t Driver_onStart(DriverRef _Nonnull _Locked self)
 }
 
 
-errno_t Driver_Terminate(DriverRef _Nonnull self)
+void Driver_Stop(DriverRef _Nonnull self, int reason)
 {
-    decl_try_err();
+    bool doStop = true;
 
-    // Change the state to terminating. 
+    // Validate our state and disable accepting new children
     mtx_lock(&self->mtx);
     switch (self->state) {
-        case kDriverState_Terminating:
-        case kDriverState_Terminated:
-            err = ETERMINATED;
+        case kDriverState_Stopping:
+        case kDriverState_Stopped:
+            doStop = false;
             break;
 
         default:
-            if (self->openCount == 0) {
-                self->state = kDriverState_Terminating;
-            }
-            else {
-                err = EBUSY;
-            }
+            self->flags |= kDriverFlag_NoMoreChildren;
             break;
     }
     mtx_unlock(&self->mtx);
 
-    if (err != EOK) {
-        return err;
+    if (!doStop) {
+        return;
     }
 
-    
+
     // The list of child drivers is now frozen and can not change anymore.
-    // Synchronously terminate all our child drivers
+    // Synchronously stop all our child drivers
     List_ForEach(&self->children, struct Driver,
-        err = Driver_Terminate(driver_from_child_qe(pCurNode));
-        if (err != EOK) {
-            break;
-        }
+        Driver_Stop(driver_from_child_qe(pCurNode), reason);
     );
 
 
+    // Enter the stopping state
     mtx_lock(&self->mtx);
-
-    if (err != EOK) {
-        self->state = kDriverState_Active;
-        mtx_unlock(&self->mtx);
-        return err;
-    }
-
-
-    // Stop myself
     Driver_OnStop(self);
-
-
-    // And mark the driver as terminated
-    self->state = kDriverState_Terminated;
+    self->state = kDriverState_Stopping;
     mtx_unlock(&self->mtx);
 
-    return EOK;
+
+    // Tell the driver manager that we are ready for reaping
+    DriverManager_ReapDriver(gDriverManager, self);
 }
 
 void Driver_onStop(DriverRef _Nonnull _Locked self)
+{
+}
+
+
+void Driver_WaitForStopped(DriverRef _Nonnull self)
+{
+    // First wait for all I/O channels to be closed
+    mtx_lock(&self->mtx);
+    for (;;) {
+        if (self->state != kDriverState_Stopped) {
+            mtx_unlock(&self->mtx);
+            return;
+        }
+
+        if (self->openCount == 0) {
+            break;
+        }
+
+        cnd_wait(&self->cnd, &self->mtx);
+    }
+    mtx_unlock(&self->mtx);
+
+
+    // Let the driver subclass wait for the shutdown of whatever asynchronous
+    // processes it depends on
+    Driver_OnWaitForStopped(self);
+
+
+    // Change the state to stopped
+    mtx_lock(&self->mtx);
+    self->state = kDriverState_Stopped;
+    mtx_unlock(&self->mtx);
+}
+
+void Driver_onWaitForStopped(DriverRef _Nonnull self)
 {
 }
 
@@ -154,6 +187,14 @@ void Driver_unpublish(DriverRef _Nonnull self)
 }
 
 
+bool Driver_HasOpenChannels(DriverRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    const bool r = (self->openCount > 0) ? true : false;
+    mtx_unlock(&self->mtx);
+
+    return r;
+}
 
 errno_t Driver_onOpen(DriverRef _Nonnull _Locked self, int openCount, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
@@ -207,6 +248,11 @@ errno_t Driver_close(DriverRef _Nonnull _Locked self, IOChannelRef _Nonnull pCha
 
     if (self->openCount > 0) {
         self->openCount--;
+
+        if (self->openCount == 0) {
+            // Notify Driver_WaitForStopped()
+            cnd_broadcast(&self->cnd);
+        }
         return EOK;
     }
     else {
@@ -287,6 +333,7 @@ class_func_defs(Driver, Handler,
 override_func_def(deinit, Driver, Object)
 func_def(onStart, Driver)
 func_def(onStop, Driver)
+func_def(onWaitForStopped, Driver)
 func_def(publish, Driver)
 func_def(unpublish, Driver)
 override_func_def(open, Driver, Handler)
