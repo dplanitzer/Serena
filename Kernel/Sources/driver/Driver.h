@@ -428,6 +428,10 @@ extern errno_t Driver_SetMaxChildCount(DriverRef _Nonnull self, size_t count);
 // Returns the max child count.
 extern size_t Driver_GetMaxChildCount(DriverRef _Nonnull self);
 
+// Returns the number of child drivers that are currently attached to the receiver.
+extern size_t Driver_GetCurrentChildCount(DriverRef _Nonnull self);
+
+
 // Adds the given driver as a child to the receiver. The driver is added to the
 // first available slot. No check is made whether this driver instance already
 // exists as a child. Returns ENXIO is returned if no slot is available anymore.
@@ -475,5 +479,17 @@ extern errno_t Driver_StartAdoptChildAt(DriverRef _Nonnull self, size_t slotId, 
 // nothing if the slot contains no driver. The child is stopped, then released
 // and removed from the child list.
 extern void Driver_StopChildAt(DriverRef _Nonnull self, size_t slotId, int stopReason);
+
+
+// Returns the data associated with the bus slot id 'slotId'. 0 is returned if
+// no data has ever been set on the bus slot.
+extern intptr_t Driver_GetChildDataAt(DriverRef _Nonnull self, size_t slotId);
+
+// Replaces the data currently associated with bus slot id 'slotId' with the
+// provided data. The data is stored by value. Also note that the data is
+// managed independently from the child driver. Eg removing the child driver
+// for a slot does not automatically remove the associated data. This function
+// returns the data that was previously associated with the slot.
+extern intptr_t Driver_SetChildDataAt(DriverRef _Nonnull self, size_t slotId, intptr_t data);
 
 #endif /* Driver_h */

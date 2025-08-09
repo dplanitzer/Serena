@@ -327,6 +327,21 @@ size_t Driver_GetMaxChildCount(DriverRef _Nonnull self)
     return count;
 }
 
+size_t Driver_GetCurrentChildCount(DriverRef _Nonnull self)
+{
+    size_t count = 0;
+
+    mtx_lock(&self->childMtx);
+    for (int16_t i = 0; i < self->maxChildCount; i++) {
+        if (self->child[i].driver) {
+            count++;
+        }
+    }
+    mtx_unlock(&self->childMtx);
+
+    return count;
+}
+
 errno_t Driver_AddChild(DriverRef _Nonnull self, DriverRef _Nonnull child)
 {
     return Driver_AdoptChild(self, Object_RetainAs(child, Driver));
@@ -453,6 +468,34 @@ void Driver_StopChildAt(DriverRef _Nonnull self, size_t slotId, int stopReason)
         Driver_Stop(self, stopReason);
         Object_Release(child);  // balances the retain() from the addChild()
     }
+}
+
+
+intptr_t Driver_GetChildDataAt(DriverRef _Nonnull self, size_t slotId)
+{
+    intptr_t data = 0;
+
+    mtx_lock(&self->childMtx);
+    if (slotId < self->maxChildCount) {
+        data = self->child[slotId].data;
+    }
+    mtx_unlock(&self->childMtx);
+
+    return data;
+}
+
+intptr_t Driver_SetChildDataAt(DriverRef _Nonnull self, size_t slotId, intptr_t data)
+{
+    intptr_t oldData = 0;
+
+    mtx_lock(&self->childMtx);
+    if (slotId < self->maxChildCount) {
+        oldData = self->child[slotId].data;
+        self->child[slotId].data = data;
+    }
+    mtx_unlock(&self->childMtx);
+
+    return oldData;
 }
 
 
