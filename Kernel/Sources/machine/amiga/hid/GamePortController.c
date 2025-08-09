@@ -11,100 +11,28 @@
 #include "LightPenDriver.h"
 #include "MouseDriver.h"
 #include <driver/DriverManager.h>
-#include <kern/assert.h>
-#include <kpi/fcntl.h>
-#include <kpi/hid.h>
 
 
-#define PORT_COUNT   2
-
-
-final_class_ivars(GamePortController, Driver,
-    CatalogId           busDirId;
-    DriverRef _Nullable portDriver[PORT_COUNT];
-);
+static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _Nonnull _Locked self, int port, InputType type);
 
 
 errno_t GamePortController_Create(CatalogId parentDirId, GamePortControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(GamePortController), kDriver_Exclusive, parentDirId, (DriverRef*)pOutSelf);
-}
-
-static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType* _Nonnull pOutType)
-{
-    if (port < 0 || port >= PORT_COUNT) {
-        return EINVAL;
-    }
-
-    *pOutType = (self->portDriver[port]) ? InputDriver_GetInputType(self->portDriver[port]) : kInputType_None;
-
-    return EOK;
-}
-
-static errno_t GamePortController_CreateInputDriver(GamePortControllerRef _Nonnull self, int port, InputType type, DriverRef _Nullable * _Nonnull pOutDriver)
-{
-    switch (type) {
-        case kInputType_Mouse:
-            return MouseDriver_Create(self->busDirId, port, pOutDriver);
-
-        case kInputType_DigitalJoystick:
-            return DigitalJoystickDriver_Create(self->busDirId, port, pOutDriver);
-
-        case kInputType_AnalogJoystick:
-            return AnalogJoystickDriver_Create(self->busDirId, port, pOutDriver);
-
-        case kInputType_LightPen:
-            return LightPenDriver_Create(self->busDirId, port, pOutDriver);
-
-        default:
-            abort();
-    }
-}
-
-static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _Nonnull _Locked self, int port, InputType type)
-{
     decl_try_err();
+    GamePortControllerRef self;
 
-    if (port < 0 || port >= PORT_COUNT) {
-        return EINVAL;
+    err = Driver_Create(class(GamePortController), kDriver_Exclusive, parentDirId, (DriverRef*)&self);
+    if (err == EOK) {
+        mtx_init(&self->io_mtx);
     }
 
-    switch (type) {
-        case kInputType_Mouse:
-        case kInputType_DigitalJoystick:
-        case kInputType_AnalogJoystick:
-        case kInputType_LightPen:
-            break;
-
-        default:
-            return EINVAL;
-    }
-
-
-    if (self->portDriver[port]) {
-        Driver_Terminate(self->portDriver[port]);
-        Driver_RemoveChild((DriverRef)self, self->portDriver[port]);
-        self->portDriver[port] = NULL;
-    }
-
-    if (type != kInputType_None) {
-        try(GamePortController_CreateInputDriver(self, port, type, &self->portDriver[port]));
-        try(Driver_StartAdoptChild((DriverRef)self, self->portDriver[port]));
-    }
-
-catch:
+    *pOutSelf = self;
     return err;
 }
 
-static errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType type)
-{
-    Driver_Lock(self);
-    const errno_t err = GamePortController_SetPortDevice_Locked(self, port, type);
-    Driver_Unlock(self);
-
-    return err;
-}
-
+//
+// Lifecycle
+//
 
 errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
 {
@@ -145,6 +73,33 @@ void GamePortController_onStop(DriverRef _Nonnull _Locked self)
     Driver_Unpublish(self);
 }
 
+
+//
+// API
+//
+
+static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType* _Nonnull pOutType)
+{
+    if (port < 0 || port >= GP_PORT_COUNT) {
+        return EINVAL;
+    }
+
+    mtx_lock(&self->io_mtx);
+    *pOutType = (self->portDriver[port]) ? InputDriver_GetInputType(self->portDriver[port]) : kInputType_None;
+    mtx_unlock(&self->io_mtx);
+
+    return EOK;
+}
+
+static errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType type)
+{
+    mtx_lock(&self->io_mtx);
+    const errno_t err = GamePortController_SetPortDevice_Locked(self, port, type);
+    mtx_unlock(&self->io_mtx);
+
+    return err;
+}
+
 errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
 {
     switch (cmd) {
@@ -168,8 +123,69 @@ errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelR
 }
 
 
+//
+// Private
+//
+
+errno_t GamePortController_createInputDriver(GamePortControllerRef _Nonnull self, int port, InputType type, DriverRef _Nullable * _Nonnull pOutDriver)
+{
+    switch (type) {
+        case kInputType_Mouse:
+            return MouseDriver_Create(self->busDirId, port, pOutDriver);
+
+        case kInputType_DigitalJoystick:
+            return DigitalJoystickDriver_Create(self->busDirId, port, pOutDriver);
+
+        case kInputType_AnalogJoystick:
+            return AnalogJoystickDriver_Create(self->busDirId, port, pOutDriver);
+
+        case kInputType_LightPen:
+            return LightPenDriver_Create(self->busDirId, port, pOutDriver);
+
+        default:
+            return EINVAL;
+    }
+}
+
+static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _Nonnull _Locked self, int port, InputType type)
+{
+    decl_try_err();
+
+    if (port < 0 || port >= GP_PORT_COUNT) {
+        return EINVAL;
+    }
+
+    switch (type) {
+        case kInputType_Mouse:
+        case kInputType_DigitalJoystick:
+        case kInputType_AnalogJoystick:
+        case kInputType_LightPen:
+            break;
+
+        default:
+            return EINVAL;
+    }
+
+
+    if (self->portDriver[port]) {
+        Driver_Terminate(self->portDriver[port]);
+        Driver_RemoveChild((DriverRef)self, self->portDriver[port]);
+        self->portDriver[port] = NULL;
+    }
+
+    if (type != kInputType_None) {
+        try(GamePortController_CreateInputDriver(self, port, type, &self->portDriver[port]));
+        try(Driver_StartAdoptChild((DriverRef)self, self->portDriver[port]));
+    }
+
+catch:
+    return err;
+}
+
+
 class_func_defs(GamePortController, Driver,
 override_func_def(onStart, GamePortController, Driver)
 override_func_def(onStop, GamePortController, Driver)
 override_func_def(ioctl, GamePortController, Handler)
+func_def(createInputDriver, GamePortController)
 );

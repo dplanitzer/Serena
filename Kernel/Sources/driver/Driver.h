@@ -122,7 +122,7 @@ typedef struct DriverEntry {
 // to take the same lock that is used to protect the integrity of the I/O
 // operations.
 //
-// Note that doStart(), doStop(), doOpen() and doClose() are invoked while the
+// Note that onStart(), onStop(), doOpen() and doClose() are invoked while the
 // driver is holding the driver state management lock. This should not be of
 // much relevance to a driver subclass since a driver subclass has no need to
 // acquire its I/O operations lock from these overrides. See the previous
@@ -162,14 +162,14 @@ typedef struct DriverEntry {
 // driver for the CD-ROM drive.
 //
 open_class(Driver, Handler,
-    mtx_t                   mtx;
+    mtx_t                   mtx;    // lifecycle management lock
     did_t                   id;     // unique id assigned at publish time
     CatalogId               parentDirectoryId;  // /dev directory in which the driver lives 
     List/*<Driver>*/        children;
     ListNode/*<Driver>*/    child_qe;
     uint16_t                options;
     uint8_t                 flags;
-    int8_t                  state;
+    int8_t                  state;  //XXX should be atomic_int
     int                     openCount;
     intptr_t                tag;
 );

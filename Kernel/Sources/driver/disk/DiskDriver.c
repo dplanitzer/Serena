@@ -280,11 +280,9 @@ void DiskDriver_doGetDiskInfo(DiskDriverRef _Nonnull self, DiskGeometryRequest* 
 
 void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
-    Driver_Lock(self);
     if (!Driver_IsActive(self)) {
         req->status = ENODEV;
     }
-    Driver_Unlock(self);
 
 
     if (req->status == EOK) {

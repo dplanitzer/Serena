@@ -10,10 +10,31 @@
 #define GamePortController_h
 
 #include <driver/Driver.h>
+#include <kpi/hid.h>
 
+#define GP_PORT_COUNT   2
 
-final_class(GamePortController, Driver);
+open_class(GamePortController, Driver,
+    mtx_t               io_mtx;
+    CatalogId           busDirId;
+    DriverRef _Nullable portDriver[GP_PORT_COUNT];
+);
+open_class_funcs(GamePortController, Driver,
+    
+    // Invoked when the game port controller is instructed that an input device
+    // of type 'type' is connected to the port 'port'. Overrides should create
+    // an instance of a suitable driver and return it. An ENODEV error should
+    // be returned if no suitable driver is available. 
+    // 
+    // Override: Optional
+    // Default Behavior: Returns a suitable driver instance
+    errno_t (*createInputDriver)(void* _Nonnull self, int port, InputType type, DriverRef _Nullable * _Nonnull pOutDriver);
+);
+
 
 extern errno_t GamePortController_Create(CatalogId parentDirId, GamePortControllerRef _Nullable * _Nonnull pOutSelf);
+
+#define GamePortController_CreateInputDriver(__self, __port, __type, __pOutDriver) \
+invoke_n(createInputDriver, GamePortController, __self, __port, __type, __pOutDriver)
 
 #endif /* GamePortController_h */

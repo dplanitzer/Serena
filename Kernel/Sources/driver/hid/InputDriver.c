@@ -21,14 +21,12 @@ errno_t InputDriver_GetInfo(InputDriverRef _Nonnull self, InputInfo* pOutInfo)
 {
     decl_try_err();
 
-    Driver_Lock(self);
     if (Driver_IsActive(self)) {
         invoke_n(getInfo, InputDriver, self, pOutInfo);
     }
     else {
         err = ENODEV;
     }
-    Driver_Unlock(self);
 
     return err;
 }
