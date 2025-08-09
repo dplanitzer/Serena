@@ -122,7 +122,7 @@ typedef struct DriverEntry {
 // to take the same lock that is used to protect the integrity of the I/O
 // operations.
 //
-// Note that onStart(), onStop(), doOpen() and doClose() are invoked while the
+// Note that onStart(), onStop(), onOpen() and onClose() are invoked while the
 // driver is holding the driver state management lock. This should not be of
 // much relevance to a driver subclass since a driver subclass has no need to
 // acquire its I/O operations lock from these overrides. See the previous
@@ -191,18 +191,23 @@ open_class_funcs(Driver, Handler,
     void (*onStop)(void* _Nonnull _Locked self);
 
    
+    // Invoked by the open() function to create the driver channel that should
+    // be returned to the caller. The 'openCount' reflects the number of I/O
+    // channels that are currently open for this driver. Note that this count
+    // does not yet include the channel that should be created. A count of 0
+    // indicates that this is the first channel that should be opened. A driver
+    // subclass can use this information to eg power up the hardware if
+    // necessary.
+    // Override: Optional
+    // Default Behavior: returns a HandlerChannel instance
+    errno_t (*onOpen)(void* _Nonnull _Locked self, int openCount, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
+
+    
     // Publish the driver. Should be called from the onStart() override.
     errno_t (*publish)(void* _Nonnull self, const DriverEntry* _Nonnull de);
 
     // Unpublishes the driver. Should be called from the onStop() override.
     void (*unpublish)(void* _Nonnull self);
-
-
-    // Invoked by the open() function to create the driver channel that should
-    // be returned to the caller.
-    // Override: Optional
-    // Default Behavior: returns a HandlerChannel instance
-    errno_t (*createChannel)(void* _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
 );
 
 
@@ -276,8 +281,8 @@ invoke_0(onStop, Driver, __self)
 
 // Creates an I/O channel that connects the driver to a user space application
 // or a kernel space service
-#define Driver_CreateChannel(__self, __mode, __arg, __pOutChannel) \
-invoke_n(createChannel, Driver, __self, __mode, __arg, __pOutChannel)
+#define Driver_OnOpen(__self, __openCount, __mode, __arg, __pOutChannel) \
+invoke_n(onOpen, Driver, __self, __openCount, __mode, __arg, __pOutChannel)
 
 
 // Adds the given driver as a child to the receiver. Call this function from a

@@ -155,7 +155,7 @@ void Driver_unpublish(DriverRef _Nonnull self)
 
 
 
-errno_t Driver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Driver_onOpen(DriverRef _Nonnull _Locked self, int openCount, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return HandlerChannel_Create((HandlerRef)self, SEO_FT_DRIVER, mode, 0, pOutChannel);
 }
@@ -164,12 +164,12 @@ errno_t Driver_open(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t
 {
     decl_try_err();
 
-    if (self->openCount > 0 && (self->options & kDriver_Exclusive) == kDriver_Exclusive) {
+    if ((self->options & kDriver_Exclusive) == kDriver_Exclusive && self->openCount > 0) {
         *pOutChannel = NULL;
         return EBUSY;
     }
 
-    err = Driver_CreateChannel(self, mode, arg, pOutChannel);    
+    err = Driver_OnOpen(self, self->openCount, mode, arg, pOutChannel);    
     if (err == EOK) {
         self->openCount++;
     }
@@ -302,6 +302,6 @@ func_def(onStop, Driver)
 func_def(publish, Driver)
 func_def(unpublish, Driver)
 override_func_def(open, Driver, Handler)
-func_def(createChannel, Driver)
+func_def(onOpen, Driver)
 override_func_def(close, Driver, Handler)
 );
