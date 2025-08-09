@@ -12,12 +12,10 @@
 #include <driver/Driver.h>
 #include <kpi/hid.h>
 
-#define GP_PORT_COUNT   2
 
 open_class(GamePortController, Driver,
-    mtx_t               io_mtx;
-    CatalogId           busDirId;
-    DriverRef _Nullable portDriver[GP_PORT_COUNT];
+    mtx_t       io_mtx;
+    CatalogId   busDirId;
 );
 open_class_funcs(GamePortController, Driver,
     

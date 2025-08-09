@@ -13,6 +13,8 @@
 #include <driver/DriverManager.h>
 
 
+#define GP_PORT_COUNT   2
+
 static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _Nonnull _Locked self, int port, InputType type);
 
 
@@ -23,7 +25,7 @@ errno_t GamePortController_Create(CatalogId parentDirId, GamePortControllerRef _
 
     try(Driver_Create(class(GamePortController), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
     try(Driver_SetMaxChildCount((DriverRef)self, GP_PORT_COUNT));
-    
+
     mtx_init(&self->io_mtx);
 
 catch:
@@ -86,7 +88,8 @@ static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull s
     }
 
     mtx_lock(&self->io_mtx);
-    *pOutType = (self->portDriver[port]) ? InputDriver_GetInputType(self->portDriver[port]) : kInputType_None;
+    DriverRef dp = Driver_GetChildAt((DriverRef)self, port);
+    *pOutType = (dp) ? InputDriver_GetInputType(dp) : kInputType_None;
     mtx_unlock(&self->io_mtx);
 
     return EOK;
@@ -168,15 +171,13 @@ static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _No
     }
 
 
-    if (self->portDriver[port]) {
-        Driver_Stop(self->portDriver[port], kDriverStop_Shutdown);
-        Driver_RemoveChild((DriverRef)self, self->portDriver[port]);
-        self->portDriver[port] = NULL;
-    }
+    Driver_StopChildAt((DriverRef)self, port, kDriverStop_Shutdown);
 
     if (type != kInputType_None) {
-        try(GamePortController_CreateInputDriver(self, port, type, &self->portDriver[port]));
-        try(Driver_StartAdoptChild((DriverRef)self, self->portDriver[port]));
+        DriverRef newDriver = NULL;
+
+        try(GamePortController_CreateInputDriver(self, port, type, &newDriver));
+        try(Driver_StartAdoptChildAt((DriverRef)self, port, newDriver));
     }
 
 catch:

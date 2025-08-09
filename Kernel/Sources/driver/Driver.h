@@ -425,6 +425,9 @@ invoke_n(onClose, Driver, __self, __ioc, __openCount)
 // function again after a max count has already been set.
 extern errno_t Driver_SetMaxChildCount(DriverRef _Nonnull self, size_t count);
 
+// Returns the max child count.
+extern size_t Driver_GetMaxChildCount(DriverRef _Nonnull self);
+
 // Adds the given driver as a child to the receiver. The driver is added to the
 // first available slot. No check is made whether this driver instance already
 // exists as a child. Returns ENXIO is returned if no slot is available anymore.
@@ -441,5 +444,36 @@ extern errno_t Driver_StartAdoptChild(DriverRef _Nonnull self, DriverRef _Nonnul
 // Removes the given driver from the receiver. The given driver has to be a child
 // of the receiver. Call this function from a onStop() override.
 extern void Driver_RemoveChild(DriverRef _Nonnull self, DriverRef _Nonnull child);
+
+// Removes the child at the given bus slot id 'slotId' and returns it. Note that
+// it is your responsibility to stop and/or release the returned driver.
+extern DriverRef _Nullable Driver_RemoveChildAt(DriverRef _Nonnull self, size_t slotId);
+
+
+// Exchanges the driver currently associated with bus slot id 'slotId' with the
+// provided driver. The new driver is retained and the old driver is returned.
+// It is the responsibility of the caller to release the old driver.
+extern DriverRef _Nullable Driver_SetChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nullable child);
+
+// Same as Driver_SetChildAt() except that it consumes the provided child driver
+// reference.
+extern DriverRef _Nullable Driver_AdoptChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nullable _Consuming child);
+
+// Returns an unowned reference to the child driver with bus slot id 'slotId'.
+// NULL is returned if the slot is empty. Note that you must retain the returned
+// driver reference explicitly if you plan to continue to use it after it has
+// been removed from the driver.
+extern DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId);
+
+
+// Starts the given driver instance and adopts the driver instance as a child if
+// the start has been successful. The child is then assigned to the given bus
+// slot id. This function requires that bus slot 'slotId' is empty.
+extern errno_t Driver_StartAdoptChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nonnull _Consuming child);
+
+// Stops the child at the bus slot id 'slotId' with stop reason 'reason'. Does
+// nothing if the slot contains no driver. The child is stopped, then released
+// and removed from the child list.
+extern void Driver_StopChildAt(DriverRef _Nonnull self, size_t slotId, int stopReason);
 
 #endif /* Driver_h */

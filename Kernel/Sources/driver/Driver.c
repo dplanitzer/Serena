@@ -318,6 +318,15 @@ catch:
     return err;
 }
 
+size_t Driver_GetMaxChildCount(DriverRef _Nonnull self)
+{
+    mtx_lock(&self->childMtx);
+    const size_t count = self->maxChildCount;
+    mtx_unlock(&self->childMtx);
+
+    return count;
+}
+
 errno_t Driver_AddChild(DriverRef _Nonnull self, DriverRef _Nonnull child)
 {
     return Driver_AdoptChild(self, Object_RetainAs(child, Driver));
@@ -375,6 +384,75 @@ void Driver_RemoveChild(DriverRef _Nonnull self, DriverRef _Nonnull child)
         self->child[idx].driver = NULL;
     }
     mtx_unlock(&self->childMtx);
+}
+
+DriverRef _Nullable Driver_RemoveChildAt(DriverRef _Nonnull self, size_t slotId)
+{
+    DriverRef oldChild = NULL;
+
+    mtx_lock(&self->childMtx);
+    if (slotId < self->maxChildCount) {
+        oldChild = self->child[slotId].driver;
+        self->child[slotId].driver = NULL;
+    }
+    mtx_unlock(&self->childMtx);
+
+    return oldChild;
+}
+
+DriverRef _Nullable Driver_SetChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nullable child)
+{
+    return Driver_AdoptChildAt(self, slotId, (child) ? Object_RetainAs(child, Driver) : NULL);
+}
+
+DriverRef _Nullable Driver_AdoptChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nullable _Consuming child)
+{
+    DriverRef oldChild = NULL;
+
+    mtx_lock(&self->childMtx);
+    if (slotId < self->maxChildCount) {
+        oldChild = self->child[slotId].driver;
+        self->child[slotId].driver = child;
+    }
+    mtx_unlock(&self->childMtx);
+
+    return oldChild;
+}
+
+DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId)
+{
+    DriverRef dp = NULL;
+
+    mtx_lock(&self->childMtx);
+    if (slotId < self->maxChildCount) {
+        dp = self->child[slotId].driver;
+    }
+    mtx_unlock(&self->childMtx);
+
+    return dp;
+}
+
+
+errno_t Driver_StartAdoptChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nonnull _Consuming child)
+{
+    decl_try_err();
+
+    err = Driver_Start(child);
+    if (err == EOK) {
+        Driver_AdoptChildAt(self, slotId, child);
+    }
+
+    return err;
+}
+
+void Driver_StopChildAt(DriverRef _Nonnull self, size_t slotId, int stopReason)
+{
+    DriverRef child = Driver_RemoveChildAt(self, slotId);
+
+    if (child) {
+        Driver_Stop(self, stopReason);
+        Object_Release(child);  // balances the retain() from the addChild()
+    }
 }
 
 
