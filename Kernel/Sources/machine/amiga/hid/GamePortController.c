@@ -21,11 +21,12 @@ errno_t GamePortController_Create(CatalogId parentDirId, GamePortControllerRef _
     decl_try_err();
     GamePortControllerRef self;
 
-    err = Driver_Create(class(GamePortController), kDriver_Exclusive, parentDirId, (DriverRef*)&self);
-    if (err == EOK) {
-        mtx_init(&self->io_mtx);
-    }
+    try(Driver_Create(class(GamePortController), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
+    try(Driver_SetMaxChildCount((DriverRef)self, GP_PORT_COUNT));
+    
+    mtx_init(&self->io_mtx);
 
+catch:
     *pOutSelf = self;
     return err;
 }

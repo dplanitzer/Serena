@@ -9,11 +9,13 @@
 #include "Driver.h"
 #include "DriverManager.h"
 #include <handler/HandlerChannel.h>
+#include <kern/kalloc.h>
 #include <kpi/fcntl.h>
 
-
-#define driver_from_child_qe(__ptr) \
-(DriverRef) (((uint8_t*)__ptr) - offsetof(struct Driver, child_qe))
+typedef struct drv_child {
+    DriverRef _Nullable driver;
+    intptr_t            data;
+} drv_child_t;
 
 
 errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf)
@@ -21,25 +23,21 @@ errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId parent
     decl_try_err();
     DriverRef self = NULL;
 
-    try(Handler_Create(pClass, (HandlerRef*)&self));
+    err = Handler_Create(pClass, (HandlerRef*)&self);
+    if (err == EOK) {
+        mtx_init(&self->mtx);
+        cnd_init(&self->cnd);
+        mtx_init(&self->childMtx);
 
-    mtx_init(&self->mtx);
-    cnd_init(&self->cnd);
-
-    List_Init(&self->children);
-    ListNode_Init(&self->child_qe);
-    self->options = options;
-    self->state = kDriverState_Inactive;
-    self->parentDirectoryId = parentDirectoryId;
+        self->options = options;
+        self->state = kDriverState_Inactive;
+        self->parentDirectoryId = parentDirectoryId;
+    }
 
     *pOutSelf = self;
     return EOK;
-
-catch:
-    Object_Release(self);
-    *pOutSelf = NULL;
-    return err;
 }
+
 
 void Driver_deinit(DriverRef _Nonnull self)
 {
@@ -56,11 +54,20 @@ void Driver_deinit(DriverRef _Nonnull self)
             abort();
     }
 
-    List_ForEach(&self->children, struct Driver,
-        DriverRef pCurDriver = driver_from_child_qe(pCurNode);
 
-        Object_Release(pCurDriver);
-    );
+    if (self->maxChildCount > 0) {
+        for (int16_t i = 0; i < self->maxChildCount; i++) {
+            if (self->child[i].driver) {
+                Object_Release(self->child[i].driver);
+                self->child[i].driver = NULL;
+            }
+        }
+    }
+
+
+    cnd_deinit(&self->cnd);
+    mtx_deinit(&self->mtx);
+    mtx_deinit(&self->childMtx);
 }
 
 errno_t Driver_Start(DriverRef _Nonnull self)
@@ -118,10 +125,20 @@ void Driver_Stop(DriverRef _Nonnull self, int reason)
 
 
     // The list of child drivers is now frozen and can not change anymore.
-    // Synchronously stop all our child drivers
-    List_ForEach(&self->children, struct Driver,
-        Driver_Stop(driver_from_child_qe(pCurNode), reason);
-    );
+    // Tell all our child drivers to stop.
+    mtx_lock(&self->childMtx);
+    for (int16_t i = 0; i < self->maxChildCount; i++) {
+        if (self->child[i].driver) {
+            // We temporarily drop the lock so that the child is able to eg remove
+            // itself from us. That's fine because the child array has a fixed size
+            // and our iterator 'i' is stable. Also no new children can be added
+            // anymore anyway.
+            mtx_unlock(&self->childMtx);
+            Driver_Stop(self->child[i].driver, reason);
+            mtx_lock(&self->childMtx);
+        }
+    }
+    mtx_unlock(&self->childMtx);
 
 
     // Enter the stopping state
@@ -276,56 +293,88 @@ errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
     return err;
 }
 
-// Adds the given driver as a child to the receiver.
-void Driver_AddChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild)
+
+errno_t Driver_SetMaxChildCount(DriverRef _Nonnull self, size_t count)
 {
-    Driver_AdoptChild(self, Object_RetainAs(pChild, Driver));
+    decl_try_err();
+
+    mtx_lock(&self->childMtx);
+    if (self->maxChildCount > 0) {
+        throw(EBUSY);
+    }
+    if (count > 1024) {
+        throw(EINVAL);
+    }
+
+    
+    if (count > 0) {
+        try(kalloc_cleared(sizeof(drv_child_t) * count, (void**)&self->child));
+        self->maxChildCount = count;
+    }
+
+catch:
+    mtx_unlock(&self->childMtx);
+
+    return err;
 }
 
-// Adds the given driver to the receiver as a child. Consumes the provided strong
-// reference.
-void Driver_AdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull _Consuming pChild)
+errno_t Driver_AddChild(DriverRef _Nonnull self, DriverRef _Nonnull child)
 {
-    if (Driver_IsActive(self)) {
-        List_InsertAfterLast(&self->children, &pChild->child_qe);
+    return Driver_AdoptChild(self, Object_RetainAs(child, Driver));
+}
+
+errno_t Driver_AdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child)
+{
+    bool hasSlot = false;
+
+    if ((self->flags & kDriverFlag_NoMoreChildren) == kDriverFlag_NoMoreChildren) {
+        return ETERMINATED;
     }
+
+    mtx_lock(&self->childMtx);
+    for (int16_t i = 0; i < self->maxChildCount; i++) {
+        if (self->child[i].driver == NULL) {
+            self->child[i].driver = child;
+            hasSlot = true;
+            break;
+        }
+    }
+    mtx_unlock(&self->childMtx);
+
+    return (hasSlot) ? EOK : ENXIO;
 }
 
 // Starts the given driver instance and adopts the driver instance as a child if
 // the start has been successful.
-errno_t Driver_StartAdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull _Consuming pChild)
+errno_t Driver_StartAdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child)
 {
     decl_try_err();
 
-    if ((err = Driver_Start(pChild)) == EOK) {
-        Driver_AdoptChild(self, pChild);
+    if ((err = Driver_Start(child)) == EOK) {
+        err = Driver_AdoptChild(self, child);
     }
     return err;
 }
 
 // Removes the given driver from the receiver. The given driver has to be a child
 // of the receiver.
-void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild)
+void Driver_RemoveChild(DriverRef _Nonnull self, DriverRef _Nonnull child)
 {
-    bool isChild = false;
+    int16_t idx = -1;
 
-    if (!Driver_IsActive(self)) {
-        return;
-    }
-
-    List_ForEach(&self->children, struct Driver,
-        DriverRef pCurDriver = driver_from_child_qe(pCurNode);
-
-        if (pCurDriver == pChild) {
-            isChild = true;
+    mtx_lock(&self->childMtx);
+    for (int16_t i = 0; i < self->maxChildCount; i++) {
+        if (self->child[i].driver == child) {
+            idx = i;
             break;
         }
-    );
-
-    if (isChild) {
-        List_Remove(&self->children, &pChild->child_qe);
-        Object_Release(pChild);
     }
+
+    if (idx >= 0) {
+        Object_Release(self->child[idx].driver);
+        self->child[idx].driver = NULL;
+    }
+    mtx_unlock(&self->childMtx);
 }
 
 

@@ -67,6 +67,7 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
 
     // Auto config the Zorro bus
     zorro_auto_config(&self->bus);
+    try(Driver_SetMaxChildCount((DriverRef)self, self->bus.count));
 
 
     // Instantiate the board drivers

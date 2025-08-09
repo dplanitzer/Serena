@@ -26,6 +26,10 @@ errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked s
     decl_try_err();
     const CatalogId hwDirId = PlatformController_GetHardwareDirectoryId(self);
     
+    // Set our virtual bus slot count
+    try(Driver_SetMaxChildCount((DriverRef)self, 8));
+
+
     // Graphics Driver
     GraphicsDriverRef fb = NULL;
     try(GraphicsDriver_Create(hwDirId, &fb));

@@ -70,11 +70,12 @@ errno_t FloppyController_Create(CatalogId parentDirId, FloppyControllerRef _Null
     FloppyControllerRef self;
     
     try(Driver_Create(class(FloppyController), 0, parentDirId, (DriverRef*)&self));
+    try(Driver_SetMaxChildCount((DriverRef)self, MAX_FLOPPY_DISK_DRIVES));
 
     mtx_init(&self->mtx);
     cnd_init(&self->cv);
     sem_init(&self->done, 0);
-        
+    
     try(InterruptController_AddSemaphoreInterruptHandler(gInterruptController,
                                                          INTERRUPT_ID_DISK_BLOCK,
                                                          INTERRUPT_HANDLER_PRIORITY_NORMAL,

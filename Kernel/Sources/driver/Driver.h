@@ -18,6 +18,9 @@
 #include <sched/mtx.h>
 #include <Catalog.h>
 
+struct drv_child;
+
+
 // Driver instantiation option. Used by subclassers to request specific default
 // behavior from the Driver class.
 enum {
@@ -214,7 +217,7 @@ typedef struct DriverEntry {
 // Note that if a child driver needs to use its parent driver to do its job,
 // the child driver should receive a driver channel and use it. This allows the
 // parent driver to properly track whether it is still in use or not (see
-// Terminate()).
+// Driver_Stop()).
 // 
 // The parent-child driver relationship can be used to properly represent
 // relationships like a bus and the devices on the bus. The bus is represented
@@ -227,17 +230,24 @@ typedef struct DriverEntry {
 // card functionality plus a child driver for the sound chip and another child
 // driver for the CD-ROM drive.
 //
+// A bus driver must explicitly configure the maximum number of children that it
+// should manage. This number can be seen as the number of slots that are
+// available on a physical bus. You configure this number by calling
+// Driver_SetMaxChildCount() after you've created the bus driver instance and
+// before you publish it to the driver catalog.
+//
 open_class(Driver, Handler,
     mtx_t                   mtx;    // lifecycle management lock
     cnd_t                   cnd;
     did_t                   id;     // unique id assigned at publish time
+    struct drv_child* _Nullable child;
+    mtx_t                   childMtx;
     CatalogId               parentDirectoryId;  // /dev directory in which the driver lives 
-    List/*<Driver>*/        children;
-    ListNode/*<Driver>*/    child_qe;
     uint16_t                options;
     uint8_t                 flags;
     int8_t                  state;  //XXX should be atomic_int
     int                     openCount;
+    int16_t                 maxChildCount;
     int8_t                  stopReason;
 );
 open_class_funcs(Driver, Handler,
@@ -357,7 +367,8 @@ extern bool Driver_HasOpenChannels(DriverRef _Nonnull self);
 // Subclassers
 //
 
-// Creates a new driver instance.
+// Creates a new driver instance which manages non-bus style hardware and does
+// not manage child drivers.
 extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf);
 
 
@@ -405,20 +416,30 @@ invoke_n(onOpen, Driver, __self, __openCount, __mode, __arg, __pOutChannel)
 invoke_n(onClose, Driver, __self, __ioc, __openCount)
 
 
-// Adds the given driver as a child to the receiver. Call this function from a
-// onStart() override.
-extern void Driver_AddChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild);
+// Specifies the number of children that a driver is able to manage. This number
+// corresponds to the number of slots available on the bus that the driver
+// manages. The number is 0 by default. A driver that manages a physical or
+// virtual bus should call this method with a suitable number before it calls
+// Driver_Publish() on itself. Returns EINVAL if 'count' is bigger than the
+// system imposed upper limit. Returns EBUSY if an attempt is made to call this
+// function again after a max count has already been set.
+extern errno_t Driver_SetMaxChildCount(DriverRef _Nonnull self, size_t count);
+
+// Adds the given driver as a child to the receiver. The driver is added to the
+// first available slot. No check is made whether this driver instance already
+// exists as a child. Returns ENXIO is returned if no slot is available anymore.
+extern errno_t Driver_AddChild(DriverRef _Nonnull self, DriverRef _Nonnull child);
 
 // Adds the given driver to the receiver as a child. Consumes the provided strong
 // reference. Call this function from a onStart() override.
-extern void Driver_AdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull _Consuming pChild);
+extern errno_t Driver_AdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child);
 
 // Starts the given driver instance and adopts the driver instance as a child if
 // the start has been successful.
-extern errno_t Driver_StartAdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull _Consuming pChild);
+extern errno_t Driver_StartAdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child);
 
 // Removes the given driver from the receiver. The given driver has to be a child
 // of the receiver. Call this function from a onStop() override.
-extern void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild);
+extern void Driver_RemoveChild(DriverRef _Nonnull self, DriverRef _Nonnull child);
 
 #endif /* Driver_h */
