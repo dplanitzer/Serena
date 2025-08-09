@@ -202,7 +202,18 @@ open_class_funcs(Driver, Handler,
     // Default Behavior: returns a HandlerChannel instance
     errno_t (*onOpen)(void* _Nonnull _Locked self, int openCount, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
-    
+    // Invoked by the close() function to close an open I/O channel. The
+    // 'openCount' reflects the number of I/O channels that are currently open
+    // and this number does include the channel that should be closed. A driver
+    // subclass can use this information to eg put the hardware to sleep if the
+    // last open channel is closed. The 'openCount' for the last open channel is
+    // 1. Note that this function should not release the I/O channel. This is
+    // taken care off by the kernel.
+    // Override: Optional
+    // Default Behavior: does nothing
+    void (*onClose)(void* _Nonnull _Locked self, IOChannelRef _Nonnull ioc, int openCount);
+
+
     // Publish the driver. Should be called from the onStart() override.
     errno_t (*publish)(void* _Nonnull self, const DriverEntry* _Nonnull de);
 
@@ -283,6 +294,10 @@ invoke_0(onStop, Driver, __self)
 // or a kernel space service
 #define Driver_OnOpen(__self, __openCount, __mode, __arg, __pOutChannel) \
 invoke_n(onOpen, Driver, __self, __openCount, __mode, __arg, __pOutChannel)
+
+// Closes the given I/O channel
+#define Driver_OnClose(__self, __ioc, __openCount) \
+invoke_n(onClose, Driver, __self, __ioc, __openCount)
 
 
 // Adds the given driver as a child to the receiver. Call this function from a

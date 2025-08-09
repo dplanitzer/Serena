@@ -196,8 +196,15 @@ errno_t Driver_Open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IO
     return err;
 }
 
+
+void Driver_onClose(DriverRef _Nonnull _Locked self, IOChannelRef _Nonnull pChannel, int openCount)
+{
+}
+
 errno_t Driver_close(DriverRef _Nonnull _Locked self, IOChannelRef _Nonnull pChannel)
 {
+    Driver_OnClose(self, pChannel, self->openCount);
+
     if (self->openCount > 0) {
         self->openCount--;
         return EOK;
@@ -304,4 +311,5 @@ func_def(unpublish, Driver)
 override_func_def(open, Driver, Handler)
 func_def(onOpen, Driver)
 override_func_def(close, Driver, Handler)
+func_def(onClose, Driver)
 );
