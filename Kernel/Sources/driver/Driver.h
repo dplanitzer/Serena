@@ -49,6 +49,9 @@ typedef struct DriverEntry {
 // A driver object manages a device. A device is a piece of hardware while a
 // driver is the software that manages the hardware.
 //
+//
+// -- The Driver Lifecycle --
+//
 // A driver has a lifecycle:
 // - create: driver was just created
 // - active: entered by calling Driver_Start()
@@ -76,24 +79,6 @@ typedef struct DriverEntry {
 // terminate the driver if there are no more channels open. It returns EBUSY as
 // long as there is at least one channel still open.
 //
-// The Start(). Open(), Close() and Terminate() functions execute atomically
-// with respect to each other. Ie an Open() call will not be interrupted by a
-// Terminate() call.
-//
-// The driver Read(), Write() and Ioctl() functions are generically not expected
-// to provide full atomicity since the driver channel class implements atomicity
-// for those functions. However a driver subclass may have to implement some
-// form of atomicity for read, write and ioctl to ensure that users using
-// different driver channel at the same time can not inadvertently break the
-// consistency of the hardware state.
-//
-// If a driver subclass introduces additional low-level functions that operate
-// on a level below the driver channel and these functions are for consumption
-// by other kernel components (ie DiskDriver.beginIO), then these functions must
-// be protected by the driver lock (see Driver_Lock) to ensure that a
-// termination can not happen in the middle of executing those low-level
-// functions.
-//
 // A typical driver lifecycle looks like this:
 //
 // Driver_Create()
@@ -110,11 +95,50 @@ typedef struct DriverEntry {
 // being used by someone (a channel is still open). Thus you must access a
 // driver through a channel.
 //
-// An important advantage of this design where a Terminate() is only possible
-// after all channels have been closed, is that the read, write and ioctl
-// driver functions do not need to use the driver lock. They can implement their
-// own kind of locking if really needed and otherwise just rely on the locking
-// provided by the driver channel.
+//
+// -- Drivers, Concurrency and Exclusivity --
+//
+// I/O channel provides important preconditions for what is discussed below:
+// *) All operations on an I/O channel are executed serially
+// *) At most one operation can be active on an I/O channel at any given time
+// *) It guarantees that no operation is active when it calls Driver_Close()
+// *) It guarantees that as soon as Driver_Close() starts executing and at any
+//    time after it returns, no new I/O operations will be issued to the driver
+//
+// The driver operations start(), open(), close() and terminate() are exclusive
+// to each other in terms concurrency. This means that only one of those
+// operations will execute at any given time. This ensures for example that
+// start() has completed before open() can begin execution and that open() has
+// completed before close() can begin execution.
+//
+// The fact that all driver I/O operations (read, write, ioctl) require that the
+// caller passes in a I/O channel ensures that none of these operations can be
+// executed before open() has completed and returned a valid I/O channel.
+//
+// The fact that I/O channel guarantees that all active I/O operations on the
+// channel have completed before it invokes close() on the driver ensures that
+// close() can assume that no I/O operations can be active that are related to
+// the channel that is passed to close(). Thus it is not necessary for close()
+// to take the same lock that is used to protect the integrity of the I/O
+// operations.
+//
+// Note that doStart(), doStop(), doOpen() and doClose() are invoked while the
+// driver is holding the driver state management lock. This should not be of
+// much relevance to a driver subclass since a driver subclass has no need to
+// acquire its I/O operations lock from these overrides. See the previous
+// paragraph for an explanation of why this is the case.
+//
+// A driver subclass is expected to guarantee that its read, write and ioctl
+// operations are properly synchronized with each other and that invoking these
+// methods concurrently will not lead to inconsistent hardware nor software
+// state.
+//
+// A driver can achieve this by eg protecting these methods with an I/O
+// operation lock (mutex), by using a serial dispatch queue or by implementing
+// its own specialized I/O operations queueing mechanism.
+//
+//
+// -- The Children of a Driver --
 //
 // A driver may create and manage child drivers. Child drivers are attached to
 // their parent drivers and the parent driver maintains a strong reference to
@@ -136,6 +160,7 @@ typedef struct DriverEntry {
 // a CD-ROM driver can be represented by a parent driver that manages the overall
 // card functionality plus a child driver for the sound chip and another child
 // driver for the CD-ROM drive.
+//
 open_class(Driver, Handler,
     mtx_t                   mtx;
     did_t                   id;     // unique id assigned at publish time
