@@ -38,7 +38,6 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 
     // Open a channel to the framebuffer
     try(DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &self->fbChannel));
-    self->fb = HandlerChannel_GetHandlerAs(self->fbChannel, GraphicsDriver);
     self->keyMap = (const KeyMap*) gKeyMap_usa;
     self->compatibilityMode = kCompatibilityMode_ANSI;
 
@@ -86,8 +85,6 @@ void Console_deinit(ConsoleRef _Nonnull self)
 
     IOChannel_Release(self->fbChannel);
     self->fbChannel = NULL;
-    Object_Release(self->fb);
-    self->fb = NULL;
 
     IOChannel_Release(self->hidChannel);
     self->hidChannel = NULL;

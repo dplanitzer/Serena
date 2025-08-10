@@ -53,16 +53,16 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     const int pixelsWidth = VideoConfiguration_GetPixelWidth(&vidCfg);
     const int pixelsHeight = VideoConfiguration_GetPixelHeight(&vidCfg);
 
-    try(GraphicsDriver_CreateSurface(self->fb, pixelsWidth, pixelsHeight, kPixelFormat_RGB_Indexed3, &self->surfaceId));
-    try(GraphicsDriver_CreateScreen(self->fb, &vidCfg, self->surfaceId, &self->screenId));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface, pixelsWidth, pixelsHeight, kPixelFormat_RGB_Indexed3, &self->surfaceId));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateScreen, &vidCfg, self->surfaceId, &self->screenId));
 
 
     // Make our screen the current screen
-    try(GraphicsDriver_SetCurrentScreen(self->fb, self->screenId));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCurrentScreen, self->screenId));
 
 
     // Install an ANSI color table
-    GraphicsDriver_SetCLUTEntries(self->fb, self->screenId, 0, sizeof(gANSIColors), gANSIColors);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCLUTEntries, self->screenId, 0, sizeof(gANSIColors), gANSIColors);
 
 
     // Get the framebuffer size
@@ -77,8 +77,8 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(GraphicsDriver_AcquireSprite(self->fb, self->screenId, textCursorWidth, textCursorHeight, kPixelFormat_RGB_Indexed2, 0, &self->textCursor));
-    try(GraphicsDriver_SetSpritePixels(self->fb, self->textCursor, textCursorPlanes));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_AcquireSprite, self->screenId, textCursorWidth, textCursorHeight, kPixelFormat_RGB_Indexed2, 0, &self->textCursor));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpritePixels, self->textCursor, textCursorPlanes));
     self->flags.isTextCursorVisible = false;
 
 
@@ -88,8 +88,8 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     self->flags.isTextCursorOn = false;
     self->flags.isTextCursorSingleCycleOn = false;
 
-    try(GraphicsDriver_UpdateDisplay(self->fb));
-    try(GraphicsDriver_MapSurface(self->fb, self->surfaceId, kMapPixels_ReadWrite, &self->pixels));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_UpdateDisplay));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_MapSurface, self->surfaceId, kMapPixels_ReadWrite, &self->pixels));
 
 catch:
     return err;
@@ -98,13 +98,13 @@ catch:
 // Deinitializes the video output subsystem
 void Console_DeinitVideo(ConsoleRef _Nonnull self)
 {
-    GraphicsDriver_UnmapSurface(self->fb, self->surfaceId);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_UnmapSurface, self->surfaceId);
 
-    GraphicsDriver_SetCurrentScreen(self->fb, 0);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCurrentScreen, 0);
 
-    GraphicsDriver_RelinquishSprite(self->fb, self->textCursor);
-    GraphicsDriver_DestroyScreen(self->fb, self->screenId);
-    GraphicsDriver_DestroySurface(self->fb, self->surfaceId);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_RelinquishSprite, self->textCursor);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroyScreen, self->screenId);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroySurface, self->surfaceId);
     
     DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
 }
@@ -117,10 +117,12 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
     self->foregroundColor = color;
 
     // Sync up the sprite color registers with the selected foreground color
-    GraphicsDriver_SetCLUTEntry(self->fb, self->screenId, 17, gANSIColors[color.u.index]);
-    GraphicsDriver_SetCLUTEntry(self->fb, self->screenId, 18, gANSIColors[color.u.index]);
-    GraphicsDriver_SetCLUTEntry(self->fb, self->screenId, 19, gANSIColors[color.u.index]);
-    GraphicsDriver_UpdateDisplay(self->fb);
+    RGBColor32 clr[3];
+    clr[0] = gANSIColors[color.u.index];
+    clr[1] = clr[0];
+    clr[2] = clr[0];
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCLUTEntries, self->screenId, 17, 3, clr);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_UpdateDisplay);
 }
 
 // Sets the console's background color to the given color
@@ -137,7 +139,7 @@ void Console_OnTextCursorBlink(ConsoleRef _Nonnull self)
     
     self->flags.isTextCursorOn = !self->flags.isTextCursorOn;
     if (self->flags.isTextCursorVisible) {
-        GraphicsDriver_SetSpriteVisible(self->fb, self->textCursor, self->flags.isTextCursorOn || self->flags.isTextCursorSingleCycleOn);
+        IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursor, self->flags.isTextCursorOn || self->flags.isTextCursorSingleCycleOn);
     }
     self->flags.isTextCursorSingleCycleOn = false;
 
@@ -150,7 +152,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _
         // Changing the visibility to on should restart the blinking timer if
         // blinking is on too so that we always start out with a cursor-on phase
         DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
-        GraphicsDriver_SetSpriteVisible(self->fb, self->textCursor, true);
+        IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursor, true);
         self->flags.isTextCursorOn = false;
         self->flags.isTextCursorSingleCycleOn = false;
 
@@ -165,7 +167,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _
     } else {
         // Make sure that the text cursor and blinker are off
         DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
-        GraphicsDriver_SetSpriteVisible(self->fb, self->textCursor, false);
+        IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursor, false);
         self->flags.isTextCursorOn = false;
         self->flags.isTextCursorSingleCycleOn = false;
     }
@@ -189,14 +191,14 @@ void Console_SetCursorVisible_Locked(ConsoleRef _Nonnull self, bool isVisible)
 
 void Console_CursorDidMove_Locked(ConsoleRef _Nonnull self)
 {
-    GraphicsDriver_SetSpritePosition(self->fb, self->textCursor, self->x * self->characterWidth, self->y * self->lineHeight);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpritePosition, self->textCursor, self->x * self->characterWidth, self->y * self->lineHeight);
     // Temporarily force the cursor to be visible, but without changing the text
     // cursor visibility state officially. We just want to make sure that the
     // cursor is on when the user types a character. This however should not
     // change anything about the blinking phase and frequency.
     if (!self->flags.isTextCursorSingleCycleOn && !self->flags.isTextCursorOn && self->flags.isTextCursorBlinkerEnabled && self->flags.isTextCursorVisible) {
         self->flags.isTextCursorSingleCycleOn = true;
-        GraphicsDriver_SetSpriteVisible(self->fb, self->textCursor, true);
+        IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursor, true);
     }
 }
 

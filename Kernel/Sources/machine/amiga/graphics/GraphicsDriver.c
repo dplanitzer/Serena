@@ -181,7 +181,7 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
 
         case kFBCommand_SetSpriteVisible: {
             const int hnd = va_arg(ap, int);
-            const bool flag = va_arg(ap, bool);
+            const bool flag = va_arg(ap, int);
 
             return GraphicsDriver_SetSpriteVisible(self, hnd, flag);
         }
