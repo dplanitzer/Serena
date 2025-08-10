@@ -33,7 +33,8 @@ void acquire_vcpu_test(int argc, char *argv[])
         attr.func = (vcpu_func_t)test_loop;
         attr.arg = gStr[i];
         attr.stack_size = 0;
-        attr.priority = 24;
+        attr.sched_params.qos = VCPU_QOS_INTERACTIVE;
+        attr.sched_params.priority = VCPU_PRI_NORMAL;
         attr.groupid = 0;
         attr.flags = VCPU_ACQUIRE_RESUMED;
         gId[i] = vcpu_acquire(&attr);

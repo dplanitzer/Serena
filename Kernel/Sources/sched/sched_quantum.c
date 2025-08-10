@@ -101,7 +101,7 @@ void sched_quantum_irq(excpt_frame_t* _Nonnull efp)
     // Move the currently running VP back to the ready queue and pull the new
     // VP off the ready queue
     sched_remove_vcpu_locked(self, rdy);
-    sched_add_vcpu_locked(self, run, run->priority);
+    sched_add_vcpu_locked(self, run, run->sched_priority);
 
     
     // Request a context switch

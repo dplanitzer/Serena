@@ -135,7 +135,7 @@ vcpu_t _Nullable vcpu_acquire(const vcpu_attr_t* _Nonnull attr)
     r_attr.arg = self;
     r_attr.stack_size = attr->stack_size;
     r_attr.groupid = attr->groupid;
-    r_attr.priority = attr->priority;
+    r_attr.sched_params = attr->sched_params;
     r_attr.flags = attr->flags & ~VCPU_ACQUIRE_RESUMED;
     r_attr.data = (intptr_t)self;
 

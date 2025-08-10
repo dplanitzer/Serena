@@ -22,7 +22,7 @@ typedef struct VirtualProcessorParameters {
     size_t                  userStackSize;
     vcpuid_t                id;
     vcpuid_t                groupid;
-    int                     priority;
+    vcpu_sched_params_t     schedParams;
     bool                    isUser;
 } VirtualProcessorParameters;
 

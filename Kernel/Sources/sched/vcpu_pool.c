@@ -70,7 +70,7 @@ errno_t vcpu_pool_acquire(vcpu_pool_t _Nonnull self, const VirtualProcessorParam
     
     // Create a new VP if we were not able to reuse a cached one
     if (vp == NULL) {
-        try(vcpu_create(&vp));
+        try(vcpu_create(&params->schedParams, &vp));
     }
     
     
@@ -85,7 +85,7 @@ errno_t vcpu_pool_acquire(vcpu_pool_t _Nonnull self, const VirtualProcessorParam
     cl.isUser = params->isUser;
 
     try(vcpu_setclosure(vp, &cl));
-    vcpu_setpriority(vp, params->priority);
+    vcpu_setschedparams(vp, &params->schedParams);
     if (params->isUser) {
         vp->flags |= VP_FLAG_USER_OWNED;
     }

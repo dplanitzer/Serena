@@ -42,6 +42,12 @@ typedef struct vcpu* vcpu_t;
 #define VCPU_PRI_COUNT     12
 
 
+typedef struct vcpu_sched_params {
+    int     qos;
+    int     priority;
+} vcpu_sched_params_t;
+
+
 
 // Acquire the VP and immediately resume it
 #define VCPU_ACQUIRE_RESUMED    1
@@ -53,7 +59,7 @@ typedef struct _vcpu_acquire_attr {
     void* _Nullable         arg;
     size_t                  stack_size;
     vcpuid_t                groupid;
-    int                     priority;
+    vcpu_sched_params_t     sched_params;
     unsigned int            flags;
     intptr_t                data;
 } _vcpu_acquire_attr_t;

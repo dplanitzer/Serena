@@ -239,19 +239,23 @@ vp_waiting_on_wait_queue                so.l    1           ; 4
 vp_wait_start_time                      so.l    1           ; 4
 vp_wait_sigs                            so.l    1           ; 4
 vp_wakeup_reason                        so.b    1           ; 1
-vp_priority                             so.b    1           ; 1
+vp_qos                                  so.b    1           ; 1
+vp_qos_priority                         so.b    1           ; 1
+vp_reserved1                            so.b    1           ; 1
+vp_reserved2                            so.b    1           ; 1
+vp_sched_priority                       so.b    1           ; 1
 vp_effectivePriority                    so.b    1           ; 1
 vp_sched_state                          so.b    1           ; 1
 vp_flags                                so.b    1           ; 1
 vp_quantum_allowance                    so.b    1           ; 1
 vp_suspension_count                     so.b    1           ; 1
-vp_reserved                             so.b    1           ; 1
+vp_lifecycle_state                      so.b    1           ; 1
 vp_proc                                 so.l    1           ; 4
 vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
-vp_reserved2                            so.b    3           ; 3
+vp_reserved3                            so.b    3           ; 3
 vp_SIZEOF                       so
-    ifeq (vp_SIZEOF == 520)
+    ifeq (vp_SIZEOF == 524)
         fail "vcpu structure size is incorrect."
     endif
 

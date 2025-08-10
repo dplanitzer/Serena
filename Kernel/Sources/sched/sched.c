@@ -68,7 +68,7 @@ void sched_create(SystemDescription* _Nonnull sdp, BootAllocator* _Nonnull bap, 
     sched_add_vcpu_locked(
         self,
         self->boot_vp,
-        self->boot_vp->priority);
+        self->boot_vp->sched_priority);
     
     self->running = NULL;
     self->scheduled = sched_highest_priority_ready(self);
@@ -122,7 +122,7 @@ void sched_add_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
     // Protect against our scheduling code
     const int sps = preempt_disable();
     
-    sched_add_vcpu_locked(self, vp, vp->priority);
+    sched_add_vcpu_locked(self, vp, vp->sched_priority);
     preempt_restore(sps);
 }
 
@@ -236,7 +236,7 @@ void sched_maybe_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
         if (pBestReadyVP == vp && vp->effectivePriority >= self->running->effectivePriority) {
             vcpu_t pCurRunning = (vcpu_t)self->running;
             
-            sched_add_vcpu_locked(self, pCurRunning, pCurRunning->priority);
+            sched_add_vcpu_locked(self, pCurRunning, pCurRunning->sched_priority);
             sched_switch_to(self, vp);
         }
     }
@@ -405,7 +405,10 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
 
 
     // Create the VP
-    vcpu_cominit(vp, VP_PRIORITY_HIGHEST);
+    vcpu_sched_params_t sp;
+    sp.qos = VCPU_QOS_REALTIME;
+    sp.priority = 7;
+    vcpu_cominit(vp, &sp);
 
     VirtualProcessorClosure cl;
     cl.func = (VoidFunc_1)fn;
@@ -446,7 +449,10 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
 
 
     // Create the VP
-    vcpu_cominit(vp, VP_PRIORITY_LOWEST);
+    vcpu_sched_params_t sp;
+    sp.qos = VCPU_QOS_IDLE;
+    sp.priority = -8;
+    vcpu_cominit(vp, &sp);
 
     VirtualProcessorClosure cl;
     cl.func = (VoidFunc_1)idle_vcpu_run;

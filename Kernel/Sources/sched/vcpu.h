@@ -120,7 +120,10 @@ struct vcpu {
     int8_t                          wakeup_reason;
     
     // Scheduling related state
-    int8_t                          priority;               // base priority
+    int8_t                          qos;
+    int8_t                          qos_priority;
+    int8_t                          reserved[2];
+    int8_t                          sched_priority;         // scheduling (base) priority
     int8_t                          effectivePriority;      // computed priority used for scheduling
     int8_t                          sched_state;
     uint8_t                         flags;
@@ -148,6 +151,9 @@ struct vcpu {
 #define VP_FROM_TIMEOUT(__ptr) \
 (vcpu_t) (((uint8_t*)__ptr) - offsetof(struct vcpu, timeout))
 
+#define SCHED_PRI_FROM_QOS(__qos, __qos_pri) \
+(__qos) * VCPU_PRI_COUNT + ((__qos_pri) + VCPU_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW
+
 
 // Returns a reference to the currently running virtual processor. This is the
 // virtual processor that is executing the caller.
@@ -158,19 +164,22 @@ extern int vcpu_currentid(void);
 
 // Creates a new virtual processor.
 // \return the new virtual processor; NULL if creation has failed
-extern errno_t vcpu_create(vcpu_t _Nullable * _Nonnull pOutSelf);
+extern errno_t vcpu_create(const vcpu_sched_params_t* _Nonnull sched_params, vcpu_t _Nullable * _Nonnull pOutSelf);
 
 void vcpu_destroy(vcpu_t _Nullable self);
 
 
-// Returns the priority of the given VP.
-extern int vcpu_priority(vcpu_t _Nonnull self);
+// Returns a copy of the given virtual processor's scheduling parameters.
+extern void vcpu_getschedparams(vcpu_t _Nonnull self, vcpu_sched_params_t* _Nonnull params);
 
-// Changes the priority of a virtual processor. Does not immediately reschedule
-// the VP if it is currently running. Instead the VP is allowed to finish its
-// current quanta.
+// Changes the scheduling parameters of the given virtual processor. Does not
+// immediately reschedule the VP if it is currently running. Instead the VP is
+// allowed to finish its current quanta.
 // XXX might want to change that in the future?
-extern void vcpu_setpriority(vcpu_t _Nonnull self, int priority);
+extern errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull params);
+
+// Returns the current (effective) priority of the given VP.
+extern int vcpu_getcurrentpriority(vcpu_t _Nonnull self);
 
 
 // Atomically updates the routing information for process-targeted signals.
@@ -242,7 +251,7 @@ extern void vcpu_uret_exit(void);
 
 
 // Subclassers
-extern void vcpu_cominit(vcpu_t _Nonnull self, int priority);
+extern void vcpu_cominit(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull sched_params);
 
 extern void __func_vcpu_destroy(vcpu_t _Nullable self);
 

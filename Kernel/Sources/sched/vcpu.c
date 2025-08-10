@@ -48,7 +48,7 @@ _Noreturn vcpu_relinquish(void)
 //
 // \param pVP the boot virtual processor record
 // \param priority the initial VP priority
-void vcpu_cominit(vcpu_t _Nonnull self, int priority)
+void vcpu_cominit(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull sched_params)
 {
     ListNode_Init(&self->rewa_qe);
     stk_init(&self->kernel_stack);
@@ -72,7 +72,9 @@ void vcpu_cominit(vcpu_t _Nonnull self, int priority)
     
     self->sched_state = SCHED_STATE_READY;
     self->flags = 0;
-    self->priority = (int8_t)priority;
+    self->qos = sched_params->qos;
+    self->qos_priority = sched_params->priority;
+    self->sched_priority = (int8_t)SCHED_PRI_FROM_QOS(self->qos, self->qos_priority);
     self->suspension_count = 1;
     
     self->id = 0;
@@ -84,14 +86,14 @@ void vcpu_cominit(vcpu_t _Nonnull self, int priority)
 
 // Creates a new virtual processor.
 // \return the new virtual processor; NULL if creation has failed
-errno_t vcpu_create(vcpu_t _Nullable * _Nonnull pOutSelf)
+errno_t vcpu_create(const vcpu_sched_params_t* _Nonnull sched_params, vcpu_t _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     vcpu_t self = NULL;
     
     err = kalloc_cleared(sizeof(struct vcpu), (void**) &self);
     if (err == EOK) {
-        vcpu_cominit(self, VP_PRIORITY_NORMAL);
+        vcpu_cominit(self, sched_params);
     }
 
     *pOutSelf = self;
@@ -164,50 +166,70 @@ _Noreturn vcpu_terminate(vcpu_t _Nonnull self)
     /* NOT REACHED */
 }
 
-// Returns the priority of the given VP.
-int vcpu_priority(vcpu_t _Nonnull self)
+void vcpu_getschedparams(vcpu_t _Nonnull self, vcpu_sched_params_t* _Nonnull params)
 {
-    VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
-    const int pri = self->priority;
-    
+
+    params->qos = self->qos;
+    params->priority = self->qos_priority;
     preempt_restore(sps);
-    return pri;
 }
 
-// Changes the priority of a virtual processor. Does not immediately reschedule
-// the VP if it is currently running. Instead the VP is allowed to finish its
-// current quanta.
-// XXX might want to change that in the future?
-void vcpu_setpriority(vcpu_t _Nonnull self, int priority)
+errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull params)
 {
     VP_ASSERT_ALIVE(self);
+
+    if (params->qos < 0 || params->qos >= VCPU_QOS_COUNT) {
+        return EINVAL;
+    }
+    if (params->priority < VCPU_PRI_LOWEST || params->priority > VCPU_PRI_HIGHEST) {
+        return EINVAL;
+    }
+
+
+    const int new_sched_pri = SCHED_PRI_FROM_QOS(params->qos, params->priority);
     const int sps = preempt_disable();
     
-    if (self->priority != priority) {
+    if (self->sched_priority != new_sched_pri) {
         switch (self->sched_state) {
             case SCHED_STATE_READY:
                 if (self->suspension_count == 0) {
                     sched_remove_vcpu_locked(g_sched, self);
                 }
-                self->priority = priority;
+                self->qos = params->qos;
+                self->qos_priority = params->priority;
+                self->sched_priority = new_sched_pri;
                 if (self->suspension_count == 0) {
-                    sched_add_vcpu_locked(g_sched, self, self->priority);
+                    sched_add_vcpu_locked(g_sched, self, self->sched_priority);
                 }
                 break;
                 
             case SCHED_STATE_WAITING:
-                self->priority = priority;
+                self->qos = params->qos;
+                self->qos_priority = params->priority;
+                self->sched_priority = new_sched_pri;
                 break;
                 
             case SCHED_STATE_RUNNING:
-                self->priority = priority;
-                self->effectivePriority = priority;
+                self->qos = params->qos;
+                self->qos_priority = params->priority;
+                self->sched_priority = new_sched_pri;
+                self->effectivePriority = new_sched_pri;
                 self->quantum_allowance = QuantumAllowanceForPriority(self->effectivePriority);
                 break;
         }
     }
     preempt_restore(sps);
+}
+
+int vcpu_getcurrentpriority(vcpu_t _Nonnull self)
+{
+    VP_ASSERT_ALIVE(self);
+    const int sps = preempt_disable();
+    const int pri = self->effectivePriority;
+    
+    preempt_restore(sps);
+    return pri;
 }
 
 // Yields the remainder of the current quantum to other VPs.
@@ -218,10 +240,8 @@ void vcpu_yield(void)
 
     assert(self->sched_state == SCHED_STATE_RUNNING && self->suspension_count == 0);
 
-    sched_add_vcpu_locked(
-        g_sched, self, self->priority);
-    sched_switch_to(g_sched,
-        sched_highest_priority_ready(g_sched));
+    sched_add_vcpu_locked(g_sched, self, self->sched_priority);
+    sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     
     preempt_restore(sps);
 }
@@ -293,7 +313,7 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
         switch (self->sched_state) {
             case SCHED_STATE_READY:
             case SCHED_STATE_RUNNING:
-                sched_add_vcpu_locked(g_sched, self, self->priority);
+                sched_add_vcpu_locked(g_sched, self, self->sched_priority);
                 sched_maybe_switch_to(g_sched, self);
                 break;
             

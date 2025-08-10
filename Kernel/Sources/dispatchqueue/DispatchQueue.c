@@ -207,7 +207,8 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
             attr.arg = self;
             attr.stack_size = 0;
             attr.groupid = VCPUID_MAIN_GROUP;
-            attr.priority = self->qos * VCPU_PRI_COUNT + (self->priority + VCPU_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
+            attr.sched_params.qos = self->qos;
+            attr.sched_params.priority = self->priority;
             attr.flags = 0;
             attr.data = 0;
 
@@ -225,7 +226,8 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
             params.userStackSize = VP_DEFAULT_USER_STACK_SIZE;
             params.id = AtomicInt_Increment(&gNextAvailVcpuid);
             params.groupid = VCPUID_MAIN_GROUP;
-            params.priority = self->qos * VCPU_PRI_COUNT + (self->priority + VCPU_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
+            params.schedParams.qos = self->qos;
+            params.schedParams.priority = self->priority;
             params.isUser = false;
 
             err = vcpu_pool_acquire(g_vcpu_pool, &params, &vp);

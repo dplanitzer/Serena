@@ -23,7 +23,8 @@ static bool _dispatch_worker_acquire_vcpu(dispatch_worker_t _Nonnull self)
     r_attr.arg = self;
     r_attr.stack_size = 0;
     r_attr.groupid = owner->groupid;
-    r_attr.priority = owner->attr.qos * DISPATCH_PRI_COUNT + (owner->attr.priority + DISPATCH_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
+    r_attr.sched_params.qos = owner->attr.qos;
+    r_attr.sched_params.priority = owner->attr.priority;
     r_attr.flags = 0;
 
     self->allow_relinquish = true;
