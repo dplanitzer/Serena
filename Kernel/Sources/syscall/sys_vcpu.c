@@ -54,6 +54,19 @@ SYSCALL_0(vcpu_relinquish_self)
     return 0;
 }
 
+static vcpu_t _Nullable _get_vcpu_by_id_locked(ProcessRef _Nonnull self, vcpuid_t id)
+{
+    List_ForEach(&self->vcpu_queue, ListNode,
+        vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
+
+        if (cvp->id == id) {
+            return cvp;
+        }
+    );
+
+    return NULL;
+}
+
 SYSCALL_1(vcpu_suspend, vcpuid_t id)
 {
     decl_try_err();
@@ -64,14 +77,14 @@ SYSCALL_1(vcpu_suspend, vcpuid_t id)
     }
     else {
         mtx_lock(&pp->mtx);
-        List_ForEach(&pp->vcpu_queue, ListNode,
-            vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
+        vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
 
-            if (cvp->id == pa->id) {
-                err = vcpu_suspend(cvp);
-                break;
-            }
-        );
+        if (vcp) {
+            err = vcpu_suspend(vcp);
+        }
+        else {
+            err = ESRCH;
+        }
         mtx_unlock(&pp->mtx);
     }
 
@@ -80,24 +93,73 @@ SYSCALL_1(vcpu_suspend, vcpuid_t id)
 
 SYSCALL_1(vcpu_resume, vcpuid_t id)
 {
+    decl_try_err();
     ProcessRef pp = vp->proc;
 
     mtx_lock(&pp->mtx);
-    List_ForEach(&pp->vcpu_queue, ListNode,
-        vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
+    vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
 
-        if (cvp->id == pa->id) {
-            vcpu_resume(cvp, false);
-            break;
-        }
-    );
+    if (vcp) {
+        vcpu_resume(vcp, false);
+    }
+    else {
+        err = ESRCH;
+    }
     mtx_unlock(&pp->mtx);
 
-    return EOK;
+    return err;
 }
 
 SYSCALL_0(vcpu_yield)
 {
     vcpu_yield();
     return EOK;
+}
+
+SYSCALL_2(vcpu_getschedparams, vcpuid_t id, vcpu_sched_params_t* _Nonnull params)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->id == VCPUID_SELF) {
+        vcpu_getschedparams(vp, pa->params);
+    }
+    else {
+        mtx_lock(&pp->mtx);
+        vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
+
+        if (vcp) {
+            vcpu_getschedparams(vcp, pa->params);
+        }
+        else {
+            err = ESRCH;
+        }
+        mtx_unlock(&pp->mtx);
+    }
+
+    return err;
+}
+
+SYSCALL_2(vcpu_setschedparams, vcpuid_t id, const vcpu_sched_params_t* _Nonnull params)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    if (pa->id == VCPUID_SELF) {
+        err = vcpu_setschedparams(vp, pa->params);
+    }
+    else {
+        mtx_lock(&pp->mtx);
+        vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
+
+        if (vcp) {
+            err = vcpu_setschedparams(vcp, pa->params);
+        }
+        else {
+            err = ESRCH;
+        }
+        mtx_unlock(&pp->mtx);
+    }
+
+    return err;
 }

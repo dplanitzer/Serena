@@ -16,6 +16,7 @@
 #include <stdnoreturn.h>
 #include <sys/timespec.h>
 #include <sys/queue.h>
+#include <kpi/vcpu.h>
 
 __CPP_BEGIN
 
@@ -145,21 +146,17 @@ typedef struct dispatch_item* dispatch_item_t;
 // Quality of Service level. From highest to lowest.
 // DISPATCH_QOS_REALTIME: kernel will minimize the scheduling latency. Realtime is always scheduled before anything else
 // DISPATCH_QOS_IDLE: no guarantee with regards to schedule latency. Only scheduled if there is nothing to schedule for a DISPATCH_QOS_XXX > DISPATCH_QOS_IDLE
-#define DISPATCH_QOS_REALTIME       4
-#define DISPATCH_QOS_INTERACTIVE    3
-#define DISPATCH_QOS_UTILITY        2
-#define DISPATCH_QOS_BACKGROUND     1
-#define DISPATCH_QOS_IDLE           0
-
-#define DISPATCH_QOS_COUNT          5
+#define DISPATCH_QOS_REALTIME       VCPU_QOS_REALTIME
+#define DISPATCH_QOS_INTERACTIVE    VCPU_QOS_INTERACTIVE
+#define DISPATCH_QOS_UTILITY        VCPU_QOS_UTILITY
+#define DISPATCH_QOS_BACKGROUND     VCPU_QOS_BACKGROUND
+#define DISPATCH_QOS_IDLE           VCPU_QOS_IDLE
 
 
 // Priorities per QoS level
-#define DISPATCH_PRI_HIGHEST    5
-#define DISPATCH_PRI_NORMAL     0
-#define DISPATCH_PRI_LOWEST     -6
-
-#define DISPATCH_PRI_COUNT     12
+#define DISPATCH_PRI_HIGHEST    VCPU_PRI_HIGHEST
+#define DISPATCH_PRI_NORMAL     VCPU_PRI_NORMAL
+#define DISPATCH_PRI_LOWEST     VCPU_PRI_LOWEST
 
 
 // Information about the current state of concurrency.

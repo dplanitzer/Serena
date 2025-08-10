@@ -27,7 +27,7 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
         errno = EINVAL;
         return false;
     }
-    if (attr->qos < 0 || attr->qos >= DISPATCH_QOS_COUNT) {
+    if (attr->qos < 0 || attr->qos >= VCPU_QOS_COUNT) {
         errno = EINVAL;
         return false;
     }
@@ -549,6 +549,23 @@ dispatch_item_t _Nullable dispatch_current_item(void)
 }
 
 
+static void _dispatch_applyschedparams(dispatch_t _Nonnull _Locked self, int qos, int priority)
+{
+    vcpu_sched_params_t params;
+
+    params.qos = qos;
+    params.priority = priority;
+    
+    self->attr.qos = qos;
+    self->attr.priority = priority;
+
+    List_ForEach(&self->workers, ListNode, 
+        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+
+        vcpu_setschedparams(cwp->vcpu, &params);
+    );
+}
+
 int dispatch_priority(dispatch_t _Nonnull self)
 {
     mtx_lock(&self->mutex);
@@ -559,8 +576,16 @@ int dispatch_priority(dispatch_t _Nonnull self)
 
 int dispatch_setpriority(dispatch_t _Nonnull self, int priority)
 {
-    //XXX implement me
-    return ENOTSUP;
+    if (priority < DISPATCH_PRI_LOWEST || priority > DISPATCH_PRI_HIGHEST) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    mtx_lock(&self->mutex);
+    _dispatch_applyschedparams(self, self->attr.qos, priority);
+    mtx_unlock(&self->mutex);
+    
+    return 0;
 }
 
 int dispatch_qos(dispatch_t _Nonnull self)
@@ -573,8 +598,16 @@ int dispatch_qos(dispatch_t _Nonnull self)
 
 int dispatch_setqos(dispatch_t _Nonnull self, int qos)
 {
-    //XXX implement me
-    return ENOTSUP;
+    if (qos < 0 || qos > VCPU_QOS_COUNT) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    mtx_lock(&self->mutex);
+    _dispatch_applyschedparams(self, qos, self->attr.priority);
+    mtx_unlock(&self->mutex);
+    
+    return 0;
 }
 
 void dispatch_concurrency_info(dispatch_t _Nonnull self, dispatch_concurrency_info_t* _Nonnull info)

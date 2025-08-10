@@ -67,6 +67,9 @@ extern void vcpu_resume(vcpu_t _Nonnull vcpu);
 
 extern void vcpu_yield(void);
 
+extern int vcpu_getschedparams(vcpu_t _Nullable vcpu, vcpu_sched_params_t* _Nonnull params);
+extern int vcpu_setschedparams(vcpu_t _Nullable vcpu, const vcpu_sched_params_t* _Nonnull params);
+
 
 extern vcpu_key_t _Nullable vcpu_key_create(void (* _Nullable destructor)(void*));
 extern void vcpu_key_delete(vcpu_key_t _Nullable key);
