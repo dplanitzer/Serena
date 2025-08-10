@@ -13,13 +13,12 @@
 #include <machine/amiga/graphics/GraphicsDriver.h>
 
 typedef struct boot_screen {
-    GraphicsDriverRef _Nullable gd;
-    IOChannelRef _Nullable      chan;
-    int                         scr;
-    int                         srf;
-    size_t                      width;
-    size_t                      height;
-    SurfaceMapping              mp;
+    IOChannelRef _Nullable  chan;
+    int                     scr;
+    int                     srf;
+    size_t                  width;
+    size_t                  height;
+    SurfaceMapping          mp;
 } boot_screen_t;
 
 

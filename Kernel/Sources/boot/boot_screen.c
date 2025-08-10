@@ -45,25 +45,25 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
     memset(bscr, 0, sizeof(boot_screen_t));
 
     if ((err = DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &chan)) == EOK) {
-        gd = HandlerChannel_GetHandlerAs(chan, GraphicsDriver);
-
         // Create the surface and screen
-        GraphicsDriver_CreateSurface(gd, cfg.width, cfg.height, kPixelFormat_RGB_Indexed1, &srf);
-        GraphicsDriver_CreateScreen(gd, &cfg, srf, &scr);
+        IOChannel_Ioctl(chan, kFBCommand_CreateSurface, cfg.width, cfg.height, kPixelFormat_RGB_Indexed1, &srf);
+        IOChannel_Ioctl(chan, kFBCommand_CreateScreen, &cfg, srf, &scr);
 
 
         // Define the screen colors
-        GraphicsDriver_SetCLUTEntry(gd, scr, 0, RGBColor32_Make(0xff, 0xff, 0xff));
-        GraphicsDriver_SetCLUTEntry(gd, scr, 1, RGBColor32_Make(0x00, 0x00, 0x00));
+        static const RGBColor32 clrs[2] = {
+            RGBColor32_Make(0xff, 0xff, 0xff),
+            RGBColor32_Make(0x00, 0x00, 0x00)
+        };
+        IOChannel_Ioctl(chan, kFBCommand_SetCLUTEntries, scr, 0, 2, clrs);
 
-        bscr->gd = gd;
         bscr->chan = chan;
         bscr->scr = scr;
         bscr->srf = srf;
         bscr->width = cfg.width;
         bscr->height = cfg.height;
 
-        GraphicsDriver_MapSurface(bscr->gd, bscr->srf, kMapPixels_ReadWrite, &bscr->mp);
+        IOChannel_Ioctl(chan, kFBCommand_MapSurface, bscr->srf, kMapPixels_ReadWrite, &bscr->mp);
 
         // Blit the boot logo
         clear_boot_screen(bscr);
@@ -71,7 +71,7 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
 
 
         // Show the screen on the monitor
-        GraphicsDriver_SetCurrentScreen(gd, scr);
+        IOChannel_Ioctl(chan, kFBCommand_SetCurrentScreen, scr);
     }
 }
 
@@ -105,12 +105,12 @@ void blit_boot_logo(const boot_screen_t* _Nonnull bscr, const uint16_t* _Nonnull
 void close_boot_screen(const boot_screen_t* _Nonnull bscr)
 {
     // Remove the screen and turn video off again
-    if (bscr->gd) {
-        GraphicsDriver_UnmapSurface(bscr->gd, bscr->srf);
+    if (bscr->chan) {
+        IOChannel_Ioctl(bscr->chan, kFBCommand_UnmapSurface, bscr->srf);
 
-        GraphicsDriver_SetCurrentScreen(bscr->gd, 0);
-        GraphicsDriver_DestroyScreen(bscr->gd, bscr->scr);
-        GraphicsDriver_DestroySurface(bscr->gd, bscr->srf);
+        IOChannel_Ioctl(bscr->chan, kFBCommand_SetCurrentScreen, 0);
+        IOChannel_Ioctl(bscr->chan, kFBCommand_DestroyScreen, bscr->scr);
+        IOChannel_Ioctl(bscr->chan, kFBCommand_DestroySurface, bscr->srf);
         IOChannel_Release(bscr->chan);
     }
 }
