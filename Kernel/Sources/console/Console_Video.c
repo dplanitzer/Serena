@@ -10,6 +10,7 @@
 #include <kern/string.h>
 #include <kern/timespec.h>
 #include <machine/amiga/chipset.h>
+#include <machine/amiga/graphics/GraphicsDriver.h>
 
 
 static const RGBColor32 gANSIColors[8] = {

@@ -13,7 +13,6 @@
 #include <dispatchqueue/DispatchQueue.h>
 #include <handler/HandlerChannel.h>
 #include <klib/RingBuffer.h>
-#include <machine/amiga/graphics/GraphicsDriver.h>
 #include <sched/mtx.h>
 #include "Color.h"
 #include "Font.h"
