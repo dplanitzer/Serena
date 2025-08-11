@@ -59,8 +59,8 @@ static inline void RingBuffer_RemoveAll(RingBuffer* _Nonnull self) {
     self->writeIdx = 0;
 }
 
-// Puts a single byte into the ring buffer.  Returns 0 if the buffer is empty and
-// no byte has been copied out.
+// Puts a single byte into the ring buffer. Returns 1 if the byte has been
+// copied to the buffer and 0 if the ring buffer is full.
 extern size_t RingBuffer_PutByte(RingBuffer* _Nonnull self, char byte);
 
 // Puts a sequence of bytes into the ring buffer by copying them. Returns the

@@ -17,24 +17,24 @@ void InputDriver_getInfo(InputDriverRef _Nonnull _Locked self, InputInfo* _Nonnu
     pOutInfo->inputType = InputDriver_GetInputType(self);
 }
 
-errno_t InputDriver_GetInfo(InputDriverRef _Nonnull self, InputInfo* pOutInfo)
-{
-    decl_try_err();
-
-    if (Driver_IsActive(self)) {
-        invoke_n(getInfo, InputDriver, self, pOutInfo);
-    }
-    else {
-        err = ENODEV;
-    }
-
-    return err;
-}
-
-
 InputType InputDriver_getInputType(InputDriverRef _Nonnull self)
 {
     return kInputType_None;
+}
+
+
+//
+// MARK: -
+// HID Manager API
+//
+
+void InputDriver_getReport(InputDriverRef _Nonnull self, HIDReport* _Nonnull report)
+{
+    report->type = kHIDReportType_Null;
+}
+
+void InputDriver_setReportTarget(InputDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
+{
 }
 
 
@@ -49,7 +49,8 @@ errno_t InputDriver_ioctl(InputDriverRef _Nonnull self, IOChannelRef _Nonnull pC
         case kInputCommand_GetInfo: {
             InputInfo* info = va_arg(ap, InputInfo*);
             
-            return InputDriver_GetInfo(self, info);
+            InputDriver_GetInfo(self, info);
+            return EOK;
         }
 
         default:
@@ -61,5 +62,7 @@ errno_t InputDriver_ioctl(InputDriverRef _Nonnull self, IOChannelRef _Nonnull pC
 class_func_defs(InputDriver, Driver,
 func_def(getInfo, InputDriver)
 func_def(getInputType, InputDriver)
+func_def(getReport, InputDriver)
+func_def(setReportTarget, InputDriver)
 override_func_def(ioctl, InputDriver, Handler)
 );

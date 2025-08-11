@@ -63,7 +63,7 @@ void vcpu_sigrouteoff(vcpu_t _Nonnull self)
     preempt_restore(sps);
 }
 
-errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, bool isProc)
+static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo, bool isProc)
 {
     decl_try_err();
 
@@ -78,12 +78,22 @@ errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, bool isProc)
         self->pending_sigs |= sigbit;
 
         if (self->sched_state == SCHED_STATE_WAITING && (self->wait_sigs & sigbit) != 0) {
-            wq_wakeone(self->waiting_on_wait_queue, self, WAKEUP_CSW, WRES_SIGNAL);
+            wq_wakeone(self->waiting_on_wait_queue, self, flags, WRES_SIGNAL);
         }
     }
     preempt_restore(sps);
 
     return err;
+}
+
+errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, bool isProc)
+{
+    return _vcpu_sigsend(self, WAKEUP_CSW, signo, isProc);
+}
+
+errno_t vcpu_sigsend_irq(vcpu_t _Nonnull self, int signo, bool isProc)
+{
+    return _vcpu_sigsend(self, 0, signo, isProc);
 }
 
 sigset_t vcpu_sigpending(vcpu_t _Nonnull self)

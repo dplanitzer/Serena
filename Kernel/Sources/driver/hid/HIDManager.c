@@ -12,10 +12,11 @@
 #include <kern/kalloc.h>
 #include <kern/limits.h>
 #include <kpi/fcntl.h>
-#include <machine/Platform.h>
+#include <process/Process.h>
 
 
 extern const uint8_t gUSBHIDKeyFlags[256];
+static void _reports_collector_loop(HIDManagerRef _Nonnull self);
 
 
 HIDManagerRef _Nonnull gHIDManager;
@@ -29,6 +30,10 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
     try(kalloc_cleared(sizeof(HIDManager), (void**)&self));
 
     mtx_init(&self->mtx);
+    wq_init(&self->reportsWaitQueue);
+
+    self->reportSigs = _SIGBIT(SIGKEY);
+    self->report.type = kHIDReportType_Null;
 
     self->keyFlags = gUSBHIDKeyFlags;
     self->isMouseMoveReportingEnabled = false;
@@ -70,6 +75,19 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
 
     // Open the game port driver
     try(DriverManager_Open(gDriverManager, "/hw/gp-bus/self", O_RDWR, &self->gpChannel));
+
+
+    // Create the event vcpu
+    _vcpu_acquire_attr_t attr;
+    attr.func = (vcpu_func_t)_reports_collector_loop;
+    attr.arg = self;
+    attr.stack_size = 0;
+    attr.groupid = VCPUID_MAIN_GROUP;
+    attr.sched_params.qos = VCPU_QOS_REALTIME;
+    attr.sched_params.priority = VCPU_PRI_HIGHEST - 1;
+    attr.flags = VCPU_ACQUIRE_RESUMED;
+    attr.data = 0;
+    try(Process_AcquireVirtualProcessor(gKernelProcess, &attr, &self->reportsCollector));
 
 catch:
     return err;
@@ -334,8 +352,8 @@ static inline bool KeyMap_IsKeyDown(const uint32_t* _Nonnull pKeyMap, uint16_t k
 void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode* _Nullable pKeysToCheck, int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, int* _Nonnull nKeysDown)
 {
     int oi = 0;
-    const int irs = irq_disable();
-    
+
+    mtx_lock(&self->mtx);
     if (nKeysToCheck > 0 && pKeysToCheck) {
         if (pKeysDown) {
             // Returns at most 'nKeysDown' keys which are in the set 'pKeysToCheck'
@@ -369,7 +387,7 @@ void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode*
             }
         }
     }
-    irq_restore(irs);
+    mtx_unlock(&self->mtx);
     
     *nKeysDown = oi;
 }
@@ -498,18 +516,19 @@ void HIDManager_UnshieldMouseCursor(HIDManagerRef _Nonnull self)
 // Returns the current mouse location in screen space.
 void HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self, int* _Nonnull pOutX, int* _Nonnull pOutY)
 {
-    const int irs = irq_disable();
+    mtx_lock(&self->mtx);
     *pOutX = self->mouseX;
     *pOutY = self->mouseY;
-    irq_restore(irs);
+    mtx_unlock(&self->mtx);
 }
 
 // Returns a bit mask of all the mouse buttons that are currently pressed.
 uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self)
 {
-    const int irs = irq_disable();
+    mtx_lock(&self->mtx);
     const uint32_t buttons = self->mouseButtons;
-    irq_restore(irs);
+    mtx_unlock(&self->mtx);
+
     return buttons;
 }
 
@@ -525,4 +544,29 @@ uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self)
 errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timespec* _Nonnull timeout, HIDEvent* _Nonnull evt)
 {
     return HIDEventQueue_Get(self->eventQueue, timeout, evt);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: HID Reports Collector
+////////////////////////////////////////////////////////////////////////////////
+
+static void _reports_collector_loop(HIDManagerRef _Nonnull self)
+{
+    InputDriverRef kb = HandlerChannel_GetHandlerAs(self->kbChannel, InputDriver);
+    int signo;
+    
+    InputDriver_SetReportTarget(kb, self->reportsCollector, SIGKEY);
+
+    for (;;) {
+        InputDriver_GetReport(kb, &self->report);
+
+        if (self->report.type != kHIDReportType_Null) {
+            HIDManager_ReportKeyboardDeviceChange(self, (self->report.type == kHIDReportType_KeyDown) ? kHIDKeyState_Down : kHIDKeyState_Up, self->report.data.key.keyCode);
+        }
+        else {
+            vcpu_sigwait(&self->reportsWaitQueue, &self->reportSigs, &signo);
+        }
+    }
 }

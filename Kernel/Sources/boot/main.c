@@ -169,7 +169,6 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     try(HIDManager_Create(&gHIDManager));
     try(DriverManager_Create(&gDriverManager));
     try(drivers_init());
-    try(HIDManager_Start(gHIDManager));
 
 
     // Open the boot screen and show the boot logo
@@ -186,6 +185,10 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     Object_Release(pRootFh);
 
 
+    // Start the HID services
+    try(HIDManager_Start(gHIDManager));
+
+    
     // Start the filesystem management services
     try(FilesystemManager_Start(gFilesystemManager));
 

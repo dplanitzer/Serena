@@ -11,10 +11,14 @@
 
 #include "HIDManager.h"
 #include "HIDEventQueue.h"
+#include "InputDriver.h"
 #include <kpi/hidkeycodes.h>
 #include <machine/amiga/graphics/GraphicsDriver.h>
 #include <sched/mtx.h>
+#include <sched/vcpu.h>
 
+
+#define SIGKEY  2
 
 // XXX 16 is confirmed to work without overflows on a A2000. Still want to keep
 // 48 for now for mouse move. Though once we support coalescing we may want to
@@ -44,6 +48,7 @@ typedef struct LogicalJoystick {
 typedef struct HIDManager {
     mtx_t                       mtx;
 
+
     // Input Drivers
     IOChannelRef _Nullable      kbChannel;
     IOChannelRef _Nullable      gpChannel;
@@ -52,6 +57,13 @@ typedef struct HIDManager {
     // Framebuffer interface
     IOChannelRef _Nullable      fbChannel;
     GraphicsDriverRef _Nullable fb;
+
+
+    // HID reports collector
+    vcpu_t _Nullable            reportsCollector;
+    struct waitqueue            reportsWaitQueue;
+    sigset_t                    reportSigs;
+    HIDReport                   report;
 
 
     // Event queue

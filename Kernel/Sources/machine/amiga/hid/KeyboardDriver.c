@@ -7,8 +7,7 @@
 //
 
 #include "KeyboardDriver.h"
-#include <driver/hid/HIDManager.h>
-#include <driver/hid/HIDKeyRepeater.h>
+#include <klib/RingBuffer.h>
 #include <kpi/fcntl.h>
 #include <machine/InterruptController.h>
 #include <machine/Platform.h>
@@ -18,7 +17,7 @@
 // Keycode -> USB HID keyscan codes
 // See: <http://whdload.de/docs/en/rawkey.html>
 // See: <http://www.quadibloc.com/comp/scan.htm>
-static const uint8_t gUSBHIDKeycodes[128] = {
+static const uint8_t g_usb_code_map[128] = {
     0x35, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x2d, 0x2e, 0x31, 0x00, 0x62, // $00 - $0f
     0x14, 0x1a, 0x08, 0x15, 0x17, 0x1c, 0x18, 0x0c, 0x12, 0x13, 0x2f, 0x30, 0x00, 0x59, 0x5a, 0x5b, // $10 - $1f
     0x04, 0x16, 0x07, 0x09, 0x0a, 0x0b, 0x0d, 0x0e, 0x0f, 0x33, 0x34, 0x00, 0x00, 0x5c, 0x5d, 0x5e, // $20 - $2f
@@ -31,10 +30,11 @@ static const uint8_t gUSBHIDKeycodes[128] = {
 
 
 final_class_ivars(KeyboardDriver, InputDriver,
-    const uint8_t* _Nonnull     keyCodeMap;
-    HIDKeyRepeaterRef _Nonnull  keyRepeater;
-    InterruptHandlerID          keyboardIrqHandler;
-    InterruptHandlerID          vblIrqHandler;
+    RingBuffer          keyQueue;   // irq state
+    vcpu_t _Nullable    sigvp;      // irq state
+    int                 signo;      // irq state
+    int                 dropCount;  // irq state
+    InterruptHandlerID  irqHandler;
 );
 
 
@@ -42,7 +42,6 @@ extern void ksb_init(void);
 extern int ksb_receive_key(void);
 extern void ksb_acknowledge_key(void);
 extern void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self);
-extern void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull self);
 
 
 errno_t KeyboardDriver_Create(CatalogId parentDirId, DriverRef _Nullable * _Nonnull pOutSelf)
@@ -51,10 +50,7 @@ errno_t KeyboardDriver_Create(CatalogId parentDirId, DriverRef _Nullable * _Nonn
     KeyboardDriverRef self;
     
     try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
-    
-    self->keyCodeMap = gUSBHIDKeycodes;
-    try(HIDKeyRepeater_Create(&self->keyRepeater));
-
+    try(RingBuffer_Init(&self->keyQueue, 16));
     ksb_init();
 
     try(InterruptController_AddDirectInterruptHandler(gInterruptController,
@@ -62,16 +58,8 @@ errno_t KeyboardDriver_Create(CatalogId parentDirId, DriverRef _Nullable * _Nonn
                                                       INTERRUPT_HANDLER_PRIORITY_NORMAL,
                                                       (InterruptHandler_Closure)KeyboardDriver_OnKeyboardInterrupt,
                                                       self,
-                                                      &self->keyboardIrqHandler));
-    InterruptController_SetInterruptHandlerEnabled(gInterruptController, self->keyboardIrqHandler, true);
-
-    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
-                                                      INTERRUPT_ID_VERTICAL_BLANK,
-                                                      INTERRUPT_HANDLER_PRIORITY_NORMAL - 1,
-                                                      (InterruptHandler_Closure)KeyboardDriver_OnVblInterrupt,
-                                                      self,
-                                                      &self->vblIrqHandler));
-    InterruptController_SetInterruptHandlerEnabled(gInterruptController, self->vblIrqHandler, true);
+                                                      &self->irqHandler));
+    InterruptController_SetInterruptHandlerEnabled(gInterruptController, self->irqHandler, true);
 
     *pOutSelf = (DriverRef)self;
     return EOK;
@@ -84,11 +72,8 @@ catch:
 
 static void KeyboardDriver_deinit(KeyboardDriverRef _Nonnull self)
 {
-    try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->keyboardIrqHandler));
-    try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->vblIrqHandler));
-
-    HIDKeyRepeater_Destroy(self->keyRepeater);
-    self->keyRepeater = NULL;
+    InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler);
+    RingBuffer_Deinit(&self->keyQueue);
 }
 
 errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
@@ -111,6 +96,31 @@ void KeyboardDriver_onStop(DriverRef _Nonnull _Locked self)
     Driver_Unpublish(self);
 }
 
+void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, HIDReport* _Nonnull report)
+{
+    char keyCode;
+    
+    const int irs = irq_disable();
+    const size_t r = RingBuffer_GetByte(&self->keyQueue, &keyCode);
+    irq_restore(irs);
+
+    if (r > 0) {
+        report->type = (keyCode & 0x80) ? kHIDReportType_KeyUp : kHIDReportType_KeyDown;
+        report->data.key.keyCode = (uint16_t)g_usb_code_map[keyCode & 0x7f];
+    }
+    else {
+        report->type = kHIDReportType_Null;
+    }
+}
+
+void KeyboardDriver_setReportTarget(KeyboardDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
+{
+    const int irs = irq_disable();
+    self->sigvp = vp;
+    self->signo = signo;
+    irq_restore(irs);
+}
+
 InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)
 {
     return kInputType_Keyboard;
@@ -118,16 +128,10 @@ InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)
 
 static void KeyboardDriver_GetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay)
 {
-    const int irs = irq_disable();
-    HIDKeyRepeater_GetKeyRepeatDelays(self->keyRepeater, pInitialDelay, pRepeatDelay);
-    irq_restore(irs);
 }
 
 static void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
 {
-    const int irs = irq_disable();
-    HIDKeyRepeater_SetKeyRepeatDelays(self->keyRepeater, initialDelay, repeatDelay);
-    irq_restore(irs);
 }
 
 errno_t KeyboardDriver_ioctl(KeyboardDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
@@ -157,26 +161,15 @@ errno_t KeyboardDriver_ioctl(KeyboardDriverRef _Nonnull self, IOChannelRef _Nonn
 
 void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self)
 {
-    const uint8_t keyCode = ksb_receive_key();
-    const HIDKeyState state = (keyCode & 0x80) ? kHIDKeyState_Up : kHIDKeyState_Down;
-    const uint16_t code = (uint16_t)self->keyCodeMap[keyCode & 0x7f];
-
-    if (code > 0) {
-        HIDManager_ReportKeyboardDeviceChange(gHIDManager, state, code);
-        if (state == kHIDKeyState_Up) {
-            HIDKeyRepeater_KeyUp(self->keyRepeater, code);
-        } else {
-            HIDKeyRepeater_KeyDown(self->keyRepeater, code);
+    if (RingBuffer_PutByte(&self->keyQueue, ksb_receive_key()) == 1) {
+        if (self->sigvp) {
+            vcpu_sigsend_irq(self->sigvp, self->signo, false);
         }
     }
+    else {
+        self->dropCount++;
+    }
     ksb_acknowledge_key();
-}
-
-void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull self)
-{
-    // const int = irq_disable();
-    HIDKeyRepeater_Tick(self->keyRepeater);
-    // irq_restore(irs);
 }
 
 
@@ -184,6 +177,8 @@ class_func_defs(KeyboardDriver, InputDriver,
 override_func_def(deinit, KeyboardDriver, Object)
 override_func_def(onStart, KeyboardDriver, Driver)
 override_func_def(onStop, KeyboardDriver, Driver)
+override_func_def(getReport, KeyboardDriver, InputDriver)
+override_func_def(setReportTarget, KeyboardDriver, InputDriver)
 override_func_def(getInputType, KeyboardDriver, InputDriver)
 override_func_def(ioctl, KeyboardDriver, Handler)
 );

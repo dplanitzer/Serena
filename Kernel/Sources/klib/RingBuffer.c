@@ -46,7 +46,7 @@ void RingBuffer_Deinit(RingBuffer* _Nonnull self)
 
 size_t RingBuffer_PutByte(RingBuffer* _Nonnull self, char byte)
 {
-    if (RingBuffer_ReadableCount(self) < self->capacity) {
+    if (RingBuffer_WritableCount(self) >= 1) {
         self->data[MASK_INDEX(self, self->writeIdx++)] = byte;
         return 1;
     } else {
@@ -73,7 +73,7 @@ size_t RingBuffer_PutBytes(RingBuffer* _Nonnull self, const void* _Nonnull pByte
 
 size_t RingBuffer_GetByte(RingBuffer* _Nonnull self, char* _Nonnull pByte)
 {
-    if (!RingBuffer_IsEmpty(self)) {
+    if (RingBuffer_ReadableCount(self) >= 1) {
         *pByte = self->data[MASK_INDEX(self, self->readIdx++)];
         return 1;
     } else {

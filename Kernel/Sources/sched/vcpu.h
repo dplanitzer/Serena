@@ -194,6 +194,9 @@ extern void vcpu_sigrouteoff(vcpu_t _Nonnull self);
 // added to the pending signal list and ignored.
 extern errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, bool isProc);
 
+// Same as vcpu_sigsend(), but safe to use from a direct interrupt handler.
+extern errno_t vcpu_sigsend_irq(vcpu_t _Nonnull self, int signo, bool isProc);
+
 // Returns a copy of the pending signals
 extern sigset_t vcpu_sigpending(vcpu_t _Nonnull self);
 

@@ -10,14 +10,15 @@
 #include <kern/kalloc.h>
 #include <machine/clock.h>
 #include <machine/Platform.h>
-#include <sched/sem.h>
+#include <sched/cnd.h>
 
 
 // The event queue stores events in a ring buffer with a size that is a
 // power-of-2 number.
 // See: <https://www.snellman.net/blog/archive/2016-12-13-ring-buffers/>
 typedef struct HIDEventQueue {
-    sem_t       semaphore;
+    mtx_t       mtx;
+    cnd_t       cnd;
     uint8_t     capacity;
     uint8_t     capacityMask;
     uint8_t     readIdx;
@@ -41,7 +42,9 @@ errno_t HIDEventQueue_Create(size_t capacity, HIDEventQueueRef _Nullable * _Nonn
     
     assert(powerOfTwoCapacity <= UINT8_MAX/2);
     try(kalloc_cleared(sizeof(HIDEventQueue) + (powerOfTwoCapacity - 1) * sizeof(HIDEvent), (void**) &self));
-    sem_init(&self->semaphore, 0);
+    mtx_init(&self->mtx);
+    cnd_init(&self->cnd);
+
     self->capacity = powerOfTwoCapacity;
     self->capacityMask = powerOfTwoCapacity - 1;
     self->readIdx = 0;
@@ -57,7 +60,8 @@ catch:
 void HIDEventQueue_Destroy(HIDEventQueueRef _Nonnull self)
 {
     if (self) {
-        sem_deinit(&self->semaphore);
+        cnd_deinit(&self->cnd);
+        mtx_deinit(&self->mtx);
         kfree(self);
     }
 }
@@ -90,9 +94,9 @@ static inline int HIDEventQueue_WritableCount_Locked(HIDEventQueueRef _Nonnull s
 // Returns true if the queue is empty.
 bool HIDEventQueue_IsEmpty(HIDEventQueueRef _Nonnull self)
 {
-    const int irs = irq_disable();
+    mtx_lock(&self->mtx);
     const bool r = HIDEventQueue_IsEmpty_Locked(self);
-    irq_restore(irs);
+    mtx_unlock(&self->mtx);
 
     return r;
 }
@@ -101,19 +105,19 @@ bool HIDEventQueue_IsEmpty(HIDEventQueueRef _Nonnull self)
 // the oldest event every time it overflows.
 size_t HIDEventQueue_GetOverflowCount(HIDEventQueueRef _Nonnull self)
 {
-    const int irs = irq_disable();
+    mtx_lock(&self->mtx);
     const size_t overflowCount = self->overflowCount;
-    irq_restore(irs);
+    mtx_unlock(&self->mtx);
     return overflowCount;
 }
 
 // Removes all events from the queue.
 void HIDEventQueue_RemoveAll(HIDEventQueueRef _Nonnull self)
 {
-    const int irs = irq_disable();
+    mtx_lock(&self->mtx);
     self->readIdx = 0;
     self->writeIdx = 0;
-    irq_restore(irs);
+    mtx_unlock(&self->mtx);
 }
 
 // Posts the given event to the queue. This event replaces the oldest event
@@ -121,7 +125,7 @@ void HIDEventQueue_RemoveAll(HIDEventQueueRef _Nonnull self)
 // interrupt context.
 void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const HIDEventData* _Nonnull pEventData)
 {
-    const int irs = irq_disable();
+    mtx_lock(&self->mtx);
 
     if (HIDEventQueue_IsFull_Locked(self)) {
         // Queue is full - remove the oldest report
@@ -133,9 +137,9 @@ void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const 
     pEvent->type = type;
     clock_gettime(g_mono_clock, &pEvent->eventTime);
     pEvent->data = *pEventData;
-    irq_restore(irs);
-
-    sem_relinquish_irq(&self->semaphore);
+    
+    cnd_broadcast(&self->cnd);
+    mtx_unlock(&self->mtx);
 }
 
 // Removes the oldest event from the queue and returns a copy of it. Blocks the
@@ -147,14 +151,13 @@ errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, const struct timespec*
 {
     decl_try_err();
 
-    while (true) {
-        const int irs = irq_disable();
+    mtx_lock(&self->mtx);
+    for (;;) {
         const bool hasEvent = !HIDEventQueue_IsEmpty_Locked(self);
-
+        
         if (hasEvent) {
             *pOutEvent = self->data[self->readIdx++ & self->capacityMask];
         }
-        irq_restore(irs);
 
         if (hasEvent) {
             err = EOK;
@@ -165,11 +168,12 @@ errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, const struct timespec*
             break;
         }
 
-        err = sem_acquire(&self->semaphore, timeout);
+        err = cnd_timedwait(&self->cnd, &self->mtx, timeout);
         if (err != EOK) {
             break;
         }
     }
+    mtx_unlock(&self->mtx);
 
     return err;
 }
