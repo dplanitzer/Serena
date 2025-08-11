@@ -107,6 +107,11 @@ const uint16_t gArrow_Mask[] = {
 const int gArrow_Width = 16;
 const int gArrow_Height = 16;
 
+static const uint16_t* gArrow_Planes[2] = {
+    gArrow_Plane0,
+    gArrow_Plane1
+};
+
 
 #define BLOCK_4x8_BITS_PLANE0 \
 PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \

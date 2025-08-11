@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/fb.h>
 #include <sys/hid.h>
 #include <sys/hidevent.h>
 #include <sys/hidkeycodes.h>
@@ -18,20 +19,82 @@
 #include <sys/timespec.h>
 #include "Asserts.h"
 
+#define PACK_U16(_15, _14, _13, _12, _11, _10, _9, _8, _7, _6, _5, _4, _3, _2, _1, _0) \
+    (uint16_t)(((_15) << 15) | ((_14) << 14) | ((_13) << 13) | ((_12) << 12) | ((_11) << 11) |\
+             ((_10) << 10) |  ((_9) <<  9) |  ((_8) <<  8) |  ((_7) <<  7) |  ((_6) <<  6) |\
+              ((_5) <<  5) |  ((_4) <<  4) |  ((_3) <<  3) |  ((_2) <<  2) |  ((_1) <<  1) | (_0))
+
+#define _ 0
+#define o 1
+
+#define ARROW_BITS_PLANE0 \
+PACK_U16( o,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,o,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,o,o,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,o,o,o,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,o,o,o,o,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,o,o,o,o,o,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,o,o,o,o,o,o,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,o,o,o,o,o,o,o,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,o,o,o,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,_,o,o,o,o,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,_,_,o,o,o,o,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,_,_,_,_,o,o,o,o,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,o,o,o,o,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,_,o,o,o,_,_,_,_,_,_,_ ),
+static const uint16_t gArrow_Plane0[] = {
+    ARROW_BITS_PLANE0
+};
+
+#define ARROW_BITS_PLANE1 \
+PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,o,o,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,o,o,o,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,o,o,o,o,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,o,o,o,o,o,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,o,o,o,o,o,o,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,o,o,o,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,_,o,o,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,_,_,_,o,o,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,o,o,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,_,o,o,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,_,o,o,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ),
+static const uint16_t gArrow_Plane1[] = {
+    ARROW_BITS_PLANE1
+};
+
+static const uint16_t* gArrow_Planes[2] = {
+    gArrow_Plane0,
+    gArrow_Plane1
+};
+
+static const int gArrow_Width = 16;
+static const int gArrow_Height = 16;
+
+
 
 void hid_test(int argc, char *argv[])
 {
-    const int fd = open("/dev/hid", O_RDONLY);
     HIDEvent evt;
     bool done = false;
 
+    const int fd = open("/dev/hid", O_RDONLY);
     assertGreaterEqual(0, fd);
     printf("Press 'q' to quit.\n");
 
+    //const uint16_t* _Nonnull planes[2], int width int height, PixelFormat pixelFormat, int hotSpotX, int hotSpotY
+    assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetMouseCursor, gArrow_Planes, gArrow_Width, gArrow_Height, kMouseCursor_PixelFormat, 0, 0));
+    assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetMouseCursorVisibility, kMouseCursor_Visible));
+
     while (!done) {
-        const int r = ioctl(fd, kHIDCommand_GetNextEvent, &TIMESPEC_INF, &evt);
-        
-        assertGreaterEqual(0, r);
+        assertGreaterEqual(0, ioctl(fd, kHIDCommand_GetNextEvent, &TIMESPEC_INF, &evt));
+
         switch (evt.type) {
             case kHIDEventType_KeyDown:
             case kHIDEventType_KeyUp:
@@ -54,9 +117,9 @@ void hid_test(int argc, char *argv[])
                 printf("%s: %d\tflags: $%hhx\t(%d, %d)\n",
                       (evt.type == kHIDEventType_MouseUp) ? "mouse-up" : "mouse-down",
                       evt.data.mouse.buttonNumber,
+                      (int)evt.data.mouse.flags,
                       evt.data.mouse.x,
-                      evt.data.mouse.y,
-                      (int)evt.data.mouse.flags);
+                      evt.data.mouse.y);
                 break;
 
             case kHIDEventType_MouseMoved:
@@ -70,9 +133,9 @@ void hid_test(int argc, char *argv[])
                 printf("%s: %d\tflags: $%hhx\t(%d, %d)\n",
                       (evt.type == kHIDEventType_JoystickUp) ? "joy-up" : "joy-down",
                       evt.data.joystick.buttonNumber,
+                      (int)evt.data.joystick.flags,
                       evt.data.joystick.dx,
-                      evt.data.joystick.dy,
-                      (int)evt.data.joystick.flags);
+                      evt.data.joystick.dy);
                 break;
 
             case kHIDEventType_JoystickMotion:
@@ -86,5 +149,6 @@ void hid_test(int argc, char *argv[])
         }
     }
 
+    assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetMouseCursorVisibility, kMouseCursor_Hidden));
     close(fd);
 }
