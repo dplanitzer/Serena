@@ -22,7 +22,7 @@ static void test_loop(const char* _Nonnull str)
 }
 
 #define CONCURRENCY 2
-void acquire_vcpu_test(int argc, char *argv[])
+void vcpu_acquire_test(int argc, char *argv[])
 {
     static const char* gStr[CONCURRENCY] = {"A", "B"};
     static vcpu_t gId[CONCURRENCY];
