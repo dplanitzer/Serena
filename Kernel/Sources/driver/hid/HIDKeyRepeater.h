@@ -9,30 +9,45 @@
 #ifndef HIDKeyRepeater_h
 #define HIDKeyRepeater_h
 
-#include <kern/errno.h>
 #include <kpi/hidevent.h>
 
-struct HIDKeyRepeater;
-typedef struct HIDKeyRepeater* HIDKeyRepeaterRef;
+
+// Action to take next as the result of calling HIDKeyRepeater_Tick()
+typedef enum HIDKeyTick {
+    kHIDKeyTick_Wait,
+    kHIDKeyTick_TimedWait,
+    kHIDKeyTick_UseEvent,
+    kHIDKeyTick_SynthesizeRepeat
+} HIDKeyTick;
+
+// Result of calling HIDKeyRepeater_Tick()
+typedef struct HIDKeyTickResult {
+    struct timespec deadline;   // SynthesizeEvent: event timestamp; TimedWait: wait until this time
+    uint32_t        flags;      // SynthesizeEvent: event flags
+    HIDKeyCode      keyCode;    // SynthesizeEvent: event key code
+} HIDKeyTickResult;
 
 
-extern errno_t HIDKeyRepeater_Create(HIDKeyRepeaterRef _Nullable * _Nonnull pOutSelf);
-extern void HIDKeyRepeater_Destroy(HIDKeyRepeaterRef _Nonnull self);
+typedef struct HIDKeyRepeater {
+    struct timespec initialKeyRepeatDelay;        // [200ms...3s]
+    struct timespec keyRepeatDelay;               // [20ms...2s]
 
-extern void HIDKeyRepeater_GetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay);
-extern void HIDKeyRepeater_SetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay);
+    // At most one key may be in key repeat state
+    struct timespec nextEventTime;
+    uint32_t        keyFlags;       // Modifier flags of the original key down (flags changes cause the repeat to end)
+    HIDKeyCode      keyCode;        // Key code of the original key down
+    uint16_t        state;
+} HIDKeyRepeater;
+typedef HIDKeyRepeater* HIDKeyRepeaterRef;
 
-// Informs the key repeater that the user is now pressing down the key 'keyCode'.
-// This implicitly cancels an ongoing key repeat of a different key. Note that at
-// most one key can be repeated at any given time.
-extern void HIDKeyRepeater_KeyDown(HIDKeyRepeaterRef _Nonnull self, HIDKeyCode keyCode);
 
-// Informs the key repeater that the user has just released the key 'keyCode'.
-// This cancels the key repeat for this key.
-extern void HIDKeyRepeater_KeyUp(HIDKeyRepeaterRef _Nonnull self, HIDKeyCode keyCode);
+extern void HIDKeyRepeater_Init(HIDKeyRepeaterRef _Nonnull self);
+extern void HIDKeyRepeater_Deinit(HIDKeyRepeaterRef _Nullable self);
 
-// Gives the key repeater a chance to update its internal state. The key repeater
-// generates and posts a new key down/repeat event if such an event is due.
-extern void HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self);
+// This method looks at the current key repeat state and the current event 'evt'
+// and it determines whether the caller should return 'evt' to the user,
+// synthesize a key repeat event and return it to the user or whether it should
+// wait for events to arrive.
+extern HIDKeyTick HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self, const HIDEvent* _Nullable evt, HIDKeyTickResult* _Nonnull result);
 
 #endif /* HIDKeyRepeater_h */

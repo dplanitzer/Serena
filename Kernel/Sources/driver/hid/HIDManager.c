@@ -322,14 +322,14 @@ void HIDManager_ReportJoystickDeviceChange(HIDManagerRef _Nonnull self, int port
 void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay)
 {
     mtx_lock(&self->mtx);
-    IOChannel_Ioctl(self->kbChannel, kKeyboardCommand_GetKeyRepeatDelays, pInitialDelay, pRepeatDelay);
+    HIDEventQueue_GetKeyRepeatDelays(self->eventQueue, pInitialDelay, pRepeatDelay);
     mtx_unlock(&self->mtx);
 }
 
 void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
 {
     mtx_lock(&self->mtx);
-    IOChannel_Ioctl(self->kbChannel, kKeyboardCommand_SetKeyRepeatDelays, initialDelay, repeatDelay);
+    HIDEventQueue_SetKeyRepeatDelays(self->eventQueue, initialDelay, repeatDelay);
     mtx_unlock(&self->mtx);
 }
 

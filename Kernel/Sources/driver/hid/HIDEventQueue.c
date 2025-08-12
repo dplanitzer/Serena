@@ -7,6 +7,7 @@
 //
 
 #include "HIDEventQueue.h"
+#include "HIDKeyRepeater.h"
 #include <kern/kalloc.h>
 #include <machine/clock.h>
 #include <machine/Platform.h>
@@ -17,14 +18,17 @@
 // power-of-2 number.
 // See: <https://www.snellman.net/blog/archive/2016-12-13-ring-buffers/>
 typedef struct HIDEventQueue {
-    mtx_t       mtx;
-    cnd_t       cnd;
-    uint8_t     capacity;
-    uint8_t     capacityMask;
-    uint8_t     readIdx;
-    uint8_t     writeIdx;
-    size_t      overflowCount;
-    HIDEvent    data[1];
+    mtx_t           mtx;
+    cnd_t           cnd;
+
+    HIDKeyRepeater  keyRepeater;
+
+    uint16_t        capacity;
+    uint16_t        capacityMask;
+    uint16_t        readIdx;
+    uint16_t        writeIdx;
+    size_t          overflowCount;
+    HIDEvent        data[1];
 } HIDEventQueue;
 
 
@@ -44,6 +48,7 @@ errno_t HIDEventQueue_Create(size_t capacity, HIDEventQueueRef _Nullable * _Nonn
     try(kalloc_cleared(sizeof(HIDEventQueue) + (powerOfTwoCapacity - 1) * sizeof(HIDEvent), (void**) &self));
     mtx_init(&self->mtx);
     cnd_init(&self->cnd);
+    HIDKeyRepeater_Init(&self->keyRepeater);
 
     self->capacity = powerOfTwoCapacity;
     self->capacityMask = powerOfTwoCapacity - 1;
@@ -60,46 +65,41 @@ catch:
 void HIDEventQueue_Destroy(HIDEventQueueRef _Nonnull self)
 {
     if (self) {
+        HIDKeyRepeater_Deinit(&self->keyRepeater);
         cnd_deinit(&self->cnd);
         mtx_deinit(&self->mtx);
         kfree(self);
     }
 }
 
-// Returns true if the queue is empty.
-static inline bool HIDEventQueue_IsEmpty_Locked(HIDEventQueueRef _Nonnull self)
+void HIDEventQueue_GetKeyRepeatDelays(HIDEventQueueRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay)
 {
-    return self->readIdx == self->writeIdx;
+    mtx_lock(&self->mtx);
+    if (pInitialDelay) {
+        *pInitialDelay = self->keyRepeater.initialKeyRepeatDelay;
+    }
+    if (pRepeatDelay) {
+        *pRepeatDelay = self->keyRepeater.keyRepeatDelay;
+    }
+    mtx_unlock(&self->mtx);
 }
 
-// Returns true if the queue is full.
-static inline bool HIDEventQueue_IsFull_Locked(HIDEventQueueRef _Nonnull self)
+void HIDEventQueue_SetKeyRepeatDelays(HIDEventQueueRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
 {
-    return self->writeIdx - self->readIdx == self->capacity;
+    mtx_lock(&self->mtx);
+    self->keyRepeater.initialKeyRepeatDelay = *initialDelay;
+    self->keyRepeater.keyRepeatDelay = *repeatDelay;
+    mtx_unlock(&self->mtx);
 }
 
 // Returns the number of reports stored in the ring queue - aka the number of
 // reports that can be read from the queue.
-static inline int HIDEventQueue_ReadableCount_Locked(HIDEventQueueRef _Nonnull self)
-{
-    return self->writeIdx - self->readIdx;
-}
+#define READABLE_COUNT() \
+(self->writeIdx - self->readIdx)
 
 // Returns the number of reports that can be written to the queue.
-static inline int HIDEventQueue_WritableCount_Locked(HIDEventQueueRef _Nonnull self)
-{
-    return self->capacity - (self->writeIdx - self->readIdx);
-}
-
-// Returns true if the queue is empty.
-bool HIDEventQueue_IsEmpty(HIDEventQueueRef _Nonnull self)
-{
-    mtx_lock(&self->mtx);
-    const bool r = HIDEventQueue_IsEmpty_Locked(self);
-    mtx_unlock(&self->mtx);
-
-    return r;
-}
+#define WRITABLE_COUNT() \
+(self->capacity - (self->writeIdx - self->readIdx))
 
 // Returns the number of times the queue overflowed. Note that the queue drops
 // the oldest event every time it overflows.
@@ -126,19 +126,17 @@ void HIDEventQueue_RemoveAll(HIDEventQueueRef _Nonnull self)
 void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const HIDEventData* _Nonnull pEventData)
 {
     mtx_lock(&self->mtx);
-
-    if (HIDEventQueue_IsFull_Locked(self)) {
-        // Queue is full - remove the oldest report
-        self->readIdx = self->readIdx + 1;
+    if (WRITABLE_COUNT() > 0) {
+        HIDEvent* pEvent = &self->data[self->writeIdx++ & self->capacityMask];
+        pEvent->type = type;
+        clock_gettime(g_mono_clock, &pEvent->eventTime);
+        pEvent->data = *pEventData;
+    
+        cnd_broadcast(&self->cnd);
+    }
+    else {
         self->overflowCount++;
     }
-
-    HIDEvent* pEvent = &self->data[self->writeIdx++ & self->capacityMask];
-    pEvent->type = type;
-    clock_gettime(g_mono_clock, &pEvent->eventTime);
-    pEvent->data = *pEventData;
-    
-    cnd_broadcast(&self->cnd);
     mtx_unlock(&self->mtx);
 }
 
@@ -150,26 +148,56 @@ void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const 
 errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, const struct timespec* _Nonnull timeout, HIDEvent* _Nonnull pOutEvent)
 {
     decl_try_err();
+    struct timespec deadline;
+    HIDKeyTickResult ktr;
 
     mtx_lock(&self->mtx);
     for (;;) {
-        const bool hasEvent = !HIDEventQueue_IsEmpty_Locked(self);
-        
-        if (hasEvent) {
-            *pOutEvent = self->data[self->readIdx++ & self->capacityMask];
+        const HIDEvent* queue_evt = NULL;
+
+        if (READABLE_COUNT() > 0) {
+            queue_evt = &self->data[self->readIdx & self->capacityMask];
         }
 
-        if (hasEvent) {
-            err = EOK;
+
+        const HIDKeyTick t = HIDKeyRepeater_Tick(&self->keyRepeater, queue_evt, &ktr);
+        if (t == kHIDKeyTick_UseEvent) {
+            *pOutEvent = *queue_evt;
+            self->readIdx++;
             break;
         }
-        if (timeout->tv_sec <= 0 && timeout->tv_nsec <= 0) {
+        if (t == kHIDKeyTick_SynthesizeRepeat) {
+            pOutEvent->type = kHIDEventType_KeyDown;
+            pOutEvent->eventTime = ktr.deadline;
+            pOutEvent->data.key.flags = ktr.flags;
+            pOutEvent->data.key.keyCode = ktr.keyCode;
+            pOutEvent->data.key.isRepeat = true;
+            break;
+        }
+
+        if (t == kHIDKeyTick_Wait) {
+            deadline = *timeout;
+        }
+        else {
+            deadline = (timespec_lt(&ktr.deadline, timeout)) ? ktr.deadline : *timeout;
+        }
+        if (deadline.tv_sec == 0 && deadline.tv_nsec == 0) {
             err = EAGAIN;
             break;
         }
 
-        err = cnd_timedwait(&self->cnd, &self->mtx, timeout);
-        if (err != EOK) {
+
+        err = cnd_timedwait(&self->cnd, &self->mtx, &deadline);
+        if (err == ETIMEDOUT) {
+            struct timespec now;
+
+            clock_gettime(g_mono_clock, &now);
+            if (timespec_ge(&now, timeout)) {
+                break;
+            }
+            err = EOK;
+        }
+        else if (err != EOK) {
             break;
         }
     }

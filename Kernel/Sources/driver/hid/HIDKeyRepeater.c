@@ -7,9 +7,7 @@
 //
 
 #include "HIDKeyRepeater.h"
-#include "HIDManager.h"
 #include <machine/clock.h>
-#include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <kpi/hidkeycodes.h>
 #include <kern/timespec.h>
@@ -17,64 +15,19 @@
 
 enum {
     kState_Idle = 0,
-    kState_InitialDelaying,
-    kState_Repeating
+    kState_Repeating,
 };
 
-typedef struct HIDKeyRepeater {
-    int8_t          repeatersInUseCount;    // number of repeaters currently in use
-    int8_t          reserved[3];
-    struct timespec initialKeyRepeatDelay;        // [200ms...3s]
-    struct timespec keyRepeatDelay;               // [20ms...2s]
 
-    // At most one key may be in key repeat state
-    struct timespec nextEventTime;
-    HIDKeyCode      keyCode;
-    uint16_t        state;
-} HIDKeyRepeater;
-
-
-
-// Allocates a key repeater object.
-errno_t HIDKeyRepeater_Create(HIDKeyRepeaterRef _Nullable * _Nonnull pOutSelf)
+void HIDKeyRepeater_Init(HIDKeyRepeaterRef _Nonnull self)
 {
-    decl_try_err();
-    HIDKeyRepeater* self;
-    
-    try(kalloc_cleared(sizeof(HIDKeyRepeater), (void**) &self));
-    self->repeatersInUseCount = 0;
     timespec_from_ms(&self->initialKeyRepeatDelay, 300);
     timespec_from_ms(&self->keyRepeatDelay, 100);
     self->state = kState_Idle;
-
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    *pOutSelf = NULL;
-    return err;
 }
 
-// Frees the key repeater.
-void HIDKeyRepeater_Destroy(HIDKeyRepeaterRef _Nonnull self)
+void HIDKeyRepeater_Deinit(HIDKeyRepeaterRef _Nullable self)
 {
-    kfree(self);
-}
-
-void HIDKeyRepeater_GetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay)
-{
-    if (pInitialDelay) {
-        *pInitialDelay = self->initialKeyRepeatDelay;
-    }
-    if (pRepeatDelay) {
-        *pRepeatDelay = self->keyRepeatDelay;
-    }
-}
-
-void HIDKeyRepeater_SetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
-{
-    self->initialKeyRepeatDelay = *initialDelay;
-    self->keyRepeatDelay = *repeatDelay;
 }
 
 // Returns true if the given key should be auto-repeated
@@ -157,65 +110,83 @@ static bool shouldAutoRepeatKeyCode(HIDKeyCode keyCode)
             return true;
     }
 }
-
-// Informs the key repeater that the user is now pressing down the key 'keyCode'.
-// This implicitly cancels an ongoing key repeat of a different key. Note that at
-// most one key can be repeated at any given time.
-void HIDKeyRepeater_KeyDown(HIDKeyRepeaterRef _Nonnull self, HIDKeyCode keyCode)
-{
-    if (shouldAutoRepeatKeyCode(keyCode)) {
-        struct timespec now;
-
-        clock_gettime(g_mono_clock, &now);
-        self->state = kState_InitialDelaying;
-        self->keyCode = keyCode;
-        timespec_add(&now, &self->initialKeyRepeatDelay, &self->nextEventTime);
-    }
-}
-
-// Informs the key repeater that the user has just released the key 'keyCode'.
-// This cancels the key repeat for this key.
-void HIDKeyRepeater_KeyUp(HIDKeyRepeaterRef _Nonnull self, HIDKeyCode keyCode)
-{
-    if (self->state != kState_Idle && self->keyCode == keyCode) {
-        self->state = kState_Idle;
-    }
-}
-
-// Gives the key repeater a chance to update its internal state. The key repeater
-// generates and posts a new key down/repeat event if such an event is due.
-void HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self)
+static bool _key_repeat_tick(HIDKeyRepeaterRef _Nonnull self, HIDKeyTickResult* _Nonnull result)
 {
     struct timespec now;
 
     clock_gettime(g_mono_clock, &now);
 
-    switch (self->state) {
-        case kState_Idle:
-            break;
+    if (timespec_ge(&now, &self->nextEventTime)) {
+        result->deadline = self->nextEventTime;
+        result->flags = self->keyFlags;
+        result->keyCode = self->keyCode;
 
-        case kState_InitialDelaying:
-            if (timespec_ge(&now, &self->nextEventTime)) {
-                self->state = kState_Repeating;
-                HIDManager_ReportKeyboardDeviceChange(gHIDManager, kHIDKeyState_Repeat, self->keyCode);
-                
-                while (timespec_lt(&self->nextEventTime, &now)) {
-                    timespec_add(&self->nextEventTime, &self->keyRepeatDelay, &self->nextEventTime);
-                }
-            }
-            break;
+        while (timespec_lt(&self->nextEventTime, &now)) {
+            timespec_add(&self->nextEventTime, &self->keyRepeatDelay, &self->nextEventTime);
+        }
 
-        case kState_Repeating:
-            if (timespec_ge(&now, &self->nextEventTime)) {
-                HIDManager_ReportKeyboardDeviceChange(gHIDManager, kHIDKeyState_Repeat, self->keyCode);
-                
-                while (timespec_lt(&self->nextEventTime, &now)) {
-                    timespec_add(&self->nextEventTime, &self->keyRepeatDelay, &self->nextEventTime);
-                }
-            }
-            break;
-
-        default:
-            abort();
+        return true;
     }
+    else {
+        return false;
+    }
+}
+
+HIDKeyTick HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self, const HIDEvent* _Nullable evt, HIDKeyTickResult* _Nonnull result)
+{
+    const int evtType = (evt) ? evt->type : -1;
+    struct timespec now;
+    int r;
+
+    switch (evtType) {
+        case kHIDEventType_KeyDown:
+            if (shouldAutoRepeatKeyCode(evt->data.key.keyCode)) {
+                self->state = kState_Repeating;
+                self->keyFlags = evt->data.key.flags;
+                self->keyCode = evt->data.key.keyCode;
+                clock_gettime(g_mono_clock, &now);
+                timespec_add(&now, &self->initialKeyRepeatDelay, &self->nextEventTime);
+            }
+            else {
+                self->state = kState_Idle;
+            }
+            r = kHIDKeyTick_UseEvent;
+            break;
+
+        case kHIDEventType_KeyUp:
+            if (self->state == kState_Repeating && self->keyCode == evt->data.key.keyCode) {
+                self->state = kState_Idle;
+            }
+            r = kHIDKeyTick_UseEvent;
+            break;
+
+        case kHIDEventType_FlagsChanged:
+            if (self->state == kState_Repeating && self->keyFlags != evt->data.flags.flags) {
+                self->state = kState_Idle;
+            }
+            r = kHIDKeyTick_UseEvent;
+            break;
+
+        default:    // All other event types or null event type
+            if (self->state == kState_Repeating) {
+                if (_key_repeat_tick(self, result)) {
+                    r = (evtType == -1 || timespec_lt(&result->deadline, &evt->eventTime)) ? kHIDKeyTick_SynthesizeRepeat : kHIDKeyTick_UseEvent;
+                }
+                else {
+                    if (evtType >= 0) {
+                        r = kHIDKeyTick_UseEvent;
+                    }
+                    else {
+                        result->deadline = self->nextEventTime;
+                        r = kHIDKeyTick_TimedWait;
+                    }
+                }
+            }
+            else {
+                r = (evtType >= 0) ? kHIDKeyTick_UseEvent : kHIDKeyTick_Wait;
+            }
+            break;
+    }
+
+    return r;
 }

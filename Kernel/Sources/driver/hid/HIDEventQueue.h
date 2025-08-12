@@ -25,8 +25,10 @@ extern errno_t HIDEventQueue_Create(size_t capacity, HIDEventQueueRef _Nullable 
 // Frees the event queue.
 extern void HIDEventQueue_Destroy(HIDEventQueueRef _Nonnull self);
 
-// Returns true if the queue is empty.
-bool HIDEventQueue_IsEmpty(HIDEventQueueRef _Nonnull self);
+// Gets and sets the key repeat configuration. Key repeats are synthesized at
+// HIDEventQueue_Get() time if needed.
+extern void HIDEventQueue_GetKeyRepeatDelays(HIDEventQueueRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay);
+extern void HIDEventQueue_SetKeyRepeatDelays(HIDEventQueueRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay);
 
 // Returns the number of times the queue overflowed. Note that the queue drops
 // the oldest event every time it overflows.

@@ -114,21 +114,6 @@ typedef struct InputInfo {
 
 
 //
-// Keyboard
-//
-
-// Returns the initial delay for automatic key repeats and the delay between
-// successive synthesized key presses.
-// get_key_repeat_delays(struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay)
-#define kKeyboardCommand_GetKeyRepeatDelays IOResourceCommand(kDriverCommand_SubclassBase + 0)
-
-// Sets the initial delay for automatic key repeats and the delay between
-// successive synthesized key presses.
-// set_key_repeat_delays(const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
-#define kKeyboardCommand_SetKeyRepeatDelays IOResourceCommand(kDriverCommand_SubclassBase + 1)
-
-
-//
 // GamePort Controller
 //
 

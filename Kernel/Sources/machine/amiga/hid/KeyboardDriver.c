@@ -126,38 +126,6 @@ InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)
     return kInputType_Keyboard;
 }
 
-static void KeyboardDriver_GetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay)
-{
-}
-
-static void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
-{
-}
-
-errno_t KeyboardDriver_ioctl(KeyboardDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
-{
-    switch (cmd) {
-        case kKeyboardCommand_GetKeyRepeatDelays: {
-            struct timespec* initial = va_arg(ap, struct timespec*);
-            struct timespec* repeat = va_arg(ap, struct timespec*);
-
-            KeyboardDriver_GetKeyRepeatDelays(self, initial, repeat);
-            return EOK;
-        }
-
-        case kKeyboardCommand_SetKeyRepeatDelays: {
-            const struct timespec* initialp = va_arg(ap, struct timespec*);
-            const struct timespec* repeatp = va_arg(ap, struct timespec*);
-
-            KeyboardDriver_SetKeyRepeatDelays(self, initialp, repeatp);
-            return EOK;
-        }
-
-        default:
-            return super_n(ioctl, Handler, KeyboardDriver, self, pChannel, cmd, ap);
-    }
-}
-
 
 void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self)
 {
@@ -180,5 +148,4 @@ override_func_def(onStop, KeyboardDriver, Driver)
 override_func_def(getReport, KeyboardDriver, InputDriver)
 override_func_def(setReportTarget, KeyboardDriver, InputDriver)
 override_func_def(getInputType, KeyboardDriver, InputDriver)
-override_func_def(ioctl, KeyboardDriver, Handler)
 );
