@@ -374,14 +374,13 @@ irq_handler_ciaa_alarm:
 irq_handler_ciaa_sp:
     btst    #ICRB_SP, d7
     beq.s   irq_handler_ciaa_flag
-    move.b  CIAASDR, d0
+    move.b  CIAASDR, d0                                     ; key press handler
     move.b  #61, CIAATALO
     move.b  #0, CIAATAHI
     move.b  #%01011001, CIAACRA
     not.b   d0
     ror.b   #1,d0
-    ext.w   d0
-    ext.l   d0
+    extb.l  d0
     move.l  d0, -(sp)
     move.l  _g_irq_key_arg, -(sp)
     move.l  _g_irq_key_func, a0
