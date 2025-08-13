@@ -59,7 +59,4 @@ extern Quantums clock_time2quantums(clock_ref_t _Nonnull self, const struct time
 // Converts a quantum value to a timespec.
 extern void clock_quantums2time(clock_ref_t _Nonnull self, Quantums quants, struct timespec* _Nonnull ts);
 
-// @HAL Requirement: Must be called from the monotonic clock IRQ handler first
-extern void clock_irq(void);
-
 #endif /* _CLOCK_H */

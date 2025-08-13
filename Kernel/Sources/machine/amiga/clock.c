@@ -12,10 +12,12 @@
 #include <machine/clock.h>
 #include <machine/amiga/chipset.h>
 #include <machine/irq.h>
+#include <sched/sched.h>
 
 extern void mclk_start_quantum_timer(const clock_ref_t _Nonnull self);
 extern void mclk_stop_quantum_timer(void);
 extern int32_t mclk_get_quantum_timer_elapsed_ns(const clock_ref_t _Nonnull self);
+void clock_irq(clock_ref_t _Nonnull self, excpt_frame_t* _Nonnull efp);
 
 
 static struct clock g_mono_clock_storage;
@@ -62,14 +64,13 @@ void clock_init_mono(clock_ref_t _Nonnull self)
 
 void clock_start(clock_ref_t _Nonnull self)
 {
-    irq_enable_src(INTERRUPT_ID_CIA_A_TIMER_B);
+    irq_set_clock_func((irq_clock_func_t)clock_irq, self);
+    irq_enable_src(IRQ_ID_CIA_A_TIMER_B);
     mclk_start_quantum_timer(self);
 }
 
-void clock_irq(void)
+void clock_irq(clock_ref_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 {
-    register clock_ref_t self = g_mono_clock;
-
     // update the scheduler clock
     self->current_quantum++;
     
@@ -80,6 +81,10 @@ void clock_irq(void)
         self->current_time.tv_sec++;
         self->current_time.tv_nsec -= NSEC_PER_SEC;
     }
+
+
+    // run the scheduler
+    sched_quantum_irq(g_sched, efp);
 }
 
 void clock_gettime(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts)

@@ -40,7 +40,7 @@ typedef struct InterruptHandlerArray {
 
 // Keep in sync with machine/hal/lowmem.i
 typedef struct InterruptController {
-    InterruptHandlerArray   handlers[INTERRUPT_ID_COUNT];
+    InterruptHandlerArray   handlers[IRQ_ID_COUNT];
     int                     nextAvailableId;    // Next available interrupt handler ID
     int                     spuriousInterruptCount;
     int                     uninitializedInterruptCount;

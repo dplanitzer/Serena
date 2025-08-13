@@ -78,7 +78,7 @@ errno_t FloppyController_Create(CatalogId parentDirId, FloppyControllerRef _Null
     sem_init(&self->done, 0);
     
     try(InterruptController_AddSemaphoreInterruptHandler(gInterruptController,
-                                                         INTERRUPT_ID_DISK_BLOCK,
+                                                         IRQ_ID_DISK_BLOCK,
                                                          INTERRUPT_HANDLER_PRIORITY_NORMAL,
                                                          &self->done,
                                                          &self->irqHandler));

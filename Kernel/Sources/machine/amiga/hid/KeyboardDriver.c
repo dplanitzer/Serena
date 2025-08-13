@@ -54,7 +54,7 @@ errno_t KeyboardDriver_Create(CatalogId parentDirId, DriverRef _Nullable * _Nonn
     ksb_init();
 
     try(InterruptController_AddDirectInterruptHandler(gInterruptController,
-                                                      INTERRUPT_ID_CIA_A_SP,
+                                                      IRQ_ID_CIA_A_SP,
                                                       INTERRUPT_HANDLER_PRIORITY_NORMAL,
                                                       (InterruptHandler_Closure)KeyboardDriver_OnKeyboardInterrupt,
                                                       self,

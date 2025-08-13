@@ -61,7 +61,7 @@ errno_t LightPenDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullab
     *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
     
     try(InterruptController_AddDirectInterruptHandler(gInterruptController,
-                                                      INTERRUPT_ID_VERTICAL_BLANK,
+                                                      IRQ_ID_VERTICAL_BLANK,
                                                       INTERRUPT_HANDLER_PRIORITY_NORMAL - 1,
                                                       (InterruptHandler_Closure)LightPenDriver_OnInterrupt,
                                                       self,

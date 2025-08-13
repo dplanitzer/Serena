@@ -145,6 +145,6 @@ extern void sched_resume_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, Quan
 
 
 // @HAL Requirement: Must be called from the monotonic clock IRQ handler second
-extern void sched_quantum_irq(excpt_frame_t* _Nonnull efp);
+extern void sched_quantum_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp);
 
 #endif /* _SCHED_H */

@@ -130,13 +130,13 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     // Initialize the virtual processor pool
     try_bang(vcpu_pool_create(&g_vcpu_pool));
     
-    
-    // Enable interrupt processing
-    irq_enable();
-
 
     // Start the monotonic clock
     clock_start(g_mono_clock);
+
+
+    // Enable interrupt processing
+    irq_enable();
 
     
     // Initialize the kernel logging package 

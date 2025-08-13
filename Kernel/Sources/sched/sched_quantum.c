@@ -44,10 +44,8 @@ static bool inject_sigurgent_call(excpt_frame_t* _Nonnull efp)
 
 
 // Invoked at the end of every quantum.
-void sched_quantum_irq(excpt_frame_t* _Nonnull efp)
+void sched_quantum_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 {
-    register sched_t self = g_sched;
-
     // First, go through the timeout queue and move all VPs whose timeouts have
     // expired to the ready queue.
     const Quantums now = clock_getticks(g_mono_clock);

@@ -21,7 +21,7 @@ errno_t InterruptController_CreateForLocalCPU(void)
     decl_try_err();
     InterruptController* pController = &gInterruptControllerStorage;
 
-    for (int i = 0; i < INTERRUPT_ID_COUNT; i++) {
+    for (int i = 0; i < IRQ_ID_COUNT; i++) {
         try(kalloc(0, (void**) &pController->handlers[i].start));
         pController->handlers[i].count = 0;
     }
@@ -172,7 +172,7 @@ errno_t InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnu
     
     // Find out which interrupt ID this handler handles
     int interruptId = -1;
-    for (int i = 0; i < INTERRUPT_ID_COUNT; i++) {
+    for (int i = 0; i < IRQ_ID_COUNT; i++) {
         for (int j = 0; j < pController->handlers[i].count; j++) {
             if (pController->handlers[i].start[j].identity == handlerId) {
                 interruptId = i;
@@ -234,7 +234,7 @@ catch:
 // Must be called while holding the lock.
 static InterruptHandler* _Nullable InterruptController_GetInterruptHandlerForID_Locked(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId)
 {
-    for (int i = 0; i < INTERRUPT_ID_COUNT; i++) {
+    for (int i = 0; i < IRQ_ID_COUNT; i++) {
         register InterruptHandler* pHandlers = pController->handlers[i].start;
         register const int count = pController->handlers[i].count;
 
@@ -286,7 +286,7 @@ void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
     mtx_lock(&pController->mtx);
     
     printf("InterruptController = {\n");
-    for (int i = 0; i < INTERRUPT_ID_COUNT; i++) {
+    for (int i = 0; i < IRQ_ID_COUNT; i++) {
         register const InterruptHandler* pHandlers = pController->handlers[i].start;
         register const int count = pController->handlers[i].count;
 

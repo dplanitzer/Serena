@@ -41,7 +41,7 @@ errno_t GraphicsDriver_Create(CatalogId parentDirId, GraphicsDriverRef _Nullable
     sem_init(&self->vblank_sema, 0);
     try(InterruptController_AddDirectInterruptHandler(
         gInterruptController,
-        INTERRUPT_ID_VERTICAL_BLANK,
+        IRQ_ID_VERTICAL_BLANK,
         INTERRUPT_HANDLER_PRIORITY_NORMAL,
         (InterruptHandler_Closure)GraphicsDriver_VerticalBlankInterruptHandler,
         self, &self->vb_irq_handler)

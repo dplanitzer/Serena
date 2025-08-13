@@ -30,8 +30,8 @@
     xref _gInterruptControllerStorage
     xref _g_sched_storage
     xref __fatalException
-    xref _clock_irq
-    xref _sched_quantum_irq
+    xref _g_irq_clock_func
+    xref _g_irq_clock_arg
 
     xdef _cpu_vector_table
     xdef _cpu_non_recoverable_error
@@ -357,10 +357,11 @@ IRQHandler_L2:
 irq_handler_ciaa_tb:
     btst    #ICRB_TB, d7
     beq.s   irq_handler_ciaa_alarm
-    jsr     _clock_irq
     pea     20(sp)              ; d0 - d1 / d7 / a0 - a1
-    jsr     _sched_quantum_irq
-    addq.w  #4, sp
+    move.l  _g_irq_clock_arg, -(sp)
+    move.l  _g_irq_clock_func, a0
+    jsr     (a0)
+    addq.w  #8, sp
 
 irq_handler_ciaa_alarm:
     btst    #ICRB_ALRM, d7
