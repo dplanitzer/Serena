@@ -18,6 +18,7 @@
                 "__M68882",
                 "TARGET_CPU_68020=1",
                 "__KERNEL__",
+                "MACHINE_AMIGA",
                 "__SERENA__",
                 "_OPEN_SYS_ITOA_EXT=1",
                 "_POSIX_SOURCE=1"

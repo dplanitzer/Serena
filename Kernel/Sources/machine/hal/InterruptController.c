@@ -9,7 +9,7 @@
 #include "InterruptControllerPriv.h"
 #include <log/Log.h>
 #include <kern/kalloc.h>
-#include <machine/Platform.h>
+#include <machine/amiga/chipset.h>
 
 
 InterruptController     gInterruptControllerStorage;

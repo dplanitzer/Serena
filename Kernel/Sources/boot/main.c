@@ -18,7 +18,7 @@
 #include <machine/clock.h>
 #include <machine/csw.h>
 #include <machine/InterruptController.h>
-#include <machine/Platform.h>
+#include <machine/irq.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>
 #include <sched/delay.h>

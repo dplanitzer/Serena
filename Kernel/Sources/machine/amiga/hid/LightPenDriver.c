@@ -10,6 +10,7 @@
 #include <driver/hid/HIDManager.h>
 #include <machine/InterruptController.h>
 #include <machine/amiga/chipset.h>
+#include <machine/irq.h>
 
 
 final_class_ivars(LightPenDriver, InputDriver,

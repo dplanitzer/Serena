@@ -10,6 +10,7 @@
 #include <kern/timespec.h>
 #include <kpi/fcntl.h>
 #include <kpi/hid.h>
+#include <machine/irq.h>
 
 
 // Creates a graphics driver instance which manages the on-board video hardware.

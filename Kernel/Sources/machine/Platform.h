@@ -11,14 +11,6 @@
 
 #include <kern/types.h>
 
-//
-// IRQs
-//
-
-extern void irq_enable(void);
-extern int irq_disable(void);
-extern void irq_restore(int state);
-
 
 //
 // Memory

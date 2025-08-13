@@ -13,6 +13,7 @@
 #include <machine/clock.h>
 #include <machine/InterruptController.h>
 #include <machine/amiga/chipset.h>
+#include <machine/irq.h>
 #include <kern/timespec.h>
 #include <sched/cnd.h>
 #include <sched/delay.h>

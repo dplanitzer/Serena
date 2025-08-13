@@ -10,7 +10,7 @@
 #define InterruptControllerPriv_h
 
 #include <machine/InterruptController.h>
-#include <machine/amiga/chipset.h>
+#include <machine/irq.h>
 #include <sched/mtx.h>
 
 

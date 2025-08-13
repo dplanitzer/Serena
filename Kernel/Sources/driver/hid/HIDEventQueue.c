@@ -10,7 +10,7 @@
 #include "HIDKeyRepeater.h"
 #include <kern/kalloc.h>
 #include <machine/clock.h>
-#include <machine/Platform.h>
+#include <machine/irq.h>
 #include <sched/cnd.h>
 
 

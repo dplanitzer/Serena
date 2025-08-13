@@ -10,7 +10,7 @@
 #include <klib/RingBuffer.h>
 #include <kpi/fcntl.h>
 #include <machine/InterruptController.h>
-#include <machine/Platform.h>
+#include <machine/irq.h>
 #include <machine/amiga/chipset.h>
 
 
