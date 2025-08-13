@@ -11,8 +11,21 @@
 #include <handler/HIDHandler.h>
 #include <handler/LogHandler.h>
 #include <handler/NullHandler.h>
+#ifdef MACHINE_AMIGA
 #include <machine/amiga/AmigaController.h>
+#else
+#error "unknown platform"
+#endif
 
+
+static Class* _Nonnull _get_platform_controller_class(void)
+{
+#ifdef MACHINE_AMIGA
+    return class(AmigaController);
+#else
+    abort();
+#endif
+}
 
 errno_t drivers_init(void)
 {
@@ -24,7 +37,7 @@ errno_t drivers_init(void)
 
 
     // Platform controller
-    try(PlatformController_Create(class(AmigaController), (DriverRef*)&gPlatformController));
+    try(PlatformController_Create(_get_platform_controller_class(), (DriverRef*)&gPlatformController));
     try(Driver_Start((DriverRef)gPlatformController));
 
 
