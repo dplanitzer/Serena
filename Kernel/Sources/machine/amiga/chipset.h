@@ -677,9 +677,6 @@ extern uint8_t chipset_get_ramsey_version(void);
 extern bool chipset_is_ntsc(void);
 extern char* chipset_get_upper_dma_limit(int chipset_version);
 
-extern void chipset_enable_interrupt(int interruptId);
-extern void chipset_disable_interrupt(int interruptId);
-
 extern uint32_t chipset_get_hsync_counter(void);
 
 #endif /* _CHIPSET_H */

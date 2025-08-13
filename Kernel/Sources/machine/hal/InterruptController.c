@@ -99,7 +99,7 @@ static errno_t InterruptController_AddInterruptHandler(InterruptControllerRef _N
     
     // Enable the IRQ source
     if (newCount > 0) {
-        chipset_enable_interrupt(interruptId);
+        irq_enable_src(interruptId);
     }
     
     
@@ -206,7 +206,7 @@ errno_t InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnu
 
     // Disable the IRQ source
     if (newCount == 0) {
-        chipset_disable_interrupt(interruptId);
+        irq_disable_src(interruptId);
     }
 
     

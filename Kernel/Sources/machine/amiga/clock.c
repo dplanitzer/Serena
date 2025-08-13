@@ -6,12 +6,12 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
+#include <kern/assert.h>
 #include <kern/kernlib.h>
 #include <kern/timespec.h>
 #include <machine/clock.h>
-#include <machine/InterruptController.h>
-#include <machine/SystemDescription.h>
 #include <machine/amiga/chipset.h>
+#include <machine/irq.h>
 
 extern void mclk_start_quantum_timer(const clock_ref_t _Nonnull self);
 extern void mclk_stop_quantum_timer(void);
@@ -28,7 +28,7 @@ clock_ref_t g_mono_clock = &g_mono_clock_storage;
 
 // Initializes the monotonic clock. The monotonic clock uses the quantum timer
 // as its time base.
-void clock_init_mono(clock_ref_t _Nonnull self, const SystemDescription* pSysDesc)
+void clock_init_mono(clock_ref_t _Nonnull self)
 {
     const bool is_ntsc = chipset_is_ntsc();
 
@@ -58,15 +58,12 @@ void clock_init_mono(clock_ref_t _Nonnull self, const SystemDescription* pSysDes
     self->ns_per_quantum = (is_ntsc) ? 16761906 : 17621045;
     self->quantum_duration_cycles = (is_ntsc) ? 12000 : 12500;
     self->ns_per_quantum_timer_cycle = (is_ntsc) ? 1396 : 1409;
-
-    mclk_start_quantum_timer(self);
 }
 
-void clock_enable(clock_ref_t _Nonnull self)
+void clock_start(clock_ref_t _Nonnull self)
 {
-    CIAA_BASE_DECL(ciaap);
-
-    *CIA_REG_8(ciaap, CIA_ICR) = CIA_IRCF_SC|CIA_IRCF_TB;
+    irq_enable_src(INTERRUPT_ID_CIA_A_TIMER_B);
+    mclk_start_quantum_timer(self);
 }
 
 void clock_irq(void)

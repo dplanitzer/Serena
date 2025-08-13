@@ -119,7 +119,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     
     // Initialize the monotonic clock
-    clock_init_mono(g_mono_clock, pSysDesc);
+    clock_init_mono(g_mono_clock);
 
     
     // Inform the scheduler that the heap exists now and that it should finish
@@ -131,9 +131,12 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     try_bang(vcpu_pool_create(&g_vcpu_pool));
     
     
-    // Enable interrupts and the monotonic clock
+    // Enable interrupt processing
     irq_enable();
-    clock_enable(g_mono_clock);
+
+
+    // Start the monotonic clock
+    clock_start(g_mono_clock);
 
     
     // Initialize the kernel logging package 

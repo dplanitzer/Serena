@@ -9,8 +9,7 @@
 #ifndef _AMIGA_IRQ_H
 #define _AMIGA_IRQ_H
 
-#include <kern/types.h>
-
+#include <machine/cpu.h>
 
 // Supported interrupts
 // http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node0142.html
@@ -24,7 +23,7 @@
 #define INTERRUPT_ID_CIA_A_FLAG                     18
 #define INTERRUPT_ID_CIA_A_SP                       17
 #define INTERRUPT_ID_CIA_A_ALARM                    16
-//#define INTERRUPT_ID_CIA_A_TIMER_B                  15    // Direct Hook: monotonic clock + scheduler
+#define INTERRUPT_ID_CIA_A_TIMER_B                  15    // Direct Hook: monotonic clock + scheduler
 #define INTERRUPT_ID_CIA_A_TIMER_A                  14
 
 #define INTERRUPT_ID_EXTERN                         13
@@ -43,5 +42,10 @@
 #define INTERRUPT_ID_SERIAL_TRANSMIT_BUFFER_EMPTY   0
 
 #define INTERRUPT_ID_COUNT                          24
+
+
+typedef void (*irq_clock_func)(void* _Nullable arg, excpt_frame_t* _Nonnull efp);
+
+extern void irq_set_clock_func(irq_clock_func _Nonnull f, void* _Nullable arg);
 
 #endif /* _AMIGA_IRQ_H */
