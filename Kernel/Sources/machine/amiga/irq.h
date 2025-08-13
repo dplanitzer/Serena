@@ -45,7 +45,9 @@
 
 
 typedef void (*irq_clock_func_t)(void* _Nullable arg, excpt_frame_t* _Nonnull efp);
+typedef void (*irq_key_func_t)(void* _Nullable arg, int key);
 
 extern void irq_set_clock_func(irq_clock_func_t _Nonnull f, void* _Nullable arg);
+extern void irq_set_key_func(irq_key_func_t _Nonnull f, void* _Nullable arg);
 
 #endif /* _AMIGA_IRQ_H */

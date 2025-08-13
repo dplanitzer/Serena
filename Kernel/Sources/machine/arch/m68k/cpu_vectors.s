@@ -30,8 +30,11 @@
     xref _gInterruptControllerStorage
     xref _g_sched_storage
     xref __fatalException
+
     xref _g_irq_clock_func
     xref _g_irq_clock_arg
+    xref _g_irq_key_func
+    xref _g_irq_key_arg
 
     xdef _cpu_vector_table
     xdef _cpu_non_recoverable_error
@@ -371,7 +374,23 @@ irq_handler_ciaa_alarm:
 irq_handler_ciaa_sp:
     btst    #ICRB_SP, d7
     beq.s   irq_handler_ciaa_flag
-    CALL_IRQ_HANDLERS irc_handlers_CIA_A_SP
+    move.b  CIAASDR, d0
+    move.b  #61, CIAATALO
+    move.b  #0, CIAATAHI
+    move.b  #%01011001, CIAACRA
+    not.b   d0
+    ror.b   #1,d0
+    ext.w   d0
+    ext.l   d0
+    move.l  d0, -(sp)
+    move.l  _g_irq_key_arg, -(sp)
+    move.l  _g_irq_key_func, a0
+    jsr     (a0)
+    addq.w  #8, sp
+irq_wait_key_ack:
+    btst.b  #0, CIAACRA
+    bne.s   irq_wait_key_ack
+    and.b   #%10111111, CIAACRA
 
 irq_handler_ciaa_flag:
     btst    #ICRB_FLG, d7

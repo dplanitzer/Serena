@@ -9,7 +9,6 @@
 #include "KeyboardDriver.h"
 #include <klib/RingBuffer.h>
 #include <kpi/fcntl.h>
-#include <machine/InterruptController.h>
 #include <machine/irq.h>
 #include <machine/amiga/chipset.h>
 
@@ -34,14 +33,10 @@ final_class_ivars(KeyboardDriver, InputDriver,
     vcpu_t _Nullable    sigvp;      // irq state
     int                 signo;      // irq state
     int                 dropCount;  // irq state
-    InterruptHandlerID  irqHandler;
 );
 
 
-extern void ksb_init(void);
-extern int ksb_receive_key(void);
-extern void ksb_acknowledge_key(void);
-extern void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self);
+extern void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self, int key);
 
 
 errno_t KeyboardDriver_Create(CatalogId parentDirId, DriverRef _Nullable * _Nonnull pOutSelf)
@@ -51,15 +46,13 @@ errno_t KeyboardDriver_Create(CatalogId parentDirId, DriverRef _Nullable * _Nonn
     
     try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
     try(RingBuffer_Init(&self->keyQueue, 16));
-    ksb_init();
 
-    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
-                                                      IRQ_ID_CIA_A_SP,
-                                                      INTERRUPT_HANDLER_PRIORITY_NORMAL,
-                                                      (InterruptHandler_Closure)KeyboardDriver_OnKeyboardInterrupt,
-                                                      self,
-                                                      &self->irqHandler));
-    InterruptController_SetInterruptHandlerEnabled(gInterruptController, self->irqHandler, true);
+    // Configure the keyboard serial port
+    CIAA_BASE_DECL(ciaa);
+    *CIA_REG_8(ciaa, CIA_CRA) = 0;
+
+    irq_set_key_func((irq_key_func_t)KeyboardDriver_OnKeyboardInterrupt, self);
+    irq_enable_src(IRQ_ID_CIA_A_SP);
 
     *pOutSelf = (DriverRef)self;
     return EOK;
@@ -72,7 +65,7 @@ catch:
 
 static void KeyboardDriver_deinit(KeyboardDriverRef _Nonnull self)
 {
-    InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler);
+    irq_disable_src(IRQ_ID_CIA_A_SP);
     RingBuffer_Deinit(&self->keyQueue);
 }
 
@@ -127,9 +120,9 @@ InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)
 }
 
 
-void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self)
+void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self, int key)
 {
-    if (RingBuffer_PutByte(&self->keyQueue, ksb_receive_key()) == 1) {
+    if (RingBuffer_PutByte(&self->keyQueue, (char)key) == 1) {
         if (self->sigvp) {
             vcpu_sigsend_irq(self->sigvp, self->signo, false);
         }
@@ -137,7 +130,6 @@ void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self)
     else {
         self->dropCount++;
     }
-    ksb_acknowledge_key();
 }
 
 
