@@ -1,12 +1,12 @@
 //
-//  HIDKeyRepeater.c
+//  HIDEventSynth.c
 //  kernel
 //
-//  Created by Dietmar Planitzer on 10/10/23.
-//  Copyright © 2023 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 8/11/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "HIDKeyRepeater.h"
+#include "HIDEventSynth.h"
 #include <machine/clock.h>
 #include <kern/kernlib.h>
 #include <kpi/hidkeycodes.h>
@@ -19,14 +19,14 @@ enum {
 };
 
 
-void HIDKeyRepeater_Init(HIDKeyRepeaterRef _Nonnull self)
+void HIDEventSynth_Init(HIDEventSynthRef _Nonnull self)
 {
     timespec_from_ms(&self->initialKeyRepeatDelay, 300);
     timespec_from_ms(&self->keyRepeatDelay, 100);
     self->state = kState_Idle;
 }
 
-void HIDKeyRepeater_Deinit(HIDKeyRepeaterRef _Nullable self)
+void HIDEventSynth_Deinit(HIDEventSynthRef _Nullable self)
 {
 }
 
@@ -110,7 +110,7 @@ static bool shouldAutoRepeatKeyCode(HIDKeyCode keyCode)
             return true;
     }
 }
-static bool _key_repeat_tick(HIDKeyRepeaterRef _Nonnull self, HIDKeyTickResult* _Nonnull result)
+static bool _key_repeat_tick(HIDEventSynthRef _Nonnull self, HIDSynthResult* _Nonnull result)
 {
     struct timespec now;
 
@@ -132,7 +132,7 @@ static bool _key_repeat_tick(HIDKeyRepeaterRef _Nonnull self, HIDKeyTickResult* 
     }
 }
 
-HIDKeyTick HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self, const HIDEvent* _Nullable evt, HIDKeyTickResult* _Nonnull result)
+HIDSynthAction HIDEventSynth_Tick(HIDEventSynthRef _Nonnull self, const HIDEvent* _Nullable evt, HIDSynthResult* _Nonnull result)
 {
     const int evtType = (evt) ? evt->type : -1;
     struct timespec now;
@@ -150,40 +150,40 @@ HIDKeyTick HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self, const HIDEvent* 
             else {
                 self->state = kState_Idle;
             }
-            r = kHIDKeyTick_UseEvent;
+            r = HIDSynth_UseEvent;
             break;
 
         case kHIDEventType_KeyUp:
             if (self->state == kState_Repeating && self->keyCode == evt->data.key.keyCode) {
                 self->state = kState_Idle;
             }
-            r = kHIDKeyTick_UseEvent;
+            r = HIDSynth_UseEvent;
             break;
 
         case kHIDEventType_FlagsChanged:
             if (self->state == kState_Repeating && self->keyFlags != evt->data.flags.flags) {
                 self->state = kState_Idle;
             }
-            r = kHIDKeyTick_UseEvent;
+            r = HIDSynth_UseEvent;
             break;
 
         default:    // All other event types or null event type
             if (self->state == kState_Repeating) {
                 if (_key_repeat_tick(self, result)) {
-                    r = (evtType == -1 || timespec_lt(&result->deadline, &evt->eventTime)) ? kHIDKeyTick_SynthesizeRepeat : kHIDKeyTick_UseEvent;
+                    r = (evtType == -1 || timespec_lt(&result->deadline, &evt->eventTime)) ? HIDSynth_MakeRepeat : HIDSynth_UseEvent;
                 }
                 else {
                     if (evtType >= 0) {
-                        r = kHIDKeyTick_UseEvent;
+                        r = HIDSynth_UseEvent;
                     }
                     else {
                         result->deadline = self->nextEventTime;
-                        r = kHIDKeyTick_TimedWait;
+                        r = HIDSynth_TimedWait;
                     }
                 }
             }
             else {
-                r = (evtType >= 0) ? kHIDKeyTick_UseEvent : kHIDKeyTick_Wait;
+                r = (evtType >= 0) ? HIDSynth_UseEvent : HIDSynth_Wait;
             }
             break;
     }

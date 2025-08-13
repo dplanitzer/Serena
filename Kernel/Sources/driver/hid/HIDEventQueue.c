@@ -7,7 +7,7 @@
 //
 
 #include "HIDEventQueue.h"
-#include "HIDKeyRepeater.h"
+#include "HIDEventSynth.h"
 #include <kern/kalloc.h>
 #include <machine/clock.h>
 #include <machine/irq.h>
@@ -21,7 +21,7 @@ typedef struct HIDEventQueue {
     mtx_t           mtx;
     cnd_t           cnd;
 
-    HIDKeyRepeater  keyRepeater;
+    HIDEventSynth   synth;
 
     uint16_t        capacity;
     uint16_t        capacityMask;
@@ -48,7 +48,7 @@ errno_t HIDEventQueue_Create(size_t capacity, HIDEventQueueRef _Nullable * _Nonn
     try(kalloc_cleared(sizeof(HIDEventQueue) + (powerOfTwoCapacity - 1) * sizeof(HIDEvent), (void**) &self));
     mtx_init(&self->mtx);
     cnd_init(&self->cnd);
-    HIDKeyRepeater_Init(&self->keyRepeater);
+    HIDEventSynth_Init(&self->synth);
 
     self->capacity = powerOfTwoCapacity;
     self->capacityMask = powerOfTwoCapacity - 1;
@@ -65,7 +65,7 @@ catch:
 void HIDEventQueue_Destroy(HIDEventQueueRef _Nonnull self)
 {
     if (self) {
-        HIDKeyRepeater_Deinit(&self->keyRepeater);
+        HIDEventSynth_Deinit(&self->synth);
         cnd_deinit(&self->cnd);
         mtx_deinit(&self->mtx);
         kfree(self);
@@ -76,10 +76,10 @@ void HIDEventQueue_GetKeyRepeatDelays(HIDEventQueueRef _Nonnull self, struct tim
 {
     mtx_lock(&self->mtx);
     if (pInitialDelay) {
-        *pInitialDelay = self->keyRepeater.initialKeyRepeatDelay;
+        *pInitialDelay = self->synth.initialKeyRepeatDelay;
     }
     if (pRepeatDelay) {
-        *pRepeatDelay = self->keyRepeater.keyRepeatDelay;
+        *pRepeatDelay = self->synth.keyRepeatDelay;
     }
     mtx_unlock(&self->mtx);
 }
@@ -87,8 +87,8 @@ void HIDEventQueue_GetKeyRepeatDelays(HIDEventQueueRef _Nonnull self, struct tim
 void HIDEventQueue_SetKeyRepeatDelays(HIDEventQueueRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
 {
     mtx_lock(&self->mtx);
-    self->keyRepeater.initialKeyRepeatDelay = *initialDelay;
-    self->keyRepeater.keyRepeatDelay = *repeatDelay;
+    self->synth.initialKeyRepeatDelay = *initialDelay;
+    self->synth.keyRepeatDelay = *repeatDelay;
     mtx_unlock(&self->mtx);
 }
 
@@ -149,7 +149,7 @@ errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, const struct timespec*
 {
     decl_try_err();
     struct timespec deadline;
-    HIDKeyTickResult ktr;
+    HIDSynthResult ktr;
 
     mtx_lock(&self->mtx);
     for (;;) {
@@ -160,13 +160,13 @@ errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, const struct timespec*
         }
 
 
-        const HIDKeyTick t = HIDKeyRepeater_Tick(&self->keyRepeater, queue_evt, &ktr);
-        if (t == kHIDKeyTick_UseEvent) {
+        const HIDSynthAction t = HIDEventSynth_Tick(&self->synth, queue_evt, &ktr);
+        if (t == HIDSynth_UseEvent) {
             *pOutEvent = *queue_evt;
             self->readIdx++;
             break;
         }
-        if (t == kHIDKeyTick_SynthesizeRepeat) {
+        if (t == HIDSynth_MakeRepeat) {
             pOutEvent->type = kHIDEventType_KeyDown;
             pOutEvent->eventTime = ktr.deadline;
             pOutEvent->data.key.flags = ktr.flags;
@@ -175,7 +175,7 @@ errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull self, const struct timespec*
             break;
         }
 
-        if (t == kHIDKeyTick_Wait) {
+        if (t == HIDSynth_Wait) {
             deadline = *timeout;
         }
         else {
