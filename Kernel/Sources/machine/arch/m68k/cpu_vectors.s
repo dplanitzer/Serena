@@ -25,7 +25,6 @@
     xref _cpu_exception
     xref _cpu_exception_return
     xref _SystemDescription_Init
-    xref _gInterruptControllerStorage
     xref __fatalException
 
     xref __irq_level_1
@@ -34,6 +33,11 @@
     xref __irq_level_4
     xref __irq_level_5
     xref __irq_level_6
+
+    xref _g_irq_stat_uninit
+    xref _g_irq_stat_spurious
+    xref _g_irq_stat_nmi
+
 
     xdef _cpu_vector_table
     xdef _cpu_non_recoverable_error
@@ -272,23 +276,20 @@ __cpu_exception_return:
 
 ;-------------------------------------------------------------------------------
 ; Uninitialized IRQ handler
-    align 2
 __irq_uninitialized:
-    addq.l  #1, _gInterruptControllerStorage + irc_uninitializedInterruptCount
+    addq.l  #1, _g_irq_stat_uninit
     rte
 
 
 ;-------------------------------------------------------------------------------
 ; Spurious IRQ handler
-    align 2
 __irq_spurious:
-    addq.l  #1, _gInterruptControllerStorage + irc_spuriousInterruptCount
+    addq.l  #1, _g_irq_stat_spurious
     rte
 
 
 ;-------------------------------------------------------------------------------
 ; NMI handler
-    align 2
 __irq_level_7:
-    addq.l  #1, _gInterruptControllerStorage + irc_nonMaskableInterruptCount
+    addq.l  #1, _g_irq_stat_nmi
     rte

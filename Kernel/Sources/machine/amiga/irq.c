@@ -1,5 +1,5 @@
 //
-//  irq.c
+//  amiga/irq.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/12/25.

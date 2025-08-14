@@ -46,4 +46,12 @@ extern void irq_disable_src(int irq_id);
 typedef void (*irq_func_t)(void* _Nullable arg);
 extern void irq_set_direct_handler(int irq_id, irq_func_t _Nonnull f, void* _Nullable arg);
 
+
+// Returns the requested irq related statistics.
+#define IRQ_STAT_UNINITIALIZED_COUNT    0
+#define IRQ_STAT_SPURIOUS_COUNT         1
+#define IRQ_STAT_NON_MASKABLE_COUNT     2
+
+extern size_t irq_get_stat(int stat_id);
+
 #endif /* _IRQ_H */
