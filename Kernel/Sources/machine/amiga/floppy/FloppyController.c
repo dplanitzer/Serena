@@ -76,8 +76,6 @@ errno_t FloppyController_Create(CatalogId parentDirId, FloppyControllerRef _Null
     cnd_init(&self->cv);
     sem_init(&self->done_sem, 0);
 
-    irq_set_direct_handler(IRQ_ID_DISK_BLOCK, (irq_func_t)_disk_block_irq, self);
-
     *pOutSelf = self;
     return EOK;
 
@@ -155,6 +153,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     try(FloppyController_DetectDevices(self));
 
 
+    irq_set_direct_handler(IRQ_ID_DISK_BLOCK, (irq_func_t)_disk_block_irq, self);
     irq_enable_src(IRQ_ID_DISK_BLOCK);
 
 catch:
