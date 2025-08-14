@@ -11,7 +11,7 @@
 
 #include <machine/cpu.h>
 
-// Supported interrupts
+// Supported physical interrupts
 // http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node0142.html
 // http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node0036.html
 #define IRQ_ID_CIA_B_FLAG                     23
@@ -44,10 +44,13 @@
 #define IRQ_ID_COUNT                          24
 
 
+// Logical interrupt names
+#define IRQ_ID_KEYBOARD             IRQ_ID_CIA_A_SP
+#define IRQ_ID_MONOTONIC_CLOCK      IRQ_ID_CIA_A_TIMER_B
+
+
+// Direct handler type definitions for specific interrupt types
 typedef void (*irq_clock_func_t)(void* _Nullable arg, excpt_frame_t* _Nonnull efp);
 typedef void (*irq_key_func_t)(void* _Nullable arg, int key);
-
-extern void irq_set_clock_func(irq_clock_func_t _Nonnull f, void* _Nullable arg);
-extern void irq_set_key_func(irq_key_func_t _Nonnull f, void* _Nullable arg);
 
 #endif /* _AMIGA_IRQ_H */

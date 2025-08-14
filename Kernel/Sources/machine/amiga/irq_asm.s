@@ -13,6 +13,9 @@
     xref _g_irq_clock_arg
     xref _g_irq_key_func
     xref _g_irq_key_arg
+    xref _g_irq_disk_block_func
+    xref _g_irq_disk_block_arg
+
 
     xref _InterruptController_OnInterrupt
     xref _gInterruptControllerStorage
@@ -191,7 +194,10 @@ __irq_level_1:
 irq_handler_dskblk:
     btst    #INTB_DSKBLK, d7
     beq.s   irq_handler_soft
-    CALL_IRQ_HANDLERS irc_handlers_DISK_BLOCK
+    move.l  _g_irq_disk_block_arg, -(sp)
+    move.l  _g_irq_disk_block_func, a0
+    jsr     (a0)
+    addq.w  #4, sp
 
 irq_handler_soft:
     btst    #INTB_SOFT, d7

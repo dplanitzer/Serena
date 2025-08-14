@@ -11,7 +11,6 @@
 #include "adf.h"
 #include <driver/DriverManager.h>
 #include <machine/clock.h>
-#include <machine/InterruptController.h>
 #include <machine/amiga/chipset.h>
 #include <machine/irq.h>
 #include <kern/timespec.h>
@@ -48,10 +47,9 @@ const DriveParams   kDriveParams_5_25 = {
 #define MAX_FLOPPY_DISK_DRIVES  4
 
 final_class_ivars(FloppyController, Driver,
-    mtx_t               mtx;       // Used to ensure that we issue commands to the hardware atomically since all drives share the same CIA and DMA register set
+    mtx_t               mtx;        // Used to ensure that we issue commands to the hardware atomically since all drives share the same CIA and DMA register set
     cnd_t               cv;
-    sem_t               done;       // Semaphore indicating whether the DMA is done
-    InterruptHandlerID  irqHandler;
+    sem_t               done_sem;   // Semaphore indicating whether the DMA is done
     CatalogId           busDirId;
     struct __fdcFlags {
         unsigned int        inUse:1;
@@ -62,6 +60,7 @@ final_class_ivars(FloppyController, Driver,
 
 static void FloppyController_Destroy(FloppyControllerRef _Nullable self);
 static void _FloppyController_SetMotor(FloppyControllerRef _Locked _Nonnull self, DriveState* _Nonnull cb, bool onoff);
+static void _disk_block_irq(FloppyControllerRef _Nonnull self);
 
 
 // Creates the floppy controller
@@ -75,16 +74,10 @@ errno_t FloppyController_Create(CatalogId parentDirId, FloppyControllerRef _Null
 
     mtx_init(&self->mtx);
     cnd_init(&self->cv);
-    sem_init(&self->done, 0);
-    
-    try(InterruptController_AddSemaphoreInterruptHandler(gInterruptController,
-                                                         IRQ_ID_DISK_BLOCK,
-                                                         INTERRUPT_HANDLER_PRIORITY_NORMAL,
-                                                         &self->done,
-                                                         &self->irqHandler));
-    InterruptController_SetInterruptHandlerEnabled(gInterruptController,
-                                                       self->irqHandler,
-                                                       true);
+    sem_init(&self->done_sem, 0);
+
+    irq_set_direct_handler(IRQ_ID_DISK_BLOCK, (irq_func_t)_disk_block_irq, self);
+
     *pOutSelf = self;
     return EOK;
 
@@ -97,12 +90,7 @@ catch:
 // Destroys the floppy controller.
 static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
 {
-    if (self->irqHandler != 0) {
-        try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
-    }
-    self->irqHandler = 0;
-        
-    sem_deinit(&self->done);
+    sem_deinit(&self->done_sem);
     cnd_deinit(&self->cv);
     mtx_deinit(&self->mtx);
 }
@@ -164,7 +152,10 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     
     // Discover as many floppy drives as possible. We ignore drives that generate
     // an error while trying to initialize them.
-    err = FloppyController_DetectDevices(self);
+    try(FloppyController_DetectDevices(self));
+
+
+    irq_enable_src(IRQ_ID_DISK_BLOCK);
 
 catch:
     if (err != EOK) {
@@ -176,6 +167,7 @@ catch:
 
 void FloppyController_onStop(DriverRef _Nonnull _Locked self)
 {
+    irq_disable_src(IRQ_ID_DISK_BLOCK);
     Driver_Unpublish(self);
 }
 
@@ -332,6 +324,11 @@ void FloppyController_StepHead(FloppyControllerRef _Nonnull self, DriveState cb,
     mtx_unlock(&self->mtx);
 }
 
+static void _disk_block_irq(FloppyControllerRef _Nonnull self)
+{
+    sem_relinquish_irq(&self->done_sem);
+}
+
 // Synchronously reads/writes 'nWords' 16bit words from/to the given word buffer.
 // Blocks the caller until the DMA is available and all words have been
 // transferred from disk. Returns EOK on success and EDISKChANGE if a disk change
@@ -411,7 +408,7 @@ errno_t FloppyController_Dma(FloppyControllerRef _Nonnull self, DriveState cb, u
     clock_gettime(g_mono_clock, &now);
     timespec_from_ms(&dly, 500);
     timespec_add(&now, &dly, &deadline);
-    err = sem_acquire(&self->done, &deadline);
+    err = sem_acquire(&self->done_sem, &deadline);
 
 
     mtx_lock(&self->mtx);

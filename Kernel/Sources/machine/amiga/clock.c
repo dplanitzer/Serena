@@ -64,7 +64,7 @@ void clock_init_mono(clock_ref_t _Nonnull self)
 
 void clock_start(clock_ref_t _Nonnull self)
 {
-    irq_set_clock_func((irq_clock_func_t)clock_irq, self);
+    irq_set_direct_handler(IRQ_ID_MONOTONIC_CLOCK, (irq_func_t)clock_irq, self);
     irq_enable_src(IRQ_ID_CIA_A_TIMER_B);
     mclk_start_quantum_timer(self);
 }

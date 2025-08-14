@@ -32,11 +32,18 @@ extern void irq_restore(int state);
 // Note that we always turn on the master IRQ switch, external IRQs and the ports
 // IRQs because it makes things simpler. External & ports IRQs are masked in the
 // chips that are the source of an IRQ. CIA A/B chips.
-extern void irq_enable_src(int interruptId);
+extern void irq_enable_src(int irq_id);
 
 // Disables the generation of the given interrupt type. This function leaves the
 // master IRQ switch enabled. It doesn't matter 'cause we turn the IRQ source off
 // anyway.
-extern void irq_disable_src(int interruptId);
+extern void irq_disable_src(int irq_id);
+
+
+// Sets a function that should be called when an interrupt of type 'irq_id' is
+// triggered. The function will receive 'arg' as its first argument.
+// @Note: the function will run in the interrupt context
+typedef void (*irq_func_t)(void* _Nullable arg);
+extern void irq_set_direct_handler(int irq_id, irq_func_t _Nonnull f, void* _Nullable arg);
 
 #endif /* _IRQ_H */

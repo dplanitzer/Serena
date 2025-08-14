@@ -82,7 +82,7 @@ errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
 
         *CIA_REG_8(ciaa, CIA_CRA) = 0;
 
-        irq_set_key_func((irq_key_func_t)KeyboardDriver_OnKeyboardInterrupt, self);
+        irq_set_direct_handler(IRQ_ID_KEYBOARD, (irq_func_t)KeyboardDriver_OnKeyboardInterrupt, self);
         irq_enable_src(IRQ_ID_CIA_A_SP);
     }
     return err;
