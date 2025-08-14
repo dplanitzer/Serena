@@ -13,8 +13,8 @@
     xref _g_sched_storage
     xref __syscall_handler
 
-    xdef _syscall_entry
-    xdef _nosyscall_entry
+    xdef __sys_entry
+    xdef __sys_no_entry
 
 
 ;-------------------------------------------------------------------------------
@@ -66,7 +66,7 @@
 ;    // system call specific arguments from left to right
 ; }
 ;
-_syscall_entry:
+__sys_entry:
     inline
         ; save the user registers (see description above)
         movem.l d1 - d7 / a0 - a6, -(sp)
@@ -86,7 +86,7 @@ _syscall_entry:
     einline
 
 
-_nosyscall_entry:
+__sys_no_entry:
     inline
         move.l  a1, -(sp)
         move.l  _g_sched_storage + vps_running, a1
