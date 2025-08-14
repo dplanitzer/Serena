@@ -58,7 +58,6 @@ extern void GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self, int* 
 
 // Light Pen
 extern void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled);
-extern bool GraphicsDriver_GetLightPenPositionFromInterrupt(GraphicsDriverRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY);
 
 
 // Mouse Cursor

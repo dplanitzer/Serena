@@ -16,6 +16,7 @@
 
 
 extern const uint8_t gUSBHIDKeyFlags[256];
+static void _vbl_handler(HIDManagerRef _Nonnull self);
 static void _reports_collector_loop(HIDManagerRef _Nonnull self);
 
 
@@ -42,6 +43,13 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
 
     // Create the HID event queue
     try(HIDEventQueue_Create(REPORT_QUEUE_MAX_EVENTS, &self->eventQueue));
+
+    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
+                                                      IRQ_ID_VERTICAL_BLANK,
+                                                      INTERRUPT_HANDLER_PRIORITY_NORMAL - 2,
+                                                      (InterruptHandler_Closure)_vbl_handler,
+                                                      self,
+                                                      &self->vblHandler));
 
     *pOutSelf = self;
     return EOK;
@@ -89,228 +97,12 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
     attr.data = 0;
     try(Process_AcquireVirtualProcessor(gKernelProcess, &attr, &self->reportsCollector));
 
+
+    // Enable VBL interrupts
+    InterruptController_SetInterruptHandlerEnabled(gInterruptController, self->vblHandler, true);
+
 catch:
     return err;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Input Driver API
-////////////////////////////////////////////////////////////////////////////////
-
-// Returns the current position of the light pen if the light pen triggered.
-bool HIDManager_GetLightPenPosition(HIDManagerRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY)
-{
-    return GraphicsDriver_GetLightPenPositionFromInterrupt(self->fb, pPosX, pPosY);
-}
-
-// Reports a key down, repeat or up from a keyboard device. This function updates
-// the state of the logical keyboard and it posts a suitable keyboard event to
-// the event queue.
-// Must be called from the interrupt context with interrupts turned off.
-void HIDManager_ReportKeyboardDeviceChange(HIDManagerRef _Nonnull self, HIDKeyState keyState, uint16_t keyCode)
-{
-    // Update the key map
-    const uint32_t wordIdx = keyCode >> 5;
-    const uint32_t bitIdx = keyCode - (wordIdx << 5);
-
-    if (keyState == kHIDKeyState_Up) {
-        self->keyMap[wordIdx] &= ~(1 << bitIdx);
-    } else {
-        self->keyMap[wordIdx] |= (1 << bitIdx);
-    }
-
-
-    // Update the modifier flags
-    const uint32_t logModFlags = (keyCode <= 255) ? self->keyFlags[keyCode] & 0x1f : 0;
-    const bool isModifierKey = (logModFlags != 0);    
-    uint32_t modifierFlags = self->modifierFlags;
-
-    if (isModifierKey) {
-        const bool isRight = (keyCode <= 255) ? self->keyFlags[keyCode] & 0x80 : 0;
-        const uint32_t devModFlags = (isRight) ? logModFlags << 16 : logModFlags << 24;
-
-        if (keyState == kHIDKeyState_Up) {
-            modifierFlags &= ~logModFlags;
-            modifierFlags &= ~devModFlags;
-        } else {
-            modifierFlags |= logModFlags;
-            modifierFlags |= devModFlags;
-        }
-        self->modifierFlags = modifierFlags;
-    }
-
-
-    // Generate and post the keyboard event
-    const uint32_t keyFunc = (keyCode <= 255) ? self->keyFlags[keyCode] & 0x60 : 0;
-    const uint32_t flags = modifierFlags | keyFunc;
-    HIDEventType evtType;
-    HIDEventData evt;
-
-    if (!isModifierKey) {
-        evtType = (keyState == kHIDKeyState_Up) ? kHIDEventType_KeyUp : kHIDEventType_KeyDown;
-    } else {
-        evtType = kHIDEventType_FlagsChanged;
-    }
-    evt.key.flags = flags;
-    evt.key.keyCode = keyCode;
-    evt.key.isRepeat = (keyState == kHIDKeyState_Repeat) ? true : false;
-
-    HIDEventQueue_Put(self->eventQueue, evtType, &evt);
-}
-
-// Reports a change in the state of a mouse device. Updates the state of the
-// logical mouse device and posts suitable events to the event queue.
-// Must be called from the interrupt context with interrupts turned off.
-// \param xDelta change in mouse position X since last invocation
-// \param yDelta change in mouse position Y since last invocation
-// \param buttonsDown absolute state of the mouse buttons (0 -> left button, 1 -> right button, 2-> middle button, ...) 
-void HIDManager_ReportMouseDeviceChange(HIDManagerRef _Nonnull self, int16_t xDelta, int16_t yDelta, uint32_t buttonsDown)
-{
-    const uint32_t oldButtonsDown = self->mouseButtons;
-    const bool hasButtonsChange = (oldButtonsDown != buttonsDown);
-    const bool hasPositionChange = (xDelta != 0 || yDelta != 0);
-
-    if (hasPositionChange) {
-        int mx = self->mouseX;
-        int my = self->mouseY;
-
-        mx += xDelta;
-        my += yDelta;
-        mx = __min(__max(mx, self->screenLeft), self->screenRight);
-        my = __min(__max(my, self->screenTop), self->screenBottom);
-
-        self->mouseX = mx;
-        self->mouseY = my;
-        mx -= self->hotSpotX;
-        my -= self->hotSpotY;
-
-        // Setting the new position will automatically make the mouse cursor visible
-        // again if it was hidden-until-move. The reason is that the hide-until-move
-        // function simply sets the mouse cursor to a position outside the visible
-        // scree area to (temporarily) hide it.
-        if (self->mouseCursorVisibility != kMouseCursor_Hidden) {
-            if (self->isMouseShieldActive
-                && mx >= self->shieldingLeft && mx < self->shieldingRight && my >= self->shieldingTop && my < self->shieldingBottom) {
-                GraphicsDriver_SetMouseCursorPositionFromInterrupt(self->fb, INT_MIN, INT_MIN);
-            }
-            else {
-                GraphicsDriver_SetMouseCursorPositionFromInterrupt(self->fb, mx, my);
-                if (self->mouseCursorVisibility == kMouseCursor_HiddenUntilMove) {
-                    self->mouseCursorVisibility = kMouseCursor_Visible;
-                }
-            }
-        }
-    }
-    self->mouseButtons = buttonsDown;
-
-
-    if (hasButtonsChange) {
-        HIDEventType evtType;
-        HIDEventData evt;
-
-        // Generate mouse button up/down events
-        // XXX should be able to ask the mouse input driver how many buttons it supports
-        for (int i = 0; i < 3; i++) {
-            const uint32_t old_down = oldButtonsDown & (1 << i);
-            const uint32_t new_down = buttonsDown & (1 << i);
-            
-            if (old_down ^ new_down) {
-                if (old_down == 0 && new_down != 0) {
-                    evtType = kHIDEventType_MouseDown;
-                } else {
-                    evtType = kHIDEventType_MouseUp;
-                }
-                evt.mouse.buttonNumber = i;
-                evt.mouse.flags = self->modifierFlags;
-                evt.mouse.x = self->mouseX;
-                evt.mouse.y = self->mouseY;
-                HIDEventQueue_Put(self->eventQueue, evtType, &evt);
-            }
-        }
-    }
-    else if (hasPositionChange && self->isMouseMoveReportingEnabled) {
-        HIDEventData evt;
-
-        evt.mouseMoved.flags = self->modifierFlags;
-        evt.mouseMoved.x = self->mouseX;
-        evt.mouseMoved.y = self->mouseY;
-        HIDEventQueue_Put(self->eventQueue, kHIDEventType_MouseMoved, &evt);
-    }
-}
-
-
-// Reports a change in the state of a light pen device. Posts suitable events to
-// the event queue. The light pen controls the mouse cursor and generates mouse
-// events.
-// Must be called from the interrupt context with interrupts turned off.
-// \param xAbs absolute light pen X coordinate
-// \param yAbs absolute light pen Y coordinate
-// \param hasPosition true if the light pen triggered and a position could be sampled
-// \param buttonsDown absolute state of the buttons (Button #0 -> 0, Button #1 -> 1, ...) 
-void HIDManager_ReportLightPenDeviceChange(HIDManagerRef _Nonnull self, int16_t xAbs, int16_t yAbs, bool hasPosition, uint32_t buttonsDown)
-{
-    const int16_t xDelta = (hasPosition) ? xAbs - self->mouseX : self->mouseX;
-    const int16_t yDelta = (hasPosition) ? yAbs - self->mouseY : self->mouseY;
-    
-    HIDManager_ReportMouseDeviceChange(self, xDelta, yDelta, buttonsDown);
-}
-
-// Reports a change in the state of a joystick device. Posts suitable events to
-// the event queue.
-// Must be called from the interrupt context with interrupts turned off.
-// \param port the port number identifying the joystick
-// \param xAbs current joystick X axis state (int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right)
-// \param yAbs current joystick Y axis state (int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down)
-// \param buttonsDown absolute state of the buttons (Button #0 -> 0, Button #1 -> 1, ...) 
-void HIDManager_ReportJoystickDeviceChange(HIDManagerRef _Nonnull self, int port, int16_t xAbs, int16_t yAbs, uint32_t buttonsDown)
-{
-    // Generate joystick button up/down events
-    const uint32_t oldButtonsDown = self->joystick[port].buttonsDown;
-
-    if (buttonsDown != oldButtonsDown) {
-        // XXX should be able to ask the joystick input driver how many buttons it supports
-        for (int i = 0; i < 2; i++) {
-            const uint32_t old_down = oldButtonsDown & (1 << i);
-            const uint32_t new_down = buttonsDown & (1 << i);
-            HIDEventType evtType;
-            HIDEventData evt;
-
-            if (old_down ^ new_down) {
-                if (old_down == 0 && new_down != 0) {
-                    evtType = kHIDEventType_JoystickDown;
-                } else {
-                    evtType = kHIDEventType_JoystickUp;
-                }
-
-                evt.joystick.port = port;
-                evt.joystick.buttonNumber = i;
-                evt.joystick.flags = self->modifierFlags;
-                evt.joystick.dx = xAbs;
-                evt.joystick.dy = yAbs;
-                HIDEventQueue_Put(self->eventQueue, evtType, &evt);
-            }
-        }
-    }
-    
-    
-    // Generate motion events
-    const int16_t diffX = xAbs - self->joystick[port].xAbs;
-    const int16_t diffY = yAbs - self->joystick[port].yAbs;
-    
-    if (diffX != 0 || diffY != 0) {
-        HIDEventData evt;
-
-        evt.joystickMotion.port = port;
-        evt.joystickMotion.dx = xAbs;
-        evt.joystickMotion.dy = yAbs;
-        HIDEventQueue_Put(self->eventQueue, kHIDEventType_JoystickMotion, &evt);
-    }
-
-    self->joystick[port].xAbs = xAbs;
-    self->joystick[port].yAbs = yAbs;
-    self->joystick[port].buttonsDown = buttonsDown;
 }
 
 
@@ -552,21 +344,241 @@ errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timesp
 // MARK: HID Reports Collector
 ////////////////////////////////////////////////////////////////////////////////
 
+// Reports a key down, repeat or up from a keyboard device. This function updates
+// the state of the logical keyboard and it posts a suitable keyboard event to
+// the event queue.
+void _post_key_event(HIDManagerRef _Nonnull self, const HIDReport* _Nonnull report)
+{
+    // Update the key map
+    const uint16_t keyCode = report->data.key.keyCode;
+    const uint32_t wordIdx = keyCode >> 5;
+    const uint32_t bitIdx = keyCode - (wordIdx << 5);
+
+    if (report->type == kHIDReportType_KeyUp) {
+        self->keyMap[wordIdx] &= ~(1 << bitIdx);
+    } else {
+        self->keyMap[wordIdx] |= (1 << bitIdx);
+    }
+
+
+    // Update the modifier flags
+    const uint32_t logModFlags = (keyCode <= 255) ? self->keyFlags[keyCode] & 0x1f : 0;
+    const bool isModifierKey = (logModFlags != 0);    
+    uint32_t modifierFlags = self->modifierFlags;
+
+    if (isModifierKey) {
+        const bool isRight = (keyCode <= 255) ? self->keyFlags[keyCode] & 0x80 : 0;
+        const uint32_t devModFlags = (isRight) ? logModFlags << 16 : logModFlags << 24;
+
+        if (report->type == kHIDReportType_KeyUp) {
+            modifierFlags &= ~logModFlags;
+            modifierFlags &= ~devModFlags;
+        } else {
+            modifierFlags |= logModFlags;
+            modifierFlags |= devModFlags;
+        }
+        self->modifierFlags = modifierFlags;
+    }
+
+
+    // Generate and post the keyboard event
+    const uint32_t keyFunc = (keyCode <= 255) ? self->keyFlags[keyCode] & 0x60 : 0;
+    const uint32_t flags = modifierFlags | keyFunc;
+    HIDEventType evtType;
+    HIDEventData evt;
+
+    if (!isModifierKey) {
+        evtType = (report->type == kHIDReportType_KeyUp) ? kHIDEventType_KeyUp : kHIDEventType_KeyDown;
+    } else {
+        evtType = kHIDEventType_FlagsChanged;
+    }
+    evt.key.flags = flags;
+    evt.key.keyCode = keyCode;
+    evt.key.isRepeat = false;
+
+    HIDEventQueue_Put(self->eventQueue, evtType, &evt);
+}
+
+// Reports a change in the state of a mouse device. Updates the state of the
+// logical mouse device and posts suitable events to the event queue.
+static void _post_mouse_event(HIDManagerRef _Nonnull self, const HIDReport* _Nonnull report)
+{
+    const uint32_t oldButtonsDown = self->mouseButtons;
+    const bool hasButtonsChange = (oldButtonsDown != report->data.mouse.buttons);
+    const bool hasPositionChange = (report->data.mouse.dx != 0 || report->data.mouse.dy != 0);
+
+    if (hasPositionChange) {
+        int mx = self->mouseX;
+        int my = self->mouseY;
+
+        mx += report->data.mouse.dx;
+        my += report->data.mouse.dy;
+        mx = __min(__max(mx, self->screenLeft), self->screenRight);
+        my = __min(__max(my, self->screenTop), self->screenBottom);
+
+        self->mouseX = mx;
+        self->mouseY = my;
+        mx -= self->hotSpotX;
+        my -= self->hotSpotY;
+
+        // Setting the new position will automatically make the mouse cursor visible
+        // again if it was hidden-until-move. The reason is that the hide-until-move
+        // function simply sets the mouse cursor to a position outside the visible
+        // scree area to (temporarily) hide it.
+        if (self->mouseCursorVisibility != kMouseCursor_Hidden) {
+            if (self->isMouseShieldActive
+                && mx >= self->shieldingLeft && mx < self->shieldingRight && my >= self->shieldingTop && my < self->shieldingBottom) {
+                GraphicsDriver_SetMouseCursorPositionFromInterrupt(self->fb, INT_MIN, INT_MIN);
+            }
+            else {
+                GraphicsDriver_SetMouseCursorPositionFromInterrupt(self->fb, mx, my);
+                if (self->mouseCursorVisibility == kMouseCursor_HiddenUntilMove) {
+                    self->mouseCursorVisibility = kMouseCursor_Visible;
+                }
+            }
+        }
+    }
+    self->mouseButtons = report->data.mouse.buttons;
+
+
+    if (hasButtonsChange) {
+        HIDEventType evtType;
+        HIDEventData evt;
+
+        // Generate mouse button up/down events
+        // XXX should be able to ask the mouse input driver how many buttons it supports
+        for (int i = 0; i < 3; i++) {
+            const uint32_t old_down = oldButtonsDown & (1 << i);
+            const uint32_t new_down = report->data.mouse.buttons & (1 << i);
+            
+            if (old_down ^ new_down) {
+                if (old_down == 0 && new_down != 0) {
+                    evtType = kHIDEventType_MouseDown;
+                } else {
+                    evtType = kHIDEventType_MouseUp;
+                }
+                evt.mouse.buttonNumber = i;
+                evt.mouse.flags = self->modifierFlags;
+                evt.mouse.x = self->mouseX;
+                evt.mouse.y = self->mouseY;
+                HIDEventQueue_Put(self->eventQueue, evtType, &evt);
+            }
+        }
+    }
+    else if (hasPositionChange && self->isMouseMoveReportingEnabled) {
+        HIDEventData evt;
+
+        evt.mouseMoved.flags = self->modifierFlags;
+        evt.mouseMoved.x = self->mouseX;
+        evt.mouseMoved.y = self->mouseY;
+        HIDEventQueue_Put(self->eventQueue, kHIDEventType_MouseMoved, &evt);
+    }
+}
+
+
+// Reports a change in the state of a light pen device. Posts suitable events to
+// the event queue. The light pen controls the mouse cursor and generates mouse
+// events.
+static void _post_lp_event(HIDManagerRef _Nonnull self, const HIDReport* _Nonnull report)
+{
+    const int16_t dx = (report->data.lp.hasPosition) ? report->data.lp.x - self->mouseX : self->mouseX;
+    const int16_t dy = (report->data.lp.hasPosition) ? report->data.lp.y - self->mouseY : self->mouseY;
+    const uint32_t buttons = report->data.lp.buttons;
+    
+    self->report.type = kHIDReportType_Mouse;
+    self->report.data.mouse.dx = dx;
+    self->report.data.mouse.dy = dy;
+    self->report.data.mouse.buttons = buttons;
+    _post_mouse_event(self, &self->report);
+}
+
+// Reports a change in the state of a joystick device. Posts suitable events to
+// the event queue.
+static void _post_joy_event(HIDManagerRef _Nonnull self, int port, const HIDReport* _Nonnull report)
+{
+    // Generate joystick button up/down events
+    const uint32_t oldButtons = self->joystick[port].buttons;
+
+    if (report->data.joy.buttons != oldButtons) {
+        // XXX should be able to ask the joystick input driver how many buttons it supports
+        for (int i = 0; i < 2; i++) {
+            const uint32_t old_down = oldButtons & (1 << i);
+            const uint32_t new_down = report->data.joy.buttons & (1 << i);
+            HIDEventType evtType;
+            HIDEventData evt;
+
+            if (old_down ^ new_down) {
+                if (old_down == 0 && new_down != 0) {
+                    evtType = kHIDEventType_JoystickDown;
+                } else {
+                    evtType = kHIDEventType_JoystickUp;
+                }
+
+                evt.joystick.port = port;
+                evt.joystick.buttonNumber = i;
+                evt.joystick.flags = self->modifierFlags;
+                evt.joystick.dx = report->data.joy.x;
+                evt.joystick.dy = report->data.joy.y;
+                HIDEventQueue_Put(self->eventQueue, evtType, &evt);
+            }
+        }
+    }
+    
+    
+    // Generate motion events
+    const int16_t diffX = report->data.joy.x - self->joystick[port].x;
+    const int16_t diffY = report->data.joy.y - self->joystick[port].y;
+    
+    if (diffX != 0 || diffY != 0) {
+        HIDEventData evt;
+
+        evt.joystickMotion.port = port;
+        evt.joystickMotion.dx = report->data.joy.x;
+        evt.joystickMotion.dy = report->data.joy.y;
+        HIDEventQueue_Put(self->eventQueue, kHIDEventType_JoystickMotion, &evt);
+    }
+
+    self->joystick[port].x = report->data.joy.x;
+    self->joystick[port].y = report->data.joy.y;
+    self->joystick[port].buttons = report->data.joy.buttons;
+}
+
+
+static void _vbl_handler(HIDManagerRef _Nonnull self)
+{
+    vcpu_sigsend_irq(self->reportsCollector, SIGVBL, false);
+}
+
 static void _reports_collector_loop(HIDManagerRef _Nonnull self)
 {
     InputDriverRef kb = HandlerChannel_GetHandlerAs(self->kbChannel, InputDriver);
-    int signo;
+    int signo = 0;
     
     InputDriver_SetReportTarget(kb, self->reportsCollector, SIGKEY);
 
-    for (;;) {
-        InputDriver_GetReport(kb, &self->report);
 
-        if (self->report.type != kHIDReportType_Null) {
-            HIDManager_ReportKeyboardDeviceChange(self, (self->report.type == kHIDReportType_KeyDown) ? kHIDKeyState_Down : kHIDKeyState_Up, self->report.data.key.keyCode);
+    for (;;) {
+        self->report.type = kHIDReportType_Null;
+
+        switch (signo) {
+            case SIGKEY:
+                for (;;) {
+                    InputDriver_GetReport(kb, &self->report);
+                
+                    if (self->report.type == kHIDReportType_Null) {
+                        break;
+                    }
+
+                    _post_key_event(self, &self->report);
+                }
+                break;
+
+            case SIGVBL:
+                //XXX sample mouse, light pen, joysticks, etc
+                break;
         }
-        else {
-            vcpu_sigwait(&self->reportsWaitQueue, &self->reportSigs, &signo);
-        }
+
+
+        vcpu_sigwait(&self->reportsWaitQueue, &self->reportSigs, &signo);
     }
 }

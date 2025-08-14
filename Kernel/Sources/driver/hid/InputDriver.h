@@ -19,6 +19,9 @@ typedef enum HIDReportType {
     kHIDReportType_Null = 0,
     kHIDReportType_KeyDown,
     kHIDReportType_KeyUp,
+    kHIDReportType_Mouse,
+    kHIDReportType_Joystick,
+    kHIDReportType_LightPen
 } HIDReportType;
 
 
@@ -27,8 +30,30 @@ typedef struct HIDReportData_KeyUpDown {
     uint16_t    keyCode;        // USB HID key scan code
 } HIDReportData_KeyUpDown;
 
+typedef struct HIDReportData_Mouse {
+    int16_t     dx;
+    int16_t     dy;
+    uint32_t    buttons;        // buttons pressed. 0: left, 1: right, 2: middle, ...
+} HIDReportData_Mouse;
+
+typedef struct HIDReportData_LightPen {
+    int16_t     x;
+    int16_t     y;
+    uint32_t    buttons;        // buttons pressed. 0: left, 1: right, ...
+    bool        hasPosition;    // true if the light pen triggered and a position could be sampled
+} HIDReportData_LightPen;
+
+typedef struct HIDReportData_Joystick {
+    int16_t     x;              // (int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right)
+    int16_t     y;              // (int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down)
+    uint32_t    buttons;        // buttons pressed. 0: left, 1: right, ...
+} HIDReportData_Joystick;
+
 typedef union _HIDReportData {
     HIDReportData_KeyUpDown     key;
+    HIDReportData_Mouse         mouse;
+    HIDReportData_LightPen      lp;
+    HIDReportData_Joystick      joy;
 } HIDReportData;
 
 
@@ -75,10 +100,12 @@ open_class_funcs(InputDriver, Driver,
     // signals by default; the HID manager will call this method to enable or
     // disable signalling as needed. A driver should only generate signals when
     // the 'vp' parameter is not NULL. A NULL 'vp' parameter indicates that
-    // signal generation should be disabled.
-    // Override: required
-    // Default behavior: does nothing
-    void (*setReportTarget)(void* _Nonnull self, vcpu_t _Nullable vp, int signo);
+    // signal generation should be disabled. A driver may not support this
+    // feature (it's purely passively report only). Such a driver should return
+    // ENOTSUP.
+    // Override: optional
+    // Default behavior: ENOTSUP
+    errno_t (*setReportTarget)(void* _Nonnull self, vcpu_t _Nullable vp, int signo);
 );
 
 

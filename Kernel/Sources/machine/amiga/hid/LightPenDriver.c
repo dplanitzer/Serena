@@ -7,14 +7,10 @@
 //
 
 #include "LightPenDriver.h"
-#include <driver/hid/HIDManager.h>
-#include <machine/InterruptController.h>
 #include <machine/amiga/chipset.h>
-#include <machine/irq.h>
 
 
 final_class_ivars(LightPenDriver, InputDriver,
-    InterruptHandlerID          irqHandler;
     volatile uint16_t* _Nonnull reg_potgor;
     uint16_t                    right_button_mask;
     uint16_t                    middle_button_mask;
@@ -29,14 +25,11 @@ final_class_ivars(LightPenDriver, InputDriver,
     int8_t                      port;
 );
 
-extern void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull self);
-
 
 errno_t LightPenDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    CHIPSET_BASE_DECL(cp);
-    LightPenDriverRef self = NULL;
+    LightPenDriverRef self;
 
     if (port < 0 || port > 1) {
         throw(ENODEV);
@@ -44,6 +37,8 @@ errno_t LightPenDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullab
     
     try(Driver_Create(class(LightPenDriver), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
     
+    CHIPSET_BASE_DECL(cp);
+
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
     self->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;
     self->middle_button_mask = (port == 0) ? POTGORF_DATLX : POTGORF_DATRX;
@@ -57,33 +52,14 @@ errno_t LightPenDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullab
     self->triggerCount = 0;
     self->port = (int8_t)port;
     
-    // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
-    *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
-    
-    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
-                                                      IRQ_ID_VERTICAL_BLANK,
-                                                      INTERRUPT_HANDLER_PRIORITY_NORMAL - 1,
-                                                      (InterruptHandler_Closure)LightPenDriver_OnInterrupt,
-                                                      self,
-                                                      &self->irqHandler));
-    InterruptController_SetInterruptHandlerEnabled(gInterruptController, self->irqHandler, true);
-
-    *pOutSelf = (DriverRef)self;
-    return EOK;
-    
 catch:
-    Object_Release(self);
-    *pOutSelf = NULL;
+    *pOutSelf = (DriverRef)self;
     return err;
-}
-
-static void LightPenDriver_deinit(LightPenDriverRef _Nonnull self)
-{
-    try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
 }
 
 errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
 {
+    decl_try_err();
     char name[6];
 
     name[0] = 'l';
@@ -103,7 +79,14 @@ errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
     de.driver = (HandlerRef)self;
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    err = Driver_Publish(self, &de);
+    if (err == EOK) {
+        CHIPSET_BASE_DECL(cp);
+
+        // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
+        *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
+    }
+    return err;
 }
 
 void LightPenDriver_onStop(DriverRef _Nonnull _Locked self)
@@ -116,13 +99,52 @@ InputType LightPenDriver_getInputType(LightPenDriverRef _Nonnull self)
     return kInputType_LightPen;
 }
 
-void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull self)
+// Returns the current position of the light pen if the light pen triggered.
+static bool _get_lp_position(int16_t* _Nonnull x, int16_t* _Nonnull y)
+{
+    CHIPSET_BASE_DECL(cp);
+    bool r = false;
+
+    // Read VHPOSR first time
+    const uint32_t posr0 = *CHIPSET_REG_32(cp, VPOSR);
+
+
+    // Wait for scanline microseconds
+    const uint32_t hsync0 = chipset_get_hsync_counter();
+    const uint16_t bplcon0 = *CHIPSET_REG_16(cp, BPLCON0);
+    while (chipset_get_hsync_counter() == hsync0);
+    
+
+    // Read VHPOSR a second time
+    const uint32_t posr1 = *CHIPSET_REG_32(cp, VPOSR);
+    
+
+    
+    // Check whether the light pen triggered
+    // See Amiga Reference Hardware Manual p233.
+    if (posr0 == posr1) {
+        if ((posr0 & 0x0000ffff) < 0x10500) {
+            *x = (posr0 & 0x000000ff) << 1;
+            *y = (posr0 & 0x1ff00) >> 8;
+            
+            if ((bplcon0 & BPLCON0F_LACE) != 0 && ((posr0 & 0x8000) != 0)) {
+                // long frame (odd field) is offset in Y by one
+                *y += 1;
+            }
+            r = true;
+        }
+    }
+
+    return r;
+}
+
+void LightPenDriver_getReport(LightPenDriverRef _Nonnull self, HIDReport* _Nonnull report)
 {
     // Return the smoothed value
-    int16_t xAbs = self->smoothedX;
-    int16_t yAbs = self->smoothedY;
+    int16_t x = self->smoothedX;
+    int16_t y = self->smoothedY;
     const bool hasPosition = self->hasSmoothedPosition;
-    uint32_t buttonsDown = 0;
+    uint32_t buttons = 0;
 
     
     // Sum up to 'sampleCount' samples and then compute the smoothed out value
@@ -140,8 +162,8 @@ void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull self)
     
         // Get the position
         int16_t xPos, yPos;
-        
-        if (HIDManager_GetLightPenPosition(gHIDManager, &xPos, &yPos)) {
+
+        if (_get_lp_position(&xPos, &yPos)) {
             self->triggerCount++;
             self->sumX += xPos;
             self->sumY += yPos;
@@ -152,23 +174,27 @@ void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull self)
     // Button #0
     register uint16_t potgor = *(self->reg_potgor);
     if ((potgor & self->right_button_mask) == 0) {
-        buttonsDown |= 0x02;
+        buttons |= 0x02;
     }
     
     
     // Button # 1
     if ((potgor & self->middle_button_mask) == 0) {
-        buttonsDown |= 0x04;
+        buttons |= 0x04;
     }
     
 
-    HIDManager_ReportLightPenDeviceChange(gHIDManager, xAbs, yAbs, hasPosition, buttonsDown);
+    report->type = kHIDReportType_LightPen;
+    report->data.lp.x = x;
+    report->data.lp.y = y;
+    report->data.lp.buttons = buttons;
+    report->data.lp.hasPosition = hasPosition;
 }
 
 
 class_func_defs(LightPenDriver, InputDriver,
-override_func_def(deinit, LightPenDriver, Object)
 override_func_def(onStart, LightPenDriver, Driver)
 override_func_def(onStop, LightPenDriver, Driver)
 override_func_def(getInputType, LightPenDriver, InputDriver)
+override_func_def(getReport, LightPenDriver, InputDriver)
 );

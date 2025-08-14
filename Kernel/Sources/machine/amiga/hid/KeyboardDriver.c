@@ -47,13 +47,6 @@ errno_t KeyboardDriver_Create(CatalogId parentDirId, DriverRef _Nullable * _Nonn
     try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
     try(RingBuffer_Init(&self->keyQueue, 16));
 
-    // Configure the keyboard serial port
-    CIAA_BASE_DECL(ciaa);
-    *CIA_REG_8(ciaa, CIA_CRA) = 0;
-
-    irq_set_key_func((irq_key_func_t)KeyboardDriver_OnKeyboardInterrupt, self);
-    irq_enable_src(IRQ_ID_CIA_A_SP);
-
     *pOutSelf = (DriverRef)self;
     return EOK;
 
@@ -65,12 +58,13 @@ catch:
 
 static void KeyboardDriver_deinit(KeyboardDriverRef _Nonnull self)
 {
-    irq_disable_src(IRQ_ID_CIA_A_SP);
     RingBuffer_Deinit(&self->keyQueue);
 }
 
 errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
 {
+    decl_try_err();
+
     DriverEntry de;
     de.dirId = Driver_GetParentDirectoryId(self);
     de.name = "kb";
@@ -81,11 +75,22 @@ errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
     de.driver = (HandlerRef)self;
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    err = Driver_Publish(self, &de);
+    if (err == EOK) {
+        // Configure the keyboard serial port
+        CIAA_BASE_DECL(ciaa);
+
+        *CIA_REG_8(ciaa, CIA_CRA) = 0;
+
+        irq_set_key_func((irq_key_func_t)KeyboardDriver_OnKeyboardInterrupt, self);
+        irq_enable_src(IRQ_ID_CIA_A_SP);
+    }
+    return err;
 }
 
 void KeyboardDriver_onStop(DriverRef _Nonnull _Locked self)
 {
+    irq_disable_src(IRQ_ID_CIA_A_SP);
     Driver_Unpublish(self);
 }
 
@@ -106,12 +111,14 @@ void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, HIDReport* _Nonnu
     }
 }
 
-void KeyboardDriver_setReportTarget(KeyboardDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
+errno_t KeyboardDriver_setReportTarget(KeyboardDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
 {
     const int irs = irq_disable();
     self->sigvp = vp;
     self->signo = signo;
     irq_restore(irs);
+
+    return EOK;
 }
 
 InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)

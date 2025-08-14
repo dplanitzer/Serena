@@ -33,8 +33,9 @@ void InputDriver_getReport(InputDriverRef _Nonnull self, HIDReport* _Nonnull rep
     report->type = kHIDReportType_Null;
 }
 
-void InputDriver_setReportTarget(InputDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
+errno_t InputDriver_setReportTarget(InputDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
 {
+    return ENOTSUP;
 }
 
 

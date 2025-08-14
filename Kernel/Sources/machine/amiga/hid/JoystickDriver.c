@@ -7,10 +7,7 @@
 //
 
 #include "JoystickDriver.h"
-#include <driver/hid/HIDManager.h>
-#include <machine/InterruptController.h>
 #include <machine/amiga/chipset.h>
-#include <machine/irq.h>
 
 
 
@@ -20,7 +17,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 final_class_ivars(DigitalJoystickDriver, InputDriver,
-    InterruptHandlerID          irqHandler;
     volatile uint16_t* _Nonnull reg_joydat;
     volatile uint16_t* _Nonnull reg_potgor;
     volatile uint8_t* _Nonnull  reg_ciaa_pra;
@@ -29,15 +25,11 @@ final_class_ivars(DigitalJoystickDriver, InputDriver,
     int8_t                      port;
 );
 
-extern void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull self);
-
 
 errno_t DigitalJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    CHIPSET_BASE_DECL(cp);
-    CIAA_BASE_DECL(ciaa);
-    DigitalJoystickDriverRef self = NULL;
+    DigitalJoystickDriverRef self;
 
     if (port < 0 || port > 1) {
         throw(ENODEV);
@@ -45,6 +37,9 @@ errno_t DigitalJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef 
     
     try(Driver_Create(class(DigitalJoystickDriver), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
     
+    CHIPSET_BASE_DECL(cp);
+    CIAA_BASE_DECL(ciaa);
+
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
     self->reg_ciaa_pra = CIA_REG_8(ciaa, 0);
@@ -52,36 +47,14 @@ errno_t DigitalJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef 
     self->fire_button_mask = (port == 0) ? CIAA_PRAF_FIR0 : CIAA_PRAF_FIR1;
     self->port = (int8_t)port;
     
-    // Switch bit 7 and 6 to input
-    *CIA_REG_8(ciaa, CIA_DDRA) = *CIA_REG_8(ciaa, CIA_DDRA) & 0x3f;
-    
-    // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
-    *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
-
-    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
-                                                      IRQ_ID_VERTICAL_BLANK,
-                                                      INTERRUPT_HANDLER_PRIORITY_NORMAL - 1,
-                                                      (InterruptHandler_Closure)DigitalJoystickDriver_OnInterrupt,
-                                                      self,
-                                                      &self->irqHandler));
-    InterruptController_SetInterruptHandlerEnabled(gInterruptController, self->irqHandler, true);
-
-    *pOutSelf = (DriverRef)self;
-    return EOK;
-    
 catch:
-    Object_Release(self);
-    *pOutSelf = NULL;
+    *pOutSelf = (DriverRef)self;
     return err;
-}
-
-void DigitalJoystickDriver_deinit(DigitalJoystickDriverRef _Nonnull self)
-{
-    try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
 }
 
 errno_t DigitalJoystickDriver_onStart(DigitalJoystickDriverRef _Nonnull _Locked self)
 {
+    decl_try_err();
     char name[6];
 
     name[0] = 'd';
@@ -101,7 +74,18 @@ errno_t DigitalJoystickDriver_onStart(DigitalJoystickDriverRef _Nonnull _Locked 
     de.driver = (HandlerRef)self;
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    err = Driver_Publish(self, &de);
+    if (err == EOK) {
+        CHIPSET_BASE_DECL(cp);
+        CIAA_BASE_DECL(ciaa);
+
+        // Switch bit 7 and 6 to input
+        *CIA_REG_8(ciaa, CIA_DDRA) = *CIA_REG_8(ciaa, CIA_DDRA) & 0x3f;
+    
+        // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
+        *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
+    }
+    return err;
 }
 
 void DigitalJoystickDriver_onStop(DriverRef _Nonnull _Locked self)
@@ -114,53 +98,56 @@ InputType DigitalJoystickDriver_getInputType(DigitalJoystickDriverRef _Nonnull s
     return kInputType_DigitalJoystick;
 }
 
-void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull self)
+void DigitalJoystickDriver_getReport(DigitalJoystickDriverRef _Nonnull self, HIDReport* _Nonnull report)
 {
     register uint8_t pra = *(self->reg_ciaa_pra);
     register uint16_t joydat = *(self->reg_joydat);
-    int16_t xAbs, yAbs;
-    uint32_t buttonsDown = 0;
+    int16_t x, y;
+    uint32_t buttons = 0;
 
     
     // Left fire button
     if ((pra & self->fire_button_mask) == 0) {
-        buttonsDown |= 0x01;
+        buttons |= 0x01;
     }
     
     
     // Right fire button
     register uint16_t potgor = *(self->reg_potgor);
     if ((potgor & self->right_button_mask) == 0) {
-        buttonsDown |= 0x02;
+        buttons |= 0x02;
     }
 
     
     // X axis
     if ((joydat & (1 << 1)) != 0) {
-        xAbs = INT16_MAX;  // right
+        x = INT16_MAX;  // right
     } else if ((joydat & (1 << 9)) != 0) {
-        xAbs = INT16_MIN;  // left
+        x = INT16_MIN;  // left
     }
     
     
     // Y axis
     register uint16_t joydat_xor = joydat ^ (joydat >> 1);
     if ((joydat & (1 << 0)) != 0) {
-        yAbs = INT16_MAX;  // down
+        y = INT16_MAX;  // down
     } else if ((joydat & (1 << 8)) != 0) {
-        yAbs = INT16_MIN;  // up
+        y = INT16_MIN;  // up
     }
 
 
-    HIDManager_ReportJoystickDeviceChange(gHIDManager, self->port, xAbs, yAbs, buttonsDown);
+    report->type = kHIDReportType_Joystick;
+    report->data.joy.x = x;
+    report->data.joy.y = y;
+    report->data.joy.buttons = buttons;
 }
 
 
 class_func_defs(DigitalJoystickDriver, InputDriver,
-override_func_def(deinit, DigitalJoystickDriver, Object)
 override_func_def(onStart, DigitalJoystickDriver, Driver)
 override_func_def(onStop, DigitalJoystickDriver, Driver)
 override_func_def(getInputType, DigitalJoystickDriver, InputDriver)
+override_func_def(getReport, DigitalJoystickDriver, InputDriver)
 );
 
 
@@ -170,7 +157,6 @@ override_func_def(getInputType, DigitalJoystickDriver, InputDriver)
 ////////////////////////////////////////////////////////////////////////////////
 
 final_class_ivars(AnalogJoystickDriver, InputDriver,
-    InterruptHandlerID          irqHandler;
     volatile uint16_t* _Nonnull reg_joydat;
     volatile uint16_t* _Nonnull reg_potdat;
     volatile uint16_t* _Nonnull reg_potgo;
@@ -189,7 +175,6 @@ extern void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull se
 errno_t AnalogJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    CHIPSET_BASE_DECL(cp);
     AnalogJoystickDriverRef self = NULL;
 
     if (port < 0 || port > 1) {
@@ -197,7 +182,9 @@ errno_t AnalogJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _
     }
     
     try(Driver_Create(class(AnalogJoystickDriver), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
-    
+
+    CHIPSET_BASE_DECL(cp);
+
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potdat = (port == 0) ? CHIPSET_REG_16(cp, POT0DAT) : CHIPSET_REG_16(cp, POT1DAT);
     self->reg_potgo = CHIPSET_REG_16(cp, POTGO);
@@ -208,27 +195,10 @@ errno_t AnalogJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _
     self->sumY = 0;
     self->smoothedX = 0;
     self->smoothedY = 0;
-    
-    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
-                                                      IRQ_ID_VERTICAL_BLANK,
-                                                      INTERRUPT_HANDLER_PRIORITY_NORMAL - 1,
-                                                      (InterruptHandler_Closure)AnalogJoystickDriver_OnInterrupt,
-                                                      self,
-                                                      &self->irqHandler));
-    InterruptController_SetInterruptHandlerEnabled(gInterruptController, self->irqHandler, true);
 
-    *pOutSelf = (DriverRef)self;
-    return EOK;
-    
 catch:
-    Object_Release(self);
-    *pOutSelf = NULL;
+    *pOutSelf = (DriverRef)self;
     return err;
-}
-
-void AnalogJoystickDriver_deinit(AnalogJoystickDriverRef _Nonnull self)
-{
-    try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
 }
 
 errno_t AnalogJoystickDriver_onStart(AnalogJoystickDriverRef _Nonnull _Locked self)
@@ -265,15 +235,15 @@ InputType AnalogJoystickDriver_getInputType(AnalogJoystickDriverRef _Nonnull sel
     return kInputType_AnalogJoystick;
 }
 
-void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull self)
+void AnalogJoystickDriver_getReport(AnalogJoystickDriverRef _Nonnull self, HIDReport* _Nonnull report)
 {
     register uint16_t potdat = *(self->reg_potdat);
     register uint16_t joydat = *(self->reg_joydat);
 
     // Return the smoothed value
-    const int16_t xAbs = self->smoothedX;
-    const int16_t yAbs = self->smoothedY;
-    uint32_t buttonsDown = 0;
+    const int16_t x = self->smoothedX;
+    const int16_t y = self->smoothedY;
+    uint32_t buttons = 0;
     
     
     // Sum up to 'sampleCount' samples and then compute the smoothed out value
@@ -300,13 +270,13 @@ void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull self)
     
     // Left fire button
     if ((joydat & (1 << 9)) != 0) {
-        buttonsDown |= 0x01;
+        buttons |= 0x01;
     }
     
     
     // Right fire button
     if ((joydat & (1 << 1)) != 0) {
-        buttonsDown |= 0x02;
+        buttons |= 0x02;
     }
     
     
@@ -314,13 +284,16 @@ void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull self)
     *(self->reg_potgo) = 0x0001;
     
     
-    HIDManager_ReportJoystickDeviceChange(gHIDManager, self->port, xAbs, yAbs, buttonsDown);
+    report->type = kHIDReportType_Joystick;
+    report->data.joy.x = x;
+    report->data.joy.y = y;
+    report->data.joy.buttons = buttons;
 }
 
 
 class_func_defs(AnalogJoystickDriver, InputDriver,
-override_func_def(deinit, AnalogJoystickDriver, Object)
 override_func_def(onStart, AnalogJoystickDriver, Driver)
 override_func_def(onStop, AnalogJoystickDriver, Driver)
 override_func_def(getInputType, AnalogJoystickDriver, InputDriver)
+override_func_def(getReport, AnalogJoystickDriver, InputDriver)
 );

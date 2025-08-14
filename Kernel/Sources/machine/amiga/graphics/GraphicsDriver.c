@@ -841,45 +841,6 @@ void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool ena
     mtx_unlock(&self->io_mtx);
 }
 
-// Returns the current position of the light pen if the light pen triggered.
-bool GraphicsDriver_GetLightPenPositionFromInterrupt(GraphicsDriverRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY)
-{
-    CHIPSET_BASE_DECL(cp);
-    bool r = false;
-
-    // Read VHPOSR first time
-    const uint32_t posr0 = *CHIPSET_REG_32(cp, VPOSR);
-
-
-    // Wait for scanline microseconds
-    const uint32_t hsync0 = chipset_get_hsync_counter();
-    const uint16_t bplcon0 = *CHIPSET_REG_16(cp, BPLCON0);
-    while (chipset_get_hsync_counter() == hsync0);
-    
-
-    // Read VHPOSR a second time
-    const uint32_t posr1 = *CHIPSET_REG_32(cp, VPOSR);
-    
-
-    
-    // Check whether the light pen triggered
-    // See Amiga Reference Hardware Manual p233.
-    if (posr0 == posr1) {
-        if ((posr0 & 0x0000ffff) < 0x10500) {
-            *pPosX = (posr0 & 0x000000ff) << 1;
-            *pPosY = (posr0 & 0x1ff00) >> 8;
-            
-            if ((bplcon0 & BPLCON0F_LACE) != 0 && ((posr0 & 0x8000) != 0)) {
-                // long frame (odd field) is offset in Y by one
-                *pPosY += 1;
-            }
-            r = true;
-        }
-    }
-
-    return r;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -

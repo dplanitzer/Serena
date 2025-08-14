@@ -374,8 +374,8 @@ irq_handler_ciaa_alarm:
 irq_handler_ciaa_sp:
     btst    #ICRB_SP, d7
     beq.s   irq_handler_ciaa_flag
-    move.b  CIAASDR, d0                                     ; key press handler
-    move.b  #61, CIAATALO
+    move.b  CIAASDR, d0                         ; key press handler
+    move.b  #61, CIAATALO                       ; pulse KDAT low for 85us
     move.b  #0, CIAATAHI
     move.b  #%01011001, CIAACRA
     not.b   d0

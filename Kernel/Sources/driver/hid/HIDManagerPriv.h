@@ -14,11 +14,15 @@
 #include "InputDriver.h"
 #include <kpi/hidkeycodes.h>
 #include <machine/amiga/graphics/GraphicsDriver.h>
+#include <machine/InterruptController.h>
+#include <machine/irq.h>
 #include <sched/mtx.h>
 #include <sched/vcpu.h>
 
 
 #define SIGKEY  2
+#define SIGVBL  3
+
 
 // XXX 16 is confirmed to work without overflows on a A2000. Still want to keep
 // 48 for now for mouse move. Though once we support coalescing we may want to
@@ -30,9 +34,9 @@
 
 // State of a joystick device
 typedef struct LogicalJoystick {
-    int16_t   xAbs;           // int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right
-    int16_t   yAbs;           // int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down
-    uint32_t  buttonsDown;    // Button #0 -> 0, Button #1 -> 1, ...
+    int16_t   x;        // int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right
+    int16_t   y;        // int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down
+    uint32_t  buttons;  // Button #0 -> 0, Button #1 -> 1, ...
 } LogicalJoystick;
 
 
@@ -64,6 +68,7 @@ typedef struct HIDManager {
     struct waitqueue            reportsWaitQueue;
     sigset_t                    reportSigs;
     HIDReport                   report;
+    InterruptHandlerID          vblHandler;
 
 
     // Event queue
