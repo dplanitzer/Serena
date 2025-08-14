@@ -46,7 +46,7 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
 
     try(InterruptController_AddDirectInterruptHandler(gInterruptController,
                                                       IRQ_ID_VERTICAL_BLANK,
-                                                      INTERRUPT_HANDLER_PRIORITY_NORMAL - 2,
+                                                      INTERRUPT_HANDLER_PRIORITY_HIGHEST - 10,
                                                       (InterruptHandler_Closure)_vbl_handler,
                                                       self,
                                                       &self->vblHandler));
