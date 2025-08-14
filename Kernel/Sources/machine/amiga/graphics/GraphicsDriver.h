@@ -63,7 +63,6 @@ extern void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, b
 // Mouse Cursor
 extern errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat);
 extern void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y);
-extern void GraphicsDriver_SetMouseCursorPositionFromInterrupt(GraphicsDriverRef _Nonnull self, int x, int y);
 
 
 // Introspection

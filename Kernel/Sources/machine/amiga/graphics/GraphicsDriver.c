@@ -867,18 +867,13 @@ errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uin
 void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y)
 {
     mtx_lock(&self->io_mtx);
-    GraphicsDriver_SetMouseCursorPositionFromInterrupt(self, x, y);
-    mtx_unlock(&self->io_mtx);
-}
-
-void GraphicsDriver_SetMouseCursorPositionFromInterrupt(GraphicsDriverRef _Nonnull self, int x, int y)
-{
     const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
     const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
     const int16_t sprX = self->mouseCursorRectX - 1 + (x16 >> self->mouseCursorScaleX);
     const int16_t sprY = self->mouseCursorRectY + (y16 >> self->mouseCursorScaleY);
 
     Sprite_SetPosition(self->mouseCursor, sprX, sprY);
+    mtx_unlock(&self->io_mtx);
 }
 
 

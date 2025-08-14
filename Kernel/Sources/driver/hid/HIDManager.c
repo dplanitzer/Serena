@@ -428,10 +428,10 @@ static void _post_mouse_event(HIDManagerRef _Nonnull self, const HIDReport* _Non
         if (self->mouseCursorVisibility != kMouseCursor_Hidden) {
             if (self->isMouseShieldActive
                 && mx >= self->shieldingLeft && mx < self->shieldingRight && my >= self->shieldingTop && my < self->shieldingBottom) {
-                GraphicsDriver_SetMouseCursorPositionFromInterrupt(self->fb, INT_MIN, INT_MIN);
+                GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MIN, INT_MIN);
             }
             else {
-                GraphicsDriver_SetMouseCursorPositionFromInterrupt(self->fb, mx, my);
+                GraphicsDriver_SetMouseCursorPosition(self->fb, mx, my);
                 if (self->mouseCursorVisibility == kMouseCursor_HiddenUntilMove) {
                     self->mouseCursorVisibility = kMouseCursor_Visible;
                 }
