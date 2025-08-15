@@ -11,7 +11,7 @@
 #include <kern/limits.h>
 #include <kern/string.h>
 #include <log/Log.h>
-#include <machine/Platform.h>
+#include <machine/SystemDescription.h>
 
 
 #if defined(__ILP32__)
