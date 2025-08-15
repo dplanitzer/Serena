@@ -8,7 +8,7 @@
 
 #include "ZRamDriver.h"
 #include <kern/kalloc.h>
-#include <machine/SystemDescription.h>
+#include <machine/sys_desc.h>
 
 
 errno_t ZRamDriver_Create(CatalogId parentDirId, const zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf)
@@ -20,7 +20,7 @@ errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)
 {
     decl_try_err();
     const zorro_conf_t* cfg = ZorroDriver_GetBoardConfiguration(self);
-    MemoryDescriptor md = {0};
+    mem_desc_t md = {0};
     char name[5];
 
     name[0] = 'r';

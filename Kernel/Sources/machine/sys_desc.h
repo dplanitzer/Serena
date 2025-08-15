@@ -1,18 +1,19 @@
 //
-//  SystemDescription.h
+//  sys_desc_t.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/4/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef SystemDescription_h
-#define SystemDescription_h
+#ifndef _SYS_DESC_H
+#define _SYS_DESC_H
 
 #include <kern/types.h>
 
+
 // Supported max number of memory descriptors
-#define MEMORY_DESCRIPTORS_CAPACITY  8
+#define MEM_DESC_CAPACITY  8
 
 // The type of memory
 // Memory accessible to the CPU only
@@ -20,23 +21,24 @@
 // Memory accessible to the CPU and I/O (GPU, Audio, etc)
 #define MEM_TYPE_UNIFIED_MEMORY 1
 
+
 // A memory descriptor describes a contiguous range of RAM
-typedef struct MemoryDescriptor {
+typedef struct mem_desc {
     char* _Nonnull  lower;
     char* _Nonnull  upper;
     int8_t          type;       // MEM_TYPE_XXX
     uint8_t         reserved[3];
-} MemoryDescriptor;
+} mem_desc_t;
 
-typedef struct MemoryLayout {
-    int                 descriptor_count;
-    MemoryDescriptor    descriptor[MEMORY_DESCRIPTORS_CAPACITY];
-} MemoryLayout;
+typedef struct mem_layout {
+    int         desc_count;
+    mem_desc_t  desc[MEM_DESC_CAPACITY];
+} mem_layout_t;
 
 
 // The system description
 // Note: Keep in sync with machine/hal/lowmem.i
-typedef struct SystemDescription {
+typedef struct sys_desc {
     int8_t          cpu_model;
     int8_t          fpu_model;
 
@@ -46,14 +48,14 @@ typedef struct SystemDescription {
     
     // These are memory regions that are accessible to the CPU without having to
     // auto configure the expansion bus. 
-    MemoryLayout    motherboard_ram;    
-} SystemDescription;
+    mem_layout_t    motherboard_ram;    
+} sys_desc_t;
 
 
 // Returns a reference to the shared system description.
-extern SystemDescription* _Nonnull gSystemDescription;
+extern sys_desc_t* _Nonnull g_sys_desc;
 
 // Returns the amount of physical RAM in the machine.
-extern size_t SystemDescription_GetRamSize(const SystemDescription* _Nonnull self);
+extern size_t sys_desc_getramsize(const sys_desc_t* _Nonnull self);
 
-#endif /* SystemDescription_h */
+#endif /* _SYS_DESC_H */

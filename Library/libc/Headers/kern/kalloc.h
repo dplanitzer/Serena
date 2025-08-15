@@ -12,8 +12,8 @@
 #include <kern/errno.h>
 #include <kern/types.h>
 
-struct MemoryDescriptor;
-struct SystemDescription;
+struct mem_desc;
+struct sys_desc;
 
 
 // kalloc_options options
@@ -51,9 +51,9 @@ extern size_t ksize(void* _Nullable ptr);
 
 // Adds the given memory region as a CPU-only access memory region to the kalloc
 // heap.
-extern errno_t kalloc_add_memory_region(const struct MemoryDescriptor* _Nonnull pMemDesc);
+extern errno_t kalloc_add_memory_region(const struct mem_desc* _Nonnull md);
 
 // Initializes the kalloc heap.
-extern errno_t kalloc_init(const struct SystemDescription* _Nonnull pSysDesc, void* _Nonnull pInitialHeapBottom, void* _Nonnull pInitialHeapTop);
+extern errno_t kalloc_init(const struct sys_desc* _Nonnull pSysDesc, void* _Nonnull pInitialHeapBottom, void* _Nonnull pInitialHeapTop);
 
 #endif /* _KERN_KALLOC_H */

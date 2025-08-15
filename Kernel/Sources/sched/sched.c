@@ -35,7 +35,7 @@ struct waitqueue    gSchedulerWaitQueue;           // The scheduler VP waits on 
 // 'pContext' argument. The first context switch from the machine reset context
 // to the boot virtual processor context is triggered by calling the
 // VirtualProcessorScheduler_IncipientContextSwitch() function. 
-void sched_create(SystemDescription* _Nonnull sdp, BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx)
+void sched_create(sys_desc_t* _Nonnull sdp, BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx)
 {
     // Stored in the BSS. Thus starts out zeroed.
     sched_t self = &g_sched_storage;
@@ -472,6 +472,6 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
 static void idle_vcpu_run(void* _Nullable ctx)
 {
     while (true) {
-        cpu_sleep(gSystemDescription->cpu_model);
+        cpu_sleep(g_sys_desc->cpu_model);
     }
 }

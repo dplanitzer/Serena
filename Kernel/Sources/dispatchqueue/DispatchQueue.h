@@ -10,7 +10,7 @@
 #define DispatchQueue_h
 
 #include <kobj/Object.h>
-#include <machine/SystemDescription.h>
+#include <machine/sys_desc.h>
 #include <kpi/vcpu.h>
 
 final_class(DispatchQueue, Object);

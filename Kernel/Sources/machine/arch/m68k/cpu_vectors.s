@@ -24,7 +24,7 @@
     xref _fpu_get_model
     xref _cpu_exception
     xref _cpu_exception_return
-    xref _SystemDescription_Init
+    xref _sys_desc_init
     xref __fatalException
 
     xref __irq_level_1
@@ -153,10 +153,10 @@ _Reset:
         move.l  d0, -(sp)
         move.l  #BOOT_SERVICES_MEM_TOP, -(sp)
         pea     SYS_DESC_BASE
-        jsr     _SystemDescription_Init
+        jsr     _sys_desc_init
         add.l   #12, sp
 
-        ; call the OnBoot(SystemDescription*) routine
+        ; call the OnBoot(sys_desc_t*) routine
         pea     SYS_DESC_BASE
         jsr     _OnBoot
 

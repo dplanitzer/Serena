@@ -68,18 +68,18 @@ BOOT_SERVICES_MEM_TOP       equ     RESET_STACK_BASE
 
 
 
-; The SystemDescription object
+; The sys_desc object
     clrso
 sd_cpu_model                    so.b    1       ; 1
 sd_fpu_model                    so.b    1       ; 1
 sd_cipset_version               so.b    1       ; 1
 sd_chipset_ramsey_version       so.b    1       ; 1
 sd_chipset_upper_dma_limit      so.l    1       ; 4
-sd_memory_descriptor_count      so.l    1       ; 4
-sd_memory_descriptor            so.b    12*8    ; 12 * 8
+sd_memory_desc_count            so.l    1       ; 4
+sd_memory_desc                  so.b    12*8    ; 12 * 8
 sd_SIZEOF                       so              ; 108
     ifeq (sd_SIZEOF == 108)
-        fail "SystemDescription structure size is incorrect."
+        fail "sys_desc structure size is incorrect."
     endif
 
 

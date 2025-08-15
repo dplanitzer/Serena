@@ -41,7 +41,7 @@ static ConsoleRef gConsole;
 
 extern errno_t drivers_init(void);
 extern FileHierarchyRef _Nonnull create_root_file_hierarchy(boot_screen_t* _Nonnull bscr);
-static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);
+static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc);
 static void OnMain(void);
 
 
@@ -51,7 +51,7 @@ static void OnMain(void);
 // kernel initialization by primarily setting up the kernel data and bss segments,
 // basic memory management and the virtual boot processor. Note that this
 // function is expected to never return.
-_Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
+_Noreturn OnBoot(sys_desc_t* _Nonnull pSysDesc)
 {
     const size_t data_size = &_edata - &_data;
     const size_t bss_size = &_ebss - &_bss;
@@ -65,12 +65,12 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 
     // Carve the kernel data and bss out from memory descriptor #0 to ensure that
     // our kernel heap is not going to try to override the data/bss region.
-    gInitialHeapBottom = pSysDesc->motherboard_ram.descriptor[0].lower + __Ceil_PowerOf2(data_size + bss_size, CPU_PAGE_SIZE);
-    pSysDesc->motherboard_ram.descriptor[0].lower = gInitialHeapBottom;
+    gInitialHeapBottom = pSysDesc->motherboard_ram.desc[0].lower + __Ceil_PowerOf2(data_size + bss_size, CPU_PAGE_SIZE);
+    pSysDesc->motherboard_ram.desc[0].lower = gInitialHeapBottom;
 
 
     // Store a reference to the system description in our globals
-    gSystemDescription = pSysDesc;
+    g_sys_desc = pSysDesc;
 
 
     // Register all classes from the __class section
@@ -101,7 +101,7 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 //
 // Phase 1 initialization is responsible for bringing up the interrupt handling,
 // basic memory management, monotonic clock and the kernel main dispatch queue.
-static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
+static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc)
 {
     decl_try_err();
 
@@ -151,7 +151,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
 
     // Create the disk cache
-    try(DiskCache_Create(512, SystemDescription_GetRamSize(pSysDesc) >> 5, &gDiskCache));
+    try(DiskCache_Create(512, sys_desc_getramsize(pSysDesc) >> 5, &gDiskCache));
 
 
     // Create the various kernel object catalogs

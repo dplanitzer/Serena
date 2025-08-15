@@ -21,7 +21,7 @@
 
 AllocatorRef    __gMainAllocator;
 bool            __gAbortOnNoMem;
-static mtx_t  __gMallocLock;
+static mtx_t    __gMallocLock;
 
 
 void _abort_on_nomem(void)
@@ -51,7 +51,7 @@ static bool __malloc_expand_backing_store(AllocatorRef _Nonnull pAllocator, size
     char* ptr;
     
     if (vm_alloc(nbytes, (void**)&ptr) == 0) {
-        MemoryDescriptor md;
+        mem_desc_t md;
 
         md.lower = ptr;
         md.upper = ptr + nbytes;
@@ -65,7 +65,7 @@ static bool __malloc_expand_backing_store(AllocatorRef _Nonnull pAllocator, size
 
 void __malloc_init(void)
 {
-    MemoryDescriptor md;
+    mem_desc_t md;
     char* ptr;
 
     // Get backing store for our initial memory region

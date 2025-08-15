@@ -1,5 +1,5 @@
 //
-//  SystemDescription.c
+//  sys_desc_t.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/4/21.
@@ -9,23 +9,23 @@
 #include <kern/kernlib.h>
 #include <kern/string.h>
 #include <machine/cpu.h>
-#include <machine/SystemDescription.h>
+#include <machine/sys_desc.h>
 #include <machine/amiga/chipset.h>
 
 
 extern int8_t fpu_get_model(void);
 
 
-SystemDescription* _Nonnull gSystemDescription;
+sys_desc_t* _Nonnull g_sys_desc;
 
 
-bool mem_size_region(void* _Nullable p0, void* _Nullable p1, size_t stepSize, int8_t type, MemoryLayout* _Nonnull pMemLayout)
+bool mem_size_region(void* _Nullable p0, void* _Nullable p1, size_t stepSize, int8_t type, mem_layout_t* _Nonnull pMemLayout)
 {
-    if (pMemLayout->descriptor_count >= MEMORY_DESCRIPTORS_CAPACITY) {
+    if (pMemLayout->desc_count >= MEM_DESC_CAPACITY) {
         return false;
     }
 
-    MemoryDescriptor* pMemDesc = &pMemLayout->descriptor[pMemLayout->descriptor_count];
+    mem_desc_t* pMemDesc = &pMemLayout->desc[pMemLayout->desc_count];
     bool okay = false;
 
     if (p0 < p1) {
@@ -45,7 +45,7 @@ bool mem_size_region(void* _Nullable p0, void* _Nullable p1, size_t stepSize, in
             pMemDesc->lower = pLower;
             pMemDesc->upper = p;
             pMemDesc->type = type;
-            pMemLayout->descriptor_count++;
+            pMemLayout->desc_count++;
             okay = true;
         }
     }
@@ -67,7 +67,7 @@ bool mem_size_region(void* _Nullable p0, void* _Nullable p1, size_t stepSize, in
             pMemDesc->lower = p;
             pMemDesc->upper = pUpper;
             pMemDesc->type = type;
-            pMemLayout->descriptor_count++;
+            pMemLayout->desc_count++;
             okay = true;
         }
     }
@@ -78,13 +78,13 @@ bool mem_size_region(void* _Nullable p0, void* _Nullable p1, size_t stepSize, in
 // Invoked by the OnReset() function after the chipset has been reset. This
 // function tests the motherboard RAM and figures out how much RAM is installed
 // on the motherboard and which address ranges contain operating RAM chips.
-static void mem_size_motherboard(SystemDescription* pSysDesc, char* _Nullable pBootServicesMemoryTop)
+static void mem_size_motherboard(sys_desc_t* pSysDesc, char* _Nullable pBootServicesMemoryTop)
 {
     char* chip_ram_lower_p = pBootServicesMemoryTop;
     char* chip_ram_upper_p = pSysDesc->chipset_upper_dma_limit;
 
     // Forget the memory map set up in cpu_vectors_asm.s 'cause we'll build our own map here
-    pSysDesc->motherboard_ram.descriptor_count = 0;
+    pSysDesc->motherboard_ram.desc_count = 0;
     
     
     // Memory map: http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node00D4.html
@@ -129,7 +129,7 @@ static void ramsey_set_page_mode_enabled(bool flag)
     } while ((r & RAMSEY_CRF_PAGE_MODE) == ref);
 }
 
-static bool mem_check_page_burst_compat(const MemoryDescriptor* _Nonnull pMemDesc, bool isA3000)
+static bool mem_check_page_burst_compat(const mem_desc_t* _Nonnull pMemDesc, bool isA3000)
 {
 #define PAT0 0x5ac35ac3
 #define PAT1 0xac35ac35
@@ -159,7 +159,7 @@ static bool mem_check_page_burst_compat(const MemoryDescriptor* _Nonnull pMemDes
 // Configures the RAM controller (RAMSEY). We check whether the motherboard 32bit
 // fast RAM is compatible with page and burst mode and we'll turn those modes on
 // if the RAM can handle it.
-static void ramsey_configure(const SystemDescription* _Nonnull pSysDesc)
+static void ramsey_configure(const sys_desc_t* _Nonnull pSysDesc)
 {
     // Original A3000 and later A3000+ / A4000 designs use different RAM chips on
     // the motherboard that require different page mode compatibility checking
@@ -175,8 +175,8 @@ static void ramsey_configure(const SystemDescription* _Nonnull pSysDesc)
     }
 
 
-    for (int i = 0; i < pSysDesc->motherboard_ram.descriptor_count; i++) {
-        const MemoryDescriptor* pMemDesc = &pSysDesc->motherboard_ram.descriptor[i];
+    for (int i = 0; i < pSysDesc->motherboard_ram.desc_count; i++) {
+        const mem_desc_t* pMemDesc = &pSysDesc->motherboard_ram.desc[i];
 
         if (pMemDesc->lower >= (char*)0x07000000 && pMemDesc->upper <= (char*)0x08000000) {
             if (!mem_check_page_burst_compat(pMemDesc, isA3000)) {
@@ -219,7 +219,7 @@ static void gary_configure(void)
 // \param pBootServicesMemoryTop the end address of the memory used by the boot
 //                               services. Range is [0...pBootServicesMemoryTop]
 // \param cpu_model the detected CPU model 
-void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, char* _Nullable pBootServicesMemoryTop, int cpu_model)
+void sys_desc_init(sys_desc_t* _Nonnull pSysDesc, char* _Nullable pBootServicesMemoryTop, int cpu_model)
 {
     pSysDesc->cpu_model = cpu_model;
     pSysDesc->fpu_model = fpu_get_model();
@@ -246,12 +246,12 @@ void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, char* _Nullabl
 }
 
 // Returns the amount of physical RAM in the machine.
-size_t SystemDescription_GetRamSize(const SystemDescription* _Nonnull self)
+size_t sys_desc_getramsize(const sys_desc_t* _Nonnull self)
 {
     size_t size = 0;
 
-    for (int i = 0; i < self->motherboard_ram.descriptor_count; i++) {
-        size += (self->motherboard_ram.descriptor[i].upper - self->motherboard_ram.descriptor[i].lower);
+    for (int i = 0; i < self->motherboard_ram.desc_count; i++) {
+        size += (self->motherboard_ram.desc[i].upper - self->motherboard_ram.desc[i].lower);
     }
 
     return size;

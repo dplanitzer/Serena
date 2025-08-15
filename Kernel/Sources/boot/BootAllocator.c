@@ -12,11 +12,11 @@
 #include <machine/cpu.h>
 
 
-void BootAllocator_Init(BootAllocator* _Nonnull pAlloc, SystemDescription* _Nonnull pSysDesc)
+void BootAllocator_Init(BootAllocator* _Nonnull pAlloc, sys_desc_t* _Nonnull pSysDesc)
 {
-    assert(pSysDesc->motherboard_ram.descriptor_count > 0);
-    pAlloc->mem_descs = pSysDesc->motherboard_ram.descriptor;
-    pAlloc->current_desc_index = pSysDesc->motherboard_ram.descriptor_count - 1;
+    assert(pSysDesc->motherboard_ram.desc_count > 0);
+    pAlloc->mem_descs = pSysDesc->motherboard_ram.desc;
+    pAlloc->current_desc_index = pSysDesc->motherboard_ram.desc_count - 1;
     pAlloc->current_top = __Floor_Ptr_PowerOf2(pAlloc->mem_descs[pAlloc->current_desc_index].upper, CPU_PAGE_SIZE);
 }
 

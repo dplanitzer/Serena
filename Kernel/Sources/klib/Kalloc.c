@@ -7,7 +7,7 @@
 //
 
 #include "Allocator.h"
-#include <machine/SystemDescription.h>
+#include <machine/sys_desc.h>
 #include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
@@ -20,9 +20,9 @@ static AllocatorRef gUnifiedMemory;       // CPU + Chipset access (memory range 
 static AllocatorRef gCpuOnlyMemory;       // CPU only access      (memory range [chipset_upper_dma_limit...]) (Optional - created on demand if no Fast memory exists in the machine and we later pick up a RAM expansion board)
 
 
-static MemoryDescriptor adjusted_memory_descriptor(const MemoryDescriptor* pMemDesc, char* _Nonnull pInitialHeapBottom, char* _Nonnull pInitialHeapTop)
+static mem_desc_t adjusted_memory_descriptor(const mem_desc_t* pMemDesc, char* _Nonnull pInitialHeapBottom, char* _Nonnull pInitialHeapTop)
 {
-    MemoryDescriptor md;
+    mem_desc_t md;
 
     md.lower = __max(pMemDesc->lower, pInitialHeapBottom);
     md.upper = __min(pMemDesc->upper, pInitialHeapTop);
@@ -31,35 +31,35 @@ static MemoryDescriptor adjusted_memory_descriptor(const MemoryDescriptor* pMemD
     return md;
 }
 
-static errno_t create_allocator(MemoryLayout* _Nonnull pMemLayout, char* _Nonnull pInitialHeapBottom, char* _Nonnull pInitialHeapTop, int8_t memoryType, bool isOptional, AllocatorRef _Nullable * _Nonnull pOutAllocator)
+static errno_t create_allocator(mem_layout_t* _Nonnull pMemLayout, char* _Nonnull pInitialHeapBottom, char* _Nonnull pInitialHeapTop, int8_t memoryType, bool isOptional, AllocatorRef _Nullable * _Nonnull pOutAllocator)
 {
     decl_try_err();
     int i = 0;
     AllocatorRef pAllocator = NULL;
-    MemoryDescriptor adjusted_md;
+    mem_desc_t adjusted_md;
 
     // Skip over memory regions that are below the kernel heap bottom
-    while (i < pMemLayout->descriptor_count && 
-        (pMemLayout->descriptor[i].upper < pInitialHeapBottom || (pMemLayout->descriptor[i].upper >= pInitialHeapBottom && pMemLayout->descriptor[i].type != memoryType))) {
+    while (i < pMemLayout->desc_count && 
+        (pMemLayout->desc[i].upper < pInitialHeapBottom || (pMemLayout->desc[i].upper >= pInitialHeapBottom && pMemLayout->desc[i].type != memoryType))) {
         i++;
     }
-    if (i == pMemLayout->descriptor_count) {
+    if (i == pMemLayout->desc_count) {
         throw((isOptional) ? EOK : ENOMEM);
     }
 
 
     // First valid memory descriptor. Create the allocator based on that. We'll
     // get an ENOMEM error if this memory region isn't big enough
-    adjusted_md = adjusted_memory_descriptor(&pMemLayout->descriptor[i], pInitialHeapBottom, pInitialHeapTop);
+    adjusted_md = adjusted_memory_descriptor(&pMemLayout->desc[i], pInitialHeapBottom, pInitialHeapTop);
     try_null(pAllocator, __Allocator_Create(&adjusted_md, NULL), ENOMEM);
 
 
     // Pick up all other memory regions that are at least partially below the
     // kernel heap top
     i++;
-    while (i < pMemLayout->descriptor_count && pMemLayout->descriptor[i].lower < pInitialHeapTop) {
-        if (pMemLayout->descriptor[i].type == memoryType) {
-            adjusted_md = adjusted_memory_descriptor(&pMemLayout->descriptor[i], pInitialHeapBottom, pInitialHeapTop);
+    while (i < pMemLayout->desc_count && pMemLayout->desc[i].lower < pInitialHeapTop) {
+        if (pMemLayout->desc[i].type == memoryType) {
+            adjusted_md = adjusted_memory_descriptor(&pMemLayout->desc[i], pInitialHeapBottom, pInitialHeapTop);
             try(__Allocator_AddMemoryRegion(pAllocator, &adjusted_md));
         }
         i++;
@@ -74,7 +74,7 @@ catch:
 }
 
 // Initializes the kalloc heap.
-errno_t kalloc_init(const SystemDescription* _Nonnull pSysDesc, void* _Nonnull pInitialHeapBottom, void* _Nonnull pInitialHeapTop)
+errno_t kalloc_init(const sys_desc_t* _Nonnull pSysDesc, void* _Nonnull pInitialHeapBottom, void* _Nonnull pInitialHeapTop)
 {
     decl_try_err();
 
@@ -151,13 +151,13 @@ size_t ksize(void* _Nullable ptr)
 
 // Adds the given memory region as a CPU-only access memory region to the kalloc
 // heap.
-errno_t kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc)
+errno_t kalloc_add_memory_region(const mem_desc_t* _Nonnull pMemDesc)
 {
     decl_try_err();
     AllocatorRef pAllocator;
 
     mtx_lock(&gLock);
-    if (pMemDesc->upper < gSystemDescription->chipset_upper_dma_limit) {
+    if (pMemDesc->upper < g_sys_desc->chipset_upper_dma_limit) {
         err = __Allocator_AddMemoryRegion(gUnifiedMemory, pMemDesc);
     }
     else if (gCpuOnlyMemory) {

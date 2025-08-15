@@ -12,7 +12,7 @@
 #include <kern/types.h>
 #include <boot/BootAllocator.h>
 #include <machine/cpu.h>
-#include <machine/SystemDescription.h>
+#include <machine/sys_desc.h>
 #include <kern/errno.h>
 #include <kern/limits.h>
 #include <klib/List.h>
@@ -92,7 +92,7 @@ extern sched_t _Nonnull g_sched;
 // 'pContext' argument. The first context switch from the machine reset context
 // to the boot virtual processor context is triggered by calling the
 // VirtualProcessorScheduler_IncipientContextSwitch() function. 
-extern void sched_create(SystemDescription* _Nonnull sdp, BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx);
+extern void sched_create(sys_desc_t* _Nonnull sdp, BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx);
 
 extern void sched_finish_boot(sched_t _Nonnull self);
 

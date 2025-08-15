@@ -20,10 +20,10 @@ typedef struct Allocator* AllocatorRef;
 
 // A memory descriptor describes a contiguous range of RAM that should be managed
 // by the allocator.
-typedef struct MemoryDescriptor {
+typedef struct mem_desc_t {
     char* _Nonnull  lower;
     char* _Nonnull  upper;
-} MemoryDescriptor;
+} mem_desc_t;
 
 
 // Callback that is invoked by the allocator if it needs more backing store.
@@ -32,10 +32,10 @@ typedef struct MemoryDescriptor {
 typedef bool (*AllocatorGrowFunc)(AllocatorRef _Nonnull allocator, size_t minByteCount);
 
 
-extern AllocatorRef _Nullable __Allocator_Create(const MemoryDescriptor* _Nonnull md, AllocatorGrowFunc _Nullable growFunc);
+extern AllocatorRef _Nullable __Allocator_Create(const mem_desc_t* _Nonnull md, AllocatorGrowFunc _Nullable growFunc);
 
 // Adds the given memory region to the allocator's available memory pool.
-extern errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull self, const MemoryDescriptor* _Nonnull md);
+extern errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull self, const mem_desc_t* _Nonnull md);
 
 extern void* _Nullable __Allocator_Allocate(AllocatorRef _Nonnull self, size_t nbytes);
 extern void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull self, void *ptr, size_t new_size);

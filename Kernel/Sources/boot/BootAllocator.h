@@ -10,17 +10,17 @@
 #define BootAllocator_h
 
 #include <kern/types.h>
-#include <machine/SystemDescription.h>
+#include <machine/sys_desc.h>
 
 
 typedef struct BootAllocator {
-    MemoryDescriptor* _Nonnull  mem_descs;
+    mem_desc_t* _Nonnull  mem_descs;
     char* _Nonnull              current_top;
     int                         current_desc_index;
 } BootAllocator;
 
 
-extern void BootAllocator_Init(BootAllocator* _Nonnull pAlloc, SystemDescription* _Nonnull pSysDesc);
+extern void BootAllocator_Init(BootAllocator* _Nonnull pAlloc, sys_desc_t* _Nonnull pSysDesc);
 
 extern void BootAllocator_Deinit(BootAllocator* _Nonnull pAlloc);
 

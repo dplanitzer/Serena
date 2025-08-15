@@ -11,7 +11,7 @@
 #include <kern/string.h>
 #include <kern/kalloc.h>
 #include <machine/cpu.h>
-#include <machine/SystemDescription.h>
+#include <machine/sys_desc.h>
 #include <machine/amiga/chipset.h>
 
 

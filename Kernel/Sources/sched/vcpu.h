@@ -17,7 +17,7 @@
 #include <kpi/signal.h>
 #include <kpi/vcpu.h>
 #include <machine/cpu.h>
-#include <machine/SystemDescription.h>
+#include <machine/sys_desc.h>
 #include <sched/stack.h>
 #include <sched/waitqueue.h>
 #include <sched/sched.h>

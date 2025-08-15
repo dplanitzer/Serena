@@ -86,7 +86,7 @@ static void mem_error(int err, const char* _Nonnull funcName, void* _Nullable pt
 // region should be allocatable.
 // \param md the memory descriptor describing the memory region to manage
 // \return pointer to the mem_region object
-static mem_region_t* mem_region_create(const MemoryDescriptor* _Nonnull md)
+static mem_region_t* mem_region_create(const mem_desc_t* _Nonnull md)
 {
     char* bptr = __Ceil_Ptr_PowerOf2(md->lower, WORD_SIZE);
     char* tptr = __Floor_Ptr_PowerOf2(md->upper, WORD_SIZE);
@@ -455,7 +455,7 @@ static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
 ////////////////////////////////////////////////////////////////////////////////
 
 // Allocates a new heap.
-AllocatorRef _Nullable __Allocator_Create(const MemoryDescriptor* _Nonnull md, AllocatorGrowFunc _Nullable growFunc)
+AllocatorRef _Nullable __Allocator_Create(const mem_desc_t* _Nonnull md, AllocatorGrowFunc _Nullable growFunc)
 {
     AllocatorRef self = NULL;
     mem_region_t* mr = mem_region_create(md);
@@ -501,7 +501,7 @@ bool __Allocator_IsManaging(AllocatorRef _Nonnull self, void* _Nullable ptr)
 }
 
 // Adds the given memory region to the allocator's available memory pool.
-errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull self, const MemoryDescriptor* _Nonnull md)
+errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull self, const mem_desc_t* _Nonnull md)
 {
     if (md->lower == NULL || md->upper == md->lower) {
         return EINVAL;
