@@ -14,7 +14,6 @@
 #include "InputDriver.h"
 #include <kpi/hidkeycodes.h>
 #include <machine/amiga/graphics/GraphicsDriver.h>
-#include <machine/InterruptController.h>
 #include <machine/irq.h>
 #include <sched/mtx.h>
 #include <sched/vcpu.h>
@@ -68,7 +67,7 @@ typedef struct HIDManager {
     struct waitqueue            reportsWaitQueue;
     sigset_t                    reportSigs;
     HIDReport                   report;
-    InterruptHandlerID          vblHandler;
+    irq_handler_t               vblHandler;
 
 
     // Event queue

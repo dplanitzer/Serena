@@ -37,18 +37,12 @@ errno_t GraphicsDriver_Create(CatalogId parentDirId, GraphicsDriverRef _Nullable
     try(Sprite_Create(kMouseCursor_Width, kMouseCursor_Height, kMouseCursor_PixelFormat, &self->mouseCursor));
 
 
-    // Initialize vblank tools
-    sem_init(&self->vblank_sema, 0);
-    try(InterruptController_AddDirectInterruptHandler(
-        gInterruptController,
-        IRQ_ID_VERTICAL_BLANK,
-        INTERRUPT_HANDLER_PRIORITY_NORMAL,
-        (InterruptHandler_Closure)GraphicsDriver_VerticalBlankInterruptHandler,
-        self, &self->vb_irq_handler)
-    );
-    InterruptController_SetInterruptHandlerEnabled(gInterruptController, 
-        self->vb_irq_handler,
-        true);
+    self->vblHandler.id = IRQ_ID_VERTICAL_BLANK;
+    self->vblHandler.priority = IRQ_PRI_NORMAL;
+    self->vblHandler.enabled = true;
+    self->vblHandler.func = (irq_handler_func_t)GraphicsDriver_VerticalBlankInterruptHandler;
+    self->vblHandler.arg = self;
+
 
     *pOutSelf = self;
     return EOK;
@@ -59,14 +53,17 @@ catch:
     return err;
 }
 
-void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self)
+int GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self)
 {
     CopperScheduler_Run(&self->copperScheduler);
     sem_relinquish_irq(&self->vblank_sema);
+    return 0;
 }
 
-static errno_t GraphicsDriver_onStart(DriverRef _Nonnull _Locked self)
+static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
 {
+    decl_try_err();
+
     DriverEntry de;
     de.dirId = Driver_GetParentDirectoryId(self);
     de.name = "fb";
@@ -77,11 +74,18 @@ static errno_t GraphicsDriver_onStart(DriverRef _Nonnull _Locked self)
     de.driver = (HandlerRef)self;
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    err = Driver_Publish(self, &de);
+    if (err == EOK) {
+        irq_add_handler(&self->vblHandler);
+        irq_enable_src(IRQ_ID_VERTICAL_BLANK);
+    }
+    return err;
 }
 
-void GraphicsDriver_onStop(DriverRef _Nonnull _Locked self)
+void GraphicsDriver_onStop(GraphicsDriverRef _Nonnull _Locked self)
 {
+    irq_disable_src(IRQ_ID_VERTICAL_BLANK);
+    irq_remove_handler(&self->vblHandler);
     Driver_Unpublish(self);
 }
 

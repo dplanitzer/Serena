@@ -16,7 +16,7 @@
 
 
 extern const uint8_t gUSBHIDKeyFlags[256];
-static void _vbl_handler(HIDManagerRef _Nonnull self);
+int _vbl_handler(HIDManagerRef _Nonnull self);
 static void _reports_collector_loop(HIDManagerRef _Nonnull self);
 
 
@@ -44,12 +44,12 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
     // Create the HID event queue
     try(HIDEventQueue_Create(REPORT_QUEUE_MAX_EVENTS, &self->eventQueue));
 
-    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
-                                                      IRQ_ID_VERTICAL_BLANK,
-                                                      INTERRUPT_HANDLER_PRIORITY_HIGHEST - 10,
-                                                      (InterruptHandler_Closure)_vbl_handler,
-                                                      self,
-                                                      &self->vblHandler));
+    self->vblHandler.id = IRQ_ID_VERTICAL_BLANK;
+    self->vblHandler.priority = IRQ_PRI_HIGHEST + 10;
+    self->vblHandler.enabled = true;
+    self->vblHandler.func = (irq_handler_func_t)_vbl_handler;
+    self->vblHandler.arg = self;
+
 
     *pOutSelf = self;
     return EOK;
@@ -99,7 +99,7 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
 
 
     // Enable VBL interrupts
-    InterruptController_SetInterruptHandlerEnabled(gInterruptController, self->vblHandler, true);
+    irq_add_handler(&self->vblHandler);
 
 catch:
     return err;
@@ -544,9 +544,10 @@ static void _post_joy_event(HIDManagerRef _Nonnull self, int port, const HIDRepo
 }
 
 
-static void _vbl_handler(HIDManagerRef _Nonnull self)
+int _vbl_handler(HIDManagerRef _Nonnull self)
 {
     vcpu_sigsend_irq(self->reportsCollector, SIGVBL, false);
+    return 0;
 }
 
 static void _reports_collector_loop(HIDManagerRef _Nonnull self)

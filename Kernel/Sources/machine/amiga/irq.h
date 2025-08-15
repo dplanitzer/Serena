@@ -47,6 +47,8 @@
 // Logical interrupt names
 #define IRQ_ID_KEYBOARD             IRQ_ID_CIA_A_SP
 #define IRQ_ID_MONOTONIC_CLOCK      IRQ_ID_CIA_A_TIMER_B
+#define IRQ_ID_INT2_EXTERN          IRQ_ID_PORTS
+#define IRQ_ID_INT6_EXTERN          IRQ_ID_EXTERN
 
 
 // Direct handler type definitions for specific interrupt types

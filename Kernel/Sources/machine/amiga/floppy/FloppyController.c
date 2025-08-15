@@ -153,7 +153,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     try(FloppyController_DetectDevices(self));
 
 
-    irq_set_direct_handler(IRQ_ID_DISK_BLOCK, (irq_func_t)_disk_block_irq, self);
+    irq_set_direct_handler(IRQ_ID_DISK_BLOCK, (irq_direct_func_t)_disk_block_irq, self);
     irq_enable_src(IRQ_ID_DISK_BLOCK);
 
 catch:

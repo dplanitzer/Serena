@@ -10,8 +10,8 @@
 #define GraphicsDriverPriv_h
 
 #include "GraphicsDriver.h"
-#include <machine/InterruptController.h>
 #include <machine/amiga/chipset.h>
+#include <machine/irq.h>
 #include <klib/List.h>
 #include <sched/mtx.h>
 #include <sched/sem.h>
@@ -26,7 +26,7 @@ final_class_ivars(GraphicsDriver, Driver,
     Sprite* _Nonnull    nullSprite;
     Sprite* _Nonnull    mouseCursor;
     CopperScheduler     copperScheduler;
-    InterruptHandlerID  vb_irq_handler;
+    irq_handler_t       vblHandler;
     sem_t               vblank_sema;
     List                surfaces;
     List                screens;
@@ -45,7 +45,7 @@ final_class_ivars(GraphicsDriver, Driver,
 );
 
 
-extern void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self);
+extern int GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self);
 static Screen* _Nullable _GraphicsDriver_GetScreenForId(GraphicsDriverRef _Nonnull self, int id);
 
 #endif /* GraphicsDriverPriv_h */

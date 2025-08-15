@@ -16,6 +16,10 @@
     xref _g_irq_disk_block_func
     xref _g_irq_disk_block_arg
 
+    xref _g_vbl_handlers;
+    xref _g_int2_handlers;
+    xref _g_int6_handlers;
+    xref __irq_run_handlers
 
     xref _InterruptController_OnInterrupt
     xref _gInterruptControllerStorage
@@ -279,7 +283,9 @@ __irq_level_3:
 
     btst    #INTB_VERTB, d7
     beq.s   irq_handler_blitter
-    CALL_IRQ_HANDLERS irc_handlers_VERTICAL_BLANK
+    move.l  _g_vbl_handlers, -(sp)
+    jsr     __irq_run_handlers
+    addq.w  #4, sp
 
 irq_handler_blitter:
     btst    #INTB_BLIT, d7

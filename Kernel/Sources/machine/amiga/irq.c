@@ -18,11 +18,11 @@ void* _Nullable     g_irq_clock_arg;
 irq_key_func_t      g_irq_key_func;
 void* _Nullable     g_irq_key_arg;
 
-irq_func_t          g_irq_disk_block_func;
+irq_direct_func_t   g_irq_disk_block_func;
 void* _Nullable     g_irq_disk_block_arg;
 
 
-void irq_set_direct_handler(int irq_id, irq_func_t _Nonnull f, void* _Nullable arg)
+void irq_set_direct_handler(int irq_id, irq_direct_func_t _Nonnull f, void* _Nullable arg)
 {
     const int is = irq_disable();
 

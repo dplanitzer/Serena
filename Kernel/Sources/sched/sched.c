@@ -10,7 +10,6 @@
 #include "vcpu.h"
 #include <machine/clock.h>
 #include <machine/csw.h>
-#include <machine/InterruptController.h>
 #include <machine/amiga/chipset.h>
 #include <kern/timespec.h>
 #include <log/Log.h>
