@@ -43,20 +43,7 @@ size_t irq_get_stat(int stat_id)
 }
 
 
-irq_handler_t* _Nullable    g_vbl_handlers;
-irq_handler_t* _Nullable    g_int2_handlers;
-irq_handler_t* _Nullable    g_int6_handlers;
-
-irq_handler_t** irq_handlers_for_id(int irq_id)
-{
-    switch (irq_id) {
-        case IRQ_ID_VERTICAL_BLANK:     return &g_vbl_handlers;
-        case IRQ_ID_INT2_EXTERN:        return &g_int2_handlers;
-        case IRQ_ID_INT6_EXTERN:        return &g_int6_handlers;
-        default:                        return NULL;
-    }
-}
-
+// irq_handlers_for_id() is defined in the platform specific irq.c file
 void irq_add_handler(irq_handler_t* _Nonnull h)
 {
     const int is = irq_disable();

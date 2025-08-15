@@ -48,3 +48,18 @@ void irq_set_direct_handler(int irq_id, irq_direct_func_t _Nonnull f, void* _Nul
     }
     irq_restore(is);
 }
+
+
+irq_handler_t* _Nullable    g_vbl_handlers;
+irq_handler_t* _Nullable    g_int2_handlers;
+irq_handler_t* _Nullable    g_int6_handlers;
+
+irq_handler_t** irq_handlers_for_id(int irq_id)
+{
+    switch (irq_id) {
+        case IRQ_ID_VERTICAL_BLANK:     return &g_vbl_handlers;
+        case IRQ_ID_INT2_EXTERN:        return &g_int2_handlers;
+        case IRQ_ID_INT6_EXTERN:        return &g_int6_handlers;
+        default:                        return NULL;
+    }
+}
