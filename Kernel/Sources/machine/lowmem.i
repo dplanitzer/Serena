@@ -9,8 +9,6 @@
         ifnd LOWMEM_I
 LOWMEM_I    set 1
 
-    xref _g_sched_storage
-
 
 ; CPU models
 CPU_MODEL_68000     equ 0
@@ -26,42 +24,6 @@ FPU_MODEL_68881     equ 1
 FPU_MODEL_68882     equ 2
 FPU_MODEL_68040     equ 3
 FPU_MODEL_68060     equ 4
-
-; IRQ sources
-IRQ_SOURCE_CIA_B_FLAG                   equ 23
-IRQ_SOURCE_CIA_B_SP                     equ 22
-IRQ_SOURCE_CIA_B_ALARM                  equ 21
-IRQ_SOURCE_CIA_B_TIMER_B                equ 20
-IRQ_SOURCE_CIA_B_TIMER_A                equ 19
-
-IRQ_SOURCE_CIA_A_FLAG                   equ 18
-IRQ_SOURCE_CIA_A_SP                     equ 17
-IRQ_SOURCE_CIA_A_ALARM                  equ 16
-IRQ_SOURCE_CIA_A_TIMER_B                equ 15
-IRQ_SOURCE_CIA_A_TIMER_A                equ 14
-
-IRQ_SOURCE_EXTERN                       equ 13
-IRQ_SOURCE_DISK_SYNC                    equ 12
-IRQ_SOURCE_SERIAL_RECEIVE_BUFFER_FULL   equ 11
-IRQ_SOURCE_AUDIO3                       equ 10
-IRQ_SOURCE_AUDIO2                       equ 9
-IRQ_SOURCE_AUDIO1                       equ 8
-IRQ_SOURCE_AUDIO0                       equ 7
-IRQ_SOURCE_BLITTER                      equ 6
-IRQ_SOURCE_VERTICAL_BLANK               equ 5
-IRQ_SOURCE_COPPER                       equ 4
-IRQ_SOURCE_PORTS                        equ 3
-IRQ_SOURCE_SOFT                         equ 2
-IRQ_SOURCE_DISK_BLOCK                   equ 1
-IRQ_SOURCE_SERIAL_TRANSMIT_BUFFER_EMPTY equ 0
-
-IRQ_SOURCE_COUNT                        equ 24
-
-; Chipset timers
-CHIPSET_TIMER_0     equ 0   ; CIA A timer A
-CHIPSET_TIMER_1     equ 1   ; CIA A timer B
-CHIPSET_TIMER_2     equ 2   ; CIA B timer A
-CHIPSET_TIMER_3     equ 3   ; CIA B timer B
 
 
 ;
@@ -257,42 +219,6 @@ vp_reserved3                            so.b    3           ; 3
 vp_SIZEOF                       so
     ifeq (vp_SIZEOF == 524)
         fail "vcpu structure size is incorrect."
-    endif
-
-
-    clrso
-irc_handlers_SERIAL_TRANSMIT_BUFFER_EMPTY   so.l    2   ; 192
-irc_handlers_DISK_BLOCK                     so.l    2
-irc_handlers_SOFT                           so.l    2
-irc_handlers_PORTS                          so.l    2
-irc_handlers_COPPER                         so.l    2
-irc_handlers_VERTICAL_BLANK                 so.l    2
-irc_handlers_BLITTER                        so.l    2
-irc_handlers_AUDIO0                         so.l    2
-irc_handlers_AUDIO1                         so.l    2
-irc_handlers_AUDIO2                         so.l    2
-irc_handlers_AUDIO3                         so.l    2
-irc_handlers_SERIAL_RECEIVE_BUFFER_FULL     so.l    2
-irc_handlers_DISK_SYNC                      so.l    2
-irc_handlers_EXTER                          so.l    2
-irc_handlers_CIA_A_TIMER_A                  so.l    2
-irc_handlers_CIA_A_TIMER_B                  so.l    2
-irc_handlers_CIA_A_ALARM                    so.l    2
-irc_handlers_CIA_A_SP                       so.l    2
-irc_handlers_CIA_A_FLAG                     so.l    2
-irc_handlers_CIA_B_TIMER_A                  so.l    2
-irc_handlers_CIA_B_TIMER_B                  so.l    2
-irc_handlers_CIA_B_ALARM                    so.l    2
-irc_handlers_CIA_B_SP                       so.l    2
-irc_handlers_CIA_B_FLAG                     so.l    2
-irc_nextAvailableId                         so.l    1       ; 4
-irc_spuriousInterruptCount                  so.l    1       ; 4
-irc_uninitializedInterruptCount             so.l    1       ; 4
-irc_nonMaskableInterruptCount               so.l    1       ; 4
-irc_lock                                    so.l    4       ; 16
-irc_SIZEOF                                  so
-    ifeq (irc_SIZEOF == 224)
-        fail "InterruptController structure size is incorrect."
     endif
 
 

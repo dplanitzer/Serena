@@ -17,7 +17,6 @@
 #include <filesystem/Filesystem.h>
 #include <machine/clock.h>
 #include <machine/csw.h>
-#include <machine/InterruptController.h>
 #include <machine/irq.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>
@@ -114,10 +113,6 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     delay_init();
 
 
-    // Initialize the interrupt controller
-    try_bang(InterruptController_CreateForLocalCPU());
-
-    
     // Initialize the monotonic clock
     clock_init_mono(g_mono_clock);
 

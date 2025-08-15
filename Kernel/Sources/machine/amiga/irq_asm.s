@@ -21,8 +21,6 @@
     xref _g_int6_handlers;
     xref __irq_run_handlers
 
-    xref _InterruptController_OnInterrupt
-    xref _gInterruptControllerStorage
     xref _g_sched_storage
     xref __csw_rte_switch
 
@@ -39,6 +37,37 @@
     xdef __irq_level_4
     xdef __irq_level_5
     xdef __irq_level_6
+
+
+; IRQ sources
+IRQ_ID_CIA_B_FLAG                   equ 23
+IRQ_ID_CIA_B_SP                     equ 22
+IRQ_ID_CIA_B_ALARM                  equ 21
+IRQ_ID_CIA_B_TIMER_B                equ 20
+IRQ_ID_CIA_B_TIMER_A                equ 19
+
+IRQ_ID_CIA_A_FLAG                   equ 18
+IRQ_ID_CIA_A_SP                     equ 17
+IRQ_ID_CIA_A_ALARM                  equ 16
+IRQ_ID_CIA_A_TIMER_B                equ 15
+IRQ_ID_CIA_A_TIMER_A                equ 14
+
+IRQ_ID_EXTERN                       equ 13
+IRQ_ID_DISK_SYNC                    equ 12
+IRQ_ID_SERIAL_RECEIVE_BUFFER_FULL   equ 11
+IRQ_ID_AUDIO3                       equ 10
+IRQ_ID_AUDIO2                       equ 9
+IRQ_ID_AUDIO1                       equ 8
+IRQ_ID_AUDIO0                       equ 7
+IRQ_ID_BLITTER                      equ 6
+IRQ_ID_VERTICAL_BLANK               equ 5
+IRQ_ID_COPPER                       equ 4
+IRQ_ID_PORTS                        equ 3
+IRQ_ID_SOFT                         equ 2
+IRQ_ID_DISK_BLOCK                   equ 1
+IRQ_ID_SERIAL_TRANSMIT_BUFFER_EMPTY equ 0
+
+IRQ_ID_COUNT                        equ 24
 
 
 
@@ -83,7 +112,7 @@ _irq_enable_src:
     bset    #0, d1
 
     ; handle chipset interrupts
-    cmp.b   #IRQ_SOURCE_EXTERN, d0
+    cmp.b   #IRQ_ID_EXTERN, d0
     bgt.s   cei_ciaa_interrupts
     lsl.w   d0, d1
     or.w    #(INTF_SETCLR | INTF_INTEN | INTF_EXTER | INTF_PORTS), d1
@@ -92,9 +121,9 @@ _irq_enable_src:
 
 cei_ciaa_interrupts:
     ; handle CIA A interrupts
-    cmp.b   #IRQ_SOURCE_CIA_A_FLAG, d0
+    cmp.b   #IRQ_ID_CIA_A_FLAG, d0
     bgt.s   cei_ciab_interrupts
-    sub.b   #IRQ_SOURCE_CIA_A_TIMER_A, d0
+    sub.b   #IRQ_ID_CIA_A_TIMER_A, d0
     lsl.b   d0, d1
     bset    #ICRB_IR, d1
     move.b  d1, CIAAICR
@@ -102,9 +131,9 @@ cei_ciaa_interrupts:
 
 cei_ciab_interrupts:
     ; handle CIA B interrupts
-    cmp.b   #IRQ_SOURCE_CIA_B_FLAG, d0
+    cmp.b   #IRQ_ID_CIA_B_FLAG, d0
     bgt.s   cei_done
-    sub.b   #IRQ_SOURCE_CIA_B_TIMER_A, d0
+    sub.b   #IRQ_ID_CIA_B_TIMER_A, d0
     lsl.b   d0, d1
     bset    #ICRB_IR, d1
     move.b  d1, CIABICR
@@ -133,7 +162,7 @@ _irq_disable_src:
     bset    #0, d1
 
     ; handle chipset interrupts
-    cmp.b   #IRQ_SOURCE_EXTERN, d0
+    cmp.b   #IRQ_ID_EXTERN, d0
     bgt.s   cdi_ciaa_interrupts
     lsl.w   d0, d1
     bclr    #INTB_SETCLR, d1
@@ -142,9 +171,9 @@ _irq_disable_src:
 
 cdi_ciaa_interrupts:
     ; handle CIA A interrupts
-    cmp.b   #IRQ_SOURCE_CIA_A_FLAG, d0
+    cmp.b   #IRQ_ID_CIA_A_FLAG, d0
     bgt.s   cdi_ciab_interrupts
-    sub.b   #IRQ_SOURCE_CIA_A_TIMER_A, d0
+    sub.b   #IRQ_ID_CIA_A_TIMER_A, d0
     lsl.b   d0, d1
     bclr    #ICRB_IR, d1
     move.b  d1, CIAAICR
@@ -152,9 +181,9 @@ cdi_ciaa_interrupts:
 
 cdi_ciab_interrupts:
     ; handle CIA B interrupts
-    cmp.b   #IRQ_SOURCE_CIA_B_FLAG, d0
+    cmp.b   #IRQ_ID_CIA_B_FLAG, d0
     bgt.s   cdi_done
-    sub.b   #IRQ_SOURCE_CIA_B_TIMER_A, d0
+    sub.b   #IRQ_ID_CIA_B_TIMER_A, d0
     lsl.b   d0, d1
     bclr    #ICRB_IR, d1
     move.b  d1, CIABICR
@@ -173,12 +202,6 @@ cdi_done:
     or.w    #$0700, sr      ; equal to DISABLE_PREEMPTION
     endm
 
-    macro CALL_IRQ_HANDLERS
-    pea     _gInterruptControllerStorage + \1
-    jsr     _InterruptController_OnInterrupt
-    addq.w  #4, sp
-    endm
-
 
 ;-------------------------------------------------------------------------------
 ; Level 1 IRQ handler
@@ -193,7 +216,8 @@ __irq_level_1:
 
     btst    #INTB_TBE, d7
     beq.s   irq_handler_dskblk
-    CALL_IRQ_HANDLERS irc_handlers_SERIAL_TRANSMIT_BUFFER_EMPTY
+    nop
+;    CALL_IRQ_HANDLERS irc_handlers_SERIAL_TRANSMIT_BUFFER_EMPTY
 
 irq_handler_dskblk:
     btst    #INTB_DSKBLK, d7
@@ -206,8 +230,9 @@ irq_handler_dskblk:
 irq_handler_soft:
     btst    #INTB_SOFT, d7
     beq     irq_handler_done
-    CALL_IRQ_HANDLERS irc_handlers_SOFT
-    beq     irq_handler_done
+;    CALL_IRQ_HANDLERS irc_handlers_SOFT
+    nop
+    bra     irq_handler_done
 
 ;-------------------------------------------------------------------------------
 ; Level 2 IRQ handler (CIA A)
@@ -220,7 +245,8 @@ __irq_level_2:
 
     btst    #ICRB_TA, d7
     beq.s   irq_handler_ciaa_tb
-    CALL_IRQ_HANDLERS irc_handlers_CIA_A_TIMER_A
+;    CALL_IRQ_HANDLERS irc_handlers_CIA_A_TIMER_A
+    nop
 
 irq_handler_ciaa_tb:
     btst    #ICRB_TB, d7
@@ -234,7 +260,8 @@ irq_handler_ciaa_tb:
 irq_handler_ciaa_alarm:
     btst    #ICRB_ALRM, d7
     beq.s   irq_handler_ciaa_sp
-    CALL_IRQ_HANDLERS irc_handlers_CIA_A_ALARM
+;    CALL_IRQ_HANDLERS irc_handlers_CIA_A_ALARM
+    nop
 
 irq_handler_ciaa_sp:
     btst    #ICRB_SP, d7
@@ -259,7 +286,8 @@ irq_wait_key_ack:
 irq_handler_ciaa_flag:
     btst    #ICRB_FLG, d7
     beq.s   irq_handler_ports
-    CALL_IRQ_HANDLERS irc_handlers_CIA_A_FLAG
+;    CALL_IRQ_HANDLERS irc_handlers_CIA_A_FLAG
+    nop
 
 irq_handler_ports:
     move.w  CUSTOM_BASE + INTREQR, d7
@@ -267,8 +295,9 @@ irq_handler_ports:
     beq     irq_handler_done
 
     move.w  #INTF_PORTS, CUSTOM_BASE + INTREQ
-    CALL_IRQ_HANDLERS irc_handlers_PORTS
-    beq     irq_handler_done
+;    CALL_IRQ_HANDLERS irc_handlers_PORTS
+    nop
+    bra     irq_handler_done
 
 ;-------------------------------------------------------------------------------
 ; Level 3 IRQ handler
@@ -290,13 +319,15 @@ __irq_level_3:
 irq_handler_blitter:
     btst    #INTB_BLIT, d7
     beq.s   irq_handler_copper
-    CALL_IRQ_HANDLERS irc_handlers_BLITTER
+;    CALL_IRQ_HANDLERS irc_handlers_BLITTER
+    nop
 
 irq_handler_copper:
     btst    #INTB_COPER, d7
     beq     irq_handler_done
-    CALL_IRQ_HANDLERS irc_handlers_COPPER
-    beq     irq_handler_done
+;    CALL_IRQ_HANDLERS irc_handlers_COPPER
+    nop
+    bra     irq_handler_done
 
 ;-------------------------------------------------------------------------------
 ; Level 4 IRQ handler
@@ -311,23 +342,27 @@ __irq_level_4:
 
     btst    #INTB_AUD2, d7
     beq.s   irq_handler_audio0
-    CALL_IRQ_HANDLERS irc_handlers_AUDIO0
+;    CALL_IRQ_HANDLERS irc_handlers_AUDIO0
+    nop
 
 irq_handler_audio0:
     btst    #INTB_AUD0, d7
     beq.s   irq_handler_audio3
-    CALL_IRQ_HANDLERS irc_handlers_AUDIO1
+;    CALL_IRQ_HANDLERS irc_handlers_AUDIO1
+    nop
 
 irq_handler_audio3:
     btst    #INTB_AUD3, d7
     beq.s   irq_handler_audio1
-    CALL_IRQ_HANDLERS irc_handlers_AUDIO2
+;    CALL_IRQ_HANDLERS irc_handlers_AUDIO2
+    nop
 
 irq_handler_audio1:
     btst    #INTB_AUD1, d7
     beq     irq_handler_done
-    CALL_IRQ_HANDLERS irc_handlers_AUDIO3
-    beq     irq_handler_done
+;    CALL_IRQ_HANDLERS irc_handlers_AUDIO3
+    nop
+    bra     irq_handler_done
 
 ;-------------------------------------------------------------------------------
 ; Level 5 IRQ handler
@@ -342,13 +377,15 @@ __irq_level_5:
 
     btst    #INTB_RBF, d7
     beq.s   irq_handler_dsksync
-    CALL_IRQ_HANDLERS irc_handlers_SERIAL_RECEIVE_BUFFER_FULL
+;    CALL_IRQ_HANDLERS irc_handlers_SERIAL_RECEIVE_BUFFER_FULL
+    nop
 
 irq_handler_dsksync:
     btst    #INTB_DSKSYN, d7
     beq     irq_handler_done
-    CALL_IRQ_HANDLERS irc_handlers_DISK_SYNC
-    beq     irq_handler_done
+;    CALL_IRQ_HANDLERS irc_handlers_DISK_SYNC
+    nop
+    bra     irq_handler_done
 
 ;-------------------------------------------------------------------------------
 ; Level 6 IRQ handler (CIA B)
@@ -361,27 +398,32 @@ __irq_level_6:
 
     btst    #ICRB_TA, d7
     beq.s   irq_handler_ciab_tb
-    CALL_IRQ_HANDLERS irc_handlers_CIA_B_TIMER_A
+;    CALL_IRQ_HANDLERS irc_handlers_CIA_B_TIMER_A
+    nop
 
 irq_handler_ciab_tb:
     btst    #ICRB_TB, d7
     beq.s   irq_handler_ciab_alarm
-    CALL_IRQ_HANDLERS irc_handlers_CIA_B_TIMER_B
+;    CALL_IRQ_HANDLERS irc_handlers_CIA_B_TIMER_B
+    nop
 
 irq_handler_ciab_alarm:
     btst    #ICRB_ALRM, d7
     beq.s   irq_handler_ciab_sp
-    CALL_IRQ_HANDLERS irc_handlers_CIA_B_ALARM
+;    CALL_IRQ_HANDLERS irc_handlers_CIA_B_ALARM
+    nop
 
 irq_handler_ciab_sp:
     btst    #ICRB_SP, d7
     beq.s   irq_handler_ciab_flag
-    CALL_IRQ_HANDLERS irc_handlers_CIA_B_SP
+;    CALL_IRQ_HANDLERS irc_handlers_CIA_B_SP
+    nop
 
 irq_handler_ciab_flag:
     btst    #ICRB_FLG, d7
     beq.s   irq_handler_exter
-    CALL_IRQ_HANDLERS irc_handlers_CIA_B_FLAG
+;    CALL_IRQ_HANDLERS irc_handlers_CIA_B_FLAG
+    nop
 
 irq_handler_exter:
     move.w  CUSTOM_BASE + INTREQR, d7
@@ -389,7 +431,8 @@ irq_handler_exter:
     beq.s   irq_handler_done
 
     move.w  #INTF_EXTER, CUSTOM_BASE + INTREQ
-    CALL_IRQ_HANDLERS irc_handlers_EXTER
+;    CALL_IRQ_HANDLERS irc_handlers_EXTER
+    nop
 
     ; FALL THROUGH
 
