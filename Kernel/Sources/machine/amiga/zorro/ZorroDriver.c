@@ -8,6 +8,7 @@
 
 #include "ZorroDriver.h"
 #include "ZRamDriver.h"
+#include "ZStubDriver.h"
 #include "zorro_bus.h"
 
 
@@ -26,12 +27,18 @@ errno_t ZorroDriver_Create(const zorro_conf_t* _Nonnull config, CatalogId parent
 
 errno_t ZorroDriver_onStart(ZorroDriverRef _Nonnull _Locked self)
 {
+    DriverRef dp = NULL;
+
     if (self->cfg.type == ZORRO_TYPE_RAM && self->cfg.start && self->cfg.logicalSize > 0) {
-        DriverRef dp;
-        
-        if (ZRamDriver_Create(self, &dp) == EOK) {
-            Driver_StartAdoptChild((DriverRef)self, dp);
-        }
+        ZRamDriver_Create(self, &dp);
+    }
+    else {
+        ZStubDriver_Create(self, &dp);
+    }
+
+
+    if (dp) {
+        Driver_StartAdoptChild((DriverRef)self, dp);
     }
 
     return EOK;
