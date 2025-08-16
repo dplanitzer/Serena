@@ -117,7 +117,7 @@ typedef struct DriverEntry {
 // I/O services since either the SCSI bus driver is in an undetermined state or
 // it is no longer able to access the SCSI hardware.
 // 
-// The next stop after calling Driver_Stop() is to invoke Driver_WaitForStopped().
+// The next step after calling Driver_Stop() is to invoke Driver_WaitForStopped().
 // A driver may deploy asynchronous services internally and the shutdown of those
 // services is triggered by the Driver_Stop() call. However it can take a while
 // for those services to complete their shutdown. This is why it is necessary to
@@ -214,11 +214,6 @@ typedef struct DriverEntry {
 // its child driver(s). This strong reference keeps a child driver alive as long
 // as it remains attached to its parent.
 //
-// Note that if a child driver needs to use its parent driver to do its job,
-// the child driver should receive a driver channel and use it. This allows the
-// parent driver to properly track whether it is still in use or not (see
-// Driver_Stop()).
-// 
 // The parent-child driver relationship can be used to properly represent
 // relationships like a bus and the devices on the bus. The bus is represented
 // by the parent driver and each device on the bus is represented by a child
@@ -235,6 +230,23 @@ typedef struct DriverEntry {
 // available on a physical bus. You configure this number by calling
 // Driver_SetMaxChildCount() after you've created the bus driver instance and
 // before you publish it to the driver catalog.
+//
+// A child driver may either receive a channel or a direct reference to its
+// parent driver which it can then use to access the services that the parent
+// driver provides. Both models are supported and the parent driver will stay
+// alive as long as at least one channel is open or one child remains attached
+// to it.
+//
+//
+// -- What it Means for a Driver to be in Use --
+//
+// A driver is considered to be in use if:
+// - at least one channel is open
+// - at least one child is attached to it
+// A driver that is in use may be stopped. However the driver reaper will defer
+// the destruction of the driver until after all open channels on it have been
+// closed and all its children have detached. Once this state has been reached
+// the reaper calls Driver_WaitForStopped() on the driver and then destroys it.
 //
 open_class(Driver, Handler,
     mtx_t                   mtx;    // lifecycle management lock
@@ -321,13 +333,13 @@ extern errno_t Driver_Start(DriverRef _Nonnull self);
 // driver which is told to stop by its controlling parent (bus) driver should
 // check the reason for the stop: The reason 'shutdown' indicates that the stop
 // is orderly and was voluntarily triggered. The parent driver is still active
-// and willing to accept I/O requests. The child driver may issue I/O requests
-// to its parent to eg park the head of its harddisk (assuming the child driver
-// manages a harddisk). A reason of 'abort' or 'hardware-lost' indicates that
-// the stop is not orderly and that the parent/bus and the child driver are no
-// longer able to access the hardware. A driver should simply free resources
-// and not attempt to access hardware or issues I/O requests to its parent driver
-// in this case. 
+// and is still willing to accept I/O requests. The child driver may issue I/O
+// requests to its parent to eg park the head of its harddisk (assuming the
+// child driver manages a hard disk). A reason of 'abort' or 'hardware-lost'
+// indicates that the stop is not orderly and that the parent/bus and the child
+// driver are no longer able to access the hardware. A driver should simply free
+// resources and not attempt to access hardware or issues I/O requests to its
+// parent driver in this case. 
 extern void Driver_Stop(DriverRef _Nonnull self, int reason);
 
 // Waits until the driver has finished its shutdown sequence. This specifically
@@ -428,8 +440,13 @@ extern errno_t Driver_SetMaxChildCount(DriverRef _Nonnull self, size_t count);
 // Returns the max child count.
 extern size_t Driver_GetMaxChildCount(DriverRef _Nonnull self);
 
-// Returns the number of child drivers that are currently attached to the receiver.
+// Returns the number of child drivers that are currently attached to the
+// receiver.
 extern size_t Driver_GetCurrentChildCount(DriverRef _Nonnull self);
+
+// Returns true if the receiver has at least one child attached to it; false
+// otherwise.
+extern bool Driver_HasChildren(DriverRef _Nonnull self);
 
 
 // Adds the given driver as a child to the receiver. The driver is added to the

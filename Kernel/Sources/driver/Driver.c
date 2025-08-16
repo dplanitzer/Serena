@@ -342,6 +342,23 @@ size_t Driver_GetCurrentChildCount(DriverRef _Nonnull self)
     return count;
 }
 
+bool Driver_HasChildren(DriverRef _Nonnull self)
+{
+    bool r = false;
+
+    mtx_lock(&self->childMtx);
+    for (int16_t i = 0; i < self->maxChildCount; i++) {
+        if (self->child[i].driver) {
+            r = true;
+            break;
+        }
+    }
+    mtx_unlock(&self->childMtx);
+
+    return r;
+}
+
+
 errno_t Driver_AddChild(DriverRef _Nonnull self, DriverRef _Nonnull child)
 {
     return Driver_AdoptChild(self, Object_RetainAs(child, Driver));
