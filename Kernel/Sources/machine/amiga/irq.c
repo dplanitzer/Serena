@@ -24,7 +24,7 @@ void* _Nullable     g_irq_disk_block_arg;
 
 void irq_set_direct_handler(int irq_id, irq_direct_func_t _Nonnull f, void* _Nullable arg)
 {
-    const int is = irq_disable();
+    const unsigned sim = irq_set_mask(IRQ_MASK_ALL);
 
     switch (irq_id) {
         case IRQ_ID_DISK_BLOCK:
@@ -46,7 +46,7 @@ void irq_set_direct_handler(int irq_id, irq_direct_func_t _Nonnull f, void* _Nul
             abort();
             break;
     }
-    irq_restore(is);
+    irq_set_mask(sim);
 }
 
 
@@ -57,7 +57,7 @@ irq_handler_t* _Nullable    g_int6_handlers;
 irq_handler_t** irq_handlers_for_id(int irq_id)
 {
     switch (irq_id) {
-        case IRQ_ID_VERTICAL_BLANK:     return &g_vbl_handlers;
+        case IRQ_ID_VBLANK:     return &g_vbl_handlers;
         case IRQ_ID_INT2_EXTERN:        return &g_int2_handlers;
         case IRQ_ID_INT6_EXTERN:        return &g_int6_handlers;
         default:                        return NULL;

@@ -16,15 +16,9 @@
 #error "unknown platform"
 #endif
 
-// Enables interrupt handling.
-extern void irq_enable(void);
 
-// Disables interrupt handling and returns the previous interrupt handling state.
-// Returns the old IRQ state
-extern int irq_disable(void);
-
-// Restores the given interrupt handling state.
-extern void irq_restore(int state);
+// Sets the CPU's interrupt priority mask to 'mask' and returns the previous mask.
+extern unsigned irq_set_mask(unsigned mask);
 
 
 // Enables generation of the given interrupt type. This implicitly turns on the

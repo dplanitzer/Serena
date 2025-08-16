@@ -25,9 +25,7 @@
     xref __csw_rte_switch
 
 
-    xdef _irq_enable
-    xdef _irq_disable
-    xdef _irq_restore
+    xdef _irq_set_mask
     xdef _irq_enable_src
     xdef _irq_disable_src
 
@@ -54,46 +52,41 @@ IRQ_ID_CIA_A_TIMER_A                equ 14
 
 IRQ_ID_EXTERN                       equ 13
 IRQ_ID_DISK_SYNC                    equ 12
-IRQ_ID_SERIAL_RECEIVE_BUFFER_FULL   equ 11
+IRQ_ID_SERIAL_RBF   equ 11
 IRQ_ID_AUDIO3                       equ 10
 IRQ_ID_AUDIO2                       equ 9
 IRQ_ID_AUDIO1                       equ 8
 IRQ_ID_AUDIO0                       equ 7
 IRQ_ID_BLITTER                      equ 6
-IRQ_ID_VERTICAL_BLANK               equ 5
+IRQ_ID_VBLANK               equ 5
 IRQ_ID_COPPER                       equ 4
 IRQ_ID_PORTS                        equ 3
 IRQ_ID_SOFT                         equ 2
 IRQ_ID_DISK_BLOCK                   equ 1
-IRQ_ID_SERIAL_TRANSMIT_BUFFER_EMPTY equ 0
+IRQ_ID_SERIAL_TBE equ 0
 
 IRQ_ID_COUNT                        equ 24
 
 
 
 ;-------------------------------------------------------------------------------
-; void irq_enable(void)
-; Enables interrupt handling.
-_irq_enable:
-    and.w   #$f8ff, sr
-    rts
+; unsigned irq_set_mask(unsigned mask)
+; Sets the CPU's interrupt priority mask to 'mask' and returns the previous mask.
+_irq_set_mask:
+    cargs ism_saved_d2.l, ism_mask.l
+    move.l  d2, -(sp)
+    move.l  ism_mask(sp), d2
 
-;-------------------------------------------------------------------------------
-; int irq_disable(void)
-; Disables interrupt handling and returns the previous interrupt handling state.
-; Returns the old IRQ state
-_irq_disable:
-    DISABLE_INTERRUPTS d0
-    rts
+    move.w  sr, d0
+    move.w  d0, d1
+    and.w   #$f8ff, d1
+    or.w    d2, d1
+    move.w  d1, sr
 
+    move.l  (sp)+, d2
 
-;-------------------------------------------------------------------------------
-; void irq_restore(int state)
-; Restores the given interrupt handling state.
-_irq_restore:
-    cargs cri_state.l
-    move.l  cri_state(sp), d0
-    RESTORE_INTERRUPTS d0
+    and.w   #$0700, d0
+    ext.l   d0
     rts
 
 

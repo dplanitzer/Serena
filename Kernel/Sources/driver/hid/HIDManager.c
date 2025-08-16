@@ -44,7 +44,7 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
     // Create the HID event queue
     try(HIDEventQueue_Create(REPORT_QUEUE_MAX_EVENTS, &self->eventQueue));
 
-    self->vblHandler.id = IRQ_ID_VERTICAL_BLANK;
+    self->vblHandler.id = IRQ_ID_VBLANK;
     self->vblHandler.priority = IRQ_PRI_HIGHEST + 10;
     self->vblHandler.enabled = true;
     self->vblHandler.func = (irq_handler_func_t)_vbl_handler;

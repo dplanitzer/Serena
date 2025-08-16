@@ -98,9 +98,9 @@ void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, HIDReport* _Nonnu
 {
     char keyCode;
     
-    const int irs = irq_disable();
+    const unsigned sim = irq_set_mask(IRQ_MASK_KEYBOARD);
     const size_t r = RingBuffer_GetByte(&self->keyQueue, &keyCode);
-    irq_restore(irs);
+    irq_set_mask(sim);
 
     if (r > 0) {
         report->type = (keyCode & 0x80) ? kHIDReportType_KeyUp : kHIDReportType_KeyDown;
@@ -113,10 +113,10 @@ void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, HIDReport* _Nonnu
 
 errno_t KeyboardDriver_setReportTarget(KeyboardDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
 {
-    const int irs = irq_disable();
+    const unsigned sim = irq_set_mask(IRQ_MASK_KEYBOARD);
     self->sigvp = vp;
     self->signo = signo;
-    irq_restore(irs);
+    irq_set_mask(sim);
 
     return EOK;
 }

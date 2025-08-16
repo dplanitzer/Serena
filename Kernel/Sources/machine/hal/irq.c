@@ -17,36 +17,26 @@ size_t  g_irq_stat_nmi;
 
 size_t irq_get_stat(int stat_id)
 {
-    size_t r;
-    const int is = irq_disable();
-
     switch (stat_id) {
         case IRQ_STAT_UNINITIALIZED_COUNT:
-            r = g_irq_stat_uninit;
-            break;
+            return g_irq_stat_uninit;
 
         case IRQ_STAT_SPURIOUS_COUNT:
-            r = g_irq_stat_spurious;
-            break;
+            return g_irq_stat_spurious;
 
         case IRQ_STAT_NON_MASKABLE_COUNT:
-            r = g_irq_stat_nmi;
-            break;
+            return g_irq_stat_nmi;
 
         default:
-            r = 0;
-            break;
+            return 0;
     }
-    irq_restore(is);
-
-    return r;
 }
 
 
 // irq_handlers_for_id() is defined in the platform specific irq.c file
 void irq_add_handler(irq_handler_t* _Nonnull h)
 {
-    const int is = irq_disable();
+    const unsigned sim = irq_set_mask(IRQ_MASK_ALL);
 
     irq_handler_t** listp = irq_handlers_for_id(h->id);
     register irq_handler_t* ph = NULL;
@@ -70,12 +60,12 @@ void irq_add_handler(irq_handler_t* _Nonnull h)
         *listp = h;
     }
 
-    irq_restore(is);
+    irq_set_mask(sim);
 }
 
 void irq_remove_handler(irq_handler_t* _Nullable h)
 {
-    const int is = irq_disable();
+    const unsigned sim = irq_set_mask(IRQ_MASK_ALL);
 
     irq_handler_t** listp = irq_handlers_for_id(h->id);
     irq_handler_t* ph = NULL;
@@ -102,15 +92,15 @@ void irq_remove_handler(irq_handler_t* _Nullable h)
         h->next = NULL;
     }
 
-    irq_restore(is);
+    irq_set_mask(sim);
 }
 
 void irq_set_handler_enabled(irq_handler_t* _Nonnull h, bool enabled)
 {
-    const int is = irq_disable();
+    const unsigned sim = irq_set_mask(IRQ_MASK_ALL);
 
     h->enabled = enabled;
-    irq_restore(is);
+    irq_set_mask(sim);
 }
 
 // Called from the IRQ context. Run all handlers for the given interrupt list

@@ -131,7 +131,7 @@ static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc)
 
 
     // Enable interrupt processing
-    irq_enable();
+    irq_set_mask(IRQ_MASK_NONE);
 
     
     // Initialize the kernel logging package 
@@ -205,7 +205,7 @@ static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc)
     sched_run_chores(g_sched);
 
 catch:
-    irq_disable();
+    irq_set_mask(IRQ_MASK_ALL);
     printf("Error: unable to complete startup: %d\nHalting.\n", err);
     while(1);
     /* NOT REACHED */

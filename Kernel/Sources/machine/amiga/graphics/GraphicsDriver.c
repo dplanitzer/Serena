@@ -37,7 +37,7 @@ errno_t GraphicsDriver_Create(CatalogId parentDirId, GraphicsDriverRef _Nullable
     try(Sprite_Create(kMouseCursor_Width, kMouseCursor_Height, kMouseCursor_PixelFormat, &self->mouseCursor));
 
 
-    self->vblHandler.id = IRQ_ID_VERTICAL_BLANK;
+    self->vblHandler.id = IRQ_ID_VBLANK;
     self->vblHandler.priority = IRQ_PRI_NORMAL;
     self->vblHandler.enabled = true;
     self->vblHandler.func = (irq_handler_func_t)GraphicsDriver_VerticalBlankInterruptHandler;
@@ -77,14 +77,14 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
     err = Driver_Publish(self, &de);
     if (err == EOK) {
         irq_add_handler(&self->vblHandler);
-        irq_enable_src(IRQ_ID_VERTICAL_BLANK);
+        irq_enable_src(IRQ_ID_VBLANK);
     }
     return err;
 }
 
 void GraphicsDriver_onStop(GraphicsDriverRef _Nonnull _Locked self)
 {
-    irq_disable_src(IRQ_ID_VERTICAL_BLANK);
+    irq_disable_src(IRQ_ID_VBLANK);
     irq_remove_handler(&self->vblHandler);
     Driver_Unpublish(self);
 }
