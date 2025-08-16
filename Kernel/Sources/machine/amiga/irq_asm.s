@@ -85,8 +85,7 @@ _irq_set_mask:
 
     move.l  (sp)+, d2
 
-    and.w   #$0700, d0
-    ext.l   d0
+    and.l   #$0700, d0
     rts
 
 
