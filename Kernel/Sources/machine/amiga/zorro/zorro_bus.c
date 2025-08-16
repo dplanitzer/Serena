@@ -35,7 +35,7 @@ static uint8_t zorro_read(volatile uint8_t* _Nonnull addr, bool invert, bool isZ
 // some cards do in fact return non-zero values. Eg Commodore A2091 SCSI card.
 static bool zorro_read_config_space(zorro_conf_t* _Nonnull cfg, uint8_t busToScan)
 {
-    const bool isZorro3Machine = busToScan == ZORRO_3_BUS;
+    const bool isZorro3Machine = busToScan == ZORRO_BUS_3;
     register uint8_t* pAutoConfigBase = (isZorro3Machine) ? ZORRO_3_CONFIG_BASE : ZORRO_2_CONFIG_BASE;
     
     // See: http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node02C7.html
@@ -46,15 +46,15 @@ static bool zorro_read_config_space(zorro_conf_t* _Nonnull cfg, uint8_t busToSca
     switch((type >> 6) & 0x03) {
         case 0:     return false;
         case 1:     return false;
-        case 2:     cfg->bus = ZORRO_3_BUS; break;
-        case 3:     cfg->bus = ZORRO_2_BUS; break;
+        case 2:     cfg->bus = ZORRO_BUS_3; break;
+        case 3:     cfg->bus = ZORRO_BUS_2; break;
         default:    abort();
     }
     
     if (type & (1 << 5)) {
-        cfg->type = BOARD_TYPE_RAM;
+        cfg->type = ZORRO_TYPE_RAM;
     } else {
-        cfg->type = BOARD_TYPE_IO;
+        cfg->type = ZORRO_TYPE_IO;
     }
     if (type & (1 << 3)) {
         cfg->flags |= ZORRO_FLAG_NEXT_IS_RELATED;
@@ -71,7 +71,7 @@ static bool zorro_read_config_space(zorro_conf_t* _Nonnull cfg, uint8_t busToSca
         cfg->flags |= ZORRO_FLAG_CANT_SHUTUP;
     }
     
-    const bool isExtendedSize = (cfg->bus == ZORRO_3_BUS) && (flags & (1 <<5)) != 0;
+    const bool isExtendedSize = (cfg->bus == ZORRO_BUS_3) && (flags & (1 <<5)) != 0;
     const uint8_t physsiz = type & 0x07;
     static const size_t gBoardSizes[8] = {
         SIZE_MB(8),   SIZE_KB(64), SIZE_KB(128), SIZE_KB(256),
@@ -93,7 +93,7 @@ static bool zorro_read_config_space(zorro_conf_t* _Nonnull cfg, uint8_t busToSca
         SIZE_MB(8),  SIZE_MB(10),  SIZE_MB(12),  SIZE_MB(14)
     };
     
-    const uint8_t logsiz = (cfg->bus == ZORRO_3_BUS) ? flags & 0x0f : 0;
+    const uint8_t logsiz = (cfg->bus == ZORRO_BUS_3) ? flags & 0x0f : 0;
     switch (logsiz) {
         case 0x00: cfg->logicalSize = cfg->physicalSize; // logical size is same as physical size
             break;
@@ -155,7 +155,7 @@ static void zorro3_auto_config_shutup(void)
 // system reset.
 static void zorro_auto_config_shutup(uint8_t bus)
 {
-    if (bus == ZORRO_3_BUS) {
+    if (bus == ZORRO_BUS_3) {
         zorro3_auto_config_shutup();
     } else {
         zorro2_auto_config_shutup();
@@ -203,7 +203,7 @@ static void zorro3_auto_config_assign_base_address(uint8_t* _Nullable addr)
 // board becomes visible in auto config space.
 static void zorro_auto_config_assign_base_address(uint8_t* _Nullable addr, uint8_t bus)
 {
-    if (bus == ZORRO_3_BUS) {
+    if (bus == ZORRO_BUS_3) {
         zorro3_auto_config_assign_base_address(addr);
     } else {
         zorro2_auto_config_assign_base_address(addr);
@@ -233,8 +233,8 @@ static uint8_t* _Nonnull zorro2_align_board_address(uint8_t* _Nonnull base_ptr, 
 
 static uint8_t* _Nullable zorro_calculate_base_address_for_board_in_range(const zorro_conf_t* _Nonnull cfg, const zorro_bus_t* _Nonnull bus, uint8_t* board_space_base_addr, uint8_t* board_space_top_addr)
 {
-    const bool isMemoryBoard = cfg->type == BOARD_TYPE_RAM;
-    const bool isZorro3Board = cfg->bus == ZORRO_3_BUS;
+    const bool isMemoryBoard = cfg->type == ZORRO_TYPE_RAM;
+    const bool isZorro3Board = cfg->bus == ZORRO_BUS_3;
     uint8_t* highest_occupied_board_addr = board_space_base_addr;
     const zorro_conf_t* pHighestAllocatedBoard = NULL;
 
@@ -275,10 +275,10 @@ static uint8_t* _Nullable zorro_calculate_base_address_for_board(const zorro_con
 {
     uint8_t* board_base_addr = NULL;
 
-    if (cfg->bus == ZORRO_3_BUS) {
+    if (cfg->bus == ZORRO_BUS_3) {
         board_base_addr = zorro_calculate_base_address_for_board_in_range(cfg, bus, ZORRO_3_EXPANSION_LOW, ZORRO_3_EXPANSION_HIGH);
     } else {
-        if (cfg->type == BOARD_TYPE_RAM) {
+        if (cfg->type == ZORRO_TYPE_RAM) {
             board_base_addr = zorro_calculate_base_address_for_board_in_range(cfg, bus, ZORRO_2_MEMORY_LOW, ZORRO_2_MEMORY_HIGH);
         } else {
             board_base_addr = zorro_calculate_base_address_for_board_in_range(cfg, bus, ZORRO_2_IO_LOW, ZORRO_2_IO_HIGH);
@@ -330,8 +330,8 @@ void zorro_auto_config(zorro_bus_t* _Nonnull bus)
             return;
         }
 
-        if (!zorro_read_config_space(&board->cfg, ZORRO_2_BUS)) {
-            if (!isZorro3Machine || (isZorro3Machine && !zorro_read_config_space(&board->cfg, ZORRO_3_BUS))) {
+        if (!zorro_read_config_space(&board->cfg, ZORRO_BUS_2)) {
+            if (!isZorro3Machine || (isZorro3Machine && !zorro_read_config_space(&board->cfg, ZORRO_BUS_3))) {
                 break;
             }
         }
@@ -375,7 +375,7 @@ void zorro_auto_config(zorro_bus_t* _Nonnull bus)
 
         // if RAM and logical_size == 0, auto-size the board
         if (board->cfg.logicalSize == 0) {
-            if (board->cfg.type == BOARD_TYPE_RAM) {
+            if (board->cfg.type == ZORRO_TYPE_RAM) {
                 board->cfg.logicalSize = zorro3_auto_size_memory_board(board);
             } else {
                 // This is really a hardware bug. Auto sizing for I/O boards makes no

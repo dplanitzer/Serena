@@ -15,6 +15,24 @@
 
 __CPP_BEGIN
 
+// Expansion board types
+#define ZORRO_TYPE_RAM  0
+#define ZORRO_TYPE_IO   1
+
+
+// Expansion bus types
+#define ZORRO_BUS_2 2
+#define ZORRO_BUS_3 3
+
+
+// This board does not accept a shut up command
+#define ZORRO_FLAG_CANT_SHUTUP      0x01
+
+// This expansion entry is related to the next one. Eg both are part of the same
+// physical board (slot)
+#define ZORRO_FLAG_NEXT_IS_RELATED  0x02
+
+
 typedef struct zorro_conf {
     uint8_t* _Nonnull   start;          // base address
     size_t              physicalSize;   // size of memory space reserved for this board

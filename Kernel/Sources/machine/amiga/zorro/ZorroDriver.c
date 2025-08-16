@@ -26,7 +26,7 @@ errno_t ZorroDriver_Create(const zorro_conf_t* _Nonnull config, CatalogId parent
 
 errno_t ZorroDriver_onStart(ZorroDriverRef _Nonnull _Locked self)
 {
-    if (self->cfg.type == BOARD_TYPE_RAM && self->cfg.start && self->cfg.logicalSize > 0) {
+    if (self->cfg.type == ZORRO_TYPE_RAM && self->cfg.start && self->cfg.logicalSize > 0) {
         DriverRef dp;
         
         if (ZRamDriver_Create(self, &dp) == EOK) {

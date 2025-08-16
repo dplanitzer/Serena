@@ -9,18 +9,8 @@
 #ifndef zorro_bus_h
 #define zorro_bus_h
 
-#include <kern/errno.h>
 #include <klib/List.h>
 #include <machine/amiga/zorro.h>
-
-
-// Expansion board types
-#define BOARD_TYPE_RAM  0
-#define BOARD_TYPE_IO   1
-
-// Expansion bus types
-#define ZORRO_2_BUS 0
-#define ZORRO_3_BUS 1
 
 
 // Space for Zorro II auto configuration
@@ -45,14 +35,6 @@
 // Space for Zorro III (memory and I/O) expansion boards
 #define ZORRO_3_EXPANSION_LOW       ((uint8_t*)0x10000000)
 #define ZORRO_3_EXPANSION_HIGH      ((uint8_t*)0x80000000)
-
-
-// This board does not accept a shut up command
-#define ZORRO_FLAG_CANT_SHUTUP      0x01
-
-// This expansion entry is related to the next one. Eg both are part of the same
-// physical board (slot)
-#define ZORRO_FLAG_NEXT_IS_RELATED  0x02
 
 
 // An expansion board
