@@ -100,8 +100,38 @@ void ZorroController_onStop(DriverRef _Nonnull _Locked self)
     Driver_Unpublish(self);
 }
 
+errno_t ZorroController_ioctl(ZorroControllerRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
+{
+    switch (cmd) {
+        case kZorroCommand_GetCardCount: {
+            size_t* pCount = va_arg(ap, size_t*);
+            
+            *pCount = Driver_GetCurrentChildCount((DriverRef)self);
+            return EOK;
+        }
+
+        case kZorroCommand_GetCardConfig: {
+            size_t idx = va_arg(ap, size_t);
+            zorro_conf_t* pcfg = va_arg(ap, zorro_conf_t*);
+            ZorroDriverRef zdp = (ZorroDriverRef)Driver_GetChildAt((DriverRef)self, idx);
+        
+            if (zdp) {
+                *pcfg = *ZorroDriver_GetConfiguration(zdp);
+                return EOK;
+            }
+            else {
+                return EINVAL;
+            }
+        }
+
+        default:
+            return super_n(ioctl, Handler, ZorroController, self, pChannel, cmd, ap);
+    }
+}
+
 
 class_func_defs(ZorroController, Driver,
 override_func_def(onStart, ZorroController, Driver)
 override_func_def(onStop, ZorroController, Driver)
+override_func_def(ioctl, ZorroController, Handler)
 );
