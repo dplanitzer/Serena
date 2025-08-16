@@ -12,11 +12,13 @@
 #include "ZorroDriver.h"
 
 
-open_class(ZRamDriver, ZorroDriver,
+open_class(ZRamDriver, Driver,
+    ZorroDriverRef _Nonnull _Weak   card;
 );
-open_class_funcs(ZRamDriver, ZorroDriver,
+open_class_funcs(ZRamDriver, Driver,
 );
+class_ref(ZRamDriver);
 
-extern errno_t ZRamDriver_Create(CatalogId parentDirId, const zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t ZRamDriver_Create(ZorroDriverRef _Nonnull zdp, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* ZRamDriver_h */

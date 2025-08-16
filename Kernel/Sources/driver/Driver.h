@@ -248,6 +248,13 @@ typedef struct DriverEntry {
 // closed and all its children have detached. Once this state has been reached
 // the reaper calls Driver_WaitForStopped() on the driver and then destroys it.
 //
+//
+// -- Driver Relationships and Ownership --
+//
+// A parent driver owns its children and thus retains a child when it is added
+// to the parent. A child driver should not retain its parent. It should only
+// maintain a weak reference to its parent driver.
+//
 open_class(Driver, Handler,
     mtx_t                   mtx;    // lifecycle management lock
     cnd_t                   cnd;

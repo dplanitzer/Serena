@@ -7,13 +7,12 @@
 //
 
 #include "ZorroController.h"
+#include "ZorroDriver.h"
 #include "zorro_bus.h"
-#include "ZRamDriver.h"
 #include <driver/DriverManager.h>
 
 
 final_class_ivars(ZorroController, Driver,
-    ZorroBus    bus;
     CatalogId   busDirId;
 );
 
@@ -23,21 +22,40 @@ errno_t ZorroController_Create(CatalogId parentDirId, ZorroControllerRef _Nullab
     return Driver_Create(class(ZorroController), 0, parentDirId, (DriverRef*)pOutSelf);
 }
 
-static errno_t ZorroController_DetectDevices(ZorroControllerRef _Nonnull _Locked self)
+static errno_t _auto_config_bus(ZorroControllerRef _Nonnull _Locked self)
 {
-    List_ForEach(&self->bus.boards, ZorroBoard,
+    decl_try_err();
+    zorro_bus_t bus;
+
+    // Auto config the Zorro bus
+    zorro_auto_config(&bus);
+    try(Driver_SetMaxChildCount((DriverRef)self, bus.count));
+
+
+    // Create a ZorroDriver instance for each slot
+    List_ForEach(&bus.boards, zorro_board_t,
         const zorro_conf_t* cfg = &pCurNode->cfg;
-    
-        if (cfg->type == BOARD_TYPE_RAM && cfg->start && cfg->logicalSize > 0) {
-            DriverRef dp;
-    
-            if (ZRamDriver_Create(self->busDirId, cfg, &dp) == EOK) {
-                Driver_StartAdoptChild((DriverRef)self, dp);
-            }
+        ZorroDriverRef dp;
+        
+        if (ZorroDriver_Create(cfg, self->busDirId, &dp) == EOK) {
+            Driver_AdoptChild((DriverRef)self, (DriverRef)dp);
         }
     );
     
-    return EOK;
+
+    // Start the slot drivers
+    for (size_t slot = 0; slot < bus.count; slot++) {
+        DriverRef dp = Driver_GetChildAt((DriverRef)self, slot);
+
+        if (dp) {
+            Driver_Start(dp);
+        }
+    }
+
+
+catch:
+    zorro_destroy_bus(&bus);
+    return err;
 }
 
 errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
@@ -65,13 +83,9 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
 
     try(Driver_Publish(self, &de));
 
-    // Auto config the Zorro bus
-    zorro_auto_config(&self->bus);
-    try(Driver_SetMaxChildCount((DriverRef)self, self->bus.count));
 
-
-    // Instantiate the board drivers
-    err = ZorroController_DetectDevices(self);
+    // Auto-config the bus
+    err = _auto_config_bus(self);
 
 catch:
     if (err != EOK) {

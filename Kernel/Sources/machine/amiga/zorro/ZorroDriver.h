@@ -14,15 +14,15 @@
 
 
 open_class(ZorroDriver, Driver,
-    const zorro_conf_t* _Nonnull boardConfig;
+    zorro_conf_t    cfg;
 );
 open_class_funcs(ZorroDriver, Driver,
 );
 
 // Create a driver instance. 
-extern errno_t ZorroDriver_Create(Class* _Nonnull pClass, unsigned options, CatalogId parentDirId, const zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t ZorroDriver_Create(const zorro_conf_t* _Nonnull config, CatalogId parentDirId, ZorroDriverRef _Nullable * _Nonnull pOutSelf);
 
-#define ZorroDriver_GetBoardConfiguration(__self) \
-(((ZorroDriverRef)__self)->boardConfig)
+#define ZorroDriver_GetConfiguration(__self) \
+((const zorro_conf_t*)&((ZorroDriverRef)__self)->cfg)
 
 #endif /* ZorroDriver_h */

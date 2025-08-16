@@ -11,15 +11,24 @@
 #include <machine/sys_desc.h>
 
 
-errno_t ZRamDriver_Create(CatalogId parentDirId, const zorro_conf_t* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf)
-{
-    return ZorroDriver_Create(class(ZRamDriver), 0, parentDirId, config, pOutSelf);
-}
-
-errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)
+errno_t ZRamDriver_Create(ZorroDriverRef _Nonnull zdp, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    const zorro_conf_t* cfg = ZorroDriver_GetBoardConfiguration(self);
+    ZRamDriverRef self;
+
+    err = Driver_Create(class(ZRamDriver), 0, Driver_GetParentDirectoryId(zdp), (DriverRef*)&self);
+    if (err == EOK) {
+        self->card = zdp;
+    }
+
+    *pOutSelf = (DriverRef)self;
+    return err;
+}
+
+errno_t ZRamDriver_onStart(ZRamDriverRef _Nonnull _Locked self)
+{
+    decl_try_err();
+    const zorro_conf_t* cfg = ZorroDriver_GetConfiguration(self->card);
     mem_desc_t md = {0};
     char name[5];
 
@@ -30,7 +39,7 @@ errno_t ZRamDriver_onStart(DriverRef _Nonnull _Locked self)
     name[4] = '\0';
 
     DriverEntry de;
-    de.dirId = Driver_GetParentDirectoryId(self);
+    de.dirId = Driver_GetParentDirectoryId(self->card);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
@@ -54,7 +63,7 @@ void ZRamDriver_onStop(DriverRef _Nonnull _Locked self)
     Driver_Unpublish(self);
 }
 
-class_func_defs(ZRamDriver, ZorroDriver,
+class_func_defs(ZRamDriver, Driver,
 override_func_def(onStart, ZRamDriver, Driver)
 override_func_def(onStop, ZRamDriver, Driver)
 );

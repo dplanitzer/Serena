@@ -56,18 +56,19 @@
 
 
 // An expansion board
-typedef struct ZorroBoard {
+typedef struct zorro_board {
     ListNode        node;
-    zorro_conf_t cfg;
-} ZorroBoard;
+    zorro_conf_t    cfg;
+} zorro_board_t;
 
 
-typedef struct ZorroBus {
-    List    boards;
-    size_t  count;
-} ZorroBus;
+typedef struct zorro_bus {
+    List/*<zorro_board_t>*/ boards;
+    size_t                  count;
+} zorro_bus_t;
 
 
-extern errno_t zorro_auto_config(ZorroBus* _Nonnull bus);
+extern void zorro_auto_config(zorro_bus_t* _Nonnull bus);
+extern void zorro_destroy_bus(zorro_bus_t* _Nullable bus);
 
 #endif /* zorro_bus_h */

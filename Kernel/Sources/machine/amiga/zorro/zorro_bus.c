@@ -231,7 +231,7 @@ static uint8_t* _Nonnull zorro2_align_board_address(uint8_t* _Nonnull base_ptr, 
     }
 }
 
-static uint8_t* _Nullable zorro_calculate_base_address_for_board_in_range(const zorro_conf_t* _Nonnull cfg, const ZorroBus* _Nonnull bus, uint8_t* board_space_base_addr, uint8_t* board_space_top_addr)
+static uint8_t* _Nullable zorro_calculate_base_address_for_board_in_range(const zorro_conf_t* _Nonnull cfg, const zorro_bus_t* _Nonnull bus, uint8_t* board_space_base_addr, uint8_t* board_space_top_addr)
 {
     const bool isMemoryBoard = cfg->type == BOARD_TYPE_RAM;
     const bool isZorro3Board = cfg->bus == ZORRO_3_BUS;
@@ -240,7 +240,7 @@ static uint8_t* _Nullable zorro_calculate_base_address_for_board_in_range(const 
 
     // Find the board with a matching Zorro bus, board type and expansion space
     // address range that has the highest assigned address
-    List_ForEach(&bus->boards, ZorroBoard, 
+    List_ForEach(&bus->boards, zorro_board_t, 
         if (pCurNode->cfg.bus == cfg->bus
             && pCurNode->cfg.type == cfg->type
             && pCurNode->cfg.start >= board_space_base_addr
@@ -271,7 +271,7 @@ static uint8_t* _Nullable zorro_calculate_base_address_for_board_in_range(const 
     return (board_top_addr <= board_space_top_addr) ? board_base_addr : NULL;
 }
 
-static uint8_t* _Nullable zorro_calculate_base_address_for_board(const zorro_conf_t* _Nonnull cfg, const ZorroBus* _Nonnull bus)
+static uint8_t* _Nullable zorro_calculate_base_address_for_board(const zorro_conf_t* _Nonnull cfg, const zorro_bus_t* _Nonnull bus)
 {
     uint8_t* board_base_addr = NULL;
 
@@ -293,7 +293,7 @@ static uint8_t* _Nullable zorro_calculate_base_address_for_board(const zorro_con
 }
 
 // Dynamically determines the size of the given memory expansion board.
-static size_t zorro3_auto_size_memory_board(ZorroBoard* _Nonnull board)
+static size_t zorro3_auto_size_memory_board(zorro_board_t* _Nonnull board)
 {
     uint8_t* pLower = board->cfg.start;
     uint8_t* pUpper = board->cfg.start + board->cfg.physicalSize;
@@ -313,9 +313,8 @@ static size_t zorro3_auto_size_memory_board(ZorroBoard* _Nonnull board)
 
 
 
-errno_t zorro_auto_config(ZorroBus* _Nonnull bus)
+void zorro_auto_config(zorro_bus_t* _Nonnull bus)
 {
-    decl_try_err();
     const bool isZorro3Machine = chipset_get_ramsey_version() > 0;
     uint8_t prev_config_flags = ZORRO_FLAG_NEXT_IS_RELATED;
     size_t slot = 0;
@@ -325,10 +324,10 @@ errno_t zorro_auto_config(ZorroBus* _Nonnull bus)
     bus->boards.last = NULL;
 
     for (;;) {
-        ZorroBoard* board;
+        zorro_board_t* board;
 
-        if ((err = kalloc_cleared(sizeof(ZorroBoard), (void**)&board)) != EOK) {
-            break;
+        if (kalloc_cleared(sizeof(zorro_board_t), (void**)&board) != EOK) {
+            return;
         }
 
         if (!zorro_read_config_space(&board->cfg, ZORRO_2_BUS)) {
@@ -388,8 +387,13 @@ errno_t zorro_auto_config(ZorroBus* _Nonnull bus)
 
         prev_config_flags = board->cfg.flags;
     }
+}
 
-    // We accept whatever boards we were able to pick up and just ignore the
-    // ones that failed.
-    return (bus->count > 0) ? EOK : err;
+void zorro_destroy_bus(zorro_bus_t* _Nullable bus)
+{
+    if (bus) {
+        List_ForEach(&bus->boards, zorro_board_t,
+            kfree(pCurNode);
+        );
+    }
 }
