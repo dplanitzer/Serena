@@ -43,6 +43,8 @@ const DriveParams   kDriveParams_5_25 = {
     8,
 };
 
+IOCATS_DEF(g_cats, IOBUS_PROPRIETARY);
+
 
 #define MAX_FLOPPY_DISK_DRIVES  4
 
@@ -69,7 +71,7 @@ errno_t FloppyController_Create(CatalogId parentDirId, FloppyControllerRef _Null
     decl_try_err();
     FloppyControllerRef self;
     
-    try(Driver_Create(class(FloppyController), 0, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(FloppyController), g_cats, 0, parentDirId, (DriverRef*)&self));
     try(Driver_SetMaxChildCount((DriverRef)self, MAX_FLOPPY_DISK_DRIVES));
 
     mtx_init(&self->mtx);

@@ -22,6 +22,8 @@ final_class_ivars(MouseDriver, InputDriver,
     int8_t                      port;
 );
 
+IOCATS_DEF(g_cats, IOHID_MOUSE);
+
 
 errno_t MouseDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
@@ -32,7 +34,7 @@ errno_t MouseDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable 
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(MouseDriver), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(MouseDriver), g_cats, kDriver_Exclusive, parentDirId, (DriverRef*)&self));
 
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);

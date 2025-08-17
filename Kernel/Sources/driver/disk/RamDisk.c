@@ -30,6 +30,8 @@ final_class_ivars(RamDisk, DiskDriver,
     char        name[MAX_NAME_LENGTH];
 );
 
+IOCATS_DEF(g_cats, IODISK_RAMDISK);
+
 
 errno_t RamDisk_Create(CatalogId parentDirId, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount, RamDiskRef _Nullable * _Nonnull pOutSelf)
 {
@@ -45,7 +47,7 @@ errno_t RamDisk_Create(CatalogId parentDirId, const char* _Nonnull name, size_t 
     drvi.platter = kPlatter_None;
     drvi.properties = kDrive_Fixed;
 
-    try(DiskDriver_Create(class(RamDisk), 0, parentDirId, &drvi, (DriverRef*)&self));
+    try(DiskDriver_Create(class(RamDisk), g_cats, 0, parentDirId, &drvi, (DriverRef*)&self));
     SList_Init(&self->extents);
     self->extentSectorCount = __min(extentSectorCount, sectorCount);
     self->sectorCount = sectorCount;

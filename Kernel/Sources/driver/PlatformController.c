@@ -11,10 +11,12 @@
 
 PlatformControllerRef gPlatformController;
 
+IOCATS_DEF(g_cats, IOBUS_VIRTUAL);
+
 
 errno_t PlatformController_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(pClass, 0, kCatalogId_None, pOutSelf);
+    return Driver_Create(pClass, g_cats, 0, kCatalogId_None, pOutSelf);
 }
 
 errno_t PlatformController_onStart(PlatformControllerRef _Nonnull _Locked self)

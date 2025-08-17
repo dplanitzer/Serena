@@ -18,7 +18,7 @@ typedef struct drv_child {
 } drv_child_t;
 
 
-errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t Driver_Create(Class* _Nonnull pClass, const iocat_t* _Nonnull cats, unsigned options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DriverRef self = NULL;
@@ -29,6 +29,7 @@ errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId parent
         cnd_init(&self->cnd);
         mtx_init(&self->childMtx);
 
+        self->cats = cats;
         self->options = options;
         self->state = kDriverState_Inactive;
         self->parentDirectoryId = parentDirectoryId;
@@ -69,6 +70,12 @@ void Driver_deinit(DriverRef _Nonnull self)
     mtx_deinit(&self->mtx);
     mtx_deinit(&self->childMtx);
 }
+
+
+//
+// MARK: -
+// MARK: API
+//
 
 errno_t Driver_Start(DriverRef _Nonnull self)
 {
@@ -293,6 +300,23 @@ errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
     return err;
 }
 
+bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat)
+{
+    // Category info is constant - no need to take a lock here
+    const iocat_t* p = self->cats;
+
+    while (*p != cat && *p != IOCAT_END) {
+        p++;
+    }
+
+    return (*p == cat) ? true : false;
+}
+
+
+//
+// MARK: -
+// MARK: Subclassers
+//
 
 errno_t Driver_SetMaxChildCount(DriverRef _Nonnull self, size_t count)
 {

@@ -25,6 +25,8 @@ final_class_ivars(DigitalJoystickDriver, InputDriver,
     int8_t                      port;
 );
 
+IOCATS_DEF(g_cats_digjoy, IOHID_DIGITAL_JOYSTICK);
+
 
 errno_t DigitalJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
@@ -35,7 +37,7 @@ errno_t DigitalJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef 
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(DigitalJoystickDriver), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(DigitalJoystickDriver), g_cats_digjoy, kDriver_Exclusive, parentDirId, (DriverRef*)&self));
     
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);
@@ -169,6 +171,8 @@ final_class_ivars(AnalogJoystickDriver, InputDriver,
     int8_t                      port;
 );
 
+IOCATS_DEF(g_cats_anajoy, IOHID_ANALOG_JOYSTICK);
+
 extern void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull self);
 
 
@@ -181,7 +185,7 @@ errno_t AnalogJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(AnalogJoystickDriver), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(AnalogJoystickDriver), g_cats_anajoy, kDriver_Exclusive, parentDirId, (DriverRef*)&self));
 
     CHIPSET_BASE_DECL(cp);
 

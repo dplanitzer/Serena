@@ -12,6 +12,7 @@
 #include <stdarg.h>
 #include <handler/Handler.h>
 #include <klib/List.h>
+#include <kpi/ioctl.h>
 #include <kpi/stat.h>
 #include <kpi/uid.h>
 #include <sched/cnd.h>
@@ -255,10 +256,36 @@ typedef struct DriverEntry {
 // to the parent. A child driver should not retain its parent. It should only
 // maintain a weak reference to its parent driver.
 //
+//
+// -- Driver Categories --
+//
+// A driver conforms to a set of I/O categories. For many drivers it is sufficient
+// to declare a single I/O category conformance. However a more complex driver
+// that controls a piece of hardware that implements a number of different
+// features will potentially declare one I/O category per feature. This is the
+// reason why the Driver_Create() function takes an array of I/O categories. This
+// array must be terminated with an IOCAT_END declaration. Note that the
+// Driver_Create() function does not copy the I/O categories array. This array
+// should be declared as a const static array. Use the IOCATS_DEF() macro to
+// declare the I/O category array for your driver to get the correct declaration.
+//
+// Use the Driver_GetCategories() function to get a pointer to the read-only
+// array of I/O categories the driver conforms to. This array is terminated by
+// an IOCAT_END declaration.
+//
+// Use the Driver_HasCategory() function to check whether the driver conforms to
+// a given I/O category.
+//
+// These functions can be used to easily and efficiently determine whether a
+// driver controls hardware of a certain kind (eg whether it is a SCSI bus) and
+// whether the hardware supports a certain kind of feature (eg whether a graphic
+// card supports 2D and/or 3d hardware acceleration).
+//
 open_class(Driver, Handler,
     mtx_t                   mtx;    // lifecycle management lock
     cnd_t                   cnd;
     did_t                   id;     // unique id assigned at publish time
+    const iocat_t* _Nonnull cats;   // categories the driver conforms to.
     struct drv_child* _Nullable child;
     mtx_t                   childMtx;
     CatalogId               parentDirectoryId;  // /dev directory in which the driver lives 
@@ -382,13 +409,25 @@ Handler_vIoctl(__self, __chan, __cmd, __ap)
 extern bool Driver_HasOpenChannels(DriverRef _Nonnull self);
 
 
+// Returns a reference to a read-only array of all the I/O categories the
+// driver supports. This array is terminated by a IOCAT_END declaration.
+#define Driver_GetCategories(__self) \
+((DriverRef)(__self)->cats) 
+
+// Returns true if the driver supports the given I/O category and false otherwise.
+extern bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat);
+
+
 //
 // Subclassers
 //
 
-// Creates a new driver instance which manages non-bus style hardware and does
-// not manage child drivers.
-extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf);
+// Creates a new driver instance.
+// \param pClass the concrete driver class
+// \param cats the categories the driver conforms to. Note that the driver stores the provided reference. It does not copy the categories array. The array must be terminated with a IOCAT_END entry
+// \param options options specifying various default behaviors
+// \param parentDirectoryId the parent directory id for the bus directory inside of which this driver should place it's driver entry
+extern errno_t Driver_Create(Class* _Nonnull pClass, const iocat_t* _Nonnull cats, unsigned options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf);
 
 
 // Returns true if the driver is in active state; false otherwise

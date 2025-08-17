@@ -17,6 +17,8 @@
 #include <sched/vcpu.h>
 #include "mfm.h"
 
+IOCATS_DEF(g_cats, IODISK_FLOPPY);
+
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
@@ -29,7 +31,7 @@ errno_t FloppyDriver_Create(FloppyControllerRef _Nonnull fc, int drive, DriveSta
     dinf.family = kDriveFamily_Floppy;
     dinf.platter = (params->driveType == kDriveType_3_5) ? kPlatter_3_5 : kPlatter_5_25;
     dinf.properties = 0;
-    try(DiskDriver_Create(class(FloppyDriver), 0, parentDirId, &dinf, (DriverRef*)&self));
+    try(DiskDriver_Create(class(FloppyDriver), g_cats, 0, parentDirId, &dinf, (DriverRef*)&self));
 
     self->fc = fc;
     self->drive = drive;

@@ -8,13 +8,15 @@
 
 #include "ZStubDriver.h"
 
+IOCATS_DEF(g_cats, IOUNS_UNKNOWN);
+
 
 errno_t ZStubDriver_Create(ZorroDriverRef _Nonnull zdp, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ZStubDriverRef self;
 
-    err = Driver_Create(class(ZStubDriver), 0, Driver_GetParentDirectoryId(zdp), (DriverRef*)&self);
+    err = Driver_Create(class(ZStubDriver), g_cats, 0, Driver_GetParentDirectoryId(zdp), (DriverRef*)&self);
     if (err == EOK) {
         self->card = zdp;
     }

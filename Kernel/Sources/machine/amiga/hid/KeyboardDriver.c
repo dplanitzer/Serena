@@ -35,6 +35,8 @@ final_class_ivars(KeyboardDriver, InputDriver,
     int                 dropCount;  // irq state
 );
 
+IOCATS_DEF(g_cats, IOHID_KEYBOARD);
+
 
 extern void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self, int key);
 
@@ -44,7 +46,7 @@ errno_t KeyboardDriver_Create(CatalogId parentDirId, DriverRef _Nullable * _Nonn
     decl_try_err();
     KeyboardDriverRef self;
     
-    try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(KeyboardDriver), g_cats, kDriver_Exclusive, parentDirId, (DriverRef*)&self));
     try(RingBuffer_Init(&self->keyQueue, 16));
 
     *pOutSelf = (DriverRef)self;

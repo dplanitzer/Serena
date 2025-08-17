@@ -12,6 +12,8 @@
 #include "MouseDriver.h"
 #include <driver/DriverManager.h>
 
+IOCATS_DEF(g_cats, IOBUS_GP);
+
 
 #define GP_PORT_COUNT   2
 
@@ -23,7 +25,7 @@ errno_t GamePortController_Create(CatalogId parentDirId, GamePortControllerRef _
     decl_try_err();
     GamePortControllerRef self;
 
-    try(Driver_Create(class(GamePortController), kDriver_Exclusive, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(GamePortController), g_cats, kDriver_Exclusive, parentDirId, (DriverRef*)&self));
     try(Driver_SetMaxChildCount((DriverRef)self, GP_PORT_COUNT));
 
     mtx_init(&self->io_mtx);

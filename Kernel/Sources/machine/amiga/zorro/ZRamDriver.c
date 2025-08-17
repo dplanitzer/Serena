@@ -10,13 +10,15 @@
 #include <kern/kalloc.h>
 #include <machine/sys_desc.h>
 
+IOCATS_DEF(g_cats, IOMEM_RAM);
+
 
 errno_t ZRamDriver_Create(ZorroDriverRef _Nonnull zdp, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ZRamDriverRef self;
 
-    err = Driver_Create(class(ZRamDriver), 0, Driver_GetParentDirectoryId(zdp), (DriverRef*)&self);
+    err = Driver_Create(class(ZRamDriver), g_cats, 0, Driver_GetParentDirectoryId(zdp), (DriverRef*)&self);
     if (err == EOK) {
         self->card = zdp;
     }

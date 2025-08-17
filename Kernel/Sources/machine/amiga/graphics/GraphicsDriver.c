@@ -12,6 +12,8 @@
 #include <kpi/hid.h>
 #include <machine/irq.h>
 
+IOCATS_DEF(g_cats, IOVID_FB);
+
 
 // Creates a graphics driver instance which manages the on-board video hardware.
 // We assume that video is turned off at the time this function is called and
@@ -22,7 +24,7 @@ errno_t GraphicsDriver_Create(CatalogId parentDirId, GraphicsDriverRef _Nullable
     decl_try_err();
     GraphicsDriverRef self;
     
-    try(Driver_Create(class(GraphicsDriver), 0, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(GraphicsDriver), g_cats, 0, parentDirId, (DriverRef*)&self));
     self->nextSurfaceId = 1;
     self->nextScreenId = 1;
     mtx_init(&self->io_mtx);
