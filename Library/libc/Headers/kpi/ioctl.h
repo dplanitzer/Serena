@@ -114,6 +114,33 @@ typedef uint16_t iocat_t;
 static const iocat_t __name[] = { __VA_ARGS__, IOCAT_END }
 
 
+//
+// Driver Commands
+//
+
+// Returns the unique driver id. Note that this id is not suitable for
+// persistence. The id for a driver may change from one boot cycle to the next.
+// Use the driver hardware path ('/dev/hw/xxx') instead if you need to persist
+// the name of a particular driver instance. The driver id is used to easily and
+// efficiently refer to a particular driver instance with respect to the current
+// boot cycle.
+// get_id(did_t* _Nonnull id)
+#define kDriverCommand_GetId    IOResourceCommand(1)
+
+// Returns a copy of the I/O categories to which the driver conforms. The
+// categories are returned in the buffer 'cats' with byte size sizeof(iocat_t) *
+// 'bufsiz'. 'bufsiz' should be IOCAT_MAX to ensure that the buffer is big
+// enough to hold all categories. Returns EINVAL if 'bufsiz' is 0 and ERANGE if
+// 'bufsiz' is less than the number of I/O categories stored in the driver plus
+// one. The returned I/O categories string is terminated by IOCAT_END.
+// get_categories(iocat_t* _Nonnull cats, size_t bufsiz)
+#define kDriverCommand_GetCategories    IOResourceCommand(2)
+
+
+//
+// Driver Subclasses
+//
+
 // Driver subclasses define their respective commands based on this number.
 #define kDriverCommand_SubclassBase  IOResourceCommand(256)
 

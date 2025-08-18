@@ -300,6 +300,47 @@ errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
     return err;
 }
 
+errno_t Driver_ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap)
+{
+    switch (cmd) {
+        case kDriverCommand_GetId: {
+            did_t* pdid = va_arg(ap, did_t*);
+
+            *pdid = self->id;
+            return EOK;
+        }
+
+        case kDriverCommand_GetCategories: {
+            iocat_t* buf = va_arg(ap, iocat_t*);
+            const size_t bufsiz = va_arg(ap, size_t);
+            const iocat_t* sp = self->cats;
+            size_t i, len = 0;
+
+            if (bufsiz == 0) {
+                return EINVAL;
+            }
+
+            while (*sp != IOCAT_END) {
+                sp++; len++;
+            }
+
+            if (bufsiz < len + 1) {
+                return ERANGE;
+            }
+
+            for (i = 0; i < __min(len, bufsiz - 1); i++) {
+                buf[i] = self->cats[i];
+            }
+            buf[i] = IOCAT_END;
+
+            return EOK;
+        }
+
+        default:
+            return ENOTIOCTLCMD;
+    }
+}
+
 bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat)
 {
     // Category info is constant - no need to take a lock here
@@ -551,4 +592,5 @@ override_func_def(open, Driver, Handler)
 func_def(onOpen, Driver)
 override_func_def(close, Driver, Handler)
 func_def(onClose, Driver)
+override_func_def(ioctl, Driver, Handler)
 );
