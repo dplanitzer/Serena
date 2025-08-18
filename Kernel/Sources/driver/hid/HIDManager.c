@@ -184,7 +184,7 @@ void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode*
     *nKeysDown = oi;
 }
 
-errno_t HIDManager_GetPortDevice(HIDManagerRef _Nonnull self, int port, InputType* _Nullable pOutType)
+errno_t HIDManager_GetPortDevice(HIDManagerRef _Nonnull self, int port, int* _Nullable pOutType)
 {
     mtx_lock(&self->mtx);
     const errno_t err = IOChannel_Ioctl(self->gpChannel, kGamePortCommand_GetPortDevice, port, pOutType);
@@ -192,7 +192,7 @@ errno_t HIDManager_GetPortDevice(HIDManagerRef _Nonnull self, int port, InputTyp
     return err;
 }
 
-errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, InputType type)
+errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, int type)
 {
     mtx_lock(&self->mtx);
     const errno_t err = IOChannel_Ioctl(self->gpChannel, kGamePortCommand_SetPortDevice, port, type);

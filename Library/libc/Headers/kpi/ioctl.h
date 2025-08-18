@@ -9,6 +9,9 @@
 #ifndef _KPI_IOCTL_H
 #define _KPI_IOCTL_H 1
 
+#include <stdint.h>
+
+
 #define IOResourceCommand(__cmd) (__cmd)
 
 #define _IOCAT(major, minor) ((iocat_t)((major << 8) | (minor)))
@@ -29,12 +32,13 @@
 
 // HID Category
 #define IOHID_KEYBOARD      _IOCAT(IOCAT_HID, 1)
-#define IOHID_MOUSE         _IOCAT(IOCAT_HID, 2)
-#define IOHID_TRACKBALL     _IOCAT(IOCAT_HID, 3)
-#define IOHID_STYLUS        _IOCAT(IOCAT_HID, 4)
-#define IOHID_LIGHTPEN      _IOCAT(IOCAT_HID, 5)
-#define IOHID_ANALOG_JOYSTICK   _IOCAT(IOCAT_HID, 6)
-#define IOHID_DIGITAL_JOYSTICK  _IOCAT(IOCAT_HID, 7)
+#define IOHID_KEYPAD        _IOCAT(IOCAT_HID, 2)
+#define IOHID_MOUSE         _IOCAT(IOCAT_HID, 3)
+#define IOHID_TRACKBALL     _IOCAT(IOCAT_HID, 4)
+#define IOHID_STYLUS        _IOCAT(IOCAT_HID, 5)
+#define IOHID_LIGHTPEN      _IOCAT(IOCAT_HID, 6)
+#define IOHID_ANALOG_JOYSTICK   _IOCAT(IOCAT_HID, 7)
+#define IOHID_DIGITAL_JOYSTICK  _IOCAT(IOCAT_HID, 8)
 
 // Disk Category
 #define IODISK_FLOPPY       _IOCAT(IOCAT_DISK, 1)
@@ -86,10 +90,12 @@
 #define IOBUS_PROPRIETARY   _IOCAT(IOCAT_BUS, 15)
 
 // Communication (Network) Category
-#define IOCOM_SERIAL       _IOCAT(IOCAT_COM, 1)
-#define IOCOM_CENTRONICS   _IOCAT(IOCAT_COM, 2)
-#define IOCOM_ETHERNET     _IOCAT(IOCAT_COM, 3)
-#define IOCOM_TOKENRING    _IOCAT(IOCAT_COM, 4)
+#define IOCOM_SERIAL        _IOCAT(IOCAT_COM, 1)
+#define IOCOM_CENTRONICS    _IOCAT(IOCAT_COM, 2)
+#define IOCOM_ETHERNET      _IOCAT(IOCAT_COM, 3)
+#define IOCOM_TOKENRING     _IOCAT(IOCAT_COM, 4)
+#define IOCOM_FDDI          _IOCAT(IOCAT_COM, 5)
+#define IOCOM_WIFI          _IOCAT(IOCAT_COM, 6)
 
 // Unspecified Category
 #define IOUNS_UNKNOWN       _IOCAT(IOCAT_UNSPECIFIED, 0)

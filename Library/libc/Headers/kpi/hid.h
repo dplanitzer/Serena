@@ -11,19 +11,6 @@
 
 #include <kpi/ioctl.h>
 
-// Types of input drivers
-enum InputType {
-    kInputType_None = 0,
-    kInputType_Keyboard,
-    kInputType_Keypad,
-    kInputType_Mouse,
-    kInputType_Trackball,
-    kInputType_DigitalJoystick,
-    kInputType_AnalogJoystick,
-    kInputType_LightPen,
-};
-typedef int InputType;
-
 
 #define kMouseCursor_Width  16
 #define kMouseCursor_Height 16
@@ -91,38 +78,32 @@ typedef int MouseCursorVisibility;
 
 
 // Returns the type of input device for a port. There are two port: 0 and 1.
-// get_port_device(int port, InputType* _Nonnull pOutType)
+// get_port_device(int port, int* _Nonnull pOutType)
 #define kHIDCommand_GetPortDevice  IOResourceCommand(kDriverCommand_SubclassBase + 8)
 
 // Selects the type of input device for a port. There are two port: 0 and 1.
-// set_port_device(int port, InputType type)
+// set_port_device(int port, int type)
 #define kHIDCommand_SetPortDevice  IOResourceCommand(kDriverCommand_SubclassBase + 9)
 
-
-
-//
-// Raw Input Drivers
-//
-
-// Returns information about an input driver.
-// get_info(InputInfo* _Nonnull pOutInfo)
-#define kInputCommand_GetInfo   IOResourceCommand(kDriverCommand_SubclassBase + 0)
-
-typedef struct InputInfo {
-    InputType   inputType;      // The kind of input device
-} InputInfo;
 
 
 //
 // GamePort Controller
 //
 
+// Types of input drivers
+#define IOGP_NONE               0
+#define IOGP_MOUSE              1
+#define IOGP_LIGHTPEN           2
+#define IOGP_ANALOG_JOYSTICK    3
+#define IOGP_DIGITAL_JOYSTICK   4
+
 // Returns the type of input device for a port. There are two port: 0 and 1.
-// get_port_device(int port, InputType* _Nonnull pOutType)
+// get_port_device(int port, int* _Nonnull pOutType)
 #define kGamePortCommand_GetPortDevice  IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
 // Selects the type of input device for a port. There are two port: 0 and 1.
-// set_port_device(int port, InputType type)
+// set_port_device(int port, int type)
 #define kGamePortCommand_SetPortDevice  IOResourceCommand(kDriverCommand_SubclassBase + 1)
 
 #endif /* _KPI_HID_H */

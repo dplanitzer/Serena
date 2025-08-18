@@ -17,7 +17,7 @@ IOCATS_DEF(g_cats, IOBUS_GP);
 
 #define GP_PORT_COUNT   2
 
-static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _Nonnull _Locked self, int port, InputType type);
+static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _Nonnull _Locked self, int port, int type);
 
 
 errno_t GamePortController_Create(CatalogId parentDirId, GamePortControllerRef _Nullable * _Nonnull pOutSelf)
@@ -63,7 +63,7 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
     de.arg = 0;
 
     try(Driver_Publish(self, &de));
-    try(GamePortController_SetPortDevice_Locked(self, 0, kInputType_Mouse));
+    try(GamePortController_SetPortDevice_Locked(self, 0, IOGP_MOUSE));
     
 catch:
     if (err != EOK) {
@@ -83,21 +83,20 @@ void GamePortController_onStop(DriverRef _Nonnull _Locked self)
 // API
 //
 
-static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType* _Nonnull pOutType)
+static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, int* _Nonnull pOutType)
 {
     if (port < 0 || port >= GP_PORT_COUNT) {
         return EINVAL;
     }
 
     mtx_lock(&self->io_mtx);
-    DriverRef dp = Driver_GetChildAt((DriverRef)self, port);
-    *pOutType = (dp) ? InputDriver_GetInputType(dp) : kInputType_None;
+    *pOutType = Driver_GetChildDataAt((DriverRef)self, port);
     mtx_unlock(&self->io_mtx);
 
     return EOK;
 }
 
-static errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType type)
+static errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull self, int port, int type)
 {
     mtx_lock(&self->io_mtx);
     const errno_t err = GamePortController_SetPortDevice_Locked(self, port, type);
@@ -111,14 +110,14 @@ errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelR
     switch (cmd) {
         case kGamePortCommand_GetPortDevice: {
             const int port = va_arg(ap, int);
-            InputType* itype = va_arg(ap, InputType*);
+            int* itype = va_arg(ap, int*);
 
             return GamePortController_GetPortDevice(self, port, itype);
         }
 
         case kGamePortCommand_SetPortDevice: {
             const int port = va_arg(ap, int);
-            InputType itype = va_arg(ap, InputType);
+            const int itype = va_arg(ap, int);
 
             return GamePortController_SetPortDevice(self, port, itype);
         }
@@ -133,27 +132,27 @@ errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelR
 // Private
 //
 
-errno_t GamePortController_createInputDriver(GamePortControllerRef _Nonnull self, int port, InputType type, DriverRef _Nullable * _Nonnull pOutDriver)
+errno_t GamePortController_createInputDriver(GamePortControllerRef _Nonnull self, int port, int type, DriverRef _Nullable * _Nonnull pOutDriver)
 {
     switch (type) {
-        case kInputType_Mouse:
+        case IOGP_MOUSE:
             return MouseDriver_Create(self->busDirId, port, pOutDriver);
 
-        case kInputType_DigitalJoystick:
-            return DigitalJoystickDriver_Create(self->busDirId, port, pOutDriver);
+        case IOGP_LIGHTPEN:
+            return LightPenDriver_Create(self->busDirId, port, pOutDriver);
 
-        case kInputType_AnalogJoystick:
+        case IOGP_ANALOG_JOYSTICK:
             return AnalogJoystickDriver_Create(self->busDirId, port, pOutDriver);
 
-        case kInputType_LightPen:
-            return LightPenDriver_Create(self->busDirId, port, pOutDriver);
+        case IOGP_DIGITAL_JOYSTICK:
+            return DigitalJoystickDriver_Create(self->busDirId, port, pOutDriver);
 
         default:
             return EINVAL;
     }
 }
 
-static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _Nonnull _Locked self, int port, InputType type)
+static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _Nonnull _Locked self, int port, int type)
 {
     decl_try_err();
 
@@ -162,10 +161,11 @@ static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _No
     }
 
     switch (type) {
-        case kInputType_Mouse:
-        case kInputType_DigitalJoystick:
-        case kInputType_AnalogJoystick:
-        case kInputType_LightPen:
+        case IOGP_NONE:
+        case IOGP_MOUSE:
+        case IOGP_LIGHTPEN:
+        case IOGP_ANALOG_JOYSTICK:
+        case IOGP_DIGITAL_JOYSTICK:
             break;
 
         default:
@@ -174,12 +174,14 @@ static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _No
 
 
     Driver_StopChildAt((DriverRef)self, port, kDriverStop_Shutdown);
+    Driver_SetChildDataAt((DriverRef)self, port, type);
 
-    if (type != kInputType_None) {
+    if (type != IOGP_NONE) {
         DriverRef newDriver = NULL;
 
         try(GamePortController_CreateInputDriver(self, port, type, &newDriver));
         try(Driver_StartAdoptChildAt((DriverRef)self, port, newDriver));
+        Driver_SetChildDataAt((DriverRef)self, port, type);
     }
 
 catch:

@@ -72,17 +72,6 @@ open_class(InputDriver, Driver,
 );
 open_class_funcs(InputDriver, Driver,
 
-    // Returns information about the input device.
-    // Override: optional
-    // Default Behavior: returns info for a null input device
-    void (*getInfo)(void* _Nonnull _Locked self, InputInfo* _Nonnull pOutInfo);
-
-    // Returns the input driver type.
-    // Override: required
-    // Default Behavior: returns kInputType_None
-    InputType (*getInputType)(void* _Nonnull _Locked self);
-
-
     // Fills in the provided report structure with a report of the current HID
     // state of the device. If an input driver manages a queue of reports
     // internally then the override of this method should dequeue the oldest
@@ -118,18 +107,5 @@ invoke_n(getReport, InputDriver, __self, __report)
 
 #define InputDriver_SetReportTarget(__self, __vp, __signo) \
 invoke_n(setReportTarget, InputDriver, __self, __vp, __signo)
-
-
-
-//
-// Subclassers
-//
-
-#define InputDriver_GetInputType(__self) \
-((InputType) invoke_0(getInputType, InputDriver, __self))
-
-#define InputDriver_GetInfo(__self, __info) \
-invoke_n(getInfo, InputDriver, __self, __info)
-
 
 #endif /* InputDriver_h */

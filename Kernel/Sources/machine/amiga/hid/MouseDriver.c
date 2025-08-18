@@ -94,11 +94,6 @@ void MouseDriver_onStop(DriverRef _Nonnull _Locked self)
     Driver_Unpublish(self);
 }
 
-InputType MouseDriver_getInputType(MouseDriverRef _Nonnull self)
-{
-    return kInputType_Mouse;
-}
-
 void MouseDriver_getReport(MouseDriverRef _Nonnull self, HIDReport* _Nonnull report)
 {
     register uint16_t new_state = *(self->reg_joydat);
@@ -164,6 +159,5 @@ void MouseDriver_getReport(MouseDriverRef _Nonnull self, HIDReport* _Nonnull rep
 class_func_defs(MouseDriver, InputDriver,
 override_func_def(onStart, MouseDriver, Driver)
 override_func_def(onStop, MouseDriver, Driver)
-override_func_def(getInputType, MouseDriver, InputDriver)
 override_func_def(getReport, MouseDriver, InputDriver)
 );

@@ -95,11 +95,6 @@ void DigitalJoystickDriver_onStop(DriverRef _Nonnull _Locked self)
     Driver_Unpublish(self);
 }
 
-InputType DigitalJoystickDriver_getInputType(DigitalJoystickDriverRef _Nonnull self)
-{
-    return kInputType_DigitalJoystick;
-}
-
 void DigitalJoystickDriver_getReport(DigitalJoystickDriverRef _Nonnull self, HIDReport* _Nonnull report)
 {
     register uint8_t pra = *(self->reg_ciaa_pra);
@@ -148,7 +143,6 @@ void DigitalJoystickDriver_getReport(DigitalJoystickDriverRef _Nonnull self, HID
 class_func_defs(DigitalJoystickDriver, InputDriver,
 override_func_def(onStart, DigitalJoystickDriver, Driver)
 override_func_def(onStop, DigitalJoystickDriver, Driver)
-override_func_def(getInputType, DigitalJoystickDriver, InputDriver)
 override_func_def(getReport, DigitalJoystickDriver, InputDriver)
 );
 
@@ -234,11 +228,6 @@ void AnalogJoystickDriver_onStop(DriverRef _Nonnull _Locked self)
     Driver_Unpublish(self);
 }
 
-InputType AnalogJoystickDriver_getInputType(AnalogJoystickDriverRef _Nonnull self)
-{
-    return kInputType_AnalogJoystick;
-}
-
 void AnalogJoystickDriver_getReport(AnalogJoystickDriverRef _Nonnull self, HIDReport* _Nonnull report)
 {
     register uint16_t potdat = *(self->reg_potdat);
@@ -298,6 +287,5 @@ void AnalogJoystickDriver_getReport(AnalogJoystickDriverRef _Nonnull self, HIDRe
 class_func_defs(AnalogJoystickDriver, InputDriver,
 override_func_def(onStart, AnalogJoystickDriver, Driver)
 override_func_def(onStop, AnalogJoystickDriver, Driver)
-override_func_def(getInputType, AnalogJoystickDriver, InputDriver)
 override_func_def(getReport, AnalogJoystickDriver, InputDriver)
 );

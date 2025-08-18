@@ -119,14 +119,14 @@ errno_t HIDHandler_ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, in
 
         case kHIDCommand_GetPortDevice: {
             const int port = va_arg(ap, int);
-            InputType* itype = va_arg(ap, InputType*);
+            int* itype = va_arg(ap, int*);
 
             return HIDManager_GetPortDevice(gHIDManager, port, itype);
         }
 
         case kHIDCommand_SetPortDevice: {
             const int port = va_arg(ap, int);
-            const InputType itype = va_arg(ap, InputType);
+            const int itype = va_arg(ap, int);
 
             return HIDManager_SetPortDevice(gHIDManager, port, itype);
         }

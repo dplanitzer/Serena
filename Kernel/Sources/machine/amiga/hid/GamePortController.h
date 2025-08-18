@@ -26,7 +26,7 @@ open_class_funcs(GamePortController, Driver,
     // 
     // Override: Optional
     // Default Behavior: Returns a suitable driver instance
-    errno_t (*createInputDriver)(void* _Nonnull self, int port, InputType type, DriverRef _Nullable * _Nonnull pOutDriver);
+    errno_t (*createInputDriver)(void* _Nonnull self, int port, int type, DriverRef _Nullable * _Nonnull pOutDriver);
 );
 
 

@@ -32,8 +32,8 @@ extern void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDK
 
 
 // GamePort control
-extern errno_t HIDManager_GetPortDevice(HIDManagerRef _Nonnull self, int port, InputType* _Nullable pOutType);
-extern errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, InputType type);
+extern errno_t HIDManager_GetPortDevice(HIDManagerRef _Nonnull self, int port, int* _Nullable pOutType);
+extern errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, int type);
 
 
 // Mouse cursor state

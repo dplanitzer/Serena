@@ -123,12 +123,6 @@ errno_t KeyboardDriver_setReportTarget(KeyboardDriverRef _Nonnull self, vcpu_t _
     return EOK;
 }
 
-InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)
-{
-    return kInputType_Keyboard;
-}
-
-
 void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self, int key)
 {
     if (RingBuffer_PutByte(&self->keyQueue, (char)key) == 1) {
@@ -148,5 +142,4 @@ override_func_def(onStart, KeyboardDriver, Driver)
 override_func_def(onStop, KeyboardDriver, Driver)
 override_func_def(getReport, KeyboardDriver, InputDriver)
 override_func_def(setReportTarget, KeyboardDriver, InputDriver)
-override_func_def(getInputType, KeyboardDriver, InputDriver)
 );
