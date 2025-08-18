@@ -82,7 +82,7 @@ static dentry_t _Nullable _get_dentry_by_id(DriverManagerRef _Nonnull _Locked se
     SList* the_chain = &self->id_table[hash_scalar(id) & HASH_CHAIN_MASK];
     dentry_t prev_ep = NULL;
 
-    SList_ForEach(the_chain, ListNode,
+    SList_ForEach(the_chain, SListNode,
         dentry_t ep = (dentry_t)pCurNode;
 
         if (ep->id == id) {
@@ -183,6 +183,32 @@ errno_t DriverManager_RemoveDirectory(DriverManagerRef _Nonnull self, CatalogId 
     else {
         return EOK;
     }
+}
+
+
+errno_t DriverManager_Iterate(DriverManagerRef _Nonnull self, DriverManager_Iterator _Nonnull iter, void* _Nullable arg)
+{
+    decl_try_err();
+    bool done = false;
+
+    mtx_lock(&self->mtx);
+    for (size_t idx = 0; idx < HASH_CHAIN_COUNT; idx++) {
+        SList_ForEach(&self->id_table[idx], SListNode,
+            dentry_t ep = (dentry_t)pCurNode;
+            
+            err = iter(arg, ep->driver, &done);
+            if (err != EOK || done) {
+                break;
+            }
+        );
+
+        if (err != EOK || done) {
+            break;
+        }
+    }
+    mtx_unlock(&self->mtx);
+
+    return err;
 }
 
 

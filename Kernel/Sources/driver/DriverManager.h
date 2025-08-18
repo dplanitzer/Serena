@@ -27,6 +27,9 @@ typedef struct DirEntry {
 } DirEntry;
 
 
+typedef errno_t (*DriverManager_Iterator)(void* _Nullable arg, HandlerRef _Nonnull driver, bool* _Nonnull pDone);
+
+
 extern DriverManagerRef gDriverManager;
 
 
@@ -74,6 +77,15 @@ extern void DriverManager_Unpublish(DriverManagerRef _Nonnull self, did_t id);
 extern errno_t DriverManager_CreateDirectory(DriverManagerRef _Nonnull self, const DirEntry* _Nonnull be, CatalogId* _Nonnull pOutDirId);
 
 extern errno_t DriverManager_RemoveDirectory(DriverManagerRef _Nonnull self, CatalogId dirId);
+
+
+// Causes the driver manager to iterate all currently registered drivers. The
+// provided iterator function is invoked with each driver until either the
+// iterator function returns an error, 'pDone' is set to true or all drivers
+// have been iterated. Note that the driver manager is locked while the iterator
+// function is running. Thus this function can not call any driver manager
+// functions and it should do as little work as possible.
+extern errno_t DriverManager_Iterate(DriverManagerRef _Nonnull self, DriverManager_Iterator _Nonnull iter, void* _Nullable arg);
 
 
 // Called by a driver when it is ready for reaping.

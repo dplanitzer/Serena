@@ -64,23 +64,6 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
 {
     decl_try_err();
 
-    // Open a channel to the framebuffer
-    try(DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &self->fbChannel));
-    self->fb = HandlerChannel_GetHandlerAs(self->fbChannel, GraphicsDriver);
-
-    int w, h;
-    GraphicsDriver_GetDisplaySize(self->fb, &w, &h);
-
-    self->screenLeft = 0;
-    self->screenTop = 0;
-    self->screenRight = (int16_t)w;
-    self->screenBottom = (int16_t)h;
-
-
-    // Open the keyboard driver
-    try(DriverManager_Open(gDriverManager, "/hw/kb", O_RDWR, &self->kbChannel));
-
-
     // Open the game port driver
     try(DriverManager_Open(gDriverManager, "/hw/gp-bus/self", O_RDWR, &self->gpChannel));
 
@@ -202,11 +185,16 @@ errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, int type
 
 errno_t HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat, int hotSpotX, int hotSpotY)
 {
+    decl_try_err();
+
     mtx_lock(&self->mtx);
-    const errno_t err = GraphicsDriver_SetMouseCursor(self->fb, planes, width, height, pixelFormat);
-    if (err == EOK) {
-        self->hotSpotX = __max(__min(hotSpotX, INT16_MAX), INT16_MIN);
-        self->hotSpotY = __max(__min(hotSpotY, INT16_MAX), INT16_MIN);
+    if (self->fb) {
+        err = GraphicsDriver_SetMouseCursor(self->fb, planes, width, height, pixelFormat);
+        
+        if (err == EOK) {
+            self->hotSpotX = __max(__min(hotSpotX, INT16_MAX), INT16_MIN);
+            self->hotSpotY = __max(__min(hotSpotY, INT16_MAX), INT16_MIN);
+        }
     }
     mtx_unlock(&self->mtx);
     return err;
@@ -222,7 +210,8 @@ errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCu
 
     mtx_lock(&self->mtx);
     self->mouseCursorVisibility = mode;
-    switch (mode) {
+    if (self->fb) {
+        switch (mode) {
         case kMouseCursor_Hidden:
             GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MIN, INT_MIN);
             break;
@@ -242,6 +231,7 @@ errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCu
         default:
             err = EINVAL;
             break;
+        }
     }
     mtx_unlock(&self->mtx);
     return err;
@@ -287,7 +277,7 @@ errno_t HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, 
 
     const int mx = self->mouseX - self->hotSpotX;
     const int my = self->mouseY - self->mouseY;
-    if (mx >= l && mx < r && my >= t && my < b) {
+    if (mx >= l && mx < r && my >= t && my < b && self->fb) {
         GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MIN, INT_MIN);
     }
 
@@ -299,7 +289,7 @@ void HIDManager_UnshieldMouseCursor(HIDManagerRef _Nonnull self)
     mtx_lock(&self->mtx);
     self->isMouseShieldActive = false;
     
-    if (self->mouseCursorVisibility == kMouseCursor_Visible) {
+    if (self->mouseCursorVisibility == kMouseCursor_Visible && self->fb) {
         GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouseX, self->mouseY);
     }
     mtx_unlock(&self->mtx);
@@ -344,10 +334,54 @@ errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timesp
 // MARK: HID Reports Collector
 ////////////////////////////////////////////////////////////////////////////////
 
-// Reports a key down, repeat or up from a keyboard device. This function updates
-// the state of the logical keyboard and it posts a suitable keyboard event to
-// the event queue.
-void _post_key_event(HIDManagerRef _Nonnull self, const HIDReport* _Nonnull report)
+// Connects the given HID input driver to the HID manager by opening a channel
+// to it.
+static void _connect_input_driver(HIDManagerRef _Nonnull self, DriverRef _Nonnull driver)
+{
+    decl_try_err();
+
+    if (self->kbChannel == NULL && Driver_HasCategory(driver, IOHID_KEYBOARD)) {
+        Driver_Open(driver, O_RDWR, 0, &self->kbChannel);
+        InputDriver_SetReportTarget(driver, self->reportsCollector, SIGKEY);
+    }
+    else if (self->fbChannel == NULL && Driver_HasCategory(driver, IOVID_FB)) {
+        // Open a channel to the framebuffer
+        err = Driver_Open(driver, O_RDWR, 0, &self->fbChannel);
+        if (err == EOK) {
+            self->fb = HandlerChannel_GetHandlerAs(self->fbChannel, GraphicsDriver);
+
+            int w, h;
+            GraphicsDriver_GetDisplaySize(self->fb, &w, &h);
+
+            self->screenLeft = 0;
+            self->screenTop = 0;
+            self->screenRight = (int16_t)w;
+            self->screenBottom = (int16_t)h;
+        }
+    }
+}
+
+// Iterates all currently registered HID drivers and connects the HID manager to
+// the ones that are relevant.
+static errno_t _hid_iterator(HIDManagerRef _Nonnull self, DriverRef _Nonnull driver, bool* _Nonnull pDone)
+{
+    if (Driver_HasCategory(driver, IOHID_KEYBOARD)) {
+        _connect_input_driver(self, driver);
+    }
+
+    return EOK;
+}
+
+static void _collect_drivers(HIDManagerRef _Nonnull self)
+{
+    DriverManager_Iterate(gDriverManager, (DriverManager_Iterator)_hid_iterator, self);
+}
+
+
+// Reports a key down or up from a keyboard device. This function updates the
+// state of the logical keyboard and it posts a suitable keyboard event to the
+// event queue.
+static void _post_key_event(HIDManagerRef _Nonnull self, const HIDReport* _Nonnull report)
 {
     // Update the key map
     const uint16_t keyCode = report->data.key.keyCode;
@@ -425,7 +459,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull self, const HIDReport* _Non
         // again if it was hidden-until-move. The reason is that the hide-until-move
         // function simply sets the mouse cursor to a position outside the visible
         // scree area to (temporarily) hide it.
-        if (self->mouseCursorVisibility != kMouseCursor_Hidden) {
+        if (self->mouseCursorVisibility != kMouseCursor_Hidden && self->fb) {
             if (self->isMouseShieldActive
                 && mx >= self->shieldingLeft && mx < self->shieldingRight && my >= self->shieldingTop && my < self->shieldingBottom) {
                 GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MIN, INT_MIN);
@@ -550,12 +584,27 @@ int _vbl_handler(HIDManagerRef _Nonnull self)
     return 0;
 }
 
-static void _reports_collector_loop(HIDManagerRef _Nonnull self)
+
+static void _collect_keyboard_reports(HIDManagerRef _Nonnull self)
 {
     InputDriverRef kb = HandlerChannel_GetHandlerAs(self->kbChannel, InputDriver);
+
+    for (;;) {
+        InputDriver_GetReport(kb, &self->report);
+                
+        if (self->report.type == kHIDReportType_Null) {
+            break;
+        }
+
+        _post_key_event(self, &self->report);
+    }
+}
+
+static void _reports_collector_loop(HIDManagerRef _Nonnull self)
+{
     int signo = 0;
-    
-    InputDriver_SetReportTarget(kb, self->reportsCollector, SIGKEY);
+
+    _collect_drivers(self);
 
 
     for (;;) {
@@ -563,15 +612,7 @@ static void _reports_collector_loop(HIDManagerRef _Nonnull self)
 
         switch (signo) {
             case SIGKEY:
-                for (;;) {
-                    InputDriver_GetReport(kb, &self->report);
-                
-                    if (self->report.type == kHIDReportType_Null) {
-                        break;
-                    }
-
-                    _post_key_event(self, &self->report);
-                }
+                _collect_keyboard_reports(self);
                 break;
 
             case SIGVBL:
