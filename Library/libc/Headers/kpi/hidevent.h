@@ -11,6 +11,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <kpi/types.h>
 #include <kpi/_time.h>
 
 
@@ -77,7 +78,6 @@ typedef struct HIDEventData_MouseMove {
 
 
 typedef struct HIDEventData_JoystickButton {
-    int         port;           // Input controller port number
     int         buttonNumber;
     uint32_t    flags;          // Modifier keys
     int         dx;             // Joystick direction when the button was pressed / released
@@ -86,7 +86,6 @@ typedef struct HIDEventData_JoystickButton {
 
 
 typedef struct HIDEventData_JoystickMotion {
-    int         port;           // Input controller port number
     int         dx;
     int         dy;
 } HIDEventData_JoystickMotion;
@@ -105,16 +104,9 @@ typedef union _HIDEventData {
 // HID event
 typedef struct HIDEvent {
     int32_t         type;
+    did_t           driverId;   // Driver id of the driver that triggered this event; not available for keyboard and mouse events
     struct timespec eventTime;
     HIDEventData    data;
 } HIDEvent;
-
-
-// HID key state
-typedef enum HIDKeyState {
-    kHIDKeyState_Down,
-    kHIDKeyState_Repeat,
-    kHIDKeyState_Up
-} HIDKeyState;
 
 #endif /* _KPI_HID_EVENT_H */

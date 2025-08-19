@@ -123,14 +123,15 @@ void HIDEventQueue_RemoveAll(HIDEventQueueRef _Nonnull self)
 // Posts the given event to the queue. This event replaces the oldest event
 // in the queue if the queue is full. This function must be called from the
 // interrupt context.
-void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const HIDEventData* _Nonnull pEventData)
+void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData)
 {
     mtx_lock(&self->mtx);
     if (WRITABLE_COUNT() > 0) {
-        HIDEvent* pEvent = &self->data[self->writeIdx++ & self->capacityMask];
-        pEvent->type = type;
-        clock_gettime(g_mono_clock, &pEvent->eventTime);
-        pEvent->data = *pEventData;
+        HIDEvent* pe = &self->data[self->writeIdx++ & self->capacityMask];
+        pe->type = type;
+        pe->driverId = driverId;
+        clock_gettime(g_mono_clock, &pe->eventTime);
+        pe->data = *pEventData;
     
         cnd_broadcast(&self->cnd);
     }

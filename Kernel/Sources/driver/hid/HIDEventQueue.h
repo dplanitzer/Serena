@@ -40,7 +40,7 @@ extern void HIDEventQueue_RemoveAll(HIDEventQueueRef _Nonnull self);
 // Posts the given event to the queue. This report replaces the oldest event
 // in the queue if the queue is full. This function must be called from the
 // interrupt context.
-extern void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, const HIDEventData* _Nonnull pEventData);
+extern void HIDEventQueue_Put(HIDEventQueueRef _Nonnull self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData);
 
 // Removes the oldest event from the queue and returns a copy of it. Blocks the
 // caller if the queue is empty. The caller stays blocked until either an event

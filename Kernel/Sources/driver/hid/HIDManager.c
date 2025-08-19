@@ -366,7 +366,7 @@ static void _post_key_event(HIDManagerRef _Nonnull _Locked self, const HIDReport
     evt.key.keyCode = keyCode;
     evt.key.isRepeat = false;
 
-    HIDEventQueue_Put(self->eventQueue, evtType, &evt);
+    HIDEventQueue_Put(self->eventQueue, evtType, 0, &evt);
 }
 
 // Posts suitable mouse events to the event queue.
@@ -415,7 +415,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
                 evt.mouse.flags = self->modifierFlags;
                 evt.mouse.x = self->mouse.x;
                 evt.mouse.y = self->mouse.y;
-                HIDEventQueue_Put(self->eventQueue, evtType, &evt);
+                HIDEventQueue_Put(self->eventQueue, evtType, 0, &evt);
             }
         }
     }
@@ -425,7 +425,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
         evt.mouseMoved.flags = self->modifierFlags;
         evt.mouseMoved.x = self->mouse.x;
         evt.mouseMoved.y = self->mouse.y;
-        HIDEventQueue_Put(self->eventQueue, kHIDEventType_MouseMoved, &evt);
+        HIDEventQueue_Put(self->eventQueue, kHIDEventType_MouseMoved, 0, &evt);
     }
 }
 
@@ -433,6 +433,8 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
 // to the event queue.
 static void _post_gamepad_event(HIDManagerRef _Nonnull _Locked self, gamepad_state_t* _Nonnull gp, const HIDReport* _Nonnull report)
 {
+    did_t did = Driver_GetId(HandlerChannel_GetHandlerAs(gp->ch, Driver));
+
     // Generate button up/down events
     const uint32_t oldButtons = gp->buttons;
 
@@ -451,12 +453,11 @@ static void _post_gamepad_event(HIDManagerRef _Nonnull _Locked self, gamepad_sta
                     evtType = kHIDEventType_JoystickUp;
                 }
 
-                evt.joystick.port = 0; //XXX driver id
                 evt.joystick.buttonNumber = i;
                 evt.joystick.flags = self->modifierFlags;
                 evt.joystick.dx = report->data.joy.x;
                 evt.joystick.dy = report->data.joy.y;
-                HIDEventQueue_Put(self->eventQueue, evtType, &evt);
+                HIDEventQueue_Put(self->eventQueue, evtType, did, &evt);
             }
         }
     }
@@ -469,10 +470,9 @@ static void _post_gamepad_event(HIDManagerRef _Nonnull _Locked self, gamepad_sta
     if (diffX != 0 || diffY != 0) {
         HIDEventData evt;
 
-        evt.joystickMotion.port = 0;    //XXX driver id
         evt.joystickMotion.dx = report->data.joy.x;
         evt.joystickMotion.dy = report->data.joy.y;
-        HIDEventQueue_Put(self->eventQueue, kHIDEventType_JoystickMotion, &evt);
+        HIDEventQueue_Put(self->eventQueue, kHIDEventType_JoystickMotion, did, &evt);
     }
 
     gp->x = report->data.joy.x;
