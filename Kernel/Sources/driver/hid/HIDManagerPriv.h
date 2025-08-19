@@ -27,16 +27,17 @@
 // 48 for now for mouse move. Though once we support coalescing we may want to
 // revisit this.
 #define REPORT_QUEUE_MAX_EVENTS    48
-#define MAX_INPUT_CONTROLLER_PORTS  2
+#define MAX_GAME_PADS               2
 #define KEY_MAP_INTS_COUNT          (256/32)
 
 
 // State of a joystick device
-typedef struct LogicalJoystick {
-    int16_t   x;        // int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right
-    int16_t   y;        // int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down
-    uint32_t  buttons;  // Button #0 -> 0, Button #1 -> 1, ...
-} LogicalJoystick;
+typedef struct gamepad_state {
+    IOChannelRef _Nullable  ch;
+    int16_t     x;        // int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right
+    int16_t     y;        // int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down
+    uint32_t    buttons;  // Button #0 -> 0, Button #1 -> 1, ...
+} gamepad_state_t;
 
 
 // Explanation of logical keyboard/mouse device:
@@ -114,8 +115,9 @@ typedef struct HIDManager {
     MouseCursorVisibility       mouseCursorVisibility;
 
 
-    // Logical Joystick Devices
-    LogicalJoystick             joystick[MAX_INPUT_CONTROLLER_PORTS];
+    // Gamepad style devices
+    size_t                      gamepadCount;
+    gamepad_state_t             gamepad[MAX_GAME_PADS];
 } HIDManager;
 
 #endif /* HIDManagerPriv_h */

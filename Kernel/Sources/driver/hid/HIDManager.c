@@ -462,12 +462,12 @@ static void _post_lp_event(HIDManagerRef _Nonnull _Locked self, const HIDReport*
     _post_mouse_event(self, &self->report);
 }
 
-// Reports a change in the state of a joystick device. Posts suitable events to
-// the event queue.
-static void _post_joy_event(HIDManagerRef _Nonnull _Locked self, int port, const HIDReport* _Nonnull report)
+// Reports a change in the state of a gamepad style device. Posts suitable events
+// to the event queue.
+static void _post_gamepad_event(HIDManagerRef _Nonnull _Locked self, gamepad_state_t* _Nonnull gp, const HIDReport* _Nonnull report)
 {
-    // Generate joystick button up/down events
-    const uint32_t oldButtons = self->joystick[port].buttons;
+    // Generate button up/down events
+    const uint32_t oldButtons = gp->buttons;
 
     if (report->data.joy.buttons != oldButtons) {
         // XXX should be able to ask the joystick input driver how many buttons it supports
@@ -484,7 +484,7 @@ static void _post_joy_event(HIDManagerRef _Nonnull _Locked self, int port, const
                     evtType = kHIDEventType_JoystickUp;
                 }
 
-                evt.joystick.port = port;
+                evt.joystick.port = 0; //XXX driver id
                 evt.joystick.buttonNumber = i;
                 evt.joystick.flags = self->modifierFlags;
                 evt.joystick.dx = report->data.joy.x;
@@ -496,21 +496,21 @@ static void _post_joy_event(HIDManagerRef _Nonnull _Locked self, int port, const
     
     
     // Generate motion events
-    const int16_t diffX = report->data.joy.x - self->joystick[port].x;
-    const int16_t diffY = report->data.joy.y - self->joystick[port].y;
+    const int16_t diffX = report->data.joy.x - gp->x;
+    const int16_t diffY = report->data.joy.y - gp->y;
     
     if (diffX != 0 || diffY != 0) {
         HIDEventData evt;
 
-        evt.joystickMotion.port = port;
+        evt.joystickMotion.port = 0;    //XXX driver id
         evt.joystickMotion.dx = report->data.joy.x;
         evt.joystickMotion.dy = report->data.joy.y;
         HIDEventQueue_Put(self->eventQueue, kHIDEventType_JoystickMotion, &evt);
     }
 
-    self->joystick[port].x = report->data.joy.x;
-    self->joystick[port].y = report->data.joy.y;
-    self->joystick[port].buttons = report->data.joy.buttons;
+    gp->x = report->data.joy.x;
+    gp->y = report->data.joy.y;
+    gp->buttons = report->data.joy.buttons;
 }
 
 
@@ -518,6 +518,8 @@ static void _post_joy_event(HIDManagerRef _Nonnull _Locked self, int port, const
 // MARK: -
 // MARK: HID Reports Collector
 ////////////////////////////////////////////////////////////////////////////////
+
+IOCATS_DEF(g_gamepad_cats, IOHID_ANALOG_JOYSTICK, IOHID_DIGITAL_JOYSTICK);
 
 // Connects the given HID input driver or framebuffer to the HID manager by
 // opening a channel to it.
@@ -536,6 +538,22 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
         err = Driver_Open(driver, O_RDWR, 0, &self->moChannel);
         if (err == EOK) {
             self->mo = (InputDriverRef)driver;
+        }
+    }
+    else if (self->gamepadCount < MAX_GAME_PADS && Driver_MatchesAnyCategory(driver, g_gamepad_cats)) {
+        for (int i = 0; i < MAX_GAME_PADS; i++) {
+            gamepad_state_t* gp = &self->gamepad[i];
+
+            if (gp->ch == NULL) {
+                err = Driver_Open(driver, O_RDWR, 0, &gp->ch);
+                if (err == EOK) {
+                    gp->x = 0;
+                    gp->y = 0;
+                    gp->buttons = 0;
+                    self->gamepadCount++;
+                }
+                break;
+            }
         }
     }
     else if (self->fbChannel == NULL && Driver_MatchesCategory(driver, IOVID_FB)) {
@@ -562,18 +580,34 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
         IOChannel_Release(self->kbChannel);
         self->kbChannel = NULL;
         self->kb = NULL;
+        return;
     }
-    else if ((DriverRef)self->mo == driver) {
+    
+    if ((DriverRef)self->mo == driver) {
         IOChannel_Release(self->moChannel);
         self->moChannel = NULL;
         self->mo = NULL;
+        return;
     }
-    else if ((DriverRef)self->fb == driver) {
+
+    if ((DriverRef)self->fb == driver) {
         IOChannel_Release(self->fbChannel);
         self->fbChannel = NULL;
         self->fb = NULL;
         self->screenRight = 0;
         self->screenBottom = 0;
+        return;
+    }
+
+    for (int i = 0; i < MAX_GAME_PADS; i++) {
+        gamepad_state_t* gp = &self->gamepad[i];
+
+        if (gp->ch && HandlerChannel_GetHandlerAs(gp->ch, Driver) == driver) {
+            IOChannel_Release(gp->ch);
+            gp->ch = NULL;
+            self->gamepadCount--;
+            break;
+        }
     }
 }
 
@@ -628,7 +662,14 @@ static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
 
 static void _collect_gamepad_reports(HIDManagerRef _Nonnull self)
 {
-    //XXX implement me
+    for (int i = 0; i < self->gamepadCount; i++) {
+        gamepad_state_t* gp = &self->gamepad[i];
+
+        if (gp->ch) {
+            InputDriver_GetReport(HandlerChannel_GetHandlerAs(gp->ch, InputDriver), &self->report);
+            _post_gamepad_event(self, gp, &self->report);
+        }
+    }
 }
 
 
