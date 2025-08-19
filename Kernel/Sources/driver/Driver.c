@@ -353,6 +353,19 @@ bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat)
     return (*p == cat) ? true : false;
 }
 
+bool Driver_HasAnyCategory(DriverRef _Nonnull self, const iocat_t* _Nonnull cats)
+{
+    while (*cats != IOCAT_END) {
+        if (Driver_HasCategory(self, *cats)) {
+            return true;
+        }
+
+        cats++;
+    }
+
+    return false;
+}
+
 
 //
 // MARK: -

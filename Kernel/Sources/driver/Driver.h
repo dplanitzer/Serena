@@ -417,6 +417,10 @@ extern bool Driver_HasOpenChannels(DriverRef _Nonnull self);
 // Returns true if the driver supports the given I/O category and false otherwise.
 extern bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat);
 
+// Returns true if the driver supports any of the given I/O categories and false
+// otherwise.
+extern bool Driver_HasAnyCategory(DriverRef _Nonnull self, const iocat_t* _Nonnull cats);
+
 
 //
 // Subclassers

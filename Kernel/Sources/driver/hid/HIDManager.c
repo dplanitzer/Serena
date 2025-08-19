@@ -331,57 +331,13 @@ errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timesp
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: HID Reports Collector
+// MARK: Event Generation and Posting
 ////////////////////////////////////////////////////////////////////////////////
-
-// Connects the given HID input driver to the HID manager by opening a channel
-// to it.
-static void _connect_input_driver(HIDManagerRef _Nonnull self, DriverRef _Nonnull driver)
-{
-    decl_try_err();
-
-    if (self->kbChannel == NULL && Driver_HasCategory(driver, IOHID_KEYBOARD)) {
-        Driver_Open(driver, O_RDWR, 0, &self->kbChannel);
-        InputDriver_SetReportTarget(driver, self->reportsCollector, SIGKEY);
-    }
-    else if (self->fbChannel == NULL && Driver_HasCategory(driver, IOVID_FB)) {
-        // Open a channel to the framebuffer
-        err = Driver_Open(driver, O_RDWR, 0, &self->fbChannel);
-        if (err == EOK) {
-            self->fb = HandlerChannel_GetHandlerAs(self->fbChannel, GraphicsDriver);
-
-            int w, h;
-            GraphicsDriver_GetDisplaySize(self->fb, &w, &h);
-
-            self->screenLeft = 0;
-            self->screenTop = 0;
-            self->screenRight = (int16_t)w;
-            self->screenBottom = (int16_t)h;
-        }
-    }
-}
-
-// Iterates all currently registered HID drivers and connects the HID manager to
-// the ones that are relevant.
-static errno_t _hid_iterator(HIDManagerRef _Nonnull self, DriverRef _Nonnull driver, bool* _Nonnull pDone)
-{
-    if (Driver_HasCategory(driver, IOHID_KEYBOARD)) {
-        _connect_input_driver(self, driver);
-    }
-
-    return EOK;
-}
-
-static void _collect_drivers(HIDManagerRef _Nonnull self)
-{
-    DriverManager_Iterate(gDriverManager, (DriverManager_Iterator)_hid_iterator, self);
-}
-
 
 // Reports a key down or up from a keyboard device. This function updates the
 // state of the logical keyboard and it posts a suitable keyboard event to the
 // event queue.
-static void _post_key_event(HIDManagerRef _Nonnull self, const HIDReport* _Nonnull report)
+static void _post_key_event(HIDManagerRef _Nonnull _Locked self, const HIDReport* _Nonnull report)
 {
     // Update the key map
     const uint16_t keyCode = report->data.key.keyCode;
@@ -435,7 +391,7 @@ static void _post_key_event(HIDManagerRef _Nonnull self, const HIDReport* _Nonnu
 
 // Reports a change in the state of a mouse device. Updates the state of the
 // logical mouse device and posts suitable events to the event queue.
-static void _post_mouse_event(HIDManagerRef _Nonnull self, const HIDReport* _Nonnull report)
+static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, const HIDReport* _Nonnull report)
 {
     const uint32_t oldButtonsDown = self->mouseButtons;
     const bool hasButtonsChange = (oldButtonsDown != report->data.mouse.buttons);
@@ -513,7 +469,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull self, const HIDReport* _Non
 // Reports a change in the state of a light pen device. Posts suitable events to
 // the event queue. The light pen controls the mouse cursor and generates mouse
 // events.
-static void _post_lp_event(HIDManagerRef _Nonnull self, const HIDReport* _Nonnull report)
+static void _post_lp_event(HIDManagerRef _Nonnull _Locked self, const HIDReport* _Nonnull report)
 {
     const int16_t dx = (report->data.lp.hasPosition) ? report->data.lp.x - self->mouseX : self->mouseX;
     const int16_t dy = (report->data.lp.hasPosition) ? report->data.lp.y - self->mouseY : self->mouseY;
@@ -528,7 +484,7 @@ static void _post_lp_event(HIDManagerRef _Nonnull self, const HIDReport* _Nonnul
 
 // Reports a change in the state of a joystick device. Posts suitable events to
 // the event queue.
-static void _post_joy_event(HIDManagerRef _Nonnull self, int port, const HIDReport* _Nonnull report)
+static void _post_joy_event(HIDManagerRef _Nonnull _Locked self, int port, const HIDReport* _Nonnull report)
 {
     // Generate joystick button up/down events
     const uint32_t oldButtons = self->joystick[port].buttons;
@@ -578,6 +534,79 @@ static void _post_joy_event(HIDManagerRef _Nonnull self, int port, const HIDRepo
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: HID Reports Collector
+////////////////////////////////////////////////////////////////////////////////
+
+// Connects the given HID input driver or framebuffer to the HID manager by
+// opening a channel to it.
+static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonnull driver)
+{
+    decl_try_err();
+
+    if (self->kbChannel == NULL && Driver_HasCategory(driver, IOHID_KEYBOARD)) {
+        err = Driver_Open(driver, O_RDWR, 0, &self->kbChannel);
+        if (err == EOK) {
+            InputDriver_SetReportTarget(driver, self->reportsCollector, SIGKEY);
+            self->kb = (InputDriverRef)driver;
+        }
+    }
+    else if (self->fbChannel == NULL && Driver_HasCategory(driver, IOVID_FB)) {
+        // Open a channel to the framebuffer
+        err = Driver_Open(driver, O_RDWR, 0, &self->fbChannel);
+        if (err == EOK) {
+            self->fb = HandlerChannel_GetHandlerAs(self->fbChannel, GraphicsDriver);
+
+            int w, h;
+            GraphicsDriver_GetDisplaySize(self->fb, &w, &h);
+
+            self->screenLeft = 0;
+            self->screenTop = 0;
+            self->screenRight = (int16_t)w;
+            self->screenBottom = (int16_t)h;
+        }
+    }
+}
+
+// Disconnects the given HID driver or framebuffer.
+static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonnull driver)
+{
+    if ((DriverRef)self->kb == driver) {
+        IOChannel_Release(self->kbChannel);
+        self->kbChannel = NULL;
+        self->kb = NULL;
+    }
+    else if ((DriverRef)self->fb == driver) {
+        IOChannel_Release(self->fbChannel);
+        self->fbChannel = NULL;
+        self->fb = NULL;
+        self->screenRight = 0;
+        self->screenBottom = 0;
+    }
+}
+
+static void _matching_driver(HIDManagerRef _Nonnull self, DriverRef _Nonnull driver, int action)
+{
+    mtx_lock(&self->mtx);
+
+    switch (action) {
+        case IOACTION_PUBLISH:
+            _connect_driver(self, driver);
+            break;
+
+        case IOACTION_UNPUBLISH:
+            _disconnect_driver(self, driver);
+            break;
+
+        default:
+            break;
+    }
+
+    mtx_unlock(&self->mtx);
+}
+
+
 int _vbl_handler(HIDManagerRef _Nonnull self)
 {
     vcpu_sigsend_irq(self->reportsCollector, SIGVBL, false);
@@ -587,10 +616,8 @@ int _vbl_handler(HIDManagerRef _Nonnull self)
 
 static void _collect_keyboard_reports(HIDManagerRef _Nonnull self)
 {
-    InputDriverRef kb = HandlerChannel_GetHandlerAs(self->kbChannel, InputDriver);
-
     for (;;) {
-        InputDriver_GetReport(kb, &self->report);
+        InputDriver_GetReport(self->kb, &self->report);
                 
         if (self->report.type == kHIDReportType_Null) {
             break;
@@ -600,14 +627,18 @@ static void _collect_keyboard_reports(HIDManagerRef _Nonnull self)
     }
 }
 
+
+IOCATS_DEF(g_hid_cats, IOHID_KEYBOARD, IOHID_KEYPAD, IOHID_MOUSE, IOHID_LIGHTPEN,
+    IOHID_STYLUS, IOHID_TRACKBALL, IOHID_ANALOG_JOYSTICK, IOHID_DIGITAL_JOYSTICK,
+    IOVID_FB);
+
 static void _reports_collector_loop(HIDManagerRef _Nonnull self)
 {
     int signo = 0;
 
+    DriverManager_StartMatching(gDriverManager, g_hid_cats, (drv_match_func_t)_matching_driver, self);
+
     mtx_lock(&self->mtx);
-
-    _collect_drivers(self);
-
 
     for (;;) {
         self->report.type = kHIDReportType_Null;

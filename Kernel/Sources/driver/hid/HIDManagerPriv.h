@@ -54,6 +54,7 @@ typedef struct HIDManager {
 
     // Input Drivers
     IOChannelRef _Nullable      kbChannel;
+    InputDriverRef _Nullable    kb;
     IOChannelRef _Nullable      gpChannel;
 
 

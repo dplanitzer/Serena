@@ -23,6 +23,14 @@ struct dentry {
 };
 typedef struct dentry* dentry_t;
 
+struct matcher {
+    SListNode           qe;
+    drv_match_func_t    func;
+    void* _Nullable     arg;
+    iocat_t             cats[IOCAT_MAX];
+};
+typedef struct matcher* matcher_t;
+
 
 #define HASH_CHAIN_COUNT 16
 #define HASH_CHAIN_MASK  (HASH_CHAIN_COUNT - 1)
@@ -30,6 +38,7 @@ typedef struct dentry* dentry_t;
 struct DriverManager {
     mtx_t               mtx;
     SList/*<dentry_t>*/ id_table[HASH_CHAIN_COUNT];  // did_t -> dentry_t
+    SList/*<matcher_t*/ matchers;
 };
 
 
@@ -111,6 +120,17 @@ DriverRef _Nullable DriverManager_CopyDriverForId(DriverManagerRef _Nonnull self
     return dp;
 }
 
+static void _do_match_callouts(DriverManagerRef _Nonnull _Locked self, HandlerRef _Nonnull driver, int action)
+{
+    SList_ForEach(&self->matchers, SListNode,
+        matcher_t pm = (matcher_t)pCurNode;
+            
+        if (instanceof(driver, Driver) && Driver_HasAnyCategory((DriverRef)driver, pm->cats)) {
+            pm->func(pm->arg, driver, action);
+        }
+    );
+}
+
 errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId)
 {
     decl_try_err();
@@ -129,6 +149,8 @@ errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry*
     if (pOutId) {
         *pOutId = ep->id;
     }
+
+    _do_match_callouts(self, de->driver, IOACTION_PUBLISH);
 
 catch:
     mtx_unlock(&self->mtx);
@@ -160,6 +182,8 @@ void DriverManager_Unpublish(DriverManagerRef _Nonnull self, did_t id)
         driver = the_ep->driver;
     }
 
+    _do_match_callouts(self, driver, IOACTION_UNPUBLISH);
+
     Catalog_Unpublish(gDriverCatalog, the_ep->dirId, id);
     SList_Remove(the_chain, &prev_ep->qe, &the_ep->qe);
 
@@ -186,29 +210,92 @@ errno_t DriverManager_RemoveDirectory(DriverManagerRef _Nonnull self, CatalogId 
 }
 
 
-errno_t DriverManager_Iterate(DriverManagerRef _Nonnull self, DriverManager_Iterator _Nonnull iter, void* _Nullable arg)
+errno_t DriverManager_GetMatches(DriverManagerRef _Nonnull self, const iocat_t* _Nonnull cats, HandlerRef* _Nonnull buf, size_t bufsiz)
 {
     decl_try_err();
-    bool done = false;
+    size_t idx = 0;
+
+    if (bufsiz == 0) {
+        return EINVAL;
+    }
 
     mtx_lock(&self->mtx);
     for (size_t idx = 0; idx < HASH_CHAIN_COUNT; idx++) {
         SList_ForEach(&self->id_table[idx], SListNode,
-            dentry_t ep = (dentry_t)pCurNode;
+            dentry_t dep = (dentry_t)pCurNode;
             
-            err = iter(arg, ep->driver, &done);
-            if (err != EOK || done) {
-                break;
+            if (instanceof(dep->driver, Driver) && Driver_HasAnyCategory((DriverRef)dep->driver, cats)) {
+                if (idx >= bufsiz-1) {
+                    err = ERANGE;
+                    break;
+                }
+
+                buf[idx++] = Object_RetainAs(dep->driver, Handler);
             }
         );
 
-        if (err != EOK || done) {
+        if (err != EOK) {
             break;
         }
     }
+    buf[idx] = NULL;
     mtx_unlock(&self->mtx);
 
     return err;
+}
+
+errno_t DriverManager_StartMatching(DriverManagerRef _Nonnull self, const iocat_t* _Nonnull cats, drv_match_func_t _Nonnull f, void* _Nullable arg)
+{
+    decl_try_err();
+    matcher_t pm;
+    int i = 0;
+
+    mtx_lock(&self->mtx);
+
+    // Create a matcher entry
+    try(kalloc_cleared(sizeof(struct matcher), (void**)&pm));
+    pm->func = f;
+    pm->arg = arg;
+    while (i < IOCAT_MAX-1 && cats[i] != IOCAT_END) {
+        pm->cats[i] = cats[i];
+        i++;
+    }
+    pm->cats[i] = IOCAT_END;
+    SList_InsertAfterLast(&self->matchers, &pm->qe);
+
+
+    // Tell the matcher about all existing drivers
+    for (size_t idx = 0; idx < HASH_CHAIN_COUNT; idx++) {
+        SList_ForEach(&self->id_table[idx], SListNode,
+            dentry_t dep = (dentry_t)pCurNode;
+            
+            if (instanceof(dep->driver, Driver) && Driver_HasAnyCategory((DriverRef)dep->driver, pm->cats)) {
+                f(arg, dep->driver, IOACTION_PUBLISH);
+            }
+        );
+    }
+
+catch:
+    mtx_unlock(&self->mtx);
+
+    return err;
+}
+
+void DriverManager_StopMatching(DriverManagerRef _Nonnull self, drv_match_func_t _Nonnull f, void* _Nullable arg)
+{
+    SListNode* pprev = NULL;
+
+    mtx_lock(&self->mtx);
+    SList_ForEach(&self->matchers, SListNode,
+        matcher_t p = (matcher_t)pCurNode;
+
+        if (p->func == f && p->arg == arg) {
+            SList_Remove(&self->matchers, pprev, &p->qe);
+            break;
+        }
+        pprev = pCurNode;
+    );
+    mtx_unlock(&self->mtx);
 }
 
 
