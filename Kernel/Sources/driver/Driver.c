@@ -341,7 +341,7 @@ errno_t Driver_ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd
     }
 }
 
-bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat)
+bool Driver_MatchesCategory(DriverRef _Nonnull self, iocat_t cat)
 {
     // Category info is constant - no need to take a lock here
     const iocat_t* p = self->cats;
@@ -353,10 +353,10 @@ bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat)
     return (*p == cat) ? true : false;
 }
 
-bool Driver_HasAnyCategory(DriverRef _Nonnull self, const iocat_t* _Nonnull cats)
+bool Driver_MatchesAnyCategory(DriverRef _Nonnull self, const iocat_t* _Nonnull cats)
 {
     while (*cats != IOCAT_END) {
-        if (Driver_HasCategory(self, *cats)) {
+        if (Driver_MatchesCategory(self, *cats)) {
             return true;
         }
 

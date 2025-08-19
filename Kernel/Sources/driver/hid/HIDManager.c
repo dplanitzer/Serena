@@ -545,14 +545,14 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
 {
     decl_try_err();
 
-    if (self->kbChannel == NULL && Driver_HasCategory(driver, IOHID_KEYBOARD)) {
+    if (self->kbChannel == NULL && Driver_MatchesCategory(driver, IOHID_KEYBOARD)) {
         err = Driver_Open(driver, O_RDWR, 0, &self->kbChannel);
         if (err == EOK) {
             InputDriver_SetReportTarget(driver, self->reportsCollector, SIGKEY);
             self->kb = (InputDriverRef)driver;
         }
     }
-    else if (self->fbChannel == NULL && Driver_HasCategory(driver, IOVID_FB)) {
+    else if (self->fbChannel == NULL && Driver_MatchesCategory(driver, IOVID_FB)) {
         // Open a channel to the framebuffer
         err = Driver_Open(driver, O_RDWR, 0, &self->fbChannel);
         if (err == EOK) {

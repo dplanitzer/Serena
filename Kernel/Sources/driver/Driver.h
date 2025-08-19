@@ -273,7 +273,7 @@ typedef struct DriverEntry {
 // array of I/O categories the driver conforms to. This array is terminated by
 // an IOCAT_END declaration.
 //
-// Use the Driver_HasCategory() function to check whether the driver conforms to
+// Use the Driver_MatchesCategory() function to check whether the driver conforms to
 // a given I/O category.
 //
 // These functions can be used to easily and efficiently determine whether a
@@ -415,11 +415,11 @@ extern bool Driver_HasOpenChannels(DriverRef _Nonnull self);
 ((DriverRef)(__self)->cats) 
 
 // Returns true if the driver supports the given I/O category and false otherwise.
-extern bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat);
+extern bool Driver_MatchesCategory(DriverRef _Nonnull self, iocat_t cat);
 
 // Returns true if the driver supports any of the given I/O categories and false
 // otherwise.
-extern bool Driver_HasAnyCategory(DriverRef _Nonnull self, const iocat_t* _Nonnull cats);
+extern bool Driver_MatchesAnyCategory(DriverRef _Nonnull self, const iocat_t* _Nonnull cats);
 
 
 //
