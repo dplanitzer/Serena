@@ -26,12 +26,24 @@
 // XXX 16 is confirmed to work without overflows on a A2000. Still want to keep
 // 48 for now for mouse move. Though once we support coalescing we may want to
 // revisit this.
-#define REPORT_QUEUE_MAX_EVENTS    48
-#define MAX_GAME_PADS               2
-#define KEY_MAP_INTS_COUNT          (256/32)
+#define REPORT_QUEUE_MAX_EVENTS 48
+#define MAX_GAME_PADS           2
+#define MAX_POINTING_DEVICES    2
+#define KEY_MAP_INTS_COUNT      (256/32)
 
 
-// State of a joystick device
+// State of the logical pointing device (mouse)
+typedef struct logical_mouse {
+    size_t                  chCount;
+    IOChannelRef _Nullable  ch[MAX_POINTING_DEVICES];
+    int16_t                 x;
+    int16_t                 y;
+    uint32_t                buttons;
+    MouseCursorVisibility   visibility;
+} logical_mouse_t;
+
+
+// State of a gamepad/joystick device
 typedef struct gamepad_state {
     IOChannelRef _Nullable  ch;
     int16_t     x;        // int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right
@@ -56,8 +68,6 @@ typedef struct HIDManager {
     // Input Drivers
     IOChannelRef _Nullable      kbChannel;
     InputDriverRef _Nullable    kb;
-    IOChannelRef _Nullable      moChannel;
-    InputDriverRef _Nullable    mo;
 
 
     // Framebuffer interface
@@ -108,11 +118,7 @@ typedef struct HIDManager {
 
 
     // Logical Mouse Device
-    //
-    int16_t                     mouseX;
-    int16_t                     mouseY;
-    uint32_t                    mouseButtons;
-    MouseCursorVisibility       mouseCursorVisibility;
+    logical_mouse_t             mouse;
 
 
     // Gamepad style devices

@@ -38,7 +38,7 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
 
     self->keyFlags = gUSBHIDKeyFlags;
     self->isMouseMoveReportingEnabled = false;
-    self->mouseCursorVisibility = kMouseCursor_Hidden;
+    self->mouse.visibility = kMouseCursor_Hidden;
 
 
     // Create the HID event queue
@@ -189,7 +189,7 @@ errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCu
     decl_try_err();
 
     mtx_lock(&self->mtx);
-    self->mouseCursorVisibility = mode;
+    self->mouse.visibility = mode;
     if (self->fb) {
         switch (mode) {
         case kMouseCursor_Hidden:
@@ -205,7 +205,7 @@ errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCu
             break;
 
         case kMouseCursor_Visible:
-            GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouseX, self->mouseY);
+            GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x, self->mouse.y);
             break;
 
         default:
@@ -220,7 +220,7 @@ errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCu
 MouseCursorVisibility HIDManager_GetMouseCursorVisibility(HIDManagerRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
-    const MouseCursorVisibility mode = self->mouseCursorVisibility;
+    const MouseCursorVisibility mode = self->mouse.visibility;
     mtx_unlock(&self->mtx);
 
     return mode;
@@ -255,8 +255,8 @@ errno_t HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, 
     self->shieldingRight = r;
     self->shieldingBottom = b;
 
-    const int mx = self->mouseX - self->hotSpotX;
-    const int my = self->mouseY - self->mouseY;
+    const int mx = self->mouse.x - self->hotSpotX;
+    const int my = self->mouse.y - self->mouse.y;
     if (mx >= l && mx < r && my >= t && my < b && self->fb) {
         GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MIN, INT_MIN);
     }
@@ -269,8 +269,8 @@ void HIDManager_UnshieldMouseCursor(HIDManagerRef _Nonnull self)
     mtx_lock(&self->mtx);
     self->isMouseShieldActive = false;
     
-    if (self->mouseCursorVisibility == kMouseCursor_Visible && self->fb) {
-        GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouseX, self->mouseY);
+    if (self->mouse.visibility == kMouseCursor_Visible && self->fb) {
+        GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x, self->mouse.y);
     }
     mtx_unlock(&self->mtx);
 }
@@ -279,8 +279,8 @@ void HIDManager_UnshieldMouseCursor(HIDManagerRef _Nonnull self)
 void HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self, int* _Nonnull pOutX, int* _Nonnull pOutY)
 {
     mtx_lock(&self->mtx);
-    *pOutX = self->mouseX;
-    *pOutY = self->mouseY;
+    *pOutX = self->mouse.x;
+    *pOutY = self->mouse.y;
     mtx_unlock(&self->mtx);
 }
 
@@ -288,7 +288,7 @@ void HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self, int* _Nonnul
 uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
-    const uint32_t buttons = self->mouseButtons;
+    const uint32_t buttons = self->mouse.buttons;
     mtx_unlock(&self->mtx);
 
     return buttons;
@@ -369,46 +369,30 @@ static void _post_key_event(HIDManagerRef _Nonnull _Locked self, const HIDReport
     HIDEventQueue_Put(self->eventQueue, evtType, &evt);
 }
 
-// Reports a change in the state of a mouse device. Updates the state of the
-// logical mouse device and posts suitable events to the event queue.
-static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, const HIDReport* _Nonnull report)
+// Posts suitable mouse events to the event queue.
+static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPositionChange, bool hasButtonsChange, uint32_t oldButtonsDown)
 {
-    const uint32_t oldButtonsDown = self->mouseButtons;
-    const bool hasButtonsChange = (oldButtonsDown != report->data.mouse.buttons);
-    const bool hasPositionChange = (report->data.mouse.dx != 0 || report->data.mouse.dy != 0);
-
     if (hasPositionChange) {
-        int mx = self->mouseX;
-        int my = self->mouseY;
-
-        mx += report->data.mouse.dx;
-        my += report->data.mouse.dy;
-        mx = __min(__max(mx, self->screenLeft), self->screenRight);
-        my = __min(__max(my, self->screenTop), self->screenBottom);
-
-        self->mouseX = mx;
-        self->mouseY = my;
-        mx -= self->hotSpotX;
-        my -= self->hotSpotY;
+        const int mx = self->mouse.x - self->hotSpotX;
+        const int my = self->mouse.y - self->hotSpotY;
 
         // Setting the new position will automatically make the mouse cursor visible
         // again if it was hidden-until-move. The reason is that the hide-until-move
         // function simply sets the mouse cursor to a position outside the visible
         // scree area to (temporarily) hide it.
-        if (self->mouseCursorVisibility != kMouseCursor_Hidden && self->fb) {
+        if (self->mouse.visibility != kMouseCursor_Hidden && self->fb) {
             if (self->isMouseShieldActive
                 && mx >= self->shieldingLeft && mx < self->shieldingRight && my >= self->shieldingTop && my < self->shieldingBottom) {
                 GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MIN, INT_MIN);
             }
             else {
                 GraphicsDriver_SetMouseCursorPosition(self->fb, mx, my);
-                if (self->mouseCursorVisibility == kMouseCursor_HiddenUntilMove) {
-                    self->mouseCursorVisibility = kMouseCursor_Visible;
+                if (self->mouse.visibility == kMouseCursor_HiddenUntilMove) {
+                    self->mouse.visibility = kMouseCursor_Visible;
                 }
             }
         }
     }
-    self->mouseButtons = report->data.mouse.buttons;
 
 
     if (hasButtonsChange) {
@@ -419,7 +403,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, const HIDRepo
         // XXX should be able to ask the mouse input driver how many buttons it supports
         for (int i = 0; i < 3; i++) {
             const uint32_t old_down = oldButtonsDown & (1 << i);
-            const uint32_t new_down = report->data.mouse.buttons & (1 << i);
+            const uint32_t new_down = self->mouse.buttons & (1 << i);
             
             if (old_down ^ new_down) {
                 if (old_down == 0 && new_down != 0) {
@@ -429,8 +413,8 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, const HIDRepo
                 }
                 evt.mouse.buttonNumber = i;
                 evt.mouse.flags = self->modifierFlags;
-                evt.mouse.x = self->mouseX;
-                evt.mouse.y = self->mouseY;
+                evt.mouse.x = self->mouse.x;
+                evt.mouse.y = self->mouse.y;
                 HIDEventQueue_Put(self->eventQueue, evtType, &evt);
             }
         }
@@ -439,8 +423,8 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, const HIDRepo
         HIDEventData evt;
 
         evt.mouseMoved.flags = self->modifierFlags;
-        evt.mouseMoved.x = self->mouseX;
-        evt.mouseMoved.y = self->mouseY;
+        evt.mouseMoved.x = self->mouse.x;
+        evt.mouseMoved.y = self->mouse.y;
         HIDEventQueue_Put(self->eventQueue, kHIDEventType_MouseMoved, &evt);
     }
 }
@@ -449,6 +433,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, const HIDRepo
 // Reports a change in the state of a light pen device. Posts suitable events to
 // the event queue. The light pen controls the mouse cursor and generates mouse
 // events.
+#if 0
 static void _post_lp_event(HIDManagerRef _Nonnull _Locked self, const HIDReport* _Nonnull report)
 {
     const int16_t dx = (report->data.lp.hasPosition) ? report->data.lp.x - self->mouseX : self->mouseX;
@@ -461,6 +446,7 @@ static void _post_lp_event(HIDManagerRef _Nonnull _Locked self, const HIDReport*
     self->report.data.mouse.buttons = buttons;
     _post_mouse_event(self, &self->report);
 }
+#endif
 
 // Reports a change in the state of a gamepad style device. Posts suitable events
 // to the event queue.
@@ -534,10 +520,15 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
             self->kb = (InputDriverRef)driver;
         }
     }
-    else if (self->moChannel == NULL && Driver_MatchesCategory(driver, IOHID_MOUSE)) {
-        err = Driver_Open(driver, O_RDWR, 0, &self->moChannel);
-        if (err == EOK) {
-            self->mo = (InputDriverRef)driver;
+    else if (self->mouse.chCount < MAX_POINTING_DEVICES && Driver_MatchesCategory(driver, IOHID_MOUSE)) {
+        for (int i = 0; i < MAX_POINTING_DEVICES; i++) {
+            if (self->mouse.ch[i] == NULL) {
+                err = Driver_Open(driver, O_RDWR, 0, &self->mouse.ch[i]);
+                if (err == EOK) {
+                    self->mouse.chCount++;
+                }
+                break;
+            }
         }
     }
     else if (self->gamepadCount < MAX_GAME_PADS && Driver_MatchesAnyCategory(driver, g_gamepad_cats)) {
@@ -583,13 +574,6 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
         return;
     }
     
-    if ((DriverRef)self->mo == driver) {
-        IOChannel_Release(self->moChannel);
-        self->moChannel = NULL;
-        self->mo = NULL;
-        return;
-    }
-
     if ((DriverRef)self->fb == driver) {
         IOChannel_Release(self->fbChannel);
         self->fbChannel = NULL;
@@ -597,6 +581,17 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
         self->screenRight = 0;
         self->screenBottom = 0;
         return;
+    }
+
+    for (int i = 0; i < MAX_POINTING_DEVICES; i++) {
+        IOChannelRef ch = self->mouse.ch[i];
+
+        if (ch && HandlerChannel_GetHandlerAs(ch, Driver) == driver) {
+            IOChannel_Release(ch);
+            self->mouse.ch[i] = NULL;
+            self->mouse.chCount--;
+            break;
+        }
     }
 
     for (int i = 0; i < MAX_GAME_PADS; i++) {
@@ -654,10 +649,42 @@ static void _collect_keyboard_reports(HIDManagerRef _Nonnull self)
 
 static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
 {
-    if (self->moChannel) {
-        InputDriver_GetReport(self->mo, &self->report);
-        _post_mouse_event(self, &self->report);
+    if (self->mouse.chCount == 0) {
+        return;
     }
+
+    const int16_t oldX = self->mouse.x;
+    const int16_t oldY = self->mouse.y;
+    const uint32_t oldButtonsDown = self->mouse.buttons;
+
+    for (int i = 0; i < self->mouse.chCount; i++) {
+        IOChannelRef ch = self->mouse.ch[i];
+
+        if (ch) {
+            InputDriver_GetReport(HandlerChannel_GetHandlerAs(ch, InputDriver), &self->report);
+
+            if (self->report.data.mouse.dx != 0 || self->report.data.mouse.dy != 0) {
+                int mx = self->mouse.x;
+                int my = self->mouse.y;
+
+                mx += self->report.data.mouse.dx;
+                my += self->report.data.mouse.dy;
+                mx = __min(__max(mx, self->screenLeft), self->screenRight);
+                my = __min(__max(my, self->screenTop), self->screenBottom);
+
+                self->mouse.x = mx;
+                self->mouse.y = my;
+            }
+            if (self->mouse.buttons != self->report.data.mouse.buttons) {
+                self->mouse.buttons = self->report.data.mouse.buttons;
+            }
+        }
+    }
+
+    const bool hasButtonsChange = (oldButtonsDown != self->report.data.mouse.buttons);
+    const bool hasPositionChange = (self->report.data.mouse.dx != 0 || self->report.data.mouse.dy != 0);
+
+    _post_mouse_event(self, hasPositionChange, hasButtonsChange, oldButtonsDown);
 }
 
 static void _collect_gamepad_reports(HIDManagerRef _Nonnull self)
