@@ -31,11 +31,6 @@ extern void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, const str
 extern void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode* _Nullable pKeysToCheck, int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, int* _Nonnull nKeysDown);
 
 
-// GamePort control
-extern errno_t HIDManager_GetPortDevice(HIDManagerRef _Nonnull self, int port, int* _Nullable pOutType);
-extern errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, int type);
-
-
 // Mouse cursor state
 extern errno_t HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat, int hotSpotX, int hotSpotY);
 extern errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCursorVisibility mode);

@@ -77,15 +77,6 @@ typedef int MouseCursorVisibility;
 #define kHIDCommand_UnshieldMouseCursor  IOResourceCommand(kDriverCommand_SubclassBase + 7)
 
 
-// Returns the type of input device for a port. There are two port: 0 and 1.
-// get_port_device(int port, int* _Nonnull pOutType)
-#define kHIDCommand_GetPortDevice  IOResourceCommand(kDriverCommand_SubclassBase + 8)
-
-// Selects the type of input device for a port. There are two port: 0 and 1.
-// set_port_device(int port, int type)
-#define kHIDCommand_SetPortDevice  IOResourceCommand(kDriverCommand_SubclassBase + 9)
-
-
 
 //
 // GamePort Controller

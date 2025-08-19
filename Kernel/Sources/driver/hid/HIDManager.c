@@ -64,10 +64,6 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
 {
     decl_try_err();
 
-    // Open the game port driver
-    try(DriverManager_Open(gDriverManager, "/hw/gp-bus/self", O_RDWR, &self->gpChannel));
-
-
     // Create the event vcpu
     _vcpu_acquire_attr_t attr;
     attr.func = (vcpu_func_t)_reports_collector_loop;
@@ -165,22 +161,6 @@ void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode*
     mtx_unlock(&self->mtx);
     
     *nKeysDown = oi;
-}
-
-errno_t HIDManager_GetPortDevice(HIDManagerRef _Nonnull self, int port, int* _Nullable pOutType)
-{
-    mtx_lock(&self->mtx);
-    const errno_t err = IOChannel_Ioctl(self->gpChannel, kGamePortCommand_GetPortDevice, port, pOutType);
-    mtx_unlock(&self->mtx);
-    return err;
-}
-
-errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, int type)
-{
-    mtx_lock(&self->mtx);
-    const errno_t err = IOChannel_Ioctl(self->gpChannel, kGamePortCommand_SetPortDevice, port, type);
-    mtx_unlock(&self->mtx);
-    return err;
 }
 
 errno_t HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat, int hotSpotX, int hotSpotY)

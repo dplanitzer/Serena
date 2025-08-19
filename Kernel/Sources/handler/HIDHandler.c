@@ -117,20 +117,6 @@ errno_t HIDHandler_ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, in
             HIDManager_UnshieldMouseCursor(gHIDManager);
             return EOK;
 
-        case kHIDCommand_GetPortDevice: {
-            const int port = va_arg(ap, int);
-            int* itype = va_arg(ap, int*);
-
-            return HIDManager_GetPortDevice(gHIDManager, port, itype);
-        }
-
-        case kHIDCommand_SetPortDevice: {
-            const int port = va_arg(ap, int);
-            const int itype = va_arg(ap, int);
-
-            return HIDManager_SetPortDevice(gHIDManager, port, itype);
-        }
-
         default:
             return super_n(ioctl, Handler, HIDHandler, self, ioc, cmd, ap);
     }
