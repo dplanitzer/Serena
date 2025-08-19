@@ -604,6 +604,8 @@ static void _reports_collector_loop(HIDManagerRef _Nonnull self)
 {
     int signo = 0;
 
+    mtx_lock(&self->mtx);
+
     _collect_drivers(self);
 
 
@@ -621,6 +623,10 @@ static void _reports_collector_loop(HIDManagerRef _Nonnull self)
         }
 
 
+        mtx_unlock(&self->mtx);
         vcpu_sigwait(&self->reportsWaitQueue, &self->reportSigs, &signo);
+        mtx_lock(&self->mtx);
     }
+
+    mtx_unlock(&self->mtx);
 }
