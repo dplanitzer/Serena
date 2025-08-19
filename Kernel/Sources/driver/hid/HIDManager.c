@@ -33,7 +33,7 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
     mtx_init(&self->mtx);
     wq_init(&self->reportsWaitQueue);
 
-    self->reportSigs = _SIGBIT(SIGKEY);
+    self->reportSigs = _SIGBIT(SIGKEY) | _SIGBIT(SIGVBL);
     self->report.type = kHIDReportType_Null;
 
     self->keyFlags = gUSBHIDKeyFlags;
@@ -532,6 +532,12 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
             self->kb = (InputDriverRef)driver;
         }
     }
+    else if (self->moChannel == NULL && Driver_MatchesCategory(driver, IOHID_MOUSE)) {
+        err = Driver_Open(driver, O_RDWR, 0, &self->moChannel);
+        if (err == EOK) {
+            self->mo = (InputDriverRef)driver;
+        }
+    }
     else if (self->fbChannel == NULL && Driver_MatchesCategory(driver, IOVID_FB)) {
         // Open a channel to the framebuffer
         err = Driver_Open(driver, O_RDWR, 0, &self->fbChannel);
@@ -556,6 +562,11 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
         IOChannel_Release(self->kbChannel);
         self->kbChannel = NULL;
         self->kb = NULL;
+    }
+    else if ((DriverRef)self->mo == driver) {
+        IOChannel_Release(self->moChannel);
+        self->moChannel = NULL;
+        self->mo = NULL;
     }
     else if ((DriverRef)self->fb == driver) {
         IOChannel_Release(self->fbChannel);
@@ -607,6 +618,19 @@ static void _collect_keyboard_reports(HIDManagerRef _Nonnull self)
     }
 }
 
+static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
+{
+    if (self->moChannel) {
+        InputDriver_GetReport(self->mo, &self->report);
+        _post_mouse_event(self, &self->report);
+    }
+}
+
+static void _collect_gamepad_reports(HIDManagerRef _Nonnull self)
+{
+    //XXX implement me
+}
+
 
 IOCATS_DEF(g_hid_cats, IOHID_KEYBOARD, IOHID_KEYPAD, IOHID_MOUSE, IOHID_LIGHTPEN,
     IOHID_STYLUS, IOHID_TRACKBALL, IOHID_ANALOG_JOYSTICK, IOHID_DIGITAL_JOYSTICK,
@@ -629,7 +653,8 @@ static void _reports_collector_loop(HIDManagerRef _Nonnull self)
                 break;
 
             case SIGVBL:
-                //XXX sample mouse, light pen, joysticks, etc
+                _collect_pointing_device_reports(self);
+                _collect_gamepad_reports(self);
                 break;
         }
 
