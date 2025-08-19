@@ -34,8 +34,9 @@
 
 // State of the logical pointing device (mouse)
 typedef struct logical_mouse {
-    size_t                  chCount;
     IOChannelRef _Nullable  ch[MAX_POINTING_DEVICES];
+    int16_t                 chCount;
+    int16_t                 lpCount;
     int16_t                 x;
     int16_t                 y;
     uint32_t                buttons;

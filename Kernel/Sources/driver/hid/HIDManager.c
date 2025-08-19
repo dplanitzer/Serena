@@ -429,25 +429,6 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
     }
 }
 
-
-// Reports a change in the state of a light pen device. Posts suitable events to
-// the event queue. The light pen controls the mouse cursor and generates mouse
-// events.
-#if 0
-static void _post_lp_event(HIDManagerRef _Nonnull _Locked self, const HIDReport* _Nonnull report)
-{
-    const int16_t dx = (report->data.lp.hasPosition) ? report->data.lp.x - self->mouseX : self->mouseX;
-    const int16_t dy = (report->data.lp.hasPosition) ? report->data.lp.y - self->mouseY : self->mouseY;
-    const uint32_t buttons = report->data.lp.buttons;
-    
-    self->report.type = kHIDReportType_Mouse;
-    self->report.data.mouse.dx = dx;
-    self->report.data.mouse.dy = dy;
-    self->report.data.mouse.buttons = buttons;
-    _post_mouse_event(self, &self->report);
-}
-#endif
-
 // Reports a change in the state of a gamepad style device. Posts suitable events
 // to the event queue.
 static void _post_gamepad_event(HIDManagerRef _Nonnull _Locked self, gamepad_state_t* _Nonnull gp, const HIDReport* _Nonnull report)
@@ -505,7 +486,15 @@ static void _post_gamepad_event(HIDManagerRef _Nonnull _Locked self, gamepad_sta
 // MARK: HID Reports Collector
 ////////////////////////////////////////////////////////////////////////////////
 
+IOCATS_DEF(g_hid_cats, IOHID_KEYBOARD, IOHID_KEYPAD, IOHID_MOUSE, IOHID_LIGHTPEN,
+    IOHID_STYLUS, IOHID_TRACKBALL, IOHID_ANALOG_JOYSTICK, IOHID_DIGITAL_JOYSTICK,
+    IOVID_FB);
+
 IOCATS_DEF(g_gamepad_cats, IOHID_ANALOG_JOYSTICK, IOHID_DIGITAL_JOYSTICK);
+
+IOCATS_DEF(g_pointing_device_cats, IOHID_MOUSE, IOHID_TRACKBALL, IOHID_LIGHTPEN,
+    IOHID_STYLUS);
+
 
 // Connects the given HID input driver or framebuffer to the HID manager by
 // opening a channel to it.
@@ -520,11 +509,17 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
             self->kb = (InputDriverRef)driver;
         }
     }
-    else if (self->mouse.chCount < MAX_POINTING_DEVICES && Driver_MatchesCategory(driver, IOHID_MOUSE)) {
+    else if (self->mouse.chCount < MAX_POINTING_DEVICES && Driver_MatchesAnyCategory(driver, g_pointing_device_cats)) {
         for (int i = 0; i < MAX_POINTING_DEVICES; i++) {
             if (self->mouse.ch[i] == NULL) {
                 err = Driver_Open(driver, O_RDWR, 0, &self->mouse.ch[i]);
                 if (err == EOK) {
+                    if (Driver_MatchesCategory(driver, IOHID_LIGHTPEN) && self->fb) {
+                        self->mouse.lpCount++;
+                        if (self->mouse.lpCount == 1) {
+                            GraphicsDriver_SetLightPenEnabled(self->fb, true);
+                        }
+                    }
                     self->mouse.chCount++;
                 }
                 break;
@@ -585,8 +580,15 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
 
     for (int i = 0; i < MAX_POINTING_DEVICES; i++) {
         IOChannelRef ch = self->mouse.ch[i];
+        DriverRef cdp = (ch) ? HandlerChannel_GetHandlerAs(ch, Driver) : NULL;
 
-        if (ch && HandlerChannel_GetHandlerAs(ch, Driver) == driver) {
+        if (cdp == driver) {
+            if (self->mouse.lpCount > 0 && Driver_MatchesCategory(cdp, IOHID_LIGHTPEN)) {
+                self->mouse.lpCount--;
+                if (self->mouse.lpCount == 0) {
+                    GraphicsDriver_SetLightPenEnabled(self->fb, false);
+                }
+            }
             IOChannel_Release(ch);
             self->mouse.ch[i] = NULL;
             self->mouse.chCount--;
@@ -661,28 +663,51 @@ static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
         IOChannelRef ch = self->mouse.ch[i];
 
         if (ch) {
+            int16_t dx, dy;
+            uint32_t bt;
+
             InputDriver_GetReport(HandlerChannel_GetHandlerAs(ch, InputDriver), &self->report);
 
-            if (self->report.data.mouse.dx != 0 || self->report.data.mouse.dy != 0) {
+            switch (self->report.type) {
+                case kHIDReportType_Mouse:
+                    dx = self->report.data.mouse.dx;
+                    dy = self->report.data.mouse.dy;
+                    bt = self->report.data.mouse.buttons;
+                    break;
+
+                case kHIDReportType_LightPen:
+                    dx = (self->report.data.lp.hasPosition) ? self->report.data.lp.x - self->mouse.x : 0;
+                    dy = (self->report.data.lp.hasPosition) ? self->report.data.lp.y - self->mouse.y : 0;
+                    bt = self->report.data.lp.buttons;
+                    break;
+
+                default:
+                    dx = 0;
+                    dy = 0;
+                    bt = oldButtonsDown;
+                    break;
+            }
+
+            if (dx != 0 || dy != 0) {
                 int mx = self->mouse.x;
                 int my = self->mouse.y;
 
-                mx += self->report.data.mouse.dx;
-                my += self->report.data.mouse.dy;
+                mx += dx;
+                my += dy;
                 mx = __min(__max(mx, self->screenLeft), self->screenRight);
                 my = __min(__max(my, self->screenTop), self->screenBottom);
 
                 self->mouse.x = mx;
                 self->mouse.y = my;
             }
-            if (self->mouse.buttons != self->report.data.mouse.buttons) {
-                self->mouse.buttons = self->report.data.mouse.buttons;
+            if (self->mouse.buttons != bt) {
+                self->mouse.buttons = bt;
             }
         }
     }
 
-    const bool hasButtonsChange = (oldButtonsDown != self->report.data.mouse.buttons);
-    const bool hasPositionChange = (self->report.data.mouse.dx != 0 || self->report.data.mouse.dy != 0);
+    const bool hasButtonsChange = (oldButtonsDown != self->mouse.buttons);
+    const bool hasPositionChange = (oldX != self->mouse.x || oldY != self->mouse.y);
 
     _post_mouse_event(self, hasPositionChange, hasButtonsChange, oldButtonsDown);
 }
@@ -699,10 +724,6 @@ static void _collect_gamepad_reports(HIDManagerRef _Nonnull self)
     }
 }
 
-
-IOCATS_DEF(g_hid_cats, IOHID_KEYBOARD, IOHID_KEYPAD, IOHID_MOUSE, IOHID_LIGHTPEN,
-    IOHID_STYLUS, IOHID_TRACKBALL, IOHID_ANALOG_JOYSTICK, IOHID_DIGITAL_JOYSTICK,
-    IOVID_FB);
 
 static void _reports_collector_loop(HIDManagerRef _Nonnull self)
 {
