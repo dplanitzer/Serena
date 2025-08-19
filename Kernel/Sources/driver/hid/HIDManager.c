@@ -658,6 +658,7 @@ static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
     const int16_t oldX = self->mouse.x;
     const int16_t oldY = self->mouse.y;
     const uint32_t oldButtonsDown = self->mouse.buttons;
+    uint32_t newButtons = 0;
 
     for (int i = 0; i < self->mouse.chCount; i++) {
         IOChannelRef ch = self->mouse.ch[i];
@@ -684,7 +685,7 @@ static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
                 default:
                     dx = 0;
                     dy = 0;
-                    bt = oldButtonsDown;
+                    bt = 0;
                     break;
             }
 
@@ -700,11 +701,11 @@ static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
                 self->mouse.x = mx;
                 self->mouse.y = my;
             }
-            if (self->mouse.buttons != bt) {
-                self->mouse.buttons = bt;
-            }
+            newButtons |= bt;
         }
     }
+    self->mouse.buttons = newButtons;
+
 
     const bool hasButtonsChange = (oldButtonsDown != self->mouse.buttons);
     const bool hasPositionChange = (oldX != self->mouse.x || oldY != self->mouse.y);
