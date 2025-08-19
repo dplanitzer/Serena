@@ -89,12 +89,19 @@ typedef int MouseCursorVisibility;
 #define IOGP_ANALOG_JOYSTICK    3
 #define IOGP_DIGITAL_JOYSTICK   4
 
-// Returns the type of input device for a port. There are two port: 0 and 1.
-// get_port_device(int port, int* _Nonnull pOutType)
+// Returns the type of input device for a port and the driver id of the associated
+// input driver. There are two ports: 0 and 1.
+// get_port_device(int port, int* _Nullable pOutType, did_t* _Nullable pOutId)
 #define kGamePortCommand_GetPortDevice  IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
 // Selects the type of input device for a port. There are two port: 0 and 1.
 // set_port_device(int port, int type)
 #define kGamePortCommand_SetPortDevice  IOResourceCommand(kDriverCommand_SubclassBase + 1)
+
+// Returns the number of the port to which the driver with the given driver id
+// is connected. -1 is returned if the driver id doesn't refer to a driver that
+// is connected to any of the game bus ports.
+// get_port_for driver(did_t id, int* _Nonnull pOutPort)
+#define kGamePortCommand_GetPortForDriver  IOResourceCommand(kDriverCommand_SubclassBase + 2)
 
 #endif /* _KPI_HID_H */

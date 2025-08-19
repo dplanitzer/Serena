@@ -83,14 +83,21 @@ void GamePortController_onStop(DriverRef _Nonnull _Locked self)
 // API
 //
 
-static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, int* _Nonnull pOutType)
+static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, int* _Nullable pOutType, did_t* _Nullable pOutId)
 {
     if (port < 0 || port >= GP_PORT_COUNT) {
         return EINVAL;
     }
 
     mtx_lock(&self->io_mtx);
-    *pOutType = Driver_GetChildDataAt((DriverRef)self, port);
+    if (pOutType) {
+        *pOutType = Driver_GetChildDataAt((DriverRef)self, port);
+    }
+    if (pOutId) {
+        DriverRef pd = Driver_GetChildAt((DriverRef)self, port);
+
+        *pOutId = (pd) ? Driver_GetId(pd) : 0;
+    }
     mtx_unlock(&self->io_mtx);
 
     return EOK;
@@ -105,14 +112,35 @@ static errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull s
     return err;
 }
 
+static errno_t GamePortController_GetPortForDriver(GamePortControllerRef _Nonnull self, did_t id, int* _Nonnull pOutPort)
+{
+    int port = -1;
+
+    mtx_lock(&self->io_mtx);
+    for (int i = 0; i < GP_PORT_COUNT; i++) {
+        DriverRef dp = Driver_GetChildAt((DriverRef)self, i);
+
+        if (dp && Driver_GetId(dp) == id) {
+            port = i;
+            break;
+        }
+    }
+
+    *pOutPort = port;
+    mtx_unlock(&self->io_mtx);
+    
+    return EOK;
+}
+
 errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
 {
     switch (cmd) {
         case kGamePortCommand_GetPortDevice: {
             const int port = va_arg(ap, int);
-            int* itype = va_arg(ap, int*);
+            int* ptype = va_arg(ap, int*);
+            did_t* pdid = va_arg(ap, did_t*);
 
-            return GamePortController_GetPortDevice(self, port, itype);
+            return GamePortController_GetPortDevice(self, port, ptype, pdid);
         }
 
         case kGamePortCommand_SetPortDevice: {
@@ -120,6 +148,13 @@ errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelR
             const int itype = va_arg(ap, int);
 
             return GamePortController_SetPortDevice(self, port, itype);
+        }
+
+        case kGamePortCommand_GetPortForDriver: {
+            const did_t did = va_arg(ap, did_t);
+            int* pport = va_arg(ap, int*);
+
+            return GamePortController_GetPortForDriver(self, did, pport);
         }
 
         default:
