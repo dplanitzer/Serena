@@ -113,7 +113,7 @@ static errno_t FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Lock
 
         if (dp) {
             if ((err = FloppyDriver_Create(self, i, ds, dp, self->busDirId, &drive)) == EOK) {
-                err = Driver_StartAdoptChild((DriverRef)self, (DriverRef)drive);
+                err = Driver_AdoptStartChild((DriverRef)self, (DriverRef)drive);
                 if (err != EOK) {
                     Object_Release(drive);
                 }

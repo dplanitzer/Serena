@@ -519,9 +519,9 @@ extern errno_t Driver_AddChild(DriverRef _Nonnull self, DriverRef _Nonnull child
 // reference. Call this function from a onStart() override.
 extern errno_t Driver_AdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child);
 
-// Starts the given driver instance and adopts the driver instance as a child if
-// the start has been successful.
-extern errno_t Driver_StartAdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child);
+// Adopts the given driver instance as a child of the receiver and then starts
+// it.
+extern errno_t Driver_AdoptStartChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child);
 
 // Removes the given driver from the receiver. The given driver has to be a child
 // of the receiver. Call this function from a onStop() override.
@@ -548,15 +548,15 @@ extern DriverRef _Nullable Driver_AdoptChildAt(DriverRef _Nonnull self, size_t s
 extern DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId);
 
 
-// Starts the given driver instance and adopts the driver instance as a child if
-// the start has been successful. The child is then assigned to the given bus
-// slot id. This function requires that bus slot 'slotId' is empty.
-extern errno_t Driver_StartAdoptChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nonnull _Consuming child);
+// Adopts the given driver instance as a child and then starts the child. The
+// child is assigned to the given bus slot id. This function requires that bus
+// slot 'slotId' is empty.
+extern errno_t Driver_AdoptStartChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nonnull _Consuming child);
 
 // Stops the child at the bus slot id 'slotId' with stop reason 'reason'. Does
 // nothing if the slot contains no driver. The child is stopped, then released
 // and removed from the child list.
-extern void Driver_StopChildAt(DriverRef _Nonnull self, size_t slotId, int stopReason);
+extern void Driver_StopRemoveChildAt(DriverRef _Nonnull self, size_t slotId, int stopReason);
 
 
 // Returns the data associated with the bus slot id 'slotId'. 0 is returned if

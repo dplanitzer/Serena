@@ -33,31 +33,31 @@ errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked s
     // Graphics Driver
     GraphicsDriverRef fb = NULL;
     try(GraphicsDriver_Create(hwDirId, &fb));
-    try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)fb));
+    try(Driver_AdoptStartChild((DriverRef)self, (DriverRef)fb));
 
 
     // Keyboard
     DriverRef kb;
     try(KeyboardDriver_Create(hwDirId, &kb));
-    try(Driver_StartAdoptChild((DriverRef)self, kb));
+    try(Driver_AdoptStartChild((DriverRef)self, kb));
 
 
     // GamePort
     GamePortControllerRef gpc = NULL;
     try(GamePortController_Create(hwDirId, &gpc));
-    try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)gpc));
+    try(Driver_AdoptStartChild((DriverRef)self, (DriverRef)gpc));
 
 
     // Floppy Bus
     FloppyControllerRef fdc = NULL;
     try(FloppyController_Create(hwDirId, &fdc));
-    try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)fdc));
+    try(Driver_AdoptStartChild((DriverRef)self, (DriverRef)fdc));
 
 
     // Zorro Bus
     ZorroControllerRef zorroController = NULL;
     try(ZorroController_Create(hwDirId, &zorroController));
-    try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)zorroController));
+    try(Driver_AdoptStartChild((DriverRef)self, (DriverRef)zorroController));
 
 catch:
     return err;

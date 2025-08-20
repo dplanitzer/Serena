@@ -473,21 +473,8 @@ errno_t Driver_AdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming
     return (hasSlot) ? EOK : ENXIO;
 }
 
-// Starts the given driver instance and adopts the driver instance as a child if
-// the start has been successful.
-errno_t Driver_StartAdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child)
-{
-    decl_try_err();
-
-    if ((err = Driver_Start(child)) == EOK) {
-        err = Driver_AdoptChild(self, child);
-    }
-    return err;
-}
-
-// Removes the given driver from the receiver. The given driver has to be a child
-// of the receiver.
-void Driver_RemoveChild(DriverRef _Nonnull self, DriverRef _Nonnull child)
+// Removes the driver 'child' and optionally releases it
+void _remove_child(DriverRef _Nonnull self, DriverRef _Nonnull child, bool shouldRelease)
 {
     int16_t idx = -1;
 
@@ -500,10 +487,33 @@ void Driver_RemoveChild(DriverRef _Nonnull self, DriverRef _Nonnull child)
     }
 
     if (idx >= 0) {
-        Object_Release(self->child[idx].driver);
+        if (shouldRelease) {
+            Object_Release(self->child[idx].driver);
+        }
         self->child[idx].driver = NULL;
     }
     mtx_unlock(&self->childMtx);
+}
+
+errno_t Driver_AdoptStartChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child)
+{
+    decl_try_err();
+
+    err = Driver_AdoptChild(self, child);
+    if (err == EOK) {
+        err = Driver_Start(child);
+        if (err != EOK) {
+            _remove_child(self, child, false);
+        }
+    }
+    return err;
+}
+
+// Removes the given driver from the receiver. The given driver has to be a child
+// of the receiver.
+void Driver_RemoveChild(DriverRef _Nonnull self, DriverRef _Nonnull child)
+{
+    _remove_child(self, child, true);
 }
 
 DriverRef _Nullable Driver_RemoveChildAt(DriverRef _Nonnull self, size_t slotId)
@@ -553,25 +563,26 @@ DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId)
 }
 
 
-errno_t Driver_StartAdoptChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nonnull _Consuming child)
+errno_t Driver_AdoptStartChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nonnull _Consuming child)
 {
     decl_try_err();
 
+    Driver_AdoptChildAt(self, slotId, child);
     err = Driver_Start(child);
-    if (err == EOK) {
-        Driver_AdoptChildAt(self, slotId, child);
+    if (err != EOK) {
+        Driver_RemoveChildAt(self, slotId);
     }
 
     return err;
 }
 
-void Driver_StopChildAt(DriverRef _Nonnull self, size_t slotId, int stopReason)
+void Driver_StopRemoveChildAt(DriverRef _Nonnull self, size_t slotId, int stopReason)
 {
-    DriverRef child = Driver_RemoveChildAt(self, slotId);
+    DriverRef child = Driver_GetChildAt(self, slotId);
 
     if (child) {
         Driver_Stop(self, stopReason);
-        Object_Release(child);  // balances the retain() from the addChild()
+        Driver_RemoveChild(self, child);
     }
 }
 
