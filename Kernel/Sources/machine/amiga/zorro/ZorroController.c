@@ -21,7 +21,7 @@ IOCATS_DEF(g_cats, IOBUS_ZORRO);
 
 errno_t ZorroController_Create(CatalogId parentDirId, ZorroControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(ZorroController), g_cats, 0, parentDirId, (DriverRef*)pOutSelf);
+    return Driver_Create(class(ZorroController), kDriver_IsBus, NULL, parentDirId, g_cats, (DriverRef*)pOutSelf);
 }
 
 static errno_t _auto_config_bus(ZorroControllerRef _Nonnull _Locked self)

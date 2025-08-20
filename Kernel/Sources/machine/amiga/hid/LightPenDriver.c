@@ -37,7 +37,7 @@ errno_t LightPenDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullab
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(LightPenDriver), g_cats, kDriver_Exclusive, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(LightPenDriver), kDriver_Exclusive, NULL, parentDirId, g_cats, (DriverRef*)&self));
     
     CHIPSET_BASE_DECL(cp);
 

@@ -37,7 +37,7 @@ errno_t DigitalJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef 
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(DigitalJoystickDriver), g_cats_digjoy, kDriver_Exclusive, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(DigitalJoystickDriver), kDriver_Exclusive, NULL, parentDirId, g_cats_digjoy, (DriverRef*)&self));
     
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);
@@ -179,7 +179,7 @@ errno_t AnalogJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(AnalogJoystickDriver), g_cats_anajoy, kDriver_Exclusive, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(AnalogJoystickDriver), kDriver_Exclusive, NULL, parentDirId, g_cats_anajoy, (DriverRef*)&self));
 
     CHIPSET_BASE_DECL(cp);
 

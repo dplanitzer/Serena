@@ -18,7 +18,7 @@ errno_t ZRamDriver_Create(ZorroDriverRef _Nonnull zdp, DriverRef _Nullable * _No
     decl_try_err();
     ZRamDriverRef self;
 
-    err = Driver_Create(class(ZRamDriver), g_cats, 0, Driver_GetParentDirectoryId(zdp), (DriverRef*)&self);
+    err = Driver_Create(class(ZRamDriver), 0, NULL, Driver_GetParentDirectoryId(zdp), g_cats, (DriverRef*)&self);
     if (err == EOK) {
         self->card = zdp;
     }

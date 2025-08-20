@@ -26,6 +26,7 @@ struct drv_child;
 // behavior from the Driver class.
 enum {
     kDriver_Exclusive = 1,  // At most one I/O channel can be open at any given time. Attempts to open more will generate a EBUSY error
+    kDriver_IsBus = 2,      // This driver manages a hardware or virtual bus
 };
 
 
@@ -285,6 +286,7 @@ open_class(Driver, Handler,
     mtx_t                   mtx;    // lifecycle management lock
     cnd_t                   cnd;
     did_t                   id;     // unique id assigned at publish time
+    DriverRef _Nullable     parent; // weak ref to the parent driver; constant over the lifetime of the driver
     const iocat_t* _Nonnull cats;   // categories the driver conforms to.
     struct drv_child* _Nullable child;
     mtx_t                   childMtx;
@@ -422,16 +424,25 @@ extern bool Driver_MatchesCategory(DriverRef _Nonnull self, iocat_t cat);
 extern bool Driver_MatchesAnyCategory(DriverRef _Nonnull self, const iocat_t* _Nonnull cats);
 
 
+// Returns the immediate parent driver of the receiver.
+#define Driver_GetParent(__self) \
+(__self)->parent
+
+#define Driver_GetParentAs(__self, __class) \
+((__class##Ref)((__self)->parent))
+
+
 //
 // Subclassers
 //
 
 // Creates a new driver instance.
 // \param pClass the concrete driver class
-// \param cats the categories the driver conforms to. Note that the driver stores the provided reference. It does not copy the categories array. The array must be terminated with a IOCAT_END entry
 // \param options options specifying various default behaviors
-// \param parentDirectoryId the parent directory id for the bus directory inside of which this driver should place it's driver entry
-extern errno_t Driver_Create(Class* _Nonnull pClass, const iocat_t* _Nonnull cats, unsigned options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf);
+// \param parent the immediate parent driver. This may be a bus driver or an intermediate between the bus driver and this driver
+// \param busDirId the directory id of the bus directory inside of which this driver should place it's driver entry
+// \param cats the categories the driver conforms to. Note that the driver stores the provided reference. It does not copy the categories array. The array must be terminated with a IOCAT_END entry
+extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, DriverRef _Nullable parent, CatalogId busDirId, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf);
 
 
 // Returns true if the driver is in active state; false otherwise

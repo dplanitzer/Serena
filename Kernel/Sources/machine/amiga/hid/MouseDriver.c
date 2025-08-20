@@ -34,7 +34,7 @@ errno_t MouseDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable 
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(MouseDriver), g_cats, kDriver_Exclusive, parentDirId, (DriverRef*)&self));
+    try(Driver_Create(class(MouseDriver), kDriver_Exclusive, NULL, parentDirId, g_cats, (DriverRef*)&self));
 
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);

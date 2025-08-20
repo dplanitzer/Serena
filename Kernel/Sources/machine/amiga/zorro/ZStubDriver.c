@@ -16,7 +16,7 @@ errno_t ZStubDriver_Create(ZorroDriverRef _Nonnull zdp, DriverRef _Nullable * _N
     decl_try_err();
     ZStubDriverRef self;
 
-    err = Driver_Create(class(ZStubDriver), g_cats, 0, Driver_GetParentDirectoryId(zdp), (DriverRef*)&self);
+    err = Driver_Create(class(ZStubDriver), 0, NULL, Driver_GetParentDirectoryId(zdp), g_cats, (DriverRef*)&self);
     if (err == EOK) {
         self->card = zdp;
     }

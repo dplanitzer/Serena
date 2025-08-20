@@ -18,7 +18,7 @@ typedef struct drv_child {
 } drv_child_t;
 
 
-errno_t Driver_Create(Class* _Nonnull pClass, const iocat_t* _Nonnull cats, unsigned options, CatalogId parentDirectoryId, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, DriverRef _Nullable parent, CatalogId busDirId, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DriverRef self = NULL;
@@ -29,10 +29,11 @@ errno_t Driver_Create(Class* _Nonnull pClass, const iocat_t* _Nonnull cats, unsi
         cnd_init(&self->cnd);
         mtx_init(&self->childMtx);
 
+        self->parent = parent;
         self->cats = cats;
         self->options = options;
         self->state = kDriverState_Inactive;
-        self->parentDirectoryId = parentDirectoryId;
+        self->parentDirectoryId = busDirId;
     }
 
     *pOutSelf = self;
