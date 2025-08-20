@@ -613,11 +613,11 @@ static void _matching_driver(HIDManagerRef _Nonnull self, DriverRef _Nonnull dri
     mtx_lock(&self->mtx);
 
     switch (action) {
-        case IOACTION_PUBLISH:
+        case IONOTIFY_STARTED:
             _connect_driver(self, driver);
             break;
 
-        case IOACTION_UNPUBLISH:
+        case IONOTIFY_STOPPING:
             _disconnect_driver(self, driver);
             break;
 

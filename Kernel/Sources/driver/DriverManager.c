@@ -120,17 +120,6 @@ DriverRef _Nullable DriverManager_CopyDriverForId(DriverManagerRef _Nonnull self
     return dp;
 }
 
-static void _do_match_callouts(DriverManagerRef _Nonnull _Locked self, HandlerRef _Nonnull driver, int action)
-{
-    SList_ForEach(&self->matchers, SListNode,
-        matcher_t pm = (matcher_t)pCurNode;
-            
-        if (instanceof(driver, Driver) && Driver_MatchesAnyCategory((DriverRef)driver, pm->cats)) {
-            pm->func(pm->arg, driver, action);
-        }
-    );
-}
-
 errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId)
 {
     decl_try_err();
@@ -149,8 +138,6 @@ errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry*
     if (pOutId) {
         *pOutId = ep->id;
     }
-
-    _do_match_callouts(self, de->driver, IOACTION_PUBLISH);
 
 catch:
     mtx_unlock(&self->mtx);
@@ -181,8 +168,6 @@ void DriverManager_Unpublish(DriverManagerRef _Nonnull self, did_t id)
     if (the_ep->driver) {
         driver = the_ep->driver;
     }
-
-    _do_match_callouts(self, driver, IOACTION_UNPUBLISH);
 
     Catalog_Unpublish(gDriverCatalog, the_ep->dirId, id);
     SList_Remove(the_chain, &prev_ep->qe, &the_ep->qe);
@@ -270,7 +255,7 @@ errno_t DriverManager_StartMatching(DriverManagerRef _Nonnull self, const iocat_
             dentry_t dep = (dentry_t)pCurNode;
             
             if (instanceof(dep->driver, Driver) && Driver_MatchesAnyCategory((DriverRef)dep->driver, pm->cats)) {
-                f(arg, dep->driver, IOACTION_PUBLISH);
+                f(arg, dep->driver, IONOTIFY_STARTED);
             }
         );
     }
@@ -296,6 +281,29 @@ void DriverManager_StopMatching(DriverManagerRef _Nonnull self, drv_match_func_t
         pprev = pCurNode;
     );
     mtx_unlock(&self->mtx);
+}
+
+static void _do_match_callouts(DriverManagerRef _Nonnull self, HandlerRef _Nonnull driver, int notify)
+{
+    mtx_lock(&self->mtx);
+    SList_ForEach(&self->matchers, SListNode,
+        matcher_t pm = (matcher_t)pCurNode;
+            
+        if (instanceof(driver, Driver) && Driver_MatchesAnyCategory((DriverRef)driver, pm->cats)) {
+            pm->func(pm->arg, driver, notify);
+        }
+    );
+    mtx_unlock(&self->mtx);
+}
+
+void DriverManager_OnDriverStarted(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver)
+{
+    _do_match_callouts(self, (HandlerRef)driver, IONOTIFY_STARTED);
+}
+
+void DriverManager_OnDriverStopping(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver)
+{
+    _do_match_callouts(self, (HandlerRef)driver, IONOTIFY_STOPPING);
 }
 
 

@@ -80,6 +80,7 @@ void Driver_deinit(DriverRef _Nonnull self)
 errno_t Driver_Start(DriverRef _Nonnull self)
 {
     decl_try_err();
+    bool hasStarted = false;
 
     mtx_lock(&self->mtx);
     switch (self->state) {
@@ -94,10 +95,17 @@ errno_t Driver_Start(DriverRef _Nonnull self)
             
         default:
             self->state = kDriverState_Active;
-            Driver_OnStart(self);
+            err = Driver_OnStart(self);
+            if (err == EOK) {
+                hasStarted = true;
+            }
             break;
     }
     mtx_unlock(&self->mtx);
+
+    if (hasStarted) {
+        DriverManager_OnDriverStarted(gDriverManager, self);
+    }
 
     return err;
 }
@@ -130,6 +138,7 @@ void Driver_Stop(DriverRef _Nonnull self, int reason)
         return;
     }
 
+    DriverManager_OnDriverStopping(gDriverManager, self);
 
     // The list of child drivers is now frozen and can not change anymore.
     // Tell all our child drivers to stop.
