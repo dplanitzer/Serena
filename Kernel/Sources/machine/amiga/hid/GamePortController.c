@@ -10,6 +10,7 @@
 #include "JoystickDriver.h"
 #include "LightPenDriver.h"
 #include "MouseDriver.h"
+#include "PaddleDriver.h"
 #include <driver/DriverManager.h>
 
 IOCATS_DEF(g_cats, IOBUS_GP);
@@ -177,10 +178,10 @@ errno_t GamePortController_createInputDriver(GamePortControllerRef _Nonnull self
             return LightPenDriver_Create(self->busDirId, port, pOutDriver);
 
         case IOGP_ANALOG_JOYSTICK:
-            return AnalogJoystickDriver_Create(self->busDirId, port, pOutDriver);
+            return PaddleDriver_Create(self->busDirId, port, pOutDriver);
 
         case IOGP_DIGITAL_JOYSTICK:
-            return DigitalJoystickDriver_Create(self->busDirId, port, pOutDriver);
+            return JoystickDriver_Create(self->busDirId, port, pOutDriver);
 
         default:
             return EINVAL;

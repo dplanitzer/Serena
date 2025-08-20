@@ -12,13 +12,8 @@
 #include <driver/hid/InputDriver.h>
 
 
-final_class(DigitalJoystickDriver, InputDriver);
+final_class(JoystickDriver, InputDriver);
 
-extern errno_t DigitalJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf);
-
-
-final_class(AnalogJoystickDriver, InputDriver);
-
-extern errno_t AnalogJoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t JoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* JoystickDriver_h */
