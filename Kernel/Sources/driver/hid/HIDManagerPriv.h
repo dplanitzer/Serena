@@ -83,12 +83,14 @@ typedef struct HIDManager {
     struct waitqueue            reportsWaitQueue;
     sigset_t                    reportSigs;
     HIDReport                   report;
+    struct timespec             now;        // Current time from the viewpoint of the reports collector
     irq_handler_t               vblHandler;
 
 
     // Event queue
     cnd_t                       evqCnd;
     HIDEventSynth               evqSynth;
+    HIDSynthResult              evqSynthResult;
     uint16_t                    evqCapacity;
     uint16_t                    evqCapacityMask;
     uint16_t                    evqReadIdx;

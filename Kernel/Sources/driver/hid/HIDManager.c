@@ -328,9 +328,10 @@ static void _post_event(HIDManagerRef _Nonnull _Locked self, HIDEventType type, 
 {
     if (EVQ_WRITABLE_COUNT() > 0) {
         HIDEvent* pe = &self->evqQueue[self->evqWriteIdx++ & self->evqCapacityMask];
+
         pe->type = type;
         pe->driverId = driverId;
-        clock_gettime(g_mono_clock, &pe->eventTime);
+        pe->eventTime = self->now;
         pe->data = *pEventData;
     
         cnd_broadcast(&self->evqCnd);
@@ -343,6 +344,7 @@ static void _post_event(HIDManagerRef _Nonnull _Locked self, HIDEventType type, 
 void HIDManager_PostEvent(HIDManagerRef _Nonnull self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData)
 {
     mtx_lock(&self->mtx);
+    clock_gettime(g_mono_clock, &self->now);
     _post_event(self, type, driverId, pEventData);
     mtx_unlock(&self->mtx);
 }
@@ -354,7 +356,6 @@ errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timesp
 {
     decl_try_err();
     struct timespec deadline;
-    HIDSynthResult ktr;
 
     mtx_lock(&self->mtx);
     for (;;) {
@@ -365,7 +366,7 @@ errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timesp
         }
 
 
-        const HIDSynthAction t = HIDEventSynth_Tick(&self->evqSynth, queue_evt, &ktr);
+        const HIDSynthAction t = HIDEventSynth_Tick(&self->evqSynth, queue_evt, &self->evqSynthResult);
         if (t == HIDSynth_UseEvent) {
             *evt = *queue_evt;
             self->evqReadIdx++;
@@ -373,9 +374,9 @@ errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timesp
         }
         if (t == HIDSynth_MakeRepeat) {
             evt->type = kHIDEventType_KeyDown;
-            evt->eventTime = ktr.deadline;
-            evt->data.key.flags = ktr.flags;
-            evt->data.key.keyCode = ktr.keyCode;
+            evt->eventTime = self->evqSynthResult.deadline;
+            evt->data.key.flags = self->evqSynthResult.flags;
+            evt->data.key.keyCode = self->evqSynthResult.keyCode;
             evt->data.key.isRepeat = true;
             break;
         }
@@ -384,7 +385,7 @@ errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timesp
             deadline = *timeout;
         }
         else {
-            deadline = (timespec_lt(&ktr.deadline, timeout)) ? ktr.deadline : *timeout;
+            deadline = (timespec_lt(&self->evqSynthResult.deadline, timeout)) ? self->evqSynthResult.deadline : *timeout;
         }
         if (deadline.tv_sec == 0 && deadline.tv_nsec == 0) {
             err = EAGAIN;
@@ -839,6 +840,8 @@ static void _reports_collector_loop(HIDManagerRef _Nonnull self)
 
     for (;;) {
         self->report.type = kHIDReportType_Null;
+        clock_gettime(g_mono_clock, &self->now);
+
 
         switch (signo) {
             case SIGKEY:
