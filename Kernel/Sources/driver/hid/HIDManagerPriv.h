@@ -10,11 +10,13 @@
 #define HIDManagerPriv_h
 
 #include "HIDManager.h"
-#include "HIDEventQueue.h"
+#include "HIDEventSynth.h"
 #include "InputDriver.h"
 #include <kpi/hidkeycodes.h>
+#include <machine/clock.h>
 #include <machine/amiga/graphics/GraphicsDriver.h>
 #include <machine/irq.h>
+#include <sched/cnd.h>
 #include <sched/mtx.h>
 #include <sched/vcpu.h>
 
@@ -85,7 +87,14 @@ typedef struct HIDManager {
 
 
     // Event queue
-    HIDEventQueueRef _Nonnull   eventQueue;
+    cnd_t                       evqCnd;
+    HIDEventSynth               evqSynth;
+    uint16_t                    evqCapacity;
+    uint16_t                    evqCapacityMask;
+    uint16_t                    evqReadIdx;
+    uint16_t                    evqWriteIdx;
+    size_t                      evqOverflowCount;
+    HIDEvent* _Nonnull          evqQueue;
 
 
     // Keyboard Configuration
@@ -126,5 +135,15 @@ typedef struct HIDManager {
     size_t                      gamepadCount;
     gamepad_state_t             gamepad[MAX_GAME_PADS];
 } HIDManager;
+
+
+// Returns the number of events stored in the ring queue - aka the number of
+// events that can be read from the queue.
+#define EVQ_READABLE_COUNT() \
+(self->evqWriteIdx - self->evqReadIdx)
+
+// Returns the number of events that can be written to the queue.
+#define EVQ_WRITABLE_COUNT() \
+(self->evqCapacity - (self->evqWriteIdx - self->evqReadIdx))
 
 #endif /* HIDManagerPriv_h */

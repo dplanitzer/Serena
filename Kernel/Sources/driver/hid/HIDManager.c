@@ -26,7 +26,7 @@ HIDManagerRef _Nonnull gHIDManager;
 errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    HIDManagerRef self;
+    HIDManagerRef self = NULL;
     
     try(kalloc_cleared(sizeof(HIDManager), (void**)&self));
 
@@ -42,7 +42,17 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
 
 
     // Create the HID event queue
-    try(HIDEventQueue_Create(REPORT_QUEUE_MAX_EVENTS, &self->eventQueue));
+    const size_t powOf2Capacity = siz_pow2_ceil(REPORT_QUEUE_MAX_EVENTS);
+    
+    try(kalloc_cleared(powOf2Capacity * sizeof(HIDEvent), (void**)&self->evqQueue));
+    self->evqCapacity = powOf2Capacity;
+    self->evqCapacityMask = powOf2Capacity - 1;
+    self->evqReadIdx = 0;
+    self->evqWriteIdx = 0;
+    self->evqOverflowCount = 0;
+    HIDEventSynth_Init(&self->evqSynth);
+    cnd_init(&self->evqCnd);
+
 
     self->vblHandler.id = IRQ_ID_VBLANK;
     self->vblHandler.priority = IRQ_PRI_HIGHEST + 10;
@@ -51,12 +61,8 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
     self->vblHandler.arg = self;
 
 
-    *pOutSelf = self;
-    return EOK;
-    
 catch:
-    Object_Release(self);
-    *pOutSelf = NULL;
+    *pOutSelf = self;
     return err;
 }
 
@@ -93,14 +99,20 @@ catch:
 void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay)
 {
     mtx_lock(&self->mtx);
-    HIDEventQueue_GetKeyRepeatDelays(self->eventQueue, pInitialDelay, pRepeatDelay);
+    if (pInitialDelay) {
+        *pInitialDelay = self->evqSynth.initialKeyRepeatDelay;
+    }
+    if (pRepeatDelay) {
+        *pRepeatDelay = self->evqSynth.keyRepeatDelay;
+    }
     mtx_unlock(&self->mtx);
 }
 
 void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
 {
     mtx_lock(&self->mtx);
-    HIDEventQueue_SetKeyRepeatDelays(self->eventQueue, initialDelay, repeatDelay);
+    self->evqSynth.initialKeyRepeatDelay = *initialDelay;
+    self->evqSynth.keyRepeatDelay = *repeatDelay;
     mtx_unlock(&self->mtx);
 }
 
@@ -297,15 +309,106 @@ uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Getting Events
+// MARK: Event Queue
 ////////////////////////////////////////////////////////////////////////////////
+
+// Removes all events from the queue.
+void HIDManager_FlushEvents(HIDManagerRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    self->evqReadIdx = 0;
+    self->evqWriteIdx = 0;
+    mtx_unlock(&self->mtx);
+}
+
+// Posts the given event to the queue. This event replaces the oldest event
+// in the queue if the queue is full. This function must be called from the
+// interrupt context.
+static void _post_event(HIDManagerRef _Nonnull _Locked self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData)
+{
+    if (EVQ_WRITABLE_COUNT() > 0) {
+        HIDEvent* pe = &self->evqQueue[self->evqWriteIdx++ & self->evqCapacityMask];
+        pe->type = type;
+        pe->driverId = driverId;
+        clock_gettime(g_mono_clock, &pe->eventTime);
+        pe->data = *pEventData;
+    
+        cnd_broadcast(&self->evqCnd);
+    }
+    else {
+        self->evqOverflowCount++;
+    }
+}
+
+void HIDManager_PostEvent(HIDManagerRef _Nonnull self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData)
+{
+    mtx_lock(&self->mtx);
+    _post_event(self, type, driverId, pEventData);
+    mtx_unlock(&self->mtx);
+}
 
 // Dequeues and returns the next available event or ETIMEDOUT if no event is
 // available and a timeout > 0 was specified. Returns EAGAIN if no event is
 // available and the timeout is 0.
 errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timespec* _Nonnull timeout, HIDEvent* _Nonnull evt)
 {
-    return HIDEventQueue_Get(self->eventQueue, timeout, evt);
+    decl_try_err();
+    struct timespec deadline;
+    HIDSynthResult ktr;
+
+    mtx_lock(&self->mtx);
+    for (;;) {
+        const HIDEvent* queue_evt = NULL;
+
+        if (EVQ_READABLE_COUNT() > 0) {
+            queue_evt = &self->evqQueue[self->evqReadIdx & self->evqCapacityMask];
+        }
+
+
+        const HIDSynthAction t = HIDEventSynth_Tick(&self->evqSynth, queue_evt, &ktr);
+        if (t == HIDSynth_UseEvent) {
+            *evt = *queue_evt;
+            self->evqReadIdx++;
+            break;
+        }
+        if (t == HIDSynth_MakeRepeat) {
+            evt->type = kHIDEventType_KeyDown;
+            evt->eventTime = ktr.deadline;
+            evt->data.key.flags = ktr.flags;
+            evt->data.key.keyCode = ktr.keyCode;
+            evt->data.key.isRepeat = true;
+            break;
+        }
+
+        if (t == HIDSynth_Wait) {
+            deadline = *timeout;
+        }
+        else {
+            deadline = (timespec_lt(&ktr.deadline, timeout)) ? ktr.deadline : *timeout;
+        }
+        if (deadline.tv_sec == 0 && deadline.tv_nsec == 0) {
+            err = EAGAIN;
+            break;
+        }
+
+
+        err = cnd_timedwait(&self->evqCnd, &self->mtx, &deadline);
+        if (err == ETIMEDOUT) {
+            struct timespec now;
+
+            clock_gettime(g_mono_clock, &now);
+            if (timespec_ge(&now, timeout)) {
+                break;
+            }
+            err = EOK;
+        }
+        else if (err != EOK) {
+            break;
+        }
+    }
+    mtx_unlock(&self->mtx);
+
+    return err;
 }
 
 
@@ -366,7 +469,7 @@ static void _post_key_event(HIDManagerRef _Nonnull _Locked self, const HIDReport
     evt.key.keyCode = keyCode;
     evt.key.isRepeat = false;
 
-    HIDEventQueue_Put(self->eventQueue, evtType, 0, &evt);
+    _post_event(self, evtType, 0, &evt);
 }
 
 // Posts suitable mouse events to the event queue.
@@ -415,7 +518,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
                 evt.mouse.flags = self->modifierFlags;
                 evt.mouse.x = self->mouse.x;
                 evt.mouse.y = self->mouse.y;
-                HIDEventQueue_Put(self->eventQueue, evtType, 0, &evt);
+                _post_event(self, evtType, 0, &evt);
             }
         }
     }
@@ -425,7 +528,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
         evt.mouseMoved.flags = self->modifierFlags;
         evt.mouseMoved.x = self->mouse.x;
         evt.mouseMoved.y = self->mouse.y;
-        HIDEventQueue_Put(self->eventQueue, kHIDEventType_MouseMoved, 0, &evt);
+        _post_event(self, kHIDEventType_MouseMoved, 0, &evt);
     }
 }
 
@@ -457,7 +560,7 @@ static void _post_gamepad_event(HIDManagerRef _Nonnull _Locked self, gamepad_sta
                 evt.joystick.flags = self->modifierFlags;
                 evt.joystick.dx = report->data.joy.x;
                 evt.joystick.dy = report->data.joy.y;
-                HIDEventQueue_Put(self->eventQueue, evtType, did, &evt);
+                _post_event(self, evtType, did, &evt);
             }
         }
     }
@@ -472,7 +575,7 @@ static void _post_gamepad_event(HIDManagerRef _Nonnull _Locked self, gamepad_sta
 
         evt.joystickMotion.dx = report->data.joy.x;
         evt.joystickMotion.dy = report->data.joy.y;
-        HIDEventQueue_Put(self->eventQueue, kHIDEventType_JoystickMotion, did, &evt);
+        _post_event(self, kHIDEventType_JoystickMotion, did, &evt);
     }
 
     gp->x = report->data.joy.x;

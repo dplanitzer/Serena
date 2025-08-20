@@ -44,6 +44,8 @@ extern void HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self, int* 
 extern uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self);
 
 
+// Event queue
 extern errno_t HIDManager_GetNextEvent(HIDManagerRef _Nonnull self, const struct timespec* _Nonnull timeout, HIDEvent* _Nonnull evt);
+extern void HIDManager_PostEvent(HIDManagerRef _Nonnull self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData);
 
 #endif /* HIDManager_h */
