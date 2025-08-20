@@ -855,13 +855,24 @@ void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool ena
 
 errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat)
 {
-    if (width != kMouseCursor_Width || height != kMouseCursor_Height || pixelFormat != kMouseCursor_PixelFormat) {
+    if ((width > 0 && height > 0) && (width != kMouseCursor_Width || height != kMouseCursor_Height || pixelFormat != kMouseCursor_PixelFormat)) {
         return ENOTSUP;
     }
 
     mtx_lock(&self->io_mtx);
-    Sprite_SetPixels(self->mouseCursor, planes);
-    self->flags.isNewCopperProgNeeded = 1;
+    const unsigned oldMouseCursorEnabled = self->flags.mouseCursorEnabled;
+
+    if (width > 0 && height > 0) {
+        Sprite_SetPixels(self->mouseCursor, planes);
+        self->flags.mouseCursorEnabled = 1;
+    }
+    else {
+        self->flags.mouseCursorEnabled = 0;
+    }
+
+    if (oldMouseCursorEnabled != self->flags.mouseCursorEnabled) {
+        self->flags.isNewCopperProgNeeded = 1;
+    }
     mtx_unlock(&self->io_mtx);
     return EOK;
 }

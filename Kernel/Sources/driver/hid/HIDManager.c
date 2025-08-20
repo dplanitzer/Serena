@@ -184,6 +184,7 @@ errno_t HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const uint16_t* _
         err = GraphicsDriver_SetMouseCursor(self->fb, planes, width, height, pixelFormat);
         
         if (err == EOK) {
+            GraphicsDriver_UpdateDisplay(self->fb);
             self->hotSpotX = __max(__min(hotSpotX, INT16_MAX), INT16_MIN);
             self->hotSpotY = __max(__min(hotSpotY, INT16_MAX), INT16_MIN);
         }
