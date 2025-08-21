@@ -25,7 +25,7 @@ errno_t GamePortController_Create(GamePortControllerRef _Nullable * _Nonnull pOu
     decl_try_err();
     GamePortControllerRef self;
 
-    try(Driver_Create(class(GamePortController), kDriver_IsBus | kDriver_Exclusive, 0, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(GamePortController), kDriver_IsBus | kDriver_Exclusive, g_cats, (DriverRef*)&self));
     try(Driver_SetMaxChildCount((DriverRef)self, GP_PORT_COUNT));
 
     mtx_init(&self->io_mtx);

@@ -46,7 +46,7 @@ errno_t KeyboardDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     KeyboardDriverRef self;
     
-    try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, 0, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, g_cats, (DriverRef*)&self));
     try(RingBuffer_Init(&self->keyQueue, 16));
 
     *pOutSelf = (DriverRef)self;

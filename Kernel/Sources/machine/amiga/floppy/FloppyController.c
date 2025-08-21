@@ -69,7 +69,7 @@ errno_t FloppyController_Create(FloppyControllerRef _Nullable * _Nonnull pOutSel
     decl_try_err();
     FloppyControllerRef self;
     
-    try(Driver_Create(class(FloppyController), kDriver_IsBus, 0, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(FloppyController), kDriver_IsBus, g_cats, (DriverRef*)&self));
     try(Driver_SetMaxChildCount((DriverRef)self, MAX_FLOPPY_DISK_DRIVES));
 
     mtx_init(&self->mtx);

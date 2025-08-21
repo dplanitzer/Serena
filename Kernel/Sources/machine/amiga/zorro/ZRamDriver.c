@@ -15,7 +15,7 @@ IOCATS_DEF(g_cats, IOMEM_RAM);
 
 errno_t ZRamDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(ZRamDriver), 0, 0, g_cats, pOutSelf);
+    return Driver_Create(class(ZRamDriver), 0, g_cats, pOutSelf);
 }
 
 errno_t ZRamDriver_onStart(ZRamDriverRef _Nonnull _Locked self)

@@ -39,7 +39,7 @@ errno_t RomDisk_Create(const char* _Nonnull name, const void* _Nonnull pImage, s
     drvi.platter = kPlatter_None;
     drvi.properties = kDrive_IsReadOnly | kDrive_Fixed;
 
-    try(DiskDriver_Create(class(RomDisk), 0, 0, g_cats, &drvi, (DriverRef*)&self));
+    try(DiskDriver_Create(class(RomDisk), 0, g_cats, &drvi, (DriverRef*)&self));
     self->diskImage = pImage;
     self->sectorCount = sectorCount;
     self->sectorShift = siz_log2(sectorSize);

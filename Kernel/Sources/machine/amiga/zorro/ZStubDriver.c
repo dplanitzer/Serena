@@ -13,7 +13,7 @@ IOCATS_DEF(g_cats, IOUNS_UNKNOWN);
 
 errno_t ZStubDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(ZStubDriver), 0, 0, g_cats, pOutSelf);
+    return Driver_Create(class(ZStubDriver), 0, g_cats, pOutSelf);
 }
 
 errno_t ZStubDriver_onStart(ZStubDriverRef _Nonnull _Locked self)

@@ -329,8 +329,7 @@ extern sno_t DiskDriver_ChsToLsa(DiskDriverRef _Locked _Nonnull self, const chs_
 
 // Creates a disk driver instance. This function should be called from DiskDrive
 // subclass constructors.
-// 'options' specifies various behaviors of the disk driver. 'parent' is a
-// reference to the bus driver that controls the disk driver.
-extern errno_t DiskDriver_Create(Class* _Nonnull pClass, unsigned options, CatalogId busDirId, const iocat_t* _Nonnull cats, const drive_info_t* _Nonnull driveInfo, DriverRef _Nullable * _Nonnull pOutSelf);
+// \param 'options' specifies various behaviors of the disk driver.
+extern errno_t DiskDriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, const drive_info_t* _Nonnull driveInfo, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* DiskDriver_h */

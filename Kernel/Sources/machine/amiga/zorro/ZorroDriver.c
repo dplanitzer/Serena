@@ -19,7 +19,7 @@ errno_t ZorroDriver_Create(const zorro_conf_t* _Nonnull config, ZorroDriverRef _
     decl_try_err();
     ZorroDriverRef self;
 
-    if ((err = Driver_Create(class(ZorroDriver), 0, 0, g_cats, (DriverRef*)&self)) == EOK) {
+    if ((err = Driver_Create(class(ZorroDriver), 0, g_cats, (DriverRef*)&self)) == EOK) {
         Driver_SetMaxChildCount((DriverRef)self, 1);
         self->cfg = *config;
     }

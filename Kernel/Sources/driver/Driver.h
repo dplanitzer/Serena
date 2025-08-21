@@ -320,7 +320,6 @@ open_class(Driver, Handler,
     struct drv_child* _Nullable child;
     mtx_t                       childMtx;
 
-    CatalogId                   busDirId;   // /dev directory in which the driver should put its catalog entries 
     uint16_t                    options;
     uint8_t                     flags;
     int8_t                      state;      //XXX should be atomic_int
@@ -492,9 +491,8 @@ extern DriverRef _Nullable Driver_GetBusController(DriverRef _Nonnull self);
 // bus.
 // \param pClass the concrete driver class
 // \param options options specifying various default behaviors
-// \param busDirId the directory id of the bus directory inside of which this driver should place it's driver entry
 // \param cats the categories the driver conforms to. Note that the driver stores the provided reference. It does not copy the categories array. The array must be terminated with a IOCAT_END entry
-extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId busDirId, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf);
 
 // Creates a new driver instance which represents the root of a driver hierarchy.
 // \param pClass the concrete driver class

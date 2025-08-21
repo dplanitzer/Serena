@@ -31,7 +31,7 @@ errno_t FloppyDriver_Create(int drive, DriveState ds, const DriveParams* _Nonnul
     dinf.family = kDriveFamily_Floppy;
     dinf.platter = (params->driveType == kDriveType_3_5) ? kPlatter_3_5 : kPlatter_5_25;
     dinf.properties = 0;
-    try(DiskDriver_Create(class(FloppyDriver), 0, 0, g_cats, &dinf, (DriverRef*)&self));
+    try(DiskDriver_Create(class(FloppyDriver), 0, g_cats, &dinf, (DriverRef*)&self));
 
     self->drive = drive;
     self->driveState = ds;

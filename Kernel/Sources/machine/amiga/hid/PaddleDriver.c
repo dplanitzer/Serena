@@ -35,7 +35,7 @@ errno_t PaddleDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(PaddleDriver), kDriver_Exclusive, 0, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(PaddleDriver), kDriver_Exclusive, g_cats, (DriverRef*)&self));
 
     CHIPSET_BASE_DECL(cp);
 

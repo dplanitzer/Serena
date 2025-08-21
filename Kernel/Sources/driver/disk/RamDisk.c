@@ -47,7 +47,7 @@ errno_t RamDisk_Create(const char* _Nonnull name, size_t sectorSize, scnt_t sect
     drvi.platter = kPlatter_None;
     drvi.properties = kDrive_Fixed;
 
-    try(DiskDriver_Create(class(RamDisk), 0, 0, g_cats, &drvi, (DriverRef*)&self));
+    try(DiskDriver_Create(class(RamDisk), 0, g_cats, &drvi, (DriverRef*)&self));
     SList_Init(&self->extents);
     self->extentSectorCount = __min(extentSectorCount, sectorCount);
     self->sectorCount = sectorCount;
