@@ -49,13 +49,10 @@ enum {
 
 // Driver flags. Used internally by the Driver class.
 enum {
-    kDriverFlag_NoMoreChildren = 1,
+    kDriverFlag_IsRoot = 1,             // This driver marks the root of a driver hierarchy
+    kDriverFlag_IsAttached = 2,         // Driver is attached to a parent driver
+    kDriverFlag_NoMoreChildren = 4,     // Driver has entered stopping state and no longer allows children to be attached
 };
-
-
-typedef enum IOCategory {
-    kIOCategory_Keyboard = 1,
-} IOCategory;
 
 
 typedef struct DriverEntry {
@@ -64,7 +61,6 @@ typedef struct DriverEntry {
     uid_t                   uid;
     gid_t                   gid;
     mode_t                  perms;
-    IOCategory              category;
     HandlerRef _Nullable    driver;
     intptr_t                arg;
 } DriverEntry;
@@ -436,13 +432,20 @@ extern bool Driver_MatchesAnyCategory(DriverRef _Nonnull self, const iocat_t* _N
 // Subclassers
 //
 
-// Creates a new driver instance.
+// Creates a new driver instance which will be attached to a virtual or physical
+// bus.
 // \param pClass the concrete driver class
 // \param options options specifying various default behaviors
-// \param parent the immediate parent driver. This may be a bus driver or an intermediate between the bus driver and this driver
 // \param busDirId the directory id of the bus directory inside of which this driver should place it's driver entry
 // \param cats the categories the driver conforms to. Note that the driver stores the provided reference. It does not copy the categories array. The array must be terminated with a IOCAT_END entry
-extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, DriverRef _Nullable parent, CatalogId busDirId, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId busDirId, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf);
+
+// Creates a new driver instance which represents the root of a driver hierarchy.
+// \param pClass the concrete driver class
+// \param options options specifying various default behaviors
+// \param busDirId the directory id of the bus directory inside of which this driver should place it's driver entry
+// \param cats the categories the driver conforms to. Note that the driver stores the provided reference. It does not copy the categories array. The array must be terminated with a IOCAT_END entry
+extern errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, CatalogId busDirId, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf);
 
 
 // Returns true if the driver is in active state; false otherwise

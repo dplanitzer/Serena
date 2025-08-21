@@ -31,7 +31,7 @@ errno_t FloppyDriver_Create(FloppyControllerRef _Nonnull fc, int drive, DriveSta
     dinf.family = kDriveFamily_Floppy;
     dinf.platter = (params->driveType == kDriveType_3_5) ? kPlatter_3_5 : kPlatter_5_25;
     dinf.properties = 0;
-    try(DiskDriver_Create(class(FloppyDriver), 0, NULL, parentDirId, g_cats, &dinf, (DriverRef*)&self));
+    try(DiskDriver_Create(class(FloppyDriver), 0, parentDirId, g_cats, &dinf, (DriverRef*)&self));
 
     self->fc = fc;
     self->drive = drive;
@@ -162,7 +162,6 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
-    de.category = 0;
     de.driver = (HandlerRef)self;
     de.arg = 0;
 

@@ -37,7 +37,7 @@ errno_t LightPenDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullab
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(LightPenDriver), kDriver_Exclusive, NULL, parentDirId, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(LightPenDriver), kDriver_Exclusive, parentDirId, g_cats, (DriverRef*)&self));
     
     CHIPSET_BASE_DECL(cp);
 
@@ -77,7 +77,6 @@ errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0444);
-    de.category = 0;
     de.driver = (HandlerRef)self;
     de.arg = 0;
 

@@ -18,7 +18,7 @@ errno_t ZRamDriver_Create(ZorroDriverRef _Nonnull zdp, DriverRef _Nullable * _No
     decl_try_err();
     ZRamDriverRef self;
 
-    err = Driver_Create(class(ZRamDriver), 0, NULL, Driver_GetParentDirectoryId(zdp), g_cats, (DriverRef*)&self);
+    err = Driver_Create(class(ZRamDriver), 0, Driver_GetParentDirectoryId(zdp), g_cats, (DriverRef*)&self);
     if (err == EOK) {
         self->card = zdp;
     }
@@ -46,7 +46,6 @@ errno_t ZRamDriver_onStart(ZRamDriverRef _Nonnull _Locked self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0440);
-    de.category = 0;
     de.driver = (HandlerRef)self;
     de.arg = 0;
 

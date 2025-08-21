@@ -39,7 +39,7 @@ errno_t RomDisk_Create(CatalogId parentDirId, const char* _Nonnull name, const v
     drvi.platter = kPlatter_None;
     drvi.properties = kDrive_IsReadOnly | kDrive_Fixed;
 
-    try(DiskDriver_Create(class(RomDisk), 0, NULL, parentDirId, g_cats, &drvi, (DriverRef*)&self));
+    try(DiskDriver_Create(class(RomDisk), 0, parentDirId, g_cats, &drvi, (DriverRef*)&self));
     self->diskImage = pImage;
     self->sectorCount = sectorCount;
     self->sectorShift = siz_log2(sectorSize);
@@ -79,7 +79,6 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0444);
-    de.category = 0;
     de.driver = (HandlerRef)self;
     de.arg = 0;
 

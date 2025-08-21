@@ -47,7 +47,7 @@ errno_t RamDisk_Create(CatalogId parentDirId, const char* _Nonnull name, size_t 
     drvi.platter = kPlatter_None;
     drvi.properties = kDrive_Fixed;
 
-    try(DiskDriver_Create(class(RamDisk), 0, NULL, parentDirId, g_cats, &drvi, (DriverRef*)&self));
+    try(DiskDriver_Create(class(RamDisk), 0, parentDirId, g_cats, &drvi, (DriverRef*)&self));
     SList_Init(&self->extents);
     self->extentSectorCount = __min(extentSectorCount, sectorCount);
     self->sectorCount = sectorCount;
@@ -87,7 +87,6 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
-    de.category = 0;
     de.driver = (HandlerRef)self;
     de.arg = 0;
 

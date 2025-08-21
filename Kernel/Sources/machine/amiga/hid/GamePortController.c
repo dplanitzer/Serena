@@ -26,7 +26,7 @@ errno_t GamePortController_Create(CatalogId parentDirId, GamePortControllerRef _
     decl_try_err();
     GamePortControllerRef self;
 
-    try(Driver_Create(class(GamePortController), kDriver_IsBus | kDriver_Exclusive, NULL, parentDirId, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(GamePortController), kDriver_IsBus | kDriver_Exclusive, parentDirId, g_cats, (DriverRef*)&self));
     try(Driver_SetMaxChildCount((DriverRef)self, GP_PORT_COUNT));
 
     mtx_init(&self->io_mtx);
@@ -59,7 +59,6 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
-    de.category = 0;
     de.driver = (HandlerRef)self;
     de.arg = 0;
 

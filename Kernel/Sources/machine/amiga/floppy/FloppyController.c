@@ -71,7 +71,7 @@ errno_t FloppyController_Create(CatalogId parentDirId, FloppyControllerRef _Null
     decl_try_err();
     FloppyControllerRef self;
     
-    try(Driver_Create(class(FloppyController), kDriver_IsBus, NULL, parentDirId, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(FloppyController), kDriver_IsBus, parentDirId, g_cats, (DriverRef*)&self));
     try(Driver_SetMaxChildCount((DriverRef)self, MAX_FLOPPY_DISK_DRIVES));
 
     mtx_init(&self->mtx);
@@ -143,7 +143,6 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
-    de.category = 0;
     de.driver = (HandlerRef)self;
     de.arg = 0;
 

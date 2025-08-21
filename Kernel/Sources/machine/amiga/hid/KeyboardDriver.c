@@ -46,7 +46,7 @@ errno_t KeyboardDriver_Create(CatalogId parentDirId, DriverRef _Nullable * _Nonn
     decl_try_err();
     KeyboardDriverRef self;
     
-    try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, NULL, parentDirId, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, parentDirId, g_cats, (DriverRef*)&self));
     try(RingBuffer_Init(&self->keyQueue, 16));
 
     *pOutSelf = (DriverRef)self;
@@ -73,7 +73,6 @@ errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0444);
-    de.category = 0;
     de.driver = (HandlerRef)self;
     de.arg = 0;
 
