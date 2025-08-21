@@ -386,15 +386,28 @@ errno_t Driver_SetMaxChildCount(DriverRef _Nonnull self, size_t count)
 {
     decl_try_err();
 
-    mtx_lock(&self->childMtx);
-    if (self->maxChildCount > 0) {
-        throw(EBUSY);
-    }
     if (count > 1024) {
-        throw(EINVAL);
+        return EINVAL;
     }
 
+
+    mtx_lock(&self->childMtx);
+
+    // Only allowed to change the bus size if the driver has no children
+    for (int i = 0; i < self->maxChildCount; i++) {
+        if (self->child[i].driver) {
+            throw(EBUSY);
+        }
+    }
     
+
+    // Free the old bus storage
+    kfree(self->child);
+    self->child = NULL;
+    self->maxChildCount = 0;
+    
+
+    // Allocate the new bus storage, if needed
     if (count > 0) {
         try(kalloc_cleared(sizeof(drv_child_t) * count, (void**)&self->child));
         self->maxChildCount = count;
@@ -415,7 +428,7 @@ size_t Driver_GetMaxChildCount(DriverRef _Nonnull self)
     return count;
 }
 
-size_t Driver_GetCurrentChildCount(DriverRef _Nonnull self)
+size_t Driver_GetChildCount(DriverRef _Nonnull self)
 {
     size_t count = 0;
 

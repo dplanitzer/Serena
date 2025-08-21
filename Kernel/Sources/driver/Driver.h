@@ -494,8 +494,9 @@ invoke_n(onClose, Driver, __self, __ioc, __openCount)
 // manages. The number is 0 by default. A driver that manages a physical or
 // virtual bus should call this method with a suitable number before it calls
 // Driver_Publish() on itself. Returns EINVAL if 'count' is bigger than the
-// system imposed upper limit. Returns EBUSY if an attempt is made to call this
-// function again after a max count has already been set.
+// system imposed upper limit. Returns EBUSY if this function is called while
+// the driver has children attached to it. Resizing a bus is only allowed
+// while the bus driver has no children attached to it.
 extern errno_t Driver_SetMaxChildCount(DriverRef _Nonnull self, size_t count);
 
 // Returns the max child count.
@@ -503,7 +504,7 @@ extern size_t Driver_GetMaxChildCount(DriverRef _Nonnull self);
 
 // Returns the number of child drivers that are currently attached to the
 // receiver.
-extern size_t Driver_GetCurrentChildCount(DriverRef _Nonnull self);
+extern size_t Driver_GetChildCount(DriverRef _Nonnull self);
 
 // Returns true if the receiver has at least one child attached to it; false
 // otherwise.

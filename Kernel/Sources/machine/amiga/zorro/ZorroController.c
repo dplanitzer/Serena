@@ -108,7 +108,7 @@ errno_t ZorroController_ioctl(ZorroControllerRef _Nonnull self, IOChannelRef _No
         case kZorroCommand_GetCardCount: {
             size_t* pCount = va_arg(ap, size_t*);
             
-            *pCount = Driver_GetCurrentChildCount((DriverRef)self);
+            *pCount = Driver_GetChildCount((DriverRef)self);
             return EOK;
         }
 
