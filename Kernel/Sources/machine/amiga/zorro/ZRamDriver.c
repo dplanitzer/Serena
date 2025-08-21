@@ -18,7 +18,7 @@ errno_t ZRamDriver_Create(ZorroDriverRef _Nonnull zdp, DriverRef _Nullable * _No
     decl_try_err();
     ZRamDriverRef self;
 
-    err = Driver_Create(class(ZRamDriver), 0, Driver_GetParentDirectoryId(zdp), g_cats, (DriverRef*)&self);
+    err = Driver_Create(class(ZRamDriver), 0, Driver_GetBusDirectory(zdp), g_cats, (DriverRef*)&self);
     if (err == EOK) {
         self->card = zdp;
     }
@@ -41,7 +41,7 @@ errno_t ZRamDriver_onStart(ZRamDriverRef _Nonnull _Locked self)
     name[4] = '\0';
 
     DriverEntry de;
-    de.dirId = Driver_GetParentDirectoryId(self->card);
+    de.dirId = Driver_GetBusDirectory(self->card);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

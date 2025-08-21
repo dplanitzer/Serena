@@ -65,7 +65,7 @@ errno_t JoystickDriver_onStart(JoystickDriverRef _Nonnull _Locked self)
     name[9] = '\0';
 
     DriverEntry de;
-    de.dirId = Driver_GetParentDirectoryId(self);
+    de.dirId = Driver_GetBusDirectory(self);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

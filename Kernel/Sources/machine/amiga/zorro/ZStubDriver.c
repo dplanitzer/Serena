@@ -16,7 +16,7 @@ errno_t ZStubDriver_Create(ZorroDriverRef _Nonnull zdp, DriverRef _Nullable * _N
     decl_try_err();
     ZStubDriverRef self;
 
-    err = Driver_Create(class(ZStubDriver), 0, Driver_GetParentDirectoryId(zdp), g_cats, (DriverRef*)&self);
+    err = Driver_Create(class(ZStubDriver), 0, Driver_GetBusDirectory(zdp), g_cats, (DriverRef*)&self);
     if (err == EOK) {
         self->card = zdp;
     }
@@ -39,7 +39,7 @@ errno_t ZStubDriver_onStart(ZStubDriverRef _Nonnull _Locked self)
     name[5] = '\0';
 
     DriverEntry de;
-    de.dirId = Driver_GetParentDirectoryId(self->card);
+    de.dirId = Driver_GetBusDirectory(self->card);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

@@ -13,7 +13,7 @@
 
 
 final_class_ivars(ZorroController, Driver,
-    CatalogId   busDirId;
+    CatalogId   zorroBusDirId;
 );
 
 IOCATS_DEF(g_cats, IOBUS_ZORRO);
@@ -39,7 +39,7 @@ static errno_t _auto_config_bus(ZorroControllerRef _Nonnull _Locked self)
         const zorro_conf_t* cfg = &pCurNode->cfg;
         ZorroDriverRef dp;
         
-        if (ZorroDriver_Create(cfg, self->busDirId, &dp) == EOK) {
+        if (ZorroDriver_Create(cfg, self->zorroBusDirId, &dp) == EOK) {
             Driver_AdoptChild((DriverRef)self, (DriverRef)dp);
         }
     );
@@ -65,16 +65,16 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
     decl_try_err();
 
     DirEntry be;
-    be.dirId = Driver_GetParentDirectoryId(self);
+    be.dirId = Driver_GetBusDirectory(self);
     be.name = "zorro-bus";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;
     be.perms = perm_from_octal(0755);
 
-    try(DriverManager_CreateDirectory(gDriverManager, &be, &self->busDirId));
+    try(DriverManager_CreateDirectory(gDriverManager, &be, &self->zorroBusDirId));
 
     DriverEntry de;
-    de.dirId = self->busDirId;
+    de.dirId = self->zorroBusDirId;
     de.name = "self";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
@@ -91,7 +91,7 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
 catch:
     if (err != EOK) {
         Driver_Unpublish(self);
-        DriverManager_RemoveDirectory(gDriverManager, self->busDirId);
+        DriverManager_RemoveDirectory(gDriverManager, self->zorroBusDirId);
     }
     return err;
 }

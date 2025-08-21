@@ -45,7 +45,7 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
     decl_try_err();
 
     DirEntry be;
-    be.dirId = Driver_GetParentDirectoryId(self);
+    be.dirId = Driver_GetBusDirectory(self);
     be.name = "gp-bus";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;

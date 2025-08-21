@@ -32,21 +32,20 @@ errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId busDir
         self->cats = cats;
         self->options = options;
         self->state = kDriverState_Inactive;
-        self->parentDirectoryId = busDirId;
+        self->busDirId = busDirId;
     }
 
     *pOutSelf = self;
     return err;
 }
 
-errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, CatalogId busDirId, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DriverRef self = NULL;
 
-    err = Driver_Create(pClass, options, busDirId, cats, &self);
+    err = Driver_Create(pClass, options, kCatalogId_None, cats, &self);
     if (err == EOK) {
-//XXX        self->parentDirectoryId = busDirId;
         self->flags |= (kDriverFlag_IsRoot | kDriverFlag_IsAttached); 
     }
 

@@ -157,7 +157,7 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     name[3] = '\0';
 
     DriverEntry de;
-    de.dirId = Driver_GetParentDirectoryId(self);
+    de.dirId = Driver_GetBusDirectory(self);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

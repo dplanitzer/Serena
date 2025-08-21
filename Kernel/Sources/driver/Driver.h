@@ -279,20 +279,22 @@ typedef struct DriverEntry {
 // card supports 2D and/or 3d hardware acceleration).
 //
 open_class(Driver, Handler,
-    mtx_t                   mtx;    // lifecycle management lock
-    cnd_t                   cnd;
-    did_t                   id;     // unique id assigned at publish time
-    DriverRef _Nullable     parent; // weak ref to the parent driver; constant over the lifetime of the driver
-    const iocat_t* _Nonnull cats;   // categories the driver conforms to.
+    mtx_t                       mtx;    // lifecycle management lock
+    cnd_t                       cnd;
+    did_t                       id;     // unique id assigned at publish time
+    const iocat_t* _Nonnull     cats;   // categories the driver conforms to.
+    
+    DriverRef _Nullable         parent; // weak ref to the parent driver; constant over the lifetime of the driver
     struct drv_child* _Nullable child;
-    mtx_t                   childMtx;
-    CatalogId               parentDirectoryId;  // /dev directory in which the driver lives 
-    uint16_t                options;
-    uint8_t                 flags;
-    int8_t                  state;  //XXX should be atomic_int
-    int                     openCount;
-    int16_t                 maxChildCount;
-    int8_t                  stopReason;
+    mtx_t                       childMtx;
+
+    CatalogId                   busDirId;   // /dev directory in which the driver should put its catalog entries 
+    uint16_t                    options;
+    uint8_t                     flags;
+    int8_t                      state;      //XXX should be atomic_int
+    int                         openCount;
+    int16_t                     maxChildCount;
+    int8_t                      stopReason;
 );
 open_class_funcs(Driver, Handler,
     
@@ -443,9 +445,8 @@ extern errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, CatalogId
 // Creates a new driver instance which represents the root of a driver hierarchy.
 // \param pClass the concrete driver class
 // \param options options specifying various default behaviors
-// \param busDirId the directory id of the bus directory inside of which this driver should place it's driver entry
 // \param cats the categories the driver conforms to. Note that the driver stores the provided reference. It does not copy the categories array. The array must be terminated with a IOCAT_END entry
-extern errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, CatalogId busDirId, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, DriverRef _Nullable * _Nonnull pOutSelf);
 
 
 // Returns true if the driver is in active state; false otherwise
@@ -457,10 +458,11 @@ extern errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, Catal
 #define Driver_GetId(__self) \
 ((DriverRef)__self)->id
 
-// Returns the parent directory of the driver. This is the directory in which
-// the driver bus directories or the driver node itself lives.
-#define Driver_GetParentDirectoryId(__self) \
-((DriverRef)__self)->parentDirectoryId
+// Returns the bus directory of the driver. This directory is created by the bus
+// bus controller that manages this driver and it is the directory in which the
+// driver should place its own driver catalog entries (driver and bus entry).
+#define Driver_GetBusDirectory(__self) \
+((DriverRef)__self)->busDirId
 
 
 // Publish the driver. Should be called from the onStart() override.

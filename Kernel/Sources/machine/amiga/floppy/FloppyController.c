@@ -129,7 +129,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     decl_try_err();
 
     DirEntry be;
-    be.dirId = Driver_GetParentDirectoryId(self);
+    be.dirId = Driver_GetBusDirectory(self);
     be.name = "fd-bus";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;
