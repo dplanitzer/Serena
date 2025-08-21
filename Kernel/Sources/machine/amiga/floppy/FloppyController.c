@@ -64,12 +64,12 @@ static void _disk_block_irq(FloppyControllerRef _Nonnull self);
 
 
 // Creates the floppy controller
-errno_t FloppyController_Create(CatalogId parentDirId, FloppyControllerRef _Nullable * _Nonnull pOutSelf)
+errno_t FloppyController_Create(FloppyControllerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     FloppyControllerRef self;
     
-    try(Driver_Create(class(FloppyController), kDriver_IsBus, parentDirId, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(FloppyController), kDriver_IsBus, 0, g_cats, (DriverRef*)&self));
     try(Driver_SetMaxChildCount((DriverRef)self, MAX_FLOPPY_DISK_DRIVES));
 
     mtx_init(&self->mtx);
@@ -123,7 +123,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     decl_try_err();
 
     DirEntry be;
-    be.dirId = Driver_GetBusDirectory_Old(self);
+    be.dirId = Driver_GetBusDirectory((DriverRef)self);
     be.name = "fd-bus";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;

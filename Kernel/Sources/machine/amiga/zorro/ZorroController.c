@@ -17,9 +17,9 @@ final_class_ivars(ZorroController, Driver,
 IOCATS_DEF(g_cats, IOBUS_ZORRO);
 
 
-errno_t ZorroController_Create(CatalogId parentDirId, ZorroControllerRef _Nullable * _Nonnull pOutSelf)
+errno_t ZorroController_Create(ZorroControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(class(ZorroController), kDriver_IsBus, parentDirId, g_cats, (DriverRef*)pOutSelf);
+    return Driver_Create(class(ZorroController), kDriver_IsBus, 0, g_cats, (DriverRef*)pOutSelf);
 }
 
 static void _auto_config_bus(ZorroControllerRef _Nonnull _Locked self)
@@ -53,7 +53,7 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
     decl_try_err();
 
     DirEntry be;
-    be.dirId = Driver_GetBusDirectory_Old(self);
+    be.dirId = Driver_GetBusDirectory((DriverRef)self);
     be.name = "zorro-bus";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;

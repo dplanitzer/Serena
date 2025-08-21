@@ -26,7 +26,6 @@ final_class_ivars(AmigaController, PlatformController,
 errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked self)
 {
     decl_try_err();
-    const CatalogId hwDirId = PlatformController_GetHardwareDirectoryId(self);
     size_t slotId = 0;
 
     // Set our virtual bus slot count
@@ -53,13 +52,13 @@ errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked s
 
     // Floppy Bus
     FloppyControllerRef fdc = NULL;
-    try(FloppyController_Create(hwDirId, &fdc));
+    try(FloppyController_Create(&fdc));
     try(Driver_AttachStartChild((DriverRef)self, (DriverRef)fdc, slotId++));
 
 
     // Zorro Bus
     ZorroControllerRef zorroController = NULL;
-    try(ZorroController_Create(hwDirId, &zorroController));
+    try(ZorroController_Create(&zorroController));
     try(Driver_AttachStartChild((DriverRef)self, (DriverRef)zorroController, slotId++));
 
 catch:

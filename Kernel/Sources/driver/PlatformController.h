@@ -20,7 +20,6 @@ struct SMG_Header;
 // that is part of the motherboard.
 // A platform controller is expected to implement the synchronous driver model.
 open_class(PlatformController, Driver,
-    CatalogId   hardwareDirectoryId;
 );
 open_class_funcs(PlatformController, Driver,
 
@@ -53,10 +52,5 @@ invoke_0(detectDevices, PlatformController, __self)
 
 #define PlatformController_GetBootImage(__self) \
 invoke_0(getBootImage, PlatformController, __self)
-
-// Returns the id of the hardware directory. This is the directory inside of
-// which all platform specific drivers should be placed (aka '/dev/hw').
-#define PlatformController_GetHardwareDirectoryId(__self) \
-((PlatformControllerRef)__self)->hardwareDirectoryId
 
 #endif /* PlatformController_h */

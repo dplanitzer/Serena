@@ -7,7 +7,6 @@
 //
 
 #include "PlatformController.h"
-#include "DriverManager.h"
 
 PlatformControllerRef gPlatformController;
 
@@ -31,7 +30,6 @@ errno_t PlatformController_onStart(PlatformControllerRef _Nonnull _Locked self)
     be.perms = perm_from_octal(0755);
 
     try(Driver_PublishBusDirectory((DriverRef)self, &be));
-    self->hardwareDirectoryId = Driver_GetPublishedBusDirectory(self);
     try(PlatformController_DetectDevices(self));
 
 catch:

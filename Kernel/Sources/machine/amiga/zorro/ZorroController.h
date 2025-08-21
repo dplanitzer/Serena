@@ -32,6 +32,6 @@
 //
 final_class(ZorroController, Driver);
 
-extern errno_t ZorroController_Create(CatalogId parentDirId, ZorroControllerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t ZorroController_Create(ZorroControllerRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* ZorroController_h */
