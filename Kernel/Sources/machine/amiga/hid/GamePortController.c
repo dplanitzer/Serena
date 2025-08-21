@@ -208,14 +208,14 @@ static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _No
     }
 
 
-    Driver_StopRemoveChildAt((DriverRef)self, port, kDriverStop_Shutdown);
+    Driver_DetachChild((DriverRef)self, port, kDriverStop_Shutdown);
     Driver_SetChildDataAt((DriverRef)self, port, type);
 
     if (type != IOGP_NONE) {
         DriverRef newDriver = NULL;
 
         try(GamePortController_CreateInputDriver(self, port, type, &newDriver));
-        try(Driver_AdoptStartChildAt((DriverRef)self, port, newDriver));
+        try(Driver_AttachChild((DriverRef)self, port, newDriver));
         Driver_SetChildDataAt((DriverRef)self, port, type);
     }
 

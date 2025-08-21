@@ -491,65 +491,7 @@ bool Driver_HasChildren(DriverRef _Nonnull self)
 }
 
 
-errno_t Driver_AdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child)
-{
-    bool hasSlot = false;
-
-    if ((self->flags & kDriverFlag_NoMoreChildren) == kDriverFlag_NoMoreChildren) {
-        return ETERMINATED;
-    }
-
-    mtx_lock(&self->childMtx);
-    for (int16_t i = 0; i < self->maxChildCount; i++) {
-        if (self->child[i].driver == NULL) {
-            self->child[i].driver = child;
-            hasSlot = true;
-            break;
-        }
-    }
-    mtx_unlock(&self->childMtx);
-
-    return (hasSlot) ? EOK : ENXIO;
-}
-
-// Removes the driver 'child' and optionally releases it
-void _remove_child(DriverRef _Nonnull self, DriverRef _Nonnull child, bool shouldRelease)
-{
-    int16_t idx = -1;
-
-    mtx_lock(&self->childMtx);
-    for (int16_t i = 0; i < self->maxChildCount; i++) {
-        if (self->child[i].driver == child) {
-            idx = i;
-            break;
-        }
-    }
-
-    if (idx >= 0) {
-        if (shouldRelease) {
-            Object_Release(self->child[idx].driver);
-        }
-        self->child[idx].driver = NULL;
-    }
-    mtx_unlock(&self->childMtx);
-}
-
-errno_t Driver_AdoptStartChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child)
-{
-    decl_try_err();
-
-    err = Driver_AdoptChild(self, child);
-    if (err == EOK) {
-        err = Driver_Start(child);
-        if (err != EOK) {
-            _remove_child(self, child, false);
-        }
-    }
-    return err;
-}
-
-
-errno_t Driver_AdoptStartChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nonnull _Consuming child)
+errno_t Driver_AttachChild(DriverRef _Nonnull self, size_t slotId, DriverRef _Nonnull _Consuming child)
 {
     decl_try_err();
 
@@ -577,13 +519,22 @@ errno_t Driver_AdoptStartChildAt(DriverRef _Nonnull self, size_t slotId, DriverR
     return err;
 }
 
-void Driver_StopRemoveChildAt(DriverRef _Nonnull self, size_t slotId, int stopReason)
+void Driver_DetachChild(DriverRef _Nonnull self, size_t slotId, int stopReason)
 {
     DriverRef child = Driver_GetChildAt(self, slotId);
 
     if (child) {
         Driver_Stop(self, stopReason);
-        _remove_child(self, child, true);
+
+        mtx_lock(&self->childMtx);
+        for (int16_t i = 0; i < self->maxChildCount; i++) {
+            if (self->child[i].driver == child) {
+                Object_Release(self->child[i].driver);
+                self->child[i].driver = NULL;
+                break;
+            }
+        }
+        mtx_unlock(&self->childMtx);
     }
 }
 

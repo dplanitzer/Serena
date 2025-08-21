@@ -28,6 +28,7 @@ static errno_t _auto_config_bus(ZorroControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
     zorro_bus_t bus;
+    size_t slotId = 0;
 
     // Auto config the Zorro bus
     zorro_auto_config(&bus);
@@ -40,7 +41,7 @@ static errno_t _auto_config_bus(ZorroControllerRef _Nonnull _Locked self)
         ZorroDriverRef dp;
         
         if (ZorroDriver_Create(cfg, self->zorroBusDirId, &dp) == EOK) {
-            Driver_AdoptStartChild((DriverRef)self, (DriverRef)dp);
+            Driver_AttachChild((DriverRef)self, slotId++, (DriverRef)dp);
         }
     );
 

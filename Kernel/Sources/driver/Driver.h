@@ -526,24 +526,16 @@ extern DriverRef _Nullable Driver_CopyChildAt(DriverRef _Nonnull self, size_t sl
 extern bool Driver_HasChildren(DriverRef _Nonnull self);
 
 
-// Adds the given driver to the receiver as a child. Consumes the provided strong
-// reference. Call this function from a onStart() override.
-extern errno_t Driver_AdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child);
-
-// Adopts the given driver instance as a child of the receiver and then starts
-// it.
-extern errno_t Driver_AdoptStartChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child);
-
-
-// Adopts the given driver instance as a child and then starts the child. The
-// child is assigned to the given bus slot id. This function requires that bus
-// slot 'slotId' is empty.
-extern errno_t Driver_AdoptStartChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nonnull _Consuming child);
+// Attaches the driver 'child' as a child driver to the receiver. The driver is
+// attached at the bus slot 'slotId'. EBUSY is returned if this slot already has
+// a driver attached to it. The driver 'child' is started after it has been
+// successfully attached.
+extern errno_t Driver_AttachChild(DriverRef _Nonnull self, size_t slotId, DriverRef _Nonnull _Consuming child);
 
 // Stops the child at the bus slot id 'slotId' with stop reason 'reason'. Does
 // nothing if the slot contains no driver. The child is stopped, then released
 // and removed from the child list.
-extern void Driver_StopRemoveChildAt(DriverRef _Nonnull self, size_t slotId, int stopReason);
+extern void Driver_DetachChild(DriverRef _Nonnull self, size_t slotId, int stopReason);
 
 
 // Returns the data associated with the bus slot id 'slotId'. 0 is returned if

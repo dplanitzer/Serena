@@ -99,8 +99,8 @@ static errno_t FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Lock
 {
     decl_try_err();
 
-    for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
-        DriveState ds = FloppyController_ResetDrive(self, i);
+    for (size_t slotId = 0; slotId < MAX_FLOPPY_DISK_DRIVES; slotId++) {
+        DriveState ds = FloppyController_ResetDrive(self, slotId);
         const uint32_t dt = FloppyController_GetDriveType(self, &ds);
         const DriveParams* dp = NULL;
         FloppyDriverRef drive;
@@ -112,8 +112,8 @@ static errno_t FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Lock
         }
 
         if (dp) {
-            if ((err = FloppyDriver_Create(self, i, ds, dp, self->busDirId, &drive)) == EOK) {
-                err = Driver_AdoptStartChild((DriverRef)self, (DriverRef)drive);
+            if ((err = FloppyDriver_Create(self, slotId, ds, dp, self->busDirId, &drive)) == EOK) {
+                err = Driver_AttachChild((DriverRef)self, slotId, (DriverRef)drive);
                 if (err != EOK) {
                     Object_Release(drive);
                 }

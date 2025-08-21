@@ -41,7 +41,7 @@ errno_t ZorroDriver_onStart(ZorroDriverRef _Nonnull _Locked self)
 
 
     if (dp) {
-        Driver_AdoptStartChild((DriverRef)self, dp);
+        Driver_AttachChild((DriverRef)self, 0, dp);
     }
 
     return EOK;

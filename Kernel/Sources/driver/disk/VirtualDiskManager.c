@@ -68,7 +68,7 @@ errno_t VirtualDiskManager_CreateRamDisk(VirtualDiskManagerRef _Nonnull self, co
     DriverRef dd;
 
     try(RamDisk_Create(self->busDirId, name, sectorSize, sectorCount, extentSectorCount, (RamDiskRef*)&dd));
-    try(Driver_AdoptStartChild((DriverRef)self, dd));
+    try(Driver_AttachChild((DriverRef)self, 0, dd));
 
     return EOK;
 
@@ -86,7 +86,7 @@ errno_t VirtualDiskManager_CreateRomDisk(VirtualDiskManagerRef _Nonnull self, co
     DriverRef dd;
 
     try(RomDisk_Create(self->busDirId, name, image, sectorSize, sectorCount, false, (RomDiskRef*)&dd));
-    try(Driver_AdoptStartChild((DriverRef)self, dd));
+    try(Driver_AttachChild((DriverRef)self, 0, dd));
 
     return EOK;
 
