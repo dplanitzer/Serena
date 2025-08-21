@@ -456,6 +456,24 @@ size_t Driver_GetChildCount(DriverRef _Nonnull self)
     return count;
 }
 
+DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId)
+{
+    mtx_lock(&self->childMtx);
+    DriverRef dp = (slotId < self->maxChildCount) ? self->child[slotId].driver : NULL;
+    mtx_unlock(&self->childMtx);
+
+    return dp;
+}
+
+DriverRef _Nullable Driver_CopyChildAt(DriverRef _Nonnull self, size_t slotId)
+{
+    mtx_lock(&self->childMtx);
+    DriverRef dp = (slotId < self->maxChildCount) ? Object_RetainAs(self->child[slotId].driver, Driver) : NULL;
+    mtx_unlock(&self->childMtx);
+
+    return dp;
+}
+
 bool Driver_HasChildren(DriverRef _Nonnull self)
 {
     bool r = false;
@@ -472,11 +490,6 @@ bool Driver_HasChildren(DriverRef _Nonnull self)
     return r;
 }
 
-
-errno_t Driver_AddChild(DriverRef _Nonnull self, DriverRef _Nonnull child)
-{
-    return Driver_AdoptChild(self, Object_RetainAs(child, Driver));
-}
 
 errno_t Driver_AdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child)
 {
@@ -535,68 +548,30 @@ errno_t Driver_AdoptStartChild(DriverRef _Nonnull self, DriverRef _Nonnull _Cons
     return err;
 }
 
-// Removes the given driver from the receiver. The given driver has to be a child
-// of the receiver.
-void Driver_RemoveChild(DriverRef _Nonnull self, DriverRef _Nonnull child)
-{
-    _remove_child(self, child, true);
-}
-
-DriverRef _Nullable Driver_RemoveChildAt(DriverRef _Nonnull self, size_t slotId)
-{
-    DriverRef oldChild = NULL;
-
-    mtx_lock(&self->childMtx);
-    if (slotId < self->maxChildCount) {
-        oldChild = self->child[slotId].driver;
-        self->child[slotId].driver = NULL;
-    }
-    mtx_unlock(&self->childMtx);
-
-    return oldChild;
-}
-
-DriverRef _Nullable Driver_SetChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nullable child)
-{
-    return Driver_AdoptChildAt(self, slotId, (child) ? Object_RetainAs(child, Driver) : NULL);
-}
-
-DriverRef _Nullable Driver_AdoptChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nullable _Consuming child)
-{
-    DriverRef oldChild = NULL;
-
-    mtx_lock(&self->childMtx);
-    if (slotId < self->maxChildCount) {
-        oldChild = self->child[slotId].driver;
-        self->child[slotId].driver = child;
-    }
-    mtx_unlock(&self->childMtx);
-
-    return oldChild;
-}
-
-DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId)
-{
-    DriverRef dp = NULL;
-
-    mtx_lock(&self->childMtx);
-    if (slotId < self->maxChildCount) {
-        dp = self->child[slotId].driver;
-    }
-    mtx_unlock(&self->childMtx);
-
-    return dp;
-}
-
 
 errno_t Driver_AdoptStartChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nonnull _Consuming child)
 {
     decl_try_err();
 
-    Driver_AdoptChildAt(self, slotId, child);
-    err = Driver_Start(child);
-    if (err != EOK) {
-        Driver_RemoveChildAt(self, slotId);
+    mtx_lock(&self->childMtx);
+    if (slotId >= self->maxChildCount) {
+        err = ERANGE;
+    }
+    else if (self->child[slotId].driver) {
+        err = EBUSY;
+    }
+    else {
+        self->child[slotId].driver = child;
+    }
+    mtx_unlock(&self->childMtx);
+
+    if (err == EOK) {
+        err = Driver_Start(child);
+        if (err != EOK) {
+            mtx_lock(&self->childMtx);
+            self->child[slotId].driver = NULL;
+            mtx_unlock(&self->childMtx);
+        }
     }
 
     return err;
@@ -608,7 +583,7 @@ void Driver_StopRemoveChildAt(DriverRef _Nonnull self, size_t slotId, int stopRe
 
     if (child) {
         Driver_Stop(self, stopReason);
-        Driver_RemoveChild(self, child);
+        _remove_child(self, child, true);
     }
 }
 

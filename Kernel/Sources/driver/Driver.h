@@ -511,15 +511,20 @@ extern size_t Driver_GetMaxChildCount(DriverRef _Nonnull self);
 // receiver.
 extern size_t Driver_GetChildCount(DriverRef _Nonnull self);
 
+// Returns an unowned reference to the child driver with bus slot id 'slotId'.
+// NULL is returned if the slot is empty. Note that you must retain the returned
+// driver reference explicitly if you plan to continue to use it after it has
+// been removed from the driver.
+extern DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId);
+
+// Like as Driver_GetChildAt() but returns a strong reference to the requested
+// child driver.
+extern DriverRef _Nullable Driver_CopyChildAt(DriverRef _Nonnull self, size_t slotId);
+
 // Returns true if the receiver has at least one child attached to it; false
 // otherwise.
 extern bool Driver_HasChildren(DriverRef _Nonnull self);
 
-
-// Adds the given driver as a child to the receiver. The driver is added to the
-// first available slot. No check is made whether this driver instance already
-// exists as a child. Returns ENXIO is returned if no slot is available anymore.
-extern errno_t Driver_AddChild(DriverRef _Nonnull self, DriverRef _Nonnull child);
 
 // Adds the given driver to the receiver as a child. Consumes the provided strong
 // reference. Call this function from a onStart() override.
@@ -528,30 +533,6 @@ extern errno_t Driver_AdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Co
 // Adopts the given driver instance as a child of the receiver and then starts
 // it.
 extern errno_t Driver_AdoptStartChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming child);
-
-// Removes the given driver from the receiver. The given driver has to be a child
-// of the receiver. Call this function from a onStop() override.
-extern void Driver_RemoveChild(DriverRef _Nonnull self, DriverRef _Nonnull child);
-
-// Removes the child at the given bus slot id 'slotId' and returns it. Note that
-// it is your responsibility to stop and/or release the returned driver.
-extern DriverRef _Nullable Driver_RemoveChildAt(DriverRef _Nonnull self, size_t slotId);
-
-
-// Exchanges the driver currently associated with bus slot id 'slotId' with the
-// provided driver. The new driver is retained and the old driver is returned.
-// It is the responsibility of the caller to release the old driver.
-extern DriverRef _Nullable Driver_SetChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nullable child);
-
-// Same as Driver_SetChildAt() except that it consumes the provided child driver
-// reference.
-extern DriverRef _Nullable Driver_AdoptChildAt(DriverRef _Nonnull self, size_t slotId, DriverRef _Nullable _Consuming child);
-
-// Returns an unowned reference to the child driver with bus slot id 'slotId'.
-// NULL is returned if the slot is empty. Note that you must retain the returned
-// driver reference explicitly if you plan to continue to use it after it has
-// been removed from the driver.
-extern DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId);
 
 
 // Adopts the given driver instance as a child and then starts the child. The

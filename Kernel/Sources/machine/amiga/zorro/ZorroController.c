@@ -34,26 +34,15 @@ static errno_t _auto_config_bus(ZorroControllerRef _Nonnull _Locked self)
     try(Driver_SetMaxChildCount((DriverRef)self, bus.count));
 
 
-    // Create a ZorroDriver instance for each slot
+    // Create a ZorroDriver instance for each slot and start it
     List_ForEach(&bus.boards, zorro_board_t,
         const zorro_conf_t* cfg = &pCurNode->cfg;
         ZorroDriverRef dp;
         
         if (ZorroDriver_Create(cfg, self->zorroBusDirId, &dp) == EOK) {
-            Driver_AdoptChild((DriverRef)self, (DriverRef)dp);
+            Driver_AdoptStartChild((DriverRef)self, (DriverRef)dp);
         }
     );
-    
-
-    // Start the slot drivers
-    for (size_t slot = 0; slot < bus.count; slot++) {
-        DriverRef dp = Driver_GetChildAt((DriverRef)self, slot);
-
-        if (dp) {
-            Driver_Start(dp);
-        }
-    }
-
 
 catch:
     zorro_destroy_bus(&bus);
