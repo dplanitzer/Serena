@@ -209,17 +209,22 @@ static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _No
 
 
     Driver_DetachChild((DriverRef)self, port, kDriverStop_Shutdown);
-    Driver_SetChildDataAt((DriverRef)self, port, type);
+    Driver_SetChildDataAt((DriverRef)self, port, IOGP_NONE);
+
 
     if (type != IOGP_NONE) {
         DriverRef newDriver = NULL;
 
-        try(GamePortController_CreateInputDriver(self, port, type, &newDriver));
-        try(Driver_AttachChild((DriverRef)self, port, newDriver));
-        Driver_SetChildDataAt((DriverRef)self, port, type);
+        err = GamePortController_CreateInputDriver(self, port, type, &newDriver);
+        if (err == EOK) {
+            err = Driver_AttachStartChild((DriverRef)self, newDriver, port);
+            if (err == EOK) {
+                Driver_SetChildDataAt((DriverRef)self, port, type);
+            }
+            Object_Release(newDriver);
+        }
     }
 
-catch:
     return err;
 }
 

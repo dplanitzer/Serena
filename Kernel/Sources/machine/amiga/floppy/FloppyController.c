@@ -95,10 +95,8 @@ static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
     mtx_deinit(&self->mtx);
 }
 
-static errno_t FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked self)
+static void FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked self)
 {
-    decl_try_err();
-
     for (size_t slotId = 0; slotId < MAX_FLOPPY_DISK_DRIVES; slotId++) {
         DriveState ds = FloppyController_ResetDrive(self, slotId);
         const uint32_t dt = FloppyController_GetDriveType(self, &ds);
@@ -112,16 +110,14 @@ static errno_t FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Lock
         }
 
         if (dp) {
-            if ((err = FloppyDriver_Create(self, slotId, ds, dp, self->busDirId, &drive)) == EOK) {
-                err = Driver_AttachChild((DriverRef)self, slotId, (DriverRef)drive);
-                if (err != EOK) {
-                    Object_Release(drive);
-                }
+            const errno_t err = FloppyDriver_Create(self, slotId, ds, dp, self->busDirId, &drive);
+            
+            if (err == EOK) {
+                Driver_AttachStartChild((DriverRef)self, (DriverRef)drive, slotId);
+                Object_Release(drive);
             }
         }
     }
-
-    return err;
 }
 
 errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
@@ -151,7 +147,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     
     // Discover as many floppy drives as possible. We ignore drives that generate
     // an error while trying to initialize them.
-    try(FloppyController_DetectDevices(self));
+    FloppyController_DetectDevices(self);
 
 
     irq_set_direct_handler(IRQ_ID_DISK_BLOCK, (irq_direct_func_t)_disk_block_irq, self);

@@ -24,7 +24,7 @@ errno_t ZorroController_Create(CatalogId parentDirId, ZorroControllerRef _Nullab
     return Driver_Create(class(ZorroController), kDriver_IsBus, parentDirId, g_cats, (DriverRef*)pOutSelf);
 }
 
-static errno_t _auto_config_bus(ZorroControllerRef _Nonnull _Locked self)
+static void _auto_config_bus(ZorroControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
     zorro_bus_t bus;
@@ -41,13 +41,13 @@ static errno_t _auto_config_bus(ZorroControllerRef _Nonnull _Locked self)
         ZorroDriverRef dp;
         
         if (ZorroDriver_Create(cfg, self->zorroBusDirId, &dp) == EOK) {
-            Driver_AttachChild((DriverRef)self, slotId++, (DriverRef)dp);
+            Driver_AttachStartChild((DriverRef)self, (DriverRef)dp, slotId++);
+            Object_Release(dp);
         }
     );
 
 catch:
     zorro_destroy_bus(&bus);
-    return err;
 }
 
 errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
@@ -75,8 +75,9 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
     try(Driver_Publish(self, &de));
 
 
-    // Auto-config the bus
-    err = _auto_config_bus(self);
+    // Auto-config the bus. Discover as many cards as possible and ignore anything
+    // that fails.
+    _auto_config_bus(self);
 
 catch:
     if (err != EOK) {

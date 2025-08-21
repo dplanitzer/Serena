@@ -491,34 +491,6 @@ bool Driver_HasChildren(DriverRef _Nonnull self)
 }
 
 
-errno_t Driver_AttachChild(DriverRef _Nonnull self, size_t slotId, DriverRef _Nonnull _Consuming child)
-{
-    decl_try_err();
-
-    mtx_lock(&self->childMtx);
-    if (slotId >= self->maxChildCount) {
-        err = ERANGE;
-    }
-    else if (self->child[slotId].driver) {
-        err = EBUSY;
-    }
-    else {
-        self->child[slotId].driver = child;
-    }
-    mtx_unlock(&self->childMtx);
-
-    if (err == EOK) {
-        err = Driver_Start(child);
-        if (err != EOK) {
-            mtx_lock(&self->childMtx);
-            self->child[slotId].driver = NULL;
-            mtx_unlock(&self->childMtx);
-        }
-    }
-
-    return err;
-}
-
 void Driver_DetachChild(DriverRef _Nonnull self, size_t slotId, int stopReason)
 {
     DriverRef child = Driver_GetChildAt(self, slotId);
@@ -536,6 +508,40 @@ void Driver_DetachChild(DriverRef _Nonnull self, size_t slotId, int stopReason)
         }
         mtx_unlock(&self->childMtx);
     }
+}
+
+errno_t Driver_AttachChild(DriverRef _Nonnull self, DriverRef _Nonnull child, size_t slotId)
+{
+    decl_try_err();
+
+    mtx_lock(&self->childMtx);
+    if (slotId >= self->maxChildCount) {
+        err = ERANGE;
+    }
+    else if (self->child[slotId].driver) {
+        err = EBUSY;
+    }
+    else {
+        self->child[slotId].driver = Object_RetainAs(child, Driver);
+    }
+    mtx_unlock(&self->childMtx);
+
+    return err;
+}
+
+errno_t Driver_AttachStartChild(DriverRef _Nonnull self, DriverRef _Nonnull child, size_t slotId)
+{
+    decl_try_err();
+
+    err = Driver_AttachChild(self, child, slotId);
+    if (err == EOK) {
+        err = Driver_Start(child);
+        if (err != EOK) {
+            Driver_DetachChild(self, slotId, kDriverStop_Abort);
+        }
+    }
+
+    return err;
 }
 
 

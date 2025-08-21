@@ -526,11 +526,14 @@ extern DriverRef _Nullable Driver_CopyChildAt(DriverRef _Nonnull self, size_t sl
 extern bool Driver_HasChildren(DriverRef _Nonnull self);
 
 
-// Attaches the driver 'child' as a child driver to the receiver. The driver is
-// attached at the bus slot 'slotId'. EBUSY is returned if this slot already has
-// a driver attached to it. The driver 'child' is started after it has been
-// successfully attached.
-extern errno_t Driver_AttachChild(DriverRef _Nonnull self, size_t slotId, DriverRef _Nonnull _Consuming child);
+// Attaches the driver 'child' as a child driver to the receiver while taking
+// ownership of the provided reference. The driver is attached at the bus slot
+// 'slotId'. EBUSY is returned if this slot already has a driver attached to it.
+extern errno_t Driver_AttachChild(DriverRef _Nonnull self, DriverRef _Nonnull child, size_t slotId);
+
+// Like Driver_AttachChild() but additionally starts the driver 'child'. Driver
+// 'child' is detached if the start operation fails.
+extern errno_t Driver_AttachStartChild(DriverRef _Nonnull self, DriverRef _Nonnull child, size_t slotId);
 
 // Stops the child at the bus slot id 'slotId' with stop reason 'reason'. Does
 // nothing if the slot contains no driver. The child is stopped, then released

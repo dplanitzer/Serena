@@ -30,21 +30,23 @@ errno_t ZorroDriver_Create(const zorro_conf_t* _Nonnull config, CatalogId parent
 
 errno_t ZorroDriver_onStart(ZorroDriverRef _Nonnull _Locked self)
 {
+    decl_try_err();
     DriverRef dp = NULL;
 
     if (self->cfg.type == ZORRO_TYPE_RAM && self->cfg.start && self->cfg.logicalSize > 0) {
-        ZRamDriver_Create(self, &dp);
+        err = ZRamDriver_Create(self, &dp);
     }
     else {
-        ZStubDriver_Create(self, &dp);
+        err = ZStubDriver_Create(self, &dp);
     }
 
 
     if (dp) {
-        Driver_AttachChild((DriverRef)self, 0, dp);
+        err = Driver_AttachStartChild((DriverRef)self, dp, 0);
+        Object_Release(dp);
     }
 
-    return EOK;
+    return err;
 }
 
 class_func_defs(ZorroDriver, Driver,

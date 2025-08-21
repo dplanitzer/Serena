@@ -21,6 +21,8 @@
 final_class_ivars(AmigaController, PlatformController,
 );
 
+// This function effectively "leaks" drivers when it fails. This doesn't matter
+// because this platform controller never frees its children anyway.
 errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked self)
 {
     decl_try_err();
@@ -34,31 +36,31 @@ errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked s
     // Graphics Driver
     GraphicsDriverRef fb = NULL;
     try(GraphicsDriver_Create(hwDirId, &fb));
-    try(Driver_AttachChild((DriverRef)self, slotId++, (DriverRef)fb));
+    try(Driver_AttachStartChild((DriverRef)self, (DriverRef)fb, slotId++));
 
 
     // Keyboard
     DriverRef kb;
     try(KeyboardDriver_Create(hwDirId, &kb));
-    try(Driver_AttachChild((DriverRef)self, slotId++, kb));
+    try(Driver_AttachStartChild((DriverRef)self, kb, slotId++));
 
 
     // GamePort
     GamePortControllerRef gpc = NULL;
     try(GamePortController_Create(hwDirId, &gpc));
-    try(Driver_AttachChild((DriverRef)self, slotId++, (DriverRef)gpc));
+    try(Driver_AttachStartChild((DriverRef)self, (DriverRef)gpc, slotId++));
 
 
     // Floppy Bus
     FloppyControllerRef fdc = NULL;
     try(FloppyController_Create(hwDirId, &fdc));
-    try(Driver_AttachChild((DriverRef)self, slotId++, (DriverRef)fdc));
+    try(Driver_AttachStartChild((DriverRef)self, (DriverRef)fdc, slotId++));
 
 
     // Zorro Bus
     ZorroControllerRef zorroController = NULL;
     try(ZorroController_Create(hwDirId, &zorroController));
-    try(Driver_AttachChild((DriverRef)self, slotId++, (DriverRef)zorroController));
+    try(Driver_AttachStartChild((DriverRef)self, (DriverRef)zorroController, slotId++));
 
 catch:
     return err;

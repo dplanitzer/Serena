@@ -65,36 +65,26 @@ errno_t VirtualDiskManager_open(VirtualDiskManagerRef _Nonnull self, unsigned in
 errno_t VirtualDiskManager_CreateRamDisk(VirtualDiskManagerRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount)
 {
     decl_try_err();
-    DriverRef dd;
+    DriverRef dp;
 
-    try(RamDisk_Create(self->busDirId, name, sectorSize, sectorCount, extentSectorCount, (RamDiskRef*)&dd));
-    try(Driver_AttachChild((DriverRef)self, 0, dd));
-
-    return EOK;
+    try(RamDisk_Create(self->busDirId, name, sectorSize, sectorCount, extentSectorCount, (RamDiskRef*)&dp));
+    try(Driver_AttachStartChild((DriverRef)self, dp, 0));
 
 catch:
-    if (dd) {
-        Driver_Stop(dd, kDriverStop_Shutdown);
-        Object_Release(dd);
-    }
+    Object_Release(dp);
     return err;
 }
 
 errno_t VirtualDiskManager_CreateRomDisk(VirtualDiskManagerRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, const void* _Nonnull image)
 {
     decl_try_err();
-    DriverRef dd;
+    DriverRef dp;
 
-    try(RomDisk_Create(self->busDirId, name, image, sectorSize, sectorCount, false, (RomDiskRef*)&dd));
-    try(Driver_AttachChild((DriverRef)self, 0, dd));
-
-    return EOK;
+    try(RomDisk_Create(self->busDirId, name, image, sectorSize, sectorCount, false, (RomDiskRef*)&dp));
+    try(Driver_AttachStartChild((DriverRef)self, dp, 0));
 
 catch:
-    if (dd) {
-        Driver_Stop(dd, kDriverStop_Shutdown);
-        Object_Release(dd);
-    }
+    Object_Release(dp);
     return err;
 }
 
