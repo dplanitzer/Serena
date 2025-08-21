@@ -95,13 +95,6 @@ typedef struct DriverEntry {
 // controller. Your driver should use the services of the parent driver to issue
 // commands to the bus. 
 //
-// A driver is guaranteed that:
-// * it has a valid reference to its parent driver from the point onStart() is
-//   called until onWaitForStopped() returns
-// * it is always connected to a parent before Driver_Start() is called
-// * it will be stopped and a Driver_WaitForStopped() will be issued before it
-//   is removed from its parent driver
-//
 //
 // -- The Driver Lifecycle --
 //
@@ -267,6 +260,20 @@ typedef struct DriverEntry {
 // A child driver is guaranteed that the reference to its parent driver will
 // remain valid from the moment that its onStart() is invoked until the moment
 // it returns from its onWaitForStopped() override.
+//
+//
+// -- Parent - Child Driver Relationship and Starting/Stopping a Driver --
+//
+// A driver must be attached to a parent driver before it can be started to
+// ensure that the driver will be able to access the services of its parent
+// as soon as its onStart() method is called.
+//
+// A driver must be stopped before it can be detached from its parent driver to
+// ensure that it continues to have access to the services that its parent driver
+// provides until it has returned from its onWaitForStopped() override.
+//
+// The Driver_AttachChild() and Driver_DetachChild() methods implement and
+// guarantee the semantics described in the previous paragraphs.
 //
 //
 // -- What it Means for a Driver to be in Use --
