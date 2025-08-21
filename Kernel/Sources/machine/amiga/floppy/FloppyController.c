@@ -9,7 +9,6 @@
 #include "FloppyDriverPriv.h"
 #include "FloppyControllerPkg.h"
 #include "adf.h"
-#include <driver/DriverManager.h>
 #include <machine/clock.h>
 #include <machine/amiga/chipset.h>
 #include <machine/irq.h>
@@ -52,7 +51,6 @@ final_class_ivars(FloppyController, Driver,
     mtx_t               mtx;        // Used to ensure that we issue commands to the hardware atomically since all drives share the same CIA and DMA register set
     cnd_t               cv;
     sem_t               done_sem;   // Semaphore indicating whether the DMA is done
-    CatalogId           busDirId;
     struct __fdcFlags {
         unsigned int        inUse:1;
         unsigned int        reserved:31;
@@ -110,7 +108,7 @@ static void FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked 
         }
 
         if (dp) {
-            const errno_t err = FloppyDriver_Create(slotId, ds, dp, self->busDirId, &drive);
+            const errno_t err = FloppyDriver_Create(slotId, ds, dp, &drive);
             
             if (err == EOK) {
                 Driver_AttachStartChild((DriverRef)self, (DriverRef)drive, slotId);
@@ -125,16 +123,16 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     decl_try_err();
 
     DirEntry be;
-    be.dirId = Driver_GetBusDirectory(self);
+    be.dirId = Driver_GetBusDirectory_Old(self);
     be.name = "fd-bus";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;
     be.perms = perm_from_octal(0755);
 
-    try(DriverManager_CreateDirectory(gDriverManager, &be, &self->busDirId));
+    try(Driver_PublishBusDirectory((DriverRef)self, &be));
 
     DriverEntry de;
-    de.dirId = self->busDirId;
+    de.dirId = Driver_GetPublishedBusDirectory(self);
     de.name = "self";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
@@ -156,7 +154,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
 catch:
     if (err != EOK) {
         Driver_Unpublish(self);
-        DriverManager_RemoveDirectory(gDriverManager, self->busDirId);
+        Driver_UnpublishBusDirectory((DriverRef)self);
     }
     return err;
 }

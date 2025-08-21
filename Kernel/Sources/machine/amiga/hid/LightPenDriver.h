@@ -14,6 +14,6 @@
 
 final_class(LightPenDriver, InputDriver);
 
-extern errno_t LightPenDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t LightPenDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* LightPenDriver_h */

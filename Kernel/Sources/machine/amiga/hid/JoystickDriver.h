@@ -14,6 +14,6 @@
 
 final_class(JoystickDriver, InputDriver);
 
-extern errno_t JoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t JoystickDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* JoystickDriver_h */

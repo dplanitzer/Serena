@@ -11,7 +11,6 @@
 #include "LightPenDriver.h"
 #include "MouseDriver.h"
 #include "PaddleDriver.h"
-#include <driver/DriverManager.h>
 
 IOCATS_DEF(g_cats, IOBUS_GP);
 
@@ -45,16 +44,16 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
     decl_try_err();
 
     DirEntry be;
-    be.dirId = Driver_GetBusDirectory(self);
+    be.dirId = Driver_GetBusDirectory_Old(self);
     be.name = "gp-bus";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;
     be.perms = perm_from_octal(0755);
 
-    try(DriverManager_CreateDirectory(gDriverManager, &be, &self->busDirId));
+    try(Driver_PublishBusDirectory((DriverRef)self, &be));
 
     DriverEntry de;
-    de.dirId = self->busDirId;
+    de.dirId = Driver_GetPublishedBusDirectory(self);
     de.name = "self";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
@@ -68,7 +67,7 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
 catch:
     if (err != EOK) {
         Driver_Unpublish(self);
-        DriverManager_RemoveDirectory(gDriverManager, self->busDirId);
+        Driver_UnpublishBusDirectory((DriverRef)self);
     }
     return err;
 }
@@ -171,16 +170,16 @@ errno_t GamePortController_createInputDriver(GamePortControllerRef _Nonnull self
 {
     switch (type) {
         case IOGP_MOUSE:
-            return MouseDriver_Create(self->busDirId, port, pOutDriver);
+            return MouseDriver_Create(port, pOutDriver);
 
         case IOGP_LIGHTPEN:
-            return LightPenDriver_Create(self->busDirId, port, pOutDriver);
+            return LightPenDriver_Create(port, pOutDriver);
 
         case IOGP_ANALOG_JOYSTICK:
-            return PaddleDriver_Create(self->busDirId, port, pOutDriver);
+            return PaddleDriver_Create(port, pOutDriver);
 
         case IOGP_DIGITAL_JOYSTICK:
-            return JoystickDriver_Create(self->busDirId, port, pOutDriver);
+            return JoystickDriver_Create(port, pOutDriver);
 
         default:
             return EINVAL;

@@ -22,7 +22,7 @@ final_class_ivars(JoystickDriver, InputDriver,
 IOCATS_DEF(g_cats, IOHID_DIGITAL_JOYSTICK);
 
 
-errno_t JoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t JoystickDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     JoystickDriverRef self;
@@ -31,7 +31,7 @@ errno_t JoystickDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullab
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(JoystickDriver), kDriver_Exclusive, parentDirId, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(JoystickDriver), kDriver_Exclusive, 0, g_cats, (DriverRef*)&self));
     
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);
@@ -65,7 +65,7 @@ errno_t JoystickDriver_onStart(JoystickDriverRef _Nonnull _Locked self)
     name[9] = '\0';
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory(self);
+    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

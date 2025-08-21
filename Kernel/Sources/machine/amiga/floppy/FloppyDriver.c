@@ -22,7 +22,7 @@ IOCATS_DEF(g_cats, IODISK_FLOPPY);
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
-errno_t FloppyDriver_Create(int drive, DriveState ds, const DriveParams* _Nonnull params, CatalogId parentDirId, FloppyDriverRef _Nullable * _Nonnull pOutDisk)
+errno_t FloppyDriver_Create(int drive, DriveState ds, const DriveParams* _Nonnull params, FloppyDriverRef _Nullable * _Nonnull pOutDisk)
 {
     decl_try_err();
     FloppyDriverRef self;
@@ -31,7 +31,7 @@ errno_t FloppyDriver_Create(int drive, DriveState ds, const DriveParams* _Nonnul
     dinf.family = kDriveFamily_Floppy;
     dinf.platter = (params->driveType == kDriveType_3_5) ? kPlatter_3_5 : kPlatter_5_25;
     dinf.properties = 0;
-    try(DiskDriver_Create(class(FloppyDriver), 0, parentDirId, g_cats, &dinf, (DriverRef*)&self));
+    try(DiskDriver_Create(class(FloppyDriver), 0, 0, g_cats, &dinf, (DriverRef*)&self));
 
     self->drive = drive;
     self->driveState = ds;
@@ -152,7 +152,7 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     name[3] = '\0';
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory(self);
+    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

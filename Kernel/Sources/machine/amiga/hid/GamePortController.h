@@ -15,7 +15,6 @@
 
 open_class(GamePortController, Driver,
     mtx_t       io_mtx;
-    CatalogId   busDirId;
 );
 open_class_funcs(GamePortController, Driver,
     

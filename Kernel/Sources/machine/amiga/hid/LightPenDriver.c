@@ -28,7 +28,7 @@ final_class_ivars(LightPenDriver, InputDriver,
 IOCATS_DEF(g_cats, IOHID_LIGHTPEN);
 
 
-errno_t LightPenDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t LightPenDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     LightPenDriverRef self;
@@ -37,7 +37,7 @@ errno_t LightPenDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullab
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(LightPenDriver), kDriver_Exclusive, parentDirId, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(LightPenDriver), kDriver_Exclusive, 0, g_cats, (DriverRef*)&self));
     
     CHIPSET_BASE_DECL(cp);
 
@@ -72,7 +72,7 @@ errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
     name[5] = '\0';
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory(self);
+    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

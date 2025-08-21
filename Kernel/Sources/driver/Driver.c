@@ -243,8 +243,30 @@ errno_t Driver_publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de)
 
 void Driver_unpublish(DriverRef _Nonnull self)
 {
-    DriverManager_Unpublish(gDriverManager, self->id);
-    self->id = 0;
+    if (self->id > 0) {
+        DriverManager_Unpublish(gDriverManager, self->id);
+        self->id = 0;
+    }
+}
+
+errno_t Driver_PublishBusDirectory(DriverRef _Nonnull self, const DirEntry* _Nonnull de)
+{
+    return DriverManager_CreateDirectory(gDriverManager, de, &self->ownedBusDirId);
+}
+
+void Driver_UnpublishBusDirectory(DriverRef _Nonnull self)
+{
+    if (self->ownedBusDirId > 0) {
+        DriverManager_RemoveDirectory(gDriverManager, self->ownedBusDirId);
+        self->ownedBusDirId = 0;
+    }
+}
+
+CatalogId Driver_GetBusDirectory(DriverRef _Nonnull self)
+{
+    DriverRef bdp = Driver_GetBusController(self);
+    
+    return (bdp) ? bdp->ownedBusDirId : 0;
 }
 
 
@@ -401,6 +423,21 @@ bool Driver_HasSomeCategories(DriverRef _Nonnull self, const iocat_t* _Nonnull c
     }
 
     return false;
+}
+
+DriverRef _Nullable Driver_GetBusController(DriverRef _Nonnull self)
+{
+    DriverRef cp = self->parent;
+
+    while (cp) {
+        if ((cp->options & kDriver_IsBus) == kDriver_IsBus) {
+            return cp;
+        }
+
+        cp = cp->parent;
+    }
+
+    return NULL;
 }
 
 

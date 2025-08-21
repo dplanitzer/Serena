@@ -25,7 +25,7 @@ final_class_ivars(MouseDriver, InputDriver,
 IOCATS_DEF(g_cats, IOHID_MOUSE);
 
 
-errno_t MouseDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t MouseDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     MouseDriverRef self;
@@ -34,7 +34,7 @@ errno_t MouseDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable 
         throw(ENODEV);
     }
     
-    try(Driver_Create(class(MouseDriver), kDriver_Exclusive, parentDirId, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(MouseDriver), kDriver_Exclusive, 0, g_cats, (DriverRef*)&self));
 
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);
@@ -66,7 +66,7 @@ errno_t MouseDriver_onStart(MouseDriverRef _Nonnull _Locked self)
     name[6] = '\0';
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory(self);
+    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

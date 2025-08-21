@@ -78,7 +78,7 @@ final_class_ivars(FloppyDriver, DiskDriver,
 );
 
 
-extern errno_t FloppyDriver_Create(int drive, DriveState ds, const DriveParams* _Nonnull params, CatalogId parentDirId, FloppyDriverRef _Nullable * _Nonnull pOutDisk);
+extern errno_t FloppyDriver_Create(int drive, DriveState ds, const DriveParams* _Nonnull params, FloppyDriverRef _Nullable * _Nonnull pOutDisk);
 static void FloppyDriver_EstablishInitialDriveState(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self);

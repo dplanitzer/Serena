@@ -17,16 +17,6 @@
 #include <kobj/AnyRefs.h>
 
 
-
-typedef struct DirEntry {
-    CatalogId               dirId;
-    const char* _Nonnull    name;
-    uid_t                   uid;
-    gid_t                   gid;
-    mode_t                  perms;
-} DirEntry;
-
-
 typedef errno_t (*DriverManager_Iterator)(void* _Nullable arg, HandlerRef _Nonnull driver, bool* _Nonnull pDone);
 
 

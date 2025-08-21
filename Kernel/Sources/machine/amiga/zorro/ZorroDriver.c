@@ -14,12 +14,12 @@
 IOCATS_DEF(g_cats, IOUNS_PROPRIETARY);
 
 
-errno_t ZorroDriver_Create(const zorro_conf_t* _Nonnull config, CatalogId parentDirId, ZorroDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t ZorroDriver_Create(const zorro_conf_t* _Nonnull config, ZorroDriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ZorroDriverRef self;
 
-    if ((err = Driver_Create(class(ZorroDriver), 0, parentDirId, g_cats, (DriverRef*)&self)) == EOK) {
+    if ((err = Driver_Create(class(ZorroDriver), 0, 0, g_cats, (DriverRef*)&self)) == EOK) {
         Driver_SetMaxChildCount((DriverRef)self, 1);
         self->cfg = *config;
     }

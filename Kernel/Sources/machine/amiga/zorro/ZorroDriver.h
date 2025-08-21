@@ -20,7 +20,7 @@ open_class_funcs(ZorroDriver, Driver,
 );
 
 // Create a driver instance. 
-extern errno_t ZorroDriver_Create(const zorro_conf_t* _Nonnull config, CatalogId parentDirId, ZorroDriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t ZorroDriver_Create(const zorro_conf_t* _Nonnull config, ZorroDriverRef _Nullable * _Nonnull pOutSelf);
 
 #define ZorroDriver_GetConfiguration(__self) \
 ((const zorro_conf_t*)&((ZorroDriverRef)__self)->cfg)

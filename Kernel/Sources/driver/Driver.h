@@ -55,6 +55,15 @@ enum {
 };
 
 
+typedef struct DirEntry {
+    CatalogId               dirId;
+    const char* _Nonnull    name;
+    uid_t                   uid;
+    gid_t                   gid;
+    mode_t                  perms;
+} DirEntry;
+
+
 typedef struct DriverEntry {
     CatalogId               dirId;
     const char* _Nonnull    name;
@@ -303,8 +312,9 @@ typedef struct DriverEntry {
 open_class(Driver, Handler,
     mtx_t                       mtx;    // lifecycle management lock
     cnd_t                       cnd;
-    did_t                       id;     // unique id assigned at publish time
     const iocat_t* _Nonnull     cats;   // categories the driver conforms to.
+    did_t                       id;     // unique id assigned at publish time
+    CatalogId                   ownedBusDirId;  // bus directory that this driver has published
     
     DriverRef _Nullable         parent; // weak ref to the parent driver; constant over the lifetime of the driver
     struct drv_child* _Nullable child;
@@ -457,7 +467,16 @@ extern bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat);
 extern bool Driver_HasSomeCategories(DriverRef _Nonnull self, const iocat_t* _Nonnull cats);
 
 
-// Returns the immediate parent driver of the receiver.
+// Returns the bus controller that directly controls the receiver
+extern DriverRef _Nullable Driver_GetBusController(DriverRef _Nonnull self);
+
+#define Driver_GetBusControllerAs(__self, __class) \
+((__class##Ref)Driver_GetBusController((DriverRef)__self))
+
+
+// Returns the immediate parent driver of the receiver. This is often the direct
+// bus controller. However it may be an intermediate driver that sits between
+// you and the bus controller.
 #define Driver_GetParent(__self) \
 ((DriverRef)__self)->parent
 
@@ -496,8 +515,17 @@ extern errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, const
 // Returns the bus directory of the driver. This directory is created by the bus
 // bus controller that manages this driver and it is the directory in which the
 // driver should place its own driver catalog entries (driver and bus entry).
-#define Driver_GetBusDirectory(__self) \
+#define Driver_GetBusDirectory_Old(__self) \
 ((DriverRef)__self)->busDirId
+
+// Returns the bus directory of the bus controller that manages the receiver.
+// This is the directory inside of which the receiver should place its own
+// driver catalog entries (driver and bus entry).
+extern CatalogId Driver_GetBusDirectory(DriverRef _Nonnull self);
+
+// Returns the bus directory that was created and is managed by the receiver.
+#define Driver_GetPublishedBusDirectory(__self) \
+((DriverRef)__self)->ownedBusDirId
 
 
 // Publish the driver. Should be called from the onStart() override.
@@ -507,6 +535,12 @@ invoke_n(publish, Driver, __self, __de)
 // Unpublishes the driver. Should be called from the onStop() override.
 #define Driver_Unpublish(__self) \
 invoke_0(unpublish, Driver, __self)
+
+// Publishes a bus directory
+extern errno_t Driver_PublishBusDirectory(DriverRef _Nonnull self, const DirEntry* _Nonnull de);
+
+// Unpublishes the bus directory that the receiver has previously published
+extern void Driver_UnpublishBusDirectory(DriverRef _Nonnull self);
 
 
 #define Driver_OnStart(__self) \

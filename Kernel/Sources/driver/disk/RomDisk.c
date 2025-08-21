@@ -74,7 +74,7 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
 
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory(self);
+    de.dirId = Driver_GetBusDirectory_Old(self);
     de.name = self->name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

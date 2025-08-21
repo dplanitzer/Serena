@@ -14,6 +14,6 @@
 
 final_class(PaddleDriver, InputDriver);
 
-extern errno_t PaddleDriver_Create(CatalogId parentDirId, int port, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t PaddleDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* PaddleDriver_h */
