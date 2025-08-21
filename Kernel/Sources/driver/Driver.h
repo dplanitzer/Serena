@@ -69,6 +69,30 @@ typedef struct DriverEntry {
 // A driver object manages a device. A device is a piece of hardware while a
 // driver is the software that manages the hardware.
 //
+// Drivers are organized in a driver hierarchy - also known as a driver tree.
+// The root of the driver hierarchy is the 'platform controller'. This is a
+// special kind of driver that knows how to detect all the various hardware
+// components on a motherboard and how to create drivers for them. Many of the
+// drivers that the platform controller creates are 'bus controllers'.
+//
+// A bus controller is a kind of driver that manages a physical or a virtual bus.
+// It is responsible for detecting hardware that is connected to the bus and it
+// kicks off the creation of bus client drivers that then manage the hardware
+// that is connected to a bus.
+//
+// Every driver has a parent driver and it may have children drivers. The parent
+// driver is usually the bus controller that manages the driver. However the
+// parent driver may be an intermediate driver that sits between you and the bus
+// controller. Your driver should use the services of the parent driver to issue
+// commands to the bus. 
+//
+// A driver is guaranteed that:
+// * it has a valid reference to its parent driver from the point onStart() is
+//   called until onWaitForStopped() returns
+// * it is always connected to a parent before Driver_Start() is called
+// * it will be stopped and a Driver_WaitForStopped() will be issued before it
+//   is removed from its parent driver
+//
 //
 // -- The Driver Lifecycle --
 //
@@ -122,10 +146,6 @@ typedef struct DriverEntry {
 // wait by calling Driver_WaitForStopped() before you release the driver instance
 // by calling Object_Release(). Note that the wait-for-stopped function also
 // waits until after all open I/O channels on the driver have been closed.
-//
-// Note that when you stop a published driver, that the driver manager will
-// automatically take care of doing a Driver_WaitForStopped() and it will
-// release the stopped driver. This process is called 'driver reaping'.
 //
 // A typical driver lifecycle looks like this:
 //
@@ -235,16 +255,18 @@ typedef struct DriverEntry {
 // alive as long as at least one channel is open or one child remains attached
 // to it.
 //
+// A child driver is guaranteed that the reference to its parent driver will
+// remain valid from the moment that its onStart() is invoked until the moment
+// it returns from its onWaitForStopped() override.
+//
 //
 // -- What it Means for a Driver to be in Use --
 //
 // A driver is considered to be in use if:
 // - at least one channel is open
 // - at least one child is attached to it
-// A driver that is in use may be stopped. However the driver reaper will defer
-// the destruction of the driver until after all open channels on it have been
-// closed and all its children have detached. Once this state has been reached
-// the reaper calls Driver_WaitForStopped() on the driver and then destroys it.
+// A driver that is in use may be stopped. However the driver isn't destroyed
+// until after the last use of it is gone.
 //
 //
 // -- Driver Relationships and Ownership --
@@ -323,6 +345,18 @@ open_class_funcs(Driver, Handler,
     void (*onWaitForStopped)(void* _Nonnull self);
 
    
+    // Invoked after the driver has been added as a child to the driver 'parent'.
+    // Override: Optional; must call super
+    // Default Behavior: Various management tasks
+    void (*onAttached)(void* _Nonnull self, DriverRef _Nonnull parent);
+
+    // Invoked after the driver has been stopped, waited for stopped and right
+    // before it is detached from 'parent'.
+    // Override: Optional; must call super
+    // Default Behavior: Various management tasks
+    void (*onDetaching)(void* _Nonnull self, DriverRef _Nonnull parent);
+
+
     // Invoked by the open() function to create the driver channel that should
     // be returned to the caller. The 'openCount' reflects the number of I/O
     // channels that are currently open for this driver. Note that this count
@@ -354,9 +388,10 @@ open_class_funcs(Driver, Handler,
 );
 
 
-// Starts the driver. This function must be called before any other driver
-// function is called. It causes the driver to finish initialization and to
-// publish its catalog entry to the driver catalog.
+// Starts the driver. This function must be called after the driver has been
+// attached to its parent driver and before an I/O command is invoked on the
+// driver. It causes the driver to finish initialization and to publish its
+// catalog entry to the driver catalog.
 extern errno_t Driver_Start(DriverRef _Nonnull self);
 
 // Stops the driver. 'reason' specifies the reason why the driver should be
@@ -484,6 +519,13 @@ invoke_0(onStop, Driver, __self)
 invoke_0(onWaitForStopped, Driver, __self)
 
 
+#define Driver_OnAttached(__self, __parent) \
+invoke_n(onAttached, Driver, __self, __parent)
+
+#define Driver_OnDetaching(__self, __parent) \
+invoke_n(onDetaching, Driver, __self, __parent)
+
+
 // Creates an I/O channel that connects the driver to a user space application
 // or a kernel space service
 #define Driver_OnOpen(__self, __openCount, __mode, __arg, __pOutChannel) \
@@ -535,10 +577,11 @@ extern errno_t Driver_AttachChild(DriverRef _Nonnull self, DriverRef _Nonnull ch
 // 'child' is detached if the start operation fails.
 extern errno_t Driver_AttachStartChild(DriverRef _Nonnull self, DriverRef _Nonnull child, size_t slotId);
 
-// Stops the child at the bus slot id 'slotId' with stop reason 'reason'. Does
-// nothing if the slot contains no driver. The child is stopped, then released
-// and removed from the child list.
-extern void Driver_DetachChild(DriverRef _Nonnull self, size_t slotId, int stopReason);
+// Stops the child at the bus slot id 'slotId' with stop reason 'reason' and
+// waits for the stop to complete. Does nothing if the slot contains no driver.
+// The child is stopped, waited for stopped and then released and removed from
+// the child list.
+extern void Driver_DetachChild(DriverRef _Nonnull self, int stopReason, size_t slotId);
 
 
 // Returns the data associated with the bus slot id 'slotId'. 0 is returned if

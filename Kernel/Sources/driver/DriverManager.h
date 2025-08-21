@@ -119,8 +119,4 @@ extern void DriverManager_OnDriverStarted(DriverManagerRef _Nonnull self, Driver
 // trigger registered matchers.
 extern void DriverManager_OnDriverStopping(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver);
 
-
-// Called by a driver when it is ready for reaping.
-extern void DriverManager_ReapDriver(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver);
-
 #endif /* DriverManager_h */

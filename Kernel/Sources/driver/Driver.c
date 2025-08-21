@@ -108,10 +108,15 @@ errno_t Driver_Start(DriverRef _Nonnull self)
             break;
             
         default:
-            self->state = kDriverState_Active;
-            err = Driver_OnStart(self);
-            if (err == EOK) {
-                hasStarted = true;
+            if ((self->flags & kDriverFlag_IsAttached) == kDriverFlag_IsAttached) {
+                self->state = kDriverState_Active;
+                err = Driver_OnStart(self);
+                if (err == EOK) {
+                    hasStarted = true;
+                }
+            }
+            else {
+                err = ENOTATTACHED;
             }
             break;
     }
@@ -176,10 +181,6 @@ void Driver_Stop(DriverRef _Nonnull self, int reason)
     Driver_OnStop(self);
     self->state = kDriverState_Stopping;
     mtx_unlock(&self->mtx);
-
-
-    // Tell the driver manager that we are ready for reaping
-    DriverManager_ReapDriver(gDriverManager, self);
 }
 
 void Driver_onStop(DriverRef _Nonnull _Locked self)
@@ -219,6 +220,19 @@ void Driver_WaitForStopped(DriverRef _Nonnull self)
 
 void Driver_onWaitForStopped(DriverRef _Nonnull self)
 {
+}
+
+
+void Driver_onAttached(DriverRef _Nonnull self, DriverRef _Nonnull parent)
+{
+    self->parent = parent;
+    self->flags |= kDriverFlag_IsAttached;
+}
+
+void Driver_onDetaching(DriverRef _Nonnull self, DriverRef _Nonnull parent)
+{
+    self->parent = NULL;
+    self->flags &= ~kDriverFlag_IsAttached;
 }
 
 
@@ -491,21 +505,20 @@ bool Driver_HasChildren(DriverRef _Nonnull self)
 }
 
 
-void Driver_DetachChild(DriverRef _Nonnull self, size_t slotId, int stopReason)
+void Driver_DetachChild(DriverRef _Nonnull self, int stopReason, size_t slotId)
 {
-    DriverRef child = Driver_GetChildAt(self, slotId);
+    DriverRef child = Driver_CopyChildAt(self, slotId);
 
     if (child) {
         Driver_Stop(self, stopReason);
+        Driver_WaitForStopped(child);
+
+        Driver_OnDetaching(child, self);
+        Object_Release(child);  // Release the tmp strong ref from CopyChildAt()
 
         mtx_lock(&self->childMtx);
-        for (int16_t i = 0; i < self->maxChildCount; i++) {
-            if (self->child[i].driver == child) {
-                Object_Release(self->child[i].driver);
-                self->child[i].driver = NULL;
-                break;
-            }
-        }
+        Object_Release(self->child[slotId].driver); // Release the slot ref
+        self->child[slotId].driver = NULL;
         mtx_unlock(&self->childMtx);
     }
 }
@@ -513,6 +526,11 @@ void Driver_DetachChild(DriverRef _Nonnull self, size_t slotId, int stopReason)
 errno_t Driver_AttachChild(DriverRef _Nonnull self, DriverRef _Nonnull child, size_t slotId)
 {
     decl_try_err();
+
+    if ((child->flags & kDriverFlag_IsAttached) == kDriverFlag_IsAttached) {
+        return EBUSY;
+    }
+
 
     mtx_lock(&self->childMtx);
     if (slotId >= self->maxChildCount) {
@@ -526,6 +544,10 @@ errno_t Driver_AttachChild(DriverRef _Nonnull self, DriverRef _Nonnull child, si
     }
     mtx_unlock(&self->childMtx);
 
+    if (err == EOK) {
+        Driver_OnAttached(child, self);
+    }
+
     return err;
 }
 
@@ -537,7 +559,7 @@ errno_t Driver_AttachStartChild(DriverRef _Nonnull self, DriverRef _Nonnull chil
     if (err == EOK) {
         err = Driver_Start(child);
         if (err != EOK) {
-            Driver_DetachChild(self, slotId, kDriverStop_Abort);
+            Driver_DetachChild(self, kDriverStop_Shutdown, slotId);
         }
     }
 
@@ -578,6 +600,8 @@ override_func_def(deinit, Driver, Object)
 func_def(onStart, Driver)
 func_def(onStop, Driver)
 func_def(onWaitForStopped, Driver)
+func_def(onAttached, Driver)
+func_def(onDetaching, Driver)
 func_def(publish, Driver)
 func_def(unpublish, Driver)
 override_func_def(open, Driver, Handler)

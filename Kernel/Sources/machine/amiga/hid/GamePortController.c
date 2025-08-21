@@ -208,7 +208,7 @@ static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _No
     }
 
 
-    Driver_DetachChild((DriverRef)self, port, kDriverStop_Shutdown);
+    Driver_DetachChild((DriverRef)self, kDriverStop_Shutdown, port);
     Driver_SetChildDataAt((DriverRef)self, port, IOGP_NONE);
 
 

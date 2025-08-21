@@ -53,9 +53,10 @@
 #define ETERMINATED     40
 #define ENOTSUP         41
 #define ENXIO           42
+#define ENOTATTACHED    43
 
 #define __EFIRST    1
-#define __ELAST     42
+#define __ELAST     43
 
 typedef int _Errno_t;
 
