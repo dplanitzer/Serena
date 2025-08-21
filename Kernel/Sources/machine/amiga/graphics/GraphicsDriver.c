@@ -19,12 +19,12 @@ IOCATS_DEF(g_cats, IOVID_FB);
 // We assume that video is turned off at the time this function is called and
 // video remains turned off until a screen has been created and is made the
 // current screen.
-errno_t GraphicsDriver_Create(CatalogId parentDirId, GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     GraphicsDriverRef self;
     
-    try(Driver_Create(class(GraphicsDriver), 0, parentDirId, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(GraphicsDriver), 0, 0, g_cats, (DriverRef*)&self));
     self->nextSurfaceId = 1;
     self->nextScreenId = 1;
     mtx_init(&self->io_mtx);
@@ -67,7 +67,7 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
     decl_try_err();
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory_Old(self);
+    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = "fb";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

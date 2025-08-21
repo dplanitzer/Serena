@@ -25,7 +25,7 @@ final_class_ivars(RomDisk, DiskDriver,
 IOCATS_DEF(g_cats, IODISK_ROMDISK);
 
 
-errno_t RomDisk_Create(CatalogId parentDirId, const char* _Nonnull name, const void* _Nonnull pImage, size_t sectorSize, scnt_t sectorCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
+errno_t RomDisk_Create(const char* _Nonnull name, const void* _Nonnull pImage, size_t sectorSize, scnt_t sectorCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     RomDiskRef self = NULL;
@@ -39,7 +39,7 @@ errno_t RomDisk_Create(CatalogId parentDirId, const char* _Nonnull name, const v
     drvi.platter = kPlatter_None;
     drvi.properties = kDrive_IsReadOnly | kDrive_Fixed;
 
-    try(DiskDriver_Create(class(RomDisk), 0, parentDirId, g_cats, &drvi, (DriverRef*)&self));
+    try(DiskDriver_Create(class(RomDisk), 0, 0, g_cats, &drvi, (DriverRef*)&self));
     self->diskImage = pImage;
     self->sectorCount = sectorCount;
     self->sectorShift = siz_log2(sectorSize);
@@ -74,7 +74,7 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
 
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory_Old(self);
+    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = self->name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

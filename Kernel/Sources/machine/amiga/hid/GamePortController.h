@@ -29,7 +29,7 @@ open_class_funcs(GamePortController, Driver,
 );
 
 
-extern errno_t GamePortController_Create(CatalogId parentDirId, GamePortControllerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t GamePortController_Create(GamePortControllerRef _Nullable * _Nonnull pOutSelf);
 
 #define GamePortController_CreateInputDriver(__self, __port, __type, __pOutDriver) \
 invoke_n(createInputDriver, GamePortController, __self, __port, __type, __pOutDriver)

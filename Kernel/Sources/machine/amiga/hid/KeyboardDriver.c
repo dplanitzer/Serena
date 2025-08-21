@@ -41,12 +41,12 @@ IOCATS_DEF(g_cats, IOHID_KEYBOARD);
 extern void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self, int key);
 
 
-errno_t KeyboardDriver_Create(CatalogId parentDirId, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t KeyboardDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     KeyboardDriverRef self;
     
-    try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, parentDirId, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, 0, g_cats, (DriverRef*)&self));
     try(RingBuffer_Init(&self->keyQueue, 16));
 
     *pOutSelf = (DriverRef)self;
@@ -68,7 +68,7 @@ errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
     decl_try_err();
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory_Old(self);
+    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = "kb";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

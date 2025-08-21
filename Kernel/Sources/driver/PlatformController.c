@@ -23,14 +23,15 @@ errno_t PlatformController_onStart(PlatformControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
 
-    DirEntry de;
-    de.dirId = kCatalogId_None;
-    de.name = "hw";
-    de.uid = kUserId_Root;
-    de.gid = kGroupId_Root;
-    de.perms = perm_from_octal(0755);
+    DirEntry be;
+    be.dirId = kCatalogId_None;
+    be.name = "hw";
+    be.uid = kUserId_Root;
+    be.gid = kGroupId_Root;
+    be.perms = perm_from_octal(0755);
 
-    try(DriverManager_CreateDirectory(gDriverManager, &de, &self->hardwareDirectoryId));
+    try(Driver_PublishBusDirectory((DriverRef)self, &be));
+    self->hardwareDirectoryId = Driver_GetPublishedBusDirectory(self);
     try(PlatformController_DetectDevices(self));
 
 catch:

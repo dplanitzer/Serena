@@ -14,6 +14,6 @@
 
 final_class(KeyboardDriver, InputDriver);
 
-extern errno_t KeyboardDriver_Create(CatalogId parentDirId, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t KeyboardDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* KeyboardDriver_h */

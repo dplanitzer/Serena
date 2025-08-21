@@ -35,19 +35,19 @@ errno_t AmigaController_detectDevices(struct AmigaController* _Nonnull _Locked s
 
     // Graphics Driver
     GraphicsDriverRef fb = NULL;
-    try(GraphicsDriver_Create(hwDirId, &fb));
+    try(GraphicsDriver_Create(&fb));
     try(Driver_AttachStartChild((DriverRef)self, (DriverRef)fb, slotId++));
 
 
     // Keyboard
     DriverRef kb;
-    try(KeyboardDriver_Create(hwDirId, &kb));
+    try(KeyboardDriver_Create(&kb));
     try(Driver_AttachStartChild((DriverRef)self, kb, slotId++));
 
 
     // GamePort
     GamePortControllerRef gpc = NULL;
-    try(GamePortController_Create(hwDirId, &gpc));
+    try(GamePortController_Create(&gpc));
     try(Driver_AttachStartChild((DriverRef)self, (DriverRef)gpc, slotId++));
 
 

@@ -20,12 +20,12 @@ IOCATS_DEF(g_cats, IOBUS_GP);
 static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _Nonnull _Locked self, int port, int type);
 
 
-errno_t GamePortController_Create(CatalogId parentDirId, GamePortControllerRef _Nullable * _Nonnull pOutSelf)
+errno_t GamePortController_Create(GamePortControllerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     GamePortControllerRef self;
 
-    try(Driver_Create(class(GamePortController), kDriver_IsBus | kDriver_Exclusive, parentDirId, g_cats, (DriverRef*)&self));
+    try(Driver_Create(class(GamePortController), kDriver_IsBus | kDriver_Exclusive, 0, g_cats, (DriverRef*)&self));
     try(Driver_SetMaxChildCount((DriverRef)self, GP_PORT_COUNT));
 
     mtx_init(&self->io_mtx);
@@ -44,7 +44,7 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
     decl_try_err();
 
     DirEntry be;
-    be.dirId = Driver_GetBusDirectory_Old(self);
+    be.dirId = Driver_GetBusDirectory((DriverRef)self);
     be.name = "gp-bus";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;
