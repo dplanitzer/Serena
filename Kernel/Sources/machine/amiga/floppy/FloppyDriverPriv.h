@@ -45,8 +45,6 @@ enum {
 // Stores the state of a single floppy drive.
 final_class_ivars(FloppyDriver, DiskDriver,
 
-    FloppyControllerRef _Nonnull _Weak  fc;
-
     // DMA buffer
     uint16_t* _Nonnull      dmaBuffer;
     int16_t                 dmaReadWordCount;
@@ -80,7 +78,7 @@ final_class_ivars(FloppyDriver, DiskDriver,
 );
 
 
-extern errno_t FloppyDriver_Create(FloppyControllerRef _Nonnull fc, int drive, DriveState ds, const DriveParams* _Nonnull params, CatalogId parentDirId, FloppyDriverRef _Nullable * _Nonnull pOutDisk);
+extern errno_t FloppyDriver_Create(int drive, DriveState ds, const DriveParams* _Nonnull params, CatalogId parentDirId, FloppyDriverRef _Nullable * _Nonnull pOutDisk);
 static void FloppyDriver_EstablishInitialDriveState(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self);
@@ -104,5 +102,6 @@ static errno_t FloppyDriver_FinalizeIO(FloppyDriverRef _Nonnull self, errno_t er
 
 #define FloppyDriver_TrackFromCylinderAndHead(__chs) (2*(__chs->c) + (__chs->h))
 
+#define _get_fdc() Driver_GetParentAs(self, FloppyController)
 
 #endif /* FloppyDriverPriv_h */

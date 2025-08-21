@@ -110,7 +110,7 @@ static void FloppyController_DetectDevices(FloppyControllerRef _Nonnull _Locked 
         }
 
         if (dp) {
-            const errno_t err = FloppyDriver_Create(self, slotId, ds, dp, self->busDirId, &drive);
+            const errno_t err = FloppyDriver_Create(slotId, ds, dp, self->busDirId, &drive);
             
             if (err == EOK) {
                 Driver_AttachStartChild((DriverRef)self, (DriverRef)drive, slotId);

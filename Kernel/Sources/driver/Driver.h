@@ -459,10 +459,10 @@ extern bool Driver_HasSomeCategories(DriverRef _Nonnull self, const iocat_t* _No
 
 // Returns the immediate parent driver of the receiver.
 #define Driver_GetParent(__self) \
-(__self)->parent
+((DriverRef)__self)->parent
 
 #define Driver_GetParentAs(__self, __class) \
-((__class##Ref)((__self)->parent))
+((__class##Ref)(((DriverRef)__self)->parent))
 
 
 //
