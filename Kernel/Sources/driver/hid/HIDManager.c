@@ -607,19 +607,19 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
 {
     decl_try_err();
 
-    if (self->kbChannel == NULL && Driver_MatchesCategory(driver, IOHID_KEYBOARD)) {
+    if (self->kbChannel == NULL && Driver_HasCategory(driver, IOHID_KEYBOARD)) {
         err = Driver_Open(driver, O_RDWR, 0, &self->kbChannel);
         if (err == EOK) {
             InputDriver_SetReportTarget(driver, self->reportsCollector, SIGKEY);
             self->kb = (InputDriverRef)driver;
         }
     }
-    else if (self->mouse.chCount < MAX_POINTING_DEVICES && Driver_MatchesAnyCategory(driver, g_pointing_device_cats)) {
+    else if (self->mouse.chCount < MAX_POINTING_DEVICES && Driver_HasSomeCategories(driver, g_pointing_device_cats)) {
         for (int i = 0; i < MAX_POINTING_DEVICES; i++) {
             if (self->mouse.ch[i] == NULL) {
                 err = Driver_Open(driver, O_RDWR, 0, &self->mouse.ch[i]);
                 if (err == EOK) {
-                    if (Driver_MatchesCategory(driver, IOHID_LIGHTPEN) && self->fb) {
+                    if (Driver_HasCategory(driver, IOHID_LIGHTPEN) && self->fb) {
                         self->mouse.lpCount++;
                         if (self->mouse.lpCount == 1) {
                             GraphicsDriver_SetLightPenEnabled(self->fb, true);
@@ -631,7 +631,7 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
             }
         }
     }
-    else if (self->gamepadCount < MAX_GAME_PADS && Driver_MatchesAnyCategory(driver, g_gamepad_cats)) {
+    else if (self->gamepadCount < MAX_GAME_PADS && Driver_HasSomeCategories(driver, g_gamepad_cats)) {
         for (int i = 0; i < MAX_GAME_PADS; i++) {
             gamepad_state_t* gp = &self->gamepad[i];
 
@@ -647,7 +647,7 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
             }
         }
     }
-    else if (self->fbChannel == NULL && Driver_MatchesCategory(driver, IOVID_FB)) {
+    else if (self->fbChannel == NULL && Driver_HasCategory(driver, IOVID_FB)) {
         // Open a channel to the framebuffer
         err = Driver_Open(driver, O_RDWR, 0, &self->fbChannel);
         if (err == EOK) {
@@ -688,7 +688,7 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
         DriverRef cdp = (ch) ? HandlerChannel_GetHandlerAs(ch, Driver) : NULL;
 
         if (cdp == driver) {
-            if (self->mouse.lpCount > 0 && Driver_MatchesCategory(cdp, IOHID_LIGHTPEN)) {
+            if (self->mouse.lpCount > 0 && Driver_HasCategory(cdp, IOHID_LIGHTPEN)) {
                 self->mouse.lpCount--;
                 if (self->mouse.lpCount == 0) {
                     GraphicsDriver_SetLightPenEnabled(self->fb, false);

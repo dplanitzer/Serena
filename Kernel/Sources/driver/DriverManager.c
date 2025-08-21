@@ -209,7 +209,7 @@ errno_t DriverManager_GetMatches(DriverManagerRef _Nonnull self, const iocat_t* 
         SList_ForEach(&self->id_table[idx], SListNode,
             dentry_t dep = (dentry_t)pCurNode;
             
-            if (instanceof(dep->driver, Driver) && Driver_MatchesAnyCategory((DriverRef)dep->driver, cats)) {
+            if (instanceof(dep->driver, Driver) && Driver_HasSomeCategories((DriverRef)dep->driver, cats)) {
                 if (idx >= bufsiz-1) {
                     err = ERANGE;
                     break;
@@ -254,7 +254,7 @@ errno_t DriverManager_StartMatching(DriverManagerRef _Nonnull self, const iocat_
         SList_ForEach(&self->id_table[idx], SListNode,
             dentry_t dep = (dentry_t)pCurNode;
             
-            if (instanceof(dep->driver, Driver) && Driver_MatchesAnyCategory((DriverRef)dep->driver, pm->cats)) {
+            if (instanceof(dep->driver, Driver) && Driver_HasSomeCategories((DriverRef)dep->driver, pm->cats)) {
                 f(arg, dep->driver, IONOTIFY_STARTED);
             }
         );
@@ -289,7 +289,7 @@ static void _do_match_callouts(DriverManagerRef _Nonnull self, HandlerRef _Nonnu
     SList_ForEach(&self->matchers, SListNode,
         matcher_t pm = (matcher_t)pCurNode;
             
-        if (instanceof(driver, Driver) && Driver_MatchesAnyCategory((DriverRef)driver, pm->cats)) {
+        if (instanceof(driver, Driver) && Driver_HasSomeCategories((DriverRef)driver, pm->cats)) {
             pm->func(pm->arg, driver, notify);
         }
     );
