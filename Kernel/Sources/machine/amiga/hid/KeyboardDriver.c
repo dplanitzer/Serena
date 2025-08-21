@@ -92,7 +92,6 @@ errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
 void KeyboardDriver_onStop(DriverRef _Nonnull _Locked self)
 {
     irq_disable_src(IRQ_ID_CIA_A_SP);
-    Driver_Unpublish(self);
 }
 
 void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, HIDReport* _Nonnull report)

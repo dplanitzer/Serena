@@ -162,7 +162,6 @@ catch:
 void FloppyController_onStop(DriverRef _Nonnull _Locked self)
 {
     irq_disable_src(IRQ_ID_DISK_BLOCK);
-    Driver_Unpublish(self);
 }
 
 DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int drive)

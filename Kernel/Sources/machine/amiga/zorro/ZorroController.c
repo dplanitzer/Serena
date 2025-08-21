@@ -85,11 +85,6 @@ catch:
     return err;
 }
 
-void ZorroController_onStop(DriverRef _Nonnull _Locked self)
-{
-    Driver_Unpublish(self);
-}
-
 errno_t ZorroController_ioctl(ZorroControllerRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
 {
     switch (cmd) {
@@ -122,6 +117,5 @@ errno_t ZorroController_ioctl(ZorroControllerRef _Nonnull self, IOChannelRef _No
 
 class_func_defs(ZorroController, Driver,
 override_func_def(onStart, ZorroController, Driver)
-override_func_def(onStop, ZorroController, Driver)
 override_func_def(ioctl, ZorroController, Handler)
 );

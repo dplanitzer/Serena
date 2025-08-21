@@ -85,11 +85,6 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     return Driver_Publish(self, &de);
 }
 
-void RomDisk_onStop(DriverRef _Nonnull _Locked self)
-{
-    Driver_Unpublish(self);
-}
-
 errno_t RomDisk_getSector(RomDiskRef _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize)
 {
     memcpy(data, self->diskImage + (chs->s << self->sectorShift), secSize);
@@ -100,6 +95,5 @@ errno_t RomDisk_getSector(RomDiskRef _Nonnull self, const chs_t* _Nonnull chs, u
 class_func_defs(RomDisk, DiskDriver,
 override_func_def(deinit, RomDisk, Object)
 override_func_def(onStart, RomDisk, Driver)
-override_func_def(onStop, RomDisk, Driver)
 override_func_def(getSector, RomDisk, DiskDriver)
 );

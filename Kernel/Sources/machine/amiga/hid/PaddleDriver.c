@@ -80,11 +80,6 @@ errno_t PaddleDriver_onStart(PaddleDriverRef _Nonnull _Locked self)
     return Driver_Publish(self, &de);
 }
 
-void PaddleDriver_onStop(DriverRef _Nonnull _Locked self)
-{
-    Driver_Unpublish(self);
-}
-
 void PaddleDriver_getReport(PaddleDriverRef _Nonnull self, HIDReport* _Nonnull report)
 {
     register uint16_t potdat = *(self->reg_potdat);
@@ -143,6 +138,5 @@ void PaddleDriver_getReport(PaddleDriverRef _Nonnull self, HIDReport* _Nonnull r
 
 class_func_defs(PaddleDriver, InputDriver,
 override_func_def(onStart, PaddleDriver, Driver)
-override_func_def(onStop, PaddleDriver, Driver)
 override_func_def(getReport, PaddleDriver, InputDriver)
 );

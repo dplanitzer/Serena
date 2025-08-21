@@ -51,12 +51,6 @@ errno_t ZRamDriver_onStart(ZRamDriverRef _Nonnull _Locked self)
     return err;
 }
 
-void ZRamDriver_onStop(DriverRef _Nonnull _Locked self)
-{
-    Driver_Unpublish(self);
-}
-
 class_func_defs(ZRamDriver, Driver,
 override_func_def(onStart, ZRamDriver, Driver)
-override_func_def(onStop, ZRamDriver, Driver)
 );

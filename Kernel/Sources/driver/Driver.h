@@ -405,7 +405,8 @@ extern errno_t Driver_Start(DriverRef _Nonnull self);
 
 // Stops the driver. 'reason' specifies the reason why the driver should be
 // stopped. This method first stops all children of the receiver and it then
-// changes the state to stopping and it finally invokes the onStop() lifecycle
+// changes the state to stopping and it finally unpublishes the driver and its
+// bus directory (if it published one) and it then invokes the onStop() lifecycle
 // method. A driver subclass should override onStop() and program the hardware
 // in such a way that it is effectively disabled and no longer active. A child
 // driver which is told to stop by its controlling parent (bus) driver should

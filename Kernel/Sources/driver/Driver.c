@@ -177,6 +177,9 @@ void Driver_Stop(DriverRef _Nonnull self, int reason)
 
     // Enter the stopping state
     mtx_lock(&self->mtx);
+    Driver_Unpublish(self);
+    Driver_UnpublishBusDirectory(self);
+    
     Driver_OnStop(self);
     self->state = kDriverState_Stopping;
     mtx_unlock(&self->mtx);

@@ -87,11 +87,6 @@ errno_t JoystickDriver_onStart(JoystickDriverRef _Nonnull _Locked self)
     return err;
 }
 
-void JoystickDriver_onStop(DriverRef _Nonnull _Locked self)
-{
-    Driver_Unpublish(self);
-}
-
 void JoystickDriver_getReport(JoystickDriverRef _Nonnull self, HIDReport* _Nonnull report)
 {
     register uint8_t pra = *(self->reg_ciaa_pra);
@@ -139,6 +134,5 @@ void JoystickDriver_getReport(JoystickDriverRef _Nonnull self, HIDReport* _Nonnu
 
 class_func_defs(JoystickDriver, InputDriver,
 override_func_def(onStart, JoystickDriver, Driver)
-override_func_def(onStop, JoystickDriver, Driver)
 override_func_def(getReport, JoystickDriver, InputDriver)
 );

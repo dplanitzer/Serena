@@ -42,12 +42,6 @@ errno_t ZStubDriver_onStart(ZStubDriverRef _Nonnull _Locked self)
     return Driver_Publish(self, &de);
 }
 
-void ZStubDriver_onStop(DriverRef _Nonnull _Locked self)
-{
-    Driver_Unpublish(self);
-}
-
 class_func_defs(ZStubDriver, Driver,
 override_func_def(onStart, ZStubDriver, Driver)
-override_func_def(onStop, ZStubDriver, Driver)
 );

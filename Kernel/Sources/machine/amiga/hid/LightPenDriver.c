@@ -90,11 +90,6 @@ errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
     return err;
 }
 
-void LightPenDriver_onStop(DriverRef _Nonnull _Locked self)
-{
-    Driver_Unpublish(self);
-}
-
 // Returns the current position of the light pen if the light pen triggered.
 static bool _get_lp_position(int16_t* _Nonnull x, int16_t* _Nonnull y)
 {
@@ -190,6 +185,5 @@ void LightPenDriver_getReport(LightPenDriverRef _Nonnull self, HIDReport* _Nonnu
 
 class_func_defs(LightPenDriver, InputDriver,
 override_func_def(onStart, LightPenDriver, Driver)
-override_func_def(onStop, LightPenDriver, Driver)
 override_func_def(getReport, LightPenDriver, InputDriver)
 );

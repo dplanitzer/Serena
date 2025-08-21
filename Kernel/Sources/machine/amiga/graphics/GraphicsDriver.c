@@ -87,7 +87,6 @@ void GraphicsDriver_onStop(GraphicsDriverRef _Nonnull _Locked self)
 {
     irq_disable_src(IRQ_ID_VBLANK);
     irq_remove_handler(&self->vblHandler);
-    Driver_Unpublish(self);
 }
 
 errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)

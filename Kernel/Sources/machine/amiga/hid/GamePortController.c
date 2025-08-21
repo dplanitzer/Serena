@@ -72,11 +72,6 @@ catch:
     return err;
 }
 
-void GamePortController_onStop(DriverRef _Nonnull _Locked self)
-{
-    Driver_Unpublish(self);
-}
-
 
 //
 // API
@@ -230,7 +225,6 @@ static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _No
 
 class_func_defs(GamePortController, Driver,
 override_func_def(onStart, GamePortController, Driver)
-override_func_def(onStop, GamePortController, Driver)
 override_func_def(ioctl, GamePortController, Handler)
 func_def(createInputDriver, GamePortController)
 );
