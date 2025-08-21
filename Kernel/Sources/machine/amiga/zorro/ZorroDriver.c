@@ -34,10 +34,10 @@ errno_t ZorroDriver_onStart(ZorroDriverRef _Nonnull _Locked self)
     DriverRef dp = NULL;
 
     if (self->cfg.type == ZORRO_TYPE_RAM && self->cfg.start && self->cfg.logicalSize > 0) {
-        err = ZRamDriver_Create(self, &dp);
+        err = ZRamDriver_Create(&dp);
     }
     else {
-        err = ZStubDriver_Create(self, &dp);
+        err = ZStubDriver_Create(&dp);
     }
 
 

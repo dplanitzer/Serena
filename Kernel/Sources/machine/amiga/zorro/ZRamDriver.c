@@ -13,24 +13,16 @@
 IOCATS_DEF(g_cats, IOMEM_RAM);
 
 
-errno_t ZRamDriver_Create(ZorroDriverRef _Nonnull zdp, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t ZRamDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    decl_try_err();
-    ZRamDriverRef self;
-
-    err = Driver_Create(class(ZRamDriver), 0, Driver_GetBusDirectory(zdp), g_cats, (DriverRef*)&self);
-    if (err == EOK) {
-        self->card = zdp;
-    }
-
-    *pOutSelf = (DriverRef)self;
-    return err;
+    return Driver_Create(class(ZRamDriver), 0, 0, g_cats, pOutSelf);
 }
 
 errno_t ZRamDriver_onStart(ZRamDriverRef _Nonnull _Locked self)
 {
     decl_try_err();
-    const zorro_conf_t* cfg = ZorroDriver_GetConfiguration(self->card);
+    ZorroDriverRef zdp = Driver_GetParentAs(self, ZorroDriver);
+    const zorro_conf_t* cfg = ZorroDriver_GetConfiguration(zdp);
     mem_desc_t md = {0};
     char name[5];
 
@@ -41,7 +33,7 @@ errno_t ZRamDriver_onStart(ZRamDriverRef _Nonnull _Locked self)
     name[4] = '\0';
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory(self->card);
+    de.dirId = Driver_GetBusDirectory(zdp);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

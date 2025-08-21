@@ -11,24 +11,16 @@
 IOCATS_DEF(g_cats, IOUNS_UNKNOWN);
 
 
-errno_t ZStubDriver_Create(ZorroDriverRef _Nonnull zdp, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t ZStubDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    decl_try_err();
-    ZStubDriverRef self;
-
-    err = Driver_Create(class(ZStubDriver), 0, Driver_GetBusDirectory(zdp), g_cats, (DriverRef*)&self);
-    if (err == EOK) {
-        self->card = zdp;
-    }
-
-    *pOutSelf = (DriverRef)self;
-    return err;
+    return Driver_Create(class(ZStubDriver), 0, 0, g_cats, pOutSelf);
 }
 
 errno_t ZStubDriver_onStart(ZStubDriverRef _Nonnull _Locked self)
 {
     decl_try_err();
-    const zorro_conf_t* cfg = ZorroDriver_GetConfiguration(self->card);
+    ZorroDriverRef zdp = Driver_GetParentAs(self, ZorroDriver);
+    const zorro_conf_t* cfg = ZorroDriver_GetConfiguration(zdp);
     char name[6];
 
     name[0] = 'c';
@@ -39,7 +31,7 @@ errno_t ZStubDriver_onStart(ZStubDriverRef _Nonnull _Locked self)
     name[5] = '\0';
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory(self->card);
+    de.dirId = Driver_GetBusDirectory(zdp);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

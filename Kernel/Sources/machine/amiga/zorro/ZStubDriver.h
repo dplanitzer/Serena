@@ -13,12 +13,11 @@
 
 
 open_class(ZStubDriver, Driver,
-    ZorroDriverRef _Nonnull _Weak   card;
 );
 open_class_funcs(ZStubDriver, Driver,
 );
 class_ref(ZStubDriver);
 
-extern errno_t ZStubDriver_Create(ZorroDriverRef _Nonnull zdp, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t ZStubDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* ZStubDriver_h */
