@@ -28,7 +28,7 @@ extern void auto_discover_boot_rd(void);
 static const char* _Nullable get_boot_mem_driver_path(void)
 {
     static const char* gMemDriverTable[] = {
-        "/vdisk/rd0",
+        "/vd-bus/rd0",
         NULL
     };
 

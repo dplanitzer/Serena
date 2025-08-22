@@ -10,16 +10,17 @@
 #include <driver/DriverManager.h>
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
-#include <driver/disk/VirtualDiskManager.h>
+#include <driver/pseudo/VDMDriver.h>
 #include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
 #include <filesystem/SerenaDiskImage.h>
+#include <handler/HandlerChannel.h>
 #include <kern/string.h>
 #include <kpi/fcntl.h>
 
 
 // Checks whether the platform controller is able to provide a bootable disk image
-// for a ROM/RAM disk and creates a ROM/RAM disk with the name '/vdisk/rd0' from
+// for a ROM/RAM disk and creates a ROM/RAM disk with the name '/vd-bus/rd0' from
 // that image if so. Otherwise does nothing.
 void auto_discover_boot_rd(void)
 {
@@ -31,6 +32,12 @@ void auto_discover_boot_rd(void)
     }
 
 
+    // Open the VDM
+    IOChannelRef vdmChannel = NULL;
+    try(DriverManager_Open(gDriverManager, "/vd-bus/self", O_RDWR, &vdmChannel));
+    VDMDriverRef vdm = HandlerChannel_GetHandlerAs(vdmChannel, VDMDriver);
+
+
     // Create a RAM disk and copy the ROM disk image into it. We assume for now
     // that the disk image is exactly 64k in size.
     IOChannelRef chan = NULL;
@@ -38,12 +45,12 @@ void auto_discover_boot_rd(void)
     const char* dmg = ((const char*)smg_hdr) + smg_hdr->headerSize;
 
     if ((smg_hdr->options & SMG_OPTION_READONLY) == SMG_OPTION_READONLY) {
-        try(VirtualDiskManager_CreateRomDisk(gVirtualDiskManager, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, dmg));
+        try(VDMDriver_CreateRomDisk(vdm, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, dmg));
     }
     else {
-        try(VirtualDiskManager_CreateRamDisk(gVirtualDiskManager, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128));
+        try(VDMDriver_CreateRamDisk(vdm, "rd0", smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128));
 
-        try(DriverManager_Open(gDriverManager, "/rd0", O_RDWR, &chan));
+        try(DriverManager_Open(gDriverManager, "/vd-bus/rd0", O_RDWR, &chan));
         try(DiskContainer_Create(chan, &fsContainer));
 
         for (blkno_t lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
@@ -58,4 +65,5 @@ void auto_discover_boot_rd(void)
 catch:
     Object_Release(fsContainer);
     IOChannel_Release(chan);
+    IOChannel_Release(vdmChannel);
 }

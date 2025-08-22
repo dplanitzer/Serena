@@ -518,12 +518,6 @@ extern errno_t Driver_CreateRoot(Class* _Nonnull pClass, unsigned options, const
 #define Driver_GetId(__self) \
 ((DriverRef)__self)->id
 
-// Returns the bus directory of the driver. This directory is created by the bus
-// bus controller that manages this driver and it is the directory in which the
-// driver should place its own driver catalog entries (driver and bus entry).
-#define Driver_GetBusDirectory_Old(__self) \
-((DriverRef)__self)->busDirId
-
 // Returns the bus directory of the bus controller that manages the receiver.
 // This is the directory inside of which the receiver should place its own
 // driver catalog entries (driver and bus entry).
@@ -593,6 +587,16 @@ extern size_t Driver_GetMaxChildCount(DriverRef _Nonnull self);
 // receiver.
 extern size_t Driver_GetChildCount(DriverRef _Nonnull self);
 
+// Returns true if the receiver has at least one child attached to it; false
+// otherwise.
+extern bool Driver_HasChildren(DriverRef _Nonnull self);
+
+
+// Returns the lowest numbered slot id that is unoccupied. Returns -1 if no slot
+// is available.
+extern ssize_t Driver_GetFirstAvailableSlotId(DriverRef _Nonnull self);
+
+
 // Returns an unowned reference to the child driver with bus slot id 'slotId'.
 // NULL is returned if the slot is empty. Note that you must retain the returned
 // driver reference explicitly if you plan to continue to use it after it has
@@ -602,10 +606,6 @@ extern DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slo
 // Like as Driver_GetChildAt() but returns a strong reference to the requested
 // child driver.
 extern DriverRef _Nullable Driver_CopyChildAt(DriverRef _Nonnull self, size_t slotId);
-
-// Returns true if the receiver has at least one child attached to it; false
-// otherwise.
-extern bool Driver_HasChildren(DriverRef _Nonnull self);
 
 
 // Attaches the driver 'child' as a child driver to the receiver while taking

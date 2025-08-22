@@ -7,10 +7,10 @@
 //
 
 #include <driver/DriverManager.h>
-#include <driver/disk/VirtualDiskManager.h>
 #include <driver/pseudo/HIDDriver.h>
 #include <driver/pseudo/LogDriver.h>
 #include <driver/pseudo/NullDriver.h>
+#include <driver/pseudo/VDMDriver.h>
 #ifdef MACHINE_AMIGA
 #include <machine/amiga/AmigaController.h>
 #else
@@ -30,12 +30,7 @@ static Class* _Nonnull _get_platform_controller_class(void)
 errno_t drivers_init(void)
 {
     decl_try_err();
-    DriverEntry de = (DriverEntry){0};
     DriverRef dp;
-
-    de.uid = kUserId_Root;
-    de.gid = kGroupId_Root;
-
 
     // Platform controller
     try(PlatformController_Create(_get_platform_controller_class(), (DriverRef*)&gPlatformController));
@@ -58,8 +53,8 @@ errno_t drivers_init(void)
 
 
     // 'vdm' driver
-    try(VirtualDiskManager_Create(&gVirtualDiskManager));
-    try(VirtualDiskManager_Start(gVirtualDiskManager));
+    try(VDMDriver_Create(&dp));
+    try(Driver_Start(dp));
 
 catch:
     return err;

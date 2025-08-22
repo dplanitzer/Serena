@@ -509,6 +509,29 @@ size_t Driver_GetChildCount(DriverRef _Nonnull self)
     return count;
 }
 
+bool Driver_HasChildren(DriverRef _Nonnull self)
+{
+    return Driver_GetFirstAvailableSlotId(self) != -1;
+}
+
+
+ssize_t Driver_GetFirstAvailableSlotId(DriverRef _Nonnull self)
+{
+    ssize_t idx = -1;
+
+    mtx_lock(&self->childMtx);
+    for (int16_t i = 0; i < self->maxChildCount; i++) {
+        if (self->child[i].driver == NULL) {
+            idx = i;
+            break;
+        }
+    }
+    mtx_unlock(&self->childMtx);
+
+    return idx;
+}
+
+
 DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId)
 {
     mtx_lock(&self->childMtx);
@@ -525,22 +548,6 @@ DriverRef _Nullable Driver_CopyChildAt(DriverRef _Nonnull self, size_t slotId)
     mtx_unlock(&self->childMtx);
 
     return dp;
-}
-
-bool Driver_HasChildren(DriverRef _Nonnull self)
-{
-    bool r = false;
-
-    mtx_lock(&self->childMtx);
-    for (int16_t i = 0; i < self->maxChildCount; i++) {
-        if (self->child[i].driver) {
-            r = true;
-            break;
-        }
-    }
-    mtx_unlock(&self->childMtx);
-
-    return r;
 }
 
 
