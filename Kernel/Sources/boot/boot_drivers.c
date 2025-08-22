@@ -8,9 +8,9 @@
 
 #include <driver/DriverManager.h>
 #include <driver/disk/VirtualDiskManager.h>
-#include <handler/HIDHandler.h>
-#include <handler/LogHandler.h>
-#include <handler/NullHandler.h>
+#include <driver/pseudo/HIDDriver.h>
+#include <driver/pseudo/LogDriver.h>
+#include <driver/pseudo/NullDriver.h>
 #ifdef MACHINE_AMIGA
 #include <machine/amiga/AmigaController.h>
 #else
@@ -31,6 +31,7 @@ errno_t drivers_init(void)
 {
     decl_try_err();
     DriverEntry de = (DriverEntry){0};
+    DriverRef dp;
 
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
@@ -42,24 +43,18 @@ errno_t drivers_init(void)
 
 
     // 'hid' driver
-    de.name = "hid";
-    de.perms = perm_from_octal(0666);
-    try(HIDHandler_Create(&de.driver));
-    try(DriverManager_Publish(gDriverManager, &de, NULL));
+    try(HIDDriver_Create(&dp));
+    try(Driver_Start(dp));
 
 
     // 'klog' driver
-    de.name = "klog";
-    de.perms = perm_from_octal(0440);
-    try(LogHandler_Create(&de.driver));
-    try(DriverManager_Publish(gDriverManager, &de, NULL));
+    try(LogDriver_Create(&dp));
+    try(Driver_Start(dp));
 
         
     // 'null' driver
-    de.name = "null";
-    de.perms = perm_from_octal(0666);
-    try(NullHandler_Create(&de.driver));
-    try(DriverManager_Publish(gDriverManager, &de, NULL));
+    try(NullDriver_Create(&dp));
+    try(Driver_Start(dp));
 
 
     // 'vdm' driver

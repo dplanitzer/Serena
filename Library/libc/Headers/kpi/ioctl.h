@@ -28,7 +28,8 @@
 #define IOCAT_AUDIO         6
 #define IOCAT_BUS           7
 #define IOCAT_COM           8
-#define IOCAT_UNSPECIFIED   9
+#define IOCAT_PSEUDO        9
+#define IOCAT_UNSPECIFIED   10
 
 // HID Category
 #define IOHID_KEYBOARD      _IOCAT(IOCAT_HID, 1)
@@ -96,6 +97,9 @@
 #define IOCOM_TOKENRING     _IOCAT(IOCAT_COM, 4)
 #define IOCOM_FDDI          _IOCAT(IOCAT_COM, 5)
 #define IOCOM_WIFI          _IOCAT(IOCAT_COM, 6)
+
+// Pseudo Category
+#define IOPSE_PSEUDO        _IOCAT(IOCAT_PSEUDO, 0)
 
 // Unspecified Category
 #define IOUNS_UNKNOWN       _IOCAT(IOCAT_UNSPECIFIED, 0)

@@ -1,36 +1,47 @@
 //
-//  HIDHandler.c
+//  HIDDriver.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/3/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "HIDHandler.h"
-#include "HandlerChannel.h"
+#include "HIDDriver.h"
 #include <driver/hid/HIDManager.h>
+#include <filesystem/IOChannel.h>
 #include <kpi/fcntl.h>
 #include <kpi/hid.h>
 #include <kern/timespec.h>
 
 
-final_class_ivars(HIDHandler, Handler,
+final_class_ivars(HIDDriver, PseudoDriver,
 );
 
 
-errno_t HIDHandler_Create(HandlerRef _Nullable * _Nonnull pOutSelf)
+errno_t HIDDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Handler_Create(class(HIDHandler), (HandlerRef*)pOutSelf);
+    return PseudoDriver_Create(class(HIDDriver), 0, pOutSelf);
 }
 
-errno_t HIDHandler_open(HandlerRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t HIDDriver_onStart(HIDDriverRef _Nonnull _Locked self)
 {
-    return HandlerChannel_Create(self, SEO_FT_DRIVER, mode, 0, pOutChannel);
+    decl_try_err();
+    DriverEntry de;
+
+    de.dirId = Driver_GetBusDirectory((DriverRef)self);
+    de.name = "hid";
+    de.uid = kUserId_Root;
+    de.gid = kGroupId_Root;
+    de.perms = perm_from_octal(0666);
+    de.driver = (HandlerRef)self;
+    de.arg = 0;
+
+    return Driver_Publish(self, &de);
 }
 
 // Returns events in the order oldest to newest. As many events are returned as
 // fit in the provided buffer. Only blocks the caller if no events are queued.
-errno_t HIDHandler_read(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t HIDDriver_read(HIDDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     const bool isNonBlocking = (IOChannel_GetMode(ioc) & O_NONBLOCK) == O_NONBLOCK;
@@ -58,7 +69,7 @@ errno_t HIDHandler_read(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, voi
     return err;
 }
 
-errno_t HIDHandler_ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap)
+errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap)
 {
     switch (cmd) {
         case kHIDCommand_GetNextEvent: {
@@ -118,13 +129,13 @@ errno_t HIDHandler_ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, in
             return EOK;
 
         default:
-            return super_n(ioctl, Handler, HIDHandler, self, ioc, cmd, ap);
+            return super_n(ioctl, Handler, HIDDriver, self, ioc, cmd, ap);
     }
 }
 
 
-class_func_defs(HIDHandler, Handler,
-override_func_def(open, HIDHandler, Handler)
-override_func_def(read, HIDHandler, Handler)
-override_func_def(ioctl, HIDHandler, Handler)
+class_func_defs(HIDDriver, PseudoDriver,
+override_func_def(onStart, HIDDriver, Driver)
+override_func_def(read, HIDDriver, Handler)
+override_func_def(ioctl, HIDDriver, Handler)
 );
