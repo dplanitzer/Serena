@@ -730,7 +730,7 @@ class_func_defs(Console, PseudoDriver,
 override_func_def(deinit, Console, Object)
 override_func_def(onStart, Console, Driver)
 override_func_def(open, Console, Driver)
-override_func_def(read, Console, Handler)
-override_func_def(write, Console, Handler)
-override_func_def(ioctl, Console, Handler)
+override_func_def(read, Console, Driver)
+override_func_def(write, Console, Driver)
+override_func_def(ioctl, Console, Driver)
 );

@@ -24,7 +24,7 @@ errno_t Handler_close(HandlerRef _Nonnull _Locked self, IOChannelRef _Nonnull io
 {
     return EOK;
 }
-#endif
+
 errno_t Handler_read(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EBADF;
@@ -39,7 +39,7 @@ errno_t Handler_seek(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t 
 {
     return ESPIPE;
 }
-
+#endif
 errno_t seek_to(off_t* _Nonnull posp, off_t maxPos, off_t offset, int whence)
 {
     if (whence == SEEK_SET) {
@@ -72,7 +72,7 @@ errno_t seek_to(off_t* _Nonnull posp, off_t maxPos, off_t offset, int whence)
         return EINVAL;
     }
 }
-
+#if 0
 errno_t Handler_ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap)
 {
     return ENOTIOCTLCMD;
@@ -87,15 +87,16 @@ errno_t Handler_Ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, int c
 
     return err;
 }
-
+#endif
 
 class_func_defs(Handler, Object,
 /*
 func_def(open, Handler)
 func_def(close, Handler)
-*/
 func_def(read, Handler)
 func_def(write, Handler)
 func_def(seek, Handler)
+
 func_def(ioctl, Handler)
+*/
 );

@@ -459,7 +459,7 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull pCha
             return DiskDriver_SenseDisk(self);
 
         default:
-            return super_n(ioctl, Handler, DiskDriver, self, pChannel, cmd, ap);
+            return super_n(ioctl, Driver, DiskDriver, self, pChannel, cmd, ap);
     }
 }
 
@@ -479,8 +479,8 @@ func_def(formatTrack, DiskDriver)
 func_def(doGetDriveInfo, DiskDriver)
 func_def(doGetDiskInfo, DiskDriver)
 func_def(doSenseDisk, DiskDriver)
-override_func_def(read, DiskDriver, Handler)
-override_func_def(write, DiskDriver, Handler)
-override_func_def(seek, DiskDriver, Handler)
-override_func_def(ioctl, DiskDriver, Handler)
+override_func_def(read, DiskDriver, Driver)
+override_func_def(write, DiskDriver, Driver)
+override_func_def(seek, DiskDriver, Driver)
+override_func_def(ioctl, DiskDriver, Driver)
 );

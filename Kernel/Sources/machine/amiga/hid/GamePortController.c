@@ -152,7 +152,7 @@ errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, IOChannelR
         }
 
         default:
-            return super_n(ioctl, Handler, GamePortController, self, pChannel, cmd, ap);
+            return super_n(ioctl, Driver, GamePortController, self, pChannel, cmd, ap);
     }
 }
 
@@ -225,6 +225,6 @@ static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _No
 
 class_func_defs(GamePortController, Driver,
 override_func_def(onStart, GamePortController, Driver)
-override_func_def(ioctl, GamePortController, Handler)
+override_func_def(ioctl, GamePortController, Driver)
 func_def(createInputDriver, GamePortController)
 );

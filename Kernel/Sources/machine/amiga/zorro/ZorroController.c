@@ -110,12 +110,12 @@ errno_t ZorroController_ioctl(ZorroControllerRef _Nonnull self, IOChannelRef _No
         }
 
         default:
-            return super_n(ioctl, Handler, ZorroController, self, pChannel, cmd, ap);
+            return super_n(ioctl, Driver, ZorroController, self, pChannel, cmd, ap);
     }
 }
 
 
 class_func_defs(ZorroController, Driver,
 override_func_def(onStart, ZorroController, Driver)
-override_func_def(ioctl, ZorroController, Handler)
+override_func_def(ioctl, ZorroController, Driver)
 );

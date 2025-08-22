@@ -51,6 +51,6 @@ errno_t LogDriver_write(LogDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, c
 
 class_func_defs(LogDriver, PseudoDriver,
 override_func_def(onStart, LogDriver, Driver)
-override_func_def(read, LogDriver, Handler)
-override_func_def(write, LogDriver, Handler)
+override_func_def(read, LogDriver, Driver)
+override_func_def(write, LogDriver, Driver)
 );

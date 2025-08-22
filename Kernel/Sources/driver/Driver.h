@@ -406,6 +406,34 @@ open_class_funcs(Driver, Handler,
     // Default Behavior: Does nothing and returns EOK
     errno_t (*close)(void* _Nonnull self, IOChannelRef _Nonnull pChannel);
 
+    // Reads up to 'nBytesToRead' consecutive bytes from the underlying data
+    // source and returns them in 'buf'. The actual amount of bytes read is
+    // returned in 'nOutBytesRead' and returns a suitable status. Note that this
+    // function will always either read at least one byte and return EOK or it
+    // will read no bytes and return some error.
+    // Override: Optional
+    // Default Behavior: Returns EBADF
+    errno_t (*read)(void* _Nonnull self, IOChannelRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+
+    // Writes up to 'nBytesToWrite' bytes from 'buf' to the underlying data source.
+    // Override: Optional
+    // Default Behavior: Returns EBADF
+    errno_t (*write)(void* _Nonnull self, IOChannelRef _Nonnull ioc, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+
+    // Sets the current position of the I/O channel 'ioc' based on 'offset' and
+    // 'whence' and returns the new position. The default implementation returns
+    // ESPIPE to indicate that seeking is not supported. You should override
+    // this function and call seek_to() from your override to implement
+    // seeking if seeking capabilities are desired.
+    // Override: Optional
+    // Default Behavior: Returns ESPIPE otherwise
+    errno_t (*seek)(void* _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
+
+    // Executes the handler specific function 'cmd' with command specific
+    // arguments 'ap'.
+    // Override: Optional
+    // Default Behavior: Returns ENOTIOCTLCMD
+    errno_t (*ioctl)(void* _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap);
 );
 
 
@@ -452,16 +480,19 @@ invoke_n(open, Driver, __self, __mode, __arg, __pOutChannel)
 #define Driver_Close(__self, __pChannel) \
 invoke_n(close, Driver, __self, __pChannel)
 
-
 #define Driver_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
-Handler_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
+invoke_n(read, Driver, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
 #define Driver_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
-Handler_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
+invoke_n(write, Driver, __self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
+#define Driver_Seek(__self, __pChannel, __offset, pOutNewPos, __whence) \
+invoke_n(seek, Driver, __self, __pChannel, __offset, pOutNewPos, __whence)
 
 #define Driver_vIoctl(__self, __chan, __cmd, __ap) \
-Handler_vIoctl(__self, __chan, __cmd, __ap)
+invoke_n(ioctl, Driver, __self, __chan, __cmd, __ap)
+
+extern errno_t Driver_Ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, ...);
 
 
 // Returns true if there are open I/O channels referencing this driver.

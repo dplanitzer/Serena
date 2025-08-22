@@ -319,6 +319,21 @@ catch:
     return err;
 }
 
+errno_t Driver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+{
+    return EBADF;
+}
+
+errno_t Driver_write(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+{
+    return EBADF;
+}
+
+errno_t Driver_seek(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutNewPos, int whence)
+{
+    return ESPIPE;
+}
+
 errno_t Driver_ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap)
 {
     switch (cmd) {
@@ -359,6 +374,17 @@ errno_t Driver_ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd
             return ENOTIOCTLCMD;
     }
 }
+
+errno_t Driver_Ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, ...)
+{
+    va_list ap;
+    va_start(ap, cmd);
+    const errno_t err = Driver_vIoctl(self, ioc, cmd, ap);
+    va_end(ap);
+
+    return err;
+}
+
 
 bool Driver_HasCategory(DriverRef _Nonnull self, iocat_t cat)
 {
@@ -612,5 +638,8 @@ func_def(open, Driver)
 func_def(onOpen, Driver)
 func_def(close, Driver)
 func_def(onClose, Driver)
-override_func_def(ioctl, Driver, Handler)
+func_def(read, Driver)
+func_def(write, Driver)
+func_def(seek, Driver)
+func_def(ioctl, Driver)
 );

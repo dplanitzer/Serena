@@ -50,6 +50,6 @@ errno_t NullDriver_write(NullDriverRef _Nonnull self, IOChannelRef _Nonnull ioc,
 
 class_func_defs(NullDriver, PseudoDriver,
 override_func_def(onStart, NullDriver, Driver)
-override_func_def(read, NullDriver, Handler)
-override_func_def(write, NullDriver, Handler)
+override_func_def(read, NullDriver, Driver)
+override_func_def(write, NullDriver, Driver)
 );

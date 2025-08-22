@@ -133,13 +133,13 @@ errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, i
             return EOK;
 
         default:
-            return super_n(ioctl, Handler, HIDDriver, self, ioc, cmd, ap);
+            return super_n(ioctl, Driver, HIDDriver, self, ioc, cmd, ap);
     }
 }
 
 
 class_func_defs(HIDDriver, PseudoDriver,
 override_func_def(onStart, HIDDriver, Driver)
-override_func_def(read, HIDDriver, Handler)
-override_func_def(ioctl, HIDDriver, Handler)
+override_func_def(read, HIDDriver, Driver)
+override_func_def(ioctl, HIDDriver, Driver)
 );

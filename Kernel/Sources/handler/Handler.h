@@ -34,7 +34,7 @@ open_class_funcs(Handler, Object,
     // Override: Optional
     // Default Behavior: Does nothing and returns EOK
     errno_t (*close)(void* _Nonnull _Locked self, IOChannelRef _Nonnull pChannel);
-*/
+
 
     // Reads up to 'nBytesToRead' consecutive bytes from the underlying data
     // source and returns them in 'buf'. The actual amount of bytes read is
@@ -66,6 +66,7 @@ open_class_funcs(Handler, Object,
     // Override: Optional
     // Default Behavior: Returns ENOTIOCTLCMD
     errno_t (*ioctl)(void* _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap);
+    */
 );
 
 #if 0
@@ -74,7 +75,7 @@ invoke_n(open, Handler, __self, __mode, __arg, __pOutChannel)
 
 #define Handler_Close(__self, __pChannel) \
 invoke_n(close, Handler, __self, __pChannel)
-#endif
+
 #define Handler_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
 invoke_n(read, Handler, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
@@ -88,7 +89,7 @@ invoke_n(seek, Handler, __self, __pChannel, __offset, pOutNewPos, __whence)
 invoke_n(ioctl, Handler, __self, __chan, __cmd, __ap)
 
 extern errno_t Handler_Ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, ...);
-
+#endif
 
 //
 // Subclassers
