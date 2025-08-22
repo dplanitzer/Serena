@@ -149,6 +149,7 @@ void hid_test(int argc, char *argv[])
         }
     }
 
+    assertGreaterEqual(0, ioctl(fd, kHIDCommand_FlushEvents));
     assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetMouseCursorVisibility, kMouseCursor_Hidden));
     close(fd);
 }

@@ -79,6 +79,10 @@ errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, i
             return HIDManager_GetNextEvent(gHIDManager, timeoutp, evt);
         }
 
+        case kHIDCommand_FlushEvents:
+            HIDManager_FlushEvents(gHIDManager);
+            return EOK;
+            
         case kHIDCommand_GetKeyRepeatDelays: {
             struct timespec* initialp = va_arg(ap, struct timespec*);
             struct timespec* repeatp = va_arg(ap, struct timespec*);

@@ -37,21 +37,25 @@ typedef int MouseCursorVisibility;
 // get_next_event(const struct timespec* _Nonnull timeout, HIDEvent* _Nonnull evt)
 #define kHIDCommand_GetNextEvent IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
+// Removes all queued events from the event queue.
+// flush_events(void)
+#define kHIDCommand_FlushEvents IOResourceCommand(kDriverCommand_SubclassBase + 1)
+
 
 // Returns the initial delay for automatic key repeats and the delay between
 // successive synthesized key presses.
 // get_key_repeat_delays(struct timespec* _Nullable pInitialDelay, struct timespec* _Nullable pRepeatDelay)
-#define kHIDCommand_GetKeyRepeatDelays IOResourceCommand(kDriverCommand_SubclassBase + 1)
+#define kHIDCommand_GetKeyRepeatDelays IOResourceCommand(kDriverCommand_SubclassBase + 2)
 
 // Sets the initial delay for automatic key repeats and the delay between
 // successive synthesized key presses.
 // set_key_repeat_delays(const struct timespec* _Nonnull initialDelay, const struct timespec* _Nonnull repeatDelay)
-#define kHIDCommand_SetKeyRepeatDelays IOResourceCommand(kDriverCommand_SubclassBase + 2)
+#define kHIDCommand_SetKeyRepeatDelays IOResourceCommand(kDriverCommand_SubclassBase + 3)
 
 
 // Set the mouse cursor image.
 // set_mouse_cursor(const uint16_t* _Nonnull planes[2], int width int height, PixelFormat pixelFormat, int hotSpotX, int hotSpotY)
-#define kHIDCommand_SetMouseCursor IOResourceCommand(kDriverCommand_SubclassBase + 3)
+#define kHIDCommand_SetMouseCursor IOResourceCommand(kDriverCommand_SubclassBase + 4)
 
 // Changes the mouse cursor visibility to visible, hidden altogether or hidden
 // until the user moves the mouse cursor. Note that the visibility state is
@@ -59,22 +63,22 @@ typedef int MouseCursorVisibility;
 // mouse cursor is hidden by default. You need to set a mouse cursor and then
 // make it visible before it will show up on the screen.
 // set_mouse_cursor_visibility(MouseCursorVisibility mode)
-#define kHIDCommand_SetMouseCursorVisibility    IOResourceCommand(kDriverCommand_SubclassBase + 4)
+#define kHIDCommand_SetMouseCursorVisibility    IOResourceCommand(kDriverCommand_SubclassBase + 5)
 
 // Returns the current mouse cursor visibility status.
 // MouseCursorVisibility get_mouse_cursor_visibility(void)
-#define kHIDCommand_GetMouseCursorVisibility    IOResourceCommand(kDriverCommand_SubclassBase + 5)
+#define kHIDCommand_GetMouseCursorVisibility    IOResourceCommand(kDriverCommand_SubclassBase + 6)
 
 // Shields the mouse cursor. Call this function before drawing into the provided
 // rectangular on the screen to ensure that the mouse cursor image will be saved
 // and restored as needed.
 // shield_mouse_cursor(int x, int y, int width, int height)
-#define kHIDCommand_ShieldMouseCursor    IOResourceCommand(kDriverCommand_SubclassBase + 6)
+#define kHIDCommand_ShieldMouseCursor    IOResourceCommand(kDriverCommand_SubclassBase + 7)
 
 // Unshield the mouse cursor and makes it visible again if it was visible before
 // shielding. Call this function after you are done drawing to the screen.
 // int unshield_mouse_cursor()
-#define kHIDCommand_UnshieldMouseCursor  IOResourceCommand(kDriverCommand_SubclassBase + 7)
+#define kHIDCommand_UnshieldMouseCursor  IOResourceCommand(kDriverCommand_SubclassBase + 8)
 
 
 
