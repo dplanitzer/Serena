@@ -253,7 +253,7 @@ CatalogId Driver_GetBusDirectory(DriverRef _Nonnull self)
 }
 
 
-bool Driver_HasOpenChannels(DriverRef _Nonnull self)
+bool Driver_IsOpen(DriverRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     const bool r = (self->openCount > 0) ? true : false;

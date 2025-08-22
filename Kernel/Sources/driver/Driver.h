@@ -496,7 +496,7 @@ extern errno_t Driver_Ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, 
 
 
 // Returns true if there are open I/O channels referencing this driver.
-extern bool Driver_HasOpenChannels(DriverRef _Nonnull self);
+extern bool Driver_IsOpen(DriverRef _Nonnull self);
 
 
 // Returns a reference to a read-only array of all the I/O categories the
