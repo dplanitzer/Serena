@@ -11,7 +11,7 @@
 #include "ZStubDriver.h"
 #include "zorro_bus.h"
 
-IOCATS_DEF(g_cats, IOUNS_PROPRIETARY);
+IOCATS_NONE(g_cats);
 
 
 errno_t ZorroDriver_Create(const zorro_conf_t* _Nonnull config, ZorroDriverRef _Nullable * _Nonnull pOutSelf)

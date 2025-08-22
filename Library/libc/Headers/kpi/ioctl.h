@@ -113,6 +113,9 @@ typedef uint16_t iocat_t;
 #define IOCATS_DEF(__name, ...) \
 static const iocat_t __name[] = { __VA_ARGS__, IOCAT_END }
 
+#define IOCATS_NONE(__name) \
+static const iocat_t __name[] = { IOCAT_END }
+
 
 //
 // Driver Commands
