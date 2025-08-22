@@ -33,8 +33,9 @@ errno_t drivers_init(void)
     DriverRef dp;
 
     // Platform controller
-    try(PlatformController_Create(_get_platform_controller_class(), (DriverRef*)&gPlatformController));
-    try(Driver_Start((DriverRef)gPlatformController));
+    try(PlatformController_Create(_get_platform_controller_class(), &dp));
+    try(Driver_Start(dp));
+    gPlatformController = (PlatformControllerRef)dp;
 
 
     // 'hid' driver
