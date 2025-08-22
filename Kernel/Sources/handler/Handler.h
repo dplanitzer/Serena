@@ -103,6 +103,6 @@ extern errno_t Handler_Create(Class* _Nonnull pClass, HandlerRef _Nullable * _No
 // 'whence'. 'maxPos' is the maximum allowable seek position. 'maxPos' is only
 // used by this function if whence is SEEK_END. It is ignored for all other
 // 'whence' values.
-extern errno_t seek_to(off_t* _Nonnull posp, off_t maxPos, off_t offset, int whence);
+//extern errno_t seek_to(off_t* _Nonnull posp, off_t maxPos, off_t offset, int whence);
 
 #endif /* Handler_h */

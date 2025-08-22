@@ -187,14 +187,11 @@ errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer
 }
 
 
-errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
+errno_t seek_to(off_t* _Nonnull posp, off_t maxPos, off_t offset, int whence)
 {
     if (whence == SEEK_SET) {
         if (offset >= 0ll) {
-            self->offset = offset;
-            if (pOutNewPos) {
-                *pOutNewPos = offset;
-            }
+            *posp = offset;
             return EOK;
         }
         else {
@@ -202,8 +199,8 @@ errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, off_t offset, off_t* 
         }
     }
     else if(whence == SEEK_CUR || whence == SEEK_END) {
-        const off_t refPos = (whence == SEEK_END) ? IOChannel_GetSeekableRange(self) : self->offset;
-            
+        const off_t refPos = (whence == SEEK_END) ? maxPos : *posp;
+        
         if (offset < 0ll && -offset > refPos) {
             return EINVAL;
         }
@@ -214,16 +211,24 @@ errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, off_t offset, off_t* 
                 return EOVERFLOW;
             }
 
-            self->offset = newOffset;
-            if (pOutNewPos) {
-                *pOutNewPos = newOffset;
-            }
+            *posp = newOffset;
             return EOK;
         }
     }
     else {
         return EINVAL;
     }
+}
+
+errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
+{
+    const off_t maxPos = (whence == SEEK_CUR || whence == SEEK_END) ? IOChannel_GetSeekableRange(self) : 0ll; 
+    const errno_t err = seek_to(&self->offset, maxPos, offset, whence);
+
+    if (err == EOK && pOutNewPos) {
+        *pOutNewPos = self->offset;
+    }
+    return err;
 }
 
 errno_t IOChannel_Seek(IOChannelRef _Nonnull self, off_t offset, off_t* pOutNewPos, int whence)

@@ -39,7 +39,7 @@ errno_t Handler_seek(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t 
 {
     return ESPIPE;
 }
-#endif
+
 errno_t seek_to(off_t* _Nonnull posp, off_t maxPos, off_t offset, int whence)
 {
     if (whence == SEEK_SET) {
@@ -72,7 +72,7 @@ errno_t seek_to(off_t* _Nonnull posp, off_t maxPos, off_t offset, int whence)
         return EINVAL;
     }
 }
-#if 0
+
 errno_t Handler_ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap)
 {
     return ENOTIOCTLCMD;
