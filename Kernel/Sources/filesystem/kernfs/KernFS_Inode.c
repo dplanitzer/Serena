@@ -62,10 +62,10 @@ catch:
     return err;
 }
 
-// Creates a new handler node in the file system.
-errno_t KernFS_CreateHandlerNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, HandlerRef _Nonnull handler, intptr_t arg, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode)
+// Creates a new driver node in the file system.
+errno_t KernFS_CreateDriverNode(KernFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull drv, intptr_t arg, uid_t uid, gid_t gid, mode_t permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _KernFS_createNode(self, dir, name, (ObjectRef)handler, arg, uid, gid, __S_MKMODE(S_IFDEV, permissions), pOutNode);
+    return _KernFS_createNode(self, dir, name, (ObjectRef)drv, arg, uid, gid, __S_MKMODE(S_IFDEV, permissions), pOutNode);
 }
 
 // Creates a new filesystem node in the file system.

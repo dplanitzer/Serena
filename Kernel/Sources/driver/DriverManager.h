@@ -17,13 +17,13 @@
 #include <kobj/AnyRefs.h>
 
 
-typedef errno_t (*DriverManager_Iterator)(void* _Nullable arg, HandlerRef _Nonnull driver, bool* _Nonnull pDone);
+typedef errno_t (*DriverManager_Iterator)(void* _Nullable arg, DriverRef _Nonnull driver, bool* _Nonnull pDone);
 
 
 #define IONOTIFY_STARTED    1
 #define IONOTIFY_STOPPING   2
 
-typedef void (*drv_match_func_t)(void* _Nullable arg, HandlerRef _Nonnull driver, int notify);
+typedef void (*drv_match_func_t)(void* _Nullable arg, DriverRef _Nonnull driver, int notify);
 
 
 extern DriverManagerRef gDriverManager;
@@ -83,7 +83,7 @@ extern errno_t DriverManager_RemoveDirectory(DriverManagerRef _Nonnull self, Cat
 // references once you no longer need them. EINVAL is returned if 'bufsiz' is 0.
 // ERANGE is returned if there are more matching drivers than are able to fit in
 // 'buf' including the terminating NULL entry.  
-extern errno_t DriverManager_GetMatches(DriverManagerRef _Nonnull self, const iocat_t* _Nonnull cats, HandlerRef* _Nonnull buf, size_t bufsiz);
+extern errno_t DriverManager_GetMatches(DriverManagerRef _Nonnull self, const iocat_t* _Nonnull cats, DriverRef* _Nonnull buf, size_t bufsiz);
 
 // Registers a continuous driver matcher with the driver manager. This matcher
 // will invoke 'f' with the argument 'arg' and the matching driver everytime a

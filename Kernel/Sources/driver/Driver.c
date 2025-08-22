@@ -23,7 +23,7 @@ errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _
     decl_try_err();
     DriverRef self = NULL;
 
-    err = Handler_Create(pClass, (HandlerRef*)&self);
+    err = Object_Create(pClass, 0, (void**)&self);
     if (err == EOK) {
         mtx_init(&self->mtx);
         mtx_init(&self->childMtx);
@@ -625,7 +625,7 @@ intptr_t Driver_SetChildDataAt(DriverRef _Nonnull self, size_t slotId, intptr_t 
 }
 
 
-class_func_defs(Driver, Handler,
+class_func_defs(Driver, Object,
 override_func_def(deinit, Driver, Object)
 func_def(onStart, Driver)
 func_def(onStop, Driver)

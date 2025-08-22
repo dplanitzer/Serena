@@ -10,8 +10,8 @@
 #define Driver_h
 
 #include <stdarg.h>
-#include <handler/Handler.h>
 #include <klib/List.h>
+#include <kobj/Object.h>
 #include <kpi/ioctl.h>
 #include <kpi/stat.h>
 #include <kpi/uid.h>
@@ -69,7 +69,7 @@ typedef struct DriverEntry {
     uid_t                   uid;
     gid_t                   gid;
     mode_t                  perms;
-    HandlerRef _Nullable    driver;
+    DriverRef _Nonnull      driver;
     intptr_t                arg;
 } DriverEntry;
 
@@ -310,7 +310,7 @@ typedef struct DriverEntry {
 // whether the hardware supports a certain kind of feature (eg whether a graphic
 // card supports 2D and/or 3d hardware acceleration).
 //
-open_class(Driver, Handler,
+open_class(Driver, Object,
     mtx_t                       mtx;    // lifecycle management lock
     const iocat_t* _Nonnull     cats;   // categories the driver conforms to.
     did_t                       id;     // unique id assigned at publish time
@@ -327,7 +327,7 @@ open_class(Driver, Handler,
     int16_t                     maxChildCount;
     int8_t                      stopReason;
 );
-open_class_funcs(Driver, Handler,
+open_class_funcs(Driver, Object,
     
     // Invoked as the result of calling Driver_Start(). A driver subclass should
     // override this method to reset the hardware, configure it such that
@@ -429,7 +429,7 @@ open_class_funcs(Driver, Handler,
     // Default Behavior: Returns ESPIPE otherwise
     errno_t (*seek)(void* _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
 
-    // Executes the handler specific function 'cmd' with command specific
+    // Executes the driver specific function 'cmd' with command specific
     // arguments 'ap'.
     // Override: Optional
     // Default Behavior: Returns ENOTIOCTLCMD
