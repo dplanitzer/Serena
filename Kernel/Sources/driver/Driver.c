@@ -26,7 +26,6 @@ errno_t Driver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _
     err = Handler_Create(pClass, (HandlerRef*)&self);
     if (err == EOK) {
         mtx_init(&self->mtx);
-        cnd_init(&self->cnd);
         mtx_init(&self->childMtx);
 
         self->cats = cats;
@@ -79,7 +78,6 @@ void Driver_deinit(DriverRef _Nonnull self)
     }
 
 
-    cnd_deinit(&self->cnd);
     mtx_deinit(&self->mtx);
     mtx_deinit(&self->childMtx);
 }
@@ -192,23 +190,6 @@ void Driver_onStop(DriverRef _Nonnull _Locked self)
 
 void Driver_WaitForStopped(DriverRef _Nonnull self)
 {
-    // First wait for all I/O channels to be closed
-    mtx_lock(&self->mtx);
-    for (;;) {
-        if (self->state != kDriverState_Stopped) {
-            mtx_unlock(&self->mtx);
-            return;
-        }
-
-        if (self->openCount == 0) {
-            break;
-        }
-
-        cnd_wait(&self->cnd, &self->mtx);
-    }
-    mtx_unlock(&self->mtx);
-
-
     // Let the driver subclass wait for the shutdown of whatever asynchronous
     // processes it depends on
     Driver_OnWaitForStopped(self);
@@ -331,11 +312,6 @@ errno_t Driver_close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 
     Driver_OnClose(self, pChannel, self->openCount);
     self->openCount--;
-
-    if (self->openCount == 0) {
-        // Notify Driver_WaitForStopped()
-        cnd_broadcast(&self->cnd);
-    }
 
 catch:
     mtx_unlock(&self->mtx);

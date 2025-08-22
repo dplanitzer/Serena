@@ -15,7 +15,6 @@
 #include <kpi/ioctl.h>
 #include <kpi/stat.h>
 #include <kpi/uid.h>
-#include <sched/cnd.h>
 #include <sched/mtx.h>
 #include <Catalog.h>
 
@@ -86,8 +85,8 @@ typedef struct DriverEntry {
 //
 // A bus controller is a kind of driver that manages a physical or a virtual bus.
 // It is responsible for detecting hardware that is connected to the bus and it
-// kicks off the creation of bus client drivers that then manage the hardware
-// that is connected to a bus.
+// kicks off the creation of bus client drivers that then in turn manage a
+// piece of hardware that is connected to the bus.
 //
 // Every driver has a parent driver and it may have children drivers. The parent
 // driver is usually the bus controller that manages the driver. However the
@@ -120,7 +119,7 @@ typedef struct DriverEntry {
 //
 // Once a driver has been started, driver channels may be created by calling
 // Driver_Open() and a driver channel should be closed by calling
-// IOChannel_Close() on the channel. IOChannel_Close() in turn invokes
+// IOChannel_Release() on the channel. IOChannel_Release() in turn invokes
 // Driver_Close().
 //
 // A driver may be voluntarily terminated by calling Driver_Stop() with the.
@@ -146,8 +145,7 @@ typedef struct DriverEntry {
 // services is triggered by the Driver_Stop() call. However it can take a while
 // for those services to complete their shutdown. This is why it is necessary to
 // wait by calling Driver_WaitForStopped() before you release the driver instance
-// by calling Object_Release(). Note that the wait-for-stopped function also
-// waits until after all open I/O channels on the driver have been closed.
+// by calling Object_Release().
 //
 // A typical driver lifecycle looks like this:
 //
@@ -181,8 +179,8 @@ typedef struct DriverEntry {
 // completed before close() can begin execution.
 //
 // The fact that all driver I/O operations (read, write, ioctl) require that the
-// caller passes in a I/O channel ensures that none of these operations can be
-// executed before open() has completed and returned a valid I/O channel.
+// caller passes in an I/O channel ensures that none of these operations can be
+// executed before open() has completed and has returned a valid I/O channel.
 //
 // The fact that I/O channel guarantees that all active I/O operations on the
 // channel have completed before it invokes close() on the driver ensures that
@@ -220,7 +218,7 @@ typedef struct DriverEntry {
 // The second lock is the I/O operations lock which is owned and managed by the
 // Driver subclass. it is used to protect the integrity of the I/O related
 // hardware and software state of the Driver subclass. It is also used to ensure
-// atomicity and exclusivity of teh read(), write() and ioctl() functions.
+// atomicity and exclusivity of the read(), write() and ioctl() functions.
 //
 // It is the responsibility of a Driver subclass writer to implement the I/O
 // operations lock and that it is acquired and released at the appropriate
@@ -232,10 +230,13 @@ typedef struct DriverEntry {
 // A driver may create and manage child drivers. Child drivers are attached to
 // their parent drivers and the parent driver maintains a strong reference to
 // its child driver(s). This strong reference keeps a child driver alive as long
-// as it remains attached to its parent.
+// as it remains attached to its parent. A child driver in turn receives an
+// unowned reference to its immediate parent driver when it is attached to it.
+// This reference remains valid until a driver is stopped and detached from its
+// parent.
 //
 // The parent-child driver relationship can be used to properly represent
-// relationships like a bus and the devices on the bus. The bus is represented
+// relationships like a bus and the devices on a bus. The bus is represented
 // by the parent driver and each device on the bus is represented by a child
 // driver.
 //
@@ -285,13 +286,6 @@ typedef struct DriverEntry {
 // until after the last use of it is gone.
 //
 //
-// -- Driver Relationships and Ownership --
-//
-// A parent driver owns its children and thus retains a child when it is added
-// to the parent. A child driver should not retain its parent. It should only
-// maintain a weak reference to its parent driver.
-//
-//
 // -- Driver Categories --
 //
 // A driver conforms to a set of I/O categories. For many drivers it is sufficient
@@ -318,7 +312,6 @@ typedef struct DriverEntry {
 //
 open_class(Driver, Handler,
     mtx_t                       mtx;    // lifecycle management lock
-    cnd_t                       cnd;
     const iocat_t* _Nonnull     cats;   // categories the driver conforms to.
     did_t                       id;     // unique id assigned at publish time
     CatalogId                   ownedBusDirId;  // bus directory that this driver has published
