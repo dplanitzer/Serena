@@ -14,7 +14,7 @@ errno_t Handler_Create(Class* _Nonnull pClass, HandlerRef _Nullable * _Nonnull p
 {
     return Object_Create(pClass, 0, (void**)pOutSelf);
 }
-
+#if 0
 errno_t Handler_open(HandlerRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return EPERM;
@@ -24,7 +24,7 @@ errno_t Handler_close(HandlerRef _Nonnull _Locked self, IOChannelRef _Nonnull io
 {
     return EOK;
 }
-
+#endif
 errno_t Handler_read(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EBADF;
@@ -90,8 +90,10 @@ errno_t Handler_Ioctl(HandlerRef _Nonnull self, IOChannelRef _Nonnull ioc, int c
 
 
 class_func_defs(Handler, Object,
+/*
 func_def(open, Handler)
 func_def(close, Handler)
+*/
 func_def(read, Handler)
 func_def(write, Handler)
 func_def(seek, Handler)

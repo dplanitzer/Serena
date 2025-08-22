@@ -286,38 +286,29 @@ errno_t Driver_onOpen(DriverRef _Nonnull _Locked self, int openCount, unsigned i
     return DriverChannel_Create(self, SEO_FT_DRIVER, mode, 0, pOutChannel);
 }
 
-errno_t Driver_open(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    decl_try_err();
-
-    if ((self->options & kDriver_Exclusive) == kDriver_Exclusive && self->openCount > 0) {
-        *pOutChannel = NULL;
-        return EBUSY;
-    }
-
-    err = Driver_OnOpen(self, self->openCount, mode, arg, pOutChannel);    
-    if (err == EOK) {
-        self->openCount++;
-    }
-    else {
-        *pOutChannel = NULL;
-    }
-
-    return err;
-}
-
-errno_t Driver_Open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
 
     mtx_lock(&self->mtx);
-    if (Driver_IsActive(self)) {
-        err = Handler_Open(self, mode, arg, pOutChannel);
+
+    if (!Driver_IsActive(self)) {
+        throw(ENODEV);
     }
-    else {
-        err = ENODEV;
+    if ((self->options & kDriver_Exclusive) == kDriver_Exclusive && self->openCount > 0) {
+        throw(EBUSY);
     }
+
+
+    try(Driver_OnOpen(self, self->openCount, mode, arg, pOutChannel));
+    self->openCount++;
+
+catch:
     mtx_unlock(&self->mtx);
+
+    if (err != EOK) {
+        *pOutChannel = NULL;
+    }
 
     return err;
 }
@@ -327,35 +318,26 @@ void Driver_onClose(DriverRef _Nonnull _Locked self, IOChannelRef _Nonnull pChan
 {
 }
 
-errno_t Driver_close(DriverRef _Nonnull _Locked self, IOChannelRef _Nonnull pChannel)
-{
-    Driver_OnClose(self, pChannel, self->openCount);
-
-    if (self->openCount > 0) {
-        self->openCount--;
-
-        if (self->openCount == 0) {
-            // Notify Driver_WaitForStopped()
-            cnd_broadcast(&self->cnd);
-        }
-        return EOK;
-    }
-    else {
-        return EBADF;
-    }
-}
-
-errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
+errno_t Driver_close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 {
     decl_try_err();
 
     mtx_lock(&self->mtx);
-    if (Driver_IsActive(self)) {
-        err = Handler_Close(self, pChannel);
+
+    if (self->openCount <= 0) {
+        throw(EBADF);
     }
-    else {
-        err = ENODEV;
+
+
+    Driver_OnClose(self, pChannel, self->openCount);
+    self->openCount--;
+
+    if (self->openCount == 0) {
+        // Notify Driver_WaitForStopped()
+        cnd_broadcast(&self->cnd);
     }
+
+catch:
     mtx_unlock(&self->mtx);
 
     return err;
@@ -650,9 +632,9 @@ func_def(onAttached, Driver)
 func_def(onDetaching, Driver)
 func_def(publish, Driver)
 func_def(unpublish, Driver)
-override_func_def(open, Driver, Handler)
+func_def(open, Driver)
 func_def(onOpen, Driver)
-override_func_def(close, Driver, Handler)
+func_def(close, Driver)
 func_def(onClose, Driver)
 override_func_def(ioctl, Driver, Handler)
 );

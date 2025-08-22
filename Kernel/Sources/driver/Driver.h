@@ -401,6 +401,18 @@ open_class_funcs(Driver, Handler,
 
     // Unpublishes the driver. Should be called from the onStop() override.
     void (*unpublish)(void* _Nonnull self);
+
+
+    // Opens an I/O channel to the driver.
+    // Override: Optional
+    // Default Behavior: returns a DriverChannel instance
+    errno_t (*open)(void* _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
+
+    // Closes the given I/O channel.
+    // Override: Optional
+    // Default Behavior: Does nothing and returns EOK
+    errno_t (*close)(void* _Nonnull self, IOChannelRef _Nonnull pChannel);
+
 );
 
 
@@ -440,10 +452,12 @@ extern void Driver_WaitForStopped(DriverRef _Nonnull self);
 // Opens an I/O channel to the driver with the mode 'mode'. EOK and the channel
 // is returned in 'pOutChannel' on success and a suitable error code is returned
 // otherwise.
-extern errno_t Driver_Open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
+#define Driver_Open(__self, __mode, __arg, __pOutChannel) \
+invoke_n(open, Driver, __self, __mode, __arg, __pOutChannel)
 
 // Closes the given driver channel.
-extern errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel);
+#define Driver_Close(__self, __pChannel) \
+invoke_n(close, Driver, __self, __pChannel)
 
 
 #define Driver_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \

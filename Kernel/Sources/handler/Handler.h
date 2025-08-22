@@ -24,7 +24,7 @@
 open_class(Handler, Object,
 );
 open_class_funcs(Handler, Object,
-    
+/*
     // Opens an I/O channel to the handler.
     // Override: Optional
     // Default Behavior: returns EPERM
@@ -34,7 +34,7 @@ open_class_funcs(Handler, Object,
     // Override: Optional
     // Default Behavior: Does nothing and returns EOK
     errno_t (*close)(void* _Nonnull _Locked self, IOChannelRef _Nonnull pChannel);
-
+*/
 
     // Reads up to 'nBytesToRead' consecutive bytes from the underlying data
     // source and returns them in 'buf'. The actual amount of bytes read is
@@ -68,13 +68,13 @@ open_class_funcs(Handler, Object,
     errno_t (*ioctl)(void* _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap);
 );
 
-
+#if 0
 #define Handler_Open(__self, __mode, __arg, __pOutChannel) \
 invoke_n(open, Handler, __self, __mode, __arg, __pOutChannel)
 
 #define Handler_Close(__self, __pChannel) \
 invoke_n(close, Handler, __self, __pChannel)
-
+#endif
 #define Handler_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
 invoke_n(read, Handler, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
 

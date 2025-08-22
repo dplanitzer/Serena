@@ -31,7 +31,7 @@ errno_t DriverChannel_finalize(DriverChannelRef _Nonnull self)
 {
     decl_try_err();
 
-    err = Handler_Close(self->drv, (IOChannelRef)self);
+    err = Driver_Close(self->drv, (IOChannelRef)self);
     Object_Release(self->drv);
     self->drv = NULL;
 

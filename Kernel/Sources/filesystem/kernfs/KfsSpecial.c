@@ -53,12 +53,7 @@ errno_t KfsSpecial_createChannel(KfsSpecialRef _Nonnull _Locked self, unsigned i
 {
     switch (Inode_GetMode(self) & S_IFMT) {
         case S_IFDEV:
-            if (instanceof(self->instance, Driver)) {
-                return Driver_Open((DriverRef)self->instance, mode, self->arg, pOutChannel);
-            }
-            else {
-                return Handler_Open((HandlerRef)self->instance, mode, self->arg, pOutChannel);
-            }
+            return Driver_Open((DriverRef)self->instance, mode, self->arg, pOutChannel);
 
         case S_IFFS:
             return Filesystem_Open((FilesystemRef)self->instance, mode, 0, pOutChannel);

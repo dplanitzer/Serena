@@ -62,7 +62,7 @@ extern errno_t Catalog_Unpublish(CatalogRef _Nonnull self, CatalogId folderId, C
 // directory 'folderId', in the driver catalog. The handler is published as a
 // child of the root directory if 'folderId' is kCatalogId_None.
 // Returns a suitable error if another entry with the same name already exists.
-// 'arg' is an optional argument that will be passed to the Handler_Open() method
+// 'arg' is an optional argument that will be passed to the Driver_Open() method
 // when the driver needs to be opened.
 extern errno_t Catalog_PublishHandler(CatalogRef _Nonnull self, CatalogId folderId, const char* _Nonnull name, uid_t uid, gid_t gid, mode_t perms, HandlerRef _Nonnull handler, intptr_t arg, CatalogId* _Nonnull pOutCatalogId);
 
