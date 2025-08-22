@@ -1,0 +1,80 @@
+//
+//  DriverChannel.c
+//  kernel
+//
+//  Created by Dietmar Planitzer on 8/3/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
+//
+
+#include "DriverChannel.h"
+#include "Driver.h"
+#include <kern/kalloc.h>
+
+
+errno_t DriverChannel_Create(DriverRef _Nonnull drv, int channelType, unsigned int mode, size_t nExtraBytes, IOChannelRef _Nullable * _Nonnull pOutChannel)
+{
+    decl_try_err();
+    DriverChannelRef self;
+
+    try(IOChannel_Create(&kDriverChannelClass, 0, channelType, mode, (IOChannelRef*)&self));
+    if (nExtraBytes > 0) {
+        try(kalloc_cleared(nExtraBytes, (void**)&self->extras));
+    }
+    self->drv = Object_RetainAs(drv, Driver);
+
+catch:
+    *pOutChannel = (IOChannelRef)self;
+    return err;
+}
+
+errno_t DriverChannel_finalize(DriverChannelRef _Nonnull self)
+{
+    decl_try_err();
+
+    err = Handler_Close(self->drv, (IOChannelRef)self);
+    Object_Release(self->drv);
+    self->drv = NULL;
+
+    kfree(self->extras);
+    self->extras = NULL;
+    
+    return err;
+}
+
+void DriverChannel_lock(DriverChannelRef _Nonnull self)
+{
+}
+
+void DriverChannel_unlock(DriverChannelRef _Nonnull _Locked self)
+{
+}
+
+errno_t DriverChannel_read(DriverChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+{
+    return Handler_Read(self->drv, (IOChannelRef)self, pBuffer, nBytesToRead, nOutBytesRead);
+}
+
+errno_t DriverChannel_write(DriverChannelRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+{
+    return Handler_Write(self->drv, (IOChannelRef)self, pBuffer, nBytesToWrite, nOutBytesWritten);
+}
+
+errno_t DriverChannel_seek(DriverChannelRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
+{
+    return Handler_Seek(self->drv, (IOChannelRef)self, offset, pOutNewPos, whence);
+}
+
+errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull self, int cmd, va_list ap)
+{
+    return Handler_vIoctl(self->drv, (IOChannelRef)self, cmd, ap);
+}
+
+class_func_defs(DriverChannel, IOChannel,
+override_func_def(finalize, DriverChannel, IOChannel)
+override_func_def(lock, DriverChannel, IOChannel)
+override_func_def(unlock, DriverChannel, IOChannel)
+override_func_def(read, DriverChannel, IOChannel)
+override_func_def(write, DriverChannel, IOChannel)
+override_func_def(seek, DriverChannel, IOChannel)
+override_func_def(ioctl, DriverChannel, IOChannel)
+);

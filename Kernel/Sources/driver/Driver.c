@@ -8,7 +8,7 @@
 
 #include "Driver.h"
 #include "DriverManager.h"
-#include <handler/HandlerChannel.h>
+#include <driver/DriverChannel.h>
 #include <kern/kalloc.h>
 #include <kpi/fcntl.h>
 
@@ -283,7 +283,7 @@ bool Driver_HasOpenChannels(DriverRef _Nonnull self)
 
 errno_t Driver_onOpen(DriverRef _Nonnull _Locked self, int openCount, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return HandlerChannel_Create((HandlerRef)self, SEO_FT_DRIVER, mode, 0, pOutChannel);
+    return DriverChannel_Create(self, SEO_FT_DRIVER, mode, 0, pOutChannel);
 }
 
 errno_t Driver_open(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)

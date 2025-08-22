@@ -6,15 +6,15 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <driver/PlatformController.h>
+#include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
+#include <driver/PlatformController.h>
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
 #include <driver/pseudo/VDMDriver.h>
 #include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
 #include <filesystem/SerenaDiskImage.h>
-#include <handler/HandlerChannel.h>
 #include <kern/string.h>
 #include <kpi/fcntl.h>
 
@@ -35,7 +35,7 @@ void auto_discover_boot_rd(void)
     // Open the VDM
     IOChannelRef vdmChannel = NULL;
     try(DriverManager_Open(gDriverManager, "/vd-bus/self", O_RDWR, &vdmChannel));
-    VDMDriverRef vdm = HandlerChannel_GetHandlerAs(vdmChannel, VDMDriver);
+    VDMDriverRef vdm = DriverChannel_GetDriverAs(vdmChannel, VDMDriver);
 
 
     // Create a RAM disk and copy the ROM disk image into it. We assume for now

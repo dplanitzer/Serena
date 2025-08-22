@@ -7,8 +7,8 @@
 //
 
 #include "ConsolePriv.h"
+#include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
-#include <handler/HandlerChannel.h>
 #include <kern/assert.h>
 #include <kern/string.h>
 #include <kern/timespec.h>
@@ -27,7 +27,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     ConsoleRef self;
 
-    try(Handler_Create(class(Console), (HandlerRef*)&self));
+    try(PseudoDriver_Create(class(Console), 0, (DriverRef*)&self));
     
     mtx_init(&self->mtx);
 
@@ -90,7 +90,7 @@ void Console_deinit(ConsoleRef _Nonnull self)
     self->hidChannel = NULL;
 }
 
-void Console_Start(ConsoleRef _Nonnull self)
+errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
 {
     mtx_lock(&self->mtx);
 
@@ -104,6 +104,20 @@ void Console_Start(ConsoleRef _Nonnull self)
     Console_SetCursorBlinkingEnabled_Locked(self, true);
 
     mtx_unlock(&self->mtx);
+
+
+    decl_try_err();
+    DriverEntry de;
+
+    de.dirId = Driver_GetBusDirectory((DriverRef)self);
+    de.name = "console";
+    de.uid = kUserId_Root;
+    de.gid = kGroupId_Root;
+    de.perms = perm_from_octal(0666);
+    de.driver = (HandlerRef)self;
+    de.arg = 0;
+
+    return Driver_Publish(self, &de);
 }
 
 errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking)
@@ -509,12 +523,12 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
 
 errno_t Console_open(ConsoleRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return HandlerChannel_Create((HandlerRef)self, SEO_FT_TERMINAL, mode, sizeof(ConsoleChannel), pOutChannel);
+    return DriverChannel_Create((DriverRef)self, SEO_FT_TERMINAL, mode, sizeof(ConsoleChannel), pOutChannel);
 }
 
 static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    ConsoleChannel* chp = HandlerChannel_GetExtrasAs(pChannel, ConsoleChannel);
+    ConsoleChannel* chp = DriverChannel_GetExtrasAs(pChannel, ConsoleChannel);
     ssize_t nBytesRead = 0;
 
     while (nBytesRead < nBytesToRead) {
@@ -559,7 +573,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, IOChannelRef 
     decl_try_err();
     HIDEvent evt;
     ssize_t nBytesRead = 0;
-    ConsoleChannel* chp = HandlerChannel_GetExtrasAs(pChannel, ConsoleChannel);
+    ConsoleChannel* chp = DriverChannel_GetExtrasAs(pChannel, ConsoleChannel);
     const bool isNonBlocking = (IOChannel_GetMode(pChannel) & O_NONBLOCK) == O_NONBLOCK;
     const struct timespec* timp = (isNonBlocking) ? &TIMESPEC_ZERO : &TIMESPEC_INF;
 
@@ -612,7 +626,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, IOChannelRef 
 errno_t Console_read(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    ConsoleChannel* chp = HandlerChannel_GetExtrasAs(pChannel, ConsoleChannel);
+    ConsoleChannel* chp = DriverChannel_GetExtrasAs(pChannel, ConsoleChannel);
     char* pChars = pBuffer;
     HIDEvent evt;
     int evtCount;
@@ -712,8 +726,9 @@ errno_t Console_ioctl(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, 
 }
 
 
-class_func_defs(Console, Handler,
+class_func_defs(Console, PseudoDriver,
 override_func_def(deinit, Console, Object)
+override_func_def(onStart, Console, Driver)
 override_func_def(open, Console, Handler)
 override_func_def(read, Console, Handler)
 override_func_def(write, Console, Handler)

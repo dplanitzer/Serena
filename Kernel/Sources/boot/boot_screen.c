@@ -9,8 +9,8 @@
 #include "boot_screen.h"
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
+#include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
-#include <handler/HandlerChannel.h>
 #include <kern/string.h>
 #include <kpi/fcntl.h>
 #include <machine/amiga/chipset.h>

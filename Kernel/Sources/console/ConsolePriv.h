@@ -11,7 +11,7 @@
 
 #include "Console.h"
 #include <dispatchqueue/DispatchQueue.h>
-#include <handler/HandlerChannel.h>
+#include <driver/DriverChannel.h>
 #include <klib/RingBuffer.h>
 #include <sched/mtx.h>
 #include "Color.h"
@@ -145,7 +145,7 @@ typedef struct SavedState {
 
 
 // The console object.
-final_class_ivars(Console, Handler,
+final_class_ivars(Console, PseudoDriver,
     mtx_t                       mtx;
     DispatchQueueRef _Nonnull   dispatchQueue;
 

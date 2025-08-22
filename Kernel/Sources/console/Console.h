@@ -9,7 +9,7 @@
 #ifndef Console_h
 #define Console_h
 
-#include <handler/Handler.h>
+#include <driver/pseudo/PseudoDriver.h>
 
 //
 // The console implements support for the following standards:
@@ -18,7 +18,7 @@
 // DEC VT100                                        <https://vt100.net/docs/vt100-ug/contents.html>
 // DEC VT102 (ANSI X3.41-1977 & ANSI X3.64-1979)    <https://vt100.net/docs/vt102-ug/contents.html>
 //
-final_class(Console, Handler);
+final_class(Console, PseudoDriver);
 
 extern errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf);
 

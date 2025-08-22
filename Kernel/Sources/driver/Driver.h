@@ -381,7 +381,7 @@ open_class_funcs(Driver, Handler,
     // subclass can use this information to eg power up the hardware if
     // necessary.
     // Override: Optional
-    // Default Behavior: returns a HandlerChannel instance
+    // Default Behavior: returns a DriverChannel instance
     errno_t (*onOpen)(void* _Nonnull _Locked self, int openCount, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
     // Invoked by the close() function to close an open I/O channel. The
