@@ -236,7 +236,7 @@ errno_t Driver_PublishBus(DriverRef _Nonnull self, const DirEntry* _Nonnull be, 
     if (self->ownedBusDirId > 0) {
         return EBUSY;
     }
-    
+
     err = DriverManager_CreateDirectory(gDriverManager, Driver_GetBusDirectory(self), be, &self->ownedBusDirId);
     if (err == EOK && de) {
         err = DriverManager_CreateEntry(gDriverManager, self, Driver_GetPublishedBusDirectory(self), de, &self->id);
@@ -510,28 +510,6 @@ size_t Driver_GetChildCount(DriverRef _Nonnull self)
     return count;
 }
 
-bool Driver_HasChildren(DriverRef _Nonnull self)
-{
-    return Driver_GetFirstAvailableSlotId(self) != -1;
-}
-
-
-ssize_t Driver_GetFirstAvailableSlotId(DriverRef _Nonnull self)
-{
-    ssize_t idx = -1;
-
-    mtx_lock(&self->childMtx);
-    for (int16_t i = 0; i < self->maxChildCount; i++) {
-        if (self->child[i].driver == NULL) {
-            idx = i;
-            break;
-        }
-    }
-    mtx_unlock(&self->childMtx);
-
-    return idx;
-}
-
 
 DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId)
 {
@@ -552,22 +530,18 @@ DriverRef _Nullable Driver_CopyChildAt(DriverRef _Nonnull self, size_t slotId)
 }
 
 
-void Driver_DetachChild(DriverRef _Nonnull self, int stopReason, size_t slotId)
+ssize_t _get_first_available_slotid(DriverRef _Nonnull _Locked self)
 {
-    DriverRef child = Driver_CopyChildAt(self, slotId);
+    ssize_t idx = -1;
 
-    if (child) {
-        Driver_Stop(self, stopReason);
-        Driver_WaitForStopped(child);
-
-        Driver_OnDetaching(child, self);
-        Object_Release(child);  // Release the tmp strong ref from CopyChildAt()
-
-        mtx_lock(&self->childMtx);
-        Object_Release(self->child[slotId].driver); // Release the slot ref
-        self->child[slotId].driver = NULL;
-        mtx_unlock(&self->childMtx);
+    for (int16_t i = 0; i < self->maxChildCount; i++) {
+        if (self->child[i].driver == NULL) {
+            idx = i;
+            break;
+        }
     }
+
+    return idx;
 }
 
 errno_t Driver_AttachChild(DriverRef _Nonnull self, DriverRef _Nonnull child, size_t slotId)
@@ -580,6 +554,10 @@ errno_t Driver_AttachChild(DriverRef _Nonnull self, DriverRef _Nonnull child, si
 
 
     mtx_lock(&self->childMtx);
+    if (slotId == (size_t)-1) {
+        slotId = _get_first_available_slotid(self);
+    }
+    
     if (slotId >= self->maxChildCount) {
         err = ERANGE;
     }
@@ -611,6 +589,24 @@ errno_t Driver_AttachStartChild(DriverRef _Nonnull self, DriverRef _Nonnull chil
     }
 
     return err;
+}
+
+void Driver_DetachChild(DriverRef _Nonnull self, int stopReason, size_t slotId)
+{
+    DriverRef child = Driver_CopyChildAt(self, slotId);
+
+    if (child) {
+        Driver_Stop(self, stopReason);
+        Driver_WaitForStopped(child);
+
+        Driver_OnDetaching(child, self);
+        Object_Release(child);  // Release the tmp strong ref from CopyChildAt()
+
+        mtx_lock(&self->childMtx);
+        Object_Release(self->child[slotId].driver); // Release the slot ref
+        self->child[slotId].driver = NULL;
+        mtx_unlock(&self->childMtx);
+    }
 }
 
 

@@ -9,11 +9,9 @@
 #include "VDMDriver.h"
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
-#include <sched/mtx.h>
 
 
 final_class_ivars(VDMDriver, PseudoDriver,
-    mtx_t   io_mtx;
 );
 
 
@@ -24,7 +22,6 @@ errno_t VDMDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 
     err = PseudoDriver_Create(class(VDMDriver), kDriver_IsBus, (DriverRef*)&self);
     if (err == EOK) {
-        mtx_init(&self->io_mtx);
         Driver_SetMaxChildCount((DriverRef)self, 8);
     }
 
@@ -55,31 +52,13 @@ catch:
     return err;
 }
 
-static errno_t _attach_start_disk(VDMDriverRef _Nonnull self, DriverRef _Nonnull disk)
-{
-    decl_try_err();
-
-    mtx_lock(&self->io_mtx);
-    const ssize_t slotId = Driver_GetFirstAvailableSlotId((DriverRef)self);
-
-    if (slotId >= 0) {
-        err = Driver_AttachStartChild((DriverRef)self, disk, slotId);
-    }
-    else {
-        err = ENXIO;
-    }
-    mtx_unlock(&self->io_mtx);
-
-    return err;
-}
-
 errno_t VDMDriver_CreateRamDisk(VDMDriverRef _Nonnull self, const char* _Nonnull name, size_t sectorSize, scnt_t sectorCount, scnt_t extentSectorCount)
 {
     decl_try_err();
     DriverRef dp;
 
     try(RamDisk_Create(name, sectorSize, sectorCount, extentSectorCount, (RamDiskRef*)&dp));
-    try(_attach_start_disk(self, dp));
+    try(Driver_AttachStartChild((DriverRef)self, dp, (size_t)-1));
     
 catch:
     Object_Release(dp);
@@ -92,7 +71,7 @@ errno_t VDMDriver_CreateRomDisk(VDMDriverRef _Nonnull self, const char* _Nonnull
     DriverRef dp;
 
     try(RomDisk_Create(name, image, sectorSize, sectorCount, false, (RomDiskRef*)&dp));
-    try(_attach_start_disk(self, dp));
+    try(Driver_AttachStartChild((DriverRef)self, dp, (size_t)-1));
 
 catch:
     Object_Release(dp);

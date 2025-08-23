@@ -643,15 +643,6 @@ extern size_t Driver_GetMaxChildCount(DriverRef _Nonnull self);
 // receiver.
 extern size_t Driver_GetChildCount(DriverRef _Nonnull self);
 
-// Returns true if the receiver has at least one child attached to it; false
-// otherwise.
-extern bool Driver_HasChildren(DriverRef _Nonnull self);
-
-
-// Returns the lowest numbered slot id that is unoccupied. Returns -1 if no slot
-// is available.
-extern ssize_t Driver_GetFirstAvailableSlotId(DriverRef _Nonnull self);
-
 
 // Returns an unowned reference to the child driver with bus slot id 'slotId'.
 // NULL is returned if the slot is empty. Note that you must retain the returned
@@ -667,6 +658,8 @@ extern DriverRef _Nullable Driver_CopyChildAt(DriverRef _Nonnull self, size_t sl
 // Attaches the driver 'child' as a child driver to the receiver while taking
 // ownership of the provided reference. The driver is attached at the bus slot
 // 'slotId'. EBUSY is returned if this slot already has a driver attached to it.
+// Pass -1 as the slot id to attach the child driver to the lowest numbered
+// available slot.
 extern errno_t Driver_AttachChild(DriverRef _Nonnull self, DriverRef _Nonnull child, size_t slotId);
 
 // Like Driver_AttachChild() but additionally starts the driver 'child'. Driver
