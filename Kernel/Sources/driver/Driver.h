@@ -55,7 +55,6 @@ enum {
 
 
 typedef struct DirEntry {
-    CatalogId               dirId;
     const char* _Nonnull    name;
     uid_t                   uid;
     gid_t                   gid;
@@ -64,7 +63,6 @@ typedef struct DirEntry {
 
 
 typedef struct DriverEntry {
-    CatalogId               dirId;
     const char* _Nonnull    name;
     uid_t                   uid;
     gid_t                   gid;
@@ -308,6 +306,35 @@ typedef struct DriverEntry {
 // driver controls hardware of a certain kind (eg whether it is a SCSI bus) and
 // whether the hardware supports a certain kind of feature (eg whether a graphic
 // card supports 2D and/or 3d hardware acceleration).
+//
+//
+// -- Publishing a Driver and the Driver Catalog
+//
+// The driver manager maintains a driver catalog. The driver catalog stores an
+// entry for every driver that should be openable. A driver is opened by calling
+// open() with a path that point to a driver's catalog entry.
+//
+// The driver class provides two convenience APIs to publish a driver:
+// * Publish: this should be used by a simple client driver that does not
+//              implement a bus.
+// * PublishBus: this should be used by a driver that implements a bus
+//
+// The PublishBus() function creates a directory to represent the bus and to
+// provide a location where the bus clients can publish their respective driver
+// entries. PublishBus() is additionally able to publish a 'self' entry in the
+// bus directory. The 'self' entry represents the bus controller itself. This
+// entry should be published if the bus controller wants to provide useful APIs
+// to user space applications. Eg APIs to probe the bus, reset it or retrieve
+// useful information about it.
+//
+// A driver should call the Publish() or PublishBus() function from its onStart()
+// override. It is not necessary to override onStop() to call Unpublish() because
+// the Driver base class takes care of unpublishing the driver automatically.
+// Additionally, a onStart() override does not need to call Unpublish() if it
+// encounters an error because Driver automatically unpublishes the driver if
+// necessary if onStart() returns with an error.
+//
+// Unpublish is able to correctly unpublish a client driver and a bus driver.
 //
 open_class(Driver, Object,
     mtx_t                       mtx;    // lifecycle management lock
@@ -566,19 +593,19 @@ extern CatalogId Driver_GetBusDirectory(DriverRef _Nonnull self);
 ((DriverRef)__self)->ownedBusDirId
 
 
-// Publish the driver. Should be called from the onStart() override.
+// Publish the receiver as a client driver to the driver catalog.
 #define Driver_Publish(__self, __de) \
 invoke_n(publish, Driver, __self, __de)
+
+// Publishes the receiver as a bus controller to the driver catalog. This means
+// that a directory is created based on 'be' and then a 'self' entry is added
+// to the bus directory based on 'de', if 'de' is provided. No 'self' entry is
+// added if 'de' is NULL. 
+extern errno_t Driver_PublishBus(DriverRef _Nonnull self, const DirEntry* _Nonnull be, /*const*/ DriverEntry* _Nullable de);
 
 // Unpublishes the driver. Should be called from the onStop() override.
 #define Driver_Unpublish(__self) \
 invoke_0(unpublish, Driver, __self)
-
-// Publishes a bus directory
-extern errno_t Driver_PublishBusDirectory(DriverRef _Nonnull self, const DirEntry* _Nonnull de);
-
-// Unpublishes the bus directory that the receiver has previously published
-extern void Driver_UnpublishBusDirectory(DriverRef _Nonnull self);
 
 
 #define Driver_OnStart(__self) \

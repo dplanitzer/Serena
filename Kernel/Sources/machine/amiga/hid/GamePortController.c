@@ -44,23 +44,19 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
     decl_try_err();
 
     DirEntry be;
-    be.dirId = Driver_GetBusDirectory((DriverRef)self);
     be.name = "gp-bus";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;
     be.perms = perm_from_octal(0755);
 
-    try(Driver_PublishBusDirectory((DriverRef)self, &be));
-
     DriverEntry de;
-    de.dirId = Driver_GetPublishedBusDirectory(self);
     de.name = "self";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    try(Driver_Publish(self, &de));
+    try(Driver_PublishBus((DriverRef)self, &be, &de));
     try(GamePortController_SetPortDevice_Locked(self, 0, IOGP_MOUSE));
     
 catch:

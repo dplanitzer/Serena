@@ -82,7 +82,6 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
 
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = self->name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

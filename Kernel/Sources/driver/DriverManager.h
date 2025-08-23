@@ -54,7 +54,7 @@ extern errno_t DriverManager_AcquireNodeForPath(DriverManagerRef _Nonnull self, 
 // Note that it is perfectly fine to publish the same driver instance multiple
 // times as long as each instance is published under a different name. Each
 // published instance is assigned a separate unique id.
-extern errno_t DriverManager_CreateEntry(DriverManagerRef _Nonnull self, DriverRef _Nonnull drv, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId);
+extern errno_t DriverManager_CreateEntry(DriverManagerRef _Nonnull self, DriverRef _Nonnull drv, CatalogId parentDirId, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId);
 
 // Removes the driver instance from the driver catalog.
 extern void DriverManager_RemoveEntry(DriverManagerRef _Nonnull self, did_t id);
@@ -70,7 +70,7 @@ extern void DriverManager_RemoveEntry(DriverManagerRef _Nonnull self, did_t id);
 // such an entry. The name of the controller driver entry should be "self".
 // All children of the bus controller will be added to the bus directory of this
 // controller.
-extern errno_t DriverManager_CreateDirectory(DriverManagerRef _Nonnull self, const DirEntry* _Nonnull be, CatalogId* _Nonnull pOutDirId);
+extern errno_t DriverManager_CreateDirectory(DriverManagerRef _Nonnull self, CatalogId parentDirId, const DirEntry* _Nonnull be, CatalogId* _Nonnull pOutDirId);
 
 extern errno_t DriverManager_RemoveDirectory(DriverManagerRef _Nonnull self, CatalogId dirId);
 

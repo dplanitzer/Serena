@@ -31,7 +31,6 @@ errno_t ZStubDriver_onStart(ZStubDriverRef _Nonnull _Locked self)
     name[5] = '\0';
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

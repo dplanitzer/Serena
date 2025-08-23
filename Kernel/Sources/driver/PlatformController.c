@@ -23,13 +23,12 @@ errno_t PlatformController_onStart(PlatformControllerRef _Nonnull _Locked self)
     decl_try_err();
 
     DirEntry be;
-    be.dirId = kCatalogId_None;
     be.name = "hw";
     be.uid = kUserId_Root;
     be.gid = kGroupId_Root;
     be.perms = perm_from_octal(0755);
 
-    try(Driver_PublishBusDirectory((DriverRef)self, &be));
+    try(Driver_PublishBus((DriverRef)self, &be, NULL));
     try(PlatformController_DetectDevices(self));
 
 catch:

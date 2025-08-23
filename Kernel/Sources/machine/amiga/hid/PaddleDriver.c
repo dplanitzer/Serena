@@ -69,7 +69,6 @@ errno_t PaddleDriver_onStart(PaddleDriverRef _Nonnull _Locked self)
     name[7] = '\0';
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = name;
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

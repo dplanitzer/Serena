@@ -113,7 +113,6 @@ errno_t Driver_Start(DriverRef _Nonnull self)
                 }
                 else {
                     Driver_Unpublish(self);
-                    Driver_UnpublishBusDirectory(self);
                 }
             }
             else {
@@ -179,9 +178,7 @@ void Driver_Stop(DriverRef _Nonnull self, int reason)
 
     // Enter the stopping state
     mtx_lock(&self->mtx);
-    Driver_Unpublish(self);
-    Driver_UnpublishBusDirectory(self);
-    
+    Driver_Unpublish(self);    
     Driver_OnStop(self);
     self->state = kDriverState_Stopping;
     mtx_unlock(&self->mtx);
@@ -225,7 +222,7 @@ void Driver_onDetaching(DriverRef _Nonnull self, DriverRef _Nonnull parent)
 
 errno_t Driver_publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de)
 {
-    return DriverManager_CreateEntry(gDriverManager, self, de, &self->id);
+    return DriverManager_CreateEntry(gDriverManager, self, Driver_GetBusDirectory(self), de, &self->id);
 }
 
 void Driver_unpublish(DriverRef _Nonnull self)
@@ -234,19 +231,26 @@ void Driver_unpublish(DriverRef _Nonnull self)
         DriverManager_RemoveEntry(gDriverManager, self->id);
         self->id = 0;
     }
-}
-
-errno_t Driver_PublishBusDirectory(DriverRef _Nonnull self, const DirEntry* _Nonnull de)
-{
-    return DriverManager_CreateDirectory(gDriverManager, de, &self->ownedBusDirId);
-}
-
-void Driver_UnpublishBusDirectory(DriverRef _Nonnull self)
-{
     if (self->ownedBusDirId > 0) {
         DriverManager_RemoveDirectory(gDriverManager, self->ownedBusDirId);
         self->ownedBusDirId = 0;
     }
+}
+
+errno_t Driver_PublishBus(DriverRef _Nonnull self, const DirEntry* _Nonnull be, /*const*/ DriverEntry* _Nullable de)
+{
+    decl_try_err();
+
+    err = DriverManager_CreateDirectory(gDriverManager, Driver_GetBusDirectory(self), be, &self->ownedBusDirId);
+    if (err == EOK && de) {
+        err = DriverManager_CreateEntry(gDriverManager, self, Driver_GetPublishedBusDirectory(self), de, &self->id);
+        if (err != EOK) {
+            DriverManager_RemoveDirectory(gDriverManager, self->ownedBusDirId);
+            self->ownedBusDirId = 0;
+        }
+    }
+
+    return err;
 }
 
 CatalogId Driver_GetBusDirectory(DriverRef _Nonnull self)

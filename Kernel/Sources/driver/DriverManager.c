@@ -120,7 +120,7 @@ DriverRef _Nullable DriverManager_CopyDriverForId(DriverManagerRef _Nonnull self
     return dp;
 }
 
-errno_t DriverManager_CreateEntry(DriverManagerRef _Nonnull self, DriverRef _Nonnull drv, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId)
+errno_t DriverManager_CreateEntry(DriverManagerRef _Nonnull self, DriverRef _Nonnull drv, CatalogId parentDirId, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId)
 {
     decl_try_err();
     DriverRef driver = NULL;
@@ -130,10 +130,10 @@ errno_t DriverManager_CreateEntry(DriverManagerRef _Nonnull self, DriverRef _Non
     mtx_lock(&self->mtx);
 
     try(kalloc_cleared(sizeof(struct dentry), (void**)&ep));
-    try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, drv, de->arg, &ep->id));
+    try(Catalog_PublishDriver(gDriverCatalog, parentDirId, de->name, de->uid, de->gid, de->perms, drv, de->arg, &ep->id));
 
     SList_InsertBeforeFirst(&self->id_table[hash_scalar(ep->id) & HASH_CHAIN_MASK], &ep->qe);
-    ep->dirId = de->dirId;
+    ep->dirId = parentDirId;
     ep->driver = Object_RetainAs(drv, Driver);
     if (pOutId) {
         *pOutId = ep->id;
@@ -179,9 +179,9 @@ void DriverManager_RemoveEntry(DriverManagerRef _Nonnull self, did_t id)
     kfree(the_ep);
 }
 
-errno_t DriverManager_CreateDirectory(DriverManagerRef _Nonnull self, const DirEntry* _Nonnull be, CatalogId* _Nonnull pOutDirId)
+errno_t DriverManager_CreateDirectory(DriverManagerRef _Nonnull self, CatalogId parentDirId, const DirEntry* _Nonnull be, CatalogId* _Nonnull pOutDirId)
 {
-    return Catalog_PublishFolder(gDriverCatalog, be->dirId, be->name, be->uid, be->gid, be->perms, pOutDirId);
+    return Catalog_PublishFolder(gDriverCatalog, parentDirId, be->name, be->uid, be->gid, be->perms, pOutDirId);
 }
 
 errno_t DriverManager_RemoveDirectory(DriverManagerRef _Nonnull self, CatalogId dirId)

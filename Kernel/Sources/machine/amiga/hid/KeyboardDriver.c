@@ -68,7 +68,6 @@ errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
     decl_try_err();
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = "kb";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

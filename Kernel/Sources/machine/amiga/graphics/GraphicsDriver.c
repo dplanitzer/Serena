@@ -67,7 +67,6 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
     decl_try_err();
 
     DriverEntry de;
-    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = "fb";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

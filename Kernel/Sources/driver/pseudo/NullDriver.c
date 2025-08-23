@@ -23,7 +23,6 @@ errno_t NullDriver_onStart(NullDriverRef _Nonnull _Locked self)
     decl_try_err();
     DriverEntry de;
 
-    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = "null";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

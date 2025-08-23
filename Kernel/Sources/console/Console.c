@@ -106,10 +106,7 @@ errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     mtx_unlock(&self->mtx);
 
 
-    decl_try_err();
     DriverEntry de;
-
-    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = "console";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;

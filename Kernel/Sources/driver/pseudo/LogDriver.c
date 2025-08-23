@@ -24,7 +24,6 @@ errno_t LogDriver_onStart(LogDriverRef _Nonnull _Locked self)
     decl_try_err();
     DriverEntry de;
 
-    de.dirId = Driver_GetBusDirectory((DriverRef)self);
     de.name = "klog";
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
