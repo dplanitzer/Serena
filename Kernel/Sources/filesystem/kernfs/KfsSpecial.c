@@ -51,7 +51,7 @@ void KfsSpecial_deinit(KfsSpecialRef _Nullable self)
 
 errno_t KfsSpecial_createChannel(KfsSpecialRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    switch (Inode_GetMode(self) & S_IFMT) {
+    switch (Inode_GetType(self)) {
         case S_IFDEV:
             return Driver_Open((DriverRef)self->instance, mode, self->arg, pOutChannel);
 

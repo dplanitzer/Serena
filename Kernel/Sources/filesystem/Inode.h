@@ -202,6 +202,10 @@ void Inode_Unlink(InodeRef _Nonnull self);
 #define Inode_GetMode(__self) \
     ((InodeRef)__self)->mode
 
+// Returns the node type. See the S_IFXXX macros.
+#define Inode_GetType(__self) \
+    (((InodeRef)__self)->mode & S_IFMT)
+
 // Returns the User ID of the node.
 #define Inode_GetUserId(__self) \
     ((InodeRef)__self)->uid

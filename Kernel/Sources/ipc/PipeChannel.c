@@ -23,7 +23,7 @@ errno_t PipeChannel_Create(PipeRef _Nonnull pipe, unsigned int mode, IOChannelRe
         return EACCESS;
     }
 
-    err = IOChannel_Create(&kPipeChannelClass, 0, SEO_FT_PIPE, mode, (IOChannelRef*)&self);
+    err = IOChannel_Create(&kPipeChannelClass, 0, SEO_FT_INODE, mode, (IOChannelRef*)&self);
     if (err == EOK) {
         self->pipe = Object_RetainAs(pipe, Pipe);
         Pipe_Open(pipe, (mode & O_RDONLY) == O_RDONLY ? kPipeEnd_Read : kPipeEnd_Write);
