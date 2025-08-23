@@ -8,7 +8,6 @@
 
 #include "DirectoryChannel.h"
 #include "Filesystem.h"
-#include <kpi/fcntl.h>
 
 
 // DirectoryChannel uses the Inode lock to protect its seek state

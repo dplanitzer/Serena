@@ -8,7 +8,6 @@
 
 #include "FSChannel.h"
 #include "Filesystem.h"
-#include <kpi/fcntl.h>
 
 
 errno_t FSChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int channelType, unsigned int mode, FilesystemRef _Nonnull fs, IOChannelRef _Nullable * _Nonnull pOutSelf)
@@ -41,20 +40,8 @@ errno_t FSChannel_ioctl(FSChannelRef _Nonnull _Locked self, int cmd, va_list ap)
     return Filesystem_vIoctl(self->fs, (IOChannelRef)self, cmd, ap);
 }
 
-errno_t FSChannel_read(FSChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    return EPERM;
-}
-
-errno_t FSChannel_write(FSChannelRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
-{
-    return EPERM;
-}
-
 
 class_func_defs(FSChannel, IOChannel,
 override_func_def(finalize, FSChannel, IOChannel)
 override_func_def(ioctl, FSChannel, IOChannel)
-override_func_def(read, FSChannel, IOChannel)
-override_func_def(write, FSChannel, IOChannel)
 );

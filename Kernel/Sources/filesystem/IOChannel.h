@@ -12,6 +12,7 @@
 #include <stdarg.h>
 #include <kobj/Any.h>
 #include <kern/kernlib.h>
+#include <kpi/fcntl.h>
 #include <kpi/stat.h>
 #include <sched/mtx.h>
 
@@ -149,11 +150,19 @@ any_subclass_funcs(IOChannel,
 
 // Returns the I/O channel type.
 #define IOChannel_GetChannelType(/*_Nonnull*/ __self) \
-    ((int)((IOChannelRef)(__self))->channelType)
+((int)((IOChannelRef)(__self))->channelType)
 
 // Returns the I/O channel mode.
 #define IOChannel_GetMode(/*_Nonnull*/ __self) \
-    ((unsigned int)((IOChannelRef)(__self))->mode)
+((unsigned int)((IOChannelRef)(__self))->mode)
+
+// Returns true if the I/O channel is readable.
+#define IOChannel_IsReadable(__self) \
+((((IOChannelRef)__self)->mode & O_RDONLY) == O_RDONLY)
+
+// Returns true if the I/O channel is writable.
+#define IOChannel_IsWritable(__self) \
+((((IOChannelRef)__self)->mode & O_WRONLY) == O_WRONLY)
 
 // Returns the current seek position
 #define IOChannel_GetOffset(/*_Nonnull _Locked*/ __self) \
