@@ -29,7 +29,7 @@ errno_t NullDriver_onStart(NullDriverRef _Nonnull _Locked self)
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    return Driver_Publish((DriverRef)self, &de);
 }
 
 errno_t NullDriver_read(NullDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

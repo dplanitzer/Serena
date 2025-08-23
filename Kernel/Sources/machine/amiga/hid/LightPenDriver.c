@@ -78,7 +78,7 @@ errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
     de.perms = perm_from_octal(0444);
     de.arg = 0;
 
-    err = Driver_Publish(self, &de);
+    err = Driver_Publish((DriverRef)self, &de);
     if (err == EOK) {
         CHIPSET_BASE_DECL(cp);
 

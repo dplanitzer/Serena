@@ -158,7 +158,7 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    try(Driver_Publish(self, &de));
+    try(Driver_Publish((DriverRef)self, &de));
     try(DispatchQueue_DispatchAsync(DiskDriver_GetDispatchQueue(self), (VoidFunc_1)FloppyDriver_Reset, self));
 
 catch:

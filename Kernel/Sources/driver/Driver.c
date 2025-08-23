@@ -220,27 +220,23 @@ void Driver_onDetaching(DriverRef _Nonnull self, DriverRef _Nonnull parent)
 }
 
 
-errno_t Driver_publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de)
-{
-    return DriverManager_CreateEntry(gDriverManager, self, Driver_GetBusDirectory(self), de, &self->id);
-}
-
-void Driver_unpublish(DriverRef _Nonnull self)
+errno_t Driver_Publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de)
 {
     if (self->id > 0) {
-        DriverManager_RemoveEntry(gDriverManager, self->id);
-        self->id = 0;
+        return EBUSY;
     }
-    if (self->ownedBusDirId > 0) {
-        DriverManager_RemoveDirectory(gDriverManager, self->ownedBusDirId);
-        self->ownedBusDirId = 0;
-    }
+
+    return DriverManager_CreateEntry(gDriverManager, self, Driver_GetBusDirectory(self), de, &self->id);
 }
 
 errno_t Driver_PublishBus(DriverRef _Nonnull self, const DirEntry* _Nonnull be, /*const*/ DriverEntry* _Nullable de)
 {
     decl_try_err();
 
+    if (self->ownedBusDirId > 0) {
+        return EBUSY;
+    }
+    
     err = DriverManager_CreateDirectory(gDriverManager, Driver_GetBusDirectory(self), be, &self->ownedBusDirId);
     if (err == EOK && de) {
         err = DriverManager_CreateEntry(gDriverManager, self, Driver_GetPublishedBusDirectory(self), de, &self->id);
@@ -252,6 +248,19 @@ errno_t Driver_PublishBus(DriverRef _Nonnull self, const DirEntry* _Nonnull be, 
 
     return err;
 }
+
+void Driver_Unpublish(DriverRef _Nonnull self)
+{
+    if (self->id > 0) {
+        DriverManager_RemoveEntry(gDriverManager, self->id);
+        self->id = 0;
+    }
+    if (self->ownedBusDirId > 0) {
+        DriverManager_RemoveDirectory(gDriverManager, self->ownedBusDirId);
+        self->ownedBusDirId = 0;
+    }
+}
+
 
 CatalogId Driver_GetBusDirectory(DriverRef _Nonnull self)
 {
@@ -640,8 +649,6 @@ func_def(onStop, Driver)
 func_def(onWaitForStopped, Driver)
 func_def(onAttached, Driver)
 func_def(onDetaching, Driver)
-func_def(publish, Driver)
-func_def(unpublish, Driver)
 func_def(open, Driver)
 func_def(onOpen, Driver)
 func_def(close, Driver)

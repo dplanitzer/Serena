@@ -113,7 +113,7 @@ errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    return Driver_Publish((DriverRef)self, &de);
 }
 
 errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking)

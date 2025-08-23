@@ -30,7 +30,7 @@ errno_t LogDriver_onStart(LogDriverRef _Nonnull _Locked self)
     de.perms = perm_from_octal(0440);
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    return Driver_Publish((DriverRef)self, &de);
 }
 
 errno_t LogDriver_read(LogDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)

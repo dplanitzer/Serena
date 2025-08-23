@@ -88,7 +88,7 @@ errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    return Driver_Publish((DriverRef)self, &de);
 }
 
 // Tries to find the disk extent that contains the given sector index. This disk

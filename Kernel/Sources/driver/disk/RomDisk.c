@@ -80,7 +80,7 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     de.perms = perm_from_octal(0444);
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    return Driver_Publish((DriverRef)self, &de);
 }
 
 errno_t RomDisk_getSector(RomDiskRef _Nonnull self, const chs_t* _Nonnull chs, uint8_t* _Nonnull data, size_t secSize)

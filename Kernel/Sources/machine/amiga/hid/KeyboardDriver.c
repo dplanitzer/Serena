@@ -74,7 +74,7 @@ errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
     de.perms = perm_from_octal(0444);
     de.arg = 0;
 
-    err = Driver_Publish(self, &de);
+    err = Driver_Publish((DriverRef)self, &de);
     if (err == EOK) {
         // Configure the keyboard serial port
         CIAA_BASE_DECL(ciaa);

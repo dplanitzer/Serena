@@ -37,7 +37,7 @@ errno_t ZStubDriver_onStart(ZStubDriverRef _Nonnull _Locked self)
     de.perms = perm_from_octal(0);
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    return Driver_Publish((DriverRef)self, &de);
 }
 
 class_func_defs(ZStubDriver, Driver,

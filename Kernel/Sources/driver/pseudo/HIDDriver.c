@@ -34,7 +34,7 @@ errno_t HIDDriver_onStart(HIDDriverRef _Nonnull _Locked self)
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    return Driver_Publish((DriverRef)self, &de);
 }
 
 // Returns events in the order oldest to newest. As many events are returned as

@@ -73,7 +73,7 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
     de.perms = perm_from_octal(0666);
     de.arg = 0;
 
-    err = Driver_Publish(self, &de);
+    err = Driver_Publish((DriverRef)self, &de);
     if (err == EOK) {
         irq_add_handler(&self->vblHandler);
         irq_enable_src(IRQ_ID_VBLANK);

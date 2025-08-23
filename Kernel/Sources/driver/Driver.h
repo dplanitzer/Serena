@@ -415,13 +415,6 @@ open_class_funcs(Driver, Object,
     void (*onClose)(void* _Nonnull _Locked self, IOChannelRef _Nonnull ioc, int openCount);
 
 
-    // Publish the driver. Should be called from the onStart() override.
-    errno_t (*publish)(void* _Nonnull self, const DriverEntry* _Nonnull de);
-
-    // Unpublishes the driver. Should be called from the onStop() override.
-    void (*unpublish)(void* _Nonnull self);
-
-
     // Opens an I/O channel to the driver.
     // Override: Optional
     // Default Behavior: returns a DriverChannel instance
@@ -594,8 +587,7 @@ extern CatalogId Driver_GetBusDirectory(DriverRef _Nonnull self);
 
 
 // Publish the receiver as a client driver to the driver catalog.
-#define Driver_Publish(__self, __de) \
-invoke_n(publish, Driver, __self, __de)
+extern errno_t Driver_Publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de);
 
 // Publishes the receiver as a bus controller to the driver catalog. This means
 // that a directory is created based on 'be' and then a 'self' entry is added
@@ -604,8 +596,7 @@ invoke_n(publish, Driver, __self, __de)
 extern errno_t Driver_PublishBus(DriverRef _Nonnull self, const DirEntry* _Nonnull be, /*const*/ DriverEntry* _Nullable de);
 
 // Unpublishes the driver. Should be called from the onStop() override.
-#define Driver_Unpublish(__self) \
-invoke_0(unpublish, Driver, __self)
+extern void Driver_Unpublish(DriverRef _Nonnull self);
 
 
 #define Driver_OnStart(__self) \

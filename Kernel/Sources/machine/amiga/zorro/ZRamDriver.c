@@ -39,7 +39,7 @@ errno_t ZRamDriver_onStart(ZRamDriverRef _Nonnull _Locked self)
     de.perms = perm_from_octal(0440);
     de.arg = 0;
 
-    if ((err = Driver_Publish(self, &de)) == EOK) {
+    if ((err = Driver_Publish((DriverRef)self, &de)) == EOK) {
         md.lower = cfg->start;
         md.upper = cfg->start + cfg->logicalSize;
         md.type = MEM_TYPE_MEMORY;

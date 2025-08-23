@@ -75,7 +75,7 @@ errno_t PaddleDriver_onStart(PaddleDriverRef _Nonnull _Locked self)
     de.perms = perm_from_octal(0444);
     de.arg = 0;
 
-    return Driver_Publish(self, &de);
+    return Driver_Publish((DriverRef)self, &de);
 }
 
 void PaddleDriver_getReport(PaddleDriverRef _Nonnull self, HIDReport* _Nonnull report)
