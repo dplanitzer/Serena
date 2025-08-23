@@ -74,7 +74,6 @@ errno_t PaddleDriver_onStart(PaddleDriverRef _Nonnull _Locked self)
     de.uid = kUserId_Root;
     de.gid = kGroupId_Root;
     de.perms = perm_from_octal(0444);
-    de.driver = (DriverRef)self;
     de.arg = 0;
 
     return Driver_Publish(self, &de);

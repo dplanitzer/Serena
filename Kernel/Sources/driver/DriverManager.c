@@ -120,7 +120,7 @@ DriverRef _Nullable DriverManager_CopyDriverForId(DriverManagerRef _Nonnull self
     return dp;
 }
 
-errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId)
+errno_t DriverManager_CreateEntry(DriverManagerRef _Nonnull self, DriverRef _Nonnull drv, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId)
 {
     decl_try_err();
     DriverRef driver = NULL;
@@ -130,11 +130,11 @@ errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry*
     mtx_lock(&self->mtx);
 
     try(kalloc_cleared(sizeof(struct dentry), (void**)&ep));
-    try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, de->driver, de->arg, &ep->id));
+    try(Catalog_PublishDriver(gDriverCatalog, de->dirId, de->name, de->uid, de->gid, de->perms, drv, de->arg, &ep->id));
 
     SList_InsertBeforeFirst(&self->id_table[hash_scalar(ep->id) & HASH_CHAIN_MASK], &ep->qe);
     ep->dirId = de->dirId;
-    ep->driver = Object_RetainAs(de->driver, Driver);
+    ep->driver = Object_RetainAs(drv, Driver);
     if (pOutId) {
         *pOutId = ep->id;
     }
@@ -151,7 +151,7 @@ catch:
 }
 
 // Removes the driver instance from the driver catalog.
-void DriverManager_Unpublish(DriverManagerRef _Nonnull self, did_t id)
+void DriverManager_RemoveEntry(DriverManagerRef _Nonnull self, did_t id)
 {
     SList* the_chain = NULL;
     dentry_t the_ep = NULL, prev_ep = NULL;

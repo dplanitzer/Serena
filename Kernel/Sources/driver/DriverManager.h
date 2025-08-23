@@ -54,10 +54,10 @@ extern errno_t DriverManager_AcquireNodeForPath(DriverManagerRef _Nonnull self, 
 // Note that it is perfectly fine to publish the same driver instance multiple
 // times as long as each instance is published under a different name. Each
 // published instance is assigned a separate unique id.
-extern errno_t DriverManager_Publish(DriverManagerRef _Nonnull self, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId);
+extern errno_t DriverManager_CreateEntry(DriverManagerRef _Nonnull self, DriverRef _Nonnull drv, const DriverEntry* _Nonnull de, did_t* _Nullable pOutId);
 
 // Removes the driver instance from the driver catalog.
-extern void DriverManager_Unpublish(DriverManagerRef _Nonnull self, did_t id);
+extern void DriverManager_RemoveEntry(DriverManagerRef _Nonnull self, did_t id);
 
 // Publishes the receiver to the driver catalog as a bus owner and controller.
 // This means that a directory is created in the driver catalog to represent the

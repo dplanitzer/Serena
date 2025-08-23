@@ -225,13 +225,13 @@ void Driver_onDetaching(DriverRef _Nonnull self, DriverRef _Nonnull parent)
 
 errno_t Driver_publish(DriverRef _Nonnull self, const DriverEntry* _Nonnull de)
 {
-    return DriverManager_Publish(gDriverManager, de, &self->id);
+    return DriverManager_CreateEntry(gDriverManager, self, de, &self->id);
 }
 
 void Driver_unpublish(DriverRef _Nonnull self)
 {
     if (self->id > 0) {
-        DriverManager_Unpublish(gDriverManager, self->id);
+        DriverManager_RemoveEntry(gDriverManager, self->id);
         self->id = 0;
     }
 }

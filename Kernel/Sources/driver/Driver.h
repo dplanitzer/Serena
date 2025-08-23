@@ -69,7 +69,6 @@ typedef struct DriverEntry {
     uid_t                   uid;
     gid_t                   gid;
     mode_t                  perms;
-    DriverRef _Nonnull      driver;
     intptr_t                arg;
 } DriverEntry;
 
