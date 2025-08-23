@@ -8,8 +8,7 @@
 
 #include "FileManager.h"
 #include "FileHierarchy.h"
-#include <filesystem/DirectoryChannel.h>
-#include <filesystem/FileChannel.h>
+#include <filesystem/InodeChannel.h>
 #include <security/SecurityManager.h>
 #include <kpi/fcntl.h>
 #include <kpi/perm.h>
@@ -131,7 +130,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
 
 
     // Create the file channel
-    try(FileChannel_Create(ip, oflags, pOutChannel));
+    try(InodeChannel_Create(ip, oflags, pOutChannel));
 
 catch:
     Inode_Relinquish(ip);
@@ -221,11 +220,8 @@ errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _
 {
     decl_try_err();
 
-    if (instanceof(pChannel, FileChannel)) {
-        FileChannel_GetInfo((FileChannelRef)pChannel, pOutInfo);
-    }
-    else if (instanceof(pChannel, DirectoryChannel)) {
-        DirectoryChannel_GetInfo((DirectoryChannelRef)pChannel, pOutInfo);
+    if (instanceof(pChannel, InodeChannel)) {
+        InodeChannel_GetInfo((InodeChannelRef)pChannel, pOutInfo);
     }
     else {
         err = EBADF;
@@ -337,11 +333,8 @@ errno_t FileManager_TruncateFile_ioc(FileManagerRef _Nonnull self, IOChannelRef 
 {
     decl_try_err();
 
-    if (instanceof(pChannel, FileChannel)) {
-        err = FileChannel_Truncate((FileChannelRef)pChannel, length);
-    }
-    else if (instanceof(pChannel, DirectoryChannel)) {
-        err = EISDIR;
+    if (instanceof(pChannel, InodeChannel)) {
+        err = InodeChannel_Truncate((InodeChannelRef)pChannel, length);
     }
     else {
         err = ENOTDIR;

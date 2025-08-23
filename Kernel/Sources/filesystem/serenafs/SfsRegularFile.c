@@ -8,13 +8,13 @@
 
 #include "SfsRegularFile.h"
 #include "SerenaFSPriv.h"
-#include <filesystem/FileChannel.h>
+#include <filesystem/InodeChannel.h>
 #include <kern/limits.h>
 #include <kern/string.h>
 #include <kpi/fcntl.h>
 
 
-errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);
@@ -94,7 +94,7 @@ catch:
 #define MAX_FILE_SIZE   kSFSLimit_FileSizeMax
 #endif
 
-errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+errno_t SfsRegularFile_write(SfsRegularFileRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked ch, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);

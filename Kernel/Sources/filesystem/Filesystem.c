@@ -8,8 +8,7 @@
 
 #include "Filesystem.h"
 #include "FSUtilities.h"
-#include "DirectoryChannel.h"
-#include "FileChannel.h"
+#include "InodeChannel.h"
 #include "FSChannel.h"
 #include <kern/timespec.h>
 #include <klib/Atomic.h>

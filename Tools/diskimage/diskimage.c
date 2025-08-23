@@ -15,8 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <filemanager/FileHierarchy.h>
-#include <filesystem/DirectoryChannel.h>
-#include <filesystem/FileChannel.h>
+#include <filesystem/InodeChannel.h>
 #include <filesystem/FSChannel.h>
 #include <filesystem/SerenaDiskImage.h>
 #include <filesystem/serenafs/SerenaFS.h>
@@ -537,8 +536,7 @@ static void init(void)
     _RegisterClass(class(SfsDirectory));
     _RegisterClass(class(SfsRegularFile));
     _RegisterClass(class(IOChannel));
-    _RegisterClass(class(FileChannel));
-    _RegisterClass(class(DirectoryChannel));
+    _RegisterClass(class(InodeChannel));
     _RegisterClass(class(FileHierarchy));
 }
 

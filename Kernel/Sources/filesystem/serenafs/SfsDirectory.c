@@ -8,7 +8,7 @@
 
 #include "SfsDirectory.h"
 #include "SerenaFSPriv.h"
-#include <filesystem/DirectoryChannel.h>
+#include <filesystem/InodeChannel.h>
 #include <filesystem/FSUtilities.h>
 #include <kern/endian.h>
 #include <kern/limits.h>
@@ -21,7 +21,7 @@
 // return a partial entry. Consequently the provided buffer must be big enough
 // to hold at least one directory entry. Note that this function is expected
 // to return "." for the entry at index #0 and ".." for the entry at index #1.
-errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, DirectoryChannelRef _Nonnull _Locked ch, void* _Nonnull buf, ssize_t nDstBytesToRead, ssize_t* _Nonnull pOutDstBytesRead)
+errno_t SfsDirectory_read(SfsDirectoryRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked ch, void* _Nonnull buf, ssize_t nDstBytesToRead, ssize_t* _Nonnull pOutDstBytesRead)
 {
     decl_try_err();
     SerenaFSRef fs = Inode_GetFilesystemAs(self, SerenaFS);

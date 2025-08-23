@@ -159,7 +159,7 @@ static errno_t _proc_build_exec_image(ProcessRef _Nonnull _Locked self, const ch
 
 
     // Load the executable
-    try(_proc_img_load_gemdos_exec(pimg, (FileChannelRef)chan));
+    try(_proc_img_load_gemdos_exec(pimg, (InodeChannelRef)chan));
     pargs->image_base = pimg->base;
 
 

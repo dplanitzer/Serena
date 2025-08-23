@@ -9,7 +9,6 @@
 #include "KernFSPriv.h"
 #include "KfsDirectory.h"
 #include <driver/Driver.h>
-#include <filesystem/DirectoryChannel.h>
 #include <kern/string.h>
 
 

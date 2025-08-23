@@ -8,7 +8,7 @@
 
 #include "KfsDirectory.h"
 #include "KernFSPriv.h"
-#include <filesystem/DirectoryChannel.h>
+#include <filesystem/InodeChannel.h>
 #include <filesystem/FSUtilities.h>
 #include <kern/string.h>
 
@@ -179,10 +179,10 @@ errno_t KfsDirectory_RemoveEntry(KfsDirectoryRef _Nonnull _Locked self, InodeRef
 
 errno_t KfsDirectory_createChannel(KfsDirectoryRef _Nonnull _Locked self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return DirectoryChannel_Create((InodeRef)self, pOutChannel);
+    return InodeChannel_Create((InodeRef)self, O_RDONLY, pOutChannel);
 }
 
-errno_t KfsDirectory_read(KfsDirectoryRef _Nonnull _Locked self, DirectoryChannelRef _Nonnull _Locked ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t KfsDirectory_read(KfsDirectoryRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked ch, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     struct dirent* pOutEntry = (struct dirent*)pBuffer;

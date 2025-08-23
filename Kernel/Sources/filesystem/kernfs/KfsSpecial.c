@@ -63,12 +63,12 @@ errno_t KfsSpecial_createChannel(KfsSpecialRef _Nonnull _Locked self, unsigned i
     }
 }
 
-errno_t KfsSpecial_read(KfsSpecialRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t KfsSpecial_read(KfsSpecialRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EPERM;
 }
 
-errno_t KfsSpecial_write(KfsSpecialRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t KfsSpecial_write(KfsSpecialRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return EPERM;
 }

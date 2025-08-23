@@ -7,8 +7,7 @@
 //
 
 #include "Inode.h"
-#include "DirectoryChannel.h"
-#include "FileChannel.h"
+#include "InodeChannel.h"
 #include "Filesystem.h"
 #include "FSUtilities.h"
 #include <security/SecurityManager.h>
@@ -135,10 +134,10 @@ errno_t Inode_createChannel(InodeRef _Nonnull _Locked self, unsigned int mode, I
 {
     switch (Inode_GetMode(self) & S_IFMT) {
         case S_IFDIR:
-            return DirectoryChannel_Create(self, pOutChannel);
+            return InodeChannel_Create(self, O_RDONLY, pOutChannel);
 
         case S_IFREG:
-            return FileChannel_Create(self, mode, pOutChannel);
+            return InodeChannel_Create(self, mode, pOutChannel);
 
         default:
             *pOutChannel = NULL;
@@ -224,12 +223,12 @@ void Inode_setTimes(InodeRef _Nonnull _Locked self, const struct timespec times[
     Inode_SetModified(self, kInodeFlag_StatusChanged);
 }
 
-errno_t Inode_read(InodeRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Inode_read(InodeRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EIO;
 }
 
-errno_t Inode_write(InodeRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t Inode_write(InodeRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return EIO;
 }

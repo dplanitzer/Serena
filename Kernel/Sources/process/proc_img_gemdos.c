@@ -45,10 +45,10 @@ static void _proc_img_gemdos_reloc(proc_img_t* _Nonnull self, uint8_t* _Nonnull 
     }
 }
 
-errno_t _proc_img_load_gemdos_exec(proc_img_t* _Nonnull self, FileChannelRef _Nonnull chan)
+errno_t _proc_img_load_gemdos_exec(proc_img_t* _Nonnull self, InodeChannelRef _Nonnull chan)
 {
     decl_try_err();
-    off_t fileSize = FileChannel_GetFileSize(chan);
+    off_t fileSize = InodeChannel_GetFileSize(chan);
     off_t fileOffset;
     gemdos_hdr_t hdr;
     ssize_t nBytesRead;

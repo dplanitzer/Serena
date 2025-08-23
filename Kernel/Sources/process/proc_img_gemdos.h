@@ -10,7 +10,7 @@
 #define _PROC_IMG_GEMDOS_H
 
 #include "ProcessPriv.h"
-#include <filesystem/FileChannel.h>
+#include <filesystem/InodeChannel.h>
 
 // <http://toshyp.atari.org/en/005005.html> and Atari GEMDOS Reference Manual
 // Why?? 'cause it's easy
@@ -31,6 +31,6 @@ typedef struct gemdos_hdr {
 // into a newly allocated memory area in the address space for which this loader
 // was created. Returns the base address of the in-core executable image and the
 // entry address of the executable.
-extern errno_t _proc_img_load_gemdos_exec(proc_img_t* _Nonnull pimg, FileChannelRef _Nonnull chan);
+extern errno_t _proc_img_load_gemdos_exec(proc_img_t* _Nonnull pimg, InodeChannelRef _Nonnull chan);
 
 #endif /* _PROC_IMG_GEMDOS_H */

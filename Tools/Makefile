@@ -94,11 +94,10 @@ KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/ResolvedPath.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/FSContainer.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/ContainerFilesystem.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/Filesystem.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/FileChannel.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/FSChannel.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/DirectoryChannel.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/IOChannel.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/Inode.c
+KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/InodeChannel.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/PathComponent.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/security/SecurityManager.c
 

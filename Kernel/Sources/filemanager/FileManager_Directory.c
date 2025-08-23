@@ -8,7 +8,6 @@
 
 #include "FileManager.h"
 #include "FileHierarchy.h"
-#include <filesystem/DirectoryChannel.h>
 #include <security/SecurityManager.h>
 #include <kpi/fcntl.h>
 

@@ -51,12 +51,12 @@ errno_t KfsProcess_createChannel(KfsProcessRef _Nonnull _Locked self, unsigned i
     return Process_Open(self->instance, mode, 0, pOutChannel);
 }
 
-errno_t KfsProcess_read(KfsProcessRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t KfsProcess_read(KfsProcessRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EPERM;
 }
 
-errno_t KfsProcess_write(KfsProcessRef _Nonnull _Locked self, FileChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t KfsProcess_write(KfsProcessRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return EPERM;
 }
