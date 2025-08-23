@@ -111,6 +111,10 @@ errno_t Driver_Start(DriverRef _Nonnull self)
                 if (err == EOK) {
                     hasStarted = true;
                 }
+                else {
+                    Driver_Unpublish(self);
+                    Driver_UnpublishBusDirectory(self);
+                }
             }
             else {
                 err = ENOTATTACHED;

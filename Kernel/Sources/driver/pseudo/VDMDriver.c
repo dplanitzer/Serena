@@ -57,10 +57,6 @@ errno_t VDMDriver_onStart(VDMDriverRef _Nonnull _Locked self)
     try(Driver_Publish(self, &de));
 
 catch:
-    if (err != EOK) {
-        Driver_UnpublishBusDirectory((DriverRef)self);
-    }
-
     return err;
 }
 

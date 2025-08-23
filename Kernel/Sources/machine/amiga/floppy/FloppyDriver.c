@@ -164,9 +164,6 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     try(DispatchQueue_DispatchAsync(DiskDriver_GetDispatchQueue(self), (VoidFunc_1)FloppyDriver_Reset, self));
 
 catch:
-    if (err != EOK) {
-        Driver_Unpublish(self);
-    }
     return err;
 }
 

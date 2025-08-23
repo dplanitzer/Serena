@@ -152,10 +152,6 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
     irq_enable_src(IRQ_ID_DISK_BLOCK);
 
 catch:
-    if (err != EOK) {
-        Driver_Unpublish(self);
-        Driver_UnpublishBusDirectory((DriverRef)self);
-    }
     return err;
 }
 

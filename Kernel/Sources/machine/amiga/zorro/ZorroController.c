@@ -78,10 +78,6 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
     _auto_config_bus(self);
 
 catch:
-    if (err != EOK) {
-        Driver_Unpublish(self);
-        Driver_UnpublishBusDirectory((DriverRef)self);
-    }
     return err;
 }
 

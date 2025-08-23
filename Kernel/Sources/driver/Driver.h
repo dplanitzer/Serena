@@ -439,8 +439,9 @@ open_class_funcs(Driver, Object,
 
 // Starts the driver. This function must be called after the driver has been
 // attached to its parent driver and before an I/O command is invoked on the
-// driver. It causes the driver to finish initialization and to publish its
-// catalog entry to the driver catalog.
+// driver. It invokes the driver's onStart() override which finish the driver
+// initialization and publishes the driver. This function automatically
+// unpublishes the driver if its onStart() override returns with an error.
 extern errno_t Driver_Start(DriverRef _Nonnull self);
 
 // Stops the driver. 'reason' specifies the reason why the driver should be

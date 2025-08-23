@@ -65,10 +65,6 @@ errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
     try(GamePortController_SetPortDevice_Locked(self, 0, IOGP_MOUSE));
     
 catch:
-    if (err != EOK) {
-        Driver_Unpublish(self);
-        Driver_UnpublishBusDirectory((DriverRef)self);
-    }
     return err;
 }
 
