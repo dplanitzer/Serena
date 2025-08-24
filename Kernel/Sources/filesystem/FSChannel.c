@@ -10,12 +10,12 @@
 #include "Filesystem.h"
 
 
-errno_t FSChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int channelType, unsigned int mode, FilesystemRef _Nonnull fs, IOChannelRef _Nullable * _Nonnull pOutSelf)
+errno_t FSChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, FilesystemRef _Nonnull fs, IOChannelRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     FSChannelRef self = NULL;
 
-    if ((err = IOChannel_Create(pClass, options, SEO_FT_DRIVER, mode, (IOChannelRef*)&self)) == EOK) {
+    if ((err = IOChannel_Create(pClass, SEO_FT_DRIVER, mode, (IOChannelRef*)&self)) == EOK) {
         self->fs = Object_RetainAs(fs, Filesystem);
     }
 

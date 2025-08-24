@@ -16,7 +16,7 @@ errno_t InodeChannel_Create(InodeRef _Nonnull pNode, unsigned int mode, IOChanne
     decl_try_err();
     InodeChannelRef self;
     
-    try(IOChannel_Create(&kInodeChannelClass, kIOChannel_Seekable, SEO_FT_INODE, mode, (IOChannelRef*)&self));
+    try(IOChannel_Create(&kInodeChannelClass, SEO_FT_INODE, mode, (IOChannelRef*)&self));
     self->inode = Inode_Reacquire(pNode);
 
 catch:

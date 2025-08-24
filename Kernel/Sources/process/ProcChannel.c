@@ -11,12 +11,12 @@
 #include "ProcessManager.h"
 
 
-errno_t ProcChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int channelType, unsigned int mode, pid_t targetPid, IOChannelRef _Nullable * _Nonnull pOutSelf)
+errno_t ProcChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, pid_t targetPid, IOChannelRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ProcChannelRef self = NULL;
 
-    if ((err = IOChannel_Create(pClass, options, channelType, mode, (IOChannelRef*)&self)) == EOK) {
+    if ((err = IOChannel_Create(pClass, channelType, mode, (IOChannelRef*)&self)) == EOK) {
         self->target_pid = targetPid;
     }
 

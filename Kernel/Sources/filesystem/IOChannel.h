@@ -89,8 +89,7 @@ open_class(IOChannel, Any,
     int32_t     ownerCount;     // countLock
     int32_t     useCount;       // countLock
     uint16_t    mode;           // Constant
-    uint8_t     options;        // Constant
-    int8_t      channelType;    // Constant
+    int16_t     channelType;    // Constant
     off_t       offset;         // I/O channel lock
 );
 any_subclass_funcs(IOChannel,
@@ -199,15 +198,10 @@ extern errno_t IOChannel_Release(IOChannelRef _Nullable self);
 // Subclassers
 //
 
-typedef enum IOChannelOptions {
-    kIOChannel_Seekable = 1,        // I/O channel allows seeking via seek()
-} IOChannelOptions;
-
-
 // Creates an instance of an I/O channel. Subclassers should call this method in
 // their own constructor implementation and then initialize the subclass specific
 // properties. 
-extern errno_t IOChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Implements the actual seek logic. Invokes IOChannel_GetSeekableRange() if
 // needed to get the range over which seeking is supported.

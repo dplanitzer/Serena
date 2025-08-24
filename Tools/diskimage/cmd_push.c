@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <kpi/fcntl.h>
 #include <kpi/perm.h>
+#include <filesystem/IOChannel.h>
 
 #define BLOCK_SIZE  4096
 

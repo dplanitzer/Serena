@@ -10,13 +10,10 @@
 #include <kern/kalloc.h>
 
 
-typedef errno_t (*IOChannel_Finalize_Impl)(void* _Nonnull self);
+typedef errno_t (*finalize_func_t)(void* _Nonnull self);
 
 
-// Creates an instance of an I/O channel. Subclassers should call this method in
-// their own constructor implementation and then initialize the subclass specific
-// properties. 
-errno_t IOChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     IOChannelRef self;
@@ -27,7 +24,6 @@ errno_t IOChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int c
         self->ownerCount = 1;
         self->useCount = 0;
         self->mode = mode & (O_ACCMODE | O_FILESTATUS);
-        self->options = options;
         self->channelType = channelType;
     }
     *pOutChannel = self;
@@ -38,11 +34,11 @@ errno_t IOChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int c
 static errno_t _IOChannel_Finalize(IOChannelRef _Nonnull self)
 {
     decl_try_err();
-    IOChannel_Finalize_Impl pPrevFinalizeImpl = NULL;
+    finalize_func_t pPrevFinalizeImpl = NULL;
     Class* pCurClass = classof(self);
 
     for(;;) {
-        IOChannel_Finalize_Impl pCurFinalizeImpl = (IOChannel_Finalize_Impl)implementationof(finalize, IOChannel, pCurClass);
+        finalize_func_t pCurFinalizeImpl = (finalize_func_t)implementationof(finalize, IOChannel, pCurClass);
         
         if (pCurFinalizeImpl != pPrevFinalizeImpl) {
             const errno_t err0 = pCurFinalizeImpl(self);

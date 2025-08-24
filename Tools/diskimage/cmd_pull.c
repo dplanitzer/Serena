@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <kpi/fcntl.h>
+#include <filesystem/IOChannel.h>
 
 #define BLOCK_SIZE  4096
 

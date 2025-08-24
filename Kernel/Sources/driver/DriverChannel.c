@@ -16,7 +16,7 @@ errno_t DriverChannel_Create(DriverRef _Nonnull drv, int channelType, unsigned i
     decl_try_err();
     DriverChannelRef self;
 
-    try(IOChannel_Create(&kDriverChannelClass, 0, channelType, mode, (IOChannelRef*)&self));
+    try(IOChannel_Create(&kDriverChannelClass, channelType, mode, (IOChannelRef*)&self));
     if (nExtraBytes > 0) {
         try(kalloc_cleared(nExtraBytes, (void**)&self->extras));
     }

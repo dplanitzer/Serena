@@ -14,7 +14,7 @@
 
 errno_t Process_Open(ProcessRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return ProcChannel_Create(class(ProcChannel), 0, SEO_FT_PROCESS, mode, self->pid, pOutChannel);
+    return ProcChannel_Create(class(ProcChannel), SEO_FT_PROCESS, mode, self->pid, pOutChannel);
 }
 
 

@@ -26,6 +26,6 @@ open_class_funcs(ProcChannel, IOChannel,
 );
 
 
-extern errno_t ProcChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int channelType, unsigned int mode, pid_t targetPid, IOChannelRef _Nullable * _Nonnull pOutSelf);
+extern errno_t ProcChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, pid_t targetPid, IOChannelRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* ProcChannel_h */

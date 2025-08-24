@@ -478,7 +478,7 @@ errno_t Filesystem_open(FilesystemRef _Nonnull _Locked self, unsigned int mode, 
 
     mtx_lock(&self->inLock);
     if (self->state == kFilesystemState_Active) {
-        err = FSChannel_Create(class(FSChannel), 0, SEO_FT_FILESYSTEM, mode, self, pOutChannel);
+        err = FSChannel_Create(class(FSChannel), SEO_FT_FILESYSTEM, mode, self, pOutChannel);
         if (err == EOK) {
             self->openChannelsCount++;
         }

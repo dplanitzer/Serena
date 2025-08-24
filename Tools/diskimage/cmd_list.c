@@ -14,6 +14,7 @@
 #include <inttypes.h>
 #include <kpi/dirent.h>
 #include <kpi/perm.h>
+#include <filesystem/IOChannel.h>
 
 
 #ifdef _WIN32
