@@ -10,11 +10,13 @@
 #define DriverChannel_h
 
 #include <filesystem/IOChannel.h>
+#include <sched/mtx.h>
 
 
 open_class(DriverChannel, IOChannel,
     DriverRef _Nonnull  drv;
     void* _Nullable     extras;
+    mtx_t               ser_mtx;
 );
 open_class_funcs(DriverChannel, IOChannel,
 );
