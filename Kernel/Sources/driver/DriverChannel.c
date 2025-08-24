@@ -41,22 +41,36 @@ errno_t DriverChannel_finalize(DriverChannelRef _Nonnull self)
     return err;
 }
 
-void DriverChannel_lock(DriverChannelRef _Nonnull self)
-{
-}
-
-void DriverChannel_unlock(DriverChannelRef _Nonnull _Locked self)
-{
-}
-
 errno_t DriverChannel_read(DriverChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    return Driver_Read(self->drv, (IOChannelRef)self, pBuffer, nBytesToRead, nOutBytesRead);
+    if (IOChannel_IsReadable(self)) {
+        return Driver_Read(self->drv, (IOChannelRef)self, pBuffer, nBytesToRead, nOutBytesRead);
+    }
+    else {
+        *nOutBytesRead = 0;
+        return EBADF;
+    }
 }
 
 errno_t DriverChannel_write(DriverChannelRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    return Driver_Write(self->drv, (IOChannelRef)self, pBuffer, nBytesToWrite, nOutBytesWritten);
+    if (IOChannel_IsWritable(self)) {
+        return Driver_Write(self->drv, (IOChannelRef)self, pBuffer, nBytesToWrite, nOutBytesWritten);
+    }
+    else {
+        *nOutBytesWritten = 0;
+        return EBADF;
+    }
+}
+
+errno_t DriverChannel_seek(DriverChannelRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
+{
+    if (Driver_IsSeekable(self->drv)) {
+        return IOChannel_DoSeek((IOChannelRef)self, offset, pOutNewPos, whence);
+    }
+    else {
+        return ESPIPE;
+    }
 }
 
 off_t DriverChannel_getSeekableRange(DriverChannelRef _Nonnull _Locked self)
@@ -71,10 +85,9 @@ errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull self, int cmd, va_list ap)
 
 class_func_defs(DriverChannel, IOChannel,
 override_func_def(finalize, DriverChannel, IOChannel)
-override_func_def(lock, DriverChannel, IOChannel)
-override_func_def(unlock, DriverChannel, IOChannel)
 override_func_def(read, DriverChannel, IOChannel)
 override_func_def(write, DriverChannel, IOChannel)
+override_func_def(seek, DriverChannel, IOChannel)
 override_func_def(getSeekableRange, DriverChannel, IOChannel)
 override_func_def(ioctl, DriverChannel, IOChannel)
 );

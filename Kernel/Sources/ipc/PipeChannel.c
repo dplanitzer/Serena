@@ -45,12 +45,24 @@ errno_t PipeChannel_finalize(PipeChannelRef _Nonnull self)
 
 errno_t PipeChannel_read(PipeChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    return Pipe_Read(self->pipe, pBuffer, nBytesToRead, nOutBytesRead);
+    if (IOChannel_IsReadable(self)) {
+        return Pipe_Read(self->pipe, pBuffer, nBytesToRead, nOutBytesRead);
+    }
+    else {
+        *nOutBytesRead = 0;
+        return EBADF;
+    }
 }
 
 errno_t PipeChannel_write(PipeChannelRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    return Pipe_Write(self->pipe, pBuffer, nBytesToWrite, nOutBytesWritten);
+    if (IOChannel_IsWritable(self)) {
+        return Pipe_Write(self->pipe, pBuffer, nBytesToWrite, nOutBytesWritten);
+    }
+    else {
+        *nOutBytesWritten = 0;
+        return EBADF;
+    }
 }
 
 

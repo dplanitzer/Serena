@@ -108,13 +108,6 @@ any_subclass_funcs(IOChannel,
     errno_t (*finalize)(void* _Nonnull self);
 
 
-    // Locks the I/O channel state.
-    void (*lock)(void* _Nonnull self);
-
-    // Unlocks the I/O channel state.
-    void (*unlock)(void* _Nonnull _Locked self);
-
-
     // Reads up to 'nBytesToRead' bytes of data from the (current position of the)
     // I/O channel and returns it in 'pBuffer'. An I/O channel may read less data
     // than request. The actual number of bytes read is returned in 'nOutBytesRead'.
@@ -124,17 +117,16 @@ any_subclass_funcs(IOChannel,
     // is only returned if a channel can not read at least one byte. If it can read
     // at least one byte then the number of bytes successfully read is returned
     // and no error code.
-    errno_t (*read)(void* _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+    errno_t (*read)(void* _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
     // Writes up to 'nBytesToWrite' bytes to the I/O channel. Works similar to
     // how read() works.
-    errno_t (*write)(void* _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+    errno_t (*write)(void* _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
-    // Sets the current file position of an I/O channel. A channel which doesn't
-    // support seeking will return ESPIPE and 0 as the old position. The next
-    // channel read/write operation will start reading/writing from this
-    // position.
-    errno_t (*seek)(void* _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
+    // Sets the current file position of an I/O channel. Returns ESPIPE by
+    // default. A channel that supports seeking should override this method and
+    // lock the channel and then invoke IOChannel_DoSeek().
+    errno_t (*seek)(void* _Nonnull self, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
 
     // Invoked by seek() to get the size of the seekable space. The maximum
     // position to which a client is allowed to seek is this value minus one.
@@ -144,7 +136,7 @@ any_subclass_funcs(IOChannel,
 
 
     // Execute an I/O channel specific command.
-    errno_t (*ioctl)(void* _Nonnull _Locked self, int cmd, va_list ap);
+    errno_t (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
 );
 
 
@@ -177,14 +169,22 @@ any_subclass_funcs(IOChannel,
 ((IOChannelRef)(__self))->offset += (__delta)
 
 
-extern errno_t IOChannel_Read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
-extern errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
-extern errno_t IOChannel_Seek(IOChannelRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence);
+#define IOChannel_Read(__self, __pBuffer, __nBytesToRead, __nOutBytesRead) \
+invoke_n(read, IOChannel, __self, __pBuffer, __nBytesToRead, __nOutBytesRead)
+
+#define IOChannel_Write(__self, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
+invoke_n(write, IOChannel, __self, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
+
+#define IOChannel_Seek(__self, __offset, __pOutNewPos, __whence) \
+invoke_n(seek, IOChannel, __self, __offset, __pOutNewPos, __whence)
+
 
 extern errno_t IOChannel_vFcntl(IOChannelRef _Nonnull self, int cmd, int* _Nonnull pResult, va_list ap);
 
+#define IOChannel_vIoctl(__self, __cmd, __ap) \
+invoke_n(ioctl, IOChannel, __self, __cmd, __ap)
+
 extern errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...);
-extern errno_t IOChannel_vIoctl(IOChannelRef _Nonnull self, int cmd, va_list ap);
 
 
 extern IOChannelRef IOChannel_Retain(IOChannelRef _Nonnull self);
@@ -209,15 +209,13 @@ typedef enum IOChannelOptions {
 // properties. 
 extern errno_t IOChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
+// Implements the actual seek logic. Invokes IOChannel_GetSeekableRange() if
+// needed to get the range over which seeking is supported.
+extern errno_t IOChannel_DoSeek(IOChannelRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence);
+
 // Returns the size of the seekable range
 #define IOChannel_GetSeekableRange(__self) \
 invoke_0(getSeekableRange, IOChannel, __self)
-
-#define IOChannel_Lock(__self) \
-invoke_0(lock, IOChannel, __self)
-
-#define IOChannel_Unlock(__self) \
-invoke_0(unlock, IOChannel, __self)
 
 
 //

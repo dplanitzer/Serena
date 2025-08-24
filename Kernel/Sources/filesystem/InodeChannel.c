@@ -10,9 +10,6 @@
 #include "Filesystem.h"
 
 
-// InodeChannel uses the Inode lock to protect its seek state
-
-
 // Creates a file channel.
 errno_t InodeChannel_Create(InodeRef _Nonnull pNode, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutFile)
 {
@@ -37,24 +34,38 @@ errno_t InodeChannel_finalize(InodeChannelRef _Nonnull self)
     return err;
 }
 
-void InodeChannel_lock(InodeChannelRef _Nonnull self)
-{
-    Inode_Lock(self->inode);
-}
-
-void InodeChannel_unlock(InodeChannelRef _Nonnull _Locked self)
-{
-    Inode_Unlock(self->inode);
-}
-
 errno_t InodeChannel_read(InodeChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    return Inode_Read(self->inode, self, pBuffer, nBytesToRead, nOutBytesRead);
+    decl_try_err();
+
+    if (IOChannel_IsReadable(self)) {
+        Inode_Lock(self->inode);
+        err = Inode_Read(self->inode, self, pBuffer, nBytesToRead, nOutBytesRead);
+        Inode_Unlock(self->inode);
+    }
+    else {
+        *nOutBytesRead = 0;
+        err = EBADF;
+    }
+
+    return err;
 }
 
 errno_t InodeChannel_write(InodeChannelRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    return Inode_Write(self->inode, self, pBuffer, nBytesToWrite, nOutBytesWritten);
+    decl_try_err();
+
+    if (IOChannel_IsWritable(self)) {
+        Inode_Lock(self->inode);
+        err = Inode_Write(self->inode, self, pBuffer, nBytesToWrite, nOutBytesWritten);
+        Inode_Unlock(self->inode);
+    }
+    else {
+        *nOutBytesWritten = 0;
+        err = EBADF;
+    }
+
+    return err;
 }
 
 
@@ -62,12 +73,9 @@ errno_t InodeChannel_seek(InodeChannelRef _Nonnull _Locked self, off_t offset, o
 {
     decl_try_err();
 
-    if (S_ISREG(Inode_GetMode(self->inode)) || (S_ISDIR(Inode_GetMode(self->inode)) && whence == SEEK_SET)) {
-        err = super_n(seek, IOChannel, InodeChannel, self, offset, pOutNewPos, whence);
-    }
-    else {
-        err = EINVAL;
-    }
+    Inode_Lock(self->inode);
+    err = IOChannel_DoSeek((IOChannelRef)self, offset, pOutNewPos, whence);
+    Inode_Unlock(self->inode);
 
     return err;
 }
@@ -79,18 +87,18 @@ off_t InodeChannel_getSeekableRange(InodeChannelRef _Nonnull _Locked self)
 
 off_t InodeChannel_GetFileSize(InodeChannelRef _Nonnull self)
 {
-    IOChannel_Lock((IOChannelRef)self);
+    Inode_Lock(self->inode);
     const off_t fileSize = IOChannel_GetSeekableRange(self);
-    IOChannel_Unlock((IOChannelRef)self);
+    Inode_Unlock(self->inode);
 
     return fileSize;
 }
 
 void InodeChannel_GetInfo(InodeChannelRef _Nonnull self, struct stat* _Nonnull pOutInfo)
 {
-    IOChannel_Lock((IOChannelRef)self);
+    Inode_Lock(self->inode);
     Inode_GetInfo(self->inode, pOutInfo);
-    IOChannel_Unlock((IOChannelRef)self);
+    Inode_Unlock(self->inode);
 }
 
 errno_t InodeChannel_Truncate(InodeChannelRef _Nonnull self, off_t length)
@@ -102,14 +110,14 @@ errno_t InodeChannel_Truncate(InodeChannelRef _Nonnull self, off_t length)
     }
     
     // Does not adjust the file offset
-    IOChannel_Lock((IOChannelRef)self);
+    Inode_Lock(self->inode);
     if (S_ISREG(Inode_GetMode(self->inode))) {
         err = Inode_Truncate(self->inode, length);
     }
     else {
         err = EBADF;
     }
-    IOChannel_Unlock((IOChannelRef)self);
+    Inode_Unlock(self->inode);
     
     return err;
 }
@@ -117,8 +125,6 @@ errno_t InodeChannel_Truncate(InodeChannelRef _Nonnull self, off_t length)
 
 class_func_defs(InodeChannel, IOChannel,
 override_func_def(finalize, InodeChannel, IOChannel)
-override_func_def(lock, InodeChannel, IOChannel)
-override_func_def(unlock, InodeChannel, IOChannel)
 override_func_def(read, InodeChannel, IOChannel)
 override_func_def(write, InodeChannel, IOChannel)
 override_func_def(seek, InodeChannel, IOChannel)

@@ -133,60 +133,18 @@ errno_t IOChannel_finalize(IOChannelRef _Nonnull self)
 }
 
 
-void IOChannel_lock(IOChannelRef _Nonnull self)
-{
-}
-
-void IOChannel_unlock(IOChannelRef _Nonnull _Locked self)
-{
-}
-
-
-errno_t IOChannel_read(IOChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t IOChannel_read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EBADF;
 }
 
-errno_t IOChannel_Read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    decl_try_err();
-
-    IOChannel_Lock(self);
-    if ((self->mode & O_RDONLY) == O_RDONLY) {
-        err = invoke_n(read, IOChannel, self, pBuffer, nBytesToRead, nOutBytesRead);
-    } else {
-        *nOutBytesRead = 0;
-        err = EBADF;
-    }
-    IOChannel_Unlock(self);
-
-    return err;
-}
-
-errno_t IOChannel_write(IOChannelRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t IOChannel_write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return EBADF;
 }
 
 
-errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
-{
-    decl_try_err();
-
-    IOChannel_Lock(self);
-    if ((self->mode & O_WRONLY) == O_WRONLY) {
-        err = invoke_n(write, IOChannel, self, pBuffer, nBytesToWrite, nOutBytesWritten);
-    } else {
-        *nOutBytesWritten = 0;
-        err = EBADF;
-    }
-    IOChannel_Unlock(self);
-
-    return err;
-}
-
-
-errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
+errno_t IOChannel_DoSeek(IOChannelRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
     decl_try_err();
 
@@ -199,8 +157,7 @@ errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, off_t offset, off_t* 
         }
     }
     else if(whence == SEEK_CUR || whence == SEEK_END) {
-        const maxPos = __max(IOChannel_GetSeekableRange(self) - 1ll, 0ll);
-        const off_t refPos = (whence == SEEK_END) ? maxPos : self->offset;
+        const off_t refPos = (whence == SEEK_END) ? IOChannel_GetSeekableRange(self) : self->offset;
         
         if (offset < 0ll && -offset > refPos) {
             throw(EINVAL);
@@ -227,19 +184,9 @@ catch:
     return err;
 }
 
-errno_t IOChannel_Seek(IOChannelRef _Nonnull self, off_t offset, off_t* pOutNewPos, int whence)
+errno_t IOChannel_seek(IOChannelRef _Nonnull self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
 {
-    decl_try_err();
-
-    IOChannel_Lock(self);
-    if ((self->options & kIOChannel_Seekable) == kIOChannel_Seekable) {
-        err = invoke_n(seek, IOChannel, self, offset, pOutNewPos, whence);
-    } else {
-        err = ESPIPE;
-    }
-    IOChannel_Unlock(self);
-
-    return err;
+    return ESPIPE;
 }
 
 off_t IOChannel_getSeekableRange(IOChannelRef _Nonnull _Locked self)
@@ -252,7 +199,6 @@ errno_t IOChannel_vFcntl(IOChannelRef _Nonnull self, int cmd, int* _Nonnull pRes
 {
     decl_try_err();
 
-    IOChannel_Lock(self);
     switch (cmd) {
         case F_GETFD:
             *pResult = 0;
@@ -262,14 +208,14 @@ errno_t IOChannel_vFcntl(IOChannelRef _Nonnull self, int cmd, int* _Nonnull pRes
             *pResult = self->mode;
             break;
 
-        case F_SETFL: {
+        case F_SETFL: { //XXX should be atomic_int
             const int flags = va_arg(ap, int);
 
             self->mode = (flags & O_FILESTATUS);
             break;
         }
 
-        case F_UPDTFL: {
+        case F_UPDTFL: {    //XXX should be atomic_int
             const int setOrClear = va_arg(ap, int);
             const int fl = va_arg(ap, int) & O_FILESTATUS;
 
@@ -291,11 +237,15 @@ errno_t IOChannel_vFcntl(IOChannelRef _Nonnull self, int cmd, int* _Nonnull pRes
             err = EINVAL;
             break;
     }
-    IOChannel_Unlock(self);
 
     return err;
 }
 
+
+errno_t IOChannel_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
+{
+    return ENOTIOCTLCMD;
+}
 
 errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...)
 {
@@ -309,27 +259,9 @@ errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...)
     return err;
 }
 
-errno_t IOChannel_vIoctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
-{
-    decl_try_err();
-
-    IOChannel_Lock(self);
-    err = invoke_n(ioctl, IOChannel, self, cmd, ap);
-    IOChannel_Unlock(self);
-
-    return err;
-}
-
-errno_t IOChannel_ioctl(IOChannelRef _Nonnull _Locked self, int cmd, va_list ap)
-{
-    return ENOTIOCTLCMD;
-}
-
 
 any_subclass_func_defs(IOChannel,
 func_def(finalize, IOChannel)
-func_def(lock, IOChannel)
-func_def(unlock, IOChannel)
 func_def(ioctl, IOChannel)
 func_def(read, IOChannel)
 func_def(write, IOChannel)

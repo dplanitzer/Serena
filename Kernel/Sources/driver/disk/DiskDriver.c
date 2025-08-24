@@ -16,7 +16,7 @@ errno_t DiskDriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_
     decl_try_err();
     DiskDriverRef self = NULL;
 
-    try(Driver_Create(pClass, kDriver_Exclusive, cats, (DriverRef*)&self));
+    try(Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, cats, (DriverRef*)&self));
     try(DiskDriver_CreateDispatchQueue(self, &self->dispatchQueue));
     self->driveInfo = *driveInfo;
 
