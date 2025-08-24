@@ -219,13 +219,6 @@ invoke_0(lock, IOChannel, __self)
 #define IOChannel_Unlock(__self) \
 invoke_0(unlock, IOChannel, __self)
 
-// Implements the logic of a seek() system call. 'posp' is a pointer to the
-// current seek position and this position is updated based on 'offset' and
-// 'whence'. 'maxPos' is the maximum allowable seek position. 'maxPos' is only
-// used by this function if whence is SEEK_END. It is ignored for all other
-// 'whence' values.
-extern errno_t seek_to(off_t* _Nonnull posp, off_t maxPos, off_t offset, int whence);
-
 
 //
 // For use by IOChannelTable
