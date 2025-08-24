@@ -20,7 +20,7 @@ SYSCALL_1(exit, int status)
 
 SYSCALL_4(spawn_process, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const spawn_opts_t* _Nonnull options, pid_t* _Nullable pOutPid)
 {
-    return Process_SpawnChild(vp->proc, pa->path, pa->argv, pa->options, pa->pOutPid);
+    return Process_SpawnChild(vp->proc, pa->path, pa->argv, pa->options, NULL, pa->pOutPid);
 }
 
 SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullable argv, const char* _Nullable * _Nullable envp)

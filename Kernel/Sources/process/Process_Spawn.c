@@ -8,9 +8,10 @@
 
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
+#include <filemanager/FileHierarchy.h>
 
 
-static errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const spawn_opts_t* _Nonnull opts, ProcessRef _Nullable * _Nonnull pOutChild)
+static errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const spawn_opts_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, ProcessRef _Nullable * _Nonnull pOutChild)
 {
     decl_try_err();
     ProcessRef cp = NULL;
@@ -34,8 +35,13 @@ static errno_t proc_create_child(ProcessRef _Locked _Nonnull self, const spawn_o
 
     const pid_t ch_pgrp = (opts->options & kSpawn_NewProcessGroup) == kSpawn_NewProcessGroup ? 0 : self->pgrp;
     const pid_t ch_sid = (opts->options & kSpawn_NewSession) == kSpawn_NewSession ? 0 : self->sid;
+    FileHierarchyRef fh = (ovrFh) ? ovrFh : self->fm.fileHierarchy;
+    InodeRef rootDir = (ovrFh) ? FileHierarchy_AcquireRootDirectory(ovrFh) : Inode_Reacquire(self->fm.rootDirectory);
+    InodeRef workDir = (ovrFh) ? FileHierarchy_AcquireRootDirectory(ovrFh) : Inode_Reacquire(self->fm.workingDirectory);
 
-    try(Process_Create(self->pid, ch_pgrp, ch_sid, self->fm.fileHierarchy, ch_uid, ch_gid, self->fm.rootDirectory, self->fm.workingDirectory, ch_umask, &cp));
+    try(Process_Create(self->pid, ch_pgrp, ch_sid, fh, ch_uid, ch_gid, rootDir, workDir, ch_umask, &cp));
+    Inode_Relinquish(workDir);
+    Inode_Relinquish(rootDir);
 
 
     // Note that we do not lock the child process although we're reaching directly
@@ -62,7 +68,7 @@ catch:
     return err;
 }
 
-errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, pid_t* _Nullable pOutPid)
+errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, pid_t* _Nullable pOutPid)
 {
     decl_try_err();
     ProcessRef cp = NULL;
@@ -74,7 +80,7 @@ errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, 
     // Create the child process
     mtx_lock(&self->mtx);
     if (!vcpu_aborting(vcpu_current())) {
-        err = proc_create_child(self, opts, &cp);
+        err = proc_create_child(self, opts, ovrFh, &cp);
     }
     else {
         err = EINTR;

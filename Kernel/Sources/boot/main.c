@@ -15,6 +15,7 @@
 #include <driver/hid/HIDManager.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
+#include <filesystem/kernfs/KernFS.h>
 #include <machine/clock.h>
 #include <machine/csw.h>
 #include <machine/irq.h>
@@ -166,25 +167,33 @@ static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc)
     // Detect hardware and initialize drivers
     try(HIDManager_Create(&gHIDManager));
     try(DriverManager_Create(&gDriverManager));
+    
+
+    // Create the kerneld process and publish it
+    KernFSRef kfs = NULL;
+    FileHierarchyRef kfh = NULL;
+    try(KernFS_Create(&kfs));
+    try(Filesystem_Start((FilesystemRef)kfs, ""));
+    try(FileHierarchy_Create((FilesystemRef)kfs, &kfh));
+
+    KernelProcess_Init(kfh, &gKernelProcess);
+    try(ProcessManager_Publish(gProcessManager, gKernelProcess));
+
+
+    // Detect hardware and initialize boot-time drivers
     try(drivers_init());
+
+    
+    // Start the HID services
+    try(HIDManager_Start(gHIDManager));
 
 
     // Open the boot screen and show the boot logo
     open_boot_screen(&gBootScreen);
-    
-    
+
+
     // Create the root file hierarchy
     FileHierarchyRef pRootFh = create_root_file_hierarchy(&gBootScreen);
-
-
-    // Create the kerneld process and publish it
-    KernelProcess_Init(pRootFh, &gKernelProcess);
-    try(ProcessManager_Publish(gProcessManager, gKernelProcess));
-    Object_Release(pRootFh);
-
-
-    // Start the HID services
-    try(HIDManager_Start(gHIDManager));
 
     
     // Start the filesystem management services
@@ -197,7 +206,8 @@ static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc)
 
 
     // Spawn systemd
-    try(KernelProcess_SpawnSystemd(gKernelProcess));
+    try(KernelProcess_SpawnSystemd(gKernelProcess, pRootFh));
+    Object_Release(pRootFh);
 
     
     // The boot virtual processor now takes over the duties of running the

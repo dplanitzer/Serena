@@ -313,11 +313,11 @@ void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable 
     *pOutSelf = &g_kernel_proc_storage;
 }
 
-errno_t KernelProcess_SpawnSystemd(ProcessRef _Nonnull self)
+errno_t KernelProcess_SpawnSystemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnull fh)
 {
     spawn_opts_t opts = (spawn_opts_t){0};
 
     opts.options = kSpawn_NewProcessGroup | kSpawn_NewSession;
 
-    return Process_SpawnChild(self, g_systemd_argv[0], g_systemd_argv, &opts, NULL);
+    return Process_SpawnChild(self, g_systemd_argv[0], g_systemd_argv, &opts, fh, NULL);
 }

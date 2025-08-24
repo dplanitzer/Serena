@@ -33,7 +33,7 @@ g_sched->running->proc
 extern void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutSelf);
 
 // Spawns systemd from the kernel process context.
-extern errno_t KernelProcess_SpawnSystemd(ProcessRef _Nonnull self);
+extern errno_t KernelProcess_SpawnSystemd(ProcessRef _Nonnull self, FileHierarchyRef _Nonnull fh);
 
 
 extern ProcessRef _Nonnull Process_Retain(ProcessRef _Nonnull self);
@@ -57,7 +57,7 @@ extern errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, 
 // Spawns a new process that will be a child of the given process. The spawn
 // arguments specify how the child process should be created, which arguments
 // and environment it will receive and which descriptors it will inherit.
-extern errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, pid_t* _Nullable pOutPid);
+extern errno_t Process_SpawnChild(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const spawn_opts_t* _Nonnull opts, FileHierarchyRef _Nullable ovrFh, pid_t* _Nullable pOutPid);
 
 // Prepares the image of the process by replacing the current image with a new
 // executable image loaded from 'execPath'. Note that this function does not
