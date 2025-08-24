@@ -59,9 +59,9 @@ errno_t DriverChannel_write(DriverChannelRef _Nonnull _Locked self, const void* 
     return Driver_Write(self->drv, (IOChannelRef)self, pBuffer, nBytesToWrite, nOutBytesWritten);
 }
 
-errno_t DriverChannel_seek(DriverChannelRef _Nonnull _Locked self, off_t offset, off_t* _Nullable pOutNewPos, int whence)
+off_t DriverChannel_getSeekableRange(DriverChannelRef _Nonnull _Locked self)
 {
-    return Driver_Seek(self->drv, (IOChannelRef)self, offset, pOutNewPos, whence);
+    return Driver_GetSeekableRange(self->drv);
 }
 
 errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull self, int cmd, va_list ap)
@@ -75,6 +75,6 @@ override_func_def(lock, DriverChannel, IOChannel)
 override_func_def(unlock, DriverChannel, IOChannel)
 override_func_def(read, DriverChannel, IOChannel)
 override_func_def(write, DriverChannel, IOChannel)
-override_func_def(seek, DriverChannel, IOChannel)
+override_func_def(getSeekableRange, DriverChannel, IOChannel)
 override_func_def(ioctl, DriverChannel, IOChannel)
 );

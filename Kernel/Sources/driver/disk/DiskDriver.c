@@ -378,26 +378,23 @@ errno_t DiskDriver_GetDiskInfo(DiskDriverRef _Nonnull self, disk_info_t* _Nonnul
 // I/O Channel API
 //
 
-errno_t DiskDriver_seek(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutNewPos, int whence)
+off_t DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
 {
     decl_try_err();
     disk_info_t info;
+    off_t rng;
 
     //XXX integrate with new locking model
 //    mtx_lock(&self->mtx);
     err = DiskDriver_GetDiskInfo(self, &info);
     if (err == EOK) {
-        const off_t diskSize = (off_t)info.sectorsPerDisk * (off_t)info.sectorSize;
-
-        err = seek_to(&ioc->offset, (diskSize > 0ll) ? diskSize - 1ll : 0ll, offset, whence);
-        
-        if (err == EOK && pOutNewPos) {
-            *pOutNewPos = ioc->offset;
-        }
+        rng = (off_t)info.sectorsPerDisk * (off_t)info.sectorSize;
+    }
+    else {
+        rng = 0ll;
     }
 //    mtx_unlock(&self->mtx);
-
-    return err;
+    return rng;
 }
 
 static errno_t _DiskDriver_rdwr(DiskDriverRef _Nonnull self, int type, IOChannelRef _Nonnull ch, void* _Nonnull buf, ssize_t byteCount, ssize_t* _Nonnull pOutByteCount)
@@ -481,6 +478,6 @@ func_def(doGetDiskInfo, DiskDriver)
 func_def(doSenseDisk, DiskDriver)
 override_func_def(read, DiskDriver, Driver)
 override_func_def(write, DiskDriver, Driver)
-override_func_def(seek, DiskDriver, Driver)
+override_func_def(getSeekableRange, DiskDriver, Driver)
 override_func_def(ioctl, DiskDriver, Driver)
 );

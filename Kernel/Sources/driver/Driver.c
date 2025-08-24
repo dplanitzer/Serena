@@ -346,9 +346,9 @@ errno_t Driver_write(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, const v
     return EBADF;
 }
 
-errno_t Driver_seek(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutNewPos, int whence)
+off_t Driver_getSeekableRange(DriverRef _Nonnull self)
 {
-    return ESPIPE;
+    return 0ll;
 }
 
 errno_t Driver_ioctl(DriverRef _Nonnull self, IOChannelRef _Nonnull ioc, int cmd, va_list ap)
@@ -651,6 +651,6 @@ func_def(close, Driver)
 func_def(onClose, Driver)
 func_def(read, Driver)
 func_def(write, Driver)
-func_def(seek, Driver)
+func_def(getSeekableRange, Driver)
 func_def(ioctl, Driver)
 );

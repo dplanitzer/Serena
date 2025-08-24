@@ -439,14 +439,12 @@ open_class_funcs(Driver, Object,
     // Default Behavior: Returns EBADF
     errno_t (*write)(void* _Nonnull self, IOChannelRef _Nonnull ioc, const void* _Nonnull buf, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
-    // Sets the current position of the I/O channel 'ioc' based on 'offset' and
-    // 'whence' and returns the new position. The default implementation returns
-    // ESPIPE to indicate that seeking is not supported. You should override
-    // this function and call seek_to() from your override to implement
-    // seeking if seeking capabilities are desired.
+    // Invoked by seek() to get the size of the seekable space. The maximum
+    // position to which a client is allowed to seek is the value returned by
+    // this function, minus one.
     // Override: Optional
-    // Default Behavior: Returns ESPIPE otherwise
-    errno_t (*seek)(void* _Nonnull self, IOChannelRef _Nonnull ioc, off_t offset, off_t* _Nullable pOutOldPosition, int whence);
+    // Default Behavior: Returns 0
+    off_t (*getSeekableRange)(void* _Nonnull self);
 
     // Executes the driver specific function 'cmd' with command specific
     // arguments 'ap'.
@@ -506,8 +504,8 @@ invoke_n(read, Driver, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutByte
 #define Driver_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
 invoke_n(write, Driver, __self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
-#define Driver_Seek(__self, __pChannel, __offset, pOutNewPos, __whence) \
-invoke_n(seek, Driver, __self, __pChannel, __offset, pOutNewPos, __whence)
+#define Driver_GetSeekableRange(__self) \
+invoke_0(getSeekableRange, Driver, __self)
 
 #define Driver_vIoctl(__self, __chan, __cmd, __ap) \
 invoke_n(ioctl, Driver, __self, __chan, __cmd, __ap)
