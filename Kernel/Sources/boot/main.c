@@ -164,7 +164,7 @@ static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc)
     try(Filesystem_Publish(Catalog_GetFilesystem(gDriverCatalog)));
 
 
-    // Detect hardware and initialize drivers
+    // Create the HID and driver managers
     try(HIDManager_Create(&gHIDManager));
     try(DriverManager_Create(&gDriverManager));
     
@@ -183,7 +183,7 @@ static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc)
     // Detect hardware and initialize boot-time drivers
     try(drivers_init());
 
-    
+
     // Start the HID services
     try(HIDManager_Start(gHIDManager));
 
