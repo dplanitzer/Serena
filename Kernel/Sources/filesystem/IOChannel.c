@@ -13,7 +13,7 @@
 typedef errno_t (*finalize_func_t)(void* _Nonnull self);
 
 
-errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, intptr_t resource, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     IOChannelRef self;
@@ -21,6 +21,7 @@ errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int m
     if ((err = kalloc_cleared(pClass->instanceSize, (void**) &self)) == EOK) {
         self->super.clazz = pClass;
         mtx_init(&self->countLock);
+        self->resource = resource;
         self->ownerCount = 1;
         self->useCount = 0;
         self->mode = mode & (O_ACCMODE | O_FILESTATUS);

@@ -10,18 +10,21 @@
 #include "Driver.h"
 #include <kern/kalloc.h>
 
+#define _get_drv() \
+IOChannel_GetResourceAs(self, Driver)
+
 
 errno_t DriverChannel_Create(DriverRef _Nonnull drv, int channelType, unsigned int mode, size_t nExtraBytes, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     DriverChannelRef self;
 
-    try(IOChannel_Create(&kDriverChannelClass, channelType, mode, (IOChannelRef*)&self));
+    try(IOChannel_Create(&kDriverChannelClass, channelType, mode, (intptr_t)drv, (IOChannelRef*)&self));
     if (nExtraBytes > 0) {
         try(kalloc_cleared(nExtraBytes, (void**)&self->extras));
         mtx_init(&self->ser_mtx);
     }
-    self->drv = Object_RetainAs(drv, Driver);
+    Object_Retain(drv);
 
 catch:
     *pOutChannel = (IOChannelRef)self;
@@ -31,10 +34,10 @@ catch:
 errno_t DriverChannel_finalize(DriverChannelRef _Nonnull self)
 {
     decl_try_err();
+    DriverRef drv = _get_drv();
 
-    err = Driver_Close(self->drv, (IOChannelRef)self);
-    Object_Release(self->drv);
-    self->drv = NULL;
+    err = Driver_Close(drv, (IOChannelRef)self);
+    Object_Release(drv);
 
     kfree(self->extras);
     self->extras = NULL;
@@ -50,7 +53,7 @@ errno_t DriverChannel_read(DriverChannelRef _Nonnull _Locked self, void* _Nonnul
 
     if (IOChannel_IsReadable(self)) {
         mtx_lock(&self->ser_mtx);
-        err = Driver_Read(self->drv, (IOChannelRef)self, pBuffer, nBytesToRead, nOutBytesRead);
+        err = Driver_Read(_get_drv(), (IOChannelRef)self, pBuffer, nBytesToRead, nOutBytesRead);
         mtx_unlock(&self->ser_mtx);
     }
     else {
@@ -67,7 +70,7 @@ errno_t DriverChannel_write(DriverChannelRef _Nonnull _Locked self, const void* 
 
     if (IOChannel_IsWritable(self)) {
         mtx_lock(&self->ser_mtx);
-        err = Driver_Write(self->drv, (IOChannelRef)self, pBuffer, nBytesToWrite, nOutBytesWritten);
+        err = Driver_Write(_get_drv(), (IOChannelRef)self, pBuffer, nBytesToWrite, nOutBytesWritten);
         mtx_unlock(&self->ser_mtx);
     }
     else {
@@ -82,7 +85,7 @@ errno_t DriverChannel_seek(DriverChannelRef _Nonnull _Locked self, off_t offset,
 {
     decl_try_err();
 
-    if (Driver_IsSeekable(self->drv)) {
+    if (Driver_IsSeekable(_get_drv())) {
         mtx_lock(&self->ser_mtx);
         err = IOChannel_DoSeek((IOChannelRef)self, offset, pOutNewPos, whence);
         mtx_unlock(&self->ser_mtx);
@@ -96,7 +99,7 @@ errno_t DriverChannel_seek(DriverChannelRef _Nonnull _Locked self, off_t offset,
 
 off_t DriverChannel_getSeekableRange(DriverChannelRef _Nonnull _Locked self)
 {
-    return Driver_GetSeekableRange(self->drv);
+    return Driver_GetSeekableRange(_get_drv());
 }
 
 errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull self, int cmd, va_list ap)
@@ -104,7 +107,7 @@ errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull self, int cmd, va_list ap)
     decl_try_err();
 
     mtx_lock(&self->ser_mtx);
-    err = Driver_vIoctl(self->drv, (IOChannelRef)self, cmd, ap);
+    err = Driver_vIoctl(_get_drv(), (IOChannelRef)self, cmd, ap);
     mtx_unlock(&self->ser_mtx);
 
     return err;

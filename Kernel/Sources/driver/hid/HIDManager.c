@@ -7,8 +7,8 @@
 //
 
 #include "HIDManagerPriv.h"
-#include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
+#include <filesystem/IOChannel.h>
 #include <kern/kalloc.h>
 #include <kern/limits.h>
 #include <kpi/fcntl.h>
@@ -538,7 +538,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
 // to the event queue.
 static void _post_gamepad_event(HIDManagerRef _Nonnull _Locked self, gamepad_state_t* _Nonnull gp, const HIDReport* _Nonnull report)
 {
-    did_t did = Driver_GetId(DriverChannel_GetDriverAs(gp->ch, Driver));
+    did_t did = Driver_GetId(IOChannel_GetResourceAs(gp->ch, Driver));
 
     // Generate button up/down events
     const uint32_t oldButtons = gp->buttons;
@@ -651,7 +651,7 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
         // Open a channel to the framebuffer
         err = Driver_Open(driver, O_RDWR, 0, &self->fbChannel);
         if (err == EOK) {
-            self->fb = DriverChannel_GetDriverAs(self->fbChannel, GraphicsDriver);
+            self->fb = IOChannel_GetResourceAs(self->fbChannel, GraphicsDriver);
 
             int w, h;
             GraphicsDriver_GetDisplaySize(self->fb, &w, &h);
@@ -685,7 +685,7 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
 
     for (int i = 0; i < MAX_POINTING_DEVICES; i++) {
         IOChannelRef ch = self->mouse.ch[i];
-        DriverRef cdp = (ch) ? DriverChannel_GetDriverAs(ch, Driver) : NULL;
+        DriverRef cdp = (ch) ? IOChannel_GetResourceAs(ch, Driver) : NULL;
 
         if (cdp == driver) {
             if (self->mouse.lpCount > 0 && Driver_HasCategory(cdp, IOHID_LIGHTPEN)) {
@@ -704,7 +704,7 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
     for (int i = 0; i < MAX_GAME_PADS; i++) {
         gamepad_state_t* gp = &self->gamepad[i];
 
-        if (gp->ch && DriverChannel_GetDriverAs(gp->ch, Driver) == driver) {
+        if (gp->ch && IOChannel_GetResourceAs(gp->ch, Driver) == driver) {
             IOChannel_Release(gp->ch);
             gp->ch = NULL;
             self->gamepadCount--;
@@ -772,7 +772,7 @@ static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
             int16_t dx, dy;
             uint32_t bt;
 
-            InputDriver_GetReport(DriverChannel_GetDriverAs(ch, InputDriver), &self->report);
+            InputDriver_GetReport(IOChannel_GetResourceAs(ch, InputDriver), &self->report);
 
             switch (self->report.type) {
                 case kHIDReportType_Mouse:
@@ -824,7 +824,7 @@ static void _collect_gamepad_reports(HIDManagerRef _Nonnull self)
         gamepad_state_t* gp = &self->gamepad[i];
 
         if (gp->ch) {
-            InputDriver_GetReport(DriverChannel_GetDriverAs(gp->ch, InputDriver), &self->report);
+            InputDriver_GetReport(IOChannel_GetResourceAs(gp->ch, InputDriver), &self->report);
             _post_gamepad_event(self, gp, &self->report);
         }
     }

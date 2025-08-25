@@ -6,7 +6,6 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
 #include <driver/PlatformController.h>
 #include <driver/disk/RamDisk.h>
@@ -35,7 +34,7 @@ void auto_discover_boot_rd(void)
     // Open the VDM
     IOChannelRef vdmChannel = NULL;
     try(DriverManager_Open(gDriverManager, "/vd-bus/self", O_RDWR, &vdmChannel));
-    VDMDriverRef vdm = DriverChannel_GetDriverAs(vdmChannel, VDMDriver);
+    VDMDriverRef vdm = IOChannel_GetResourceAs(vdmChannel, VDMDriver);
 
 
     // Create a RAM disk and copy the ROM disk image into it. We assume for now

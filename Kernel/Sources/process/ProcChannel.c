@@ -10,24 +10,20 @@
 #include "Process.h"
 #include "ProcessManager.h"
 
+#define _get_pid() \
+(const pid_t)IOChannel_GetResource(self)
+
 
 errno_t ProcChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, pid_t targetPid, IOChannelRef _Nullable * _Nonnull pOutSelf)
 {
-    decl_try_err();
-    ProcChannelRef self = NULL;
-
-    if ((err = IOChannel_Create(pClass, channelType, mode, (IOChannelRef*)&self)) == EOK) {
-        self->target_pid = targetPid;
-    }
-
-    *pOutSelf = (IOChannelRef)self;
-    return err;
+    return IOChannel_Create(pClass, channelType, mode, (intptr_t)targetPid, pOutSelf);
 }
 
 errno_t ProcChannel_ioctl(ProcChannelRef _Nonnull _Locked self, int cmd, va_list ap)
 {
     decl_try_err();
-    ProcessRef p = ProcessManager_CopyProcessForPid(gProcessManager, self->target_pid);
+    const pid_t pid = _get_pid();
+    ProcessRef p = ProcessManager_CopyProcessForPid(gProcessManager, pid);
 
     if (p) {
         err = Process_vIoctl(p, (IOChannelRef)self, cmd, ap);

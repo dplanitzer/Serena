@@ -19,8 +19,9 @@
 // of X. Thus process Y may go away at any time even if process X has a channel
 // open to Y. Process X will simply receive a suitable error (ESRCH) when it
 // tries to execute a function on the channel and process Y no longer exists.
+//
+// Resource: pid_t
 open_class(ProcChannel, IOChannel,
-    pid_t   target_pid;
 );
 open_class_funcs(ProcChannel, IOChannel,
 );

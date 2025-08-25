@@ -9,6 +9,9 @@
 #include "PipeChannel.h"
 #include "Pipe.h"
 
+#define _get_pipe() \
+IOChannel_GetResourceAs(self, Pipe)
+
 
 // PipeChannel does not need locking because:
 // - it doesn't support seeking. Thus seeking state is constant
@@ -23,9 +26,9 @@ errno_t PipeChannel_Create(PipeRef _Nonnull pipe, unsigned int mode, IOChannelRe
         return EACCESS;
     }
 
-    err = IOChannel_Create(&kPipeChannelClass, SEO_FT_INODE, mode, (IOChannelRef*)&self);
+    err = IOChannel_Create(&kPipeChannelClass, SEO_FT_INODE, mode, (intptr_t)pipe, (IOChannelRef*)&self);
     if (err == EOK) {
-        self->pipe = Object_RetainAs(pipe, Pipe);
+        Object_Retain(pipe);
         Pipe_Open(pipe, (mode & O_RDONLY) == O_RDONLY ? kPipeEnd_Read : kPipeEnd_Write);
     }
 
@@ -35,18 +38,20 @@ errno_t PipeChannel_Create(PipeRef _Nonnull pipe, unsigned int mode, IOChannelRe
 
 errno_t PipeChannel_finalize(PipeChannelRef _Nonnull self)
 {
-    Pipe_Close(self->pipe, (IOChannel_IsReadable(self)) ? kPipeEnd_Read : kPipeEnd_Write);
+    PipeRef pp = _get_pipe();
 
-    Object_Release(self->pipe);
-    self->pipe = NULL;
+    Pipe_Close(pp, (IOChannel_IsReadable(self)) ? kPipeEnd_Read : kPipeEnd_Write);
+    Object_Release(pp);
     
     return EOK;
 }
 
 errno_t PipeChannel_read(PipeChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
+    PipeRef pp = _get_pipe();
+
     if (IOChannel_IsReadable(self)) {
-        return Pipe_Read(self->pipe, pBuffer, nBytesToRead, nOutBytesRead);
+        return Pipe_Read(pp, pBuffer, nBytesToRead, nOutBytesRead);
     }
     else {
         *nOutBytesRead = 0;
@@ -56,8 +61,10 @@ errno_t PipeChannel_read(PipeChannelRef _Nonnull _Locked self, void* _Nonnull pB
 
 errno_t PipeChannel_write(PipeChannelRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
+    PipeRef pp = _get_pipe();
+
     if (IOChannel_IsWritable(self)) {
-        return Pipe_Write(self->pipe, pBuffer, nBytesToWrite, nOutBytesWritten);
+        return Pipe_Write(pp, pBuffer, nBytesToWrite, nOutBytesWritten);
     }
     else {
         *nOutBytesWritten = 0;

@@ -13,8 +13,8 @@
 #include <filesystem/Inode.h>
 
 
+// Resource: InodeRef
 open_class(InodeChannel, IOChannel,
-    InodeRef _Nonnull   inode;
 );
 open_class_funcs(InodeChannel, IOChannel,
 );
@@ -22,8 +22,5 @@ open_class_funcs(InodeChannel, IOChannel,
 
 // Creates a file object.
 extern errno_t InodeChannel_Create(InodeRef _Nonnull pNode, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutFile);
-
-#define InodeChannel_GetInode(__self) \
-((InodeChannelRef)(__self))->inode
 
 #endif /* InodeChannel_h */

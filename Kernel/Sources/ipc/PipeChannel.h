@@ -13,8 +13,8 @@
 #include <ipc/Pipe.h>
 
 
+// Resource: PipeRef
 open_class(PipeChannel, IOChannel,
-    PipeRef _Nonnull  pipe;
 );
 open_class_funcs(PipeChannel, IOChannel,
 );

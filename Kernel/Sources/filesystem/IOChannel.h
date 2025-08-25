@@ -85,12 +85,13 @@
 // Only mode (1) is supported by the I/O channel class at this time. Support for
 // the other modes is planned for the future.
 open_class(IOChannel, Any,
+    off_t       offset;         // I/O channel lock
+    intptr_t    resource;       // Constant
     mtx_t       countLock;
     int32_t     ownerCount;     // countLock
     int32_t     useCount;       // countLock
     uint16_t    mode;           // Constant
     int16_t     channelType;    // Constant
-    off_t       offset;         // I/O channel lock
 );
 any_subclass_funcs(IOChannel,
 
@@ -177,6 +178,15 @@ any_subclass_funcs(IOChannel,
 #define IOChannel_IsWritable(__self) \
 ((((IOChannelRef)__self)->mode & O_WRONLY) == O_WRONLY)
 
+
+// Returns the resource to which the I/O channel is connected
+#define IOChannel_GetResource(__self) \
+((IOChannelRef)__self)->resource
+
+#define IOChannel_GetResourceAs(__self, __class) \
+((__class##Ref) ((IOChannelRef)__self)->resource)
+
+
 // Returns the current seek position
 #define IOChannel_GetOffset(/*_Nonnull _Locked*/ __self) \
 ((IOChannelRef)(__self))->offset
@@ -230,7 +240,7 @@ extern errno_t IOChannel_Release(IOChannelRef _Nullable self);
 // Creates an instance of an I/O channel. Subclassers should call this method in
 // their own constructor implementation and then initialize the subclass specific
 // properties. 
-extern errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, intptr_t resource, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Implements the actual seek logic. Invokes IOChannel_GetSeekableRange() if
 // needed to get the range over which seeking is supported.

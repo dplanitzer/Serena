@@ -7,7 +7,6 @@
 //
 
 #include "DiskCachePriv.h"
-#include <driver/DriverChannel.h>
 #include <kern/string.h>
 #include <sched/delay.h>
 #include <sched/vcpu.h>
@@ -22,7 +21,7 @@ void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull cha
     mtx_lock(&self->interlock);
 
     s->channel = IOChannel_Retain(chan);
-    s->disk = DriverChannel_GetDriverAs(chan, DiskDriver);
+    s->disk = IOChannel_GetResourceAs(chan, DiskDriver);
     s->sessionId = self->nextAvailSessionId;
     s->sectorSize = info->sectorSize;
     s->rwClusterSize = info->sectorsPerRdwr;
