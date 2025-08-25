@@ -11,7 +11,6 @@
 
 #include <filesystem/IOChannel.h>
 #include <filesystem/Inode.h>
-#include <kpi/uid.h>
 
 
 open_class(InodeChannel, IOChannel,
@@ -28,7 +27,6 @@ extern errno_t InodeChannel_Create(InodeRef _Nonnull pNode, unsigned int mode, I
 ((InodeChannelRef)(__self))->inode
 
 
-extern off_t InodeChannel_GetFileSize(InodeChannelRef _Nonnull self);
 extern void InodeChannel_GetInfo(InodeChannelRef _Nonnull self, struct stat* _Nonnull pOutInfo);
 extern errno_t InodeChannel_Truncate(InodeChannelRef _Nonnull self, off_t length);
 

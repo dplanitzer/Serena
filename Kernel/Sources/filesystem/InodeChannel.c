@@ -85,15 +85,6 @@ off_t InodeChannel_getSeekableRange(InodeChannelRef _Nonnull _Locked self)
     return Inode_GetFileSize(self->inode);
 }
 
-off_t InodeChannel_GetFileSize(InodeChannelRef _Nonnull self)
-{
-    Inode_Lock(self->inode);
-    const off_t fileSize = IOChannel_GetSeekableRange(self);
-    Inode_Unlock(self->inode);
-
-    return fileSize;
-}
-
 void InodeChannel_GetInfo(InodeChannelRef _Nonnull self, struct stat* _Nonnull pOutInfo)
 {
     Inode_Lock(self->inode);
