@@ -43,7 +43,7 @@ errno_t _kread(ProcessRef _Nonnull pp, int fd, void* _Nonnull buffer, size_t nBy
 
     if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, fd, &pChannel)) == EOK) {
         err = IOChannel_Read(pChannel, buffer, __SSizeByClampingSize(nBytesToRead), nBytesRead);
-        IOChannelTable_RelinquishChannel(&pp->ioChannelTable, pChannel);
+        IOChannel_EndOperation(pChannel);
     }
     return err;
 }
@@ -55,7 +55,7 @@ errno_t _kwrite(ProcessRef _Nonnull pp, int fd, const void* _Nonnull buffer, siz
 
     if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, fd, &pChannel)) == EOK) {
         err = IOChannel_Write(pChannel, buffer, __SSizeByClampingSize(nBytesToWrite), nBytesWritten);
-        IOChannelTable_RelinquishChannel(&pp->ioChannelTable, pChannel);
+        IOChannel_EndOperation(pChannel);
     }
     return err;
 }
@@ -67,7 +67,7 @@ errno_t _kseek(ProcessRef _Nonnull pp, int fd, off_t offset, off_t* _Nullable pO
 
     if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, fd, &pChannel)) == EOK) {
         err = IOChannel_Seek(pChannel, offset, pOutNewPos, whence);
-        IOChannelTable_RelinquishChannel(&pp->ioChannelTable, pChannel);
+        IOChannel_EndOperation(pChannel);
     }
     return err;
 }
@@ -80,7 +80,7 @@ errno_t _kfcntl(ProcessRef _Nonnull pp, int fd, int cmd, int* _Nonnull pResult, 
     *pResult = -1;
     if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, fd, &pChannel)) == EOK) {
         err = IOChannel_vFcntl(pChannel, cmd, pResult, ap);
-        IOChannelTable_RelinquishChannel(&pp->ioChannelTable, pChannel);
+        IOChannel_EndOperation(pChannel);
     }
     return err;
 }
@@ -92,7 +92,7 @@ errno_t _kioctl(ProcessRef _Nonnull pp, int fd, int cmd, va_list _Nullable ap)
 
     if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, fd, &pChannel)) == EOK) {
         err = IOChannel_vIoctl(pChannel, cmd, ap);
-        IOChannelTable_RelinquishChannel(&pp->ioChannelTable, pChannel);
+        IOChannel_EndOperation(pChannel);
     }
     return err;
 }
@@ -105,7 +105,7 @@ errno_t _kfstat(ProcessRef _Nonnull pp, int fd, struct stat* _Nonnull pOutInfo)
 
     if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, fd, &pChannel)) == EOK) {
         err = IOChannel_GetFileInfo(pChannel, pOutInfo);
-        IOChannelTable_RelinquishChannel(&pp->ioChannelTable, pChannel);
+        IOChannel_EndOperation(pChannel);
     }
     return err;
 }
@@ -117,7 +117,7 @@ errno_t _kftruncate(ProcessRef _Nonnull pp, int fd, off_t length)
 
     if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, fd, &pChannel)) == EOK) {
         err = IOChannel_Truncate(pChannel, length);
-        IOChannelTable_RelinquishChannel(&pp->ioChannelTable, pChannel);
+        IOChannel_EndOperation(pChannel);
     }
     return err;
 }

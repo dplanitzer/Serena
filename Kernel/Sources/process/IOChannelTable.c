@@ -182,7 +182,7 @@ errno_t IOChannelTable_ReleaseChannel(IOChannelTable* _Nonnull self, int fd)
 
 // Returns the I/O channel that is named by 'fd'. The channel is guaranteed to
 // stay alive until it is relinquished. You should relinquish the channel by
-// calling IOChannelTable_RelinquishChannel(). Returns the channel and EOK on
+// calling IOChannel_EndOperation(). Returns the channel and EOK on
 // success and a suitable error and NULL otherwise.
 errno_t IOChannelTable_AcquireChannel(IOChannelTable* _Nonnull self, int fd, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {

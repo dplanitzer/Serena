@@ -40,16 +40,9 @@ extern errno_t IOChannelTable_ReleaseChannel(IOChannelTable* _Nonnull self, int 
 
 // Returns the I/O channel that is named by 'fd'. The channel is guaranteed to
 // stay alive until it is relinquished. You should relinquish the channel by
-// calling IOChannelTable_RelinquishChannel(). Returns the channel and EOK on
-// success and a suitable error and NULL otherwise.
+// calling IOChannel_EndOperation(). Returns the channel and EOK on success and
+// a suitable error and NULL otherwise.
 extern errno_t IOChannelTable_AcquireChannel(IOChannelTable* _Nonnull self, int fd, IOChannelRef _Nullable * _Nonnull pOutChannel);
-
-// Relinquishes the given channel. The channel must have been acquired previously
-// by calling IOChannelTable_AcquireChannel(). Note that the I/O channel may be
-// freed by this function. It is not safe to continue to use the channel reference
-// once this function returns.
-#define IOChannelTable_RelinquishChannel(__self, __pChannel) \
-IOChannel_EndOperation(__pChannel)
 
 // Creates a new named reference of the I/O channel 'fd'. The new descriptor/name
 // value will be at least 'min_fd'.

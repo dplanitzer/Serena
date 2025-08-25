@@ -35,8 +35,7 @@
 //
 // The IOChannelTable in a process takes care of the ownership of an I/O channel.
 // It also provides the IOChannelTable_AcquireChannel() and
-// IOChannelTable_RelinquishChannel() calls to take care of the I/O operation
-// tracking.
+// IOChannel_EndOperation() calls to take care of the I/O operation tracking.
 //
 // 
 // Behavior of read, write, seek operations:
