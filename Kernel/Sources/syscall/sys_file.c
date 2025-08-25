@@ -12,6 +12,7 @@
 #include <kern/limits.h>
 #include <kern/timespec.h>
 #include <kpi/uid.h>
+#include <process/kio.h>
 
 
 SYSCALL_4(mkfile, const char* _Nonnull path, int oflags, mode_t mode, int* _Nonnull pOutIoc)
@@ -36,22 +37,37 @@ SYSCALL_4(mkfile, const char* _Nonnull path, int oflags, mode_t mode, int* _Nonn
 
 SYSCALL_3(open, const char* _Nonnull path, int oflags, int* _Nonnull pOutIoc)
 {
-    decl_try_err();
-    ProcessRef pp = vp->proc;
-    IOChannelRef chan;
+    return _kopen(vp->proc, pa->path, pa->oflags, pa->pOutIoc);
+}
 
-    mtx_lock(&pp->mtx);
-    err = FileManager_OpenFile(&pp->fm, pa->path, pa->oflags, &chan);
-    if (err == EOK) {
-        err = IOChannelTable_AdoptChannel(&pp->ioChannelTable, chan, pa->pOutIoc);
-    }
-    mtx_unlock(&pp->mtx);
+SYSCALL_1(close, int fd)
+{
+    return _kclose(vp->proc, pa->fd);
+}
 
-    if (err != EOK) {
-        IOChannel_Release(chan);
-        *(pa->pOutIoc) = -1;
-    }
-    return err;
+SYSCALL_4(read, int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
+{
+    return _kread(vp->proc, pa->fd, pa->buffer, pa->nBytesToRead, pa->nBytesRead);
+}
+
+SYSCALL_4(write, int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nBytesWritten)
+{
+    return _kwrite(vp->proc, pa->fd, pa->buffer, pa->nBytesToWrite, pa->nBytesWritten);
+}
+
+SYSCALL_4(seek, int fd, off_t offset, off_t* _Nullable pOutNewPos, int whence)
+{
+    return _kseek(vp->proc, pa->fd, pa->offset, pa->pOutNewPos, pa->whence);
+}
+
+SYSCALL_4(fcntl, int fd, int cmd, int* _Nonnull pResult, va_list _Nullable ap)
+{
+    return _kfcntl(vp->proc, pa->fd, pa->cmd, pa->pResult, pa->ap);
+}
+
+SYSCALL_3(ioctl, int fd, int cmd, va_list _Nullable ap)
+{
+    return _kioctl(vp->proc, pa->fd, pa->cmd, pa->ap);
 }
 
 SYSCALL_2(opendir, const char* _Nonnull path, int* _Nonnull pOutIoc)
