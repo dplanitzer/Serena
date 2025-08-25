@@ -40,6 +40,7 @@ boot_screen_t gBootScreen;
 static ConsoleRef gConsole;
 
 
+extern errno_t kerneld_init(void);
 extern errno_t drivers_init(void);
 extern FileHierarchyRef _Nonnull create_root_file_hierarchy(boot_screen_t* _Nonnull bscr);
 static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc);
@@ -170,14 +171,7 @@ static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc)
     
 
     // Create the kerneld process and publish it
-    KernFSRef kfs = NULL;
-    FileHierarchyRef kfh = NULL;
-    try(KernFS_Create(&kfs));
-    try(Filesystem_Start((FilesystemRef)kfs, ""));
-    try(FileHierarchy_Create((FilesystemRef)kfs, &kfh));
-
-    KernelProcess_Init(kfh, &gKernelProcess);
-    try(ProcessManager_Publish(gProcessManager, gKernelProcess));
+    try(kerneld_init());
 
 
     // Detect hardware and initialize boot-time drivers
