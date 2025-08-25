@@ -151,7 +151,7 @@ static errno_t _proc_build_exec_image(ProcessRef _Nonnull _Locked self, const ch
 
 
     // Open the executable file and lock it
-    try(FileManager_OpenExecutable(&self->fm, path, &chan));
+    try(FileManager_OpenFile(&self->fm, path, O_RDONLY | _O_EXONLY, &chan));
 
 
     // Copy the process arguments into the process address space

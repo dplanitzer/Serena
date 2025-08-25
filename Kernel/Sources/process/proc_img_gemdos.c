@@ -7,6 +7,7 @@
 //
 
 #include "proc_img_gemdos.h"
+#include <filesystem/InodeChannel.h>
 #include <kern/string.h>
 
 
@@ -48,16 +49,21 @@ static void _proc_img_gemdos_reloc(proc_img_t* _Nonnull self, uint8_t* _Nonnull 
 errno_t _proc_img_load_gemdos_exec(proc_img_t* _Nonnull self, InodeChannelRef _Nonnull chan)
 {
     decl_try_err();
-    off_t fileSize = InodeChannel_GetFileSize(chan);
     off_t fileOffset;
+    struct stat inf;
     gemdos_hdr_t hdr;
     ssize_t nBytesRead;
 
-    // Do some basic file size validation
-    if (fileSize < sizeof(gemdos_hdr_t)) {
+    InodeChannel_GetInfo(chan, &inf);
+
+    // Do some basic file validation
+    if (!S_ISREG(inf.st_mode)) {
+        throw(EACCESS);
+    }
+    if (inf.st_size < sizeof(gemdos_hdr_t)) {
         throw(ENOEXEC);
     }
-    else if (fileSize > SIZE_MAX) {
+    else if (inf.st_size > SIZE_MAX) {
         throw(ENOMEM);
     }
 
@@ -98,7 +104,7 @@ errno_t _proc_img_load_gemdos_exec(proc_img_t* _Nonnull self, InodeChannelRef _N
     // Allocate the text, data and BSS segments 
     const size_t nbytes_to_read = sizeof(gemdos_hdr_t) + hdr.text_size + hdr.data_size;
     const size_t fileOffset_to_reloc = nbytes_to_read + hdr.symbol_table_size;
-    const size_t reloc_size = (size_t)(fileSize - fileOffset_to_reloc);
+    const size_t reloc_size = (size_t)(inf.st_size - fileOffset_to_reloc);
     const size_t nbytes_to_alloc = __Ceil_PowerOf2(nbytes_to_read + __max(hdr.bss_size, reloc_size), CPU_PAGE_SIZE);
     uint8_t* img_base = NULL;
     try(AddressSpace_Allocate(&self->as, nbytes_to_alloc, (void**)&img_base));

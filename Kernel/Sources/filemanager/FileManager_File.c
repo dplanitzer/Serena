@@ -37,6 +37,9 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
     if ((oflags & O_WRONLY) == O_WRONLY || (oflags & O_TRUNC) == O_TRUNC) {
         accessMode |= W_OK;
     }
+    if ((oflags & _O_EXONLY) == _O_EXONLY) {
+        accessMode |= X_OK;
+    }
 
 
     // Check access mode, validate the file size and truncate the file if
@@ -158,41 +161,6 @@ errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull 
     throw_iferr(err);
 
     err = Inode_CreateChannel(r.inode, oflags, pOutChannel);
-
-catch:
-    ResolvedPath_Deinit(&r);
-    return err;
-}
-
-// Opens an executable file.
-errno_t FileManager_OpenExecutable(FileManagerRef _Nonnull self, const char* _Nonnull path, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    decl_try_err();
-    ResolvedPath r;
-
-    *pOutChannel = NULL;
-
-    // Resolve the path to the executable file
-    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
-
-
-    // Make sure that the executable is a regular file and that it has the
-    // correct access mode
-    Inode_Lock(r.inode); 
-    if (S_ISREG(Inode_GetMode(r.inode))) {
-        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, R_OK | X_OK);
-        if (err == EOK && Inode_GetFileSize(r.inode) < 0ll) {
-            // Negative file size means that the file size overflowed
-            err = E2BIG;
-        }
-    }
-    else {
-        err = EACCESS;
-    }
-    Inode_Unlock(r.inode);
-    throw_iferr(err);
-
-    err = Inode_CreateChannel(r.inode, O_RDONLY, pOutChannel);
 
 catch:
     ResolvedPath_Deinit(&r);

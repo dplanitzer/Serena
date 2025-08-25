@@ -18,6 +18,7 @@
 #define O_TRUNC     0x0010
 #define O_APPEND    0x0020
 #define O_NONBLOCK  0x0040
+#define _O_EXONLY   0x0080
 
 // File access mode and status masks
 #define O_ACCMODE       (O_RDONLY | O_WRONLY | O_RDWR)
