@@ -128,6 +128,52 @@ errno_t IOChannel_finalize(IOChannelRef _Nonnull self)
     return EOK;
 }
 
+errno_t IOChannel_vFcntl(IOChannelRef _Nonnull self, int cmd, int* _Nonnull pResult, va_list ap)
+{
+    decl_try_err();
+
+    switch (cmd) {
+        case F_GETFD:
+            *pResult = 0;
+            break;
+
+        case F_GETFL:
+            *pResult = self->mode;
+            break;
+
+        case F_SETFL: { //XXX should be atomic_int
+            const int flags = va_arg(ap, int);
+
+            self->mode = (flags & O_FILESTATUS);
+            break;
+        }
+
+        case F_UPDTFL: {    //XXX should be atomic_int
+            const int setOrClear = va_arg(ap, int);
+            const int fl = va_arg(ap, int) & O_FILESTATUS;
+
+            if (setOrClear) {
+                self->mode |= fl;
+            }
+            else {
+                self->mode &= ~fl;
+            }
+            break;
+        }
+
+        case F_GETTYPE:
+            *pResult = self->channelType;
+            break;
+
+        default:
+            *pResult = -1;
+            err = EINVAL;
+            break;
+    }
+
+    return err;
+}
+
 
 errno_t IOChannel_read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
@@ -191,53 +237,6 @@ off_t IOChannel_getSeekableRange(IOChannelRef _Nonnull _Locked self)
 }
 
 
-errno_t IOChannel_vFcntl(IOChannelRef _Nonnull self, int cmd, int* _Nonnull pResult, va_list ap)
-{
-    decl_try_err();
-
-    switch (cmd) {
-        case F_GETFD:
-            *pResult = 0;
-            break;
-
-        case F_GETFL:
-            *pResult = self->mode;
-            break;
-
-        case F_SETFL: { //XXX should be atomic_int
-            const int flags = va_arg(ap, int);
-
-            self->mode = (flags & O_FILESTATUS);
-            break;
-        }
-
-        case F_UPDTFL: {    //XXX should be atomic_int
-            const int setOrClear = va_arg(ap, int);
-            const int fl = va_arg(ap, int) & O_FILESTATUS;
-
-            if (setOrClear) {
-                self->mode |= fl;
-            }
-            else {
-                self->mode &= ~fl;
-            }
-            break;
-        }
-
-        case F_GETTYPE:
-            *pResult = self->channelType;
-            break;
-
-        default:
-            *pResult = -1;
-            err = EINVAL;
-            break;
-    }
-
-    return err;
-}
-
-
 errno_t IOChannel_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
 {
     return ENOTIOCTLCMD;
@@ -256,6 +255,17 @@ errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...)
 }
 
 
+errno_t IOChannel_getFileInfo(IOChannelRef _Nonnull self, struct stat* _Nonnull pOutInfo)
+{
+    return EBADF;
+}
+
+errno_t IOChannel_truncate(IOChannelRef _Nonnull self, off_t length)
+{
+    return EBADF;
+}
+
+
 any_subclass_func_defs(IOChannel,
 func_def(finalize, IOChannel)
 func_def(ioctl, IOChannel)
@@ -263,4 +273,6 @@ func_def(read, IOChannel)
 func_def(write, IOChannel)
 func_def(seek, IOChannel)
 func_def(getSeekableRange, IOChannel)
+func_def(getFileInfo, IOChannel)
+func_def(truncate, IOChannel)
 );

@@ -183,21 +183,6 @@ errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnu
     return err;
 }
 
-// Same as above but with respect to the given I/O channel.
-errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, struct stat* _Nonnull pOutInfo)
-{
-    decl_try_err();
-
-    if (instanceof(pChannel, InodeChannel)) {
-        InodeChannel_GetInfo((InodeChannelRef)pChannel, pOutInfo);
-    }
-    else {
-        err = EBADF;
-    }
-
-    return err;
-}
-
 // Modifies information about the file at the given path.
 errno_t FileManager_SetFileMode(FileManagerRef _Nonnull self, const char* _Nonnull path, mode_t mode)
 {
@@ -292,21 +277,6 @@ errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonn
     }
 
     ResolvedPath_Deinit(&r);
-
-    return err;
-}
-
-// Same as above but the file is identified by the given I/O channel.
-errno_t FileManager_TruncateFile_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, off_t length)
-{
-    decl_try_err();
-
-    if (instanceof(pChannel, InodeChannel)) {
-        err = InodeChannel_Truncate((InodeChannelRef)pChannel, length);
-    }
-    else {
-        err = ENOTDIR;
-    }
 
     return err;
 }

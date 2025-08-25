@@ -93,9 +93,6 @@ extern errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const cha
 // Returns information about the file at the given path.
 extern errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, struct stat* _Nonnull pOutInfo);
 
-// Same as above but with respect to the given I/O channel.
-extern errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, struct stat* _Nonnull pOutInfo);
-
 extern errno_t FileManager_SetFileMode(FileManagerRef _Nonnull self, const char* _Nonnull path, mode_t mode);
 
 extern errno_t FileManager_SetFileOwner(FileManagerRef _Nonnull self, const char* _Nonnull path, uid_t uid, gid_t gid);
@@ -105,9 +102,6 @@ extern errno_t FileManager_SetFileTimestamps(FileManagerRef _Nonnull self, const
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
 extern errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, off_t length);
-
-// Same as above but the file is identified by the given I/O channel.
-extern errno_t FileManager_TruncateFile_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, off_t length);
 
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the

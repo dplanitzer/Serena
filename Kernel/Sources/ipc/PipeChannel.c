@@ -35,7 +35,7 @@ errno_t PipeChannel_Create(PipeRef _Nonnull pipe, unsigned int mode, IOChannelRe
 
 errno_t PipeChannel_finalize(PipeChannelRef _Nonnull self)
 {
-    Pipe_Close(self->pipe, (IOChannel_GetMode(self) & O_RDONLY) == O_RDONLY ? kPipeEnd_Read : kPipeEnd_Write);
+    Pipe_Close(self->pipe, (IOChannel_IsReadable(self)) ? kPipeEnd_Read : kPipeEnd_Write);
 
     Object_Release(self->pipe);
     self->pipe = NULL;

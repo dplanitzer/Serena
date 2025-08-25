@@ -85,14 +85,16 @@ off_t InodeChannel_getSeekableRange(InodeChannelRef _Nonnull _Locked self)
     return Inode_GetFileSize(self->inode);
 }
 
-void InodeChannel_GetInfo(InodeChannelRef _Nonnull self, struct stat* _Nonnull pOutInfo)
+errno_t InodeChannel_getFileInfo(InodeChannelRef _Nonnull self, struct stat* _Nonnull pOutInfo)
 {
     Inode_Lock(self->inode);
     Inode_GetInfo(self->inode, pOutInfo);
     Inode_Unlock(self->inode);
+    
+    return EOK;
 }
 
-errno_t InodeChannel_Truncate(InodeChannelRef _Nonnull self, off_t length)
+errno_t InodeChannel_truncate(InodeChannelRef _Nonnull self, off_t length)
 {
     decl_try_err();
 
@@ -120,4 +122,6 @@ override_func_def(read, InodeChannel, IOChannel)
 override_func_def(write, InodeChannel, IOChannel)
 override_func_def(seek, InodeChannel, IOChannel)
 override_func_def(getSeekableRange, InodeChannel, IOChannel)
+override_func_def(getFileInfo, InodeChannel, IOChannel)
+override_func_def(truncate, InodeChannel, IOChannel)
 );

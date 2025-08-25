@@ -54,7 +54,7 @@ errno_t _proc_img_load_gemdos_exec(proc_img_t* _Nonnull self, InodeChannelRef _N
     gemdos_hdr_t hdr;
     ssize_t nBytesRead;
 
-    InodeChannel_GetInfo(chan, &inf);
+    try(IOChannel_GetFileInfo(chan, &inf));
 
     // Do some basic file validation
     if (!S_ISREG(inf.st_mode)) {

@@ -93,6 +93,11 @@ open_class(IOChannel, Any,
     off_t       offset;         // I/O channel lock
 );
 any_subclass_funcs(IOChannel,
+
+    //
+    // Generic I/O Channel Interface
+    //
+
     // Called once an I/O channel is ready to be deallocated for good. Overrides
     // should drain any still buffered data if this makes sense for the semantics
     // of the channel and it should then release all resources used by the channel.
@@ -136,6 +141,23 @@ any_subclass_funcs(IOChannel,
 
     // Execute an I/O channel specific command.
     errno_t (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
+
+
+    //
+    // Inode Channel Interface
+    //
+
+    // Returns information about the Inode to which the channel is connected if
+    // the channel is an Inode channel. Returns EBADF otherwise.
+    // Override: Optional
+    // Default Behavior: Returns EBADF
+    errno_t (*getFileInfo)(void* _Nonnull self, struct stat* _Nonnull pOutInfo);
+
+    // Reduces or increases the size of a regular file if the channel is connected
+    // to an Inode. Returns EBADF otherwise
+    // Override: Optional
+    // Default Behavior: Returns EBADF
+    errno_t (*truncate)(void* _Nonnull self, off_t length);
 );
 
 
@@ -168,6 +190,9 @@ any_subclass_funcs(IOChannel,
 ((IOChannelRef)(__self))->offset += (__delta)
 
 
+extern errno_t IOChannel_vFcntl(IOChannelRef _Nonnull self, int cmd, int* _Nonnull pResult, va_list ap);
+
+
 #define IOChannel_Read(__self, __pBuffer, __nBytesToRead, __nOutBytesRead) \
 invoke_n(read, IOChannel, __self, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
@@ -177,13 +202,17 @@ invoke_n(write, IOChannel, __self, __pBuffer, __nBytesToWrite, __nOutBytesWritte
 #define IOChannel_Seek(__self, __offset, __pOutNewPos, __whence) \
 invoke_n(seek, IOChannel, __self, __offset, __pOutNewPos, __whence)
 
-
-extern errno_t IOChannel_vFcntl(IOChannelRef _Nonnull self, int cmd, int* _Nonnull pResult, va_list ap);
-
 #define IOChannel_vIoctl(__self, __cmd, __ap) \
 invoke_n(ioctl, IOChannel, __self, __cmd, __ap)
 
 extern errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...);
+
+
+#define IOChannel_GetFileInfo(__self, __pOutInfo) \
+invoke_n(getFileInfo, IOChannel, __self, __pOutInfo)
+
+#define IOChannel_Truncate(__self, __length) \
+invoke_n(truncate, IOChannel, __self, __length)
 
 
 extern IOChannelRef IOChannel_Retain(IOChannelRef _Nonnull self);

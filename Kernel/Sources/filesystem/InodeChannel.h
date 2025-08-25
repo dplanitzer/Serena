@@ -26,8 +26,4 @@ extern errno_t InodeChannel_Create(InodeRef _Nonnull pNode, unsigned int mode, I
 #define InodeChannel_GetInode(__self) \
 ((InodeChannelRef)(__self))->inode
 
-
-extern void InodeChannel_GetInfo(InodeChannelRef _Nonnull self, struct stat* _Nonnull pOutInfo);
-extern errno_t InodeChannel_Truncate(InodeChannelRef _Nonnull self, off_t length);
-
 #endif /* InodeChannel_h */

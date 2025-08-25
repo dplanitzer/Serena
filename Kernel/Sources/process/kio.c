@@ -96,3 +96,28 @@ errno_t _kioctl(ProcessRef _Nonnull pp, int fd, int cmd, va_list _Nullable ap)
     }
     return err;
 }
+
+
+errno_t _kfstat(ProcessRef _Nonnull pp, int fd, struct stat* _Nonnull pOutInfo)
+{
+    decl_try_err();
+    IOChannelRef pChannel;
+
+    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, fd, &pChannel)) == EOK) {
+        err = IOChannel_GetFileInfo(pChannel, pOutInfo);
+        IOChannelTable_RelinquishChannel(&pp->ioChannelTable, pChannel);
+    }
+    return err;
+}
+
+errno_t _kftruncate(ProcessRef _Nonnull pp, int fd, off_t length)
+{
+    decl_try_err();
+    IOChannelRef pChannel;
+
+    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, fd, &pChannel)) == EOK) {
+        err = IOChannel_Truncate(pChannel, length);
+        IOChannelTable_RelinquishChannel(&pp->ioChannelTable, pChannel);
+    }
+    return err;
+}

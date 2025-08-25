@@ -133,15 +133,7 @@ SYSCALL_2(stat, const char* _Nonnull path, struct stat* _Nonnull pOutInfo)
 
 SYSCALL_2(fstat, int fd, struct stat* _Nonnull pOutInfo)
 {
-    decl_try_err();
-    ProcessRef pp = vp->proc;
-    IOChannelRef pChannel;
-
-    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
-        err = FileManager_GetFileInfo_ioc(&pp->fm, pChannel, pa->pOutInfo);
-        IOChannelTable_RelinquishChannel(&pp->ioChannelTable, pChannel);
-    }
-    return err;
+    return _kfstat(vp->proc, pa->fd, pa->pOutInfo);
 }
 
 SYSCALL_2(truncate, const char* _Nonnull path, off_t length)
@@ -157,15 +149,7 @@ SYSCALL_2(truncate, const char* _Nonnull path, off_t length)
 
 SYSCALL_2(ftruncate, int fd, off_t length)
 {
-    decl_try_err();
-    ProcessRef pp = vp->proc;
-    IOChannelRef pChannel;
-
-    if ((err = IOChannelTable_AcquireChannel(&pp->ioChannelTable, pa->fd, &pChannel)) == EOK) {
-        err = FileManager_TruncateFile_ioc(&pp->fm, pChannel, pa->length);
-        IOChannelTable_RelinquishChannel(&pp->ioChannelTable, pChannel);
-    }
-    return err;
+    return _kftruncate(vp->proc, pa->fd, pa->length);
 }
 
 SYSCALL_2(access, const char* _Nonnull path, int mode)
