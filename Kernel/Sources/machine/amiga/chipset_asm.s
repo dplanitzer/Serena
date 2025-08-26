@@ -20,14 +20,13 @@
 _chipset_reset:
     lea     CUSTOM_BASE, a0
 
-    ; set all color registers to black
-    moveq.l #0, d0
+    ; set all color registers to white
+    lea COLOR00(a0), a1
+    move.w #$0fff, d0
     move.w  #COLOR_REGS_COUNT-1, d1
 .L1:
-    move.w  d0, COLOR_BASE(a0, d1.w*2)
-    subq.w  #1, d1
-    cmp.w   #0, d1
-    bge.w   .L1
+    move.w  d0, (a1)+
+    dbra    d1, .L1
 
     move.w  #$7fff, INTENA(a0)  ; disable interrupts
     move.w  #$7fff, INTREQ(a0)  ; clear pending interrupts
@@ -53,7 +52,7 @@ _chipset_reset:
     move.b  #$ff, CIABDDRA
     move.b  #$ff, CIABDDRB
 
-    ; turn the motors of all floppy drives off and make sure we leave them in a deselected state
+    ; turn the motor of all floppy drives off and make sure we leave them in a deselected state
     move.b  CIABPRB, d0         ; deselect all drives and the disk step bit
     or.b    #%01111001, d0
     move.b  d0, CIABPRB
