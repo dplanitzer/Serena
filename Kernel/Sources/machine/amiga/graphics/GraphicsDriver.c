@@ -36,7 +36,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
 
 
     // Allocate the null and mouse cursor sprite
-    try(Sprite_Create(MAX_SPRITE_WIDTH, 0, kPixelFormat_RGB_Indexed2, &self->nullSprite));
+    try(Sprite_Create(SPRITE_WIDTH, 0, kPixelFormat_RGB_Indexed2, &self->nullSprite));
     try(Sprite_Create(kMouseCursor_Width, kMouseCursor_Height, kMouseCursor_PixelFormat, &self->mouseCursor));
 
     *pOutSelf = self;

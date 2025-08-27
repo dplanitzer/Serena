@@ -121,7 +121,7 @@ errno_t Screen_AcquireSprite(Screen* _Nonnull self, int width, int height, Pixel
 
     *pOutSpriteIdx = -1;
 
-    if (priority < 0 || priority >= NUM_HARDWARE_SPRITES) {
+    if (priority < 0 || priority >= SPRITE_COUNT) {
         return ENOTSUP;
     }
     if (self->sprite[priority]) {
@@ -141,7 +141,7 @@ errno_t Screen_AcquireSprite(Screen* _Nonnull self, int width, int height, Pixel
 errno_t Screen_RelinquishSprite(Screen* _Nonnull self, int sprIdx)
 {
     if (sprIdx >= 0) {
-        if (sprIdx >= NUM_HARDWARE_SPRITES) {
+        if (sprIdx >= SPRITE_COUNT) {
             return EINVAL;
         }
 
@@ -157,7 +157,7 @@ errno_t Screen_RelinquishSprite(Screen* _Nonnull self, int sprIdx)
 
 errno_t Screen_SetSpritePixels(Screen* _Nonnull self, int sprIdx, const uint16_t* _Nonnull planes[2])
 {
-    if (sprIdx >= 0 && sprIdx < NUM_HARDWARE_SPRITES) {
+    if (sprIdx >= 0 && sprIdx < SPRITE_COUNT) {
         Sprite_SetPixels(self->sprite[sprIdx], planes);
         return EOK;
     }
@@ -169,7 +169,7 @@ errno_t Screen_SetSpritePixels(Screen* _Nonnull self, int sprIdx, const uint16_t
 // Updates the position of a hardware sprite.
 errno_t Screen_SetSpritePosition(Screen* _Nonnull self, int sprIdx, int x, int y)
 {
-    if (sprIdx >= 0 && sprIdx < NUM_HARDWARE_SPRITES) {
+    if (sprIdx >= 0 && sprIdx < SPRITE_COUNT) {
         const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
         const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
         const int16_t sprX = self->hDiwStart - 1 + (x16 >> self->hSprScale);
@@ -186,7 +186,7 @@ errno_t Screen_SetSpritePosition(Screen* _Nonnull self, int sprIdx, int x, int y
 // Updates the visibility of a hardware sprite.
 errno_t Screen_SetSpriteVisible(Screen* _Nonnull self, int sprIdx, bool isVisible)
 {
-    if (sprIdx >= 0 && sprIdx < NUM_HARDWARE_SPRITES) {
+    if (sprIdx >= 0 && sprIdx < SPRITE_COUNT) {
         Sprite_SetVisible(self->sprite[sprIdx], isVisible);
         return EOK;
     }
@@ -206,7 +206,7 @@ size_t Screen_CalcCopperProgramLength(Screen* _Nonnull self)
             + 2 * fb->planeCount            // BPLxPT[nplanes]
             + 2                             // BPL1MOD, BPL2MOD
             + 3                             // BPLCON0, BPLCON1, BPLCON2
-            + 2 * NUM_HARDWARE_SPRITES      // SPRxPT
+            + 2 * SPRITE_COUNT              // SPRxPT
             + 2                             // DIWSTART, DIWSTOP
             + 2                             // DDFSTART, DDFSTOP
             + 1;                            // DMACON
@@ -280,7 +280,7 @@ copper_instr_t* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, copper_
     // SPRxPT
     Sprite* spr;
     uint16_t dmaf_sprite = 0;
-    for (int i = 0, r = SPRITE_BASE; i < NUM_HARDWARE_SPRITES-1; i++, r += 4) {
+    for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT-1; i++, r += 4) {
         if (self->sprite[i]) {
             spr = self->sprite[i];
             dmaf_sprite = DMACONF_SPREN;
@@ -301,8 +301,8 @@ copper_instr_t* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, copper_
         spr = mouseCursor;
         dmaf_sprite = DMACONF_SPREN;
     }
-    else if (self->sprite[NUM_HARDWARE_SPRITES-1]) {
-        spr = self->sprite[NUM_HARDWARE_SPRITES-1];
+    else if (self->sprite[SPRITE_COUNT-1]) {
+        spr = self->sprite[SPRITE_COUNT-1];
         dmaf_sprite = DMACONF_SPREN;
     }
     else {

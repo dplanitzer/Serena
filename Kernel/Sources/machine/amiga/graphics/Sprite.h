@@ -11,22 +11,8 @@
 
 #include <kern/errno.h>
 #include <kern/types.h>
+#include <machine/amiga/chipset.h>
 #include "VideoConfiguration.h"
-
-
-#define NUM_HARDWARE_SPRITES    8
-
-#define MIN_SPRITE_WIDTH        16
-#define MAX_SPRITE_WIDTH        16
-
-#define MIN_SPRITE_HEIGHT       0
-#define MAX_SPRITE_HEIGHT       511
-
-#define MIN_SPIRTE_VPOS         0
-#define MAX_SPRITE_VPOS         511
-
-#define MIN_SPRITE_HPOS         0
-#define MAX_SPRITE_HPOS         511
 
 
 typedef struct Sprite {

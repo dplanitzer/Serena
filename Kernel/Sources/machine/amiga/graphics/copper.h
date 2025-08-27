@@ -1,13 +1,13 @@
 //
-//  amiga/copper.h
+//  copper.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/25/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _AMIGA_COPPER_H
-#define _AMIGA_COPPER_H
+#ifndef _COPPER_H
+#define _COPPER_H
 
 #include <kern/errno.h>
 #include <kern/types.h>
@@ -50,4 +50,4 @@ extern void copper_start(void);
 #define COPFLAG_WAIT_RUNNING    1
 extern void copper_schedule(copper_prog_t _Nullable prog, unsigned flags);
 
-#endif /* _AMIGA_COPPER_H */
+#endif /* _COPPER_H */

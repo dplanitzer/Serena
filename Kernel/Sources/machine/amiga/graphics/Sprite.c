@@ -18,7 +18,7 @@ errno_t Sprite_Create(int width, int height, PixelFormat pixelFormat, Sprite* _N
     decl_try_err();
     Sprite* self;
 
-    if (width != MAX_SPRITE_WIDTH) {
+    if (width != SPRITE_WIDTH) {
         throw(EINVAL);
     }
     if (height < 0 || height > MAX_SPRITE_HEIGHT) {

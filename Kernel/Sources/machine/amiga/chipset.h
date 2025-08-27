@@ -694,6 +694,18 @@
 #define MAX_LORES_WIDTH     368
 
 
+#define SPRITE_WIDTH            16
+
+#define MIN_SPRITE_HEIGHT       0
+#define MAX_SPRITE_HEIGHT       511
+
+#define MIN_SPIRTE_VPOS         0
+#define MAX_SPRITE_VPOS         511
+
+#define MIN_SPRITE_HPOS         0
+#define MAX_SPRITE_HPOS         511
+
+
 // Stops all hardware timers and DMAs and stops all interrupts of the platform's
 // motherboard chipset.
 extern void chipset_reset(void);

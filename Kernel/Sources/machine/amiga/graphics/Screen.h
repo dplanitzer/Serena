@@ -35,7 +35,7 @@ enum {
 typedef struct Screen {
     ListNode                chain;
     Sprite* _Nonnull        nullSprite;
-    Sprite* _Nonnull        sprite[NUM_HARDWARE_SPRITES];
+    Sprite* _Nonnull        sprite[SPRITE_COUNT];
     Surface* _Nullable      surface;        // The screen pixels
     CLUTEntry* _Nullable    clut;           // The screen color lookup table
     int16_t                 clutEntryCount;

@@ -18,13 +18,13 @@ extern void copper_irq(void);
 
 // Must be > 0
 #define MAX_RETIRED_PROGS   2
-irq_handler_t           g_copper_vblank;
-copper_prog_t _Nonnull  g_copper_null_prog;
-copper_prog_t _Nullable g_copper_ready_prog;
-copper_prog_t _Nonnull  g_copper_running_prog;
-copper_prog_t _Nullable g_copper_retired_progs;
-sem_t                   g_copper_notify_sem;
-int8_t                  g_copper_is_running_interlaced;
+static irq_handler_t            g_copper_vblank;
+static copper_prog_t _Nonnull   g_copper_null_prog;
+static copper_prog_t _Nullable  g_copper_ready_prog;
+static copper_prog_t _Nonnull   g_copper_running_prog;
+static copper_prog_t _Nullable  g_copper_retired_progs;
+static sem_t                    g_copper_notify_sem;
+static int8_t                   g_copper_is_running_interlaced;
 
 
 // Frees the given Copper program.
