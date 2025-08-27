@@ -30,7 +30,7 @@ errno_t Screen_Create(int id, const VideoConfiguration* _Nonnull vidCfg, Surface
     self->surface = srf;
     self->nullSprite = pNullSprite;
     self->vidConfig = *vidCfg;
-    self->clutEntryCount = (int16_t)MAX_CLUT_ENTRIES;
+    self->clutEntryCount = (int16_t)COLOR_COUNT;
     self->flags = kScreenFlag_IsNewCopperProgNeeded;    
     self->hDiwStart = isPal ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
     self->vDiwStart = isPal ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
@@ -215,7 +215,7 @@ size_t Screen_CalcCopperProgramLength(Screen* _Nonnull self)
 // Compiles a screen refresh Copper program into the given buffer (which must be
 // big enough to store the program).
 // \return a pointer to where the next instruction after the program would go 
-CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, CopperInstruction* _Nonnull ip, Sprite* _Nullable mouseCursor, bool isLightPenEnabled, bool isOddField)
+copper_instr_t* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, copper_instr_t* _Nonnull ip, Sprite* _Nullable mouseCursor, bool isLightPenEnabled, bool isOddField)
 {
     Surface* fb = self->surface;
     const VideoConfiguration* cfg = &self->vidConfig;

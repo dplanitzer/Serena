@@ -15,8 +15,6 @@
 #include <klib/List.h>
 #include <sched/mtx.h>
 #include <sched/sem.h>
-#include "CopperProgram.h"
-#include "CopperScheduler.h"
 #include "Screen.h"
 
 
@@ -25,9 +23,6 @@ final_class_ivars(GraphicsDriver, Driver,
     Screen* _Nonnull    screen;
     Sprite* _Nonnull    nullSprite;
     Sprite* _Nonnull    mouseCursor;
-    CopperScheduler     copperScheduler;
-    irq_handler_t       vblHandler;
-    sem_t               vblank_sema;
     List                surfaces;
     List                screens;
     int                 nextSurfaceId;

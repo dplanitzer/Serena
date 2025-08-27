@@ -7,6 +7,7 @@
 //
 
 #include "GraphicsDriverPriv.h"
+#include "copper.h"
 #include <kern/timespec.h>
 #include <kpi/fcntl.h>
 #include <kpi/hid.h>
@@ -31,20 +32,12 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
 
 
     // Allocate the Copper tools
-    CopperScheduler_Init(&self->copperScheduler);
+    copper_init();
 
 
     // Allocate the null and mouse cursor sprite
     try(Sprite_Create(MAX_SPRITE_WIDTH, 0, kPixelFormat_RGB_Indexed2, &self->nullSprite));
     try(Sprite_Create(kMouseCursor_Width, kMouseCursor_Height, kMouseCursor_PixelFormat, &self->mouseCursor));
-
-
-    self->vblHandler.id = IRQ_ID_VBLANK;
-    self->vblHandler.priority = IRQ_PRI_NORMAL;
-    self->vblHandler.enabled = true;
-    self->vblHandler.func = (irq_handler_func_t)GraphicsDriver_VerticalBlankInterruptHandler;
-    self->vblHandler.arg = self;
-
 
     *pOutSelf = self;
     return EOK;
@@ -53,13 +46,6 @@ catch:
     Object_Release(self);
     *pOutSelf = NULL;
     return err;
-}
-
-int GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self)
-{
-    CopperScheduler_Run(&self->copperScheduler);
-    sem_relinquish_irq(&self->vblank_sema);
-    return 0;
 }
 
 static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
@@ -75,16 +61,9 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
 
     err = Driver_Publish((DriverRef)self, &de);
     if (err == EOK) {
-        irq_add_handler(&self->vblHandler);
-        irq_enable_src(IRQ_ID_VBLANK);
+        copper_start();
     }
     return err;
-}
-
-void GraphicsDriver_onStop(GraphicsDriverRef _Nonnull _Locked self)
-{
-    irq_disable_src(IRQ_ID_VBLANK);
-    irq_remove_handler(&self->vblHandler);
 }
 
 errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
@@ -223,117 +202,35 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
 // MARK: Display
 ////////////////////////////////////////////////////////////////////////////////
 
-// Waits for a vblank to occur. This function acts as a vblank barrier meaning
-// that it will wait for some vblank to happen after this function has been invoked.
-// No vblank that occurred before this function was called will make it return.
-static void GraphicsDriver_WaitForVerticalBlank_Locked(GraphicsDriverRef _Nonnull _Locked self)
-{
-    // First purge the vblank sema to ensure that we don't accidentally pick up
-    // some vblank that has happened before this function has been called. Then
-    // wait for the actual vblank.
-    sem_tryacquire(&self->vblank_sema);
-    sem_acquire(&self->vblank_sema, &TIMESPEC_INF);
-}
-
-// Compiles a Copper program to display the null screen. The null screen shows
-// nothing.
-static errno_t create_null_copper_prog(CopperProgram* _Nullable * _Nonnull pOutProg)
-{
-    decl_try_err();
-    CopperProgram* prog;
-    const size_t instrCount = 1             // CLUT
-            + 3                             // BPLCON0, BPLCON1, BPLCON2
-            + 2 * NUM_HARDWARE_SPRITES      // SPRxDATy
-            + 2                             // DIWSTART, DIWSTOP
-            + 2                             // DDFSTART, DDFSTOP
-            + 1                             // DMACON
-            + 1;                            // COP_END
-
-    err = CopperProgram_Create(instrCount, &prog);
-    if (err == EOK) {
-        CopperInstruction* ip = prog->entry;
-
-        // DMACON
-        *ip++ = COP_MOVE(DMACON, DMACONF_BPLEN | DMACONF_SPREN);
-
-
-        // CLUT
-        *ip++ = COP_MOVE(COLOR_BASE, 0);
-
-
-        // BPLCONx
-        *ip++ = COP_MOVE(BPLCON0, BPLCON0F_COLOR);
-        *ip++ = COP_MOVE(BPLCON1, 0);
-        *ip++ = COP_MOVE(BPLCON2, 0);
-
-
-        // SPRxDATy
-        for (int i = 0, r = SPRITE_BASE; i < NUM_HARDWARE_SPRITES; i++, r += 8) {
-            *ip++ = COP_MOVE(r + SPR0DATA, 0);
-            *ip++ = COP_MOVE(r + SPR0DATB, 0);
-        }
-
-
-        // DIWSTART / DIWSTOP
-        *ip++ = COP_MOVE(DIWSTART, (DIW_NTSC_VSTART << 8) | DIW_NTSC_HSTART);
-        *ip++ = COP_MOVE(DIWSTOP, (DIW_NTSC_VSTOP << 8) | DIW_NTSC_HSTOP);
-
-
-        // DDFSTART / DDFSTOP
-        *ip++ = COP_MOVE(DDFSTART, 0x0038);
-        *ip++ = COP_MOVE(DDFSTOP, 0x00d0);
-
-
-        // end instruction
-        *ip = COP_END();
-    }
-    
-    *pOutProg = prog;
-    return err;
-}
-
-// Compiles a Copper program to display a non-interlaced screen or a single
-// field of an interlaced screen.
-static errno_t create_screen_copper_prog(Screen* _Nonnull scr, size_t instrCount, Sprite* _Nullable mouseCursor, bool isLightPenEnabled, bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg)
-{
-    decl_try_err();
-    CopperProgram* prog;
-    
-    err = CopperProgram_Create(instrCount, &prog);
-    if (err == EOK) {
-        CopperInstruction* ip = prog->entry;
-
-        ip = Screen_MakeCopperProgram(scr, ip, mouseCursor, isLightPenEnabled, isOddField);
-
-        // end instruction
-        *ip = COP_END();
-    }
-    
-    *pOutProg = prog;
-    return err;
-}
-
 // Creates the even and odd field Copper programs for the given screen. There will
 // always be at least an odd field program. The even field program will only exist
 // for an interlaced screen.
-static errno_t create_field_copper_progs(Screen* _Nonnull scr, Sprite* _Nullable mouseCursor, bool isLightPenEnabled, CopperProgram* _Nullable * _Nonnull pOutOddFieldProg, CopperProgram* _Nullable * _Nonnull pOutEvenFieldProg)
+static errno_t create_copper_prog(Screen* _Nonnull scr, Sprite* _Nullable mouseCursor, bool isLightPenEnabled, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     const size_t instrCount = Screen_CalcCopperProgramLength(scr) + 1;
-    CopperProgram* oddFieldProg = NULL;
-    CopperProgram* evenFieldProg = NULL;
+    copper_prog_t prog = NULL;
+    copper_instr_t* ip;
 
-    err = create_screen_copper_prog(scr, instrCount, mouseCursor, isLightPenEnabled, true, &oddFieldProg);
-    if (err == EOK && Screen_IsInterlaced(scr)) {
-        err = create_screen_copper_prog(scr, instrCount, mouseCursor, isLightPenEnabled, false, &evenFieldProg);
-        if (err != EOK) {
-            CopperProgram_Destroy(oddFieldProg);
-            oddFieldProg = NULL;
-        }
+    try(copper_prog_create(instrCount, &prog));
+    prog->odd_entry = prog->prog;
+    prog->even_entry = NULL;
+    
+    ip = prog->prog;
+    ip = Screen_MakeCopperProgram(scr, ip, mouseCursor, isLightPenEnabled, true);
+    *ip = COP_END();
+    ip++;
+
+    if (Screen_IsInterlaced(scr)) {
+        prog->even_entry = ip;
+        ip = Screen_MakeCopperProgram(scr, ip, mouseCursor, isLightPenEnabled, false);
+        *ip = COP_END();
+        ip++;
     }
 
-    *pOutOddFieldProg = oddFieldProg;
-    *pOutEvenFieldProg = evenFieldProg;
+catch:
+    *pOutProg = prog;
+
     return err;
 }
 
@@ -345,8 +242,7 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
 {
     decl_try_err();
     Screen* pOldScreen = self->screen;
-    CopperProgram* oddFieldProg = NULL;
-    CopperProgram* evenFieldProg = NULL;
+    copper_prog_t prog = NULL;
     
 
     // Can't show a screen that's already being shown
@@ -357,13 +253,10 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
 
     // Compile the Copper program(s) for the new screen
     if (scr) {
-        err = create_field_copper_progs(scr, (self->flags.mouseCursorEnabled) ? self->mouseCursor : NULL, self->flags.isLightPenEnabled, &oddFieldProg, &evenFieldProg);
-    }
-    else {
-        err = create_null_copper_prog(&oddFieldProg);
-    }
-    if (err != EOK) {
-        return err;
+        err = create_copper_prog(scr, (self->flags.mouseCursorEnabled) ? self->mouseCursor : NULL, self->flags.isLightPenEnabled, &prog);
+        if (err != EOK) {
+            return err;
+        }
     }
 
 
@@ -384,19 +277,16 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
     } 
 
 
-    // Schedule the new Copper programs
-    CopperScheduler_ScheduleProgram(&self->copperScheduler, oddFieldProg, evenFieldProg);
-    
-
-    // Wait for the vblank. Once we got a vblank we know that the DMA is no longer
-    // accessing the old framebuffer
-    GraphicsDriver_WaitForVerticalBlank_Locked(self);
+    // Schedule the new Copper program and wait until the new program is running
+    // and the previous one has been retired. It's save to deallocate the old
+    // framebuffer once the old program has stopped running.
+    copper_schedule(prog, COPFLAG_WAIT_RUNNING);
 
 
     // Free the old screen
     if (pOldScreen) {
-        Screen_SetVisible(pOldScreen, false);
-        Screen_Destroy(pOldScreen);
+//        Screen_SetVisible(pOldScreen, false);
+//        Screen_Destroy(pOldScreen);
     }
 
     return EOK;
@@ -436,12 +326,11 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
     Screen* scr = self->screen;
 
     if (scr && (self->flags.isNewCopperProgNeeded || Screen_NeedsUpdate(scr))) {
-        CopperProgram* oddFieldProg;
-        CopperProgram* evenFieldProg;
+        copper_prog_t prog = NULL;
 
-        err = create_field_copper_progs(scr, (self->flags.mouseCursorEnabled) ? self->mouseCursor : NULL, self->flags.isLightPenEnabled, &oddFieldProg, &evenFieldProg);
+        err = create_copper_prog(scr, (self->flags.mouseCursorEnabled) ? self->mouseCursor : NULL, self->flags.isLightPenEnabled, &prog);
         if (err == EOK) {
-            CopperScheduler_ScheduleProgram(&self->copperScheduler, oddFieldProg, evenFieldProg);
+            copper_schedule(prog, 0);
             scr->flags &= ~kScreenFlag_IsNewCopperProgNeeded;
             self->flags.isNewCopperProgNeeded = 0;
         }
@@ -906,6 +795,5 @@ errno_t GraphicsDriver_GetVideoConfigurationRange(GraphicsDriverRef _Nonnull sel
 
 class_func_defs(GraphicsDriver, Driver,
 override_func_def(onStart, GraphicsDriver, Driver)
-override_func_def(onStop, GraphicsDriver, Driver)
 override_func_def(ioctl, GraphicsDriver, Driver)
 );

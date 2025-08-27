@@ -380,6 +380,7 @@
 #define BPL7DAT     0X11c
 #define BPL8DAT     0X11e
 
+#define SPRITE_COUNT 8
 #define SPRITE_BASE 0x120
 #define SPR0PT      0x120
 #define SPR0PTH     0x120
@@ -668,6 +669,30 @@
 #define VPOSRF_LOL          0x0080
 #define VPOSRF_AGNUSID      0x7f00      /* mask (8..14) */
 #define VPOSRF_LOF          0x8000
+
+
+// Amiga Hardware Reference, 3rd Edition, p59
+#define DIW_NTSC_HSTART     0x81
+#define DIW_NTSC_VSTART     0x2c
+#define DIW_NTSC_HSTOP      0xc1
+#define DIW_NTSC_VSTOP      0xf4
+
+#define DIW_PAL_HSTART      0x81
+#define DIW_PAL_VSTART      0x2c
+#define DIW_PAL_HSTOP       0xc1
+#define DIW_PAL_VSTOP       0x2c
+
+
+// Amiga Hardware Reference, 3rd Edition, p79
+#define MAX_NTSC_HEIGHT         241
+#define MAX_NTSC_LACE_HEIGHT    483
+#define MAX_PAL_HEIGHT          283
+#define MAX_PAL_LACE_HEIGHT     567
+
+
+// Amiga Hardware Reference, 3rd Edition, p80
+#define MAX_LORES_WIDTH     368
+
 
 // Stops all hardware timers and DMAs and stops all interrupts of the platform's
 // motherboard chipset.

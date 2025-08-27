@@ -55,7 +55,7 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
 
 
     self->vblHandler.id = IRQ_ID_VBLANK;
-    self->vblHandler.priority = IRQ_PRI_HIGHEST + 10;
+    self->vblHandler.priority = IRQ_PRI_HIGHEST + 8;
     self->vblHandler.enabled = true;
     self->vblHandler.func = (irq_handler_func_t)_vbl_handler;
     self->vblHandler.arg = self;

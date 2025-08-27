@@ -12,7 +12,7 @@
 #include <kern/errno.h>
 #include <kern/types.h>
 #include <klib/List.h>
-#include "CopperProgram.h"
+#include "copper.h"
 #include "VideoConfiguration.h"
 #include "Sprite.h"
 #include "Surface.h"
@@ -24,7 +24,6 @@ typedef struct CLUTEntry {
     uint8_t     b;
     uint8_t     flags;
 } CLUTEntry;
-#define MAX_CLUT_ENTRIES    32
 
 
 enum {
@@ -91,6 +90,6 @@ extern errno_t Screen_SetSpritePosition(Screen* _Nonnull self, int sprIdx, int x
 extern errno_t Screen_SetSpriteVisible(Screen* _Nonnull self, int sprIdx, bool isVisible);
 
 extern size_t Screen_CalcCopperProgramLength(Screen* _Nonnull self);
-extern CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, CopperInstruction* _Nonnull ip, Sprite* _Nullable mouseCursor, bool isLightPenEnabled, bool isOddField);
+extern copper_instr_t* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, copper_instr_t* _Nonnull ip, Sprite* _Nullable mouseCursor, bool isLightPenEnabled, bool isOddField);
 
 #endif /* Screen_h */

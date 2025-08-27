@@ -12,33 +12,10 @@
 #include <kern/errno.h>
 #include <kern/kernlib.h>
 #include <kpi/fb.h>
+#include <machine/amiga/chipset.h>
 
 
-#define MAX_CLUT_ENTRIES    32
 #define MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION   5
-
-
-// Amiga Hardware Reference, 3rd Edition, p59
-#define DIW_NTSC_HSTART     0x81
-#define DIW_NTSC_VSTART     0x2c
-#define DIW_NTSC_HSTOP      0xc1
-#define DIW_NTSC_VSTOP      0xf4
-
-#define DIW_PAL_HSTART      0x81
-#define DIW_PAL_VSTART      0x2c
-#define DIW_PAL_HSTOP       0xc1
-#define DIW_PAL_VSTOP       0x2c
-
-
-// Amiga Hardware Reference, 3rd Edition, p79
-#define MAX_NTSC_HEIGHT         241
-#define MAX_NTSC_LACE_HEIGHT    483
-#define MAX_PAL_HEIGHT          283
-#define MAX_PAL_LACE_HEIGHT     567
-
-
-// Amiga Hardware Reference, 3rd Edition, p80
-#define MAX_LORES_WIDTH     368
 
 
 typedef struct _VideoConfigurationRange {
