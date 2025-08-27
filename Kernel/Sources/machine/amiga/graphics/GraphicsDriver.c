@@ -285,8 +285,8 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
 
     // Free the old screen
     if (pOldScreen) {
-//        Screen_SetVisible(pOldScreen, false);
-//        Screen_Destroy(pOldScreen);
+        Screen_SetVisible(pOldScreen, false);
+        Screen_Destroy(pOldScreen);
     }
 
     return EOK;
