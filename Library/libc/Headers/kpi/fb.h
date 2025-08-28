@@ -144,14 +144,13 @@ typedef unsigned int RGBColor32;
 #define kFBCommand_SetCLUTEntries   IOResourceCommand(kDriverCommand_SubclassBase + 34)
 
 
-// Acquires a sprite and attaches it to the screen 'screenId'. The screen does
-// not have to be the current screen. The sprite has a size of 'width' x ' height'
-// pixels and a pixel format of 'pixelFormat'. The visual priority of the sprite
-// is 'priority'. Note that a screen typically only supports a limited number of
-// sprites overall and a limited number of sprites per priority. The exact limits
-// are platform and hardware dependent. Returns ENOTSUP or EBUSY if the requested
-// sprite is not available for acquisition. 
-// acquire_sprite(int screenId, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutId)
+// Acquire the sprite with display priority 'priority'. The sprite has a size of
+// 'width' x ' height' pixels and a pixel format of 'pixelFormat'. The visual
+// priority of the sprite is 'priority'. Note that a driver typically only
+// supports a limited number of sprites. The exact limits are platform and
+// hardware dependent. Returns ENOTSUP or EBUSY if the requested sprite is not
+// available for acquisition. 
+// acquire_sprite(int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutId)
 #define kFBCommand_AcquireSprite        IOResourceCommand(kDriverCommand_SubclassBase + 35)
 
 // Relinquishes a previously acquired sprite and makes it available again for

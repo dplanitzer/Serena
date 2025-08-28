@@ -78,7 +78,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_AcquireSprite, self->screenId, textCursorWidth, textCursorHeight, kPixelFormat_RGB_Indexed2, 0, &self->textCursor));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_AcquireSprite, textCursorWidth, textCursorHeight, kPixelFormat_RGB_Indexed2, 0, &self->textCursor));
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpritePixels, self->textCursor, textCursorPlanes));
     self->flags.isTextCursorVisible = false;
 

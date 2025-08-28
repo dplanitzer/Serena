@@ -41,7 +41,7 @@ extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, in
 
 
 // Sprites
-extern errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int screenId, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutSpriteId);
+extern errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutSpriteId);
 extern errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int spriteId);
 extern errno_t GraphicsDriver_SetSpritePixels(GraphicsDriverRef _Nonnull self, int spriteId, const uint16_t* _Nonnull pPlanes[2]);
 extern errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int spriteId, int x, int y);

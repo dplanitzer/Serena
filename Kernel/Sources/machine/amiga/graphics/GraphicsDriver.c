@@ -131,14 +131,13 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
         }
 
         case kFBCommand_AcquireSprite: {
-            const int hnd = va_arg(ap, int);
             const int width = va_arg(ap, int);
             const int height = va_arg(ap, int);
             const PixelFormat fmt = va_arg(ap, PixelFormat);
             const int pri = va_arg(ap, int);
             int* sid = va_arg(ap, int*);
 
-            return GraphicsDriver_AcquireSprite(self, hnd, width, height, fmt, pri, sid);
+            return GraphicsDriver_AcquireSprite(self, width, height, fmt, pri, sid);
         }
 
         case kFBCommand_RelinquishSprite: {
@@ -620,7 +619,7 @@ errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, s
 
 
 // Acquires a hardware sprite
-errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int screenId, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutSpriteId)
+errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutSpriteId)
 {
     decl_try_err();
 
