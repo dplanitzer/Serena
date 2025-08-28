@@ -220,11 +220,11 @@ static errno_t create_copper_prog(GraphicsDriverRef _Nonnull self, Screen* _Nonn
     prog->even_entry = NULL;
     
     ip = prog->prog;
-    ip = copper_comp_compile(ip, scr, mouseCursor, isLightPenEnabled, true);
+    ip = copper_comp_compile(ip, scr, self->sprite, self->nullSprite, mouseCursor, isLightPenEnabled, true);
 
     if (Screen_IsInterlaced(scr)) {
         prog->even_entry = ip;
-        ip = copper_comp_compile(ip, scr, mouseCursor, isLightPenEnabled, false);
+        ip = copper_comp_compile(ip, scr, self->sprite, self->nullSprite, mouseCursor, isLightPenEnabled, false);
     }
 
 catch:
@@ -262,17 +262,21 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
     // Update the display configuration.
     self->screen = scr;
     if (scr) {
+        const bool isPal = VideoConfiguration_IsPAL(&scr->vidConfig);
+        const bool isHires = VideoConfiguration_IsHires(&scr->vidConfig);
+        const bool isLace = VideoConfiguration_IsInterlaced(&scr->vidConfig);
+
         Screen_SetVisible(scr, true);
-        self->mouseCursorRectX = scr->hDiwStart;
-        self->mouseCursorRectY = scr->vDiwStart;
-        self->mouseCursorScaleX = scr->hSprScale;
-        self->mouseCursorScaleY = scr->vSprScale;
+        self->hDiwStart = isPal ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
+        self->vDiwStart = isPal ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
+        self->hSprScale = isHires ? 0x01 : 0x00;
+        self->vSprScale = isLace ? 0x01 : 0x00;
     } 
     else {
-        self->mouseCursorRectX = 0;
-        self->mouseCursorRectY = 0;
-        self->mouseCursorScaleX = 0;
-        self->mouseCursorScaleY = 0;
+        self->hDiwStart = 0;
+        self->vDiwStart = 0;
+        self->hSprScale = 0;
+        self->vSprScale = 0;
     } 
 
 
@@ -522,7 +526,7 @@ errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const Video
     }
 
     try(VideoConfiguration_Validate(vidCfg, Surface_GetPixelFormat(srf)));
-    try(Screen_Create(_GraphicsDriver_GetNewScreenId(self), vidCfg, srf, self->nullSprite, &scr));
+    try(Screen_Create(_GraphicsDriver_GetNewScreenId(self), vidCfg, srf, &scr));
     List_InsertBeforeFirst(&self->screens, &scr->chain);
     *pOutId = Screen_GetId(scr);
 
@@ -608,14 +612,11 @@ errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, s
 // MARK: Sprites
 ////////////////////////////////////////////////////////////////////////////////
 
-#define MAKE_SPRITE_ID(__scrId, __sprIdx) \
-(((__scrId) << 3) | (__sprIdx))
+#define MAKE_SPRITE_ID(__sprIdx) \
+((__sprIdx) + 1)
 
 #define GET_SPRITE_IDX(__sprId) \
-((__sprId) & 0x07)
-
-#define GET_SCREEN_ID(__sprId) \
-((__sprId) >> 3)
+((__sprId) - 1)
 
 
 // Acquires a hardware sprite
@@ -623,19 +624,21 @@ errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int screen
 {
     decl_try_err();
 
-    mtx_lock(&self->io_mtx);
-    Screen* scr = _GraphicsDriver_GetScreenForId(self, screenId);
-    if (scr) {
-        int sprIdx;
+    if (priority < 0 || priority >= SPRITE_COUNT) {
+        return ENOTSUP;
+    }
 
-        err = Screen_AcquireSprite(scr, width, height, pixelFormat, priority, &sprIdx);
-        *pOutSpriteId = (err == EOK) ? MAKE_SPRITE_ID(scr->id, sprIdx) : 0;
+    mtx_lock(&self->io_mtx);
+    if (self->sprite[priority]) {
+        throw(EBUSY);
     }
-    else {
-        err = EINVAL;
-        *pOutSpriteId = 0;
-    }
+
+    try(Sprite_Create(width, height, pixelFormat, &self->sprite[priority]));
+    self->flags.isNewCopperProgNeeded = 1;
+
+catch:
     mtx_unlock(&self->io_mtx);
+    *pOutSpriteId = (err == EOK) ? MAKE_SPRITE_ID(priority) : 0;
     return err;
 }
 
@@ -643,19 +646,22 @@ errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int screen
 errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int spriteId)
 {
     decl_try_err();
+    const int sprIdx = GET_SPRITE_IDX(spriteId);
 
-    if (spriteId == 0) {
+    if (sprIdx < 0) {
         return EOK;
+    }
+    if (sprIdx >= SPRITE_COUNT) {
+        return EINVAL;
     }
 
     mtx_lock(&self->io_mtx);
-    Screen* scr = _GraphicsDriver_GetScreenForId(self, GET_SCREEN_ID(spriteId));
-    if (scr) {
-        err = Screen_RelinquishSprite(scr, GET_SPRITE_IDX(spriteId));
-    }
-    else {
-        err = EINVAL;
-    }
+    // XXX Sprite_Destroy(pScreen->sprite[spriteId]);
+    // XXX actually free the old sprite instead of leaking it. Can't do this
+    // XXX yet because we need to ensure that the DMA is no longer accessing
+    // XXX the data before it freeing it.
+    self->sprite[sprIdx] = self->nullSprite;
+    self->flags.isNewCopperProgNeeded = 1;
     mtx_unlock(&self->io_mtx);
     return err;
 }
@@ -663,15 +669,14 @@ errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int spr
 errno_t GraphicsDriver_SetSpritePixels(GraphicsDriverRef _Nonnull self, int spriteId, const uint16_t* _Nonnull planes[2])
 {
     decl_try_err();
+    const int sprIdx = GET_SPRITE_IDX(spriteId);
+
+    if (sprIdx < 0 || sprIdx >= SPRITE_COUNT) {
+        return EINVAL;
+    }
 
     mtx_lock(&self->io_mtx);
-    Screen* scr = _GraphicsDriver_GetScreenForId(self, GET_SCREEN_ID(spriteId));
-    if (scr) {
-        err = Screen_SetSpritePixels(scr, GET_SPRITE_IDX(spriteId), planes);
-    }
-    else {
-        err = EINVAL;
-    }
+    Sprite_SetPixels(self->sprite[sprIdx], planes);
     mtx_unlock(&self->io_mtx);
     return err;
 }
@@ -680,15 +685,19 @@ errno_t GraphicsDriver_SetSpritePixels(GraphicsDriverRef _Nonnull self, int spri
 errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int spriteId, int x, int y)
 {
     decl_try_err();
+    const int sprIdx = GET_SPRITE_IDX(spriteId);
+
+    if (sprIdx < 0 || sprIdx >= SPRITE_COUNT) {
+        return EINVAL;
+    }
 
     mtx_lock(&self->io_mtx);
-    Screen* scr = _GraphicsDriver_GetScreenForId(self, GET_SCREEN_ID(spriteId));
-    if (scr) {
-        err = Screen_SetSpritePosition(scr, GET_SPRITE_IDX(spriteId), x, y);
-    }
-    else {
-        err = EINVAL;
-    }
+    const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
+    const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
+    const int16_t sprX = self->hDiwStart - 1 + (x16 >> self->hSprScale);
+    const int16_t sprY = self->vDiwStart + (y16 >> self->vSprScale);
+
+    Sprite_SetPosition(self->sprite[sprIdx], sprX, sprY);
     mtx_unlock(&self->io_mtx);
     return err;
 }
@@ -697,15 +706,14 @@ errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int sp
 errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spriteId, bool isVisible)
 {
     decl_try_err();
+    const int sprIdx = GET_SPRITE_IDX(spriteId);
+
+    if (sprIdx < 0 || sprIdx >= SPRITE_COUNT) {
+        return EINVAL;
+    }
 
     mtx_lock(&self->io_mtx);
-    Screen* scr = _GraphicsDriver_GetScreenForId(self, GET_SCREEN_ID(spriteId));
-    if (scr) {
-        err = Screen_SetSpriteVisible(scr, GET_SPRITE_IDX(spriteId), isVisible);
-    }
-    else {
-        err = EINVAL;
-    }
+    Sprite_SetVisible(self->sprite[sprIdx], isVisible);
     mtx_unlock(&self->io_mtx);
     return err;
 }
@@ -766,8 +774,8 @@ void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int 
     mtx_lock(&self->io_mtx);
     const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
     const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
-    const int16_t sprX = self->mouseCursorRectX - 1 + (x16 >> self->mouseCursorScaleX);
-    const int16_t sprY = self->mouseCursorRectY + (y16 >> self->mouseCursorScaleY);
+    const int16_t sprX = self->hDiwStart - 1 + (x16 >> self->hSprScale);
+    const int16_t sprY = self->vDiwStart + (y16 >> self->vSprScale);
 
     Sprite_SetPosition(self->mouseCursor, sprX, sprY);
     mtx_unlock(&self->io_mtx);

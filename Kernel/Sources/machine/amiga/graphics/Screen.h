@@ -12,9 +12,7 @@
 #include <kern/errno.h>
 #include <kern/types.h>
 #include <klib/List.h>
-#include "copper.h"
 #include "VideoConfiguration.h"
-#include "Sprite.h"
 #include "Surface.h"
 
 
@@ -34,22 +32,16 @@ enum {
 
 typedef struct Screen {
     ListNode                chain;
-    Sprite* _Nonnull        nullSprite;
-    Sprite* _Nonnull        sprite[SPRITE_COUNT];
     Surface* _Nullable      surface;        // The screen pixels
     CLUTEntry* _Nullable    clut;           // The screen color lookup table
     int16_t                 clutEntryCount;
     uint16_t                flags;
     VideoConfiguration      vidConfig;
     int                     id;
-    int16_t                 hDiwStart;      // Visible screen space origin and sprite scaling
-    int16_t                 vDiwStart;
-    int16_t                 hSprScale;
-    int16_t                 vSprScale;
 } Screen;
 
 
-extern errno_t Screen_Create(int id, const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf);
+extern errno_t Screen_Create(int id, const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Screen* _Nullable * _Nonnull pOutSelf);
 extern void Screen_Destroy(Screen* _Nullable pScreen);
 
 #define Screen_GetId(__self) \
@@ -82,11 +74,5 @@ extern void Screen_GetPixelSize(Screen* _Nonnull self, int* _Nonnull pOutWidth, 
 
 extern errno_t Screen_SetCLUTEntry(Screen* _Nonnull self, size_t idx, RGBColor32 color);
 extern errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
-
-extern errno_t Screen_AcquireSprite(Screen* _Nonnull self, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutSpriteIdx);
-extern errno_t Screen_RelinquishSprite(Screen* _Nonnull self, int sprIdx);
-extern errno_t Screen_SetSpritePixels(Screen* _Nonnull self, int sprIdx, const uint16_t* _Nonnull planes[2]);
-extern errno_t Screen_SetSpritePosition(Screen* _Nonnull self, int sprIdx, int x, int y);
-extern errno_t Screen_SetSpriteVisible(Screen* _Nonnull self, int sprIdx, bool isVisible);
 
 #endif /* Screen_h */

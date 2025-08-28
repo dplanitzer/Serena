@@ -16,21 +16,25 @@
 #include <sched/mtx.h>
 #include <sched/sem.h>
 #include "Screen.h"
+#include "Sprite.h"
 
 
 final_class_ivars(GraphicsDriver, Driver,
     mtx_t               io_mtx;
     Screen* _Nonnull    screen;
+
+    Sprite* _Nonnull    sprite[SPRITE_COUNT];
     Sprite* _Nonnull    nullSprite;
     Sprite* _Nonnull    mouseCursor;
+    int16_t             hDiwStart;      // Visible screen space origin and sprite scaling
+    int16_t             vDiwStart;
+    int16_t             hSprScale;
+    int16_t             vSprScale;
+
     List                surfaces;
     List                screens;
     int                 nextSurfaceId;
     int                 nextScreenId;
-    int16_t             mouseCursorRectX;   // Visible screen space origin and mouse cursor scaling
-    int16_t             mouseCursorRectY;
-    int16_t             mouseCursorScaleX;
-    int16_t             mouseCursorScaleY;
     struct __GDFlags {
         unsigned int        isLightPenEnabled;  // Applies to all screens
         unsigned int        mouseCursorEnabled; // Applies to all screens
