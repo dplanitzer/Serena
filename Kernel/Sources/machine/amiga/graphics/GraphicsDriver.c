@@ -8,6 +8,7 @@
 
 #include "GraphicsDriverPriv.h"
 #include "copper.h"
+#include "copper_comp.h"
 #include <kern/timespec.h>
 #include <kpi/fcntl.h>
 #include <kpi/hid.h>
@@ -205,10 +206,12 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
 // Creates the even and odd field Copper programs for the given screen. There will
 // always be at least an odd field program. The even field program will only exist
 // for an interlaced screen.
-static errno_t create_copper_prog(Screen* _Nonnull scr, Sprite* _Nullable mouseCursor, bool isLightPenEnabled, copper_prog_t _Nullable * _Nonnull pOutProg)
+static errno_t create_copper_prog(GraphicsDriverRef _Nonnull self, Screen* _Nonnull scr, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
-    const size_t instrCount = Screen_CalcCopperProgramLength(scr) + 1;
+    const bool isLightPenEnabled = self->flags.isLightPenEnabled;
+    Sprite* mouseCursor = (self->flags.mouseCursorEnabled) ? self->mouseCursor : NULL;
+    const size_t instrCount = copper_comp_calclength(scr);
     copper_prog_t prog = NULL;
     copper_instr_t* ip;
 
@@ -217,15 +220,11 @@ static errno_t create_copper_prog(Screen* _Nonnull scr, Sprite* _Nullable mouseC
     prog->even_entry = NULL;
     
     ip = prog->prog;
-    ip = Screen_MakeCopperProgram(scr, ip, mouseCursor, isLightPenEnabled, true);
-    *ip = COP_END();
-    ip++;
+    ip = copper_comp_compile(ip, scr, mouseCursor, isLightPenEnabled, true);
 
     if (Screen_IsInterlaced(scr)) {
         prog->even_entry = ip;
-        ip = Screen_MakeCopperProgram(scr, ip, mouseCursor, isLightPenEnabled, false);
-        *ip = COP_END();
-        ip++;
+        ip = copper_comp_compile(ip, scr, mouseCursor, isLightPenEnabled, false);
     }
 
 catch:
@@ -253,7 +252,7 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
 
     // Compile the Copper program(s) for the new screen
     if (scr) {
-        err = create_copper_prog(scr, (self->flags.mouseCursorEnabled) ? self->mouseCursor : NULL, self->flags.isLightPenEnabled, &prog);
+        err = create_copper_prog(self, scr, &prog);
         if (err != EOK) {
             return err;
         }
@@ -328,7 +327,7 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
     if (scr && (self->flags.isNewCopperProgNeeded || Screen_NeedsUpdate(scr))) {
         copper_prog_t prog = NULL;
 
-        err = create_copper_prog(scr, (self->flags.mouseCursorEnabled) ? self->mouseCursor : NULL, self->flags.isLightPenEnabled, &prog);
+        err = create_copper_prog(self, scr, &prog);
         if (err == EOK) {
             copper_schedule(prog, 0);
             scr->flags &= ~kScreenFlag_IsNewCopperProgNeeded;
@@ -518,20 +517,16 @@ errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const Video
     Screen* scr;
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, surfaceId);
     
-    if (srf) {
-        err = VideoConfiguration_Validate(vidCfg, Surface_GetPixelFormat(srf));
-        if (err == EOK) {
-            err = Screen_Create(_GraphicsDriver_GetNewScreenId(self), vidCfg, srf, self->nullSprite, &scr);
-            if (err == EOK) {
-                List_InsertBeforeFirst(&self->screens, &scr->chain);
-                *pOutId = Screen_GetId(scr);
-            }
-        }
-    }
-    else {
-        err = EINVAL;
+    if (srf == NULL) {
+        throw(EINVAL);
     }
 
+    try(VideoConfiguration_Validate(vidCfg, Surface_GetPixelFormat(srf)));
+    try(Screen_Create(_GraphicsDriver_GetNewScreenId(self), vidCfg, srf, self->nullSprite, &scr));
+    List_InsertBeforeFirst(&self->screens, &scr->chain);
+    *pOutId = Screen_GetId(scr);
+
+catch:
     mtx_unlock(&self->io_mtx);
     return err;
 }

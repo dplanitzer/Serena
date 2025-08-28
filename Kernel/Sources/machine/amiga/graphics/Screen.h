@@ -89,7 +89,4 @@ extern errno_t Screen_SetSpritePixels(Screen* _Nonnull self, int sprIdx, const u
 extern errno_t Screen_SetSpritePosition(Screen* _Nonnull self, int sprIdx, int x, int y);
 extern errno_t Screen_SetSpriteVisible(Screen* _Nonnull self, int sprIdx, bool isVisible);
 
-extern size_t Screen_CalcCopperProgramLength(Screen* _Nonnull self);
-extern copper_instr_t* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, copper_instr_t* _Nonnull ip, Sprite* _Nullable mouseCursor, bool isLightPenEnabled, bool isOddField);
-
 #endif /* Screen_h */
