@@ -13,7 +13,7 @@
 #include <machine/amiga/chipset.h>
 #include <sched/sem.h>
 
-extern void copper_irq(void);
+extern int copper_irq(void);
 
 
 // Must be > 0
@@ -321,7 +321,7 @@ static void copper_csw(void)
 // Called at the vertical blank interrupt. Triggers the execution of the correct
 // Copper program (odd or even field as needed). Also makes a scheduled program
 // active / running if needed.
-void copper_irq(void)
+int copper_irq(void)
 {
     // Check whether a new program is scheduled to run. If so move it to running
     // state
@@ -340,4 +340,6 @@ void copper_irq(void)
         *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? g_copper_running_prog->odd_entry : g_copper_running_prog->even_entry);
         *CHIPSET_REG_16(cp, COPJMP1) = 0;
     }
+
+    return 0;
 }
