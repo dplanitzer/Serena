@@ -61,7 +61,23 @@ extern void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, b
 
 
 // Mouse Cursor
+
+// Sets the mouse cursor to the pixels 'planes' and enables or disables mouse
+// cursor display. Mouse cursor display is enabled if 'planes' is not NULL and
+// disabled if it is NULL. Note that the mouse cursor may be implemented by a
+// framebuffer by claiming a sprite. The framebuffer will claim the sprite
+// channel even if it is already acquired by an application and this sprite
+// channel will then continue to show the mouse cursor until the mouse cursor is
+// disabled. The sprite channel is then assigned back to the previously acquired
+// sprite. The 'shadowed' sprite will continue to update whenever a command is
+// issued to it. However it won't be visible on the screen until the mouse cursor
+// is disabled.
 extern errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat);
+
+// Sets the position of the mouse cursor. Note that the mouse cursor is only
+// visible as long as at least some part of it is inside the visible display
+// area. Additionally this API guarantees that the mouse cursor will be hidden
+// if either 'x' or 'y' is == INT_MIN
 extern void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y);
 
 

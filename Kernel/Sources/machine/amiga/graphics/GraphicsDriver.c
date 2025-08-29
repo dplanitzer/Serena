@@ -777,10 +777,6 @@ errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uin
     return EOK;
 }
 
-// Sets the position of the mouse cursor. Note that the mouse cursor is only
-// visible as long as at least some part of it is inside the visible display
-// area. Additionally this API guarantees that the mouse cursor will be hidden
-// if either 'x' or 'y' is == INT_MIN
 void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y)
 {
     mtx_lock(&self->io_mtx);
