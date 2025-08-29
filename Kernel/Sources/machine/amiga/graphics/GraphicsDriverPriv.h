@@ -19,13 +19,15 @@
 #include "Sprite.h"
 
 
+#define MOUSE_SPRITE_PRI 7
+
 final_class_ivars(GraphicsDriver, Driver,
     mtx_t               io_mtx;
     Screen* _Nonnull    screen;
 
-    Sprite* _Nonnull    sprite[SPRITE_COUNT];
-    Sprite* _Nonnull    nullSprite;
-    Sprite* _Nonnull    mouseCursor;
+    Sprite* _Nonnull    spriteChannel[SPRITE_COUNT];
+    Sprite              sprite[SPRITE_COUNT];
+    Sprite              mouseCursor;
     int16_t             hDiwStart;      // Visible screen space origin and sprite scaling
     int16_t             vDiwStart;
     int16_t             hSprScale;

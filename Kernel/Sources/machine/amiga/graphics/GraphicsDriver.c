@@ -37,8 +37,13 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
 
 
     // Allocate the null and mouse cursor sprite
-    try(Sprite_Create(SPRITE_WIDTH, 0, kPixelFormat_RGB_Indexed2, &self->nullSprite));
-    try(Sprite_Create(kMouseCursor_Width, kMouseCursor_Height, kMouseCursor_PixelFormat, &self->mouseCursor));
+    Sprite_Init(&self->mouseCursor);
+    try(Sprite_Acquire(&self->mouseCursor, kMouseCursor_Width, kMouseCursor_Height, kMouseCursor_PixelFormat));
+
+    for (int i = 0; i < SPRITE_COUNT; i++) {
+        Sprite_Init(&self->sprite[i]);
+        self->spriteChannel[i] = &self->sprite[i];
+    }
 
     *pOutSelf = self;
     return EOK;
@@ -209,7 +214,6 @@ static errno_t create_copper_prog(GraphicsDriverRef _Nonnull self, Screen* _Nonn
 {
     decl_try_err();
     const bool isLightPenEnabled = self->flags.isLightPenEnabled;
-    Sprite* mouseCursor = (self->flags.mouseCursorEnabled) ? self->mouseCursor : NULL;
     const size_t instrCount = copper_comp_calclength(scr);
     copper_prog_t prog = NULL;
     copper_instr_t* ip;
@@ -219,11 +223,11 @@ static errno_t create_copper_prog(GraphicsDriverRef _Nonnull self, Screen* _Nonn
     prog->even_entry = NULL;
     
     ip = prog->prog;
-    ip = copper_comp_compile(ip, scr, self->sprite, self->nullSprite, mouseCursor, isLightPenEnabled, true);
+    ip = copper_comp_compile(ip, scr, self->spriteChannel, isLightPenEnabled, true);
 
     if (Screen_IsInterlaced(scr)) {
         prog->even_entry = ip;
-        ip = copper_comp_compile(ip, scr, self->sprite, self->nullSprite, mouseCursor, isLightPenEnabled, false);
+        ip = copper_comp_compile(ip, scr, self->spriteChannel, isLightPenEnabled, false);
     }
 
 catch:
@@ -628,11 +632,11 @@ errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int width,
     }
 
     mtx_lock(&self->io_mtx);
-    if (self->sprite[priority]) {
+    if (self->spriteChannel[priority]->isAcquired) {
         throw(EBUSY);
     }
 
-    try(Sprite_Create(width, height, pixelFormat, &self->sprite[priority]));
+    try(Sprite_Acquire(self->spriteChannel[priority], width, height, pixelFormat));
     self->flags.isNewCopperProgNeeded = 1;
 
 catch:
@@ -655,12 +659,17 @@ errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int spr
     }
 
     mtx_lock(&self->io_mtx);
-    // XXX Sprite_Destroy(pScreen->sprite[spriteId]);
-    // XXX actually free the old sprite instead of leaking it. Can't do this
-    // XXX yet because we need to ensure that the DMA is no longer accessing
-    // XXX the data before it freeing it.
-    self->sprite[sprIdx] = self->nullSprite;
-    self->flags.isNewCopperProgNeeded = 1;
+    if (sprIdx < SPRITE_COUNT && self->sprite[sprIdx].isAcquired) {
+        // XXX Sprite_Destroy(pScreen->sprite[spriteId]);
+        // XXX actually free the old sprite instead of leaking it. Can't do this
+        // XXX yet because we need to ensure that the DMA is no longer accessing
+        // XXX the data before it freeing it.
+        self->spriteChannel[sprIdx]->isAcquired = false;
+        self->flags.isNewCopperProgNeeded = 1;
+    }
+    else {
+        err = EINVAL;
+    }
     mtx_unlock(&self->io_mtx);
     return err;
 }
@@ -670,12 +679,13 @@ errno_t GraphicsDriver_SetSpritePixels(GraphicsDriverRef _Nonnull self, int spri
     decl_try_err();
     const int sprIdx = GET_SPRITE_IDX(spriteId);
 
-    if (sprIdx < 0 || sprIdx >= SPRITE_COUNT) {
-        return EINVAL;
-    }
-
     mtx_lock(&self->io_mtx);
-    Sprite_SetPixels(self->sprite[sprIdx], planes);
+    if (sprIdx >= 0 && sprIdx < SPRITE_COUNT && self->sprite[sprIdx].isAcquired) {
+        Sprite_SetPixels(&self->sprite[sprIdx], planes);
+    }
+    else {
+        err = EINVAL;
+    }
     mtx_unlock(&self->io_mtx);
     return err;
 }
@@ -686,17 +696,18 @@ errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int sp
     decl_try_err();
     const int sprIdx = GET_SPRITE_IDX(spriteId);
 
-    if (sprIdx < 0 || sprIdx >= SPRITE_COUNT) {
-        return EINVAL;
-    }
-
     mtx_lock(&self->io_mtx);
-    const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
-    const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
-    const int16_t sprX = self->hDiwStart - 1 + (x16 >> self->hSprScale);
-    const int16_t sprY = self->vDiwStart + (y16 >> self->vSprScale);
+    if (sprIdx >= 0 && sprIdx < SPRITE_COUNT && self->sprite[sprIdx].isAcquired) {
+        const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
+        const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
+        const int16_t sprX = self->hDiwStart - 1 + (x16 >> self->hSprScale);
+        const int16_t sprY = self->vDiwStart + (y16 >> self->vSprScale);
 
-    Sprite_SetPosition(self->sprite[sprIdx], sprX, sprY);
+        Sprite_SetPosition(&self->sprite[sprIdx], sprX, sprY);
+    }
+    else {
+        err = EINVAL;
+    }
     mtx_unlock(&self->io_mtx);
     return err;
 }
@@ -707,12 +718,13 @@ errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spr
     decl_try_err();
     const int sprIdx = GET_SPRITE_IDX(spriteId);
 
-    if (sprIdx < 0 || sprIdx >= SPRITE_COUNT) {
-        return EINVAL;
-    }
-
     mtx_lock(&self->io_mtx);
-    Sprite_SetVisible(self->sprite[sprIdx], isVisible);
+    if (sprIdx >= 0 && sprIdx < SPRITE_COUNT && self->sprite[sprIdx].isAcquired) {
+        Sprite_SetVisible(&self->sprite[sprIdx], isVisible);
+    }
+    else {
+        err = EINVAL;
+    }
     mtx_unlock(&self->io_mtx);
     return err;
 }
@@ -750,7 +762,7 @@ errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uin
     const unsigned oldMouseCursorEnabled = self->flags.mouseCursorEnabled;
 
     if (width > 0 && height > 0) {
-        Sprite_SetPixels(self->mouseCursor, planes);
+        Sprite_SetPixels(&self->mouseCursor, planes);
         self->flags.mouseCursorEnabled = 1;
     }
     else {
@@ -758,6 +770,7 @@ errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uin
     }
 
     if (oldMouseCursorEnabled != self->flags.mouseCursorEnabled) {
+        self->spriteChannel[MOUSE_SPRITE_PRI] = (self->flags.mouseCursorEnabled) ? &self->mouseCursor : &self->sprite[MOUSE_SPRITE_PRI];
         self->flags.isNewCopperProgNeeded = 1;
     }
     mtx_unlock(&self->io_mtx);
@@ -776,7 +789,7 @@ void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int 
     const int16_t sprX = self->hDiwStart - 1 + (x16 >> self->hSprScale);
     const int16_t sprY = self->vDiwStart + (y16 >> self->vSprScale);
 
-    Sprite_SetPosition(self->mouseCursor, sprX, sprY);
+    Sprite_SetPosition(&self->mouseCursor, sprX, sprY);
     mtx_unlock(&self->io_mtx);
 }
 

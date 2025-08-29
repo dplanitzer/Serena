@@ -21,11 +21,17 @@ typedef struct Sprite {
     int16_t             y;
     uint16_t            height;
     bool                isVisible;
+    bool                isAcquired;
 } Sprite;
 
 
-extern errno_t Sprite_Create(int width, int height, PixelFormat pixelFormat, Sprite* _Nonnull * _Nonnull pOutSelf);
-extern void Sprite_Destroy(Sprite* _Nullable self);
+extern void Sprite_Init(Sprite* _Nonnull self);
+
+extern errno_t Sprite_Acquire(Sprite* _Nonnull self, int width, int height, PixelFormat pixelFormat);
+extern void Sprite_Relinquish(Sprite* _Nonnull self);
+
+#define Sprite_IsNull(__self) \
+((__self)->height == 0)
 
 extern void Sprite_SetPixels(Sprite* _Nonnull self, const uint16_t* _Nullable planes[2]);
 

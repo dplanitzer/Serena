@@ -44,6 +44,9 @@ typedef HIDEventSynth* HIDEventSynthRef;
 extern void HIDEventSynth_Init(HIDEventSynthRef _Nonnull self);
 extern void HIDEventSynth_Deinit(HIDEventSynthRef _Nullable self);
 
+// Resets the event synthesizer to idle state.
+extern void HIDEventSynth_Reset(HIDEventSynthRef _Nonnull self);
+
 // This method looks at the current key repeat state and the current event 'evt'
 // and it determines whether the caller should return 'evt' to the user,
 // synthesize a key repeat event and return it to the user or whether it should

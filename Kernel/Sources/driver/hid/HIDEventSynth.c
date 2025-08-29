@@ -30,6 +30,13 @@ void HIDEventSynth_Deinit(HIDEventSynthRef _Nullable self)
 {
 }
 
+void HIDEventSynth_Reset(HIDEventSynthRef _Nonnull self)
+{
+    self->state = kState_Idle;
+    self->keyCode = 0;
+    self->keyFlags = 0;
+}
+
 // Returns true if the given key should be auto-repeated
 static bool shouldAutoRepeatKeyCode(HIDKeyCode keyCode)
 {

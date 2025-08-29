@@ -319,6 +319,7 @@ void HIDManager_FlushEvents(HIDManagerRef _Nonnull self)
     mtx_lock(&self->mtx);
     self->evqReadIdx = 0;
     self->evqWriteIdx = 0;
+    HIDEventSynth_Reset(&self->evqSynth);
     mtx_unlock(&self->mtx);
 }
 

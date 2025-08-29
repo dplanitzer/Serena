@@ -327,7 +327,7 @@ int copper_irq(void)
     // state
     if (g_copper_ready_prog) {
         copper_csw();
-        return;
+        return 0;
     }
 
     

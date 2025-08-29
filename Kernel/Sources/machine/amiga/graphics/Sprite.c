@@ -10,25 +10,35 @@
 #include <kern/kalloc.h>
 
 
-// Creates a sprite of size 'width' x 'height' pixels and with position (0, 0).
+// Initializes the given sprite as a null sprite. Meaning that it doesn't show
+// anything and that it isn't acquired.
+void Sprite_Init(Sprite* _Nonnull self)
+{
+    self->data = NULL;
+    self->x = 0;
+    self->y = 0;
+    self->height = 0;
+    self->isVisible = false;
+    self->isAcquired = false;
+}
+
+// Acquires a sprite of size 'width' x 'height' pixels and with position (0, 0).
 // Pixels must be assigned separately by calling Sprite_SetPixels() before anything
 // will show up on the screen. 
-errno_t Sprite_Create(int width, int height, PixelFormat pixelFormat, Sprite* _Nonnull * _Nonnull pOutSelf)
+errno_t Sprite_Acquire(Sprite* _Nonnull self, int width, int height, PixelFormat pixelFormat)
 {
     decl_try_err();
-    Sprite* self;
 
     if (width != SPRITE_WIDTH) {
-        throw(EINVAL);
+        return EINVAL;
     }
     if (height < 0 || height > MAX_SPRITE_HEIGHT) {
-        throw(EINVAL);
+        return EINVAL;
     }
     if (pixelFormat != kPixelFormat_RGB_Indexed2) {
-        throw(ENOTSUP);
+        return ENOTSUP;
     }
 
-    try(kalloc_cleared(sizeof(Sprite), (void**) &self));
     self->isVisible = true;
     self->height = (uint16_t)height;
 
@@ -39,23 +49,22 @@ errno_t Sprite_Create(int width, int height, PixelFormat pixelFormat, Sprite* _N
     self->data[0] = 0;  // sprxpos (will be filled out when user assigns a position)
     self->data[1] = 0;  // sprxctl (will be filled out when user assigns a position)
 
-    *pOutSelf = self;
-    return EOK;
+    self->isAcquired = true;
 
 catch:
-    Sprite_Destroy(self);
-    *pOutSelf = NULL;
     return err;
 }
 
-void Sprite_Destroy(Sprite* _Nullable self)
+void Sprite_Relinquish(Sprite* _Nonnull self)
 {
-    if (self) {
-        kfree(self->data);
-        self->data = NULL;
-        
-        kfree(self);
-    }
+    kfree(self->data);
+    self->data = NULL;
+
+    self->isAcquired = false;
+    self->isVisible = false;
+    self->x = 0;
+    self->y = 0;
+    self->height = 0;
 }
 
 // Called when the position or visibility of a hardware sprite has changed.

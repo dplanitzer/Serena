@@ -26,7 +26,7 @@ size_t copper_comp_calclength(Screen* _Nonnull scr)
             + 1;                            // COP_END
 }
 
-copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, Screen* _Nonnull scr, Sprite* sprite[SPRITE_COUNT], Sprite* _Nonnull nullSprite, Sprite* _Nullable mouseCursor, bool isLightPenEnabled, bool isOddField)
+copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, Screen* _Nonnull scr, Sprite* sprite[SPRITE_COUNT], bool isLightPenEnabled, bool isOddField)
 {
     Surface* fb = scr->surface;
     const VideoConfiguration* cfg = &scr->vidConfig;
@@ -89,40 +89,17 @@ copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, Screen
 
 
     // SPRxPT
-    Sprite* spr;
     uint16_t dmaf_sprite = 0;
-    for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT-1; i++, r += 4) {
-        if (sprite[i]) {
-            spr = sprite[i];
-            dmaf_sprite = DMACONF_SPREN;
-        }
-        else {
-            spr = nullSprite;
-        }
+    for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
+        const uint32_t sprpt = (uint32_t)sprite[i]->data;
 
-
-        const uint32_t sprpt = (uint32_t)spr->data;
         *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
-    }
 
-
-    // SPR7PT
-    if (mouseCursor) {
-        spr = mouseCursor;
-        dmaf_sprite = DMACONF_SPREN;
+        if (sprite[i]->isAcquired) {
+            dmaf_sprite = DMACONF_SPREN;
+        }
     }
-    else if (sprite[SPRITE_COUNT-1]) {
-        spr = sprite[SPRITE_COUNT-1];
-        dmaf_sprite = DMACONF_SPREN;
-    }
-    else {
-        spr = nullSprite;
-    }
-
-    const uint32_t sprpt = (uint32_t)spr->data;
-    *ip++ = COP_MOVE(SPR7PTH, (sprpt >> 16) & UINT16_MAX);
-    *ip++ = COP_MOVE(SPR7PTL, sprpt & UINT16_MAX);
 
 
     // DIWSTART / DIWSTOP
@@ -146,6 +123,7 @@ copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, Screen
 
     // DMACON
     *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | DMACONF_BPLEN | dmaf_sprite | DMACONF_DMAEN);
+
 
     // COP_END
     *ip++ = COP_END();
