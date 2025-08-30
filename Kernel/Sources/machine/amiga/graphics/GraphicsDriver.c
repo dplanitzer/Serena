@@ -9,6 +9,7 @@
 #include "GraphicsDriverPriv.h"
 #include "copper.h"
 #include "copper_comp.h"
+#include <kern/kalloc.h>
 #include <kern/timespec.h>
 #include <kpi/fcntl.h>
 #include <kpi/hid.h>
@@ -32,19 +33,28 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     mtx_init(&self->io_mtx);
 
 
-    // Allocate the Copper tools
-    copper_init();
-
-
     // Allocate the null and mouse cursor sprite
     Sprite_Init(&self->mouseCursor);
     try(Sprite_Acquire(&self->mouseCursor, kMouseCursor_Width, kMouseCursor_Height, kMouseCursor_PixelFormat));
+    
+    try(kalloc_options(sizeof(uint16_t) * 6, KALLOC_OPTION_UNIFIED, (void**)&self->nullSpriteData));
+    self->nullSpriteData[0] = 0x1905;
+    self->nullSpriteData[1] = 0x1a00;
+    self->nullSpriteData[2] = 0;
+    self->nullSpriteData[3] = 0;
+    self->nullSpriteData[4] = 0;
+    self->nullSpriteData[5] = 0;
 
     for (int i = 0; i < SPRITE_COUNT; i++) {
         Sprite_Init(&self->sprite[i]);
-        self->spriteChannel[i] = &self->sprite[i];
+        self->spriteDmaPtr[i] = self->nullSpriteData;
     }
 
+
+    // Allocate the Copper scheduler
+    copper_init(self->nullSpriteData);
+
+    
     *pOutSelf = self;
     return EOK;
 
@@ -223,11 +233,11 @@ static errno_t create_copper_prog(GraphicsDriverRef _Nonnull self, Screen* _Nonn
     prog->even_entry = NULL;
     
     ip = prog->prog;
-    ip = copper_comp_compile(ip, scr, self->spriteChannel, isLightPenEnabled, true);
+    ip = copper_comp_compile(ip, scr, self->spriteDmaPtr, isLightPenEnabled, true);
 
     if (Screen_IsInterlaced(scr)) {
         prog->even_entry = ip;
-        ip = copper_comp_compile(ip, scr, self->spriteChannel, isLightPenEnabled, false);
+        ip = copper_comp_compile(ip, scr, self->spriteDmaPtr, isLightPenEnabled, false);
     }
 
 catch:
@@ -632,11 +642,12 @@ errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int width,
     }
 
     mtx_lock(&self->io_mtx);
-    if (self->spriteChannel[priority]->isAcquired) {
+    if (self->spriteDmaPtr[priority] != self->nullSpriteData) {
         throw(EBUSY);
     }
 
-    try(Sprite_Acquire(self->spriteChannel[priority], width, height, pixelFormat));
+    try(Sprite_Acquire(&self->sprite[priority], width, height, pixelFormat));
+    self->spriteDmaPtr[priority] = self->sprite[priority].data;
     self->flags.isNewCopperProgNeeded = 1;
 
 catch:
@@ -664,7 +675,7 @@ errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int spr
         // XXX actually free the old sprite instead of leaking it. Can't do this
         // XXX yet because we need to ensure that the DMA is no longer accessing
         // XXX the data before it freeing it.
-        self->spriteChannel[sprIdx]->isAcquired = false;
+        self->spriteDmaPtr[sprIdx] = self->nullSpriteData;
         self->flags.isNewCopperProgNeeded = 1;
     }
     else {
@@ -770,7 +781,7 @@ errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uin
     }
 
     if (oldMouseCursorEnabled != self->flags.mouseCursorEnabled) {
-        self->spriteChannel[MOUSE_SPRITE_PRI] = (self->flags.mouseCursorEnabled) ? &self->mouseCursor : &self->sprite[MOUSE_SPRITE_PRI];
+        self->spriteDmaPtr[MOUSE_SPRITE_PRI] = (self->flags.mouseCursorEnabled) ? self->mouseCursor.data : self->nullSpriteData;
         self->flags.isNewCopperProgNeeded = 1;
     }
     mtx_unlock(&self->io_mtx);

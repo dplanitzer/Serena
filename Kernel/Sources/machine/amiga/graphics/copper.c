@@ -127,17 +127,19 @@ errno_t copper_prog_create(size_t instr_count, copper_prog_t _Nullable * _Nonnul
 
 // Compiles a Copper program to display the null screen. The null screen shows
 // nothing.
-static errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutProg)
+static errno_t create_null_copper_prog(uint16_t* _Nonnull nullSpriteData, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     copper_prog_t prog = NULL;
-    const size_t instrCount = 1     // CLUT
+    const size_t instrCount = 
+              1                     // DMA (OFF)
+            + 1                     // CLUT
             + 3                     // BPLCON0, BPLCON1, BPLCON2
             + 2 * SPRITE_COUNT      // SPRxDATy
             + 2                     // DIWSTART, DIWSTOP
             + 2                     // DDFSTART, DDFSTOP
-            + 1                     // DMACON
-            + 1;                    // COP_END
+            + 1                     // DMACON (ON)
+            + 2;                    // COP_END
 
     err = copper_prog_create(instrCount, &prog);
     if (err != EOK) {
@@ -146,7 +148,7 @@ static errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutPr
 
     copper_instr_t* ip = prog->prog;
 
-    // DMACON
+    // DMACON (OFF)
     *ip++ = COP_MOVE(DMACON, DMACONF_BPLEN | DMACONF_SPREN);
 
 
@@ -161,9 +163,10 @@ static errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutPr
 
 
     // SPRxDATy
-    for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 8) {
-        *ip++ = COP_MOVE(r + SPR0DATA, 0);
-        *ip++ = COP_MOVE(r + SPR0DATB, 0);
+    const uint32_t sprpt = (uint32_t)nullSpriteData;
+    for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
+        *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
+        *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
     }
 
 
@@ -175,6 +178,10 @@ static errno_t create_null_copper_prog(copper_prog_t _Nullable * _Nonnull pOutPr
     // DDFSTART / DDFSTOP
     *ip++ = COP_MOVE(DDFSTART, 0x0038);
     *ip++ = COP_MOVE(DDFSTOP, 0x00d0);
+
+
+    // DMACON
+    *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | DMACONF_SPREN | DMACONF_DMAEN);
 
 
     // end instruction
@@ -201,12 +208,12 @@ static void _copper_prog_retire(copper_prog_t _Nonnull prog)
 }
 
 
-errno_t copper_init(void)
+errno_t copper_init(uint16_t* _Nonnull nullSpriteData)
 {
     decl_try_err();
 
     sem_init(&g_copper_notify_sem, 0);
-    try(create_null_copper_prog(&g_copper_null_prog));
+    try(create_null_copper_prog(nullSpriteData, &g_copper_null_prog));
 
     // Do a forced schedule of the null program
     g_copper_ready_prog = NULL;

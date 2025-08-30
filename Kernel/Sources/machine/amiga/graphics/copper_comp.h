@@ -25,6 +25,6 @@ extern size_t copper_comp_calclength(Screen* _Nonnull scr);
 // Compiles a screen refresh Copper program into the given buffer (which must be
 // big enough to store the program).
 // \return a pointer to where the next instruction after the program would go 
-extern copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, Screen* _Nonnull scr, Sprite* sprite[SPRITE_COUNT], bool isLightPenEnabled, bool isOddField);
+extern copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, Screen* _Nonnull scr, uint16_t* _Nonnull sprdma[SPRITE_COUNT], bool isLightPenEnabled, bool isOddField);
 
 #endif /* _COPPER_COMP_H */

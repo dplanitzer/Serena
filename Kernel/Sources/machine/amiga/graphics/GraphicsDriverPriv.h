@@ -25,7 +25,8 @@ final_class_ivars(GraphicsDriver, Driver,
     mtx_t               io_mtx;
     Screen* _Nonnull    screen;
 
-    Sprite* _Nonnull    spriteChannel[SPRITE_COUNT];
+    uint16_t* _Nonnull  nullSpriteData;
+    uint16_t* _Nonnull  spriteDmaPtr[SPRITE_COUNT];
     Sprite              sprite[SPRITE_COUNT];
     Sprite              mouseCursor;
     int16_t             hDiwStart;      // Visible screen space origin and sprite scaling

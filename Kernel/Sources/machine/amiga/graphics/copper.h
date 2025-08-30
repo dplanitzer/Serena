@@ -44,7 +44,7 @@ typedef struct copper_prog* copper_prog_t;
 
 extern errno_t copper_prog_create(size_t instr_count, copper_prog_t _Nullable * _Nonnull pOutProg);
 
-extern errno_t copper_init(void);
+extern errno_t copper_init(uint16_t* _Nonnull nullSpriteData);
 extern void copper_start(void);
 
 #define COPFLAG_WAIT_RUNNING    1
