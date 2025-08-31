@@ -14,8 +14,9 @@
 size_t copper_comp_calclength(Screen* _Nonnull scr)
 {
     Surface* fb = scr->surface;
+    ColorTable* clut = scr->clut;
 
-    return scr->clutEntryCount              // CLUT
+    return clut->entryCount                 // CLUT
             + 2 * fb->planeCount            // BPLxPT[nplanes]
             + 2                             // BPL1MOD, BPL2MOD
             + 3                             // BPLCON0, BPLCON1, BPLCON2
@@ -29,6 +30,7 @@ size_t copper_comp_calclength(Screen* _Nonnull scr)
 copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, Screen* _Nonnull scr, uint16_t* _Nonnull sprdma[SPRITE_COUNT], bool isLightPenEnabled, bool isOddField)
 {
     Surface* fb = scr->surface;
+    ColorTable* clut = scr->clut;
     const VideoConfiguration* cfg = &scr->vidConfig;
     const uint16_t w = Surface_GetWidth(fb);
     const uint16_t h = Surface_GetHeight(fb);
@@ -42,11 +44,8 @@ copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, Screen
     
 
     // CLUT
-    for (int i = 0, r = COLOR_BASE; i < scr->clutEntryCount; i++, r += 2) {
-        const CLUTEntry* ep = &scr->clut[i];
-        const uint16_t rgb12 = (ep->r >> 4 & 0x0f) << 8 | (ep->g >> 4 & 0x0f) << 4 | (ep->b >> 4 & 0x0f);
-
-        *ip++ = COP_MOVE(r, rgb12);
+    for (int i = 0, r = COLOR_BASE; i < clut->entryCount; i++, r += 2) {
+        *ip++ = COP_MOVE(r, clut->entry[i]);
     }
 
 
@@ -111,7 +110,7 @@ copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, Screen
     // DDFSTOP = low res: DDFSTART + 8*(nwords - 1); high res: DDFSTART + 4*(nwords - 2)
     const uint16_t nVisibleWords = w >> 4;
     const uint16_t ddfStart = (hStart >> 1) - ((isHires) ?  4 : 8);
-    const uint16_t ddfStop = ddfStart + ((isHires) ? 4*(nVisibleWords - 2) : 8*(nVisibleWords - 1));
+    const uint16_t ddfStop = ddfStart + ((isHires) ? (nVisibleWords - 2) << 2 : (nVisibleWords - 1) << 3);
     *ip++ = COP_MOVE(DDFSTART, ddfStart);
     *ip++ = COP_MOVE(DDFSTOP, ddfStop);
 

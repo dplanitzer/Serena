@@ -592,7 +592,8 @@ errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, int id, siz
     mtx_lock(&self->io_mtx);
     Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
     if (scr) {
-        err = Screen_SetCLUTEntry(scr, idx, color);
+        err = ColorTable_SetEntry(scr->clut, idx, color);
+        self->flags.isNewCopperProgNeeded = 1;
     }
     else {
         err = EINVAL;
@@ -610,7 +611,8 @@ errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, s
     mtx_lock(&self->io_mtx);
     Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
     if (scr) {
-        err = Screen_SetCLUTEntries(scr, idx, count, entries);
+        err = ColorTable_SetEntries(scr->clut, idx, count, entries);
+        self->flags.isNewCopperProgNeeded = 1;
     }
     else {
         err = EINVAL;

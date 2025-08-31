@@ -12,16 +12,9 @@
 #include <kern/errno.h>
 #include <kern/types.h>
 #include <klib/List.h>
+#include "ColorTable.h"
 #include "VideoConfiguration.h"
 #include "Surface.h"
-
-
-typedef struct CLUTEntry {
-    uint8_t     r;
-    uint8_t     g;
-    uint8_t     b;
-    uint8_t     flags;
-} CLUTEntry;
 
 
 enum {
@@ -33,8 +26,7 @@ enum {
 typedef struct Screen {
     ListNode                chain;
     Surface* _Nullable      surface;        // The screen pixels
-    CLUTEntry* _Nullable    clut;           // The screen color lookup table
-    int16_t                 clutEntryCount;
+    ColorTable* _Nullable   clut;           // The screen color lookup table
     uint16_t                flags;
     VideoConfiguration      vidConfig;
     int                     id;
@@ -71,8 +63,5 @@ if (__flag) { \
 ((((__self)->flags & kScreenFlag_IsVisible) == kScreenFlag_IsVisible) ? true : false)
 
 extern void Screen_GetPixelSize(Screen* _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
-
-extern errno_t Screen_SetCLUTEntry(Screen* _Nonnull self, size_t idx, RGBColor32 color);
-extern errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
 
 #endif /* Screen_h */
