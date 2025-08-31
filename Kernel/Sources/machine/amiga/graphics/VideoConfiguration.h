@@ -53,4 +53,9 @@ typedef struct _VideoConfigurationRange {
 extern errno_t VideoConfiguration_Validate(const VideoConfiguration* _Nonnull vidCfg, PixelFormat pixelFormat);
 extern errno_t VideoConfiguration_GetNext(VideoConfigurationRange* _Nonnull config, size_t bufSize, size_t* _Nonnull pIter);
 
+
+// Returns the numbers of colors available for a pixel for the given pixel format.
+// 0 is returned if the pixel format isn't supported.
+extern size_t PixelFormat_GetColorDepth(PixelFormat pm);
+
 #endif /* VideoConfiguration_h */

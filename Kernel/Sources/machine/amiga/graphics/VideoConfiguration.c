@@ -118,3 +118,20 @@ errno_t VideoConfiguration_GetNext(VideoConfigurationRange* _Nonnull config, siz
     *pIter = iter;
     return EOK;
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: PixelFormat
+
+size_t PixelFormat_GetColorDepth(PixelFormat pm)
+{
+    switch (pm) {
+        case kPixelFormat_RGB_Indexed1:     return 2;
+        case kPixelFormat_RGB_Indexed2:     return 4;
+        case kPixelFormat_RGB_Indexed3:     return 8;
+        case kPixelFormat_RGB_Indexed4:     return 16;
+        case kPixelFormat_RGB_Indexed5:     return 32;
+        default:                            return 0;
+    }
+}
