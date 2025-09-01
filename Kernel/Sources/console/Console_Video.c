@@ -55,15 +55,23 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     const int pixelsHeight = VideoConfiguration_GetPixelHeight(&vidCfg);
 
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface, pixelsWidth, pixelsHeight, kPixelFormat_RGB_Indexed3, &self->surfaceId));
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateScreen, &vidCfg, self->surfaceId, &self->screenId));
-
-
-    // Make our screen the current screen
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCurrentScreen, self->screenId));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateCLUT, 32, &self->clutId));
 
 
     // Install an ANSI color table
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCLUTEntries, self->screenId, 0, sizeof(gANSIColors), gANSIColors);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCLUTEntries, self->clutId, 0, sizeof(gANSIColors), gANSIColors);
+
+
+    // Make our screen the current screen
+    int sc[7];
+    sc[0] = SCREEN_CONFIG_FRAMEBUFFER;
+    sc[1] = self->surfaceId;
+    sc[2] = SCREEN_CONFIG_CLUT;
+    sc[3] = self->clutId;
+    sc[4] = SCREEN_CONFIG_FPS;
+    sc[5] = vidCfg.fps;
+    sc[6] = SCREEN_CONFIG_END;
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetScreenConfig, &sc[0]));
 
 
     // Get the framebuffer size
@@ -101,10 +109,10 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
 {
     IOChannel_Ioctl(self->fbChannel, kFBCommand_UnmapSurface, self->surfaceId);
 
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCurrentScreen, 0);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetScreenConfig, NULL);
 
     IOChannel_Ioctl(self->fbChannel, kFBCommand_RelinquishSprite, self->textCursor);
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroyScreen, self->screenId);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroyCLUT, self->clutId);
     IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroySurface, self->surfaceId);
     
     DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
@@ -122,7 +130,7 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
     clr[0] = gANSIColors[color.u.index];
     clr[1] = clr[0];
     clr[2] = clr[0];
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCLUTEntries, self->screenId, 17, 3, clr);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCLUTEntries, self->clutId, 17, 3, clr);
     IOChannel_Ioctl(self->fbChannel, kFBCommand_UpdateDisplay);
 }
 

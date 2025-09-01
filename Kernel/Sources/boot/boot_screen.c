@@ -22,7 +22,7 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
     GraphicsDriverRef gd = NULL;
     IOChannelRef chan = NULL;
     VideoConfiguration cfg;
-    int srf = -1, scr = -1;
+    int srf = -1, clut = -1;
 
     if (chipset_is_ntsc()) {
         cfg.width = 320;
@@ -47,7 +47,7 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
     if ((err = DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &chan)) == EOK) {
         // Create the surface and screen
         IOChannel_Ioctl(chan, kFBCommand_CreateSurface, cfg.width, cfg.height, kPixelFormat_RGB_Indexed1, &srf);
-        IOChannel_Ioctl(chan, kFBCommand_CreateScreen, &cfg, srf, &scr);
+        IOChannel_Ioctl(chan, kFBCommand_CreateCLUT, 32, &clut);
 
 
         // Define the screen colors
@@ -55,10 +55,10 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
             RGBColor32_Make(0xff, 0xff, 0xff),
             RGBColor32_Make(0x00, 0x00, 0x00)
         };
-        IOChannel_Ioctl(chan, kFBCommand_SetCLUTEntries, scr, 0, 2, clrs);
+        IOChannel_Ioctl(chan, kFBCommand_SetCLUTEntries, clut, 0, 2, clrs);
 
         bscr->chan = chan;
-        bscr->scr = scr;
+        bscr->clut = clut;
         bscr->srf = srf;
         bscr->width = cfg.width;
         bscr->height = cfg.height;
@@ -71,7 +71,15 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
 
 
         // Show the screen on the monitor
-        IOChannel_Ioctl(chan, kFBCommand_SetCurrentScreen, scr);
+        int sc[7];
+        sc[0] = SCREEN_CONFIG_FRAMEBUFFER;
+        sc[1] = bscr->srf;
+        sc[2] = SCREEN_CONFIG_CLUT;
+        sc[3] = bscr->clut;
+        sc[4] = SCREEN_CONFIG_FPS;
+        sc[5] = cfg.fps;
+        sc[6] = SCREEN_CONFIG_END;
+        IOChannel_Ioctl(chan, kFBCommand_SetScreenConfig, &sc[0]);
     }
 }
 
@@ -108,8 +116,8 @@ void close_boot_screen(const boot_screen_t* _Nonnull bscr)
     if (bscr->chan) {
         IOChannel_Ioctl(bscr->chan, kFBCommand_UnmapSurface, bscr->srf);
 
-        IOChannel_Ioctl(bscr->chan, kFBCommand_SetCurrentScreen, 0);
-        IOChannel_Ioctl(bscr->chan, kFBCommand_DestroyScreen, bscr->scr);
+        IOChannel_Ioctl(bscr->chan, kFBCommand_SetScreenConfig, NULL);
+        IOChannel_Ioctl(bscr->chan, kFBCommand_DestroyCLUT, bscr->clut);
         IOChannel_Ioctl(bscr->chan, kFBCommand_DestroySurface, bscr->srf);
         IOChannel_Release(bscr->chan);
     }

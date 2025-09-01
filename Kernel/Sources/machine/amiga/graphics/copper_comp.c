@@ -11,13 +11,10 @@
 
 
 
-size_t copper_comp_calclength(Screen* _Nonnull scr)
+size_t copper_comp_calclength(Surface* _Nonnull srf, ColorTable* _Nonnull clut)
 {
-    Surface* fb = scr->surface;
-    ColorTable* clut = scr->clut;
-
     return clut->entryCount                 // CLUT
-            + 2 * fb->planeCount            // BPLxPT[nplanes]
+            + 2 * srf->planeCount           // BPLxPT[nplanes]
             + 2                             // BPL1MOD, BPL2MOD
             + 3                             // BPLCON0, BPLCON1, BPLCON2
             + 2 * SPRITE_COUNT              // SPRxPT
@@ -27,14 +24,11 @@ size_t copper_comp_calclength(Screen* _Nonnull scr)
             + 2;                            // COP_END
 }
 
-copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, Screen* _Nonnull scr, uint16_t* _Nonnull sprdma[SPRITE_COUNT], bool isLightPenEnabled, bool isOddField)
+copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, const VideoConfiguration* _Nonnull cfg, Surface* _Nonnull srf, ColorTable* _Nonnull clut, uint16_t* _Nonnull sprdma[SPRITE_COUNT], bool isLightPenEnabled, bool isOddField)
 {
-    Surface* fb = scr->surface;
-    ColorTable* clut = scr->clut;
-    const VideoConfiguration* cfg = &scr->vidConfig;
-    const uint16_t w = Surface_GetWidth(fb);
-    const uint16_t h = Surface_GetHeight(fb);
-    const uint16_t bpr = Surface_GetBytesPerRow(fb);
+    const uint16_t w = Surface_GetWidth(srf);
+    const uint16_t h = Surface_GetHeight(srf);
+    const uint16_t bpr = Surface_GetBytesPerRow(srf);
     const bool isHires = VideoConfiguration_IsHires(cfg);
     const bool isLace = VideoConfiguration_IsInterlaced(cfg);
     const bool isPal = VideoConfiguration_IsPAL(cfg);
@@ -50,8 +44,8 @@ copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, Screen
 
 
     // BPLxPT
-    for (int i = 0, r = BPL_BASE; i < fb->planeCount; i++, r += 4) {
-        const uint32_t bplpt = (uint32_t)(fb->plane[i]) + firstLineByteOffset;
+    for (int i = 0, r = BPL_BASE; i < srf->planeCount; i++, r += 4) {
+        const uint32_t bplpt = (uint32_t)(srf->plane[i]) + firstLineByteOffset;
         
         *ip++ = COP_MOVE(r + 0, (bplpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);
@@ -67,7 +61,7 @@ copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, Screen
 
 
     // BPLCON0
-    uint16_t bplcon0 = BPLCON0F_COLOR | (uint16_t)((fb->planeCount & 0x07) << 12);
+    uint16_t bplcon0 = BPLCON0F_COLOR | (uint16_t)((srf->planeCount & 0x07) << 12);
 
     if (isLightPenEnabled) {
         bplcon0 |= BPLCON0F_LPEN;

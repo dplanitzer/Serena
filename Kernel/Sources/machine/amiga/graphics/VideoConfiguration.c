@@ -72,7 +72,6 @@ static const _VideoConfigurationRange gSupportedRanges[NUM_RANGES] = {
 },
 };
 
-
 errno_t VideoConfiguration_Validate(const VideoConfiguration* _Nonnull vidCfg, PixelFormat pixelFormat)
 {
     for (size_t i = 0; i < NUM_RANGES; i++) {

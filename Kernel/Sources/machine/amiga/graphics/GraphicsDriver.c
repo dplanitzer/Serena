@@ -30,6 +30,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     try(Driver_Create(class(GraphicsDriver), 0, g_cats, (DriverRef*)&self));
     self->nextSurfaceId = 1;
     self->nextScreenId = 1;
+    self->nextClutId = 1;
     mtx_init(&self->io_mtx);
 
 
@@ -122,18 +123,24 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
         }
 
 
-        case kFBCommand_CreateScreen: {
-            const VideoConfiguration* vc = va_arg(ap, const VideoConfiguration*);
-            const int sid = va_arg(ap, int);
+        case kFBCommand_CreateCLUT: {
+            const size_t entryCount = va_arg(ap, size_t);
             int* hnd = va_arg(ap, int*);
 
-            return GraphicsDriver_CreateScreen(self, vc, sid, hnd);
+            return GraphicsDriver_CreateCLUT(self, entryCount, hnd);
         }
 
-        case kFBCommand_DestroyScreen: {
-            const int hnd = va_arg(ap, int);
+        case kFBCommand_DestroyCLUT: {
+            int hnd = va_arg(ap, int);
 
-            return GraphicsDriver_DestroyScreen(self, hnd);
+            return GraphicsDriver_DestroyCLUT(self, hnd);
+        }
+
+        case kFBCommand_GetCLUTInfo: {
+            int hnd = va_arg(ap, int);
+            CLUTInfo* ci = va_arg(ap, CLUTInfo*);
+
+            return GraphicsDriver_GetCLUTInfo(self, hnd, ci);
         }
 
         case kFBCommand_SetCLUTEntries: {
@@ -144,6 +151,7 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
 
             return GraphicsDriver_SetCLUTEntries(self, hnd, idx, count, colors);
         }
+
 
         case kFBCommand_AcquireSprite: {
             const int width = va_arg(ap, int);
@@ -184,14 +192,14 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
         }
 
 
-        case kFBCommand_SetCurrentScreen: {
-            const int hnd = va_arg(ap, int);
+        case kFBCommand_SetScreenConfig: {
+            const int* cp = va_arg(ap, const int*);
 
-            return GraphicsDriver_SetCurrentScreen(self, hnd);
+            return GraphicsDriver_SetScreenConfig(self, cp);
         }
 
         case kFBCommand_GetCurrentScreen:
-            return GraphicsDriver_GetCurrentScreen(self);
+            return 0; //GraphicsDriver_GetCurrentScreen(self);
 
         case kFBCommand_UpdateDisplay:
             return GraphicsDriver_UpdateDisplay(self);
@@ -220,11 +228,11 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
 // Creates the even and odd field Copper programs for the given screen. There will
 // always be at least an odd field program. The even field program will only exist
 // for an interlaced screen.
-static errno_t create_copper_prog(GraphicsDriverRef _Nonnull self, Screen* _Nonnull scr, copper_prog_t _Nullable * _Nonnull pOutProg)
+static errno_t create_copper_prog(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull cfg, Surface* _Nonnull srf, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     const bool isLightPenEnabled = self->flags.isLightPenEnabled;
-    const size_t instrCount = copper_comp_calclength(scr);
+    const size_t instrCount = copper_comp_calclength(srf, clut);
     copper_prog_t prog = NULL;
     copper_instr_t* ip;
 
@@ -233,11 +241,11 @@ static errno_t create_copper_prog(GraphicsDriverRef _Nonnull self, Screen* _Nonn
     prog->even_entry = NULL;
     
     ip = prog->prog;
-    ip = copper_comp_compile(ip, scr, self->spriteDmaPtr, isLightPenEnabled, true);
+    ip = copper_comp_compile(ip, cfg, srf, clut, self->spriteDmaPtr, isLightPenEnabled, true);
 
-    if (Screen_IsInterlaced(scr)) {
+    if (VideoConfiguration_IsInterlaced(cfg)) {
         prog->even_entry = ip;
-        ip = copper_comp_compile(ip, scr, self->spriteDmaPtr, isLightPenEnabled, false);
+        ip = copper_comp_compile(ip, cfg, srf, clut, self->spriteDmaPtr, isLightPenEnabled, false);
     }
 
 catch:
@@ -246,50 +254,95 @@ catch:
     return err;
 }
 
+static int _get_config_value(const int* _Nonnull config, int key, int def)
+{
+    while (*config != SCREEN_CONFIG_END) {
+        if (*config == key) {
+            return *(config + 1);
+        }
+        config++;
+    }
+
+    return def;
+}
+
+static errno_t _create_fb(GraphicsDriverRef _Nonnull self, const int* _Nonnull config, Surface* _Nullable * _Nonnull pOutFb)
+{
+    int fb_id = _get_config_value(config, SCREEN_CONFIG_FRAMEBUFFER, 0);
+    Surface* fb = _GraphicsDriver_GetSurfaceForId(self, fb_id);
+
+    *pOutFb = fb;
+    return EOK;
+}
+
+static errno_t _create_fb_clut(GraphicsDriverRef _Nonnull self, const int* _Nonnull config, ColorTable* _Nullable * _Nonnull pOutClut)
+{
+    int clut_id = _get_config_value(config, SCREEN_CONFIG_CLUT, 0);
+    ColorTable* clut = _GraphicsDriver_GetClutForId(self, clut_id);
+
+    *pOutClut = clut;
+    return EOK;
+}
+
 // Sets the given screen as the current screen on the graphics driver. All graphics
 // command apply to this new screen once this function has returned.
-// \param scr the new screen
-// \return the error code
-static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull _Locked self, Screen* _Nullable scr)
+static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull _Locked self, const int* _Nullable config)
 {
     decl_try_err();
-    Screen* pOldScreen = self->screen;
+    Surface* oldFb = self->fb;
+    ColorTable* oldClut = self->clut;
     copper_prog_t prog = NULL;
     
 
-    // Can't show a screen that's already being shown
-    if (scr && Screen_IsVisible(scr)) {
-        return EBUSY;
-    }
-
-
     // Compile the Copper program(s) for the new screen
-    if (scr) {
-        err = create_copper_prog(self, scr, &prog);
+    if (config) {
+        Surface* fb = NULL;
+        ColorTable* clut = NULL;
+        int fps = _get_config_value(config, SCREEN_CONFIG_FPS, 0);
+        VideoConfiguration vc;
+
+        err = _create_fb(self, config, &fb);
         if (err != EOK) {
             return err;
         }
-    }
+        err = _create_fb_clut(self, config, &clut);
+        if (err != EOK) {
+            return err;
+        }
 
+        vc.width = Surface_GetWidth(fb);
+        vc.height = Surface_GetHeight(fb);
+        vc.fps = fps;
 
-    // Update the display configuration.
-    self->screen = scr;
-    if (scr) {
-        const bool isPal = VideoConfiguration_IsPAL(&scr->vidConfig);
-        const bool isHires = VideoConfiguration_IsHires(&scr->vidConfig);
-        const bool isLace = VideoConfiguration_IsInterlaced(&scr->vidConfig);
+        err = create_copper_prog(self, &vc, fb, clut, &prog);
+        if (err != EOK) {
+            return err;
+        }
 
-        Screen_SetVisible(scr, true);
+        const bool isPal = VideoConfiguration_IsPAL(&vc);
+        const bool isHires = VideoConfiguration_IsHires(&vc);
+        const bool isLace = VideoConfiguration_IsInterlaced(&vc);
+
         self->hDiwStart = isPal ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
         self->vDiwStart = isPal ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
         self->hSprScale = isHires ? 0x01 : 0x00;
         self->vSprScale = isLace ? 0x01 : 0x00;
-    } 
+
+        self->vc = vc;
+        self->fb = fb;
+        self->clut = clut;
+        Surface_BeginUse(fb);
+        ColorTable_BeginUse(clut);
+    }
     else {
         self->hDiwStart = 0;
         self->vDiwStart = 0;
         self->hSprScale = 0;
         self->vSprScale = 0;
+
+        self->vc = (VideoConfiguration){0};
+        self->fb = NULL;
+        self->clut = NULL;
     } 
 
 
@@ -300,36 +353,30 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
 
 
     // Free the old screen
-    if (pOldScreen) {
-        Screen_SetVisible(pOldScreen, false);
-        Screen_Destroy(pOldScreen);
+    if (oldClut) {
+        ColorTable_EndUse(oldClut);
+        if (!ColorTable_IsUsed(oldClut)) {
+            ColorTable_Destroy(oldClut);
+        }
+    }
+    if (oldFb) {
+        Surface_EndUse(oldFb);
+        if (!Surface_IsUsed(oldFb)) {
+            Surface_Destroy(oldFb);
+        }
     }
 
     return EOK;
 }
 
-errno_t GraphicsDriver_SetCurrentScreen(GraphicsDriverRef _Nonnull self, int screenId)
+errno_t GraphicsDriver_SetScreenConfig(GraphicsDriverRef _Nonnull self, const int* _Nullable config)
 {
     decl_try_err();
 
     mtx_lock(&self->io_mtx);
-    Screen* scr = _GraphicsDriver_GetScreenForId(self, screenId);
-    if (scr || screenId == 0) {
-        err = GraphicsDriver_SetCurrentScreen_Locked(self, scr);
-    }
-    else {
-        err = EINVAL;
-    }
+    err = GraphicsDriver_SetScreenConfig_Locked(self, config);
     mtx_unlock(&self->io_mtx);
     return err;
-}
-
-int GraphicsDriver_GetCurrentScreen(GraphicsDriverRef _Nonnull self)
-{
-    mtx_lock(&self->io_mtx);
-    int id = (self->screen) ? Surface_GetId(self->screen) : 0;
-    mtx_unlock(&self->io_mtx);
-    return id;
 }
 
 // Triggers an update of the display so that it accurately reflects the current
@@ -339,15 +386,13 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
     decl_try_err();
 
     mtx_lock(&self->io_mtx);
-    Screen* scr = self->screen;
 
-    if (scr && (self->flags.isNewCopperProgNeeded || Screen_NeedsUpdate(scr))) {
+    if (self->flags.isNewCopperProgNeeded) {
         copper_prog_t prog = NULL;
 
-        err = create_copper_prog(self, scr, &prog);
+        err = create_copper_prog(self, &self->vc, self->fb, self->clut, &prog);
         if (err == EOK) {
             copper_schedule(prog, 0);
-            scr->flags &= ~kScreenFlag_IsNewCopperProgNeeded;
             self->flags.isNewCopperProgNeeded = 0;
         }
     }
@@ -359,8 +404,9 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
 void GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
 {
     mtx_lock(&self->io_mtx);
-    if (self->screen) {
-        Screen_GetPixelSize(self->screen, pOutWidth, pOutHeight);
+    if (self->fb) {
+        *pOutWidth = Surface_GetWidth(self->fb);
+        *pOutHeight = Surface_GetHeight(self->fb);
     }
     else {
         *pOutWidth = 0;
@@ -494,20 +540,20 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Screens
+// MARK: CLUT
 ////////////////////////////////////////////////////////////////////////////////
 
-static int _GraphicsDriver_GetNewScreenId(GraphicsDriverRef _Nonnull _Locked self)
+static int _GraphicsDriver_GetNewClutId(GraphicsDriverRef _Nonnull _Locked self)
 {
     bool hasCollision = true;
     int id;
 
     while (hasCollision) {
         hasCollision = false;
-        id = self->nextScreenId++;
+        id = self->nextClutId++;
 
-        List_ForEach(&self->screens, Screen,
-            if (Screen_GetId(pCurNode) == id) {
+        List_ForEach(&self->colorTables, ColorTable,
+            if (pCurNode->id == id) {
                 hasCollision = true;
                 break;
             }
@@ -516,47 +562,40 @@ static int _GraphicsDriver_GetNewScreenId(GraphicsDriverRef _Nonnull _Locked sel
     return id;
 }
 
-static Screen* _Nullable _GraphicsDriver_GetScreenForId(GraphicsDriverRef _Nonnull self, int id)
+static ColorTable* _Nullable _GraphicsDriver_GetClutForId(GraphicsDriverRef _Nonnull self, int id)
 {
-    List_ForEach(&self->screens, Screen,
-        if (Screen_GetId(pCurNode) == id) {
+    List_ForEach(&self->colorTables, ColorTable,
+        if (pCurNode->id == id) {
             return pCurNode;
         }
     );
     return NULL;
 }
 
-errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, int surfaceId, int* _Nonnull pOutId)
+errno_t GraphicsDriver_CreateCLUT(GraphicsDriverRef _Nonnull self, size_t colorDepth, int* _Nonnull pOutId)
 {
+    ColorTable* clut;
+
     mtx_lock(&self->io_mtx);
-
-    decl_try_err();
-    Screen* scr;
-    Surface* srf = _GraphicsDriver_GetSurfaceForId(self, surfaceId);
-    
-    if (srf == NULL) {
-        throw(EINVAL);
+    const errno_t err = ColorTable_Create(_GraphicsDriver_GetNewClutId(self), colorDepth, &clut);
+    if (err == EOK) {
+        List_InsertBeforeFirst(&self->colorTables, &clut->chain);
+        *pOutId = clut->id;
     }
-
-    try(VideoConfiguration_Validate(vidCfg, Surface_GetPixelFormat(srf)));
-    try(Screen_Create(_GraphicsDriver_GetNewScreenId(self), vidCfg, srf, &scr));
-    List_InsertBeforeFirst(&self->screens, &scr->chain);
-    *pOutId = Screen_GetId(scr);
-
-catch:
     mtx_unlock(&self->io_mtx);
     return err;
 }
 
-errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, int id)
+errno_t GraphicsDriver_DestroyCLUT(GraphicsDriverRef _Nonnull self, int id)
 {
     decl_try_err();
 
     mtx_lock(&self->io_mtx);
-    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
-    if (scr) {
-        if (!Screen_IsVisible(scr)) {
-            Screen_Destroy(scr);
+    ColorTable* clut = _GraphicsDriver_GetClutForId(self, id);
+
+    if (clut) {
+        if (!ColorTable_IsUsed(clut)) {
+            ColorTable_Destroy(clut);
         }
         else {
             err = EBUSY;
@@ -569,8 +608,54 @@ errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, int id)
     return err;
 }
 
+errno_t GraphicsDriver_GetCLUTInfo(GraphicsDriverRef _Nonnull self, int id, CLUTInfo* _Nonnull pOutInfo)
+{
+    decl_try_err();
+
+    mtx_lock(&self->io_mtx);
+    ColorTable* clut = _GraphicsDriver_GetClutForId(self, id);
+
+    if (clut) {
+        pOutInfo->entryCount = clut->entryCount;
+    }
+    else {
+        err = EINVAL;
+    }
+    mtx_unlock(&self->io_mtx);
+    return EOK;
+}
+
+// Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
+// to the colors in the array 'entries'.
+errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
+{
+    decl_try_err();
+
+    mtx_lock(&self->io_mtx);
+    ColorTable* clut = _GraphicsDriver_GetClutForId(self, id);
+    if (clut) {
+        err = ColorTable_SetEntries(clut, idx, count, entries);
+        if (clut == self->clut) {
+            self->flags.isNewCopperProgNeeded = 1;
+        }
+    }
+    else {
+        err = EINVAL;
+    }
+    mtx_unlock(&self->io_mtx);
+    return err;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Screens
+////////////////////////////////////////////////////////////////////////////////
+
 errno_t GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, int id, VideoConfiguration* _Nonnull pOutVidConfig)
 {
+    return EINVAL;
+    /*
     mtx_lock(&self->io_mtx);
     decl_try_err();
     Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
@@ -582,43 +667,7 @@ errno_t GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, in
     }
     mtx_unlock(&self->io_mtx);
     return err;
-}
-
-// Writes the given RGB color to the color register at index idx
-errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, int id, size_t idx, RGBColor32 color)
-{
-    decl_try_err();
-
-    mtx_lock(&self->io_mtx);
-    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
-    if (scr) {
-        err = ColorTable_SetEntry(scr->clut, idx, color);
-        self->flags.isNewCopperProgNeeded = 1;
-    }
-    else {
-        err = EINVAL;
-    }
-    mtx_unlock(&self->io_mtx);
-    return err;
-}
-
-// Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
-// to the colors in the array 'entries'.
-errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
-{
-    decl_try_err();
-
-    mtx_lock(&self->io_mtx);
-    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
-    if (scr) {
-        err = ColorTable_SetEntries(scr->clut, idx, count, entries);
-        self->flags.isNewCopperProgNeeded = 1;
-    }
-    else {
-        err = EINVAL;
-    }
-    mtx_unlock(&self->io_mtx);
-    return err;
+    */
 }
 
 

@@ -25,13 +25,26 @@ typedef struct CLUTEntry {
 
 typedef struct ColorTable {
     ListNode    chain;
+    int         id;
+    int         useCount;
     size_t      entryCount;
     uint16_t    entry[1];
 } ColorTable;
 
 
-extern errno_t ColorTable_Create(size_t entryCount, ColorTable* _Nullable * _Nonnull pOutSelf);
+extern errno_t ColorTable_Create(int id, size_t entryCount, ColorTable* _Nullable * _Nonnull pOutSelf);
 extern void ColorTable_Destroy(ColorTable* _Nullable self);
+
+
+#define ColorTable_BeginUse(__self) \
+((__self)->useCount++)
+
+#define ColorTable_EndUse(__self) \
+((__self)->useCount--)
+
+#define ColorTable_IsUsed(__self) \
+((__self)->useCount > 0)
+
 
 extern errno_t ColorTable_SetEntry(ColorTable* _Nonnull self, size_t idx, RGBColor32 color);
 extern errno_t ColorTable_SetEntries(ColorTable* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);

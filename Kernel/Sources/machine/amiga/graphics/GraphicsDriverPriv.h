@@ -15,15 +15,19 @@
 #include <klib/List.h>
 #include <sched/mtx.h>
 #include <sched/sem.h>
-#include "Screen.h"
+#include "ColorTable.h"
 #include "Sprite.h"
+#include "Surface.h"
 
 
 #define MOUSE_SPRITE_PRI 7
 
 final_class_ivars(GraphicsDriver, Driver,
     mtx_t               io_mtx;
-    Screen* _Nonnull    screen;
+
+    Surface* _Nullable      fb;
+    ColorTable* _Nullable   clut;
+    VideoConfiguration      vc;
 
     uint16_t* _Nonnull  nullSpriteData;
     uint16_t* _Nonnull  spriteDmaPtr[SPRITE_COUNT];
@@ -35,9 +39,11 @@ final_class_ivars(GraphicsDriver, Driver,
     int16_t             vSprScale;
 
     List                surfaces;
+    List                colorTables;
     List                screens;
     int                 nextSurfaceId;
     int                 nextScreenId;
+    int                 nextClutId;
     struct __GDFlags {
         unsigned int        isLightPenEnabled;  // Applies to all screens
         unsigned int        mouseCursorEnabled; // Applies to all screens
@@ -48,6 +54,7 @@ final_class_ivars(GraphicsDriver, Driver,
 
 
 extern int GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self);
-static Screen* _Nullable _GraphicsDriver_GetScreenForId(GraphicsDriverRef _Nonnull self, int id);
+static Surface* _Nullable _GraphicsDriver_GetSurfaceForId(GraphicsDriverRef _Nonnull self, int id);
+static ColorTable* _Nullable _GraphicsDriver_GetClutForId(GraphicsDriverRef _Nonnull self, int id);
 
 #endif /* GraphicsDriverPriv_h */

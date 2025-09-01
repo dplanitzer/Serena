@@ -48,6 +48,12 @@ typedef struct SurfaceMapping {
 } SurfaceMapping;
 
 
+// CLUT information
+typedef struct CLUTInfo {
+    size_t  entryCount;
+} CLUTInfo;
+
+
 typedef struct VideoConfigurationRange {
     int         width;
     int         height;
@@ -123,25 +129,25 @@ typedef unsigned int RGBColor32;
 
 
 //
-// Screens
+// CLUTs
 //
 
-// Creates a new screen based on the given screen configuration. The screen is
-// not visible by default. Make it visible by calling set_current_screen() with
-// the id that this function returns.
-// create_screen(const VideoConfiguration* _Nonnull cfg, int surfaceId, int* _Nonnull pOutId)
-#define kFBCommand_CreateScreen     IOResourceCommand(kDriverCommand_SubclassBase + 32)
+// Creates a new CLUT with 'entryCount' color entries.
+// create_clut(size_t entryCount, int* _Nonnull pOutId)
+#define kFBCommand_CreateCLUT       IOResourceCommand(kDriverCommand_SubclassBase + 10)
 
-// Destroys the screen with id 'id'. Returns EBUSY if the screen is currently
-// being shown on the display.
-// destroy_screen(int id)
-#define kFBCommand_DestroyScreen    IOResourceCommand(kDriverCommand_SubclassBase + 33)
+// Destroys the CLUT with id 'id'. Returns EBUSY if the CLUT is currently in use.
+// destroy_clut(int id)
+#define kFBCommand_DestroyCLUT      IOResourceCommand(kDriverCommand_SubclassBase + 11)
 
+// Returns information about the CLUT 'id'.
+// get_clut_info(int id, CLUTInfo* _Nonnull pOutInfo)
+#define kFBCommand_GetCLUTInfo      IOResourceCommand(kDriverCommand_SubclassBase + 12)
 
-// Updates the CLUT entries of the screen 'id'. 'count' entries starting at index
+// Updates the color entries if the CLUT 'id'. 'count' entries starting at index
 // 'idx' are replaced with the color values stored in the array 'entries'.
 // set_clut_entries(int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
-#define kFBCommand_SetCLUTEntries   IOResourceCommand(kDriverCommand_SubclassBase + 34)
+#define kFBCommand_SetCLUTEntries  IOResourceCommand(kDriverCommand_SubclassBase + 13)
 
 
 // Acquire the sprite with display priority 'priority'. The sprite has a size of
@@ -177,10 +183,16 @@ typedef unsigned int RGBColor32;
 // Display
 //
 
-// Makes the screen 'id' the current screen visible to the user. Call this
-// function with a screen id of 0 to turn video output off altogether.
-// set_current_screen(int id)
-#define kFBCommand_SetCurrentScreen IOResourceCommand(kDriverCommand_SubclassBase + 64)
+#define SCREEN_CONFIG_FRAMEBUFFER   1
+#define SCREEN_CONFIG_CLUT          2
+#define SCREEN_CONFIG_FPS           3
+#define SCREEN_CONFIG_END           0
+
+// Configures the screen based on the given screen configuration. Pass NULL to
+// turn video output off altogether.
+// set_screen_config(const int* _Nullable config)
+#define kFBCommand_SetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 100)
+
 
 // Returns the unique id of the currently visible screen. 0 is returned if no
 // screen is visible and video is turned off.

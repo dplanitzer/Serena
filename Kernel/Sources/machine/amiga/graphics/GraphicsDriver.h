@@ -11,7 +11,6 @@
 
 #include <driver/Driver.h>
 #include <kpi/fb.h>
-#include "Screen.h"
 #include "VideoConfiguration.h"
 
 
@@ -30,14 +29,15 @@ extern errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, int id
 extern errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id);
 
 
-// Screens
-extern errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, int surfaceId, int* _Nonnull pOutId);
-extern errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, int id);
-
-extern errno_t GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, int id, VideoConfiguration* _Nonnull pOutVidConfig);
-
-extern errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, int id, size_t idx, RGBColor32 color);
+// CLUT
+extern errno_t GraphicsDriver_CreateCLUT(GraphicsDriverRef _Nonnull self, size_t colorDepth, int* _Nonnull pOutId);
+extern errno_t GraphicsDriver_DestroyCLUT(GraphicsDriverRef _Nonnull self, int id);
+extern errno_t GraphicsDriver_GetCLUTInfo(GraphicsDriverRef _Nonnull self, int id, CLUTInfo* _Nonnull pOutInfo);
 extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
+
+
+// Screens
+extern errno_t GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, int id, VideoConfiguration* _Nonnull pOutVidConfig);
 
 
 // Sprites
@@ -49,8 +49,7 @@ extern errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, 
 
 
 // Display
-extern errno_t GraphicsDriver_SetCurrentScreen(GraphicsDriverRef _Nonnull self, int screenId);
-extern int GraphicsDriver_GetCurrentScreen(GraphicsDriverRef _Nonnull self);
+extern errno_t GraphicsDriver_SetScreenConfig(GraphicsDriverRef _Nonnull self, const int* _Nullable config);
 
 extern errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self);
 extern void GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);

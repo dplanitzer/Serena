@@ -10,7 +10,7 @@
 #include <kern/kalloc.h>
 
 
-errno_t ColorTable_Create(size_t entryCount, ColorTable* _Nullable * _Nonnull pOutSelf)
+errno_t ColorTable_Create(int id, size_t entryCount, ColorTable* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ColorTable* self;
@@ -31,6 +31,8 @@ errno_t ColorTable_Create(size_t entryCount, ColorTable* _Nullable * _Nonnull pO
     }
 
     try(kalloc_cleared(sizeof(ColorTable) + (entryCount - 1) * sizeof(uint16_t), (void**) &self));
+    self->useCount = 0;
+    self->id = id;
     self->entryCount = entryCount;
 
 catch:

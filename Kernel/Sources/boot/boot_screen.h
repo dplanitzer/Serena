@@ -14,7 +14,7 @@
 
 typedef struct boot_screen {
     IOChannelRef _Nullable  chan;
-    int                     scr;
+    int                     clut;
     int                     srf;
     size_t                  width;
     size_t                  height;

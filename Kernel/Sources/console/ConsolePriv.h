@@ -157,7 +157,7 @@ final_class_ivars(Console, PseudoDriver,
 
     GraphicsDriverRef _Nonnull  fb;
     IOChannelRef _Nonnull       fbChannel;
-    int                         screenId;
+    int                         clutId;
     int                         surfaceId;
     SurfaceMapping              pixels;
     int                         pixelsWidth;
