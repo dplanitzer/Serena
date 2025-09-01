@@ -9,6 +9,93 @@
 #include "GraphicsDriverPriv.h"
 
 
+static errno_t _create_copper_prog(GraphicsDriverRef _Nonnull _Locked self, size_t instr_count, copper_prog_t _Nullable * _Nonnull pOutProg)
+{
+    decl_try_err();
+    copper_prog_t prog = NULL;
+    copper_prog_t cp = self->copperProgCache;
+    copper_prog_t pp = NULL;
+
+    // Find a retired program that is big enough to hold 'instr_count' instructions 
+    while (cp) {
+        if (cp->prog_size >= instr_count) {
+            if (pp) {
+                pp->next = cp->next;
+            }
+            else {
+                self->copperProgCache = cp->next;
+            }
+
+            prog = cp;
+            prog->next = NULL;
+            self->copperProgCacheCount--;
+            break;
+        }
+        pp = cp;
+        cp = cp->next;
+    }
+
+
+    // Allocate a new program if we aren't able to reuse a retired program
+    if (prog == NULL) {
+        err = copper_prog_create(instr_count, &prog);
+        if (err != EOK) {
+            return err;
+        }
+    }
+
+
+    // Prepare the program state
+    prog->state = COP_STATE_IDLE;
+    prog->odd_entry = prog->prog;
+    prog->even_entry = NULL;
+
+
+    *pOutProg = prog;
+    return EOK;
+}
+
+static void _cache_copper_prog(GraphicsDriverRef _Nonnull _Locked self, copper_prog_t _Nonnull prog)
+{
+    if (self->copperProgCacheCount >= MAX_CACHED_COPPER_PROGS) {
+        copper_prog_destroy(prog);
+        return;
+    }
+
+    if (self->copperProgCache) {
+        prog->next = self->copperProgCache;
+        self->copperProgCache = prog;
+    }
+    else {
+        prog->next = NULL;
+        self->copperProgCache = prog;
+    }
+    self->copperProgCacheCount++;
+}
+
+
+void GraphicsDriver_CopperManager(GraphicsDriverRef _Nonnull self)
+{
+    mtx_lock(&self->io_mtx);
+
+    for (;;) {
+        copper_prog_t prog;
+        int signo;
+
+        while ((prog = copper_acquire_retired_prog()) != NULL) {
+            _cache_copper_prog(self, prog);
+        }
+
+
+        mtx_unlock(&self->io_mtx);
+        vcpu_sigwait(&self->copvpWaitQueue, &self->copvpSigs, &signo);
+        mtx_lock(&self->io_mtx);
+    }
+
+    mtx_unlock(&self->io_mtx);
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
 // MARK: Null Program
@@ -28,7 +115,7 @@ errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked s
             + 1                     // DMACON (ON)
             + 2;                    // COP_END
 
-    err = copper_prog_create(instrCount, &prog);
+    err = _create_copper_prog(self, instrCount, &prog);
     if (err != EOK) {
         return err;
     }
@@ -214,7 +301,7 @@ errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull self, c
     
     const size_t instrCount = copper_comp_calclength(&params);
 
-    try(copper_prog_create(instrCount, &prog));
+    try(_create_copper_prog(self, instrCount, &prog));
     prog->odd_entry = prog->prog;
     prog->even_entry = NULL;
     

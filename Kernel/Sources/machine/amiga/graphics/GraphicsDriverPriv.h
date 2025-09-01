@@ -13,12 +13,19 @@
 #include <machine/amiga/chipset.h>
 #include <machine/irq.h>
 #include <klib/List.h>
+#include <process/Process.h>
 #include <sched/mtx.h>
 #include <sched/sem.h>
+#include <sched/vcpu.h>
+#include <sched/waitqueue.h>
 #include "copper.h"
 #include "ColorTable.h"
 #include "Sprite.h"
 #include "Surface.h"
+
+
+// Signal sent by the Copper scheduler when a Copper program has been retired
+#define SIGCOPRET  2
 
 
 typedef struct copper_params {
@@ -50,6 +57,7 @@ typedef struct hw_conf {
 
 
 #define MOUSE_SPRITE_PRI 7
+#define MAX_CACHED_COPPER_PROGS 4
 
 final_class_ivars(GraphicsDriver, Driver,
     mtx_t               io_mtx;
@@ -57,6 +65,13 @@ final_class_ivars(GraphicsDriver, Driver,
     Surface* _Nullable      fb;
     ColorTable* _Nullable   clut;
     void* _Nullable         hwc;
+
+    vcpu_t _Nonnull         copvp;
+    struct waitqueue        copvpWaitQueue;
+    sigset_t                copvpSigs;
+
+    copper_prog_t _Nullable copperProgCache;
+    size_t                  copperProgCacheCount;
 
     uint16_t* _Nonnull  nullSpriteData;
     uint16_t* _Nonnull  spriteDmaPtr[SPRITE_COUNT];
@@ -81,6 +96,8 @@ final_class_ivars(GraphicsDriver, Driver,
     }                   flags;
 );
 
+
+extern void GraphicsDriver_CopperManager(GraphicsDriverRef _Nonnull self);
 
 // Compiles a Copper program to display the null screen. The null screen shows
 // nothing.

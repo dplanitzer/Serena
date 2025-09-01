@@ -51,12 +51,30 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     }
 
 
-    // Create a null Copper program and get it running
+    // Create a null Copper program
     copper_prog_t nullCopperProg;
     try(GraphicsDriver_CreateNullCopperProg(self, &nullCopperProg));
-    copper_init(nullCopperProg);
+
+
+    // Allocate the Copper management VCPU
+    wq_init(&self->copvpWaitQueue);
+    self->copvpSigs = _SIGBIT(SIGCOPRET);
+
+    _vcpu_acquire_attr_t attr;
+    attr.func = (vcpu_func_t)GraphicsDriver_CopperManager;
+    attr.arg = self;
+    attr.stack_size = 0;
+    attr.groupid = VCPUID_MAIN_GROUP;
+    attr.sched_params.qos = VCPU_QOS_INTERACTIVE;
+    attr.sched_params.priority = VCPU_PRI_NORMAL - 1;
+    attr.flags = 0;
+    attr.data = 0;
+    try(Process_AcquireVirtualProcessor(gKernelProcess, &attr, &self->copvp));
 
     
+    // Initialize the Copper scheduler
+    copper_init(nullCopperProg, SIGCOPRET, self->copvp);
+
     *pOutSelf = self;
     return EOK;
 
@@ -80,6 +98,7 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
     err = Driver_Publish((DriverRef)self, &de);
     if (err == EOK) {
         copper_start();
+        vcpu_resume(self->copvp, false);
     }
     return err;
 }

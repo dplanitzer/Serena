@@ -23,20 +23,10 @@ static copper_prog_t _Nullable  g_copper_ready_prog;
 static copper_prog_t _Nonnull   g_copper_running_prog;
 static copper_prog_t _Nullable  g_copper_retired_progs;
 static sem_t                    g_copper_notify_sem;
+static int                      g_retire_signo;
+static vcpu_t _Nullable         g_retire_vcpu;
 static int8_t                   g_copper_is_running_interlaced;
 
-
-// Frees the given Copper program.
-static void copper_prog_destroy(copper_prog_t _Nullable prog)
-{
-    if (prog) {
-        kfree(prog->prog);
-        prog->prog = NULL;
-        prog->even_entry = NULL;
-        prog->odd_entry = NULL;
-    }
-    kfree(prog);
-}
 
 errno_t copper_prog_create(size_t instr_count, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
@@ -47,74 +37,22 @@ errno_t copper_prog_create(size_t instr_count, copper_prog_t _Nullable * _Nonnul
         return EINVAL;
     }
 
-    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-    copper_prog_t cp = g_copper_retired_progs;
-    copper_prog_t pp = NULL;
-    copper_prog_t gc_head = NULL;
-    int retired_count = 0;
-
-    // Find a retired program that is big enough to hold 'instr_count' instructions 
-    while (cp) {
-        if (cp->prog_size >= instr_count) {
-            if (pp) {
-                pp->next = cp->next;
-            }
-            else {
-                g_copper_retired_progs = cp->next;
-            }
-
-            prog = cp;
-            prog->next = NULL;
-            break;
-        }
-        pp = cp;
-        cp = cp->next;
-    }
-
-
-    // We keep at most MAX_RETIRED_PROG and we'll destroy the rest
-    cp = g_copper_retired_progs;
-    pp = NULL;
-    while (cp) {
-        if (retired_count >= MAX_RETIRED_PROGS) {
-            gc_head = cp;
-            pp->next = NULL;
-            break;
-        }
-        pp = cp;
-        cp = cp->next;
-        retired_count++;
-    }
-    irq_set_mask(sim);
-
 
     // Allocate a new program if we aren't able to reuse a retired program
-    if (prog == NULL) {
-        err = kalloc_cleared(sizeof(struct copper_prog), (void**)&prog);
-        if (err != EOK) {
-            return err;
-        }
-
-        err = kalloc_options(sizeof(copper_instr_t) * instr_count, KALLOC_OPTION_UNIFIED, (void**)&prog->prog);
-        if (err != EOK) {
-            kfree(prog);
-            return err;
-        }
-
-        prog->prog_size = instr_count;
+    err = kalloc_cleared(sizeof(struct copper_prog), (void**)&prog);
+    if (err != EOK) {
+        return err;
     }
 
-
-    // Destroy all excess retired programs
-    while (gc_head) {
-        copper_prog_t np = gc_head->next;
-
-        copper_prog_destroy(gc_head);
-        gc_head = np;
+    err = kalloc_options(sizeof(copper_instr_t) * instr_count, KALLOC_OPTION_UNIFIED, (void**)&prog->prog);
+    if (err != EOK) {
+        kfree(prog);
+        return err;
     }
 
-
+    
     // Prepare the program state
+    prog->prog_size = instr_count;
     prog->state = COP_STATE_IDLE;
     prog->odd_entry = prog->prog;
     prog->even_entry = NULL;
@@ -124,22 +62,19 @@ errno_t copper_prog_create(size_t instr_count, copper_prog_t _Nullable * _Nonnul
     return EOK;
 }
 
-static void _copper_prog_retire(copper_prog_t _Nonnull prog)
+void copper_prog_destroy(copper_prog_t _Nullable prog)
 {
-    if (g_copper_retired_progs) {
-        prog->next = g_copper_retired_progs;
-        g_copper_retired_progs = prog;
+    if (prog) {
+        kfree(prog->prog);
+        prog->prog = NULL;
+        prog->even_entry = NULL;
+        prog->odd_entry = NULL;
     }
-    else {
-        g_copper_retired_progs = prog;
-        prog->next = NULL;
-    }
-
-    prog->state = COP_STATE_RETIRED;
+    kfree(prog);
 }
 
 
-errno_t copper_init(copper_prog_t _Nonnull prog)
+errno_t copper_init(copper_prog_t _Nonnull prog, int signo, vcpu_t _Nullable sigvp)
 {
     decl_try_err();
 
@@ -150,6 +85,8 @@ errno_t copper_init(copper_prog_t _Nonnull prog)
     g_copper_running_prog = prog;
     g_copper_running_prog->state = COP_STATE_RUNNING;
     g_copper_is_running_interlaced = 0;
+    g_retire_signo = signo;
+    g_retire_vcpu = sigvp;
 
 catch:
     return err;
@@ -188,6 +125,35 @@ void copper_start(void)
 
     irq_add_handler(&g_copper_vblank);
     irq_enable_src(IRQ_ID_VBLANK);
+}
+
+copper_prog_t _Nullable copper_acquire_retired_prog(void)
+{
+    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
+    copper_prog_t prog = g_copper_retired_progs;
+
+    if (prog) {
+        g_copper_retired_progs = prog->next;
+        prog->next = NULL;
+    }
+
+    irq_set_mask(sim);
+
+    return prog;
+}
+
+static void _copper_prog_retire(copper_prog_t _Nonnull prog)
+{
+    if (g_copper_retired_progs) {
+        prog->next = g_copper_retired_progs;
+        g_copper_retired_progs = prog;
+    }
+    else {
+        g_copper_retired_progs = prog;
+        prog->next = NULL;
+    }
+
+    prog->state = COP_STATE_RETIRED;
 }
 
 void copper_schedule(copper_prog_t _Nullable prog, unsigned flags)
@@ -251,6 +217,9 @@ static void copper_csw(void)
     *CHIPSET_REG_16(cp, DMACON) = (DMACONF_SETCLR | DMACONF_COPEN | DMACONF_DMAEN);
 
 
+    if (g_retire_vcpu) {
+        vcpu_sigsend_irq(g_retire_vcpu, g_retire_signo, false);
+    }
     sem_relinquish_irq(&g_copper_notify_sem);
 }
 
