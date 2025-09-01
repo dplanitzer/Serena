@@ -36,10 +36,6 @@ extern errno_t GraphicsDriver_GetCLUTInfo(GraphicsDriverRef _Nonnull self, int i
 extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
 
 
-// Screens
-extern errno_t GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, int id, VideoConfiguration* _Nonnull pOutVidConfig);
-
-
 // Sprites
 extern errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutSpriteId);
 extern errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int spriteId);
@@ -48,11 +44,12 @@ extern errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self,
 extern errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spriteId, bool isVisible);
 
 
-// Display
+// Screens
 extern errno_t GraphicsDriver_SetScreenConfig(GraphicsDriverRef _Nonnull self, const int* _Nullable config);
+extern errno_t GraphicsDriver_GetScreenConfig(GraphicsDriverRef _Nonnull self, int* _Nonnull config, size_t bufsiz);
 
 extern errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self);
-extern void GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
+extern void GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 
 
 // Light Pen

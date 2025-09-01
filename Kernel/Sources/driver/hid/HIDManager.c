@@ -655,7 +655,7 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
             self->fb = IOChannel_GetResourceAs(self->fbChannel, GraphicsDriver);
 
             int w, h;
-            GraphicsDriver_GetDisplaySize(self->fb, &w, &h);
+            GraphicsDriver_GetScreenSize(self->fb, &w, &h);
 
             self->screenLeft = 0;
             self->screenTop = 0;

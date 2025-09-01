@@ -198,8 +198,12 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
             return GraphicsDriver_SetScreenConfig(self, cp);
         }
 
-        case kFBCommand_GetCurrentScreen:
-            return 0; //GraphicsDriver_GetCurrentScreen(self);
+        case kFBCommand_GetScreenConfig: {
+            int* cp = va_arg(ap, int*);
+            size_t bufsiz = va_arg(ap, size_t);
+
+            return GraphicsDriver_GetScreenConfig(self, cp, bufsiz);
+        }
 
         case kFBCommand_UpdateDisplay:
             return GraphicsDriver_UpdateDisplay(self);
@@ -222,7 +226,7 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Display
+// MARK: Screens
 ////////////////////////////////////////////////////////////////////////////////
 
 // Creates the even and odd field Copper programs for the given screen. There will
@@ -379,6 +383,37 @@ errno_t GraphicsDriver_SetScreenConfig(GraphicsDriverRef _Nonnull self, const in
     return err;
 }
 
+errno_t GraphicsDriver_GetScreenConfig(GraphicsDriverRef _Nonnull self, int* _Nonnull config, size_t bufsiz)
+{
+    decl_try_err();
+
+    mtx_lock(&self->io_mtx);
+    if (bufsiz == 0) {
+        throw(EINVAL);
+    }
+
+    //XXX implement me for real
+    config[0] = SCREEN_CONFIG_END;
+
+catch:
+    mtx_unlock(&self->io_mtx);
+    return err;
+}
+
+void GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
+{
+    mtx_lock(&self->io_mtx);
+    if (self->fb) {
+        *pOutWidth = Surface_GetWidth(self->fb);
+        *pOutHeight = Surface_GetHeight(self->fb);
+    }
+    else {
+        *pOutWidth = 0;
+        *pOutHeight = 0;
+    }
+    mtx_unlock(&self->io_mtx);
+}
+
 // Triggers an update of the display so that it accurately reflects the current
 // display configuration.
 errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
@@ -399,20 +434,6 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
 
     mtx_unlock(&self->io_mtx);
     return err;
-}
-
-void GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
-{
-    mtx_lock(&self->io_mtx);
-    if (self->fb) {
-        *pOutWidth = Surface_GetWidth(self->fb);
-        *pOutHeight = Surface_GetHeight(self->fb);
-    }
-    else {
-        *pOutWidth = 0;
-        *pOutHeight = 0;
-    }
-    mtx_unlock(&self->io_mtx);
 }
 
 
@@ -644,30 +665,6 @@ errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, s
     }
     mtx_unlock(&self->io_mtx);
     return err;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Screens
-////////////////////////////////////////////////////////////////////////////////
-
-errno_t GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, int id, VideoConfiguration* _Nonnull pOutVidConfig)
-{
-    return EINVAL;
-    /*
-    mtx_lock(&self->io_mtx);
-    decl_try_err();
-    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
-    if (scr) {
-        *pOutVidConfig = *Screen_GetVideoConfiguration(scr);
-    }
-    else {
-        err = EINVAL;
-    }
-    mtx_unlock(&self->io_mtx);
-    return err;
-    */
 }
 
 

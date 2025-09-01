@@ -194,10 +194,21 @@ typedef unsigned int RGBColor32;
 #define kFBCommand_SetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 100)
 
 
-// Returns the unique id of the currently visible screen. 0 is returned if no
-// screen is visible and video is turned off.
-// int get_current_screen()
-#define kFBCommand_GetCurrentScreen IOResourceCommand(kDriverCommand_SubclassBase + 65)
+// Returns a copy of the currently active screen configuration. The configuration
+// information is written to the provided buffer 'config' which is able to hold
+// 'bufsiz' integer entries (sizeof(int)). EINVAL is returned if 'bufsiz' is 0.
+// ERANGE is returned if 'bufsiz' is greater 0 but not big enough to hold all
+// configuration information plus the terminated SCREEN_CONFIG_END entry. The
+// returned configuration will contain the following configuration keys:
+// SCREEN_CONFIG_FRAMEBUFFER
+// SCREEN_CONFIG_CLUT (if the pixel format is one of the indirect formats)
+// SCREEN_CONFIG_WIDTH
+// SCREEN_CONFIG_HEIGHT
+// SCREEN_CONFIG_PIXELFORMAT
+// SCREEN_CONFIG_FPS
+// SCREEN_CONFIG_END
+// int get_screen_config(int* _Nonnull config, size_t bufsiz)
+#define kFBCommand_GetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 65)
 
 // Updates the display configuration. Call this function after changing the
 // following screen properties:
