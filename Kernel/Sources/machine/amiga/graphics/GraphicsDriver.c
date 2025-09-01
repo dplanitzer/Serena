@@ -209,15 +209,6 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
             return GraphicsDriver_UpdateDisplay(self);
 
 
-        case kFBCommand_GetVideoConfigurationRange: {
-            VideoConfigurationRange* vcr = va_arg(ap, VideoConfigurationRange*);
-            const size_t bufSize = va_arg(ap, size_t);
-            size_t* iter = va_arg(ap, size_t*);
-            
-            return GraphicsDriver_GetVideoConfigurationRange(self, vcr, bufSize, iter);
-        }
-
-
         default:
             return super_n(ioctl, Driver, GraphicsDriver, self, pChannel, cmd, ap);
     }
@@ -846,20 +837,6 @@ void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int 
 
     Sprite_SetPosition(&self->mouseCursor, sprX, sprY);
     mtx_unlock(&self->io_mtx);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Mouse Cursor
-////////////////////////////////////////////////////////////////////////////////
-
-errno_t GraphicsDriver_GetVideoConfigurationRange(GraphicsDriverRef _Nonnull self, VideoConfigurationRange* _Nonnull config, size_t bufSize, size_t* _Nonnull pIter)
-{
-    mtx_lock(&self->io_mtx);
-    const errno_t err = VideoConfiguration_GetNext(config, bufSize, pIter);
-    mtx_unlock(&self->io_mtx);
-    return err;
 }
 
 

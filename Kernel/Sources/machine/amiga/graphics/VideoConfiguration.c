@@ -91,33 +91,6 @@ errno_t VideoConfiguration_Validate(const VideoConfiguration* _Nonnull vidCfg, P
     return ENOTSUP;
 }
 
-errno_t VideoConfiguration_GetNext(VideoConfigurationRange* _Nonnull config, size_t bufSize, size_t* _Nonnull pIter)
-{
-    size_t iter = *pIter;
-
-    if (iter >= NUM_RANGES) {
-        return ERANGE;
-    }
-
-    const _VideoConfigurationRange* vcr = &gSupportedRanges[iter++];
-    const size_t nBytesNeeded = sizeof(VideoConfigurationRange) + (vcr->pixelFormatCount - 1) * sizeof(PixelFormat);
-
-    if (nBytesNeeded > bufSize) {
-        return ENOSPC;
-    }
-
-    config->width = vcr->width;
-    config->height = vcr->height;
-    config->fps = vcr->fps;
-    config->pixelFormatCount = vcr->pixelFormatCount;
-    for (int8_t i = 0 ; i < vcr->pixelFormatCount; i++) {
-        config->pixelFormat[i] = vcr->pixelFormat[i];
-    }
-    
-    *pIter = iter;
-    return EOK;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -

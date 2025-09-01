@@ -54,15 +54,6 @@ typedef struct CLUTInfo {
 } CLUTInfo;
 
 
-typedef struct VideoConfigurationRange {
-    int         width;
-    int         height;
-    int         fps;
-    int         pixelFormatCount;   // Number of valid pixel formats
-    PixelFormat pixelFormat[1];     // 'pixelFormatCount' entries follow here
-} VideoConfigurationRange;
-
-
 //
 // Colors
 //
@@ -208,27 +199,5 @@ typedef unsigned int RGBColor32;
 // - CLUT entries
 // int update_display()
 #define kFBCommand_UpdateDisplay    IOResourceCommand(kDriverCommand_SubclassBase + 16)
-
-
-//
-// Introspection
-//
-
-// Returns the next video configuration range from the list of supported video
-// configuration ranges. Each video configuration range represents a set of
-// closely related video configuration that share the same width, height and
-// vertical refresh frequency but with different pixel formats.
-// 'config' is a buffer that will receive the video configuration range data
-// structure. 'iter' is the iterator that indicates the position in the video
-// configuration range list. 'iter' should be initially set to 0. This call
-// updates the iterate on every invocation. This function returns EOK if the
-// next entry has been returned successfully and ERANGE if no more entries are
-// available. ENOSPC is returned if the buffer is not big enough to hold the
-// entry.
-// You should call this function in a loop to get all supported video
-// configuration ranges. Set 'iter' initially to 0 and iterate the loop until
-// this function returns ERANGE. 
-// get_video_config_range(VideoConfigurationRange* _Nonnull config, size_t bufSize, size_t* _Nonnull iter)
-#define kFBCommand_GetVideoConfigurationRange   IOResourceCommand(kDriverCommand_SubclassBase + 17)
 
 #endif /* _KPI_FB_H */
