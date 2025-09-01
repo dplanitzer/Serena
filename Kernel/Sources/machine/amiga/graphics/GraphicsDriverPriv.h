@@ -27,7 +27,7 @@ final_class_ivars(GraphicsDriver, Driver,
 
     Surface* _Nullable      fb;
     ColorTable* _Nullable   clut;
-    VideoConfiguration      vc;
+    void* _Nullable         hwc;
 
     uint16_t* _Nonnull  nullSpriteData;
     uint16_t* _Nonnull  spriteDmaPtr[SPRITE_COUNT];
@@ -54,7 +54,7 @@ final_class_ivars(GraphicsDriver, Driver,
 
 
 extern int GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self);
-static Surface* _Nullable _GraphicsDriver_GetSurfaceForId(GraphicsDriverRef _Nonnull self, int id);
-static ColorTable* _Nullable _GraphicsDriver_GetClutForId(GraphicsDriverRef _Nonnull self, int id);
+extern Surface* _Nullable _GraphicsDriver_GetSurfaceForId(GraphicsDriverRef _Nonnull self, int id);
+extern ColorTable* _Nullable _GraphicsDriver_GetClutForId(GraphicsDriverRef _Nonnull self, int id);
 
 #endif /* GraphicsDriverPriv_h */

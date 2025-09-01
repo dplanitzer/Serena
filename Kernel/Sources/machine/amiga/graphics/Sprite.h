@@ -11,8 +11,8 @@
 
 #include <kern/errno.h>
 #include <kern/types.h>
+#include <kpi/fb.h>
 #include <machine/amiga/chipset.h>
-#include "VideoConfiguration.h"
 
 
 typedef struct Sprite {

@@ -11,7 +11,6 @@
 
 #include <driver/Driver.h>
 #include <kpi/fb.h>
-#include "VideoConfiguration.h"
 
 
 final_class(GraphicsDriver, Driver);

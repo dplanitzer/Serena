@@ -11,10 +11,10 @@
 
 
 
-size_t copper_comp_calclength(Surface* _Nonnull srf, ColorTable* _Nonnull clut)
+size_t copper_comp_calclength(const copper_params_t* _Nonnull params)
 {
-    return clut->entryCount                 // CLUT
-            + 2 * srf->planeCount           // BPLxPT[nplanes]
+    return params->clut->entryCount         // CLUT
+            + 2 * params->fb->planeCount    // BPLxPT[nplanes]
             + 2                             // BPL1MOD, BPL2MOD
             + 3                             // BPLCON0, BPLCON1, BPLCON2
             + 2 * SPRITE_COUNT              // SPRxPT
@@ -24,17 +24,16 @@ size_t copper_comp_calclength(Surface* _Nonnull srf, ColorTable* _Nonnull clut)
             + 2;                            // COP_END
 }
 
-copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, const VideoConfiguration* _Nonnull cfg, Surface* _Nonnull srf, ColorTable* _Nonnull clut, uint16_t* _Nonnull sprdma[SPRITE_COUNT], bool isLightPenEnabled, bool isOddField)
+copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, const copper_params_t* _Nonnull params, bool isOddField)
 {
-    const uint16_t w = Surface_GetWidth(srf);
-    const uint16_t h = Surface_GetHeight(srf);
-    const uint16_t bpr = Surface_GetBytesPerRow(srf);
-    const bool isHires = VideoConfiguration_IsHires(cfg);
-    const bool isLace = VideoConfiguration_IsInterlaced(cfg);
-    const bool isPal = VideoConfiguration_IsPAL(cfg);
-    const uint16_t ddfMod = isLace ? bpr : bpr - (w >> 3);
+    Surface* fb = params->fb;
+    ColorTable* clut = params->clut;
+    const uint16_t w = Surface_GetWidth(fb);
+    const uint16_t h = Surface_GetHeight(fb);
+    const uint16_t bpr = Surface_GetBytesPerRow(fb);
+    const uint16_t ddfMod = params->isLace ? bpr : bpr - (w >> 3);
     const uint32_t firstLineByteOffset = isOddField ? 0 : ddfMod;
-    const uint16_t lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0;
+    const uint16_t lpen_bit = params->isLightPenEnabled ? BPLCON0F_LPEN : 0;
     
 
     // CLUT
@@ -44,8 +43,8 @@ copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, const 
 
 
     // BPLxPT
-    for (int i = 0, r = BPL_BASE; i < srf->planeCount; i++, r += 4) {
-        const uint32_t bplpt = (uint32_t)(srf->plane[i]) + firstLineByteOffset;
+    for (int i = 0, r = BPL_BASE; i < fb->planeCount; i++, r += 4) {
+        const uint32_t bplpt = (uint32_t)(fb->plane[i]) + firstLineByteOffset;
         
         *ip++ = COP_MOVE(r + 0, (bplpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);
@@ -61,15 +60,15 @@ copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, const 
 
 
     // BPLCON0
-    uint16_t bplcon0 = BPLCON0F_COLOR | (uint16_t)((srf->planeCount & 0x07) << 12);
+    uint16_t bplcon0 = BPLCON0F_COLOR | (uint16_t)((fb->planeCount & 0x07) << 12);
 
-    if (isLightPenEnabled) {
+    if (params->isLightPenEnabled) {
         bplcon0 |= BPLCON0F_LPEN;
     }
-    if (isHires) {
+    if (params->isHires) {
         bplcon0 |= BPLCON0F_HIRES;
     }
-    if (isLace) {
+    if (params->isLace) {
         bplcon0 |= BPLCON0F_LACE;
     }
 
@@ -83,7 +82,7 @@ copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, const 
 
     // SPRxPT
     for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
-        const uint32_t sprpt = (uint32_t)sprdma[i];
+        const uint32_t sprpt = (uint32_t)params->sprdma[i];
 
         *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
@@ -91,10 +90,10 @@ copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, const 
 
 
     // DIWSTART / DIWSTOP
-    const uint16_t vStart = (isPal) ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
-    const uint16_t hStart = (isPal) ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
-    const uint16_t vStop = (isPal) ? DIW_PAL_VSTOP : DIW_NTSC_VSTOP;
-    const uint16_t hStop = (isPal) ? DIW_PAL_HSTOP : DIW_NTSC_HSTOP;
+    const uint16_t vStart = (params->isPal) ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
+    const uint16_t hStart = (params->isPal) ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
+    const uint16_t vStop = (params->isPal) ? DIW_PAL_VSTOP : DIW_NTSC_VSTOP;
+    const uint16_t hStop = (params->isPal) ? DIW_PAL_HSTOP : DIW_NTSC_HSTOP;
     *ip++ = COP_MOVE(DIWSTART, (vStart << 8) | hStart);
     *ip++ = COP_MOVE(DIWSTOP, (vStop << 8) | hStop);
 
@@ -103,8 +102,8 @@ copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, const 
     // DDFSTART = low res: DIWSTART / 2 - 8; high res: DIWSTART / 2 - 4
     // DDFSTOP = low res: DDFSTART + 8*(nwords - 1); high res: DDFSTART + 4*(nwords - 2)
     const uint16_t nVisibleWords = w >> 4;
-    const uint16_t ddfStart = (hStart >> 1) - ((isHires) ?  4 : 8);
-    const uint16_t ddfStop = ddfStart + ((isHires) ? (nVisibleWords - 2) << 2 : (nVisibleWords - 1) << 3);
+    const uint16_t ddfStart = (hStart >> 1) - ((params->isHires) ?  4 : 8);
+    const uint16_t ddfStop = ddfStart + ((params->isHires) ? (nVisibleWords - 2) << 2 : (nVisibleWords - 1) << 3);
     *ip++ = COP_MOVE(DDFSTART, ddfStart);
     *ip++ = COP_MOVE(DDFSTOP, ddfStop);
 

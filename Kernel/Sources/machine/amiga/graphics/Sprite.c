@@ -8,6 +8,7 @@
 
 #include "Sprite.h"
 #include <kern/kalloc.h>
+#include <kern/kernlib.h>
 
 
 // Initializes the given sprite as a null sprite. Meaning that it doesn't show
