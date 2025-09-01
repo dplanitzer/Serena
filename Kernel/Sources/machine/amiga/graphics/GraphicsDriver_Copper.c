@@ -1,5 +1,5 @@
 //
-//  GraphicsDriver_CopperComp.c
+//  GraphicsDriver_Copper.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/27/25.
