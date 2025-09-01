@@ -33,28 +33,26 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     decl_try_err();
 
     // Create a suitable screen
-    VideoConfiguration vidCfg;
+    int width, height, fps;
     if (chipset_is_ntsc()) {
-        vidCfg.width = 640;
-        vidCfg.height = 200;
-        vidCfg.fps = 60;
+        width = 640;
+        height = 200;
+        fps = 60;
         
-        //vidCfg.width = 640;
-        //vidCfg.height = 400;
-        //vidCfg.fps = 30;
+        //width = 640;
+        //height = 400;
+        //fps = 30;
     } else {
-        vidCfg.width = 640;
-        vidCfg.height = 256;
-        vidCfg.fps = 50;
+        width = 640;
+        height = 256;
+        fps = 50;
 
-        //vidCfg.width = 640;
-        //vidCfg.height = 512;
-        //vidCfg.fps = 25;
+        //width = 640;
+        //height = 512;
+        //fps = 25;
     }
-    const int pixelsWidth = VideoConfiguration_GetPixelWidth(&vidCfg);
-    const int pixelsHeight = VideoConfiguration_GetPixelHeight(&vidCfg);
 
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface, pixelsWidth, pixelsHeight, kPixelFormat_RGB_Indexed3, &self->surfaceId));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface, width, height, kPixelFormat_RGB_Indexed3, &self->surfaceId));
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateCLUT, 32, &self->clutId));
 
 
@@ -69,18 +67,18 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     sc[2] = SCREEN_CONFIG_CLUT;
     sc[3] = self->clutId;
     sc[4] = SCREEN_CONFIG_FPS;
-    sc[5] = vidCfg.fps;
+    sc[5] = fps;
     sc[6] = SCREEN_CONFIG_END;
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetScreenConfig, &sc[0]));
 
 
     // Get the framebuffer size
-    self->pixelsWidth = pixelsWidth;
-    self->pixelsHeight = pixelsHeight;
+    self->pixelsWidth = width;
+    self->pixelsHeight = height;
 
 
     // Allocate the text cursor (sprite)
-    const bool isLace = VideoConfiguration_IsInterlaced(&vidCfg) ? true : false;
+    const bool isLace = (height > MAX_PAL_HEIGHT) ? true : false;
     const uint16_t* textCursorPlanes[2];
     textCursorPlanes[0] = (isLace) ? &gBlock4x4_Plane0[0] : &gBlock4x8_Plane0[0];
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];

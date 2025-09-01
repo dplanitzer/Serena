@@ -21,32 +21,32 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
     decl_try_err();
     GraphicsDriverRef gd = NULL;
     IOChannelRef chan = NULL;
-    VideoConfiguration cfg;
+    int width, height, fps;
     int srf = -1, clut = -1;
 
     if (chipset_is_ntsc()) {
-        cfg.width = 320;
-        cfg.height = 200;
-        cfg.fps = 60;
+        width = 320;
+        height = 200;
+        fps = 60;
         
-        //cfg.width = 320;
-        //cfg.height = 400;
-        //cfg.fps = 30;
+        //width = 320;
+        //height = 400;
+        //fps = 30;
     } else {
-        cfg.width = 320;
-        cfg.height = 256;
-        cfg.fps = 50;
+        width = 320;
+        height = 256;
+        fps = 50;
 
-        //cfg.width = 320;
-        //cfg.height = 512;
-        //cfg.fps = 25;
+        //width = 320;
+        //height = 512;
+        //fps = 25;
     }
 
     memset(bscr, 0, sizeof(boot_screen_t));
 
     if ((err = DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &chan)) == EOK) {
         // Create the surface and screen
-        IOChannel_Ioctl(chan, kFBCommand_CreateSurface, cfg.width, cfg.height, kPixelFormat_RGB_Indexed1, &srf);
+        IOChannel_Ioctl(chan, kFBCommand_CreateSurface, width, height, kPixelFormat_RGB_Indexed1, &srf);
         IOChannel_Ioctl(chan, kFBCommand_CreateCLUT, 32, &clut);
 
 
@@ -60,8 +60,8 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
         bscr->chan = chan;
         bscr->clut = clut;
         bscr->srf = srf;
-        bscr->width = cfg.width;
-        bscr->height = cfg.height;
+        bscr->width = width;
+        bscr->height = height;
 
         IOChannel_Ioctl(chan, kFBCommand_MapSurface, bscr->srf, kMapPixels_ReadWrite, &bscr->mp);
 
@@ -77,7 +77,7 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
         sc[2] = SCREEN_CONFIG_CLUT;
         sc[3] = bscr->clut;
         sc[4] = SCREEN_CONFIG_FPS;
-        sc[5] = cfg.fps;
+        sc[5] = fps;
         sc[6] = SCREEN_CONFIG_END;
         IOChannel_Ioctl(chan, kFBCommand_SetScreenConfig, &sc[0]);
     }

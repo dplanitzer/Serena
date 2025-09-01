@@ -26,6 +26,11 @@ typedef struct _VideoConfigurationRange {
     PixelFormat pixelFormat[MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION];
 } _VideoConfigurationRange;
 
+typedef struct VideoConfiguration {
+    int     width;
+    int     height;
+    int     fps;
+} VideoConfiguration;
 
 
 #define VideoConfiguration_GetPixelWidth(__self) \
