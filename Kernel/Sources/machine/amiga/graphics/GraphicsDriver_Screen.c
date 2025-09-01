@@ -247,6 +247,11 @@ static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull 
         ColorTable_BeginUse(conf.clut);
     }
     else {
+        err = copper_comp_create_null_prog(self->nullSpriteData, &prog);
+        if (err != EOK) {
+            return err;
+        }
+        
         self->hDiwStart = 0;
         self->vDiwStart = 0;
         self->hSprScale = 0;

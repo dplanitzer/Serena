@@ -11,6 +11,74 @@
 
 
 
+// Compiles a Copper program to display the null screen. The null screen shows
+// nothing.
+errno_t copper_comp_create_null_prog(uint16_t* _Nonnull nullSpriteData, copper_prog_t _Nullable * _Nonnull pOutProg)
+{
+    decl_try_err();
+    copper_prog_t prog = NULL;
+    const size_t instrCount = 
+              1                     // DMA (OFF)
+            + 1                     // CLUT
+            + 3                     // BPLCON0, BPLCON1, BPLCON2
+            + 2 * SPRITE_COUNT      // SPRxDATy
+            + 2                     // DIWSTART, DIWSTOP
+            + 2                     // DDFSTART, DDFSTOP
+            + 1                     // DMACON (ON)
+            + 2;                    // COP_END
+
+    err = copper_prog_create(instrCount, &prog);
+    if (err != EOK) {
+        return err;
+    }
+
+    copper_instr_t* ip = prog->prog;
+
+    // DMACON (OFF)
+    *ip++ = COP_MOVE(DMACON, DMACONF_BPLEN | DMACONF_SPREN);
+
+
+    // CLUT
+    *ip++ = COP_MOVE(COLOR00, 0x0fff);
+
+
+    // BPLCONx
+    *ip++ = COP_MOVE(BPLCON0, BPLCON0F_COLOR);
+    *ip++ = COP_MOVE(BPLCON1, 0);
+    *ip++ = COP_MOVE(BPLCON2, 0);
+
+
+    // SPRxDATy
+    const uint32_t sprpt = (uint32_t)nullSpriteData;
+    for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
+        *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
+        *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
+    }
+
+
+    // DIWSTART / DIWSTOP
+    *ip++ = COP_MOVE(DIWSTART, (DIW_NTSC_VSTART << 8) | DIW_NTSC_HSTART);
+    *ip++ = COP_MOVE(DIWSTOP, (DIW_NTSC_VSTOP << 8) | DIW_NTSC_HSTOP);
+
+
+    // DDFSTART / DDFSTOP
+    *ip++ = COP_MOVE(DDFSTART, 0x0038);
+    *ip++ = COP_MOVE(DDFSTOP, 0x00d0);
+
+
+    // DMACON
+    *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | DMACONF_SPREN | DMACONF_DMAEN);
+
+
+    // end instruction
+    *ip = COP_END();
+    
+    *pOutProg = prog;
+    return EOK;
+}
+
+
+
 size_t copper_comp_calclength(const copper_params_t* _Nonnull params)
 {
     return params->clut->entryCount         // CLUT

@@ -44,10 +44,19 @@ typedef struct copper_prog* copper_prog_t;
 
 extern errno_t copper_prog_create(size_t instr_count, copper_prog_t _Nullable * _Nonnull pOutProg);
 
-extern errno_t copper_init(uint16_t* _Nonnull nullSpriteData);
+// Initializes the Copper scheduler. 'prog' is the bootstrap Copper program. This
+// program will start running as soon as the bottom-most line of the current
+// video frame has been reached.  
+extern errno_t copper_init(copper_prog_t _Nonnull prog);
+
+// Starts the Copper scheduling services running.
 extern void copper_start(void);
 
+
+// Schedules the provided Copper program. This program will start running at the
+// beginning of the next video frame. Pass COPFLAG_WAIT_RUNNING to wait until the
+// new program has started running.
 #define COPFLAG_WAIT_RUNNING    1
-extern void copper_schedule(copper_prog_t _Nullable prog, unsigned flags);
+extern void copper_schedule(copper_prog_t _Nonnull prog, unsigned flags);
 
 #endif /* _COPPER_H */

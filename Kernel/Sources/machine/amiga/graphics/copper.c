@@ -19,7 +19,6 @@ extern int copper_irq(void);
 // Must be > 0
 #define MAX_RETIRED_PROGS   2
 static irq_handler_t            g_copper_vblank;
-static copper_prog_t _Nonnull   g_copper_null_prog;
 static copper_prog_t _Nullable  g_copper_ready_prog;
 static copper_prog_t _Nonnull   g_copper_running_prog;
 static copper_prog_t _Nullable  g_copper_retired_progs;
@@ -125,99 +124,30 @@ errno_t copper_prog_create(size_t instr_count, copper_prog_t _Nullable * _Nonnul
     return EOK;
 }
 
-// Compiles a Copper program to display the null screen. The null screen shows
-// nothing.
-static errno_t create_null_copper_prog(uint16_t* _Nonnull nullSpriteData, copper_prog_t _Nullable * _Nonnull pOutProg)
-{
-    decl_try_err();
-    copper_prog_t prog = NULL;
-    const size_t instrCount = 
-              1                     // DMA (OFF)
-            + 1                     // CLUT
-            + 3                     // BPLCON0, BPLCON1, BPLCON2
-            + 2 * SPRITE_COUNT      // SPRxDATy
-            + 2                     // DIWSTART, DIWSTOP
-            + 2                     // DDFSTART, DDFSTOP
-            + 1                     // DMACON (ON)
-            + 2;                    // COP_END
-
-    err = copper_prog_create(instrCount, &prog);
-    if (err != EOK) {
-        return err;
-    }
-
-    copper_instr_t* ip = prog->prog;
-
-    // DMACON (OFF)
-    *ip++ = COP_MOVE(DMACON, DMACONF_BPLEN | DMACONF_SPREN);
-
-
-    // CLUT
-    *ip++ = COP_MOVE(COLOR00, 0x0fff);
-
-
-    // BPLCONx
-    *ip++ = COP_MOVE(BPLCON0, BPLCON0F_COLOR);
-    *ip++ = COP_MOVE(BPLCON1, 0);
-    *ip++ = COP_MOVE(BPLCON2, 0);
-
-
-    // SPRxDATy
-    const uint32_t sprpt = (uint32_t)nullSpriteData;
-    for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
-        *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
-        *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
-    }
-
-
-    // DIWSTART / DIWSTOP
-    *ip++ = COP_MOVE(DIWSTART, (DIW_NTSC_VSTART << 8) | DIW_NTSC_HSTART);
-    *ip++ = COP_MOVE(DIWSTOP, (DIW_NTSC_VSTOP << 8) | DIW_NTSC_HSTOP);
-
-
-    // DDFSTART / DDFSTOP
-    *ip++ = COP_MOVE(DDFSTART, 0x0038);
-    *ip++ = COP_MOVE(DDFSTOP, 0x00d0);
-
-
-    // DMACON
-    *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | DMACONF_SPREN | DMACONF_DMAEN);
-
-
-    // end instruction
-    *ip = COP_END();
-    
-    *pOutProg = prog;
-    return EOK;
-}
-
 static void _copper_prog_retire(copper_prog_t _Nonnull prog)
 {
-    if (prog != g_copper_null_prog) {
-        if (g_copper_retired_progs) {
-            prog->next = g_copper_retired_progs;
-            g_copper_retired_progs = prog;
-        }
-        else {
-            g_copper_retired_progs = prog;
-            prog->next = NULL;
-        }
+    if (g_copper_retired_progs) {
+        prog->next = g_copper_retired_progs;
+        g_copper_retired_progs = prog;
+    }
+    else {
+        g_copper_retired_progs = prog;
+        prog->next = NULL;
     }
 
     prog->state = COP_STATE_RETIRED;
 }
 
 
-errno_t copper_init(uint16_t* _Nonnull nullSpriteData)
+errno_t copper_init(copper_prog_t _Nonnull prog)
 {
     decl_try_err();
 
     sem_init(&g_copper_notify_sem, 0);
-    try(create_null_copper_prog(nullSpriteData, &g_copper_null_prog));
 
     // Do a forced schedule of the null program
     g_copper_ready_prog = NULL;
-    g_copper_running_prog = g_copper_null_prog;
+    g_copper_running_prog = prog;
     g_copper_running_prog->state = COP_STATE_RUNNING;
     g_copper_is_running_interlaced = 0;
 
@@ -262,19 +192,18 @@ void copper_start(void)
 
 void copper_schedule(copper_prog_t _Nullable prog, unsigned flags)
 {
-    copper_prog_t real_prog = (prog) ? prog : g_copper_null_prog;
     const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
     if (g_copper_ready_prog) {
         _copper_prog_retire(g_copper_ready_prog);
     }
 
-    g_copper_ready_prog = real_prog;
-    real_prog->state = COP_STATE_READY;
+    g_copper_ready_prog = prog;
+    prog->state = COP_STATE_READY;
     irq_set_mask(sim);
 
 
     if ((flags & COPFLAG_WAIT_RUNNING) == COPFLAG_WAIT_RUNNING) {
-        while (real_prog->state == COP_STATE_READY) {
+        while (prog->state == COP_STATE_READY) {
             sem_acquire(&g_copper_notify_sem, &TIMESPEC_INF);
         }
     }

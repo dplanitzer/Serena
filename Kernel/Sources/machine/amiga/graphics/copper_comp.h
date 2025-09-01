@@ -28,6 +28,11 @@ typedef struct copper_params {
 } copper_params_t;
 
 
+// Compiles a Copper program to display the null screen. The null screen shows
+// nothing.
+extern errno_t copper_comp_create_null_prog(uint16_t* _Nonnull nullSpriteData, copper_prog_t _Nullable * _Nonnull pOutProg);
+
+
 // Computes the size of a Copper program. The size is given in terms of the
 // number of Copper instruction words.
 extern size_t copper_comp_calclength(const copper_params_t* _Nonnull params);
