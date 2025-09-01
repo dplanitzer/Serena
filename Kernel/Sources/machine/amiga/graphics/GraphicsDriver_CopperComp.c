@@ -1,19 +1,20 @@
 //
-//  copper_comp.c
+//  GraphicsDriver_CopperComp.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/27/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "copper_comp.h"
-#include <machine/amiga/chipset.h>
+#include "GraphicsDriverPriv.h"
 
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Null Program
+////////////////////////////////////////////////////////////////////////////////
 
-// Compiles a Copper program to display the null screen. The null screen shows
-// nothing.
-errno_t copper_comp_create_null_prog(uint16_t* _Nonnull nullSpriteData, copper_prog_t _Nullable * _Nonnull pOutProg)
+errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked self, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     copper_prog_t prog = NULL;
@@ -49,7 +50,7 @@ errno_t copper_comp_create_null_prog(uint16_t* _Nonnull nullSpriteData, copper_p
 
 
     // SPRxDATy
-    const uint32_t sprpt = (uint32_t)nullSpriteData;
+    const uint32_t sprpt = (uint32_t)self->nullSpriteData;
     for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
         *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
@@ -78,8 +79,13 @@ errno_t copper_comp_create_null_prog(uint16_t* _Nonnull nullSpriteData, copper_p
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Screen Program
+////////////////////////////////////////////////////////////////////////////////
 
-size_t copper_comp_calclength(const copper_params_t* _Nonnull params)
+
+static size_t copper_comp_calclength(const copper_params_t* _Nonnull params)
 {
     return params->clut->entryCount         // CLUT
             + 2 * params->fb->planeCount    // BPLxPT[nplanes]
@@ -92,7 +98,7 @@ size_t copper_comp_calclength(const copper_params_t* _Nonnull params)
             + 2;                            // COP_END
 }
 
-copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, const copper_params_t* _Nonnull params, bool isOddField)
+static copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, const copper_params_t* _Nonnull params, bool isOddField)
 {
     Surface* fb = params->fb;
     ColorTable* clut = params->clut;
@@ -184,4 +190,49 @@ copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, const 
     *ip++ = COP_END();
 
     return ip;
+}
+
+static void _make_copper_params(GraphicsDriverRef _Nonnull self, const hw_conf_t* hwc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, copper_params_t* _Nonnull cp)
+{
+    cp->fb = fb;
+    cp->clut = clut;
+    cp->sprdma = self->spriteDmaPtr;
+    cp->isHires = (hwc->width > MAX_LORES_WIDTH) ? true : false;
+    cp->isLace = (hwc->height > MAX_PAL_HEIGHT) ? true : false;
+    cp->isPal = (hwc->fps == 25 || hwc->fps == 50) ? true : false;
+    cp->isLightPenEnabled = self->flags.isLightPenEnabled;
+}
+
+errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull self, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull srf, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
+{
+    decl_try_err();
+    copper_params_t params;
+    copper_prog_t prog = NULL;
+    copper_instr_t* ip;
+
+    _make_copper_params(self, hwc, srf, clut, &params);
+    
+    const size_t instrCount = copper_comp_calclength(&params);
+
+    try(copper_prog_create(instrCount, &prog));
+    prog->odd_entry = prog->prog;
+    prog->even_entry = NULL;
+    
+    ip = prog->prog;
+    ip = copper_comp_compile(ip, &params, true);
+
+    if (params.isLace) {
+        prog->even_entry = ip;
+        ip = copper_comp_compile(ip, &params, false);
+    }
+
+    self->hDiwStart = params.isPal ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
+    self->vDiwStart = params.isPal ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
+    self->hSprScale = params.isHires ? 0x01 : 0x00;
+    self->vSprScale = params.isLace ? 0x01 : 0x00;
+
+catch:
+    *pOutProg = prog;
+
+    return err;
 }

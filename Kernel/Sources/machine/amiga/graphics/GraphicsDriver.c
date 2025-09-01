@@ -8,7 +8,6 @@
 
 #include "GraphicsDriverPriv.h"
 #include "copper.h"
-#include "copper_comp.h"
 #include <kern/kalloc.h>
 #include <kern/timespec.h>
 #include <kpi/fcntl.h>
@@ -54,7 +53,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
 
     // Create a null Copper program and get it running
     copper_prog_t nullCopperProg;
-    try(copper_comp_create_null_prog(self->nullSpriteData, &nullCopperProg));
+    try(GraphicsDriver_CreateNullCopperProg(self, &nullCopperProg));
     copper_init(nullCopperProg);
 
     

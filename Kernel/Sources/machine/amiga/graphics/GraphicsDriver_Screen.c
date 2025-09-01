@@ -8,23 +8,6 @@
 
 #include "GraphicsDriverPriv.h"
 #include "copper.h"
-#include "copper_comp.h"
-
-typedef struct screen_conf {
-    Surface* _Nullable      fb;
-    ColorTable* _Nullable   clut;
-    int                     fps;
-} screen_conf_t;
-
-
-#define MAX_PIXEL_FORMATS   5
-typedef struct hw_conf {
-    int16_t     width;
-    int16_t     height;
-    int8_t      fps;
-    int8_t      pixelFormatCount;   // Number of supported pixel formats
-    PixelFormat pixelFormat[MAX_PIXEL_FORMATS];
-} hw_conf_t;
 
 
 #define NUM_HW_CONFS  8
@@ -90,55 +73,6 @@ static const hw_conf_t g_avail_hw_confs[NUM_HW_CONFS] = {
         kPixelFormat_RGB_Indexed4}
 },
 };
-
-
-static void _make_copper_params(GraphicsDriverRef _Nonnull self, const hw_conf_t* hwc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, copper_params_t* _Nonnull cp)
-{
-    cp->fb = fb;
-    cp->clut = clut;
-    cp->sprdma = self->spriteDmaPtr;
-    cp->isHires = (hwc->width > MAX_LORES_WIDTH) ? true : false;
-    cp->isLace = (hwc->height > MAX_PAL_HEIGHT) ? true : false;
-    cp->isPal = (hwc->fps == 25 || hwc->fps == 50) ? true : false;
-    cp->isLightPenEnabled = self->flags.isLightPenEnabled;
-}
-
-// Creates the even and odd field Copper programs for the given screen. There will
-// always be at least an odd field program. The even field program will only exist
-// for an interlaced screen.
-static errno_t create_copper_prog(GraphicsDriverRef _Nonnull self, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull srf, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
-{
-    decl_try_err();
-    copper_params_t params;
-    copper_prog_t prog = NULL;
-    copper_instr_t* ip;
-
-    _make_copper_params(self, hwc, srf, clut, &params);
-    
-    const size_t instrCount = copper_comp_calclength(&params);
-
-    try(copper_prog_create(instrCount, &prog));
-    prog->odd_entry = prog->prog;
-    prog->even_entry = NULL;
-    
-    ip = prog->prog;
-    ip = copper_comp_compile(ip, &params, true);
-
-    if (params.isLace) {
-        prog->even_entry = ip;
-        ip = copper_comp_compile(ip, &params, false);
-    }
-
-    self->hDiwStart = params.isPal ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
-    self->vDiwStart = params.isPal ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
-    self->hSprScale = params.isHires ? 0x01 : 0x00;
-    self->vSprScale = params.isLace ? 0x01 : 0x00;
-
-catch:
-    *pOutProg = prog;
-
-    return err;
-}
 
 
 static int _get_config_value(const int* _Nonnull config, int key, int def)
@@ -235,7 +169,7 @@ static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull 
         }
 
 
-        err = create_copper_prog(self, hwc, conf.fb, conf.clut, &prog);
+        err = GraphicsDriver_CreateCopperScreenProg(self, hwc, conf.fb, conf.clut, &prog);
         if (err != EOK) {
             return err;
         }
@@ -247,11 +181,11 @@ static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull 
         ColorTable_BeginUse(conf.clut);
     }
     else {
-        err = copper_comp_create_null_prog(self->nullSpriteData, &prog);
+        err = GraphicsDriver_CreateNullCopperProg(self, &prog);
         if (err != EOK) {
             return err;
         }
-        
+
         self->hDiwStart = 0;
         self->vDiwStart = 0;
         self->hSprScale = 0;
@@ -338,7 +272,7 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
     if (self->flags.isNewCopperProgNeeded) {
         copper_prog_t prog = NULL;
 
-        err = create_copper_prog(self, self->hwc, self->fb, self->clut, &prog);
+        err = GraphicsDriver_CreateCopperScreenProg(self, self->hwc, self->fb, self->clut, &prog);
         if (err == EOK) {
             copper_schedule(prog, 0);
             self->flags.isNewCopperProgNeeded = 0;

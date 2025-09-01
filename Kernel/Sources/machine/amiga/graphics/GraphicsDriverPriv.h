@@ -15,9 +15,38 @@
 #include <klib/List.h>
 #include <sched/mtx.h>
 #include <sched/sem.h>
+#include "copper.h"
 #include "ColorTable.h"
 #include "Sprite.h"
 #include "Surface.h"
+
+
+typedef struct copper_params {
+    Surface* _Nonnull       fb;
+    ColorTable* _Nonnull    clut;
+    uint16_t** _Nonnull     sprdma;
+    bool                    isHires;
+    bool                    isLace;
+    bool                    isPal;
+    bool                    isLightPenEnabled;
+} copper_params_t;
+
+
+typedef struct screen_conf {
+    Surface* _Nullable      fb;
+    ColorTable* _Nullable   clut;
+    int                     fps;
+} screen_conf_t;
+
+
+#define MAX_PIXEL_FORMATS   5
+typedef struct hw_conf {
+    int16_t     width;
+    int16_t     height;
+    int8_t      fps;
+    int8_t      pixelFormatCount;   // Number of supported pixel formats
+    PixelFormat pixelFormat[MAX_PIXEL_FORMATS];
+} hw_conf_t;
 
 
 #define MOUSE_SPRITE_PRI 7
@@ -53,7 +82,16 @@ final_class_ivars(GraphicsDriver, Driver,
 );
 
 
-extern int GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self);
+// Compiles a Copper program to display the null screen. The null screen shows
+// nothing.
+extern errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked self, copper_prog_t _Nullable * _Nonnull pOutProg);
+
+// Creates the even and odd field Copper programs for the given screen. There will
+// always be at least an odd field program. The even field program will only exist
+// for an interlaced screen.
+extern errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull self, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull srf, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg);
+
+
 extern Surface* _Nullable _GraphicsDriver_GetSurfaceForId(GraphicsDriverRef _Nonnull self, int id);
 extern ColorTable* _Nullable _GraphicsDriver_GetClutForId(GraphicsDriverRef _Nonnull self, int id);
 
