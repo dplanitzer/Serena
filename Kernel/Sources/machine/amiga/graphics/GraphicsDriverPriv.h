@@ -95,15 +95,17 @@ extern errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _L
 // Creates the even and odd field Copper programs for the given screen. There will
 // always be at least an odd field program. The even field program will only exist
 // for an interlaced screen.
-extern errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull self, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull srf, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg);
+extern errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull _Locked self, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull srf, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg);
 
 
-extern void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull self, int id, int type);
+extern void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull _Locked self, int id, int type);
 
 #define _GraphicsDriver_GetSurfaceForId(__self, __id) \
 (Surface*)_GraphicsDriver_GetGObjForId(__self, __id, kGObject_Surface)
 
 #define _GraphicsDriver_GetClutForId(__self, __id) \
 (ColorTable*)_GraphicsDriver_GetGObjForId(__self, __id, kGObject_ColorTable)
+
+extern void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* gobj);
 
 #endif /* GraphicsDriverPriv_h */

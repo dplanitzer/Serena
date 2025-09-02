@@ -252,7 +252,7 @@ static int _GraphicsDriver_GetNewGObjId(GraphicsDriverRef _Nonnull _Locked self)
     return id;
 }
 
-void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull self, int id, int type)
+void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull _Locked self, int id, int type)
 {
     List_ForEach(&self->gobjs, GObject,
         if (GObject_GetId(pCurNode) == id) {
@@ -260,6 +260,23 @@ void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull self, in
         }
     );
     return NULL;
+}
+
+void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* gobj)
+{
+    List_Remove(&self->gobjs, GObject_GetChainPtr(gobj));
+    switch (GObject_GetType(gobj)) {
+        case kGObject_ColorTable:
+            ColorTable_Destroy(gobj);
+            break;
+
+        case kGObject_Surface:
+            Surface_Destroy(gobj);
+            break;
+
+        default:
+            abort();
+    }
 }
 
 
@@ -291,7 +308,7 @@ errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, int id)
 
     if (srf) {
         if (!GObject_InUse(srf)) {
-            Surface_Destroy(srf);
+            _GraphicsDriver_DestroyGObj(self, srf);
         }
         else {
             err = EBUSY;
@@ -384,7 +401,7 @@ errno_t GraphicsDriver_DestroyCLUT(GraphicsDriverRef _Nonnull self, int id)
 
     if (clut) {
         if (!GObject_InUse(clut)) {
-            ColorTable_Destroy(clut);
+            _GraphicsDriver_DestroyGObj(self, clut);
         }
         else {
             err = EBUSY;

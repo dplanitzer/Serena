@@ -62,13 +62,13 @@ static void _cache_copper_prog(GraphicsDriverRef _Nonnull _Locked self, copper_p
 
     if (clut) {
         if (GObject_DelUse(clut)) {
-            ColorTable_Destroy(clut);
+            _GraphicsDriver_DestroyGObj(self, clut);
         }
         prog->res.clut = NULL;
     }
     if (fb) {
         if (GObject_DelUse(fb)) {
-            Surface_Destroy(fb);
+            _GraphicsDriver_DestroyGObj(self, fb);
         }
         prog->res.fb = NULL;
     }
@@ -291,7 +291,7 @@ static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull 
     return ip;
 }
 
-errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull self, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
+errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull _Locked self, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     const int isHires = (hwc->flags & HWCFLAG_HIRES) != 0;
