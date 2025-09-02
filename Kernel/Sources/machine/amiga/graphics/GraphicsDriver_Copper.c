@@ -122,6 +122,7 @@ errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked s
 {
     decl_try_err();
     copper_prog_t prog = NULL;
+    const video_conf_t* vc = get_null_video_conf();
     const size_t instrCount = 
               1                     // DMA (OFF)
             + 1                     // CLUT
@@ -162,8 +163,8 @@ errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked s
 
 
     // DIWSTART / DIWSTOP
-    *ip++ = COP_MOVE(DIWSTART, (DIW_NTSC_VSTART << 8) | DIW_NTSC_HSTART);
-    *ip++ = COP_MOVE(DIWSTOP, (DIW_NTSC_VSTOP << 8) | DIW_NTSC_HSTOP);
+    *ip++ = COP_MOVE(DIWSTART, (((uint16_t)vc->vDwStart) << 8) | vc->hDwStart);
+    *ip++ = COP_MOVE(DIWSTOP, (((uint16_t)vc->vDwStop) << 8) | vc->hDwStop);
 
 
     // DDFSTART / DDFSTOP
@@ -179,11 +180,11 @@ errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked s
     *ip = COP_END();
     
 
-    prog->video_conf = NULL;
-    prog->spriteOriginX = DIW_NTSC_HSTART;
-    prog->spriteOriginY = DIW_NTSC_VSTART;
-    prog->spriteScaleX = 0;
-    prog->spriteScaleY = 0;
+    prog->video_conf = vc;
+    prog->spriteOriginX = vc->hSprOrigin;
+    prog->spriteOriginY = vc->vSprOrigin;
+    prog->spriteScaleX = vc->hSprScale;
+    prog->spriteScaleY = vc->vSprScale;
     prog->res.fb = NULL;
     prog->res.clut = NULL;
 

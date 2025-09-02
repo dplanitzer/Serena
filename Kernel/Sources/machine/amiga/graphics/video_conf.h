@@ -36,6 +36,9 @@ typedef struct video_conf {
 } video_conf_t;
 
 
+// Returns the video conf that should be used for a null Copper program.
+extern const video_conf_t* _Nonnull get_null_video_conf(void);
+
 // Looks up the video configuration that corresponds to the given screen
 // configuration.
 extern const video_conf_t* _Nullable get_matching_video_conf(int width, int height, PixelFormat fmt);

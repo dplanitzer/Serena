@@ -53,7 +53,7 @@ struct copper_prog {
     int16_t                         spriteScaleX;
     int16_t                         spriteScaleY;
 
-    const video_conf_t* _Nullable   video_conf;
+    const video_conf_t* _Nonnull    video_conf;
     copper_res_t                    res;
 };
 typedef struct copper_prog* copper_prog_t;
