@@ -172,7 +172,9 @@ _Reset:
 _cpu_non_recoverable_error:
     inline
         lea     CUSTOM_BASE, a0
+        move.w  #$7fff, DMACON(a0)
         move.w  #$0ff0, COLOR00(a0)
+        or.w    #$0700, sr
 .L1:    bra     .L1
     einline
 
@@ -184,7 +186,9 @@ _cpu_non_recoverable_error:
 _mem_non_recoverable_error:
     inline
         lea     CUSTOM_BASE, a0
+        move.w  #$7fff, DMACON(a0)
         move.w  #$0f00, COLOR00(a0)
+        or.w    #$0700, sr
 .L1:    bra     .L1
     einline
 
