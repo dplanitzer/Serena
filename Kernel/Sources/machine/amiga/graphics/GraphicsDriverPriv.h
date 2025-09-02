@@ -10,8 +10,6 @@
 #define GraphicsDriverPriv_h
 
 #include "GraphicsDriver.h"
-#include <machine/amiga/chipset.h>
-#include <machine/irq.h>
 #include <klib/List.h>
 #include <process/Process.h>
 #include <sched/mtx.h>

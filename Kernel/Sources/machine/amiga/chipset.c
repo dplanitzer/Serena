@@ -9,9 +9,20 @@
 #include "chipset.h"
 
 
-//
-// Chipset
-//
+// Blocks the caller until the video beam has reached the bottom of the current
+// video frame.
+void chipset_wait_bof(void)
+{
+    CHIPSET_BASE_DECL(cp);
+
+    for (;;) {
+        const uint32_t vposr = (*CHIPSET_REG_32(cp, VPOSR) & 0x1ff00) >> 8;
+
+        if (vposr == 303) {
+            break;
+        }
+    }
+}
 
 // Returns true if the machine is a NTSC machine; false if it is a PAL machine
 bool chipset_is_ntsc(void)

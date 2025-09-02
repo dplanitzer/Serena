@@ -711,6 +711,7 @@
 extern void chipset_reset(void);
 extern uint8_t chipset_get_version(void);
 extern uint8_t chipset_get_ramsey_version(void);
+extern void chipset_wait_bof(void);
 extern bool chipset_is_ntsc(void);
 extern char* chipset_get_upper_dma_limit(int chipset_version);
 

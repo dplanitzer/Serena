@@ -16,8 +16,6 @@
 extern int copper_irq(void);
 
 
-// Must be > 0
-#define MAX_RETIRED_PROGS   2
 static irq_handler_t            g_copper_vblank;
 static copper_prog_t _Nullable  g_copper_ready_prog;
 copper_prog_t _Nonnull          g_copper_running_prog;
@@ -92,25 +90,12 @@ catch:
     return err;
 }
 
-static void wait_vbl(void)
-{
-    CHIPSET_BASE_DECL(cp);
-
-    for (;;) {
-        const uint32_t vposr = (*CHIPSET_REG_32(cp, VPOSR) & 0x1ff00) >> 8;
-
-        if (vposr == 303) {
-            break;
-        }
-    }
-}
-
 void copper_start(void)
 {
     // Let the Copper run our null program
     CHIPSET_BASE_DECL(cp);
 
-    wait_vbl();
+    chipset_wait_bof();
     *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)g_copper_running_prog->odd_entry;
     *CHIPSET_REG_16(cp, COPJMP1) = 0;
     *CHIPSET_REG_16(cp, DMACON) = (DMACONF_SETCLR | DMACONF_COPEN | DMACONF_DMAEN);
