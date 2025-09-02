@@ -24,8 +24,9 @@
 #include "Surface.h"
 
 
-// Signal sent by the Copper scheduler when a Copper program has been retired
-#define SIGCOPRET  2
+// Signal sent by the Copper scheduler when a new Copper program has started
+// running and the previously running one has been retired
+#define SIGCOPRUN  2
 
 
 typedef struct screen_conf {

@@ -56,7 +56,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
 
     // Allocate the Copper management VCPU
     wq_init(&self->copvpWaitQueue);
-    self->copvpSigs = _SIGBIT(SIGCOPRET);
+    self->copvpSigs = _SIGBIT(SIGCOPRUN);
 
     _vcpu_acquire_attr_t attr;
     attr.func = (vcpu_func_t)GraphicsDriver_CopperManager;
@@ -71,7 +71,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
 
     
     // Initialize the Copper scheduler
-    copper_init(nullCopperProg, SIGCOPRET, self->copvp);
+    copper_init(nullCopperProg, SIGCOPRUN, self->copvp);
 
     *pOutSelf = self;
     return EOK;
@@ -547,10 +547,11 @@ errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int sp
 
     mtx_lock(&self->io_mtx);
     if (sprIdx >= 0 && sprIdx < SPRITE_COUNT && self->sprite[sprIdx].isAcquired) {
+        const video_conf_t * vc = g_copper_running_prog->video_conf;
         const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
         const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
-        const int16_t sprX = g_copper_running_prog->spriteOriginX - 1 + (x16 >> g_copper_running_prog->spriteScaleX);
-        const int16_t sprY = g_copper_running_prog->spriteOriginY + (y16 >> g_copper_running_prog->spriteScaleY);
+        const int16_t sprX = vc->hSprOrigin - 1 + (x16 >> vc->hSprScale);
+        const int16_t sprY = vc->vSprOrigin + (y16 >> vc->vSprScale);
 
         Sprite_SetPosition(&self->sprite[sprIdx], sprX, sprY);
     }
@@ -629,10 +630,11 @@ errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uin
 void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y)
 {
     mtx_lock(&self->io_mtx);
+    const video_conf_t* vc = g_copper_running_prog->video_conf;
     const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
     const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
-    const int16_t sprX = g_copper_running_prog->spriteOriginX - 1 + (x16 >> g_copper_running_prog->spriteScaleX);
-    const int16_t sprY = g_copper_running_prog->spriteOriginY + (y16 >> g_copper_running_prog->spriteScaleY);
+    const int16_t sprX = vc->hSprOrigin - 1 + (x16 >> vc->hSprScale);
+    const int16_t sprY = vc->vSprOrigin + (y16 >> vc->vSprScale);
 
     Sprite_SetPosition(&self->mouseCursor, sprX, sprY);
     mtx_unlock(&self->io_mtx);

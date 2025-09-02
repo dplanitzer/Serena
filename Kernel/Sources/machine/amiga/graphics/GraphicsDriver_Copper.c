@@ -181,10 +181,6 @@ errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked s
     
 
     prog->video_conf = vc;
-    prog->spriteOriginX = vc->hSprOrigin;
-    prog->spriteOriginY = vc->vSprOrigin;
-    prog->spriteScaleX = vc->hSprScale;
-    prog->spriteScaleY = vc->vSprScale;
     prog->res.fb = NULL;
     prog->res.clut = NULL;
 
@@ -323,11 +319,6 @@ errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull _Locked
     }
 
     prog->video_conf = vc;
-    prog->spriteOriginX = vc->hSprOrigin;
-    prog->spriteOriginY = vc->vSprOrigin;
-    prog->spriteScaleX = vc->hSprScale;
-    prog->spriteScaleY = vc->vSprScale;
-
     prog->res.fb = (GObject*)fb;
     prog->res.clut = (GObject*)clut;
 
