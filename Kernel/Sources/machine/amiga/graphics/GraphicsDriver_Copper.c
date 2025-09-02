@@ -178,6 +178,14 @@ errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked s
     // end instruction
     *ip = COP_END();
     
+
+    prog->spriteOriginX = DIW_NTSC_HSTART;
+    prog->spriteOriginY = DIW_NTSC_VSTART;
+    prog->spriteScaleX = 0;
+    prog->spriteScaleY = 0;
+    prog->res.fb = NULL;
+    prog->res.clut = NULL;
+
     *pOutProg = prog;
     return EOK;
 }
@@ -313,16 +321,16 @@ errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull _Locked
         ip = _compile_copper_prog(self, ip, hwc, fb, clut, false);
     }
 
+    prog->spriteOriginX = hwc->hDwStart;
+    prog->spriteOriginY = hwc->vDwStart;
+    prog->spriteScaleX = (isHires) ? 0x01 : 0x00;
+    prog->spriteScaleY = (isLace) ? 0x01 : 0x00;
+
     prog->res.fb = (GObject*)fb;
     prog->res.clut = (GObject*)clut;
 
     GObject_AddUse(fb);
     GObject_AddUse(clut);
-
-    self->hDiwStart = hwc->hDwStart;
-    self->vDiwStart = hwc->vDwStart;
-    self->hSprScale = (isHires) ? 0x01 : 0x00;
-    self->vSprScale = (isLace) ? 0x01 : 0x00;
 
 catch:
     *pOutProg = prog;

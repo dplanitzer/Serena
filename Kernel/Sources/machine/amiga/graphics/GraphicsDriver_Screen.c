@@ -191,11 +191,6 @@ static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull 
             return err;
         }
 
-        self->hDiwStart = 0;
-        self->vDiwStart = 0;
-        self->hSprScale = 0;
-        self->vSprScale = 0;
-
         self->hwc = NULL;
     } 
 

@@ -47,6 +47,11 @@ struct copper_prog {
     volatile int8_t                 state;
     int8_t                          reserved[3];
 
+    int16_t                         spriteOriginX;
+    int16_t                         spriteOriginY;
+    int16_t                         spriteScaleX;
+    int16_t                         spriteScaleY;
+    
     copper_res_t                    res;
 };
 typedef struct copper_prog* copper_prog_t;

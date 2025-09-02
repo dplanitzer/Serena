@@ -70,10 +70,6 @@ final_class_ivars(GraphicsDriver, Driver,
     uint16_t* _Nonnull      spriteDmaPtr[SPRITE_COUNT];
     Sprite                  sprite[SPRITE_COUNT];
     Sprite                  mouseCursor;
-    int16_t                 hDiwStart;      // Visible screen space origin and sprite scaling
-    int16_t                 vDiwStart;
-    int16_t                 hSprScale;
-    int16_t                 vSprScale;
 
     List/*<GObject>*/       gobjs;
     int                     nextGObjId;

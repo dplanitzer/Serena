@@ -549,8 +549,8 @@ errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int sp
     if (sprIdx >= 0 && sprIdx < SPRITE_COUNT && self->sprite[sprIdx].isAcquired) {
         const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
         const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
-        const int16_t sprX = self->hDiwStart - 1 + (x16 >> self->hSprScale);
-        const int16_t sprY = self->vDiwStart + (y16 >> self->vSprScale);
+        const int16_t sprX = g_copper_running_prog->spriteOriginX - 1 + (x16 >> g_copper_running_prog->spriteScaleX);
+        const int16_t sprY = g_copper_running_prog->spriteOriginY + (y16 >> g_copper_running_prog->spriteScaleY);
 
         Sprite_SetPosition(&self->sprite[sprIdx], sprX, sprY);
     }
@@ -631,8 +631,8 @@ void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int 
     mtx_lock(&self->io_mtx);
     const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
     const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
-    const int16_t sprX = self->hDiwStart - 1 + (x16 >> self->hSprScale);
-    const int16_t sprY = self->vDiwStart + (y16 >> self->vSprScale);
+    const int16_t sprX = g_copper_running_prog->spriteOriginX - 1 + (x16 >> g_copper_running_prog->spriteScaleX);
+    const int16_t sprY = g_copper_running_prog->spriteOriginY + (y16 >> g_copper_running_prog->spriteScaleY);
 
     Sprite_SetPosition(&self->mouseCursor, sprX, sprY);
     mtx_unlock(&self->io_mtx);
