@@ -46,6 +46,10 @@ typedef struct hw_conf {
     uint8_t     hDwStop;
     uint8_t     vDwStart;
     uint8_t     vDwStop;
+    uint8_t     hSprOrigin;
+    uint8_t     vSprOrigin;
+    uint8_t     hSprScale;
+    uint8_t     vSprScale;
     int8_t      pixelFormatCount;   // Number of supported pixel formats
     PixelFormat pixelFormat[MAX_PIXEL_FORMATS];
 } hw_conf_t;

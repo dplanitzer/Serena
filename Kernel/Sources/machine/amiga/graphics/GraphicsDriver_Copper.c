@@ -303,7 +303,6 @@ static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull 
 errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull _Locked self, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
-    const int isHires = (hwc->flags & HWCFLAG_HIRES) != 0;
     const int isLace = (hwc->flags & HWCFLAG_LACE) != 0;
     copper_prog_t prog = NULL;
     copper_instr_t* ip;
@@ -323,10 +322,10 @@ errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull _Locked
     }
 
     prog->hwc = hwc;
-    prog->spriteOriginX = hwc->hDwStart;
-    prog->spriteOriginY = hwc->vDwStart;
-    prog->spriteScaleX = (isHires) ? 0x01 : 0x00;
-    prog->spriteScaleY = (isLace) ? 0x01 : 0x00;
+    prog->spriteOriginX = hwc->hSprOrigin;
+    prog->spriteOriginY = hwc->vSprOrigin;
+    prog->spriteScaleX = hwc->hSprScale;
+    prog->spriteScaleY = hwc->vSprScale;
 
     prog->res.fb = (GObject*)fb;
     prog->res.clut = (GObject*)clut;
