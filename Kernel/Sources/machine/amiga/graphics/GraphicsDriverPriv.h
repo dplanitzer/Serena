@@ -34,27 +34,6 @@ typedef struct screen_conf {
 } screen_conf_t;
 
 
-#define HWCFLAG_HIRES   1
-#define HWCFLAG_LACE    2
-#define MAX_PIXEL_FORMATS   5
-typedef struct hw_conf {
-    int16_t     width;
-    int16_t     height;
-    int8_t      fps;
-    uint8_t     flags;
-    uint8_t     hDwStart;
-    uint8_t     hDwStop;
-    uint8_t     vDwStart;
-    uint8_t     vDwStop;
-    uint8_t     hSprOrigin;
-    uint8_t     vSprOrigin;
-    uint8_t     hSprScale;
-    uint8_t     vSprScale;
-    int8_t      pixelFormatCount;   // Number of supported pixel formats
-    PixelFormat pixelFormat[MAX_PIXEL_FORMATS];
-} hw_conf_t;
-
-
 #define MOUSE_SPRITE_PRI 7
 #define MAX_CACHED_COPPER_PROGS 4
 
@@ -93,7 +72,7 @@ extern errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _L
 // Creates the even and odd field Copper programs for the given screen. There will
 // always be at least an odd field program. The even field program will only exist
 // for an interlaced screen.
-extern errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull _Locked self, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull srf, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg);
+extern errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull _Locked self, const video_conf_t* _Nonnull vc, Surface* _Nonnull srf, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg);
 
 
 extern void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull _Locked self, int id, int type);

@@ -13,6 +13,7 @@
 #include <kern/types.h>
 #include <sched/vcpu.h>
 #include "GObject.h"
+#include "video_conf.h"
 
 
 // Copper program instruction
@@ -52,7 +53,7 @@ struct copper_prog {
     int16_t                         spriteScaleX;
     int16_t                         spriteScaleY;
 
-    void* _Nullable                 hwc;
+    const video_conf_t* _Nullable   video_conf;
     copper_res_t                    res;
 };
 typedef struct copper_prog* copper_prog_t;

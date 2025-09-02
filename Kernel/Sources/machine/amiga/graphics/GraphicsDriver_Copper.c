@@ -179,7 +179,7 @@ errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked s
     *ip = COP_END();
     
 
-    prog->hwc = NULL;
+    prog->video_conf = NULL;
     prog->spriteOriginX = DIW_NTSC_HSTART;
     prog->spriteOriginY = DIW_NTSC_VSTART;
     prog->spriteScaleX = 0;
@@ -211,10 +211,10 @@ static size_t _calc_copper_prog_len(Surface* _Nonnull fb, ColorTable* _Nonnull c
             + 2;                            // COP_END
 }
 
-static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull self, copper_instr_t* _Nonnull ip, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, bool isOddField)
+static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull self, copper_instr_t* _Nonnull ip, const video_conf_t* _Nonnull vc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, bool isOddField)
 {
-    const int isHires = (hwc->flags & HWCFLAG_HIRES) != 0;
-    const int isLace = (hwc->flags & HWCFLAG_LACE) != 0;
+    const int isHires = (vc->flags & VCFLAG_HIRES) != 0;
+    const int isLace = (vc->flags & VCFLAG_LACE) != 0;
     const uint16_t w = Surface_GetWidth(fb);
     const uint16_t h = Surface_GetHeight(fb);
     const uint16_t bpr = Surface_GetBytesPerRow(fb);
@@ -274,8 +274,8 @@ static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull 
 
 
     // DIWSTART / DIWSTOP
-    *ip++ = COP_MOVE(DIWSTART, (((uint16_t)hwc->vDwStart) << 8) | hwc->hDwStart);
-    *ip++ = COP_MOVE(DIWSTOP, (((uint16_t)hwc->vDwStop) << 8) | hwc->hDwStop);
+    *ip++ = COP_MOVE(DIWSTART, (((uint16_t)vc->vDwStart) << 8) | vc->hDwStart);
+    *ip++ = COP_MOVE(DIWSTOP, (((uint16_t)vc->vDwStop) << 8) | vc->hDwStop);
 
 
     // DDFSTART / DDFSTOP
@@ -284,7 +284,7 @@ static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull 
     // DDFSTOP  = low res:  DDFSTART + 8*(nwords - 1)
     //            high res: DDFSTART + 4*(nwords - 2)
     const uint16_t nVisibleWords = w >> 4;
-    const uint16_t ddfStart = (hwc->hDwStart >> 1) - ((isHires) ?  4 : 8);
+    const uint16_t ddfStart = (vc->hDwStart >> 1) - ((isHires) ?  4 : 8);
     const uint16_t ddfStop = ddfStart + ((isHires) ? (nVisibleWords - 2) << 2 : (nVisibleWords - 1) << 3);
     *ip++ = COP_MOVE(DDFSTART, ddfStart);
     *ip++ = COP_MOVE(DDFSTOP, ddfStop);
@@ -300,10 +300,10 @@ static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull 
     return ip;
 }
 
-errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull _Locked self, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
+errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull _Locked self, const video_conf_t* _Nonnull vc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
-    const int isLace = (hwc->flags & HWCFLAG_LACE) != 0;
+    const int isLace = (vc->flags & VCFLAG_LACE) != 0;
     copper_prog_t prog = NULL;
     copper_instr_t* ip;
     
@@ -314,18 +314,18 @@ errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull _Locked
     prog->even_entry = NULL;
     
     ip = prog->prog;
-    ip = _compile_copper_prog(self, ip, hwc, fb, clut, true);
+    ip = _compile_copper_prog(self, ip, vc, fb, clut, true);
 
     if (isLace) {
         prog->even_entry = ip;
-        ip = _compile_copper_prog(self, ip, hwc, fb, clut, false);
+        ip = _compile_copper_prog(self, ip, vc, fb, clut, false);
     }
 
-    prog->hwc = hwc;
-    prog->spriteOriginX = hwc->hSprOrigin;
-    prog->spriteOriginY = hwc->vSprOrigin;
-    prog->spriteScaleX = hwc->hSprScale;
-    prog->spriteScaleY = hwc->vSprScale;
+    prog->video_conf = vc;
+    prog->spriteOriginX = vc->hSprOrigin;
+    prog->spriteOriginY = vc->vSprOrigin;
+    prog->spriteScaleX = vc->hSprScale;
+    prog->spriteScaleY = vc->vSprScale;
 
     prog->res.fb = (GObject*)fb;
     prog->res.clut = (GObject*)clut;
