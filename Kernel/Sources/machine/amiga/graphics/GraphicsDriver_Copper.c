@@ -61,15 +61,13 @@ static void _cache_copper_prog(GraphicsDriverRef _Nonnull _Locked self, copper_p
     Surface* fb = (Surface*)prog->res.fb;
 
     if (clut) {
-        GObject_EndUse(clut);
-        if (!GObject_IsUsed(clut)) {
+        if (GObject_DelUse(clut)) {
             ColorTable_Destroy(clut);
         }
         prog->res.clut = NULL;
     }
     if (fb) {
-        GObject_EndUse(fb);
-        if (!GObject_IsUsed(fb)) {
+        if (GObject_DelUse(fb)) {
             Surface_Destroy(fb);
         }
         prog->res.fb = NULL;
@@ -318,8 +316,8 @@ errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull self, c
     prog->res.fb = (GObject*)fb;
     prog->res.clut = (GObject*)clut;
 
-    GObject_BeginUse(fb);
-    GObject_BeginUse(clut);
+    GObject_AddUse(fb);
+    GObject_AddUse(clut);
 
     self->hDiwStart = hwc->hDwStart;
     self->vDiwStart = hwc->vDwStart;

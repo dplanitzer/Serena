@@ -25,13 +25,13 @@ typedef struct GObject {
 } GObject;
 
 
-#define GObject_BeginUse(__self) \
+#define GObject_AddUse(__self) \
 (((GObject*)(__self))->useCount++)
 
-#define GObject_EndUse(__self) \
-(((GObject*)(__self))->useCount--)
+#define GObject_DelUse(__self) \
+(--((GObject*)(__self))->useCount == 0)
 
-#define GObject_IsUsed(__self) \
+#define GObject_InUse(__self) \
 (((GObject*)(__self))->useCount > 0)
 
 

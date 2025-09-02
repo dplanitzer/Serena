@@ -238,7 +238,7 @@ catch:
 void GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
 {
     const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-    Surface* fb = g_copper_running_prog->res.fb;
+    Surface* fb = (Surface*)g_copper_running_prog->res.fb;
 
     if (fb) {
         *pOutWidth = Surface_GetWidth(fb);
@@ -264,8 +264,8 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
         copper_prog_t prog = NULL;
         
         const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-        Surface* fb = g_copper_running_prog->res.fb;
-        ColorTable* clut = g_copper_running_prog->res.clut;
+        Surface* fb = (Surface*)g_copper_running_prog->res.fb;
+        ColorTable* clut = (ColorTable*)g_copper_running_prog->res.clut;
         irq_set_mask(sim);
 
         err = GraphicsDriver_CreateCopperScreenProg(self, self->hwc, fb, clut, &prog);

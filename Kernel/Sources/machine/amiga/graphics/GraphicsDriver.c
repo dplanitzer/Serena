@@ -290,7 +290,7 @@ errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, int id)
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
 
     if (srf) {
-        if (!GObject_IsUsed(srf)) {
+        if (!GObject_InUse(srf)) {
             Surface_Destroy(srf);
         }
         else {
@@ -383,7 +383,7 @@ errno_t GraphicsDriver_DestroyCLUT(GraphicsDriverRef _Nonnull self, int id)
     ColorTable* clut = _GraphicsDriver_GetClutForId(self, id);
 
     if (clut) {
-        if (!GObject_IsUsed(clut)) {
+        if (!GObject_InUse(clut)) {
             ColorTable_Destroy(clut);
         }
         else {
