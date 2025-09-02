@@ -21,25 +21,21 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
     decl_try_err();
     GraphicsDriverRef gd = NULL;
     IOChannelRef chan = NULL;
-    int width, height, fps;
+    int width, height;
     int srf = -1, clut = -1;
 
     if (chipset_is_ntsc()) {
         width = 320;
         height = 200;
-        fps = 60;
         
         //width = 320;
         //height = 400;
-        //fps = 30;
     } else {
         width = 320;
         height = 256;
-        fps = 50;
 
         //width = 320;
         //height = 512;
-        //fps = 25;
     }
 
     memset(bscr, 0, sizeof(boot_screen_t));
@@ -71,14 +67,12 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
 
 
         // Show the screen on the monitor
-        int sc[7];
+        int sc[5];
         sc[0] = SCREEN_CONFIG_FRAMEBUFFER;
         sc[1] = bscr->srf;
         sc[2] = SCREEN_CONFIG_CLUT;
         sc[3] = bscr->clut;
-        sc[4] = SCREEN_CONFIG_FPS;
-        sc[5] = fps;
-        sc[6] = SCREEN_CONFIG_END;
+        sc[4] = SCREEN_CONFIG_END;
         IOChannel_Ioctl(chan, kFBCommand_SetScreenConfig, &sc[0]);
     }
 }

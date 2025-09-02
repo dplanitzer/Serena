@@ -28,29 +28,24 @@
 #define SIGCOPRET  2
 
 
-typedef struct copper_params {
-    Surface* _Nonnull       fb;
-    ColorTable* _Nonnull    clut;
-    uint16_t** _Nonnull     sprdma;
-    bool                    isHires;
-    bool                    isLace;
-    bool                    isPal;
-    bool                    isLightPenEnabled;
-} copper_params_t;
-
-
 typedef struct screen_conf {
     Surface* _Nullable      fb;
     ColorTable* _Nullable   clut;
-    int                     fps;
 } screen_conf_t;
 
 
+#define HWCFLAG_HIRES   1
+#define HWCFLAG_LACE    2
 #define MAX_PIXEL_FORMATS   5
 typedef struct hw_conf {
     int16_t     width;
     int16_t     height;
     int8_t      fps;
+    uint8_t     flags;
+    uint8_t     hDwStart;
+    uint8_t     hDwStop;
+    uint8_t     vDwStart;
+    uint8_t     vDwStop;
     int8_t      pixelFormatCount;   // Number of supported pixel formats
     PixelFormat pixelFormat[MAX_PIXEL_FORMATS];
 } hw_conf_t;

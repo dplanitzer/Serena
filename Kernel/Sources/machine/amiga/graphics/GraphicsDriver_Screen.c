@@ -14,6 +14,8 @@
 static const hw_conf_t g_avail_hw_confs[NUM_HW_CONFS] = {
 // NTSC 320x200 60fps
 {320, 200, 60,
+    0,
+    DIW_NTSC_HSTART, DIW_NTSC_HSTOP, DIW_NTSC_VSTART, DIW_NTSC_VSTOP,
     5, {kPixelFormat_RGB_Indexed1,
         kPixelFormat_RGB_Indexed2,
         kPixelFormat_RGB_Indexed3,
@@ -22,6 +24,8 @@ static const hw_conf_t g_avail_hw_confs[NUM_HW_CONFS] = {
 },
 // NTSC 640x200 60fps
 {640, 200, 60,
+    HWCFLAG_HIRES,
+    DIW_NTSC_HSTART, DIW_NTSC_HSTOP, DIW_NTSC_VSTART, DIW_NTSC_VSTOP,
     4, {kPixelFormat_RGB_Indexed1,
         kPixelFormat_RGB_Indexed2,
         kPixelFormat_RGB_Indexed3,
@@ -29,6 +33,8 @@ static const hw_conf_t g_avail_hw_confs[NUM_HW_CONFS] = {
 },
 // NTSC 320x400 30fps (interlaced)
 {320, 400, 30,
+    HWCFLAG_LACE,
+    DIW_NTSC_HSTART, DIW_NTSC_HSTOP, DIW_NTSC_VSTART, DIW_NTSC_VSTOP,
     5, {kPixelFormat_RGB_Indexed1,
         kPixelFormat_RGB_Indexed2,
         kPixelFormat_RGB_Indexed3,
@@ -37,6 +43,8 @@ static const hw_conf_t g_avail_hw_confs[NUM_HW_CONFS] = {
 },
 // NTSC 640x400 30fps (interlaced)
 {640, 400, 30,
+    HWCFLAG_HIRES | HWCFLAG_LACE,
+    DIW_NTSC_HSTART, DIW_NTSC_HSTOP, DIW_NTSC_VSTART, DIW_NTSC_VSTOP,
     4, {kPixelFormat_RGB_Indexed1,
         kPixelFormat_RGB_Indexed2,
         kPixelFormat_RGB_Indexed3,
@@ -44,6 +52,8 @@ static const hw_conf_t g_avail_hw_confs[NUM_HW_CONFS] = {
 },
 // PAL 320x256 50fps
 {320, 256, 50,
+    0,
+    DIW_PAL_HSTART, DIW_PAL_HSTOP, DIW_PAL_VSTART, DIW_PAL_VSTOP,
     5, {kPixelFormat_RGB_Indexed1,
         kPixelFormat_RGB_Indexed2,
         kPixelFormat_RGB_Indexed3,
@@ -52,6 +62,8 @@ static const hw_conf_t g_avail_hw_confs[NUM_HW_CONFS] = {
 },
 // PAL 640x256 50fps
 {640, 256, 50,
+    HWCFLAG_HIRES,
+    DIW_PAL_HSTART, DIW_PAL_HSTOP, DIW_PAL_VSTART, DIW_PAL_VSTOP,
     4, {kPixelFormat_RGB_Indexed1,
         kPixelFormat_RGB_Indexed2,
         kPixelFormat_RGB_Indexed3,
@@ -59,6 +71,8 @@ static const hw_conf_t g_avail_hw_confs[NUM_HW_CONFS] = {
 },
 // PAL 320x512 25fps (interlaced)
 {320, 512, 25,
+    HWCFLAG_LACE,
+    DIW_PAL_HSTART, DIW_PAL_HSTOP, DIW_PAL_VSTART, DIW_PAL_VSTOP,
     5, {kPixelFormat_RGB_Indexed1,
         kPixelFormat_RGB_Indexed2,
         kPixelFormat_RGB_Indexed3,
@@ -67,6 +81,8 @@ static const hw_conf_t g_avail_hw_confs[NUM_HW_CONFS] = {
 },
 // PAL 640x512 25fps (interlaced)
 {640, 512, 25,
+    HWCFLAG_HIRES | HWCFLAG_LACE,
+    DIW_PAL_HSTART, DIW_PAL_HSTOP, DIW_PAL_VSTART, DIW_PAL_VSTOP,
     4, {kPixelFormat_RGB_Indexed1,
         kPixelFormat_RGB_Indexed2,
         kPixelFormat_RGB_Indexed3,
@@ -97,9 +113,6 @@ static void _parse_screen_conf(GraphicsDriverRef _Nonnull self, const int* _Nonn
 
     const int clut_id = _get_config_value(icfg, SCREEN_CONFIG_CLUT, 0);
     screenConf->clut = _GraphicsDriver_GetClutForId(self, clut_id);
-
-
-    screenConf->fps = _get_config_value(icfg, SCREEN_CONFIG_FPS, 0);
 }
 
 // Checks the consistency of the given screen configuration. Note that this does
@@ -129,8 +142,7 @@ static const hw_conf_t* _Nullable _get_matching_hw_conf(const screen_conf_t* _No
         const hw_conf_t* hwc = &g_avail_hw_confs[i];
 
         if (hwc->width == fbWidth
-            && hwc->height == fbHeight
-            && hwc->fps == conf->fps) {
+            && hwc->height == fbHeight) {
             for (int8_t i = 0; i < MAX_PIXEL_FORMATS; i++) {
                 if (hwc->pixelFormat[i] == fbPixFmt) {
                     return hwc;
@@ -156,7 +168,6 @@ static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull 
     // Compile the Copper program(s) for the new screen
     if (icfg) {
         screen_conf_t conf;
-        copper_params_t cp;
         const hw_conf_t* hwc;
 
         _parse_screen_conf(self, icfg, &conf);

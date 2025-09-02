@@ -47,6 +47,7 @@ static errno_t _create_copper_prog(GraphicsDriverRef _Nonnull _Locked self, size
 
     // Prepare the program state
     prog->state = COP_STATE_IDLE;
+    prog->res_count = 0;
     prog->odd_entry = prog->prog;
     prog->even_entry = NULL;
 
@@ -172,10 +173,10 @@ errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked s
 ////////////////////////////////////////////////////////////////////////////////
 
 
-static size_t copper_comp_calclength(const copper_params_t* _Nonnull params)
+static size_t _calc_copper_prog_len(Surface* _Nonnull fb, ColorTable* _Nonnull clut)
 {
-    return params->clut->entryCount         // CLUT
-            + 2 * params->fb->planeCount    // BPLxPT[nplanes]
+    return clut->entryCount                 // CLUT
+            + 2 * fb->planeCount            // BPLxPT[nplanes]
             + 2                             // BPL1MOD, BPL2MOD
             + 3                             // BPLCON0, BPLCON1, BPLCON2
             + 2 * SPRITE_COUNT              // SPRxPT
@@ -185,16 +186,16 @@ static size_t copper_comp_calclength(const copper_params_t* _Nonnull params)
             + 2;                            // COP_END
 }
 
-static copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip, const copper_params_t* _Nonnull params, bool isOddField)
+static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull self, copper_instr_t* _Nonnull ip, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, bool isOddField)
 {
-    Surface* fb = params->fb;
-    ColorTable* clut = params->clut;
+    const int isHires = (hwc->flags & HWCFLAG_HIRES) != 0;
+    const int isLace = (hwc->flags & HWCFLAG_LACE) != 0;
     const uint16_t w = Surface_GetWidth(fb);
     const uint16_t h = Surface_GetHeight(fb);
     const uint16_t bpr = Surface_GetBytesPerRow(fb);
-    const uint16_t ddfMod = params->isLace ? bpr : bpr - (w >> 3);
+    const uint16_t ddfMod = (isLace) ? bpr : bpr - (w >> 3);
     const uint32_t firstLineByteOffset = isOddField ? 0 : ddfMod;
-    const uint16_t lpen_bit = params->isLightPenEnabled ? BPLCON0F_LPEN : 0;
+    const uint16_t lpen_bit = self->flags.isLightPenEnabled ? BPLCON0F_LPEN : 0;
     
 
     // CLUT
@@ -221,15 +222,12 @@ static copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip,
 
 
     // BPLCON0
-    uint16_t bplcon0 = BPLCON0F_COLOR | (uint16_t)((fb->planeCount & 0x07) << 12);
+    uint16_t bplcon0 = BPLCON0F_COLOR | lpen_bit | (uint16_t)((fb->planeCount & 0x07) << 12);
 
-    if (params->isLightPenEnabled) {
-        bplcon0 |= BPLCON0F_LPEN;
-    }
-    if (params->isHires) {
+    if (isHires) {
         bplcon0 |= BPLCON0F_HIRES;
     }
-    if (params->isLace) {
+    if (isLace) {
         bplcon0 |= BPLCON0F_LACE;
     }
 
@@ -243,7 +241,7 @@ static copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip,
 
     // SPRxPT
     for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
-        const uint32_t sprpt = (uint32_t)params->sprdma[i];
+        const uint32_t sprpt = (uint32_t)self->spriteDmaPtr[i];
 
         *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
@@ -251,20 +249,16 @@ static copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip,
 
 
     // DIWSTART / DIWSTOP
-    const uint16_t vStart = (params->isPal) ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
-    const uint16_t hStart = (params->isPal) ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
-    const uint16_t vStop = (params->isPal) ? DIW_PAL_VSTOP : DIW_NTSC_VSTOP;
-    const uint16_t hStop = (params->isPal) ? DIW_PAL_HSTOP : DIW_NTSC_HSTOP;
-    *ip++ = COP_MOVE(DIWSTART, (vStart << 8) | hStart);
-    *ip++ = COP_MOVE(DIWSTOP, (vStop << 8) | hStop);
+    *ip++ = COP_MOVE(DIWSTART, (((uint16_t)hwc->vDwStart) << 8) | hwc->hDwStart);
+    *ip++ = COP_MOVE(DIWSTOP, (((uint16_t)hwc->vDwStop) << 8) | hwc->hDwStop);
 
 
     // DDFSTART / DDFSTOP
     // DDFSTART = low res: DIWSTART / 2 - 8; high res: DIWSTART / 2 - 4
     // DDFSTOP = low res: DDFSTART + 8*(nwords - 1); high res: DDFSTART + 4*(nwords - 2)
     const uint16_t nVisibleWords = w >> 4;
-    const uint16_t ddfStart = (hStart >> 1) - ((params->isHires) ?  4 : 8);
-    const uint16_t ddfStop = ddfStart + ((params->isHires) ? (nVisibleWords - 2) << 2 : (nVisibleWords - 1) << 3);
+    const uint16_t ddfStart = (hwc->hDwStart >> 1) - ((isHires) ?  4 : 8);
+    const uint16_t ddfStop = ddfStart + ((isHires) ? (nVisibleWords - 2) << 2 : (nVisibleWords - 1) << 3);
     *ip++ = COP_MOVE(DDFSTART, ddfStart);
     *ip++ = COP_MOVE(DDFSTOP, ddfStop);
 
@@ -279,44 +273,32 @@ static copper_instr_t* _Nonnull copper_comp_compile(copper_instr_t* _Nonnull ip,
     return ip;
 }
 
-static void _make_copper_params(GraphicsDriverRef _Nonnull self, const hw_conf_t* hwc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, copper_params_t* _Nonnull cp)
-{
-    cp->fb = fb;
-    cp->clut = clut;
-    cp->sprdma = self->spriteDmaPtr;
-    cp->isHires = (hwc->width > MAX_LORES_WIDTH) ? true : false;
-    cp->isLace = (hwc->height > MAX_PAL_HEIGHT) ? true : false;
-    cp->isPal = (hwc->fps == 25 || hwc->fps == 50) ? true : false;
-    cp->isLightPenEnabled = self->flags.isLightPenEnabled;
-}
-
-errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull self, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull srf, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
+errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull self, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
-    copper_params_t params;
+    const int isHires = (hwc->flags & HWCFLAG_HIRES) != 0;
+    const int isLace = (hwc->flags & HWCFLAG_LACE) != 0;
     copper_prog_t prog = NULL;
     copper_instr_t* ip;
-
-    _make_copper_params(self, hwc, srf, clut, &params);
     
-    const size_t instrCount = copper_comp_calclength(&params);
+    const size_t instrCount = _calc_copper_prog_len(fb, clut);
 
     try(_create_copper_prog(self, instrCount, &prog));
     prog->odd_entry = prog->prog;
     prog->even_entry = NULL;
     
     ip = prog->prog;
-    ip = copper_comp_compile(ip, &params, true);
+    ip = _compile_copper_prog(self, ip, hwc, fb, clut, true);
 
-    if (params.isLace) {
+    if (isLace) {
         prog->even_entry = ip;
-        ip = copper_comp_compile(ip, &params, false);
+        ip = _compile_copper_prog(self, ip, hwc, fb, clut, false);
     }
 
-    self->hDiwStart = params.isPal ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
-    self->vDiwStart = params.isPal ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
-    self->hSprScale = params.isHires ? 0x01 : 0x00;
-    self->vSprScale = params.isLace ? 0x01 : 0x00;
+    self->hDiwStart = hwc->hDwStart;
+    self->vDiwStart = hwc->vDwStart;
+    self->hSprScale = (isHires) ? 0x01 : 0x00;
+    self->vSprScale = (isLace) ? 0x01 : 0x00;
 
 catch:
     *pOutProg = prog;

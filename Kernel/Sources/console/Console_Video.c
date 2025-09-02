@@ -33,23 +33,19 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     decl_try_err();
 
     // Create a suitable screen
-    int width, height, fps;
+    int width, height;
     if (chipset_is_ntsc()) {
         width = 640;
         height = 200;
-        fps = 60;
         
         //width = 640;
         //height = 400;
-        //fps = 30;
     } else {
         width = 640;
         height = 256;
-        fps = 50;
 
         //width = 640;
         //height = 512;
-        //fps = 25;
     }
 
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface, width, height, kPixelFormat_RGB_Indexed3, &self->surfaceId));
@@ -61,14 +57,12 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
 
     // Make our screen the current screen
-    int sc[7];
+    int sc[5];
     sc[0] = SCREEN_CONFIG_FRAMEBUFFER;
     sc[1] = self->surfaceId;
     sc[2] = SCREEN_CONFIG_CLUT;
     sc[3] = self->clutId;
-    sc[4] = SCREEN_CONFIG_FPS;
-    sc[5] = fps;
-    sc[6] = SCREEN_CONFIG_END;
+    sc[4] = SCREEN_CONFIG_END;
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetScreenConfig, &sc[0]));
 
 

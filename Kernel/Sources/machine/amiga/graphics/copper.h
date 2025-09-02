@@ -28,6 +28,10 @@ typedef uint32_t  copper_instr_t;
 #define COP_STATE_RETIRED   3
 
 
+#define MAX_COPPER_RES  10
+typedef void* copper_res_t;
+
+
 struct copper_prog {
     struct copper_prog* _Nullable   next;
     
@@ -38,7 +42,10 @@ struct copper_prog {
     copper_instr_t* _Nullable       even_entry; // event field entry point only exists for interlaced programs
 
     volatile int8_t                 state;
-    int8_t                          reserved[3];
+    int8_t                          reserved[2];
+
+    int8_t                          res_count;
+    copper_res_t                    res[MAX_COPPER_RES];
 };
 typedef struct copper_prog* copper_prog_t;
 

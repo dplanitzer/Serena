@@ -169,7 +169,6 @@ typedef unsigned int RGBColor32;
 
 #define SCREEN_CONFIG_FRAMEBUFFER   1
 #define SCREEN_CONFIG_CLUT          2
-#define SCREEN_CONFIG_FPS           3
 #define SCREEN_CONFIG_END           0
 
 // Configures the screen based on the given screen configuration. Pass NULL to
@@ -189,7 +188,6 @@ typedef unsigned int RGBColor32;
 // SCREEN_CONFIG_WIDTH
 // SCREEN_CONFIG_HEIGHT
 // SCREEN_CONFIG_PIXELFORMAT
-// SCREEN_CONFIG_FPS
 // SCREEN_CONFIG_END
 // int get_screen_config(int* _Nonnull config, size_t bufsiz)
 #define kFBCommand_GetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 15)
