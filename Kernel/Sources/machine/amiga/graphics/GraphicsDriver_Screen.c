@@ -160,8 +160,6 @@ static const hw_conf_t* _Nullable _get_matching_hw_conf(const screen_conf_t* _No
 static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull _Locked self, const int* _Nullable icfg)
 {
     decl_try_err();
-    Surface* oldFb = self->fb;
-    ColorTable* oldClut = self->clut;
     copper_prog_t prog = NULL;
     
 
@@ -188,8 +186,6 @@ static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull 
         self->hwc = hwc;
         self->fb = conf.fb;
         self->clut = conf.clut;
-        Surface_BeginUse(conf.fb);
-        ColorTable_BeginUse(conf.clut);
     }
     else {
         err = GraphicsDriver_CreateNullCopperProg(self, &prog);
@@ -212,21 +208,6 @@ static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull 
     // and the previous one has been retired. It's save to deallocate the old
     // framebuffer once the old program has stopped running.
     copper_schedule(prog, COPFLAG_WAIT_RUNNING);
-
-
-    // Free the old screen
-    if (oldClut) {
-        ColorTable_EndUse(oldClut);
-        if (!ColorTable_IsUsed(oldClut)) {
-            ColorTable_Destroy(oldClut);
-        }
-    }
-    if (oldFb) {
-        Surface_EndUse(oldFb);
-        if (!Surface_IsUsed(oldFb)) {
-            Surface_Destroy(oldFb);
-        }
-    }
 
     return EOK;
 }
