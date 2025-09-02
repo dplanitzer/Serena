@@ -55,10 +55,8 @@ typedef struct hw_conf {
 #define MAX_CACHED_COPPER_PROGS 4
 
 final_class_ivars(GraphicsDriver, Driver,
-    mtx_t               io_mtx;
+    mtx_t                   io_mtx;
 
-    Surface* _Nullable      fb;
-    ColorTable* _Nullable   clut;
     void* _Nullable         hwc;
 
     vcpu_t _Nonnull         copvp;
@@ -68,27 +66,23 @@ final_class_ivars(GraphicsDriver, Driver,
     copper_prog_t _Nullable copperProgCache;
     size_t                  copperProgCacheCount;
 
-    uint16_t* _Nonnull  nullSpriteData;
-    uint16_t* _Nonnull  spriteDmaPtr[SPRITE_COUNT];
-    Sprite              sprite[SPRITE_COUNT];
-    Sprite              mouseCursor;
-    int16_t             hDiwStart;      // Visible screen space origin and sprite scaling
-    int16_t             vDiwStart;
-    int16_t             hSprScale;
-    int16_t             vSprScale;
+    uint16_t* _Nonnull      nullSpriteData;
+    uint16_t* _Nonnull      spriteDmaPtr[SPRITE_COUNT];
+    Sprite                  sprite[SPRITE_COUNT];
+    Sprite                  mouseCursor;
+    int16_t                 hDiwStart;      // Visible screen space origin and sprite scaling
+    int16_t                 vDiwStart;
+    int16_t                 hSprScale;
+    int16_t                 vSprScale;
 
-    List                surfaces;
-    List                colorTables;
-    List                screens;
-    int                 nextSurfaceId;
-    int                 nextScreenId;
-    int                 nextClutId;
+    List/*<GObject>*/       gobjs;
+    int                     nextGObjId;
     struct __GDFlags {
-        unsigned int        isLightPenEnabled;  // Applies to all screens
-        unsigned int        mouseCursorEnabled; // Applies to all screens
-        unsigned int        isNewCopperProgNeeded;
-        unsigned int        reserved:30;
-    }                   flags;
+        unsigned int    isLightPenEnabled;  // Applies to all screens
+        unsigned int    mouseCursorEnabled; // Applies to all screens
+        unsigned int    isNewCopperProgNeeded;
+        unsigned int    reserved:30;
+    }                       flags;
 );
 
 
@@ -104,7 +98,12 @@ extern errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _L
 extern errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull self, const hw_conf_t* _Nonnull hwc, Surface* _Nonnull srf, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg);
 
 
-extern Surface* _Nullable _GraphicsDriver_GetSurfaceForId(GraphicsDriverRef _Nonnull self, int id);
-extern ColorTable* _Nullable _GraphicsDriver_GetClutForId(GraphicsDriverRef _Nonnull self, int id);
+extern void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull self, int id, int type);
+
+#define _GraphicsDriver_GetSurfaceForId(__self, __id) \
+(Surface*)_GraphicsDriver_GetGObjForId(__self, __id, kGObject_Surface)
+
+#define _GraphicsDriver_GetClutForId(__self, __id) \
+(ColorTable*)_GraphicsDriver_GetGObjForId(__self, __id, kGObject_ColorTable)
 
 #endif /* GraphicsDriverPriv_h */

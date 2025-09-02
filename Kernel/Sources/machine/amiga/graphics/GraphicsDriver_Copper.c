@@ -57,25 +57,23 @@ static errno_t _create_copper_prog(GraphicsDriverRef _Nonnull _Locked self, size
 
 static void _cache_copper_prog(GraphicsDriverRef _Nonnull _Locked self, copper_prog_t _Nonnull prog)
 {
-    if (prog->res[1]) {
-        ColorTable* clut = (ColorTable*)prog->res[1];
+    ColorTable* clut = (ColorTable*)prog->res.clut;
+    Surface* fb = (Surface*)prog->res.fb;
 
-        ColorTable_EndUse(clut);
-        if (!ColorTable_IsUsed(clut)) {
+    if (clut) {
+        GObject_EndUse(clut);
+        if (!GObject_IsUsed(clut)) {
             ColorTable_Destroy(clut);
         }
-        prog->res[1] = NULL;
+        prog->res.clut = NULL;
     }
-    if (prog->res[0]) {
-        Surface* fb = (Surface*)prog->res[0];
-
-        Surface_EndUse(fb);
-        if (!Surface_IsUsed(fb)) {
+    if (fb) {
+        GObject_EndUse(fb);
+        if (!GObject_IsUsed(fb)) {
             Surface_Destroy(fb);
         }
-        prog->res[0] = NULL;
+        prog->res.fb = NULL;
     }
-    prog->res_count = 0;
 
 
     if (self->copperProgCacheCount >= MAX_CACHED_COPPER_PROGS) {
@@ -317,12 +315,11 @@ errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull self, c
         ip = _compile_copper_prog(self, ip, hwc, fb, clut, false);
     }
 
-    prog->res[0] = fb;
-    prog->res[1] = clut;
-    prog->res_count = 2;
+    prog->res.fb = (GObject*)fb;
+    prog->res.clut = (GObject*)clut;
 
-    Surface_BeginUse(fb);
-    ColorTable_BeginUse(clut);
+    GObject_BeginUse(fb);
+    GObject_BeginUse(clut);
 
     self->hDiwStart = hwc->hDwStart;
     self->vDiwStart = hwc->vDwStart;

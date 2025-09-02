@@ -9,9 +9,8 @@
 #ifndef Surface_h
 #define Surface_h
 
+#include "GObject.h"
 #include <kern/errno.h>
-#include <kern/types.h>
-#include <klib/List.h>
 #include <kpi/fb.h>
 
 
@@ -23,7 +22,7 @@ enum {
 };
 
 typedef struct Surface {
-    ListNode            chain;
+    GObject             super;
     uint8_t* _Nullable  plane[MAX_PLANE_COUNT];
     int                 width;
     int                 height;
@@ -32,26 +31,11 @@ typedef struct Surface {
     int8_t              planeCount;
     int8_t              pixelFormat;
     uint8_t             flags;
-    int                 useCount;
-    int                 id;
 } Surface;
 
 
 extern errno_t Surface_Create(int id, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
 extern void Surface_Destroy(Surface* _Nullable self);
-
-#define Surface_BeginUse(__self) \
-((__self)->useCount++)
-
-#define Surface_EndUse(__self) \
-((__self)->useCount--)
-
-#define Surface_IsUsed(__self) \
-((__self)->useCount > 0)
-
-
-#define Surface_GetId(__self) \
-((__self)->id)
 
 
 // Returns the pixel width of the surface.

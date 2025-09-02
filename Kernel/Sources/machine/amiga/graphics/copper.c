@@ -20,7 +20,7 @@ extern int copper_irq(void);
 #define MAX_RETIRED_PROGS   2
 static irq_handler_t            g_copper_vblank;
 static copper_prog_t _Nullable  g_copper_ready_prog;
-static copper_prog_t _Nonnull   g_copper_running_prog;
+copper_prog_t _Nonnull          g_copper_running_prog;
 static copper_prog_t _Nullable  g_copper_retired_progs;
 static sem_t                    g_copper_notify_sem;
 static int                      g_retire_signo;

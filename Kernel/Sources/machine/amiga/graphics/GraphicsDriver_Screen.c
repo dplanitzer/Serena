@@ -184,8 +184,6 @@ static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull 
         }
 
         self->hwc = hwc;
-        self->fb = conf.fb;
-        self->clut = conf.clut;
     }
     else {
         err = GraphicsDriver_CreateNullCopperProg(self, &prog);
@@ -199,8 +197,6 @@ static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull 
         self->vSprScale = 0;
 
         self->hwc = NULL;
-        self->fb = NULL;
-        self->clut = NULL;
     } 
 
 
@@ -241,16 +237,19 @@ catch:
 
 void GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
 {
-    mtx_lock(&self->io_mtx);
-    if (self->fb) {
-        *pOutWidth = Surface_GetWidth(self->fb);
-        *pOutHeight = Surface_GetHeight(self->fb);
+    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
+    Surface* fb = g_copper_running_prog->res.fb;
+
+    if (fb) {
+        *pOutWidth = Surface_GetWidth(fb);
+        *pOutHeight = Surface_GetHeight(fb);
     }
     else {
         *pOutWidth = 0;
         *pOutHeight = 0;
     }
-    mtx_unlock(&self->io_mtx);
+
+    irq_set_mask(sim);
 }
 
 // Triggers an update of the display so that it accurately reflects the current
@@ -263,8 +262,13 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
 
     if (self->flags.isNewCopperProgNeeded) {
         copper_prog_t prog = NULL;
+        
+        const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
+        Surface* fb = g_copper_running_prog->res.fb;
+        ColorTable* clut = g_copper_running_prog->res.clut;
+        irq_set_mask(sim);
 
-        err = GraphicsDriver_CreateCopperScreenProg(self, self->hwc, self->fb, self->clut, &prog);
+        err = GraphicsDriver_CreateCopperScreenProg(self, self->hwc, fb, clut, &prog);
         if (err == EOK) {
             copper_schedule(prog, 0);
             self->flags.isNewCopperProgNeeded = 0;

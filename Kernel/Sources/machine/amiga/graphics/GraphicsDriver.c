@@ -27,9 +27,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     GraphicsDriverRef self;
     
     try(Driver_Create(class(GraphicsDriver), 0, g_cats, (DriverRef*)&self));
-    self->nextSurfaceId = 1;
-    self->nextScreenId = 1;
-    self->nextClutId = 1;
+    self->nextGObjId = 1;
     mtx_init(&self->io_mtx);
 
 
@@ -235,22 +233,17 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
 }
 
 
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Surfaces
-////////////////////////////////////////////////////////////////////////////////
-
-static int _GraphicsDriver_GetNewSurfaceId(GraphicsDriverRef _Nonnull _Locked self)
+static int _GraphicsDriver_GetNewGObjId(GraphicsDriverRef _Nonnull _Locked self)
 {
     bool hasCollision = true;
     int id;
 
     while (hasCollision) {
         hasCollision = false;
-        id = self->nextSurfaceId++;
+        id = self->nextGObjId++;
 
-        List_ForEach(&self->surfaces, Surface,
-            if (Surface_GetId(pCurNode) == id) {
+        List_ForEach(&self->gobjs, GObject,
+            if (GObject_GetId(pCurNode) == id) {
                 hasCollision = true;
                 break;
             }
@@ -259,25 +252,31 @@ static int _GraphicsDriver_GetNewSurfaceId(GraphicsDriverRef _Nonnull _Locked se
     return id;
 }
 
-Surface* _Nullable _GraphicsDriver_GetSurfaceForId(GraphicsDriverRef _Nonnull self, int id)
+void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull self, int id, int type)
 {
-    List_ForEach(&self->surfaces, Surface,
-        if (Surface_GetId(pCurNode) == id) {
-            return pCurNode;
+    List_ForEach(&self->gobjs, GObject,
+        if (GObject_GetId(pCurNode) == id) {
+            return (GObject_GetType(pCurNode) == type) ? pCurNode : NULL;
         }
     );
     return NULL;
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Surfaces
+////////////////////////////////////////////////////////////////////////////////
 
 errno_t GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int* _Nonnull pOutId)
 {
     Surface* srf;
 
     mtx_lock(&self->io_mtx);
-    const errno_t err = Surface_Create(_GraphicsDriver_GetNewSurfaceId(self), width, height, pixelFormat, &srf);
+    const errno_t err = Surface_Create(_GraphicsDriver_GetNewGObjId(self), width, height, pixelFormat, &srf);
     if (err == EOK) {
-        List_InsertBeforeFirst(&self->surfaces, &srf->chain);
-        *pOutId = Surface_GetId(srf);
+        List_InsertBeforeFirst(&self->gobjs, GObject_GetChainPtr(srf));
+        *pOutId = GObject_GetId(srf);
     }
     mtx_unlock(&self->io_mtx);
     return err;
@@ -291,7 +290,7 @@ errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, int id)
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
 
     if (srf) {
-        if (!Surface_IsUsed(srf)) {
+        if (!GObject_IsUsed(srf)) {
             Surface_Destroy(srf);
         }
         else {
@@ -362,44 +361,15 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id)
 // MARK: CLUT
 ////////////////////////////////////////////////////////////////////////////////
 
-static int _GraphicsDriver_GetNewClutId(GraphicsDriverRef _Nonnull _Locked self)
-{
-    bool hasCollision = true;
-    int id;
-
-    while (hasCollision) {
-        hasCollision = false;
-        id = self->nextClutId++;
-
-        List_ForEach(&self->colorTables, ColorTable,
-            if (pCurNode->id == id) {
-                hasCollision = true;
-                break;
-            }
-        );
-    }
-    return id;
-}
-
-ColorTable* _Nullable _GraphicsDriver_GetClutForId(GraphicsDriverRef _Nonnull self, int id)
-{
-    List_ForEach(&self->colorTables, ColorTable,
-        if (pCurNode->id == id) {
-            return pCurNode;
-        }
-    );
-    return NULL;
-}
-
 errno_t GraphicsDriver_CreateCLUT(GraphicsDriverRef _Nonnull self, size_t colorDepth, int* _Nonnull pOutId)
 {
     ColorTable* clut;
 
     mtx_lock(&self->io_mtx);
-    const errno_t err = ColorTable_Create(_GraphicsDriver_GetNewClutId(self), colorDepth, &clut);
+    const errno_t err = ColorTable_Create(_GraphicsDriver_GetNewGObjId(self), colorDepth, &clut);
     if (err == EOK) {
-        List_InsertBeforeFirst(&self->colorTables, &clut->chain);
-        *pOutId = clut->id;
+        List_InsertBeforeFirst(&self->gobjs, GObject_GetChainPtr(clut));
+        *pOutId = GObject_GetId(clut);
     }
     mtx_unlock(&self->io_mtx);
     return err;
@@ -413,7 +383,7 @@ errno_t GraphicsDriver_DestroyCLUT(GraphicsDriverRef _Nonnull self, int id)
     ColorTable* clut = _GraphicsDriver_GetClutForId(self, id);
 
     if (clut) {
-        if (!ColorTable_IsUsed(clut)) {
+        if (!GObject_IsUsed(clut)) {
             ColorTable_Destroy(clut);
         }
         else {
@@ -454,8 +424,13 @@ errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, s
     ColorTable* clut = _GraphicsDriver_GetClutForId(self, id);
     if (clut) {
         err = ColorTable_SetEntries(clut, idx, count, entries);
-        if (clut == self->clut) {
-            self->flags.isNewCopperProgNeeded = 1;
+        if (err == EOK) {
+            const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
+
+            if (clut == (ColorTable*)g_copper_running_prog->res.clut) {
+                self->flags.isNewCopperProgNeeded = 1;
+            }
+            irq_set_mask(sim);
         }
     }
     else {

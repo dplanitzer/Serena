@@ -9,9 +9,8 @@
 #ifndef ColorTable_h
 #define ColorTable_h
 
+#include "GObject.h"
 #include <kern/errno.h>
-#include <kern/types.h>
-#include <klib/List.h>
 #include <kpi/fb.h>
 
 
@@ -24,9 +23,7 @@ typedef struct CLUTEntry {
 
 
 typedef struct ColorTable {
-    ListNode    chain;
-    int         id;
-    int         useCount;
+    GObject     super;
     size_t      entryCount;
     uint16_t    entry[1];
 } ColorTable;
@@ -34,16 +31,6 @@ typedef struct ColorTable {
 
 extern errno_t ColorTable_Create(int id, size_t entryCount, ColorTable* _Nullable * _Nonnull pOutSelf);
 extern void ColorTable_Destroy(ColorTable* _Nullable self);
-
-
-#define ColorTable_BeginUse(__self) \
-((__self)->useCount++)
-
-#define ColorTable_EndUse(__self) \
-((__self)->useCount--)
-
-#define ColorTable_IsUsed(__self) \
-((__self)->useCount > 0)
 
 
 extern errno_t ColorTable_SetEntry(ColorTable* _Nonnull self, size_t idx, RGBColor32 color);

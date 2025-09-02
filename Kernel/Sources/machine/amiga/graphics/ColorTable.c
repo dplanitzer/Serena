@@ -31,8 +31,8 @@ errno_t ColorTable_Create(int id, size_t entryCount, ColorTable* _Nullable * _No
     }
 
     try(kalloc_cleared(sizeof(ColorTable) + (entryCount - 1) * sizeof(uint16_t), (void**) &self));
-    self->useCount = 0;
-    self->id = id;
+    self->super.type = kGObject_ColorTable;
+    self->super.id = id;
     self->entryCount = entryCount;
 
 catch:

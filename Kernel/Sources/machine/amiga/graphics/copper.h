@@ -12,6 +12,7 @@
 #include <kern/errno.h>
 #include <kern/types.h>
 #include <sched/vcpu.h>
+#include "GObject.h"
 
 
 // Copper program instruction
@@ -28,8 +29,10 @@ typedef uint32_t  copper_instr_t;
 #define COP_STATE_RETIRED   3
 
 
-#define MAX_COPPER_RES  10
-typedef void* copper_res_t;
+typedef struct copper_res {
+    GObject* _Nullable  fb;
+    GObject* _Nullable  clut;
+} copper_res_t;
 
 
 struct copper_prog {
@@ -42,10 +45,9 @@ struct copper_prog {
     copper_instr_t* _Nullable       even_entry; // event field entry point only exists for interlaced programs
 
     volatile int8_t                 state;
-    int8_t                          reserved[2];
+    int8_t                          reserved[3];
 
-    int8_t                          res_count;
-    copper_res_t                    res[MAX_COPPER_RES];
+    copper_res_t                    res;
 };
 typedef struct copper_prog* copper_prog_t;
 
@@ -73,5 +75,8 @@ extern copper_prog_t _Nullable copper_acquire_retired_prog(void);
 // new program has started running.
 #define COPFLAG_WAIT_RUNNING    1
 extern void copper_schedule(copper_prog_t _Nonnull prog, unsigned flags);
+
+// The currently running Copper program.
+extern copper_prog_t _Nonnull   g_copper_running_prog;
 
 #endif /* _COPPER_H */

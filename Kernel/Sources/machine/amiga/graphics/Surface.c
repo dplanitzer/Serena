@@ -44,8 +44,8 @@ errno_t Surface_Create(int id, int width, int height, PixelFormat pixelFormat, S
 
     try(kalloc_cleared(sizeof(Surface), (void**) &self));
     
-    self->id = id;
-    self->useCount = 0;
+    self->super.type = kGObject_Surface;
+    self->super.id = id;
     self->pixelFormat = pixelFormat;
     self->width = width;
     self->height = height;
