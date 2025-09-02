@@ -169,6 +169,9 @@ typedef unsigned int RGBColor32;
 
 #define SCREEN_CONFIG_FRAMEBUFFER   1
 #define SCREEN_CONFIG_CLUT          2
+#define SCREEN_CONFIG_WIDTH         3
+#define SCREEN_CONFIG_HEIGHT        4
+#define SCREEN_CONFIG_PIXELFORMAT   5
 #define SCREEN_CONFIG_END           0
 
 // Configures the screen based on the given screen configuration. Pass NULL to

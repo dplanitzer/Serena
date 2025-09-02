@@ -80,7 +80,7 @@ static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull 
         }
 
 
-        err = GraphicsDriver_CreateCopperScreenProg(self, vc, conf.fb, conf.clut, &prog);
+        err = GraphicsDriver_CreateScreenCopperProg(self, vc, conf.fb, conf.clut, &prog);
         if (err != EOK) {
             return err;
         }
@@ -114,14 +114,40 @@ errno_t GraphicsDriver_SetScreenConfig(GraphicsDriverRef _Nonnull self, const in
 errno_t GraphicsDriver_GetScreenConfig(GraphicsDriverRef _Nonnull self, int* _Nonnull config, size_t bufsiz)
 {
     decl_try_err();
+    size_t i = 0;
 
     mtx_lock(&self->io_mtx);
     if (bufsiz == 0) {
         throw(EINVAL);
     }
 
-    //XXX implement me for real
-    config[0] = SCREEN_CONFIG_END;
+    // SCREEN_CONFIG_FRAMEBUFFER
+    // SCREEN_CONFIG_CLUT (if the pixel format is one of the indirect formats)
+    // SCREEN_CONFIG_WIDTH
+    // SCREEN_CONFIG_HEIGHT
+    // SCREEN_CONFIG_PIXELFORMAT
+    // SCREEN_CONFIG_END
+    if (bufsiz < 11) {
+        return ERANGE;
+    }
+
+    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
+    const video_conf_t* vc = g_copper_running_prog->video_conf;
+    Surface* fb = (Surface*)g_copper_running_prog->res.fb;
+    ColorTable* clut = (ColorTable*)g_copper_running_prog->res.clut;
+    irq_set_mask(sim);
+
+    config[i++] = SCREEN_CONFIG_FRAMEBUFFER;
+    config[i++] = (fb) ? GObject_GetId(fb) : 0;
+    config[i++] = SCREEN_CONFIG_CLUT;
+    config[i++] = (clut) ? GObject_GetId(clut) : 0;
+    config[i++] = SCREEN_CONFIG_WIDTH;
+    config[i++] = vc->width;
+    config[i++] = SCREEN_CONFIG_HEIGHT;
+    config[i++] = vc->height;
+    config[i++] = SCREEN_CONFIG_PIXELFORMAT;
+    config[i++] = (fb) ? Surface_GetPixelFormat(fb) : 0;
+    config[i]   = SCREEN_CONFIG_END;
 
 catch:
     mtx_unlock(&self->io_mtx);
@@ -130,19 +156,10 @@ catch:
 
 void GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
 {
-    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-    Surface* fb = (Surface*)g_copper_running_prog->res.fb;
+    const video_conf_t* vc = g_copper_running_prog->video_conf;
 
-    if (fb) {
-        *pOutWidth = Surface_GetWidth(fb);
-        *pOutHeight = Surface_GetHeight(fb);
-    }
-    else {
-        *pOutWidth = 0;
-        *pOutHeight = 0;
-    }
-
-    irq_set_mask(sim);
+    *pOutWidth = vc->width;
+    *pOutHeight = vc->height;
 }
 
 // Triggers an update of the display so that it accurately reflects the current
@@ -162,7 +179,7 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
         video_conf_t* vc = (video_conf_t*)g_copper_running_prog->video_conf;
         irq_set_mask(sim);
 
-        err = GraphicsDriver_CreateCopperScreenProg(self, vc, fb, clut, &prog);
+        err = GraphicsDriver_CreateScreenCopperProg(self, vc, fb, clut, &prog);
         if (err == EOK) {
             copper_schedule(prog, 0);
             self->flags.isNewCopperProgNeeded = 0;
