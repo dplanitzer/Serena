@@ -182,16 +182,12 @@ static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull 
         if (err != EOK) {
             return err;
         }
-
-        self->hwc = hwc;
     }
     else {
         err = GraphicsDriver_CreateNullCopperProg(self, &prog);
         if (err != EOK) {
             return err;
         }
-
-        self->hwc = NULL;
     } 
 
 
@@ -261,9 +257,10 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
         const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
         Surface* fb = (Surface*)g_copper_running_prog->res.fb;
         ColorTable* clut = (ColorTable*)g_copper_running_prog->res.clut;
+        hw_conf_t* hwc = (hw_conf_t*)g_copper_running_prog->hwc;
         irq_set_mask(sim);
 
-        err = GraphicsDriver_CreateCopperScreenProg(self, self->hwc, fb, clut, &prog);
+        err = GraphicsDriver_CreateCopperScreenProg(self, hwc, fb, clut, &prog);
         if (err == EOK) {
             copper_schedule(prog, 0);
             self->flags.isNewCopperProgNeeded = 0;

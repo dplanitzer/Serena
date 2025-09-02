@@ -57,8 +57,6 @@ typedef struct hw_conf {
 final_class_ivars(GraphicsDriver, Driver,
     mtx_t                   io_mtx;
 
-    void* _Nullable         hwc;
-
     vcpu_t _Nonnull         copvp;
     struct waitqueue        copvpWaitQueue;
     sigset_t                copvpSigs;

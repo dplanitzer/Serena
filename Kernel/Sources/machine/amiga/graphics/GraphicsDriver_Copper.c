@@ -179,6 +179,7 @@ errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked s
     *ip = COP_END();
     
 
+    prog->hwc = NULL;
     prog->spriteOriginX = DIW_NTSC_HSTART;
     prog->spriteOriginY = DIW_NTSC_VSTART;
     prog->spriteScaleX = 0;
@@ -321,6 +322,7 @@ errno_t GraphicsDriver_CreateCopperScreenProg(GraphicsDriverRef _Nonnull _Locked
         ip = _compile_copper_prog(self, ip, hwc, fb, clut, false);
     }
 
+    prog->hwc = hwc;
     prog->spriteOriginX = hwc->hDwStart;
     prog->spriteOriginY = hwc->vDwStart;
     prog->spriteScaleX = (isHires) ? 0x01 : 0x00;
