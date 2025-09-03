@@ -56,6 +56,13 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCLUTEntries, self->clutId, 0, sizeof(gANSIColors), gANSIColors);
 
 
+    // Map and clear the framebuffer before we activate the new screen config
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_MapSurface, self->surfaceId, kMapPixels_ReadWrite, &self->pixels));
+    for (size_t i = 0; i < self->pixels.planeCount; i++) {
+        memset(self->pixels.plane[i], 0, height * self->pixels.bytesPerRow[i]);
+    }
+
+
     // Make our screen the current screen
     int sc[5];
     sc[0] = SCREEN_CONFIG_FRAMEBUFFER;
@@ -90,7 +97,6 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     self->flags.isTextCursorSingleCycleOn = false;
 
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_UpdateDisplay));
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_MapSurface, self->surfaceId, kMapPixels_ReadWrite, &self->pixels));
 
 catch:
     return err;
