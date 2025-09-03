@@ -155,18 +155,18 @@ errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked s
     *ip++ = COP_MOVE(COLOR00, 0x0fff);
 
 
-    // BPLCONx
-    *ip++ = COP_MOVE(BPLCON0, BPLCON0F_COLOR);
-    *ip++ = COP_MOVE(BPLCON1, 0);
-    *ip++ = COP_MOVE(BPLCON2, 0);
-
-
     // SPRxDATy
     const uint32_t sprpt = (uint32_t)self->nullSpriteData;
     for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
         *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
     }
+
+
+    // BPLCONx
+    *ip++ = COP_MOVE(BPLCON0, BPLCON0F_COLOR);
+    *ip++ = COP_MOVE(BPLCON1, 0);
+    *ip++ = COP_MOVE(BPLCON2, 0);
 
 
     // DIWSTART / DIWSTOP
