@@ -138,7 +138,7 @@ errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked s
             + 2                     // DIWSTART, DIWSTOP
             + 2                     // DDFSTART, DDFSTOP
             + 1                     // DMACON (ON)
-            + 2;                    // COP_END
+            + 1;                    // COP_END
 
     err = _create_copper_prog(self, instrCount, &prog);
     if (err != EOK) {
@@ -202,9 +202,9 @@ errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked s
 ////////////////////////////////////////////////////////////////////////////////
 
 
-static size_t _calc_copper_prog_len(Surface* _Nonnull fb, ColorTable* _Nonnull clut)
+static size_t _calc_copper_prog_len(Surface* _Nonnull fb)
 {
-    return clut->entryCount                 // CLUT
+    return COLOR_COUNT                      // CLUT
             + 2 * fb->planeCount            // BPLxPT[nplanes]
             + 2                             // BPL1MOD, BPL2MOD
             + 3                             // BPLCON0, BPLCON1, BPLCON2
@@ -212,30 +212,41 @@ static size_t _calc_copper_prog_len(Surface* _Nonnull fb, ColorTable* _Nonnull c
             + 2                             // DIWSTART, DIWSTOP
             + 2                             // DDFSTART, DDFSTOP
             + 1                             // DMACON
-            + 2;                            // COP_END
+            + 1;                            // COP_END
 }
 
 static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull self, copper_instr_t* _Nonnull ip, const video_conf_t* _Nonnull vc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, bool isOddField)
 {
     const int isHires = (vc->flags & VCFLAG_HIRES) != 0;
     const int isLace = (vc->flags & VCFLAG_LACE) != 0;
-    const uint16_t w = Surface_GetWidth(fb);
-    const uint16_t h = Surface_GetHeight(fb);
+    const uint16_t w = vc->width;
+    const uint16_t h = vc->height;
     const uint16_t bpr = Surface_GetBytesPerRow(fb);
     const uint16_t ddfMod = (isLace) ? bpr : bpr - (w >> 3);
     const uint32_t firstLineByteOffset = isOddField ? 0 : ddfMod;
     const uint16_t lpen_bit = self->flags.isLightPenEnabled ? BPLCON0F_LPEN : 0;
     
+    assert(clut->entryCount == COLOR_COUNT);
+
 
     // CLUT
-    for (int i = 0, r = COLOR_BASE; i < clut->entryCount; i++, r += 2) {
+    for (int i = 0, r = COLOR_BASE; i < COLOR_COUNT; i++, r += 2) {
         *ip++ = COP_MOVE(r, clut->entry[i]);
+    }
+
+
+    // SPRxPT
+    for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
+        const uint32_t sprpt = (uint32_t)self->spriteDmaPtr[i];
+
+        *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
+        *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
     }
 
 
     // BPLxPT
     for (int i = 0, r = BPL_BASE; i < fb->planeCount; i++, r += 4) {
-        const uint32_t bplpt = (uint32_t)(fb->plane[i]) + firstLineByteOffset;
+        const uint32_t bplpt = (uint32_t)fb->plane[i] + firstLineByteOffset;
         
         *ip++ = COP_MOVE(r + 0, (bplpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);
@@ -268,18 +279,9 @@ static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull 
     *ip++ = COP_MOVE(BPLCON2, 0x0024);
 
 
-    // SPRxPT
-    for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
-        const uint32_t sprpt = (uint32_t)self->spriteDmaPtr[i];
-
-        *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
-        *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
-    }
-
-
     // DIWSTART / DIWSTOP
-    *ip++ = COP_MOVE(DIWSTART, (((uint16_t)vc->vDwStart) << 8) | vc->hDwStart);
-    *ip++ = COP_MOVE(DIWSTOP, (((uint16_t)vc->vDwStop) << 8) | vc->hDwStop);
+    *ip++ = COP_MOVE(DIWSTART, ((uint16_t)vc->vDwStart << 8) | vc->hDwStart);
+    *ip++ = COP_MOVE(DIWSTOP, ((uint16_t)vc->vDwStop << 8) | vc->hDwStop);
 
 
     // DDFSTART / DDFSTOP
@@ -311,7 +313,7 @@ errno_t GraphicsDriver_CreateScreenCopperProg(GraphicsDriverRef _Nonnull _Locked
     copper_prog_t prog = NULL;
     copper_instr_t* ip;
     
-    const size_t instrCount = _calc_copper_prog_len(fb, clut);
+    const size_t instrCount = _calc_copper_prog_len(fb);
 
     try(_create_copper_prog(self, instrCount, &prog));
     prog->odd_entry = prog->prog;
