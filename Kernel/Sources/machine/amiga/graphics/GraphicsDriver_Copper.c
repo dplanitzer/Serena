@@ -98,9 +98,16 @@ void GraphicsDriver_CopperManager(GraphicsDriverRef _Nonnull self)
     for (;;) {
         copper_prog_t prog;
         int signo;
+        bool hasChange = false;
 
         while ((prog = copper_acquire_retired_prog()) != NULL) {
             _cache_copper_prog(self, prog);
+            hasChange = true;
+        }
+
+
+        if (hasChange && self->screenConfigObserver) {
+            vcpu_sigsend_irq(self->screenConfigObserver, self->screenConfigObserverSignal, false);
         }
 
 

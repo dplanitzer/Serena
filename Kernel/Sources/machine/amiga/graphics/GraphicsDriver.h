@@ -11,6 +11,7 @@
 
 #include <driver/Driver.h>
 #include <kpi/fb.h>
+#include <sched/vcpu.h>
 
 
 final_class(GraphicsDriver, Driver);
@@ -74,5 +75,7 @@ extern errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, co
 // area. Additionally this API guarantees that the mouse cursor will be hidden
 // if either 'x' or 'y' is == INT_MIN
 extern void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y);
+
+extern void GraphicsDriver_SetScreenConfigObserver(GraphicsDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo);
 
 #endif /* GraphicsDriver_h */

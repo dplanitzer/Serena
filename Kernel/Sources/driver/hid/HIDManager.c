@@ -17,6 +17,7 @@
 
 extern const uint8_t gUSBHIDKeyFlags[256];
 int _vbl_handler(HIDManagerRef _Nonnull self);
+static void _collect_framebuffer_size(HIDManagerRef _Nonnull self);
 static void _reports_collector_loop(HIDManagerRef _Nonnull self);
 
 
@@ -33,7 +34,7 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
     mtx_init(&self->mtx);
     wq_init(&self->reportsWaitQueue);
 
-    self->reportSigs = _SIGBIT(SIGKEY) | _SIGBIT(SIGVBL);
+    self->reportSigs = _SIGBIT(SIGKEY) | _SIGBIT(SIGVBL) | _SIGBIT(SIGSCR);
     self->report.type = kHIDReportType_Null;
 
     self->keyFlags = gUSBHIDKeyFlags;
@@ -653,14 +654,8 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
         err = Driver_Open(driver, O_RDWR, 0, &self->fbChannel);
         if (err == EOK) {
             self->fb = IOChannel_GetResourceAs(self->fbChannel, GraphicsDriver);
-
-            int w, h;
-            GraphicsDriver_GetScreenSize(self->fb, &w, &h);
-
-            self->screenLeft = 0;
-            self->screenTop = 0;
-            self->screenRight = (int16_t)w;
-            self->screenBottom = (int16_t)h;
+            GraphicsDriver_SetScreenConfigObserver(self->fb, self->reportsCollector, SIGSCR);
+            _collect_framebuffer_size(self);
         }
     }
 }
@@ -676,6 +671,7 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
     }
     
     if ((DriverRef)self->fb == driver) {
+        GraphicsDriver_SetScreenConfigObserver(self->fb, NULL, 0);
         IOChannel_Release(self->fbChannel);
         self->fbChannel = NULL;
         self->fb = NULL;
@@ -831,6 +827,17 @@ static void _collect_gamepad_reports(HIDManagerRef _Nonnull self)
     }
 }
 
+static void _collect_framebuffer_size(HIDManagerRef _Nonnull self)
+{
+    int w, h;
+    GraphicsDriver_GetScreenSize(self->fb, &w, &h);
+
+    self->screenLeft = 0;
+    self->screenTop = 0;
+    self->screenRight = (int16_t)w;
+    self->screenBottom = (int16_t)h;
+}
+
 
 static void _reports_collector_loop(HIDManagerRef _Nonnull self)
 {
@@ -853,6 +860,10 @@ static void _reports_collector_loop(HIDManagerRef _Nonnull self)
             case SIGVBL:
                 _collect_pointing_device_reports(self);
                 _collect_gamepad_reports(self);
+                break;
+
+            case SIGSCR:
+                _collect_framebuffer_size(self);
                 break;
         }
 

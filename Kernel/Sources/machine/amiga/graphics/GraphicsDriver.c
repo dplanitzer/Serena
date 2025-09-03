@@ -640,6 +640,14 @@ void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int 
     mtx_unlock(&self->io_mtx);
 }
 
+void GraphicsDriver_SetScreenConfigObserver(GraphicsDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
+{
+    mtx_lock(&self->io_mtx);
+    self->screenConfigObserver = vp;
+    self->screenConfigObserverSignal = signo;
+    mtx_unlock(&self->io_mtx);
+}
+
 
 class_func_defs(GraphicsDriver, Driver,
 override_func_def(onStart, GraphicsDriver, Driver)

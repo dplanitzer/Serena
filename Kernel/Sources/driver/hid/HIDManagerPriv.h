@@ -23,6 +23,7 @@
 
 #define SIGKEY  2
 #define SIGVBL  3
+#define SIGSCR  4
 
 
 // XXX 16 is confirmed to work without overflows on a A2000. Still want to keep

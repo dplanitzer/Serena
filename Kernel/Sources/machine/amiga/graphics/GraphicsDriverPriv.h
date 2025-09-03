@@ -46,6 +46,9 @@ final_class_ivars(GraphicsDriver, Driver,
     copper_prog_t _Nullable copperProgCache;
     size_t                  copperProgCacheCount;
 
+    vcpu_t _Nullable        screenConfigObserver;
+    int                     screenConfigObserverSignal;
+
     uint16_t* _Nonnull      nullSpriteData;
     uint16_t* _Nonnull      spriteDmaPtr[SPRITE_COUNT];
     Sprite                  sprite[SPRITE_COUNT];
