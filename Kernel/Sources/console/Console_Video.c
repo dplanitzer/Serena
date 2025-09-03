@@ -78,7 +78,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_AcquireSprite, textCursorWidth, textCursorHeight, kPixelFormat_RGB_Indexed2, 0, &self->textCursor));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_AcquireSprite, textCursorWidth, textCursorHeight, kPixelFormat_RGB_Indexed2, 2, &self->textCursor));
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpritePixels, self->textCursor, textCursorPlanes));
     self->flags.isTextCursorVisible = false;
 
@@ -118,11 +118,17 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
     self->foregroundColor = color;
 
     // Sync up the sprite color registers with the selected foreground color
-    RGBColor32 clr[3];
-    clr[0] = gANSIColors[color.u.index];
-    clr[1] = clr[0];
-    clr[2] = clr[0];
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCLUTEntries, self->clutId, 17, 3, clr);
+    RGBColor32 clr[8];
+    clr[0] = 0xff000000;    //XXX for mouse cursor
+    clr[1] = 0xffffffff;
+    clr[2] = 0xff000000;
+    clr[3] = 0xff000000;
+    
+    clr[4] = 0xff000000;
+    clr[5] = gANSIColors[color.u.index];
+    clr[6] = clr[5];
+    clr[7] = clr[5];
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCLUTEntries, self->clutId, 16, 8, clr);
     IOChannel_Ioctl(self->fbChannel, kFBCommand_UpdateDisplay);
 }
 

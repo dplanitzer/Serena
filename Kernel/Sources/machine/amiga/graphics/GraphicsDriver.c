@@ -223,6 +223,14 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
             return GraphicsDriver_GetScreenConfig(self, cp, bufsiz);
         }
 
+        case kFBCommand_SetScreenCLUTEntries: {
+            const size_t idx = va_arg(ap, size_t);
+            const size_t count = va_arg(ap, size_t);
+            const RGBColor32* colors = va_arg(ap, const RGBColor32*);
+
+            return GraphicsDriver_SetScreenCLUTEntries(self, idx, count, colors);
+        }
+
         case kFBCommand_UpdateDisplay:
             return GraphicsDriver_UpdateDisplay(self);
 
@@ -442,12 +450,9 @@ errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, s
     if (clut) {
         err = ColorTable_SetEntries(clut, idx, count, entries);
         if (err == EOK) {
-            const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-
             if (clut == (ColorTable*)g_copper_running_prog->res.clut) {
                 self->flags.isNewCopperProgNeeded = 1;
             }
-            irq_set_mask(sim);
         }
     }
     else {

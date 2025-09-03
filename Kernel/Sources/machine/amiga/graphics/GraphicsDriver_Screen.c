@@ -154,6 +154,28 @@ catch:
     return err;
 }
 
+errno_t GraphicsDriver_SetScreenCLUTEntries(GraphicsDriverRef _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
+{
+    decl_try_err();
+
+    mtx_lock(&self->io_mtx);
+    ColorTable* clut = (ColorTable*)g_copper_running_prog->res.clut;
+
+    if (clut) {
+        err = ColorTable_SetEntries(clut, idx, count, entries);
+        if (err == EOK) {
+            if (clut == (ColorTable*)g_copper_running_prog->res.clut) {
+                self->flags.isNewCopperProgNeeded = 1;
+            }
+        }
+    }
+    else {
+        err = EINVAL;
+    }
+    mtx_unlock(&self->io_mtx);
+    return err;
+}
+
 void GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
 {
     const video_conf_t* vc = g_copper_running_prog->video_conf;

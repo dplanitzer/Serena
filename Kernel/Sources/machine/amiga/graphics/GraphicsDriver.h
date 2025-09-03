@@ -48,6 +48,8 @@ extern errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, 
 extern errno_t GraphicsDriver_SetScreenConfig(GraphicsDriverRef _Nonnull self, const int* _Nullable config);
 extern errno_t GraphicsDriver_GetScreenConfig(GraphicsDriverRef _Nonnull self, int* _Nonnull config, size_t bufsiz);
 
+extern errno_t GraphicsDriver_SetScreenCLUTEntries(GraphicsDriverRef _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
+
 extern errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self);
 extern void GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 

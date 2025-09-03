@@ -33,7 +33,7 @@ typedef struct screen_conf {
 } screen_conf_t;
 
 
-#define MOUSE_SPRITE_PRI 7
+#define MOUSE_SPRITE_PRI 0
 #define MAX_CACHED_COPPER_PROGS 4
 
 final_class_ivars(GraphicsDriver, Driver,
