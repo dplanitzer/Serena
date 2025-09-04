@@ -95,6 +95,7 @@ void copper_start(void)
     // Let the Copper run our null program
     CHIPSET_BASE_DECL(cp);
 
+    *CHIPSET_REG_16(cp, DMACON) = (DMACONF_COPEN | DMACONF_SPREN | DMACONF_BPLEN);
     chipset_wait_bof();
     *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)g_copper_running_prog->odd_entry;
     *CHIPSET_REG_16(cp, COPJMP1) = 0;

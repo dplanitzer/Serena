@@ -128,70 +128,19 @@ void GraphicsDriver_CopperManager(GraphicsDriverRef _Nonnull self)
 errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked self, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
-    copper_prog_t prog = NULL;
-    const video_conf_t* vc = get_null_video_conf();
-    const size_t instrCount = 
-              1                     // DMA (OFF)
-            + 1                     // CLUT
-            + 3                     // BPLCON0, BPLCON1, BPLCON2
-            + 2 * SPRITE_COUNT      // SPRxDATy
-            + 2                     // DIWSTART, DIWSTOP
-            + 2                     // DDFSTART, DDFSTOP
-            + 1                     // DMACON (ON)
-            + 1;                    // COP_END
+    ColorTable* clut;
 
-    err = _create_copper_prog(self, instrCount, &prog);
+    err = _GraphicsDriver_CreateCLUT(self, COLOR_COUNT, kRGBColor32_White, &clut);
     if (err != EOK) {
         return err;
     }
 
-    copper_instr_t* ip = prog->prog;
-
-    // DMACON (OFF)
-    *ip++ = COP_MOVE(DMACON, DMACONF_BPLEN | DMACONF_SPREN);
-
-
-    // CLUT
-    *ip++ = COP_MOVE(COLOR00, 0x0fff);
-
-
-    // SPRxDATy
-    const uint32_t sprpt = (uint32_t)self->nullSpriteData;
-    for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
-        *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
-        *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
+    err = GraphicsDriver_CreateScreenCopperProg(self, get_null_video_conf(), NULL, clut, pOutProg);
+    if (err != EOK) {
+        _GraphicsDriver_DestroyGObj(self, clut);
+        return err;
     }
 
-
-    // BPLCONx
-    *ip++ = COP_MOVE(BPLCON0, BPLCON0F_COLOR);
-    *ip++ = COP_MOVE(BPLCON1, 0);
-    *ip++ = COP_MOVE(BPLCON2, 0);
-
-
-    // DIWSTART / DIWSTOP
-    *ip++ = COP_MOVE(DIWSTART, (((uint16_t)vc->vDwStart) << 8) | vc->hDwStart);
-    *ip++ = COP_MOVE(DIWSTOP, (((uint16_t)vc->vDwStop) << 8) | vc->hDwStop);
-
-
-    // DDFSTART / DDFSTOP
-    *ip++ = COP_MOVE(DDFSTART, 0x0038);
-    *ip++ = COP_MOVE(DDFSTOP, 0x00d0);
-
-
-    // DMACON
-    *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | DMACONF_SPREN | DMACONF_DMAEN);
-
-
-    // end instruction
-    *ip = COP_END();
-    
-
-    prog->video_conf = vc;
-    prog->res.fb = NULL;
-    prog->res.clut = NULL;
-
-    *pOutProg = prog;
     return EOK;
 }
 
@@ -202,10 +151,10 @@ errno_t GraphicsDriver_CreateNullCopperProg(GraphicsDriverRef _Nonnull _Locked s
 ////////////////////////////////////////////////////////////////////////////////
 
 
-static size_t _calc_copper_prog_len(Surface* _Nonnull fb)
+static size_t _calc_copper_prog_len(void)
 {
     return COLOR_COUNT                      // CLUT
-            + 2 * fb->planeCount            // BPLxPT[nplanes]
+            + 2 * MAX_PLANE_COUNT           // BPLxPT[nplanes]
             + 2                             // BPL1MOD, BPL2MOD
             + 3                             // BPLCON0, BPLCON1, BPLCON2
             + 2 * SPRITE_COUNT              // SPRxPT
@@ -215,17 +164,13 @@ static size_t _calc_copper_prog_len(Surface* _Nonnull fb)
             + 1;                            // COP_END
 }
 
-static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull self, copper_instr_t* _Nonnull ip, const video_conf_t* _Nonnull vc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, bool isOddField)
+static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull self, copper_instr_t* _Nonnull ip, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, bool isOddField)
 {
     const int isHires = (vc->flags & VCFLAG_HIRES) != 0;
     const int isLace = (vc->flags & VCFLAG_LACE) != 0;
     const uint16_t w = vc->width;
     const uint16_t h = vc->height;
-    const uint16_t bpr = Surface_GetBytesPerRow(fb);
-    const uint16_t ddfMod = (isLace) ? bpr : bpr - (w >> 3);
-    const uint32_t firstLineByteOffset = isOddField ? 0 : ddfMod;
-    const uint16_t lpen_bit = self->flags.isLightPenEnabled ? BPLCON0F_LPEN : 0;
-    
+
     assert(clut->entryCount == COLOR_COUNT);
 
 
@@ -245,24 +190,32 @@ static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull 
 
 
     // BPLxPT
-    for (int i = 0, r = BPL_BASE; i < fb->planeCount; i++, r += 4) {
-        const uint32_t bplpt = (uint32_t)fb->plane[i] + firstLineByteOffset;
+    if (fb) {
+        const uint16_t bpr = Surface_GetBytesPerRow(fb);
+        const uint16_t ddfMod = (isLace) ? bpr : bpr - (w >> 3);
+        const uint32_t firstLineByteOffset = isOddField ? 0 : ddfMod;
+
+        for (int i = 0, r = BPL_BASE; i < fb->planeCount; i++, r += 4) {
+            const uint32_t bplpt = (uint32_t)fb->plane[i] + firstLineByteOffset;
         
-        *ip++ = COP_MOVE(r + 0, (bplpt >> 16) & UINT16_MAX);
-        *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);
+            *ip++ = COP_MOVE(r + 0, (bplpt >> 16) & UINT16_MAX);
+            *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);
+        }
+
+
+        // BPLxMOD
+        // Calculate the modulo:
+        // - the whole scanline (visible + padding bytes) if interlace mode
+        // - just the padding bytes (bytes per row - visible bytes) if non-interlace mode
+        *ip++ = COP_MOVE(BPL1MOD, ddfMod);
+        *ip++ = COP_MOVE(BPL2MOD, ddfMod);
     }
 
 
-    // BPLxMOD
-    // Calculate the modulo:
-    // - the whole scanline (visible + padding bytes) if interlace mode
-    // - just the padding bytes (bytes per row - visible bytes) if non-interlace mode
-    *ip++ = COP_MOVE(BPL1MOD, ddfMod);
-    *ip++ = COP_MOVE(BPL2MOD, ddfMod);
-
-
     // BPLCON0
-    uint16_t bplcon0 = BPLCON0F_COLOR | lpen_bit | (uint16_t)((fb->planeCount & 0x07) << 12);
+    const uint16_t bp_cnt = (fb) ? fb->planeCount & 0x07 : 0;
+    const uint16_t lpen_bit = self->flags.isLightPenEnabled ? BPLCON0F_LPEN : 0;
+    uint16_t bplcon0 = BPLCON0F_COLOR | lpen_bit | (bp_cnt << 12);
 
     if (isHires) {
         bplcon0 |= BPLCON0F_HIRES;
@@ -297,7 +250,8 @@ static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull 
 
 
     // DMACON
-    *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | DMACONF_BPLEN | DMACONF_SPREN | DMACONF_DMAEN);
+    const uint16_t bpl_bit = (fb) ? DMACONF_BPLEN : 0;
+    *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | bpl_bit | DMACONF_SPREN | DMACONF_DMAEN);
 
 
     // COP_END
@@ -306,14 +260,14 @@ static copper_instr_t* _Nonnull _compile_copper_prog(GraphicsDriverRef _Nonnull 
     return ip;
 }
 
-errno_t GraphicsDriver_CreateScreenCopperProg(GraphicsDriverRef _Nonnull _Locked self, const video_conf_t* _Nonnull vc, Surface* _Nonnull fb, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
+errno_t GraphicsDriver_CreateScreenCopperProg(GraphicsDriverRef _Nonnull _Locked self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, copper_prog_t _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     const int isLace = (vc->flags & VCFLAG_LACE) != 0;
     copper_prog_t prog = NULL;
     copper_instr_t* ip;
     
-    const size_t instrCount = _calc_copper_prog_len(fb);
+    const size_t instrCount = _calc_copper_prog_len();
 
     try(_create_copper_prog(self, instrCount, &prog));
     prog->odd_entry = prog->prog;
@@ -331,7 +285,7 @@ errno_t GraphicsDriver_CreateScreenCopperProg(GraphicsDriverRef _Nonnull _Locked
     prog->res.fb = (GObject*)fb;
     prog->res.clut = (GObject*)clut;
 
-    GObject_AddUse(fb);
+    if (fb) GObject_AddUse(fb);
     GObject_AddUse(clut);
 
 catch:

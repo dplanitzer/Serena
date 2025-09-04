@@ -402,7 +402,7 @@ errno_t _GraphicsDriver_CreateCLUT(GraphicsDriverRef _Nonnull _Locked self, size
 {
     ColorTable* clut;
 
-    const errno_t err = ColorTable_Create(_GraphicsDriver_GetNewGObjId(self), colorDepth, kRGBColor32_Black, &clut);
+    const errno_t err = ColorTable_Create(_GraphicsDriver_GetNewGObjId(self), colorDepth, defaultColor, &clut);
     if (err == EOK) {
         List_InsertBeforeFirst(&self->gobjs, GObject_GetChainPtr(clut));
         *pOutClut = clut;

@@ -17,7 +17,7 @@ static int _get_config_value(const int* _Nonnull config, int key, int def)
         if (*config == key) {
             return *(config + 1);
         }
-        config++;
+        config += 2;
     }
 
     return def;
@@ -31,7 +31,7 @@ static void _parse_screen_conf(GraphicsDriverRef _Nonnull self, const int* _Nonn
     screenConf->fb = _GraphicsDriver_GetSurfaceForId(self, fb_id);
 
 
-    const int clut_id = _get_config_value(icfg, SCREEN_CONFIG_CLUT, 0);
+    const int clut_id = _get_config_value(icfg, SCREEN_CONFIG_CLUT, -1);
     screenConf->clut = _GraphicsDriver_GetClutForId(self, clut_id);
 }
 
