@@ -12,7 +12,8 @@
 #include <kern/errno.h>
 #include <kern/types.h>
 #include <sched/vcpu.h>
-#include "GObject.h"
+#include "ColorTable.h"
+#include "Surface.h"
 #include "video_conf.h"
 
 
@@ -58,6 +59,16 @@ extern errno_t copper_prog_create(size_t instr_count, copper_prog_t _Nullable * 
 
 // Frees the given Copper program.
 extern void copper_prog_destroy(copper_prog_t _Nullable prog);
+
+// Calculates how many instructions are needed for a Copper program for the given
+// video configuration.
+extern size_t calc_copper_prog_instruction_count(const video_conf_t* _Nonnull vc);
+
+// Compiles the odd (and needed the even) field program(s) for the given video
+// configuration, framebuffer, CLUT and sprite configuration and writes the
+// instructions to the given Copper program. Note that the Copper program must
+// be big enough to hold all instructions.
+extern void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, uint16_t* _Nonnull sprdma[], bool isLightPenEnabled);
 
 
 // Initializes the Copper scheduler. 'prog' is the bootstrap Copper program. This

@@ -7,7 +7,6 @@
 //
 
 #include "copper.h"
-#include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <machine/irq.h>
 #include <machine/amiga/chipset.h>
@@ -24,52 +23,6 @@ static sem_t                    g_copper_notify_sem;
 static int                      g_retire_signo;
 static vcpu_t _Nullable         g_retire_vcpu;
 static int8_t                   g_copper_is_running_interlaced;
-
-
-errno_t copper_prog_create(size_t instr_count, copper_prog_t _Nullable * _Nonnull pOutProg)
-{
-    decl_try_err();
-    copper_prog_t prog = NULL;
-
-    if (instr_count == 0) {
-        return EINVAL;
-    }
-
-
-    // Allocate a new program if we aren't able to reuse a retired program
-    err = kalloc_cleared(sizeof(struct copper_prog), (void**)&prog);
-    if (err != EOK) {
-        return err;
-    }
-
-    err = kalloc_options(sizeof(copper_instr_t) * instr_count, KALLOC_OPTION_UNIFIED, (void**)&prog->prog);
-    if (err != EOK) {
-        kfree(prog);
-        return err;
-    }
-
-    
-    // Prepare the program state
-    prog->prog_size = instr_count;
-    prog->state = COP_STATE_IDLE;
-    prog->odd_entry = prog->prog;
-    prog->even_entry = NULL;
-
-
-    *pOutProg = prog;
-    return EOK;
-}
-
-void copper_prog_destroy(copper_prog_t _Nullable prog)
-{
-    if (prog) {
-        kfree(prog->prog);
-        prog->prog = NULL;
-        prog->even_entry = NULL;
-        prog->odd_entry = NULL;
-    }
-    kfree(prog);
-}
 
 
 errno_t copper_init(copper_prog_t _Nonnull prog, int signo, vcpu_t _Nullable sigvp)

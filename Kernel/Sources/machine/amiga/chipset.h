@@ -336,6 +336,7 @@
 #define AUD3VOL     0x0d8
 #define AUD3DAT     0x0da
 
+#define PLANE_COUNT 8
 #define BPL_BASE    0x0e0
 #define BPL1PT      0x0e0
 #define BPL1PTH     0x0e0
