@@ -54,10 +54,10 @@ typedef struct copper_edits {
     uint8_t     pending;
     uint8_t     reserved[3];
 
-    int16_t     clut_low_idx;
-    int16_t     clut_high_idx;
+    uint16_t    clut_low_idx;           // Index of lowest CLU entry that has changed
+    uint16_t    clut_high_idx;          // Index of highest CLUT entry that has changed plus one
 
-    uint32_t    sprptr[SPRITE_COUNT+1];   // 31..8: sprite dma pointer; 7..0: sprite number (0xff -> marks end of list)
+    uint32_t    sprptr[SPRITE_COUNT+1]; // 31..8: sprite dma pointer; 7..0: sprite number (0xff -> marks end of list)
 } copper_edits_t;
 
 
@@ -100,7 +100,7 @@ extern void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t*
 // Clear pending edits
 #define copper_prog_clear_edits(__self) \
 (__self)->ed.pending = 0; \
-(__self)->ed.clut_low_idx = 0; \
+(__self)->ed.clut_low_idx = 0xffff; \
 (__self)->ed.clut_high_idx = 0; \
 (__self)->ed.sprptr[0] = COPED_SPRPTR_SENTINEL
 

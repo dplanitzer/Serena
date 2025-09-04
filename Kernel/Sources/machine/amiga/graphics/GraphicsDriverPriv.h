@@ -59,8 +59,7 @@ final_class_ivars(GraphicsDriver, Driver,
     struct __GDFlags {
         unsigned int    isLightPenEnabled;  // Applies to all screens
         unsigned int    mouseCursorEnabled; // Applies to all screens
-        unsigned int    isNewCopperProgNeeded;
-        unsigned int    reserved:30;
+        unsigned int    reserved:31;
     }                       flags;
 );
 

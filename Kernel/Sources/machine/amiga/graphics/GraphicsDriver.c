@@ -231,10 +231,6 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
             return GraphicsDriver_SetScreenCLUTEntries(self, idx, count, colors);
         }
 
-        case kFBCommand_UpdateDisplay:
-            return GraphicsDriver_UpdateDisplay(self);
-
-
         default:
             return super_n(ioctl, Driver, GraphicsDriver, self, pChannel, cmd, ap);
     }
@@ -475,7 +471,7 @@ errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, s
         err = ColorTable_SetEntries(clut, idx, count, entries);
         if (err == EOK) {
             if (clut == (ColorTable*)g_copper_running_prog->res.clut) {
-                self->flags.isNewCopperProgNeeded = 1;
+                copper_cur_set_clut_range(idx, count);
             }
         }
     }
@@ -515,7 +511,7 @@ errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int width,
 
     try(Sprite_Acquire(&self->sprite[priority], width, height, pixelFormat));
     self->spriteDmaPtr[priority] = self->sprite[priority].data;
-    self->flags.isNewCopperProgNeeded = 1;
+    copper_cur_set_sprptr(priority, self->spriteDmaPtr[priority]);
 
 catch:
     mtx_unlock(&self->io_mtx);
@@ -543,7 +539,7 @@ errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int spr
         // XXX yet because we need to ensure that the DMA is no longer accessing
         // XXX the data before it freeing it.
         self->spriteDmaPtr[sprIdx] = self->nullSpriteData;
-        self->flags.isNewCopperProgNeeded = 1;
+        copper_cur_set_sprptr(sprIdx, self->nullSpriteData);
     }
     else {
         err = EINVAL;

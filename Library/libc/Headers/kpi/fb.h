@@ -204,10 +204,4 @@ typedef unsigned int RGBColor32;
 // set_screen_clut_entries(int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
 #define kFBCommand_SetScreenCLUTEntries IOResourceCommand(kDriverCommand_SubclassBase + 16)
 
-// Updates the display configuration. Call this function after changing the
-// following screen properties:
-// - CLUT entries
-// int update_display()
-#define kFBCommand_UpdateDisplay    IOResourceCommand(kDriverCommand_SubclassBase + 17)
-
 #endif /* _KPI_FB_H */

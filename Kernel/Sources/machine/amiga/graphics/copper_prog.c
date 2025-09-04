@@ -7,6 +7,7 @@
 //
 
 #include "copper.h"
+#include "ColorTable.h"
 #include <kern/kalloc.h>
 #include <machine/irq.h>
 
@@ -280,7 +281,14 @@ void copper_cur_set_clut_range(size_t idx, size_t count)
 void copper_prog_apply_edits(copper_prog_t _Nonnull self, copper_instr_t* ep)
 {
     if ((self->ed.pending & COPED_CLUT) != 0) {
-        //XXX implement me
+        const uint16_t l = self->ed.clut_low_idx;
+        const uint16_t h = self->ed.clut_high_idx;
+        copper_instr_t* ip = &ep[self->loc.clut + l];
+        ColorTable* clut = (ColorTable*)self->res.clut;
+
+        for (uint16_t i = l, r = COLOR_BASE + (l << 1); i < h; i++, r += 2) {
+            *ip++ = COP_MOVE(r, clut->entry[i]);
+        }
     }
 
     if ((self->ed.pending & COPED_SPRPTR) != 0) {

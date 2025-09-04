@@ -96,8 +96,6 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     self->flags.isTextCursorOn = false;
     self->flags.isTextCursorSingleCycleOn = false;
 
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_UpdateDisplay));
-
 catch:
     return err;
 }
@@ -135,7 +133,6 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
     clr[6] = clr[5];
     clr[7] = clr[5];
     IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCLUTEntries, self->clutId, 16, 8, clr);
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_UpdateDisplay);
 }
 
 // Sets the console's background color to the given color

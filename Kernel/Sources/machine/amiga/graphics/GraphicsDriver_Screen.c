@@ -163,11 +163,6 @@ errno_t GraphicsDriver_SetScreenCLUTEntries(GraphicsDriverRef _Nonnull self, siz
 
     if (clut) {
         err = ColorTable_SetEntries(clut, idx, count, entries);
-        if (err == EOK) {
-            if (clut == (ColorTable*)g_copper_running_prog->res.clut) {
-                self->flags.isNewCopperProgNeeded = 1;
-            }
-        }
     }
     else {
         err = EINVAL;
@@ -182,32 +177,4 @@ void GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull
 
     *pOutWidth = vc->width;
     *pOutHeight = vc->height;
-}
-
-// Triggers an update of the display so that it accurately reflects the current
-// display configuration.
-errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
-{
-    decl_try_err();
-
-    mtx_lock(&self->io_mtx);
-
-    if (self->flags.isNewCopperProgNeeded) {
-        copper_prog_t prog = NULL;
-        
-        const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-        Surface* fb = (Surface*)g_copper_running_prog->res.fb;
-        ColorTable* clut = (ColorTable*)g_copper_running_prog->res.clut;
-        video_conf_t* vc = (video_conf_t*)g_copper_running_prog->video_conf;
-        irq_set_mask(sim);
-
-        err = GraphicsDriver_CreateScreenCopperProg(self, vc, fb, clut, &prog);
-        if (err == EOK) {
-            copper_schedule(prog, 0);
-            self->flags.isNewCopperProgNeeded = 0;
-        }
-    }
-
-    mtx_unlock(&self->io_mtx);
-    return err;
 }
