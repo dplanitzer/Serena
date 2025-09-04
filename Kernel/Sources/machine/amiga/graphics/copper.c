@@ -12,6 +12,7 @@
 #include <machine/amiga/chipset.h>
 #include <sched/sem.h>
 
+extern void copper_prog_apply_edits(copper_prog_t _Nonnull self, copper_instr_t* ep);
 extern int copper_irq(void);
 
 
@@ -167,6 +168,8 @@ static void copper_csw(void)
 // active / running if needed.
 int copper_irq(void)
 {
+    bool doClearEdits = false;
+
     // Check whether a new program is scheduled to run. If so move it to running
     // state
     if (g_copper_ready_prog) {
@@ -174,15 +177,32 @@ int copper_irq(void)
         return 0;
     }
 
-    
+
     // Jump to the field dependent Copper program if we are in interlace mode.
-    // Nothing to do if we are in non-interlaced mode
+    // Nothing to do if we are in non-interlaced mode. Note that edits are
+    // applied at the time of the odd field to ensure that we don't change
+    // things in the "middle" of a frame.
     if (g_copper_is_running_interlaced) {
         CHIPSET_BASE_DECL(cp);
         const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
 
+        if (isLongFrame && g_copper_running_prog->ed.pending) {
+            copper_prog_apply_edits(g_copper_running_prog, g_copper_running_prog->odd_entry);
+            copper_prog_apply_edits(g_copper_running_prog, g_copper_running_prog->even_entry);
+            doClearEdits = true;
+        }
+
         *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? g_copper_running_prog->odd_entry : g_copper_running_prog->even_entry);
         *CHIPSET_REG_16(cp, COPJMP1) = 0;
+    }
+    else if (g_copper_running_prog->ed.pending) {
+        copper_prog_apply_edits(g_copper_running_prog, g_copper_running_prog->odd_entry);
+        doClearEdits = true;
+    }
+
+
+    if (doClearEdits) {
+        copper_prog_clear_edits(g_copper_running_prog);
     }
 
     return 0;

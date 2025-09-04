@@ -8,7 +8,7 @@
 
 #include "copper.h"
 #include <kern/kalloc.h>
-#include <machine/amiga/chipset.h>
+#include <machine/irq.h>
 
 
 errno_t copper_prog_create(size_t instr_count, copper_prog_t _Nullable * _Nonnull pOutProg)
@@ -57,6 +57,11 @@ void copper_prog_destroy(copper_prog_t _Nullable prog)
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Compilation
+////////////////////////////////////////////////////////////////////////////////
+
 size_t calc_copper_prog_instruction_count(const video_conf_t* _Nonnull vc)
 {
     const int isLace = (vc->flags & VCFLAG_LACE) != 0;
@@ -73,24 +78,31 @@ size_t calc_copper_prog_instruction_count(const video_conf_t* _Nonnull vc)
     return (isLace) ? 2 * len : len;
 }
 
-static copper_instr_t* _Nonnull _compile_field_prog(copper_instr_t* _Nonnull ip, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, uint16_t* _Nonnull sprdma[], bool isLightPenEnabled, bool isOddField)
+static copper_instr_t* _Nonnull _compile_field_prog(copper_instr_t* _Nonnull ip, copper_locs_t* _Nullable locs, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, uint16_t* _Nonnull sprdma[], bool isLightPenEnabled, bool isOddField)
 {
     const int isHires = (vc->flags & VCFLAG_HIRES) != 0;
     const int isLace = (vc->flags & VCFLAG_LACE) != 0;
     const uint16_t w = vc->width;
     const uint16_t h = vc->height;
+    copper_instr_t* orig = ip;
 
     assert(clut->entryCount == COLOR_COUNT);
     assert((fb && fb->planeCount < PLANE_COUNT) || (fb == NULL));
 
 
     // CLUT
+    if (locs) {
+        locs->clut = ip - orig;
+    }
     for (int i = 0, r = COLOR_BASE; i < COLOR_COUNT; i++, r += 2) {
         *ip++ = COP_MOVE(r, clut->entry[i]);
     }
 
 
     // SPRxPT
+    if (locs) {
+        locs->sprptr = ip - orig;
+    }
     for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
         const uint32_t sprpt = (uint32_t)sprdma[i];
 
@@ -134,6 +146,9 @@ static copper_instr_t* _Nonnull _compile_field_prog(copper_instr_t* _Nonnull ip,
         bplcon0 |= BPLCON0F_LACE;
     }
 
+    if (locs) {
+        locs->bplcon0 = ip - orig;
+    }
     *ip++ = COP_MOVE(BPLCON0, bplcon0);
 
 
@@ -179,14 +194,110 @@ void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnu
     self->even_entry = NULL;
     
     ip = self->prog;
-    ip = _compile_field_prog(ip, vc, fb, clut, sprdma, isLightPenEnabled, true);
+    ip = _compile_field_prog(ip, &self->loc, vc, fb, clut, sprdma, isLightPenEnabled, true);
 
     if (isLace) {
         self->even_entry = ip;
-        ip = _compile_field_prog(ip, vc, fb, clut, sprdma, isLightPenEnabled, false);
+        ip = _compile_field_prog(ip, NULL, vc, fb, clut, sprdma, isLightPenEnabled, false);
     }
 
     self->video_conf = vc;
     self->res.fb = (GObject*)fb;
     self->res.clut = (GObject*)clut;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Editing
+////////////////////////////////////////////////////////////////////////////////
+
+void copper_cur_set_lp_enabled(bool isEnabled)
+{
+    // We directly poke the Copper instructions because this setting doesn't
+    // depend on the BPL or SPR DMA and it has no impact on the display. So
+    // whatever temporary glitching this may cause won't be visible. Do the
+    // update with VBL masked to ensure that the program doesn't get retired
+    // while we're changing it.
+    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
+    copper_prog_t prog = g_copper_running_prog;
+    if (isEnabled) {
+        prog->odd_entry[prog->loc.bplcon0] |= BPLCON0F_LPEN;
+        if (prog->even_entry) {
+            prog->even_entry[prog->loc.bplcon0] |= BPLCON0F_LPEN;
+        }
+    }
+    else {
+        prog->odd_entry[prog->loc.bplcon0] &= ~BPLCON0F_LPEN;
+        if (prog->even_entry) {
+            prog->even_entry[prog->loc.bplcon0] &= ~BPLCON0F_LPEN;
+        }
+    }
+    irq_set_mask(sim);
+}
+
+void copper_cur_set_sprptr(int spridx, uint16_t* _Nonnull sprptr)
+{
+    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
+    copper_prog_t prog = g_copper_running_prog;
+    uint32_t* sp = prog->ed.sprptr;
+    uint8_t sp_idx;
+
+    for (;;) {
+        sp_idx = (*sp) & 0xff;
+
+        if (sp_idx == 0xff) {
+            *sp = ((uint32_t)sprptr) << 8 | (uint8_t)spridx;
+            *(sp + 1) = COPED_SPRPTR_SENTINEL;
+            break;
+        }
+        
+        if (sp_idx == (uint8_t)spridx) {
+            *sp = ((uint32_t)sprptr) << 8 | sp_idx;
+            break;
+        }
+
+        sp++;
+    }
+    prog->ed.pending |= COPED_SPRPTR;
+    irq_set_mask(sim);
+}
+
+void copper_cur_set_clut_range(size_t idx, size_t count)
+{
+    int16_t l = __max(__min(idx, COLOR_COUNT-1), 0);
+    int16_t h = __max(__min(l + count, COLOR_COUNT-1), 0);
+
+    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
+    copper_prog_t prog = g_copper_running_prog;
+    prog->ed.clut_low_idx = __min(prog->ed.clut_low_idx, l);
+    prog->ed.clut_high_idx = __max(prog->ed.clut_high_idx, h);
+    prog->ed.pending |= COPED_CLUT;
+    irq_set_mask(sim);
+}
+
+
+void copper_prog_apply_edits(copper_prog_t _Nonnull self, copper_instr_t* ep)
+{
+    if ((self->ed.pending & COPED_CLUT) != 0) {
+        //XXX implement me
+    }
+
+    if ((self->ed.pending & COPED_SPRPTR) != 0) {
+        copper_instr_t* ip = &ep[self->loc.sprptr];
+        const uint32_t* sp = self->ed.sprptr;
+
+        for (;;) {
+            const uint8_t spr_idx = (*sp) & 0xff;
+            const uint32_t spr_ptr = (*sp) >> 8;
+
+            if (spr_idx == 0xff) {
+                break;
+            }
+
+            ip[(spr_idx << 1) + 0] = COP_MOVE(SPRITE_BASE + (spr_idx << 2) + 0, (spr_ptr >> 16) & UINT16_MAX);
+            ip[(spr_idx << 1) + 1] = COP_MOVE(SPRITE_BASE + (spr_idx << 2) + 2, spr_ptr & UINT16_MAX);
+            sp++;
+        }
+    }
 }

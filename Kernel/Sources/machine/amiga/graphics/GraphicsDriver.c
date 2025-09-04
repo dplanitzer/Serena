@@ -620,7 +620,7 @@ void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool ena
     mtx_lock(&self->io_mtx);
     if (self->flags.isLightPenEnabled != enabled) {
         self->flags.isLightPenEnabled = enabled;
-        self->flags.isNewCopperProgNeeded = 1;
+        copper_cur_set_lp_enabled(enabled);
     }
     mtx_unlock(&self->io_mtx);
 }
@@ -649,8 +649,10 @@ errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uin
     }
 
     if (oldMouseCursorEnabled != self->flags.mouseCursorEnabled) {
-        self->spriteDmaPtr[MOUSE_SPRITE_PRI] = (self->flags.mouseCursorEnabled) ? self->mouseCursor.data : self->nullSpriteData;
-        self->flags.isNewCopperProgNeeded = 1;
+        uint16_t* sprptr = (self->flags.mouseCursorEnabled) ? self->mouseCursor.data : self->nullSpriteData;;
+
+        self->spriteDmaPtr[MOUSE_SPRITE_PRI] = sprptr;
+        copper_cur_set_sprptr(MOUSE_SPRITE_PRI, sprptr);
     }
     mtx_unlock(&self->io_mtx);
     return EOK;
