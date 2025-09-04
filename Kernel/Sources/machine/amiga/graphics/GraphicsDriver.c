@@ -293,14 +293,26 @@ void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* 
 // MARK: Surfaces
 ////////////////////////////////////////////////////////////////////////////////
 
+errno_t _GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull _Locked self, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface)
+{
+    Surface* srf;
+
+    const errno_t err = Surface_Create(_GraphicsDriver_GetNewGObjId(self), width, height, pixelFormat, &srf);
+    if (err == EOK) {
+        List_InsertBeforeFirst(&self->gobjs, GObject_GetChainPtr(srf));
+        *pOutSurface = srf;
+    }
+
+    return err;
+}
+
 errno_t GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int* _Nonnull pOutId)
 {
     Surface* srf;
 
     mtx_lock(&self->io_mtx);
-    const errno_t err = Surface_Create(_GraphicsDriver_GetNewGObjId(self), width, height, pixelFormat, &srf);
+    const errno_t err = _GraphicsDriver_CreateSurface(self, width, height, pixelFormat, &srf);
     if (err == EOK) {
-        List_InsertBeforeFirst(&self->gobjs, GObject_GetChainPtr(srf));
         *pOutId = GObject_GetId(srf);
     }
     mtx_unlock(&self->io_mtx);
@@ -386,14 +398,26 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id)
 // MARK: CLUT
 ////////////////////////////////////////////////////////////////////////////////
 
+errno_t _GraphicsDriver_CreateCLUT(GraphicsDriverRef _Nonnull _Locked self, size_t colorDepth, RGBColor32 defaultColor, ColorTable* _Nullable * _Nonnull pOutClut)
+{
+    ColorTable* clut;
+
+    const errno_t err = ColorTable_Create(_GraphicsDriver_GetNewGObjId(self), colorDepth, kRGBColor32_Black, &clut);
+    if (err == EOK) {
+        List_InsertBeforeFirst(&self->gobjs, GObject_GetChainPtr(clut));
+        *pOutClut = clut;
+    }
+
+    return err;
+}
+
 errno_t GraphicsDriver_CreateCLUT(GraphicsDriverRef _Nonnull self, size_t colorDepth, int* _Nonnull pOutId)
 {
     ColorTable* clut;
 
     mtx_lock(&self->io_mtx);
-    const errno_t err = ColorTable_Create(_GraphicsDriver_GetNewGObjId(self), colorDepth, &clut);
+    const errno_t err = _GraphicsDriver_CreateCLUT(self, colorDepth, kRGBColor32_Black, &clut);
     if (err == EOK) {
-        List_InsertBeforeFirst(&self->gobjs, GObject_GetChainPtr(clut));
         *pOutId = GObject_GetId(clut);
     }
     mtx_unlock(&self->io_mtx);

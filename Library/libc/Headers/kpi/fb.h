@@ -79,6 +79,10 @@ typedef unsigned int RGBColor32;
     ((__clr) & 0xff)
 
 
+#define kRGBColor32_Black  0xff000000
+#define kRGBColor32_White  0xffffffff
+
+
 //
 // Surfaces
 //

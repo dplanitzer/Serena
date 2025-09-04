@@ -29,7 +29,7 @@ typedef struct ColorTable {
 } ColorTable;
 
 
-extern errno_t ColorTable_Create(int id, size_t entryCount, ColorTable* _Nullable * _Nonnull pOutSelf);
+extern errno_t ColorTable_Create(int id, size_t entryCount, RGBColor32 defaultColor, ColorTable* _Nullable * _Nonnull pOutSelf);
 extern void ColorTable_Destroy(ColorTable* _Nullable self);
 
 
