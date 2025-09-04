@@ -138,6 +138,10 @@ typedef unsigned int RGBColor32;
 #define kFBCommand_SetCLUTEntries  IOResourceCommand(kDriverCommand_SubclassBase + 8)
 
 
+//
+// Sprites
+//
+
 // Acquire the sprite with display priority 'priority'. The sprite has a size of
 // 'width' x ' height' pixels and a pixel format of 'pixelFormat'. The visual
 // priority of the sprite is 'priority'. Note that a driver typically only
@@ -168,7 +172,7 @@ typedef unsigned int RGBColor32;
 
 
 //
-// Display
+// Screen
 //
 
 #define SCREEN_CONFIG_FRAMEBUFFER   1
