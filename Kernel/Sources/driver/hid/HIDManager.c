@@ -830,6 +830,7 @@ static void _collect_gamepad_reports(HIDManagerRef _Nonnull self)
 
 static void _collect_framebuffer_size(HIDManagerRef _Nonnull self)
 {
+    bool hasChanged = false;
     int w, h;
     GraphicsDriver_GetScreenSize(self->fb, &w, &h);
 
@@ -837,6 +838,19 @@ static void _collect_framebuffer_size(HIDManagerRef _Nonnull self)
     self->screenTop = 0;
     self->screenRight = (int16_t)w;
     self->screenBottom = (int16_t)h;
+
+    if (self->mouse.x >= w) {
+        self->mouse.x = w - 1;
+        hasChanged = true;
+    }
+    if (self->mouse.y >= h) {
+        self->mouse.y = h - 1;
+        hasChanged = true;
+    }
+
+    if (hasChanged) {
+        GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
+    }
 }
 
 
