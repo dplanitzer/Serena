@@ -187,6 +187,8 @@ int copper_irq(void)
         return 0;
     }
     register copper_prog_t prog = g_copper_running_prog;
+    CHIPSET_BASE_DECL(cp);
+    const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
 
 
     // Jump to the field dependent Copper program if we are in interlace mode.
@@ -194,19 +196,13 @@ int copper_irq(void)
     // applied at the time of the odd field to ensure that we don't change
     // things in the "middle" of a frame.
     if (g_copper_is_running_interlaced) {
-        CHIPSET_BASE_DECL(cp);
-        const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
-
         *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? prog->odd_entry : prog->even_entry);
         *CHIPSET_REG_16(cp, COPJMP1) = 0;
     }
 
 
     // Apply pending edits to the currently running program
-    //XXX interlace mode: should really apply the edits when the odd field is
-    //XXX active only. However this causes updates to be "missed" (that's how it
-    //XXX looks on the screen anyway).  
-    if (g_pending_edits) {
+    if (g_pending_edits && (!g_copper_is_running_interlaced || (g_copper_is_running_interlaced && isLongFrame))) {
         copper_prog_apply_edits(prog, prog->odd_entry);
         if (prog->even_entry) {
             copper_prog_apply_edits(prog, prog->even_entry);
