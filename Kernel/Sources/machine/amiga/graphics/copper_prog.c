@@ -213,6 +213,12 @@ void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnu
 // MARK: Editing
 ////////////////////////////////////////////////////////////////////////////////
 
+uint8_t     g_pending_edits;
+uint16_t    g_clut_low_idx;             // Index of lowest CLU entry that has changed
+uint16_t    g_clut_high_idx;            // Index of highest CLUT entry that has changed plus one
+uint32_t    g_sprptr[SPRITE_COUNT+1];   // 31..8: sprite dma pointer; 7..0: sprite number (0xff -> marks end of list)
+
+
 void copper_cur_set_lp_enabled(bool isEnabled)
 {
     // We directly poke the Copper instructions because this setting doesn't
@@ -240,8 +246,7 @@ void copper_cur_set_lp_enabled(bool isEnabled)
 void copper_cur_set_sprptr(int spridx, uint16_t* _Nonnull sprptr)
 {
     const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-    copper_prog_t prog = g_copper_running_prog;
-    uint32_t* sp = prog->ed.sprptr;
+    uint32_t* sp = g_sprptr;
     uint8_t sp_idx;
 
     for (;;) {
@@ -260,7 +265,7 @@ void copper_cur_set_sprptr(int spridx, uint16_t* _Nonnull sprptr)
 
         sp++;
     }
-    prog->ed.pending |= COPED_SPRPTR;
+    g_pending_edits |= COPED_SPRPTR;
     irq_set_mask(sim);
 }
 
@@ -270,10 +275,9 @@ void copper_cur_set_clut_range(size_t idx, size_t count)
     int16_t h = __max(__min(l + count, COLOR_COUNT-1), 0);
 
     const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-    copper_prog_t prog = g_copper_running_prog;
-    prog->ed.clut_low_idx = __min(prog->ed.clut_low_idx, l);
-    prog->ed.clut_high_idx = __max(prog->ed.clut_high_idx, h);
-    prog->ed.pending |= COPED_CLUT;
+    g_clut_low_idx = __min(g_clut_low_idx, l);
+    g_clut_high_idx = __max(g_clut_high_idx, h);
+    g_pending_edits |= COPED_CLUT;
     irq_set_mask(sim);
 }
 
@@ -281,15 +285,15 @@ void copper_cur_set_clut_range(size_t idx, size_t count)
 void copper_cur_clear_edits(void)
 {
     const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-    copper_prog_clear_edits_irq(g_copper_running_prog);
+    copper_prog_clear_edits_irq();
     irq_set_mask(sim);
 }
 
 void copper_prog_apply_edits(copper_prog_t _Nonnull self, copper_instr_t* ep)
 {
-    if ((self->ed.pending & COPED_CLUT) != 0) {
-        const uint16_t l = self->ed.clut_low_idx;
-        const uint16_t h = self->ed.clut_high_idx;
+    if ((g_pending_edits & COPED_CLUT) != 0) {
+        const uint16_t l = g_clut_low_idx;
+        const uint16_t h = g_clut_high_idx;
         copper_instr_t* ip = &ep[self->loc.clut + l];
         ColorTable* clut = (ColorTable*)self->res.clut;
 
@@ -298,9 +302,9 @@ void copper_prog_apply_edits(copper_prog_t _Nonnull self, copper_instr_t* ep)
         }
     }
 
-    if ((self->ed.pending & COPED_SPRPTR) != 0) {
+    if ((g_pending_edits & COPED_SPRPTR) != 0) {
         copper_instr_t* ip = &ep[self->loc.sprptr];
-        const uint32_t* sp = self->ed.sprptr;
+        const uint32_t* sp = g_sprptr;
 
         for (;;) {
             const uint8_t spr_idx = (*sp) & 0xff;

@@ -105,7 +105,7 @@ void copper_schedule(copper_prog_t _Nullable prog, unsigned flags)
 
     g_copper_ready_prog = prog;
     prog->state = COP_STATE_READY;
-    copper_prog_clear_edits_irq(prog);
+    copper_prog_clear_edits_irq();
     irq_set_mask(sim);
 
 
@@ -187,7 +187,7 @@ int copper_irq(void)
         CHIPSET_BASE_DECL(cp);
         const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
 
-        if (isLongFrame && g_copper_running_prog->ed.pending) {
+        if (isLongFrame && g_pending_edits) {
             copper_prog_apply_edits(g_copper_running_prog, g_copper_running_prog->odd_entry);
             copper_prog_apply_edits(g_copper_running_prog, g_copper_running_prog->even_entry);
             doClearEdits = true;
@@ -196,14 +196,14 @@ int copper_irq(void)
         *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? g_copper_running_prog->odd_entry : g_copper_running_prog->even_entry);
         *CHIPSET_REG_16(cp, COPJMP1) = 0;
     }
-    else if (g_copper_running_prog->ed.pending) {
+    else if (g_pending_edits) {
         copper_prog_apply_edits(g_copper_running_prog, g_copper_running_prog->odd_entry);
         doClearEdits = true;
     }
 
 
     if (doClearEdits) {
-        copper_prog_clear_edits_irq(g_copper_running_prog);
+        copper_prog_clear_edits_irq();
     }
 
     return 0;

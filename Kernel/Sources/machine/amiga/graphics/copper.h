@@ -45,22 +45,6 @@ typedef struct copper_locs {
 } copper_locs_t;
 
 
-#define COPED_SPRPTR    1
-#define COPED_CLUT      2
-
-#define COPED_SPRPTR_SENTINEL   0xffffffff
-
-typedef struct copper_edits {
-    uint8_t     pending;
-    uint8_t     reserved[3];
-
-    uint16_t    clut_low_idx;           // Index of lowest CLU entry that has changed
-    uint16_t    clut_high_idx;          // Index of highest CLUT entry that has changed plus one
-
-    uint32_t    sprptr[SPRITE_COUNT+1]; // 31..8: sprite dma pointer; 7..0: sprite number (0xff -> marks end of list)
-} copper_edits_t;
-
-
 struct copper_prog {
     struct copper_prog* _Nullable   next;
     
@@ -74,7 +58,6 @@ struct copper_prog {
     int8_t                          reserved[3];
 
     copper_locs_t                   loc;        // locations of instructions that may be edited
-    copper_edits_t                  ed;         // pending Copper program edits
 
     const video_conf_t* _Nonnull    video_conf;
     copper_res_t                    res;
@@ -130,10 +113,27 @@ extern void copper_cur_set_clut_range(size_t idx, size_t count);
 // Clear pending edits
 extern void copper_cur_clear_edits(void);
 
-#define copper_prog_clear_edits_irq(__self) \
-(__self)->ed.pending = 0; \
-(__self)->ed.clut_low_idx = 0xffff; \
-(__self)->ed.clut_high_idx = 0; \
-(__self)->ed.sprptr[0] = COPED_SPRPTR_SENTINEL
+
+//
+// Private
+//
+
+#define COPED_SPRPTR    1
+#define COPED_CLUT      2
+
+#define COPED_SPRPTR_SENTINEL   0xffffffff
+
+
+extern uint8_t  g_pending_edits;
+extern uint16_t g_clut_low_idx;
+extern uint16_t g_clut_high_idx;
+extern uint32_t g_sprptr[];
+
+
+#define copper_prog_clear_edits_irq() \
+g_pending_edits = 0; \
+g_clut_low_idx = 0xffff; \
+g_clut_high_idx = 0; \
+g_sprptr[0] = COPED_SPRPTR_SENTINEL
 
 #endif /* _COPPER_H */
