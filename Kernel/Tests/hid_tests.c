@@ -82,15 +82,18 @@ static const int gArrow_Height = 16;
 void hid_test(int argc, char *argv[])
 {
     HIDEvent evt;
+    int mc_vis = kMouseCursor_Visible;
     bool done = false;
 
     const int fd = open("/dev/hid", O_RDONLY);
     assertGreaterEqual(0, fd);
+    printf("Press '1' to toggle mouse cursor visibility.\n");
+    printf("Press '2' to hide mouse cursor until move.\n");
     printf("Press 'q' to quit.\n");
 
     //const uint16_t* _Nonnull planes[2], int width int height, PixelFormat pixelFormat, int hotSpotX, int hotSpotY
     assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetMouseCursor, gArrow_Planes, gArrow_Width, gArrow_Height, kMouseCursor_PixelFormat, 0, 0));
-    assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetMouseCursorVisibility, kMouseCursor_Visible));
+    assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetMouseCursorVisibility, mc_vis));
 
     while (!done) {
         assertGreaterEqual(0, ioctl(fd, kHIDCommand_GetNextEvent, &TIMESPEC_INF, &evt));
@@ -103,8 +106,24 @@ void hid_test(int argc, char *argv[])
                       (int)evt.data.key.keyCode,
                       (int)evt.data.key.flags, evt.data.key.isRepeat ? "true" : "false");
 
-                if (evt.type == kHIDEventType_KeyDown && evt.data.key.keyCode == KEY_Q) {
-                    done = true;
+                if (evt.type == kHIDEventType_KeyDown) {
+                    switch (evt.data.key.keyCode) {
+                        case KEY_Q:
+                            done = true;
+                            break;
+
+                        case KEY_1:
+                            mc_vis = (mc_vis == kMouseCursor_Visible) ? kMouseCursor_Hidden : kMouseCursor_Visible;
+                            assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetMouseCursorVisibility, mc_vis));
+                            break;
+
+                        case KEY_2:
+                            assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetMouseCursorVisibility, kMouseCursor_HiddenUntilMove));
+                            break;
+
+                        default:
+                            break;
+                    }
                 }
                 break;
                 
