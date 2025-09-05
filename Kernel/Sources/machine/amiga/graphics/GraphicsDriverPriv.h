@@ -64,6 +64,8 @@ final_class_ivars(GraphicsDriver, Driver,
 );
 
 
+extern int _GraphicsDriver_GetNewGObjId(GraphicsDriverRef _Nonnull _Locked self);
+
 extern errno_t _GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull _Locked self, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface);
 extern errno_t _GraphicsDriver_CreateCLUT(GraphicsDriverRef _Nonnull _Locked self, size_t colorDepth, RGBColor32 defaultColor, ColorTable* _Nullable * _Nonnull pOutClut);
 
