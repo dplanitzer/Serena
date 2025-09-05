@@ -206,7 +206,7 @@ errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCu
     if (self->fb) {
         switch (mode) {
         case kMouseCursor_Hidden:
-            GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MIN, INT_MIN);
+            GraphicsDriver_SetMouseCursorVisible(self->fb, false);
             break;
 
         case kMouseCursor_HiddenUntilMove:
@@ -214,11 +214,12 @@ errno_t HIDManager_SetMouseCursorVisibility(HIDManagerRef _Nonnull self, MouseCu
             // actual move will cause the mouse cursor to become visible again
             // because it will be set to a location inside the visible screen
             // bounds. 
-            GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MIN, INT_MIN);
+            GraphicsDriver_SetMouseCursorVisible(self->fb, false);
             break;
 
         case kMouseCursor_Visible:
             GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x, self->mouse.y);
+            GraphicsDriver_SetMouseCursorVisible(self->fb, true);
             break;
 
         default:
@@ -271,7 +272,7 @@ errno_t HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, 
     const int mx = self->mouse.x - self->hotSpotX;
     const int my = self->mouse.y - self->mouse.y;
     if (mx >= l && mx < r && my >= t && my < b && self->fb) {
-        GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MIN, INT_MIN);
+        GraphicsDriver_SetMouseCursorVisible(self->fb, false);
     }
 
     mtx_unlock(&self->mtx);
@@ -283,7 +284,7 @@ void HIDManager_UnshieldMouseCursor(HIDManagerRef _Nonnull self)
     self->isMouseShieldActive = false;
     
     if (self->mouse.visibility == kMouseCursor_Visible && self->fb) {
-        GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x, self->mouse.y);
+        GraphicsDriver_SetMouseCursorVisible(self->fb, true);
     }
     mtx_unlock(&self->mtx);
 }
@@ -489,11 +490,12 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
         if (self->mouse.visibility != kMouseCursor_Hidden && self->fb) {
             if (self->isMouseShieldActive
                 && mx >= self->shieldingLeft && mx < self->shieldingRight && my >= self->shieldingTop && my < self->shieldingBottom) {
-                GraphicsDriver_SetMouseCursorPosition(self->fb, INT_MIN, INT_MIN);
+                GraphicsDriver_SetMouseCursorVisible(self->fb, false);
             }
             else {
                 GraphicsDriver_SetMouseCursorPosition(self->fb, mx, my);
                 if (self->mouse.visibility == kMouseCursor_HiddenUntilMove) {
+                    GraphicsDriver_SetMouseCursorVisible(self->fb, true);
                     self->mouse.visibility = kMouseCursor_Visible;
                 }
             }

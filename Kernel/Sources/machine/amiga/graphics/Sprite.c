@@ -19,7 +19,6 @@ void Sprite_Init(Sprite* _Nonnull self)
     self->x = 0;
     self->y = 0;
     self->height = 0;
-    self->isVisible = false;
     self->isAcquired = false;
 }
 
@@ -40,7 +39,6 @@ errno_t Sprite_Acquire(Sprite* _Nonnull self, int width, int height, PixelFormat
         return ENOTSUP;
     }
 
-    self->isVisible = true;
     self->height = (uint16_t)height;
 
     const size_t byteCount = (2 + 2*height + 2) * sizeof(uint16_t);
@@ -62,7 +60,6 @@ void Sprite_Relinquish(Sprite* _Nonnull self)
     self->data = NULL;
 
     self->isAcquired = false;
-    self->isVisible = false;
     self->x = 0;
     self->y = 0;
     self->height = 0;
@@ -78,13 +75,9 @@ static void _Sprite_StateDidChange(Sprite* _Nonnull self)
     int y = self->y;
     int ye = y + self->height;
 
-    if (y < 0 || ye > MAX_SPRITE_VPOS || ye < y) {
+    if (ye > MAX_SPRITE_VPOS || ye < y) {
         ye = MAX_SPRITE_VPOS;
         y = ye - self->height;
-    }
-
-    if (!self->isVisible || x < 0 || x > MAX_SPRITE_HPOS) {
-        x = MAX_SPRITE_HPOS;
     }
 
     self->data[0] = ((y & 0x00ff) << 8) | ((x & 0x01fe) >> 1);
@@ -109,44 +102,10 @@ void Sprite_SetPixels(Sprite* _Nonnull self, const uint16_t* _Nonnull planes[2])
     _Sprite_StateDidChange(self);
 }
 
-// Updates the position of a hardware sprite. All of 'x' < 0, 'y' < 0,
-// 'x' > MAX_SPRITE_HPOS and 'y' > MAX_SPRITE_VPOS - sprite_height hide the
-// sprite.
+// Updates the position of a hardware sprite.
 void Sprite_SetPosition(Sprite* _Nonnull self, int16_t x, int16_t y)
 {
-    self->x = x;
-    self->y = y;
+    self->x = __max(__min(x, MAX_SPRITE_HPOS), 0);
+    self->y = __max(__min(y, MAX_SPRITE_VPOS), 0);
     _Sprite_StateDidChange(self);
-}
-
-// Updates the visibility state of a hardware sprite.
-void Sprite_SetVisible(Sprite* _Nonnull self, bool isVisible)
-{
-    if (self->isVisible != isVisible) {
-        uint16_t sprxpos = self->data[0];
-        uint16_t sprxctl = self->data[1];
-
-        // Hiding a sprite means to move it all the way to X max.
-        if (isVisible) {
-            int x = self->x;
-            
-            if (x < 0 || x > MAX_SPRITE_HPOS) {
-                // hide
-                x = MAX_SPRITE_HPOS;
-            }
-
-            sprxpos &= 0xff00;
-            sprxctl &= 0xfffe;
-            sprxpos |= (x & 0x01fe) >> 1;
-            sprxctl |= x & 0x0001;
-        }
-        else {
-            sprxpos |= 0x00ff;
-            sprxctl |= 0x0001;
-        }
-
-        self->data[0] = sprxpos;
-        self->data[1] = sprxctl;
-        self->isVisible = isVisible;
-    }
 }

@@ -76,6 +76,8 @@ extern errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, co
 // if either 'x' or 'y' is == INT_MIN
 extern void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y);
 
+extern void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull self, bool isVisible);
+
 extern void GraphicsDriver_SetScreenConfigObserver(GraphicsDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo);
 
 #endif /* GraphicsDriver_h */

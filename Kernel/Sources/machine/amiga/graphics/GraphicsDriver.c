@@ -573,10 +573,8 @@ errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int sp
     mtx_lock(&self->io_mtx);
     if (sprIdx >= 0 && sprIdx < SPRITE_COUNT && self->sprite[sprIdx].isAcquired) {
         const video_conf_t * vc = g_copper_running_prog->video_conf;
-        const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
-        const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
-        const int16_t sprX = vc->hSprOrigin - 1 + (x16 >> vc->hSprScale);
-        const int16_t sprY = vc->vSprOrigin + (y16 >> vc->vSprScale);
+        const int16_t sprX = vc->hSprOrigin - 1 + (x >> vc->hSprScale);
+        const int16_t sprY = vc->vSprOrigin + (y >> vc->vSprScale);
 
         Sprite_SetPosition(&self->sprite[sprIdx], sprX, sprY);
     }
@@ -595,7 +593,8 @@ errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spr
 
     mtx_lock(&self->io_mtx);
     if (sprIdx >= 0 && sprIdx < SPRITE_COUNT && self->sprite[sprIdx].isAcquired) {
-        Sprite_SetVisible(&self->sprite[sprIdx], isVisible);
+        self->spriteDmaPtr[sprIdx] = (isVisible) ? self->sprite[sprIdx].data : self->nullSpriteData;
+        copper_cur_set_sprptr(sprIdx, self->spriteDmaPtr[sprIdx]);
     }
     else {
         err = EINVAL;
@@ -638,6 +637,16 @@ errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uin
 
     if (width > 0 && height > 0) {
         Sprite_SetPixels(&self->mouseCursor, planes);
+        if (self->mouseCursor.x == 0 && self->mouseCursor.y == 0) {
+            // Make sure that the initial mouse cursor position is the top-left
+            // corner of the display window. Don't change the position if the
+            // HID manager has already assigned a position to the mouse cursor.
+            const video_conf_t* vc = g_copper_running_prog->video_conf;
+            const int16_t sprX = vc->hSprOrigin - 1;
+            const int16_t sprY = vc->vSprOrigin;
+
+            Sprite_SetPosition(&self->mouseCursor, sprX, sprY);
+        }
         self->flags.mouseCursorEnabled = 1;
     }
     else {
@@ -658,12 +667,20 @@ void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int 
 {
     mtx_lock(&self->io_mtx);
     const video_conf_t* vc = g_copper_running_prog->video_conf;
-    const int16_t x16 = __max(__min(x, INT16_MAX), INT16_MIN);
-    const int16_t y16 = __max(__min(y, INT16_MAX), INT16_MIN);
-    const int16_t sprX = vc->hSprOrigin - 1 + (x16 >> vc->hSprScale);
-    const int16_t sprY = vc->vSprOrigin + (y16 >> vc->vSprScale);
+    const int16_t sprX = vc->hSprOrigin - 1 + (x >> vc->hSprScale);
+    const int16_t sprY = vc->vSprOrigin + (y >> vc->vSprScale);
 
     Sprite_SetPosition(&self->mouseCursor, sprX, sprY);
+    mtx_unlock(&self->io_mtx);
+}
+
+void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull self, bool isVisible)
+{
+    mtx_lock(&self->io_mtx);
+    if (self->flags.mouseCursorEnabled) {
+        self->spriteDmaPtr[MOUSE_SPRITE_PRI] = (isVisible) ? self->mouseCursor.data : self->nullSpriteData;
+        copper_cur_set_sprptr(MOUSE_SPRITE_PRI, self->spriteDmaPtr[MOUSE_SPRITE_PRI]);
+    }
     mtx_unlock(&self->io_mtx);
 }
 

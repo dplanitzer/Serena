@@ -20,7 +20,6 @@ typedef struct Sprite {
     int16_t             x;
     int16_t             y;
     uint16_t            height;
-    bool                isVisible;
     bool                isAcquired;
 } Sprite;
 
@@ -36,6 +35,5 @@ extern void Sprite_Relinquish(Sprite* _Nonnull self);
 extern void Sprite_SetPixels(Sprite* _Nonnull self, const uint16_t* _Nullable planes[2]);
 
 extern void Sprite_SetPosition(Sprite* _Nonnull self, int16_t x, int16_t y);
-extern void Sprite_SetVisible(Sprite* _Nonnull self, bool isVisible);
 
 #endif /* Sprite_h */
