@@ -67,6 +67,7 @@ size_t calc_copper_prog_instruction_count(const video_conf_t* _Nonnull vc)
 {
     const int isLace = (vc->flags & VCFLAG_LACE) != 0;
     size_t len = COLOR_COUNT                // CLUT
+            + 1                             // SPRxPTR/BPLxPTR DMA Barrier
             + 2 * SPRITE_COUNT              // SPRxPT
             + 2 * PLANE_COUNT               // BPLxPT[nplanes]
             + 2                             // BPL1MOD, BPL2MOD
@@ -98,6 +99,13 @@ static copper_instr_t* _Nonnull _compile_field_prog(copper_instr_t* _Nonnull ip,
     for (int i = 0, r = COLOR_BASE; i < COLOR_COUNT; i++, r += 2) {
         *ip++ = COP_MOVE(r, clut->entry[i]);
     }
+
+
+    // SPRxPTR/BPLxPTR DMA Barrier
+    // We wait here so that the Copper program editing code gets more time to
+    // change sprite pointers before this program pokes them into the DMA
+    // registers. 
+    *ip++ = COP_WAIT(20, 0, 0xff, 0);
 
 
     // SPRxPT
