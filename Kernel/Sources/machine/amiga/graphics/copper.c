@@ -150,17 +150,8 @@ static void copper_csw(void)
         // on whether the current field is the even or the odd one
         const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
 
-        if (g_pending_edits) {
-            copper_prog_apply_edits(prog, prog->odd_entry);
-            copper_prog_apply_edits(prog, prog->even_entry);
-        }
-
         *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? prog->odd_entry : prog->even_entry);
     } else {
-        if (g_pending_edits) {
-            copper_prog_apply_edits(prog, prog->odd_entry);
-        }
-
         *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)prog->odd_entry;
     }
 
@@ -168,9 +159,15 @@ static void copper_csw(void)
     *CHIPSET_REG_16(cp, DMACON) = (DMACONF_SETCLR | DMACONF_COPEN | DMACONF_DMAEN);
 
 
+    // Apply pending edits to the new program
     if (g_pending_edits) {
+        copper_prog_apply_edits(prog, prog->odd_entry);
+        if (prog->even_entry) {
+            copper_prog_apply_edits(prog, prog->even_entry);
+        }
         copper_clear_edits_irq();
     }
+
 
     if (g_retire_vcpu) {
         vcpu_sigsend_irq(g_retire_vcpu, g_retire_signo, false);
@@ -200,20 +197,20 @@ int copper_irq(void)
         CHIPSET_BASE_DECL(cp);
         const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
 
-        if (isLongFrame && g_pending_edits) {
-            copper_prog_apply_edits(prog, prog->odd_entry);
-            copper_prog_apply_edits(prog, prog->even_entry);
-        }
-
         *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? prog->odd_entry : prog->even_entry);
         *CHIPSET_REG_16(cp, COPJMP1) = 0;
     }
-    else if (g_pending_edits) {
-        copper_prog_apply_edits(prog, prog->odd_entry);
-    }
 
 
+    // Apply pending edits to the currently running program
+    //XXX interlace mode: should really apply the edits when the odd field is
+    //XXX active only. However this causes updates to be "missed" (that's how it
+    //XXX looks on the screen anyway).  
     if (g_pending_edits) {
+        copper_prog_apply_edits(prog, prog->odd_entry);
+        if (prog->even_entry) {
+            copper_prog_apply_edits(prog, prog->even_entry);
+        }
         copper_clear_edits_irq();
     }
 
