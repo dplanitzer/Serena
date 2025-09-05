@@ -105,7 +105,7 @@ void copper_schedule(copper_prog_t _Nullable prog, unsigned flags)
 
     g_copper_ready_prog = prog;
     prog->state = COP_STATE_READY;
-    copper_prog_clear_edits_irq();
+    copper_clear_edits_irq();
     irq_set_mask(sim);
 
 
@@ -136,10 +136,11 @@ static void copper_csw(void)
     g_copper_running_prog = g_copper_ready_prog;
     g_copper_running_prog->state = COP_STATE_RUNNING;
     g_copper_ready_prog = NULL;
+    register copper_prog_t prog = g_copper_running_prog;
 
 
     // Interlaced if we got an odd & even field program
-    g_copper_is_running_interlaced = (g_copper_running_prog->even_entry != NULL);
+    g_copper_is_running_interlaced = (prog->even_entry != NULL);
 
 
     // Install the correct program in the Copper, re-enable DMA and trigger
@@ -149,14 +150,27 @@ static void copper_csw(void)
         // on whether the current field is the even or the odd one
         const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
 
-        *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? g_copper_running_prog->odd_entry : g_copper_running_prog->even_entry);
+        if (g_pending_edits) {
+            copper_prog_apply_edits(prog, prog->odd_entry);
+            copper_prog_apply_edits(prog, prog->even_entry);
+        }
+
+        *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? prog->odd_entry : prog->even_entry);
     } else {
-        *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)g_copper_running_prog->odd_entry;
+        if (g_pending_edits) {
+            copper_prog_apply_edits(prog, prog->odd_entry);
+        }
+
+        *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)prog->odd_entry;
     }
 
     *CHIPSET_REG_16(cp, COPJMP1) = 0;
     *CHIPSET_REG_16(cp, DMACON) = (DMACONF_SETCLR | DMACONF_COPEN | DMACONF_DMAEN);
 
+
+    if (g_pending_edits) {
+        copper_clear_edits_irq();
+    }
 
     if (g_retire_vcpu) {
         vcpu_sigsend_irq(g_retire_vcpu, g_retire_signo, false);
@@ -169,14 +183,13 @@ static void copper_csw(void)
 // active / running if needed.
 int copper_irq(void)
 {
-    bool doClearEdits = false;
-
     // Check whether a new program is scheduled to run. If so move it to running
     // state
     if (g_copper_ready_prog) {
         copper_csw();
         return 0;
     }
+    register copper_prog_t prog = g_copper_running_prog;
 
 
     // Jump to the field dependent Copper program if we are in interlace mode.
@@ -188,22 +201,20 @@ int copper_irq(void)
         const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
 
         if (isLongFrame && g_pending_edits) {
-            copper_prog_apply_edits(g_copper_running_prog, g_copper_running_prog->odd_entry);
-            copper_prog_apply_edits(g_copper_running_prog, g_copper_running_prog->even_entry);
-            doClearEdits = true;
+            copper_prog_apply_edits(prog, prog->odd_entry);
+            copper_prog_apply_edits(prog, prog->even_entry);
         }
 
-        *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? g_copper_running_prog->odd_entry : g_copper_running_prog->even_entry);
+        *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? prog->odd_entry : prog->even_entry);
         *CHIPSET_REG_16(cp, COPJMP1) = 0;
     }
     else if (g_pending_edits) {
-        copper_prog_apply_edits(g_copper_running_prog, g_copper_running_prog->odd_entry);
-        doClearEdits = true;
+        copper_prog_apply_edits(prog, prog->odd_entry);
     }
 
 
-    if (doClearEdits) {
-        copper_prog_clear_edits_irq();
+    if (g_pending_edits) {
+        copper_clear_edits_irq();
     }
 
     return 0;

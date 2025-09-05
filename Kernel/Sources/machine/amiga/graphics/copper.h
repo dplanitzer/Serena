@@ -130,7 +130,7 @@ extern uint16_t g_clut_high_idx;
 extern uint32_t g_sprptr[];
 
 
-#define copper_prog_clear_edits_irq() \
+#define copper_clear_edits_irq() \
 g_pending_edits = 0; \
 g_clut_low_idx = 0xffff; \
 g_clut_high_idx = 0; \

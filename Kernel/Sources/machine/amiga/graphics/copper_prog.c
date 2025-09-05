@@ -285,7 +285,7 @@ void copper_cur_set_clut_range(size_t idx, size_t count)
 void copper_cur_clear_edits(void)
 {
     const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-    copper_prog_clear_edits_irq();
+    copper_clear_edits_irq();
     irq_set_mask(sim);
 }
 
