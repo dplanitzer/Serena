@@ -33,7 +33,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
 
     // Allocate the null and mouse cursor sprite
     Sprite_Init(&self->mouseCursor);
-    try(Sprite_Acquire(&self->mouseCursor, kMouseCursor_Width, kMouseCursor_Height, kMouseCursor_PixelFormat));
+    try(Sprite_Acquire(&self->mouseCursor, kCursor_Width, kCursor_Height, kCursor_PixelFormat));
     
     try(kalloc_options(sizeof(uint16_t) * 6, KALLOC_OPTION_UNIFIED, (void**)&self->nullSpriteData));
     self->nullSpriteData[0] = 0x1905;
@@ -628,7 +628,7 @@ void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool ena
 
 errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat)
 {
-    if ((width > 0 && height > 0) && (width != kMouseCursor_Width || height != kMouseCursor_Height || pixelFormat != kMouseCursor_PixelFormat)) {
+    if ((width > 0 && height > 0) && (width != kCursor_Width || height != kCursor_Height || pixelFormat != kCursor_PixelFormat)) {
         return ENOTSUP;
     }
 

@@ -82,7 +82,7 @@ static const int gArrow_Height = 16;
 void hid_test(int argc, char *argv[])
 {
     HIDEvent evt;
-    int mc_vis = kMouseCursor_Visible;
+    bool mc_vis = true;
     bool done = false;
 
     const int fd = open("/dev/hid", O_RDONLY);
@@ -92,8 +92,8 @@ void hid_test(int argc, char *argv[])
     printf("Press 'q' to quit.\n");
 
     //const uint16_t* _Nonnull planes[2], int width int height, PixelFormat pixelFormat, int hotSpotX, int hotSpotY
-    assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetMouseCursor, gArrow_Planes, gArrow_Width, gArrow_Height, kMouseCursor_PixelFormat, 0, 0));
-    assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetMouseCursorVisibility, mc_vis));
+    assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetCursor, gArrow_Planes, gArrow_Width, gArrow_Height, kCursor_PixelFormat, 0, 0));
+    assertGreaterEqual(0, ioctl(fd, kHIDCommand_ShowCursor));
 
     while (!done) {
         assertGreaterEqual(0, ioctl(fd, kHIDCommand_GetNextEvent, &TIMESPEC_INF, &evt));
@@ -113,12 +113,18 @@ void hid_test(int argc, char *argv[])
                             break;
 
                         case KEY_1:
-                            mc_vis = (mc_vis == kMouseCursor_Visible) ? kMouseCursor_Hidden : kMouseCursor_Visible;
-                            assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetMouseCursorVisibility, mc_vis));
+                            if (mc_vis) {
+                                assertGreaterEqual(0, ioctl(fd, kHIDCommand_HideCursor));
+                                mc_vis = false;
+                            }
+                            else {
+                                assertGreaterEqual(0, ioctl(fd, kHIDCommand_ShowCursor));
+                                mc_vis = true;
+                            }
                             break;
 
                         case KEY_2:
-                            assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetMouseCursorVisibility, kMouseCursor_HiddenUntilMove));
+                            assertGreaterEqual(0, ioctl(fd, kHIDCommand_ObscureCursor));
                             break;
 
                         default:
@@ -169,6 +175,6 @@ void hid_test(int argc, char *argv[])
     }
 
     assertGreaterEqual(0, ioctl(fd, kHIDCommand_FlushEvents));
-    assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetMouseCursorVisibility, kMouseCursor_Hidden));
+    assertGreaterEqual(0, ioctl(fd, kHIDCommand_HideCursor));
     close(fd);
 }

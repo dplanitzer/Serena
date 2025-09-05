@@ -43,7 +43,6 @@ typedef struct logical_mouse {
     int16_t                 x;
     int16_t                 y;
     uint32_t                buttons;
-    MouseCursorVisibility   visibility;
 } logical_mouse_t;
 
 
@@ -109,12 +108,15 @@ typedef struct HIDManager {
     int16_t                     screenTop;
     int16_t                     screenRight;
     int16_t                     screenBottom;
-    int16_t                     shieldingLeft;
-    int16_t                     shieldingTop;
-    int16_t                     shieldingRight;
-    int16_t                     shieldingBottom;
+    int16_t                     shieldLeft;
+    int16_t                     shieldTop;
+    int16_t                     shieldRight;
+    int16_t                     shieldBottom;
     int16_t                     hotSpotX;
     int16_t                     hotSpotY;
+    int                         hiddenCount;
+    bool                        isMouseObscured;
+    bool                        isMouseShielded;
     bool                        isMouseShieldActive;
     bool                        isMouseMoveReportingEnabled;    // true if position-change-only mouse reports should be queued; false if we only care about mouse button changes
 
