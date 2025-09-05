@@ -67,10 +67,10 @@ size_t calc_copper_prog_instruction_count(const video_conf_t* _Nonnull vc)
 {
     const int isLace = (vc->flags & VCFLAG_LACE) != 0;
     size_t len = COLOR_COUNT                // CLUT
+            + 2 * SPRITE_COUNT              // SPRxPT
             + 2 * PLANE_COUNT               // BPLxPT[nplanes]
             + 2                             // BPL1MOD, BPL2MOD
             + 3                             // BPLCON0, BPLCON1, BPLCON2
-            + 2 * SPRITE_COUNT              // SPRxPT
             + 2                             // DIWSTART, DIWSTOP
             + 2                             // DDFSTART, DDFSTOP
             + 1                             // DMACON

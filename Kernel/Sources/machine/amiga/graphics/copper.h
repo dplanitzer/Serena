@@ -21,8 +21,9 @@
 // Copper program instruction
 typedef uint32_t  copper_instr_t;
 
-#define COP_MOVE(reg, val)  (((reg) << 16) | (val))
-#define COP_END()           0xfffffffe
+#define COP_MOVE(reg, val)          (((reg) << 16) | (val))
+#define COP_WAIT(vp, hp, ve, he)    ((((vp & 0x00ff) << 24) | (((hp & 0x007f) << 17) | 0x10000)) | (((ve & 0x007f) << 8) | (((he & 0x007f) << 1) | 0x8000)))
+#define COP_END()                   0xfffffffe
 
 
 // Copper program state
