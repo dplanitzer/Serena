@@ -178,3 +178,22 @@ void GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull
     *pOutWidth = vc->width;
     *pOutHeight = vc->height;
 }
+
+void GraphicsDriver_SetScreenConfigObserver(GraphicsDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
+{
+    mtx_lock(&self->io_mtx);
+    self->screenConfigObserver = vp;
+    self->screenConfigObserverSignal = signo;
+    mtx_unlock(&self->io_mtx);
+}
+
+
+void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled)
+{
+    mtx_lock(&self->io_mtx);
+    if (self->flags.isLightPenEnabled != enabled) {
+        self->flags.isLightPenEnabled = enabled;
+        copper_cur_set_lp_enabled(enabled);
+    }
+    mtx_unlock(&self->io_mtx);
+}
