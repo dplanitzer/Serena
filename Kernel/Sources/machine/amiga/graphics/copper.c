@@ -105,6 +105,7 @@ void copper_schedule(copper_prog_t _Nullable prog, unsigned flags)
 
     g_copper_ready_prog = prog;
     prog->state = COP_STATE_READY;
+    copper_prog_clear_edits_irq(prog);
     irq_set_mask(sim);
 
 
