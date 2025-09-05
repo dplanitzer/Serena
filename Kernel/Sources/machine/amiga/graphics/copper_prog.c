@@ -291,17 +291,6 @@ void copper_cur_clear_edits(void)
 
 void copper_prog_apply_edits(copper_prog_t _Nonnull self, copper_instr_t* ep)
 {
-    if ((g_pending_edits & COPED_CLUT) != 0) {
-        const uint16_t l = g_clut_low_idx;
-        const uint16_t h = g_clut_high_idx;
-        copper_instr_t* ip = &ep[self->loc.clut + l];
-        ColorTable* clut = (ColorTable*)self->res.clut;
-
-        for (uint16_t i = l, r = COLOR_BASE + (l << 1); i < h; i++, r += 2) {
-            *ip++ = COP_MOVE(r, clut->entry[i]);
-        }
-    }
-
     if ((g_pending_edits & COPED_SPRPTR) != 0) {
         copper_instr_t* ip = &ep[self->loc.sprptr];
         const uint32_t* sp = g_sprptr;
@@ -317,6 +306,17 @@ void copper_prog_apply_edits(copper_prog_t _Nonnull self, copper_instr_t* ep)
             ip[(spr_idx << 1) + 0] = COP_MOVE(SPRITE_BASE + (spr_idx << 2) + 0, (spr_ptr >> 16) & UINT16_MAX);
             ip[(spr_idx << 1) + 1] = COP_MOVE(SPRITE_BASE + (spr_idx << 2) + 2, spr_ptr & UINT16_MAX);
             sp++;
+        }
+    }
+
+    if ((g_pending_edits & COPED_CLUT) != 0) {
+        const uint16_t l = g_clut_low_idx;
+        const uint16_t h = g_clut_high_idx;
+        copper_instr_t* ip = &ep[self->loc.clut + l];
+        ColorTable* clut = (ColorTable*)self->res.clut;
+
+        for (uint16_t i = l, r = COLOR_BASE + (l << 1); i < h; i++, r += 2) {
+            *ip++ = COP_MOVE(r, clut->entry[i]);
         }
     }
 }
