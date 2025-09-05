@@ -97,13 +97,6 @@ extern size_t calc_copper_prog_instruction_count(const video_conf_t* _Nonnull vc
 // be big enough to hold all instructions.
 extern void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, uint16_t* _Nonnull sprdma[], bool isLightPenEnabled);
 
-// Clear pending edits
-#define copper_prog_clear_edits(__self) \
-(__self)->ed.pending = 0; \
-(__self)->ed.clut_low_idx = 0xffff; \
-(__self)->ed.clut_high_idx = 0; \
-(__self)->ed.sprptr[0] = COPED_SPRPTR_SENTINEL
-
 
 // Initializes the Copper scheduler. 'prog' is the bootstrap Copper program. This
 // program will start running as soon as the bottom-most line of the current
@@ -133,5 +126,14 @@ extern void copper_cur_set_lp_enabled(bool isEnabled);
 
 extern void copper_cur_set_sprptr(int spridx, uint16_t* _Nonnull sprptr);
 extern void copper_cur_set_clut_range(size_t idx, size_t count);
+
+// Clear pending edits
+extern void copper_cur_clear_edits(void);
+
+#define copper_prog_clear_edits_irq(__self) \
+(__self)->ed.pending = 0; \
+(__self)->ed.clut_low_idx = 0xffff; \
+(__self)->ed.clut_high_idx = 0; \
+(__self)->ed.sprptr[0] = COPED_SPRPTR_SENTINEL
 
 #endif /* _COPPER_H */

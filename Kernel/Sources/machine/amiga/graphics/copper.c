@@ -202,7 +202,7 @@ int copper_irq(void)
 
 
     if (doClearEdits) {
-        copper_prog_clear_edits(g_copper_running_prog);
+        copper_prog_clear_edits_irq(g_copper_running_prog);
     }
 
     return 0;

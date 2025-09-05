@@ -54,7 +54,7 @@ static errno_t _create_copper_prog(GraphicsDriverRef _Nonnull _Locked self, size
     prog->state = COP_STATE_IDLE;
     prog->odd_entry = prog->prog;
     prog->even_entry = NULL;
-    copper_prog_clear_edits(prog);
+    copper_cur_clear_edits();
 
 
     *pOutProg = prog;

@@ -278,6 +278,13 @@ void copper_cur_set_clut_range(size_t idx, size_t count)
 }
 
 
+void copper_cur_clear_edits(void)
+{
+    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
+    copper_prog_clear_edits_irq(g_copper_running_prog);
+    irq_set_mask(sim);
+}
+
 void copper_prog_apply_edits(copper_prog_t _Nonnull self, copper_instr_t* ep)
 {
     if ((self->ed.pending & COPED_CLUT) != 0) {
