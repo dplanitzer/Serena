@@ -86,37 +86,52 @@ errno_t MouseDriver_onStart(MouseDriverRef _Nonnull _Locked self)
     return err;
 }
 
+// Based on <https://www.markwrobel.dk/post/amiga-machine-code-letter11/>
 void MouseDriver_getReport(MouseDriverRef _Nonnull self, HIDReport* _Nonnull report)
 {
     register uint16_t new_state = *(self->reg_joydat);
     
     // X delta
+    register int16_t old_x = self->old_hcount;
     register int16_t new_x = (int16_t)(new_state & 0x00ff);
-    register int16_t dx = new_x - self->old_hcount;
+    register int16_t dx = new_x - old_x;
     self->old_hcount = new_x;
     
-    if (dx < -127) {
-        // underflow
-        dx = -255 - dx;
-        if (dx < 0) dx = 0;
-    } else if (dx > 127) {
-        dx = 255 - dx;
-        if (dx >= 0) dx = 0;
+    if (dx < -128) {
+        dx += 256;
+    }
+    else if (dx > 127) {
+        dx -= 256;
+    }
+    else if (dx < 0) {
+        if (new_x > old_x) {
+            dx = -dx;
+        }
+    }
+    else if (new_x < old_x) {
+        dx = -dx;
     }
     
     
     // Y delta
+    register int16_t old_y = self->old_vcount;
     register int16_t new_y = (int16_t)((new_state & 0xff00) >> 8);
-    register int16_t dy = new_y - self->old_vcount;
+    register int16_t dy = new_y - old_y;
     self->old_vcount = new_y;
-    
-    if (dy < -127) {
-        // underflow
-        dy = -255 - dy;
-        if (dy < 0) dy = 0;
-    } else if (dy > 127) {
-        dy = 255 - dy;
-        if (dy >= 0) dy = 0;
+
+    if (dy < -128) {
+        dy += 256;
+    }
+    else if (dy > 127) {
+        dy -= 256;
+    }
+    else if (dy < 0) {
+        if (new_y > old_y) {
+            dy = -dy;
+        }
+    }
+    else if (new_y < old_y) {
+        dy = -dy;
     }
 
     
