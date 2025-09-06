@@ -35,6 +35,14 @@
 #define KEY_MAP_INTS_COUNT      (256/32)
 
 
+typedef struct hid_rect {
+    int16_t     l;
+    int16_t     t;
+    int16_t     b;
+    int16_t     r;
+} hid_rect_t;
+
+
 // State of the logical pointing device (mouse)
 typedef struct logical_mouse {
     IOChannelRef _Nullable  ch[MAX_POINTING_DEVICES];
@@ -104,20 +112,17 @@ typedef struct HIDManager {
 
 
     // Mouse Configuration
-    int16_t                     screenLeft;
-    int16_t                     screenTop;
-    int16_t                     screenRight;
-    int16_t                     screenBottom;
-    int16_t                     shieldLeft;
-    int16_t                     shieldTop;
-    int16_t                     shieldRight;
-    int16_t                     shieldBottom;
+    hid_rect_t                  screenBounds;
+    hid_rect_t                  shieldRect;
+    hid_rect_t                  cursorBounds;   // updated only when needed
+    int16_t                     cursorWidth;
+    int16_t                     cursorHeight;
     int16_t                     hotSpotX;
     int16_t                     hotSpotY;
     int                         hiddenCount;
     bool                        isMouseObscured;
     bool                        isMouseShielded;
-    bool                        isMouseShieldActive;
+    bool                        isMouseShieldEnabled;
     bool                        isMouseMoveReportingEnabled;    // true if position-change-only mouse reports should be queued; false if we only care about mouse button changes
 
 
@@ -140,6 +145,28 @@ typedef struct HIDManager {
     size_t                      gamepadCount;
     gamepad_state_t             gamepad[MAX_GAME_PADS];
 } HIDManager;
+
+
+#define hid_rect_intersection(__a, __b, __r) \
+(__r)->l = __max((__a)->l, (__b)->l); \
+(__r)->t = __max((__a)->t, (__b)->t); \
+(__r)->r = __min((__a)->r, (__b)->r); \
+(__r)->b = __min((__a)->b, (__b)->b)
+
+#define hid_rect_intersects(__a, __b, __r) \
+{ \
+const int16_t __x0 = __max((__a)->l, (__b)->l); \
+const int16_t __y0 = __max((__a)->t, (__b)->t); \
+const int16_t __x1 = __min((__a)->r, (__b)->r); \
+const int16_t __y1 = __min((__a)->b, (__b)->b); \
+(__r) = (__x1 - __x0) > 0 && (__y1 - __y0) > 0; \
+}
+
+#define hid_rect_contains(__r, __x, __y) \
+(((__x) >= (__r)->l && (__x) < (__r)->r && (__y) >= (__r)->t && (__y) < (__r)->b) ? true : false)
+
+#define hid_rect_set_empty(__r) \
+(__r)->l = 0; (__r)->t = 0; (__r)->b = 0; (__r)->r = 0
 
 
 // Returns the number of events stored in the ring queue - aka the number of

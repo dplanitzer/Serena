@@ -180,13 +180,19 @@ errno_t HIDManager_SetCursor(HIDManagerRef _Nonnull self, const uint16_t* _Nulla
 {
     decl_try_err();
 
+    if (width < 0 || height < 0 || hotSpotX < 0 || hotSpotX > width || hotSpotY < 0 || hotSpotY > height) {
+        return EINVAL;
+    }
+
     mtx_lock(&self->mtx);
     if (self->fb) {
         err = GraphicsDriver_SetMouseCursor(self->fb, planes, width, height, pixelFormat);
         
         if (err == EOK) {
-            self->hotSpotX = __max(__min(hotSpotX, INT16_MAX), INT16_MIN);
-            self->hotSpotY = __max(__min(hotSpotY, INT16_MAX), INT16_MIN);
+            self->hotSpotX = hotSpotX;
+            self->hotSpotY = hotSpotY;
+            self->cursorWidth = width;
+            self->cursorHeight = height;
         }
     }
     mtx_unlock(&self->mtx);
@@ -214,7 +220,7 @@ void HIDManager_ShowCursor(HIDManagerRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     if (_show_cursor(self)) {
-        self->isMouseShieldActive = false;
+        self->isMouseShieldEnabled = false;
         self->isMouseObscured = false;
     }
     mtx_unlock(&self->mtx);
@@ -247,17 +253,26 @@ void HIDManager_ObscureCursor(HIDManagerRef _Nonnull self)
     mtx_unlock(&self->mtx);
 }
 
-static void _shield_cursor(HIDManagerRef _Nonnull _Locked self)
+static bool _shield_intersects_cursor(HIDManagerRef _Nonnull self)
 {
-    _hide_cursor(self);
-    self->isMouseShielded = true;
+    int r;
+
+    self->cursorBounds.l = self->mouse.x - self->hotSpotX;
+    self->cursorBounds.t = self->mouse.y - self->hotSpotY;
+    self->cursorBounds.r = self->cursorBounds.l + self->cursorWidth;
+    self->cursorBounds.b = self->cursorBounds.b + self->cursorHeight;
+    hid_rect_intersects(&self->shieldRect, &self->cursorBounds, r);
+
+    return (r) ? true : false;
 }
 
-static void _unshield_cursor(HIDManagerRef _Nonnull _Locked self)
-{
-    _show_cursor(self);
-    self->isMouseShielded = false;
-}
+#define _shield_cursor(__self) \
+_hide_cursor(__self); \
+(__self)->isMouseShielded = true
+
+#define _unshield_cursor(__self) \
+_show_cursor(__self); \
+(__self)->isMouseShielded = false
 
 errno_t HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, int width, int height)
 {
@@ -269,31 +284,26 @@ errno_t HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, 
     // No need to shield if we're hidden already
     if (self->hiddenCount == 0) {
         int l = x;
-        int r = x + width;
         int t = y;
+        int r = x + width;
         int b = y + height;
 
-        self->isMouseShieldActive = (width > 0 && height > 0) ? true : false;
-        if (self->isMouseShieldActive) {
-            r += kCursor_Width;
-            b += kCursor_Height;
-        }
+        self->shieldRect.l = __max(__min(l, INT16_MAX), 0);
+        self->shieldRect.t = __max(__min(t, INT16_MAX), 0);
+        self->shieldRect.r = __max(__min(r, INT16_MAX), 0);
+        self->shieldRect.b = __max(__min(b, INT16_MAX), 0);
 
-        l = __max(__min(l, INT16_MAX), INT16_MIN);
-        r = __max(__min(r, INT16_MAX), INT16_MIN);
-        t = __max(__min(t, INT16_MAX), INT16_MIN);
-        b = __max(__min(b, INT16_MAX), INT16_MIN);
+        self->isMouseShieldEnabled = ((self->shieldRect.r - self->shieldRect.l) > 0 && (self->shieldRect.b - self->shieldRect.t) > 0) ? true : false;
 
-        self->shieldLeft = l;
-        self->shieldTop = t;
-        self->shieldRight = r;
-        self->shieldBottom = b;
+        if (self->isMouseShieldEnabled) {
+            self->cursorBounds.l = self->mouse.x - self->hotSpotX;
+            self->cursorBounds.t = self->mouse.y - self->hotSpotY;
+            self->cursorBounds.r = self->cursorBounds.l + self->cursorWidth;
+            self->cursorBounds.b = self->cursorBounds.b + self->cursorHeight;
 
-        //XXX check intersection of mouse cursor and shielding rectangles
-        const int mx = self->mouse.x - self->hotSpotX;
-        const int my = self->mouse.y - self->mouse.y;
-        if (mx >= l && mx < r && my >= t && my < b && self->fb) {
-            _shield_cursor(self);
+            if (_shield_intersects_cursor(self)) {
+                _shield_cursor(self);
+            }
         }
     }
 
@@ -494,8 +504,8 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
         const int mx = self->mouse.x - self->hotSpotX;
         const int my = self->mouse.y - self->hotSpotY;
 
-        if (self->isMouseShieldActive && self->fb) {
-            if (mx >= self->shieldLeft && mx < self->shieldRight && my >= self->shieldTop && my < self->shieldBottom) {
+        if (self->isMouseShieldEnabled && self->fb) {
+            if (_shield_intersects_cursor(self)) {
                 if (!self->isMouseShielded) {
                     _shield_cursor(self);
                 }
@@ -690,8 +700,7 @@ static void _disconnect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _N
         IOChannel_Release(self->fbChannel);
         self->fbChannel = NULL;
         self->fb = NULL;
-        self->screenRight = 0;
-        self->screenBottom = 0;
+        hid_rect_set_empty(&self->screenBounds);
         return;
     }
 
@@ -807,16 +816,11 @@ static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
             }
 
             if (dx != 0 || dy != 0) {
-                int mx = self->mouse.x;
-                int my = self->mouse.y;
+                const int16_t mx = self->mouse.x + dx;
+                const int16_t my = self->mouse.y + dy;
 
-                mx += dx;
-                my += dy;
-                mx = __min(__max(mx, self->screenLeft), self->screenRight);
-                my = __min(__max(my, self->screenTop), self->screenBottom);
-
-                self->mouse.x = mx;
-                self->mouse.y = my;
+                self->mouse.x = __min(__max(mx, self->screenBounds.l), self->screenBounds.r);
+                self->mouse.y = __min(__max(my, self->screenBounds.t), self->screenBounds.b);
             }
             newButtons |= bt;
         }
@@ -848,10 +852,10 @@ static void _collect_framebuffer_size(HIDManagerRef _Nonnull self)
     int w, h;
     GraphicsDriver_GetScreenSize(self->fb, &w, &h);
 
-    self->screenLeft = 0;
-    self->screenTop = 0;
-    self->screenRight = (int16_t)w;
-    self->screenBottom = (int16_t)h;
+    self->screenBounds.l = 0;
+    self->screenBounds.t = 0;
+    self->screenBounds.r = (int16_t)w;
+    self->screenBounds.b = (int16_t)h;
 
     if (self->mouse.x >= w) {
         self->mouse.x = w - 1;
