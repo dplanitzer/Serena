@@ -92,7 +92,7 @@ void hid_test(int argc, char *argv[])
     printf("Press 'q' to quit.\n");
 
     //const uint16_t* _Nonnull planes[2], int width int height, PixelFormat pixelFormat, int hotSpotX, int hotSpotY
-    assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetCursor, gArrow_Planes, gArrow_Width, gArrow_Height, kCursor_PixelFormat, 0, 0));
+    assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetCursor, gArrow_Planes, gArrow_Width, gArrow_Height, kCursor_PixelFormat, 1, 1));
     assertGreaterEqual(0, ioctl(fd, kHIDCommand_ShowCursor));
 
     while (!done) {
