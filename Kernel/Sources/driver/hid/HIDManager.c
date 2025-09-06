@@ -296,11 +296,6 @@ errno_t HIDManager_ShieldMouseCursor(HIDManagerRef _Nonnull self, int x, int y, 
         self->isMouseShieldEnabled = ((self->shieldRect.r - self->shieldRect.l) > 0 && (self->shieldRect.b - self->shieldRect.t) > 0) ? true : false;
 
         if (self->isMouseShieldEnabled) {
-            self->cursorBounds.l = self->mouse.x - self->hotSpotX;
-            self->cursorBounds.t = self->mouse.y - self->hotSpotY;
-            self->cursorBounds.r = self->cursorBounds.l + self->cursorWidth;
-            self->cursorBounds.b = self->cursorBounds.b + self->cursorHeight;
-
             if (_shield_intersects_cursor(self)) {
                 _shield_cursor(self);
             }
