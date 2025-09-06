@@ -495,30 +495,6 @@ static void _post_key_event(HIDManagerRef _Nonnull _Locked self, const HIDReport
 // Posts suitable mouse events to the event queue.
 static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPositionChange, bool hasButtonsChange, uint32_t oldButtonsDown)
 {
-    if (hasPositionChange) {
-        if (self->isMouseShieldEnabled && self->fb) {
-            if (_shield_intersects_cursor(self)) {
-                if (!self->isMouseShielded) {
-                    _shield_cursor(self);
-                }
-            }
-            else {
-                if (self->isMouseShielded) {
-                    _unshield_cursor(self);
-                }
-            }
-        }
-
-        if (self->hiddenCount == 0 && self->fb) {
-            GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
-            if (self->isMouseObscured) {
-                GraphicsDriver_SetMouseCursorVisible(self->fb, true);
-                self->isMouseObscured = false;
-            }
-        }
-    }
-
-
     if (hasButtonsChange) {
         HIDEventType evtType;
         HIDEventData evt;
@@ -543,7 +519,8 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
             }
         }
     }
-    else if (hasPositionChange && self->isMouseMoveReportingEnabled) {
+    
+    if (hasPositionChange && self->isMouseMoveReportingEnabled) {
         HIDEventData evt;
 
         evt.mouseMoved.flags = self->modifierFlags;
@@ -778,6 +755,8 @@ static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
     const uint32_t oldButtonsDown = self->mouse.buttons;
     uint32_t newButtons = 0;
 
+    // Collect reports from all devices that control the logical mouse and compute
+    // the new logical mouse state
     for (int i = 0; i < self->mouse.chCount; i++) {
         IOChannelRef ch = self->mouse.ch[i];
 
@@ -823,6 +802,33 @@ static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
     const bool hasButtonsChange = (oldButtonsDown != self->mouse.buttons);
     const bool hasPositionChange = (oldX != self->mouse.x || oldY != self->mouse.y);
 
+
+    // Move the mouse cursor image on screen if the mouse position has changed
+    if (hasPositionChange) {
+        if (self->isMouseShieldEnabled && self->fb) {
+            if (_shield_intersects_cursor(self)) {
+                if (!self->isMouseShielded) {
+                    _shield_cursor(self);
+                }
+            }
+            else {
+                if (self->isMouseShielded) {
+                    _unshield_cursor(self);
+                }
+            }
+        }
+
+        if (self->hiddenCount == 0 && self->fb) {
+            GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
+            if (self->isMouseObscured) {
+                GraphicsDriver_SetMouseCursorVisible(self->fb, true);
+                self->isMouseObscured = false;
+            }
+        }
+    }
+
+
+    // Post mouse events
     _post_mouse_event(self, hasPositionChange, hasButtonsChange, oldButtonsDown);
 }
 
