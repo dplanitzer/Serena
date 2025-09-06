@@ -496,9 +496,6 @@ static void _post_key_event(HIDManagerRef _Nonnull _Locked self, const HIDReport
 static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPositionChange, bool hasButtonsChange, uint32_t oldButtonsDown)
 {
     if (hasPositionChange) {
-        const int mx = self->mouse.x - self->hotSpotX;
-        const int my = self->mouse.y - self->hotSpotY;
-
         if (self->isMouseShieldEnabled && self->fb) {
             if (_shield_intersects_cursor(self)) {
                 if (!self->isMouseShielded) {
@@ -513,7 +510,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
         }
 
         if (self->hiddenCount == 0 && self->fb) {
-            GraphicsDriver_SetMouseCursorPosition(self->fb, mx, my);
+            GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
             if (self->isMouseObscured) {
                 GraphicsDriver_SetMouseCursorVisible(self->fb, true);
                 self->isMouseObscured = false;
