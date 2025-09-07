@@ -821,8 +821,8 @@ static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
                 const int16_t mx = self->mouse.x + dx;
                 const int16_t my = self->mouse.y + dy;
 
-                self->mouse.x = __min(__max(mx, self->screenBounds.l), self->screenBounds.r);
-                self->mouse.y = __min(__max(my, self->screenBounds.t), self->screenBounds.b);
+                self->mouse.x = __min(__max(mx, self->screenBounds.l), self->screenBounds.r - 1);
+                self->mouse.y = __min(__max(my, self->screenBounds.t), self->screenBounds.b - 1);
             }
             newButtons |= bt;
         }
