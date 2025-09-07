@@ -18,13 +18,15 @@
 #include <sched/waitqueue.h>
 #include "copper.h"
 #include "ColorTable.h"
-#include "Sprite.h"
 #include "Surface.h"
 
 
 // Signal sent by the Copper scheduler when a new Copper program has started
 // running and the previously running one has been retired
 #define SIGCOPRUN  2
+
+#define MOUSE_SPRITE_PRI 0
+#define MAX_CACHED_COPPER_PROGS 4
 
 
 typedef struct screen_conf {
@@ -33,8 +35,14 @@ typedef struct screen_conf {
 } screen_conf_t;
 
 
-#define MOUSE_SPRITE_PRI 0
-#define MAX_CACHED_COPPER_PROGS 4
+typedef struct Sprite {
+    uint16_t* _Nonnull  data;   // sprxctl, sprxctl, (plane0, plane1)..., 0, 0
+    int16_t             x;
+    int16_t             y;
+    uint16_t            height;
+    bool                isAcquired;
+} Sprite;
+
 
 final_class_ivars(GraphicsDriver, Driver,
     mtx_t                   io_mtx;

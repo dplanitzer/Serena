@@ -40,7 +40,6 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     self->nullSpriteData[5] = 0;
 
     for (int i = 0; i < SPRITE_COUNT; i++) {
-        Sprite_Init(&self->sprite[i]);
         self->spriteDmaPtr[i] = self->nullSpriteData;
     }
 
