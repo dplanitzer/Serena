@@ -97,15 +97,24 @@ errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, i
             return EOK;
         }
 
-        case kHIDCommand_SetCursor: {
-            const uint16_t** planes = va_arg(ap, const uint16_t**);
+        case kHIDCommand_AcquireCursor: {
             const int width = va_arg(ap, int);
             const int height = va_arg(ap, int);
             const PixelFormat fmt = va_arg(ap, PixelFormat);
+
+            return HIDManager_AcquireCursor(gHIDManager, width, height, fmt);
+        }
+
+        case kHIDCommand_RelinquishCursor:
+            HIDManager_RelinquishCursor(gHIDManager);
+            return EOK;
+
+        case kHIDCommand_SetCursor: {
+            const uint16_t** planes = va_arg(ap, const uint16_t**);
             const int hotSpotX = va_arg(ap, int);
             const int hotSpotY = va_arg(ap, int);
 
-            return HIDManager_SetCursor(gHIDManager, planes, width, height, fmt, hotSpotX, hotSpotY);
+            return HIDManager_SetCursor(gHIDManager, planes, hotSpotX, hotSpotY);
         }
 
         case kHIDCommand_ShowCursor:

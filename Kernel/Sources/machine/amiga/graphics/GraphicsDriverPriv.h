@@ -52,13 +52,13 @@ final_class_ivars(GraphicsDriver, Driver,
     uint16_t* _Nonnull      nullSpriteData;
     uint16_t* _Nonnull      spriteDmaPtr[SPRITE_COUNT];
     Sprite                  sprite[SPRITE_COUNT];
-    Sprite                  mouseCursor;
+
+    int                     mouseCursorId;      // 0 -> no mouse cursor acquire; > 0 -> mouse cursor acquired
 
     List/*<GObject>*/       gobjs;
     int                     nextGObjId;
     struct __GDFlags {
-        unsigned int    isLightPenEnabled;  // Applies to all screens
-        unsigned int    mouseCursorEnabled; // Applies to all screens
+        unsigned int    isLightPenEnabled;      // Applies to all screens
         unsigned int    reserved:31;
     }                       flags;
 );

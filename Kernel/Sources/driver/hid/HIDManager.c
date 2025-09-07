@@ -39,7 +39,7 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
 
     self->keyFlags = gUSBHIDKeyFlags;
     self->isMouseMoveReportingEnabled = false;
-    self->hiddenCount = 1;
+    self->hiddenCount = 0;
 
 
     // Create the HID event queue
@@ -176,25 +176,56 @@ void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode*
     *nKeysDown = oi;
 }
 
-errno_t HIDManager_SetCursor(HIDManagerRef _Nonnull self, const uint16_t* _Nullable planes[2], int width, int height, PixelFormat pixelFormat, int hotSpotX, int hotSpotY)
+errno_t HIDManager_AcquireCursor(HIDManagerRef _Nonnull self, int width, int height, PixelFormat pixelFormat)
 {
     decl_try_err();
 
-    if (width < 0 || height < 0 || hotSpotX < 0 || hotSpotX > width || hotSpotY < 0 || hotSpotY > height) {
-        return EINVAL;
-    }
-
     mtx_lock(&self->mtx);
     if (self->fb) {
-        err = GraphicsDriver_SetMouseCursor(self->fb, planes, width, height, pixelFormat);
-        
+        err = GraphicsDriver_AcquireMouseCursor(self->fb, width, height, pixelFormat);
         if (err == EOK) {
-            self->hotSpotX = hotSpotX;
-            self->hotSpotY = hotSpotY;
             self->cursorWidth = width;
             self->cursorHeight = height;
         }
     }
+    else {
+        err = ENODEV;
+    }
+    mtx_unlock(&self->mtx);
+
+    return err;
+}
+
+void HIDManager_RelinquishCursor(HIDManagerRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    if (self->fb) {
+        GraphicsDriver_RelinquishMouseCursor(self->fb);
+        self->cursorWidth = 0;
+        self->cursorHeight = 0;
+    }
+    mtx_unlock(&self->mtx);
+}
+
+errno_t HIDManager_SetCursor(HIDManagerRef _Nonnull self, const uint16_t* _Nullable planes[2], int hotSpotX, int hotSpotY)
+{
+    decl_try_err();
+
+    mtx_lock(&self->mtx);
+    if (hotSpotX < 0 || hotSpotX > self->cursorWidth || hotSpotY < 0 || hotSpotY > self->cursorHeight) {
+        throw(EINVAL);
+    }
+
+    if (self->fb) {
+        try(GraphicsDriver_SetMouseCursor(self->fb, planes));
+        self->hotSpotX = hotSpotX;
+        self->hotSpotY = hotSpotY;
+    }
+    else {
+        err = ENODEV;
+    }
+
+catch:
     mtx_unlock(&self->mtx);
     return err;
 }

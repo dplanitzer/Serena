@@ -10,6 +10,8 @@
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 
+static void _Sprite_StateDidChange(Sprite* _Nonnull self);
+
 
 // Initializes the given sprite as a null sprite. Meaning that it doesn't show
 // anything and that it isn't acquired.
@@ -22,10 +24,11 @@ void Sprite_Init(Sprite* _Nonnull self)
     self->isAcquired = false;
 }
 
-// Acquires a sprite of size 'width' x 'height' pixels and with position (0, 0).
-// Pixels must be assigned separately by calling Sprite_SetPixels() before anything
-// will show up on the screen. 
-errno_t Sprite_Acquire(Sprite* _Nonnull self, int width, int height, PixelFormat pixelFormat)
+// Acquires a sprite of size 'width' x 'height' pixels and initial position (x, y).
+// The sprite pixels are set to transparent by default. You must call
+// Sprite_SetPixels() with non-transparent pixels before anything will show up
+// on the screen. 
+errno_t Sprite_Acquire(Sprite* _Nonnull self, int x, int y, int width, int height, PixelFormat pixelFormat)
 {
     decl_try_err();
 
@@ -39,15 +42,14 @@ errno_t Sprite_Acquire(Sprite* _Nonnull self, int width, int height, PixelFormat
         return ENOTSUP;
     }
 
+    self->x = __max(__min(x, MAX_SPRITE_HPOS), 0);
+    self->y = __max(__min(y, MAX_SPRITE_VPOS), 0);
     self->height = (uint16_t)height;
 
     const size_t byteCount = (2 + 2*height + 2) * sizeof(uint16_t);
-    try(kalloc_options(byteCount, KALLOC_OPTION_UNIFIED, (void**)&self->data));
+    try(kalloc_options(byteCount, KALLOC_OPTION_UNIFIED | KALLOC_OPTION_CLEAR, (void**)&self->data));
 
-    // No pixel data yet - configure the sprite as a null sprite
-    self->data[0] = 0;  // sprxpos (will be filled out when user assigns a position)
-    self->data[1] = 0;  // sprxctl (will be filled out when user assigns a position)
-
+    _Sprite_StateDidChange(self);
     self->isAcquired = true;
 
 catch:
@@ -96,10 +98,6 @@ void Sprite_SetPixels(Sprite* _Nonnull self, const uint16_t* _Nonnull planes[2])
     }
     *dp++ = 0;
     *dp   = 0;
-
-    // A sprite starts out as a null sprite. Now that pixels have been assigned,
-    // make sure that the sprite will show up on the screen
-    _Sprite_StateDidChange(self);
 }
 
 // Updates the position of a hardware sprite.

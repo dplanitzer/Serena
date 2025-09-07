@@ -30,10 +30,7 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     mtx_init(&self->io_mtx);
 
 
-    // Allocate the null and mouse cursor sprite
-    Sprite_Init(&self->mouseCursor);
-    try(Sprite_Acquire(&self->mouseCursor, kCursor_Width, kCursor_Height, kCursor_PixelFormat));
-    
+    // Allocate the null sprite
     try(kalloc_options(sizeof(uint16_t) * 6, KALLOC_OPTION_UNIFIED, (void**)&self->nullSpriteData));
     self->nullSpriteData[0] = 0x1905;
     self->nullSpriteData[1] = 0x1a00;

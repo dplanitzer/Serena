@@ -45,25 +45,38 @@
 #define kHIDCommand_SetKeyRepeatDelays IOResourceCommand(kDriverCommand_SubclassBase + 3)
 
 
-// Set the mouse cursor image.
-// set_cursor(const uint16_t* _Nonnull planes[2], int width int height, PixelFormat pixelFormat, int hotSpotX, int hotSpotY)
-#define kHIDCommand_SetCursor   IOResourceCommand(kDriverCommand_SubclassBase + 4)
+// Acquires the mouse cursor and specifies its width, height and pixel format.
+// The mouse cursor is initially completely transparent. You must set a cursor
+// image by calling SetCursor() before anything will show up on the screen.
+// Returns EOK on success and EBUSY if the mouse cursor is implemented with the
+// help of a hardware sprite and this sprite is currently in use by someone else. 
+// acquire_cursor(int width int height, PixelFormat pixelFormat)
+#define kHIDCommand_AcquireCursor   IOResourceCommand(kDriverCommand_SubclassBase + 4)
+
+// Relinquishes the mouse cursor and makes the underlying sprite available for
+// other uses.
+// relinquish_cursor(void)
+#define kHIDCommand_RelinquishCursor    IOResourceCommand(kDriverCommand_SubclassBase + 5)
+
+// Sets the mouse cursor image to the provided pixels.
+// set_cursor(const uint16_t* _Nonnull planes[2], int hotSpotX, int hotSpotY)
+#define kHIDCommand_SetCursor   IOResourceCommand(kDriverCommand_SubclassBase + 6)
 
 // Decrements the cursor hidden count and shows the cursor when the count hits 0.
 //  show_cursor(void)
-#define kHIDCommand_ShowCursor  IOResourceCommand(kDriverCommand_SubclassBase + 5)
+#define kHIDCommand_ShowCursor  IOResourceCommand(kDriverCommand_SubclassBase + 7)
 
 // Hides the mouse cursor and increments a cursor hidden count. The cursor stays
 // hidden until enough ShowCursor() calls have been made to balance the
 // HideCursor() calls.
 // hide_cursor(void)
-#define kHIDCommand_HideCursor  IOResourceCommand(kDriverCommand_SubclassBase + 6)
+#define kHIDCommand_HideCursor  IOResourceCommand(kDriverCommand_SubclassBase + 8)
 
 // Obscures the mouse cursor. This means that the mouse cursor is temporarily
 // hidden until either the user moves the mouse or you call ShowCursor(). Note
 // that this function does not increment the cursor hidden count.
 // int obscure_cursor()
-#define kHIDCommand_ObscureCursor   IOResourceCommand(kDriverCommand_SubclassBase + 7)
+#define kHIDCommand_ObscureCursor   IOResourceCommand(kDriverCommand_SubclassBase + 9)
 
 // Shields the mouse cursor. Call this function before drawing into the provided
 // rectangle on the screen to ensure that the mouse cursor image will be saved
@@ -71,7 +84,7 @@
 // ShowCursor() to remove the shielding rectangle and to make the cursor visible
 // again.
 // shield_cursor(int x, int y, int width, int height)
-#define kHIDCommand_ShieldCursor    IOResourceCommand(kDriverCommand_SubclassBase + 8)
+#define kHIDCommand_ShieldCursor    IOResourceCommand(kDriverCommand_SubclassBase + 10)
 
 
 
