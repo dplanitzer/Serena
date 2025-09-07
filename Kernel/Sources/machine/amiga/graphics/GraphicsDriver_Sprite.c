@@ -135,13 +135,19 @@ errno_t _set_sprite_vis(GraphicsDriverRef _Nonnull _Locked self, int spriteId, b
 
 errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutSpriteId)
 {
+    decl_try_err();
+
     mtx_lock(&self->io_mtx);
-    const errno_t err = _acquire_sprite(self, width, height, pixelFormat, priority, pOutSpriteId);
+    if (priority == MOUSE_SPRITE_PRI && self->mouseCursorId != 0) {
+        err = EBUSY; 
+    }
+    else {
+        err = _acquire_sprite(self, width, height, pixelFormat, priority, pOutSpriteId);
+    }
     mtx_unlock(&self->io_mtx);
     return err;
 }
 
-// Relinquishes a hardware sprite
 errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int spriteId)
 {
     mtx_lock(&self->io_mtx);
@@ -158,7 +164,6 @@ errno_t GraphicsDriver_SetSpritePixels(GraphicsDriverRef _Nonnull self, int spri
     return err;
 }
 
-// Updates the position of a hardware sprite.
 errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int spriteId, int x, int y)
 {
     mtx_lock(&self->io_mtx);
@@ -167,7 +172,6 @@ errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int sp
     return err;
 }
 
-// Updates the visibility of a hardware sprite.
 errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spriteId, bool isVisible)
 {
     mtx_lock(&self->io_mtx);
