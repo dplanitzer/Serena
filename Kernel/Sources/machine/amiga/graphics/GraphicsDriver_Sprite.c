@@ -119,7 +119,7 @@ errno_t _relinquish_sprite(GraphicsDriverRef _Nonnull _Locked self, int spriteId
     // XXX actually free the old sprite instead of leaking it. Can't do this
     // XXX yet because we need to ensure that the DMA is no longer accessing
     // XXX the data before it freeing it.
-    self->spriteDmaPtr[sprIdx] = self->nullSpriteData;
+    self->spriteDmaPtr[sprIdx] = (uint16_t*)Surface_GetPlane(self->nullSpriteSurface, 0);
     copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
     if (prog) {
         copper_prog_sprptr_changed(prog, sprIdx, self->spriteDmaPtr[sprIdx]);
@@ -185,7 +185,7 @@ errno_t _set_sprite_vis(GraphicsDriverRef _Nonnull _Locked self, int spriteId, b
     const int sprIdx = GET_SPRITE_IDX(spriteId);
 
     if (sprIdx >= 0 && sprIdx < SPRITE_COUNT && self->sprite[sprIdx].isAcquired) {
-        self->spriteDmaPtr[sprIdx] = (isVisible) ? self->sprite[sprIdx].data : self->nullSpriteData;
+        self->spriteDmaPtr[sprIdx] = (isVisible) ? self->sprite[sprIdx].data : (uint16_t*)Surface_GetPlane(self->nullSpriteSurface, 0);
         copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
         if (prog) {
             copper_prog_sprptr_changed(prog, sprIdx, self->spriteDmaPtr[sprIdx]);

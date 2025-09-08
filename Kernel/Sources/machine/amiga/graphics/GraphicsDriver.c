@@ -31,16 +31,10 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
 
 
     // Allocate the null sprite
-    try(kalloc_options(sizeof(uint16_t) * 6, KALLOC_OPTION_UNIFIED, (void**)&self->nullSpriteData));
-    self->nullSpriteData[0] = 0x1905;
-    self->nullSpriteData[1] = 0x1a00;
-    self->nullSpriteData[2] = 0;
-    self->nullSpriteData[3] = 0;
-    self->nullSpriteData[4] = 0;
-    self->nullSpriteData[5] = 0;
+    try(Surface_CreateNullSprite(&self->nullSpriteSurface));
 
     for (int i = 0; i < SPRITE_COUNT; i++) {
-        self->spriteDmaPtr[i] = self->nullSpriteData;
+        self->spriteDmaPtr[i] = (uint16_t*)Surface_GetPlane(self->nullSpriteSurface, 0);
     }
 
 

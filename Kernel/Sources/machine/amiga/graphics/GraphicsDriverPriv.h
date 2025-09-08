@@ -57,7 +57,7 @@ final_class_ivars(GraphicsDriver, Driver,
     vcpu_t _Nullable        screenConfigObserver;
     int                     screenConfigObserverSignal;
 
-    uint16_t* _Nonnull      nullSpriteData;
+    Surface* _Nonnull       nullSpriteSurface;
     uint16_t* _Nonnull      spriteDmaPtr[SPRITE_COUNT];
     Sprite                  sprite[SPRITE_COUNT];
 

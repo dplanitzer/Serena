@@ -9,7 +9,6 @@
 #include "copper.h"
 #include "ColorTable.h"
 #include <kern/kalloc.h>
-#include <machine/irq.h>
 
 
 errno_t copper_prog_create(size_t instr_count, copper_prog_t _Nullable * _Nonnull pOutProg)

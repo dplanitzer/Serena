@@ -120,5 +120,4 @@ extern void copper_prog_set_lp_enabled(copper_prog_t self, bool isEnabled);
 extern void copper_prog_clut_changed(copper_prog_t _Nonnull self, size_t startIdx, size_t count);
 extern void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, uint16_t* _Nonnull sprptr);
 
-
 #endif /* _COPPER_H */

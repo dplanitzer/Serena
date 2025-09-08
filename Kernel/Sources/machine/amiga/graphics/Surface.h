@@ -26,8 +26,7 @@ typedef struct Surface {
     uint8_t* _Nullable  plane[MAX_PLANE_COUNT];
     int                 width;
     int                 height;
-    int                 bytesPerRow;
-    int                 bytesPerPlane;
+    size_t              bytesPerRow;
     int8_t              planeCount;
     int8_t              pixelFormat;
     uint8_t             flags;
@@ -35,6 +34,10 @@ typedef struct Surface {
 
 
 extern errno_t Surface_Create(int id, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
+
+// Create a surface that represents a null sprite.
+extern errno_t Surface_CreateNullSprite(Surface* _Nullable * _Nonnull pOutSelf);
+
 extern void Surface_Destroy(Surface* _Nullable self);
 
 
@@ -46,6 +49,10 @@ extern void Surface_Destroy(Surface* _Nullable self);
 #define Surface_GetHeight(__self) \
 ((__self)->height)
 
+// Returns the number of planes in the surface.
+#define Surface_GetPlaneCount(__self) \
+((__self)->planeCount)
+
 // Returns the bytes-per-row value
 #define Surface_GetBytesPerRow(__self) \
 ((__self)->bytesPerRow)
@@ -54,8 +61,11 @@ extern void Surface_Destroy(Surface* _Nullable self);
 #define Surface_GetPixelFormat(__self) \
 ((__self)->pixelFormat)
 
+// Returns the n-th plane of the surface.
+#define Surface_GetPlane(__self, __idx) \
+((__self)->plane[__idx])
 
-extern errno_t Surface_Map(Surface* _Nonnull self, MapPixels mode, SurfaceMapping* _Nonnull pOutMapping);
-extern errno_t Surface_Unmap(Surface* _Nonnull self);
+
+extern errno_t Surface_WritePixels(Surface* _Nonnull self, const uint16_t* _Nonnull planes[]);
 
 #endif /* Surface_h */

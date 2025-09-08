@@ -83,7 +83,20 @@ errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, int id, MapPi
     mtx_lock(&self->io_mtx);
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
     if (srf) {
-        err = Surface_Map(srf, mode, pOutMapping);
+        if ((srf->flags & kSurfaceFlag_IsMapped) == 0) {
+            const size_t planeCount = Surface_GetPlaneCount(srf);
+
+            for (size_t i = 0; i < planeCount; i++) {
+                pOutMapping->plane[i] = Surface_GetPlane(srf, i);
+                pOutMapping->bytesPerRow[i] = Surface_GetBytesPerRow(srf);
+            }
+            pOutMapping->planeCount = planeCount;
+
+            srf->flags |= kSurfaceFlag_IsMapped;
+        }
+        else {
+            err = EBUSY;
+        }
     }
     else {
         err = ENOTSUP;
@@ -99,7 +112,12 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id)
     mtx_lock(&self->io_mtx);
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
     if (srf) {
-        err = Surface_Unmap(srf);
+        if ((srf->flags & kSurfaceFlag_IsMapped) == kSurfaceFlag_IsMapped) {
+            srf->flags &= ~kSurfaceFlag_IsMapped;
+        }
+        else {
+            err = EPERM;
+        }
     }
     else {
         err = ENOTSUP;
