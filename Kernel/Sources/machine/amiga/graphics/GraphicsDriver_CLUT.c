@@ -85,9 +85,12 @@ errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, s
     ColorTable* clut = _GraphicsDriver_GetClutForId(self, id);
     if (clut) {
         err = ColorTable_SetEntries(clut, idx, count, entries);
-        if (err == EOK) {
-            if (clut == (ColorTable*)g_copper_running_prog->res.clut) {
-                copper_cur_set_clut_range(idx, count);
+        if (err == EOK && clut == (ColorTable*)g_copper_running_prog->res.clut) {
+            copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
+
+            if (prog) {
+                copper_prog_clut_changed(prog, idx, count);
+                copper_schedule(prog, 0);
             }
         }
     }

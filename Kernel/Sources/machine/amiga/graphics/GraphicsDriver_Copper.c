@@ -54,7 +54,6 @@ static errno_t _create_copper_prog(GraphicsDriverRef _Nonnull _Locked self, size
     prog->state = COP_STATE_IDLE;
     prog->odd_entry = prog->prog;
     prog->even_entry = NULL;
-    copper_cur_clear_edits();
 
 
     *pOutProg = prog;
@@ -167,4 +166,45 @@ errno_t GraphicsDriver_CreateScreenCopperProg(GraphicsDriverRef _Nonnull _Locked
     *pOutProg = prog;
 
     return err;
+}
+
+copper_prog_t _Nullable _GraphicsDriver_GetEditableCopperProg(GraphicsDriverRef _Nonnull _Locked self)
+{
+    copper_prog_t prog = copper_unschedule();
+
+    if (prog == NULL) {
+        copper_prog_t run_prog = g_copper_running_prog;
+        const errno_t err = _create_copper_prog(self, run_prog->prog_size, &prog);
+
+        if (err != EOK) {
+            // should not happen in actual practice because there should always
+            // be at least one prog cached.
+            return NULL;
+        }
+
+        // Accessing the running Copper program without masking irqs is safe here
+        // because:
+        // * we hold the io_mtx and thus noone else can schedule a new Copper prog
+        // * we just took the ready program out and thus the running program
+        //   won't get replaced behind our back
+        for (size_t i = 0; i < run_prog->prog_size; i++) {
+            prog->prog[i] = run_prog->prog[i];
+        }
+
+        if (run_prog->even_entry) {
+            prog->even_entry = &prog->prog[prog->prog_size / 2];
+        }
+
+        prog->loc = run_prog->loc;
+        prog->video_conf = run_prog->video_conf;
+        prog->res = run_prog->res;
+
+        if (prog->res.clut) {
+            GObject_AddUse(prog->res.clut);
+        }
+        if (prog->res.fb) {
+            GObject_AddUse(prog->res.fb);
+        }
+    }
+    return prog;
 }

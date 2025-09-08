@@ -78,7 +78,12 @@ errno_t _acquire_sprite(GraphicsDriverRef _Nonnull _Locked self, int width, int 
     spr->isAcquired = true;
 
     self->spriteDmaPtr[priority] = self->sprite[priority].data;
-    copper_cur_set_sprptr(priority, self->spriteDmaPtr[priority]);
+
+    copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
+    if (prog) {
+        copper_prog_sprptr_changed(prog, priority, self->spriteDmaPtr[priority]);
+        copper_schedule(prog, 0);
+    }
 
 catch:
     *pOutSpriteId = (err == EOK) ? MAKE_SPRITE_ID(priority) : 0;
@@ -115,7 +120,11 @@ errno_t _relinquish_sprite(GraphicsDriverRef _Nonnull _Locked self, int spriteId
     // XXX yet because we need to ensure that the DMA is no longer accessing
     // XXX the data before it freeing it.
     self->spriteDmaPtr[sprIdx] = self->nullSpriteData;
-    copper_cur_set_sprptr(sprIdx, self->nullSpriteData);
+    copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
+    if (prog) {
+        copper_prog_sprptr_changed(prog, sprIdx, self->spriteDmaPtr[sprIdx]);
+        copper_schedule(prog, 0);
+    }
 
     return EOK;
 }
@@ -177,7 +186,11 @@ errno_t _set_sprite_vis(GraphicsDriverRef _Nonnull _Locked self, int spriteId, b
 
     if (sprIdx >= 0 && sprIdx < SPRITE_COUNT && self->sprite[sprIdx].isAcquired) {
         self->spriteDmaPtr[sprIdx] = (isVisible) ? self->sprite[sprIdx].data : self->nullSpriteData;
-        copper_cur_set_sprptr(sprIdx, self->spriteDmaPtr[sprIdx]);
+        copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
+        if (prog) {
+            copper_prog_sprptr_changed(prog, sprIdx, self->spriteDmaPtr[sprIdx]);
+            copper_schedule(prog, 0);
+        }
     }
     else {
         err = EINVAL;

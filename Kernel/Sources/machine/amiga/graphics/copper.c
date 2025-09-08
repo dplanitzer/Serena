@@ -12,7 +12,6 @@
 #include <machine/amiga/chipset.h>
 #include <sched/sem.h>
 
-extern void copper_prog_apply_edits(copper_prog_t _Nonnull self, copper_instr_t* ep);
 extern int copper_irq(void);
 
 
@@ -105,7 +104,6 @@ void copper_schedule(copper_prog_t _Nullable prog, unsigned flags)
 
     g_copper_ready_prog = prog;
     prog->state = COP_STATE_READY;
-    copper_clear_edits_irq();
     irq_set_mask(sim);
 
 
@@ -115,6 +113,16 @@ void copper_schedule(copper_prog_t _Nullable prog, unsigned flags)
         }
     }
 }
+
+copper_prog_t _Nullable copper_unschedule(void)
+{
+    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
+    copper_prog_t prog = g_copper_ready_prog;
+    g_copper_ready_prog = NULL;
+    irq_set_mask(sim);
+    return prog;
+}
+
 
 // Called when the Copper scheduler has received a request to switch to a new
 // Copper program. Updates the running program, retires the old program, updates
@@ -159,16 +167,6 @@ static void copper_csw(void)
     *CHIPSET_REG_16(cp, DMACON) = (DMACONF_SETCLR | DMACONF_COPEN | DMACONF_DMAEN);
 
 
-    // Apply pending edits to the new program
-    if (g_pending_edits) {
-        copper_prog_apply_edits(prog, prog->odd_entry);
-        if (prog->even_entry) {
-            copper_prog_apply_edits(prog, prog->even_entry);
-        }
-        copper_clear_edits_irq();
-    }
-
-
     if (g_retire_vcpu) {
         vcpu_sigsend_irq(g_retire_vcpu, g_retire_signo, false);
     }
@@ -198,16 +196,6 @@ int copper_irq(void)
     if (g_copper_is_running_interlaced) {
         *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? prog->odd_entry : prog->even_entry);
         *CHIPSET_REG_16(cp, COPJMP1) = 0;
-    }
-
-
-    // Apply pending edits to the currently running program
-    if (g_pending_edits && (!g_copper_is_running_interlaced || (g_copper_is_running_interlaced && isLongFrame))) {
-        copper_prog_apply_edits(prog, prog->odd_entry);
-        if (prog->even_entry) {
-            copper_prog_apply_edits(prog, prog->even_entry);
-        }
-        copper_clear_edits_irq();
     }
 
     return 0;

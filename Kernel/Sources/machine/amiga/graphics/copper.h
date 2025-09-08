@@ -46,6 +46,12 @@ typedef struct copper_locs {
 } copper_locs_t;
 
 
+// A Copper program consists of at least an odd field sub-program and optionally
+// an additional even field sub-program. We assume that both field programs have
+// the same number of instructions and are pretty much identical except for the
+// differences that are required to make the fields work correctly.
+// A Copper program declares its dependencies on surfaces and color tables. It
+// holds a use on these resources while it is alive.
 struct copper_prog {
     struct copper_prog* _Nullable   next;
     
@@ -100,41 +106,19 @@ extern copper_prog_t _Nullable copper_acquire_retired_prog(void);
 #define COPFLAG_WAIT_RUNNING    1
 extern void copper_schedule(copper_prog_t _Nonnull prog, unsigned flags);
 
+// Removes the currently scheduled ready Copper program and returns it.
+extern copper_prog_t _Nullable copper_unschedule(void);
+
+
 // The currently running Copper program.
 extern copper_prog_t _Nonnull   g_copper_running_prog;
 
 
-// Changes the light pen enabled/disabled state of the currently running Copper
-// program.
-extern void copper_cur_set_lp_enabled(bool isEnabled);
+// These functions edit the given Copper program to update it to reflect changes
+// to the program dependencies or the general graphic driver environment 
+extern void copper_prog_set_lp_enabled(copper_prog_t self, bool isEnabled);
+extern void copper_prog_clut_changed(copper_prog_t _Nonnull self, size_t startIdx, size_t count);
+extern void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, uint16_t* _Nonnull sprptr);
 
-extern void copper_cur_set_sprptr(int spridx, uint16_t* _Nonnull sprptr);
-extern void copper_cur_set_clut_range(size_t idx, size_t count);
-
-// Clear pending edits
-extern void copper_cur_clear_edits(void);
-
-
-//
-// Private
-//
-
-#define COPED_SPRPTR    1
-#define COPED_CLUT      2
-
-#define COPED_SPRPTR_SENTINEL   0xffffffff
-
-
-extern uint8_t  g_pending_edits;
-extern uint16_t g_clut_low_idx;
-extern uint16_t g_clut_high_idx;
-extern uint32_t g_sprptr[];
-
-
-#define copper_clear_edits_irq() \
-g_pending_edits = 0; \
-g_clut_low_idx = 0xffff; \
-g_clut_high_idx = 0; \
-g_sprptr[0] = COPED_SPRPTR_SENTINEL
 
 #endif /* _COPPER_H */

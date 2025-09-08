@@ -221,110 +221,51 @@ void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnu
 // MARK: Editing
 ////////////////////////////////////////////////////////////////////////////////
 
-uint8_t     g_pending_edits;
-uint16_t    g_clut_low_idx;             // Index of lowest CLU entry that has changed
-uint16_t    g_clut_high_idx;            // Index of highest CLUT entry that has changed plus one
-uint32_t    g_sprptr[SPRITE_COUNT+1];   // 31..8: sprite dma pointer; 7..0: sprite number (0xff -> marks end of list)
-
-
-void copper_cur_set_lp_enabled(bool isEnabled)
+void copper_prog_set_lp_enabled(copper_prog_t _Nonnull self, bool isEnabled)
 {
-    // We directly poke the Copper instructions because this setting doesn't
-    // depend on the BPL or SPR DMA and it has no impact on the display. So
-    // whatever temporary glitching this may cause won't be visible. Do the
-    // update with VBL masked to ensure that the program doesn't get retired
-    // while we're changing it.
-    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-    copper_prog_t prog = g_copper_running_prog;
     if (isEnabled) {
-        prog->odd_entry[prog->loc.bplcon0] |= BPLCON0F_LPEN;
-        if (prog->even_entry) {
-            prog->even_entry[prog->loc.bplcon0] |= BPLCON0F_LPEN;
+        self->odd_entry[self->loc.bplcon0] |= BPLCON0F_LPEN;
+        if (self->even_entry) {
+            self->even_entry[self->loc.bplcon0] |= BPLCON0F_LPEN;
         }
     }
     else {
-        prog->odd_entry[prog->loc.bplcon0] &= ~BPLCON0F_LPEN;
-        if (prog->even_entry) {
-            prog->even_entry[prog->loc.bplcon0] &= ~BPLCON0F_LPEN;
+        self->odd_entry[self->loc.bplcon0] &= ~BPLCON0F_LPEN;
+        if (self->even_entry) {
+            self->even_entry[self->loc.bplcon0] &= ~BPLCON0F_LPEN;
         }
     }
-    irq_set_mask(sim);
 }
 
-void copper_cur_set_sprptr(int spridx, uint16_t* _Nonnull sprptr)
+void copper_prog_clut_changed(copper_prog_t _Nonnull self, size_t startIdx, size_t count)
 {
-    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-    uint32_t* sp = g_sprptr;
-    uint8_t sp_idx;
-
-    for (;;) {
-        sp_idx = (*sp) & 0xff;
-
-        if (sp_idx == 0xff) {
-            *sp = ((uint32_t)sprptr) << 8 | (uint8_t)spridx;
-            *(sp + 1) = COPED_SPRPTR_SENTINEL;
-            break;
-        }
-        
-        if (sp_idx == (uint8_t)spridx) {
-            *sp = ((uint32_t)sprptr) << 8 | sp_idx;
-            break;
-        }
-
-        sp++;
-    }
-    g_pending_edits |= COPED_SPRPTR;
-    irq_set_mask(sim);
-}
-
-void copper_cur_set_clut_range(size_t idx, size_t count)
-{
-    int16_t l = __max(__min(idx, COLOR_COUNT-1), 0);
-    int16_t h = __max(__min(l + count, COLOR_COUNT-1), 0);
-
-    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-    g_clut_low_idx = __min(g_clut_low_idx, l);
-    g_clut_high_idx = __max(g_clut_high_idx, h);
-    g_pending_edits |= COPED_CLUT;
-    irq_set_mask(sim);
-}
-
-
-void copper_cur_clear_edits(void)
-{
-    const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
-    copper_clear_edits_irq();
-    irq_set_mask(sim);
-}
-
-void copper_prog_apply_edits(copper_prog_t _Nonnull self, copper_instr_t* ep)
-{
-    if ((g_pending_edits & COPED_SPRPTR) != 0) {
-        copper_instr_t* ip = &ep[self->loc.sprptr];
-        const uint32_t* sp = g_sprptr;
-
-        for (;;) {
-            const uint8_t spr_idx = (*sp) & 0xff;
-            const uint32_t spr_ptr = (*sp) >> 8;
-
-            if (spr_idx == 0xff) {
-                break;
-            }
-
-            ip[(spr_idx << 1) + 0] = COP_MOVE(SPRITE_BASE + (spr_idx << 2) + 0, (spr_ptr >> 16) & UINT16_MAX);
-            ip[(spr_idx << 1) + 1] = COP_MOVE(SPRITE_BASE + (spr_idx << 2) + 2, spr_ptr & UINT16_MAX);
-            sp++;
+    const uint16_t l = startIdx;
+    const uint16_t h = startIdx + count;
+    ColorTable* clut = (ColorTable*)self->res.clut;
+    copper_instr_t* op = &self->odd_entry[self->loc.clut + l];
+    copper_instr_t* ep = (self->even_entry) ? &self->even_entry[self->loc.clut + l] : NULL;
+    
+    for (uint16_t i = l, r = COLOR_BASE + (l << 1); i < h; i++, r += 2) {
+        *op++ = COP_MOVE(r, clut->entry[i]);
+        if (ep) {
+            *ep++ = COP_MOVE(r, clut->entry[i]);
         }
     }
+}
 
-    if ((g_pending_edits & COPED_CLUT) != 0) {
-        const uint16_t l = g_clut_low_idx;
-        const uint16_t h = g_clut_high_idx;
-        copper_instr_t* ip = &ep[self->loc.clut + l];
-        ColorTable* clut = (ColorTable*)self->res.clut;
+void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, uint16_t* _Nonnull sprptr)
+{
+    copper_instr_t* op = &self->odd_entry[self->loc.sprptr + (spridx << 1)];
+    copper_instr_t* ep = (self->even_entry) ? &self->even_entry[self->loc.sprptr + (spridx << 1)] : NULL;
+    const uint16_t r = SPRITE_BASE + (spridx << 2);
+    const uint16_t lp = ((uint32_t)sprptr) & UINT16_MAX;
+    const uint16_t hp = ((uint32_t)sprptr) >> 16;
 
-        for (uint16_t i = l, r = COLOR_BASE + (l << 1); i < h; i++, r += 2) {
-            *ip++ = COP_MOVE(r, clut->entry[i]);
-        }
+    op[0] = COP_MOVE(r + 0, hp);
+    op[1] = COP_MOVE(r + 2, lp);
+
+    if (ep) {
+        ep[0] = COP_MOVE(r + 0, hp);
+        ep[1] = COP_MOVE(r + 2, lp);
     }
 }

@@ -193,7 +193,12 @@ void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool ena
     mtx_lock(&self->io_mtx);
     if (self->flags.isLightPenEnabled != enabled) {
         self->flags.isLightPenEnabled = enabled;
-        copper_cur_set_lp_enabled(enabled);
+
+        copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
+        if (prog) {
+            copper_prog_set_lp_enabled(prog, enabled);
+            copper_schedule(prog, 0);
+        }
     }
     mtx_unlock(&self->io_mtx);
 }
