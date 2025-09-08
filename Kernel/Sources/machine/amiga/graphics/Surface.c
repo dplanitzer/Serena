@@ -34,14 +34,20 @@ static int8_t PixelFormat_GetPlaneCount(PixelFormat format)
 static errno_t _alloc_single_plane(Surface* _Nonnull self)
 {
     decl_try_err();
-    size_t bytesPerPlane = self->bytesPerRow * self->height;
+    size_t nbytes;
 
-    if (self->pixelFormat == kPixelFormat_RGB_Sprite2) {
-        bytesPerPlane += 2*sizeof(uint16_t);    // leading sprite control words
-        bytesPerPlane += 2*sizeof(uint16_t);    // trailing sprite control words
+    switch (self->pixelFormat) {
+        case kPixelFormat_RGB_Sprite2:
+            // sprxctl, sprxctl, (plane0, plane1)..., 0, 0
+            nbytes = 2*sizeof(uint16_t) + (2*self->height*self->bytesPerRow) + 2*sizeof(uint16_t);
+            break;
+
+        default:
+            nbytes = self->bytesPerRow * self->height;
+            break;
     }
 
-    try(kalloc_options(bytesPerPlane, KALLOC_OPTION_UNIFIED, (void**) &self->plane[0]));
+    try(kalloc_options(nbytes, KALLOC_OPTION_UNIFIED, (void**) &self->plane[0]));
 
     if (self->pixelFormat == kPixelFormat_RGB_Sprite2) {
         uint16_t* p = (uint16_t*)self->plane[0];
@@ -184,9 +190,25 @@ errno_t Surface_WritePixels(Surface* _Nonnull self, const uint16_t* _Nonnull pla
     uint16_t* pp = (uint16_t*)self->plane[0];
     uint16_t* dp = &pp[2];
 
-    for (int i = 0; i < self->height; i++) {
+    for (int y = 0; y < self->height; y++) {
         *dp++ = *sp0++;
         *dp++ = *sp1++;
+    }
+
+    return EOK;
+}
+
+errno_t Surface_ClearPixels(Surface* _Nonnull self)
+{
+    if (self->pixelFormat != kPixelFormat_RGB_Sprite2) {
+        return ENOTSUP;
+    }
+
+    uint16_t* dp = (uint16_t*)self->plane[0];
+
+    for (int y = 0; y < self->height; y++) {
+        *dp++ = 0;
+        *dp++ = 0;
     }
 
     return EOK;

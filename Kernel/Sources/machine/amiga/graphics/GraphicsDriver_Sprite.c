@@ -39,8 +39,9 @@ static void _update_sprite_ctrl_words(Sprite* _Nonnull self)
         y = ye - self->height;
     }
 
-    self->data[0] = ((y & 0x00ff) << 8) | ((x & 0x01fe) >> 1);
-    self->data[1] = ((ye & 0x00ff) << 8) | (((y >> 8) & 0x0001) << 2) | (((ye >> 8) & 0x0001) << 1) | (x & 0x0001);
+    uint16_t* sprctl = (uint16_t*)Surface_GetPlane(self->surface, 0);
+    *sprctl++ = ((y & 0x00ff) << 8) | ((x & 0x01fe) >> 1);
+    *sprctl   = ((ye & 0x00ff) << 8) | (((y >> 8) & 0x0001) << 2) | (((ye >> 8) & 0x0001) << 1) | (x & 0x0001);
 }
 
 
@@ -64,20 +65,26 @@ errno_t _acquire_sprite(GraphicsDriverRef _Nonnull _Locked self, int width, int 
     }
 
 
+    Surface* srf;
+    err = Surface_Create(0, width, height, kPixelFormat_RGB_Sprite2, &srf);
+    if (err != EOK) {
+        return err;
+    }
+
     // Set the initial sprite position to the top-left corner of the current
     // display window.
     const video_conf_t* vc = g_copper_running_prog->video_conf;
     spr->x = vc->hSprOrigin - 1;
     spr->y = vc->vSprOrigin;
     spr->height = (uint16_t)height;
-
-    const size_t byteCount = (2 + 2*height + 2) * sizeof(uint16_t);
-    try(kalloc_options(byteCount, KALLOC_OPTION_UNIFIED | KALLOC_OPTION_CLEAR, (void**)&spr->data));
+    spr->surface = srf;
+    GObject_AddUse(srf);
+    Surface_ClearPixels(srf);
 
     _update_sprite_ctrl_words(spr);
     spr->isAcquired = true;
 
-    self->spriteDmaPtr[priority] = self->sprite[priority].data;
+    self->spriteDmaPtr[priority] = (uint16_t*)Surface_GetPlane(self->sprite[priority].surface, 0);
 
     copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
     if (prog) {
@@ -108,8 +115,8 @@ errno_t _relinquish_sprite(GraphicsDriverRef _Nonnull _Locked self, int spriteId
 
 
 #if 0
-    kfree(spr->data);
-    spr->data = NULL;
+    GObject_DelUse(spr->surface);
+    spr->surface = NULL;
 #endif
     spr->isAcquired = false;
     spr->x = 0;
@@ -141,16 +148,7 @@ errno_t _set_sprite_pixels(GraphicsDriverRef _Nonnull _Locked self, int spriteId
         return EINVAL;
     }
 
-    const uint16_t* sp0 = planes[0];
-    const uint16_t* sp1 = planes[1];
-    uint16_t* dp = &spr->data[2];
-
-    for (uint16_t i = 0; i < spr->height; i++) {
-        *dp++ = *sp0++;
-        *dp++ = *sp1++;
-    }
-    *dp++ = 0;
-    *dp   = 0;
+    Surface_WritePixels(spr->surface, planes);
 
     return EOK;
 }
@@ -174,7 +172,10 @@ errno_t _set_sprite_pos(GraphicsDriverRef _Nonnull _Locked self, int spriteId, i
 
     spr->x = __max(__min(sprX, MAX_SPRITE_HPOS), 0);
     spr->y = __max(__min(sprY, MAX_SPRITE_VPOS), 0);
-    _update_sprite_ctrl_words(spr);
+
+    if (self->spriteDmaPtr[sprIdx] == (uint16_t*)Surface_GetPlane(self->sprite[sprIdx].surface, 0)) {
+        _update_sprite_ctrl_words(spr);
+    }
 
     return EOK;
 }
@@ -185,7 +186,7 @@ errno_t _set_sprite_vis(GraphicsDriverRef _Nonnull _Locked self, int spriteId, b
     const int sprIdx = GET_SPRITE_IDX(spriteId);
 
     if (sprIdx >= 0 && sprIdx < SPRITE_COUNT && self->sprite[sprIdx].isAcquired) {
-        self->spriteDmaPtr[sprIdx] = (isVisible) ? self->sprite[sprIdx].data : (uint16_t*)Surface_GetPlane(self->nullSpriteSurface, 0);
+        self->spriteDmaPtr[sprIdx] = (isVisible) ? (uint16_t*)Surface_GetPlane(self->sprite[sprIdx].surface, 0) : (uint16_t*)Surface_GetPlane(self->nullSpriteSurface, 0);
         copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
         if (prog) {
             copper_prog_sprptr_changed(prog, sprIdx, self->spriteDmaPtr[sprIdx]);
