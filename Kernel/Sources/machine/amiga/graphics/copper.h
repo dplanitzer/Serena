@@ -44,8 +44,10 @@ typedef struct sprite_channel {
 
 
 typedef struct copper_res {
-    GObject* _Nullable  fb;
-    GObject* _Nullable  clut;
+    ColorTable* _Nonnull    clut;
+    Surface* _Nullable      fb;
+
+    Surface* _Nonnull       spr[SPRITE_COUNT];
 } copper_res_t;
 
 

@@ -57,6 +57,11 @@ void copper_prog_destroy(copper_prog_t _Nullable prog)
         prog->res.fb = NULL;
         GObject_DelRef(prog->res.clut);
         prog->res.clut = NULL;
+
+        for (int i = 0; i < SPRITE_COUNT; i++) {
+            GObject_DelRef(prog->res.spr[i]);
+            prog->res.spr[i] = NULL;
+        }
     }
     kfree(prog);
 }
@@ -226,10 +231,17 @@ void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnu
 
     self->video_conf = vc;
 
-    self->res.fb = (GObject*)fb;
+    self->res.fb = fb;
     if (fb) GObject_AddRef(self->res.fb);
-    self->res.clut = (GObject*)clut;
+    self->res.clut = clut;
     GObject_AddRef(self->res.clut);
+
+    for (int i = 0; i < SPRITE_COUNT; i++) {
+        Surface* srf = (spr[i].isAcquired && spr[i].isVisible) ? spr[i].surface : nullSpriteSurface;
+
+        self->res.spr[i] = srf;
+        GObject_AddRef(srf);
+    }
 }
 
 
@@ -285,5 +297,11 @@ void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, Surface
     if (ep) {
         ep[0] = COP_MOVE(r + 0, hp);
         ep[1] = COP_MOVE(r + 2, lp);
+    }
+
+    if (self->res.spr[spridx] != srf) {
+        GObject_AddRef(srf);
+        GObject_DelRef(self->res.spr[spridx]);
+        self->res.spr[spridx] = srf;
     }
 }

@@ -70,6 +70,11 @@ static void _cache_copper_prog(GraphicsDriverRef _Nonnull _Locked self, copper_p
     GObject_DelRef(fb);
     prog->res.fb = NULL;
 
+    for (int i = 0; i < SPRITE_COUNT; i++) {
+        GObject_DelRef(prog->res.spr[i]);
+        prog->res.spr[i] = NULL;
+    }
+
 
     if (self->copperProgCacheCount >= MAX_CACHED_COPPER_PROGS) {
         copper_prog_destroy(prog);
@@ -190,6 +195,10 @@ copper_prog_t _Nullable _GraphicsDriver_GetEditableCopperProg(GraphicsDriverRef 
 
         GObject_AddRef(prog->res.clut);
         if (prog->res.fb) GObject_AddRef(prog->res.fb);
+
+        for (int i = 0; i < SPRITE_COUNT; i++) {
+            GObject_AddRef(prog->res.spr[i]);
+        }
     }
     return prog;
 }

@@ -113,18 +113,17 @@ errno_t _relinquish_sprite(GraphicsDriverRef _Nonnull _Locked self, int spriteId
     }
 
 
-#if 0
-    GObject_DelRef(spr->surface);
-    spr->surface = NULL;
-#endif
     spr->isAcquired = false;
     spr->x = 0;
     spr->y = 0;
     spr->height = 0;
 
-    // XXX actually free the old sprite instead of leaking it. Can't do this
-    // XXX yet because we need to ensure that the DMA is no longer accessing
-    // XXX the data before it freeing it.
+    // Drop the sprite channel reference. Note that the currently running Copper
+    // program still holds a reference on the sprite surface. This one will be
+    // freed after the Copper program has been retired
+    GObject_DelRef(spr->surface);
+    spr->surface = NULL;
+
     copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
     if (prog) {
         copper_prog_sprptr_changed(prog, sprIdx, self->nullSpriteSurface);
