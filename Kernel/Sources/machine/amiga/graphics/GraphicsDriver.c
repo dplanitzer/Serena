@@ -30,17 +30,10 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     mtx_init(&self->io_mtx);
 
 
-    // Allocate the null sprite
-    try(Surface_CreateNullSprite(&self->nullSpriteSurface));
-
-    for (int i = 0; i < SPRITE_COUNT; i++) {
-        self->spriteDmaPtr[i] = (uint16_t*)Surface_GetPlane(self->nullSpriteSurface, 0);
-    }
-
-
-    // Create a null Copper program
+    // Create a null Copper program and null sprite
     copper_prog_t nullCopperProg;
     try(GraphicsDriver_CreateNullCopperProg(self, &nullCopperProg));
+    try(Surface_CreateNullSprite(&self->nullSpriteSurface));
 
 
     // Allocate the Copper management VCPU

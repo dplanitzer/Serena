@@ -27,7 +27,7 @@
 // Called when the position or visibility of a hardware sprite has changed.
 // Recalculates the sprxpos and sprxctl control words and updates them in the
 // sprite DMA data block.
-static void _update_sprite_ctrl_words(Sprite* _Nonnull self)
+static void _update_sprite_ctrl_words(const sprite_channel_t* _Nonnull self)
 {
     // Hiding a sprite means to move it all the way to X max.
     int x = self->x;
@@ -59,7 +59,7 @@ errno_t _acquire_sprite(GraphicsDriverRef _Nonnull _Locked self, int width, int 
         return ENOTSUP;
     }
 
-    Sprite* spr = &self->sprite[priority];
+    sprite_channel_t* spr = &self->spriteChannel[priority];
     if (spr->isAcquired) {
         throw(EBUSY);
     }
@@ -77,6 +77,7 @@ errno_t _acquire_sprite(GraphicsDriverRef _Nonnull _Locked self, int width, int 
     spr->x = vc->hSprOrigin - 1;
     spr->y = vc->vSprOrigin;
     spr->height = (uint16_t)height;
+    spr->isVisible = true;
     spr->surface = srf;
     GObject_AddRef(srf);
     Surface_ClearPixels(srf);
@@ -84,11 +85,9 @@ errno_t _acquire_sprite(GraphicsDriverRef _Nonnull _Locked self, int width, int 
     _update_sprite_ctrl_words(spr);
     spr->isAcquired = true;
 
-    self->spriteDmaPtr[priority] = (uint16_t*)Surface_GetPlane(self->sprite[priority].surface, 0);
-
     copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
     if (prog) {
-        copper_prog_sprptr_changed(prog, priority, self->spriteDmaPtr[priority]);
+        copper_prog_sprptr_changed(prog, priority, self->spriteChannel[priority].surface);
         copper_schedule(prog, 0);
     }
 
@@ -108,7 +107,7 @@ errno_t _relinquish_sprite(GraphicsDriverRef _Nonnull _Locked self, int spriteId
     }
 
 
-    Sprite* spr = &self->sprite[sprIdx];
+    sprite_channel_t* spr = &self->spriteChannel[sprIdx];
     if (!spr->isAcquired) {
         return EINVAL;
     }
@@ -126,10 +125,9 @@ errno_t _relinquish_sprite(GraphicsDriverRef _Nonnull _Locked self, int spriteId
     // XXX actually free the old sprite instead of leaking it. Can't do this
     // XXX yet because we need to ensure that the DMA is no longer accessing
     // XXX the data before it freeing it.
-    self->spriteDmaPtr[sprIdx] = (uint16_t*)Surface_GetPlane(self->nullSpriteSurface, 0);
     copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
     if (prog) {
-        copper_prog_sprptr_changed(prog, sprIdx, self->spriteDmaPtr[sprIdx]);
+        copper_prog_sprptr_changed(prog, sprIdx, self->nullSpriteSurface);
         copper_schedule(prog, 0);
     }
 
@@ -143,7 +141,7 @@ errno_t _set_sprite_pixels(GraphicsDriverRef _Nonnull _Locked self, int spriteId
         return EINVAL;
     }
 
-    Sprite* spr = &self->sprite[sprIdx];
+    sprite_channel_t* spr = &self->spriteChannel[sprIdx];
     if (!spr->isAcquired) {
         return EINVAL;
     }
@@ -161,7 +159,7 @@ errno_t _set_sprite_pos(GraphicsDriverRef _Nonnull _Locked self, int spriteId, i
     }
 
 
-    Sprite* spr = &self->sprite[sprIdx];
+    sprite_channel_t* spr = &self->spriteChannel[sprIdx];
     if (!spr->isAcquired) {
         return EINVAL;
     }
@@ -173,9 +171,7 @@ errno_t _set_sprite_pos(GraphicsDriverRef _Nonnull _Locked self, int spriteId, i
     spr->x = __max(__min(sprX, MAX_SPRITE_HPOS), 0);
     spr->y = __max(__min(sprY, MAX_SPRITE_VPOS), 0);
 
-    if (self->spriteDmaPtr[sprIdx] == (uint16_t*)Surface_GetPlane(self->sprite[sprIdx].surface, 0)) {
-        _update_sprite_ctrl_words(spr);
-    }
+    _update_sprite_ctrl_words(spr);
 
     return EOK;
 }
@@ -183,20 +179,28 @@ errno_t _set_sprite_pos(GraphicsDriverRef _Nonnull _Locked self, int spriteId, i
 errno_t _set_sprite_vis(GraphicsDriverRef _Nonnull _Locked self, int spriteId, bool isVisible)
 {
     decl_try_err();
-    const int sprIdx = GET_SPRITE_IDX(spriteId);
 
-    if (sprIdx >= 0 && sprIdx < SPRITE_COUNT && self->sprite[sprIdx].isAcquired) {
-        self->spriteDmaPtr[sprIdx] = (isVisible) ? (uint16_t*)Surface_GetPlane(self->sprite[sprIdx].surface, 0) : (uint16_t*)Surface_GetPlane(self->nullSpriteSurface, 0);
-        copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
-        if (prog) {
-            copper_prog_sprptr_changed(prog, sprIdx, self->spriteDmaPtr[sprIdx]);
-            copper_schedule(prog, 0);
-        }
+    const int sprIdx = GET_SPRITE_IDX(spriteId);
+    if (sprIdx < 0 || sprIdx >= SPRITE_COUNT) {
+        return EINVAL;
     }
-    else {
-        err = EINVAL;
+
+    sprite_channel_t* spr = &self->spriteChannel[sprIdx];
+    if (!spr->isAcquired) {
+        return EINVAL;
     }
-    return err;
+
+    
+    spr->isVisible = isVisible;
+    copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
+    if (prog) {
+        Surface* srf = (isVisible) ? spr->surface : self->nullSpriteSurface;
+
+        copper_prog_sprptr_changed(prog, sprIdx, srf);
+        copper_schedule(prog, 0);
+    }
+
+    return EOK;
 }
 
 

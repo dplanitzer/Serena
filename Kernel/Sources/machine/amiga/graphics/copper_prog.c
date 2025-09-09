@@ -79,7 +79,16 @@ size_t calc_copper_prog_instruction_count(const video_conf_t* _Nonnull vc)
     return (isLace) ? 2 * len : len;
 }
 
-static copper_instr_t* _Nonnull _compile_field_prog(copper_instr_t* _Nonnull ip, copper_locs_t* _Nullable locs, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, uint16_t* _Nonnull sprdma[], bool isLightPenEnabled, bool isOddField)
+static copper_instr_t* _Nonnull _compile_field_prog(
+    copper_instr_t* _Nonnull ip, 
+    copper_locs_t* _Nullable locs,
+    const video_conf_t* _Nonnull vc,
+    Surface* _Nullable fb,
+    ColorTable* _Nonnull clut,
+    const sprite_channel_t _Nonnull spr[],
+    Surface* _Nonnull nullSpriteSurface,
+    bool isLightPenEnabled,
+    bool isOddField)
 {
     const int isHires = (vc->flags & VCFLAG_HIRES) != 0;
     const int isLace = (vc->flags & VCFLAG_LACE) != 0;
@@ -112,7 +121,8 @@ static copper_instr_t* _Nonnull _compile_field_prog(copper_instr_t* _Nonnull ip,
         locs->sprptr = ip - orig;
     }
     for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
-        const uint32_t sprpt = (uint32_t)sprdma[i];
+        Surface* srf = (spr[i].isAcquired && spr[i].isVisible) ? spr[i].surface : nullSpriteSurface;
+        const uint32_t sprpt = (uint32_t)Surface_GetPlane(srf, 0);
 
         *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
@@ -193,7 +203,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(copper_instr_t* _Nonnull ip,
     return ip;
 }
 
-void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, uint16_t* _Nonnull sprdma[], bool isLightPenEnabled)
+void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, const sprite_channel_t _Nonnull spr[], Surface* _Nonnull nullSpriteSurface, bool isLightPenEnabled)
 {
     const int isLace = (vc->flags & VCFLAG_LACE) != 0;
     copper_instr_t* ip;
@@ -202,11 +212,11 @@ void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnu
     self->even_entry = NULL;
     
     ip = self->prog;
-    ip = _compile_field_prog(ip, &self->loc, vc, fb, clut, sprdma, isLightPenEnabled, true);
+    ip = _compile_field_prog(ip, &self->loc, vc, fb, clut, spr, nullSpriteSurface, isLightPenEnabled, true);
 
     if (isLace) {
         self->even_entry = ip;
-        ip = _compile_field_prog(ip, NULL, vc, fb, clut, sprdma, isLightPenEnabled, false);
+        ip = _compile_field_prog(ip, NULL, vc, fb, clut, spr, nullSpriteSurface, isLightPenEnabled, false);
     }
 
     self->video_conf = vc;
@@ -252,13 +262,14 @@ void copper_prog_clut_changed(copper_prog_t _Nonnull self, size_t startIdx, size
     }
 }
 
-void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, uint16_t* _Nonnull sprptr)
+void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, Surface* _Nonnull srf)
 {
+    uint32_t sprptr = (uint32_t)Surface_GetPlane(srf, 0);
     copper_instr_t* op = &self->odd_entry[self->loc.sprptr + (spridx << 1)];
     copper_instr_t* ep = (self->even_entry) ? &self->even_entry[self->loc.sprptr + (spridx << 1)] : NULL;
     const uint16_t r = SPRITE_BASE + (spridx << 2);
-    const uint16_t lp = ((uint32_t)sprptr) & UINT16_MAX;
-    const uint16_t hp = ((uint32_t)sprptr) >> 16;
+    const uint16_t lp = sprptr & UINT16_MAX;
+    const uint16_t hp = sprptr >> 16;
 
     op[0] = COP_MOVE(r + 0, hp);
     op[1] = COP_MOVE(r + 2, lp);

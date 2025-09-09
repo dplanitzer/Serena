@@ -35,15 +35,6 @@ typedef struct screen_conf {
 } screen_conf_t;
 
 
-typedef struct Sprite {
-    Surface* _Nullable  surface;    // Surface holding the sprite image data and control words
-    int16_t             x;
-    int16_t             y;
-    uint16_t            height;
-    bool                isAcquired;
-} Sprite;
-
-
 final_class_ivars(GraphicsDriver, Driver,
     mtx_t                   io_mtx;
 
@@ -58,8 +49,7 @@ final_class_ivars(GraphicsDriver, Driver,
     int                     screenConfigObserverSignal;
 
     Surface* _Nonnull       nullSpriteSurface;
-    uint16_t* _Nonnull      spriteDmaPtr[SPRITE_COUNT];
-    Sprite                  sprite[SPRITE_COUNT];
+    sprite_channel_t        spriteChannel[SPRITE_COUNT];
 
     int                     mouseCursorId;      // 0 -> no mouse cursor acquire; > 0 -> mouse cursor acquired
 

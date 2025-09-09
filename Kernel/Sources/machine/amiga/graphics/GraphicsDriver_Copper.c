@@ -153,7 +153,7 @@ errno_t GraphicsDriver_CreateScreenCopperProg(GraphicsDriverRef _Nonnull _Locked
 
     err = _create_copper_prog(self, instrCount, &prog);
     if (err == EOK) {
-        copper_prog_compile(prog, vc, fb, clut, self->spriteDmaPtr, self->flags.isLightPenEnabled);
+        copper_prog_compile(prog, vc, fb, clut, self->spriteChannel, self->nullSpriteSurface, self->flags.isLightPenEnabled);
         
         if (fb) GObject_AddRef(fb);
         GObject_AddRef(clut);

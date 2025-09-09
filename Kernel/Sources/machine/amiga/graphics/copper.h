@@ -26,6 +26,16 @@ typedef uint32_t  copper_instr_t;
 #define COP_END()                   0xfffffffe
 
 
+typedef struct sprite_channel {
+    Surface* _Nullable  surface;    // Surface holding the sprite image data and control words
+    int16_t             x;
+    int16_t             y;
+    uint16_t            height;
+    bool                isVisible;
+    bool                isAcquired;
+} sprite_channel_t;
+
+
 // Copper program state
 #define COP_STATE_IDLE      0
 #define COP_STATE_READY     1
@@ -85,7 +95,7 @@ extern size_t calc_copper_prog_instruction_count(const video_conf_t* _Nonnull vc
 // configuration, framebuffer, CLUT and sprite configuration and writes the
 // instructions to the given Copper program. Note that the Copper program must
 // be big enough to hold all instructions.
-extern void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, uint16_t* _Nonnull sprdma[], bool isLightPenEnabled);
+extern void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnull vc, Surface* _Nullable fb, ColorTable* _Nonnull clut, const sprite_channel_t _Nonnull spr[], Surface* _Nonnull nullSpriteSurface, bool isLightPenEnabled);
 
 
 // Initializes the Copper scheduler. 'prog' is the bootstrap Copper program. This
@@ -118,6 +128,6 @@ extern copper_prog_t _Nonnull   g_copper_running_prog;
 // to the program dependencies or the general graphic driver environment 
 extern void copper_prog_set_lp_enabled(copper_prog_t self, bool isEnabled);
 extern void copper_prog_clut_changed(copper_prog_t _Nonnull self, size_t startIdx, size_t count);
-extern void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, uint16_t* _Nonnull sprptr);
+extern void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, Surface* _Nonnull srf);
 
 #endif /* _COPPER_H */
