@@ -186,6 +186,10 @@ errno_t HIDManager_AcquireCursor(HIDManagerRef _Nonnull self, int width, int hei
         if (err == EOK) {
             self->cursorWidth = width;
             self->cursorHeight = height;
+            self->hiddenCount = 0;
+            self->isMouseObscured = false;
+            self->isMouseShielded = false;
+            self->isMouseShieldEnabled = false;
         }
     }
     else {
