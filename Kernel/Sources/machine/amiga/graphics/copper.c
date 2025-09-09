@@ -12,7 +12,7 @@
 #include <machine/amiga/chipset.h>
 #include <sched/sem.h>
 
-extern int copper_irq(void);
+extern int vbl_irq(void);
 
 
 static irq_handler_t            g_copper_vblank;
@@ -23,6 +23,9 @@ static sem_t                    g_copper_notify_sem;
 static int                      g_retire_signo;
 static vcpu_t _Nullable         g_retire_vcpu;
 static int8_t                   g_copper_is_running_interlaced;
+
+static volatile uint8_t         g_sprite_change_pending;
+static sprite_ctl_change_t      g_sprite_change_table[SPRITE_COUNT];
 
 
 errno_t copper_init(copper_prog_t _Nonnull prog, int signo, vcpu_t _Nullable sigvp)
@@ -59,7 +62,7 @@ void copper_start(void)
     g_copper_vblank.id = IRQ_ID_VBLANK;
     g_copper_vblank.priority = IRQ_PRI_HIGHEST + 4;
     g_copper_vblank.enabled = true;
-    g_copper_vblank.func = (irq_handler_func_t)copper_irq;
+    g_copper_vblank.func = (irq_handler_func_t)vbl_irq;
     g_copper_vblank.arg = NULL;
 
     irq_add_handler(&g_copper_vblank);
@@ -176,17 +179,27 @@ static void copper_csw(void)
 // Called at the vertical blank interrupt. Triggers the execution of the correct
 // Copper program (odd or even field as needed). Also makes a scheduled program
 // active / running if needed.
-int copper_irq(void)
+int vbl_irq(void)
 {
+    register const uint8_t pending_ctls = g_sprite_change_pending;
+
+    // Update scheduled sprite control word updates
+    if (pending_ctls) {
+        for (register uint8_t i = 0; i < SPRITE_COUNT; i++) {
+            if ((pending_ctls & (1 << i)) != 0) {
+                g_sprite_change_table[i].ptr[0] = g_sprite_change_table[i].ctl;
+            }
+        }
+        g_sprite_change_pending = 0;
+    }
+
+
     // Check whether a new program is scheduled to run. If so move it to running
     // state
     if (g_copper_ready_prog) {
         copper_csw();
         return 0;
     }
-    register copper_prog_t prog = g_copper_running_prog;
-    CHIPSET_BASE_DECL(cp);
-    const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
 
 
     // Jump to the field dependent Copper program if we are in interlace mode.
@@ -194,9 +207,29 @@ int copper_irq(void)
     // applied at the time of the odd field to ensure that we don't change
     // things in the "middle" of a frame.
     if (g_copper_is_running_interlaced) {
-        *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? prog->odd_entry : prog->even_entry);
+        CHIPSET_BASE_DECL(cp);
+        const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
+
+        *CHIPSET_REG_32(cp, COP1LC) = (uint32_t)((isLongFrame) ? g_copper_running_prog->odd_entry : g_copper_running_prog->even_entry);
         *CHIPSET_REG_16(cp, COPJMP1) = 0;
     }
 
     return 0;
+}
+
+
+void sprite_ctl_submit(int spridx, void* _Nonnull sprptr, uint32_t ctl)
+{
+    unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
+    g_sprite_change_table[spridx].ptr = sprptr;
+    g_sprite_change_table[spridx].ctl = ctl;
+    g_sprite_change_pending |= (1 << spridx);
+    irq_set_mask(sim);
+}
+
+void sprite_ctl_cancel(int spridx)
+{
+    unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
+    g_sprite_change_pending &= ~(1 << spridx);
+    irq_set_mask(sim);
 }

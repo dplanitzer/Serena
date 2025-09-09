@@ -27,21 +27,21 @@
 // Called when the position or visibility of a hardware sprite has changed.
 // Recalculates the sprxpos and sprxctl control words and updates them in the
 // sprite DMA data block.
-static void _update_sprite_ctrl_words(const sprite_channel_t* _Nonnull self)
+static uint32_t _calc_sprite_ctl(const sprite_channel_t* _Nonnull self)
 {
-    // Hiding a sprite means to move it all the way to X max.
-    int x = self->x;
-    int y = self->y;
-    int ye = y + self->height;
+    uint16_t x = self->x;
+    uint16_t y = self->y;
+    uint16_t ye = y + self->height;
 
     if (ye > MAX_SPRITE_VPOS || ye < y) {
         ye = MAX_SPRITE_VPOS;
         y = ye - self->height;
     }
 
-    uint16_t* sprctl = (uint16_t*)Surface_GetPlane(self->surface, 0);
-    *sprctl++ = ((y & 0x00ff) << 8) | ((x & 0x01fe) >> 1);
-    *sprctl   = ((ye & 0x00ff) << 8) | (((y >> 8) & 0x0001) << 2) | (((ye >> 8) & 0x0001) << 1) | (x & 0x0001);
+    const uint32_t hw = ((y & 0x00ff) << 8) | ((x & 0x01fe) >> 1);
+    const uint32_t lw = ((ye & 0x00ff) << 8) | (((y >> 8) & 0x0001) << 2) | (((ye >> 8) & 0x0001) << 1) | (x & 0x0001);
+
+    return (hw << 16) | lw;
 }
 
 
@@ -78,12 +78,14 @@ errno_t _acquire_sprite(GraphicsDriverRef _Nonnull _Locked self, int width, int 
     spr->y = vc->vSprOrigin;
     spr->height = (uint16_t)height;
     spr->isVisible = true;
+    spr->isAcquired = true;
+
     spr->surface = srf;
     GObject_AddRef(srf);
     Surface_ClearPixels(srf);
 
-    _update_sprite_ctrl_words(spr);
-    spr->isAcquired = true;
+    uint32_t* sprptr = (uint32_t*)Surface_GetPlane(srf, 0);
+    *sprptr = _calc_sprite_ctl(spr);
 
     copper_prog_t prog = _GraphicsDriver_GetEditableCopperProg(self);
     if (prog) {
@@ -117,6 +119,9 @@ errno_t _relinquish_sprite(GraphicsDriverRef _Nonnull _Locked self, int spriteId
     spr->x = 0;
     spr->y = 0;
     spr->height = 0;
+
+    // Cancel any still pending control word writes
+    sprite_ctl_cancel(sprIdx);
 
     // Drop the sprite channel reference. Note that the currently running Copper
     // program still holds a reference on the sprite surface. This one will be
@@ -170,7 +175,7 @@ errno_t _set_sprite_pos(GraphicsDriverRef _Nonnull _Locked self, int spriteId, i
     spr->x = __max(__min(sprX, MAX_SPRITE_HPOS), 0);
     spr->y = __max(__min(sprY, MAX_SPRITE_VPOS), 0);
 
-    _update_sprite_ctrl_words(spr);
+    sprite_ctl_submit(sprIdx, Surface_GetPlane(spr->surface, 0), _calc_sprite_ctl(spr));
 
     return EOK;
 }

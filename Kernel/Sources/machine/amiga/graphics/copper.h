@@ -35,6 +35,11 @@ typedef struct sprite_channel {
     bool                isAcquired;
 } sprite_channel_t;
 
+typedef struct sprite_ctl_change {
+    uint32_t* _Nullable ptr;
+    uint32_t            ctl;
+} sprite_ctl_change_t;
+
 
 // Copper program state
 #define COP_STATE_IDLE      0
@@ -131,5 +136,14 @@ extern copper_prog_t _Nonnull   g_copper_running_prog;
 extern void copper_prog_set_lp_enabled(copper_prog_t self, bool isEnabled);
 extern void copper_prog_clut_changed(copper_prog_t _Nonnull self, size_t startIdx, size_t count);
 extern void copper_prog_sprptr_changed(copper_prog_t _Nonnull self, int spridx, Surface* _Nonnull srf);
+
+
+// Submit a change to the control word of the sprite 'spridx'. The new control
+// word will be written to the sprite data pointer 'sprptr'. The actual write
+// will happen in the next VBL interrupt.
+extern void sprite_ctl_submit(int spridx, void* _Nonnull sprptr, uint32_t ctl);
+
+// Cancels a previously submitted sprite control word update.
+extern void sprite_ctl_cancel(int spridx);
 
 #endif /* _COPPER_H */
