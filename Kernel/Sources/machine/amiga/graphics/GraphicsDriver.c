@@ -258,18 +258,7 @@ void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull _Locked 
 void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* gobj)
 {
     List_Remove(&self->gobjs, GObject_GetChainPtr(gobj));
-    switch (GObject_GetType(gobj)) {
-        case kGObject_ColorTable:
-            ColorTable_Destroy(gobj);
-            break;
-
-        case kGObject_Surface:
-            Surface_Destroy(gobj);
-            break;
-
-        default:
-            abort();
-    }
+    GObject_DelRef(gobj);
 }
 
 

@@ -78,7 +78,7 @@ errno_t _acquire_sprite(GraphicsDriverRef _Nonnull _Locked self, int width, int 
     spr->y = vc->vSprOrigin;
     spr->height = (uint16_t)height;
     spr->surface = srf;
-    GObject_AddUse(srf);
+    GObject_AddRef(srf);
     Surface_ClearPixels(srf);
 
     _update_sprite_ctrl_words(spr);
@@ -115,7 +115,7 @@ errno_t _relinquish_sprite(GraphicsDriverRef _Nonnull _Locked self, int spriteId
 
 
 #if 0
-    GObject_DelUse(spr->surface);
+    GObject_DelRef(spr->surface);
     spr->surface = NULL;
 #endif
     spr->isAcquired = false;

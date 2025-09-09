@@ -20,19 +20,15 @@ enum {
 typedef struct GObject {
     ListNode    chain;
     int         id;
+    int32_t     refCount;
     int16_t     type;
-    int16_t     useCount;
 } GObject;
 
 
-#define GObject_AddUse(__self) \
-(((GObject*)(__self))->useCount++)
+#define GObject_AddRef(__self) \
+(((GObject*)(__self))->refCount++)
 
-#define GObject_DelUse(__self) \
-(--((GObject*)(__self))->useCount == 0)
-
-#define GObject_InUse(__self) \
-(((GObject*)(__self))->useCount > 0)
+extern void GObject_DelRef(void* _Nullable self);
 
 
 #define GObject_GetId(__self) \

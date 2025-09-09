@@ -114,6 +114,7 @@ errno_t Surface_Create(int id, int width, int height, PixelFormat pixelFormat, S
     
     self->super.type = kGObject_Surface;
     self->super.id = id;
+    self->super.refCount = 1;
     self->pixelFormat = pixelFormat;
     self->width = width;
     self->height = height;

@@ -43,7 +43,15 @@ errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, int id)
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
 
     if (srf) {
-        if (!GObject_InUse(srf)) {
+        bool isBound = (g_copper_running_prog->res.fb == (GObject*)srf);
+
+        for (int i = 0; i < SPRITE_COUNT; i++) {
+            if (self->sprite[i].surface == srf) {
+                isBound = true;
+            }
+        }
+
+        if (!isBound) {
             _GraphicsDriver_DestroyGObj(self, srf);
         }
         else {

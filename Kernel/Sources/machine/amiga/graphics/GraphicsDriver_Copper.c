@@ -66,15 +66,11 @@ static void _cache_copper_prog(GraphicsDriverRef _Nonnull _Locked self, copper_p
     Surface* fb = (Surface*)prog->res.fb;
 
     if (clut) {
-        if (GObject_DelUse(clut)) {
-            _GraphicsDriver_DestroyGObj(self, clut);
-        }
+        GObject_DelRef(clut);
         prog->res.clut = NULL;
     }
     if (fb) {
-        if (GObject_DelUse(fb)) {
-            _GraphicsDriver_DestroyGObj(self, fb);
-        }
+        GObject_DelRef(fb);
         prog->res.fb = NULL;
     }
 
@@ -159,8 +155,8 @@ errno_t GraphicsDriver_CreateScreenCopperProg(GraphicsDriverRef _Nonnull _Locked
     if (err == EOK) {
         copper_prog_compile(prog, vc, fb, clut, self->spriteDmaPtr, self->flags.isLightPenEnabled);
         
-        if (fb) GObject_AddUse(fb);
-        GObject_AddUse(clut);
+        if (fb) GObject_AddRef(fb);
+        GObject_AddRef(clut);
     }
 
     *pOutProg = prog;
@@ -200,10 +196,10 @@ copper_prog_t _Nullable _GraphicsDriver_GetEditableCopperProg(GraphicsDriverRef 
         prog->res = run_prog->res;
 
         if (prog->res.clut) {
-            GObject_AddUse(prog->res.clut);
+            GObject_AddRef(prog->res.clut);
         }
         if (prog->res.fb) {
-            GObject_AddUse(prog->res.fb);
+            GObject_AddRef(prog->res.fb);
         }
     }
     return prog;

@@ -37,7 +37,7 @@ errno_t ColorTable_Create(int id, size_t entryCount, RGBColor32 defaultColor, Co
     self->super.chain.prev = NULL;
     self->super.type = kGObject_ColorTable;
     self->super.id = id;
-    self->super.useCount = 0;
+    self->super.refCount = 1;
     self->entryCount = entryCount;
 
     const uint16_t rgb444 = _convert_color(defaultColor);

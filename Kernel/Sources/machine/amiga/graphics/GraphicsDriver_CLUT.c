@@ -44,7 +44,7 @@ errno_t GraphicsDriver_DestroyCLUT(GraphicsDriverRef _Nonnull self, int id)
     ColorTable* clut = _GraphicsDriver_GetClutForId(self, id);
 
     if (clut) {
-        if (!GObject_InUse(clut)) {
+        if (g_copper_running_prog->res.clut != (GObject*)clut) {
             _GraphicsDriver_DestroyGObj(self, clut);
         }
         else {
