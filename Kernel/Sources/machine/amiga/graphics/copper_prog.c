@@ -52,6 +52,11 @@ void copper_prog_destroy(copper_prog_t _Nullable prog)
         prog->prog = NULL;
         prog->even_entry = NULL;
         prog->odd_entry = NULL;
+
+        GObject_DelRef(prog->res.fb);
+        prog->res.fb = NULL;
+        GObject_DelRef(prog->res.clut);
+        prog->res.clut = NULL;
     }
     kfree(prog);
 }
@@ -220,8 +225,11 @@ void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnu
     }
 
     self->video_conf = vc;
+
     self->res.fb = (GObject*)fb;
+    if (fb) GObject_AddRef(self->res.fb);
     self->res.clut = (GObject*)clut;
+    GObject_AddRef(self->res.clut);
 }
 
 

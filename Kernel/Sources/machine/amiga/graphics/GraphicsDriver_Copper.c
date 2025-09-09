@@ -65,14 +65,10 @@ static void _cache_copper_prog(GraphicsDriverRef _Nonnull _Locked self, copper_p
     ColorTable* clut = (ColorTable*)prog->res.clut;
     Surface* fb = (Surface*)prog->res.fb;
 
-    if (clut) {
-        GObject_DelRef(clut);
-        prog->res.clut = NULL;
-    }
-    if (fb) {
-        GObject_DelRef(fb);
-        prog->res.fb = NULL;
-    }
+    GObject_DelRef(clut);
+    prog->res.clut = NULL;
+    GObject_DelRef(fb);
+    prog->res.fb = NULL;
 
 
     if (self->copperProgCacheCount >= MAX_CACHED_COPPER_PROGS) {
@@ -154,9 +150,6 @@ errno_t GraphicsDriver_CreateScreenCopperProg(GraphicsDriverRef _Nonnull _Locked
     err = _create_copper_prog(self, instrCount, &prog);
     if (err == EOK) {
         copper_prog_compile(prog, vc, fb, clut, self->spriteChannel, self->nullSpriteSurface, self->flags.isLightPenEnabled);
-        
-        if (fb) GObject_AddRef(fb);
-        GObject_AddRef(clut);
     }
 
     *pOutProg = prog;
@@ -195,12 +188,8 @@ copper_prog_t _Nullable _GraphicsDriver_GetEditableCopperProg(GraphicsDriverRef 
         prog->video_conf = run_prog->video_conf;
         prog->res = run_prog->res;
 
-        if (prog->res.clut) {
-            GObject_AddRef(prog->res.clut);
-        }
-        if (prog->res.fb) {
-            GObject_AddRef(prog->res.fb);
-        }
+        GObject_AddRef(prog->res.clut);
+        if (prog->res.fb) GObject_AddRef(prog->res.fb);
     }
     return prog;
 }

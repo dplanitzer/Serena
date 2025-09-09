@@ -13,23 +13,25 @@
 
 void GObject_DelRef(void* _Nullable self0)
 {
-    GObject* self = self0;
+    if (self0) {
+        GObject* self = self0;
 
-    self->refCount--;
-    if (self->refCount == 0) {
-        assert(self->chain.next == NULL && self->chain.prev == NULL);
+        self->refCount--;
+        if (self->refCount == 0) {
+            assert(self->chain.next == NULL && self->chain.prev == NULL);
         
-        switch (self->type) {
-            case kGObject_ColorTable:
-                ColorTable_Destroy(self0);
-                break;
+            switch (self->type) {
+                case kGObject_ColorTable:
+                    ColorTable_Destroy(self0);
+                    break;
 
-            case kGObject_Surface:
-                Surface_Destroy(self0);
-                break;
+                case kGObject_Surface:
+                    Surface_Destroy(self0);
+                    break;
 
-            default:
-                abort();
+                default:
+                    abort();
+            }
         }
     }
 }
