@@ -66,7 +66,7 @@ extern void Surface_Destroy(Surface* _Nullable self);
 ((__self)->plane[__idx])
 
 
-extern errno_t Surface_WritePixels(Surface* _Nonnull self, const uint16_t* _Nonnull planes[]);
+extern errno_t Surface_WritePixels(Surface* _Nonnull self, const void* _Nonnull planes[], size_t bytesPerRow, PixelFormat format);
 extern errno_t Surface_ClearPixels(Surface* _Nonnull self);
 
 #endif /* Surface_h */

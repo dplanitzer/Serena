@@ -59,10 +59,11 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
         bscr->width = width;
         bscr->height = height;
 
+        IOChannel_Ioctl(chan, kFBCommand_ClearPixels, bscr->srf);
         IOChannel_Ioctl(chan, kFBCommand_MapSurface, bscr->srf, kMapPixels_ReadWrite, &bscr->mp);
 
+        
         // Blit the boot logo
-        clear_boot_screen(bscr);
         blit_boot_logo(bscr, gSerenaImg_Plane0, gSerenaImg_Width, gSerenaImg_Height);
 
 
@@ -77,15 +78,6 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
     }
 }
 
-void clear_boot_screen(const boot_screen_t* _Nonnull bscr)
-{
-    if (bscr->chan == NULL) {
-        return;
-    }
-
-    memset(bscr->mp.plane[0], 0, bscr->mp.bytesPerRow[0] * bscr->height);
-}
-
 void blit_boot_logo(const boot_screen_t* _Nonnull bscr, const uint16_t* _Nonnull bitmap, size_t w, size_t h)
 {
     if (bscr->chan == NULL) {
@@ -93,7 +85,7 @@ void blit_boot_logo(const boot_screen_t* _Nonnull bscr, const uint16_t* _Nonnull
     }
 
     uint8_t* dp = bscr->mp.plane[0];
-    const size_t dbpr = bscr->mp.bytesPerRow[0];
+    const size_t dbpr = bscr->mp.bytesPerRow;
     const uint8_t* sp = (const uint8_t*)bitmap;
     const size_t sbpr = w >> 3;
     const size_t xb = ((bscr->width - w) >> 3) >> 1;

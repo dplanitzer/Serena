@@ -28,6 +28,9 @@ extern errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, in
 extern errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, int id, MapPixels mode, SurfaceMapping* _Nonnull pOutMapping);
 extern errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id);
 
+extern errno_t GraphicsDriver_WritePixels(GraphicsDriverRef _Nonnull self, int id, const void* _Nonnull planes[], size_t bytesPerRow, PixelFormat format);
+extern errno_t GraphicsDriver_ClearPixels(GraphicsDriverRef _Nonnull self, int id);
+
 
 // CLUT
 extern errno_t GraphicsDriver_CreateCLUT(GraphicsDriverRef _Nonnull self, size_t colorDepth, int* _Nonnull pOutId);

@@ -56,11 +56,9 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     IOChannel_Ioctl(self->fbChannel, kFBCommand_SetCLUTEntries, self->clutId, 0, sizeof(gANSIColors), gANSIColors);
 
 
-    // Map and clear the framebuffer before we activate the new screen config
+    // Clear & map the framebuffer before we activate the new screen config
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_ClearPixels, self->surfaceId));
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_MapSurface, self->surfaceId, kMapPixels_ReadWrite, &self->pixels));
-    for (size_t i = 0; i < self->pixels.planeCount; i++) {
-        memset(self->pixels.plane[i], 0, height * self->pixels.bytesPerRow[i]);
-    }
 
 
     // Make our screen the current screen
@@ -230,7 +228,7 @@ static void Console_DrawGlyph_Locked(ConsoleRef _Nonnull self, const Font* _Nonn
     for (size_t p = 0; p < self->pixels.planeCount; p++) {
         const int_fast8_t fgOne = fgColor->u.index & (1 << p);
         const int_fast8_t bgOne = bgColor->u.index & (1 << p);
-        register const size_t bytesPerRow = self->pixels.bytesPerRow[p];
+        register const size_t bytesPerRow = self->pixels.bytesPerRow;
         register const char* sp = gp;
         register uint8_t* dp = (uint8_t*)self->pixels.plane[p] + (yc << 3) * bytesPerRow + xc;
 
@@ -303,6 +301,7 @@ void Console_CopyRect_Locked(ConsoleRef _Nonnull self, Rect srcRect, Point dstLo
     Rect dst_r = Rect_Intersection(Rect_Make(dstLoc.x, dstLoc.y, dstLoc.x + Rect_GetWidth(srcRect), dstLoc.y + Rect_GetHeight(srcRect)), self->bounds);
     int xOffset = dst_r.left - src_r.left;
     int yOffset = dst_r.top - src_r.top;
+    const size_t rowbytes = self->pixels.bytesPerRow;
 
     if (Rect_GetWidth(src_r) == 0 || Rect_GetHeight(src_r) == 0 || Rect_GetWidth(dst_r) == 0 || (xOffset == 0 && yOffset == 0)) {
         return;
@@ -334,7 +333,6 @@ void Console_CopyRect_Locked(ConsoleRef _Nonnull self, Rect srcRect, Point dstLo
             const int src_w = (src_rx - src_lx) >> 3;
             const int dst_w = (dst_r.right - dst_r.left) >> 3;
             const size_t w = __min(src_w, dst_w);
-            const size_t rowbytes = self->pixels.bytesPerRow[p];
             const uint8_t* sp = (const uint8_t*)self->pixels.plane[p] + src_y * rowbytes + (src_lx >> 3);
             uint8_t* dp = (uint8_t*)self->pixels.plane[p] + dst_y * rowbytes + (dst_r.left >> 3);
 
@@ -356,6 +354,8 @@ void Console_FillRect_Locked(ConsoleRef _Nonnull self, Rect rect, char ch)
     Rect r = Rect_Intersection(rect, self->bounds);
 
     if (ch == ' ') {
+        const size_t rowbytes = self->pixels.bytesPerRow;
+
         r.left <<= 3;
         r.right <<= 3;
         r.top <<= 3;
@@ -363,7 +363,6 @@ void Console_FillRect_Locked(ConsoleRef _Nonnull self, Rect rect, char ch)
 
         for (size_t p = 0; p < self->pixels.planeCount; p++) {
             const int bgOne = (bgColor->u.index & (1 << p)) ? 0xff : 0;
-            const size_t rowbytes = self->pixels.bytesPerRow[p];
             const size_t w = (r.right - r.left) >> 3;
             uint8_t* lp = (uint8_t*)self->pixels.plane[p] + r.top * rowbytes + (r.left >> 3);
 

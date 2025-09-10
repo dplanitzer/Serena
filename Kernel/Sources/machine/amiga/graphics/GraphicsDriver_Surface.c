@@ -102,12 +102,11 @@ errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, int id, MapPi
         throw(ENOTSUP);
     }
 
-    const size_t planeCount = Surface_GetPlaneCount(srf);
-    for (size_t i = 0; i < planeCount; i++) {
+    pOutMapping->planeCount = Surface_GetPlaneCount(srf);
+    pOutMapping->bytesPerRow = Surface_GetBytesPerRow(srf);
+    for (size_t i = 0; i < pOutMapping->planeCount; i++) {
         pOutMapping->plane[i] = Surface_GetPlane(srf, i);
-        pOutMapping->bytesPerRow[i] = Surface_GetBytesPerRow(srf);
     }
-    pOutMapping->planeCount = planeCount;
 
     srf->flags |= kSurfaceFlag_IsMapped;
 
@@ -129,6 +128,38 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id)
         else {
             err = EPERM;
         }
+    }
+    else {
+        err = EINVAL;
+    }
+    mtx_unlock(&self->io_mtx);
+    return err;
+}
+
+errno_t GraphicsDriver_WritePixels(GraphicsDriverRef _Nonnull self, int id, const void* _Nonnull planes[], size_t bytesPerRow, PixelFormat format)
+{
+    decl_try_err();
+
+    mtx_lock(&self->io_mtx);
+    Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
+    if (srf) {
+        Surface_WritePixels(srf, planes, bytesPerRow, format);
+    }
+    else {
+        err = EINVAL;
+    }
+    mtx_unlock(&self->io_mtx);
+    return err;
+}
+
+errno_t GraphicsDriver_ClearPixels(GraphicsDriverRef _Nonnull self, int id)
+{
+    decl_try_err();
+
+    mtx_lock(&self->io_mtx);
+    Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
+    if (srf) {
+        Surface_ClearPixels(srf);
     }
     else {
         err = EINVAL;

@@ -122,6 +122,21 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
             return GraphicsDriver_UnmapSurface(self, hnd);
         }
 
+        case kFBCommand_WritePixels: {
+            int hnd = va_arg(ap, int);
+            const void* planes = va_arg(ap, const void*);
+            size_t bytesPerRow = va_arg(ap, size_t);
+            PixelFormat format = va_arg(ap, PixelFormat);
+
+            return GraphicsDriver_WritePixels(self, hnd, planes, bytesPerRow, format);
+        }
+
+        case kFBCommand_ClearPixels: {
+            const int hnd = va_arg(ap, int);
+
+            return GraphicsDriver_ClearPixels(self, hnd);
+        }
+
 
         case kFBCommand_CreateCLUT: {
             const size_t entryCount = va_arg(ap, size_t);

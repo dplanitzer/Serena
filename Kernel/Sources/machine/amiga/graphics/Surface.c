@@ -8,6 +8,7 @@
 
 #include "Surface.h"
 #include <kern/kalloc.h>
+#include <kern/string.h>
 
 
 // Returns how many planes are needed to store a pixel in the given pixel format.
@@ -180,37 +181,58 @@ void Surface_Destroy(Surface* _Nonnull self)
     }
 }
 
-errno_t Surface_WritePixels(Surface* _Nonnull self, const uint16_t* _Nonnull planes[])
+errno_t Surface_WritePixels(Surface* _Nonnull self, const void* _Nonnull planes[], size_t bytesPerRow, PixelFormat format)
 {
-    if (self->pixelFormat != kPixelFormat_RGB_Sprite2) {
+    if (self->pixelFormat == kPixelFormat_RGB_Sprite2 && format == kPixelFormat_RGB_Indexed2) {
+        const uint8_t* sp0 = planes[0];
+        const uint8_t* sp1 = planes[1];
+        uint16_t* pp = (uint16_t*)self->plane[0];
+        uint16_t* dp = &pp[2];
+
+        for (int y = 0; y < self->height; y++) {
+            *dp++ = *(uint16_t*)sp0; sp0 += bytesPerRow;
+            *dp++ = *(uint16_t*)sp1; sp1 += bytesPerRow;
+        }
+
+        return EOK;
+    }
+    else if (self->pixelFormat == format) {
+        for (int8_t p = 0; p < self->planeCount; p++) {
+            const uint8_t* sp = planes[p];
+            uint8_t* dp = self->plane[p];
+
+            for (int y = 0; y < self->height; y++) {
+                memcpy(dp, sp, self->width >> 3);
+                dp += self->bytesPerRow;
+                sp += bytesPerRow;
+            }
+        }
+
+        return EOK;
+    }
+    else {
         return ENOTSUP;
     }
-
-    const uint16_t* sp0 = planes[0];
-    const uint16_t* sp1 = planes[1];
-    uint16_t* pp = (uint16_t*)self->plane[0];
-    uint16_t* dp = &pp[2];
-
-    for (int y = 0; y < self->height; y++) {
-        *dp++ = *sp0++;
-        *dp++ = *sp1++;
-    }
-
-    return EOK;
 }
 
 errno_t Surface_ClearPixels(Surface* _Nonnull self)
 {
-    if (self->pixelFormat != kPixelFormat_RGB_Sprite2) {
-        return ENOTSUP;
+    if (self->pixelFormat == kPixelFormat_RGB_Sprite2) {
+        uint16_t* pp = (uint16_t*)self->plane[0];
+        uint16_t* dp = &pp[2];
+
+        for (int y = 0; y < self->height; y++) {
+            *dp++ = 0;
+            *dp++ = 0;
+        }
+
+        return EOK;
     }
+    else {
+        for (int8_t p = 0; p < self->planeCount; p++) {
+            memset(self->plane[p], 0, self->bytesPerRow * self->height);
+        }
 
-    uint16_t* dp = (uint16_t*)self->plane[0];
-
-    for (int y = 0; y < self->height; y++) {
-        *dp++ = 0;
-        *dp++ = 0;
+        return EOK;
     }
-
-    return EOK;
 }

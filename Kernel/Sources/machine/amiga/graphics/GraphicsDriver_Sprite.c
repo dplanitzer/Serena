@@ -150,7 +150,7 @@ errno_t _set_sprite_pixels(GraphicsDriverRef _Nonnull _Locked self, int spriteId
         return EINVAL;
     }
 
-    Surface_WritePixels(spr->surface, planes);
+    Surface_WritePixels(spr->surface, (const void**)planes, 2, kPixelFormat_RGB_Indexed2);
 
     return EOK;
 }
