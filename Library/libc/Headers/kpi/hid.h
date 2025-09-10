@@ -45,18 +45,18 @@
 #define kHIDCommand_SetKeyRepeatDelays IOResourceCommand(kDriverCommand_SubclassBase + 3)
 
 
-// Acquires the mouse cursor and specifies its width, height and pixel format.
+// Obtains the mouse cursor and specifies its width, height and pixel format.
 // The mouse cursor is initially completely transparent. You must set a cursor
 // image by calling SetCursor() before anything will show up on the screen.
 // Returns EOK on success and EBUSY if the mouse cursor is implemented with the
 // help of a hardware sprite and this sprite is currently in use by someone else. 
 // acquire_cursor(int width int height, PixelFormat pixelFormat)
-#define kHIDCommand_AcquireCursor   IOResourceCommand(kDriverCommand_SubclassBase + 4)
+#define kHIDCommand_ObtainCursor   IOResourceCommand(kDriverCommand_SubclassBase + 4)
 
-// Relinquishes the mouse cursor and makes the underlying sprite available for
+// Releases the mouse cursor and makes the underlying sprite available for
 // other uses.
 // relinquish_cursor(void)
-#define kHIDCommand_RelinquishCursor    IOResourceCommand(kDriverCommand_SubclassBase + 5)
+#define kHIDCommand_ReleaseCursor   IOResourceCommand(kDriverCommand_SubclassBase + 5)
 
 // Sets the mouse cursor image to the provided pixels.
 // set_cursor(const uint16_t* _Nonnull planes[2], int hotSpotX, int hotSpotY)

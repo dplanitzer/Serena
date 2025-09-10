@@ -58,16 +58,16 @@ extern void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, b
 
 // Mouse Cursor
 
-// Acquires and activates the mouse cursor. The mouse cursor is initially transparent
-// and thus invisible. You assign an image to the mouse cursor by calling the
-// SetMouseCursor() function. Returns EOK on success and EBUSY if the display
+// Obtains the mouse cursor. The mouse cursor is initially transparent and thus
+// not visible on the screen. You assign an image to the mouse cursor by calling
+// the SetMouseCursor() function. Returns EOK on success and EBUSY if the display
 // driver implements the mouser cursor with the help of a sprite and the sprite
 // is currently acquired by someone else.
-extern errno_t GraphicsDriver_AcquireMouseCursor(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat);
+extern errno_t GraphicsDriver_ObtainMouseCursor(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat);
 
 // Relinquishes the mouse cursor and makes the underlying sprite available for
 // other uses again.
-extern void GraphicsDriver_RelinquishMouseCursor(GraphicsDriverRef _Nonnull self);
+extern void GraphicsDriver_ReleaseMouseCursor(GraphicsDriverRef _Nonnull self);
 
 // Sets the mouse cursor image to the pixels 'planes'.
 extern errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uint16_t* _Nullable planes[2]);

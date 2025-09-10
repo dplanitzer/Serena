@@ -266,7 +266,7 @@ errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spr
 // MARK: Mouse Cursor
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t GraphicsDriver_AcquireMouseCursor(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat)
+errno_t GraphicsDriver_ObtainMouseCursor(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat)
 {
     if (width != kCursor_Width || height != kCursor_Height || pixelFormat != kCursor_PixelFormat) {
         return ENOTSUP;
@@ -278,7 +278,7 @@ errno_t GraphicsDriver_AcquireMouseCursor(GraphicsDriverRef _Nonnull self, int w
     return err;
 }
 
-void GraphicsDriver_RelinquishMouseCursor(GraphicsDriverRef _Nonnull self)
+void GraphicsDriver_ReleaseMouseCursor(GraphicsDriverRef _Nonnull self)
 {
     mtx_lock(&self->io_mtx);
     if (self->mouseCursorId != 0) {

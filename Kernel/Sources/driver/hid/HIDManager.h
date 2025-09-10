@@ -32,8 +32,8 @@ extern void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDK
 
 
 // Mouse cursor state
-extern errno_t HIDManager_AcquireCursor(HIDManagerRef _Nonnull self, int width, int height, PixelFormat pixelFormat);
-extern void HIDManager_RelinquishCursor(HIDManagerRef _Nonnull self);
+extern errno_t HIDManager_ObtainCursor(HIDManagerRef _Nonnull self, int width, int height, PixelFormat pixelFormat);
+extern void HIDManager_ReleaseCursor(HIDManagerRef _Nonnull self);
 extern errno_t HIDManager_SetCursor(HIDManagerRef _Nonnull self, const uint16_t* _Nullable planes[2], int hotSpotX, int hotSpotY);
 extern void HIDManager_ShowCursor(HIDManagerRef _Nonnull self);
 extern void HIDManager_HideCursor(HIDManagerRef _Nonnull self);

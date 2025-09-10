@@ -91,7 +91,7 @@ void hid_test(int argc, char *argv[])
     printf("Press '2' to hide mouse cursor until move.\n");
     printf("Press 'q' to quit.\n");
 
-    assertGreaterEqual(0, ioctl(fd, kHIDCommand_AcquireCursor, kCursor_Width, kCursor_Height, kCursor_PixelFormat));
+    assertGreaterEqual(0, ioctl(fd, kHIDCommand_ObtainCursor, kCursor_Width, kCursor_Height, kCursor_PixelFormat));
     assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetCursor, gArrow_Planes, 1, 1));
 
     while (!done) {
@@ -174,6 +174,6 @@ void hid_test(int argc, char *argv[])
     }
 
     assertGreaterEqual(0, ioctl(fd, kHIDCommand_FlushEvents));
-    assertGreaterEqual(0, ioctl(fd, kHIDCommand_RelinquishCursor));
+    assertGreaterEqual(0, ioctl(fd, kHIDCommand_ReleaseCursor));
     close(fd);
 }

@@ -176,13 +176,13 @@ void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode*
     *nKeysDown = oi;
 }
 
-errno_t HIDManager_AcquireCursor(HIDManagerRef _Nonnull self, int width, int height, PixelFormat pixelFormat)
+errno_t HIDManager_ObtainCursor(HIDManagerRef _Nonnull self, int width, int height, PixelFormat pixelFormat)
 {
     decl_try_err();
 
     mtx_lock(&self->mtx);
     if (self->fb) {
-        err = GraphicsDriver_AcquireMouseCursor(self->fb, width, height, pixelFormat);
+        err = GraphicsDriver_ObtainMouseCursor(self->fb, width, height, pixelFormat);
         if (err == EOK) {
             self->cursorWidth = width;
             self->cursorHeight = height;
@@ -203,11 +203,11 @@ errno_t HIDManager_AcquireCursor(HIDManagerRef _Nonnull self, int width, int hei
     return err;
 }
 
-void HIDManager_RelinquishCursor(HIDManagerRef _Nonnull self)
+void HIDManager_ReleaseCursor(HIDManagerRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     if (self->fb) {
-        GraphicsDriver_RelinquishMouseCursor(self->fb);
+        GraphicsDriver_ReleaseMouseCursor(self->fb);
         self->cursorWidth = 0;
         self->cursorHeight = 0;
     }
