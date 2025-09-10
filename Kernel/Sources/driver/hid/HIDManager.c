@@ -190,8 +190,7 @@ errno_t HIDManager_ObtainCursor(HIDManagerRef _Nonnull self, int width, int heig
             self->isMouseObscured = false;
             self->isMouseShielded = false;
             self->isMouseShieldEnabled = false;
-            self->mouse.x = 0;
-            self->mouse.y = 0;
+            GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x, self->mouse.y);
             GraphicsDriver_SetMouseCursorVisible(self->fb, true);
         }
     }
