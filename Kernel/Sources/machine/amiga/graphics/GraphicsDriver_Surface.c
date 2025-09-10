@@ -90,25 +90,28 @@ errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, int id, MapPi
 
     mtx_lock(&self->io_mtx);
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
-    if (srf) {
-        if ((srf->flags & kSurfaceFlag_IsMapped) == 0) {
-            const size_t planeCount = Surface_GetPlaneCount(srf);
 
-            for (size_t i = 0; i < planeCount; i++) {
-                pOutMapping->plane[i] = Surface_GetPlane(srf, i);
-                pOutMapping->bytesPerRow[i] = Surface_GetBytesPerRow(srf);
-            }
-            pOutMapping->planeCount = planeCount;
+    if (srf == NULL) {
+        throw(EINVAL);
+    }
+    if ((srf->flags & kSurfaceFlag_IsMapped) == kSurfaceFlag_IsMapped) {
+        throw(EBUSY);
+    }
+    if (Surface_GetPixelFormat(srf) == kPixelFormat_RGB_Sprite2) {
+        // Disallow mapping sprite surfaces for now
+        throw(ENOTSUP);
+    }
 
-            srf->flags |= kSurfaceFlag_IsMapped;
-        }
-        else {
-            err = EBUSY;
-        }
+    const size_t planeCount = Surface_GetPlaneCount(srf);
+    for (size_t i = 0; i < planeCount; i++) {
+        pOutMapping->plane[i] = Surface_GetPlane(srf, i);
+        pOutMapping->bytesPerRow[i] = Surface_GetBytesPerRow(srf);
     }
-    else {
-        err = ENOTSUP;
-    }
+    pOutMapping->planeCount = planeCount;
+
+    srf->flags |= kSurfaceFlag_IsMapped;
+
+catch:
     mtx_unlock(&self->io_mtx);
     return err;
 }
@@ -128,7 +131,7 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id)
         }
     }
     else {
-        err = ENOTSUP;
+        err = EINVAL;
     }
     mtx_unlock(&self->io_mtx);
     return err;
