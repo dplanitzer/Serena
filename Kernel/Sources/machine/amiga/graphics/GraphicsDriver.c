@@ -179,6 +179,13 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
         }
 
 
+        case kFBCommand_GetSpriteCaps: {
+            SpriteCaps* cp = va_arg(ap, SpriteCaps*);
+
+            GraphicsDriver_GetSpriteCaps(self, cp);
+            return EOK;
+        }
+
         case kFBCommand_SetSpritePosition: {
             const int hnd = va_arg(ap, int);
             const int x = va_arg(ap, int);

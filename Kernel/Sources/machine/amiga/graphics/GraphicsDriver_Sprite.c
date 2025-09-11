@@ -213,6 +213,22 @@ errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spr
     return err;
 }
 
+void GraphicsDriver_GetSpriteCaps(GraphicsDriverRef _Nonnull self, SpriteCaps* _Nonnull cp)
+{
+    mtx_lock(&self->io_mtx);
+    const video_conf_t* vcp = g_copper_running_prog->video_conf;
+
+    cp->minWidth = 16;
+    cp->maxWidth = 16;
+    cp->minHeight = 1;
+    cp->maxHeight = 256;
+    cp->lowSpriteNum = (self->flags.isMouseCursorObtained) ? 1 : 0;
+    cp->highSpriteNum = 7;
+    cp->xScale = 1 << vcp->hSprScale;
+    cp->yScale = 1 << vcp->vSprScale;
+    mtx_unlock(&self->io_mtx);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -

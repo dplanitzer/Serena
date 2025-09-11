@@ -168,14 +168,27 @@ typedef unsigned int RGBColor32;
 // Sprites
 //
 
+typedef struct SpriteCaps {
+    int     minWidth, maxWidth;
+    int     minHeight, maxHeight;
+    int     lowSpriteNum, highSpriteNum;
+    int     xScale;     // One sprite pixel corresponds to 'xScale' screen pixels along the horizontal axis
+    int     yScale;
+} SpriteCaps;
+
+// Returns information about the limits of the sprite sub-system based on the
+// currently active screen and mouse cursor configuration.
+// get_sprite_info(SpriteInfo* _Nonnull info)
+#define kFBCommand_GetSpriteCaps        IOResourceCommand(kDriverCommand_SubclassBase + 12)
+
 // Sets the position of a sprite. Note that sprites are only visible inside the
 // screen aperture rectangle.
 // set_sprite_position(int spriteId, int x, int y)
-#define kFBCommand_SetSpritePosition    IOResourceCommand(kDriverCommand_SubclassBase + 15)
+#define kFBCommand_SetSpritePosition    IOResourceCommand(kDriverCommand_SubclassBase + 13)
 
 // Shows or hides a sprite.
 // set_sprite_visible(int spriteId, int isVisible)
-#define kFBCommand_SetSpriteVisible     IOResourceCommand(kDriverCommand_SubclassBase + 16)
+#define kFBCommand_SetSpriteVisible     IOResourceCommand(kDriverCommand_SubclassBase + 14)
 
 
 //
@@ -192,7 +205,7 @@ typedef unsigned int RGBColor32;
 // Configures the screen based on the given screen configuration. Pass NULL to
 // turn video output off altogether.
 // set_screen_config(const int* _Nullable config)
-#define kFBCommand_SetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 17)
+#define kFBCommand_SetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 15)
 
 
 // Returns a copy of the currently active screen configuration. The configuration
@@ -208,11 +221,11 @@ typedef unsigned int RGBColor32;
 // SCREEN_CONFIG_PIXELFORMAT
 // SCREEN_CONFIG_END
 // int get_screen_config(int* _Nonnull config, size_t bufsiz)
-#define kFBCommand_GetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 18)
+#define kFBCommand_GetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 16)
 
 // Updates the color entries if the current screen CLUT. 'count' entries starting
 // at index 'idx' are replaced with the color values stored in the array 'entries'.
 // set_screen_clut_entries(int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
-#define kFBCommand_SetScreenCLUTEntries IOResourceCommand(kDriverCommand_SubclassBase + 19)
+#define kFBCommand_SetScreenCLUTEntries IOResourceCommand(kDriverCommand_SubclassBase + 17)
 
 #endif /* _KPI_FB_H */

@@ -42,6 +42,7 @@ extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, in
 
 
 // Sprites
+extern void GraphicsDriver_GetSpriteCaps(GraphicsDriverRef _Nonnull self, SpriteCaps* _Nonnull cp);
 extern errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int spriteId, int x, int y);
 extern errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spriteId, bool isVisible);
 
