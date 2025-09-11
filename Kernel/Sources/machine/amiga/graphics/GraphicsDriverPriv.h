@@ -29,12 +29,6 @@
 #define MAX_CACHED_COPPER_PROGS 4
 
 
-typedef struct screen_conf {
-    Surface* _Nullable      fb;
-    ColorTable* _Nullable   clut;
-} screen_conf_t;
-
-
 final_class_ivars(GraphicsDriver, Driver,
     mtx_t                   io_mtx;
 

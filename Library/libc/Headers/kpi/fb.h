@@ -206,12 +206,12 @@ typedef struct SpriteCaps {
 // Screen
 //
 
-#define SCREEN_CONFIG_FRAMEBUFFER   1
-#define SCREEN_CONFIG_CLUT          2
-#define SCREEN_CONFIG_WIDTH         3
-#define SCREEN_CONFIG_HEIGHT        4
-#define SCREEN_CONFIG_PIXELFORMAT   5
-#define SCREEN_CONFIG_END           0
+#define SCREEN_CONF_FRAMEBUFFER   1
+#define SCREEN_CONF_CLUT          2
+#define SCREEN_CONF_WIDTH         3
+#define SCREEN_CONF_HEIGHT        4
+#define SCREEN_CONF_PIXELFORMAT   5
+#define SCREEN_CONF_END           0
 
 // Configures the screen based on the given screen configuration. Pass NULL to
 // turn video output off altogether.
@@ -223,14 +223,14 @@ typedef struct SpriteCaps {
 // information is written to the provided buffer 'config' which is able to hold
 // 'bufsiz' integer entries (sizeof(int)). EINVAL is returned if 'bufsiz' is 0.
 // ERANGE is returned if 'bufsiz' is greater 0 but not big enough to hold all
-// configuration information plus the terminated SCREEN_CONFIG_END entry. The
+// configuration information plus the terminated SCREEN_CONF_END entry. The
 // returned configuration will contain the following configuration keys:
-// SCREEN_CONFIG_FRAMEBUFFER
-// SCREEN_CONFIG_CLUT (if the pixel format is one of the indirect formats)
-// SCREEN_CONFIG_WIDTH
-// SCREEN_CONFIG_HEIGHT
-// SCREEN_CONFIG_PIXELFORMAT
-// SCREEN_CONFIG_END
+// SCREEN_CONF_FRAMEBUFFER
+// SCREEN_CONF_CLUT (if the pixel format is one of the indirect formats)
+// SCREEN_CONF_WIDTH
+// SCREEN_CONF_HEIGHT
+// SCREEN_CONF_PIXELFORMAT
+// SCREEN_CONF_END
 // int get_screen_config(int* _Nonnull config, size_t bufsiz)
 #define kFBCommand_GetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 16)
 

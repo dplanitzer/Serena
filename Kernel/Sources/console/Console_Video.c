@@ -63,11 +63,11 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
     // Make our screen the current screen
     int sc[5];
-    sc[0] = SCREEN_CONFIG_FRAMEBUFFER;
+    sc[0] = SCREEN_CONF_FRAMEBUFFER;
     sc[1] = self->surfaceId;
-    sc[2] = SCREEN_CONFIG_CLUT;
+    sc[2] = SCREEN_CONF_CLUT;
     sc[3] = self->clutId;
-    sc[4] = SCREEN_CONFIG_END;
+    sc[4] = SCREEN_CONF_END;
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetScreenConfig, &sc[0]));
 
 

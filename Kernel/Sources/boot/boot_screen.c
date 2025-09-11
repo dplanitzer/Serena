@@ -69,11 +69,11 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
 
         // Show the screen on the monitor
         int sc[5];
-        sc[0] = SCREEN_CONFIG_FRAMEBUFFER;
+        sc[0] = SCREEN_CONF_FRAMEBUFFER;
         sc[1] = bscr->srf;
-        sc[2] = SCREEN_CONFIG_CLUT;
+        sc[2] = SCREEN_CONF_CLUT;
         sc[3] = bscr->clut;
-        sc[4] = SCREEN_CONFIG_END;
+        sc[4] = SCREEN_CONF_END;
         IOChannel_Ioctl(chan, kFBCommand_SetScreenConfig, &sc[0]);
     }
 }
