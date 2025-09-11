@@ -42,7 +42,7 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
 
     if ((err = DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &chan)) == EOK) {
         // Create the surface and screen
-        IOChannel_Ioctl(chan, kFBCommand_CreateSurface, width, height, kPixelFormat_RGB_Indexed1, &srf);
+        IOChannel_Ioctl(chan, kFBCommand_CreateSurface2d, width, height, kPixelFormat_RGB_Indexed1, &srf);
         IOChannel_Ioctl(chan, kFBCommand_CreateCLUT, 32, &clut);
 
 

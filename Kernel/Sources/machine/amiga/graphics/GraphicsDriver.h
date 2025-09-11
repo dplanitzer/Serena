@@ -20,7 +20,7 @@ final_class(GraphicsDriver, Driver);
 extern errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf);
 
 // Surfaces
-extern errno_t GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int* _Nonnull pOutId);
+extern errno_t GraphicsDriver_CreateSurface2d(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int* _Nonnull pOutId);
 extern errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, int id);
 
 extern errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, int id, SurfaceInfo* _Nonnull pOutInfo);

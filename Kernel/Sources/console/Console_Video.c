@@ -48,7 +48,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
         //height = 512;
     }
 
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface, width, height, kPixelFormat_RGB_Indexed3, &self->surfaceId));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface2d, width, height, kPixelFormat_RGB_Indexed3, &self->surfaceId));
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateCLUT, 32, &self->clutId));
 
 
@@ -85,7 +85,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface, textCursorWidth, textCursorHeight, kPixelFormat_RGB_Sprite2, &self->textCursorSurface));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface2d, textCursorWidth, textCursorHeight, kPixelFormat_RGB_Sprite2, &self->textCursorSurface));
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_WritePixels, self->textCursorSurface, textCursorPlanes, 2, kPixelFormat_RGB_Indexed2));
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, 0));
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_BindSurface, kTarget_Sprite0 + self->textCursorSprite, self->textCursorSurface));

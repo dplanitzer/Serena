@@ -105,13 +105,13 @@ typedef unsigned int RGBColor32;
 // Surfaces
 //
 
-// Creates a surface of size 'width' x 'height' pixels and with a pixel encoding
+// Creates a 2d surface of size 'width' x 'height' pixels and with a pixel encoding
 // 'encoding' and returns the unique id of the surface in 'pOutId'. Note that the
 // surface width and height have to be > 1. The surface may be used to create a
 // screen and it may be directly mapped into the address space of the owning
 // process or manipulated with the Blitter.
 // create_surface(int width, int height, PixelFormat pixelFormat, int* _Nonnull pOutId)
-#define kFBCommand_CreateSurface    IOResourceCommand(kDriverCommand_SubclassBase + 0)
+#define kFBCommand_CreateSurface2d  IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
 // Destroys the surface with id 'id'. Returns EBUSY if the surface is currently
 // mapped or is attached to a screen. Automatically unbinds the surface if it is

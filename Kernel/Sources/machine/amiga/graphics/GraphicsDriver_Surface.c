@@ -9,7 +9,7 @@
 #include "GraphicsDriverPriv.h"
 
 
-errno_t _GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull _Locked self, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface)
+errno_t _GraphicsDriver_CreateSurface2d(GraphicsDriverRef _Nonnull _Locked self, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface)
 {
     Surface* srf;
 
@@ -22,12 +22,12 @@ errno_t _GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull _Locked self, i
     return err;
 }
 
-errno_t GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int* _Nonnull pOutId)
+errno_t GraphicsDriver_CreateSurface2d(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int* _Nonnull pOutId)
 {
     Surface* srf;
 
     mtx_lock(&self->io_mtx);
-    const errno_t err = _GraphicsDriver_CreateSurface(self, width, height, pixelFormat, &srf);
+    const errno_t err = _GraphicsDriver_CreateSurface2d(self, width, height, pixelFormat, &srf);
     if (err == EOK) {
         *pOutId = GObject_GetId(srf);
     }

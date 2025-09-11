@@ -89,13 +89,13 @@ static errno_t GraphicsDriver_onStart(GraphicsDriverRef _Nonnull _Locked self)
 errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, int cmd, va_list ap)
 {
     switch (cmd) {
-        case kFBCommand_CreateSurface: {
+        case kFBCommand_CreateSurface2d: {
             const int width = va_arg(ap, int);
             const int height = va_arg(ap, int);
             const PixelFormat fmt = va_arg(ap, PixelFormat);
             int* hnd = va_arg(ap, int*);
 
-            return GraphicsDriver_CreateSurface(self, width, height, fmt, hnd);
+            return GraphicsDriver_CreateSurface2d(self, width, height, fmt, hnd);
         }
 
         case kFBCommand_DestroySurface: {

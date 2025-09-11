@@ -239,7 +239,7 @@ errno_t HIDManager_SetCursor(HIDManagerRef _Nonnull self, const void* _Nullable 
     if (self->cursorSurfaceId == 0 || self->cursorWidth != width || self->cursorHeight != height) {
         int newId;
 
-        try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface, width, height, kPixelFormat_RGB_Sprite2, &newId));
+        try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface2d, width, height, kPixelFormat_RGB_Sprite2, &newId));
         self->cursorWidth = width;
         self->cursorHeight = height;
 
