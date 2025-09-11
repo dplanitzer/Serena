@@ -131,7 +131,7 @@ static copper_instr_t* _Nonnull _compile_field_prog(
         locs->sprptr = ip - orig;
     }
     for (int i = 0, r = SPRITE_BASE; i < SPRITE_COUNT; i++, r += 4) {
-        Surface* srf = (spr[i].isAcquired && spr[i].isVisible) ? spr[i].surface : nullSpriteSurface;
+        Surface* srf = (spr[i].surface && spr[i].isVisible) ? spr[i].surface : nullSpriteSurface;
         const uint32_t sprpt = (uint32_t)Surface_GetPlane(srf, 0);
 
         *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
@@ -237,7 +237,7 @@ void copper_prog_compile(copper_prog_t _Nonnull self, const video_conf_t* _Nonnu
     GObject_AddRef(self->res.clut);
 
     for (int i = 0; i < SPRITE_COUNT; i++) {
-        Surface* srf = (spr[i].isAcquired && spr[i].isVisible) ? spr[i].surface : nullSpriteSurface;
+        Surface* srf = (spr[i].surface && spr[i].isVisible) ? spr[i].surface : nullSpriteSurface;
 
         self->res.spr[i] = srf;
         GObject_AddRef(srf);

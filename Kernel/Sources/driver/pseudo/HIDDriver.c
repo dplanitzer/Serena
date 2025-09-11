@@ -98,11 +98,7 @@ errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, i
         }
 
         case kHIDCommand_ObtainCursor: {
-            const int width = va_arg(ap, int);
-            const int height = va_arg(ap, int);
-            const PixelFormat fmt = va_arg(ap, PixelFormat);
-
-            return HIDManager_ObtainCursor(gHIDManager, width, height, fmt);
+            return HIDManager_ObtainCursor(gHIDManager);
         }
 
         case kHIDCommand_ReleaseCursor:
@@ -110,11 +106,15 @@ errno_t HIDDriver_ioctl(HIDDriverRef _Nonnull self, IOChannelRef _Nonnull ioc, i
             return EOK;
 
         case kHIDCommand_SetCursor: {
-            const uint16_t** planes = va_arg(ap, const uint16_t**);
+            const void** planes = va_arg(ap, const void**);
+            const size_t bytesPerRow = va_arg(ap, size_t);
+            const int width = va_arg(ap, int);
+            const int height = va_arg(ap, int);
+            const PixelFormat format = va_arg(ap, PixelFormat);
             const int hotSpotX = va_arg(ap, int);
             const int hotSpotY = va_arg(ap, int);
 
-            return HIDManager_SetCursor(gHIDManager, planes, hotSpotX, hotSpotY);
+            return HIDManager_SetCursor(gHIDManager, planes, bytesPerRow, width, height, format, hotSpotX, hotSpotY);
         }
 
         case kHIDCommand_ShowCursor:

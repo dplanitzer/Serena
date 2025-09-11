@@ -162,7 +162,8 @@ final_class_ivars(Console, PseudoDriver,
     SurfaceMapping              pixels;
     int                         pixelsWidth;
     int                         pixelsHeight;
-    int                         textCursor;
+    int                         textCursorSurface;
+    int                         textCursorSprite;
     
     struct timespec             cursorBlinkInterval;
     Color                       backgroundColor;

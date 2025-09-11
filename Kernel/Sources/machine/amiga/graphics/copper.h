@@ -28,11 +28,9 @@ typedef uint32_t  copper_instr_t;
 
 typedef struct sprite_channel {
     Surface* _Nullable  surface;    // Surface holding the sprite image data and control words
-    int16_t             x;
-    int16_t             y;
-    uint16_t            height;
+    int                 x;
+    int                 y;
     bool                isVisible;
-    bool                isAcquired;
 } sprite_channel_t;
 
 typedef struct sprite_ctl_change {

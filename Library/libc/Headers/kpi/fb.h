@@ -25,6 +25,13 @@ enum {
 typedef int PixelFormat;
 
 
+// Surface binding targets
+enum {
+    kTarget_Sprite = 1,      // Target a sprite. Unit number is the sprite number
+    //kTarget_Framebuffer,
+};
+
+
 // Geometry and pixel encoding of a surface
 typedef struct SurfaceInfo {
     int         width;
@@ -127,6 +134,13 @@ typedef unsigned int RGBColor32;
 // clear_pixels(int id)
 #define kFBCommand_ClearPixels      IOResourceCommand(kDriverCommand_SubclassBase + 6)
 
+// Binds the surface 'id' to the unit 'unit' of target 'target'. If the unit of
+// the target is already bound to a surface then this surface is unbound before
+// the new one is bound. Binding a target to a surface with id 0 leaves the
+// target unbound.
+// bind_surface(int target, int unit, int id)
+#define kFBCommand_BindSurface  IOResourceCommand(kDriverCommand_SubclassBase + 7)
+
 
 //
 // CLUTs
@@ -134,53 +148,34 @@ typedef unsigned int RGBColor32;
 
 // Creates a new CLUT with 'entryCount' color entries.
 // create_clut(size_t entryCount, int* _Nonnull pOutId)
-#define kFBCommand_CreateCLUT       IOResourceCommand(kDriverCommand_SubclassBase + 7)
+#define kFBCommand_CreateCLUT       IOResourceCommand(kDriverCommand_SubclassBase + 8)
 
 // Destroys the CLUT with id 'id'. Returns EBUSY if the CLUT is currently in use.
 // destroy_clut(int id)
-#define kFBCommand_DestroyCLUT      IOResourceCommand(kDriverCommand_SubclassBase + 8)
+#define kFBCommand_DestroyCLUT      IOResourceCommand(kDriverCommand_SubclassBase + 9)
 
 // Returns information about the CLUT 'id'.
 // get_clut_info(int id, CLUTInfo* _Nonnull pOutInfo)
-#define kFBCommand_GetCLUTInfo      IOResourceCommand(kDriverCommand_SubclassBase + 9)
+#define kFBCommand_GetCLUTInfo      IOResourceCommand(kDriverCommand_SubclassBase + 10)
 
 // Updates the color entries if the CLUT 'id'. 'count' entries starting at index
 // 'idx' are replaced with the color values stored in the array 'entries'.
 // set_clut_entries(int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
-#define kFBCommand_SetCLUTEntries  IOResourceCommand(kDriverCommand_SubclassBase + 10)
+#define kFBCommand_SetCLUTEntries  IOResourceCommand(kDriverCommand_SubclassBase + 11)
 
 
 //
 // Sprites
 //
 
-// Acquire the sprite with display priority 'priority'. The sprite has a size of
-// 'width' x ' height' pixels and a pixel format of 'pixelFormat'. The visual
-// priority of the sprite is 'priority'. Note that a driver typically only
-// supports a limited number of sprites. The exact limits are platform and
-// hardware dependent. Returns ENOTSUP or EBUSY if the requested sprite is not
-// available for acquisition. 
-// acquire_sprite(int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutId)
-#define kFBCommand_AcquireSprite        IOResourceCommand(kDriverCommand_SubclassBase + 11)
-
-// Relinquishes a previously acquired sprite and makes it available again for
-// acquisition.
-// relinquish_sprite(int spriteId)
-#define kFBCommand_RelinquishSprite     IOResourceCommand(kDriverCommand_SubclassBase + 12)
-
-// Replaces the pixels of a sprite with the given pixels. The given pixel map
-// must have the same size as the sprite. 
-// set_sprite_pixels(int spriteId, const uint16_t* _Nonnull planes[2])
-#define kFBCommand_SetSpritePixels      IOResourceCommand(kDriverCommand_SubclassBase + 13)
-
 // Sets the position of a sprite. Note that sprites are only visible inside the
 // screen aperture rectangle.
 // set_sprite_position(int spriteId, int x, int y)
-#define kFBCommand_SetSpritePosition    IOResourceCommand(kDriverCommand_SubclassBase + 14)
+#define kFBCommand_SetSpritePosition    IOResourceCommand(kDriverCommand_SubclassBase + 15)
 
 // Shows or hides a sprite.
-// set_sprite_visible(int spriteId, bool isVisible)
-#define kFBCommand_SetSpriteVisible     IOResourceCommand(kDriverCommand_SubclassBase + 15)
+// set_sprite_visible(int spriteId, int isVisible)
+#define kFBCommand_SetSpriteVisible     IOResourceCommand(kDriverCommand_SubclassBase + 16)
 
 
 //
@@ -197,7 +192,7 @@ typedef unsigned int RGBColor32;
 // Configures the screen based on the given screen configuration. Pass NULL to
 // turn video output off altogether.
 // set_screen_config(const int* _Nullable config)
-#define kFBCommand_SetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 16)
+#define kFBCommand_SetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 17)
 
 
 // Returns a copy of the currently active screen configuration. The configuration
@@ -213,11 +208,11 @@ typedef unsigned int RGBColor32;
 // SCREEN_CONFIG_PIXELFORMAT
 // SCREEN_CONFIG_END
 // int get_screen_config(int* _Nonnull config, size_t bufsiz)
-#define kFBCommand_GetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 17)
+#define kFBCommand_GetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 18)
 
 // Updates the color entries if the current screen CLUT. 'count' entries starting
 // at index 'idx' are replaced with the color values stored in the array 'entries'.
 // set_screen_clut_entries(int id, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
-#define kFBCommand_SetScreenCLUTEntries IOResourceCommand(kDriverCommand_SubclassBase + 18)
+#define kFBCommand_SetScreenCLUTEntries IOResourceCommand(kDriverCommand_SubclassBase + 19)
 
 #endif /* _KPI_FB_H */

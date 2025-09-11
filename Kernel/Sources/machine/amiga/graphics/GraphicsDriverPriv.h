@@ -51,13 +51,13 @@ final_class_ivars(GraphicsDriver, Driver,
     Surface* _Nonnull       nullSpriteSurface;
     sprite_channel_t        spriteChannel[SPRITE_COUNT];
 
-    int                     mouseCursorId;      // 0 -> no mouse cursor acquire; > 0 -> mouse cursor acquired
-
     List/*<GObject>*/       gobjs;
     int                     nextGObjId;
+    
     struct __GDFlags {
-        unsigned int    isLightPenEnabled;      // Applies to all screens
-        unsigned int    reserved:31;
+        unsigned int    isLightPenEnabled:1;
+        unsigned int    isMouseCursorObtained:1;
+        unsigned int    reserved:30;
     }                       flags;
 );
 
@@ -91,5 +91,7 @@ extern void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull _
 (ColorTable*)_GraphicsDriver_GetGObjForId(__self, __id, kGObject_ColorTable)
 
 extern void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* gobj);
+
+extern errno_t _GraphicsDriver_BindSprite(GraphicsDriverRef _Nonnull _Locked self, int unit, Surface* _Nullable srf);
 
 #endif /* GraphicsDriverPriv_h */

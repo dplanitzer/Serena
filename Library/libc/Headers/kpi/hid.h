@@ -45,12 +45,12 @@
 #define kHIDCommand_SetKeyRepeatDelays IOResourceCommand(kDriverCommand_SubclassBase + 3)
 
 
-// Obtains the mouse cursor and specifies its width, height and pixel format.
-// The mouse cursor is initially completely transparent. You must set a cursor
+// Obtains the mouse cursor. The mouse cursor is initially transparent and thus
+// nothing will show up initially on the screen. You must set a cursor
 // image by calling SetCursor() before anything will show up on the screen.
-// Returns EOK on success and EBUSY if the mouse cursor is implemented with the
-// help of a hardware sprite and this sprite is currently in use by someone else. 
-// acquire_cursor(int width int height, PixelFormat pixelFormat)
+// Returns EOK on success and a suitable error if the cursor services can not
+// be started because eg the necessary resources are not currently available. 
+// obtain_cursor(void)
 #define kHIDCommand_ObtainCursor   IOResourceCommand(kDriverCommand_SubclassBase + 4)
 
 // Releases the mouse cursor and makes the underlying sprite available for
@@ -58,8 +58,11 @@
 // relinquish_cursor(void)
 #define kHIDCommand_ReleaseCursor   IOResourceCommand(kDriverCommand_SubclassBase + 5)
 
-// Sets the mouse cursor image to the provided pixels.
-// set_cursor(const uint16_t* _Nonnull planes[2], int hotSpotX, int hotSpotY)
+// Sets the mouse cursor image to the provided pixels. Note that only some pixel
+// format are supported:
+// kPixelFormat_RGB_Indexed2
+// Color index #0 is interpreted as transparent for all indexed pixel formats.
+// set_cursor(const void* _Nonnull planes[], size_t bytesPerRow, int width, int height, PixelFormat format, int hotSpotX, int hotSpotY)
 #define kHIDCommand_SetCursor   IOResourceCommand(kDriverCommand_SubclassBase + 6)
 
 // Decrements the cursor hidden count and shows the cursor when the count hits 0.

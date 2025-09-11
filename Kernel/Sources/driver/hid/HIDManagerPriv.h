@@ -111,10 +111,11 @@ typedef struct HIDManager {
     const uint8_t*              keyFlags;
 
 
-    // Mouse Configuration
+    // Mouse Configuration and Mouse Cursor
     hid_rect_t                  screenBounds;
     hid_rect_t                  shieldRect;
     hid_rect_t                  cursorBounds;   // updated only when needed
+    int                         cursorSurfaceId;
     int16_t                     cursorWidth;
     int16_t                     cursorHeight;
     int16_t                     hotSpotX;

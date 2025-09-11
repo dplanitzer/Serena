@@ -31,6 +31,8 @@ extern errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int 
 extern errno_t GraphicsDriver_WritePixels(GraphicsDriverRef _Nonnull self, int id, const void* _Nonnull planes[], size_t bytesPerRow, PixelFormat format);
 extern errno_t GraphicsDriver_ClearPixels(GraphicsDriverRef _Nonnull self, int id);
 
+extern errno_t GraphicsDriver_BindSurface(GraphicsDriverRef _Nonnull self, int target, int unit, int id);
+
 
 // CLUT
 extern errno_t GraphicsDriver_CreateCLUT(GraphicsDriverRef _Nonnull self, size_t colorDepth, int* _Nonnull pOutId);
@@ -40,9 +42,6 @@ extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, in
 
 
 // Sprites
-extern errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int priority, int* _Nonnull pOutSpriteId);
-extern errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int spriteId);
-extern errno_t GraphicsDriver_SetSpritePixels(GraphicsDriverRef _Nonnull self, int spriteId, const uint16_t* _Nonnull pPlanes[2]);
 extern errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int spriteId, int x, int y);
 extern errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int spriteId, bool isVisible);
 
@@ -63,17 +62,16 @@ extern void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, b
 
 // Obtains the mouse cursor. The mouse cursor is initially transparent and thus
 // not visible on the screen. You assign an image to the mouse cursor by calling
-// the SetMouseCursor() function. Returns EOK on success and EBUSY if the display
-// driver implements the mouser cursor with the help of a sprite and the sprite
-// is currently acquired by someone else.
-extern errno_t GraphicsDriver_ObtainMouseCursor(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat);
+// the BindMouseCursor() function. Note that calling this function may forcefully
+// take ownership of the highest priority hardware sprites.
+extern errno_t GraphicsDriver_ObtainMouseCursor(GraphicsDriverRef _Nonnull self);
 
 // Relinquishes the mouse cursor and makes the underlying sprite available for
 // other uses again.
 extern void GraphicsDriver_ReleaseMouseCursor(GraphicsDriverRef _Nonnull self);
 
-// Sets the mouse cursor image to the pixels 'planes'.
-extern errno_t GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const uint16_t* _Nullable planes[2]);
+// Binds the given surface to the mouse cursor.
+extern errno_t GraphicsDriver_BindMouseCursor(GraphicsDriverRef _Nonnull self, int id);
 
 // Sets the position of the mouse cursor. Note that the mouse cursor is only
 // visible as long as at least some part of it is inside the visible display

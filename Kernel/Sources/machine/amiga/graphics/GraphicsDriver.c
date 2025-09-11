@@ -34,6 +34,9 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
     copper_prog_t nullCopperProg;
     try(GraphicsDriver_CreateNullCopperProg(self, &nullCopperProg));
     try(Surface_CreateNullSprite(&self->nullSpriteSurface));
+    for (int i = 0; i < SPRITE_COUNT; i++) {
+        self->spriteChannel[i].isVisible = true;
+    }
 
 
     // Allocate the Copper management VCPU
@@ -137,6 +140,14 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
             return GraphicsDriver_ClearPixels(self, hnd);
         }
 
+        case kFBCommand_BindSurface: {
+            const int target = va_arg(ap, int);
+            const int unit = va_arg(ap, int);
+            const int id = va_arg(ap, int);
+
+            return GraphicsDriver_BindSurface(self, target, unit, id);
+        }
+
 
         case kFBCommand_CreateCLUT: {
             const size_t entryCount = va_arg(ap, size_t);
@@ -167,29 +178,6 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
             return GraphicsDriver_SetCLUTEntries(self, hnd, idx, count, colors);
         }
 
-
-        case kFBCommand_AcquireSprite: {
-            const int width = va_arg(ap, int);
-            const int height = va_arg(ap, int);
-            const PixelFormat fmt = va_arg(ap, PixelFormat);
-            const int pri = va_arg(ap, int);
-            int* sid = va_arg(ap, int*);
-
-            return GraphicsDriver_AcquireSprite(self, width, height, fmt, pri, sid);
-        }
-
-        case kFBCommand_RelinquishSprite: {
-            const int hnd = va_arg(ap, int);
-
-            return GraphicsDriver_RelinquishSprite(self, hnd);
-        }
-
-        case kFBCommand_SetSpritePixels: {
-            const int hnd = va_arg(ap, int);
-            const uint16_t** planes = va_arg(ap, const uint16_t**);
-
-            return GraphicsDriver_SetSpritePixels(self, hnd, planes);
-        }
 
         case kFBCommand_SetSpritePosition: {
             const int hnd = va_arg(ap, int);

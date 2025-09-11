@@ -40,7 +40,12 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
     self->keyFlags = gUSBHIDKeyFlags;
     self->isMouseMoveReportingEnabled = false;
     self->hiddenCount = 0;
-
+    // We set the initial mouse position to 1,1 to ensure that the whole mouse
+    // cursor will show up in the top left screen corner (assuming that it's
+    // hot spot offset will be 1,1).
+    self->mouse.x = 1;
+    self->mouse.y = 1;
+    
 
     // Create the HID event queue
     const size_t powOf2Capacity = siz_pow2_ceil(REPORT_QUEUE_MAX_EVENTS);
@@ -176,22 +181,22 @@ void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode*
     *nKeysDown = oi;
 }
 
-errno_t HIDManager_ObtainCursor(HIDManagerRef _Nonnull self, int width, int height, PixelFormat pixelFormat)
+errno_t HIDManager_ObtainCursor(HIDManagerRef _Nonnull self)
 {
     decl_try_err();
 
     mtx_lock(&self->mtx);
     if (self->fb) {
-        err = GraphicsDriver_ObtainMouseCursor(self->fb, width, height, pixelFormat);
+        err = GraphicsDriver_ObtainMouseCursor(self->fb);
         if (err == EOK) {
-            self->cursorWidth = width;
-            self->cursorHeight = height;
+            self->cursorWidth = 0;
+            self->cursorHeight = 0;
+            self->hotSpotX = 0;
+            self->hotSpotY = 0;
             self->hiddenCount = 0;
             self->isMouseObscured = false;
             self->isMouseShielded = false;
             self->isMouseShieldEnabled = false;
-            GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x, self->mouse.y);
-            GraphicsDriver_SetMouseCursorVisible(self->fb, true);
         }
     }
     else {
@@ -207,29 +212,51 @@ void HIDManager_ReleaseCursor(HIDManagerRef _Nonnull self)
     mtx_lock(&self->mtx);
     if (self->fb) {
         GraphicsDriver_ReleaseMouseCursor(self->fb);
-        self->cursorWidth = 0;
-        self->cursorHeight = 0;
+        IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroySurface, self->cursorSurfaceId);
+        self->cursorSurfaceId = 0;
     }
     mtx_unlock(&self->mtx);
 }
 
-errno_t HIDManager_SetCursor(HIDManagerRef _Nonnull self, const uint16_t* _Nullable planes[2], int hotSpotX, int hotSpotY)
+errno_t HIDManager_SetCursor(HIDManagerRef _Nonnull self, const void* _Nullable planes[], size_t bytesPerRow, int width, int height, PixelFormat format, int hotSpotX, int hotSpotY)
 {
     decl_try_err();
 
-    mtx_lock(&self->mtx);
-    if (hotSpotX < 0 || hotSpotX > self->cursorWidth || hotSpotY < 0 || hotSpotY > self->cursorHeight) {
-        throw(EINVAL);
+    if ((planes && bytesPerRow == 0) || width != kCursor_Width || height != kCursor_Height || format != kCursor_PixelFormat) {
+        return EINVAL;
+    }
+    if (hotSpotX < 0 || hotSpotX >= width || hotSpotY < 0 || hotSpotY >= height) {
+        return EINVAL;
     }
 
-    if (self->fb) {
-        try(GraphicsDriver_SetMouseCursor(self->fb, planes));
-        self->hotSpotX = hotSpotX;
-        self->hotSpotY = hotSpotY;
+
+    mtx_lock(&self->mtx);
+    if (self->fb == NULL) {
+        throw(ENODEV);
     }
-    else {
-        err = ENODEV;
+
+
+    if (self->cursorSurfaceId == 0 || self->cursorWidth != width || self->cursorHeight != height) {
+        int newId;
+
+        try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface, width, height, kPixelFormat_RGB_Sprite2, &newId));
+        self->cursorWidth = width;
+        self->cursorHeight = height;
+
+        if (self->cursorSurfaceId) {
+            IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroySurface, self->cursorSurfaceId);
+        }
+        self->cursorSurfaceId = newId;
     }
+
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_WritePixels, self->cursorSurfaceId, planes, bytesPerRow, format));
+    try(GraphicsDriver_BindMouseCursor(self->fb, self->cursorSurfaceId));
+    self->hotSpotX = hotSpotX;
+    self->hotSpotY = hotSpotY;
+
+    // Update the framebuffer mouse cursor position to line it up with our position
+    // and the new hot spot offset.
+    GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x - hotSpotX, self->mouse.y - hotSpotY);
 
 catch:
     mtx_unlock(&self->mtx);
@@ -244,7 +271,7 @@ static bool _show_cursor(HIDManagerRef _Nonnull _Locked self)
     }
 
     if (self->hiddenCount == 0) {
-        GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x, self->mouse.y);
+        GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
         GraphicsDriver_SetMouseCursorVisible(self->fb, true);
         return true;
     }

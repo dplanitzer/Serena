@@ -77,15 +77,18 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
 
     // Allocate the text cursor (sprite)
+    self->textCursorSprite = 2;
+    self->flags.isTextCursorVisible = false;
     const bool isLace = (height > MAX_PAL_HEIGHT) ? true : false;
     const uint16_t* textCursorPlanes[2];
     textCursorPlanes[0] = (isLace) ? &gBlock4x4_Plane0[0] : &gBlock4x8_Plane0[0];
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_AcquireSprite, textCursorWidth, textCursorHeight, kPixelFormat_RGB_Indexed2, 2, &self->textCursor));
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpritePixels, self->textCursor, textCursorPlanes));
-    self->flags.isTextCursorVisible = false;
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface, textCursorWidth, textCursorHeight, kPixelFormat_RGB_Sprite2, &self->textCursorSurface));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_WritePixels, self->textCursorSurface, textCursorPlanes, 2, kPixelFormat_RGB_Indexed2));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, 0));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_BindSurface, kTarget_Sprite, self->textCursorSprite, self->textCursorSurface));
 
 
     // Allocate the text cursor blinking timer
@@ -105,7 +108,7 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
 
     IOChannel_Ioctl(self->fbChannel, kFBCommand_SetScreenConfig, NULL);
 
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_RelinquishSprite, self->textCursor);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_BindSurface, kTarget_Sprite, self->textCursorSprite, 0);
     IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroyCLUT, self->clutId);
     IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroySurface, self->surfaceId);
     
@@ -147,7 +150,7 @@ void Console_OnTextCursorBlink(ConsoleRef _Nonnull self)
     
     self->flags.isTextCursorOn = !self->flags.isTextCursorOn;
     if (self->flags.isTextCursorVisible) {
-        IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursor, self->flags.isTextCursorOn || self->flags.isTextCursorSingleCycleOn);
+        IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, self->flags.isTextCursorOn || self->flags.isTextCursorSingleCycleOn);
     }
     self->flags.isTextCursorSingleCycleOn = false;
 
@@ -160,7 +163,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _
         // Changing the visibility to on should restart the blinking timer if
         // blinking is on too so that we always start out with a cursor-on phase
         DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
-        IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursor, true);
+        IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, true);
         self->flags.isTextCursorOn = false;
         self->flags.isTextCursorSingleCycleOn = false;
 
@@ -175,7 +178,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _
     } else {
         // Make sure that the text cursor and blinker are off
         DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
-        IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursor, false);
+        IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, false);
         self->flags.isTextCursorOn = false;
         self->flags.isTextCursorSingleCycleOn = false;
     }
@@ -199,14 +202,14 @@ void Console_SetCursorVisible_Locked(ConsoleRef _Nonnull self, bool isVisible)
 
 void Console_CursorDidMove_Locked(ConsoleRef _Nonnull self)
 {
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpritePosition, self->textCursor, self->x * self->characterWidth, self->y * self->lineHeight);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpritePosition, self->textCursorSprite, self->x * self->characterWidth, self->y * self->lineHeight);
     // Temporarily force the cursor to be visible, but without changing the text
     // cursor visibility state officially. We just want to make sure that the
     // cursor is on when the user types a character. This however should not
     // change anything about the blinking phase and frequency.
     if (!self->flags.isTextCursorSingleCycleOn && !self->flags.isTextCursorOn && self->flags.isTextCursorBlinkerEnabled && self->flags.isTextCursorVisible) {
         self->flags.isTextCursorSingleCycleOn = true;
-        IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursor, true);
+        IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, true);
     }
 }
 
