@@ -14,8 +14,6 @@
 #include <kpi/fb.h>
 
 
-#define MAX_PLANE_COUNT  6
-
 enum {
     kSurfaceFlag_ClusteredPlanes = 0x01,    // Surface is planar and all planes share a single kalloc() memory block. Ptr of this memory block is in planes[0]
     kSurfaceFlag_IsMapped = 0x02,
@@ -23,12 +21,12 @@ enum {
 
 typedef struct Surface {
     GObject             super;
-    uint8_t* _Nullable  plane[MAX_PLANE_COUNT];
+    uint8_t* _Nullable  plane[8];
     int                 width;
     int                 height;
     size_t              bytesPerRow;
+    PixelFormat         pixelFormat;
     int8_t              planeCount;
-    int8_t              pixelFormat;
     uint8_t             flags;
 } Surface;
 
