@@ -187,7 +187,7 @@ errno_t HIDManager_ObtainCursor(HIDManagerRef _Nonnull self)
 
     mtx_lock(&self->mtx);
     if (self->fb) {
-        err = GraphicsDriver_ObtainMouseCursor(self->fb);
+        err = GraphicsDriver_ObtainCursor(self->fb);
         if (err == EOK) {
             self->cursorWidth = 0;
             self->cursorHeight = 0;
@@ -211,7 +211,7 @@ void HIDManager_ReleaseCursor(HIDManagerRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     if (self->fb) {
-        GraphicsDriver_ReleaseMouseCursor(self->fb);
+        GraphicsDriver_ReleaseCursor(self->fb);
         IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroySurface, self->cursorSurfaceId);
         self->cursorSurfaceId = 0;
     }
@@ -250,13 +250,13 @@ errno_t HIDManager_SetCursor(HIDManagerRef _Nonnull self, const void* _Nullable 
     }
 
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_WritePixels, self->cursorSurfaceId, planes, bytesPerRow, format));
-    try(GraphicsDriver_BindMouseCursor(self->fb, self->cursorSurfaceId));
+    try(GraphicsDriver_BindCursor(self->fb, self->cursorSurfaceId));
     self->hotSpotX = hotSpotX;
     self->hotSpotY = hotSpotY;
 
     // Update the framebuffer mouse cursor position to line it up with our position
     // and the new hot spot offset.
-    GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x - hotSpotX, self->mouse.y - hotSpotY);
+    GraphicsDriver_SetCursorPosition(self->fb, self->mouse.x - hotSpotX, self->mouse.y - hotSpotY);
 
 catch:
     mtx_unlock(&self->mtx);
@@ -271,8 +271,8 @@ static bool _show_cursor(HIDManagerRef _Nonnull _Locked self)
     }
 
     if (self->hiddenCount == 0) {
-        GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
-        GraphicsDriver_SetMouseCursorVisible(self->fb, true);
+        GraphicsDriver_SetCursorPosition(self->fb, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
+        GraphicsDriver_SetCursorVisible(self->fb, true);
         return true;
     }
     else {
@@ -293,7 +293,7 @@ void HIDManager_ShowCursor(HIDManagerRef _Nonnull self)
 static void _hide_cursor(HIDManagerRef _Nonnull _Locked self)
 {
     if (self->hiddenCount == 0) {
-        GraphicsDriver_SetMouseCursorVisible(self->fb, false);
+        GraphicsDriver_SetCursorVisible(self->fb, false);
     }
     if (self->hiddenCount < INT_MAX) {
         self->hiddenCount++;
@@ -312,7 +312,7 @@ void HIDManager_ObscureCursor(HIDManagerRef _Nonnull self)
     mtx_lock(&self->mtx);
     if (self->hiddenCount == 0) {
         self->isMouseObscured = true;
-        GraphicsDriver_SetMouseCursorVisible(self->fb, false);
+        GraphicsDriver_SetCursorVisible(self->fb, false);
     }
     mtx_unlock(&self->mtx);
 }
@@ -883,9 +883,9 @@ static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
         }
 
         if (self->hiddenCount == 0 && self->fb) {
-            GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
+            GraphicsDriver_SetCursorPosition(self->fb, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
             if (self->isMouseObscured) {
-                GraphicsDriver_SetMouseCursorVisible(self->fb, true);
+                GraphicsDriver_SetCursorVisible(self->fb, true);
                 self->isMouseObscured = false;
             }
         }
@@ -929,7 +929,7 @@ static void _collect_framebuffer_size(HIDManagerRef _Nonnull self)
     }
 
     if (hasChanged) {
-        GraphicsDriver_SetMouseCursorPosition(self->fb, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
+        GraphicsDriver_SetCursorPosition(self->fb, self->mouse.x - self->hotSpotX, self->mouse.y - self->hotSpotY);
     }
 }
 

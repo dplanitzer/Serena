@@ -235,7 +235,7 @@ void GraphicsDriver_GetSpriteCaps(GraphicsDriverRef _Nonnull self, SpriteCaps* _
 // MARK: Mouse Cursor
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t GraphicsDriver_ObtainMouseCursor(GraphicsDriverRef _Nonnull self)
+errno_t GraphicsDriver_ObtainCursor(GraphicsDriverRef _Nonnull self)
 {
     mtx_lock(&self->io_mtx);
     self->flags.isMouseCursorObtained = 1;
@@ -246,7 +246,7 @@ errno_t GraphicsDriver_ObtainMouseCursor(GraphicsDriverRef _Nonnull self)
     return EOK;
 }
 
-void GraphicsDriver_ReleaseMouseCursor(GraphicsDriverRef _Nonnull self)
+void GraphicsDriver_ReleaseCursor(GraphicsDriverRef _Nonnull self)
 {
     mtx_lock(&self->io_mtx);
     if (self->flags.isMouseCursorObtained) {
@@ -258,7 +258,7 @@ void GraphicsDriver_ReleaseMouseCursor(GraphicsDriverRef _Nonnull self)
     mtx_unlock(&self->io_mtx);
 }
 
-errno_t GraphicsDriver_BindMouseCursor(GraphicsDriverRef _Nonnull self, int id)
+errno_t GraphicsDriver_BindCursor(GraphicsDriverRef _Nonnull self, int id)
 {
     decl_try_err();
 
@@ -279,7 +279,7 @@ errno_t GraphicsDriver_BindMouseCursor(GraphicsDriverRef _Nonnull self, int id)
     return err;
 }
 
-void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y)
+void GraphicsDriver_SetCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y)
 {
     mtx_lock(&self->io_mtx);
     if (self->flags.isMouseCursorObtained) {
@@ -288,7 +288,7 @@ void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, int 
     mtx_unlock(&self->io_mtx);
 }
 
-void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull self, bool isVisible)
+void GraphicsDriver_SetCursorVisible(GraphicsDriverRef _Nonnull self, bool isVisible)
 {
     mtx_lock(&self->io_mtx);
     if (self->flags.isMouseCursorObtained) {
