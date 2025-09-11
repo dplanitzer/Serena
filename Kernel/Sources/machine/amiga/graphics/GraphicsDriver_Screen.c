@@ -219,7 +219,7 @@ errno_t GraphicsDriver_SetScreenCLUTEntries(GraphicsDriverRef _Nonnull self, siz
     return err;
 }
 
-void GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
+void GraphicsDriver_getScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
 {
     const video_conf_t* vc = g_copper_running_prog->video_conf;
 
@@ -227,7 +227,7 @@ void GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull
     *pOutHeight = vc->height;
 }
 
-void GraphicsDriver_SetScreenConfigObserver(GraphicsDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
+void GraphicsDriver_setScreenConfigObserver(GraphicsDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
 {
     mtx_lock(&self->io_mtx);
     self->screenConfigObserver = vp;
@@ -236,7 +236,7 @@ void GraphicsDriver_SetScreenConfigObserver(GraphicsDriverRef _Nonnull self, vcp
 }
 
 
-void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled)
+void GraphicsDriver_setLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled)
 {
     mtx_lock(&self->io_mtx);
     if (self->flags.isLightPenEnabled != enabled) {

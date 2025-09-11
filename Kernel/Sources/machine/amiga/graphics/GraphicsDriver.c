@@ -264,7 +264,15 @@ void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* 
 }
 
 
-class_func_defs(GraphicsDriver, Driver,
+class_func_defs(GraphicsDriver, DisplayDriver,
 override_func_def(onStart, GraphicsDriver, Driver)
 override_func_def(ioctl, GraphicsDriver, Driver)
+override_func_def(getScreenSize, GraphicsDriver, DisplayDriver)
+override_func_def(setScreenConfigObserver, GraphicsDriver, DisplayDriver)
+override_func_def(setLightPenEnabled, GraphicsDriver, DisplayDriver)
+override_func_def(obtainCursor, GraphicsDriver, DisplayDriver)
+override_func_def(releaseCursor, GraphicsDriver, DisplayDriver)
+override_func_def(bindCursor, GraphicsDriver, DisplayDriver)
+override_func_def(setCursorPosition, GraphicsDriver, DisplayDriver)
+override_func_def(setCursorVisible, GraphicsDriver, DisplayDriver)
 );

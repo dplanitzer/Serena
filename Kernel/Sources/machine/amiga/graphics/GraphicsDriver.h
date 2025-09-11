@@ -9,12 +9,10 @@
 #ifndef GraphicsDriver_h
 #define GraphicsDriver_h
 
-#include <driver/Driver.h>
-#include <kpi/fb.h>
-#include <sched/vcpu.h>
+#include <driver/DisplayDriver.h>
 
 
-final_class(GraphicsDriver, Driver);
+final_class(GraphicsDriver, DisplayDriver);
 
 
 extern errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf);
@@ -52,36 +50,5 @@ extern errno_t GraphicsDriver_SetScreenConfig(GraphicsDriverRef _Nonnull self, c
 extern errno_t GraphicsDriver_GetScreenConfig(GraphicsDriverRef _Nonnull self, intptr_t* _Nonnull conf, size_t bufsiz);
 
 extern errno_t GraphicsDriver_SetScreenCLUTEntries(GraphicsDriverRef _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
-extern void GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
-
-extern void GraphicsDriver_SetScreenConfigObserver(GraphicsDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo);
-
-
-// Light Pen
-extern void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled);
-
-
-// Mouse Cursor
-
-// Obtains the mouse cursor. The mouse cursor is initially transparent and thus
-// not visible on the screen. You assign an image to the mouse cursor by calling
-// the BindMouseCursor() function. Note that calling this function may forcefully
-// take ownership of the highest priority hardware sprites.
-extern errno_t GraphicsDriver_ObtainCursor(GraphicsDriverRef _Nonnull self);
-
-// Relinquishes the mouse cursor and makes the underlying sprite available for
-// other uses again.
-extern void GraphicsDriver_ReleaseCursor(GraphicsDriverRef _Nonnull self);
-
-// Binds the given surface to the mouse cursor.
-extern errno_t GraphicsDriver_BindCursor(GraphicsDriverRef _Nonnull self, int id);
-
-// Sets the position of the mouse cursor. Note that the mouse cursor is only
-// visible as long as at least some part of it is inside the visible display
-// area. Additionally this API guarantees that the mouse cursor will be hidden
-// if either 'x' or 'y' is == INT_MIN
-extern void GraphicsDriver_SetCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y);
-
-extern void GraphicsDriver_SetCursorVisible(GraphicsDriverRef _Nonnull self, bool isVisible);
 
 #endif /* GraphicsDriver_h */

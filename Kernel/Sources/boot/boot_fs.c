@@ -13,7 +13,6 @@
 #include <filemanager/FileHierarchy.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/IOChannel.h>
-#include <machine/amiga/graphics/GraphicsDriver.h>
 #include <kpi/fcntl.h>
 #include <sched/delay.h>
 #include <sched/vcpu.h>

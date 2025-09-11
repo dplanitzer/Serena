@@ -29,7 +29,7 @@
 #define MAX_CACHED_COPPER_PROGS 4
 
 
-final_class_ivars(GraphicsDriver, Driver,
+final_class_ivars(GraphicsDriver, DisplayDriver,
     mtx_t                   io_mtx;
 
     vcpu_t _Nonnull         copvp;
@@ -87,5 +87,22 @@ extern void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull _
 extern void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* gobj);
 
 extern errno_t _GraphicsDriver_BindSprite(GraphicsDriverRef _Nonnull _Locked self, int unit, Surface* _Nullable srf);
+
+// Screens
+extern void GraphicsDriver_getScreenSize(GraphicsDriverRef _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
+extern void GraphicsDriver_setScreenConfigObserver(GraphicsDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo);
+
+
+// Light Pen
+extern void GraphicsDriver_setLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled);
+
+
+// Mouse Cursor
+
+extern errno_t GraphicsDriver_obtainCursor(GraphicsDriverRef _Nonnull self);
+extern void GraphicsDriver_releaseCursor(GraphicsDriverRef _Nonnull self);
+extern errno_t GraphicsDriver_bindCursor(GraphicsDriverRef _Nonnull self, int id);
+extern void GraphicsDriver_setCursorPosition(GraphicsDriverRef _Nonnull self, int x, int y);
+extern void GraphicsDriver_setCursorVisible(GraphicsDriverRef _Nonnull self, bool isVisible);
 
 #endif /* GraphicsDriverPriv_h */

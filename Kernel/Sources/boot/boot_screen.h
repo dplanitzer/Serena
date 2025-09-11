@@ -10,7 +10,8 @@
 #define boot_screen_h
 
 #include <kern/types.h>
-#include <machine/amiga/graphics/GraphicsDriver.h>
+#include <kpi/fb.h>
+#include <kobj/AnyRefs.h>
 
 typedef struct boot_screen {
     IOChannelRef _Nullable  chan;

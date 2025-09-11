@@ -12,9 +12,9 @@
 #include "HIDManager.h"
 #include "HIDEventSynth.h"
 #include "InputDriver.h"
+#include <driver/DisplayDriver.h>
 #include <kpi/hidkeycodes.h>
 #include <machine/clock.h>
-#include <machine/amiga/graphics/GraphicsDriver.h>
 #include <machine/irq.h>
 #include <sched/cnd.h>
 #include <sched/mtx.h>
@@ -83,7 +83,7 @@ typedef struct HIDManager {
 
     // Framebuffer interface
     IOChannelRef _Nullable      fbChannel;
-    GraphicsDriverRef _Nullable fb;
+    DisplayDriverRef _Nullable  fb;
 
 
     // HID reports collector
