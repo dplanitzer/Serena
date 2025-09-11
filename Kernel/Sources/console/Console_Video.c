@@ -62,7 +62,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
 
     // Make our screen the current screen
-    int sc[5];
+    intptr_t sc[5];
     sc[0] = SCREEN_CONF_FRAMEBUFFER;
     sc[1] = self->surfaceId;
     sc[2] = SCREEN_CONF_CLUT;

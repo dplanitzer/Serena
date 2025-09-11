@@ -202,13 +202,13 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
 
 
         case kFBCommand_SetScreenConfig: {
-            const int* cp = va_arg(ap, const int*);
+            const intptr_t* cp = va_arg(ap, const intptr_t*);
 
             return GraphicsDriver_SetScreenConfig(self, cp);
         }
 
         case kFBCommand_GetScreenConfig: {
-            int* cp = va_arg(ap, int*);
+            intptr_t* cp = va_arg(ap, intptr_t*);
             size_t bufsiz = va_arg(ap, size_t);
 
             return GraphicsDriver_GetScreenConfig(self, cp, bufsiz);

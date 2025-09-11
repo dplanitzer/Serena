@@ -215,7 +215,7 @@ typedef struct SpriteCaps {
 
 // Configures the screen based on the given screen configuration. Pass NULL to
 // turn video output off altogether.
-// set_screen_config(const int* _Nullable config)
+// set_screen_config(const intptr_t* _Nullable config)
 #define kFBCommand_SetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 15)
 
 
@@ -231,7 +231,7 @@ typedef struct SpriteCaps {
 // SCREEN_CONF_HEIGHT
 // SCREEN_CONF_PIXELFORMAT
 // SCREEN_CONF_END
-// int get_screen_config(int* _Nonnull config, size_t bufsiz)
+// int get_screen_config(intptr_t* _Nonnull config, size_t bufsiz)
 #define kFBCommand_GetScreenConfig  IOResourceCommand(kDriverCommand_SubclassBase + 16)
 
 // Updates the color entries if the current screen CLUT. 'count' entries starting

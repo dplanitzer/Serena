@@ -11,7 +11,7 @@
 #include <machine/irq.h>
 
 
-static int _get_config_value(const int* _Nonnull config, int key, int def)
+static int _get_config_value(const intptr_t* _Nonnull config, int key, intptr_t def)
 {
     while (*config != SCREEN_CONF_END) {
         if (*config == key) {
@@ -25,7 +25,7 @@ static int _get_config_value(const int* _Nonnull config, int key, int def)
 
 // Parses the given 'icfg' in order to get a CLUT that is suitable for the
 // screen configuration.
-static errno_t _get_clut_from_config(GraphicsDriverRef _Nonnull self, const int* _Nonnull icfg, ColorTable* _Nullable * _Nonnull pOutClut, bool* _Nonnull pOutCreated)
+static errno_t _get_clut_from_config(GraphicsDriverRef _Nonnull self, const intptr_t* _Nonnull icfg, ColorTable* _Nullable * _Nonnull pOutClut, bool* _Nonnull pOutCreated)
 {
     decl_try_err();
     ColorTable* clut = NULL;
@@ -58,7 +58,7 @@ static errno_t _get_clut_from_config(GraphicsDriverRef _Nonnull self, const int*
 
 // Parses the given 'icfg' in order to get a surface that can be used as a
 // framebuffer for the screen configuration.
-static errno_t _get_framebuffer_from_config(GraphicsDriverRef _Nonnull self, const int* _Nonnull icfg, Surface* _Nullable * _Nonnull pOutSurface, const video_conf_t* _Nullable * _Nonnull pOutVc, bool* _Nonnull pOutCreated)
+static errno_t _get_framebuffer_from_config(GraphicsDriverRef _Nonnull self, const intptr_t* _Nonnull icfg, Surface* _Nullable * _Nonnull pOutSurface, const video_conf_t* _Nullable * _Nonnull pOutVc, bool* _Nonnull pOutCreated)
 {
     decl_try_err();
     Surface* fb = NULL;
@@ -108,7 +108,7 @@ static errno_t _get_framebuffer_from_config(GraphicsDriverRef _Nonnull self, con
 
 // Sets the given screen as the current screen on the graphics driver. All graphics
 // command apply to this new screen once this function has returned.
-static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull _Locked self, const int* _Nullable icfg)
+static errno_t GraphicsDriver_SetScreenConfig_Locked(GraphicsDriverRef _Nonnull _Locked self, const intptr_t* _Nullable icfg)
 {
     decl_try_err();
     Surface* fb = NULL;
@@ -149,17 +149,17 @@ catch:
     return err;
 }
 
-errno_t GraphicsDriver_SetScreenConfig(GraphicsDriverRef _Nonnull self, const int* _Nullable config)
+errno_t GraphicsDriver_SetScreenConfig(GraphicsDriverRef _Nonnull self, const intptr_t* _Nullable conf)
 {
     decl_try_err();
 
     mtx_lock(&self->io_mtx);
-    err = GraphicsDriver_SetScreenConfig_Locked(self, config);
+    err = GraphicsDriver_SetScreenConfig_Locked(self, conf);
     mtx_unlock(&self->io_mtx);
     return err;
 }
 
-errno_t GraphicsDriver_GetScreenConfig(GraphicsDriverRef _Nonnull self, int* _Nonnull config, size_t bufsiz)
+errno_t GraphicsDriver_GetScreenConfig(GraphicsDriverRef _Nonnull self, intptr_t* _Nonnull conf, size_t bufsiz)
 {
     decl_try_err();
     size_t i = 0;
@@ -185,17 +185,17 @@ errno_t GraphicsDriver_GetScreenConfig(GraphicsDriverRef _Nonnull self, int* _No
     ColorTable* clut = (ColorTable*)g_copper_running_prog->res.clut;
     irq_set_mask(sim);
 
-    config[i++] = SCREEN_CONF_FRAMEBUFFER;
-    config[i++] = (fb) ? GObject_GetId(fb) : 0;
-    config[i++] = SCREEN_CONF_CLUT;
-    config[i++] = (clut) ? GObject_GetId(clut) : 0;
-    config[i++] = SCREEN_CONF_WIDTH;
-    config[i++] = vc->width;
-    config[i++] = SCREEN_CONF_HEIGHT;
-    config[i++] = vc->height;
-    config[i++] = SCREEN_CONF_PIXELFORMAT;
-    config[i++] = (fb) ? Surface_GetPixelFormat(fb) : 0;
-    config[i]   = SCREEN_CONF_END;
+    conf[i++] = SCREEN_CONF_FRAMEBUFFER;
+    conf[i++] = (fb) ? GObject_GetId(fb) : 0;
+    conf[i++] = SCREEN_CONF_CLUT;
+    conf[i++] = (clut) ? GObject_GetId(clut) : 0;
+    conf[i++] = SCREEN_CONF_WIDTH;
+    conf[i++] = vc->width;
+    conf[i++] = SCREEN_CONF_HEIGHT;
+    conf[i++] = vc->height;
+    conf[i++] = SCREEN_CONF_PIXELFORMAT;
+    conf[i++] = (fb) ? Surface_GetPixelFormat(fb) : 0;
+    conf[i]   = SCREEN_CONF_END;
 
 catch:
     mtx_unlock(&self->io_mtx);

@@ -68,7 +68,7 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
 
 
         // Show the screen on the monitor
-        int sc[5];
+        intptr_t sc[5];
         sc[0] = SCREEN_CONF_FRAMEBUFFER;
         sc[1] = bscr->srf;
         sc[2] = SCREEN_CONF_CLUT;
