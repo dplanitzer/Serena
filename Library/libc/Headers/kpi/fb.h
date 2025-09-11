@@ -111,41 +111,43 @@ typedef unsigned int RGBColor32;
 #define kFBCommand_CreateSurface    IOResourceCommand(kDriverCommand_SubclassBase + 0)
 
 // Destroys the surface with id 'id'. Returns EBUSY if the surface is currently
-// mapped or is attached to a screen.
+// mapped or is attached to a screen. Automatically unbinds the surface if it is
+// attached to a sprite and binds the sprite target to a null surface. Does
+// nothing if 'id' is 0.
 // destroy_surface(int id)
 #define kFBCommand_DestroySurface   IOResourceCommand(kDriverCommand_SubclassBase + 1)
 
+// Binds the surface 'id' to the target 'target'. If the target is already bound
+// to a surface then that surface is unbound before the new one is bound.
+// Binding a target to a surface with id 0 leaves the target unbound.
+// bind_surface(int target, int id)
+#define kFBCommand_BindSurface  IOResourceCommand(kDriverCommand_SubclassBase + 2)
+
 // Returns information about the surface 'id'.
 // get_surface_info(int id, SurfaceInfo* _Nonnull pOutInfo)
-#define kFBCommand_GetSurfaceInfo   IOResourceCommand(kDriverCommand_SubclassBase + 2)
+#define kFBCommand_GetSurfaceInfo   IOResourceCommand(kDriverCommand_SubclassBase + 3)
 
 // Maps the backing store of the surface 'id' into the address space of the
 // calling process to allow direct access to the pixel data. 'mode' specifies
 // whether the pixel data should be mapped for reading only or reading and
 // writing. Returns with 'pOutMapping' filled in.
 // map_surface(int id, MapPixels mode, SurfaceMapping* _Nonnull pOutMapping)
-#define kFBCommand_MapSurface       IOResourceCommand(kDriverCommand_SubclassBase + 3)
+#define kFBCommand_MapSurface       IOResourceCommand(kDriverCommand_SubclassBase + 4)
 
 // Unmaps the backing store of the surface 'id' and revokes access to the pixels.
 // unmap_surface(int id)
-#define kFBCommand_UnmapSurface     IOResourceCommand(kDriverCommand_SubclassBase + 4)
+#define kFBCommand_UnmapSurface     IOResourceCommand(kDriverCommand_SubclassBase + 5)
 
 // Writes pixels to the surface 'id'. The provided source pixel buffer must be
 // of the same width and height as the surface. Returns ENOTSUP if the source
 // pixels can not be converted to the surface pixel format.
 // write_pixels(int id, const void* _Nonnull planes[], size_t bytesPerRow, PixelFormat format)
-#define kFBCommand_WritePixels      IOResourceCommand(kDriverCommand_SubclassBase + 5)
+#define kFBCommand_WritePixels      IOResourceCommand(kDriverCommand_SubclassBase + 6)
 
 // Clears all pixels of the surface 'id'. Clearing pixels means that all bits in
 // all pixels are set to 0.
 // clear_pixels(int id)
-#define kFBCommand_ClearPixels      IOResourceCommand(kDriverCommand_SubclassBase + 6)
-
-// Binds the surface 'id' to the target 'target'. If the target is already bound
-// to a surface then that surface is unbound before the new one is bound.
-// Binding a target to a surface with id 0 leaves the target unbound.
-// bind_surface(int target, int id)
-#define kFBCommand_BindSurface  IOResourceCommand(kDriverCommand_SubclassBase + 7)
+#define kFBCommand_ClearPixels      IOResourceCommand(kDriverCommand_SubclassBase + 7)
 
 
 //

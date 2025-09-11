@@ -39,23 +39,48 @@ errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, int id)
 {
     decl_try_err();
 
+    if (id == 0) {
+        return EOK;
+    }
+
     mtx_lock(&self->io_mtx);
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
 
-    if (srf) {
-        bool isBound = (g_copper_running_prog->res.fb == srf);
+    if (srf == NULL) {
+        throw(EINVAL);
+    }
+    if (Surface_IsMapped(srf) || g_copper_running_prog->res.fb == srf) {
+        throw(EBUSY);
+    }
 
-        for (int i = 0; i < SPRITE_COUNT; i++) {
-            if (self->spriteChannel[i].surface == srf) {
-                isBound = true;
-            }
+    for (int i = 0; i < SPRITE_COUNT; i++) {
+        if (self->spriteChannel[i].surface == srf) {
+            _GraphicsDriver_BindSprite(self, i, NULL);
         }
+    }
 
-        if (!isBound) {
-            _GraphicsDriver_DestroyGObj(self, srf);
-        }
-        else {
-            err = EBUSY;
+    _GraphicsDriver_DestroyGObj(self, srf);
+
+catch:
+    mtx_unlock(&self->io_mtx);
+    return err;
+}
+
+errno_t GraphicsDriver_BindSurface(GraphicsDriverRef _Nonnull self, int target, int id)
+{
+    decl_try_err();
+
+    mtx_lock(&self->io_mtx);
+    Surface* srf = (id != 0) ? _GraphicsDriver_GetSurfaceForId(self, id) : NULL;
+    if (srf || id == 0) {
+        switch (target & 0xffff0000) {
+            case kTarget_Sprite0:
+                err = _GraphicsDriver_BindSprite(self, target & 0x0000ffff, srf);
+                break;
+
+            default:
+                err = EINVAL;
+                break;
         }
     }
     else {
@@ -94,7 +119,7 @@ errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, int id, MapPi
     if (srf == NULL) {
         throw(EINVAL);
     }
-    if ((srf->flags & kSurfaceFlag_IsMapped) == kSurfaceFlag_IsMapped) {
+    if (Surface_IsMapped(srf)) {
         throw(EBUSY);
     }
     if (Surface_GetPixelFormat(srf) == kPixelFormat_RGB_Sprite2) {
@@ -122,7 +147,7 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id)
     mtx_lock(&self->io_mtx);
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
     if (srf) {
-        if ((srf->flags & kSurfaceFlag_IsMapped) == kSurfaceFlag_IsMapped) {
+        if (Surface_IsMapped(srf)) {
             srf->flags &= ~kSurfaceFlag_IsMapped;
         }
         else {
@@ -160,30 +185,6 @@ errno_t GraphicsDriver_ClearPixels(GraphicsDriverRef _Nonnull self, int id)
     Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
     if (srf) {
         Surface_ClearPixels(srf);
-    }
-    else {
-        err = EINVAL;
-    }
-    mtx_unlock(&self->io_mtx);
-    return err;
-}
-
-errno_t GraphicsDriver_BindSurface(GraphicsDriverRef _Nonnull self, int target, int id)
-{
-    decl_try_err();
-
-    mtx_lock(&self->io_mtx);
-    Surface* srf = (id != 0) ? _GraphicsDriver_GetSurfaceForId(self, id) : NULL;
-    if (srf || id == 0) {
-        switch (target & 0xffff0000) {
-            case kTarget_Sprite0:
-                err = _GraphicsDriver_BindSprite(self, target & 0x0000ffff, srf);
-                break;
-
-            default:
-                err = EINVAL;
-                break;
-        }
     }
     else {
         err = EINVAL;

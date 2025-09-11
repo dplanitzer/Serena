@@ -65,6 +65,9 @@ extern void Surface_Destroy(Surface* _Nullable self);
 #define Surface_GetPlane(__self, __idx) \
 ((__self)->plane[__idx])
 
+// Returns true if the surface is currently mapped
+#define Surface_IsMapped(__self) \
+(((__self)->flags & kSurfaceFlag_IsMapped) == kSurfaceFlag_IsMapped)
 
 extern errno_t Surface_WritePixels(Surface* _Nonnull self, const void* _Nonnull planes[], size_t bytesPerRow, PixelFormat format);
 extern errno_t Surface_ClearPixels(Surface* _Nonnull self);
