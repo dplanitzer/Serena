@@ -168,16 +168,16 @@ errno_t GraphicsDriver_ClearPixels(GraphicsDriverRef _Nonnull self, int id)
     return err;
 }
 
-errno_t GraphicsDriver_BindSurface(GraphicsDriverRef _Nonnull self, int target, int unit, int id)
+errno_t GraphicsDriver_BindSurface(GraphicsDriverRef _Nonnull self, int target, int id)
 {
     decl_try_err();
 
     mtx_lock(&self->io_mtx);
     Surface* srf = (id != 0) ? _GraphicsDriver_GetSurfaceForId(self, id) : NULL;
     if (srf || id == 0) {
-        switch (target) {
-            case kTarget_Sprite:
-                err = _GraphicsDriver_BindSprite(self, unit, srf);
+        switch (target & 0xffff0000) {
+            case kTarget_Sprite0:
+                err = _GraphicsDriver_BindSprite(self, target & 0x0000ffff, srf);
                 break;
 
             default:

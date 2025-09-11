@@ -27,8 +27,15 @@ typedef int PixelFormat;
 
 // Surface binding targets
 enum {
-    kTarget_Sprite = 1,      // Target a sprite. Unit number is the sprite number
-    //kTarget_Framebuffer,
+    //kTarget_Framebuffer = 0x10000,
+    kTarget_Sprite0 = 0x20000,
+    kTarget_Sprite1 = 0x20001,
+    kTarget_Sprite2 = 0x20002,
+    kTarget_Sprite3 = 0x20003,
+    kTarget_Sprite4 = 0x20004,
+    kTarget_Sprite5 = 0x20005,
+    kTarget_Sprite6 = 0x20006,
+    kTarget_Sprite7 = 0x20007,
 };
 
 
@@ -134,11 +141,10 @@ typedef unsigned int RGBColor32;
 // clear_pixels(int id)
 #define kFBCommand_ClearPixels      IOResourceCommand(kDriverCommand_SubclassBase + 6)
 
-// Binds the surface 'id' to the unit 'unit' of target 'target'. If the unit of
-// the target is already bound to a surface then this surface is unbound before
-// the new one is bound. Binding a target to a surface with id 0 leaves the
-// target unbound.
-// bind_surface(int target, int unit, int id)
+// Binds the surface 'id' to the target 'target'. If the target is already bound
+// to a surface then that surface is unbound before the new one is bound.
+// Binding a target to a surface with id 0 leaves the target unbound.
+// bind_surface(int target, int id)
 #define kFBCommand_BindSurface  IOResourceCommand(kDriverCommand_SubclassBase + 7)
 
 

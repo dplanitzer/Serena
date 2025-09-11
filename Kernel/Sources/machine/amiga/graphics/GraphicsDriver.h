@@ -31,7 +31,7 @@ extern errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int 
 extern errno_t GraphicsDriver_WritePixels(GraphicsDriverRef _Nonnull self, int id, const void* _Nonnull planes[], size_t bytesPerRow, PixelFormat format);
 extern errno_t GraphicsDriver_ClearPixels(GraphicsDriverRef _Nonnull self, int id);
 
-extern errno_t GraphicsDriver_BindSurface(GraphicsDriverRef _Nonnull self, int target, int unit, int id);
+extern errno_t GraphicsDriver_BindSurface(GraphicsDriverRef _Nonnull self, int target, int id);
 
 
 // CLUT

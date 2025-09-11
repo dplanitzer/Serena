@@ -88,7 +88,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_CreateSurface, textCursorWidth, textCursorHeight, kPixelFormat_RGB_Sprite2, &self->textCursorSurface));
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_WritePixels, self->textCursorSurface, textCursorPlanes, 2, kPixelFormat_RGB_Indexed2));
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, 0));
-    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_BindSurface, kTarget_Sprite, self->textCursorSprite, self->textCursorSurface));
+    try(IOChannel_Ioctl(self->fbChannel, kFBCommand_BindSurface, kTarget_Sprite0 + self->textCursorSprite, self->textCursorSurface));
 
 
     // Allocate the text cursor blinking timer
@@ -108,7 +108,7 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
 
     IOChannel_Ioctl(self->fbChannel, kFBCommand_SetScreenConfig, NULL);
 
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_BindSurface, kTarget_Sprite, self->textCursorSprite, 0);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_BindSurface, kTarget_Sprite0 + self->textCursorSprite, 0);
     IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroyCLUT, self->clutId);
     IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroySurface, self->surfaceId);
     

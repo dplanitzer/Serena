@@ -40,12 +40,12 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
     self->keyFlags = gUSBHIDKeyFlags;
     self->isMouseMoveReportingEnabled = false;
     self->hiddenCount = 0;
-    // We set the initial mouse position to 1,1 to ensure that the whole mouse
+    // We set the initial mouse position to 2,2 to ensure that the whole mouse
     // cursor will show up in the top left screen corner (assuming that it's
-    // hot spot offset will be 1,1).
-    self->mouse.x = 1;
-    self->mouse.y = 1;
-    
+    // hot spot offset will be 1,1 in hires pixels).
+    self->mouse.x = 2;
+    self->mouse.y = 2;
+
 
     // Create the HID event queue
     const size_t powOf2Capacity = siz_pow2_ceil(REPORT_QUEUE_MAX_EVENTS);

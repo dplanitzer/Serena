@@ -142,10 +142,9 @@ errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, IOChannelRef _Nonn
 
         case kFBCommand_BindSurface: {
             const int target = va_arg(ap, int);
-            const int unit = va_arg(ap, int);
             const int id = va_arg(ap, int);
 
-            return GraphicsDriver_BindSurface(self, target, unit, id);
+            return GraphicsDriver_BindSurface(self, target, id);
         }
 
 
