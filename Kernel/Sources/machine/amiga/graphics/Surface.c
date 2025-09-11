@@ -32,6 +32,15 @@ static int8_t PixelFormat_GetPlaneCount(PixelFormat format)
         case kPixelFormat_RGB_Indexed5:
             return 5;
 
+        case kPixelFormat_RGB_Indexed6:
+            return 6;
+
+        case kPixelFormat_RGB_Indexed7:
+            return 7;
+
+        case kPixelFormat_RGB_Indexed8:
+            return 8;
+
         default:
             return 1;
     }

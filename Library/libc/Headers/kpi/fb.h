@@ -13,13 +13,16 @@
 #include <kpi/ioctl.h>
 #include <kpi/types.h>
 
-// The pixel formats supported by framebuffers
+// Surface pixel formats
 enum {
     kPixelFormat_RGB_Indexed1 = 1,  // planar indexed RGB with 1 plane
     kPixelFormat_RGB_Indexed2,      // planar indexed RGB with 2 planes
     kPixelFormat_RGB_Indexed3,      // planar indexed RGB with 3 planes
     kPixelFormat_RGB_Indexed4,      // planar indexed RGB with 4 planes
     kPixelFormat_RGB_Indexed5,      // planar indexed RGB with 5 planes
+    kPixelFormat_RGB_Indexed6,      // planar indexed RGB with 6 planes
+    kPixelFormat_RGB_Indexed7,      // planar indexed RGB with 7 planes
+    kPixelFormat_RGB_Indexed8,      // planar indexed RGB with 8 planes
     kPixelFormat_RGB_Sprite2,       // interleaved planar indexed RGB with 2 planes
 };
 typedef int PixelFormat;
