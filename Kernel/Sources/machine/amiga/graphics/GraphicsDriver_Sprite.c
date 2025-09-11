@@ -105,17 +105,6 @@ static errno_t _bind_sprite(GraphicsDriverRef _Nonnull _Locked self, int unit, S
     return EOK;
 }
 
-static errno_t _set_sprite_pixels(GraphicsDriverRef _Nonnull _Locked self, int unit, const uint16_t* _Nonnull planes[2])
-{
-    if (unit < 0 || unit >= SPRITE_COUNT) {
-        return EINVAL;
-    }
-
-    sprite_channel_t* spr = &self->spriteChannel[unit];
-    Surface_WritePixels(spr->surface, (const void**)planes, 2, kPixelFormat_RGB_Indexed2);
-    return EOK;
-}
-
 static errno_t _set_sprite_pos(GraphicsDriverRef _Nonnull _Locked self, int unit, int x, int y)
 {
     if (unit < 0 || unit >= SPRITE_COUNT) {
