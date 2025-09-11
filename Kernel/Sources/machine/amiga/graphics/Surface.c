@@ -16,15 +16,21 @@
 static int8_t PixelFormat_GetPlaneCount(PixelFormat format)
 {
     switch (format) {
-        case kPixelFormat_RGB_Indexed1:
-        case kPixelFormat_RGB_Indexed2:
-        case kPixelFormat_RGB_Indexed3:
-        case kPixelFormat_RGB_Indexed4:
-        case kPixelFormat_RGB_Indexed5:
-            return format + 1;
-
         case kPixelFormat_RGB_Sprite2:
+        case kPixelFormat_RGB_Indexed1:
             return 1;
+
+        case kPixelFormat_RGB_Indexed2:
+            return 2;
+
+        case kPixelFormat_RGB_Indexed3:
+            return 3;
+
+        case kPixelFormat_RGB_Indexed4:
+            return 4;
+
+        case kPixelFormat_RGB_Indexed5:
+            return 5;
 
         default:
             return 1;

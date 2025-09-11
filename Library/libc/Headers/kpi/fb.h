@@ -15,7 +15,7 @@
 
 // The pixel formats supported by framebuffers
 enum {
-    kPixelFormat_RGB_Indexed1,      // planar indexed RGB with 1 plane
+    kPixelFormat_RGB_Indexed1 = 1,  // planar indexed RGB with 1 plane
     kPixelFormat_RGB_Indexed2,      // planar indexed RGB with 2 planes
     kPixelFormat_RGB_Indexed3,      // planar indexed RGB with 3 planes
     kPixelFormat_RGB_Indexed4,      // planar indexed RGB with 4 planes
