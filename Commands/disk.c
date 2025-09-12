@@ -103,7 +103,7 @@ static int wipe_disk(int ioc, const disk_info_t* _Nonnull ip)
     fputs("\033[?25l", stdout);
     lseek(ioc, 0ll, SEEK_SET);
     while (t < trackCount) {
-        printf("%u\n\033[1A", (unsigned)(t + 1));
+        printf("Formatting track: %u of %u\r", (unsigned)(t + 1), (unsigned)trackCount);
         
         if (ioctl(ioc, kDiskCommand_FormatTrack, NULL, 0) != 0) {
             ok = 0;
@@ -112,7 +112,7 @@ static int wipe_disk(int ioc, const disk_info_t* _Nonnull ip)
         
         t++;
     }
-    fputs("\033[?25h\n", stdout);
+    puts("\033[?25h");
 
     return ok;
 }
@@ -142,9 +142,10 @@ void cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t rootDi
                 }
             }
             if (ok) {
+                puts("Initializing filesystem...");
                 sefs_format((intptr_t)fp, block_write, info.sectorsPerTrack * info.heads * info.cylinders, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label);
             }
-            puts("ok");
+            puts("Done");
         }
         
         fclose(fp);
