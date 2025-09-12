@@ -6,8 +6,8 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
+#include "FloppyController.h"
 #include "FloppyDriverPriv.h"
-#include "FloppyControllerPkg.h"
 #include "adf.h"
 #include <machine/clock.h>
 #include <machine/amiga/chipset.h>

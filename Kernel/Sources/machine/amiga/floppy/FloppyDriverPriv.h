@@ -10,7 +10,7 @@
 #define FloppyDriverPriv_h
 
 #include "FloppyDriver.h"
-#include "FloppyControllerPkg.h"
+#include "FloppyController.h"
 #include "adf.h"
 
 
