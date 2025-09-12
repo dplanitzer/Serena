@@ -143,9 +143,15 @@ void cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t rootDi
             }
             if (ok) {
                 puts("Initializing filesystem...");
-                sefs_format((intptr_t)fp, block_write, info.sectorsPerTrack * info.heads * info.cylinders, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label);
+                const errno_t err = sefs_format((intptr_t)fp, block_write, info.sectorsPerTrack * info.heads * info.cylinders, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label);
+                if (err != EOK) {
+                    ok = 0;
+                    errno = err;
+                }
             }
-            puts("Done");
+            if (ok) {
+                puts("Done");
+            }
         }
         
         fclose(fp);
