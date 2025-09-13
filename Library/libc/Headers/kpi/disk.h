@@ -77,19 +77,11 @@ typedef struct disk_info {
 #define kDiskCommand_GetDiskInfo    IOResourceCommand(kDriverCommand_SubclassBase + 1)
 
 
-// Format options
-enum {
-    kFormatTrack_HeadersProvided = 1,
-};
-
 // Formats a track of 'sectorsPerTrack' consecutive sectors starting at the
-// current position (rounded down to the closest track start). 'data' points to
-// sectorSize * sectorsPerTrack bytes that should be written to the sectors in
-// the track. The data portion of all sectors in the track are filled with zeros
-// if 'data' is NULL. 'options' are options that control how the format command
-// should execute. The caller will be blocked until all data has been written to
-// disk or an error is encountered.
-// format(const void* _Nullable data, unsigned int options)
+// current position (rounded down to the closest track start). The data portion
+// of every sector is filled with 'fillByte'. The caller will be blocked until
+// all data has been written to disk or an error is encountered.
+// format(char fillByte)
 #define kDiskCommand_FormatTrack    IOResourceCommand(kDriverCommand_SubclassBase + 2)
 
 

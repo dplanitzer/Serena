@@ -793,44 +793,27 @@ catch:
 // Formatting
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t FloppyDriver_formatTrack(FloppyDriverRef _Nonnull self, const chs_t* chs, const void* _Nullable data, unsigned int options, size_t secSize)
+errno_t FloppyDriver_formatTrack(FloppyDriverRef _Nonnull self, const chs_t* chs, char fillByte, size_t secSize)
 {
     decl_try_err();
     const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(chs);
     const int sectorCount = self->sectorsPerTrack;
-    const uint8_t* src = data;
     ADF_Sector* ps = self->trackBuffer;
     int8_t* pst = self->tbSectorState;
-
-    if (options != 0 && data == NULL) {
-        return EINVAL;
-    }
 
     for (int i = 0; i < sectorCount; i++) {
         *pst = kSectorState_Ok;
 
-        if ((options & kFormatTrack_HeadersProvided) == 0) {
-            ps->info.format = ADF_FORMAT_V1;
-            ps->info.track = targetTrack;
-            ps->info.sector = i;
-            ps->info.sectors_until_gap = sectorCount - i;
-            ps->label[0] = 0;
-            ps->label[1] = 0;
-            ps->label[2] = 0;
-            ps->label[3] = 0;
-        }
-        else {
-            memcpy(&ps->info, src, sizeof(ADF_SectorInfo));
-            src += sizeof(ADF_SectorInfo);
-        }
+        ps->info.format = ADF_FORMAT_V1;
+        ps->info.track = targetTrack;
+        ps->info.sector = i;
+        ps->info.sectors_until_gap = sectorCount - i;
+        ps->label[0] = 0;
+        ps->label[1] = 0;
+        ps->label[2] = 0;
+        ps->label[3] = 0;
 
-        if (src) {
-            memcpy(ps->data, src, ADF_SECTOR_DATA_SIZE);
-            src += ADF_SECTOR_DATA_SIZE;
-        }
-        else {
-            memset(ps->data, 0, ADF_SECTOR_DATA_SIZE);
-        }
+        memset(ps->data, fillByte, ADF_SECTOR_DATA_SIZE);
 
         ps++;
         pst++;

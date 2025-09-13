@@ -182,15 +182,11 @@ errno_t RamDisk_putSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, c
 }
 
 
-errno_t RamDisk_formatTrack(RamDiskRef _Nonnull self, const chs_t* chs, const void* _Nullable data, unsigned int options, size_t secSize)
+errno_t RamDisk_formatTrack(RamDiskRef _Nonnull self, const chs_t* chs, char fillByte, size_t secSize)
 {
     chs_t addr;
     errno_t err;
 
-    if (options != 0) {
-        return EINVAL;
-    }
-    
     addr.c = 0;
     addr.h = 0;
     addr.s = 0;
@@ -198,7 +194,7 @@ errno_t RamDisk_formatTrack(RamDiskRef _Nonnull self, const chs_t* chs, const vo
     for (size_t s = 0; s < self->sectorCount; s++) {
         addr.s = s;
         
-        if ((err = RamDisk_putSector(self, &addr, data, secSize)) != 0) {
+        if ((err = RamDisk_putSector(self, &addr, NULL, secSize)) != 0) {
             return err;
         }
     }

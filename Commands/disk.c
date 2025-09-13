@@ -105,7 +105,7 @@ static int wipe_disk(int ioc, const disk_info_t* _Nonnull ip)
     while (t < trackCount) {
         printf("Formatting track: %u of %u\r", (unsigned)(t + 1), (unsigned)trackCount);
         
-        if (ioctl(ioc, kDiskCommand_FormatTrack, NULL, 0) != 0) {
+        if (ioctl(ioc, kDiskCommand_FormatTrack, 0) != 0) {
             ok = 0;
             break;
         }

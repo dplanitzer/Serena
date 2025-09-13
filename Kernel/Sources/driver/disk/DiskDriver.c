@@ -213,7 +213,7 @@ void DiskDriver_strategy(DiskDriverRef _Nonnull self, StrategyRequest* _Nonnull 
 }
 
 
-errno_t DiskDriver_formatTrack(DiskDriverRef _Nonnull self, const chs_t* chs, const void* _Nonnull data, unsigned int options, size_t secSize)
+errno_t DiskDriver_formatTrack(DiskDriverRef _Nonnull self, const chs_t* chs, char fillByte, size_t secSize)
 {
     return ENOTSUP;
 }
@@ -235,7 +235,7 @@ void DiskDriver_doFormatTrack(DiskDriverRef _Nonnull self, FormatTrackRequest* _
     }
     else {
         DiskDriver_LsaToChs(self, lsa, &chs);
-        err = DiskDriver_FormatTrack(self, &chs, req->data, req->options, self->sectorSize);
+        err = DiskDriver_FormatTrack(self, &chs, req->fillByte, self->sectorSize);
     }
 
     if (err == EOK) {
@@ -333,15 +333,14 @@ errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 }
 
 
-errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, const void* _Nullable buf, unsigned int options)
+errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, char fillByte)
 {
     decl_try_err();
     FormatTrackRequest r;
 
     IORequest_Init(&r, kDiskRequest_FormatTrack);
     r.offset = IOChannel_GetOffset(ch);
-    r.data = buf;
-    r.options = options;
+    r.fillByte = fillByte;
     r.resCount = 0;
 
     err = DiskDriver_DoIO(self, (IORequest*)&r);
@@ -446,10 +445,9 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull pCha
         }
 
         case kDiskCommand_FormatTrack: {
-            const void* data = va_arg(ap, const void*);
-            const int options = va_arg(ap, unsigned int);
+            const char fillByte = va_arg(ap, int);
 
-            return DiskDriver_Format(self, pChannel, data, options);
+            return DiskDriver_Format(self, pChannel, fillByte);
         }
 
         case kDiskCommand_SenseDisk:
