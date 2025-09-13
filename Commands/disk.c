@@ -101,16 +101,27 @@ static int wipe_disk(int ioc, const disk_info_t* _Nonnull ip)
     int ok = 1;
     
     fputs("\033[?25l", stdout);
-    lseek(ioc, 0ll, SEEK_SET);
-    while (t < trackCount) {
-        printf("Formatting track: %u of %u\r", (unsigned)(t + 1), (unsigned)trackCount);
+    // Try format_disk() first
+    if (ioctl(ioc, kDiskCommand_FormatDisk, 0) != 0) {
+        if (errno == ENOTSUP) {
+            errno = 0;
+            
+            // Try formatting individual tracks next
+            lseek(ioc, 0ll, SEEK_SET);
+            while (t < trackCount) {
+                printf("Formatting track: %u of %u\r", (unsigned)(t + 1), (unsigned)trackCount);
         
-        if (ioctl(ioc, kDiskCommand_FormatTrack, 0) != 0) {
-            ok = 0;
-            break;
+                if (ioctl(ioc, kDiskCommand_FormatTrack, 0) != 0) {
+                    ok = 0;
+                    break;
+                }
+        
+                t++;
+            }
         }
-        
-        t++;
+        else {
+            ok = 0;
+        }
     }
     puts("\033[?25h");
 

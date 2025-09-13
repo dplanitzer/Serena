@@ -151,7 +151,7 @@ errno_t DiskDriver_putSector(DiskDriverRef _Nonnull self, const chs_t* _Nonnull 
     return EIO;
 }
 
-void DiskDriver_strategy(DiskDriverRef _Nonnull self, StrategyRequest* _Nonnull req)
+static void _read_write_async(DiskDriverRef _Nonnull self, StrategyRequest* _Nonnull req)
 {
     decl_try_err();
     chs_t chs;
@@ -213,12 +213,17 @@ void DiskDriver_strategy(DiskDriverRef _Nonnull self, StrategyRequest* _Nonnull 
 }
 
 
-errno_t DiskDriver_formatTrack(DiskDriverRef _Nonnull self, const chs_t* chs, char fillByte, size_t secSize)
+errno_t DiskDriver_doFormatDisk(DiskDriverRef _Nonnull self, char fillByte)
 {
     return ENOTSUP;
 }
 
-void DiskDriver_doFormatTrack(DiskDriverRef _Nonnull self, FormatTrackRequest* _Nonnull req)
+errno_t DiskDriver_doFormatTrack(DiskDriverRef _Nonnull self, const chs_t* chs, char fillByte, size_t secSize)
+{
+    return ENOTSUP;
+}
+
+static void _format_track_async(DiskDriverRef _Nonnull self, FormatTrackRequest* _Nonnull req)
 {
     decl_try_err();
     const sno_t lsa = req->offset / (off_t)self->sectorSize;
@@ -235,7 +240,7 @@ void DiskDriver_doFormatTrack(DiskDriverRef _Nonnull self, FormatTrackRequest* _
     }
     else {
         DiskDriver_LsaToChs(self, lsa, &chs);
-        err = DiskDriver_FormatTrack(self, &chs, req->fillByte, self->sectorSize);
+        err = DiskDriver_DoFormatTrack(self, &chs, req->fillByte, self->sectorSize);
     }
 
     if (err == EOK) {
@@ -246,7 +251,7 @@ void DiskDriver_doFormatTrack(DiskDriverRef _Nonnull self, FormatTrackRequest* _
 
 
 // Returns information about the disk drive.
-void DiskDriver_doGetDriveInfo(DiskDriverRef _Nonnull self, GetDriveInfoRequest* _Nonnull req)
+static void _get_drive_info_async(DiskDriverRef _Nonnull self, GetDriveInfoRequest* _Nonnull req)
 {
     drive_info_t* p = req->ip;
     
@@ -254,7 +259,7 @@ void DiskDriver_doGetDriveInfo(DiskDriverRef _Nonnull self, GetDriveInfoRequest*
     req->s.status = EOK;
 }
 
-void DiskDriver_doGetDiskInfo(DiskDriverRef _Nonnull self, DiskGeometryRequest* _Nonnull req)
+static void _get_disk_info_async(DiskDriverRef _Nonnull self, DiskGeometryRequest* _Nonnull req)
 {
     disk_info_t* p = req->gp;
 
@@ -289,19 +294,23 @@ void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IORequest* _Nonnull r
         switch (req->type) {
             case kDiskRequest_Read:
             case kDiskRequest_Write:
-                DiskDriver_Strategy(self, (StrategyRequest*)req);
+                _read_write_async(self, (StrategyRequest*)req);
+                break;
+
+            case kDiskRequest_FormatDisk:
+                req->status = DiskDriver_DoFormatDisk(self, ((FormatDiskRequest*)req)->fillByte);
                 break;
 
             case kDiskRequest_FormatTrack:
-                DiskDriver_DoFormatTrack(self, (FormatTrackRequest*)req);
+                _format_track_async(self, (FormatTrackRequest*)req);
                 break;
 
             case kDiskRequest_GetDriveInfo:
-                DiskDriver_DoGetDriveInfo(self, (GetDriveInfoRequest*)req);
+                _get_drive_info_async(self, (GetDriveInfoRequest*)req);
                 break;
 
             case kDiskRequest_GetDiskInfo:
-                DiskDriver_DoGetDiskInfo(self, (DiskGeometryRequest*)req);
+                _get_disk_info_async(self, (DiskGeometryRequest*)req);
                 break;
 
             case kDiskRequest_SenseDisk:
@@ -333,7 +342,18 @@ errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 }
 
 
-errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, char fillByte)
+errno_t DiskDriver_FormatDisk(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, char fillByte)
+{
+    decl_try_err();
+    FormatDiskRequest r;
+
+    IORequest_Init(&r, kDiskRequest_FormatDisk);
+    r.fillByte = fillByte;
+
+    return DiskDriver_DoIO(self, (IORequest*)&r);
+}
+
+errno_t DiskDriver_FormatTrack(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, char fillByte)
 {
     decl_try_err();
     FormatTrackRequest r;
@@ -444,10 +464,17 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull pCha
             return DiskDriver_GetDiskInfo(self, info);
         }
 
+        case kDiskCommand_FormatDisk: {
+            const char fillByte = va_arg(ap, int);
+
+            const errno_t err = DiskDriver_FormatDisk(self, pChannel, fillByte);
+            return err;
+        }
+
         case kDiskCommand_FormatTrack: {
             const char fillByte = va_arg(ap, int);
 
-            return DiskDriver_Format(self, pChannel, fillByte);
+            return DiskDriver_FormatTrack(self, pChannel, fillByte);
         }
 
         case kDiskCommand_SenseDisk:
@@ -466,13 +493,10 @@ override_func_def(onStop, DiskDriver, Driver)
 func_def(beginIO, DiskDriver)
 func_def(doIO, DiskDriver)
 func_def(handleRequest, DiskDriver)
-func_def(strategy, DiskDriver)
 func_def(getSector, DiskDriver)
 func_def(putSector, DiskDriver)
+func_def(doFormatDisk, DiskDriver)
 func_def(doFormatTrack, DiskDriver)
-func_def(formatTrack, DiskDriver)
-func_def(doGetDriveInfo, DiskDriver)
-func_def(doGetDiskInfo, DiskDriver)
 func_def(doSenseDisk, DiskDriver)
 override_func_def(read, DiskDriver, Driver)
 override_func_def(write, DiskDriver, Driver)

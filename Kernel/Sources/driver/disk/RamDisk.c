@@ -13,7 +13,7 @@
 
 typedef struct DiskExtent {
     SListNode   node;
-    blkno_t       firstSectorIndex;
+    blkno_t     firstSectorIndex;
     char        data[1];
 } DiskExtent;
 
@@ -182,22 +182,14 @@ errno_t RamDisk_putSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, c
 }
 
 
-errno_t RamDisk_formatTrack(RamDiskRef _Nonnull self, const chs_t* chs, char fillByte, size_t secSize)
+errno_t RamDisk_doFormatDisk(RamDiskRef _Nonnull self, char fillByte)
 {
-    chs_t addr;
-    errno_t err;
+    SList_ForEach(&self->extents, DiskExtent, {
+        kfree(pCurNode);
+    });
 
-    addr.c = 0;
-    addr.h = 0;
-    addr.s = 0;
+    SList_Init(&self->extents);
 
-    for (size_t s = 0; s < self->sectorCount; s++) {
-        addr.s = s;
-        
-        if ((err = RamDisk_putSector(self, &addr, NULL, secSize)) != 0) {
-            return err;
-        }
-    }
     return EOK;
 }
 
@@ -207,5 +199,5 @@ override_func_def(deinit, RamDisk, Object)
 override_func_def(onStart, RamDisk, Driver)
 override_func_def(getSector, RamDisk, DiskDriver)
 override_func_def(putSector, RamDisk, DiskDriver)
-override_func_def(formatTrack, RamDisk, DiskDriver)
+override_func_def(doFormatDisk, RamDisk, DiskDriver)
 );

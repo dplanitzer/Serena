@@ -33,6 +33,7 @@ typedef struct SensedDisk {
 enum {
     kDiskRequest_Read = 1,
     kDiskRequest_Write,
+    kDiskRequest_FormatDisk,
     kDiskRequest_FormatTrack,
     kDiskRequest_GetDriveInfo,
     kDiskRequest_GetDiskInfo,
@@ -49,6 +50,12 @@ typedef struct StrategyRequest {
 
     IOVector        iov[1];
 } StrategyRequest;
+
+
+typedef struct FormatDiskRequest {
+    IORequest   s;
+    char        fillByte;   // <- data for all sectors in the cluster to format
+} FormatDiskRequest;
 
 
 typedef struct FormatTrackRequest {
@@ -175,12 +182,6 @@ open_class_funcs(DiskDriver, Driver,
     void (*handleRequest)(void* _Nonnull self, IORequest* _Nonnull req);
 
 
-    // Executes a strategy request. A strategy request is a list of sector
-    // requests. This function is expected to call getSector()/putSector() for
-    // each sector referenced by the request.
-    // Default Behavior: Calls getSector()/putSector()
-    void (*strategy)(void* _Nonnull self, StrategyRequest* _Nonnull req);
-
     // Reads the contents of the sector at the disk address 'chs' into the
     // in-memory area 'data' of size 'sectorSize'. Blocks the caller until the
     // read operation has completed. Note that this function will never return a
@@ -202,22 +203,11 @@ open_class_funcs(DiskDriver, Driver,
     errno_t (*putSector)(void* _Nonnull self, const chs_t* _Nonnull chs, const uint8_t* _Nonnull data, size_t secSize);
 
 
-    // Executes the format action on the dispatch queue. See format() above.
-    void (*doFormatTrack)(void* _Nonnull self, FormatTrackRequest* _Nonnull req);
+    // Called from handleRequest(). Does the actual formatting of a disk. 
+    errno_t (*doFormatDisk)(void* _Nonnull self, char fillByte);
 
-    // Called from doFormat(). Does the actual formatting of a track. 
-    errno_t (*formatTrack)(void* _Nonnull self, const chs_t* chs, char fillByte, size_t secSize);
-
-
-    // Returns information about the disk drive.
-    // Default Behavior: returns info about the disk drive
-    void (*doGetDriveInfo)(void* _Nonnull self, GetDriveInfoRequest* _Nonnull req);
-
-
-    // Returns geometry information about the disk that is currently in the
-    // drive. Returns ENOMEDIUM if no disk is in the drive
-    // Default Behavior: returns geometry info for the currently loaded disk
-    void (*doGetDiskInfo)(void* _Nonnull self, DiskGeometryRequest* _Nonnull req);
+    // Called from handleRequest(). Does the actual formatting of a track. 
+    errno_t (*doFormatTrack)(void* _Nonnull self, const chs_t* chs, char fillByte, size_t secSize);
 
 
     // Overrides should check whether a disk is in the drive and call
@@ -239,10 +229,10 @@ invoke_n(beginIO, DiskDriver, __self, __req)
 invoke_n(doIO, DiskDriver, __self, __req)
 
 
-extern errno_t DiskDriver_Format(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, char fillByte);
+extern errno_t DiskDriver_FormatDisk(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, char fillByte);
+extern errno_t DiskDriver_FormatTrack(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull ch, char fillByte);
 
 extern errno_t DiskDriver_GetDriveInfo(DiskDriverRef _Nonnull self, drive_info_t* pOutInfo);
-
 extern errno_t DiskDriver_GetDiskInfo(DiskDriverRef _Nonnull self, disk_info_t* pOutInfo);
 
 extern errno_t DiskDriver_SenseDisk(DiskDriverRef _Nonnull self);
@@ -264,8 +254,8 @@ invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
 // Must be called by a subclass in its doSenseDisk() override to indicate whether
 // a disk is in the drive or no disk is in the drive. Note that a DiskDriver
 // assumes that there is no disk loaded into the drive initially. Thus even a
-// fixed disk driver must call this function from its doSenseDisk() override to
-// indicate that a fixed disk has been "loaded" into the drive. If the user
+// fixed disk driver must call this function from its doSenseDisk() override
+// to indicate that a fixed disk has been "loaded" into the drive. If the user
 // removes the disk from the drive then this function must be called with NULL
 // as the info argument; otherwise it must be called with a properly filled in
 // info record.
@@ -295,9 +285,6 @@ extern void DiskDriver_NoteDiskChanged(DiskDriverRef _Nonnull self);
 invoke_n(handleRequest, DiskDriver, __self, __req)
 
 
-#define DiskDriver_Strategy(__self, __req) \
-invoke_n(strategy, DiskDriver, __self, __req)
-
 #define DiskDriver_GetSector(__self, __chs, __data, __secSize) \
 invoke_n(getSector, DiskDriver, __self, __chs, __data, __secSize)
 
@@ -305,18 +292,12 @@ invoke_n(getSector, DiskDriver, __self, __chs, __data, __secSize)
 invoke_n(putSector, DiskDriver, __self, __chs, __data, __secSize)
 
 
-#define DiskDriver_DoFormatTrack(__self, __req) \
-invoke_n(doFormatTrack, DiskDriver, __self, __req)
+#define DiskDriver_DoFormatDisk(__self, __fillByte) \
+invoke_n(doFormatDisk, DiskDriver, __self, __fillByte)
 
-#define DiskDriver_FormatTrack(__self, __chs, __fillByte, __secSize) \
-invoke_n(formatTrack, DiskDriver, __self, __chs, __fillByte, __secSize)
+#define DiskDriver_DoFormatTrack(__self, __chs, __fillByte, __secSize) \
+invoke_n(doFormatTrack, DiskDriver, __self, __chs, __fillByte, __secSize)
 
-
-#define DiskDriver_DoGetDriveInfo(__self, __req) \
-invoke_n(doGetDriveInfo, DiskDriver, __self, __req)
-
-#define DiskDriver_DoGetDiskInfo(__self, __req) \
-invoke_n(doGetDiskInfo, DiskDriver, __self, __req)
 
 #define DiskDriver_DoSenseDisk(__self, __req) \
 invoke_n(doSenseDisk, DiskDriver, __self, __req)

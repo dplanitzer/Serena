@@ -77,12 +77,20 @@ typedef struct disk_info {
 #define kDiskCommand_GetDiskInfo    IOResourceCommand(kDriverCommand_SubclassBase + 1)
 
 
+// Formats all sectors on the disk. 'The data portion of all sectors is filled
+// with the byte 'fillByte'. Blocks the caller until the whole disk has been
+// formatted. Returns ENOTSUP if this command is not supported by the disk
+// driver. You should attempt to use FormatTrack() instead in this case.
+// format_disk(char fillByte)
+#define kDiskCommand_FormatDisk     IOResourceCommand(kDriverCommand_SubclassBase + 2)
+
+
 // Formats a track of 'sectorsPerTrack' consecutive sectors starting at the
 // current position (rounded down to the closest track start). The data portion
 // of every sector is filled with 'fillByte'. The caller will be blocked until
 // all data has been written to disk or an error is encountered.
 // format(char fillByte)
-#define kDiskCommand_FormatTrack    IOResourceCommand(kDriverCommand_SubclassBase + 2)
+#define kDiskCommand_FormatTrack    IOResourceCommand(kDriverCommand_SubclassBase + 3)
 
 
 // Checks whether a disk was inserted into the drive and updates the drive state
@@ -90,6 +98,6 @@ typedef struct disk_info {
 // from any of the other disk related calls. Returns EOK if a disk is in the drive
 // and ENOMEDIUM if no disk is in the drive.
 // sensedisk(void)
-#define kDiskCommand_SenseDisk  IOResourceCommand(kDriverCommand_SubclassBase + 3)
+#define kDiskCommand_SenseDisk  IOResourceCommand(kDriverCommand_SubclassBase + 4)
 
 #endif /* _KPI_DISK_H */

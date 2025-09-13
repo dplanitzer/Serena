@@ -793,7 +793,7 @@ catch:
 // Formatting
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t FloppyDriver_formatTrack(FloppyDriverRef _Nonnull self, const chs_t* chs, char fillByte, size_t secSize)
+errno_t FloppyDriver_doFormatTrack(FloppyDriverRef _Nonnull self, const chs_t* chs, char fillByte, size_t secSize)
 {
     decl_try_err();
     const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(chs);
@@ -835,9 +835,9 @@ errno_t FloppyDriver_formatTrack(FloppyDriverRef _Nonnull self, const chs_t* chs
 
 class_func_defs(FloppyDriver, DiskDriver,
 override_func_def(deinit, FloppyDriver, Object)
-override_func_def(doSenseDisk, FloppyDriver, DiskDriver)
 override_func_def(onStart, FloppyDriver, Driver)
 override_func_def(getSector, FloppyDriver, DiskDriver)
 override_func_def(putSector, FloppyDriver, DiskDriver)
-override_func_def(formatTrack, FloppyDriver, DiskDriver)
+override_func_def(doFormatTrack, FloppyDriver, DiskDriver)
+override_func_def(doSenseDisk, FloppyDriver, DiskDriver)
 );
