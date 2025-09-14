@@ -27,6 +27,7 @@ final_class_ivars(RamDisk, DiskDriver,
     scnt_t      sectorCount;
     size_t      sectorShift;
     size_t      sectorSize;
+    char        fillByte;
     char        name[MAX_NAME_LENGTH];
 );
 
@@ -53,6 +54,7 @@ errno_t RamDisk_Create(const char* _Nonnull name, size_t sectorSize, scnt_t sect
     self->sectorCount = sectorCount;
     self->sectorShift = siz_log2(sectorSize);
     self->sectorSize = sectorSize;
+    self->fillByte = 0;
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
 
 catch:
@@ -131,7 +133,7 @@ errno_t RamDisk_getSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, u
     }
     else {
         // Request for a sector that hasn't been written to yet -> return zeros
-        memset(data, 0, secSize);
+        memset(data, self->fillByte, secSize);
     }
 
     return EOK;
@@ -156,7 +158,7 @@ catch:
     return err;
 }
 
-errno_t RamDisk_putSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, const uint8_t* _Nullable data, size_t secSize)
+errno_t RamDisk_putSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, const uint8_t* _Nonnull data, size_t secSize)
 {
     decl_try_err();
 
@@ -170,12 +172,7 @@ errno_t RamDisk_putSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, c
     }
 
     if (pExtent) {
-        if (data) {
-            memcpy(&pExtent->data[(chs->s - pExtent->firstSectorIndex) << self->sectorShift], data, secSize);
-        }
-        else {
-            memset(&pExtent->data[(chs->s - pExtent->firstSectorIndex) << self->sectorShift], 0, secSize);
-        }
+        memcpy(&pExtent->data[(chs->s - pExtent->firstSectorIndex) << self->sectorShift], data, secSize);
     }
 
     return err;
@@ -189,6 +186,7 @@ errno_t RamDisk_doFormatDisk(RamDiskRef _Nonnull self, char fillByte)
     });
 
     SList_Init(&self->extents);
+    self->fillByte = fillByte;
 
     return EOK;
 }
