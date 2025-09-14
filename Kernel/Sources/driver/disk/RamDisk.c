@@ -44,7 +44,6 @@ errno_t RamDisk_Create(const char* _Nonnull name, size_t sectorSize, scnt_t sect
     }
 
     drive_info_t drvi;
-    drvi.family = kDriveFamily_RAM;
     drvi.platter = kPlatter_None;
     drvi.properties = kDrive_Fixed;
 

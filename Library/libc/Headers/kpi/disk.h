@@ -14,25 +14,14 @@
 #include <stdint.h>
 
 
-// Drive family
-enum {
-    kDriveFamily_Floppy = 0,
-    kDriveFamily_Fixed,           // aka hard disk
-    kDriveFamily_CD,
-    kDriveFamily_SSD,
-    kDriveFamily_USBStick,
-    kDriveFamily_RAM,
-    kDriveFamily_ROM
-};
-
 // Platter diameter
 enum {
     kPlatter_None = 0,
-    kPlatter_2_5 = 63,
-    kPlatter_3 = 76,
-    kPlatter_3_5 = 89,
-    kPlatter_5_25 = 133,
-    kPlatter_8 = 203
+    kPlatter_2_5 = 250,
+    kPlatter_3 = 300,
+    kPlatter_3_5 = 350,
+    kPlatter_5_25 = 525,
+    kPlatter_8 = 800
 };
 
 // Drive properties
@@ -43,12 +32,13 @@ enum {
 
 // Information about the disk drive
 typedef struct drive_info {
-    uint16_t    family;
     uint16_t    platter;
     uint32_t    properties;         // drive properties 
 } drive_info_t;
 
-// Returns information about a disk drive.
+// Returns information about a disk drive. Use the kDriverCommand_GetCategories
+// call and look at the IODISK category to find out what kind of disk drive this
+// is.
 // get_drive_info(drive_info_t* _Nonnull pOutInfo)
 #define kDiskCommand_GetDriveInfo   IOResourceCommand(kDriverCommand_SubclassBase + 0)
 

@@ -35,7 +35,6 @@ errno_t RomDisk_Create(const char* _Nonnull name, const void* _Nonnull pImage, s
     }
 
     drive_info_t drvi;
-    drvi.family = kDriveFamily_ROM;
     drvi.platter = kPlatter_None;
     drvi.properties = kDrive_IsReadOnly | kDrive_Fixed;
 
