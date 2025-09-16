@@ -774,6 +774,8 @@ int dispatch_await_termination(dispatch_t _Nonnull self)
     mtx_lock(&self->mutex);
     switch (self->state) {
         case _DISPATCHER_STATE_ACTIVE:
+        case _DISPATCHER_STATE_SUSPENDING:
+        case _DISPATCHER_STATE_SUSPENDED:
             errno = ESRCH;
             r = -1;
             break;
