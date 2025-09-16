@@ -329,6 +329,20 @@ extern int dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t bu
 extern _Noreturn dispatch_run_main_queue(void);
 
 
+// Suspends the given dispatcher. Blocks the caller until all workers of the
+// dispatcher have reached suspended state. This function may be called more
+// than once. Each call increments a suspension count. The dispatcher will be
+// resumed once the same number of dispatch_resume() calls have been made as
+// dispatch_suspend(). A suspended dispatcher continues to queue work and timer
+// requests but it will not process them until it is resumed. Returns 0 on
+// success and -1 (errno set to ETERMINATED) if the dispatcher is in termination
+// state.
+extern int dispatch_suspend(dispatch_t _Nonnull self);
+
+// Resumes the given dispatcher once the suspension count hits 0.
+extern void dispatch_resume(dispatch_t _Nonnull self);
+
+
 // Initiates the termination of a dispatcher. Note that termination is an
 // inherently asynchronous operation that may take a while. This function will
 // never cancel an item that is currently in processing state. However it may

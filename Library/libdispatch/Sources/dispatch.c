@@ -365,12 +365,12 @@ void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_cacheable_i
 
 bool _dispatch_isactive(dispatch_t _Nonnull _Locked self)
 {
-    if (self->state != _DISPATCHER_STATE_ACTIVE) {
-        errno = ETERMINATED;
-        return false;
+    if (self->state < _DISPATCHER_STATE_TERMINATING) {
+        return true;
     }
 
-    return true;
+    errno = ETERMINATED;
+    return false;
 }
 
 int dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
@@ -680,10 +680,74 @@ _Noreturn dispatch_run_main_queue(void)
 }
 
 
+int dispatch_suspend(dispatch_t _Nonnull self)
+{
+    int r;
+
+    mtx_lock(&self->mutex);
+
+    if (_dispatch_isactive(self)) {
+        self->suspension_count++;
+        if (self->suspension_count == 1) {
+            if (self->state == _DISPATCHER_STATE_ACTIVE) {
+                self->state = _DISPATCHER_STATE_SUSPENDING;
+            }
+
+
+            // Wait for all workers to have reached suspended state before we
+            // switch the dispatcher to suspended state
+            for (;;) {
+                bool hasStillActiveWorker = false;
+
+                List_ForEach(&self->workers, ListNode, {
+                    dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+
+                    if (!cwp->is_suspended) {
+                        hasStillActiveWorker = true;
+                        break;
+                    }
+                });
+
+                if (!hasStillActiveWorker) {
+                    self->state = _DISPATCHER_STATE_SUSPENDED;
+                    break;
+                }
+
+                cnd_wait(&self->cond, &self->mutex);
+            }
+        }
+        r = 0;
+    }
+    else {
+        r = -1;
+    }
+
+    mtx_unlock(&self->mutex);
+    return r;
+}
+
+void dispatch_resume(dispatch_t _Nonnull self)
+{
+    mtx_lock(&self->mutex);
+
+    if (_dispatch_isactive(self)) {
+        if (self->suspension_count > 0) {
+            self->suspension_count--;
+            if (self->suspension_count == 0) {
+                self->state = _DISPATCHER_STATE_ACTIVE;
+                _dispatch_wakeup_all_workers(self);
+            }
+        }
+    }
+
+    mtx_unlock(&self->mutex);
+}
+
+
 void dispatch_terminate(dispatch_t _Nonnull self, bool cancel)
 {
     mtx_lock(&self->mutex);
-    if (self != g_main_dispatcher && self->state == _DISPATCHER_STATE_ACTIVE) {
+    if (self != g_main_dispatcher && self->state < _DISPATCHER_STATE_TERMINATING) {
         self->state = _DISPATCHER_STATE_TERMINATING;
 
         if (cancel) {
@@ -711,22 +775,24 @@ int dispatch_await_termination(dispatch_t _Nonnull self)
     switch (self->state) {
         case _DISPATCHER_STATE_ACTIVE:
             errno = ESRCH;
-            int r = -1;
-            goto out;
+            r = -1;
+            break;
+
+        case _DISPATCHER_STATE_TERMINATING:
+            while (self->worker_count > 0) {
+                cnd_wait(&self->cond, &self->mutex);
+            }
+            self->state = _DISPATCHER_STATE_TERMINATED;
+            r = 0;
+            break;
 
         case _DISPATCHER_STATE_TERMINATED:
             r = 0;
-            goto out;
-    }
+            break;
 
-    
-    while (self->worker_count > 0) {
-        cnd_wait(&self->cond, &self->mutex);
+        default:
+            abort();
     }
-    self->state = _DISPATCHER_STATE_TERMINATED;
-    r = 0;
-
-out:
     mtx_unlock(&self->mutex);
     return r;
 }

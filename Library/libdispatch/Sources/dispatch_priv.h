@@ -84,6 +84,7 @@ struct dispatch_worker {
 
     int8_t                                  adoption;  // _DISPATCH_XXX_VCPU; tells us whether the worker acquired or adopted its vcpu
     bool                                    allow_relinquish;   // whether the worker is free to relinquish or not
+    bool                                    is_suspended;   // set to true by the worker when it has picked up on the dispatcher suspending state
 };
 typedef struct dispatch_worker* dispatch_worker_t;
 
@@ -120,8 +121,10 @@ extern vcpu_key_t __os_dispatch_key;
 
 // Dispatcher state
 #define _DISPATCHER_STATE_ACTIVE        0
-#define _DISPATCHER_STATE_TERMINATING   1
-#define _DISPATCHER_STATE_TERMINATED    2
+#define _DISPATCHER_STATE_SUSPENDING    1
+#define _DISPATCHER_STATE_SUSPENDED     2
+#define _DISPATCHER_STATE_TERMINATING   3
+#define _DISPATCHER_STATE_TERMINATED    4
 
 
 struct dispatch {
@@ -144,6 +147,7 @@ struct dispatch {
     size_t                  timer_cache_count;
 
     volatile int            state;
+    int                     suspension_count;
 
     char                    name[DISPATCH_MAX_NAME_LENGTH + 1];
 };

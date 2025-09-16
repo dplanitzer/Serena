@@ -174,6 +174,23 @@ dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Work Loop
 
+static void _wait_for_resume(dispatch_worker_t _Nonnull _Locked self, mtx_t* _Nonnull mp)
+{
+    dispatch_t q = self->owner;
+    int signo;
+
+    self->is_suspended = true;
+    cnd_broadcast(&q->cond);
+
+    while (q->state == _DISPATCHER_STATE_SUSPENDING || q->state == _DISPATCHER_STATE_SUSPENDED) {
+        mtx_unlock(mp);
+        sigtimedwait(&self->hotsigs, 0, &TIMESPEC_INF, &signo);
+        mtx_lock(mp);
+    }
+
+    self->is_suspended = false;
+}
+
 // Get more work for the caller. Returns 0 if work is available and != 0 if
 // there is no more work and the worker should relinquish itself. 
 static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mtx_t* _Nonnull mp, dispatch_work_t* _Nonnull wp)
@@ -182,7 +199,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mtx_t* _Nonnu
     bool mayRelinquish = false;
     struct timespec now, deadline;
     dispatch_item_t item;
-    int flags, si;
+    int flags, signo;
 
     for (;;) {
         // Grab the first timer that's due. We give preference to timers because
@@ -219,7 +236,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mtx_t* _Nonnu
             return 0;
         }
 
-        if (q->state > _DISPATCHER_STATE_ACTIVE && self->work_count == 0) {
+        if (q->state >= _DISPATCHER_STATE_TERMINATING && self->work_count == 0) {
             return 1;
         }
         if (mayRelinquish) {
@@ -248,11 +265,15 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mtx_t* _Nonnu
         // to relinquish the VP since it hasn't done anything useful for a
         // longer time.
         mtx_unlock(mp);
-        const int err = sigtimedwait(&self->hotsigs, flags, &deadline, &si);
+        const int r = sigtimedwait(&self->hotsigs, flags, &deadline, &signo);
         mtx_lock(mp);
 
-        if (err == ETIMEDOUT && q->worker_count > q->attr.minConcurrency && self->allow_relinquish) {
+        if (r != 0 && q->worker_count > q->attr.minConcurrency && self->allow_relinquish && errno == ETIMEDOUT) {
             mayRelinquish = true;
+        }
+
+        if (q->state == _DISPATCHER_STATE_SUSPENDING || q->state == _DISPATCHER_STATE_SUSPENDED) {
+            _wait_for_resume(self, mp);
         }
     }
 }
