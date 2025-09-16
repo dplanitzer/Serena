@@ -174,7 +174,7 @@ dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Work Loop
 
-static void _wait_for_resume(dispatch_worker_t _Nonnull _Locked self, mtx_t* _Nonnull mp)
+static void _wait_for_resume(dispatch_worker_t _Nonnull _Locked self)
 {
     dispatch_t q = self->owner;
     int signo;
@@ -183,9 +183,9 @@ static void _wait_for_resume(dispatch_worker_t _Nonnull _Locked self, mtx_t* _No
     cnd_broadcast(&q->cond);
 
     while (q->state == _DISPATCHER_STATE_SUSPENDING || q->state == _DISPATCHER_STATE_SUSPENDED) {
-        mtx_unlock(mp);
+        mtx_unlock(&q->mutex);
         sigtimedwait(&self->hotsigs, 0, &TIMESPEC_INF, &signo);
-        mtx_lock(mp);
+        mtx_lock(&q->mutex);
     }
 
     self->is_suspended = false;
@@ -193,7 +193,7 @@ static void _wait_for_resume(dispatch_worker_t _Nonnull _Locked self, mtx_t* _No
 
 // Get more work for the caller. Returns 0 if work is available and != 0 if
 // there is no more work and the worker should relinquish itself. 
-static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mtx_t* _Nonnull mp, dispatch_work_t* _Nonnull wp)
+static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, dispatch_work_t* _Nonnull wp)
 {
     dispatch_t q = self->owner;
     bool mayRelinquish = false;
@@ -264,40 +264,40 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, mtx_t* _Nonnu
         // new work has arrived in the meantime or if not then we are free
         // to relinquish the VP since it hasn't done anything useful for a
         // longer time.
-        mtx_unlock(mp);
+        mtx_unlock(&q->mutex);
         const int r = sigtimedwait(&self->hotsigs, flags, &deadline, &signo);
-        mtx_lock(mp);
+        mtx_lock(&q->mutex);
 
         if (r != 0 && q->worker_count > q->attr.minConcurrency && self->allow_relinquish && errno == ETIMEDOUT) {
             mayRelinquish = true;
         }
 
         if (q->state == _DISPATCHER_STATE_SUSPENDING || q->state == _DISPATCHER_STATE_SUSPENDED) {
-            _wait_for_resume(self, mp);
+            _wait_for_resume(self);
         }
     }
 }
 
 void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
 {
-    mtx_t* mp = &(self->owner->mutex);
+    dispatch_t q = self->owner;
 
     vcpu_setspecific(__os_dispatch_key, self);
 
-    mtx_lock(mp);
+    mtx_lock(&q->mutex);
 
-    while (!_get_next_work(self, mp, &self->current)) {
+    while (!_get_next_work(self, &self->current)) {
         dispatch_timer_t timer = self->current.timer;
         dispatch_item_t item = self->current.item;
 
         item->state = DISPATCH_STATE_EXECUTING;
-        mtx_unlock(mp);
+        mtx_unlock(&q->mutex);
 
 
         item->func(item);
 
 
-        mtx_lock(mp);
+        mtx_lock(&q->mutex);
         if (item->state != DISPATCH_STATE_CANCELLED) {
             item->state = DISPATCH_STATE_DONE;
         }
@@ -306,18 +306,18 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
         if (timer) {
             if ((item->flags & _DISPATCH_SUBMIT_REPEATING) != 0
                 && item->state != DISPATCH_STATE_CANCELLED
-                && self->owner->state == _DISPATCHER_STATE_ACTIVE) {
-                _dispatch_rearm_timer(self->owner, timer);
+                && q->state < _DISPATCHER_STATE_TERMINATING) {
+                _dispatch_rearm_timer(q, timer);
             }
             else {
-                _dispatch_retire_timer(self->owner, timer);
+                _dispatch_retire_timer(q, timer);
             }
         }
         else {
-            _dispatch_retire_item(self->owner, item);
+            _dispatch_retire_item(q, item);
         }
     }
 
     // Takes care of unlocking 'mp'
-    _dispatch_relinquish_worker(self->owner, self);
+    _dispatch_relinquish_worker(q, self);
 }
