@@ -23,7 +23,13 @@ enum {
     kPixelFormat_RGB_Indexed6,      // planar indexed RGB with 6 planes
     kPixelFormat_RGB_Indexed7,      // planar indexed RGB with 7 planes
     kPixelFormat_RGB_Indexed8,      // planar indexed RGB with 8 planes
+
+#ifdef MACHINE_AMIGA
+    kPixelFormat_RGB_HAM5,          // planar RGB Hold-And-Modify mode with 5 planes
+    kPixelFormat_RGB_HAM6,          // planar RGB Hold-And-Modify mode with 6 planes
+    kPixelFormat_RGB_EHB6,          // planar RGB Extra-Half-Bright mode with 6 planes
     kPixelFormat_RGB_Sprite2,       // interleaved planar indexed RGB with 2 planes
+#endif
 };
 typedef int PixelFormat;
 

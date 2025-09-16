@@ -16,8 +16,6 @@
 #define VCFLAG_HIRES   1
 #define VCFLAG_LACE    2
 
-#define MAX_PIXEL_FORMATS   5
-
 typedef struct video_conf {
     int16_t     width;
     int16_t     height;
@@ -31,8 +29,10 @@ typedef struct video_conf {
     uint8_t     vSprOrigin;
     uint8_t     hSprScale;
     uint8_t     vSprScale;
-    int8_t      pixelFormatCount;   // Number of supported pixel formats
-    PixelFormat pixelFormat[MAX_PIXEL_FORMATS];
+    int8_t      maxPlaneCount;      // Max number of planes for normal display mode
+    bool        allowsHAM;          // True if this video conf is able to support HAM mode
+    bool        allowsEHB;          // Ditto for EHB mode
+    int8_t      maxPlaneCountDPF;   // Ditto for dual playfield display mode. This is the max plane count across both playfields
 } video_conf_t;
 
 
@@ -42,5 +42,10 @@ extern const video_conf_t* _Nonnull get_null_video_conf(void);
 // Looks up the video configuration that corresponds to the given screen
 // configuration.
 extern const video_conf_t* _Nullable get_matching_video_conf(int width, int height, PixelFormat fmt);
+
+
+// Returns how many planes are needed to store a pixel in the given pixel format.
+// Returns 1 if the pixel format is a direct pixel format.
+extern int8_t PixelFormat_GetPlaneCount(PixelFormat format);
 
 #endif /* _VIDEO_CONF_H */

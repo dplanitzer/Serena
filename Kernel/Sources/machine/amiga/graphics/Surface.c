@@ -7,44 +7,9 @@
 //
 
 #include "Surface.h"
+#include "video_conf.h"
 #include <kern/kalloc.h>
 #include <kern/string.h>
-
-
-// Returns how many planes are needed to store a pixel in the given pixel format.
-// Returns 1 if the pixel format is a direct pixel format.
-static int8_t PixelFormat_GetPlaneCount(PixelFormat format)
-{
-    switch (format) {
-        case kPixelFormat_RGB_Sprite2:
-        case kPixelFormat_RGB_Indexed1:
-            return 1;
-
-        case kPixelFormat_RGB_Indexed2:
-            return 2;
-
-        case kPixelFormat_RGB_Indexed3:
-            return 3;
-
-        case kPixelFormat_RGB_Indexed4:
-            return 4;
-
-        case kPixelFormat_RGB_Indexed5:
-            return 5;
-
-        case kPixelFormat_RGB_Indexed6:
-            return 6;
-
-        case kPixelFormat_RGB_Indexed7:
-            return 7;
-
-        case kPixelFormat_RGB_Indexed8:
-            return 8;
-
-        default:
-            return 1;
-    }
-}
 
 
 static errno_t _alloc_single_plane(Surface* _Nonnull self)
