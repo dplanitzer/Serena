@@ -61,7 +61,6 @@ dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner, i
     dispatch_worker_t self = calloc(1, sizeof(struct dispatch_worker));
 
     if (self) {
-        self->cb = owner->attr.cb;
         self->owner = owner;
         self->adoption = adoption;
 
@@ -97,7 +96,6 @@ void _dispatch_worker_destroy(dispatch_worker_t _Nullable self)
 {
     if (self) {
         self->owner = NULL;
-        self->cb = NULL;
         // vcpu is relinquished by _dispatch_relinquish_worker()
         free(self);
     }
@@ -114,12 +112,7 @@ void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self)
 
 void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
-    if (self->cb->insert_item == NULL) {
-        SList_InsertAfterLast(&self->work_queue, &item->qe);
-    }
-    else {
-        self->cb->insert_item(item, &self->work_queue);
-    }
+    SList_InsertAfterLast(&self->work_queue, &item->qe);
     self->work_count++;
 
     _dispatch_worker_wakeup(self);
@@ -221,13 +214,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, dispatch_work
 
 
         // Next grab a work item if there's one queued
-        if (self->cb->remove_item == NULL) {
-            item = (dispatch_item_t) SList_RemoveFirst(&self->work_queue);
-        }
-        else {
-            item = self->cb->remove_item(&self->work_queue);
-        }
-
+        item = (dispatch_item_t) SList_RemoveFirst(&self->work_queue);
         if (item) {
             self->work_count--;
             wp->timer = NULL;

@@ -167,20 +167,6 @@ typedef struct dispatch_concurrency_info {
 } dispatch_concurrency_info_t;
 
 
-// Optional dispatch callbacks. A dispatcher implements a FIFO work queue by
-// default. You may override the item insertion and retrieval functions to
-// implement a custom queuing and dequeuing algorithm. The 'insert_item'
-// function receives a work queue and a dispatch item and it is responsible for
-// inserting the item in the work queue. The 'remove_item' function receives a
-// work queue and it is responsible for selecting and removing the next dispatch
-// item that the dispatcher worker should execute.
-typedef struct dispatch_callbacks {
-    int                         version;        // Version 0
-    int                         (*insert_item)(dispatch_item_t _Nonnull item, SList* _Nonnull queue);
-    dispatch_item_t _Nullable   (*remove_item)(SList* _Nonnull queue);
-} dispatch_callbacks_t;
-
-
 #define DISPATCH_MAX_NAME_LENGTH    15
 
 typedef struct dispatch_attr {
@@ -189,18 +175,17 @@ typedef struct dispatch_attr {
     size_t      maxConcurrency;
     int         qos;
     int         priority;
-    dispatch_callbacks_t* _Nullable cb;
     const char* _Nullable   name;   // Length limited to DISPATCH_MAX_NAME_LENGTH
 } dispatch_attr_t;
 
 
 // Initializes a dispatch attribute object to set up a serial queue with
 // interactive priority.
-#define DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE       (dispatch_attr_t){0, 1, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRI_NORMAL, NULL, NULL}
+#define DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE       (dispatch_attr_t){0, 1, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRI_NORMAL, NULL}
 
 // Initializes a dispatch attribute object to set up a concurrent queue with
 // '__n' virtual processors and utility priority.
-#define DISPATCH_ATTR_INIT_CONCURRENT_UTILITY(__n)  (dispatch_attr_t){0, 1, __n, DISPATCH_QOS_UTILITY, DISPATCH_PRI_NORMAL, NULL, NULL}
+#define DISPATCH_ATTR_INIT_CONCURRENT_UTILITY(__n)  (dispatch_attr_t){0, 1, __n, DISPATCH_QOS_UTILITY, DISPATCH_PRI_NORMAL, NULL}
 
 
 // Creates a new dispatcher based on the provided dispatcher attributes.

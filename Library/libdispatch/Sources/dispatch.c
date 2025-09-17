@@ -42,10 +42,6 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
     }
 
     self->attr = *attr;
-    self->attr.cb = &self->cb;
-    if (attr->cb) {
-        self->cb = *(attr->cb);
-    }
 
     switch (adoption) {
         case _DISPATCH_ACQUIRE_VCPU:

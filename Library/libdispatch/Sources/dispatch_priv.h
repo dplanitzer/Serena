@@ -67,24 +67,23 @@ typedef struct dispatch_work {
 #define _DISPATCH_ADOPT_MAIN_VCPU   2
 
 struct dispatch_worker {
-    ListNode                                worker_qe;
+    ListNode                worker_qe;
 
-    SList                                   work_queue;
-    size_t                                  work_count;
+    SList                   work_queue;
+    size_t                  work_count;
 
-    dispatch_work_t                         current;    // Currently executing work
+    dispatch_work_t         current;    // Currently executing work
 
-    vcpu_t _Nonnull                         vcpu;
-    vcpuid_t                                id;
+    vcpu_t _Nonnull         vcpu;
+    vcpuid_t                id;
 
-    sigset_t                                hotsigs;
+    sigset_t                hotsigs;
 
-    const dispatch_callbacks_t* _Nonnull    cb;
-    dispatch_t _Nonnull                     owner;
+    dispatch_t _Nonnull     owner;
 
-    int8_t                                  adoption;  // _DISPATCH_XXX_VCPU; tells us whether the worker acquired or adopted its vcpu
-    bool                                    allow_relinquish;   // whether the worker is free to relinquish or not
-    bool                                    is_suspended;   // set to true by the worker when it has picked up on the dispatcher suspending state
+    int8_t                  adoption;  // _DISPATCH_XXX_VCPU; tells us whether the worker acquired or adopted its vcpu
+    bool                    allow_relinquish;   // whether the worker is free to relinquish or not
+    bool                    is_suspended;   // set to true by the worker when it has picked up on the dispatcher suspending state
 };
 typedef struct dispatch_worker* dispatch_worker_t;
 
@@ -128,28 +127,27 @@ extern vcpu_key_t __os_dispatch_key;
 
 
 struct dispatch {
-    mtx_t                   mutex;
-    cnd_t                   cond;
-    dispatch_attr_t         attr;
-    dispatch_callbacks_t    cb;
-    vcpuid_t                groupid;
+    mtx_t               mutex;
+    cnd_t               cond;
+    dispatch_attr_t     attr;
+    vcpuid_t            groupid;
 
-    List                    workers;        // Each worker has its own work item queue
-    size_t                  worker_count;
+    List                workers;        // Each worker has its own work item queue
+    size_t              worker_count;
 
-    SList                   zombie_items;   // Items that are done and joinable
+    SList               zombie_items;   // Items that are done and joinable
 
-    SList                   item_cache;
-    size_t                  item_cache_count;
+    SList               item_cache;
+    size_t              item_cache_count;
 
-    SList                   timers;         // The timer queue is shared by all workers
-    SList                   timer_cache;
-    size_t                  timer_cache_count;
+    SList               timers;         // The timer queue is shared by all workers
+    SList               timer_cache;
+    size_t              timer_cache_count;
 
-    volatile int            state;
-    int                     suspension_count;
+    volatile int        state;
+    int                 suspension_count;
 
-    char                    name[DISPATCH_MAX_NAME_LENGTH + 1];
+    char                name[DISPATCH_MAX_NAME_LENGTH + 1];
 };
 
 extern int _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
