@@ -80,8 +80,9 @@ typedef struct dispatch* dispatch_t;
 typedef void (*dispatch_item_func_t)(struct dispatch_item* _Nonnull item);
 
 // A function which knows how to retire an item that has finished processing or
-// was cancelled. Providing this function is optional. The item will be
-// deallocated by calling free() if no retire function is provided.
+// was cancelled. Providing this function is optional. The dispatcher will do
+// nothing special when retiring an item if the retire function is NULL. Eg it
+// won't deallocate the item.
 typedef void (*dispatch_retire_func_t)(struct dispatch_item* _Nonnull item);
 
 

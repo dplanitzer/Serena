@@ -256,9 +256,6 @@ void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     else if (item->retireFunc) {
         item->retireFunc(item);
     }
-    else {
-        free(item);
-    }
 }
 
 static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
