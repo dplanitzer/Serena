@@ -12,11 +12,18 @@
 #include <machine/amiga/chipset.h>
 #include <sched/sem.h>
 
+// Note that copper_asm.s depends on this definition
+typedef struct sprite_ctl_change {
+    uint32_t* _Nullable ptr;
+    uint32_t            ctl;
+} sprite_ctl_change_t;
+
+
 extern int vbl_irq(void);
 
 
 static irq_handler_t            g_copper_vblank;
-static copper_prog_t _Nullable  g_copper_ready_prog;
+copper_prog_t _Nullable         g_copper_ready_prog;        // xref copper_asm.s
 copper_prog_t _Nonnull          g_copper_running_prog;
 static copper_prog_t _Nullable  g_copper_retired_progs;
 static sem_t                    g_copper_notify_sem;
@@ -24,8 +31,8 @@ static int                      g_retire_signo;
 static vcpu_t _Nullable         g_retire_vcpu;
 static int8_t                   g_copper_is_running_interlaced;
 
-static volatile uint8_t         g_sprite_change_pending;
-static sprite_ctl_change_t      g_sprite_change_table[SPRITE_COUNT];
+volatile uint8_t                g_sprite_change_pending;                // xref copper_asm.s
+sprite_ctl_change_t             g_sprite_change_table[SPRITE_COUNT];    // xref copper_asm.s
 
 
 errno_t copper_init(copper_prog_t _Nonnull prog, int signo, vcpu_t _Nullable sigvp)
@@ -117,6 +124,8 @@ void copper_schedule(copper_prog_t _Nullable prog, unsigned flags)
     }
 }
 
+#if 0
+// Replaced with assembler version 9/16/2025 (copper_asm.s)
 copper_prog_t _Nullable copper_unschedule(void)
 {
     const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
@@ -125,7 +134,7 @@ copper_prog_t _Nullable copper_unschedule(void)
     irq_set_mask(sim);
     return prog;
 }
-
+#endif
 
 // Called when the Copper scheduler has received a request to switch to a new
 // Copper program. Updates the running program, retires the old program, updates
@@ -217,7 +226,8 @@ int vbl_irq(void)
     return 0;
 }
 
-
+#if 0
+// Replaced with assembler version 9/16/2025 (copper_asm.s)
 void sprite_ctl_submit(int spridx, void* _Nonnull sprptr, uint32_t ctl)
 {
     unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
@@ -227,9 +237,11 @@ void sprite_ctl_submit(int spridx, void* _Nonnull sprptr, uint32_t ctl)
     irq_set_mask(sim);
 }
 
+
 void sprite_ctl_cancel(int spridx)
 {
     unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
     g_sprite_change_pending &= ~(1 << spridx);
     irq_set_mask(sim);
 }
+#endif

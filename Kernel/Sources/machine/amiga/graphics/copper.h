@@ -33,11 +33,6 @@ typedef struct sprite_channel {
     bool                isVisible;
 } sprite_channel_t;
 
-typedef struct sprite_ctl_change {
-    uint32_t* _Nullable ptr;
-    uint32_t            ctl;
-} sprite_ctl_change_t;
-
 
 // Copper program state
 #define COP_STATE_IDLE      0
