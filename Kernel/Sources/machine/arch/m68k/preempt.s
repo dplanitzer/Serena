@@ -8,9 +8,6 @@
 
     include <machine/lowmem.i>
 
-    xref _g_sched_storage
-    xref _cpu_non_recoverable_error
-
     xdef _preempt_disable
     xdef _preempt_restore
 
