@@ -17,19 +17,17 @@ _Noreturn fatal(const char* _Nonnull format, ...)
     va_list ap;
     va_start(ap, format);
 
+    vprintf(format, ap);
+    
     if (log_switch_to_console()) {
-        vprintf(format, ap);
+        cpu_halt();
     }
     else {
         const char** p = NULL;
 
-        vprintf(format, ap);
         *p = log_buffer();
-        cpu_non_recoverable_error();
+        cpu_non_recoverable_error(0x039e);
     }
-    va_end(ap);
-
-    cpu_halt();
     /* NOT REACHED */
 }
 

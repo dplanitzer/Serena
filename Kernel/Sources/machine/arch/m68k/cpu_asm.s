@@ -217,6 +217,7 @@ _pop_exception_stack_frame:
         jmp     (a0)
 
 .dismiss_non_format_b_exception_stack_frame:
+        move.l  #RGB_YELLOW, -(sp)
         jmp     _cpu_non_recoverable_error
         ; NOT REACHED
     einline

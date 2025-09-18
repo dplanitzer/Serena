@@ -46,6 +46,7 @@ _csw_switch_to_boot_vcpu:
     inline
         jmp     __csw_rte_restore
         ; NOT REACHED
+        move.l  #RGB_YELLOW, -(sp)
         jmp _cpu_non_recoverable_error
     einline
 

@@ -24,6 +24,7 @@
     xref _fpu_get_model
     xref _cpu_exception
     xref _cpu_exception_return
+    xref _cpu_halt
     xref _sys_desc_init
     xref __fatalException
 
@@ -41,7 +42,6 @@
 
     xdef _cpu_vector_table
     xdef _cpu_non_recoverable_error
-    xdef _mem_non_recoverable_error
 
 
 
@@ -146,6 +146,7 @@ _Reset:
         jsr     _cpu_get_model
         cmp.b   #CPU_MODEL_68020, d0
         bge     .L3
+        move.l  #RGB_YELLOW, -(sp)
         jmp     _cpu_non_recoverable_error
 .L3:
 
@@ -161,6 +162,7 @@ _Reset:
         jsr     _OnBoot
 
         ; NOT REACHED
+        move.l  #RGB_YELLOW, -(sp)
         jmp     _cpu_non_recoverable_error
     einline
 
@@ -171,25 +173,14 @@ _Reset:
     align 2
 _cpu_non_recoverable_error:
     inline
+    cargs   cnre_rgb_color.l
+
+        move.l  cnre_rgb_color(sp), d0
         lea     CUSTOM_BASE, a0
         move.w  #$7fff, DMACON(a0)
-        move.w  #$0ff0, COLOR00(a0)
-        or.w    #$0700, sr
-.L1:    bra     .L1
-    einline
-
-
-;-------------------------------------------------------------------------------
-; Invoked if we encountered a non-recoverable memory error. Eg a bus error. Sets
-; the screen color to red and halts the machine
-    align 2
-_mem_non_recoverable_error:
-    inline
-        lea     CUSTOM_BASE, a0
-        move.w  #$7fff, DMACON(a0)
-        move.w  #$0f00, COLOR00(a0)
-        or.w    #$0700, sr
-.L1:    bra     .L1
+        move.w  d0, COLOR00(a0)
+        jmp     _cpu_halt
+        ; NOT REACHED
     einline
 
 

@@ -26,6 +26,15 @@ FPU_MODEL_68040     equ 3
 FPU_MODEL_68060     equ 4
 
 
+; RGB color
+RGB_RED             equ $0f00
+RGB_GREEN           equ $00f0
+RGB_BLUE            equ $000f
+RGB_YELLOW          equ $0ff0
+RGB_WHITE           equ $0fff
+RGB_BLACK           equ $0000
+
+
 ;
 ; The boot services memory region of the kernel. Boot services memory starts at
 ; physical address 0 and extends to physical address 12288. The first page holds

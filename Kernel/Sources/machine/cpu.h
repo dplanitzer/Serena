@@ -42,8 +42,7 @@ extern void cpu_exception_return(void);
 // User space function to trigger the return from an exception handler
 extern void excpt_return(void);
 
-extern _Noreturn cpu_non_recoverable_error(void);
-extern _Noreturn mem_non_recoverable_error(void);
+extern _Noreturn cpu_non_recoverable_error(uint32_t rgb4);
 
 
 extern uintptr_t usp_get(void);
