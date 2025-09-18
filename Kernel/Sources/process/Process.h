@@ -40,6 +40,8 @@ extern ProcessRef _Nonnull Process_Retain(ProcessRef _Nonnull self);
 extern void Process_Release(ProcessRef _Nullable self);
 
 
+extern pid_t Process_GetId(ProcessRef _Nonnull self);
+
 // Returns the current process lifecycle state.
 extern int Process_GetLifecycleState(ProcessRef _Nonnull self);
 

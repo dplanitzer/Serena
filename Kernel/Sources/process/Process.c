@@ -113,6 +113,11 @@ int Process_GetLifecycleState(ProcessRef _Nonnull self)
     return state;
 }
 
+pid_t Process_GetId(ProcessRef _Nonnull self)
+{
+    return self->pid;
+}
+
 static void _vcpu_relinquish_self(void)
 {
     vcpu_t vp = vcpu_current();

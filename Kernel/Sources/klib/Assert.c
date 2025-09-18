@@ -10,6 +10,8 @@
 #include <kern/kernlib.h>
 #include <log/Log.h>
 #include <machine/cpu.h>
+#include <process/Process.h>
+#include <sched/vcpu.h>
 
 
 _Noreturn vfatal(const char* _Nonnull format, va_list ap)
@@ -53,9 +55,17 @@ _Noreturn fatalAssert(const char* _Nonnull filename, int line)
 
 _Noreturn _fatalException(const excpt_frame_t* _Nonnull efp)
 {
-    fatal("Exception: %hhx, Format %hhx, PC %p, SR %hx", 
+    vcpu_t vp = vcpu_current();
+
+    fatal("Exception: %hhx, Format %hhx, PC %p, SR %hx\n Exception Frame: %p\n Stack Base: %p\n VCPU: %p (%d)\n, Process: %p (%d)", 
         excpt_frame_getvecnum(efp),
         excpt_frame_getformat(efp),
         excpt_frame_getpc(efp),
-        excpt_frame_getsr(efp));
+        excpt_frame_getsr(efp),
+        efp,
+        stk_getinitialsp(&vp->kernel_stack),
+        vp,
+        vp->id,
+        vp->proc,
+        Process_GetId(vp->proc));
 }
