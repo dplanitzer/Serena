@@ -12,13 +12,19 @@
 #include <machine/amiga/chipset.h>
 
 
-irq_clock_func_t    g_irq_clock_func;
+static void _nop_irq_handler(void)
+{
+    // do nothing
+}
+
+
+irq_clock_func_t    g_irq_clock_func = (irq_clock_func_t)_nop_irq_handler;
 void* _Nullable     g_irq_clock_arg;
 
-irq_key_func_t      g_irq_key_func;
+irq_key_func_t      g_irq_key_func = (irq_key_func_t)_nop_irq_handler;
 void* _Nullable     g_irq_key_arg;
 
-irq_direct_func_t   g_irq_disk_block_func;
+irq_direct_func_t   g_irq_disk_block_func = (irq_direct_func_t)_nop_irq_handler;
 void* _Nullable     g_irq_disk_block_arg;
 
 
