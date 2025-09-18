@@ -31,54 +31,6 @@ LD = $(VBCC)/bin/vlink
 
 
 # --------------------------------------------------------------------------
-# Build Configuration
-#
-
-# Supported build configs:
-# 'release'  compile with optimizations turned on and do not generate debug info
-# 'debug'    compile without optimizations and generate debug info
-ifndef BUILD_CONFIGURATION
-	BUILD_CONFIGURATION := release
-endif
-
-ifeq ($(BUILD_CONFIGURATION), release)
-	CC_OPT_SETTING := -O3 -size
-	CC_KOPT_SETTING := -O3 -size -use-framepointer
-	CC_GEN_DEBUG_INFO :=
-else
-	CC_OPT_SETTING := -O0
-	CC_KOPT_SETTING := -O0 -use-framepointer
-	CC_GEN_DEBUG_INFO := -g
-endif
-
-# XXX comment out to build a system that boots from floppy disk
-#BOOT_FROM_ROM := 1
-
-CC_PREPROC_DEFS := -DDEBUG=1 -DTARGET_CPU_68020=1 -D__SERENA__
-
-#XXX vbcc always defines -D__STDC_HOSTED__=1 and we can't override it for the kernel (which should define -D__STDC_HOSTED__=0)
-KERNEL_STDC_PREPROC_DEFS := -D__STDC_UTF_16__=1 -D__STDC_UTF_32__=1 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1
-USER_STDC_PREPROC_DEFS := -D__STDC_UTF_16__=1 -D__STDC_UTF_32__=1 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1
-
-
-ifeq ($(OS),Windows_NT)
-	VC_CONFIG := $(SCRIPTS_DIR)/vc_windows_host.config
-else
-	VC_CONFIG := $(SCRIPTS_DIR)/vc_posix_host.config
-endif
-
-
-KERNEL_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68020 -DMACHINE_AMIGA
-KERNEL_CC_CONFIG := +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68020 -D_POSIX_SOURCE=1 -D_OPEN_SYS_ITOA_EXT=1 -DMACHINE_AMIGA $(KERNEL_STDC_PREPROC_DEFS)
-
-USER_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68020
-USER_CC_CONFIG := +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68020 -D_POSIX_SOURCE=1 -D_OPEN_SYS_ITOA_EXT=1 $(USER_STDC_PREPROC_DEFS)
-
-KERNEL_LD_CONFIG := -brawbin1 -T $(SCRIPTS_DIR)/kernel_linker.script
-USER_LD_CONFIG := -bataritos -T $(SCRIPTS_DIR)/user_linker.script
-
-
-# --------------------------------------------------------------------------
 # Common Includes
 #
 
@@ -170,6 +122,54 @@ LIBDISPATCH_FILE := $(LIBDISPATCH_OBJS_DIR)/libdispatch.a
 SNAKE_PROJECT_DIR := $(WORKSPACE_DIR)/Demos/snake
 SNAKE_OBJS_DIR := $(OBJS_DIR)/Demos/snake
 SNAKE_FILE := $(SNAKE_OBJS_DIR)/snake
+
+
+# --------------------------------------------------------------------------
+# Build Configuration
+#
+
+# Supported build configs:
+# 'release'  compile with optimizations turned on and do not generate debug info
+# 'debug'    compile without optimizations and generate debug info
+ifndef BUILD_CONFIGURATION
+	BUILD_CONFIGURATION := release
+endif
+
+ifeq ($(BUILD_CONFIGURATION), release)
+	CC_OPT_SETTING := -O3 -size
+	CC_KOPT_SETTING := -O3 -size -use-framepointer
+	CC_GEN_DEBUG_INFO :=
+else
+	CC_OPT_SETTING := -O0
+	CC_KOPT_SETTING := -O0 -use-framepointer
+	CC_GEN_DEBUG_INFO := -g
+endif
+
+# XXX comment out to build a system that boots from floppy disk
+#BOOT_FROM_ROM := 1
+
+CC_PREPROC_DEFS := -DDEBUG=1 -DTARGET_CPU_68020=1 -D__SERENA__
+
+#XXX vbcc always defines -D__STDC_HOSTED__=1 and we can't override it for the kernel (which should define -D__STDC_HOSTED__=0)
+KERNEL_STDC_PREPROC_DEFS := -D__STDC_UTF_16__=1 -D__STDC_UTF_32__=1 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1
+USER_STDC_PREPROC_DEFS := -D__STDC_UTF_16__=1 -D__STDC_UTF_32__=1 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1
+
+
+ifeq ($(OS),Windows_NT)
+	VC_CONFIG := $(SCRIPTS_DIR)/vc_windows_host.config
+else
+	VC_CONFIG := $(SCRIPTS_DIR)/vc_posix_host.config
+endif
+
+
+KERNEL_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68020 -DMACHINE_AMIGA
+KERNEL_CC_CONFIG := +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68020 -D_POSIX_SOURCE=1 -D_OPEN_SYS_ITOA_EXT=1 -DMACHINE_AMIGA $(KERNEL_STDC_PREPROC_DEFS)
+
+USER_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68020
+USER_CC_CONFIG := +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68020 -D_POSIX_SOURCE=1 -D_OPEN_SYS_ITOA_EXT=1 $(USER_STDC_PREPROC_DEFS)
+
+KERNEL_LD_CONFIG := -brawbin1 -T $(SCRIPTS_DIR)/kernel_linker.script -M$(KERNEL_OBJS_DIR)/kernel_mappings.txt
+USER_LD_CONFIG := -bataritos -T $(SCRIPTS_DIR)/user_linker.script
 
 
 # --------------------------------------------------------------------------
