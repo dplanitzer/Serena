@@ -188,9 +188,9 @@ _cpu_non_recoverable_error:
 ; Invokes the cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp) function.
 ; See 68020UM, p6-27
 __cpu_exception:
-    ; Push a word on the stack to indicate to __cpu_exception_return that it does
-    ; not need to do a frestore
-    move.w  #0, -(sp)
+    ; Push a long word on the stack to indicate to __cpu_exception_return that
+    ; it does not need to do a frestore
+    move.l  #0, -(sp)
 
     ; Push a null RTE frame which will be used to invoke the user space exception handler
     move.l  #0, -(sp)
@@ -199,7 +199,7 @@ __cpu_exception:
     movem.l d0 - d1 / a0 - a1, -(sp)
     
     move.l  #0, -(sp)
-    pea     (4 + 16 + 8 + 2)(sp)
+    pea     (4 + 16 + 8 + 4)(sp)
     jsr     _cpu_exception
     addq.w  #8, sp
     move.l  d0, (16 + 2)(sp)    ; update the pc in our null RTE that we pushed above
@@ -215,9 +215,9 @@ __fpu_exception:
     inline
         fsave       -(sp)
 
-        ; Push a word on the stack to indicate to __cpu_exception_return that it
-        ; does have to do a frestore
-        move.w      #$fbe, -(sp)
+        ; Push a long word on the stack to indicate to __cpu_exception_return
+        ; that it does have to do a frestore
+        move.l      #$fbe, -(sp)
 
         ; Push a null RTE frame which will be used to invoke the user space exception handler
         move.l      #0, -(sp)
@@ -225,14 +225,14 @@ __fpu_exception:
 
         movem.l     d0 - d1 / a0 - a1, -(sp)
 
-        move.b      (16 + 8 + 2)(sp), d0
+        move.b      (16 + 8 + 4)(sp), d0
         beq.s       .L1
         clr.l       d0
-        move.b      (16 + 8 + 2 + 1)(sp), d0    ; get exception frame size
-        bset        #3, (16 + 8 + 2)(sp, d0)    ; set bit #27 of BIU
+        move.b      (16 + 8 + 4 + 1)(sp), d0    ; get exception frame size
+        bset        #3, (16 + 8 + 4)(sp, d0)    ; set bit #27 of BIU
 
-        pea         (16 + 8 + 2)(sp)
-        pea         (4 + 16 + 8 + 2)(sp, d0)
+        pea         (16 + 8 + 4)(sp)
+        pea         (4 + 16 + 8 + 4)(sp, d0)
         jsr         _cpu_exception
         addq.w      #8, sp
         move.l      d0, (16 + 2)(sp)    ; update the pc in our null RTE that we pushed above
@@ -250,7 +250,7 @@ __fpu_exception:
 ;
 ; Stack at this point:
 ; __cpu_exception_return RTE frame
-; frestore control word ($0 or $fbe)
+; frestore control long word ($0 or $fbe)
 ; fpu state frame (if frestore control word == $fbe)
 ; __cpu_exception RTE frame
 ;
@@ -261,7 +261,7 @@ __cpu_exception_return:
         movem.l     (sp)+, d0 - d1 / a0 - a1
 
         addq.w      #8, sp      ; pop __cpu_exception_return RTE frame
-        cmp.w       #0, (sp)+
+        cmp.l       #0, (sp)+
         beq.s       .L1
         frestore    (sp)+
 .L1:
