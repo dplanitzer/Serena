@@ -12,11 +12,8 @@
 #include <machine/cpu.h>
 
 
-_Noreturn fatal(const char* _Nonnull format, ...)
+_Noreturn vfatal(const char* _Nonnull format, va_list ap)
 {
-    va_list ap;
-    va_start(ap, format);
-
     vprintf(format, ap);
     
     if (log_switch_to_console()) {
@@ -31,6 +28,14 @@ _Noreturn fatal(const char* _Nonnull format, ...)
     /* NOT REACHED */
 }
 
+_Noreturn fatal(const char* _Nonnull format, ...)
+{
+    va_list ap;
+    
+    va_start(ap, format);
+    vfatal(format, ap);
+    va_end(ap);
+}
 _Noreturn fatalError(const char* _Nonnull filename, int line, int err)
 {
     fatal("Fatal Error: %d at %s:%d", err, filename, line);
