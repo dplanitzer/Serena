@@ -14,11 +14,12 @@
 void chipset_wait_bof(void)
 {
     CHIPSET_BASE_DECL(cp);
+    const uint32_t ll = (chipset_is_ntsc()) ? 253 : 303;
 
     for (;;) {
         const uint32_t vposr = (*CHIPSET_REG_32(cp, VPOSR) & 0x1ff00) >> 8;
 
-        if (vposr == 303) {
+        if (vposr == ll) {
             break;
         }
     }
