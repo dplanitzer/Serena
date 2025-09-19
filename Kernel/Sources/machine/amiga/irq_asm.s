@@ -287,8 +287,9 @@ irq_handler_ports:
     beq     irq_handler_done
 
     move.w  #INTF_PORTS, CUSTOM_BASE + INTREQ
-;    CALL_IRQ_HANDLERS irc_handlers_PORTS
-    nop
+    move.l  _g_int2_handlers, -(sp)
+    jsr     __irq_run_handlers
+    addq.w  #4, sp
     bra     irq_handler_done
 
 ;-------------------------------------------------------------------------------
@@ -423,8 +424,9 @@ irq_handler_exter:
     beq.s   irq_handler_done
 
     move.w  #INTF_EXTER, CUSTOM_BASE + INTREQ
-;    CALL_IRQ_HANDLERS irc_handlers_EXTER
-    nop
+    move.l  _g_int6_handlers, -(sp)
+    jsr     __irq_run_handlers
+    addq.w  #4, sp
 
     ; FALL THROUGH
 
