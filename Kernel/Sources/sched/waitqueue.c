@@ -78,7 +78,6 @@ wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable ma
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
     struct timespec now, deadline;
-    bool hasArmedTimer = false;
 
     // Put us on the timeout queue if a relevant timeout has been specified.
     // Note that we return immediately if we're already past the deadline
@@ -101,15 +100,12 @@ wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable ma
         }
 
         sched_arm_timeout(g_sched, vp, &deadline);
-        hasArmedTimer = true;
     }
 
 
     // Now wait
     const wres_t res = wq_prim_wait(self, mask);
-    if (hasArmedTimer) {
-        sched_cancel_timeout(g_sched, vp);
-    }
+    sched_cancel_timeout(g_sched, vp);
 
 
     // Calculate the unslept time, if requested
