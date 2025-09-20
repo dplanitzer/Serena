@@ -135,32 +135,40 @@ static int _consume_best_pending_sig(vcpu_t _Nonnull self, sigset_t _Nonnull set
     return 0;
 }
 
-// @Entry Condition: preemption disabled
 errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int* _Nonnull signo)
 {
+    const int sps = preempt_disable();
     vcpu_t vp = (vcpu_t)g_sched->running;
+    bool done = false;
+    errno_t err;
 
-    for (;;) {
+    while (!done) {
         if (wq_prim_wait(wq, set) == WRES_SIGNAL) {
             const int best_signo = _consume_best_pending_sig(vp, *set);
 
             if (best_signo) {
                 *signo = best_signo;
-                return EOK;
+                err = EOK;
+            }
+            else {
+                err = EINTR;
             }
 
-            return EINTR;
+            done = true;
         }
     }
 
-    /* NOT REACHED */
+    preempt_restore(sps);
+    return err;
 }
 
-// @Entry Condition: preemption disabled
 errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo)
 {
+    const int sps = preempt_disable();
     vcpu_t vp = (vcpu_t)g_sched->running;
     struct timespec now, deadline;
+    bool done = false;
+    errno_t err;
     
     // Convert a relative timeout to an absolute timeout because it makes it
     // easier to deal with spurious wakeups and we won't accumulate math errors
@@ -174,7 +182,7 @@ errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set,
     }
 
 
-    for (;;) {
+    while (!done) {
         switch (wq_prim_timedwait(wq, set, flags, &deadline, NULL)) {
             case WRES_WAKEUP:   // Spurious wakeup
                 break;
@@ -184,15 +192,23 @@ errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set,
 
                 if (best_signo) {
                     *signo = best_signo;
-                    return EOK;
+                    err = EOK;
                 }
-                return EINTR;
+                else {
+                    err = EINTR;
+                }
+
+                done = true;
+                break;
             }
 
             case WRES_TIMEOUT:
-                return ETIMEDOUT;
+                err = ETIMEDOUT;
+                done = true;
+                break;
         }
     }
 
-    /* NOT REACHED */
+    preempt_restore(sps);
+    return err;
 }

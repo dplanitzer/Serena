@@ -56,24 +56,16 @@ SYSCALL_3(sigroute, int scope, id_t id, int op)
 
 SYSCALL_2(sigwait, const sigset_t* _Nonnull set, int* _Nullable signo)
 {
-    decl_try_err();
     ProcessRef pp = vp->proc;
 
-    const int sps = preempt_disable();
-    err = vcpu_sigwait(&pp->siwa_queue, pa->set, pa->signo);
-    preempt_restore(sps);
-    return err;
+    return vcpu_sigwait(&pp->siwa_queue, pa->set, pa->signo);
 }
 
 SYSCALL_4(sigtimedwait, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nullable signo)
 {
-    decl_try_err();
     ProcessRef pp = vp->proc;
 
-    const int sps = preempt_disable();
-    err = vcpu_sigtimedwait(&pp->siwa_queue, pa->set, pa->flags, pa->wtp, pa->signo);
-    preempt_restore(sps);
-    return err;
+    return vcpu_sigtimedwait(&pp->siwa_queue, pa->set, pa->flags, pa->wtp, pa->signo);
 }
 
 SYSCALL_1(sigpending, sigset_t* _Nonnull set)
