@@ -166,7 +166,9 @@ void _proc_reap_vcpus(ProcessRef _Nonnull self)
         //vcpu_yield();
         struct timespec delay;
         timespec_from_ms(&delay, 10);
+        const int sps = preempt_disable();
         wq_timedwait(&gHackQueue, NULL, 0, &delay, NULL);
+        preempt_restore(sps);
 
         mtx_lock(&self->mtx);
         if (self->vcpu_queue.first == NULL) {
