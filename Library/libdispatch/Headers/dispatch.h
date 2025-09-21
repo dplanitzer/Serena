@@ -131,7 +131,8 @@ struct dispatch_item {
     SListNode                           qe;
     dispatch_item_func_t _Nonnull       func;
     dispatch_retire_func_t _Nullable    retireFunc;
-    uint16_t                            flags;
+    uint8_t                             type;
+    uint8_t                             flags;
     volatile int8_t                     state;
     int8_t                              reserved;
 };

@@ -178,8 +178,8 @@ static int _dispatch_timer(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     }
 
 
-    item->flags = (uint16_t)(flags & ~(DISPATCH_SUBMIT_ABSTIME|DISPATCH_SUBMIT_AWAITABLE));
-    item->flags |= _DISPATCH_SUBMIT_TIMED;
+    item->type = _DISPATCH_TYPE_TIMED_ITEM;
+    item->flags = (uint8_t)flags;
 
     if (interval && timespec_lt(interval, &TIMESPEC_INF)) {
         timer->interval = *interval;
@@ -209,7 +209,7 @@ int dispatch_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item, int 
 
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-        r = _dispatch_timer(self, item, flags & _DISPATCH_SUBMIT_PUBLIC_MASK, deadline, interval);
+        r = _dispatch_timer(self, item, flags & _DISPATCH_SUBMIT_TIMER_MASK, deadline, interval);
     }
     mtx_unlock(&self->mutex);
     return r;
@@ -226,7 +226,7 @@ int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, const struc
         if (item) {
             ((dispatch_async_item_t)item)->func = func;
             ((dispatch_async_item_t)item)->arg = arg;
-            r = _dispatch_timer(self, (dispatch_item_t)item, flags | _DISPATCH_SUBMIT_CACHEABLE, wtp, itp);
+            r = _dispatch_timer(self, (dispatch_item_t)item, (flags & _DISPATCH_SUBMIT_TIMER_MASK) | _DISPATCH_SUBMIT_CACHEABLE, wtp, itp);
             if (r != 0) {
                 _dispatch_cache_item(self, item);
             }

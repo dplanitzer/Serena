@@ -192,7 +192,7 @@ void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self)
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Work Items
 
-static int _dispatch_submit(dispatch_t _Nonnull _Locked self, int flags, dispatch_item_t _Nonnull item)
+static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
     dispatch_worker_t best_wp = NULL;
     size_t best_wc = SIZE_MAX;
@@ -236,7 +236,6 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, int flags, dispatc
 
     item->state = DISPATCH_STATE_PENDING;
     item->qe = SLISTNODE_INIT;
-    item->flags = (uint16_t)(flags & ~DISPATCH_SUBMIT_ABSTIME);
 
 
     // Enqueue the work item at the worker that we found and notify it
@@ -372,7 +371,9 @@ int dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnul
 
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-        r = _dispatch_submit(self, flags & _DISPATCH_SUBMIT_PUBLIC_MASK, item);
+        item->type = _DISPATCH_TYPE_WORK_ITEM;
+        item->flags = (uint8_t)(flags & _DISPATCH_SUBMIT_ITEM_MASK);
+        r = _dispatch_submit(self, item);
     }
     mtx_unlock(&self->mutex);
     return r;
@@ -403,9 +404,11 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
        dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_async_item), _async_adapter_func);
     
         if (item) {
+            ((dispatch_item_t)item)->type = _DISPATCH_TYPE_WORK_ITEM;
+            ((dispatch_item_t)item)->flags = _DISPATCH_SUBMIT_CACHEABLE;
             ((dispatch_async_item_t)item)->func = func;
             ((dispatch_async_item_t)item)->arg = arg;
-            r = _dispatch_submit(self, _DISPATCH_SUBMIT_CACHEABLE, (dispatch_item_t)item);
+            r = _dispatch_submit(self, (dispatch_item_t)item);
             if (r != 0) {
                 _dispatch_cache_item(self, item);
             }
@@ -433,10 +436,12 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
         dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_sync_item), _sync_adapter_func);
     
         if (item) {
+            ((dispatch_item_t)item)->type = _DISPATCH_TYPE_WORK_ITEM;
+            ((dispatch_item_t)item)->flags = _DISPATCH_SUBMIT_CACHEABLE | DISPATCH_SUBMIT_AWAITABLE;
             ((dispatch_sync_item_t)item)->func = func;
             ((dispatch_sync_item_t)item)->arg = arg;
             ((dispatch_sync_item_t)item)->result = 0;
-            if (_dispatch_submit(self, _DISPATCH_SUBMIT_CACHEABLE | DISPATCH_SUBMIT_AWAITABLE, (dispatch_item_t)item) == 0) {
+            if (_dispatch_submit(self, (dispatch_item_t)item) == 0) {
                 r = _dispatch_await(self, (dispatch_item_t)item);
                 if (r == 0) {
                     r = ((dispatch_sync_item_t)item)->result;
@@ -457,7 +462,7 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
         case DISPATCH_STATE_PENDING:
             item->state = DISPATCH_STATE_CANCELLED;
             
-            if ((item->flags & _DISPATCH_SUBMIT_TIMED) != 0) {
+            if (item->type == _DISPATCH_TYPE_TIMED_ITEM) {
                 _dispatch_cancel_timer(self, flags, item);
             }
             else {
