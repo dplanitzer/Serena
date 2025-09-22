@@ -30,7 +30,7 @@ static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo,
 void _dispatch_cancel_signal_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
 {
     const int signo = item->subtype;
-    dispatch_sigmon_t* sm = &self->sigmons[_SIGBIT(signo)];
+    dispatch_sigmon_t* sm = &self->sigmons[signo - 1];
 
     _dispatch_retire_item(self, item);
 
@@ -44,7 +44,7 @@ void _dispatch_cancel_signal_item(dispatch_t _Nonnull self, int flags, dispatch_
 // monitor so that it can be submitted again when the next signal comes in.
 void _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
-    dispatch_sigmon_t* sm = &self->sigmons[_SIGBIT(item->subtype)];
+    dispatch_sigmon_t* sm = &self->sigmons[item->subtype - 1];
 
     item->state = DISPATCH_STATE_IDLE;
     item->qe = SLISTNODE_INIT;
@@ -70,7 +70,7 @@ static int _dispatch_monitor_signal(dispatch_t _Nonnull _Locked self, int signo,
     item->state = DISPATCH_STATE_IDLE;
     item->qe = SLISTNODE_INIT;
 
-    dispatch_sigmon_t* sm = &self->sigmons[_SIGBIT(signo)];
+    dispatch_sigmon_t* sm = &self->sigmons[signo - 1];
     SList_InsertAfterLast(&sm->handlers, &item->qe);
     sm->handlers_count++;
 
@@ -94,7 +94,7 @@ static int _dispatch_monitor_signal(dispatch_t _Nonnull _Locked self, int signo,
 
 void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int signo, dispatch_worker_t _Nonnull worker)
 {
-    dispatch_sigmon_t* sm = &self->sigmons[_SIGBIT(signo)];
+    dispatch_sigmon_t* sm = &self->sigmons[signo - 1];
 
     while (sm->handlers.first) {
         dispatch_item_t item = (dispatch_item_t)SList_RemoveFirst(&sm->handlers);
@@ -131,17 +131,15 @@ int dispatch_monitor_signal(dispatch_t _Nonnull self, int signo, dispatch_item_t
 
 int dispatch_alloc_signal(dispatch_t _Nonnull self, int signo)
 {
-    int r;
+    int r = -1;
 
     mtx_lock(&self->mutex);
     if (signo == 0) {
-        // Allocate first lowest priority signal available
-        r = -1;
-
+        // Allocate the first lowest priority signal available
         for (int i = SIGMAX; i >= SIGMIN; i--) {
             if (!sigismember(&self->alloced_sigs, i)) {
                 sigaddset(&self->alloced_sigs, i);
-                r = 0;
+                r = i;
                 break;
             }
         }
@@ -153,11 +151,10 @@ int dispatch_alloc_signal(dispatch_t _Nonnull self, int signo)
         // Allocate the specific signal 'signo'
         if (!sigismember(&self->alloced_sigs, signo)) {
             sigaddset(&self->alloced_sigs, signo);
-            r = 0;
+            r = signo;
         }
         else {
             errno = EBUSY;
-            r = 1;
         }
     }
     mtx_unlock(&self->mutex);
@@ -168,7 +165,7 @@ int dispatch_alloc_signal(dispatch_t _Nonnull self, int signo)
 void dispatch_free_signal(dispatch_t _Nonnull self, int signo)
 {
     mtx_lock(&self->mutex);
-    if (signo != 0) {
+    if (signo != 0 && signo != SIGKILL && signo != SIGDISPATCH) {
         sigdelset(&self->alloced_sigs, signo);
     }
     mtx_unlock(&self->mutex);

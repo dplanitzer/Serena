@@ -7,6 +7,7 @@
 //
 
 #include <dispatch.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -17,6 +18,9 @@
 
 static dispatch_t gDispatcher;
 static int gCounter;
+
+static struct timespec DELAY_500MS;
+static struct timespec DELAY_1000MS;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -72,8 +76,6 @@ void dq_sync_test(int argc, char *argv[])
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: dispatch_after
-
-static struct timespec DELAY_500MS;
 
 static void OnAfter(void* _Nonnull ign)
 {
@@ -145,4 +147,52 @@ void dq_terminate_test(int argc, char *argv[])
     printf("Terminated.\n");
     assertOK(dispatch_destroy(gDispatcher));
     printf("Success!\n");
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: dispatch_terminate
+
+struct siginfo {
+    id_t    group_id;
+    int     signo;
+};
+
+static void OnReceivedSignal(intptr_t _Nonnull value)
+{
+    printf("   Received signal\n");
+}
+
+static void OnSendSignal(struct siginfo* _Nonnull si)
+{
+    printf("Sending signal #%d\n", si->signo);
+    assertOK(sigsend(SIG_SCOPE_VCPU_GROUP, si->group_id, si->signo));
+}
+
+// Should print 'Sending signal' and 'Received signal' once every second
+void dq_signal_test(int argc, char *argv[])
+{
+    dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
+    gDispatcher = dispatch_create(&attr);
+    assertNotNULL(gDispatcher);
+
+    struct siginfo si;
+    si.group_id = dispatch_signal_target(gDispatcher);
+    si.signo = dispatch_alloc_signal(gDispatcher, 0);
+    assertTrue(si.signo >= SIGMIN && si.signo <= SIGMAX);
+
+    printf("vcpu-group-id: %u, signo: %d\n\n", si.group_id, si.signo);
+
+
+    dispatch_item_t item = calloc(1, sizeof(struct dispatch_item));
+    assertNotNULL(item);
+
+    item->func = (dispatch_item_func_t)OnReceivedSignal;
+    item->retireFunc = (dispatch_retire_func_t)free;
+
+    assertOK(dispatch_monitor_signal(gDispatcher, si.signo, item));
+
+
+    timespec_from_ms(&DELAY_1000MS, 1000);
+    assertOK(dispatch_repeating(gDispatcher, 0, &TIMESPEC_ZERO, &DELAY_1000MS, (dispatch_async_func_t)OnSendSignal, &si));
 }

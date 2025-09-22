@@ -21,6 +21,7 @@ extern void interactive_console_test(int argc, char *argv[]);
 extern void dq_async_test(int argc, char *argv[]);
 extern void dq_after_test(int argc, char *argv[]);
 extern void dq_repeating_test(int argc, char *argv[]);
+extern void dq_signal_test(int argc, char* argv[]);
 extern void dq_sync_test(int argc, char *argv[]);
 extern void dq_terminate_test(int argc, char *argv[]);
 
@@ -72,6 +73,7 @@ static const test_t gTests[] = {
     {"dq_after", dq_after_test, true},
     {"dq_async", dq_async_test, true},
     {"dq_rep", dq_repeating_test, true},
+    {"dq_signal", dq_signal_test, true},
     {"dq_sync", dq_sync_test, true},
     {"dq_term", dq_terminate_test, true},
 

@@ -261,14 +261,14 @@ extern int dispatch_monitor_signal(dispatch_t _Nonnull self, int signo, dispatch
 
 // Allocates a signal. If 'signo' is 0 then the first lowest priority signal that
 // is available in the context of the given dispatcher is allocated. Otherwise
-// an attempt is made to allocate the specific signal 'signo'. 0 is returned on
-// success and otherwise -1 and errno is set to EBUSY if the desired signal is
-// not available in the context of teh dispatcher. Signals are allocated on a
-// per dispatcher basis since the semantic meaning of a signal is potentially
-// different from dispatcher to dispatcher. A signal allocated by this function
-// may be passed to some other API so that this API can then send the signal to
-// the dispatcher. Use the dispatch_signal_target() function to get the vcpu
-// group that should be targeted by the signal.
+// an attempt is made to allocate the specific signal 'signo'. The number of the
+// allocated signal is returned on success and -1 otherwise. Errno is set to
+// EBUSY if the desired signal is not available in the context of the dispatcher.
+// Signals are allocated on a per dispatcher basis since the semantic meaning of
+// a signal is potentially different from dispatcher to dispatcher. A signal
+// allocated by this function may be passed to some other API so that this API
+// can then send the signal to the dispatcher. Use the dispatch_signal_target()
+// function to get the vcpu group that should be targeted by the signal.
 extern int dispatch_alloc_signal(dispatch_t _Nonnull self, int signo);
 
 // Frees an allocated signal. Does nothing if 'signo' is 0 or the signal wasn't
