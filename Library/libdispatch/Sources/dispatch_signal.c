@@ -171,11 +171,31 @@ void dispatch_free_signal(dispatch_t _Nonnull self, int signo)
     mtx_unlock(&self->mutex);
 }
 
-id_t dispatch_signal_target(dispatch_t _Nonnull self)
+vcpuid_t dispatch_signal_target(dispatch_t _Nonnull self)
 {
     mtx_lock(&self->mutex);
     const id_t id = self->groupid;
     mtx_unlock(&self->mutex);
 
     return id;
+}
+
+int dispatch_send_signal(dispatch_t _Nonnull self, int signo)
+{
+    vcpuid_t id;
+    int r, scope;
+
+    mtx_lock(&self->mutex);
+    if (self->attr.maxConcurrency == 1 && self->workers.first) {
+        id = ((dispatch_worker_t)self->workers.first)->id;
+        scope = SIG_SCOPE_VCPU;
+    }
+    else {
+        id = self->groupid;
+        scope = SIG_SCOPE_VCPU_GROUP;
+    }
+
+    r = sigsend(scope, id, signo);
+    mtx_unlock(&self->mutex);
+    return r;
 }

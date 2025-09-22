@@ -154,8 +154,8 @@ void dq_terminate_test(int argc, char *argv[])
 // MARK: dispatch_terminate
 
 struct siginfo {
-    id_t    group_id;
-    int     signo;
+    vcpuid_t    group_id;
+    int         signo;
 };
 
 static void OnReceivedSignal(intptr_t _Nonnull value)
@@ -165,8 +165,18 @@ static void OnReceivedSignal(intptr_t _Nonnull value)
 
 static void OnSendSignal(struct siginfo* _Nonnull si)
 {
-    printf("Sending signal #%d\n", si->signo);
-    assertOK(sigsend(SIG_SCOPE_VCPU_GROUP, si->group_id, si->signo));
+    static int sig_send_toggle;
+
+    if (sig_send_toggle) {
+        printf("Sending signal #%d   [sigsend]\n", si->signo);
+        assertOK(sigsend(SIG_SCOPE_VCPU_GROUP, si->group_id, si->signo));
+    }
+    else {
+        printf("Sending signal #%d   [dispatch_send_signal]\n", si->signo);
+        assertOK(dispatch_send_signal(gDispatcher, si->signo));
+    }
+
+    sig_send_toggle = !sig_send_toggle;
 }
 
 // Should print 'Sending signal' and 'Received signal' once every second
