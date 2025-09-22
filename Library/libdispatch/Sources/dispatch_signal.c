@@ -185,6 +185,11 @@ int dispatch_send_signal(dispatch_t _Nonnull self, int signo)
     vcpuid_t id;
     int r, scope;
 
+    if (signo == SIGDISPATCH || signo == SIGKILL) {
+        errno = EINVAL;
+        return -1;
+    }
+
     mtx_lock(&self->mutex);
     if (self->attr.maxConcurrency == 1 && self->workers.first) {
         id = ((dispatch_worker_t)self->workers.first)->id;
