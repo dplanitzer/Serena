@@ -9,6 +9,7 @@
 #include "dispatch_priv.h"
 #include <errno.h>
 #include <limits.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -70,6 +71,8 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
     self->timer_cache_count = 0;
     self->state = _DISPATCHER_STATE_ACTIVE;
 
+    sigaddset(&self->alloced_sigs, SIGDISPATCH);
+    
     if (cnd_init(&self->cond) != 0) {
         return false;
     }
@@ -119,12 +122,19 @@ int dispatch_destroy(dispatch_t _Nullable self)
         });
         self->timer_cache = SLIST_INIT;
 
+
         SList_ForEach(&self->item_cache, ListNode, {
             dispatch_cacheable_item_t cip = (dispatch_cacheable_item_t)pCurNode;
 
             free(cip);
         });
         self->item_cache = SLIST_INIT;
+
+
+        if (self->sigmons) {
+            free(self->sigmons);
+            self->sigmons = NULL;
+        }
 
         self->workers = LIST_INIT;
         self->zombie_items = SLIST_INIT;
@@ -239,7 +249,7 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
 
 
     // Enqueue the work item at the worker that we found and notify it
-    _dispatch_worker_submit(best_wp, item);
+    _dispatch_worker_submit(best_wp, item, true);
 
     return 0;
 }
@@ -332,9 +342,7 @@ dispatch_cacheable_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _No
         ip->size = nbytes;
         ip->super.func = func;
         ip->super.retireFunc = NULL;
-        ip->super.flags = 0;
         ip->super.state = DISPATCH_STATE_IDLE;
-        ip->super.reserved = 0;
     }
 
     return ip;
@@ -405,6 +413,7 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
     
         if (item) {
             ((dispatch_item_t)item)->type = _DISPATCH_TYPE_WORK_ITEM;
+            ((dispatch_item_t)item)->subtype = 0;
             ((dispatch_item_t)item)->flags = _DISPATCH_SUBMIT_CACHEABLE;
             ((dispatch_async_item_t)item)->func = func;
             ((dispatch_async_item_t)item)->arg = arg;
@@ -437,6 +446,7 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
     
         if (item) {
             ((dispatch_item_t)item)->type = _DISPATCH_TYPE_WORK_ITEM;
+            ((dispatch_item_t)item)->subtype = 0;
             ((dispatch_item_t)item)->flags = _DISPATCH_SUBMIT_CACHEABLE | DISPATCH_SUBMIT_AWAITABLE;
             ((dispatch_sync_item_t)item)->func = func;
             ((dispatch_sync_item_t)item)->arg = arg;
@@ -462,17 +472,27 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
         case DISPATCH_STATE_PENDING:
             item->state = DISPATCH_STATE_CANCELLED;
             
-            if (item->type == _DISPATCH_TYPE_TIMED_ITEM) {
-                _dispatch_cancel_timer(self, flags, item);
-            }
-            else {
-                List_ForEach(&self->workers, ListNode, {
-                    dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+            switch (item->type) {
+                case _DISPATCH_TYPE_TIMED_ITEM:
+                    _dispatch_cancel_timer(self, flags, item);
+                    break;
+                
+                case _DISPATCH_TYPE_SIGNAL_ITEM:
+                    _dispatch_cancel_signal_item(self, flags, item);
+                    break;
 
-                    if (_dispatch_worker_cancel_item(cwp, flags, item)) {
-                        break;
-                    }
-                });
+                case _DISPATCH_TYPE_WORK_ITEM:
+                    List_ForEach(&self->workers, ListNode, {
+                        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+
+                        if (_dispatch_worker_cancel_item(cwp, flags, item)) {
+                            break;
+                        }
+                    });
+                    break;
+
+                default:
+                    abort();
             }
             break;
 

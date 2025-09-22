@@ -54,11 +54,16 @@ struct dispatch_timer {
 typedef struct dispatch_timer* dispatch_timer_t;
 
 
-
 typedef struct dispatch_work {
     dispatch_timer_t _Nullable  timer;  // timer of 'item' if it is timed; NULL otherwise
     dispatch_item_t _Nullable   item;   // points to the currently executing item; NULL if worker isn't executing anything
 } dispatch_work_t;
+
+
+typedef struct dispatch_sigmon {
+    SList   handlers;
+    int     handlers_count;
+} dispatch_sigmon_t;
 
 
 // _dispatch_worker_create() adoption mode
@@ -91,7 +96,7 @@ extern dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull o
 extern void _dispatch_worker_destroy(dispatch_worker_t _Nullable self);
 
 extern void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self);
-extern void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
+extern void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item, bool doWakeup);
 extern dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull self, dispatch_item_func_t _Nonnull func);
 extern bool _dispatch_worker_cancel_item(dispatch_worker_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
 extern void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self);
@@ -148,6 +153,9 @@ struct dispatch {
     SList               timer_cache;
     size_t              timer_cache_count;
 
+    dispatch_sigmon_t* _Nullable    sigmons;
+    sigset_t            alloced_sigs;
+
     volatile int        state;
     int                 suspension_count;
 
@@ -170,6 +178,10 @@ extern dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self,
 extern void _dispatch_cancel_timer(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
 extern void _dispatch_cache_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
 extern void _dispatch_drain_timers(dispatch_t _Nonnull _Locked self);
+
+extern void _dispatch_cancel_signal_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
+extern void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int signo, dispatch_worker_t _Nonnull worker);
+extern void _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 
 extern _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker);
 

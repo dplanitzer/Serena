@@ -132,9 +132,9 @@ struct dispatch_item {
     dispatch_item_func_t _Nonnull       func;
     dispatch_retire_func_t _Nullable    retireFunc;
     uint8_t                             type;
+    uint8_t                             subtype;
     uint8_t                             flags;
     volatile int8_t                     state;
-    int8_t                              reserved;
 };
 typedef struct dispatch_item* dispatch_item_t;
 
@@ -188,6 +188,7 @@ typedef struct dispatch_attr {
 // Initializes a dispatch attribute object to set up a concurrent queue with
 // '__n' virtual processors and utility priority.
 #define DISPATCH_ATTR_INIT_CONCURRENT_UTILITY(__n)  (dispatch_attr_t){0, 1, __n, DISPATCH_QOS_UTILITY, DISPATCH_PRI_NORMAL, NULL}
+
 
 
 // Creates a new dispatcher based on the provided dispatcher attributes.
@@ -248,6 +249,36 @@ extern int dispatch_after(dispatch_t _Nonnull self, int flags, const struct time
 
 // Convenience function to repeatedly execute 'func'.
 extern int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg);
+
+
+// Register the given item as a signal monitor with the dispatcher. The item
+// will be scheduled every time the signal is sent to the dispatcher. Remove
+// the signal monitor by canceling the item. The dispatcher takes ownership of
+// the provided item until it is cancelled. Note that the item will run on one
+// worker in a concurrent dispatcher. It will not be invoked multiple times at
+// the same time.
+extern int dispatch_monitor_signal(dispatch_t _Nonnull self, int signo, dispatch_item_t _Nonnull item);
+
+// Allocates a signal. If 'signo' is 0 then the first lowest priority signal that
+// is available in the context of the given dispatcher is allocated. Otherwise
+// an attempt is made to allocate the specific signal 'signo'. 0 is returned on
+// success and otherwise -1 and errno is set to EBUSY if the desired signal is
+// not available in the context of teh dispatcher. Signals are allocated on a
+// per dispatcher basis since the semantic meaning of a signal is potentially
+// different from dispatcher to dispatcher. A signal allocated by this function
+// may be passed to some other API so that this API can then send the signal to
+// the dispatcher. Use the dispatch_signal_target() function to get the vcpu
+// group that should be targeted by the signal.
+extern int dispatch_alloc_signal(dispatch_t _Nonnull self, int signo);
+
+// Frees an allocated signal. Does nothing if 'signo' is 0 or the signal wasn't
+// allocated in the first place.
+extern void dispatch_free_signal(dispatch_t _Nonnull self, int signo);
+
+// Returns the vcpu group id that should be used in a sigsend() call to send a
+// signal to the dispatcher. The signal should be sent with scope
+// SIG_SCOPE_VCPU_GROUP.
+extern id_t dispatch_signal_target(dispatch_t _Nonnull self);
 
 
 // Cancels a scheduled work item or timer and removes it from the dispatcher.

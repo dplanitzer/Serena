@@ -179,6 +179,7 @@ static int _dispatch_timer(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
 
 
     item->type = _DISPATCH_TYPE_TIMED_ITEM;
+    item->subtype = 0;
     item->flags = (uint8_t)flags;
 
     if (interval && timespec_lt(interval, &TIMESPEC_INF)) {

@@ -8,6 +8,7 @@
 
 #include "dispatch_priv.h"
 #include <errno.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -110,12 +111,14 @@ void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self)
     sigsend(SIG_SCOPE_VCPU, self->id, SIGDISPATCH);
 }
 
-void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
+void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item, bool doWakeup)
 {
     SList_InsertAfterLast(&self->work_queue, &item->qe);
     self->work_count++;
 
-    _dispatch_worker_wakeup(self);
+    if (doWakeup) {
+        _dispatch_worker_wakeup(self);
+    }
 }
 
 // Cancels all items that are still on the worker's work queue
@@ -255,12 +258,16 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, dispatch_work
         const int r = sigtimedwait(&self->hotsigs, flags, &deadline, &signo);
         mtx_lock(&q->mutex);
 
-        if (r != 0 && q->worker_count > q->attr.minConcurrency && self->allow_relinquish && errno == ETIMEDOUT) {
+        if (r != 0 && q->worker_count > q->attr.minConcurrency && self->allow_relinquish && (self->hotsigs & ~SIGDISPATCH) == 0 && errno == ETIMEDOUT) {
             mayRelinquish = true;
         }
 
         if (q->state == _DISPATCHER_STATE_SUSPENDING || q->state == _DISPATCHER_STATE_SUSPENDED) {
             _wait_for_resume(self);
+        }
+
+        if (signo != SIGDISPATCH) {
+            _dispatch_submit_items_for_signal(q, signo, self);
         }
     }
 }
@@ -274,7 +281,6 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
     mtx_lock(&q->mutex);
 
     while (!_get_next_work(self, &self->current)) {
-        dispatch_timer_t timer = self->current.timer;
         dispatch_item_t item = self->current.item;
 
         item->state = DISPATCH_STATE_EXECUTING;
@@ -290,18 +296,36 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
         }
 
 
-        if (timer) {
-            if ((item->flags & _DISPATCH_SUBMIT_REPEATING) != 0
-                && item->state != DISPATCH_STATE_CANCELLED
-                && q->state < _DISPATCHER_STATE_TERMINATING) {
-                _dispatch_rearm_timer(q, timer);
+        switch (item->type) {
+            case _DISPATCH_TYPE_WORK_ITEM:
+                _dispatch_retire_item(q, item);
+                break;
+
+            case _DISPATCH_TYPE_SIGNAL_ITEM:
+                if ((item->flags & _DISPATCH_SUBMIT_REPEATING) != 0
+                    && item->state != DISPATCH_STATE_CANCELLED) {
+                    _dispatch_rearm_signal_item(q, item);
+                }
+                else {
+                    _dispatch_cancel_signal_item(q, 0, item);
+                }
+                break;
+
+            case _DISPATCH_TYPE_TIMED_ITEM: {
+                dispatch_timer_t timer = self->current.timer;
+
+                if ((item->flags & _DISPATCH_SUBMIT_REPEATING) != 0
+                    && item->state != DISPATCH_STATE_CANCELLED) {
+                    _dispatch_rearm_timer(q, timer);
+                }
+                else {
+                    _dispatch_retire_timer(q, timer);
+                }
             }
-            else {
-                _dispatch_retire_timer(q, timer);
-            }
-        }
-        else {
-            _dispatch_retire_item(q, item);
+                break;
+
+            default:
+                abort();
         }
     }
 
