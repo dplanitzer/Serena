@@ -31,26 +31,6 @@ typedef struct List {
 #define LISTNODE_INIT   (ListNode){NULL, NULL}
 #define LIST_INIT       (List){NULL, NULL}
 
-static inline void List_Init(List* _Nonnull pList) {
-    pList->first = NULL;
-    pList->last = NULL;
-}
-
-static inline void List_Deinit(List* _Nonnull pList) {
-    pList->first = NULL;
-    pList->last = NULL;
-}
-
-static inline void ListNode_Init(ListNode* _Nonnull pNode) {
-    pNode->prev = NULL;
-    pNode->next = NULL;
-}
-
-static inline void ListNode_Deinit(ListNode* _Nonnull pNode) {
-    pNode->prev = NULL;
-    pNode->next = NULL;
-}
-
 extern void List_InsertBeforeFirst(List* _Nonnull pList, ListNode* _Nonnull pNode);
 extern void List_InsertAfterLast(List* _Nonnull pList, ListNode* _Nonnull pNode);
 extern void List_InsertAfter(List* _Nonnull pList, ListNode* _Nonnull pNode, ListNode* _Nullable pAfterNode);
@@ -109,24 +89,6 @@ typedef struct SList {
 #define SLISTNODE_INIT  (SListNode){NULL}
 #define SLIST_INIT      (SList){NULL, NULL}
 
-
-static inline void SList_Init(SList* _Nonnull pList) {
-    pList->first = NULL;
-    pList->last = NULL;
-}
-
-static inline void SList_Deinit(SList* _Nonnull pList) {
-    pList->first = NULL;
-    pList->last = NULL;
-}
-
-static inline void SListNode_Init(SListNode* _Nonnull pNode) {
-    pNode->next = NULL;
-}
-
-static inline void SListNode_Deinit(SListNode* _Nonnull pNode) {
-    pNode->next = NULL;
-}
 
 static inline void SList_InsertBeforeFirst(SList* _Nonnull pList, SListNode* _Nonnull pNode) {
     pNode->next = pList->first;
