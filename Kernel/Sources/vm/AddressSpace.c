@@ -27,7 +27,7 @@ typedef struct MemBlocks {
 
 void AddressSpace_Init(AddressSpaceRef _Nonnull self)
 {
-    SList_Init(&self->mblocks);
+    self->mblocks = SLIST_INIT;
     mtx_init(&self->mtx);
 }
 
@@ -73,7 +73,7 @@ errno_t AddressSpace_Allocate(AddressSpaceRef _Nonnull self, ssize_t nbytes, voi
     if (SList_IsEmpty(&self->mblocks)
         || ((MemBlocks*)self->mblocks.last)->count == MEM_BLOCKS_CAPACITY) {
         try(kalloc_cleared(sizeof(MemBlocks), (void**) &bp));
-        SListNode_Init(&bp->node);
+        bp->node = SLISTNODE_INIT;
         SList_InsertAfterLast(&self->mblocks, &bp->node);
     } else {
         bp = (MemBlocks*)self->mblocks.last;
@@ -110,13 +110,13 @@ static void _AddressSpace_UnmapAll(AddressSpaceRef _Nonnull _Locked self)
             cp->blocks[i].size = 0;
         }
 
-        SListNode_Deinit(&cp->node);
+        cp->node = SLISTNODE_INIT;
         kfree(cp);
 
         cp = np;
     }
 
-    SList_Init(&self->mblocks);
+    self->mblocks = SLIST_INIT;
     self->virt_size = 0;
 }
 
@@ -134,6 +134,6 @@ void AddressSpace_AdoptMappingsFrom(AddressSpaceRef _Nonnull self, AddressSpaceR
 
     self->mblocks = other->mblocks;
     self->virt_size = other->virt_size;
-    SList_Init(&other->mblocks);
+    other->mblocks = SLIST_INIT;
     mtx_unlock(&self->mtx);
 }

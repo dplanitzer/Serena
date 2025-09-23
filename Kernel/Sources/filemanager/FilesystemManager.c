@@ -256,7 +256,7 @@ static void _FilesystemManager_Reaper(FilesystemManagerRef _Nonnull self)
     // having to hold the lock.
     mtx_lock(&self->mtx);
     queue = self->reaperQueue;
-    List_Init(&self->reaperQueue);
+    self->reaperQueue = LIST_INIT;
     mtx_unlock(&self->mtx);
 
     

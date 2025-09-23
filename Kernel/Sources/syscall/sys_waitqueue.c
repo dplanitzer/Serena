@@ -28,7 +28,7 @@ static errno_t uwq_create(int policy, UWaitQueue* _Nullable * _Nonnull pOutSelf)
 
     err = kalloc(sizeof(UWaitQueue), (void**)&self);
     if (err == EOK) {
-        ListNode_Init(&self->qe);
+        self->qe = LISTNODE_INIT;
         wq_init(&self->wq);
         self->policy = policy;
         self->id = -1;

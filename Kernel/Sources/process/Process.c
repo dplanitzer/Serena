@@ -34,13 +34,13 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     self->pgrp = pgrp;
     self->sid = sid;
 
-    List_Init(&self->vcpu_queue);
+    self->vcpu_queue = LIST_INIT;
     self->next_avail_vcpuid = VCPUID_MAIN + 1;
 
     IOChannelTable_Init(&self->ioChannelTable);
 
     for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
-        List_Init(&self->waitQueueTable[i]);
+        self->waitQueueTable[i] = LIST_INIT;
     }
     self->nextAvailWaitQueueId = 0;
 
@@ -78,8 +78,6 @@ static void _proc_deinit(ProcessRef _Nonnull self)
 
     wq_deinit(&self->siwa_queue);
     wq_deinit(&self->sleep_queue);
-
-    List_Deinit(&self->vcpu_queue);
 
     AddressSpace_Deinit(&self->addr_space);
     self->pargs_base = NULL;

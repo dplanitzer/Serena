@@ -20,7 +20,6 @@ errno_t vcpu_pool_create(vcpu_pool_t _Nullable * _Nonnull pOutSelf)
     vcpu_pool_t self;
     
     try(kalloc_cleared(sizeof(struct vcpu_pool), (void**) &self));
-    List_Init(&self->reuse_queue);
     mtx_init(&self->mtx);
     self->reuse_capacity = 16;
     *pOutSelf = self;
@@ -35,7 +34,6 @@ catch:
 void vcpu_pool_destroy(vcpu_pool_t _Nullable self)
 {
     if (self) {
-        List_Deinit(&self->reuse_queue);
         mtx_deinit(&self->mtx);
         kfree(self);
     }

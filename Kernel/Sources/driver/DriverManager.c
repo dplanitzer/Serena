@@ -53,10 +53,6 @@ errno_t DriverManager_Create(DriverManagerRef _Nullable * _Nonnull pOutSelf)
     try(kalloc_cleared(sizeof(struct DriverManager), (void**)&self));
     mtx_init(&self->mtx);
 
-    for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
-        SList_Init(&self->id_table[i]);
-    }
-
 
 catch:
     *pOutSelf = self;

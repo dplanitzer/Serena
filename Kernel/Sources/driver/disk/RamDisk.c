@@ -48,7 +48,6 @@ errno_t RamDisk_Create(const char* _Nonnull name, size_t sectorSize, scnt_t sect
     drvi.properties = kDrive_Fixed;
 
     try(DiskDriver_Create(class(RamDisk), 0, g_cats, &drvi, (DriverRef*)&self));
-    SList_Init(&self->extents);
     self->extentSectorCount = __min(extentSectorCount, sectorCount);
     self->sectorCount = sectorCount;
     self->sectorShift = siz_log2(sectorSize);
@@ -66,8 +65,6 @@ void RamDisk_deinit(RamDiskRef _Nonnull self)
     SList_ForEach(&self->extents, DiskExtent, {
         kfree(pCurNode);
     });
-
-    SList_Deinit(&self->extents);
 }
 
 errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
@@ -184,7 +181,7 @@ errno_t RamDisk_doFormatDisk(RamDiskRef _Nonnull self, char fillByte)
         kfree(pCurNode);
     });
 
-    SList_Init(&self->extents);
+    self->extents = SLIST_INIT;
     self->fillByte = fillByte;
 
     return EOK;

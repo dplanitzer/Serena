@@ -40,14 +40,10 @@ errno_t ProcessManager_Create(ProcessManagerRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     ProcessManagerRef self;
     
-    try(kalloc(sizeof(ProcessManager), (void**) &self));
+    try(kalloc_cleared(sizeof(ProcessManager), (void**) &self));
     
     mtx_init(&self->mtx);
     self->nextPid = 1;
-
-    for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
-        SList_Init(&self->pid_table[i]);
-    }
 
 catch:
     *pOutSelf = self;

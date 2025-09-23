@@ -21,7 +21,6 @@
 // \param pVP the virtual processor
 void __func_vcpu_destroy(vcpu_t _Nullable self)
 {
-    ListNode_Deinit(&self->owner_qe);
     stk_destroy(&self->kernel_stack);
     stk_destroy(&self->user_stack);
     kfree(self);
@@ -50,14 +49,14 @@ _Noreturn vcpu_relinquish(void)
 // \param priority the initial VP priority
 void vcpu_cominit(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull sched_params)
 {
-    ListNode_Init(&self->rewa_qe);
+    self->rewa_qe = LISTNODE_INIT;
     stk_init(&self->kernel_stack);
     stk_init(&self->user_stack);
 
     self->vtable = &gVirtualProcessorVTable;
     
-    ListNode_Init(&self->owner_qe);    
-    ListNode_Init(&self->timeout.queue_entry);
+    self->owner_qe = LISTNODE_INIT;    
+    self->timeout.queue_entry = LISTNODE_INIT;
     
     self->pending_sigs = 0;
     self->proc_sigs_enabled = 0;

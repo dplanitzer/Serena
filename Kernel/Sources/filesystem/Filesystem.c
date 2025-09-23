@@ -63,7 +63,6 @@ errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOut
     self->fsid = Filesystem_GetNextAvailableId();
     cnd_init(&self->inCondVar);
     mtx_init(&self->inLock);
-    List_Init(&self->inReadingCache);
     self->state = kFilesystemState_Idle;
 #ifndef __DISKIMAGE__
     self->catalogId = kCatalogId_None;
@@ -92,7 +91,6 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
     FSDeallocate(self->inReading);
     self->inReading = NULL;
 
-    List_Deinit(&self->inReadingCache);
     mtx_deinit(&self->inLock);
     cnd_deinit(&self->inCondVar);
 }

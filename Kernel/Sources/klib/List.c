@@ -131,7 +131,7 @@ void List_Split(List* _Nonnull pList, ListNode* _Nullable pFirstNodeOfTail, List
         
         pLastNodeOfHead->next = NULL;
     } else {
-        List_Init(pHeadList);
+        *pHeadList = LIST_INIT;
     }
     
     if (pFirstNodeOfTail) {
@@ -140,11 +140,11 @@ void List_Split(List* _Nonnull pList, ListNode* _Nullable pFirstNodeOfTail, List
         
         pFirstNodeOfTail->prev = NULL;
     } else {
-        List_Init(pTailList);
+        *pTailList = LIST_INIT;
     }
     
     if (pList != pHeadList && pList != pTailList) {
-        List_Init(pList);
+        *pList = LIST_INIT;
     }
 }
 

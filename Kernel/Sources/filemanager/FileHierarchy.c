@@ -195,10 +195,6 @@ errno_t FileHierarchy_Create(FilesystemRef _Nonnull rootFS, FileHierarchyRef _Nu
 
     try(Object_Create(class(FileHierarchy), 0, (void**)&self));
     rwmtx_init(&self->lock);
-    
-    for (int i = 0; i < HASH_CHAINS_COUNT; i++) {
-        List_Init(&self->hashChain[i]);
-    }
 
     try(Filesystem_AcquireRootDirectory(rootFS, &self->rootDirectory));
     try(create_fsnode(rootFS, &self->root));
@@ -396,9 +392,8 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
     AtNode* atNode = NULL;
     FsNode* atFsNode = NULL;
     FilesystemRef fs = NULL;
-    List keys;
+    List keys = LIST_INIT;
 
-    List_Init(&keys);
     try_bang(rwmtx_wrlock(&self->lock));
 
     // Make sure that the FS that we want to detach, isn't the root FS

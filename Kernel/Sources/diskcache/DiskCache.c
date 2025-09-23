@@ -30,17 +30,12 @@ errno_t DiskCache_Create(size_t blockSize, size_t maxBlockCount, DiskCacheRef _N
 
     mtx_init(&self->interlock);
     cnd_init(&self->condition);
-    List_Init(&self->lruChain);
 
     self->nextAvailSessionId = 1;
     self->blockSize = blockSize;
     self->blockCount = 0;
     self->blockCapacity = maxBlockCount;
     assert(self->blockCapacity > 0);
-
-    for (int i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
-        List_Init(&self->diskAddrHash[i]);
-    }
 
     *pOutSelf = self;
     return EOK;

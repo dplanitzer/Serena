@@ -54,12 +54,12 @@ void sched_create(sys_desc_t* _Nonnull sdp, BootAllocator* _Nonnull bap, VoidFun
         self->csw_hw |= CSW_HW_HAS_FPU;
     }
     
-    List_Init(&self->timeout_queue);
+    self->timeout_queue = LIST_INIT;
     wq_init(&gSchedulerWaitQueue);
-    List_Init(&self->finalizer_queue);
+    self->finalizer_queue = LIST_INIT;
 
     for (int i = 0; i < VP_PRIORITY_COUNT; i++) {
-        List_Init(&self->ready_queue.priority[i]);
+        self->ready_queue.priority[i] = LIST_INIT;
     }
     for (int i = 0; i < VP_PRIORITY_POP_BYTE_COUNT; i++) {
         self->ready_queue.populated[i] = 0;
@@ -302,7 +302,7 @@ _Noreturn sched_run_chores(sched_t _Nonnull self)
     timespec_from_sec(&timeout, 1);
     
     while (true) {
-        List_Init(&dead_vps);
+        dead_vps = LIST_INIT;
         const int sps = preempt_disable();
 
         // Continue to wait as long as there's nothing to finalize
@@ -317,7 +317,7 @@ _Noreturn sched_run_chores(sched_t _Nonnull self)
         // Got some work to do. Save off the needed data in local vars and then
         // reenable preemption before we go and do the actual work.
         dead_vps = self->finalizer_queue;
-        List_Deinit(&self->finalizer_queue);
+        self->finalizer_queue = LIST_INIT;
         
         preempt_restore(sps);
         

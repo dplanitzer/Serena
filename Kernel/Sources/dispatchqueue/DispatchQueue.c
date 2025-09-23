@@ -28,9 +28,6 @@ errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, in
     }
     
     try(Object_Create(class(DispatchQueue), sizeof(ConcurrencyLane) * (maxConcurrency - 1), (void**)&self));
-    SList_Init(&self->item_queue);
-    SList_Init(&self->timer_queue);
-    SList_Init(&self->item_cache_queue);
     mtx_init(&self->lock);
     cnd_init(&self->work_available_signaler);
     cnd_init(&self->vp_shutdown_signaler);
@@ -133,14 +130,10 @@ static void _DispatchQueue_Destroy(DispatchQueueRef _Nonnull self)
 
     // No more VPs are attached to this queue. We can now go ahead and free
     // all resources.
-    SList_Deinit(&self->item_queue);      // guaranteed to be empty at this point
-    SList_Deinit(&self->timer_queue);     // guaranteed to be empty at this point
-
     self->item_cache_capacity = 0;  // Force relinquish to deallocate
     while ((pItem = (WorkItem*) SList_RemoveFirst(&self->item_cache_queue)) != NULL) {
         DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
     }
-    SList_Deinit(&self->item_cache_queue);
     
     mtx_deinit(&self->lock);
     cnd_deinit(&self->work_available_signaler);
@@ -271,7 +264,7 @@ static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull se
 
 
     // (Re-)Initialize the work item
-    SListNode_Init(&pItem->queue_entry);
+    pItem->queue_entry = SLISTNODE_INIT;
     pItem->func = func;
     pItem->context = context;
     pItem->arg = (nArgBytes == 0) ? args : (void*)((uintptr_t)pItem + __Ceil_PowerOf2(sizeof(WorkItem), ARG_WORD_SIZE));
@@ -296,7 +289,7 @@ static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull se
         sem_deinit(&pItem->u.completionSignaler);
     }
 
-    SListNode_Deinit(&pItem->queue_entry);
+    pItem->queue_entry = SLISTNODE_INIT;
     pItem->func = NULL;
     pItem->context = NULL;
     pItem->arg = NULL;

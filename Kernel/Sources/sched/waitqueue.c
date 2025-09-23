@@ -14,7 +14,7 @@
 
 void wq_init(waitqueue_t _Nonnull self)
 {
-    List_Init(&self->q);
+    self->q = LIST_INIT;
 }
 
 errno_t wq_deinit(waitqueue_t _Nonnull self)
@@ -22,10 +22,7 @@ errno_t wq_deinit(waitqueue_t _Nonnull self)
     decl_try_err();
     const int sps = preempt_disable();
 
-    if (List_IsEmpty(&self->q)) {
-        List_Deinit(&self->q);
-    }
-    else {
+    if (!List_IsEmpty(&self->q)) {
         err = EBUSY;
     }
 
