@@ -155,6 +155,10 @@ struct vcpu {
 (__qos) * VCPU_PRI_COUNT + ((__qos_pri) + VCPU_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW
 
 
+// Returns a new and unique vcpu group id.
+extern vcpuid_t new_vcpu_groupid(void);
+
+
 // Returns a reference to the currently running virtual processor. This is the
 // virtual processor that is executing the caller.
 extern vcpu_t _Nonnull vcpu_current(void);

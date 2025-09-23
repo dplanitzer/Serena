@@ -337,3 +337,10 @@ bool vcpu_suspended(vcpu_t _Nonnull self)
     preempt_restore(sps);
     return isSuspended;
 }
+
+vcpuid_t new_vcpu_groupid(void)
+{
+    static vcpuid_t id = VCPUID_MAIN_GROUP;
+
+    return AtomicInt_Increment((volatile AtomicInt*)&id);
+}

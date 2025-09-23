@@ -646,6 +646,7 @@ int dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t buflen)
     const size_t len = strlen(self->name);
 
     if (buflen == 0) {
+        errno = EINVAL;
         r = -1;
         goto out;
     }
