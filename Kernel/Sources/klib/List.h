@@ -40,9 +40,8 @@ extern ListNode* _Nullable List_RemoveFirst(List* _Nonnull pList);
 
 extern void List_Split(List* _Nonnull pList, ListNode* _Nullable pFirstNodeOfTail, List* _Nonnull pHeadList, List* _Nonnull pTailList);
 
-static inline bool List_IsEmpty(List* _Nonnull pList) {
-    return pList->first == NULL;
-}
+#define List_IsEmpty(__lp) \
+((__lp)->first == NULL)
 
 // Iterates all elements of the given list. Guarantees that the closure may call
 // free on 'pCurNode' without ill effect. The iteration will continue until the
@@ -122,9 +121,8 @@ SListNode* _Nullable SList_RemoveFirst(SList* _Nonnull pList);
 void SList_Remove(SList* _Nonnull pList, SListNode* _Nullable pPrevNode, SListNode* _Nonnull pNodeToRemove);
 
 
-static inline bool SList_IsEmpty(SList* _Nonnull pList) {
-    return pList->first == NULL;
-}
+#define SList_IsEmpty(__lp) \
+((__lp)->first == NULL)
 
 // Iterates all elements of the given list. Guarantees that the closure may call
 // free on 'pCurNode' without ill effect. The iteration will continue until the
