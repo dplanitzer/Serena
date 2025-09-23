@@ -52,7 +52,7 @@ void _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item
     SList_InsertAfterLast(&sm->handlers, &item->qe);
 }
 
-static int _dispatch_monitor_signal(dispatch_t _Nonnull _Locked self, int signo, dispatch_item_t _Nonnull item)
+static int _dispatch_signal_monitor(dispatch_t _Nonnull _Locked self, int signo, dispatch_item_t _Nonnull item)
 {
     if (self->sigmons == NULL) {
         //XXX allocate in a smarter way: eg organize sigset in quarters, calc
@@ -112,7 +112,7 @@ void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int sig
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
 
-int dispatch_monitor_signal(dispatch_t _Nonnull self, int signo, dispatch_item_t _Nonnull item)
+int dispatch_signal_monitor(dispatch_t _Nonnull self, int signo, dispatch_item_t _Nonnull item)
 {
     int r = -1;
 
@@ -123,7 +123,7 @@ int dispatch_monitor_signal(dispatch_t _Nonnull self, int signo, dispatch_item_t
 
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-        r = _dispatch_monitor_signal(self, signo, item);
+        r = _dispatch_signal_monitor(self, signo, item);
     }
     mtx_unlock(&self->mutex);
     return r;
