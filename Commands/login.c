@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
     sigroute(SIG_SCOPE_VCPU, 0, SIG_ROUTE_ENABLE);
     
 
-    printf("\033[36mSerena OS v0.5.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
+    printf("\033[36mSerena OS v0.6.0-alpha\033[0m\nCopyright 2023 - 2025, Dietmar Planitzer.\n\n");
 
     
     // Log the user in and then return from our closure. Our VP will be moved

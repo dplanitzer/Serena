@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <clap.h>
+#include <sys/vcpu.h>
 #include "Utilities.h"
 #include "Shell.h"
 
@@ -39,16 +40,13 @@ int main(int argc, char *argv[])
 
     
     // Enable SIGCHILD reception
-    sigroute(SIG_SCOPE_VCPU, 0, SIG_ROUTE_ENABLE);
+    sigroute(SIG_SCOPE_VCPU, VCPUID_MAIN, SIG_ROUTE_ENABLE);
 
 
     ShellRef sh = Shell_Create(isInteractive);
     if (isInteractive) {
-        // XXX disabled insertion mode for now because the line reader doesn't support
-        // XXX it properly yet
-        //printf("\033[4h");  // Switch the console to insert mode
         if (!arg_isLogin) {
-            fputs("\n\033[36mSerena Shell v0.5.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n", stdout);
+            fputs("\n\033[36mSerena Shell v0.6.0-alpha\033[0m\nCopyright 2023 - 2025, Dietmar Planitzer.\n\n", stdout);
         }
 
         Shell_Run(sh);
