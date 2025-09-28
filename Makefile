@@ -16,6 +16,8 @@ TOOLS_DIR := $(BUILD_DIR)/tools
 DEMOS_DIR := $(WORKSPACE_DIR)/Demos
 OBJS_DIR := $(BUILD_DIR)/objs
 PRODUCT_DIR := $(BUILD_DIR)/product
+SDK_DIR := $(PRODUCT_DIR)/serena-sdk
+SDK_LIB_DIR := $(SDK_DIR)/lib
 
 
 # --------------------------------------------------------------------------
@@ -93,26 +95,26 @@ WAIT_FILE := $(CMDS_OBJS_DIR)/wait
 LIBC_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libc
 LIBC_HEADERS_DIR := $(LIBC_PROJECT_DIR)/Headers
 LIBC_OBJS_DIR := $(OBJS_DIR)/Library/libc
-LIBC_FILE := $(LIBC_OBJS_DIR)/libc.a
-CSTART_FILE := $(LIBC_OBJS_DIR)/_cstart.o
+LIBC_FILE := $(SDK_LIB_DIR)/libc.a
+CSTART_FILE := $(SDK_LIB_DIR)/_cstart.o
 
 
 LIBM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libm
 LIBM_HEADERS_DIR := $(LIBM_PROJECT_DIR)/Headers
 LIBM_OBJS_DIR := $(OBJS_DIR)/Library/libm
-LIBM_FILE := $(LIBM_OBJS_DIR)/libm.a
+LIBM_FILE := $(SDK_LIB_DIR)/libm.a
 
 
 LIBCLAP_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libclap
 LIBCLAP_HEADERS_DIR := $(LIBCLAP_PROJECT_DIR)/Headers
 LIBCLAP_OBJS_DIR := $(OBJS_DIR)/Library/libclap
-LIBCLAP_FILE := $(LIBCLAP_OBJS_DIR)/libclap.a
+LIBCLAP_FILE := $(SDK_LIB_DIR)/libclap.a
 
 
 LIBDISPATCH_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libdispatch
 LIBDISPATCH_HEADERS_DIR := $(LIBDISPATCH_PROJECT_DIR)/Headers
 LIBDISPATCH_OBJS_DIR := $(OBJS_DIR)/Library/libdispatch
-LIBDISPATCH_FILE := $(LIBDISPATCH_OBJS_DIR)/libdispatch.a
+LIBDISPATCH_FILE := $(SDK_LIB_DIR)/libdispatch.a
 
 
 #---------------------------------------------------------------------------
@@ -199,7 +201,7 @@ include $(SNAKE_PROJECT_DIR)/project.mk
 .PHONY: clean
 
 
-all: build-rom build-boot-dmg
+all: $(SDK_LIB_DIR) build-rom build-boot-dmg
 	@echo Done (Configuration: $(BUILD_CONFIGURATION))
 
 
@@ -207,6 +209,9 @@ build-rom: $(ROM_FILE)
 
 
 build-boot-dmg: $(BOOT_DMG_FILE)
+
+$(SDK_LIB_DIR):
+	$(call mkdir_if_needed,$(SDK_LIB_DIR))
 
 
 $(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(COPY_FILE) $(DELETE_FILE) $(DISK_FILE) $(ID_FILE) $(LIST_FILE) $(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) $(SHUTDOWN_FILE) $(STATUS_FILE) $(TOUCH_FILE) $(TYPE_FILE) $(UPTIME_FILE) $(WAIT_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
