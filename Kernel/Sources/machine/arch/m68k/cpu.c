@@ -191,8 +191,6 @@ void cpu_make_callout(mcontext_t* _Nonnull cp, void* _Nonnull ksp, void* _Nonnul
     memset(cp, 0, sizeof(mcontext_t));
     cp->a[7] = (uintptr_t) ksp;
     cp->usp = (uintptr_t) usp;
-    cp->pc = (uintptr_t) func;
-    cp->sr = (isUser) ? 0 : CPU_SR_S;
 
 
     // User stack:
@@ -206,25 +204,31 @@ void cpu_make_callout(mcontext_t* _Nonnull cp, void* _Nonnull ksp, void* _Nonnul
     // The initial kernel stack frame looks like this:
     // SP + 12: 'arg'
     // SP +  8: RTS address ('ret_func' entry point)
-    // SP +  0: dummy format $0 exception stack frame (8 byte size)
+    // SP +  0: format #0 CPU exception stack frame (8 byte size)
     //
-    // See __csw_rte_switch for an explanation
-    // of why we need the dummy exception stack frame.
+    // See __csw_rte_switch for an explanation of why we need to push a format #0
+    // exception stack frame here.
     if (isUser) {
         uintptr_t usp = cp->usp;
         usp = sp_push_ptr(usp, arg);
         usp = sp_push_rts(usp, (void*)ret_func);
         cp->usp = usp;
-
-        cp->a[7] = sp_push_null_rte(cp->a[7]);
     }
     else {
         uintptr_t ksp = cp->a[7];
         ksp = sp_push_ptr(ksp, arg);
         ksp = sp_push_rts(ksp, (void*)ret_func);
-        ksp = sp_push_null_rte(ksp);
         cp->a[7] = ksp;
     }
+
+
+    // Push a format #0 CPU exception frame on the kernel stack for the first
+    // context switch.
+    cp->a[7] -= sizeof(excpt_0_frame_t);
+    excpt_0_frame_t* efp = (excpt_0_frame_t*)cp->a[7];
+    efp->fv = 0;
+    efp->pc = (uintptr_t)func;
+    efp->sr = (isUser) ? 0 : CPU_SR_S;
 }
 
 
@@ -254,13 +258,4 @@ uintptr_t sp_push_bytes(uintptr_t sp, const void* _Nonnull p, size_t nbytes)
     }
 
     return nsp;
-}
-
-uintptr_t sp_push_null_rte(uintptr_t sp)
-{
-    uint32_t* p_sp = (uint32_t*)sp;
-
-    p_sp--; *p_sp = 0;
-    p_sp--; *p_sp = 0;
-    return (uintptr_t)p_sp;
 }

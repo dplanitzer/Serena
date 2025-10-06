@@ -54,39 +54,34 @@ _csw_switch_to_boot_vcpu:
 ;-------------------------------------------------------------------------------
 ; void __csw_rte_switch(void)
 ; Saves the CPU state of the currently running VP and restores the CPU state of
-; the scheduled VP. Expects that it is called with an exception stack frame on
-; top of the stack that is based on a format $0 frame. You want to call this
-; function with a jmp instruction.
+; the scheduled VP. Expects that it is called with a CPU exception stack frame
+; on top of the kernel stack. Note that you really want to call this function
+; with a jmp instruction.
 ;
 ; Exception stack frames & context switching:
 ;
 ; There are 2 ways to trigger a full context switch:
 ; 1) a timer interrupt
 ; 2) a call to _csw_switch
-; The CPU will push a format $0 exception stack frame on the kernel stack of the
-; outgoing VP in the first case while the VPS_SwitchContext() function pushes a
-; handcrafted format $0 exception stack frame on the kernel stack of the outgoing
-; VP.
-; This function here preserves the exception stack frame on the kernel stack of
-; the outgoing VP. So it saves its SSP such that it still points to the bottom
-; of the exception stack frame. The exception stack frame stays on the stack
-; while the outgoing VP sits in ready or waiting state.
-; The restore half of this function here then updates this exception stack frame
-; with the PC and SR of the incoming VP. It then finally returns with a rte
-; instruction which installs the PC and SR in the respective CPU registers and
-; it removes the exception stack frame.
-; So the overall principle is that a context switch trigger puts an exception
-; stack frame on the stack and this frame remains on the kernel stack while the
-; VP sits in ready or waiting state. The frame is updated and finally removed
-; when we restore the VP to running state.
+; The CPU will push a format #0 exception stack frame on the kernel stack of the
+; outgoing VP in the first case while the csw_switch() function pushes a hand-
+; crafted format #0 exception stack frame on the kernel stack before calling
+; this function.
+;
+; The exception stack frame with the PC and SR values is preserved on the kernel
+; stack of the outgoing VP and then the CPU integer and floating point states
+; are saved off. The restore function then does the opposite: it restores the
+; floating point and the integer state and it then returns with an RTE. This RTE
+; then consumes the exception stack frame and reestablishes the PC and SR
+; registers.
 ;
 ; There is one way to do a half context switch:
 ; 1) a call to _csw_switch_to_boot_vcpu
 ; Since we are only running the restore half of the context switch in this case,
 ; the expectation of this function here is that someone already pushed an
 ; exception stack frame on the kernel stack of the VP we want to switch to.
-; That's why cpu_make_callout() pushes a dummy format $0 exception
-; stack frame on the stack.
+; The cpu_make_callout() function takes care of this by pushing a format #0 CPU
+; exception stack frame on the kernel stack of teh VP we want to switch to.
 ; 
 ; Expected base stack frame layout at entry:
 ; SP + 6: 2 bytes exception stack frame format indicator (usually $0)
@@ -113,10 +108,6 @@ __csw_rte_switch:
     ; save the usp
     move.l  usp, a1
     move.l  a1, cpu_usp(a0)
-
-    ; save the pc and sr
-    move.w  0(sp), cpu_sr(a0)
-    move.l  2(sp), cpu_pc(a0)
 
     ; check whether we should save the FPU state
     btst    #CSWB_HW_HAS_FPU, _g_sched_storage + vps_csw_hw
@@ -164,16 +155,6 @@ __csw_rte_restore:
 
     ; restore the ssp
     move.l  cpu_a7(a0), sp
-    
-    ; update the exception stack frame stored on the stack of the incoming VP
-    ; with the PC and SR of the incoming VP. The rte instruction below will then
-    ; consume this stack frame and establish the new execution context.
-    ; The lowest 8 bytes of the exception stack frame:
-    ; SP + 6: 2 byte wide format indicator (usually $0)
-    ; SP + 2: PC
-    ; SP + 0: SR
-    move.l  cpu_pc(a0), 2(sp)
-    move.w  cpu_sr(a0), 0(sp)
     
     ; restore the integer state
     movem.l (a0), d0 - d7 / a0 - a6

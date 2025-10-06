@@ -68,13 +68,15 @@
 // CPU register state (keep in sync with lowmem.i)
 typedef struct mcontext {
     
+    // XXX excpt_0_frame_t goes here
+
     // Integer state. 68000 or better
     uint32_t    d[8];
     uintptr_t   a[8];
     uintptr_t   usp;
-    uintptr_t   pc;
-    uint16_t    sr;
-    uint16_t    padding;
+    uintptr_t   pc;         //XXX remove
+    uint16_t    sr;         //XXX remove
+    uint16_t    padding;    //XXX remove
 
     // Floating-point state. 68881, 68882, 68040 or better
     uint8_t     fsave[FPU_MAX_STATE_SIZE];  // fsave / frestore data
@@ -152,6 +154,16 @@ typedef struct mcontext {
 #define EXCPT_NUM_USER_VEC   64
 
 #define EXCPT_NUM_USER_VECS     192
+
+
+// Format #0 CPU exception stack frame
+// 68020UM, p6-27
+#pragma pack(1)
+typedef struct excpt_0_frame {
+    uint16_t    sr;
+    uintptr_t   pc;
+    uint16_t    fv;
+} excpt_0_frame_t;
 
 
 // CPU exception stack frame
@@ -332,7 +344,5 @@ typedef struct fsave_frame {
 
 extern unsigned int cpu68k_as_read_byte(void* p, int addr_space);
 extern void cpu68k_as_write_byte(void* p, int addr_space, unsigned int val);
-
-extern uintptr_t sp_push_null_rte(uintptr_t sp);
 
 #endif /* _CPU_M68K_H */
