@@ -108,7 +108,6 @@ mtc_SIZEOF                      so              ; 20
 
 ; The vcpu scheduler
 CSWB_SIGNAL_SWITCH                  equ     0
-CSWB_HW_HAS_FPU                     equ     0
 
 VP_PRIORITY_COUNT                   equ     64
 
@@ -180,6 +179,8 @@ cpu_SIZEOF         so
 SCHED_STATE_READY        equ 0   ; VP is able to run but currently sitting on the ready queue
 SCHED_STATE_RUNNING      equ 1   ; VP is running
 SCHED_STATE_WAITING      equ 2   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
+
+VP_FLAG_FPU_BIT          equ 3   ; Save/restore the FPU state (keep in sync with vcpu.h)
 
     clrso
 vp_rewa_qe_next                         so.l    1           ; 4

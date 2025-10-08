@@ -76,6 +76,7 @@ enum {
 // VP flags
 #define VP_FLAG_USER_OWNED      0x02    // This VP is owned by a user process
 #define VP_FLAG_HANDLING_EXCPT  0x04    // Set while the VP is handling a CPU exception
+#define VP_FLAG_FPU             0x08    // Save/restore the FPU state (keep in sync with lowmem.i)
 
 
 // Overridable functions for virtual processors

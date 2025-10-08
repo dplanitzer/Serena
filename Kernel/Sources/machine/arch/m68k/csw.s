@@ -110,7 +110,8 @@ __csw_rte_switch:
     move.l  a1, cpu_usp(a0)
 
     ; check whether we should save the FPU state
-    btst    #CSWB_HW_HAS_FPU, _g_sched_storage + vps_csw_hw
+    move.l  (_g_sched_storage + vps_running), a1
+    btst    #VP_FLAG_FPU_BIT, vp_flags(a1)
     beq.s   __csw_rte_restore
 
     ; save the FPU state. Note that the 68060 fmovem.l instruction does not
@@ -122,22 +123,23 @@ __csw_rte_switch:
     fmovem.l    fpiar, cpu_fpiar(a0)
 
 __csw_rte_restore:
+    lea     _g_sched_storage, a2
+
     ; consume the CSW switch signal
-    bclr    #CSWB_SIGNAL_SWITCH, _g_sched_storage + vps_csw_signals
+    bclr    #CSWB_SIGNAL_SWITCH, vps_csw_signals(a2)
 
     ; it's safe to trash all registers here 'cause we'll override them anyway
     ; make the scheduled VP the running VP and clear out vps_scheduled
-    move.l  (_g_sched_storage + vps_scheduled), a0
-    move.l  a0, (_g_sched_storage + vps_running)
-    moveq.l #0, d0
-    move.l  d0, (_g_sched_storage + vps_scheduled)
+    move.l  vps_scheduled(a2), a1
+    move.l  a1, vps_running(a2)
+    clr.l   vps_scheduled(a2)
 
     ; update the state to Running
-    move.b  #SCHED_STATE_RUNNING, vp_sched_state(a0)
-    lea     vp_save_area(a0), a0
+    move.b  #SCHED_STATE_RUNNING, vp_sched_state(a1)
+    lea     vp_save_area(a1), a0
 
     ; check whether we should restore the FPU state
-    btst    #CSWB_HW_HAS_FPU, _g_sched_storage + vps_csw_hw
+    btst    #VP_FLAG_FPU_BIT, vp_flags(a1)
     beq.s   .2
 
     ; restore the FPU state. Note that the 68060 fmovem.l instruction does not
