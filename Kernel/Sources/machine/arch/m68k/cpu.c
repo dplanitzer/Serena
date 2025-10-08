@@ -173,64 +173,6 @@ void cpu_exception_return(void)
     Process_ExceptionReturn(vp->proc, vp);
 }
 
-// Sets up the provided CPU context and kernel/user stack with a function invocation
-// frame that is suitable as the first frame that a VP will execute.
-//
-// \param cp CPU context
-// \param ksp initial kernel stack pointer
-// \param usp initial user stack pointer
-// \param isUser true if 'func' is a user space function; false if it is a kernel space function
-// \param func the function to invoke
-// \param arg the pointer-sized argument to pass to 'func'
-// \param ret_func the function that should be invoked when 'func' returns
-void cpu_make_callout(mcontext_t* _Nonnull cp, void* _Nonnull ksp, void* _Nonnull usp, bool isUser, VoidFunc_1 _Nonnull func, void* _Nullable arg, VoidFunc_0 _Nonnull ret_func)
-{
-    // Initialize the CPU context:
-    // Integer state: zeroed out
-    // Floating-point state: establishes IEEE 754 standard defaults (non-signaling exceptions, round to nearest, extended precision)
-    memset(cp, 0, sizeof(mcontext_t));
-    cp->a[7] = (uintptr_t) ksp;
-    cp->usp = (uintptr_t) usp;
-
-
-    // User stack:
-    //
-    // We push the argument and a rts return address that will invoke 'ret_func'
-    // when the top-level user space function attempts to return.
-    //
-    //
-    // Kernel stack:
-    //
-    // The initial kernel stack frame looks like this:
-    // SP + 12: 'arg'
-    // SP +  8: RTS address ('ret_func' entry point)
-    // SP +  0: format #0 CPU exception stack frame (8 byte size)
-    //
-    // See __csw_rte_switch for an explanation of why we need to push a format #0
-    // exception stack frame here.
-    if (isUser) {
-        uintptr_t usp = cp->usp;
-        usp = sp_push_ptr(usp, arg);
-        usp = sp_push_rts(usp, (void*)ret_func);
-        cp->usp = usp;
-    }
-    else {
-        uintptr_t ksp = cp->a[7];
-        ksp = sp_push_ptr(ksp, arg);
-        ksp = sp_push_rts(ksp, (void*)ret_func);
-        cp->a[7] = ksp;
-    }
-
-
-    // Push a format #0 CPU exception frame on the kernel stack for the first
-    // context switch.
-    cp->a[7] -= sizeof(excpt_0_frame_t);
-    excpt_0_frame_t* efp = (excpt_0_frame_t*)cp->a[7];
-    efp->fv = 0;
-    efp->pc = (uintptr_t)func;
-    efp->sr = (isUser) ? 0 : CPU_SR_S;
-}
-
 
 uintptr_t sp_push_ptr(uintptr_t sp, void* _Nonnull ptr)
 {

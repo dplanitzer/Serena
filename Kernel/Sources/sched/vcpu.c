@@ -116,43 +116,6 @@ void vcpu_setdq(vcpu_t _Nonnull self, void* _Nullable pQueue, int concurrencyLan
     self->dispatchQueueConcurrencyLaneIndex = concurrencyLaneIndex;
 }
 
-// Sets the closure which the virtual processor should run when it is resumed.
-// This function may only be called while the VP is suspended.
-//
-// \param pVP the virtual processor
-// \param closure the closure description
-errno_t vcpu_setclosure(vcpu_t _Nonnull self, const VirtualProcessorClosure* _Nonnull closure)
-{
-    VP_ASSERT_ALIVE(self);
-    assert(self->suspension_count > 0);
-    assert(closure->kernelStackSize >= VP_MIN_KERNEL_STACK_SIZE);
-
-    decl_try_err();
-
-    if (closure->kernelStackBase == NULL) {
-        try(stk_setmaxsize(&self->kernel_stack, closure->kernelStackSize));
-    } else {
-        stk_setmaxsize(&self->kernel_stack, 0);
-        self->kernel_stack.base = closure->kernelStackBase;
-        self->kernel_stack.size = closure->kernelStackSize;
-    }
-    try(stk_setmaxsize(&self->user_stack, closure->userStackSize));
-    
-    // Initialize the CPU context
-    cpu_make_callout(&self->save_area, 
-        (void*)stk_getinitialsp(&self->kernel_stack),
-        (void*)stk_getinitialsp(&self->user_stack),
-        closure->isUser,
-        closure->func,
-        closure->context,
-        (closure->ret_func) ? closure->ret_func : (VoidFunc_0)vcpu_relinquish);
-
-    return EOK;
-
-catch:
-    return err;
-}
-
 // Terminates the virtual processor that is executing the caller. Does not return
 // to the caller. Note that the actual termination of the virtual processor is
 // handled by the virtual processor scheduler.

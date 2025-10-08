@@ -30,8 +30,6 @@ extern int cpu_guarded_write(void* _Nonnull dst, const void* _Nonnull buffer, in
 extern void cpu_sleep(int cpu_type);
 extern void cpu_halt(void);
 
-extern void cpu_make_callout(mcontext_t* _Nonnull cp, void* _Nonnull ksp, void* _Nonnull usp, bool isUser, VoidFunc_1 _Nonnull func, void* _Nullable arg, VoidFunc_0 _Nonnull ret_func);
-
 // Called by the HAL when a CPU exception is triggered. 'efp' is the CPU
 // exception frame on the kernel stack and 'sfp' is an optional and platform
 // specific secondary exception frame. Eg 'sfp' is the fsave state frame of a

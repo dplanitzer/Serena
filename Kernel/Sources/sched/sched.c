@@ -418,8 +418,7 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     cl.userStackSize = 0;
     cl.isUser = false;
 
-    try_bang(vcpu_setclosure(vp, &cl));
-    vp->save_area.sr |= 0x0700;    // IRQs should be disabled by default
+    try_bang(vcpu_setcontext(vp, &cl, false));
     vp->suspension_count = 0;
     
     return vp;
@@ -462,7 +461,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     cl.userStackSize = 0;
     cl.isUser = false;
 
-    try_bang(vcpu_setclosure(vp, &cl));
+    try_bang(vcpu_setcontext(vp, &cl, true));
 
     return vp;
 }

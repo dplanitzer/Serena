@@ -82,7 +82,7 @@ errno_t vcpu_pool_acquire(vcpu_pool_t _Nonnull self, const VirtualProcessorParam
     cl.userStackSize = params->userStackSize;
     cl.isUser = params->isUser;
 
-    try(vcpu_setclosure(vp, &cl));
+    try(vcpu_setcontext(vp, &cl, true));
     vcpu_setschedparams(vp, &params->schedParams);
     if (params->isUser) {
         vp->flags |= VP_FLAG_USER_OWNED;
