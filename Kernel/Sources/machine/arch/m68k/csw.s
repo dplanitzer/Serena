@@ -13,7 +13,7 @@
 
     xdef _csw_switch
     xdef _csw_switch_to_boot_vcpu
-    xdef __csw_rte_switch
+    xdef __csw_switch
 
 
 ;-------------------------------------------------------------------------------
@@ -29,7 +29,7 @@ _csw_switch:
         lea     .csw_return(pc), a0
         move.l  a0, -(sp)               ; PC
         move.w  sr, -(sp)               ; SR
-        jmp     __csw_rte_switch
+        jmp     __csw_switch
 
 .csw_return:
         rts
@@ -44,7 +44,7 @@ _csw_switch:
 ; Expects to be called with interrupts turned off.
 _csw_switch_to_boot_vcpu:
     inline
-        jmp     __csw_rte_restore
+        jmp     __csw_restore
         ; NOT REACHED
         move.l  #RGB_YELLOW, -(sp)
         jmp _cpu_non_recoverable_error
@@ -52,7 +52,7 @@ _csw_switch_to_boot_vcpu:
 
 
 ;-------------------------------------------------------------------------------
-; void __csw_rte_switch(void)
+; void __csw_switch(void)
 ; Saves the CPU state of the currently running VP and restores the CPU state of
 ; the scheduled VP. Expects that it is called with a CPU exception stack frame
 ; on top of the kernel stack. Note that you really want to call this function
@@ -87,7 +87,7 @@ _csw_switch_to_boot_vcpu:
 ; SP + 6: 2 bytes exception stack frame format indicator (usually $0)
 ; SP + 2: PC
 ; SP + 0: SR
-__csw_rte_switch:
+__csw_switch:
     ; save the integer state
     movem.l d0 - d7 / a0 - a6, -(sp)
 
@@ -121,7 +121,7 @@ __csw_rte_switch:
     move.l  sp, vp_ssp(a0)
 
 
-__csw_rte_restore:
+__csw_restore:
     lea     _g_sched_storage, a2
 
     ; consume the CSW switch signal
@@ -138,6 +138,10 @@ __csw_rte_restore:
 
     ; restore the ksp from the cpu_saved_state pointer
     move.l  vp_ssp(a0), sp
+
+    ; verify that we haven't overrun the kernel stack
+    cmp.l   vp_kernel_stack_base(a0), sp
+    bcs.s   __csw_stack_overflow
 
     ; check whether we should restore the FPU state
     btst    #VP_FLAG_FPU_BIT, vp_flags(a0)
@@ -160,3 +164,9 @@ __csw_rte_restore:
     movem.l (sp)+, d0 - d7 / a0 - a6
 
     rte
+
+
+__csw_stack_overflow:
+    move.l #RGB_RED, -(sp)
+    jmp _cpu_non_recoverable_error
+    ; not reached

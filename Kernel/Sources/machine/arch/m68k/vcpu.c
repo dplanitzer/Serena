@@ -61,7 +61,7 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const VirtualProcessorClosure* _No
     // SP +  8: RTS address ('ret_func' entry point)
     // SP +  0: format #0 CPU exception stack frame (8 byte size)
     //
-    // See __csw_rte_switch for an explanation of why we need to push a format #0
+    // See __csw_switch for an explanation of why we need to push a format #0
     // exception stack frame here.
     if (closure->isUser) {
         usp = sp_push_ptr(usp, closure->context);
@@ -105,6 +105,11 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const VirtualProcessorClosure* _No
     uspp[0] = usp;
     
     self->ssp = (void*)ssp;
+
+
+    // Minimum kernel stack size is 2 * sizeof(cpu_save_area_max_size) + 128
+    // 2 times -> csw save state + cpu exception save state
+    assert(self->kernel_stack.size >= 2*(ifsiz + ffsiz + FPU_MAX_STATE_SIZE) + 128);
 
     return EOK;
 }

@@ -22,7 +22,7 @@
     xref __irq_run_handlers
 
     xref _g_sched_storage
-    xref __csw_rte_switch
+    xref __csw_switch
 
 
     xdef _irq_set_mask
@@ -438,5 +438,5 @@ irq_handler_exter:
 irq_handler_done:
     movem.l (sp)+, d0 - d1 / d7 / a0 - a1
     btst    #0, (_g_sched_storage + vps_csw_signals)
-    bne.l   __csw_rte_switch
+    bne.l   __csw_switch
     rte
