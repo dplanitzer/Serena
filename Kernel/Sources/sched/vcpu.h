@@ -60,14 +60,8 @@ enum {
 
 // The virtual processor flags
 
-// Minimum size for a kernel stack
-#define VP_MIN_KERNEL_STACK_SIZE        16
-
 // Default stack size for kernel space
 #define VP_DEFAULT_KERNEL_STACK_SIZE    CPU_PAGE_SIZE
-
-// Minimum size for a user stack
-#define VP_MIN_USER_STACK_SIZE          0
 
 // Default stack size for user space
 #define VP_DEFAULT_USER_STACK_SIZE      CPU_PAGE_SIZE
@@ -94,7 +88,7 @@ struct vcpu {
     void* _Nonnull                  ssp;                    // Saved CPU state pointer (csw)
     stk_t                           kernel_stack;
     stk_t                           user_stack;
-    
+
     vcpuid_t                        id;                     // unique VP id (>= 1; 0 is reserved to indicate the absence of a vcpuid; vcpuids are process relative and assigned at acquisition time)
     vcpuid_t                        groupid;                // virtual processor group id. Assigned at acquisition time 
 

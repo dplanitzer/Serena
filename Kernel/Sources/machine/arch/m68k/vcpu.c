@@ -20,20 +20,29 @@
 errno_t vcpu_setcontext(vcpu_t _Nonnull self, const VirtualProcessorClosure* _Nonnull closure, bool bEnableInterrupts)
 {
     decl_try_err();
+    const size_t ifsiz = sizeof(excpt_0_frame_t) + 4*7 + 4*8 + 4;
+    const size_t ffsiz = 4 + sizeof(float96_t)*8 + 4 + 4 + 4;
 
     VP_ASSERT_ALIVE(self);
     assert(self->suspension_count > 0);
-    assert(closure->kernelStackSize >= VP_MIN_KERNEL_STACK_SIZE);
+
+    // Minimum kernel stack size is 2 * sizeof(cpu_save_area_max_size) + 128
+    // 2 times -> csw save state + cpu exception save state
+    const size_t minKernelStackSize = self->kernel_stack.size >= 2*(ifsiz + ffsiz + FPU_MAX_STATE_SIZE) + 128;
+    const size_t minUserStackSize = (closure->userStackSize != 0) ? 2048 : 0;
 
     if (closure->kernelStackBase == NULL) {
-        err = stk_setmaxsize(&self->kernel_stack, closure->kernelStackSize);
+        err = stk_setmaxsize(&self->kernel_stack, __max(closure->kernelStackSize, minKernelStackSize));
     } else {
+        // kernel stack allocated by caller
+        assert(closure->kernelStackSize >= minKernelStackSize);
+
         stk_setmaxsize(&self->kernel_stack, 0);
         self->kernel_stack.base = closure->kernelStackBase;
         self->kernel_stack.size = closure->kernelStackSize;
     }
     if (err == EOK) {
-        err = stk_setmaxsize(&self->user_stack, closure->userStackSize);
+        err = stk_setmaxsize(&self->user_stack, __max(closure->userStackSize, minUserStackSize));
     }
     if (err != EOK) {
         return err;
@@ -85,8 +94,6 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const VirtualProcessorClosure* _No
     // SP-172:  fpcr
     // SP-176:  fpsr
     // SP-180:  fpiar
-    const size_t ifsiz = sizeof(excpt_0_frame_t) + 4*7 + 4*8 + 4;
-    const size_t ffsiz = 4 + sizeof(float96_t)*8 + 4 + 4 + 4;
     const size_t fsiz = ifsiz + (((self->flags & VP_FLAG_FPU) == VP_FLAG_FPU) ? ffsiz : 0);
     uintptr_t ssp = ksp - fsiz;
     memset((void*)ssp, 0, fsiz);
