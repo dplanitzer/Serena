@@ -247,8 +247,15 @@ typedef struct excpt_frame {
 
 // FPU exception stack frame
 // 68881/68882UM, p6-28
+struct m6888x_null_frame {
+    uint8_t     version;
+    uint8_t     format;
+    uint16_t    reserved;
+};
+
 struct m68881_idle_frame {
-    uint16_t    format;
+    uint8_t     version;
+    uint8_t     format;
     uint16_t    reserved;
     uint16_t    cmd_ccr;
     uint16_t    reserved2;
@@ -258,14 +265,16 @@ struct m68881_idle_frame {
 };
 
 struct m68881_busy_frame {
-    uint16_t    format;
+    uint8_t     version;
+    uint8_t     format;
     uint16_t    reserved;
     uint32_t    reg[45];
 };
 
 
 struct m68882_idle_frame {
-    uint16_t    format;
+    uint8_t     version;
+    uint8_t     format;
     uint16_t    reserved;
     uint16_t    cmd_ccr;
     uint32_t    reg[8];
@@ -275,29 +284,23 @@ struct m68882_idle_frame {
 };
 
 struct m68882_busy_frame {
-    uint16_t    format;
+    uint8_t     version;
+    uint8_t     format;
     uint16_t    reserved;
     uint32_t    reg[53];
 };
 
 
-typedef struct fsave_frame {
-    uint16_t    format;
-    uint16_t    reserved;
-
-    union m68881_2_extended_frame {
-        struct m68881_idle_frame    idle881;
-        struct m68881_busy_frame    busy881;
-        struct m68882_idle_frame    idle882;
-        struct m68882_busy_frame    busy882;
-    }           u;
+typedef union fsave_frame {
+    struct m6888x_null_frame    null;
+    struct m68881_idle_frame    idle881;
+    struct m68881_busy_frame    busy881;
+    struct m68882_idle_frame    idle882;
+    struct m68882_busy_frame    busy882;
 } fsave_frame_t;
 
 #define fsave_frame_isnull(__sfp) \
-(((__sfp)->format >> 8) == 0)
-
-#define fsave_frame_getformat(__sfp) \
-((__sfp)->format & 0xff)
+((__sfp)->version == 0)
 
 
 // 68881/68882 frame formats
