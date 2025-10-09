@@ -114,22 +114,21 @@ VP_PRIORITY_COUNT                   equ     64
     clrso
 vps_running                         so.l    1       ; 4
 vps_scheduled                       so.l    1       ; 4
+vps_csw_signals                     so.b    1       ; 1
+vps_flags                           so.b    1       ; 1
+vps_reserved1                       so.b    1       ; 1
+vps_reserved2                       so.b    1       ; 1
 vps_idle_virtual_processor          so.l    1       ; 4
 vps_boot_virtual_processor          so.l    1       ; 4
 vps_ready_queue                     so.l    VP_PRIORITY_COUNT * 2 ; 512
 vps_ready_queue_populated           so.b    8       ; 8
-vps_csw_scratch                     so.l    1       ; 4
-vps_csw_signals                     so.b    1       ; 1
-vps_csw_hw                          so.b    1       ; 1
-vps_flags                           so.b    1       ; 1
-vps_reserved                        so.b    1       ; 1
 vps_quantums_per_quarter_second     so.l    1       ; 4
 vps_timeout_queue_first             so.l    1       ; 4
 vps_timeout_queue_last              so.l    1       ; 4
 vps_finalizer_queue_first           so.l    1       ; 4
 vps_finalizer_queue_last            so.l    1       ; 4
 vps_SIZEOF                          so
-    ifeq (vps_SIZEOF == 564)
+    ifeq (vps_SIZEOF == 560)
         fail "sched_t structure size is incorrect."
     endif
 

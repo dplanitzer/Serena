@@ -50,10 +50,6 @@ void sched_create(sys_desc_t* _Nonnull sdp, BootAllocator* _Nonnull bap, VoidFun
 
 
     // Initialize the scheduler
-    if (sdp->fpu_model != FPU_MODEL_NONE) {
-        self->csw_hw |= CSW_HW_HAS_FPU;
-    }
-    
     self->timeout_queue = LIST_INIT;
     wq_init(&gSchedulerWaitQueue);
     self->finalizer_queue = LIST_INIT;

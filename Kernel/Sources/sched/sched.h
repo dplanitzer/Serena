@@ -48,11 +48,6 @@ typedef struct sched_timeout {
 #define CSW_SIGNAL_SWITCH   0x01
 
 
-// Set if the hardware has a FPU who's state needs to be saved/restored on context switches.
-// 68040+ only.
-#define CSW_HW_HAS_FPU      0x01
-
-
 // The ready queue holds references to all VPs which are ready to run. The queue
 // is sorted from highest to lowest priority.
 typedef struct ready_queue {
@@ -64,15 +59,13 @@ typedef struct ready_queue {
 // Note: Keep in sync with machine/hal/lowmem.i
 struct sched {
     volatile vcpu_t _Nonnull    running;                        // Currently running VP
-    vcpu_t _Nullable            scheduled;                      // The VP that should be moved to the running state by the context switcher
+    volatile vcpu_t _Nullable   scheduled;                      // The VP that should be moved to the running state by the context switcher
+    volatile uint8_t            csw_signals;                    // Signals to the context switcher
+    uint8_t                     flags;                          // Scheduler flags
+    int8_t                      reserved[2];
     vcpu_t _Nonnull             idle_vp;                        // This VP is scheduled if there is no other VP to schedule
     vcpu_t _Nonnull             boot_vp;                        // This is the first VP that was created at boot time for a CPU. It takes care of scheduler chores like destroying terminated VPs
     ready_queue_t               ready_queue;
-    volatile uint32_t           csw_scratch;                    // Used by the CSW to temporarily save A0
-    volatile uint8_t            csw_signals;                    // Signals to the context switcher
-    uint8_t                     csw_hw;                         // Hardware characteristics relevant for context switches
-    uint8_t                     flags;                          // Scheduler flags
-    int8_t                      reserved[1];
     Quantums                    quantums_per_quarter_second;    // 1/4 second in terms of quantums
     List/*<sched_timeout_t>*/   timeout_queue;                  // sched_timeout_t queue managed by the scheduler. Sorted ascending by timer deadlines
     List                        finalizer_queue;
