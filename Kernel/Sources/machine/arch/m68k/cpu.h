@@ -65,28 +65,6 @@
 #define CPU_SR_C            0x01
 
 
-// CPU register state (keep in sync with lowmem.i)
-typedef struct mcontext {
-    
-    // XXX excpt_0_frame_t goes here
-
-    // Integer state. 68000 or better
-    uint32_t    d[8];
-    uintptr_t   a[8];
-    uintptr_t   usp;
-    uintptr_t   pc;         //XXX remove
-    uint16_t    sr;         //XXX remove
-    uint16_t    padding;    //XXX remove
-
-    // Floating-point state. 68881, 68882, 68040 or better
-    uint8_t     fsave[FPU_MAX_STATE_SIZE];  // fsave / frestore data
-    float96_t   fp[8];
-    uint32_t    fpcr;
-    uint32_t    fpsr;
-    uint32_t    fpiar;
-} mcontext_t;
-
-
 #define EXCPT_NUM_RESET_SSP  0
 #define EXCPT_NUM_RESET_PC   1
 #define EXCPT_NUM_BUS_ERR    2

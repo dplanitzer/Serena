@@ -133,47 +133,6 @@ vps_SIZEOF                          so
     endif
 
 
-; The mcontext_t
-    clrso
-cpu_d0              so.l    1       ; 4
-cpu_d1              so.l    1       ; 4
-cpu_d2              so.l    1       ; 4
-cpu_d3              so.l    1       ; 4
-cpu_d4              so.l    1       ; 4
-cpu_d5              so.l    1       ; 4
-cpu_d6              so.l    1       ; 4
-cpu_d7              so.l    1       ; 4
-cpu_a0              so.l    1       ; 4
-cpu_a1              so.l    1       ; 4
-cpu_a2              so.l    1       ; 4
-cpu_a3              so.l    1       ; 4
-cpu_a4              so.l    1       ; 4
-cpu_a5              so.l    1       ; 4
-cpu_a6              so.l    1       ; 4
-cpu_a7              so.l    1       ; 4
-cpu_usp             so.l    1       ; 4
-cpu_pc              so.l    1       ; 4
-cpu_sr              so.w    1       ; 2
-cpu_padding         so.w    1       ; 2
-cpu_fsave           so.l    54      ; 216
-cpu_fp0             so.l    3       ; 12
-cpu_fp1             so.l    3       ; 12
-cpu_fp2             so.l    3       ; 12
-cpu_fp3             so.l    3       ; 12
-cpu_fp4             so.l    3       ; 12
-cpu_fp5             so.l    3       ; 12
-cpu_fp6             so.l    3       ; 12
-cpu_fp7             so.l    3       ; 12
-cpu_fpcr            so.l    1       ; 4
-cpu_fpsr            so.l    1       ; 4
-cpu_fpiar           so.l    1       ; 4
-
-cpu_SIZEOF         so
-    ifeq (cpu_SIZEOF == 400)
-        fail "mcontext_t structure size is incorrect."
-    endif
-
-
 ; The vcpu
 SCHED_STATE_READY        equ 0   ; VP is able to run but currently sitting on the ready queue
 SCHED_STATE_RUNNING      equ 1   ; VP is running
@@ -185,7 +144,6 @@ VP_FLAG_FPU_BIT          equ 3   ; Save/restore the FPU state (keep in sync with
 vp_rewa_qe_next                         so.l    1           ; 4
 vp_rewa_qe_prev                         so.l    1           ; 4
 vp_vtable                               so.l    1           ; 4
-vp_save_area                            so.b    cpu_SIZEOF  ; 400
 vp_ssp                                  so.l    1           ; 4
 vp_kernel_stack_base                    so.l    1           ; 4
 vp_kernel_stack_size                    so.l    1           ; 4
@@ -227,7 +185,7 @@ vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
 vp_reserved3                            so.b    3           ; 3
 vp_SIZEOF                       so
-    ifeq (vp_SIZEOF == 528)
+    ifeq (vp_SIZEOF == 128)
         fail "vcpu structure size is incorrect."
     endif
 

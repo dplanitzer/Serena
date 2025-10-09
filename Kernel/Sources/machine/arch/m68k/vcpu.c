@@ -98,7 +98,7 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const VirtualProcessorClosure* _No
     ep->pc = (uintptr_t)closure->func;
     ep->sr = (closure->isUser) ? 0 : CPU_SR_S;
     if (!bEnableInterrupts) {
-        ep->sr |= 0x0700;    // IRQs should be disabled
+        ep->sr |= CPU_SR_IE_MASK;   // IRQs should be disabled
     }
 
     uint32_t* uspp = (int32_t*)(ksp - ifsiz);
