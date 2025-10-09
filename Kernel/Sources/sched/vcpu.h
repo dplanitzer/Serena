@@ -91,6 +91,7 @@ struct vcpu {
     ListNode                        rewa_qe;                // A VP is either on the ready (re) queue or a wait (wa) queue
     vcpu_vtable_t _Nonnull          vtable;
     mcontext_t                      save_area;
+    void* _Nonnull                  ssp;                    // Saved CPU state pointer (csw)
     stk_t                           kernel_stack;
     stk_t                           user_stack;
     vcpuid_t                        id;                     // unique VP id (>= 1; 0 is reserved to indicate the absence of a vcpuid; vcpuids are process relative and assigned at acquisition time)

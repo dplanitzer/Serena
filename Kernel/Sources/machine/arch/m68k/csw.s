@@ -89,7 +89,12 @@ _csw_switch_to_boot_vcpu:
 ; SP + 0: SR
 __csw_rte_switch:
     ; save the integer state
-    move.l  a0, (_g_sched_storage + vps_csw_scratch)
+    movem.l d0 - d7 / a0 - a6, -(sp)
+
+    ; save the user stack pointer
+    move.l  usp, a0
+    move.l  a0, -(sp)
+
     move.l  (_g_sched_storage + vps_running), a0
 
     ; update the VP state to Ready if the state hasn't already been changed to
@@ -99,28 +104,22 @@ __csw_rte_switch:
     move.b  #SCHED_STATE_READY, vp_sched_state(a0)
 
 .1:
-    lea     vp_save_area(a0), a0
-
-    ; save all registers including the ssp
-    movem.l d0 - d7 / a0 - a7, (a0)
-    move.l  (_g_sched_storage + vps_csw_scratch), cpu_a0(a0)
-
-    ; save the usp
-    move.l  usp, a1
-    move.l  a1, cpu_usp(a0)
-
     ; check whether we should save the FPU state
-    move.l  (_g_sched_storage + vps_running), a1
-    btst    #VP_FLAG_FPU_BIT, vp_flags(a1)
-    beq.s   __csw_rte_restore
+    btst    #VP_FLAG_FPU_BIT, vp_flags(a0)
+    beq.s   .2
 
     ; save the FPU state. Note that the 68060 fmovem.l instruction does not
     ; support moving > 1 register at a time
-    fsave       cpu_fsave(a0)
-    fmovem      fp0 - fp7, cpu_fp0(a0)
-    fmovem.l    fpcr, cpu_fpcr(a0)
-    fmovem.l    fpsr, cpu_fpsr(a0)
-    fmovem.l    fpiar, cpu_fpiar(a0)
+    fsave       -(sp)
+    fmovem      fp0 - fp7, -(sp)
+    fmovem.l    fpcr, -(sp)
+    fmovem.l    fpsr, -(sp)
+    fmovem.l    fpiar, -(sp)
+
+.2:
+    ; save the cpu_saved_state pointer
+    move.l  sp, vp_ssp(a0)
+
 
 __csw_rte_restore:
     lea     _g_sched_storage, a2
@@ -130,35 +129,34 @@ __csw_rte_restore:
 
     ; it's safe to trash all registers here 'cause we'll override them anyway
     ; make the scheduled VP the running VP and clear out vps_scheduled
-    move.l  vps_scheduled(a2), a1
-    move.l  a1, vps_running(a2)
+    move.l  vps_scheduled(a2), a0
+    move.l  a0, vps_running(a2)
     clr.l   vps_scheduled(a2)
 
     ; update the state to Running
-    move.b  #SCHED_STATE_RUNNING, vp_sched_state(a1)
-    lea     vp_save_area(a1), a0
+    move.b  #SCHED_STATE_RUNNING, vp_sched_state(a0)
+
+    ; restore the ksp from the cpu_saved_state pointer
+    move.l  vp_ssp(a0), sp
 
     ; check whether we should restore the FPU state
-    btst    #VP_FLAG_FPU_BIT, vp_flags(a1)
-    beq.s   .2
+    btst    #VP_FLAG_FPU_BIT, vp_flags(a0)
+    beq.s   .3
 
     ; restore the FPU state. Note that the 68060 fmovem.l instruction does not
     ; support moving > 1 register at a time
-    fmovem      cpu_fp0(a0), fp0 - fp7
-    fmovem.l    cpu_fpcr(a0), fpcr
-    fmovem.l    cpu_fpsr(a0), fpsr
-    fmovem.l    cpu_fpiar(a0), fpiar
-    frestore    cpu_fsave(a0)
+    fmovem.l    (sp)+, fpiar
+    fmovem.l    (sp)+, fpsr
+    fmovem.l    (sp)+, fpcr
+    fmovem      (sp)+, fp0 - fp7
+    frestore    (sp)+
 
-.2:
-    ; restore the usp
-    move.l  cpu_usp(a0), a1
+.3:
+    ; restore the user stack pointer
+    move.l  (sp)+, a1
     move.l  a1, usp
-
-    ; restore the ssp
-    move.l  cpu_a7(a0), sp
     
     ; restore the integer state
-    movem.l (a0), d0 - d7 / a0 - a6
+    movem.l (sp)+, d0 - d7 / a0 - a6
 
     rte
