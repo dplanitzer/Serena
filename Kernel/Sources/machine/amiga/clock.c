@@ -34,7 +34,7 @@ void clock_init_mono(clock_ref_t _Nonnull self)
 {
     const bool is_ntsc = chipset_is_ntsc();
 
-    // Compute the quantum timer parameters:
+    // Compute the monotonic clock time resolution:
     //
     // Amiga system clock:
     //  NTSC    28.63636 MHz
@@ -45,11 +45,11 @@ void clock_init_mono(clock_ref_t _Nonnull self)
     //   PAL     0.709379 MHz                        [1.4096836 us]
     //
     // Quantum duration:
-    //   NTSC    16.761906 ms    [12000 timer clock cycles]
-    //   PAL     17.621045 ms    [12500 timer clock cycles]
+    //   NTSC    16.666922 ms    [11932 timer clock cycles]     11932
+    //   PAL     16.666689 ms    [11823 timer clock cycles]     11823
     //
-    // The quantum duration is chosen such that:
-    // - it is approx 16ms - 17ms
+    // The clock time resolution is chosen such that:
+    // - it is approx 16.667ms (60Hz)
     // - the value is a positive integer in terms of nanoseconds to avoid accumulating / rounding errors as time progresses
     //
     // The ns_per_quantum_timer_cycle value is rounded such that:
@@ -57,8 +57,8 @@ void clock_init_mono(clock_ref_t _Nonnull self)
 
     self->current_time = TIMESPEC_ZERO;
     self->current_quantum = 0;
-    self->ns_per_quantum = (is_ntsc) ? 16761906 : 17621045;
-    self->quantum_duration_cycles = (is_ntsc) ? 12000 : 12500;
+    self->ns_per_quantum = (is_ntsc) ? 16666922 : 16666689;
+    self->quantum_duration_cycles = (is_ntsc) ? 11932 : 11823;
     self->ns_per_quantum_timer_cycle = (is_ntsc) ? 1396 : 1409;
 }
 
