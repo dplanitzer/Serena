@@ -42,6 +42,7 @@
 
     xdef _cpu_vector_table
     xdef _cpu_non_recoverable_error
+    xdef _excpt_return
 
 
 
@@ -214,6 +215,8 @@ __cpu_exception:
 __fpu_exception:
     inline
         fsave       -(sp)
+        tst.b       (sp)
+        beq.s       .L1
 
         ; Push a long word on the stack to indicate to __cpu_exception_return
         ; that it does have to do a frestore
@@ -224,9 +227,6 @@ __fpu_exception:
         move.l      #0, -(sp)
 
         movem.l     d0 - d1 / a0 - a1, -(sp)
-
-        move.b      (16 + 8 + 4)(sp), d0
-        beq.s       .L1
         clr.l       d0
         move.b      (16 + 8 + 4 + 1)(sp), d0    ; get exception frame size
         bset        #3, (16 + 8 + 4)(sp, d0)    ; set bit #27 of BIU
@@ -236,9 +236,10 @@ __fpu_exception:
         jsr         _cpu_exception
         addq.w      #8, sp
         move.l      d0, (16 + 2)(sp)    ; update the pc in our null RTE that we pushed above
+        
+        movem.l     (sp)+, d0 - d1 / a0 - a1
 
 .L1:    
-        movem.l     (sp)+, d0 - d1 / a0 - a1
         rte
     einline
 
@@ -267,6 +268,13 @@ __cpu_exception_return:
 .L1:
         rte                     ; return through the __cpu_exception RTE frame
     einline
+
+
+;-------------------------------------------------------------------------------
+; void excpt_return(void)
+_excpt_return:
+    trap    #1
+    ; NOT REACHED
 
 
 ;-------------------------------------------------------------------------------

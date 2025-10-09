@@ -11,7 +11,6 @@
 
     xref _cpu_non_recoverable_error
 
-    xdef _excpt_return
     xdef _cpu_get_model
     xdef _cpu_verify_ram_4b
     xdef _cpu_guarded_read
@@ -23,14 +22,6 @@
     xdef _fpu_get_model
     xdef _usp_get
     xdef _usp_set
-
-
-
-;-------------------------------------------------------------------------------
-; void excpt_return(void)
-_excpt_return:
-    trap    #1
-    ; NOT REACHED
 
 
 ;-------------------------------------------------------------------------------
