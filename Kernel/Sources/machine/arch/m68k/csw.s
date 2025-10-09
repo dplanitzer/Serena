@@ -104,13 +104,18 @@ __csw_switch:
     move.b  #SCHED_STATE_READY, vp_sched_state(a0)
 
 .1:
+    bclr    #VP_FLAG_FPU_SAVED_BIT, vp_flags(a0)
+
     ; check whether we should save the FPU state
-    btst    #VP_FLAG_FPU_BIT, vp_flags(a0)
+    btst    #VP_FLAG_HAS_FPU_BIT, vp_flags(a0)
     beq.s   .2
 
     ; save the FPU state. Note that the 68060 fmovem.l instruction does not
     ; support moving > 1 register at a time
     fsave       -(sp)
+    tst.b       (sp)
+    beq.s       .2
+    bset        #VP_FLAG_FPU_SAVED_BIT, vp_flags(a0)
     fmovem      fp0 - fp7, -(sp)
     fmovem.l    fpcr, -(sp)
     fmovem.l    fpsr, -(sp)
@@ -144,15 +149,20 @@ __csw_restore:
     bcs.s   __csw_stack_overflow
 
     ; check whether we should restore the FPU state
-    btst    #VP_FLAG_FPU_BIT, vp_flags(a0)
+    btst    #VP_FLAG_HAS_FPU_BIT, vp_flags(a0)
     beq.s   .3
 
     ; restore the FPU state. Note that the 68060 fmovem.l instruction does not
     ; support moving > 1 register at a time
+    btst        #VP_FLAG_FPU_SAVED_BIT, vp_flags(a0)
+    beq.s       .4
+    bclr        #VP_FLAG_FPU_SAVED_BIT, vp_flags(a0)
     fmovem.l    (sp)+, fpiar
     fmovem.l    (sp)+, fpsr
     fmovem.l    (sp)+, fpcr
     fmovem      (sp)+, fp0 - fp7
+
+.4:
     frestore    (sp)+
 
 .3:

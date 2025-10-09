@@ -70,7 +70,7 @@ void vcpu_cominit(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull sche
     self->wakeup_reason = 0;
     
     self->sched_state = SCHED_STATE_READY;
-    self->flags = (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_FPU : 0;
+    self->flags = (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_HAS_FPU : 0;
     self->qos = sched_params->qos;
     self->qos_priority = sched_params->priority;
     self->sched_priority = (int8_t)SCHED_PRI_FROM_QOS(self->qos, self->qos_priority);

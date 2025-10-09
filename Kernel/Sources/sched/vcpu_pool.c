@@ -73,7 +73,7 @@ errno_t vcpu_pool_acquire(vcpu_pool_t _Nonnull self, const VirtualProcessorParam
     
     
     // Configure the VP
-    VirtualProcessorClosure cl;
+    vcpu_context_t cl;
     cl.func = (VoidFunc_1)params->func;
     cl.context = params->context;
     cl.ret_func = params->ret_func;

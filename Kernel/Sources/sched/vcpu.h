@@ -32,7 +32,7 @@ extern const sigset_t SIGSET_IGNORE_ALL;
 // This structure describes a virtual processor closure which is a function entry
 // point, a context parameter that will be passed to the closure function and the
 // kernel plus user stack size.
-typedef struct VirtualProcessorClosure {
+typedef struct vcpu_context {
     VoidFunc_1 _Nonnull     func;
     void* _Nullable _Weak   context;
     VoidFunc_0 _Nullable    ret_func;
@@ -40,7 +40,7 @@ typedef struct VirtualProcessorClosure {
     size_t                  kernelStackSize;
     size_t                  userStackSize;
     bool                    isUser;
-} VirtualProcessorClosure;
+} vcpu_context_t;
 
 
 // VP scheduling state
@@ -70,7 +70,8 @@ enum {
 // VP flags
 #define VP_FLAG_USER_OWNED      0x02    // This VP is owned by a user process
 #define VP_FLAG_HANDLING_EXCPT  0x04    // Set while the VP is handling a CPU exception
-#define VP_FLAG_FPU             0x08    // Save/restore the FPU state (keep in sync with lowmem.i)
+#define VP_FLAG_HAS_FPU         0x08    // Save/restore the FPU state (keep in sync with lowmem.i)
+#define VP_FLAG_FPU_SAVED       0x10    // Set if the FPU user state has been saved (keep in sync with lowmem.i)
 
 
 // Overridable functions for virtual processors
@@ -234,7 +235,7 @@ extern void vcpu_setdq(vcpu_t _Nonnull self, void* _Nullable pQueue, int concurr
 
 // Sets the closure which the virtual processor should run when it is resumed.
 // This function may only be called while the VP is suspended.
-extern errno_t vcpu_setcontext(vcpu_t _Nonnull self, const VirtualProcessorClosure* _Nonnull closure, bool bEnableInterrupts);
+extern errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull closure, bool bEnableInterrupts);
 
 // Relinquishes the virtual processor which means that it is finished executing
 // code and that it should be moved back to the virtual processor pool. This

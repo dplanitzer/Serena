@@ -134,11 +134,12 @@ vps_SIZEOF                          so
 
 
 ; The vcpu
-SCHED_STATE_READY        equ 0   ; VP is able to run but currently sitting on the ready queue
-SCHED_STATE_RUNNING      equ 1   ; VP is running
-SCHED_STATE_WAITING      equ 2   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
+SCHED_STATE_READY       equ 0   ; VP is able to run but currently sitting on the ready queue
+SCHED_STATE_RUNNING     equ 1   ; VP is running
+SCHED_STATE_WAITING     equ 2   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
 
-VP_FLAG_FPU_BIT          equ 3   ; Save/restore the FPU state (keep in sync with vcpu.h)
+VP_FLAG_HAS_FPU_BIT     equ 3   ; Save/restore the FPU state (keep in sync with vcpu.h)
+VP_FLAG_FPU_SAVED_BIT   equ 4   ; Set if the user fpu state has been saved (keep in sync with vcpu.h)
 
     clrso
 vp_rewa_qe_next                         so.l    1           ; 4

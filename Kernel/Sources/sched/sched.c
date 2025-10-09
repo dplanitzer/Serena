@@ -405,7 +405,7 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     sp.priority = 7;
     vcpu_cominit(vp, &sp);
 
-    VirtualProcessorClosure cl;
+    vcpu_context_t cl;
     cl.func = (VoidFunc_1)fn;
     cl.context = ctx;
     cl.ret_func = NULL;
@@ -448,7 +448,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     sp.priority = -8;
     vcpu_cominit(vp, &sp);
 
-    VirtualProcessorClosure cl;
+    vcpu_context_t cl;
     cl.func = (VoidFunc_1)idle_vcpu_run;
     cl.context = NULL;
     cl.ret_func = NULL;

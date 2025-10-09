@@ -17,11 +17,12 @@
 // \param self the virtual processor
 // \param closure the closure description
 // \param bEnableInterrupts true if IRQs should be enabled; false if disabled
-errno_t vcpu_setcontext(vcpu_t _Nonnull self, const VirtualProcessorClosure* _Nonnull closure, bool bEnableInterrupts)
+errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull closure, bool bEnableInterrupts)
 {
     decl_try_err();
     const size_t ifsiz = sizeof(excpt_0_frame_t) + 4*7 + 4*8 + 4;
     const size_t ffsiz = 4 + sizeof(float96_t)*8 + 4 + 4 + 4;
+    const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
 
     VP_ASSERT_ALIVE(self);
     assert(self->suspension_count > 0);
@@ -82,19 +83,29 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const VirtualProcessorClosure* _No
     }
 
 
-    // Initial save area (high to low addresses):
-    // SP-0:    exception frame type    \
-    // SP-2:    PC                      |   Exception stack frame type #0
-    // SP-6:    SR                      /
-    // SP-8:    a[7]                        a0 to a6
-    // SP-36:   d[8]                        d0 to d7
-    // SP-68:   usp                         user stack pointer
-    // SP-72:   fpu_save                    fsave frame, 4 to 400 bytes (all following offsets assume NULL fsave frame of 4 bytes)
-    // SP-76:   fp[8]                       fp0 to fp7
-    // SP-172:  fpcr
-    // SP-176:  fpsr
-    // SP-180:  fpiar
-    const size_t fsiz = ifsiz + (((self->flags & VP_FLAG_FPU) == VP_FLAG_FPU) ? ffsiz : 0);
+    // General save area layout (high to low addresses):
+    // ksp-0:    exception frame type    \
+    // ksp-2:    pc                      |  Exception stack frame type #0
+    // ksp-6:    sr                      /
+    // ksp-8:    a[7]                       a0 to a6
+    // ksp-36:   d[8]                       d0 to d7
+    // ksp-68:   usp                        user stack pointer
+    // ksp-72:   fpu_save                   fsave frame, 4 to 216 bytes (all following offsets assume NULL fsave frame of 4 bytes)
+    // ksp-76:   fp[8]                      fp0 to fp7
+    // ksp-172:  fpcr
+    // ksp-176:  fpsr
+    // ksp-180:  fpiar
+    // -------------------------------------------------------------------------
+    //
+    // Initial save area layout (high to low addresses):
+    // ksp-0:    exception frame type    \
+    // ksp-2:    pc                      |  Exception stack frame type #0
+    // ksp-6:    sr                      /
+    // ksp-8:    a[7]                       a0 to a6
+    // ksp-36:   d[8]                       d0 to d7
+    // ksp-68:   usp                        user stack pointer
+    // ksp-72:   fpu_save                   fsave NULL frame, 4 bytes (this causes the FPU to reset its user state)
+    const size_t fsiz = ifsiz + ((hasFPU) ? sizeof(struct m6888x_null_frame) : 0);
     uintptr_t ssp = ksp - fsiz;
     memset((void*)ssp, 0, fsiz);
 
@@ -112,11 +123,6 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const VirtualProcessorClosure* _No
     uspp[0] = usp;
     
     self->ssp = (void*)ssp;
-
-
-    // Minimum kernel stack size is 2 * sizeof(cpu_save_area_max_size) + 128
-    // 2 times -> csw save state + cpu exception save state
-    assert(self->kernel_stack.size >= 2*(ifsiz + ffsiz + FPU_MAX_STATE_SIZE) + 128);
 
     return EOK;
 }
