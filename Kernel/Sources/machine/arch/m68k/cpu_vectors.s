@@ -216,10 +216,13 @@ __fpu_exception:
     inline
         fsave       -(sp)
         tst.b       (sp)
-        beq.s       .L1
+        bne.s       .1
+        addq.l      #4, sp
+        rte
 
         ; Push a long word on the stack to indicate to __cpu_exception_return
         ; that it does have to do a frestore
+.1:
         move.l      #$fbe, -(sp)
 
         ; Push a null RTE frame which will be used to invoke the user space exception handler
@@ -239,7 +242,6 @@ __fpu_exception:
         
         movem.l     (sp)+, d0 - d1 / a0 - a1
 
-.L1:    
         rte
     einline
 
