@@ -34,7 +34,7 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
     mtx_init(&self->mtx);
     wq_init(&self->reportsWaitQueue);
 
-    self->reportSigs = _SIGBIT(SIGKEY) | _SIGBIT(SIGVBL) | _SIGBIT(SIGSCR);
+    self->reportSigs = _SIGBIT(SIGVBL) | _SIGBIT(SIGSCR);
     self->report.type = kHIDReportType_Null;
 
     self->keyFlags = gUSBHIDKeyFlags;
@@ -404,10 +404,11 @@ void HIDManager_FlushEvents(HIDManagerRef _Nonnull self)
     mtx_unlock(&self->mtx);
 }
 
-// Posts the given event to the queue. This event replaces the oldest event
-// in the queue if the queue is full. This function must be called from the
-// interrupt context.
-static void _post_event(HIDManagerRef _Nonnull _Locked self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData)
+// Queues the given event. This event replaces the oldest event in the queue if
+// the queue is full. This function must be called from the interrupt context.
+// NOTE: this function does not do a cnd_broadcast() the caller must do this
+// before dropping the lock.
+static void _queue_event(HIDManagerRef _Nonnull _Locked self, HIDEventType type, did_t driverId, const HIDEventData* _Nonnull pEventData)
 {
     if (EVQ_WRITABLE_COUNT() > 0) {
         HIDEvent* pe = &self->evqQueue[self->evqWriteIdx++ & self->evqCapacityMask];
@@ -416,8 +417,6 @@ static void _post_event(HIDManagerRef _Nonnull _Locked self, HIDEventType type, 
         pe->driverId = driverId;
         pe->eventTime = self->now;
         pe->data = *pEventData;
-    
-        cnd_broadcast(&self->evqCnd);
     }
     else {
         self->evqOverflowCount++;
@@ -428,7 +427,8 @@ void HIDManager_PostEvent(HIDManagerRef _Nonnull self, HIDEventType type, did_t 
 {
     mtx_lock(&self->mtx);
     clock_gettime(g_mono_clock, &self->now);
-    _post_event(self, type, driverId, pEventData);
+    _queue_event(self, type, driverId, pEventData);
+    cnd_broadcast(&self->evqCnd);
     mtx_unlock(&self->mtx);
 }
 
@@ -553,7 +553,7 @@ static void _post_key_event(HIDManagerRef _Nonnull _Locked self, const HIDReport
     evt.key.keyCode = keyCode;
     evt.key.isRepeat = false;
 
-    _post_event(self, evtType, 0, &evt);
+    _queue_event(self, evtType, 0, &evt);
 }
 
 // Posts suitable mouse events to the event queue.
@@ -579,7 +579,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
                 evt.mouse.flags = self->modifierFlags;
                 evt.mouse.x = self->mouse.x;
                 evt.mouse.y = self->mouse.y;
-                _post_event(self, evtType, 0, &evt);
+                _queue_event(self, evtType, 0, &evt);
             }
         }
     }
@@ -590,7 +590,7 @@ static void _post_mouse_event(HIDManagerRef _Nonnull _Locked self, bool hasPosit
         evt.mouseMoved.flags = self->modifierFlags;
         evt.mouseMoved.x = self->mouse.x;
         evt.mouseMoved.y = self->mouse.y;
-        _post_event(self, kHIDEventType_MouseMoved, 0, &evt);
+        _queue_event(self, kHIDEventType_MouseMoved, 0, &evt);
     }
 }
 
@@ -622,7 +622,7 @@ static void _post_gamepad_event(HIDManagerRef _Nonnull _Locked self, gamepad_sta
                 evt.joystick.flags = self->modifierFlags;
                 evt.joystick.dx = report->data.joy.x;
                 evt.joystick.dy = report->data.joy.y;
-                _post_event(self, evtType, did, &evt);
+                _queue_event(self, evtType, did, &evt);
             }
         }
     }
@@ -637,7 +637,7 @@ static void _post_gamepad_event(HIDManagerRef _Nonnull _Locked self, gamepad_sta
 
         evt.joystickMotion.dx = report->data.joy.x;
         evt.joystickMotion.dy = report->data.joy.y;
-        _post_event(self, kHIDEventType_JoystickMotion, did, &evt);
+        _queue_event(self, kHIDEventType_JoystickMotion, did, &evt);
     }
 
     gp->x = report->data.joy.x;
@@ -670,7 +670,6 @@ static void _connect_driver(HIDManagerRef _Nonnull _Locked self, DriverRef _Nonn
     if (self->kbChannel == NULL && Driver_HasCategory(driver, IOHID_KEYBOARD)) {
         err = Driver_Open(driver, O_RDWR, 0, &self->kbChannel);
         if (err == EOK) {
-            InputDriver_SetReportTarget(driver, self->reportsCollector, SIGKEY);
             self->kb = (InputDriverRef)driver;
         }
     }
@@ -795,8 +794,10 @@ int _vbl_handler(HIDManagerRef _Nonnull self)
 }
 
 
-static void _collect_keyboard_reports(HIDManagerRef _Nonnull self)
+static bool _collect_keyboard_reports(HIDManagerRef _Nonnull self)
 {
+    bool r = false;
+
     for (;;) {
         InputDriver_GetReport(self->kb, &self->report);
                 
@@ -805,13 +806,16 @@ static void _collect_keyboard_reports(HIDManagerRef _Nonnull self)
         }
 
         _post_key_event(self, &self->report);
+        r = true;
     }
+
+    return r;
 }
 
-static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
+static bool _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
 {
     if (self->mouse.chCount == 0) {
-        return;
+        return false;
     }
 
     const int16_t oldX = self->mouse.x;
@@ -894,18 +898,25 @@ static void _collect_pointing_device_reports(HIDManagerRef _Nonnull self)
 
     // Post mouse events
     _post_mouse_event(self, hasPositionChange, hasButtonsChange, oldButtonsDown);
+
+    return true;
 }
 
-static void _collect_gamepad_reports(HIDManagerRef _Nonnull self)
+static bool _collect_gamepad_reports(HIDManagerRef _Nonnull self)
 {
+    bool r = false;
+
     for (int i = 0; i < self->gamepadCount; i++) {
         gamepad_state_t* gp = &self->gamepad[i];
 
         if (gp->ch) {
             InputDriver_GetReport(IOChannel_GetResourceAs(gp->ch, InputDriver), &self->report);
             _post_gamepad_event(self, gp, &self->report);
+            r = true;
         }
     }
+
+    return r;
 }
 
 static void _collect_framebuffer_size(HIDManagerRef _Nonnull self)
@@ -948,14 +959,18 @@ static void _reports_collector_loop(HIDManagerRef _Nonnull self)
 
 
         switch (signo) {
-            case SIGKEY:
-                _collect_keyboard_reports(self);
-                break;
+            case SIGVBL: {
+                bool r = false;
 
-            case SIGVBL:
-                _collect_pointing_device_reports(self);
-                _collect_gamepad_reports(self);
+                r |= _collect_keyboard_reports(self);
+                r |= _collect_pointing_device_reports(self);
+                r |= _collect_gamepad_reports(self);
+
+                if (r) {
+                    cnd_broadcast(&self->evqCnd);
+                }
                 break;
+            }
 
             case SIGSCR:
                 _collect_framebuffer_size(self);

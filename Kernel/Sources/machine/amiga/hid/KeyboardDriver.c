@@ -29,10 +29,8 @@ static const uint8_t g_usb_code_map[128] = {
 
 
 final_class_ivars(KeyboardDriver, InputDriver,
-    RingBuffer          keyQueue;   // irq state
-    vcpu_t _Nullable    sigvp;      // irq state
-    int                 signo;      // irq state
-    int                 dropCount;  // irq state
+    RingBuffer  keyQueue;   // irq state
+    int         dropCount;  // irq state
 );
 
 IOCATS_DEF(g_cats, IOHID_KEYBOARD);
@@ -109,24 +107,9 @@ void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, HIDReport* _Nonnu
     }
 }
 
-errno_t KeyboardDriver_setReportTarget(KeyboardDriverRef _Nonnull self, vcpu_t _Nullable vp, int signo)
-{
-    const unsigned sim = irq_set_mask(IRQ_MASK_KEYBOARD);
-    self->sigvp = vp;
-    self->signo = signo;
-    irq_set_mask(sim);
-
-    return EOK;
-}
-
 void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self, int key)
 {
-    if (RingBuffer_PutByte(&self->keyQueue, (char)key) == 1) {
-        if (self->sigvp) {
-            vcpu_sigsend_irq(self->sigvp, self->signo, false);
-        }
-    }
-    else {
+    if (RingBuffer_PutByte(&self->keyQueue, (char)key) == 0) {
         self->dropCount++;
     }
 }
@@ -137,5 +120,4 @@ override_func_def(deinit, KeyboardDriver, Object)
 override_func_def(onStart, KeyboardDriver, Driver)
 override_func_def(onStop, KeyboardDriver, Driver)
 override_func_def(getReport, KeyboardDriver, InputDriver)
-override_func_def(setReportTarget, KeyboardDriver, InputDriver)
 );
