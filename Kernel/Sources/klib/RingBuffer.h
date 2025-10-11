@@ -38,26 +38,25 @@ extern void RingBuffer_InitWithBuffer(RingBuffer* _Nonnull self, char* _Nonnull 
 extern void RingBuffer_Deinit(RingBuffer* _Nonnull self);
 
 // Returns true if the ring buffer is empty.
-static inline bool RingBuffer_IsEmpty(RingBuffer* _Nonnull self) {
-    return self->readIdx == self->writeIdx;
-}
+#define RingBuffer_IsEmpty(__self) \
+(((__self)->readIdx == (__self)->writeIdx) ? true : false)
 
 // Returns the number of bytes stored in the ring buffer - aka the number of bytes
 // that can be read from the ring buffer.
-static inline size_t RingBuffer_ReadableCount(RingBuffer* _Nonnull self) {
-    return self->writeIdx - self->readIdx;
-}
+#define RingBuffer_ReadableCount(__self) \
+((__self)->writeIdx - (__self)->readIdx)
+
 
 // Returns the number of bytes that can be written to the ring buffer.
-static inline size_t RingBuffer_WritableCount(RingBuffer* _Nonnull self) {
-    return self->capacity - (self->writeIdx - self->readIdx);
-}
+#define RingBuffer_WritableCount(__self) \
+((__self)->capacity - ((__self)->writeIdx - (__self)->readIdx))
+
 
 // Removes all bytes from the ring buffer.
-static inline void RingBuffer_RemoveAll(RingBuffer* _Nonnull self) {
-    self->readIdx = 0;
-    self->writeIdx = 0;
-}
+#define RingBuffer_RemoveAll(__self) \
+(__self)->readIdx = 0; \
+(__self)->writeIdx = 0
+
 
 // Puts a single byte into the ring buffer. Returns 1 if the byte has been
 // copied to the buffer and 0 if the ring buffer is full.
