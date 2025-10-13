@@ -57,7 +57,7 @@ typedef struct WorkItem {
 
 #if defined(__ILP32__)
 #define ARG_WORD_SIZE   4
-#elif defined(__LLP64__)
+#elif defined(__LLP64__) || defined(__LP64__)
 #define ARG_WORD_SIZE   8
 #else
 #error "unknown machine model"

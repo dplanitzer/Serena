@@ -36,10 +36,6 @@
 #define __Floor_Ptr_PowerOf2(x, __align)     (void*)(__Floor_PowerOf2((__uintptr_t)(x), (__uintptr_t)(__align)))
 
 
-#define kQuantums_Infinity      INT32_MAX
-#define kQuantums_MinusInfinity INT32_MIN
-
-
 #define CHAR_PTR_MAX    ((char*)__UINTPTR_MAX)
 
 

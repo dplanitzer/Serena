@@ -96,10 +96,10 @@ sd_SIZEOF                       so              ; 108
     clrso
 mtc_current_time_seconds        so.l    1       ; 4
 mtc_current_time_nanoseconds    so.l    1       ; 4
-mtc_current_quantum             so.l    1       ; 4
-mtc_ns_per_quantum              so.l    1       ; 4
-mtc_quantum_duration_cycles     so.w    1       ; 2
-mtc_ns_per_quantum_timer_cycle  so.w    1       ; 2
+mtc_tick_count                  so.l    1       ; 4
+mtc_ns_per_tick                 so.l    1       ; 4
+mtc_cia_cycles_per_tick         so.w    1       ; 2
+mtc_ns_per_cia_cycle            so.w    1       ; 2
 mtc_SIZEOF                      so              ; 20
     ifeq (mtc_SIZEOF == 20)
         fail "clock_ref_t structure size is incorrect."
@@ -122,7 +122,7 @@ vps_idle_virtual_processor          so.l    1       ; 4
 vps_boot_virtual_processor          so.l    1       ; 4
 vps_ready_queue                     so.l    VP_PRIORITY_COUNT * 2 ; 512
 vps_ready_queue_populated           so.b    8       ; 8
-vps_quantums_per_quarter_second     so.l    1       ; 4
+vps_ticks_per_quarter_second        so.l    1       ; 4
 vps_timeout_queue_first             so.l    1       ; 4
 vps_timeout_queue_last              so.l    1       ; 4
 vps_finalizer_queue_first           so.l    1       ; 4
@@ -178,7 +178,7 @@ vp_sched_priority                       so.b    1           ; 1
 vp_effectivePriority                    so.b    1           ; 1
 vp_sched_state                          so.b    1           ; 1
 vp_flags                                so.b    1           ; 1
-vp_quantum_allowance                    so.b    1           ; 1
+vp_ticks_allowance                      so.b    1           ; 1
 vp_suspension_count                     so.b    1           ; 1
 vp_lifecycle_state                      so.b    1           ; 1
 vp_proc                                 so.l    1           ; 4

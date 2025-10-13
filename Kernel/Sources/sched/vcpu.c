@@ -63,7 +63,7 @@ void vcpu_cominit(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull sche
 
     self->excpt_handler = (excpt_handler_t){0};
     
-    self->timeout.deadline = kQuantums_Infinity;
+    self->timeout.deadline = kTicks_Infinity;
     self->timeout.is_valid = false;
     self->waiting_on_wait_queue = NULL;
     self->wait_sigs = 0;
@@ -177,7 +177,7 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const vcpu_sched_params_t* _No
                 self->qos_priority = params->priority;
                 self->sched_priority = new_sched_pri;
                 self->effectivePriority = new_sched_pri;
-                self->quantum_allowance = QuantumAllowanceForPriority(self->effectivePriority);
+                self->ticks_allowance = QuantumDurationForPriority(self->effectivePriority);
                 break;
         }
     }

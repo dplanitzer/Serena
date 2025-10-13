@@ -11,6 +11,10 @@
 
 #include <kern/types.h>
 
+#define kTicks_Infinity     INT32_MAX
+#define kTicks_Epoch        0
+
+
 // At most 1ms
 #define CLOCK_DELAY_MAX_NSEC    1000000l
 
@@ -18,10 +22,10 @@
 // Note: Keep in sync with machine/hal/lowmem.i
 struct clock {
     volatile struct timespec    current_time;
-    volatile Quantums           current_quantum;    // Current scheduler time in terms of elapsed quantums since boot
-    int32_t                     ns_per_quantum;     // duration of a quantum in terms of nanoseconds
-    int16_t                     quantum_duration_cycles;    // Quantum duration in terms of timer cycles
-    int16_t                     ns_per_quantum_timer_cycle; // Length of a quantum timer cycle in nanoseconds
+    volatile tick_t             tick_count;         // Current scheduler time in terms of ticks quantums since clock start
+    int32_t                     ns_per_tick;        // duration of a clock tick in terms of nanoseconds
+    int16_t                     cia_cycles_per_tick;    // duration of a clock tick in terms of CIA chip cycles 
+    int16_t                     ns_per_cia_cycle;       // length of a CIA cycle in nanoseconds
 };
 typedef struct clock* clock_ref_t;
 
@@ -35,9 +39,9 @@ extern void clock_init_mono(clock_ref_t _Nonnull self);
 
 extern void clock_start(clock_ref_t _Nonnull self);
 
-// Returns the current time in terms of quantums
+// Returns the current time in terms of clock ticks
 #define clock_getticks(__self) \
-((__self)->current_quantum)
+((__self)->tick_count)
 
 // Returns the current time of the clock in terms of microseconds.
 extern void clock_gettime(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts);
@@ -48,15 +52,15 @@ extern void clock_gettime(clock_ref_t _Nonnull self, struct timespec* _Nonnull t
 extern void clock_delay(clock_ref_t _Nonnull self, long ns);
 
 
-// Rounding modes for struct timespec to Quantums conversion
-#define QUANTUM_ROUNDING_TOWARDS_ZERO   0
-#define QUANTUM_ROUNDING_AWAY_FROM_ZERO 1
+// Rounding modes for struct timespec to tick_t conversion
+#define CLOCK_ROUND_TOWARDS_ZERO   0
+#define CLOCK_ROUND_AWAY_FROM_ZERO 1
 
-// Converts a timespec to a quantum value. The quantum value is rounded based
+// Converts a timespec to a clock tick value. The clock ticks are rounded based
 // on the 'rounding' parameter.
-extern Quantums clock_time2quantums(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts, int rounding);
+extern tick_t clock_time2ticks(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts, int rounding);
 
-// Converts a quantum value to a timespec.
-extern void clock_quantums2time(clock_ref_t _Nonnull self, Quantums quants, struct timespec* _Nonnull ts);
+// Converts a clock tick value to a timespec.
+extern void clock_ticks2time(clock_ref_t _Nonnull self, tick_t quants, struct timespec* _Nonnull ts);
 
 #endif /* _CLOCK_H */

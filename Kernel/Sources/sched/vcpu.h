@@ -104,7 +104,7 @@ struct vcpu {
     excpt_handler_t                 excpt_handler;
     
     // Suspension related state
-    Quantums                        suspension_time;        // Absolute time when the VP was suspended
+    tick_t                          suspension_time;        // Absolute time when the VP was suspended
 
     // Signals
     sigset_t                        pending_sigs;           // Pending signals (sent to the VP, but not yet consumed by sigwait())
@@ -113,7 +113,7 @@ struct vcpu {
     // Waiting related state
     sched_timeout_t                 timeout;                // The timeout state
     waitqueue_t _Nullable           waiting_on_wait_queue;  // The wait queue this VP is waiting on; NULL if not waiting. Used by the scheduler to wake up on timeout
-    Quantums                        wait_start_time;        // Time when we entered waiting state
+    tick_t                          wait_start_time;        // Time when we entered waiting state
     sigset_t                        wait_sigs;              // Which signals should cause a wakeup on arrival
     int8_t                          wakeup_reason;
     
@@ -125,7 +125,7 @@ struct vcpu {
     int8_t                          effectivePriority;      // computed priority used for scheduling
     int8_t                          sched_state;
     uint8_t                         flags;
-    int8_t                          quantum_allowance;      // How many continuous quantums this VP may run for before the scheduler will consider scheduling some other VP
+    int8_t                          ticks_allowance;        // how many continuous clock ticks this VP may run for before the scheduler will consider scheduling some other VP
     int8_t                          suspension_count;       // > 0 -> VP is suspended
 
     // Lifecycle state

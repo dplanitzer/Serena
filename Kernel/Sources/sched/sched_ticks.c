@@ -43,12 +43,12 @@ static bool inject_sigurgent_call(excpt_frame_t* _Nonnull efp)
 }
 
 
-// Invoked at the end of every quantum.
-void sched_quantum_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
+// Invoked at the end of every clock tick.
+void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 {
     // First, go through the timeout queue and move all VPs whose timeouts have
     // expired to the ready queue.
-    const Quantums now = clock_getticks(g_mono_clock);
+    const tick_t now = clock_getticks(g_mono_clock);
     
     while (self->timeout_queue.first) {
         register sched_timeout_t* ct = (sched_timeout_t*)self->timeout_queue.first;
@@ -75,8 +75,8 @@ void sched_quantum_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 
 
     // Update the time slice info for the currently running VP
-    run->quantum_allowance--;
-    if (run->quantum_allowance > 0) {
+    run->ticks_allowance--;
+    if (run->ticks_allowance > 0) {
         return;
     }
 
@@ -86,7 +86,7 @@ void sched_quantum_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
     // context switch to that guy. Otherwise we'll continue to run for another
     // time slice.
     run->effectivePriority = __max(run->effectivePriority - 1, VP_PRIORITY_LOWEST);
-    run->quantum_allowance = QuantumAllowanceForPriority(run->effectivePriority);
+    run->ticks_allowance = QuantumDurationForPriority(run->effectivePriority);
 
     register vcpu_t rdy = sched_highest_priority_ready(self);
     if (rdy == NULL || rdy->effectivePriority <= run->effectivePriority) {

@@ -81,7 +81,7 @@ void sched_finish_boot(sched_t _Nonnull self)
     struct timespec ts;
     
     timespec_from_ms(&ts, 250);
-    self->quantums_per_quarter_second = clock_time2quantums(g_mono_clock, &ts, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
+    self->ticks_per_quarter_second = clock_time2ticks(g_mono_clock, &ts, CLOCK_ROUND_AWAY_FROM_ZERO);
 
 
     // Resume the idle virtual processor
@@ -100,7 +100,7 @@ void sched_add_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effect
     
     vp->sched_state = SCHED_STATE_READY;
     vp->effectivePriority = effectivePriority;
-    vp->quantum_allowance = QuantumAllowanceForPriority(vp->effectivePriority);
+    vp->ticks_allowance = QuantumDurationForPriority(vp->effectivePriority);
     vp->wait_start_time = clock_getticks(g_mono_clock);
     
     List_InsertAfterLast(&self->ready_queue.priority[vp->effectivePriority], &vp->rewa_qe);
@@ -182,7 +182,7 @@ static void _arm_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 // queue.
 void sched_arm_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, const struct timespec* _Nonnull deadline)
 {
-    vp->timeout.deadline = clock_time2quantums(g_mono_clock, deadline, QUANTUM_ROUNDING_AWAY_FROM_ZERO);
+    vp->timeout.deadline = clock_time2ticks(g_mono_clock, deadline, CLOCK_ROUND_AWAY_FROM_ZERO);
     vp->timeout.is_valid = true;
     
     _arm_timeout(self, vp);
@@ -194,7 +194,7 @@ void sched_cancel_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     if (vp->timeout.is_valid) {
         List_Remove(&self->timeout_queue, &vp->timeout.queue_entry);
-        vp->timeout.deadline = kQuantums_Infinity;
+        vp->timeout.deadline = kTicks_Infinity;
         vp->timeout.is_valid = false;
     }
 }
@@ -209,7 +209,7 @@ void sched_suspend_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 }
 
 // Resumes a suspended timeout for the given virtual processor.
-void sched_resume_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, Quantums suspensionTime)
+void sched_resume_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, tick_t suspensionTime)
 {
     if (vp->timeout.is_valid) {
         vp->timeout.deadline += __max(clock_getticks(g_mono_clock) - suspensionTime, 0);
