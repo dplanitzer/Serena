@@ -14,9 +14,9 @@
 #include <machine/irq.h>
 #include <sched/sched.h>
 
-extern void mclk_start_heartbeat(const clock_ref_t _Nonnull self);
-extern void mclk_stop_heartbeat(void);
-extern int32_t mclk_get_heartbeat_elapsed_ns(const clock_ref_t _Nonnull self);
+extern void mclk_start_ticks(const clock_ref_t _Nonnull self);
+extern void mclk_stop_ticks(void);
+extern int32_t mclk_get_tick_elapsed_ns(const clock_ref_t _Nonnull self);
 void clock_irq(clock_ref_t _Nonnull self, excpt_frame_t* _Nonnull efp);
 
 
@@ -54,7 +54,6 @@ void clock_init_mono(clock_ref_t _Nonnull self)
     // The ns_per_cia_cycle value is rounded such that:
     // ns_per_cia_cycle * cia_cycles_per_tick <= ns_per_tick
 
-    self->current_time = TIMESPEC_ZERO;
     self->tick_count = 0;
     self->ns_per_tick = (is_ntsc) ? 16666922 : 16666689;
     self->cia_cycles_per_tick = (is_ntsc) ? 11932 : 11823;
@@ -65,21 +64,13 @@ void clock_start(clock_ref_t _Nonnull self)
 {
     irq_set_direct_handler(IRQ_ID_MONOTONIC_CLOCK, (irq_direct_func_t)clock_irq, self);
     irq_enable_src(IRQ_ID_CIA_A_TIMER_B);
-    mclk_start_heartbeat(self);
+    mclk_start_ticks(self);
 }
 
 void clock_irq(clock_ref_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 {
     // update the scheduler clock
     self->tick_count++;
-    
-    
-    // update the metric time
-    self->current_time.tv_nsec += self->ns_per_tick;
-    if (self->current_time.tv_nsec >= NSEC_PER_SEC) {
-        self->current_time.tv_sec++;
-        self->current_time.tv_nsec -= NSEC_PER_SEC;
-    }
 
 
     // run the scheduler
@@ -88,39 +79,41 @@ void clock_irq(clock_ref_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 
 void clock_gettime(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts)
 {
-    register time_t cur_secs;
-    register long cur_nanos;
-    register long chk_ticks;
+    clock_ticks2time(self, self->tick_count, ts);
+}
+
+void clock_gettime_hires(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts)
+{
+    register tick_t ticks;
+    register long extra_ns;
     
     do {
-        cur_secs = self->current_time.tv_sec;
-        cur_nanos = self->current_time.tv_nsec;
-        chk_ticks = self->tick_count;
-        
-        cur_nanos += mclk_get_heartbeat_elapsed_ns(self);
-        if (cur_nanos >= NSEC_PER_SEC) {
-            cur_secs++;
-            cur_nanos -= NSEC_PER_SEC;
-        }
-        
-        // Do it again if there was a tick transition while we were busy computing
-        // the time
-    } while (self->tick_count != chk_ticks);
+        ticks = self->tick_count;
+        extra_ns = mclk_get_tick_elapsed_ns(self);
+        // Do it again if there was a tick transition while we were busy getting
+        // the time values
+    } while (self->tick_count != ticks);
 
-    timespec_from(ts, cur_secs, cur_nanos);
+
+    clock_ticks2time(self, ticks, ts);
+    ts->tv_nsec += extra_ns;
+    if (ts->tv_nsec >= NSEC_PER_SEC) {
+        ts->tv_sec++;
+        ts->tv_nsec -= NSEC_PER_SEC;
+    }
 }
 
 void clock_delay(clock_ref_t _Nonnull self, long ns)
 {
     struct timespec now, deadline, delta;
     
-    clock_gettime(self, &now);
+    clock_gettime_hires(self, &now);
     timespec_from(&delta, 0, ns);
     timespec_add(&now, &delta, &deadline);
 
     // Just spin for now (would be nice to put the CPU to sleep though for a few micros before rechecking the time or so)
     while (timespec_lt(&now, &deadline)) {
-        clock_gettime(self, &now);
+        clock_gettime_hires(self, &now);
     }
 }
 
@@ -145,6 +138,7 @@ tick_t clock_time2ticks(clock_ref_t _Nonnull self, const struct timespec* _Nonnu
     }
 }
 
+#ifndef MACHINE_AMIGA
 void clock_ticks2time(clock_ref_t _Nonnull self, tick_t ticks, struct timespec* _Nonnull ts)
 {
     const int64_t ns = (int64_t)ticks * (int64_t)self->ns_per_tick;
@@ -152,3 +146,4 @@ void clock_ticks2time(clock_ref_t _Nonnull self, tick_t ticks, struct timespec* 
     ts->tv_sec = ns / (int64_t)NSEC_PER_SEC;
     ts->tv_nsec = ns - ((int64_t)ts->tv_sec * (int64_t)NSEC_PER_SEC);
 }
+#endif

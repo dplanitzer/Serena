@@ -94,14 +94,12 @@ sd_SIZEOF                       so              ; 108
 
 ; The struct clock object
     clrso
-mtc_current_time_seconds        so.l    1       ; 4
-mtc_current_time_nanoseconds    so.l    1       ; 4
 mtc_tick_count                  so.l    1       ; 4
 mtc_ns_per_tick                 so.l    1       ; 4
 mtc_cia_cycles_per_tick         so.w    1       ; 2
 mtc_ns_per_cia_cycle            so.w    1       ; 2
-mtc_SIZEOF                      so              ; 20
-    ifeq (mtc_SIZEOF == 20)
+mtc_SIZEOF                      so              ; 12
+    ifeq (mtc_SIZEOF == 12)
         fail "clock_ref_t structure size is incorrect."
     endif
 

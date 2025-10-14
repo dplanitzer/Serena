@@ -21,11 +21,10 @@
 
 // Note: Keep in sync with machine/hal/lowmem.i
 struct clock {
-    volatile struct timespec    current_time;
-    volatile tick_t             tick_count;         // Current scheduler time in terms of ticks quantums since clock start
-    int32_t                     ns_per_tick;        // duration of a clock tick in terms of nanoseconds
-    int16_t                     cia_cycles_per_tick;    // duration of a clock tick in terms of CIA chip cycles 
-    int16_t                     ns_per_cia_cycle;       // length of a CIA cycle in nanoseconds
+    volatile tick_t tick_count;         // Current scheduler time in terms of ticks quantums since clock start
+    int32_t         ns_per_tick;        // duration of a clock tick in terms of nanoseconds
+    int16_t         cia_cycles_per_tick;    // duration of a clock tick in terms of CIA chip cycles 
+    int16_t         ns_per_cia_cycle;       // length of a CIA cycle in nanoseconds
 };
 typedef struct clock* clock_ref_t;
 
@@ -43,8 +42,11 @@ extern void clock_start(clock_ref_t _Nonnull self);
 #define clock_getticks(__self) \
 ((__self)->tick_count)
 
-// Returns the current time of the clock in terms of microseconds.
+// Returns the current time of the clock in terms of the clock tick resolution.
 extern void clock_gettime(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts);
+
+// Returns the current time of the clock with microseconds precision.
+extern void clock_gettime_hires(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts);
 
 // Blocks the caller for 'ns' nanoseconds. This functions blocks for at most
 // CLOCK_DELAY_MAX_NSEC and the delay is implemented as a hard spin.
@@ -61,6 +63,6 @@ extern void clock_delay(clock_ref_t _Nonnull self, long ns);
 extern tick_t clock_time2ticks(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts, int rounding);
 
 // Converts a clock tick value to a timespec.
-extern void clock_ticks2time(clock_ref_t _Nonnull self, tick_t quants, struct timespec* _Nonnull ts);
+extern void clock_ticks2time(clock_ref_t _Nonnull self, tick_t ticks, struct timespec* _Nonnull ts);
 
 #endif /* _CLOCK_H */
