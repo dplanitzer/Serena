@@ -12,6 +12,10 @@
 #include <kern/timespec.h>
 #include <sched/waitqueue.h>
 
+// At most 1ms
+#define DELAY_SPIN_MAX_NSEC    1000000l
+
+
 static struct waitqueue gSleepQueue;    // VPs which block in a delay_xx() call wait on this wait queue
 
 
@@ -22,9 +26,17 @@ void delay_init(void)
 
 static void _delay_by(const struct timespec* _Nonnull wtp)
 {
-    // Use the Delay() facility for short waits and context switching for medium and long waits
-    if (wtp->tv_sec == 0 && wtp->tv_nsec < CLOCK_DELAY_MAX_NSEC) {
-        clock_delay(g_mono_clock, wtp->tv_nsec);
+    // Just spin for very short waits and context switching for medium and long waits
+    if (wtp->tv_sec == 0 && wtp->tv_nsec < DELAY_SPIN_MAX_NSEC) {
+        struct timespec now, deadline;
+    
+        clock_gettime_hires(g_mono_clock, &now);
+        timespec_add(&now, wtp, &deadline);
+
+        // Just spin for now (would be nice to put the CPU to sleep though for a few micros before rechecking the time or so)
+        while (timespec_lt(&now, &deadline)) {
+            clock_gettime_hires(g_mono_clock, &now);
+        }
         return;
     }
     

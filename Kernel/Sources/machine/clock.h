@@ -15,10 +15,6 @@
 #define kTicks_Epoch        0
 
 
-// At most 1ms
-#define CLOCK_DELAY_MAX_NSEC    1000000l
-
-
 // Note: Keep in sync with machine/hal/lowmem.i
 struct clock {
     volatile tick_t tick_count;         // Current scheduler time in terms of ticks quantums since clock start
@@ -47,11 +43,6 @@ extern void clock_gettime(clock_ref_t _Nonnull self, struct timespec* _Nonnull t
 
 // Returns the current time of the clock with microseconds precision.
 extern void clock_gettime_hires(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts);
-
-// Blocks the caller for 'ns' nanoseconds. This functions blocks for at most
-// CLOCK_DELAY_MAX_NSEC and the delay is implemented as a hard spin.
-// Longer delays should be implemented with the help of a wait queue. 
-extern void clock_delay(clock_ref_t _Nonnull self, long ns);
 
 
 // Rounding modes for struct timespec to tick_t conversion

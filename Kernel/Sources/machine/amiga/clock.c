@@ -103,20 +103,6 @@ void clock_gettime_hires(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts
     }
 }
 
-void clock_delay(clock_ref_t _Nonnull self, long ns)
-{
-    struct timespec now, deadline, delta;
-    
-    clock_gettime_hires(self, &now);
-    timespec_from(&delta, 0, ns);
-    timespec_add(&now, &delta, &deadline);
-
-    // Just spin for now (would be nice to put the CPU to sleep though for a few micros before rechecking the time or so)
-    while (timespec_lt(&now, &deadline)) {
-        clock_gettime_hires(self, &now);
-    }
-}
-
 tick_t clock_time2ticks(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts, int rounding)
 {
     const int64_t nanos = (int64_t)ts->tv_sec * (int64_t)NSEC_PER_SEC + (int64_t)ts->tv_nsec;
