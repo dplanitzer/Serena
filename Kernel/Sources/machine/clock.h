@@ -38,6 +38,11 @@ extern void clock_start(clock_ref_t _Nonnull self);
 #define clock_getticks(__self) \
 ((__self)->tick_count)
 
+// Returns the duration of a single clock tick in terms of seconds and nanoseconds.
+#define clock_getresolution(__self, __res) \
+(__res)->tv_sec = 0; \
+(__res)->tv_nsec = (__self)->ns_per_tick
+
 // Returns the current time of the clock in terms of the clock tick resolution.
 extern void clock_gettime(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts);
 

@@ -83,6 +83,7 @@ enum {
     SC_proc_exec,           // int proc_exec(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable * _Nullable envp)
     SC_vcpu_getschedparams, // int vcpu_getschedparams(vcpuid_t id, vcpu_sched_params_t* _Nonnull params)
     SC_vcpu_setschedparams, // int vcpu_setschedparams(vcpuid_t id, const vcpu_sched_params_t* _Nonnull params)
+    SC_clock_getres,        // errno_t clock_getres(clockid_t clock, struct timespec* _Nonnull res)
 };
 
 

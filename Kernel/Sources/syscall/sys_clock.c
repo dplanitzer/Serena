@@ -12,12 +12,12 @@
 #include <machine/csw.h>
 
 
-SYSCALL_4(clock_nanosleep, int clock, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
+SYSCALL_4(clock_nanosleep, int clockid, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
 {
     if (!timespec_isvalid(pa->wtp)) {
         return EINVAL;
     }
-    if (pa->clock != CLOCK_MONOTONIC) {
+    if (pa->clockid != CLOCK_MONOTONIC) {
         return ENODEV;
     }
 
@@ -37,12 +37,22 @@ SYSCALL_4(clock_nanosleep, int clock, int flags, const struct timespec* _Nonnull
     return err;
 }
 
-SYSCALL_2(clock_gettime, int clock, struct timespec* _Nonnull time)
+SYSCALL_2(clock_gettime, int clockid, struct timespec* _Nonnull time)
 {
-    if (pa->clock != CLOCK_MONOTONIC) {
+    if (pa->clockid != CLOCK_MONOTONIC) {
         return ENODEV;
     }
 
     clock_gettime(g_mono_clock, pa->time);
+    return EOK;
+}
+
+SYSCALL_2(clock_getres, int clockid, struct timespec* _Nonnull res)
+{
+    if (pa->clockid != CLOCK_MONOTONIC) {
+        return ENODEV;
+    }
+
+    clock_getresolution(g_mono_clock, pa->res);
     return EOK;
 }

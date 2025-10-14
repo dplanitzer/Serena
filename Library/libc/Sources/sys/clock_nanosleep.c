@@ -10,7 +10,7 @@
 #include <kpi/syscall.h>
 
 
-int clock_nanosleep(clockid_t clock, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
+int clock_nanosleep(clockid_t clockid, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
 {
-    return (int)_syscall(SC_clock_nanosleep, clock, flags, wtp, rmtp);
+    return (int)_syscall(SC_clock_nanosleep, clockid, flags, wtp, rmtp);
 }

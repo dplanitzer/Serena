@@ -10,7 +10,7 @@
 #include <kpi/syscall.h>
 
 
-int clock_gettime(clockid_t clock, struct timespec* _Nonnull ts)
+int clock_gettime(clockid_t clockid, struct timespec* _Nonnull ts)
 {
-    return (int)_syscall(SC_clock_gettime, clock, ts);
+    return (int)_syscall(SC_clock_gettime, clockid, ts);
 }

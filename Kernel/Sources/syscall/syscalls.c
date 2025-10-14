@@ -14,6 +14,7 @@ SYSCALL_REF(coninit);
 
 SYSCALL_REF(clock_gettime);
 SYSCALL_REF(clock_nanosleep);
+SYSCALL_REF(clock_getres);
 
 SYSCALL_REF(excpt_sethandler);
 
@@ -93,7 +94,7 @@ SYSCALL_REF(vcpu_setschedparams);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#define SYSCALL_COUNT   68
+#define SYSCALL_COUNT   69
 
 static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
@@ -164,6 +165,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(proc_exec, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_getschedparams, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_setschedparams, SC_ERRNO),
+    SYSCALL_ENTRY(clock_getres, SC_ERRNO),
 };
 
 ////////////////////////////////////////////////////////////////////////////////
