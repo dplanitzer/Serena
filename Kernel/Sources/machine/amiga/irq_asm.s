@@ -72,20 +72,29 @@ IRQ_ID_COUNT                        equ 24
 ;-------------------------------------------------------------------------------
 ; unsigned irq_set_mask(unsigned mask)
 ; Sets the CPU's interrupt priority mask to 'mask' and returns the previous mask.
+; Calls to irq_set_mask() may be nested by pairing them: first call sets the new
+; mask and returns the previous mask and the second call in a pair restores the
+; previously saved mask. This function only establishes the new mask if it is
+; more restrictive than the currently active mask. It returns the currently
+; active mask if any case. 
 _irq_set_mask:
     cargs ism_saved_d2.l, ism_mask.l
+
     move.l  d2, -(sp)
     move.l  ism_mask(sp), d2
 
     move.w  sr, d0
     move.w  d0, d1
+    and.l   #$0700, d0
+    cmp.w   d2, d0
+    bge.s   .1          ; skip SR update if old mask [d0] >= new mask [d2]
+
     and.w   #$f8ff, d1
     or.w    d2, d1
     move.w  d1, sr
 
+.1:
     move.l  (sp)+, d2
-
-    and.l   #$0700, d0
     rts
 
 
