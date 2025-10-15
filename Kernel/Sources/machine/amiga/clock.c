@@ -14,9 +14,14 @@
 #include <machine/irq.h>
 #include <sched/sched.h>
 
-extern void mclk_start_ticks(const clock_ref_t _Nonnull self);
-extern void mclk_stop_ticks(void);
-extern int32_t mclk_get_tick_elapsed_ns(const clock_ref_t _Nonnull self);
+struct ticks_ns {
+    tick_t  ticks;
+    long    ns;
+};
+
+extern void _clock_start_ticker(const clock_ref_t _Nonnull self);
+extern void _clock_stop_ticker(void);
+extern void _clock_getticks_ns(const clock_ref_t _Nonnull self, struct ticks_ns* _Nonnull tnp);
 void clock_irq(clock_ref_t _Nonnull self, excpt_frame_t* _Nonnull efp);
 
 
@@ -64,7 +69,7 @@ void clock_start(clock_ref_t _Nonnull self)
 {
     irq_set_direct_handler(IRQ_ID_MONOTONIC_CLOCK, (irq_direct_func_t)clock_irq, self);
     irq_enable_src(IRQ_ID_CIA_A_TIMER_B);
-    mclk_start_ticks(self);
+    _clock_start_ticker(self);
 }
 
 void clock_irq(clock_ref_t _Nonnull self, excpt_frame_t* _Nonnull efp)
@@ -84,19 +89,11 @@ void clock_gettime(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts)
 
 void clock_gettime_hires(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts)
 {
-    register tick_t ticks;
-    register long extra_ns;
+    struct ticks_ns ticks_ns;
     
-    do {
-        ticks = self->tick_count;
-        extra_ns = mclk_get_tick_elapsed_ns(self);
-        // Do it again if there was a tick transition while we were busy getting
-        // the time values
-    } while (self->tick_count != ticks);
-
-
-    clock_ticks2time(self, ticks, ts);
-    ts->tv_nsec += extra_ns;
+    _clock_getticks_ns(self, &ticks_ns);
+    clock_ticks2time(self, ticks_ns.ticks, ts);
+    ts->tv_nsec += ticks_ns.ns;
     if (ts->tv_nsec >= NSEC_PER_SEC) {
         ts->tv_sec++;
         ts->tv_nsec -= NSEC_PER_SEC;

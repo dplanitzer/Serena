@@ -1,5 +1,5 @@
 ;
-;  machine/amiga/clock.s
+;  machine/amiga/clock_asm.s
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 2/2/21.
@@ -10,23 +10,23 @@
     include <machine/lowmem.i>
 
 
-    xdef _mclk_start_ticks
-    xdef _mclk_stop_ticks
-    xdef _mclk_get_tick_elapsed_ns
+    xdef __clock_start_ticker
+    xdef __clock_stop_ticker
+    xdef __clock_getticks_ns
     xdef _clock_ticks2time
 
 
 ;-------------------------------------------------------------------------------
-; void mclk_start_ticks(const clock_ref_t _Nonnull self)
+; void _clock_start_ticker(const clock_ref_t _Nonnull self)
 ; Starts the clock running. A hardware timer is used to provide the clock
 ; heartbeat which is used to increment the clock tick counter.
-_mclk_start_ticks:
+__clock_start_ticker:
     cargs csqt_clock_ptr.l
 
     move.l  csqt_clock_ptr(sp), a0
 
     ; stop the timer
-    jsr     _mclk_stop_ticks
+    jsr     __clock_stop_ticker
 
     ; load the timer with the new ticks value
     move.w  mtc_cia_cycles_per_tick(a0), d0
@@ -44,9 +44,9 @@ _mclk_start_ticks:
 
 
 ;-------------------------------------------------------------------------------
-; void mclk_stop_ticks(void)
+; void _clock_stop_ticker(void)
 ; Stops the clock.
-_mclk_stop_ticks:
+__clock_stop_ticker:
     move.b  CIAACRB, d1
     and.b   #%11101110, d1
     move.b  d1, CIAACRB
@@ -54,23 +54,38 @@ _mclk_stop_ticks:
 
 
 ;-------------------------------------------------------------------------------
-; int32_t mclk_get_tick_elapsed_ns(const clock_ref_t _Nonnull self)
-; Returns the amount of nanoseconds that have elapsed in the current clock tick.
-_mclk_get_tick_elapsed_ns:
-    cargs cgqte_clock_ptr.l
+; void _clock_getticks_ns(const clock_ref_t _Nonnull self, struct ticks_ns* _Nonnull tnp)
+; Returns the current tick and the amount of nanoseconds that have elapsed so
+; far in the current clock tick.
+__clock_getticks_ns:
+    cargs cgtn_clock_ptr.l, cgtn_tn_ptr.l
 
-    move.l  cgqte_clock_ptr(sp), a0
+    move.l  cgtn_clock_ptr(sp), a0
+    move.l  cgtn_tn_ptr(sp), a1
+    move.l  d2, -(sp)
+
+.1:
+    move.l  mtc_tick_count(a0), d0
 
     ; read the current timer value
     moveq.l #0, d1
     move.b  CIAATBHI, d1
-    asl.w   #8, d1
+    lsl.w   #8, d1
     move.b  CIAATBLO, d1
 
+    cmp.l   mtc_tick_count(a0), d0
+    bne.s   .1
+
     ; elapsed_ns = (cia_cycles_per_tick - current_cycles) * ns_per_cycle
-    move.w  mtc_cia_cycles_per_tick(a0), d0
-    sub.w   d1, d0
-    muls    mtc_ns_per_cia_cycle(a0), d0
+    moveq.l #0, d2
+    move.w  mtc_cia_cycles_per_tick(a0), d2
+    sub.w   d1, d2
+    mulu.w  mtc_ns_per_cia_cycle(a0), d2
+
+    move.l  d0, 0(a1)
+    move.l  d2, 4(a1)
+
+    move.l  (sp)+, d2
     rts
 
 
