@@ -133,7 +133,7 @@ static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc)
 
 
     // Enable interrupt processing
-    irq_set_mask(IRQ_MASK_NONE);
+    irq_restore_mask(IRQ_MASK_NONE);
 
     
     // Initialize the kernel logging package 

@@ -52,7 +52,7 @@ void irq_set_direct_handler(int irq_id, irq_direct_func_t _Nonnull f, void* _Nul
             abort();
             break;
     }
-    irq_set_mask(sim);
+    irq_restore_mask(sim);
 }
 
 

@@ -18,12 +18,15 @@
 
 
 // Sets the CPU's interrupt priority mask to 'mask' and returns the previous mask.
-// Calls to irq_set_mask() may be nested by pairing them: first call sets the new
-// mask and returns the previous mask and the second call in a pair restores the
-// previously saved mask. This function only establishes the new mask if it is
-// more restrictive than the currently active mask. It returns the currently
-// active mask if any case. 
+// Calls to irq_set_mask() may be nested by pairing them with irq_restore_mask():
+// first call sets the new mask and returns the previous mask and the second call
+// in a pair restores the previously saved mask. This function only establishes
+// the new mask if it is more restrictive than the currently active mask. It
+// returns the currently active mask if any case. 
 extern unsigned irq_set_mask(unsigned mask);
+
+// Restores the CPU IRQ mask to 'mask'.
+extern void irq_restore_mask(unsigned mask);
 
 
 // Enables generation of the given interrupt type. This implicitly turns on the

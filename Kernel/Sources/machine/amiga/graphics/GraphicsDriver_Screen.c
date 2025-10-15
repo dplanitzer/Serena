@@ -183,7 +183,7 @@ errno_t GraphicsDriver_GetScreenConfig(GraphicsDriverRef _Nonnull self, intptr_t
     const video_conf_t* vc = g_copper_running_prog->video_conf;
     Surface* fb = (Surface*)g_copper_running_prog->res.fb;
     ColorTable* clut = (ColorTable*)g_copper_running_prog->res.clut;
-    irq_set_mask(sim);
+    irq_restore_mask(sim);
 
     conf[i++] = SCREEN_CONF_FRAMEBUFFER;
     conf[i++] = (fb) ? GObject_GetId(fb) : 0;

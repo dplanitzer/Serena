@@ -60,7 +60,7 @@ void irq_add_handler(irq_handler_t* _Nonnull h)
         *listp = h;
     }
 
-    irq_set_mask(sim);
+    irq_restore_mask(sim);
 }
 
 void irq_remove_handler(irq_handler_t* _Nullable h)
@@ -92,7 +92,7 @@ void irq_remove_handler(irq_handler_t* _Nullable h)
         h->next = NULL;
     }
 
-    irq_set_mask(sim);
+    irq_restore_mask(sim);
 }
 
 void irq_set_handler_enabled(irq_handler_t* _Nonnull h, bool enabled)
@@ -100,7 +100,7 @@ void irq_set_handler_enabled(irq_handler_t* _Nonnull h, bool enabled)
     const unsigned sim = irq_set_mask(IRQ_MASK_ALL);
 
     h->enabled = enabled;
-    irq_set_mask(sim);
+    irq_restore_mask(sim);
 }
 
 // Called from the IRQ context. Run all handlers for the given interrupt list

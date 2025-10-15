@@ -96,7 +96,7 @@ void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, HIDReport* _Nonnu
     
     const unsigned sim = irq_set_mask(IRQ_MASK_KEYBOARD);
     const size_t r = RingBuffer_GetByte(&self->keyQueue, &keyCode);
-    irq_set_mask(sim);
+    irq_restore_mask(sim);
 
     if (r > 0) {
         report->type = (keyCode & 0x80) ? kHIDReportType_KeyUp : kHIDReportType_KeyDown;

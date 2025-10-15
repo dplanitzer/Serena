@@ -86,7 +86,7 @@ copper_prog_t _Nullable copper_acquire_retired_prog(void)
         prog->next = NULL;
     }
 
-    irq_set_mask(sim);
+    irq_restore_mask(sim);
 
     return prog;
 }
@@ -114,7 +114,7 @@ void copper_schedule(copper_prog_t _Nullable prog, unsigned flags)
 
     g_copper_ready_prog = prog;
     prog->state = COP_STATE_READY;
-    irq_set_mask(sim);
+    irq_restore_mask(sim);
 
 
     if ((flags & COPFLAG_WAIT_RUNNING) == COPFLAG_WAIT_RUNNING) {
@@ -131,7 +131,7 @@ copper_prog_t _Nullable copper_unschedule(void)
     const unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
     copper_prog_t prog = g_copper_ready_prog;
     g_copper_ready_prog = NULL;
-    irq_set_mask(sim);
+    irq_restore_mask(sim);
     return prog;
 }
 #endif
@@ -234,7 +234,7 @@ void sprite_ctl_submit(int spridx, void* _Nonnull sprptr, uint32_t ctl)
     g_sprite_change_table[spridx].ptr = sprptr;
     g_sprite_change_table[spridx].ctl = ctl;
     g_sprite_change_pending |= (1 << spridx);
-    irq_set_mask(sim);
+    irq_restore_mask(sim);
 }
 
 
@@ -242,6 +242,6 @@ void sprite_ctl_cancel(int spridx)
 {
     unsigned sim = irq_set_mask(IRQ_MASK_VBLANK);
     g_sprite_change_pending &= ~(1 << spridx);
-    irq_set_mask(sim);
+    irq_restore_mask(sim);
 }
 #endif
