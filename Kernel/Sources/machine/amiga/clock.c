@@ -78,8 +78,85 @@ void clock_irq(clock_ref_t _Nonnull self, excpt_frame_t* _Nonnull efp)
     self->tick_count++;
 
 
+    // execute one-shot timers
+    register const tick_t now = self->tick_count;
+    for (;;) {
+        register clock_deadline_t* cp = self->deadline_queue;
+        
+        if (cp == NULL || cp->deadline > now) {
+            break;
+        }
+        
+        self->deadline_queue = cp->next;
+        cp->next = NULL;
+        cp->isArmed = false;
+
+        cp->func(cp->arg);
+    }
+
+
     // run the scheduler
     sched_tick_irq(g_sched, efp);
+}
+
+void clock_deadline(clock_ref_t _Nonnull self, clock_deadline_t* _Nonnull deadline)
+{
+    const unsigned sim = irq_set_mask(IRQ_MASK_CIA_A);
+    register clock_deadline_t* pp = NULL;
+    register clock_deadline_t* cp = self->deadline_queue;
+
+    assert(!deadline->isArmed);
+
+    while (cp && cp->deadline <= deadline->deadline) {
+        pp = cp;
+        cp = cp->next;
+    }
+    
+    if (pp) {
+        deadline->next = pp->next;
+        pp->next = deadline;
+    }
+    else {
+        deadline->next = self->deadline_queue;
+        self->deadline_queue = deadline;
+    }
+    deadline->isArmed = true;
+
+    irq_restore_mask(sim);
+}
+
+bool clock_cancel_deadline(clock_ref_t _Nonnull self, clock_deadline_t* _Nonnull deadline)
+{
+    const unsigned sim = irq_set_mask(IRQ_MASK_CIA_A);
+    bool r = false;
+
+    if (deadline->isArmed) {
+        register clock_deadline_t* pp = NULL;
+        register clock_deadline_t* cp = self->deadline_queue;
+
+        while (cp) {
+            if (cp == deadline) {
+                if (pp) {
+                    pp->next = cp->next;
+                }
+                else {
+                    self->deadline_queue = cp->next;
+                }
+                break;
+            }
+
+            pp = cp;
+            cp = cp->next;
+        }
+
+        deadline->next = NULL;
+        deadline->isArmed = false;
+        r = true;
+    }
+
+    irq_restore_mask(sim);
+
+    return r;
 }
 
 void clock_gettime(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts)
