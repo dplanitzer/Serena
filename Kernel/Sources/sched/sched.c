@@ -80,7 +80,7 @@ void sched_finish_boot(sched_t _Nonnull self)
     struct timespec ts;
     
     timespec_from_ms(&ts, 250);
-    self->ticks_per_quarter_second = clock_time2ticks(g_mono_clock, &ts, CLOCK_ROUND_AWAY_FROM_ZERO);
+    self->ticks_per_quarter_second = clock_time2ticks_ceil(g_mono_clock, &ts);
 
 
     // Resume the idle virtual processor

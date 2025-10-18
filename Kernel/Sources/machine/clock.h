@@ -66,13 +66,12 @@ extern void clock_gettime(clock_ref_t _Nonnull self, struct timespec* _Nonnull t
 extern void clock_gettime_hires(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts);
 
 
-// Rounding modes for struct timespec to tick_t conversion
-#define CLOCK_ROUND_TOWARDS_ZERO   0
-#define CLOCK_ROUND_AWAY_FROM_ZERO 1
+// Converts a timespec to a clock tick value, applying truncation.
+extern tick_t clock_time2ticks_floor(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts);
 
-// Converts a timespec to a clock tick value. The clock ticks are rounded based
-// on the 'rounding' parameter.
-extern tick_t clock_time2ticks(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts, int rounding);
+// Converts a timespec to a clock tick value by rounding fractional clock ticks
+// to the next higher clock tick value.
+extern tick_t clock_time2ticks_ceil(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts);
 
 // Converts a clock tick value to a timespec.
 extern void clock_ticks2time(clock_ref_t _Nonnull self, tick_t ticks, struct timespec* _Nonnull ts);

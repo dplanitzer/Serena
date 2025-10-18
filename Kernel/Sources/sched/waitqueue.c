@@ -96,7 +96,7 @@ wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable ma
             return WRES_TIMEOUT;
         }
 
-        vp->timeout.deadline = clock_time2ticks(g_mono_clock, &deadline, CLOCK_ROUND_AWAY_FROM_ZERO);
+        vp->timeout.deadline = clock_time2ticks_ceil(g_mono_clock, &deadline);
         vp->timeout.func = (deadline_func_t)sched_wait_timeout_irq;
         vp->timeout.arg = vp;
 
