@@ -158,43 +158,6 @@ vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self)
     return NULL;
 }
 
-// Arms a timeout for the given virtual processor. This puts the VP on the timeout
-// queue.
-void sched_arm_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, const struct timespec* _Nonnull deadline)
-{
-    vp->timeout.deadline = clock_time2ticks(g_mono_clock, deadline, CLOCK_ROUND_AWAY_FROM_ZERO);
-    vp->timeout.func = (deadline_func_t)sched_wait_timeout_irq;
-    vp->timeout.arg = vp;
-
-    clock_deadline(g_mono_clock, &vp->timeout);
-}
-
-// Cancels an armed timeout for the given virtual processor. Does nothing if
-// no timeout is armed.
-void sched_cancel_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
-{
-    clock_cancel_deadline(g_mono_clock, &vp->timeout);
-}
-
-// Suspends a scheduled timeout for the given virtual processor. Does nothing if
-// no timeout is armed.
-void sched_suspend_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
-{
-    if (clock_cancel_deadline(g_mono_clock, &vp->timeout)) {
-        vp->flags |= VP_FLAG_TIMEOUT_SUSPENDED;
-    }
-}
-
-// Resumes a suspended timeout for the given virtual processor.
-void sched_resume_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, tick_t suspensionTime)
-{
-    if ((vp->flags & VP_FLAG_TIMEOUT_SUSPENDED) == VP_FLAG_TIMEOUT_SUSPENDED) {
-        vp->flags &= ~VP_FLAG_TIMEOUT_SUSPENDED;
-        vp->timeout.deadline += __max(clock_getticks(g_mono_clock) - suspensionTime, 0);
-        clock_deadline(g_mono_clock, &vp->timeout);
-    }
-}
-
 // Context switches to the given virtual processor if it is a better choice. Eg
 // it has a higher priority than the VP that is currently running. This is a
 // voluntary (cooperative) context switch which means that it will only happen

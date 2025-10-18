@@ -81,14 +81,6 @@ extern void sched_finish_boot(sched_t _Nonnull self);
 
 extern void sched_add_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 
-// Arms a timeout for the given virtual processor. This puts the VP on the timeout
-// queue.
-extern void sched_arm_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, const struct timespec* _Nonnull deadline);
-
-// Cancels an armed timeout for the given virtual processor. Does nothing if
-// no timeout is armed.
-extern void sched_cancel_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp);
-
 // Gives the virtual processor scheduler opportunities to run tasks that take
 // care of internal duties. This function must be called from the boot virtual
 // processor. This function does not return to the caller. 
@@ -117,14 +109,6 @@ extern vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self);
 
 extern void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 extern void sched_maybe_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp);
-
-
-// Suspends a scheduled timeout for the given virtual processor. Does nothing if
-// no timeout is armed.
-extern void sched_suspend_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp);
-
-// Resumes a suspended timeout for the given virtual processor.
-extern void sched_resume_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, tick_t suspensionTime);
 
 
 // @HAL Requirement: Must be called from the monotonic clock IRQ handler

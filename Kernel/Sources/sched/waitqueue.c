@@ -96,13 +96,17 @@ wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable ma
             return WRES_TIMEOUT;
         }
 
-        sched_arm_timeout(g_sched, vp, &deadline);
+        vp->timeout.deadline = clock_time2ticks(g_mono_clock, &deadline, CLOCK_ROUND_AWAY_FROM_ZERO);
+        vp->timeout.func = (deadline_func_t)sched_wait_timeout_irq;
+        vp->timeout.arg = vp;
+
+        clock_deadline(g_mono_clock, &vp->timeout);
     }
 
 
     // Now wait
     const wres_t res = wq_prim_wait(self, mask);
-    sched_cancel_timeout(g_sched, vp);
+    clock_cancel_deadline(g_mono_clock, &vp->timeout);
 
 
     // Calculate the unslept time, if requested
@@ -158,7 +162,7 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
     // Finish the wait. Remove the VP from the wait queue, the timeout queue and
     // store the wake reason.
     List_Remove(&self->q, &vp->rewa_qe);
-    sched_cancel_timeout(g_sched, vp);
+    clock_cancel_deadline(g_mono_clock, &vp->timeout);
     
     vp->waiting_on_wait_queue = NULL;
     vp->wakeup_reason = reason;
@@ -244,7 +248,9 @@ void wq_suspendone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp)
     // while the VP is suspended. The resume will reactive the
     // timeout and extend it by the amount of time that the VP has
     // spent in suspended state.
-    sched_suspend_timeout(g_sched, vp);
+    if (clock_cancel_deadline(g_mono_clock, &vp->timeout)) {
+        vp->flags |= VP_FLAG_TIMEOUT_SUSPENDED;
+    }
 }
 
 // @Entry Condition: preemption disabled
@@ -252,5 +258,9 @@ void wq_resumeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     // Still in waiting state -> just resume the timeout if one is
     // associated with the wait.
-    sched_resume_timeout(g_sched, vp, vp->suspension_time);
+    if ((vp->flags & VP_FLAG_TIMEOUT_SUSPENDED) == VP_FLAG_TIMEOUT_SUSPENDED) {
+        vp->flags &= ~VP_FLAG_TIMEOUT_SUSPENDED;
+        vp->timeout.deadline += __max(clock_getticks(g_mono_clock) - vp->suspension_time, 0);
+        clock_deadline(g_mono_clock, &vp->timeout);
+    }
 }
