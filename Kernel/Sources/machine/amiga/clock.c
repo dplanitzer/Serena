@@ -60,6 +60,7 @@ void clock_init_mono(clock_ref_t _Nonnull self)
     // ns_per_cia_cycle * cia_cycles_per_tick <= ns_per_tick
 
     self->tick_count = 0;
+    self->deadline_queue = NULL;
     self->ns_per_tick = (is_ntsc) ? 16666922 : 16666689;
     self->cia_cycles_per_tick = (is_ntsc) ? 11932 : 11823;
     self->ns_per_cia_cycle = (is_ntsc) ? 1396 : 1409;

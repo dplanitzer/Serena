@@ -43,25 +43,16 @@ static bool inject_sigurgent_call(excpt_frame_t* _Nonnull efp)
 }
 
 
+// Invoked by the clock when a wait timeout expires
+void sched_wait_timeout_irq(vcpu_t _Nonnull vp)
+{
+    wq_wakeone(vp->waiting_on_wait_queue, vp, 0, WRES_TIMEOUT);
+}
+
+
 // Invoked at the end of every clock tick.
 void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 {
-    // First, go through the timeout queue and move all VPs whose timeouts have
-    // expired to the ready queue.
-    const tick_t now = clock_getticks(g_mono_clock);
-    
-    while (self->timeout_queue.first) {
-        register sched_timeout_t* ct = (sched_timeout_t*)self->timeout_queue.first;
-        
-        if (ct->deadline > now) {
-            break;
-        }
-        
-        vcpu_t vp = VP_FROM_TIMEOUT(ct);
-        wq_wakeone(vp->waiting_on_wait_queue, vp, 0, WRES_TIMEOUT);
-    }
-    
-
     register vcpu_t run = (vcpu_t)self->running;
 
     // Redirect the currently running VP to sigurgent() if it is running in user

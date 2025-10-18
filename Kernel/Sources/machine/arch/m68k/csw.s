@@ -95,7 +95,7 @@ __csw_switch:
     move.l  usp, a0
     move.l  a0, -(sp)
 
-    move.l  (_g_sched_storage + vps_running), a0
+    move.l  (_g_sched_storage + sched_running), a0
 
     ; update the VP state to Ready if the state hasn't already been changed to
     ; some other non-Running state like Waiting by the higher-level code
@@ -130,13 +130,13 @@ __csw_restore:
     lea     _g_sched_storage, a2
 
     ; consume the CSW switch signal
-    bclr    #CSWB_SIGNAL_SWITCH, vps_csw_signals(a2)
+    bclr    #CSWB_SIGNAL_SWITCH, sched_csw_signals(a2)
 
     ; it's safe to trash all registers here 'cause we'll override them anyway
-    ; make the scheduled VP the running VP and clear out vps_scheduled
-    move.l  vps_scheduled(a2), a0
-    move.l  a0, vps_running(a2)
-    clr.l   vps_scheduled(a2)
+    ; make the scheduled VP the running VP and clear out sched_scheduled
+    move.l  sched_scheduled(a2), a0
+    move.l  a0, sched_running(a2)
+    clr.l   sched_scheduled(a2)
 
     ; update the state to Running
     move.b  #SCHED_STATE_RUNNING, vp_sched_state(a0)

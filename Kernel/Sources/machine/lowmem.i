@@ -111,23 +111,21 @@ CSWB_SIGNAL_SWITCH                  equ     0
 VP_PRIORITY_COUNT                   equ     64
 
     clrso
-vps_running                         so.l    1       ; 4
-vps_scheduled                       so.l    1       ; 4
-vps_csw_signals                     so.b    1       ; 1
-vps_flags                           so.b    1       ; 1
-vps_reserved1                       so.b    1       ; 1
-vps_reserved2                       so.b    1       ; 1
-vps_idle_virtual_processor          so.l    1       ; 4
-vps_boot_virtual_processor          so.l    1       ; 4
-vps_ready_queue                     so.l    VP_PRIORITY_COUNT * 2 ; 512
-vps_ready_queue_populated           so.b    8       ; 8
-vps_ticks_per_quarter_second        so.l    1       ; 4
-vps_timeout_queue_first             so.l    1       ; 4
-vps_timeout_queue_last              so.l    1       ; 4
-vps_finalizer_queue_first           so.l    1       ; 4
-vps_finalizer_queue_last            so.l    1       ; 4
-vps_SIZEOF                          so
-    ifeq (vps_SIZEOF == 560)
+sched_running                       so.l    1       ; 4
+sched_scheduled                     so.l    1       ; 4
+sched_csw_signals                   so.b    1       ; 1
+sched_flags                         so.b    1       ; 1
+sched_reserved1                     so.b    1       ; 1
+sched_reserved2                     so.b    1       ; 1
+sched_idle_virtual_processor        so.l    1       ; 4
+sched_boot_virtual_processor        so.l    1       ; 4
+sched_ready_queue                   so.l    VP_PRIORITY_COUNT * 2 ; 512
+sched_ready_queue_populated         so.b    8       ; 8
+sched_ticks_per_quarter_second      so.l    1       ; 4
+sched_finalizer_queue_first         so.l    1       ; 4
+sched_finalizer_queue_last          so.l    1       ; 4
+sched_SIZEOF                        so
+    ifeq (sched_SIZEOF == 552)
         fail "sched_t structure size is incorrect."
     endif
 
@@ -160,10 +158,11 @@ vp_excpt_handler_arg                    so.l    1           ; 4
 vp_suspension_time                      so.l    1           ; 4
 vp_pending_sigs                         so.l    1           ; 4
 vp_proc_sigs_enabled                    so.l    1           ; 4
-vp_timeout_qe_next                      so.l    1           ; 4
-vp_timeout_qe_prev                      so.l    1           ; 4
+vp_timeout_next                         so.l    1           ; 4
 vp_timeout_deadline                     so.l    1           ; 4
-vp_timeout_is_valid                     so.b    1           ; 1
+vp_timeout_func                         so.l    1           ; 4
+vp_timeout_arg                          so.l    1           ; 4
+vp_timeout_is_armed                     so.b    1           ; 1
 vp_timeout_reserved                     so.b    3           ; 3
 vp_waiting_on_wait_queue                so.l    1           ; 4
 vp_wait_start_time                      so.l    1           ; 4
@@ -185,25 +184,8 @@ vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
 vp_reserved3                            so.b    3           ; 3
 vp_SIZEOF                       so
-    ifeq (vp_SIZEOF == 128)
+    ifeq (vp_SIZEOF == 132)
         fail "vcpu structure size is incorrect."
-    endif
-
-
-COPB_SCHEDULED  equ 7
-COPB_INTERLACED equ 6
-
-    clrso
-cop_flags                       so.l    1       ; 4
-cop_scheduled_prog_odd_field    so.l    1       ; 4
-cop_scheduled_prog_even_field   so.l    1       ; 4
-cop_scheduled_prog_id           so.l    1       ; 4
-cop_running_prog_odd_field      so.l    1       ; 4
-cop_running_prog_even_field     so.l    1       ; 4
-cop_running_prog_id             so.l    1       ; 4
-cop_SIZEOF                      so
-    ifeq (cop_SIZEOF == 28)
-        fail "Copper structure size is incorrect."
     endif
 
 

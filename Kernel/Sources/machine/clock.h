@@ -17,6 +17,7 @@
 
 typedef void (*deadline_func_t)(void* _Nullable arg);
 
+// Note: Keep in sync with machine/hal/lowmem.i
 typedef struct clock_deadline {
     struct clock_deadline* _Nullable    next;
     tick_t                              deadline;
@@ -25,6 +26,8 @@ typedef struct clock_deadline {
     bool                                isArmed;
     char                                reserved[3];
 } clock_deadline_t;
+
+#define CLOCK_DEADLINE_INIT (clock_deadline_t){NULL, 0, NULL, NULL, false, 0, 0, 0}
 
 
 // Note: Keep in sync with machine/hal/lowmem.i

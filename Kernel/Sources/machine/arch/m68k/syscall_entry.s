@@ -71,7 +71,7 @@ __sys_entry:
         ; save the user registers (see description above)
         movem.l d1 - d7 / a0 - a6, -(sp)
 
-        move.l  _g_sched_storage + vps_running, a1
+        move.l  _g_sched_storage + sched_running, a1
 
         ; Invoke the system call handler. Returns a result in d0
         move.l  a0, -(sp)
@@ -89,7 +89,7 @@ __sys_entry:
 __sys_no_entry:
     inline
         move.l  a1, -(sp)
-        move.l  _g_sched_storage + vps_running, a1
+        move.l  _g_sched_storage + sched_running, a1
         move.l  #ENOSYS, vp_uerrno(a1)
         moveq.l #-1, d0
         move.l  (sp)+, a1

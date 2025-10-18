@@ -55,16 +55,14 @@ void vcpu_cominit(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull sche
 
     self->vtable = &gVirtualProcessorVTable;
     
-    self->owner_qe = LISTNODE_INIT;    
-    self->timeout.queue_entry = LISTNODE_INIT;
+    self->owner_qe = LISTNODE_INIT;
+    self->timeout = CLOCK_DEADLINE_INIT;
     
     self->pending_sigs = 0;
     self->proc_sigs_enabled = 0;
 
     self->excpt_handler = (excpt_handler_t){0};
     
-    self->timeout.deadline = kTicks_Infinity;
-    self->timeout.is_valid = false;
     self->waiting_on_wait_queue = NULL;
     self->wait_sigs = 0;
     self->wakeup_reason = 0;

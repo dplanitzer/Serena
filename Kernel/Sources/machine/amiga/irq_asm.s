@@ -461,6 +461,6 @@ irq_handler_exter:
 ; Otherwise do the context switch which will implicitly do the rte.
 irq_handler_done:
     movem.l (sp)+, d0 - d1 / d7 / a0 - a1
-    btst    #CSWB_SIGNAL_SWITCH, (_g_sched_storage + vps_csw_signals)
+    btst    #CSWB_SIGNAL_SWITCH, (_g_sched_storage + sched_csw_signals)
     bne.l   __csw_switch
     rte

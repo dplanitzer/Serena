@@ -34,15 +34,6 @@
 #define VP_PRIORITIES_RESERVED_LOW  2
 
 
-// A timeout
-typedef struct sched_timeout {
-    ListNode    queue_entry;            // Timeout queue if the VP is waiting with a timeout
-    tick_t      deadline;               // Absolute timeout in quantums
-    bool        is_valid;               // True if we are waiting with a timeout; false otherwise
-    int8_t      reserved[3];
-} sched_timeout_t;
-
-
 // Set if the context switcher should activate the VP set in 'scheduled' and
 // deactivate the VP set in 'running'.
 #define CSW_SIGNAL_SWITCH   0x01
@@ -67,7 +58,6 @@ struct sched {
     vcpu_t _Nonnull             boot_vp;                        // This is the first VP that was created at boot time for a CPU. It takes care of scheduler chores like destroying terminated VPs
     ready_queue_t               ready_queue;
     tick_t                      ticks_per_quarter_second;       // 1/4 second in terms of clock ticks
-    List/*<sched_timeout_t>*/   timeout_queue;                  // sched_timeout_t queue managed by the scheduler. Sorted ascending by timer deadlines
     List                        finalizer_queue;
 };
 typedef struct sched* sched_t;
@@ -137,7 +127,10 @@ extern void sched_suspend_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 extern void sched_resume_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, tick_t suspensionTime);
 
 
-// @HAL Requirement: Must be called from the monotonic clock IRQ handler second
+// @HAL Requirement: Must be called from the monotonic clock IRQ handler
+extern void sched_wait_timeout_irq(vcpu_t _Nonnull vp);
+
+// @HAL Requirement: Must be called from the monotonic clock IRQ handler
 extern void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp);
 
 #endif /* _SCHED_H */

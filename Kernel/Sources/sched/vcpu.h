@@ -16,6 +16,7 @@
 #include <kpi/exception.h>
 #include <kpi/signal.h>
 #include <kpi/vcpu.h>
+#include <machine/clock.h>
 #include <machine/cpu.h>
 #include <machine/sys_desc.h>
 #include <sched/stack.h>
@@ -68,10 +69,11 @@ enum {
 
 
 // VP flags
-#define VP_FLAG_USER_OWNED      0x02    // This VP is owned by a user process
-#define VP_FLAG_HANDLING_EXCPT  0x04    // Set while the VP is handling a CPU exception
-#define VP_FLAG_HAS_FPU         0x08    // Save/restore the FPU state (keep in sync with lowmem.i)
-#define VP_FLAG_FPU_SAVED       0x10    // Set if the FPU user state has been saved (keep in sync with lowmem.i)
+#define VP_FLAG_USER_OWNED          0x02    // This VP is owned by a user process
+#define VP_FLAG_HANDLING_EXCPT      0x04    // Set while the VP is handling a CPU exception
+#define VP_FLAG_HAS_FPU             0x08    // Save/restore the FPU state (keep in sync with lowmem.i)
+#define VP_FLAG_FPU_SAVED           0x10    // Set if the FPU user state has been saved (keep in sync with lowmem.i)
+#define VP_FLAG_TIMEOUT_SUSPENDED   0x20    // VP is suspended and had an active timeout scheduled
 
 
 // Overridable functions for virtual processors
@@ -111,7 +113,7 @@ struct vcpu {
     int                             proc_sigs_enabled;      // > 0 means that this VP will accept signals that targeted the process
 
     // Waiting related state
-    sched_timeout_t                 timeout;                // The timeout state
+    clock_deadline_t                timeout;                // The wait timeout timer
     waitqueue_t _Nullable           waiting_on_wait_queue;  // The wait queue this VP is waiting on; NULL if not waiting. Used by the scheduler to wake up on timeout
     tick_t                          wait_start_time;        // Time when we entered waiting state
     sigset_t                        wait_sigs;              // Which signals should cause a wakeup on arrival

@@ -8,7 +8,6 @@
 
 #include "syscalldecls.h"
 #include <filesystem/IOChannel.h>
-#include <time.h>
 #include <kern/limits.h>
 #include <kern/timespec.h>
 #include <kpi/uid.h>

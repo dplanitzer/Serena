@@ -50,7 +50,6 @@ void sched_create(sys_desc_t* _Nonnull sdp, BootAllocator* _Nonnull bap, VoidFun
 
 
     // Initialize the scheduler
-    self->timeout_queue = LIST_INIT;
     wq_init(&gSchedulerWaitQueue);
     self->finalizer_queue = LIST_INIT;
 
@@ -159,61 +158,40 @@ vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self)
     return NULL;
 }
 
-// Inserts the timeout entry of the given vp in the global timeout list at the
-// appropriate place.
-static void _arm_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
-{
-    register sched_timeout_t* pt = NULL;
-    register sched_timeout_t* ct = (sched_timeout_t*)self->timeout_queue.first;
-
-    while (ct) {
-        if (ct->deadline > vp->timeout.deadline) {
-            break;
-        }
-        
-        pt = ct;
-        ct = (sched_timeout_t*)ct->queue_entry.next;
-    }
-    
-    List_InsertAfter(&self->timeout_queue, &vp->timeout.queue_entry, &pt->queue_entry);
-}
-
 // Arms a timeout for the given virtual processor. This puts the VP on the timeout
 // queue.
 void sched_arm_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, const struct timespec* _Nonnull deadline)
 {
     vp->timeout.deadline = clock_time2ticks(g_mono_clock, deadline, CLOCK_ROUND_AWAY_FROM_ZERO);
-    vp->timeout.is_valid = true;
-    
-    _arm_timeout(self, vp);
+    vp->timeout.func = (deadline_func_t)sched_wait_timeout_irq;
+    vp->timeout.arg = vp;
+
+    clock_deadline(g_mono_clock, &vp->timeout);
 }
 
 // Cancels an armed timeout for the given virtual processor. Does nothing if
 // no timeout is armed.
 void sched_cancel_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
-    if (vp->timeout.is_valid) {
-        List_Remove(&self->timeout_queue, &vp->timeout.queue_entry);
-        vp->timeout.deadline = kTicks_Infinity;
-        vp->timeout.is_valid = false;
-    }
+    clock_cancel_deadline(g_mono_clock, &vp->timeout);
 }
 
 // Suspends a scheduled timeout for the given virtual processor. Does nothing if
 // no timeout is armed.
 void sched_suspend_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
-    if (vp->timeout.is_valid) {
-        List_Remove(&self->timeout_queue, &vp->timeout.queue_entry);
+    if (clock_cancel_deadline(g_mono_clock, &vp->timeout)) {
+        vp->flags |= VP_FLAG_TIMEOUT_SUSPENDED;
     }
 }
 
 // Resumes a suspended timeout for the given virtual processor.
 void sched_resume_timeout(sched_t _Nonnull self, vcpu_t _Nonnull vp, tick_t suspensionTime)
 {
-    if (vp->timeout.is_valid) {
+    if ((vp->flags & VP_FLAG_TIMEOUT_SUSPENDED) == VP_FLAG_TIMEOUT_SUSPENDED) {
+        vp->flags &= ~VP_FLAG_TIMEOUT_SUSPENDED;
         vp->timeout.deadline += __max(clock_getticks(g_mono_clock) - suspensionTime, 0);
-        _arm_timeout(self, vp);
+        clock_deadline(g_mono_clock, &vp->timeout);
     }
 }
 
