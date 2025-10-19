@@ -178,6 +178,7 @@ void clock_gettime_hires(clock_ref_t _Nonnull self, struct timespec* _Nonnull ts
     }
 }
 
+#ifndef MACHINE_AMIGA
 tick_t clock_time2ticks_floor(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts)
 {
     const int64_t nanos = (int64_t)ts->tv_sec * (int64_t)NSEC_PER_SEC + (int64_t)ts->tv_nsec;
@@ -194,7 +195,6 @@ tick_t clock_time2ticks_ceil(clock_ref_t _Nonnull self, const struct timespec* _
     return (nanos_prime < nanos) ? (int32_t)ticks + 1 : (int32_t)ticks;
 }
 
-#ifndef MACHINE_AMIGA
 void clock_ticks2time(clock_ref_t _Nonnull self, tick_t ticks, struct timespec* _Nonnull ts)
 {
     const int64_t ns = (int64_t)ticks * (int64_t)self->ns_per_tick;

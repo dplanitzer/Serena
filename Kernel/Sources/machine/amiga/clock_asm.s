@@ -13,6 +13,8 @@
     xdef __clock_start_ticker
     xdef __clock_stop_ticker
     xdef __clock_getticks_ns
+    xdef _clock_time2ticks_floor
+    xdef _clock_time2ticks_ceil
     xdef _clock_ticks2time
 
 
@@ -90,6 +92,66 @@ __clock_getticks_ns:
 
 
 ;-------------------------------------------------------------------------------
+; tick_t clock_time2ticks_floor(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts)
+;
+;    const int64_t nanos = (int64_t)ts->tv_sec * (int64_t)NSEC_PER_SEC + (int64_t)ts->tv_nsec;
+;    const tick_t r = nanos / (int64_t)self->ns_per_tick;
+;
+_clock_time2ticks_floor:
+    cargs ct2tf_saved_d2.l, ct2tf_clock_ptr.l, ct2tf_ts_ptr.l
+
+    move.l  d2, -(sp)
+
+    move.l  ct2tf_ts_ptr(sp), a0
+    move.l  #$3B9ACA00, d0              ; NSEC_PER_SEC
+    muls.l  0(a0), d1:d0                ; ts->tv_sec * NSEC_PER_SEC -> [d0:d1]
+
+    moveq.l #0, d2
+    add.l   4(a0), d0                   ; 64bit add of ts->tv_nsec
+    addx.l  d2, d1
+
+    move.l  ct2tf_clock_ptr(sp), a0
+    divs.l  mtc_ns_per_tick(a0), d1:d0  ; d0 -> ticks
+
+    move.l  (sp)+, d2
+    rts
+
+
+;-------------------------------------------------------------------------------
+; tick_t clock_time2ticks_ceil(clock_ref_t _Nonnull self, const struct timespec* _Nonnull ts)
+;
+;   const int64_t nanos = (int64_t)ts->tv_sec * (int64_t)NSEC_PER_SEC + (int64_t)ts->tv_nsec;
+;   const int64_t ticks = nanos / (int64_t)self->ns_per_tick;
+;   const int64_t nanos_prime = ticks * (int64_t)self->ns_per_tick;
+;            
+;   return (nanos_prime < nanos) ? (int32_t)ticks + 1 : (int32_t)ticks;
+;
+_clock_time2ticks_ceil:
+    cargs ct2tc_saved_d2.l, ct2tc_clock_ptr.l, ct2tc_ts_ptr.l
+
+    move.l  d2, -(sp)
+
+    move.l  ct2tc_ts_ptr(sp), a0
+    move.l  #$3B9ACA00, d0              ; NSEC_PER_SEC
+    muls.l  0(a0), d1:d0                ; ts->tv_sec * NSEC_PER_SEC -> [d0:d1]
+
+    moveq.l #0, d2
+    add.l   4(a0), d0                   ; 64bit add of ts->tv_nsec
+    addx.l  d2, d1
+
+    move.l  ct2tc_clock_ptr(sp), a0
+    divs.l  mtc_ns_per_tick(a0), d1:d0  ; [d1:d0] -> remainder, ticks
+        
+    tst.l   d1
+    beq.s   .1
+    addq.l  #1, d0
+
+.1:
+    move.l (sp)+, d2
+    rts
+
+
+;-------------------------------------------------------------------------------
 ; void clock_ticks2time(clock_ref_t _Nonnull self, tick_t ticks, struct timespec* _Nonnull ts)
 ;
 ;    const int64_t ns = (int64_t)ticks * (int64_t)self->ns_per_tick;
@@ -101,7 +163,7 @@ _clock_ticks2time:
 
     move.l  ct2t_clock_ptr(sp), a0
     move.l  mtc_ns_per_tick(a0), d1
-    muls.l  ct2t_ticks(sp), d0:d1       ; [d0, d1] -> ns
+    muls.l  ct2t_ticks(sp), d0:d1       ; [d0:d1] -> ns
     
     move.l  ct2t_ts_ptr(sp), a0
     divs.l  #$3B9ACA00, d0:d1           ; sec = ns / NSEC_PER_SEC
