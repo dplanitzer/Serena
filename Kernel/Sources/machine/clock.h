@@ -11,7 +11,7 @@
 
 #include <kern/types.h>
 
-#define kTicks_Infinity     INT32_MAX
+#define kTicks_Infinity     UINT32_MAX
 #define kTicks_Epoch        0
 
 

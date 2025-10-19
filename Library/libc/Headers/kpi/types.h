@@ -69,9 +69,9 @@ typedef struct chs {
 
 // Time unit of the scheduler clock which increments monotonically and once per clock interrupt
 #if defined(__LLP64__) || defined(__LP64__)
-typedef long long   tick_t;
+typedef unsigned long long  tick_t;
 #else
-typedef long    tick_t;
+typedef unsigned long   tick_t;
 #endif
 
 

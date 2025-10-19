@@ -104,14 +104,14 @@ _clock_time2ticks_floor:
 
     move.l  ct2tf_ts_ptr(sp), a0
     move.l  #$3B9ACA00, d0              ; NSEC_PER_SEC
-    muls.l  0(a0), d1:d0                ; ts->tv_sec * NSEC_PER_SEC -> [d0:d1]
+    mulu.l  0(a0), d1:d0                ; ts->tv_sec * NSEC_PER_SEC -> [d0:d1]
 
     moveq.l #0, d2
     add.l   4(a0), d0                   ; 64bit add of ts->tv_nsec
     addx.l  d2, d1
 
     move.l  ct2tf_clock_ptr(sp), a0
-    divs.l  mtc_ns_per_tick(a0), d1:d0  ; d0 -> ticks
+    divu.l  mtc_ns_per_tick(a0), d1:d0  ; d0 -> ticks
 
     move.l  (sp)+, d2
     rts
@@ -133,18 +133,20 @@ _clock_time2ticks_ceil:
 
     move.l  ct2tc_ts_ptr(sp), a0
     move.l  #$3B9ACA00, d0              ; NSEC_PER_SEC
-    muls.l  0(a0), d1:d0                ; ts->tv_sec * NSEC_PER_SEC -> [d0:d1]
+    mulu.l  0(a0), d1:d0                ; ts->tv_sec * NSEC_PER_SEC -> [d0:d1]
 
     moveq.l #0, d2
     add.l   4(a0), d0                   ; 64bit add of ts->tv_nsec
     addx.l  d2, d1
 
     move.l  ct2tc_clock_ptr(sp), a0
-    divs.l  mtc_ns_per_tick(a0), d1:d0  ; [d1:d0] -> remainder, ticks
+    divu.l  mtc_ns_per_tick(a0), d1:d0  ; [d1:d0] -> remainder, ticks
         
     tst.l   d1
     beq.s   .1
     addq.l  #1, d0
+    bne.s   .1
+    subq.l  #1, d0                      ; the +1 overflowed -> get us back to kTick_Infinity
 
 .1:
     move.l (sp)+, d2
@@ -163,10 +165,10 @@ _clock_ticks2time:
 
     move.l  ct2t_clock_ptr(sp), a0
     move.l  mtc_ns_per_tick(a0), d1
-    muls.l  ct2t_ticks(sp), d0:d1       ; [d0:d1] -> ns
+    mulu.l  ct2t_ticks(sp), d0:d1       ; [d0:d1] -> ns
     
     move.l  ct2t_ts_ptr(sp), a0
-    divs.l  #$3B9ACA00, d0:d1           ; sec = ns / NSEC_PER_SEC
+    divu.l  #$3B9ACA00, d0:d1           ; sec = ns / NSEC_PER_SEC
     move.l  d1, 0(a0)                   ; d1 (quotient)  -> tv_sec
     move.l  d0, 4(a0)                   ; d0 (remainder) -> tv_nsec
 
