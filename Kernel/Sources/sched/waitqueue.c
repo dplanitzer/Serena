@@ -39,7 +39,7 @@ errno_t wq_deinit(waitqueue_t _Nonnull self)
 // non-maskable signals if 'set' is NULL.
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set)
+wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, bool armTimeout)
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
     const sigset_t hot_sigs = (set) ? *set : SIGSET_NONMASKABLES;
@@ -62,9 +62,19 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set)
     vp->wakeup_reason = 0;
 
     
+
+    if (armTimeout) {
+        clock_deadline(g_mono_clock, &vp->timeout);
+    }
+
     // Find another VP to run and context switch to it
     sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     
+    if (armTimeout) {
+        clock_cancel_deadline(g_mono_clock, &vp->timeout);
+    }
+
+
     return vp->wakeup_reason;
 }
 
@@ -75,6 +85,7 @@ wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable ma
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
     tick_t now, deadline;
+    bool armTimeout = false;
 
     // Put us on the timeout queue if a relevant timeout has been specified.
     // Note that we return immediately if we're already past the deadline
@@ -98,13 +109,12 @@ wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable ma
         vp->timeout.func = (deadline_func_t)sched_wait_timeout_irq;
         vp->timeout.arg = vp;
 
-        clock_deadline(g_mono_clock, &vp->timeout);
+        armTimeout = true;
     }
 
 
     // Now wait
-    const wres_t res = wq_prim_wait(self, mask);
-    clock_cancel_deadline(g_mono_clock, &vp->timeout);
+    const wres_t res = wq_prim_wait(self, mask, armTimeout);
 
 
     // Calculate the unslept time, if requested
@@ -130,7 +140,7 @@ wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable ma
 // @Entry Condition: preemption disabled
 errno_t wq_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set)
 {
-    switch (wq_prim_wait(self, set)) {
+    switch (wq_prim_wait(self, set, false)) {
         case WRES_WAKEUP:   return EOK;
         default:            return EINTR;
     }

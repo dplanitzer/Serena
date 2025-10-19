@@ -65,7 +65,7 @@ extern errno_t wq_deinit(waitqueue_t _Nonnull self);
 // non-maskable signals if 'set' is NULL.
 // @Entry Condition: preemption disabled
 // @Entry Condition: 'vp' must be in running state
-extern wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set);
+extern wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, bool armTimeout);
 
 // Same as wq_prim_wait() but cancels the wait once the wait deadline specified
 // by 'wtp' has arrived.

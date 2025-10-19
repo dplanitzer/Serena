@@ -143,7 +143,7 @@ errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int*
     errno_t err;
 
     while (!done) {
-        if (wq_prim_wait(wq, set) == WRES_SIGNAL) {
+        if (wq_prim_wait(wq, set, false) == WRES_SIGNAL) {
             const int best_signo = _consume_best_pending_sig(vp, *set);
 
             if (best_signo) {
