@@ -74,29 +74,27 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set)
 wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable mask, int flags, const struct timespec* _Nullable wtp, struct timespec* _Nullable rmtp)
 {
     vcpu_t vp = (vcpu_t)g_sched->running;
-    struct timespec now, deadline;
+    tick_t now, deadline;
 
     // Put us on the timeout queue if a relevant timeout has been specified.
     // Note that we return immediately if we're already past the deadline
-    clock_gettime(g_mono_clock, &now);
+    if (wtp && timespec_lt(wtp, &TIMESPEC_INF)) {
+        now = clock_getticks(g_mono_clock);
+        deadline = clock_time2ticks_ceil(g_mono_clock, wtp);
 
-    if ((flags & WAIT_ABSTIME) == WAIT_ABSTIME) {
-        deadline = *wtp;
-    }
-    else {
-        timespec_add(&now, wtp, &deadline);
-    }
+        if ((flags & WAIT_ABSTIME) == 0) {
+            deadline += now; 
+        }
 
-
-    if (timespec_lt(&deadline, &TIMESPEC_INF)) {
-        if (timespec_le(&deadline, &now)) {
+        if (deadline <= now) {
             if (rmtp) {
                 timespec_clear(rmtp);
             }
             return WRES_TIMEOUT;
         }
 
-        vp->timeout.deadline = clock_time2ticks_ceil(g_mono_clock, &deadline);
+
+        vp->timeout.deadline = deadline;
         vp->timeout.func = (deadline_func_t)sched_wait_timeout_irq;
         vp->timeout.arg = vp;
 
@@ -110,16 +108,19 @@ wres_t wq_prim_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable ma
 
 
     // Calculate the unslept time, if requested
-    if (rmtp) {
-        clock_gettime(g_mono_clock, &now);
+    if (wtp && rmtp) {
+        now = clock_getticks(g_mono_clock);
 
-        if (timespec_lt(&now, &deadline)) {
-            timespec_sub(&deadline, &now, rmtp);
+        if (now < deadline) {
+            clock_ticks2time(g_mono_clock, deadline - now, rmtp);
         }
         else {
             timespec_clear(rmtp);
         }
     }
+    else if (rmtp) {
+        timespec_clear(rmtp);
+    } 
 
     return res;
 }
