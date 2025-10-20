@@ -56,9 +56,9 @@ struct sched {
     int8_t                      reserved[2];
     vcpu_t _Nonnull             idle_vp;                        // This VP is scheduled if there is no other VP to schedule
     vcpu_t _Nonnull             boot_vp;                        // This is the first VP that was created at boot time for a CPU. It takes care of scheduler chores like destroying terminated VPs
-    ready_queue_t               ready_queue;
     tick_t                      ticks_per_quarter_second;       // 1/4 second in terms of clock ticks
     List                        finalizer_queue;
+    ready_queue_t               ready_queue;
 };
 typedef struct sched* sched_t;
 
@@ -70,15 +70,20 @@ typedef struct sched* sched_t;
 extern sched_t _Nonnull g_sched;
 
 // Initializes the virtual processor scheduler and sets up the boot virtual
-// processor plus the idle virtual processor. The 'pFunc' function will be
+// processor plus the idle virtual processor. The 'fn' function will be
 // invoked in the context of the boot virtual processor and it will receive the
-// 'pContext' argument. The first context switch from the machine reset context
-// to the boot virtual processor context is triggered by calling the
-// VirtualProcessorScheduler_IncipientContextSwitch() function. 
-extern void sched_create(sys_desc_t* _Nonnull sdp, BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx);
+// 'ctx' argument. The first context switch from the machine reset context to
+// the boot virtual processor context is triggered by calling the
+// csw_switch_to_boot_vcpu() function. 
+extern void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx);
 
+// Called from OnStartup() after the heap has been created. Finishes the scheduler
+// initialization.
 extern void sched_finish_boot(sched_t _Nonnull self);
 
+// Adds the given virtual processor with the given effective priority to the
+// ready queue and resets its time slice length to the length implied by its
+// effective priority.
 extern void sched_add_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 
 // Gives the virtual processor scheduler opportunities to run tasks that take

@@ -119,11 +119,11 @@ sched_reserved1                     so.b    1       ; 1
 sched_reserved2                     so.b    1       ; 1
 sched_idle_virtual_processor        so.l    1       ; 4
 sched_boot_virtual_processor        so.l    1       ; 4
-sched_ready_queue                   so.l    VP_PRIORITY_COUNT * 2 ; 512
-sched_ready_queue_populated         so.b    8       ; 8
 sched_ticks_per_quarter_second      so.l    1       ; 4
 sched_finalizer_queue_first         so.l    1       ; 4
 sched_finalizer_queue_last          so.l    1       ; 4
+sched_ready_queue                   so.l    VP_PRIORITY_COUNT * 2 ; 512
+sched_ready_queue_populated         so.b    8       ; 8
 sched_SIZEOF                        so
     ifeq (sched_SIZEOF == 552)
         fail "sched_t structure size is incorrect."

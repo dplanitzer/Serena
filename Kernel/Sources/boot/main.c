@@ -85,7 +85,7 @@ _Noreturn OnBoot(sys_desc_t* _Nonnull pSysDesc)
 
 
     // Initialize the scheduler
-    sched_create(pSysDesc, &boot_alloc, (VoidFunc_1)OnStartup, pSysDesc);
+    sched_create(&boot_alloc, pSysDesc, (VoidFunc_1)OnStartup, pSysDesc);
 
 
     // Don't need the boot allocator anymore

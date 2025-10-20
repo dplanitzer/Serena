@@ -30,13 +30,7 @@ sched_t             g_sched = &g_sched_storage;
 struct waitqueue    gSchedulerWaitQueue;           // The scheduler VP waits on this queue
 
 
-// Initializes the virtual processor scheduler and sets up the boot virtual
-// processor plus the idle virtual processor. The 'pFunc' function will be
-// invoked in the context of the boot virtual processor and it will receive the
-// 'pContext' argument. The first context switch from the machine reset context
-// to the boot virtual processor context is triggered by calling the
-// VirtualProcessorScheduler_IncipientContextSwitch() function. 
-void sched_create(sys_desc_t* _Nonnull sdp, BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx)
+void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx)
 {
     // Stored in the BSS. Thus starts out zeroed.
     sched_t self = &g_sched_storage;
@@ -73,8 +67,6 @@ void sched_create(sys_desc_t* _Nonnull sdp, BootAllocator* _Nonnull bap, VoidFun
     assert(self->scheduled == self->boot_vp);
 }
 
-// Called from OnStartup() after the heap has been created. Finishes the scheduler
-// initialization.
 void sched_finish_boot(sched_t _Nonnull self)
 {
     decl_try_err();
@@ -88,9 +80,6 @@ void sched_finish_boot(sched_t _Nonnull self)
     vcpu_resume(self->idle_vp, false);
 }
 
-// Adds the given virtual processor with the given effective priority to the
-// ready queue and resets its time slice length to the length implied by its
-// effective priority.
 void sched_add_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority)
 {
     assert(vp != NULL);
