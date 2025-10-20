@@ -10,13 +10,8 @@
 #include "vcpu.h"
 #include <machine/clock.h>
 #include <machine/csw.h>
-#include <machine/amiga/chipset.h>
 #include <kern/string.h>
 #include <kern/timespec.h>
-#include <log/Log.h>
-
-// Hardware timer usage:
-// Amiga: CIA_A_TIMER_B -> quantum ticks
 
 
 static void sched_dump_rdyq_locked(sched_t _Nonnull self);
