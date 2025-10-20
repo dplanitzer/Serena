@@ -11,6 +11,7 @@
 #include <machine/clock.h>
 #include <machine/csw.h>
 #include <machine/amiga/chipset.h>
+#include <kern/string.h>
 #include <kern/timespec.h>
 #include <log/Log.h>
 
@@ -330,13 +331,12 @@ int vcpu_currentid(void)
 // \param closure the closure that should be invoked by the virtual processor
 static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx)
 {
-    // Stored in the BSS. Thus starts out zeroed.
-    static struct vcpu gBootVirtualProcessorStorage;
-    vcpu_t vp = &gBootVirtualProcessorStorage;
+    vcpu_t self = BootAllocator_Allocate(bap, sizeof(struct vcpu));
+    memset(self, 0, sizeof(struct vcpu));
 
 
     // Allocate the boot virtual processor kernel stack
-    const int kernelStackSize = CPU_PAGE_SIZE;
+    const int kernelStackSize = SIZE_KB(2);
     char* pKernelStackBase = BootAllocator_Allocate(bap, kernelStackSize);
 
 
@@ -344,7 +344,7 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     vcpu_sched_params_t sp;
     sp.qos = VCPU_QOS_REALTIME;
     sp.priority = 7;
-    vcpu_cominit(vp, &sp);
+    vcpu_cominit(self, &sp);
 
     vcpu_context_t cl;
     cl.func = (VoidFunc_1)fn;
@@ -355,10 +355,10 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     cl.userStackSize = 0;
     cl.isUser = false;
 
-    try_bang(vcpu_setcontext(vp, &cl, false));
-    vp->suspension_count = 0;
+    try_bang(vcpu_setcontext(self, &cl, false));
+    self->suspension_count = 0;
     
-    return vp;
+    return self;
 }
 
 
@@ -373,13 +373,12 @@ static void idle_vcpu_run(void* _Nullable ctx);
 // one is in state ready.
 static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
 {
-        // Stored in the BSS. Thus starts out zeroed.
-    static struct vcpu gIdleVirtualProcessorStorage;
-    vcpu_t vp = &gIdleVirtualProcessorStorage;
+    vcpu_t self = BootAllocator_Allocate(bap, sizeof(struct vcpu));
+    memset(self, 0, sizeof(struct vcpu));
 
 
     // Allocate the boot virtual processor kernel stack
-    const int kernelStackSize = CPU_PAGE_SIZE;
+    const int kernelStackSize = SIZE_KB(1);
     char* pKernelStackBase = BootAllocator_Allocate(bap, kernelStackSize);
 
 
@@ -387,7 +386,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     vcpu_sched_params_t sp;
     sp.qos = VCPU_QOS_IDLE;
     sp.priority = -8;
-    vcpu_cominit(vp, &sp);
+    vcpu_cominit(self, &sp);
 
     vcpu_context_t cl;
     cl.func = (VoidFunc_1)idle_vcpu_run;
@@ -398,9 +397,9 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     cl.userStackSize = 0;
     cl.isUser = false;
 
-    try_bang(vcpu_setcontext(vp, &cl, true));
+    try_bang(vcpu_setcontext(self, &cl, true));
 
-    return vp;
+    return self;
 }
 
 // Puts the CPU to sleep until an interrupt occurs. The interrupt will give the

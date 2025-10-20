@@ -11,46 +11,42 @@
 #include <kern/kernlib.h>
 #include <machine/cpu.h>
 
+#define __MEM_ALIGN 4
 
-void BootAllocator_Init(BootAllocator* _Nonnull pAlloc, sys_desc_t* _Nonnull pSysDesc)
+
+void BootAllocator_Init(BootAllocator* _Nonnull self, sys_desc_t* _Nonnull pSysDesc)
 {
     assert(pSysDesc->motherboard_ram.desc_count > 0);
-    pAlloc->mem_descs = pSysDesc->motherboard_ram.desc;
-    pAlloc->current_desc_index = pSysDesc->motherboard_ram.desc_count - 1;
-    pAlloc->current_top = __Floor_Ptr_PowerOf2(pAlloc->mem_descs[pAlloc->current_desc_index].upper, CPU_PAGE_SIZE);
+    self->mem_descs = pSysDesc->motherboard_ram.desc;
+    self->current_desc_index = pSysDesc->motherboard_ram.desc_count - 1;
+    self->current_top = __Floor_Ptr_PowerOf2(self->mem_descs[self->current_desc_index].upper, __MEM_ALIGN);
 }
 
-void BootAllocator_Deinit(BootAllocator* _Nonnull pAlloc)
+void BootAllocator_Deinit(BootAllocator* _Nonnull self)
 {
-    pAlloc->mem_descs = NULL;
-    pAlloc->current_top = NULL;
+    self->mem_descs = NULL;
+    self->current_top = NULL;
 }
 
-// Allocates a memory block from CPU-only RAM that is able to hold at least 'nbytes'.
-// Note that the base address of the allocated block is page aligned. Never returns
-// NULL.
-void* _Nonnull BootAllocator_Allocate(BootAllocator* _Nonnull pAlloc, ssize_t nbytes)
+void* _Nonnull BootAllocator_Allocate(BootAllocator* _Nonnull self, size_t nbytes)
 {
     assert(nbytes > 0);
     char* ptr = NULL;
 
     while(true) {
-        ptr = __Floor_Ptr_PowerOf2(pAlloc->current_top - nbytes, CPU_PAGE_SIZE);
-        if (ptr >= pAlloc->mem_descs[pAlloc->current_desc_index].lower) {
-            pAlloc->current_top = ptr;
+        ptr = __Floor_Ptr_PowerOf2(self->current_top - nbytes, __MEM_ALIGN);
+        if (ptr >= self->mem_descs[self->current_desc_index].lower) {
+            self->current_top = ptr;
             return ptr;
         }
 
-        assert(pAlloc->current_desc_index > 0);
-        pAlloc->current_desc_index--;
-        pAlloc->current_top = __Floor_Ptr_PowerOf2(pAlloc->mem_descs[pAlloc->current_desc_index].upper, CPU_PAGE_SIZE);
+        assert(self->current_desc_index > 0);
+        self->current_desc_index--;
+        self->current_top = __Floor_Ptr_PowerOf2(self->mem_descs[self->current_desc_index].upper, __MEM_ALIGN);
     }
 }
 
-// Returns the lowest address used by the boot allocator. This address is always
-// page aligned.
-void* _Nonnull BootAllocator_GetLowestAllocatedAddress(BootAllocator* _Nonnull pAlloc)
+void* _Nonnull BootAllocator_GetLowestAllocatedAddress(BootAllocator* _Nonnull self)
 {
-    // current_top is always page aligned in the existing implementation
-    return pAlloc->current_top;
+    return self->current_top;
 }
