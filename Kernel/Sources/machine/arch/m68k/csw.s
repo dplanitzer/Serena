@@ -8,7 +8,7 @@
 
     include <machine/lowmem.i>
 
-    xref _g_sched_storage
+    xref _g_sched
     xref _cpu_non_recoverable_error
 
     xdef _csw_switch
@@ -95,7 +95,8 @@ __csw_switch:
     move.l  usp, a0
     move.l  a0, -(sp)
 
-    move.l  (_g_sched_storage + sched_running), a0
+    move.l  _g_sched, a0
+    move.l  sched_running(a0), a0
 
     ; update the VP state to Ready if the state hasn't already been changed to
     ; some other non-Running state like Waiting by the higher-level code
@@ -127,7 +128,7 @@ __csw_switch:
 
 
 __csw_restore:
-    lea     _g_sched_storage, a2
+    move.l  _g_sched, a2
 
     ; consume the CSW switch signal
     bclr    #CSWB_SIGNAL_SWITCH, sched_csw_signals(a2)

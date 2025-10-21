@@ -20,15 +20,15 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
 static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap);
 
 
-struct sched        g_sched_storage;
-sched_t             g_sched = &g_sched_storage;
+sched_t             g_sched;
 struct waitqueue    gSchedulerWaitQueue;           // The scheduler VP waits on this queue
 
 
 void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx)
 {
-    // Stored in the BSS. Thus starts out zeroed.
-    sched_t self = &g_sched_storage;
+    sched_t self = BootAllocator_Allocate(bap, sizeof(struct sched));
+    memset(self, 0, sizeof(struct sched));
+    g_sched = self;
 
 
     // Initialize the boot virtual processor
@@ -41,14 +41,6 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
 
     // Initialize the scheduler
     wq_init(&gSchedulerWaitQueue);
-    self->finalizer_queue = LIST_INIT;
-
-    for (int i = 0; i < VP_PRIORITY_COUNT; i++) {
-        self->ready_queue.priority[i] = LIST_INIT;
-    }
-    for (int i = 0; i < VP_PRIORITY_POP_BYTE_COUNT; i++) {
-        self->ready_queue.populated[i] = 0;
-    }
     sched_add_vcpu_locked(
         self,
         self->boot_vp,
@@ -292,12 +284,12 @@ static void sched_dump_rdyq_locked(sched_t _Nonnull self)
 
 vcpu_t vcpu_current(void)
 {
-    return (vcpu_t) g_sched_storage.running;
+    return (vcpu_t) g_sched->running;
 }
 
 int vcpu_currentid(void)
 {
-    return g_sched_storage.running->id;
+    return g_sched->running->id;
 }
 
 

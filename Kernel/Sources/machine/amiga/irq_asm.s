@@ -21,7 +21,7 @@
     xref _g_int6_handlers;
     xref __irq_run_handlers
 
-    xref _g_sched_storage
+    xref _g_sched
     xref __csw_switch
 
 
@@ -460,7 +460,8 @@ irq_handler_exter:
 ; check whether we should do a context switch. If not then just do a rte.
 ; Otherwise do the context switch which will implicitly do the rte.
 irq_handler_done:
+    move.l  _g_sched, a0
+    btst    #CSWB_SIGNAL_SWITCH, sched_csw_signals(a0)
     movem.l (sp)+, d0 - d1 / d7 / a0 - a1
-    btst    #CSWB_SIGNAL_SWITCH, (_g_sched_storage + sched_csw_signals)
     bne.l   __csw_switch
     rte
