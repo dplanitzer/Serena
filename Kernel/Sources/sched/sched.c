@@ -8,6 +8,7 @@
 
 #include "sched.h"
 #include "vcpu.h"
+#include "waitqueue.h"
 #include <machine/clock.h>
 #include <machine/csw.h>
 #include <kern/string.h>
@@ -20,8 +21,8 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
 static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap);
 
 
-sched_t             g_sched;
-struct waitqueue    gSchedulerWaitQueue;           // The scheduler VP waits on this queue
+sched_t                 g_sched;
+static struct waitqueue g_sched_wq;     // The scheduler VP waits on this queue
 
 
 void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx)
@@ -40,7 +41,7 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
 
 
     // Initialize the scheduler
-    wq_init(&gSchedulerWaitQueue);
+    wq_init(&g_sched_wq);
     sched_add_vcpu_locked(
         self,
         self->boot_vp,
@@ -192,9 +193,9 @@ _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
         dead_vps_count++;
     }
     
-    if (dead_vps_count >= FINALIZE_NOW_THRESHOLD && gSchedulerWaitQueue.q.first != NULL) {
+    if (dead_vps_count >= FINALIZE_NOW_THRESHOLD && g_sched_wq.q.first != NULL) {
         // The scheduler VP is currently waiting for work. Let's wake it up.
-        wq_wakeone(&gSchedulerWaitQueue, self->boot_vp, WAKEUP_CSW, WRES_WAKEUP);
+        wq_wakeone(&g_sched_wq, self->boot_vp, WAKEUP_CSW, WRES_WAKEUP);
     } else {
         // Do a forced context switch to whoever is ready
         // NOTE: we do NOT put the currently running VP back on the ready queue
@@ -221,7 +222,7 @@ _Noreturn sched_run_chores(sched_t _Nonnull self)
 
         // Continue to wait as long as there's nothing to finalize
         while (List_IsEmpty(&self->finalizer_queue)) {
-            (void)wq_timedwait(&gSchedulerWaitQueue,
+            (void)wq_timedwait(&g_sched_wq,
                                 &SIGSET_IGNORE_ALL,
                                 0,
                                 &timeout,
