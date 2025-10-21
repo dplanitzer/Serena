@@ -183,7 +183,7 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
         // Make the VP ready and adjust it's effective priority based on the
         // time it has spent waiting
         const int32_t quartersSlept = (clock_getticks(g_mono_clock) - vp->wait_start_time) / g_sched->ticks_per_quarter_second;
-        const int8_t boostedPriority = __min(vp->effectivePriority + __min(quartersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
+        const int8_t boostedPriority = __min(vp->effectivePriority + __min(quartersSlept, SCHED_PRI_HIGHEST), SCHED_PRI_HIGHEST);
         sched_add_vcpu_locked(g_sched, vp, boostedPriority);
         
         if ((flags & WAKEUP_CSW) == WAKEUP_CSW) {

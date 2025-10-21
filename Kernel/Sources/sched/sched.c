@@ -118,7 +118,7 @@ void sched_remove_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 // interrupt while the idle VP is the running VP.
 vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self)
 {
-    for (int i = VP_PRIORITY_POP_BYTE_COUNT - 1; i >= 0; i--) {
+    for (int i = SCHED_PRI_POP_BYTE_COUNT - 1; i >= 0; i--) {
         register const uint8_t pop = self->ready_queue.populated[i];
         
         if (pop) {
@@ -261,7 +261,7 @@ _Noreturn sched_run_chores(sched_t _Nonnull self)
 #if 0
 static void sched_dump_rdyq_locked(sched_t _Nonnull self)
 {
-    for (int i = 0; i < VP_PRIORITY_COUNT; i++) {
+    for (int i = 0; i < SCHED_PRI_COUNT; i++) {
         vcpu_t pCurVP = (vcpu_t)self->ready_queue.priority[i].first;
         
         while (pCurVP) {
@@ -270,7 +270,7 @@ static void sched_dump_rdyq_locked(sched_t _Nonnull self)
         }
     }
     printf("\n");
-    for (int i = 0; i < VP_PRIORITY_POP_BYTE_COUNT; i++) {
+    for (int i = 0; i < SCHED_PRI_POP_BYTE_COUNT; i++) {
         printf("%hhx, ", self->ready_queue.populated[i]);
     }
     printf("\n");

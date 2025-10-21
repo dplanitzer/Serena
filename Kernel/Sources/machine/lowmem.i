@@ -108,7 +108,7 @@ mtc_SIZEOF                      so              ; 12
 ; The vcpu scheduler
 CSWB_SIGNAL_SWITCH                  equ     0
 
-VP_PRIORITY_COUNT                   equ     64
+SCHED_PRI_COUNT                     equ     64
 
     clrso
 sched_running                       so.l    1       ; 4
@@ -122,7 +122,7 @@ sched_boot_virtual_processor        so.l    1       ; 4
 sched_ticks_per_quarter_second      so.l    1       ; 4
 sched_finalizer_queue_first         so.l    1       ; 4
 sched_finalizer_queue_last          so.l    1       ; 4
-sched_ready_queue                   so.l    VP_PRIORITY_COUNT * 2 ; 512
+sched_ready_queue                   so.l    SCHED_PRI_COUNT * 2 ; 512
 sched_ready_queue_populated         so.b    8       ; 8
 sched_SIZEOF                        so
     ifeq (sched_SIZEOF == 552)

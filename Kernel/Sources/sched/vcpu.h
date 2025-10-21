@@ -151,9 +151,6 @@ struct vcpu {
 #define VP_FROM_TIMEOUT(__ptr) \
 (vcpu_t) (((uint8_t*)__ptr) - offsetof(struct vcpu, timeout))
 
-#define SCHED_PRI_FROM_QOS(__qos, __qos_pri) \
-(__qos) * VCPU_PRI_COUNT + ((__qos_pri) + VCPU_PRI_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW
-
 
 // Returns a new and unique vcpu group id.
 extern vcpuid_t new_vcpu_groupid(void);

@@ -19,19 +19,22 @@
 #include <kpi/vcpu.h>
 
 
-// Virtual processor priorities
-#define VP_PRIORITY_HIGHEST     63
-#define VP_PRIORITY_REALTIME    56
-#define VP_PRIORITY_NORMAL      42
-#define VP_PRIORITY_LOWEST      0
+// Linear scheduling priorities
+#define SCHED_PRI_COUNT     64
+#define SCHED_PRI_HIGHEST   (SCHED_PRI_COUNT-1)
+#define SCHED_PRI_LOWEST    0
 
-#define VP_PRIORITY_COUNT       64
-#define VP_PRIORITY_POP_BYTE_COUNT  ((VP_PRIORITY_COUNT + 7) / 8)
+#define SCHED_PRI_POP_BYTE_COUNT    ((SCHED_PRI_COUNT + 7) / 8)
 
 
 // The top 2 and the bottom 2 priorities are reserved for the scheduler
-#define VP_PRIORITIES_RESERVED_HIGH 2
-#define VP_PRIORITIES_RESERVED_LOW  2
+#define SCHED_PRI_RESERVED_HIGH 2
+#define SCHED_PRI_RESERVED_LOW  2
+
+
+// Convert a QoS to the corresponding linear scheduling priority 
+#define SCHED_PRI_FROM_QOS(__qos, __qos_pri) \
+(__qos) * VCPU_PRI_COUNT + ((__qos_pri) + VCPU_PRI_COUNT / 2) + SCHED_PRI_RESERVED_LOW
 
 
 // Set if the context switcher should activate the VP set in 'scheduled' and
@@ -42,8 +45,8 @@
 // The ready queue holds references to all VPs which are ready to run. The queue
 // is sorted from highest to lowest priority.
 typedef struct ready_queue {
-    List    priority[VP_PRIORITY_COUNT];
-    uint8_t populated[VP_PRIORITY_POP_BYTE_COUNT];
+    List    priority[SCHED_PRI_COUNT];
+    uint8_t populated[SCHED_PRI_POP_BYTE_COUNT];
 } ready_queue_t;
 
 
@@ -64,7 +67,7 @@ typedef struct sched* sched_t;
 
 
 #define QuantumDurationForPriority(__pri) \
-    ((VP_PRIORITY_HIGHEST - (__pri)) >> 3) + 1
+    ((SCHED_PRI_HIGHEST - (__pri)) >> 3) + 1
 
 
 extern sched_t _Nonnull g_sched;

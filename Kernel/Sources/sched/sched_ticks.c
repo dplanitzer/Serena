@@ -76,7 +76,7 @@ void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
     // there's another VP on the ready queue which is more important. If so we
     // context switch to that guy. Otherwise we'll continue to run for another
     // time slice.
-    run->effectivePriority = __max(run->effectivePriority - 1, VP_PRIORITY_LOWEST);
+    run->effectivePriority = __max(run->effectivePriority - 1, SCHED_PRI_LOWEST);
     run->ticks_allowance = QuantumDurationForPriority(run->effectivePriority);
 
     register vcpu_t rdy = sched_highest_priority_ready(self);
