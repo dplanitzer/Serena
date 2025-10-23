@@ -96,7 +96,7 @@ errno_t FilesystemManager_Start(FilesystemManagerRef _Nonnull self)
 {
     decl_try_err();
 
-    err = DispatchQueue_Create(0, 1, VCPU_QOS_BACKGROUND, 0, (DispatchQueueRef*)&self->dispatchQueue);
+    err = DispatchQueue_Create(0, 1, VCPU_QOS_URGENT, VCPU_PRI_LOWEST, (DispatchQueueRef*)&self->dispatchQueue);
     if (err == EOK) {
         _FilesystemManager_ScheduleAutoSync(self);
     }
