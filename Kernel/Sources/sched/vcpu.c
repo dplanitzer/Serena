@@ -134,7 +134,7 @@ static int _schedpri_from_qos(const vcpu_sched_params_t* _Nonnull params)
     int sched_pri;
 
     if (params->qos > VCPU_QOS_IDLE) {
-        sched_pri = (params->qos - 1) * VCPU_PRI_COUNT + (params->priority - VCPU_PRI_LOWEST) + 1;
+        sched_pri = ((params->qos - 1) << VCPU_PRI_SHIFT) + (params->priority - VCPU_PRI_LOWEST) + 1;
     }
     else {
         // VCPU_QOS_IDLE has only one priority level

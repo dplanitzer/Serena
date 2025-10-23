@@ -37,16 +37,17 @@ typedef struct vcpu* vcpu_t;
 
 
 // Priorities per QoS level
-#define VCPU_PRI_HIGHEST   5
-#define VCPU_PRI_NORMAL    0
-#define VCPU_PRI_LOWEST   -6
+#define VCPU_PRI_HIGHEST     7
+#define VCPU_PRI_NORMAL      0
+#define VCPU_PRI_LOWEST     -8
 
-#define VCPU_PRI_COUNT     12
+#define VCPU_PRI_SHIFT      4
+#define VCPU_PRI_COUNT      (1 << VCPU_PRI_SHIFT)
 
 
 typedef struct vcpu_sched_params {
-    int     qos;
-    int     priority;
+    int qos;
+    int priority;
 } vcpu_sched_params_t;
 
 
