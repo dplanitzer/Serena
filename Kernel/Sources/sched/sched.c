@@ -361,7 +361,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
 
     // Create the VP
     vcpu_sched_params_t sp;
-    sp.qos = VCPU_QOS_IDLE;
+    sp.qos = VCPU_QOS_BACKGROUND;
     sp.priority = -8;
     vcpu_cominit(self, &sp);
 
