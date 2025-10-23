@@ -19,22 +19,12 @@
 #include <kpi/vcpu.h>
 
 
-// Linear scheduling priorities
-#define SCHED_PRI_COUNT     64
+// Absolute scheduler priorities
+#define SCHED_PRI_COUNT     ((VCPU_QOS_COUNT-1) * VCPU_PRI_COUNT + 1/*VCPU_QOS_IDLE*/)
 #define SCHED_PRI_HIGHEST   (SCHED_PRI_COUNT-1)
 #define SCHED_PRI_LOWEST    0
 
 #define SCHED_PRI_POP_BYTE_COUNT    ((SCHED_PRI_COUNT + 7) / 8)
-
-
-// The top 2 and the bottom 2 priorities are reserved for the scheduler
-#define SCHED_PRI_RESERVED_HIGH 2
-#define SCHED_PRI_RESERVED_LOW  2
-
-
-// Convert a QoS to the corresponding linear scheduling priority 
-#define SCHED_PRI_FROM_QOS(__qos, __qos_pri) \
-(__qos) * VCPU_PRI_COUNT + ((__qos_pri) + VCPU_PRI_COUNT / 2) + SCHED_PRI_RESERVED_LOW
 
 
 // Set if the context switcher should activate the VP set in 'scheduled' and

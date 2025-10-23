@@ -11,10 +11,13 @@
 #include "vcpu_pool.h"
 #include <machine/clock.h>
 #include <machine/csw.h>
+#include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/limits.h>
 #include <kern/string.h>
 #include <kern/timespec.h>
+
+static int _schedpri_from_qos(const vcpu_sched_params_t* _Nonnull params);
 
 
 // Frees a virtual processor.
@@ -71,7 +74,7 @@ void vcpu_cominit(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull sche
     self->flags = (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_HAS_FPU : 0;
     self->qos = sched_params->qos;
     self->qos_priority = sched_params->priority;
-    self->sched_priority = (int8_t)SCHED_PRI_FROM_QOS(self->qos, self->qos_priority);
+    self->sched_priority = (int8_t)_schedpri_from_qos(sched_params);
     self->suspension_count = 1;
     
     self->id = 0;
@@ -126,6 +129,23 @@ _Noreturn vcpu_terminate(vcpu_t _Nonnull self)
     /* NOT REACHED */
 }
 
+static int _schedpri_from_qos(const vcpu_sched_params_t* _Nonnull params)
+{
+    int sched_pri;
+
+    if (params->qos > VCPU_QOS_IDLE) {
+        sched_pri = (params->qos - 1) * VCPU_PRI_COUNT + (params->priority - VCPU_PRI_LOWEST) + 1;
+    }
+    else {
+        // VCPU_QOS_IDLE has only one priority level
+        sched_pri = 0;
+    }
+
+    assert(sched_pri >= SCHED_PRI_LOWEST && sched_pri <= SCHED_PRI_HIGHEST);
+
+    return sched_pri;
+}
+
 void vcpu_getschedparams(vcpu_t _Nonnull self, vcpu_sched_params_t* _Nonnull params)
 {
     const int sps = preempt_disable();
@@ -139,7 +159,7 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const vcpu_sched_params_t* _No
 {
     VP_ASSERT_ALIVE(self);
 
-    if (params->qos < 0 || params->qos >= VCPU_QOS_COUNT) {
+    if (params->qos < VCPU_QOS_BACKGROUND || params->qos > VCPU_QOS_REALTIME) {
         return EINVAL;
     }
     if (params->priority < VCPU_PRI_LOWEST || params->priority > VCPU_PRI_HIGHEST) {
@@ -147,7 +167,7 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const vcpu_sched_params_t* _No
     }
 
 
-    const int new_sched_pri = SCHED_PRI_FROM_QOS(params->qos, params->priority);
+    const int new_sched_pri = _schedpri_from_qos(params);
     const int sps = preempt_disable();
     
     if (self->sched_priority != new_sched_pri) {

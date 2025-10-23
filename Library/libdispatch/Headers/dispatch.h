@@ -147,7 +147,7 @@ typedef struct dispatch_item* dispatch_item_t;
 
 // Quality of Service level. From highest to lowest.
 // DISPATCH_QOS_REALTIME: kernel will minimize the scheduling latency. Realtime is always scheduled before anything else
-// DISPATCH_QOS_BACKGROUND: no guarantee with regards to schedule latency. Only scheduled if there is nothing to schedule for a DISPATCH_QOS_XXX > DISPATCH_QOS_BACKGROUND
+// DISPATCH_QOS_BACKGROUND: no guarantee with regards to schedule latency.
 #define DISPATCH_QOS_REALTIME       VCPU_QOS_REALTIME
 #define DISPATCH_QOS_URGENT         VCPU_QOS_URGENT
 #define DISPATCH_QOS_INTERACTIVE    VCPU_QOS_INTERACTIVE

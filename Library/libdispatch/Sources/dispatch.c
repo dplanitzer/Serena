@@ -28,7 +28,7 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
         errno = EINVAL;
         return false;
     }
-    if (attr->qos < 0 || attr->qos >= VCPU_QOS_COUNT) {
+    if (attr->qos < DISPATCH_QOS_BACKGROUND || attr->qos > DISPATCH_QOS_REALTIME) {
         errno = EINVAL;
         return false;
     }
@@ -617,7 +617,7 @@ int dispatch_qos(dispatch_t _Nonnull self)
 
 int dispatch_setqos(dispatch_t _Nonnull self, int qos)
 {
-    if (qos < 0 || qos > VCPU_QOS_COUNT) {
+    if (qos < DISPATCH_QOS_BACKGROUND || qos > DISPATCH_QOS_REALTIME) {
         errno = EINVAL;
         return -1;
     }

@@ -12,8 +12,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define SCHED_PRI_RESERVED_LOW  2
-
 
 static bool _dispatch_worker_acquire_vcpu(dispatch_worker_t _Nonnull self)
 {
