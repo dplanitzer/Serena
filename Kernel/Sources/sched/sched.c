@@ -23,6 +23,14 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap);
 
 sched_t                 g_sched;
 static struct waitqueue g_sched_wq;     // The scheduler VP waits on this queue
+const int8_t g_quantum_length[VCPU_QOS_COUNT] = {
+    1,      /* Realtime */
+    2,      /* Urgent */
+    3,      /* Interactive */
+    4,      /* Utility */
+    8,      /* Background */
+    1,      /* Idle */
+};
 
 
 void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx)
@@ -77,7 +85,7 @@ void sched_add_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effect
     
     vp->sched_state = SCHED_STATE_READY;
     vp->effectivePriority = effectivePriority;
-    vp->ticks_allowance = QuantumDurationForPriority(vp->effectivePriority);
+    vp->ticks_allowance = qos_quantum(vp->qos);
     vp->wait_start_time = clock_getticks(g_mono_clock);
     
     List_InsertAfterLast(&self->ready_queue.priority[vp->effectivePriority], &vp->rewa_qe);

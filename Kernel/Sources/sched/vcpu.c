@@ -195,7 +195,7 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const vcpu_sched_params_t* _No
                 self->qos_priority = params->priority;
                 self->sched_priority = new_sched_pri;
                 self->effectivePriority = new_sched_pri;
-                self->ticks_allowance = QuantumDurationForPriority(self->effectivePriority);
+                self->ticks_allowance = qos_quantum(self->qos);
                 break;
         }
     }

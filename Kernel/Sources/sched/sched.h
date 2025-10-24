@@ -56,9 +56,9 @@ struct sched {
 typedef struct sched* sched_t;
 
 
-#define QuantumDurationForPriority(__pri) \
-    ((SCHED_PRI_HIGHEST - (__pri)) >> 3) + 1
-
+extern const int8_t g_quantum_length[VCPU_QOS_COUNT];
+#define qos_quantum(__qos) \
+g_quantum_length[__qos]
 
 extern sched_t _Nonnull g_sched;
 

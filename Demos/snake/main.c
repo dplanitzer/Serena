@@ -78,7 +78,7 @@ static void setup(void)
     key = 0;
     score = 0;
 
-    timespec_from_ms(&game_loop_delay, 66);
+    timespec_from_ms(&game_loop_delay, 160);
 
     playfield_x = (80 - (PLAYFIELD_WIDTH + 2)) / 2;
     playfield_y = 0;

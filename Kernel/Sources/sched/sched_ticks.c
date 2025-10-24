@@ -77,7 +77,7 @@ void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
     // context switch to that guy. Otherwise we'll continue to run for another
     // time slice.
     run->effectivePriority = __max(run->effectivePriority - 1, SCHED_PRI_LOWEST);
-    run->ticks_allowance = QuantumDurationForPriority(run->effectivePriority);
+    run->ticks_allowance = qos_quantum(run->qos);
 
     register vcpu_t rdy = sched_highest_priority_ready(self);
     if (rdy == NULL || rdy->effectivePriority <= run->effectivePriority) {
