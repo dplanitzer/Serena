@@ -72,24 +72,16 @@ void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
     }
 
     
-    // The time slice has expired. Lower our priority and then check whether
-    // there's another VP on the ready queue which is more important. If so we
-    // context switch to that guy. Otherwise we'll continue to run for another
-    // time slice.
-    run->effectivePriority = __max(run->effectivePriority - 1, SCHED_PRI_LOWEST);
-
+    // The time slice has expired. Check whether there's another VP on the ready
+    // queue which is more important. If so we context switch to that guy.
+    // Otherwise we'll continue to run for another time slice.
     register vcpu_t rdy = sched_highest_priority_ready(self);
-    if (rdy == NULL || rdy->effectivePriority <= run->effectivePriority) {
-        // We didn't find anything better to run. Continue running the currently
-        // running VP.
-        return;
-    }
-    
-    
-    // Move the currently running VP back to the ready queue
-    sched_add_vcpu_locked(self, run, run->sched_priority);
+    if (rdy && rdy->effectivePriority >= run->effectivePriority) {
+        // Move the currently running VP back to the ready queue
+        sched_add_vcpu_locked(self, run, run->sched_priority);
 
-    
-    // Request a context switch
-    sched_set_running(self, rdy, false);
+        
+        // Request a context switch
+        sched_set_running(self, rdy, false);
+    }
 }
