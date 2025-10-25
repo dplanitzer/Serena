@@ -127,7 +127,7 @@ struct vcpu {
     int8_t                          effectivePriority;      // computed priority used for scheduling
     int8_t                          sched_state;
     uint8_t                         flags;
-    int8_t                          ticks_allowance;        // how many continuous clock ticks this VP may run for before the scheduler will consider scheduling some other VP
+    int8_t                          quantum_countdown;      // for how many contiguous clock ticks this VP may run for before the scheduler will consider scheduling some other same or lower priority VP
     int8_t                          suspension_count;       // > 0 -> VP is suspended
 
     // Lifecycle state

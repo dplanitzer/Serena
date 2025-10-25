@@ -176,7 +176,7 @@ vp_sched_priority                       so.b    1           ; 1
 vp_effectivePriority                    so.b    1           ; 1
 vp_sched_state                          so.b    1           ; 1
 vp_flags                                so.b    1           ; 1
-vp_ticks_allowance                      so.b    1           ; 1
+vp_quantum_countdown                    so.b    1           ; 1
 vp_suspension_count                     so.b    1           ; 1
 vp_lifecycle_state                      so.b    1           ; 1
 vp_proc                                 so.l    1           ; 4

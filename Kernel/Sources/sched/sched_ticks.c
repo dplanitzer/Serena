@@ -66,8 +66,8 @@ void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 
 
     // Update the time slice info for the currently running VP
-    run->ticks_allowance--;
-    if (run->ticks_allowance > 0) {
+    run->quantum_countdown--;
+    if (run->quantum_countdown > 0) {
         return;
     }
 
@@ -77,7 +77,6 @@ void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
     // context switch to that guy. Otherwise we'll continue to run for another
     // time slice.
     run->effectivePriority = __max(run->effectivePriority - 1, SCHED_PRI_LOWEST);
-    run->ticks_allowance = qos_quantum(run->qos);
 
     register vcpu_t rdy = sched_highest_priority_ready(self);
     if (rdy == NULL || rdy->effectivePriority <= run->effectivePriority) {
@@ -87,13 +86,10 @@ void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
     }
     
     
-    // Move the currently running VP back to the ready queue and pull the new
-    // VP off the ready queue
-    sched_remove_vcpu_locked(self, rdy);
+    // Move the currently running VP back to the ready queue
     sched_add_vcpu_locked(self, run, run->sched_priority);
 
     
     // Request a context switch
-    self->scheduled = rdy;
-    self->csw_signals |= CSW_SIGNAL_SWITCH;
+    sched_set_running(self, rdy, false);
 }

@@ -56,9 +56,7 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
         self->boot_vp->sched_priority);
     
     self->running = NULL;
-    self->scheduled = sched_highest_priority_ready(self);
-    self->csw_signals |= CSW_SIGNAL_SWITCH;
-    sched_remove_vcpu_locked(self, self->scheduled);
+    sched_set_running(self, sched_highest_priority_ready(self), false);
     
     assert(self->scheduled == self->boot_vp);
 }
@@ -85,7 +83,6 @@ void sched_add_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effect
     
     vp->sched_state = SCHED_STATE_READY;
     vp->effectivePriority = effectivePriority;
-    vp->ticks_allowance = qos_quantum(vp->qos);
     vp->wait_start_time = clock_getticks(g_mono_clock);
     
     List_InsertAfterLast(&self->ready_queue.priority[vp->effectivePriority], &vp->rewa_qe);
@@ -168,12 +165,28 @@ void sched_maybe_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 // and on the ready queue. Immediately context switches to the VP.
 // Expects that the call has already added the currently running VP to a wait
 // queue or the finalizer queue.
+// @Entry Condition: preemption disabled
 void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
+    sched_set_running(self, vp, true);
+}
+
+// Set the virtual processor 'vp' running. A context switch is immediately
+// triggered if 'doSwitch' is true; otherwise the next scheduler tick or call
+// to csw_switch() will trigger the context switch.
+// @Entry Condition: preemption disabled
+void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doSwitch)
+{
     sched_remove_vcpu_locked(self, vp);
+
+    vp->quantum_countdown = qos_quantum(vp->qos);
+
     self->scheduled = vp;
     self->csw_signals |= CSW_SIGNAL_SWITCH;
-    csw_switch();
+
+    if (doSwitch) {
+        csw_switch();
+    }
 }
 
 // Terminates the given virtual processor that is executing the caller. Does not

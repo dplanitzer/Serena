@@ -107,6 +107,7 @@ extern vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self);
 
 extern void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 extern void sched_maybe_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp);
+extern void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doSwitch);
 
 
 // @HAL Requirement: Must be called from the monotonic clock IRQ handler
