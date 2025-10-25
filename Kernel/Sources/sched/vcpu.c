@@ -174,13 +174,13 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const vcpu_sched_params_t* _No
         switch (self->sched_state) {
             case SCHED_STATE_READY:
                 if (self->suspension_count == 0) {
-                    sched_remove_vcpu_locked(g_sched, self);
+                    sched_remove_vcpu(g_sched, self);
                 }
                 self->qos = params->qos;
                 self->qos_priority = params->priority;
                 self->sched_priority = new_sched_pri;
                 if (self->suspension_count == 0) {
-                    sched_add_vcpu_locked(g_sched, self, self->sched_priority);
+                    sched_add_vcpu(g_sched, self, self->sched_priority);
                 }
                 break;
                 
@@ -220,7 +220,7 @@ void vcpu_yield(void)
 
     assert(self->sched_state == SCHED_STATE_RUNNING && self->suspension_count == 0);
 
-    sched_add_vcpu_locked(g_sched, self, self->sched_priority);
+    sched_add_vcpu(g_sched, self, self->sched_priority);
     sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     
     preempt_restore(sps);
@@ -244,7 +244,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
 
         switch (self->sched_state) {
             case SCHED_STATE_READY:
-                sched_remove_vcpu_locked(g_sched, self);
+                sched_remove_vcpu(g_sched, self);
                 break;
             
             case SCHED_STATE_RUNNING:
@@ -287,7 +287,7 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
         if (self->suspension_count == 0) {
             switch (self->sched_state) {
                 case SCHED_STATE_READY:
-                    sched_add_vcpu_locked(g_sched, self, self->sched_priority);
+                    sched_add_vcpu(g_sched, self, self->sched_priority);
                     break;
 
                 case SCHED_STATE_WAITING:

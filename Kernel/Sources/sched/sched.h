@@ -74,11 +74,6 @@ extern void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, 
 // initialization.
 extern void sched_finish_boot(sched_t _Nonnull self);
 
-// Adds the given virtual processor with the given effective priority to the
-// ready queue and resets its time slice length to the length implied by its
-// effective priority.
-extern void sched_add_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp);
-
 // Gives the virtual processor scheduler opportunities to run tasks that take
 // care of internal duties. This function must be called from the boot virtual
 // processor. This function does not return to the caller. 
@@ -100,9 +95,13 @@ extern void preempt_restore(int sps);
 // return to the caller. The VP must already have been marked as terminating.
 extern _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 
-extern void sched_add_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority);
-extern void sched_remove_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp);
+// @Entry Condition: preemption disabled
+extern void sched_add_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority);
 
+// @Entry Condition: preemption disabled
+extern void sched_remove_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp);
+
+// @Entry Condition: preemption disabled
 extern vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self);
 
 extern void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp);

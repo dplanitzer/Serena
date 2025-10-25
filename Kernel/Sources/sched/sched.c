@@ -45,7 +45,7 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
 
     // Initialize the boot virtual processor
     self->boot_vp = boot_vcpu_create(bap, fn, ctx);
-    sched_add_vcpu_locked(
+    sched_add_vcpu(
         self,
         self->boot_vp,
         self->boot_vp->sched_priority);
@@ -53,7 +53,7 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
 
     // Initialize the idle virtual processor
     self->idle_vp = idle_vcpu_create(bap);
-    sched_add_vcpu_locked(
+    sched_add_vcpu(
         self,
         self->idle_vp,
         self->idle_vp->sched_priority);
@@ -75,7 +75,7 @@ void sched_finish_boot(sched_t _Nonnull self)
     self->ticks_per_quarter_second = clock_time2ticks_ceil(g_mono_clock, &ts);
 }
 
-void sched_add_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority)
+void sched_add_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority)
 {
     assert(vp != NULL);
     assert(vp->rewa_qe.prev == NULL);
@@ -93,19 +93,8 @@ void sched_add_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effect
     self->ready_queue.populated[popByteIdx] |= (1 << popBitIdx);
 }
 
-// Adds the given virtual processor to the scheduler and makes it eligible for
-// running.
-void sched_add_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
-{
-    // Protect against our scheduling code
-    const int sps = preempt_disable();
-    
-    sched_add_vcpu_locked(self, vp, vp->sched_priority);
-    preempt_restore(sps);
-}
-
 // Takes the given virtual processor off the ready queue.
-void sched_remove_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp)
+void sched_remove_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     register const int pri = vp->effectivePriority;
     
@@ -156,7 +145,7 @@ void sched_maybe_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
         if (pBestReadyVP == vp && vp->effectivePriority >= self->running->effectivePriority) {
             vcpu_t pCurRunning = (vcpu_t)self->running;
             
-            sched_add_vcpu_locked(self, pCurRunning, pCurRunning->sched_priority);
+            sched_add_vcpu(self, pCurRunning, pCurRunning->sched_priority);
             sched_switch_to(self, vp);
         }
     }
@@ -178,7 +167,7 @@ void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 // @Entry Condition: preemption disabled
 void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doSwitch)
 {
-    sched_remove_vcpu_locked(self, vp);
+    sched_remove_vcpu(self, vp);
 
     vp->quantum_countdown = qos_quantum(vp->qos);
 
