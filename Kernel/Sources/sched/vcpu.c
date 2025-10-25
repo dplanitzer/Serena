@@ -50,7 +50,7 @@ _Noreturn vcpu_relinquish(void)
 //
 // \param pVP the boot virtual processor record
 // \param priority the initial VP priority
-void vcpu_cominit(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull sched_params)
+void vcpu_cominit(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull sched_params, bool suspended)
 {
     self->rewa_qe = LISTNODE_INIT;
     stk_init(&self->kernel_stack);
@@ -75,7 +75,7 @@ void vcpu_cominit(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull sche
     self->qos = sched_params->qos;
     self->qos_priority = sched_params->priority;
     self->sched_priority = (int8_t)_schedpri_from_qos(sched_params);
-    self->suspension_count = 1;
+    self->suspension_count = (suspended) ? 1 : 0;
     
     self->id = 0;
     self->lifecycle_state = VP_LIFECYCLE_RELINQUISHED;
@@ -93,7 +93,7 @@ errno_t vcpu_create(const vcpu_sched_params_t* _Nonnull sched_params, vcpu_t _Nu
     
     err = kalloc_cleared(sizeof(struct vcpu), (void**) &self);
     if (err == EOK) {
-        vcpu_cominit(self, sched_params);
+        vcpu_cominit(self, sched_params, true);
     }
 
     *pOutSelf = self;

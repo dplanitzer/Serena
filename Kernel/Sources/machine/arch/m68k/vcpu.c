@@ -25,7 +25,10 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull clo
     const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
 
     VP_ASSERT_ALIVE(self);
-    assert(self->suspension_count > 0);
+
+    if (self->sched_state == SCHED_STATE_RUNNING) {
+        return EBUSY;
+    }
 
     // Minimum kernel stack size is 2 * sizeof(cpu_save_area_max_size) + 128
     // 2 times -> csw save state + cpu exception save state

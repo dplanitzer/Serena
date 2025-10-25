@@ -40,21 +40,26 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
     g_sched = self;
 
 
+    wq_init(&g_sched_wq);
+
+
     // Initialize the boot virtual processor
     self->boot_vp = boot_vcpu_create(bap, fn, ctx);
-
-
-    // Initialize the idle virtual processor
-    self->idle_vp = idle_vcpu_create(bap);
-
-
-    // Initialize the scheduler
-    wq_init(&g_sched_wq);
     sched_add_vcpu_locked(
         self,
         self->boot_vp,
         self->boot_vp->sched_priority);
-    
+
+
+    // Initialize the idle virtual processor
+    self->idle_vp = idle_vcpu_create(bap);
+    sched_add_vcpu_locked(
+        self,
+        self->idle_vp,
+        self->idle_vp->sched_priority);
+
+
+    // Initialize the scheduler    
     self->running = NULL;
     sched_set_running(self, sched_highest_priority_ready(self), false);
     
@@ -68,10 +73,6 @@ void sched_finish_boot(sched_t _Nonnull self)
     
     timespec_from_ms(&ts, 250);
     self->ticks_per_quarter_second = clock_time2ticks_ceil(g_mono_clock, &ts);
-
-
-    // Resume the idle virtual processor
-    vcpu_resume(self->idle_vp, false);
 }
 
 void sched_add_vcpu_locked(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority)
@@ -342,7 +343,7 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     vcpu_sched_params_t sp;
     sp.qos = VCPU_QOS_INTERACTIVE;
     sp.priority = VCPU_PRI_LOWEST;
-    vcpu_cominit(self, &sp);
+    vcpu_cominit(self, &sp, false);
 
     vcpu_context_t cl;
     cl.func = (VoidFunc_1)fn;
@@ -354,7 +355,6 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     cl.isUser = false;
 
     try_bang(vcpu_setcontext(self, &cl, false));
-    self->suspension_count = 0;
     
     return self;
 }
@@ -384,7 +384,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     vcpu_sched_params_t sp;
     sp.qos = VCPU_QOS_IDLE;
     sp.priority = 0;
-    vcpu_cominit(self, &sp);
+    vcpu_cominit(self, &sp, false);
 
     vcpu_context_t cl;
     cl.func = (VoidFunc_1)idle_vcpu_run;
