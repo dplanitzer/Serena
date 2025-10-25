@@ -275,34 +275,28 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
     VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
     
-    if (self->suspension_count == 0) {
-        preempt_restore(sps);
-        return;
-    }
+    if (self->suspension_count > 0) {
+        if (force) {
+            self->suspension_count = 0;
+        }
+        else {
+            self->suspension_count--;
+        }
 
 
-    if (force) {
-        self->suspension_count = 0;
-    }
-    else {
-        self->suspension_count--;
-    }
+        if (self->suspension_count == 0) {
+            switch (self->sched_state) {
+                case SCHED_STATE_READY:
+                    sched_add_vcpu_locked(g_sched, self, self->sched_priority);
+                    break;
 
-
-    if (self->suspension_count == 0) {
-        switch (self->sched_state) {
-            case SCHED_STATE_READY:
-            case SCHED_STATE_RUNNING:
-                sched_add_vcpu_locked(g_sched, self, self->sched_priority);
-                sched_maybe_switch_to(g_sched, self);
-                break;
+                case SCHED_STATE_WAITING:
+                    wq_resumeone(self->waiting_on_wait_queue, self);
+                    break;
             
-            case SCHED_STATE_WAITING:
-                wq_resumeone(self->waiting_on_wait_queue, self);
-                break;
-            
-            default:
-                abort();
+                default:
+                    abort();
+            }
         }
     }
     preempt_restore(sps);

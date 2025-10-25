@@ -42,7 +42,7 @@ typedef struct ready_queue {
 
 // Note: Keep in sync with machine/hal/lowmem.i
 struct sched {
-    volatile vcpu_t _Nonnull    running;                        // Currently running VP
+    volatile vcpu_t _Nullable   running;                        // Currently running VP
     volatile vcpu_t _Nullable   scheduled;                      // The VP that should be moved to the running state by the context switcher
     volatile uint8_t            csw_signals;                    // Signals to the context switcher
     uint8_t                     flags;                          // Scheduler flags
