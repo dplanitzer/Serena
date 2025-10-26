@@ -162,9 +162,11 @@ void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
     csw_switch();
 }
 
-// Removes 'vp' from the ready queue and sets it as running VP and moves the
-// currently running VP to the ready queue. Note that this function does not
-// trigger the actual context switch. The caller has to call csw_switch() itself. 
+// Removes 'vp' from the ready queue and sets it as running VP. Note that this
+// function does not move the currently running VP to the ready queue. The caller
+// is responsible for moving it to a wait queue, ready queue or somewhere else.
+// Note that this function does not trigger the actual context switch. The caller
+// has to call csw_switch() itself. 
 // @Entry Condition: preemption disabled
 void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
