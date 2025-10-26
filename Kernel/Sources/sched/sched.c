@@ -45,7 +45,7 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
 
     // Initialize the boot virtual processor
     self->boot_vp = boot_vcpu_create(bap, fn, ctx);
-    sched_add_vcpu(
+    sched_set_ready(
         self,
         self->boot_vp,
         self->boot_vp->sched_priority);
@@ -53,7 +53,7 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
 
     // Initialize the idle virtual processor
     self->idle_vp = idle_vcpu_create(bap);
-    sched_add_vcpu(
+    sched_set_ready(
         self,
         self->idle_vp,
         self->idle_vp->sched_priority);
@@ -75,7 +75,7 @@ void sched_finish_boot(sched_t _Nonnull self)
     self->ticks_per_quarter_second = clock_time2ticks_ceil(g_mono_clock, &ts);
 }
 
-void sched_add_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority)
+void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority)
 {
     assert(vp != NULL);
     assert(vp->rewa_qe.prev == NULL);
@@ -94,7 +94,7 @@ void sched_add_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePrio
 }
 
 // Takes the given virtual processor off the ready queue.
-void sched_remove_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
+void sched_extract_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     register const int pri = vp->effectivePriority;
     
@@ -167,7 +167,7 @@ void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToRead
 // @Entry Condition: preemption disabled
 void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToReady)
 {
-    sched_remove_vcpu(self, vp);
+    sched_extract_ready(self, vp);
 
     vp->quantum_countdown = qos_quantum(vp->qos);
 
@@ -175,7 +175,7 @@ void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToRe
     self->csw_signals |= CSW_SIGNAL_SWITCH;
 
     if (doRunToReady) {
-        sched_add_vcpu(self, self->running, self->running->sched_priority);
+        sched_set_ready(self, self->running, self->running->sched_priority);
     }
 }
 
