@@ -43,20 +43,12 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
 
     // Initialize the boot virtual processor
     self->boot_vp = boot_vcpu_create(bap, fn, ctx);
-    sched_set_ready(
-        self,
-        self->boot_vp,
-        self->boot_vp->sched_priority,
-        true);
+    sched_set_ready(self, self->boot_vp, 0, true);
 
 
     // Initialize the idle virtual processor
     self->idle_vp = idle_vcpu_create(bap);
-    sched_set_ready(
-        self,
-        self->idle_vp,
-        self->idle_vp->sched_priority,
-        true);
+    sched_set_ready(self, self->idle_vp, 0, true);
 
 
     // Initialize the scheduler    
@@ -66,7 +58,7 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
     assert(self->scheduled == self->boot_vp);
 }
 
-void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority, bool doFifo)
+void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int priorityBoost, bool doFifo)
 {
     assert(vp != NULL);
     assert(vp->rewa_qe.prev == NULL);
@@ -74,7 +66,13 @@ void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePri
     assert(vp->suspension_count == 0);
     
     vp->sched_state = SCHED_STATE_READY;
-    vp->effectivePriority = effectivePriority;
+
+    if (vp->sched_priority > SCHED_PRI_LOWEST) {
+        vp->effectivePriority = __max(__min(vp->sched_priority + priorityBoost, SCHED_PRI_HIGHEST), SCHED_PRI_LOWEST + 1);
+    }
+    else {
+        vp->effectivePriority = SCHED_PRI_LOWEST;
+    }
     
     if (doFifo) {
         List_InsertAfterLast(&self->ready_queue.priority[vp->effectivePriority], &vp->rewa_qe);
@@ -170,7 +168,7 @@ void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToRe
     self->csw_signals |= CSW_SIGNAL_SWITCH;
 
     if (doRunToReady) {
-        sched_set_ready(self, self->running, self->running->sched_priority, true);
+        sched_set_ready(self, self->running, 0, true);
     }
 }
 
