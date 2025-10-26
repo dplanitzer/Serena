@@ -180,7 +180,7 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const vcpu_sched_params_t* _No
                 self->qos_priority = params->priority;
                 self->sched_priority = new_sched_pri;
                 if (self->suspension_count == 0) {
-                    sched_set_ready(g_sched, self, self->sched_priority);
+                    sched_set_ready(g_sched, self, self->sched_priority, true);
                 }
                 break;
                 
@@ -284,7 +284,7 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
         if (self->suspension_count == 0) {
             switch (self->sched_state) {
                 case SCHED_STATE_READY:
-                    sched_set_ready(g_sched, self, self->sched_priority);
+                    sched_set_ready(g_sched, self, self->sched_priority, true);
                     break;
 
                 case SCHED_STATE_WAITING:

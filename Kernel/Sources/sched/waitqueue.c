@@ -180,11 +180,9 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
     
 
     if (vp->suspension_count == 0) {
-        // Make the VP ready and adjust it's effective priority based on the
-        // time it has spent waiting
-        const int32_t quartersSlept = (clock_getticks(g_mono_clock) - vp->wait_start_time) / g_sched->ticks_per_quarter_second;
-        const int8_t boostedPriority = __min(vp->effectivePriority + __min(quartersSlept, SCHED_PRI_HIGHEST), SCHED_PRI_HIGHEST);
-        sched_set_ready(g_sched, vp, boostedPriority);
+        // Make the VP ready and move it to the front of its ready queue if it
+        // didn't use all of its quantum before blocking
+        sched_set_ready(g_sched, vp, vp->sched_priority, (vp->quantum_countdown >= 1) ? false : true);
         
         if ((flags & WAKEUP_CSW) == WAKEUP_CSW) {
             sched_maybe_switch_to(g_sched, vp);

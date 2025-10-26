@@ -48,7 +48,8 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
     sched_set_ready(
         self,
         self->boot_vp,
-        self->boot_vp->sched_priority);
+        self->boot_vp->sched_priority,
+        true);
 
 
     // Initialize the idle virtual processor
@@ -56,7 +57,8 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
     sched_set_ready(
         self,
         self->idle_vp,
-        self->idle_vp->sched_priority);
+        self->idle_vp->sched_priority,
+        true);
 
 
     // Initialize the scheduler    
@@ -75,7 +77,7 @@ void sched_finish_boot(sched_t _Nonnull self)
     self->ticks_per_quarter_second = clock_time2ticks_ceil(g_mono_clock, &ts);
 }
 
-void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority)
+void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority, bool doFifo)
 {
     assert(vp != NULL);
     assert(vp->rewa_qe.prev == NULL);
@@ -86,7 +88,12 @@ void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePri
     vp->effectivePriority = effectivePriority;
     vp->wait_start_time = clock_getticks(g_mono_clock);
     
-    List_InsertAfterLast(&self->ready_queue.priority[vp->effectivePriority], &vp->rewa_qe);
+    if (doFifo) {
+        List_InsertAfterLast(&self->ready_queue.priority[vp->effectivePriority], &vp->rewa_qe);
+    }
+    else {
+        List_InsertBeforeFirst(&self->ready_queue.priority[vp->effectivePriority], &vp->rewa_qe);
+    }
     
     const int popByteIdx = vp->effectivePriority >> 3;
     const int popBitIdx = vp->effectivePriority - (popByteIdx << 3);
@@ -175,7 +182,7 @@ void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToRe
     self->csw_signals |= CSW_SIGNAL_SWITCH;
 
     if (doRunToReady) {
-        sched_set_ready(self, self->running, self->running->sched_priority);
+        sched_set_ready(self, self->running, self->running->sched_priority, true);
     }
 }
 

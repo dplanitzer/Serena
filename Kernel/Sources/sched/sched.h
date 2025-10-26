@@ -96,7 +96,7 @@ extern void preempt_restore(int sps);
 extern _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 
 // @Entry Condition: preemption disabled
-extern void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority);
+extern void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority, bool doFifo);
 
 // @Entry Condition: preemption disabled
 extern void sched_extract_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp);
