@@ -20,7 +20,7 @@
 
 
 // Absolute scheduler priorities
-#define SCHED_PRI_COUNT     ((VCPU_QOS_COUNT-1) * VCPU_PRI_COUNT + 1/*VCPU_QOS_IDLE*/)
+#define SCHED_PRI_COUNT     ((SCHED_QOS_COUNT-1) * QOS_PRI_COUNT + 1/*SCHED_QOS_IDLE*/)
 #define SCHED_PRI_HIGHEST   (SCHED_PRI_COUNT-1)
 #define SCHED_PRI_LOWEST    0
 
@@ -55,7 +55,7 @@ struct sched {
 typedef struct sched* sched_t;
 
 
-extern const int8_t g_quantum_length[VCPU_QOS_COUNT];
+extern const int8_t g_quantum_length[SCHED_QOS_COUNT];
 #define qos_quantum(__qos) \
 g_quantum_length[__qos]
 

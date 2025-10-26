@@ -21,7 +21,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap);
 
 sched_t                 g_sched;
 static struct waitqueue g_sched_wq;     // The scheduler VP waits on this queue
-const int8_t g_quantum_length[VCPU_QOS_COUNT] = {
+const int8_t g_quantum_length[SCHED_QOS_COUNT] = {
     1,      /* Realtime */
     2,      /* Urgent */
     3,      /* Interactive */
@@ -333,9 +333,9 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
 
 
     // Create the VP
-    vcpu_sched_params_t sp;
-    sp.qos = VCPU_QOS_INTERACTIVE;
-    sp.priority = VCPU_PRI_LOWEST;
+    sched_params_t sp;
+    sp.qos = SCHED_QOS_INTERACTIVE;
+    sp.priority = QOS_PRI_LOWEST;
     vcpu_cominit(self, &sp, false);
 
     vcpu_context_t cl;
@@ -374,8 +374,8 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
 
 
     // Create the VP
-    vcpu_sched_params_t sp;
-    sp.qos = VCPU_QOS_IDLE;
+    sched_params_t sp;
+    sp.qos = SCHED_QOS_IDLE;
     sp.priority = 0;
     vcpu_cominit(self, &sp, false);
 

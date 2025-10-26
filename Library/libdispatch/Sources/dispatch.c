@@ -570,7 +570,7 @@ dispatch_item_t _Nullable dispatch_current_item(void)
 
 static void _dispatch_applyschedparams(dispatch_t _Nonnull _Locked self, int qos, int priority)
 {
-    vcpu_sched_params_t params;
+    sched_params_t params;
 
     params.qos = qos;
     params.priority = priority;

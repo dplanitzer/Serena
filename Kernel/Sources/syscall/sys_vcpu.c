@@ -116,7 +116,7 @@ SYSCALL_0(vcpu_yield)
     return EOK;
 }
 
-SYSCALL_2(vcpu_getschedparams, vcpuid_t id, vcpu_sched_params_t* _Nonnull params)
+SYSCALL_2(vcpu_getschedparams, vcpuid_t id, sched_params_t* _Nonnull params)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
@@ -140,7 +140,7 @@ SYSCALL_2(vcpu_getschedparams, vcpuid_t id, vcpu_sched_params_t* _Nonnull params
     return err;
 }
 
-SYSCALL_2(vcpu_setschedparams, vcpuid_t id, const vcpu_sched_params_t* _Nonnull params)
+SYSCALL_2(vcpu_setschedparams, vcpuid_t id, const sched_params_t* _Nonnull params)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;

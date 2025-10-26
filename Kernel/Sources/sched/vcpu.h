@@ -164,19 +164,19 @@ extern int vcpu_currentid(void);
 
 // Creates a new virtual processor.
 // \return the new virtual processor; NULL if creation has failed
-extern errno_t vcpu_create(const vcpu_sched_params_t* _Nonnull sched_params, vcpu_t _Nullable * _Nonnull pOutSelf);
+extern errno_t vcpu_create(const sched_params_t* _Nonnull sched_params, vcpu_t _Nullable * _Nonnull pOutSelf);
 
 void vcpu_destroy(vcpu_t _Nullable self);
 
 
 // Returns a copy of the given virtual processor's scheduling parameters.
-extern void vcpu_getschedparams(vcpu_t _Nonnull self, vcpu_sched_params_t* _Nonnull params);
+extern void vcpu_getschedparams(vcpu_t _Nonnull self, sched_params_t* _Nonnull params);
 
 // Changes the scheduling parameters of the given virtual processor. Does not
 // immediately reschedule the VP if it is currently running. Instead the VP is
 // allowed to finish its current quanta.
 // XXX might want to change that in the future?
-extern errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull params);
+extern errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull params);
 
 // Returns the current (effective) priority of the given VP.
 extern int vcpu_getcurrentpriority(vcpu_t _Nonnull self);
@@ -254,7 +254,7 @@ extern void vcpu_uret_exit(void);
 
 
 // Subclassers
-extern void vcpu_cominit(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull sched_params, bool suspended);
+extern void vcpu_cominit(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params, bool suspended);
 
 extern void __func_vcpu_destroy(vcpu_t _Nullable self);
 

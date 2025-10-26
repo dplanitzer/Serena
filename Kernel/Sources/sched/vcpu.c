@@ -17,7 +17,7 @@
 #include <kern/string.h>
 #include <kern/timespec.h>
 
-static int _schedpri_from_qos(const vcpu_sched_params_t* _Nonnull params);
+static int _schedpri_from_qos(const sched_params_t* _Nonnull params);
 
 
 // Frees a virtual processor.
@@ -50,7 +50,7 @@ _Noreturn vcpu_relinquish(void)
 //
 // \param pVP the boot virtual processor record
 // \param priority the initial VP priority
-void vcpu_cominit(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull sched_params, bool suspended)
+void vcpu_cominit(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params, bool suspended)
 {
     self->rewa_qe = LISTNODE_INIT;
     stk_init(&self->kernel_stack);
@@ -86,7 +86,7 @@ void vcpu_cominit(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull sche
 
 // Creates a new virtual processor.
 // \return the new virtual processor; NULL if creation has failed
-errno_t vcpu_create(const vcpu_sched_params_t* _Nonnull sched_params, vcpu_t _Nullable * _Nonnull pOutSelf)
+errno_t vcpu_create(const sched_params_t* _Nonnull sched_params, vcpu_t _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     vcpu_t self = NULL;
@@ -129,15 +129,15 @@ _Noreturn vcpu_terminate(vcpu_t _Nonnull self)
     /* NOT REACHED */
 }
 
-static int _schedpri_from_qos(const vcpu_sched_params_t* _Nonnull params)
+static int _schedpri_from_qos(const sched_params_t* _Nonnull params)
 {
     int sched_pri;
 
-    if (params->qos > VCPU_QOS_IDLE) {
-        sched_pri = ((params->qos - 1) << VCPU_PRI_SHIFT) + (params->priority - VCPU_PRI_LOWEST) + 1;
+    if (params->qos > SCHED_QOS_IDLE) {
+        sched_pri = ((params->qos - 1) << QOS_PRI_SHIFT) + (params->priority - QOS_PRI_LOWEST) + 1;
     }
     else {
-        // VCPU_QOS_IDLE has only one priority level
+        // SCHED_QOS_IDLE has only one priority level
         sched_pri = 0;
     }
 
@@ -146,7 +146,7 @@ static int _schedpri_from_qos(const vcpu_sched_params_t* _Nonnull params)
     return sched_pri;
 }
 
-void vcpu_getschedparams(vcpu_t _Nonnull self, vcpu_sched_params_t* _Nonnull params)
+void vcpu_getschedparams(vcpu_t _Nonnull self, sched_params_t* _Nonnull params)
 {
     const int sps = preempt_disable();
 
@@ -155,14 +155,14 @@ void vcpu_getschedparams(vcpu_t _Nonnull self, vcpu_sched_params_t* _Nonnull par
     preempt_restore(sps);
 }
 
-errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const vcpu_sched_params_t* _Nonnull params)
+errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull params)
 {
     VP_ASSERT_ALIVE(self);
 
-    if (params->qos < VCPU_QOS_BACKGROUND || params->qos > VCPU_QOS_REALTIME) {
+    if (params->qos < SCHED_QOS_BACKGROUND || params->qos > SCHED_QOS_REALTIME) {
         return EINVAL;
     }
-    if (params->priority < VCPU_PRI_LOWEST || params->priority > VCPU_PRI_HIGHEST) {
+    if (params->priority < QOS_PRI_LOWEST || params->priority > QOS_PRI_HIGHEST) {
         return EINVAL;
     }
 

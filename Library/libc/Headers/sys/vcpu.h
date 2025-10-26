@@ -27,7 +27,7 @@ typedef struct vcpu_attr {
     void* _Nullable         arg;
     size_t                  stack_size;
     vcpuid_t                groupid;
-    vcpu_sched_params_t     sched_params;
+    sched_params_t     sched_params;
     unsigned int            flags;
 } vcpu_attr_t;
 
@@ -67,8 +67,8 @@ extern void vcpu_resume(vcpu_t _Nonnull vcpu);
 
 extern void vcpu_yield(void);
 
-extern int vcpu_getschedparams(vcpu_t _Nullable vcpu, vcpu_sched_params_t* _Nonnull params);
-extern int vcpu_setschedparams(vcpu_t _Nullable vcpu, const vcpu_sched_params_t* _Nonnull params);
+extern int vcpu_getschedparams(vcpu_t _Nullable vcpu, sched_params_t* _Nonnull params);
+extern int vcpu_setschedparams(vcpu_t _Nullable vcpu, const sched_params_t* _Nonnull params);
 
 
 extern vcpu_key_t _Nullable vcpu_key_create(void (* _Nullable destructor)(void*));

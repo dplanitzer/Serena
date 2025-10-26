@@ -82,8 +82,8 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
     attr.arg = self;
     attr.stack_size = 0;
     attr.groupid = VCPUID_MAIN_GROUP;
-    attr.sched_params.qos = VCPU_QOS_REALTIME;
-    attr.sched_params.priority = VCPU_PRI_HIGHEST - 1;
+    attr.sched_params.qos = SCHED_QOS_REALTIME;
+    attr.sched_params.priority = QOS_PRI_HIGHEST - 1;
     attr.flags = VCPU_ACQUIRE_RESUMED;
     attr.data = 0;
     try(Process_AcquireVirtualProcessor(gKernelProcess, &attr, &self->reportsCollector));
