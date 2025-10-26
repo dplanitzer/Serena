@@ -49,7 +49,6 @@ struct sched {
     int8_t                      reserved[2];
     vcpu_t _Nonnull             idle_vp;                        // This VP is scheduled if there is no other VP to schedule
     vcpu_t _Nonnull             boot_vp;                        // This is the first VP that was created at boot time for a CPU. It takes care of scheduler chores like destroying terminated VPs
-    tick_t                      ticks_per_quarter_second;       // 1/4 second in terms of clock ticks
     List                        finalizer_queue;
     ready_queue_t               ready_queue;
 };
@@ -69,10 +68,6 @@ extern sched_t _Nonnull g_sched;
 // the boot virtual processor context is triggered by calling the
 // csw_switch_to_boot_vcpu() function. 
 extern void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx);
-
-// Called from OnStartup() after the heap has been created. Finishes the scheduler
-// initialization.
-extern void sched_finish_boot(sched_t _Nonnull self);
 
 // Gives the virtual processor scheduler opportunities to run tasks that take
 // care of internal duties. This function must be called from the boot virtual

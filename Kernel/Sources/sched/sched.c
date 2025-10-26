@@ -9,10 +9,8 @@
 #include "sched.h"
 #include "vcpu.h"
 #include "waitqueue.h"
-#include <machine/clock.h>
 #include <machine/csw.h>
 #include <kern/string.h>
-#include <kern/timespec.h>
 
 
 static void sched_dump_rdyq_locked(sched_t _Nonnull self);
@@ -66,15 +64,6 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
     sched_set_running(self, sched_highest_priority_ready(self), false);
     
     assert(self->scheduled == self->boot_vp);
-}
-
-void sched_finish_boot(sched_t _Nonnull self)
-{
-    decl_try_err();
-    struct timespec ts;
-    
-    timespec_from_ms(&ts, 250);
-    self->ticks_per_quarter_second = clock_time2ticks_ceil(g_mono_clock, &ts);
 }
 
 void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePriority, bool doFifo)

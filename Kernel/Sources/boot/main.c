@@ -119,11 +119,6 @@ static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc)
     clock_init_mono(g_mono_clock);
 
     
-    // Inform the scheduler that the heap exists now and that it should finish
-    // its boot related initialization sequence
-    sched_finish_boot(g_sched);
-    
-    
     // Initialize the virtual processor pool
     try_bang(vcpu_pool_create(&g_vcpu_pool));
     
