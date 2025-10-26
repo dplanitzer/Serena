@@ -220,9 +220,7 @@ void vcpu_yield(void)
 
     assert(self->sched_state == SCHED_STATE_RUNNING && self->suspension_count == 0);
 
-    sched_add_vcpu(g_sched, self, self->sched_priority);
-    sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
-    
+    sched_switch_to(g_sched, sched_highest_priority_ready(g_sched), true);    
     preempt_restore(sps);
 }
 
@@ -250,8 +248,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
             case SCHED_STATE_RUNNING:
                 // We're running, thus we are not on the ready queue. Do a forced
                 // context switch to some other VP.
-                sched_switch_to(g_sched,
-                                                   sched_highest_priority_ready(g_sched));
+                sched_switch_to(g_sched, sched_highest_priority_ready(g_sched), false);
                 break;
             
             case SCHED_STATE_WAITING:

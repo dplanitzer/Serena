@@ -68,7 +68,7 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, bo
     }
 
     // Find another VP to run and context switch to it
-    sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
+    sched_switch_to(g_sched, sched_highest_priority_ready(g_sched), false);
     
     if (armTimeout) {
         clock_cancel_deadline(g_mono_clock, &vp->timeout);

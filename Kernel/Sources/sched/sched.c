@@ -143,10 +143,7 @@ void sched_maybe_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
         vcpu_t pBestReadyVP = sched_highest_priority_ready(self);
         
         if (pBestReadyVP == vp && vp->effectivePriority >= self->running->effectivePriority) {
-            vcpu_t pCurRunning = (vcpu_t)self->running;
-            
-            sched_add_vcpu(self, pCurRunning, pCurRunning->sched_priority);
-            sched_switch_to(self, vp);
+            sched_switch_to(self, vp, true);
         }
     }
 }
@@ -156,9 +153,12 @@ void sched_maybe_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 // Expects that the call has already added the currently running VP to a wait
 // queue or the finalizer queue.
 // @Entry Condition: preemption disabled
-void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
+void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToReady)
 {
     sched_set_running(self, vp);
+    if (doRunToReady) {
+        sched_add_vcpu(self, self->running, self->running->sched_priority);
+    }
     csw_switch();
 }
 
@@ -210,7 +210,7 @@ _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
         // Do a forced context switch to whoever is ready
         // NOTE: we do NOT put the currently running VP back on the ready queue
         // because it is dead.
-        sched_switch_to(self, sched_highest_priority_ready(self));
+        sched_switch_to(self, sched_highest_priority_ready(self), false);
     }
     
     /* NOT REACHED */
