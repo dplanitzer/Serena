@@ -165,7 +165,6 @@ vp_timeout_arg                          so.l    1           ; 4
 vp_timeout_is_armed                     so.b    1           ; 1
 vp_timeout_reserved                     so.b    3           ; 3
 vp_waiting_on_wait_queue                so.l    1           ; 4
-vp_wait_start_time                      so.l    1           ; 4
 vp_wait_sigs                            so.l    1           ; 4
 vp_wakeup_reason                        so.b    1           ; 1
 vp_qos                                  so.b    1           ; 1
@@ -184,7 +183,7 @@ vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
 vp_reserved3                            so.b    3           ; 3
 vp_SIZEOF                       so
-    ifeq (vp_SIZEOF == 132)
+    ifeq (vp_SIZEOF == 128)
         fail "vcpu structure size is incorrect."
     endif
 

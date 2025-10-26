@@ -86,7 +86,6 @@ void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int effectivePri
     
     vp->sched_state = SCHED_STATE_READY;
     vp->effectivePriority = effectivePriority;
-    vp->wait_start_time = clock_getticks(g_mono_clock);
     
     if (doFifo) {
         List_InsertAfterLast(&self->ready_queue.priority[vp->effectivePriority], &vp->rewa_qe);

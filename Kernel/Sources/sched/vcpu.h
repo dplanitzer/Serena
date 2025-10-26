@@ -115,7 +115,6 @@ struct vcpu {
     // Waiting related state
     clock_deadline_t                timeout;                // The wait timeout timer
     waitqueue_t _Nullable           waiting_on_wait_queue;  // The wait queue this VP is waiting on; NULL if not waiting. Used by the scheduler to wake up on timeout
-    tick_t                          wait_start_time;        // Time when we entered waiting state
     sigset_t                        wait_sigs;              // Which signals should cause a wakeup on arrival
     int8_t                          wakeup_reason;
     

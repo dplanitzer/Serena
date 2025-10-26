@@ -57,7 +57,6 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, bo
     
     vp->sched_state = SCHED_STATE_WAITING;
     vp->waiting_on_wait_queue = self;
-    vp->wait_start_time = clock_getticks(g_mono_clock);
     vp->wait_sigs = hot_sigs;
     vp->wakeup_reason = 0;
 
