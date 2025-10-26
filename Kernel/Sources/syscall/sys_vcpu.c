@@ -116,20 +116,20 @@ SYSCALL_0(vcpu_yield)
     return EOK;
 }
 
-SYSCALL_2(vcpu_getschedparams, vcpuid_t id, sched_params_t* _Nonnull params)
+SYSCALL_3(vcpu_getschedparams, vcpuid_t id, int type, sched_params_t* _Nonnull params)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
 
     if (pa->id == VCPUID_SELF) {
-        vcpu_getschedparams(vp, pa->params);
+        err = vcpu_getschedparams(vp, pa->type, pa->params);
     }
     else {
         mtx_lock(&pp->mtx);
         vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
 
         if (vcp) {
-            vcpu_getschedparams(vcp, pa->params);
+            err = vcpu_getschedparams(vcp, pa->type, pa->params);
         }
         else {
             err = ESRCH;

@@ -67,7 +67,7 @@ extern void vcpu_resume(vcpu_t _Nonnull vcpu);
 
 extern void vcpu_yield(void);
 
-extern int vcpu_getschedparams(vcpu_t _Nullable vcpu, sched_params_t* _Nonnull params);
+extern int vcpu_getschedparams(vcpu_t _Nullable vcpu, int type, sched_params_t* _Nonnull params);
 extern int vcpu_setschedparams(vcpu_t _Nullable vcpu, const sched_params_t* _Nonnull params);
 
 

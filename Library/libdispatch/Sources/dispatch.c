@@ -572,8 +572,9 @@ static void _dispatch_applyschedparams(dispatch_t _Nonnull _Locked self, int qos
 {
     sched_params_t params;
 
-    params.qos = qos;
-    params.priority = priority;
+    params.type = SCHED_PARAM_QOS;
+    params.u.qos.category = qos;
+    params.u.qos.priority = priority;
     
     self->attr.qos = qos;
     self->attr.priority = priority;

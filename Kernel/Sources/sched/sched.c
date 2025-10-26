@@ -334,8 +334,9 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
 
     // Create the VP
     sched_params_t sp;
-    sp.qos = SCHED_QOS_INTERACTIVE;
-    sp.priority = QOS_PRI_LOWEST;
+    sp.type = SCHED_PARAM_QOS;
+    sp.u.qos.category = SCHED_QOS_INTERACTIVE;
+    sp.u.qos.priority = QOS_PRI_LOWEST;
     vcpu_cominit(self, &sp, false);
 
     vcpu_context_t cl;
@@ -375,8 +376,9 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
 
     // Create the VP
     sched_params_t sp;
-    sp.qos = SCHED_QOS_IDLE;
-    sp.priority = 0;
+    sp.type = SCHED_PARAM_QOS;
+    sp.u.qos.category = SCHED_QOS_IDLE;
+    sp.u.qos.priority = 0;
     vcpu_cominit(self, &sp, false);
 
     vcpu_context_t cl;

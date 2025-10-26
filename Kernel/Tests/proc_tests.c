@@ -45,8 +45,9 @@ void proc_exit_test(int argc, char *argv[])
         attr.func = (vcpu_func_t)((r) ? spin_loop : just_wait);
         attr.arg = gStr[r];
         attr.stack_size = 0;
-        attr.sched_params.qos = SCHED_QOS_INTERACTIVE;
-        attr.sched_params.priority = QOS_PRI_NORMAL;
+        attr.sched_params.type = SCHED_PARAM_QOS;
+        attr.sched_params.u.qos.category = SCHED_QOS_INTERACTIVE;
+        attr.sched_params.u.qos.priority = QOS_PRI_NORMAL;
         attr.groupid = 0;
         attr.flags = VCPU_ACQUIRE_RESUMED;
         gId[i] = vcpu_acquire(&attr);

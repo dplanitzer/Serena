@@ -34,9 +34,18 @@
 #define QOS_PRI_COUNT       (1 << QOS_PRI_SHIFT)
 
 
-typedef struct sched_params {
-    int qos;
+#define SCHED_PARAM_QOS     1
+
+struct sched_qos_params {
+    int category;
     int priority;
+};
+
+typedef struct sched_params {
+    int type;
+    union {
+        struct sched_qos_params qos;
+    }   u;
 } sched_params_t;
 
 #endif /* _KPI_SCHED_H */

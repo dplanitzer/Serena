@@ -52,6 +52,8 @@ _Noreturn vcpu_relinquish(void)
 // \param priority the initial VP priority
 void vcpu_cominit(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params, bool suspended)
 {
+    assert(sched_params->type == SCHED_PARAM_QOS);
+
     self->rewa_qe = LISTNODE_INIT;
     stk_init(&self->kernel_stack);
     stk_init(&self->user_stack);
@@ -72,8 +74,8 @@ void vcpu_cominit(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_par
     
     self->sched_state = SCHED_STATE_READY;
     self->flags = (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_HAS_FPU : 0;
-    self->qos = sched_params->qos;
-    self->qos_priority = sched_params->priority;
+    self->qos = sched_params->u.qos.category;
+    self->qos_priority = sched_params->u.qos.priority;
     self->sched_priority = (int8_t)_schedpri_from_qos(sched_params);
     self->suspension_count = (suspended) ? 1 : 0;
     
@@ -133,8 +135,8 @@ static int _schedpri_from_qos(const sched_params_t* _Nonnull params)
 {
     int sched_pri;
 
-    if (params->qos > SCHED_QOS_IDLE) {
-        sched_pri = ((params->qos - 1) << QOS_PRI_SHIFT) + (params->priority - QOS_PRI_LOWEST) + 1;
+    if (params->u.qos.category > SCHED_QOS_IDLE) {
+        sched_pri = ((params->u.qos.category - 1) << QOS_PRI_SHIFT) + (params->u.qos.priority - QOS_PRI_LOWEST) + 1;
     }
     else {
         // SCHED_QOS_IDLE has only one priority level
@@ -146,23 +148,37 @@ static int _schedpri_from_qos(const sched_params_t* _Nonnull params)
     return sched_pri;
 }
 
-void vcpu_getschedparams(vcpu_t _Nonnull self, sched_params_t* _Nonnull params)
+errno_t vcpu_getschedparams(vcpu_t _Nonnull self, int type, sched_params_t* _Nonnull params)
 {
+    decl_try_err();
     const int sps = preempt_disable();
 
-    params->qos = self->qos;
-    params->priority = self->qos_priority;
+    switch (type) {
+        case SCHED_PARAM_QOS:
+            params->type = SCHED_PARAM_QOS;
+            params->u.qos.category = self->qos;
+            params->u.qos.priority = self->qos_priority;
+            break;
+
+        default:
+            err = EINVAL;
+            break;
+    }
     preempt_restore(sps);
+
+    return err;
 }
 
 errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull params)
 {
     VP_ASSERT_ALIVE(self);
 
-    if (params->qos < SCHED_QOS_BACKGROUND || params->qos > SCHED_QOS_REALTIME) {
+    if (params->type != SCHED_PARAM_QOS) 
+    return EINVAL;
+    if (params->u.qos.category < SCHED_QOS_BACKGROUND || params->u.qos.category > SCHED_QOS_REALTIME) {
         return EINVAL;
     }
-    if (params->priority < QOS_PRI_LOWEST || params->priority > QOS_PRI_HIGHEST) {
+    if (params->u.qos.priority < QOS_PRI_LOWEST || params->u.qos.priority > QOS_PRI_HIGHEST) {
         return EINVAL;
     }
 
@@ -176,8 +192,8 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull
                 if (self->suspension_count == 0) {
                     sched_extract_ready(g_sched, self);
                 }
-                self->qos = params->qos;
-                self->qos_priority = params->priority;
+                self->qos = params->u.qos.category;
+                self->qos_priority = params->u.qos.priority;
                 self->sched_priority = new_sched_pri;
                 if (self->suspension_count == 0) {
                     sched_set_ready(g_sched, self, 0, true);
@@ -185,14 +201,14 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull
                 break;
                 
             case SCHED_STATE_WAITING:
-                self->qos = params->qos;
-                self->qos_priority = params->priority;
+                self->qos = params->u.qos.category;
+                self->qos_priority = params->u.qos.priority;
                 self->sched_priority = new_sched_pri;
                 break;
                 
             case SCHED_STATE_RUNNING:
-                self->qos = params->qos;
-                self->qos_priority = params->priority;
+                self->qos = params->u.qos.category;
+                self->qos_priority = params->u.qos.priority;
                 self->sched_priority = new_sched_pri;
                 self->effectivePriority = new_sched_pri;
                 self->quantum_countdown = qos_quantum(self->qos);

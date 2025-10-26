@@ -103,9 +103,9 @@ void vcpu_yield(void)
     (void)_syscall(SC_vcpu_yield);
 }
 
-int vcpu_getschedparams(vcpu_t _Nullable vcpu, sched_params_t* _Nonnull params)
+int vcpu_getschedparams(vcpu_t _Nullable vcpu, int type, sched_params_t* _Nonnull params)
 {
-    return (int)_syscall(SC_vcpu_getschedparams, (vcpu) ? vcpu->id : VCPUID_SELF, params);
+    return (int)_syscall(SC_vcpu_getschedparams, (vcpu) ? vcpu->id : VCPUID_SELF, type, params);
 }
 
 int vcpu_setschedparams(vcpu_t _Nullable vcpu, const sched_params_t* _Nonnull params)

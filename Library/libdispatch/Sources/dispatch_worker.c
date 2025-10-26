@@ -22,8 +22,9 @@ static bool _dispatch_worker_acquire_vcpu(dispatch_worker_t _Nonnull self)
     r_attr.arg = self;
     r_attr.stack_size = 0;
     r_attr.groupid = owner->groupid;
-    r_attr.sched_params.qos = owner->attr.qos;
-    r_attr.sched_params.priority = owner->attr.priority;
+    r_attr.sched_params.type = SCHED_PARAM_QOS;
+    r_attr.sched_params.u.qos.category = owner->attr.qos;
+    r_attr.sched_params.u.qos.priority = owner->attr.priority;
     r_attr.flags = 0;
 
     self->allow_relinquish = true;

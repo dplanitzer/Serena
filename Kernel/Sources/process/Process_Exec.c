@@ -118,8 +118,9 @@ static errno_t _proc_img_acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void
     kp.userStackSize = VP_DEFAULT_USER_STACK_SIZE;
     kp.id = VCPUID_MAIN;
     kp.groupid = VCPUID_MAIN_GROUP;
-    kp.schedParams.qos = SCHED_QOS_INTERACTIVE;
-    kp.schedParams.priority = QOS_PRI_NORMAL;
+    kp.schedParams.type = SCHED_PARAM_QOS;
+    kp.schedParams.u.qos.category = SCHED_QOS_INTERACTIVE;
+    kp.schedParams.u.qos.priority = QOS_PRI_NORMAL;
     kp.isUser = true;
 
     err = vcpu_pool_acquire(g_vcpu_pool, &kp, &vp);

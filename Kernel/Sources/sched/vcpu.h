@@ -170,7 +170,7 @@ void vcpu_destroy(vcpu_t _Nullable self);
 
 
 // Returns a copy of the given virtual processor's scheduling parameters.
-extern void vcpu_getschedparams(vcpu_t _Nonnull self, sched_params_t* _Nonnull params);
+extern errno_t vcpu_getschedparams(vcpu_t _Nonnull self, int type, sched_params_t* _Nonnull params);
 
 // Changes the scheduling parameters of the given virtual processor. Does not
 // immediately reschedule the VP if it is currently running. Instead the VP is

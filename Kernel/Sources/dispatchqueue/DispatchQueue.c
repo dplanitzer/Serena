@@ -199,8 +199,9 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
         attr.arg = self;
         attr.stack_size = 0;
         attr.groupid = VCPUID_MAIN_GROUP;
-        attr.sched_params.qos = self->qos;
-        attr.sched_params.priority = self->priority;
+        attr.sched_params.type = SCHED_PARAM_QOS;
+        attr.sched_params.u.qos.category = self->qos;
+        attr.sched_params.u.qos.priority = self->priority;
         attr.flags = 0;
         attr.data = 0;
 
