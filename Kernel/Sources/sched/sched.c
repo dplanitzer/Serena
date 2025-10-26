@@ -58,44 +58,55 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
     assert(self->scheduled == self->boot_vp);
 }
 
+static unsigned int _calc_effective_priority(vcpu_t _Nonnull vp, int priorityBoost)
+{
+    const int pri = vp->sched_priority + priorityBoost;
+
+    return  (unsigned int)__max(__min(pri, SCHED_PRI_HIGHEST), SCHED_PRI_LOWEST + 1);
+}
+
 void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int priorityBoost, bool doFifo)
 {
+    unsigned int pri;
+
     assert(vp != NULL);
     assert(vp->rewa_qe.prev == NULL);
     assert(vp->rewa_qe.next == NULL);
     assert(vp->suspension_count == 0);
     
-    vp->sched_state = SCHED_STATE_READY;
 
     if (vp->sched_priority > SCHED_PRI_LOWEST) {
-        vp->effectivePriority = __max(__min(vp->sched_priority + priorityBoost, SCHED_PRI_HIGHEST), SCHED_PRI_LOWEST + 1);
+        pri = _calc_effective_priority(vp, priorityBoost);
     }
     else {
-        vp->effectivePriority = SCHED_PRI_LOWEST;
+        pri = SCHED_PRI_LOWEST;
     }
     
+    vp->sched_state = SCHED_STATE_READY;
+    vp->effectivePriority = (uint8_t)pri;
+
     if (doFifo) {
-        List_InsertAfterLast(&self->ready_queue.priority[vp->effectivePriority], &vp->rewa_qe);
+        List_InsertAfterLast(&self->ready_queue.priority[pri], &vp->rewa_qe);
     }
     else {
-        List_InsertBeforeFirst(&self->ready_queue.priority[vp->effectivePriority], &vp->rewa_qe);
+        List_InsertBeforeFirst(&self->ready_queue.priority[pri], &vp->rewa_qe);
     }
     
-    const int popByteIdx = vp->effectivePriority >> 3;
-    const int popBitIdx = vp->effectivePriority - (popByteIdx << 3);
+    const unsigned int popByteIdx = pri >> 3;
+    const unsigned int popBitIdx = pri - (popByteIdx << 3);
     self->ready_queue.populated[popByteIdx] |= (1 << popBitIdx);
 }
 
 // Takes the given virtual processor off the ready queue.
 void sched_extract_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
-    register const int pri = vp->effectivePriority;
+    register const unsigned int pri = vp->effectivePriority;
     
     List_Remove(&self->ready_queue.priority[pri], &vp->rewa_qe);
     
     if (List_IsEmpty(&self->ready_queue.priority[pri])) {
-        const int i = pri >> 3;
-        const int popBitIdx = pri - (i << 3);
+        const unsigned int i = pri >> 3;
+        const unsigned int popBitIdx = pri - (i << 3);
 
         self->ready_queue.populated[i] &= ~(1 << popBitIdx);
     }

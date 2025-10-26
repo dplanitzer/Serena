@@ -206,10 +206,10 @@ int vcpu_getcurrentpriority(vcpu_t _Nonnull self)
 {
     VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
-    const int pri = self->effectivePriority;
+    const uint8_t pri = self->effectivePriority;
     
     preempt_restore(sps);
-    return pri;
+    return (int)pri;
 }
 
 // Yields the remainder of the current quantum to other VPs.
