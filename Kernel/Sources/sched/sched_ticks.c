@@ -82,6 +82,6 @@ void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 
         
         // Request a context switch
-        sched_set_running(self, rdy, false);
+        sched_set_running(self, rdy);
     }
 }
