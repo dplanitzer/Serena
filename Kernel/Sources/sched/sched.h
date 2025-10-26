@@ -120,7 +120,7 @@ extern void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp);
 //
 
 // @Entry Condition: preemption disabled
-extern void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp);
+extern void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToReady);
 
 
 #endif /* _SCHED_H */

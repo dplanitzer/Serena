@@ -77,11 +77,6 @@ void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
     // Otherwise we'll continue to run for another time slice.
     register vcpu_t rdy = sched_highest_priority_ready(self);
     if (rdy && rdy->effectivePriority >= run->effectivePriority) {
-        // Move the currently running VP back to the ready queue
-        sched_add_vcpu(self, run, run->sched_priority);
-
-        
-        // Request a context switch
-        sched_set_running(self, rdy);
+        sched_set_running(self, rdy, true);
     }
 }
