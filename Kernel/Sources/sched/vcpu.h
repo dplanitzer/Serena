@@ -124,8 +124,9 @@ struct vcpu {
     // Scheduling related state
     int8_t                          qos;                    // call vcpu_sched_params_changed() on change
     int8_t                          qos_priority;
-    int8_t                          reserved[2];
+    int8_t                          reserved[1];
     int8_t                          priority_bias;          // used to depress or boost the effective priority (call vcpu_sched_params_changed() on change)
+    uint8_t                         sched_priority;         // cached (static) schedule derived from the QoS parameters. Computed by vcpu_sched_params_changed() 
     uint8_t                         effective_priority;     // computed priority used for scheduling. Computed by vcpu_sched_params_changed()
     int8_t                          sched_state;
     uint8_t                         flags;

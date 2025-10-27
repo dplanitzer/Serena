@@ -149,21 +149,22 @@ void vcpu_reduce_sched_penalty(vcpu_t _Nonnull self, int weight)
 
 void vcpu_sched_params_changed(vcpu_t _Nonnull self)
 {
-    int pri;
+    int sched_pri, eff_pri;
 
     if (self->qos > SCHED_QOS_IDLE) {
-        pri = ((self->qos - 1) << QOS_PRI_SHIFT) + (self->qos_priority - QOS_PRI_LOWEST) + 1;
-        pri += self->priority_bias;
-        pri = __max(__min(pri, SCHED_PRI_HIGHEST), SCHED_PRI_LOWEST + 1);
+        sched_pri = ((self->qos - 1) << QOS_PRI_SHIFT) + (self->qos_priority - QOS_PRI_LOWEST) + 1;
+        eff_pri = sched_pri + self->priority_bias;
+        eff_pri = __max(__min(eff_pri, SCHED_PRI_HIGHEST), SCHED_PRI_LOWEST + 1);
     }
     else {
         // SCHED_QOS_IDLE has only one priority level
-        pri = 0;
+        eff_pri = SCHED_PRI_LOWEST;
     }
 
-    assert(pri >= SCHED_PRI_LOWEST && pri <= SCHED_PRI_HIGHEST);
+    assert(eff_pri >= SCHED_PRI_LOWEST && eff_pri <= SCHED_PRI_HIGHEST);
 
-    self->effective_priority = (uint8_t)pri;
+    self->sched_priority = (uint8_t)sched_pri;
+    self->effective_priority = (uint8_t)eff_pri;
 }
 
 errno_t vcpu_getschedparams(vcpu_t _Nonnull self, int type, sched_params_t* _Nonnull params)
