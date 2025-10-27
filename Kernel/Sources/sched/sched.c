@@ -92,23 +92,18 @@ void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int priorityBoos
         List_InsertBeforeFirst(&self->ready_queue.priority[pri], &vp->rewa_qe);
     }
     
-    const unsigned int popByteIdx = pri >> 3;
-    const unsigned int popBitIdx = pri - (popByteIdx << 3);
-    self->ready_queue.populated[popByteIdx] |= (1 << popBitIdx);
+    self->ready_queue.populated[pri >> 3] |= (1 << (pri & 7));
 }
 
 // Takes the given virtual processor off the ready queue.
 void sched_extract_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
-    register const unsigned int pri = vp->effectivePriority;
+    const unsigned int pri = vp->effectivePriority;
     
     List_Remove(&self->ready_queue.priority[pri], &vp->rewa_qe);
     
     if (List_IsEmpty(&self->ready_queue.priority[pri])) {
-        const unsigned int i = pri >> 3;
-        const unsigned int popBitIdx = pri - (i << 3);
-
-        self->ready_queue.populated[i] &= ~(1 << popBitIdx);
+        self->ready_queue.populated[pri >> 3] &= ~(1 << (pri & 7));
     }
 }
 
