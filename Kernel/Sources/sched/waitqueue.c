@@ -181,7 +181,7 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
     if (vp->suspension_count == 0) {
         // Reduce a scheduling penalty if one exists
         if (vp->priority_bias < 0) {
-            vcpu_reduce_sched_penalty(vp, 1);
+            vcpu_reduce_sched_penalty(vp, -vp->priority_bias);
         }
 
         // Make the VP ready and move it to the front of its ready queue if it
