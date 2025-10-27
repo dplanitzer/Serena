@@ -170,7 +170,7 @@ vp_qos                                  so.b    1           ; 1
 vp_qos_priority                         so.b    1           ; 1
 vp_reserved1                            so.b    1           ; 1
 vp_reserved2                            so.b    1           ; 1
-vp_sched_priority                       so.b    1           ; 1
+vp_priority_bias                        so.b    1           ; 1
 vp_effective_priority                   so.b    1           ; 1
 vp_sched_state                          so.b    1           ; 1
 vp_flags                                so.b    1           ; 1

@@ -43,12 +43,12 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
 
     // Initialize the boot virtual processor
     self->boot_vp = boot_vcpu_create(bap, fn, ctx);
-    sched_set_ready(self, self->boot_vp, 0, true);
+    sched_set_ready(self, self->boot_vp, true);
 
 
     // Initialize the idle virtual processor
     self->idle_vp = idle_vcpu_create(bap);
-    sched_set_ready(self, self->idle_vp, 0, true);
+    sched_set_ready(self, self->idle_vp, true);
 
 
     // Initialize the scheduler    
@@ -58,32 +58,16 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
     assert(self->scheduled == self->boot_vp);
 }
 
-static unsigned int _calc_effective_priority(vcpu_t _Nonnull vp, int priorityBoost)
+void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doFifo)
 {
-    const int pri = vp->sched_priority + priorityBoost;
-
-    return  (unsigned int)__max(__min(pri, SCHED_PRI_HIGHEST), SCHED_PRI_LOWEST + 1);
-}
-
-void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int priorityBoost, bool doFifo)
-{
-    unsigned int pri;
-
     assert(vp != NULL);
     assert(vp->rewa_qe.prev == NULL);
     assert(vp->rewa_qe.next == NULL);
     assert(vp->suspension_count == 0);
     
 
-    if (vp->sched_priority > SCHED_PRI_LOWEST) {
-        pri = _calc_effective_priority(vp, priorityBoost);
-    }
-    else {
-        pri = SCHED_PRI_LOWEST;
-    }
-    
     vp->sched_state = SCHED_STATE_READY;
-    vp->effectivePriority = (uint8_t)pri;
+    const unsigned int pri = vp->effective_priority;
 
     if (doFifo) {
         List_InsertAfterLast(&self->ready_queue.priority[pri], &vp->rewa_qe);
@@ -96,9 +80,9 @@ void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int priorityBoos
 }
 
 // Takes the given virtual processor off the ready queue.
-void sched_extract_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp)
+void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
-    const unsigned int pri = vp->effectivePriority;
+    const unsigned int pri = vp->effective_priority;
     
     List_Remove(&self->ready_queue.priority[pri], &vp->rewa_qe);
     
@@ -158,7 +142,7 @@ void sched_maybe_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
         && vp->suspension_count == 0) {
         vcpu_t pBestReadyVP = sched_highest_priority_ready(self);
         
-        if (pBestReadyVP == vp && vp->effectivePriority >= self->running->effectivePriority) {
+        if (pBestReadyVP == vp && vp->effective_priority >= self->running->effective_priority) {
             sched_switch_to(self, vp, true);
         }
     }
@@ -183,7 +167,7 @@ void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToRead
 // @Entry Condition: preemption disabled
 void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToReady)
 {
-    sched_extract_ready(self, vp);
+    sched_set_unready(self, vp);
 
     vp->quantum_countdown = qos_quantum(vp->qos);
 
@@ -191,7 +175,7 @@ void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToRe
     self->csw_signals |= CSW_SIGNAL_SWITCH;
 
     if (doRunToReady) {
-        sched_set_ready(self, self->running, 0, true);
+        sched_set_ready(self, self->running, true);
     }
 }
 

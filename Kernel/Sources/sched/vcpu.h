@@ -122,8 +122,8 @@ struct vcpu {
     int8_t                          qos;
     int8_t                          qos_priority;
     int8_t                          reserved[2];
-    uint8_t                         sched_priority;         // absolute scheduler priority derived from QoS
-    uint8_t                         effectivePriority;      // computed priority used for scheduling
+    uint8_t                         priority_bias;         // used to depress or boost the effective priority
+    uint8_t                         effective_priority;    // computed priority used for scheduling
     int8_t                          sched_state;
     uint8_t                         flags;
     int8_t                          quantum_countdown;      // for how many contiguous clock ticks this VP may run for before the scheduler will consider scheduling some other same or lower priority VP
@@ -257,5 +257,7 @@ extern void vcpu_uret_exit(void);
 extern void vcpu_cominit(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params, bool suspended);
 
 extern void __func_vcpu_destroy(vcpu_t _Nullable self);
+
+extern void vcpu_sched_params_changed(vcpu_t _Nonnull self);
 
 #endif /* _VCPU_H */

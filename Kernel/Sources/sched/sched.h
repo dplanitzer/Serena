@@ -91,10 +91,10 @@ extern void preempt_restore(int sps);
 extern _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 
 // @Entry Condition: preemption disabled
-extern void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int priorityBoosts, bool doFifo);
+extern void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doFifo);
 
 // @Entry Condition: preemption disabled
-extern void sched_extract_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp);
+extern void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 
 // @Entry Condition: preemption disabled
 #define sched_highest_priority_ready(__self) \
