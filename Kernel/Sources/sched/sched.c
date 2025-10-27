@@ -107,26 +107,43 @@ void sched_extract_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp)
     }
 }
 
-// Find the best VP to run next and return it. Null is returned if no VP is ready
-// to run. This will only happen if this function is called from the quantum
-// interrupt while the idle VP is the running VP.
-vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self)
+vcpu_t _Nullable sched_highest_priority_ready_starting_at(sched_t _Nonnull self, int pri)
 {
-    for (int i = SCHED_PRI_POP_BYTE_COUNT - 1; i >= 0; i--) {
-        register const uint8_t pop = self->ready_queue.populated[i];
+    int by = pri >> 3;
+    int bit = pri & 7;
+
+    if (bit < 7) {
+        register const uint8_t pop = self->ready_queue.populated[by];
+
+        while (bit >= 0) {
+            if ((pop & (1 << bit)) != 0) {
+                return (vcpu_t)self->ready_queue.priority[(by << 3) + bit].first;
+            }
+
+            bit--;
+        }
+
+        by--;
+        bit = 7;
+    }
+
+    while (by >= 0) {
+        register const uint8_t pop = self->ready_queue.populated[by];
         
         if (pop) {
-            if (pop & 0x80) { return (vcpu_t) self->ready_queue.priority[(i << 3) + 7].first; }
-            if (pop & 0x40) { return (vcpu_t) self->ready_queue.priority[(i << 3) + 6].first; }
-            if (pop & 0x20) { return (vcpu_t) self->ready_queue.priority[(i << 3) + 5].first; }
-            if (pop & 0x10) { return (vcpu_t) self->ready_queue.priority[(i << 3) + 4].first; }
-            if (pop & 0x8)  { return (vcpu_t) self->ready_queue.priority[(i << 3) + 3].first; }
-            if (pop & 0x4)  { return (vcpu_t) self->ready_queue.priority[(i << 3) + 2].first; }
-            if (pop & 0x2)  { return (vcpu_t) self->ready_queue.priority[(i << 3) + 1].first; }
-            if (pop & 0x1)  { return (vcpu_t) self->ready_queue.priority[(i << 3) + 0].first; }
+            if (pop & 0x80) { return (vcpu_t) self->ready_queue.priority[(by << 3) + 7].first; }
+            if (pop & 0x40) { return (vcpu_t) self->ready_queue.priority[(by << 3) + 6].first; }
+            if (pop & 0x20) { return (vcpu_t) self->ready_queue.priority[(by << 3) + 5].first; }
+            if (pop & 0x10) { return (vcpu_t) self->ready_queue.priority[(by << 3) + 4].first; }
+            if (pop & 0x8)  { return (vcpu_t) self->ready_queue.priority[(by << 3) + 3].first; }
+            if (pop & 0x4)  { return (vcpu_t) self->ready_queue.priority[(by << 3) + 2].first; }
+            if (pop & 0x2)  { return (vcpu_t) self->ready_queue.priority[(by << 3) + 1].first; }
+            if (pop & 0x1)  { return (vcpu_t) self->ready_queue.priority[(by << 3) + 0].first; }
         }
+
+        by--;
     }
-    
+
     return NULL;
 }
 

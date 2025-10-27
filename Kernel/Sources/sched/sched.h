@@ -97,7 +97,11 @@ extern void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, int prior
 extern void sched_extract_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 
 // @Entry Condition: preemption disabled
-extern vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self);
+#define sched_highest_priority_ready(__self) \
+sched_highest_priority_ready_starting_at(__self, SCHED_PRI_HIGHEST)
+
+// @Entry Condition: preemption disabled
+extern vcpu_t _Nullable sched_highest_priority_ready_starting_at(sched_t _Nonnull self, int pri);
 
 extern void sched_maybe_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 extern void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToReady);
