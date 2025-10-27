@@ -12,9 +12,41 @@
 #include <kpi/types.h>
 
 // Quality of Service level. From highest to lowest.
-// SCHED_QOS_REALTIME: kernel will minimize the scheduling latency. Realtime is always scheduled before anything else
-// SCHED_QOS_BACKGROUND: no guarantee with regards to schedule latency.
-// SCHED_QOS_IDLE: kernel internal. Has only 1 priority. Only scheduled if there is nothing to schedule for a SCHED_QOS_XXX > SCHED_QOS_IDLE
+// SCHED_QOS_REALTIME:
+//  - fixed priority
+//  - smallest quantum
+//  - minimized latency on wakeup
+//  -- eg used for animations, video  & audio playback
+//
+// SCHED_QOS_URGENT:
+//  - dynamic priority
+//  - longer quantum compared to realtime QoS
+//  - short latency on wakeup
+//  -- eg used for I/O drivers
+//
+// SCHED_QOS_INTERACTIVE:
+//  - dynamic priority
+//  - longer quantum compared to urgent QoS
+//  - short latency on wakeup
+//  -- eg used for apps the user is interacting with
+//
+// SCHED_QOS_UTILITY:
+//  - dynamic priority
+//  - longer quantum compared to interactive QoS
+//  - higher latency on wakeup
+//  -- eg used for background cpu-bound jobs inside an interactive app
+//
+// SCHED_QOS_BACKGROUND:
+//  - dynamic priority
+//  - longest quantum of all QoS
+//  - higher latency on wakeup
+//  -- eg used for system wide or user specific cpu-bound jobs that should run on the background
+//
+// SCHED_QOS_IDLE:
+//  - fixed priority
+//  - shortest quantum of all QoS
+//  - may put CPU temporarily to sleep
+//  - used by the scheduler to consume unused CPU cycles
 #define SCHED_QOS_REALTIME      5
 #define SCHED_QOS_URGENT        4
 #define SCHED_QOS_INTERACTIVE   3
