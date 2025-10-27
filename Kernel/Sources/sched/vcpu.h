@@ -119,11 +119,11 @@ struct vcpu {
     int8_t                          wakeup_reason;
     
     // Scheduling related state
-    int8_t                          qos;
+    int8_t                          qos;                    // call vcpu_sched_params_changed() on change
     int8_t                          qos_priority;
     int8_t                          reserved[2];
-    uint8_t                         priority_bias;         // used to depress or boost the effective priority
-    uint8_t                         effective_priority;    // computed priority used for scheduling
+    uint8_t                         priority_bias;          // used to depress or boost the effective priority (call vcpu_sched_params_changed() on change)
+    uint8_t                         effective_priority;     // computed priority used for scheduling. Computed by vcpu_sched_params_changed()
     int8_t                          sched_state;
     uint8_t                         flags;
     int8_t                          quantum_countdown;      // for how many contiguous clock ticks this VP may run for before the scheduler will consider scheduling some other same or lower priority VP
