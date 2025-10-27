@@ -173,8 +173,9 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull
 {
     VP_ASSERT_ALIVE(self);
 
-    if (params->type != SCHED_PARAM_QOS) 
-    return EINVAL;
+    if (params->type != SCHED_PARAM_QOS) {
+        return EINVAL;
+    }
     if (params->u.qos.category < SCHED_QOS_BACKGROUND || params->u.qos.category > SCHED_QOS_REALTIME) {
         return EINVAL;
     }
