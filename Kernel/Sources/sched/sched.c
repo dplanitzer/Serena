@@ -24,9 +24,9 @@ static struct waitqueue g_sched_wq;     // The scheduler VP waits on this queue
 const int8_t g_quantum_length[SCHED_QOS_COUNT] = {
     1,      /* Realtime */
     2,      /* Urgent */
-    3,      /* Interactive */
-    4,      /* Utility */
-    8,      /* Background */
+    4,      /* Interactive */
+    6,      /* Utility */
+    10,     /* Background */
     1,      /* Idle */
 };
 

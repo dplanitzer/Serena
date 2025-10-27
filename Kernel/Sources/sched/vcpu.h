@@ -83,6 +83,9 @@ struct vcpu_vtable {
 typedef struct vcpu_vtable* vcpu_vtable_t;
 
 
+#define SCHED_PRIORITY_BIAS_HIGHEST INT8_MAX 
+#define SCHED_PRIORITY_BIAS_LOWEST  INT8_MIN 
+
 // Note: Keep in sync with machine/hal/lowmem.i
 struct vcpu {
     ListNode                        rewa_qe;                // A VP is either on the ready (re) queue or a wait (wa) queue
@@ -122,7 +125,7 @@ struct vcpu {
     int8_t                          qos;                    // call vcpu_sched_params_changed() on change
     int8_t                          qos_priority;
     int8_t                          reserved[2];
-    uint8_t                         priority_bias;          // used to depress or boost the effective priority (call vcpu_sched_params_changed() on change)
+    int8_t                          priority_bias;          // used to depress or boost the effective priority (call vcpu_sched_params_changed() on change)
     uint8_t                         effective_priority;     // computed priority used for scheduling. Computed by vcpu_sched_params_changed()
     int8_t                          sched_state;
     uint8_t                         flags;
@@ -258,6 +261,10 @@ extern void vcpu_cominit(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sc
 
 extern void __func_vcpu_destroy(vcpu_t _Nullable self);
 
+// @Entry Condition: preemption disabled
+extern void vcpu_reduce_sched_penalty(vcpu_t _Nonnull self, int weight);
+
+// @Entry Condition: preemption disabled
 extern void vcpu_sched_params_changed(vcpu_t _Nonnull self);
 
 #endif /* _VCPU_H */

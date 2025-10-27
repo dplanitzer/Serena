@@ -131,6 +131,22 @@ _Noreturn vcpu_terminate(vcpu_t _Nonnull self)
     /* NOT REACHED */
 }
 
+void vcpu_reduce_sched_penalty(vcpu_t _Nonnull self, int weight)
+{
+    if (self->priority_bias < 0) {
+        const int bias = self->priority_bias + weight * 2;
+
+        if (bias < 0) {
+            self->priority_bias = bias;
+        }
+        else {
+            self->priority_bias = 0;
+        }
+
+        vcpu_sched_params_changed(self);
+    }
+}
+
 void vcpu_sched_params_changed(vcpu_t _Nonnull self)
 {
     int pri;
@@ -237,6 +253,7 @@ void vcpu_yield(void)
 
     assert(self->sched_state == SCHED_STATE_RUNNING && self->suspension_count == 0);
 
+    vcpu_reduce_sched_penalty(self, 1);
     sched_switch_to(g_sched, sched_highest_priority_ready(g_sched), true);    
     preempt_restore(sps);
 }
@@ -301,6 +318,7 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
         if (self->suspension_count == 0) {
             switch (self->sched_state) {
                 case SCHED_STATE_READY:
+                    vcpu_reduce_sched_penalty(self, 1);
                     sched_set_ready(g_sched, self, true);
                     break;
 

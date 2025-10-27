@@ -60,6 +60,12 @@ static void test_print_loop(void)
     }
 }
 
+// Two VPs:
+// a) higher priority VP running an endless loop
+// b) lower priority VP running a loop that prints 'B'
+//
+// -> (b) should not get starved to death by (a). The scheduler needs to make
+//    sure that (b) receives some CPU time to do its job.
 void vcpu_scheduling_test(int argc, char *argv[])
 {
     vcpu_attr_t attr = VCPU_ATTR_INIT;

@@ -76,7 +76,20 @@ void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
     // queue which is more important. If so we context switch to that guy.
     // Otherwise we'll continue to run for another time slice.
     register vcpu_t rdy = sched_highest_priority_ready(self);
-    if (rdy && rdy->effective_priority >= run->effective_priority) {
+    if (rdy == NULL) {
+        return;
+    }
+
+    if (rdy->effective_priority >= run->effective_priority) {
+        if (run->qos > SCHED_QOS_IDLE && run->qos < SCHED_QOS_REALTIME && run->priority_bias >= SCHED_PRIORITY_BIAS_LOWEST) {
+            run->priority_bias--;
+            vcpu_sched_params_changed(run);
+        }
+        sched_set_running(self, rdy, true);
+    }
+    else if (rdy->qos > SCHED_QOS_IDLE && run->qos < SCHED_QOS_REALTIME && (run->qos > SCHED_QOS_BACKGROUND || (run->qos == SCHED_QOS_BACKGROUND && run->qos_priority > QOS_PRI_LOWEST))) {
+        run->priority_bias = -(run->effective_priority - rdy->effective_priority);
+        vcpu_sched_params_changed(run);
         sched_set_running(self, rdy, true);
     }
 }
