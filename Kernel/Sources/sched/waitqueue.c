@@ -164,7 +164,7 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
 
 
     // Nothing to do if we are not waiting
-    if (vp->sched_state != SCHED_STATE_WAITING) {
+    if (vp->sched_state != SCHED_STATE_WAITING && vp->sched_state != SCHED_STATE_WAIT_SUSPENDED) {
         return false;
     }
     
@@ -178,7 +178,7 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
     vp->wakeup_reason = reason;
     
 
-    if (vp->suspension_count == 0) {
+    if (vp->sched_state == SCHED_STATE_WAITING) {
         // Reduce a scheduling penalty if one exists
         if (vp->priority_bias < 0) {
             vcpu_reduce_sched_penalty(vp, -vp->priority_bias);
@@ -193,9 +193,9 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
         }
         isReady = true;
     } else {
-        // The VP is suspended. Move it to ready state so that it will be
-        // added to the ready queue once we resume it.
-        vp->sched_state = SCHED_STATE_READY;
+        // The VP is suspended. Move it to the suspended state so that it will
+        // be added to the ready queue once we resume it.
+        vp->sched_state = SCHED_STATE_SUSPENDED;
         isReady = false;
     }
 

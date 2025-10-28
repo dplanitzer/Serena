@@ -138,8 +138,7 @@ vcpu_t _Nullable sched_highest_priority_ready_starting_at(sched_t _Nonnull self,
 // are enabled.
 void sched_maybe_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
-    if (vp->sched_state == SCHED_STATE_READY
-        && vp->suspension_count == 0) {
+    if (vp->sched_state == SCHED_STATE_READY) {
         vcpu_t pBestReadyVP = sched_highest_priority_ready(self);
         
         if (pBestReadyVP == vp && vp->effective_priority >= self->running->effective_priority) {

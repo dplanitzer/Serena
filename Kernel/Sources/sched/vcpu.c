@@ -70,12 +70,13 @@ void vcpu_cominit(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_par
     self->wait_sigs = 0;
     self->wakeup_reason = 0;
     
-    self->sched_state = SCHED_STATE_READY;
+    self->sched_state = (suspended) ? SCHED_STATE_SUSPENDED : SCHED_STATE_READY;
+    self->suspension_count = (suspended) ? 1 : 0;
+
     self->flags = (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_HAS_FPU : 0;
     self->qos = sched_params->u.qos.category;
     self->qos_priority = sched_params->u.qos.priority;
     self->priority_bias = 0;
-    self->suspension_count = (suspended) ? 1 : 0;
     
     self->id = 0;
     self->lifecycle_state = VP_LIFECYCLE_RELINQUISHED;
@@ -208,18 +209,16 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull
     if (self->qos != params->u.qos.category || self->qos_priority != params->u.qos.priority) {
         switch (self->sched_state) {
             case SCHED_STATE_READY:
-                if (self->suspension_count == 0) {
-                    sched_set_unready(g_sched, self);
-                }
+                sched_set_unready(g_sched, self);
                 self->qos = params->u.qos.category;
                 self->qos_priority = params->u.qos.priority;
                 vcpu_sched_params_changed(self);
-                if (self->suspension_count == 0) {
-                    sched_set_ready(g_sched, self, true);
-                }
+                sched_set_ready(g_sched, self, true);
                 break;
                 
             case SCHED_STATE_WAITING:
+            case SCHED_STATE_SUSPENDED:
+            case SCHED_STATE_WAIT_SUSPENDED:
                 self->qos = params->u.qos.category;
                 self->qos_priority = params->u.qos.priority;
                 vcpu_sched_params_changed(self);
@@ -252,12 +251,13 @@ void vcpu_yield(void)
     const int sps = preempt_disable();
     vcpu_t self = (vcpu_t)g_sched->running;
 
-    assert(self->sched_state == SCHED_STATE_RUNNING && self->suspension_count == 0);
+    if (self->sched_state == SCHED_STATE_RUNNING) {
+        if (self->priority_bias < 0) {
+            vcpu_reduce_sched_penalty(self, -self->priority_bias / 2);
+        }
 
-    if (self->priority_bias < 0) {
-        vcpu_reduce_sched_penalty(self, -self->priority_bias / 2);
+        sched_switch_to(g_sched, sched_highest_priority_ready(g_sched), true);
     }
-    sched_switch_to(g_sched, sched_highest_priority_ready(g_sched), true);    
     preempt_restore(sps);
 }
 
@@ -272,12 +272,14 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
         return EINVAL;
     }
     
+    const int old_state = self->sched_state;
+    self->sched_state = (old_state == SCHED_STATE_WAITING) ? SCHED_STATE_WAIT_SUSPENDED : SCHED_STATE_SUSPENDED;
     self->suspension_count++;
     
     if (self->suspension_count == 1) {
         self->suspension_time = clock_getticks(g_mono_clock);
 
-        switch (self->sched_state) {
+        switch (old_state) {
             case SCHED_STATE_READY:
                 sched_set_unready(g_sched, self);
                 break;
@@ -309,30 +311,25 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
     VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
     
-    if (self->suspension_count > 0) {
+    if (self->sched_state == SCHED_STATE_SUSPENDED || self->sched_state == SCHED_STATE_WAIT_SUSPENDED) {
         if (force) {
             self->suspension_count = 0;
         }
-        else {
+        else if (self->suspension_count > 0) {
             self->suspension_count--;
         }
 
 
         if (self->suspension_count == 0) {
-            switch (self->sched_state) {
-                case SCHED_STATE_READY:
-                    if (self->priority_bias < 0) {
-                        vcpu_reduce_sched_penalty(self, -self->priority_bias);
-                    }
-                    sched_set_ready(g_sched, self, true);
-                    break;
-
-                case SCHED_STATE_WAITING:
-                    wq_resumeone(self->waiting_on_wait_queue, self);
-                    break;
-            
-                default:
-                    abort();
+            if (self->sched_state == SCHED_STATE_SUSPENDED) {
+                if (self->priority_bias < 0) {
+                    vcpu_reduce_sched_penalty(self, -self->priority_bias);
+                }
+                sched_set_ready(g_sched, self, true);
+            }
+            else {
+                self->sched_state = SCHED_STATE_WAITING;
+                wq_resumeone(self->waiting_on_wait_queue, self);
             }
         }
     }
@@ -344,7 +341,7 @@ bool vcpu_suspended(vcpu_t _Nonnull self)
 {
     VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
-    const bool isSuspended = self->suspension_count > 0;
+    const bool isSuspended = self->sched_state == SCHED_STATE_SUSPENDED || self->sched_state == SCHED_STATE_WAIT_SUSPENDED;
     preempt_restore(sps);
     return isSuspended;
 }

@@ -48,7 +48,9 @@ typedef struct vcpu_context {
 enum {
     SCHED_STATE_READY = 0,      // VP is able to run and is currently sitting on the ready queue
     SCHED_STATE_RUNNING,        // VP is running
-    SCHED_STATE_WAITING         // VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
+    SCHED_STATE_WAITING,        // VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
+    SCHED_STATE_SUSPENDED,      // VP was running or ready and is now suspended
+    SCHED_STATE_WAIT_SUSPENDED, // VP was waiting and is now suspended
 };
 
 // VP lifecycle state

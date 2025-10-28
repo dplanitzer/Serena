@@ -77,7 +77,7 @@ static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo, bool is
         
         self->pending_sigs |= sigbit;
 
-        if (self->sched_state == SCHED_STATE_WAITING && (self->wait_sigs & sigbit) != 0) {
+        if ((self->sched_state == SCHED_STATE_WAITING || self->sched_state == SCHED_STATE_WAIT_SUSPENDED) && (self->wait_sigs & sigbit) != 0) {
             wq_wakeone(self->waiting_on_wait_queue, self, flags, WRES_SIGNAL);
         }
     }
