@@ -156,6 +156,22 @@ errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, i
 }
 
 
+static void wq_maybe_switch_to(waitqueue_t _Nonnull self, int flags, vcpu_t _Nonnull vp)
+{
+    if ((flags & WAKEUP_CSW) == 0) {
+        return;
+    }
+
+
+    if (vp->qos >= SCHED_QOS_INTERACTIVE) {
+        vcpu_t pBestReadyVP = sched_highest_priority_ready(g_sched);
+    
+        if (pBestReadyVP == vp && vp->effective_priority >= g_sched->running->effective_priority) {
+            sched_switch_to(g_sched, vp, true);
+        }
+    }
+}
+
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
 bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t reason)
@@ -188,9 +204,7 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
         // didn't use all of its quantum before blocking
         sched_set_ready(g_sched, vp, (vp->quantum_countdown >= 1) ? false : true);
         
-        if ((flags & WAKEUP_CSW) == WAKEUP_CSW) {
-            sched_maybe_switch_to(g_sched, vp);
-        }
+        wq_maybe_switch_to(self, flags, vp);
         isReady = true;
     } else {
         // The VP is suspended. Move it to the suspended state so that it will
@@ -230,8 +244,8 @@ void wq_wake(waitqueue_t _Nonnull self, int flags, wres_t reason)
         
     
     // Set the VP that we found running if context switches are allowed.
-    if ((flags & WAKEUP_CSW) == WAKEUP_CSW && pRunCandidate) {
-        sched_maybe_switch_to(g_sched, pRunCandidate);
+    if (pRunCandidate) {
+        wq_maybe_switch_to(self, flags, pRunCandidate);
     }
 }
 

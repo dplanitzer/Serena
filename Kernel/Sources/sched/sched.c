@@ -131,22 +131,6 @@ vcpu_t _Nullable sched_highest_priority_ready_starting_at(sched_t _Nonnull self,
     return NULL;
 }
 
-// Context switches to the given virtual processor if it is a better choice. Eg
-// it has a higher priority than the VP that is currently running. This is a
-// voluntary (cooperative) context switch which means that it will only happen
-// if we are not running in the interrupt context and voluntary context switches
-// are enabled.
-void sched_maybe_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
-{
-    if (vp->sched_state == SCHED_STATE_READY) {
-        vcpu_t pBestReadyVP = sched_highest_priority_ready(self);
-        
-        if (pBestReadyVP == vp && vp->effective_priority >= self->running->effective_priority) {
-            sched_switch_to(self, vp, true);
-        }
-    }
-}
-
 // Context switch to the given virtual processor. The VP must be in ready state
 // and on the ready queue. Immediately context switches to the VP.
 // Expects that the call has already added the currently running VP to a wait
