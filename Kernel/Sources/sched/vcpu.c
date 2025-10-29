@@ -132,6 +132,44 @@ _Noreturn vcpu_terminate(vcpu_t _Nonnull self)
     /* NOT REACHED */
 }
 
+errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull ctx, const sched_params_t* _Nonnull scp, vcpuid_t id, vcpuid_t gid, bool isUser)
+{
+    decl_try_err();
+
+    err = vcpu_setcontext(self, ctx, true);
+    if (err != EOK) {
+        return err;
+    }
+
+    vcpu_setschedparams(self, scp);
+    
+    if (isUser) {
+        self->flags |= VP_FLAG_USER_OWNED;
+    }
+    else {
+        self->flags &= ~VP_FLAG_USER_OWNED;
+    }
+    self->id = id;
+    self->groupid = gid;
+    self->lifecycle_state = VP_LIFECYCLE_ACQUIRED;
+
+    return EOK;
+}
+
+void vcpu_deactivate(vcpu_t _Nonnull self)
+{
+    vcpu_setdq(self, NULL, -1);
+    self->proc = NULL;
+    self->udata = 0;
+    self->id = 0;
+    self->groupid = 0;
+    self->uerrno = 0;
+    self->pending_sigs = 0;
+    self->proc_sigs_enabled = 0;
+    self->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_HANDLING_EXCPT);
+    self->lifecycle_state = VP_LIFECYCLE_RELINQUISHED;
+}
+
 void vcpu_reduce_sched_penalty(vcpu_t _Nonnull self, int prop)
 {
     if (self->priority_bias < 0) {

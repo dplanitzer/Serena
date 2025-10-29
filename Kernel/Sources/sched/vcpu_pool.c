@@ -82,17 +82,7 @@ errno_t vcpu_pool_acquire(vcpu_pool_t _Nonnull self, const VirtualProcessorParam
     cl.userStackSize = params->userStackSize;
     cl.isUser = params->isUser;
 
-    try(vcpu_setcontext(vp, &cl, true));
-    vcpu_setschedparams(vp, &params->schedParams);
-    if (params->isUser) {
-        vp->flags |= VP_FLAG_USER_OWNED;
-    }
-    else {
-        vp->flags &= ~VP_FLAG_USER_OWNED;
-    }
-    vp->id = params->id;
-    vp->groupid = params->groupid;
-    vp->lifecycle_state = VP_LIFECYCLE_ACQUIRED;
+    err = vcpu_activate(vp, &cl, &params->schedParams, params->id, params->groupid, params->isUser);
 
 catch:
     *pOutVP = vp;
@@ -106,14 +96,8 @@ _Noreturn vcpu_pool_relinquish(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     bool doReuse = false;
 
-    // Null out the dispatch queue reference in any case since the VP should no
-    // longer be associated with a queue.
-    vcpu_setdq(vp, NULL, -1);
-
-
     // Try to cache the VP
     mtx_lock(&self->mtx);
-
     if (self->reuse_count < self->reuse_capacity) {
         List_InsertBeforeFirst(&self->reuse_queue, &vp->owner_qe);
         self->reuse_count++;
@@ -122,19 +106,9 @@ _Noreturn vcpu_pool_relinquish(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp)
     mtx_unlock(&self->mtx);
     
 
-    // Suspend the VP if we decided to reuse it and schedule it for finalization
-    // (termination) otherwise.
-    if (doReuse) {
-        vp->proc = NULL;
-        vp->udata = 0;
-        vp->id = 0;
-        vp->groupid = 0;
-        vp->uerrno = 0;
-        vp->pending_sigs = 0;
-        vp->proc_sigs_enabled = 0;
-        vp->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_HANDLING_EXCPT);
-        vp->lifecycle_state = VP_LIFECYCLE_RELINQUISHED;
+    vcpu_deactivate(vp);
 
+    if (doReuse) {
         try_bang(vcpu_suspend(vp));
     }
     else {

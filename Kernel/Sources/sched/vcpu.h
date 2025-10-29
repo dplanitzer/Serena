@@ -175,6 +175,10 @@ extern errno_t vcpu_create(const sched_params_t* _Nonnull sched_params, vcpu_t _
 void vcpu_destroy(vcpu_t _Nullable self);
 
 
+extern errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull ctx, const sched_params_t* _Nonnull scp, vcpuid_t id, vcpuid_t gid, bool isUser);
+extern void vcpu_deactivate(vcpu_t _Nonnull self);
+
+
 // Returns a copy of the given virtual processor's scheduling parameters.
 extern errno_t vcpu_getschedparams(vcpu_t _Nonnull self, int type, sched_params_t* _Nonnull params);
 
