@@ -109,21 +109,21 @@ static errno_t _proc_img_acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void
 {
     decl_try_err();
     vcpu_t vp = NULL;
-    VirtualProcessorParameters kp;
+    vcpu_activation_t act;
 
-    kp.func = (VoidFunc_1)entryPoint;
-    kp.context = procargs;
-    kp.ret_func = (VoidFunc_0)vcpu_uret_exit;
-    kp.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
-    kp.userStackSize = VP_DEFAULT_USER_STACK_SIZE;
-    kp.id = VCPUID_MAIN;
-    kp.groupid = VCPUID_MAIN_GROUP;
-    kp.schedParams.type = SCHED_PARAM_QOS;
-    kp.schedParams.u.qos.category = SCHED_QOS_INTERACTIVE;
-    kp.schedParams.u.qos.priority = QOS_PRI_NORMAL;
-    kp.isUser = true;
+    act.func = (VoidFunc_1)entryPoint;
+    act.context = procargs;
+    act.ret_func = (VoidFunc_0)vcpu_uret_exit;
+    act.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
+    act.userStackSize = VP_DEFAULT_USER_STACK_SIZE;
+    act.id = VCPUID_MAIN;
+    act.groupid = VCPUID_MAIN_GROUP;
+    act.schedParams.type = SCHED_PARAM_QOS;
+    act.schedParams.u.qos.category = SCHED_QOS_INTERACTIVE;
+    act.schedParams.u.qos.priority = QOS_PRI_NORMAL;
+    act.isUser = true;
 
-    err = vcpu_pool_acquire(g_vcpu_pool, &kp, &vp);
+    err = vcpu_pool_acquire(g_vcpu_pool, &act, &vp);
 
     *pOutVcpu = vp;
     return err;

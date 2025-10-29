@@ -39,7 +39,7 @@ void vcpu_pool_destroy(vcpu_pool_t _Nullable self)
     }
 }
 
-errno_t vcpu_pool_acquire(vcpu_pool_t _Nonnull self, const VirtualProcessorParameters* _Nonnull params, vcpu_t _Nonnull * _Nonnull pOutVP)
+errno_t vcpu_pool_acquire(vcpu_pool_t _Nonnull self, const vcpu_activation_t* _Nonnull act, vcpu_t _Nonnull * _Nonnull pOutVP)
 {
     decl_try_err();
     vcpu_t vp = NULL;
@@ -68,21 +68,11 @@ errno_t vcpu_pool_acquire(vcpu_pool_t _Nonnull self, const VirtualProcessorParam
     
     // Create a new VP if we were not able to reuse a cached one
     if (vp == NULL) {
-        try(vcpu_create(&params->schedParams, &vp));
+        try(vcpu_create(&act->schedParams, &vp));
     }
     
     
-    // Configure the VP
-    vcpu_context_t cl;
-    cl.func = (VoidFunc_1)params->func;
-    cl.context = params->context;
-    cl.ret_func = params->ret_func;
-    cl.kernelStackBase = NULL;
-    cl.kernelStackSize = params->kernelStackSize;
-    cl.userStackSize = params->userStackSize;
-    cl.isUser = params->isUser;
-
-    err = vcpu_activate(vp, &cl, &params->schedParams, params->id, params->groupid, params->isUser);
+    err = vcpu_activate(vp, act);
 
 catch:
     *pOutVP = vp;

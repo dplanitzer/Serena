@@ -44,6 +44,20 @@ typedef struct vcpu_context {
 } vcpu_context_t;
 
 
+// Parameters for a VP activation
+typedef struct vcpu_activation {
+    VoidFunc_1 _Nonnull     func;
+    void* _Nullable _Weak   context;
+    VoidFunc_0 _Nullable    ret_func;
+    size_t                  kernelStackSize;
+    size_t                  userStackSize;
+    vcpuid_t                id;
+    vcpuid_t                groupid;
+    sched_params_t          schedParams;
+    bool                    isUser;
+} vcpu_activation_t;
+
+
 // VP scheduling state
 enum {
     SCHED_STATE_INITIATED = 0,  // VP was just created and has not been scheduled yet
@@ -169,7 +183,7 @@ extern errno_t vcpu_create(const sched_params_t* _Nonnull sched_params, vcpu_t _
 void vcpu_destroy(vcpu_t _Nullable self);
 
 
-extern errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull ctx, const sched_params_t* _Nonnull scp, vcpuid_t id, vcpuid_t gid, bool isUser);
+extern errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull act);
 extern void vcpu_deactivate(vcpu_t _Nonnull self);
 
 

@@ -129,25 +129,34 @@ _Noreturn vcpu_terminate(vcpu_t _Nonnull self)
     /* NOT REACHED */
 }
 
-errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull ctx, const sched_params_t* _Nonnull scp, vcpuid_t id, vcpuid_t gid, bool isUser)
+errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull act)
 {
     decl_try_err();
+    vcpu_context_t ctx;
 
-    err = vcpu_setcontext(self, ctx, true);
+    ctx.func = (VoidFunc_1)act->func;
+    ctx.context = act->context;
+    ctx.ret_func = act->ret_func;
+    ctx.kernelStackBase = NULL;
+    ctx.kernelStackSize = act->kernelStackSize;
+    ctx.userStackSize = act->userStackSize;
+    ctx.isUser = act->isUser;
+
+    err = vcpu_setcontext(self, &ctx, true);
     if (err != EOK) {
         return err;
     }
 
-    vcpu_setschedparams(self, scp);
+    vcpu_setschedparams(self, &act->schedParams);
     
-    if (isUser) {
+    if (act->isUser) {
         self->flags |= VP_FLAG_USER_OWNED;
     }
     else {
         self->flags &= ~VP_FLAG_USER_OWNED;
     }
-    self->id = id;
-    self->groupid = gid;
+    self->id = act->id;
+    self->groupid = act->groupid;
     self->flags |= VP_FLAG_ACTIVE;
 
     return EOK;
@@ -324,7 +333,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
         switch (old_state) {
             case SCHED_STATE_INITIATED:
                 break;
-                
+
             case SCHED_STATE_READY:
                 sched_set_unready(g_sched, self);
                 break;
