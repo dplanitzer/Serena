@@ -79,7 +79,6 @@ void vcpu_cominit(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_par
     self->priority_bias = 0;
     
     self->id = 0;
-    self->lifecycle_state = VP_LIFECYCLE_RELINQUISHED;
 
     self->dispatchQueue = NULL;
     self->dispatchQueueConcurrencyLaneIndex = -1;
@@ -126,8 +125,6 @@ void vcpu_setdq(vcpu_t _Nonnull self, void* _Nullable pQueue, int concurrencyLan
 _Noreturn vcpu_terminate(vcpu_t _Nonnull self)
 {
     VP_ASSERT_ALIVE(self);
-    self->lifecycle_state = VP_LIFECYCLE_TERMINATING;
-
     sched_terminate_vcpu(g_sched, self);
     /* NOT REACHED */
 }
@@ -151,7 +148,7 @@ errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull ctx, 
     }
     self->id = id;
     self->groupid = gid;
-    self->lifecycle_state = VP_LIFECYCLE_ACQUIRED;
+    self->flags |= VP_FLAG_ACTIVE;
 
     return EOK;
 }
@@ -166,8 +163,7 @@ void vcpu_deactivate(vcpu_t _Nonnull self)
     self->uerrno = 0;
     self->pending_sigs = 0;
     self->proc_sigs_enabled = 0;
-    self->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_HANDLING_EXCPT);
-    self->lifecycle_state = VP_LIFECYCLE_RELINQUISHED;
+    self->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_HANDLING_EXCPT|VP_FLAG_ACTIVE);
 }
 
 void vcpu_reduce_sched_penalty(vcpu_t _Nonnull self, int prop)

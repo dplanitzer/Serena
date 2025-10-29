@@ -172,6 +172,7 @@ _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
     (void) preempt_disable();
 
 
+    vp->sched_state = SCHED_STATE_TERMINATING;
     List_InsertAfterLast(&self->finalizer_queue, &vp->owner_qe);
     
     

@@ -51,13 +51,7 @@ enum {
     SCHED_STATE_WAITING,        // VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
     SCHED_STATE_SUSPENDED,      // VP was running or ready and is now suspended
     SCHED_STATE_WAIT_SUSPENDED, // VP was waiting and is now suspended
-};
-
-// VP lifecycle state
-enum {
-    VP_LIFECYCLE_RELINQUISHED = 0,  // VP is in the reuse pool
-    VP_LIFECYCLE_ACQUIRED,          // VP is assigned to a process and in use
-    VP_LIFECYCLE_TERMINATING,       // VP is in the process of terminating
+    SCHED_STATE_TERMINATING,    // VP is in the process of terminating and being reaped
 };
 
 
@@ -76,6 +70,7 @@ enum {
 #define VP_FLAG_HAS_FPU             0x08    // Save/restore the FPU state (keep in sync with lowmem.i)
 #define VP_FLAG_FPU_SAVED           0x10    // Set if the FPU user state has been saved (keep in sync with lowmem.i)
 #define VP_FLAG_TIMEOUT_SUSPENDED   0x20    // VP is suspended and had an active timeout scheduled
+#define VP_FLAG_ACTIVE              0x40    // vcpu_activate() was called on the VP
 
 
 // Overridable functions for virtual processors
@@ -126,7 +121,7 @@ struct vcpu {
     // Scheduling related state
     int8_t                          qos;                    // call vcpu_sched_params_changed() on change
     int8_t                          qos_priority;
-    int8_t                          reserved[1];
+    int8_t                          reserved1;
     int8_t                          priority_bias;          // used to depress or boost the effective priority (call vcpu_sched_params_changed() on change)
     uint8_t                         sched_priority;         // cached (static) schedule derived from the QoS parameters. Computed by vcpu_sched_params_changed() 
     uint8_t                         effective_priority;     // computed priority used for scheduling. Computed by vcpu_sched_params_changed()
@@ -134,9 +129,7 @@ struct vcpu {
     uint8_t                         flags;
     int8_t                          quantum_countdown;      // for how many contiguous clock ticks this VP may run for before the scheduler will consider scheduling some other same or lower priority VP
     int8_t                          suspension_count;       // > 0 -> VP is suspended
-
-    // Lifecycle state
-    int8_t                          lifecycle_state;
+    int8_t                          reserved2;
 
     // Process
     struct Process* _Nullable _Weak proc;                   // Process owning this VP (optional for now)
@@ -144,11 +137,11 @@ struct vcpu {
     // Dispatch queue state
     void* _Nullable _Weak           dispatchQueue;                      // Dispatch queue this VP is currently assigned to
     int8_t                          dispatchQueueConcurrencyLaneIndex;  // Index of the concurrency lane in the dispatch queue this VP is assigned to
-    int8_t                          reserved2[3];
+    int8_t                          reserved3[3];
 };
 
 
-#define VP_ASSERT_ALIVE(p)   assert(p->lifecycle_state != VP_LIFECYCLE_TERMINATING)
+#define VP_ASSERT_ALIVE(p)   assert(p->sched_state != SCHED_STATE_TERMINATING)
 
 #define vcpu_from_owner_qe(__ptr) \
 (vcpu_t) (((uint8_t*)__ptr) - offsetof(struct vcpu, owner_qe))
