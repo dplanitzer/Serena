@@ -46,12 +46,13 @@ typedef struct vcpu_context {
 
 // VP scheduling state
 enum {
-    SCHED_STATE_READY = 0,      // VP is able to run and is currently sitting on the ready queue
+    SCHED_STATE_INITIATED = 0,  // VP was just created and has not been scheduled yet
+    SCHED_STATE_READY,          // VP is able to run and is currently sitting on the ready queue
     SCHED_STATE_RUNNING,        // VP is running
     SCHED_STATE_WAITING,        // VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
-    SCHED_STATE_SUSPENDED,      // VP was running or ready and is now suspended
-    SCHED_STATE_WAIT_SUSPENDED, // VP was waiting and is now suspended
-    SCHED_STATE_TERMINATING,    // VP is in the process of terminating and being reaped
+    SCHED_STATE_SUSPENDED,      // VP was running or ready and is now suspended (it is not on any queue)
+    SCHED_STATE_WAIT_SUSPENDED, // VP was waiting and is now suspended (it's still on the wait queue it waited on previously)
+    SCHED_STATE_TERMINATING,    // VP is in the process of terminating and being reaped (it's on the finalizer queue)
 };
 
 

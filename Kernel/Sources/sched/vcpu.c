@@ -70,7 +70,7 @@ void vcpu_cominit(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_par
     self->wait_sigs = 0;
     self->wakeup_reason = 0;
     
-    self->sched_state = (suspended) ? SCHED_STATE_SUSPENDED : SCHED_STATE_READY;
+    self->sched_state = (suspended) ? SCHED_STATE_SUSPENDED : SCHED_STATE_INITIATED;
     self->suspension_count = (suspended) ? 1 : 0;
 
     self->flags = (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_HAS_FPU : 0;
@@ -242,6 +242,12 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull
     
     if (self->qos != params->u.qos.category || self->qos_priority != params->u.qos.priority) {
         switch (self->sched_state) {
+            case SCHED_STATE_INITIATED:
+                self->qos = params->u.qos.category;
+                self->qos_priority = params->u.qos.priority;
+                vcpu_sched_params_changed(self);
+                break;
+
             case SCHED_STATE_READY:
                 sched_set_unready(g_sched, self);
                 self->qos = params->u.qos.category;
@@ -267,6 +273,8 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull
         }
     }
     preempt_restore(sps);
+
+    return EOK;
 }
 
 int vcpu_getcurrentpriority(vcpu_t _Nonnull self)
@@ -314,6 +322,9 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
         self->suspension_time = clock_getticks(g_mono_clock);
 
         switch (old_state) {
+            case SCHED_STATE_INITIATED:
+                break;
+                
             case SCHED_STATE_READY:
                 sched_set_unready(g_sched, self);
                 break;

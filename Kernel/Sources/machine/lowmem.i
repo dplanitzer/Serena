@@ -130,9 +130,14 @@ sched_SIZEOF                        so
 
 
 ; The vcpu
-SCHED_STATE_READY       equ 0   ; VP is able to run but currently sitting on the ready queue
-SCHED_STATE_RUNNING     equ 1   ; VP is running
-SCHED_STATE_WAITING     equ 2   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
+SCHED_STATE_INITIATED       equ 0   ; VP was just created and has not been scheduled yet
+SCHED_STATE_READY           equ 1   ; VP is able to run and is currently sitting on the ready queue
+SCHED_STATE_RUNNING         equ 2   ; VP is running
+SCHED_STATE_WAITING         equ 3   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
+SCHED_STATE_SUSPENDED       equ 4   ; VP was running or ready and is now suspended (it is not on any queue)
+SCHED_STATE_WAIT_SUSPENDED  equ 5   ; VP was waiting and is now suspended (it's still on the wait queue it waited on previously)
+SCHED_STATE_TERMINATING     equ 6   ; VP is in the process of terminating and being reaped (it's on the finalizer queue)
+
 
 VP_FLAG_HAS_FPU_BIT     equ 3   ; Save/restore the FPU state (keep in sync with vcpu.h)
 VP_FLAG_FPU_SAVED_BIT   equ 4   ; Set if the user fpu state has been saved (keep in sync with vcpu.h)
