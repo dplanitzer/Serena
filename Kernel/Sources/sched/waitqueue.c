@@ -167,7 +167,12 @@ static void wq_maybe_switch_to(waitqueue_t _Nonnull self, int flags, vcpu_t _Non
         vcpu_t pBestReadyVP = sched_highest_priority_ready(g_sched);
     
         if (pBestReadyVP == vp && vp->effective_priority >= g_sched->running->effective_priority) {
-            sched_switch_to(g_sched, vp, true);
+            if ((flags & WAKEUP_IRQ) == WAKEUP_IRQ) {
+                sched_set_running(g_sched, vp, true);
+            }
+            else {
+                sched_switch_to(g_sched, vp, true);
+            }
         }
     }
 }
@@ -261,7 +266,7 @@ void wq_wake_irq(waitqueue_t _Nonnull self)
     while (cp) {
         register ListNode* np = cp->next;
         
-        wq_wakeone(self, (vcpu_t)cp, 0, WRES_WAKEUP);
+        wq_wakeone(self, (vcpu_t)cp, WAKEUP_IRQ|WAKEUP_CSW, WRES_WAKEUP);
         cp = np;
     }
 }
