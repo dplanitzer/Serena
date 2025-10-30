@@ -80,7 +80,14 @@ SYSCALL_1(vcpu_suspend, vcpuid_t id)
         vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
 
         if (vcp) {
-            err = vcpu_suspend(vcp);
+            vcpu_sigsend(vcp, SIGSUSPEND, false);
+            //XXX bad. Should not do this wait while holding the vcpu list lock
+            for (;;) {
+                vcpu_yield();
+                if (vcpu_suspended(vcp)) {
+                    break;
+                }
+            }
         }
         else {
             err = ESRCH;

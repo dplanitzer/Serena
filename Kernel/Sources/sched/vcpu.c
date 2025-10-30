@@ -316,11 +316,15 @@ void vcpu_yield(void)
 errno_t vcpu_suspend(vcpu_t _Nonnull self)
 {
     VP_ASSERT_ALIVE(self);
+    decl_try_err();
     const int sps = preempt_disable();
     
     if (self->suspension_count == INT8_MAX) {
-        preempt_restore(sps);
-        return EINVAL;
+        throw(EINVAL);
+    }
+    if (vcpu_current() != self && (self->flags & VP_FLAG_USER_OWNED) == 0) {
+        // no involuntary suspend of kernel owned VPs
+        throw(EPERM);
     }
     
     const int old_state = self->sched_state;
@@ -353,8 +357,10 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
         }
     }
     
+catch:
     preempt_restore(sps);
-    return EOK;
+
+    return err;
 }
 
 // Resumes the given virtual processor. The virtual processor is forcefully

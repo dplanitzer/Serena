@@ -16,7 +16,7 @@ extern void sigurgent(void);
 extern void sigurgent_end(void);
 
 
-// Injects a call to sigurgent(). This is done if we detect that teh currently
+// Injects a call to sigurgent(). This is done if we detect that the currently
 // running vcpu is running in user space and has a signal pending that requires
 // urgent delivery. The sigurgent() system call itself does nothing but it gives
 // the system call handler a chance to look at the pending signal and handle it
@@ -58,7 +58,7 @@ void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
     // Redirect the currently running VP to sigurgent() if it is running in user
     // mode, has an urgent signal pending and we haven't already triggered a
     // redirect previously.
-    if (excpt_frame_isuser(efp) && (run->pending_sigs & SIGSET_URGENTS)) {
+    if (excpt_frame_isuser(efp) && (run->pending_sigs & SIGSET_URGENTS) != 0) {
         if (inject_sigurgent_call(efp)) {
             return;
         }

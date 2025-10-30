@@ -18,14 +18,15 @@ typedef volatile int sig_atomic_t;
 
 // Ordered from highest to lowest priority
 #define SIGKILL     1
-#define SIGCHILD    2
+#define SIGSUSPEND  2
+#define SIGCHILD    3
 #define SIGDISPATCH 32
 
 
 #define _SIGBIT(__signo) (1 << ((__signo) - 1))
 
-#define SIGSET_NONMASKABLES _SIGBIT(SIGKILL)
-#define SIGSET_URGENTS      _SIGBIT(SIGKILL)
+#define SIGSET_NONMASKABLES (_SIGBIT(SIGKILL) | _SIGBIT(SIGSUSPEND))
+#define SIGSET_URGENTS      (_SIGBIT(SIGKILL) | _SIGBIT(SIGSUSPEND))
 
 
 #define SIG_SCOPE_VCPU          0   /* vcpu inside this process */
