@@ -55,6 +55,7 @@ extern void fopen_memory_variable_size_test(int argc, char *argv[]);
 // Vcpu
 extern void vcpu_acquire_test(int argc, char *argv[]);
 extern void vcpu_scheduling_test(int argc, char *argv[]);
+extern void vcpu_suspend_test(int argc, char *argv[]);
 
 
 typedef void (*test_func_t)(int argc, char *argv[]);
@@ -98,6 +99,7 @@ static const test_t gTests[] = {
 
     {"vcpu_aq", vcpu_acquire_test, true},
     {"vcpu_sched", vcpu_scheduling_test, true},
+    {"vcpu_suspend", vcpu_suspend_test, true},
 
     {"", NULL}
 };

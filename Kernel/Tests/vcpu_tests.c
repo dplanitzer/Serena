@@ -9,11 +9,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include <sys/timespec.h>
 #include <sys/vcpu.h>
 #include "Asserts.h"
 
 
-static void test_loop(const char* _Nonnull str)
+static void test_acquire_loop(const char* _Nonnull str)
 {
     for (;;) {
         puts(str);
@@ -30,7 +32,7 @@ void vcpu_acquire_test(int argc, char *argv[])
     for (int i = 0; i < CONCURRENCY_A; i++) {
         vcpu_attr_t attr = VCPU_ATTR_INIT;
 
-        attr.func = (vcpu_func_t)test_loop;
+        attr.func = (vcpu_func_t)test_acquire_loop;
         attr.arg = gStr[i];
         attr.stack_size = 0;
         attr.sched_params.type = SCHED_PARAM_QOS;
@@ -46,13 +48,13 @@ void vcpu_acquire_test(int argc, char *argv[])
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void test_infinite_loop(void)
+static void test_scheduling_infinite_loop(void)
 {
     for (;;) {
     }
 }
 
-static void test_print_loop(void)
+static void test_scheduling_print_loop(void)
 {
     for (;;) {
         puts("B");
@@ -71,7 +73,7 @@ void vcpu_scheduling_test(int argc, char *argv[])
     vcpu_attr_t attr = VCPU_ATTR_INIT;
     vcpu_t vcpu_a, vcpu_b;
 
-    attr.func = (vcpu_func_t)test_infinite_loop;
+    attr.func = (vcpu_func_t)test_scheduling_infinite_loop;
     attr.arg = NULL;
     attr.stack_size = 0;
     attr.sched_params.type = SCHED_PARAM_QOS;
@@ -83,12 +85,74 @@ void vcpu_scheduling_test(int argc, char *argv[])
     assertNotNULL(vcpu_a);
 
     vcpu_attr_t attr2 = VCPU_ATTR_INIT;
-    attr2.func = (vcpu_func_t)test_print_loop;
+    attr2.func = (vcpu_func_t)test_scheduling_print_loop;
     attr2.arg = NULL;
     attr2.stack_size = 0;
     attr2.sched_params.type = SCHED_PARAM_QOS;
     attr2.sched_params.u.qos.category = SCHED_QOS_INTERACTIVE;
     attr2.sched_params.u.qos.priority = QOS_PRI_LOWEST;
+    attr2.groupid = 0;
+    attr2.flags = VCPU_ACQUIRE_RESUMED;
+    vcpu_b = vcpu_acquire(&attr2);
+    assertNotNULL(vcpu_b);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+static vcpu_t test_suspend_vcpu_a;
+
+static void test_suspend_print_loop(void)
+{
+    for (;;) {
+        puts("A");
+        vcpu_yield();
+    }
+}
+
+static void test_suspend_A_loop(void)
+{
+    struct timespec ts_1sec;
+
+    timespec_from_sec(&ts_1sec, 1);
+
+    for (;;) {
+        clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
+        puts("B");
+        
+        assertOK(vcpu_suspend(test_suspend_vcpu_a));
+        puts("C");
+        clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
+        vcpu_resume(test_suspend_vcpu_a);
+    }
+}
+
+// Two VPs:
+// a) runs continuously and prints some text
+// b) suspends (a) every 1 second for 1 second and then resumes it
+void vcpu_suspend_test(int argc, char *argv[])
+{
+    vcpu_attr_t attr = VCPU_ATTR_INIT;
+    vcpu_t vcpu_b;
+
+    attr.func = (vcpu_func_t)test_suspend_print_loop;
+    attr.arg = NULL;
+    attr.stack_size = 0;
+    attr.sched_params.type = SCHED_PARAM_QOS;
+    attr.sched_params.u.qos.category = SCHED_QOS_INTERACTIVE;
+    attr.sched_params.u.qos.priority = QOS_PRI_NORMAL;
+    attr.groupid = 0;
+    attr.flags = VCPU_ACQUIRE_RESUMED;
+    test_suspend_vcpu_a = vcpu_acquire(&attr);
+    assertNotNULL(test_suspend_vcpu_a);
+
+    vcpu_attr_t attr2 = VCPU_ATTR_INIT;
+    attr2.func = (vcpu_func_t)test_suspend_A_loop;
+    attr2.arg = NULL;
+    attr2.stack_size = 0;
+    attr2.sched_params.type = SCHED_PARAM_QOS;
+    attr2.sched_params.u.qos.category = SCHED_QOS_INTERACTIVE;
+    attr2.sched_params.u.qos.priority = QOS_PRI_NORMAL;
     attr2.groupid = 0;
     attr2.flags = VCPU_ACQUIRE_RESUMED;
     vcpu_b = vcpu_acquire(&attr2);
