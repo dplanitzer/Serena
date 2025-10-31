@@ -72,6 +72,7 @@ void vcpu_cominit(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_par
     
     self->sched_state = (suspended) ? SCHED_STATE_SUSPENDED : SCHED_STATE_INITIATED;
     self->suspension_count = (suspended) ? 1 : 0;
+    self->suspension_inhibit_count = 0;
 
     self->flags = (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_HAS_FPU : 0;
     self->qos = sched_params->u.qos.category;
@@ -172,6 +173,7 @@ void vcpu_deactivate(vcpu_t _Nonnull self)
     self->uerrno = 0;
     self->pending_sigs = 0;
     self->proc_sigs_enabled = 0;
+    self->suspension_inhibit_count = 0;
     self->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_HANDLING_EXCPT|VP_FLAG_ACTIVE);
 }
 
@@ -312,7 +314,25 @@ void vcpu_yield(void)
     preempt_restore(sps);
 }
 
-// Suspends the calling virtual processor. This function supports nested calls.
+// Suspends the calling virtual processor if possible at this time. This function
+// supports nested calls. A VP may only be suspended while it is executing in a
+// "suspension safe zone". EBUSY is returned if the VP is not in such a zone at
+// the time this function is called. Suspension safe zones are:
+// * target VP is already suspended
+// * target VP executes in user space
+// * target VP executes in kernel space AND it is not currently inside a scope
+//   bracketed by a disable_suspensions() and enable_suspensions() pair
+//
+// Note that involuntary suspension of a VP is not supported for kernel owned
+// VPs.
+//
+// Note that the implementation of this calls relies on the fact that the VP that
+// calls vcpu_suspend() and the target VP can not run at the same time. This is
+// easy to guarantee on a single core machine but requires on a multi-core
+// machine that the actual suspension is done on the same core on which the
+// target VP lives. Eg if the vcpu_suspend() VP is on core A and the target VP
+// is on core B then A needs to send a message to the scheduler VP on B so that
+// the scheduler VP on core B then does the actual suspension job.
 errno_t vcpu_suspend(vcpu_t _Nonnull self)
 {
     VP_ASSERT_ALIVE(self);
@@ -325,6 +345,14 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     if (vcpu_current() != self && (self->flags & VP_FLAG_USER_OWNED) == 0) {
         // no involuntary suspend of kernel owned VPs
         throw(EPERM);
+    }
+    if (self->suspension_inhibit_count > 0) {
+        // target VP is executing inside a suspension exclusion zone
+        throw(EBUSY);
+    }
+    if (self->qos == SCHED_QOS_IDLE) {
+        // suspending the idle vp is not supported
+        throw(EINVAL);
     }
     
     const int old_state = self->sched_state;

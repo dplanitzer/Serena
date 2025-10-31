@@ -174,15 +174,10 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
 static void _handle_urgent_signals(vcpu_t _Nonnull vp)
 {
     const sigset_t sigs = vp->pending_sigs & SIGSET_URGENTS;
-    vp->pending_sigs &= ~SIGSET_URGENTS;
 
     if ((sigs & _SIGBIT(SIGKILL)) != 0) {
         Process_Exit(vp->proc, JREASON_SIGNAL, SIGKILL);
         /* NOT REACHED */
-    }
-
-    if ((sigs & _SIGBIT(SIGSUSPEND)) != 0) {
-        vcpu_suspend(vp);
     }
 }
 
@@ -192,6 +187,8 @@ intptr_t _syscall_handler(vcpu_t _Nonnull vp, unsigned int* _Nonnull args)
     intptr_t r;
     bool hasErrno;
     
+    vcpu_disable_suspensions(vp);
+
     if (scno < SYSCALL_COUNT) {
         const syscall_t* sc = &gSystemCallTable[scno];
 
@@ -208,6 +205,8 @@ intptr_t _syscall_handler(vcpu_t _Nonnull vp, unsigned int* _Nonnull args)
         _handle_urgent_signals(vp);
     }
 
+
+    vcpu_enable_suspensions(vp);
 
     if (hasErrno) {
         if (r != 0) {

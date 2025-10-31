@@ -76,23 +76,26 @@ SYSCALL_1(vcpu_suspend, vcpuid_t id)
         err = vcpu_suspend(vp);
     }
     else {
-        mtx_lock(&pp->mtx);
-        vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
+        for (;;) {
+            mtx_lock(&pp->mtx);
+            vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
 
-        if (vcp) {
-            vcpu_sigsend(vcp, SIGSUSPEND, false);
-            //XXX bad. Should not do this wait while holding the vcpu list lock
-            for (;;) {
+            if (vcp) {
+                err = vcpu_suspend(vcp);
+            }
+            else {
+                err = ESRCH;
+            }
+            mtx_unlock(&pp->mtx);
+
+
+            if (err == EBUSY) {
                 vcpu_yield();
-                if (vcpu_suspended(vcp)) {
-                    break;
-                }
+            }
+            else {
+                break;
             }
         }
-        else {
-            err = ESRCH;
-        }
-        mtx_unlock(&pp->mtx);
     }
 
     return err;

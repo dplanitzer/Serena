@@ -95,8 +95,7 @@ __csw_switch:
     move.l  usp, a0
     move.l  a0, -(sp)
 
-    move.l  _g_sched, a0
-    move.l  sched_running(a0), a0
+    GET_CURRENT_VP a0
 
     ; update the VP state to Ready if the state hasn't already been changed to
     ; some other non-Running state like Waiting by the higher-level code

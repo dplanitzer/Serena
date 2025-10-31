@@ -144,7 +144,7 @@ struct vcpu {
     uint8_t                         flags;
     int8_t                          quantum_countdown;      // for how many contiguous clock ticks this VP may run for before the scheduler will consider scheduling some other same or lower priority VP
     int8_t                          suspension_count;       // > 0 -> VP is suspended
-    int8_t                          reserved2;
+    int8_t                          suspension_inhibit_count;   // > 0 -> VP can not be suspended at this time
 
     // Process
     struct Process* _Nullable _Weak proc;                   // Process owning this VP (optional for now)
@@ -231,6 +231,18 @@ extern errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnu
 
 // Yields the remainder of the current quantum to other VPs.
 extern void vcpu_yield(void);
+
+
+
+// Disable and reenable vcpu_suspend() for the calling virtual processor. These
+// calls may be nested. Suspension is only reenabled once all disable calls have
+// been balanced by enable calls. A virtual processor will not be suspended as
+// long as suspension is inhibited by a suspend_disable() call.
+#define vcpu_disable_suspensions(__self) \
+(__self)->suspension_inhibit_count++
+
+#define vcpu_enable_suspensions(__self) \
+(__self)->suspension_inhibit_count--
 
 // Suspends the calling virtual processor. This function supports nested calls.
 extern errno_t vcpu_suspend(vcpu_t _Nonnull self);

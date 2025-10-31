@@ -16,12 +16,12 @@ void mtx_init(mtx_t* _Nonnull self)
 {
     self->value = 0;
     wq_init(&self->wq);
-    self->owner_vpid = 0;
+    self->owner = NULL;
 }
 
 void mtx_deinit(mtx_t* _Nonnull self)
 {
-    assert(mtx_ownerid(self) == 0);
+    assert(mtx_owner(self) == NULL);
     assert(wq_deinit(&self->wq) == EOK);
 }
 

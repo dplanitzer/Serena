@@ -181,7 +181,7 @@ vp_sched_state                          so.b    1           ; 1
 vp_flags                                so.b    1           ; 1
 vp_quantum_countdown                    so.b    1           ; 1
 vp_suspension_count                     so.b    1           ; 1
-vp_reserved2                            so.b    1           ; 1
+vp_suspension_inhibit_count             so.b    1           ; 1
 vp_proc                                 so.l    1           ; 4
 vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
@@ -241,6 +241,14 @@ vp_SIZEOF                       so
 ; Sets the current interrupt handling state based on the saved state in a register
     macro RESTORE_INTERRUPTS
     move.w  \1, sr
+    endm
+
+
+; Macro to store a pointer to the currently running virtual processor in the
+; provided register
+    macro GET_CURRENT_VP
+    move.l  _g_sched, \1
+    move.l  sched_running(\1), \1
     endm
 
         endif
