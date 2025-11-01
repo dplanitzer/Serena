@@ -171,7 +171,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
 ////////////////////////////////////////////////////////////////////////////////
 
 
-static void _handle_urgent_signals(vcpu_t _Nonnull vp)
+static void _handle_pending_signals(vcpu_t _Nonnull vp)
 {
     const sigset_t sigs = vp->pending_sigs & SIGSET_URGENTS;
 
@@ -201,8 +201,8 @@ intptr_t _syscall_handler(vcpu_t _Nonnull vp, unsigned int* _Nonnull args)
     }
 
 
-    if ((vp->pending_sigs & SIGSET_URGENTS) != 0) {
-        _handle_urgent_signals(vp);
+    while ((vp->pending_sigs & SIGSET_URGENTS) != 0) {
+        _handle_pending_signals(vp);
     }
 
 
