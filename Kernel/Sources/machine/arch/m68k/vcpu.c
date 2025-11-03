@@ -11,8 +11,7 @@
 #include <sched/vcpu.h>
 
 
-// Sets the closure which the virtual processor should run when it is resumed.
-// This function may only be called while the VP is suspended.
+// Sets the closure which the virtual processor should run when it is next resumed.
 //
 // \param self the virtual processor
 // \param closure the closure description
@@ -23,12 +22,6 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull clo
     const size_t ifsiz = sizeof(excpt_0_frame_t) + 4*7 + 4*8 + 4;
     const size_t ffsiz = 4 + sizeof(float96_t)*8 + 4 + 4 + 4;
     const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
-
-    VP_ASSERT_ALIVE(self);
-
-    if (self->sched_state == SCHED_STATE_RUNNING) {
-        return EBUSY;
-    }
 
     // Minimum kernel stack size is 2 * sizeof(cpu_save_area_max_size) + 128
     // 2 times -> csw save state + cpu exception save state

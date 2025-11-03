@@ -253,8 +253,7 @@ extern bool vcpu_suspended(vcpu_t _Nonnull self);
 // pool.
 extern void vcpu_setdq(vcpu_t _Nonnull self, void* _Nullable pQueue, int concurrencyLaneIndex);
 
-// Sets the closure which the virtual processor should run when it is resumed.
-// This function may only be called while the VP is suspended.
+// Sets the closure which the virtual processor should run when it is next resumed.
 extern errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull closure, bool bEnableInterrupts);
 
 // Relinquishes the virtual processor which means that it is finished executing

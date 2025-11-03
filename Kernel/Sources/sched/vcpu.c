@@ -122,6 +122,13 @@ errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull ac
     decl_try_err();
     vcpu_context_t ctx;
 
+    if (self->sched_state == SCHED_STATE_TERMINATING) {
+        return ESRCH;
+    }
+    if (self->sched_state != SCHED_STATE_SUSPENDED) {
+        return EBUSY;
+    }
+
     ctx.func = (VoidFunc_1)act->func;
     ctx.context = act->context;
     ctx.ret_func = act->ret_func;
@@ -130,24 +137,21 @@ errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull ac
     ctx.userStackSize = act->userStackSize;
     ctx.isUser = act->isUser;
 
-    err = vcpu_setcontext(self, &ctx, true);
-    if (err != EOK) {
-        return err;
-    }
-
-    vcpu_setschedparams(self, &act->schedParams);
+    if ((err = vcpu_setcontext(self, &ctx, true)) == EOK) {
+        vcpu_setschedparams(self, &act->schedParams);
     
-    if (act->isUser) {
-        self->flags |= VP_FLAG_USER_OWNED;
+        if (act->isUser) {
+            self->flags |= VP_FLAG_USER_OWNED;
+        }
+        else {
+            self->flags &= ~VP_FLAG_USER_OWNED;
+        }
+        self->id = act->id;
+        self->groupid = act->groupid;
+        self->flags |= VP_FLAG_ACTIVE;
     }
-    else {
-        self->flags &= ~VP_FLAG_USER_OWNED;
-    }
-    self->id = act->id;
-    self->groupid = act->groupid;
-    self->flags |= VP_FLAG_ACTIVE;
 
-    return EOK;
+    return err;
 }
 
 void vcpu_deactivate(vcpu_t _Nonnull self)
@@ -381,7 +385,6 @@ catch:
 // count is > 1.
 void vcpu_resume(vcpu_t _Nonnull self, bool force)
 {
-    VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
     
     if (self->sched_state == SCHED_STATE_SUSPENDED || self->sched_state == SCHED_STATE_WAIT_SUSPENDED) {
@@ -412,7 +415,6 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
 // Returns true if the given virtual processor is currently suspended; false otherwise.
 bool vcpu_suspended(vcpu_t _Nonnull self)
 {
-    VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
     const bool isSuspended = self->sched_state == SCHED_STATE_SUSPENDED || self->sched_state == SCHED_STATE_WAIT_SUSPENDED;
     preempt_restore(sps);
