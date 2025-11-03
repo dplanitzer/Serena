@@ -23,9 +23,12 @@ const sigset_t SIGSET_IGNORE_ALL = 0;
 errno_t vcpu_sigroute(vcpu_t _Nonnull self, int op)
 {
     decl_try_err();
-    VP_ASSERT_ALIVE(self);
-    const int sps = preempt_disable();
+    
+    if (self->sched_state == SCHED_STATE_TERMINATING) {
+        return ESRCH;
+    }
 
+    const int sps = preempt_disable();
     switch (op) {
         case SIG_ROUTE_DISABLE:
             if (self->proc_sigs_enabled > 0) {

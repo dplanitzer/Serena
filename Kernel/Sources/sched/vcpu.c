@@ -92,7 +92,7 @@ void vcpu_destroy(vcpu_t _Nullable self)
 // handled by the virtual processor scheduler.
 _Noreturn vcpu_terminate(vcpu_t _Nonnull self)
 {
-    VP_ASSERT_ALIVE(self);
+    assert(self->sched_state != SCHED_STATE_TERMINATING);
     sched_terminate_vcpu(g_sched, self);
     /* NOT REACHED */
 }
@@ -112,7 +112,6 @@ _Noreturn vcpu_relinquish(void)
 // pool.
 void vcpu_setdq(vcpu_t _Nonnull self, void* _Nullable pQueue, int concurrencyLaneIndex)
 {
-    VP_ASSERT_ALIVE(self);
     self->dispatchQueue = pQueue;
     self->dispatchQueueConcurrencyLaneIndex = concurrencyLaneIndex;
 }
@@ -227,7 +226,7 @@ errno_t vcpu_getschedparams(vcpu_t _Nonnull self, int type, sched_params_t* _Non
 
 errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull params)
 {
-    VP_ASSERT_ALIVE(self);
+    decl_try_err();
 
     if (params->type != SCHED_PARAM_QOS) {
         return EINVAL;
@@ -270,22 +269,25 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull
                 vcpu_sched_params_changed(self);
                 break;
 
+            case SCHED_STATE_TERMINATING:
+                err = ESRCH;
+                break;
+
             default:
                 abort();
         }
     }
     preempt_restore(sps);
 
-    return EOK;
+    return err;
 }
 
 int vcpu_getcurrentpriority(vcpu_t _Nonnull self)
 {
-    VP_ASSERT_ALIVE(self);
     const int sps = preempt_disable();
     const uint8_t pri = self->effective_priority;
-    
     preempt_restore(sps);
+
     return (int)pri;
 }
 

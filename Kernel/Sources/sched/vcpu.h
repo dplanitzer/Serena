@@ -148,13 +148,8 @@ struct vcpu {
 };
 
 
-#define VP_ASSERT_ALIVE(p)   assert(p->sched_state != SCHED_STATE_TERMINATING)
-
 #define vcpu_from_owner_qe(__ptr) \
 (vcpu_t) (((uint8_t*)__ptr) - offsetof(struct vcpu, owner_qe))
-
-#define VP_FROM_TIMEOUT(__ptr) \
-(vcpu_t) (((uint8_t*)__ptr) - offsetof(struct vcpu, timeout))
 
 
 // Returns a new and unique vcpu group id.
@@ -276,8 +271,6 @@ extern void vcpu_uret_exit(void);
 
 // Subclassers
 extern void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params);
-
-extern void __func_vcpu_destroy(vcpu_t _Nullable self);
 
 // @Entry Condition: preemption disabled
 extern void vcpu_reduce_sched_penalty(vcpu_t _Nonnull self, int weight);
