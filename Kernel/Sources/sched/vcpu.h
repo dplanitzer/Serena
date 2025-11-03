@@ -276,7 +276,7 @@ extern void vcpu_uret_exit(void);
 
 
 // Subclassers
-extern void vcpu_cominit(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params, bool suspended);
+extern void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params);
 
 extern void __func_vcpu_destroy(vcpu_t _Nullable self);
 

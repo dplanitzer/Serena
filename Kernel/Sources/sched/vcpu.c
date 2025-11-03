@@ -24,7 +24,7 @@
 //
 // \param pVP the boot virtual processor record
 // \param priority the initial VP priority
-void vcpu_cominit(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params, bool suspended)
+void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params)
 {
     assert(sched_params->type == SCHED_PARAM_QOS);
 
@@ -44,8 +44,8 @@ void vcpu_cominit(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_par
     self->wait_sigs = 0;
     self->wakeup_reason = 0;
     
-    self->sched_state = (suspended) ? SCHED_STATE_SUSPENDED : SCHED_STATE_INITIATED;
-    self->suspension_count = (suspended) ? 1 : 0;
+    self->sched_state = SCHED_STATE_INITIATED;
+    self->suspension_count = 0;
     self->suspension_inhibit_count = 0;
 
     self->flags = (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_HAS_FPU : 0;
@@ -70,7 +70,8 @@ errno_t vcpu_create(const sched_params_t* _Nonnull sched_params, vcpu_t _Nullabl
     
     err = kalloc_cleared(sizeof(struct vcpu), (void**) &self);
     if (err == EOK) {
-        vcpu_cominit(self, sched_params, true);
+        vcpu_init(self, sched_params);
+        vcpu_suspend(self);
     }
 
     *pOutSelf = self;
@@ -321,24 +322,22 @@ void vcpu_yield(void)
 // the scheduler VP on core B then does the actual suspension job.
 errno_t vcpu_suspend(vcpu_t _Nonnull self)
 {
-    VP_ASSERT_ALIVE(self);
     decl_try_err();
     const int sps = preempt_disable();
-    
+
+    if (self->sched_state == SCHED_STATE_TERMINATING || self == g_sched->idle_vp || self == g_sched->boot_vp) {
+        throw(ESRCH);
+    }
     if (self->suspension_count == INT8_MAX) {
         throw(EINVAL);
     }
-    if (vcpu_current() != self && (self->flags & VP_FLAG_USER_OWNED) == 0) {
+    if ((self->flags & VP_FLAG_USER_OWNED) == 0 && (self->sched_state != SCHED_STATE_INITIATED && self->sched_state != SCHED_STATE_RUNNING)) {
         // no involuntary suspend of kernel owned VPs
         throw(EPERM);
     }
     if (self->suspension_inhibit_count > 0) {
         // target VP is executing inside a suspension exclusion zone
         throw(EBUSY);
-    }
-    if (self->qos == SCHED_QOS_IDLE) {
-        // suspending the idle vp is not supported
-        throw(EINVAL);
     }
     
     const int old_state = self->sched_state;
