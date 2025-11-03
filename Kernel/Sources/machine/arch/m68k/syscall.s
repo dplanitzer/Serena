@@ -53,9 +53,14 @@ __syscall:
 ; void sigurgent(void)
 ; void sigurgent_end(void)
 _sigurgent:
+    movem.l d0 / a0, -(sp)
+
     move.l  #63, -(sp)   ; SC_sigurgent
     move.l  sp, a0
     trap    #0
+    addq.l  #4, sp
+    
+    movem.l (sp)+, d0 / a0
     rts
 _sigurgent_end:
-    rts
+    nop

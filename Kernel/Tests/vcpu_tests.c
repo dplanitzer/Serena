@@ -104,6 +104,7 @@ static vcpu_t test_suspend_vcpu_a;
 
 static void test_suspend_print_loop(void)
 {
+    puts("A running\n");
     for (;;) {
         puts("A");
         vcpu_yield();
@@ -112,17 +113,20 @@ static void test_suspend_print_loop(void)
 
 static void test_suspend_A_loop(void)
 {
-    struct timespec ts_1sec;
+    struct timespec ts_1sec, ts_2sec;
 
     timespec_from_sec(&ts_1sec, 1);
+    timespec_from_sec(&ts_2sec, 2);
+    puts("B running\n");
 
     for (;;) {
         clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
-        puts("B");
+        puts("- suspending A -");
         
         assertOK(vcpu_suspend(test_suspend_vcpu_a));
-        puts("C");
-        clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
+        clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_2sec, NULL);
+        
+        puts("- resuming A -");
         vcpu_resume(test_suspend_vcpu_a);
     }
 }

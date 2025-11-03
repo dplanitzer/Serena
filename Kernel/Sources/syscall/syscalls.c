@@ -173,7 +173,7 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
 
 static void _handle_pending_signals(vcpu_t _Nonnull vp)
 {
-    const sigset_t sigs = vp->pending_sigs & SIGSET_URGENTS;
+    const sigset_t sigs = vp->pending_sigs;
 
     if ((sigs & _SIGBIT(SIGKILL)) != 0) {
         Process_Exit(vp->proc, JREASON_SIGNAL, SIGKILL);
