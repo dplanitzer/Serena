@@ -155,20 +155,12 @@ void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self)
 
 // Wait for all vcpus to relinquish themselves from the process. Only return
 // once all vcpus are gone and no longer touch the process object.
-static struct waitqueue gHackQueue;
 void _proc_reap_vcpus(ProcessRef _Nonnull self)
 {
     bool done = false;
 
     while (!done) {
-        //XXX Can't use yield() here because the currently implemented scheduler
-        //XXX algorithm is too weak and ends up starving some vps
-        //vcpu_yield();
-        struct timespec delay;
-        timespec_from_ms(&delay, 10);
-        const int sps = preempt_disable();
-        wq_timedwait(&gHackQueue, NULL, 0, &delay, NULL);
-        preempt_restore(sps);
+        vcpu_yield();
 
         mtx_lock(&self->mtx);
         if (self->vcpu_queue.first == NULL) {

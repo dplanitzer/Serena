@@ -47,7 +47,7 @@ void proc_exit_test(int argc, char *argv[])
         attr.stack_size = 0;
         attr.sched_params.type = SCHED_PARAM_QOS;
         attr.sched_params.u.qos.category = SCHED_QOS_INTERACTIVE;
-        attr.sched_params.u.qos.priority = QOS_PRI_NORMAL;
+        attr.sched_params.u.qos.priority = QOS_PRI_NORMAL + i;
         attr.groupid = 0;
         attr.flags = VCPU_ACQUIRE_RESUMED;
         gId[i] = vcpu_acquire(&attr);
