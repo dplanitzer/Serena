@@ -88,20 +88,12 @@ enum {
 #define VP_FLAG_ACTIVE              0x40    // vcpu_activate() was called on the VP
 
 
-// Overridable functions for virtual processors
-struct vcpu_vtable {
-    void    (*destroy)(struct vcpu* _Nonnull self);
-};
-typedef struct vcpu_vtable* vcpu_vtable_t;
-
-
 #define SCHED_PRIORITY_BIAS_HIGHEST INT8_MAX 
 #define SCHED_PRIORITY_BIAS_LOWEST  INT8_MIN 
 
 // Note: Keep in sync with machine/hal/lowmem.i
 struct vcpu {
     ListNode                        rewa_qe;                // A VP is either on the ready (re) queue or a wait (wa) queue
-    vcpu_vtable_t _Nonnull          vtable;
 
     void* _Nonnull                  ssp;                    // Saved CPU state pointer (csw)
     stk_t                           kernel_stack;

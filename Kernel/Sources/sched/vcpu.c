@@ -18,30 +18,6 @@
 #include <kern/timespec.h>
 
 
-// Frees a virtual processor.
-// \param pVP the virtual processor
-void __func_vcpu_destroy(vcpu_t _Nullable self)
-{
-    stk_destroy(&self->kernel_stack);
-    stk_destroy(&self->user_stack);
-    kfree(self);
-}
-
-static struct vcpu_vtable gVirtualProcessorVTable = {
-    __func_vcpu_destroy
-};
-
-
-// Relinquishes the virtual processor which means that it is finished executing
-// code and that it should be moved back to the virtual processor pool. This
-// function does not return to the caller. This function should only be invoked
-// from the bottom-most frame on the virtual processor's kernel stack.
-_Noreturn vcpu_relinquish(void)
-{
-    vcpu_pool_relinquish(g_vcpu_pool, vcpu_current());
-    /* NOT REACHED */
-}
-
 // Initializes a virtual processor. A virtual processor always starts execution
 // in supervisor mode. The user stack size may be 0. Note that a virtual processor
 // always starts out in suspended state.
@@ -55,8 +31,6 @@ void vcpu_cominit(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_par
     self->rewa_qe = LISTNODE_INIT;
     stk_init(&self->kernel_stack);
     stk_init(&self->user_stack);
-
-    self->vtable = &gVirtualProcessorVTable;
     
     self->owner_qe = LISTNODE_INIT;
     self->timeout = CLOCK_DEADLINE_INIT;
@@ -106,18 +80,10 @@ errno_t vcpu_create(const sched_params_t* _Nonnull sched_params, vcpu_t _Nullabl
 void vcpu_destroy(vcpu_t _Nullable self)
 {
     if (self) {
-        self->vtable->destroy(self);
+        stk_destroy(&self->kernel_stack);
+        stk_destroy(&self->user_stack);
+        kfree(self);
     }
-}
-
-// Sets the dispatch queue that has acquired the virtual processor and owns it
-// until the virtual processor is relinquished back to the virtual processor
-// pool.
-void vcpu_setdq(vcpu_t _Nonnull self, void* _Nullable pQueue, int concurrencyLaneIndex)
-{
-    VP_ASSERT_ALIVE(self);
-    self->dispatchQueue = pQueue;
-    self->dispatchQueueConcurrencyLaneIndex = concurrencyLaneIndex;
 }
 
 // Terminates the virtual processor that is executing the caller. Does not return
@@ -128,6 +94,26 @@ _Noreturn vcpu_terminate(vcpu_t _Nonnull self)
     VP_ASSERT_ALIVE(self);
     sched_terminate_vcpu(g_sched, self);
     /* NOT REACHED */
+}
+
+// Relinquishes the virtual processor which means that it is finished executing
+// code and that it should be moved back to the virtual processor pool. This
+// function does not return to the caller. This function should only be invoked
+// from the bottom-most frame on the virtual processor's kernel stack.
+_Noreturn vcpu_relinquish(void)
+{
+    vcpu_pool_relinquish(g_vcpu_pool, vcpu_current());
+    /* NOT REACHED */
+}
+
+// Sets the dispatch queue that has acquired the virtual processor and owns it
+// until the virtual processor is relinquished back to the virtual processor
+// pool.
+void vcpu_setdq(vcpu_t _Nonnull self, void* _Nullable pQueue, int concurrencyLaneIndex)
+{
+    VP_ASSERT_ALIVE(self);
+    self->dispatchQueue = pQueue;
+    self->dispatchQueueConcurrencyLaneIndex = concurrencyLaneIndex;
 }
 
 errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull act)

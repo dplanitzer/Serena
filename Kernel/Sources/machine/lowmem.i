@@ -145,7 +145,6 @@ VP_FLAG_FPU_SAVED_BIT   equ 4   ; Set if the user fpu state has been saved (keep
     clrso
 vp_rewa_qe_next                         so.l    1           ; 4
 vp_rewa_qe_prev                         so.l    1           ; 4
-vp_vtable                               so.l    1           ; 4
 vp_ssp                                  so.l    1           ; 4
 vp_kernel_stack_base                    so.l    1           ; 4
 vp_kernel_stack_size                    so.l    1           ; 4
@@ -187,7 +186,7 @@ vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
 vp_reserved3                            so.b    3           ; 3
 vp_SIZEOF                       so
-    ifeq (vp_SIZEOF == 128)
+    ifeq (vp_SIZEOF == 124)
         fail "vcpu structure size is incorrect."
     endif
 
