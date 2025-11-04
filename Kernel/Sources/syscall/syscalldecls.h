@@ -40,23 +40,20 @@ typedef struct syscall_args {
 
 #define SYSCALL_0(__name) \
 struct args##__name { \
-    unsigned int dummy; \
-    unsigned int scno; \
+    syscall_args_t  h; \
 }; \
 intptr_t _SYSCALL_##__name(vcpu_t _Nonnull vp, const struct args##__name* _Nonnull pa)
 
 #define SYSCALL_1(__name, __p1) \
 struct args##__name { \
-    unsigned int dummy; \
-    unsigned int scno; \
+    syscall_args_t  h; \
     __p1; \
 }; \
 intptr_t _SYSCALL_##__name(vcpu_t _Nonnull vp, const struct args##__name* _Nonnull pa)
 
 #define SYSCALL_2(__name, __p1, __p2) \
 struct args##__name { \
-    unsigned int dummy; \
-    unsigned int scno; \
+    syscall_args_t  h; \
     __p1; \
     __p2; \
 }; \
@@ -64,8 +61,7 @@ intptr_t _SYSCALL_##__name(vcpu_t _Nonnull vp, const struct args##__name* _Nonnu
 
 #define SYSCALL_3(__name, __p1, __p2, __p3) \
 struct args##__name { \
-    unsigned int dummy; \
-    unsigned int scno; \
+    syscall_args_t  h; \
     __p1; \
     __p2; \
     __p3; \
@@ -74,8 +70,7 @@ intptr_t _SYSCALL_##__name(vcpu_t _Nonnull vp, const struct args##__name* _Nonnu
 
 #define SYSCALL_4(__name, __p1, __p2, __p3, __p4) \
 struct args_##__name { \
-    unsigned int dummy; \
-    unsigned int scno; \
+    syscall_args_t  h; \
     __p1; \
     __p2; \
     __p3; \
@@ -85,8 +80,7 @@ intptr_t _SYSCALL_##__name(vcpu_t _Nonnull vp, const struct args_##__name* _Nonn
 
 #define SYSCALL_5(__name, __p1, __p2, __p3, __p4, __p5) \
 struct args_##__name { \
-    unsigned int dummy; \
-    unsigned int scno; \
+    syscall_args_t  h; \
     __p1; \
     __p2; \
     __p3; \
@@ -97,8 +91,7 @@ intptr_t _SYSCALL_##__name(vcpu_t _Nonnull vp, const struct args_##__name* _Nonn
 
 #define SYSCALL_6(__name, __p1, __p2, __p3, __p4, __p5, __p6) \
 struct args_##__name { \
-    unsigned int dummy; \
-    unsigned int scno; \
+    syscall_args_t  h; \
     __p1; \
     __p2; \
     __p3; \
