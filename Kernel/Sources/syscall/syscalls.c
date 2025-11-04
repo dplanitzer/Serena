@@ -208,14 +208,9 @@ void _syscall_handler(vcpu_t _Nonnull vp, unsigned int* _Nonnull args)
 
     vcpu_enable_suspensions(vp);
 
-    if (hasErrno) {
-        if (r != 0) {
-            vp->uerrno = (errno_t)r;
-            r = -1;
-        }
-        else {
-            r = 0;
-        }
+    if (hasErrno && r != 0) {
+        vp->uerrno = (errno_t)r;
+        r = -1;
     }
 
     syscall_setresult32(vp->syscall_sa, r);
