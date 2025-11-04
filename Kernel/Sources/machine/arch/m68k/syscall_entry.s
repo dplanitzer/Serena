@@ -68,10 +68,10 @@
 ;
 __sys_entry:
     inline
-        ; save the user registers (see description above)
-        movem.l d1 - d7 / a0 - a6, -(sp)
+        SAVE_CPU_STATE
 
         GET_CURRENT_VP a1
+        move.l  sp, vp_syscall_sa(a1)
 
         ; Invoke the system call handler. Returns a result in d0
         move.l  a0, -(sp)
@@ -79,8 +79,7 @@ __sys_entry:
         jsr     __syscall_handler
         addq.l  #8, sp
 
-        ; restore the user registers
-        movem.l (sp)+, d1 - d7 / a0 - a6
+        RESTORE_CPU_STATE
 
         rte
     einline

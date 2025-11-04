@@ -145,7 +145,8 @@ VP_FLAG_FPU_SAVED_BIT   equ 4   ; Set if the user fpu state has been saved (keep
     clrso
 vp_rewa_qe_next                         so.l    1           ; 4
 vp_rewa_qe_prev                         so.l    1           ; 4
-vp_ssp                                  so.l    1           ; 4
+vp_csw_sa                               so.l    1           ; 4
+vp_syscall_sa                           so.l    1           ; 4
 vp_kernel_stack_base                    so.l    1           ; 4
 vp_kernel_stack_size                    so.l    1           ; 4
 vp_user_stack_base                      so.l    1           ; 4
@@ -186,7 +187,7 @@ vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
 vp_reserved3                            so.b    3           ; 3
 vp_SIZEOF                       so
-    ifeq (vp_SIZEOF == 124)
+    ifeq (vp_SIZEOF == 128)
         fail "vcpu structure size is incorrect."
     endif
 
@@ -248,6 +249,24 @@ vp_SIZEOF                       so
     macro GET_CURRENT_VP
     move.l  _g_sched, \1
     move.l  sched_running(\1), \1
+    endm
+
+
+;-------------------------------------------------------------------------------
+; Context save/restore macros
+;
+
+    macro SAVE_CPU_STATE
+    movem.l d0 - d7 / a0 - a6, -(sp)
+    move.l  usp, a1         ; save the user stack pointer
+    move.l  a1, -(sp)
+    endm
+
+
+    macro RESTORE_CPU_STATE
+    move.l  (sp)+, a1       ; restore the user stack pointer
+    move.l  a1, usp
+    movem.l (sp)+, d0 - d7 / a0 - a6
     endm
 
         endif

@@ -88,12 +88,7 @@ _csw_switch_to_boot_vcpu:
 ; SP + 2: PC
 ; SP + 0: SR
 __csw_switch:
-    ; save the integer state
-    movem.l d0 - d7 / a0 - a6, -(sp)
-
-    ; save the user stack pointer
-    move.l  usp, a0
-    move.l  a0, -(sp)
+    SAVE_CPU_STATE
 
     GET_CURRENT_VP a0
 
@@ -123,7 +118,7 @@ __csw_switch:
 
 .2:
     ; save the cpu_saved_state pointer
-    move.l  sp, vp_ssp(a0)
+    move.l  sp, vp_csw_sa(a0)
 
 
 __csw_restore:
@@ -142,7 +137,7 @@ __csw_restore:
     move.b  #SCHED_STATE_RUNNING, vp_sched_state(a0)
 
     ; restore the ksp from the cpu_saved_state pointer
-    move.l  vp_ssp(a0), sp
+    move.l  vp_csw_sa(a0), sp
 
     ; verify that we haven't overrun the kernel stack
     cmp.l   vp_kernel_stack_base(a0), sp
@@ -166,12 +161,7 @@ __csw_restore:
     frestore    (sp)+
 
 .3:
-    ; restore the user stack pointer
-    move.l  (sp)+, a1
-    move.l  a1, usp
-    
-    ; restore the integer state
-    movem.l (sp)+, d0 - d7 / a0 - a6
+    RESTORE_CPU_STATE
 
     rte
 

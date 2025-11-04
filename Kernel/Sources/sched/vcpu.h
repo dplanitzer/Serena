@@ -95,7 +95,8 @@ enum {
 struct vcpu {
     ListNode                        rewa_qe;                // A VP is either on the ready (re) queue or a wait (wa) queue
 
-    void* _Nonnull                  ssp;                    // Saved CPU state pointer (csw)
+    void* _Nonnull                  csw_sa;                 // Points to base of the context switcher CPU state save area 
+    void* _Nonnull                  syscall_sa;             // Points to base of the system call CPU state save area
     stk_t                           kernel_stack;
     stk_t                           user_stack;
 

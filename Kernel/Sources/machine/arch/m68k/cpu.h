@@ -134,6 +134,29 @@
 #define EXCPT_NUM_USER_VECS     192
 
 
+// CPU savearea layout
+typedef struct cpu_savearea {
+    uint32_t    usp;
+    uint32_t    d[8];   
+    uint32_t    a[7];
+} cpu_savearea_t;
+
+// FPU savearea layout
+typedef struct fpu_savearea {
+    uint32_t    fpiar;
+    uint32_t    fpsr;
+    uint32_t    fpcr;
+    float96_t   fp[8];
+    uint32_t    fsave_hdr;
+    // Up to 212 more bytes may follow here, depending on the fsave frame type
+} fpu_savearea_t;
+
+// Stores '__val' as the result of a system call invocation in the savearea '__sap'.
+// '__sap' should be the system call savearea from the current virtual processor.
+#define syscall_setresult32(__sap, __val) \
+((cpu_savearea_t*)(__sap))->d[0] = (__val)
+
+
 // Format #0 CPU exception stack frame
 // 68020UM, p6-27
 #pragma pack(1)

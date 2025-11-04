@@ -83,27 +83,29 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull clo
     // ksp-0:    exception frame type    \
     // ksp-2:    pc                      |  Exception stack frame type #0
     // ksp-6:    sr                      /
-    // ksp-8:    a[7]                       a0 to a6
-    // ksp-36:   d[8]                       d0 to d7
+    // ksp-8:    a[7]                       a6 to a0
+    // ksp-36:   d[8]                       d7 to d0
     // ksp-68:   usp                        user stack pointer
     // ksp-72:   fpu_save                   fsave frame, 4 to 216 bytes (all following offsets assume NULL fsave frame of 4 bytes)
-    // ksp-76:   fp[8]                      fp0 to fp7
+    // ksp-76:   fp[8]                      fp7 to fp0
     // ksp-172:  fpcr
     // ksp-176:  fpsr
     // ksp-180:  fpiar
+    // ################     <--- kernel stack pointer
     // -------------------------------------------------------------------------
     //
     // Initial save area layout (high to low addresses):
     // ksp-0:    exception frame type    \
     // ksp-2:    pc                      |  Exception stack frame type #0
     // ksp-6:    sr                      /
-    // ksp-8:    a[7]                       a0 to a6
-    // ksp-36:   d[8]                       d0 to d7
+    // ksp-8:    a[7]                       a6 to a0
+    // ksp-36:   d[8]                       d7 to d0
     // ksp-68:   usp                        user stack pointer
     // ksp-72:   fpu_save                   fsave NULL frame, 4 bytes (this causes the FPU to reset its user state)
+    // ################     <--- kernel stack pointer
     const size_t fsiz = ifsiz + ((hasFPU) ? sizeof(struct m6888x_null_frame) : 0);
-    uintptr_t ssp = ksp - fsiz;
-    memset((void*)ssp, 0, fsiz);
+    uintptr_t csw_sa = ksp - fsiz;
+    memset((void*)csw_sa, 0, fsiz);
 
     // Push a format #0 CPU exception frame on the kernel stack for the first
     // context switch.
@@ -118,7 +120,7 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull clo
     uint32_t* uspp = (int32_t*)(ksp - ifsiz);
     uspp[0] = usp;
     
-    self->ssp = (void*)ssp;
+    self->csw_sa = (void*)csw_sa;
 
     return EOK;
 }
