@@ -181,9 +181,9 @@ static void _handle_pending_signals(vcpu_t _Nonnull vp)
     }
 }
 
-void _syscall_handler(vcpu_t _Nonnull vp, unsigned int* _Nonnull args)
+void _syscall_handler(vcpu_t _Nonnull vp, const syscall_args_t* _Nonnull args)
 {
-    const unsigned int scno = *args;
+    const unsigned int scno = args->scno;
     intptr_t r;
     bool hasErrno;
     

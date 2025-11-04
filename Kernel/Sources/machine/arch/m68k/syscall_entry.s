@@ -18,53 +18,31 @@
 
 
 ;-------------------------------------------------------------------------------
-; Common entry point for system calls (trap #0).
-; A system call looks like this:
+; System call entry point.
 ;
-; a0.l: -> pointer to argument list base
+; NOTE: you are expected to use the _syscall() function to invoke a system call.
+; You should not use a trap instruction.
 ;
-; d0.l: <- error number
+; Layout of the user stack when using _syscall():
 ;
-; Register a0 holds a pointer to the base of the argument list. Arguments are
-; expected to be ordered from left to right (same as the standard C function
-; call ABI) and the pointer in a0 points to the left-most argument. So the
-; simplest way to pass arguments to a system call is to push them on the user
-; stack starting with the right-most argument and ending with the left-most
-; argument and to then initialize a0 like this:
+; Arguments are pushed from right to left on the stack. The left-most argument
+; is the system call number. The system call result is returned in d0.
 ;
-; move.l sp, a0
 ;
-; If the arguments are first put on the stack and you then call a subroutine
-; which does the actual trap #0 to the kernel, then you want to initialize a0
-; like this:
+; INTERNAL
 ;
-; lea 4(sp), a0
+; Layout of the user stack when using trap #0:
 ;
-; since the user stack pointer points to the return address on the stack and not
-; the system call number.
+; Arguments are pushed from right to left on the stack. The left-most argument
+; is a 32bit dummy word. The dummy word is the return address of the _syscall()
+; function.
 ;
-; The system call returns the error code in d0.
-;
-; There are a couple advantages to this admittedly unusual system call ABI:
-; - the kernel does not have to save d0 since it holds the return value
-; - it gives the user space more flexibility:
-; -- user space can either implement a __syscall() subroutine or inline the system
-;    call and the right thing will happen automatically
-; -- user space can either push arguments on the stack or point the kernel to a
-;    precomputed argument list that is stored somewhere else
-; - it allows the kernel to avoid having to copying the arguments to the super
-;   user stack 
-;
-; This top-level system call handler calls the system call handler functions that
-; are responsible for handling the individual system calls. These handlers are
-; written in C and they receive a pointer to a structure that holds all the
-; system call arguments including the system call number. The arguments are
-; ordered from left to right:
-;
-; struct Args {
-;    unsigned int   systemCallNumber;
-;    // system call specific arguments from left to right
-; }
+; argN
+; ...
+; arg0
+; system call number
+; dummy long word / _syscall() return address
+; ##### <--- usp
 ;
 __sys_entry:
     inline
@@ -73,7 +51,9 @@ __sys_entry:
         GET_CURRENT_VP a1
         move.l  sp, vp_syscall_sa(a1)
 
-        ; Invoke the system call handler. Returns a result in d0
+        ; Invoke the system call handler. This function writes its function
+        ; result to the system call save area
+        move.l  usp, a0
         move.l  a0, -(sp)
         move.l  a1, -(sp)
         jsr     __syscall_handler

@@ -269,4 +269,7 @@ vp_SIZEOF                       so
     movem.l (sp)+, d0 - d7 / a0 - a6
     endm
 
+
+CPU_STATE_SIZE  equ 4 + 8*4 + 7*4
+
         endif
