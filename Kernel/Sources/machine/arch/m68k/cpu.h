@@ -151,10 +151,15 @@ typedef struct fpu_savearea {
     // Up to 212 more bytes may follow here, depending on the fsave frame type
 } fpu_savearea_t;
 
-// Stores '__val' as the result of a system call invocation in the savearea '__sap'.
-// '__sap' should be the system call savearea from the current virtual processor.
-#define syscall_setresult32(__sap, __val) \
-((cpu_savearea_t*)(__sap))->d[0] = (__val)
+// Stores '__val' as the result of a system call invocation in the savearea of
+// the virtual processor '__vp'.
+#define syscall_setresult_int(__vp, __val) \
+((cpu_savearea_t*)((__vp)->syscall_sa))->d[0] = (uint32_t)(__val)
+
+// Stores '__ptr' as the result of a system call invocation in the savearea of
+// the virtual processor '__vp'.
+#define syscall_setresult_ptr(__vp, __ptr) \
+((cpu_savearea_t*)((__vp)->syscall_sa))->d[0] = (uint32_t)(__ptr)
 
 
 // Format #0 CPU exception stack frame

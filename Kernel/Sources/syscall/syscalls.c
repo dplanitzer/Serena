@@ -96,24 +96,24 @@ SYSCALL_REF(vcpu_setschedparams);
 
 #define SYSCALL_COUNT   69
 
-static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
+static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(read, SC_ERRNO),
     SYSCALL_ENTRY(write, SC_ERRNO),
     SYSCALL_ENTRY(clock_nanosleep, SC_ERRNO),
     SYSCALL_ENTRY(alloc_address_space, SC_ERRNO),
-    SYSCALL_ENTRY(exit, 0),
+    SYSCALL_ENTRY(exit, SC_NORETURN),
     SYSCALL_ENTRY(spawn_process, SC_ERRNO),
-    SYSCALL_ENTRY(getpid, 0),
-    SYSCALL_ENTRY(getppid, 0),
-    SYSCALL_ENTRY(getpargs, 0),
+    SYSCALL_ENTRY(getpid, SC_INT),
+    SYSCALL_ENTRY(getppid, SC_INT),
+    SYSCALL_ENTRY(getpargs, SC_PTR),
     SYSCALL_ENTRY(open, SC_ERRNO),
     SYSCALL_ENTRY(close, SC_ERRNO),
     SYSCALL_ENTRY(proc_timedjoin, SC_ERRNO),
     SYSCALL_ENTRY(seek, SC_ERRNO),
     SYSCALL_ENTRY(getcwd, SC_ERRNO),
     SYSCALL_ENTRY(chdir, SC_ERRNO),
-    SYSCALL_ENTRY(getuid, 0),
-    SYSCALL_ENTRY(umask, 0),
+    SYSCALL_ENTRY(getuid, SC_INT),
+    SYSCALL_ENTRY(umask, SC_INT),
     SYSCALL_ENTRY(mkdir, SC_ERRNO),
     SYSCALL_ENTRY(stat, SC_ERRNO),
     SYSCALL_ENTRY(opendir, SC_ERRNO),
@@ -130,37 +130,37 @@ static const syscall_t gSystemCallTable[SYSCALL_COUNT] = {
     SYSCALL_ENTRY(clock_gettime, SC_ERRNO),
     SYSCALL_ENTRY(mount, SC_ERRNO),
     SYSCALL_ENTRY(unmount, SC_ERRNO),
-    SYSCALL_ENTRY(getgid, 0),
+    SYSCALL_ENTRY(getgid, SC_INT),
     SYSCALL_ENTRY(sync, SC_ERRNO),
     SYSCALL_ENTRY(coninit, SC_ERRNO),
     SYSCALL_ENTRY(fsgetdisk, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_errno, 0),
+    SYSCALL_ENTRY(vcpu_errno, SC_INT),
     SYSCALL_ENTRY(chown, SC_ERRNO),
     SYSCALL_ENTRY(fcntl, SC_ERRNO),
     SYSCALL_ENTRY(chmod, SC_ERRNO),
     SYSCALL_ENTRY(utimens, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_yield, 0),
+    SYSCALL_ENTRY(vcpu_yield, SC_VOID),
     SYSCALL_ENTRY(wq_create, SC_ERRNO),
     SYSCALL_ENTRY(wq_wait, SC_ERRNO),
     SYSCALL_ENTRY(wq_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_wakeup, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_getid, 0),
+    SYSCALL_ENTRY(vcpu_getid, SC_INT),
     SYSCALL_ENTRY(sigroute, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_getdata, 0),
-    SYSCALL_ENTRY(vcpu_setdata, 0),
+    SYSCALL_ENTRY(vcpu_getdata, SC_PTR),
+    SYSCALL_ENTRY(vcpu_setdata, SC_INT),
     SYSCALL_ENTRY(sigwait, SC_ERRNO),
     SYSCALL_ENTRY(sigtimedwait, SC_ERRNO),
     SYSCALL_ENTRY(wq_wakeup_then_timedwait, SC_ERRNO),
     SYSCALL_ENTRY(sigpending, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_getgrp, 0),
-    SYSCALL_ENTRY(getpgrp, 0),
-    SYSCALL_ENTRY(getsid, 0),
+    SYSCALL_ENTRY(vcpu_getgrp, SC_INT),
+    SYSCALL_ENTRY(getpgrp, SC_INT),
+    SYSCALL_ENTRY(getsid, SC_INT),
     SYSCALL_ENTRY(vcpu_acquire, SC_ERRNO),
-    SYSCALL_ENTRY(vcpu_relinquish_self, 0),
+    SYSCALL_ENTRY(vcpu_relinquish_self, SC_NORETURN),
     SYSCALL_ENTRY(vcpu_suspend, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_resume, SC_ERRNO),
     SYSCALL_ENTRY(sigsend, SC_ERRNO),
-    SYSCALL_ENTRY(sigurgent, 0),
+    SYSCALL_ENTRY(sigurgent, SC_VOID),
     SYSCALL_ENTRY(excpt_sethandler, SC_ERRNO),
     SYSCALL_ENTRY(proc_exec, SC_ERRNO),
     SYSCALL_ENTRY(vcpu_getschedparams, SC_ERRNO),
@@ -185,19 +185,19 @@ void _syscall_handler(vcpu_t _Nonnull vp, const syscall_args_t* _Nonnull args)
 {
     const unsigned int scno = args->scno;
     intptr_t r;
-    bool hasErrno;
+    char rty;
     
     vcpu_disable_suspensions(vp);
 
     if (scno < SYSCALL_COUNT) {
-        const syscall_t* sc = &gSystemCallTable[scno];
+        const syscall_entry_t* sc = &g_syscall_table[scno];
 
         r = sc->f(vp, args);
-        hasErrno = (sc->flags & SC_ERRNO) == SC_ERRNO;
+        rty = sc->ret_type;
     }
     else {
         r = ENOSYS;
-        hasErrno = true;
+        rty = SC_ERRNO;
     }
 
 
@@ -208,10 +208,27 @@ void _syscall_handler(vcpu_t _Nonnull vp, const syscall_args_t* _Nonnull args)
 
     vcpu_enable_suspensions(vp);
 
-    if (hasErrno && r != 0) {
-        vp->uerrno = (errno_t)r;
-        r = -1;
-    }
+    switch (rty) {
+        case SC_INT:
+            syscall_setresult_int(vp, r);
+            break;
 
-    syscall_setresult32(vp->syscall_sa, r);
+        case SC_ERRNO:
+            if (r == 0) {
+                syscall_setresult_int(vp, 0);
+            }
+            else {
+                vp->uerrno = (errno_t)r;
+                syscall_setresult_int(vp, -1);
+            }
+            break;
+
+        case SC_PTR:
+            syscall_setresult_ptr(vp, r);
+            break;
+
+        case SC_VOID:
+            // no return value
+            break;
+    }
 }
