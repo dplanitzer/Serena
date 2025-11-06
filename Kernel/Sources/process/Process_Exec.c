@@ -114,6 +114,7 @@ static errno_t _proc_img_acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void
     act.func = (VoidFunc_1)entryPoint;
     act.context = procargs;
     act.ret_func = (VoidFunc_0)vcpu_uret_exit;
+    act.kernelStackBase = NULL;
     act.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
     act.userStackSize = VP_DEFAULT_USER_STACK_SIZE;
     act.id = VCPUID_MAIN;

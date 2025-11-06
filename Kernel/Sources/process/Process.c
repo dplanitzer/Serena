@@ -139,6 +139,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     act.func = (VoidFunc_1)attr->func;
     act.context = attr->arg;
     act.ret_func = (is_uproc) ? vcpu_uret_relinquish_self : _vcpu_relinquish_self;
+    act.kernelStackBase = NULL;
     act.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
     act.userStackSize = (is_uproc) ? __max(attr->stack_size, VP_DEFAULT_USER_STACK_SIZE) : 0;
     act.id = self->next_avail_vcpuid++;

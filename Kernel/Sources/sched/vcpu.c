@@ -119,7 +119,6 @@ void vcpu_setdq(vcpu_t _Nonnull self, void* _Nullable pQueue, int concurrencyLan
 errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull act)
 {
     decl_try_err();
-    vcpu_context_t ctx;
 
     if (self->sched_state == SCHED_STATE_TERMINATING) {
         return ESRCH;
@@ -128,15 +127,7 @@ errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull ac
         return EBUSY;
     }
 
-    ctx.func = (VoidFunc_1)act->func;
-    ctx.context = act->context;
-    ctx.ret_func = act->ret_func;
-    ctx.kernelStackBase = NULL;
-    ctx.kernelStackSize = act->kernelStackSize;
-    ctx.userStackSize = act->userStackSize;
-    ctx.isUser = act->isUser;
-
-    if ((err = vcpu_setcontext(self, &ctx, true)) == EOK) {
+    if ((err = vcpu_setcontext(self, act, true)) == EOK) {
         vcpu_setschedparams(self, &act->schedParams);
     
         if (act->isUser) {
@@ -147,7 +138,7 @@ errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull ac
         }
         self->id = act->id;
         self->groupid = act->groupid;
-        self->flags |= VP_FLAG_ACTIVE;
+        self->flags |= VP_FLAG_ACQUIRED;
     }
 
     return err;
@@ -164,7 +155,7 @@ void vcpu_deactivate(vcpu_t _Nonnull self)
     self->pending_sigs = 0;
     self->proc_sigs_enabled = 0;
     self->suspension_inhibit_count = 0;
-    self->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_HANDLING_EXCPT|VP_FLAG_ACTIVE);
+    self->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_HANDLING_EXCPT|VP_FLAG_ACQUIRED);
 }
 
 void vcpu_reduce_sched_penalty(vcpu_t _Nonnull self, int prop)

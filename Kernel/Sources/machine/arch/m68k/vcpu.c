@@ -14,9 +14,9 @@
 // Sets the closure which the virtual processor should run when it is next resumed.
 //
 // \param self the virtual processor
-// \param closure the closure description
+// \param act the activation record
 // \param bEnableInterrupts true if IRQs should be enabled; false if disabled
-errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull closure, bool bEnableInterrupts)
+errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull act, bool bEnableInterrupts)
 {
     decl_try_err();
     const size_t ifsiz = sizeof(excpt_0_frame_t) + 4*7 + 4*8 + 4;
@@ -26,20 +26,20 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull clo
     // Minimum kernel stack size is 2 * sizeof(cpu_save_area_max_size) + 128
     // 2 times -> csw save state + cpu exception save state
     const size_t minKernelStackSize = self->kernel_stack.size >= 2*(ifsiz + ffsiz + FPU_MAX_STATE_SIZE) + 128;
-    const size_t minUserStackSize = (closure->userStackSize != 0) ? 2048 : 0;
+    const size_t minUserStackSize = (act->userStackSize != 0) ? 2048 : 0;
 
-    if (closure->kernelStackBase == NULL) {
-        err = stk_setmaxsize(&self->kernel_stack, __max(closure->kernelStackSize, minKernelStackSize));
+    if (act->kernelStackBase == NULL) {
+        err = stk_setmaxsize(&self->kernel_stack, __max(act->kernelStackSize, minKernelStackSize));
     } else {
         // kernel stack allocated by caller
-        assert(closure->kernelStackSize >= minKernelStackSize);
+        assert(act->kernelStackSize >= minKernelStackSize);
 
         stk_setmaxsize(&self->kernel_stack, 0);
-        self->kernel_stack.base = closure->kernelStackBase;
-        self->kernel_stack.size = closure->kernelStackSize;
+        self->kernel_stack.base = act->kernelStackBase;
+        self->kernel_stack.size = act->kernelStackSize;
     }
     if (err == EOK) {
-        err = stk_setmaxsize(&self->user_stack, __max(closure->userStackSize, minUserStackSize));
+        err = stk_setmaxsize(&self->user_stack, __max(act->userStackSize, minUserStackSize));
     }
     if (err != EOK) {
         return err;
@@ -49,7 +49,7 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull clo
     // Initialize the CPU context:
     // Integer state: zeroed out
     // Floating-point state: establishes IEEE 754 standard defaults (non-signaling exceptions, round to nearest, extended precision)
-    VoidFunc_0 ret_func = (closure->ret_func) ? closure->ret_func : (VoidFunc_0)vcpu_relinquish;
+    VoidFunc_0 ret_func = (act->ret_func) ? act->ret_func : (VoidFunc_0)vcpu_relinquish;
     uintptr_t ksp = (uintptr_t) stk_getinitialsp(&self->kernel_stack);
     uintptr_t usp = (uintptr_t) stk_getinitialsp(&self->user_stack);
 
@@ -69,12 +69,12 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull clo
     //
     // See __csw_switch for an explanation of why we need to push a format #0
     // exception stack frame here.
-    if (closure->isUser) {
-        usp = sp_push_ptr(usp, closure->context);
+    if (act->isUser) {
+        usp = sp_push_ptr(usp, act->context);
         usp = sp_push_rts(usp, (void*)ret_func);
     }
     else {
-        ksp = sp_push_ptr(ksp, closure->context);
+        ksp = sp_push_ptr(ksp, act->context);
         ksp = sp_push_rts(ksp, (void*)ret_func);
     }
 
@@ -111,8 +111,8 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull clo
     // context switch.
     excpt_0_frame_t* ep = (excpt_0_frame_t*)(ksp - sizeof(excpt_0_frame_t));
     ep->fv = 0;
-    ep->pc = (uintptr_t)closure->func;
-    ep->sr = (closure->isUser) ? 0 : CPU_SR_S;
+    ep->pc = (uintptr_t)act->func;
+    ep->sr = (act->isUser) ? 0 : CPU_SR_S;
     if (!bEnableInterrupts) {
         ep->sr |= CPU_SR_IE_MASK;   // IRQs should be disabled
     }

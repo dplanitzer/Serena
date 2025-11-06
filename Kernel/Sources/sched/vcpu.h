@@ -30,25 +30,12 @@ struct vcpu;
 extern const sigset_t SIGSET_IGNORE_ALL;
 
 
-// This structure describes a virtual processor closure which is a function entry
-// point, a context parameter that will be passed to the closure function and the
-// kernel plus user stack size.
-typedef struct vcpu_context {
-    VoidFunc_1 _Nonnull     func;
-    void* _Nullable _Weak   context;
-    VoidFunc_0 _Nullable    ret_func;
-    char* _Nullable         kernelStackBase;    // Optional base address of a pre-allocated kernel stack
-    size_t                  kernelStackSize;
-    size_t                  userStackSize;
-    bool                    isUser;
-} vcpu_context_t;
-
-
 // Parameters for a VP activation
 typedef struct vcpu_activation {
     VoidFunc_1 _Nonnull     func;
     void* _Nullable _Weak   context;
     VoidFunc_0 _Nullable    ret_func;
+    void* _Nullable         kernelStackBase;
     size_t                  kernelStackSize;
     size_t                  userStackSize;
     vcpuid_t                id;
@@ -56,6 +43,8 @@ typedef struct vcpu_activation {
     sched_params_t          schedParams;
     bool                    isUser;
 } vcpu_activation_t;
+
+#define VCPU_ACTIVATION_INIT {0}
 
 
 // VP scheduling state
@@ -85,7 +74,7 @@ enum {
 #define VP_FLAG_HAS_FPU             0x08    // Save/restore the FPU state (keep in sync with lowmem.i)
 #define VP_FLAG_FPU_SAVED           0x10    // Set if the FPU user state has been saved (keep in sync with lowmem.i)
 #define VP_FLAG_TIMEOUT_SUSPENDED   0x20    // VP is suspended and had an active timeout scheduled
-#define VP_FLAG_ACTIVE              0x40    // vcpu_activate() was called on the VP
+#define VP_FLAG_ACQUIRED            0x40    // vcpu_activate() was called on the VP
 
 
 #define SCHED_PRIORITY_BIAS_HIGHEST INT8_MAX 
@@ -250,7 +239,7 @@ extern bool vcpu_suspended(vcpu_t _Nonnull self);
 extern void vcpu_setdq(vcpu_t _Nonnull self, void* _Nullable pQueue, int concurrencyLaneIndex);
 
 // Sets the closure which the virtual processor should run when it is next resumed.
-extern errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_context_t* _Nonnull closure, bool bEnableInterrupts);
+extern errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull act, bool bEnableInterrupts);
 
 // Relinquishes the virtual processor which means that it is finished executing
 // code and that it should be moved back to the virtual processor pool. This

@@ -319,16 +319,15 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     sp.u.qos.priority = QOS_PRI_LOWEST;
     vcpu_init(self, &sp);
 
-    vcpu_context_t cl;
-    cl.func = (VoidFunc_1)fn;
-    cl.context = ctx;
-    cl.ret_func = NULL;
-    cl.kernelStackBase = pKernelStackBase;
-    cl.kernelStackSize = kernelStackSize;
-    cl.userStackSize = 0;
-    cl.isUser = false;
+    vcpu_activation_t act = VCPU_ACTIVATION_INIT;
+    act.func = (VoidFunc_1)fn;
+    act.context = ctx;
+    act.kernelStackBase = pKernelStackBase;
+    act.kernelStackSize = kernelStackSize;
+    act.schedParams = sp;
+    act.isUser = false;
 
-    try_bang(vcpu_setcontext(self, &cl, false));
+    try_bang(vcpu_setcontext(self, &act, false));
     
     return self;
 }
@@ -361,16 +360,14 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     sp.u.qos.priority = 0;
     vcpu_init(self, &sp);
 
-    vcpu_context_t cl;
-    cl.func = (VoidFunc_1)idle_vcpu_run;
-    cl.context = NULL;
-    cl.ret_func = NULL;
-    cl.kernelStackBase = pKernelStackBase;
-    cl.kernelStackSize = kernelStackSize;
-    cl.userStackSize = 0;
-    cl.isUser = false;
+    vcpu_activation_t act = VCPU_ACTIVATION_INIT;
+    act.func = (VoidFunc_1)idle_vcpu_run;
+    act.kernelStackBase = pKernelStackBase;
+    act.kernelStackSize = kernelStackSize;
+    act.schedParams = sp;
+    act.isUser = false;
 
-    try_bang(vcpu_setcontext(self, &cl, true));
+    try_bang(vcpu_setcontext(self, &act, true));
 
     return self;
 }
