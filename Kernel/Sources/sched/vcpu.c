@@ -81,6 +81,15 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     }
 
 
+    // Note that a vcpu freshly checked out from the pool may not have entered
+    // the suspend state yet. Wait until it is actually suspended and before we
+    // proceed with reconfiguring it. We only become the owner of the vcpu once
+    // it has entered suspended state.
+    while (!vcpu_suspended(vp)) {
+        vcpu_yield();
+    }
+
+    
     // Configure the vcpu
     try(vcpu_setcontext(vp, ac, true));
     vcpu_setschedparams(vp, &ac->schedParams);

@@ -7,7 +7,6 @@
 //
 
 #include "vcpu_pool.h"
-#include "sched.h"
 #include <kern/kalloc.h>
 #include <sched/vcpu.h>
 
@@ -22,13 +21,10 @@ errno_t vcpu_pool_create(vcpu_pool_t _Nullable * _Nonnull pOutSelf)
     
     try(kalloc_cleared(sizeof(struct vcpu_pool), (void**) &self));
     mtx_init(&self->mtx);
-    self->reuse_capacity = 16;
-    *pOutSelf = self;
-    return EOK;
+    self->reuse_capacity = 32;
     
 catch:
-    vcpu_pool_destroy(self);
-    *pOutSelf = NULL;
+    *pOutSelf = self;
     return err;
 }
 
@@ -42,27 +38,16 @@ void vcpu_pool_destroy(vcpu_pool_t _Nullable self)
 
 vcpu_t _Nullable vcpu_pool_checkout(vcpu_pool_t _Nonnull self)
 {
-    vcpu_t vp = NULL;
+    vcpu_t vp;
 
     mtx_lock(&self->mtx);
-
-    // Try to reuse a cached VP
-    List_ForEach(&self->reuse_queue, ListNode, {
-        vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
-
-        // Make sure that the VP is suspended at this point. It may still be in
-        // the process of finishing the suspend. See relinquish() below
-        if (vcpu_suspended(cvp)) {
-            vp = cvp;
-            break;
-        }
-    });
-        
-    if (vp) {
-        List_Remove(&self->reuse_queue, &vp->owner_qe);
+    if (!List_IsEmpty(&self->reuse_queue)) {
+        vp = vcpu_from_owner_qe(List_RemoveFirst(&self->reuse_queue));
         self->reuse_count--;
     }
-    
+    else {
+        vp = NULL;
+    }    
     mtx_unlock(&self->mtx);
 
     return vp;
@@ -70,14 +55,16 @@ vcpu_t _Nullable vcpu_pool_checkout(vcpu_pool_t _Nonnull self)
 
 bool vcpu_pool_checkin(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp)
 {
-    bool reused = false;
+    bool reused;
 
-    // Try to cache the VP
     mtx_lock(&self->mtx);
     if (self->reuse_count < self->reuse_capacity) {
-        List_InsertBeforeFirst(&self->reuse_queue, &vp->owner_qe);
+        List_InsertAfterLast(&self->reuse_queue, &vp->owner_qe);
         self->reuse_count++;
         reused = true;
+    }
+    else {
+        reused = false;
     }
     mtx_unlock(&self->mtx);
 
