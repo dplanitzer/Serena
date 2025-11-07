@@ -319,7 +319,7 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     sp.u.qos.priority = QOS_PRI_LOWEST;
     vcpu_init(self, &sp);
 
-    vcpu_acquisition_t ac = VCPU_ACTIVATION_INIT;
+    vcpu_acquisition_t ac = VCPU_ACQUISITION_INIT;
     ac.func = (VoidFunc_1)fn;
     ac.arg = arg;
     ac.kernelStackBase = pKernelStackBase;
@@ -360,7 +360,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     sp.u.qos.priority = 0;
     vcpu_init(self, &sp);
 
-    vcpu_acquisition_t ac = VCPU_ACTIVATION_INIT;
+    vcpu_acquisition_t ac = VCPU_ACQUISITION_INIT;
     ac.func = (VoidFunc_1)idle_vcpu_run;
     ac.kernelStackBase = pKernelStackBase;
     ac.kernelStackSize = kernelStackSize;

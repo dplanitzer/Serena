@@ -44,7 +44,7 @@ typedef struct vcpu_acquisition {
     bool                    isUser;
 } vcpu_acquisition_t;
 
-#define VCPU_ACTIVATION_INIT {0}
+#define VCPU_ACQUISITION_INIT {0}
 
 
 // VP scheduling state
