@@ -266,7 +266,7 @@ void wq_wake_irq(waitqueue_t _Nonnull self)
     while (cp) {
         register ListNode* np = cp->next;
         
-        wq_wakeone(self, (vcpu_t)cp, WAKEUP_IRQ|WAKEUP_CSW, WRES_WAKEUP);
+        wq_wakeone(self, (vcpu_t)cp, WAKEUP_IRQ | WAKEUP_CSW, WRES_WAKEUP);
         cp = np;
     }
 }
