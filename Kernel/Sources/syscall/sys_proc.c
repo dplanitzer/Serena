@@ -8,7 +8,6 @@
 
 #include "syscalldecls.h"
 #include <kpi/wait.h>
-#include <sched/vcpu_pool.h>
 
 
 SYSCALL_1(exit, int status)
@@ -28,7 +27,7 @@ SYSCALL_3(proc_exec, const char* _Nonnull path, const char* _Nullable * _Nullabl
     const errno_t err = Process_Exec(vp->proc, pa->path, pa->argv, pa->envp, true);
 
     if (err == EOK) {
-        vcpu_pool_relinquish(g_vcpu_pool, vp);
+        vcpu_relinquish(vp);
         /* NOT REACHED */
     }
 

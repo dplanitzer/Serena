@@ -129,25 +129,25 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
     decl_try_err();
     const bool is_uproc = (self != gKernelProcess) ? true : false;
     vcpu_t vp = NULL;
-    vcpu_activation_t act;
+    vcpu_acquisition_t ac;
 
     mtx_lock(&self->mtx);
     if (vcpu_aborting(vcpu_current())) {
         throw(EINTR);
     }
 
-    act.func = (VoidFunc_1)attr->func;
-    act.context = attr->arg;
-    act.ret_func = (is_uproc) ? vcpu_uret_relinquish_self : _vcpu_relinquish_self;
-    act.kernelStackBase = NULL;
-    act.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
-    act.userStackSize = (is_uproc) ? __max(attr->stack_size, VP_DEFAULT_USER_STACK_SIZE) : 0;
-    act.id = self->next_avail_vcpuid++;
-    act.groupid = attr->groupid;
-    act.schedParams = attr->sched_params;
-    act.isUser = is_uproc;
+    ac.func = (VoidFunc_1)attr->func;
+    ac.arg = attr->arg;
+    ac.ret_func = (is_uproc) ? vcpu_uret_relinquish_self : _vcpu_relinquish_self;
+    ac.kernelStackBase = NULL;
+    ac.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
+    ac.userStackSize = (is_uproc) ? __max(attr->stack_size, VP_DEFAULT_USER_STACK_SIZE) : 0;
+    ac.id = self->next_avail_vcpuid++;
+    ac.groupid = attr->groupid;
+    ac.schedParams = attr->sched_params;
+    ac.isUser = is_uproc;
 
-    try(vcpu_pool_acquire(g_vcpu_pool, &act, &vp));
+    try(vcpu_acquire(&ac, &vp));
 
     vp->proc = self;
     vp->udata = attr->data;
@@ -171,7 +171,7 @@ catch:
 void Process_RelinquishVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp)
 {
     Process_DetachVirtualProcessor(self, vp);
-    vcpu_pool_relinquish(g_vcpu_pool, vcpu_current());
+    vcpu_relinquish(vcpu_current());
     /* NOT REACHED */
 }
 

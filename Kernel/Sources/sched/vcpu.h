@@ -31,9 +31,9 @@ extern const sigset_t SIGSET_IGNORE_ALL;
 
 
 // Parameters for a VP activation
-typedef struct vcpu_activation {
+typedef struct vcpu_acquisition {
     VoidFunc_1 _Nonnull     func;
-    void* _Nullable _Weak   context;
+    void* _Nullable _Weak   arg;
     VoidFunc_0 _Nullable    ret_func;
     void* _Nullable         kernelStackBase;
     size_t                  kernelStackSize;
@@ -42,7 +42,7 @@ typedef struct vcpu_activation {
     vcpuid_t                groupid;
     sched_params_t          schedParams;
     bool                    isUser;
-} vcpu_activation_t;
+} vcpu_acquisition_t;
 
 #define VCPU_ACTIVATION_INIT {0}
 
@@ -146,22 +146,22 @@ struct vcpu {
 extern vcpuid_t new_vcpu_groupid(void);
 
 
+// Acquires a vcpu from the vcpu pool and creates a new vcpu from scratch if none
+// is available from the global vcpu pool. The vcpu is configured based on 'ac'.
+extern errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _Nonnull pOutVP);
+
+// Relinquishes a virtual processor which means that it is finished executing
+// code and that it should be moved back to the virtual processor pool. This
+// function does not return to the caller.
+extern _Noreturn vcpu_relinquish(vcpu_t _Nonnull self);
+
+
 // Returns a reference to the currently running virtual processor. This is the
 // virtual processor that is executing the caller.
 extern vcpu_t _Nonnull vcpu_current(void);
 
 // Returns the VPID of the currently running virtual processor.
 extern int vcpu_currentid(void);
-
-// Creates a new virtual processor.
-// \return the new virtual processor; NULL if creation has failed
-extern errno_t vcpu_create(const sched_params_t* _Nonnull sched_params, vcpu_t _Nullable * _Nonnull pOutSelf);
-
-void vcpu_destroy(vcpu_t _Nullable self);
-
-
-extern errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull act);
-extern void vcpu_deactivate(vcpu_t _Nonnull self);
 
 
 // Returns a copy of the given virtual processor's scheduling parameters.
@@ -238,29 +238,28 @@ extern bool vcpu_suspended(vcpu_t _Nonnull self);
 // pool.
 extern void vcpu_setdq(vcpu_t _Nonnull self, void* _Nullable pQueue, int concurrencyLaneIndex);
 
-// Sets the closure which the virtual processor should run when it is next resumed.
-extern errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull act, bool bEnableInterrupts);
-
-// Relinquishes the virtual processor which means that it is finished executing
-// code and that it should be moved back to the virtual processor pool. This
-// function does not return to the caller. This function should only be invoked
-// from the bottom-most frame on the virtual processor's kernel stack.
-extern _Noreturn vcpu_relinquish(void);
-
-// Terminates the virtual processor that is executing the caller. Does not return
-// to the caller. Note that the actual termination of the virtual processor is
-// handled by the virtual processor scheduler.
-extern _Noreturn vcpu_terminate(vcpu_t _Nonnull self);
-
 extern void vcpu_dump(vcpu_t _Nonnull self);
+
+
+//
+// Machine integration
+//
+
+// Sets the closure which the virtual processor should run when it is next resumed.
+extern errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull acq, bool bEnableInterrupts);
 
 // These functions expect to be called in userspace.
 extern void vcpu_uret_relinquish_self(void);
 extern void vcpu_uret_exit(void);
 
 
-// Subclassers
+//
+// Scheduler
+//
+
 extern void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params);
+
+extern void vcpu_destroy(vcpu_t _Nullable self);
 
 // @Entry Condition: preemption disabled
 extern void vcpu_reduce_sched_penalty(vcpu_t _Nonnull self, int weight);

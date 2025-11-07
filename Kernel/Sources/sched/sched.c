@@ -15,7 +15,7 @@
 
 static void sched_dump_rdyq_locked(sched_t _Nonnull self);
 
-static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx);
+static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak arg);
 static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap);
 
 
@@ -301,7 +301,7 @@ int vcpu_currentid(void)
 // duties for the scheduler.
 // \param pVP the boot virtual processor record
 // \param closure the closure that should be invoked by the virtual processor
-static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx)
+static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak arg)
 {
     vcpu_t self = BootAllocator_Allocate(bap, sizeof(struct vcpu));
     memset(self, 0, sizeof(struct vcpu));
@@ -319,15 +319,15 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     sp.u.qos.priority = QOS_PRI_LOWEST;
     vcpu_init(self, &sp);
 
-    vcpu_activation_t act = VCPU_ACTIVATION_INIT;
-    act.func = (VoidFunc_1)fn;
-    act.context = ctx;
-    act.kernelStackBase = pKernelStackBase;
-    act.kernelStackSize = kernelStackSize;
-    act.schedParams = sp;
-    act.isUser = false;
+    vcpu_acquisition_t ac = VCPU_ACTIVATION_INIT;
+    ac.func = (VoidFunc_1)fn;
+    ac.arg = arg;
+    ac.kernelStackBase = pKernelStackBase;
+    ac.kernelStackSize = kernelStackSize;
+    ac.schedParams = sp;
+    ac.isUser = false;
 
-    try_bang(vcpu_setcontext(self, &act, false));
+    try_bang(vcpu_setcontext(self, &ac, false));
     
     return self;
 }
@@ -360,14 +360,14 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     sp.u.qos.priority = 0;
     vcpu_init(self, &sp);
 
-    vcpu_activation_t act = VCPU_ACTIVATION_INIT;
-    act.func = (VoidFunc_1)idle_vcpu_run;
-    act.kernelStackBase = pKernelStackBase;
-    act.kernelStackSize = kernelStackSize;
-    act.schedParams = sp;
-    act.isUser = false;
+    vcpu_acquisition_t ac = VCPU_ACTIVATION_INIT;
+    ac.func = (VoidFunc_1)idle_vcpu_run;
+    ac.kernelStackBase = pKernelStackBase;
+    ac.kernelStackSize = kernelStackSize;
+    ac.schedParams = sp;
+    ac.isUser = false;
 
-    try_bang(vcpu_setcontext(self, &act, true));
+    try_bang(vcpu_setcontext(self, &ac, true));
 
     return self;
 }

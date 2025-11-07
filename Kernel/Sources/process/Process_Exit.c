@@ -13,7 +13,6 @@
 #include <log/Log.h>
 #include <machine/clock.h>
 #include <machine/csw.h>
-#include <sched/vcpu_pool.h>
 
 // Operations that are mutual exclusive in the context of exiting a process:
 // - exit
@@ -237,6 +236,6 @@ _Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code)
 
     
     // Finally relinquish myself
-    vcpu_pool_relinquish(g_vcpu_pool, vcpu_current());
+    vcpu_relinquish(vcpu_current());
     /* NOT REACHED */
 }

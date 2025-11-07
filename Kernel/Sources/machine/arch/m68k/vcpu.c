@@ -16,7 +16,7 @@
 // \param self the virtual processor
 // \param act the activation record
 // \param bEnableInterrupts true if IRQs should be enabled; false if disabled
-errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull act, bool bEnableInterrupts)
+errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull ac, bool bEnableInterrupts)
 {
     decl_try_err();
     const size_t ifsiz = sizeof(excpt_0_frame_t) + 4*7 + 4*8 + 4;
@@ -26,20 +26,20 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull 
     // Minimum kernel stack size is 2 * sizeof(cpu_save_area_max_size) + 128
     // 2 times -> csw save state + cpu exception save state
     const size_t minKernelStackSize = self->kernel_stack.size >= 2*(ifsiz + ffsiz + FPU_MAX_STATE_SIZE) + 128;
-    const size_t minUserStackSize = (act->userStackSize != 0) ? 2048 : 0;
+    const size_t minUserStackSize = (ac->userStackSize != 0) ? 2048 : 0;
 
-    if (act->kernelStackBase == NULL) {
-        err = stk_setmaxsize(&self->kernel_stack, __max(act->kernelStackSize, minKernelStackSize));
+    if (ac->kernelStackBase == NULL) {
+        err = stk_setmaxsize(&self->kernel_stack, __max(ac->kernelStackSize, minKernelStackSize));
     } else {
         // kernel stack allocated by caller
-        assert(act->kernelStackSize >= minKernelStackSize);
+        assert(ac->kernelStackSize >= minKernelStackSize);
 
         stk_setmaxsize(&self->kernel_stack, 0);
-        self->kernel_stack.base = act->kernelStackBase;
-        self->kernel_stack.size = act->kernelStackSize;
+        self->kernel_stack.base = ac->kernelStackBase;
+        self->kernel_stack.size = ac->kernelStackSize;
     }
     if (err == EOK) {
-        err = stk_setmaxsize(&self->user_stack, __max(act->userStackSize, minUserStackSize));
+        err = stk_setmaxsize(&self->user_stack, __max(ac->userStackSize, minUserStackSize));
     }
     if (err != EOK) {
         return err;
@@ -49,7 +49,7 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull 
     // Initialize the CPU context:
     // Integer state: zeroed out
     // Floating-point state: establishes IEEE 754 standard defaults (non-signaling exceptions, round to nearest, extended precision)
-    VoidFunc_0 ret_func = (act->ret_func) ? act->ret_func : (VoidFunc_0)vcpu_relinquish;
+    VoidFunc_0 ret_func = (ac->ret_func) ? ac->ret_func : (VoidFunc_0)vcpu_relinquish;
     uintptr_t ksp = (uintptr_t) stk_getinitialsp(&self->kernel_stack);
     uintptr_t usp = (uintptr_t) stk_getinitialsp(&self->user_stack);
 
@@ -69,12 +69,12 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull 
     //
     // See __csw_switch for an explanation of why we need to push a format #0
     // exception stack frame here.
-    if (act->isUser) {
-        usp = sp_push_ptr(usp, act->context);
+    if (ac->isUser) {
+        usp = sp_push_ptr(usp, ac->arg);
         usp = sp_push_rts(usp, (void*)ret_func);
     }
     else {
-        ksp = sp_push_ptr(ksp, act->context);
+        ksp = sp_push_ptr(ksp, ac->arg);
         ksp = sp_push_rts(ksp, (void*)ret_func);
     }
 
@@ -111,8 +111,8 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull 
     // context switch.
     excpt_0_frame_t* ep = (excpt_0_frame_t*)(ksp - sizeof(excpt_0_frame_t));
     ep->fv = 0;
-    ep->pc = (uintptr_t)act->func;
-    ep->sr = (act->isUser) ? 0 : CPU_SR_S;
+    ep->pc = (uintptr_t)ac->func;
+    ep->sr = (ac->isUser) ? 0 : CPU_SR_S;
     if (!bEnableInterrupts) {
         ep->sr |= CPU_SR_IE_MASK;   // IRQs should be disabled
     }

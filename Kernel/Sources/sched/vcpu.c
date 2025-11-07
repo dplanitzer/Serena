@@ -61,21 +61,83 @@ void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params
     vcpu_sched_params_changed(self);
 }
 
-// Creates a new virtual processor.
-// \return the new virtual processor; NULL if creation has failed
-errno_t vcpu_create(const sched_params_t* _Nonnull sched_params, vcpu_t _Nullable * _Nonnull pOutSelf)
+errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _Nonnull pOutVP)
 {
     decl_try_err();
-    vcpu_t self = NULL;
-    
-    err = kalloc_cleared(sizeof(struct vcpu), (void**) &self);
-    if (err == EOK) {
-        vcpu_init(self, sched_params);
-        vcpu_suspend(self);
+    bool doFree = false;
+
+
+    // Try to get a vcpu from the global pool
+    vcpu_t vp = vcpu_pool_checkout(g_vcpu_pool);
+
+
+    // Create a new vcpu if we were not able to reuse a cached one
+    if (vp == NULL) {
+        try(kalloc_cleared(sizeof(struct vcpu), (void**) &vp));
+        doFree = true;
+
+        vcpu_init(vp, &ac->schedParams);
+        vcpu_suspend(vp);
     }
 
-    *pOutSelf = self;
+
+    // Configure the vcpu
+    try(vcpu_setcontext(vp, ac, true));
+    vcpu_setschedparams(vp, &ac->schedParams);
+    
+    if (ac->isUser) {
+        vp->flags |= VP_FLAG_USER_OWNED;
+    }
+    else {
+        vp->flags &= ~VP_FLAG_USER_OWNED;
+    }
+    vp->id = ac->id;
+    vp->groupid = ac->groupid;
+    vp->flags |= VP_FLAG_ACQUIRED;
+
+    *pOutVP = vp;
+    return EOK;
+
+
+catch:
+    if (doFree) {
+        kfree(vp);
+    }
+
+    *pOutVP = NULL;
     return err;
+}
+
+// Relinquishes a virtual processor which means that it is finished executing
+// code and that it should be moved back to the virtual processor pool. This
+// function does not return to the caller.
+_Noreturn vcpu_relinquish(vcpu_t _Nonnull self)
+{
+    // Cleanup
+    vcpu_setdq(self, NULL, -1);
+    self->proc = NULL;
+    self->udata = 0;
+    self->id = 0;
+    self->groupid = 0;
+    self->uerrno = 0;
+    self->pending_sigs = 0;
+    self->proc_sigs_enabled = 0;
+    self->suspension_inhibit_count = 0;
+    self->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_HANDLING_EXCPT|VP_FLAG_ACQUIRED);
+
+
+    // Check ourselves back into the vcpu pool
+    const bool reused = vcpu_pool_checkin(g_vcpu_pool, self);
+
+
+    // Suspend ourselves if the pool accepted us; otherwise terminate ourselves
+    if (reused) {
+        try_bang(vcpu_suspend(self));
+    }
+    else {
+        sched_terminate_vcpu(g_sched, self);
+    }
+    /* NOT REACHED */
 }
 
 void vcpu_destroy(vcpu_t _Nullable self)
@@ -87,26 +149,6 @@ void vcpu_destroy(vcpu_t _Nullable self)
     }
 }
 
-// Terminates the virtual processor that is executing the caller. Does not return
-// to the caller. Note that the actual termination of the virtual processor is
-// handled by the virtual processor scheduler.
-_Noreturn vcpu_terminate(vcpu_t _Nonnull self)
-{
-    assert(self->sched_state != SCHED_STATE_TERMINATING);
-    sched_terminate_vcpu(g_sched, self);
-    /* NOT REACHED */
-}
-
-// Relinquishes the virtual processor which means that it is finished executing
-// code and that it should be moved back to the virtual processor pool. This
-// function does not return to the caller. This function should only be invoked
-// from the bottom-most frame on the virtual processor's kernel stack.
-_Noreturn vcpu_relinquish(void)
-{
-    vcpu_pool_relinquish(g_vcpu_pool, vcpu_current());
-    /* NOT REACHED */
-}
-
 // Sets the dispatch queue that has acquired the virtual processor and owns it
 // until the virtual processor is relinquished back to the virtual processor
 // pool.
@@ -114,48 +156,6 @@ void vcpu_setdq(vcpu_t _Nonnull self, void* _Nullable pQueue, int concurrencyLan
 {
     self->dispatchQueue = pQueue;
     self->dispatchQueueConcurrencyLaneIndex = concurrencyLaneIndex;
-}
-
-errno_t vcpu_activate(vcpu_t _Nonnull self, const vcpu_activation_t* _Nonnull act)
-{
-    decl_try_err();
-
-    if (self->sched_state == SCHED_STATE_TERMINATING) {
-        return ESRCH;
-    }
-    if (self->sched_state != SCHED_STATE_SUSPENDED) {
-        return EBUSY;
-    }
-
-    if ((err = vcpu_setcontext(self, act, true)) == EOK) {
-        vcpu_setschedparams(self, &act->schedParams);
-    
-        if (act->isUser) {
-            self->flags |= VP_FLAG_USER_OWNED;
-        }
-        else {
-            self->flags &= ~VP_FLAG_USER_OWNED;
-        }
-        self->id = act->id;
-        self->groupid = act->groupid;
-        self->flags |= VP_FLAG_ACQUIRED;
-    }
-
-    return err;
-}
-
-void vcpu_deactivate(vcpu_t _Nonnull self)
-{
-    vcpu_setdq(self, NULL, -1);
-    self->proc = NULL;
-    self->udata = 0;
-    self->id = 0;
-    self->groupid = 0;
-    self->uerrno = 0;
-    self->pending_sigs = 0;
-    self->proc_sigs_enabled = 0;
-    self->suspension_inhibit_count = 0;
-    self->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_HANDLING_EXCPT|VP_FLAG_ACQUIRED);
 }
 
 void vcpu_reduce_sched_penalty(vcpu_t _Nonnull self, int prop)

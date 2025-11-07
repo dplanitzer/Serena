@@ -12,7 +12,6 @@
 #include <kern/string.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <sched/vcpu.h>
-#include <sched/vcpu_pool.h>
 
 
 static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], ssize_t maxByteCount, size_t* _Nonnull pOutTableEntryCount)
@@ -109,22 +108,22 @@ static errno_t _proc_img_acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void
 {
     decl_try_err();
     vcpu_t vp = NULL;
-    vcpu_activation_t act;
+    vcpu_acquisition_t ac;
 
-    act.func = (VoidFunc_1)entryPoint;
-    act.context = procargs;
-    act.ret_func = (VoidFunc_0)vcpu_uret_exit;
-    act.kernelStackBase = NULL;
-    act.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
-    act.userStackSize = VP_DEFAULT_USER_STACK_SIZE;
-    act.id = VCPUID_MAIN;
-    act.groupid = VCPUID_MAIN_GROUP;
-    act.schedParams.type = SCHED_PARAM_QOS;
-    act.schedParams.u.qos.category = SCHED_QOS_INTERACTIVE;
-    act.schedParams.u.qos.priority = QOS_PRI_NORMAL;
-    act.isUser = true;
+    ac.func = (VoidFunc_1)entryPoint;
+    ac.arg = procargs;
+    ac.ret_func = (VoidFunc_0)vcpu_uret_exit;
+    ac.kernelStackBase = NULL;
+    ac.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
+    ac.userStackSize = VP_DEFAULT_USER_STACK_SIZE;
+    ac.id = VCPUID_MAIN;
+    ac.groupid = VCPUID_MAIN_GROUP;
+    ac.schedParams.type = SCHED_PARAM_QOS;
+    ac.schedParams.u.qos.category = SCHED_QOS_INTERACTIVE;
+    ac.schedParams.u.qos.priority = QOS_PRI_NORMAL;
+    ac.isUser = true;
 
-    err = vcpu_pool_acquire(g_vcpu_pool, &act, &vp);
+    err = vcpu_acquire(&ac, &vp);
 
     *pOutVcpu = vp;
     return err;

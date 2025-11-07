@@ -10,8 +10,8 @@
 #define _VCPU_POOL_H 1
 
 #include <stdbool.h>
+#include <kpi/vcpu.h>
 #include <sched/mtx.h>
-#include <sched/vcpu.h>
 
 
 struct vcpu_pool {
@@ -28,7 +28,7 @@ extern vcpu_pool_t _Nonnull g_vcpu_pool;
 extern errno_t vcpu_pool_create(vcpu_pool_t _Nullable * _Nonnull pOutSelf);
 extern void vcpu_pool_destroy(vcpu_pool_t _Nullable self);
 
-extern errno_t vcpu_pool_acquire(vcpu_pool_t _Nonnull self, const vcpu_activation_t* _Nonnull act, vcpu_t _Nonnull * _Nonnull pOutVP);
-extern _Noreturn vcpu_pool_relinquish(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp);
+extern vcpu_t _Nullable vcpu_pool_checkout(vcpu_pool_t _Nonnull self);
+extern bool vcpu_pool_checkin(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp);
 
 #endif /* _VCPU_POOL_H */

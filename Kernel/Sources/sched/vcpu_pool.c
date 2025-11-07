@@ -9,6 +9,7 @@
 #include "vcpu_pool.h"
 #include "sched.h"
 #include <kern/kalloc.h>
+#include <sched/vcpu.h>
 
 
 vcpu_pool_t g_vcpu_pool;
@@ -39,9 +40,8 @@ void vcpu_pool_destroy(vcpu_pool_t _Nullable self)
     }
 }
 
-errno_t vcpu_pool_acquire(vcpu_pool_t _Nonnull self, const vcpu_activation_t* _Nonnull act, vcpu_t _Nonnull * _Nonnull pOutVP)
+vcpu_t _Nullable vcpu_pool_checkout(vcpu_pool_t _Nonnull self)
 {
-    decl_try_err();
     vcpu_t vp = NULL;
 
     mtx_lock(&self->mtx);
@@ -64,45 +64,22 @@ errno_t vcpu_pool_acquire(vcpu_pool_t _Nonnull self, const vcpu_activation_t* _N
     }
     
     mtx_unlock(&self->mtx);
-    
-    
-    // Create a new VP if we were not able to reuse a cached one
-    if (vp == NULL) {
-        try(vcpu_create(&act->schedParams, &vp));
-    }
-    
-    
-    err = vcpu_activate(vp, act);
 
-catch:
-    *pOutVP = vp;
-    return err;
+    return vp;
 }
 
-// Relinquishes the given VP back to the reuse pool if possible. If the reuse
-// pool is full then the given VP is suspended and scheduled for finalization
-// instead. Note that the VP is suspended in any case.
-_Noreturn vcpu_pool_relinquish(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp)
+bool vcpu_pool_checkin(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp)
 {
-    bool doReuse = false;
+    bool reused = false;
 
     // Try to cache the VP
     mtx_lock(&self->mtx);
     if (self->reuse_count < self->reuse_capacity) {
         List_InsertBeforeFirst(&self->reuse_queue, &vp->owner_qe);
         self->reuse_count++;
-        doReuse = true;
+        reused = true;
     }
     mtx_unlock(&self->mtx);
-    
 
-    vcpu_deactivate(vp);
-
-    if (doReuse) {
-        try_bang(vcpu_suspend(vp));
-    }
-    else {
-        vcpu_terminate(vp);
-    }
-    /* NOT REACHED */
+    return reused;
 }
