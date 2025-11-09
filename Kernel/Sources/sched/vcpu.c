@@ -302,7 +302,7 @@ void vcpu_yield(void)
             vcpu_reduce_sched_penalty(self, -self->priority_bias / 2);
         }
 
-        sched_switch_to(g_sched, sched_highest_priority_ready(g_sched), true);
+        sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     }
     preempt_restore(sps);
 }
@@ -364,7 +364,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
             case SCHED_STATE_RUNNING:
                 // We're running, thus we are not on the ready queue. Do a forced
                 // context switch to some other VP.
-                sched_switch_to(g_sched, sched_highest_priority_ready(g_sched), false);
+                sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
                 break;
             
             case SCHED_STATE_WAITING:

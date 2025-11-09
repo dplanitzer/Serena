@@ -85,11 +85,11 @@ void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
             run->priority_bias--;
             vcpu_sched_params_changed(run);
         }
-        sched_set_running(self, rdy, true);
+        sched_set_running(self, rdy);
     }
     else if (rdy->qos > SCHED_QOS_IDLE && run->sched_priority > (SCHED_PRI_LOWEST + 1) && run->qos < SCHED_QOS_REALTIME) {
         run->priority_bias = -(run->effective_priority - rdy->effective_priority);
         vcpu_sched_params_changed(run);
-        sched_set_running(self, rdy, true);
+        sched_set_running(self, rdy);
     }
 }

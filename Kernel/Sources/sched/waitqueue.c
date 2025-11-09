@@ -67,7 +67,7 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, bo
     }
 
     // Find another VP to run and context switch to it
-    sched_switch_to(g_sched, sched_highest_priority_ready(g_sched), false);
+    sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     
     if (armTimeout) {
         clock_cancel_deadline(g_mono_clock, &vp->timeout);
@@ -168,10 +168,10 @@ static void wq_maybe_switch_to(waitqueue_t _Nonnull self, int flags, vcpu_t _Non
     
         if (pBestReadyVP == vp && vp->effective_priority >= g_sched->running->effective_priority) {
             if ((flags & WAKEUP_IRQ) == WAKEUP_IRQ) {
-                sched_set_running(g_sched, vp, true);
+                sched_set_running(g_sched, vp);
             }
             else {
-                sched_switch_to(g_sched, vp, true);
+                sched_switch_to(g_sched, vp);
             }
         }
     }

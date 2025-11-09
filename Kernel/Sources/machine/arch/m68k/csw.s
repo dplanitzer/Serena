@@ -9,6 +9,7 @@
     include <machine/lowmem.i>
 
     xref _g_sched
+    xref _sched_set_ready
     xref _cpu_non_recoverable_error
 
     xdef _csw_switch
@@ -92,12 +93,6 @@ __csw_switch:
 
     GET_CURRENT_VP a0
 
-    ; update the VP state to Ready if the state hasn't already been changed to
-    ; some other non-Running state like Waiting by the higher-level code
-    cmp.b   #SCHED_STATE_RUNNING, vp_sched_state(a0)
-    bne.s   .1
-    move.b  #SCHED_STATE_READY, vp_sched_state(a0)
-
 .1:
     bclr    #VP_FLAG_FPU_SAVED_BIT, vp_flags(a0)
 
@@ -119,6 +114,19 @@ __csw_switch:
 .2:
     ; save the cpu_saved_state pointer
     move.l  sp, vp_csw_sa(a0)
+
+    ; move the current vp to the ready state and queue if its state hasn't already
+    ; been changed to some other non-running state like waiting or suspended
+    cmp.b   #SCHED_STATE_RUNNING, vp_sched_state(a0)
+    bne.s   __csw_restore
+
+    move.l  _g_sched, a1
+    moveq.l #-1, d0
+    move.l  d0, -(sp)
+    move.l  a0, -(sp)
+    move.l  a1, -(sp)
+    jsr     _sched_set_ready
+    add.l   #12, sp
 
 
 __csw_restore:

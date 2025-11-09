@@ -53,7 +53,7 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
 
     // Initialize the scheduler    
     self->running = NULL;
-    sched_set_running(self, sched_highest_priority_ready(self), false);
+    sched_set_running(self, sched_highest_priority_ready(self));
     
     assert(self->scheduled == self->boot_vp);
 }
@@ -136,9 +136,9 @@ vcpu_t _Nullable sched_highest_priority_ready_starting_at(sched_t _Nonnull self,
 // Expects that the call has already added the currently running VP to a wait
 // queue or the finalizer queue.
 // @Entry Condition: preemption disabled
-void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToReady)
+void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
-    sched_set_running(self, vp, doRunToReady);
+    sched_set_running(self, vp);
     csw_switch();
 }
 
@@ -147,7 +147,7 @@ void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToRead
 // Note that this function does not trigger the actual context switch. The caller
 // has to call csw_switch() itself. 
 // @Entry Condition: preemption disabled
-void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToReady)
+void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     sched_set_unready(self, vp);
 
@@ -155,10 +155,6 @@ void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToRe
 
     self->scheduled = vp;
     self->csw_signals |= CSW_SIGNAL_SWITCH;
-
-    if (doRunToReady) {
-        sched_set_ready(self, self->running, true);
-    }
 }
 
 // Terminates the given virtual processor that is executing the caller. Does not
@@ -194,7 +190,7 @@ _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
         // Do a forced context switch to whoever is ready
         // NOTE: we do NOT put the currently running VP back on the ready queue
         // because it is dead.
-        sched_switch_to(self, sched_highest_priority_ready(self), false);
+        sched_switch_to(self, sched_highest_priority_ready(self));
     }
     
     /* NOT REACHED */
