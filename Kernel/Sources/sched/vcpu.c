@@ -28,34 +28,17 @@ void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params
 {
     assert(sched_params->type == SCHED_PARAM_QOS);
 
-    self->rewa_qe = LISTNODE_INIT;
+    memset(self, 0, sizeof(struct vcpu));
     stk_init(&self->kernel_stack);
     stk_init(&self->user_stack);
     
-    self->owner_qe = LISTNODE_INIT;
-    self->timeout = CLOCK_DEADLINE_INIT;
-    
-    self->pending_sigs = 0;
-    self->proc_sigs_enabled = 0;
-
-    self->excpt_handler = (excpt_handler_t){0};
-    
-    self->waiting_on_wait_queue = NULL;
-    self->wait_sigs = 0;
-    self->wakeup_reason = 0;
-    
+    self->timeout = CLOCK_DEADLINE_INIT;    
     self->sched_state = SCHED_STATE_INITIATED;
-    self->suspension_count = 0;
-    self->suspension_inhibit_count = 0;
 
     self->flags = (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_HAS_FPU : 0;
     self->qos = sched_params->u.qos.category;
     self->qos_priority = sched_params->u.qos.priority;
-    self->priority_bias = 0;
-    
-    self->id = 0;
 
-    self->dispatchQueue = NULL;
     self->dispatchQueueConcurrencyLaneIndex = -1;
 
     vcpu_sched_params_changed(self);
