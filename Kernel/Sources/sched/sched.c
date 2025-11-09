@@ -227,18 +227,6 @@ _Noreturn sched_run_chores(sched_t _Nonnull self)
         preempt_restore(sps);
         
         
-        // XXX
-        // XXX Should boost the priority of VPs that have been sitting on the
-        // XXX ready queue for some time. Goal is to prevent a VP from getting
-        // XXX starved to death because it's a very low priority one and there's
-        // XXX always some higher priority VP sneaking in. Now a low priority
-        // XXX VP which blocks will receive a boost once it is unblocked but this
-        // XXX doesn't help background VPs which block rarely or not at all
-        // XXX because blocking isn't a natural part of the algorithm they are
-        // XXX executing. Eg a VP that scales an image in the background.
-        // XXX Boost could be +1 priority every 1/4 second
-        // XXX
-        
         // Finalize VPs which have exited
         List_ForEach(&dead_vps, ListNode,
             vcpu_t cp = vcpu_from_owner_qe(pCurNode);
