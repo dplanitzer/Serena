@@ -13,7 +13,7 @@
 #include <kpi/signal.h>
 #include <log/Log.h>
 #include <machine/clock.h>
-#include <machine/csw.h>
+#include <machine/sched.h>
 
 
 const sigset_t SIGSET_IGNORE_ALL = 0;

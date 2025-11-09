@@ -10,7 +10,7 @@
 #include "sched.h"
 #include "vcpu_pool.h"
 #include <machine/clock.h>
-#include <machine/csw.h>
+#include <machine/sched.h>
 #include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/limits.h>

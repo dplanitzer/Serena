@@ -9,7 +9,7 @@
 #include "sched.h"
 #include "vcpu.h"
 #include <machine/clock.h>
-#include <machine/csw.h>
+#include <machine/sched.h>
 #include <kern/timespec.h>
 
 extern void sigurgent(void);

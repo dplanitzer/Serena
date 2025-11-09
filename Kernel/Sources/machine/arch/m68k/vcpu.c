@@ -67,8 +67,8 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull
     // SP +  8: RTS address ('ret_func' entry point)
     // SP +  0: format #0 CPU exception stack frame (8 byte size)
     //
-    // See __csw_switch for an explanation of why we need to push a format #0
-    // exception stack frame here.
+    // See __sched_switch_context for an explanation of why we need to push a
+    // format #0 exception stack frame here.
     if (ac->isUser) {
         usp = sp_push_ptr(usp, ac->arg);
         usp = sp_push_rts(usp, (void*)ret_func);

@@ -1,5 +1,5 @@
 ;
-;  csw.s
+;  sched_csw.s
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 2/23/21.
@@ -12,17 +12,17 @@
     xref _sched_set_ready
     xref _cpu_non_recoverable_error
 
-    xdef _csw_switch
-    xdef _csw_switch_to_boot_vcpu
-    xdef __csw_switch
+    xdef _sched_switch_context
+    xdef _sched_switch_to_boot_vcpu
+    xdef __sched_switch_context
 
 
 ;-------------------------------------------------------------------------------
-; void csw_switch(void)
+; void sched_switch_context(void)
 ; Invokes the context switcher. Expects that preemption is disabled and that the
 ; scheduler set up a CSW request. Enables preemption as it switches to another
 ; VP. Once this function returns to the caller preemption is disabled again.
-_csw_switch:
+_sched_switch_context:
     inline
         ; push a format $0 exception stack frame on the stack. The PC field in
         ; that frame points to our rts instruction.
@@ -30,7 +30,7 @@ _csw_switch:
         lea     .csw_return(pc), a0
         move.l  a0, -(sp)               ; PC
         move.w  sr, -(sp)               ; SR
-        jmp     __csw_switch
+        jmp     __sched_switch_context
 
 .csw_return:
         rts
@@ -38,12 +38,12 @@ _csw_switch:
 
 
 ;-------------------------------------------------------------------------------
-; void csw_switch_to_boot_vcpu(void)
+; void sched_switch_to_boot_vcpu(void)
 ; Triggers the very first context switch to the boot virtual processor. This call
 ; transfers the CPU to the boot virtual processor execution context and does not
 ; return to the caller.
 ; Expects to be called with interrupts turned off.
-_csw_switch_to_boot_vcpu:
+_sched_switch_to_boot_vcpu:
     inline
         jmp     __csw_restore
         ; NOT REACHED
@@ -53,7 +53,7 @@ _csw_switch_to_boot_vcpu:
 
 
 ;-------------------------------------------------------------------------------
-; void __csw_switch(void)
+; void __sched_switch_context(void)
 ; Saves the CPU state of the currently running VP and restores the CPU state of
 ; the scheduled VP. Expects that it is called with a CPU exception stack frame
 ; on top of the kernel stack. Note that you really want to call this function
@@ -63,11 +63,11 @@ _csw_switch_to_boot_vcpu:
 ;
 ; There are 2 ways to trigger a full context switch:
 ; 1) a timer interrupt
-; 2) a call to _csw_switch
+; 2) a call to _sched_switch_context()
 ; The CPU will push a format #0 exception stack frame on the kernel stack of the
-; outgoing VP in the first case while the csw_switch() function pushes a hand-
-; crafted format #0 exception stack frame on the kernel stack before calling
-; this function.
+; outgoing VP in the first case while the sched_switch_context() function pushes
+; a handcrafted format #0 exception stack frame on the kernel stack before
+; calling this function.
 ;
 ; The exception stack frame with the PC and SR values is preserved on the kernel
 ; stack of the outgoing VP and then the CPU integer and floating point states
@@ -77,7 +77,7 @@ _csw_switch_to_boot_vcpu:
 ; registers.
 ;
 ; There is one way to do a half context switch:
-; 1) a call to _csw_switch_to_boot_vcpu
+; 1) a call to _sched_switch_to_boot_vcpu()
 ; Since we are only running the restore half of the context switch in this case,
 ; the expectation of this function here is that someone already pushed an
 ; exception stack frame on the kernel stack of the VP we want to switch to.
@@ -88,7 +88,7 @@ _csw_switch_to_boot_vcpu:
 ; SP + 6: 2 bytes exception stack frame format indicator (usually $0)
 ; SP + 2: PC
 ; SP + 0: SR
-__csw_switch:
+__sched_switch_context:
     SAVE_CPU_STATE
 
     GET_CURRENT_VP a0

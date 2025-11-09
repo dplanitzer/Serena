@@ -22,7 +22,7 @@
     xref __irq_run_handlers
 
     xref _g_sched
-    xref __csw_switch
+    xref __sched_switch_context
 
 
     xdef _irq_set_mask
@@ -463,5 +463,5 @@ irq_handler_done:
     move.l  _g_sched, a0
     btst    #CSWB_SIGNAL_SWITCH, sched_csw_signals(a0)
     movem.l (sp)+, d0 - d1 / d7 / a0 - a1
-    bne.l   __csw_switch
+    bne.l   __sched_switch_context
     rte

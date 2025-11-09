@@ -9,7 +9,7 @@
 #include "sched.h"
 #include "vcpu.h"
 #include "waitqueue.h"
-#include <machine/csw.h>
+#include <machine/sched.h>
 #include <kern/string.h>
 
 
@@ -139,13 +139,13 @@ vcpu_t _Nullable sched_highest_priority_ready_starting_at(sched_t _Nonnull self,
 void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     sched_set_running(self, vp);
-    csw_switch();
+    sched_switch_context();
 }
 
 // Removes 'vp' from the ready queue and sets it as running VP. Note that this
 // function does not move the currently running VP to the ready queue.
 // Note that this function does not trigger the actual context switch. The caller
-// has to call csw_switch() itself. 
+// has to call sched_switch_context() itself. 
 // @Entry Condition: preemption disabled
 void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {

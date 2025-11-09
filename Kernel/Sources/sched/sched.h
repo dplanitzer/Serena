@@ -66,7 +66,7 @@ extern sched_t _Nonnull g_sched;
 // invoked in the context of the boot virtual processor and it will receive the
 // 'ctx' argument. The first context switch from the machine reset context to
 // the boot virtual processor context is triggered by calling the
-// csw_switch_to_boot_vcpu() function. 
+// sched_switch_to_boot_vcpu() function. 
 extern void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak ctx);
 
 // Gives the virtual processor scheduler opportunities to run tasks that take

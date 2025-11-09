@@ -9,7 +9,7 @@
 #include "waitqueue.h"
 #include "vcpu.h"
 #include <machine/clock.h>
-#include <machine/csw.h>
+#include <machine/sched.h>
 
 
 void wq_init(waitqueue_t _Nonnull self)

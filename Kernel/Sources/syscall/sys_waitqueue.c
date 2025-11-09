@@ -12,7 +12,7 @@
 #include <kern/kalloc.h>
 #include <klib/List.h>
 #include <kpi/signal.h>
-#include <machine/csw.h>
+#include <machine/sched.h>
 #include <sched/waitqueue.h>
 
 

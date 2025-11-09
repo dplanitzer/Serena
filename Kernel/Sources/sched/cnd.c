@@ -9,7 +9,7 @@
 #include "cnd.h"
 #include "sched.h"
 #include <kern/assert.h>
-#include <machine/csw.h>
+#include <machine/sched.h>
 
 
 // Initializes a new condition variable.

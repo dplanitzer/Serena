@@ -12,7 +12,7 @@
 #include <kpi/wait.h>
 #include <log/Log.h>
 #include <machine/clock.h>
-#include <machine/csw.h>
+#include <machine/sched.h>
 
 // Operations that are mutual exclusive in the context of exiting a process:
 // - exit

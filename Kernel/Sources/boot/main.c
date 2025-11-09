@@ -17,8 +17,8 @@
 #include <filesystem/Filesystem.h>
 #include <filesystem/kernfs/KernFS.h>
 #include <machine/clock.h>
-#include <machine/csw.h>
 #include <machine/irq.h>
+#include <machine/sched.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>
 #include <sched/delay.h>
@@ -95,7 +95,7 @@ _Noreturn OnBoot(sys_desc_t* _Nonnull pSysDesc)
 
     // Do the first ever context switch over to the boot virtual processor
     // execution context.
-    csw_switch_to_boot_vcpu();
+    sched_switch_to_boot_vcpu();
 }
 
 // Invoked by onBoot(). The code here runs in the boot virtual processor execution
