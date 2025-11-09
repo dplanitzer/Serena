@@ -54,6 +54,7 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
     // Initialize the scheduler    
     self->running = NULL;
     sched_set_running(self, sched_highest_priority_ready(self), false);
+    self->csw_signals = 0;
     
     assert(self->scheduled == self->boot_vp);
 }
@@ -143,8 +144,7 @@ void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doRunToRead
 }
 
 // Removes 'vp' from the ready queue and sets it as running VP. Note that this
-// function does not move the currently running VP to the ready queue. The caller
-// is responsible for moving it to a wait queue, ready queue or somewhere else.
+// function does not move the currently running VP to the ready queue.
 // Note that this function does not trigger the actual context switch. The caller
 // has to call csw_switch() itself. 
 // @Entry Condition: preemption disabled
