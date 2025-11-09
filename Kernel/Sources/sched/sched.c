@@ -54,7 +54,6 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
     // Initialize the scheduler    
     self->running = NULL;
     sched_set_running(self, sched_highest_priority_ready(self), false);
-    self->csw_signals = 0;
     
     assert(self->scheduled == self->boot_vp);
 }
