@@ -131,10 +131,10 @@ vcpu_t _Nullable sched_highest_priority_ready_starting_at(sched_t _Nonnull self,
     return NULL;
 }
 
-// Context switch to the given virtual processor. The VP must be in ready state
-// and on the ready queue. Immediately context switches to the VP.
-// Expects that the call has already added the currently running VP to a wait
-// queue or the finalizer queue.
+// Context switch to the given virtual processor. 'vp' must be in ready state
+// and on the ready queue. Immediately triggers a context switch to 'vp'.
+// Expects that the outgoing virtual processor is either still in state running
+// or that it has been transitioned to a waiting or suspended state.
 // @Entry Condition: preemption disabled
 void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
