@@ -10,6 +10,7 @@
 
     xref _g_sched
     xref _sched_set_ready
+    xref _sched_set_unready
     xref _cpu_non_recoverable_error
 
     xdef _sched_switch_context
@@ -132,17 +133,18 @@ __sched_switch_context:
 __csw_restore:
     move.l  _g_sched, a2
 
-    ; consume the CSW switch signal
-    bclr    #CSWB_SIGNAL_SWITCH, sched_csw_signals(a2)
-
     ; it's safe to trash all registers here 'cause we'll override them anyway
     ; make the scheduled VP the running VP and clear out sched_scheduled
     move.l  sched_scheduled(a2), a0
+    move.l  a0, -(sp)
+    move.l  a2, -(sp)
+    jsr     _sched_set_unready
+    add.l   #8, sp
+
+    move.l  sched_scheduled(a2), a0
     move.l  a0, sched_running(a2)
     clr.l   sched_scheduled(a2)
-
-    ; update the state to Running
-    move.b  #SCHED_STATE_RUNNING, vp_sched_state(a0)
+    bclr    #CSWB_SIGNAL_SWITCH, sched_csw_signals(a2)
 
     ; restore the ksp from the cpu_saved_state pointer
     move.l  vp_csw_sa(a0), sp

@@ -58,6 +58,8 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
     assert(self->scheduled == self->boot_vp);
 }
 
+// Marks 'vp' as ready and inserts it in the proper ready queue.
+// Called from: _sched_switch_context()
 void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doFifo)
 {
     assert(vp != NULL);
@@ -79,10 +81,13 @@ void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doFifo)
     self->ready_queue.populated[pri >> 3] |= (1 << (pri & 7));
 }
 
-// Takes the given virtual processor off the ready queue.
+// Takes the given virtual processor off the ready queue and marks it as running.
+// Called from: _sched_switch_context()
 void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     const unsigned int pri = vp->effective_priority;
+    
+    vp->sched_state = SCHED_STATE_RUNNING;
     
     List_Remove(&self->ready_queue.priority[pri], &vp->rewa_qe);
     
@@ -149,8 +154,6 @@ void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 // @Entry Condition: preemption disabled
 void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
-    sched_set_unready(self, vp);
-
     vp->quantum_countdown = qos_quantum(vp->qos);
 
     self->scheduled = vp;
