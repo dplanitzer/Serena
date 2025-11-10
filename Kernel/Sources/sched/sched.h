@@ -117,8 +117,16 @@ extern void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp);
 // Scheduler internal functions.
 //
 
+// Removes 'vp' from the ready queue and sets it as running VP. Note that this
+// function does not move the currently running VP to the ready queue.
+// Note that this function does not trigger the actual context switch. The caller
+// has to call sched_switch_context() itself. 
 // @Entry Condition: preemption disabled
-extern void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp);
+#define sched_set_running(__self, __vp) \
+{ \
+    (__self)->scheduled = (__vp); \
+    (__self)->csw_signals |= CSW_SIGNAL_SWITCH; \
+}
 
 
 #endif /* _SCHED_H */

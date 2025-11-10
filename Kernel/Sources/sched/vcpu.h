@@ -48,13 +48,14 @@ typedef struct vcpu_acquisition {
 
 
 // VP scheduling state
+//
 // Possible state transitions:
 // INIT -> READY
 // READY -> RUNNING
 // RUNNING -> READY | -> WAITING | -> SUSPENDED | -> TERMINATING
 // WAITING -> READY | -> WAIT_SUSPENDED
 // SUSPENDED -> READY
-
+//
 enum {
     SCHED_STATE_INITIATED = 0,  // VP was just created and has not been scheduled yet
     SCHED_STATE_READY,          // VP is able to run and is currently sitting on the ready queue

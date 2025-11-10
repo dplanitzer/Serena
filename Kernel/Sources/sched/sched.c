@@ -81,7 +81,12 @@ void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doFifo)
     self->ready_queue.populated[pri >> 3] |= (1 << (pri & 7));
 }
 
-// Takes the given virtual processor off the ready queue and marks it as running.
+// Takes the given virtual processor off the ready queue and marks it as running
+// if requested. 'doReadyToRun' is true if the vp should be moved to running state
+// in addition to moving it off the ready queue. If this is false, then the vp
+// should be simply taken off the ready queue but its scheduler state should not
+// be changed because it will moved back to the ready queue shortly (or enter
+// suspended state shortly).
 // Called from: _sched_switch_context()
 void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyToRun)
 {
@@ -92,7 +97,7 @@ void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyTo
         vp->quantum_countdown = qos_quantum(vp->qos);
     }
 
-    
+
     List_Remove(&self->ready_queue.priority[pri], &vp->rewa_qe);
     
     if (List_IsEmpty(&self->ready_queue.priority[pri])) {
@@ -149,17 +154,6 @@ void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     sched_set_running(self, vp);
     sched_switch_context();
-}
-
-// Removes 'vp' from the ready queue and sets it as running VP. Note that this
-// function does not move the currently running VP to the ready queue.
-// Note that this function does not trigger the actual context switch. The caller
-// has to call sched_switch_context() itself. 
-// @Entry Condition: preemption disabled
-void sched_set_running(sched_t _Nonnull self, vcpu_t _Nonnull vp)
-{
-    self->scheduled = vp;
-    self->csw_signals |= CSW_SIGNAL_SWITCH;
 }
 
 // Terminates the given virtual processor that is executing the caller. Does not
