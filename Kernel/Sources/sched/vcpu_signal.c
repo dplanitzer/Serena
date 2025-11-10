@@ -96,9 +96,7 @@ errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, bool isProc)
 
 errno_t vcpu_sigsend_irq(vcpu_t _Nonnull self, int signo, bool isProc)
 {
-    //XXX enabling csw on signalling from irq makes the system hang when we
-    //XXX switch from the boot screen to the console screen
-    return _vcpu_sigsend(self, /*WAKEUP_CSW | WAKEUP_IRQ*/ 0, signo, isProc);
+    return _vcpu_sigsend(self, WAKEUP_CSW | WAKEUP_IRQ, signo, isProc);
 }
 
 sigset_t vcpu_sigpending(vcpu_t _Nonnull self)
