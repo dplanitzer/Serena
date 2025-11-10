@@ -94,7 +94,7 @@ extern _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 extern void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doFifo);
 
 // @Entry Condition: preemption disabled
-extern void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp);
+extern void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyToRun);
 
 // @Entry Condition: preemption disabled
 #define sched_highest_priority_ready(__self) \

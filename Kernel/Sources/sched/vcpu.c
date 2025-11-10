@@ -233,7 +233,7 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull
                 break;
 
             case SCHED_STATE_READY:
-                sched_set_unready(g_sched, self);
+                sched_set_unready(g_sched, self, false);
                 self->qos = params->u.qos.category;
                 self->qos_priority = params->u.qos.priority;
                 vcpu_sched_params_changed(self);
@@ -341,7 +341,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
                 break;
 
             case SCHED_STATE_READY:
-                sched_set_unready(g_sched, self);
+                sched_set_unready(g_sched, self, false);
                 break;
             
             case SCHED_STATE_RUNNING:

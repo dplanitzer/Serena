@@ -136,10 +136,12 @@ __csw_restore:
     ; it's safe to trash all registers here 'cause we'll override them anyway
     ; make the scheduled VP the running VP and clear out sched_scheduled
     move.l  sched_scheduled(a2), a0
+    moveq.l #-1, d0
+    move.l  d0, -(sp)
     move.l  a0, -(sp)
     move.l  a2, -(sp)
     jsr     _sched_set_unready
-    add.l   #8, sp
+    add.l   #12, sp
 
     move.l  sched_scheduled(a2), a0
     move.l  a0, sched_running(a2)
