@@ -18,8 +18,39 @@ typedef volatile int sig_atomic_t;
 
 // Ordered from highest to lowest priority
 #define SIGKILL     1
-#define SIGCHILD    2
-#define SIGDISPATCH 32
+#define SIGSYS0     2
+#define SIGSYS1     3
+#define SIGABRT     4   //XXX NYI   <- abort()
+#define SIGSTOP     5   //XXX NYI   <- TTY, stop/suspend process
+#define SIGCONT     6   //XXX NYI   <- TTY, continue/resume process
+#define SIGXLIM     7   //XXX NYI   <- kernel, process exceeded CPU/memory/file limit
+#define SIGHUP      8   //XXX NYI   <- logind, user logged out
+#define SIGQUIT     9   //XXX NYI   <- TTY, process quit
+#define SIGINT     10   //XXX NYI   <- TTY, process interrupt
+#define SIGALRM    11   //XXX NYI   <- clock_alarm()
+#define SIGCHILD   12   //          <- kernel, child process terminated
+#define SIGWINCH   13   //XXX NYI   <- TTY, console window size changed
+#define SIGTTIN    14   //XXX NYI   <- TTY, background process attempt to read from terminal input
+#define SIGTTOUT   15   //XXX NYI   <- TTY, background process attempt to write to terminal output
+#define SIGFORE    16   //XXX NYI   <- TTY, process is now the foreground process
+#define SIGBACK    17   //XXX NYI   <- TTY, process is now the background process
+#define SIGSYS2    18
+#define SIGSYS3    19
+#define SIGUSR0    20
+#define SIGUSR1    21
+#define SIGUSR2    22
+#define SIGUSR3    23
+#define SIGUSR4    24
+#define SIGUSR5    25
+#define SIGUSR6    26
+#define SIGUSR7    27
+#define SIGUSR8    28
+#define SIGUSR9    29
+#define SIGUSR10   30
+#define SIGUSR11   31
+#define SIGDISP    32
+
+#define SIGUSR      SIGUSR0
 
 
 #define _SIGBIT(__signo) (1 << ((__signo) - 1))

@@ -23,7 +23,7 @@
 
 // Signal sent by the Copper scheduler when a new Copper program has started
 // running and the previously running one has been retired
-#define SIGCOPRUN  2
+#define SIGCOPRUN  SIGUSR0
 
 #define MOUSE_SPRITE_PRI 0
 #define MAX_CACHED_COPPER_PROGS 4

@@ -21,8 +21,8 @@
 #include <sched/vcpu.h>
 
 
-#define SIGVBL  2
-#define SIGSCR  3
+#define SIGVBL  SIGUSR0
+#define SIGSCR  SIGUSR1
 
 
 // XXX 16 is confirmed to work without overflows on a A2000. Still want to keep

@@ -116,7 +116,7 @@ int dispatch_signal_monitor(dispatch_t _Nonnull self, int signo, dispatch_item_t
 {
     int r = -1;
 
-    if (signo < SIGMIN || signo > SIGMAX || signo == SIGDISPATCH || signo == SIGKILL) {
+    if (signo < SIGMIN || signo > SIGMAX || signo == SIGDISP || signo == SIGKILL) {
         errno = EINVAL;
         return -1;
     }
@@ -165,7 +165,7 @@ int dispatch_alloc_signal(dispatch_t _Nonnull self, int signo)
 void dispatch_free_signal(dispatch_t _Nonnull self, int signo)
 {
     mtx_lock(&self->mutex);
-    if (signo != 0 && signo != SIGKILL && signo != SIGDISPATCH) {
+    if (signo != 0 && signo != SIGKILL && signo != SIGDISP) {
         sigdelset(&self->alloced_sigs, signo);
     }
     mtx_unlock(&self->mutex);
@@ -185,7 +185,7 @@ int dispatch_send_signal(dispatch_t _Nonnull self, int signo)
     vcpuid_t id;
     int r, scope;
 
-    if (signo == SIGDISPATCH || signo == SIGKILL) {
+    if (signo == SIGDISP || signo == SIGKILL) {
         errno = EINVAL;
         return -1;
     }

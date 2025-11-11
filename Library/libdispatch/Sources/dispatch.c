@@ -72,7 +72,7 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
     self->state = _DISPATCHER_STATE_ACTIVE;
 
     sigaddset(&self->alloced_sigs, SIGKILL);
-    sigaddset(&self->alloced_sigs, SIGDISPATCH);
+    sigaddset(&self->alloced_sigs, SIGDISP);
 
     if (cnd_init(&self->cond) != 0) {
         return false;

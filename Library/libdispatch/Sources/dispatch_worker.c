@@ -65,7 +65,7 @@ dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner, i
         self->adoption = adoption;
 
         sigemptyset(&self->hotsigs);
-        sigaddset(&self->hotsigs, SIGDISPATCH);
+        sigaddset(&self->hotsigs, SIGDISP);
 
 
         switch (adoption) {
@@ -107,7 +107,7 @@ void _dispatch_worker_destroy(dispatch_worker_t _Nullable self)
 
 void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self)
 {
-    sigsend(SIG_SCOPE_VCPU, self->id, SIGDISPATCH);
+    sigsend(SIG_SCOPE_VCPU, self->id, SIGDISP);
 }
 
 void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item, bool doWakeup)
@@ -257,7 +257,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, dispatch_work
         const int r = sigtimedwait(&self->hotsigs, flags, &deadline, &signo);
         mtx_lock(&q->mutex);
 
-        if (r != 0 && q->worker_count > q->attr.minConcurrency && self->allow_relinquish && (self->hotsigs & ~SIGDISPATCH) == 0 && errno == ETIMEDOUT) {
+        if (r != 0 && q->worker_count > q->attr.minConcurrency && self->allow_relinquish && (self->hotsigs & ~SIGDISP) == 0 && errno == ETIMEDOUT) {
             mayRelinquish = true;
         }
 
@@ -265,7 +265,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, dispatch_work
             _wait_for_resume(self);
         }
 
-        if (signo != SIGDISPATCH) {
+        if (signo != SIGDISP) {
             _dispatch_submit_items_for_signal(q, signo, self);
         }
     }
