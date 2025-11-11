@@ -96,7 +96,8 @@ errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, bool isProc)
 
 errno_t vcpu_sigsend_irq(vcpu_t _Nonnull self, int signo, bool isProc)
 {
-    return _vcpu_sigsend(self, WAKEUP_CSW | WAKEUP_IRQ, signo, isProc);
+    //XXX enabling this breaks the proc_exit and vcpu_sched tests (they get stuck)
+    return _vcpu_sigsend(self, /*WAKEUP_CSW | WAKEUP_IRQ*/ 0, signo, isProc);
 }
 
 sigset_t vcpu_sigpending(vcpu_t _Nonnull self)
