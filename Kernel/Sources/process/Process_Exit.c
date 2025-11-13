@@ -147,7 +147,7 @@ void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self)
     List_ForEach(&self->vcpu_queue, ListNode, {
         vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
-        vcpu_sigsend(cvp, SIGKILL, false);
+        vcpu_sigsend(cvp, SIGKILL, SIG_SCOPE_VCPU);
         vcpu_sigrouteoff(cvp);
     });
 }

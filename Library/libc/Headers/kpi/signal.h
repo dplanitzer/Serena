@@ -18,8 +18,8 @@ typedef volatile int sig_atomic_t;
 
 // Ordered from highest to lowest priority
 #define SIGKILL     1
-#define SIGSYS0     2
-#define SIGSYS1     3
+#define SIGSYS1     2
+#define SIGSYS2     3
 #define SIGABRT     4   //XXX NYI   <- abort()
 #define SIGSTOP     5   //XXX NYI   <- TTY, stop/suspend process
 #define SIGCONT     6   //XXX NYI   <- TTY, continue/resume process
@@ -34,23 +34,23 @@ typedef volatile int sig_atomic_t;
 #define SIGTTOUT   15   //XXX NYI   <- TTY, background process attempt to write to terminal output
 #define SIGFORE    16   //XXX NYI   <- TTY, process is now the foreground process
 #define SIGBACK    17   //XXX NYI   <- TTY, process is now the background process
-#define SIGSYS2    18
-#define SIGSYS3    19
-#define SIGUSR0    20
-#define SIGUSR1    21
-#define SIGUSR2    22
-#define SIGUSR3    23
-#define SIGUSR4    24
-#define SIGUSR5    25
-#define SIGUSR6    26
-#define SIGUSR7    27
-#define SIGUSR8    28
-#define SIGUSR9    29
-#define SIGUSR10   30
-#define SIGUSR11   31
+#define SIGSYS3    18
+#define SIGSYS4    19
+#define SIGUSR1    20
+#define SIGUSR2    21
+#define SIGUSR3    22
+#define SIGUSR4    23
+#define SIGUSR5    24
+#define SIGUSR6    25
+#define SIGUSR7    26
+#define SIGUSR8    27
+#define SIGUSR9    28
+#define SIGUSR10    29
+#define SIGUSR11   30
+#define SIGUSR12   31
 #define SIGDISP    32
 
-#define SIGUSR      SIGUSR0
+#define SIGUSR      SIGUSR1
 
 
 #define _SIGBIT(__signo) (1 << ((__signo) - 1))

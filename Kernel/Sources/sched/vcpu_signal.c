@@ -66,7 +66,7 @@ void vcpu_sigrouteoff(vcpu_t _Nonnull self)
     preempt_restore(sps);
 }
 
-static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo, bool isProc)
+static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo, int scope)
 {
     decl_try_err();
 
@@ -74,13 +74,12 @@ static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo, bool is
         return EINVAL;
     }
 
+    const sigset_t sigbit = _SIGBIT(signo);
     const int sps = preempt_disable();
-    if (!isProc || (isProc && self->proc_sigs_enabled > 0)) {
-        const sigset_t sigbit = _SIGBIT(signo);
-        
+    if (scope < SIG_SCOPE_PROC || (sigbit & SIGSET_NONMASKABLES) != 0 || (scope >= SIG_SCOPE_PROC && self->proc_sigs_enabled > 0)) {
         self->pending_sigs |= sigbit;
 
-        if ((self->sched_state == SCHED_STATE_WAITING || self->sched_state == SCHED_STATE_WAIT_SUSPENDED) && (self->wait_sigs & sigbit) != 0) {
+        if ((self->wait_sigs & sigbit) != 0) {
             wq_wakeone(self->waiting_on_wait_queue, self, flags, WRES_SIGNAL);
         }
     }
@@ -89,15 +88,15 @@ static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo, bool is
     return err;
 }
 
-errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, bool isProc)
+errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, int scope)
 {
-    return _vcpu_sigsend(self, WAKEUP_CSW, signo, isProc);
+    return _vcpu_sigsend(self, WAKEUP_CSW, signo, scope);
 }
 
-errno_t vcpu_sigsend_irq(vcpu_t _Nonnull self, int signo, bool isProc)
+errno_t vcpu_sigsend_irq(vcpu_t _Nonnull self, int signo, int scope)
 {
     //XXX enabling this breaks the proc_exit and vcpu_sched tests (they get stuck)
-    return _vcpu_sigsend(self, /*WAKEUP_CSW | WAKEUP_IRQ*/ 0, signo, isProc);
+    return _vcpu_sigsend(self, /*WAKEUP_CSW | WAKEUP_IRQ*/ 0, signo, scope);
 }
 
 sigset_t vcpu_sigpending(vcpu_t _Nonnull self)

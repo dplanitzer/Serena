@@ -105,6 +105,8 @@ catch:
 // function does not return to the caller.
 _Noreturn vcpu_relinquish(vcpu_t _Nonnull self)
 {
+    assert(vcpu_current() == self);
+    
     // Cleanup
     vcpu_setdq(self, NULL, -1);
     self->proc = NULL;

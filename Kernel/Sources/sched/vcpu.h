@@ -84,6 +84,9 @@ enum {
 #define VP_FLAG_TIMEOUT_SUSPENDED   0x20    // VP is suspended and had an active timeout scheduled
 #define VP_FLAG_ACQUIRED            0x40    // vcpu_activate() was called on the VP
 
+// VP attention flags
+#define VP_ATTN_PROC_EXIT           0x01
+
 
 #define SCHED_PRIORITY_BIAS_HIGHEST INT8_MAX 
 #define SCHED_PRIORITY_BIAS_LOWEST  INT8_MIN 
@@ -126,7 +129,7 @@ struct vcpu {
     // Scheduling related state
     int8_t                          qos;                    // call vcpu_sched_params_changed() on change
     int8_t                          qos_priority;
-    int8_t                          reserved1;
+    uint8_t                         attn_sigs;
     int8_t                          priority_bias;          // used to depress or boost the effective priority (call vcpu_sched_params_changed() on change)
     uint8_t                         sched_priority;         // cached (static) schedule derived from the QoS parameters. Computed by vcpu_sched_params_changed() 
     uint8_t                         effective_priority;     // computed priority used for scheduling. Computed by vcpu_sched_params_changed()
@@ -192,13 +195,14 @@ extern errno_t vcpu_sigroute(vcpu_t _Nonnull self, int op);
 extern void vcpu_sigrouteoff(vcpu_t _Nonnull self);
 
 // Sends the signal 'signo' to 'self'. The signal is added to the pending signal
-// list if either 'isProc' is false or 'isProc' is true and reception of
-// process-targeted signals is enabled for 'self'. Otherwise the signal is not
-// added to the pending signal list and ignored.
-extern errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, bool isProc);
+// list if scope is VCPU or VCPU group. If it is proc, proc group or session
+// then it is added to the pending signal list if reception of process-targeted
+// signals is enabled for 'self'. Otherwise the signal is not added to the
+// pending signal list and ignored.
+extern errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, int scope);
 
 // Same as vcpu_sigsend(), but safe to use from a direct interrupt handler.
-extern errno_t vcpu_sigsend_irq(vcpu_t _Nonnull self, int signo, bool isProc);
+extern errno_t vcpu_sigsend_irq(vcpu_t _Nonnull self, int signo, int scope);
 
 // Returns a copy of the pending signals
 extern sigset_t vcpu_sigpending(vcpu_t _Nonnull self);

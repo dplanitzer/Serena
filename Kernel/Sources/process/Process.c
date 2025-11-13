@@ -192,29 +192,25 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
     bool hasMatched = false;
 
     if (scope == SIG_SCOPE_VCPU && id == 0) {
-        return vcpu_sigsend(vcpu_current(), signo, false);
+        return vcpu_sigsend(vcpu_current(), signo, SIG_SCOPE_VCPU);
     }
 
     mtx_lock(&self->mtx);
     List_ForEach(&self->vcpu_queue, ListNode,
         vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
         int doSend;
-        bool isProc;
 
         switch (scope) {
             case SIG_SCOPE_VCPU:
                 doSend = (id == cvp->id);
-                isProc = false;
                 break;
 
             case SIG_SCOPE_VCPU_GROUP:
                 doSend = (id == cvp->groupid);
-                isProc = false;
                 break;
 
             case SIG_SCOPE_PROC:
                 doSend = 1;
-                isProc = true;
                 break;
 
             default:
@@ -222,7 +218,7 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
         }
 
         if (doSend) {
-            err = vcpu_sigsend(cvp, signo, isProc);
+            err = vcpu_sigsend(cvp, signo, scope);
             if (err != EOK) {
                 break;
             }
