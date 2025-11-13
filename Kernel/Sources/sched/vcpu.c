@@ -115,6 +115,7 @@ _Noreturn vcpu_relinquish(vcpu_t _Nonnull self)
     self->groupid = 0;
     self->uerrno = 0;
     self->pending_sigs = 0;
+    self->attn_sigs = 0;
     self->proc_sigs_enabled = 0;
     self->suspension_inhibit_count = 0;
     self->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_HANDLING_EXCPT|VP_FLAG_ACQUIRED);

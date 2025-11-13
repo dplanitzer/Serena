@@ -6,6 +6,7 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -91,6 +92,67 @@ void vcpu_scheduling_test(int argc, char *argv[])
     attr2.sched_params.type = SCHED_PARAM_QOS;
     attr2.sched_params.u.qos.category = SCHED_QOS_INTERACTIVE;
     attr2.sched_params.u.qos.priority = QOS_PRI_LOWEST;
+    attr2.groupid = 0;
+    attr2.flags = VCPU_ACQUIRE_RESUMED;
+    vcpu_b = vcpu_acquire(&attr2);
+    assertNotNULL(vcpu_b);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+static vcpu_t test_sigkill_vcpu_a;
+
+static void test_sigkill_print_loop(void)
+{
+    puts("A running\n");
+    for (;;) {
+        puts("A");
+        vcpu_yield();
+    }
+}
+
+static void test_sigkill_terminator(void)
+{
+    struct timespec ts_1sec, ts_2sec;
+
+    timespec_from_sec(&ts_1sec, 1);
+    puts("B running\n");
+
+    clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
+    puts("- terminating A -");
+    
+    assertOK(sigsend(SIG_SCOPE_VCPU, vcpu_id(test_sigkill_vcpu_a), SIGKILL));
+    puts("done");
+}
+
+// Two VPs:
+// a) runs continuously and prints some text
+// b) sends SIGKILL to (a)
+// -> forces (a) to relinquish
+void vcpu_sigkill_test(int argc, char *argv[])
+{
+    vcpu_attr_t attr = VCPU_ATTR_INIT;
+    vcpu_t vcpu_b;
+
+    attr.func = (vcpu_func_t)test_sigkill_print_loop;
+    attr.arg = NULL;
+    attr.stack_size = 0;
+    attr.sched_params.type = SCHED_PARAM_QOS;
+    attr.sched_params.u.qos.category = SCHED_QOS_INTERACTIVE;
+    attr.sched_params.u.qos.priority = QOS_PRI_NORMAL;
+    attr.groupid = 0;
+    attr.flags = VCPU_ACQUIRE_RESUMED;
+    test_sigkill_vcpu_a = vcpu_acquire(&attr);
+    assertNotNULL(test_sigkill_vcpu_a);
+
+    vcpu_attr_t attr2 = VCPU_ATTR_INIT;
+    attr2.func = (vcpu_func_t)test_sigkill_terminator;
+    attr2.arg = NULL;
+    attr2.stack_size = 0;
+    attr2.sched_params.type = SCHED_PARAM_QOS;
+    attr2.sched_params.u.qos.category = SCHED_QOS_INTERACTIVE;
+    attr2.sched_params.u.qos.priority = QOS_PRI_NORMAL;
     attr2.groupid = 0;
     attr2.flags = VCPU_ACQUIRE_RESUMED;
     vcpu_b = vcpu_acquire(&attr2);

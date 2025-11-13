@@ -13,6 +13,29 @@ typedef unsigned int sigset_t;
 typedef volatile int sig_atomic_t;
 
 
+// The system supports 32 different signals. You send a signal to a particular
+// 'signal scope'. The signal scope determines who will receive the signal and
+// whether there is default behavior associated with the signal.
+//
+// Signal scopes are organized in hierarchy like this:
+// * user session: all process groups in the session
+// * process group: all processes in the group
+// * process
+// * vcpu group: all vcpus in the group
+// * vcpu
+//
+// User session and process group scopes defer the default behavior for signals
+// to the process scope. The process scope default behaviors are documented in
+// the signal list below.
+//
+// Vcpu groups defer the default behavior for signals to the vcpu scope. The
+// only signal for which vcpus define a default behavior is SIGKILL: it causes
+// the vcpu to relinquish itself involuntary. All other signals are freely
+// available on the vcpu level. This means that if a vcpu A sends a signal to
+// vcpu B (in the same process), or you register a vcpu and signal with a kernel
+// API then this signal will be sent directly to the vcpu using the vcpu scope
+// and thus no default behavior will be applied to the signal.
+
 #define SIGMIN  1
 #define SIGMAX  32
 
