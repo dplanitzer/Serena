@@ -72,10 +72,12 @@ SYSCALL_1(vcpu_suspend, vcpuid_t id)
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    if (pa->id == VCPUID_SELF) {
+    if (pa->id == VCPUID_SELF || pa->id == vp->id) {
+        // Suspending myself
         err = vcpu_suspend(vp);
     }
     else {
+        // Suspending some other vcpu
         mtx_lock(&pp->mtx);
         vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
 
