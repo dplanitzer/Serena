@@ -76,26 +76,16 @@ SYSCALL_1(vcpu_suspend, vcpuid_t id)
         err = vcpu_suspend(vp);
     }
     else {
-        for (;;) {
-            mtx_lock(&pp->mtx);
-            vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
+        mtx_lock(&pp->mtx);
+        vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
 
-            if (vcp) {
-                err = vcpu_suspend(vcp);
-            }
-            else {
-                err = ESRCH;
-            }
-            mtx_unlock(&pp->mtx);
-
-
-            if (err == EBUSY) {
-                vcpu_yield();
-            }
-            else {
-                break;
-            }
+        if (vcp) {
+            err = vcpu_suspend(vcp);
         }
+        else {
+            err = ESRCH;
+        }
+        mtx_unlock(&pp->mtx);
     }
 
     return err;

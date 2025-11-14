@@ -170,7 +170,6 @@ static const syscall_entry_t g_syscall_table[SYSCALL_COUNT] = {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
 static void _handle_pending_signals(vcpu_t _Nonnull vp)
 {
     const sigset_t sigs = vp->pending_sigs;
@@ -184,6 +183,14 @@ static void _handle_pending_signals(vcpu_t _Nonnull vp)
         }
         /* NOT REACHED */
     }
+
+    if ((sigs & _SIGBIT(SIGSYS1)) != 0) {
+        vp->pending_sigs &= ~_SIGBIT(SIGSYS1);
+
+        if ((vp->attn_sigs & VP_ATTN_SUSPEND) == VP_ATTN_SUSPEND) {
+            vcpu_suspend_self(vp);
+        }
+    }
 }
 
 void _syscall_handler(vcpu_t _Nonnull vp, const syscall_args_t* _Nonnull args)
@@ -191,8 +198,6 @@ void _syscall_handler(vcpu_t _Nonnull vp, const syscall_args_t* _Nonnull args)
     const unsigned int scno = args->scno;
     intptr_t r;
     char rty;
-    
-    vcpu_disable_suspensions(vp);
 
     if (scno < SYSCALL_COUNT) {
         const syscall_entry_t* sc = &g_syscall_table[scno];
@@ -210,8 +215,6 @@ void _syscall_handler(vcpu_t _Nonnull vp, const syscall_args_t* _Nonnull args)
         _handle_pending_signals(vp);
     }
 
-
-    vcpu_enable_suspensions(vp);
 
     switch (rty) {
         case SC_INT:

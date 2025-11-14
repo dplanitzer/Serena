@@ -65,7 +65,6 @@ void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doFifo)
     assert(vp != NULL);
     assert(vp->rewa_qe.prev == NULL);
     assert(vp->rewa_qe.next == NULL);
-    assert(vp->suspension_count == 0);
     
 
     vp->sched_state = SCHED_STATE_READY;

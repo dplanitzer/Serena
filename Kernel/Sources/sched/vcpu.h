@@ -86,6 +86,7 @@ enum {
 
 // VP attention flags
 #define VP_ATTN_PROC_EXIT           0x01
+#define VP_ATTN_SUSPEND             0x02
 
 
 #define SCHED_PRIORITY_BIAS_HIGHEST INT8_MAX 
@@ -137,7 +138,7 @@ struct vcpu {
     uint8_t                         flags;
     int8_t                          quantum_countdown;      // for how many contiguous clock ticks this VP may run for before the scheduler will consider scheduling some other same or lower priority VP
     int8_t                          suspension_count;       // > 0 -> VP is suspended
-    int8_t                          suspension_inhibit_count;   // > 0 -> VP can not be suspended at this time
+    int8_t                          reserved2;
 
     // Process
     struct Process* _Nullable _Weak proc;                   // Process owning this VP (optional for now)
@@ -223,16 +224,6 @@ extern void vcpu_yield(void);
 
 
 
-// Disable and reenable vcpu_suspend() for the calling virtual processor. These
-// calls may be nested. Suspension is only reenabled once all disable calls have
-// been balanced by enable calls. A virtual processor will not be suspended as
-// long as suspension is inhibited by a suspend_disable() call.
-#define vcpu_disable_suspensions(__self) \
-(__self)->suspension_inhibit_count++
-
-#define vcpu_enable_suspensions(__self) \
-(__self)->suspension_inhibit_count--
-
 // Suspends the calling virtual processor. This function supports nested calls.
 extern errno_t vcpu_suspend(vcpu_t _Nonnull self);
 
@@ -278,5 +269,12 @@ extern void vcpu_reduce_sched_penalty(vcpu_t _Nonnull self, int weight);
 
 // @Entry Condition: preemption disabled
 extern void vcpu_sched_params_changed(vcpu_t _Nonnull self);
+
+
+//
+// Syscall
+//
+
+extern void vcpu_suspend_self(vcpu_t _Nonnull self);
 
 #endif /* _VCPU_H */

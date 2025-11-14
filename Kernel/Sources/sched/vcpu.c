@@ -117,7 +117,6 @@ _Noreturn vcpu_relinquish(vcpu_t _Nonnull self)
     self->pending_sigs = 0;
     self->attn_sigs = 0;
     self->proc_sigs_enabled = 0;
-    self->suspension_inhibit_count = 0;
     self->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_HANDLING_EXCPT|VP_FLAG_ACQUIRED);
 
 
@@ -293,6 +292,46 @@ void vcpu_yield(void)
     preempt_restore(sps);
 }
 
+void _vcpu_suspend_self(vcpu_t _Nonnull self)
+{
+    self->attn_sigs &= ~VP_ATTN_SUSPEND;
+    self->suspension_time = clock_getticks(g_mono_clock);
+
+    switch (self->sched_state) {
+        case SCHED_STATE_INITIATED:
+            self->sched_state = SCHED_STATE_SUSPENDED;
+            break;
+
+        case SCHED_STATE_READY:
+            self->sched_state = SCHED_STATE_SUSPENDED;
+            sched_set_unready(g_sched, self, false);
+            break;
+            
+        case SCHED_STATE_RUNNING:
+            // We're running, thus we are not on the ready queue. Do a forced
+            // context switch to some other VP.
+            self->sched_state = SCHED_STATE_SUSPENDED;
+            sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
+            break;
+            
+        case SCHED_STATE_WAITING:
+            self->sched_state = SCHED_STATE_WAIT_SUSPENDED;
+            wq_suspendone(self->waiting_on_wait_queue, self);
+            break;
+            
+        default:
+            abort();
+    }
+}
+
+void vcpu_suspend_self(vcpu_t _Nonnull self)
+{
+    const int sps = preempt_disable();
+
+    _vcpu_suspend_self(self);
+    preempt_restore(sps);
+}
+
 // Suspends the calling virtual processor if possible at this time. This function
 // supports nested calls. A VP may only be suspended while it is executing in a
 // "suspension safe zone". EBUSY is returned if the VP is not in such a zone at
@@ -324,41 +363,19 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
         throw(EINVAL);
     }
     if ((self->flags & VP_FLAG_USER_OWNED) == 0 && (self->sched_state != SCHED_STATE_INITIATED && self->sched_state != SCHED_STATE_RUNNING)) {
-        // no involuntary suspend of kernel owned VPs
+        // no involuntary suspension of kernel owned VPs
         throw(EPERM);
     }
-    if (self->suspension_inhibit_count > 0) {
-        // target VP is executing inside a suspension exclusion zone
-        throw(EBUSY);
-    }
     
-    const int old_state = self->sched_state;
-    self->sched_state = (old_state == SCHED_STATE_WAITING) ? SCHED_STATE_WAIT_SUSPENDED : SCHED_STATE_SUSPENDED;
     self->suspension_count++;
     
     if (self->suspension_count == 1) {
-        self->suspension_time = clock_getticks(g_mono_clock);
-
-        switch (old_state) {
-            case SCHED_STATE_INITIATED:
-                break;
-
-            case SCHED_STATE_READY:
-                sched_set_unready(g_sched, self, false);
-                break;
-            
-            case SCHED_STATE_RUNNING:
-                // We're running, thus we are not on the ready queue. Do a forced
-                // context switch to some other VP.
-                sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
-                break;
-            
-            case SCHED_STATE_WAITING:
-                wq_suspendone(self->waiting_on_wait_queue, self);
-                break;
-            
-            default:
-                abort();
+        if (self->sched_state == SCHED_STATE_RUNNING || self->sched_state == SCHED_STATE_INITIATED) {
+            _vcpu_suspend_self(self);
+        }
+        else {
+            self->attn_sigs |= VP_ATTN_SUSPEND;
+            vcpu_sigsend(self, SIGSYS1, SIG_SCOPE_VCPU);
         }
     }
     
@@ -385,6 +402,8 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
 
 
         if (self->suspension_count == 0) {
+            self->attn_sigs &= ~VP_ATTN_SUSPEND;
+
             if (self->sched_state == SCHED_STATE_SUSPENDED) {
                 if (self->priority_bias < 0) {
                     vcpu_reduce_sched_penalty(self, -self->priority_bias);

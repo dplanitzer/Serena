@@ -181,7 +181,7 @@ vp_sched_state                          so.b    1           ; 1
 vp_flags                                so.b    1           ; 1
 vp_quantum_countdown                    so.b    1           ; 1
 vp_suspension_count                     so.b    1           ; 1
-vp_suspension_inhibit_count             so.b    1           ; 1
+vp_reserved2                            so.b    1           ; 1
 vp_proc                                 so.l    1           ; 4
 vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1

@@ -34,7 +34,7 @@ SYSCALL_4(clock_nanosleep, int clockid, int flags, const struct timespec* _Nonnu
     const int err = wq_timedwait(&pp->sleep_queue, NULL, options, pa->wtp, pa->rmtp);
     preempt_restore(sps);
     
-    return err;
+    return (err != ETIMEDOUT) ? err : EOK;
 }
 
 SYSCALL_2(clock_gettime, int clockid, struct timespec* _Nonnull time)
