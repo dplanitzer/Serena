@@ -86,7 +86,7 @@ enum {
 
 // VP attention flags
 #define VP_ATTN_PROC_EXIT           0x01
-#define VP_ATTN_SUSPEND             0x02
+#define VP_ATTN_SUSPENDING          0x02
 
 
 #define SCHED_PRIORITY_BIAS_HIGHEST INT8_MAX 
@@ -232,7 +232,8 @@ extern errno_t vcpu_suspend(vcpu_t _Nonnull self);
 // count is > 1.
 extern void vcpu_resume(vcpu_t _Nonnull self, bool force);
 
-// Returns true if the given virtual processor is currently suspended; false otherwise.
+// Returns true if the given virtual processor is currently in suspended state;
+// false otherwise.
 extern bool vcpu_suspended(vcpu_t _Nonnull self);
 
 
@@ -275,6 +276,6 @@ extern void vcpu_sched_params_changed(vcpu_t _Nonnull self);
 // Syscall
 //
 
-extern void vcpu_suspend_self(vcpu_t _Nonnull self);
+extern void vcpu_deferred_suspend(vcpu_t _Nonnull self);
 
 #endif /* _VCPU_H */

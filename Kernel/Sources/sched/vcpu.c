@@ -294,7 +294,7 @@ void vcpu_yield(void)
 
 void _vcpu_suspend_self(vcpu_t _Nonnull self)
 {
-    self->attn_sigs &= ~VP_ATTN_SUSPEND;
+    self->attn_sigs &= ~VP_ATTN_SUSPENDING;
     self->suspension_time = clock_getticks(g_mono_clock);
 
     switch (self->sched_state) {
@@ -324,7 +324,7 @@ void _vcpu_suspend_self(vcpu_t _Nonnull self)
     }
 }
 
-void vcpu_suspend_self(vcpu_t _Nonnull self)
+void vcpu_deferred_suspend(vcpu_t _Nonnull self)
 {
     const int sps = preempt_disable();
 
@@ -374,7 +374,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
             _vcpu_suspend_self(self);
         }
         else {
-            self->attn_sigs |= VP_ATTN_SUSPEND;
+            self->attn_sigs |= VP_ATTN_SUSPENDING;
             vcpu_sigsend(self, SIGSYS1, SIG_SCOPE_VCPU);
         }
     }
@@ -402,7 +402,7 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
 
 
         if (self->suspension_count == 0) {
-            self->attn_sigs &= ~VP_ATTN_SUSPEND;
+            self->attn_sigs &= ~VP_ATTN_SUSPENDING;
 
             if (self->sched_state == SCHED_STATE_SUSPENDED) {
                 if (self->priority_bias < 0) {
@@ -419,15 +419,15 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
     preempt_restore(sps);
 }
 
-// Returns true if the given virtual processor is currently suspended; false otherwise.
+// Returns true if the given virtual processor is currently in suspended state;
+// false otherwise.
 bool vcpu_suspended(vcpu_t _Nonnull self)
 {
     const int sps = preempt_disable();
-    const bool hasSuspendedState = self->sched_state == SCHED_STATE_SUSPENDED || self->sched_state == SCHED_STATE_WAIT_SUSPENDED;
-    const bool hasSuspensionReq = self->suspension_count > 0;
+    const bool isSuspended = self->sched_state == SCHED_STATE_SUSPENDED || self->sched_state == SCHED_STATE_WAIT_SUSPENDED;
     preempt_restore(sps);
-    
-    return hasSuspendedState || hasSuspensionReq;
+
+    return isSuspended;
 }
 
 vcpuid_t new_vcpu_groupid(void)
