@@ -423,9 +423,11 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
 bool vcpu_suspended(vcpu_t _Nonnull self)
 {
     const int sps = preempt_disable();
-    const bool isSuspended = self->sched_state == SCHED_STATE_SUSPENDED || self->sched_state == SCHED_STATE_WAIT_SUSPENDED;
+    const bool hasSuspendedState = self->sched_state == SCHED_STATE_SUSPENDED || self->sched_state == SCHED_STATE_WAIT_SUSPENDED;
+    const bool hasSuspensionReq = self->suspension_count > 0;
     preempt_restore(sps);
-    return isSuspended;
+    
+    return hasSuspendedState || hasSuspensionReq;
 }
 
 vcpuid_t new_vcpu_groupid(void)
