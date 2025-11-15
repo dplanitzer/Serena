@@ -25,6 +25,12 @@ static void spin_loop(const char* _Nonnull str)
     }
 }
 
+static void just_suspend(const char* _Nonnull str)
+{
+    puts(str);
+    assertOK(vcpu_suspend(vcpu_self()));
+}
+
 static void just_wait(const char* _Nonnull str)
 {
     puts(str);
@@ -36,7 +42,7 @@ static void just_wait(const char* _Nonnull str)
 void proc_exit_test(int argc, char *argv[])
 {
     static const char* gStr[CONCURRENCY] = {"WAIT", "SPIN"};
-    static vcpu_t gId[CONCURRENCY];
+    static vcpu_t gId[CONCURRENCY + 1];
 
     for (size_t i = 0; i < CONCURRENCY; i++) {
         vcpu_attr_t attr = VCPU_ATTR_INIT;
@@ -54,9 +60,23 @@ void proc_exit_test(int argc, char *argv[])
         assertNotNULL(gId[i]);
     }
 
+    vcpu_attr_t attr = VCPU_ATTR_INIT;
+
+    attr.func = (vcpu_func_t)just_suspend;
+    attr.arg = "SUSPENDED";
+    attr.stack_size = 0;
+    attr.sched_params.type = SCHED_PARAM_QOS;
+    attr.sched_params.u.qos.category = SCHED_QOS_INTERACTIVE;
+    attr.sched_params.u.qos.priority = QOS_PRI_NORMAL;
+    attr.groupid = 0;
+    attr.flags = VCPU_ACQUIRE_RESUMED;
+    gId[CONCURRENCY] = vcpu_acquire(&attr);
+    assertNotNULL(gId[CONCURRENCY]);
+
+    
     puts("Waiting...");
     struct timespec delay;
-    timespec_from_sec(&delay, 1);
+    timespec_from_sec(&delay, 2);
     clock_nanosleep(CLOCK_MONOTONIC, 0, &delay, NULL);
 
     puts("Exiting");

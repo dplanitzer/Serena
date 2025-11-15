@@ -79,8 +79,14 @@ static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo, int sco
     if (scope < SIG_SCOPE_PROC || (sigbit & SIGSET_NONMASKABLES) != 0 || (scope >= SIG_SCOPE_PROC && self->proc_sigs_enabled > 0)) {
         self->pending_sigs |= sigbit;
 
-        if (signo == SIGKILL && scope >= SIG_SCOPE_PROC) {
-            self->attn_sigs |= VP_ATTN_PROC_EXIT;
+        if (signo == SIGKILL) {
+            if (scope >= SIG_SCOPE_PROC) {
+                self->attn_sigs |= VP_ATTN_PROC_EXIT;
+            }
+
+            // Do a force resume to ensure that the guy picks up the termination
+            // request right away.
+            vcpu_resume(self, true);
         }
         
         if ((self->wait_sigs & sigbit) != 0) {
