@@ -308,7 +308,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
         // no involuntary suspension of kernel owned VPs
         throw(EPERM);
     }
-    if (self->suspension_count == INT8_MAX) {
+    if (self->suspension_count == INT16_MAX) {
         throw(EINVAL);
     }
 

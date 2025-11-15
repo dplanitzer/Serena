@@ -180,8 +180,7 @@ vp_effective_priority                   so.b    1           ; 1
 vp_sched_state                          so.b    1           ; 1
 vp_flags                                so.b    1           ; 1
 vp_quantum_countdown                    so.b    1           ; 1
-vp_suspension_count                     so.b    1           ; 1
-vp_reserved2                            so.b    1           ; 1
+vp_suspension_count                     so.w    1           ; 2
 vp_proc                                 so.l    1           ; 4
 vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
