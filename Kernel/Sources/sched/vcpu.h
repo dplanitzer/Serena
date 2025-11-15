@@ -56,6 +56,15 @@ typedef struct vcpu_acquisition {
 // WAITING      -> READY
 // SUSPENDED    -> READY
 //
+// Entering the SUSPENDED state may be immediate or deferred:
+// a) immediate: if a vcpu suspends itself or is in INIT state
+// b) deferred: if the vcpu is another user vcpu (not self)
+//
+// A deferred suspend is delayed until the currently executing system call is
+// about to return to user space. A vcpu executing in user space at the time of
+// a vcpu_suspend() call is redirected at the next scheduler tick to a
+// sigurgent() system call. It will enter the suspended state at the end of this
+// system call.
 enum {
     SCHED_STATE_INITIATED = 0,  // VP was just created and has not been scheduled yet
     SCHED_STATE_READY,          // VP is able to run and is currently sitting on the ready queue
