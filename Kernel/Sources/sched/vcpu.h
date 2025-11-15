@@ -50,11 +50,11 @@ typedef struct vcpu_acquisition {
 // VP scheduling state
 //
 // Possible state transitions:
-// INIT -> READY
-// READY -> RUNNING
-// RUNNING -> READY | -> WAITING | -> SUSPENDED | -> TERMINATING
-// WAITING -> READY | -> WAIT_SUSPENDED
-// SUSPENDED -> READY
+// INIT         -> SUSPENDED    | READY
+// READY        -> RUNNING
+// RUNNING      -> READY        | WAITING   | SUSPENDED | TERMINATING
+// WAITING      -> READY
+// SUSPENDED    -> READY
 //
 enum {
     SCHED_STATE_INITIATED = 0,  // VP was just created and has not been scheduled yet
@@ -232,9 +232,10 @@ extern errno_t vcpu_suspend(vcpu_t _Nonnull self);
 // count is > 1.
 extern void vcpu_resume(vcpu_t _Nonnull self, bool force);
 
-// Returns true if the given virtual processor is currently in suspended state;
-// false otherwise.
-extern bool vcpu_suspended(vcpu_t _Nonnull self);
+// Checks whether 'self' either has a suspension request pending or is in
+// suspension state. If a suspension request is pending then the caller is
+// blocked until 'self' has entered the suspended state.
+extern void vcpu_wait_until_suspended(vcpu_t _Nonnull self);
 
 
 // Sets the dispatch queue that has acquired the virtual processor and owns it
