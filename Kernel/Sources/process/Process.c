@@ -28,7 +28,7 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     AddressSpace_Init(&self->addr_space);
 
     self->retainCount = RC_INIT;
-    self->state = PROC_LIFECYCLE_ACTIVE;
+    self->state = PROC_STATE_RUNNING;
     self->pid = 0;
     self->ppid = ppid;
     self->pgrp = pgrp;
@@ -100,15 +100,6 @@ void Process_Release(ProcessRef _Nullable self)
         _proc_deinit(self);
         kfree(self);
     }
-}
-
-int Process_GetLifecycleState(ProcessRef _Nonnull self)
-{
-    mtx_lock(&self->mtx);
-    const int state = self->state;
-    mtx_unlock(&self->mtx);
-
-    return state;
 }
 
 pid_t Process_GetId(ProcessRef _Nonnull self)

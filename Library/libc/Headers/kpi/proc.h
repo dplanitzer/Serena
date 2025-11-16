@@ -33,10 +33,11 @@ typedef struct pargs {
 } pargs_t;
 
 
-#define PROC_STATE_RUNNING      0
-#define PROC_STATE_WAITING      1
-#define PROC_STATE_SUSPENDED    2
-#define PROC_STATE_ZOMBIE       3
+#define PROC_STATE_RUNNING  0
+#define PROC_STATE_SLEEPING 1
+#define PROC_STATE_STOPPED  2
+#define PROC_STATE_EXITING  3
+#define PROC_STATE_ZOMBIE   4
 
 // Process specific information
 typedef struct proc_info {

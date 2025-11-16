@@ -17,41 +17,55 @@ errno_t Process_Open(ProcessRef _Nonnull self, unsigned int mode, intptr_t arg, 
     return ProcChannel_Create(class(ProcChannel), SEO_FT_PROCESS, mode, self->pid, pOutChannel);
 }
 
-
-static int _proc_calc_state(ProcessRef _Nonnull _Locked self)
+static int _Process_GetExactState(ProcessRef _Nonnull _Locked self)
 {
-    if (self->state >= PROC_LIFECYCLE_ZOMBIFYING) {
-        return PROC_STATE_ZOMBIE;
-    }
+    if (self->state == PROC_STATE_RUNNING) {
+        // Process is waiting if all vcpus are waiting
+        // Process is suspended if all vcpus are suspended
+        size_t nwaiting = 0, nsuspended = 0;
+        
+        List_ForEach(&self->vcpu_queue, ListNode,
+            vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
+
+            if (cvp->sched_state == SCHED_STATE_SUSPENDED) {
+                nsuspended++;
+            }
+            else if (cvp->sched_state != SCHED_STATE_RUNNING) {
+                nwaiting++;
+            }
+            else {
+                break;
+            }
+        );
 
 
-    // Process is waiting if all vcpus are waiting
-    // Process is suspended if all vcpus are suspended
-    size_t nwaiting = 0, nsuspended = 0;
-    List_ForEach(&self->vcpu_queue, ListNode,
-        vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
-
-        if (cvp->sched_state == SCHED_STATE_SUSPENDED) {
-            nsuspended++;
+        if (self->vcpu_count == nwaiting) {
+            return PROC_STATE_SLEEPING;
         }
-        else if (cvp->sched_state != SCHED_STATE_RUNNING) {
-            nwaiting++;
+        else if (self->vcpu_count == nsuspended) {
+            return PROC_STATE_STOPPED;
         }
-        else {
-            break;
-        }
-    );
+    }
 
+    return self->state;
+}
 
-    if (self->vcpu_count == nwaiting) {
-        return PROC_STATE_WAITING;
-    }
-    else if (self->vcpu_count == nsuspended) {
-        return PROC_STATE_SUSPENDED;
-    }
-    else {
-        return PROC_STATE_RUNNING;
-    }
+int Process_GetExactState(ProcessRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    const int state = _Process_GetExactState(self);
+    mtx_unlock(&self->mtx);
+
+    return state;
+}
+
+int Process_GetInexactState(ProcessRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+    const int state = self->state;
+    mtx_unlock(&self->mtx);
+
+    return state;
 }
 
 errno_t Process_GetInfo(ProcessRef _Nonnull self, proc_info_t* _Nonnull info)
@@ -62,7 +76,7 @@ errno_t Process_GetInfo(ProcessRef _Nonnull self, proc_info_t* _Nonnull info)
     info->pgrp = self->pgrp;
     info->sid = self->sid;
     info->vcpu_count = self->vcpu_count;
-    info->state = _proc_calc_state(self);
+    info->state = _Process_GetExactState(self);
     info->uid = FileManager_GetRealUserId(&self->fm);
     mtx_unlock(&self->mtx);
 

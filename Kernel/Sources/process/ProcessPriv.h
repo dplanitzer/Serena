@@ -19,12 +19,6 @@
 #include <vm/AddressSpace.h>
 
 
-// Process states
-#define PROC_LIFECYCLE_ACTIVE       0
-#define PROC_LIFECYCLE_ZOMBIFYING   1
-#define PROC_LIFECYCLE_ZOMBIE       2
-
-
 // Userspace wait queues
 #define UWQ_HASH_CHAIN_COUNT    4
 #define UWQ_HASH_CHAIN_MASK     (UWQ_HASH_CHAIN_COUNT - 1)

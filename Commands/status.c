@@ -21,7 +21,14 @@
 
 static char path_buf[PATH_MAX];
 static char num_buf[__LONG_MAX_BASE_10_DIGITS + 1];
-static const char* state_name[4] = { "running", "sleeping", "suspended", "zombie" };
+static const char* state_name[5] = {
+    "running",      // PROC_STATE_RUNNING
+    "sleeping",     // PROC_STATE_SLEEPING
+    "stopped",      // PROC_STATE_STOPPED
+    "running",      // PROC_STATE_EXITING
+    "zombie",       // PROC_STATE_ZOMBIE
+};
+
 
 CLAP_DECL(params,
     CLAP_VERSION("1.0"),
