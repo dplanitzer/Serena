@@ -17,6 +17,8 @@
 #include <kern/string.h>
 #include <kern/timespec.h>
 
+static void _vcpu_yield(vcpu_t _Nonnull self);
+
 
 // Initializes a virtual processor. A virtual processor always starts execution
 // in supervisor mode. The user stack size may be 0. Note that a virtual processor
@@ -68,7 +70,11 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     // the suspend state yet. Wait until it is actually suspended and before we
     // proceed with reconfiguring it. We only become the owner of the vcpu once
     // it has entered suspended state.
-    vcpu_wait_until_suspended(vp);
+    const int sps = preempt_disable();
+    while (vp->sched_state != SCHED_STATE_SUSPENDED) {
+        _vcpu_yield(vcpu_current());
+    }
+    preempt_restore(sps);
 
     
     // Configure the vcpu
@@ -360,24 +366,6 @@ void vcpu_do_pending_deferred_suspend(vcpu_t _Nonnull self)
         sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     }
     
-    preempt_restore(sps);
-}
-
-// @Entry Condition: preemption disabled
-static void _vcpu_wait_until_suspended(vcpu_t _Nonnull self)
-{
-    while ((self->attn_sigs & VP_ATTN_SUSPENDING) != 0) {
-        _vcpu_yield(vcpu_current());
-    }
-}
-
-// Checks whether 'self' either has a suspension request pending or is in
-// suspension state. If a suspension request is pending then the caller is
-// blocked until 'self' has entered the suspended state.
-void vcpu_wait_until_suspended(vcpu_t _Nonnull self)
-{
-    const int sps = preempt_disable();
-    _vcpu_wait_until_suspended(self);
     preempt_restore(sps);
 }
 

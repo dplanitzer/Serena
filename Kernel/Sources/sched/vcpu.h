@@ -259,11 +259,6 @@ extern errno_t vcpu_suspend(vcpu_t _Nonnull self);
 // Resuming a virtual processor is a synchronous operation.
 extern void vcpu_resume(vcpu_t _Nonnull self, bool force);
 
-// Checks whether 'self' either has a suspension request pending or is in
-// suspension state. If a suspension request is pending then the caller is
-// blocked until 'self' has entered the suspended state.
-extern void vcpu_wait_until_suspended(vcpu_t _Nonnull self);
-
 
 // Sets the dispatch queue that has acquired the virtual processor and owns it
 // until the virtual processor is relinquished back to the virtual processor
