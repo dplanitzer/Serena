@@ -211,11 +211,15 @@ void Process_Continue(ProcessRef _Nonnull self)
 
 errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int signo)
 {
-    decl_try_err();
     bool hasMatched = false;
 
+    if (signo < SIGMIN || signo > SIGMAX) {
+        return EINVAL;
+    }
+
     if (scope == SIG_SCOPE_VCPU && id == 0) {
-        return vcpu_sigsend(vcpu_current(), signo, SIG_SCOPE_VCPU);
+        vcpu_sigsend(vcpu_current(), signo, SIG_SCOPE_VCPU);
+        return EOK;
     }
 
     mtx_lock(&self->mtx);
@@ -243,20 +247,13 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
         if (doSend) {
             // This sigsend() will auto-force-resume the receiving vcpu if we're
             // sending SIGKILL
-            err = vcpu_sigsend(cvp, signo, scope);
-            if (err != EOK) {
-                break;
-            }
+            vcpu_sigsend(cvp, signo, scope);
             hasMatched = true;
         }
     );
     mtx_unlock(&self->mtx);
 
-    if (!hasMatched && err == EOK) {
-        err = ESRCH;
-    }
-
-    return err;
+    return (!hasMatched) ? ESRCH : EOK;
 }
 
 void Process_SetExceptionHandler(ProcessRef _Nonnull self, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
