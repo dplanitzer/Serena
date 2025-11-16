@@ -121,6 +121,9 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
     if (signo < SIGMIN || signo > SIGMAX) {
         return EINVAL;
     }
+    if (signo == SIGSYS1 || signo == SIGSYS2) {
+        return EPERM;
+    }
 
     mtx_lock(&self->mtx);
     switch (scope) {

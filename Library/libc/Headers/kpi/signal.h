@@ -46,32 +46,32 @@ typedef volatile int sig_atomic_t;
 #define SIGABRT     4   //XXX NYI   <- abort()
 #define SIGSTOP     5   //XXX NYI   <- TTY, stop/suspend process
 #define SIGCONT     6   //XXX NYI   <- TTY, continue/resume process
-#define SIGXLIM     7   //XXX NYI   <- kernel, process exceeded CPU/memory/file limit
+#define SIGXCPU     7   //XXX NYI   <- kernel, process exceeded CPU time limit
 #define SIGHUP      8   //XXX NYI   <- logind, user logged out
 #define SIGQUIT     9   //XXX NYI   <- TTY, process quit
-#define SIGINT     10   //XXX NYI   <- TTY, process interrupt
-#define SIGALRM    11   //XXX NYI   <- clock_alarm()
-#define SIGCHILD   12   //          <- kernel, child process terminated
-#define SIGWINCH   13   //XXX NYI   <- TTY, console window size changed
-#define SIGTTIN    14   //XXX NYI   <- TTY, background process attempt to read from terminal input
-#define SIGTTOUT   15   //XXX NYI   <- TTY, background process attempt to write to terminal output
-#define SIGFORE    16   //XXX NYI   <- TTY, process is now the foreground process
-#define SIGBACK    17   //XXX NYI   <- TTY, process is now the background process
-#define SIGSYS3    18
-#define SIGSYS4    19
-#define SIGUSR1    20
-#define SIGUSR2    21
-#define SIGUSR3    22
-#define SIGUSR4    23
-#define SIGUSR5    24
-#define SIGUSR6    25
-#define SIGUSR7    26
-#define SIGUSR8    27
-#define SIGUSR9    28
-#define SIGUSR10    29
-#define SIGUSR11   30
-#define SIGUSR12   31
-#define SIGDISP    32
+#define SIGINT      10  //XXX NYI   <- TTY, process interrupt
+#define SIGALRM     11  //XXX NYI   <- clock_alarm()
+#define SIGCHILD    12  //          <- kernel, child process terminated
+#define SIGWINCH    13  //XXX NYI   <- TTY, console window size changed
+#define SIGTTIN     14  //XXX NYI   <- TTY, background process attempt to read from terminal input
+#define SIGTTOUT    15  //XXX NYI   <- TTY, background process attempt to write to terminal output
+#define SIGFRGD     16  //XXX NYI   <- TTY, process is now the foreground process
+#define SIGBKGD     17  //XXX NYI   <- TTY, process is now the background process
+#define SIGUSR1     18
+#define SIGUSR2     19
+#define SIGUSR3     20
+#define SIGUSR4     21
+#define SIGUSR5     22
+#define SIGUSR6     23
+#define SIGUSR7     24
+#define SIGUSR8     25
+#define SIGUSR9     26
+#define SIGUSR10    27
+#define SIGUSR11    28
+#define SIGUSR12    29
+#define SIGUSR13    30
+#define SIGUSR14    31
+#define SIGDISP     32
 
 #define SIGUSR      SIGUSR1
 
