@@ -31,7 +31,7 @@ static int _proc_calc_state(ProcessRef _Nonnull _Locked self)
     List_ForEach(&self->vcpu_queue, ListNode,
         vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
-        if (cvp->sched_state == SCHED_STATE_SUSPENDED || cvp->sched_state == SCHED_STATE_WAIT_SUSPENDED) {
+        if (cvp->sched_state == SCHED_STATE_SUSPENDED) {
             nsuspended++;
         }
         else if (cvp->sched_state != SCHED_STATE_RUNNING) {

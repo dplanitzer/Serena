@@ -65,13 +65,21 @@ typedef struct vcpu_acquisition {
 // a vcpu_suspend() call is redirected at the next scheduler tick to a
 // sigurgent() system call. It will enter the suspended state at the end of this
 // system call.
+// Note that a system call that is in waiting state at the time a suspension
+// request comes in, will continue to wait and the suspension request is left
+// pending in the meantime. If the system call receives a wakeup before the
+// vcpu has received a resumption request, then the system call will proceed to
+// its exit point where it will finally act on the suspension request and suspend
+// instead of returning to user space.
+// If on the other hand the vcpu is resumed before the wait finished, then the
+// vcpu_resume() call atomically clears the suspension request and the system
+// call will return directly to user space.
 enum {
     SCHED_STATE_INITIATED = 0,  // VP was just created and has not been scheduled yet
     SCHED_STATE_READY,          // VP is able to run and is currently sitting on the ready queue
     SCHED_STATE_RUNNING,        // VP is running
     SCHED_STATE_WAITING,        // VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
     SCHED_STATE_SUSPENDED,      // VP was running or ready and is now suspended (it is not on any queue)
-    SCHED_STATE_WAIT_SUSPENDED, // VP was waiting and is now suspended (it's still on the wait queue it waited on previously)
     SCHED_STATE_TERMINATING,    // VP is in the process of terminating and being reaped (it's on the finalizer queue)
 };
 
@@ -233,11 +241,22 @@ extern void vcpu_yield(void);
 
 
 // Suspends the calling virtual processor. This function supports nested calls.
+// The following suspend use cases are supported:
+// *) a vcpu calls suspend() itself
+// *) a vcpu A calls suspend() on a user vcpu B
+// Note that involuntary suspension is not supported if the vcpu that should be
+// suspended is owned by the kernel process.
+// Note that suspension is generically asynchronous. Since teh vcpu that you
+// suspend is only able to enter suspended state if it is running user code or
+// when it reaches the end of an ongoing system call, it can take a while before
+// the vcpu will officially enter suspended state. Suspension related API try
+// to mask this as much as possible.
 extern errno_t vcpu_suspend(vcpu_t _Nonnull self);
 
 // Resumes the given virtual processor. The virtual processor is forcefully
-// resumed if 'force' is true. This means that it is resumed even if the suspension
-// count is > 1.
+// resumed if 'force' is true. This means that it is resumed even if the
+// suspension count is > 1.
+// Resuming a virtual processor is a synchronous operation.
 extern void vcpu_resume(vcpu_t _Nonnull self, bool force);
 
 // Checks whether 'self' either has a suspension request pending or is in
@@ -285,6 +304,6 @@ extern void vcpu_sched_params_changed(vcpu_t _Nonnull self);
 // Syscall
 //
 
-extern void vcpu_deferred_suspend(vcpu_t _Nonnull self);
+extern void vcpu_do_pending_deferred_suspend(vcpu_t _Nonnull self);
 
 #endif /* _VCPU_H */

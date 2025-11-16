@@ -243,7 +243,6 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull
             case SCHED_STATE_RUNNING:
             case SCHED_STATE_WAITING:
             case SCHED_STATE_SUSPENDED:
-            case SCHED_STATE_WAIT_SUSPENDED:
                 self->qos = params->u.qos.category;
                 self->qos_priority = params->u.qos.priority;
                 if (self->sched_state == SCHED_STATE_RUNNING) {
@@ -341,19 +340,25 @@ catch:
     return err;
 }
 
-void vcpu_deferred_suspend(vcpu_t _Nonnull self)
+void vcpu_do_pending_deferred_suspend(vcpu_t _Nonnull self)
 {
     const int sps = preempt_disable();
 
     // This function is always called in running state and thus the transition
     // running -> suspended is the only one we need to handle.
-    // Consume the VP_ATTN_SUSPENDING request after we've changed our state to
-    // suspended to ensure that there's no gap between suspension request and
-    // suspension state.
-    self->sched_state = SCHED_STATE_SUSPENDED;
-    self->attn_sigs &= ~VP_ATTN_SUSPENDING;
+    // Atomically check and consume the VP_ATTN_SUSPENDING request after we've
+    // changed our state to suspended to ensure that there's no gap between
+    // suspension request and suspension state.
+    // Note that it is crucial that we check the VP_ATTN_SUSPENDING flag,
+    // consume it and change our scheduler state to SCHED_STATE_SUSPENDED in a
+    // an atomic operation to ensure that vcpu_resume() can not see the
+    // transition and get potentially confused by it.
+    if ((self->attn_sigs & VP_ATTN_SUSPENDING) == VP_ATTN_SUSPENDING) {
+        self->sched_state = SCHED_STATE_SUSPENDED;
+        self->attn_sigs &= ~VP_ATTN_SUSPENDING;
 
-    sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
+        sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
+    }
     
     preempt_restore(sps);
 }
@@ -399,9 +404,12 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
 {
     const int sps = preempt_disable();
 
-    // Wait if 'self' is still transitioning to suspended state
-    _vcpu_wait_until_suspended(self);
+    // Cancel a pending deferred suspend request. This is safe because
+    // vcpu_do_pending_deferred_suspend() atomically tests and acts on the flag
+    self->attn_sigs &= ~VP_ATTN_SUSPENDING;
 
+
+    // Move the vcpu out of suspended state if it is suspended
     if (self->sched_state == SCHED_STATE_SUSPENDED) {
         _vcpu_resume(self, force);
     }

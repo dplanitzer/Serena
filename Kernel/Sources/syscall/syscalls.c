@@ -187,9 +187,7 @@ static void _handle_pending_signals(vcpu_t _Nonnull vp)
     if ((sigs & _SIGBIT(SIGSYS1)) != 0) {
         vp->pending_sigs &= ~_SIGBIT(SIGSYS1);
 
-        if ((vp->attn_sigs & VP_ATTN_SUSPENDING) == VP_ATTN_SUSPENDING) {
-            vcpu_deferred_suspend(vp);
-        }
+        vcpu_do_pending_deferred_suspend(vp);
     }
 }
 

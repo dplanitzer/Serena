@@ -185,7 +185,7 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
 
 
     // Nothing to do if we are not waiting
-    if (vp->sched_state != SCHED_STATE_WAITING && vp->sched_state != SCHED_STATE_WAIT_SUSPENDED) {
+    if (vp->sched_state != SCHED_STATE_WAITING) {
         return false;
     }
     
