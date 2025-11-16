@@ -110,15 +110,6 @@ extern errno_t Process_Create(pid_t ppid, pid_t pgrp, pid_t sid, FileHierarchyRe
 extern void Process_deinit(ProcessRef _Nonnull self);
 
 
-// Suspend all vcpus in the process if the process is currently in running state.
-// Otherwise does nothing. Nesting is not supported.
-extern void Process_Stop(ProcessRef _Nonnull self);
-
-// Resume all vcpus in the process if the process is currently in stopped state.
-// Otherwise does nothing.
-extern void Process_Continue(ProcessRef _Nonnull self);
-
-
 // Returns true if the process is the root process
 #define Process_IsRoot(__self) ((__self)->pid == 1)
 

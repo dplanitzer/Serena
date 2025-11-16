@@ -9,7 +9,6 @@
 #include "ProcessPriv.h"
 #include <filemanager/FileHierarchy.h>
 #include <kern/kalloc.h>
-#include <sched/vcpu_pool.h>
 
 static const char*      g_systemd_argv[2] = { "/System/Commands/systemd", NULL };
 static const char*      g_kernel_argv[2] = { "kerneld", NULL };
@@ -175,85 +174,6 @@ void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp
     vp->proc = NULL;
     self->vcpu_count--;
     mtx_unlock(&self->mtx);
-}
-
-void Process_Stop(ProcessRef _Nonnull self)
-{
-    mtx_lock(&self->mtx);
-
-    if (self->state == PROC_STATE_RUNNING) {
-        List_ForEach(&self->vcpu_queue, ListNode,
-            vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
-
-            vcpu_suspend(cvp);
-        );
-        self->state = PROC_STATE_STOPPED;
-    }
-
-    mtx_unlock(&self->mtx);
-}
-
-void Process_Continue(ProcessRef _Nonnull self)
-{
-    mtx_lock(&self->mtx);
-
-    if (self->state == PROC_STATE_STOPPED) {
-        List_ForEach(&self->vcpu_queue, ListNode,
-            vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
-
-            vcpu_resume(cvp, false);
-        );
-        self->state = PROC_STATE_RUNNING;
-    }
-
-    mtx_unlock(&self->mtx);
-}
-
-errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int signo)
-{
-    bool hasMatched = false;
-
-    if (signo < SIGMIN || signo > SIGMAX) {
-        return EINVAL;
-    }
-
-    if (scope == SIG_SCOPE_VCPU && id == 0) {
-        vcpu_sigsend(vcpu_current(), signo, SIG_SCOPE_VCPU);
-        return EOK;
-    }
-
-    mtx_lock(&self->mtx);
-    List_ForEach(&self->vcpu_queue, ListNode,
-        vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
-        int doSend;
-
-        switch (scope) {
-            case SIG_SCOPE_VCPU:
-                doSend = (id == cvp->id);
-                break;
-
-            case SIG_SCOPE_VCPU_GROUP:
-                doSend = (id == cvp->groupid);
-                break;
-
-            case SIG_SCOPE_PROC:
-                doSend = 1;
-                break;
-
-            default:
-                abort();
-        }
-
-        if (doSend) {
-            // This sigsend() will auto-force-resume the receiving vcpu if we're
-            // sending SIGKILL
-            vcpu_sigsend(cvp, signo, scope);
-            hasMatched = true;
-        }
-    );
-    mtx_unlock(&self->mtx);
-
-    return (!hasMatched) ? ESRCH : EOK;
 }
 
 void Process_SetExceptionHandler(ProcessRef _Nonnull self, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
