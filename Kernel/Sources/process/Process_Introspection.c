@@ -22,29 +22,15 @@ static int _Process_GetExactState(ProcessRef _Nonnull _Locked self)
     if (self->state == PROC_STATE_RUNNING) {
         // Process is waiting if all vcpus are waiting
         // Process is suspended if all vcpus are suspended
-        size_t nwaiting = 0, nsuspended = 0;
-        
         List_ForEach(&self->vcpu_queue, ListNode,
             vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
-            if (cvp->sched_state == SCHED_STATE_SUSPENDED) {
-                nsuspended++;
-            }
-            else if (cvp->sched_state != SCHED_STATE_RUNNING) {
-                nwaiting++;
-            }
-            else {
-                break;
+            if (cvp->sched_state == SCHED_STATE_RUNNING) {
+                return PROC_STATE_RUNNING;
             }
         );
 
-
-        if (self->vcpu_count == nwaiting) {
-            return PROC_STATE_SLEEPING;
-        }
-        else if (self->vcpu_count == nsuspended) {
-            return PROC_STATE_STOPPED;
-        }
+        return PROC_STATE_SLEEPING;
     }
 
     return self->state;

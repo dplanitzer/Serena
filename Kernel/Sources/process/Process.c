@@ -177,6 +177,38 @@ void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp
     mtx_unlock(&self->mtx);
 }
 
+void Process_Stop(ProcessRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+
+    if (self->state == PROC_STATE_RUNNING) {
+        List_ForEach(&self->vcpu_queue, ListNode,
+            vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
+
+            vcpu_suspend(cvp);
+        );
+        self->state = PROC_STATE_STOPPED;
+    }
+
+    mtx_unlock(&self->mtx);
+}
+
+void Process_Continue(ProcessRef _Nonnull self)
+{
+    mtx_lock(&self->mtx);
+
+    if (self->state == PROC_STATE_STOPPED) {
+        List_ForEach(&self->vcpu_queue, ListNode,
+            vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
+
+            vcpu_resume(cvp, false);
+        );
+        self->state = PROC_STATE_RUNNING;
+    }
+
+    mtx_unlock(&self->mtx);
+}
+
 errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int signo)
 {
     decl_try_err();
@@ -209,6 +241,8 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
         }
 
         if (doSend) {
+            // This sigsend() will auto-force-resume the receiving vcpu if we're
+            // sending SIGKILL
             err = vcpu_sigsend(cvp, signo, scope);
             if (err != EOK) {
                 break;
