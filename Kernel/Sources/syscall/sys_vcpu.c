@@ -112,6 +112,25 @@ SYSCALL_1(vcpu_resume, vcpuid_t id)
     return err;
 }
 
+SYSCALL_3(vcpu_rw_mcontext, vcpuid_t id, mcontext_t* _Nonnull ctx, int isRead)
+{
+    decl_try_err();
+    ProcessRef pp = vp->proc;
+
+    mtx_lock(&pp->mtx);
+    vcpu_t vcp = _get_vcpu_by_id_locked(pp, pa->id);
+
+    if (vcp) {
+        vcpu_rw_mcontext(vcp, pa->ctx, pa->isRead);
+    }
+    else {
+        err = ESRCH;
+    }
+    mtx_unlock(&pp->mtx);
+
+    return err;
+}
+
 SYSCALL_0(vcpu_yield)
 {
     vcpu_yield();

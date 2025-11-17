@@ -84,6 +84,7 @@ enum {
     SC_vcpu_getschedparams, // int vcpu_getschedparams(vcpuid_t id, int type, sched_params_t* _Nonnull params)
     SC_vcpu_setschedparams, // int vcpu_setschedparams(vcpuid_t id, const sched_params_t* _Nonnull params)
     SC_clock_getres,        // errno_t clock_getres(clockid_t clock, struct timespec* _Nonnull res)
+    SC_vcpu_rw_mcontext,    // errno_t vcpu_rw_mcontext(vcpuid_t id, mcontext_t* _Nonnull ctx, bool isRead)
 };
 
 

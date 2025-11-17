@@ -9,8 +9,8 @@
 #ifndef _CPU_M68K_H
 #define _CPU_M68K_H 1
 
-#include <kern/floattypes.h>
 #include <kern/types.h>
+#include <kpi/floattypes.h>
 
 // Size of a standard page in bytes
 #define CPU_PAGE_SIZE   4096
@@ -134,14 +134,21 @@
 #define EXCPT_NUM_USER_VECS     192
 
 
-// CPU savearea layout
+// Overall save area layout:
+//
+// fpu_savearea_t   fpu     ; only there if the machine has a FPU and the save area is a context switch save area (syscall does not save teh FPU state)
+// cpu_savearea_t   cpu     ; exists for context switch and syscall save areas
+// excpt_frame_t    excpt;  ; exception frame. Type 0 frame for syscall and context switch save areas
+//
+
+// CPU save area layout
 typedef struct cpu_savearea {
     uint32_t    usp;
     uint32_t    d[8];   
     uint32_t    a[7];
 } cpu_savearea_t;
 
-// FPU savearea layout
+// FPU save area layout
 typedef struct fpu_savearea {
     uint32_t    fpiar;
     uint32_t    fpsr;

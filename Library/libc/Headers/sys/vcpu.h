@@ -65,6 +65,9 @@ extern _Noreturn vcpu_relinquish_self(void);
 extern int vcpu_suspend(vcpu_t _Nullable vcpu);
 extern void vcpu_resume(vcpu_t _Nonnull vcpu);
 
+extern int vcpu_getcontext(vcpu_t _Nonnull vcpu, mcontext_t* _Nonnull ctx);
+extern int vcpu_setcontext(vcpu_t _Nonnull vcpu, const mcontext_t* _Nonnull ctx);
+
 extern void vcpu_yield(void);
 
 extern int vcpu_getschedparams(vcpu_t _Nullable vcpu, int type, sched_params_t* _Nonnull params);

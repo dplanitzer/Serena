@@ -405,6 +405,43 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
     preempt_restore(sps);
 }
 
+errno_t vcpu_rw_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx, bool isRead)
+{
+    decl_try_err();
+    const int sps = preempt_disable();
+
+    for (;;) {
+        if (self->sched_state == SCHED_STATE_SUSPENDED || (self->sched_state == SCHED_STATE_WAITING && (self->attn_sigs & VP_ATTN_SUSPENDING) != 0)) {
+            // Wait until the target vcpu has entered suspended state or it is
+            // waiting and has a deferred suspension request pending.
+            break;
+        }
+
+        if ((self->attn_sigs & VP_ATTN_SUSPENDING) == 0) {
+            // The target vcpu isn't suspended and doesn't even have a deferred
+            // suspension request pending. Won't be able to r/w its ucontext
+            err = EBUSY;
+            break;
+        }
+
+        _vcpu_yield(vcpu_current());
+    }
+
+    
+    if (err == EOK) {
+        if (isRead) {
+            _vcpu_read_mcontext(self, ctx);
+        }
+        else {
+            _vcpu_write_mcontext(self, ctx);
+        }
+    }
+
+    preempt_restore(sps);
+
+    return err;
+}
+
 vcpuid_t new_vcpu_groupid(void)
 {
     static vcpuid_t id = VCPUID_MAIN_GROUP;

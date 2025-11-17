@@ -239,7 +239,6 @@ extern errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnu
 extern void vcpu_yield(void);
 
 
-
 // Suspends the calling virtual processor. This function supports nested calls.
 // The following suspend use cases are supported:
 // *) a vcpu calls suspend() itself
@@ -259,6 +258,10 @@ extern errno_t vcpu_suspend(vcpu_t _Nonnull self);
 // Resuming a virtual processor is a synchronous operation.
 extern void vcpu_resume(vcpu_t _Nonnull self, bool force);
 
+// Read/write the machine context of 'self'. The machine context is the user
+// space portion of the vcpu CSW state.
+extern errno_t vcpu_rw_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx, bool isRead);
+
 
 // Sets the dispatch queue that has acquired the virtual processor and owns it
 // until the virtual processor is relinquished back to the virtual processor
@@ -274,6 +277,10 @@ extern void vcpu_dump(vcpu_t _Nonnull self);
 
 // Sets the closure which the virtual processor should run when it is next resumed.
 extern errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull acq, bool bEnableInterrupts);
+
+// Read/write the CPU context.
+extern void _vcpu_write_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx);
+extern void _vcpu_read_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx);
 
 // These functions expect to be called in userspace.
 extern void vcpu_uret_relinquish_self(void);

@@ -124,3 +124,78 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull
 
     return EOK;
 }
+
+void _vcpu_write_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx)
+{
+    cpu_savearea_t* cpu_sa = (self->syscall_sa) ? self->syscall_sa : self->csw_sa;
+    excpt_0_frame_t* excpt_sa = (excpt_0_frame_t*)(((char*)cpu_sa) + sizeof(cpu_savearea_t));
+    fpu_savearea_t* fpu_sa = self->csw_sa;
+
+    // See _vcpu_read_mcontext().
+    for (int i = 0; i < 7; i++) {
+        cpu_sa->a[i] = ctx->a[i];
+        cpu_sa->d[i] = ctx->d[i];
+    }
+    cpu_sa->usp = ctx->a[7];
+    cpu_sa->d[7] = ctx->d[7];
+
+    excpt_sa->pc = ctx->pc;
+    excpt_sa->sr &= 0xff00;
+    excpt_sa->sr |= ctx->sr & 0xff;
+
+
+    // Set the FPU state
+    if (g_sys_desc->fpu_model > FPU_MODEL_NONE) {
+        fpu_sa->fpcr = ctx->fpcr;
+        fpu_sa->fpiar = ctx->fpiar;
+        fpu_sa->fpsr = ctx->fpsr;
+
+        for (int i = 0; i < 8; i++) {
+            fpu_sa->fp[i] = ctx->fp[i];
+        }
+    }
+}
+
+void _vcpu_read_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx)
+{
+    const cpu_savearea_t* cpu_sa = (self->syscall_sa) ? self->syscall_sa : self->csw_sa;
+    const excpt_0_frame_t* excpt_sa = (excpt_0_frame_t*)(((char*)cpu_sa) + sizeof(cpu_savearea_t));
+    const fpu_savearea_t* fpu_sa = self->csw_sa;
+
+    // Get the integer state from the syscall save area if it exists and the
+    // context switch save area otherwise. The CSW save area holds the kernel
+    // integer state if we're inside a system call. The system call save area
+    // holds the user integer state. The FPU state is always stored in the
+    // CSW save area. System calls don't save the FPU state since the kernel
+    // doesn't use it.
+    for (int i = 0; i < 7; i++) {
+        ctx->a[i] = cpu_sa->a[i];
+        ctx->d[i] = cpu_sa->d[i];
+    }
+    ctx->a[7] = cpu_sa->usp;
+    ctx->d[7] = cpu_sa->d[7];
+
+    ctx->pc = excpt_sa->pc;
+    ctx->sr = excpt_sa->sr & 0xff;
+
+
+    // Get the FPU state
+    if (g_sys_desc->fpu_model > FPU_MODEL_NONE) {
+        ctx->fpcr = fpu_sa->fpcr;
+        ctx->fpiar = fpu_sa->fpiar;
+        ctx->fpsr = fpu_sa->fpsr;
+
+        for (int i = 0; i < 8; i++) {
+            ctx->fp[i] = fpu_sa->fp[i];
+        }
+    }
+    else {
+        ctx->fpcr = 0;
+        ctx->fpiar = 0;
+        ctx->fpsr = 0;
+
+        for (int i = 0; i < 8; i++) {
+            ctx->fp[i] = (float96_t){0};
+        }
+    }
+}
