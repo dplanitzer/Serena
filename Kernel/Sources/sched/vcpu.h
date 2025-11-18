@@ -89,8 +89,7 @@ enum {
 #define VP_FLAG_HANDLING_EXCPT      0x04    // Set while the VP is handling a CPU exception
 #define VP_FLAG_HAS_FPU             0x08    // Save/restore the FPU state (keep in sync with lowmem.i)
 #define VP_FLAG_FPU_SAVED           0x10    // Set if the FPU user state has been saved (keep in sync with lowmem.i)
-#define VP_FLAG_TIMEOUT_SUSPENDED   0x20    // VP is suspended and had an active timeout scheduled
-#define VP_FLAG_ACQUIRED            0x40    // vcpu_activate() was called on the VP
+#define VP_FLAG_ACQUIRED            0x20    // vcpu_activate() was called on the VP
 
 // VP attention flags
 #define VP_ATTN_PROC_EXIT           0x01
@@ -122,9 +121,6 @@ struct vcpu {
     
     // Exceptions support
     excpt_handler_t                 excpt_handler;
-    
-    // Suspension related state
-    tick_t                          suspension_time;        // Absolute time when the VP was suspended
 
     // Signals
     sigset_t                        pending_sigs;           // Pending signals (sent to the VP, but not yet consumed by sigwait())

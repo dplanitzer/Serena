@@ -270,29 +270,3 @@ void wq_wake_irq(waitqueue_t _Nonnull self)
         cp = np;
     }
 }
-
-
-// @Entry Condition: preemption disabled
-void wq_suspendone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp)
-{
-    // We do not interrupt the wait because we'll just treat it as
-    // a longer-than-expected wait. However we suspend the timeout
-    // while the VP is suspended. The resume will reactive the
-    // timeout and extend it by the amount of time that the VP has
-    // spent in suspended state.
-    if (clock_cancel_deadline(g_mono_clock, &vp->timeout)) {
-        vp->flags |= VP_FLAG_TIMEOUT_SUSPENDED;
-    }
-}
-
-// @Entry Condition: preemption disabled
-void wq_resumeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp)
-{
-    // Still in waiting state -> just resume the timeout if one is
-    // associated with the wait.
-    if ((vp->flags & VP_FLAG_TIMEOUT_SUSPENDED) == VP_FLAG_TIMEOUT_SUSPENDED) {
-        vp->flags &= ~VP_FLAG_TIMEOUT_SUSPENDED;
-        vp->timeout.deadline += __max(clock_getticks(g_mono_clock) - vp->suspension_time, 0);
-        clock_deadline(g_mono_clock, &vp->timeout);
-    }
-}

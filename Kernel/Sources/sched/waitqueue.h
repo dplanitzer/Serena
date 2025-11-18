@@ -117,15 +117,4 @@ extern void wq_wake(waitqueue_t _Nonnull self, int flags, wres_t reason);
 // @Interrupt Context: Safe
 extern void wq_wake_irq(waitqueue_t _Nonnull self);
 
-
-// Suspends an ongoing wait. This should be called if a VP that is currently
-// waiting on this queue is suspended.
-// @Entry Condition: preemption disabled
-extern void wq_suspendone(waitqueue_t _Nonnull self, struct vcpu* _Nonnull vp);
-
-// Resumes an ongoing wait. This should be called if a VP that is currently
-// waiting on this queue is resumed.
-// @Entry Condition: preemption disabled
-extern void wq_resumeone(waitqueue_t _Nonnull self, struct vcpu* _Nonnull vp);
-
 #endif /* _WAITQUEUE_H */
