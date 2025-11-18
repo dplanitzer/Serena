@@ -25,6 +25,8 @@ FPU_MODEL_68882     equ 2
 FPU_MODEL_68040     equ 3
 FPU_MODEL_68060     equ 4
 
+FPU_USER_STATE_SIZE equ 108
+
 
 ; RGB color
 RGB_RED             equ $0f00
@@ -139,7 +141,6 @@ SCHED_STATE_TERMINATING     equ 5   ; VP is in the process of terminating and be
 
 
 VP_FLAG_HAS_FPU_BIT     equ 3   ; Save/restore the FPU state (keep in sync with vcpu.h)
-VP_FLAG_FPU_SAVED_BIT   equ 4   ; Set if the user fpu state has been saved (keep in sync with vcpu.h)
 
     clrso
 vp_rewa_qe_next                         so.l    1           ; 4

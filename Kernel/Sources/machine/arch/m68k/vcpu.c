@@ -107,10 +107,14 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull
     // ksp-36:   d[8]                       d7 to d0
     // ksp-68:   usp                        user stack pointer
     // ksp-72:   fpu_save                   fsave NULL frame, 4 bytes (this causes the FPU to reset its user state)
+    // ksp-76:   fp[8]                      0 (dummy value, not used since we frestore a NULL frame)
+    // ksp-172:  fpcr                       0 (dummy value, not used since we frestore a NULL frame)
+    // ksp-176:  fpsr                       0 (dummy value, not used since we frestore a NULL frame)
+    // ksp-180:  fpiar                      0 (dummy value, not used since we frestore a NULL frame)
     // ################     <--- kernel stack pointer
     const size_t ie_sa_siz = sizeof(excpt_0_frame_t) + sizeof(cpu_savearea_t);
     const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
-    const size_t frm_siz = ie_sa_siz + ((hasFPU) ? sizeof(struct m6888x_null_frame) : 0);
+    const size_t frm_siz = ie_sa_siz + ((hasFPU) ? sizeof(fpu_savearea_t) : 0);
     uintptr_t csw_sa = ksp - frm_siz;
     memset((void*)csw_sa, 0, frm_siz);
 
@@ -137,6 +141,7 @@ void _vcpu_write_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx)
     cpu_savearea_t* cpu_sa = (self->syscall_sa) ? self->syscall_sa : self->csw_sa;
     excpt_0_frame_t* excpt_sa = (excpt_0_frame_t*)(((char*)cpu_sa) + sizeof(cpu_savearea_t));
     fpu_savearea_t* fpu_sa = self->csw_sa;
+    const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
 
     // See _vcpu_read_mcontext().
     for (int i = 0; i < 7; i++) {
@@ -152,7 +157,7 @@ void _vcpu_write_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx)
 
 
     // Set the FPU state
-    if (g_sys_desc->fpu_model > FPU_MODEL_NONE) {
+    if (hasFPU) {
         fpu_sa->fpcr = ctx->fpcr;
         fpu_sa->fpiar = ctx->fpiar;
         fpu_sa->fpsr = ctx->fpsr;
@@ -160,6 +165,13 @@ void _vcpu_write_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx)
         for (int i = 0; i < 8; i++) {
             fpu_sa->fp[i] = ctx->fp[i];
         }
+
+        // XXX
+        // Need to do something here if the fsave frame is a NULL frame. Eg promote
+        // it to IDLE (although the exact format isn't documented); or make it so
+        // that we'll never get a NULL frame in the first place by executing at least
+        // one fp instruction when the vcpu is acquired
+        // XXX
     }
 }
 
@@ -168,6 +180,7 @@ void _vcpu_read_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx)
     const cpu_savearea_t* cpu_sa = (self->syscall_sa) ? self->syscall_sa : self->csw_sa;
     const excpt_0_frame_t* excpt_sa = (excpt_0_frame_t*)(((char*)cpu_sa) + sizeof(cpu_savearea_t));
     const fpu_savearea_t* fpu_sa = self->csw_sa;
+    const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
 
     // Get the integer state from the syscall save area if it exists and the
     // context switch save area otherwise. The CSW save area holds the kernel
@@ -187,7 +200,7 @@ void _vcpu_read_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx)
 
 
     // Get the FPU state
-    if (g_sys_desc->fpu_model > FPU_MODEL_NONE) {
+    if (hasFPU && !fsave_frame_isnull(&fpu_sa->fsave_hdr)) {
         ctx->fpcr = fpu_sa->fpcr;
         ctx->fpiar = fpu_sa->fpiar;
         ctx->fpsr = fpu_sa->fpsr;

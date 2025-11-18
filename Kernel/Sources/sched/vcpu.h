@@ -87,7 +87,6 @@ enum {
 // VP flags
 #define VP_FLAG_USER_OWNED          0x02    // This VP is owned by a user process
 #define VP_FLAG_HAS_FPU             0x08    // Save/restore the FPU state (keep in sync with lowmem.i)
-#define VP_FLAG_FPU_SAVED           0x10    // Set if the FPU user state has been saved (keep in sync with lowmem.i)
 #define VP_FLAG_ACQUIRED            0x20    // vcpu_activate() was called on the VP
 
 // VP attention flags
