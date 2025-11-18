@@ -158,6 +158,8 @@ vp_uerrno                               so.l    1           ; 4
 vp_udata                                so.l    1           ; 4
 vp_excpt_handler_func                   so.l    1           ; 4
 vp_excpt_handler_arg                    so.l    1           ; 4
+vp_excpt_sa                             so.l    1           ; 4
+vp_excpt_id                             so.l    1           ; 4
 vp_pending_sigs                         so.l    1           ; 4
 vp_proc_sigs_enabled                    so.l    1           ; 4
 vp_timeout_next                         so.l    1           ; 4
@@ -184,7 +186,7 @@ vp_dispatchQueue                        so.l    1           ; 4
 vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
 vp_reserved3                            so.b    3           ; 3
 vp_SIZEOF                       so
-    ifeq (vp_SIZEOF == 124)
+    ifeq (vp_SIZEOF == 132)
         fail "vcpu structure size is incorrect."
     endif
 

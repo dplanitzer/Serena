@@ -86,7 +86,6 @@ enum {
 
 // VP flags
 #define VP_FLAG_USER_OWNED          0x02    // This VP is owned by a user process
-#define VP_FLAG_HANDLING_EXCPT      0x04    // Set while the VP is handling a CPU exception
 #define VP_FLAG_HAS_FPU             0x08    // Save/restore the FPU state (keep in sync with lowmem.i)
 #define VP_FLAG_FPU_SAVED           0x10    // Set if the FPU user state has been saved (keep in sync with lowmem.i)
 #define VP_FLAG_ACQUIRED            0x20    // vcpu_activate() was called on the VP
@@ -121,6 +120,8 @@ struct vcpu {
     
     // Exceptions support
     excpt_handler_t                 excpt_handler;
+    void* _Nullable                 excpt_sa;               // Exception save area
+    int32_t                         excpt_id;               // 0 -> no exception active; > 0 -> exception EXCPT_XXX active
 
     // Signals
     sigset_t                        pending_sigs;           // Pending signals (sent to the VP, but not yet consumed by sigwait())

@@ -121,7 +121,10 @@ _Noreturn vcpu_relinquish(vcpu_t _Nonnull self)
     self->pending_sigs = 0;
     self->attn_sigs = 0;
     self->proc_sigs_enabled = 0;
-    self->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_HANDLING_EXCPT|VP_FLAG_ACQUIRED);
+    self->excpt_id = 0;
+    self->excpt_sa = NULL;
+    self->syscall_sa = NULL;
+    self->flags &= ~(VP_FLAG_USER_OWNED|VP_FLAG_ACQUIRED);
 
 
     // Check ourselves back into the vcpu pool

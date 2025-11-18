@@ -157,12 +157,6 @@ excpt_func_t _Nonnull cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable
             /* NOT REACHED */
     }
 
-    if ((vp->flags & VP_FLAG_HANDLING_EXCPT) != 0) {
-        // double fault -> exit
-        Process_Exit(vp->proc, JREASON_EXCEPTION, ei.code);
-        /* NOT REACHED */
-    }
-
     return Process_Exception(vp->proc, vp, &ei, &ec);
 }
 

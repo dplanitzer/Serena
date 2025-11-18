@@ -188,7 +188,14 @@ excpt_func_t _Nonnull Process_Exception(ProcessRef _Nonnull self, vcpu_t _Nonnul
 {
     const excpt_handler_t* h = &vp->excpt_handler;
 
-    vp->flags |= VP_FLAG_HANDLING_EXCPT;
+    if (vp->excpt_id > 0) {
+        // double fault -> exit
+        Process_Exit(vp->proc, JREASON_EXCEPTION, ei->code);
+        /* NOT REACHED */
+    }
+
+
+    vp->excpt_id = ei->code;
 
     if (h->func == NULL) {
         h = &self->excpt_handler;
@@ -224,7 +231,7 @@ void Process_ExceptionReturn(ProcessRef _Nonnull self, vcpu_t _Nonnull vp)
     usp += sizeof(excpt_info_t);
     usp_set(usp);
 
-    vp->flags &= ~VP_FLAG_HANDLING_EXCPT;
+    vp->excpt_id = 0;
 }
 
 
