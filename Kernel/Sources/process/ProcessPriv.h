@@ -19,6 +19,10 @@
 #include <vm/AddressSpace.h>
 
 
+// Default stack size for user space vcpus
+#define PROC_DEFAULT_USER_STACK_SIZE    CPU_PAGE_SIZE
+
+
 // Userspace wait queues
 #define UWQ_HASH_CHAIN_COUNT    4
 #define UWQ_HASH_CHAIN_MASK     (UWQ_HASH_CHAIN_COUNT - 1)

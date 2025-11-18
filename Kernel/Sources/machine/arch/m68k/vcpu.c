@@ -11,6 +11,17 @@
 #include <sched/vcpu.h>
 
 
+// Returns the required minimum kernel stack size
+size_t min_vcpu_kernel_stack_size(void)
+{
+    const size_t ie_sa_siz = sizeof(excpt_frame_t) + sizeof(cpu_savearea_t);
+    const size_t f_sa_siz = sizeof(fpu_savearea_t) + FPU_MAX_FSAVE_SIZE;
+
+    // Minimum kernel stack size is 3 * sizeof(cpu_save_area_max_size) + 256
+    // 3x -> csw save state + syscall save state + cpu exception save state
+    return 3*(ie_sa_siz + f_sa_siz) + 256;
+}
+
 // Sets the closure which the virtual processor should run when it is next resumed.
 //
 // \param self the virtual processor
@@ -19,13 +30,7 @@
 errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull ac, bool bEnableInterrupts)
 {
     decl_try_err();
-    const size_t ifsiz = sizeof(excpt_0_frame_t) + 4*7 + 4*8 + 4;
-    const size_t ffsiz = 4 + sizeof(float96_t)*8 + 4 + 4 + 4;
-    const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
-
-    // Minimum kernel stack size is 2 * sizeof(cpu_save_area_max_size) + 128
-    // 2 times -> csw save state + cpu exception save state
-    const size_t minKernelStackSize = self->kernel_stack.size >= 2*(ifsiz + ffsiz + FPU_MAX_STATE_SIZE) + 128;
+    const size_t minKernelStackSize = min_vcpu_kernel_stack_size();
     const size_t minUserStackSize = (ac->userStackSize != 0) ? 2048 : 0;
 
     if (ac->kernelStackBase == NULL) {
@@ -103,9 +108,11 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull
     // ksp-68:   usp                        user stack pointer
     // ksp-72:   fpu_save                   fsave NULL frame, 4 bytes (this causes the FPU to reset its user state)
     // ################     <--- kernel stack pointer
-    const size_t fsiz = ifsiz + ((hasFPU) ? sizeof(struct m6888x_null_frame) : 0);
-    uintptr_t csw_sa = ksp - fsiz;
-    memset((void*)csw_sa, 0, fsiz);
+    const size_t ie_sa_siz = sizeof(excpt_0_frame_t) + sizeof(cpu_savearea_t);
+    const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
+    const size_t frm_siz = ie_sa_siz + ((hasFPU) ? sizeof(struct m6888x_null_frame) : 0);
+    uintptr_t csw_sa = ksp - frm_siz;
+    memset((void*)csw_sa, 0, frm_siz);
 
     // Push a format #0 CPU exception frame on the kernel stack for the first
     // context switch.
@@ -117,7 +124,7 @@ errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull
         ep->sr |= CPU_SR_IE_MASK;   // IRQs should be disabled
     }
 
-    uint32_t* uspp = (int32_t*)(ksp - ifsiz);
+    uint32_t* uspp = (int32_t*)(ksp - ie_sa_siz);
     uspp[0] = usp;
     
     self->csw_sa = (void*)csw_sa;

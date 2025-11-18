@@ -84,15 +84,6 @@ enum {
 };
 
 
-// The virtual processor flags
-
-// Default stack size for kernel space
-#define VP_DEFAULT_KERNEL_STACK_SIZE    CPU_PAGE_SIZE
-
-// Default stack size for user space
-#define VP_DEFAULT_USER_STACK_SIZE      CPU_PAGE_SIZE
-
-
 // VP flags
 #define VP_FLAG_USER_OWNED          0x02    // This VP is owned by a user process
 #define VP_FLAG_HANDLING_EXCPT      0x04    // Set while the VP is handling a CPU exception
@@ -108,6 +99,7 @@ enum {
 
 #define SCHED_PRIORITY_BIAS_HIGHEST INT8_MAX 
 #define SCHED_PRIORITY_BIAS_LOWEST  INT8_MIN 
+
 
 // Note: Keep in sync with machine/hal/lowmem.i
 struct vcpu {
@@ -172,6 +164,9 @@ struct vcpu {
 
 // Returns a new and unique vcpu group id.
 extern vcpuid_t new_vcpu_groupid(void);
+
+// Returns the required minimum kernel stack size
+extern size_t min_vcpu_kernel_stack_size(void);
 
 
 // Acquires a vcpu from the vcpu pool and creates a new vcpu from scratch if none

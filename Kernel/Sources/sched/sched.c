@@ -289,7 +289,7 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
 
 
     // Allocate the boot virtual processor kernel stack
-    const int kernelStackSize = SIZE_KB(2);
+    const int kernelStackSize = min_vcpu_kernel_stack_size();
     char* pKernelStackBase = BootAllocator_Allocate(bap, kernelStackSize);
 
 
@@ -330,7 +330,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
 
 
     // Allocate the boot virtual processor kernel stack
-    const int kernelStackSize = SIZE_KB(1);
+    const int kernelStackSize = min_vcpu_kernel_stack_size();
     char* pKernelStackBase = BootAllocator_Allocate(bap, kernelStackSize);
 
 

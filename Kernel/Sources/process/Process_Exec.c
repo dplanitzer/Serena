@@ -114,8 +114,8 @@ static errno_t _proc_img_acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void
     ac.arg = procargs;
     ac.ret_func = (VoidFunc_0)vcpu_uret_exit;
     ac.kernelStackBase = NULL;
-    ac.kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
-    ac.userStackSize = VP_DEFAULT_USER_STACK_SIZE;
+    ac.kernelStackSize = 0;
+    ac.userStackSize = PROC_DEFAULT_USER_STACK_SIZE;
     ac.id = VCPUID_MAIN;
     ac.groupid = VCPUID_MAIN_GROUP;
     ac.schedParams.type = SCHED_PARAM_QOS;

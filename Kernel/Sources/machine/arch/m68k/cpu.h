@@ -35,15 +35,15 @@
 
 
 // FPU state frame sizes (fsave/frestore, see M68000PRM p. 6-12)
-#define FPU_NULL_STATE_SIZE         4
-#define FPU_68040_IDLE_STATE_SIZE   4
-#define FPU_68881_IDLE_STATE_SIZE   28
-#define FPU_68882_IDLE_STATE_SIZE   60
-#define FPU_68040_UNIMP_STATE_SIZE  48
-#define FPU_68040_BUSY_STATE_SIZE   96
-#define FPU_68881_BUSY_STATE_SIZE   184
-#define FPU_68882_BUSY_STATE_SIZE   216
-#define FPU_MAX_STATE_SIZE          216
+#define FPU_NULL_FSAVE_SIZE         4
+#define FPU_68040_IDLE_FSAVE_SIZE   4
+#define FPU_68881_IDLE_FSAVE_SIZE   28
+#define FPU_68882_IDLE_FSAVE_SIZE   60
+#define FPU_68040_UNIMP_FSAVE_SIZE  48
+#define FPU_68040_BUSY_FSAVE_SIZE   96
+#define FPU_68881_BUSY_FSAVE_SIZE   184
+#define FPU_68882_BUSY_FSAVE_SIZE   216
+#define FPU_MAX_FSAVE_SIZE          216
 
 
 // CPU (68k) address space selector (Alternate function codes)
