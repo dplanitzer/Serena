@@ -140,7 +140,7 @@ SCHED_STATE_SUSPENDED       equ 4   ; VP was running or ready and is now suspend
 SCHED_STATE_TERMINATING     equ 5   ; VP is in the process of terminating and being reaped (it's on the finalizer queue)
 
 
-VP_FLAG_HAS_FPU_BIT     equ 3   ; Save/restore the FPU state (keep in sync with vcpu.h)
+VP_FLAG_HAS_FPU_BIT     equ 0   ; Save/restore the FPU state (keep in sync with vcpu.h)
 
     clrso
 vp_rewa_qe_next                         so.l    1           ; 4
