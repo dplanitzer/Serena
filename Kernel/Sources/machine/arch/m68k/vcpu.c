@@ -17,9 +17,9 @@ size_t min_vcpu_kernel_stack_size(void)
     const size_t ie_sa_siz = sizeof(excpt_frame_t) + sizeof(cpu_savearea_t);
     const size_t f_sa_siz = sizeof(fpu_savearea_t) + FPU_MAX_FSAVE_SIZE;
 
-    // Minimum kernel stack size is 3 * sizeof(cpu_save_area_max_size) + 256
-    // 3x -> csw save state + syscall save state + cpu exception save state
-    return 3*(ie_sa_siz + f_sa_siz) + 256;
+    // Minimum kernel stack size is 4 * sizeof(cpu_save_area_max_size) + 256
+    // 4x -> syscall + cpu exception + cpu exception (double fault) + csw
+    return 4*(ie_sa_siz + f_sa_siz) + 256;
 }
 
 // Sets the closure which the virtual processor should run when it is next resumed.
