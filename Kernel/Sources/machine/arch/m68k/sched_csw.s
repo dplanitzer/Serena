@@ -101,7 +101,8 @@ __sched_switch_context:
 
     ; save the FPU state. Note that the 68060 fmovem.l instruction does not
     ; support moving > 1 register at a time
-    fsave       -(sp)
+    sub.l       #FPU_MAX_FSAVE_SIZE, sp
+    fsave       (sp)
     tst.b       (sp)
     bne.s       .2
     sub.l       #FPU_USER_STATE_SIZE, sp
@@ -172,7 +173,8 @@ __csw_restore:
     fmovem      (sp)+, fp0 - fp7
 
 .5:
-    frestore    (sp)+
+    frestore    (sp)
+    add.l       #FPU_MAX_FSAVE_SIZE, sp
 
 .4:
     RESTORE_CPU_STATE

@@ -15,7 +15,7 @@
 size_t min_vcpu_kernel_stack_size(void)
 {
     const size_t ie_sa_siz = sizeof(excpt_frame_t) + sizeof(cpu_savearea_t);
-    const size_t f_sa_siz = sizeof(fpu_savearea_t) + FPU_MAX_FSAVE_SIZE;
+    const size_t f_sa_siz = sizeof(fpu_savearea_t);
 
     // Minimum kernel stack size is 4 * sizeof(cpu_save_area_max_size) + 256
     // 4x -> syscall + cpu exception + cpu exception (double fault) + csw
@@ -91,11 +91,11 @@ errno_t _vcpu_reset_mcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _No
     // ksp-8:    a[7]                       a6 to a0
     // ksp-36:   d[8]                       d7 to d0
     // ksp-68:   usp                        user stack pointer
-    // ksp-72:   fpu_save                   fsave frame, 4 to 216 bytes (all following offsets assume NULL fsave frame of 4 bytes)
-    // ksp-76:   fp[8]                      fp7 to fp0
-    // ksp-172:  fpcr
-    // ksp-176:  fpsr
-    // ksp-180:  fpiar
+    // ksp-72:   fpu_save[216]              fsave frame storage area of 216 bytes
+    // ksp-288:  fp[8]                      fp7 to fp0
+    // ksp-384:  fpcr
+    // ksp-388:  fpsr
+    // ksp-392:  fpiar
     // ################     <--- kernel stack pointer
     // -------------------------------------------------------------------------
     //
@@ -106,11 +106,11 @@ errno_t _vcpu_reset_mcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _No
     // ksp-8:    a[7]                       a6 to a0
     // ksp-36:   d[8]                       d7 to d0
     // ksp-68:   usp                        user stack pointer
-    // ksp-72:   fpu_save                   fsave NULL frame, 4 bytes (this causes the FPU to reset its user state)
-    // ksp-76:   fp[8]                      0 (dummy value, not used since we frestore a NULL frame)
-    // ksp-172:  fpcr                       0 (dummy value, not used since we frestore a NULL frame)
-    // ksp-176:  fpsr                       0 (dummy value, not used since we frestore a NULL frame)
-    // ksp-180:  fpiar                      0 (dummy value, not used since we frestore a NULL frame)
+    // ksp-72:   fpu_save[216]              fsave NULL frame, 4 bytes (this causes the FPU to reset its user state)
+    // ksp-288:  fp[8]                      0 (dummy value, not used since we frestore a NULL frame)
+    // ksp-384:  fpcr                       0 (dummy value, not used since we frestore a NULL frame)
+    // ksp-388:  fpsr                       0 (dummy value, not used since we frestore a NULL frame)
+    // ksp-392:  fpiar                      0 (dummy value, not used since we frestore a NULL frame)
     // ################     <--- kernel stack pointer
     const size_t ie_sa_siz = sizeof(excpt_0_frame_t) + sizeof(cpu_savearea_t);
     const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
@@ -200,7 +200,7 @@ void _vcpu_read_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx)
 
 
     // Get the FPU state
-    if (hasFPU && !fsave_frame_isnull(&fpu_sa->fsave_hdr)) {
+    if (hasFPU && !fsave_frame_isnull(&fpu_sa->fsave[0])) {
         ctx->fpcr = fpu_sa->fpcr;
         ctx->fpiar = fpu_sa->fpiar;
         ctx->fpsr = fpu_sa->fpsr;

@@ -152,10 +152,9 @@ typedef struct cpu_savearea {
 typedef struct fpu_savearea {
     uint32_t    fpiar;          // |
     uint32_t    fpsr;           // |
-    uint32_t    fpcr;           // | only valid if the fsave_hdr.bits[31..24] != 0 (and thus not a NULL fsave frame)
+    uint32_t    fpcr;           // | only valid if the fsave[0] != 0 (and thus not a NULL fsave frame)
     float96_t   fp[8];          // |
-    uint32_t    fsave_hdr;
-    // Up to 212 more bytes may follow here, depending on the fsave frame type
+    uint8_t     fsave[FPU_MAX_FSAVE_SIZE];
 } fpu_savearea_t;
 
 // Stores '__val' as the result of a system call invocation in the savearea of

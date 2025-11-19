@@ -26,6 +26,7 @@ FPU_MODEL_68040     equ 3
 FPU_MODEL_68060     equ 4
 
 FPU_USER_STATE_SIZE equ 108
+FPU_MAX_FSAVE_SIZE  equ 216
 
 
 ; RGB color
