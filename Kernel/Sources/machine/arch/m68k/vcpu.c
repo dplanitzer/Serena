@@ -85,9 +85,9 @@ errno_t _vcpu_reset_mcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _No
 
 
     // General save area layout (high to low addresses):
-    // ksp-0:    exception frame type    \
+    // ksp-0:    exception frame type    |
     // ksp-2:    pc                      |  Exception stack frame type #0
-    // ksp-6:    sr                      /
+    // ksp-6:    sr                      |
     // ksp-8:    a[7]                       a6 to a0
     // ksp-36:   d[8]                       d7 to d0
     // ksp-68:   usp                        user stack pointer
@@ -100,9 +100,9 @@ errno_t _vcpu_reset_mcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _No
     // -------------------------------------------------------------------------
     //
     // Initial save area layout (high to low addresses):
-    // ksp-0:    exception frame type    \
+    // ksp-0:    exception frame type    |
     // ksp-2:    pc                      |  Exception stack frame type #0
-    // ksp-6:    sr                      /
+    // ksp-6:    sr                      |
     // ksp-8:    a[7]                       a6 to a0
     // ksp-36:   d[8]                       d7 to d0
     // ksp-68:   usp                        user stack pointer
