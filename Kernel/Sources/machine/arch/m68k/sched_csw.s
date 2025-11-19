@@ -82,8 +82,8 @@ _sched_switch_to_boot_vcpu:
 ; Since we are only running the restore half of the context switch in this case,
 ; the expectation of this function here is that someone already pushed an
 ; exception stack frame on the kernel stack of the VP we want to switch to.
-; The vcpu_setcontext() function takes care of this by pushing a format #0 CPU
-; exception stack frame on the kernel stack of teh VP we want to switch to.
+; The _vcpu_reset_mcontext() function takes care of this by pushing a format #0
+; CPU exception stack frame on the kernel stack of teh VP we want to switch to.
 ; 
 ; Expected base stack frame layout at entry:
 ; SP + 6: 2 bytes exception stack frame format indicator (usually $0)

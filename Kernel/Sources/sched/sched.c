@@ -308,7 +308,7 @@ static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 
     ac.schedParams = sp;
     ac.isUser = false;
 
-    try_bang(vcpu_setcontext(self, &ac, false));
+    try_bang(_vcpu_reset_mcontext(self, &ac, false));
     
     return self;
 }
@@ -348,7 +348,7 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     ac.schedParams = sp;
     ac.isUser = false;
 
-    try_bang(vcpu_setcontext(self, &ac, true));
+    try_bang(_vcpu_reset_mcontext(self, &ac, true));
 
     return self;
 }

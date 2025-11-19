@@ -78,7 +78,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
 
     
     // Configure the vcpu
-    try(vcpu_setcontext(vp, ac, true));
+    try(_vcpu_reset_mcontext(vp, ac, true));
     vcpu_setschedparams(vp, &ac->schedParams);
     
     if (ac->isUser) {

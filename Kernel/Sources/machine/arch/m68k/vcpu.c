@@ -27,7 +27,7 @@ size_t min_vcpu_kernel_stack_size(void)
 // \param self the virtual processor
 // \param act the activation record
 // \param bEnableInterrupts true if IRQs should be enabled; false if disabled
-errno_t vcpu_setcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull ac, bool bEnableInterrupts)
+errno_t _vcpu_reset_mcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull ac, bool bEnableInterrupts)
 {
     decl_try_err();
     const size_t minKernelStackSize = min_vcpu_kernel_stack_size();
