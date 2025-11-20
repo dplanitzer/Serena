@@ -136,30 +136,29 @@ __sched_switch_context:
 __csw_restore:
     move.l  _g_sched, a2
 
+    ; restore the ksp from the cpu_saved_state pointer
+    move.l  sched_scheduled(a2), a3
+    move.l  vp_csw_sa(a3), sp
+
     ; it's safe to trash all registers here 'cause we'll override them anyway
     ; make the scheduled VP the running VP and clear out sched_scheduled
-    move.l  sched_scheduled(a2), a0
     moveq.l #-1, d0
     move.l  d0, -(sp)
-    move.l  a0, -(sp)
+    move.l  a3, -(sp)
     move.l  a2, -(sp)
     jsr     _sched_set_unready
     add.l   #12, sp
 
-    move.l  sched_scheduled(a2), a0
-    move.l  a0, sched_running(a2)
+    move.l  a3, sched_running(a2)
     clr.l   sched_scheduled(a2)
     bclr    #CSWB_SIGNAL_SWITCH, sched_csw_signals(a2)
 
-    ; restore the ksp from the cpu_saved_state pointer
-    move.l  vp_csw_sa(a0), sp
-
     ; verify that we haven't overrun the kernel stack
-    cmp.l   vp_kernel_stack_base(a0), sp
+    cmp.l   vp_kernel_stack_base(a3), sp
     bcs.s   __csw_stack_overflow
 
     ; check whether we should restore the FPU state
-    btst    #VP_FLAG_HAS_FPU_BIT, vp_flags(a0)
+    btst    #VP_FLAG_HAS_FPU_BIT, vp_flags(a3)
     bne.s   .4
     add.l   #(FPU_MAX_FSAVE_SIZE + FPU_USER_STATE_SIZE), sp
     bra.s   .7
