@@ -94,13 +94,15 @@ __sched_switch_context:
 
     GET_CURRENT_VP a0
 
-.1:
     ; check whether we should save the FPU state
     btst    #VP_FLAG_HAS_FPU_BIT, vp_flags(a0)
-    beq.s   .3
+    bne.s   .1
+    sub.l   #(FPU_MAX_FSAVE_SIZE + FPU_USER_STATE_SIZE), sp
+    bra.s   .3
 
     ; save the FPU state. Note that the 68060 fmovem.l instruction does not
     ; support moving > 1 register at a time
+.1:
     sub.l       #FPU_MAX_FSAVE_SIZE, sp
     fsave       (sp)
     tst.b       (sp)
@@ -158,25 +160,28 @@ __csw_restore:
 
     ; check whether we should restore the FPU state
     btst    #VP_FLAG_HAS_FPU_BIT, vp_flags(a0)
-    beq.s   .4
+    bne.s   .4
+    add.l   #(FPU_MAX_FSAVE_SIZE + FPU_USER_STATE_SIZE), sp
+    bra.s   .7
 
     ; restore the FPU state. Note that the 68060 fmovem.l instruction does not
     ; support moving > 1 register at a time
+.4:
     tst.b       FPU_USER_STATE_SIZE(sp)
-    bne.s       .6
+    bne.s       .5
     add.l       #FPU_USER_STATE_SIZE, sp
-    bra.s       .5
-.6:
+    bra.s       .6
+.5:
     fmovem.l    (sp)+, fpiar
     fmovem.l    (sp)+, fpsr
     fmovem.l    (sp)+, fpcr
     fmovem      (sp)+, fp0 - fp7
 
-.5:
+.6:
     frestore    (sp)
     add.l       #FPU_MAX_FSAVE_SIZE, sp
 
-.4:
+.7:
     RESTORE_CPU_STATE
 
     rte

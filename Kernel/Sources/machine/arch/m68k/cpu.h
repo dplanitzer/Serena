@@ -43,7 +43,8 @@
 #define FPU_68040_BUSY_FSAVE_SIZE   96
 #define FPU_68881_BUSY_FSAVE_SIZE   184
 #define FPU_68882_BUSY_FSAVE_SIZE   216
-#define FPU_MAX_FSAVE_SIZE          216
+#define FPU_MAX_FSAVE_SIZE          216     // Keep in sync with lowmem.i
+#define FPU_USER_STATE_SIZE         108     // Keep in sync with lowmem.i
 
 
 // CPU (68k) address space selector (Alternate function codes)
@@ -132,40 +133,6 @@
 #define EXCPT_NUM_USER_VEC   64
 
 #define EXCPT_NUM_USER_VECS     192
-
-
-// Overall save area layout:
-//
-// fpu_savearea_t   fpu     ; only there if the machine has a FPU and the save area is a context switch save area (syscall does not save teh FPU state)
-// cpu_savearea_t   cpu     ; exists for context switch and syscall save areas
-// excpt_frame_t    excpt;  ; exception frame. Type 0 frame for syscall and context switch save areas
-//
-
-// CPU save area layout
-typedef struct cpu_savearea {
-    uint32_t    usp;
-    uint32_t    d[8];   
-    uint32_t    a[7];
-} cpu_savearea_t;
-
-// FPU save area layout
-typedef struct fpu_savearea {
-    uint32_t    fpiar;          // |
-    uint32_t    fpsr;           // |
-    uint32_t    fpcr;           // | only valid if the fsave[0] != 0 (and thus not a NULL fsave frame)
-    float96_t   fp[8];          // |
-    uint8_t     fsave[FPU_MAX_FSAVE_SIZE];
-} fpu_savearea_t;
-
-// Stores '__val' as the result of a system call invocation in the savearea of
-// the virtual processor '__vp'.
-#define syscall_setresult_int(__vp, __val) \
-((cpu_savearea_t*)((__vp)->syscall_sa))->d[0] = (uint32_t)(__val)
-
-// Stores '__ptr' as the result of a system call invocation in the savearea of
-// the virtual processor '__vp'.
-#define syscall_setresult_ptr(__vp, __ptr) \
-((cpu_savearea_t*)((__vp)->syscall_sa))->d[0] = (uint32_t)(__ptr)
 
 
 // Format #0 CPU exception stack frame
@@ -355,6 +322,45 @@ typedef union fsave_frame {
 #define BIU_PENDING_INSTR_TYPE  (1 << 29)
 #define BIU_INSTR_PENDING       (1 << 30)
 #define BIU_PROTO_VIO_PENDING   (1 << 31)
+
+
+// Describes the CPU register set that is saved on a context switch and when
+// taking a CPU exception. Note that the exception frame 'ef' may have
+// additional fields in the case of an exception.
+typedef struct cpu_savearea {
+    uint32_t        fpiar;          // |
+    uint32_t        fpsr;           // |
+    uint32_t        fpcr;           // | only valid if the fsave[0] != 0 (and thus not a NULL fsave frame)
+    float96_t       fp[8];          // |
+    uint8_t         fsave[FPU_MAX_FSAVE_SIZE];
+
+    uint32_t        usp;
+    uint32_t        d[8];   
+    uint32_t        a[7];
+
+    excpt_0_frame_t ef;
+} cpu_savearea_t;
+
+
+// Describes the CPU register set that is saved when entering a system call.
+typedef struct syscall_savearea {
+    uint32_t        usp;
+    uint32_t        d[8];   
+    uint32_t        a[7];
+
+    excpt_0_frame_t ef;
+} syscall_savearea_t;
+
+
+// Stores '__val' as the result of a system call invocation in the savearea of
+// the virtual processor '__vp'.
+#define syscall_setresult_int(__vp, __val) \
+((__vp)->syscall_sa)->d[0] = (uint32_t)(__val)
+
+// Stores '__ptr' as the result of a system call invocation in the savearea of
+// the virtual processor '__vp'.
+#define syscall_setresult_ptr(__vp, __ptr) \
+((__vp)->syscall_sa)->d[0] = (uint32_t)(__ptr)
 
 
 extern unsigned int cpu68k_as_read_byte(void* p, int addr_space);

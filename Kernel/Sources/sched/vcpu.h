@@ -102,8 +102,8 @@ enum {
 struct vcpu {
     ListNode                        rewa_qe;                // A VP is either on the ready (re) queue or a wait (wa) queue
 
-    void* _Nonnull                  csw_sa;                 // Points to base of the context switcher CPU state save area 
-    void* _Nonnull                  syscall_sa;             // Points to base of the system call CPU state save area
+    cpu_savearea_t* _Nonnull        csw_sa;                 // Points to base of the context switcher CPU state save area 
+    syscall_savearea_t* _Nullable   syscall_sa;             // Points to base of the system call CPU state save area
     stk_t                           kernel_stack;
     stk_t                           user_stack;
 
@@ -119,7 +119,7 @@ struct vcpu {
     
     // Exceptions support
     excpt_handler_t                 excpt_handler;
-    void* _Nullable                 excpt_sa;               // Exception save area
+    cpu_savearea_t* _Nullable       excpt_sa;               // Exception save area
     int32_t                         excpt_id;               // 0 -> no exception active; > 0 -> exception EXCPT_XXX active
 
     // Signals
