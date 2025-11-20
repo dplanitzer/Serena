@@ -273,4 +273,60 @@ vp_SIZEOF                       so
 
 CPU_STATE_SIZE  equ 4 + 8*4 + 7*4
 
+
+    ; Saves the FPU state. Takes a register which stores a pointer to the vcpu
+    ; whose's state should be saved.
+    macro SAVE_FPU_STATE \1
+    btst    #VP_FLAG_HAS_FPU_BIT, vp_flags(\1)
+    bne.s   .sav_fpu_1\@
+    sub.l   #(FPU_MAX_FSAVE_SIZE + FPU_USER_STATE_SIZE), sp
+    bra.s   .sav_fpu_3\@
+
+    ; save the FPU state. Note that the 68060 fmovem.l instruction does not
+    ; support moving > 1 register at a time
+.sav_fpu_1\@:
+    sub.l       #FPU_MAX_FSAVE_SIZE, sp
+    fsave       (sp)
+    tst.b       (sp)
+    bne.s       .sav_fpu_2\@
+    sub.l       #FPU_USER_STATE_SIZE, sp
+    bra.s       .sav_fpu_3\@
+.sav_fpu_2\@:
+    fmovem      fp0 - fp7, -(sp)
+    fmovem.l    fpcr, -(sp)
+    fmovem.l    fpsr, -(sp)
+    fmovem.l    fpiar, -(sp)
+
+.sav_fpu_3\@:
+    endm
+
+
+    ; Saves the FPU state. Takes a register which stores a pointer to the vcpu
+    ; whose's state should be restored.
+    macro RESTORE_FPU_STATE \1
+    ; check whether we should restore the FPU state
+    btst    #VP_FLAG_HAS_FPU_BIT, vp_flags(\1)
+    bne.s   .rest_fpu_4\@
+    add.l   #(FPU_MAX_FSAVE_SIZE + FPU_USER_STATE_SIZE), sp
+    bra.s   .rest_fpu_7\@
+
+    ; restore the FPU state. Note that the 68060 fmovem.l instruction does not
+    ; support moving > 1 register at a time
+.rest_fpu_4\@:
+    tst.b       FPU_USER_STATE_SIZE(sp)
+    bne.s       .rest_fpu_5\@
+    add.l       #FPU_USER_STATE_SIZE, sp
+    bra.s       .rest_fpu_6\@
+.rest_fpu_5\@:
+    fmovem.l    (sp)+, fpiar
+    fmovem.l    (sp)+, fpsr
+    fmovem.l    (sp)+, fpcr
+    fmovem      (sp)+, fp0 - fp7
+
+.rest_fpu_6\@:
+    frestore    (sp)
+    add.l       #FPU_MAX_FSAVE_SIZE, sp
+
+.rest_fpu_7\@:
+    endm
         endif
