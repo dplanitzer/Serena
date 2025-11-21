@@ -26,6 +26,11 @@ size_t min_vcpu_kernel_stack_size(void)
 // \param bEnableInterrupts true if IRQs should be enabled; false if disabled
 errno_t _vcpu_reset_mcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _Nonnull ac, bool bEnableInterrupts)
 {
+    struct func_frame {
+        void* ret_addr;
+        void* arg;
+    };
+
     decl_try_err();
     const size_t minKernelStackSize = min_vcpu_kernel_stack_size();
     const size_t minUserStackSize = (ac->userStackSize != 0) ? 2048 : 0;
@@ -71,14 +76,17 @@ errno_t _vcpu_reset_mcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _No
     //
     // See __sched_switch_context for an explanation of why we need to push a
     // format #0 exception stack frame here.
+    struct func_frame* fp;
     if (ac->isUser) {
-        usp = sp_push_ptr(usp, ac->arg);
-        usp = sp_push_rts(usp, (void*)ret_func);
+        usp = sp_grow(usp, sizeof(struct func_frame));
+        fp = (struct func_frame*)usp;
     }
     else {
-        ksp = sp_push_ptr(ksp, ac->arg);
-        ksp = sp_push_rts(ksp, (void*)ret_func);
+        ksp = sp_grow(ksp, sizeof(struct func_frame));
+        fp = (struct func_frame*)ksp;
     }
+    fp->arg = ac->arg;
+    fp->ret_addr = (void*)ret_func;
 
 
     // General save area layout (high to low addresses):

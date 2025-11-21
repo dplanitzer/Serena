@@ -61,8 +61,4 @@ extern _Noreturn cpu_non_recoverable_error(uint32_t rgb4);
 extern uintptr_t usp_get(void);
 extern void usp_set(uintptr_t sp);
 
-extern uintptr_t sp_push_ptr(uintptr_t sp, void* _Nonnull ptr);
-extern uintptr_t sp_push_bytes(uintptr_t sp, const void* _Nonnull p, size_t nbytes);
-#define sp_push_rts(__sp, __pc) sp_push_ptr(__sp, __pc)
-
 #endif /* _CPU_H */

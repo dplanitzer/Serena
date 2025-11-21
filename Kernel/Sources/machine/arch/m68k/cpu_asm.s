@@ -22,6 +22,8 @@
     xdef _fpu_get_model
     xdef _usp_get
     xdef _usp_set
+    xdef _usp_grow
+    xdef _usp_shrink
 
 
 ;-------------------------------------------------------------------------------
@@ -440,6 +442,35 @@ _usp_set:
     inline
     cargs usps_pc.l
         move.l  usps_pc(sp), a0
+        move.l  a0, usp
+        rts
+    einline
+
+
+;-------------------------------------------------------------------------------
+; uintptr_t usp_grow(size_t nbytes)
+; Grows the current user stack by 'pushing' 'nbytes' on it. Returns the new sp.
+_usp_grow:
+    inline
+    cargs usp_gr_nbytes.l
+        move.l  usp_gr_nbytes(sp), d0
+        move.l  usp, a0
+        sub.l   d0, a0
+        move.l  a0, usp
+        move.l  a0, d0
+        rts
+    einline
+
+
+;-------------------------------------------------------------------------------
+; void usp_shrink(size_t nbytes)
+; Shrinks the current user stack by 'popping off' 'nbytes'.
+_usp_shrink:
+    inline
+    cargs usp_sh_nbytes.l
+        move.l  usp_sh_nbytes(sp), d0
+        move.l  usp, a0
+        add.l   d0, a0
         move.l  a0, usp
         rts
     einline

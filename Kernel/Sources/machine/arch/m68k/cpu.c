@@ -150,6 +150,16 @@ static bool map_exception(int cpu_code, excpt_frame_t* _Nonnull efp, excpt_info_
     return true;
 }
 
+struct u_excpt_frame {
+    void*           ret_addr;
+    void*           arg;
+    excpt_info_t*   ei_ptr;
+    excpt_ctx_t*    ec_ptr;
+
+    excpt_ctx_t     ec;
+    excpt_info_t    ei;
+};
+
 void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 {
     excpt_frame_t* efp = (excpt_frame_t*)&vp->excpt_sa->ef;
@@ -193,18 +203,13 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
 
     // Push the exception info on the user stack
-    uintptr_t usp = usp_get();
-    usp = sp_push_bytes(usp, &ei, sizeof(excpt_info_t));
-    uintptr_t ei_usp = usp;
-    usp = sp_push_bytes(usp, &ec, sizeof(excpt_ctx_t));
-    uintptr_t ec_usp = usp;
-
-    usp = sp_push_ptr(usp, (void*)ec_usp);
-    usp = sp_push_ptr(usp, (void*)ei_usp);
-    usp = sp_push_ptr(usp, eh.arg);
-
-    usp = sp_push_rts(usp, (void*)excpt_return);
-    usp_set(usp);
+    struct u_excpt_frame* uep = (struct u_excpt_frame*)usp_grow(sizeof(struct u_excpt_frame));
+    uep->ei = ei;
+    uep->ec = ec;
+    uep->ei_ptr = &uep->ei;
+    uep->ec_ptr = &uep->ec;
+    uep->arg = eh.arg;
+    uep->ret_addr = (void*)excpt_return;
 
 
     // Update the u-trampoline with the exception function entry point
@@ -214,12 +219,7 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 void cpu_exception_return(struct vcpu* _Nonnull vp)
 {
     // Pop the exception info off the user stack
-    uintptr_t usp = usp_get();
-    usp += sizeof(char*) * 3;   // arg, ei, ec
-    usp += sizeof(excpt_ctx_t);
-    usp += sizeof(excpt_info_t);
-    usp_set(usp);
-
+    usp_shrink(sizeof(struct u_excpt_frame));
 
     // This vcpu is no longer processing an exception
     vp->excpt_id = 0;
@@ -228,6 +228,10 @@ void cpu_exception_return(struct vcpu* _Nonnull vp)
 
 bool cpu_inject_sigurgent(excpt_frame_t* _Nonnull efp)
 {
+    struct sigurgent_frame {
+        void* ret_addr;
+    };
+
     extern void sigurgent(void);
     extern void sigurgent_end(void);
     const uintptr_t upc = excpt_frame_getpc(efp);
@@ -236,37 +240,23 @@ bool cpu_inject_sigurgent(excpt_frame_t* _Nonnull efp)
         return false;
     }
 
-    usp_set(sp_push_rts(usp_get(), (void*)excpt_frame_getpc(efp)));
+    // This return address will be popped off the stack by the sigurgent()
+    // function rts instruction.
+    struct sigurgent_frame* fp = (struct sigurgent_frame*)usp_grow(sizeof(struct sigurgent_frame));
+    fp->ret_addr = (void*)excpt_frame_getpc(efp);
     excpt_frame_setpc(efp, sigurgent);
     
     return true;
 }
 
 
-uintptr_t sp_push_ptr(uintptr_t sp, void* _Nonnull ptr)
+uintptr_t sp_grow(uintptr_t sp, size_t nbytes)
 {
-    uint32_t* p_sp = (uint32_t*)sp;
-
-    p_sp--;
-    *p_sp = (uint32_t)ptr;
-    return (uintptr_t)p_sp;
+    sp -= nbytes;
+    return sp;
 }
 
-uintptr_t sp_push_bytes(uintptr_t sp, const void* _Nonnull p, size_t nbytes)
+void sp_shrink(uintptr_t sp, size_t nbytes)
 {
-    char* p_sp = (char*)sp;
-    const char* p_src = (const char*)p;
-
-    p_sp -= nbytes;
-    if (((uintptr_t)p_sp & 1) != 0) {
-        p_sp--;
-    }
-    uintptr_t nsp = (uintptr_t)p_sp;
-
-    while (nbytes > 0) {
-        *p_sp++ = *p_src++;
-        nbytes--;
-    }
-
-    return nsp;
+    sp += nbytes;
 }

@@ -366,4 +366,21 @@ typedef struct syscall_savearea {
 extern unsigned int cpu68k_as_read_byte(void* p, int addr_space);
 extern void cpu68k_as_write_byte(void* p, int addr_space, unsigned int val);
 
+
+// Grows the current user stack by 'pushing' 'nbytes' on it. Returns the new sp.
+// Note that this function does NOT enforce stack alignment.
+extern uintptr_t usp_grow(size_t nbytes);
+
+// Shrinks the current user stack by 'popping off' 'nbytes'. Note that this
+// function does NOT enforce stack alignment.
+extern void usp_shrink(size_t nbytes);
+
+// Grows the stack 'sp' by 'pushing' 'nbytes' on it. Returns the new sp. Note
+// that this function does NOT enforce stack alignment.
+extern uintptr_t sp_grow(uintptr_t sp, size_t nbytes);
+
+// Shrinks the stack 'sp' by 'popping off' 'nbytes'. Note that this function
+// does NOT enforce stack alignment.
+extern void sp_shrink(uintptr_t sp, size_t nbytes);
+
 #endif /* _CPU_M68K_H */
