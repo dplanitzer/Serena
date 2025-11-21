@@ -18,6 +18,9 @@ CPU_MODEL_68030     equ 3
 CPU_MODEL_68040     equ 4
 CPU_MODEL_68060     equ 6
 
+CPU_STATE_SIZE  equ 4 + 8*4 + 7*4
+
+
 ; FPU models
 FPU_MODEL_NONE      equ 0
 FPU_MODEL_68881     equ 1
@@ -269,9 +272,6 @@ vp_SIZEOF                       so
     move.l  a1, usp
     movem.l (sp)+, d0 - d7 / a0 - a6
     endm
-
-
-CPU_STATE_SIZE  equ 4 + 8*4 + 7*4
 
 
     ; Saves the FPU state. Takes a register which stores a pointer to the vcpu

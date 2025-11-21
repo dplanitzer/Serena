@@ -65,10 +65,9 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
     }
 }
 
-excpt_func_t _Nonnull cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp)
+excpt_func_t _Nonnull cpu_exception(struct vcpu* _Nonnull vp)
 {
-    vcpu_t vp = vcpu_current();
-    fsave_frame_t* fpufp = sfp;
+    excpt_frame_t* efp = (excpt_frame_t*)&vp->excpt_sa->ef;
     excpt_info_t ei;
     excpt_ctx_t ec;
 
@@ -155,6 +154,16 @@ excpt_func_t _Nonnull cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable
         default:
             _fatalException(efp);
             /* NOT REACHED */
+    }
+
+
+    // MC68881/MC68882 User's Manual, page 5-10
+    if (ei.code == EXCPT_FPE && g_sys_desc->fpu_model == FPU_MODEL_68882) {
+        struct m68882_idle_frame* idle_p = (struct m68882_idle_frame*)vp->excpt_sa->fsave;
+
+        if (idle_p->format == FSAVE_FORMAT_882_IDLE) {
+            idle_p->biu_flags |= BIU_FP_EXCPT_PENDING;
+        }
     }
 
     return Process_Exception(vp->proc, vp, &ei, &ec);

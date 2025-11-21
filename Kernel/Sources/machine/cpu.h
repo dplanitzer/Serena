@@ -18,6 +18,8 @@
 #error "don't know how to support this CPU architecture"
 #endif
 
+struct vcpu;
+
 
 extern const char* _Nonnull cpu_get_model_name(int8_t cpu_model);
 extern const char* _Nonnull fpu_get_model_name(int8_t fpu_model);
@@ -30,11 +32,10 @@ extern int cpu_guarded_write(void* _Nonnull dst, const void* _Nonnull buffer, in
 extern void cpu_sleep(int cpu_type);
 extern void cpu_halt(void);
 
-// Called by the HAL when a CPU exception is triggered. 'efp' is the CPU
-// exception frame on the kernel stack and 'sfp' is an optional and platform
-// specific secondary exception frame. Eg 'sfp' is the fsave state frame of a
-// 68881/68882 co-processor if it triggered an exception.
-extern excpt_func_t _Nonnull cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp);
+// Called by the HAL when a CPU exception is triggered. 'vp' is the vcpu in
+// question. Its 'excpt_sa' field points to a cpu_savearea_t that has the saved
+// CPU state and the exception frame set up appropriately.
+extern excpt_func_t _Nonnull cpu_exception(struct vcpu* _Nonnull vp);
 extern void cpu_exception_return(void);
 
 // User space function to trigger the return from an exception handler

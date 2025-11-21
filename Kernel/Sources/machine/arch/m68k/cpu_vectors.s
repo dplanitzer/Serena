@@ -96,14 +96,14 @@ _cpu_vector_table:
     dc.l __cpu_exception                ; 45, Trap #13
     dc.l __cpu_exception                ; 46, Trap #14
     dc.l __cpu_exception                ; 47, Trap #15
-    dc.l __fpu_exception                ; 48, FPCP Branch or Set on Unordered Condition
-    dc.l __fpu_exception                ; 49, FPCP Inexact Result
-    dc.l __fpu_exception                ; 50, FPCP Divide by Zero
-    dc.l __fpu_exception                ; 51, FPCP Underflow
-    dc.l __fpu_exception                ; 52, FPCP Operand Error
-    dc.l __fpu_exception                ; 53, FPCP Overflow
-    dc.l __fpu_exception                ; 54, FPCP Signaling NAN
-    dc.l __fpu_exception                ; 55, FPCP Unimplemented Data Type (68040+)
+    dc.l __cpu_exception                ; 48, FPCP Branch or Set on Unordered Condition
+    dc.l __cpu_exception                ; 49, FPCP Inexact Result
+    dc.l __cpu_exception                ; 50, FPCP Divide by Zero
+    dc.l __cpu_exception                ; 51, FPCP Underflow
+    dc.l __cpu_exception                ; 52, FPCP Operand Error
+    dc.l __cpu_exception                ; 53, FPCP Overflow
+    dc.l __cpu_exception                ; 54, FPCP Signaling NAN
+    dc.l __cpu_exception                ; 55, FPCP Unimplemented Data Type (68040+)
     dc.l __cpu_exception                ; 56, PMMU Configuration Error (68851 / 68030)
     dc.l __cpu_exception                ; 57, PMMU Illegal Operation Error (68851)
     dc.l __cpu_exception                ; 58, PMMU Access Level Violation Error (68851)
@@ -186,64 +186,26 @@ _cpu_non_recoverable_error:
 
 
 ;-------------------------------------------------------------------------------
-; Invokes the cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp) function.
+; Invokes the cpu_exception(vcpu_t _Nonnull vp) function.
 ; See 68020UM, p6-27
 __cpu_exception:
-    ; Push a long word on the stack to indicate to __cpu_exception_return that
-    ; it does not need to do a frestore
+    SAVE_CPU_STATE
+    GET_CURRENT_VP a0
+    SAVE_FPU_STATE a0
+    move.l  sp, vp_excpt_sa(a0)
+
+    ; Push a null RTE frame which will be used as a trampoline to invoke the user space exception handler
+    move.l  #0, -(sp)
     move.l  #0, -(sp)
 
-    ; Push a null RTE frame which will be used to invoke the user space exception handler
-    move.l  #0, -(sp)
-    move.l  #0, -(sp)
-
-    movem.l d0 - d1 / a0 - a1, -(sp)
-    
-    move.l  #0, -(sp)
-    pea     (4 + 16 + 8 + 4)(sp)
+    move.l  a0, -(sp)
     jsr     _cpu_exception
-    addq.w  #8, sp
-    move.l  d0, (16 + 2)(sp)    ; update the pc in our null RTE that we pushed above
+    addq.l  #4, sp
 
-    movem.l (sp)+, d0 - d1 / a0 - a1
+    ; Update the pc in our null RTE that we pushed above
+    move.l  d0, 2(sp)
+
     rte
-
-
-;-------------------------------------------------------------------------------
-; Invokes the cpu_exception(excpt_frame_t* _Nonnull efp, void* _Nullable sfp) function.
-; See 68881/68882UM, p5-11
-__fpu_exception:
-    inline
-        fsave       -(sp)
-        tst.b       (sp)
-        bne.s       .1
-        addq.l      #4, sp
-        rte
-
-        ; Push a long word on the stack to indicate to __cpu_exception_return
-        ; that it does have to do a frestore
-.1:
-        move.l      #$fbe, -(sp)
-
-        ; Push a null RTE frame which will be used to invoke the user space exception handler
-        move.l      #0, -(sp)
-        move.l      #0, -(sp)
-
-        movem.l     d0 - d1 / a0 - a1, -(sp)
-        clr.l       d0
-        move.b      (16 + 8 + 4 + 1)(sp), d0    ; get exception frame size
-        bset        #3, (16 + 8 + 4)(sp, d0)    ; set bit #27 of BIU
-
-        pea         (16 + 8 + 4)(sp)
-        pea         (4 + 16 + 8 + 4)(sp, d0)
-        jsr         _cpu_exception
-        addq.w      #8, sp
-        move.l      d0, (16 + 2)(sp)    ; update the pc in our null RTE that we pushed above
-        
-        movem.l     (sp)+, d0 - d1 / a0 - a1
-
-        rte
-    einline
 
 
 ;-------------------------------------------------------------------------------
@@ -253,23 +215,23 @@ __fpu_exception:
 ;
 ; Stack at this point:
 ; __cpu_exception_return RTE frame
-; frestore control long word ($0 or $fbe)
-; fpu state frame (if frestore control word == $fbe)
-; __cpu_exception RTE frame
+; cpu_savearea_t
+; original __cpu_exception RTE frame
 ;
 __cpu_exception_return:
-    inline
-        movem.l     d0 - d1 / a0 - a1, -(sp)
-        jsr         _cpu_exception_return
-        movem.l     (sp)+, d0 - d1 / a0 - a1
+    jsr         _cpu_exception_return
 
-        addq.w      #8, sp      ; pop __cpu_exception_return RTE frame
-        cmp.l       #0, (sp)+
-        beq.s       .L1
-        frestore    (sp)+
-.L1:
-        rte                     ; return through the __cpu_exception RTE frame
-    einline
+    ; Pop __cpu_exception_return RTE frame
+    addq.w      #8, sp
+
+    GET_CURRENT_VP a0
+    move.l  #0, vp_excpt_sa(a0)
+
+    RESTORE_FPU_STATE a0
+    RESTORE_CPU_STATE
+
+    ; Return through the __cpu_exception RTE frame
+    rte
 
 
 ;-------------------------------------------------------------------------------
