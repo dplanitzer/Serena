@@ -178,6 +178,23 @@ void cpu_exception_return(struct vcpu* _Nonnull vp)
 }
 
 
+bool cpu_inject_sigurgent(excpt_frame_t* _Nonnull efp)
+{
+    extern void sigurgent(void);
+    extern void sigurgent_end(void);
+    const uintptr_t upc = excpt_frame_getpc(efp);
+
+    if (upc >= (uintptr_t)sigurgent && upc < (uintptr_t)sigurgent_end) {
+        return false;
+    }
+
+    usp_set(sp_push_rts(usp_get(), (void*)excpt_frame_getpc(efp)));
+    excpt_frame_setpc(efp, sigurgent);
+    
+    return true;
+}
+
+
 uintptr_t sp_push_ptr(uintptr_t sp, void* _Nonnull ptr)
 {
     uint32_t* p_sp = (uint32_t*)sp;

@@ -41,6 +41,20 @@ extern void cpu_exception_return(struct vcpu* _Nonnull vp);
 // User space function to trigger the return from an exception handler
 extern void excpt_return(void);
 
+// Injects a call to sigurgent() into user space of the currently active vcpu.
+// This is done if we detect that the currently running vcpu is running in user
+// space and has a signal pending that requires urgent delivery. The sigurgent()
+// system call itself does nothing but it gives the system call handler a chance
+// to look at the pending signal and handle it as required.
+// Note that we set up the sigurgent() injection in such a way that it can return
+// back to user space and that the vcpu will be able to continue with whatever
+// it was doing before the injection. We do this by pushing a RTS frame on the
+// vcpu's user stack that will guide the vcpu back to the original point of
+// interruption.
+// Also note that we ensure that we do not try to inject a sigurgent while the
+// vcpu is still executing inside an earlier sigurgent injection.
+extern bool cpu_inject_sigurgent(excpt_frame_t* _Nonnull efp);
+
 extern _Noreturn cpu_non_recoverable_error(uint32_t rgb4);
 
 

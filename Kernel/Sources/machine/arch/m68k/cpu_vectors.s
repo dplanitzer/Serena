@@ -224,7 +224,7 @@ __cpu_exception_return:
     move.l  #0, vp_excpt_sa(a0)
 
     ; Pop the __cpu_exception_return RTE frame
-    add.l   #8, sp
+    addq.l  #8, sp
 
     RESTORE_FPU_STATE a0
     RESTORE_CPU_STATE
