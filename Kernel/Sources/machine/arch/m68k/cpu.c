@@ -74,9 +74,8 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     ei.cpu_code = excpt_frame_getvecnum(efp);
     ei.addr = NULL;
 
-    // Any exception triggered in kernel mode and coprocessor protocol violations
-    // are fatal
-    if (!excpt_frame_isuser(efp) || ei.cpu_code == EXCPT_NUM_COPROC) {
+    // Any exception triggered in kernel mode
+    if (!excpt_frame_isuser(efp)) {
         _fatalException(efp);
         /* NOT REACHED */
     }
@@ -124,7 +123,7 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
             ei.addr = (void*)efp->pc;
             break;
 
-        case EXCPT_NUM_FPU_BR_UO:
+        case EXCPT_NUM_FPU_BRANCH_UO:
         case EXCPT_NUM_FPU_INEXACT:
         case EXCPT_NUM_FPU_DIV_ZERO:
         case EXCPT_NUM_FPU_UNDERFLOW:
@@ -152,6 +151,8 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
             ei.addr = (void*)efp->pc;  //XXX find real fault address
             break;
 
+        case EXCPT_NUM_COPROC:
+            // coprocessor protocol violations are fatal
         default:
             _fatalException(efp);
             /* NOT REACHED */
@@ -167,7 +168,7 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
         }
     }
 
-    
+
     utp->pc = (uintptr_t) Process_Exception(vp->proc, vp, &ei, &ec);
 }
 
