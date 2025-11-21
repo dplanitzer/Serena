@@ -71,13 +71,15 @@ excpt_func_t _Nonnull cpu_exception(struct vcpu* _Nonnull vp)
     excpt_info_t ei;
     excpt_ctx_t ec;
 
-    if (!excpt_frame_isuser(efp)) {
+    ei.cpu_code = excpt_frame_getvecnum(efp);
+    ei.addr = NULL;
+
+    // Any exception triggered in kernel mode and coprocessor protocol violations
+    // are fatal
+    if (!excpt_frame_isuser(efp) || ei.cpu_code == EXCPT_NUM_COPROC) {
         _fatalException(efp);
         /* NOT REACHED */
     }
-
-    ei.cpu_code = excpt_frame_getvecnum(efp);
-    ei.addr = NULL;
 
     switch (ei.cpu_code) {
         case EXCPT_NUM_ZERO_DIV:
@@ -88,7 +90,6 @@ excpt_func_t _Nonnull cpu_exception(struct vcpu* _Nonnull vp)
         case EXCPT_NUM_ILL_INSTR:
         case EXCPT_NUM_LINE_A:
         case EXCPT_NUM_LINE_F:
-        case EXCPT_NUM_COPROC:
         case EXCPT_NUM_FORMAT:
         case EXCPT_NUM_EMU:
         case EXCPT_NUM_TRACE:
