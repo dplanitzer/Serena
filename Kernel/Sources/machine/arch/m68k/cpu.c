@@ -65,7 +65,7 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
     }
 }
 
-excpt_func_t _Nonnull cpu_exception(struct vcpu* _Nonnull vp)
+void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 {
     excpt_frame_t* efp = (excpt_frame_t*)&vp->excpt_sa->ef;
     excpt_info_t ei;
@@ -167,7 +167,8 @@ excpt_func_t _Nonnull cpu_exception(struct vcpu* _Nonnull vp)
         }
     }
 
-    return Process_Exception(vp->proc, vp, &ei, &ec);
+    
+    utp->pc = (uintptr_t) Process_Exception(vp->proc, vp, &ei, &ec);
 }
 
 void cpu_exception_return(void)

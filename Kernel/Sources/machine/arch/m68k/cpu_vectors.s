@@ -186,7 +186,7 @@ _cpu_non_recoverable_error:
 
 
 ;-------------------------------------------------------------------------------
-; Invokes the cpu_exception(vcpu_t _Nonnull vp) function.
+; Invokes the cpu_exception(vcpu_t _Nonnull vp, excpt_0_frame_t* _Nonnull utp) function.
 ; See 68020UM, p6-27
 __cpu_exception:
     SAVE_CPU_STATE
@@ -198,12 +198,10 @@ __cpu_exception:
     move.l  #0, -(sp)
     move.l  #0, -(sp)
 
+    move.l  sp, -(sp)
     move.l  a0, -(sp)
     jsr     _cpu_exception
-    addq.l  #4, sp
-
-    ; Update the pc in our null RTE that we pushed above
-    move.l  d0, 2(sp)
+    addq.l  #8, sp
 
     rte
 

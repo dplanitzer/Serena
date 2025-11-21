@@ -35,7 +35,7 @@ extern void cpu_halt(void);
 // Called by the HAL when a CPU exception is triggered. 'vp' is the vcpu in
 // question. Its 'excpt_sa' field points to a cpu_savearea_t that has the saved
 // CPU state and the exception frame set up appropriately.
-extern excpt_func_t _Nonnull cpu_exception(struct vcpu* _Nonnull vp);
+extern void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp);
 extern void cpu_exception_return(void);
 
 // User space function to trigger the return from an exception handler
