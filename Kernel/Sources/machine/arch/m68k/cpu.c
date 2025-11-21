@@ -65,25 +65,13 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
     }
 }
 
-void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
+
+static bool map_exception(int cpu_code, excpt_frame_t* _Nonnull efp, excpt_info_t* _Nonnull ei)
 {
-    excpt_frame_t* efp = (excpt_frame_t*)&vp->excpt_sa->ef;
-    excpt_info_t ei;
-    excpt_ctx_t ec;
-
-    ei.cpu_code = excpt_frame_getvecnum(efp);
-    ei.addr = NULL;
-
-    // Any exception triggered in kernel mode
-    if (!excpt_frame_isuser(efp)) {
-        _fatalException(efp);
-        /* NOT REACHED */
-    }
-
-    switch (ei.cpu_code) {
+    switch (cpu_code) {
         case EXCPT_NUM_ZERO_DIV:
-            ei.code = EXCPT_DIV_ZERO;
-            ei.addr = (void*)efp->u.f2.addr;
+            ei->code = EXCPT_DIV_ZERO;
+            ei->addr = (void*)efp->u.f2.addr;
             break;
 
         case EXCPT_NUM_ILL_INSTR:
@@ -93,14 +81,14 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
         case EXCPT_NUM_EMU:
         case EXCPT_NUM_TRACE:
         case EXCPT_NUM_PRIV_VIO:
-            ei.code = EXCPT_ILLEGAL;
-            ei.addr = (void*)efp->pc;
+            ei->code = EXCPT_ILLEGAL;
+            ei->addr = (void*)efp->pc;
             break;
 
         case EXCPT_NUM_CHK:
         case EXCPT_NUM_TRAPX:
-            ei.code = EXCPT_TRAP;
-            ei.addr = (void*)efp->u.f2.addr;
+            ei->code = EXCPT_TRAP;
+            ei->addr = (void*)efp->u.f2.addr;
             break;
 
         case EXCPT_NUM_TRAP_0:
@@ -119,8 +107,8 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
         case EXCPT_NUM_TRAP_13:
         case EXCPT_NUM_TRAP_14:
         case EXCPT_NUM_TRAP_15:
-            ei.code = EXCPT_TRAP;
-            ei.addr = (void*)efp->pc;
+            ei->code = EXCPT_TRAP;
+            ei->addr = (void*)efp->pc;
             break;
 
         case EXCPT_NUM_FPU_BRANCH_UO:
@@ -131,14 +119,14 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
         case EXCPT_NUM_FPU_OVERFLOW:
         case EXCPT_NUM_FPU_SNAN:
         case EXCPT_NUM_FPU_UNIMPL_TY:
-            ei.code = EXCPT_FPE;
-            ei.addr = (void*)efp->pc;
+            ei->code = EXCPT_FPE;
+            ei->addr = (void*)efp->pc;
             break;
 
 
         case EXCPT_NUM_BUS_ERR:
-            ei.code = EXCPT_BUS;
-            ei.addr = (void*)efp->pc;
+            ei->code = EXCPT_BUS;
+            ei->addr = (void*)efp->pc;
             break;
 
         case EXCPT_NUM_ADR_ERR:
@@ -147,15 +135,39 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
         case EXCPT_NUM_MMU_ACCESS_VIO:
         case EXCPT_NUM_UNIMPL_EA:
         case EXCPT_NUM_UNIMPL_INT:
-            ei.code = EXCPT_SEGV;
-            ei.addr = (void*)efp->pc;  //XXX find real fault address
+            ei->code = EXCPT_SEGV;
+            ei->addr = (void*)efp->pc;  //XXX find real fault address
             break;
 
         case EXCPT_NUM_COPROC:
             // coprocessor protocol violations are fatal
         default:
-            _fatalException(efp);
-            /* NOT REACHED */
+            return false;
+    }
+
+    ei->cpu_code = cpu_code;
+
+    return true;
+}
+
+void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
+{
+    excpt_frame_t* efp = (excpt_frame_t*)&vp->excpt_sa->ef;
+    const int cpu_code = excpt_frame_getvecnum(efp);
+    excpt_info_t ei;
+    excpt_ctx_t ec;
+    excpt_handler_t eh;
+
+    // Any exception triggered in kernel mode
+    if (!excpt_frame_isuser(efp)) {
+        _fatalException(efp);
+        /* NOT REACHED */
+    }
+
+
+    if (!map_exception(cpu_code, efp, &ei)) {
+        _fatalException(efp);
+        /* NOT REACHED */
     }
 
 
@@ -169,12 +181,48 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     }
 
 
-    utp->pc = (uintptr_t) Process_Exception(vp->proc, vp, &ei, &ec);
+    if (vp->excpt_id > 0 || !Process_ResolveExceptionHandler(vp->proc, vp, &eh)) {
+        // double fault or no exception handler -> exit
+        Process_Exit(vp->proc, JREASON_EXCEPTION, ei.code);
+        /* NOT REACHED */
+    }
+
+
+    // Record the active exception type
+    vp->excpt_id = ei.code;
+
+
+    // Push the exception info on the user stack
+    uintptr_t usp = usp_get();
+    usp = sp_push_bytes(usp, &ei, sizeof(excpt_info_t));
+    uintptr_t ei_usp = usp;
+    usp = sp_push_bytes(usp, &ec, sizeof(excpt_ctx_t));
+    uintptr_t ec_usp = usp;
+
+    usp = sp_push_ptr(usp, (void*)ec_usp);
+    usp = sp_push_ptr(usp, (void*)ei_usp);
+    usp = sp_push_ptr(usp, eh.arg);
+
+    usp = sp_push_rts(usp, (void*)excpt_return);
+    usp_set(usp);
+
+
+    // Update the u-trampoline with the exception function entry point
+    utp->pc = (uintptr_t)eh.func;
 }
 
 void cpu_exception_return(struct vcpu* _Nonnull vp)
 {
-    Process_ExceptionReturn(vp->proc, vp);
+    // Pop the exception info off the user stack
+    uintptr_t usp = usp_get();
+    usp += sizeof(char*) * 3;   // arg, ei, ec
+    usp += sizeof(excpt_ctx_t);
+    usp += sizeof(excpt_info_t);
+    usp_set(usp);
+
+
+    // This vcpu is no longer processing an exception
+    vp->excpt_id = 0;
 }
 
 

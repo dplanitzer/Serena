@@ -184,54 +184,24 @@ void Process_SetExceptionHandler(ProcessRef _Nonnull self, const excpt_handler_t
     self->excpt_handler = *handler;
 }
 
-excpt_func_t _Nonnull Process_Exception(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ec)
+bool Process_ResolveExceptionHandler(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, excpt_handler_t* _Nonnull handler)
 {
-    const excpt_handler_t* h = &vp->excpt_handler;
+    const excpt_handler_t* eh = NULL;
 
-    if (vp->excpt_id > 0) {
-        // double fault -> exit
-        Process_Exit(vp->proc, JREASON_EXCEPTION, ei->code);
-        /* NOT REACHED */
+    if (vp->excpt_handler.func) {
+        eh = &vp->excpt_handler;
+    }
+    else {
+        eh = &self->excpt_handler;
     }
 
-
-    vp->excpt_id = ei->code;
-
-    if (h->func == NULL) {
-        h = &self->excpt_handler;
+    if (eh) {
+        *handler = *eh;
+        return true;
     }
-
-    if (h->func == NULL) {
-        Process_Exit(self, JREASON_EXCEPTION, ei->code);
-        /* NOT REACHED */
+    else {
+        return false;
     }
-
-
-    uintptr_t usp = usp_get();
-    usp = sp_push_bytes(usp, ei, sizeof(excpt_info_t));
-    uintptr_t ei_usp = usp;
-    usp = sp_push_bytes(usp, ec, sizeof(excpt_ctx_t));
-    uintptr_t ec_usp = usp;
-
-    usp = sp_push_ptr(usp, (void*)ec_usp);
-    usp = sp_push_ptr(usp, (void*)ei_usp);
-    usp = sp_push_ptr(usp, h->arg);
-
-    usp = sp_push_rts(usp, (void*)excpt_return);
-    usp_set(usp);
-
-    return h->func;
-}
-
-void Process_ExceptionReturn(ProcessRef _Nonnull self, vcpu_t _Nonnull vp)
-{
-    uintptr_t usp = usp_get();
-    usp += sizeof(char*) * 3;   // arg, ei, ec
-    usp += sizeof(excpt_ctx_t);
-    usp += sizeof(excpt_info_t);
-    usp_set(usp);
-
-    vp->excpt_id = 0;
 }
 
 
