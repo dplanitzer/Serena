@@ -16,6 +16,9 @@
 #include "Asserts.h"
 
 
+////////////////////////////////////////////////////////////////////////////////
+// vcpu_acquire_test
+
 static void test_acquire_loop(const char* _Nonnull str)
 {
     for (;;) {
@@ -48,6 +51,7 @@ void vcpu_acquire_test(int argc, char *argv[])
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// vcpu_scheduling_test
 
 static void test_scheduling_infinite_loop(void)
 {
@@ -100,6 +104,7 @@ void vcpu_scheduling_test(int argc, char *argv[])
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// vcpu_sigkill_test
 
 static vcpu_t test_sigkill_vcpu_a;
 
@@ -161,6 +166,7 @@ void vcpu_sigkill_test(int argc, char *argv[])
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// vcpu_suspend_test
 
 static vcpu_t test_suspend_vcpu_a;
 

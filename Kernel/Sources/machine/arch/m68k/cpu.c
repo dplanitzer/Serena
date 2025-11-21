@@ -150,22 +150,36 @@ static bool map_exception(int cpu_code, excpt_frame_t* _Nonnull efp, excpt_info_
     return true;
 }
 
+// User exception frame layout before entering the user exception handler
 struct u_excpt_frame {
     void*           ret_addr;
     void*           arg;
     excpt_info_t*   ei_ptr;
-    excpt_ctx_t*    ec_ptr;
+    mcontext_t*     mc_ptr;
 
-    excpt_ctx_t     ec;
+    mcontext_t      mc;
     excpt_info_t    ei;
 };
+
+// User exception frame layout after exiting the user exception handler.
+struct u_excpt_frame_ret {
+    void*           arg;
+    excpt_info_t*   ei_ptr;
+    mcontext_t*     mc_ptr;
+
+    mcontext_t      mc;
+    excpt_info_t    ei;
+};
+
+
+extern void _vcpu_write_excpt_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx);
+extern void _vcpu_read_excpt_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx);
 
 void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 {
     excpt_frame_t* efp = (excpt_frame_t*)&vp->excpt_sa->ef;
     const int cpu_code = excpt_frame_getvecnum(efp);
     excpt_info_t ei;
-    excpt_ctx_t ec;
     excpt_handler_t eh;
 
     // Any exception triggered in kernel mode
@@ -204,10 +218,10 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
     // Push the exception info on the user stack
     struct u_excpt_frame* uep = (struct u_excpt_frame*)usp_grow(sizeof(struct u_excpt_frame));
+    _vcpu_read_excpt_mcontext(vp, &uep->mc);
     uep->ei = ei;
-    uep->ec = ec;
     uep->ei_ptr = &uep->ei;
-    uep->ec_ptr = &uep->ec;
+    uep->mc_ptr = &uep->mc;
     uep->arg = eh.arg;
     uep->ret_addr = (void*)excpt_return;
 
@@ -218,8 +232,14 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
 void cpu_exception_return(struct vcpu* _Nonnull vp)
 {
-    // Pop the exception info off the user stack
-    usp_shrink(sizeof(struct u_excpt_frame));
+    struct u_excpt_frame_ret* usp = (struct u_excpt_frame_ret*)usp_get();
+
+    // Write back the (possibly) updated machine context
+    _vcpu_write_excpt_mcontext(vp, usp->mc_ptr);
+
+    // Pop the exception info off the user stack. Note that the return address
+    // was already taken off by the CPU before we came here
+    usp_shrink(sizeof(struct u_excpt_frame_ret));
 
     // This vcpu is no longer processing an exception
     vp->excpt_id = 0;

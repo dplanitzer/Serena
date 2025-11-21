@@ -17,6 +17,9 @@
 #include "Asserts.h"
 
 
+////////////////////////////////////////////////////////////////////////////////
+// proc_exit_test
+
 static void spin_loop(const char* _Nonnull str)
 {
     puts(str);
@@ -84,6 +87,9 @@ void proc_exit_test(int argc, char *argv[])
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+// proc_excpt_crash_test
+
 int movesr(void) = "\tmove.w\tsr, d0\n";
 
 void proc_excpt_crash_test(int argc, char *argv[])
@@ -95,12 +101,16 @@ void proc_excpt_crash_test(int argc, char *argv[])
 }
 
 
-static void ex_handler(void* arg, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ctx)
+////////////////////////////////////////////////////////////////////////////////
+// proc_excpt_handler_test
+
+static void ex_handler(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nonnull mc)
 {
     printf("arg: %s\n", arg);
     printf("code: %d\n", ei->code);
     printf("cpu_code: %d\n", ei->cpu_code);
     printf("addr: %p\n", ei->addr);
+    printf("PC: %p\n", mc->pc);
 
     exit(0);
 }
@@ -120,12 +130,19 @@ void proc_excpt_handler_test(int argc, char *argv[])
 }
 
 
-static void ex_handler2(void* arg, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ctx)
+////////////////////////////////////////////////////////////////////////////////
+// proc_excpt_return_test
+
+static void ex_handler2(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nonnull mc)
 {
     printf("arg: %s\n", arg);
     printf("code: %d\n", ei->code);
     printf("cpu_code: %d\n", ei->cpu_code);
     printf("addr: %p\n", ei->addr);
+    printf("PC: %p\n", mc->pc);
+
+    mc->pc += 2;        // Skip the 'move sr, d0'
+    mc->d[0] = 1234;    // Return a faked result
 }
 
 void proc_excpt_return_test(int argc, char *argv[])
@@ -138,8 +155,8 @@ void proc_excpt_return_test(int argc, char *argv[])
     
     const int r = movesr();
     // -> process should have returned from ex_handler2
-    // -> should not print and instead invoke ex_handler2 again
-    printf("sr: %d\n", r);
+    // -> should skip the move SR, execute the next line and print '1234'.
+    printf("\nSR: %d\nExiting.\n", r);
 }
 
 void proc_exec_test(int argc, char *argv[])

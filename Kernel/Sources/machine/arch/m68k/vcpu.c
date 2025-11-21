@@ -133,33 +133,29 @@ errno_t _vcpu_reset_mcontext(vcpu_t _Nonnull self, const vcpu_acquisition_t* _No
     return EOK;
 }
 
-void _vcpu_write_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx)
+static void __vcpu_write_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx, syscall_savearea_t* _Nonnull is_sa, cpu_savearea_t* _Nullable fp_sa)
 {
-    const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
-    cpu_savearea_t* cpu_sa = self->csw_sa;
-    syscall_savearea_t* the_sa = (self->syscall_sa) ? self->syscall_sa : (syscall_savearea_t*)((char*)cpu_sa + FPU_USER_STATE_SIZE + FPU_MAX_FSAVE_SIZE);
-
     // See _vcpu_read_mcontext().
     for (int i = 0; i < 7; i++) {
-        the_sa->a[i] = ctx->a[i];
-        the_sa->d[i] = ctx->d[i];
+        is_sa->a[i] = ctx->a[i];
+        is_sa->d[i] = ctx->d[i];
     }
-    the_sa->usp = ctx->a[7];
-    the_sa->d[7] = ctx->d[7];
+    is_sa->usp = ctx->a[7];
+    is_sa->d[7] = ctx->d[7];
 
-    the_sa->ef.pc = ctx->pc;
-    the_sa->ef.sr &= 0xff00;
-    the_sa->ef.sr |= ctx->sr & 0xff;
+    is_sa->ef.pc = ctx->pc;
+    is_sa->ef.sr &= 0xff00;
+    is_sa->ef.sr |= ctx->sr & 0xff;
 
 
     // Set the FPU state
-    if (hasFPU) {
-        cpu_sa->fpcr = ctx->fpcr;
-        cpu_sa->fpiar = ctx->fpiar;
-        cpu_sa->fpsr = ctx->fpsr;
+    if (fp_sa) {
+        fp_sa->fpcr = ctx->fpcr;
+        fp_sa->fpiar = ctx->fpiar;
+        fp_sa->fpsr = ctx->fpsr;
 
         for (int i = 0; i < 8; i++) {
-            cpu_sa->fp[i] = ctx->fp[i];
+            fp_sa->fp[i] = ctx->fp[i];
         }
 
         // XXX
@@ -171,12 +167,26 @@ void _vcpu_write_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx)
     }
 }
 
-void _vcpu_read_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx)
+void _vcpu_write_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx)
 {
     const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
-    const cpu_savearea_t* cpu_sa = self->csw_sa;
-    const syscall_savearea_t* the_sa = (self->syscall_sa) ? self->syscall_sa : (const syscall_savearea_t*)((const char*)cpu_sa + FPU_USER_STATE_SIZE + FPU_MAX_FSAVE_SIZE);
+    cpu_savearea_t* cpu_sa = self->csw_sa;
+    syscall_savearea_t* is_sa = (self->syscall_sa) ? self->syscall_sa : (syscall_savearea_t*)((char*)cpu_sa + FPU_USER_STATE_SIZE + FPU_MAX_FSAVE_SIZE);
 
+    __vcpu_write_mcontext(self, ctx, is_sa, (hasFPU) ? cpu_sa : NULL);
+}
+
+void _vcpu_write_excpt_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx)
+{
+    const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
+    cpu_savearea_t* cpu_sa = self->excpt_sa;
+    syscall_savearea_t* is_sa = (syscall_savearea_t*)((char*)cpu_sa + FPU_USER_STATE_SIZE + FPU_MAX_FSAVE_SIZE);
+
+    __vcpu_write_mcontext(self, ctx, is_sa, (hasFPU) ? cpu_sa : NULL);
+}
+
+static void __vcpu_read_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx, const syscall_savearea_t* _Nonnull is_sa, const cpu_savearea_t* _Nullable fp_sa)
+{
     // Get the integer state from the syscall save area if it exists and the
     // context switch save area otherwise. The CSW save area holds the kernel
     // integer state if we're inside a system call. The system call save area
@@ -184,24 +194,24 @@ void _vcpu_read_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx)
     // CSW save area. System calls don't save the FPU state since the kernel
     // doesn't use it.
     for (int i = 0; i < 7; i++) {
-        ctx->a[i] = the_sa->a[i];
-        ctx->d[i] = the_sa->d[i];
+        ctx->a[i] = is_sa->a[i];
+        ctx->d[i] = is_sa->d[i];
     }
-    ctx->a[7] = the_sa->usp;
-    ctx->d[7] = the_sa->d[7];
+    ctx->a[7] = is_sa->usp;
+    ctx->d[7] = is_sa->d[7];
 
-    ctx->pc = the_sa->ef.pc;
-    ctx->sr = the_sa->ef.sr & 0xff;
+    ctx->pc = is_sa->ef.pc;
+    ctx->sr = is_sa->ef.sr & 0xff;
 
 
     // Get the FPU state
-    if (hasFPU && !fsave_frame_isnull(&cpu_sa->fsave[0])) {
-        ctx->fpcr = cpu_sa->fpcr;
-        ctx->fpiar = cpu_sa->fpiar;
-        ctx->fpsr = cpu_sa->fpsr;
+    if (fp_sa && !fsave_frame_isnull(&fp_sa->fsave[0])) {
+        ctx->fpcr = fp_sa->fpcr;
+        ctx->fpiar = fp_sa->fpiar;
+        ctx->fpsr = fp_sa->fpsr;
 
         for (int i = 0; i < 8; i++) {
-            ctx->fp[i] = cpu_sa->fp[i];
+            ctx->fp[i] = fp_sa->fp[i];
         }
     }
     else {
@@ -213,4 +223,22 @@ void _vcpu_read_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx)
             ctx->fp[i] = (float96_t){0};
         }
     }
+}
+
+void _vcpu_read_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx)
+{
+    const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
+    const cpu_savearea_t* cpu_sa = self->csw_sa;
+    const syscall_savearea_t* is_sa = (self->syscall_sa) ? self->syscall_sa : (const syscall_savearea_t*)((const char*)cpu_sa + FPU_USER_STATE_SIZE + FPU_MAX_FSAVE_SIZE);
+
+    __vcpu_read_mcontext(self, ctx, is_sa, (hasFPU) ? cpu_sa : NULL);
+}
+
+void _vcpu_read_excpt_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx)
+{
+    const bool hasFPU = (self->flags & VP_FLAG_HAS_FPU) == VP_FLAG_HAS_FPU;
+    const cpu_savearea_t* cpu_sa = self->excpt_sa;
+    const syscall_savearea_t* is_sa = (const syscall_savearea_t*)((const char*)cpu_sa + FPU_USER_STATE_SIZE + FPU_MAX_FSAVE_SIZE);
+
+    __vcpu_read_mcontext(self, ctx, is_sa, (hasFPU) ? cpu_sa : NULL);
 }

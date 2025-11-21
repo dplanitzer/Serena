@@ -10,6 +10,7 @@
 #define _KERN_EXCEPTION_H 1
 
 #include <kpi/types.h>
+#include <kpi/mcontext.h>
 
 typedef struct excpt_info {
     int             code;       // EXCPT_XXX
@@ -18,14 +19,7 @@ typedef struct excpt_info {
 } excpt_info_t;
 
 
-typedef struct excpt_ctx {
-    int dummy;
-    //XXX machine context
-    //XXX flag to control whether to continue or abort when handler returns
-} excpt_ctx_t;
-
-
-typedef void (*excpt_func_t)(void* _Nullable arg, const excpt_info_t* _Nonnull ei, excpt_ctx_t* _Nonnull ctx);
+typedef void (*excpt_func_t)(void* _Nullable arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nonnull mc);
 
 
 typedef struct excpt_handler {

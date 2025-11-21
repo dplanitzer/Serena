@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <stdnoreturn.h>
 #include <kpi/types.h>
+#include <kpi/mcontext.h>
 #include <kpi/vcpu.h>
 
 __CPP_BEGIN
