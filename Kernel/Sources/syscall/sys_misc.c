@@ -22,22 +22,5 @@ SYSCALL_4(excpt_sethandler, int scope, int flags, const excpt_handler_t* _Nullab
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    switch (pa->scope) {
-        case EXCPT_SCOPE_VCPU:
-            if (pa->old_handler) {
-                *(pa->old_handler) = vp->excpt_handler;
-            }
-            vp->excpt_handler = *(pa->handler);
-            break;
-
-        case EXCPT_SCOPE_PROC:
-            Process_SetExceptionHandler(vp->proc, pa->handler, pa->old_handler);
-            break;
-
-        default:
-            err = EINVAL;
-            break;
-    }
-
-    return err;
+    return Process_SetExceptionHandler(vp->proc, vp, pa->scope, pa->handler, pa->old_handler);
 }
