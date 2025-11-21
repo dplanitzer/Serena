@@ -217,13 +217,14 @@ __cpu_exception:
 ; original __cpu_exception RTE frame
 ;
 __cpu_exception_return:
-    jsr         _cpu_exception_return
-
-    ; Pop __cpu_exception_return RTE frame
-    addq.w      #8, sp
-
     GET_CURRENT_VP a0
+    move.l  a0, -(sp)
+    jsr     _cpu_exception_return
+    move.l  (sp)+, a0
     move.l  #0, vp_excpt_sa(a0)
+
+    ; Pop the __cpu_exception_return RTE frame
+    add.l   #8, sp
 
     RESTORE_FPU_STATE a0
     RESTORE_CPU_STATE

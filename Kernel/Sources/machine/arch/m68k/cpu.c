@@ -172,10 +172,8 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     utp->pc = (uintptr_t) Process_Exception(vp->proc, vp, &ei, &ec);
 }
 
-void cpu_exception_return(void)
+void cpu_exception_return(struct vcpu* _Nonnull vp)
 {
-    vcpu_t vp = vcpu_current();
-
     Process_ExceptionReturn(vp->proc, vp);
 }
 
