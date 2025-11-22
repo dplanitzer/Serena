@@ -196,11 +196,26 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
 
     // MC68881/MC68882 User's Manual, page 5-10
-    if (ei.code == EXCPT_FPE && g_sys_desc->fpu_model == FPU_MODEL_68882) {
-        struct m68882_idle_frame* idle_p = (struct m68882_idle_frame*)vp->excpt_sa->fsave;
+    // 68060UM, page 6-37
+    if (ei.code == EXCPT_FPE) {
+        switch (g_sys_desc->fpu_model) {
+            case FPU_MODEL_68882: {
+                struct m68882_idle_frame* idle_p = (struct m68882_idle_frame*)vp->excpt_sa->fsave;
 
-        if (idle_p->format == FSAVE_FORMAT_882_IDLE) {
-            idle_p->biu_flags |= BIU_FP_EXCPT_PENDING;
+                if (idle_p->format == FSAVE_FORMAT_882_IDLE) {
+                    idle_p->biu_flags |= BIU_FP_EXCPT_PENDING;
+                }
+                break;
+            }
+
+            case FPU_MODEL_68060: {
+                struct m68060_fsave_frame* fsave_p = (struct m68060_fsave_frame*)vp->excpt_sa->fsave;
+
+                if (fsave_p->format == FSAVE_FORMAT_68060_EXCP) {
+                    fsave_p->format = FSAVE_FORMAT_68060_IDLE;
+                }
+                break;
+            }
         }
     }
 
