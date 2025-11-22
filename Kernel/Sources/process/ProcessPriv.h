@@ -23,16 +23,17 @@
 #define PROC_DEFAULT_USER_STACK_SIZE    CPU_PAGE_SIZE
 
 
-// Userspace wait queues
+// User space wait queues
 #define UWQ_HASH_CHAIN_COUNT    4
 #define UWQ_HASH_CHAIN_MASK     (UWQ_HASH_CHAIN_COUNT - 1)
 
-typedef struct UWaitQueue {
+struct u_wait_queue {
     ListNode            qe;
     struct waitqueue    wq;
     unsigned int        policy;
     int                 id;
-} UWaitQueue;
+};
+typedef struct u_wait_queue* u_wait_queue_t;
 
 
 typedef struct proc_img {
@@ -83,8 +84,8 @@ typedef struct Process {
     // File manager
     FileManager                     fm;
 
-    // UWaitQueues
-    List/*<UWaitQueue>*/            waitQueueTable[UWQ_HASH_CHAIN_COUNT];   // wait queue descriptor -> UWaitQueue
+    // User wait queues
+    List/*<struct u_wait_queue>*/   waitQueueTable[UWQ_HASH_CHAIN_COUNT];   // wait queue descriptor -> struct u_wait_queue
     int                             nextAvailWaitQueueId;
 
     // All VPs that belong to this process and are currently in sleep()
@@ -101,7 +102,7 @@ typedef struct Process {
     int16_t                         exit_code;
 } Process;
 
-extern void uwq_destroy(UWaitQueue* _Nullable self);
+extern void uwq_destroy(u_wait_queue_t _Nullable self);
 
 
 // Creates a new process. 'ppid' is the id of the parent process and must be

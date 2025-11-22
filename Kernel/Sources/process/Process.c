@@ -69,7 +69,7 @@ static void _proc_deinit(ProcessRef _Nonnull self)
 
     for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
         List_ForEach(&self->waitQueueTable[i], ListNode, {
-            UWaitQueue* cwp = (UWaitQueue*)pCurNode;
+            u_wait_queue_t cwp = (u_wait_queue_t)pCurNode;
 
             uwq_destroy(cwp);
         });

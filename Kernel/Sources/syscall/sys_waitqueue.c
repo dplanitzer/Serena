@@ -10,23 +10,22 @@
 #include <kern/timespec.h>
 #include <klib/Hash.h>
 #include <kern/kalloc.h>
-#include <klib/List.h>
 #include <kpi/signal.h>
 #include <machine/sched.h>
 #include <sched/waitqueue.h>
 
 
-static errno_t uwq_create(int policy, UWaitQueue* _Nullable * _Nonnull pOutSelf)
+static errno_t uwq_create(int policy, u_wait_queue_t _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    UWaitQueue* self = NULL;
+    u_wait_queue_t self = NULL;
 
     if (policy != WAITQUEUE_FIFO) {
         *pOutSelf = NULL;
         return EINVAL;
     }
 
-    err = kalloc(sizeof(UWaitQueue), (void**)&self);
+    err = kalloc(sizeof(struct u_wait_queue), (void**)&self);
     if (err == EOK) {
         self->qe = LISTNODE_INIT;
         wq_init(&self->wq);
@@ -38,7 +37,7 @@ static errno_t uwq_create(int policy, UWaitQueue* _Nullable * _Nonnull pOutSelf)
     return err;
 }
 
-void uwq_destroy(UWaitQueue* _Nullable self)
+void uwq_destroy(u_wait_queue_t _Nullable self)
 {
     if (self) {
         wq_deinit(&self->wq);
@@ -51,7 +50,7 @@ SYSCALL_2(wq_create, int policy, int* _Nonnull pOutQ)
 {
     decl_try_err();
     ProcessRef pp = vp->proc;
-    UWaitQueue* uwp = NULL;
+    u_wait_queue_t uwp = NULL;
     int q = -1;
 
     err = uwq_create(pa->policy, &uwp);
@@ -69,10 +68,10 @@ SYSCALL_2(wq_create, int policy, int* _Nonnull pOutQ)
 }
 
 // @Entry Condition: preemption disabled
-static UWaitQueue* _Nullable _find_uwq(ProcessRef _Nonnull pp, int q)
+static u_wait_queue_t _Nullable _find_uwq(ProcessRef _Nonnull pp, int q)
 {
     List_ForEach(&pp->waitQueueTable[hash_scalar(q) & UWQ_HASH_CHAIN_MASK], ListNode,
-        UWaitQueue* cwp = (UWaitQueue*)pCurNode;
+        u_wait_queue_t cwp = (u_wait_queue_t)pCurNode;
 
         if (cwp->id == q) {
             return cwp;
@@ -88,7 +87,7 @@ SYSCALL_1(wq_dispose, int q)
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
-    UWaitQueue* uwp = _find_uwq(pp, pa->q);
+    u_wait_queue_t uwp = _find_uwq(pp, pa->q);
     
     if (uwp) {
         if (List_IsEmpty(&uwp->wq.q)) {
@@ -116,7 +115,7 @@ SYSCALL_1(wq_wait, int q)
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
-    UWaitQueue* uwp = _find_uwq(pp, pa->q);
+    u_wait_queue_t uwp = _find_uwq(pp, pa->q);
 
     err = (uwp) ? wq_wait(&uwp->wq, NULL) : EBADF;
     preempt_restore(sps);
@@ -129,7 +128,7 @@ SYSCALL_3(wq_timedwait, int q, int flags, const struct timespec* _Nonnull wtp)
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
-    UWaitQueue* uwp = _find_uwq(pp, pa->q);
+    u_wait_queue_t uwp = _find_uwq(pp, pa->q);
 
     err = (uwp) ? wq_timedwait(&uwp->wq, NULL, pa->flags, pa->wtp, NULL) : EBADF;
     preempt_restore(sps);
@@ -142,8 +141,8 @@ SYSCALL_4(wq_wakeup_then_timedwait, int q1, int q2, int flags, const struct time
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
-    UWaitQueue* uwp_to_wake = _find_uwq(pp, pa->q1);
-    UWaitQueue* uwp_to_wait = _find_uwq(pp, pa->q2);
+    u_wait_queue_t uwp_to_wake = _find_uwq(pp, pa->q1);
+    u_wait_queue_t uwp_to_wait = _find_uwq(pp, pa->q2);
 
     if (uwp_to_wake && uwp_to_wait) {
         wq_wake(&uwp_to_wake->wq, WAKEUP_ONE | WAKEUP_CSW, WRES_WAKEUP);
@@ -163,7 +162,7 @@ SYSCALL_2(wq_wakeup, int q, int flags)
     ProcessRef pp = vp->proc;
 
     const int sps = preempt_disable();
-    UWaitQueue* uwp = _find_uwq(pp, pa->q);
+    u_wait_queue_t uwp = _find_uwq(pp, pa->q);
 
     if (uwp) {
         wq_wake(&uwp->wq, wflags | WAKEUP_CSW, WRES_WAKEUP);
