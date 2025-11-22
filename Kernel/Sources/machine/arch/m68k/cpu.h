@@ -248,6 +248,8 @@ typedef struct excpt_frame {
 
 // FPU exception stack frame
 // 68881/68882UM, p6-28
+// 68040UM, p9-39
+// 68060UM, p6-35
 struct m6888x_null_frame {
     uint8_t     version;
     uint8_t     format;
@@ -292,23 +294,79 @@ struct m68882_busy_frame {
 };
 
 
+struct m68040_idle_frame {
+    uint8_t     version;
+    uint8_t     format;
+    uint16_t    reserved;
+};
+
+struct m68040_busy_frame {
+    uint8_t     version;
+    uint8_t     format;
+    uint16_t    reserved;
+    uint8_t     reg[96];
+};
+
+struct m68040_unimp_frame {
+    uint8_t     version;
+    uint8_t     format;
+    uint16_t    reserved;
+    uint8_t     reg[48];
+};
+
+
+struct m68060_idle_frame {
+    uint8_t     version;
+    uint8_t     format;
+    uint16_t    reserved;
+};
+
+struct m68060_excp_frame {
+    uint8_t     version;
+    uint8_t     format;
+    uint16_t    reserved;
+    uint16_t    operand_exp;
+    uint16_t    status;
+    uint32_t    operand_upper;
+    uint32_t    operand_lower;
+};
+
+
 typedef union fsave_frame {
     struct m6888x_null_frame    null;
+
     struct m68881_idle_frame    idle881;
     struct m68881_busy_frame    busy881;
+    
     struct m68882_idle_frame    idle882;
     struct m68882_busy_frame    busy882;
+
+    struct m68040_idle_frame    idle040;
+    struct m68040_busy_frame    busy040;
+    struct m68040_unimp_frame   unimp040;
+
+    struct m68060_idle_frame    idle060;
+    struct m68060_excp_frame    excp060;
 } fsave_frame_t;
 
 #define fsave_frame_isnull(__sfp) \
 (((struct m6888x_null_frame*)(__sfp))->version == 0)
 
 
+// 68881/68882 frame versions
+#define FSAVE_VERSION_68040     0x41
+
+
 // 68881/68882 frame formats
-#define FSAVE_FORMAT_881_IDLE   0x18
-#define FSAVE_FORMAT_881_BUSY   0xb4
-#define FSAVE_FORMAT_882_IDLE   0x38
-#define FSAVE_FORMAT_882_BUSY   0xd4
+#define FSAVE_FORMAT_881_IDLE       0x18
+#define FSAVE_FORMAT_881_BUSY       0xb4
+#define FSAVE_FORMAT_882_IDLE       0x38
+#define FSAVE_FORMAT_882_BUSY       0xd4
+#define FSAVE_FORMAT_68040_IDLE     0x00
+#define FSAVE_FORMAT_68040_BUSY     0x60
+#define FSAVE_FORMAT_68040_UNIMP    0x30
+#define FSAVE_FORMAT_68060_IDLE     0x60
+#define FSAVE_FORMAT_68060_EXCP     0xE0
 
 
 // BIU flags
