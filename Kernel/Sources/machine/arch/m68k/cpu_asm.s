@@ -19,6 +19,7 @@
     xdef _cpu68k_as_write_byte
     xdef _cpu_sleep
     xdef _cpu_halt
+    xdef _cpu060_set_pcr_bits
     xdef _fpu_get_model
     xdef _usp_get
     xdef _usp_set
@@ -423,6 +424,20 @@ _cpu_halt:
     inline
         stop    #$2700
         bra.s   _cpu_halt
+    einline
+
+
+;-------------------------------------------------------------------------------
+; void cpu060_set_pcr_bits(uint32_t bits)
+; Sets bits in the 68060 PCR.
+_cpu060_set_pcr_bits:
+    inline
+    cargs cspb_bits.l
+        move.l  cspb_bits(sp), d0
+        movec   pcr, d1
+        or.l    d0, d1
+        movec   d1, pcr
+        rts
     einline
 
 

@@ -416,6 +416,12 @@ extern unsigned int cpu68k_as_read_byte(void* p, int addr_space);
 extern void cpu68k_as_write_byte(void* p, int addr_space, unsigned int val);
 
 
+#define M68060_PCR_ESS  (1 << 0)
+#define M68060_PCR_DFP  (1 << 1)
+
+extern void cpu060_set_pcr_bits(uint32_t bits);
+
+
 // Grows the current user stack by 'pushing' 'nbytes' on it. Returns the new sp.
 // Note that this function does NOT enforce stack alignment.
 extern uintptr_t usp_grow(size_t nbytes);
