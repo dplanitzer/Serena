@@ -280,3 +280,14 @@ void sp_shrink(uintptr_t sp, size_t nbytes)
 {
     sp += nbytes;
 }
+
+
+bool cpu_is_null_fsave(const char* _Nonnull sfp)
+{
+    if (g_sys_desc->fpu_model != FPU_MODEL_68060) {
+        return (((struct m6888x_null_frame*)sfp)->version == 0) ? true : false;
+    }
+    else {
+        return (((struct m68060_fsave_frame*)sfp)->format == 0) ? true : false;
+    }
+}

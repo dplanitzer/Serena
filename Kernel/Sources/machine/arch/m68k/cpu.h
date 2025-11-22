@@ -315,18 +315,10 @@ struct m68040_unimp_frame {
 };
 
 
-struct m68060_idle_frame {
-    uint8_t     version;
-    uint8_t     format;
-    uint16_t    reserved;
-};
-
-struct m68060_excp_frame {
-    uint8_t     version;
-    uint8_t     format;
-    uint16_t    reserved;
+struct m68060_fsave_frame {
     uint16_t    operand_exp;
-    uint16_t    status;
+    uint8_t     format;
+    uint8_t     vector;
     uint32_t    operand_upper;
     uint32_t    operand_lower;
 };
@@ -345,12 +337,11 @@ typedef union fsave_frame {
     struct m68040_busy_frame    busy040;
     struct m68040_unimp_frame   unimp040;
 
-    struct m68060_idle_frame    idle060;
-    struct m68060_excp_frame    excp060;
+    struct m68060_fsave_frame   frame060;
 } fsave_frame_t;
 
-#define fsave_frame_isnull(__sfp) \
-(((struct m6888x_null_frame*)(__sfp))->version == 0)
+
+extern bool cpu_is_null_fsave(const char* _Nonnull sfp);
 
 
 // 68881/68882 frame versions

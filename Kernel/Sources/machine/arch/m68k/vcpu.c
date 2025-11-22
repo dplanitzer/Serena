@@ -205,7 +205,7 @@ static void __vcpu_read_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx,
 
 
     // Get the FPU state
-    if (fp_sa && !fsave_frame_isnull(&fp_sa->fsave[0])) {
+    if (fp_sa && !cpu_is_null_fsave(&fp_sa->fsave[0])) {
         ctx->fpcr = fp_sa->fpcr;
         ctx->fpiar = fp_sa->fpiar;
         ctx->fpsr = fp_sa->fpsr;
