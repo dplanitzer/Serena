@@ -19,53 +19,6 @@
 const sigset_t SIGSET_IGNORE_ALL = 0;
 
 
-// Atomically updates the routing information for process-targeted signals.
-errno_t vcpu_sigroute(vcpu_t _Nonnull self, int op)
-{
-    decl_try_err();
-    
-    if (self->sched_state == SCHED_STATE_TERMINATING) {
-        return ESRCH;
-    }
-
-    const int sps = preempt_disable();
-    switch (op) {
-        case SIG_ROUTE_DEL:
-            if (self->proc_sigs_enabled > 0) {
-                self->proc_sigs_enabled--;
-            }
-            else {
-                err = EOVERFLOW;
-            }
-            break;
-
-        case SIG_ROUTE_ADD:
-            if (self->proc_sigs_enabled < INT_MAX) {
-                self->proc_sigs_enabled++;
-            }
-            else {
-                err = EOVERFLOW;
-            }
-            break;
-
-        default:
-            err = EINVAL;
-            break;
-    }
-    preempt_restore(sps);
-
-    return err;
-}
-
-// Forcefully turn process-targeted signal routing off for the given VP.
-void vcpu_sigrouteoff(vcpu_t _Nonnull self)
-{
-    const int sps = preempt_disable();
-
-    self->proc_sigs_enabled = 0;
-    preempt_restore(sps);
-}
-
 static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo, int scope)
 {
     decl_try_err();

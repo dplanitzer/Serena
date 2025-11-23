@@ -137,8 +137,6 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
             }
         }
     }
-
-    vcpu_sigrouteoff(vcpu_current());
     #endif
 }
 
@@ -151,7 +149,6 @@ void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self)
         vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
         vcpu_sigsend(cvp, SIGKILL, SIG_SCOPE_VCPU);
-        vcpu_sigrouteoff(cvp);
     });
 }
 

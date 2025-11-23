@@ -124,7 +124,6 @@ struct vcpu {
 
     // Signals
     sigset_t                        pending_sigs;           // Pending signals (sent to the VP, but not yet consumed by sigwait())
-    int                             proc_sigs_enabled;      // > 0 means that this VP will accept signals that targeted the process
 
     // Waiting related state
     clock_deadline_t                timeout;                // The wait timeout timer
@@ -195,12 +194,6 @@ extern errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _
 // Returns the current (effective) priority of the given VP.
 extern int vcpu_getcurrentpriority(vcpu_t _Nonnull self);
 
-
-// Atomically updates the routing information for process-targeted signals.
-extern errno_t vcpu_sigroute(vcpu_t _Nonnull self, int op);
-
-// Forcefully turn process-targeted signal routing off for the given VP.
-extern void vcpu_sigrouteoff(vcpu_t _Nonnull self);
 
 // Sends the signal 'signo' to 'self'. The signal is added to the pending signal
 // list if scope is VCPU or VCPU group. If it is proc, proc group or session

@@ -120,7 +120,6 @@ _Noreturn vcpu_relinquish(vcpu_t _Nonnull self)
     self->uerrno = 0;
     self->pending_sigs = 0;
     self->attn_sigs = 0;
-    self->proc_sigs_enabled = 0;
     self->excpt_id = 0;
     self->excpt_sa = NULL;
     self->syscall_sa = NULL;
