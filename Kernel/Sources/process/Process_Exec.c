@@ -189,6 +189,7 @@ static void _proc_img_deactivate_current(ProcessRef _Nonnull self)
     _proc_reap_vcpus(self);
     mtx_lock(&self->mtx);
 
+    _proc_destroy_sigroutes(self);
     IOChannelTable_ReleaseExecChannels(&self->ioChannelTable);
 }
 

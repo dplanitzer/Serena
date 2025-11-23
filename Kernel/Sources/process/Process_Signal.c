@@ -33,14 +33,14 @@ static void sigroute_destroy(sigroute_t _Nullable self)
 }
 
 
-void _proc_init_default_sigroutes(ProcessRef _Nonnull self)
+void _proc_init_default_sigroutes(ProcessRef _Nonnull _Locked self)
 {
     for (size_t i = 0; i < SIGMAX; i++) {
         self->sig_route[i] = SLIST_INIT;
     }
 }
 
-void _proc_destroy_sigroutes(ProcessRef _Nonnull self)
+void _proc_destroy_sigroutes(ProcessRef _Nonnull _Locked self)
 {
     for (size_t i = 0; i < SIGMAX; i++) {
         while (!SList_IsEmpty(&self->sig_route[i])) {
