@@ -121,23 +121,19 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
 // caller until all of them are dead and gone.
 static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 {
-    decl_try_err();
+    // Note that SIGCHILD is getting auto-routed to us (exit coordinator) because
+    // the process is in exit state.
+    ProcessManager_SendSignal(gProcessManager, self->sid, SIG_SCOPE_PROC_CHILDREN, self->pid, SIGKILL);
 
-    #if 0
-    //XXX bring this back or make it so that we move children to the session daemon
-    vcpu_sigroute(vcpu_current(), SIG_ROUTE_ADD);
-    
-    err = ProcessManager_SendSignal(gProcessManager, self->sid, SIG_SCOPE_PROC_CHILDREN, self->pid, SIGKILL);
-    if (err == EOK) {
-        for (;;) {
-            struct proc_status ps;
+    // Reap all zombies. There may have been zombies before we came here. That's
+    // why we unconditionally execute this loop.
+    for (;;) {
+        struct proc_status ps;
 
-            if (Process_TimedJoin(self, JOIN_ANY, 0, 0, &TIMESPEC_INF, &ps) == ECHILD) {
-                break;
-            }
+        if (Process_TimedJoin(self, JOIN_ANY, 0, 0, &TIMESPEC_INF, &ps) == ECHILD) {
+            break;
         }
     }
-    #endif
 }
 
 // Initiate an abort on every virtual processor attached to ourselves. Note that
@@ -204,6 +200,7 @@ _Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code)
         self->state = PROC_STATE_EXITING;
         self->exit_reason = reason;
         self->exit_code = code;
+        self->exit_coordinator = vcpu_current();
 
 
         // This is the first vcpu going through the exit. It will act as the

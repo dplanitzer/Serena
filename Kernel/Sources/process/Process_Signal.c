@@ -294,6 +294,10 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
                 break;
         }
     }
+    else if (self->state == PROC_STATE_EXITING && signo == SIGCHILD && self->exit_coordinator) {
+        // Auto-route SIGCHILD to the exit coordinator because we're in EXIT state
+        vcpu_sigsend(self->exit_coordinator, signo, SIG_SCOPE_PROC);
+    }
     mtx_unlock(&self->mtx);
 
     return err;

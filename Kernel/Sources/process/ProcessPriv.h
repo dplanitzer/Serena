@@ -115,6 +115,7 @@ typedef struct Process {
     // Process termination
     int16_t                         exit_reason;    // Exit code of the first exit() call that initiated the termination of this process
     int16_t                         exit_code;
+    vcpu_t _Nullable                exit_coordinator;
 } Process;
 
 extern void uwq_destroy(u_wait_queue_t _Nullable self);
