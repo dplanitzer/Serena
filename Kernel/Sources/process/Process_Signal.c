@@ -275,22 +275,24 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
     }
 
     mtx_lock(&self->mtx);
-    switch (scope) {
-        case SIG_SCOPE_VCPU:
-            err = _proc_send_signal_to_vcpu(self, id, signo, true);
-            break;
+    if (self->state < PROC_STATE_EXITING) {
+        switch (scope) {
+            case SIG_SCOPE_VCPU:
+                err = _proc_send_signal_to_vcpu(self, id, signo, true);
+                break;
 
-        case SIG_SCOPE_VCPU_GROUP:
-            err = _proc_send_signal_to_vcpu_group(self, id, signo);
-            break;
+            case SIG_SCOPE_VCPU_GROUP:
+                err = _proc_send_signal_to_vcpu_group(self, id, signo);
+                break;
 
-        case SIG_SCOPE_PROC:
-            err = _proc_send_signal_to_proc(self, id, signo);
-            break;
+            case SIG_SCOPE_PROC:
+                err = _proc_send_signal_to_proc(self, id, signo);
+                break;
 
-        default:
-            err = EINVAL;
-            break;
+            default:
+                err = EINVAL;
+                break;
+        }
     }
     mtx_unlock(&self->mtx);
 

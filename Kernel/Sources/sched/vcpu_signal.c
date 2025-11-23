@@ -11,7 +11,6 @@
 #include <kern/limits.h>
 #include <kern/timespec.h>
 #include <kpi/signal.h>
-#include <log/Log.h>
 #include <machine/clock.h>
 #include <machine/sched.h>
 
