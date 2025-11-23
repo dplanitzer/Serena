@@ -226,6 +226,13 @@ errno_t Process_SetExceptionHandler(ProcessRef _Nonnull self, vcpu_t _Nonnull vp
     return err;
 }
 
+void Process_GetSigcred(ProcessRef _Nonnull self, sigcred_t* _Nonnull cred)
+{
+    cred->pid = self->pid;
+    cred->ppid = self->ppid;
+    cred->uid = FileManager_GetRealUserId(&self->fm);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -

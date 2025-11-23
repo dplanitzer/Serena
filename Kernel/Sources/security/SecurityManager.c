@@ -97,6 +97,21 @@ errno_t SecurityManager_CheckNodeStatusUpdatePermission(SecurityManagerRef _Nonn
     return (Inode_GetUserId(pNode) == uid) ? EOK : EPERM;
 }
 
+bool SecurityManager_CanSendSignal(SecurityManagerRef _Nonnull self, const sigcred_t* _Nonnull sndr, const sigcred_t* _Nonnull rcv, int signo)
+{
+    if (sndr->uid == kUserId_Root) {
+        return true;
+    }
+    if (sndr->uid == rcv->uid) {
+        return true;
+    }
+    if (signo == SIGCHILD && sndr->ppid == rcv->pid) {
+        return true;
+    }
+
+    return false;
+}
+
 bool SecurityManager_IsSuperuser(SecurityManagerRef _Nonnull self, uid_t uid)
 {
     return uid == kUserId_Root;

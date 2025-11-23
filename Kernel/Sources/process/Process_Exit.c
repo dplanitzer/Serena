@@ -121,9 +121,13 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
 // caller until all of them are dead and gone.
 static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 {
+    sigcred_t sc;
+
+    Process_GetSigcred(self, &sc);
+
     // Note that SIGCHILD is getting auto-routed to us (exit coordinator) because
     // the process is in exit state.
-    ProcessManager_SendSignal(gProcessManager, self->sid, SIG_SCOPE_PROC_CHILDREN, self->pid, SIGKILL);
+    ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC_CHILDREN, self->pid, SIGKILL);
 
     // Reap all zombies. There may have been zombies before we came here. That's
     // why we unconditionally execute this loop.
@@ -170,7 +174,10 @@ void _proc_reap_vcpus(ProcessRef _Nonnull self)
 static void _proc_notify_parent(ProcessRef _Nonnull self)
 {
     if (!Process_IsRoot(self)) {
-        ProcessManager_SendSignal(gProcessManager, self->sid, SIG_SCOPE_PROC, self->ppid, SIGCHILD);
+        sigcred_t sc;
+
+        Process_GetSigcred(self, &sc);
+        ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC, self->ppid, SIGCHILD);
     }
 }
 

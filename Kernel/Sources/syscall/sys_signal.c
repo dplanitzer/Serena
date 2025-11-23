@@ -49,30 +49,34 @@ SYSCALL_3(sigsend, int scope, id_t id, int signo)
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    switch (pa->scope) {
-        case SIG_SCOPE_VCPU:
-        case SIG_SCOPE_VCPU_GROUP:
-            err = Process_SendSignal(pp, pa->scope, pa->id, pa->signo);
-            break;
+    if (pa->scope == SIG_SCOPE_VCPU || pa->scope == SIG_SCOPE_VCPU_GROUP) {
+        return Process_SendSignal(pp, pa->scope, pa->id, pa->signo);
+    }
 
+    if (pa->scope == SIG_SCOPE_PROC && pa->id == 0) {
+        // Send signal to yourself
+        return Process_SendSignal(pp, SIG_SCOPE_PROC, pa->id, pa->signo);
+    }
+
+
+    // Sending a signal to some other process
+    sigcred_t sndr;
+    Process_GetSigcred(pp, &sndr);
+
+    switch (pa->scope) {
         case SIG_SCOPE_PROC:
-            if (pa->id == 0) {
-                err = Process_SendSignal(pp, SIG_SCOPE_PROC, pa->id, pa->signo);
-            }
-            else {
-                err = ProcessManager_SendSignal(gProcessManager, pp->sid, SIG_SCOPE_PROC, pa->id, pa->signo);
-            }
+            err = ProcessManager_SendSignal(gProcessManager, &sndr, SIG_SCOPE_PROC, pa->id, pa->signo);
             break;
 
         case SIG_SCOPE_PROC_CHILDREN: {
             const pid_t pid = (pa->id == 0) ? pp->pid : pa->id;
-            err = ProcessManager_SendSignal(gProcessManager, pp->sid, pa->scope, pid, pa->signo);
+            err = ProcessManager_SendSignal(gProcessManager, &sndr, pa->scope, pid, pa->signo);
             break;
         }
 
         case SIG_SCOPE_PROC_GROUP: {
             const pid_t pgrp = (pa->id == 0) ? pp->pgrp : pa->id;
-            err = ProcessManager_SendSignal(gProcessManager, pp->sid, pa->scope, pgrp, pa->signo);
+            err = ProcessManager_SendSignal(gProcessManager, &sndr, pa->scope, pgrp, pa->signo);
             break;
         }
 
@@ -80,7 +84,7 @@ SYSCALL_3(sigsend, int scope, id_t id, int signo)
             const pid_t sid = (pa->id == 0) ? pp->sid : pa->id;
 
             if (sid == pp->sid) {
-                err = ProcessManager_SendSignal(gProcessManager, pp->sid, pa->scope, sid, pa->signo);
+                err = ProcessManager_SendSignal(gProcessManager, &sndr, pa->scope, sid, pa->signo);
             }
             else {
                 err = EPERM;
