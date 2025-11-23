@@ -7,6 +7,141 @@
 //
 
 #include "ProcessPriv.h"
+#include <kern/kalloc.h>
+
+static errno_t sigroute_create(int signo, int scope, id_t id, sigroute_t _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    sigroute_t self = NULL;
+
+    err = kalloc(sizeof(struct sigroute), (void**)&self);
+    if (err == EOK) {
+        self->qe = SLISTNODE_INIT;
+        self->signo = signo;
+        self->scope = scope;
+        self->target_id = id;
+        self->use_count = 0;
+    }
+
+    *pOutSelf = self;
+    return err;
+}
+
+static void sigroute_destroy(sigroute_t _Nullable self)
+{
+    kfree(self);
+}
+
+
+void _proc_init_default_sigroutes(ProcessRef _Nonnull self)
+{
+    for (size_t i = 0; i < SIGMAX; i++) {
+        self->sig_route[i] = SLIST_INIT;
+    }
+}
+
+void _proc_destroy_sigroutes(ProcessRef _Nonnull self)
+{
+    for (size_t i = 0; i < SIGMAX; i++) {
+        while (!SList_IsEmpty(&self->sig_route[i])) {
+            sigroute_t rp = (sigroute_t)SList_RemoveFirst(&self->sig_route[i]);
+            sigroute_destroy(rp);
+        }
+    }
+}
+
+static sigroute_t _Nullable _find_specific_sigroute(ProcessRef _Nonnull _Locked self, int signo, int scope, id_t id, sigroute_t* _Nullable pOutPrevEntry)
+{
+    sigroute_t prp = NULL;
+
+    SList_ForEach(&self->sig_route[signo - 1], ListNode,
+        sigroute_t crp = (sigroute_t)pCurNode;
+
+        if (crp->scope == scope && crp->target_id == id) {
+            if (pOutPrevEntry) {
+                *pOutPrevEntry = prp;
+            }
+            return crp;
+        }
+
+        prp = crp;
+    );
+
+    return NULL;
+}
+
+
+static errno_t _add_sigroute(ProcessRef _Nonnull _Locked self, int signo, int scope, id_t id)
+{
+    decl_try_err();
+    sigroute_t prp;
+    sigroute_t rp = _find_specific_sigroute(self, signo, scope, id, &prp);
+
+    if (rp == NULL) {
+        try(sigroute_create(signo, scope, id, &rp));
+        SList_InsertAfterLast(&self->sig_route[signo - 1], &rp->qe);
+    }
+
+    if (rp->use_count == INT16_MAX) {
+        throw(EOVERFLOW);
+    }
+    rp->use_count++;
+
+catch:
+    return err;
+}
+
+static void _del_sigroute(ProcessRef _Nonnull _Locked self, int signo, int scope, id_t id)
+{
+    sigroute_t prp;
+    sigroute_t rp = _find_specific_sigroute(self, signo, scope, id, &prp);
+
+    if (rp) {
+        rp->use_count--;
+        if (rp->use_count <= 0) {
+            SList_Remove(&self->sig_route[signo - 1], &prp->qe, &rp->qe);
+            sigroute_destroy(rp);
+        }
+    }
+}
+
+errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope, id_t id)
+{
+    decl_try_err();
+
+    if (signo < SIGMIN || signo > SIGMAX || (scope != SIG_SCOPE_VCPU && scope != SIG_SCOPE_VCPU_GROUP)) {
+        return EINVAL;
+    }
+    if (signo == SIGKILL || signo == SIGSTOP || signo == SIGCONT || signo == SIGSYS1 || signo == SIGSYS2) {
+        return EPERM;
+    }
+
+
+    mtx_lock(&self->mtx);
+    switch (op) {
+        case SIG_ROUTE_ADD:
+            if (self->state < PROC_STATE_EXITING) {
+                err = _add_sigroute(self, signo, scope, id);
+            }
+            else {
+                // Don't add new routes if we're exiting
+                // XXX Should probably return a different error code here
+                err = EOK;
+            }
+            break;
+
+        case SIG_ROUTE_DEL:
+            _del_sigroute(self, signo, scope, id);
+            break;
+
+        default:
+            err = EINVAL;
+            break;
+    }
+    mtx_unlock(&self->mtx);
+
+    return err;
+}
 
 
 // Suspend all vcpus in the process if the process is currently in running state.
@@ -37,12 +172,12 @@ static void _proc_cont(ProcessRef _Nonnull _Locked self)
     }
 }
 
-static errno_t _proc_send_signal_to_vcpu(ProcessRef _Nonnull self, id_t id, int signo)
+static errno_t _proc_send_signal_to_vcpu(ProcessRef _Nonnull _Locked self, id_t id, int signo, bool doSelfOpt)
 {
     vcpu_t me_vp = vcpu_current();
     vcpu_t target_vp = NULL;
 
-    if (id == VCPUID_SELF || me_vp->id == id) {
+    if (doSelfOpt && (id == VCPUID_SELF || me_vp->id == id)) {
         target_vp = me_vp;
     }
     else {
@@ -67,7 +202,7 @@ static errno_t _proc_send_signal_to_vcpu(ProcessRef _Nonnull self, id_t id, int 
     }
 }
 
-static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull self, id_t id, int signo)
+static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self, id_t id, int signo)
 {
     bool hasMatch = false;
 
@@ -85,7 +220,7 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull self, id_t id
     return (hasMatch) ? EOK : ESRCH;
 }
 
-static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull self, id_t id, int signo)
+static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t id, int signo)
 {
     switch (signo) {
         case SIGKILL:
@@ -101,13 +236,27 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull self, id_t id, int 
             break;
 
         default:
-            List_ForEach(&self->vcpu_queue, ListNode,
-                vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
+            if (!SList_IsEmpty(&self->sig_route[signo - 1])) {
+                SList_ForEach(&self->sig_route[signo - 1], SList, {
+                    sigroute_t crp = (sigroute_t)pCurNode;
 
-                // This sigsend() will auto-force-resume the receiving vcpu if we're
-                // sending SIGKILL
-                vcpu_sigsend(cvp, signo, SIG_SCOPE_PROC);
-            );
+                    switch (crp->scope) {
+                        case SIG_SCOPE_VCPU:
+                            _proc_send_signal_to_vcpu(self, crp->target_id, signo, false);
+                            break;
+
+                        case SIG_SCOPE_VCPU_GROUP:
+                            _proc_send_signal_to_vcpu_group(self, crp->target_id, signo);
+                            break;
+
+                        default:
+                            abort();
+                    }
+                })
+            }
+            else {
+                //XXX do default handling
+            }
             break;
     }
 
@@ -128,7 +277,7 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
     mtx_lock(&self->mtx);
     switch (scope) {
         case SIG_SCOPE_VCPU:
-            err = _proc_send_signal_to_vcpu(self, id, signo);
+            err = _proc_send_signal_to_vcpu(self, id, signo, true);
             break;
 
         case SIG_SCOPE_VCPU_GROUP:

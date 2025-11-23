@@ -45,6 +45,7 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
 
     wq_init(&self->sleep_queue);
     wq_init(&self->siwa_queue);
+    _proc_init_default_sigroutes(self);
     FileManager_Init(&self->fm, fh, uid, gid, pRootDir, pWorkingDir, umask);
 }
 
@@ -66,6 +67,7 @@ static void _proc_deinit(ProcessRef _Nonnull self)
 {
     IOChannelTable_Deinit(&self->ioChannelTable);
     FileManager_Deinit(&self->fm);
+    _proc_destroy_sigroutes(self);
 
     for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
         List_ForEach(&self->waitQueueTable[i], ListNode, {
@@ -77,7 +79,6 @@ static void _proc_deinit(ProcessRef _Nonnull self)
 
     wq_deinit(&self->siwa_queue);
     wq_deinit(&self->sleep_queue);
-
     AddressSpace_Deinit(&self->addr_space);
     self->pargs_base = NULL;
 

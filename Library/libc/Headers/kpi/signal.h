@@ -89,7 +89,7 @@ typedef volatile int sig_atomic_t;
 #define SIG_SCOPE_PROC_GROUP    4   /* all processes in group with process group id */
 #define SIG_SCOPE_SESSION       5   /* all processes in this session */
 
-#define SIG_ROUTE_DISABLE       0
-#define SIG_ROUTE_ENABLE        1
+#define SIG_ROUTE_DEL   0
+#define SIG_ROUTE_ADD   1
 
 #endif /* _KPI_SIGNAL_H */

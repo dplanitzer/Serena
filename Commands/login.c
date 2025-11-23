@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <sys/spawn.h>
 #include <sys/wait.h>
+#include <sys/vcpu.h>
 #include <sys/stat.h>
 
 // Shut down the boot screen and initialize the kerne VT100 console
@@ -182,7 +183,7 @@ int main(int argc, char *argv[])
 
 
     // Enable SIGCHILD reception
-    sigroute(SIG_SCOPE_VCPU, 0, SIG_ROUTE_ENABLE);
+    sigroute(SIG_ROUTE_ADD, SIGCHILD, SIG_SCOPE_VCPU, VCPUID_MAIN);
     
 
     printf("\033[36mSerena OS v0.6.0-alpha\033[0m\nCopyright 2023 - 2025, Dietmar Planitzer.\n\n");

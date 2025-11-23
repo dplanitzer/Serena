@@ -19,39 +19,9 @@ SYSCALL_0(sigurgent)
     return EOK;
 }
 
-//XXX add support for SIG_SCOPE_VCPU_GROUP
-SYSCALL_3(sigroute, int scope, id_t id, int op)
+SYSCALL_4(sigroute, int op, int signo, int scope, id_t id)
 {
-    decl_try_err();
-    ProcessRef pp = vp->proc;
-    vcpu_t the_vp = NULL;
-
-    if (pa->scope != SIG_SCOPE_VCPU) {
-        return EINVAL;
-    }
-
-    mtx_lock(&pp->mtx);
-    if (pa->id != 0) {
-        List_ForEach(&pp->vcpu_queue, ListNode, 
-            vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
-
-            if (cvp->id == pa->id) {
-                the_vp = cvp;
-                break;
-            }
-        );
-    }
-    else {
-        the_vp = vp;
-    }
-
-    if (the_vp) {
-        vcpu_sigroute(the_vp, pa->op);
-    }
-    else {
-        err = ESRCH;
-    }
-    mtx_unlock(&pp->mtx);
+    return Process_Sigroute(vp->proc, pa->op, pa->signo, pa->scope, pa->id);
 }
 
 SYSCALL_2(sigwait, const sigset_t* _Nonnull set, int* _Nullable signo)

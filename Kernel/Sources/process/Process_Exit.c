@@ -123,7 +123,9 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 {
     decl_try_err();
 
-    vcpu_sigroute(vcpu_current(), SIG_ROUTE_ENABLE);
+    #if 0
+    //XXX bring this back or make it so that we move children to the session daemon
+    vcpu_sigroute(vcpu_current(), SIG_ROUTE_ADD);
     
     err = ProcessManager_SendSignal(gProcessManager, self->sid, SIG_SCOPE_PROC_CHILDREN, self->pid, SIGKILL);
     if (err == EOK) {
@@ -137,6 +139,7 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
     }
 
     vcpu_sigrouteoff(vcpu_current());
+    #endif
 }
 
 // Initiate an abort on every virtual processor attached to ourselves. Note that

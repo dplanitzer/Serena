@@ -14,6 +14,7 @@
 #include <Catalog.h>
 #include <filemanager/FileManager.h>
 #include <machine/rc.h>
+#include <kpi/signal.h>
 #include <sched/mtx.h>
 #include <sched/waitqueue.h>
 #include <vm/AddressSpace.h>
@@ -34,6 +35,17 @@ struct u_wait_queue {
     int                 id;
 };
 typedef struct u_wait_queue* u_wait_queue_t;
+
+
+// Signal routes
+struct sigroute {
+    SListNode   qe;
+    id_t        target_id;
+    int16_t     use_count;
+    int8_t      signo;
+    int8_t      scope;
+};
+typedef struct sigroute* sigroute_t;
 
 
 typedef struct proc_img {
@@ -94,6 +106,9 @@ typedef struct Process {
     // All VPs blocking on a sigwait() or sigtimedwait()
     struct waitqueue                siwa_queue;
     
+    // Signal routes
+    SList/*struct sigroute>*/       sig_route[SIGMAX];
+
     // Exceptions support
     excpt_handler_t                 excpt_handler;
     
@@ -120,5 +135,9 @@ extern void Process_deinit(ProcessRef _Nonnull self);
 
 extern void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self);
 extern void _proc_reap_vcpus(ProcessRef _Nonnull self);
+
+
+extern void _proc_init_default_sigroutes(ProcessRef _Nonnull self);
+extern void _proc_destroy_sigroutes(ProcessRef _Nonnull self);
 
 #endif /* ProcessPriv_h */

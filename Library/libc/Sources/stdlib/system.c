@@ -13,6 +13,7 @@
 #include <sys/spawn.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <sys/vcpu.h>
 
 
 static const char* __shellPath = "/System/Commands/shell";
@@ -34,6 +35,7 @@ static int __has_shell(void)
 static int __system(const char *string)
 {
     pid_t sh_pid;
+    vcpuid_t vp_id = vcpu_id(vcpu_self());
     int r = 0;
     spawn_opts_t opts = {0};
     const char* argv[4];
@@ -45,7 +47,7 @@ static int __system(const char *string)
     argv[3] = NULL;
 
     // Enable SIGCHILD reception
-    sigroute(SIG_SCOPE_VCPU, 0, SIG_ROUTE_ENABLE);
+    sigroute(SIG_ROUTE_ADD, SIGCHILD, SIG_SCOPE_VCPU, vp_id);
 
     if (os_spawn(__shellPath, argv, &opts, &sh_pid) != 0) {
         r = -1;
@@ -58,7 +60,7 @@ static int __system(const char *string)
     }
 
 out:
-    sigroute(SIG_SCOPE_VCPU, 0, SIG_ROUTE_DISABLE);
+    sigroute(SIG_ROUTE_DEL, SIGCHILD, SIG_SCOPE_VCPU, vp_id);
 
     return (r == 0) ? (ps.reason == JREASON_EXIT) ? ps.u.status : EXIT_FAILURE : -1;
 }

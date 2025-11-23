@@ -30,7 +30,7 @@ errno_t vcpu_sigroute(vcpu_t _Nonnull self, int op)
 
     const int sps = preempt_disable();
     switch (op) {
-        case SIG_ROUTE_DISABLE:
+        case SIG_ROUTE_DEL:
             if (self->proc_sigs_enabled > 0) {
                 self->proc_sigs_enabled--;
             }
@@ -39,7 +39,7 @@ errno_t vcpu_sigroute(vcpu_t _Nonnull self, int op)
             }
             break;
 
-        case SIG_ROUTE_ENABLE:
+        case SIG_ROUTE_ADD:
             if (self->proc_sigs_enabled < INT_MAX) {
                 self->proc_sigs_enabled++;
             }
@@ -76,22 +76,20 @@ static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo, int sco
 
     const sigset_t sigbit = _SIGBIT(signo);
     const int sps = preempt_disable();
-    if (scope < SIG_SCOPE_PROC || (sigbit & SIGSET_NONMASKABLES) != 0 || (scope >= SIG_SCOPE_PROC && self->proc_sigs_enabled > 0)) {
-        self->pending_sigs |= sigbit;
+    self->pending_sigs |= sigbit;
 
-        if (signo == SIGKILL) {
-            if (scope >= SIG_SCOPE_PROC) {
-                self->attn_sigs |= VP_ATTN_PROC_EXIT;
-            }
-
-            // Do a force resume to ensure that the guy picks up the termination
-            // request right away.
-            vcpu_resume(self, true);
+    if (signo == SIGKILL) {
+        if (scope >= SIG_SCOPE_PROC) {
+            self->attn_sigs |= VP_ATTN_PROC_EXIT;
         }
+
+        // Do a force resume to ensure that the guy picks up the termination
+        // request right away.
+        vcpu_resume(self, true);
+    }
         
-        if ((self->wait_sigs & sigbit) != 0) {
-            wq_wakeone(self->waiting_on_wait_queue, self, flags, WRES_SIGNAL);
-        }
+    if ((self->wait_sigs & sigbit) != 0) {
+        wq_wakeone(self->waiting_on_wait_queue, self, flags, WRES_SIGNAL);
     }
     preempt_restore(sps);
 

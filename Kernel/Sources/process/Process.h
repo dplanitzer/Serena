@@ -79,6 +79,10 @@ extern void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Non
 // scopes are: VCPU, VCPU_GROUP and PROC.
 extern errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int signo);
 
+// Adds or deletes a route for the signal 'signo'.
+extern errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope, id_t id);
+
+
 // Finds out which exception handler should be used to handle a CPU exception
 // and returns true if such a handler exists; otherwise false.
 extern bool Process_ResolveExceptionHandler(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, excpt_handler_t* _Nonnull handler);

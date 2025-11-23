@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 
     
     // Enable SIGCHILD reception
-    sigroute(SIG_SCOPE_VCPU, VCPUID_MAIN, SIG_ROUTE_ENABLE);
+    sigroute(SIG_ROUTE_ADD, SIGCHILD, SIG_SCOPE_VCPU, VCPUID_MAIN);
 
 
     ShellRef sh = Shell_Create(isInteractive);
