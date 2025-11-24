@@ -41,11 +41,11 @@ typedef volatile int sig_atomic_t;
 
 // Ordered from highest to lowest priority
 #define SIGKILL     1   // Force the termination of the receiver process
-#define SIGVPRL     2   // Privileged signal
-#define SIGVPSP     3   // Privileged signal
+#define SIGVRLQ     2   // Privileged signal
+#define SIGVSPD     3   // Privileged signal
 #define SIGABRT     4   //XXX NYI   <- abort()
-#define SIGSTOP     5   //XXX NYI   <- TTY, stop/suspend process
-#define SIGCONT     6   //XXX NYI   <- TTY, continue/resume process
+#define SIGSTOP     5   // TTY, stop/suspend process, non-routable
+#define SIGCONT     6   // TTY, continue/resume process, non-routable
 #define SIGXCPU     7   //XXX NYI   <- kernel, process exceeded CPU time limit
 #define SIGHUP      8   //XXX NYI   <- logind, user logged out
 #define SIGQUIT     9   //XXX NYI   <- TTY, process quit
@@ -78,8 +78,8 @@ typedef volatile int sig_atomic_t;
 
 #define _SIGBIT(__signo) (1 << ((__signo) - 1))
 
-#define SIGSET_NONMASKABLES (_SIGBIT(SIGKILL) | _SIGBIT(SIGVPRL))
-#define SIGSET_URGENTS      (_SIGBIT(SIGKILL) | _SIGBIT(SIGVPRL) | _SIGBIT(SIGVPSP))
+#define SIGSET_NONMASKABLES (_SIGBIT(SIGKILL) | _SIGBIT(SIGVRLQ))
+#define SIGSET_URGENTS      (_SIGBIT(SIGKILL) | _SIGBIT(SIGVRLQ) | _SIGBIT(SIGVSPD))
 
 
 #define SIG_SCOPE_VCPU          0   /* vcpu inside this process */

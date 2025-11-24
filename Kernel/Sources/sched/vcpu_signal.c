@@ -30,7 +30,7 @@ static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo)
     const int sps = preempt_disable();
     self->pending_sigs |= sigbit;
 
-    if (signo == SIGKILL || signo == SIGVPRL) {
+    if (signo == SIGKILL || signo == SIGVRLQ) {
         // Do a force resume to ensure that the guy picks up the termination
         // request right away.
         vcpu_resume(self, true);
