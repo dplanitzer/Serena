@@ -16,9 +16,9 @@
 #define JOIN_ANY        2   /* Join any child process */
 
 
-#define JREASON_EXIT        0
-#define JREASON_SIGNAL      1
-#define JREASON_EXCEPTION   2
+#define JREASON_EXIT        1
+#define JREASON_SIGNAL      2
+#define JREASON_EXCEPTION   3
 
 
 // The result of a waitpid() system call.

@@ -151,8 +151,9 @@ errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope,
 // MARK: -
 // MARK: Signal Reception
 
-static void _proc_terminate(ProcessRef _Nonnull _Locked self)
+static void _proc_terminate_on_behalf_of(ProcessRef _Nonnull _Locked self, int signo)
 {
+    _proc_set_exit_reason(self, JREASON_SIGNAL, signo)
     vcpu_sigsend(vcpu_from_owner_qe(self->vcpu_queue.first), SIGKILL);
 }
 
@@ -236,7 +237,7 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
 {
     switch (signo) {
         case SIGKILL:
-            _proc_terminate(self);
+            _proc_terminate_on_behalf_of(self, signo);
             break;
 
         case SIGSTOP:
@@ -272,7 +273,7 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
                     case SIGXCPU:
                     case SIGHUP:
                     case SIGQUIT:
-                        _proc_terminate(self);
+                        _proc_terminate_on_behalf_of(self, signo);
                         break;
 
                     default:

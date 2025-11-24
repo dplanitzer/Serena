@@ -36,6 +36,8 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     self->vcpu_queue = LIST_INIT;
     self->next_avail_vcpuid = VCPUID_MAIN + 1;
 
+    self->exit_reason = 0;
+    
     IOChannelTable_Init(&self->ioChannelTable);
 
     for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {

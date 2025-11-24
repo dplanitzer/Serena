@@ -205,8 +205,7 @@ _Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code)
     
     if (isExitCoordinator) {
         self->state = PROC_STATE_EXITING;
-        self->exit_reason = reason;
-        self->exit_code = code;
+        _proc_set_exit_reason(self, reason, code)
         self->exit_coordinator = vcpu_current();
 
 

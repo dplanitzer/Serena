@@ -141,4 +141,10 @@ extern void _proc_reap_vcpus(ProcessRef _Nonnull self);
 extern void _proc_init_default_sigroutes(ProcessRef _Nonnull _Locked self);
 extern void _proc_destroy_sigroutes(ProcessRef _Nonnull _Locked self);
 
+#define _proc_set_exit_reason(__self, __reason, __code) \
+if ((__self)->exit_reason == 0) {\
+    (__self)->exit_reason = __reason; \
+    (__self)->exit_code = __code; \
+}
+
 #endif /* ProcessPriv_h */
