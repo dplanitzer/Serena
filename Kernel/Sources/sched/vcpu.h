@@ -130,7 +130,7 @@ struct vcpu {
     // Scheduling related state
     int8_t                          qos;                    // call vcpu_sched_params_changed() on change
     int8_t                          qos_priority;
-    uint8_t                         attn_sigs;
+    uint8_t                         reserved2;
     int8_t                          priority_bias;          // used to depress or boost the effective priority (call vcpu_sched_params_changed() on change)
     uint8_t                         sched_priority;         // cached (static) schedule derived from the QoS parameters. Computed by vcpu_sched_params_changed() 
     uint8_t                         effective_priority;     // computed priority used for scheduling. Computed by vcpu_sched_params_changed()
@@ -192,14 +192,12 @@ extern int vcpu_getcurrentpriority(vcpu_t _Nonnull self);
 
 
 // Sends the signal 'signo' to 'self'. The signal is added to the pending signal
-// list if scope is VCPU or VCPU group. If it is proc, proc group or session
-// then it is added to the pending signal list if reception of process-targeted
-// signals is enabled for 'self'. Otherwise the signal is not added to the
-// pending signal list and ignored.
-extern errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, int scope);
+// list and the vcpu is woken up if it is currently waiting and the signal
+// 'signo' is in the active wake set.
+extern errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo);
 
 // Same as vcpu_sigsend(), but safe to use from a direct interrupt handler.
-extern errno_t vcpu_sigsend_irq(vcpu_t _Nonnull self, int signo, int scope);
+extern errno_t vcpu_sigsend_irq(vcpu_t _Nonnull self, int signo);
 
 // Returns a copy of the pending signals
 extern sigset_t vcpu_sigpending(vcpu_t _Nonnull self);

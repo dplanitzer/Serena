@@ -790,7 +790,7 @@ static void _matching_driver(HIDManagerRef _Nonnull self, DriverRef _Nonnull dri
 
 int _vbl_handler(HIDManagerRef _Nonnull self)
 {
-    vcpu_sigsend_irq(self->reportsCollector, SIGVBL, SIG_SCOPE_VCPU);
+    vcpu_sigsend_irq(self->reportsCollector, SIGVBL);
     return 0;
 }
 

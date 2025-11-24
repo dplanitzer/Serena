@@ -109,7 +109,7 @@ void GraphicsDriver_CopperManager(GraphicsDriverRef _Nonnull self)
 
 
         if (hasChange && self->screenConfigObserver) {
-            vcpu_sigsend(self->screenConfigObserver, self->screenConfigObserverSignal, SIG_SCOPE_VCPU);
+            vcpu_sigsend(self->screenConfigObserver, self->screenConfigObserverSignal);
         }
 
 

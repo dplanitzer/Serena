@@ -119,7 +119,6 @@ _Noreturn vcpu_relinquish(vcpu_t _Nonnull self)
     self->groupid = 0;
     self->uerrno = 0;
     self->pending_sigs = 0;
-    self->attn_sigs = 0;
     self->excpt_id = 0;
     self->excpt_sa = NULL;
     self->syscall_sa = NULL;
@@ -338,7 +337,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     else {
         // 'self' is some other vcpu in some state (running, ready, waiting). Trigger a deferred suspend on it
         self->suspension_count++;
-        vcpu_sigsend(self, SIGVPSP, SIG_SCOPE_VCPU);
+        vcpu_sigsend(self, SIGVPSP);
     }
 
 catch:

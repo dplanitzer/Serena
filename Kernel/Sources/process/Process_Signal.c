@@ -194,7 +194,7 @@ static errno_t _proc_send_signal_to_vcpu(ProcessRef _Nonnull _Locked self, id_t 
     if (target_vp) {
         // This sigsend() will auto-force-resume the receiving vcpu if we're
         // sending SIGKILL
-        vcpu_sigsend(target_vp, signo, SIG_SCOPE_VCPU);
+        vcpu_sigsend(target_vp, signo);
         return EOK;
     }
     else {
@@ -212,7 +212,7 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self,
         if (cvp->groupid == id) {
             // This sigsend() will auto-force-resume the receiving vcpu if we're
             // sending SIGKILL
-            vcpu_sigsend(cvp, signo, SIG_SCOPE_VCPU_GROUP);
+            vcpu_sigsend(cvp, signo);
             hasMatch = true;
         }
     );
@@ -224,7 +224,7 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
 {
     switch (signo) {
         case SIGKILL:
-            vcpu_sigsend(vcpu_from_owner_qe(self->vcpu_queue.first), SIGKILL, SIG_SCOPE_PROC);
+            vcpu_sigsend(vcpu_from_owner_qe(self->vcpu_queue.first), SIGKILL);
             break;
 
         case SIGSTOP:
@@ -296,7 +296,7 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
     }
     else if (self->state == PROC_STATE_EXITING && signo == SIGCHILD && self->exit_coordinator) {
         // Auto-route SIGCHILD to the exit coordinator because we're in EXIT state
-        vcpu_sigsend(self->exit_coordinator, signo, SIG_SCOPE_PROC);
+        vcpu_sigsend(self->exit_coordinator, signo);
     }
     mtx_unlock(&self->mtx);
 

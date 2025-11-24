@@ -18,7 +18,7 @@
 const sigset_t SIGSET_IGNORE_ALL = 0;
 
 
-static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo, int scope)
+static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo)
 {
     decl_try_err();
 
@@ -44,15 +44,15 @@ static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo, int sco
     return err;
 }
 
-errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo, int scope)
+errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo)
 {
-    return _vcpu_sigsend(self, WAKEUP_CSW, signo, scope);
+    return _vcpu_sigsend(self, WAKEUP_CSW, signo);
 }
 
-errno_t vcpu_sigsend_irq(vcpu_t _Nonnull self, int signo, int scope)
+errno_t vcpu_sigsend_irq(vcpu_t _Nonnull self, int signo)
 {
     //XXX enabling this breaks the proc_exit and vcpu_sched tests (they get stuck)
-    return _vcpu_sigsend(self, /*WAKEUP_CSW | WAKEUP_IRQ*/ 0, signo, scope);
+    return _vcpu_sigsend(self, /*WAKEUP_CSW | WAKEUP_IRQ*/ 0, signo);
 }
 
 sigset_t vcpu_sigpending(vcpu_t _Nonnull self)
