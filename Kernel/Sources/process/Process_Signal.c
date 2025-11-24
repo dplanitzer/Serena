@@ -9,6 +9,10 @@
 #include "ProcessPriv.h"
 #include <kern/kalloc.h>
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Signal Routing
+
 static errno_t sigroute_create(int signo, int scope, id_t id, sigroute_t _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
@@ -143,6 +147,14 @@ errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope,
     return err;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Signal Reception
+
+static void _proc_terminate(ProcessRef _Nonnull _Locked self)
+{
+    vcpu_sigsend(vcpu_from_owner_qe(self->vcpu_queue.first), SIGKILL);
+}
 
 // Suspend all vcpus in the process if the process is currently in running state.
 // Otherwise does nothing. Nesting is not supported.
@@ -224,7 +236,7 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
 {
     switch (signo) {
         case SIGKILL:
-            vcpu_sigsend(vcpu_from_owner_qe(self->vcpu_queue.first), SIGKILL);
+            _proc_terminate(self);
             break;
 
         case SIGSTOP:
@@ -255,7 +267,18 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
                 })
             }
             else {
-                //XXX do default handling
+                switch (signo) {
+                    case SIGABRT:
+                    case SIGXCPU:
+                    case SIGHUP:
+                    case SIGQUIT:
+                        _proc_terminate(self);
+                        break;
+
+                    default:
+                        // Ignore the signal
+                        break;
+                }
             }
             break;
     }

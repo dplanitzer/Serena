@@ -43,21 +43,21 @@ typedef volatile int sig_atomic_t;
 #define SIGKILL     1   // Force the termination of the receiver process
 #define SIGVRLQ     2   // Privileged signal
 #define SIGVSPD     3   // Privileged signal
-#define SIGABRT     4   //XXX NYI   <- abort()
-#define SIGSTOP     5   // TTY, stop/suspend process, non-routable
-#define SIGCONT     6   // TTY, continue/resume process, non-routable
-#define SIGXCPU     7   //XXX NYI   <- kernel, process exceeded CPU time limit
-#define SIGHUP      8   //XXX NYI   <- logind, user logged out
-#define SIGQUIT     9   //XXX NYI   <- TTY, process quit
-#define SIGINT      10  //XXX NYI   <- TTY, process interrupt
-#define SIGALRM     11  //XXX NYI   <- clock_alarm()
-#define SIGCHILD    12  //          <- kernel, child process terminated
-#define SIGWINCH    13  //XXX NYI   <- TTY, console window size changed
-#define SIGTTIN     14  //XXX NYI   <- TTY, background process attempt to read from terminal input
-#define SIGTTOUT    15  //XXX NYI   <- TTY, background process attempt to write to terminal output
-#define SIGFRGD     16  //XXX NYI   <- TTY, process is now the foreground process
-#define SIGBKGD     17  //XXX NYI   <- TTY, process is now the background process
-#define SIGUSR1     18
+#define SIGABRT     4   // abort(), default: terminate
+#define SIGSTOP     5   // TTY, default: stop/suspend process, non-routable
+#define SIGCONT     6   // TTY, default: continue/resume process, non-routable
+#define SIGXCPU     7   // kernel, process exceeded CPU time limit, default: terminate
+#define SIGHUP      8   // XXX logind, user logged out, default: terminate
+#define SIGQUIT     9   // TTY, process quit, default: terminate
+#define SIGINT      10  // TTY, process interrupt, default: ignore
+#define SIGALRM     11  // XXX clock_alarm(), default: ignore
+#define SIGCHILD    12  // kernel, child process terminated, default: ignore
+#define SIGWINCH    13  // TTY, console window size changed, default: ignore
+#define SIGTTIN     14  // TTY, background process attempt to read from terminal input, default: ignore (reading vcpu will be blocked)
+#define SIGTTOUT    15  // TTY, background process attempt to write to terminal output, default: ignore (writing vcpu will get blocked)
+#define SIGFRGD     16  // TTY, process is now the foreground process, default: ignore
+#define SIGBKGD     17  // TTY, process is now the background process, default: ignore
+#define SIGUSR1     18  // User defined signals, default: ignore
 #define SIGUSR2     19
 #define SIGUSR3     20
 #define SIGUSR4     21
@@ -71,7 +71,7 @@ typedef volatile int sig_atomic_t;
 #define SIGUSR12    29
 #define SIGUSR13    30
 #define SIGUSR14    31
-#define SIGDISP     32
+#define SIGDISP     32  // libdispatch, default: ignore
 
 #define SIGUSR      SIGUSR1
 
