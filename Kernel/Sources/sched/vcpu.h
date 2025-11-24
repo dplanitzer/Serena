@@ -89,10 +89,6 @@ enum {
 #define VP_FLAG_USER_OWNED          0x02    // This VP is owned by a user process
 #define VP_FLAG_ACQUIRED            0x04    // vcpu_activate() was called on the VP
 
-// VP attention flags
-#define VP_ATTN_PROC_EXIT           0x01
-#define VP_ATTN_SUSPENDING          0x02
-
 
 #define SCHED_PRIORITY_BIAS_HIGHEST INT8_MAX 
 #define SCHED_PRIORITY_BIAS_LOWEST  INT8_MIN 

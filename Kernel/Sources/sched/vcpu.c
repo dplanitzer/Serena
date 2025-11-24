@@ -320,7 +320,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     }
 
 
-    if (self->sched_state == SCHED_STATE_SUSPENDED || (self->attn_sigs & VP_ATTN_SUSPENDING) != 0) {
+    if (self->sched_state == SCHED_STATE_SUSPENDED || (self->pending_sigs & _SIGBIT(SIGVPSP)) != 0) {
         // 'self' has at least a suspension request pending or may already have entered suspended state
         self->suspension_count++;
     }
@@ -338,8 +338,7 @@ errno_t vcpu_suspend(vcpu_t _Nonnull self)
     else {
         // 'self' is some other vcpu in some state (running, ready, waiting). Trigger a deferred suspend on it
         self->suspension_count++;
-        self->attn_sigs |= VP_ATTN_SUSPENDING;
-        vcpu_sigsend(self, SIGSYS1, SIG_SCOPE_VCPU);
+        vcpu_sigsend(self, SIGVPSP, SIG_SCOPE_VCPU);
     }
 
 catch:
@@ -354,16 +353,16 @@ void vcpu_do_pending_deferred_suspend(vcpu_t _Nonnull self)
 
     // This function is always called in running state and thus the transition
     // running -> suspended is the only one we need to handle.
-    // Atomically check and consume the VP_ATTN_SUSPENDING request after we've
-    // changed our state to suspended to ensure that there's no gap between
-    // suspension request and suspension state.
-    // Note that it is crucial that we check the VP_ATTN_SUSPENDING flag,
-    // consume it and change our scheduler state to SCHED_STATE_SUSPENDED in a
-    // an atomic operation to ensure that vcpu_resume() can not see the
-    // transition and get potentially confused by it.
-    if ((self->attn_sigs & VP_ATTN_SUSPENDING) == VP_ATTN_SUSPENDING) {
+    // Atomically check and consume the SIGVPSP signal after we've changed our
+    // state to suspended to ensure that there's no gap between suspension
+    // request and suspension state.
+    // Note that it is crucial that we check the SIGVPSP flag, consume it and
+    // change our scheduler state to SCHED_STATE_SUSPENDED in an atomic
+    // operation to ensure that vcpu_resume() can not see the transition and
+    // get potentially confused by it.
+    if ((self->pending_sigs & _SIGBIT(SIGVPSP)) != 0) {
         self->sched_state = SCHED_STATE_SUSPENDED;
-        self->attn_sigs &= ~VP_ATTN_SUSPENDING;
+        self->pending_sigs &= ~_SIGBIT(SIGVPSP);
 
         sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     }
@@ -396,7 +395,7 @@ void vcpu_resume(vcpu_t _Nonnull self, bool force)
 
     // Cancel a pending deferred suspend request. This is safe because
     // vcpu_do_pending_deferred_suspend() atomically tests and acts on the flag
-    self->attn_sigs &= ~VP_ATTN_SUSPENDING;
+    self->pending_sigs &= ~_SIGBIT(SIGVPSP);
 
 
     // Move the vcpu out of suspended state if it is suspended
@@ -413,13 +412,13 @@ errno_t vcpu_rw_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx, bool is
     const int sps = preempt_disable();
 
     for (;;) {
-        if (self->sched_state == SCHED_STATE_SUSPENDED || (self->sched_state == SCHED_STATE_WAITING && (self->attn_sigs & VP_ATTN_SUSPENDING) != 0)) {
+        if (self->sched_state == SCHED_STATE_SUSPENDED || (self->sched_state == SCHED_STATE_WAITING && (self->pending_sigs & _SIGBIT(SIGVPSP)) != 0)) {
             // Wait until the target vcpu has entered suspended state or it is
             // waiting and has a deferred suspension request pending.
             break;
         }
 
-        if ((self->attn_sigs & VP_ATTN_SUSPENDING) == 0) {
+        if ((self->pending_sigs & _SIGBIT(SIGVPSP)) == 0) {
             // The target vcpu isn't suspended and doesn't even have a deferred
             // suspension request pending. Won't be able to r/w its ucontext
             err = EBUSY;

@@ -30,11 +30,7 @@ static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo, int sco
     const int sps = preempt_disable();
     self->pending_sigs |= sigbit;
 
-    if (signo == SIGKILL) {
-        if (scope >= SIG_SCOPE_PROC) {
-            self->attn_sigs |= VP_ATTN_PROC_EXIT;
-        }
-
+    if (signo == SIGKILL || signo == SIGVPRL) {
         // Do a force resume to ensure that the guy picks up the termination
         // request right away.
         vcpu_resume(self, true);
