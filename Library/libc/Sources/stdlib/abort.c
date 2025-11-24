@@ -8,9 +8,11 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <signal.h>
 
 
 _Noreturn abort(void)
 {
-    _Exit(EXIT_FAILURE);
+    sigsend(SIG_SCOPE_PROC, 0, SIGABRT);
+    for (;;);
 }
