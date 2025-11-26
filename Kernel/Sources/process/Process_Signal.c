@@ -116,7 +116,7 @@ errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope,
     if (signo < SIGMIN || signo > SIGMAX || (scope != SIG_SCOPE_VCPU && scope != SIG_SCOPE_VCPU_GROUP)) {
         return EINVAL;
     }
-    if (signo == SIGKILL || signo == SIGSTOP || signo == SIGCONT || signo == SIGVRLQ || signo == SIGVSPD) {
+    if (signo == SIGKILL || signo == SIGSTOP || signo == SIGCONT || signo == SIGVPRQ || signo == SIGVPDS) {
         return EPERM;
     }
 
@@ -300,7 +300,7 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
     if (signo < SIGMIN || signo > SIGMAX) {
         return EINVAL;
     }
-    if (signo == SIGVRLQ || signo == SIGVSPD) {
+    if (signo == SIGVPRQ || signo == SIGVPDS) {
         return EPERM;
     }
 

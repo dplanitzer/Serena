@@ -384,7 +384,7 @@ errno_t ProcessManager_SendSignal(ProcessManagerRef _Nonnull self, const sigcred
     if (signo < SIGMIN || signo > SIGMAX) {
         return EINVAL;
     }
-    if (signo == SIGVRLQ || signo == SIGVSPD) {
+    if (signo == SIGVPRQ || signo == SIGVPDS) {
         return EPERM;
     }
 

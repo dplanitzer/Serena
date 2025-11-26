@@ -116,7 +116,7 @@ int dispatch_signal_monitor(dispatch_t _Nonnull self, int signo, dispatch_item_t
 {
     int r = -1;
 
-    if (signo < SIGMIN || signo > SIGMAX || signo == SIGDISP || signo == SIGKILL || signo == SIGVRLQ || signo == SIGVSPD) {
+    if (signo < SIGMIN || signo > SIGMAX || signo == SIGDISP || signo == SIGKILL || signo == SIGVPRQ || signo == SIGVPDS) {
         errno = EINVAL;
         return -1;
     }
@@ -185,7 +185,7 @@ int dispatch_send_signal(dispatch_t _Nonnull self, int signo)
     vcpuid_t id;
     int r, scope;
 
-    if (signo == SIGDISP || signo == SIGKILL || signo == SIGVRLQ || signo == SIGVSPD) {
+    if (signo == SIGDISP || signo == SIGKILL || signo == SIGVPRQ || signo == SIGVPDS) {
         errno = EINVAL;
         return -1;
     }

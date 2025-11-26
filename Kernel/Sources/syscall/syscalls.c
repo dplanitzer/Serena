@@ -181,12 +181,12 @@ static void _handle_pending_signals(vcpu_t _Nonnull vp)
         /* NOT REACHED */
     }
 
-    if ((sigs & _SIGBIT(SIGVRLQ)) != 0) {
+    if ((sigs & _SIGBIT(SIGVPRQ)) != 0) {
         Process_RelinquishVirtualProcessor(vp->proc, vp);
         /* NOT REACHED */
     }
 
-    if ((sigs & _SIGBIT(SIGVSPD)) != 0) {
+    if ((sigs & _SIGBIT(SIGVPDS)) != 0) {
         vcpu_do_pending_deferred_suspend(vp);
     }
 }
