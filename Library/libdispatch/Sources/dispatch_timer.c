@@ -216,7 +216,7 @@ int dispatch_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item, int 
     return r;
 }
 
-int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nullable itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
+static int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nullable itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
 {
     int r = -1;
 

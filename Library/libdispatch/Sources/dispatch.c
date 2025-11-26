@@ -654,6 +654,7 @@ int dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t buflen)
     if (buflen < (len + 1)) {
         errno = ERANGE;
         r = -1;
+        goto out;
     }
     strcpy(buf, self->name);
 

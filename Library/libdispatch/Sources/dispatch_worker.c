@@ -257,7 +257,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, dispatch_work
         const int r = sigtimedwait(&self->hotsigs, flags, &deadline, &signo);
         mtx_lock(&q->mutex);
 
-        if (r != 0 && q->worker_count > q->attr.minConcurrency && self->allow_relinquish && (self->hotsigs & ~SIGDISP) == 0 && errno == ETIMEDOUT) {
+        if (r != 0 && q->worker_count > q->attr.minConcurrency && self->allow_relinquish && (self->hotsigs & ~_SIGBIT(SIGDISP)) == 0 && errno == ETIMEDOUT) {
             mayRelinquish = true;
         }
 
