@@ -75,6 +75,9 @@ typedef volatile int sig_atomic_t;
 
 #define SIGUSR      SIGUSR1
 
+#define SIGUSRMIN   SIGUSR1
+#define SIGUSRMAX   SIGUSR15
+
 
 #define _SIGBIT(__signo) (1 << ((__signo) - 1))
 

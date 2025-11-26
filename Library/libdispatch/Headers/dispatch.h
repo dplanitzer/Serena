@@ -259,11 +259,12 @@ extern int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct 
 // the same time.
 extern int dispatch_signal_monitor(dispatch_t _Nonnull self, int signo, dispatch_item_t _Nonnull item);
 
-// Allocates a signal. If 'signo' is 0 then the first lowest priority signal that
-// is available in the context of the given dispatcher is allocated. Otherwise
-// an attempt is made to allocate the specific signal 'signo'. The number of the
-// allocated signal is returned on success and -1 otherwise. Errno is set to
-// EBUSY if the desired signal is not available in the context of the dispatcher.
+// Allocates a signal. If 'signo' is <= 0 then the first available USR signal
+// with lowest priority is allocated. The signal is allocated in the context of
+// the dispatcher 'self'. If 'signo' is a valid signal number in the range of
+// SIGUSRMIN to SIGUSRMAX and that signal isn't already allocated in the context
+// of the dispatcher, then this signal is marked as allocated. The number of the
+// allocated signal is returned on success and -1 otherwise.
 // Signals are allocated on a per dispatcher basis since the semantic meaning of
 // a signal is potentially different from dispatcher to dispatcher. A signal
 // allocated by this function may be passed to some other API so that this API
@@ -271,7 +272,7 @@ extern int dispatch_signal_monitor(dispatch_t _Nonnull self, int signo, dispatch
 // function to get the vcpu group that should be targeted by the signal.
 extern int dispatch_alloc_signal(dispatch_t _Nonnull self, int signo);
 
-// Frees an allocated signal. Does nothing if 'signo' is 0 or the signal wasn't
+// Frees an allocated signal. Does nothing if 'signo' is <= 0 or the signal isn't
 // allocated in the first place.
 extern void dispatch_free_signal(dispatch_t _Nonnull self, int signo);
 

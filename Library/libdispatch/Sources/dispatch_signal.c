@@ -134,27 +134,25 @@ int dispatch_alloc_signal(dispatch_t _Nonnull self, int signo)
     int r = -1;
 
     mtx_lock(&self->mutex);
-    if (signo == 0) {
-        // Allocate the first lowest priority signal available
-        for (int i = SIGMAX; i >= SIGMIN; i--) {
-            if (!sigismember(&self->alloced_sigs, i)) {
-                sigaddset(&self->alloced_sigs, i);
+    if (signo <= 0) {
+        // Allocate the first lowest priority USR signal available
+        for (int i = SIGUSRMAX; i >= SIGUSRMIN; i--) {
+            sigset_t sigbit = _SIGBIT(i);
+
+            if ((self->alloced_sigs & sigbit) == 0) {
+                self->alloced_sigs |= sigbit;
                 r = i;
                 break;
             }
         }
-        if (r == -1) {
-            errno = EBUSY;
-        }
     }
-    else {
-        // Allocate the specific signal 'signo'
-        if (!sigismember(&self->alloced_sigs, signo)) {
-            sigaddset(&self->alloced_sigs, signo);
+    else if (signo >= SIGUSRMIN && signo <= SIGUSRMAX) {
+        // Allocate the specific USR signal 'signo'
+        const sigset_t sigbit = _SIGBIT(signo);
+
+        if ((self->alloced_sigs & sigbit) == 0) {
+            self->alloced_sigs |= sigbit;
             r = signo;
-        }
-        else {
-            errno = EBUSY;
         }
     }
     mtx_unlock(&self->mutex);
@@ -165,8 +163,8 @@ int dispatch_alloc_signal(dispatch_t _Nonnull self, int signo)
 void dispatch_free_signal(dispatch_t _Nonnull self, int signo)
 {
     mtx_lock(&self->mutex);
-    if (signo != 0 && signo != SIGKILL && signo != SIGDISP) {
-        sigdelset(&self->alloced_sigs, signo);
+    if (signo >= SIGUSRMIN && signo <= SIGUSRMAX) {
+        self->alloced_sigs &= ~_SIGBIT(signo);
     }
     mtx_unlock(&self->mutex);
 }
