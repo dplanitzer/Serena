@@ -27,9 +27,6 @@ struct Process;
 struct vcpu;
 
 
-extern const sigset_t SIGSET_IGNORE_ALL;
-
-
 // Parameters for a VP activation
 typedef struct vcpu_acquisition {
     VoidFunc_1 _Nonnull     func;

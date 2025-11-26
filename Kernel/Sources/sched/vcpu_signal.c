@@ -15,9 +15,6 @@
 #include <machine/sched.h>
 
 
-const sigset_t SIGSET_IGNORE_ALL = 0;
-
-
 static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo)
 {
     decl_try_err();

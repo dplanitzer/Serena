@@ -10,6 +10,7 @@
 #include "vcpu.h"
 #include "waitqueue.h"
 #include <machine/sched.h>
+#include <kern/signal.h>
 #include <kern/string.h>
 
 

@@ -8,6 +8,7 @@
 
 #include "mtx.h"
 #include "vcpu.h"
+#include <kern/signal.h>
 
 extern errno_t _mtx_unlock(mtx_t* _Nonnull self);
 

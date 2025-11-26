@@ -6,8 +6,11 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <kern/sigset.h>
+#include <kern/signal.h>
 #include <kern/limits.h>
+
+
+const sigset_t SIGSET_IGNORE_ALL = 0;
 
 
 void sigemptyset(sigset_t* _Nonnull set)
