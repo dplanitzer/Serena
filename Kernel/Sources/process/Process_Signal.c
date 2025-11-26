@@ -278,9 +278,10 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
 
                     case SIGTTIN:
                     case SIGTTOUT:
+                    case SIGTSTP:
                         _proc_stop(self);
                         break;
-                        
+
                     default:
                         // Ignore the signal
                         break;
