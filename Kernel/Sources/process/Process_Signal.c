@@ -276,6 +276,11 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
                         _proc_terminate_on_behalf_of(self, signo);
                         break;
 
+                    case SIGTTIN:
+                    case SIGTTOUT:
+                        _proc_stop(self);
+                        break;
+                        
                     default:
                         // Ignore the signal
                         break;

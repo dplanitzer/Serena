@@ -53,8 +53,8 @@ typedef volatile int sig_atomic_t;
 #define SIGALRM     11  // XXX clock_alarm(), default: ignore
 #define SIGCHILD    12  // kernel, child process terminated, default: ignore
 #define SIGWINCH    13  // TTY, console window size changed, default: ignore
-#define SIGTTIN     14  // TTY, background process attempt to read from terminal input, default: ignore (reading vcpu will be blocked)
-#define SIGTTOUT    15  // TTY, background process attempt to write to terminal output, default: ignore (writing vcpu will get blocked)
+#define SIGTTIN     14  // TTY, background process attempt to read from terminal input, default: stop/suspend process
+#define SIGTTOUT    15  // TTY, background process attempt to write to terminal output, default: stop/suspend process
 #define SIGFRGD     16  // TTY, process is now the foreground process, default: ignore
 #define SIGBKGD     17  // TTY, process is now the background process, default: ignore
 #define SIGUSR1     18  // User defined signals, default: ignore
