@@ -112,11 +112,13 @@ void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int sig
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
 
+static sigset_t _SIGSET_NOSENDMON = _SIGBIT(SIGDISP) | _SIGBIT(SIGKILL) | _SIGBIT(SIGVPRQ) | _SIGBIT(SIGVPDS) | _SIGBIT(SIGSTOP);
+
 int dispatch_signal_monitor(dispatch_t _Nonnull self, int signo, dispatch_item_t _Nonnull item)
 {
     int r = -1;
 
-    if (signo < SIGMIN || signo > SIGMAX || signo == SIGDISP || signo == SIGKILL || signo == SIGVPRQ || signo == SIGVPDS) {
+    if (signo < SIGMIN || signo > SIGMAX || (_SIGSET_NOSENDMON & _SIGBIT(signo)) != 0) {
         errno = EINVAL;
         return -1;
     }
@@ -183,7 +185,7 @@ int dispatch_send_signal(dispatch_t _Nonnull self, int signo)
     vcpuid_t id;
     int r, scope;
 
-    if (signo == SIGDISP || signo == SIGKILL || signo == SIGVPRQ || signo == SIGVPDS) {
+    if (signo < SIGMIN || signo > SIGMAX || (_SIGSET_NOSENDMON & _SIGBIT(signo)) != 0) {
         errno = EINVAL;
         return -1;
     }
