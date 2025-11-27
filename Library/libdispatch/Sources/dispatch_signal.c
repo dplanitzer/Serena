@@ -27,7 +27,38 @@ static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo,
     });
 }
 
-void _dispatch_cancel_signal_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+// Removes 'item' from its signal monitor and retires it.
+void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+{
+    const int signo = item->subtype;
+    dispatch_sigmon_t* sm = &self->sigmons[signo - 1];
+    dispatch_item_t pip = NULL;
+    bool hasIt = false;
+
+    SList_ForEach(&sm->handlers, SListNode, {
+        dispatch_item_t cip = (dispatch_item_t)pCurNode;
+
+        if (cip == item) {
+            SList_Remove(&sm->handlers, &pip->qe, &cip->qe);
+            hasIt = true;
+            break;
+        }
+
+        pip = cip;
+    });
+
+    if (hasIt) {
+        _dispatch_retire_item(self, item);
+
+        sm->handlers_count--;
+        if (sm->handlers_count == 0) {
+            _dispatch_enable_signal(self, signo, false);
+        }
+    }
+}
+
+// Retires the signal item 'item'.
+void _dispatch_retire_signal_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     const int signo = item->subtype;
     dispatch_sigmon_t* sm = &self->sigmons[signo - 1];

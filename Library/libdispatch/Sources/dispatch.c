@@ -475,18 +475,18 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
             
             switch (item->type) {
                 case _DISPATCH_TYPE_TIMED_ITEM:
-                    _dispatch_cancel_timer(self, flags, item);
+                    _dispatch_withdraw_timer(self, flags, item);
                     break;
                 
                 case _DISPATCH_TYPE_SIGNAL_ITEM:
-                    _dispatch_cancel_signal_item(self, flags, item);
+                    _dispatch_withdraw_signal_item(self, flags, item);
                     break;
 
                 case _DISPATCH_TYPE_WORK_ITEM:
                     List_ForEach(&self->workers, ListNode, {
                         dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
 
-                        if (_dispatch_worker_cancel_item(cwp, flags, item)) {
+                        if (_dispatch_worker_withdraw_item(cwp, flags, item)) {
                             break;
                         }
                     });

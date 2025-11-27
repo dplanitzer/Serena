@@ -133,11 +133,12 @@ void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self)
     self->work_count = 0;
 }
 
-bool _dispatch_worker_cancel_item(dispatch_worker_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+// Removes 'item' from the item queue and retires it.
+bool _dispatch_worker_withdraw_item(dispatch_worker_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
 {
     dispatch_item_t pip = NULL;
 
-    SList_ForEach(&self->work_queue, ListNode, {
+    SList_ForEach(&self->work_queue, SListNode, {
         dispatch_item_t cip = (dispatch_item_t)pCurNode;
 
         if (cip == item) {
@@ -306,7 +307,7 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
                     _dispatch_rearm_signal_item(q, item);
                 }
                 else {
-                    _dispatch_cancel_signal_item(q, 0, item);
+                    _dispatch_retire_signal_item(q, item);
                 }
                 break;
 
