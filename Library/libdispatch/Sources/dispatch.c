@@ -389,7 +389,7 @@ int dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnul
 
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-        item->type = _DISPATCH_TYPE_WORK_ITEM;
+        item->type = _DISPATCH_TYPE_USER_ITEM;
         item->flags = (uint8_t)(flags & _DISPATCH_ITEM_FLAG_AWAITABLE);
         r = _dispatch_submit(self, item);
     }
@@ -422,7 +422,7 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
        dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_conv_item), _async_adapter_func);
     
         if (item) {
-            ((dispatch_item_t)item)->type = _DISPATCH_TYPE_WORK_ITEM;
+            ((dispatch_item_t)item)->type = _DISPATCH_TYPE_CONV_ITEM;
             ((dispatch_item_t)item)->subtype = 0;
             ((dispatch_item_t)item)->flags = _DISPATCH_ITEM_FLAG_CACHEABLE;
             ((dispatch_conv_item_t)item)->u.async.func = func;
@@ -455,7 +455,7 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
         dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_conv_item), _sync_adapter_func);
     
         if (item) {
-            ((dispatch_item_t)item)->type = _DISPATCH_TYPE_WORK_ITEM;
+            ((dispatch_item_t)item)->type = _DISPATCH_TYPE_CONV_ITEM;
             ((dispatch_item_t)item)->subtype = 0;
             ((dispatch_item_t)item)->flags = _DISPATCH_ITEM_FLAG_CACHEABLE | _DISPATCH_ITEM_FLAG_AWAITABLE;
             ((dispatch_conv_item_t)item)->u.sync.func = func;
@@ -483,15 +483,8 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
             item->flags |= _DISPATCH_ITEM_FLAG_CANCELLED;
             
             switch (item->type) {
-                case _DISPATCH_TYPE_TIMED_ITEM:
-                    _dispatch_withdraw_timer(self, flags, item);
-                    break;
-                
-                case _DISPATCH_TYPE_SIGNAL_ITEM:
-                    _dispatch_withdraw_signal_item(self, flags, item);
-                    break;
-
-                case _DISPATCH_TYPE_WORK_ITEM:
+                case _DISPATCH_TYPE_USER_ITEM:
+                case _DISPATCH_TYPE_CONV_ITEM:
                     List_ForEach(&self->workers, ListNode, {
                         dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
 
@@ -499,6 +492,14 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
                             break;
                         }
                     });
+                    break;
+
+                case _DISPATCH_TYPE_TIMED_ITEM:
+                    _dispatch_withdraw_timer(self, flags, item);
+                    break;
+                
+                case _DISPATCH_TYPE_SIGNAL_ITEM:
+                    _dispatch_withdraw_signal_item(self, flags, item);
                     break;
 
                 default:

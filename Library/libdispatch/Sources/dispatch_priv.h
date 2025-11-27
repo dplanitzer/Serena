@@ -140,9 +140,10 @@ extern vcpu_key_t __os_dispatch_key;
 
 
 // Item type
-#define _DISPATCH_TYPE_WORK_ITEM        0x01
-#define _DISPATCH_TYPE_TIMED_ITEM       0x02
-#define _DISPATCH_TYPE_SIGNAL_ITEM      0x03
+#define _DISPATCH_TYPE_USER_ITEM        0x01
+#define _DISPATCH_TYPE_CONV_ITEM        0x02
+#define _DISPATCH_TYPE_TIMED_ITEM       0x03
+#define _DISPATCH_TYPE_SIGNAL_ITEM      0x04
 
 
 // Dispatcher state

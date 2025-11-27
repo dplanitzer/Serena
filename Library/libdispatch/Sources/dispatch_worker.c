@@ -292,7 +292,8 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
 
         mtx_lock(&q->mutex);
         switch (item->type) {
-            case _DISPATCH_TYPE_WORK_ITEM:
+            case _DISPATCH_TYPE_USER_ITEM:
+            case _DISPATCH_TYPE_CONV_ITEM:
                 _dispatch_retire_item(q, item);
                 break;
 
