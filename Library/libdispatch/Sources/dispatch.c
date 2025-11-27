@@ -208,7 +208,8 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
     dispatch_worker_t best_wp = NULL;
     size_t best_wc = SIZE_MAX;
 
-    if (item->state != DISPATCH_STATE_IDLE) {
+    // Allow the submission of an Idle, Finished or Cancelled state item
+    if (item->state == DISPATCH_STATE_SCHEDULED || item->state == DISPATCH_STATE_EXECUTING) {
         errno = EBUSY;
         return -1;
     }
@@ -257,6 +258,14 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
 
 void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
+    if ((item->flags & _DISPATCH_ITEM_FLAG_CANCELLED) != 0) {
+        item->state = DISPATCH_STATE_CANCELLED;
+    }
+    else {
+        item->state = DISPATCH_STATE_FINISHED;
+    }
+
+
     if ((item->flags & _DISPATCH_ITEM_FLAG_AWAITABLE) != 0) {
         _dispatch_zombify_item(self, item);
     }
@@ -471,7 +480,7 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
 {
     switch (item->state) {
         case DISPATCH_STATE_SCHEDULED:
-            item->state = DISPATCH_STATE_CANCELLED;
+            item->flags |= _DISPATCH_ITEM_FLAG_CANCELLED;
             
             switch (item->type) {
                 case _DISPATCH_TYPE_TIMED_ITEM:
@@ -498,7 +507,7 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
             break;
 
         case DISPATCH_STATE_EXECUTING:
-            item->state = DISPATCH_STATE_CANCELLED;
+            item->flags |= _DISPATCH_ITEM_FLAG_CANCELLED;
             break;
 
         default:

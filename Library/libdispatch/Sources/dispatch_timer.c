@@ -104,6 +104,7 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_
 
     timer->item->qe = SLISTNODE_INIT;
     timer->item->state = DISPATCH_STATE_SCHEDULED;
+    timer->item->flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
 
 
     // Put the timer on the timer queue. The timer queue is sorted by absolute

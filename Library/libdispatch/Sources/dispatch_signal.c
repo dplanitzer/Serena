@@ -130,8 +130,9 @@ void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int sig
     while (sm->handlers.first) {
         dispatch_item_t item = (dispatch_item_t)SList_RemoveFirst(&sm->handlers);
 
-        item->state = DISPATCH_STATE_SCHEDULED;
         item->qe = SLISTNODE_INIT;
+        item->state = DISPATCH_STATE_SCHEDULED;
+        item->flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
 
         // No need to wakeup ourselves. This function is called from the worker
         // 'worker' and we know we're already awake.

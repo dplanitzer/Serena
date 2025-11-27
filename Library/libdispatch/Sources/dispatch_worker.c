@@ -291,11 +291,6 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
 
 
         mtx_lock(&q->mutex);
-        if (item->state != DISPATCH_STATE_CANCELLED) {
-            item->state = DISPATCH_STATE_FINISHED;
-        }
-
-
         switch (item->type) {
             case _DISPATCH_TYPE_WORK_ITEM:
                 _dispatch_retire_item(q, item);
@@ -303,7 +298,7 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
 
             case _DISPATCH_TYPE_SIGNAL_ITEM:
                 if ((item->flags & _DISPATCH_ITEM_FLAG_REPEATING) != 0
-                    && item->state != DISPATCH_STATE_CANCELLED) {
+                    && (item->flags & _DISPATCH_ITEM_FLAG_CANCELLED) == 0) {
                     _dispatch_rearm_signal_item(q, item);
                 }
                 else {
@@ -315,7 +310,7 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
                 dispatch_timer_t timer = self->current.timer;
 
                 if ((item->flags & _DISPATCH_ITEM_FLAG_REPEATING) != 0
-                    && item->state != DISPATCH_STATE_CANCELLED) {
+                    && (item->flags & _DISPATCH_ITEM_FLAG_CANCELLED) == 0) {
                     _dispatch_rearm_timer(q, timer);
                 }
                 else {

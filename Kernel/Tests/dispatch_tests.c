@@ -24,7 +24,7 @@ static struct timespec DELAY_1000MS;
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// MARK: dispatch_async
+// MARK: dq_async_test
 
 static void OnAsync(void* _Nonnull ign)
 {
@@ -47,7 +47,7 @@ void dq_async_test(int argc, char *argv[])
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// MARK: dispatch_sync
+// MARK: dq_sync_test
 
 static int OnSync(void* _Nonnull ign)
 {
@@ -75,7 +75,7 @@ void dq_sync_test(int argc, char *argv[])
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// MARK: dispatch_after
+// MARK: dq_after_test
 
 static void OnAfter(void* _Nonnull ign)
 {
@@ -95,7 +95,7 @@ void dq_after_test(int argc, char *argv[])
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// MARK: dispatch_repeating
+// MARK: dq_repeating_test
 
 static struct timespec DELAY_250MS;
 
@@ -116,7 +116,7 @@ void dq_repeating_test(int argc, char *argv[])
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// MARK: dispatch_terminate
+// MARK: dq_terminate_test
 
 static void OnAsync2(intptr_t _Nonnull value)
 {
@@ -151,7 +151,7 @@ void dq_terminate_test(int argc, char *argv[])
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// MARK: dispatch_terminate
+// MARK: dq_signal_test
 
 struct siginfo {
     vcpuid_t    group_id;

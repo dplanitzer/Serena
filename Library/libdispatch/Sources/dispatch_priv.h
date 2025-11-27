@@ -17,6 +17,20 @@
 
 __CPP_BEGIN
 
+// Permissible item state transitions:
+// IDLE         -> SCHEDULED
+// SCHEDULED    -> EXECUTING | CANCELLED
+// EXECUTING    -> FINISHED | CANCELLED
+// FINISHED     -> SCHEDULED
+// CANCELLED    -> SCHEDULED
+//
+// THe transition from SCHEDULED | EXECUTING to CANCELLED is done indirectly by
+// first setting the _DISPATCH_ITEM_FLAG_CANCELLED flag on the item to indicate
+// that the item should be cancelled. Since cancelling is a voluntary and
+// cooperative task, the item (if it is already in EXECUTING state) has to
+// recognize the cancel request and act on it before we can transition the item
+// to CANCELLED state.
+
 #define _DISPATCH_MAX_ITEM_CACHE_COUNT  8
 
 struct dispatch_cacheable_item {
@@ -111,6 +125,9 @@ extern vcpu_key_t __os_dispatch_key;
 // Internal item flags
 #define _DISPATCH_ITEM_FLAG_AWAITABLE   DISPATCH_SUBMIT_AWAITABLE
 #define _DISPATCH_ITEM_FLAG_ABSTIME     DISPATCH_SUBMIT_ABSTIME
+
+// Item is cancelled and should enter cancelled state once execution has finished.
+#define _DISPATCH_ITEM_FLAG_CANCELLED   0x20
 
 // Item is owned by the dispatcher and should be moved back to the work item
 // cache when done.
