@@ -106,9 +106,9 @@ typedef void (*dispatch_retire_func_t)(struct dispatch_item* _Nonnull item);
 // cancelled state after it has finished processing and the dispatcher has been
 // terminated by calling dispatch_terminate(true).
 #define DISPATCH_STATE_IDLE         0
-#define DISPATCH_STATE_PENDING      1
+#define DISPATCH_STATE_SCHEDULED    1
 #define DISPATCH_STATE_EXECUTING    2
-#define DISPATCH_STATE_DONE         3
+#define DISPATCH_STATE_FINISHED     3
 #define DISPATCH_STATE_CANCELLED    4
 
 

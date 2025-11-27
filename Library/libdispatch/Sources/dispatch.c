@@ -245,7 +245,7 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
         }
     }
 
-    item->state = DISPATCH_STATE_PENDING;
+    item->state = DISPATCH_STATE_SCHEDULED;
     item->qe = SLISTNODE_INIT;
 
 
@@ -257,10 +257,10 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
 
 void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
-    if ((item->flags & DISPATCH_SUBMIT_AWAITABLE) != 0) {
+    if ((item->flags & _DISPATCH_ITEM_FLAG_AWAITABLE) != 0) {
         _dispatch_zombify_item(self, item);
     }
-    else if ((item->flags & _DISPATCH_SUBMIT_CACHEABLE) != 0) {
+    else if ((item->flags & _DISPATCH_ITEM_FLAG_CACHEABLE) != 0) {
         _dispatch_cache_item(self, (dispatch_cacheable_item_t)item);
     }
     else if (item->retireFunc) {
@@ -272,7 +272,7 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
 {
     int r = 0;
 
-    while (item->state < DISPATCH_STATE_DONE) {
+    while (item->state < DISPATCH_STATE_FINISHED) {
         r = cnd_wait(&self->cond, &self->mutex);
         if (r != 0) {
             break;
@@ -381,7 +381,7 @@ int dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnul
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
         item->type = _DISPATCH_TYPE_WORK_ITEM;
-        item->flags = (uint8_t)(flags & _DISPATCH_SUBMIT_ITEM_MASK);
+        item->flags = (uint8_t)(flags & _DISPATCH_ITEM_FLAG_AWAITABLE);
         r = _dispatch_submit(self, item);
     }
     mtx_unlock(&self->mutex);
@@ -415,7 +415,7 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
         if (item) {
             ((dispatch_item_t)item)->type = _DISPATCH_TYPE_WORK_ITEM;
             ((dispatch_item_t)item)->subtype = 0;
-            ((dispatch_item_t)item)->flags = _DISPATCH_SUBMIT_CACHEABLE;
+            ((dispatch_item_t)item)->flags = _DISPATCH_ITEM_FLAG_CACHEABLE;
             ((dispatch_async_item_t)item)->func = func;
             ((dispatch_async_item_t)item)->arg = arg;
             r = _dispatch_submit(self, (dispatch_item_t)item);
@@ -448,7 +448,7 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
         if (item) {
             ((dispatch_item_t)item)->type = _DISPATCH_TYPE_WORK_ITEM;
             ((dispatch_item_t)item)->subtype = 0;
-            ((dispatch_item_t)item)->flags = _DISPATCH_SUBMIT_CACHEABLE | DISPATCH_SUBMIT_AWAITABLE;
+            ((dispatch_item_t)item)->flags = _DISPATCH_ITEM_FLAG_CACHEABLE | _DISPATCH_ITEM_FLAG_AWAITABLE;
             ((dispatch_sync_item_t)item)->func = func;
             ((dispatch_sync_item_t)item)->arg = arg;
             ((dispatch_sync_item_t)item)->result = 0;
@@ -470,7 +470,7 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
 static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
 {
     switch (item->state) {
-        case DISPATCH_STATE_PENDING:
+        case DISPATCH_STATE_SCHEDULED:
             item->state = DISPATCH_STATE_CANCELLED;
             
             switch (item->type) {

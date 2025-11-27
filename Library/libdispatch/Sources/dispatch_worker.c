@@ -291,7 +291,7 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
 
         mtx_lock(&q->mutex);
         if (item->state != DISPATCH_STATE_CANCELLED) {
-            item->state = DISPATCH_STATE_DONE;
+            item->state = DISPATCH_STATE_FINISHED;
         }
 
 
@@ -301,7 +301,7 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
                 break;
 
             case _DISPATCH_TYPE_SIGNAL_ITEM:
-                if ((item->flags & _DISPATCH_SUBMIT_REPEATING) != 0
+                if ((item->flags & _DISPATCH_ITEM_FLAG_REPEATING) != 0
                     && item->state != DISPATCH_STATE_CANCELLED) {
                     _dispatch_rearm_signal_item(q, item);
                 }
@@ -313,7 +313,7 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
             case _DISPATCH_TYPE_TIMED_ITEM: {
                 dispatch_timer_t timer = self->current.timer;
 
-                if ((item->flags & _DISPATCH_SUBMIT_REPEATING) != 0
+                if ((item->flags & _DISPATCH_ITEM_FLAG_REPEATING) != 0
                     && item->state != DISPATCH_STATE_CANCELLED) {
                     _dispatch_rearm_timer(q, timer);
                 }

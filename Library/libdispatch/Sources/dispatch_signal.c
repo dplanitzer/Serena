@@ -66,7 +66,7 @@ static int _dispatch_signal_monitor(dispatch_t _Nonnull _Locked self, int signo,
 
     item->type = _DISPATCH_TYPE_SIGNAL_ITEM;
     item->subtype = (uint8_t)signo;
-    item->flags = _DISPATCH_SUBMIT_REPEATING;
+    item->flags = _DISPATCH_ITEM_FLAG_REPEATING;
     item->state = DISPATCH_STATE_IDLE;
     item->qe = SLISTNODE_INIT;
 
@@ -99,7 +99,7 @@ void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int sig
     while (sm->handlers.first) {
         dispatch_item_t item = (dispatch_item_t)SList_RemoveFirst(&sm->handlers);
 
-        item->state = DISPATCH_STATE_PENDING;
+        item->state = DISPATCH_STATE_SCHEDULED;
         item->qe = SLISTNODE_INIT;
 
         // No need to wakeup ourselves. This function is called from the worker

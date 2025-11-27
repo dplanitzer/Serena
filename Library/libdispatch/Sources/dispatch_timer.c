@@ -102,7 +102,7 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_
 
 
     timer->item->qe = SLISTNODE_INIT;
-    timer->item->state = DISPATCH_STATE_PENDING;
+    timer->item->state = DISPATCH_STATE_SCHEDULED;
 
 
     // Put the timer on the timer queue. The timer queue is sorted by absolute
@@ -167,7 +167,7 @@ static int _dispatch_timer(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     timer->timer_qe = SLISTNODE_INIT;
     timer->item = item;
 
-    if ((flags & DISPATCH_SUBMIT_ABSTIME) == DISPATCH_SUBMIT_ABSTIME) {
+    if ((flags & _DISPATCH_ITEM_FLAG_ABSTIME) == _DISPATCH_ITEM_FLAG_ABSTIME) {
         timer->deadline = *deadline;
     }
     else {
@@ -184,10 +184,10 @@ static int _dispatch_timer(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
 
     if (interval && timespec_lt(interval, &TIMESPEC_INF)) {
         timer->interval = *interval;
-        item->flags |= _DISPATCH_SUBMIT_REPEATING;
+        item->flags |= _DISPATCH_ITEM_FLAG_REPEATING;
     }
     else {
-        item->flags &= ~_DISPATCH_SUBMIT_REPEATING;
+        item->flags &= ~_DISPATCH_ITEM_FLAG_REPEATING;
     }
 
 
@@ -210,7 +210,7 @@ int dispatch_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item, int 
 
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-        r = _dispatch_timer(self, item, flags & _DISPATCH_SUBMIT_TIMER_MASK, deadline, interval);
+        r = _dispatch_timer(self, item, flags & _DISPATCH_ITEM_FLAG_ABSTIME, deadline, interval);
     }
     mtx_unlock(&self->mutex);
     return r;
@@ -227,7 +227,7 @@ static int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, cons
         if (item) {
             ((dispatch_async_item_t)item)->func = func;
             ((dispatch_async_item_t)item)->arg = arg;
-            r = _dispatch_timer(self, (dispatch_item_t)item, (flags & _DISPATCH_SUBMIT_TIMER_MASK) | _DISPATCH_SUBMIT_CACHEABLE, wtp, itp);
+            r = _dispatch_timer(self, (dispatch_item_t)item, (flags & _DISPATCH_ITEM_FLAG_ABSTIME) | _DISPATCH_ITEM_FLAG_CACHEABLE, wtp, itp);
             if (r != 0) {
                 _dispatch_cache_item(self, item);
             }

@@ -109,16 +109,16 @@ extern vcpu_key_t __os_dispatch_key;
 
 
 // Internal item flags
-#define _DISPATCH_SUBMIT_ITEM_MASK      (DISPATCH_SUBMIT_AWAITABLE)
-#define _DISPATCH_SUBMIT_TIMER_MASK     (DISPATCH_SUBMIT_ABSTIME)
+#define _DISPATCH_ITEM_FLAG_AWAITABLE   DISPATCH_SUBMIT_AWAITABLE
+#define _DISPATCH_ITEM_FLAG_ABSTIME     DISPATCH_SUBMIT_ABSTIME
 
 // Item is owned by the dispatcher and should be moved back to the work item
 // cache when done.
-#define _DISPATCH_SUBMIT_CACHEABLE      0x40
+#define _DISPATCH_ITEM_FLAG_CACHEABLE   0x40
 
 // The item is repeating (eg associated with a repeating timer) and should be
 // auto-resubmitted if not cancelled. 
-#define _DISPATCH_SUBMIT_REPEATING      0x80
+#define _DISPATCH_ITEM_FLAG_REPEATING   0x80
 
 
 // Item type
