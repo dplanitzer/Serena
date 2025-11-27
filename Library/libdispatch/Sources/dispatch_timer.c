@@ -224,11 +224,11 @@ static int _dispatch_convenience_timer(dispatch_t _Nonnull self, int flags, cons
 
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-       dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_async_item), _async_adapter_func);
+       dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_conv_item), _async_adapter_func);
     
         if (item) {
-            ((dispatch_async_item_t)item)->func = func;
-            ((dispatch_async_item_t)item)->arg = arg;
+            ((dispatch_conv_item_t)item)->u.async.func = func;
+            ((dispatch_conv_item_t)item)->u.async.arg = arg;
             r = _dispatch_timer(self, (dispatch_item_t)item, (flags & _DISPATCH_ITEM_FLAG_ABSTIME) | _DISPATCH_ITEM_FLAG_CACHEABLE, wtp, itp);
             if (r != 0) {
                 _dispatch_cache_item(self, item);

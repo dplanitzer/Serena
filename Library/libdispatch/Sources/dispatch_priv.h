@@ -40,20 +40,21 @@ struct dispatch_cacheable_item {
 typedef struct dispatch_cacheable_item* dispatch_cacheable_item_t;
 
 
-struct dispatch_async_item {
+struct dispatch_conv_item {
     struct dispatch_cacheable_item  super;
-    dispatch_async_func_t _Nonnull  func;
-    void* _Nullable                 arg;
+    union {
+        struct _dispatch_async_item {
+            dispatch_async_func_t _Nonnull  func;
+            void* _Nullable                 arg;
+        }   async;
+        struct _dispatch_sync_item {
+            dispatch_sync_func_t _Nonnull   func;
+            void* _Nullable                 arg;
+            int                             result;
+        }   sync;
+    }                               u;
 };
-typedef struct dispatch_async_item* dispatch_async_item_t;
-
-struct dispatch_sync_item {
-    struct dispatch_cacheable_item  super;
-    dispatch_sync_func_t _Nonnull   func;
-    void* _Nullable                 arg;
-    int                             result;
-};
-typedef struct dispatch_sync_item* dispatch_sync_item_t;
+typedef struct dispatch_conv_item* dispatch_conv_item_t;
 
 
 #define _DISPATCH_MAX_TIMER_CACHE_COUNT 4

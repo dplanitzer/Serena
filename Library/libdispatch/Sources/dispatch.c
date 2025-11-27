@@ -408,9 +408,9 @@ int dispatch_await(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 
 void _async_adapter_func(dispatch_item_t _Nonnull item)
 {
-    dispatch_async_item_t async_item = (dispatch_async_item_t)item;
+    dispatch_conv_item_t ip = (dispatch_conv_item_t)item;
 
-    async_item->func(async_item->arg);
+    ip->u.async.func(ip->u.async.arg);
 }
 
 int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
@@ -419,14 +419,14 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
 
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-       dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_async_item), _async_adapter_func);
+       dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_conv_item), _async_adapter_func);
     
         if (item) {
             ((dispatch_item_t)item)->type = _DISPATCH_TYPE_WORK_ITEM;
             ((dispatch_item_t)item)->subtype = 0;
             ((dispatch_item_t)item)->flags = _DISPATCH_ITEM_FLAG_CACHEABLE;
-            ((dispatch_async_item_t)item)->func = func;
-            ((dispatch_async_item_t)item)->arg = arg;
+            ((dispatch_conv_item_t)item)->u.async.func = func;
+            ((dispatch_conv_item_t)item)->u.async.arg = arg;
             r = _dispatch_submit(self, (dispatch_item_t)item);
             if (r != 0) {
                 _dispatch_cache_item(self, item);
@@ -441,9 +441,9 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
 
 static void _sync_adapter_func(dispatch_item_t _Nonnull item)
 {
-    dispatch_sync_item_t sync_item = (dispatch_sync_item_t)item;
+    dispatch_conv_item_t ip = (dispatch_conv_item_t)item;
 
-    sync_item->result = sync_item->func(sync_item->arg);
+    ip->u.sync.result = ip->u.sync.func(ip->u.sync.arg);
 }
 
 int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, void* _Nullable arg)
@@ -452,19 +452,19 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
 
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-        dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_sync_item), _sync_adapter_func);
+        dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_conv_item), _sync_adapter_func);
     
         if (item) {
             ((dispatch_item_t)item)->type = _DISPATCH_TYPE_WORK_ITEM;
             ((dispatch_item_t)item)->subtype = 0;
             ((dispatch_item_t)item)->flags = _DISPATCH_ITEM_FLAG_CACHEABLE | _DISPATCH_ITEM_FLAG_AWAITABLE;
-            ((dispatch_sync_item_t)item)->func = func;
-            ((dispatch_sync_item_t)item)->arg = arg;
-            ((dispatch_sync_item_t)item)->result = 0;
+            ((dispatch_conv_item_t)item)->u.sync.func = func;
+            ((dispatch_conv_item_t)item)->u.sync.arg = arg;
+            ((dispatch_conv_item_t)item)->u.sync.result = 0;
             if (_dispatch_submit(self, (dispatch_item_t)item) == 0) {
                 r = _dispatch_await(self, (dispatch_item_t)item);
                 if (r == 0) {
-                    r = ((dispatch_sync_item_t)item)->result;
+                    r = ((dispatch_conv_item_t)item)->u.sync.result;
                 }
             }
             _dispatch_cache_item(self, item);
