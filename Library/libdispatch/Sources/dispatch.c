@@ -764,13 +764,16 @@ void dispatch_resume(dispatch_t _Nonnull self)
 }
 
 
-void dispatch_terminate(dispatch_t _Nonnull self, bool cancel)
+void dispatch_terminate(dispatch_t _Nonnull self, int flags)
 {
+    bool isAwaitable = false;
+
     mtx_lock(&self->mutex);
     if (self != g_main_dispatcher && self->state < _DISPATCHER_STATE_TERMINATING) {
         self->state = _DISPATCHER_STATE_TERMINATING;
+        isAwaitable = true;
 
-        if (cancel) {
+        if ((flags & DISPATCH_TERMINATE_CANCEL_ALL) == DISPATCH_TERMINATE_CANCEL_ALL) {
             List_ForEach(&self->workers, ListNode, {
                 dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
 
@@ -785,6 +788,11 @@ void dispatch_terminate(dispatch_t _Nonnull self, bool cancel)
         _dispatch_wakeup_all_workers(self);
     }
     mtx_unlock(&self->mutex);
+
+
+    if (isAwaitable && (flags & DISPATCH_TERMINATE_AWAIT_ALL) == DISPATCH_TERMINATE_AWAIT_ALL) {
+        dispatch_await_termination(self);
+    }
 }
 
 int dispatch_await_termination(dispatch_t _Nonnull self)

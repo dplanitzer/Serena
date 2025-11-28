@@ -142,7 +142,7 @@ void dq_terminate_test(int argc, char *argv[])
     assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync2, (void*)3));
 
     printf("Terminating...\n");
-    dispatch_terminate(gDispatcher, false);
+    dispatch_terminate(gDispatcher, 0);
     assertOK(dispatch_await_termination(gDispatcher));
     printf("Terminated.\n");
     assertOK(dispatch_destroy(gDispatcher));

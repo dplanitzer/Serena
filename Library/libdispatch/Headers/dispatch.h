@@ -378,17 +378,23 @@ extern int dispatch_suspend(dispatch_t _Nonnull self);
 extern void dispatch_resume(dispatch_t _Nonnull self);
 
 
+#define DISPATCH_TERMINATE_CANCEL_ALL   0x01
+#define DISPATCH_TERMINATE_AWAIT_ALL    0x02
+
 // Initiates the termination of a dispatcher. Note that termination is an
 // inherently asynchronous operation that may take a while. This function will
 // never cancel an item that is currently in processing state. However it may
-// cancel items that are still in pending state. Pass true for 'cancel' if all
-// still pending items should be canceled and not executed. Pass false for
-// 'cancel' if all pending items should be allowed to execute before the
-// dispatcher completes termination. Note that the dispatcher will no longer
-// accept new items as soon as this function returns. Any attempt to submit a
-// new item to the dispatcher will be rejected with an ETERMINATED error. Note
-// that you can not terminate the main dispatcher.
-extern void dispatch_terminate(dispatch_t _Nonnull self, bool cancel);
+// cancel items that are still in pending state. Pass the
+// DISPATCH_TERMINATE_CANCEL_ALL option in 'flags' if all still pending items
+// should be canceled and not executed. Pass 0 if all pending items should be
+// allowed to execute before the dispatcher completes termination. Note that the
+// dispatcher will no longer accept new items as soon as this function returns.
+// Any attempt to submit a new item to the dispatcher will be rejected with an
+// ETERMINATED error. Note that you can not terminate the main dispatcher.
+// Pass DISPATCH_TERMINATE_AWAIT_ALL in 'flags' to make this call block until
+// all still executing work items have finished executing and the dispatcher has
+// entered terminated state.
+extern void dispatch_terminate(dispatch_t _Nonnull self, int flags);
 
 // Blocks the caller until the dispatcher has completed termination. It is safe
 // to call dispatch_destroy() on the dispatcher instance once this function has
