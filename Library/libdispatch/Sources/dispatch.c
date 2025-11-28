@@ -65,7 +65,7 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
 
     self->state = _DISPATCHER_STATE_ACTIVE;
     self->item_cache[_DISPATCH_ITEM_CACHE_IDX(_DISPATCH_TYPE_CONV_ITEM)].maxCount = _DISPATCH_MAX_CONV_ITEM_CACHE_COUNT;
-    self->item_cache[_DISPATCH_ITEM_CACHE_IDX(_DISPATCH_TYPE_TIMED_ITEM)].maxCount = _DISPATCH_MAX_TIMER_CACHE_COUNT;
+    self->item_cache[_DISPATCH_ITEM_CACHE_IDX(_DISPATCH_TYPE_CONV_TIMER)].maxCount = _DISPATCH_MAX_CONV_TIMER_CACHE_COUNT;
 
     if (cnd_init(&self->cond) != 0) {
         return false;
@@ -324,7 +324,14 @@ dispatch_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Loc
     dispatch_item_t ip = (dispatch_item_t)SList_RemoveFirst(&icp->items);
 
     if (ip == NULL) {
-        ip = malloc(sizeof(struct dispatch_conv_item));
+        size_t nbytes;
+
+        switch (itemType) {
+            case _DISPATCH_TYPE_CONV_ITEM:  nbytes = sizeof(struct dispatch_conv_item); break;
+            case _DISPATCH_TYPE_CONV_TIMER: nbytes = sizeof(struct dispatch_conv_timer); break;
+            default: abort();
+        }
+        ip = malloc(nbytes);
     }
 
     if (ip) {
@@ -391,7 +398,7 @@ int dispatch_await(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 }
 
 
-void _async_adapter_func(dispatch_item_t _Nonnull item)
+static void _async_adapter_func(dispatch_item_t _Nonnull item)
 {
     dispatch_conv_item_t ip = (dispatch_conv_item_t)item;
 
@@ -475,7 +482,8 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
                     });
                     break;
 
-                case _DISPATCH_TYPE_TIMED_ITEM:
+                case _DISPATCH_TYPE_USER_TIMER:
+                case _DISPATCH_TYPE_CONV_TIMER:
                     _dispatch_withdraw_timer(self, flags, item);
                     break;
                 
@@ -507,8 +515,7 @@ void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _
 void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _Nonnull func)
 {
     mtx_lock(&self->mutex);
-    dispatch_timer_t timer = _dispatch_find_timer(self, func);
-    dispatch_item_t item = (timer) ? timer->item : NULL;
+    dispatch_item_t item = (dispatch_item_t)_dispatch_find_timer(self, func);
 
     if (item == NULL) {
         item = _dispatch_find_item(self, func);
@@ -524,8 +531,8 @@ void dispatch_cancel_current_item(int flags)
 {
     dispatch_worker_t wp = _dispatch_worker_current();
 
-    if (wp && wp->current.item) {
-        dispatch_cancel_item(wp->owner, flags, wp->current.item);
+    if (wp && wp->current_item) {
+        dispatch_cancel_item(wp->owner, flags, wp->current_item);
     }
 }
 
@@ -555,7 +562,7 @@ dispatch_item_t _Nullable dispatch_current_item(void)
     // effectively constant) as long as this function here executes because by
     // executing this function we prevent the item context from going away before
     // we're done here.
-    return (wp) ? wp->current.item : NULL;
+    return (wp) ? wp->current_item : NULL;
 }
 
 

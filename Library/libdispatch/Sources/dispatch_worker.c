@@ -157,8 +157,24 @@ dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull 
 {
     SList_ForEach(&self->work_queue, ListNode, {
         dispatch_item_t cip = (dispatch_item_t)pCurNode;
+        bool match;
 
-        if (cip->func == func) {
+        switch (cip->type) {
+            case _DISPATCH_TYPE_CONV_ITEM:
+                match = ((dispatch_conv_item_t)cip)->u.async.func == (dispatch_async_func_t)func;
+                break;
+
+            case _DISPATCH_TYPE_USER_ITEM:
+            case _DISPATCH_TYPE_USER_SIGNAL_ITEM:
+                match = cip->func == func;
+                break;
+
+            default:
+                match = false;
+                break;
+        }
+
+        if (match) {
             return cip;
         }
     });
@@ -189,13 +205,15 @@ static void _wait_for_resume(dispatch_worker_t _Nonnull _Locked self)
 
 // Get more work for the caller. Returns 0 if work is available and != 0 if
 // there is no more work and the worker should relinquish itself. 
-static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, dispatch_work_t* _Nonnull wp)
+static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
 {
     dispatch_t q = self->owner;
     bool mayRelinquish = false;
     struct timespec now, deadline;
     dispatch_item_t item;
     int flags, signo;
+
+    self->current_item = NULL;
 
     for (;;) {
         // Grab the first timer that's due. We give preference to timers because
@@ -208,8 +226,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, dispatch_work
 
             if (timespec_le(&ftp->deadline, &now)) {
                 SList_RemoveFirst(&q->timers);
-                wp->timer = ftp;
-                wp->item = ftp->item;
+                self->current_item = (dispatch_item_t)ftp;
 
                 return 0;
             }
@@ -220,8 +237,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self, dispatch_work
         item = (dispatch_item_t) SList_RemoveFirst(&self->work_queue);
         if (item) {
             self->work_count--;
-            wp->timer = NULL;
-            wp->item = item;
+            self->current_item = item;
 
             return 0;
         }
@@ -280,8 +296,8 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
 
     mtx_lock(&q->mutex);
 
-    while (!_get_next_work(self, &self->current)) {
-        dispatch_item_t item = self->current.item;
+    while (!_get_next_work(self)) {
+        dispatch_item_t item = self->current_item;
 
         item->state = DISPATCH_STATE_EXECUTING;
         mtx_unlock(&q->mutex);
@@ -307,17 +323,15 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
                 }
                 break;
 
-            case _DISPATCH_TYPE_TIMED_ITEM: {
-                dispatch_timer_t timer = self->current.timer;
-
+            case _DISPATCH_TYPE_USER_TIMER:
+            case _DISPATCH_TYPE_CONV_TIMER:
                 if ((item->flags & _DISPATCH_ITEM_FLAG_REPEATING) != 0
                     && (item->flags & _DISPATCH_ITEM_FLAG_CANCELLED) == 0) {
-                    _dispatch_rearm_timer(q, timer);
+                    _dispatch_rearm_timer(q, (dispatch_timer_t)item);
                 }
                 else {
-                    _dispatch_retire_timer(q, timer);
+                    _dispatch_retire_item(q, item);
                 }
-            }
                 break;
 
             default:

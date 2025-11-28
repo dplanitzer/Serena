@@ -24,15 +24,15 @@ __CPP_BEGIN
 // FINISHED     -> SCHEDULED
 // CANCELLED    -> SCHEDULED
 //
-// THe transition from SCHEDULED | EXECUTING to CANCELLED is done indirectly by
+// The transition from SCHEDULED | EXECUTING to CANCELLED is done indirectly by
 // first setting the _DISPATCH_ITEM_FLAG_CANCELLED flag on the item to indicate
 // that the item should be cancelled. Since cancelling is a voluntary and
 // cooperative task, the item (if it is already in EXECUTING state) has to
 // recognize the cancel request and act on it before we can transition the item
 // to CANCELLED state.
 
-#define _DISPATCH_MAX_CONV_ITEM_CACHE_COUNT 8
-#define _DISPATCH_MAX_TIMER_CACHE_COUNT     4
+#define _DISPATCH_MAX_CONV_ITEM_CACHE_COUNT     8
+#define _DISPATCH_MAX_CONV_TIMER_CACHE_COUNT    4
 
 struct dispatch_item_cache {
     SList   items;
@@ -58,20 +58,12 @@ struct dispatch_conv_item {
 typedef struct dispatch_conv_item* dispatch_conv_item_t;
 
 
-// A particular timer instance may appear at most once on the timer queue.
-struct dispatch_timer {
-    SListNode                   timer_qe;
-    struct timespec             deadline;   // Time when the timer fires next
-    struct timespec             interval;   // Time interval until next time the timer should fire (if repeating) 
-    dispatch_item_t _Nonnull    item;
+struct dispatch_conv_timer {
+    struct dispatch_timer           timer;
+    dispatch_async_func_t _Nonnull  func;
+    void* _Nullable                 arg;
 };
-typedef struct dispatch_timer* dispatch_timer_t;
-
-
-typedef struct dispatch_work {
-    dispatch_timer_t _Nullable  timer;  // timer of 'item' if it is timed; NULL otherwise
-    dispatch_item_t _Nullable   item;   // points to the currently executing item; NULL if worker isn't executing anything
-} dispatch_work_t;
+typedef struct dispatch_conv_timer* dispatch_conv_timer_t;
 
 
 typedef struct dispatch_sigmon {
@@ -86,23 +78,23 @@ typedef struct dispatch_sigmon {
 #define _DISPATCH_ADOPT_MAIN_VCPU   2
 
 struct dispatch_worker {
-    ListNode                worker_qe;
+    ListNode                    worker_qe;
 
-    SList                   work_queue;
-    size_t                  work_count;
+    SList                       work_queue;
+    size_t                      work_count;
 
-    dispatch_work_t         current;    // Currently executing work
+    dispatch_item_t _Nullable   current_item;   // Currently executing work
 
-    vcpu_t _Nonnull         vcpu;
-    vcpuid_t                id;
+    vcpu_t _Nonnull             vcpu;
+    vcpuid_t                    id;
 
-    sigset_t                hotsigs;
+    sigset_t                    hotsigs;
 
-    dispatch_t _Nonnull     owner;
+    dispatch_t _Nonnull         owner;
 
-    int8_t                  adoption;  // _DISPATCH_XXX_VCPU; tells us whether the worker acquired or adopted its vcpu
-    bool                    allow_relinquish;   // whether the worker is free to relinquish or not
-    bool                    is_suspended;   // set to true by the worker when it has picked up on the dispatcher suspending state
+    int8_t                      adoption;  // _DISPATCH_XXX_VCPU; tells us whether the worker acquired or adopted its vcpu
+    bool                        allow_relinquish;   // whether the worker is free to relinquish or not
+    bool                        is_suspended;   // set to true by the worker when it has picked up on the dispatcher suspending state
 };
 typedef struct dispatch_worker* dispatch_worker_t;
 
@@ -124,7 +116,6 @@ extern vcpu_key_t __os_dispatch_key;
 
 // Internal item flags
 #define _DISPATCH_ITEM_FLAG_AWAITABLE   DISPATCH_SUBMIT_AWAITABLE
-#define _DISPATCH_ITEM_FLAG_ABSTIME     DISPATCH_SUBMIT_ABSTIME
 
 // Item is cancelled and should enter cancelled state once execution has finished.
 #define _DISPATCH_ITEM_FLAG_CANCELLED   0x20
@@ -141,8 +132,9 @@ extern vcpu_key_t __os_dispatch_key;
 // Item type
 #define _DISPATCH_TYPE_USER_ITEM        0x01    // user owned
 #define _DISPATCH_TYPE_USER_SIGNAL_ITEM 0x02    // user owned
-#define _DISPATCH_TYPE_CONV_ITEM        0x03    // cacheable, dispatcher owned
-#define _DISPATCH_TYPE_TIMED_ITEM       0x04    // cacheable, dispatcher owned
+#define _DISPATCH_TYPE_USER_TIMER       0x03    // user owned
+#define _DISPATCH_TYPE_CONV_ITEM        0x04    // cacheable, dispatcher owned
+#define _DISPATCH_TYPE_CONV_TIMER       0x05    // cacheable, dispatcher owned
 
 #define _DISPATCH_ITEM_CACHE_IDX(__item_type) ((__item_type) - _DISPATCH_TYPE_CONV_ITEM) 
 #define _DISPATCH_ITEM_CACHE_COUNT      2
@@ -184,7 +176,6 @@ struct dispatch {
 
 extern int _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
 extern void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
-extern void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
 extern void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern dispatch_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, int itemType, dispatch_item_func_t func);
@@ -196,7 +187,6 @@ extern bool _dispatch_isactive(dispatch_t _Nonnull _Locked self);
 
 extern dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func);
 extern void _dispatch_withdraw_timer(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
-extern void _dispatch_cache_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
 extern void _dispatch_drain_timers(dispatch_t _Nonnull _Locked self);
 
 extern void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
@@ -205,8 +195,6 @@ extern void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, 
 extern void _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 
 extern _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker);
-
-extern void _async_adapter_func(dispatch_item_t _Nonnull item);
 
 __CPP_END
 

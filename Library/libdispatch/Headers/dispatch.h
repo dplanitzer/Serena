@@ -145,6 +145,14 @@ typedef struct dispatch_item* dispatch_item_t;
 #define DISPATCH_ITEM_INIT  (struct dispatch_item){0}
 
 
+struct dispatch_timer {
+    struct dispatch_item    item;
+    struct timespec         deadline;
+    struct timespec         interval; 
+};
+typedef struct dispatch_timer* dispatch_timer_t;
+
+
 // Quality of Service level. From highest to lowest.
 // DISPATCH_QOS_REALTIME: kernel will minimize the scheduling latency. Realtime is always scheduled before anything else
 // DISPATCH_QOS_BACKGROUND: no guarantee with regards to schedule latency.
@@ -240,7 +248,7 @@ extern int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull
 // TIMER_ABSTIME and otherwise it is a duration relative to the current time.
 // The timer is repeating if 'interval' is not NULL and it will first fire at
 // 'deadline' and then repeat every 'interval' nanoseconds.
-extern int dispatch_timer(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item, int flags, const struct timespec* _Nonnull deadline, const struct timespec* _Nullable interval);
+extern int dispatch_timer(dispatch_t _Nonnull self, dispatch_timer_t _Nonnull timer, int flags, const struct timespec* _Nonnull deadline, const struct timespec* _Nullable interval);
 
 
 // Convenience function to execute 'func' after 'wtp' nanoseconds or at the
