@@ -124,9 +124,9 @@ int dispatch_destroy(dispatch_t _Nullable self)
         }
 
 
-        if (self->sigmons) {
-            free(self->sigmons);
-            self->sigmons = NULL;
+        if (self->sigtraps) {
+            free(self->sigtraps);
+            self->sigtraps = NULL;
         }
 
         self->workers = LIST_INIT;

@@ -27,7 +27,7 @@ static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo,
     });
 }
 
-// Removes 'item' from its signal monitor and retires it.
+// Removes the signal monitor 'item' from its signal trap and retires it.
 void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
 {
     const int signo = item->subtype;
@@ -57,7 +57,7 @@ void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, int flags, dispatc
     }
 }
 
-// Retires the signal item 'item'.
+// Retires the signal monitor 'item'.
 void _dispatch_retire_signal_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     const int signo = item->subtype;
@@ -72,7 +72,7 @@ void _dispatch_retire_signal_item(dispatch_t _Nonnull self, dispatch_item_t _Non
 }
 
 // Rearms 'item' in the sense that it is moved back to idle state and the signal
-// monitor so that it can be submitted again when the next signal comes in.
+// trap so that it can be submitted again when the next signal comes in.
 void _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
     dispatch_sigtrap_t stp = &self->sigtraps[item->subtype - 1];
