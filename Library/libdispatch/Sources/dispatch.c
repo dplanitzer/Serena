@@ -238,8 +238,9 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
         }
     }
 
-    item->state = DISPATCH_STATE_SCHEDULED;
     item->qe = SLISTNODE_INIT;
+    item->state = DISPATCH_STATE_SCHEDULED;
+    item->flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
 
 
     // Enqueue the work item at the worker that we found and notify it
@@ -378,6 +379,11 @@ bool _dispatch_isactive(dispatch_t _Nonnull _Locked self)
 int dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
 {
     int r = -1;
+
+    if (item->func == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
 
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {

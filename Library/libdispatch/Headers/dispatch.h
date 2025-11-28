@@ -140,9 +140,9 @@ typedef struct dispatch_item* dispatch_item_t;
 
 
 // A convenience macro to initialize a dispatch item before it is submitted to
-// a dispatcher. Note that you still need to set up 'func' and possibly 'flags'
-// before you submit the item.
-#define DISPATCH_ITEM_INIT  (struct dispatch_item){0}
+// a dispatcher.
+#define DISPATCH_ITEM_INIT(__func, __retireFunc) \
+(struct dispatch_item){NULL, (dispatch_item_func_t)(__func), (dispatch_retire_func_t)(__retireFunc), 0, 0, 0, 0}
 
 
 struct dispatch_timer {
@@ -151,6 +151,15 @@ struct dispatch_timer {
     struct timespec         interval; 
 };
 typedef struct dispatch_timer* dispatch_timer_t;
+
+
+// A convenience macro to initialize a dispatch oneshot timer.
+#define DISPATCH_ONESHOT_TIMER(__func, __retireFunc, __deadline) \
+(struct dispatch_timer){{NULL, (dispatch_item_func_t)(__func), (dispatch_retire_func_t)(__retireFunc), 0, 0, 0, 0}, (__deadline), TIMESPEC_INF}
+
+// A convenience macro to initialize a dispatch repeating timer.
+#define DISPATCH_REPEATING_TIMER(__func, __retireFunc, __deadline, __interval) \
+(struct dispatch_timer){{NULL, (dispatch_item_func_t)(__func), (dispatch_retire_func_t)(__retireFunc), 0, 0, 0, 0}, (__deadline), (__interval)}
 
 
 // Quality of Service level. From highest to lowest.
@@ -242,13 +251,14 @@ typedef int (*dispatch_sync_func_t)(void* _Nullable arg);
 extern int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, void* _Nullable arg);
 
 
-// Schedules a one-shot or repeating timer which will execute 'item'. The timer
-// is one-shot if 'interval' is NULL or TIMESPEC_INF. The one-shot timer will
-// fire at 'deadline'. 'deadline' is an absolute time if 'flags' contains
-// TIMER_ABSTIME and otherwise it is a duration relative to the current time.
-// The timer is repeating if 'interval' is not NULL and it will first fire at
-// 'deadline' and then repeat every 'interval' nanoseconds.
-extern int dispatch_timer(dispatch_t _Nonnull self, dispatch_timer_t _Nonnull timer, int flags, const struct timespec* _Nonnull deadline, const struct timespec* _Nullable interval);
+// Submits the timer 'timer' to the dispatcher 'self'. The timer will execute
+// once if the interval field in the timer is set to TIMESPEC_INF and it will
+// execute repeatedly if the interval field is set to a valid timespec. The first
+// timer execution will be at or soon after 'deadline' and the timer will repeat
+// every 'interval' time units. If TIMER_ABSTIME is passed to 'flags' then the
+// timer deadline field is interpreted as an absolute time value; otherwise it
+// is interpreted as a delay relative to the current time. 
+extern int dispatch_timer(dispatch_t _Nonnull self, int flags, dispatch_timer_t _Nonnull timer);
 
 
 // Convenience function to execute 'func' after 'wtp' nanoseconds or at the

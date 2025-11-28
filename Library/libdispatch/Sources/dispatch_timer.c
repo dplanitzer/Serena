@@ -129,16 +129,13 @@ int _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _No
     return _dispatch_arm_timer(self, timer);
 }
 
-static void _set_timer_deadline(dispatch_timer_t _Nonnull timer, int flags, const struct timespec* _Nonnull deadline)
+static void _calc_timer_absolute_deadline(dispatch_timer_t _Nonnull timer, int flags)
 {
-    if ((flags & DISPATCH_SUBMIT_ABSTIME) == DISPATCH_SUBMIT_ABSTIME) {
-        timer->deadline = *deadline;
-    }
-    else {
+    if ((flags & DISPATCH_SUBMIT_ABSTIME) == 0) {
         struct timespec now;
 
         clock_gettime(CLOCK_MONOTONIC, &now);
-        timespec_add(&now, deadline, &timer->deadline);
+        timespec_add(&now, &timer->deadline, &timer->deadline);
     }
 }
 
@@ -146,16 +143,20 @@ static void _set_timer_deadline(dispatch_timer_t _Nonnull timer, int flags, cons
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
 
-int dispatch_timer(dispatch_t _Nonnull self, dispatch_timer_t _Nonnull timer, int flags, const struct timespec* _Nonnull deadline, const struct timespec* _Nullable interval)
+int dispatch_timer(dispatch_t _Nonnull self, int flags, dispatch_timer_t _Nonnull timer)
 {
     int r = -1;
 
-    if (!timespec_isvalid(deadline) || (interval && !timespec_isvalid(interval))) {
+    if (!timespec_isvalid(&timer->deadline) || !timespec_isvalid(&timer->interval)) {
         errno = EINVAL;
         return -1;
     }
     if (timer->item.state == DISPATCH_STATE_SCHEDULED || timer->item.state == DISPATCH_STATE_EXECUTING) {
         errno = EBUSY;
+        return -1;
+    }
+    if (timer->item.func == NULL) {
+        errno = EINVAL;
         return -1;
     }
 
@@ -165,15 +166,11 @@ int dispatch_timer(dispatch_t _Nonnull self, dispatch_timer_t _Nonnull timer, in
         timer->item.subtype = 0;
         timer->item.flags = 0;
 
-        if (interval && timespec_lt(interval, &TIMESPEC_INF)) {
-            timer->interval = *interval;
+        if (timespec_lt(&timer->interval, &TIMESPEC_INF)) {
             timer->item.flags |= _DISPATCH_ITEM_FLAG_REPEATING;
         }
-        else {
-            timer->interval = TIMESPEC_ZERO;
-        }
 
-        _set_timer_deadline(timer, flags, deadline);
+        _calc_timer_absolute_deadline(timer, flags);
         r = _dispatch_arm_timer(self, timer);
     }
     mtx_unlock(&self->mutex);
@@ -204,8 +201,9 @@ int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _
             timer->timer.item.flags = _DISPATCH_ITEM_FLAG_CACHEABLE;
             timer->func = func;
             timer->arg = arg;
-            timer->timer.interval = TIMESPEC_ZERO;
-            _set_timer_deadline((dispatch_timer_t)timer, flags, wtp);
+            timer->timer.deadline = *wtp;
+            timer->timer.interval = TIMESPEC_INF;
+            _calc_timer_absolute_deadline((dispatch_timer_t)timer, flags);
 
             r = _dispatch_arm_timer(self, (dispatch_timer_t)timer);
             if (r != 0) {
@@ -235,8 +233,9 @@ int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespe
             timer->timer.item.flags = _DISPATCH_ITEM_FLAG_CACHEABLE | _DISPATCH_ITEM_FLAG_REPEATING;
             timer->func = func;
             timer->arg = arg;
+            timer->timer.deadline = *wtp;
             timer->timer.interval = *itp;
-            _set_timer_deadline((dispatch_timer_t)timer, flags, wtp);
+            _calc_timer_absolute_deadline((dispatch_timer_t)timer, flags);
 
             r = _dispatch_arm_timer(self, (dispatch_timer_t)timer);
             if (r != 0) {
