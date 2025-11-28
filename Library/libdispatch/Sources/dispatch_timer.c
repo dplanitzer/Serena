@@ -43,26 +43,30 @@ void _dispatch_withdraw_timer(dispatch_t _Nonnull self, int flags, dispatch_item
     }
 }
 
-dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func)
+dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
     SList_ForEach(&self->timers, SListNode, {
         dispatch_timer_t ctp = (dispatch_timer_t)pCurNode;
-        bool match;
+        bool hasFunc;
+        bool hasArg;
 
         switch (ctp->item.type) {
             case _DISPATCH_TYPE_CONV_TIMER:
-                match = ((dispatch_conv_timer_t)ctp)->func == (dispatch_async_func_t)func;
+                hasFunc = ((dispatch_conv_timer_t)ctp)->func == (dispatch_async_func_t)func;
+                hasArg = (arg == DISPATCH_IGNORE_ARG) || (((dispatch_conv_timer_t)ctp)->arg == arg);
                 break;
 
             case _DISPATCH_TYPE_USER_TIMER:
-                match = ctp->item.func == func;
+                hasFunc = ctp->item.func == func;
+                hasArg = true;
                 break;
 
             default:
-                match = false;
+                hasFunc = false;
+                hasArg = false;
                 break;
         }
-        if (match) {
+        if (hasFunc && hasArg) {
             return ctp;
         }
     });

@@ -301,11 +301,11 @@ void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
     cnd_broadcast(&self->cond);
 }
 
-static dispatch_item_t _Nullable _dispatch_find_item(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func)
+static dispatch_item_t _Nullable _dispatch_find_item(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
     List_ForEach(&self->workers, ListNode, {
         dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
-        dispatch_item_t ip = _dispatch_worker_find_item(cwp, func);
+        dispatch_item_t ip = _dispatch_worker_find_item(cwp, func, arg);
 
         if (ip) {
             return ip;
@@ -518,13 +518,13 @@ void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _
     mtx_unlock(&self->mutex);
 }
 
-void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _Nonnull func)
+void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
     mtx_lock(&self->mutex);
-    dispatch_item_t item = (dispatch_item_t)_dispatch_find_timer(self, func);
+    dispatch_item_t item = (dispatch_item_t)_dispatch_find_timer(self, func, arg);
 
     if (item == NULL) {
-        item = _dispatch_find_item(self, func);
+        item = _dispatch_find_item(self, func, arg);
     }
 
     if (item) {

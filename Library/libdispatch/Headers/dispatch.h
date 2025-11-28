@@ -315,10 +315,13 @@ extern int dispatch_send_signal(dispatch_t _Nonnull self, int signo);
 // queue if it is awaitable.
 extern void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
 
-// Cancels the first scheduled timer or work item that matches function 'func'.
+#define DISPATCH_IGNORE_ARG ((void*)-1)
+
+// Cancels the first scheduled timer or work item that matches function 'func'
+// and 'arg'. 'arg' is ignored if it is DISPATCH_IGNORE_ARG.
 // First here means the timer or work item that would execute soonest. Timers
 // are cancelled before work items. At most one timer or work item is cancelled.
-extern void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _Nonnull func);
+extern void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _Nonnull func, void* _Nullable arg);
 
 // Cancels the current item/timer. The current item is the work item that is
 // active and belongs to the caller. Does nothing if this function is called

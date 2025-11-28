@@ -96,7 +96,7 @@ extern void _dispatch_worker_destroy(dispatch_worker_t _Nullable self);
 
 extern void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self);
 extern void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item, bool doWakeup);
-extern dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull self, dispatch_item_func_t _Nonnull func);
+extern dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg);
 extern bool _dispatch_worker_withdraw_item(dispatch_worker_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
 extern void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self);
 
@@ -178,7 +178,7 @@ extern int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self);
 extern bool _dispatch_isactive(dispatch_t _Nonnull _Locked self);
 
 
-extern dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func);
+extern dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg);
 extern void _dispatch_withdraw_timer(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
 extern void _dispatch_drain_timers(dispatch_t _Nonnull _Locked self);
 

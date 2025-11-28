@@ -153,28 +153,32 @@ bool _dispatch_worker_withdraw_item(dispatch_worker_t _Nonnull self, int flags, 
     return false;
 }
 
-dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull self, dispatch_item_func_t _Nonnull func)
+dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
     SList_ForEach(&self->work_queue, ListNode, {
         dispatch_item_t cip = (dispatch_item_t)pCurNode;
-        bool match;
+        bool hasFunc;
+        bool hasArg;
 
         switch (cip->type) {
             case _DISPATCH_TYPE_CONV_ITEM:
-                match = func == (dispatch_item_func_t)((dispatch_conv_item_t)cip)->func;
+                hasFunc = func == (dispatch_item_func_t)((dispatch_conv_item_t)cip)->func;
+                hasArg = (arg == DISPATCH_IGNORE_ARG) || (((dispatch_conv_item_t)cip)->arg == arg);
                 break;
 
             case _DISPATCH_TYPE_USER_ITEM:
             case _DISPATCH_TYPE_USER_SIGNAL_ITEM:
-                match = func == cip->func;
+                hasFunc = func == cip->func;
+                hasArg = true;
                 break;
 
             default:
-                match = false;
+                hasFunc = false;
+                hasArg = false;
                 break;
         }
 
-        if (match) {
+        if (hasFunc && hasArg) {
             return cip;
         }
     });
