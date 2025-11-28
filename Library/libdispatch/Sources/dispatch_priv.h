@@ -31,17 +31,18 @@ __CPP_BEGIN
 // recognize the cancel request and act on it before we can transition the item
 // to CANCELLED state.
 
-#define _DISPATCH_MAX_ITEM_CACHE_COUNT  8
+#define _DISPATCH_MAX_CONV_ITEM_CACHE_COUNT 8
+#define _DISPATCH_MAX_TIMER_CACHE_COUNT     4
 
-struct dispatch_cacheable_item {
-    struct dispatch_item    super;
-    size_t                  size;
+struct dispatch_item_cache {
+    SList   items;
+    int16_t count;
+    int16_t maxCount;
 };
-typedef struct dispatch_cacheable_item* dispatch_cacheable_item_t;
 
 
 struct dispatch_conv_item {
-    struct dispatch_cacheable_item  super;
+    struct dispatch_item  super;
     union {
         struct _dispatch_async_item {
             dispatch_async_func_t _Nonnull  func;
@@ -56,8 +57,6 @@ struct dispatch_conv_item {
 };
 typedef struct dispatch_conv_item* dispatch_conv_item_t;
 
-
-#define _DISPATCH_MAX_TIMER_CACHE_COUNT 4
 
 // A particular timer instance may appear at most once on the timer queue.
 struct dispatch_timer {
@@ -140,10 +139,13 @@ extern vcpu_key_t __os_dispatch_key;
 
 
 // Item type
-#define _DISPATCH_TYPE_USER_ITEM        0x01
-#define _DISPATCH_TYPE_CONV_ITEM        0x02
-#define _DISPATCH_TYPE_TIMED_ITEM       0x03
-#define _DISPATCH_TYPE_SIGNAL_ITEM      0x04
+#define _DISPATCH_TYPE_USER_ITEM        0x01    // user owned
+#define _DISPATCH_TYPE_USER_SIGNAL_ITEM 0x02    // user owned
+#define _DISPATCH_TYPE_CONV_ITEM        0x03    // cacheable, dispatcher owned
+#define _DISPATCH_TYPE_TIMED_ITEM       0x04    // cacheable, dispatcher owned
+
+#define _DISPATCH_ITEM_CACHE_IDX(__item_type) ((__item_type) - _DISPATCH_TYPE_CONV_ITEM) 
+#define _DISPATCH_ITEM_CACHE_COUNT      2
 
 
 // Dispatcher state
@@ -155,39 +157,38 @@ extern vcpu_key_t __os_dispatch_key;
 
 
 struct dispatch {
-    mtx_t               mutex;
-    cnd_t               cond;
-    dispatch_attr_t     attr;
-    vcpuid_t            groupid;        // Constant over lifetime
+    mtx_t                       mutex;
+    cnd_t                       cond;
+    dispatch_attr_t             attr;
+    vcpuid_t                    groupid;        // Constant over lifetime
 
-    List                workers;        // Each worker has its own work item queue
-    size_t              worker_count;
+    List                        workers;        // Each worker has its own work item queue
+    size_t                      worker_count;
 
-    SList               zombie_items;   // Items that are done and joinable
+    SList                       zombie_items;   // Items that are done and joinable
 
-    SList               item_cache;
-    size_t              item_cache_count;
-
-    SList               timers;         // The timer queue is shared by all workers
-    SList               timer_cache;
-    size_t              timer_cache_count;
+    SList                       timers;         // The timer queue is shared by all workers
+    SList                       timer_cache;
+    size_t                      timer_cache_count;
 
     dispatch_sigmon_t* _Nullable    sigmons;
-    sigset_t            alloced_sigs;
+    sigset_t                    alloced_sigs;
 
-    volatile int        state;
-    int                 suspension_count;
+    volatile int                state;
+    int                         suspension_count;
 
-    char                name[DISPATCH_MAX_NAME_LENGTH + 1];
+    struct dispatch_item_cache  item_cache[_DISPATCH_ITEM_CACHE_COUNT];
+
+    char                        name[DISPATCH_MAX_NAME_LENGTH + 1];
 };
 
 extern int _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
 extern void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
 extern void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
-extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_cacheable_item_t _Nonnull item);
+extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
+extern dispatch_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, int itemType, dispatch_item_func_t func);
 extern void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self);
-extern dispatch_cacheable_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, size_t nbytes, dispatch_item_func_t func);
 static int _dispatch_acquire_worker_with_ownership(dispatch_t _Nonnull _Locked self, int ownership);
 extern int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self);
 extern bool _dispatch_isactive(dispatch_t _Nonnull _Locked self);

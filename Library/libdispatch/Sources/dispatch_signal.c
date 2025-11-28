@@ -95,11 +95,11 @@ static int _dispatch_signal_monitor(dispatch_t _Nonnull _Locked self, int signo,
         }
     }
 
-    item->type = _DISPATCH_TYPE_SIGNAL_ITEM;
+    item->qe = SLISTNODE_INIT;
+    item->type = _DISPATCH_TYPE_USER_SIGNAL_ITEM;
     item->subtype = (uint8_t)signo;
     item->flags = _DISPATCH_ITEM_FLAG_REPEATING;
     item->state = DISPATCH_STATE_IDLE;
-    item->qe = SLISTNODE_INIT;
 
     dispatch_sigmon_t* sm = &self->sigmons[signo - 1];
     SList_InsertAfterLast(&sm->handlers, &item->qe);

@@ -38,6 +38,8 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
     }
 
 
+    memset(self, 0, sizeof(struct dispatch));
+
     if (mtx_init(&self->mutex) != 0) {
         return false;
     }
@@ -61,18 +63,9 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
             abort();
     }
 
-    self->workers = LIST_INIT;
-    self->worker_count = 0;
-    self->item_cache = SLIST_INIT;
-    self->item_cache_count = 0;
-    self->zombie_items = SLIST_INIT;
-    self->timers = SLIST_INIT;
-    self->timer_cache = SLIST_INIT;
-    self->timer_cache_count = 0;
     self->state = _DISPATCHER_STATE_ACTIVE;
-
-    sigaddset(&self->alloced_sigs, SIGKILL);
-    sigaddset(&self->alloced_sigs, SIGDISP);
+    self->item_cache[_DISPATCH_ITEM_CACHE_IDX(_DISPATCH_TYPE_CONV_ITEM)].maxCount = _DISPATCH_MAX_CONV_ITEM_CACHE_COUNT;
+    self->item_cache[_DISPATCH_ITEM_CACHE_IDX(_DISPATCH_TYPE_TIMED_ITEM)].maxCount = _DISPATCH_MAX_TIMER_CACHE_COUNT;
 
     if (cnd_init(&self->cond) != 0) {
         return false;
@@ -116,20 +109,19 @@ int dispatch_destroy(dispatch_t _Nullable self)
         }
 
 
-        SList_ForEach(&self->timer_cache, ListNode, {
-            dispatch_timer_t ctp = (dispatch_timer_t)pCurNode;
-
-            free(ctp);
+        SList_ForEach(&self->timer_cache, SListNode, {
+            free(pCurNode);
         });
         self->timer_cache = SLIST_INIT;
 
 
-        SList_ForEach(&self->item_cache, ListNode, {
-            dispatch_cacheable_item_t cip = (dispatch_cacheable_item_t)pCurNode;
-
-            free(cip);
-        });
-        self->item_cache = SLIST_INIT;
+        for (int i = 0; i < _DISPATCH_ITEM_CACHE_COUNT; i++) {
+            SList_ForEach(&self->item_cache[i].items, SListNode, {
+                free(pCurNode);
+            });
+            self->item_cache[i].items = SLIST_INIT;
+            self->item_cache[i].count = 0;
+        }
 
 
         if (self->sigmons) {
@@ -270,7 +262,7 @@ void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
         _dispatch_zombify_item(self, item);
     }
     else if ((item->flags & _DISPATCH_ITEM_FLAG_CACHEABLE) != 0) {
-        _dispatch_cache_item(self, (dispatch_cacheable_item_t)item);
+        _dispatch_cache_item(self, item);
     }
     else if (item->retireFunc) {
         item->retireFunc(item);
@@ -289,7 +281,7 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     }
 
     dispatch_item_t pip = NULL;
-    SList_ForEach(&self->zombie_items, ListNode, {
+    SList_ForEach(&self->zombie_items, SListNode, {
         dispatch_item_t cip = (dispatch_item_t)pCurNode;
 
         if (cip == item) {
@@ -326,47 +318,40 @@ static dispatch_item_t _Nullable _dispatch_find_item(dispatch_t _Nonnull self, d
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Item Cache
 
-dispatch_cacheable_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, size_t nbytes, dispatch_item_func_t func)
+dispatch_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, int itemType, dispatch_item_func_t func)
 {
-    dispatch_cacheable_item_t pip = NULL;
-    dispatch_cacheable_item_t ip = NULL;
-
-    SList_ForEach(&self->item_cache, ListNode, {
-        dispatch_cacheable_item_t cip = (dispatch_cacheable_item_t)pCurNode;
-
-        if (cip->size >= nbytes) {
-            SList_Remove(&self->item_cache, &pip->super.qe, &cip->super.qe);
-            self->item_cache_count--;
-            ip = cip;
-            break;
-        }
-
-        pip = cip;
-    });
+    struct dispatch_item_cache* icp = &self->item_cache[_DISPATCH_ITEM_CACHE_IDX(itemType)];
+    dispatch_item_t ip = (dispatch_item_t)SList_RemoveFirst(&icp->items);
 
     if (ip == NULL) {
-        ip = malloc(nbytes);
+        ip = malloc(sizeof(struct dispatch_conv_item));
     }
 
     if (ip) {
-        ip->size = nbytes;
-        ip->super.func = func;
-        ip->super.retireFunc = NULL;
-        ip->super.state = DISPATCH_STATE_IDLE;
+        ip->qe = SLISTNODE_INIT;
+        ip->func = func;
+        ip->retireFunc = NULL;
+        ip->type = itemType;
+        ip->subtype = 0;
+        ip->flags = 0;
+        ip->state = DISPATCH_STATE_IDLE;
     }
 
     return ip;
 }
 
-void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_cacheable_item_t _Nonnull item)
+void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
-    if (self->item_cache_count >= _DISPATCH_MAX_ITEM_CACHE_COUNT) {
-        free(item);
-        return;
-    }
+    struct dispatch_item_cache* icp = &self->item_cache[_DISPATCH_ITEM_CACHE_IDX(item->type)];
 
-    SList_InsertBeforeFirst(&self->item_cache, &item->super.qe);
-    self->item_cache_count++;
+    if (icp->count < icp->maxCount) {
+        item->qe = SLISTNODE_INIT;
+        SList_InsertBeforeFirst(&icp->items, &item->qe);
+        icp->count++;
+    }
+    else {
+        free(item);
+    }
 }
 
 
@@ -419,11 +404,9 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
 
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-       dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_conv_item), _async_adapter_func);
+       dispatch_item_t item = _dispatch_acquire_cached_item(self, _DISPATCH_TYPE_CONV_ITEM, _async_adapter_func);
     
         if (item) {
-            ((dispatch_item_t)item)->type = _DISPATCH_TYPE_CONV_ITEM;
-            ((dispatch_item_t)item)->subtype = 0;
             ((dispatch_item_t)item)->flags = _DISPATCH_ITEM_FLAG_CACHEABLE;
             ((dispatch_conv_item_t)item)->u.async.func = func;
             ((dispatch_conv_item_t)item)->u.async.arg = arg;
@@ -452,11 +435,9 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
 
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-        dispatch_cacheable_item_t item = _dispatch_acquire_cached_item(self, sizeof(struct dispatch_conv_item), _sync_adapter_func);
+        dispatch_item_t item = _dispatch_acquire_cached_item(self, _DISPATCH_TYPE_CONV_ITEM, _sync_adapter_func);
     
         if (item) {
-            ((dispatch_item_t)item)->type = _DISPATCH_TYPE_CONV_ITEM;
-            ((dispatch_item_t)item)->subtype = 0;
             ((dispatch_item_t)item)->flags = _DISPATCH_ITEM_FLAG_CACHEABLE | _DISPATCH_ITEM_FLAG_AWAITABLE;
             ((dispatch_conv_item_t)item)->u.sync.func = func;
             ((dispatch_conv_item_t)item)->u.sync.arg = arg;
@@ -498,7 +479,7 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
                     _dispatch_withdraw_timer(self, flags, item);
                     break;
                 
-                case _DISPATCH_TYPE_SIGNAL_ITEM:
+                case _DISPATCH_TYPE_USER_SIGNAL_ITEM:
                     _dispatch_withdraw_signal_item(self, flags, item);
                     break;
 

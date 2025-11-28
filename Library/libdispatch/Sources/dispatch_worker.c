@@ -297,7 +297,7 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
                 _dispatch_retire_item(q, item);
                 break;
 
-            case _DISPATCH_TYPE_SIGNAL_ITEM:
+            case _DISPATCH_TYPE_USER_SIGNAL_ITEM:
                 if ((item->flags & _DISPATCH_ITEM_FLAG_REPEATING) != 0
                     && (item->flags & _DISPATCH_ITEM_FLAG_CANCELLED) == 0) {
                     _dispatch_rearm_signal_item(q, item);
