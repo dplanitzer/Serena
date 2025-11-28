@@ -58,10 +58,11 @@ struct dispatch_conv_timer {
 typedef struct dispatch_conv_timer* dispatch_conv_timer_t;
 
 
-typedef struct dispatch_sigmon {
-    SList   handlers;
-    int     handlers_count;
-} dispatch_sigmon_t;
+struct dispatch_sigtrap {
+    SList   monitors;
+    int     count;
+};
+typedef struct dispatch_sigtrap* dispatch_sigtrap_t;
 
 
 // _dispatch_worker_create() adoption mode
@@ -141,29 +142,29 @@ extern vcpu_key_t __os_dispatch_key;
 
 
 struct dispatch {
-    mtx_t                       mutex;
-    cnd_t                       cond;
-    dispatch_attr_t             attr;
-    vcpuid_t                    groupid;        // Constant over lifetime
+    mtx_t                           mutex;
+    cnd_t                           cond;
+    dispatch_attr_t                 attr;
+    vcpuid_t                        groupid;        // Constant over lifetime
 
-    List                        workers;        // Each worker has its own work item queue
-    size_t                      worker_count;
+    List                            workers;        // Each worker has its own work item queue
+    size_t                          worker_count;
 
-    SList                       zombie_items;   // Items that are done and joinable
+    SList                           zombie_items;   // Items that are done and joinable
 
-    SList                       timers;         // The timer queue is shared by all workers
-    SList                       timer_cache;
-    size_t                      timer_cache_count;
+    SList                           timers;         // The timer queue is shared by all workers
+    SList                           timer_cache;
+    size_t                          timer_cache_count;
 
-    dispatch_sigmon_t* _Nullable    sigmons;
-    sigset_t                    alloced_sigs;
+    dispatch_sigtrap_t _Nullable    sigtraps;
+    sigset_t                        alloced_sigs;
 
-    volatile int                state;
-    int                         suspension_count;
+    volatile int                    state;
+    int                             suspension_count;
 
-    struct dispatch_item_cache  item_cache[_DISPATCH_ITEM_CACHE_COUNT];
+    struct dispatch_item_cache      item_cache[_DISPATCH_ITEM_CACHE_COUNT];
 
-    char                        name[DISPATCH_MAX_NAME_LENGTH + 1];
+    char                            name[DISPATCH_MAX_NAME_LENGTH + 1];
 };
 
 extern int _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);

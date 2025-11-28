@@ -19,10 +19,10 @@ static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo,
         dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
 
         if (enable) {
-            sigaddset(&cwp->hotsigs, signo);
+            cwp->hotsigs |= _SIGBIT(signo);
         }
         else {
-            sigdelset(&cwp->hotsigs, signo);
+            cwp->hotsigs &= ~_SIGBIT(signo);
         }
     });
 }
@@ -31,15 +31,15 @@ static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo,
 void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
 {
     const int signo = item->subtype;
-    dispatch_sigmon_t* sm = &self->sigmons[signo - 1];
+    dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
     dispatch_item_t pip = NULL;
     bool hasIt = false;
 
-    SList_ForEach(&sm->handlers, SListNode, {
+    SList_ForEach(&stp->monitors, SListNode, {
         dispatch_item_t cip = (dispatch_item_t)pCurNode;
 
         if (cip == item) {
-            SList_Remove(&sm->handlers, &pip->qe, &cip->qe);
+            SList_Remove(&stp->monitors, &pip->qe, &cip->qe);
             hasIt = true;
             break;
         }
@@ -50,8 +50,8 @@ void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, int flags, dispatc
     if (hasIt) {
         _dispatch_retire_item(self, item);
 
-        sm->handlers_count--;
-        if (sm->handlers_count == 0) {
+        stp->count--;
+        if (stp->count == 0) {
             _dispatch_enable_signal(self, signo, false);
         }
     }
@@ -61,12 +61,12 @@ void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, int flags, dispatc
 void _dispatch_retire_signal_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     const int signo = item->subtype;
-    dispatch_sigmon_t* sm = &self->sigmons[signo - 1];
+    dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
 
     _dispatch_retire_item(self, item);
 
-    sm->handlers_count--;
-    if (sm->handlers_count == 0) {
+    stp->count--;
+    if (stp->count == 0) {
         _dispatch_enable_signal(self, signo, false);
     }
 }
@@ -75,22 +75,22 @@ void _dispatch_retire_signal_item(dispatch_t _Nonnull self, dispatch_item_t _Non
 // monitor so that it can be submitted again when the next signal comes in.
 void _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
-    dispatch_sigmon_t* sm = &self->sigmons[item->subtype - 1];
+    dispatch_sigtrap_t stp = &self->sigtraps[item->subtype - 1];
 
     item->state = DISPATCH_STATE_IDLE;
     item->qe = SLISTNODE_INIT;
 
-    SList_InsertAfterLast(&sm->handlers, &item->qe);
+    SList_InsertAfterLast(&stp->monitors, &item->qe);
 }
 
 static int _dispatch_signal_monitor(dispatch_t _Nonnull _Locked self, int signo, dispatch_item_t _Nonnull item)
 {
-    if (self->sigmons == NULL) {
+    if (self->sigtraps == NULL) {
         //XXX allocate in a smarter way: eg organize sigset in quarters, calc
         //XXX what's the highest quarter we need and only allocate up to this
         //XXX quarter.
-        self->sigmons = calloc(SIGMAX, sizeof(dispatch_sigmon_t));
-        if (self->sigmons == NULL) {
+        self->sigtraps = calloc(SIGMAX, sizeof(struct dispatch_sigtrap));
+        if (self->sigtraps == NULL) {
             return -1;
         }
     }
@@ -101,11 +101,11 @@ static int _dispatch_signal_monitor(dispatch_t _Nonnull _Locked self, int signo,
     item->flags = _DISPATCH_ITEM_FLAG_REPEATING;
     item->state = DISPATCH_STATE_IDLE;
 
-    dispatch_sigmon_t* sm = &self->sigmons[signo - 1];
-    SList_InsertAfterLast(&sm->handlers, &item->qe);
-    sm->handlers_count++;
+    dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
+    SList_InsertAfterLast(&stp->monitors, &item->qe);
+    stp->count++;
 
-    if (sm->handlers_count == 1) {
+    if (stp->count == 1) {
         _dispatch_enable_signal(self, signo, true);
     }
 
@@ -125,10 +125,10 @@ static int _dispatch_signal_monitor(dispatch_t _Nonnull _Locked self, int signo,
 
 void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int signo, dispatch_worker_t _Nonnull worker)
 {
-    dispatch_sigmon_t* sm = &self->sigmons[signo - 1];
+    dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
 
-    while (sm->handlers.first) {
-        dispatch_item_t item = (dispatch_item_t)SList_RemoveFirst(&sm->handlers);
+    while (stp->monitors.first) {
+        dispatch_item_t item = (dispatch_item_t)SList_RemoveFirst(&stp->monitors);
 
         item->qe = SLISTNODE_INIT;
         item->state = DISPATCH_STATE_SCHEDULED;
