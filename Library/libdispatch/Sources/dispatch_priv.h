@@ -42,18 +42,10 @@ struct dispatch_item_cache {
 
 
 struct dispatch_conv_item {
-    struct dispatch_item  super;
-    union {
-        struct _dispatch_async_item {
-            dispatch_async_func_t _Nonnull  func;
-            void* _Nullable                 arg;
-        }   async;
-        struct _dispatch_sync_item {
-            dispatch_sync_func_t _Nonnull   func;
-            void* _Nullable                 arg;
-            int                             result;
-        }   sync;
-    }                               u;
+    struct dispatch_item    super;
+    int _Nonnull            (*func)(void*);
+    void* _Nullable         arg;
+    int                     result;
 };
 typedef struct dispatch_conv_item* dispatch_conv_item_t;
 

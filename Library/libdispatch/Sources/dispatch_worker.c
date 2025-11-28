@@ -161,12 +161,12 @@ dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull 
 
         switch (cip->type) {
             case _DISPATCH_TYPE_CONV_ITEM:
-                match = ((dispatch_conv_item_t)cip)->u.async.func == (dispatch_async_func_t)func;
+                match = func == (dispatch_item_func_t)((dispatch_conv_item_t)cip)->func;
                 break;
 
             case _DISPATCH_TYPE_USER_ITEM:
             case _DISPATCH_TYPE_USER_SIGNAL_ITEM:
-                match = cip->func == func;
+                match = func == cip->func;
                 break;
 
             default:

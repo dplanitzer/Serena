@@ -402,7 +402,7 @@ static void _async_adapter_func(dispatch_item_t _Nonnull item)
 {
     dispatch_conv_item_t ip = (dispatch_conv_item_t)item;
 
-    ip->u.async.func(ip->u.async.arg);
+    (void)ip->func(ip->arg);
 }
 
 int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
@@ -411,15 +411,15 @@ int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func
 
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-       dispatch_item_t item = _dispatch_acquire_cached_item(self, _DISPATCH_TYPE_CONV_ITEM, _async_adapter_func);
+       dispatch_conv_item_t item = (dispatch_conv_item_t)_dispatch_acquire_cached_item(self, _DISPATCH_TYPE_CONV_ITEM, _async_adapter_func);
     
         if (item) {
-            ((dispatch_item_t)item)->flags = _DISPATCH_ITEM_FLAG_CACHEABLE;
-            ((dispatch_conv_item_t)item)->u.async.func = func;
-            ((dispatch_conv_item_t)item)->u.async.arg = arg;
+            item->super.flags = _DISPATCH_ITEM_FLAG_CACHEABLE;
+            item->func = (int (*)(void*))func;
+            item->arg = arg;
             r = _dispatch_submit(self, (dispatch_item_t)item);
             if (r != 0) {
-                _dispatch_cache_item(self, item);
+                _dispatch_cache_item(self, (dispatch_item_t)item);
             }
         }
     }
@@ -433,7 +433,7 @@ static void _sync_adapter_func(dispatch_item_t _Nonnull item)
 {
     dispatch_conv_item_t ip = (dispatch_conv_item_t)item;
 
-    ip->u.sync.result = ip->u.sync.func(ip->u.sync.arg);
+    ip->result = ip->func(ip->arg);
 }
 
 int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, void* _Nullable arg)
@@ -442,20 +442,20 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
 
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
-        dispatch_item_t item = _dispatch_acquire_cached_item(self, _DISPATCH_TYPE_CONV_ITEM, _sync_adapter_func);
+        dispatch_conv_item_t item = (dispatch_conv_item_t)_dispatch_acquire_cached_item(self, _DISPATCH_TYPE_CONV_ITEM, _sync_adapter_func);
     
         if (item) {
-            ((dispatch_item_t)item)->flags = _DISPATCH_ITEM_FLAG_CACHEABLE | _DISPATCH_ITEM_FLAG_AWAITABLE;
-            ((dispatch_conv_item_t)item)->u.sync.func = func;
-            ((dispatch_conv_item_t)item)->u.sync.arg = arg;
-            ((dispatch_conv_item_t)item)->u.sync.result = 0;
+            item->super.flags = _DISPATCH_ITEM_FLAG_CACHEABLE | _DISPATCH_ITEM_FLAG_AWAITABLE;
+            item->func = (int (*)(void*))func;
+            item->arg = arg;
+            item->result = 0;
             if (_dispatch_submit(self, (dispatch_item_t)item) == 0) {
                 r = _dispatch_await(self, (dispatch_item_t)item);
                 if (r == 0) {
-                    r = ((dispatch_conv_item_t)item)->u.sync.result;
+                    r = item->result;
                 }
             }
-            _dispatch_cache_item(self, item);
+            _dispatch_cache_item(self, (dispatch_item_t)item);
         }
     }
     mtx_unlock(&self->mutex);
