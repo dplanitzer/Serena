@@ -23,8 +23,6 @@ static const RGBColor32 gANSIColors[8] = {
     0xffffffff,     // White
 };
 
-#define CURSOR_BLINKER_TAG  ((uintptr_t)0x1010)
-
 
 // Initializes the video subsystem
 errno_t Console_InitVideo(ConsoleRef _Nonnull self)
@@ -111,7 +109,7 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
     IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroyCLUT, self->clutId);
     IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroySurface, self->surfaceId);
     
-    DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
+    dispatch_cancel(self->dq, 0, Console_OnTextCursorBlink, self);
 }
 
 
@@ -158,25 +156,26 @@ void Console_OnTextCursorBlink(ConsoleRef _Nonnull self)
 
 static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _Nonnull self)
 {
+    dispatch_cancel(self->dq, 0, Console_OnTextCursorBlink, self);
+
     if (self->flags.isTextCursorVisible) {
         // Changing the visibility to on should restart the blinking timer if
         // blinking is on too so that we always start out with a cursor-on phase
-        DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
         IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, true);
         self->flags.isTextCursorOn = false;
         self->flags.isTextCursorSingleCycleOn = false;
 
         if (self->flags.isTextCursorBlinkerEnabled) {
-            try_bang(DispatchQueue_DispatchAsyncPeriodically(self->dispatchQueue, 
+            dispatch_repeating(self->dq,
+                0,
                 &TIMESPEC_ZERO,
                 &self->cursorBlinkInterval,
-                (VoidFunc_1)Console_OnTextCursorBlink,
-                self,
-                CURSOR_BLINKER_TAG));
+                (dispatch_async_func_t)Console_OnTextCursorBlink,
+                self
+            );
         }
     } else {
         // Make sure that the text cursor and blinker are off
-        DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
         IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, false);
         self->flags.isTextCursorOn = false;
         self->flags.isTextCursorSingleCycleOn = false;
