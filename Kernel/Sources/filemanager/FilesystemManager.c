@@ -7,7 +7,7 @@
 //
 
 #include "FilesystemManager.h"
-#include <dispatchqueue/DispatchQueue.h>
+#include <dispatch/dispatch.h>
 #include <driver/disk/DiskDriver.h>
 #include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
@@ -66,10 +66,11 @@ catch:
 // If a filesystem is forced unmounted then its FS entry is moved over to the
 // reaper queue.
 typedef struct FilesystemManager {
-    DispatchQueueRef _Nonnull   dispatchQueue;
-    mtx_t                       mtx;
-    List                        filesystems;    // List<FSEntry>
-    List                        reaperQueue;    // List<FSEntry>
+    dispatch_t _Nonnull dq;
+    mtx_t               mtx;
+    List                filesystems;    // List<FSEntry>
+    List                reaperQueue;    // List<FSEntry>
+    struct timespec     bgInterval;
 } FilesystemManager;
 
 
@@ -86,6 +87,7 @@ errno_t FilesystemManager_Create(FilesystemManagerRef _Nullable * _Nonnull pOutS
 
     try(kalloc_cleared(sizeof(FilesystemManager), (void**)&self));
     mtx_init(&self->mtx);
+    timespec_from_sec(&self->bgInterval, 30);
 
 catch:
     *pOutSelf = self;
@@ -95,8 +97,9 @@ catch:
 errno_t FilesystemManager_Start(FilesystemManagerRef _Nonnull self)
 {
     decl_try_err();
+    dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_URGENT(DISPATCH_PRI_LOWEST);
 
-    err = DispatchQueue_Create(0, 1, SCHED_QOS_URGENT, QOS_PRI_LOWEST, (DispatchQueueRef*)&self->dispatchQueue);
+    err = dispatch_create(&attr, &self->dq);
     if (err == EOK) {
         _FilesystemManager_ScheduleAutoSync(self);
     }
@@ -241,14 +244,14 @@ void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self)
     mtx_unlock(&self->mtx);
 }
 
-static void _FilesystemManager_ReapFilesystem(FilesystemManagerRef _Nonnull self, List* _Nonnull queue, fsentry_t* _Nonnull ep)
+static void _reap_fs(FilesystemManagerRef _Nonnull self, List* _Nonnull queue, fsentry_t* _Nonnull ep)
 {
     List_Remove(queue, &ep->node);
     fsentry_destroy(ep);
 }
 
 // Tries to stop and destroy filesystems that are on the reaper queue.
-static void _FilesystemManager_Reaper(FilesystemManagerRef _Nonnull self)
+static void _reaper(FilesystemManagerRef _Nonnull self)
 {
     List queue;
 
@@ -265,7 +268,7 @@ static void _FilesystemManager_Reaper(FilesystemManagerRef _Nonnull self)
 
         List_ForEach(&queue, fsentry_t,
             if (Filesystem_CanDestroy(pCurNode->fs)) {
-                _FilesystemManager_ReapFilesystem(self, &queue, pCurNode);
+                _reap_fs(self, &queue, pCurNode);
             }
         );
 
@@ -280,17 +283,14 @@ static void _FilesystemManager_Reaper(FilesystemManagerRef _Nonnull self)
     }
 }
 
-static void _FilesystemManager_DoBgWork(FilesystemManagerRef _Nonnull self)
+static void _do_bg_work(FilesystemManagerRef _Nonnull self)
 {
     FilesystemManager_Sync(self);
-    _FilesystemManager_Reaper(self);
+    _reaper(self);
 }
 
 // Schedule an automatic sync of cached blocks to the disk(s)
 static void _FilesystemManager_ScheduleAutoSync(FilesystemManagerRef _Nonnull self)
 {
-    struct timespec interval;
-
-    timespec_from_sec(&interval, 30);
-    try_bang(DispatchQueue_DispatchAsyncPeriodically(self->dispatchQueue, &TIMESPEC_ZERO, &interval, (VoidFunc_1) _FilesystemManager_DoBgWork, self, 0));
+    try_bang(dispatch_repeating(self->dq, 0, &self->bgInterval, &self->bgInterval, (dispatch_async_func_t)_do_bg_work, self));
 }
