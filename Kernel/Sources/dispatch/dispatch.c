@@ -1,123 +1,92 @@
 //
 //  dispatch.c
-//  libdispatch
+//  kernel
 //
 //  Created by Dietmar Planitzer on 7/10/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
 #include "dispatch_priv.h"
-#include <errno.h>
-#include <limits.h>
-#include <signal.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <sys/spinlock.h>
+#include <kern/string.h>
+#include <process/Process.h>
 
 
-static dispatch_t _Nullable g_main_dispatcher;
-static struct dispatch      g_main_dispatcher_rec;
-static volatile spinlock_t  g_main_lock;    // bss init corresponds to SPINLOCK_INIT
-
-
-static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Nonnull attr, int adoption)
+static errno_t _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Nonnull attr)
 {
+    decl_try_err();
+
     if (attr->maxConcurrency < 1 || attr->maxConcurrency > INT8_MAX || attr->minConcurrency > attr->maxConcurrency) {
-        errno = EINVAL;
-        return false;
+        return EINVAL;
     }
     if (attr->qos < DISPATCH_QOS_BACKGROUND || attr->qos > DISPATCH_QOS_REALTIME) {
-        errno = EINVAL;
-        return false;
+        return EINVAL;
     }
     if (attr->priority < DISPATCH_PRI_LOWEST || attr->priority >= DISPATCH_PRI_HIGHEST) {
-        errno = EINVAL;
-        return false;
+        return EINVAL;
     }
 
 
     memset(self, 0, sizeof(struct dispatch));
 
-    if (mtx_init(&self->mutex) != 0) {
-        return false;
-    }
+    mtx_init(&self->mutex);
 
     self->attr = *attr;
-
-    switch (adoption) {
-        case _DISPATCH_ACQUIRE_VCPU:
-            self->groupid = new_vcpu_groupid();
-            break;
-
-        case _DISPATCH_ADOPT_CALLER_VCPU:
-            self->groupid = vcpu_groupid(vcpu_self());
-            break;
-
-        case _DISPATCH_ADOPT_MAIN_VCPU:
-            self->groupid = vcpu_groupid(vcpu_main());
-            break;
-
-        default:
-            abort();
-    }
-
+    self->groupid = new_vcpu_groupid();
     self->state = _DISPATCHER_STATE_ACTIVE;
     self->item_cache[_DISPATCH_ITEM_CACHE_IDX(_DISPATCH_TYPE_CONV_ITEM)].maxCount = _DISPATCH_MAX_CONV_ITEM_CACHE_COUNT;
     self->item_cache[_DISPATCH_ITEM_CACHE_IDX(_DISPATCH_TYPE_CONV_TIMER)].maxCount = _DISPATCH_MAX_CONV_TIMER_CACHE_COUNT;
 
-    if (cnd_init(&self->cond) != 0) {
-        return false;
-    }
+    cnd_init(&self->cond);
 
     for (size_t i = 0; i < attr->minConcurrency; i++) {
-        if (_dispatch_acquire_worker_with_ownership(self, adoption) != 0) {
-            return false;
+        err = _dispatch_acquire_worker(self);
+        if (err != EOK) {
+            return err;
         }
     }
 
     if (attr->name && attr->name[0] != '\0') {
-        strncpy(self->name, attr->name, DISPATCH_MAX_NAME_LENGTH);
+        String_CopyUpTo(self->name, attr->name, DISPATCH_MAX_NAME_LENGTH);
     }
 
-    return true;
+    return EOK;
 }
 
-dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
+errno_t dispatch_create(const dispatch_attr_t* _Nonnull attr, dispatch_t _Nullable * _Nonnull pOutSelf)
 {
-    dispatch_t self = calloc(1, sizeof(struct dispatch));
+    decl_try_err();
+    dispatch_t self = NULL;
     
-    if (self) {
-        if (_dispatch_init(self, attr, _DISPATCH_ACQUIRE_VCPU)) {
-            return self;
-        }
-
-        if (self->state == _DISPATCHER_STATE_ACTIVE) {
-            dispatch_destroy(self);
+    err = kalloc_cleared(sizeof(struct dispatch), (void**)&self);
+    if (err == EOK) {
+        err = _dispatch_init(self, attr);
+        if (err != EOK) {
+            kfree(self);
+            self = NULL;
         }
     }
-    return NULL;
+
+    *pOutSelf = self;
+    return err;
 }
 
-int dispatch_destroy(dispatch_t _Nullable self)
+errno_t dispatch_destroy(dispatch_t _Nullable self)
 {
-    if (self && self != g_main_dispatcher) {
+    if (self) {
         if (self->state < _DISPATCHER_STATE_TERMINATED || !SList_IsEmpty(&self->zombie_items)) {
-            errno = EBUSY;
-            return -1;
+            return EBUSY;
         }
 
 
         SList_ForEach(&self->timer_cache, SListNode, {
-            free(pCurNode);
+            kfree(pCurNode);
         });
         self->timer_cache = SLIST_INIT;
 
 
         for (int i = 0; i < _DISPATCH_ITEM_CACHE_COUNT; i++) {
             SList_ForEach(&self->item_cache[i].items, SListNode, {
-                free(pCurNode);
+                kfree(pCurNode);
             });
             self->item_cache[i].items = SLIST_INIT;
             self->item_cache[i].count = 0;
@@ -125,7 +94,7 @@ int dispatch_destroy(dispatch_t _Nullable self)
 
 
         if (self->sigtraps) {
-            free(self->sigtraps);
+            kfree(self->sigtraps);
             self->sigtraps = NULL;
         }
 
@@ -136,7 +105,7 @@ int dispatch_destroy(dispatch_t _Nullable self)
         cnd_deinit(&self->cond);
         mtx_deinit(&self->mutex);
 
-        free(self);
+        kfree(self);
     }
 
     return 0;
@@ -146,29 +115,24 @@ int dispatch_destroy(dispatch_t _Nullable self)
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Workers
 
-static int _dispatch_acquire_worker_with_ownership(dispatch_t _Nonnull _Locked self, int ownership)
+errno_t _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self)
 {
-    dispatch_worker_t worker = _dispatch_worker_create(self, ownership);
-
-    if (worker) {
-        List_InsertAfterLast(&self->workers, &worker->worker_qe);
-        self->worker_count++;
-
-        return 0;
+    decl_try_err();
+    dispatch_worker_t worker;
+    
+    err = _dispatch_worker_create(self, &worker);
+    if (err != EOK) {
+        return err;
     }
 
-    return -1;
-}
+    List_InsertAfterLast(&self->workers, &worker->worker_qe);
+    self->worker_count++;
 
-int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self)
-{
-    return _dispatch_acquire_worker_with_ownership(self, _DISPATCH_ACQUIRE_VCPU);
+    return EOK;
 }
 
 _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker)
 {
-    const int adoption = worker->adoption;
-
     List_Remove(&self->workers, &worker->worker_qe);
     self->worker_count--;
 
@@ -177,9 +141,8 @@ _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch
     cnd_broadcast(&self->cond);
     mtx_unlock(&self->mutex);
 
-    if (adoption == _DISPATCH_ACQUIRE_VCPU) {
-        vcpu_relinquish_self();
-    }
+    Process_RelinquishVirtualProcessor(gKernelProcess, vcpu_current());
+    /* NO RETURN */
 }
 
 void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self)
@@ -195,15 +158,15 @@ void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self)
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Work Items
 
-static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
+static errno_t _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
+    decl_try_err();
     dispatch_worker_t best_wp = NULL;
     size_t best_wc = SIZE_MAX;
 
     // Allow the submission of an Idle, Finished or Cancelled state item
     if (item->state == DISPATCH_STATE_SCHEDULED || item->state == DISPATCH_STATE_EXECUTING) {
-        errno = EBUSY;
-        return -1;
+        return EBUSY;
     }
 
 
@@ -229,12 +192,12 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
     // - spawn another one if the 'best' worker has too much stuff queued and
     //   we haven't reached the max number of workers yet
     if (self->worker_count == 0 || (best_wc > 4 && self->worker_count < self->attr.maxConcurrency)) {
-        const int r = _dispatch_acquire_worker(self);
+        err = _dispatch_acquire_worker(self);
 
         // Don't make the submit fail outright if we can't allocate a new worker
         // and this was just about adding one more.
-        if (r != 0 && self->worker_count == 0) {
-            return -1;
+        if (err != EOK && self->worker_count == 0) {
+            return err;
         }
 
         best_wp = (dispatch_worker_t)self->workers.first;
@@ -249,7 +212,7 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
     // Enqueue the work item at the worker that we found and notify it
     _dispatch_worker_submit(best_wp, item, true);
 
-    return 0;
+    return EOK;
 }
 
 void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
@@ -273,13 +236,13 @@ void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     }
 }
 
-static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
+static errno_t _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
-    int r = 0;
+    decl_try_err();
 
     while (item->state < DISPATCH_STATE_FINISHED) {
-        r = cnd_wait(&self->cond, &self->mutex);
-        if (r != 0) {
+        err = cnd_wait(&self->cond, &self->mutex);
+        if (err != EOK) {
             break;
         }
     }
@@ -295,7 +258,7 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     });
     SList_Remove(&self->zombie_items, &pip->qe, &item->qe);
 
-    return r;
+    return EOK;
 }
 
 void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
@@ -335,7 +298,7 @@ dispatch_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Loc
             case _DISPATCH_TYPE_CONV_TIMER: nbytes = sizeof(struct dispatch_conv_timer); break;
             default: abort();
         }
-        ip = malloc(nbytes);
+        kalloc(nbytes, (void**)&ip);
     }
 
     if (ip) {
@@ -361,7 +324,7 @@ void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Non
         icp->count++;
     }
     else {
-        free(item);
+        kfree(item);
     }
 }
 
@@ -369,41 +332,35 @@ void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Non
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
 
-bool _dispatch_isactive(dispatch_t _Nonnull _Locked self)
+errno_t dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
 {
-    if (self->state < _DISPATCHER_STATE_TERMINATING) {
-        return true;
-    }
-
-    errno = ETERMINATED;
-    return false;
-}
-
-int dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
-{
-    int r = -1;
-
+    decl_try_err();
+    
     if (item->func == NULL) {
-        errno = EINVAL;
-        return -1;
+        return EINVAL;
     }
 
     mtx_lock(&self->mutex);
-    if (_dispatch_isactive(self)) {
+    if (self->state < _DISPATCHER_STATE_TERMINATING) {
         item->type = _DISPATCH_TYPE_USER_ITEM;
         item->flags = (uint8_t)(flags & _DISPATCH_ITEM_FLAG_AWAITABLE);
-        r = _dispatch_submit(self, item);
+        err = _dispatch_submit(self, item);
+    }
+    else {
+        err = ETERMINATED;
     }
     mtx_unlock(&self->mutex);
-    return r;
+    return err;
 }
 
-int dispatch_await(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
+errno_t dispatch_await(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
+    decl_try_err();
+
     mtx_lock(&self->mutex);
-    const int r = _dispatch_await(self, item);
+    err = _dispatch_await(self, item);
     mtx_unlock(&self->mutex);
-    return r;
+    return err;
 }
 
 
@@ -414,27 +371,33 @@ static void _async_adapter_func(dispatch_item_t _Nonnull item)
     (void)ip->func(ip->arg);
 }
 
-int dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
+errno_t dispatch_async(dispatch_t _Nonnull self, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
 {
-    int r = -1;
+    decl_try_err();
 
     mtx_lock(&self->mutex);
-    if (_dispatch_isactive(self)) {
+    if (self->state < _DISPATCHER_STATE_TERMINATING) {
        dispatch_conv_item_t item = (dispatch_conv_item_t)_dispatch_acquire_cached_item(self, _DISPATCH_TYPE_CONV_ITEM, _async_adapter_func);
     
         if (item) {
             item->super.flags = _DISPATCH_ITEM_FLAG_CACHEABLE;
             item->func = (int (*)(void*))func;
             item->arg = arg;
-            r = _dispatch_submit(self, (dispatch_item_t)item);
-            if (r != 0) {
+            err = _dispatch_submit(self, (dispatch_item_t)item);
+            if (err != EOK) {
                 _dispatch_cache_item(self, (dispatch_item_t)item);
             }
         }
+        else {
+            err = ENOMEM;
+        }
+    }
+    else {
+        err = ETERMINATED;
     }
     mtx_unlock(&self->mutex);
 
-    return r;
+    return err;
 }
 
 
@@ -445,12 +408,12 @@ static void _sync_adapter_func(dispatch_item_t _Nonnull item)
     ip->result = ip->func(ip->arg);
 }
 
-int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, void* _Nullable arg)
+errno_t dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, void* _Nullable arg)
 {
-    int r = -1;
+    decl_try_err();
 
     mtx_lock(&self->mutex);
-    if (_dispatch_isactive(self)) {
+    if (self->state < _DISPATCHER_STATE_TERMINATING) {
         dispatch_conv_item_t item = (dispatch_conv_item_t)_dispatch_acquire_cached_item(self, _DISPATCH_TYPE_CONV_ITEM, _sync_adapter_func);
     
         if (item) {
@@ -459,17 +422,23 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
             item->arg = arg;
             item->result = 0;
             if (_dispatch_submit(self, (dispatch_item_t)item) == 0) {
-                r = _dispatch_await(self, (dispatch_item_t)item);
-                if (r == 0) {
-                    r = item->result;
+                err = _dispatch_await(self, (dispatch_item_t)item);
+                if (err == EOK) {
+                    err = item->result;
                 }
             }
             _dispatch_cache_item(self, (dispatch_item_t)item);
         }
+        else {
+            err = ENOMEM;
+        }
+    }
+    else {
+        err = ETERMINATED;
     }
     mtx_unlock(&self->mutex);
 
-    return r;
+    return err;
 }
 
 
@@ -601,18 +570,17 @@ int dispatch_priority(dispatch_t _Nonnull self)
     return r;
 }
 
-int dispatch_setpriority(dispatch_t _Nonnull self, int priority)
+errno_t dispatch_setpriority(dispatch_t _Nonnull self, int priority)
 {
     if (priority < DISPATCH_PRI_LOWEST || priority > DISPATCH_PRI_HIGHEST) {
-        errno = EINVAL;
-        return -1;
+        return EINVAL;
     }
 
     mtx_lock(&self->mutex);
     _dispatch_applyschedparams(self, self->attr.qos, priority);
     mtx_unlock(&self->mutex);
     
-    return 0;
+    return EOK;
 }
 
 int dispatch_qos(dispatch_t _Nonnull self)
@@ -623,18 +591,17 @@ int dispatch_qos(dispatch_t _Nonnull self)
     return r;
 }
 
-int dispatch_setqos(dispatch_t _Nonnull self, int qos)
+errno_t dispatch_setqos(dispatch_t _Nonnull self, int qos)
 {
     if (qos < DISPATCH_QOS_BACKGROUND || qos > DISPATCH_QOS_REALTIME) {
-        errno = EINVAL;
-        return -1;
+        return EINVAL;
     }
 
     mtx_lock(&self->mutex);
     _dispatch_applyschedparams(self, qos, self->attr.priority);
     mtx_unlock(&self->mutex);
     
-    return 0;
+    return EOK;
 }
 
 void dispatch_concurrency_info(dispatch_t _Nonnull self, dispatch_concurrency_info_t* _Nonnull info)
@@ -646,76 +613,34 @@ void dispatch_concurrency_info(dispatch_t _Nonnull self, dispatch_concurrency_in
     mtx_unlock(&self->mutex);
 }
 
-int dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t buflen)
+errno_t dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t buflen)
 {
-    int r = 0;
+    decl_try_err();
 
     mtx_lock(&self->mutex);
-    const size_t len = strlen(self->name);
+    const size_t len = String_Length(self->name);
 
     if (buflen == 0) {
-        errno = EINVAL;
-        r = -1;
-        goto out;
+        throw(EINVAL);
     }
     if (buflen < (len + 1)) {
-        errno = ERANGE;
-        r = -1;
-        goto out;
+        throw(ERANGE);
     }
-    strcpy(buf, self->name);
+    String_Copy(buf, self->name);
 
-out:
+catch:
     mtx_unlock(&self->mutex);
-    return r;
+    return err;
 }
 
 
-dispatch_t _Nonnull dispatch_main_queue(void)
+errno_t dispatch_suspend(dispatch_t _Nonnull self)
 {
-    dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
-    dispatch_t p = NULL;
-
-    // spinlock: it's fine because there's virtually no contention on this lock
-    //           once the main dispatcher has been allocated. There shouldn't be
-    //           any contention on the lock while we're allocating the dispatcher
-    //           because nobody besides the main vcpu should be in here at that
-    //           time.
-    // _DISPATCH_ADOPT_MAIN_VCPU: theoretically this may be called from some
-    //           secondary vcpu before the main vcpu gets a chance to set things
-    //           up.
-    spin_lock(&g_main_lock);
-    if (g_main_dispatcher == NULL) {
-        if (!_dispatch_init(&g_main_dispatcher_rec, &attr, _DISPATCH_ADOPT_MAIN_VCPU)) {
-            abort();
-        }
-
-        g_main_dispatcher = &g_main_dispatcher_rec;
-    }
-
-    p = g_main_dispatcher;
-    spin_unlock(&g_main_lock);
-
-    return p;
-}
-
-_Noreturn dispatch_run_main_queue(void)
-{
-    if (vcpu_self() != vcpu_main()) {
-        abort();
-    }
-
-    _dispatch_worker_run((dispatch_worker_t)dispatch_main_queue()->workers.first);
-}
-
-
-int dispatch_suspend(dispatch_t _Nonnull self)
-{
-    int r;
+    decl_try_err();
 
     mtx_lock(&self->mutex);
 
-    if (_dispatch_isactive(self)) {
+    if (self->state < _DISPATCHER_STATE_TERMINATING) {
         self->suspension_count++;
         if (self->suspension_count == 1) {
             if (self->state == _DISPATCHER_STATE_ACTIVE) {
@@ -745,21 +670,20 @@ int dispatch_suspend(dispatch_t _Nonnull self)
                 cnd_wait(&self->cond, &self->mutex);
             }
         }
-        r = 0;
     }
     else {
-        r = -1;
+        err = ETERMINATED;
     }
 
     mtx_unlock(&self->mutex);
-    return r;
+    return err;
 }
 
 void dispatch_resume(dispatch_t _Nonnull self)
 {
     mtx_lock(&self->mutex);
 
-    if (_dispatch_isactive(self)) {
+    if (self->state < _DISPATCHER_STATE_TERMINATING) {
         if (self->suspension_count > 0) {
             self->suspension_count--;
             if (self->suspension_count == 0) {
@@ -778,7 +702,7 @@ void dispatch_terminate(dispatch_t _Nonnull self, int flags)
     bool isAwaitable = false;
 
     mtx_lock(&self->mutex);
-    if (self != g_main_dispatcher && self->state < _DISPATCHER_STATE_TERMINATING) {
+    if (self->state < _DISPATCHER_STATE_TERMINATING) {
         self->state = _DISPATCHER_STATE_TERMINATING;
         isAwaitable = true;
 
@@ -804,17 +728,16 @@ void dispatch_terminate(dispatch_t _Nonnull self, int flags)
     }
 }
 
-int dispatch_await_termination(dispatch_t _Nonnull self)
+errno_t dispatch_await_termination(dispatch_t _Nonnull self)
 {
-    int r;
+    decl_try_err();
 
     mtx_lock(&self->mutex);
     switch (self->state) {
         case _DISPATCHER_STATE_ACTIVE:
         case _DISPATCHER_STATE_SUSPENDING:
         case _DISPATCHER_STATE_SUSPENDED:
-            errno = ESRCH;
-            r = -1;
+            err = ESRCH;
             break;
 
         case _DISPATCHER_STATE_TERMINATING:
@@ -822,16 +745,15 @@ int dispatch_await_termination(dispatch_t _Nonnull self)
                 cnd_wait(&self->cond, &self->mutex);
             }
             self->state = _DISPATCHER_STATE_TERMINATED;
-            r = 0;
             break;
 
         case _DISPATCHER_STATE_TERMINATED:
-            r = 0;
             break;
 
         default:
             abort();
     }
     mtx_unlock(&self->mutex);
-    return r;
+    
+    return err;
 }

@@ -1,0 +1,254 @@
+//
+//  dispatch_timer.c
+//  kernel
+//
+//  Created by Dietmar Planitzer on 7/10/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
+//
+
+#include "dispatch_priv.h"
+
+
+void _dispatch_drain_timers(dispatch_t _Nonnull _Locked self)
+{
+    while (!SList_IsEmpty(&self->timers)) {
+        dispatch_item_t ctp = (dispatch_item_t)SList_RemoveFirst(&self->timers);
+
+        _dispatch_retire_item(self, ctp);
+    }
+}
+
+// Removes 'item' from the timer queue and retires it.
+void _dispatch_withdraw_timer(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+{
+    dispatch_item_t ptp = NULL;
+    dispatch_item_t ctp = (dispatch_item_t)self->timers.first;
+
+    while (ctp) {
+        dispatch_item_t ntp = (dispatch_item_t)ctp->qe.next;
+
+        if (ctp == item) {
+            SList_Remove(&self->timers, &ptp->qe, &ctp->qe);
+            _dispatch_retire_item(self, ctp);
+            break;
+        }
+
+        ptp = ctp;
+        ctp = ntp;
+    }
+}
+
+dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
+{
+    SList_ForEach(&self->timers, SListNode, {
+        dispatch_timer_t ctp = (dispatch_timer_t)pCurNode;
+        bool hasFunc;
+        bool hasArg;
+
+        switch (ctp->item.type) {
+            case _DISPATCH_TYPE_CONV_TIMER:
+                hasFunc = ((dispatch_conv_timer_t)ctp)->func == (dispatch_async_func_t)func;
+                hasArg = (arg == DISPATCH_IGNORE_ARG) || (((dispatch_conv_timer_t)ctp)->arg == arg);
+                break;
+
+            case _DISPATCH_TYPE_USER_TIMER:
+                hasFunc = ctp->item.func == func;
+                hasArg = true;
+                break;
+
+            default:
+                hasFunc = false;
+                hasArg = false;
+                break;
+        }
+        if (hasFunc && hasArg) {
+            return ctp;
+        }
+    });
+
+    return NULL;
+}
+
+static errno_t _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
+{
+    decl_try_err();
+    dispatch_timer_t ptp = NULL;
+    dispatch_timer_t ctp = (dispatch_timer_t)self->timers.first;
+    
+
+    // Make sure that we got at least one worker
+    if (self->worker_count == 0) {
+        err = _dispatch_acquire_worker(self);
+        if (err != EOK) {
+            return err;
+        }
+    }
+
+
+    timer->item.qe = SLISTNODE_INIT;
+    timer->item.state = DISPATCH_STATE_SCHEDULED;
+    timer->item.flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
+
+
+    // Put the timer on the timer queue. The timer queue is sorted by absolute
+    // timer fire time (ascending). Timers with the same fire time are added in
+    // FIFO order.
+    while (ctp) {
+        if (timespec_gt(&ctp->deadline, &timer->deadline)) {
+            break;
+        }
+        
+        ptp = ctp;
+        ctp = (dispatch_timer_t)ctp->item.qe.next;
+    }
+    
+    SList_InsertAfter(&self->timers, &timer->item.qe, &ptp->item.qe);
+
+
+    // Notify all workers.
+    // XXX improve this. Not ideal that we might cause a wakeup storm where we
+    // XXX wake up all workers though only one is needed to execute the timer.
+    _dispatch_wakeup_all_workers(self);
+
+    return EOK;
+}
+
+errno_t _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
+{
+    // Repeating timer: rearm it with the next fire date that's in
+    // the future (the next fire date we haven't already missed).
+    struct timespec now;
+    clock_gettime(g_mono_clock, &now);
+    
+    timer->item.qe = SLISTNODE_INIT;
+    timer->item.state = DISPATCH_STATE_IDLE;
+
+    do  {
+        timespec_add(&timer->deadline, &timer->interval, &timer->deadline);
+    } while (timespec_le(&timer->deadline, &now) && timespec_gt(&timer->interval, &TIMESPEC_ZERO));
+    
+    return _dispatch_arm_timer(self, timer);
+}
+
+static void _calc_timer_absolute_deadline(dispatch_timer_t _Nonnull timer, int flags)
+{
+    if ((flags & DISPATCH_SUBMIT_ABSTIME) == 0) {
+        struct timespec now;
+
+        clock_gettime(g_mono_clock, &now);
+        timespec_add(&now, &timer->deadline, &timer->deadline);
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: API
+
+errno_t dispatch_timer(dispatch_t _Nonnull self, int flags, dispatch_timer_t _Nonnull timer)
+{
+    decl_try_err();
+
+    if (!timespec_isvalid(&timer->deadline) || !timespec_isvalid(&timer->interval)) {
+        return EINVAL;
+    }
+    if (timer->item.state == DISPATCH_STATE_SCHEDULED || timer->item.state == DISPATCH_STATE_EXECUTING) {
+        return EBUSY;
+    }
+    if (timer->item.func == NULL) {
+        return EINVAL;
+    }
+
+    mtx_lock(&self->mutex);
+    if (self->state < _DISPATCHER_STATE_TERMINATING) {
+        timer->item.type = _DISPATCH_TYPE_USER_TIMER;
+        timer->item.subtype = 0;
+        timer->item.flags = 0;
+
+        if (timespec_lt(&timer->interval, &TIMESPEC_INF)) {
+            timer->item.flags |= _DISPATCH_ITEM_FLAG_REPEATING;
+        }
+
+        _calc_timer_absolute_deadline(timer, flags);
+        err = _dispatch_arm_timer(self, timer);
+    }
+    else {
+        err = ETERMINATED;
+    }
+    mtx_unlock(&self->mutex);
+    return err;
+}
+
+static void _conv_timer_adapter_func(dispatch_item_t _Nonnull item)
+{
+    dispatch_conv_timer_t tp = (dispatch_conv_timer_t)item;
+
+    tp->func(tp->arg);
+}
+
+errno_t dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
+{
+    decl_try_err();
+
+    if (!timespec_isvalid(wtp)) {
+        return EINVAL;
+    }
+
+    mtx_lock(&self->mutex);
+    if (self->state < _DISPATCHER_STATE_TERMINATING) {
+       dispatch_conv_timer_t timer = (dispatch_conv_timer_t)_dispatch_acquire_cached_item(self, _DISPATCH_TYPE_CONV_TIMER, _conv_timer_adapter_func);
+    
+        if (timer) {
+            timer->timer.item.flags = _DISPATCH_ITEM_FLAG_CACHEABLE;
+            timer->func = func;
+            timer->arg = arg;
+            timer->timer.deadline = *wtp;
+            timer->timer.interval = TIMESPEC_INF;
+            _calc_timer_absolute_deadline((dispatch_timer_t)timer, flags);
+
+            err = _dispatch_arm_timer(self, (dispatch_timer_t)timer);
+            if (err != EOK) {
+                _dispatch_cache_item(self, (dispatch_item_t)timer);
+            }
+        }
+    }
+    else {
+        err = ETERMINATED;
+    }
+    mtx_unlock(&self->mutex);
+
+    return err;
+}
+
+errno_t dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
+{
+    decl_try_err();
+
+    if (!timespec_isvalid(wtp) || (itp && !timespec_isvalid(itp))) {
+        return EINVAL;
+    }
+
+    mtx_lock(&self->mutex);
+    if (self->state < _DISPATCHER_STATE_TERMINATING) {
+       dispatch_conv_timer_t timer = (dispatch_conv_timer_t)_dispatch_acquire_cached_item(self, _DISPATCH_TYPE_CONV_TIMER, _conv_timer_adapter_func);
+    
+        if (timer) {
+            timer->timer.item.flags = _DISPATCH_ITEM_FLAG_CACHEABLE | _DISPATCH_ITEM_FLAG_REPEATING;
+            timer->func = func;
+            timer->arg = arg;
+            timer->timer.deadline = *wtp;
+            timer->timer.interval = *itp;
+            _calc_timer_absolute_deadline((dispatch_timer_t)timer, flags);
+
+            err = _dispatch_arm_timer(self, (dispatch_timer_t)timer);
+            if (err != EOK) {
+                _dispatch_cache_item(self, (dispatch_item_t)timer);
+            }
+        }
+    }
+    else {
+        err = ETERMINATED;
+    }
+    mtx_unlock(&self->mutex);
+
+    return err;
+}
