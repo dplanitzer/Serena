@@ -109,7 +109,7 @@ void Console_DeinitVideo(ConsoleRef _Nonnull self)
     IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroyCLUT, self->clutId);
     IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroySurface, self->surfaceId);
     
-    dispatch_cancel(self->dq, 0, Console_OnTextCursorBlink, self);
+    dispatch_cancel(self->dq, 0, (dispatch_item_func_t)Console_OnTextCursorBlink, self);
 }
 
 
@@ -156,7 +156,7 @@ void Console_OnTextCursorBlink(ConsoleRef _Nonnull self)
 
 static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _Nonnull self)
 {
-    dispatch_cancel(self->dq, 0, Console_OnTextCursorBlink, self);
+    dispatch_cancel(self->dq, 0, (dispatch_item_func_t)Console_OnTextCursorBlink, self);
 
     if (self->flags.isTextCursorVisible) {
         // Changing the visibility to on should restart the blinking timer if

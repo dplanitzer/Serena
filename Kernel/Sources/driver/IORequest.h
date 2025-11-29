@@ -11,11 +11,9 @@
 
 #include <kern/errno.h>
 #include <kern/types.h>
+#include <dispatch/dispatch.h>
 
 struct IORequest;
-
-
-typedef (*IODoneFunc)(void* ctx, struct IORequest* _Nonnull req);
 
 
 typedef struct IOVector {
@@ -26,11 +24,11 @@ typedef struct IOVector {
 
 
 typedef struct IORequest {
+    struct dispatch_item    item;
+    void* _Nonnull          driver;
     int                     type;           // <- request type
     uint16_t                size;           // <- request size in bytes
     uint16_t                status;         // -> request execution status
-    IODoneFunc _Nullable    done;           // -> done callback (if async request)
-    void* _Nullable         context;        // -> done callback context (if async request)
 } IORequest;
 
 
@@ -43,11 +41,11 @@ extern void IORequest_Put(IORequest* _Nullable req);
 ((IORequest*)__req)->type = (__type); \
 ((IORequest*)__req)->size = 0; \
 ((IORequest*)__req)->status = EOK; \
-((IORequest*)__req)->done = NULL
+((IORequest*)__req)->item.retireFunc = NULL
 
 #define IORequest_Done(__req) \
-if (((IORequest*)__req)->done) {\
-    ((IORequest*)__req)->done(((IORequest*)__req)->context, (IORequest*)__req);\
+if (((IORequest*)__req)->item.retireFunc) {\
+    ((IORequest*)__req)->item.retireFunc((dispatch_item_t)__req);\
 }
 
 #endif /* IORequest_h */

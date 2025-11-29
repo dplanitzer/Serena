@@ -9,6 +9,9 @@
 #include "DiskCachePriv.h"
 #include <kern/timespec.h>
 
+static void _on_disk_request_done(StrategyRequest* _Nonnull req);
+
+
 // Define to force all writes to be synchronous
 //#define __FORCE_WRITES_SYNC 1
 
@@ -89,8 +92,7 @@ static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, 
         }
     }
 
-    req->s.done = (IODoneFunc)DiskCache_OnDiskRequestDone;
-    req->s.context = self;
+    req->s.item.retireFunc = (dispatch_retire_func_t)_on_disk_request_done;
     req->offset = lbaClusterStart * s->s2bFactor * s->sectorSize;
     req->options = 0;
     req->iovCount = nBlocksToCluster;
@@ -109,8 +111,7 @@ static errno_t _DiskCache_CreateWriteRequest(DiskCacheRef _Nonnull _Locked self,
         return err;
     }
     
-    req->s.done = (IODoneFunc)DiskCache_OnDiskRequestDone;
-    req->s.context = self;
+    req->s.item.retireFunc = (dispatch_retire_func_t)_on_disk_request_done;
     req->offset = pBlock->lba * s->s2bFactor * s->sectorSize;
     req->options = 0;
     req->iovCount = 1;
@@ -242,7 +243,7 @@ static void _DiskCache_OnBlockRequestDone(DiskCacheRef _Locked _Nonnull self, Di
     }
 }
 
-void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, StrategyRequest* _Nonnull req)
+static void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, StrategyRequest* _Nonnull req)
 {
     ssize_t resCount = req->resCount;
     errno_t status = req->s.status;
@@ -266,6 +267,10 @@ void DiskCache_OnDiskRequestDone(DiskCacheRef _Nonnull self, StrategyRequest* _N
         _DiskCache_OnBlockRequestDone(self, pBlock, type, status);
     }
     mtx_unlock(&self->interlock);
+}
 
+static void _on_disk_request_done(StrategyRequest* _Nonnull req)
+{
+    DiskCache_OnDiskRequestDone(gDiskCache, req);
     IORequest_Put((IORequest*)req);
 }
