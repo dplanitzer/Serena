@@ -43,9 +43,4 @@ extern void IORequest_Put(IORequest* _Nullable req);
 ((IORequest*)__req)->status = EOK; \
 ((IORequest*)__req)->item.retireFunc = NULL
 
-#define IORequest_Done(__req) \
-if (((IORequest*)__req)->item.retireFunc) {\
-    ((IORequest*)__req)->item.retireFunc((dispatch_item_t)__req);\
-}
-
 #endif /* IORequest_h */

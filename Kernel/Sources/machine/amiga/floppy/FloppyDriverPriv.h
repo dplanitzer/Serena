@@ -37,10 +37,6 @@ enum {
 // Size of the track buffer in bytes
 #define TRACK_BUFFER_BYTE_SIZE(__sectorsPerTrack) (sizeof(ADF_Sector) * (__sectorsPerTrack))
 
-// Dispatch queue timer tags
-#define kDelayedMotorOffTag     ((uintptr_t)0x1000)
-#define kDiskChangeCheckTag     ((uintptr_t)0x1001)
-
 
 // Stores the state of a single floppy drive.
 final_class_ivars(FloppyDriver, DiskDriver,

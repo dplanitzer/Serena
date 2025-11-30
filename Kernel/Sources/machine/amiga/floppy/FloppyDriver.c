@@ -7,7 +7,6 @@
 //
 
 #include "FloppyDriverPriv.h"
-#include <dispatchqueue/DispatchQueue.h>
 #include <log/Log.h>
 #include <kern/kalloc.h>
 #include <kern/string.h>
@@ -53,7 +52,7 @@ catch:
 static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
 {
     FloppyDriver_MotorOff(self);
-    DispatchQueue_RemoveByTag(DiskDriver_GetDispatchQueue(self), kDiskChangeCheckTag);
+    dispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (dispatch_item_func_t)FloppyDriver_CheckDiskChange, self);
 
     kfree(self->dmaBuffer);
     self->dmaBuffer = NULL;
@@ -132,7 +131,7 @@ static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
     if (err == EOK) {
         self->flags.isOnline = 1;
         _FloppyDriver_doSenseDisk(self);
-        DispatchQueue_DispatchAsyncPeriodically(DiskDriver_GetDispatchQueue(self), &TIMESPEC_ZERO, &interval, (VoidFunc_1)FloppyDriver_CheckDiskChange, self, kDiskChangeCheckTag);
+        dispatch_repeating(DiskDriver_GetDispatchQueue(self), 0, &TIMESPEC_ZERO, &interval, (dispatch_async_func_t)FloppyDriver_CheckDiskChange, self);
     }
     else {
         self->flags.isOnline = 0;
@@ -158,7 +157,7 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     de.arg = 0;
 
     try(Driver_Publish((DriverRef)self, &de));
-    try(DispatchQueue_DispatchAsync(DiskDriver_GetDispatchQueue(self), (VoidFunc_1)FloppyDriver_Reset, self));
+    try(dispatch_async(DiskDriver_GetDispatchQueue(self), (dispatch_async_func_t)FloppyDriver_Reset, self));
 
 catch:
     return err;
@@ -168,7 +167,7 @@ catch:
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self)
 {
     FloppyDriver_MotorOff(self);
-    DispatchQueue_RemoveByTag(DiskDriver_GetDispatchQueue(self), kDiskChangeCheckTag);
+    dispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (dispatch_item_func_t)FloppyDriver_CheckDiskChange, self);
     self->tbTrackNo = -1;
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
     self->flags.isOnline = 0;
@@ -214,7 +213,7 @@ static void FloppyDriver_SetDiskChangeCounter(FloppyDriverRef _Nonnull self)
 
 static void FloppyDriver_CancelDelayedMotorOff(FloppyDriverRef _Nonnull self)
 {
-    DispatchQueue_RemoveByTag(DiskDriver_GetDispatchQueue(self), kDelayedMotorOffTag);
+    dispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (dispatch_item_func_t)FloppyDriver_MotorOff, self);
 }
 
 // Turns the drive motor off.
@@ -241,16 +240,9 @@ static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self)
 
     FloppyDriver_CancelDelayedMotorOff(self);
     
-    struct timespec now, dly, deadline;
-    
-    clock_gettime(g_mono_clock, &now);
+    struct timespec dly; 
     timespec_from_sec(&dly, 4);
-    timespec_add(&now, &dly, &deadline);
-    DispatchQueue_DispatchAsyncAfter(DiskDriver_GetDispatchQueue(self),
-            &deadline,
-            (VoidFunc_1)FloppyDriver_MotorOff,
-            self,
-            kDelayedMotorOffTag);
+    dispatch_after(DiskDriver_GetDispatchQueue(self), 0, &dly, (dispatch_async_func_t)FloppyDriver_MotorOff, self);
 }
 
 // Waits until the drive is ready (motor is spinning at full speed). This function

@@ -7,7 +7,6 @@
 //
 
 #include "DiskDriver.h"
-#include <dispatchqueue/DispatchQueue.h>
 #include <kpi/fcntl.h>
 
 
@@ -17,7 +16,7 @@ errno_t DiskDriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_
     DiskDriverRef self = NULL;
 
     try(Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, cats, (DriverRef*)&self));
-    try(DiskDriver_CreateDispatchQueue(self, &self->dispatchQueue));
+    try(DiskDriver_CreateDispatchQueue(self, &self->dq));
     self->driveInfo = *driveInfo;
 
     // A disk driver always starts out in "no disk in drive" and "disk change is
@@ -39,20 +38,23 @@ catch:
 
 static void DiskDriver_deinit(DiskDriverRef _Nonnull self)
 {
-    Object_Release(self->dispatchQueue);
-    self->dispatchQueue = NULL;
+    if (self->dq) {
+        dispatch_destroy(self->dq);
+        self->dq = NULL;
+    }
 }
 
-errno_t DiskDriver_createDispatchQueue(DiskDriverRef _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
+errno_t DiskDriver_createDispatchQueue(DiskDriverRef _Nonnull self, dispatch_t _Nullable * _Nonnull pOutQueue)
 {
-    return DispatchQueue_Create(0, 1, SCHED_QOS_URGENT, QOS_PRI_NORMAL, pOutQueue);
+    dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_URGENT(DISPATCH_PRI_NORMAL);
+
+    return dispatch_create(&attr, pOutQueue);
 }
 
 void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
 {
-    if (self->dispatchQueue) {
-        DispatchQueue_Terminate(self->dispatchQueue);
-        DispatchQueue_WaitForTerminationCompleted(self->dispatchQueue);
+    if (self->dq) {
+        dispatch_terminate(self->dq, DISPATCH_TERMINATE_AWAIT_ALL);
     }
 }
 
@@ -322,22 +324,35 @@ void DiskDriver_handleRequest(DiskDriverRef _Nonnull self, IORequest* _Nonnull r
                 break;
         }
     }
-
-    IORequest_Done(req);
 }
 
 
+static void _req_trampoline(IORequest* _Nonnull req)
+{
+    DiskDriver_HandleRequest(req->driver, req);
+}
+
 errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
-    return DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)implementationof(handleRequest, DiskDriver, classof(self)), self, req, 0, 0, 0);
+    req->item.func = (dispatch_item_func_t)_req_trampoline;
+    req->driver = self;
+
+    return dispatch_submit(self->dq, 0, (dispatch_item_t)req);
 }
 
 errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
-    errno_t err = DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)implementationof(handleRequest, DiskDriver, classof(self)), self, req, 0, kDispatchOption_Sync, 0);
+    req->item.func = (dispatch_item_func_t)_req_trampoline;
+    req->driver = self;
+
+    errno_t err = dispatch_submit(self->dq, DISPATCH_SUBMIT_AWAITABLE, (dispatch_item_t)req);
     if (err == EOK) {
-        err = req->status;
+        err = dispatch_await(self->dq, (dispatch_item_t)req);
+        if (err == EOK) {
+            err = req->status;
+        }
     }
+
     return err;
 }
 

@@ -10,6 +10,7 @@
 #define DiskDriver_h
 
 #include <diskcache/DiskCache.h>
+#include <dispatch/dispatch.h>
 #include <driver/Driver.h>
 #include <driver/IORequest.h>
 #include <kpi/disk.h>
@@ -126,7 +127,7 @@ typedef struct SenseDiskRequest {
 // and future disk read/write/format calls will execute on the new disk as
 // expected. 
 open_class(DiskDriver, Driver,
-    DispatchQueueRef _Nullable  dispatchQueue;
+    dispatch_t _Nullable        dq;
     drive_info_t                driveInfo;
     scnt_t                      sectorsPerTrack;
     size_t                      headsPerCylinder;
@@ -154,7 +155,7 @@ open_class_funcs(DiskDriver, Driver,
     // exist. 
     // Override: Optional
     // Default Behavior: create a dispatch queue with priority Normal
-    errno_t (*createDispatchQueue)(void* _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
+    errno_t (*createDispatchQueue)(void* _Nonnull self, dispatch_t _Nullable * _Nonnull pOutQueue);
 
 
     //
@@ -245,7 +246,7 @@ extern errno_t DiskDriver_SenseDisk(DiskDriverRef _Nonnull self);
 // Returns the driver's serial dispatch queue. Only call this if the driver is
 // an asynchronous driver.
 #define DiskDriver_GetDispatchQueue(__self) \
-    ((DiskDriverRef)__self)->dispatchQueue
+    ((DiskDriverRef)__self)->dq
 
 #define DiskDriver_CreateDispatchQueue(__self, __pOutQueue) \
 invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
