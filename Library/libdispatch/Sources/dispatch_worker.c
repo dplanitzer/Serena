@@ -218,6 +218,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
     int flags, signo;
 
     self->current_item = NULL;
+    self->current_timer = NULL;
 
     for (;;) {
         // Grab the first timer that's due. We give preference to timers because
@@ -230,7 +231,8 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
 
             if (timespec_le(&ftp->deadline, &now)) {
                 SList_RemoveFirst(&q->timers);
-                self->current_item = (dispatch_item_t)ftp;
+                self->current_item = ftp->item;
+                self->current_timer = ftp;
 
                 return 0;
             }
@@ -242,6 +244,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
         if (item) {
             self->work_count--;
             self->current_item = item;
+            self->current_timer = NULL;
 
             return 0;
         }
@@ -331,10 +334,10 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
             case _DISPATCH_TYPE_CONV_TIMER:
                 if ((item->flags & _DISPATCH_ITEM_FLAG_REPEATING) != 0
                     && (item->flags & _DISPATCH_ITEM_FLAG_CANCELLED) == 0) {
-                    _dispatch_rearm_timer(q, (dispatch_timer_t)item);
+                    _dispatch_rearm_timer(q, self->current_timer);
                 }
                 else {
-                    _dispatch_retire_item(q, item);
+                    _dispatch_retire_timer(q, self->current_timer);
                 }
                 break;
 

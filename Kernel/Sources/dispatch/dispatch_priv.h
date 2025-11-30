@@ -38,14 +38,8 @@ __CPP_BEGIN
 // recognize the cancel request and act on it before we can transition the item
 // to CANCELLED state.
 
-#define _DISPATCH_MAX_CONV_ITEM_CACHE_COUNT     8
-#define _DISPATCH_MAX_CONV_TIMER_CACHE_COUNT    4
-
-struct dispatch_item_cache {
-    SList   items;
-    int16_t count;
-    int16_t maxCount;
-};
+#define _DISPATCH_MAX_CONV_ITEM_CACHE_COUNT 8
+#define _DISPATCH_MAX_TIMER_CACHE_COUNT     4
 
 
 struct dispatch_conv_item {
@@ -57,12 +51,13 @@ struct dispatch_conv_item {
 typedef struct dispatch_conv_item* dispatch_conv_item_t;
 
 
-struct dispatch_conv_timer {
-    struct dispatch_timer           timer;
-    dispatch_async_func_t _Nonnull  func;
-    void* _Nullable                 arg;
+struct dispatch_timer {
+    SListNode                   timer_qe;
+    dispatch_item_t _Nonnull    item;
+    struct timespec             deadline;   // Time when the timer fires next
+    struct timespec             interval;   // Time interval until next time the timer should fire (if repeating) 
 };
-typedef struct dispatch_conv_timer* dispatch_conv_timer_t;
+typedef struct dispatch_timer* dispatch_timer_t;
 
 
 struct dispatch_sigtrap {
@@ -78,7 +73,8 @@ struct dispatch_worker {
     SList                       work_queue;
     size_t                      work_count;
 
-    dispatch_item_t _Nullable   current_item;   // Currently executing work
+    dispatch_item_t _Nullable   current_item;   // currently executing item
+    dispatch_timer_t _Nullable  current_timer;  // and timer
 
     vcpu_t _Nonnull             vcpu;
     vcpuid_t                    id;
@@ -131,9 +127,6 @@ extern void _dispatch_worker_run(dispatch_worker_t _Nonnull self);
 #define _DISPATCH_TYPE_CONV_ITEM        0x04    // cacheable, dispatcher owned
 #define _DISPATCH_TYPE_CONV_TIMER       0x05    // cacheable, dispatcher owned
 
-#define _DISPATCH_ITEM_CACHE_IDX(__item_type) ((__item_type) - _DISPATCH_TYPE_CONV_ITEM) 
-#define _DISPATCH_ITEM_CACHE_COUNT      2
-
 
 // Dispatcher state
 #define _DISPATCHER_STATE_ACTIVE        0
@@ -154,6 +147,9 @@ struct dispatch {
 
     SList                           zombie_items;   // Items that are done and joinable
 
+    SList                           item_cache;
+    size_t                          item_cache_count;
+
     SList                           timers;         // The timer queue is shared by all workers
     SList                           timer_cache;
     size_t                          timer_cache_count;
@@ -164,8 +160,6 @@ struct dispatch {
     volatile int                    state;
     int                             suspension_count;
 
-    struct dispatch_item_cache      item_cache[_DISPATCH_ITEM_CACHE_COUNT];
-
     char                            name[DISPATCH_MAX_NAME_LENGTH + 1];
 };
 
@@ -173,15 +167,16 @@ extern errno_t _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_
 extern void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
-extern dispatch_item_t _Nullable _dispatch_acquire_cached_item(dispatch_t _Nonnull _Locked self, int itemType, dispatch_item_func_t func);
+extern dispatch_item_t _Nullable _dispatch_acquire_cached_conv_item(dispatch_t _Nonnull _Locked self, dispatch_item_func_t func);
 extern void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self);
 extern errno_t _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self);
 extern bool _dispatch_isactive(dispatch_t _Nonnull _Locked self);
 
 
 extern dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg);
-extern void _dispatch_withdraw_timer(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
+extern void _dispatch_withdraw_timer_for_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
 extern void _dispatch_drain_timers(dispatch_t _Nonnull _Locked self);
+extern void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
 
 extern void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
 extern void _dispatch_retire_signal_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
@@ -189,6 +184,8 @@ extern void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, 
 extern void _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 
 extern _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker);
+
+extern void _async_adapter_func(dispatch_item_t _Nonnull item);
 
 __CPP_END
 

@@ -144,23 +144,6 @@ typedef struct dispatch_item* dispatch_item_t;
 (struct dispatch_item){NULL, (dispatch_item_func_t)(__func), (dispatch_retire_func_t)(__retireFunc), 0, 0, 0, 0}
 
 
-struct dispatch_timer {
-    struct dispatch_item    item;
-    struct timespec         deadline;
-    struct timespec         interval; 
-};
-typedef struct dispatch_timer* dispatch_timer_t;
-
-
-// A convenience macro to initialize a dispatch oneshot timer.
-#define DISPATCH_ONESHOT_TIMER(__func, __retireFunc, __deadline) \
-(struct dispatch_timer){{NULL, (dispatch_item_func_t)(__func), (dispatch_retire_func_t)(__retireFunc), 0, 0, 0, 0}, (__deadline), TIMESPEC_INF}
-
-// A convenience macro to initialize a dispatch repeating timer.
-#define DISPATCH_REPEATING_TIMER(__func, __retireFunc, __deadline, __interval) \
-(struct dispatch_timer){{NULL, (dispatch_item_func_t)(__func), (dispatch_retire_func_t)(__retireFunc), 0, 0, 0, 0}, (__deadline), (__interval)}
-
-
 // Quality of Service level. From highest to lowest.
 // DISPATCH_QOS_REALTIME: kernel will minimize the scheduling latency. Realtime is always scheduled before anything else
 // DISPATCH_QOS_BACKGROUND: no guarantee with regards to schedule latency.
@@ -249,14 +232,15 @@ typedef errno_t (*dispatch_sync_func_t)(void* _Nullable arg);
 extern errno_t dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, void* _Nullable arg);
 
 
-// Submits the timer 'timer' to the dispatcher 'self'. The timer will execute
-// once if the interval field in the timer is set to TIMESPEC_INF and it will
-// execute repeatedly if the interval field is set to a valid timespec. The first
-// timer execution will be at or soon after 'deadline' and the timer will repeat
-// every 'interval' time units. If TIMER_ABSTIME is passed to 'flags' then the
-// timer deadline field is interpreted as an absolute time value; otherwise it
-// is interpreted as a delay relative to the current time. 
-extern errno_t dispatch_timer(dispatch_t _Nonnull self, int flags, dispatch_timer_t _Nonnull timer);
+// Dispatches the item to run after a 'wtp' delay or at the absolute time 'wtp'
+// if 'flags' has the TIMER_ABSTIME flag set. The dispatcher takes ownership of
+// item until that time. Once the item has executed, it's retire function will
+// be called and ownership reverts back to the item.
+extern errno_t dispatch_item_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_item_t _Nonnull item);
+
+// Similar to dispatch_item_after(), except that the item is repeatedly executed
+// every 'itp time units until it is canceled.
+extern errno_t dispatch_item_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_item_t _Nonnull item);
 
 
 // Convenience function to execute 'func' after 'wtp' nanoseconds or at the
