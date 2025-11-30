@@ -10,7 +10,6 @@
 #include "proc_img_gemdos.h"
 #include <kei/kei.h>
 #include <kern/string.h>
-#include <dispatchqueue/DispatchQueue.h>
 #include <sched/vcpu.h>
 
 
