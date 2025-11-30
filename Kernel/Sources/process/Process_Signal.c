@@ -119,6 +119,9 @@ errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope,
     if (signo == SIGKILL || signo == SIGSTOP || signo == SIGCONT || signo == SIGVPRQ || signo == SIGVPDS) {
         return EPERM;
     }
+    if (self == gKernelProcess) {
+        return EPERM;
+    }
 
 
     mtx_lock(&self->mtx);
@@ -316,7 +319,12 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
                 break;
 
             case SIG_SCOPE_PROC:
-                err = _proc_send_signal_to_proc(self, id, signo);
+                if (self != gKernelProcess) {
+                    err = _proc_send_signal_to_proc(self, id, signo);
+                }
+                else {
+                    err = EPERM;
+                }
                 break;
 
             default:
