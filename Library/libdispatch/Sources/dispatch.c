@@ -516,11 +516,7 @@ void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _
 {
     mtx_lock(&self->mutex);
     dispatch_timer_t timer = _dispatch_find_timer(self, func, arg);
-    dispatch_item_t item = NULL;
-
-    if (timer == NULL) {
-        item = _dispatch_find_item(self, func, arg);
-    }
+    dispatch_item_t item = (timer) ? timer->item : _dispatch_find_item(self, func, arg);
 
     if (item) {
         _dispatch_do_cancel_item(self, flags, item);
