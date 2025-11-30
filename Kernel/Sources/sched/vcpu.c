@@ -41,8 +41,6 @@ void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params
     self->qos = sched_params->u.qos.category;
     self->qos_priority = sched_params->u.qos.priority;
 
-    self->dispatchQueueConcurrencyLaneIndex = -1;
-
     vcpu_sched_params_changed(self);
 }
 
@@ -112,7 +110,6 @@ _Noreturn vcpu_relinquish(vcpu_t _Nonnull self)
     assert(vcpu_current() == self);
     
     // Cleanup
-    vcpu_setdq(self, NULL, -1);
     self->proc = NULL;
     self->udata = 0;
     self->id = 0;
@@ -146,15 +143,6 @@ void vcpu_destroy(vcpu_t _Nullable self)
         stk_destroy(&self->user_stack);
         kfree(self);
     }
-}
-
-// Sets the dispatch queue that has acquired the virtual processor and owns it
-// until the virtual processor is relinquished back to the virtual processor
-// pool.
-void vcpu_setdq(vcpu_t _Nonnull self, void* _Nullable pQueue, int concurrencyLaneIndex)
-{
-    self->dispatchQueue = pQueue;
-    self->dispatchQueueConcurrencyLaneIndex = concurrencyLaneIndex;
 }
 
 void vcpu_reduce_sched_penalty(vcpu_t _Nonnull self, int prop)

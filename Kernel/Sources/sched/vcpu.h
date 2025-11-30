@@ -138,11 +138,6 @@ struct vcpu {
 
     // Process
     struct Process* _Nullable _Weak proc;                   // Process owning this VP (optional for now)
-
-    // Dispatch queue state
-    void* _Nullable _Weak           dispatchQueue;                      // Dispatch queue this VP is currently assigned to
-    int8_t                          dispatchQueueConcurrencyLaneIndex;  // Index of the concurrency lane in the dispatch queue this VP is assigned to
-    int8_t                          reserved3[3];
 };
 
 
@@ -237,11 +232,6 @@ extern void vcpu_resume(vcpu_t _Nonnull self, bool force);
 // space portion of the vcpu CSW state.
 extern errno_t vcpu_rw_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx, bool isRead);
 
-
-// Sets the dispatch queue that has acquired the virtual processor and owns it
-// until the virtual processor is relinquished back to the virtual processor
-// pool.
-extern void vcpu_setdq(vcpu_t _Nonnull self, void* _Nullable pQueue, int concurrencyLaneIndex);
 
 extern void vcpu_dump(vcpu_t _Nonnull self);
 

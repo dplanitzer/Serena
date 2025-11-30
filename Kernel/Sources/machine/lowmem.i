@@ -186,11 +186,8 @@ vp_flags                                so.b    1           ; 1
 vp_quantum_countdown                    so.b    1           ; 1
 vp_suspension_count                     so.w    1           ; 2
 vp_proc                                 so.l    1           ; 4
-vp_dispatchQueue                        so.l    1           ; 4
-vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
-vp_reserved3                            so.b    3           ; 3
 vp_SIZEOF                       so
-    ifeq (vp_SIZEOF == 128)
+    ifeq (vp_SIZEOF == 120)
         fail "vcpu structure size is incorrect."
     endif
 
