@@ -25,14 +25,14 @@
 errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_URGENT(DISPATCH_PRI_NORMAL);
+    kdispatch_attr_t attr = KDISPATCH_ATTR_INIT_SERIAL_URGENT(KDISPATCH_PRI_NORMAL);
     ConsoleRef self;
 
     try(PseudoDriver_Create(class(Console), 0, (DriverRef*)&self));
     
     mtx_init(&self->mtx);
 
-    try(dispatch_create(&attr, &self->dq));
+    try(kdispatch_create(&attr, &self->dq));
 
     try(DriverManager_Open(gDriverManager, "/hid", O_RDONLY, &self->hidChannel));
     try(RingBuffer_Init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
@@ -71,8 +71,8 @@ void Console_deinit(ConsoleRef _Nonnull self)
     Console_SetCursorBlinkingEnabled_Locked(self, false);
 
     if (self->dq) {
-        dispatch_terminate(self->dq, DISPATCH_TERMINATE_AWAIT_ALL);
-        dispatch_destroy(self->dq);
+        kdispatch_terminate(self->dq, KDISPATCH_TERMINATE_AWAIT_ALL);
+        kdispatch_destroy(self->dq);
         self->dq = NULL;
     }
 

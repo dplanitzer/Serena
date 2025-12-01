@@ -10,7 +10,7 @@
 #define ConsolePriv_h
 
 #include "Console.h"
-#include <dispatch/dispatch.h>
+#include <kdispatch/kdispatch.h>
 #include <driver/DriverChannel.h>
 #include <klib/RingBuffer.h>
 #include <sched/mtx.h>
@@ -147,7 +147,7 @@ typedef struct SavedState {
 // The console object.
 final_class_ivars(Console, PseudoDriver,
     mtx_t                       mtx;
-    dispatch_t _Nonnull         dq;
+    kdispatch_t _Nonnull        dq;
 
     vtparser_t                  vtparser;
 

@@ -52,7 +52,7 @@ catch:
 static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
 {
     FloppyDriver_MotorOff(self);
-    dispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (dispatch_item_func_t)FloppyDriver_CheckDiskChange, self);
+    kdispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (kdispatch_item_func_t)FloppyDriver_CheckDiskChange, self);
 
     kfree(self->dmaBuffer);
     self->dmaBuffer = NULL;
@@ -131,7 +131,7 @@ static void FloppyDriver_Reset(FloppyDriverRef _Nonnull self)
     if (err == EOK) {
         self->flags.isOnline = 1;
         _FloppyDriver_doSenseDisk(self);
-        dispatch_repeating(DiskDriver_GetDispatchQueue(self), 0, &TIMESPEC_ZERO, &interval, (dispatch_async_func_t)FloppyDriver_CheckDiskChange, self);
+        kdispatch_repeating(DiskDriver_GetDispatchQueue(self), 0, &TIMESPEC_ZERO, &interval, (kdispatch_async_func_t)FloppyDriver_CheckDiskChange, self);
     }
     else {
         self->flags.isOnline = 0;
@@ -157,7 +157,7 @@ errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
     de.arg = 0;
 
     try(Driver_Publish((DriverRef)self, &de));
-    try(dispatch_async(DiskDriver_GetDispatchQueue(self), (dispatch_async_func_t)FloppyDriver_Reset, self));
+    try(kdispatch_async(DiskDriver_GetDispatchQueue(self), (kdispatch_async_func_t)FloppyDriver_Reset, self));
 
 catch:
     return err;
@@ -167,7 +167,7 @@ catch:
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self)
 {
     FloppyDriver_MotorOff(self);
-    dispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (dispatch_item_func_t)FloppyDriver_CheckDiskChange, self);
+    kdispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (kdispatch_item_func_t)FloppyDriver_CheckDiskChange, self);
     self->tbTrackNo = -1;
     DiskDriver_NoteSensedDisk((DiskDriverRef)self, NULL);
     self->flags.isOnline = 0;
@@ -213,7 +213,7 @@ static void FloppyDriver_SetDiskChangeCounter(FloppyDriverRef _Nonnull self)
 
 static void FloppyDriver_CancelDelayedMotorOff(FloppyDriverRef _Nonnull self)
 {
-    dispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (dispatch_item_func_t)FloppyDriver_MotorOff, self);
+    kdispatch_cancel(DiskDriver_GetDispatchQueue(self), 0, (kdispatch_item_func_t)FloppyDriver_MotorOff, self);
 }
 
 // Turns the drive motor off.
@@ -242,7 +242,7 @@ static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self)
     
     struct timespec dly; 
     timespec_from_sec(&dly, 4);
-    dispatch_after(DiskDriver_GetDispatchQueue(self), 0, &dly, (dispatch_async_func_t)FloppyDriver_MotorOff, self);
+    kdispatch_after(DiskDriver_GetDispatchQueue(self), 0, &dly, (kdispatch_async_func_t)FloppyDriver_MotorOff, self);
 }
 
 // Waits until the drive is ready (motor is spinning at full speed). This function

@@ -39,22 +39,22 @@ catch:
 static void DiskDriver_deinit(DiskDriverRef _Nonnull self)
 {
     if (self->dq) {
-        dispatch_destroy(self->dq);
+        kdispatch_destroy(self->dq);
         self->dq = NULL;
     }
 }
 
-errno_t DiskDriver_createDispatchQueue(DiskDriverRef _Nonnull self, dispatch_t _Nullable * _Nonnull pOutQueue)
+errno_t DiskDriver_createDispatchQueue(DiskDriverRef _Nonnull self, kdispatch_t _Nullable * _Nonnull pOutQueue)
 {
-    dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_URGENT(DISPATCH_PRI_NORMAL);
+    kdispatch_attr_t attr = KDISPATCH_ATTR_INIT_SERIAL_URGENT(KDISPATCH_PRI_NORMAL);
 
-    return dispatch_create(&attr, pOutQueue);
+    return kdispatch_create(&attr, pOutQueue);
 }
 
 void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
 {
     if (self->dq) {
-        dispatch_terminate(self->dq, DISPATCH_TERMINATE_AWAIT_ALL);
+        kdispatch_terminate(self->dq, KDISPATCH_TERMINATE_AWAIT_ALL);
     }
 }
 
@@ -334,18 +334,18 @@ static void _req_trampoline(IORequest* _Nonnull req)
 
 errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
-    req->item.func = (dispatch_item_func_t)_req_trampoline;
+    req->item.func = (kdispatch_item_func_t)_req_trampoline;
     req->driver = self;
 
-    return dispatch_item_async(self->dq, 0, (dispatch_item_t)req);
+    return kdispatch_item_async(self->dq, 0, (kdispatch_item_t)req);
 }
 
 errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
 {
-    req->item.func = (dispatch_item_func_t)_req_trampoline;
+    req->item.func = (kdispatch_item_func_t)_req_trampoline;
     req->driver = self;
 
-    errno_t err = dispatch_item_sync(self->dq, (dispatch_item_t)req);
+    errno_t err = kdispatch_item_sync(self->dq, (kdispatch_item_t)req);
     if (err == EOK) {
         err = req->status;
     }

@@ -1,18 +1,18 @@
 //
-//  dispatch_signal.c
+//  kdispatch_signal.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 9/21/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "dispatch_priv.h"
+#include "kdispatch_priv.h"
 
 
-static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo, bool enable)
+static void _kdispatch_enable_signal(kdispatch_t _Nonnull _Locked self, int signo, bool enable)
 {
     List_ForEach(&self->workers, ListNode, {
-        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+        kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
 
         if (enable) {
             cwp->hotsigs |= _SIGBIT(signo);
@@ -24,15 +24,15 @@ static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo,
 }
 
 // Removes the signal monitor 'item' from its signal trap and retires it.
-void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+void _kdispatch_withdraw_signal_item(kdispatch_t _Nonnull self, int flags, kdispatch_item_t _Nonnull item)
 {
     const int signo = item->subtype;
-    dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
-    dispatch_item_t pip = NULL;
+    kdispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
+    kdispatch_item_t pip = NULL;
     bool hasIt = false;
 
     SList_ForEach(&stp->monitors, SListNode, {
-        dispatch_item_t cip = (dispatch_item_t)pCurNode;
+        kdispatch_item_t cip = (kdispatch_item_t)pCurNode;
 
         if (cip == item) {
             SList_Remove(&stp->monitors, &pip->qe, &cip->qe);
@@ -44,42 +44,42 @@ void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, int flags, dispatc
     });
 
     if (hasIt) {
-        _dispatch_retire_item(self, item);
+        _kdispatch_retire_item(self, item);
 
         stp->count--;
         if (stp->count == 0) {
-            _dispatch_enable_signal(self, signo, false);
+            _kdispatch_enable_signal(self, signo, false);
         }
     }
 }
 
 // Retires the signal monitor 'item'.
-void _dispatch_retire_signal_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
+void _kdispatch_retire_signal_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item)
 {
     const int signo = item->subtype;
-    dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
+    kdispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
 
-    _dispatch_retire_item(self, item);
+    _kdispatch_retire_item(self, item);
 
     stp->count--;
     if (stp->count == 0) {
-        _dispatch_enable_signal(self, signo, false);
+        _kdispatch_enable_signal(self, signo, false);
     }
 }
 
 // Rearms 'item' in the sense that it is moved back to idle state and the signal
 // trap so that it can be submitted again when the next signal comes in.
-void _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
+void _kdispatch_rearm_signal_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item)
 {
-    dispatch_sigtrap_t stp = &self->sigtraps[item->subtype - 1];
+    kdispatch_sigtrap_t stp = &self->sigtraps[item->subtype - 1];
 
-    item->state = DISPATCH_STATE_IDLE;
+    item->state = KDISPATCH_STATE_IDLE;
     item->qe = SLISTNODE_INIT;
 
     SList_InsertAfterLast(&stp->monitors, &item->qe);
 }
 
-static errno_t _dispatch_item_on_signal(dispatch_t _Nonnull _Locked self, int signo, dispatch_item_t _Nonnull item)
+static errno_t _kdispatch_item_on_signal(kdispatch_t _Nonnull _Locked self, int signo, kdispatch_item_t _Nonnull item)
 {
     decl_try_err();
 
@@ -87,31 +87,31 @@ static errno_t _dispatch_item_on_signal(dispatch_t _Nonnull _Locked self, int si
         //XXX allocate in a smarter way: eg organize sigset in quarters, calc
         //XXX what's the highest quarter we need and only allocate up to this
         //XXX quarter.
-        err = kalloc_cleared(SIGMAX * sizeof(struct dispatch_sigtrap), (void**)&self->sigtraps);
+        err = kalloc_cleared(SIGMAX * sizeof(struct kdispatch_sigtrap), (void**)&self->sigtraps);
         if (err != EOK) {
             return err;
         }
     }
 
     item->qe = SLISTNODE_INIT;
-    item->type = _DISPATCH_TYPE_USER_SIGNAL_ITEM;
+    item->type = _KDISPATCH_TYPE_USER_SIGNAL_ITEM;
     item->subtype = (uint8_t)signo;
-    item->flags = _DISPATCH_ITEM_FLAG_REPEATING;
-    item->state = DISPATCH_STATE_IDLE;
+    item->flags = _KDISPATCH_ITEM_FLAG_REPEATING;
+    item->state = KDISPATCH_STATE_IDLE;
 
-    dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
+    kdispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
     SList_InsertAfterLast(&stp->monitors, &item->qe);
     stp->count++;
 
     if (stp->count == 1) {
-        _dispatch_enable_signal(self, signo, true);
+        _kdispatch_enable_signal(self, signo, true);
     }
 
     // For now we ensure that there's always at least one worker alive.
     //XXX The kernel should be able to spawns a worker for us in the future if
     //XXX a signal comes in and there's no vcpu in the vcpu group. 
     if (self->worker_count == 0) {
-        err = _dispatch_acquire_worker(self);
+        err = _kdispatch_acquire_worker(self);
 
         if (err != EOK) {
             return err;
@@ -121,20 +121,20 @@ static errno_t _dispatch_item_on_signal(dispatch_t _Nonnull _Locked self, int si
     return EOK;
 }
 
-void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int signo, dispatch_worker_t _Nonnull worker)
+void _kdispatch_submit_items_for_signal(kdispatch_t _Nonnull _Locked self, int signo, kdispatch_worker_t _Nonnull worker)
 {
-    dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
+    kdispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
 
     while (stp->monitors.first) {
-        dispatch_item_t item = (dispatch_item_t)SList_RemoveFirst(&stp->monitors);
+        kdispatch_item_t item = (kdispatch_item_t)SList_RemoveFirst(&stp->monitors);
 
         item->qe = SLISTNODE_INIT;
-        item->state = DISPATCH_STATE_SCHEDULED;
-        item->flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
+        item->state = KDISPATCH_STATE_SCHEDULED;
+        item->flags &= ~_KDISPATCH_ITEM_FLAG_CANCELLED;
 
         // No need to wakeup ourselves. This function is called from the worker
         // 'worker' and we know we're already awake.
-        _dispatch_worker_submit(worker, item, false);
+        _kdispatch_worker_submit(worker, item, false);
     }
 }
 
@@ -144,7 +144,7 @@ void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int sig
 
 static sigset_t _SIGSET_NOSENDMON = _SIGBIT(SIGDISP) | _SIGBIT(SIGKILL) | _SIGBIT(SIGVPRQ) | _SIGBIT(SIGVPDS) | _SIGBIT(SIGSTOP);
 
-errno_t dispatch_item_on_signal(dispatch_t _Nonnull self, int signo, dispatch_item_t _Nonnull item)
+errno_t kdispatch_item_on_signal(kdispatch_t _Nonnull self, int signo, kdispatch_item_t _Nonnull item)
 {
     decl_try_err();
 
@@ -154,7 +154,7 @@ errno_t dispatch_item_on_signal(dispatch_t _Nonnull self, int signo, dispatch_it
 
     mtx_lock(&self->mutex);
     if (self->state < _DISPATCHER_STATE_TERMINATING) {
-        err = _dispatch_item_on_signal(self, signo, item);
+        err = _kdispatch_item_on_signal(self, signo, item);
     }
     else {
         err = ETERMINATED;
@@ -163,7 +163,7 @@ errno_t dispatch_item_on_signal(dispatch_t _Nonnull self, int signo, dispatch_it
     return err;
 }
 
-int dispatch_alloc_signal(dispatch_t _Nonnull self, int signo)
+int kdispatch_alloc_signal(kdispatch_t _Nonnull self, int signo)
 {
     int r = -1;
 
@@ -194,7 +194,7 @@ int dispatch_alloc_signal(dispatch_t _Nonnull self, int signo)
     return r;
 }
 
-void dispatch_free_signal(dispatch_t _Nonnull self, int signo)
+void kdispatch_free_signal(kdispatch_t _Nonnull self, int signo)
 {
     mtx_lock(&self->mutex);
     if (signo >= SIGUSRMIN && signo <= SIGUSRMAX) {
@@ -203,7 +203,7 @@ void dispatch_free_signal(dispatch_t _Nonnull self, int signo)
     mtx_unlock(&self->mutex);
 }
 
-vcpuid_t dispatch_signal_target(dispatch_t _Nonnull self)
+vcpuid_t kdispatch_signal_target(kdispatch_t _Nonnull self)
 {
     mtx_lock(&self->mutex);
     const id_t id = self->groupid;
@@ -212,7 +212,7 @@ vcpuid_t dispatch_signal_target(dispatch_t _Nonnull self)
     return id;
 }
 
-errno_t dispatch_send_signal(dispatch_t _Nonnull self, int signo)
+errno_t kdispatch_send_signal(kdispatch_t _Nonnull self, int signo)
 {
     decl_try_err();
     vcpuid_t id;
@@ -224,11 +224,11 @@ errno_t dispatch_send_signal(dispatch_t _Nonnull self, int signo)
 
     mtx_lock(&self->mutex);
     if (self->attr.maxConcurrency == 1 && self->workers.first) {
-        vcpu_sigsend(((dispatch_worker_t)self->workers.first)->vcpu, signo);
+        vcpu_sigsend(((kdispatch_worker_t)self->workers.first)->vcpu, signo);
     }
     else {
         List_ForEach(&self->workers, ListNode, {
-            dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+            kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
 
             vcpu_sigsend(cwp->vcpu, signo);
         });

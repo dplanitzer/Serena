@@ -11,7 +11,7 @@
 
 #include <kern/errno.h>
 #include <kern/types.h>
-#include <dispatch/dispatch.h>
+#include <kdispatch/kdispatch.h>
 
 struct IORequest;
 
@@ -24,7 +24,7 @@ typedef struct IOVector {
 
 
 typedef struct IORequest {
-    struct dispatch_item    item;
+    struct kdispatch_item   item;
     void* _Nonnull          driver;
     int                     type;           // <- request type
     uint16_t                size;           // <- request size in bytes

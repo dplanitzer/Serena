@@ -92,7 +92,7 @@ static errno_t _DiskCache_CreateReadRequest(DiskCacheRef _Nonnull _Locked self, 
         }
     }
 
-    req->s.item.retireFunc = (dispatch_retire_func_t)_on_disk_request_done;
+    req->s.item.retireFunc = (kdispatch_retire_func_t)_on_disk_request_done;
     req->offset = lbaClusterStart * s->s2bFactor * s->sectorSize;
     req->options = 0;
     req->iovCount = nBlocksToCluster;
@@ -111,7 +111,7 @@ static errno_t _DiskCache_CreateWriteRequest(DiskCacheRef _Nonnull _Locked self,
         return err;
     }
     
-    req->s.item.retireFunc = (dispatch_retire_func_t)_on_disk_request_done;
+    req->s.item.retireFunc = (kdispatch_retire_func_t)_on_disk_request_done;
     req->offset = pBlock->lba * s->s2bFactor * s->sectorSize;
     req->options = 0;
     req->iovCount = 1;

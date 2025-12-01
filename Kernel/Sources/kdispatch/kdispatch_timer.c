@@ -6,30 +6,30 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "dispatch_priv.h"
+#include "kdispatch_priv.h"
 
 
-static dispatch_timer_t _Nullable _dispatch_acquire_cached_timer(dispatch_t _Nonnull _Locked self)
+static kdispatch_timer_t _Nullable _kdispatch_acquire_cached_timer(kdispatch_t _Nonnull _Locked self)
 {
-    dispatch_timer_t timer;
+    kdispatch_timer_t timer;
 
     if (self->timer_cache.first) {
-        timer = (dispatch_timer_t)SList_RemoveFirst(&self->timer_cache);
+        timer = (kdispatch_timer_t)SList_RemoveFirst(&self->timer_cache);
         self->timer_cache_count--;
     }
     else {
-        kalloc(sizeof(struct dispatch_timer), (void**)&timer);
+        kalloc(sizeof(struct kdispatch_timer), (void**)&timer);
     }
 
     return timer;
 }
 
-static void _dispatch_cache_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
+static void _kdispatch_cache_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer)
 {
     timer->timer_qe = SLISTNODE_INIT;
     timer->item = NULL;
 
-    if (self->timer_cache_count < _DISPATCH_MAX_TIMER_CACHE_COUNT) {
+    if (self->timer_cache_count < _KDISPATCH_MAX_TIMER_CACHE_COUNT) {
         SList_InsertBeforeFirst(&self->timer_cache, &timer->timer_qe);
         self->timer_cache_count++;
     }
@@ -38,33 +38,33 @@ static void _dispatch_cache_timer(dispatch_t _Nonnull _Locked self, dispatch_tim
     }
 }
 
-void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
+void _kdispatch_retire_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer)
 {
-    _dispatch_retire_item(self, timer->item);
-    _dispatch_cache_timer(self, timer);
+    _kdispatch_retire_item(self, timer->item);
+    _kdispatch_cache_timer(self, timer);
 }
 
-void _dispatch_drain_timers(dispatch_t _Nonnull _Locked self)
+void _kdispatch_drain_timers(kdispatch_t _Nonnull _Locked self)
 {
     while (!SList_IsEmpty(&self->timers)) {
-        dispatch_timer_t ctp = (dispatch_timer_t)SList_RemoveFirst(&self->timers);
+        kdispatch_timer_t ctp = (kdispatch_timer_t)SList_RemoveFirst(&self->timers);
 
-        _dispatch_retire_timer(self, ctp);
+        _kdispatch_retire_timer(self, ctp);
     }
 }
 
 // Removes 'item' from the timer queue and retires it.
-void _dispatch_withdraw_timer_for_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+void _kdispatch_withdraw_timer_for_item(kdispatch_t _Nonnull self, int flags, kdispatch_item_t _Nonnull item)
 {
-    dispatch_timer_t ptp = NULL;
-    dispatch_timer_t ctp = (dispatch_timer_t)self->timers.first;
+    kdispatch_timer_t ptp = NULL;
+    kdispatch_timer_t ctp = (kdispatch_timer_t)self->timers.first;
 
     while (ctp) {
-        dispatch_timer_t ntp = (dispatch_timer_t)ctp->timer_qe.next;
+        kdispatch_timer_t ntp = (kdispatch_timer_t)ctp->timer_qe.next;
 
         if (ctp->item == item) {
             SList_Remove(&self->timers, &ptp->timer_qe, &ctp->timer_qe);
-            _dispatch_retire_timer(self, ctp);
+            _kdispatch_retire_timer(self, ctp);
             break;
         }
 
@@ -73,21 +73,21 @@ void _dispatch_withdraw_timer_for_item(dispatch_t _Nonnull self, int flags, disp
     }
 }
 
-dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
+kdispatch_timer_t _Nullable _kdispatch_find_timer(kdispatch_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
     SList_ForEach(&self->timers, SListNode, {
-        dispatch_timer_t ctp = (dispatch_timer_t)pCurNode;
-        dispatch_item_t ip = ctp->item;
+        kdispatch_timer_t ctp = (kdispatch_timer_t)pCurNode;
+        kdispatch_item_t ip = ctp->item;
         bool hasFunc;
         bool hasArg;
 
         switch (ip->type) {
-            case _DISPATCH_TYPE_CONV_TIMER:
-                hasFunc = ((dispatch_conv_item_t)ip)->func == (int (*)(void*))func;
-                hasArg = (arg == DISPATCH_IGNORE_ARG) || (((dispatch_conv_item_t)ip)->arg == arg);
+            case _KDISPATCH_TYPE_CONV_TIMER:
+                hasFunc = ((kdispatch_conv_item_t)ip)->func == (int (*)(void*))func;
+                hasArg = (arg == KDISPATCH_IGNORE_ARG) || (((kdispatch_conv_item_t)ip)->arg == arg);
                 break;
 
-            case _DISPATCH_TYPE_USER_TIMER:
+            case _KDISPATCH_TYPE_USER_TIMER:
                 hasFunc = ip->func == func;
                 hasArg = true;
                 break;
@@ -105,16 +105,16 @@ dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispat
     return NULL;
 }
 
-static errno_t _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
+static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer)
 {
     decl_try_err();
-    dispatch_timer_t ptp = NULL;
-    dispatch_timer_t ctp = (dispatch_timer_t)self->timers.first;
+    kdispatch_timer_t ptp = NULL;
+    kdispatch_timer_t ctp = (kdispatch_timer_t)self->timers.first;
     
 
     // Make sure that we got at least one worker
     if (self->worker_count == 0) {
-        err = _dispatch_acquire_worker(self);
+        err = _kdispatch_acquire_worker(self);
         if (err != EOK) {
             return err;
         }
@@ -122,8 +122,8 @@ static errno_t _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_ti
 
 
     timer->timer_qe = SLISTNODE_INIT;
-    timer->item->state = DISPATCH_STATE_SCHEDULED;
-    timer->item->flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
+    timer->item->state = KDISPATCH_STATE_SCHEDULED;
+    timer->item->flags &= ~_KDISPATCH_ITEM_FLAG_CANCELLED;
 
 
     // Put the timer on the timer queue. The timer queue is sorted by absolute
@@ -135,7 +135,7 @@ static errno_t _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_ti
         }
         
         ptp = ctp;
-        ctp = (dispatch_timer_t)ctp->timer_qe.next;
+        ctp = (kdispatch_timer_t)ctp->timer_qe.next;
     }
     
     SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
@@ -144,12 +144,12 @@ static errno_t _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_ti
     // Notify all workers.
     // XXX improve this. Not ideal that we might cause a wakeup storm where we
     // XXX wake up all workers though only one is needed to execute the timer.
-    _dispatch_wakeup_all_workers(self);
+    _kdispatch_wakeup_all_workers(self);
 
     return EOK;
 }
 
-errno_t _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
+errno_t _kdispatch_rearm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer)
 {
     // Repeating timer: rearm it with the next fire date that's in
     // the future (the next fire date we haven't already missed).
@@ -160,12 +160,12 @@ errno_t _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t
         timespec_add(&timer->deadline, &timer->interval, &timer->deadline);
     } while (timespec_le(&timer->deadline, &now) && timespec_gt(&timer->interval, &TIMESPEC_ZERO));
     
-    return _dispatch_arm_timer(self, timer);
+    return _kdispatch_arm_timer(self, timer);
 }
 
-static void _calc_timer_absolute_deadline(dispatch_timer_t _Nonnull timer, int flags)
+static void _calc_timer_absolute_deadline(kdispatch_timer_t _Nonnull timer, int flags)
 {
-    if ((flags & DISPATCH_SUBMIT_ABSTIME) == 0) {
+    if ((flags & KDISPATCH_SUBMIT_ABSTIME) == 0) {
         struct timespec now;
 
         clock_gettime(g_mono_clock, &now);
@@ -177,7 +177,7 @@ static void _calc_timer_absolute_deadline(dispatch_timer_t _Nonnull timer, int f
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
 
-errno_t dispatch_item_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_item_t _Nonnull item)
+errno_t kdispatch_item_after(kdispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, kdispatch_item_t _Nonnull item)
 {
     decl_try_err();
 
@@ -187,19 +187,19 @@ errno_t dispatch_item_after(dispatch_t _Nonnull self, int flags, const struct ti
 
     mtx_lock(&self->mutex);
     if (self->state < _DISPATCHER_STATE_TERMINATING) {
-        dispatch_timer_t timer = _dispatch_acquire_cached_timer(self);
+        kdispatch_timer_t timer = _kdispatch_acquire_cached_timer(self);
     
         if (timer) {
-            item->type = _DISPATCH_TYPE_USER_TIMER;
+            item->type = _KDISPATCH_TYPE_USER_TIMER;
             item->flags = 0;
             timer->item = item;
             timer->deadline = *wtp;
             timer->interval = TIMESPEC_INF;
             _calc_timer_absolute_deadline(timer, flags);
 
-            err = _dispatch_arm_timer(self, timer);
+            err = _kdispatch_arm_timer(self, timer);
             if (err != EOK) {
-                _dispatch_cache_timer(self, timer);
+                _kdispatch_cache_timer(self, timer);
             }
         }
     }
@@ -211,7 +211,7 @@ errno_t dispatch_item_after(dispatch_t _Nonnull self, int flags, const struct ti
     return err;
 }
 
-errno_t dispatch_item_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_item_t _Nonnull item)
+errno_t kdispatch_item_repeating(kdispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, kdispatch_item_t _Nonnull item)
 {
     decl_try_err();
 
@@ -221,19 +221,19 @@ errno_t dispatch_item_repeating(dispatch_t _Nonnull self, int flags, const struc
 
     mtx_lock(&self->mutex);
     if (self->state < _DISPATCHER_STATE_TERMINATING) {
-        dispatch_timer_t timer = _dispatch_acquire_cached_timer(self);
+        kdispatch_timer_t timer = _kdispatch_acquire_cached_timer(self);
 
         if (timer) {
-            item->type = _DISPATCH_TYPE_USER_TIMER;
-            item->flags = _DISPATCH_ITEM_FLAG_REPEATING;
-            timer->item = (dispatch_item_t)item;
+            item->type = _KDISPATCH_TYPE_USER_TIMER;
+            item->flags = _KDISPATCH_ITEM_FLAG_REPEATING;
+            timer->item = (kdispatch_item_t)item;
             timer->deadline = *wtp;
             timer->interval = *itp;
             _calc_timer_absolute_deadline(timer, flags);
 
-            err = _dispatch_arm_timer(self, timer);
+            err = _kdispatch_arm_timer(self, timer);
             if (err != EOK) {
-                _dispatch_cache_timer(self, timer);
+                _kdispatch_cache_timer(self, timer);
             }
         }
     }
@@ -245,7 +245,7 @@ errno_t dispatch_item_repeating(dispatch_t _Nonnull self, int flags, const struc
     return err;
 }
 
-errno_t dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
+errno_t kdispatch_after(kdispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, kdispatch_async_func_t _Nonnull func, void* _Nullable arg)
 {
     decl_try_err();
 
@@ -255,28 +255,28 @@ errno_t dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespe
 
     mtx_lock(&self->mutex);
     if (self->state < _DISPATCHER_STATE_TERMINATING) {
-        dispatch_conv_item_t item = (dispatch_conv_item_t)_dispatch_acquire_cached_conv_item(self, _async_adapter_func);
-        dispatch_timer_t timer = _dispatch_acquire_cached_timer(self);
+        kdispatch_conv_item_t item = (kdispatch_conv_item_t)_kdispatch_acquire_cached_conv_item(self, _async_adapter_func);
+        kdispatch_timer_t timer = _kdispatch_acquire_cached_timer(self);
     
         if (item && timer) {
-            item->super.type = _DISPATCH_TYPE_CONV_TIMER;
-            item->super.flags = _DISPATCH_ITEM_FLAG_CACHEABLE;
+            item->super.type = _KDISPATCH_TYPE_CONV_TIMER;
+            item->super.flags = _KDISPATCH_ITEM_FLAG_CACHEABLE;
             item->func = (int (*)(void*))func;
             item->arg = arg;
-            timer->item = (dispatch_item_t)item;
+            timer->item = (kdispatch_item_t)item;
             timer->deadline = *wtp;
             timer->interval = TIMESPEC_INF;
             _calc_timer_absolute_deadline(timer, flags);
 
-            err = _dispatch_arm_timer(self, timer);
+            err = _kdispatch_arm_timer(self, timer);
         }
         else {
             err = ENOMEM;
         }
 
         if (err != EOK) {
-            if (timer) _dispatch_cache_timer(self, timer);
-            if (item) _dispatch_cache_item(self, (dispatch_item_t)item);
+            if (timer) _kdispatch_cache_timer(self, timer);
+            if (item) _kdispatch_cache_item(self, (kdispatch_item_t)item);
         }
     }
     else {
@@ -287,7 +287,7 @@ errno_t dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespe
     return err;
 }
 
-errno_t dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_async_func_t _Nonnull func, void* _Nullable arg)
+errno_t kdispatch_repeating(kdispatch_t _Nonnull self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, kdispatch_async_func_t _Nonnull func, void* _Nullable arg)
 {
     decl_try_err();
 
@@ -297,28 +297,28 @@ errno_t dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct tim
 
     mtx_lock(&self->mutex);
     if (self->state < _DISPATCHER_STATE_TERMINATING) {
-        dispatch_conv_item_t item = (dispatch_conv_item_t)_dispatch_acquire_cached_conv_item(self, _async_adapter_func);
-        dispatch_timer_t timer = _dispatch_acquire_cached_timer(self);
+        kdispatch_conv_item_t item = (kdispatch_conv_item_t)_kdispatch_acquire_cached_conv_item(self, _async_adapter_func);
+        kdispatch_timer_t timer = _kdispatch_acquire_cached_timer(self);
 
         if (item && timer) {
-            item->super.type = _DISPATCH_TYPE_CONV_TIMER;
-            item->super.flags = _DISPATCH_ITEM_FLAG_CACHEABLE | _DISPATCH_ITEM_FLAG_REPEATING;
+            item->super.type = _KDISPATCH_TYPE_CONV_TIMER;
+            item->super.flags = _KDISPATCH_ITEM_FLAG_CACHEABLE | _KDISPATCH_ITEM_FLAG_REPEATING;
             item->func = (int (*)(void*))func;
             item->arg = arg;
-            timer->item = (dispatch_item_t)item;
+            timer->item = (kdispatch_item_t)item;
             timer->deadline = *wtp;
             timer->interval = *itp;
             _calc_timer_absolute_deadline(timer, flags);
 
-            err = _dispatch_arm_timer(self, timer);
+            err = _kdispatch_arm_timer(self, timer);
         }
         else {
             err = ENOMEM;
         }
 
         if (err != EOK) {
-            if (timer) _dispatch_cache_timer(self, timer);
-            if (item) _dispatch_cache_item(self, (dispatch_item_t)item);
+            if (timer) _kdispatch_cache_timer(self, timer);
+            if (item) _kdispatch_cache_item(self, (kdispatch_item_t)item);
         }
     }
     else {

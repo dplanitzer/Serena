@@ -7,7 +7,7 @@
 //
 
 #include "FilesystemManager.h"
-#include <dispatch/dispatch.h>
+#include <kdispatch/kdispatch.h>
 #include <driver/disk/DiskDriver.h>
 #include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
@@ -66,7 +66,7 @@ catch:
 // If a filesystem is forced unmounted then its FS entry is moved over to the
 // reaper queue.
 typedef struct FilesystemManager {
-    dispatch_t _Nonnull dq;
+    kdispatch_t _Nonnull dq;
     mtx_t               mtx;
     List                filesystems;    // List<FSEntry>
     List                reaperQueue;    // List<FSEntry>
@@ -97,9 +97,9 @@ catch:
 errno_t FilesystemManager_Start(FilesystemManagerRef _Nonnull self)
 {
     decl_try_err();
-    dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_URGENT(DISPATCH_PRI_LOWEST);
+    kdispatch_attr_t attr = KDISPATCH_ATTR_INIT_SERIAL_URGENT(KDISPATCH_PRI_LOWEST);
 
-    err = dispatch_create(&attr, &self->dq);
+    err = kdispatch_create(&attr, &self->dq);
     if (err == EOK) {
         _FilesystemManager_ScheduleAutoSync(self);
     }
@@ -292,5 +292,5 @@ static void _do_bg_work(FilesystemManagerRef _Nonnull self)
 // Schedule an automatic sync of cached blocks to the disk(s)
 static void _FilesystemManager_ScheduleAutoSync(FilesystemManagerRef _Nonnull self)
 {
-    try_bang(dispatch_repeating(self->dq, 0, &self->bgInterval, &self->bgInterval, (dispatch_async_func_t)_do_bg_work, self));
+    try_bang(kdispatch_repeating(self->dq, 0, &self->bgInterval, &self->bgInterval, (kdispatch_async_func_t)_do_bg_work, self));
 }
