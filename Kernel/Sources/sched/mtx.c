@@ -11,6 +11,7 @@
 #include <kern/signal.h>
 
 extern errno_t _mtx_unlock(mtx_t* _Nonnull self);
+extern errno_t _mtx_unlock_then_wait(mtx_t* _Nonnull self, struct waitqueue* _Nonnull wq);
 
 
 void mtx_init(mtx_t* _Nonnull self)
@@ -26,36 +27,39 @@ void mtx_deinit(mtx_t* _Nonnull self)
     assert(wq_deinit(&self->wq) == EOK);
 }
 
-errno_t mtx_unlock(mtx_t* _Nonnull self)
+void mtx_unlock(mtx_t* _Nonnull self)
 {
-    const errno_t err = _mtx_unlock(self);
-    if (err == EOK) {
-        return err;
+    if (vcpu_current() != self->owner) {
+        fatalError(__func__, __LINE__, EPERM);
+        /* NOT REACHED */
     }
-
-    fatalError(__func__, __LINE__, err);
+    
+    self->owner = NULL;
+    _mtx_unlock(self);
 }
 
 errno_t mtx_unlock_then_wait(mtx_t* _Nonnull self, struct waitqueue* _Nonnull wq)
 {
-    const errno_t err = _mtx_unlock(self);
-    if (err == EPERM) {
-        fatalError(__func__, __LINE__, err);
+    if (vcpu_current() != self->owner) {
+        fatalError(__func__, __LINE__, EPERM);
+        /* NOT REACHED */
     }
-
-    return err;
+    
+    self->owner = NULL;
+    return _mtx_unlock_then_wait(self, wq);
 }
+
 
 // Invoked by mtx_lock() if the lock is currently being held by some other VP.
 // @Entry Condition: preemption disabled
-errno_t mtx_onwait(mtx_t* _Nonnull self)
+void mtx_onwait(mtx_t* _Nonnull self)
 {
     const errno_t err = wq_wait(&self->wq, &SIGSET_IGNORE_ALL);
-    if (err == EOK) {
-        return err;
+    
+    if (err != EOK) {
+        fatalError(__func__, __LINE__, err);
+        /* NOT REACHED */
     }
-
-    fatalError(__func__, __LINE__, err);
 }
 
 // Invoked by mtx_unlock().

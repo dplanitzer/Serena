@@ -59,7 +59,7 @@ _mtx_trylock:
 
 
 ;-------------------------------------------------------------------------------
-; errno_t mtx_lock(mtx_t* _Nonnull self)
+; void mtx_lock(mtx_t* _Nonnull self)
 ; Acquires the mutex. Blocks the caller while the mutex is not available.
 _mtx_lock:
     inline
@@ -90,10 +90,6 @@ _mtx_lock:
     jsr     _mtx_onwait
     addq.l  #4, sp
 
-    ; give up if the OnWait came back with an error
-    tst.l   d0
-    bne.s   .l_wait_failed
-
     bra.s   .l_retry
 
 .l_acquired_slow:
@@ -104,13 +100,6 @@ _mtx_lock:
     move.l  l_mtx_ptr(sp), a0
     move.l  a1, mtx_owner(a0)
 
-    moveq.l #EOK, d0
-    move.l  (sp)+, d7
-    rts
-
-.l_wait_failed:
-    ; d0 holds the error code at this point
-    RESTORE_PREEMPTION d7
     move.l  (sp)+, d7
     rts
 
@@ -118,24 +107,14 @@ _mtx_lock:
 
 
 ;-------------------------------------------------------------------------------
-; errno_t _mtx_unlock(mtx_t* _Nonnull self)
+; void _mtx_unlock(mtx_t* _Nonnull self)
 ; Unlocks the mutex.
 __mtx_unlock:
     inline
     cargs u_saved_d7.l, u_mtx_ptr.l
 
     move.l  d7, -(sp)
-
-    ; make sure that we actually own the mutex before we attempt to unlock it
-    GET_CURRENT_VP a1
-    move.l  a1, d1
     move.l  u_mtx_ptr(sp), a0
-    move.l  mtx_owner(a0), d0
-    cmp.l   d0, d1
-    bne.s   .u_does_not_own_error
-
-    ; drop mutex ownership
-    clr.l   mtx_owner(a0)
     DISABLE_PREEMPTION d7
 
     ; release the mutex
@@ -147,16 +126,8 @@ __mtx_unlock:
     addq.l  #4, sp
 
     RESTORE_PREEMPTION d7
-
-    moveq.l #EOK, d0
     move.l  (sp)+, d7
     rts
-
-.u_does_not_own_error
-    moveq.l #EPERM, d0
-    move.l  (sp)+, d7
-    rts
-
     einline
 
 
@@ -168,17 +139,7 @@ __mtx_unlock_then_wait:
     cargs uw_saved_d7.l, uw_mtx_ptr.l, uw_wq_ptr.l
 
     move.l  d7, -(sp)
-
-    ; make sure that we actually own the mutex before we attempt to unlock it
-    GET_CURRENT_VP a1
-    move.l  a1, d1
     move.l  uw_mtx_ptr(sp), a0
-    move.l  mtx_owner(a0), d0
-    cmp.l   d0, d1
-    bne.s   .u_does_not_own_error
-
-    ; drop mutex ownership
-    clr.l   mtx_owner(a0)
     DISABLE_PREEMPTION d7
 
     ; release the mutex
@@ -192,15 +153,8 @@ __mtx_unlock_then_wait:
     addq.l  #8, sp
 
     RESTORE_PREEMPTION d7
-
     move.l  (sp)+, d7
     rts
-
-.u_does_not_own_error
-    moveq.l #EPERM, d0
-    move.l  (sp)+, d7
-    rts
-
     einline
 
 

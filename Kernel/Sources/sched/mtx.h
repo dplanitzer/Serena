@@ -35,11 +35,11 @@ extern void mtx_deinit(mtx_t* _Nonnull self);
 extern bool mtx_trylock(mtx_t* _Nonnull self);
 
 // Blocks the caller until the mutex can be taken successfully.
-extern errno_t mtx_lock(mtx_t* _Nonnull self);
+extern void mtx_lock(mtx_t* _Nonnull self);
 
 // Unlocks the mutex. A call to fatalError() is triggered if the caller does not
-// hold the mutex. Otherwise returns EOK.
-extern errno_t mtx_unlock(mtx_t* _Nonnull self);
+// hold the mutex.
+extern void mtx_unlock(mtx_t* _Nonnull self);
 
 // Unlocks the mutex and then enters the wait queue 'wq'. The unlock and entering
 // the wait are done atomically.
