@@ -180,7 +180,7 @@ static void _proc_img_deactivate_current(ProcessRef _Nonnull self)
     }
 
 
-    List_Remove(&self->vcpu_queue, &vcpu_current()->owner_qe);
+    List_Remove(&self->vcpu_queue, &(vcpu_current()->owner_qe));
     self->vcpu_count--;
     _proc_abort_other_vcpus(self);
 

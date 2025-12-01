@@ -164,10 +164,12 @@ extern _Noreturn vcpu_relinquish(vcpu_t _Nonnull self);
 
 // Returns a reference to the currently running virtual processor. This is the
 // virtual processor that is executing the caller.
-extern vcpu_t _Nonnull vcpu_current(void);
+#define vcpu_current() \
+((vcpu_t)(g_sched->running))
 
 // Returns the VPID of the currently running virtual processor.
-extern int vcpu_currentid(void);
+#define vcpu_currentid() \
+((vcpuid_t)(g_sched->running->id))
 
 
 // Returns a copy of the given virtual processor's scheduling parameters.
