@@ -57,11 +57,12 @@ _Noreturn _fatalException(const excpt_frame_t* _Nonnull efp)
 {
     vcpu_t vp = vcpu_current();
 
-    fatal("Exception: %hhx, Format %hhx, PC %p, SR %hx\n Exception Frame: %p\n Stack Base: %p\n VCPU: %p (%d)\n, Process: %p (%d)", 
+    fatal("Exception: %hhx, Format %hhx, PC %p, SR %hx\n Crash in: %s\n Exception Frame: %p\n Stack Base: %p\n VCPU: %p (%d)\n Process: %p (%d)", 
         excpt_frame_getvecnum(efp),
         excpt_frame_getformat(efp),
         excpt_frame_getpc(efp),
         excpt_frame_getsr(efp),
+        (excpt_frame_isuser(efp) ? "USER" : "KERNEL"),
         efp,
         stk_getinitialsp(&vp->kernel_stack),
         vp,

@@ -81,6 +81,9 @@ bool log_switch_to_console(void)
             r = true;
         }
     }
+    else {
+        r = true;
+    }
 
     mtx_unlock(&gLock);
     return r;

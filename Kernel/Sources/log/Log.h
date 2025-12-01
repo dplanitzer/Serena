@@ -21,7 +21,8 @@ extern void log_init(void);
 // Switches the log package from the ring buffer to the kernel console. Note that
 // once switched to the kernel console, there's no way to switch back to the ring
 // buffer. This function should only be called when the machine encountered a
-// fatal error, so that we can print a message to the screen.
+// fatal error, so that we can print a message to the screen. Returns true if
+// output is connected to the kernel console; false otherwise.
 extern bool log_switch_to_console(void);
 
 // Writes the given byte sequence to the log sink
