@@ -12,10 +12,12 @@
     xref _g_sched
     xref _mtx_onwait
     xref _mtx_wake
+    xref _mtx_wake_then_wait
 
     xdef _mtx_trylock
     xdef _mtx_lock
     xdef __mtx_unlock
+    xdef __mtx_unlock_then_wait
     xdef _mtx_owner
 
 
@@ -147,6 +149,50 @@ __mtx_unlock:
     RESTORE_PREEMPTION d7
 
     moveq.l #EOK, d0
+    move.l  (sp)+, d7
+    rts
+
+.u_does_not_own_error
+    moveq.l #EPERM, d0
+    move.l  (sp)+, d7
+    rts
+
+    einline
+
+
+;-------------------------------------------------------------------------------
+; errno_t _mtx_unlock_then_wait(mtx_t* _Nonnull self, struct waitqueue* _Nonnull wq)
+; Unlocks the mutex.
+__mtx_unlock_then_wait:
+    inline
+    cargs uw_saved_d7.l, uw_mtx_ptr.l, uw_wq_ptr.l
+
+    move.l  d7, -(sp)
+
+    ; make sure that we actually own the mutex before we attempt to unlock it
+    GET_CURRENT_VP a1
+    move.l  a1, d1
+    move.l  uw_mtx_ptr(sp), a0
+    move.l  mtx_owner(a0), d0
+    cmp.l   d0, d1
+    bne.s   .u_does_not_own_error
+
+    ; drop mutex ownership
+    clr.l   mtx_owner(a0)
+    DISABLE_PREEMPTION d7
+
+    ; release the mutex
+    bclr    #7, mtx_value(a0)
+
+    ; move all the waiters back to the ready queue
+    move.l  uw_wq_ptr(sp), a1
+    move.l  a1, -(sp)
+    move.l  a0, -(sp)
+    jsr     _mtx_wake_then_wait     ; returns errno_t in d0
+    addq.l  #8, sp
+
+    RESTORE_PREEMPTION d7
+
     move.l  (sp)+, d7
     rts
 

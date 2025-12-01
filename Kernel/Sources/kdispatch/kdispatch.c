@@ -355,25 +355,15 @@ errno_t kdispatch_item_sync(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull
         item->type = _KDISPATCH_TYPE_USER_ITEM;
         item->flags = _KDISPATCH_ITEM_FLAG_AWAITABLE;
         err = _kdispatch_submit(self, item);
-        #if 0
         // Enabling this makes boot hang (though _kdispatch_await() does return)
         if (err == EOK) {
             err = _kdispatch_await(self, item);
         }
-        #endif
     }
     else {
         err = ETERMINATED;
     }
     mtx_unlock(&self->mutex);
-
-    #if 1
-    if (err == EOK) {
-        mtx_lock(&self->mutex);
-        err = _kdispatch_await(self, item);
-        mtx_unlock(&self->mutex);
-    }
-    #endif
 
     return err;
 }

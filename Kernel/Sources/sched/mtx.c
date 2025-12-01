@@ -26,7 +26,6 @@ void mtx_deinit(mtx_t* _Nonnull self)
     assert(wq_deinit(&self->wq) == EOK);
 }
 
-// Unlocks the lock.
 errno_t mtx_unlock(mtx_t* _Nonnull self)
 {
     const errno_t err = _mtx_unlock(self);
@@ -35,6 +34,16 @@ errno_t mtx_unlock(mtx_t* _Nonnull self)
     }
 
     fatalError(__func__, __LINE__, err);
+}
+
+errno_t mtx_unlock_then_wait(mtx_t* _Nonnull self, struct waitqueue* _Nonnull wq)
+{
+    const errno_t err = _mtx_unlock(self);
+    if (err == EPERM) {
+        fatalError(__func__, __LINE__, err);
+    }
+
+    return err;
 }
 
 // Invoked by mtx_lock() if the lock is currently being held by some other VP.
@@ -49,9 +58,17 @@ errno_t mtx_onwait(mtx_t* _Nonnull self)
     fatalError(__func__, __LINE__, err);
 }
 
-// Invoked by mtx_unlock(). Expects to be called with preemption disabled.
+// Invoked by mtx_unlock().
 // @Entry Condition: preemption disabled
 void mtx_wake(mtx_t* _Nullable self)
 {
     wq_wake(&self->wq, WAKEUP_ALL | WAKEUP_CSW, WRES_WAKEUP);
+}
+
+// Invoked by mtx_unlock_then_wait().
+// @Entry Condition: preemption disabled
+errno_t mtx_wake_then_wait(mtx_t* _Nullable self, struct waitqueue* _Nonnull wq)
+{
+    wq_wake(&self->wq, WAKEUP_ALL, WRES_WAKEUP);
+    return wq_wait(wq, NULL);
 }

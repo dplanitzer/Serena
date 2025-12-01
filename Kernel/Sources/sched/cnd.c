@@ -30,7 +30,12 @@ void _cnd_wake(cnd_t* _Nonnull self, bool broadcast)
     const int flags = (broadcast) ? WAKEUP_ALL : WAKEUP_ONE;
     const int sps = preempt_disable();
     
-    wq_wake(&self->wq, flags | WAKEUP_CSW, WRES_WAKEUP);
+    // Don't do a WAKEUP_CSW here because we are currently holding the mutex and
+    // thus the other guy would not be able to grab the mutex and all we would
+    // end up doing is a useless CSW from us to the other guy and the other guy
+    // then has to CSW back to us when it tries to take the mutex that we are
+    // still holding. 
+    wq_wake(&self->wq, flags, WRES_WAKEUP);
     preempt_restore(sps);
 }
 
@@ -38,20 +43,25 @@ void _cnd_wake(cnd_t* _Nonnull self, bool broadcast)
 // It then locks 'pLock' before it returns to the caller.
 errno_t cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx)
 {
-    // Note that we disable preemption while unlocking and entering the wait.
-    // The reason is that we want to ensure that noone else can grab the lock,
-    // do a signal and then unlock between us unlocking and trying to enter the
-    // wait. If we would allow this, then we would miss a wakeup. An alternative
-    // strategy to this one here would be to use a stateful wait (aka signalling
-    // wait).
-    const int sps = preempt_disable();
-    
-    mtx_unlock(mtx);
-    const int err = wq_wait(&self->wq, NULL);
+    // Note that we have to unlock the mutex and enter the wait state atomically.
+    // This is crucially important to ensure that we can not miss a wakeup.
+    // Assuming that unlocking the mutex and entering the wait wouldn't be
+    // atomic, then a wakeup miss could happen like this:
+    // P -> producer
+    // C -> consumer
+    // - consumer holds the mutex
+    // - consumer unlocks the mutex
+    // -- producer grabs the mutex
+    // -- producer does a broadcast()
+    // -- producer drops the mutex
+    // - consumer enters the wait state
+    // --> consumer is now stuck because it missed the broadcast() since it no
+    // longer held the mutex but hadn't entered the wait state yet. The producer
+    // was able to sneak in between and do a broadcast() before the consumer was
+    // ready to receive it.
+    const errno_t err = mtx_unlock_then_wait(mtx, &self->wq);
     mtx_lock(mtx);
 
-    preempt_restore(sps);
-    
     return err;
 }
 
