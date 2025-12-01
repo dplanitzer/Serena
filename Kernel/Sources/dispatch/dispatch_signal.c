@@ -79,7 +79,7 @@ void _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item
     SList_InsertAfterLast(&stp->monitors, &item->qe);
 }
 
-static errno_t _dispatch_signal_monitor(dispatch_t _Nonnull _Locked self, int signo, dispatch_item_t _Nonnull item)
+static errno_t _dispatch_item_on_signal(dispatch_t _Nonnull _Locked self, int signo, dispatch_item_t _Nonnull item)
 {
     decl_try_err();
 
@@ -144,7 +144,7 @@ void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int sig
 
 static sigset_t _SIGSET_NOSENDMON = _SIGBIT(SIGDISP) | _SIGBIT(SIGKILL) | _SIGBIT(SIGVPRQ) | _SIGBIT(SIGVPDS) | _SIGBIT(SIGSTOP);
 
-errno_t dispatch_signal_monitor(dispatch_t _Nonnull self, int signo, dispatch_item_t _Nonnull item)
+errno_t dispatch_item_on_signal(dispatch_t _Nonnull self, int signo, dispatch_item_t _Nonnull item)
 {
     decl_try_err();
 
@@ -154,7 +154,7 @@ errno_t dispatch_signal_monitor(dispatch_t _Nonnull self, int signo, dispatch_it
 
     mtx_lock(&self->mutex);
     if (self->state < _DISPATCHER_STATE_TERMINATING) {
-        err = _dispatch_signal_monitor(self, signo, item);
+        err = _dispatch_item_on_signal(self, signo, item);
     }
     else {
         err = ETERMINATED;

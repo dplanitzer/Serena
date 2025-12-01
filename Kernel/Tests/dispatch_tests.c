@@ -200,7 +200,7 @@ void dq_signal_test(int argc, char *argv[])
     item->func = (dispatch_item_func_t)OnReceivedSignal;
     item->retireFunc = (dispatch_retire_func_t)free;
 
-    assertOK(dispatch_signal_monitor(gDispatcher, si.signo, item));
+    assertOK(dispatch_item_on_signal(gDispatcher, si.signo, item));
 
 
     timespec_from_ms(&DELAY_1000MS, 1000);

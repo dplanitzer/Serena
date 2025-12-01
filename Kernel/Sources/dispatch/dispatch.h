@@ -261,7 +261,7 @@ extern errno_t dispatch_repeating(dispatch_t _Nonnull self, int flags, const str
 // the provided item until it is cancelled. Note that the item will run on one
 // worker in a concurrent dispatcher. It will not be invoked multiple times at
 // the same time.
-extern errno_t dispatch_signal_monitor(dispatch_t _Nonnull self, int signo, dispatch_item_t _Nonnull item);
+extern errno_t dispatch_item_on_signal(dispatch_t _Nonnull self, int signo, dispatch_item_t _Nonnull item);
 
 // Allocates a signal. If 'signo' is <= 0 then the first available USR signal
 // with lowest priority is allocated. The signal is allocated in the context of
