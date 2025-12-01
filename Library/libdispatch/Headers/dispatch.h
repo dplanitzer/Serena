@@ -22,6 +22,7 @@ __CPP_BEGIN
 
 struct dispatch;
 struct dispatch_item;
+typedef struct dispatch_item* dispatch_item_t;
 typedef struct dispatch* dispatch_t;
 
 // A dispatcher or dispatch queue manages a FIFO queue of work items and
@@ -46,7 +47,7 @@ typedef struct dispatch* dispatch_t;
 //
 // dispatch_item_t my_item = create_my_item(...);
 //
-// dispatch_submit(my_dispatcher, my_item);
+// dispatch_item_async(my_dispatcher, 0, my_item);
 //
 // Work may be dispatched synchronously. This means that you create a work item
 // mark it as awaitable, submit it, await it and then you retire it to free up
@@ -62,9 +63,17 @@ typedef struct dispatch* dispatch_t;
 //
 // dispatch_item_t my_item = create_my_item(...)
 //
-// dispatch_submit(my_dispatcher, DISPATCH_SUBMIT_AWAITABLE, my_item);
+// kdispatch_item_sync(my_dispatcher, my_item);
+//
+// Creating an item and dispatching it asynchronously and awaitable is an
+// alternative way of doing this. Doing things this way gives you more
+// flexibility:
+//
+// dispatch_item_t my_item = create_my_item(...);
+//
+// dispatch_item_async(my_dispatcher, DISPATCH_SUBMIT_AWAITABLE, my_item);
 // ...
-// dispatch_await(my_dispatcher, my_item);
+// dispatch_item_await(my_dispatcher, my_item);
 // const int result = my_item->result;
 // free_my_item(my_item);
 //
@@ -77,18 +86,18 @@ typedef struct dispatch* dispatch_t;
 
 
 // The function responsible for implementing the work of an item.
-typedef void (*dispatch_item_func_t)(struct dispatch_item* _Nonnull item);
+typedef void (*dispatch_item_func_t)(dispatch_item_t _Nonnull item);
 
 // A function which knows how to retire an item that has finished processing or
 // was cancelled. Providing this function is optional. The dispatcher will do
 // nothing special when retiring an item if the retire function is NULL. Eg it
 // won't deallocate the item.
-typedef void (*dispatch_retire_func_t)(struct dispatch_item* _Nonnull item);
+typedef void (*dispatch_retire_func_t)(dispatch_item_t _Nonnull item);
 
 
 // Marks an item as awaitable. This means that the item will produce a result
 // and that you want to wait for the item to finish its run. You wait for an
-// item to finish its execution by calling dispatch_await() on it. The call
+// item to finish its execution by calling dispatch_item_await() on it. The call
 // will block until the item has finished processing. It is then safe to
 // access the item to retrieve its result. Note that a timer-based item is
 // never awaitable.
@@ -114,8 +123,8 @@ typedef void (*dispatch_retire_func_t)(struct dispatch_item* _Nonnull item);
 
 // The base type of a dispatch item. Embed this structure in your item
 // specialization (must be the first field in your structure). You are expected
-// to set up the 'func' field and the 'flags' field. All other fields will be
-// initialized properly by dispatch_submit().
+// to set up the 'func' and 'retireFunc' fields. All other fields will be
+// initialized properly by dispatch_item_xxx().
 //
 // Note that a particular item instance can be queued at most once with a
 // dispatcher. It is fine to re-submit it once it has completed execution but it
@@ -136,7 +145,6 @@ struct dispatch_item {
     uint8_t                             flags;
     volatile int8_t                     state;
 };
-typedef struct dispatch_item* dispatch_item_t;
 
 
 // A convenience macro to initialize a dispatch item before it is submitted to
@@ -196,7 +204,7 @@ extern dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr
 
 // Destroys the given dispatcher. Returns -1 and sets errno to EBUSY if the
 // dispatcher wasn't terminated, is still in the process of terminating or there
-// are still awaitable items available on which dispatch_await() should be
+// are still awaitable items available on which dispatch_item_await() should be
 // called.
 extern int dispatch_destroy(dispatch_t _Nullable self);
 
@@ -206,7 +214,7 @@ extern int dispatch_destroy(dispatch_t _Nullable self);
 // ownership of 'item' until the item is done processing. Once an item is done
 // processing the dispatcher either calls the 'retireFunc' of the item, if the
 // item is not awaitable, or it enqueues the item on a result queue if it is
-// awaitable. You are required to call dispatch_await() on an awaitable item.
+// awaitable. You are required to call dispatch_item_await() on an awaitable item.
 // This will remove the item from the result queue and transfer ownership of the
 // item back to you. 'flags' specifies whether the item is awaitable, etc.
 extern int dispatch_item_async(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
@@ -217,9 +225,9 @@ extern int dispatch_item_sync(dispatch_t _Nonnull self, dispatch_item_t _Nonnull
 
 // Waits for the execution of 'item' to finish and removes the item from the
 // result queue. Note that this function does not call the 'retireFunc' of the
-// item. You are expected to retire the item after dispatch_await() has returned
-// and you no longer need access to the result data stored in 'item'. This
-// function effectively transfers ownership of 'item' back to you.
+// item. You are expected to retire the item after dispatch_item_await() has
+// returned and you no longer need access to the result data stored in 'item'.
+// This function effectively transfers ownership of 'item' back to you.
 extern int dispatch_item_await(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
 
 

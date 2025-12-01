@@ -21,6 +21,7 @@ __CPP_BEGIN
 
 struct kdispatch;
 struct kdispatch_item;
+typedef struct kdispatch_item* kdispatch_item_t;
 typedef struct dispatch* kdispatch_t;
 
 // A dispatcher or dispatch queue manages a FIFO queue of work items and
@@ -45,7 +46,7 @@ typedef struct dispatch* kdispatch_t;
 //
 // kdispatch_item_t my_item = create_my_item(...);
 //
-// kdispatch_submit(my_dispatcher, my_item);
+// kdispatch_item_async(my_dispatcher, 0, my_item);
 //
 // Work may be dispatched synchronously. This means that you create a work item
 // mark it as awaitable, submit it, await it and then you retire it to free up
@@ -61,9 +62,17 @@ typedef struct dispatch* kdispatch_t;
 //
 // kdispatch_item_t my_item = create_my_item(...)
 //
-// kdispatch_submit(my_dispatcher, KDISPATCH_SUBMIT_AWAITABLE, my_item);
+// kdispatch_item_sync(my_dispatcher, my_item);
+//
+// Creating an item and dispatching it asynchronously and awaitable is an
+// alternative way of doing this. Doing things this way gives you more
+// flexibility:
+//
+// kdispatch_item_t my_item = create_my_item(...);
+//
+// kdispatch_item_async(my_dispatcher, KDISPATCH_SUBMIT_AWAITABLE, my_item);
 // ...
-// kdispatch_await(my_dispatcher, my_item);
+// kdispatch_item_await(my_dispatcher, my_item);
 // const int result = my_item->result;
 // free_my_item(my_item);
 //
@@ -76,19 +85,19 @@ typedef struct dispatch* kdispatch_t;
 
 
 // The function responsible for implementing the work of an item.
-typedef void (*kdispatch_item_func_t)(struct kdispatch_item* _Nonnull item);
+typedef void (*kdispatch_item_func_t)(kdispatch_item_t _Nonnull item);
 
 // A function which knows how to retire an item that has finished processing or
 // was cancelled. Providing this function is optional. The dispatcher will do
 // nothing special when retiring an item if the retire function is NULL. Eg it
 // won't deallocate the item.
-typedef void (*kdispatch_retire_func_t)(struct kdispatch_item* _Nonnull item);
+typedef void (*kdispatch_retire_func_t)(kdispatch_item_t _Nonnull item);
 
 
 // Marks an item as awaitable. This means that the item will produce a result
 // and that you want to wait for the item to finish its run. You wait for an
-// item to finish its execution by calling kdispatch_await() on it. The call
-// will block until the item has finished processing. It is then safe to
+// item to finish its execution by calling kdispatch_item_await() on it. The
+// call will block until the item has finished processing. It is then safe to
 // access the item to retrieve its result. Note that a timer-based item is
 // never awaitable.
 #define KDISPATCH_SUBMIT_AWAITABLE   1
@@ -113,8 +122,8 @@ typedef void (*kdispatch_retire_func_t)(struct kdispatch_item* _Nonnull item);
 
 // The base type of a dispatch item. Embed this structure in your item
 // specialization (must be the first field in your structure). You are expected
-// to set up the 'func' field and the 'flags' field. All other fields will be
-// initialized properly by kdispatch_submit().
+// to set up the 'func' and 'retireFunc' fields. All other fields will be
+// initialized properly by kdispatch_item_xxx().
 //
 // Note that a particular item instance can be queued at most once with a
 // dispatcher. It is fine to re-submit it once it has completed execution but it
@@ -128,14 +137,13 @@ typedef void (*kdispatch_retire_func_t)(struct kdispatch_item* _Nonnull item);
 //                   same item at the same time would make the state inconsistent.
 struct kdispatch_item {
     SListNode                           qe;
-    kdispatch_item_func_t _Nonnull       func;
-    kdispatch_retire_func_t _Nullable    retireFunc;
+    kdispatch_item_func_t _Nonnull      func;
+    kdispatch_retire_func_t _Nullable   retireFunc;
     uint8_t                             type;
     uint8_t                             subtype;
     uint8_t                             flags;
     volatile int8_t                     state;
 };
-typedef struct kdispatch_item* kdispatch_item_t;
 
 
 // A convenience macro to initialize a dispatch item before it is submitted to
@@ -195,7 +203,7 @@ extern errno_t kdispatch_create(const kdispatch_attr_t* _Nonnull attr, kdispatch
 
 // Destroys the given dispatcher. Returns EBUSY if the dispatcher wasn't
 // terminated, is still in the process of terminating or there are still
-// awaitable items available on which kdispatch_await() should be called.
+// awaitable items available on which kdispatch_item_await() should be called.
 extern errno_t kdispatch_destroy(kdispatch_t _Nullable self);
 
 
@@ -204,9 +212,9 @@ extern errno_t kdispatch_destroy(kdispatch_t _Nullable self);
 // ownership of 'item' until the item is done processing. Once an item is done
 // processing the dispatcher either calls the 'retireFunc' of the item, if the
 // item is not awaitable, or it enqueues the item on a result queue if it is
-// awaitable. You are required to call kdispatch_await() on an awaitable item.
-// This will remove the item from the result queue and transfer ownership of the
-// item back to you. 'flags' specifies whether the item is awaitable, etc.
+// awaitable. You are required to call kdispatch_item_await() on an awaitable
+// item. This will remove the item from the result queue and transfer ownership
+// of the item back to you. 'flags' specifies whether the item is awaitable, etc.
 extern errno_t kdispatch_item_async(kdispatch_t _Nonnull self, int flags, kdispatch_item_t _Nonnull item);
 
 // Similar to kdispatch_item_async(), except that this function blocks until the
@@ -215,9 +223,9 @@ extern errno_t kdispatch_item_sync(kdispatch_t _Nonnull self, kdispatch_item_t _
 
 // Waits for the execution of 'item' to finish and removes the item from the
 // result queue. Note that this function does not call the 'retireFunc' of the
-// item. You are expected to retire the item after kdispatch_await() has returned
-// and you no longer need access to the result data stored in 'item'. This
-// function effectively transfers ownership of 'item' back to you.
+// item. You are expected to retire the item after kdispatch_item_await() has
+// returned and you no longer need access to the result data stored in 'item'.
+// This function effectively transfers ownership of 'item' back to you.
 extern errno_t kdispatch_item_await(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item);
 
 
