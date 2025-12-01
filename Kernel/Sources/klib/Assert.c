@@ -8,6 +8,7 @@
 
 #include <kern/assert.h>
 #include <kern/kernlib.h>
+#include <kdispatch/kdispatch.h>
 #include <log/Log.h>
 #include <machine/cpu.h>
 #include <process/Process.h>
@@ -56,8 +57,9 @@ _Noreturn fatalAssert(const char* _Nonnull filename, int line)
 _Noreturn _fatalException(const excpt_frame_t* _Nonnull efp)
 {
     vcpu_t vp = vcpu_current();
+    kdispatch_t dq = kdispatch_current_queue();
 
-    fatal("Exception: %hhx, Format %hhx, PC %p, SR %hx\n Crash in: %s\n Exception Frame: %p\n Stack Base: %p\n VCPU: %p (%d)\n Process: %p (%d)", 
+    fatal("\033[?25lException: %hhx, Format %hhx, PC %p, SR %hx\n Crash in: %s\n Exception Frame: %p\n Stack Base: %p\n VCPU: %p (%d)\n Dispatcher: %p\n Process: %p (%d)", 
         excpt_frame_getvecnum(efp),
         excpt_frame_getformat(efp),
         excpt_frame_getpc(efp),
@@ -67,6 +69,7 @@ _Noreturn _fatalException(const excpt_frame_t* _Nonnull efp)
         stk_getinitialsp(&vp->kernel_stack),
         vp,
         vp->id,
+        dq,
         vp->proc,
         Process_GetId(vp->proc));
 }
