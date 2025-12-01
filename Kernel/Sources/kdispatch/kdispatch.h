@@ -176,7 +176,7 @@ typedef struct kdispatch_concurrency_info {
 } kdispatch_concurrency_info_t;
 
 
-#define KDISPATCH_MAX_NAME_LENGTH    15
+#define KDISPATCH_MAX_NAME_LENGTH    7
 
 typedef struct kdispatch_attr {
     int         version;            // Version 0

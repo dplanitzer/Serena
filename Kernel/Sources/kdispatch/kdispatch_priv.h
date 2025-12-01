@@ -77,7 +77,6 @@ struct kdispatch_worker {
     kdispatch_timer_t _Nullable current_timer;  // and timer
 
     vcpu_t _Nonnull             vcpu;
-    vcpuid_t                    id;
 
     sigset_t                    hotsigs;
     struct waitqueue            wq;
