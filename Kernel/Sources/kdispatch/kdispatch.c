@@ -355,7 +355,6 @@ errno_t kdispatch_item_sync(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull
         item->type = _KDISPATCH_TYPE_USER_ITEM;
         item->flags = _KDISPATCH_ITEM_FLAG_AWAITABLE;
         err = _kdispatch_submit(self, item);
-        // Enabling this makes boot hang (though _kdispatch_await() does return)
         if (err == EOK) {
             err = _kdispatch_await(self, item);
         }
