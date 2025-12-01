@@ -337,7 +337,7 @@ errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
     req->item.func = (dispatch_item_func_t)_req_trampoline;
     req->driver = self;
 
-    return dispatch_submit(self->dq, 0, (dispatch_item_t)req);
+    return dispatch_item_async(self->dq, 0, (dispatch_item_t)req);
 }
 
 errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
@@ -345,12 +345,9 @@ errno_t DiskDriver_doIO(DiskDriverRef _Nonnull self, IORequest* _Nonnull req)
     req->item.func = (dispatch_item_func_t)_req_trampoline;
     req->driver = self;
 
-    errno_t err = dispatch_submit(self->dq, DISPATCH_SUBMIT_AWAITABLE, (dispatch_item_t)req);
+    errno_t err = dispatch_item_sync(self->dq, (dispatch_item_t)req);
     if (err == EOK) {
-        err = dispatch_await(self->dq, (dispatch_item_t)req);
-        if (err == EOK) {
-            err = req->status;
-        }
+        err = req->status;
     }
 
     return err;

@@ -368,7 +368,7 @@ bool _dispatch_isactive(dispatch_t _Nonnull _Locked self)
     return false;
 }
 
-int dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+int dispatch_item_async(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
 {
     int r = -1;
 
@@ -387,7 +387,29 @@ int dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnul
     return r;
 }
 
-int dispatch_await(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
+int dispatch_item_sync(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
+{
+    int r = -1;
+
+    if (item->func == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    mtx_lock(&self->mutex);
+    if (_dispatch_isactive(self)) {
+        item->type = _DISPATCH_TYPE_USER_ITEM;
+        item->flags = _DISPATCH_ITEM_FLAG_AWAITABLE;
+        r = _dispatch_submit(self, item);
+        if (r == 0) {
+            r = _dispatch_await(self, item);
+        }
+    }
+    mtx_unlock(&self->mutex);
+    return r;
+}
+
+int dispatch_item_await(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     mtx_lock(&self->mutex);
     const int r = _dispatch_await(self, item);

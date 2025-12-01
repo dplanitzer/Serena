@@ -321,10 +321,10 @@ void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Non
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
 
-errno_t dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+errno_t dispatch_item_async(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
 {
     decl_try_err();
-    
+
     if (item->func == NULL) {
         return EINVAL;
     }
@@ -342,7 +342,43 @@ errno_t dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _No
     return err;
 }
 
-errno_t dispatch_await(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
+errno_t dispatch_item_sync(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
+{
+    decl_try_err();
+
+    if (item->func == NULL) {
+        return EINVAL;
+    }
+
+    mtx_lock(&self->mutex);
+    if (self->state < _DISPATCHER_STATE_TERMINATING) {
+        item->type = _DISPATCH_TYPE_USER_ITEM;
+        item->flags = _DISPATCH_ITEM_FLAG_AWAITABLE;
+        err = _dispatch_submit(self, item);
+        #if 0
+        // Enabling this makes boot hang (though _dispatch_await() does return)
+        if (err == EOK) {
+            err = _dispatch_await(self, item);
+        }
+        #endif
+    }
+    else {
+        err = ETERMINATED;
+    }
+    mtx_unlock(&self->mutex);
+
+    #if 1
+    if (err == EOK) {
+        mtx_lock(&self->mutex);
+        err = _dispatch_await(self, item);
+        mtx_unlock(&self->mutex);
+    }
+    #endif
+
+    return err;
+}
+
+errno_t dispatch_item_await(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     decl_try_err();
 

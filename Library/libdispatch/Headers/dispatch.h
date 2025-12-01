@@ -209,14 +209,18 @@ extern int dispatch_destroy(dispatch_t _Nullable self);
 // awaitable. You are required to call dispatch_await() on an awaitable item.
 // This will remove the item from the result queue and transfer ownership of the
 // item back to you. 'flags' specifies whether the item is awaitable, etc.
-extern int dispatch_submit(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
+extern int dispatch_item_async(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
+
+// Similar to dispatch_item_async(), except that this function blocks until the
+// dispatched item has finished execution.
+extern int dispatch_item_sync(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
 
 // Waits for the execution of 'item' to finish and removes the item from the
 // result queue. Note that this function does not call the 'retireFunc' of the
 // item. You are expected to retire the item after dispatch_await() has returned
 // and you no longer need access to the result data stored in 'item'. This
 // function effectively transfers ownership of 'item' back to you.
-extern int dispatch_await(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
+extern int dispatch_item_await(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
 
 
 // Convenience function which creates a simple item to execute a function with
