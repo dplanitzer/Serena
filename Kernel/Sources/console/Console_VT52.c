@@ -61,11 +61,11 @@ static void Console_VT52_ESC_Atari_Locked(ConsoleRef _Nonnull self, unsigned cha
         break;
 
     case 'e':   // VT52+Atari: Show cursor
-        Console_SetCursorVisible_Locked(self, true);
+        self->flags.isTextCursorVisible = true;
         break;
 
     case 'f':   // VT52+Atari: Hide cursor
-        Console_SetCursorVisible_Locked(self, false);
+        self->flags.isTextCursorVisible = false;
         break;
 
     case 'j':   // VT52+Atari: Save cursor

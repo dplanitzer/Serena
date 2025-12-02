@@ -52,7 +52,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 
 
     // Reset the console to the default configuration
-    try(Console_ResetState_Locked(self, false));
+    try(Console_ResetState_Locked(self));
 
 
     *pOutSelf = self;
@@ -68,7 +68,9 @@ catch:
 // \param self the console
 void Console_deinit(ConsoleRef _Nonnull self)
 {
-    Console_SetCursorBlinkingEnabled_Locked(self, false);
+    self->flags.isTextCursorBlinkerEnabled = false;
+    self->flags.isTextCursorVisible = false;
+    Console_UpdateCursorVisuals_Locked(self);
 
     if (self->dq) {
         kdispatch_terminate(self->dq, KDISPATCH_TERMINATE_AWAIT_ALL);
@@ -96,13 +98,11 @@ errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     mtx_lock(&self->mtx);
 
     // Clear the console screen
-    Console_BeginDrawing_Locked(self);
     Console_ClearScreen_Locked(self, kClearScreenMode_WholeAndScrollback);
-    Console_EndDrawing_Locked(self);
 
 
     // Start cursor blinking
-    Console_SetCursorBlinkingEnabled_Locked(self, true);
+    Console_UpdateCursorVisuals_Locked(self);
 
     mtx_unlock(&self->mtx);
 
@@ -117,7 +117,7 @@ errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, &de);
 }
 
-errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking)
+errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self)
 {
     decl_try_err();
 
@@ -141,11 +141,13 @@ errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCurs
     try(TabStops_Init(&self->hTabStops, __max(Rect_GetWidth(self->bounds) / 8, 0), 8));
 
     Console_MoveCursorTo_Locked(self, 0, 0);
-    Console_SetCursorVisible_Locked(self, true);
-    Console_SetCursorBlinkingEnabled_Locked(self, shouldStartCursorBlinking);
+    self->flags.isTextCursorBlinkerEnabled = true;
+    self->flags.isTextCursorVisible = true;
     self->flags.isAutoWrapEnabled = true;
     self->flags.isInsertionMode = false;
 
+    timespec_from_ms(&self->cursorBlinkInterval, 500);
+    
     return EOK;
 
 catch:
@@ -392,7 +394,6 @@ void Console_MoveCursor_Locked(ConsoleRef _Nonnull self, CursorMovement mode, in
 
     self->x = x;
     self->y = y;
-    Console_CursorDidMove_Locked(self);
 }
 
 // Sets the console position. The next print() will start printing at this
@@ -677,15 +678,14 @@ errno_t Console_write(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, 
 
     mtx_lock(&self->mtx);
     
-    Console_BeginDrawing_Locked(self);
     while (pChars < pCharsEnd) {
         const unsigned char by = *pChars++;
 
         vtparser_byte(&self->vtparser, by);
     }
-    Console_EndDrawing_Locked(self);
-    
     *nOutBytesWritten = nBytesToWrite;
+    Console_UpdateCursorVisuals_Locked(self);
+    
     mtx_unlock(&self->mtx);
 
     return EOK;

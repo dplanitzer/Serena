@@ -149,7 +149,7 @@ static void Console_VT100_CSI_h_Locked(ConsoleRef _Nonnull self)
                     break;
 
                 case 25:
-                    Console_SetCursorVisible_Locked(self, true);
+                    self->flags.isTextCursorVisible = true;
                     break;
 
                 default:
@@ -187,7 +187,7 @@ static void Console_VT100_CSI_l_Locked(ConsoleRef _Nonnull self)
                     break;
 
                 case 25:
-                    Console_SetCursorVisible_Locked(self, false);
+                    self->flags.isTextCursorVisible = false;
                     break;
 
                 default:
@@ -527,7 +527,7 @@ static void Console_VT100_ESC_Locked(ConsoleRef _Nonnull self, unsigned char ch)
             break;
 
         case 'c':   // ANSI: RIS
-            Console_ResetState_Locked(self, true);
+            Console_ResetState_Locked(self);
             break;
 
         case '(':   // DECSCS: G0

@@ -185,9 +185,9 @@ final_class_ivars(Console, PseudoDriver,
         unsigned int    isInsertionMode: 1;     // true if insertion mode is active; false if replace mode is active
 
         unsigned int    isTextCursorBlinkerEnabled:1;   // true if the text cursor should blink. Visibility is a separate state
-        unsigned int    isTextCursorOn:1;               // true if the text cursor blinking state is on; false if off. IsTextCursorVisible has to be true to make the cursor actually visible
-        unsigned int    isTextCursorSingleCycleOn:1;    // true if the text cursor should be shown for a single blink cycle even if the cycle is actually supposed to be off. This is set when we print a character to ensure the cursor is visible
         unsigned int    isTextCursorVisible:1;          // global text cursor visibility switch
+        unsigned int    isTextCursorOn:1;               // true if text cursor blinking mode is/was enabled and the cursor is currently turned on
+        unsigned int    isTextCursorBlinkerActive:1;    // true if text cursor blinking mode is/was enabled and the text cursor blinking timer is currently active
     }                           flags;
 );
 
@@ -205,20 +205,15 @@ extern void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull self, Color co
 #define Console_SetDefaultBackgroundColor_Locked(__self) \
     Console_SetBackgroundColor_Locked(__self, Color_MakeIndex(0)); /* Black */
 
-extern void Console_SetCursorBlinkingEnabled_Locked(ConsoleRef _Nonnull self, bool isEnabled);
-extern void Console_SetCursorVisible_Locked(ConsoleRef _Nonnull self, bool isVisible);
 extern void Console_OnTextCursorBlink(ConsoleRef _Nonnull self);
-extern void Console_CursorDidMove_Locked(ConsoleRef _Nonnull self);
-
-extern void Console_BeginDrawing_Locked(ConsoleRef _Nonnull self);
-extern void Console_EndDrawing_Locked(ConsoleRef _Nonnull self);
+extern void Console_UpdateCursorVisuals_Locked(ConsoleRef _Nonnull self);
 
 extern void Console_DrawChar_Locked(ConsoleRef _Nonnull self, char ch, int x, int y);
 extern void Console_CopyRect_Locked(ConsoleRef _Nonnull self, Rect srcRect, Point dstLoc);
 extern void Console_FillRect_Locked(ConsoleRef _Nonnull self, Rect rect, char ch);
 
 
-extern errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking);
+extern errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self);
 extern void Console_ResetCharacterAttributes_Locked(ConsoleRef _Nonnull self);
 
 extern void Console_ClearScreen_Locked(ConsoleRef _Nonnull self, ClearScreenMode mode);
