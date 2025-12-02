@@ -12,6 +12,7 @@
 
 const sigset_t SIGSET_IGNORE_ALL = 0;
 const sigset_t SIGSET_NON_ROUTABLE = _SIGBIT(SIGKILL) | _SIGBIT(SIGSTOP) | _SIGBIT(SIGCONT) | _SIGBIT(SIGVPRQ) | _SIGBIT(SIGVPDS) | _SIGBIT(SIGDISP);
+const sigset_t SIGSET_PRIV_SYS = _SIGBIT(SIGVPRQ) | _SIGBIT(SIGVPDS);
 
 
 void sigemptyset(sigset_t* _Nonnull set)

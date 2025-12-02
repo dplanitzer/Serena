@@ -304,7 +304,7 @@ errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int sig
     if (signo < SIGMIN || signo > SIGMAX) {
         return EINVAL;
     }
-    if (signo == SIGVPRQ || signo == SIGVPDS) {
+    if ((SIGSET_PRIV_SYS & _SIGBIT(signo)) != 0) {
         return EPERM;
     }
 
