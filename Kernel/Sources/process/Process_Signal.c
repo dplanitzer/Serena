@@ -8,6 +8,7 @@
 
 #include "ProcessPriv.h"
 #include <kern/kalloc.h>
+#include <kern/signal.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -116,7 +117,7 @@ errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope,
     if (signo < SIGMIN || signo > SIGMAX || (scope != SIG_SCOPE_VCPU && scope != SIG_SCOPE_VCPU_GROUP)) {
         return EINVAL;
     }
-    if (signo == SIGKILL || signo == SIGSTOP || signo == SIGCONT || signo == SIGVPRQ || signo == SIGVPDS) {
+    if ((SIGSET_NON_ROUTABLE & _SIGBIT(signo)) != 0) {
         return EPERM;
     }
     if (self == gKernelProcess) {

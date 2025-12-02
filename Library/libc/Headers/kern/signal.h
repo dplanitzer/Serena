@@ -14,6 +14,7 @@
 #include <kpi/signal.h>
 
 extern const sigset_t SIGSET_IGNORE_ALL;
+extern const sigset_t SIGSET_NON_ROUTABLE;
 
 
 extern void sigemptyset(sigset_t* _Nonnull set);
