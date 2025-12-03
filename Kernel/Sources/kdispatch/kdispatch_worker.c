@@ -106,7 +106,7 @@ void _kdispatch_worker_drain(kdispatch_worker_t _Nonnull _Locked self)
 }
 
 // Removes 'item' from the item queue and retires it.
-bool _kdispatch_worker_withdraw_item(kdispatch_worker_t _Nonnull self, int flags, kdispatch_item_t _Nonnull item)
+bool _kdispatch_worker_withdraw_item(kdispatch_worker_t _Nonnull self, kdispatch_item_t _Nonnull item)
 {
     kdispatch_item_t pip = NULL;
 

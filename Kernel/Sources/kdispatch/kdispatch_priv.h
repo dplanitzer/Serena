@@ -95,7 +95,7 @@ extern void _kdispatch_worker_destroy(kdispatch_worker_t _Nullable self);
 extern void _kdispatch_worker_wakeup(kdispatch_worker_t _Nonnull _Locked self);
 extern void _kdispatch_worker_submit(kdispatch_worker_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item, bool doWakeup);
 extern kdispatch_item_t _Nullable _kdispatch_worker_find_item(kdispatch_worker_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg);
-extern bool _kdispatch_worker_withdraw_item(kdispatch_worker_t _Nonnull self, int flags, kdispatch_item_t _Nonnull item);
+extern bool _kdispatch_worker_withdraw_item(kdispatch_worker_t _Nonnull self, kdispatch_item_t _Nonnull item);
 extern void _kdispatch_worker_drain(kdispatch_worker_t _Nonnull _Locked self);
 
 extern void _kdispatch_worker_run(kdispatch_worker_t _Nonnull self);
@@ -173,11 +173,11 @@ extern bool _kdispatch_isactive(kdispatch_t _Nonnull _Locked self);
 
 extern errno_t _kdispatch_rearm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer);
 extern kdispatch_timer_t _Nullable _kdispatch_find_timer(kdispatch_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg);
-extern void _kdispatch_withdraw_timer_for_item(kdispatch_t _Nonnull self, int flags, kdispatch_item_t _Nonnull item);
+extern void _kdispatch_withdraw_timer_for_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item);
 extern void _kdispatch_drain_timers(kdispatch_t _Nonnull _Locked self);
 extern void _kdispatch_retire_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer);
 
-extern void _kdispatch_withdraw_signal_item(kdispatch_t _Nonnull self, int flags, kdispatch_item_t _Nonnull item);
+extern void _kdispatch_withdraw_signal_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item);
 extern void _kdispatch_retire_signal_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item);
 extern void _kdispatch_submit_items_for_signal(kdispatch_t _Nonnull _Locked self, int signo, kdispatch_worker_t _Nonnull worker);
 extern void _kdispatch_rearm_signal_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item);

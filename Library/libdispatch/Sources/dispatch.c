@@ -514,7 +514,7 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
 }
 
 
-static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     switch (item->state) {
         case DISPATCH_STATE_SCHEDULED:
@@ -526,7 +526,7 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
                     List_ForEach(&self->workers, ListNode, {
                         dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
 
-                        if (_dispatch_worker_withdraw_item(cwp, flags, item)) {
+                        if (_dispatch_worker_withdraw_item(cwp, item)) {
                             break;
                         }
                     });
@@ -534,11 +534,11 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
 
                 case _DISPATCH_TYPE_USER_TIMER:
                 case _DISPATCH_TYPE_CONV_TIMER:
-                    _dispatch_withdraw_timer_for_item(self, flags, item);
+                    _dispatch_withdraw_timer_for_item(self, item);
                     break;
                 
                 case _DISPATCH_TYPE_USER_SIGNAL_ITEM:
-                    _dispatch_withdraw_signal_item(self, flags, item);
+                    _dispatch_withdraw_signal_item(self, item);
                     break;
 
                 default:
@@ -555,10 +555,10 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, int flags, dispat
     }
 }
 
-void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+void dispatch_cancel_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     mtx_lock(&self->mutex);
-    _dispatch_do_cancel_item(self, flags, item);
+    _dispatch_do_cancel_item(self, item);
     mtx_unlock(&self->mutex);
 }
 
@@ -568,25 +568,25 @@ void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _
     dispatch_worker_t wp = _dispatch_worker_current();
 
     if (wp && wp->current_item && _dispatch_item_has_func(wp->current_item, func, arg)) {
-        _dispatch_do_cancel_item(wp->owner, flags, wp->current_item);
+        _dispatch_do_cancel_item(wp->owner, wp->current_item);
     }
     else {
         dispatch_timer_t timer = _dispatch_find_timer(self, func, arg);
         dispatch_item_t item = (timer) ? timer->item : _dispatch_find_item(self, func, arg);
 
         if (item) {
-            _dispatch_do_cancel_item(self, flags, item);
+            _dispatch_do_cancel_item(self, item);
         }
     }
     mtx_unlock(&self->mutex);
 }
 
-void dispatch_cancel_current_item(int flags)
+void dispatch_cancel_current_item(void)
 {
     dispatch_worker_t wp = _dispatch_worker_current();
 
     if (wp && wp->current_item) {
-        dispatch_cancel_item(wp->owner, flags, wp->current_item);
+        dispatch_cancel_item(wp->owner, wp->current_item);
     }
 }
 

@@ -24,7 +24,7 @@ static void _kdispatch_enable_signal(kdispatch_t _Nonnull _Locked self, int sign
 }
 
 // Removes the signal monitor 'item' from its signal trap and retires it.
-void _kdispatch_withdraw_signal_item(kdispatch_t _Nonnull self, int flags, kdispatch_item_t _Nonnull item)
+void _kdispatch_withdraw_signal_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item)
 {
     const int signo = item->subtype;
     kdispatch_sigtrap_t stp = &self->sigtraps[signo - 1];

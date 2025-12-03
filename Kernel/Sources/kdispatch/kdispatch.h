@@ -307,7 +307,7 @@ extern errno_t kdispatch_send_signal(kdispatch_t _Nonnull self, int signo);
 // executing. However it will not get rescheduled anymore. The item is retired
 // if it isn't awaitable. It is marked as cancelled and added to the result
 // queue if it is awaitable.
-extern void kdispatch_cancel_item(kdispatch_t _Nonnull self, int flags, kdispatch_item_t _Nonnull item);
+extern void kdispatch_cancel_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item);
 
 #define KDISPATCH_IGNORE_ARG ((void*)-1)
 
@@ -322,7 +322,7 @@ extern void kdispatch_cancel(kdispatch_t _Nonnull self, int flags, kdispatch_ite
 // Cancels the current item/timer. The current item is the work item that is
 // active and belongs to the caller. Does nothing if this function is called
 // from outside an item context.
-extern void kdispatch_cancel_current_item(int flags);
+extern void kdispatch_cancel_current_item(void);
 
 // Returns true if the given item is in cancelled state; false otherwise.
 extern bool kdispatch_item_cancelled(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item);

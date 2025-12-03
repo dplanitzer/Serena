@@ -54,7 +54,7 @@ void _kdispatch_drain_timers(kdispatch_t _Nonnull _Locked self)
 }
 
 // Removes 'item' from the timer queue and retires it.
-void _kdispatch_withdraw_timer_for_item(kdispatch_t _Nonnull self, int flags, kdispatch_item_t _Nonnull item)
+void _kdispatch_withdraw_timer_for_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item)
 {
     kdispatch_timer_t ptp = NULL;
     kdispatch_timer_t ctp = (kdispatch_timer_t)self->timers.first;

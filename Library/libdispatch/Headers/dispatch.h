@@ -308,7 +308,7 @@ extern int dispatch_send_signal(dispatch_t _Nonnull self, int signo);
 // executing. However it will not get rescheduled anymore. The item is retired
 // if it isn't awaitable. It is marked as cancelled and added to the result
 // queue if it is awaitable.
-extern void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
+extern void dispatch_cancel_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
 
 #define DISPATCH_IGNORE_ARG ((void*)-1)
 
@@ -323,7 +323,7 @@ extern void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_f
 // Cancels the current item/timer. The current item is the work item that is
 // active and belongs to the caller. Does nothing if this function is called
 // from outside an item context.
-extern void dispatch_cancel_current_item(int flags);
+extern void dispatch_cancel_current_item(void);
 
 // Returns true if the given item is in cancelled state; false otherwise.
 extern bool dispatch_item_cancelled(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);

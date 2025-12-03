@@ -134,7 +134,7 @@ void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self)
 }
 
 // Removes 'item' from the item queue and retires it.
-bool _dispatch_worker_withdraw_item(dispatch_worker_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+bool _dispatch_worker_withdraw_item(dispatch_worker_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     dispatch_item_t pip = NULL;
 

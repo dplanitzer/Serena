@@ -59,7 +59,7 @@ void _dispatch_drain_timers(dispatch_t _Nonnull _Locked self)
 }
 
 // Removes 'item' from the timer queue and retires it.
-void _dispatch_withdraw_timer_for_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+void _dispatch_withdraw_timer_for_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     dispatch_timer_t ptp = NULL;
     dispatch_timer_t ctp = (dispatch_timer_t)self->timers.first;

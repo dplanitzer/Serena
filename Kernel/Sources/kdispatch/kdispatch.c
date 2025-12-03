@@ -486,7 +486,7 @@ errno_t kdispatch_sync(kdispatch_t _Nonnull self, kdispatch_sync_func_t _Nonnull
 }
 
 
-static void _kdispatch_do_cancel_item(kdispatch_t _Nonnull self, int flags, kdispatch_item_t _Nonnull item)
+static void _kdispatch_do_cancel_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item)
 {
     switch (item->state) {
         case KDISPATCH_STATE_SCHEDULED:
@@ -498,7 +498,7 @@ static void _kdispatch_do_cancel_item(kdispatch_t _Nonnull self, int flags, kdis
                     List_ForEach(&self->workers, ListNode, {
                         kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
 
-                        if (_kdispatch_worker_withdraw_item(cwp, flags, item)) {
+                        if (_kdispatch_worker_withdraw_item(cwp, item)) {
                             break;
                         }
                     });
@@ -506,11 +506,11 @@ static void _kdispatch_do_cancel_item(kdispatch_t _Nonnull self, int flags, kdis
 
                 case _KDISPATCH_TYPE_USER_TIMER:
                 case _KDISPATCH_TYPE_CONV_TIMER:
-                    _kdispatch_withdraw_timer_for_item(self, flags, item);
+                    _kdispatch_withdraw_timer_for_item(self, item);
                     break;
                 
                 case _KDISPATCH_TYPE_USER_SIGNAL_ITEM:
-                    _kdispatch_withdraw_signal_item(self, flags, item);
+                    _kdispatch_withdraw_signal_item(self, item);
                     break;
 
                 default:
@@ -527,10 +527,10 @@ static void _kdispatch_do_cancel_item(kdispatch_t _Nonnull self, int flags, kdis
     }
 }
 
-void kdispatch_cancel_item(kdispatch_t _Nonnull self, int flags, kdispatch_item_t _Nonnull item)
+void kdispatch_cancel_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item)
 {
     mtx_lock(&self->mutex);
-    _kdispatch_do_cancel_item(self, flags, item);
+    _kdispatch_do_cancel_item(self, item);
     mtx_unlock(&self->mutex);
 }
 
@@ -540,25 +540,25 @@ void kdispatch_cancel(kdispatch_t _Nonnull self, int flags, kdispatch_item_func_
     kdispatch_worker_t wp = _kdispatch_worker_current();
 
     if (wp && wp->current_item && _kdispatch_item_has_func(wp->current_item, func, arg)) {
-        _kdispatch_do_cancel_item(wp->owner, flags, wp->current_item);
+        _kdispatch_do_cancel_item(wp->owner, wp->current_item);
     }
     else {
         kdispatch_timer_t timer = _kdispatch_find_timer(self, func, arg);
         kdispatch_item_t item = (timer) ? timer->item : _kdispatch_find_item(self, func, arg);
 
         if (item) {
-            _kdispatch_do_cancel_item(self, flags, item);
+            _kdispatch_do_cancel_item(self, item);
         }
     }
     mtx_unlock(&self->mutex);
 }
 
-void kdispatch_cancel_current_item(int flags)
+void kdispatch_cancel_current_item(void)
 {
     kdispatch_worker_t wp = _kdispatch_worker_current();
 
     if (wp && wp->current_item) {
-        kdispatch_cancel_item(wp->owner, flags, wp->current_item);
+        kdispatch_cancel_item(wp->owner, wp->current_item);
     }
 }
 

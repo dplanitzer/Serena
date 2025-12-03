@@ -28,7 +28,7 @@ static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo,
 }
 
 // Removes the signal monitor 'item' from its signal trap and retires it.
-void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item)
+void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     const int signo = item->subtype;
     dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
