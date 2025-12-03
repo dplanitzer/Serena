@@ -157,29 +157,9 @@ dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull 
 {
     SList_ForEach(&self->work_queue, ListNode, {
         dispatch_item_t cip = (dispatch_item_t)pCurNode;
-        bool hasFunc;
-        bool hasArg;
 
-        switch (cip->type) {
-            case _DISPATCH_TYPE_CONV_ITEM:
-                hasFunc = func == (dispatch_item_func_t)((dispatch_conv_item_t)cip)->func;
-                hasArg = (arg == DISPATCH_IGNORE_ARG) || (((dispatch_conv_item_t)cip)->arg == arg);
-                break;
-
-            case _DISPATCH_TYPE_USER_ITEM:
-            case _DISPATCH_TYPE_USER_SIGNAL_ITEM:
-                hasFunc = func == cip->func;
-                hasArg = true;
-                break;
-
-            default:
-                hasFunc = false;
-                hasArg = false;
-                break;
-        }
-
-        if (hasFunc && hasArg) {
-            return cip;
+        if (_dispatch_item_has_func(cip, func, arg)) {
+             return cip;
         }
     });
 

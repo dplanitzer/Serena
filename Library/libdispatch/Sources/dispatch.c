@@ -313,6 +313,34 @@ static dispatch_item_t _Nullable _dispatch_find_item(dispatch_t _Nonnull self, d
     return NULL;
 }
 
+bool _dispatch_item_has_func(dispatch_item_t _Nonnull item, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
+{
+    bool hasFunc;
+    bool hasArg;
+
+    switch (item->type) {
+        case _DISPATCH_TYPE_CONV_ITEM:
+        case _DISPATCH_TYPE_CONV_TIMER:
+            hasFunc = func == (dispatch_item_func_t)((dispatch_conv_item_t)item)->func;
+            hasArg = (arg == DISPATCH_IGNORE_ARG) || (((dispatch_conv_item_t)item)->arg == arg);
+            break;
+
+        case _DISPATCH_TYPE_USER_ITEM:
+        case _DISPATCH_TYPE_USER_SIGNAL_ITEM:
+        case _DISPATCH_TYPE_USER_TIMER:
+            hasFunc = func == item->func;
+            hasArg = true;
+            break;
+
+        default:
+            hasFunc = false;
+            hasArg = false;
+            break;
+    }
+
+    return hasFunc && hasArg;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Item Cache

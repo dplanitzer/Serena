@@ -129,29 +129,9 @@ kdispatch_item_t _Nullable _kdispatch_worker_find_item(kdispatch_worker_t _Nonnu
 {
     SList_ForEach(&self->work_queue, ListNode, {
         kdispatch_item_t cip = (kdispatch_item_t)pCurNode;
-        bool hasFunc;
-        bool hasArg;
 
-        switch (cip->type) {
-            case _KDISPATCH_TYPE_CONV_ITEM:
-                hasFunc = func == (kdispatch_item_func_t)((kdispatch_conv_item_t)cip)->func;
-                hasArg = (arg == KDISPATCH_IGNORE_ARG) || (((kdispatch_conv_item_t)cip)->arg == arg);
-                break;
-
-            case _KDISPATCH_TYPE_USER_ITEM:
-            case _KDISPATCH_TYPE_USER_SIGNAL_ITEM:
-                hasFunc = func == cip->func;
-                hasArg = true;
-                break;
-
-            default:
-                hasFunc = false;
-                hasArg = false;
-                break;
-        }
-
-        if (hasFunc && hasArg) {
-            return cip;
+        if (_kdispatch_item_has_func(cip, func, arg)) {
+             return cip;
         }
     });
 

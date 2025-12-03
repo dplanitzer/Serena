@@ -162,7 +162,6 @@ struct dispatch {
     char                            name[KDISPATCH_MAX_NAME_LENGTH + 1];
 };
 
-extern errno_t _kdispatch_rearm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer);
 extern void _kdispatch_retire_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item);
 extern void _kdispatch_zombify_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item);
 extern void _kdispatch_cache_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item);
@@ -172,6 +171,7 @@ extern errno_t _kdispatch_acquire_worker(kdispatch_t _Nonnull _Locked self);
 extern bool _kdispatch_isactive(kdispatch_t _Nonnull _Locked self);
 
 
+extern errno_t _kdispatch_rearm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer);
 extern kdispatch_timer_t _Nullable _kdispatch_find_timer(kdispatch_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg);
 extern void _kdispatch_withdraw_timer_for_item(kdispatch_t _Nonnull self, int flags, kdispatch_item_t _Nonnull item);
 extern void _kdispatch_drain_timers(kdispatch_t _Nonnull _Locked self);
@@ -185,6 +185,7 @@ extern void _kdispatch_rearm_signal_item(kdispatch_t _Nonnull _Locked self, kdis
 extern _Noreturn _kdispatch_relinquish_worker(kdispatch_t _Nonnull _Locked self, kdispatch_worker_t _Nonnull worker);
 
 extern void _async_adapter_func(kdispatch_item_t _Nonnull item);
+extern bool _kdispatch_item_has_func(kdispatch_item_t _Nonnull item, kdispatch_item_func_t _Nonnull func, void* _Nullable arg);
 
 __CPP_END
 

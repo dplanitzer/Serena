@@ -276,6 +276,34 @@ static kdispatch_item_t _Nullable _kdispatch_find_item(kdispatch_t _Nonnull self
     return NULL;
 }
 
+bool _kdispatch_item_has_func(kdispatch_item_t _Nonnull item, kdispatch_item_func_t _Nonnull func, void* _Nullable arg)
+{
+    bool hasFunc;
+    bool hasArg;
+
+    switch (item->type) {
+        case _KDISPATCH_TYPE_CONV_ITEM:
+        case _KDISPATCH_TYPE_CONV_TIMER:
+            hasFunc = func == (kdispatch_item_func_t)((kdispatch_conv_item_t)item)->func;
+            hasArg = (arg == KDISPATCH_IGNORE_ARG) || (((kdispatch_conv_item_t)item)->arg == arg);
+            break;
+
+        case _KDISPATCH_TYPE_USER_ITEM:
+        case _KDISPATCH_TYPE_USER_SIGNAL_ITEM:
+        case _KDISPATCH_TYPE_USER_TIMER:
+            hasFunc = func == item->func;
+            hasArg = true;
+            break;
+
+        default:
+            hasFunc = false;
+            hasArg = false;
+            break;
+    }
+
+    return hasFunc && hasArg;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Item Cache

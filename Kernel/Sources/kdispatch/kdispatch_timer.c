@@ -77,28 +77,9 @@ kdispatch_timer_t _Nullable _kdispatch_find_timer(kdispatch_t _Nonnull self, kdi
 {
     SList_ForEach(&self->timers, SListNode, {
         kdispatch_timer_t ctp = (kdispatch_timer_t)pCurNode;
-        kdispatch_item_t ip = ctp->item;
-        bool hasFunc;
-        bool hasArg;
 
-        switch (ip->type) {
-            case _KDISPATCH_TYPE_CONV_TIMER:
-                hasFunc = ((kdispatch_conv_item_t)ip)->func == (int (*)(void*))func;
-                hasArg = (arg == KDISPATCH_IGNORE_ARG) || (((kdispatch_conv_item_t)ip)->arg == arg);
-                break;
-
-            case _KDISPATCH_TYPE_USER_TIMER:
-                hasFunc = ip->func == func;
-                hasArg = true;
-                break;
-
-            default:
-                hasFunc = false;
-                hasArg = false;
-                break;
-        }
-        if (hasFunc && hasArg) {
-            return ctp;
+        if (_kdispatch_item_has_func(ctp->item, func, arg)) {
+             return ctp;
         }
     });
 

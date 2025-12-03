@@ -161,7 +161,6 @@ struct dispatch {
     char                            name[DISPATCH_MAX_NAME_LENGTH + 1];
 };
 
-extern int _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
 extern void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
@@ -172,6 +171,7 @@ extern int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self);
 extern bool _dispatch_isactive(dispatch_t _Nonnull _Locked self);
 
 
+extern int _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
 extern dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg);
 extern void _dispatch_withdraw_timer_for_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _Nonnull item);
 extern void _dispatch_drain_timers(dispatch_t _Nonnull _Locked self);
@@ -185,6 +185,7 @@ extern void _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispat
 extern _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker);
 
 extern void _async_adapter_func(dispatch_item_t _Nonnull item);
+extern bool _dispatch_item_has_func(dispatch_item_t _Nonnull item, dispatch_item_func_t _Nonnull func, void* _Nullable arg);
 
 __CPP_END
 

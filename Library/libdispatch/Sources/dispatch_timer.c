@@ -82,28 +82,9 @@ dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispat
 {
     SList_ForEach(&self->timers, SListNode, {
         dispatch_timer_t ctp = (dispatch_timer_t)pCurNode;
-        dispatch_item_t ip = ctp->item;
-        bool hasFunc;
-        bool hasArg;
 
-        switch (ip->type) {
-            case _DISPATCH_TYPE_CONV_TIMER:
-                hasFunc = ((dispatch_conv_item_t)ip)->func == (int (*)(void*))func;
-                hasArg = (arg == DISPATCH_IGNORE_ARG) || (((dispatch_conv_item_t)ip)->arg == arg);
-                break;
-
-            case _DISPATCH_TYPE_USER_TIMER:
-                hasFunc = ip->func == func;
-                hasArg = true;
-                break;
-
-            default:
-                hasFunc = false;
-                hasArg = false;
-                break;
-        }
-        if (hasFunc && hasArg) {
-            return ctp;
+        if (_dispatch_item_has_func(ctp->item, func, arg)) {
+             return ctp;
         }
     });
 
