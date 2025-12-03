@@ -537,11 +537,18 @@ void kdispatch_cancel_item(kdispatch_t _Nonnull self, int flags, kdispatch_item_
 void kdispatch_cancel(kdispatch_t _Nonnull self, int flags, kdispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
     mtx_lock(&self->mutex);
-    kdispatch_timer_t timer = _kdispatch_find_timer(self, func, arg);
-    kdispatch_item_t item = (timer) ? timer->item : _kdispatch_find_item(self, func, arg);
+    kdispatch_worker_t wp = _kdispatch_worker_current();
 
-    if (item) {
-        _kdispatch_do_cancel_item(self, flags, item);
+    if (wp && wp->current_item && _kdispatch_item_has_func(wp->current_item, func, arg)) {
+        _kdispatch_do_cancel_item(wp->owner, flags, wp->current_item);
+    }
+    else {
+        kdispatch_timer_t timer = _kdispatch_find_timer(self, func, arg);
+        kdispatch_item_t item = (timer) ? timer->item : _kdispatch_find_item(self, func, arg);
+
+        if (item) {
+            _kdispatch_do_cancel_item(self, flags, item);
+        }
     }
     mtx_unlock(&self->mutex);
 }

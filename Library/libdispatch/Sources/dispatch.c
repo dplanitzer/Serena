@@ -565,11 +565,18 @@ void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_item_t _
 void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
     mtx_lock(&self->mutex);
-    dispatch_timer_t timer = _dispatch_find_timer(self, func, arg);
-    dispatch_item_t item = (timer) ? timer->item : _dispatch_find_item(self, func, arg);
+    dispatch_worker_t wp = _dispatch_worker_current();
 
-    if (item) {
-        _dispatch_do_cancel_item(self, flags, item);
+    if (wp && wp->current_item && _dispatch_item_has_func(wp->current_item, func, arg)) {
+        _dispatch_do_cancel_item(wp->owner, flags, wp->current_item);
+    }
+    else {
+        dispatch_timer_t timer = _dispatch_find_timer(self, func, arg);
+        dispatch_item_t item = (timer) ? timer->item : _dispatch_find_item(self, func, arg);
+
+        if (item) {
+            _dispatch_do_cancel_item(self, flags, item);
+        }
     }
     mtx_unlock(&self->mutex);
 }

@@ -312,10 +312,12 @@ extern void dispatch_cancel_item(dispatch_t _Nonnull self, int flags, dispatch_i
 
 #define DISPATCH_IGNORE_ARG ((void*)-1)
 
-// Cancels the first scheduled timer or work item that matches function 'func'
-// and 'arg'. 'arg' is ignored if it is DISPATCH_IGNORE_ARG.
-// First here means the timer or work item that would execute soonest. Timers
-// are cancelled before work items. At most one timer or work item is cancelled.
+// Cancels the timer or item with the function 'func' and argument 'arg'. 'arg'
+// is only taken into account if it isn't DISPATCH_IGNORE_ARG. This function
+// first checks whether the currently executing item matches the function and
+// argument. Then it checks pending timers and finally pending items. The first
+// timer or item that matches the provided arguments is cancelled and any
+// additional timers/items with matching arguments are not cancelled.
 extern void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _Nonnull func, void* _Nullable arg);
 
 // Cancels the current item/timer. The current item is the work item that is
