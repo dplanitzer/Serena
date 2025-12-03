@@ -320,10 +320,9 @@ extern void dispatch_cancel_item(dispatch_t _Nonnull self, dispatch_item_t _Nonn
 // additional timers/items with matching arguments are not cancelled.
 extern void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _Nonnull func, void* _Nullable arg);
 
-// Cancels the current item/timer. The current item is the work item that is
-// active and belongs to the caller. Does nothing if this function is called
-// from outside an item context.
-extern void dispatch_cancel_current_item(void);
+// Returns true if the currently executing item is in cancelled state. Expects
+// to be called from inside the item function.
+extern bool dispatch_current_item_cancelled(void);
 
 // Returns true if the given item is in cancelled state; false otherwise.
 extern bool dispatch_item_cancelled(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
@@ -347,7 +346,7 @@ extern dispatch_t _Nonnull dispatch_main_queue(void);
 // is the dispatcher on which the item is running.
 extern dispatch_t _Nullable dispatch_current_queue(void);
 
-// Retruns a reference to the item that is currently executing on the caller's
+// Returns a reference to the item that is currently executing on the caller's
 // vcpu. This is the item for which the caller is doing work. Note that this
 // function returns NULL if it is called from outside an item context. It will
 // never return NULL if called from inside am item context.

@@ -319,10 +319,9 @@ extern void kdispatch_cancel_item(kdispatch_t _Nonnull self, kdispatch_item_t _N
 // additional timers/items with matching arguments are not cancelled.
 extern void kdispatch_cancel(kdispatch_t _Nonnull self, int flags, kdispatch_item_func_t _Nonnull func, void* _Nullable arg);
 
-// Cancels the current item/timer. The current item is the work item that is
-// active and belongs to the caller. Does nothing if this function is called
-// from outside an item context.
-extern void kdispatch_cancel_current_item(void);
+// Returns true if the currently executing item is in cancelled state. Expects
+// to be called from inside the item function.
+extern bool kdispatch_current_item_cancelled(void);
 
 // Returns true if the given item is in cancelled state; false otherwise.
 extern bool kdispatch_item_cancelled(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item);

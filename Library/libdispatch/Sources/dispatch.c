@@ -581,19 +581,23 @@ void dispatch_cancel(dispatch_t _Nonnull self, int flags, dispatch_item_func_t _
     mtx_unlock(&self->mutex);
 }
 
-void dispatch_cancel_current_item(void)
+bool dispatch_current_item_cancelled(void)
 {
     dispatch_worker_t wp = _dispatch_worker_current();
 
+    // See dispatch_current_item() why this is safe
     if (wp && wp->current_item) {
-        dispatch_cancel_item(wp->owner, wp->current_item);
+        return (wp->current_item->state == DISPATCH_STATE_CANCELLED || (wp->current_item->flags & _DISPATCH_ITEM_FLAG_CANCELLED) != 0) ? true : false;
+    }
+    else {
+        return false;
     }
 }
 
 bool dispatch_item_cancelled(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     mtx_lock(&self->mutex);
-    const bool r = (item->state == DISPATCH_STATE_CANCELLED) ? true : false;
+    const bool r = (item->state == DISPATCH_STATE_CANCELLED || (item->flags & _DISPATCH_ITEM_FLAG_CANCELLED) != 0) ? true : false;
     mtx_unlock(&self->mutex);
     return r;
 }

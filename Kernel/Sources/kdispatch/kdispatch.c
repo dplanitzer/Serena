@@ -553,12 +553,16 @@ void kdispatch_cancel(kdispatch_t _Nonnull self, int flags, kdispatch_item_func_
     mtx_unlock(&self->mutex);
 }
 
-void kdispatch_cancel_current_item(void)
+bool kdispatch_current_item_cancelled(void)
 {
     kdispatch_worker_t wp = _kdispatch_worker_current();
 
+    // See dispatch_current_item() why this is safe
     if (wp && wp->current_item) {
-        kdispatch_cancel_item(wp->owner, wp->current_item);
+        return (wp->current_item->state == KDISPATCH_STATE_CANCELLED || (wp->current_item->flags & _KDISPATCH_ITEM_FLAG_CANCELLED) != 0) ? true : false;
+    }
+    else {
+        return false;
     }
 }
 
