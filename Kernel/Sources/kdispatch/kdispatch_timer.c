@@ -106,7 +106,7 @@ static void _kdispatch_queue_timer(kdispatch_t _Nonnull self, kdispatch_timer_t 
     SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
 }
 
-static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer)
+static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, kdispatch_item_t _Nonnull item)
 {
     decl_try_err();
 
@@ -119,9 +119,20 @@ static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, kdispatch
     }
 
 
+    item->state = KDISPATCH_STATE_SCHEDULED;
+    item->flags &= ~_KDISPATCH_ITEM_FLAG_CANCELLED;
+
     timer->timer_qe = SLISTNODE_INIT;
-    timer->item->state = KDISPATCH_STATE_SCHEDULED;
-    timer->item->flags &= ~_KDISPATCH_ITEM_FLAG_CANCELLED;
+    timer->item = item;
+    timer->deadline = *wtp;
+    timer->interval = *itp;
+
+    if ((flags & KDISPATCH_SUBMIT_ABSTIME) == 0) {
+        struct timespec now;
+
+        clock_gettime(g_mono_clock, &now);
+        timespec_add(&now, &timer->deadline, &timer->deadline);
+    }
 
 
     _kdispatch_queue_timer(self, timer);
@@ -158,16 +169,6 @@ void _kdispatch_rearm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t
     // and thus at least one worker is clearly alive.
 }
 
-static void _calc_timer_absolute_deadline(kdispatch_timer_t _Nonnull timer, int flags)
-{
-    if ((flags & KDISPATCH_SUBMIT_ABSTIME) == 0) {
-        struct timespec now;
-
-        clock_gettime(g_mono_clock, &now);
-        timespec_add(&now, &timer->deadline, &timer->deadline);
-    }
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
@@ -187,12 +188,8 @@ errno_t kdispatch_item_after(kdispatch_t _Nonnull self, int flags, const struct 
         if (timer) {
             item->type = _KDISPATCH_TYPE_USER_TIMER;
             item->flags = 0;
-            timer->item = item;
-            timer->deadline = *wtp;
-            timer->interval = TIMESPEC_INF;
-            _calc_timer_absolute_deadline(timer, flags);
 
-            err = _kdispatch_arm_timer(self, timer);
+            err = _kdispatch_arm_timer(self, timer, flags, wtp, &TIMESPEC_INF, item);
             if (err != EOK) {
                 _kdispatch_cache_timer(self, timer);
             }
@@ -221,12 +218,8 @@ errno_t kdispatch_item_repeating(kdispatch_t _Nonnull self, int flags, const str
         if (timer) {
             item->type = _KDISPATCH_TYPE_USER_TIMER;
             item->flags = _KDISPATCH_ITEM_FLAG_REPEATING;
-            timer->item = (kdispatch_item_t)item;
-            timer->deadline = *wtp;
-            timer->interval = *itp;
-            _calc_timer_absolute_deadline(timer, flags);
 
-            err = _kdispatch_arm_timer(self, timer);
+            err = _kdispatch_arm_timer(self, timer, flags, wtp, itp, item);
             if (err != EOK) {
                 _kdispatch_cache_timer(self, timer);
             }
@@ -258,12 +251,8 @@ errno_t kdispatch_after(kdispatch_t _Nonnull self, int flags, const struct times
             item->super.flags = _KDISPATCH_ITEM_FLAG_CACHEABLE;
             item->func = (int (*)(void*))func;
             item->arg = arg;
-            timer->item = (kdispatch_item_t)item;
-            timer->deadline = *wtp;
-            timer->interval = TIMESPEC_INF;
-            _calc_timer_absolute_deadline(timer, flags);
 
-            err = _kdispatch_arm_timer(self, timer);
+            err = _kdispatch_arm_timer(self, timer, flags, wtp, &TIMESPEC_INF, (kdispatch_item_t)item);
         }
         else {
             err = ENOMEM;
@@ -300,12 +289,8 @@ errno_t kdispatch_repeating(kdispatch_t _Nonnull self, int flags, const struct t
             item->super.flags = _KDISPATCH_ITEM_FLAG_CACHEABLE | _KDISPATCH_ITEM_FLAG_REPEATING;
             item->func = (int (*)(void*))func;
             item->arg = arg;
-            timer->item = (kdispatch_item_t)item;
-            timer->deadline = *wtp;
-            timer->interval = *itp;
-            _calc_timer_absolute_deadline(timer, flags);
 
-            err = _kdispatch_arm_timer(self, timer);
+            err = _kdispatch_arm_timer(self, timer, flags, wtp, itp, (kdispatch_item_t)item);
         }
         else {
             err = ENOMEM;

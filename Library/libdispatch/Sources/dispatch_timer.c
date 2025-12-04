@@ -112,10 +112,8 @@ static void _dispatch_queue_timer(dispatch_t _Nonnull self, dispatch_timer_t _No
 }
 
 
-static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
+static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_item_t _Nonnull item)
 {
-    dispatch_item_t item = timer->item;
-
     // Make sure that we got at least one worker
     if (self->worker_count == 0) {
         if (_dispatch_acquire_worker(self) != 0) {
@@ -124,9 +122,20 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_
     }
 
 
-    timer->timer_qe = SLISTNODE_INIT;
     item->state = DISPATCH_STATE_SCHEDULED;
     item->flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
+
+    timer->timer_qe = SLISTNODE_INIT;
+    timer->item = item;
+    timer->deadline = *wtp;
+    timer->interval = *itp;
+
+    if ((flags & DISPATCH_SUBMIT_ABSTIME) == 0) {
+        struct timespec now;
+
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        timespec_add(&now, &timer->deadline, &timer->deadline);
+    }
 
 
     _dispatch_queue_timer(self, timer);
@@ -163,16 +172,6 @@ void _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _N
     // and thus at least one worker is clearly alive.
 }
 
-static void _calc_timer_absolute_deadline(dispatch_timer_t _Nonnull timer, int flags)
-{
-    if ((flags & DISPATCH_SUBMIT_ABSTIME) == 0) {
-        struct timespec now;
-
-        clock_gettime(CLOCK_MONOTONIC, &now);
-        timespec_add(&now, &timer->deadline, &timer->deadline);
-    }
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: API
@@ -193,12 +192,8 @@ int dispatch_item_after(dispatch_t _Nonnull self, int flags, const struct timesp
         if (timer) {
             item->type = _DISPATCH_TYPE_USER_TIMER;
             item->flags = 0;
-            timer->item = item;
-            timer->deadline = *wtp;
-            timer->interval = TIMESPEC_INF;
-            _calc_timer_absolute_deadline(timer, flags);
 
-            r = _dispatch_arm_timer(self, timer);
+            r = _dispatch_arm_timer(self, timer, flags, wtp, &TIMESPEC_INF, item);
             if (r == -1) {
                 _dispatch_cache_timer(self, timer);
             }
@@ -225,12 +220,8 @@ int dispatch_item_repeating(dispatch_t _Nonnull self, int flags, const struct ti
         if (timer) {
             item->type = _DISPATCH_TYPE_USER_TIMER;
             item->flags = _DISPATCH_ITEM_FLAG_REPEATING;
-            timer->item = (dispatch_item_t)item;
-            timer->deadline = *wtp;
-            timer->interval = *itp;
-            _calc_timer_absolute_deadline(timer, flags);
 
-            r = _dispatch_arm_timer(self, timer);
+            r = _dispatch_arm_timer(self, timer, flags, wtp, itp, item);
             if (r == -1) {
                 _dispatch_cache_timer(self, timer);
             }
@@ -260,12 +251,8 @@ int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _
             item->super.flags = _DISPATCH_ITEM_FLAG_CACHEABLE;
             item->func = (int (*)(void*))func;
             item->arg = arg;
-            timer->item = (dispatch_item_t)item;
-            timer->deadline = *wtp;
-            timer->interval = TIMESPEC_INF;
-            _calc_timer_absolute_deadline(timer, flags);
 
-            r = _dispatch_arm_timer(self, timer);
+            r = _dispatch_arm_timer(self, timer, flags, wtp, &TIMESPEC_INF, (dispatch_item_t)item);
         }
 
         if (r == -1) {
@@ -300,9 +287,8 @@ int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespe
             timer->item = (dispatch_item_t)item;
             timer->deadline = *wtp;
             timer->interval = *itp;
-            _calc_timer_absolute_deadline(timer, flags);
 
-            r = _dispatch_arm_timer(self, timer);
+            r = _dispatch_arm_timer(self, timer, flags, wtp, itp, (dispatch_item_t)item);
         }
 
         if (r == -1) {
