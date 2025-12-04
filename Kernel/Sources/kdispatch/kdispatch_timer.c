@@ -86,12 +86,29 @@ kdispatch_timer_t _Nullable _kdispatch_find_timer(kdispatch_t _Nonnull self, kdi
     return NULL;
 }
 
+static void _kdispatch_queue_timer(kdispatch_t _Nonnull self, kdispatch_timer_t _Nonnull timer)
+{
+    kdispatch_timer_t ptp = NULL;
+    kdispatch_timer_t ctp = (kdispatch_timer_t)self->timers.first;
+
+    // Put the timer on the timer queue. The timer queue is sorted by absolute
+    // timer fire time (ascending). Timers with the same fire time are added in
+    // FIFO order.
+    while (ctp) {
+        if (timespec_gt(&ctp->deadline, &timer->deadline)) {
+            break;
+        }
+        
+        ptp = ctp;
+        ctp = (kdispatch_timer_t)ctp->timer_qe.next;
+    }
+    
+    SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
+}
+
 static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer)
 {
     decl_try_err();
-    kdispatch_timer_t ptp = NULL;
-    kdispatch_timer_t ctp = (kdispatch_timer_t)self->timers.first;
-    
 
     // Make sure that we got at least one worker
     if (self->worker_count == 0) {
@@ -107,19 +124,7 @@ static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, kdispatch
     timer->item->flags &= ~_KDISPATCH_ITEM_FLAG_CANCELLED;
 
 
-    // Put the timer on the timer queue. The timer queue is sorted by absolute
-    // timer fire time (ascending). Timers with the same fire time are added in
-    // FIFO order.
-    while (ctp) {
-        if (timespec_gt(&ctp->deadline, &timer->deadline)) {
-            break;
-        }
-        
-        ptp = ctp;
-        ctp = (kdispatch_timer_t)ctp->timer_qe.next;
-    }
-    
-    SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
+    _kdispatch_queue_timer(self, timer);
 
 
     // Notify all workers.
@@ -130,18 +135,27 @@ static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, kdispatch
     return EOK;
 }
 
-errno_t _kdispatch_rearm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer)
+void _kdispatch_rearm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer)
 {
+    struct timespec now;
+
     // Repeating timer: rearm it with the next fire date that's in
     // the future (the next fire date we haven't already missed).
-    struct timespec now;
     clock_gettime(g_mono_clock, &now);
-
     do  {
         timespec_add(&timer->deadline, &timer->interval, &timer->deadline);
     } while (timespec_le(&timer->deadline, &now) && timespec_gt(&timer->interval, &TIMESPEC_ZERO));
-    
-    return _kdispatch_arm_timer(self, timer);
+
+
+    timer->timer_qe = SLISTNODE_INIT;
+    timer->item->state = KDISPATCH_STATE_SCHEDULED;
+    timer->item->flags &= ~_KDISPATCH_ITEM_FLAG_CANCELLED;
+
+
+    _kdispatch_queue_timer(self, timer);
+
+    // No need to wake up workers because this is getting called from a worker
+    // and thus at least one worker is clearly alive.
 }
 
 static void _calc_timer_absolute_deadline(kdispatch_timer_t _Nonnull timer, int flags)

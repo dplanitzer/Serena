@@ -171,7 +171,7 @@ extern errno_t _kdispatch_acquire_worker(kdispatch_t _Nonnull _Locked self);
 extern bool _kdispatch_isactive(kdispatch_t _Nonnull _Locked self);
 
 
-extern errno_t _kdispatch_rearm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer);
+extern void _kdispatch_rearm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer);
 extern kdispatch_timer_t _Nullable _kdispatch_find_timer(kdispatch_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg);
 extern void _kdispatch_withdraw_timer_for_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item);
 extern void _kdispatch_drain_timers(kdispatch_t _Nonnull _Locked self);

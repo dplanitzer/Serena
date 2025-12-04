@@ -171,7 +171,7 @@ extern int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self);
 extern bool _dispatch_isactive(dispatch_t _Nonnull _Locked self);
 
 
-extern int _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
+extern void _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer);
 extern dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg);
 extern void _dispatch_withdraw_timer_for_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
 extern void _dispatch_drain_timers(dispatch_t _Nonnull _Locked self);

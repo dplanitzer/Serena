@@ -91,24 +91,10 @@ dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispat
     return NULL;
 }
 
-static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
+static void _dispatch_queue_timer(dispatch_t _Nonnull self, dispatch_timer_t _Nonnull timer)
 {
     dispatch_timer_t ptp = NULL;
     dispatch_timer_t ctp = (dispatch_timer_t)self->timers.first;
-    
-
-    // Make sure that we got at least one worker
-    if (self->worker_count == 0) {
-        if (_dispatch_acquire_worker(self) != 0) {
-            return -1;
-        }
-    }
-
-
-    timer->timer_qe = SLISTNODE_INIT;
-    timer->item->state = DISPATCH_STATE_SCHEDULED;
-    timer->item->flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
-
 
     // Put the timer on the timer queue. The timer queue is sorted by absolute
     // timer fire time (ascending). Timers with the same fire time are added in
@@ -123,6 +109,27 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_
     }
     
     SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
+}
+
+
+static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
+{
+    dispatch_item_t item = timer->item;
+
+    // Make sure that we got at least one worker
+    if (self->worker_count == 0) {
+        if (_dispatch_acquire_worker(self) != 0) {
+            return -1;
+        }
+    }
+
+
+    timer->timer_qe = SLISTNODE_INIT;
+    item->state = DISPATCH_STATE_SCHEDULED;
+    item->flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
+
+
+    _dispatch_queue_timer(self, timer);
 
 
     // Notify all workers.
@@ -133,18 +140,27 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_
     return 0;
 }
 
-int _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
+void _dispatch_rearm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
 {
+    struct timespec now;
+
     // Repeating timer: rearm it with the next fire date that's in
     // the future (the next fire date we haven't already missed).
-    struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
-
     do  {
         timespec_add(&timer->deadline, &timer->interval, &timer->deadline);
     } while (timespec_le(&timer->deadline, &now) && timespec_gt(&timer->interval, &TIMESPEC_ZERO));
     
-    return _dispatch_arm_timer(self, timer);
+
+    timer->timer_qe = SLISTNODE_INIT;
+    timer->item->state = DISPATCH_STATE_SCHEDULED;
+    timer->item->flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
+
+
+    _dispatch_queue_timer(self, timer);
+
+    // No need to wake up workers because this is getting called from a worker
+    // and thus at least one worker is clearly alive.
 }
 
 static void _calc_timer_absolute_deadline(dispatch_timer_t _Nonnull timer, int flags)
