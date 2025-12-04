@@ -182,22 +182,25 @@ errno_t kdispatch_item_after(kdispatch_t _Nonnull self, int flags, const struct 
     }
 
     mtx_lock(&self->mutex);
-    if (self->state < _DISPATCHER_STATE_TERMINATING) {
-        kdispatch_timer_t timer = _kdispatch_acquire_cached_timer(self);
-    
-        if (timer) {
-            item->type = _KDISPATCH_TYPE_USER_TIMER;
-            item->flags = 0;
+    if (self->state >= _DISPATCHER_STATE_TERMINATING) {
+        throw(ETERMINATED);
+    }
+    if (item->state == KDISPATCH_STATE_SCHEDULED || item->state == KDISPATCH_STATE_EXECUTING) {
+        throw(EBUSY);
+    }
 
-            err = _kdispatch_arm_timer(self, timer, flags, wtp, &TIMESPEC_INF, item);
-            if (err != EOK) {
-                _kdispatch_cache_timer(self, timer);
-            }
+    kdispatch_timer_t timer = _kdispatch_acquire_cached_timer(self);    
+    if (timer) {
+        item->type = _KDISPATCH_TYPE_USER_TIMER;
+        item->flags = 0;
+
+        err = _kdispatch_arm_timer(self, timer, flags, wtp, &TIMESPEC_INF, item);
+        if (err != EOK) {
+            _kdispatch_cache_timer(self, timer);
         }
     }
-    else {
-        err = ETERMINATED;
-    }
+
+catch:
     mtx_unlock(&self->mutex);
 
     return err;
@@ -212,22 +215,25 @@ errno_t kdispatch_item_repeating(kdispatch_t _Nonnull self, int flags, const str
     }
 
     mtx_lock(&self->mutex);
-    if (self->state < _DISPATCHER_STATE_TERMINATING) {
-        kdispatch_timer_t timer = _kdispatch_acquire_cached_timer(self);
+    if (self->state >= _DISPATCHER_STATE_TERMINATING) {
+        throw(ETERMINATED);
+    }
+    if (item->state == KDISPATCH_STATE_SCHEDULED || item->state == KDISPATCH_STATE_EXECUTING) {
+        throw(EBUSY);
+    }
 
-        if (timer) {
-            item->type = _KDISPATCH_TYPE_USER_TIMER;
-            item->flags = _KDISPATCH_ITEM_FLAG_REPEATING;
+    kdispatch_timer_t timer = _kdispatch_acquire_cached_timer(self);
+    if (timer) {
+        item->type = _KDISPATCH_TYPE_USER_TIMER;
+        item->flags = _KDISPATCH_ITEM_FLAG_REPEATING;
 
-            err = _kdispatch_arm_timer(self, timer, flags, wtp, itp, item);
-            if (err != EOK) {
-                _kdispatch_cache_timer(self, timer);
-            }
+        err = _kdispatch_arm_timer(self, timer, flags, wtp, itp, item);
+        if (err != EOK) {
+            _kdispatch_cache_timer(self, timer);
         }
     }
-    else {
-        err = ETERMINATED;
-    }
+
+catch:
     mtx_unlock(&self->mutex);
 
     return err;

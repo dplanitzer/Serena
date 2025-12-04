@@ -186,6 +186,12 @@ int dispatch_item_after(dispatch_t _Nonnull self, int flags, const struct timesp
     }
 
     mtx_lock(&self->mutex);
+    if (item->state == DISPATCH_STATE_SCHEDULED || item->state == DISPATCH_STATE_EXECUTING) {
+        errno = EBUSY;
+        mtx_unlock(&self->mutex);
+        return -1;
+    }
+
     if (_dispatch_isactive(self)) {
         dispatch_timer_t timer = _dispatch_acquire_cached_timer(self);
     
@@ -199,6 +205,7 @@ int dispatch_item_after(dispatch_t _Nonnull self, int flags, const struct timesp
             }
         }
     }
+
     mtx_unlock(&self->mutex);
 
     return r;
@@ -214,6 +221,12 @@ int dispatch_item_repeating(dispatch_t _Nonnull self, int flags, const struct ti
     }
 
     mtx_lock(&self->mutex);
+    if (item->state == DISPATCH_STATE_SCHEDULED || item->state == DISPATCH_STATE_EXECUTING) {
+        errno = EBUSY;
+        mtx_unlock(&self->mutex);
+        return -1;
+    }
+
     if (_dispatch_isactive(self)) {
         dispatch_timer_t timer = _dispatch_acquire_cached_timer(self);
 
