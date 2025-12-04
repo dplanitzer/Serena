@@ -144,6 +144,13 @@ typedef struct SavedState {
 } SavedState;
 
 
+typedef struct CursorTimer {
+    struct kdispatch_item   item;
+    ConsoleRef _Nonnull     console;
+    struct timespec         blinkInterval;
+} CursorTimer;
+
+
 // The console object.
 final_class_ivars(Console, PseudoDriver,
     mtx_t                       mtx;
@@ -164,8 +171,8 @@ final_class_ivars(Console, PseudoDriver,
     int                         pixelsHeight;
     int                         textCursorSurface;
     int                         textCursorSprite;
+    CursorTimer                 textCursorTimer;
     
-    struct timespec             cursorBlinkInterval;
     Color                       backgroundColor;
     Color                       foregroundColor;
     CharacterRendition          characterRendition;
@@ -205,7 +212,6 @@ extern void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull self, Color co
 #define Console_SetDefaultBackgroundColor_Locked(__self) \
     Console_SetBackgroundColor_Locked(__self, Color_MakeIndex(0)); /* Black */
 
-extern void Console_OnTextCursorBlink(ConsoleRef _Nonnull self);
 extern void Console_UpdateCursorVisuals_Locked(ConsoleRef _Nonnull self);
 
 extern void Console_DrawChar_Locked(ConsoleRef _Nonnull self, char ch, int x, int y);

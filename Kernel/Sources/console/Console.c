@@ -145,8 +145,6 @@ errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self)
     self->flags.isTextCursorVisible = true;
     self->flags.isAutoWrapEnabled = true;
     self->flags.isInsertionMode = false;
-
-    timespec_from_ms(&self->cursorBlinkInterval, 500);
     
     return EOK;
 

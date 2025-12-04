@@ -11,6 +11,8 @@
 #include <kern/timespec.h>
 #include <machine/amiga/chipset.h>
 
+static void Console_OnTextCursorBlink(CursorTimer* _Nonnull timer);
+
 
 static const RGBColor32 gANSIColors[8] = {
     0xff000000,     // Black
@@ -87,6 +89,11 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, 0));
     try(IOChannel_Ioctl(self->fbChannel, kFBCommand_BindSurface, kTarget_Sprite0 + self->textCursorSprite, self->textCursorSurface));
 
+    // Initialize the text cursor timer
+    self->textCursorTimer.item = KDISPATCH_ITEM_INIT((kdispatch_item_func_t)Console_OnTextCursorBlink, NULL);
+    self->textCursorTimer.console = self;
+    timespec_from_ms(&self->textCursorTimer.blinkInterval, 500);
+
 catch:
     return err;
 }
@@ -94,15 +101,15 @@ catch:
 // Deinitializes the video output subsystem
 void Console_DeinitVideo(ConsoleRef _Nonnull self)
 {
+    kdispatch_cancel_item(self->dq, &self->textCursorTimer.item);
+
     IOChannel_Ioctl(self->fbChannel, kFBCommand_UnmapSurface, self->surfaceId);
 
     IOChannel_Ioctl(self->fbChannel, kFBCommand_SetScreenConfig, NULL);
 
     IOChannel_Ioctl(self->fbChannel, kFBCommand_BindSurface, kTarget_Sprite0 + self->textCursorSprite, 0);
     IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroyCLUT, self->clutId);
-    IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroySurface, self->surfaceId);
-    
-    kdispatch_cancel(self->dq, 0, (kdispatch_item_func_t)Console_OnTextCursorBlink, self);
+    IOChannel_Ioctl(self->fbChannel, kFBCommand_DestroySurface, self->surfaceId);    
 }
 
 
@@ -134,8 +141,10 @@ void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull self, Color color)
 }
 
 
-void Console_OnTextCursorBlink(ConsoleRef _Nonnull self)
+static void Console_OnTextCursorBlink(CursorTimer* _Nonnull timer)
 {
+    ConsoleRef self = timer->console;
+
     mtx_lock(&self->mtx);
     self->flags.isTextCursorOn = !self->flags.isTextCursorOn;
     IOChannel_Ioctl(self->fbChannel, kFBCommand_SetSpriteVisible, self->textCursorSprite, self->flags.isTextCursorOn);
@@ -151,7 +160,7 @@ void Console_UpdateCursorVisuals_Locked(ConsoleRef _Nonnull self)
 {
     if (self->flags.isTextCursorBlinkerActive) {
         self->flags.isTextCursorBlinkerActive = false;
-        kdispatch_cancel(self->dq, 0, (kdispatch_item_func_t)Console_OnTextCursorBlink, self);
+        kdispatch_cancel_item(self->dq, &self->textCursorTimer.item);
     }
 
     if (self->flags.isTextCursorVisible) {
@@ -165,13 +174,7 @@ void Console_UpdateCursorVisuals_Locked(ConsoleRef _Nonnull self)
 
         if (self->flags.isTextCursorBlinkerEnabled) {
             self->flags.isTextCursorBlinkerActive = true;
-            kdispatch_repeating(self->dq,
-                0,
-                &self->cursorBlinkInterval,
-                &self->cursorBlinkInterval,
-                (kdispatch_async_func_t)Console_OnTextCursorBlink,
-                self
-            );
+            kdispatch_item_repeating(self->dq, 0, &self->textCursorTimer.blinkInterval, &self->textCursorTimer.blinkInterval, &self->textCursorTimer.item);
         }
     }
     else if (self->flags.isTextCursorOn) {
