@@ -297,9 +297,6 @@ int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespe
             item->super.flags = _DISPATCH_ITEM_FLAG_CACHEABLE | _DISPATCH_ITEM_FLAG_REPEATING;
             item->func = (int (*)(void*))func;
             item->arg = arg;
-            timer->item = (dispatch_item_t)item;
-            timer->deadline = *wtp;
-            timer->interval = *itp;
 
             r = _dispatch_arm_timer(self, timer, flags, wtp, itp, (dispatch_item_t)item);
         }
