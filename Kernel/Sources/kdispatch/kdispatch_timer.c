@@ -9,23 +9,11 @@
 #include "kdispatch_priv.h"
 
 
-static kdispatch_timer_t _Nullable _kdispatch_acquire_cached_timer(kdispatch_t _Nonnull _Locked self)
+void _kdispatch_retire_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer)
 {
-    kdispatch_timer_t timer;
+    _kdispatch_retire_item(self, timer->item);
 
-    if (self->timer_cache.first) {
-        timer = (kdispatch_timer_t)SList_RemoveFirst(&self->timer_cache);
-        self->timer_cache_count--;
-    }
-    else {
-        kalloc(sizeof(struct kdispatch_timer), (void**)&timer);
-    }
 
-    return timer;
-}
-
-static void _kdispatch_cache_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer)
-{
     timer->timer_qe = SLISTNODE_INIT;
     timer->item = NULL;
 
@@ -36,12 +24,6 @@ static void _kdispatch_cache_timer(kdispatch_t _Nonnull _Locked self, kdispatch_
     else {
         kfree(timer);
     }
-}
-
-void _kdispatch_retire_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer)
-{
-    _kdispatch_retire_item(self, timer->item);
-    _kdispatch_cache_timer(self, timer);
 }
 
 void _kdispatch_drain_timers(kdispatch_t _Nonnull _Locked self)
@@ -109,6 +91,7 @@ static void _kdispatch_queue_timer(kdispatch_t _Nonnull self, kdispatch_timer_t 
 static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, kdispatch_item_t _Nonnull item)
 {
     decl_try_err();
+    kdispatch_timer_t timer;
 
     // Make sure that we got at least one worker
     if (self->worker_count == 0) {
@@ -119,9 +102,15 @@ static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, int flags
     }
 
 
-    kdispatch_timer_t timer = _kdispatch_acquire_cached_timer(self); 
-    if (timer == NULL) {
-        return ENOMEM;
+    if (self->timer_cache.first) {
+        timer = (kdispatch_timer_t)SList_RemoveFirst(&self->timer_cache);
+        self->timer_cache_count--;
+    }
+    else {
+        err = kalloc(sizeof(struct kdispatch_timer), (void**)&timer);
+        if (err != EOK) {
+            return err;
+        }
     }
 
 

@@ -14,23 +14,11 @@
 #include <time.h>
 
 
-static dispatch_timer_t _Nullable _dispatch_acquire_cached_timer(dispatch_t _Nonnull _Locked self)
+void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
 {
-    dispatch_timer_t timer;
+    _dispatch_retire_item(self, timer->item);
 
-    if (self->timer_cache.first) {
-        timer = (dispatch_timer_t)SList_RemoveFirst(&self->timer_cache);
-        self->timer_cache_count--;
-    }
-    else {
-        timer = malloc(sizeof(struct dispatch_timer));
-    }
 
-    return timer;
-}
-
-static void _dispatch_cache_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
-{
     timer->timer_qe = SLISTNODE_INIT;
     timer->item = NULL;
 
@@ -41,12 +29,6 @@ static void _dispatch_cache_timer(dispatch_t _Nonnull _Locked self, dispatch_tim
     else {
         free(timer);
     }
-}
-
-void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
-{
-    _dispatch_retire_item(self, timer->item);
-    _dispatch_cache_timer(self, timer);
 }
 
 void _dispatch_drain_timers(dispatch_t _Nonnull _Locked self)
@@ -114,6 +96,8 @@ static void _dispatch_queue_timer(dispatch_t _Nonnull self, dispatch_timer_t _No
 
 static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_item_t _Nonnull item)
 {
+    dispatch_timer_t timer;
+
     // Make sure that we got at least one worker
     if (self->worker_count == 0) {
         if (_dispatch_acquire_worker(self) != 0) {
@@ -122,9 +106,15 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, int flags, cons
     }
 
 
-    dispatch_timer_t timer = _dispatch_acquire_cached_timer(self);
-    if (timer == NULL) {
-        return -1;
+    if (self->timer_cache.first) {
+        timer = (dispatch_timer_t)SList_RemoveFirst(&self->timer_cache);
+        self->timer_cache_count--;
+    }
+    else {
+        timer = malloc(sizeof(struct dispatch_timer));
+        if (timer == NULL) {
+            return -1;
+        }
     }
 
 
