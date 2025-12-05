@@ -9,6 +9,60 @@
 #include "kdispatch_priv.h"
 
 
+static void _kdispatch_queue_timer(kdispatch_t _Nonnull self, kdispatch_timer_t _Nonnull timer)
+{
+    kdispatch_timer_t ptp = NULL;
+    kdispatch_timer_t ctp = (kdispatch_timer_t)self->timers.first;
+
+    // Put the timer on the timer queue. The timer queue is sorted by absolute
+    // timer fire time (ascending). Timers with the same fire time are added in
+    // FIFO order.
+    while (ctp) {
+        if (timespec_gt(&ctp->deadline, &timer->deadline)) {
+            break;
+        }
+        
+        ptp = ctp;
+        ctp = (kdispatch_timer_t)ctp->timer_qe.next;
+    }
+    
+    SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
+}
+
+static kdispatch_timer_t _Nullable _kdispatch_dequeue_timer_for_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item)
+{
+    kdispatch_timer_t ptp = NULL;
+    kdispatch_timer_t ctp = (kdispatch_timer_t)self->timers.first;
+
+    while (ctp) {
+        kdispatch_timer_t ntp = (kdispatch_timer_t)ctp->timer_qe.next;
+
+        if (ctp->item == item) {
+            SList_Remove(&self->timers, &ptp->timer_qe, &ctp->timer_qe);
+            return ctp;
+        }
+
+        ptp = ctp;
+        ctp = ntp;
+    }
+
+    return NULL;
+}
+
+kdispatch_timer_t _Nullable _kdispatch_find_timer(kdispatch_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg)
+{
+    SList_ForEach(&self->timers, SListNode, {
+        kdispatch_timer_t ctp = (kdispatch_timer_t)pCurNode;
+
+        if (_kdispatch_item_has_func(ctp->item, func, arg)) {
+             return ctp;
+        }
+    });
+
+    return NULL;
+}
+
+
 void _kdispatch_retire_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer)
 {
     _kdispatch_retire_item(self, timer->item);
@@ -38,55 +92,13 @@ void _kdispatch_drain_timers(kdispatch_t _Nonnull _Locked self)
 // Removes 'item' from the timer queue and retires it.
 void _kdispatch_withdraw_timer_for_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item)
 {
-    kdispatch_timer_t ptp = NULL;
-    kdispatch_timer_t ctp = (kdispatch_timer_t)self->timers.first;
+    kdispatch_timer_t timer = _kdispatch_dequeue_timer_for_item(self, item);
 
-    while (ctp) {
-        kdispatch_timer_t ntp = (kdispatch_timer_t)ctp->timer_qe.next;
-
-        if (ctp->item == item) {
-            SList_Remove(&self->timers, &ptp->timer_qe, &ctp->timer_qe);
-            _kdispatch_retire_timer(self, ctp);
-            break;
-        }
-
-        ptp = ctp;
-        ctp = ntp;
+    if (timer) {
+        _kdispatch_retire_timer(self, timer);
     }
 }
 
-kdispatch_timer_t _Nullable _kdispatch_find_timer(kdispatch_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg)
-{
-    SList_ForEach(&self->timers, SListNode, {
-        kdispatch_timer_t ctp = (kdispatch_timer_t)pCurNode;
-
-        if (_kdispatch_item_has_func(ctp->item, func, arg)) {
-             return ctp;
-        }
-    });
-
-    return NULL;
-}
-
-static void _kdispatch_queue_timer(kdispatch_t _Nonnull self, kdispatch_timer_t _Nonnull timer)
-{
-    kdispatch_timer_t ptp = NULL;
-    kdispatch_timer_t ctp = (kdispatch_timer_t)self->timers.first;
-
-    // Put the timer on the timer queue. The timer queue is sorted by absolute
-    // timer fire time (ascending). Timers with the same fire time are added in
-    // FIFO order.
-    while (ctp) {
-        if (timespec_gt(&ctp->deadline, &timer->deadline)) {
-            break;
-        }
-        
-        ptp = ctp;
-        ctp = (kdispatch_timer_t)ctp->timer_qe.next;
-    }
-    
-    SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
-}
 
 static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, kdispatch_item_t _Nonnull item)
 {

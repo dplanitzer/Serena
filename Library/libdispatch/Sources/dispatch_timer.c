@@ -14,6 +14,60 @@
 #include <time.h>
 
 
+static void _dispatch_queue_timer(dispatch_t _Nonnull self, dispatch_timer_t _Nonnull timer)
+{
+    dispatch_timer_t ptp = NULL;
+    dispatch_timer_t ctp = (dispatch_timer_t)self->timers.first;
+
+    // Put the timer on the timer queue. The timer queue is sorted by absolute
+    // timer fire time (ascending). Timers with the same fire time are added in
+    // FIFO order.
+    while (ctp) {
+        if (timespec_gt(&ctp->deadline, &timer->deadline)) {
+            break;
+        }
+        
+        ptp = ctp;
+        ctp = (dispatch_timer_t)ctp->timer_qe.next;
+    }
+    
+    SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
+}
+
+static dispatch_timer_t _Nullable _dispatch_dequeue_timer_for_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
+{
+    dispatch_timer_t ptp = NULL;
+    dispatch_timer_t ctp = (dispatch_timer_t)self->timers.first;
+
+    while (ctp) {
+        dispatch_timer_t ntp = (dispatch_timer_t)ctp->timer_qe.next;
+
+        if (ctp->item == item) {
+            SList_Remove(&self->timers, &ptp->timer_qe, &ctp->timer_qe);
+            return ctp;
+        }
+
+        ptp = ctp;
+        ctp = ntp;
+    }
+
+    return NULL;
+}
+
+dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
+{
+    SList_ForEach(&self->timers, SListNode, {
+        dispatch_timer_t ctp = (dispatch_timer_t)pCurNode;
+
+        if (_dispatch_item_has_func(ctp->item, func, arg)) {
+             return ctp;
+        }
+    });
+
+    return NULL;
+}
+
+
 void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
 {
     _dispatch_retire_item(self, timer->item);
@@ -43,54 +97,11 @@ void _dispatch_drain_timers(dispatch_t _Nonnull _Locked self)
 // Removes 'item' from the timer queue and retires it.
 void _dispatch_withdraw_timer_for_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
-    dispatch_timer_t ptp = NULL;
-    dispatch_timer_t ctp = (dispatch_timer_t)self->timers.first;
+    dispatch_timer_t timer = _dispatch_dequeue_timer_for_item(self, item);
 
-    while (ctp) {
-        dispatch_timer_t ntp = (dispatch_timer_t)ctp->timer_qe.next;
-
-        if (ctp->item == item) {
-            SList_Remove(&self->timers, &ptp->timer_qe, &ctp->timer_qe);
-            _dispatch_retire_timer(self, ctp);
-            break;
-        }
-
-        ptp = ctp;
-        ctp = ntp;
+    if (timer) {
+        _dispatch_retire_timer(self, timer);
     }
-}
-
-dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
-{
-    SList_ForEach(&self->timers, SListNode, {
-        dispatch_timer_t ctp = (dispatch_timer_t)pCurNode;
-
-        if (_dispatch_item_has_func(ctp->item, func, arg)) {
-             return ctp;
-        }
-    });
-
-    return NULL;
-}
-
-static void _dispatch_queue_timer(dispatch_t _Nonnull self, dispatch_timer_t _Nonnull timer)
-{
-    dispatch_timer_t ptp = NULL;
-    dispatch_timer_t ctp = (dispatch_timer_t)self->timers.first;
-
-    // Put the timer on the timer queue. The timer queue is sorted by absolute
-    // timer fire time (ascending). Timers with the same fire time are added in
-    // FIFO order.
-    while (ctp) {
-        if (timespec_gt(&ctp->deadline, &timer->deadline)) {
-            break;
-        }
-        
-        ptp = ctp;
-        ctp = (dispatch_timer_t)ctp->timer_qe.next;
-    }
-    
-    SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
 }
 
 
