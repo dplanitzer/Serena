@@ -112,13 +112,19 @@ static void _dispatch_queue_timer(dispatch_t _Nonnull self, dispatch_timer_t _No
 }
 
 
-static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_item_t _Nonnull item)
+static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, dispatch_item_t _Nonnull item)
 {
     // Make sure that we got at least one worker
     if (self->worker_count == 0) {
         if (_dispatch_acquire_worker(self) != 0) {
             return -1;
         }
+    }
+
+
+    dispatch_timer_t timer = _dispatch_acquire_cached_timer(self);
+    if (timer == NULL) {
+        return -1;
     }
 
 
@@ -193,17 +199,10 @@ int dispatch_item_after(dispatch_t _Nonnull self, int flags, const struct timesp
     }
 
     if (_dispatch_isactive(self)) {
-        dispatch_timer_t timer = _dispatch_acquire_cached_timer(self);
-    
-        if (timer) {
-            item->type = _DISPATCH_TYPE_USER_TIMER;
-            item->flags = 0;
+        item->type = _DISPATCH_TYPE_USER_TIMER;
+        item->flags = 0;
 
-            r = _dispatch_arm_timer(self, timer, flags, wtp, &TIMESPEC_INF, item);
-            if (r == -1) {
-                _dispatch_cache_timer(self, timer);
-            }
-        }
+        r = _dispatch_arm_timer(self, flags, wtp, &TIMESPEC_INF, item);
     }
 
     mtx_unlock(&self->mutex);
@@ -228,17 +227,10 @@ int dispatch_item_repeating(dispatch_t _Nonnull self, int flags, const struct ti
     }
 
     if (_dispatch_isactive(self)) {
-        dispatch_timer_t timer = _dispatch_acquire_cached_timer(self);
+        item->type = _DISPATCH_TYPE_USER_TIMER;
+        item->flags = _DISPATCH_ITEM_FLAG_REPEATING;
 
-        if (timer) {
-            item->type = _DISPATCH_TYPE_USER_TIMER;
-            item->flags = _DISPATCH_ITEM_FLAG_REPEATING;
-
-            r = _dispatch_arm_timer(self, timer, flags, wtp, itp, item);
-            if (r == -1) {
-                _dispatch_cache_timer(self, timer);
-            }
-        }
+        r = _dispatch_arm_timer(self, flags, wtp, itp, item);
     }
     mtx_unlock(&self->mutex);
 
@@ -257,20 +249,17 @@ int dispatch_after(dispatch_t _Nonnull self, int flags, const struct timespec* _
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
         dispatch_conv_item_t item = (dispatch_conv_item_t)_dispatch_acquire_cached_conv_item(self, _async_adapter_func);
-        dispatch_timer_t timer = _dispatch_acquire_cached_timer(self);
     
-        if (item && timer) {
+        if (item) {
             item->super.type = _DISPATCH_TYPE_CONV_TIMER;
             item->super.flags = _DISPATCH_ITEM_FLAG_CACHEABLE;
             item->func = (int (*)(void*))func;
             item->arg = arg;
 
-            r = _dispatch_arm_timer(self, timer, flags, wtp, &TIMESPEC_INF, (dispatch_item_t)item);
-        }
-
-        if (r == -1) {
-            if (timer) _dispatch_cache_timer(self, timer);
-            if (item) _dispatch_cache_item(self, (dispatch_item_t)item);
+            r = _dispatch_arm_timer(self, flags, wtp, &TIMESPEC_INF, (dispatch_item_t)item);
+            if (r == -1) {
+                _dispatch_cache_item(self, (dispatch_item_t)item);
+            }
         }
     }
     mtx_unlock(&self->mutex);
@@ -290,20 +279,17 @@ int dispatch_repeating(dispatch_t _Nonnull self, int flags, const struct timespe
     mtx_lock(&self->mutex);
     if (_dispatch_isactive(self)) {
         dispatch_conv_item_t item = (dispatch_conv_item_t)_dispatch_acquire_cached_conv_item(self, _async_adapter_func);
-        dispatch_timer_t timer = _dispatch_acquire_cached_timer(self);
 
-        if (item && timer) {
+        if (item) {
             item->super.type = _DISPATCH_TYPE_CONV_TIMER;
             item->super.flags = _DISPATCH_ITEM_FLAG_CACHEABLE | _DISPATCH_ITEM_FLAG_REPEATING;
             item->func = (int (*)(void*))func;
             item->arg = arg;
 
-            r = _dispatch_arm_timer(self, timer, flags, wtp, itp, (dispatch_item_t)item);
-        }
-
-        if (r == -1) {
-            if (timer) _dispatch_cache_timer(self, timer);
-            if (item) _dispatch_cache_item(self, (dispatch_item_t)item);
+            r = _dispatch_arm_timer(self, flags, wtp, itp, (dispatch_item_t)item);
+            if (r == -1) {
+                _dispatch_cache_item(self, (dispatch_item_t)item);
+            }
         }
     }
     mtx_unlock(&self->mutex);

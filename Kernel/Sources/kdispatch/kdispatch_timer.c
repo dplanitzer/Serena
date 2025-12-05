@@ -106,7 +106,7 @@ static void _kdispatch_queue_timer(kdispatch_t _Nonnull self, kdispatch_timer_t 
     SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
 }
 
-static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, kdispatch_item_t _Nonnull item)
+static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, int flags, const struct timespec* _Nonnull wtp, const struct timespec* _Nonnull itp, kdispatch_item_t _Nonnull item)
 {
     decl_try_err();
 
@@ -116,6 +116,12 @@ static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, kdispatch
         if (err != EOK) {
             return err;
         }
+    }
+
+
+    kdispatch_timer_t timer = _kdispatch_acquire_cached_timer(self); 
+    if (timer == NULL) {
+        return ENOMEM;
     }
 
 
@@ -189,16 +195,10 @@ errno_t kdispatch_item_after(kdispatch_t _Nonnull self, int flags, const struct 
         throw(EBUSY);
     }
 
-    kdispatch_timer_t timer = _kdispatch_acquire_cached_timer(self);    
-    if (timer) {
-        item->type = _KDISPATCH_TYPE_USER_TIMER;
-        item->flags = 0;
+    item->type = _KDISPATCH_TYPE_USER_TIMER;
+    item->flags = 0;
 
-        err = _kdispatch_arm_timer(self, timer, flags, wtp, &TIMESPEC_INF, item);
-        if (err != EOK) {
-            _kdispatch_cache_timer(self, timer);
-        }
-    }
+    err = _kdispatch_arm_timer(self, flags, wtp, &TIMESPEC_INF, item);
 
 catch:
     mtx_unlock(&self->mutex);
@@ -222,16 +222,10 @@ errno_t kdispatch_item_repeating(kdispatch_t _Nonnull self, int flags, const str
         throw(EBUSY);
     }
 
-    kdispatch_timer_t timer = _kdispatch_acquire_cached_timer(self);
-    if (timer) {
-        item->type = _KDISPATCH_TYPE_USER_TIMER;
-        item->flags = _KDISPATCH_ITEM_FLAG_REPEATING;
+    item->type = _KDISPATCH_TYPE_USER_TIMER;
+    item->flags = _KDISPATCH_ITEM_FLAG_REPEATING;
 
-        err = _kdispatch_arm_timer(self, timer, flags, wtp, itp, item);
-        if (err != EOK) {
-            _kdispatch_cache_timer(self, timer);
-        }
-    }
+    err = _kdispatch_arm_timer(self, flags, wtp, itp, item);
 
 catch:
     mtx_unlock(&self->mutex);
@@ -250,23 +244,20 @@ errno_t kdispatch_after(kdispatch_t _Nonnull self, int flags, const struct times
     mtx_lock(&self->mutex);
     if (self->state < _DISPATCHER_STATE_TERMINATING) {
         kdispatch_conv_item_t item = (kdispatch_conv_item_t)_kdispatch_acquire_cached_conv_item(self, _async_adapter_func);
-        kdispatch_timer_t timer = _kdispatch_acquire_cached_timer(self);
     
-        if (item && timer) {
+        if (item) {
             item->super.type = _KDISPATCH_TYPE_CONV_TIMER;
             item->super.flags = _KDISPATCH_ITEM_FLAG_CACHEABLE;
             item->func = (int (*)(void*))func;
             item->arg = arg;
 
-            err = _kdispatch_arm_timer(self, timer, flags, wtp, &TIMESPEC_INF, (kdispatch_item_t)item);
+            err = _kdispatch_arm_timer(self, flags, wtp, &TIMESPEC_INF, (kdispatch_item_t)item);
+            if (err != EOK) {
+                _kdispatch_cache_item(self, (kdispatch_item_t)item);
+            }
         }
         else {
             err = ENOMEM;
-        }
-
-        if (err != EOK) {
-            if (timer) _kdispatch_cache_timer(self, timer);
-            if (item) _kdispatch_cache_item(self, (kdispatch_item_t)item);
         }
     }
     else {
@@ -288,23 +279,20 @@ errno_t kdispatch_repeating(kdispatch_t _Nonnull self, int flags, const struct t
     mtx_lock(&self->mutex);
     if (self->state < _DISPATCHER_STATE_TERMINATING) {
         kdispatch_conv_item_t item = (kdispatch_conv_item_t)_kdispatch_acquire_cached_conv_item(self, _async_adapter_func);
-        kdispatch_timer_t timer = _kdispatch_acquire_cached_timer(self);
 
-        if (item && timer) {
+        if (item) {
             item->super.type = _KDISPATCH_TYPE_CONV_TIMER;
             item->super.flags = _KDISPATCH_ITEM_FLAG_CACHEABLE | _KDISPATCH_ITEM_FLAG_REPEATING;
             item->func = (int (*)(void*))func;
             item->arg = arg;
 
-            err = _kdispatch_arm_timer(self, timer, flags, wtp, itp, (kdispatch_item_t)item);
+            err = _kdispatch_arm_timer(self, flags, wtp, itp, (kdispatch_item_t)item);
+            if (err != EOK) {
+                _kdispatch_cache_item(self, (kdispatch_item_t)item);
+            }
         }
         else {
             err = ENOMEM;
-        }
-
-        if (err != EOK) {
-            if (timer) _kdispatch_cache_timer(self, timer);
-            if (item) _kdispatch_cache_item(self, (kdispatch_item_t)item);
         }
     }
     else {
