@@ -192,19 +192,17 @@ int dispatch_item_after(dispatch_t _Nonnull self, int flags, const struct timesp
     }
 
     mtx_lock(&self->mutex);
-    if (item->state == DISPATCH_STATE_SCHEDULED || item->state == DISPATCH_STATE_EXECUTING) {
+    if (item->state == DISPATCH_STATE_IDLE || item->state == DISPATCH_STATE_FINISHED || item->state == DISPATCH_STATE_CANCELLED) {
+        if (_dispatch_isactive(self)) {
+            item->type = _DISPATCH_TYPE_USER_TIMER;
+            item->flags = 0;
+
+            r = _dispatch_arm_timer(self, flags, wtp, &TIMESPEC_INF, item);
+        }
+    }
+    else {
         errno = EBUSY;
-        mtx_unlock(&self->mutex);
-        return -1;
     }
-
-    if (_dispatch_isactive(self)) {
-        item->type = _DISPATCH_TYPE_USER_TIMER;
-        item->flags = 0;
-
-        r = _dispatch_arm_timer(self, flags, wtp, &TIMESPEC_INF, item);
-    }
-
     mtx_unlock(&self->mutex);
 
     return r;
@@ -220,17 +218,16 @@ int dispatch_item_repeating(dispatch_t _Nonnull self, int flags, const struct ti
     }
 
     mtx_lock(&self->mutex);
-    if (item->state == DISPATCH_STATE_SCHEDULED || item->state == DISPATCH_STATE_EXECUTING) {
-        errno = EBUSY;
-        mtx_unlock(&self->mutex);
-        return -1;
+    if (item->state == DISPATCH_STATE_IDLE || item->state == DISPATCH_STATE_FINISHED || item->state == DISPATCH_STATE_CANCELLED) {
+        if (_dispatch_isactive(self)) {
+            item->type = _DISPATCH_TYPE_USER_TIMER;
+            item->flags = _DISPATCH_ITEM_FLAG_REPEATING;
+
+            r = _dispatch_arm_timer(self, flags, wtp, itp, item);
+        }
     }
-
-    if (_dispatch_isactive(self)) {
-        item->type = _DISPATCH_TYPE_USER_TIMER;
-        item->flags = _DISPATCH_ITEM_FLAG_REPEATING;
-
-        r = _dispatch_arm_timer(self, flags, wtp, itp, item);
+    else {
+        errno = EBUSY;
     }
     mtx_unlock(&self->mutex);
 
