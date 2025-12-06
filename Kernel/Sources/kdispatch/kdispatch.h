@@ -194,7 +194,7 @@ typedef struct kdispatch_attr {
 
 // Initializes a dispatch attribute object to set up a concurrent queue with
 // '__n' virtual processors and utility priority.
-#define KDISPATCH_ATTR_INIT_CONCURRENT_UTILITY(__n)  (kdispatch_attr_t){0, 1, __n, KDISPATCH_QOS_UTILITY, KDISPATCH_PRI_NORMAL, NULL}
+#define KDISPATCH_ATTR_INIT_CONCURRENT_UTILITY(__n)  (kdispatch_attr_t){0, __n, __n, KDISPATCH_QOS_UTILITY, KDISPATCH_PRI_NORMAL, NULL}
 
 
 
