@@ -85,6 +85,12 @@ void _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item
 
 static int _dispatch_item_on_signal(dispatch_t _Nonnull _Locked self, int signo, dispatch_item_t _Nonnull item)
 {
+    // Ensure that there's at least one worker alive
+    if (_dispatch_ensure_worker_capacity(self, _DISPATCH_EWC_TIMER) != 0) {
+        return -1;
+    }
+
+
     if (self->sigtraps == NULL) {
         //XXX allocate in a smarter way: eg organize sigset in quarters, calc
         //XXX what's the highest quarter we need and only allocate up to this
@@ -107,17 +113,6 @@ static int _dispatch_item_on_signal(dispatch_t _Nonnull _Locked self, int signo,
 
     if (stp->count == 1) {
         _dispatch_enable_signal(self, signo, true);
-    }
-
-    // For now we ensure that there's always at least one worker alive.
-    //XXX The kernel should be able to spawns a worker for us in the future if
-    //XXX a signal comes in and there's no vcpu in the vcpu group. 
-    if (self->worker_count == 0) {
-        const int r = _dispatch_acquire_worker(self);
-
-        if (r != 0) {
-            return -1;
-        }
     }
 
     return 0;

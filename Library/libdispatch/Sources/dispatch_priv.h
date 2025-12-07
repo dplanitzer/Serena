@@ -10,6 +10,7 @@
 #define _DISPATCH_PRIV_H 1
 
 #include <dispatch.h>
+#include <assert.h>
 #include <signal.h>
 #include <sys/cnd.h>
 #include <sys/timespec.h>
@@ -64,6 +65,7 @@ typedef struct dispatch_sigtrap* dispatch_sigtrap_t;
 #define _DISPATCH_ACQUIRE_VCPU      0
 #define _DISPATCH_ADOPT_CALLER_VCPU 1
 #define _DISPATCH_ADOPT_MAIN_VCPU   2
+
 
 struct dispatch_worker {
     ListNode                    worker_qe;
@@ -134,6 +136,13 @@ extern vcpu_key_t __os_dispatch_key;
 #define _DISPATCHER_STATE_TERMINATED    4
 
 
+// _dispatch_ensure_worker_capacity() call reason
+#define _DISPATCH_EWC_WORK_ITEM     0
+#define _DISPATCH_EWC_SIGNAL_ITEM   1
+#define _DISPATCH_EWC_TIMER         2
+
+
+
 struct dispatch {
     mtx_t                           mutex;
     cnd_t                           cond;
@@ -167,7 +176,7 @@ extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_item
 extern dispatch_item_t _Nullable _dispatch_acquire_cached_conv_item(dispatch_t _Nonnull _Locked self, dispatch_item_func_t func);
 extern void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self);
 static int _dispatch_acquire_worker_with_ownership(dispatch_t _Nonnull _Locked self, int ownership);
-extern int _dispatch_acquire_worker(dispatch_t _Nonnull _Locked self);
+extern int _dispatch_ensure_worker_capacity(dispatch_t _Nonnull self, int reason);
 extern bool _dispatch_isactive(dispatch_t _Nonnull _Locked self);
 
 

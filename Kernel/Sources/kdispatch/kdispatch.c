@@ -149,6 +149,31 @@ void _kdispatch_wakeup_all_workers(kdispatch_t _Nonnull self)
     });
 }
 
+errno_t _kdispatch_ensure_worker_capacity(kdispatch_t _Nonnull self, int reason)
+{
+    bool doCreate = false;
+
+    if (self->worker_count < self->attr.minConcurrency) {
+        doCreate = true;
+    }
+    else if (reason == _KDISPATCH_EWC_WORK_ITEM && self->worker_count < self->attr.maxConcurrency) {
+        doCreate = true;
+    }
+
+
+    if (doCreate) {
+        const errno_t err = _kdispatch_acquire_worker(self);
+
+        // Don't make the submit fail outright if we can't allocate a new worker
+        // and this was just about adding one more.
+        if (err != EOK && self->worker_count == 0) {
+            return err;
+        }
+    }
+
+    return EOK;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Work Items
@@ -156,8 +181,6 @@ void _kdispatch_wakeup_all_workers(kdispatch_t _Nonnull self)
 static errno_t _kdispatch_submit(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item)
 {
     decl_try_err();
-    kdispatch_worker_t best_wp = NULL;
-    size_t best_wc = SIZE_MAX;
 
     // Allow the submission of an Idle, Finished or Cancelled state item
     if (item->state == KDISPATCH_STATE_SCHEDULED || item->state == KDISPATCH_STATE_EXECUTING) {
@@ -165,46 +188,32 @@ static errno_t _kdispatch_submit(kdispatch_t _Nonnull _Locked self, kdispatch_it
     }
 
 
+    // Ensure that we got enough worker capacity going
+    if ((err = _kdispatch_ensure_worker_capacity(self, _KDISPATCH_EWC_WORK_ITEM)) != EOK) {
+        return -1;
+    }
+
+
     // Find the worker with the least amount of work scheduled
-    if (self->worker_count > 1) {
-        List_ForEach(&self->workers, ListNode, {
-            kdispatch_worker_t cwp = queue_entry_as(pCurNode, worker_qe, kdispatch_worker);
+    kdispatch_worker_t best_wp = NULL;
+    size_t best_wc = SIZE_MAX;
 
-            if (cwp->work_count < best_wc) {
-                best_wc = cwp->work_count;
-                best_wp = cwp;
-            }
-        });
-    }
-    else if (self->worker_count > 0) {
-        best_wp = (kdispatch_worker_t)self->workers.first;
-        best_wc = best_wp->work_count;
-    }
+    List_ForEach(&self->workers, ListNode, {
+        kdispatch_worker_t cwp = queue_entry_as(pCurNode, worker_qe, kdispatch_worker);
 
-
-    // Worker:
-    // - need at least one
-    // - spawn another one if the 'best' worker has too much stuff queued and
-    //   we haven't reached the max number of workers yet
-    if (self->worker_count == 0 || (best_wc > 4 && self->worker_count < self->attr.maxConcurrency)) {
-        err = _kdispatch_acquire_worker(self);
-
-        // Don't make the submit fail outright if we can't allocate a new worker
-        // and this was just about adding one more.
-        if (err != EOK && self->worker_count == 0) {
-            return err;
+        if (cwp->work_count < best_wc) {
+            best_wc = cwp->work_count;
+            best_wp = cwp;
         }
+    });
+    assert(best_wp != NULL);
 
-        best_wp = (kdispatch_worker_t)self->workers.first;
-        best_wc = best_wp->work_count;
-    }
 
+    // Enqueue the work item at the worker that we found and notify it
     item->qe = SLISTNODE_INIT;
     item->state = KDISPATCH_STATE_SCHEDULED;
     item->flags &= ~_KDISPATCH_ITEM_FLAG_CANCELLED;
 
-
-    // Enqueue the work item at the worker that we found and notify it
     _kdispatch_worker_submit(best_wp, item, true);
 
     return EOK;

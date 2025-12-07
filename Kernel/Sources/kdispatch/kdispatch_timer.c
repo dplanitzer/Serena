@@ -106,11 +106,8 @@ static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, int flags
     kdispatch_timer_t timer;
 
     // Make sure that we got at least one worker
-    if (self->worker_count == 0) {
-        err = _kdispatch_acquire_worker(self);
-        if (err != EOK) {
-            return err;
-        }
+    if ((err = _kdispatch_ensure_worker_capacity(self, _KDISPATCH_EWC_TIMER)) != EOK) {
+        return err;
     }
 
 

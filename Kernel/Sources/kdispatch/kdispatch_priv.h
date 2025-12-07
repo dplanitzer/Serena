@@ -135,6 +135,12 @@ extern void _kdispatch_worker_run(kdispatch_worker_t _Nonnull self);
 #define _DISPATCHER_STATE_TERMINATED    4
 
 
+// _kdispatch_ensure_worker_capacity() call reason
+#define _KDISPATCH_EWC_WORK_ITEM    0
+#define _KDISPATCH_EWC_SIGNAL_ITEM  1
+#define _KDISPATCH_EWC_TIMER        2
+
+
 struct dispatch {
     mtx_t                           mutex;
     cnd_t                           cond;
@@ -167,6 +173,7 @@ extern void _kdispatch_zombify_item(kdispatch_t _Nonnull _Locked self, kdispatch
 extern void _kdispatch_cache_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item);
 extern kdispatch_item_t _Nullable _kdispatch_acquire_cached_conv_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_func_t func);
 extern void _kdispatch_wakeup_all_workers(kdispatch_t _Nonnull self);
+extern int _kdispatch_ensure_worker_capacity(kdispatch_t _Nonnull self, int reason);
 extern errno_t _kdispatch_acquire_worker(kdispatch_t _Nonnull _Locked self);
 extern bool _kdispatch_isactive(kdispatch_t _Nonnull _Locked self);
 

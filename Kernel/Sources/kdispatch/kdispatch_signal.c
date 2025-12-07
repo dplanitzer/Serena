@@ -83,12 +83,17 @@ static errno_t _kdispatch_item_on_signal(kdispatch_t _Nonnull _Locked self, int 
 {
     decl_try_err();
 
+    // Ensure that there's at least one worker alive
+    if ((err = _kdispatch_ensure_worker_capacity(self, _KDISPATCH_EWC_TIMER)) != EOK) {
+        return err;
+    }
+
+
     if (self->sigtraps == NULL) {
         //XXX allocate in a smarter way: eg organize sigset in quarters, calc
         //XXX what's the highest quarter we need and only allocate up to this
         //XXX quarter.
-        err = kalloc_cleared(SIGMAX * sizeof(struct kdispatch_sigtrap), (void**)&self->sigtraps);
-        if (err != EOK) {
+        if ((err = kalloc_cleared(SIGMAX * sizeof(struct kdispatch_sigtrap), (void**)&self->sigtraps)) != EOK) {
             return err;
         }
     }
@@ -105,17 +110,6 @@ static errno_t _kdispatch_item_on_signal(kdispatch_t _Nonnull _Locked self, int 
 
     if (stp->count == 1) {
         _kdispatch_enable_signal(self, signo, true);
-    }
-
-    // For now we ensure that there's always at least one worker alive.
-    //XXX The kernel should be able to spawns a worker for us in the future if
-    //XXX a signal comes in and there's no vcpu in the vcpu group. 
-    if (self->worker_count == 0) {
-        err = _kdispatch_acquire_worker(self);
-
-        if (err != EOK) {
-            return err;
-        }
     }
 
     return EOK;

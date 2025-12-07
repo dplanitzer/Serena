@@ -110,10 +110,8 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, int flags, cons
     dispatch_timer_t timer;
 
     // Make sure that we got at least one worker
-    if (self->worker_count == 0) {
-        if (_dispatch_acquire_worker(self) != 0) {
-            return -1;
-        }
+    if (_dispatch_ensure_worker_capacity(self, _DISPATCH_EWC_TIMER) != 0) {
+        return -1;
     }
 
 
