@@ -25,6 +25,10 @@ static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo,
             cwp->hotsigs &= ~_SIGBIT(signo);
         }
     });
+
+
+    // Notify all workers so that they can pick up the new hotsigs set.
+    _dispatch_wakeup_all_workers(self);
 }
 
 // Removes the signal monitor 'item' from its signal trap and retires it.

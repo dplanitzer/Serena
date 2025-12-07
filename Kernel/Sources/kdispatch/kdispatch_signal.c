@@ -21,6 +21,10 @@ static void _kdispatch_enable_signal(kdispatch_t _Nonnull _Locked self, int sign
             cwp->hotsigs &= ~_SIGBIT(signo);
         }
     });
+
+
+    // Notify all workers so that they can pick up the new hotsigs set.
+    _kdispatch_wakeup_all_workers(self);
 }
 
 // Removes the signal monitor 'item' from its signal trap and retires it.
