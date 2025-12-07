@@ -95,7 +95,7 @@ void pipe2_test(int argc, char *argv[])
 {
     assertOK(pipe(fds));
 
-    dispatch_attr_t attr = DISPATCH_ATTR_INIT_CONCURRENT_UTILITY(2);
+    dispatch_attr_t attr = DISPATCH_ATTR_INIT_FIXED_CONCURRENT_UTILITY(2);
     gDispatcher = dispatch_create(&attr);
     assertNotNULL(gDispatcher);
 

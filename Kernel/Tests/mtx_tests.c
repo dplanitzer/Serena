@@ -84,7 +84,7 @@ static void OnWork(void* _Nonnull pValue)
 
 void mtx_test(int argc, char *argv[])
 {
-    dispatch_attr_t attr = DISPATCH_ATTR_INIT_CONCURRENT_UTILITY(NUM_VPS);
+    dispatch_attr_t attr = DISPATCH_ATTR_INIT_FIXED_CONCURRENT_UTILITY(NUM_VPS);
 
     gDispatcher = dispatch_create(&attr);
     assertNotNULL(gDispatcher);

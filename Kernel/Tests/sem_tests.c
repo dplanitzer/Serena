@@ -53,7 +53,7 @@ static void philosopher(int* num)
 
 void sem_test(int argc, char *argv[])
 {
-    dispatch_attr_t attr = DISPATCH_ATTR_INIT_CONCURRENT_UTILITY(NUM);
+    dispatch_attr_t attr = DISPATCH_ATTR_INIT_FIXED_CONCURRENT_UTILITY(NUM);
 
     gDispatcher = dispatch_create(&attr);
 

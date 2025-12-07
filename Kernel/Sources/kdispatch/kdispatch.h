@@ -193,8 +193,14 @@ typedef struct kdispatch_attr {
 #define KDISPATCH_ATTR_INIT_SERIAL_URGENT(__pri)     (kdispatch_attr_t){0, 1, 1, KDISPATCH_QOS_URGENT, (__pri), NULL}
 
 // Initializes a dispatch attribute object to set up a concurrent queue with
-// '__n' virtual processors and utility priority.
-#define KDISPATCH_ATTR_INIT_CONCURRENT_UTILITY(__n)  (kdispatch_attr_t){0, __n, __n, KDISPATCH_QOS_UTILITY, KDISPATCH_PRI_NORMAL, NULL}
+// exactly '__n' virtual processors and utility priority. This dispatcher does
+// not relinquish unused vcpus. It maintains a fixed set of them.
+#define KDISPATCH_ATTR_INIT_FIXED_CONCURRENT_UTILITY(__n)  (dispatch_attr_t){0, __n, __n, KDISPATCH_QOS_UTILITY, KDISPATCH_PRI_NORMAL, NULL}
+
+// Initializes a dispatch attribute object to set up a concurrent queue with
+// exactly '__n' virtual processors and utility priority. This dispatcher does
+// relinquish unused vcpus after some time and reacquires them as needed.
+#define KDISPATCH_ATTR_INIT_ELASTIC_CONCURRENT_UTILITY(__n)  (dispatch_attr_t){0, 1, __n, KDISPATCH_QOS_UTILITY, KDISPATCH_PRI_NORMAL, NULL}
 
 
 
