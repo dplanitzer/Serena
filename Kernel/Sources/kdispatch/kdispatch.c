@@ -174,6 +174,30 @@ errno_t _kdispatch_ensure_worker_capacity(kdispatch_t _Nonnull self, int reason)
     return EOK;
 }
 
+// Find the worker with the most work, dequeue the first item and return it.
+kdispatch_item_t _Nullable _kdispatch_steal_work_item(kdispatch_t _Nonnull self)
+{
+    kdispatch_item_t item = NULL;
+    kdispatch_worker_t most_busy_wp = NULL;
+    size_t most_busy_count = 0;
+
+    List_ForEach(&self->workers, ListNode, {
+        kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
+
+        if (cwp->work_count > most_busy_count) {
+            most_busy_count = cwp->work_count;
+            most_busy_wp = cwp;
+        }
+    });
+
+    if (most_busy_wp) {
+        item = (kdispatch_item_t) SList_RemoveFirst(&most_busy_wp->work_queue);
+        most_busy_wp->work_count--;
+    }
+
+    return item;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Work Items

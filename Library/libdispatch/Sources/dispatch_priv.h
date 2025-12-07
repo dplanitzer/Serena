@@ -177,6 +177,7 @@ extern dispatch_item_t _Nullable _dispatch_acquire_cached_conv_item(dispatch_t _
 extern void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self);
 static int _dispatch_acquire_worker_with_ownership(dispatch_t _Nonnull _Locked self, int ownership);
 extern int _dispatch_ensure_worker_capacity(dispatch_t _Nonnull self, int reason);
+extern dispatch_item_t _Nullable _dispatch_steal_work_item(dispatch_t _Nonnull self);
 extern bool _dispatch_isactive(dispatch_t _Nonnull _Locked self);
 
 

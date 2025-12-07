@@ -175,6 +175,7 @@ extern kdispatch_item_t _Nullable _kdispatch_acquire_cached_conv_item(kdispatch_
 extern void _kdispatch_wakeup_all_workers(kdispatch_t _Nonnull self);
 extern int _kdispatch_ensure_worker_capacity(kdispatch_t _Nonnull self, int reason);
 extern errno_t _kdispatch_acquire_worker(kdispatch_t _Nonnull _Locked self);
+extern kdispatch_item_t _Nullable _kdispatch_steal_work_item(kdispatch_t _Nonnull self);
 extern bool _kdispatch_isactive(kdispatch_t _Nonnull _Locked self);
 
 

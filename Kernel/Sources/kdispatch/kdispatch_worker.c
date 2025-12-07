@@ -159,6 +159,29 @@ static void _wait_for_resume(kdispatch_worker_t _Nonnull _Locked self)
     self->is_suspended = false;
 }
 
+static bool _should_relinquish(kdispatch_worker_t _Nonnull _Locked self)
+{
+    if (!self->allow_relinquish) {
+        return false;
+    }
+
+
+    kdispatch_t q = self->owner;
+    const int has_armed_sigs = (self->hotsigs & ~_SIGBIT(SIGDISP)) != 0;
+    const int has_armed_timers = q->timers.first != NULL;
+
+    if (!has_armed_sigs && !has_armed_timers && q->worker_count > q->attr.minConcurrency) {
+        return true;
+    }
+
+    // Keep at least one worker alive if signal handlers or timers are armed
+    if ((has_armed_sigs || has_armed_timers) && q->worker_count > q->attr.minConcurrency && q->worker_count > 1) {
+        return true;
+    }
+
+    return false;
+}
+
 // Get more work for the caller. Returns 0 if work is available and != 0 if
 // there is no more work and the worker should relinquish itself. 
 static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
@@ -193,6 +216,10 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
 
         // Next grab a work item if there's one queued
         item = (kdispatch_item_t) SList_RemoveFirst(&self->work_queue);
+        if (item == NULL) {
+            // Try stealing a work item (aka rebalancing) from another worker
+            item = _kdispatch_steal_work_item(self->owner);
+        }
         if (item) {
             self->work_count--;
             self->current_item = item;
@@ -233,7 +260,7 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
         const errno_t err = vcpu_sigtimedwait(&self->wq, &self->hotsigs, flags, &deadline, &signo);
         mtx_lock(&q->mutex);
 
-        if (err == ETIMEDOUT && q->worker_count > q->attr.minConcurrency && self->allow_relinquish && (self->hotsigs & ~_SIGBIT(SIGDISP)) == 0) {
+        if (err == ETIMEDOUT && _should_relinquish(self)) {
             mayRelinquish = true;
         }
 

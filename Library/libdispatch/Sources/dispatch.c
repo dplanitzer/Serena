@@ -206,6 +206,30 @@ int _dispatch_ensure_worker_capacity(dispatch_t _Nonnull self, int reason)
     return 0;
 }
 
+// Find the worker with the most work, dequeue the first item and return it.
+dispatch_item_t _Nullable _dispatch_steal_work_item(dispatch_t _Nonnull self)
+{
+    dispatch_item_t item = NULL;
+    dispatch_worker_t most_busy_wp = NULL;
+    size_t most_busy_count = 0;
+
+    List_ForEach(&self->workers, ListNode, {
+        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+
+        if (cwp->work_count > most_busy_count) {
+            most_busy_count = cwp->work_count;
+            most_busy_wp = cwp;
+        }
+    });
+
+    if (most_busy_wp) {
+        item = (dispatch_item_t) SList_RemoveFirst(&most_busy_wp->work_queue);
+        most_busy_wp->work_count--;
+    }
+
+    return item;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: Work Items
