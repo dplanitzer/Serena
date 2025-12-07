@@ -243,7 +243,7 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
             flags = TIMER_ABSTIME;
         }
         else if (self->allow_relinquish) {
-            timespec_from_sec(&deadline, 2);
+            timespec_from_sec(&deadline, 5);
             flags = 0;
         }
         else {
