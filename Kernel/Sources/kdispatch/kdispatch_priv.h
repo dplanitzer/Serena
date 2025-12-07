@@ -168,6 +168,9 @@ struct dispatch {
     char                            name[KDISPATCH_MAX_NAME_LENGTH + 1];
 };
 
+#define _dispatch_is_fixed_concurrency(__self) \
+((__self)->attr.minConcurrency == (__self)->attr.maxConcurrency)
+
 extern void _kdispatch_retire_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item);
 extern void _kdispatch_zombify_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item);
 extern void _kdispatch_cache_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item);

@@ -170,6 +170,9 @@ struct dispatch {
     char                            name[DISPATCH_MAX_NAME_LENGTH + 1];
 };
 
+#define _dispatch_is_fixed_concurrency(__self) \
+((__self)->attr.minConcurrency == (__self)->attr.maxConcurrency)
+
 extern void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 extern void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);

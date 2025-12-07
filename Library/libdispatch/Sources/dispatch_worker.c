@@ -27,7 +27,7 @@ static bool _dispatch_worker_acquire_vcpu(dispatch_worker_t _Nonnull self)
     r_attr.sched_params.u.qos.priority = owner->attr.priority;
     r_attr.flags = 0;
 
-    self->allow_relinquish = true;
+    self->allow_relinquish = !_dispatch_is_fixed_concurrency(owner);
     self->vcpu = vcpu_acquire(&r_attr);
     if (self->vcpu) {
         self->id = vcpu_id(self->vcpu);

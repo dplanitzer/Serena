@@ -26,7 +26,7 @@ static errno_t _kdispatch_worker_acquire_vcpu(kdispatch_worker_t _Nonnull self)
     attr.flags = 0;
     attr.data = 0;
 
-    self->allow_relinquish = true;
+    self->allow_relinquish = !_dispatch_is_fixed_concurrency(owner);
     err = Process_AcquireVirtualProcessor(gKernelProcess, &attr, &self->vcpu);
     if (err == EOK) {
 
