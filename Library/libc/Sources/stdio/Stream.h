@@ -134,6 +134,7 @@ if ((__self)->cb.seek == NULL) { \
 }
 
 extern int __fgetc(FILE * _Nonnull s);
+extern int __fputc(int ch, FILE * _Nonnull s);
 extern int __fflush(FILE* _Nonnull s);
 extern int __fclose(FILE* _Nonnull s);
 

@@ -17,6 +17,7 @@ size_t fwrite(const void *buffer, size_t size, size_t count, FILE *s)
 
     __fensure_no_err(s);
     __fensure_writeable(s);
+    __fensure_byte_oriented(s);
 
     const size_t nBytesToWrite = size * count;
     const ssize_t nBytesWritten = s->cb.write((void*)s->context, buffer, nBytesToWrite);

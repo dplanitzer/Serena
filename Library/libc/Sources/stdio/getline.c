@@ -6,6 +6,7 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
+#include "Stream.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <_math.h>
@@ -22,8 +23,12 @@ ssize_t getdelim(char **line, size_t *n, int delimiter, FILE *s)
     ssize_t bufSize = __min(*n, __SSIZE_MAX);
     ssize_t i = 0;
 
+    __fensure_no_eof_err(s);
+    __fensure_readable(s);
+    __fensure_byte_oriented(s);
+
     for (;;) {
-        const int ch = fgetc(s);
+        const int ch = __fgetc(s);
 
         if (ch != EOF) {
             if ((i == bufSize - 1) || (buf == NULL)) {

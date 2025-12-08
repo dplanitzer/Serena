@@ -12,6 +12,7 @@
 // Expects:
 // - 's' is not NULL
 // - 's' is writeable
+// - 's' is byte-oriented
 int __fputc(int ch, FILE * _Nonnull s)
 {
     __fensure_no_err(s);
@@ -40,6 +41,7 @@ int fputc(int ch, FILE *s)
 {
     __fensure_no_err(s);
     __fensure_writeable(s);
+    __fensure_byte_oriented(s);
 
     return __fputc(ch, s);
 }

@@ -12,6 +12,7 @@
 // Expects:
 // - 's' is not NULL
 // - 's' is readable
+// - 's' is byte-oriented
 int __fgetc(FILE * _Nonnull s)
 {
     __fensure_no_eof_err(s);
@@ -40,6 +41,7 @@ int fgetc(FILE *s)
 {
     __fensure_no_eof_err(s);
     __fensure_readable(s);
+    __fensure_byte_oriented(s);
 
     return __fgetc(s);
 }

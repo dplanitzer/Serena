@@ -19,8 +19,20 @@ char *fgets(char *str, int count, FILE *s)
         return NULL;
     }
 
+    if (s->flags.hasEof || s->flags.hasError) {
+        return NULL;
+    }
+    if ((s->flags.mode & __kStreamMode_Read) == 0) {
+        s->flags.hasError = 1;
+        return NULL;
+    }
+    if (s->flags.orientation == __kStreamOrientation_Wide) {
+        s->flags.hasError = 1;
+        return NULL;
+    }
+
     while (nBytesToRead-- > 0) {
-        const int ch = fgetc(s);
+        const int ch = __fgetc(s);
 
         if (ch == EOF) {
             break;
