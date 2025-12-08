@@ -145,6 +145,7 @@ extern int __fputc(int ch, FILE * _Nonnull s);
 extern int __fsetdir(FILE * _Nonnull s, int dir);
 extern void __fdiscard(FILE * _Nonnull s);
 extern int __fflush(FILE* _Nonnull s);
+extern int __setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size);
 extern int __fclose(FILE* _Nonnull s);
 
 extern void __init_open_files_lock(void);

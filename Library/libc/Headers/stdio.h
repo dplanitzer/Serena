@@ -22,7 +22,7 @@ __CPP_BEGIN
 #define EOF -1
 #define FOPEN_MAX 16
 #define FILENAME_MAX __PATH_MAX
-#define BUFSIZ  4096
+#define BUFSIZ  1024
 
 #define P_tmpdir "/tmp"
 #define L_tmpnam 256
@@ -83,10 +83,12 @@ typedef struct FILE {
         unsigned int mode:3;
         unsigned int direction:2;
         unsigned int orientation:2;
+        unsigned int bufferMode:2;
+        unsigned int bufferOwned:1;     // 1 -> buffer owned by stream; 0 -> buffer owned by user
         unsigned int hasError:1;
         unsigned int hasEof:1;
         unsigned int shouldFreeOnClose:1;
-        unsigned int reserved:22;
+        unsigned int reserved:19;
     }                           flags;
 } FILE;
 
@@ -113,8 +115,8 @@ extern int fclose(FILE *s);
 extern int fileno(FILE *s);
 extern int filemem(FILE *s, FILE_MemoryQuery *query);
 
-extern void setbuf(FILE *s, char *buffer);
-extern int setvbuf(FILE *s, char *buffer, int mode, size_t size);
+extern void setbuf(FILE * _Restrict s, char * _Restrict buffer);
+extern int setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size);
 
 extern void clearerr(FILE *s);
 extern int feof(FILE *s);
