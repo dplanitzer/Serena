@@ -376,6 +376,9 @@ extern bool cpu_is_null_fsave(const char* _Nonnull sfp);
 // Describes the CPU register set that is saved on a context switch and when
 // taking a CPU exception. Note that the exception frame 'ef' may have
 // additional fields in the case of an exception.
+// FP  state size: 324 bytes
+// INT state size:  64 bytes
+// CPU state size: 388 bytes
 typedef struct cpu_savearea {
     uint32_t        fpiar;          // |
     uint32_t        fpsr;           // |

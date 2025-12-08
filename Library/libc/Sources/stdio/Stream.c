@@ -195,8 +195,10 @@ int __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, const FI
     memset(self, 0, sizeof(FILE));
     self->cb = *callbacks;
     self->context = context;
+    self->bufferIndex = -1;
     self->mbstate = (mbstate_t){0};
     self->flags.mode = sm;
+    self->flags.bufferMode = _IONBF;
     self->flags.direction = __kStreamDirection_Unknown;
     self->flags.orientation = __kStreamOrientation_Unknown;
     self->flags.shouldFreeOnClose = bFreeOnClose ? 1 : 0;

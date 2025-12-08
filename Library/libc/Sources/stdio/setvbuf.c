@@ -21,6 +21,7 @@ int __setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size
                 s->buffer = buffer;
                 s->bufferCapacity = size;
                 s->bufferCount = 0;
+                s->bufferIndex = -1;
                 s->flags.bufferOwned = 0;
             }
             else {
@@ -32,6 +33,7 @@ int __setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size
                 s->buffer = p;
                 s->bufferCapacity = size;
                 s->bufferCount = 0;
+                s->bufferIndex = -1;
                 s->flags.bufferOwned = 1;
             }
             s->flags.bufferMode = mode;
@@ -44,6 +46,7 @@ int __setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size
             s->buffer = NULL;
             s->bufferCapacity = 0;
             s->bufferCount = 0;
+            s->bufferIndex = -1;
             s->flags.bufferOwned = 0;
             s->flags.bufferMode = _IONBF;
             return 0;

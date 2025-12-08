@@ -54,7 +54,7 @@ _Noreturn fatalAssert(const char* _Nonnull filename, int line)
     fatal("Assert: %s:%d", filename, line);
 }
 
-_Noreturn _fatalException(const excpt_frame_t* _Nonnull efp)
+_Noreturn _fatalException(const excpt_frame_t* _Nonnull efp, void* _Nonnull ksp)
 {
     vcpu_t vp = vcpu_current();
     kdispatch_t dq = kdispatch_current_queue();
@@ -64,14 +64,14 @@ _Noreturn _fatalException(const excpt_frame_t* _Nonnull efp)
         kdispatch_name(dq, dq_nam, KDISPATCH_MAX_NAME_LENGTH + 1);
     }
 
-    fatal("\033[?25l\nException: %hhx, Format %hhx, PC %p, SR %hx\n Crash in: %s\n Exception Frame: %p\n Stack Base: %p\n VCPU: %p (%d)\n Dispatcher: %p \"%s\"\n Process: %p (%d)", 
+    fatal("\033[?25l\nException: %hhx, Format %hhx, PC %p, SR %hx\n Crash in: %s\n Exception Frame: %p\n Kernel SP: %p\n VCPU: %p (%d)\n Dispatcher: %p \"%s\"\n Process: %p (%d)", 
         excpt_frame_getvecnum(efp),
         excpt_frame_getformat(efp),
         excpt_frame_getpc(efp),
         excpt_frame_getsr(efp),
         (excpt_frame_isuser(efp) ? "USER" : "KERNEL"),
         efp,
-        stk_getinitialsp(&vp->kernel_stack),
+        ksp,
         vp,
         vp->id,
         dq,

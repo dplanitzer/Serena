@@ -79,8 +79,9 @@ typedef struct FILE {
     FILE_Callbacks              cb;
     void* _Nullable             context;
     char* _Nullable             buffer;
-    size_t                      bufferCapacity;
-    size_t                      bufferCount;
+    ssize_t                     bufferCapacity;
+    ssize_t                     bufferCount;
+    ssize_t                     bufferIndex;
     mbstate_t                   mbstate;
     struct FILE_Flags {
         unsigned int mode:3;

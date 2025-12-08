@@ -177,6 +177,7 @@ extern void _vcpu_read_excpt_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull
 
 void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 {
+    void* ksp = ((char*)utp) + sizeof(excpt_0_frame_t);
     excpt_frame_t* efp = (excpt_frame_t*)&vp->excpt_sa->ef;
     const int cpu_code = excpt_frame_getvecnum(efp);
     excpt_info_t ei;
@@ -184,13 +185,13 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
     // Any exception triggered in kernel mode
     if (!excpt_frame_isuser(efp)) {
-        _fatalException(efp);
+        _fatalException(efp, ksp);
         /* NOT REACHED */
     }
 
 
     if (!map_exception(cpu_code, efp, &ei)) {
-        _fatalException(efp);
+        _fatalException(efp, ksp);
         /* NOT REACHED */
     }
 

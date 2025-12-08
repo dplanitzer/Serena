@@ -21,7 +21,7 @@ extern _Noreturn vfatal(const char* _Nonnull format, va_list ap);
 extern _Noreturn fatalError(const char* _Nonnull filename, int line, int err);
 extern _Noreturn fatalAbort(const char* _Nonnull filename, int line);
 extern _Noreturn fatalAssert(const char* _Nonnull filename, int line);
-extern _Noreturn _fatalException(const struct excpt_frame* _Nonnull efp);
+extern _Noreturn _fatalException(const struct excpt_frame* _Nonnull efp, void* _Nonnull ksp);
 
 
 #define abort() fatalAbort(__func__, __LINE__)
