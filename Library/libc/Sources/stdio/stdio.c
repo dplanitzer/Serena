@@ -38,23 +38,37 @@ void __stdio_init(void)
 
     if (fcntl(STDIN_FILENO, F_GETFL) != -1) {
         __fdopen_init(&_StdinObj, false, STDIN_FILENO, __kStreamMode_Read);
+
+        if (fcntl(STDIN_FILENO, F_GETTYPE) == SEO_FT_TERMINAL) {
+            __setvbuf(_Stdin, NULL, _IOLBF, 256);
+        }
+        else {
+            __setvbuf(_Stdin, NULL, _IOFBF, BUFSIZ);
+        }
     }
     else {
-        __fopen_null_init((FILE*)&_StdinObj, false, __kStreamMode_Read);
+        __fopen_null_init(_Stdin, false, __kStreamMode_Read);
     }
 
     if (fcntl(STDOUT_FILENO, F_GETFL) != -1) {
         __fdopen_init(&_StdoutObj, false, STDOUT_FILENO, __kStreamMode_Write);
+
+        if (fcntl(STDOUT_FILENO, F_GETTYPE) == SEO_FT_TERMINAL) {
+            __setvbuf(_Stdout, NULL, _IOLBF, 256);
+        }
+        else {
+            __setvbuf(_Stdout, NULL, _IOFBF, BUFSIZ);
+        }
     }
     else {
-        __fopen_null_init((FILE*)&_StdoutObj, false, __kStreamMode_Write);
+        __fopen_null_init(_Stdout, false, __kStreamMode_Write);
     }
 
     if (fcntl(STDERR_FILENO, F_GETFL) != -1) {
         __fdopen_init(&_StderrObj, false, STDERR_FILENO, __kStreamMode_Write);
     }
     else {
-        __fopen_null_init((FILE*)&_StderrObj, false, __kStreamMode_Write);
+        __fopen_null_init(_Stderr, false, __kStreamMode_Write);
     }
 
     atexit(__stdio_exit);
