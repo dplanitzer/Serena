@@ -12,6 +12,7 @@
 // Expects:
 // - 's' is not NULL
 // - 's' is readable
+// - 's' direction is read
 // - 's' is byte-oriented
 int __fgetc(FILE * _Nonnull s)
 {
@@ -42,6 +43,7 @@ int fgetc(FILE *s)
     __fensure_no_eof_err(s);
     __fensure_readable(s);
     __fensure_byte_oriented(s);
+    __fensure_direction(s, __kStreamDirection_In);
 
     return __fgetc(s);
 }

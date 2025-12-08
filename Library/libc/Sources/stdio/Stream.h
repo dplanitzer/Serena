@@ -31,13 +31,13 @@ enum {
 };
 
 enum {
-    __kStreamDirection_None = 0,
-    __kStreamDirection_Read,
-    __kStreamDirection_Write
+    __kStreamDirection_Unknown = 0,
+    __kStreamDirection_In,
+    __kStreamDirection_Out
 };
 
 enum {
-    __kStreamOrientation_None = 0,
+    __kStreamOrientation_Unknown = 0,
     __kStreamOrientation_Byte,
     __kStreamOrientation_Wide
 };
@@ -105,6 +105,13 @@ if ((__self)->flags.orientation == __kStreamOrientation_Wide) { \
 } \
 (__self)->flags.orientation = __kStreamOrientation_Byte;
 
+#define __fensure_direction(__self, dir) \
+if ((__self)->flags.direction != (dir)) { \
+    if (__fsetdir(__self, dir) == EOF) { \
+        return EOF; \
+    } \
+}
+
 #define __fensure_writeable(__self) \
 if (((__self)->flags.mode & __kStreamMode_Write) == 0) { \
     (__self)->flags.hasError = 1; \
@@ -135,6 +142,8 @@ if ((__self)->cb.seek == NULL) { \
 
 extern int __fgetc(FILE * _Nonnull s);
 extern int __fputc(int ch, FILE * _Nonnull s);
+extern int __fsetdir(FILE * _Nonnull s, int dir);
+extern void __fdiscard(FILE * _Nonnull s);
 extern int __fflush(FILE* _Nonnull s);
 extern int __fclose(FILE* _Nonnull s);
 

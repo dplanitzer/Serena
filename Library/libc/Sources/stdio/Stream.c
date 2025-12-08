@@ -196,8 +196,8 @@ int __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, const FI
     self->cb = *callbacks;
     self->context = context;
     self->flags.mode = sm;
-    self->flags.direction = __kStreamDirection_None;
-    self->flags.orientation = __kStreamOrientation_None;
+    self->flags.direction = __kStreamDirection_Unknown;
+    self->flags.orientation = __kStreamOrientation_Unknown;
     self->flags.shouldFreeOnClose = bFreeOnClose ? 1 : 0;
 
     __register_open_file(self);

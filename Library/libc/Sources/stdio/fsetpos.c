@@ -12,12 +12,7 @@
 int fsetpos(FILE *s, const fpos_t *pos)
 {
     __fensure_seekable(s);
-
-    if (s->flags.direction == __kStreamDirection_Write) {
-        if (fflush(s) != 0) {
-            return EOF;
-        }
-    }
+    __fensure_direction(s, __kStreamDirection_Unknown);
 
     const long long r = s->cb.seek((void*)s->context, pos->offset, SEEK_SET);
     if (r < 0ll) {

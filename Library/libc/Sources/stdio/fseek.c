@@ -12,8 +12,6 @@
 
 int fseek(FILE *s, long offset, int whence)
 {
-    __fensure_seekable(s);
-
     switch (whence) {
         case SEEK_SET:
         case SEEK_CUR:
@@ -25,11 +23,8 @@ int fseek(FILE *s, long offset, int whence)
             return EOF;
     }
 
-    if (s->flags.direction == __kStreamDirection_Write) {
-        if (fflush(s) != 0) {
-            return EOF;
-        }
-    }
+    __fensure_seekable(s);
+    __fensure_direction(s, __kStreamDirection_Unknown);
 
     const long long r = s->cb.seek((void*)s->context, (long long)offset, whence);
     if (r < 0ll) {

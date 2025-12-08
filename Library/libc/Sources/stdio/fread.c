@@ -18,6 +18,7 @@ size_t fread(void *buffer, size_t size, size_t count, FILE *s)
     __fensure_no_eof_err(s);
     __fensure_readable(s);
     __fensure_byte_oriented(s);
+    __fensure_direction(s, __kStreamDirection_In);
 
     const size_t nBytesToRead = size * count;
     ssize_t nBytesRead = s->cb.read((void*)s->context, buffer, nBytesToRead);

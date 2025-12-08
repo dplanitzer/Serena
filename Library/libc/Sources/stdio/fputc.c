@@ -11,6 +11,7 @@
 
 // Expects:
 // - 's' is not NULL
+// - 's' direction is write
 // - 's' is writeable
 // - 's' is byte-oriented
 int __fputc(int ch, FILE * _Nonnull s)
@@ -42,6 +43,7 @@ int fputc(int ch, FILE *s)
     __fensure_no_err(s);
     __fensure_writeable(s);
     __fensure_byte_oriented(s);
+    __fensure_direction(s, __kStreamDirection_Out);
 
     return __fputc(ch, s);
 }

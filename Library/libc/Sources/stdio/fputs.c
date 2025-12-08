@@ -17,6 +17,7 @@ int fputs(const char *str, FILE *s)
     __fensure_no_err(s);
     __fensure_writeable(s);
     __fensure_byte_oriented(s);
+    __fensure_direction(s, __kStreamDirection_Out);
 
     while (*str != '\0') {
         const int r = __fputc(*str++, s);

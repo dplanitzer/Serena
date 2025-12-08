@@ -31,6 +31,7 @@ int vfprintf(FILE *s, const char *format, va_list ap)
     __fensure_no_err(s);
     __fensure_writeable(s);
     __fensure_byte_oriented(s);
+    __fensure_direction(s, __kStreamDirection_Out);
 
     __Formatter_Init(&fmt, s);
     const int r = __Formatter_vFormat(&fmt, format, ap);
