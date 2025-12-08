@@ -97,7 +97,7 @@ catch:
 errno_t FilesystemManager_Start(FilesystemManagerRef _Nonnull self)
 {
     decl_try_err();
-    kdispatch_attr_t attr = KDISPATCH_ATTR_INIT_SERIAL_URGENT(KDISPATCH_PRI_LOWEST);
+    kdispatch_attr_t attr = KDISPATCH_ATTR_INIT_SERIAL_URGENT(KDISPATCH_PRI_LOWEST, "fs");
 
     err = kdispatch_create(&attr, &self->dq);
     if (err == EOK) {

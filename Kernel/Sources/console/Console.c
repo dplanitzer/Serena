@@ -25,7 +25,7 @@
 errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    kdispatch_attr_t attr = KDISPATCH_ATTR_INIT_SERIAL_URGENT(KDISPATCH_PRI_NORMAL);
+    kdispatch_attr_t attr = KDISPATCH_ATTR_INIT_SERIAL_URGENT(KDISPATCH_PRI_NORMAL, "con");
     ConsoleRef self;
 
     try(PseudoDriver_Create(class(Console), 0, (DriverRef*)&self));

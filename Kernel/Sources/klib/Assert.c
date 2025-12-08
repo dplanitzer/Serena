@@ -58,8 +58,13 @@ _Noreturn _fatalException(const excpt_frame_t* _Nonnull efp)
 {
     vcpu_t vp = vcpu_current();
     kdispatch_t dq = kdispatch_current_queue();
+    static char dq_nam[KDISPATCH_MAX_NAME_LENGTH + 1];
 
-    fatal("\033[?25lException: %hhx, Format %hhx, PC %p, SR %hx\n Crash in: %s\n Exception Frame: %p\n Stack Base: %p\n VCPU: %p (%d)\n Dispatcher: %p\n Process: %p (%d)", 
+    if (dq) {
+        kdispatch_name(dq, dq_nam, KDISPATCH_MAX_NAME_LENGTH + 1);
+    }
+
+    fatal("\033[?25l\nException: %hhx, Format %hhx, PC %p, SR %hx\n Crash in: %s\n Exception Frame: %p\n Stack Base: %p\n VCPU: %p (%d)\n Dispatcher: %p \"%s\"\n Process: %p (%d)", 
         excpt_frame_getvecnum(efp),
         excpt_frame_getformat(efp),
         excpt_frame_getpc(efp),
@@ -70,6 +75,7 @@ _Noreturn _fatalException(const excpt_frame_t* _Nonnull efp)
         vp,
         vp->id,
         dq,
+        (dq) ? dq_nam : "",
         vp->proc,
         Process_GetId(vp->proc));
 }

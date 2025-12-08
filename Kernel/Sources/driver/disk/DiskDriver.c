@@ -46,7 +46,7 @@ static void DiskDriver_deinit(DiskDriverRef _Nonnull self)
 
 errno_t DiskDriver_createDispatchQueue(DiskDriverRef _Nonnull self, kdispatch_t _Nullable * _Nonnull pOutQueue)
 {
-    kdispatch_attr_t attr = KDISPATCH_ATTR_INIT_SERIAL_URGENT(KDISPATCH_PRI_NORMAL);
+    kdispatch_attr_t attr = KDISPATCH_ATTR_INIT_SERIAL_URGENT(KDISPATCH_PRI_NORMAL, "disk");
 
     return kdispatch_create(&attr, pOutQueue);
 }
