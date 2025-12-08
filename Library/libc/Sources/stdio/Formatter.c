@@ -7,6 +7,7 @@
 //
 
 #include "Formatter.h"
+#include "Stream.h"
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,34 +15,57 @@
 
 static void Formatter_WriteChar(FormatterRef _Nonnull self, char ch)
 {
-    if (fputc(ch, self->stream) != EOF) {
+    if (__fputc(ch, self->stream) != EOF) {
         self->charactersWritten++;
     }
 }
 
 static void Formatter_WriteString(FormatterRef _Nonnull self, const char * _Nonnull str)
 {
-    const int r = fputs(str, self->stream);
+    size_t i = 0;
 
-    if (r != EOF) {
-        self->charactersWritten += r;
-    }
+    for (;;) {
+        const char ch = *str++;
+
+        if (ch == '\0' || __fputc(ch, self->stream) == EOF) {
+            break;
+        }
+
+        i++;
+     }
+     self->charactersWritten += i;
 }
 
 static void Formatter_WriteStringPrefix(FormatterRef _Nonnull self, const char * _Nonnull str, size_t maxChars)
 {
-    const size_t r = fwrite(str, 1, maxChars, self->stream);
+    size_t i = 0;
 
-    if (r == maxChars) {
-        self->charactersWritten += r;
+    for (;;) {
+        const char ch = *str++;
+        
+        if (ch == '\0' || __fputc(ch, self->stream) == EOF) {
+            break;
+        }
+
+        i++;
+        if (i > maxChars) {
+            break;
+        }
     }
+    self->charactersWritten += i;
 }
 
 static void Formatter_WriteRepChar(FormatterRef _Nonnull self, char ch, int count)
 {
-    while(count-- > 0) {
-        Formatter_WriteChar(self, ch);
+    int i = 0;
+
+    while(i < count) {
+        if (__fputc(ch, self->stream) == EOF) {
+            break;
+        }
+        i++;
     }
+    self->charactersWritten += i;
 }
 
 static const char* _Nonnull Formatter_ParseLengthModifier(FormatterRef _Nonnull self, const char * _Nonnull format, ConversionSpec* _Nonnull spec)

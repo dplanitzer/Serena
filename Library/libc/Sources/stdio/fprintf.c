@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <limits.h>
 #include "Formatter.h"
+#include "Stream.h"
 
 
 int fprintf(FILE *s, const char *format, ...)
@@ -26,6 +27,10 @@ int fprintf(FILE *s, const char *format, ...)
 int vfprintf(FILE *s, const char *format, va_list ap)
 {
     Formatter fmt;
+
+    __fensure_no_err(s);
+    __fensure_writeable(s);
+    __fensure_byte_oriented(s);
 
     __Formatter_Init(&fmt, s);
     const int r = __Formatter_vFormat(&fmt, format, ap);
