@@ -9,17 +9,12 @@
 #include "Stream.h"
 
 
-int fgetc(FILE *s)
+// Expects:
+// - 's' is not NULL
+// - 's' is readable
+int __fgetc(FILE * _Nonnull s)
 {
-    if (s->flags.hasEof || s->flags.hasError) {
-        return EOF;
-    }
-    
-    if ((s->flags.mode & __kStreamMode_Read) == 0) {
-        s->flags.hasError = 1;
-        errno = EBADF;
-        return EOF;
-    }
+    __fensure_no_eof_err(s);
 
     char buf;
     ssize_t nBytesRead = s->cb.read((void*)s->context, &buf, 1);
@@ -39,4 +34,12 @@ int fgetc(FILE *s)
     }
 
     return r;
+}
+
+int fgetc(FILE *s)
+{
+    __fensure_no_eof_err(s);
+    __fensure_readable(s);
+
+    return __fgetc(s);
 }

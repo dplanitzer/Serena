@@ -36,6 +36,13 @@ enum {
     __kStreamDirection_Write
 };
 
+enum {
+    __kStreamOrientation_None = 0,
+    __kStreamOrientation_Byte,
+    __kStreamOrientation_Wide
+};
+
+
 // FILE and subclassing:
 // FILE is the abstract base class of all stream classes. A caveat that subclassers
 // have to deal with is that freopen() exists. Freopen() must be able to convert
@@ -91,6 +98,42 @@ extern int __fopen_null_init(FILE* _Nonnull self, bool bFreeOnClose, __FILE_Mode
 
 extern FILE *__fopen_null(const char* mode);
 
+#define __fensure_byte_oriented(__self) \
+if ((__self)->flags.orientation == __kStreamOrientation_Wide) { \
+    (__self)->flags.hasError = 1; \
+    return EOF; \
+} \
+(__self)->flags.orientation = __kStreamOrientation_Byte;
+
+#define __fensure_writeable(__self) \
+if (((__self)->flags.mode & __kStreamMode_Write) == 0) { \
+    (__self)->flags.hasError = 1; \
+    return EOF; \
+}
+
+#define __fensure_readable(__self) \
+if (((__self)->flags.mode & __kStreamMode_Read) == 0) { \
+    (__self)->flags.hasError = 1; \
+    return EOF; \
+}
+
+#define __fensure_no_eof_err(__self) \
+if ((__self)->flags.hasEof || (__self)->flags.hasError) { \
+    return EOF; \
+}
+
+#define __fensure_no_err(__self) \
+if ((__self)->flags.hasError) { \
+    return EOF; \
+}
+
+#define __fensure_seekable(__self) \
+if ((__self)->cb.seek == NULL) { \
+    errno = ESPIPE; \
+    return EOF; \
+}
+
+extern int __fgetc(FILE * _Nonnull s);
 extern int __fflush(FILE* _Nonnull s);
 extern int __fclose(FILE* _Nonnull s);
 

@@ -11,12 +11,9 @@
 
 int fsetpos(FILE *s, const fpos_t *pos)
 {
-    if (s->cb.seek == NULL) {
-        errno = ESPIPE;
-        return EOF;
-    }
+    __fensure_seekable(s);
 
-    if (s->flags.mostRecentDirection == __kStreamDirection_Write) {
+    if (s->flags.direction == __kStreamDirection_Write) {
         if (fflush(s) != 0) {
             return EOF;
         }

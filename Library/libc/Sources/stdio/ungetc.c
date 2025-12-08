@@ -11,6 +11,9 @@
 
 int ungetc(int ch, FILE *s)
 {
+    __fensure_no_eof_err(s);
+    __fensure_readable(s);
+    
     // XXX
     return EOF;
 }

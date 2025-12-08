@@ -11,10 +11,7 @@
 
 int fgetpos(FILE *s, fpos_t *pos)
 {
-    if (s->cb.seek == NULL) {
-        errno = ESPIPE;
-        return EOF;
-    }
+    __fensure_seekable(s);
 
     const long long r = s->cb.seek((void*)s->context, 0ll, SEEK_CUR);
     if (r >= 0ll) {

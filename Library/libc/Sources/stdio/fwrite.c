@@ -15,15 +15,8 @@ size_t fwrite(const void *buffer, size_t size, size_t count, FILE *s)
         return 0;
     }
 
-    if (s->flags.hasError) {
-        return EOF;
-    }
-
-    if ((s->flags.mode & __kStreamMode_Write) == 0) {
-        s->flags.hasError = 1;
-        errno = EBADF;
-        return EOF;
-    }
+    __fensure_no_err(s);
+    __fensure_writeable(s);
 
     const size_t nBytesToWrite = size * count;
     const ssize_t nBytesWritten = s->cb.write((void*)s->context, buffer, nBytesToWrite);

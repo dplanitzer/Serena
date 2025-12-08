@@ -15,15 +15,8 @@ size_t fread(void *buffer, size_t size, size_t count, FILE *s)
         return 0;
     }
 
-    if (s->flags.hasEof || s->flags.hasError) {
-        return EOF;
-    }
-    
-    if ((s->flags.mode & __kStreamMode_Read) == 0) {
-        s->flags.hasError = 1;
-        errno = EBADF;
-        return EOF;
-    }
+    __fensure_no_eof_err(s);
+    __fensure_readable(s);
 
     const size_t nBytesToRead = size * count;
     ssize_t nBytesRead = s->cb.read((void*)s->context, buffer, nBytesToRead);

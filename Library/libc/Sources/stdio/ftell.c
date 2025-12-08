@@ -13,10 +13,7 @@
 
 long ftell(FILE *s)
 {
-    if (s->cb.seek == NULL) {
-        errno = ESPIPE;
-        return (long)EOF;
-    }
+    __fensure_seekable(s);
 
     const long long curpos = s->cb.seek((void*)s->context, 0ll, SEEK_CUR);
     if (curpos < 0ll) {

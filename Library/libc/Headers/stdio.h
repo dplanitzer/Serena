@@ -81,11 +81,12 @@ typedef struct FILE {
     size_t                      bufferCount;
     struct FILE_Flags {
         unsigned int mode:3;
-        unsigned int mostRecentDirection:2;
+        unsigned int direction:2;
+        unsigned int orientation:2;
         unsigned int hasError:1;
         unsigned int hasEof:1;
         unsigned int shouldFreeOnClose:1;
-        unsigned int reserved:24;
+        unsigned int reserved:22;
     }                           flags;
 } FILE;
 

@@ -9,17 +9,12 @@
 #include "Stream.h"
 
 
-int fputc(int ch, FILE *s)
+// Expects:
+// - 's' is not NULL
+// - 's' is writeable
+int __fputc(int ch, FILE * _Nonnull s)
 {
-    if (s->flags.hasError) {
-        return EOF;
-    }
-
-    if ((s->flags.mode & __kStreamMode_Write) == 0) {
-        s->flags.hasError = 1;
-        errno = EBADF;
-        return EOF;
-    }
+    __fensure_no_err(s);
 
     unsigned char buf = (unsigned char)ch;
     const ssize_t nBytesWritten = s->cb.write((void*)s->context, &buf, 1);
@@ -39,4 +34,12 @@ int fputc(int ch, FILE *s)
     }
 
     return r;
+}
+
+int fputc(int ch, FILE *s)
+{
+    __fensure_no_err(s);
+    __fensure_writeable(s);
+
+    return __fputc(ch, s);
 }
