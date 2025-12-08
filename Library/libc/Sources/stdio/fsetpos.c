@@ -20,6 +20,7 @@ int fsetpos(FILE *s, const fpos_t *pos)
         return EOF;
     }
     s->flags.hasEof = 0;
+    s->mbstate = pos->mbstate;
     // XXX drop ungetc buffered stuff
 
     return 0;

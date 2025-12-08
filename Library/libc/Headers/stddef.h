@@ -14,11 +14,11 @@
 #include <_cmndef.h>
 #include <_null.h>
 #include <_offsetof.h>
+#include <_wchar.h>
 
 __CPP_BEGIN
 
 typedef __ptrdiff_t ptrdiff_t;
-typedef unsigned short wchar_t;
 
 __CPP_END
 

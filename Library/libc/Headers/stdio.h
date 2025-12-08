@@ -10,6 +10,7 @@
 #define _STDIO_H 1
 
 #include <_cmndef.h>
+#include <_mbstate.h>
 #include <_null.h>
 #include <_size.h>
 #include <_ssize.h>
@@ -35,6 +36,7 @@ __CPP_BEGIN
 
 typedef struct fpos_t {
     long long   offset;
+    mbstate_t   mbstate;
 } fpos_t;
 
 
@@ -79,6 +81,7 @@ typedef struct FILE {
     char* _Nullable             buffer;
     size_t                      bufferCapacity;
     size_t                      bufferCount;
+    mbstate_t                   mbstate;
     struct FILE_Flags {
         unsigned int mode:3;
         unsigned int direction:2;

@@ -6,8 +6,8 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KERN_TRY_H
-#define _KERN_TRY_H
+#ifndef __SYS_TRY_H
+#define __SYS_TRY_H
 
 #include <_cmndef.h>
 #ifndef __DISKIMAGE__
@@ -68,4 +68,4 @@ typedef _Errno_t errno_t;
 
 __CPP_END
 
-#endif /* _KERN_TRY_H */
+#endif /* __SYS_TRY_H */
