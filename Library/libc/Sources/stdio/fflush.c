@@ -7,6 +7,7 @@
 //
 
 #include "Stream.h"
+#include <string.h>
 
 
 // Flushes the buffered data in stream 's'.
@@ -47,8 +48,37 @@ void __fdiscard(FILE * _Nonnull s)
 // - 's' is not NULL
 int __fflush(FILE * _Nonnull s)
 {
-    // XXX implement me
-    return 0;
+    if (s->flags.direction != __kStreamDirection_Out) {
+        // Ignore flush requests on non-output streams
+        return 0;
+    }
+
+    const ssize_t nBytesWritten = s->cb.write((void*)s->context, s->buffer, s->bufferCount);
+    int r;
+
+    if (nBytesWritten > 0) {
+        s->flags.hasEof = 0;
+        r = 0;
+
+        if (nBytesWritten < s->bufferCount) {
+            // flush was partially successful
+            s->bufferCount = s->bufferCount - nBytesWritten;
+            memmove(s->buffer, &s->buffer[nBytesWritten], s->bufferCount);
+        }
+        else {
+            s->bufferCount = 0;
+        }
+    }
+    else if (nBytesWritten == 0) {
+        s->flags.hasEof = 1;
+        r = EOF;
+    }
+    else {
+        s->flags.hasError = 1;
+        r = EOF;
+    }
+    
+    return r;
 }
 
 int fflush(FILE *s)

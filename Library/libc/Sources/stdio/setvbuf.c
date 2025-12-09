@@ -14,6 +14,11 @@
 // - 's' is not NULL
 int __setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size)
 {
+    if (size >= __SSIZE_MAX) {
+        errno = EINVAL;
+        return EOF;
+    }
+    
     switch (mode) {
         case _IOFBF:
         case _IOLBF:

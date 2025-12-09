@@ -16,23 +16,55 @@
 // - 's' is byte-oriented
 int __fputc(int ch, FILE * _Nonnull s)
 {
-    __fensure_no_err(s);
-
-    unsigned char buf = (unsigned char)ch;
-    const ssize_t nBytesWritten = s->cb.write((void*)s->context, &buf, 1);
+    char bufMode = s->flags.bufferMode;
+    unsigned char ch8 = (unsigned char)ch;
     int r;
 
-    if (nBytesWritten > 0) {
+    __fensure_no_err(s);
+
+
+    if (bufMode > _IONBF) {
+        if (s->bufferCount == s->bufferCapacity) {
+            if (__fflush(s) == EOF) {
+                return EOF;
+            }
+        }
+        else if (ch8 == '\n' && bufMode == _IOLBF) {
+            // Put the newline into the buffer if possible so that we can flush
+            // the line together with its terminating \n in one go. That way a
+            // line-based reader can pick up the whole line quicker.
+            const int doOpt = (s->bufferCount < s->bufferCapacity);
+
+            if (doOpt) s->buffer[s->bufferCount++] = '\n';
+            s->flags.hasEof = 0;
+
+            if (__fflush(s) == EOF) {
+                return EOF;
+            }
+
+            if (!doOpt) s->buffer[s->bufferCount++] = '\n';
+            return (int)ch8;
+        }
+        
+        s->buffer[s->bufferCount++] = ch8;
         s->flags.hasEof = 0;
-        r = (int)buf;
-    }
-    else if (nBytesWritten == 0) {
-        s->flags.hasEof = 1;
-        r = EOF;
+        r = (int)ch8;
     }
     else {
-        s->flags.hasError = 1;
-        r = EOF;
+        const ssize_t nBytesWritten = s->cb.write((void*)s->context, &ch8, 1);
+
+        if (nBytesWritten > 0) {
+            s->flags.hasEof = 0;
+            r = (int)ch8;
+        }
+        else if (nBytesWritten == 0) {
+            s->flags.hasEof = 1;
+            r = EOF;
+        }
+        else {
+            s->flags.hasError = 1;
+            r = EOF;
+        }
     }
 
     return r;

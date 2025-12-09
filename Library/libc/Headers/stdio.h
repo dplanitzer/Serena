@@ -78,7 +78,7 @@ typedef struct FILE {
     struct FILE* _Nullable      next;
     FILE_Callbacks              cb;
     void* _Nullable             context;
-    char* _Nullable             buffer;
+    unsigned char* _Nullable    buffer;
     ssize_t                     bufferCapacity;
     ssize_t                     bufferCount;
     ssize_t                     bufferIndex;

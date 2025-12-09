@@ -20,6 +20,11 @@ size_t fwrite(const void *buffer, size_t size, size_t count, FILE *s)
     __fensure_byte_oriented(s);
     __fensure_direction(s, __kStreamDirection_Out);
 
+    //XXX add support for buffering
+    if (s->flags.bufferMode > _IONBF) {
+        __fflush(s);
+    }
+    
     const size_t nBytesToWrite = size * count;
     const ssize_t nBytesWritten = s->cb.write((void*)s->context, buffer, nBytesToWrite);
     size_t r;
