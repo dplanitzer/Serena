@@ -61,9 +61,7 @@ typedef struct Formatter {
     if (__self) (__self)->stream = NULL
 
 
-#define FMTRES_EOF  -1
-#define FMTRES_ERR  -2
-
+// Returns the number of characters written on success; EOF otherwise
 extern int __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap);
 
 #endif  /* Formatter_h */

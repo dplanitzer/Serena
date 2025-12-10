@@ -14,11 +14,10 @@
 // - 's' direction is out
 // - 's' is writeable
 // - 's' is byte-oriented
-// Returns the number of bytes written on success; 0 on EOF; < 0 on error
+// Returns the number of bytes written on success; < 0 on error
 ssize_t __fputc(char ch, FILE * _Nonnull s)
 {
     char bufMode = s->flags.bufferMode;
-    ssize_t r;
 
 
     if (bufMode == _IONBF) {
@@ -33,16 +32,16 @@ ssize_t __fputc(char ch, FILE * _Nonnull s)
 
         if (doOpt) s->buffer[s->bufferCount++] = '\n';
 
-        if ((r = __fflush(s)) != kFlush_Ok) {
-            return r;
+        if (__fflush(s) == EOF) {
+            return -1;
         }
 
         if (!doOpt) s->buffer[s->bufferCount++] = '\n';
         return 1;
     }
     else if (s->bufferCount == s->bufferCapacity) {
-        if ((r = __fflush(s)) != kFlush_Ok) {
-            return r;
+        if (__fflush(s) == EOF) {
+            return -1;
         }
     }
 
@@ -63,10 +62,6 @@ int fputc(int ch, FILE *s)
 
     if (r == 1) {
         return (int)ch8;
-    }
-    else if (r == 0) {
-        s->flags.hasEof = 1;
-        return EOF;
     }
     else {
         s->flags.hasError = 1;

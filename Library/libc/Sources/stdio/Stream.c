@@ -205,11 +205,11 @@ int __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, const FI
 // Shuts down the given stream but does not free the 's' memory block. 
 int __fclose(FILE * _Nonnull s)
 {
-    const flush_res_t r1 = __fflush(s);
+    const int r1 = __fflush(s);
     const int r2 = (s->cb.close) ? s->cb.close((void*)s->context) : 0;
 
     __setvbuf(s, NULL, _IONBF, 0);
     __deregister_open_file(s);
     
-    return (r1 == kFlush_Ok && r2 == 0) ? 0 : EOF;
+    return (r1 == 0 && r2 == 0) ? 0 : EOF;
 }

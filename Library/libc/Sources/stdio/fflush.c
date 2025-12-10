@@ -9,14 +9,12 @@
 #include "Stream.h"
 #include <string.h>
 
-static int _fflush(FILE* _Nonnull s);
-
 
 // Flushes the buffered data in stream 's'.
 // Expects:
 // - 's' is not NULL
 // - 'dir' is different from the current stream direction
-int _fsetdir(FILE * _Nonnull s, int dir)
+int __fsetdir(FILE * _Nonnull s, int dir)
 {
     int r = 0;
 
@@ -30,7 +28,7 @@ int _fsetdir(FILE * _Nonnull s, int dir)
             break;
 
         case __kStreamDirection_Out:
-            r = _fflush(s);
+            r = __fflush(s);
             break;
     }
 
@@ -48,61 +46,32 @@ void __fdiscard(FILE * _Nonnull s)
 // Flushes the buffered data in stream 's'.
 // Expects:
 // - 's' is not NULL
-// - 's' direction is out
-// Returns the flush result code
-flush_res_t __fflush(FILE * _Nonnull s)
+// Returns EOF on error; 0 on success or when it didn't do anything
+int __fflush(FILE * _Nonnull s)
 {
-    if (s->bufferCount == 0) {
-        return kFlush_Ok;
+    if (s->flags.direction != __kStreamDirection_Out || s->bufferCount == 0) {
+        return 0;
     }
 
     const ssize_t nBytesWritten = s->cb.write((void*)s->context, s->buffer, s->bufferCount);
-    if (nBytesWritten > 0) {
-        if (nBytesWritten < s->bufferCount) {
-            // flush was partially successful
-            s->bufferCount = s->bufferCount - nBytesWritten;
-            memmove(s->buffer, &s->buffer[nBytesWritten], s->bufferCount);
-        }
-        else {
-            s->bufferCount = 0;
-        }
-        return kFlush_Ok;
+    if (nBytesWritten < 0) {
+        return EOF;
     }
-    else if (nBytesWritten == 0) {
-        return kFlush_Eof;
-    }
-    else {
-        return kFlush_Error;
-    }
-}
 
-static int _fflush(FILE* _Nonnull s)
-{
-    if (s->flags.direction == __kStreamDirection_Out) {
-        switch (__fflush(s)) {
-            case kFlush_Ok:
-                return 0;
-
-            case kFlush_Eof:
-                s->flags.hasEof = 1;
-                return EOF;
-
-            case kFlush_Error:
-                s->flags.hasError = 1;
-                return EOF;
-        }
+    s->bufferCount -= nBytesWritten;
+    if (s->bufferCount > 0) {
+        // flush was partially successful
+        memmove(s->buffer, &s->buffer[nBytesWritten], s->bufferCount);
     }
-    else {
-        return 0;
-    }
+    return 0;
 }
 
 int fflush(FILE *s)
 {
     if (s) {
-        return _fflush(s);
+        return __fflush(s);
     }
     else {
-        return __iterate_open_files(_fflush);
+        return __iterate_open_files(__fflush);
     }
 }

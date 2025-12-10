@@ -40,10 +40,6 @@ int vfprintf(FILE *s, const char *format, va_list ap)
     if (r >= 0) {
         return r;
     }
-    else if (r == FMTRES_EOF) {
-        s->flags.hasEof = 1;
-        return EOF;
-    }
     else {
         s->flags.hasError = 1;
         return EOF;

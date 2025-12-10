@@ -36,12 +36,8 @@ int fputs(const char *str, FILE *s)
         str++;
     }
 
-    if (nCharsWritten > 0) {
+    if (nCharsWritten >= 0) {
         return (int)nCharsWritten;
-    }
-    else if (r == 0) {
-        s->flags.hasEof = 1;
-        return EOF;
     }
     else {
         s->flags.hasError = 1;
