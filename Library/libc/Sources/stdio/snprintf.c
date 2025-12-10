@@ -53,18 +53,16 @@ int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
 
     __Formatter_Init(&fmt, &file.super);
     r = __Formatter_vFormat(&fmt, format, ap);
-    if (hasBuffer && r >= 0) {
-        buffer[r] = '\0';
-    }
     __Formatter_Deinit(&fmt);
     __fclose(&file.super);
 
-    if (r < 0) {
-        errno = -r;
+    if (r >= 0) {
         if (hasBuffer) {
-            buffer[0] = '\0';
+            buffer[r] = '\0';
         }
+        return r;
     }
-
-    return r;
+    else {
+        return EOF;
+    }
 }

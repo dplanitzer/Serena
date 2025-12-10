@@ -47,16 +47,22 @@ typedef struct ConversionSpec {
 typedef struct Formatter {
     FILE* _Nonnull  stream;
     size_t          charactersWritten;
+    ssize_t         res;
     i64a_t          i64a;
 } Formatter;
 
 
 #define __Formatter_Init(__self, __s) \
     (__self)->stream = __s; \
-    (__self)->charactersWritten = 0
+    (__self)->charactersWritten = 0; \
+    (__self)->res = 1
 
 #define __Formatter_Deinit(__self) \
     if (__self) (__self)->stream = NULL
+
+
+#define FMTRES_EOF  -1
+#define FMTRES_ERR  -2
 
 extern int __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap);
 

@@ -15,9 +15,13 @@
 
 static void Formatter_WriteChar(FormatterRef _Nonnull self, char ch)
 {
-    if (__fputc(ch, self->stream) != EOF) {
-        self->charactersWritten++;
-    }
+    if (self->res > 0) {
+        self->res = __fputc(ch, self->stream);
+
+        if (self->res == 1) {
+            self->charactersWritten++;
+        }
+     }
 }
 
 static void Formatter_WriteString(FormatterRef _Nonnull self, const char * _Nonnull str)
@@ -27,13 +31,17 @@ static void Formatter_WriteString(FormatterRef _Nonnull self, const char * _Nonn
     for (;;) {
         const char ch = *str++;
 
-        if (ch == '\0' || __fputc(ch, self->stream) == EOF) {
+        if (ch == '\0') {
             break;
         }
 
-        i++;
-     }
-     self->charactersWritten += i;
+        Formatter_WriteChar(self, ch);
+        if (self->res <= 0) {
+            break;
+        }
+
+        self->charactersWritten++;
+    }
 }
 
 static void Formatter_WriteStringPrefix(FormatterRef _Nonnull self, const char * _Nonnull str, size_t maxChars)
@@ -43,12 +51,17 @@ static void Formatter_WriteStringPrefix(FormatterRef _Nonnull self, const char *
     for (;;) {
         const char ch = *str++;
         
-        if (ch == '\0' || __fputc(ch, self->stream) == EOF) {
+        if (ch == '\0') {
             break;
         }
 
+        Formatter_WriteChar(self, ch);
+        if (self->res <= 0) {
+             break;
+        }
+
         i++;
-        if (i > maxChars) {
+        if (i == maxChars) {
             break;
         }
     }
@@ -60,7 +73,8 @@ static void Formatter_WriteRepChar(FormatterRef _Nonnull self, char ch, int coun
     int i = 0;
 
     while(i < count) {
-        if (__fputc(ch, self->stream) == EOF) {
+        Formatter_WriteChar(self, ch);
+        if (self->res <= 0) {
             break;
         }
         i++;
@@ -461,7 +475,7 @@ int __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format,
 {
     ConversionSpec spec;
 
-    while (true) {
+    while (self->res > 0) {
         switch (*format) {
             case '\0':
                 return (self->charactersWritten > INT_MAX) ? INT_MAX : (int)self->charactersWritten;
@@ -483,9 +497,12 @@ int __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format,
                 }
                 break;
         }
-
-        if (ferror(self->stream)) {
-            return EOF;
-        }
     }
+
+    if (self->res == 0) {
+        return FMTRES_EOF;
+    }
+    else {
+        return FMTRES_ERR;
+     }
 }

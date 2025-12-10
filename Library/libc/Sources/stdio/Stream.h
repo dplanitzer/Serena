@@ -42,6 +42,12 @@ enum {
     __kStreamOrientation_Wide
 };
 
+typedef enum flush_res {
+    kFlush_Error = -1,
+    kFlush_Eof = 0,
+    kFlush_Ok = 1
+} flush_res_t;
+
 
 // FILE and subclassing:
 // FILE is the abstract base class of all stream classes. A caveat that subclassers
@@ -107,7 +113,7 @@ if ((__self)->flags.orientation == __kStreamOrientation_Wide) { \
 
 #define __fensure_direction(__self, dir) \
 if ((__self)->flags.direction != (dir)) { \
-    if (__fsetdir(__self, dir) == EOF) { \
+    if (_fsetdir(__self, dir) == EOF) { \
         return EOF; \
     } \
 }
@@ -141,10 +147,10 @@ if ((__self)->cb.seek == NULL) { \
 }
 
 extern int __fgetc(FILE * _Nonnull s);
-extern int __fputc(int ch, FILE * _Nonnull s);
-extern int __fsetdir(FILE * _Nonnull s, int dir);
+extern ssize_t __fputc(char ch, FILE * _Nonnull s);
+extern int _fsetdir(FILE * _Nonnull s, int dir);
 extern void __fdiscard(FILE * _Nonnull s);
-extern int __fflush(FILE* _Nonnull s);
+extern flush_res_t __fflush(FILE* _Nonnull s);
 extern int __setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size);
 extern int __fclose(FILE* _Nonnull s);
 

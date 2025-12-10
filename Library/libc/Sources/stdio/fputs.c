@@ -12,23 +12,39 @@
 
 int fputs(const char *str, FILE *s)
 {
-    int nCharsWritten = 0;
+    ssize_t nCharsWritten = 0;
+    ssize_t r;
 
     __fensure_no_err(s);
     __fensure_writeable(s);
     __fensure_byte_oriented(s);
     __fensure_direction(s, __kStreamDirection_Out);
 
-    while (*str != '\0') {
-        const int r = __fputc(*str++, s);
-
-        if (r == EOF) {
-            return EOF;
+    for (;;) {
+        const char ch = *str;
+ 
+        if (ch == '\0' || nCharsWritten == INT_MAX) {
+            break;
+        }
+ 
+        r = __fputc(ch, s);
+        if (r <= 0) {
+            break;
         }
 
-        if (nCharsWritten < INT_MAX) {
-            nCharsWritten++;
-        }
+        nCharsWritten++;
+        str++;
     }
-    return nCharsWritten;
+
+    if (nCharsWritten > 0) {
+        return (int)nCharsWritten;
+    }
+    else if (r == 0) {
+        s->flags.hasEof = 1;
+        return EOF;
+    }
+    else {
+        s->flags.hasError = 1;
+        return EOF;
+    }
 }

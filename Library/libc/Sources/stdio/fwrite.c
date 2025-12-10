@@ -21,6 +21,15 @@ ssize_t __fwrite(FILE * _Nonnull _Restrict s, const void * _Restrict buffer, ssi
         return 0;
     }
 
+    //XXX add support for buffering
+    if (s->flags.bufferMode > _IONBF) {
+        const flush_res_t r = __fflush(s);
+
+        if (r != kFlush_Ok) {
+            return r;
+        }
+    }
+
     return s->cb.write((void*)s->context, buffer, nbytes);
 }
 
@@ -33,11 +42,6 @@ size_t fwrite(const void * _Restrict buffer, size_t size, size_t count, FILE * _
 
     if (size == 0 || count == 0) {
         return 0;
-    }
-
-    //XXX add support for buffering
-    if (s->flags.bufferMode > _IONBF) {
-        __fflush(s);
     }
 
 

@@ -85,6 +85,7 @@ int Shell_RunContentsOfString(ShellRef _Nonnull self, const char* _Nonnull str)
 {
     Script* script = Script_Create();
 
+    errno = 0;
     _Shell_ExecuteString(self, str, script, false);
 
     Script_Destroy(script);
@@ -95,6 +96,7 @@ int Shell_RunContentsOfFile(ShellRef _Nonnull self, const char* _Nonnull path)
 {
     char* text = NULL;
 
+    errno = 0;
     Script* script = Script_Create();
     if (read_contents_of_file(path, &text, NULL) == 0) {
         _Shell_ExecuteString(self, text, script, false);

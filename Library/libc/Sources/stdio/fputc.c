@@ -14,68 +14,62 @@
 // - 's' direction is out
 // - 's' is writeable
 // - 's' is byte-oriented
-int __fputc(int ch, FILE * _Nonnull s)
+// Returns the number of bytes written on success; 0 on EOF; < 0 on error
+ssize_t __fputc(char ch, FILE * _Nonnull s)
 {
     char bufMode = s->flags.bufferMode;
-    unsigned char ch8 = (unsigned char)ch;
-    int r;
-
-    __fensure_no_err(s);
+    ssize_t r;
 
 
-    if (bufMode > _IONBF) {
-        if (s->bufferCount == s->bufferCapacity) {
-            if (__fflush(s) == EOF) {
-                return EOF;
-            }
-        }
-        else if (ch8 == '\n' && bufMode == _IOLBF) {
-            // Put the newline into the buffer if possible so that we can flush
-            // the line together with its terminating \n in one go. That way a
-            // line-based reader can pick up the whole line quicker.
-            const int doOpt = (s->bufferCount < s->bufferCapacity);
-
-            if (doOpt) s->buffer[s->bufferCount++] = '\n';
-            s->flags.hasEof = 0;
-
-            if (__fflush(s) == EOF) {
-                return EOF;
-            }
-
-            if (!doOpt) s->buffer[s->bufferCount++] = '\n';
-            return (int)ch8;
-        }
-        
-        s->buffer[s->bufferCount++] = ch8;
-        s->flags.hasEof = 0;
-        r = (int)ch8;
+    if (bufMode == _IONBF) {
+        return s->cb.write((void*)s->context, &ch, 1);
     }
-    else {
-        const ssize_t nBytesWritten = s->cb.write((void*)s->context, &ch8, 1);
 
-        if (nBytesWritten > 0) {
-            s->flags.hasEof = 0;
-            r = (int)ch8;
+    if (ch == '\n' && bufMode == _IOLBF) {
+        // Put the newline into the buffer if possible so that we can flush
+        // the line together with its terminating \n in one go. That way a
+        // line-based reader can pick up the whole line quicker.
+        const int doOpt = (s->bufferCount < s->bufferCapacity);
+
+        if (doOpt) s->buffer[s->bufferCount++] = '\n';
+
+        if ((r = __fflush(s)) != kFlush_Ok) {
+            return r;
         }
-        else if (nBytesWritten == 0) {
-            s->flags.hasEof = 1;
-            r = EOF;
-        }
-        else {
-            s->flags.hasError = 1;
-            r = EOF;
+
+        if (!doOpt) s->buffer[s->bufferCount++] = '\n';
+        return 1;
+    }
+    else if (s->bufferCount == s->bufferCapacity) {
+        if ((r = __fflush(s)) != kFlush_Ok) {
+            return r;
         }
     }
 
-    return r;
+    s->buffer[s->bufferCount++] = ch;
+    return 1;
 }
 
 int fputc(int ch, FILE *s)
 {
+    const char ch8 = (const unsigned char)ch;
+
     __fensure_no_err(s);
     __fensure_writeable(s);
     __fensure_byte_oriented(s);
     __fensure_direction(s, __kStreamDirection_Out);
 
-    return __fputc(ch, s);
+    const ssize_t r = __fputc(ch8, s);
+
+    if (r == 1) {
+        return (int)ch8;
+    }
+    else if (r == 0) {
+        s->flags.hasEof = 1;
+        return EOF;
+    }
+    else {
+        s->flags.hasError = 1;
+        return EOF;
+    }
 }

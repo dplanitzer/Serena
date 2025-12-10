@@ -55,22 +55,24 @@ int vasprintf(char **str_ptr, const char *format, va_list ap)
     }
 
     __Formatter_Init(&fmt, &file.super);
-    r = __Formatter_vFormat(&fmt, format, ap);
-    putc('\0', &file.super);
+    const int r1 = __Formatter_vFormat(&fmt, format, ap);
+    const int r2 = __fputc('\0', &file.super);
     __Formatter_Deinit(&fmt);
     filemem(&file.super, &mq);
     __fclose(&file.super);
 
-    if (str_ptr) {
-        if (r >= 0) {
+    if (r1 >= 0 && r2 >= 0) {
+        if (str_ptr) {
             *str_ptr = mq.base;
         }
-        else {
-            // We told the stream to not free the memory block. Thus we need to free
-            // it if we encountered an error
+        return r1;
+    }
+    else {
+        // We told the stream to not free the memory block. Thus we need to free
+        // it if we encountered an error
+        if (str_ptr) {
             free(mq.base);
         }
+        return EOF;
     }
-    
-    return r;
 }

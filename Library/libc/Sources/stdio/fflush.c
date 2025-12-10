@@ -9,12 +9,14 @@
 #include "Stream.h"
 #include <string.h>
 
+static int _fflush(FILE* _Nonnull s);
+
 
 // Flushes the buffered data in stream 's'.
 // Expects:
 // - 's' is not NULL
 // - 'dir' is different from the current stream direction
-int __fsetdir(FILE * _Nonnull s, int dir)
+int _fsetdir(FILE * _Nonnull s, int dir)
 {
     int r = 0;
 
@@ -28,7 +30,7 @@ int __fsetdir(FILE * _Nonnull s, int dir)
             break;
 
         case __kStreamDirection_Out:
-            r = __fflush(s);
+            r = _fflush(s);
             break;
     }
 
@@ -46,20 +48,16 @@ void __fdiscard(FILE * _Nonnull s)
 // Flushes the buffered data in stream 's'.
 // Expects:
 // - 's' is not NULL
-int __fflush(FILE * _Nonnull s)
+// - 's' direction is out
+// Returns the flush result code
+flush_res_t __fflush(FILE * _Nonnull s)
 {
-    if (s->flags.direction != __kStreamDirection_Out) {
-        // Ignore flush requests on non-output streams
-        return 0;
+    if (s->bufferCount == 0) {
+        return kFlush_Ok;
     }
 
     const ssize_t nBytesWritten = s->cb.write((void*)s->context, s->buffer, s->bufferCount);
-    int r;
-
     if (nBytesWritten > 0) {
-        s->flags.hasEof = 0;
-        r = 0;
-
         if (nBytesWritten < s->bufferCount) {
             // flush was partially successful
             s->bufferCount = s->bufferCount - nBytesWritten;
@@ -68,25 +66,43 @@ int __fflush(FILE * _Nonnull s)
         else {
             s->bufferCount = 0;
         }
+        return kFlush_Ok;
     }
     else if (nBytesWritten == 0) {
-        s->flags.hasEof = 1;
-        r = EOF;
+        return kFlush_Eof;
     }
     else {
-        s->flags.hasError = 1;
-        r = EOF;
+        return kFlush_Error;
     }
-    
-    return r;
+}
+
+static int _fflush(FILE* _Nonnull s)
+{
+    if (s->flags.direction == __kStreamDirection_Out) {
+        switch (__fflush(s)) {
+            case kFlush_Ok:
+                return 0;
+
+            case kFlush_Eof:
+                s->flags.hasEof = 1;
+                return EOF;
+
+            case kFlush_Error:
+                s->flags.hasError = 1;
+                return EOF;
+        }
+    }
+    else {
+        return 0;
+    }
 }
 
 int fflush(FILE *s)
 {
     if (s) {
-        return __fflush(s);
+        return _fflush(s);
     }
     else {
-        return __iterate_open_files(__fflush);
+        return __iterate_open_files(_fflush);
     }
 }

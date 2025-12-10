@@ -37,5 +37,15 @@ int vfprintf(FILE *s, const char *format, va_list ap)
     const int r = __Formatter_vFormat(&fmt, format, ap);
     __Formatter_Deinit(&fmt);
 
-    return r;
+    if (r >= 0) {
+        return r;
+    }
+    else if (r == FMTRES_EOF) {
+        s->flags.hasEof = 1;
+        return EOF;
+    }
+    else {
+        s->flags.hasError = 1;
+        return EOF;
+    }
 }
