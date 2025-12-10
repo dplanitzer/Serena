@@ -21,25 +21,7 @@ ssize_t __fwrite(FILE * _Nonnull _Restrict s, const void * _Restrict buffer, ssi
         return 0;
     }
 
-    __fensure_no_err(s);
-
-    const ssize_t nBytesWritten = s->cb.write((void*)s->context, buffer, nbytes);
-    ssize_t r;
-
-    if (nBytesWritten > 0) {
-        s->flags.hasEof = 0;
-        r = nBytesWritten;
-    }
-    else if (nBytesWritten == 0) {
-        s->flags.hasEof = 1;
-        r = EOF;
-    }
-    else {
-        s->flags.hasError = 1;
-        r = EOF;
-    }
-
-    return r;
+    return s->cb.write((void*)s->context, buffer, nbytes);
 }
 
 size_t fwrite(const void * _Restrict buffer, size_t size, size_t count, FILE * _Restrict s)
@@ -62,13 +44,12 @@ size_t fwrite(const void * _Restrict buffer, size_t size, size_t count, FILE * _
     const char* src = buffer;
     uint64_t nBytesToWrite = (uint64_t)size * (uint64_t)count;
     uint64_t nBytesWritten = 0;
+    ssize_t r;
 
     while (nBytesToWrite > 0) {
-        ssize_t nbytes = (ssize_t)__min(nBytesToWrite, (uint64_t)__SSIZE_MAX);
-        const ssize_t r = __fwrite(s, src, nbytes);
-
-        if (r == EOF) {
-            return EOF;
+        r = __fwrite(s, src, (ssize_t)__min(nBytesToWrite, (uint64_t)__SSIZE_MAX));
+        if (r <= 0) {
+            break;
         }
 
         nBytesToWrite -= (uint64_t)r;
@@ -76,5 +57,15 @@ size_t fwrite(const void * _Restrict buffer, size_t size, size_t count, FILE * _
         src += r;
     }
 
-    return nBytesWritten / (uint64_t)size;
+    if (nBytesWritten > 0ull) {
+        return nBytesWritten / (uint64_t)size;
+    }
+    else if (r == 0) {
+        s->flags.hasEof = 1;
+        return EOF;
+    }
+    else {
+        s->flags.hasError = 1;
+        return EOF;
+    }
 }

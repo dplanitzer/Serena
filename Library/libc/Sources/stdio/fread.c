@@ -53,7 +53,7 @@ size_t fread(void * _Restrict buffer, size_t size, size_t count, FILE * _Restric
     }
 
 
-    if (nBytesRead > 0) {
+    if (nBytesRead > 0ull) {
         return nBytesRead / (uint64_t)size;
     }
     else if (r == 0) {
