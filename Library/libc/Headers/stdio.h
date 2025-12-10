@@ -146,7 +146,7 @@ extern int fputc(int ch, FILE *s);
 extern int fputs(const char *str, FILE *s);
 extern int ungetc(int ch, FILE *s);
 
-extern size_t fread(void *buffer, size_t size, size_t count, FILE *s);
+extern size_t fread(void * _Restrict buffer, size_t size, size_t count, FILE * _Restrict s);
 extern size_t fwrite(const void * _Restrict buffer, size_t size, size_t count, FILE * _Restrict s);
 
 extern int fflush(FILE *s);

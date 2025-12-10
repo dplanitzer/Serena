@@ -12,7 +12,7 @@
 // Expects:
 // - 's' is not NULL
 // - 's' is readable
-// - 's' direction is read
+// - 's' direction is in
 // - 's' is byte-oriented
 int __fgetc(FILE * _Nonnull s)
 {

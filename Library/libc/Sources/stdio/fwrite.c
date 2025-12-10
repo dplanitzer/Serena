@@ -9,6 +9,7 @@
 #include "Stream.h"
 #include <_math.h>
 
+
 // Expects:
 // - 's' is not NULL
 // - 's' direction is out
