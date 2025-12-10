@@ -6,13 +6,26 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 
-void Assert(const char* _Nonnull pFuncName, int lineNum, const char* _Nonnull expr)
+static void vAssert(const char* _Nonnull pFuncName, int lineNum, const char* _Nonnull fmt, va_list ap)
 {
-    printf("%s:%d: Assertion failed: %s.\n", pFuncName, lineNum, expr);
+    printf("%s:%d: Assertion failed: ", pFuncName, lineNum);
+    vprintf(fmt, ap);
+    puts(".");
+    while (true);
+}
+
+void Assert(const char* _Nonnull pFuncName, int lineNum, const char* _Nonnull fmt, ...)
+{
+    va_list ap;
+    
+    va_start(ap, fmt);
+    vAssert(pFuncName, lineNum, fmt, ap);
+    va_end(ap);
     while (true);
 }

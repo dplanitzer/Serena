@@ -11,7 +11,7 @@
 
 // Expects:
 // - 's' is not NULL
-// - 's' direction is write
+// - 's' direction is out
 // - 's' is writeable
 // - 's' is byte-oriented
 int __fputc(int ch, FILE * _Nonnull s)

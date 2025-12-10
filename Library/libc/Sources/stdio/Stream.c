@@ -131,22 +131,16 @@ int __fopen_parse_mode(const char* _Nonnull mode, __FILE_Mode* _Nonnull pOutMode
 
 
     // Modifier
-    if (*mode == '+') {
-        sm |= (__kStreamMode_Read | __kStreamMode_Write);
-        mode++;
-    }
-
-
-    // Any Order Modifiers
     while (*mode != '\0') {
         switch (*mode) {
             case 'x':   sm |= __kStreamMode_Exclusive; break;
             case 'b':   sm |= __kStreamMode_Binary; break;
             case 't':   sm |= __kStreamMode_Text; break;
+            case '+':   sm |= (__kStreamMode_Read | __kStreamMode_Write); break;
             default:    break;
         }
         mode++;
-    } 
+    }
 
 
     if ((sm & (__kStreamMode_Read|__kStreamMode_Write)) == 0) {

@@ -93,7 +93,7 @@ long long _modsint64_060(long long dividend, long long divisor)
     return rem;
 }
 
-unsigned long long _divuint64_20(unsigned long long dividend, unsigned long long divisor)
+unsigned long long _divuint64_020(unsigned long long dividend, unsigned long long divisor)
 {
     long long quo;
     
@@ -102,7 +102,7 @@ unsigned long long _divuint64_20(unsigned long long dividend, unsigned long long
     return (unsigned long long) quo;
 }
 
-unsigned long long _moduint64_20(unsigned long long dividend, unsigned long long divisor)
+unsigned long long _moduint64_020(unsigned long long dividend, unsigned long long divisor)
 {
     long long quo, rem;
     

@@ -152,7 +152,7 @@ static int type_text(const char* _Nonnull path)
             break;
         }
 
-        fwrite(text_buf, 1, nBytesRead, stdout);
+        fwrite(text_buf, nBytesRead, 1, stdout);
         if (feof(stdout) || (hasError = ferror(stdout))) {
             break;
         }
