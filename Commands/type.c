@@ -99,24 +99,20 @@ static void format_hex_line(size_t addr, const uint8_t* buf, size_t nbytes, size
 static int type_hex(const char* _Nonnull path)
 {
     FILE* s = fopen(path, "rb");
-    size_t nBytesRead;
     size_t addr = 0;
-    int hasError = 0;
     
     if (s == NULL) {
         return EOF;
     }
 
     for (;;) {
-        nBytesRead = fread(hex_col_buf, 1, sizeof(hex_col_buf), s);
-        if (feof(s) || (hasError = ferror(s))) {
+        const size_t nread = fread(hex_col_buf, 1, sizeof(hex_col_buf), s);
+        if (nread == 0) {
             break;
         }
 
-        format_hex_line(addr, hex_col_buf, nBytesRead, sizeof(hex_col_buf), hex_line_buf);
-        fwrite(hex_line_buf, sizeof(hex_line_buf), 1, stdout);
-        if (ferror(stdout)) {
-            hasError = true;
+        format_hex_line(addr, hex_col_buf, nread, sizeof(hex_col_buf), hex_line_buf);
+        if (fwrite(hex_line_buf, sizeof(hex_line_buf), 1, stdout) != 1) {
             break;
         }
 
@@ -130,30 +126,28 @@ static int type_hex(const char* _Nonnull path)
         }
 #endif
     }
+    const int r0 = ferror(s);
+    const int r1 = ferror(stdout);
     fclose(s);
 
-    return (hasError) ? EOF : 0;
+    return (r0 == 0 && r1 == 0) ? 0 : EOF;
 }
 
 static int type_text(const char* _Nonnull path)
 {
     FILE* s = fopen(path, "r");
-    size_t nBytesRead;
-    int hasError = 0;
     
     if (s == NULL) {
         return EOF;
     }
 
     for (;;) {
-        nBytesRead = fread(text_buf, 1, sizeof(text_buf), s);
-        if (feof(s) || (hasError = ferror(s))) {
+        const size_t nread = fread(text_buf, 1, sizeof(text_buf), s);
+        if (nread == 0) {
             break;
         }
 
-        fwrite(text_buf, nBytesRead, 1, stdout);
-        if (ferror(stdout)) {
-            hasError = true;
+        if (fwrite(text_buf, nread, 1, stdout) != 1) {
             break;
         }
 
@@ -167,9 +161,11 @@ static int type_text(const char* _Nonnull path)
 #endif
     }
     fputc('\n', stdout);
+    const int r0 = ferror(s);
+    const int r1 = ferror(stdout);
     fclose(s);
 
-    return (hasError) ? EOF : 0;
+    return (r0 == 0 && r1 == 0) ? 0 : EOF;
 }
 
 
