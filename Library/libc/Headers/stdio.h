@@ -127,11 +127,15 @@ extern void clearerr(FILE *s);
 extern int feof(FILE *s);
 extern int ferror(FILE *s);
 
+extern off_t ftello(FILE *s);
 extern long ftell(FILE *s);
-extern int fseek(FILE *s, long offset, int whence);
+
 extern int fseeko(FILE *s, off_t offset, int whence);
+extern int fseek(FILE *s, long offset, int whence);
+
 extern int fgetpos(FILE *s, fpos_t *pos);
 extern int fsetpos(FILE *s, const fpos_t *pos);
+
 extern void rewind(FILE *s);
 
 extern ssize_t getline(char **line, size_t *n, FILE *s);

@@ -16,25 +16,24 @@
 // Expects:
 // - 's' is not NULL
 // - 's' is seekable
-static long long __fgetlogicalpos(FILE * _Nonnull s)
+off_t __fgetlogicalpos(FILE * _Nonnull s)
 {
-    const long long phys_pos = s->cb.seek((void*)s->context, 0ll, SEEK_CUR);
+    const off_t phys_pos = s->cb.seek(s->context, 0ll, SEEK_CUR);
 
     if (phys_pos >= 0ll) {
         if (s->flags.bufferMode > _IONBF && s->flags.direction != __kStreamDirection_Unknown) {
             if (s->flags.direction == __kStreamDirection_Out) {
-                return phys_pos + (long long)s->bufferCount;
+                return phys_pos + (off_t)s->bufferCount;
             }
             else {
-                return phys_pos - (long long)(s->bufferCount - s->bufferIndex);
+                return phys_pos - (off_t)(s->bufferCount - s->bufferIndex);
             }
         }
 
         return phys_pos;
     }
     else {
-        s->flags.hasError = 1;
-        return (long long)EOF;
+        return (off_t)EOF;
     }
 }
 
@@ -43,34 +42,14 @@ int fgetpos(FILE *s, fpos_t *pos)
 {
     __fensure_seekable(s, EOF);
 
-    const long long r = __fgetlogicalpos(s);
+    const off_t r = __fgetlogicalpos(s);
     if (r >= 0ll) {
         pos->offset = r;
         pos->mbstate = s->mbstate;
         return 0;
     }
     else {
+        s->flags.hasError = 1;
         return EOF;
     }
-}
-
-long ftell(FILE *s)
-{
-    __fensure_seekable(s, EOF);
-
-    const long long r = __fgetlogicalpos(s);
-    if (r < 0ll) {
-        return (long)EOF;
-    }
-
-#if __LONG_WIDTH == 64
-    return (long)r;
-#else
-    if (r > (long long)LONG_MAX) {
-        errno = ERANGE;
-        return EOF;
-    } else {
-        return (long)r;
-    }
-#endif
 }
