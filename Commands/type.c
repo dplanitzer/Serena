@@ -29,9 +29,7 @@
 #define HEX_LINE_BUF_SIZE (ADDR_WIDTH + 3 + 3*HEX_COLUMNS + 2 + HEX_COLUMNS + 1 + 1)
 static char hex_col_buf[HEX_COLUMNS];
 static char hex_line_buf[HEX_LINE_BUF_SIZE];
-
-#define TEXT_BUF_SIZE   512
-static char text_buf[TEXT_BUF_SIZE];
+static char text_buf[BUFSIZ];
 
 
 static bool should_quit(void)
@@ -190,6 +188,9 @@ CLAP_DECL(params,
 
 static int do_type(const char* _Nonnull path, bool isHex)
 {
+    // Turn off buffering on stdout because we're doing our own buffering anyway
+    (void)setvbuf(stdout, NULL, _IONBF, 0);
+
     if (isHex) {
         return type_hex(path);
     }
