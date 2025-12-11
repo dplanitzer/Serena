@@ -9,8 +9,7 @@
 #include "Stream.h"
 
 
-
-int fseek(FILE *s, long offset, int whence)
+int fseeko(FILE *s, off_t offset, int whence)
 {
     switch (whence) {
         case SEEK_SET:
@@ -31,10 +30,13 @@ int fseek(FILE *s, long offset, int whence)
         s->flags.hasError = 1;
         return EOF;
     }
-    if (!(offset == 0ll && whence == SEEK_CUR)) {
-        s->flags.hasEof = 0;
-    }
+    s->flags.hasEof = 0;
     // XXX drop ungetc buffered stuff
 
     return 0;
+}
+
+int fseek(FILE *s, long offset, int whence)
+{
+    return fseeko(s, (off_t)offset, whence);
 }

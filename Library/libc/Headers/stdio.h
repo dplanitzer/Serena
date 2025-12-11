@@ -12,6 +12,7 @@
 #include <_cmndef.h>
 #include <_mbstate.h>
 #include <_null.h>
+#include <_off.h>
 #include <_size.h>
 #include <_ssize.h>
 #include <kpi/_seek.h>
@@ -128,6 +129,7 @@ extern int ferror(FILE *s);
 
 extern long ftell(FILE *s);
 extern int fseek(FILE *s, long offset, int whence);
+extern int fseeko(FILE *s, off_t offset, int whence);
 extern int fgetpos(FILE *s, fpos_t *pos);
 extern int fsetpos(FILE *s, const fpos_t *pos);
 extern void rewind(FILE *s);
@@ -138,7 +140,7 @@ extern ssize_t getdelim(char **line, size_t *n, int delimiter, FILE *s);
 extern int fgetc(FILE *s);
 #define getc(s) fgetc(s)
 
-extern char *fgets(char *str, int count, FILE *s);
+extern char * _Nonnull fgets(char * _Nonnull _Restrict str, int count, FILE * _Nonnull _Restrict s);
 
 extern int fputc(int ch, FILE *s);
 #define putc(ch, s) fputc(ch, s)

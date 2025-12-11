@@ -140,7 +140,7 @@ if ((__self)->cb.seek == NULL) { \
     return EOF; \
 }
 
-extern int __fgetc(FILE * _Nonnull s);
+extern ssize_t __fgetc(char* _Nonnull pch, FILE * _Nonnull sm);
 extern ssize_t __fputc(char ch, FILE * _Nonnull s);
 extern int __fsetdir(FILE * _Nonnull s, int dir);
 extern void __fdiscard(FILE * _Nonnull s);

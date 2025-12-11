@@ -9,42 +9,55 @@
 #include "Stream.h"
 
 
-char *fgets(char *str, int count, FILE *s)
+// Expects:
+// 'count' > 0
+static int _fgets(char* _Nonnull _Restrict str, int count, FILE* _Nonnull _Restrict s)
 {
     int nBytesToRead = count - 1;
     int nBytesRead = 0;
+    ssize_t r;
+    char ch;
 
     if (count < 1) {
         errno = EINVAL;
-        return NULL;
+        return EOF;
     }
 
-    if (s->flags.hasEof || s->flags.hasError) {
-        return NULL;
-    }
-    if ((s->flags.mode & __kStreamMode_Read) == 0) {
-        s->flags.hasError = 1;
-        return NULL;
-    }
-    if (s->flags.orientation == __kStreamOrientation_Wide) {
-        s->flags.hasError = 1;
-        return NULL;
-    }
+    __fensure_no_eof_err(s);
+    __fensure_readable(s);
+    __fensure_byte_oriented(s);
+    __fensure_direction(s, __kStreamDirection_In);
+
 
     while (nBytesToRead-- > 0) {
-        const int ch = __fgetc(s);
-
-        if (ch == EOF) {
+        r = __fgetc(&ch, s);
+        if (r <= 0) {
             break;
         }
 
-        str[nBytesRead++] = ch;
-
+        *str++ = ch;
+        nBytesRead++;
         if (ch == '\n') {
             break;
         }
     }
-    str[nBytesRead] = '\0';
+    *str = '\0';
 
-    return (s->flags.hasError || (s->flags.hasEof && nBytesRead == 0)) ? NULL : str;
+
+    if (nBytesRead > 0 || nBytesToRead == 0) {
+        return (int)nBytesRead;
+    }
+    else if (r == 0) {
+        s->flags.hasEof = 1;
+        return EOF;
+    }
+    else {
+        s->flags.hasError = 1;
+        return EOF;
+    }
+}
+
+char * _Nonnull fgets(char * _Nonnull _Restrict str, int count, FILE * _Nonnull _Restrict s)
+{
+    return (_fgets(str, count, s) != EOF) ? str : NULL;
 }

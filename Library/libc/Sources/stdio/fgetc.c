@@ -14,28 +14,9 @@
 // - 's' is readable
 // - 's' direction is in
 // - 's' is byte-oriented
-int __fgetc(FILE * _Nonnull s)
+ssize_t __fgetc(char* _Nonnull pch, FILE * _Nonnull s)
 {
-    __fensure_no_eof_err(s);
-
-    char buf;
-    ssize_t nBytesRead = s->cb.read((void*)s->context, &buf, 1);
-    int r;
-
-    if (nBytesRead > 0) {
-        s->flags.hasEof = 0;
-        r = (int)(unsigned char)buf;
-    }
-    else if (nBytesRead == 0) {
-        s->flags.hasEof = 1;
-        r = EOF;
-    }
-    else {
-        s->flags.hasError = 1;
-        r = EOF;
-    }
-
-    return r;
+    return s->cb.read((void*)s->context, pch, 1);
 }
 
 int fgetc(FILE *s)
@@ -45,5 +26,18 @@ int fgetc(FILE *s)
     __fensure_byte_oriented(s);
     __fensure_direction(s, __kStreamDirection_In);
 
-    return __fgetc(s);
+    char ch;
+    const ssize_t r = __fgetc(&ch, s);
+
+    if (r == 1) {
+        return (int)ch;
+    }
+    else if (r == 0) {
+        s->flags.hasEof = 1;
+        return EOF;
+    }
+    else {
+        s->flags.hasError = 1;
+        return EOF;
+    }
 }

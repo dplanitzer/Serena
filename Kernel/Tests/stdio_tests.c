@@ -26,7 +26,7 @@ void fopen_memory_fixed_size_test(int argc, char *argv[])
     mem.maximumCapacity = mem.initialCapacity;
     mem.options = 0;
 
-    FILE* fp = fopen_memory(&mem, "rw");
+    FILE* fp = fopen_memory(&mem, "r+");
     assertNotNULL(fp);
     assertNotEOF(fputs("Hello", fp));
     assertEOF(fgetc(fp));
@@ -51,7 +51,7 @@ void fopen_memory_variable_size_test(int argc, char *argv[])
     mem.maximumCapacity = 16;
     mem.options = 0;
 
-    FILE* fp = fopen_memory(&mem, "rw");
+    FILE* fp = fopen_memory(&mem, "r+");
     assertNotNULL(fp);
     assertNotEOF(fputs("Hello", fp));
     assertEOF(fgetc(fp));

@@ -21,7 +21,8 @@ ssize_t getdelim(char **line, size_t *n, int delimiter, FILE *s)
 {
     char* buf = *line;
     ssize_t bufSize = __min(*n, __SSIZE_MAX);
-    ssize_t i = 0;
+    ssize_t i = 0, r;
+    char ch;
 
     __fensure_no_eof_err(s);
     __fensure_readable(s);
@@ -29,15 +30,15 @@ ssize_t getdelim(char **line, size_t *n, int delimiter, FILE *s)
     __fensure_direction(s, __kStreamDirection_In);
 
     for (;;) {
-        const int ch = __fgetc(s);
+        r = __fgetc(&ch, s);
 
-        if (ch != EOF) {
+        if (r == 1) {
             if ((i == bufSize - 1) || (buf == NULL)) {
                 const size_t newBufSize = (bufSize > 0) ? bufSize * 2 : 160;
                 char* newBuf = realloc(buf, newBufSize);
 
                 if (newBuf == NULL) {
-                    i = -1;
+                    r = -1;
                     break;
                 }
 
@@ -48,7 +49,7 @@ ssize_t getdelim(char **line, size_t *n, int delimiter, FILE *s)
             buf[i++] = (char)ch;
         }
 
-        if (ch == delimiter || ch == EOF) {
+        if (ch == delimiter || r <= 0) {
             // Stashing the 0 in at the last buffer index is safe because (above)
             // we expand the buffer already when i == bufSize-1
             buf[i] = '\0';
@@ -56,12 +57,23 @@ ssize_t getdelim(char **line, size_t *n, int delimiter, FILE *s)
         }
     }
 
-    if (i == -1 && buf) {
+    if (r < 0 && buf) {
         *buf = '\0';
     }
 
     *line = buf;
     *n = bufSize;
 
-    return i;
+    
+    if (i > 0) {
+        return i;
+    }
+    else if (r == 0) {
+        s->flags.hasEof = 1;
+        return EOF;
+    }
+    else {
+        s->flags.hasError = 1;
+        return EOF;
+    }
 }
