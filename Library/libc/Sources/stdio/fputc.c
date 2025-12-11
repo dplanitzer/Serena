@@ -21,7 +21,7 @@ ssize_t __fputc(char ch, FILE * _Nonnull s)
 
 
     if (bufMode == _IONBF) {
-        return s->cb.write((void*)s->context, &ch, 1);
+        return s->cb.write(s->context, &ch, 1);
     }
 
     if (ch == '\n' && bufMode == _IOLBF) {

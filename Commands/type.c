@@ -98,24 +98,25 @@ static void format_hex_line(size_t addr, const uint8_t* buf, size_t nbytes, size
 
 static int type_hex(const char* _Nonnull path)
 {
-    FILE* fp = fopen(path, "rb");
+    FILE* s = fopen(path, "rb");
     size_t nBytesRead;
     size_t addr = 0;
     int hasError = 0;
     
-    if (fp == NULL) {
-        return -1;
+    if (s == NULL) {
+        return EOF;
     }
 
     for (;;) {
-        nBytesRead = fread(hex_col_buf, 1, sizeof(hex_col_buf), fp);
-        if (feof(fp) || (hasError = ferror(fp))) {
+        nBytesRead = fread(hex_col_buf, 1, sizeof(hex_col_buf), s);
+        if (feof(s) || (hasError = ferror(s))) {
             break;
         }
 
         format_hex_line(addr, hex_col_buf, nBytesRead, sizeof(hex_col_buf), hex_line_buf);
         fwrite(hex_line_buf, sizeof(hex_line_buf), 1, stdout);
-        if (feof(stdout) || (hasError = ferror(stdout))) {
+        if (ferror(stdout)) {
+            hasError = true;
             break;
         }
 
@@ -129,29 +130,30 @@ static int type_hex(const char* _Nonnull path)
         }
 #endif
     }
-    fclose(fp);
+    fclose(s);
 
-    return (hasError) ? -1 : 0;
+    return (hasError) ? EOF : 0;
 }
 
 static int type_text(const char* _Nonnull path)
 {
-    FILE* fp = fopen(path, "r");
+    FILE* s = fopen(path, "r");
     size_t nBytesRead;
     int hasError = 0;
     
-    if (fp == NULL) {
-        return -1;
+    if (s == NULL) {
+        return EOF;
     }
 
     for (;;) {
-        nBytesRead = fread(text_buf, 1, sizeof(text_buf), fp);
-        if (feof(fp) || (hasError = ferror(fp))) {
+        nBytesRead = fread(text_buf, 1, sizeof(text_buf), s);
+        if (feof(s) || (hasError = ferror(s))) {
             break;
         }
 
         fwrite(text_buf, nBytesRead, 1, stdout);
-        if (feof(stdout) || (hasError = ferror(stdout))) {
+        if (ferror(stdout)) {
+            hasError = true;
             break;
         }
 
@@ -165,9 +167,9 @@ static int type_text(const char* _Nonnull path)
 #endif
     }
     fputc('\n', stdout);
-    fclose(fp);
+    fclose(s);
 
-    return (hasError) ? -1 : 0;
+    return (hasError) ? EOF : 0;
 }
 
 

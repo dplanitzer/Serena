@@ -82,7 +82,7 @@ typedef struct FILE {
     unsigned char* _Nullable    buffer;
     ssize_t                     bufferCapacity;
     ssize_t                     bufferCount;
-    ssize_t                     bufferIndex;
+    ssize_t                     bufferIndex;    // Index of next character to return from the buffer
     mbstate_t                   mbstate;
     struct FILE_Flags {
         unsigned int mode:3;

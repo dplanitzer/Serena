@@ -21,8 +21,7 @@
 static ssize_t __fwrite_bf(FILE * _Nonnull _Restrict s, const void * _Restrict buffer, ssize_t nbytes)
 {
     const char* src = buffer;
-    ssize_t nwritten = 0;
-    ssize_t r;
+    ssize_t r, nwritten = 0;
 
     // Fill up the buffer as much as we can and then flush it
     if (s->bufferCount < s->bufferCapacity) {
@@ -48,7 +47,7 @@ static ssize_t __fwrite_bf(FILE * _Nonnull _Restrict s, const void * _Restrict b
     // buffer; otherwise we put the remainder into the buffer. We do a second
     // flush right away if we filled up the buffer again.
     if (nbytes > s->bufferCapacity) {
-        r = s->cb.write((void*)s->context, src, nbytes);
+        r = s->cb.write(s->context, src, nbytes);
         if (r >= 0) {
             return nwritten + r;
         }
@@ -114,7 +113,7 @@ ssize_t __fwrite(FILE * _Nonnull _Restrict s, const void * _Restrict buffer, ssi
 
     switch (s->flags.bufferMode) {
         case _IONBF:
-            return s->cb.write((void*)s->context, buffer, nbytes);
+            return s->cb.write(s->context, buffer, nbytes);
 
         case _IOLBF:
             return __fwrite_lbf(s, buffer, nbytes);

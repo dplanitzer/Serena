@@ -14,9 +14,24 @@
 // - 's' is readable
 // - 's' direction is in
 // - 's' is byte-oriented
+// Returns 1 on success; 0 on EOF; -1 on error
 ssize_t __fgetc(char* _Nonnull pch, FILE * _Nonnull s)
 {
-    return s->cb.read((void*)s->context, pch, 1);
+    if (s->flags.bufferMode == _IONBF) {
+        return s->cb.read(s->context, pch, 1);
+    }
+
+    // _IONBF or _IOLBF
+    if (s->bufferIndex == s->bufferCount) {
+        const ssize_t r = __ffill(s);
+
+        if (r <= 0) {
+            return r;
+        }
+    }
+
+    *pch = s->buffer[s->bufferIndex++];
+    return 1;
 }
 
 int fgetc(FILE *s)

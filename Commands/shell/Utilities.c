@@ -67,22 +67,22 @@ size_t hash_string(const char* _Nonnull str, size_t len)
 
 int read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull pOutText, size_t* _Nullable pOutLength)
 {
-    FILE* fp = fopen(path, "r");
+    FILE* s = fopen(path, "r");
 
-    if (fp == NULL) {
+    if (s == NULL) {
         return -1;
     }
 
-    fseek(fp, 0, SEEK_END);
-    const size_t fileSize = ftell(fp);
-    rewind(fp);
+    fseek(s, 0, SEEK_END);
+    const size_t fileSize = ftell(s);
+    rewind(s);
 
     char* text = malloc(fileSize + 1);
-    fread(text, fileSize, 1, fp);
+    fread(text, fileSize, 1, s);
     text[fileSize] = '\0';
-    fclose(fp);
+    fclose(s);
 
-    if (ferror(fp)) {
+    if (ferror(s)) {
         free(text);
         *pOutText = NULL;
         if (pOutLength) {

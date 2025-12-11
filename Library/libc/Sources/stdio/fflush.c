@@ -40,7 +40,30 @@ int __fsetdir(FILE * _Nonnull s, int dir)
 // - 's' is not NULL
 void __fdiscard(FILE * _Nonnull s)
 {
+    s->bufferIndex = 0;
     s->bufferCount = 0;
+}
+
+// Fills the buffer with data from stream 's'.
+// Expects:
+// - 's' is not NULL
+// - 's' direction is in
+// - buffer mode is _IOLBF or _IONBF (both modes are treated as _IOFBF for input purposes)
+// - buffer is empty
+// Returns 1 on success; 0 on EOF; -1 on error
+int __ffill(FILE * _Nonnull s)
+{
+    assert(s->bufferIndex == s->bufferCount);
+
+    const ssize_t r = s->cb.read(s->context, s->buffer, s->bufferCapacity);
+    if (r <= 0) {
+        return r;
+    }
+
+    s->bufferCount = r;
+    s->bufferIndex = 0;
+
+    return 1;
 }
 
 // Flushes the buffered data in stream 's'.
@@ -53,15 +76,15 @@ int __fflush(FILE * _Nonnull s)
         return 0;
     }
 
-    const ssize_t nBytesWritten = s->cb.write((void*)s->context, s->buffer, s->bufferCount);
-    if (nBytesWritten < 0) {
+    const ssize_t r = s->cb.write(s->context, s->buffer, s->bufferCount);
+    if (r < 0) {
         return EOF;
     }
 
-    s->bufferCount -= nBytesWritten;
+    s->bufferCount -= r;
     if (s->bufferCount > 0) {
         // flush was partially successful
-        memmove(s->buffer, &s->buffer[nBytesWritten], s->bufferCount);
+        memmove(s->buffer, &s->buffer[r], s->bufferCount);
     }
     return 0;
 }
