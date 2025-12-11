@@ -125,10 +125,10 @@ ssize_t __fwrite(FILE * _Nonnull _Restrict s, const void * _Restrict buffer, ssi
 
 size_t fwrite(const void * _Restrict buffer, size_t size, size_t count, FILE * _Restrict s)
 {
-    __fensure_no_err(s);
-    __fensure_writeable(s);
-    __fensure_byte_oriented(s);
-    __fensure_direction(s, __kStreamDirection_Out);
+    __fensure_no_err(s, 0);
+    __fensure_writeable(s, 0);
+    __fensure_byte_oriented(s, 0);
+    __fensure_direction(s, __kStreamDirection_Out, 0);
 
     if (size == 0 || count == 0) {
         return 0;
@@ -156,6 +156,6 @@ size_t fwrite(const void * _Restrict buffer, size_t size, size_t count, FILE * _
     }
     else {
         s->flags.hasError = 1;
-        return EOF;
+        return 0;
     }
 }

@@ -98,46 +98,46 @@ extern int __fopen_null_init(FILE* _Nonnull self, bool bFreeOnClose, __FILE_Mode
 
 extern FILE *__fopen_null(const char* mode);
 
-#define __fensure_byte_oriented(__self) \
+#define __fensure_byte_oriented(__self, __ret) \
 if ((__self)->flags.orientation == __kStreamOrientation_Wide) { \
     (__self)->flags.hasError = 1; \
-    return EOF; \
+    return __ret; \
 } \
 (__self)->flags.orientation = __kStreamOrientation_Byte;
 
-#define __fensure_direction(__self, dir) \
+#define __fensure_direction(__self, dir, __ret) \
 if ((__self)->flags.direction != (dir)) { \
     if (__fsetdir(__self, dir) == EOF) { \
-        return EOF; \
+        return __ret; \
     } \
 }
 
-#define __fensure_writeable(__self) \
+#define __fensure_writeable(__self, __ret) \
 if (((__self)->flags.mode & __kStreamMode_Write) == 0) { \
     (__self)->flags.hasError = 1; \
-    return EOF; \
+    return __ret; \
 }
 
-#define __fensure_readable(__self) \
+#define __fensure_readable(__self, __ret) \
 if (((__self)->flags.mode & __kStreamMode_Read) == 0) { \
     (__self)->flags.hasError = 1; \
-    return EOF; \
+    return __ret; \
 }
 
-#define __fensure_no_eof_err(__self) \
+#define __fensure_no_eof_err(__self, __ret) \
 if ((__self)->flags.hasEof || (__self)->flags.hasError) { \
-    return EOF; \
+    return __ret; \
 }
 
-#define __fensure_no_err(__self) \
+#define __fensure_no_err(__self, __ret) \
 if ((__self)->flags.hasError) { \
-    return EOF; \
+    return __ret; \
 }
 
-#define __fensure_seekable(__self) \
+#define __fensure_seekable(__self, __ret) \
 if ((__self)->cb.seek == NULL) { \
     errno = ESPIPE; \
-    return EOF; \
+    return __ret; \
 }
 
 extern ssize_t __fgetc(char* _Nonnull pch, FILE * _Nonnull sm);

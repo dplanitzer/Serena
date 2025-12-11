@@ -36,10 +36,10 @@ ssize_t __fgetc(char* _Nonnull pch, FILE * _Nonnull s)
 
 int fgetc(FILE *s)
 {
-    __fensure_no_eof_err(s);
-    __fensure_readable(s);
-    __fensure_byte_oriented(s);
-    __fensure_direction(s, __kStreamDirection_In);
+    __fensure_no_eof_err(s, EOF);
+    __fensure_readable(s, EOF);
+    __fensure_byte_oriented(s, EOF);
+    __fensure_direction(s, __kStreamDirection_In, EOF);
 
     char ch;
     const ssize_t r = __fgetc(&ch, s);

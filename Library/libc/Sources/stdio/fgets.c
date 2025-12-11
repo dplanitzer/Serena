@@ -9,24 +9,22 @@
 #include "Stream.h"
 
 
-// Expects:
-// 'count' > 0
-static int _fgets(char* _Nonnull _Restrict str, int count, FILE* _Nonnull _Restrict s)
+char * _Nonnull fgets(char * _Nonnull _Restrict str, int count, FILE * _Nonnull _Restrict s)
 {
     int nBytesToRead = count - 1;
     int nBytesRead = 0;
     ssize_t r;
     char ch;
 
+    __fensure_no_eof_err(s, NULL);
+    __fensure_readable(s, NULL);
+    __fensure_byte_oriented(s, NULL);
+    __fensure_direction(s, __kStreamDirection_In, NULL);
+
     if (count < 1) {
         errno = EINVAL;
-        return EOF;
+        return NULL;
     }
-
-    __fensure_no_eof_err(s);
-    __fensure_readable(s);
-    __fensure_byte_oriented(s);
-    __fensure_direction(s, __kStreamDirection_In);
 
 
     while (nBytesToRead-- > 0) {
@@ -45,19 +43,14 @@ static int _fgets(char* _Nonnull _Restrict str, int count, FILE* _Nonnull _Restr
 
 
     if (nBytesRead > 0 || nBytesToRead == 0) {
-        return (int)nBytesRead;
+        return str;
     }
     else if (r == 0) {
         s->flags.hasEof = 1;
-        return EOF;
+        return NULL;
     }
     else {
         s->flags.hasError = 1;
-        return EOF;
+        return NULL;
     }
-}
-
-char * _Nonnull fgets(char * _Nonnull _Restrict str, int count, FILE * _Nonnull _Restrict s)
-{
-    return (_fgets(str, count, s) != EOF) ? str : NULL;
 }

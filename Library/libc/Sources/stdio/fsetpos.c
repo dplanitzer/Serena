@@ -11,8 +11,8 @@
 
 int fsetpos(FILE *s, const fpos_t *pos)
 {
-    __fensure_seekable(s);
-    __fensure_direction(s, __kStreamDirection_Unknown);
+    __fensure_seekable(s, EOF);
+    __fensure_direction(s, __kStreamDirection_Unknown, EOF);
 
     const long long r = s->cb.seek((void*)s->context, pos->offset, SEEK_SET);
     if (r < 0ll) {

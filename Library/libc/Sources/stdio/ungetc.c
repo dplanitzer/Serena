@@ -11,10 +11,10 @@
 
 int ungetc(int ch, FILE *s)
 {
-    __fensure_no_eof_err(s);
-    __fensure_readable(s);
-    __fensure_byte_oriented(s);
-    __fensure_direction(s, __kStreamDirection_In);
+    __fensure_no_eof_err(s, EOF);
+    __fensure_readable(s, EOF);
+    __fensure_byte_oriented(s, EOF);
+    __fensure_direction(s, __kStreamDirection_In, EOF);
     
     // XXX
     return EOF;

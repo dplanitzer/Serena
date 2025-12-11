@@ -41,7 +41,7 @@ static long long __fgetlogicalpos(FILE * _Nonnull s)
 
 int fgetpos(FILE *s, fpos_t *pos)
 {
-    __fensure_seekable(s);
+    __fensure_seekable(s, EOF);
 
     const long long r = __fgetlogicalpos(s);
     if (r >= 0ll) {
@@ -56,7 +56,7 @@ int fgetpos(FILE *s, fpos_t *pos)
 
 long ftell(FILE *s)
 {
-    __fensure_seekable(s);
+    __fensure_seekable(s, EOF);
 
     const long long r = __fgetlogicalpos(s);
     if (r < 0ll) {

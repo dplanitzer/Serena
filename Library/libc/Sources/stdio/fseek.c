@@ -22,8 +22,8 @@ int fseeko(FILE *s, off_t offset, int whence)
             return EOF;
     }
 
-    __fensure_seekable(s);
-    __fensure_direction(s, __kStreamDirection_Unknown);
+    __fensure_seekable(s, EOF);
+    __fensure_direction(s, __kStreamDirection_Unknown, EOF);
 
     const long long r = s->cb.seek((void*)s->context, (long long)offset, whence);
     if (r < 0ll) {

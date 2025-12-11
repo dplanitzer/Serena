@@ -24,10 +24,10 @@ ssize_t getdelim(char **line, size_t *n, int delimiter, FILE *s)
     ssize_t i = 0, r;
     char ch;
 
-    __fensure_no_eof_err(s);
-    __fensure_readable(s);
-    __fensure_byte_oriented(s);
-    __fensure_direction(s, __kStreamDirection_In);
+    __fensure_no_eof_err(s, -1);
+    __fensure_readable(s, -1);
+    __fensure_byte_oriented(s, -1);
+    __fensure_direction(s, __kStreamDirection_In, -1);
 
     for (;;) {
         r = __fgetc(&ch, s);
@@ -70,10 +70,10 @@ ssize_t getdelim(char **line, size_t *n, int delimiter, FILE *s)
     }
     else if (r == 0) {
         s->flags.hasEof = 1;
-        return EOF;
+        return -1;
     }
     else {
         s->flags.hasError = 1;
-        return EOF;
+        return -1;
     }
 }

@@ -15,10 +15,10 @@ int fputs(const char *str, FILE *s)
     ssize_t nCharsWritten = 0;
     ssize_t r;
 
-    __fensure_no_err(s);
-    __fensure_writeable(s);
-    __fensure_byte_oriented(s);
-    __fensure_direction(s, __kStreamDirection_Out);
+    __fensure_no_err(s, EOF);
+    __fensure_writeable(s, EOF);
+    __fensure_byte_oriented(s, EOF);
+    __fensure_direction(s, __kStreamDirection_Out, EOF);
 
     for (;;) {
         const char ch = *str;

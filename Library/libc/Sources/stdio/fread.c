@@ -75,10 +75,10 @@ static ssize_t __fread(FILE* _Nonnull _Restrict s, void * _Nonnull _Restrict buf
 
 size_t fread(void * _Restrict buffer, size_t size, size_t count, FILE * _Restrict s)
 {
-    __fensure_no_eof_err(s);
-    __fensure_readable(s);
-    __fensure_byte_oriented(s);
-    __fensure_direction(s, __kStreamDirection_In);
+    __fensure_no_eof_err(s, 0);
+    __fensure_readable(s, 0);
+    __fensure_byte_oriented(s, 0);
+    __fensure_direction(s, __kStreamDirection_In, 0);
 
     if (size == 0 || count == 0) {
         return 0;
@@ -107,10 +107,10 @@ size_t fread(void * _Restrict buffer, size_t size, size_t count, FILE * _Restric
     }
     else if (r == 0) {
         s->flags.hasEof = 1;
-        return EOF;
+        return 0;
     }
     else {
         s->flags.hasError = 1;
-        return EOF;
+        return 0;
     }
 }
