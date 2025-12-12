@@ -8,10 +8,13 @@
 
 #include "Utilities.h"
 #include <ctype.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <clap.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 
 void print_error(const char* _Nonnull proc_name, const char* _Nullable path, errno_t err)
@@ -67,29 +70,47 @@ size_t hash_string(const char* _Nonnull str, size_t len)
 
 int read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull pOutText, size_t* _Nullable pOutLength)
 {
-    FILE* s = fopen(path, "r");
-    ssize_t r = 0;
-
-    if (s) {
-        fseek(s, 0, SEEK_END);
-        const size_t fileSize = ftell(s);
-        rewind(s);
-
-        char* text = malloc(fileSize + 1);
-        r = fread(text, fileSize, 1, s);
-        text[fileSize] = '\0';
-        fclose(s);
-
-        if (r == 1) {
-            *pOutText = text;
-            if (pOutLength) {
-                *pOutLength = fileSize + 1;
-            }
-        }
-        else {
-            free(text);
-        }
+    struct stat st;
+    
+    const int fd = open(path, O_RDONLY);
+    if (fd < 0) {
+        return EOF;
     }
 
-    return (r == 1) ? 0 : EOF;
+    if (fstat(fd, &st) < 0) {
+        close(fd);
+        return EOF;
+    }
+
+    if (!S_ISREG(st.st_mode)) {
+        errno = EINVAL;
+        close(fd);
+        return EOF;
+    }
+    if (st.st_size > (off_t)__SSIZE_MAX) {
+        errno = E2BIG;
+        close(fd);
+        return EOF;
+    }
+
+    const size_t fileSize = (size_t)st.st_size;
+    char* text = malloc(fileSize + 1);
+    int r;
+
+    if (read(fd, text, fileSize) == fileSize) {
+        text[fileSize] = '\0';
+
+        *pOutText = text;
+        if (pOutLength) {
+            *pOutLength = fileSize + 1;
+        }
+        r = 0;
+    }
+    else {
+        free(text);
+        r = EOF;
+    }
+    close(fd);
+
+    return r;
 }

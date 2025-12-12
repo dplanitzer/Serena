@@ -23,9 +23,11 @@ off_t __fgetlogicalpos(FILE * _Nonnull s)
     if (phys_pos >= 0ll) {
         if (s->flags.bufferMode > _IONBF && s->flags.direction != __kStreamDirection_Unknown) {
             if (s->flags.direction == __kStreamDirection_Out) {
+                // physical file position is aligned with the start of the buffer
                 return phys_pos + (off_t)s->bufferCount;
             }
             else {
+                // physical file position is aligned with the end of the buffer (bufferCount)
                 return phys_pos - (off_t)(s->bufferCount - s->bufferIndex);
             }
         }
