@@ -14,52 +14,52 @@
 // - 's' is not NULL
 int __setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size)
 {
-    if (size >= __SSIZE_MAX) {
-        errno = EINVAL;
-        return EOF;
-    }
-    
     switch (mode) {
         case _IOFBF:
         case _IOLBF:
-            if (buffer) {
-                s->buffer = buffer;
-                s->bufferCapacity = size;
-                s->bufferCount = 0;
-                s->bufferIndex = -1;
-                s->flags.bufferOwned = 0;
-            }
-            else {
-                char* p = malloc(size);
-                if (p == NULL) {
-                    return EOF;
-                }
-
-                s->buffer = p;
-                s->bufferCapacity = size;
-                s->bufferCount = 0;
-                s->bufferIndex = -1;
-                s->flags.bufferOwned = 1;
-            }
-            s->flags.bufferMode = mode;
-            return 0;
-
         case _IONBF:
-            if (s->flags.bufferOwned) {
-                free(s->buffer);
-            }
-            s->buffer = NULL;
-            s->bufferCapacity = 0;
-            s->bufferCount = 0;
-            s->bufferIndex = -1;
-            s->flags.bufferOwned = 0;
-            s->flags.bufferMode = _IONBF;
-            return 0;
+            break;
 
         default:
             errno = EINVAL;
             return EOF;
     }
+
+    if (size > __SSIZE_MAX || (mode > _IONBF && size < 1)) {
+        errno = EINVAL;
+        return EOF;
+    }
+
+    
+    if (s->flags.bufferOwned) {
+        free(s->buffer);
+    }
+    s->buffer = NULL;
+    s->bufferCapacity = 0;
+    s->bufferCount = 0;
+    s->bufferIndex = -1;
+    s->flags.bufferOwned = 0;
+    s->flags.bufferMode = _IONBF;
+
+
+    if (mode == _IOLBF || mode == _IOFBF) {
+        if (buffer == NULL) {
+            buffer = malloc(size);
+            if (buffer == NULL) {
+                return EOF;
+            }
+
+            s->flags.bufferOwned = 1;
+        }
+        else {
+            s->flags.bufferOwned = 0;
+        }
+        s->buffer = buffer;
+        s->bufferCapacity = size;
+        s->flags.bufferMode = mode;
+    }
+
+    return 0;
 }
 
 int setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size)
