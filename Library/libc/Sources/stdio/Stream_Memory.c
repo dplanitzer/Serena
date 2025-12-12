@@ -82,7 +82,7 @@ static ssize_t __mem_write(__Memory_FILE_Vars* _Nonnull mp, const void* pBytes, 
 
     if (nBytesWritten == 0) {
         errno = ENOSPC;
-        return 0;
+        return -1;
     }
 
     memcpy(&mp->store[mp->currentPosition], pBytes, nBytesWritten);
