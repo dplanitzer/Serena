@@ -81,12 +81,9 @@ static ssize_t __fwrite_lbf(FILE * _Nonnull _Restrict s, const void * _Restrict 
     ssize_t nwritten = 0;
     ssize_t r;
 
-    for (;;) {
+    while (nbytes > 0) {
         const char ch = *src++;
 
-        if (ch == '\0') {
-            break;
-        }
         if (ch == '\n') {
             r = __fwrite_bf(s, psrc, src - psrc);
             if (r < 0) {
@@ -95,8 +92,23 @@ static ssize_t __fwrite_lbf(FILE * _Nonnull _Restrict s, const void * _Restrict 
 
             nwritten += r;
             psrc = src;
+
+            r = __fflush(s);
+            if (r == EOF) {
+                return (nwritten > 0) ? nwritten : -1;
+            }
         }
+        nbytes--;
     }
+
+    if (src != psrc) {
+        r = __fwrite_bf(s, psrc, src - psrc);
+        if (r < 0) {
+            return (nwritten > 0) ? nwritten : -1;
+        }
+        nwritten += r;
+    }
+
     return nwritten;
 }
 

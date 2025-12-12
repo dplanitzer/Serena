@@ -13,7 +13,7 @@
 #include <string.h>
 
 
-static void Formatter_WriteChar(FormatterRef _Nonnull self, char ch)
+static void _write_char(FormatterRef _Nonnull self, char ch)
 {
     if (self->res > 0) {
         self->res = __fputc(ch, self->stream);
@@ -24,65 +24,30 @@ static void Formatter_WriteChar(FormatterRef _Nonnull self, char ch)
      }
 }
 
-static void Formatter_WriteString(FormatterRef _Nonnull self, const char * _Nonnull str)
+static void _write_string(FormatterRef _Nonnull self, const char* _Nonnull str, ssize_t len)
 {
-    size_t i = 0;
-
-    for (;;) {
-        const char ch = *str++;
-
-        if (ch == '\0') {
-            break;
+    if (self->res > 0) {
+        if (__fwrite(self->stream, str, len) == len) {
+            self->charactersWritten += len;
         }
-
-        Formatter_WriteChar(self, ch);
-        if (self->res <= 0) {
-            break;
+        else {
+            self->res = -1;
         }
-
-        self->charactersWritten++;
     }
 }
 
-static void Formatter_WriteStringPrefix(FormatterRef _Nonnull self, const char * _Nonnull str, size_t maxChars)
-{
-    size_t i = 0;
-
-    for (;;) {
-        const char ch = *str++;
-        
-        if (ch == '\0') {
-            break;
-        }
-
-        Formatter_WriteChar(self, ch);
-        if (self->res <= 0) {
-             break;
-        }
-
-        i++;
-        if (i == maxChars) {
-            break;
-        }
-    }
-    self->charactersWritten += i;
-}
-
-static void Formatter_WriteRepChar(FormatterRef _Nonnull self, char ch, int count)
+static void _write_char_rep(FormatterRef _Nonnull self, char ch, int count)
 {
     int i = 0;
 
-    while(i < count) {
-        Formatter_WriteChar(self, ch);
-        if (self->res <= 0) {
-            break;
-        }
-        i++;
+    while(i < count && self->res > 0) {
+        self->res = __fputc(ch, self->stream);
+        if (self->res > 0) i++;
     }
     self->charactersWritten += i;
 }
 
-static const char* _Nonnull Formatter_ParseLengthModifier(FormatterRef _Nonnull self, const char * _Nonnull format, ConversionSpec* _Nonnull spec)
+static const char* _Nonnull _parse_length_mod(FormatterRef _Nonnull self, const char * _Nonnull format, ConversionSpec* _Nonnull spec)
 {
     switch (*format) {
         case 'l':
@@ -133,7 +98,7 @@ static const char* _Nonnull Formatter_ParseLengthModifier(FormatterRef _Nonnull 
 }
 
 // Expects that 'format' points to the first character after the '%'.
-static const char* _Nonnull Formatter_ParseConversionSpec(FormatterRef _Nonnull self, const char* _Nonnull format, va_list* _Nonnull ap, ConversionSpec* _Nonnull spec)
+static const char* _Nonnull _parse_conv_spec(FormatterRef _Nonnull self, const char* _Nonnull format, va_list* _Nonnull ap, ConversionSpec* _Nonnull spec)
 {
     char ch;
 
@@ -189,10 +154,10 @@ static const char* _Nonnull Formatter_ParseConversionSpec(FormatterRef _Nonnull 
     }
     
     // Length modifier
-    return Formatter_ParseLengthModifier(self, format, spec);
+    return _parse_length_mod(self, format, spec);
 }
 
-static void Formatter_FormatSignedIntegerField(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, const char* _Nonnull buf, size_t len)
+static void _format_int_field(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, const char* _Nonnull buf, size_t len)
 {
     int nSign = 1;
     int nDigits = len - 1;
@@ -219,25 +184,25 @@ static void Formatter_FormatSignedIntegerField(FormatterRef _Nonnull self, const
     }
 
     if (nspaces > 0 && !spec->flags.isLeftJustified) {
-        Formatter_WriteRepChar(self, ' ', nspaces);
+        _write_char_rep(self, ' ', nspaces);
     }
 
     if (nSign > 0) {
-        Formatter_WriteChar(self, *pSign);
+        _write_char(self, *pSign);
     }
     if (!isEmpty) {
         if (nLeadingZeros > 0) {
-            Formatter_WriteRepChar(self, '0', nLeadingZeros);
+            _write_char_rep(self, '0', nLeadingZeros);
         }
-        Formatter_WriteString(self, pDigits);
+        _write_string(self, pDigits, nDigits);
     }
 
     if (nspaces > 0 && spec->flags.isLeftJustified) {
-        Formatter_WriteRepChar(self, ' ', nspaces);
+        _write_char_rep(self, ' ', nspaces);
     }
 }
 
-static void Formatter_FormatUnsignedIntegerField(FormatterRef _Nonnull self, int radix, bool isUppercase, const ConversionSpec* _Nonnull spec, const char* _Nonnull buf, size_t len)
+static void _format_uint_field(FormatterRef _Nonnull self, int radix, bool isUppercase, const ConversionSpec* _Nonnull spec, const char* _Nonnull buf, size_t len)
 {
     int nRadixChars = 0;
     int nLeadingZeros = (spec->flags.hasPrecision) ? __max(spec->precision - len, 0) : 0;
@@ -261,67 +226,63 @@ static void Formatter_FormatUnsignedIntegerField(FormatterRef _Nonnull self, int
     }
 
     if (nspaces > 0 && !spec->flags.isLeftJustified) {
-        Formatter_WriteRepChar(self, ' ', nspaces);
+        _write_char_rep(self, ' ', nspaces);
     }
 
     if (!isEmpty) {
         while (nRadixChars-- > 0) {
-            Formatter_WriteChar(self, *pRadixChars++);
+            _write_char(self, *pRadixChars++);
         }
         if (nLeadingZeros > 0) {
-            Formatter_WriteRepChar(self, '0', nLeadingZeros);
+            _write_char_rep(self, '0', nLeadingZeros);
         }
-        Formatter_WriteString(self, buf);
+        _write_string(self, buf, len);
     }
     else if (radix == 8) {
-        Formatter_WriteChar(self, '0');
+        _write_char(self, '0');
     }
 
     if (nspaces > 0 && spec->flags.isLeftJustified) {
-        Formatter_WriteRepChar(self, ' ', nspaces);
+        _write_char_rep(self, ' ', nspaces);
     }
 }
 
-static void Formatter_FormatChar(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static void _format_char(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
     const char ch = (unsigned char) va_arg(*ap, int);
     const size_t nspaces = (spec->minimumFieldWidth > 1) ? spec->minimumFieldWidth - 1 : 0;
 
     if (nspaces > 0 && spec->flags.isLeftJustified) {
-        Formatter_WriteRepChar(self, ' ', nspaces);
+        _write_char_rep(self, ' ', nspaces);
     }
 
-    Formatter_WriteChar(self, ch);
+    _write_char(self, ch);
 
     if (nspaces > 0 && !spec->flags.isLeftJustified) {
-        Formatter_WriteRepChar(self, ' ', nspaces);
+        _write_char_rep(self, ' ', nspaces);
     }
 }
 
-static void Formatter_FormatString(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static void _format_string(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
     const char* str = va_arg(*ap, const char*);
-    const size_t slen = (spec->flags.hasPrecision || spec->minimumFieldWidth > 0) ? strlen(str) : 0;
-    const size_t adj_slen = (spec->flags.hasPrecision) ? __min(slen, spec->precision) : slen;
-    const size_t nspaces = (spec->minimumFieldWidth > adj_slen) ? spec->minimumFieldWidth - adj_slen : 0;
+    const size_t slen = strlen(str);
+    const size_t flen = (spec->flags.hasPrecision || spec->minimumFieldWidth > 0) ? slen : 0;
+    const size_t adj_flen = (spec->flags.hasPrecision) ? __min(flen, spec->precision) : flen;
+    const size_t nspaces = (spec->minimumFieldWidth > adj_flen) ? spec->minimumFieldWidth - adj_flen : 0;
 
     if (nspaces > 0 && spec->flags.isLeftJustified) {
-        Formatter_WriteRepChar(self, ' ', nspaces);
+        _write_char_rep(self, ' ', nspaces);
     }
 
-    if (spec->flags.hasPrecision) {
-        Formatter_WriteStringPrefix(self, str, adj_slen);
-    }
-    else {
-        Formatter_WriteString(self, str);
-    }
+    _write_string(self, str, (spec->flags.hasPrecision) ? __min(slen, adj_flen) : slen);
 
     if (nspaces > 0 && !spec->flags.isLeftJustified) {
-        Formatter_WriteRepChar(self, ' ', nspaces);
+        _write_char_rep(self, ' ', nspaces);
     }
 }
 
-static void Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static void _format_int(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
     int64_t v64;
     int32_t v32;
@@ -362,10 +323,10 @@ static void Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const Conv
         pCanonDigits = __i32toa(v32, ia_sign_plus_minus, (i32a_t*)&self->i64a);
     }
 
-    Formatter_FormatSignedIntegerField(self, spec, pCanonDigits, self->i64a.length);
+    _format_int_field(self, spec, pCanonDigits, self->i64a.length);
 }
 
-static void Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, int radix, bool isUppercase, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static void _format_uint(FormatterRef _Nonnull self, int radix, bool isUppercase, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
     uint64_t v64;
     uint32_t v32;
@@ -406,10 +367,10 @@ static void Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, int radi
         pCanonDigits = __u32toa(v32, radix, isUppercase, (i32a_t*)&self->i64a);
     }
 
-    Formatter_FormatUnsignedIntegerField(self, radix, isUppercase, spec, pCanonDigits, self->i64a.length);
+    _format_uint_field(self, radix, isUppercase, spec, pCanonDigits, self->i64a.length);
 }
 
-static void Formatter_FormatPointer(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static void _format_ptr(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
     ConversionSpec spec2 = *spec;
     spec2.flags.isAlternativeForm = true;
@@ -424,10 +385,10 @@ static void Formatter_FormatPointer(FormatterRef _Nonnull self, const Conversion
     spec2.precision = 8;
 #endif
 
-    Formatter_FormatUnsignedIntegerField(self, 16, false, &spec2, pCanonDigits, self->i64a.length);
+    _format_uint_field(self, 16, false, &spec2, pCanonDigits, self->i64a.length);
 }
 
-static void Formatter_WriteNumberOfCharactersWritten(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static void _format_out_nchars(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
     char* p = va_arg(*ap, char*);
     const size_t n = self->charactersWritten;
@@ -445,18 +406,18 @@ static void Formatter_WriteNumberOfCharactersWritten(FormatterRef _Nonnull self,
     }
 }
 
-static void Formatter_FormatArgument(FormatterRef _Nonnull self, char conversion, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static void _format_arg(FormatterRef _Nonnull self, char conversion, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
     switch (conversion) {
-        case '%':   Formatter_WriteChar(self, '%'); break;
-        case 'c':   Formatter_FormatChar(self, spec, ap); break;
-        case 's':   Formatter_FormatString(self, spec, ap); break;
+        case '%':   _write_char(self, '%'); break;
+        case 'c':   _format_char(self, spec, ap); break;
+        case 's':   _format_string(self, spec, ap); break;
         case 'd':   // fall through
-        case 'i':   Formatter_FormatSignedInteger(self, spec, ap); break;
-        case 'o':   Formatter_FormatUnsignedInteger(self, 8, false, spec, ap); break;
-        case 'x':   Formatter_FormatUnsignedInteger(self, 16, false, spec, ap); break;
-        case 'X':   Formatter_FormatUnsignedInteger(self, 16, true, spec, ap); break;
-        case 'u':   Formatter_FormatUnsignedInteger(self, 10, false, spec, ap); break;
+        case 'i':   _format_int(self, spec, ap); break;
+        case 'o':   _format_uint(self, 8, false, spec, ap); break;
+        case 'x':   _format_uint(self, 16, false, spec, ap); break;
+        case 'X':   _format_uint(self, 16, true, spec, ap); break;
+        case 'u':   _format_uint(self, 10, false, spec, ap); break;
         case 'f':   break; // XXX
         case 'F':   break; // XXX
         case 'e':   break; // XXX
@@ -465,8 +426,8 @@ static void Formatter_FormatArgument(FormatterRef _Nonnull self, char conversion
         case 'A':   break; // XXX
         case 'g':   break; // XXX
         case 'G':   break; // XXX
-        case 'n':   Formatter_WriteNumberOfCharactersWritten(self, spec, ap); break;
-        case 'p':   Formatter_FormatPointer(self, spec, ap); break;
+        case 'n':   _format_out_nchars(self, spec, ap); break;
+        case 'p':   _format_ptr(self, spec, ap); break;
         default:    break;
     }
 }
@@ -474,27 +435,27 @@ static void Formatter_FormatArgument(FormatterRef _Nonnull self, char conversion
 int __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap)
 {
     ConversionSpec spec;
+    const char* pformat = format;
 
     while (self->res > 0) {
         switch (*format) {
             case '\0':
+                if (format != pformat) {
+                    _write_string(self, pformat, format - pformat);
+                }
                 return (int)__min(self->charactersWritten, INT_MAX);
 
             case '%':
-                format = Formatter_ParseConversionSpec(self, ++format, &ap, &spec);
-                Formatter_FormatArgument(self, *format++, &spec, &ap);
+                if (format != pformat) {
+                    _write_string(self, pformat, format - pformat);
+                }
+                format = _parse_conv_spec(self, ++format, &ap, &spec);
+                _format_arg(self, *format++, &spec, &ap);
+                pformat = format;
                 break;
 
             default:
-                while (true) {
-                    const char ch = *format;
-
-                    if (ch == '\0' || ch == '%') {
-                        break;
-                    }
-                    Formatter_WriteChar(self, ch);
-                    format++;
-                }
+                format++;
                 break;
         }
     }
