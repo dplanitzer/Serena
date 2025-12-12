@@ -15,24 +15,21 @@
 
 static void _write_char(FormatterRef _Nonnull self, char ch)
 {
-    if (self->res > 0) {
-        self->res = __fputc(ch, self->stream);
-
-        if (self->res == 1) {
-            self->charactersWritten++;
-        }
-     }
+    if ((!self->hasError && __fputc(ch, self->stream) == 1) || (self->hasError && self->doContCountingOnError)) {
+        self->charactersWritten++;
+    }
+    else {
+        self->hasError = true;
+    }
 }
 
 static void _write_string(FormatterRef _Nonnull self, const char* _Nonnull str, ssize_t len)
 {
-    if (self->res > 0) {
-        if (__fwrite(self->stream, str, len) == len) {
-            self->charactersWritten += len;
-        }
-        else {
-            self->res = -1;
-        }
+    if ((!self->hasError && __fwrite(self->stream, str, len) == len) || (self->hasError && self->doContCountingOnError)) {
+        self->charactersWritten += len;
+    }
+    else {
+        self->hasError = true;
     }
 }
 
@@ -40,9 +37,13 @@ static void _write_char_rep(FormatterRef _Nonnull self, char ch, int count)
 {
     int i = 0;
 
-    while(i < count && self->res > 0) {
-        self->res = __fputc(ch, self->stream);
-        if (self->res > 0) i++;
+    while(i < count) {
+        if ((!self->hasError && __fputc(ch, self->stream) == 1) || (self->hasError && self->doContCountingOnError)) {
+            i++;
+        }
+        else {
+            self->hasError = true;
+        }
     }
     self->charactersWritten += i;
 }
@@ -437,7 +438,7 @@ int __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format,
     ConversionSpec spec;
     const char* pformat = format;
 
-    while (self->res > 0) {
+    while (!self->hasError) {
         switch (*format) {
             case '\0':
                 if (format != pformat) {

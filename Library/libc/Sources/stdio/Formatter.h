@@ -47,15 +47,17 @@ typedef struct ConversionSpec {
 typedef struct Formatter {
     FILE* _Nonnull  stream;
     size_t          charactersWritten;
-    ssize_t         res;
     i64a_t          i64a;
+    bool            hasError;
+    bool            doContCountingOnError;
 } Formatter;
 
 
-#define __Formatter_Init(__self, __s) \
+#define __Formatter_Init(__self, __s, __doContCountingOnError) \
     (__self)->stream = __s; \
     (__self)->charactersWritten = 0; \
-    (__self)->res = 1
+    (__self)->hasError = false; \
+    (__self)->doContCountingOnError = __doContCountingOnError
 
 #define __Formatter_Deinit(__self) \
     if (__self) (__self)->stream = NULL

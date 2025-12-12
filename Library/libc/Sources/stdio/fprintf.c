@@ -33,7 +33,7 @@ int vfprintf(FILE *s, const char *format, va_list ap)
     __fensure_byte_oriented(s, EOF);
     __fensure_direction(s, __kStreamDirection_Out, EOF);
 
-    __Formatter_Init(&fmt, s);
+    __Formatter_Init(&fmt, s, false);
     const int r = __Formatter_vFormat(&fmt, format, ap);
     __Formatter_Deinit(&fmt);
 

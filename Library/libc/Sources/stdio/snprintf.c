@@ -51,7 +51,7 @@ int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
         return EOF;
     }
 
-    __Formatter_Init(&fmt, &file.super);
+    __Formatter_Init(&fmt, &file.super, true);
     r = __Formatter_vFormat(&fmt, format, ap);
     __Formatter_Deinit(&fmt);
     __fclose(&file.super);

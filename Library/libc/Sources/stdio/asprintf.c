@@ -54,7 +54,7 @@ int vasprintf(char **str_ptr, const char *format, va_list ap)
         return EOF;
     }
 
-    __Formatter_Init(&fmt, &file.super);
+    __Formatter_Init(&fmt, &file.super, false);
     const int r1 = __Formatter_vFormat(&fmt, format, ap);
     const int r2 = __fputc('\0', &file.super);
     __Formatter_Deinit(&fmt);
