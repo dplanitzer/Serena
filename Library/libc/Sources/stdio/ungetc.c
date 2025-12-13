@@ -9,6 +9,21 @@
 #include "Stream.h"
 
 
+// Expects:
+// - 's' direction is in
+// - 's' ugbCount > 0
+// - 's' is not buffered
+int __fget_ugb(char* _Nonnull pch, FILE * _Nonnull s)
+{
+    if (s->cb.seek(s->context, 1ll, SEEK_CUR) < 0ll) {
+        return EOF;
+    }
+
+    s->ugbCount = 0;
+    *pch = s->ugb;
+    return 1;
+}
+
 int ungetc(int ch, FILE *s)
 {
     __fensure_no_eof_err(s, EOF);
@@ -16,6 +31,33 @@ int ungetc(int ch, FILE *s)
     __fensure_byte_oriented(s, EOF);
     __fensure_direction(s, __kStreamDirection_In, EOF);
     
-    // XXX
-    return EOF;
+    if (ch == EOF) {
+        return EOF;
+    }
+
+    const unsigned char ch8 = (const unsigned char)ch;
+
+    if (s->flags.bufferMode > _IONBF) {
+        if (s->bufferIndex == 0) {
+            return EOF;
+        }
+
+        s->bufferIndex--;
+        s->buffer[s->bufferIndex] = ch8;
+    }
+    else {
+        if (s->ugbCount > 0) {
+            return EOF;
+        }
+
+        if (s->cb.seek(s->context, -1ll, SEEK_CUR) < 0ll) {
+            return EOF;
+        }
+
+        s->ugb = ch8;
+        s->ugbCount = 1;
+    }
+    s->flags.hasEof = 0;
+
+    return (int)ch8;
 }

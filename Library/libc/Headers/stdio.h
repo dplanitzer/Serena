@@ -83,6 +83,9 @@ typedef struct FILE {
     ssize_t                     bufferCapacity;
     ssize_t                     bufferCount;
     ssize_t                     bufferIndex;    // Index of next character to return from the buffer
+    char                        ugb;
+    signed char                 ugbCount;
+    char                        reserved[2];
     mbstate_t                   mbstate;
     struct FILE_Flags {
         unsigned int mode:3;
@@ -150,7 +153,7 @@ extern int fputc(int ch, FILE *s);
 #define putc(ch, s) fputc(ch, s)
 
 extern int fputs(const char *str, FILE *s);
-extern int ungetc(int ch, FILE *s);
+extern int ungetc(int ch, FILE *s); // supports one character push back
 
 extern size_t fread(void * _Restrict buffer, size_t size, size_t count, FILE * _Restrict s);
 extern size_t fwrite(const void * _Restrict buffer, size_t size, size_t count, FILE * _Restrict s);

@@ -20,22 +20,28 @@ off_t __fgetlogicalpos(FILE * _Nonnull s)
 {
     const off_t phys_pos = s->cb.seek(s->context, 0ll, SEEK_CUR);
 
-    if (phys_pos >= 0ll) {
-        if (s->flags.bufferMode > _IONBF && s->flags.direction != __kStreamDirection_Unknown) {
-            if (s->flags.direction == __kStreamDirection_Out) {
+    if (phys_pos < 0ll) {
+        return (off_t)EOF;
+    }
+
+
+    if (s->flags.bufferMode > _IONBF) {
+        switch (s->flags.direction) {
+            case __kStreamDirection_Out:
                 // physical file position is aligned with the start of the buffer
                 return phys_pos + (off_t)s->bufferCount;
-            }
-            else {
+
+            case __kStreamDirection_In:
                 // physical file position is aligned with the end of the buffer (bufferCount)
                 return phys_pos - (off_t)(s->bufferCount - s->bufferIndex);
-            }
-        }
 
-        return phys_pos;
+            case __kStreamDirection_Unknown:
+                // buffer is guaranteed to be empty in this case
+                return phys_pos;
+        }
     }
     else {
-        return (off_t)EOF;
+        return phys_pos - (off_t)s->ugbCount;
     }
 }
 

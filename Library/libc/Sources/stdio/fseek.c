@@ -30,8 +30,8 @@ int fseeko(FILE *s, off_t offset, int whence)
         s->flags.hasError = 1;
         return EOF;
     }
+    __fdiscard_ugb(s);
     s->flags.hasEof = 0;
-    // XXX drop ungetc buffered stuff
 
     return 0;
 }

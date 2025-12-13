@@ -18,7 +18,12 @@
 ssize_t __fgetc(char* _Nonnull pch, FILE * _Nonnull s)
 {
     if (s->flags.bufferMode == _IONBF) {
-        return s->cb.read(s->context, pch, 1);
+        if (s->ugbCount == 0) {
+            return s->cb.read(s->context, pch, 1);
+        }
+        else {
+            return __fget_ugb(pch, s);
+        }
     }
 
     // _IONBF or _IOLBF

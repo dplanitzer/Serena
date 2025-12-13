@@ -26,7 +26,19 @@ static ssize_t __fread(FILE* _Nonnull _Restrict s, void * _Nonnull _Restrict buf
     }
 
     if (s->flags.bufferMode == _IONBF) {
-        return s->cb.read(s->context, buffer, nbytes);
+        if (s->ugbCount > 0) {
+            if (__fget_ugb(&dst[0], s) == EOF) {
+                return EOF;
+            }
+
+            dst++;
+            nbytes--;
+            if (nbytes == 0) {
+                return 1;
+            }
+        }
+
+        return s->cb.read(s->context, dst, nbytes);
     }
 
     // _IOLBF or _IOFBF

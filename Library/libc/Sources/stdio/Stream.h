@@ -140,6 +140,12 @@ if ((__self)->cb.seek == NULL) { \
     return __ret; \
 }
 
+
+#define __fdiscard_ugb(__self) \
+(__self)->ugbCount = 0
+
+extern int __fget_ugb(char* _Nonnull pch, FILE * _Nonnull s);
+
 extern ssize_t __fwrite(FILE * _Nonnull _Restrict s, const void * _Restrict buffer, ssize_t nbytes);
 extern ssize_t __fgetc(char* _Nonnull pch, FILE * _Nonnull sm);
 extern ssize_t __fputc(char ch, FILE * _Nonnull s);
