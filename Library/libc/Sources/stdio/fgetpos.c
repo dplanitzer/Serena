@@ -46,7 +46,7 @@ off_t __fgetlogicalpos(FILE * _Nonnull s)
 }
 
 
-int fgetpos(FILE *s, fpos_t *pos)
+int fgetpos(FILE * _Nonnull _Restrict s, fpos_t * _Nonnull _Restrict pos)
 {
     __fensure_seekable(s, EOF);
 

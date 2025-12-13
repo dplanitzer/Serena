@@ -13,7 +13,7 @@
 #include "Stream.h"
 
 
-int asprintf(char **str_ptr, const char *format, ...)
+int asprintf(char **str_ptr, const char * _Nonnull _Restrict format, ...)
 {
     va_list ap;
     
@@ -23,7 +23,7 @@ int asprintf(char **str_ptr, const char *format, ...)
     return r;
 }
 
-int vasprintf(char **str_ptr, const char *format, va_list ap)
+int vasprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list ap)
 {
     const __FILE_Mode sm = __kStreamMode_Write | __kStreamMode_Truncate | __kStreamMode_Create;
     __Memory_FILE file;

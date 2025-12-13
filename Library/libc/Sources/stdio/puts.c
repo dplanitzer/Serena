@@ -10,7 +10,7 @@
 #include <limits.h>
 
 
-int puts(const char *str)
+int puts(const char * _Nonnull str)
 {
     const int nCharsWritten = fputs(str, stdout);
     

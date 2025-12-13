@@ -10,7 +10,7 @@
 #include <stdlib.h>
 
 
-FILE *fdopen(int ioc, const char *mode)
+FILE *fdopen(int ioc, const char * _Nonnull mode)
 {
     __FILE_Mode sm;
 

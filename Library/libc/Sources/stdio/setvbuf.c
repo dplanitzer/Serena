@@ -10,9 +10,7 @@
 #include <stdlib.h>
 
 
-// Expects:
-// - 's' is not NULL
-int __setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size)
+int __setvbuf(FILE * _Nonnull _Restrict s, char * _Nullable _Restrict buffer, int mode, size_t size)
 {
     switch (mode) {
         case _IOFBF:
@@ -62,12 +60,12 @@ int __setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size
     return 0;
 }
 
-int setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size)
+int setvbuf(FILE * _Nonnull _Restrict s, char * _Nullable _Restrict buffer, int mode, size_t size)
 {
     return __setvbuf(s, buffer, mode, size);
 }
 
-void setbuf(FILE * _Restrict s, char * _Restrict buffer)
+void setbuf(FILE * _Nonnull _Restrict s, char * _Nullable _Restrict buffer)
 {
     if (buffer) {
         (void) setvbuf(s, buffer, _IOFBF, BUFSIZ);

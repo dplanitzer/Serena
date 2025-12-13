@@ -49,7 +49,7 @@ ssize_t __fputc(char ch, FILE * _Nonnull s)
     return 1;
 }
 
-int fputc(int ch, FILE *s)
+int fputc(int ch, FILE * _Nonnull s)
 {
     const char ch8 = (const unsigned char)ch;
 

@@ -153,7 +153,7 @@ static const FILE_Callbacks __FILE_mem_callbacks = {
 
 
 
-int __fopen_memory_init(__Memory_FILE* _Nonnull self, bool bFreeOnClose, FILE_Memory *mem, __FILE_Mode sm)
+int __fopen_memory_init(__Memory_FILE* _Nonnull _Restrict self, bool bFreeOnClose, FILE_Memory * _Nonnull _Restrict mem, __FILE_Mode sm)
 {
     __Memory_FILE_Vars* mp = &self->v;
 
@@ -179,13 +179,8 @@ int __fopen_memory_init(__Memory_FILE* _Nonnull self, bool bFreeOnClose, FILE_Me
     return __fopen_init((FILE*)self, bFreeOnClose, mp, &__FILE_mem_callbacks, sm);
 }
 
-int filemem(FILE *s, FILE_MemoryQuery *query)
+int filemem(FILE * _Nonnull _Restrict s, FILE_MemoryQuery * _Nonnull _Restrict query)
 {
-    if (query == NULL) {
-        errno = EINVAL;
-        return EOF;
-    }
-
     if (s->cb.read == (FILE_Read)__mem_read) {
         const __Memory_FILE_Vars* mp = (__Memory_FILE_Vars*)s->context;
 

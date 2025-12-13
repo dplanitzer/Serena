@@ -8,11 +8,10 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include "Stream.h"
 
-extern char *__tmpnam_r(char *filename, int* pOutIoc);
 
-
-FILE *tmpfile(void)
+FILE * _Nullable tmpfile(void)
 {
     char path[L_tmpnam];
     int fd;

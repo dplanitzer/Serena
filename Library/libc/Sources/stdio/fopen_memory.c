@@ -10,7 +10,7 @@
 #include <stdlib.h>
 
 
-FILE *fopen_memory(FILE_Memory *mem, const char *mode)
+FILE *fopen_memory(FILE_Memory * _Nonnull _Restrict mem, const char * _Nonnull _Restrict mode)
 {
     __FILE_Mode sm;
 

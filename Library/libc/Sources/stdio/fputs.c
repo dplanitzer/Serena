@@ -10,7 +10,7 @@
 #include <limits.h>
 
 
-int fputs(const char *str, FILE *s)
+int fputs(const char * _Nonnull _Restrict str, FILE * _Nonnull _Restrict s)
 {
     ssize_t nCharsWritten = 0;
     ssize_t r;

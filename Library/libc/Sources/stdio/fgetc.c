@@ -15,7 +15,7 @@
 // - 's' direction is in
 // - 's' is byte-oriented
 // Returns 1 on success; 0 on EOF; -1 on error
-ssize_t __fgetc(char* _Nonnull pch, FILE * _Nonnull s)
+ssize_t __fgetc(char* _Nonnull _Restrict pch, FILE * _Nonnull _Restrict s)
 {
     if (s->flags.bufferMode == _IONBF) {
         if (s->ugbCount == 0) {
@@ -39,7 +39,7 @@ ssize_t __fgetc(char* _Nonnull pch, FILE * _Nonnull s)
     return 1;
 }
 
-int fgetc(FILE *s)
+int fgetc(FILE * _Nonnull s)
 {
     __fensure_no_eof_err(s, EOF);
     __fensure_readable(s, EOF);

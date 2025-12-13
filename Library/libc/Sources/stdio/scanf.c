@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 
-int scanf(const char *format, ...)
+int scanf(const char * _Nonnull _Restrict format, ...)
 {
     va_list ap;
     
@@ -19,7 +19,7 @@ int scanf(const char *format, ...)
     return r;
 }
 
-int vscanf(const char *format, va_list ap)
+int vscanf(const char * _Nonnull _Restrict format, va_list ap)
 {
     return vfscanf(stdin, format, ap);
 }

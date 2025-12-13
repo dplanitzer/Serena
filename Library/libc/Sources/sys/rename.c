@@ -10,7 +10,7 @@
 #include <kpi/syscall.h>
 
 
-int rename(const char* oldpath, const char* newpath)
+int rename(const char* _Nonnull oldpath, const char* _Nonnull newpath)
 {
     return (int)_syscall(SC_rename, oldpath, newpath);
 }

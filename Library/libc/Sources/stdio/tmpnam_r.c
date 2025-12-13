@@ -19,7 +19,7 @@
 #define NUM_RND_CHARS   16
 
 
-static void __generate_rnd_chars(char* buf, unsigned int seed)
+static void __generate_rnd_chars(char* _Nonnull buf, unsigned int seed)
 {
     unsigned int rnd_state = seed;
 
@@ -53,7 +53,7 @@ static void __generate_rnd_chars(char* buf, unsigned int seed)
     }
 }
 
-char *__tmpnam_r(char *filename, int* pOutFd)
+char * _Nullable __tmpnam_r(char * _Nullable _Restrict filename, int* _Nonnull _Restrict pOutFd)
 {
     if (filename == NULL) {
         return NULL;
@@ -132,7 +132,7 @@ char *__tmpnam_r(char *filename, int* pOutFd)
     return NULL;
 }
 
-char *tmpnam_r(char *filename)
+char * _Nullable tmpnam_r(char * _Nonnull filename)
 {
     return __tmpnam_r(filename, NULL);
 }

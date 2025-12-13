@@ -12,12 +12,12 @@
 #include <_math.h>
 
 
-ssize_t getline(char **line, size_t *n, FILE *s)
+ssize_t getline(char **line, size_t * _Nonnull _Restrict n, FILE * _Nonnull _Restrict s)
 {
     return getdelim(line, n, '\n', s);
 }
 
-ssize_t getdelim(char **line, size_t *n, int delimiter, FILE *s)
+ssize_t getdelim(char **line, size_t * _Nonnull _Restrict n, int delimiter, FILE * _Nonnull _Restrict s)
 {
     char* buf = *line;
     ssize_t bufSize = __min(*n, __SSIZE_MAX);

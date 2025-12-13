@@ -82,7 +82,7 @@ int __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int fd, __
 }
 
 
-int __fopen_filename_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, const char *filename, __FILE_Mode sm)
+int __fopen_filename_init(__IOChannel_FILE* _Nonnull _Restrict self, bool bFreeOnClose, const char * _Nonnull _Restrict filename, __FILE_Mode sm)
 {
     int oflags = 0;
 
@@ -128,7 +128,7 @@ int __fopen_filename_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, co
     return 0;
 }
 
-int fileno(FILE *s)
+int fileno(FILE * _Nonnull s)
 {
     return (s->cb.read == (FILE_Read)__fd_read) ? ((__IOChannel_FILE*)s)->v.fd : EOF;
 }

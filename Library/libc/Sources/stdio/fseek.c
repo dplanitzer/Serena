@@ -9,7 +9,7 @@
 #include "Stream.h"
 
 
-int fseeko(FILE *s, off_t offset, int whence)
+int fseeko(FILE * _Nonnull s, off_t offset, int whence)
 {
     switch (whence) {
         case SEEK_SET:
@@ -36,7 +36,7 @@ int fseeko(FILE *s, off_t offset, int whence)
     return 0;
 }
 
-int fseek(FILE *s, long offset, int whence)
+int fseek(FILE * _Nonnull s, long offset, int whence)
 {
     return fseeko(s, (off_t)offset, whence);
 }

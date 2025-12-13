@@ -11,7 +11,7 @@
 #include <limits.h>
 
 
-int sprintf(char *buffer, const char *format, ...)
+int sprintf(char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, ...)
 {
     va_list ap;
     
@@ -21,7 +21,7 @@ int sprintf(char *buffer, const char *format, ...)
     return r;
 }
 
-int vsprintf(char *buffer, const char *format, va_list ap)
+int vsprintf(char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, va_list ap)
 {
     return vsnprintf(buffer, SIZE_MAX, format, ap);
 }

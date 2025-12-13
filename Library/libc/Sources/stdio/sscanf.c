@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 
-int sscanf(const char *buffer, const char *format, ...)
+int sscanf(const char * _Nonnull _Restrict buffer, const char * _Nonnull _Restrict format, ...)
 {
     va_list ap;
     
@@ -19,7 +19,7 @@ int sscanf(const char *buffer, const char *format, ...)
     return r;
 }
 
-int vsscanf(const char *buffer, const char *format, va_list ap)
+int vsscanf(const char * _Nonnull _Restrict buffer, const char * _Nonnull _Restrict format, va_list ap)
 {
     // XXX implement me
     return EOF;

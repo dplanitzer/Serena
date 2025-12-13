@@ -9,9 +9,8 @@
 #include "Stream.h"
 
 
-void rewind(FILE *s)
+void rewind(FILE * _Nonnull s)
 {
     (void) fseek(s, 0, SEEK_SET);
-    clearerr(s);
-    // XXX drop ungetc buffered stuff
+    s->flags.hasError = 0;
 }

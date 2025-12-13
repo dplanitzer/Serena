@@ -10,7 +10,7 @@
 #include <stdlib.h>
 
 
-FILE *fopen(const char *filename, const char *mode)
+FILE *fopen(const char * _Nonnull _Restrict filename, const char * _Nonnull _Restrict mode)
 {
     __FILE_Mode sm;
 

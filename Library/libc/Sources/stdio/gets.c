@@ -9,7 +9,7 @@
 #include "Stream.h"
 
 
-char *gets(char *str)
+char *_Nullable gets(char * _Nonnull str)
 {
     char* p = str;
 

@@ -10,7 +10,7 @@
 #include <stdlib.h>
 
 
-FILE *__fopen_null(const char *mode)
+FILE * _Nullable __fopen_null(const char *mode)
 {
     __FILE_Mode sm;
 

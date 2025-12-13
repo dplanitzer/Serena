@@ -9,18 +9,18 @@
 #include "Stream.h"
 
 
-void clearerr(FILE *s)
+void clearerr(FILE *_Nonnull s)
 {
     s->flags.hasError = 0;
     s->flags.hasEof = 0;
 }
 
-int feof(FILE *s)
+int feof(FILE * _Nonnull s)
 {
     return (s->flags.hasEof) ? EOF : 0;
 }
 
-int ferror(FILE *s)
+int ferror(FILE * _Nonnull s)
 {
     return (s->flags.hasError) ? EOF : 0;
 }

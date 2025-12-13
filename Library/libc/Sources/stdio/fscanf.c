@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 
-int fscanf(FILE *s, const char *format, ...)
+int fscanf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, ...)
 {
     va_list ap;
     
@@ -19,7 +19,7 @@ int fscanf(FILE *s, const char *format, ...)
     return r;
 }
 
-int vfscanf(FILE *s, const char *format, va_list ap)
+int vfscanf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, va_list ap)
 {
     // XXX implement me
     return EOF;

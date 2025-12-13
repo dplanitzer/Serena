@@ -135,7 +135,7 @@ ssize_t __fwrite(FILE * _Nonnull _Restrict s, const void * _Restrict buffer, ssi
     }
 }
 
-size_t fwrite(const void * _Restrict buffer, size_t size, size_t count, FILE * _Restrict s)
+size_t fwrite(const void * _Nonnull _Restrict buffer, size_t size, size_t count, FILE * _Nonnull _Restrict s)
 {
     __fensure_no_err(s, 0);
     __fensure_writeable(s, 0);

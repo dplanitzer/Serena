@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 
-char *tmpnam(char *filename)
+char * _Nullable tmpnam(char * _Nonnull filename)
 {
     static char gTmpnamBuffer[L_tmpnam];
 

@@ -109,95 +109,95 @@ extern FILE* _Nonnull _Stderr;
 #define stderr _Stderr
 
 
-extern FILE *fopen(const char *filename, const char *mode);
-extern FILE *freopen(const char *filename, const char *mode, FILE *s);
+extern FILE *fopen(const char * _Nonnull _Restrict filename, const char * _Nonnull _Restrict mode);
+extern FILE *freopen(const char * _Nonnull _Restrict filename, const char * _Nonnull _Restrict mode, FILE * _Nonnull _Restrict s);
 
-extern FILE *fdopen(int ioc, const char *mode);
-extern FILE *fdreopen(int ioc, const char *mode, FILE *s);
+extern FILE *fdopen(int ioc, const char * _Nonnull mode);
+extern FILE *fdreopen(int ioc, const char * _Nonnull _Restrict mode, FILE * _Nonnull _Restrict s);
 
-extern FILE *fopen_callbacks(void* context, const FILE_Callbacks *callbacks, const char* mode);
-extern FILE *fopen_memory(FILE_Memory *mem, const char *mode);
+extern FILE *fopen_callbacks(void* _Nullable _Restrict context, const FILE_Callbacks * _Nonnull _Restrict callbacks, const char* _Nonnull _Restrict mode);
+extern FILE *fopen_memory(FILE_Memory * _Nonnull _Restrict mem, const char * _Nonnull _Restrict mode);
 
-extern int fclose(FILE *s);
+extern int fclose(FILE * _Nonnull s);
 
-extern int fileno(FILE *s);
-extern int filemem(FILE *s, FILE_MemoryQuery *query);
+extern int fileno(FILE * _Nonnull s);
+extern int filemem(FILE * _Nonnull _Restrict s, FILE_MemoryQuery * _Nonnull _Restrict query);
 
-extern void setbuf(FILE * _Restrict s, char * _Restrict buffer);
-extern int setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size);
+extern void setbuf(FILE * _Nonnull _Restrict s, char * _Nullable _Restrict buffer);
+extern int setvbuf(FILE * _Nonnull _Restrict s, char * _Nullable _Restrict buffer, int mode, size_t size);
 
-extern void clearerr(FILE *s);
-extern int feof(FILE *s);
-extern int ferror(FILE *s);
+extern void clearerr(FILE * _Nonnull s);
+extern int feof(FILE * _Nonnull s);
+extern int ferror(FILE * _Nonnull s);
 
-extern off_t ftello(FILE *s);
-extern long ftell(FILE *s);
+extern off_t ftello(FILE * _Nonnull s);
+extern long ftell(FILE * _Nonnull s);
 
-extern int fseeko(FILE *s, off_t offset, int whence);
-extern int fseek(FILE *s, long offset, int whence);
+extern int fseeko(FILE * _Nonnull s, off_t offset, int whence);
+extern int fseek(FILE * _Nonnull s, long offset, int whence);
 
-extern int fgetpos(FILE *s, fpos_t *pos);
-extern int fsetpos(FILE *s, const fpos_t *pos);
+extern int fgetpos(FILE * _Nonnull _Restrict s, fpos_t * _Nonnull _Restrict pos);
+extern int fsetpos(FILE * _Nonnull _Restrict s, const fpos_t * _Nonnull _Restrict pos);
 
-extern void rewind(FILE *s);
+extern void rewind(FILE * _Nonnull s);
 
-extern ssize_t getline(char **line, size_t *n, FILE *s);
-extern ssize_t getdelim(char **line, size_t *n, int delimiter, FILE *s);
+extern ssize_t getline(char **line, size_t * _Nonnull _Restrict n, FILE * _Nonnull _Restrict s);
+extern ssize_t getdelim(char **line, size_t * _Nonnull _Restrict n, int delimiter, FILE * _Nonnull _Restrict s);
 
-extern int fgetc(FILE *s);
+extern int fgetc(FILE * _Nonnull s);
 #define getc(s) fgetc(s)
 
 extern char * _Nonnull fgets(char * _Nonnull _Restrict str, int count, FILE * _Nonnull _Restrict s);
 
-extern int fputc(int ch, FILE *s);
+extern int fputc(int ch, FILE * _Nonnull s);
 #define putc(ch, s) fputc(ch, s)
 
-extern int fputs(const char *str, FILE *s);
-extern int ungetc(int ch, FILE *s); // supports one character push back
+extern int fputs(const char * _Nonnull _Restrict str, FILE * _Nonnull _Restrict s);
+extern int ungetc(int ch, FILE * _Nonnull s); // supports one character push back
 
-extern size_t fread(void * _Restrict buffer, size_t size, size_t count, FILE * _Restrict s);
-extern size_t fwrite(const void * _Restrict buffer, size_t size, size_t count, FILE * _Restrict s);
+extern size_t fread(void * _Nonnull _Restrict buffer, size_t size, size_t count, FILE * _Nonnull _Restrict s);
+extern size_t fwrite(const void * _Nonnull _Restrict buffer, size_t size, size_t count, FILE * _Nonnull _Restrict s);
 
-extern int fflush(FILE *s);
+extern int fflush(FILE * _Nonnull s);
 
 extern int getchar(void);
-extern char *gets(char *str);
+extern char * _Nullable gets(char * _Nonnull str);
 
 extern int putchar(int ch);
-extern int puts(const char *str);
+extern int puts(const char * _Nonnull str);
 
-extern int printf(const char *format, ...);
-extern int vprintf(const char *format, va_list ap);
+extern int printf(const char * _Nonnull _Restrict format, ...);
+extern int vprintf(const char * _Nonnull _Restrict format, va_list ap);
 
-extern int fprintf(FILE *s, const char *format, ...);
-extern int vfprintf(FILE *s, const char *format, va_list ap);
+extern int fprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, ...);
+extern int vfprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, va_list ap);
 
-extern int sprintf(char *buffer, const char *format, ...);
-extern int vsprintf(char *buffer, const char *format, va_list ap);
-extern int snprintf(char *buffer, size_t bufsiz, const char *format, ...);
-extern int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap);
+extern int sprintf(char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, ...);
+extern int vsprintf(char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, va_list ap);
+extern int snprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, ...);
+extern int vsnprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, va_list ap);
 
-extern int asprintf(char **str_ptr, const char *format, ...);
-extern int vasprintf(char **str_ptr, const char *format, va_list ap);
+extern int asprintf(char **str_ptr, const char * _Nonnull _Restrict format, ...);
+extern int vasprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list ap);
 
-extern int scanf(const char *format, ...);
-extern int vscanf(const char *format, va_list ap);
+extern int scanf(const char * _Nonnull _Restrict format, ...);
+extern int vscanf(const char * _Nonnull _Restrict format, va_list ap);
 
-extern int fscanf(FILE *s, const char *format, ...);
-extern int vfscanf(FILE *s, const char *format, va_list ap);
+extern int fscanf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, ...);
+extern int vfscanf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, va_list ap);
 
-extern int sscanf(const char *buffer, const char *format, ...);
-extern int vsscanf(const char *buffer, const char *format, va_list ap);
+extern int sscanf(const char * _Nonnull _Restrict buffer, const char * _Nonnull _Restrict format, ...);
+extern int vsscanf(const char * _Nonnull _Restrict buffer, const char * _Nonnull _Restrict format, va_list ap);
 
-extern void perror(const char *str);
+extern void perror(const char * _Nullable str);
 
-extern int remove(const char* path);
-extern int rename(const char* oldpath, const char* newpath);
+extern int remove(const char* _Nonnull path);
+extern int rename(const char* _Nonnull oldpath, const char* _Nonnull newpath);
 
-extern char *tmpnam(char *filename);
-extern char *tmpnam_r(char *filename);
+extern char * _Nullable tmpnam(char * _Nonnull filename);
+extern char * _Nullable tmpnam_r(char * _Nonnull filename);
 
-extern FILE *tmpfile(void);
+extern FILE * _Nullable tmpfile(void);
 
 __CPP_END
 

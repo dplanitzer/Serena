@@ -11,7 +11,7 @@
 #include <kpi/syscall.h>
 
 
-int remove(const char* path)
+int remove(const char* _Nonnull path)
 {
     return (int)_syscall(SC_unlink, path, __ULNK_ANY);
 }

@@ -11,7 +11,7 @@
 #include <string.h>
 
 
-void perror(const char *str)
+void perror(const char * _Nullable str)
 {
     if (str && *str != '\0') {
         fputs(str, stdout);

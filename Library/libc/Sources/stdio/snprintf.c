@@ -13,7 +13,7 @@
 #include "Stream.h"
 
 
-int snprintf(char *buffer, size_t bufsiz, const char *format, ...)
+int snprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, ...)
 {
     va_list ap;
     
@@ -23,7 +23,7 @@ int snprintf(char *buffer, size_t bufsiz, const char *format, ...)
     return r;
 }
 
-int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
+int vsnprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, va_list ap)
 {
     const bool hasBuffer = (buffer && bufsiz > 0) ? true : false;
     const __FILE_Mode sm = __kStreamMode_Write | __kStreamMode_Truncate | __kStreamMode_Create;

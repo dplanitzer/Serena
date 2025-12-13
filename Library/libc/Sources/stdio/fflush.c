@@ -89,7 +89,7 @@ int __fflush(FILE * _Nonnull s)
     return 0;
 }
 
-int fflush(FILE *s)
+int fflush(FILE * _Nonnull s)
 {
     if (s) {
         return __fflush(s);

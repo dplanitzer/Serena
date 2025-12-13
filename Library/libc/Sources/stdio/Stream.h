@@ -88,15 +88,15 @@ typedef struct __Memory_FILE {
 } __Memory_FILE;
 
 
-extern int __fopen_parse_mode(const char* _Nonnull mode, __FILE_Mode* _Nonnull pOutMode);
+extern int __fopen_parse_mode(const char* _Nonnull _Restrict mode, __FILE_Mode* _Nonnull _Restrict pOutMode);
 
-extern int __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, const FILE_Callbacks* callbacks, __FILE_Mode sm);
+extern int __fopen_init(FILE* _Nonnull _Restrict self, bool bFreeOnClose, void* _Nullable context, const FILE_Callbacks* _Nonnull _Restrict callbacks, __FILE_Mode sm);
 extern int __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int ioc, __FILE_Mode sm);
-extern int __fopen_filename_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, const char *filename, __FILE_Mode sm);
-extern int __fopen_memory_init(__Memory_FILE* _Nonnull self, bool bFreeOnClose, FILE_Memory *mem, __FILE_Mode sm);
+extern int __fopen_filename_init(__IOChannel_FILE* _Nonnull _Restrict self, bool bFreeOnClose, const char * _Nonnull _Restrict filename, __FILE_Mode sm);
+extern int __fopen_memory_init(__Memory_FILE* _Nonnull _Restrict self, bool bFreeOnClose, FILE_Memory * _Nonnull _Restrict mem, __FILE_Mode sm);
 extern int __fopen_null_init(FILE* _Nonnull self, bool bFreeOnClose, __FILE_Mode sm);
 
-extern FILE *__fopen_null(const char* mode);
+extern FILE * _Nullable __fopen_null(const char* mode);
 
 #define __fensure_byte_oriented(__self, __ret) \
 if ((__self)->flags.orientation == __kStreamOrientation_Wide) { \
@@ -144,10 +144,10 @@ if ((__self)->cb.seek == NULL) { \
 #define __fdiscard_ugb(__self) \
 (__self)->ugbCount = 0
 
-extern int __fget_ugb(char* _Nonnull pch, FILE * _Nonnull s);
+extern int __fget_ugb(char* _Nonnull _Restrict pch, FILE * _Nonnull _Restrict s);
 
 extern ssize_t __fwrite(FILE * _Nonnull _Restrict s, const void * _Restrict buffer, ssize_t nbytes);
-extern ssize_t __fgetc(char* _Nonnull pch, FILE * _Nonnull sm);
+extern ssize_t __fgetc(char* _Nonnull _Restrict pch, FILE * _Nonnull _Restrict sm);
 extern ssize_t __fputc(char ch, FILE * _Nonnull s);
 extern off_t __fgetlogicalpos(FILE * _Nonnull s);
 extern int __fsetdir(FILE * _Nonnull s, int dir);
@@ -161,6 +161,8 @@ extern void __init_open_files_lock(void);
 
 typedef int (*__file_func_t)(FILE* _Nonnull s);
 extern int __iterate_open_files(__file_func_t _Nonnull f);
+
+extern char * _Nullable __tmpnam_r(char * _Nullable _Restrict filename, int* _Nonnull _Restrict pOutIoc);
 
 __CPP_END
 

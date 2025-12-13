@@ -116,7 +116,7 @@ int __iterate_open_files(__file_func_t _Nonnull f)
 // "t"                          open in translated mode
 //
 // Modifiers are optional and follow the mode. "b" is always implied on Serena OS.
-int __fopen_parse_mode(const char* _Nonnull mode, __FILE_Mode* _Nonnull pOutMode)
+int __fopen_parse_mode(const char* _Nonnull _Restrict mode, __FILE_Mode* _Nonnull _Restrict pOutMode)
 {
     __FILE_Mode sm = 0;
     int ok = 1;
@@ -166,7 +166,7 @@ int __fopen_parse_mode(const char* _Nonnull mode, __FILE_Mode* _Nonnull pOutMode
     }
 }
 
-int __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, const FILE_Callbacks* callbacks, __FILE_Mode sm)
+int __fopen_init(FILE* _Nonnull _Restrict self, bool bFreeOnClose, void* _Nullable context, const FILE_Callbacks* _Nonnull _Restrict callbacks, __FILE_Mode sm)
 {
     int ok = 1;
 

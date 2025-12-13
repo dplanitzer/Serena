@@ -10,7 +10,7 @@
 #include <stdlib.h>
 
 
-int fclose(FILE *s)
+int fclose(FILE * _Nonnull s)
 {
     int r = 0;
 

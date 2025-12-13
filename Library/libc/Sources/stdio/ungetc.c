@@ -13,7 +13,7 @@
 // - 's' direction is in
 // - 's' ugbCount > 0
 // - 's' is not buffered
-int __fget_ugb(char* _Nonnull pch, FILE * _Nonnull s)
+int __fget_ugb(char* _Nonnull _Restrict pch, FILE * _Nonnull _Restrict s)
 {
     if (s->cb.seek(s->context, 1ll, SEEK_CUR) < 0ll) {
         return EOF;
@@ -24,7 +24,7 @@ int __fget_ugb(char* _Nonnull pch, FILE * _Nonnull s)
     return 1;
 }
 
-int ungetc(int ch, FILE *s)
+int ungetc(int ch, FILE * _Nonnull s)
 {
     __fensure_no_eof_err(s, EOF);
     __fensure_readable(s, EOF);

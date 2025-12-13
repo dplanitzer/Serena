@@ -10,7 +10,7 @@
 #include <stdlib.h>
 
 
-FILE *fdreopen(int ioc, const char *mode, FILE *s)
+FILE *fdreopen(int ioc, const char * _Nonnull _Restrict mode, FILE * _Nonnull _Restrict s)
 {
     const bool isFreeOnClose = s->flags.shouldFreeOnClose;
     __FILE_Mode sm;

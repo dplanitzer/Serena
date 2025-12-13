@@ -10,7 +10,7 @@
 #include <stdlib.h>
 
 
-FILE *fopen_callbacks(void* context, const FILE_Callbacks* callbacks, const char* mode)
+FILE *fopen_callbacks(void* _Nullable _Restrict context, const FILE_Callbacks* _Nonnull _Restrict callbacks, const char* _Nonnull _Restrict mode)
 {
     __FILE_Mode sm;
 

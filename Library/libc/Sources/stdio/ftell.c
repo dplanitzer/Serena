@@ -10,7 +10,7 @@
 #include <limits.h>
 
 
-off_t ftello(FILE *s)
+off_t ftello(FILE * _Nonnull s)
 {
     __fensure_seekable(s, EOF);
 
@@ -24,7 +24,7 @@ off_t ftello(FILE *s)
     }
 }
 
-long ftell(FILE *s)
+long ftell(FILE * _Nonnull s)
 {
     __fensure_seekable(s, EOF);
 

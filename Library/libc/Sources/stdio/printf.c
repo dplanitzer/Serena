@@ -11,7 +11,7 @@
 #include "Stream.h"
 
 
-int printf(const char *format, ...)
+int printf(const char * _Nonnull _Restrict format, ...)
 {
     va_list ap;
     
@@ -21,7 +21,7 @@ int printf(const char *format, ...)
     return r;
 }
 
-int vprintf(const char *format, va_list ap)
+int vprintf(const char *_Nonnull _Restrict format, va_list ap)
 {
     return vfprintf(stdout, format, ap);
 }

@@ -13,7 +13,7 @@
 #include "Stream.h"
 
 
-int fprintf(FILE *s, const char *format, ...)
+int fprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, ...)
 {
     va_list ap;
     
@@ -24,7 +24,7 @@ int fprintf(FILE *s, const char *format, ...)
     return r;
 }
 
-int vfprintf(FILE *s, const char *format, va_list ap)
+int vfprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, va_list ap)
 {
     Formatter fmt;
 

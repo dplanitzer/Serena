@@ -85,7 +85,7 @@ static ssize_t __fread(FILE* _Nonnull _Restrict s, void * _Nonnull _Restrict buf
     }
 }
 
-size_t fread(void * _Restrict buffer, size_t size, size_t count, FILE * _Restrict s)
+size_t fread(void * _Nonnull _Restrict buffer, size_t size, size_t count, FILE * _Nonnull _Restrict s)
 {
     __fensure_no_eof_err(s, 0);
     __fensure_readable(s, 0);
