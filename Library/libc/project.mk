@@ -7,6 +7,9 @@ LIBC_SOURCES_DIR := $(LIBC_PROJECT_DIR)/Sources
 ARCH_M68K_SOURCES_DIR := $(LIBC_SOURCES_DIR)/machine/arch/m68k
 ARCH_M68K_OBJS_DIR := $(LIBC_OBJS_DIR)/machine/arch/m68k
 
+LOCALE_SOURCES_DIR := $(LIBC_SOURCES_DIR)/locale
+LOCALE_OBJS_DIR := $(LIBC_OBJS_DIR)/locale
+
 MALLOC_SOURCES_DIR := $(LIBC_SOURCES_DIR)/malloc
 MALLOC_OBJS_DIR := $(LIBC_OBJS_DIR)/malloc
 
@@ -59,6 +62,7 @@ $(LIBC_OBJS_DIR):
 
 
 -include $(ARCH_M68K_SOURCES_DIR)/package.mk
+-include $(LOCALE_SOURCES_DIR)/package.mk
 -include $(MALLOC_SOURCES_DIR)/package.mk
 -include $(STDIO_SOURCES_DIR)/package.mk
 -include $(STDLIB_SOURCES_DIR)/package.mk
@@ -67,7 +71,7 @@ $(LIBC_OBJS_DIR):
 -include $(TIME_SOURCES_DIR)/package.mk
 
 
-$(LIBC_FILE): $(ARCH_M68K_OBJS) $(LIBC_OBJS) $(MALLOC_OBJS) $(STDIO_OBJS) $(STDLIB_OBJS) $(STRING_OBJS) $(SYS_OBJS) $(TIME_OBJS)
+$(LIBC_FILE): $(ARCH_M68K_OBJS) $(LIBC_OBJS) $(LOCALE_OBJS) $(MALLOC_OBJS) $(STDIO_OBJS) $(STDLIB_OBJS) $(STRING_OBJS) $(SYS_OBJS) $(TIME_OBJS)
 	@echo Making libc.a
 	$(LIBTOOL) create $@ $^
 
