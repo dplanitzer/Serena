@@ -51,7 +51,7 @@ struct lconv {
 #define _LC_LAST    LC_TIME
 
 
-extern char* _Nonnull setlocale(int category, const char* _Nullable locale);
+extern char* _Nullable setlocale(int category, const char* _Nullable locale);
 extern struct lconv * _Nonnull localeconv(void);
 
 __CPP_END
