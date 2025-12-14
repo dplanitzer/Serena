@@ -171,21 +171,16 @@ void SList_InsertAfter(SList* _Nonnull pList, SListNode* _Nonnull pNode, SListNo
 
 SListNode* _Nullable SList_RemoveFirst(SList* _Nonnull pList)
 {
-    SListNode* pFirstNode = pList->first;
+    SListNode* np = pList->first;
 
-    if (pFirstNode != NULL) {
-        if (pFirstNode != pList->last) {
-            SListNode* pNewFirstNode = pFirstNode->next;
-
-            pList->first = pNewFirstNode;
-            pFirstNode->next = NULL;
-        } else {
-            pList->first = NULL;
+    if (np) {
+        pList->first = np->next;
+        if (pList->last == np) {
             pList->last = NULL;
         }
+        np->next = NULL;
     }
-
-    return pFirstNode;
+    return np;
 }
 
 // Removes 'pNodeToRemove' from 'pList'. 'pPrevNode' must point to the predecessor
