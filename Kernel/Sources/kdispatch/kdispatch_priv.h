@@ -141,7 +141,7 @@ extern void _kdispatch_worker_run(kdispatch_worker_t _Nonnull self);
 #define _KDISPATCH_EWC_TIMER        2
 
 
-struct dispatch {
+struct kdispatch {
     mtx_t                           mutex;
     cnd_t                           cond;
     kdispatch_attr_t                attr;

@@ -26,7 +26,13 @@ static void _kdispatch_queue_timer(kdispatch_t _Nonnull self, kdispatch_timer_t 
         ctp = (kdispatch_timer_t)ctp->timer_qe.next;
     }
     
-    SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
+
+    if (ptp) {
+        SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
+    }
+    else {
+        SList_InsertBeforeFirst(&self->timers, &timer->timer_qe);
+    }
 }
 
 static kdispatch_timer_t _Nullable _kdispatch_dequeue_timer_for_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item)

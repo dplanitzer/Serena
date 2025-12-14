@@ -22,7 +22,7 @@ __CPP_BEGIN
 struct kdispatch;
 struct kdispatch_item;
 typedef struct kdispatch_item* kdispatch_item_t;
-typedef struct dispatch* kdispatch_t;
+typedef struct kdispatch* kdispatch_t;
 
 // A dispatcher or dispatch queue manages a FIFO queue of work items and
 // dispatches those items to a set of virtual processors for execution. A

@@ -217,25 +217,21 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
     dispatch_t q = self->owner;
     bool mayRelinquish = false;
     struct timespec now, deadline;
-    dispatch_item_t item;
     int flags, signo;
-
-    self->current_item = NULL;
-    self->current_timer = NULL;
 
     for (;;) {
         // Grab the first timer that's due. We give preference to timers because
         // they are tied to a specific deadline time while immediate work items
         // do not guarantee that they will execute at a specific time. So it's
         // acceptable to push them back on the timeline.
-        dispatch_timer_t ftp = (dispatch_timer_t)q->timers.first;
-        if (ftp) {
+        dispatch_timer_t tp = (dispatch_timer_t)q->timers.first;
+        if (tp) {
             clock_gettime(CLOCK_MONOTONIC, &now);
 
-            if (timespec_le(&ftp->deadline, &now)) {
+            if (timespec_le(&tp->deadline, &now)) {
                 SList_RemoveFirst(&q->timers);
-                self->current_item = ftp->item;
-                self->current_timer = ftp;
+                self->current_item = tp->item;
+                self->current_timer = tp;
 
                 return 0;
             }
@@ -243,18 +239,21 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
 
 
         // Next grab a work item if there's one queued
-        item = (dispatch_item_t) SList_RemoveFirst(&self->work_queue);
-        if (item == NULL) {
-            // Try stealing a work item (aka rebalancing) from another worker
-            item = _dispatch_steal_work_item(self->owner);
-        }
-        if (item) {
+        dispatch_item_t ip = (dispatch_item_t) SList_RemoveFirst(&self->work_queue);
+        if (ip) {
             self->work_count--;
-            self->current_item = item;
+        }
+        else if (q->worker_count > 1) {
+            // Try stealing a work item (aka rebalancing) from another worker
+            ip = _dispatch_steal_work_item(q);
+        }
+        if (ip) {
+            self->current_item = ip;
             self->current_timer = NULL;
 
             return 0;
         }
+
 
         if (q->state >= _DISPATCHER_STATE_TERMINATING && self->work_count == 0) {
             return 1;
@@ -311,36 +310,36 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
     mtx_lock(&q->mutex);
 
     while (!_get_next_work(self)) {
-        dispatch_item_t item = self->current_item;
+        dispatch_item_t ip = self->current_item;
 
-        item->state = DISPATCH_STATE_EXECUTING;
+        ip->state = DISPATCH_STATE_EXECUTING;
         mtx_unlock(&q->mutex);
 
 
-        item->func(item);
+        ip->func(ip);
 
 
         mtx_lock(&q->mutex);
-        switch (item->type) {
+        switch (ip->type) {
             case _DISPATCH_TYPE_USER_ITEM:
             case _DISPATCH_TYPE_CONV_ITEM:
-                _dispatch_retire_item(q, item);
+                _dispatch_retire_item(q, ip);
                 break;
 
             case _DISPATCH_TYPE_USER_SIGNAL_ITEM:
-                if ((item->flags & _DISPATCH_ITEM_FLAG_REPEATING) != 0
-                    && (item->flags & _DISPATCH_ITEM_FLAG_CANCELLED) == 0) {
-                    _dispatch_rearm_signal_item(q, item);
+                if ((ip->flags & _DISPATCH_ITEM_FLAG_REPEATING) != 0
+                    && (ip->flags & _DISPATCH_ITEM_FLAG_CANCELLED) == 0) {
+                    _dispatch_rearm_signal_item(q, ip);
                 }
                 else {
-                    _dispatch_retire_signal_item(q, item);
+                    _dispatch_retire_signal_item(q, ip);
                 }
                 break;
 
             case _DISPATCH_TYPE_USER_TIMER:
             case _DISPATCH_TYPE_CONV_TIMER:
-                if ((item->flags & _DISPATCH_ITEM_FLAG_REPEATING) != 0
-                    && (item->flags & _DISPATCH_ITEM_FLAG_CANCELLED) == 0) {
+                if ((ip->flags & _DISPATCH_ITEM_FLAG_REPEATING) != 0
+                    && (ip->flags & _DISPATCH_ITEM_FLAG_CANCELLED) == 0) {
                     _dispatch_rearm_timer(q, self->current_timer);
                 }
                 else {
@@ -351,6 +350,9 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
             default:
                 abort();
         }
+
+        self->current_item = NULL;
+        self->current_timer = NULL;
     }
 
     // Takes care of unlocking 'mp'

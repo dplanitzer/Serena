@@ -31,7 +31,13 @@ static void _dispatch_queue_timer(dispatch_t _Nonnull self, dispatch_timer_t _No
         ctp = (dispatch_timer_t)ctp->timer_qe.next;
     }
     
-    SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
+    
+    if (ptp) {
+        SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
+    }
+    else {
+        SList_InsertBeforeFirst(&self->timers, &timer->timer_qe);
+    }
 }
 
 static dispatch_timer_t _Nullable _dispatch_dequeue_timer_for_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)

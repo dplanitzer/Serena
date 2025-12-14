@@ -26,8 +26,6 @@ static errno_t _kdispatch_init(kdispatch_t _Nonnull self, const kdispatch_attr_t
     }
 
 
-    memset(self, 0, sizeof(struct dispatch));
-
     mtx_init(&self->mutex);
 
     self->attr = *attr;
@@ -55,7 +53,7 @@ errno_t kdispatch_create(const kdispatch_attr_t* _Nonnull attr, kdispatch_t _Nul
     decl_try_err();
     kdispatch_t self = NULL;
     
-    err = kalloc_cleared(sizeof(struct dispatch), (void**)&self);
+    err = kalloc_cleared(sizeof(struct kdispatch), (void**)&self);
     if (err == EOK) {
         err = _kdispatch_init(self, attr);
         if (err != EOK) {
@@ -284,13 +282,21 @@ static errno_t _kdispatch_await(kdispatch_t _Nonnull _Locked self, kdispatch_ite
         }
         pip = cip;
     });
-    SList_Remove(&self->zombie_items, &pip->qe, &item->qe);
+
+
+    if (pip) {
+        SList_Remove(&self->zombie_items, &pip->qe, &item->qe);
+    }
+    else {
+        SList_RemoveFirst(&self->zombie_items);
+    }
 
     return EOK;
 }
 
 void _kdispatch_zombify_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item)
 {
+    item->qe = SLISTNODE_INIT;
     SList_InsertAfterLast(&self->zombie_items, &item->qe);
     cnd_broadcast(&self->cond);
 }

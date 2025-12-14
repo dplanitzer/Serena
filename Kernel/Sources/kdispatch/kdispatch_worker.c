@@ -58,6 +58,7 @@ errno_t _kdispatch_worker_create(kdispatch_t _Nonnull owner, kdispatch_worker_t 
 catch:
     if (err != EOK) {
         kfree(self);
+        self = NULL;
     }
     *pOutSelf = self;
 
@@ -189,25 +190,21 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
     kdispatch_t q = self->owner;
     bool mayRelinquish = false;
     struct timespec now, deadline;
-    kdispatch_item_t item;
     int flags, signo;
-
-    self->current_item = NULL;
-    self->current_timer = NULL;
 
     for (;;) {
         // Grab the first timer that's due. We give preference to timers because
         // they are tied to a specific deadline time while immediate work items
         // do not guarantee that they will execute at a specific time. So it's
         // acceptable to push them back on the timeline.
-        kdispatch_timer_t ftp = (kdispatch_timer_t)q->timers.first;
-        if (ftp) {
+        kdispatch_timer_t tp = (kdispatch_timer_t)q->timers.first;
+        if (tp) {
             clock_gettime(g_mono_clock, &now);
 
-            if (timespec_le(&ftp->deadline, &now)) {
+            if (timespec_le(&tp->deadline, &now)) {
                 SList_RemoveFirst(&q->timers);
-                self->current_item = ftp->item;
-                self->current_timer = ftp;
+                self->current_item = tp->item;
+                self->current_timer = tp;
 
                 return 0;
             }
@@ -215,18 +212,21 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
 
 
         // Next grab a work item if there's one queued
-        item = (kdispatch_item_t) SList_RemoveFirst(&self->work_queue);
-        if (item == NULL) {
-            // Try stealing a work item (aka rebalancing) from another worker
-            item = _kdispatch_steal_work_item(self->owner);
-        }
-        if (item) {
+        kdispatch_item_t ip = (kdispatch_item_t) SList_RemoveFirst(&self->work_queue);
+        if (ip) {
             self->work_count--;
-            self->current_item = item;
+        }
+        else if (q->worker_count > 1) {
+            // Try stealing a work item (aka rebalancing) from another worker
+            ip = _kdispatch_steal_work_item(q);
+        }
+        if (ip) {
+            self->current_item = ip;
             self->current_timer = NULL;
 
             return 0;
         }
+
 
         if (q->state >= _DISPATCHER_STATE_TERMINATING && self->work_count == 0) {
             return 1;
@@ -281,36 +281,36 @@ void _kdispatch_worker_run(kdispatch_worker_t _Nonnull self)
     mtx_lock(&q->mutex);
 
     while (!_get_next_work(self)) {
-        kdispatch_item_t item = self->current_item;
+        kdispatch_item_t ip = self->current_item;
 
-        item->state = KDISPATCH_STATE_EXECUTING;
+        ip->state = KDISPATCH_STATE_EXECUTING;
         mtx_unlock(&q->mutex);
 
 
-        item->func(item);
+        ip->func(ip);
 
 
         mtx_lock(&q->mutex);
-        switch (item->type) {
+        switch (ip->type) {
             case _KDISPATCH_TYPE_USER_ITEM:
             case _KDISPATCH_TYPE_CONV_ITEM:
-                _kdispatch_retire_item(q, item);
+                _kdispatch_retire_item(q, ip);
                 break;
 
             case _KDISPATCH_TYPE_USER_SIGNAL_ITEM:
-                if ((item->flags & _KDISPATCH_ITEM_FLAG_REPEATING) != 0
-                    && (item->flags & _KDISPATCH_ITEM_FLAG_CANCELLED) == 0) {
-                    _kdispatch_rearm_signal_item(q, item);
+                if ((ip->flags & _KDISPATCH_ITEM_FLAG_REPEATING) != 0
+                    && (ip->flags & _KDISPATCH_ITEM_FLAG_CANCELLED) == 0) {
+                    _kdispatch_rearm_signal_item(q, ip);
                 }
                 else {
-                    _kdispatch_retire_signal_item(q, item);
+                    _kdispatch_retire_signal_item(q, ip);
                 }
                 break;
 
             case _KDISPATCH_TYPE_USER_TIMER:
             case _KDISPATCH_TYPE_CONV_TIMER:
-                if ((item->flags & _KDISPATCH_ITEM_FLAG_REPEATING) != 0
-                    && (item->flags & _KDISPATCH_ITEM_FLAG_CANCELLED) == 0) {
+                if ((ip->flags & _KDISPATCH_ITEM_FLAG_REPEATING) != 0
+                    && (ip->flags & _KDISPATCH_ITEM_FLAG_CANCELLED) == 0) {
                     _kdispatch_rearm_timer(q, self->current_timer);
                 }
                 else {
@@ -321,6 +321,9 @@ void _kdispatch_worker_run(kdispatch_worker_t _Nonnull self)
             default:
                 abort();
         }
+
+        self->current_item = NULL;
+        self->current_timer = NULL;
     }
 
     // Takes care of unlocking 'mp'

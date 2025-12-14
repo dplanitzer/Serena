@@ -315,13 +315,21 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
         }
         pip = cip;
     });
-    SList_Remove(&self->zombie_items, &pip->qe, &item->qe);
+
+    
+    if (pip) {
+        SList_Remove(&self->zombie_items, &pip->qe, &item->qe);
+    }
+    else {
+        SList_RemoveFirst(&self->zombie_items);
+    }
 
     return r;
 }
 
 void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
+    item->qe = SLISTNODE_INIT;
     SList_InsertAfterLast(&self->zombie_items, &item->qe);
     cnd_broadcast(&self->cond);
 }
