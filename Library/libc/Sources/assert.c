@@ -11,8 +11,8 @@
 #include <stdlib.h>
 
 
-_Noreturn _Assert(const char* _Nonnull pFilename, int lineNum, const char* _Nonnull pFuncName, const char* _Nonnull expr)
+void _Assert(const char* _Nonnull _Restrict filename, int lineNum, const char* _Nonnull _Restrict funcName, const char* _Nonnull _Restrict expr)
 {
-    printf("%s:%d: %s: Assertion '%s' failed.\n", pFilename, lineNum, pFuncName, expr);
-    _Exit(EXIT_FAILURE);
+    printf("%s:%d: Assertion '%s' failed at %s().\n", filename, lineNum, expr, funcName);
+    abort();
 }

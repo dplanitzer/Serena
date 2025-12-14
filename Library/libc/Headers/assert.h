@@ -7,9 +7,6 @@
 //
 
 #include <_cmndef.h>
-#ifndef NDEBUG
-#include <stdnoreturn.h>
-#endif /* NDEBUG */
 
 __CPP_BEGIN
 
@@ -19,7 +16,7 @@ __CPP_BEGIN
 
 #else
 
-extern _Noreturn _Assert(const char* _Nonnull pFilename, int lineNum, const char* _Nonnull pFuncName, const char* _Nonnull expr);
+extern void _Assert(const char* _Nonnull _Restrict filename, int lineNum, const char* _Nonnull _Restrict funcName, const char* _Nonnull _Restrict expr);
 
 #ifndef assert
 #define assert(cond)   if ((cond) == 0) { _Assert(__FILE__, __LINE__, __func__, #cond); }
