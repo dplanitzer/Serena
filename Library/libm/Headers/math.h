@@ -20,10 +20,8 @@ typedef double double_t;
 #define HUGE_VAL    1e500
 #define HUGE_VALL   1e5000l
 
-#define INFINITY    HUGE_VALF
-
-// XXX not yet
-//#define NAN
+#define INFINITY    ((float)(HUGE_VALF * HUGE_VALF)))
+#define NAN         ((float)(INFINITY * 0.0f))
 
 
 #define FP_INFINITE     1
@@ -35,7 +33,7 @@ typedef double double_t;
 
 #define MATH_ERRNO      1
 #define MATH_ERREXCEPT  2
-#define math_errhandling    (MATH_ERRNO|MATH_ERREXCEPT)
+#define math_errhandling    ((int)(MATH_ERRNO|MATH_ERREXCEPT))
 
 
 extern double fabs(double x);
