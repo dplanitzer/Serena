@@ -11,6 +11,8 @@
 #include <process/Process.h>
 
 
+// Expects:
+// - 'self' points to sizeof(struct kdispatch) 0 bytes
 static errno_t _kdispatch_init(kdispatch_t _Nonnull self, const kdispatch_attr_t* _Nonnull attr)
 {
     decl_try_err();
@@ -21,7 +23,7 @@ static errno_t _kdispatch_init(kdispatch_t _Nonnull self, const kdispatch_attr_t
     if (attr->qos < KDISPATCH_QOS_BACKGROUND || attr->qos > KDISPATCH_QOS_REALTIME) {
         return EINVAL;
     }
-    if (attr->priority < KDISPATCH_PRI_LOWEST || attr->priority >= KDISPATCH_PRI_HIGHEST) {
+    if (attr->priority < KDISPATCH_PRI_LOWEST || attr->priority > KDISPATCH_PRI_HIGHEST) {
         return EINVAL;
     }
 
@@ -508,7 +510,8 @@ errno_t kdispatch_sync(kdispatch_t _Nonnull self, kdispatch_sync_func_t _Nonnull
             item->func = (int (*)(void*))func;
             item->arg = arg;
             item->result = 0;
-            if (_kdispatch_submit(self, (kdispatch_item_t)item) == 0) {
+            err = _kdispatch_submit(self, (kdispatch_item_t)item);
+            if (err == EOK) {
                 err = _kdispatch_await(self, (kdispatch_item_t)item);
                 if (err == EOK) {
                     err = item->result;

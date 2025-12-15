@@ -83,7 +83,6 @@ struct kdispatch_worker {
 
     kdispatch_t _Nonnull        owner;
 
-    int8_t                      adoption;  // _KDISPATCH_XXX_VCPU; tells us whether the worker acquired or adopted its vcpu
     bool                        allow_relinquish;   // whether the worker is free to relinquish or not
     bool                        is_suspended;   // set to true by the worker when it has picked up on the dispatcher suspending state
 };

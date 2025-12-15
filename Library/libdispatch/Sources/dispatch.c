@@ -22,6 +22,8 @@ static struct dispatch      g_main_dispatcher_rec;
 static volatile spinlock_t  g_main_lock;    // bss init corresponds to SPINLOCK_INIT
 
 
+// Expects:
+// - 'self' points to sizeof(struct dispatch) 0 bytes
 static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Nonnull attr, int adoption)
 {
     if (attr->maxConcurrency < 1 || attr->maxConcurrency > INT8_MAX || attr->minConcurrency > attr->maxConcurrency) {
@@ -32,13 +34,11 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
         errno = EINVAL;
         return false;
     }
-    if (attr->priority < DISPATCH_PRI_LOWEST || attr->priority >= DISPATCH_PRI_HIGHEST) {
+    if (attr->priority < DISPATCH_PRI_LOWEST || attr->priority > DISPATCH_PRI_HIGHEST) {
         errno = EINVAL;
         return false;
     }
 
-
-    memset(self, 0, sizeof(struct dispatch));
 
     if (mtx_init(&self->mutex) != 0) {
         return false;
@@ -538,7 +538,8 @@ int dispatch_sync(dispatch_t _Nonnull self, dispatch_sync_func_t _Nonnull func, 
             item->func = (int (*)(void*))func;
             item->arg = arg;
             item->result = 0;
-            if (_dispatch_submit(self, (dispatch_item_t)item) == 0) {
+            r = _dispatch_submit(self, (dispatch_item_t)item);
+            if (r == 0) {
                 r = _dispatch_await(self, (dispatch_item_t)item);
                 if (r == 0) {
                     r = item->result;
@@ -774,6 +775,7 @@ dispatch_t _Nonnull dispatch_main_queue(void)
     //           up.
     spin_lock(&g_main_lock);
     if (g_main_dispatcher == NULL) {
+        memset(&g_main_dispatcher_rec, 0, sizeof(struct dispatch));
         if (!_dispatch_init(&g_main_dispatcher_rec, &attr, _DISPATCH_ADOPT_MAIN_VCPU)) {
             abort();
         }
