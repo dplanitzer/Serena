@@ -39,14 +39,6 @@ static bool _dispatch_worker_acquire_vcpu(dispatch_worker_t _Nonnull self)
     return false;
 }
 
-static void _dispatch_worker_adopt_caller_vcpu(dispatch_worker_t _Nonnull self)
-{
-    //XXX not allowing the main vcpu to relinquish for now. Should revisit in the future and enable this
-    self->allow_relinquish = false;
-    self->vcpu = vcpu_self();
-    self->id = vcpu_id(self->vcpu);
-}
-
 static void _dispatch_worker_adopt_main_vcpu(dispatch_worker_t _Nonnull self)
 {
     //XXX not allowing the main vcpu to relinquish for now. Should revisit in the future and enable this
@@ -72,10 +64,6 @@ dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner, i
                     free(self);
                     return NULL;
                 }
-                break;
-
-            case _DISPATCH_ADOPT_CALLER_VCPU:
-                _dispatch_worker_adopt_caller_vcpu(self);
                 break;
 
             case _DISPATCH_ADOPT_MAIN_VCPU:

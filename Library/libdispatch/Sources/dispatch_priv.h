@@ -63,8 +63,7 @@ typedef struct dispatch_sigtrap* dispatch_sigtrap_t;
 
 // _dispatch_worker_create() adoption mode
 #define _DISPATCH_ACQUIRE_VCPU      0
-#define _DISPATCH_ADOPT_CALLER_VCPU 1
-#define _DISPATCH_ADOPT_MAIN_VCPU   2
+#define _DISPATCH_ADOPT_MAIN_VCPU   1
 
 
 struct dispatch_worker {

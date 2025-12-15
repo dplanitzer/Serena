@@ -17,14 +17,14 @@
 #include <sys/spinlock.h>
 
 
-static dispatch_t _Nullable g_main_dispatcher;
+static volatile dispatch_t _Nullable    g_main_dispatcher;
 static struct dispatch      g_main_dispatcher_rec;
 static volatile spinlock_t  g_main_lock;    // bss init corresponds to SPINLOCK_INIT
 
 
 // Expects:
 // - 'self' points to sizeof(struct dispatch) 0 bytes
-static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Nonnull attr, int adoption)
+static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Nonnull attr)
 {
     if (attr->maxConcurrency < 1 || attr->maxConcurrency > INT8_MAX || attr->minConcurrency > attr->maxConcurrency) {
         errno = EINVAL;
@@ -45,34 +45,10 @@ static bool _dispatch_init(dispatch_t _Nonnull self, const dispatch_attr_t* _Non
     }
 
     self->attr = *attr;
-
-    switch (adoption) {
-        case _DISPATCH_ACQUIRE_VCPU:
-            self->groupid = new_vcpu_groupid();
-            break;
-
-        case _DISPATCH_ADOPT_CALLER_VCPU:
-            self->groupid = vcpu_groupid(vcpu_self());
-            break;
-
-        case _DISPATCH_ADOPT_MAIN_VCPU:
-            self->groupid = vcpu_groupid(vcpu_main());
-            break;
-
-        default:
-            abort();
-    }
-
     self->state = _DISPATCHER_STATE_ACTIVE;
 
     if (cnd_init(&self->cond) != 0) {
         return false;
-    }
-
-    for (size_t i = 0; i < attr->minConcurrency; i++) {
-        if (_dispatch_acquire_worker_with_ownership(self, adoption) != 0) {
-            return false;
-        }
     }
 
     if (attr->name && attr->name[0] != '\0') {
@@ -87,13 +63,21 @@ dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
     dispatch_t self = calloc(1, sizeof(struct dispatch));
     
     if (self) {
-        if (_dispatch_init(self, attr, _DISPATCH_ACQUIRE_VCPU)) {
-            return self;
+        if (_dispatch_init(self, attr)) {
+            self->groupid = new_vcpu_groupid();
+
+            for (size_t i = 0; i < attr->minConcurrency; i++) {
+                if (_dispatch_acquire_worker_with_ownership(self, _DISPATCH_ACQUIRE_VCPU) != 0) {
+                    break;
+                }
+            }
+
+            if (self->worker_count == attr->minConcurrency) {
+                return self;
+            }
         }
 
-        if (self->state == _DISPATCHER_STATE_ACTIVE) {
-            dispatch_destroy(self);
-        }
+        dispatch_destroy(self);
     }
     return NULL;
 }
@@ -776,7 +760,12 @@ dispatch_t _Nonnull dispatch_main_queue(void)
     spin_lock(&g_main_lock);
     if (g_main_dispatcher == NULL) {
         memset(&g_main_dispatcher_rec, 0, sizeof(struct dispatch));
-        if (!_dispatch_init(&g_main_dispatcher_rec, &attr, _DISPATCH_ADOPT_MAIN_VCPU)) {
+        if (!_dispatch_init(&g_main_dispatcher_rec, &attr)) {
+            abort();
+        }
+
+        g_main_dispatcher_rec.groupid = vcpu_groupid(vcpu_main());
+        if (_dispatch_acquire_worker_with_ownership(&g_main_dispatcher_rec, _DISPATCH_ADOPT_MAIN_VCPU) != 0) {
             abort();
         }
 
