@@ -254,9 +254,9 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
     size_t best_wc = SIZE_MAX;
 
     List_ForEach(&self->workers, ListNode, {
-        dispatch_worker_t cwp = queue_entry_as(pCurNode, worker_qe, dispatch_worker);
+        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
 
-        if (cwp->work_count < best_wc) {
+        if (cwp->work_count <= best_wc) {
             best_wc = cwp->work_count;
             best_wp = cwp;
         }

@@ -212,7 +212,7 @@ static errno_t _kdispatch_submit(kdispatch_t _Nonnull _Locked self, kdispatch_it
 
     // Ensure that we got enough worker capacity going
     if ((err = _kdispatch_ensure_worker_capacity(self, _KDISPATCH_EWC_WORK_ITEM)) != EOK) {
-        return -1;
+        return err;
     }
 
 
@@ -221,9 +221,9 @@ static errno_t _kdispatch_submit(kdispatch_t _Nonnull _Locked self, kdispatch_it
     size_t best_wc = SIZE_MAX;
 
     List_ForEach(&self->workers, ListNode, {
-        kdispatch_worker_t cwp = queue_entry_as(pCurNode, worker_qe, kdispatch_worker);
+        kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
 
-        if (cwp->work_count < best_wc) {
+        if (cwp->work_count <= best_wc) {
             best_wc = cwp->work_count;
             best_wp = cwp;
         }
@@ -272,7 +272,7 @@ static errno_t _kdispatch_await(kdispatch_t _Nonnull _Locked self, kdispatch_ite
         }
     }
 
-    
+
     bool foundIt = false;
     kdispatch_item_t pip = NULL;
     SList_ForEach(&self->zombie_items, SListNode, {

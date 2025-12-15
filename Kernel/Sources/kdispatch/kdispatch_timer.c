@@ -140,6 +140,7 @@ static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, int flags
     }
 
 
+    item->qe = SLISTNODE_INIT;
     item->state = KDISPATCH_STATE_SCHEDULED;
     item->flags &= ~_KDISPATCH_ITEM_FLAG_CANCELLED;
 

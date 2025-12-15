@@ -24,7 +24,7 @@ static errno_t _kdispatch_worker_acquire_vcpu(kdispatch_worker_t _Nonnull self)
     attr.sched_params.u.qos.category = owner->attr.qos;
     attr.sched_params.u.qos.priority = owner->attr.priority;
     attr.flags = 0;
-    attr.data = 0;
+    attr.data = (intptr_t)self;
 
     self->allow_relinquish = !_dispatch_is_fixed_concurrency(owner);
     err = Process_AcquireVirtualProcessor(gKernelProcess, &attr, &self->vcpu);
@@ -46,14 +46,10 @@ errno_t _kdispatch_worker_create(kdispatch_t _Nonnull owner, kdispatch_worker_t 
     try(kalloc_cleared(sizeof(struct kdispatch_worker), (void**)&self));
 
     self->owner = owner;
-
+    self->hotsigs = _SIGBIT(SIGDISP);
+    
     wq_init(&self->wq);
-
-    sigemptyset(&self->hotsigs);
-    sigaddset(&self->hotsigs, SIGDISP);
-
     try(_kdispatch_worker_acquire_vcpu(self));
-    self->vcpu->udata = (intptr_t)self;
 
 catch:
     if (err != EOK) {

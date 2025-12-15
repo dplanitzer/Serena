@@ -63,9 +63,7 @@ dispatch_worker_t _Nullable _dispatch_worker_create(dispatch_t _Nonnull owner, i
     if (self) {
         self->owner = owner;
         self->adoption = adoption;
-
-        sigemptyset(&self->hotsigs);
-        sigaddset(&self->hotsigs, SIGDISP);
+        self->hotsigs = _SIGBIT(SIGDISP);
 
 
         switch (adoption) {
@@ -159,7 +157,7 @@ bool _dispatch_worker_withdraw_item(dispatch_worker_t _Nonnull self, dispatch_it
             SList_RemoveFirst(&self->work_queue);
         }
         self->work_count--;
-        
+
         _dispatch_retire_item(self->owner, item);
     }
     return foundIt;

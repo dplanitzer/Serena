@@ -144,6 +144,7 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, int flags, cons
     }
 
 
+    item->qe = SLISTNODE_INIT;
     item->state = DISPATCH_STATE_SCHEDULED;
     item->flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
 
