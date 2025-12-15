@@ -26,7 +26,8 @@ int cmd_cls(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
     int exitCode = EXIT_SUCCESS;
     
     if (!clap_should_exit(status)) {
-        printf("\033[2J\033[H");
+        fputs("\033[2J\033[H", stdout);
+        fflush(stdout);
     }
     else {
         exitCode = clap_exit_code(status);

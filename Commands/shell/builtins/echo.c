@@ -41,6 +41,9 @@ static errno_t do_echo(clap_string_array_t* _Nonnull strs, bool isNoSpace, bool 
     if (!isNoLine) {
         fputc('\n', stdout);
     }
+    else {
+        fflush(stdout);
+    }
 
     return EOK;
 }
