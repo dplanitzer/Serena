@@ -8,18 +8,25 @@
 
 #include "Stream.h"
 #include <limits.h>
+#include <string.h>
 
 
 int puts(const char * _Nonnull str)
 {
-    const int nCharsWritten = fputs(str, stdout);
-    
+    __fensure_no_err(stdout, EOF);
+    __fensure_writeable(stdout, EOF);
+    __fensure_byte_oriented(stdout, EOF);
+    __fensure_direction(stdout, __kStreamDirection_Out, EOF);
+
+    const size_t len = __min(strlen(str), INT_MAX - 1);
+    const ssize_t nCharsWritten = __fwrite(stdout, str, len);
+
     if (nCharsWritten >= 0) {
-        const int r = fputc('\n', stdout);
-        
-        if (r != EOF) {
-            return (nCharsWritten < INT_MAX) ? nCharsWritten + 1 : INT_MAX;
+        if (__fputc('\n', stdout) == 1) {
+            return (int)(nCharsWritten + 1);
         }
     }
+
+    stdout->flags.hasError = 1;
     return EOF;
 }
