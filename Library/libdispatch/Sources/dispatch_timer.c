@@ -43,21 +43,30 @@ static void _dispatch_queue_timer(dispatch_t _Nonnull self, dispatch_timer_t _No
 static dispatch_timer_t _Nullable _dispatch_dequeue_timer_for_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     dispatch_timer_t ptp = NULL;
-    dispatch_timer_t ctp = (dispatch_timer_t)self->timers.first;
+    dispatch_timer_t timer = NULL;
 
-    while (ctp) {
-        dispatch_timer_t ntp = (dispatch_timer_t)ctp->timer_qe.next;
+    SList_ForEach(&self->timers, SListNode,{
+        dispatch_timer_t ctp = (dispatch_timer_t)pCurNode;
 
         if (ctp->item == item) {
-            SList_Remove(&self->timers, &ptp->timer_qe, &ctp->timer_qe);
-            return ctp;
+            timer = ctp;
+            break;
         }
 
         ptp = ctp;
-        ctp = ntp;
+    })
+
+
+    if (timer) {
+        if (ptp) {
+            SList_Remove(&self->timers, &ptp->timer_qe, &timer->timer_qe);
+        }
+        else {
+            SList_RemoveFirst(&self->timers);
+        }
     }
 
-    return NULL;
+    return timer;
 }
 
 dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
@@ -76,8 +85,7 @@ dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispat
 
 void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _Nonnull timer)
 {
-    _dispatch_retire_item(self, timer->item);
-
+    dispatch_item_t item = timer->item;
 
     timer->timer_qe = SLISTNODE_INIT;
     timer->item = NULL;
@@ -89,6 +97,9 @@ void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _
     else {
         free(timer);
     }
+
+
+    _dispatch_retire_item(self, item);
 }
 
 void _dispatch_drain_timers(dispatch_t _Nonnull _Locked self)

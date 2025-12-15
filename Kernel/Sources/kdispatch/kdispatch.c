@@ -264,31 +264,35 @@ void _kdispatch_retire_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t 
 
 static errno_t _kdispatch_await(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item)
 {
-    decl_try_err();
-
     while (item->state < KDISPATCH_STATE_FINISHED) {
-        err = cnd_wait(&self->cond, &self->mutex);
+        const errno_t err = cnd_wait(&self->cond, &self->mutex);
+        
         if (err != EOK) {
-            break;
+            return err;
         }
     }
 
+    
+    bool foundIt = false;
     kdispatch_item_t pip = NULL;
     SList_ForEach(&self->zombie_items, SListNode, {
         kdispatch_item_t cip = (kdispatch_item_t)pCurNode;
 
         if (cip == item) {
+            foundIt = true;
             break;
         }
         pip = cip;
     });
 
 
-    if (pip) {
-        SList_Remove(&self->zombie_items, &pip->qe, &item->qe);
-    }
-    else {
-        SList_RemoveFirst(&self->zombie_items);
+    if (foundIt) {
+        if (pip) {
+            SList_Remove(&self->zombie_items, &pip->qe, &item->qe);
+        }
+        else {
+            SList_RemoveFirst(&self->zombie_items);
+        }
     }
 
     return EOK;

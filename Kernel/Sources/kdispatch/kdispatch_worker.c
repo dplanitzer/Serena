@@ -110,20 +110,31 @@ void _kdispatch_worker_drain(kdispatch_worker_t _Nonnull _Locked self)
 bool _kdispatch_worker_withdraw_item(kdispatch_worker_t _Nonnull self, kdispatch_item_t _Nonnull item)
 {
     kdispatch_item_t pip = NULL;
+    bool foundIt = false;
 
     SList_ForEach(&self->work_queue, SListNode, {
         kdispatch_item_t cip = (kdispatch_item_t)pCurNode;
 
         if (cip == item) {
-            SList_Remove(&self->work_queue, &pip->qe, &cip->qe);
-            _kdispatch_retire_item(self->owner, cip);
-            return true;
+            foundIt = true;
         }
 
         pip = cip;
     });
 
-    return false;
+
+    if (foundIt) {
+        if (pip) {
+            SList_Remove(&self->work_queue, &pip->qe, &item->qe);
+        }
+        else {
+            SList_RemoveFirst(&self->work_queue);
+        }
+        self->work_count--;
+
+        _kdispatch_retire_item(self->owner, item);
+    }
+    return foundIt;
 }
 
 kdispatch_item_t _Nullable _kdispatch_worker_find_item(kdispatch_worker_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg)

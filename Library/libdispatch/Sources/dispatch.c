@@ -297,34 +297,38 @@ void _dispatch_retire_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
 
 static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
-    int r = 0;
-
     while (item->state < DISPATCH_STATE_FINISHED) {
-        r = cnd_wait(&self->cond, &self->mutex);
+        const int r = cnd_wait(&self->cond, &self->mutex);
+        
         if (r != 0) {
-            break;
+            return r;
         }
     }
 
+
+    bool foundIt = false;
     dispatch_item_t pip = NULL;
     SList_ForEach(&self->zombie_items, SListNode, {
         dispatch_item_t cip = (dispatch_item_t)pCurNode;
 
         if (cip == item) {
+            foundIt = true;
             break;
         }
         pip = cip;
     });
 
     
-    if (pip) {
-        SList_Remove(&self->zombie_items, &pip->qe, &item->qe);
-    }
-    else {
-        SList_RemoveFirst(&self->zombie_items);
+    if (foundIt) {
+        if (pip) {
+            SList_Remove(&self->zombie_items, &pip->qe, &item->qe);
+        }
+        else {
+            SList_RemoveFirst(&self->zombie_items);
+        }
     }
 
-    return r;
+    return 0;
 }
 
 void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)

@@ -38,21 +38,30 @@ static void _kdispatch_queue_timer(kdispatch_t _Nonnull self, kdispatch_timer_t 
 static kdispatch_timer_t _Nullable _kdispatch_dequeue_timer_for_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item)
 {
     kdispatch_timer_t ptp = NULL;
-    kdispatch_timer_t ctp = (kdispatch_timer_t)self->timers.first;
+    kdispatch_timer_t timer = NULL;
 
-    while (ctp) {
-        kdispatch_timer_t ntp = (kdispatch_timer_t)ctp->timer_qe.next;
+    SList_ForEach(&self->timers, SListNode,{
+        kdispatch_timer_t ctp = (kdispatch_timer_t)pCurNode;
 
         if (ctp->item == item) {
-            SList_Remove(&self->timers, &ptp->timer_qe, &ctp->timer_qe);
-            return ctp;
+            timer = ctp;
+            break;
         }
 
         ptp = ctp;
-        ctp = ntp;
+    })
+
+
+    if (timer) {
+        if (ptp) {
+            SList_Remove(&self->timers, &ptp->timer_qe, &timer->timer_qe);
+        }
+        else {
+            SList_RemoveFirst(&self->timers);
+        }
     }
 
-    return NULL;
+    return timer;
 }
 
 kdispatch_timer_t _Nullable _kdispatch_find_timer(kdispatch_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg)
@@ -71,8 +80,7 @@ kdispatch_timer_t _Nullable _kdispatch_find_timer(kdispatch_t _Nonnull self, kdi
 
 void _kdispatch_retire_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t _Nonnull timer)
 {
-    _kdispatch_retire_item(self, timer->item);
-
+    kdispatch_item_t item = timer->item;
 
     timer->timer_qe = SLISTNODE_INIT;
     timer->item = NULL;
@@ -84,6 +92,9 @@ void _kdispatch_retire_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_
     else {
         kfree(timer);
     }
+
+
+    _kdispatch_retire_item(self, item);
 }
 
 void _kdispatch_drain_timers(kdispatch_t _Nonnull _Locked self)
