@@ -110,6 +110,7 @@ _Noreturn vcpu_relinquish(vcpu_t _Nonnull self)
     assert(vcpu_current() == self);
     
     // Cleanup
+    self->dispatch_worker = NULL;
     self->proc = NULL;
     self->udata = 0;
     self->id = 0;

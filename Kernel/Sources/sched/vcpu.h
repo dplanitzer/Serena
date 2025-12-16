@@ -137,7 +137,10 @@ struct vcpu {
     int16_t                         suspension_count;       // > 0 -> VP is suspended
 
     // Process
-    struct Process* _Nullable _Weak proc;                   // Process owning this VP (optional for now)
+    struct Process* _Nullable _Weak proc;                   // Process owning this VP
+
+    // kdispatch
+    void* _Nullable _Weak           dispatch_worker;        // kdispatch_worker if this VP is part of a dispatcher
 };
 
 

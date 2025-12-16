@@ -100,7 +100,7 @@ extern void _kdispatch_worker_drain(kdispatch_worker_t _Nonnull _Locked self);
 extern void _kdispatch_worker_run(kdispatch_worker_t _Nonnull self);
 
 #define _kdispatch_worker_current() \
-(kdispatch_worker_t)vcpu_current()->udata
+(kdispatch_worker_t)vcpu_current()->dispatch_worker
 
 
 // Internal item flags

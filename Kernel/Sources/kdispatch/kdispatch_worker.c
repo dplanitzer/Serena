@@ -24,7 +24,7 @@ static errno_t _kdispatch_worker_acquire_vcpu(kdispatch_worker_t _Nonnull self)
     attr.sched_params.u.qos.category = owner->attr.qos;
     attr.sched_params.u.qos.priority = owner->attr.priority;
     attr.flags = 0;
-    attr.data = (intptr_t)self;
+    attr.data = 0;
 
     err = Process_AcquireVirtualProcessor(gKernelProcess, &attr, &self->vcpu);
     if (err == EOK) {
@@ -286,6 +286,7 @@ void _kdispatch_worker_run(kdispatch_worker_t _Nonnull self)
     kdispatch_t q = self->owner;
 
     mtx_lock(&q->mutex);
+    vcpu_current()->dispatch_worker = self;
 
     while (!_get_next_work(self)) {
         kdispatch_item_t ip = self->current_item;
