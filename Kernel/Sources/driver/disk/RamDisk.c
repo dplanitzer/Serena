@@ -53,7 +53,7 @@ errno_t RamDisk_Create(const char* _Nonnull name, size_t sectorSize, scnt_t sect
     self->sectorShift = siz_log2(sectorSize);
     self->sectorSize = sectorSize;
     self->fillByte = 0;
-    String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
+    strncpy(self->name, name, MAX_NAME_LENGTH);
 
 catch:
     *pOutSelf = self;

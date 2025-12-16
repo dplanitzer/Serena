@@ -44,7 +44,7 @@ static errno_t _kdispatch_init(kdispatch_t _Nonnull self, const kdispatch_attr_t
     }
 
     if (attr->name && attr->name[0] != '\0') {
-        String_CopyUpTo(self->name, attr->name, KDISPATCH_MAX_NAME_LENGTH);
+        strncpy(self->name, attr->name, KDISPATCH_MAX_NAME_LENGTH);
     }
 
     return EOK;
@@ -716,7 +716,7 @@ errno_t kdispatch_name(kdispatch_t _Nonnull self, char* _Nonnull buf, size_t buf
     decl_try_err();
 
     mtx_lock(&self->mutex);
-    const size_t len = String_Length(self->name);
+    const size_t len = strlen(self->name);
 
     if (buflen == 0) {
         throw(EINVAL);
@@ -724,7 +724,7 @@ errno_t kdispatch_name(kdispatch_t _Nonnull self, char* _Nonnull buf, size_t buf
     if (buflen < (len + 1)) {
         throw(ERANGE);
     }
-    String_Copy(buf, self->name);
+    strcpy(buf, self->name);
 
 catch:
     mtx_unlock(&self->mutex);

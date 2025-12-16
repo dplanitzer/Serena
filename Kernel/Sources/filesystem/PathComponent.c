@@ -24,7 +24,7 @@ PathComponent PathComponent_MakeFromCString(const char* _Nonnull pCString)
     PathComponent pc;
 
     pc.name = pCString;
-    pc.count = String_Length(pCString);
+    pc.count = strlen(pCString);
     return pc;
 }
 

@@ -26,7 +26,7 @@ bool KeyMap_IsValid(const KeyMap* _Nonnull pMap)
 
                 for (uint16_t k = 0; k <= keyCodeCount; k++) {
                     // XXX This should really only check at most kKeyMap_MaxByteSequenceLength+1 bytes
-                    if (String_Length((const char*)(pMapBase + pCurTraps[k])) > kKeyMap_MaxByteSequenceLength) {
+                    if (strlen((const char*)(pMapBase + pCurTraps[k])) > kKeyMap_MaxByteSequenceLength) {
                         return false;
                     }
                 }

@@ -413,7 +413,7 @@ void Console_MoveCursorTo_Locked(ConsoleRef _Nonnull self, int x, int y)
 // exceed MAX_MESSAGE_LENGTH.
 void Console_PostReport_Locked(ConsoleRef _Nonnull self, const char* msg)
 {
-    const ssize_t nBytesToWrite = String_Length(msg) + 1;
+    const ssize_t nBytesToWrite = strlen(msg) + 1;
     assert(nBytesToWrite < (MAX_MESSAGE_LENGTH + 1));
 
     // Make space for the new message by removing the oldest (full) message(s)

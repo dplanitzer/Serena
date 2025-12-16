@@ -30,7 +30,7 @@ static errno_t establish_and_start_disk_fs(FileManagerRef _Nonnull self, const c
     ResolvedPath rp_disk;
 
     // SeFS only for now
-    if (!String_Equals(fsName, kMount_SeFS)) {
+    if (!strcmp(fsName, kMount_SeFS)) {
         throw(EINVAL);
     }
 
@@ -69,13 +69,13 @@ static errno_t lookup_catalog(FileManagerRef _Nonnull self, const char* _Nonnull
     decl_try_err();
     FilesystemRef fs = NULL;
 
-    if (String_Equals(catalogName, kCatalogName_Drivers)) {
+    if (strcmp(catalogName, kCatalogName_Drivers)) {
         fs = DriverManager_GetCatalog(gDriverManager);
     }
-    else if (String_Equals(catalogName, kCatalogName_Filesystems)) {
+    else if (strcmp(catalogName, kCatalogName_Filesystems)) {
         fs = FilesystemManager_GetCatalog(gFilesystemManager);
     }
-    else if (String_Equals(catalogName, kCatalogName_Processes)) {
+    else if (strcmp(catalogName, kCatalogName_Processes)) {
         fs = ProcessManager_GetCatalog(gProcessManager);
     }
     else {
@@ -109,7 +109,7 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, const char* _Nonnull obj
     }
     
 
-    if (String_Equals(objectType, kMount_Catalog)) {
+    if (strcmp(objectType, kMount_Catalog)) {
         err = lookup_catalog(self, objectName, &fs);
     }
     else {
@@ -181,7 +181,7 @@ errno_t FileManager_GetFilesystemDiskPath(FileManagerRef _Nonnull self, fsid_t f
         }
 
 
-        const size_t nameLength = String_Length(name);
+        const size_t nameLength = strlen(name);
         if (bufSize < (nameLength + 1)) {
             return ERANGE;
         }

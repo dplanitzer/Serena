@@ -111,7 +111,7 @@ errno_t Catalog_PublishFolder(CatalogRef _Nonnull self, CatalogId parentFolderId
     *pOutFolderId = kCatalogId_None;
 
     pc.name = name;
-    pc.count = String_Length(name);
+    pc.count = strlen(name);
 
     err = _Catalog_AcquireFolder(self, parentFolderId, &pDir);
     if (err == EOK) {
@@ -177,7 +177,7 @@ errno_t Catalog_PublishDriver(CatalogRef _Nonnull self, CatalogId folderId, cons
     *pOutCatalogId = kCatalogId_None;
 
     pc.name = name;
-    pc.count = String_Length(name);
+    pc.count = strlen(name);
 
     err = _Catalog_AcquireFolder(self, folderId, &pDir);
     if (err == EOK) {
@@ -203,7 +203,7 @@ errno_t Catalog_PublishFilesystem(CatalogRef _Nonnull self, const char* _Nonnull
     *pOutCatalogId = kCatalogId_None;
 
     pc.name = name;
-    pc.count = String_Length(name);
+    pc.count = strlen(name);
 
     err = Filesystem_AcquireRootDirectory(self->fs, &pDir);
     if (err == EOK) {
@@ -229,7 +229,7 @@ errno_t Catalog_PublishProcess(CatalogRef _Nonnull self, const char* _Nonnull na
     *pOutCatalogId = kCatalogId_None;
 
     pc.name = name;
-    pc.count = String_Length(name);
+    pc.count = strlen(name);
 
     err = Filesystem_AcquireRootDirectory(self->fs, &pDir);
     if (err == EOK) {

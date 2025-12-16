@@ -9,20 +9,20 @@
 #include <kern/string.h>
 
 
-ssize_t String_Length(const char* _Nonnull pStr)
+ssize_t strlen(const char* _Nonnull str)
 {
-    const char* p = pStr;
+    const char* p = str;
 
     while(*p++ != '\0');
 
-    return p - pStr - 1;
+    return p - str - 1;
 }
 
-ssize_t String_LengthUpTo(const char* _Nonnull pStr, ssize_t strsz)
+ssize_t strnlen(const char* _Nonnull str, ssize_t strsz)
 {
     ssize_t len = 0;
 
-    while (*pStr++ != '\0' && len < strsz) {
+    while (*str++ != '\0' && len < strsz) {
         len++;
     }
 
@@ -31,46 +31,46 @@ ssize_t String_LengthUpTo(const char* _Nonnull pStr, ssize_t strsz)
 
 // Copies the characters of 'pSrc' to 'pDst'. Returns a pointer that points to
 // the first byte past the '\0' byte in the destination string. 
-char* _Nonnull String_Copy(char* _Nonnull pDst, const char* _Nonnull pSrc)
+char* _Nonnull strcpy(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src)
 {
-    while (*pSrc != '\0') {
-        *pDst++ = *pSrc++;
+    while (*src != '\0') {
+        *dst++ = *src++;
     }
-    *pDst++ = '\0';
+    *dst++ = '\0';
 
-    return pDst;
+    return dst;
 }
 
-char* _Nonnull String_CopyUpTo(char* _Nonnull pDst, const char* _Nonnull pSrc, ssize_t count)
+char* _Nonnull strncpy(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src, ssize_t count)
 {
-    while (*pSrc != '\0' && count > 0) {
-        *pDst++ = *pSrc++;
+    while (*src != '\0' && count > 0) {
+        *dst++ = *src++;
         count--;
     }
     if (count > 0) {
-        *pDst++ = '\0';
+        *dst++ = '\0';
     }
 
-    return pDst;
+    return dst;
 }
 
-bool String_Equals(const char* _Nonnull pLhs, const char* _Nonnull pRhs)
+bool strcmp(const char* _Nonnull _Restrict lhs, const char* _Nonnull _Restrict rhs)
 {
-    while (*pLhs != '\0' && *pLhs == *pRhs) {
-        pLhs++;
-        pRhs++;
+    while (*lhs != '\0' && *lhs == *rhs) {
+        lhs++;
+        rhs++;
     }
 
-    return (*pLhs == *pRhs) ? true : false;
+    return (*lhs == *rhs) ? true : false;
 }
 
-bool String_EqualsUpTo(const char* _Nonnull pLhs, const char* _Nonnull pRhs, ssize_t count)
+bool strncmp(const char* _Nonnull _Restrict lhs, const char* _Nonnull _Restrict rhs, ssize_t count)
 {
-    while (count > 0 && *pLhs != '\0' && *pLhs == *pRhs) {
-        pLhs++;
-        pRhs++;
+    while (count > 0 && *lhs != '\0' && *lhs == *rhs) {
+        lhs++;
+        rhs++;
         count--;
     }
 
-    return (count == 0 || *pLhs == *pRhs) ? true : false;
+    return (count == 0 || *lhs == *rhs) ? true : false;
 }

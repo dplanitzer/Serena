@@ -51,12 +51,12 @@ void kfree(void* _Nullable ptr)
 
 #include <kern/string.h>
 
-ssize_t String_Length(const char* _Nonnull pStr)
+ssize_t strlen(const char* _Nonnull pStr)
 {
     return strlen(pStr);
 }
 
-ssize_t String_LengthUpTo(const char* _Nonnull pStr, ssize_t strsz)
+ssize_t strnlen(const char* _Nonnull pStr, ssize_t strsz)
 {
     ssize_t len = 0;
 
@@ -67,7 +67,7 @@ ssize_t String_LengthUpTo(const char* _Nonnull pStr, ssize_t strsz)
     return len;
 }
 
-char* _Nonnull String_CopyUpTo(char* _Nonnull pDst, const char* _Nonnull pSrc, ssize_t count)
+char* _Nonnull strncpy(char* _Nonnull pDst, const char* _Nonnull pSrc, ssize_t count)
 {
     while (*pSrc != '\0' && count > 0) {
         *pDst++ = *pSrc++;

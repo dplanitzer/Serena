@@ -44,7 +44,7 @@ errno_t RomDisk_Create(const char* _Nonnull name, const void* _Nonnull pImage, s
     self->sectorShift = siz_log2(sectorSize);
     self->sectorSize = sectorSize;
     self->freeDiskImageOnClose = freeOnClose;
-    String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
+    strncpy(self->name, name, MAX_NAME_LENGTH);
 
 catch:
     *pOutSelf = self;
