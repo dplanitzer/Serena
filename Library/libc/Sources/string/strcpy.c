@@ -14,7 +14,7 @@
 // destination aka the end of the copied string. Exists so that we can actually
 // use this and strcat() to compose strings without having to iterate over the
 // same string multiple times.
-char *__strcpy(char * _Restrict dst, const char * _Restrict src)
+char * _Nonnull __strcpy(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src)
 {
     while (*src != '\0') {
         *dst++ = *src++;
@@ -24,7 +24,7 @@ char *__strcpy(char * _Restrict dst, const char * _Restrict src)
     return dst;
 }
 
-char *strcpy(char * _Restrict dst, const char * _Restrict src)
+char * _Nonnull strcpy(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src)
 {
     (void) __strcpy(dst, src);
     return dst;

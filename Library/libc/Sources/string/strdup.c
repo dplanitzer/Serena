@@ -11,7 +11,7 @@
 #include <__stddef.h>
 
 
-char *strdup(const char *src)
+char * _Nullable strdup(const char * _Nonnull src)
 {
     const size_t lenWithNul = strlen(src) + 1;
     char* dst = malloc(lenWithNul);

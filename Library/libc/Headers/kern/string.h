@@ -22,8 +22,8 @@ extern ssize_t strnlen(const char* _Nonnull str, ssize_t strsz);
 extern char* _Nonnull strcpy(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src);
 extern char* _Nonnull strncpy(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src, ssize_t count);
 
-extern bool strcmp(const char* _Nonnull _Restrict lhs, const char* _Nonnull _Restrict rhs);
-extern bool strncmp(const char* _Nonnull _Restrict lhs, const char* _Nonnull _Restrict rhs, ssize_t count);
+extern bool strcmp(const char* _Nonnull lhs, const char* _Nonnull rhs);
+extern bool strncmp(const char* _Nonnull lhs, const char* _Nonnull rhs, ssize_t count);
 
 // Copies 'count' contiguous bytes in memory from 'src' to 'dst'. The behavior is
 // undefined if the source and destination regions overlap. Copies the data

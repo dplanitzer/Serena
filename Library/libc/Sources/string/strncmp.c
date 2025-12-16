@@ -10,7 +10,7 @@
 #include <__stddef.h>
 
 
-int strncmp(const char *lhs, const char *rhs, size_t count)
+int strncmp(const char * _Nonnull lhs, const char * _Nonnull rhs, size_t count)
 {
     while (count > 0 && *lhs == *rhs) {
         if (*lhs == '\0') {

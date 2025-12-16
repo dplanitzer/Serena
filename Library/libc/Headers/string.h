@@ -15,40 +15,41 @@
 
 __CPP_BEGIN
 
-extern size_t strlen(const char *str);
+extern size_t strlen(const char * _Nonnull str);
 
-extern char *strcpy(char * _Restrict dst, const char * _Restrict src);
-extern char *strncpy(char * _Restrict dst, const char * _Restrict src, size_t count);
+extern char * _Nonnull strcpy(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src);
+extern char * _Nonnull strncpy(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src, size_t count);
 
-extern char *strcat(char * _Restrict dst, const char * _Restrict src);
-extern char *strncat(char * _Restrict dst, const char * _Restrict src, size_t count);
+extern char * _Nonnull strcat(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src);
+extern char * _Nonnull strncat(char * _Restrict dst, const char * _Restrict src, size_t count);
 
-extern int strcmp(const char *lhs, const char *rhs);
-extern int strncmp(const char *lhs, const char *rhs, size_t count);
+extern int strcmp(const char * _Nonnull lhs, const char * _Nonnull rhs);
+extern int strncmp(const char * _Nonnull lhs, const char * _Nonnull rhs, size_t count);
 
-extern char *strchr(const char *str, int ch);
-extern char *strrchr(const char *str, int ch);
+extern char * _Nullable strchr(const char * _Nonnull str, int ch);
+extern char * _Nullable strrchr(const char * _Nonnull str, int ch);
 
-extern char *strstr(const char *str, const char *sub_str);
+extern char * _Nullable strstr(const char * _Nonnull str, const char * _Nonnull sub_str);
 
-extern size_t strspn(const char *dst, const char *src);
-extern size_t strcspn(const char *dst, const char *src);
+extern size_t strspn(const char * _Nonnull dst, const char * _Nonnull src);
+extern size_t strcspn(const char * _Nonnull dst, const char * _Nonnull src);
 
-extern char *strpbrk(const char *dst, const char *break_set);
-extern char *strtok(char * _Restrict str, const char * _Restrict delim);
+extern char * _Nonnull strpbrk(const char * _Nonnull dst, const char * _Nonnull break_set);
+extern char * _Nullable strtok(char * _Nonnull _Restrict str, const char * _Nonnull _Restrict delim);
 
-extern char *strdup(const char *src);
-extern char *strndup(const char *src, size_t size);
-
-
-extern char *strerror(int err_no);
+extern char * _Nullable strdup(const char * _Nonnull src);
+extern char * _Nullable strndup(const char * _Nonnull src, size_t size);
 
 
-extern void *memchr(const void *ptr, int c, size_t count);
-extern int memcmp(const void *lhs, const void *rhs, size_t count);
-extern void *memset(void *dst, int c, size_t count);
-extern void *memcpy(void * _Restrict dst, const void * _Restrict src, size_t count);
-extern void *memmove(void * _Restrict dst, const void * _Restrict src, size_t count);
+extern char * _Nonnull strerror(int err_no);
+
+
+extern void *memchr(const void * _Nonnull ptr, int c, size_t count);
+extern int memcmp(const void * _Nonnull lhs, const void * _Nonnull rhs, size_t count);
+extern void * _Nonnull memset(void * _Nonnull dst, int c, size_t count);
+
+extern void * _Nonnull memcpy(void * _Nonnull _Restrict dst, const void * _Nonnull _Restrict src, size_t count);
+extern void * _Nonnull memmove(void * _Nonnull _Restrict dst, const void * _Nonnull _Restrict src, size_t count);
 
 __CPP_END
 
@@ -61,7 +62,7 @@ __CPP_END
 __CPP_BEGIN
 
 #if __STDC_WANT_LIB_EXT1__ == 1
-extern size_t strnlen_s(const char *str, size_t strsz);
+extern size_t strnlen_s(const char * _Nullable str, size_t strsz);
 #endif
 
 __CPP_END

@@ -9,7 +9,7 @@
 #include <string.h>
 
 
-size_t strnlen_s(const char *str, size_t strsz)
+size_t strnlen_s(const char * _Nullable str, size_t strsz)
 {
     size_t len = 0;
 

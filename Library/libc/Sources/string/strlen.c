@@ -10,7 +10,7 @@
 #include <__stddef.h>
 
 
-size_t strlen(const char *str)
+size_t strlen(const char * _Nonnull str)
 {
     size_t len = 0;
 

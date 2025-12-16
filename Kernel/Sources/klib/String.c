@@ -54,7 +54,7 @@ char* _Nonnull strncpy(char* _Nonnull _Restrict dst, const char* _Nonnull _Restr
     return dst;
 }
 
-bool strcmp(const char* _Nonnull _Restrict lhs, const char* _Nonnull _Restrict rhs)
+bool strcmp(const char* _Nonnull lhs, const char* _Nonnull rhs)
 {
     while (*lhs != '\0' && *lhs == *rhs) {
         lhs++;
@@ -64,7 +64,7 @@ bool strcmp(const char* _Nonnull _Restrict lhs, const char* _Nonnull _Restrict r
     return (*lhs == *rhs) ? true : false;
 }
 
-bool strncmp(const char* _Nonnull _Restrict lhs, const char* _Nonnull _Restrict rhs, ssize_t count)
+bool strncmp(const char* _Nonnull lhs, const char* _Nonnull rhs, ssize_t count)
 {
     while (count > 0 && *lhs != '\0' && *lhs == *rhs) {
         lhs++;

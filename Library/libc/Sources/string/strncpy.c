@@ -10,7 +10,7 @@
 #include <__stddef.h>
 
 
-char *strncpy(char * _Restrict dst, const char * _Restrict src, size_t count)
+char * _Nonnull strncpy(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src, size_t count)
 {
     char *r = dst;
 

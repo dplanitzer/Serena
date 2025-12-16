@@ -9,7 +9,7 @@
 #include <string.h>
 
 
-void *memchr(const void *ptr, int ch, size_t count)
+void * _Nullable memchr(const void * _Nonnull ptr, int ch, size_t count)
 {
     unsigned char *p = (unsigned char *)ptr;
     unsigned char c = (unsigned char)ch;

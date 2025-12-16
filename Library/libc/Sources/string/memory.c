@@ -10,17 +10,17 @@
 #include <__globals.h>
 
 
-void *memset(void *dst, int c, size_t count)
+void * _Nonnull memset(void * _Nonnull dst, int c, size_t count)
 {
     return ((void* (*)(void*, int, size_t))__gProcessArguments->urt_funcs[KEI_memset])(dst, c, count);
 }
 
-void *memcpy(void * _Restrict dst, const void * _Restrict src, size_t count)
+void * _Nonnull memcpy(void * _Nonnull _Restrict dst, const void * _Nonnull _Restrict src, size_t count)
 {
     return ((void* (*)(void* _Restrict, const void* _Restrict, size_t))__gProcessArguments->urt_funcs[KEI_memcpy])(dst, src, count);
 }
 
-void *memmove(void * _Restrict dst, const void * _Restrict src, size_t count)
+void * _Nonnull memmove(void * _Nonnull _Restrict dst, const void * _Nonnull _Restrict src, size_t count)
 {
     return ((void* (*)(void* _Restrict, const void* _Restrict, size_t))__gProcessArguments->urt_funcs[KEI_memmove])(dst, src, count);
 }

@@ -12,7 +12,7 @@
 #include <__stddef.h>
 
 
-char *strndup(const char *src, size_t size)
+char * _Nullable strndup(const char * _Nonnull src, size_t size)
 {
     const size_t len = strnlen_s(src, size);
     char* dst = malloc(len + 1);

@@ -10,7 +10,7 @@
 #include <__stddef.h>
 
 
-char *strstr(const char *str, const char *sub_str)
+char * _Nullable strstr(const char * _Nonnull str, const char * _Nonnull sub_str)
 {
     const char* s = str;
     const char* sub_s = sub_str;

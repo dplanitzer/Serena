@@ -10,7 +10,7 @@
 #include <__stddef.h>
 
 
-char *strchr(const char *str, int ch)
+char * _Nullable strchr(const char * _Nonnull str, int ch)
 {
     const char c = (char)ch;
 

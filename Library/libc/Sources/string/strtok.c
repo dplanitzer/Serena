@@ -11,7 +11,7 @@
 #include <__stddef.h>
 
 
-static void __strmakset(const char* src, char ch_set[256])
+static void __strmakset(const char* _Nonnull src, char ch_set[256])
 {
     memset(ch_set, 0, 256);
 
@@ -20,7 +20,7 @@ static void __strmakset(const char* src, char ch_set[256])
     }
 }
 
-static char *__str_first_not_in(const char *dst, char *ch_set)
+static char * _Nonnull __str_first_not_in(const char * _Nonnull dst, char * _Nonnull ch_set)
 {
     ch_set[0] = 0;
     while (ch_set[*dst]) {
@@ -34,7 +34,7 @@ static char *__str_first_not_in(const char *dst, char *ch_set)
     return (char*)dst;
 }
 
-static char *__str_first_in(const char *dst, char *ch_set)
+static char * _Nonnull __str_first_in(const char * _Nonnull dst, char * _Nonnull ch_set)
 {
     ch_set[0] = 1;
     while (!ch_set[*dst]) {
@@ -45,7 +45,7 @@ static char *__str_first_in(const char *dst, char *ch_set)
 }
 
 
-size_t strspn(const char *dst, const char *src)
+size_t strspn(const char * _Nonnull dst, const char * _Nonnull src)
 {
     // 'src' is really a set
     // We iterate 'dst' from the front until the check 'src contains dst[i]' fails.
@@ -57,7 +57,7 @@ size_t strspn(const char *dst, const char *src)
     return __str_first_not_in(dst, keep_set) - dst;
 }
 
-size_t strcspn(const char *dst, const char *src)
+size_t strcspn(const char * _Nonnull dst, const char * _Nonnull src)
 {
     char break_set[256];
     __strmakset(src, break_set);
@@ -65,14 +65,14 @@ size_t strcspn(const char *dst, const char *src)
     return __str_first_in(dst, break_set) - dst;
 }
 
-char *strpbrk(const char *dst, const char *break_set)
+char * _Nonnull strpbrk(const char * _Nonnull dst, const char * _Nonnull break_set)
 {
     char break_set_opt[256];
     __strmakset(break_set, break_set_opt);
     return __str_first_in(dst, break_set_opt);
 }
 
-char *strtok(char * _Restrict str, const char * _Restrict delim)
+char * _Nullable strtok(char * _Nonnull _Restrict str, const char * _Nonnull _Restrict delim)
 {
     static char* prev_tok_end_p;
     char delim_set[256];

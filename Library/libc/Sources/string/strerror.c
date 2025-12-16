@@ -10,7 +10,7 @@
 #include <errno.h>
 
 
-char *strerror(int err_no)
+char * _Nonnull strerror(int err_no)
 {
     static const char* gErrorDescs[] = {
         /*ENOMEM*/          "Out of memory",
