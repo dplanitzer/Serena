@@ -43,6 +43,7 @@ extern void Process_Release(ProcessRef _Nullable self);
 
 extern pid_t Process_GetId(ProcessRef _Nonnull self);
 extern void Process_GetSigcred(ProcessRef _Nonnull self, sigcred_t* _Nonnull cred);
+extern errno_t Process_GetArgv0(ProcessRef _Nonnull self, char* _Nonnull buf, size_t buflen);
 
 // Returns the current process state. The returned state is inexact in the sense
 // that the returned state will be RUNNING even if all vcpus are in waiting or

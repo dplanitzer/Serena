@@ -9,6 +9,7 @@
 #include "ProcessPriv.h"
 #include <filemanager/FileHierarchy.h>
 #include <kern/kalloc.h>
+#include <kern/string.h>
 
 static const char*      g_systemd_argv[2] = { "/System/Commands/systemd", NULL };
 static const char*      g_kernel_argv[2] = { "kerneld", NULL };
@@ -107,6 +108,33 @@ void Process_Release(ProcessRef _Nullable self)
 pid_t Process_GetId(ProcessRef _Nonnull self)
 {
     return self->pid;
+}
+
+errno_t Process_GetArgv0(ProcessRef _Nonnull self, char* _Nonnull buf, size_t buflen)
+{
+    decl_try_err();
+
+    mtx_lock(&self->mtx);
+    if (buflen == 0) {
+        throw(EINVAL);
+    }
+
+    const pargs_t* pa = (const pargs_t*)self->pargs_base;
+    const size_t len = (pa && pa->argc > 0) ? strlen(pa->argv[0]) : 0;
+
+    if (buflen < (len + 1)) {
+        throw(ERANGE);
+    }
+    if (len > 0) { 
+        strcpy(buf, pa->argv[0]);
+    }
+    else {
+        buf[0] = '\0';
+    }
+
+catch:
+    mtx_unlock(&self->mtx);
+    return err;
 }
 
 static void _vcpu_relinquish_self(void)

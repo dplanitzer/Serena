@@ -185,13 +185,13 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
     // Any exception triggered in kernel mode
     if (!excpt_frame_isuser(efp)) {
-        _fatalException(efp, ksp);
+        _fatalException(ksp);
         /* NOT REACHED */
     }
 
 
     if (!map_exception(cpu_code, efp, &ei)) {
-        _fatalException(efp, ksp);
+        _fatalException(ksp);
         /* NOT REACHED */
     }
 

@@ -54,28 +54,52 @@ _Noreturn fatalAssert(const char* _Nonnull filename, int line)
     fatal("Assert: %s:%d", filename, line);
 }
 
-_Noreturn _fatalException(const excpt_frame_t* _Nonnull efp, void* _Nonnull ksp)
+_Noreturn _fatalException(void* _Nonnull ksp)
 {
     vcpu_t vp = vcpu_current();
+    const cpu_savearea_t* sa = vp->excpt_sa;
+    excpt_frame_t* efp = (excpt_frame_t*)&sa->ef;
+    char* sp = (excpt_frame_isuser(efp)) ? (char*)sa->usp : ksp;
+    const stk_t* stk = (excpt_frame_isuser(efp)) ? &vp->user_stack : &vp->kernel_stack;
     kdispatch_t dq = kdispatch_current_queue();
+
     static char dq_nam[KDISPATCH_MAX_NAME_LENGTH + 1];
+    static char proc_name[16 + 1];
 
     if (dq) {
         kdispatch_name(dq, dq_nam, KDISPATCH_MAX_NAME_LENGTH + 1);
     }
+    Process_GetArgv0(vp->proc, proc_name, sizeof(proc_name));
 
-    fatal("\033[?25l\nException: %hhx, Format %hhx, PC %p, SR %hx\n Crash in: %s\n Exception Frame: %p\n Kernel SP: %p\n VCPU: %p (%d)\n Dispatcher: %p \"%s\"\n Process: %p (%d)", 
+
+    fatal(
+        "\033[?25l\nException %hhx Format %hhx From %s  \n"
+        "\n"
+        "D0 %08lx D1 %08lx D2 %08lx D3 %08lx  \n"
+        "D4 %08lx D5 %08lx D6 %08lx D7 %08lx  \n"
+        "A0 %08lx A1 %08lx A2 %08lx A3 %08lx  \n"
+        "A4 %08lx A5 %08lx A6 %08lx A7 %08lx  \n"
+        "PC %08lx SR %04hx  \n"
+        "\n"
+        "%s %08lx - %08lx  \n"
+        "EXCP %08lx  \n"
+        "\n"
+        "VCPU %08lx id=%d grp=%d  \n"
+        "PROC %08lx id=%d name=\"%s\"  \n"
+        "DISP %08lx name=\"%s\"  ",
         excpt_frame_getvecnum(efp),
         excpt_frame_getformat(efp),
-        excpt_frame_getpc(efp),
-        excpt_frame_getsr(efp),
-        (excpt_frame_isuser(efp) ? "USER" : "KERNEL"),
+        (excpt_frame_isuser(efp)) ? "USR" : "KERN",
+
+        sa->d[0], sa->d[1], sa->d[2], sa->d[3],
+        sa->d[4], sa->d[5], sa->d[6], sa->d[7],
+        sa->a[0], sa->a[1], sa->a[2], sa->a[3],
+        sa->a[4], sa->a[5], sa->a[6], sp,
+        excpt_frame_getpc(efp), excpt_frame_getsr(efp),
+        (excpt_frame_isuser(efp)) ? "USTK" : "KSTK", stk->base, stk_getinitialsp(stk),
         efp,
-        ksp,
-        vp,
-        vp->id,
-        dq,
-        (dq) ? dq_nam : "",
-        vp->proc,
-        Process_GetId(vp->proc));
+        vp, vp->id, vp->groupid,
+        vp->proc, Process_GetId(vp->proc), proc_name,
+        dq, (dq) ? dq_nam : ""
+    );
 }
