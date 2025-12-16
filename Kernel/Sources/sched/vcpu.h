@@ -172,6 +172,11 @@ extern _Noreturn vcpu_relinquish(vcpu_t _Nonnull self);
 ((vcpuid_t)(g_sched->running->id))
 
 
+// Returns true if the vcpu supports user space operations; false if it supports
+// kernel space operations only.
+#define vcpu_isuser(__self) \
+(((__self)->flags & VP_FLAG_USER_OWNED) == VP_FLAG_USER_OWNED)
+
 // Returns a copy of the given virtual processor's scheduling parameters.
 extern errno_t vcpu_getschedparams(vcpu_t _Nonnull self, int type, sched_params_t* _Nonnull params);
 

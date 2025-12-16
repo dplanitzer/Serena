@@ -93,6 +93,13 @@ void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyTo
     const unsigned int pri = vp->effective_priority;
     
     if (doReadyToRun) {
+        if (!stk_isvalidsp(&vp->kernel_stack, vp->csw_sa)) {
+            abort();
+        }
+        if (vcpu_isuser(vp) && !stk_isvalidsp(&vp->user_stack, vp->csw_sa->usp)) {
+            abort();
+        }
+
         vp->sched_state = SCHED_STATE_RUNNING;
         vp->quantum_countdown = qos_quantum(vp->qos);
     }

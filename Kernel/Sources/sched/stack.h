@@ -27,6 +27,9 @@ extern void stk_destroy(stk_t* _Nullable self);
 extern errno_t stk_setmaxsize(stk_t* _Nullable self, size_t size);
 
 #define stk_getinitialsp(__self) \
-    ((size_t)((__self)->base + (__self)->size))
+((size_t)((__self)->base + (__self)->size))
+
+#define stk_isvalidsp(__self, __sp) \
+((char*)(__sp) >= (__self)->base && (char*)(__sp) < ((__self)->base + (__self)->size))
 
 #endif /* _STACK_H */

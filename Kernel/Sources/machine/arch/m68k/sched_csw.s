@@ -133,18 +133,8 @@ __csw_restore:
     clr.l   sched_scheduled(a2)
     bclr    #CSWB_SIGNAL_SWITCH, sched_csw_signals(a2)
 
-    ; verify that we haven't overrun the kernel stack
-    cmp.l   vp_kernel_stack_base(a3), sp
-    bcs.s   __csw_stack_overflow
-
     RESTORE_FPU_STATE a3
 
     RESTORE_CPU_STATE
 
     rte
-
-
-__csw_stack_overflow:
-    move.l #RGB_RED, -(sp)
-    jmp _cpu_non_recoverable_error
-    ; not reached
