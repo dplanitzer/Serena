@@ -139,7 +139,6 @@ static errno_t _proc_build_exec_image(ProcessRef _Nonnull _Locked self, const ch
 {
     decl_try_err();
     IOChannelRef chan = NULL;
-    pargs_t* pargs = NULL;
     const char* null_sptr[1] = {NULL};
 
     if (argv == NULL) {
@@ -160,7 +159,7 @@ static errno_t _proc_build_exec_image(ProcessRef _Nonnull _Locked self, const ch
 
     // Load the executable
     try(_proc_img_load_gemdos_exec(pimg, (InodeChannelRef)chan));
-    pargs->image_base = pimg->base;
+    ((pargs_t*)(pimg->pargs))->image_base = pimg->base;
 
 
     // Create the new main vcpu
