@@ -32,8 +32,8 @@ errno_t GraphicsDriver_Create(GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
 
     // Create a null Copper program and null sprite
     copper_prog_t nullCopperProg;
-    try(GraphicsDriver_CreateNullCopperProg(self, &nullCopperProg));
     try(Surface_CreateNullSprite(&self->nullSpriteSurface));
+    try(GraphicsDriver_CreateNullCopperProg(self, &nullCopperProg));
     for (int i = 0; i < SPRITE_COUNT; i++) {
         self->spriteChannel[i].isVisible = true;
     }
