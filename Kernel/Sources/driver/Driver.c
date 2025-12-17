@@ -523,7 +523,7 @@ DriverRef _Nullable Driver_GetChildAt(DriverRef _Nonnull self, size_t slotId)
 DriverRef _Nullable Driver_CopyChildAt(DriverRef _Nonnull self, size_t slotId)
 {
     mtx_lock(&self->childMtx);
-    DriverRef dp = (slotId < self->maxChildCount) ? Object_RetainAs(self->child[slotId].driver, Driver) : NULL;
+    DriverRef dp = (slotId < self->maxChildCount && self->child[slotId].driver) ? Object_RetainAs(self->child[slotId].driver, Driver) : NULL;
     mtx_unlock(&self->childMtx);
 
     return dp;
