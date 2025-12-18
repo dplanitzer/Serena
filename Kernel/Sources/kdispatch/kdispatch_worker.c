@@ -271,12 +271,13 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
             mayRelinquish = true;
         }
 
-        if (q->state == _DISPATCHER_STATE_SUSPENDING || q->state == _DISPATCHER_STATE_SUSPENDED) {
-            _wait_for_resume(self);
+        if (err == EOK && signo != SIGDISP && q->sigtraps) {
+            _kdispatch_submit_items_for_signal(q, signo, self);
         }
 
-        if (q->sigtraps && signo != SIGDISP) {
-            _kdispatch_submit_items_for_signal(q, signo, self);
+
+        if (q->state == _DISPATCHER_STATE_SUSPENDING || q->state == _DISPATCHER_STATE_SUSPENDED) {
+            _wait_for_resume(self);
         }
     }
 }
