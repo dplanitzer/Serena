@@ -190,7 +190,7 @@ extern void _kdispatch_retire_timer(kdispatch_t _Nonnull _Locked self, kdispatch
 extern void _kdispatch_withdraw_signal_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item);
 extern void _kdispatch_retire_signal_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item);
 extern void _kdispatch_submit_items_for_signal(kdispatch_t _Nonnull _Locked self, int signo, kdispatch_worker_t _Nonnull worker);
-extern void _kdispatch_rearm_signal_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item);
+extern bool _kdispatch_rearm_signal_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item);
 
 extern _Noreturn _kdispatch_relinquish_worker(kdispatch_t _Nonnull _Locked self, kdispatch_worker_t _Nonnull worker);
 

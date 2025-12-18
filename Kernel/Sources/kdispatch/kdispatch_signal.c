@@ -31,21 +31,25 @@ static void _kdispatch_enable_signal(kdispatch_t _Nonnull _Locked self, int sign
 void _kdispatch_withdraw_signal_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item)
 {
     const int signo = item->subtype;
-    kdispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
+    kdispatch_sigtrap_t stp = NULL;
     kdispatch_item_t pip = NULL;
     bool hasIt = false;
 
-    SList_ForEach(&stp->monitors, SListNode, {
-        kdispatch_item_t cip = (kdispatch_item_t)pCurNode;
+    if (self->sigtraps) {
+        stp = &self->sigtraps[signo - 1];
 
-        if (cip == item) {
-            SList_Remove(&stp->monitors, &pip->qe, &cip->qe);
-            hasIt = true;
-            break;
-        }
+        SList_ForEach(&stp->monitors, SListNode, {
+            kdispatch_item_t cip = (kdispatch_item_t)pCurNode;
 
-        pip = cip;
-    });
+            if (cip == item) {
+                SList_Remove(&stp->monitors, &pip->qe, &cip->qe);
+                hasIt = true;
+                break;
+            }
+
+            pip = cip;
+        });
+    }
 
     if (hasIt) {
         _kdispatch_retire_item(self, item);
@@ -61,26 +65,35 @@ void _kdispatch_withdraw_signal_item(kdispatch_t _Nonnull self, kdispatch_item_t
 void _kdispatch_retire_signal_item(kdispatch_t _Nonnull self, kdispatch_item_t _Nonnull item)
 {
     const int signo = item->subtype;
-    kdispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
 
     _kdispatch_retire_item(self, item);
 
-    stp->count--;
-    if (stp->count == 0) {
-        _kdispatch_enable_signal(self, signo, false);
+    if (self->sigtraps) {
+        kdispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
+
+        stp->count--;
+        if (stp->count == 0) {
+            _kdispatch_enable_signal(self, signo, false);
+        }
     }
 }
 
 // Rearms 'item' in the sense that it is moved back to idle state and the signal
 // trap so that it can be submitted again when the next signal comes in.
-void _kdispatch_rearm_signal_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item)
+bool _kdispatch_rearm_signal_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item)
 {
-    kdispatch_sigtrap_t stp = &self->sigtraps[item->subtype - 1];
+    if (self->sigtraps) {
+        kdispatch_sigtrap_t stp = &self->sigtraps[item->subtype - 1];
 
-    item->state = KDISPATCH_STATE_IDLE;
-    item->qe = SLISTNODE_INIT;
+        item->state = KDISPATCH_STATE_IDLE;
+        item->qe = SLISTNODE_INIT;
 
-    SList_InsertAfterLast(&stp->monitors, &item->qe);
+        SList_InsertAfterLast(&stp->monitors, &item->qe);
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 static errno_t _kdispatch_item_on_signal(kdispatch_t _Nonnull _Locked self, int signo, kdispatch_item_t _Nonnull item)
@@ -121,18 +134,20 @@ static errno_t _kdispatch_item_on_signal(kdispatch_t _Nonnull _Locked self, int 
 
 void _kdispatch_submit_items_for_signal(kdispatch_t _Nonnull _Locked self, int signo, kdispatch_worker_t _Nonnull worker)
 {
-    kdispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
+    if (self->sigtraps) {
+        kdispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
 
-    while (stp->monitors.first) {
-        kdispatch_item_t item = (kdispatch_item_t)SList_RemoveFirst(&stp->monitors);
+        while (stp->monitors.first) {
+            kdispatch_item_t item = (kdispatch_item_t)SList_RemoveFirst(&stp->monitors);
 
-        item->qe = SLISTNODE_INIT;
-        item->state = KDISPATCH_STATE_SCHEDULED;
-        item->flags &= ~_KDISPATCH_ITEM_FLAG_CANCELLED;
+            item->qe = SLISTNODE_INIT;
+            item->state = KDISPATCH_STATE_SCHEDULED;
+            item->flags &= ~_KDISPATCH_ITEM_FLAG_CANCELLED;
 
-        // No need to wakeup ourselves. This function is called from the worker
-        // 'worker' and we know we're already awake.
-        _kdispatch_worker_submit(worker, item, false);
+            // No need to wakeup ourselves. This function is called from the worker
+            // 'worker' and we know we're already awake.
+            _kdispatch_worker_submit(worker, item, false);
+        }
     }
 }
 

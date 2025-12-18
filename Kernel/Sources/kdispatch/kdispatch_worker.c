@@ -275,7 +275,7 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
             _wait_for_resume(self);
         }
 
-        if (signo != SIGDISP) {
+        if (q->sigtraps && signo != SIGDISP) {
             _kdispatch_submit_items_for_signal(q, signo, self);
         }
     }
@@ -308,7 +308,9 @@ void _kdispatch_worker_run(kdispatch_worker_t _Nonnull self)
             case _KDISPATCH_TYPE_USER_SIGNAL_ITEM:
                 if ((ip->flags & _KDISPATCH_ITEM_FLAG_REPEATING) != 0
                     && (ip->flags & _KDISPATCH_ITEM_FLAG_CANCELLED) == 0) {
-                    _kdispatch_rearm_signal_item(q, ip);
+                    if (!_kdispatch_rearm_signal_item(q, ip)) {
+                        _kdispatch_retire_signal_item(q, ip);
+                    }
                 }
                 else {
                     _kdispatch_retire_signal_item(q, ip);

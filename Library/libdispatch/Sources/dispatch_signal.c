@@ -35,21 +35,25 @@ static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo,
 void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     const int signo = item->subtype;
-    dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
+    dispatch_sigtrap_t stp = NULL;
     dispatch_item_t pip = NULL;
     bool hasIt = false;
 
-    SList_ForEach(&stp->monitors, SListNode, {
-        dispatch_item_t cip = (dispatch_item_t)pCurNode;
+    if (self->sigtraps) {
+        stp = &self->sigtraps[signo - 1];
 
-        if (cip == item) {
-            SList_Remove(&stp->monitors, &pip->qe, &cip->qe);
-            hasIt = true;
-            break;
-        }
+        SList_ForEach(&stp->monitors, SListNode, {
+            dispatch_item_t cip = (dispatch_item_t)pCurNode;
 
-        pip = cip;
-    });
+            if (cip == item) {
+                SList_Remove(&stp->monitors, &pip->qe, &cip->qe);
+                hasIt = true;
+                break;
+            }
+
+            pip = cip;
+        });
+    }
 
     if (hasIt) {
         _dispatch_retire_item(self, item);
@@ -65,26 +69,35 @@ void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, dispatch_item_t _N
 void _dispatch_retire_signal_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item)
 {
     const int signo = item->subtype;
-    dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
 
     _dispatch_retire_item(self, item);
 
-    stp->count--;
-    if (stp->count == 0) {
-        _dispatch_enable_signal(self, signo, false);
+    if (self->sigtraps) {
+        dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
+
+        stp->count--;
+        if (stp->count == 0) {
+            _dispatch_enable_signal(self, signo, false);
+        }
     }
 }
 
 // Rearms 'item' in the sense that it is moved back to idle state and the signal
 // trap so that it can be submitted again when the next signal comes in.
-void _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
+bool _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
-    dispatch_sigtrap_t stp = &self->sigtraps[item->subtype - 1];
+    if (self->sigtraps) {
+        dispatch_sigtrap_t stp = &self->sigtraps[item->subtype - 1];
 
-    item->state = DISPATCH_STATE_IDLE;
-    item->qe = SLISTNODE_INIT;
+        item->state = DISPATCH_STATE_IDLE;
+        item->qe = SLISTNODE_INIT;
 
-    SList_InsertAfterLast(&stp->monitors, &item->qe);
+        SList_InsertAfterLast(&stp->monitors, &item->qe);
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 static int _dispatch_item_on_signal(dispatch_t _Nonnull _Locked self, int signo, dispatch_item_t _Nonnull item)
@@ -124,18 +137,20 @@ static int _dispatch_item_on_signal(dispatch_t _Nonnull _Locked self, int signo,
 
 void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int signo, dispatch_worker_t _Nonnull worker)
 {
-    dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
+    if (self->sigtraps) {
+        dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
 
-    while (stp->monitors.first) {
-        dispatch_item_t item = (dispatch_item_t)SList_RemoveFirst(&stp->monitors);
+        while (stp->monitors.first) {
+            dispatch_item_t item = (dispatch_item_t)SList_RemoveFirst(&stp->monitors);
 
-        item->qe = SLISTNODE_INIT;
-        item->state = DISPATCH_STATE_SCHEDULED;
-        item->flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
+            item->qe = SLISTNODE_INIT;
+            item->state = DISPATCH_STATE_SCHEDULED;
+            item->flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
 
-        // No need to wakeup ourselves. This function is called from the worker
-        // 'worker' and we know we're already awake.
-        _dispatch_worker_submit(worker, item, false);
+            // No need to wakeup ourselves. This function is called from the worker
+            // 'worker' and we know we're already awake.
+            _dispatch_worker_submit(worker, item, false);
+        }
     }
 }
 

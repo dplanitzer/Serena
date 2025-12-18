@@ -293,7 +293,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
             _wait_for_resume(self);
         }
 
-        if (signo != SIGDISP) {
+        if (q->sigtraps && signo != SIGDISP) {
             _dispatch_submit_items_for_signal(q, signo, self);
         }
     }
@@ -327,7 +327,9 @@ void _dispatch_worker_run(dispatch_worker_t _Nonnull self)
             case _DISPATCH_TYPE_USER_SIGNAL_ITEM:
                 if ((ip->flags & _DISPATCH_ITEM_FLAG_REPEATING) != 0
                     && (ip->flags & _DISPATCH_ITEM_FLAG_CANCELLED) == 0) {
-                    _dispatch_rearm_signal_item(q, ip);
+                    if (!_dispatch_rearm_signal_item(q, ip)) {
+                        _dispatch_retire_signal_item(q, ip);
+                    }
                 }
                 else {
                     _dispatch_retire_signal_item(q, ip);

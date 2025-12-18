@@ -192,7 +192,7 @@ extern void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_ti
 extern void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
 extern void _dispatch_retire_signal_item(dispatch_t _Nonnull self, dispatch_item_t _Nonnull item);
 extern void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int signo, dispatch_worker_t _Nonnull worker);
-extern void _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
+extern bool _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item);
 
 extern _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker);
 
