@@ -171,7 +171,7 @@ dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull 
 static void _wait_for_resume(dispatch_worker_t _Nonnull _Locked self)
 {
     dispatch_t q = self->owner;
-    int signo;
+    int signo = 0;
 
     self->is_suspended = true;
     cnd_broadcast(&q->cond);
@@ -215,7 +215,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
     dispatch_t q = self->owner;
     bool mayRelinquish = false;
     struct timespec now, deadline;
-    int flags, signo;
+    int flags, signo = SIGDISP;
 
     for (;;) {
         // Grab the first timer that's due. We give preference to timers because

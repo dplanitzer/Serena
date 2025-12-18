@@ -153,7 +153,7 @@ kdispatch_item_t _Nullable _kdispatch_worker_find_item(kdispatch_worker_t _Nonnu
 static void _wait_for_resume(kdispatch_worker_t _Nonnull _Locked self)
 {
     kdispatch_t q = self->owner;
-    int signo;
+    int signo = 0;
 
     self->is_suspended = true;
     cnd_broadcast(&q->cond);
@@ -197,7 +197,7 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
     kdispatch_t q = self->owner;
     bool mayRelinquish = false;
     struct timespec now, deadline;
-    int flags, signo;
+    int flags, signo = SIGDISP;
 
     for (;;) {
         // Grab the first timer that's due. We give preference to timers because
