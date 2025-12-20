@@ -4,7 +4,7 @@ Serena OS is what you get when modern operating system design and implementation
 
 Check out the [Wiki](https://github.com/dplanitzer/Serena/wiki) for more details on the OS, how to build it, run it and how to create apps for it.
 
-https://github.com/user-attachments/assets/c60bad93-5011-49ef-907d-ff006c287c9f
+https://github.com/user-attachments/assets/02517372-fa72-4ec9-8cda-aeeb92a4547b
 
 Serena OS comes with a powerful shell which implements a formally defined shell language. You can find the shell documentation [here](Commands/shell/README.md).
 
