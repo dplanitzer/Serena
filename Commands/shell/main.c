@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     ShellRef sh = Shell_Create(isInteractive);
     if (isInteractive) {
         if (!arg_isLogin) {
-            fputs("\n\033[36mSerena Shell v0.6.0-alpha\033[0m\nCopyright 2023 - 2025, Dietmar Planitzer.\n\n", stdout);
+            fputs("\n\033[36mSerena Shell v0.7.0-alpha\033[0m\nCopyright 2023 - 2026, Dietmar Planitzer.\n\n", stdout);
         }
 
         Shell_Run(sh);
