@@ -82,7 +82,7 @@ enum {
 
 
 // VP flags
-#define VP_FLAG_HAS_FPU             0x01    // Save/restore the FPU state (keep in sync with lowmem.i)
+#define VP_FLAG_HAS_FPU             0x01    // Save/restore the FPU state (keep in sync with machine/arch/m68k/lowmem.i)
 #define VP_FLAG_USER_OWNED          0x02    // This VP is owned by a user process
 #define VP_FLAG_ACQUIRED            0x04    // vcpu_activate() was called on the VP
 
@@ -91,7 +91,7 @@ enum {
 #define SCHED_PRIORITY_BIAS_LOWEST  INT8_MIN 
 
 
-// Note: Keep in sync with machine/hal/lowmem.i
+// Note: Keep in sync with machine/arch/m68k/lowmem.i
 struct vcpu {
     ListNode                        rewa_qe;                // A VP is either on the ready (re) queue or a wait (wa) queue
 

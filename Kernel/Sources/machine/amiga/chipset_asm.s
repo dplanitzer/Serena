@@ -7,7 +7,7 @@
 ;
 
     include "chipset.i"
-    include <machine/lowmem.i>
+    include <machine/arch/m68k/lowmem.i>
 
 
     xdef _chipset_reset

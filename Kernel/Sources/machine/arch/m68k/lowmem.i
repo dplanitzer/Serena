@@ -1,5 +1,5 @@
 ;
-;  machine/lowmem.i
+;  machine/arch/m68k/lowmem.i
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 2/2/21.

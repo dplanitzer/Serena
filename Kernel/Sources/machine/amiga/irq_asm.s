@@ -7,7 +7,7 @@
 ;
 
     include <machine/amiga/chipset.i>
-    include <machine/lowmem.i>
+    include <machine/arch/m68k/lowmem.i>
 
     xref _g_irq_clock_func
     xref _g_irq_clock_arg

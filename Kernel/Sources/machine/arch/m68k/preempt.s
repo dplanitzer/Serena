@@ -6,7 +6,7 @@
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 ;
 
-    include <machine/lowmem.i>
+    include <machine/arch/m68k/lowmem.i>
 
     xdef _preempt_disable
     xdef _preempt_restore

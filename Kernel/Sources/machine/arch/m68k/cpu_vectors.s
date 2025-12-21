@@ -12,7 +12,7 @@
 ;
 
     include <machine/amiga/chipset.i>
-    include <machine/lowmem.i>
+    include <machine/arch/m68k/lowmem.i>
 
     xref _fatalError
     xref _chipset_reset

@@ -7,7 +7,7 @@
 ;
 
 
-    include <machine/lowmem.i>
+    include <machine/arch/m68k/lowmem.i>
     include <machine/errno.i>
 
     xref _g_sched
