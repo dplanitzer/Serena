@@ -3,6 +3,7 @@
         {
             "name": "Serena",
             "includePath": [
+                "${workspaceFolder}/Kernel/Headers/**",
                 "${workspaceFolder}/Kernel/Sources/**",
                 "${workspaceFolder}/Kernel/Tests/**",
                 "${workspaceFolder}/Library/libc/**",
