@@ -7,7 +7,6 @@
 ;
 
     include <machine/lowmem.i>
-    include <machine/errno.i>
 
     xref _g_sched
     xref _mtx_onwait
