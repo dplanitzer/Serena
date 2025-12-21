@@ -21,4 +21,4 @@
 #error "unknown platform"
 #endif
 
-#include <../../Library/libc/Headers/kern/limits.h>
+#include <../../Kernel/Headers/kern/limits.h>

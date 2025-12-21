@@ -10,6 +10,7 @@
 #include <filesystem/Filesystem.h>
 #include <kern/kalloc.h>
 #include <kpi/perm.h>
+#include <kpi/signal.h>
 
 typedef struct SecurityManager {
     int dummy;

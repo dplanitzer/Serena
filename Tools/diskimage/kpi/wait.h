@@ -6,4 +6,4 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <../../Library/libc/Headers/kpi/wait.h>
+#include <../../Kernel/Headers/kpi/wait.h>

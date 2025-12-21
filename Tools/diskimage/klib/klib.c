@@ -45,37 +45,3 @@ void kfree(void* _Nullable ptr)
 {
     free(ptr);
 }
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-#include <kern/string.h>
-
-ssize_t strlen(const char* _Nonnull pStr)
-{
-    return strlen(pStr);
-}
-
-ssize_t strnlen(const char* _Nonnull pStr, ssize_t strsz)
-{
-    ssize_t len = 0;
-
-    while (*pStr++ != '\0' && len < strsz) {
-        len++;
-    }
-
-    return len;
-}
-
-char* _Nonnull strncpy(char* _Nonnull pDst, const char* _Nonnull pSrc, ssize_t count)
-{
-    while (*pSrc != '\0' && count > 0) {
-        *pDst++ = *pSrc++;
-        count--;
-    }
-    if (count > 0) {
-        *pDst++ = '\0';
-    }
-
-    return pDst;
-}

@@ -83,27 +83,27 @@ $(OBJS_DIR)/clap.lib: $(LIBCLAP_C_SOURCES) $(LIBCLAP_H_SOURCES) | $(OBJS_DIR)
 # diskimage
 #
 
-KERNEL_DIR := ../Kernel/Sources
-KERNEL_C_SOURCES += $(KERNEL_DIR)/klib/Hash.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/klib/List.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/FileHierarchy.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/FileManager_Directory.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/FileManager_File.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/FileManager.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/ResolvedPath.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/FSContainer.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/ContainerFilesystem.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/Filesystem.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/FSChannel.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/IOChannel.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/Inode.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/InodeChannel.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/PathComponent.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/security/SecurityManager.c
+KERNEL_SOURCES_DIR := ../Kernel/Sources
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/klib/Hash.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/klib/List.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filemanager/FileHierarchy.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filemanager/FileManager_Directory.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filemanager/FileManager_File.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filemanager/FileManager.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filemanager/ResolvedPath.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/FSContainer.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/ContainerFilesystem.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/Filesystem.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/FSChannel.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/IOChannel.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/Inode.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/InodeChannel.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filesystem/PathComponent.c
+KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/security/SecurityManager.c
 
-KOBJ_C_SOURCES := $(wildcard $(KERNEL_DIR)/kobj/*.c)
-SERENAFS_C_SOURCES := $(wildcard $(KERNEL_DIR)/filesystem/serenafs/*.c)
-SERENAFS_TOOLS_C_SOURCES := $(wildcard $(KERNEL_DIR)/filesystem/serenafs/tools/*.c)
+KOBJ_C_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/kobj/*.c)
+SERENAFS_C_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/filesystem/serenafs/*.c)
+SERENAFS_TOOLS_C_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/filesystem/serenafs/tools/*.c)
 
 DISKIMAGE_C_SOURCES := $(wildcard diskimage/*.c)
 DISKIMAGE_SCHED_C_SOURCES := $(wildcard diskimage/sched/*.c)
@@ -113,7 +113,7 @@ DISKIMAGE_MACHINE_C_SOURCES := $(wildcard diskimage/machine/*.c)
 ALL_DISKIMAGE_C_SOURCES := $(KERNEL_C_SOURCES) $(KOBJ_C_SOURCES) $(SERENAFS_C_SOURCES) $(SERENAFS_TOOLS_C_SOURCES) $(DISKIMAGE_C_SOURCES) $(DISKIMAGE_SCHED_C_SOURCES) $(DISKIMAGE_KLIB_C_SOURCES) $(DISKIMAGE_MACHINE_C_SOURCES)
 
 $(TOOLS_DIR)/diskimage: $(ALL_DISKIMAGE_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(TOOLS_DIR)
-	cl /I diskimage /I $(LIBCLAP_HEADERS_DIR) /I $(KERNEL_DIR) /D__KERNEL__=1 /D__DISKIMAGE__=1 $(DEBUG_FLAGS) /std:c11 /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
+	cl /I diskimage /I $(LIBCLAP_HEADERS_DIR) /I $(KERNEL_SOURCES_DIR) /D__KERNEL__=1 /D__DISKIMAGE__=1 $(DEBUG_FLAGS) /std:c11 /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
 
 
 # --------------------------------------------------------------------------
