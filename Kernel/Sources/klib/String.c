@@ -29,15 +29,23 @@ ssize_t strnlen(const char* _Nonnull str, ssize_t maxlen)
     return len;
 }
 
-// Copies the characters of 'pSrc' to 'pDst'. Returns a pointer that points to
-// the first byte past the '\0' byte in the destination string. 
-char* _Nonnull strcpy(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src)
+// Similar to strcpy() but returns a pointer that points to the '\0 at the
+// destination aka the end of the copied string. Exists so that we can actually
+// use this and strcat() to compose strings without having to iterate over the
+// same string multiple times.
+char * _Nonnull strcpy_x(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src)
 {
     while (*src != '\0') {
         *dst++ = *src++;
     }
-    *dst++ = '\0';
+    *dst = '\0';
 
+    return dst;
+}
+
+char * _Nonnull strcpy(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src)
+{
+    (void) strcpy_x(dst, src);
     return dst;
 }
 

@@ -22,6 +22,10 @@ extern ssize_t strnlen(const char* _Nonnull str, ssize_t maxlen);
 extern char* _Nonnull strcpy(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src);
 extern char* _Nonnull strncpy(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src, ssize_t count);
 
+// Like strcpy()/strncpy() except that these functions here return a pointer
+// that points to the trailing '\0' in the destination buffer  
+extern char* _Nonnull strcpy_x(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src);
+
 extern bool strcmp(const char* _Nonnull lhs, const char* _Nonnull rhs);
 extern bool strncmp(const char* _Nonnull lhs, const char* _Nonnull rhs, ssize_t count);
 

@@ -71,7 +71,7 @@ static errno_t _proc_img_copy_args_env(proc_img_t* _Nonnull pimg, const char* ar
         const char* pSrc = (const char*)pSrcArgv[i];
 
         pProcArgv[i] = pDst;
-        pDst = strcpy(pDst, pSrc);
+        pDst = strcpy_x(pDst, pSrc) + 1;
     }
     pProcArgv[nArgvCount] = NULL;
 
@@ -81,7 +81,7 @@ static errno_t _proc_img_copy_args_env(proc_img_t* _Nonnull pimg, const char* ar
         const char* pSrc = (const char*)pSrcEnv[i];
 
         pProcEnv[i] = pDst;
-        pDst = strcpy(pDst, pSrc);
+        pDst = strcpy_x(pDst, pSrc) + 1;
     }
     pProcEnv[nEnvCount] = NULL;
 
