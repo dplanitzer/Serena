@@ -44,13 +44,13 @@ static errno_t _proc_img_copy_args_env(proc_img_t* _Nonnull pimg, const char* ar
     size_t nEnvCount = 0;
     const ssize_t nbytes_argv = calc_size_of_arg_table(argv, &nArgvCount);
     const ssize_t nbytes_envp = calc_size_of_arg_table(env, &nEnvCount);
+    const ssize_t nbytes_argv_envp = nbytes_argv + nbytes_envp;
 
-    if (nbytes_argv < 0 || nbytes_envp < 0) {
+    if (nbytes_argv < 0 || nbytes_envp < 0 || nbytes_argv_envp > __ARG_MAX) {
         return E2BIG;
     }
 
     pargs_t* pargs = NULL;
-    const ssize_t nbytes_argv_envp = nbytes_argv + nbytes_envp;
     const ssize_t nbytes_procargs = __Ceil_PowerOf2(sizeof(pargs_t) + nbytes_argv_envp, CPU_PAGE_SIZE);
     const errno_t err = AddressSpace_Allocate(&pimg->as, nbytes_procargs, (void**)&pargs);
     if (err != EOK) {
