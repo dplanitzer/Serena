@@ -40,7 +40,6 @@ static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], size_
 
 static errno_t _proc_img_copy_args_env(proc_img_t* _Nonnull pimg, const char* argv[], const char* _Nullable env[])
 {
-    decl_try_err();
     size_t nArgvCount = 0;
     size_t nEnvCount = 0;
     const ssize_t nbytes_argv = calc_size_of_arg_table(argv, &nArgvCount);
@@ -53,52 +52,46 @@ static errno_t _proc_img_copy_args_env(proc_img_t* _Nonnull pimg, const char* ar
     pargs_t* pargs = NULL;
     const ssize_t nbytes_argv_envp = nbytes_argv + nbytes_envp;
     const ssize_t nbytes_procargs = __Ceil_PowerOf2(sizeof(pargs_t) + nbytes_argv_envp, CPU_PAGE_SIZE);
-    err = AddressSpace_Allocate(&pimg->as, nbytes_procargs, (void**)&pargs);
+    const errno_t err = AddressSpace_Allocate(&pimg->as, nbytes_procargs, (void**)&pargs);
     if (err != EOK) {
         return err;
     }
 
 
-    char** pProcArgv = (char**)((char*)pargs + sizeof(pargs_t));
-    char** pProcEnv = (char**)&pProcArgv[nArgvCount + 1];
-    char*  pDst = (char*)&pProcEnv[nEnvCount + 1];
-    const char** pSrcArgv = (const char**) argv;
-    const char** pSrcEnv = (const char**) env;
+    char** proc_argv = (char**)((char*)pargs + sizeof(pargs_t));
+    char** proc_env = (char**)&proc_argv[nArgvCount + 1];
+    char*  dst = (char*)&proc_env[nEnvCount + 1];
 
 
     // Argv
     for (size_t i = 0; i < nArgvCount; i++) {
-        const char* pSrc = (const char*)pSrcArgv[i];
-
-        pProcArgv[i] = pDst;
-        pDst = strcpy_x(pDst, pSrc) + 1;
+        proc_argv[i] = dst;
+        dst = strcpy_x(dst, argv[i]) + 1;
     }
-    pProcArgv[nArgvCount] = NULL;
+    proc_argv[nArgvCount] = NULL;
 
 
     // Envp
     for (size_t i = 0; i < nEnvCount; i++) {
-        const char* pSrc = (const char*)pSrcEnv[i];
-
-        pProcEnv[i] = pDst;
-        pDst = strcpy_x(pDst, pSrc) + 1;
+        proc_env[i] = dst;
+        dst = strcpy_x(dst, env[i]) + 1;
     }
-    pProcEnv[nEnvCount] = NULL;
+    proc_env[nEnvCount] = NULL;
 
 
-    // Descriptor
+    // Process Arguments
     pargs->version = sizeof(pargs_t);
     pargs->reserved = 0;
     pargs->arguments_size = nbytes_procargs;
     pargs->argc = nArgvCount;
-    pargs->argv = pProcArgv;
-    pargs->envp = pProcEnv;
+    pargs->argv = proc_argv;
+    pargs->envp = proc_env;
     pargs->image_base = NULL;
     pargs->urt_funcs = gKeiTable;
 
     pimg->pargs = (char*)pargs;
 
-    return err;
+    return EOK;
 }
 
 static errno_t _proc_img_acquire_main_vcpu(vcpu_func_t _Nonnull entryPoint, void* _Nonnull procargs, vcpu_t _Nonnull * _Nullable pOutVcpu)
