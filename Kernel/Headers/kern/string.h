@@ -17,7 +17,7 @@
 __CPP_BEGIN
 
 extern ssize_t strlen(const char* _Nonnull str);
-extern ssize_t strnlen(const char* _Nonnull str, ssize_t strsz);
+extern ssize_t strnlen(const char* _Nonnull str, ssize_t maxlen);
 
 extern char* _Nonnull strcpy(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src);
 extern char* _Nonnull strncpy(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src, ssize_t count);

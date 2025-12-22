@@ -18,11 +18,11 @@ ssize_t strlen(const char* _Nonnull str)
     return p - str - 1;
 }
 
-ssize_t strnlen(const char* _Nonnull str, ssize_t strsz)
+ssize_t strnlen(const char* _Nonnull str, ssize_t maxlen)
 {
     ssize_t len = 0;
 
-    while (*str++ != '\0' && len < strsz) {
+    while (len < maxlen && *str++ != '\0') {
         len++;
     }
 

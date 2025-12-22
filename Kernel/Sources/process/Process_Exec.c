@@ -13,28 +13,27 @@
 #include <sched/vcpu.h>
 
 
-static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], ssize_t maxByteCount, size_t* _Nonnull pOutTableEntryCount)
+static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], size_t* _Nonnull pOutCount)
 {
     ssize_t nbytes = 0;
-    size_t i = 0;
+    size_t count = 0;
 
-    while (table[i]) {
-        const char* pStr = table[i];
+    while (table[count]) {
+        const char* pa = table[count];
+        const ssize_t slen = strnlen(pa, __ARG_STRLEN_MAX);
+        const ssize_t nbytes_entry = sizeof(char*) + slen + 1;
 
-        nbytes += sizeof(char*);
-        while (*pStr != '\0' && nbytes <= maxByteCount) {
-            pStr++;
-            nbytes++;
+        if (pa[slen] != '\0') {
+            return -1;
         }
-        nbytes++;   // terminating '\0'
-
-        if (nbytes > maxByteCount) {
-            break;
+        if ((nbytes + nbytes_entry) > __ARG_MAX) {
+            return -1;
         }
 
-        i++;
+        nbytes += nbytes_entry;
+        count++;
     }
-    *pOutTableEntryCount = i;
+    *pOutCount = count;
 
     return nbytes;
 }
@@ -44,16 +43,15 @@ static errno_t _proc_img_copy_args_env(proc_img_t* _Nonnull pimg, const char* ar
     decl_try_err();
     size_t nArgvCount = 0;
     size_t nEnvCount = 0;
-    const ssize_t nbytes_argv = calc_size_of_arg_table(argv, __ARG_MAX, &nArgvCount);
-    const ssize_t nbytes_envp = calc_size_of_arg_table(env, __ARG_MAX, &nEnvCount);
-    const ssize_t nbytes_argv_envp = nbytes_argv + nbytes_envp;
-    pargs_t* pargs = NULL;
+    const ssize_t nbytes_argv = calc_size_of_arg_table(argv, &nArgvCount);
+    const ssize_t nbytes_envp = calc_size_of_arg_table(env, &nEnvCount);
 
-    if (nbytes_argv_envp > __ARG_MAX) {
+    if (nbytes_argv < 0 || nbytes_envp < 0) {
         return E2BIG;
     }
 
-
+    pargs_t* pargs = NULL;
+    const ssize_t nbytes_argv_envp = nbytes_argv + nbytes_envp;
     const ssize_t nbytes_procargs = __Ceil_PowerOf2(sizeof(pargs_t) + nbytes_argv_envp, CPU_PAGE_SIZE);
     err = AddressSpace_Allocate(&pimg->as, nbytes_procargs, (void**)&pargs);
     if (err != EOK) {
