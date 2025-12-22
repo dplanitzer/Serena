@@ -8,7 +8,7 @@
 
 #include "delay.h"
 #include "sched.h"
-#include <machine/clock.h>
+#include <hal/clock.h>
 #include <kern/timespec.h>
 #include <sched/waitqueue.h>
 

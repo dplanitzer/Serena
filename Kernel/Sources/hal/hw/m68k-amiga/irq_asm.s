@@ -6,8 +6,8 @@
 ;  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 ;
 
-    include <machine/hw/m68k-amiga/chipset.i>
-    include <machine/hw/m68k/lowmem.i>
+    include <hal/hw/m68k-amiga/chipset.i>
+    include <hal/hw/m68k/lowmem.i>
 
     xref _g_irq_clock_func
     xref _g_irq_clock_arg

@@ -8,8 +8,8 @@
 
 #include "cnd.h"
 #include "sched.h"
+#include <hal/sched.h>
 #include <kern/assert.h>
-#include <machine/sched.h>
 
 
 // Initializes a new condition variable.

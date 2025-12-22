@@ -7,8 +7,8 @@
 //
 
 #include "ZRamDriver.h"
+#include <hal/sys_desc.h>
 #include <kern/kalloc.h>
-#include <machine/sys_desc.h>
 
 IOCATS_DEF(g_cats, IOMEM_RAM);
 

@@ -7,10 +7,10 @@
 //
 
 #include "stack.h"
+#include <hal/cpu.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <kern/limits.h>
-#include <machine/cpu.h>
 
 
 // Initializes an execution stack struct. The execution stack is empty by default

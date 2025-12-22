@@ -8,7 +8,7 @@
 
 #include "GraphicsDriverPriv.h"
 #include "copper.h"
-#include <machine/irq.h>
+#include <hal/irq.h>
 
 
 static int _get_config_value(const intptr_t* _Nonnull config, int key, intptr_t def)

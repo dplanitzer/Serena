@@ -13,7 +13,7 @@
 #include <stdnoreturn.h>
 
 #ifdef __M68K__
-#include <machine/hw/m68k/cpu.h>
+#include <hal/hw/m68k/cpu.h>
 #else
 #error "don't know how to support this CPU architecture"
 #endif

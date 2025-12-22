@@ -6,11 +6,11 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#include <hal/cpu.h>
 #include <kern/assert.h>
 #include <kern/kernlib.h>
 #include <kdispatch/kdispatch.h>
 #include <log/Log.h>
-#include <machine/cpu.h>
 #include <process/Process.h>
 #include <sched/vcpu.h>
 

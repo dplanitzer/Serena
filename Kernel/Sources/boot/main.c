@@ -15,9 +15,9 @@
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/kernfs/KernFS.h>
-#include <machine/clock.h>
-#include <machine/irq.h>
-#include <machine/sched.h>
+#include <hal/clock.h>
+#include <hal/irq.h>
+#include <hal/sched.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>
 #include <sched/delay.h>

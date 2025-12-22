@@ -8,8 +8,8 @@
 
 #include "waitqueue.h"
 #include "vcpu.h"
-#include <machine/clock.h>
-#include <machine/sched.h>
+#include <hal/clock.h>
+#include <hal/sched.h>
 
 
 void wq_init(waitqueue_t _Nonnull self)

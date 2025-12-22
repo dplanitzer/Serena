@@ -9,8 +9,8 @@
 #include "vcpu.h"
 #include "sched.h"
 #include "vcpu_pool.h"
-#include <machine/clock.h>
-#include <machine/sched.h>
+#include <hal/clock.h>
+#include <hal/sched.h>
 #include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/limits.h>

@@ -9,7 +9,7 @@
 #ifndef _AMIGA_IRQ_H
 #define _AMIGA_IRQ_H
 
-#include <machine/cpu.h>
+#include <hal/cpu.h>
 
 // Supported physical interrupts
 // http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node0142.html

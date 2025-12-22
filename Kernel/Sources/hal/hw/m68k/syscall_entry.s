@@ -7,8 +7,8 @@
 ;
 
 
-    include <machine/hw/m68k/lowmem.i>
-    include <machine/errno.i>
+    include <hal/hw/m68k/lowmem.i>
+    include <hal/errno.i>
 
     xref _g_sched
     xref __syscall_handler

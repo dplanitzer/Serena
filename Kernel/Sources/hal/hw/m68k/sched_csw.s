@@ -6,7 +6,7 @@
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 ;
 
-    include <machine/hw/m68k/lowmem.i>
+    include <hal/hw/m68k/lowmem.i>
 
     xref _g_sched
     xref _sched_set_ready

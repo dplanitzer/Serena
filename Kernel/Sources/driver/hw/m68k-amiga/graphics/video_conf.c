@@ -7,8 +7,8 @@
 //
 
 #include "video_conf.h"
+#include <hal/hw/m68k-amiga/chipset.h>
 #include <kern/kernlib.h>
-#include <machine/hw/m68k-amiga/chipset.h>
 
 
 #define NUM_CONFS  8

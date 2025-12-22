@@ -8,10 +8,10 @@
 
 #include "GraphicsDriverPriv.h"
 #include "copper.h"
+#include <hal/irq.h>
 #include <kern/kalloc.h>
 #include <kpi/fcntl.h>
 #include <kpi/hid.h>
-#include <machine/irq.h>
 
 IOCATS_DEF(g_cats, IOVID_FB);
 

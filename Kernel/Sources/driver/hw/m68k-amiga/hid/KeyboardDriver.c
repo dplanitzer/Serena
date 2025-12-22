@@ -7,10 +7,10 @@
 //
 
 #include "KeyboardDriver.h"
+#include <hal/irq.h>
+#include <hal/hw/m68k-amiga/chipset.h>
 #include <klib/RingBuffer.h>
 #include <kpi/fcntl.h>
-#include <machine/irq.h>
-#include <machine/hw/m68k-amiga/chipset.h>
 
 
 // Keycode -> USB HID keyscan codes

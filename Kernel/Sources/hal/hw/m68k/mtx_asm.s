@@ -6,7 +6,7 @@
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 ;
 
-    include <machine/hw/m68k/lowmem.i>
+    include <hal/hw/m68k/lowmem.i>
 
     xref _g_sched
     xref _mtx_onwait

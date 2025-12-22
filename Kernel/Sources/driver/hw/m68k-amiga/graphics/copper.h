@@ -10,8 +10,8 @@
 #define _COPPER_H
 
 #include <kern/errno.h>
+#include <hal/hw/m68k-amiga/chipset.h>
 #include <kern/types.h>
-#include <machine/hw/m68k-amiga/chipset.h>
 #include <sched/vcpu.h>
 #include "ColorTable.h"
 #include "Surface.h"

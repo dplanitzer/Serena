@@ -7,9 +7,9 @@
 //
 
 #include "syscalldecls.h"
+#include <hal/sched.h>
 #include <kern/timespec.h>
 #include <kpi/signal.h>
-#include <machine/sched.h>
 #include <process/ProcessManager.h>
 #include <sched/waitqueue.h>
 

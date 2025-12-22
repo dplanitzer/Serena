@@ -6,11 +6,11 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
+#include <hal/cpu.h>
+#include <hal/sys_desc.h>
+#include <hal/hw/m68k-amiga/chipset.h>
 #include <kern/kernlib.h>
 #include <kern/string.h>
-#include <machine/cpu.h>
-#include <machine/sys_desc.h>
-#include <machine/hw/m68k-amiga/chipset.h>
 
 
 extern int8_t fpu_get_model(void);

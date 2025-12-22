@@ -8,11 +8,11 @@
 
 #include "vcpu.h"
 #include "sched.h"
+#include <hal/clock.h>
+#include <hal/sched.h>
 #include <kern/limits.h>
 #include <kern/timespec.h>
 #include <kpi/signal.h>
-#include <machine/clock.h>
-#include <machine/sched.h>
 
 
 static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo)

@@ -7,7 +7,7 @@
 //
 
 #include "MouseDriver.h"
-#include <machine/hw/m68k-amiga/chipset.h>
+#include <hal/hw/m68k-amiga/chipset.h>
 
 
 final_class_ivars(MouseDriver, InputDriver,

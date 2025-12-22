@@ -8,13 +8,13 @@
 
 #include "AmigaController.h"
 #include <filesystem/SerenaDiskImage.h>
-#include <machine/cpu.h>
-#include <machine/hw/m68k-amiga/chipset.h>
 #include <driver/hw/m68k-amiga/floppy/FloppyController.h>
 #include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
 #include <driver/hw/m68k-amiga/hid/GamePortController.h>
 #include <driver/hw/m68k-amiga/hid/KeyboardDriver.h>
 #include <driver/hw/m68k-amiga/zorro/ZorroController.h>
+#include <hal/cpu.h>
+#include <hal/hw/m68k-amiga/chipset.h>
 #include <kern/endian.h>
 
 

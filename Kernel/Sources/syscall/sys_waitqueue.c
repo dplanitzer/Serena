@@ -7,11 +7,11 @@
 //
 
 #include "syscalldecls.h"
+#include <hal/sched.h>
 #include <kern/timespec.h>
 #include <klib/Hash.h>
 #include <kern/kalloc.h>
 #include <kpi/signal.h>
-#include <machine/sched.h>
 #include <sched/waitqueue.h>
 
 

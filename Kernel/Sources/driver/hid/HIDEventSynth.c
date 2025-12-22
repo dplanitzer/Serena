@@ -7,7 +7,7 @@
 //
 
 #include "HIDEventSynth.h"
-#include <machine/clock.h>
+#include <hal/clock.h>
 #include <kern/kernlib.h>
 #include <kpi/hidkeycodes.h>
 #include <kern/timespec.h>

@@ -11,8 +11,8 @@
 ; Trap, exception and interrupt handlers.
 ;
 
-    include <machine/hw/m68k-amiga/chipset.i>
-    include <machine/hw/m68k/lowmem.i>
+    include <hal/hw/m68k-amiga/chipset.i>
+    include <hal/hw/m68k/lowmem.i>
 
     xref _fatalError
     xref _chipset_reset

@@ -7,11 +7,11 @@
 //
 
 #include "FloppyDriverPriv.h"
+#include <hal/clock.h>
 #include <log/Log.h>
 #include <kern/kalloc.h>
 #include <kern/string.h>
 #include <kern/timespec.h>
-#include <machine/clock.h>
 #include <sched/delay.h>
 #include <sched/vcpu.h>
 #include "mfm.h"

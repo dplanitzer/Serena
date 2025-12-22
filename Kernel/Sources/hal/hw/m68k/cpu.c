@@ -6,11 +6,11 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include <hal/cpu.h>
 #include <kern/assert.h>
 #include <kern/string.h>
 #include <kern/types.h>
 #include <kpi/exception.h>
-#include <machine/cpu.h>
 #include <process/Process.h>
 
 

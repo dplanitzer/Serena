@@ -9,10 +9,10 @@
 #ifndef _SCHED_H
 #define _SCHED_H 1
 
-#include <kern/types.h>
 #include <boot/BootAllocator.h>
-#include <machine/cpu.h>
-#include <machine/sys_desc.h>
+#include <hal/cpu.h>
+#include <hal/sys_desc.h>
+#include <kern/types.h>
 #include <kern/errno.h>
 #include <kern/limits.h>
 #include <klib/List.h>

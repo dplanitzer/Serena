@@ -9,6 +9,9 @@
 #ifndef _VCPU_H
 #define _VCPU_H 1
 
+#include <hal/clock.h>
+#include <hal/cpu.h>
+#include <hal/sys_desc.h>
 #include <kern/errno.h>
 #include <kern/types.h>
 #include <klib/Atomic.h>
@@ -16,9 +19,6 @@
 #include <kpi/exception.h>
 #include <kpi/signal.h>
 #include <kpi/vcpu.h>
-#include <machine/clock.h>
-#include <machine/cpu.h>
-#include <machine/sys_desc.h>
 #include <sched/stack.h>
 #include <sched/waitqueue.h>
 #include <sched/sched.h>

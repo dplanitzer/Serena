@@ -13,7 +13,7 @@
 #include "IOChannelTable.h"
 #include <Catalog.h>
 #include <filemanager/FileManager.h>
-#include <machine/rc.h>
+#include <hal/rc.h>
 #include <kpi/signal.h>
 #include <sched/mtx.h>
 #include <sched/waitqueue.h>

@@ -7,7 +7,7 @@
 //
 
 #include "Allocator.h"
-#include <machine/sys_desc.h>
+#include <hal/sys_desc.h>
 #include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>

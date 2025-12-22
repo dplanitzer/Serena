@@ -13,9 +13,9 @@
 #include "HIDEventSynth.h"
 #include "InputDriver.h"
 #include <driver/DisplayDriver.h>
+#include <hal/clock.h>
+#include <hal/irq.h>
 #include <kpi/hidkeycodes.h>
-#include <machine/clock.h>
-#include <machine/irq.h>
 #include <sched/cnd.h>
 #include <sched/mtx.h>
 #include <sched/vcpu.h>

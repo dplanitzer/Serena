@@ -11,7 +11,7 @@
 
 #include <kern/errno.h>
 #include <kobj/Any.h>
-#include <machine/rc.h>
+#include <hal/rc.h>
 
 
 // The Object class is the top type of all reference objects which use a

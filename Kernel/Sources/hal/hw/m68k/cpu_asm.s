@@ -6,8 +6,8 @@
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 ;
 
-    include <machine/hw/m68k-amiga/chipset.i>
-    include <machine/hw/m68k/lowmem.i>
+    include <hal/hw/m68k-amiga/chipset.i>
+    include <hal/hw/m68k/lowmem.i>
 
     xref _cpu_non_recoverable_error
 

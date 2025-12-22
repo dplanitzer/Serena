@@ -7,7 +7,7 @@
 ;
 
     include "chipset.i"
-    include <machine/hw/m68k/lowmem.i>
+    include <hal/hw/m68k/lowmem.i>
 
 
     xdef __clock_start_ticker

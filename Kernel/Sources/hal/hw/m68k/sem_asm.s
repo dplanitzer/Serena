@@ -6,7 +6,7 @@
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 ;
 
-    include <machine/hw/m68k/lowmem.i>
+    include <hal/hw/m68k/lowmem.i>
 
     xref _sem_onwait
     xref _sem_wake

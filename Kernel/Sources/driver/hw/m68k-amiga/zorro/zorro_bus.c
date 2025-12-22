@@ -7,12 +7,12 @@
 //
 
 #include "zorro_bus.h"
+#include <hal/cpu.h>
+#include <hal/sys_desc.h>
+#include <hal/hw/m68k-amiga/chipset.h>
 #include <kern/assert.h>
 #include <kern/string.h>
 #include <kern/kalloc.h>
-#include <machine/cpu.h>
-#include <machine/sys_desc.h>
-#include <machine/hw/m68k-amiga/chipset.h>
 
 
 // Reads a byte value from the given Zorro auto configuration address

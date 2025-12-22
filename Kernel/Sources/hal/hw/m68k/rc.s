@@ -6,7 +6,7 @@
 ;  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 ;
 
-    include <machine/hw/m68k/lowmem.i>
+    include <hal/hw/m68k/lowmem.i>
 
 
     xdef _rc_retain

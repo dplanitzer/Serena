@@ -7,9 +7,9 @@
 //
 
 #include "AddressSpace.h"
+#include <hal/cpu.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
-#include <machine/cpu.h>
 
 
 typedef struct MemEntry {

@@ -9,7 +9,7 @@
 #include "BootAllocator.h"
 #include <kern/assert.h>
 #include <kern/kernlib.h>
-#include <machine/cpu.h>
+#include <hal/cpu.h>
 
 #define __MEM_ALIGN 4
 

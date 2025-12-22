@@ -7,9 +7,9 @@
 //
 
 #include "copper.h"
+#include <hal/irq.h>
+#include <hal/hw/m68k-amiga/chipset.h>
 #include <kern/kernlib.h>
-#include <machine/irq.h>
-#include <machine/hw/m68k-amiga/chipset.h>
 #include <sched/sem.h>
 
 // Note that copper_asm.s depends on this definition
