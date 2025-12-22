@@ -37,7 +37,7 @@ typedef struct mem_layout {
 
 
 // The system description
-// Note: Keep in sync with machine/arch/m68k/lowmem.i
+// Note: Keep in sync with machine/hw/m68k/lowmem.i
 typedef struct sys_desc {
     int8_t          cpu_model;
     int8_t          fpu_model;

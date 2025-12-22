@@ -21,7 +21,7 @@
 #include <filesystem/serenafs/SerenaFS.h>
 #include <filesystem/serenafs/SfsDirectory.h>
 #include <filesystem/serenafs/SfsRegularFile.h>
-#include <machine/amiga/floppy/adf.h>
+#include <driver/hw/m68k-amiga/floppy/adf.h>
 #include <clap.h>
 #include <kern/endian.h>
 #include <kpi/perm.h>

@@ -17,7 +17,7 @@
 
 typedef void (*deadline_func_t)(void* _Nullable arg);
 
-// Note: Keep in sync with machine/arch/m68k/lowmem.i
+// Note: Keep in sync with machine/hw/m68k/lowmem.i
 typedef struct clock_deadline {
     struct clock_deadline* _Nullable    next;
     tick_t                              deadline;
@@ -30,7 +30,7 @@ typedef struct clock_deadline {
 #define CLOCK_DEADLINE_INIT (clock_deadline_t){NULL, 0, NULL, NULL, false, 0, 0, 0}
 
 
-// Note: Keep in sync with machine/arch/m68k/lowmem.i
+// Note: Keep in sync with machine/hw/m68k/lowmem.i
 struct clock {
     volatile tick_t             tick_count;         // Current scheduler time in terms of ticks quantums since clock start
     clock_deadline_t* _Nullable deadline_queue;

@@ -6,7 +6,7 @@
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 ;
 
-    include <machine/arch/m68k/lowmem.i>
+    include <machine/hw/m68k/lowmem.i>
 
 
     xdef _AtomicBool_Set

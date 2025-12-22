@@ -12,7 +12,7 @@
 #include <driver/pseudo/NullDriver.h>
 #include <driver/pseudo/VDMDriver.h>
 #ifdef MACHINE_AMIGA
-#include <machine/amiga/AmigaController.h>
+#include <driver/hw/m68k-amiga/AmigaController.h>
 #else
 #error "unknown platform"
 #endif

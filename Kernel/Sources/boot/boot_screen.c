@@ -13,7 +13,7 @@
 #include <driver/DriverManager.h>
 #include <kern/string.h>
 #include <kpi/fcntl.h>
-#include <machine/amiga/chipset.h>
+#include <machine/hw/m68k-amiga/chipset.h>
 
 
 void open_boot_screen(boot_screen_t* _Nonnull bscr)

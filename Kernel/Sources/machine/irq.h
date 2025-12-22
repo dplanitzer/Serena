@@ -11,7 +11,7 @@
 
 #include <kern/types.h>
 #ifdef MACHINE_AMIGA
-#include <machine/amiga/irq.h>
+#include <machine/hw/m68k-amiga/irq.h>
 #else
 #error "unknown platform"
 #endif

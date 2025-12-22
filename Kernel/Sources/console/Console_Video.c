@@ -9,7 +9,7 @@
 #include "ConsolePriv.h"
 #include <kern/string.h>
 #include <kern/timespec.h>
-#include <machine/amiga/chipset.h>
+#include <machine/hw/m68k-amiga/chipset.h>
 
 static void Console_OnTextCursorBlink(CursorTimer* _Nonnull timer);
 
