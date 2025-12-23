@@ -9,13 +9,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <__globals.h>
 #include <__stddef.h>
 #include <kpi/kei.h>
 #include <sys/proc.h>
 #include <sys/_vcpu.h>
 
 extern void __kei_init(pargs_t* _Nonnull argsp);
+
+pargs_t* __gProcessArguments;
+char ** environ;
 
 
 void __stdlibc_init(pargs_t* _Nonnull argsp)

@@ -7,7 +7,9 @@
 //
 
 #include <string.h>
-#include <__globals.h>
+#include <sys/proc.h>
+
+extern pargs_t* __gProcessArguments;
 
 
 void * _Nonnull memset(void * _Nonnull dst, int c, size_t count)
