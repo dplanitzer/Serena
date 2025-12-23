@@ -10,6 +10,17 @@
 #include <kern/string.h>
 #include <sched/vcpu.h>
 
+extern void fpu_idle_fsave(char* _Nonnull fsave);
+
+
+static char g_fpu_idle_fsave[FPU_MAX_FSAVE_SIZE];
+
+void vcpu_platform_init(void)
+{
+    if (g_sys_desc->fpu_model > FPU_MODEL_NONE) {
+        fpu_idle_fsave(g_fpu_idle_fsave);
+    }
+}
 
 // Returns the required minimum kernel stack size
 size_t min_vcpu_kernel_stack_size(void)
@@ -158,12 +169,11 @@ static void __vcpu_write_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnu
             fp_sa->fp[i] = ctx->fp[i];
         }
 
-        // XXX
-        // Need to do something here if the fsave frame is a NULL frame. Eg promote
-        // it to IDLE (although the exact format isn't documented); or make it so
-        // that we'll never get a NULL frame in the first place by executing at least
-        // one fp instruction when the vcpu is acquired
-        // XXX
+
+        // Replace the old fsave with an idle fsave. This ensures that eg a
+        // deferred exception that might have been triggered by the previous FPU
+        // state will be abandoned.
+        memcpy(fp_sa->fsave, g_fpu_idle_fsave, FPU_MAX_FSAVE_SIZE);
     }
 }
 

@@ -20,7 +20,6 @@
     xdef _cpu_sleep
     xdef _cpu_halt
     xdef _cpu060_set_pcr_bits
-    xdef _fpu_get_model
     xdef _usp_get
     xdef _usp_set
     xdef _usp_grow
@@ -108,46 +107,7 @@ _cpu_get_model:
 
 
 ;-------------------------------------------------------------------------------
-; fpu_get_model
-; Returns the FPU model identifier
-_fpu_get_model:
-    inline
-        movem.l a2 / d2, -(sp)
-        move.l  #44, a0     ; install the line F handler
-        move.l  (a0), -(sp)
-        lea     .done(pc), a1
-        move.l  a1, (a0)
-        move.l  sp, a2     ; save the stack pointer
-
-        moveq   #FPU_MODEL_NONE, d0
-        dc.l    $f201583a  ; ftst.b d1 - force the fsave instruction to generate an IDLE frame
-        dc.w    $f327      ; fsave -(a7) - save the IDLE frame to the stack
-        move.l  a2, d2
-        sub.l   sp, d2     ; find out how big the IDLE frame is
-        moveq   #FPU_MODEL_68881, d0
-        cmp.b   #$1c, d2   ; 68881 IDLE frame size
-        beq.s   .done
-        moveq   #FPU_MODEL_68882, d0
-        cmp.b   #$3c, d2   ; 68882 IDLE frame size
-        beq.s   .done
-        moveq   #FPU_MODEL_68040, d0
-        cmp.b   #$4, d2     ; 68040 IDLE frame size
-        beq.s   .done
-        moveq   #FPU_MODEL_68060, d0
-        cmp.b   #$c, d2
-        beq.s   .done
-        moveq   #FPU_MODEL_NONE, d0 ; unknown FPU model
-
-.done:
-        move.l  a2, sp      ; restore the stack pointer
-        move.l  (sp)+, (a0) ; restore the line F handler
-        movem.l (sp)+, a2 / d2
-        rts
-    einline
-
-
-;-------------------------------------------------------------------------------
-; Void pop_exception_stack_frame()
+; void pop_exception_stack_frame(void)
 ; Pops the bus error stack frame that is sitting at sp from the stack. Call this
 ; function as a subroutine with ssp pointing to the bottom of the exception
 ; stack frame right before you call this function.

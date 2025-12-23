@@ -40,6 +40,7 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
 
 
     wq_init(&g_sched_wq);
+    vcpu_platform_init();
 
 
     // Initialize the boot virtual processor

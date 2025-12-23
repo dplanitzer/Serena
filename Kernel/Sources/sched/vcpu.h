@@ -151,8 +151,12 @@ struct vcpu {
 // Returns a new and unique vcpu group id.
 extern vcpuid_t new_vcpu_groupid(void);
 
-// Returns the required minimum kernel stack size
+// Returns the required minimum kernel stack size.
 extern size_t min_vcpu_kernel_stack_size(void);
+
+// Invoked by the scheduler at reset time to give the vcpu module a chance to do
+// platform specific initialization work.
+extern void vcpu_platform_init(void);
 
 
 // Acquires a vcpu from the vcpu pool and creates a new vcpu from scratch if none
