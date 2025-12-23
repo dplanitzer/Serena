@@ -709,7 +709,6 @@
 
 // Stops all hardware timers and DMAs and stops all interrupts of the platform's
 // motherboard chipset.
-extern void chipset_reset(void);
 extern uint8_t chipset_get_version(void);
 extern uint8_t chipset_get_ramsey_version(void);
 extern void chipset_wait_bof(void);

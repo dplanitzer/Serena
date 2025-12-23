@@ -11,22 +11,16 @@
 ; Trap, exception and interrupt handlers.
 ;
 
-    include <hal/hw/m68k-amiga/chipset.i>
-    include <hal/hw/m68k/lowmem.i>
+    include "lowmem.i"
 
-    xref _fatalError
-    xref _chipset_reset
+    xref _Reset
     xref _OnReset
     xref _OnBoot
     xref __sys_entry
     xref __sys_no_entry
-    xref _cpu_get_model
-    xref _fpu_get_model
     xref _cpu_exception
     xref _cpu_exception_return
     xref _cpu_halt
-    xref _sys_desc_init
-    xref __fatalException
 
     xref __irq_level_1
     xref __irq_level_2
@@ -34,14 +28,12 @@
     xref __irq_level_4
     xref __irq_level_5
     xref __irq_level_6
-
-    xref _g_irq_stat_uninit
-    xref _g_irq_stat_spurious
-    xref _g_irq_stat_nmi
+    xref __irq_uninitialized
+    xref __irq_spurious
+    xref __irq_level_7
 
 
     xdef _cpu_vector_table
-    xdef _cpu_non_recoverable_error
     xdef _excpt_return
 
 
@@ -116,76 +108,6 @@ _cpu_vector_table:
 
 
 ;-------------------------------------------------------------------------------
-; Boot ROM Reset entry point
-    align 2
-_Reset:
-    inline
-        ; boot ROM off; power light dimmed
-        move.b  #3, CIAADDRA
-        move.b  #2, CIAAPRA
-
-        ; make sure that all DMAs and IRQs are off
-        jsr     _chipset_reset
-
-        ; install the CPU vector table
-        lea     _cpu_vector_table(pc), a0
-        move.w  #(CPU_VECTORS_SIZEOF/4)-1, d0
-        lea     CPU_VECTORS_BASE, a1
-.L1:    move.l  (a0)+, (a1)+
-        dbra    d0, .L1
-
-        ; clear the system description
-        lea     SYS_DESC_BASE, a0
-        move.w  #(SYS_DESC_SIZEOF/4)-1, d0
-        moveq.l #0, d1
-.L2:    move.l  d1, (a0)+
-        dbra    d0, .L2
-
-        ; figure out which type of CPU this is. The required minimum is:
-        ; CPU: MC68020
-        ; FPU: none
-        jsr     _cpu_get_model
-        cmp.b   #CPU_MODEL_68020, d0
-        bge     .L3
-        move.l  #RGB_YELLOW, -(sp)
-        jmp     _cpu_non_recoverable_error
-.L3:
-
-        ; Initialize the system description
-        move.l  d0, -(sp)
-        move.l  #BOOT_SERVICES_MEM_TOP, -(sp)
-        pea     SYS_DESC_BASE
-        jsr     _sys_desc_init
-        add.l   #12, sp
-
-        ; call the OnBoot(sys_desc_t*) routine
-        pea     SYS_DESC_BASE
-        jsr     _OnBoot
-
-        ; NOT REACHED
-        move.l  #RGB_YELLOW, -(sp)
-        jmp     _cpu_non_recoverable_error
-    einline
-
-
-;-------------------------------------------------------------------------------
-; Invoked if we encountered a non-recoverable CPU error. Eg the CPU type isn't
-; supported. Sets the screen color to yellow and halts the machine
-    align 2
-_cpu_non_recoverable_error:
-    inline
-    cargs   cnre_rgb_color.l
-
-        move.l  cnre_rgb_color(sp), d0
-        lea     CUSTOM_BASE, a0
-        move.w  #$7fff, DMACON(a0)
-        move.w  d0, COLOR00(a0)
-        jmp     _cpu_halt
-        ; NOT REACHED
-    einline
-
-
-;-------------------------------------------------------------------------------
 ; Invokes the cpu_exception(vcpu_t _Nonnull vp, excpt_0_frame_t* _Nonnull utp) function.
 ; See 68020UM, p6-27
 __cpu_exception:
@@ -238,24 +160,3 @@ __cpu_exception_return:
 _excpt_return:
     trap    #1
     ; NOT REACHED
-
-
-;-------------------------------------------------------------------------------
-; Uninitialized IRQ handler
-__irq_uninitialized:
-    addq.l  #1, _g_irq_stat_uninit
-    rte
-
-
-;-------------------------------------------------------------------------------
-; Spurious IRQ handler
-__irq_spurious:
-    addq.l  #1, _g_irq_stat_spurious
-    rte
-
-
-;-------------------------------------------------------------------------------
-; NMI handler
-__irq_level_7:
-    addq.l  #1, _g_irq_stat_nmi
-    rte
