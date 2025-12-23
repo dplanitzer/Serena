@@ -7,8 +7,6 @@
 //
 
 #include "boot_screen.h"
-#include <console/Console.h>
-#include <diskcache/DiskCache.h>
 #include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
 #include <kern/string.h>
@@ -16,7 +14,7 @@
 #include <hal/hw/m68k-amiga/chipset.h>
 
 
-void bs_open(bs_screen_t* _Nonnull bscr)
+void bt_open(bt_screen_t* _Nonnull bscr)
 {
     decl_try_err();
     GraphicsDriverRef gd = NULL;
@@ -38,7 +36,7 @@ void bs_open(bs_screen_t* _Nonnull bscr)
         //height = 512;
     }
 
-    memset(bscr, 0, sizeof(bs_screen_t));
+    memset(bscr, 0, sizeof(bt_screen_t));
 
     if ((err = DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &chan)) == EOK) {
         // Create the surface and screen
@@ -64,7 +62,7 @@ void bs_open(bs_screen_t* _Nonnull bscr)
 
         
         // Blit the boot logo
-        bs_drawicon(bscr, &g_icon_serena);
+        bt_drawicon(bscr, &g_icon_serena);
 
 
         // Show the screen on the monitor
@@ -78,7 +76,7 @@ void bs_open(bs_screen_t* _Nonnull bscr)
     }
 }
 
-void bs_drawicon(const bs_screen_t* _Restrict _Nonnull bscr, const bs_icon_t* _Restrict _Nonnull icp)
+void bt_drawicon(const bt_screen_t* _Restrict _Nonnull bscr, const bt_icon_t* _Restrict _Nonnull icp)
 {
     if (bscr->chan == NULL) {
         return;
@@ -98,7 +96,7 @@ void bs_drawicon(const bs_screen_t* _Restrict _Nonnull bscr, const bs_icon_t* _R
     }
 }
 
-void bs_close(const bs_screen_t* _Nonnull bscr)
+void bt_close(const bt_screen_t* _Nonnull bscr)
 {
     // Remove the screen and turn video off again
     if (bscr->chan) {

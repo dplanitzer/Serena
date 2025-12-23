@@ -32,18 +32,19 @@
 #include "boot_screen.h"
 
 extern char _text, _etext, _data, _edata, _bss, _ebss;
-static char* gInitialHeapBottom;
-static char* gInitialHeapTop;
-
-bs_screen_t gBootScreen;
-static ConsoleRef gConsole;
-
 
 extern errno_t kerneld_init(void);
 extern errno_t drivers_init(void);
-extern FileHierarchyRef _Nonnull create_root_file_hierarchy(bs_screen_t* _Nonnull bscr);
+extern FileHierarchyRef _Nonnull create_root_file_hierarchy(bt_screen_t* _Nonnull bscr);
 static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc);
 static void OnMain(void);
+
+
+static char* gInitialHeapBottom;
+static char* gInitialHeapTop;
+
+static bt_screen_t gBootScreen;
+static ConsoleRef gConsole;
 
 
 // Called from the boot services at system reset time. Only a very minimal
@@ -177,7 +178,7 @@ static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc)
 
 
     // Open the boot screen and show the boot logo
-    bs_open(&gBootScreen);
+    bt_open(&gBootScreen);
 
 
     // Create the root file hierarchy
@@ -217,7 +218,7 @@ errno_t SwitchToFullConsole(void)
 {
     decl_try_err();
 
-    bs_close(&gBootScreen);
+    bt_close(&gBootScreen);
 
     // Initialize the console
     try(Console_Create(&gConsole));

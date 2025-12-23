@@ -48,7 +48,7 @@ static uint16_t g_icon_serena_plane_0[] = {
     SERENA_PLANE0
 };
 
-const bs_icon_t g_icon_serena = {
+const bt_icon_t g_icon_serena = {
     g_icon_serena_plane_0,
     32, 24
 };
@@ -83,7 +83,7 @@ static uint16_t g_icon_floppy_plane_0[] = {
     FLOPPY_PLANE0
 };
 
-const bs_icon_t g_icon_floppy = {
+const bt_icon_t g_icon_floppy = {
     g_icon_floppy_plane_0,
     32, 24
 };

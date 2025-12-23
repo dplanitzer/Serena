@@ -9,9 +9,9 @@
 #include <filemanager/FileManager.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/kernfs/KernFS.h>
+#include <kpi/mount.h>
 #include <process/ProcessPriv.h>
 #include <process/ProcessManager.h>
-#include <sys/mount.h>
 #include <Catalog.h>
 
 
