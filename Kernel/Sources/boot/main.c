@@ -177,7 +177,7 @@ static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc)
 
 
     // Open the boot screen and show the boot logo
-    open_boot_screen(&gBootScreen);
+    bs_open(&gBootScreen);
 
 
     // Create the root file hierarchy
@@ -217,7 +217,7 @@ errno_t SwitchToFullConsole(void)
 {
     decl_try_err();
 
-    close_boot_screen(&gBootScreen);
+    bs_close(&gBootScreen);
 
     // Initialize the console
     try(Console_Create(&gConsole));

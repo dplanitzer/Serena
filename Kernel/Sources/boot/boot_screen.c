@@ -16,7 +16,7 @@
 #include <hal/hw/m68k-amiga/chipset.h>
 
 
-void open_boot_screen(boot_screen_t* _Nonnull bscr)
+void bs_open(boot_screen_t* _Nonnull bscr)
 {
     decl_try_err();
     GraphicsDriverRef gd = NULL;
@@ -64,7 +64,7 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
 
         
         // Blit the boot logo
-        blit_boot_logo(bscr, gSerenaImg_Plane0, gSerenaImg_Width, gSerenaImg_Height);
+        bs_copypixels(bscr, g_icon_serena_planes, g_icon_serena_width, g_icon_serena_height);
 
 
         // Show the screen on the monitor
@@ -78,7 +78,7 @@ void open_boot_screen(boot_screen_t* _Nonnull bscr)
     }
 }
 
-void blit_boot_logo(const boot_screen_t* _Nonnull bscr, const uint16_t* _Nonnull bitmap, size_t w, size_t h)
+void bs_copypixels(const boot_screen_t* _Nonnull bscr, const uint16_t* _Nonnull bitmap, size_t w, size_t h)
 {
     if (bscr->chan == NULL) {
         return;
@@ -96,7 +96,7 @@ void blit_boot_logo(const boot_screen_t* _Nonnull bscr, const uint16_t* _Nonnull
     }
 }
 
-void close_boot_screen(const boot_screen_t* _Nonnull bscr)
+void bs_close(const boot_screen_t* _Nonnull bscr)
 {
     // Remove the screen and turn video off again
     if (bscr->chan) {

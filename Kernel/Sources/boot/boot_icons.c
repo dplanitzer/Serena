@@ -1,5 +1,5 @@
 //
-//  boot_floppy_img.c
+//  boot_icons.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/9/25.
@@ -19,7 +19,7 @@
 #define _ 0
 #define o 1
 
-#define SERENA_BITS_PLANE0 \
+#define SERENA_PLANE0 \
 PACK_U32( _,_,_,_,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_ ), \
@@ -44,15 +44,15 @@ PACK_U32( _,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,_,_,_,_ ),
-const uint16_t gSerenaImg_Plane0[] = {
-    SERENA_BITS_PLANE0
+const uint16_t g_icon_serena_planes[] = {
+    SERENA_PLANE0
 };
 
-const int gSerenaImg_Width = 32;
-const int gSerenaImg_Height = 24;
+const int g_icon_serena_width = 32;
+const int g_icon_serena_height = 24;
 
 
-#define FLOPPY_BITS_PLANE0 \
+#define FLOPPY_PLANE0 \
 PACK_U32( _,_,_,_,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,_,_,_,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,_,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,o,_,_,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,_,_,_,_,o,_,_,_,_,_,_,_,o,o,_,_,o,_,_,_,_,o,_,_,_,_,_ ), \
@@ -77,9 +77,9 @@ PACK_U32( _,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,_,_,_,_ ),
-const uint16_t gFloppyImg_Plane0[] = {
-    FLOPPY_BITS_PLANE0
+const uint16_t g_icon_floppy_planes[] = {
+    FLOPPY_PLANE0
 };
 
-const int gFloppyImg_Width = 32;
-const int gFloppyImg_Height = 24;
+const int g_icon_floppy_width = 32;
+const int g_icon_floppy_height = 24;

@@ -101,7 +101,7 @@ static void wait_for_disk_inserted(boot_screen_t* _Nonnull bscr, const char* _No
             }
 
             if (!isWaitingForDisk) {
-                blit_boot_logo(bscr, gFloppyImg_Plane0, gFloppyImg_Width, gFloppyImg_Height);
+                bs_copypixels(bscr, g_icon_floppy_planes, g_icon_floppy_width, g_icon_floppy_height);
                 isWaitingForDisk = true;
             }
 
@@ -111,7 +111,7 @@ static void wait_for_disk_inserted(boot_screen_t* _Nonnull bscr, const char* _No
     IOChannel_Release(chan);
 
     if (isWaitingForDisk) {
-        blit_boot_logo(bscr, gSerenaImg_Plane0, gSerenaImg_Width, gSerenaImg_Height);
+        bs_copypixels(bscr, g_icon_serena_planes, g_icon_serena_width, g_icon_serena_height);
     }
 }
 
