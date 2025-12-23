@@ -35,13 +35,13 @@ extern char _text, _etext, _data, _edata, _bss, _ebss;
 static char* gInitialHeapBottom;
 static char* gInitialHeapTop;
 
-boot_screen_t gBootScreen;
+bs_screen_t gBootScreen;
 static ConsoleRef gConsole;
 
 
 extern errno_t kerneld_init(void);
 extern errno_t drivers_init(void);
-extern FileHierarchyRef _Nonnull create_root_file_hierarchy(boot_screen_t* _Nonnull bscr);
+extern FileHierarchyRef _Nonnull create_root_file_hierarchy(bs_screen_t* _Nonnull bscr);
 static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc);
 static void OnMain(void);
 

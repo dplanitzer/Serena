@@ -6,7 +6,7 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <kern/types.h>
+#include "boot_screen.h"
 
 #define PACK_U16(_15, _14, _13, _12, _11, _10, _9, _8, _7, _6, _5, _4, _3, _2, _1, _0) \
     (uint16_t)(((_15) << 15) | ((_14) << 14) | ((_13) << 13) | ((_12) << 12) | ((_11) << 11) |\
@@ -44,12 +44,14 @@ PACK_U32( _,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,_,_,_,_ ),
-const uint16_t g_icon_serena_planes[] = {
+static uint16_t g_icon_serena_plane_0[] = {
     SERENA_PLANE0
 };
 
-const int g_icon_serena_width = 32;
-const int g_icon_serena_height = 24;
+const bs_icon_t g_icon_serena = {
+    g_icon_serena_plane_0,
+    32, 24
+};
 
 
 #define FLOPPY_PLANE0 \
@@ -77,9 +79,11 @@ PACK_U32( _,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,o,_,_,_,_ ), \
 PACK_U32( _,_,_,_,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,_,_,_,_ ),
-const uint16_t g_icon_floppy_planes[] = {
+static uint16_t g_icon_floppy_plane_0[] = {
     FLOPPY_PLANE0
 };
 
-const int g_icon_floppy_width = 32;
-const int g_icon_floppy_height = 24;
+const bs_icon_t g_icon_floppy = {
+    g_icon_floppy_plane_0,
+    32, 24
+};

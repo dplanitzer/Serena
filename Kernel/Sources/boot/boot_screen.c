@@ -16,7 +16,7 @@
 #include <hal/hw/m68k-amiga/chipset.h>
 
 
-void bs_open(boot_screen_t* _Nonnull bscr)
+void bs_open(bs_screen_t* _Nonnull bscr)
 {
     decl_try_err();
     GraphicsDriverRef gd = NULL;
@@ -38,7 +38,7 @@ void bs_open(boot_screen_t* _Nonnull bscr)
         //height = 512;
     }
 
-    memset(bscr, 0, sizeof(boot_screen_t));
+    memset(bscr, 0, sizeof(bs_screen_t));
 
     if ((err = DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &chan)) == EOK) {
         // Create the surface and screen
@@ -64,7 +64,7 @@ void bs_open(boot_screen_t* _Nonnull bscr)
 
         
         // Blit the boot logo
-        bs_copypixels(bscr, g_icon_serena_planes, g_icon_serena_width, g_icon_serena_height);
+        bs_drawicon(bscr, &g_icon_serena);
 
 
         // Show the screen on the monitor
@@ -78,15 +78,17 @@ void bs_open(boot_screen_t* _Nonnull bscr)
     }
 }
 
-void bs_copypixels(const boot_screen_t* _Nonnull bscr, const uint16_t* _Nonnull bitmap, size_t w, size_t h)
+void bs_drawicon(const bs_screen_t* _Restrict _Nonnull bscr, const bs_icon_t* _Restrict _Nonnull icp)
 {
     if (bscr->chan == NULL) {
         return;
     }
 
+    const size_t w = icp->width;
+    const size_t h = icp->height;
     uint8_t* dp = bscr->mp.plane[0];
     const size_t dbpr = bscr->mp.bytesPerRow;
-    const uint8_t* sp = (const uint8_t*)bitmap;
+    const uint8_t* sp = (const uint8_t*)icp->pixels;
     const size_t sbpr = w >> 3;
     const size_t xb = ((bscr->width - w) >> 3) >> 1;
     const size_t yb = (bscr->height - h) >> 1;
@@ -96,7 +98,7 @@ void bs_copypixels(const boot_screen_t* _Nonnull bscr, const uint16_t* _Nonnull 
     }
 }
 
-void bs_close(const boot_screen_t* _Nonnull bscr)
+void bs_close(const bs_screen_t* _Nonnull bscr)
 {
     // Remove the screen and turn video off again
     if (bscr->chan) {

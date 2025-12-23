@@ -81,7 +81,7 @@ static errno_t get_current_disk_id(const char* _Nonnull driverPath, uint32_t* _N
     return err;
 }
 
-static void wait_for_disk_inserted(boot_screen_t* _Nonnull bscr, const char* _Nonnull driverPath, uint32_t* _Nonnull diskId)
+static void wait_for_disk_inserted(bs_screen_t* _Nonnull bscr, const char* _Nonnull driverPath, uint32_t* _Nonnull diskId)
 {
     decl_try_err();
     IOChannelRef chan;
@@ -101,7 +101,7 @@ static void wait_for_disk_inserted(boot_screen_t* _Nonnull bscr, const char* _No
             }
 
             if (!isWaitingForDisk) {
-                bs_copypixels(bscr, g_icon_floppy_planes, g_icon_floppy_width, g_icon_floppy_height);
+                bs_drawicon(bscr, &g_icon_floppy);
                 isWaitingForDisk = true;
             }
 
@@ -111,7 +111,7 @@ static void wait_for_disk_inserted(boot_screen_t* _Nonnull bscr, const char* _No
     IOChannel_Release(chan);
 
     if (isWaitingForDisk) {
-        bs_copypixels(bscr, g_icon_serena_planes, g_icon_serena_width, g_icon_serena_height);
+        bs_drawicon(bscr, &g_icon_serena);
     }
 }
 
@@ -147,7 +147,7 @@ catch:
 
 // Tries to mount the root filesystem stored on the mass storage device
 // represented by 'pDriver'.
-static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry, boot_screen_t* _Nonnull bscr, FilesystemRef _Nullable * _Nonnull pOutFS)
+static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry, bs_screen_t* _Nonnull bscr, FilesystemRef _Nullable * _Nonnull pOutFS)
 {
     decl_try_err();
     uint32_t diskId = 0;
@@ -178,7 +178,7 @@ static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry,
 
 // Locates the boot device and creates the boot filesystem. Halts the machine if
 // a boot device/filesystem can not be found.
-FilesystemRef _Nullable create_boot_filesystem(boot_screen_t* _Nonnull bscr)
+FilesystemRef _Nullable create_boot_filesystem(bs_screen_t* _Nonnull bscr)
 {
     decl_try_err();
     int state = 0;
@@ -224,7 +224,7 @@ FilesystemRef _Nullable create_boot_filesystem(boot_screen_t* _Nonnull bscr)
 
 // Creates the root file hierarchy based on the detected boot filesystem. Halts
 // the machine if anything goes wrong.
-FileHierarchyRef _Nonnull create_root_file_hierarchy(boot_screen_t* _Nonnull bscr)
+FileHierarchyRef _Nonnull create_root_file_hierarchy(bs_screen_t* _Nonnull bscr)
 {
     decl_try_err();
     FilesystemRef fs;
