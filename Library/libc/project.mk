@@ -28,10 +28,9 @@ SYS_OBJS_DIR := $(LIBC_OBJS_DIR)/sys
 TIME_SOURCES_DIR := $(LIBC_SOURCES_DIR)/time
 TIME_OBJS_DIR := $(LIBC_OBJS_DIR)/time
 
-LIBC_ASTART_C_SOURCE := $(LIBC_SOURCES_DIR)/_astart.c
 LIBC_CSTART_C_SOURCE := $(LIBC_SOURCES_DIR)/_cstart.c
 
-LIBC_C_SOURCES := $(filter-out $(LIBC_SOURCES_DIR)/_astart.c $(LIBC_SOURCES_DIR)/_cstart.c, $(wildcard $(LIBC_SOURCES_DIR)/*.c))
+LIBC_C_SOURCES := $(filter-out $(LIBC_SOURCES_DIR)/_cstart.c, $(wildcard $(LIBC_SOURCES_DIR)/*.c))
 LIBC_ASM_SOURCES := $(wildcard $(LIBC_SOURCES_DIR)/*.s)
 
 LIBC_OBJS := $(patsubst $(LIBC_SOURCES_DIR)/%.c, $(LIBC_OBJS_DIR)/%.o, $(LIBC_C_SOURCES))
