@@ -14,6 +14,7 @@
 #include <string.h>
 #include <clap.h>
 #include <unistd.h>
+#include <ext/limits.h>
 #include <sys/stat.h>
 
 
@@ -87,7 +88,7 @@ int read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull 
         close(fd);
         return EOF;
     }
-    if (st.st_size > (off_t)__SSIZE_MAX) {
+    if (st.st_size > (off_t)SSIZE_MAX) {
         errno = E2BIG;
         close(fd);
         return EOF;

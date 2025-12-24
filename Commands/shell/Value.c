@@ -10,8 +10,8 @@
 #include "Utilities.h"
 #include <assert.h>
 #include <string.h>
-#include <_dmdef.h>
 #include <_math.h>
+#include <ext/limits.h>
 
 #define TUPLE_2(__1, __2) ((__2) << 8) | (__1)
 #define TUPLE_3(__1, __2, __3) ((__3) << 16) | ((__2) << 8) | (__1)
@@ -455,7 +455,7 @@ void ValueArray_ToString(Value _Nonnull values[], size_t nValues)
 
     nchars = 0;
     for (size_t i = 0; i < nValues; i++) {
-        nchars += Value_GetString(&values[i], __SIZE_MAX, &newString->characters[nchars]);
+        nchars += Value_GetString(&values[i], SIZE_MAX, &newString->characters[nchars]);
     }
     newString->characters[nchars] = '\0';
     newString->length = nchars;

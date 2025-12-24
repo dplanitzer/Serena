@@ -8,6 +8,7 @@
 
 #include "Stream.h"
 #include <stdlib.h>
+#include <ext/limits.h>
 
 
 int __setvbuf(FILE * _Nonnull _Restrict s, char * _Nullable _Restrict buffer, int mode, size_t size)
@@ -23,7 +24,7 @@ int __setvbuf(FILE * _Nonnull _Restrict s, char * _Nullable _Restrict buffer, in
             return EOF;
     }
 
-    if (size > __SSIZE_MAX || (mode > _IONBF && size < 1)) {
+    if (size > SSIZE_MAX || (mode > _IONBF && size < 1)) {
         errno = EINVAL;
         return EOF;
     }

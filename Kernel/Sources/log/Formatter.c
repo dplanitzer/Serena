@@ -242,7 +242,7 @@ static void Formatter_FormatSignedInteger(struct Formatter* _Nonnull self, const
         case LENGTH_MODIFIER_l:     v32 = (int32_t)va_arg(*ap, long); nbits = INT32_WIDTH;               break;
 #endif
         case LENGTH_MODIFIER_ll:    v64 = (int64_t)va_arg(*ap, long long); nbits = INT64_WIDTH;          break;
-#if __SIZE_WIDTH == 64
+#if SIZE_WIDTH == 64
         case LENGTH_MODIFIER_z:     v64 = (int64_t)va_arg(*ap, ssize_t); nbits = SSIZE_WIDTH; break;
 #else
         case LENGTH_MODIFIER_z:     v32 = (int32_t)va_arg(*ap, ssize_t); nbits = SSIZE_WIDTH; break;
@@ -269,13 +269,13 @@ static void Formatter_FormatUnsignedInteger(struct Formatter* _Nonnull self, int
         case LENGTH_MODIFIER_hh:    v32 = (uint32_t)(unsigned char)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;     break;
         case LENGTH_MODIFIER_h:     v32 = (uint32_t)(unsigned short)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;    break;
         case LENGTH_MODIFIER_none:  v32 = (uint32_t)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;                    break;
-#if __ULONG_WIDTH == 64
+#if ULONG_WIDTH == 64
         case LENGTH_MODIFIER_l:     v64 = (uint64_t)va_arg(*ap, unsigned long); nbits = UINT64_WIDTH;                   break;
 #else
         case LENGTH_MODIFIER_l:     v32 = (uint32_t)va_arg(*ap, unsigned long); nbits = UINT32_WIDTH;                   break;
 #endif
         case LENGTH_MODIFIER_ll:    v64 = (uint64_t)va_arg(*ap, unsigned long long); nbits = UINT64_WIDTH;              break;
-#if __SIZE_WIDTH == 64
+#if SIZE_WIDTH == 64
         case LENGTH_MODIFIER_z:     v64 = (uint64_t)va_arg(*ap, size_t); nbits = SIZE_WIDTH; break;
 #else
         case LENGTH_MODIFIER_z:     v32 = (uint32_t)va_arg(*ap, size_t); nbits = SIZE_WIDTH; break;

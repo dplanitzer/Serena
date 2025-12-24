@@ -9,6 +9,7 @@
 #include "Stream.h"
 #include <_math.h>
 #include <string.h>
+#include <ext/limits.h>
 
 
 // Expects:
@@ -153,7 +154,7 @@ size_t fwrite(const void * _Nonnull _Restrict buffer, size_t size, size_t count,
     ssize_t r;
 
     while (nBytesToWrite > 0) {
-        r = __fwrite(s, src, (ssize_t)__min(nBytesToWrite, (uint64_t)__SSIZE_MAX));
+        r = __fwrite(s, src, (ssize_t)__min(nBytesToWrite, (uint64_t)SSIZE_MAX));
         if (r <= 0) {
             break;
         }

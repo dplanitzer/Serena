@@ -306,15 +306,15 @@ static void _format_int(FormatterRef _Nonnull self, const ConversionSpec* _Nonnu
 #else
         case LENGTH_MODIFIER_j:     v32 = (int32_t)va_arg(*ap, intmax_t); nbits = INTMAX_WIDTH; break;
 #endif
-#if __SIZE_WIDTH == 64
-        case LENGTH_MODIFIER_z:     v64 = (int64_t)va_arg(*ap, ssize_t); nbits = __SSIZE_WIDTH; break;
+#if SSIZE_WIDTH == 64
+        case LENGTH_MODIFIER_z:     v64 = (int64_t)va_arg(*ap, ssize_t); nbits = SSIZE_WIDTH; break;
 #else
-        case LENGTH_MODIFIER_z:     v32 = (int32_t)va_arg(*ap, ssize_t); nbits = __SSIZE_WIDTH; break;
+        case LENGTH_MODIFIER_z:     v32 = (int32_t)va_arg(*ap, ssize_t); nbits = SSIZE_WIDTH; break;
 #endif
-#if __PTRDIFF_WIDTH == 64
-        case LENGTH_MODIFIER_t:     v64 = (int64_t)va_arg(*ap, ptrdiff_t); nbits = __PTRDIFF_WIDTH; break;
+#if PTRDIFF_WIDTH == 64
+        case LENGTH_MODIFIER_t:     v64 = (int64_t)va_arg(*ap, ptrdiff_t); nbits = PTRDIFF_WIDTH; break;
 #else
-        case LENGTH_MODIFIER_t:     v32 = (int32_t)va_arg(*ap, ptrdiff_t); nbits = __PTRDIFF_WIDTH; break;
+        case LENGTH_MODIFIER_t:     v32 = (int32_t)va_arg(*ap, ptrdiff_t); nbits = PTRDIFF_WIDTH; break;
 #endif
     }
 
@@ -338,7 +338,7 @@ static void _format_uint(FormatterRef _Nonnull self, int radix, bool isUppercase
         case LENGTH_MODIFIER_hh:    v32 = (uint32_t)(unsigned char)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;     break;
         case LENGTH_MODIFIER_h:     v32 = (uint32_t)(unsigned short)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;    break;
         case LENGTH_MODIFIER_none:  v32 = (uint32_t)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;                    break;
-#if __ULONG_WIDTH == 64
+#if ULONG_WIDTH == 64
         case LENGTH_MODIFIER_l:     v64 = (uint64_t)va_arg(*ap, unsigned long); nbits = UINT64_WIDTH;                   break;
 #else
         case LENGTH_MODIFIER_l:     v32 = (uint32_t)va_arg(*ap, unsigned long); nbits = UINT32_WIDTH;                   break;
@@ -350,15 +350,15 @@ static void _format_uint(FormatterRef _Nonnull self, int radix, bool isUppercase
 #else
         case LENGTH_MODIFIER_j:     v32 = (uint32_t)va_arg(*ap, uintmax_t); nbits = UINTMAX_WIDTH;  break;
 #endif
-#if __SIZE_WIDTH == 64
-        case LENGTH_MODIFIER_z:     v64 = (uint64_t)va_arg(*ap, size_t); nbits = __SIZE_WIDTH;  break;
+#if SIZE_WIDTH == 64
+        case LENGTH_MODIFIER_z:     v64 = (uint64_t)va_arg(*ap, size_t); nbits = SIZE_WIDTH;  break;
 #else
-        case LENGTH_MODIFIER_z:     v32 = (uint32_t)va_arg(*ap, size_t); nbits = __SIZE_WIDTH;  break;
+        case LENGTH_MODIFIER_z:     v32 = (uint32_t)va_arg(*ap, size_t); nbits = SIZE_WIDTH;  break;
 #endif
-#if __PTRDIFF_WIDTH == 64
-        case LENGTH_MODIFIER_t:     v64 = (uint64_t)va_arg(*ap, ptrdiff_t); nbits = __PTRDIFF_WIDTH;    break;
+#if PTRDIFF_WIDTH == 64
+        case LENGTH_MODIFIER_t:     v64 = (uint64_t)va_arg(*ap, ptrdiff_t); nbits = PTRDIFF_WIDTH;    break;
 #else
-        case LENGTH_MODIFIER_t:     v32 = (uint32_t)va_arg(*ap, ptrdiff_t); nbits = __PTRDIFF_WIDTH;    break;
+        case LENGTH_MODIFIER_t:     v32 = (uint32_t)va_arg(*ap, ptrdiff_t); nbits = PTRDIFF_WIDTH;    break;
 #endif
     }
 
@@ -401,7 +401,7 @@ static void _format_out_nchars(FormatterRef _Nonnull self, const ConversionSpec*
         case LENGTH_MODIFIER_l:     *((long*)p) = __min(n, LONG_MAX);           break;
         case LENGTH_MODIFIER_ll:    *((long long*)p) = __min(n, LLONG_MAX);     break;
         case LENGTH_MODIFIER_j:     *((intmax_t*)p) = __min(n, INTMAX_MAX);     break;
-        case LENGTH_MODIFIER_z:     *((ssize_t*)p) = __min(n, __SSIZE_MAX);     break;
+        case LENGTH_MODIFIER_z:     *((ssize_t*)p) = __min(n, SSIZE_MAX);     break;
         case LENGTH_MODIFIER_t:     *((ptrdiff_t*)p) = __min(n, PTRDIFF_MAX);   break;
         case LENGTH_MODIFIER_L:     break;
     }

@@ -9,6 +9,7 @@
 #include "Stream.h"
 #include <_math.h>
 #include <string.h>
+#include <ext/limits.h>
 
 
 // Expects:
@@ -103,7 +104,7 @@ size_t fread(void * _Nonnull _Restrict buffer, size_t size, size_t count, FILE *
     ssize_t r;
 
     while (nBytesToRead > 0) {
-        r = __fread(s, dst, (ssize_t)__min(nBytesToRead, (uint64_t)__SSIZE_MAX));
+        r = __fread(s, dst, (ssize_t)__min(nBytesToRead, (uint64_t)SSIZE_MAX));
         if (r <= 0) {
             break;
         }
