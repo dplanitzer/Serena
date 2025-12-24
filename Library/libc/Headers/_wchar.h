@@ -1,6 +1,6 @@
 //
 //  _wchar.h
-//  libc
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 12/7/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.

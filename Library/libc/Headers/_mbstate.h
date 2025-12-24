@@ -9,6 +9,10 @@
 #ifndef _SYS_MBSTATE_H
 #define _SYS_MBSTATE_H 1
 
+#if ___STDC_HOSTED__ != 1
+#error "not supported in freestanding mode"
+#endif
+
 #include <_cmndef.h>
 
 __CPP_BEGIN

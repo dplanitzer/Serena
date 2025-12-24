@@ -9,6 +9,10 @@
 #ifndef _INTTYPES_H
 #define _INTTYPES_H 1
 
+#if ___STDC_HOSTED__ != 1
+#error "not supported in freestanding mode"
+#endif
+
 #include <_cmndef.h>
 #include <stdint.h>
 

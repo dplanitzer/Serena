@@ -1,6 +1,6 @@
 //
 //  _cmndef.h
-//  libc
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 9/4/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.

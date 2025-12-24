@@ -9,6 +9,10 @@
 #ifndef _DIRENT_H
 #define _DIRENT_H 1
 
+#if ___STDC_HOSTED__ != 1
+#error "not supported in freestanding mode"
+#endif
+
 #include <_cmndef.h>
 #include <kpi/dirent.h>
 #include <sys/types.h>

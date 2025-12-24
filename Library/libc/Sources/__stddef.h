@@ -1,6 +1,6 @@
 //
 //  __stddef.h
-//  libc
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
@@ -10,15 +10,12 @@
 #define ___STDDEF_H 1
 
 #include <_math.h>
-#include <errno.h>
-#include <stdalign.h>
 #include <stddef.h>
-#include <assert.h>
-#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdnoreturn.h>
+#if ___STDC_HOSTED__ == 1
 #include <sys/proc.h>
+#endif
 
 #define CPU_PAGE_SIZE   4096
 
@@ -39,6 +36,7 @@ typedef uint64_t uword_t;
 #endif
 
 
+#if ___STDC_HOSTED__ == 1
 extern pargs_t* __gProcessArguments;
 
 extern int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder);
@@ -89,5 +87,6 @@ extern char* _Nonnull __u32toa(uint32_t val, int radix, bool isUppercase, i32a_t
 extern char* _Nonnull __u64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Nonnull out);
 
 extern int __strtoi64(const char * _Restrict _Nonnull str, char ** _Restrict str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Restrict _Nonnull result);
+#endif
 
 #endif /* ___STDDEF_H */

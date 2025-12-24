@@ -9,6 +9,10 @@
 #ifndef _UNISTD_H
 #define _UNISTD_H 1
 
+#if ___STDC_HOSTED__ != 1
+#error "not supported in freestanding mode"
+#endif
+
 #include <inttypes.h>
 #include <stdnoreturn.h>
 #include <kpi/_access.h>

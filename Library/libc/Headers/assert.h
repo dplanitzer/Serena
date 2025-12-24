@@ -6,6 +6,10 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#if ___STDC_HOSTED__ != 1
+#error "not supported in freestanding mode"
+#endif
+
 #include <_cmndef.h>
 
 __CPP_BEGIN

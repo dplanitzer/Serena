@@ -1,6 +1,6 @@
 //
 //  _off.h
-//  libc
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 2/27/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.

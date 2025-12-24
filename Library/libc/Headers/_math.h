@@ -1,6 +1,6 @@
 //
 //  _math.h
-//  libc
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 9/6/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.

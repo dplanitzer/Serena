@@ -9,6 +9,10 @@
 #ifndef _UTIME_H
 #define _UTIME_H 1
 
+#if ___STDC_HOSTED__ != 1
+#error "not supported in freestanding mode"
+#endif
+
 #include <_cmndef.h>
 #include <sys/types.h>
 

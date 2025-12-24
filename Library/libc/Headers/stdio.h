@@ -9,6 +9,10 @@
 #ifndef _STDIO_H
 #define _STDIO_H 1
 
+#if ___STDC_HOSTED__ != 1
+#error "not supported in freestanding mode"
+#endif
+
 #include <_cmndef.h>
 #include <_mbstate.h>
 #include <_null.h>

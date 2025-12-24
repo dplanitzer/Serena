@@ -9,6 +9,10 @@
 #ifndef _ERRNO_H
 #define _ERRNO_H 1
 
+#if ___STDC_HOSTED__ != 1
+#error "not supported in freestanding mode"
+#endif
+
 #include <_cmndef.h>
 #include <kpi/_errno.h>
 

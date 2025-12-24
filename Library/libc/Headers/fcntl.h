@@ -9,6 +9,10 @@
 #ifndef _FCNTL_H
 #define _FCNTL_H 1
 
+#if ___STDC_HOSTED__ != 1
+#error "not supported in freestanding mode"
+#endif
+
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>

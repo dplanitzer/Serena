@@ -9,6 +9,10 @@
 #ifndef _TIME_H
 #define _TIME_H 1
 
+#if ___STDC_HOSTED__ != 1
+#error "not supported in freestanding mode"
+#endif
+
 #include <_cmndef.h>
 #include <_null.h>
 #include <_size.h>
