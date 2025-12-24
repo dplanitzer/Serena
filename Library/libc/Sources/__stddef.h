@@ -22,6 +22,25 @@
 
 #define CPU_PAGE_SIZE   4096
 
+#if defined(__ILP32__)
+typedef uint32_t uword_t;
+#define WORD_SIZE       4
+#define WORD_SIZMASK    3
+#define WORD_SHIFT      2
+#define WORD_FROM_BYTE(b) ((b) << 24) | ((b) << 16) | ((b) << 8) | (b)
+#elif defined(__LLP64__) || defined(__LP64__)
+typedef uint64_t uword_t;
+#define WORD_SIZE       8
+#define WORD_SIZMASK    7
+#define WORD_SHIFT      3
+#define WORD_FROM_BYTE(b) ((b) << 56) | ((b) << 48) | ((b) << 40) | ((b) << 32) | ((b) << 24) | ((b) << 16) | ((b) << 8) | (b)
+#else
+#error "unknown data model"
+#endif
+
+
+extern pargs_t* __gProcessArguments;
+
 extern int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder);
 
 extern void __stdlibc_init(pargs_t* _Nonnull argsp);
