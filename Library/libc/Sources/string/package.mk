@@ -39,17 +39,23 @@ $(STRING_OBJS_DIR)/%.o : $(STRING_SOURCES_DIR)/%.c
 # Build variables
 #
 
-STRING_SC_SOURCES := $(STRING_SOURCES_DIR)/memcpy.c \
+STRING_SC_SOURCES := $(STRING_SOURCES_DIR)/ctype.c \
+					 $(STRING_SOURCES_DIR)/memchr.c \
+					 $(STRING_SOURCES_DIR)/memcmp.c \
+					 $(STRING_SOURCES_DIR)/memcpy.c \
 					 $(STRING_SOURCES_DIR)/memmove.c \
 					 $(STRING_SOURCES_DIR)/memset.c \
 					 $(STRING_SOURCES_DIR)/strcat.c \
+					 $(STRING_SOURCES_DIR)/strchr.c \
 					 $(STRING_SOURCES_DIR)/strncat.c \
 					 $(STRING_SOURCES_DIR)/strcmp.c \
 					 $(STRING_SOURCES_DIR)/strncmp.c \
 					 $(STRING_SOURCES_DIR)/strcpy.c \
 					 $(STRING_SOURCES_DIR)/strncpy.c \
 					 $(STRING_SOURCES_DIR)/strlen.c \
-					 $(STRING_SOURCES_DIR)/strnlen_s.c
+					 $(STRING_SOURCES_DIR)/strnlen_s.c \
+					 $(STRING_SOURCES_DIR)/strrchr.c \
+					 $(STRING_SOURCES_DIR)/strrchr.c
 
 STRING_SC_OBJS := $(patsubst $(STRING_SOURCES_DIR)/%.c,$(STRING_SC_OBJS_DIR)/%.o,$(STRING_SC_SOURCES))
 STRING_SC_DEPS := $(STRING_SC_OBJS:.o=.d)
