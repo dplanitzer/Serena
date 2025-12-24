@@ -9,7 +9,7 @@
 #ifndef _DELAY_H
 #define _DELAY_H 1
 
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <kern/types.h>
 #include <kpi/signal.h>
 

@@ -9,7 +9,7 @@
 #ifndef PathComponent_h
 #define PathComponent_h
 
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <kern/types.h>
 
 

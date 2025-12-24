@@ -8,9 +8,9 @@
 
 #include "Formatter.h"
 #include "Stream.h"
-#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ext/limits.h>
 
 
 static void _write_char(FormatterRef _Nonnull self, char ch)

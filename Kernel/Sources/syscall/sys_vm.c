@@ -7,6 +7,7 @@
 //
 
 #include "syscalldecls.h"
+#include <ext/limits.h>
 #include <vm/AddressSpace.h>
 
 

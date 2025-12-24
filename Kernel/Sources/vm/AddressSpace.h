@@ -9,7 +9,7 @@
 #ifndef AddressSpace_h
 #define AddressSpace_h
 
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <klib/List.h>
 #include <kobj/AnyRefs.h>
 #include <sched/mtx.h>

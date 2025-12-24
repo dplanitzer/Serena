@@ -10,7 +10,7 @@
 #define HIDManager_h
 
 #include <kobj/Object.h>
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <kpi/fb.h>
 #include <kpi/hid.h>
 #include <kpi/hidevent.h>

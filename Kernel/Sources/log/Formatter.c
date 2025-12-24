@@ -7,7 +7,7 @@
 //
 
 #include "Formatter.h"
-#include <kern/limits.h>
+#include <ext/limits.h>
 
 void Formatter_Init(struct Formatter* _Nonnull self, Formatter_Sink _Nonnull sink, void * _Nullable ctx)
 {

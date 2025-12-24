@@ -12,7 +12,7 @@
 #include <_cmndef.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <kern/limits.h>
+#include <ext/limits.h>
 #include <../../../Kernel/Headers/kpi/_access.h>
 #include <../../../Kernel/Headers/kpi/_seek.h>
 
@@ -67,10 +67,10 @@ extern bool ull_ispow2(unsigned long long n);
 #define u_ispow2(__n)\
 ul_ispow2((unsigned long)__n)
 
-#if __SIZE_WIDTH == 32
+#if SIZE_WIDTH == 32
 #define siz_ispow2(__n) \
 ul_ispow2((unsigned long)__n)
-#elif __SIZE_WIDTH == 64
+#elif SIZE_WIDTH == 64
 #define siz_ispow2(__n) \
 ull_ispow2((unsigned long long)__n)
 #else
@@ -84,10 +84,10 @@ extern unsigned long long ull_pow2_ceil(unsigned long long n);
 #define u_pow2_ceil(__n)\
 (unsigned int)ul_pow2_ceil((unsigned long)__n)
 
-#if __SIZE_WIDTH == 32
+#if SIZE_WIDTH == 32
 #define siz_pow2_ceil(__n) \
 (size_t)ul_pow2_ceil((unsigned long)__n)
-#elif __SIZE_WIDTH == 64
+#elif SIZE_WIDTH == 64
 #define siz_pow2_ceil(__n) \
 (size_t)ull_pow2_ceil((unsigned long long)__n)
 #else
@@ -101,10 +101,10 @@ extern unsigned int ull_log2(unsigned long long n);
 #define u_log2(__n)\
 ul_log2((unsigned long)__n)
 
-#if __SIZE_WIDTH == 32
+#if SIZE_WIDTH == 32
 #define siz_log2(__n) \
 ul_log2((unsigned long)__n)
-#elif __SIZE_WIDTH == 64
+#elif SIZE_WIDTH == 64
 #define siz_log2(__n) \
 ull_log2((unsigned long long)__n)
 #else

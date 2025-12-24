@@ -1,13 +1,13 @@
 //
-//  kern/errno.h
+//  kern/try.h
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 5/13/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KERN_ERRNO_H
-#define _KERN_ERRNO_H 1
+#ifndef _KERN_TRY_H
+#define _KERN_TRY_H 1
 
 #include <errno.h>
 #include <kern/assert.h>
@@ -39,4 +39,4 @@ typedef int _Errno_t;
 #define try_bang(f) _Try_bang(f)
 #endif  /* __cplusplus */
 
-#endif /* _KERN_ERRNO_H */
+#endif /* _KERN_TRY_H */

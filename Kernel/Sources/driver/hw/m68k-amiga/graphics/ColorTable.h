@@ -10,7 +10,7 @@
 #define ColorTable_h
 
 #include "GObject.h"
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <kpi/fb.h>
 
 

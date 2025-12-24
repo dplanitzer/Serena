@@ -9,13 +9,13 @@
 #include "RamContainer.h"
 #include "diskimage.h"
 #include <errno.h>
+#include <ext/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <filesystem/SerenaDiskImage.h>
 #include <filesystem/FSUtilities.h>
 #include <kern/endian.h>
-#include <kern/limits.h>
 #include <kpi/disk.h>
 
 

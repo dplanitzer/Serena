@@ -9,7 +9,7 @@
 #ifndef Allocator_h
 #define Allocator_h
 
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <kern/types.h>
 
 struct mem_desc;

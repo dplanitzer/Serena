@@ -9,10 +9,10 @@
 #ifndef _WAITQUEUE_H
 #define _WAITQUEUE_H 1
 
-#include <kern/errno.h>
+#include <limits.h>
+#include <kern/try.h>
 #include <kern/timespec.h>
 #include <kern/types.h>
-#include <kern/limits.h>
 #include <klib/List.h>
 #include <kpi/signal.h>
 #include <kpi/waitqueue.h>

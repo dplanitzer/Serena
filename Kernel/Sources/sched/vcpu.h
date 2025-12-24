@@ -12,7 +12,7 @@
 #include <hal/clock.h>
 #include <hal/cpu.h>
 #include <hal/sys_desc.h>
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <kern/types.h>
 #include <klib/Atomic.h>
 #include <klib/List.h>

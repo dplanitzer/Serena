@@ -9,7 +9,7 @@
 #ifndef _STACK_H
 #define _STACK_H 1
 
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <kern/types.h>
 
 

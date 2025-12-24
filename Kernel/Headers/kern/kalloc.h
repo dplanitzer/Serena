@@ -9,7 +9,7 @@
 #ifndef _KERN_KALLOC_H
 #define _KERN_KALLOC_H 1
 
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <kern/types.h>
 
 struct mem_desc;

@@ -1,13 +1,13 @@
 //
-//  kern/errno.h
+//  kern/try.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 2/2/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KERN_ERRNO_H
-#define _KERN_ERRNO_H 1
+#ifndef _KERN_TRY_H
+#define _KERN_TRY_H 1
 
 #include <kern/assert.h>
 #include <_try.h>
@@ -25,4 +25,4 @@
 #define try_bang(f) _Try_bang(f)
 #endif  /* __cplusplus */
 
-#endif /* _KERN_ERRNO_H */
+#endif /* _KERN_TRY_H */

@@ -9,7 +9,7 @@
 #ifndef _COPPER_H
 #define _COPPER_H
 
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <kern/types.h>
 #include <sched/vcpu.h>

@@ -9,10 +9,10 @@
 #include "SfsDirectory.h"
 #include "SerenaFSPriv.h"
 #include <string.h>
+#include <ext/limits.h>
 #include <filesystem/InodeChannel.h>
 #include <filesystem/FSUtilities.h>
 #include <kern/endian.h>
-#include <kern/limits.h>
 
 
 // Reads the next set of directory entries. The first entry read is the one

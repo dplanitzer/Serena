@@ -12,7 +12,7 @@
 #include <Catalog.h>
 #include <driver/Driver.h>
 #include <filemanager/ResolvedPath.h>
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <kern/types.h>
 #include <kobj/AnyRefs.h>
 

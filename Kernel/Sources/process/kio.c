@@ -7,6 +7,7 @@
 //
 
 #include "kio.h"
+#include <ext/limits.h>
 #include <filesystem/IOChannel.h>
 #include <process/IOChannelTable.h>
 #include <process/ProcessPriv.h>

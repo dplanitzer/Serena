@@ -10,10 +10,10 @@
 #define _KDISPATCH_PRIV_H 1
 
 #include "kdispatch.h"
+#include <limits.h>
 #include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
-#include <kern/limits.h>
 #include <kern/signal.h>
 #include <kern/timespec.h>
 #include <kern/types.h>

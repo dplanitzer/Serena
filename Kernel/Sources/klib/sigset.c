@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include <limits.h>
 #include <kern/signal.h>
-#include <kern/limits.h>
 
 
 const sigset_t SIGSET_IGNORE_ALL = 0;

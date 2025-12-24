@@ -9,7 +9,7 @@
 #ifndef RingBuffer_h
 #define RingBuffer_h
 
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <kern/types.h>
 
 

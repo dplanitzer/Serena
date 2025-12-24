@@ -9,7 +9,7 @@
 #include "Stream.h"
 #include <stdlib.h>
 #include <string.h>
-#include <sys/limits.h>
+#include <ext/limits.h>
 
 
 // We implement POSIX zero-fill gap semantic in the sense that we maintain at

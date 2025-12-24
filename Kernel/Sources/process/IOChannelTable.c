@@ -7,9 +7,9 @@
 //
 
 #include "IOChannelTable.h"
+#include <limits.h>
 #include <string.h>
 #include <kern/kalloc.h>
-#include <kern/limits.h>
 
 
 #define INITIAL_SIZE    32

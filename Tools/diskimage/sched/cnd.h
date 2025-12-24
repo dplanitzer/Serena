@@ -10,7 +10,7 @@
 #define di_ConditionVariable_h
 
 #include <sched/mtx.h>
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <time.h>
 
 

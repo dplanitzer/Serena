@@ -9,7 +9,7 @@
 #ifndef Object_h
 #define Object_h
 
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <kobj/Any.h>
 #include <hal/rc.h>
 

@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 #ifdef __KERNEL__
-#include <kern/errno.h>
+#include <kern/try.h>
 #include <kern/types.h>
 #include <kpi/stat.h>
 #else

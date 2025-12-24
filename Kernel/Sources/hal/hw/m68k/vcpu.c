@@ -6,7 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <kern/limits.h>
+#include <limits.h>
 #include <string.h>
 #include <sched/vcpu.h>
 
