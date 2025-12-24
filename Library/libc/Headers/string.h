@@ -1,6 +1,6 @@
 //
 //  string.h
-//  libc
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
@@ -31,6 +31,8 @@ extern char * _Nullable strrchr(const char * _Nonnull str, int ch);
 
 extern char * _Nullable strstr(const char * _Nonnull str, const char * _Nonnull sub_str);
 
+#if ___STDC_HOSTED__ == 1
+
 extern size_t strspn(const char * _Nonnull dst, const char * _Nonnull src);
 extern size_t strcspn(const char * _Nonnull dst, const char * _Nonnull src);
 
@@ -42,6 +44,8 @@ extern char * _Nullable strndup(const char * _Nonnull src, size_t size);
 
 
 extern char * _Nonnull strerror(int err_no);
+
+#endif
 
 
 extern void *memchr(const void * _Nonnull ptr, int c, size_t count);

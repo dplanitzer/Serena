@@ -8,8 +8,8 @@
 
 #include "Surface.h"
 #include "video_conf.h"
+#include <string.h>
 #include <kern/kalloc.h>
-#include <kern/string.h>
 
 
 static errno_t _alloc_single_plane(Surface* _Nonnull self)

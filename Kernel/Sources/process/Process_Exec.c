@@ -8,8 +8,8 @@
 
 #include "ProcessPriv.h"
 #include "proc_img_gemdos.h"
+#include <string.h>
 #include <kei/kei.h>
-#include <kern/string.h>
 #include <sched/vcpu.h>
 
 

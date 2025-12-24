@@ -7,7 +7,7 @@
 //
 
 #include "kdispatch_priv.h"
-#include <kern/string.h>
+#include <string.h>
 #include <process/Process.h>
 
 

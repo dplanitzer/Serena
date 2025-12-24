@@ -7,10 +7,10 @@
 //
 
 #include "Object.h"
+#include <string.h>
 #include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
-#include <kern/string.h>
 #ifndef __DISKIMAGE__
 #include <log/Log.h>
 

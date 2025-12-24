@@ -7,9 +7,9 @@
 //
 
 #include "SerenaFSPriv.h"
+#include <string.h>
 #include <kern/assert.h>
 #include <kern/endian.h>
-#include <kern/string.h>
 
 
 // Creates an instance of SerenaFS.

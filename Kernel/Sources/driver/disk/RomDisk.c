@@ -7,8 +7,8 @@
 //
 
 #include "RomDisk.h"
+#include <string.h>
 #include <kern/kalloc.h>
-#include <kern/string.h>
 
 
 #define MAX_NAME_LENGTH 8

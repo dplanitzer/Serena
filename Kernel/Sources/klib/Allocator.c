@@ -7,10 +7,10 @@
 //
 
 #include "Allocator.h"
+#include <string.h>
 #include <hal/sys_desc.h>
 #include <kern/kernlib.h>
 #include <kern/limits.h>
-#include <kern/string.h>
 #include <log/Log.h>
 
 

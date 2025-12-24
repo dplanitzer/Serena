@@ -10,10 +10,10 @@
 #include "FileManager.h"
 #include "FileHierarchy.h"
 #include "FilesystemManager.h"
+#include <string.h>
 #include <driver/DriverManager.h>
 #include <filesystem/Filesystem.h>
 #include <filesystem/IOChannel.h>
-#include <kern/string.h>
 #include <kpi/fcntl.h>
 #include <kpi/fs.h>
 #include <process/ProcessManager.h>

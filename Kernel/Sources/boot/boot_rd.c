@@ -6,6 +6,7 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include <string.h>
 #include <driver/DriverManager.h>
 #include <driver/PlatformController.h>
 #include <driver/disk/RamDisk.h>
@@ -14,7 +15,6 @@
 #include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
 #include <filesystem/SerenaDiskImage.h>
-#include <kern/string.h>
 #include <kpi/fcntl.h>
 
 

@@ -8,7 +8,7 @@
 
 #include "ProcessPriv.h"
 #include "ProcChannel.h"
-#include <kern/string.h>
+#include <string.h>
 #include <kpi/fcntl.h>
 
 

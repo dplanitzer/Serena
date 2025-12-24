@@ -7,8 +7,8 @@
 //
 
 #include "ConsolePriv.h"
+#include <string.h>
 #include <hal/hw/m68k-amiga/chipset.h>
-#include <kern/string.h>
 #include <kern/timespec.h>
 
 static void Console_OnTextCursorBlink(CursorTimer* _Nonnull timer);

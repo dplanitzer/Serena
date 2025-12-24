@@ -9,12 +9,12 @@
 #include "vcpu.h"
 #include "sched.h"
 #include "vcpu_pool.h"
+#include <string.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
 #include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/limits.h>
-#include <kern/string.h>
 #include <kern/timespec.h>
 
 static void _vcpu_yield(vcpu_t _Nonnull self);

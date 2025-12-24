@@ -7,9 +7,10 @@
 //
 
 #include "ProcessPriv.h"
+#include <string.h>
 #include <filemanager/FileHierarchy.h>
 #include <kern/kalloc.h>
-#include <kern/string.h>
+
 
 static const char*      g_systemd_argv[2] = { "/System/Commands/systemd", NULL };
 static const char*      g_kernel_argv[2] = { "kerneld", NULL };

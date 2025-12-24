@@ -8,8 +8,8 @@
 
 #include "KernFSPriv.h"
 #include "KfsDirectory.h"
+#include <string.h>
 #include <driver/Driver.h>
-#include <kern/string.h>
 
 
 // Creates an instance of KernFS.

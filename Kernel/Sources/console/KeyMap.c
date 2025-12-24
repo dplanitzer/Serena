@@ -7,7 +7,7 @@
 //
 
 #include "KeyMap.h"
-#include <kern/string.h>
+#include <string.h>
 
 
 // Returns true if the given key map is valid and false otherwise.

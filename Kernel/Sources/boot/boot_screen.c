@@ -7,9 +7,9 @@
 //
 
 #include "boot_screen.h"
+#include <string.h>
 #include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
-#include <kern/string.h>
 #include <kpi/fcntl.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 

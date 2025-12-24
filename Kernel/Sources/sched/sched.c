@@ -9,9 +9,9 @@
 #include "sched.h"
 #include "vcpu.h"
 #include "waitqueue.h"
+#include <string.h>
 #include <hal/sched.h>
 #include <kern/signal.h>
-#include <kern/string.h>
 
 
 static void sched_dump_rdyq_locked(sched_t _Nonnull self);

@@ -6,6 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
+#include <string.h>
 #include <kei/kei.h>
 #include <log/Log.h>
 #include <console/Console.h>
@@ -27,7 +28,6 @@
 #include <sys/mount.h>
 #include <Catalog.h>
 #include <kern/kalloc.h>
-#include <kern/string.h>
 #include "BootAllocator.h"
 #include "boot_screen.h"
 

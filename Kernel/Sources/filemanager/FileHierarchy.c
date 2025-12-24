@@ -8,10 +8,10 @@
 
 #include "FileHierarchy.h"
 #include "FilesystemManager.h"
+#include <string.h>
 #include <klib/Hash.h>
 #include <filesystem/FSUtilities.h>
 #include <filesystem/kernfs/KernFS.h>
-#include <kern/string.h>
 #include <sched/rwmtx.h>
 #include <security/SecurityManager.h>
 

@@ -7,7 +7,7 @@
 //
 
 #include "DiskCachePriv.h"
-#include <kern/string.h>
+#include <string.h>
 #include <sched/delay.h>
 #include <sched/vcpu.h>
 

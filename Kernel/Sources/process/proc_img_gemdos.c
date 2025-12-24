@@ -7,8 +7,8 @@
 //
 
 #include "proc_img_gemdos.h"
+#include <string.h>
 #include <filesystem/InodeChannel.h>
-#include <kern/string.h>
 
 
 static void _proc_img_gemdos_reloc(proc_img_t* _Nonnull self, uint8_t* _Nonnull reloc_base, uint8_t* txt_base)

@@ -8,9 +8,9 @@
 
 #include "SfsRegularFile.h"
 #include "SerenaFSPriv.h"
+#include <string.h>
 #include <filesystem/InodeChannel.h>
 #include <kern/limits.h>
-#include <kern/string.h>
 #include <kpi/fcntl.h>
 
 

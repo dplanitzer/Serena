@@ -7,8 +7,8 @@
 //
 
 #include "ConsolePriv.h"
+#include <string.h>
 #include <kern/kalloc.h>
-#include <kern/string.h>
 
 
 // Creates a tab stops object with 'nStops' (initial) tab stops assuming a tab with

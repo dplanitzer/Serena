@@ -7,11 +7,11 @@
 //
 
 #include "Allocator.h"
+#include <string.h>
 #include <hal/sys_desc.h>
 #include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
-#include <kern/string.h>
 #include <sched/mtx.h>
 
 

@@ -7,10 +7,10 @@
 //
 
 #include "ConsolePriv.h"
+#include <string.h>
 #include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
 #include <kern/assert.h>
-#include <kern/string.h>
 #include <kern/timespec.h>
 #include <kpi/console.h>
 #include <kpi/fcntl.h>
