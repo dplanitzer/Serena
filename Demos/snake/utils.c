@@ -9,7 +9,7 @@
 #include "utils.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#include <ext/string.h>
 
 
 void cursor_on(bool onOff)

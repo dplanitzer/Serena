@@ -6,8 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <string.h>
-#include <__stddef.h>
+#include <ext/string.h>
 
 
 // See __strcpy()

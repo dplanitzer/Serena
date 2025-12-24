@@ -6,7 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <string.h>
+#include <ext/string.h>
 
 
 // Similar to strcpy() but returns a pointer that points to the '\0 at the
