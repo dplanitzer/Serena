@@ -9,12 +9,12 @@
 #include <string.h>
 
 
-size_t strnlen_s(const char * _Nullable str, size_t strsz)
+size_t strnlen_s(const char * _Nullable str, size_t maxlen)
 {
     size_t len = 0;
 
     if (str) {
-        while (*str++ != '\0' && len < strsz) {
+        while (*str++ != '\0' && len < maxlen) {
             len++;
         }
     }

@@ -20,7 +20,7 @@ static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], size_
 
     while (table[count]) {
         const char* pa = table[count];
-        const ssize_t slen = strnlen(pa, __ARG_STRLEN_MAX);
+        const ssize_t slen = strnlen_s(pa, __ARG_STRLEN_MAX);
         const ssize_t nbytes_entry = sizeof(char*) + slen + 1;
 
         if (pa[slen] != '\0') {

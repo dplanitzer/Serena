@@ -99,6 +99,9 @@ LIBC_OBJS_DIR := $(OBJS_DIR)/Library/libc
 LIBC_FILE := $(SDK_LIB_DIR)/libc.a
 CSTART_FILE := $(SDK_LIB_DIR)/_cstart.o
 
+LIBSC_OBJS_DIR := $(OBJS_DIR)/Library/libsc
+LIBSC_FILE := $(SDK_LIB_DIR)/libsc.a
+
 
 LIBM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libm
 LIBM_HEADERS_DIR := $(LIBM_PROJECT_DIR)/Headers
@@ -154,7 +157,7 @@ endif
 CC_PREPROC_DEFS := -DDEBUG=1 -DTARGET_CPU_68020=1 -D__SERENA__
 
 #XXX vbcc always defines -D__STDC_HOSTED__=1 and we can't override it for the kernel (which should define -D__STDC_HOSTED__=0)
-KERNEL_STDC_PREPROC_DEFS := -D__STDC_UTF_16__=1 -D__STDC_UTF_32__=1 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1
+KERNEL_STDC_PREPROC_DEFS := -D__STDC_UTF_16__=1 -D__STDC_UTF_32__=1 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1 -D__STDC_WANT_LIB_EXT1__=1
 USER_STDC_PREPROC_DEFS := -D__STDC_UTF_16__=1 -D__STDC_UTF_32__=1 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1
 
 
@@ -202,14 +205,14 @@ include $(SNAKE_PROJECT_DIR)/project.mk
 .PHONY: clean
 
 
-all: $(SDK_LIB_DIR) build-rom build-boot-dmg
+all: build-rom build-boot-dmg
 	@echo Done (Configuration: $(BUILD_CONFIGURATION))
 
 
-build-rom: $(ROM_FILE)
+build-rom: $(SDK_LIB_DIR) $(ROM_FILE)
 
 
-build-boot-dmg: $(BOOT_DMG_FILE)
+build-boot-dmg: $(SDK_LIB_DIR) $(BOOT_DMG_FILE)
 
 $(SDK_LIB_DIR):
 	$(call mkdir_if_needed,$(SDK_LIB_DIR))

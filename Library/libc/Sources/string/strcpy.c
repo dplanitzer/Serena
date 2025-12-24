@@ -7,14 +7,13 @@
 //
 
 #include <string.h>
-#include <__stddef.h>
 
 
 // Similar to strcpy() but returns a pointer that points to the '\0 at the
 // destination aka the end of the copied string. Exists so that we can actually
 // use this and strcat() to compose strings without having to iterate over the
 // same string multiple times.
-char * _Nonnull __strcpy(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src)
+char * _Nonnull strcpy_x(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src)
 {
     while (*src != '\0') {
         *dst++ = *src++;
@@ -26,6 +25,6 @@ char * _Nonnull __strcpy(char * _Nonnull _Restrict dst, const char * _Nonnull _R
 
 char * _Nonnull strcpy(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src)
 {
-    (void) __strcpy(dst, src);
+    (void) strcpy_x(dst, src);
     return dst;
 }

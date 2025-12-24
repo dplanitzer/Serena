@@ -32,9 +32,6 @@ extern void __stdio_init(void);
 
 extern bool __is_pointer_NOT_freeable(void* ptr);
 
-extern char *__strcpy(char * _Restrict dst, const char * _Restrict src);
-extern char *__strcat(char * _Restrict dst, const char * _Restrict src);
-
 
 // Max length of an i32a string: sign char + longest possible digit sequence + NUL character
 #define I32A_BUFFER_SIZE    (1 + 32 + 1)

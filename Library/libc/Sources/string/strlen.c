@@ -7,16 +7,13 @@
 //
 
 #include <string.h>
-#include <__stddef.h>
 
 
 size_t strlen(const char * _Nonnull str)
 {
-    size_t len = 0;
+    const char* p = str;
 
-    while (*str++ != '\0') {
-        len++;
-    }
+    while(*p++ != '\0');
 
-    return len;
+    return p - str - 1;
 }

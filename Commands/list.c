@@ -20,8 +20,6 @@
 #include <_math.h>
 
 extern const char* __gc_abbrev_ymon(unsigned m);
-extern char *__strcpy(char * _Restrict dst, const char * _Restrict src);
-extern char *__strcat(char * _Restrict dst, const char * _Restrict src);
 
 
 // Jan 12  2025
@@ -157,7 +155,7 @@ static int print_inode(const char* _Nonnull path, const char* _Nonnull entryName
 
 static void concat_path(char* _Nonnull path, const char* _Nonnull dir, const char* _Nonnull fileName)
 {
-    __strcat(__strcat(__strcpy(path, dir), "/"), fileName);
+    strcat_x(strcat_x(strcpy_x(path, dir), "/"), fileName);
 }
 
 static int format_dir_entry(const char* _Nonnull dirPath, const char* _Nonnull entryName)

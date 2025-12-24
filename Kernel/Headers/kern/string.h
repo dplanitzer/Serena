@@ -16,8 +16,8 @@
 
 __CPP_BEGIN
 
-extern ssize_t strlen(const char* _Nonnull str);
-extern ssize_t strnlen(const char* _Nonnull str, ssize_t maxlen);
+extern size_t strlen(const char* _Nonnull str);
+extern size_t strnlen_s(const char* _Nonnull str, size_t maxlen);
 
 extern char* _Nonnull strcpy(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src);
 extern char* _Nonnull strncpy(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src, ssize_t count);
@@ -26,8 +26,8 @@ extern char* _Nonnull strncpy(char* _Nonnull _Restrict dst, const char* _Nonnull
 // that points to the trailing '\0' in the destination buffer  
 extern char* _Nonnull strcpy_x(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src);
 
-extern bool strcmp(const char* _Nonnull lhs, const char* _Nonnull rhs);
-extern bool strncmp(const char* _Nonnull lhs, const char* _Nonnull rhs, ssize_t count);
+extern int strcmp(const char* _Nonnull lhs, const char* _Nonnull rhs);
+extern int strncmp(const char* _Nonnull lhs, const char* _Nonnull rhs, ssize_t count);
 
 // Copies 'count' contiguous bytes in memory from 'src' to 'dst'. The behavior is
 // undefined if the source and destination regions overlap. Copies the data

@@ -167,11 +167,11 @@ static void draw(void)
     *b++ = '\n';
     *b++ = '\n';
 
-    b = __strcpy(b, "Score: ");
+    b = strcpy_x(b, "Score: ");
     itoa(score, b, 10);
-    b = __strcat(b, "\n\n");
-    b = __strcpy(b, "Press W, A, S, D to move the snake.\n");
-    b = __strcpy(b, "Press ESC to quit the game.");
+    b = strcat_x(b, "\n\n");
+    b = strcpy_x(b, "Press W, A, S, D to move the snake.\n");
+    b = strcpy_x(b, "Press ESC to quit the game.");
 
     (void)write(STDOUT_FILENO, buf, b - buf);
 

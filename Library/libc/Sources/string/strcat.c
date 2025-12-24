@@ -11,7 +11,7 @@
 
 
 // See __strcpy()
-char * _Nonnull __strcat(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src)
+char * _Nonnull strcat_x(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src)
 {
     char* p = dst;
 
@@ -33,6 +33,6 @@ char * _Nonnull __strcat(char * _Nonnull _Restrict dst, const char * _Nonnull _R
 
 char * _Nonnull strcat(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src)
 {
-    (void) __strcat(dst, src);
+    (void) strcat_x(dst, src);
     return dst;
 }

@@ -9,10 +9,6 @@
 #include <stdbool.h>
 #include <_cmndef.h>
 
-extern char *__strcpy(char * _Restrict dst, const char * _Restrict src);
-extern char *__strcat(char * _Restrict dst, const char * _Restrict src);
-
-
 extern void cursor_on(bool onOff);
 extern char* cls(char* dst);
 extern char* mv_by_precomp(char* dst, const char* leb);

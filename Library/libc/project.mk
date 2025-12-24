@@ -21,6 +21,7 @@ STDLIB_OBJS_DIR := $(LIBC_OBJS_DIR)/stdlib
 
 STRING_SOURCES_DIR := $(LIBC_SOURCES_DIR)/string
 STRING_OBJS_DIR := $(LIBC_OBJS_DIR)/string
+STRING_SC_OBJS_DIR := $(LIBSC_OBJS_DIR)/string
 
 SYS_SOURCES_DIR := $(LIBC_SOURCES_DIR)/sys
 SYS_OBJS_DIR := $(LIBC_OBJS_DIR)/sys
@@ -28,27 +29,28 @@ SYS_OBJS_DIR := $(LIBC_OBJS_DIR)/sys
 TIME_SOURCES_DIR := $(LIBC_SOURCES_DIR)/time
 TIME_OBJS_DIR := $(LIBC_OBJS_DIR)/time
 
-LIBC_CSTART_C_SOURCE := $(LIBC_SOURCES_DIR)/_cstart.c
+CSTART_C_SOURCE := $(LIBC_SOURCES_DIR)/_cstart.c
 
 LIBC_C_INCLUDES := -I$(LIBC_HEADERS_DIR) -I$(KERNEL_HEADERS_DIR) -I$(LIBC_SOURCES_DIR)
-LIBC_ASM_INCLUDES := -I$(LIBC_HEADERS_DIR) -I$(KERNEL_HEADERS_DIR) -I$(LIBC_SOURCES_DIR)
-
-#LIBC_GENERATE_DEPS = -deps -depfile=$(patsubst $(LIBC_OBJS_DIR)/%.o,$(LIBC_OBJS_DIR)/%.d,$@)
-LIBC_GENERATE_DEPS := 
-LIBC_CC_DONTWARN := -dontwarn=214
 
 
 # --------------------------------------------------------------------------
 # Build rules
 #
 
-.PHONY: clean-libc $(LIBC_OBJS_DIR)
+.PHONY: clean-libc clean-libsc $(LIBC_OBJS_DIR) $(LIBSC_OBJS_DIR)
 
 
 build-libc: $(LIBC_FILE) $(CSTART_FILE) | $(LIBC_OBJS_DIR)
 
 $(LIBC_OBJS_DIR):
 	$(call mkdir_if_needed,$(LIBC_OBJS_DIR))
+
+
+build-libsc: $(LIBSC_FILE) | $(LIBSC_OBJS_DIR)
+
+$(LIBSC_OBJS_DIR):
+	$(call mkdir_if_needed,$(LIBSC_OBJS_DIR))
 
 
 -include $(ARCH_M68K_SOURCES_DIR)/package.mk
@@ -61,25 +63,26 @@ $(LIBC_OBJS_DIR):
 -include $(TIME_SOURCES_DIR)/package.mk
 
 
+# libc (hosted)
 $(LIBC_FILE): $(ARCH_M68K_OBJS) $(LOCALE_OBJS) $(MALLOC_OBJS) $(STDIO_OBJS) $(STDLIB_OBJS) $(STRING_OBJS) $(SYS_OBJS) $(TIME_OBJS)
 	@echo Making libc.a
 	$(LIBTOOL) create $@ $^
 
 
-$(LIBC_OBJS_DIR)/%.o : $(LIBC_SOURCES_DIR)/%.c
-	@echo $<
-	@$(CC) $(USER_CC_CONFIG) $(CC_OPT_SETTING) $(CC_GEN_DEBUG_INFO) $(CC_PREPROC_DEFS) $(LIBC_C_INCLUDES) $(LIBC_CC_DONTWARN) $(LIBC_GENERATE_DEPS) -o $@ $<
-
-$(LIBC_OBJS_DIR)/%.o : $(LIBC_SOURCES_DIR)/%.s
-	@echo $<
-	@$(AS) $(USER_ASM_CONFIG) $(LIBC_ASM_INCLUDES) -o $@ $<
-
-
-# start() function
-$(CSTART_FILE) : $(LIBC_CSTART_C_SOURCE) | $(LIBC_OBJS_DIR)
+# _start() function
+$(CSTART_FILE) : $(CSTART_C_SOURCE) | $(LIBC_OBJS_DIR)
 	@echo $<
 	@$(CC) $(USER_CC_CONFIG) $(CC_OPT_SETTING) $(CC_PREPROC_DEFS) $(LIBC_C_INCLUDES) -o $@ $<
 
 
+#libsc (freestanding)
+$(LIBSC_FILE): $(STRING_SC_OBJS)
+	@echo Making libsc.a
+	$(LIBTOOL) create $@ $^
+
+
 clean-libc:
 	$(call rm_if_exists,$(LIBC_OBJS_DIR))
+
+clean-libsc:
+	$(call rm_if_exists,$(LIBSC_OBJS_DIR))

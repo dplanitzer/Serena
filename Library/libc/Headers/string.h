@@ -51,6 +51,13 @@ extern void * _Nonnull memset(void * _Nonnull dst, int c, size_t count);
 extern void * _Nonnull memcpy(void * _Nonnull _Restrict dst, const void * _Nonnull _Restrict src, size_t count);
 extern void * _Nonnull memmove(void * _Nonnull _Restrict dst, const void * _Nonnull _Restrict src, size_t count);
 
+// Extensions
+
+// Like strcpy()/strncpy() except that these functions here return a pointer
+// that points to the trailing '\0' in the destination buffer  
+extern char* _Nonnull strcpy_x(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src);
+extern char * _Nonnull strcat_x(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src);
+
 __CPP_END
 
 #endif /* _STRING_H */
@@ -62,7 +69,7 @@ __CPP_END
 __CPP_BEGIN
 
 #if __STDC_WANT_LIB_EXT1__ == 1
-extern size_t strnlen_s(const char * _Nullable str, size_t strsz);
+extern size_t strnlen_s(const char * _Nullable str, size_t maxlen);
 #endif
 
 __CPP_END

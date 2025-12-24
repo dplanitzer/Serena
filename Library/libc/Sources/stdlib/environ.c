@@ -113,7 +113,7 @@ static char* _Nullable __createenventry(const char* _Nonnull name, const char* _
     char* p = (char*) malloc(strlen(name) + strlen(value) + 2);
 
     if (p) {
-        __strcat(__strcat(__strcpy(p, name), "="), value);
+        strcat_x(strcat_x(strcpy_x(p, name), "="), value);
     }
     return p;
 }

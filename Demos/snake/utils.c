@@ -9,6 +9,7 @@
 #include "utils.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 
 void cursor_on(bool onOff)
@@ -23,14 +24,14 @@ void cursor_on(bool onOff)
 
 char* cls(char* dst)
 {
-    return __strcpy(dst, "\033[2J\033[H");
+    return strcpy_x(dst, "\033[2J\033[H");
 }
 
 char* mv_by_precomp(char* dst, const char* leb)
 {
     *dst++ = 033;
     *dst++ = '[';
-    dst = __strcpy(dst, leb);
+    dst = strcpy_x(dst, leb);
     *dst++ = 'C';
 
     return dst;
@@ -41,9 +42,9 @@ char* mv_to(char* dst, int x, int y)
     *dst++ = 033;
     *dst++ = '[';
     itoa(y + 1, dst, 10);
-    dst = __strcat(dst, ";");
+    dst = strcat_x(dst, ";");
     itoa(x + 1, dst, 10);
-    dst = __strcat(dst, "f");
+    dst = strcat_x(dst, "f");
 
     return dst;
 }
