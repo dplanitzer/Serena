@@ -21,9 +21,10 @@
 #define ENOTIOCTLCMD EINVAL
 #endif
 
-typedef int _Errno_t;
+#include <../../Library/libc/Headers/ext/_try.h>
 
-#include <../../Library/libc/Headers/_try.h>
+#define EOK _EOK
+typedef int errno_t;
 
 
 // Halt the machine if the function 'f' does not return EOK. Use this instead of

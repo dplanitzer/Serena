@@ -9,11 +9,10 @@
 #ifndef _ALLOCATOR_H
 #define _ALLOCATOR_H 1
 
-#include <errno.h>
+#include <ext/errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <ext/try.h>
 
 struct Allocator;
 typedef struct Allocator* AllocatorRef;

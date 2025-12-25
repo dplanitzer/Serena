@@ -58,6 +58,4 @@
 #define __EFIRST    1
 #define __ELAST     43
 
-typedef int _Errno_t;
-
 #endif /* _KPI_ERRNO_H */

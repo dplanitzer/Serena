@@ -14,7 +14,7 @@
 #include <kern/types.h>
 #else
 #include <stdbool.h>
-#include <ext/try.h>
+#include <ext/errno.h>
 #include <sys/types.h>
 #endif
 

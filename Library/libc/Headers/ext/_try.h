@@ -16,7 +16,6 @@
 
 __CPP_BEGIN
 
-typedef _Errno_t errno_t;
 #define EOK _EOK
 
 

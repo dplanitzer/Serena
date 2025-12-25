@@ -18,10 +18,15 @@
 
 __CPP_BEGIN
 
-extern _Errno_t* _Nonnull __vcpu_errno(void);
+extern int* _Nonnull __vcpu_errno(void);
 
 #define errno (*__vcpu_errno())
 
 __CPP_END
 
 #endif /* _ERRNO_H */
+
+#if __STDC_WANT_LIB_EXT1__ == 1 && __ERRNO_T_DEFINED != 1
+#define __ERRNO_T_DEFINED 1
+typedef int errno_t;
+#endif
