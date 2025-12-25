@@ -13,12 +13,12 @@
 #error "not supported in freestanding mode"
 #endif
 
-#include <_dmdef.h>
-#include <_size.h>
 #include <_cmndef.h>
+#include <arch/_dmdef.h>
+#include <arch/_null.h>
+#include <arch/_size.h>
+#include <arch/_wchar.h>
 #include <_mbstate.h>
-#include <_null.h>
-#include <_wchar.h>
 
 __CPP_BEGIN
 

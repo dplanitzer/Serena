@@ -14,8 +14,8 @@
 #endif
 
 #include <_cmndef.h>
-#include <_null.h>
-#include <_size.h>
+#include <arch/_null.h>
+#include <arch/_size.h>
 #include <malloc.h>
 #include <stdnoreturn.h>
 

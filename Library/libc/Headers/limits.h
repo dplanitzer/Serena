@@ -9,7 +9,7 @@
 #ifndef _LIMITS_H
 #define _LIMITS_H 1
 
-#include <_dmdef.h>
+#include <arch/_dmdef.h>
 #include <stddef.h>
 
 #define BOOL_WIDTH  8

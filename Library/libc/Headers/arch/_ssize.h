@@ -1,16 +1,16 @@
 //
-//  _ssize.h
+//  arch/_ssize.h
 //  libc, libsc
 //
 //  Created by Dietmar Planitzer on 3/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __SYS_SSIZE_H
-#define __SYS_SSIZE_H 1
+#ifndef __ARCH_SSIZE_H
+#define __ARCH_SSIZE_H 1
 
-#include <_dmdef.h>
+#include <arch/_dmdef.h>
 
 typedef __ssize_t ssize_t;
 
-#endif /* __SYS_SSIZE_H */
+#endif /* __ARCH_SSIZE_H */

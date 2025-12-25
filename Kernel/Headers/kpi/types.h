@@ -10,9 +10,9 @@
 #define _KPI_TYPES_H 1
 
 #include <_cmndef.h>
-#include <_off.h>
-#include <_size.h>
-#include <_ssize.h>
+#include <arch/_off.h>
+#include <arch/_size.h>
+#include <arch/_ssize.h>
 #include <kpi/_time.h>
 
 

@@ -9,10 +9,10 @@
 #ifndef _KERN_KERNLIB_H
 #define _KERN_KERNLIB_H 1
 
-#include <_ssize.h>
+#include <arch/_offsetof.h>
+#include <arch/_ssize.h>
 #include <_cmndef.h>
 #include <_math.h>
-#include <_offsetof.h>
 #include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>

@@ -10,8 +10,8 @@
 #define _SYS_QUEUE_H 1
 
 #include <_cmndef.h>
-#include <_null.h>
-#include <_offsetof.h>
+#include <arch/_null.h>
+#include <arch/_offsetof.h>
 #include <stdbool.h>
 
 //

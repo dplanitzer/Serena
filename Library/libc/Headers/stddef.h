@@ -9,12 +9,12 @@
 #ifndef _STDDEF_H
 #define _STDDEF_H 1
 
-#include <_dmdef.h>
-#include <_size.h>
 #include <_cmndef.h>
-#include <_null.h>
-#include <_offsetof.h>
-#include <_wchar.h>
+#include <arch/_dmdef.h>
+#include <arch/_size.h>
+#include <arch/_null.h>
+#include <arch/_offsetof.h>
+#include <arch/_wchar.h>
 
 __CPP_BEGIN
 

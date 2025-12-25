@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_MBSTATE_H
-#define _SYS_MBSTATE_H 1
+#ifndef __MBSTATE_H
+#define __MBSTATE_H 1
 
 #if ___STDC_HOSTED__ != 1
 #error "not supported in freestanding mode"
@@ -23,4 +23,4 @@ typedef struct mbstate {
 
 __CPP_END
 
-#endif /* _SYS_MBSTATE_H */
+#endif /* __MBSTATE_H */

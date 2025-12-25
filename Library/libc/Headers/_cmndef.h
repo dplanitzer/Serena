@@ -6,8 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __SYS_CMNDEF_H
-#define __SYS_CMNDEF_H 1
+#ifndef __CMNDEF_H
+#define __CMNDEF_H 1
 
 #ifndef __has_feature
 #define __has_feature(x) 0
@@ -67,4 +67,4 @@
 #define __CPP_END
 #endif
 
-#endif /* __SYS_CMNDEF_H */
+#endif /* __CMNDEF_H */

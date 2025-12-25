@@ -10,7 +10,7 @@
 #define _SYS_WAITQUEUE_H 1
 
 #include <_cmndef.h>
-#include <_null.h>
+#include <arch/_null.h>
 #include <kpi/_time.h>
 #include <kpi/types.h>
 #include <kpi/waitqueue.h>

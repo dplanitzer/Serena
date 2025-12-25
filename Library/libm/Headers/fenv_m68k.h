@@ -10,7 +10,7 @@
 #define _FENV_H 1
 
 #include <_cmndef.h>
-#include <_dmdef.h>
+#include <arch/_dmdef.h>
 
 __CPP_BEGIN
 

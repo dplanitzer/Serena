@@ -10,7 +10,7 @@
 #define _SYS_ATOMIC_H 1
 
 #include <_cmndef.h>
-#include <_null.h>
+#include <arch/_null.h>
 #include <stdbool.h>
 
 __CPP_BEGIN

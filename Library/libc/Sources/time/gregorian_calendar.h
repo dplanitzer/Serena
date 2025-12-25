@@ -10,7 +10,7 @@
 #define _SYS_GREGORIAN_CALENDAR_H 1
 
 #include <_cmndef.h>
-#include <_size.h>
+#include <arch/_size.h>
 #include <stdbool.h>
 
 __CPP_BEGIN

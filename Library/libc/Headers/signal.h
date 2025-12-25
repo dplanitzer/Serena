@@ -14,7 +14,7 @@
 #endif
 
 #include <_cmndef.h>
-#include <_null.h>
+#include <arch/_null.h>
 #include <kpi/signal.h>
 #include <sys/types.h>
 

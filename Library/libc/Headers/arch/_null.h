@@ -1,13 +1,13 @@
 //
-//  _null.h
+//  arch/_null.h
 //  libc, libsc
 //
 //  Created by Dietmar Planitzer on 8/30/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __SYS_NULL_H
-#define __SYS_NULL_H 1
+#ifndef __ARCH_NULL_H
+#define __ARCH_NULL_H 1
 
 #ifndef NULL
 #ifdef __cplusplus
@@ -17,4 +17,4 @@
 #endif
 #endif
 
-#endif /* __SYS_NULL_H */
+#endif /* __ARCH_NULL_H */

@@ -10,8 +10,8 @@
 #define _STRING_H 1
 
 #include <_cmndef.h>
-#include <_null.h>
-#include <_size.h>
+#include <arch/_null.h>
+#include <arch/_size.h>
 
 __CPP_BEGIN
 
