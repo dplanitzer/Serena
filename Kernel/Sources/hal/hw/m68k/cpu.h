@@ -9,11 +9,9 @@
 #ifndef _CPU_M68K_H
 #define _CPU_M68K_H 1
 
+#include <arch/cpu.h>
 #include <kern/types.h>
 #include <kpi/floattypes.h>
-
-// Size of a standard page in bytes
-#define CPU_PAGE_SIZE   4096
 
 #define STACK_ALIGNMENT  4
 

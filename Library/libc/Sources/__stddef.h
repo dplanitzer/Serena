@@ -17,8 +17,6 @@
 #include <sys/proc.h>
 #endif
 
-#define CPU_PAGE_SIZE   4096
-
 #if defined(__ILP32__)
 typedef uint32_t uword_t;
 #define WORD_SIZE       4

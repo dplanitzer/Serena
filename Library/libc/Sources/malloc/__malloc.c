@@ -6,6 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#include <arch/cpu.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
