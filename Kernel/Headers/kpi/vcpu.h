@@ -9,7 +9,7 @@
 #ifndef _KPI_VCPU_H
 #define _KPI_VCPU_H 1
 
-#include <kpi/floattypes.h>
+#include <arch/floattypes.h>
 #include <kpi/sched.h>
 #include <stdint.h>
 

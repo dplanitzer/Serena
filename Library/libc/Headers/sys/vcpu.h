@@ -12,8 +12,8 @@
 #include <_cmndef.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
+#include <arch/cpu.h>
 #include <kpi/types.h>
-#include <kpi/mcontext.h>
 #include <kpi/vcpu.h>
 
 __CPP_BEGIN
