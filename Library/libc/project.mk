@@ -7,6 +7,9 @@ LIBC_SOURCES_DIR := $(LIBC_PROJECT_DIR)/Sources
 ARCH_M68K_SOURCES_DIR := $(LIBC_SOURCES_DIR)/arch/m68k
 ARCH_M68K_OBJS_DIR := $(LIBC_OBJS_DIR)/arch/m68k
 
+ARCH_M68K_VBCC_SOURCES_DIR := $(LIBC_SOURCES_DIR)/arch/m68k-vbcc
+ARCH_M68K_VBCC_SC_OBJS_DIR := $(LIBSC_OBJS_DIR)/arch/m68k-vbcc
+
 LOCALE_SOURCES_DIR := $(LIBC_SOURCES_DIR)/locale
 LOCALE_OBJS_DIR := $(LIBC_OBJS_DIR)/locale
 
@@ -54,6 +57,7 @@ $(LIBSC_OBJS_DIR):
 
 
 -include $(ARCH_M68K_SOURCES_DIR)/package.mk
+-include $(ARCH_M68K_VBCC_SOURCES_DIR)/package.mk
 -include $(LOCALE_SOURCES_DIR)/package.mk
 -include $(MALLOC_SOURCES_DIR)/package.mk
 -include $(STDIO_SOURCES_DIR)/package.mk
@@ -76,7 +80,7 @@ $(CSTART_FILE) : $(CSTART_C_SOURCE) | $(LIBC_OBJS_DIR)
 
 
 #libsc (freestanding)
-$(LIBSC_FILE): $(STRING_SC_OBJS)
+$(LIBSC_FILE): $(ARCH_M68K_VBCC_SC_OBJS) $(STRING_SC_OBJS)
 	@echo Making libsc.a
 	$(LIBTOOL) create $@ $^
 
