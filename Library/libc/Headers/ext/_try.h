@@ -1,13 +1,13 @@
 //
-//  _try.h
+//  ext/_try.h
 //  libc, libsc
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __SYS_TRY_H
-#define __SYS_TRY_H
+#ifndef __EXT_TRY_H
+#define __EXT_TRY_H
 
 #include <_cmndef.h>
 #ifndef __DISKIMAGE__
@@ -68,4 +68,4 @@ typedef _Errno_t errno_t;
 
 __CPP_END
 
-#endif /* __SYS_TRY_H */
+#endif /* __EXT_TRY_H */

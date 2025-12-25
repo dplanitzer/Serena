@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/errno.h>
+#include <ext/try.h>
 
 typedef enum ValueType {
     kValue_Never = 0,           // Bottom type (uninhabited)

@@ -9,7 +9,7 @@
 #ifndef Errors_h
 #define Errors_h
 
-#include <sys/errno.h>
+#include <ext/try.h>
 
 
 #define ESYNTAX         -1

@@ -15,7 +15,7 @@
 #include <kern/types.h>
 #include <kpi/stat.h>
 #else
-#include <sys/errno.h>
+#include <ext/try.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #endif
