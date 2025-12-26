@@ -7,7 +7,6 @@
 //
 
 #include <__stddef.h>
-#include <ctype.h>
 #include <limits.h>
 #include <kpi/_errno.h>
 
@@ -21,7 +20,7 @@ int __strtoi64(const char * _Restrict _Nonnull str, char ** _Restrict str_end, i
 
 
     // Skip whitespace
-    while (*str != '\0' && isspace(*str)) {
+    while (*str != '\0' && (*str == ' ' || *str == '\t')) {
         str++;
     }
 
