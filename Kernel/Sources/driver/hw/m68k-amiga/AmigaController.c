@@ -7,6 +7,7 @@
 //
 
 #include "AmigaController.h"
+#include <ext/endian.h>
 #include <ext/math.h>
 #include <filesystem/SerenaDiskImage.h>
 #include <driver/hw/m68k-amiga/floppy/FloppyController.h>
@@ -16,7 +17,6 @@
 #include <driver/hw/m68k-amiga/zorro/ZorroController.h>
 #include <hal/cpu.h>
 #include <hal/hw/m68k-amiga/chipset.h>
-#include <kern/endian.h>
 
 
 final_class_ivars(AmigaController, PlatformController,

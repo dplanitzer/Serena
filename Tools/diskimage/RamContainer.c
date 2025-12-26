@@ -13,9 +13,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ext/endian.h>
 #include <filesystem/SerenaDiskImage.h>
 #include <filesystem/FSUtilities.h>
-#include <kern/endian.h>
 #include <kpi/disk.h>
 
 

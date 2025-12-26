@@ -8,10 +8,10 @@
 
 #include "SfsAllocator.h"
 #include <string.h>
+#include <ext/endian.h>
 #include <ext/math.h>
 #include <filesystem/FSContainer.h>
 #include <filesystem/FSUtilities.h>
-#include <kern/endian.h>
 
 
 void SfsAllocator_Init(SfsAllocator* _Nonnull self)

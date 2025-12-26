@@ -9,11 +9,7 @@
 #include "format.h"
 #include <stdlib.h>
 #include <string.h>
-#ifdef __KERNEL__
-#include <kern/endian.h>
-#else
-#include <sys/endian.h>
-#endif
+#include <ext/endian.h>
 #include <ext/math.h>
 #include <filesystem/FSUtilities.h>
 #include <filesystem/serenafs/VolumeFormat.h>

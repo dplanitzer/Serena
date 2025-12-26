@@ -8,8 +8,8 @@
 
 #include "SerenaFSPriv.h"
 #include <string.h>
+#include <ext/endian.h>
 #include <kern/assert.h>
-#include <kern/endian.h>
 
 
 // Creates an instance of SerenaFS.

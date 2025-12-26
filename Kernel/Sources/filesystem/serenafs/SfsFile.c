@@ -8,8 +8,8 @@
 
 #include "SfsFile.h"
 #include "SerenaFSPriv.h"
+#include <ext/endian.h>
 #include <filesystem/FSUtilities.h>
-#include <kern/endian.h>
 #include <kern/timespec.h>
 
 

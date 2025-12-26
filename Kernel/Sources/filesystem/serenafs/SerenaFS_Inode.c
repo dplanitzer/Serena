@@ -9,7 +9,7 @@
 #include "SerenaFSPriv.h"
 #include "SfsDirectory.h"
 #include "SfsRegularFile.h"
-#include <kern/endian.h>
+#include <ext/endian.h>
 
 
 errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, sfs_insertion_hint_t* _Nullable pDirInsertionHint, uid_t uid, gid_t gid, mode_t mode, InodeRef _Nullable * _Nonnull pOutNode)

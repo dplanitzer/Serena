@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ext/endian.h>
 #include <filemanager/FileHierarchy.h>
 #include <filesystem/InodeChannel.h>
 #include <filesystem/FSChannel.h>
@@ -23,7 +24,6 @@
 #include <filesystem/serenafs/SfsRegularFile.h>
 #include <driver/hw/m68k-amiga/floppy/adf.h>
 #include <clap.h>
-#include <kern/endian.h>
 #include <kpi/perm.h>
 
 static const char* gArgv_Zero = "";
