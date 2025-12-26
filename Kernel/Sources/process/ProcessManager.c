@@ -9,7 +9,7 @@
 #include "ProcessManager.h"
 #include "ProcessPriv.h"
 #include <Catalog.h>
-#include <klib/Hash.h>
+#include <ext/hash.h>
 #include <kern/kalloc.h>
 #include <sched/mtx.h>
 

@@ -10,9 +10,9 @@
 #include "FSUtilities.h"
 #include "InodeChannel.h"
 #include "FSChannel.h"
+#include <ext/hash.h>
 #include <kern/timespec.h>
 #include <klib/Atomic.h>
-#include <klib/Hash.h>
 #include <kpi/fcntl.h>
 
 

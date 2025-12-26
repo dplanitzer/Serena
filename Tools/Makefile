@@ -84,10 +84,10 @@ $(OBJS_DIR)/clap.lib: $(LIBCLAP_C_SOURCES) $(LIBCLAP_H_SOURCES) | $(OBJS_DIR)
 #
 
 LIBC_SOURCES_DIR := ../Library/libc/Sources
+LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/hash.c
 LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/queue.c
 
 KERNEL_SOURCES_DIR := ../Kernel/Sources
-KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/klib/Hash.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filemanager/FileHierarchy.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filemanager/FileManager_Directory.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filemanager/FileManager_File.c

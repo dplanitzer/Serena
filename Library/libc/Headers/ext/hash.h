@@ -1,16 +1,18 @@
 //
-//  Hash.h
-//  kernel
+//  ext/hash.h
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 3/3/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef Hash_h
-#define Hash_h
+#ifndef _EXT_HASH_H
+#define _EXT_HASH_H
 
-#include <kern/types.h>
+#include <_cmndef.h>
+#include <stddef.h>
 
+__CPP_BEGIN
 
 //
 // General hash functions
@@ -38,4 +40,6 @@
 extern size_t hash_djb2_string(const char* _Nonnull str);
 extern size_t hash_djb2_bytes(const void* _Nonnull bytes, size_t len);
 
-#endif /* Hash_h */
+__CPP_END
+
+#endif /* _EXT_HASH_H */

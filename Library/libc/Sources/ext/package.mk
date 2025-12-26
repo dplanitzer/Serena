@@ -39,7 +39,8 @@ $(EXT_OBJS_DIR)/%.o : $(EXT_SOURCES_DIR)/%.c
 # Build variables
 #
 
-EXT_SC_SOURCES := $(EXT_SOURCES_DIR)/queue.c
+EXT_SC_SOURCES := $(EXT_SOURCES_DIR)/hash.c \
+				  $(EXT_SOURCES_DIR)/queue.c
 
 EXT_SC_OBJS := $(patsubst $(EXT_SOURCES_DIR)/%.c,$(EXT_SC_OBJS_DIR)/%.o,$(EXT_SC_SOURCES))
 EXT_SC_DEPS := $(EXT_SC_OBJS:.o=.d)

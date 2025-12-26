@@ -9,7 +9,7 @@
 #include "FileHierarchy.h"
 #include "FilesystemManager.h"
 #include <string.h>
-#include <klib/Hash.h>
+#include <ext/hash.h>
 #include <filesystem/FSUtilities.h>
 #include <filesystem/kernfs/KernFS.h>
 #include <sched/rwmtx.h>
