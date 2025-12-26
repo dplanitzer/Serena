@@ -13,9 +13,9 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <ext/math.h>
 #include <sys/sem.h>
 #include <sys/timespec.h>
-#include <_math.h>
 #include "Asserts.h"
 
 // See: https://medium.com/swlh/the-dining-philosophers-problem-solution-in-c-90e2593f64e8

@@ -11,7 +11,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <_math.h>
+#include <ext/math.h>
 
 #if __LP64__
 #define HEAP_ALIGNMENT  16

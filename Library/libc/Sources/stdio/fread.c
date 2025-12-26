@@ -7,9 +7,9 @@
 //
 
 #include "Stream.h"
-#include <_math.h>
 #include <string.h>
 #include <ext/limits.h>
+#include <ext/math.h>
 
 
 // Expects:

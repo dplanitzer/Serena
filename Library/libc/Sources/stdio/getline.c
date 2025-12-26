@@ -9,8 +9,8 @@
 #include "Stream.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <_math.h>
 #include <ext/limits.h>
+#include <ext/math.h>
 
 
 ssize_t getline(char **line, size_t * _Nonnull _Restrict n, FILE * _Nonnull _Restrict s)

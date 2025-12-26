@@ -7,7 +7,7 @@
 //
 
 #include <math.h>
-#include <_math.h>
+#include <ext/math.h>
 
 double fabs(double x)
 {

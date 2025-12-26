@@ -8,7 +8,7 @@
 
 #include "Surface.h"
 #include "video_conf.h"
-#include <_math.h>
+#include <ext/math.h>
 #include <string.h>
 #include <kern/kalloc.h>
 

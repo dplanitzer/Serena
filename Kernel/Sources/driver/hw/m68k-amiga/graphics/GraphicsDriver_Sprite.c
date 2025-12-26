@@ -8,7 +8,7 @@
 
 #include "GraphicsDriverPriv.h"
 #include "copper.h"
-#include <_math.h>
+#include <ext/math.h>
 #include <kern/kalloc.h>
 #include <kpi/hid.h>
 

@@ -7,8 +7,8 @@
 //
 
 #include <limits.h>
-#include <_math.h>
 #include <string.h>
+#include <ext/math.h>
 #include <sched/vcpu.h>
 
 extern void fpu_idle_fsave(char* _Nonnull fsave);

@@ -12,13 +12,13 @@
 #include <arch/_offsetof.h>
 #include <arch/_ssize.h>
 #include <_cmndef.h>
-#include <_math.h>
 #include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
 #include <ext/limits.h>
+#include <ext/math.h>
 #include <kpi/_access.h>
 #include <kpi/_seek.h>
 

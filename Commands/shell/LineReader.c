@@ -10,11 +10,11 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
-#include <_math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <ext/math.h>
 #include <sys/console.h>
 #include <sys/ioctl.h>
 

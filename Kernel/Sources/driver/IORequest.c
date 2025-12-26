@@ -7,10 +7,10 @@
 //
 
 #include "IORequest.h"
+#include <ext/math.h>
 #include <ext/queue.h>
 #include <kern/kalloc.h>
 #include <sched/mtx.h>
-#include <_math.h>
 
 
 #define MAX_CACHED_REQUESTS 8

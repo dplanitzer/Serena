@@ -12,9 +12,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <ext/math.h>
 #include <sys/mtx.h>
 #include <sys/timespec.h>
-#include <_math.h>
 #include "Asserts.h"
 
 

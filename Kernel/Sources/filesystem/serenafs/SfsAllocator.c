@@ -7,8 +7,8 @@
 //
 
 #include "SfsAllocator.h"
-#include <_math.h>
 #include <string.h>
+#include <ext/math.h>
 #include <filesystem/FSContainer.h>
 #include <filesystem/FSUtilities.h>
 #include <kern/endian.h>

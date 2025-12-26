@@ -8,7 +8,7 @@
 
 #include <stdlib.h>
 #include <inttypes.h>
-#include <_math.h>
+#include <ext/math.h>
 
 int abs(int n)
 {

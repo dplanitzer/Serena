@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <__stddef.h>
-#include <_math.h>
+#include <ext/math.h>
 #include <sys/mtx.h>
 #include <sys/vm.h>
 #include "__malloc.h"

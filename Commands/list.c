@@ -12,12 +12,12 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ext/math.h>
 #include <ext/string.h>
 #include <time.h>
 #include <unistd.h>
 #include <sys/perm.h>
 #include <sys/stat.h>
-#include <_math.h>
 
 extern const char* __gc_abbrev_ymon(unsigned m);
 

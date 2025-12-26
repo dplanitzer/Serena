@@ -9,10 +9,10 @@
 #ifndef ___STDDEF_H
 #define ___STDDEF_H 1
 
-#include <_math.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <ext/math.h>
 #if ___STDC_HOSTED__ == 1
 #include <sys/proc.h>
 #endif

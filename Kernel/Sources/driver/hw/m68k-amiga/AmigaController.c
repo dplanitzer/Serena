@@ -7,7 +7,7 @@
 //
 
 #include "AmigaController.h"
-#include <_math.h>
+#include <ext/math.h>
 #include <filesystem/SerenaDiskImage.h>
 #include <driver/hw/m68k-amiga/floppy/FloppyController.h>
 #include <driver/hw/m68k-amiga/graphics/GraphicsDriver.h>
