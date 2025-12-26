@@ -9,6 +9,7 @@
 #include "RunStack.h"
 #include "Utilities.h"
 #include <string.h>
+#include <ext/hash.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // Variable
@@ -99,7 +100,7 @@ static Variable* _Nullable _Scope_GetVariable(Scope* _Nonnull self, const char* 
 
 static Variable* _Nullable Scope_GetVariable(Scope* _Nonnull self, const char* _Nonnull name)
 {
-    return _Scope_GetVariable(self, name, hash_cstring(name));
+    return _Scope_GetVariable(self, name, hash_string(name));
 }
 
 static errno_t Scope_Iterate(Scope* _Nonnull self, RunStackIterator _Nonnull cb, void* _Nullable context, bool* _Nonnull pOutDone)
@@ -129,7 +130,7 @@ static errno_t Scope_DeclareVariable(Scope* _Nonnull self, unsigned int modifier
 {
     decl_try_err();
     Variable* vp;
-    const size_t hashCode = hash_cstring(name);
+    const size_t hashCode = hash_string(name);
     const size_t hashIndex = hashCode % self->hashtableCapacity;
 
     if (_Scope_GetVariable(self, name, hashCode)) {
@@ -295,7 +296,7 @@ static Scope* _Nullable _RunStack_GetScopeForName(RunStack* _Nonnull self, const
 
 static Variable* _Nullable _RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nullable scopeName, const char* _Nonnull name, Scope* _Nonnull * _Nullable pOutScope)
 {
-    const size_t hashCode = hash_cstring(name);
+    const size_t hashCode = hash_string(name);
     Scope* scope = _RunStack_GetScopeForName(self, scopeName);
     Variable* vp = NULL;
 

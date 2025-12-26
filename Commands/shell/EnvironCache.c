@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <ext/hash.h>
 
 
 #define INITIAL_HASHTABLE_CAPACITY  16
@@ -101,7 +102,7 @@ static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull 
     // Check whether an entry 'name=value' already exists in our hash table. Shadow
     // definitions won't get added since the definition from the newest scope was
     // added first.
-    const size_t hashIndex = hash_cstring(vp->name) % self->hashtableCapacity;
+    const size_t hashIndex = hash_string(vp->name) % self->hashtableCapacity;
     EnvironEntry* entry = self->hashtable[hashIndex];
 
     while (entry) {

@@ -9,6 +9,7 @@
 #include "NameTable.h"
 #include "Utilities.h"
 #include <string.h>
+#include <ext/hash.h>
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -98,7 +99,7 @@ static Name* _Nullable _Namespace_GetName(Namespace* _Nonnull self, const char* 
 
 static Name* _Nullable Namespace_GetName(Namespace* _Nonnull self, const char* _Nonnull name)
 {
-    return _Namespace_GetName(self, name, hash_cstring(name));
+    return _Namespace_GetName(self, name, hash_string(name));
 }
 
 static errno_t Namespace_IterateSymbols(Namespace* _Nonnull self, NameTableIterator _Nonnull cb, void* _Nullable context, bool* _Nonnull pOutDone)
@@ -128,7 +129,7 @@ static errno_t Namespace_DeclareName(Namespace* _Nonnull self, const char* _Nonn
 {
     decl_try_err();
     Name* np;
-    const size_t hashCode = hash_cstring(name);
+    const size_t hashCode = hash_string(name);
     const size_t hashIndex = hashCode % self->hashtableCapacity;
 
     if (_Namespace_GetName(self, name, hashCode)) {
@@ -195,7 +196,7 @@ errno_t NameTable_PopNamespace(NameTable* _Nonnull self)
 
 static Name* _Nullable _NameTable_GetName(NameTable* _Nonnull self, const char* _Nonnull name, Namespace* _Nonnull * _Nullable pOutNamespace)
 {
-    const size_t hashCode = hash_cstring(name);
+    const size_t hashCode = hash_string(name);
     Namespace* ns = self->currentNamespace;
 
     while (ns) {

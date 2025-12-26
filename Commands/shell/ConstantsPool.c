@@ -9,6 +9,7 @@
 #include "ConstantsPool.h"
 #include "Utilities.h"
 #include <string.h>
+#include <ext/hash.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // Constant
@@ -80,7 +81,7 @@ static void _ConstantsPool_DestroyHashtable(ConstantsPool* _Nonnull self)
 
 void ConstantsPool_GetStringValue(ConstantsPool* _Nonnull self, const char* _Nonnull str, size_t len, Value* _Nonnull vp)
 {
-    const size_t hashCode = hash_string(str, len);
+    const size_t hashCode = hash_bytes(str, len);
     const size_t hashIndex = hashCode % self->hashtableCapacity;
     Constant* cp = self->hashtable[hashIndex];
 
