@@ -10,7 +10,7 @@
 #define GraphicsDriverPriv_h
 
 #include "GraphicsDriver.h"
-#include <klib/List.h>
+#include <ext/queue.h>
 #include <process/Process.h>
 #include <sched/mtx.h>
 #include <sched/sem.h>

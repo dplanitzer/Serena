@@ -9,8 +9,8 @@
 #ifndef AddressSpace_h
 #define AddressSpace_h
 
+#include <ext/queue.h>
 #include <kern/try.h>
-#include <klib/List.h>
 #include <kobj/AnyRefs.h>
 #include <sched/mtx.h>
 

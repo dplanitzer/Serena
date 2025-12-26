@@ -9,11 +9,11 @@
 #include "FilesystemManager.h"
 #include <kdispatch/kdispatch.h>
 #include <driver/disk/DiskDriver.h>
+#include <ext/queue.h>
 #include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
 #include <filesystem/kernfs/KernFS.h>
 #include <filesystem/serenafs/SerenaFS.h>
-#include <klib/List.h>
 #include <kern/kalloc.h>
 #include <kern/timespec.h>
 #include <sched/mtx.h>

@@ -7,6 +7,7 @@
 //
 
 #include <limits.h>
+#include <_math.h>
 #include <string.h>
 #include <sched/vcpu.h>
 

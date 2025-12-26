@@ -10,9 +10,9 @@
 #define Filesystem_h
 
 #include <stdarg.h>
+#include <ext/queue.h>
 #include <kern/kernlib.h>
 #include <kobj/Object.h>
-#include <klib/List.h>
 #include <sched/cnd.h>
 #include <sched/mtx.h>
 #include "Inode.h"

@@ -13,6 +13,7 @@
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <kern/assert.h>
 #include <kern/kalloc.h>
+#include <kern/kernlib.h>
 
 
 // Reads a byte value from the given Zorro auto configuration address

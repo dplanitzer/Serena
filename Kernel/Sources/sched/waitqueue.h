@@ -10,10 +10,10 @@
 #define _WAITQUEUE_H 1
 
 #include <limits.h>
+#include <ext/queue.h>
 #include <kern/try.h>
 #include <kern/timespec.h>
 #include <kern/types.h>
-#include <klib/List.h>
 #include <kpi/signal.h>
 #include <kpi/waitqueue.h>
 

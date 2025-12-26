@@ -12,7 +12,7 @@
 #include <_cmndef.h>
 #include <arch/_null.h>
 #include <arch/_offsetof.h>
-#include <sys/queue.h>
+#include <ext/queue.h>
 #include <sys/types.h>
 #include <sys/vcpu.h>
 

@@ -1,12 +1,12 @@
 //
-//  sys/queue.c
-//  libc
+//  ext/queue.c
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 2/17/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <sys/queue.h>
+#include <ext/queue.h>
 
 
 //

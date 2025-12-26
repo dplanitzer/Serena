@@ -11,9 +11,9 @@
 
 #include "KernFS.h"
 #include "KfsNode.h"
+#include <ext/queue.h>
 #include <filesystem/FSUtilities.h>
 #include <klib/Hash.h>
-#include <klib/List.h>
 #include <sched/mtx.h>
 
 

@@ -10,8 +10,8 @@
 #define __LOCALE_H 1
 
 #include <locale.h>
+#include <ext/queue.h>
 #include <sys/mtx.h>
-#include <sys/queue.h>
 
 __CPP_BEGIN
 

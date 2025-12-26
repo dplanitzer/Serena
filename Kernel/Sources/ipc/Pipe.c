@@ -7,6 +7,7 @@
 //
 
 #include "Pipe.h"
+#include <_math.h>
 #include <klib/RingBuffer.h>
 #include <kern/timespec.h>
 #include <kpi/stat.h>

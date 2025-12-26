@@ -11,9 +11,9 @@
 
 #include "DiskCache.h"
 #include "DiskBlock.h"
-#include <klib/Hash.h>
-#include <klib/List.h>
 #include <driver/disk/DiskDriver.h>
+#include <ext/queue.h>
+#include <klib/Hash.h>
 #include <sched/cnd.h>
 #include <sched/mtx.h>
 

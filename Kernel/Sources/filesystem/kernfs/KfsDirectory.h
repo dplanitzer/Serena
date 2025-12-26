@@ -10,8 +10,8 @@
 #define KfsDirectory_h
 
 #include "KfsNode.h"
+#include <ext/queue.h>
 #include <filesystem/PathComponent.h>
-#include <klib/List.h>
 
 
 #define MAX_LINK_COUNT      65535

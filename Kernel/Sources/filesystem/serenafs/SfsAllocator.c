@@ -7,6 +7,7 @@
 //
 
 #include "SfsAllocator.h"
+#include <_math.h>
 #include <string.h>
 #include <filesystem/FSContainer.h>
 #include <filesystem/FSUtilities.h>

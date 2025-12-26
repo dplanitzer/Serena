@@ -9,8 +9,8 @@
 #ifndef DiskBlock_h
 #define DiskBlock_h
 
+#include <ext/queue.h>
 #include <kobj/Object.h>
-#include <klib/List.h>
 #include <filesystem/FSBlock.h>
 
 

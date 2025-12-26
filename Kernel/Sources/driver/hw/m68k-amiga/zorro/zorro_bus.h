@@ -9,7 +9,7 @@
 #ifndef zorro_bus_h
 #define zorro_bus_h
 
-#include <klib/List.h>
+#include <ext/queue.h>
 #include <machine/amiga/zorro.h>
 
 

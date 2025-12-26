@@ -11,10 +11,10 @@
 
 #include <_cmndef.h>
 #include <stdnoreturn.h>
+#include <ext/queue.h>
 #include <kern/try.h>
 #include <kern/timespec.h>
 #include <kern/types.h>
-#include <klib/List.h>
 #include <kpi/vcpu.h>
 
 __CPP_BEGIN

@@ -9,13 +9,13 @@
 #ifndef _VCPU_H
 #define _VCPU_H 1
 
+#include <ext/queue.h>
 #include <hal/clock.h>
 #include <hal/cpu.h>
 #include <hal/sys_desc.h>
 #include <kern/try.h>
 #include <kern/types.h>
 #include <klib/Atomic.h>
-#include <klib/List.h>
 #include <kpi/exception.h>
 #include <kpi/signal.h>
 #include <kpi/vcpu.h>

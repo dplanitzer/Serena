@@ -1,18 +1,18 @@
 //
-//  sys/queue.h
-//  libc
+//  ext/queue.h
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 2/17/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_QUEUE_H
-#define _SYS_QUEUE_H 1
+#ifndef _EXT_QUEUE_H
+#define _EXT_QUEUE_H 1
 
 #include <_cmndef.h>
-#include <arch/_null.h>
-#include <arch/_offsetof.h>
-#include <stdbool.h>
+#include <stddef.h>
+
+__CPP_BEGIN
 
 //
 // A doubly linked list.
@@ -141,4 +141,6 @@ void SList_Remove(SList* _Nonnull pList, SListNode* _Nullable pPrevNode, SListNo
 #define queue_entry_as(__qe_ptr, __qe_field_name, __type) \
 (struct __type*) (((char*)__qe_ptr) - offsetof(struct __type, __qe_field_name))
 
-#endif /* _SYS_QUEUE_H */
+__CPP_END
+
+#endif /* _EXT_QUEUE_H */

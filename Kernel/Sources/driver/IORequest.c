@@ -7,8 +7,8 @@
 //
 
 #include "IORequest.h"
+#include <ext/queue.h>
 #include <kern/kalloc.h>
-#include <klib/List.h>
 #include <sched/mtx.h>
 #include <_math.h>
 

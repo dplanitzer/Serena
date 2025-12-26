@@ -10,7 +10,7 @@
 #define KfsNode_h
 
 #include <filesystem/Inode.h>
-#include <klib/List.h>
+#include <ext/queue.h>
 
     
 open_class(KfsNode, Inode,

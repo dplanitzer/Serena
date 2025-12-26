@@ -10,7 +10,7 @@
 #define Driver_h
 
 #include <stdarg.h>
-#include <klib/List.h>
+#include <ext/queue.h>
 #include <kobj/Object.h>
 #include <kpi/ioctl.h>
 #include <kpi/stat.h>

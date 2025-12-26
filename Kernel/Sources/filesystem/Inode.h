@@ -9,8 +9,8 @@
 #ifndef Inode_h
 #define Inode_h
 
+#include <ext/queue.h>
 #include <kobj/Any.h>
-#include <klib/List.h>
 #include <kpi/dirent.h>
 #include <kpi/stat.h>
 #include <sched/mtx.h>

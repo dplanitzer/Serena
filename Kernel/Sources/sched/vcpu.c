@@ -10,6 +10,7 @@
 #include "sched.h"
 #include "vcpu_pool.h"
 #include <limits.h>
+#include <_math.h>
 #include <string.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
