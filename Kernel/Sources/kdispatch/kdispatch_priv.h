@@ -11,11 +11,11 @@
 
 #include "kdispatch.h"
 #include <limits.h>
+#include <ext/timespec.h>
 #include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <kern/signal.h>
-#include <kern/timespec.h>
 #include <kern/types.h>
 #include <sched/cnd.h>
 #include <sched/mtx.h>

@@ -11,8 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
-#include <time.h>
-#include <kpi/_time.h>
+#include <_time.h>
 
 
 const struct timespec TIMESPEC_ZERO = {0l, 0l};

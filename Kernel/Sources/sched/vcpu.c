@@ -12,11 +12,11 @@
 #include <limits.h>
 #include <string.h>
 #include <ext/math.h>
+#include <ext/timespec.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
 #include <kern/assert.h>
 #include <kern/kalloc.h>
-#include <kern/timespec.h>
 
 static void _vcpu_yield(vcpu_t _Nonnull self);
 

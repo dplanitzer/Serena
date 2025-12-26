@@ -1,17 +1,16 @@
 //
-//  kern/timespec.h
-//  libc
+//  ext/timespec.h
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 5/15/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KERN_TIMESPEC_H
-#define _KERN_TIMESPEC_H
+#ifndef _EXT_TIMESPEC_H
+#define _EXT_TIMESPEC_H
 
 #include <_cmndef.h>
-#include <kpi/_time.h>
-#include <stdbool.h>
+#include <_time.h>
 #include <stdint.h>
 
 
@@ -89,4 +88,4 @@ extern void timespec_normalize(struct timespec* _Nonnull ts);
 extern const struct timespec    TIMESPEC_ZERO;
 extern const struct timespec    TIMESPEC_INF;
 
-#endif /* _KERN_TIMESPEC_H */
+#endif /* _EXT_TIMESPEC_H */

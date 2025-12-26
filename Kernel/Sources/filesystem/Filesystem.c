@@ -11,7 +11,7 @@
 #include "InodeChannel.h"
 #include "FSChannel.h"
 #include <ext/hash.h>
-#include <kern/timespec.h>
+#include <ext/timespec.h>
 #include <klib/Atomic.h>
 #include <kpi/fcntl.h>
 

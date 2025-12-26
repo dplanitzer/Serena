@@ -8,8 +8,8 @@
 
 #include "delay.h"
 #include "sched.h"
+#include <ext/timespec.h>
 #include <hal/clock.h>
-#include <kern/timespec.h>
 #include <sched/waitqueue.h>
 
 // At most 1ms

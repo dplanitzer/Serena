@@ -12,9 +12,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <ext/timespec.h>
 #include <sys/mount.h>
 #include <sys/spawn.h>
-#include <sys/timespec.h>
 
 
 static _Noreturn halt_machine(void)

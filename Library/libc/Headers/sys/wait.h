@@ -10,9 +10,9 @@
 #define _SYS_WAIT_H 1
 
 #include <_cmndef.h>
+#include <ext/timespec.h>
 #include <kpi/wait.h>
 #include <sys/types.h>
-#include <sys/timespec.h>
 
 __CPP_BEGIN
 

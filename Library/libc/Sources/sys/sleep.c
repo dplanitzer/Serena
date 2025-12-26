@@ -7,8 +7,8 @@
 //
 
 #include <time.h>
+#include <ext/timespec.h>
 #include <kpi/syscall.h>
-#include <sys/timespec.h>
 
 
 unsigned int sleep(unsigned int seconds)

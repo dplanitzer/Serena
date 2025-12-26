@@ -6,9 +6,9 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
+#include <ext/timespec.h>
 #include <sys/cnd.h>
 #include <kpi/syscall.h>
-#include <sys/timespec.h>
 #include <sys/waitqueue.h>
 #include <errno.h>
 #include <stddef.h>

@@ -8,8 +8,8 @@
 
 #include "syscalldecls.h"
 #include <ext/hash.h>
+#include <ext/timespec.h>
 #include <hal/sched.h>
-#include <kern/timespec.h>
 #include <kern/kalloc.h>
 #include <kpi/signal.h>
 #include <sched/waitqueue.h>

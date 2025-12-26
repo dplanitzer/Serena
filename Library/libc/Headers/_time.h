@@ -1,13 +1,13 @@
 //
-//  kpi/_time.h
-//  libc
+//  _time.h
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 2/5/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KPI_TIME_H
-#define _KPI_TIME_H 1
+#ifndef __TIME_H
+#define __TIME_H 1
 
 #ifdef _POSIX_SOURCE
 // Type to identify a clock
@@ -48,4 +48,4 @@ typedef long mseconds_t;
 // Microseconds
 typedef long useconds_t;
 
-#endif /* _KPI_TIME_H */
+#endif /* __TIME_H */

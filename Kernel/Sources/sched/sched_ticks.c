@@ -8,9 +8,9 @@
 
 #include "sched.h"
 #include "vcpu.h"
+#include <ext/timespec.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
-#include <kern/timespec.h>
 
 
 // Invoked by the clock when a wait timeout expires

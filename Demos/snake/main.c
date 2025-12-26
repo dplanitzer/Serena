@@ -18,7 +18,7 @@
 #include <ext/string.h>
 #include <fcntl.h>
 #include <time.h>
-#include <sys/timespec.h>
+#include <ext/timespec.h>
 #include "utils.h"
 
 

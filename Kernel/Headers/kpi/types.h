@@ -13,7 +13,7 @@
 #include <arch/_off.h>
 #include <arch/_size.h>
 #include <arch/_ssize.h>
-#include <kpi/_time.h>
+#include <_time.h>
 
 
 // Process and user related ids

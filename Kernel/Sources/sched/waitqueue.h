@@ -11,8 +11,8 @@
 
 #include <limits.h>
 #include <ext/queue.h>
+#include <ext/timespec.h>
 #include <kern/try.h>
-#include <kern/timespec.h>
 #include <kern/types.h>
 #include <kpi/signal.h>
 #include <kpi/waitqueue.h>

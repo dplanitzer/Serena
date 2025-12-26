@@ -7,10 +7,10 @@
 //
 
 #include "HIDEventSynth.h"
+#include <ext/timespec.h>
 #include <hal/clock.h>
 #include <kern/kernlib.h>
 #include <kpi/hidkeycodes.h>
-#include <kern/timespec.h>
 
 
 enum {

@@ -14,10 +14,10 @@
 #endif
 
 #include <inttypes.h>
+#include <_time.h>
 #include <stdnoreturn.h>
 #include <kpi/_access.h>
 #include <kpi/_seek.h>
-#include <kpi/_time.h>
 #include <sys/types.h>
 
 __CPP_BEGIN

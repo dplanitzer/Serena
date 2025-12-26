@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <stdnoreturn.h>
 #include <ext/queue.h>
-#include <sys/timespec.h>
+#include <ext/timespec.h>
 #include <kpi/vcpu.h>
 
 __CPP_BEGIN

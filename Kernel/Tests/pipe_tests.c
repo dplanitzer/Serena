@@ -13,7 +13,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/timespec.h>
+#include <ext/timespec.h>
 #include "Asserts.h"
 
 static int fds[2];

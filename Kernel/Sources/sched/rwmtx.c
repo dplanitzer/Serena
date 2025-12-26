@@ -8,7 +8,7 @@
 
 #include "rwmtx.h"
 #include "vcpu.h"
-#include <kern/timespec.h>
+#include <ext/timespec.h>
 
 
 // Initializes a new shared-exclusive lock.

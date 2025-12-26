@@ -1,5 +1,5 @@
 //
-//  kpi/_time.h
+//  _time.h
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 5/16/25.

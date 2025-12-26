@@ -10,8 +10,8 @@
 #include <string.h>
 #include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
+#include <ext/timespec.h>
 #include <kern/assert.h>
-#include <kern/timespec.h>
 #include <kpi/console.h>
 #include <kpi/fcntl.h>
 #include <kpi/hid.h>

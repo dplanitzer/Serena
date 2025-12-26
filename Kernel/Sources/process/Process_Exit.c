@@ -8,9 +8,9 @@
 
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
+#include <ext/timespec.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
-#include <kern/timespec.h>
 #include <kpi/wait.h>
 #include <log/Log.h>
 

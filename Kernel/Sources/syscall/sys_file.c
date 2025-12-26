@@ -8,8 +8,8 @@
 
 #include "syscalldecls.h"
 #include <limits.h>
+#include <ext/timespec.h>
 #include <filesystem/IOChannel.h>
-#include <kern/timespec.h>
 #include <kpi/uid.h>
 #include <process/kio.h>
 

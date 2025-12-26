@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <sys/timespec.h>
+#include <ext/timespec.h>
 
 typedef struct tim_conv {
     const char*     unit;

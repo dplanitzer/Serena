@@ -6,12 +6,12 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
+#include <ext/timespec.h>
 #include <hal/clock.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <hal/irq.h>
 #include <kern/assert.h>
 #include <kern/kernlib.h>
-#include <kern/timespec.h>
 #include <sched/sched.h>
 
 struct ticks_ns {

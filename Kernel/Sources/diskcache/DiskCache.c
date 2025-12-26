@@ -10,8 +10,8 @@
 #include <limits.h>
 #include <string.h>
 #include <log/Log.h>
+#include <ext/timespec.h>
 #include <kern/kalloc.h>
-#include <kern/timespec.h>
 #include <sched/vcpu.h>
 
 

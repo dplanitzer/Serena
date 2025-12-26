@@ -13,8 +13,8 @@
 #include <string.h>
 #include <time.h>
 #include <ext/math.h>
+#include <ext/timespec.h>
 #include <sys/mtx.h>
-#include <sys/timespec.h>
 #include "Asserts.h"
 
 

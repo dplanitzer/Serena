@@ -7,7 +7,7 @@
 //
 
 #include "DiskCachePriv.h"
-#include <kern/timespec.h>
+#include <ext/timespec.h>
 
 static void _on_disk_request_done(StrategyRequest* _Nonnull req);
 

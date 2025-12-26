@@ -12,8 +12,8 @@
 #include <dispatch.h>
 #include <assert.h>
 #include <signal.h>
+#include <ext/timespec.h>
 #include <sys/cnd.h>
-#include <sys/timespec.h>
 #include <sys/vcpu.h>
 
 __CPP_BEGIN

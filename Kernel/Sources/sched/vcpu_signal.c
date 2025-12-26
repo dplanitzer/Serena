@@ -9,9 +9,9 @@
 #include "vcpu.h"
 #include "sched.h"
 #include <limits.h>
+#include <ext/timespec.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
-#include <kern/timespec.h>
 #include <kpi/signal.h>
 
 

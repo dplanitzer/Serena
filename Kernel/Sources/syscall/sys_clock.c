@@ -7,9 +7,9 @@
 //
 
 #include "syscalldecls.h"
+#include <ext/timespec.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
-#include <kern/timespec.h>
 
 
 SYSCALL_4(clock_nanosleep, int clockid, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)

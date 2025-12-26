@@ -11,8 +11,8 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <ext/timespec.h>
 #include <sys/exception.h>
-#include <sys/timespec.h>
 #include <sys/vcpu.h>
 #include "Asserts.h"
 

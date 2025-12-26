@@ -8,8 +8,8 @@
 
 #include "Pipe.h"
 #include <ext/math.h>
+#include <ext/timespec.h>
 #include <klib/RingBuffer.h>
-#include <kern/timespec.h>
 #include <kpi/stat.h>
 #include <sched/cnd.h>
 #include <sched/mtx.h>
