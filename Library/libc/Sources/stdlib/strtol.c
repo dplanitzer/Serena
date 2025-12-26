@@ -7,19 +7,21 @@
 //
 
 #include <__stddef.h>
+#include <errno.h>
 #include <stdlib.h>
-#include <inttypes.h>
 #include <limits.h>
 
 
 long strtol(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
     long long r;
+    int err;
 
-    if (__strtoi64(str, str_end, base, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r) == 0) {
+    if ((err = __strtoi64(str, str_end, base, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r)) == 0) {
         return (long) r;
     }
     else {
+        errno = err;
         return 0;
     }
 }
@@ -27,10 +29,12 @@ long strtol(const char * _Restrict str, char ** _Restrict str_end, int base)
 long atol(const char *str)
 {
     long long r;
+    int err;
 
-    if (__strtoi64(str, NULL, 10, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r) == 0) {
+    if ((err = __strtoi64(str, NULL, 10, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r)) == 0) {
         return (long) r;
     } else {
+        errno = err;
         return 0;
     }
 }

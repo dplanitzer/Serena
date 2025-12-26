@@ -7,18 +7,20 @@
 //
 
 #include <__stddef.h>
+#include <errno.h>
 #include <stdlib.h>
-#include <inttypes.h>
 #include <limits.h>
 
 
 int atoi(const char *str)
 {
     long long r;
+    int err;
 
-    if (__strtoi64(str, NULL, 10, INT_MIN, INT_MAX, __INT_MAX_BASE_10_DIGITS, &r) == 0) {
+    if ((err = __strtoi64(str, NULL, 10, INT_MIN, INT_MAX, __INT_MAX_BASE_10_DIGITS, &r)) == 0) {
         return (int) r;
     } else {
+        errno = err;
         return 0;
     }
 }
