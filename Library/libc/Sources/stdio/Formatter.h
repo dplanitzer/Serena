@@ -10,7 +10,7 @@
 #define Formatter_h
 
 #include <stdio.h>
-#include <__stddef.h>
+#include <__itoa.h>
 
 
 struct Formatter;

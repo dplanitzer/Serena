@@ -1,13 +1,13 @@
 //
 //  __u32toa.c
-//  libc
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#include <__itoa.h>
 #include <string.h>
-#include <__stddef.h>
 
 
 // 'radix' must be 2, 8, 10 or 16

@@ -323,12 +323,12 @@ static void Console_VT100_CSI_n_Locked(ConsoleRef _Nonnull self)
                     *ptr++ = '\033';
                     *ptr++ = '[';
                     if (self-> x > 0 || self->y > 0) {
-                        const char* lb = Int32_ToString(self->y + 1, 10, false, numbuf);
+                        const char* lb = itoa(self->y + 1, numbuf, 10);
                         while (*lb != '\0') {
                             *ptr++ = *lb++;
                         }
                         *ptr++ = ';';
-                        const char* cb = Int32_ToString(self->x + 1, 10, false, numbuf);
+                        const char* cb = itoa(self->x + 1, numbuf, 10);
                         while (*cb != '\0') {
                             *ptr++ = *cb++;
                         }

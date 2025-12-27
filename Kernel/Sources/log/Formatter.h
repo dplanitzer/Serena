@@ -10,6 +10,7 @@
 #define Formatter_h
 
 #include <stdarg.h>
+#include <__itoa.h>
 #include <kern/try.h>
 #include <kern/kernlib.h>
 #include <kern/types.h>
@@ -44,7 +45,7 @@ struct Formatter {
     Formatter_Sink _Nonnull sink;
     void* _Nullable         context;
     ssize_t                 charactersWritten;
-    char                    digits[DIGIT_BUFFER_CAPACITY];
+    i64a_t                  i64a;
 };
 
 

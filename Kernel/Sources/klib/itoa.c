@@ -1,18 +1,17 @@
 //
 //  itoa.c
-//  libc
+//  kernel
 //
-//  Created by Dietmar Planitzer on 8/23/23.
-//  Copyright © 2023 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 12/26/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <errno.h>
-#include <stdlib.h>
 #include <string.h>
 #include <__itoa.h>
+#include <kern/kernlib.h>
 
 
-char *itoa(int val, char *buf, int radix)
+char * _Nullable itoa(int val, char * _Nonnull buf, int radix)
 {
     i32a_t i32a;
     char* p;
@@ -30,7 +29,6 @@ char *itoa(int val, char *buf, int radix)
                 break;
 
             default:
-                errno = EINVAL;
                 return NULL;
         }
         memcpy(buf, p, i32a.length + 1);
@@ -38,7 +36,7 @@ char *itoa(int val, char *buf, int radix)
     return buf;
 }
 
-char *ltoa(long val, char *buf, int radix)
+char * _Nullable ltoa(long val, char * _Nonnull buf, int radix)
 {
     return itoa(val, buf, radix);
 }

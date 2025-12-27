@@ -13,7 +13,7 @@
 #include <inttypes.h>   // imaxabs(), imaxdiv()
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h> // abs(), div(), qsort(), bsearch()
+#include <stdlib.h> // abs(), div(), qsort(), bsearch(), itoa(), ltoa(), strtol()
 #include <ext/limits.h>
 #include <../../../Kernel/Headers/kpi/_access.h>
 #include <../../../Kernel/Headers/kpi/_seek.h>
@@ -114,40 +114,9 @@ ull_log2((unsigned long long)__n)
 #endif
 
 
-// int32_t
-// 'pBuffer' must be at least DIGIT_BUFFER_CAPACITY characters long
-extern const char* _Nonnull Int32_ToString(int32_t val, int radix, bool isUppercase, char* _Nonnull pBuffer);
-
-
-// uint32_t
-// 'pBuffer' must be at least DIGIT_BUFFER_CAPACITY characters long
-extern const char* _Nonnull UInt32_ToString(uint32_t val, int base, bool isUppercase, char* _Nonnull pBuffer);
-
-
-// int64_t
-// 'pBuffer' must be at least DIGIT_BUFFER_CAPACITY characters long
-extern const char* _Nonnull Int64_ToString(int64_t val, int radix, bool isUppercase, char* _Nonnull pBuffer);
-
-
-// uint64_t
-// 'pBuffer' must be at least DIGIT_BUFFER_CAPACITY characters long
-extern const char* _Nonnull UInt64_ToString(uint64_t val, int base, bool isUppercase, char* _Nonnull pBuffer);
-
-
 // Required minimum size is (string length byte + sign byte + longest digit sequence + 1 NUL byte) -> 1 + 64 (binary 64bit) + 1 + 1 = 25 bytes
 // A digit string is generated in a canonical representation: string length, sign, digits ..., NUL
 #define DIGIT_BUFFER_CAPACITY 67
-
-// 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
-extern char* _Nonnull __i32toa(int32_t val, char* _Nonnull digits);
-extern char* _Nonnull __i64toa(int64_t val, char* _Nonnull digits);
-
-// 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
-// 'radix' must be 8, 10 or 16
-extern char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, char* _Nonnull digits);
-extern char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char* _Nonnull digits);
-
-extern int _atoi(const char *str, char **str_end, int base);
 
 __CPP_END
 

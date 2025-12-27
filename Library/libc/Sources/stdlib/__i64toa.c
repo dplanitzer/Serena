@@ -1,13 +1,15 @@
 //
 //  __i64toa.c
-//  libc
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#include <__itoa.h>
 #include <string.h>
-#include <__stddef.h>
+
+extern int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder);
 
 
 char* _Nonnull __i64toa(int64_t val, ia_sign_format_t sign_mode, i64a_t* _Nonnull out)

@@ -1,6 +1,6 @@
 //
 //  qsort.c
-//  libc
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 8/21/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

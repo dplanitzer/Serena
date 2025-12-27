@@ -89,7 +89,7 @@ errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
         pp->sid = pp->pid;
     }
     
-    UInt32_ToString(pp->pid, 10, false, g_pid_buf);
+    utoa(pp->pid, g_pid_buf, 10);
     try(Catalog_PublishProcess(gProcCatalog, g_pid_buf, kUserId_Root, kGroupId_Root, perm_from_octal(0444), pp, &pp->rel.cat_id));
     
     if (pp->pid != pp->ppid) {

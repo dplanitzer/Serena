@@ -40,7 +40,12 @@ $(STDLIB_OBJS_DIR)/%.o : $(STDLIB_SOURCES_DIR)/%.c
 #
 
 STDLIB_SC_SOURCES := $(STDLIB_SOURCES_DIR)/bsearch.c \
-					 $(STDLIB_SOURCES_DIR)/qsort.c
+					 $(STDLIB_SOURCES_DIR)/qsort.c \
+					 $(STDLIB_SOURCES_DIR)/__i32toa.c \
+					 $(STDLIB_SOURCES_DIR)/__i64toa.c \
+					 $(STDLIB_SOURCES_DIR)/__strtoi64.c \
+					 $(STDLIB_SOURCES_DIR)/__u32toa.c \
+					 $(STDLIB_SOURCES_DIR)/__u64toa.c
 
 STDLIB_SC_OBJS := $(patsubst $(STDLIB_SOURCES_DIR)/%.c,$(STDLIB_SC_OBJS_DIR)/%.o,$(STDLIB_SC_SOURCES))
 STDLIB_SC_DEPS := $(STDLIB_SC_OBJS:.o=.d)

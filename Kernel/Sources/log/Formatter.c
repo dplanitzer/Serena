@@ -106,7 +106,7 @@ static const char* _Nonnull Formatter_ParseConversionSpec(struct Formatter* _Non
         format++;
     }
     else if (ch >= '1' && ch <= '9') {
-        spec->minimumFieldWidth = (ssize_t)_atoi(format, &format, 10);
+        spec->minimumFieldWidth = (ssize_t)strtol(format, &format, 10);
     }
 
     // Precision
@@ -119,7 +119,7 @@ static const char* _Nonnull Formatter_ParseConversionSpec(struct Formatter* _Non
             format++;
         }
         else if (ch >= '0' && ch <= '9') {
-            spec->precision = (ssize_t)_atoi(format, &format, 10);
+            spec->precision = (ssize_t)strtol(format, &format, 10);
         }
         spec->flags.hasPrecision = true;
     }
@@ -250,9 +250,9 @@ static void Formatter_FormatSignedInteger(struct Formatter* _Nonnull self, const
     }
 
     if (nbits == 64) {
-        pCanonDigits = __i64toa(v64, self->digits);
+        pCanonDigits = __i64toa(v64, ia_sign_plus_minus, &self->i64a);
     } else {
-        pCanonDigits = __i32toa(v32, self->digits);
+        pCanonDigits = __i32toa(v32, ia_sign_plus_minus, (i32a_t*)&self->i64a);
     }
 
     Formatter_FormatSignedIntegerField(self, spec, pCanonDigits);
@@ -283,9 +283,9 @@ static void Formatter_FormatUnsignedInteger(struct Formatter* _Nonnull self, int
     }
 
     if (nbits == 64) {
-        pCanonDigits = __ui64toa(v64, radix, isUppercase, self->digits);
+        pCanonDigits = __u64toa(v64, radix, isUppercase, &self->i64a);
     } else {
-        pCanonDigits = __ui32toa(v32, radix, isUppercase, self->digits);
+        pCanonDigits = __u32toa(v32, radix, isUppercase, (i32a_t*)&self->i64a);
     }
 
     Formatter_FormatUnsignedIntegerField(self, radix, isUppercase, spec, pCanonDigits);
@@ -299,10 +299,10 @@ static void Formatter_FormatPointer(struct Formatter* _Nonnull self, const struc
     spec2.flags.padWithZeros = true;
 
 #if __INTPTR_WIDTH == 64
-    char* pCanonDigits = __ui64toa((uint64_t)va_arg(*ap, void*), 16, false, self->digits);
+    char* pCanonDigits = __u64toa((uint64_t)va_arg(*ap, void*), 16, false, &self->i64a);
     spec2.precision = 16;
 #else
-    char* pCanonDigits = __ui32toa((uint32_t)va_arg(*ap, void*), 16, false, self->digits);
+    char* pCanonDigits = __u32toa((uint32_t)va_arg(*ap, void*), 16, false, (i32a_t*)&self->i64a);
     spec2.precision = 8;
 #endif
 

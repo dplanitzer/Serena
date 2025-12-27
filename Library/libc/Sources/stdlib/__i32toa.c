@@ -1,13 +1,13 @@
 //
 //  __i32toa.c
-//  libc
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#include <__itoa.h>
 #include <string.h>
-#include <__stddef.h>
 
 
 char* _Nonnull __i32toa(int32_t val, ia_sign_format_t sign_mode, i32a_t* _Nonnull out)

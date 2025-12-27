@@ -1,18 +1,17 @@
 //
 //  utoa.c
-//  libc
+//  kernel
 //
-//  Created by Dietmar Planitzer on 8/23/23.
-//  Copyright © 2023 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 12/26/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <errno.h>
-#include <stdlib.h>
 #include <string.h>
 #include <__itoa.h>
+#include <kern/kernlib.h>
 
 
-char *utoa(unsigned int val, char *buf, int radix)
+char * _Nullable utoa(unsigned int val, char * _Nonnull buf, int radix)
 {
     i32a_t i32a;
     char* p;
@@ -28,14 +27,13 @@ char *utoa(unsigned int val, char *buf, int radix)
                 break;
 
             default:
-                errno = EINVAL;
                 return NULL;
         }
     }
     return buf;
 }
 
-char *ultoa(unsigned long val, char *buf, int radix)
+char * _Nullable ultoa(unsigned long val, char * _Nonnull buf, int radix)
 {
     return utoa(val, buf, radix);
 }

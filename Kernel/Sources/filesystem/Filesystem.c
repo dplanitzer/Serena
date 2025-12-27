@@ -101,7 +101,7 @@ errno_t Filesystem_Publish(FilesystemRef _Nonnull self)
     if (self->catalogId == kCatalogId_None) {
         char buf[12];
 
-        UInt32_ToString(self->fsid, 10, false, buf);
+        utoa(self->fsid, buf, 10);
         return Catalog_PublishFilesystem(gFSCatalog, buf, kUserId_Root, kGroupId_Root, perm_from_octal(0444), self, &self->catalogId);
     }
     else {

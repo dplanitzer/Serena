@@ -6,10 +6,10 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <__stddef.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <__itoa.h>
 
 
 unsigned long strtoul(const char * _Restrict str, char ** _Restrict str_end, int base)

@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <__stddef.h>
+#include <__itoa.h>
 
 
 char *ulltoa(unsigned long long val, char *buf, int radix)
