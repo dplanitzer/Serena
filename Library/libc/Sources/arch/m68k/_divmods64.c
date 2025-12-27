@@ -1,5 +1,5 @@
 //
-//  divmod64.c
+//  arch/m68k/_divmod64.c
 //  libsc
 //
 //  Created by Dietmar Planitzer on 2/2/21.
@@ -230,61 +230,4 @@ int _divmods64(long long dividend, long long divisor, long long* quotient, long 
     }
 
     return 0;
-}
-
-
-// The code that the vbcc C compiler generates expects the following functions
-// to exist
-long long _divsint64_020(long long dividend, long long divisor)
-{
-    long long quo;
-    
-    _divmods64(dividend, divisor, &quo, NULL);
-    
-    return quo;
-}
-
-long long _divsint64_060(long long dividend, long long divisor)
-{
-    long long quo;
-    
-    _divmods64(dividend, divisor, &quo, NULL);
-    
-    return quo;
-}
-
-long long _modsint64_020(long long dividend, long long divisor)
-{
-    long long quo, rem;
-    
-    _divmods64(dividend, divisor, &quo, &rem);
-    
-    return rem;
-}
-
-long long _modsint64_060(long long dividend, long long divisor)
-{
-    long long quo, rem;
-    
-    _divmods64(dividend, divisor, &quo, &rem);
-    
-    return rem;
-}
-
-unsigned long long _divuint64_020(unsigned long long dividend, unsigned long long divisor)
-{
-    long long quo;
-    
-    _divmods64(dividend, divisor, &quo, NULL);
-    
-    return (unsigned long long) quo;
-}
-
-unsigned long long _moduint64_020(unsigned long long dividend, unsigned long long divisor)
-{
-    long long quo, rem;
-    
-    _divmods64(dividend, divisor, &quo, &rem);
-    
-    return (unsigned long long) rem;
 }
