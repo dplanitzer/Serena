@@ -14,6 +14,7 @@
 #endif
 
 #include <_cmndef.h>
+#include <_imaxabsdiv.h>
 #include <stdint.h>
 
 __CPP_BEGIN
@@ -255,12 +256,6 @@ __CPP_BEGIN
 #define SCNxPTR "lx"
 #define SCNXPTR "lX"
 #endif
-
-typedef struct imaxdiv_t { intmax_t quot; intmax_t rem; } imaxdiv_t;
-
-
-extern intmax_t imaxabs(intmax_t n);
-extern imaxdiv_t imaxdiv(intmax_t x, intmax_t y);
 
 extern intmax_t strtoimax(const char * _Restrict str, char ** _Restrict str_end, int base);
 extern uintmax_t strtoumax(const char * _Restrict str, char ** _Restrict str_end, int base);

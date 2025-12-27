@@ -1,14 +1,13 @@
 //
 //  div.c
-//  libc
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <stdlib.h>
-#include <inttypes.h>
-#include <ext/math.h>
+#include <_absdiv.h>
+#include <_imaxabsdiv.h>
 
 div_t div(int x, int y)
 {

@@ -12,6 +12,8 @@
 #include <arch/_offsetof.h>
 #include <arch/_ssize.h>
 #include <_cmndef.h>
+#include <_absdiv.h>
+#include <_imaxabsdiv.h>
 #include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>

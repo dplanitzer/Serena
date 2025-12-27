@@ -10,8 +10,10 @@
 #define _KERN_KERNLIB_H 1
 
 #include <_cmndef.h>
+#include <inttypes.h>   // imaxabs(), imaxdiv()
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h> // abs(), div()
 #include <ext/limits.h>
 #include <../../../Kernel/Headers/kpi/_access.h>
 #include <../../../Kernel/Headers/kpi/_seek.h>
