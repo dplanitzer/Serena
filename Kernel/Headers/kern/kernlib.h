@@ -27,13 +27,6 @@
 
 __CPP_BEGIN
 
-//
-// This header file is the kernel version of user space's stdlib.h + unistd.h
-//
-
-#define CHAR_PTR_MAX    ((char*)__UINTPTR_MAX)
-
-
 // Convert a size_t to a ssize_t with clamping
 #define __SSizeByClampingSize(ub) (ssize_t)__min(ub, SSIZE_MAX)
 

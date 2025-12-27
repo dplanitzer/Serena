@@ -29,19 +29,6 @@
 //
 
 
-#define __abs(x) (((x) < 0) ? -(x) : (x))
-#define __clamped(v, lw, up) ((v) < (lw) ? (lw) : ((v) > (up) ? (up) : (v)))
-
-#define __Ceil_PowerOf2(x, __align)   (((x) + ((__align)-1)) & ~((__align)-1))
-#define __Floor_PowerOf2(x, __align) ((x) & ~((__align)-1))
-
-#define __Ceil_Ptr_PowerOf2(x, __align)     (void*)(__Ceil_PowerOf2((__uintptr_t)(x), (__uintptr_t)(__align)))
-#define __Floor_Ptr_PowerOf2(x, __align)     (void*)(__Floor_PowerOf2((__uintptr_t)(x), (__uintptr_t)(__align)))
-
-
-#define CHAR_PTR_MAX    ((char*)__UINTPTR_MAX)
-
-
 // Convert a size_t to a ssize_t with clamping
 #define __SSizeByClampingSize(ub) (ssize_t)__min(ub, SSIZE_MAX)
 
