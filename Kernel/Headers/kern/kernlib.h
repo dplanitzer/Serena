@@ -15,11 +15,9 @@
 #include <_absdiv.h>
 #include <_imaxabsdiv.h>
 #include <_sortsearch.h>
-#include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdnoreturn.h>
 #include <ext/limits.h>
 #include <ext/math.h>
 #include <kpi/_access.h>

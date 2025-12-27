@@ -12,6 +12,7 @@
 #include <_cmndef.h>
 #include <inttypes.h>   // imaxabs(), imaxdiv()
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h> // abs(), div(), qsort(), bsearch(), itoa(), ltoa(), strtol()
 #include <ext/limits.h>
