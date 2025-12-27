@@ -6,8 +6,9 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <filesystem/FSUtilities.h>
 #include <stdlib.h>
+#include <ext/math.h>
+#include <filesystem/FSUtilities.h>
 
 
 // Returns the current time. This time value is suitable for use as a timestamp
@@ -39,35 +40,20 @@ void FSDeallocate(void* ptr)
 }
 
 
+// Returns true if the argument is a power-of-2 value; false otherwise
 bool FSIsPowerOf2(size_t n)
 {
-    return (n && (n & (n - 1)) == 0) ? true : false;
+    return siz_ispow2(n);
 }
 
+// Calculates the power-of-2 value greater equal the given size_t value
 size_t FSPowerOf2Ceil(size_t n)
 {
-    if (n && !(n & (n - 1))) {
-        return n;
-    } else {
-        unsigned long p = 1;
-        
-        while (p < n) {
-            p <<= 1;
-        }
-        
-        return p;
-    }
+    return siz_pow2_ceil(n);
 }
 
+// Calculates the log-2 of the given value
 unsigned int FSLog2(size_t n)
 {
-    size_t p = 1;
-    unsigned int b = 0;
-
-    while (p < n) {
-        p <<= 1;
-        b++;
-    }
-        
-    return b;
+    return siz_log2(n);
 }

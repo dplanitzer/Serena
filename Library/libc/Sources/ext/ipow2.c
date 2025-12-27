@@ -1,13 +1,12 @@
 //
-//  Int.c
-//  kernel
+//  ext/ipow2.c
+//  libc, libsc
 //
-//  Created by Dietmar Planitzer on 7/6/23.
-//  Copyright © 2023 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 12/26/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <kern/types.h>
-#include <kern/kernlib.h>
+#include <ext/math.h>
 
 
 bool ul_ispow2(unsigned long n)
@@ -48,30 +47,4 @@ unsigned long long ull_pow2_ceil(unsigned long long n)
         
         return p;
     }
-}
-
-unsigned int ul_log2(unsigned long n)
-{
-    unsigned long p = 1ul;
-    unsigned int b = 0;
-
-    while (p < n) {
-        p <<= 1ul;
-        b++;
-    }
-        
-    return b;
-}
-
-unsigned int ull_log2(unsigned long long n)
-{
-    unsigned long long p = 1ull;
-    unsigned int b = 0;
-        
-    while (p < n) {
-        p <<= 1ull;
-        b++;
-    }
-        
-    return b;
 }
