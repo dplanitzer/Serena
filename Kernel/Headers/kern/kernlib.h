@@ -14,6 +14,7 @@
 #include <_cmndef.h>
 #include <_absdiv.h>
 #include <_imaxabsdiv.h>
+#include <_sortsearch.h>
 #include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>

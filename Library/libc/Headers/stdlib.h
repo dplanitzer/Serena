@@ -14,6 +14,8 @@
 #endif
 
 #include <_cmndef.h>
+#include <_absdiv.h>
+#include <_sortsearch.h>
 #include <arch/_null.h>
 #include <arch/_size.h>
 #include <malloc.h>
@@ -43,31 +45,11 @@ extern unsigned long strtoul(const char * _Restrict str, char ** _Restrict str_e
 extern unsigned long long strtoull(const char * _Restrict str, char ** _Restrict str_end, int base);
 
 
-extern int abs(int n);
-extern long labs(long n);
-extern long long llabs(long long n);
-
-
-typedef struct div_t { int quot; int rem; } div_t;
-typedef struct ldiv_t { long quot; long rem; } ldiv_t;
-typedef struct lldiv_t { long long quot; long long rem; } lldiv_t;
-
-extern div_t div(int x, int y);
-extern ldiv_t ldiv(long x, long y);
-extern lldiv_t lldiv(long long x, long long y);
-
-
 #define RAND_MAX 0x7fffffff
 
 extern void srand(unsigned int seed);
 extern int rand(void);
 extern int rand_r(unsigned int *seed);
-
-
-extern void* bsearch(const void *key, const void *values, size_t count, size_t size,
-                        int (*comp)(const void*, const void*));
-extern void qsort(void* values, size_t count, size_t size,
-                        int (*comp)(const void*, const void*));
 
 
 extern char *getenv(const char *name);

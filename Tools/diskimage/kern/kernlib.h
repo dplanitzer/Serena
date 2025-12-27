@@ -13,7 +13,7 @@
 #include <inttypes.h>   // imaxabs(), imaxdiv()
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h> // abs(), div()
+#include <stdlib.h> // abs(), div(), qsort(), bsearch()
 #include <ext/limits.h>
 #include <../../../Kernel/Headers/kpi/_access.h>
 #include <../../../Kernel/Headers/kpi/_seek.h>

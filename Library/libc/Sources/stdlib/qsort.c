@@ -6,8 +6,9 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <stdlib.h>
-#include <__stddef.h>
+#include <_sortsearch.h>
+#include <stddef.h>
+#include <stdint.h>
 
 typedef int (*compare_to_t)(const void*, const void*);
 typedef void (*swap_t)(void*, void*, size_t);

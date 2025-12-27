@@ -26,6 +26,7 @@ STDIO_OBJS_DIR := $(LIBC_OBJS_DIR)/stdio
 
 STDLIB_SOURCES_DIR := $(LIBC_SOURCES_DIR)/stdlib
 STDLIB_OBJS_DIR := $(LIBC_OBJS_DIR)/stdlib
+STDLIB_SC_OBJS_DIR := $(LIBSC_OBJS_DIR)/stdlib
 
 STRING_SOURCES_DIR := $(LIBC_SOURCES_DIR)/string
 STRING_OBJS_DIR := $(LIBC_OBJS_DIR)/string
@@ -89,7 +90,7 @@ $(CSTART_FILE) : $(CSTART_C_SOURCE) | $(LIBC_OBJS_DIR)
 
 #libsc (freestanding)
 $(LIBSC_FILE): $(ARCH_M68K_SC_OBJS) $(ARCH_M68K_VBCC_SC_OBJS) $(EXT_SC_OBJS) \
-			   $(STRING_SC_OBJS)
+			   $(STDLIB_SC_OBJS) $(STRING_SC_OBJS)
 	@echo Making libsc.a
 	$(LIBTOOL) create $@ $^
 

@@ -6,8 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <stdlib.h>
-#include <__stddef.h>
+#include <_sortsearch.h>
+#include <stddef.h>
 
 
 // <https://en.wikipedia.org/wiki/Binary_search_algorithm>
