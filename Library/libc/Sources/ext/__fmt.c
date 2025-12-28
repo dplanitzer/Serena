@@ -18,24 +18,29 @@
 #define FMT_IS_PADZEROS(x)      (((x) & __FMT_PADZEROS) == __FMT_PADZEROS)
 #define FMT_IS_HASPREC(x)       (((x) & __FMT_HASPREC) == __FMT_HASPREC)
 
+#define FMT_HAS_ERROR(x)                (((x) & __FMT_HASERR) == __FMT_HASERR)
+#define FMT_CONT_COUNTING_ON_ERROR(x)   (((x) & __FMT_CONTCNTONERR) == __FMT_CONTCNTONERR)
+
 
 static void _write_char(fmt_t* _Nonnull self, char ch)
 {
-    if ((!self->hasError && self->putc_cb(ch, self->stream) == 1) || (self->hasError && self->doContCountingOnError)) {
+    if ((!FMT_HAS_ERROR(self->flags) && self->putc_cb(ch, self->stream) == 1)
+        || (FMT_HAS_ERROR(self->flags) && FMT_CONT_COUNTING_ON_ERROR(self->flags))) {
         self->charactersWritten++;
     }
     else {
-        self->hasError = true;
+        self->flags |= __FMT_HASERR;
     }
 }
 
 static void _write_string(fmt_t *_Nonnull _Restrict self, const char* _Nonnull _Restrict str, ssize_t len)
 {
-    if ((!self->hasError && self->write_cb(self->stream, str, len) == len) || (self->hasError && self->doContCountingOnError)) {
+    if ((!FMT_HAS_ERROR(self->flags) && self->write_cb(self->stream, str, len) == len)
+        || (FMT_HAS_ERROR(self->flags) && FMT_CONT_COUNTING_ON_ERROR(self->flags))) {
         self->charactersWritten += len;
     }
     else {
-        self->hasError = true;
+        self->flags |= __FMT_HASERR;
     }
 }
 
@@ -44,11 +49,12 @@ static void _write_char_rep(fmt_t* _Nonnull self, char ch, int count)
     int i = 0;
 
     while(i < count) {
-        if ((!self->hasError && self->putc_cb(ch, self->stream) == 1) || (self->hasError && self->doContCountingOnError)) {
+        if ((!FMT_HAS_ERROR(self->flags) && self->putc_cb(ch, self->stream) == 1)
+            || (FMT_HAS_ERROR(self->flags) && FMT_CONT_COUNTING_ON_ERROR(self->flags))) {
             i++;
         }
         else {
-            self->hasError = true;
+            self->flags |= __FMT_HASERR;
         }
     }
     self->charactersWritten += i;
@@ -466,8 +472,10 @@ void __fmt_init(fmt_t* _Nonnull _Restrict self, void* _Nullable _Restrict s, fmt
     self->putc_cb = putc_f;
     self->write_cb = write_f;
     self->charactersWritten = 0;
-    self->hasError = false;
-    self->doContCountingOnError = doContCountingOnError;
+    self->flags = 0;
+    if (doContCountingOnError) {
+        self->flags |= __FMT_CONTCNTONERR;
+    }
 }
 
 void __fmt_deinit(fmt_t* _Nullable self)
@@ -484,9 +492,9 @@ int __fmt_format(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict 
     const char* pformat = format;
 
     self->charactersWritten = 0;
-    self->hasError = false;
+    self->flags &= ~__FMT_HASERR;
 
-    while (!self->hasError) {
+    while (!FMT_HAS_ERROR(self->flags)) {
         switch (*format) {
             case '\0':
                 if (format != pformat) {

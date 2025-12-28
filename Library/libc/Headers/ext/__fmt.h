@@ -53,6 +53,9 @@ typedef struct fmt_cspec {
 } fmt_cspec_t;
 
 
+#define __FMT_HASERR        1
+#define __FMT_CONTCNTONERR  2
+
 typedef struct fmt {
     void* _Nonnull              stream;
     fmt_putc_func_t _Nonnull    putc_cb;
@@ -60,8 +63,7 @@ typedef struct fmt {
     size_t                      charactersWritten;
     i64a_t                      i64a;
     fmt_cspec_t                 spec;
-    bool                        hasError;
-    bool                        doContCountingOnError;
+    unsigned char               flags;
 } fmt_t;
 
 
