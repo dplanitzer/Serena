@@ -475,6 +475,9 @@ int __fmt_format(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict 
     fmt_cspec_t spec;
     const char* pformat = format;
 
+    self->charactersWritten = 0;
+    self->hasError = false;
+
     while (!self->hasError) {
         switch (*format) {
             case '\0':
