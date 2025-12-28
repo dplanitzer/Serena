@@ -41,13 +41,13 @@ typedef ssize_t (*fmt_write_func_t)(void* _Nullable _Restrict s, const void * _R
 typedef struct fmt_cspec {
     int     minimumFieldWidth;
     int     precision;
-    struct Flags {
-        unsigned int isLeftJustified:1;
-        unsigned int alwaysShowSign:1;
-        unsigned int showSpaceIfPositive:1;
-        unsigned int isAlternativeForm:1;
-        unsigned int padWithZeros:1;
-        unsigned int hasPrecision:1;
+    struct fmt_cspec_flags {
+        unsigned int    isLeftJustified:1;
+        unsigned int    alwaysShowSign:1;
+        unsigned int    showSpaceIfPositive:1;
+        unsigned int    isAlternativeForm:1;
+        unsigned int    padWithZeros:1;
+        unsigned int    hasPrecision:1;
     }       flags;
     char    lengthModifier;
 } fmt_cspec_t;
@@ -59,6 +59,7 @@ typedef struct fmt {
     fmt_write_func_t _Nonnull   write_cb;
     size_t                      charactersWritten;
     i64a_t                      i64a;
+    fmt_cspec_t                 spec;
     bool                        hasError;
     bool                        doContCountingOnError;
 } fmt_t;

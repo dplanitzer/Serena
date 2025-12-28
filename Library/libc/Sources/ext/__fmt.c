@@ -47,8 +47,10 @@ static void _write_char_rep(fmt_t* _Nonnull self, char ch, int count)
     self->charactersWritten += i;
 }
 
-static const char* _Nonnull _parse_length_mod(fmt_t* _Nonnull _Restrict self, const char * _Nonnull _Restrict format, fmt_cspec_t* _Nonnull _Restrict spec)
+static const char* _Nonnull _parse_length_mod(fmt_t* _Nonnull _Restrict self, const char * _Nonnull _Restrict format)
 {
+    fmt_cspec_t* spec = &self->spec;
+
     switch (*format) {
         case 'l':
             format++;
@@ -112,8 +114,9 @@ static int _atoi(const char* _Nonnull _Restrict str, char* _Nonnull _Restrict * 
 }
 
 // Expects that 'format' points to the first character after the '%'.
-static const char* _Nonnull _parse_conv_spec(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, va_list* _Nonnull _Restrict ap, fmt_cspec_t* _Nonnull _Restrict spec)
+static const char* _Nonnull _parse_conv_spec(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, va_list* _Nonnull _Restrict ap)
 {
+    fmt_cspec_t* spec = &self->spec;
     char ch;
 
     spec->minimumFieldWidth = 0;
@@ -168,11 +171,12 @@ static const char* _Nonnull _parse_conv_spec(fmt_t* _Nonnull _Restrict self, con
     }
     
     // Length modifier
-    return _parse_length_mod(self, format, spec);
+    return _parse_length_mod(self, format);
 }
 
-static void _format_int_field(fmt_t* _Nonnull _Restrict self, const fmt_cspec_t* _Nonnull _Restrict spec, const char* _Nonnull _Restrict buf, size_t len)
+static void _format_int_field(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict buf, size_t len)
 {
+    const fmt_cspec_t* spec = &self->spec;
     int nSign = 1;
     int nDigits = len - 1;
     int nLeadingZeros = (spec->flags.hasPrecision) ? __max(spec->precision - nDigits, 0) : 0;
@@ -216,8 +220,9 @@ static void _format_int_field(fmt_t* _Nonnull _Restrict self, const fmt_cspec_t*
     }
 }
 
-static void _format_uint_field(fmt_t* _Nonnull _Restrict self, int radix, bool isUppercase, const fmt_cspec_t* _Nonnull _Restrict spec, const char* _Nonnull _Restrict buf, size_t len)
+static void _format_uint_field(fmt_t* _Nonnull _Restrict self, int radix, bool isUppercase, const char* _Nonnull _Restrict buf, size_t len)
 {
+    const fmt_cspec_t* spec = &self->spec;
     int nRadixChars = 0;
     int nLeadingZeros = (spec->flags.hasPrecision) ? __max(spec->precision - len, 0) : 0;
     const char* pRadixChars = "";
@@ -261,8 +266,9 @@ static void _format_uint_field(fmt_t* _Nonnull _Restrict self, int radix, bool i
     }
 }
 
-static void _format_char(fmt_t* _Nonnull _Restrict self, const fmt_cspec_t* _Nonnull _Restrict spec, va_list* _Nonnull _Restrict ap)
+static void _format_char(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
 {
+    const fmt_cspec_t* spec = &self->spec;
     const char ch = (unsigned char) va_arg(*ap, int);
     const size_t nspaces = (spec->minimumFieldWidth > 1) ? spec->minimumFieldWidth - 1 : 0;
 
@@ -277,8 +283,9 @@ static void _format_char(fmt_t* _Nonnull _Restrict self, const fmt_cspec_t* _Non
     }
 }
 
-static void _format_string(fmt_t* _Nonnull _Restrict self, const fmt_cspec_t* _Nonnull _Restrict spec, va_list* _Nonnull _Restrict ap)
+static void _format_string(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
 {
+    const fmt_cspec_t* spec = &self->spec;
     const char* str = va_arg(*ap, const char*);
     const size_t slen = strlen(str);
     const size_t flen = (spec->flags.hasPrecision || spec->minimumFieldWidth > 0) ? slen : 0;
@@ -296,14 +303,14 @@ static void _format_string(fmt_t* _Nonnull _Restrict self, const fmt_cspec_t* _N
     }
 }
 
-static void _format_int(fmt_t* _Nonnull _Restrict self, const fmt_cspec_t* _Nonnull _Restrict spec, va_list* _Nonnull _Restrict ap)
+static void _format_int(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
 {
     int64_t v64;
     int32_t v32;
     int nbits;
     char * pCanonDigits;
 
-    switch (spec->lengthModifier) {
+    switch (self->spec.lengthModifier) {
         case FMT_LENMOD_hh:    v32 = (int32_t)(signed char)va_arg(*ap, int); nbits = INT32_WIDTH;   break;
         case FMT_LENMOD_h:     v32 = (int32_t)(short)va_arg(*ap, int); nbits = INT32_WIDTH;         break;
         case FMT_LENMOD_none:  v32 = (int32_t)va_arg(*ap, int); nbits = INT32_WIDTH;                break;
@@ -337,17 +344,17 @@ static void _format_int(fmt_t* _Nonnull _Restrict self, const fmt_cspec_t* _Nonn
         pCanonDigits = __i32toa(v32, ia_sign_plus_minus, (i32a_t*)&self->i64a);
     }
 
-    _format_int_field(self, spec, pCanonDigits, self->i64a.length);
+    _format_int_field(self, pCanonDigits, self->i64a.length);
 }
 
-static void _format_uint(fmt_t* _Nonnull _Restrict self, int radix, bool isUppercase, const fmt_cspec_t* _Nonnull _Restrict spec, va_list* _Nonnull _Restrict ap)
+static void _format_uint(fmt_t* _Nonnull _Restrict self, int radix, bool isUppercase, va_list* _Nonnull _Restrict ap)
 {
     uint64_t v64;
     uint32_t v32;
     int nbits;
     char * pCanonDigits;
 
-    switch (spec->lengthModifier) {
+    switch (self->spec.lengthModifier) {
         case FMT_LENMOD_hh:    v32 = (uint32_t)(unsigned char)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;     break;
         case FMT_LENMOD_h:     v32 = (uint32_t)(unsigned short)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;    break;
         case FMT_LENMOD_none:  v32 = (uint32_t)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;                    break;
@@ -381,33 +388,34 @@ static void _format_uint(fmt_t* _Nonnull _Restrict self, int radix, bool isUpper
         pCanonDigits = __u32toa(v32, radix, isUppercase, (i32a_t*)&self->i64a);
     }
 
-    _format_uint_field(self, radix, isUppercase, spec, pCanonDigits, self->i64a.length);
+    _format_uint_field(self, radix, isUppercase, pCanonDigits, self->i64a.length);
 }
 
-static void _format_ptr(fmt_t* _Nonnull _Restrict self, const fmt_cspec_t* _Nonnull _Restrict spec, va_list* _Nonnull _Restrict ap)
+static void _format_ptr(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
 {
-    fmt_cspec_t spec2 = *spec;
-    spec2.flags.isAlternativeForm = true;
-    spec2.flags.hasPrecision = true;
-    spec2.flags.padWithZeros = true;
+    fmt_cspec_t spec2 = self->spec;
+    self->spec.flags.isAlternativeForm = true;
+    self->spec.flags.hasPrecision = true;
+    self->spec.flags.padWithZeros = true;
 
 #if __INTPTR_WIDTH == 64
     char* pCanonDigits = __u64toa((uint64_t)va_arg(*ap, void*), 16, false, &self->i64a);
-    spec2.precision = 16;
+    self->spec.precision = 16;
 #else
     char* pCanonDigits = __u32toa((uint32_t)va_arg(*ap, void*), 16, false, (i32a_t*)&self->i64a);
-    spec2.precision = 8;
+    self->spec.precision = 8;
 #endif
 
-    _format_uint_field(self, 16, false, &spec2, pCanonDigits, self->i64a.length);
+    _format_uint_field(self, 16, false, pCanonDigits, self->i64a.length);
+    self->spec = spec2;
 }
 
-static void _format_out_nchars(fmt_t* _Nonnull _Restrict self, const fmt_cspec_t* _Nonnull _Restrict spec, va_list* _Nonnull _Restrict ap)
+static void _format_out_nchars(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
 {
     char* p = va_arg(*ap, char*);
     const size_t n = self->charactersWritten;
 
-    switch (spec->lengthModifier) {
+    switch (self->spec.lengthModifier) {
         case FMT_LENMOD_hh:     *((signed char*)p) = __min(n, SCHAR_MAX);   break;
         case FMT_LENMOD_h:      *((short*)p) = __min(n, SHRT_MAX);          break;
         case FMT_LENMOD_none:   *((int*)p) = __min(n, INT_MAX);             break;
@@ -422,18 +430,18 @@ static void _format_out_nchars(fmt_t* _Nonnull _Restrict self, const fmt_cspec_t
     }
 }
 
-static void _format_arg(fmt_t* _Nonnull _Restrict self, char conversion, const fmt_cspec_t* _Nonnull _Restrict spec, va_list* _Nonnull _Restrict ap)
+static void _format_arg(fmt_t* _Nonnull _Restrict self, char conversion, va_list* _Nonnull _Restrict ap)
 {
     switch (conversion) {
         case '%':   _write_char(self, '%'); break;
-        case 'c':   _format_char(self, spec, ap); break;
-        case 's':   _format_string(self, spec, ap); break;
+        case 'c':   _format_char(self, ap); break;
+        case 's':   _format_string(self, ap); break;
         case 'd':   // fall through
-        case 'i':   _format_int(self, spec, ap); break;
-        case 'o':   _format_uint(self, 8, false, spec, ap); break;
-        case 'x':   _format_uint(self, 16, false, spec, ap); break;
-        case 'X':   _format_uint(self, 16, true, spec, ap); break;
-        case 'u':   _format_uint(self, 10, false, spec, ap); break;
+        case 'i':   _format_int(self, ap); break;
+        case 'o':   _format_uint(self, 8, false, ap); break;
+        case 'x':   _format_uint(self, 16, false, ap); break;
+        case 'X':   _format_uint(self, 16, true, ap); break;
+        case 'u':   _format_uint(self, 10, false, ap); break;
 #if ___STDC_HOSTED__ == 1
         case 'f':   break; // XXX
         case 'F':   break; // XXX
@@ -444,8 +452,8 @@ static void _format_arg(fmt_t* _Nonnull _Restrict self, char conversion, const f
         case 'g':   break; // XXX
         case 'G':   break; // XXX
 #endif
-        case 'n':   _format_out_nchars(self, spec, ap); break;
-        case 'p':   _format_ptr(self, spec, ap); break;
+        case 'n':   _format_out_nchars(self, ap); break;
+        case 'p':   _format_ptr(self, ap); break;
         default:    break;
     }
 }
@@ -472,7 +480,6 @@ void __fmt_deinit(fmt_t* _Nullable self)
 
 int __fmt_format(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, va_list ap)
 {
-    fmt_cspec_t spec;
     const char* pformat = format;
 
     self->charactersWritten = 0;
@@ -490,8 +497,8 @@ int __fmt_format(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict 
                 if (format != pformat) {
                     _write_string(self, pformat, format - pformat);
                 }
-                format = _parse_conv_spec(self, ++format, &ap, &spec);
-                _format_arg(self, *format++, &spec, &ap);
+                format = _parse_conv_spec(self, ++format, &ap);
+                _format_arg(self, *format++, &ap);
                 pformat = format;
                 break;
 
