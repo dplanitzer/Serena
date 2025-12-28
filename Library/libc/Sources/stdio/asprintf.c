@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
-#include "Formatter.h"
+#include <ext/__fmt.h>
 #include "Stream.h"
 
 
@@ -29,7 +29,7 @@ int vasprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list ap
     __Memory_FILE file;
     FILE_Memory mem;
     FILE_MemoryQuery mq;
-    Formatter fmt;
+    fmt_t fmt;
     int r = 0;
 
     if (str_ptr) {
@@ -54,10 +54,10 @@ int vasprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list ap
         return EOF;
     }
 
-    __Formatter_Init(&fmt, &file.super, false);
-    const int r1 = __Formatter_vFormat(&fmt, format, ap);
+    __fmt_init(&fmt, &file.super, (fmt_putc_func_t)__fputc, (fmt_write_func_t)__fwrite, false);
+    const int r1 = __fmt_format(&fmt, format, ap);
     const int r2 = __fputc('\0', &file.super);
-    __Formatter_Deinit(&fmt);
+    __fmt_deinit(&fmt);
     filemem(&file.super, &mq);
     __fclose(&file.super);
 

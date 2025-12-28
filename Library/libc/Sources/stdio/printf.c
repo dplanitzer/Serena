@@ -6,9 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <stdlib.h>
-#include "Formatter.h"
-#include "Stream.h"
+#include <stdio.h>
 
 
 int printf(const char * _Nonnull _Restrict format, ...)

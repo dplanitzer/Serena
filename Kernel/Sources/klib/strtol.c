@@ -14,9 +14,8 @@
 long strtol(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
     long long r;
-    int err;
 
-    if ((err = __strtoi64(str, str_end, base, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r)) == 0) {
+    if (__strtoi64(str, str_end, base, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r) == 0) {
         return (long) r;
     }
     else {

@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
-#include "Formatter.h"
+#include <ext/__fmt.h>
 #include "Stream.h"
 
 
@@ -29,7 +29,7 @@ int vsnprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _No
     const __FILE_Mode sm = __kStreamMode_Write | __kStreamMode_Truncate | __kStreamMode_Create;
     __Memory_FILE file;
     FILE_Memory mem;
-    Formatter fmt;
+    fmt_t fmt;
     int r;
 
     if (hasBuffer) {
@@ -51,9 +51,9 @@ int vsnprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _No
         return EOF;
     }
 
-    __Formatter_Init(&fmt, &file.super, true);
-    r = __Formatter_vFormat(&fmt, format, ap);
-    __Formatter_Deinit(&fmt);
+    __fmt_init(&fmt, &file.super, (fmt_putc_func_t)__fputc, (fmt_write_func_t)__fwrite, true);
+    r = __fmt_format(&fmt, format, ap);
+    __fmt_deinit(&fmt);
     __fclose(&file.super);
 
     if (r >= 0) {
