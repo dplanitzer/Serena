@@ -47,7 +47,7 @@ typedef ssize_t (*fmt_write_func_t)(void* _Nullable _Restrict s, const void * _R
 // <https://en.cppreference.com/w/c/io/fprintf>
 typedef struct fmt_cspec {
     int             minFieldWidth;
-    int             precision;
+    int             prec;
     char            lenMod;
     unsigned char   flags;
 } fmt_cspec_t;

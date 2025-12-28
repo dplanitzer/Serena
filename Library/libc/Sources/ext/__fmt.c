@@ -133,7 +133,7 @@ static const char* _Nonnull _parse_conv_spec(fmt_t* _Nonnull _Restrict self, con
     char ch;
 
     spec->minFieldWidth = 0;
-    spec->precision = 0;
+    spec->prec = 0;
     spec->lenMod = FMT_LENMOD_none;
     spec->flags = 0;
 
@@ -169,11 +169,11 @@ static const char* _Nonnull _parse_conv_spec(fmt_t* _Nonnull _Restrict self, con
         ch = *format;
 
         if (ch == '*') {
-            spec->precision = va_arg(*ap, int);
+            spec->prec = va_arg(*ap, int);
             format++;
         }
         else if (ch >= '0' && ch <= '9') {
-            spec->precision = _atoi(format, &format);
+            spec->prec = _atoi(format, &format);
         }
         spec->flags |= __FMT_HASPREC;
     }
@@ -187,16 +187,16 @@ static void _format_int_field(fmt_t* _Nonnull _Restrict self, const char* _Nonnu
     const fmt_cspec_t* spec = &self->spec;
     int nSign = 1;
     int nDigits = len - 1;
-    int nLeadingZeros = FMT_IS_HASPREC(spec->flags) ? __max(spec->precision - nDigits, 0) : 0;
-    const char* pSign = buf;
-    const char* pDigits = &buf[1];
-    const bool isEmpty = FMT_IS_HASPREC(spec->flags) && spec->precision == 0 && pDigits[0] == '0' && nDigits == 1;
+    int nLeadingZeros = FMT_IS_HASPREC(spec->flags) ? __max(spec->prec - nDigits, 0) : 0;
+    const char* sign = buf;
+    const char* digits = &buf[1];
+    const bool isEmpty = FMT_IS_HASPREC(spec->flags) && spec->prec == 0 && digits[0] == '0' && nDigits == 1;
 
-    if (!FMT_IS_FORCESIGN(spec->flags) && *pSign == '+') {
+    if (!FMT_IS_FORCESIGN(spec->flags) && *sign == '+') {
         if (FMT_IS_SPACEIFPOS(spec->flags)) {
-            pSign = " ";
+            sign = " ";
         } else {
-            pSign = "";
+            sign = "";
             nSign = 0;
         }
     }
@@ -214,13 +214,13 @@ static void _format_int_field(fmt_t* _Nonnull _Restrict self, const char* _Nonnu
     }
 
     if (nSign > 0) {
-        _write_char(self, *pSign);
+        _write_char(self, *sign);
     }
     if (!isEmpty) {
         if (nLeadingZeros > 0) {
             _write_char_rep(self, '0', nLeadingZeros);
         }
-        _write_string(self, pDigits, nDigits);
+        _write_string(self, digits, nDigits);
     }
 
     if (nspaces > 0 && FMT_IS_LEFTJUST(spec->flags)) {
@@ -232,14 +232,14 @@ static void _format_uint_field(fmt_t* _Nonnull _Restrict self, int radix, bool i
 {
     const fmt_cspec_t* spec = &self->spec;
     int nRadixChars = 0;
-    int nLeadingZeros = FMT_IS_HASPREC(spec->flags) ? __max(spec->precision - len, 0) : 0;
-    const char* pRadixChars = "";
-    const bool isEmpty = FMT_IS_HASPREC(spec->flags) && spec->precision == 0 && buf[0] == '0' && len == 1;
+    int nLeadingZeros = FMT_IS_HASPREC(spec->flags) ? __max(spec->prec - len, 0) : 0;
+    const char* radixChars = "";
+    const bool isEmpty = FMT_IS_HASPREC(spec->flags) && spec->prec == 0 && buf[0] == '0' && len == 1;
 
     if (FMT_IS_ALTFORM(spec->flags)) {
         switch (radix) {
-            case 8: nRadixChars = 1; pRadixChars = "0"; break;
-            case 16: nRadixChars = 2; pRadixChars = (isUppercase) ? "0X" : "0x";
+            case 8: nRadixChars = 1; radixChars = "0"; break;
+            case 16: nRadixChars = 2; radixChars = (isUppercase) ? "0X" : "0x";
             default: break;
         }
     }
@@ -258,7 +258,7 @@ static void _format_uint_field(fmt_t* _Nonnull _Restrict self, int radix, bool i
 
     if (!isEmpty) {
         while (nRadixChars-- > 0) {
-            _write_char(self, *pRadixChars++);
+            _write_char(self, *radixChars++);
         }
         if (nLeadingZeros > 0) {
             _write_char_rep(self, '0', nLeadingZeros);
@@ -297,7 +297,7 @@ static void _format_string(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Re
     const char* str = va_arg(*ap, const char*);
     const size_t slen = strlen(str);
     const size_t flen = (FMT_IS_HASPREC(spec->flags) || spec->minFieldWidth > 0) ? slen : 0;
-    const size_t adj_flen = FMT_IS_HASPREC(spec->flags) ? __min(flen, spec->precision) : flen;
+    const size_t adj_flen = FMT_IS_HASPREC(spec->flags) ? __min(flen, spec->prec) : flen;
     const size_t nspaces = (spec->minFieldWidth > adj_flen) ? spec->minFieldWidth - adj_flen : 0;
 
     if (nspaces > 0 && FMT_IS_LEFTJUST(spec->flags)) {
@@ -316,7 +316,7 @@ static void _format_int(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restr
     int64_t v64;
     int32_t v32;
     int nbits;
-    char * pCanonDigits;
+    char * cd;
 
     switch (self->spec.lenMod) {
         case FMT_LENMOD_hh:    v32 = (int32_t)(signed char)va_arg(*ap, int); nbits = INT32_WIDTH;   break;
@@ -347,12 +347,12 @@ static void _format_int(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restr
     }
 
     if (nbits == 64) {
-        pCanonDigits = __i64toa(v64, ia_sign_plus_minus, &self->i64a);
+        cd = __i64toa(v64, ia_sign_plus_minus, &self->i64a);
     } else {
-        pCanonDigits = __i32toa(v32, ia_sign_plus_minus, (i32a_t*)&self->i64a);
+        cd = __i32toa(v32, ia_sign_plus_minus, (i32a_t*)&self->i64a);
     }
 
-    _format_int_field(self, pCanonDigits, self->i64a.length);
+    _format_int_field(self, cd, self->i64a.length);
 }
 
 static void _format_uint(fmt_t* _Nonnull _Restrict self, int radix, bool isUppercase, va_list* _Nonnull _Restrict ap)
@@ -360,7 +360,7 @@ static void _format_uint(fmt_t* _Nonnull _Restrict self, int radix, bool isUpper
     uint64_t v64;
     uint32_t v32;
     int nbits;
-    char * pCanonDigits;
+    char * cd;
 
     switch (self->spec.lenMod) {
         case FMT_LENMOD_hh:    v32 = (uint32_t)(unsigned char)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;     break;
@@ -391,12 +391,12 @@ static void _format_uint(fmt_t* _Nonnull _Restrict self, int radix, bool isUpper
     }
 
     if (nbits == 64) {
-        pCanonDigits = __u64toa(v64, radix, isUppercase, &self->i64a);
+        cd = __u64toa(v64, radix, isUppercase, &self->i64a);
     } else {
-        pCanonDigits = __u32toa(v32, radix, isUppercase, (i32a_t*)&self->i64a);
+        cd = __u32toa(v32, radix, isUppercase, (i32a_t*)&self->i64a);
     }
 
-    _format_uint_field(self, radix, isUppercase, pCanonDigits, self->i64a.length);
+    _format_uint_field(self, radix, isUppercase, cd, self->i64a.length);
 }
 
 static void _format_ptr(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
@@ -406,14 +406,14 @@ static void _format_ptr(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restr
     self->spec.flags |= (__FMT_ALTFORM | __FMT_PADZEROS | __FMT_HASPREC);
 
 #if __INTPTR_WIDTH == 64
-    char* pCanonDigits = __u64toa((uint64_t)va_arg(*ap, void*), 16, false, &self->i64a);
-    self->spec.precision = 16;
+    char* cd = __u64toa((uint64_t)va_arg(*ap, void*), 16, false, &self->i64a);
+    self->spec.prec = 16;
 #else
-    char* pCanonDigits = __u32toa((uint32_t)va_arg(*ap, void*), 16, false, (i32a_t*)&self->i64a);
-    self->spec.precision = 8;
+    char* cd = __u32toa((uint32_t)va_arg(*ap, void*), 16, false, (i32a_t*)&self->i64a);
+    self->spec.prec = 8;
 #endif
 
-    _format_uint_field(self, 16, false, pCanonDigits, self->i64a.length);
+    _format_uint_field(self, 16, false, cd, self->i64a.length);
     self->spec = spec2;
 }
 
@@ -431,9 +431,6 @@ static void _format_out_nchars(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull
         case FMT_LENMOD_j:      *((intmax_t*)p) = __min(n, INTMAX_MAX);     break;
         case FMT_LENMOD_z:      *((ssize_t*)p) = __min(n, SSIZE_MAX);       break;
         case FMT_LENMOD_t:      *((ptrdiff_t*)p) = __min(n, PTRDIFF_MAX);   break;
-#if ___STDC_HOSTED__ == 1
-        case FMT_LENMOD_L:      break;  // long double
-#endif
     }
 }
 
