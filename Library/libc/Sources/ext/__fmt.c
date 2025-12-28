@@ -1,6 +1,6 @@
 //
 //  __fmt.c
-//  libc
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 1/23/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
@@ -85,10 +85,12 @@ static const char* _Nonnull _parse_length_mod(fmt_t* _Nonnull _Restrict self, co
             spec->lengthModifier = FMT_LENMOD_t;
             break;
 
-        case 'L':
+#if ___STDC_HOSTED__ ==1
+        case 'L':   // long double
             format++;
             spec->lengthModifier = FMT_LENMOD_L;
             break;
+#endif
 
         default:
             break;

@@ -7,8 +7,8 @@
 //
 
 #include "Log.h"
-#include "Formatter.h"
 #include <driver/DriverManager.h>
+#include <ext/__fmt.h>
 #include <filesystem/IOChannel.h>
 #include <klib/RingBuffer.h>
 #include <sched/mtx.h>
@@ -24,25 +24,32 @@ enum {
 
 static mtx_t            gLock;
 static IOChannelRef     gConsoleChannel;
-static struct Formatter gFormatter;
+static fmt_t            gFormatter;
 static RingBuffer       gRingBuffer;
 static char             gLogBuffer[LOG_BUFFER_SIZE];
 static int              gCurrentSink;
 
 
-static void _log_sink(struct Formatter* _Nonnull self, const char* _Nonnull buf, ssize_t nbytes)
+static ssize_t _lwrite(void* _Nullable _Restrict s, const void * _Restrict buffer, ssize_t nbytes)
 {
+    ssize_t nBytesWritten;
+
     switch (gCurrentSink) {
-        case kSink_Console: {
-            ssize_t nBytesWritten;
-            IOChannel_Write(gConsoleChannel, buf, nbytes, &nBytesWritten);
+        case kSink_Console:
+            IOChannel_Write(gConsoleChannel, buffer, nbytes, &nBytesWritten);
             break;
-        }
 
         default:
-            RingBuffer_PutBytes(&gRingBuffer, buf, nbytes);
+            nBytesWritten = RingBuffer_PutBytes(&gRingBuffer, buffer, nbytes);
             break;
     }
+
+    return nBytesWritten;
+}
+
+static ssize_t _lputc(char ch, void* _Nullable s)
+{
+    return _lwrite(s, &ch, 1);
 }
 
 
@@ -51,7 +58,7 @@ void log_init(void)
     mtx_init(&gLock);
     gCurrentSink = kSink_RingBuffer;
     RingBuffer_InitWithBuffer(&gRingBuffer, gLogBuffer, LOG_BUFFER_SIZE);
-    Formatter_Init(&gFormatter, _log_sink, NULL);
+    __fmt_init(&gFormatter, NULL, (fmt_putc_func_t)_lputc, (fmt_write_func_t)_lwrite, false);
 }
 
 static errno_t log_open_console(void)
@@ -93,7 +100,7 @@ bool log_switch_to_console(void)
 void log_write(const char* _Nonnull buf, ssize_t nbytes)
 {
     mtx_lock(&gLock);
-    _log_sink(&gFormatter, buf, nbytes);
+    _lwrite(NULL, buf, nbytes);
     mtx_unlock(&gLock);
 }
 
@@ -129,6 +136,6 @@ void printf(const char* _Nonnull format, ...)
 void vprintf(const char* _Nonnull format, va_list ap)
 {
     mtx_lock(&gLock);
-    Formatter_vFormat(&gFormatter, format, ap);
+    __fmt_format(&gFormatter, format, ap);
     mtx_unlock(&gLock);
 }

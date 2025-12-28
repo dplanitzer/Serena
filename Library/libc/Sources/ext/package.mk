@@ -43,7 +43,8 @@ EXT_SC_SOURCES := $(EXT_SOURCES_DIR)/hash.c \
 				  $(EXT_SOURCES_DIR)/ilog2.c \
 				  $(EXT_SOURCES_DIR)/ipow2.c \
 				  $(EXT_SOURCES_DIR)/timespec.c \
-				  $(EXT_SOURCES_DIR)/queue.c
+				  $(EXT_SOURCES_DIR)/queue.c \
+				  $(EXT_SOURCES_DIR)/__fmt.c
 
 EXT_SC_OBJS := $(patsubst $(EXT_SOURCES_DIR)/%.c,$(EXT_SC_OBJS_DIR)/%.o,$(EXT_SC_SOURCES))
 EXT_SC_DEPS := $(EXT_SC_OBJS:.o=.d)

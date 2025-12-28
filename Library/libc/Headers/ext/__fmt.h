@@ -1,6 +1,6 @@
 //
 //  __fmt.h
-//  libc
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 1/23/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
@@ -19,11 +19,11 @@
 __CPP_BEGIN
 
 // Writes character 'ch' to stream 's'. Returns 1 on success and <= 0 otherwise.
-typedef ssize_t (*fmt_putc_func_t)(char ch, void* _Nonnull s);
+typedef ssize_t (*fmt_putc_func_t)(char ch, void* _Nullable s);
 
 // Writes the first 'nbytes' bytes from 'buffer' to stream 's'. Returns 'nbytes'
 // on success; <= 0 otherwise.
-typedef ssize_t (*fmt_write_func_t)(void* _Nonnull _Restrict s, const void * _Restrict buffer, ssize_t nbytes);
+typedef ssize_t (*fmt_write_func_t)(void* _Nullable _Restrict s, const void * _Restrict buffer, ssize_t nbytes);
 
 
 #define FMT_LENMOD_hh   0
