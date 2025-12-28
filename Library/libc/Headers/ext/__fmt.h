@@ -36,20 +36,20 @@ typedef ssize_t (*fmt_write_func_t)(void* _Nullable _Restrict s, const void * _R
 #define FMT_LENMOD_t    7
 #define FMT_LENMOD_L    8
 
+#define __FMT_LEFTJUST      1
+#define __FMT_FORCESIGN     2
+#define __FMT_SPACEIFPOS    4
+#define __FMT_ALTFORM       8
+#define __FMT_PADZEROS      16
+#define __FMT_HASPREC       32
+
 
 // <https://en.cppreference.com/w/c/io/fprintf>
 typedef struct fmt_cspec {
-    int     minimumFieldWidth;
-    int     precision;
-    struct fmt_cspec_flags {
-        unsigned int    isLeftJustified:1;
-        unsigned int    alwaysShowSign:1;
-        unsigned int    showSpaceIfPositive:1;
-        unsigned int    isAlternativeForm:1;
-        unsigned int    padWithZeros:1;
-        unsigned int    hasPrecision:1;
-    }       flags;
-    char    lengthModifier;
+    int             minFieldWidth;
+    int             precision;
+    char            lenMod;
+    unsigned char   flags;
 } fmt_cspec_t;
 
 

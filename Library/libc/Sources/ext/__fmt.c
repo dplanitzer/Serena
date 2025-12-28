@@ -11,6 +11,13 @@
 #include <ext/math.h>
 #include <string.h>
 
+#define FMT_IS_LEFTJUST(x)      (((x) & __FMT_LEFTJUST) == __FMT_LEFTJUST)
+#define FMT_IS_FORCESIGN(x)     (((x) & __FMT_FORCESIGN) == __FMT_FORCESIGN)
+#define FMT_IS_SPACEIFPOS(x)    (((x) & __FMT_SPACEIFPOS) == __FMT_SPACEIFPOS)
+#define FMT_IS_ALTFORM(x)       (((x) & __FMT_ALTFORM) == __FMT_ALTFORM)
+#define FMT_IS_PADZEROS(x)      (((x) & __FMT_PADZEROS) == __FMT_PADZEROS)
+#define FMT_IS_HASPREC(x)       (((x) & __FMT_HASPREC) == __FMT_HASPREC)
+
 
 static void _write_char(fmt_t* _Nonnull self, char ch)
 {
@@ -56,9 +63,9 @@ static const char* _Nonnull _parse_length_mod(fmt_t* _Nonnull _Restrict self, co
             format++;
             if (*format == 'l') {
                 format++;
-                spec->lengthModifier = FMT_LENMOD_ll;
+                spec->lenMod = FMT_LENMOD_ll;
             } else {
-                spec->lengthModifier = FMT_LENMOD_l;
+                spec->lenMod = FMT_LENMOD_l;
             }
             break;
 
@@ -66,31 +73,31 @@ static const char* _Nonnull _parse_length_mod(fmt_t* _Nonnull _Restrict self, co
             format++;
             if (*format == 'h') {
                 format++;
-                spec->lengthModifier = FMT_LENMOD_hh;
+                spec->lenMod = FMT_LENMOD_hh;
             } else {
-                spec->lengthModifier = FMT_LENMOD_h;
+                spec->lenMod = FMT_LENMOD_h;
             }
             break;
 
         case 'j':
             format++;
-            spec->lengthModifier = FMT_LENMOD_j;
+            spec->lenMod = FMT_LENMOD_j;
             break;
 
         case 'z':
             format++;
-            spec->lengthModifier = FMT_LENMOD_z;
+            spec->lenMod = FMT_LENMOD_z;
             break;
 
         case 't':
             format++;
-            spec->lengthModifier = FMT_LENMOD_t;
+            spec->lenMod = FMT_LENMOD_t;
             break;
 
 #if ___STDC_HOSTED__ ==1
         case 'L':   // long double
             format++;
-            spec->lengthModifier = FMT_LENMOD_L;
+            spec->lenMod = FMT_LENMOD_L;
             break;
 #endif
 
@@ -119,15 +126,10 @@ static const char* _Nonnull _parse_conv_spec(fmt_t* _Nonnull _Restrict self, con
     fmt_cspec_t* spec = &self->spec;
     char ch;
 
-    spec->minimumFieldWidth = 0;
+    spec->minFieldWidth = 0;
     spec->precision = 0;
-    spec->lengthModifier = FMT_LENMOD_none;
-    spec->flags.isLeftJustified = false;
-    spec->flags.alwaysShowSign = false;
-    spec->flags.showSpaceIfPositive = false;
-    spec->flags.isAlternativeForm = false;
-    spec->flags.padWithZeros = false;
-    spec->flags.hasPrecision = false;
+    spec->lenMod = FMT_LENMOD_none;
+    spec->flags = 0;
 
     // Flags
     bool done = false;
@@ -136,11 +138,11 @@ static const char* _Nonnull _parse_conv_spec(fmt_t* _Nonnull _Restrict self, con
         
         switch (ch) {
             case '\0':  return --format;
-            case '-':   spec->flags.isLeftJustified = true; break;
-            case '+':   spec->flags.alwaysShowSign = true; break;
-            case ' ':   spec->flags.showSpaceIfPositive = true; break;
-            case '#':   spec->flags.isAlternativeForm = true; break;
-            case '0':   spec->flags.padWithZeros = true; break;
+            case '-':   spec->flags |= __FMT_LEFTJUST; break;
+            case '+':   spec->flags |= __FMT_FORCESIGN; break;
+            case ' ':   spec->flags |= __FMT_SPACEIFPOS; break;
+            case '#':   spec->flags |= __FMT_ALTFORM; break;
+            case '0':   spec->flags |= __FMT_PADZEROS; break;
             default:    --format; done = true; break;
         }
     }
@@ -148,11 +150,11 @@ static const char* _Nonnull _parse_conv_spec(fmt_t* _Nonnull _Restrict self, con
     // Minimum field width
     ch = *format;
     if (ch == '*') {
-        spec->minimumFieldWidth = va_arg(*ap, int);
+        spec->minFieldWidth = va_arg(*ap, int);
         format++;
     }
     else if (ch >= '1' && ch <= '9') {
-        spec->minimumFieldWidth = _atoi(format, &format);
+        spec->minFieldWidth = _atoi(format, &format);
     }
 
     // Precision
@@ -167,7 +169,7 @@ static const char* _Nonnull _parse_conv_spec(fmt_t* _Nonnull _Restrict self, con
         else if (ch >= '0' && ch <= '9') {
             spec->precision = _atoi(format, &format);
         }
-        spec->flags.hasPrecision = true;
+        spec->flags |= __FMT_HASPREC;
     }
     
     // Length modifier
@@ -179,13 +181,13 @@ static void _format_int_field(fmt_t* _Nonnull _Restrict self, const char* _Nonnu
     const fmt_cspec_t* spec = &self->spec;
     int nSign = 1;
     int nDigits = len - 1;
-    int nLeadingZeros = (spec->flags.hasPrecision) ? __max(spec->precision - nDigits, 0) : 0;
+    int nLeadingZeros = FMT_IS_HASPREC(spec->flags) ? __max(spec->precision - nDigits, 0) : 0;
     const char* pSign = buf;
     const char* pDigits = &buf[1];
-    const bool isEmpty = spec->flags.hasPrecision && spec->precision == 0 && pDigits[0] == '0' && nDigits == 1;
+    const bool isEmpty = FMT_IS_HASPREC(spec->flags) && spec->precision == 0 && pDigits[0] == '0' && nDigits == 1;
 
-    if (!spec->flags.alwaysShowSign && *pSign == '+') {
-        if (spec->flags.showSpaceIfPositive) {
+    if (!FMT_IS_FORCESIGN(spec->flags) && *pSign == '+') {
+        if (FMT_IS_SPACEIFPOS(spec->flags)) {
             pSign = " ";
         } else {
             pSign = "";
@@ -194,14 +196,14 @@ static void _format_int_field(fmt_t* _Nonnull _Restrict self, const char* _Nonnu
     }
 
     const int slen = nSign + nLeadingZeros + nDigits;
-    int nspaces = (spec->minimumFieldWidth > slen) ? spec->minimumFieldWidth - slen : 0;
+    int nspaces = (spec->minFieldWidth > slen) ? spec->minFieldWidth - slen : 0;
 
-    if (spec->flags.padWithZeros && !spec->flags.hasPrecision && !spec->flags.isLeftJustified) {
+    if (FMT_IS_PADZEROS(spec->flags) && !FMT_IS_HASPREC(spec->flags) && !FMT_IS_LEFTJUST(spec->flags)) {
         nLeadingZeros = nspaces;
         nspaces = 0;
     }
 
-    if (nspaces > 0 && !spec->flags.isLeftJustified) {
+    if (nspaces > 0 && !FMT_IS_LEFTJUST(spec->flags)) {
         _write_char_rep(self, ' ', nspaces);
     }
 
@@ -215,7 +217,7 @@ static void _format_int_field(fmt_t* _Nonnull _Restrict self, const char* _Nonnu
         _write_string(self, pDigits, nDigits);
     }
 
-    if (nspaces > 0 && spec->flags.isLeftJustified) {
+    if (nspaces > 0 && FMT_IS_LEFTJUST(spec->flags)) {
         _write_char_rep(self, ' ', nspaces);
     }
 }
@@ -224,11 +226,11 @@ static void _format_uint_field(fmt_t* _Nonnull _Restrict self, int radix, bool i
 {
     const fmt_cspec_t* spec = &self->spec;
     int nRadixChars = 0;
-    int nLeadingZeros = (spec->flags.hasPrecision) ? __max(spec->precision - len, 0) : 0;
+    int nLeadingZeros = FMT_IS_HASPREC(spec->flags) ? __max(spec->precision - len, 0) : 0;
     const char* pRadixChars = "";
-    const bool isEmpty = spec->flags.hasPrecision && spec->precision == 0 && buf[0] == '0' && len == 1;
+    const bool isEmpty = FMT_IS_HASPREC(spec->flags) && spec->precision == 0 && buf[0] == '0' && len == 1;
 
-    if (spec->flags.isAlternativeForm) {
+    if (FMT_IS_ALTFORM(spec->flags)) {
         switch (radix) {
             case 8: nRadixChars = 1; pRadixChars = "0"; break;
             case 16: nRadixChars = 2; pRadixChars = (isUppercase) ? "0X" : "0x";
@@ -237,14 +239,14 @@ static void _format_uint_field(fmt_t* _Nonnull _Restrict self, int radix, bool i
     }
 
     const int slen = nRadixChars + nLeadingZeros + len;
-    int nspaces = (spec->minimumFieldWidth > slen) ? spec->minimumFieldWidth - slen : 0;
+    int nspaces = (spec->minFieldWidth > slen) ? spec->minFieldWidth - slen : 0;
 
-    if (spec->flags.padWithZeros && !spec->flags.hasPrecision && !spec->flags.isLeftJustified) {
+    if (FMT_IS_PADZEROS(spec->flags) && !FMT_IS_HASPREC(spec->flags) && !FMT_IS_LEFTJUST(spec->flags)) {
         nLeadingZeros = nspaces;
         nspaces = 0;
     }
 
-    if (nspaces > 0 && !spec->flags.isLeftJustified) {
+    if (nspaces > 0 && !FMT_IS_LEFTJUST(spec->flags)) {
         _write_char_rep(self, ' ', nspaces);
     }
 
@@ -261,7 +263,7 @@ static void _format_uint_field(fmt_t* _Nonnull _Restrict self, int radix, bool i
         _write_char(self, '0');
     }
 
-    if (nspaces > 0 && spec->flags.isLeftJustified) {
+    if (nspaces > 0 && FMT_IS_LEFTJUST(spec->flags)) {
         _write_char_rep(self, ' ', nspaces);
     }
 }
@@ -270,15 +272,15 @@ static void _format_char(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Rest
 {
     const fmt_cspec_t* spec = &self->spec;
     const char ch = (unsigned char) va_arg(*ap, int);
-    const size_t nspaces = (spec->minimumFieldWidth > 1) ? spec->minimumFieldWidth - 1 : 0;
+    const size_t nspaces = (spec->minFieldWidth > 1) ? spec->minFieldWidth - 1 : 0;
 
-    if (nspaces > 0 && spec->flags.isLeftJustified) {
+    if (nspaces > 0 && FMT_IS_LEFTJUST(spec->flags)) {
         _write_char_rep(self, ' ', nspaces);
     }
 
     _write_char(self, ch);
 
-    if (nspaces > 0 && !spec->flags.isLeftJustified) {
+    if (nspaces > 0 && !FMT_IS_LEFTJUST(spec->flags)) {
         _write_char_rep(self, ' ', nspaces);
     }
 }
@@ -288,17 +290,17 @@ static void _format_string(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Re
     const fmt_cspec_t* spec = &self->spec;
     const char* str = va_arg(*ap, const char*);
     const size_t slen = strlen(str);
-    const size_t flen = (spec->flags.hasPrecision || spec->minimumFieldWidth > 0) ? slen : 0;
-    const size_t adj_flen = (spec->flags.hasPrecision) ? __min(flen, spec->precision) : flen;
-    const size_t nspaces = (spec->minimumFieldWidth > adj_flen) ? spec->minimumFieldWidth - adj_flen : 0;
+    const size_t flen = (FMT_IS_HASPREC(spec->flags) || spec->minFieldWidth > 0) ? slen : 0;
+    const size_t adj_flen = FMT_IS_HASPREC(spec->flags) ? __min(flen, spec->precision) : flen;
+    const size_t nspaces = (spec->minFieldWidth > adj_flen) ? spec->minFieldWidth - adj_flen : 0;
 
-    if (nspaces > 0 && spec->flags.isLeftJustified) {
+    if (nspaces > 0 && FMT_IS_LEFTJUST(spec->flags)) {
         _write_char_rep(self, ' ', nspaces);
     }
 
-    _write_string(self, str, (spec->flags.hasPrecision) ? __min(slen, adj_flen) : slen);
+    _write_string(self, str, FMT_IS_HASPREC(spec->flags) ? __min(slen, adj_flen) : slen);
 
-    if (nspaces > 0 && !spec->flags.isLeftJustified) {
+    if (nspaces > 0 && !FMT_IS_LEFTJUST(spec->flags)) {
         _write_char_rep(self, ' ', nspaces);
     }
 }
@@ -310,7 +312,7 @@ static void _format_int(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restr
     int nbits;
     char * pCanonDigits;
 
-    switch (self->spec.lengthModifier) {
+    switch (self->spec.lenMod) {
         case FMT_LENMOD_hh:    v32 = (int32_t)(signed char)va_arg(*ap, int); nbits = INT32_WIDTH;   break;
         case FMT_LENMOD_h:     v32 = (int32_t)(short)va_arg(*ap, int); nbits = INT32_WIDTH;         break;
         case FMT_LENMOD_none:  v32 = (int32_t)va_arg(*ap, int); nbits = INT32_WIDTH;                break;
@@ -354,7 +356,7 @@ static void _format_uint(fmt_t* _Nonnull _Restrict self, int radix, bool isUpper
     int nbits;
     char * pCanonDigits;
 
-    switch (self->spec.lengthModifier) {
+    switch (self->spec.lenMod) {
         case FMT_LENMOD_hh:    v32 = (uint32_t)(unsigned char)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;     break;
         case FMT_LENMOD_h:     v32 = (uint32_t)(unsigned short)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;    break;
         case FMT_LENMOD_none:  v32 = (uint32_t)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;                    break;
@@ -394,9 +396,8 @@ static void _format_uint(fmt_t* _Nonnull _Restrict self, int radix, bool isUpper
 static void _format_ptr(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
 {
     fmt_cspec_t spec2 = self->spec;
-    self->spec.flags.isAlternativeForm = true;
-    self->spec.flags.hasPrecision = true;
-    self->spec.flags.padWithZeros = true;
+    
+    self->spec.flags |= (__FMT_ALTFORM | __FMT_PADZEROS | __FMT_HASPREC);
 
 #if __INTPTR_WIDTH == 64
     char* pCanonDigits = __u64toa((uint64_t)va_arg(*ap, void*), 16, false, &self->i64a);
@@ -415,7 +416,7 @@ static void _format_out_nchars(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull
     char* p = va_arg(*ap, char*);
     const size_t n = self->charactersWritten;
 
-    switch (self->spec.lengthModifier) {
+    switch (self->spec.lenMod) {
         case FMT_LENMOD_hh:     *((signed char*)p) = __min(n, SCHAR_MAX);   break;
         case FMT_LENMOD_h:      *((short*)p) = __min(n, SHRT_MAX);          break;
         case FMT_LENMOD_none:   *((int*)p) = __min(n, INT_MAX);             break;
