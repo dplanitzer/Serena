@@ -13,7 +13,7 @@
 void *malloc(size_t size)
 {
     __malloc_lock();
-    void* ptr = __Allocator_Allocate(__gMainAllocator, size);
+    void* ptr = __lsta_alloc(__gMainAllocator, size);
     
     if (ptr == NULL) {
         __malloc_nomem();

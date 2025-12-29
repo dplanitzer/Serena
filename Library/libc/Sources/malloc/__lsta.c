@@ -1,14 +1,14 @@
 //
-//  Allocator.c
+//  __lsta.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 2/4/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Allocator.h"
+#include <__lsta.h>
 #include <limits.h>
-#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <ext/math.h>
 
@@ -37,10 +37,6 @@ typedef int64_t word_t;
 #define MAX_NET_BLOCK_SIZE      (WORD_MAX - sizeof(block_header_t) - sizeof(block_trailer_t))
 
 
-#define MERR_CORRUPTION     1
-#define MERR_DOUBLE_FREE    2
-
-
 // A memory block (freed or allocated) has a header at the beginning (lowest address)
 // and a trailer (highest address) at its end. The header and trailer store the
 // block size. The size is the gross block size in terms of bytes. So it includes
@@ -65,18 +61,17 @@ typedef struct mem_region {
     char* _Nonnull                  lower;  // Lowest address from which to allocate (word aligned)
     char* _Nonnull                  upper;  // Address just beyond the last allocatable address (word aligned)
     char* _Nonnull                  alloc_hint; // Start looking for an allocatable block here
+    lsta_error_func_t _Nonnull      error_func;
 } mem_region_t;
 
 
 // An allocator manages memory from a pool of memory regions.
-typedef struct Allocator {
+struct lsta {
     mem_region_t* _Nonnull      first_region;
     mem_region_t* _Nonnull      last_region;
-    AllocatorGrowFunc _Nullable grow_func;
-} Allocator;
-
-
-static void mem_error(int err, const char* _Nonnull funcName, void* _Nullable ptr);
+    lsta_grow_func_t _Nullable  grow_func;
+    lsta_error_func_t _Nonnull  error_func;
+};
 
 
 
@@ -86,7 +81,7 @@ static void mem_error(int err, const char* _Nonnull funcName, void* _Nullable pt
 // region should be allocatable.
 // \param md the memory descriptor describing the memory region to manage
 // \return pointer to the mem_region object
-static mem_region_t* mem_region_create(const mem_desc_t* _Nonnull md)
+static mem_region_t* mem_region_create(const mem_desc_t* _Nonnull md, lsta_error_func_t _Nonnull errFunc)
 {
     char* bptr = __Ceil_Ptr_PowerOf2(md->lower, WORD_SIZE);
     char* tptr = __Floor_Ptr_PowerOf2(md->upper, WORD_SIZE);
@@ -105,6 +100,7 @@ static mem_region_t* mem_region_create(const mem_desc_t* _Nonnull md)
     mr->lower = __Ceil_Ptr_PowerOf2(bptr + sizeof(mem_region_t), WORD_SIZE);
     mr->upper = tptr;
     mr->alloc_hint = mr->lower;
+    mr->error_func = errFunc;
 
     if ((mr->upper - mr->lower) < MIN_GROSS_BLOCK_SIZE) {
         return NULL;
@@ -123,40 +119,15 @@ static mem_region_t* mem_region_create(const mem_desc_t* _Nonnull md)
     return mr;
 }
 
-static void mem_error(int err, const char* _Nonnull funcName, void* _Nullable ptr)
+#define __validate_block_header(__bhdr) \
+((__bhdr)->pat == HEADER_PATTERN)
+
+#define __validate_block_trailer(__btrl) \
+((__btrl)->pat == TRAILER_PATTERN)
+
+static void mem_region_error(mem_region_t* _Nonnull self, int err, const char* _Nonnull funcName, void* _Nullable ptr)
 {
-    switch (err) {
-        case MERR_CORRUPTION:
-            printf("** %s: heap corruption at %p\n", funcName, ptr);
-            break;
-
-        case MERR_DOUBLE_FREE:
-            printf("** %s: ignoring double free at: %p\n", funcName, ptr);
-            break;
-
-        default:
-            break;
-    }
-}
-
-static bool __validate_block_header(block_header_t* _Nonnull bhdr, const char* _Nonnull funcName, void* _Nonnull ptr)
-{
-    if (bhdr->pat == HEADER_PATTERN) {
-        return true;
-    }
-
-    mem_error(MERR_CORRUPTION, funcName, ptr);
-    return false;
-}
-
-static bool __validate_block_trailer(block_trailer_t* _Nonnull btrl, const char* _Nonnull funcName, void* _Nonnull ptr)
-{
-    if (btrl->pat == TRAILER_PATTERN) {
-        return true;
-    }
-
-    mem_error(MERR_CORRUPTION, funcName, ptr);
-    return false;
+    self->error_func(err, funcName, ptr);
 }
 
 // Returns true if the given memory address is managed by this memory region
@@ -174,10 +145,11 @@ static size_t mem_region_block_size(mem_region_t* _Nonnull mr, void* _Nonnull pt
     char* p = ptr;
     block_header_t* bhdr = (block_header_t*)(p - sizeof(block_header_t));
 
-    if (__validate_block_header(bhdr, "msize", p)) {
+    if (__validate_block_header(bhdr)) {
         return __abs(bhdr->size) - sizeof(block_header_t) - sizeof(block_trailer_t);
     }
     else {
+        mem_region_error(mr, MERR_CORRUPTION, "size", p);
         return 0;
     }
 }
@@ -269,8 +241,8 @@ static bool mem_region_grow_block(mem_region_t* _Nonnull mr, void* _Nonnull ptr,
     // Calculate the 'ptr' block header, trailer & gross block size
     char* p = ptr;
     block_header_t* bhdr = (block_header_t*)(p - sizeof(block_header_t));
-    if (!__validate_block_header(bhdr, "mgrow", ptr)) {
-        return false;
+    if (!__validate_block_header(bhdr)) {
+        goto corruption;
     }
 
     if (bhdr->size >= 0) {
@@ -280,16 +252,16 @@ static bool mem_region_grow_block(mem_region_t* _Nonnull mr, void* _Nonnull ptr,
     
     const word_t gross_bsize = __abs(bhdr->size);
     block_trailer_t* btrl = (block_trailer_t*)((char*)bhdr + gross_bsize - sizeof(block_trailer_t));
-    if (!__validate_block_trailer(btrl, "mgrow", ptr)) {
-        return false;
+    if (!__validate_block_trailer(btrl)) {
+        goto corruption;
     }
 
 
     // Calculate the block header, trailer & gross block size of the block
     // following the 'ptr' block. Ignore if the successor block isn't free.
     block_header_t* succ_hdr = (block_header_t*)((char*)btrl + sizeof(block_trailer_t));
-    if (!__validate_block_header(succ_hdr, "mgrow", ptr)) {
-        return false;
+    if (!__validate_block_header(succ_hdr)) {
+        goto corruption;
     }
 
     if (bhdr->size < 0) {
@@ -299,8 +271,8 @@ static bool mem_region_grow_block(mem_region_t* _Nonnull mr, void* _Nonnull ptr,
 
     const word_t gross_succ_size = __abs(succ_hdr->size);
     block_trailer_t* succ_trl = (block_trailer_t*)((char*)succ_hdr + gross_succ_size - sizeof(block_trailer_t));
-    if (!__validate_block_trailer(succ_trl, "mgrow", ptr)) {
-        return false;
+    if (!__validate_block_trailer(succ_trl)) {
+        goto corruption;
     }
 
     // A free block follows the allocated block. Expand the allocated block so
@@ -337,6 +309,11 @@ static bool mem_region_grow_block(mem_region_t* _Nonnull mr, void* _Nonnull ptr,
     }
 
     return true;
+
+
+corruption:
+    mem_region_error(mr, MERR_CORRUPTION, "grow", ptr);
+    return false;
 }
 
 // Deallocates the given memory block. Expects that the memory block is managed
@@ -349,47 +326,47 @@ static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
 
     // Calculate the 'ptr' block header, trailer & gross block size
     block_header_t* bhdr = (block_header_t*)(p - sizeof(block_header_t));
-    if (!__validate_block_header(bhdr, "mfree", ptr)) {
-        return false;
+    if (!__validate_block_header(bhdr)) {
+        goto corruption;
     }
 
     if (bhdr->size >= 0) {
-        mem_error(MERR_DOUBLE_FREE, "mfree", p);
+        mem_region_error(mr, MERR_DOUBLE_FREE, "free", p);
         return false;
     }
     
     const word_t gross_bsize = __abs(bhdr->size);
     block_trailer_t* btrl = (block_trailer_t*)((char*)bhdr + gross_bsize - sizeof(block_trailer_t));
-    if (!__validate_block_trailer(btrl, "mfree", ptr)) {
-        return false;
+    if (!__validate_block_trailer(btrl)) {
+        goto corruption;
     }
 
 
     // Calculate the block header, trailer & gross block size of the block in
     // front of 'ptr'. This one may be freed or allocated.
     block_trailer_t* pred_trl = (block_trailer_t*)((char*)bhdr - sizeof(block_trailer_t));
-    if (!__validate_block_trailer(pred_trl, "mfree", ptr)) {
-        return false;
+    if (!__validate_block_trailer(pred_trl)) {
+        goto corruption;
     }
 
     const word_t gross_pred_size = __abs(pred_trl->size);
     block_header_t* pred_hdr = (block_header_t*)((char*)pred_trl - gross_pred_size + sizeof(block_trailer_t));
-    if (!__validate_block_header(pred_hdr, "mfree", ptr)) {
-        return false;
+    if (!__validate_block_header(pred_hdr)) {
+        goto corruption;
     }
 
 
     // Calculate the block header, trailer & gross block size of the block
     // following the 'ptr' block. This one may be freed or allocated.
     block_header_t* succ_hdr = (block_header_t*)((char*)btrl + sizeof(block_trailer_t));
-    if (!__validate_block_header(succ_hdr, "mfree", ptr)) {
-        return false;
+    if (!__validate_block_header(succ_hdr)) {
+        goto corruption;
     }
 
     const word_t gross_succ_size = __abs(succ_hdr->size);
     block_trailer_t* succ_trl = (block_trailer_t*)((char*)succ_hdr + gross_succ_size - sizeof(block_trailer_t));
-    if (!__validate_block_trailer(succ_trl, "mfree", ptr)) {
-        return false;
+    if (!__validate_block_trailer(succ_trl)) {
+        goto corruption;
     }
 
 
@@ -445,6 +422,11 @@ static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
     }
 
     return true;
+
+
+corruption:
+    mem_region_error(mr, MERR_CORRUPTION, "free", ptr);
+    return false;
 }
 
 
@@ -455,17 +437,18 @@ static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
 ////////////////////////////////////////////////////////////////////////////////
 
 // Allocates a new heap.
-AllocatorRef _Nullable __Allocator_Create(const mem_desc_t* _Nonnull md, AllocatorGrowFunc _Nullable growFunc)
+lsta_t _Nullable __lsta_create(const mem_desc_t* _Nonnull md, lsta_grow_func_t _Nullable growFunc, lsta_error_func_t _Nonnull errFunc)
 {
-    AllocatorRef self = NULL;
-    mem_region_t* mr = mem_region_create(md);
+    lsta_t self = NULL;
+    mem_region_t* mr = mem_region_create(md, errFunc);
 
     if (mr) {
-        self = mem_region_alloc(mr, sizeof(Allocator));
+        self = mem_region_alloc(mr, sizeof(struct lsta));
         if (self) {
             self->first_region = mr;
             self->last_region = mr;
             self->grow_func = growFunc;
+            self->error_func = errFunc;
         }
     }
 
@@ -474,7 +457,7 @@ AllocatorRef _Nullable __Allocator_Create(const mem_desc_t* _Nonnull md, Allocat
 
 // Returns the MemRegion managing the given address. NULL is returned if this
 // allocator does not manage the given address.
-static mem_region_t* _Nullable __Allocator_GetMemRegionFor(AllocatorRef _Nonnull self, void* _Nullable addr)
+static mem_region_t* _Nullable __lsta_getmemregion(lsta_t _Nonnull self, void* _Nullable addr)
 {
     mem_region_t* mr = self->first_region;
 
@@ -489,7 +472,7 @@ static mem_region_t* _Nullable __Allocator_GetMemRegionFor(AllocatorRef _Nonnull
     return NULL;
 }
 
-bool __Allocator_IsManaging(AllocatorRef _Nonnull self, void* _Nullable ptr)
+bool __lsta_isvalidptr(lsta_t _Nonnull self, void* _Nullable ptr)
 {
     if (ptr == NULL || ((uintptr_t) ptr) == UINTPTR_MAX) {
         // Any allocator can take responsibility of that since deallocating these
@@ -497,17 +480,17 @@ bool __Allocator_IsManaging(AllocatorRef _Nonnull self, void* _Nullable ptr)
         return true;
     }
 
-    return __Allocator_GetMemRegionFor(self, ptr) != NULL;
+    return __lsta_getmemregion(self, ptr) != NULL;
 }
 
 // Adds the given memory region to the allocator's available memory pool.
-errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull self, const mem_desc_t* _Nonnull md)
+errno_t __lsta_add_memregion(lsta_t _Nonnull self, const mem_desc_t* _Nonnull md)
 {
     if (md->lower == NULL || md->upper == md->lower) {
         return EINVAL;
     }
 
-    mem_region_t* mr = mem_region_create(md);
+    mem_region_t* mr = mem_region_create(md, self->error_func);
     if (mr) {
         self->last_region->next = mr;
         self->last_region = mr;
@@ -516,7 +499,7 @@ errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull self, const mem_desc_t
     return ENOMEM;
 }
 
-static errno_t __Allocator_TryExpandBackingStore(AllocatorRef _Nonnull self, size_t minByteCount)
+static errno_t __lsta_trygrowstore(lsta_t _Nonnull self, size_t minByteCount)
 {
     if (self->grow_func && self->grow_func(self, minByteCount)) {
         return EOK;
@@ -524,7 +507,7 @@ static errno_t __Allocator_TryExpandBackingStore(AllocatorRef _Nonnull self, siz
     return ENOMEM;
 }
 
-void* _Nullable __Allocator_Allocate(AllocatorRef _Nonnull self, size_t nbytes)
+void* _Nullable __lsta_alloc(lsta_t _Nonnull self, size_t nbytes)
 {
     // Return the "empty memory block singleton" if the requested size is 0
     if (nbytes == 0) {
@@ -549,7 +532,7 @@ void* _Nullable __Allocator_Allocate(AllocatorRef _Nonnull self, size_t nbytes)
 
     // Try expanding the backing store if we've exhausted our existing memory regions
     if (ptr == NULL) {
-        if (__Allocator_TryExpandBackingStore(self, nbytes) == EOK) {
+        if (__lsta_trygrowstore(self, nbytes) == EOK) {
             ptr = mem_region_alloc(self->last_region, nbytes);
         }
     }
@@ -559,14 +542,14 @@ void* _Nullable __Allocator_Allocate(AllocatorRef _Nonnull self, size_t nbytes)
 
 // Attempts to deallocate the given memory block. Returns EOK on success and
 // ENOTBLK if the allocator does not manage the given memory block.
-errno_t __Allocator_Deallocate(AllocatorRef _Nonnull self, void* _Nullable ptr)
+errno_t __lsta_dealloc(lsta_t _Nonnull self, void* _Nullable ptr)
 {
     if (ptr == NULL || ((uintptr_t) ptr) == UINTPTR_MAX) {
         return EOK;
     }
     
     // Find out which memory region contains the block that we want to free
-    mem_region_t* mr = __Allocator_GetMemRegionFor(self, ptr);
+    mem_region_t* mr = __lsta_getmemregion(self, ptr);
     if (mr == NULL) {
         // 'ptr' isn't managed by this allocator
         return ENOTBLK;
@@ -579,12 +562,12 @@ errno_t __Allocator_Deallocate(AllocatorRef _Nonnull self, void* _Nullable ptr)
     return EOK;
 }
 
-void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull self, void *ptr, size_t new_size)
+void* _Nullable __lsta_realloc(lsta_t _Nonnull self, void * _Nullable ptr, size_t new_size)
 {
     void* np;
 
     if (ptr == NULL || ((uintptr_t) ptr) == UINTPTR_MAX) {
-        return __Allocator_Allocate(self, new_size);
+        return __lsta_alloc(self, new_size);
     }
 
     if (new_size == 0) {
@@ -592,7 +575,7 @@ void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull self, void *ptr, si
     }
 
 
-    mem_region_t* mr = __Allocator_GetMemRegionFor(self, ptr);
+    mem_region_t* mr = __lsta_getmemregion(self, ptr);
     if (mr == NULL) {
         // 'ptr' isn't managed by this allocator
         return NULL;
@@ -608,10 +591,10 @@ void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull self, void *ptr, si
     // No luck, allocate a new block of memory and copy the data over
     const size_t old_size = (ptr) ? mem_region_block_size(mr, ptr) : 0;
     if (old_size != new_size) {
-        np = __Allocator_Allocate(self, new_size);
+        np = __lsta_alloc(self, new_size);
 
         memcpy(np, ptr, __min(old_size, new_size));
-        __Allocator_Deallocate(self, ptr);
+        __lsta_dealloc(self, ptr);
     }
     else {
         np = ptr;
@@ -623,10 +606,15 @@ void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull self, void *ptr, si
 // Returns the size of the given memory block. This is the size minus the block
 // header and plus whatever additional memory the allocator added based on its
 // internal alignment constraints.
-errno_t __Allocator_GetBlockSize(AllocatorRef _Nonnull self, void* _Nonnull ptr, size_t* _Nonnull pOutSize)
+errno_t __lsta_getblocksize(lsta_t _Nonnull self, void* _Nullable ptr, size_t* _Nonnull pOutSize)
 {
+    if (ptr == NULL || ((uintptr_t) ptr) == UINTPTR_MAX) {
+        return 0;
+    }
+
+
     // Make sure that we actually manage this memory block
-    mem_region_t* mr = __Allocator_GetMemRegionFor(self, ptr);
+    mem_region_t* mr = __lsta_getmemregion(self, ptr);
     if (mr == NULL) {
         // 'ptr' isn't managed by this allocator
         return ENOTBLK;

@@ -12,6 +12,4 @@
 #define __STDC_WANT_LIB_EXT1__ 1
 #include <errno.h>
 
-#define EOK _EOK
-
 #endif /* _EXT_ERRNO_H */

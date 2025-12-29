@@ -10,7 +10,6 @@
 #define _EXT_TRY_H 1
 
 #include <assert.h>
-#include <ext/errno.h>
 #include <ext/_try.h>
 #include <stdnoreturn.h>
 

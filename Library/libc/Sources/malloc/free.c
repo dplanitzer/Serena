@@ -13,6 +13,6 @@
 void free(void *ptr)
 {
     __malloc_lock();
-    __Allocator_Deallocate(__gMainAllocator, ptr);
+    __lsta_dealloc(__gMainAllocator, ptr);
     __malloc_unlock();
 }

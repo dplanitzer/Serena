@@ -11,13 +11,11 @@
 
 #include <_cmndef.h>
 #ifndef __DISKIMAGE__
-#include <kpi/_errno.h>
+#define __STDC_WANT_LIB_EXT1__ 1
+#include <_errno.h>
 #endif
 
 __CPP_BEGIN
-
-#define EOK _EOK
-
 
 // Macros to detect errors and to jump to the 'failed:' label if an error is detected.
 

@@ -9,11 +9,11 @@
 #ifndef __MALLOC_H
 #define __MALLOC_H 1
 
-#include "Allocator.h"
+#include <__lsta.h>
 
 // The allocator that represents the application heap
-extern AllocatorRef __gMainAllocator;
-extern bool         __gAbortOnNoMem;
+extern lsta_t   __gMainAllocator;
+extern bool     __gAbortOnNoMem;
 
 extern void __malloc_init(void);
 extern void __malloc_nomem(void);

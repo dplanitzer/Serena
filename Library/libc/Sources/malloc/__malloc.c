@@ -20,7 +20,7 @@
 #define EXPANSION_HEAP_SIZE __Ceil_PowerOf2(64*1024, CPU_PAGE_SIZE)
 
 
-AllocatorRef    __gMainAllocator;
+lsta_t          __gMainAllocator;
 bool            __gAbortOnNoMem;
 static mtx_t    __gMallocLock;
 
@@ -45,7 +45,7 @@ void __malloc_nomem(void)
 }
 
 
-static bool __malloc_expand_backing_store(AllocatorRef _Nonnull pAllocator, size_t minByteCount)
+static bool __malloc_expand_backing_store(lsta_t _Nonnull pAllocator, size_t minByteCount)
 {
     const size_t ceiledSize = __Ceil_PowerOf2(minByteCount, CPU_PAGE_SIZE);
     const size_t nbytes = __min(ceiledSize, EXPANSION_HEAP_SIZE);
@@ -56,13 +56,30 @@ static bool __malloc_expand_backing_store(AllocatorRef _Nonnull pAllocator, size
 
         md.lower = ptr;
         md.upper = ptr + nbytes;
-        if (__Allocator_AddMemoryRegion(pAllocator, &md) == EOK) {
+        if (__lsta_add_memregion(pAllocator, &md) == EOK) {
             return true;
         }
     }
 
     return false;
 }
+
+static void __malloc_error(int err, const char* _Nonnull _Restrict funcName, void* _Nullable _Restrict ptr)
+{
+    switch (err) {
+        case MERR_CORRUPTION:
+            printf("** m%s: heap corruption at %p\n", funcName, ptr);
+            break;
+
+        case MERR_DOUBLE_FREE:
+            printf("** m%s: ignoring double free at: %p\n", funcName, ptr);
+            break;
+
+        default:
+            break;
+    }
+}
+
 
 void __malloc_init(void)
 {
@@ -77,7 +94,7 @@ void __malloc_init(void)
     md.lower = ptr;
     md.upper = md.lower + INITIAL_HEAP_SIZE;
 
-    __gMainAllocator = __Allocator_Create(&md, __malloc_expand_backing_store);
+    __gMainAllocator = __lsta_create(&md, __malloc_expand_backing_store, __malloc_error);
     if (__gMainAllocator == NULL) {
         abort();
     }

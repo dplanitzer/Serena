@@ -9,6 +9,7 @@
 #ifndef Errors_h
 #define Errors_h
 
+#include <errno.h>
 #include <ext/try.h>
 
 

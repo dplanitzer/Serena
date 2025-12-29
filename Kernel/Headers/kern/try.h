@@ -12,9 +12,6 @@
 #include <kern/assert.h>
 #include <ext/_try.h>
 
-#define EOK _EOK
-typedef int errno_t;
-
 // Halt the machine if the function 'f' does not return EOK. Use this instead of
 // 'try' if you are calling a failable function but based on the design of the
 // code the function you call should never fail in actual reality.

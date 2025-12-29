@@ -13,7 +13,7 @@
 void *realloc(void *ptr, size_t new_size)
 {
     __malloc_lock();
-    void* np = __Allocator_Reallocate(__gMainAllocator, ptr, new_size);
+    void* np = __lsta_realloc(__gMainAllocator, ptr, new_size);
 
     if (np == NULL) {
         __malloc_nomem();
