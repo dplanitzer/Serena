@@ -36,7 +36,7 @@ static mem_desc_t adjusted_memory_descriptor(const mem_desc_t* pMemDesc, char* _
 static void __kalloc_error(int err, const char* _Nonnull _Restrict funcName, void* _Nullable _Restrict ptr)
 {
     if (err = MERR_DOUBLE_FREE) {
-        printf("** k%s: ignoring double free at: %p\n", funcName, ptr);
+        printf("** k%s: double free at: %p\n", funcName, ptr);
     }
     else {
         printf("** k%s: heap corruption at %p\n", funcName, ptr);
