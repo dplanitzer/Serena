@@ -20,7 +20,6 @@ long labs(long n)
 {
     return __abs(n);
 }
-#endif
 
 long long llabs(long long n)
 {
@@ -31,3 +30,4 @@ intmax_t imaxabs(intmax_t n)
 {
     return __abs(n);
 }
+#endif

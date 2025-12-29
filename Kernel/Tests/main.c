@@ -34,6 +34,9 @@ extern void hid_test(int argc, char *argv[]);
 // Int32
 extern void int32_test(int argc, char *argv[]);
 
+// Int64
+extern void int64_test(int argc, char *argv[]);
+
 // Mutex
 extern void mtx_test(int argc, char *argv[]);
 
@@ -86,6 +89,8 @@ static const test_t gTests[] = {
     {"hid", hid_test, false},
 
     {"int32", int32_test, false},
+
+    {"int64", int32_test, false},
 
     {"mtx", mtx_test, true},
 
