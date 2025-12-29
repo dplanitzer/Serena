@@ -10,6 +10,7 @@
 #include <_imaxabsdiv.h>
 #include <ext/math.h>
 
+#if !defined(__M68K__)
 int abs(int n)
 {
     return __abs(n);
@@ -19,6 +20,7 @@ long labs(long n)
 {
     return __abs(n);
 }
+#endif
 
 long long llabs(long long n)
 {

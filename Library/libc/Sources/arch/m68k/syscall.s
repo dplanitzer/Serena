@@ -1,5 +1,5 @@
 ;
-;  machine/arch/m68k/syscall.s
+;  arch/m68k/syscall.s
 ;  libc
 ;
 ;  Created by Dietmar Planitzer on 9/2/23.

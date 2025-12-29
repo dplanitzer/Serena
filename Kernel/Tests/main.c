@@ -31,6 +31,9 @@ extern void overwrite_file_test(int argc, char *argv[]);
 // HID
 extern void hid_test(int argc, char *argv[]);
 
+// Int32
+extern void int32_test(int argc, char *argv[]);
+
 // Mutex
 extern void mtx_test(int argc, char *argv[]);
 
@@ -71,8 +74,6 @@ typedef struct test {
 static const test_t gTests[] = {
     {"console", interactive_console_test, false},
 
-    {"file", overwrite_file_test, false},
-
     {"dq_after", dq_after_test, true},
     {"dq_async", dq_async_test, true},
     {"dq_rep", dq_repeating_test, true},
@@ -80,7 +81,11 @@ static const test_t gTests[] = {
     {"dq_sync", dq_sync_test, true},
     {"dq_term", dq_terminate_test, true},
 
+    {"file", overwrite_file_test, false},
+
     {"hid", hid_test, false},
+
+    {"int32", int32_test, false},
 
     {"mtx", mtx_test, true},
 
@@ -145,6 +150,7 @@ int main(int argc, char *argv[])
             clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
         }
         else {
+            puts("ok");
             exit(0);
         }
     }
