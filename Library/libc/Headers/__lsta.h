@@ -1,6 +1,6 @@
 //
 //  __lsta.h
-//  libc
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 2/4/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
@@ -20,12 +20,15 @@ __CPP_BEGIN
 struct lsta;
 typedef struct lsta* lsta_t;
 
+#ifndef _LSTA_MEM_DESC_DEFINED
+#define _LSTA_MEM_DESC_DEFINED 1
 // A memory descriptor describes a contiguous range of RAM that should be managed
 // by the allocator.
 typedef struct mem_desc_t {
     char* _Nonnull  lower;
     char* _Nonnull  upper;
 } mem_desc_t;
+#endif
 
 
 // Errors passed to the mem_error function

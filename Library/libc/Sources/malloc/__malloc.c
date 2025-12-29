@@ -66,17 +66,11 @@ static bool __malloc_expand_backing_store(lsta_t _Nonnull pAllocator, size_t min
 
 static void __malloc_error(int err, const char* _Nonnull _Restrict funcName, void* _Nullable _Restrict ptr)
 {
-    switch (err) {
-        case MERR_CORRUPTION:
-            printf("** m%s: heap corruption at %p\n", funcName, ptr);
-            break;
-
-        case MERR_DOUBLE_FREE:
-            printf("** m%s: ignoring double free at: %p\n", funcName, ptr);
-            break;
-
-        default:
-            break;
+    if (err = MERR_DOUBLE_FREE) {
+        fprintf(stderr, "** m%s: ignoring double free at: %p\n", funcName, ptr);
+    }
+    else {
+        fprintf(stderr, "** m%s: heap corruption at %p\n", funcName, ptr);
     }
 }
 

@@ -6,18 +6,20 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Allocator.h"
-#include <string.h>
+#define _LSTA_MEM_DESC_DEFINED 1
 #include <hal/sys_desc.h>
+#include <__lsta.h>
+#include <string.h>
 #include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
+#include <log/Log.h>
 #include <sched/mtx.h>
 
 
-static mtx_t        gLock;
-static AllocatorRef gUnifiedMemory;       // CPU + Chipset access (memory range [0..<chipset_upper_dma_limit]) (Required)
-static AllocatorRef gCpuOnlyMemory;       // CPU only access      (memory range [chipset_upper_dma_limit...]) (Optional - created on demand if no Fast memory exists in the machine and we later pick up a RAM expansion board)
+static mtx_t    gLock;
+static lsta_t   gUnifiedMemory;       // CPU + Chipset access (memory range [0..<chipset_upper_dma_limit]) (Required)
+static lsta_t   gCpuOnlyMemory;       // CPU only access      (memory range [chipset_upper_dma_limit...]) (Optional - created on demand if no Fast memory exists in the machine and we later pick up a RAM expansion board)
 
 
 static mem_desc_t adjusted_memory_descriptor(const mem_desc_t* pMemDesc, char* _Nonnull pInitialHeapBottom, char* _Nonnull pInitialHeapTop)
@@ -31,11 +33,23 @@ static mem_desc_t adjusted_memory_descriptor(const mem_desc_t* pMemDesc, char* _
     return md;
 }
 
-static errno_t create_allocator(mem_layout_t* _Nonnull pMemLayout, char* _Nonnull pInitialHeapBottom, char* _Nonnull pInitialHeapTop, int8_t memoryType, bool isOptional, AllocatorRef _Nullable * _Nonnull pOutAllocator)
+static void __kalloc_error(int err, const char* _Nonnull _Restrict funcName, void* _Nullable _Restrict ptr)
+{
+    if (err = MERR_DOUBLE_FREE) {
+        printf("** k%s: ignoring double free at: %p\n", funcName, ptr);
+    }
+    else {
+        printf("** k%s: heap corruption at %p\n", funcName, ptr);
+    }
+
+    abort();
+}
+
+static errno_t create_allocator(mem_layout_t* _Nonnull pMemLayout, char* _Nonnull pInitialHeapBottom, char* _Nonnull pInitialHeapTop, int8_t memoryType, bool isOptional, lsta_t _Nullable * _Nonnull pOutAllocator)
 {
     decl_try_err();
     int i = 0;
-    AllocatorRef pAllocator = NULL;
+    lsta_t pAllocator = NULL;
     mem_desc_t adjusted_md;
 
     // Skip over memory regions that are below the kernel heap bottom
@@ -51,7 +65,7 @@ static errno_t create_allocator(mem_layout_t* _Nonnull pMemLayout, char* _Nonnul
     // First valid memory descriptor. Create the allocator based on that. We'll
     // get an ENOMEM error if this memory region isn't big enough
     adjusted_md = adjusted_memory_descriptor(&pMemLayout->desc[i], pInitialHeapBottom, pInitialHeapTop);
-    try_null(pAllocator, __Allocator_Create(&adjusted_md, NULL), ENOMEM);
+    try_null(pAllocator, __lsta_create(&adjusted_md, NULL, __kalloc_error), ENOMEM);
 
 
     // Pick up all other memory regions that are at least partially below the
@@ -60,7 +74,7 @@ static errno_t create_allocator(mem_layout_t* _Nonnull pMemLayout, char* _Nonnul
     while (i < pMemLayout->desc_count && pMemLayout->desc[i].lower < pInitialHeapTop) {
         if (pMemLayout->desc[i].type == memoryType) {
             adjusted_md = adjusted_memory_descriptor(&pMemLayout->desc[i], pInitialHeapBottom, pInitialHeapTop);
-            try(__Allocator_AddMemoryRegion(pAllocator, &adjusted_md));
+            try(__lsta_add_memregion(pAllocator, &adjusted_md));
         }
         i++;
     }
@@ -96,11 +110,11 @@ errno_t kalloc_options(size_t nbytes, unsigned int options, void* _Nullable * _N
 
     mtx_lock(&gLock);
     if ((options & KALLOC_OPTION_UNIFIED) != 0 || gCpuOnlyMemory == NULL) {
-        ptr = __Allocator_Allocate(gUnifiedMemory, nbytes);
+        ptr = __lsta_alloc(gUnifiedMemory, nbytes);
     } else {
-        ptr = __Allocator_Allocate(gCpuOnlyMemory, nbytes);
+        ptr = __lsta_alloc(gCpuOnlyMemory, nbytes);
         if (ptr == NULL) {
-            ptr = __Allocator_Allocate(gUnifiedMemory, nbytes);
+            ptr = __lsta_alloc(gUnifiedMemory, nbytes);
         }
     }
     mtx_unlock(&gLock);
@@ -120,10 +134,10 @@ void kfree(void* _Nullable ptr)
     decl_try_err();
 
     mtx_lock(&gLock);
-    err = __Allocator_Deallocate(gUnifiedMemory, ptr);
+    err = __lsta_dealloc(gUnifiedMemory, ptr);
 
     if (err == ENOTBLK && gCpuOnlyMemory) {
-        try_bang(__Allocator_Deallocate(gCpuOnlyMemory, ptr));
+        try_bang(__lsta_dealloc(gCpuOnlyMemory, ptr));
     } else if (err != EOK) {
         abort();
     }
@@ -138,10 +152,10 @@ size_t ksize(void* _Nullable ptr)
     size_t nbytes = 0;
 
     mtx_lock(&gLock);
-    err = __Allocator_GetBlockSize(gUnifiedMemory, ptr, &nbytes);
+    err = __lsta_getblocksize(gUnifiedMemory, ptr, &nbytes);
 
     if (err == ENOTBLK && gCpuOnlyMemory) {
-        err = __Allocator_GetBlockSize(gCpuOnlyMemory, ptr, &nbytes);
+        err = __lsta_getblocksize(gCpuOnlyMemory, ptr, &nbytes);
     }
 
     mtx_unlock(&gLock);
@@ -154,17 +168,17 @@ size_t ksize(void* _Nullable ptr)
 errno_t kalloc_add_memory_region(const mem_desc_t* _Nonnull pMemDesc)
 {
     decl_try_err();
-    AllocatorRef pAllocator;
+    lsta_t pAllocator;
 
     mtx_lock(&gLock);
     if (pMemDesc->upper < g_sys_desc->chipset_upper_dma_limit) {
-        err = __Allocator_AddMemoryRegion(gUnifiedMemory, pMemDesc);
+        err = __lsta_add_memregion(gUnifiedMemory, pMemDesc);
     }
     else if (gCpuOnlyMemory) {
-        err = __Allocator_AddMemoryRegion(gCpuOnlyMemory, pMemDesc);
+        err = __lsta_add_memregion(gCpuOnlyMemory, pMemDesc);
     }
     else {
-        gCpuOnlyMemory = __Allocator_Create(pMemDesc, NULL);
+        gCpuOnlyMemory = __lsta_create(pMemDesc, NULL, __kalloc_error);
         if (gCpuOnlyMemory == NULL) {
             err = ENOMEM;
         }

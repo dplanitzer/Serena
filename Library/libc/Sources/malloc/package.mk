@@ -1,3 +1,6 @@
+#============================================================================
+# libc
+#============================================================================
 # --------------------------------------------------------------------------
 # Build variables
 #
@@ -27,3 +30,35 @@ $(MALLOC_OBJS_DIR):
 $(MALLOC_OBJS_DIR)/%.o : $(MALLOC_SOURCES_DIR)/%.c
 	@echo $<
 	@$(CC) $(USER_CC_CONFIG) $(CC_OPT_SETTING) $(CC_GEN_DEBUG_INFO) $(CC_PREPROC_DEFS) $(MALLOC_C_INCLUDES) $(LIBC_CC_DONTWARN) $(MALLOC_GENERATE_DEPS) -o $@ $<
+
+
+#============================================================================
+# libsc
+#============================================================================
+# --------------------------------------------------------------------------
+# Build variables
+#
+
+MALLOC_SC_SOURCES := $(MALLOC_SOURCES_DIR)/__lsta.c
+
+MALLOC_SC_OBJS := $(patsubst $(MALLOC_SOURCES_DIR)/%.c,$(MALLOC_SC_OBJS_DIR)/%.o,$(MALLOC_SC_SOURCES))
+MALLOC_SC_DEPS := $(MALLOC_SC_OBJS:.o=.d)
+
+#MALLOC_SC_GENERATE_DEPS = -deps -depfile=$(patsubst $(MALLOC_SC_OBJS_DIR)/%.o,$(MALLOC_SC_OBJS_DIR)/%.d,$@)
+MALLOC_SC_GENERATE_DEPS := 
+
+
+# --------------------------------------------------------------------------
+# Build rules
+#
+
+$(MALLOC_SC_OBJS): | $(MALLOC_SC_OBJS_DIR)
+
+$(MALLOC_SC_OBJS_DIR):
+	$(call mkdir_if_needed,$(MALLOC_SC_OBJS_DIR))
+
+-include $(MALLOC_SC_DEPS)
+
+$(MALLOC_SC_OBJS_DIR)/%.o : $(MALLOC_SOURCES_DIR)/%.c
+	@echo $<
+	@$(CC) $(KERNEL_CC_CONFIG) $(CC_OPT_SETTING) $(CC_GEN_DEBUG_INFO) $(CC_PREPROC_DEFS) $(MALLOC_C_INCLUDES) $(LIBC_CC_DONTWARN) $(MALLOC_SC_GENERATE_DEPS) -o $@ $<
