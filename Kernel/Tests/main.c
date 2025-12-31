@@ -58,6 +58,9 @@ extern void sem_test(int argc, char *argv[]);
 extern void fopen_memory_fixed_size_test(int argc, char *argv[]);
 extern void fopen_memory_variable_size_test(int argc, char *argv[]);
 
+// UInt64
+extern void uint64_test(int argc, char *argv[]);
+
 // Vcpu
 extern void vcpu_acquire_test(int argc, char *argv[]);
 extern void vcpu_scheduling_test(int argc, char *argv[]);
@@ -90,7 +93,7 @@ static const test_t gTests[] = {
 
     {"int32", int32_test, false},
 
-    {"int64", int32_test, false},
+    {"int64", int64_test, false},
 
     {"mtx", mtx_test, true},
 
@@ -107,6 +110,8 @@ static const test_t gTests[] = {
 
     {"stdio", fopen_memory_fixed_size_test, false},
     {"stdio2", fopen_memory_variable_size_test, false},
+
+    {"uint64", uint64_test, false},
 
     {"vcpu_aq", vcpu_acquire_test, true},
     {"vcpu_sched", vcpu_scheduling_test, true},

@@ -14,13 +14,23 @@
 // http://www.hackersdelight.org/hdcodetxt/divmnu.c.txt
 //
 
-
-#define NULL    ((void*)0)
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <ext/math.h>
 
 typedef union i64 {
     long long i;
     unsigned short s[4];
 } i64_t;
+
+typedef union u64 {
+    int64_t         s64;
+    uint64_t        u64;
+    unsigned short  u16[4];
+} u64_t;
+
+
 
 static int __nlz(unsigned int x)
 {
@@ -59,11 +69,11 @@ static int __nlz(unsigned int x)
  that the dividend be at least as long as the divisor.  (In his terms,
  m >= 0 (unstated).  Therefore m+n >= n.) */
 
-static int __divmnu(unsigned short  * q, unsigned short  * r,
-                 const unsigned short  * u, const unsigned short  * v,
-           int m, int n)
-{
-
+static int __divmnu(
+    unsigned short* _Nonnull _Restrict q, unsigned short* _Nullable _Restrict r,
+    const unsigned short* _Nonnull _Restrict u, const unsigned short* _Nonnull _Restrict v,
+    int m, int n
+) {
     const unsigned int b = 65536;   // Number base (16 bits).
     unsigned short un[10];          // Normalized form of u. 2n
     unsigned short vn[8];           // Normalized form of v. 2(m+1)
@@ -72,8 +82,9 @@ static int __divmnu(unsigned short  * q, unsigned short  * r,
     unsigned int p;                 // Product of two digits.
     int s, i, j, t, k;
 
-    if (m < n || n <= 0 || v[n-1] == 0)
+    if (m < n || n <= 0 || v[n-1] == 0) {
         return 1;                   // Return if invalid param.
+    }
 
     if (n == 1) {                        // Take care of
         k = 0;                            // the case of a
@@ -81,7 +92,7 @@ static int __divmnu(unsigned short  * q, unsigned short  * r,
             q[j] = (k*b + u[j])/v[0];      // divisor here.
             k = (k*b + u[j]) - q[j]*v[0];
         }
-        if (r != NULL) r[0] = k;
+        if (r) r[0] = k;
         return 0;
     }
 
@@ -91,13 +102,15 @@ static int __divmnu(unsigned short  * q, unsigned short  * r,
     // digit on the dividend; we do that unconditionally.
 
     s = __nlz(v[n-1]) - 16;        // 0 <= s <= 15.
-    for (i = n - 1; i > 0; i--)
+    for (i = n - 1; i > 0; i--) {
         vn[i] = (v[i] << s) | (v[i-1] >> (16-s));
+    }
     vn[0] = v[0] << s;
 
     un[m] = u[m-1] >> (16-s);
-    for (i = m - 1; i > 0; i--)
+    for (i = m - 1; i > 0; i--) {
         un[i] = (u[i] << s) | (u[i-1] >> (16-s));
+    }
     un[0] = u[0] << s;
 
     for (j = m - n; j >= 0; j--) {       // Main loop.
@@ -105,8 +118,8 @@ static int __divmnu(unsigned short  * q, unsigned short  * r,
         qhat = (un[j+n]*b + un[j+n-1])/vn[n-1];
         rhat = (un[j+n]*b + un[j+n-1]) - qhat*vn[n-1];
     again:
-        if (qhat >= b || qhat*vn[n-2] > b*rhat + un[j+n-2])
-        { qhat = qhat - 1;
+        if (qhat >= b || qhat*vn[n-2] > b*rhat + un[j+n-2]) {
+            qhat = qhat - 1;
             rhat = rhat + vn[n-1];
             if (rhat < b) goto again;
         }
@@ -134,14 +147,120 @@ static int __divmnu(unsigned short  * q, unsigned short  * r,
             un[j+n] = un[j+n] + k;
         }
     } // End j.
+
     // If the caller wants the remainder, unnormalize
     // it and pass it back.
-    if (r != NULL) {
-        for (i = 0; i < n; i++)
+    if (r) {
+        for (i = 0; i < n; i++) {
             r[i] = (un[i] >> s) | (un[i+1] << (16-s));
+        }
     }
     return 0;
 }
+
+#define DIVIDEND    0
+#define DIVISOR     1
+void _divu64(const u64_t _Nonnull dividend_divisor[2], u64_t* _Nonnull _Restrict quotient, u64_t* _Nullable _Restrict remainder)
+{
+    unsigned short q[4], r[4];
+    unsigned short u[4], v[4];
+    const u64_t* dividend = &dividend_divisor[DIVIDEND];
+    const u64_t* divisor = &dividend_divisor[DIVISOR];
+    int m = 4, n = 4;
+
+    if (dividend->u64 == 0ull) {
+        quotient->u64 = 0ull;
+        if (remainder) remainder->u64 = 0ull;
+        return;
+    }
+
+#if __M68K__
+    for (int i = 0; i < 4; i++) {
+        if (dividend->u16[i]) break;
+        m--;
+    }
+    for (int i = 0; i < 4; i++) {
+        if (divisor->u16[i]) break;
+        n--;
+    }
+
+    for (int i = 0; i < m; i++) {
+        u[i] = dividend->u16[3 - i];
+    }
+
+    for (int i = 0; i < n; i++) {
+        v[i] = divisor->u16[3 - i];
+    }
+#else
+    for (int i = 3; i >= 0; i--) {
+        if (dividend->u16[i]) break;
+        m--;
+    }
+    for (int i = 3; i >= 0; i--) {
+        if (divisor->u16[i]) break;
+        n--;
+    }
+
+    for (int i = 0; i < m; i++) {
+        u[i] = dividend->u16[i];
+    }
+
+    for (int i = 0; i < n; i++) {
+        v[i] = divisor->u16[i];
+    }
+#endif
+
+    if (__divmnu(q, r, u, v, m, n) != 0) {
+        quotient->u64 = 0ull;
+        if (remainder) remainder->u64 = 0ull;
+        return;
+    }
+    
+    quotient->u64 = 0ull;
+    for (int i = 0; i < m - n + 1; i++) {
+#if __M68K__
+        quotient->u16[3 - i] = q[i];
+#else
+        quotient->u16[i] = q[i];
+#endif
+    }
+
+    if (remainder) {
+        remainder->u64 = 0ull;
+        for (int i = 0; i < n; i++) {
+#if __M68K__
+            remainder->u16[3 - i] = r[i];
+#else
+            remainder->u16[i] = r[i];
+#endif
+        }
+    }
+}
+
+void _divs64(const u64_t _Nonnull dividend_divisor[2], u64_t* _Nonnull _Restrict quotient, u64_t* _Nullable _Restrict remainder)
+{
+    u64_t xy_u[2];
+    const u64_t* dividend = &dividend_divisor[DIVIDEND];
+    const u64_t* divisor = &dividend_divisor[DIVISOR];
+    const bool q_neg = (dividend->s64 < 0ll) ^ (divisor->s64 < 0ll);
+    const bool r_neg = (dividend->s64 < 0ll);
+
+    xy_u[DIVIDEND].u64 = __abs(dividend->s64);
+    xy_u[DIVISOR].u64 = __abs(divisor->s64);
+
+    _divu64(xy_u, quotient, remainder);
+
+    if (q_neg) {
+        quotient->s64 = -quotient->u64;
+    }
+
+    if (remainder) {
+        if (r_neg) {
+            remainder->s64 = -remainder->u64;
+        }
+    }
+}
+
 
 
 int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder)

@@ -19,7 +19,7 @@ void __kei_init(pargs_t* _Nonnull argsp)
     __gKeiTable = argsp->urt_funcs;
 }
 
-
+#if 0
 long long _rshsint64(long long x, int s)
 {
     return ((long long (*)(long long, int))__gKeiTable[KEI_asr64])(x, s);
@@ -110,3 +110,4 @@ unsigned long long _moduint64_020(unsigned long long dividend, unsigned long lon
     
     return (unsigned long long) rem;
 }
+#endif
