@@ -8,9 +8,8 @@
 
 #include <arch/cpu.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <__stddef.h>
+#include <__stdlib.h>
 #include <ext/math.h>
 #include <sys/mtx.h>
 #include <sys/vm.h>

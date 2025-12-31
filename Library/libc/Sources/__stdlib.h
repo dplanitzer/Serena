@@ -1,18 +1,18 @@
 //
-//  __stddef.h
+//  __stdlib.h
 //  libc
 //
-//  Created by Dietmar Planitzer on 8/23/23.
-//  Copyright © 2023 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 12/30/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef ___STDDEF_H
-#define ___STDDEF_H 1
+#ifndef ___STDLIB_H
+#define ___STDLIB_H 1
 
-#include <_cmndef.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <ext/math.h>
 #include <sys/proc.h>
 
@@ -30,4 +30,4 @@ extern bool __is_pointer_NOT_freeable(void* ptr);
 
 __CPP_END
 
-#endif /* ___STDDEF_H */
+#endif /* ___STDLIB_H */

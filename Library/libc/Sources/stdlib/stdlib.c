@@ -6,12 +6,10 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <stdlib.h>
+#include <__stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <__stddef.h>
 #include <kpi/kei.h>
-#include <sys/proc.h>
 #include <sys/_vcpu.h>
 
 pargs_t* __gProcessArguments;

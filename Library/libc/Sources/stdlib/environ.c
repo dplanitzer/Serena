@@ -8,9 +8,8 @@
 
 #include <errno.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <ext/string.h>
-#include <__stddef.h>
+#include <__stdlib.h>
 
 // XXX We currently leak environment table entries because of the broken putenv() semantics
 

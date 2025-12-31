@@ -7,12 +7,10 @@
 //
 
 #include <stdbool.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <sys/mtx.h>
-#include <sys/proc.h>
 #include <kpi/syscall.h>
-#include <__stddef.h>
+#include <__stdlib.h>
 
 
 #define AT_EXIT_FUNCS_CAPACITY   32

@@ -6,9 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <__stddef.h>
-#include <stdlib.h>
-#include <sys/proc.h>
+#include <__stdlib.h>
 
 
 extern int main(int argc, char *argv[]);
