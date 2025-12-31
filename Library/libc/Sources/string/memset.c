@@ -1,6 +1,6 @@
 //
 //  memset.c
-//  libc, libsc
+//  libsc
 //
 //  Created by Dietmar Planitzer on 3/14/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
@@ -8,16 +8,6 @@
 
 #include <__string.h>
 
-
-#if ___STDC_HOSTED__ == 1
-#include <__stddef.h>
-
-void * _Nonnull memset(void * _Nonnull dst, int c, size_t count)
-{
-    return ((void* (*)(void*, int, size_t))__gProcessArguments->urt_funcs[KEI_memset])(dst, c, count);
-}
-
-#else
 
 void* _Nonnull memset(void* _Nonnull dst, int c, size_t count)
 {
@@ -75,5 +65,3 @@ void* _Nonnull memset(void* _Nonnull dst, int c, size_t count)
 
     return dst;
 }
-
-#endif

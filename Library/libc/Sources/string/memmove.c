@@ -1,6 +1,6 @@
 //
 //  memmove.c
-//  libc, libsc
+//  libsc
 //
 //  Created by Dietmar Planitzer on 3/14/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
@@ -8,16 +8,6 @@
 
 #include <__string.h>
 
-
-#if ___STDC_HOSTED__ == 1
-#include <__stddef.h>
-
-void * _Nonnull memmove(void * _Nonnull _Restrict dst, const void * _Nonnull _Restrict src, size_t count)
-{
-    return ((void* (*)(void* _Restrict, const void* _Restrict, size_t))__gProcessArguments->urt_funcs[KEI_memmove])(dst, src, count);
-}
-
-#else
 
 // Optimized version of memcpy_rev() which requires that 'src' and 'dst' pointers
 // are aligned the same way. Meaning that
@@ -114,5 +104,3 @@ void* _Nonnull memmove(void* _Nonnull _Restrict dst, const void* _Nonnull _Restr
 
     return dst;
 }
-
-#endif

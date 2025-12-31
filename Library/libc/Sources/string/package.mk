@@ -5,7 +5,25 @@
 # Build variables
 #
 
-STRING_C_SOURCES := $(wildcard $(STRING_SOURCES_DIR)/*.c)
+STRING_C_SOURCES := $(STRING_SOURCES_DIR)/ctype.c \
+					 $(STRING_SOURCES_DIR)/memchr.c \
+					 $(STRING_SOURCES_DIR)/memcmp.c \
+					 $(STRING_SOURCES_DIR)/memxxx_kei.c \
+					 $(STRING_SOURCES_DIR)/strcat.c \
+					 $(STRING_SOURCES_DIR)/strchr.c \
+					 $(STRING_SOURCES_DIR)/strcmp.c \
+					 $(STRING_SOURCES_DIR)/strcpy.c \
+					 $(STRING_SOURCES_DIR)/strdup.c \
+					 $(STRING_SOURCES_DIR)/strerror.c \
+					 $(STRING_SOURCES_DIR)/strlen.c \
+					 $(STRING_SOURCES_DIR)/strncat.c \
+					 $(STRING_SOURCES_DIR)/strncmp.c \
+					 $(STRING_SOURCES_DIR)/strncpy.c \
+					 $(STRING_SOURCES_DIR)/strndup.c \
+					 $(STRING_SOURCES_DIR)/strnlen_s.c \
+					 $(STRING_SOURCES_DIR)/strrchr.c \
+					 $(STRING_SOURCES_DIR)/strstr.c \
+					 $(STRING_SOURCES_DIR)/strtok.c
 
 STRING_OBJS := $(patsubst $(STRING_SOURCES_DIR)/%.c,$(STRING_OBJS_DIR)/%.o,$(STRING_C_SOURCES))
 STRING_DEPS := $(STRING_OBJS:.o=.d)
@@ -47,15 +65,15 @@ STRING_SC_SOURCES := $(STRING_SOURCES_DIR)/ctype.c \
 					 $(STRING_SOURCES_DIR)/memset.c \
 					 $(STRING_SOURCES_DIR)/strcat.c \
 					 $(STRING_SOURCES_DIR)/strchr.c \
-					 $(STRING_SOURCES_DIR)/strncat.c \
 					 $(STRING_SOURCES_DIR)/strcmp.c \
-					 $(STRING_SOURCES_DIR)/strncmp.c \
 					 $(STRING_SOURCES_DIR)/strcpy.c \
-					 $(STRING_SOURCES_DIR)/strncpy.c \
 					 $(STRING_SOURCES_DIR)/strlen.c \
+					 $(STRING_SOURCES_DIR)/strncat.c \
+					 $(STRING_SOURCES_DIR)/strncmp.c \
+					 $(STRING_SOURCES_DIR)/strncpy.c \
 					 $(STRING_SOURCES_DIR)/strnlen_s.c \
 					 $(STRING_SOURCES_DIR)/strrchr.c \
-					 $(STRING_SOURCES_DIR)/strrchr.c
+					 $(STRING_SOURCES_DIR)/strstr.c
 
 STRING_SC_OBJS := $(patsubst $(STRING_SOURCES_DIR)/%.c,$(STRING_SC_OBJS_DIR)/%.o,$(STRING_SC_SOURCES))
 STRING_SC_DEPS := $(STRING_SC_OBJS:.o=.d)
