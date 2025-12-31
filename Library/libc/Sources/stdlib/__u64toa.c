@@ -7,9 +7,8 @@
 //
 
 #include <__itoa.h>
+#include <__divmod64.h>
 #include <string.h>
-
-extern int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder);
 
 
 // 'radix' must be 2, 8, 10 or 16
@@ -18,7 +17,7 @@ char* _Nonnull __u64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Nonn
     const char* const ds = (isUppercase) ? "0123456789ABCDEF" : "0123456789abcdef";
     char *ep = &out->buffer[I64A_BUFFER_SIZE - 1];
     char *p = ep;
-    int64_t q, r;
+    iu64_t xy[2], q, r;
 
     *p-- = '\0';
     switch (radix) {
@@ -37,11 +36,14 @@ char* _Nonnull __u64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Nonn
             break;
 
         default:
+            xy[0].u64 = val;
+            xy[1].u64 = radix;
+
             do {
-                _divmods64(val, radix, &q, &r);
-                *p-- = ds[r];
-                val = q;
-            } while (val);
+                _divu64(xy, &q, &r);
+                *p-- = ds[r.u64];
+                xy[0].u64 = q.u64;
+            } while (xy[0].u64);
             break;
     }
 

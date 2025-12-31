@@ -37,8 +37,6 @@ typedef uint64_t uword_t;
 #if ___STDC_HOSTED__ == 1
 extern pargs_t* __gProcessArguments;
 
-extern int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder);
-
 extern void __stdlibc_init(pargs_t* _Nonnull argsp);
 extern void __malloc_init(void);
 extern void __locale_init(void);
