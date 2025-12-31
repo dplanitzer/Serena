@@ -7,7 +7,6 @@
 //
 
 #include <string.h>
-#include <__stddef.h>
 
 
 char *strncat(char * _Restrict dst, const char * _Restrict src, size_t count)

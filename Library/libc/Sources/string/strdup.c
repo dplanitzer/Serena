@@ -6,9 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <string.h>
 #include <stdlib.h>
-#include <__stddef.h>
+#include <string.h>
 
 
 char * _Nullable strdup(const char * _Nonnull src)

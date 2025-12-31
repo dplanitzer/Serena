@@ -1,6 +1,6 @@
 ;
 ;  arch/m68k-vbcc/__divsint64_020.s
-;  libc, libsc
+;  libsc
 ;
 ;  Created by Dietmar Planitzer on 12/29/25.
 ;  Copyright © 2025 Dietmar Planitzer. All rights reserved.

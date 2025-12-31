@@ -7,7 +7,6 @@
 //
 
 #include <string.h>
-#include <__stddef.h>
 
 
 char * _Nullable strstr(const char * _Nonnull str, const char * _Nonnull sub_str)

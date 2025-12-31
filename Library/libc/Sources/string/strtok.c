@@ -6,9 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <string.h>
 #include <stdlib.h>
-#include <__stddef.h>
+#include <string.h>
 
 
 static void __strmakset(const char* _Nonnull src, char ch_set[256])

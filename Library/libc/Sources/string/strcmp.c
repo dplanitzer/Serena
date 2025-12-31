@@ -7,7 +7,6 @@
 //
 
 #include <string.h>
-#include <__stddef.h>
 
 
 int strcmp(const char * _Nonnull lhs, const char * _Nonnull rhs)

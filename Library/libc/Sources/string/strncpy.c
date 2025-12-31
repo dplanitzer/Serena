@@ -7,7 +7,6 @@
 //
 
 #include <string.h>
-#include <__stddef.h>
 
 
 char * _Nonnull strncpy(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src, size_t count)

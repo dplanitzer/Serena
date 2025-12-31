@@ -7,7 +7,6 @@
 //
 
 #include <string.h>
-#include <__stddef.h>
 
 
 char * _Nullable strrchr(const char * _Nonnull str, int ch)

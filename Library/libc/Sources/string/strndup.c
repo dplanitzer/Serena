@@ -9,7 +9,6 @@
 #define __STDC_WANT_LIB_EXT1__ 1
 #include <string.h>
 #include <stdlib.h>
-#include <__stddef.h>
 
 
 char * _Nullable strndup(const char * _Nonnull src, size_t size)
