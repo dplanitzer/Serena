@@ -7,7 +7,6 @@
 //
 
 #include <_absdiv.h>
-#include <_imaxabsdiv.h>
 
 div_t div(int x, int y)
 {
@@ -18,17 +17,5 @@ div_t div(int x, int y)
 ldiv_t ldiv(long x, long y)
 {
     const ldiv_t r = { x / y, x % y };
-    return r;
-}
-
-lldiv_t lldiv(long long x, long long y)
-{
-    const lldiv_t r = { x / y, x % y };
-    return r;
-}
-
-imaxdiv_t imaxdiv(intmax_t x, intmax_t y)
-{
-    const imaxdiv_t r = { x / y, x % y };
     return r;
 }
