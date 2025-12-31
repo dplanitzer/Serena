@@ -8,43 +8,8 @@
 
 #include <stdbool.h>
 #include <unistd.h>
-#include <sys/mtx.h>
-#include <kpi/syscall.h>
 #include <__stdlib.h>
 
-
-#define AT_EXIT_FUNCS_CAPACITY   32
-typedef void (*at_exit_func_t)(void);
-
-
-static mtx_t                    __gAtExitLock;
-static at_exit_func_t _Nullable __gAtExitFuncs[AT_EXIT_FUNCS_CAPACITY];
-static int                      __gAtExitFuncsCount;
-static volatile bool            __gAtExitEnabled;
-
-
-void __exit_init(void)
-{
-    __gAtExitFuncsCount = 0;
-    __gAtExitEnabled = true;
-    mtx_init(&__gAtExitLock);
-}
-
-int atexit(void (*func)(void))
-{
-    int r = 0;
-
-    mtx_lock(&__gAtExitLock);
-    if (__gAtExitEnabled && __gAtExitFuncsCount < AT_EXIT_FUNCS_CAPACITY) {
-        __gAtExitFuncs[__gAtExitFuncsCount++] = func;
-    }
-    else {
-        r = -1;
-    }
-    mtx_unlock(&__gAtExitLock);
-
-    return r;
-}
 
 _Noreturn exit(int status)
 {
