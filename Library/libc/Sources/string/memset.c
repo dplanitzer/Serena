@@ -6,11 +6,11 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <string.h>
-#include <__stddef.h>
+#include <__string.h>
 
 
 #if ___STDC_HOSTED__ == 1
+#include <__stddef.h>
 
 void * _Nonnull memset(void * _Nonnull dst, int c, size_t count)
 {

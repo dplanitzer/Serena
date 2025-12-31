@@ -19,7 +19,7 @@
 typedef void (*at_exit_func_t)(void);
 
 
-static mtx_t                  __gAtExitLock;
+static mtx_t                    __gAtExitLock;
 static at_exit_func_t _Nullable __gAtExitFuncs[AT_EXIT_FUNCS_CAPACITY];
 static int                      __gAtExitFuncsCount;
 static volatile bool            __gAtExitEnabled;
@@ -27,7 +27,6 @@ static volatile bool            __gAtExitEnabled;
 
 void __exit_init(void)
 {
-    // XXX protect with a lock
     __gAtExitFuncsCount = 0;
     __gAtExitEnabled = true;
     mtx_init(&__gAtExitLock);
