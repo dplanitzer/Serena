@@ -149,7 +149,7 @@ size_t fwrite(const void * _Nonnull _Restrict buffer, size_t size, size_t count,
 
 
     const char* src = buffer;
-    uint64_t nBytesToWrite = (uint64_t)size * (uint64_t)count;
+    uint64_t nBytesToWrite = (uint64_t)size * count;
     uint64_t nBytesWritten = 0;
     ssize_t r;
 
@@ -165,7 +165,7 @@ size_t fwrite(const void * _Nonnull _Restrict buffer, size_t size, size_t count,
     }
 
     if (nBytesWritten >= 0ull) {
-        return nBytesWritten / (uint64_t)size;
+        return nBytesWritten / size;
     }
     else {
         s->flags.hasError = 1;
