@@ -6,9 +6,9 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include <__crt.h>
 #include <_absdiv.h>
 #include <_imaxabsdiv.h>
-#include <__divmod64.h>
 
 lldiv_t lldiv(long long x, long long y)
 {

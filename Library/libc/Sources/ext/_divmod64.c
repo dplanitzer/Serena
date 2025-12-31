@@ -14,7 +14,7 @@
 // http://www.hackersdelight.org/hdcodetxt/divmnu.c.txt
 //
 
-#include <__divmod64.h>
+#include <__crt.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <ext/math.h>

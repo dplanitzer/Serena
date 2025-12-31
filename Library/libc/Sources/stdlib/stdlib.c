@@ -14,18 +14,17 @@
 #include <sys/proc.h>
 #include <sys/_vcpu.h>
 
-extern void __kei_init(pargs_t* _Nonnull argsp);
-
 pargs_t* __gProcessArguments;
+kei_func_t* __gKeiTab;
 char ** environ;
 
 
 void __stdlibc_init(pargs_t* _Nonnull argsp)
 {
     __gProcessArguments = argsp;
+    __gKeiTab = argsp->urt_funcs;
     environ = argsp->envp;
 
-    __kei_init(argsp);
     __vcpu_init();
     __malloc_init();
     __exit_init();
@@ -33,7 +32,7 @@ void __stdlibc_init(pargs_t* _Nonnull argsp)
     __stdio_init();
 }
 
-// Returns true if the pointer is known as NOT freeable. Eg because it points
+// Returns true if the pointer is known as NOT free-able. Eg because it points
 // to the text or read-only data segments or it points into the process argument
 // area, etc.
 bool __is_pointer_NOT_freeable(void* ptr)

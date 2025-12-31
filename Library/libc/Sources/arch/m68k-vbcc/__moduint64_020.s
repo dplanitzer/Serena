@@ -11,7 +11,7 @@
 
 
 ;-------------------------------------------------------------------------------
-; long long _moduint64_020(long long dividend, long long divisor)
+; unsigned long long _moduint64_020(unsigned long long dividend, unsigned long long divisor)
 __moduint64_020:
             cargs   dividend_h.l, dividend_l.l, divisor_h.l, divisor_l.l
 quotient_l  equ     -4

@@ -11,16 +11,23 @@
 
 // The Kernel Express Interface
 enum {
-    KEI_asr64 = 0,     // long long _rshint64(long long x, int s)
-    KEI_lsr64,         // long long _rshint64(long long x, int s)
-    KEI_lsl64,         // long long _lshint64(long long x, int s)
-    KEI_divmods64_64,  // int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder)
-    KEI_muls64_64,     // long long _mulint64(long long x, long long y)
-    KEI_muls32_64,     // long long _ui32_64_mul(int x, int y)
+    KEI_asr64 = 0,      // long long _rshint64(long long x, int s)
+    KEI_lsr64,          // long long _rshint64(long long x, int s)
+    KEI_lsl64,          // long long _lshint64(long long x, int s)
 
-    KEI_memcpy,        // void* memcpy(void* dst, const void* src, size_t count)
-    KEI_memmove,       // void* memmove(void* dst, const void* src, size_t count)
-    KEI_memset,        // void* memset(void* dst, int byte, size_t count)
+    KEI_divs64,         // int64_t _divs64(int64_t dividend, int64_t divisor)
+    KEI_divu64,         // uint64_t _divu64(uint64_t dividend, uint64_t divisor)
+    KEI_mods64,         // int64_t _mods64(int64_t dividend, int64_t divisor)
+    KEI_modu64,         // uint64_t _modu64(uint64_t dividend, uint64_t divisor)
+    KEI_divmods64,      // void _divmods64(const iu64_t _Nonnull dividend_divisor[2], iu64_t* _Nonnull _Restrict quotient, iu64_t* _Nullable _Restrict remainder)
+    KEI_divmodu64,      // void _divmodu64(const iu64_t _Nonnull dividend_divisor[2], iu64_t* _Nonnull _Restrict quotient, iu64_t* _Nullable _Restrict remainder)
+    
+    KEI_muls64_64,      // long long _mulint64(long long x, long long y)
+    KEI_muls32_64,      // long long _ui32_64_mul(int x, int y)
+
+    KEI_memcpy,         // void* memcpy(void* dst, const void* src, size_t count)
+    KEI_memmove,        // void* memmove(void* dst, const void* src, size_t count)
+    KEI_memset,         // void* memset(void* dst, int byte, size_t count)
     
     KEI_Count
 };

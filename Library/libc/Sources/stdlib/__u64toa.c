@@ -6,8 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#include <__crt.h>
 #include <__itoa.h>
-#include <__divmod64.h>
 #include <string.h>
 
 
