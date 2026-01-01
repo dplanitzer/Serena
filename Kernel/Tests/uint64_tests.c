@@ -16,6 +16,8 @@ extern long long _moduint64_020(long long dividend, long long divisor);
 extern unsigned long long _lshuint64(unsigned long long x, int s);
 extern unsigned long long _rshuint64(unsigned long long x, int s);
 
+extern unsigned long long _muluint64_060(unsigned long long x, unsigned long long y);
+
 
 void uint64_test(int argc, char *argv[])
 {
@@ -63,4 +65,15 @@ void uint64_test(int argc, char *argv[])
     assertEquals(0x1234ull, _rshuint64(0x91a00000ull, 19));
     assertEquals(0x12340000ull, _rshuint64(0x123400000000ull, 16));
     assertEquals(0x12340000ull, _rshuint64(0x91a000000000ull, 19));
+
+
+    // ullmul()
+    //32*32
+    assertEquals(150ull, _muluint64_060(15ull, 10ull));
+
+    //64*32
+    assertEquals(26421052772006825ull, _muluint64_060(78193085935ull, 337895ull));
+
+    //64*64
+    assertEquals(0xB6CEDA547E375DE7ull, _muluint64_060(78193085935ull, 4886718345ull));
 }

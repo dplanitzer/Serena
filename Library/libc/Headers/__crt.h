@@ -42,6 +42,13 @@ extern unsigned long long _moduint64_060(unsigned long long dividend, unsigned l
 extern long long _mulint64_020(long long x, long long y);
 
 
+extern long long _mulsint64_020(long long x, long long y);
+extern long long _mulsint64_060(long long x, long long y);
+
+extern unsigned long long _muluint64_020(unsigned long long x, unsigned long long y);
+extern unsigned long long _muluint64_060(unsigned long long x, unsigned long long y);
+
+
 extern long long _lshint64(long long x, int s);
 extern long long _rshsint64(long long x, int s);
 
