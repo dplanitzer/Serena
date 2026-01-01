@@ -66,23 +66,29 @@ void int64_test(int argc, char *argv[])
 
 
     // lsl
-    assertEquals(0x12340000ull, _lshint64(0x12340000ull, 0));
-    assertEquals(0x1234000000000000ull, _lshint64(0x12340000ull, 32));
+    assertEquals(0x12340000ll, _lshint64(0x12340000ll, 0));
+    assertEquals(0x1234000000000000ll, _lshint64(0x12340000ll, 32));
 
-    assertEquals(0x91a0ull, _lshint64(0x1234ull, 3));
-    assertEquals(0x12340000ull, _lshint64(0x1234ull, 16));
-    assertEquals(0x91a00000ull, _lshint64(0x1234ull, 19));
-    assertEquals(0x123400000000ull, _lshint64(0x12340000ull, 16));
-    assertEquals(0x91a000000000ull, _lshint64(0x12340000ull, 19));
+    assertEquals(0x91a0ll, _lshint64(0x1234ll, 3));
+    assertEquals(0x12340000ll, _lshint64(0x1234ll, 16));
+    assertEquals(0x91a00000ll, _lshint64(0x1234ll, 19));
+    assertEquals(0x123400000000ll, _lshint64(0x12340000ll, 16));
+    assertEquals(0x91a000000000ll, _lshint64(0x12340000ll, 19));
 
 
     // lsr
-    assertEquals(0x12340000ull, _rshsint64(0x12340000ull, 0));
-    assertEquals(0x12340000ull, _rshsint64(0x1234000000000000ull, 32));
+    assertEquals(0x12340000ll, _rshsint64(0x12340000ll, 0));
+    assertEquals(0x12340000ll, _rshsint64(0x1234000000000000ll, 32));
+    assertEquals(0xffffffffedcc0000ll, _rshsint64(0xedcc000000000000ll, 32));   // negative x
+    assertEquals(0xfffffffff6e60000ll, _rshsint64(0xedcc000000000000ll, 33));   // negative x
 
-    assertEquals(0x1234ull, _rshsint64(0x91a0ull, 3));
-    assertEquals(0x1234ull, _rshsint64(0x12340000ull, 16));
-    assertEquals(0x1234ull, _rshsint64(0x91a00000ull, 19));
-    assertEquals(0x12340000ull, _rshsint64(0x123400000000ull, 16));
-    assertEquals(0x12340000ull, _rshsint64(0x91a000000000ull, 19));
+    assertEquals(0x1234ll, _rshsint64(0x91a0ll, 3));
+    assertEquals(0x1234ll, _rshsint64(0x12340000ll, 16));
+    assertEquals(0x1234ll, _rshsint64(0x91a00000ll, 19));
+    assertEquals(0x12340000ll, _rshsint64(0x123400000000ll, 16));
+    assertEquals(0x12340000ll, _rshsint64(0x91a000000000ll, 19));
+
+    assertEquals(0xfdb9800000000000ll, _rshsint64(0xedcc000000000000ll, 3));    // negative x
+    assertEquals(0xffffedcc00000000ll, _rshsint64(0xedcc000000000000ll, 16));   // negative x
+    assertEquals(0xfffffdb980000000ll, _rshsint64(0xedcc000000000000ll, 19));   // negative x
 }
