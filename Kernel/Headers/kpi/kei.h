@@ -23,7 +23,7 @@ enum {
     KEI_divmodu64,      // void _divmodu64(const iu64_t _Nonnull dividend_divisor[2], iu64_t* _Nonnull _Restrict quotient, iu64_t* _Nullable _Restrict remainder)
     
     KEI_muls64_64,      // long long _mulint64(long long x, long long y)
-    KEI_muls32_64,      // long long _ui32_64_mul(int x, int y)
+    KEI_mulu64_64,      // long long _muluint64(long long x, long long y)
 
     KEI_memcpy,         // void* memcpy(void* dst, const void* src, size_t count)
     KEI_memmove,        // void* memmove(void* dst, const void* src, size_t count)
