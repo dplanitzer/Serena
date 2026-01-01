@@ -17,6 +17,19 @@ __divsint64_020:
 quotient_l  equ     4
 quotient_h  equ     0
 
+    move.l  -8 + dividend_h(sp), d0
+    move.l  -8 + divisor_h(sp), d1
+    bne.s   .do_full_div
+    tst.l   d0
+    bne.s   .do_full_div
+
+    move.l  -8 + dividend_l(sp), d1
+    move.l  -8 + divisor_l(sp), d0
+    divsl.l d0, d0:d1       ; d1/d0 = remainder:quotient
+    moveq.l #0, d0
+    rts
+
+.do_full_div:
     subq.l  #8, sp  ; quotient
 
     clr.l   -(sp)
