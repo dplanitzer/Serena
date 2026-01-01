@@ -25,7 +25,7 @@ quotient_h  equ     0
 
     move.l  -8 + dividend_l(sp), d1
     move.l  -8 + divisor_l(sp), d0
-    divul.l d0, d0:d1       ; d1/d0 = remainder:quotient
+    divul.l d0, d0:d1       ; d1/d0 = remainder_l:quotient_l
     moveq.l #0, d0
     rts
 

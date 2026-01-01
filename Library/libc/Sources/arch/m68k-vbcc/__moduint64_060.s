@@ -19,6 +19,19 @@ quotient_h  equ     8
 remainder_l equ     4
 remainder_h equ     0
 
+    move.l  -16 + dividend_h(sp), d0
+    move.l  -16 + divisor_h(sp), d1
+    bne.s   .do_full_div
+    tst.l   d0
+    bne.s   .do_full_div
+
+    move.l  -16 + dividend_l(sp), d0
+    move.l  -16 + divisor_l(sp), d1
+    divul.l d1, d1:d0       ; d0/d1 = remainder_l:quotient_l
+    moveq.l #0, d0
+    rts
+
+.do_full_div:
     sub.l   #16, sp  ; remainder, quotient
 
     pea     0 + remainder_h(a7)
