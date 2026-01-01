@@ -12,8 +12,6 @@
 #include <hal/cpu.h>
 #include <hal/sys_desc.h>
 
-extern long long _mulsint64_68080(long long x, long long y);
-
 
 kei_func_t gKeiTable[KEI_Count];
 
@@ -32,7 +30,6 @@ void kei_init(void)
     gKeiTable[KEI_divmods64] = (kei_func_t)_divs64;
     gKeiTable[KEI_divmodu64] = (kei_func_t)_divu64;
 
-//    gKeiTable[KEI_muls64_64] = (kei_func_t)_mulint64_020;
     gKeiTable[KEI_muls64_64] = (kei_func_t)(is060 ? _mulsint64_060 : _mulsint64_020);
     gKeiTable[KEI_mulu64_64] = (kei_func_t)(is060 ? _muluint64_060 : _muluint64_020);
 
