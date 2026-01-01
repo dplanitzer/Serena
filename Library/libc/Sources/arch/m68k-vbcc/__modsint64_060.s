@@ -13,23 +13,21 @@
 ;-------------------------------------------------------------------------------
 ; long long _modsint64_060(long long dividend, long long divisor)
 __modsint64_060:
-            cargs   dividend_h.l, dividend_l.l, divisor_h.l, divisor_l.l
-quotient_l  equ     -4
-quotient_h  equ     -8
-remainder_l equ     -12
-remainder_h equ     -16
-
-    move.l  sp, a0  ; a0 := base ptr
+            cargs   #(16 + 4), dividend_h.l, dividend_l.l, divisor_h.l, divisor_l.l
+quotient_l  equ     12
+quotient_h  equ     8
+remainder_l equ     4
+remainder_h equ     0
 
     sub.l   #16, sp  ; remainder, quotient
 
-    pea     remainder_h(a0)
-    pea     quotient_h(a0)
-    pea     dividend_h(a0)
+    pea     0 + remainder_h(a7)
+    pea     4 + quotient_h(a7)
+    pea     8 + dividend_h(a7)
     jsr     __divs64
-    add.l   #12, sp
 
-    move.l  0(a7), d0
-    move.l  4(a7), d1
-    add.l   #16, sp
+    move.l  12 + remainder_h(a7), d0
+    move.l  12 + remainder_l(a7), d1
+    
+    add.l   #(12 + 16), sp
     rts
