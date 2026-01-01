@@ -18,32 +18,39 @@
 __lshint64:
 __lshuint64:
     inline
-    cargs lsi64_saved_d5.l, lsi64_saved_d6.l, lsi64_saved_d7.l, lsi64_xh.l, lsi64_xl.l, lsi64_s.l
+    cargs #(12 + 4), lsi64_xh.l, lsi64_xl.l, lsi64_s.l
         movem.l d5-d7, -(sp)
-        move.l  lsi64_s(sp), d7
+
         move.l  lsi64_xh(sp), d0
+        move.l  lsi64_xl(sp), d1
+
+        move.l  lsi64_s(sp), d7
         and.l   #$3f, d7
-        bne.s   .L1
+        bne.s   .do_shift
         ; Shift by 0 -> nothing to do
-        move.l  lsi64_xl(sp), d1
         bra.s   .done
-.L1:
-        cmp.l   #32, d7
-        blt.s   .L2
+
+.do_shift:
+        cmp.b   #32, d7
+        blt.s   .shift_by_less_than_32
         ; Shift by >= 32 bits -> low word == 0; shift high word
-        moveq.l #0, d1
         sub.b   #32, d7
+        move.l  d1, d0
         lsl.l   d7, d0
+        moveq.l #0, d1
         bra.s   .done
-.L2:
+
+.shift_by_less_than_32:
         ; Shift by < 32 bits -> extract N top bits from low word; insert in high word; shift low and high word
-        move.l  lsi64_xl(sp), d1
         bfextu  d1{0:d7}, d6
+
         lsl.l   d7, d1
         lsl.l   d7, d0
+        
         move.l  #32, d5
         sub.l   d7, d5
         bfins   d6, d0{d5:d7}
+
 .done:
         movem.l (sp)+, d5-d7
         rts

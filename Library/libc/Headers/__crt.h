@@ -38,6 +38,13 @@ extern long long _modsint64_060(long long dividend, long long divisor);
 extern unsigned long long _moduint64_020(unsigned long long dividend, unsigned long long divisor);
 extern unsigned long long _moduint64_060(unsigned long long dividend, unsigned long long divisor);
 
+
+extern long long _lshint64(long long x, int s);
+extern long long _rshsint64(long long x, int s);
+
+extern unsigned long long _lshuint64(unsigned long long x, int s);
+extern unsigned long long _rshuint64(unsigned long long x, int s);
+
 __CPP_END
 
 #endif /* ___CRT_H */

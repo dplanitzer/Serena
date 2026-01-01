@@ -13,6 +13,10 @@
 extern long long _divsint64_020(long long dividend, long long divisor);
 extern long long _modsint64_020(long long dividend, long long divisor);
 
+extern long long _lshint64(long long x, int s);
+extern long long _rshsint64(long long x, int s);
+
+
 void int64_test(int argc, char *argv[])
 {
     // llabs()
@@ -59,4 +63,26 @@ void int64_test(int argc, char *argv[])
     assertEquals(-5592415ll, _modsint64_020(-78193085935ll, 4886718345ll));
     assertEquals(5592415ll, _modsint64_020(78193085935ll, -4886718345ll));
     assertEquals(-5592415ll, _modsint64_020(-78193085935ll, -4886718345ll));
+
+
+    // lsl
+    assertEquals(0x12340000ull, _lshint64(0x12340000ull, 0));
+    assertEquals(0x1234000000000000ull, _lshint64(0x12340000ull, 32));
+
+    assertEquals(0x91a0ull, _lshint64(0x1234ull, 3));
+    assertEquals(0x12340000ull, _lshint64(0x1234ull, 16));
+    assertEquals(0x91a00000ull, _lshint64(0x1234ull, 19));
+    assertEquals(0x123400000000ull, _lshint64(0x12340000ull, 16));
+    assertEquals(0x91a000000000ull, _lshint64(0x12340000ull, 19));
+
+
+    // lsr
+    assertEquals(0x12340000ull, _rshsint64(0x12340000ull, 0));
+    assertEquals(0x12340000ull, _rshsint64(0x1234000000000000ull, 32));
+
+    assertEquals(0x1234ull, _rshsint64(0x91a0ull, 3));
+    assertEquals(0x1234ull, _rshsint64(0x12340000ull, 16));
+    assertEquals(0x1234ull, _rshsint64(0x91a00000ull, 19));
+    assertEquals(0x12340000ull, _rshsint64(0x123400000000ull, 16));
+    assertEquals(0x12340000ull, _rshsint64(0x91a000000000ull, 19));
 }
