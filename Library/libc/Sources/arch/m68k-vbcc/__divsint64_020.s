@@ -13,21 +13,19 @@
 ;-------------------------------------------------------------------------------
 ; long long _divsint64_020(long long dividend, long long divisor)
 __divsint64_020:
-            cargs   dividend_h.l, dividend_l.l, divisor_h.l, divisor_l.l
-quotient_l  equ     -4
-quotient_h  equ     -8
-
-    move.l  sp, a0  ; a0 := base ptr
+            cargs   #(8 + 4), dividend_h.l, dividend_l.l, divisor_h.l, divisor_l.l
+quotient_l  equ     4
+quotient_h  equ     0
 
     subq.l  #8, sp  ; quotient
 
     clr.l   -(sp)
-    pea     quotient_h(a0)
-    pea     dividend_h(a0)
+    pea     4 + quotient_h(a7)
+    pea     8 + dividend_h(a7)
     jsr     __divs64
-    add.l   #12, sp
 
-    move.l  0(a7), d0
-    move.l  4(a7), d1
-    addq.l  #8, sp
+    move.l  12 + quotient_h(a7), d0
+    move.l  12 + quotient_l(a7), d1
+    
+    add.l   #(12 + 8), sp
     rts
