@@ -36,15 +36,23 @@ __mulsint64_020:
         move.l  d2, -(sp)
 
         move.l  mul20_si64_xh(sp), d0
+        move.l  mul20_si64_yh(sp), d1
+        bne.s   .do_full_mul
+        tst.l   d0
+        bne.s   .do_full_mul
+        moveq.l #0, d2
+        bra.s   .do_32_to_64_mul
+
+.do_full_mul:
         move.l  mul20_si64_yl(sp), d2
         muls.l  d0, d2                  ; d2 = x_h*y_l
 
         move.l  mul20_si64_xl(sp), d0
-        move.l  mul20_si64_yh(sp), d1
         muls.l  d1, d0                  ; d0 = x_l*y_h
 
         add.l   d0, d2                  ; d2 = (x_h*y_l + x_l*y_h)*2^32
 
+.do_32_to_64_mul:
         move.l  mul20_si64_xl(sp), d0
         move.l  mul20_si64_yl(sp), d1
         mulu.l  d0, d0:d1               ; d0:d1 = x_l*y_l
@@ -66,18 +74,26 @@ __mulsint64_060:
         move.l  d2, -(sp)
 
         move.l  mul60_si64_xh(sp), d0
+        move.l  mul60_si64_yh(sp), d1
+        bne.s   .do_full_mul
+        tst.l   d0
+        bne.s   .do_full_mul
+        moveq.l #0, d2
+        bra.s   .do_32_to_64_mul
+
+.do_full_mul:
         move.l  mul60_si64_yl(sp), d2
         muls.l  d0, d2                  ; d2 = x_h*y_l
 
         move.l  mul60_si64_xl(sp), d0
-        move.l  mul60_si64_yh(sp), d1
         muls.l  d1, d0                  ; d0 = x_l*y_h
 
         add.l   d0, d2                  ; d2 = (x_h*y_l + x_l*y_h)*2^32
 
+.do_32_to_64_mul:
         move.l  mul60_si64_xl(sp), d0
         move.l  mul60_si64_yl(sp), d1
-        bsr     __mul_ui32_64
+        bsr.s   __mul_ui32_64
 
         add.l   d2, d0                  ; d0:_ = x_l*y_l + (x_h*y_l + x_l*y_h)*2^32
 
@@ -95,15 +111,23 @@ __muluint64_020:
         move.l  d2, -(sp)
 
         move.l  mul20_ui64_xh(sp), d0
+        move.l  mul20_ui64_yh(sp), d1
+        bne.s   .do_full_mul
+        tst.l   d0
+        bne.s   .do_full_mul
+        moveq.l #0, d2
+        bra.s   .do_32_to_64_mul
+
+.do_full_mul:
         move.l  mul20_ui64_yl(sp), d2
         mulu.l  d0, d2                  ; d2 = x_h*y_l
 
         move.l  mul20_ui64_xl(sp), d0
-        move.l  mul20_ui64_yh(sp), d1
         mulu.l  d1, d0                  ; d0 = x_l*y_h
 
         add.l   d0, d2                  ; d2 = (x_h*y_l + x_l*y_h)*2^32
 
+.do_32_to_64_mul:
         move.l  mul20_ui64_xl(sp), d0
         move.l  mul20_ui64_yl(sp), d1
         mulu.l  d0, d0:d1               ; d0:d1 = x_l*y_l
@@ -124,18 +148,26 @@ __muluint64_060:
         move.l  d2, -(sp)
 
         move.l  mul60_ui64_xh(sp), d0
+        move.l  mul60_ui64_yh(sp), d1
+        bne.s   .do_full_mul
+        tst.l   d0
+        bne.s   .do_full_mul
+        moveq.l #0, d2
+        bra.s   .do_32_to_64_mul
+
+.do_full_mul:
         move.l  mul60_ui64_yl(sp), d2
         mulu.l  d0, d2                  ; d2 = x_h*y_l
 
         move.l  mul60_ui64_xl(sp), d0
-        move.l  mul60_ui64_yh(sp), d1
         mulu.l  d1, d0                  ; d0 = x_l*y_h
 
         add.l   d0, d2                  ; d2 = (x_h*y_l + x_l*y_h)*2^32
 
+.do_32_to_64_mul:
         move.l  mul60_ui64_xl(sp), d0
         move.l  mul60_ui64_yl(sp), d1
-        bsr     __mul_ui32_64
+        bsr.s   __mul_ui32_64
 
         add.l   d2, d0                  ; d0:_ = x_l*y_l + (x_h*y_l + x_l*y_h)*2^32
 
@@ -154,7 +186,7 @@ __muluint64_060:
 ; Jones and Bartlett Publishers
 ; Pages 338, 339
 __mul_ui32_64:
-    movem.l d2 - d4, -(sp)
+    movem.l d2-d4, -(sp)
 
     move.l  d1, d2              ; copy a to d2 & d3
     move.l  d1, d3
@@ -181,5 +213,5 @@ __mul_ui32_64:
     add.l   d2, d0              ; carry is stored in msg of d0
     add.l   d3, d0              ; d0 = high(ah:bh) + carry || low(bh:ah) + high(bl:ah) + high(bh:al)
 
-    movem.l (sp)+, d2 - d4
+    movem.l (sp)+, d2-d4
     rts
