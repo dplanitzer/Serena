@@ -7,7 +7,7 @@
 ;
 
     xdef __modsint64_020
-    xref __divs64
+    xref __divmods64
 
 
 ;-------------------------------------------------------------------------------
@@ -24,10 +24,10 @@ remainder_h equ     0
     pea     0 + remainder_h(a7)
     pea     4 + quotient_h(a7)
     pea     8 + dividend_h(a7)
-    jsr     __divs64
+    jsr     __divmods64
 
     move.l  12 + remainder_h(a7), d0
     move.l  12 + remainder_l(a7), d1
-    
+
     add.l   #(12 + 16), sp
     rts

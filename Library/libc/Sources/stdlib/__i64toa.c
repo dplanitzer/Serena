@@ -37,7 +37,7 @@ char* _Nonnull __i64toa(int64_t val, ia_sign_format_t sign_mode, i64a_t* _Nonnul
 
     *p-- = '\0';
     do {
-        _divs64(xy, &q, &r);
+        _divmods64(xy, &q, &r);
         *p-- = '0' + (char)r.s64;
         xy[0].s64 = q.s64;
     } while (xy[0].s64);

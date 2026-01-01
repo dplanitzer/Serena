@@ -40,7 +40,7 @@ char* _Nonnull __u64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Nonn
             xy[1].u64 = radix;
 
             do {
-                _divu64(xy, &q, &r);
+                _divmodu64(xy, &q, &r);
                 *p-- = ds[r.u64];
                 xy[0].u64 = q.u64;
             } while (xy[0].u64);

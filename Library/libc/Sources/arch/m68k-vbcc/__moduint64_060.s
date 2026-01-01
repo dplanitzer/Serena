@@ -7,7 +7,7 @@
 ;
 
     xdef __moduint64_060
-    xref __divu64
+    xref __divmodu64
 
 
 ;-------------------------------------------------------------------------------
@@ -24,7 +24,7 @@ remainder_h equ     0
     pea     0 + remainder_h(a7)
     pea     4 + quotient_h(a7)
     pea     8 + dividend_h(a7)
-    jsr     __divu64
+    jsr     __divmodu64
 
     move.l  12 + remainder_h(a7), d0
     move.l  12 + remainder_l(a7), d1

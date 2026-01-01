@@ -18,7 +18,7 @@ lldiv_t lldiv(long long x, long long y)
     xy[0].s64 = x;
     xy[1].s64 = y;
 
-    _divs64(xy, &q, &r);
+    _divmods64(xy, &q, &r);
     
     z.quot = q.s64;
     z.rem = r.s64;
@@ -34,7 +34,7 @@ imaxdiv_t imaxdiv(intmax_t x, intmax_t y)
     xy[0].s64 = x;
     xy[1].s64 = y;
 
-    _divs64(xy, &q, &r);
+    _divmods64(xy, &q, &r);
     
     z.quot = q.s64;
     z.rem = r.s64;

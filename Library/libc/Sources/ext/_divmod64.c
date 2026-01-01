@@ -148,7 +148,7 @@ static int __divmnu(
 
 #define DIVIDEND    0
 #define DIVISOR     1
-void _divu64(const iu64_t _Nonnull dividend_divisor[2], iu64_t* _Nonnull _Restrict quotient, iu64_t* _Nullable _Restrict remainder)
+void _divmodu64(const iu64_t _Nonnull dividend_divisor[2], iu64_t* _Nonnull _Restrict quotient, iu64_t* _Nullable _Restrict remainder)
 {
     unsigned short q[4], r[4];
     unsigned short u[4], v[4];
@@ -225,7 +225,7 @@ void _divu64(const iu64_t _Nonnull dividend_divisor[2], iu64_t* _Nonnull _Restri
     }
 }
 
-void _divs64(const iu64_t _Nonnull dividend_divisor[2], iu64_t* _Nonnull _Restrict quotient, iu64_t* _Nullable _Restrict remainder)
+void _divmods64(const iu64_t _Nonnull dividend_divisor[2], iu64_t* _Nonnull _Restrict quotient, iu64_t* _Nullable _Restrict remainder)
 {
     iu64_t xy_u[2];
     const iu64_t* dividend = &dividend_divisor[DIVIDEND];
@@ -236,7 +236,7 @@ void _divs64(const iu64_t _Nonnull dividend_divisor[2], iu64_t* _Nonnull _Restri
     xy_u[DIVIDEND].u64 = __abs(dividend->s64);
     xy_u[DIVISOR].u64 = __abs(divisor->s64);
 
-    _divu64(xy_u, quotient, remainder);
+    _divmodu64(xy_u, quotient, remainder);
 
     if (q_neg) {
         quotient->s64 = -quotient->u64;

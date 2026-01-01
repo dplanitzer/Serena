@@ -7,7 +7,7 @@
 ;
 
     xdef __divuint64_020
-    xref __divu64
+    xref __divmodu64
 
 
 ;-------------------------------------------------------------------------------
@@ -22,7 +22,7 @@ quotient_h  equ     0
     clr.l   -(sp)
     pea     4 + quotient_h(a7)
     pea     8 + dividend_h(a7)
-    jsr     __divu64
+    jsr     __divmodu64
 
     move.l  12 + quotient_h(a7), d0
     move.l  12 + quotient_l(a7), d1

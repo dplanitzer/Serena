@@ -54,12 +54,12 @@ unsigned long long _moduint64_060(unsigned long long dividend, unsigned long lon
 }
 
 
-void _divs64(const iu64_t _Nonnull dividend_divisor[2], iu64_t* _Nonnull _Restrict quotient, iu64_t* _Nullable _Restrict remainder)
+void _divmods64(const iu64_t _Nonnull dividend_divisor[2], iu64_t* _Nonnull _Restrict quotient, iu64_t* _Nullable _Restrict remainder)
 {
     ((void (*)(const iu64_t[2], iu64_t* _Restrict, iu64_t* _Restrict))__gKeiTab[KEI_divmods64])(dividend_divisor, quotient, remainder);
 }
 
-void _divu64(const iu64_t _Nonnull dividend_divisor[2], iu64_t* _Nonnull _Restrict quotient, iu64_t* _Nullable _Restrict remainder)
+void _divmodu64(const iu64_t _Nonnull dividend_divisor[2], iu64_t* _Nonnull _Restrict quotient, iu64_t* _Nullable _Restrict remainder)
 {
     ((void (*)(const iu64_t[2], iu64_t* _Restrict, iu64_t* _Restrict))__gKeiTab[KEI_divmodu64])(dividend_divisor, quotient, remainder);
 }

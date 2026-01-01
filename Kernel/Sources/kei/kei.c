@@ -27,8 +27,8 @@ void kei_init(void)
     gKeiTable[KEI_divu64] = (kei_func_t)(is060 ? _divuint64_060 : _divuint64_020);
     gKeiTable[KEI_mods64] = (kei_func_t)(is060 ? _modsint64_060 : _modsint64_020);
     gKeiTable[KEI_modu64] = (kei_func_t)(is060 ? _moduint64_060 : _moduint64_020);
-    gKeiTable[KEI_divmods64] = (kei_func_t)_divs64;
-    gKeiTable[KEI_divmodu64] = (kei_func_t)_divu64;
+    gKeiTable[KEI_divmods64] = (kei_func_t)_divmods64;
+    gKeiTable[KEI_divmodu64] = (kei_func_t)_divmodu64;
 
     gKeiTable[KEI_muls64_64] = (kei_func_t)(is060 ? _mulsint64_060 : _mulsint64_020);
     gKeiTable[KEI_mulu64_64] = (kei_func_t)(is060 ? _muluint64_060 : _muluint64_020);
