@@ -1,5 +1,5 @@
 //
-//  environ.c
+//  putenv.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 9/15/23.
@@ -7,7 +7,6 @@
 //
 
 #include <errno.h>
-#include <stdbool.h>
 #include <ext/string.h>
 #include <__stdlib.h>
 
@@ -21,30 +20,6 @@ static ssize_t __getenvsize(void)
 
     while (*p++);
     return p - environ - 1;
-}
-
-// Like getenv() but also returns the index of the 'name' entry in the environ
-// table. Returns NULL and an index of -1 if 'name' was not found. Note that at
-// most 'nMaxChars' are considered when comparing 'name' against the entries
-// stored in the table.
-static char* _Nullable __getenv(const char *_Nonnull name, size_t nMaxChars, ssize_t* _Nonnull idx)
-{
-    if (name) {
-        const char* const * p = (const char * const *) environ;
-
-        while (*p) {
-            const char* vname = *p;
-
-            if (!strncmp(name, vname, nMaxChars) && vname[nMaxChars] == '=') {
-                *idx = p - environ;
-                return (char*) &vname[nMaxChars + 1];
-            }
-            p++;
-        }
-    }
-
-    *idx = -1;
-    return NULL;
 }
 
 // Replaces the entry at the given index in the environment table with the given
@@ -119,12 +94,6 @@ static char* _Nullable __createenventry(const char* _Nonnull name, const char* _
 }
 
 
-
-char *getenv(const char *name)
-{
-    ssize_t idx;
-    return __getenv(name, strlen(name), &idx);
-}
 
 int setenv(const char *name, const char *value, int overwrite)
 {

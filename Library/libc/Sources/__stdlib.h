@@ -39,6 +39,10 @@ extern void __stdio_init(void);
 
 extern bool __is_pointer_NOT_freeable(void* ptr);
 
+
+// environ
+extern char* _Nullable __getenv(const char *_Nonnull name, size_t nMaxChars, ssize_t* _Nonnull idx);
+
 __CPP_END
 
 #endif /* ___STDLIB_H */
