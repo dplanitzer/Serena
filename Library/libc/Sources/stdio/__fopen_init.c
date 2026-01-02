@@ -9,23 +9,7 @@
 #include "Stream.h"
 #include <stdlib.h>
 #include <string.h>
-#include <sys/mtx.h>
 
-
-static FILE*    __gOpenFiles;
-static mtx_t    __gOpenFilesLock;
-
-
-void __init_open_files_lock(void)
-{
-    mtx_init(&__gOpenFilesLock);
-}
-
-#define __open_files_lock() \
-mtx_lock(&__gOpenFilesLock)
-
-#define __open_files_unlock() \
-mtx_unlock(&__gOpenFilesLock)
 
 static void __register_open_file(FILE* _Nonnull s)
 {
@@ -43,51 +27,6 @@ static void __register_open_file(FILE* _Nonnull s)
     }
 
     __open_files_unlock();
-}
-
-static void __deregister_open_file(FILE* _Nonnull s)
-{
-    __open_files_lock();
-
-    if (__gOpenFiles == s) {
-        __gOpenFiles = s->next;
-    }
-
-    if (s->next) {
-        (s->next)->prev = s->prev;
-    }
-    if (s->prev) {
-        (s->prev)->next = s->next;
-    }
-
-    s->prev = NULL;
-    s->next = NULL;
-
-    __open_files_unlock();
-}
-
-// Iterates through all registered files and invokes 'f' on each one. Note that
-// this function holds the file registration lock while invoking 'f'. 
-int __iterate_open_files(__file_func_t _Nonnull f)
-{
-    int r = 0;
-    FILE* pCurFile;
-    
-    __open_files_lock();
-
-    pCurFile = __gOpenFiles;
-    while (pCurFile) {
-        const int rx = f(pCurFile);
-
-        if (r == 0) {
-            r = rx;
-        }
-        pCurFile = pCurFile->next;
-    }
-
-    __open_files_unlock();
-
-    return r;
 }
 
 
@@ -124,16 +63,4 @@ int __fopen_init(FILE* _Nonnull _Restrict self, bool bFreeOnClose, void* _Nullab
     __register_open_file(self);
 
     return 0;
-}
-
-// Shuts down the given stream but does not free the 's' memory block. 
-int __fclose(FILE * _Nonnull s)
-{
-    const int r1 = __fflush(s);
-    const int r2 = (s->cb.close) ? s->cb.close((void*)s->context) : 0;
-
-    __setvbuf(s, NULL, _IONBF, 0);
-    __deregister_open_file(s);
-    
-    return (r1 == 0 && r2 == 0) ? 0 : EOF;
 }

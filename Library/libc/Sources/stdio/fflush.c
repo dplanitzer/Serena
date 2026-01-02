@@ -90,6 +90,31 @@ int __fflush(FILE * _Nonnull s)
     return 0;
 }
 
+// Iterates through all registered files and invokes 'f' on each one. Note that
+// this function holds the file registration lock while invoking 'f'. 
+static int __iterate_open_files(__file_func_t _Nonnull f)
+{
+    int r = 0;
+    FILE* pCurFile;
+    
+    __open_files_lock();
+
+    pCurFile = __gOpenFiles;
+    while (pCurFile) {
+        const int rx = f(pCurFile);
+
+        if (r == 0) {
+            r = rx;
+        }
+        pCurFile = pCurFile->next;
+    }
+
+    __open_files_unlock();
+
+    return r;
+}
+
+
 int fflush(FILE * _Nonnull s)
 {
     if (s) {

@@ -14,6 +14,8 @@
 #include <stdint.h>
 #include <errno.h>
 #include <__stdlib.h>
+#include <sys/mtx.h>
+
 
 __CPP_BEGIN
 
@@ -88,6 +90,20 @@ typedef struct __Memory_FILE {
 } __Memory_FILE;
 
 
+extern const FILE_Callbacks __FILE_fd_callbacks;
+extern FILE*    __gOpenFiles;
+extern mtx_t    __gOpenFilesLock;
+
+#define __init_open_files_lock() \
+mtx_init(&__gOpenFilesLock)
+
+#define __open_files_lock() \
+mtx_lock(&__gOpenFilesLock)
+
+#define __open_files_unlock() \
+mtx_unlock(&__gOpenFilesLock)
+
+
 extern int __fopen_parse_mode(const char* _Nonnull _Restrict mode, __FILE_Mode* _Nonnull _Restrict pOutMode);
 
 extern int __fopen_init(FILE* _Nonnull _Restrict self, bool bFreeOnClose, void* _Nullable context, const FILE_Callbacks* _Nonnull _Restrict callbacks, __FILE_Mode sm);
@@ -99,7 +115,6 @@ extern int __fopen_null_init(FILE* _Nonnull self, bool bFreeOnClose, __FILE_Mode
 extern FILE * _Nullable __fopen_null(const char* mode);
 
 
-extern const FILE_Callbacks __FILE_fd_callbacks;
 extern ssize_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* buf, ssize_t nbytes);
 extern ssize_t __mem_read(__Memory_FILE_Vars* _Nonnull mp, void* pBuffer, ssize_t nBytesToRead);
 
@@ -163,10 +178,7 @@ extern int __fflush(FILE* _Nonnull s);
 extern int __setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size);
 extern int __fclose(FILE* _Nonnull s);
 
-extern void __init_open_files_lock(void);
-
 typedef int (*__file_func_t)(FILE* _Nonnull s);
-extern int __iterate_open_files(__file_func_t _Nonnull f);
 
 extern char * _Nullable __tmpnam_r(char * _Nullable _Restrict filename, int* _Nonnull _Restrict pOutIoc);
 

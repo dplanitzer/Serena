@@ -19,6 +19,9 @@ FILE* _Stdin;
 FILE* _Stdout;
 FILE* _Stderr;
 
+FILE*   __gOpenFiles;
+mtx_t   __gOpenFilesLock;
+
 
 static void __stdio_exit(void)
 {
