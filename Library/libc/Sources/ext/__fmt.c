@@ -116,9 +116,9 @@ static const char* _Nonnull _parse_length_mod(fmt_t* _Nonnull _Restrict self, co
 
 static int _atoi(const char* _Nonnull _Restrict str, char* _Nonnull _Restrict * _Nonnull _Restrict str_end)
 {
-    long long r;
+    long r;
 
-    if (__strtoi64(str, str_end, 10, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r) == 0) {
+    if (__strtoi32(str, str_end, 10, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r) == 0) {
         return (int) r;
     }
     else {
