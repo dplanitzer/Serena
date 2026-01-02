@@ -26,6 +26,15 @@ extern div_t div(int x, int y);
 extern ldiv_t ldiv(long x, long y);
 extern lldiv_t lldiv(long long x, long long y);
 
+
+typedef struct udiv_t { unsigned int quot; unsigned int rem; } udiv_t;
+typedef struct uldiv_t { unsigned long quot; unsigned long rem; } uldiv_t;
+typedef struct ulldiv_t { unsigned long long quot; unsigned long long rem; } ulldiv_t;
+
+extern udiv_t udiv(unsigned int x, unsigned int y);
+extern uldiv_t uldiv(unsigned long x, unsigned long y);
+extern ulldiv_t ulldiv(unsigned long long x, unsigned long long y);
+
 __CPP_END
 
 #endif /* __ABSDIV_H */

@@ -16,9 +16,13 @@ __CPP_BEGIN
 
 typedef struct imaxdiv_t { intmax_t quot; intmax_t rem; } imaxdiv_t;
 
-
 extern intmax_t imaxabs(intmax_t n);
 extern imaxdiv_t imaxdiv(intmax_t x, intmax_t y);
+
+
+typedef struct uimaxdiv_t { uintmax_t quot; uintmax_t rem; } uimaxdiv_t;
+
+extern uimaxdiv_t uimaxdiv(uintmax_t x, uintmax_t y);
 
 __CPP_END
 

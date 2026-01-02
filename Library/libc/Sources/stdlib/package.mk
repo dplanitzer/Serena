@@ -42,7 +42,10 @@ $(STDLIB_OBJS_DIR)/%.o : $(STDLIB_SOURCES_DIR)/%.c
 STDLIB_SC_SOURCES := $(STDLIB_SOURCES_DIR)/abs.c \
 					 $(STDLIB_SOURCES_DIR)/bsearch.c \
 					 $(STDLIB_SOURCES_DIR)/div.c \
+					 $(STDLIB_SOURCES_DIR)/lldiv.c \
+					 $(STDLIB_SOURCES_DIR)/udiv.c \
 					 $(STDLIB_SOURCES_DIR)/qsort.c \
+					 $(STDLIB_SOURCES_DIR)/ulldiv.c \
 					 $(STDLIB_SOURCES_DIR)/__i32toa.c \
 					 $(STDLIB_SOURCES_DIR)/__i64toa.c \
 					 $(STDLIB_SOURCES_DIR)/__strtoi64.c \

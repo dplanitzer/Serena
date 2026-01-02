@@ -7,6 +7,7 @@
 //
 
 #include <__itoa.h>
+#include <_absdiv.h>
 #include <string.h>
 
 
@@ -35,8 +36,10 @@ char* _Nonnull __u32toa(uint32_t val, int radix, bool isUppercase, i32a_t* _Nonn
 
         default:
             do {
-                *p-- = ds[val % radix];
-                val /= radix;
+                const udiv_t r = udiv(val, radix);
+
+                *p-- = ds[r.rem];
+                val = r.quot;
             } while (val);
             break;
     }
