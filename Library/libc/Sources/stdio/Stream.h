@@ -98,7 +98,10 @@ extern int __fopen_null_init(FILE* _Nonnull self, bool bFreeOnClose, __FILE_Mode
 
 extern FILE * _Nullable __fopen_null(const char* mode);
 
+
 extern ssize_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* buf, ssize_t nbytes);
+extern ssize_t __mem_read(__Memory_FILE_Vars* _Nonnull mp, void* pBuffer, ssize_t nBytesToRead);
+
 
 #define __fensure_byte_oriented(__self, __ret) \
 if ((__self)->flags.orientation == __kStreamOrientation_Wide) { \

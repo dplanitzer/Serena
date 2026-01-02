@@ -26,7 +26,7 @@
 //
 
 
-static ssize_t __mem_read(__Memory_FILE_Vars* _Nonnull mp, void* pBuffer, ssize_t nBytesToRead)
+ssize_t __mem_read(__Memory_FILE_Vars* _Nonnull mp, void* pBuffer, ssize_t nBytesToRead)
 {
     const ssize_t nBytesRead = (ssize_t)__min((size_t)nBytesToRead, mp->eofPosition - mp->currentPosition);
     const ssize_t nBytesToCopy = (ssize_t)__min((size_t)nBytesRead, mp->currentCapacity - mp->currentPosition);
@@ -177,22 +177,4 @@ int __fopen_memory_init(__Memory_FILE* _Nonnull _Restrict self, bool bFreeOnClos
     mp->flags.freeOnClose = ((mem->options & _IOM_FREE_ON_CLOSE) != 0) ? 1 : 0;
 
     return __fopen_init((FILE*)self, bFreeOnClose, mp, &__FILE_mem_callbacks, sm);
-}
-
-int filemem(FILE * _Nonnull _Restrict s, FILE_MemoryQuery * _Nonnull _Restrict query)
-{
-    if (s->cb.read == (FILE_Read)__mem_read) {
-        const __Memory_FILE_Vars* mp = (__Memory_FILE_Vars*)s->context;
-
-        query->base = mp->store;
-        query->eof = mp->eofPosition;
-        query->capacity = mp->currentCapacity;
-        return 0;
-    }
-    else {
-        query->base = NULL;
-        query->eof = 0;
-        query->capacity = 0;
-        return EOF;
-    }
 }
