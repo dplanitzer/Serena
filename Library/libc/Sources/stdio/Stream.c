@@ -13,7 +13,7 @@
 
 
 static FILE*    __gOpenFiles;
-static mtx_t  __gOpenFilesLock;
+static mtx_t    __gOpenFilesLock;
 
 
 void __init_open_files_lock(void)
@@ -21,15 +21,11 @@ void __init_open_files_lock(void)
     mtx_init(&__gOpenFilesLock);
 }
 
-static void __open_files_lock(void)
-{
-    mtx_lock(&__gOpenFilesLock);
-}
+#define __open_files_lock() \
+mtx_lock(&__gOpenFilesLock)
 
-static void __open_files_unlock(void)
-{
-    mtx_unlock(&__gOpenFilesLock);
-}
+#define __open_files_unlock() \
+mtx_unlock(&__gOpenFilesLock)
 
 static void __register_open_file(FILE* _Nonnull s)
 {

@@ -30,6 +30,9 @@ static void __stdio_exit(void)
 
 void __stdio_init(void)
 {
+    int bufmod;
+    size_t bufsiz;
+
     __init_open_files_lock();
     
     _Stdin = (FILE*)&_StdinObj;
@@ -40,11 +43,15 @@ void __stdio_init(void)
         __fdopen_init(&_StdinObj, false, STDIN_FILENO, __kStreamMode_Read);
 
         if (fcntl(STDIN_FILENO, F_GETTYPE) == SEO_FT_TERMINAL) {
-            __setvbuf(_Stdin, NULL, _IOLBF, 256);
+            bufmod = _IOLBF;
+            bufsiz = 256;
         }
         else {
-            __setvbuf(_Stdin, NULL, _IOFBF, BUFSIZ);
+            bufmod = _IOFBF;
+            bufsiz = BUFSIZ;
         }
+
+        __setvbuf(_Stdin, NULL, bufmod, bufsiz);
     }
     else {
         __fopen_null_init(_Stdin, false, __kStreamMode_Read);
@@ -54,11 +61,15 @@ void __stdio_init(void)
         __fdopen_init(&_StdoutObj, false, STDOUT_FILENO, __kStreamMode_Write);
 
         if (fcntl(STDOUT_FILENO, F_GETTYPE) == SEO_FT_TERMINAL) {
-            __setvbuf(_Stdout, NULL, _IOLBF, 256);
+            bufmod = _IOLBF;
+            bufsiz = 256;
         }
         else {
-            __setvbuf(_Stdout, NULL, _IOFBF, BUFSIZ);
+            bufmod = _IOFBF;
+            bufsiz = BUFSIZ;
         }
+
+        __setvbuf(_Stdout, NULL, bufmod, bufsiz);
     }
     else {
         __fopen_null_init(_Stdout, false, __kStreamMode_Write);
