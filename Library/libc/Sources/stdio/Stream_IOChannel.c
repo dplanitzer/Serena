@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 
-static ssize_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* buf, ssize_t nbytes)
+ssize_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* buf, ssize_t nbytes)
 {
     return read(self->fd, buf, nbytes);
 }
@@ -126,9 +126,4 @@ int __fopen_filename_init(__IOChannel_FILE* _Nonnull _Restrict self, bool bFreeO
     }
 
     return 0;
-}
-
-int fileno(FILE * _Nonnull s)
-{
-    return (s->cb.read == (FILE_Read)__fd_read) ? ((__IOChannel_FILE*)s)->v.fd : EOF;
 }
