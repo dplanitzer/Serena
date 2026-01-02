@@ -71,5 +71,6 @@ int __strtou64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * 
     }
 
     if (str_end) *str_end = (char*)&str[i];
+    *result = val;
     return 0;
 }
