@@ -1,16 +1,16 @@
 //
-//  __strtoi64.c
+//  __strtou64.c
 //  libc, libsc
 //
-//  Created by Dietmar Planitzer on 8/23/23.
-//  Copyright © 2023 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 1/1/26.
+//  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
 #include <__itoa.h>
 #include <kpi/_errno.h>
 
 
-int __strtoi64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * _Nonnull _Restrict str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Nonnull _Restrict result)
+int __strtou64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * _Nonnull _Restrict str_end, int base, unsigned long long max_val, int max_digits, unsigned long long * _Nonnull _Restrict result)
 {
     if ((base < 2 && base != 0) || base > 36) {
         *result = 0ll;
@@ -20,13 +20,6 @@ int __strtoi64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * 
 
     // Skip whitespace
     while (*str != '\0' && (*str == ' ' || *str == '\t')) {
-        str++;
-    }
-
-
-    // Detect the sign
-    const char sig_ch = *str;
-    if (sig_ch == '-' || sig_ch == '+') {
         str++;
     }
 
@@ -47,10 +40,8 @@ int __strtoi64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * 
 
 
     // Convert digits
-    const bool is_neg = (sig_ch == '-');
     unsigned long long val = 0;
     const unsigned long long llbase = (unsigned long long) base;
-    const unsigned long long upper_bound = (is_neg) ? -min_val : max_val;
     const char upper_num = (base < 10) ? '0' + base : '9';
     const char upper_lletter = (base > 9) ? 'a' + base - 11 : 'a';
     const char upper_uletter = (base > 9) ? 'A' + base - 11 : 'A';
@@ -69,9 +60,9 @@ int __strtoi64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * 
         }
 
         const unsigned long long new_val = (val * llbase) + digit;
-        if (i > max_digits || new_val < val || new_val > upper_bound) {
+        if (i > max_digits || new_val < val || new_val > max_val) {
             if (str_end) *str_end = (char*)&str[i + 1];
-            *result = (is_neg) ? min_val : max_val;
+            *result = max_val;
             return ERANGE;
         }
 
@@ -80,6 +71,5 @@ int __strtoi64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * 
     }
 
     if (str_end) *str_end = (char*)&str[i];
-    *result = (is_neg) ? -((long long)val) : (long long)val;
     return 0;
 }

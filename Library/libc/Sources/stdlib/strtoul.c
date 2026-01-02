@@ -14,11 +14,11 @@
 
 unsigned long strtoul(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
-    long long r;
+    unsigned long long r;
     int err;
 
-    if ((err = __strtoi64(str, str_end, base, 0, ULONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r)) == 0) {
-        return (unsigned long) r;
+    if ((err = __strtou64(str, str_end, base, ULONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r)) == 0) {
+        return r;
     }
     else {
         errno = err;
