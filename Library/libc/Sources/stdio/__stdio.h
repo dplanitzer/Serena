@@ -1,13 +1,13 @@
 //
-//  Stream.h
+//  __stdio.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef Stream_h
-#define Stream_h 1
+#ifndef __STDIO_H
+#define __STDIO_H 1
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -184,4 +184,4 @@ extern char * _Nullable __tmpnam_r(char * _Nullable _Restrict filename, int* _No
 
 __CPP_END
 
-#endif /* Stream_h */
+#endif /* __STDIO_H */

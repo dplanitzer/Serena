@@ -6,7 +6,7 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Stream.h"
+#include "__stdio.h"
 
 
 int filemem(FILE * _Nonnull _Restrict s, FILE_MemoryQuery * _Nonnull _Restrict query)

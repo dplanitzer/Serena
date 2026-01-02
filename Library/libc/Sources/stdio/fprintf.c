@@ -10,7 +10,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <ext/__fmt.h>
-#include "Stream.h"
+#include "__stdio.h"
 
 
 int fprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, ...)

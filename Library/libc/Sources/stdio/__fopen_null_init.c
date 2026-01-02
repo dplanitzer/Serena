@@ -6,7 +6,7 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Stream.h"
+#include "__stdio.h"
 
 
 // This a non-seekable stream that discards anything that is written to it and

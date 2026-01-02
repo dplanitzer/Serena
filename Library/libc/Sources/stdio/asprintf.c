@@ -10,7 +10,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <ext/__fmt.h>
-#include "Stream.h"
+#include "__stdio.h"
 
 
 int asprintf(char **str_ptr, const char * _Nonnull _Restrict format, ...)

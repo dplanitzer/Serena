@@ -6,7 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Stream.h"
+#include "__stdio.h"
 #include <stdlib.h>
 #include <ext/limits.h>
 

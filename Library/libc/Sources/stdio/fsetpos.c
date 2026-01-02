@@ -6,7 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Stream.h"
+#include "__stdio.h"
 
 
 int fsetpos(FILE * _Nonnull _Restrict s, const fpos_t * _Nonnull _Restrict pos)

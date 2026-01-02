@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include "Stream.h"
+#include "__stdio.h"
 
 
 FILE * _Nullable tmpfile(void)
