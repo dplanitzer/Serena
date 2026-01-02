@@ -90,6 +90,9 @@ typedef struct __Memory_FILE {
 } __Memory_FILE;
 
 
+typedef int (*__file_func_t)(FILE* _Nonnull s);
+
+
 extern const FILE_Callbacks __FILE_fd_callbacks;
 extern FILE*    __gOpenFiles;
 extern mtx_t    __gOpenFilesLock;
@@ -113,6 +116,9 @@ extern int __fopen_memory_init(__Memory_FILE* _Nonnull _Restrict self, bool bFre
 extern int __fopen_null_init(FILE* _Nonnull self, bool bFreeOnClose, __FILE_Mode sm);
 
 extern FILE * _Nullable __fopen_null(const char* mode);
+
+
+extern int __iterate_open_files(__file_func_t _Nonnull f);
 
 
 extern ssize_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* buf, ssize_t nbytes);
@@ -177,8 +183,6 @@ extern int __ffill(FILE * _Nonnull s);
 extern int __fflush(FILE* _Nonnull s);
 extern int __setvbuf(FILE * _Restrict s, char * _Restrict buffer, int mode, size_t size);
 extern int __fclose(FILE* _Nonnull s);
-
-typedef int (*__file_func_t)(FILE* _Nonnull s);
 
 extern char * _Nullable __tmpnam_r(char * _Nullable _Restrict filename, int* _Nonnull _Restrict pOutIoc);
 

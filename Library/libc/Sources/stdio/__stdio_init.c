@@ -25,7 +25,7 @@ mtx_t   __gOpenFilesLock;
 
 static void __stdio_exit(void)
 {
-    fflush(NULL);
+    __iterate_open_files(__fflush);
     // All open I/O channels will be automatically closed by the kernel when the
     // process terminates.
 }
