@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <__stdlib.h>
 #include <ext/math.h>
-#include <sys/mtx.h>
 #include <sys/vm.h>
 #include "__malloc.h"
 
@@ -19,9 +18,9 @@
 #define EXPANSION_HEAP_SIZE __Ceil_PowerOf2(64*1024, CPU_PAGE_SIZE)
 
 
-lsta_t          __gMainAllocator;
-bool            __gAbortOnNoMem;
-static mtx_t    __gMallocLock;
+lsta_t  __gMainAllocator;
+bool    __gAbortOnNoMem;
+mtx_t   __gMallocLock;
 
 
 void _abort_on_nomem(void)
@@ -93,14 +92,4 @@ void __malloc_init(void)
     }
 
     mtx_init(&__gMallocLock);
-}
-
-void __malloc_lock(void)
-{
-    mtx_lock(&__gMallocLock);
-}
-
-void __malloc_unlock(void)
-{
-    mtx_unlock(&__gMallocLock);
 }

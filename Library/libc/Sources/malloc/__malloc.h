@@ -10,15 +10,21 @@
 #define __MALLOC_H 1
 
 #include <__lsta.h>
+#include <sys/mtx.h>
+
 
 // The allocator that represents the application heap
 extern lsta_t   __gMainAllocator;
 extern bool     __gAbortOnNoMem;
+extern mtx_t    __gMallocLock;
 
-extern void __malloc_init(void);
+
 extern void __malloc_nomem(void);
 
-extern void __malloc_lock(void);
-extern void __malloc_unlock(void);
+#define __malloc_lock() \
+mtx_lock(&__gMallocLock)
+
+#define __malloc_unlock() \
+mtx_unlock(&__gMallocLock)
 
 #endif /* __MALLOC_H */
