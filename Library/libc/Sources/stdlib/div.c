@@ -8,6 +8,7 @@
 
 #include <_absdiv.h>
 
+#if !defined(__M68K__)
 div_t div(int x, int y)
 {
     const div_t r = { x / y, x % y };
@@ -19,3 +20,4 @@ ldiv_t ldiv(long x, long y)
     const ldiv_t r = { x / y, x % y };
     return r;
 }
+#endif

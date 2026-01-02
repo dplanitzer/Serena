@@ -49,10 +49,10 @@ void int64_test(int argc, char *argv[])
 
     // llmod()
     // 32/32
-    assertEquals(0ll, _modsint64_020(150ll, 10ll));
-    assertEquals(0ll, _modsint64_020(-150ll, 10ll));
-    assertEquals(0ll, _modsint64_020(150ll, -10ll));
-    assertEquals(0ll, _modsint64_020(-150ll, -10ll));
+    assertEquals(7ll, _modsint64_020(150ll, 11ll));
+    assertEquals(-7ll, _modsint64_020(-150ll, 11ll));
+    assertEquals(7ll, _modsint64_020(150ll, -11ll));
+    assertEquals(-7ll, _modsint64_020(-150ll, -11ll));
 
     // 64/32
     assertEquals(128195ll, _modsint64_020(78193085935ll, 337895ll));

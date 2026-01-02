@@ -18,14 +18,15 @@ void int32_test(int argc, char *argv[])
     assertEquals(INT_MAX, abs(INT_MAX));
     assertEquals(INT_MAX, abs(-INT_MAX));
 
+
     // div()
     assertEquals(15, div(150, 10).quot);
     assertEquals(-15, div(-150, 10).quot);
     assertEquals(-15, div(150, -10).quot);
     assertEquals(15, div(-150, -10).quot);
 
-    assertEquals(0, div(150, 10).rem);
-    assertEquals(0, div(-150, 10).rem);
-    assertEquals(0, div(150, -10).rem);
-    assertEquals(0, div(-150, -10).rem);
+    assertEquals(7, div(150, 11).rem);
+    assertEquals(-7, div(-150, 11).rem);
+    assertEquals(7, div(150, -11).rem);
+    assertEquals(-7, div(-150, -11).rem);
 }
