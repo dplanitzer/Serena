@@ -1,5 +1,5 @@
 //
-//  locale_vars.c
+//  __locale_init.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 2/13/24.
