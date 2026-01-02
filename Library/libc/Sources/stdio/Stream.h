@@ -99,6 +99,7 @@ extern int __fopen_null_init(FILE* _Nonnull self, bool bFreeOnClose, __FILE_Mode
 extern FILE * _Nullable __fopen_null(const char* mode);
 
 
+extern const FILE_Callbacks __FILE_fd_callbacks;
 extern ssize_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* buf, ssize_t nbytes);
 extern ssize_t __mem_read(__Memory_FILE_Vars* _Nonnull mp, void* pBuffer, ssize_t nBytesToRead);
 

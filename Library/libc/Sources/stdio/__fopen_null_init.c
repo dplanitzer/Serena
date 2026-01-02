@@ -1,5 +1,5 @@
 //
-//  Stream_Null.c
+//  __fopen_null_init.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 1/31/24.
