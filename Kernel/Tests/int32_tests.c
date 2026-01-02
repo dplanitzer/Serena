@@ -8,6 +8,7 @@
 
 #include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 #include "Asserts.h"
 
 
@@ -29,4 +30,18 @@ void int32_test(int argc, char *argv[])
     assertEquals(-7, div(-150, 11).rem);
     assertEquals(7, div(150, -11).rem);
     assertEquals(-7, div(-150, -11).rem);
+
+
+    // itoa
+    char buf[16];
+    itoa(-78678, buf, 10);
+    assertEquals(0, strcmp(buf, "-78678"));
+    itoa(8789798, buf, 10);
+    assertEquals(0, strcmp(buf, "8789798"));
+    itoa(0, buf, 10);
+    assertEquals(0, strcmp(buf, "0"));
+    itoa(INT_MIN, buf, 10);
+    assertEquals(0, strcmp(buf, "-2147483648"));
+    itoa(INT_MAX, buf, 10);
+    assertEquals(0, strcmp(buf, "2147483647"));
 }

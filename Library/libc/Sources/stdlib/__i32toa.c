@@ -7,6 +7,7 @@
 //
 
 #include <__itoa.h>
+#include <_absdiv.h>
 #include <string.h>
 
 
@@ -39,8 +40,10 @@ char* _Nonnull __i32toa(int32_t val, ia_sign_format_t sign_mode, i32a_t* _Nonnul
 
     *p-- = '\0';
     do {
-        *p-- = '0' + (char)(val % 10);
-        val /= 10;
+        const div_t r = div(val, 10);
+
+        *p-- = '0' + (char)r.rem;
+        val = r.quot;
     } while (val);
 
     if (sign) {
