@@ -51,6 +51,10 @@ extern char* _Nonnull __i64toa(int64_t val, ia_sign_format_t sign_mode, i64a_t* 
 extern char* _Nonnull __u32toa(uint32_t val, int radix, bool isUppercase, i32a_t* _Nonnull out);
 extern char* _Nonnull __u64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Nonnull out);
 
+
+extern int __strtoi32(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * _Nonnull _Restrict str_end, int base, long min_val, long max_val, int max_digits, long * _Nonnull _Restrict result);
+extern int __strtou32(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * _Nonnull _Restrict str_end, int base, unsigned long max_val, int max_digits, unsigned long * _Nonnull _Restrict result);
+
 extern int __strtoi64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * _Nonnull _Restrict str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Nonnull _Restrict result);
 extern int __strtou64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * _Nonnull _Restrict str_end, int base, unsigned long long max_val, int max_digits, unsigned long long * _Nonnull _Restrict result);
 

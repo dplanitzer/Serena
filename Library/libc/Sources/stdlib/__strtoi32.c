@@ -1,5 +1,5 @@
 //
-//  __strtou64.c
+//  __strtoi32.c
 //  libc, libsc
 //
 //  Created by Dietmar Planitzer on 1/1/26.
@@ -10,16 +10,23 @@
 #include <kpi/_errno.h>
 
 
-int __strtou64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * _Nonnull _Restrict str_end, int base, unsigned long long max_val, int max_digits, unsigned long long * _Nonnull _Restrict result)
+int __strtoi32(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * _Nonnull _Restrict str_end, int base, long min_val, long max_val, int max_digits, long * _Nonnull _Restrict result)
 {
     if ((base < 2 && base != 0) || base > 36) {
-        *result = 0ull;
+        *result = 0l;
         return EINVAL;
     }
 
 
     // Skip whitespace
     while (*str != '\0' && (*str == ' ' || *str == '\t')) {
+        str++;
+    }
+
+
+    // Detect the sign
+    const char sig_ch = *str;
+    if (sig_ch == '-' || sig_ch == '+') {
         str++;
     }
 
@@ -40,8 +47,10 @@ int __strtou64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * 
 
 
     // Convert digits
-    unsigned long long val = 0;
-    const unsigned long long llbase = (unsigned long long) base;
+    const bool is_neg = (sig_ch == '-');
+    unsigned long val = 0;
+    const unsigned long llbase = (unsigned long) base;
+    const unsigned long upper_bound = (is_neg) ? -min_val : max_val;
     const char upper_num = (base < 10) ? '0' + base : '9';
     const char upper_lletter = (base > 9) ? 'a' + base - 11 : 'a';
     const char upper_uletter = (base > 9) ? 'A' + base - 11 : 'A';
@@ -49,7 +58,7 @@ int __strtou64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * 
 
     for (;;) {
         const char ch = str[i];
-        unsigned long long digit;
+        unsigned long digit;
 
         if (ch >= '0' && ch <= upper_num) {
             digit = ch - '0';
@@ -59,10 +68,10 @@ int __strtou64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * 
             break;
         }
 
-        const unsigned long long new_val = (val * llbase) + digit;
-        if (i > max_digits || new_val < val || new_val > max_val) {
+        const unsigned long new_val = (val * llbase) + digit;
+        if (i > max_digits || new_val < val || new_val > upper_bound) {
             if (str_end) *str_end = (char*)&str[i + 1];
-            *result = max_val;
+            *result = (is_neg) ? min_val : max_val;
             return ERANGE;
         }
 
@@ -71,5 +80,6 @@ int __strtou64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * 
     }
 
     if (str_end) *str_end = (char*)&str[i];
+    *result = (is_neg) ? -((long)val) : (long)val;
     return 0;
 }
