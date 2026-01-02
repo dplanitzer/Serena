@@ -1,5 +1,5 @@
 //
-//  sys/spinlock.c
+//  spinlock.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 6/25/25.

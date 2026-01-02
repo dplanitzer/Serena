@@ -1,18 +1,19 @@
 //
-//  sys/_vcpu.h
+//  __vcpu.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 6/30/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __SYS_VCPU_H
-#define __SYS_VCPU_H 1
+#ifndef __VCPU_H
+#define __VCPU_H 1
 
 #include <_cmndef.h>
 #include <arch/_null.h>
 #include <arch/_offsetof.h>
 #include <ext/queue.h>
+#include <sys/spinlock.h>
 #include <sys/types.h>
 #include <sys/vcpu.h>
 
@@ -47,12 +48,19 @@ struct vcpu {
 };
 
 
-extern void __vcpu_init(void);
+extern spinlock_t   __g_lock;
+extern List         __g_all_vcpus;
+extern struct vcpu  __g_main_vcpu;
+extern List         __g_vcpu_keys;
 
 // For libdispatch
 extern vcpu_key_t __os_dispatch_key;
 
+
+extern void __vcpu_init(void);
+extern _Noreturn __vcpu_relinquish(vcpu_t _Nonnull self);
+
 //#define vcpu_from_wq_node(__ptr) \
 //(vcpu_t*) (((uint8_t*)__ptr) - offsetof(struct vcpu, wq_node))
 
-#endif /* __SYS_VCPU_H */
+#endif /* __VCPU_H */

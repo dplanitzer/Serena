@@ -34,11 +34,18 @@ STRING_SOURCES_DIR := $(LIBC_SOURCES_DIR)/string
 STRING_OBJS_DIR := $(LIBC_OBJS_DIR)/string
 STRING_SC_OBJS_DIR := $(LIBSC_OBJS_DIR)/string
 
+SYNCH_SOURCES_DIR := $(LIBC_SOURCES_DIR)/synch
+SYNCH_OBJS_DIR := $(LIBC_OBJS_DIR)/synch
+
 SYS_SOURCES_DIR := $(LIBC_SOURCES_DIR)/sys
 SYS_OBJS_DIR := $(LIBC_OBJS_DIR)/sys
 
 TIME_SOURCES_DIR := $(LIBC_SOURCES_DIR)/time
 TIME_OBJS_DIR := $(LIBC_OBJS_DIR)/time
+
+VCPU_SOURCES_DIR := $(LIBC_SOURCES_DIR)/vcpu
+VCPU_OBJS_DIR := $(LIBC_OBJS_DIR)/vcpu
+
 
 CSTART_C_SOURCE := $(LIBC_SOURCES_DIR)/_cstart.c
 
@@ -72,14 +79,17 @@ $(LIBSC_OBJS_DIR):
 -include $(STDIO_SOURCES_DIR)/package.mk
 -include $(STDLIB_SOURCES_DIR)/package.mk
 -include $(STRING_SOURCES_DIR)/package.mk
+-include $(SYNCH_SOURCES_DIR)/package.mk
 -include $(SYS_SOURCES_DIR)/package.mk
 -include $(TIME_SOURCES_DIR)/package.mk
+-include $(VCPU_SOURCES_DIR)/package.mk
 
 
 # libc (hosted)
 $(LIBC_FILE): $(ARCH_M68K_OBJS) $(ARCH_M68K_VBCC_OBJS) $(EXT_OBJS) \
 			  $(LOCALE_OBJS) $(MALLOC_OBJS) $(STDIO_OBJS) $(STDLIB_OBJS) \
-			  $(STRING_OBJS) $(SYS_OBJS) $(TIME_OBJS)
+			  $(STRING_OBJS) $(SYNCH_OBJS) $(SYS_OBJS) $(TIME_OBJS) \
+			  $(VCPU_OBJS)
 	@echo Making libc.a
 	$(LIBTOOL) create $@ $^
 
