@@ -1,6 +1,6 @@
 ;
 ;  arch/m68k/syscall.s
-;  libc
+;  libc, libsc
 ;
 ;  Created by Dietmar Planitzer on 9/2/23.
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
