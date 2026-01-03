@@ -1,13 +1,13 @@
 //
-//  sys/atomic.h
-//  libc
+//  ext/atomic.h
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 6/25/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_ATOMIC_H
-#define _SYS_ATOMIC_H 1
+#ifndef _EXT_ATOMIC_H
+#define _EXT_ATOMIC_H 1
 
 #include <_cmndef.h>
 #include <arch/_null.h>
@@ -25,4 +25,4 @@ extern void atomic_flag_clear(volatile atomic_flag* _Nonnull flag);
 
 __CPP_END
 
-#endif /* _SYS_ATOMIC_H */
+#endif /* _EXT_ATOMIC_H */

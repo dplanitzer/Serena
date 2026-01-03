@@ -1,6 +1,6 @@
 ;
 ;  arch/m68k/atomic.s
-;  libc
+;  libc, libsc
 ;
 ;  Created by Dietmar Planitzer on 6/25/25.
 ;  Copyright © 2025 Dietmar Planitzer. All rights reserved.

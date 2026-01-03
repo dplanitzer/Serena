@@ -11,7 +11,7 @@
 
 #include <_cmndef.h>
 #include <arch/_null.h>
-#include <sys/atomic.h>
+#include <ext/atomic.h>
 
 __CPP_BEGIN
 
