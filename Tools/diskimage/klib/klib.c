@@ -61,6 +61,27 @@ int atomic_int_load(volatile atomic_int* _Nonnull p)
     return *p;
 }
 
+
+int atomic_int_exchange(volatile atomic_int* _Nonnull p, int op)
+{
+    int old_val = *p;
+
+    *p = op;
+    return old_val;
+}
+
+bool atomic_int_compare_exchange_strong(volatile atomic_int* _Nonnull p, volatile atomic_int* _Nonnull expected, int desired)
+{
+    if (*p == *expected) {
+        *p = desired;
+        return true;
+    }
+    else {
+        *expected = *p;
+        return false;
+    }
+}
+
 int atomic_int_fetch_add(volatile atomic_int* _Nonnull p, int op)
 {
     int old_val = *p;
@@ -74,5 +95,29 @@ int atomic_int_fetch_sub(volatile atomic_int* _Nonnull p, int op)
     int old_val = *p;
 
     *p -= op;
+    return old_val;
+}
+
+int atomic_int_fetch_or(volatile atomic_int* _Nonnull p, int op)
+{
+    int old_val = *p;
+
+    *p |= op;
+    return old_val;
+}
+
+int atomic_int_fetch_xor(volatile atomic_int* _Nonnull p, int op)
+{
+    int old_val = *p;
+
+    *p ^= op;
+    return old_val;
+}
+
+int atomic_int_fetch_and(volatile atomic_int* _Nonnull p, int op)
+{
+    int old_val = *p;
+
+    *p &= op;
     return old_val;
 }
