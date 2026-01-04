@@ -26,12 +26,12 @@
 ; IRQ safe
 _atomic_int_exchange:
     inline
-    cargs aifex_ptr.l, aifex_op.l
-        move.l  aifex_ptr(sp), a0
+    cargs aiex_ptr.l, aiex_op.l
+        move.l  aiex_ptr(sp), a0
         DISABLE_INTERRUPTS d1
         move.l  (a0), d0
         move.l  d0, a1
-        move.l  aifex_op(sp), d0
+        move.l  aiex_op(sp), d0
         move.l  d0, (a0)
         RESTORE_INTERRUPTS d1
         move.l  a1, d0
@@ -44,20 +44,20 @@ _atomic_int_exchange:
 ; IRQ safe
 _atomic_int_compare_exchange_strong:
     inline
-    cargs aifces_ptr.l, aifces_expected.l, aifces_desired.l
-        move.l  aifces_ptr(sp), a0
-        move.l  aifces_expected(sp), a1
+    cargs aices_ptr.l, aices_expected.l, aices_desired.l
+        move.l  aices_ptr(sp), a0
+        move.l  aices_expected(sp), a1
 
         DISABLE_INTERRUPTS d1
         move.l  (a0), d0
         cmp.l   (a1), d0
         bne.s   .not_same
-        move.l  aifces_desired(sp), d0
+        move.l  aices_desired(sp), d0
         move.l  d0, (a0)
         moveq.l #1, d0
         bra.s   .done
 .not_same:
-        move.l  d0, aifces_expected(sp)
+        move.l  d0, aices_expected(sp)
         moveq.l #0, d0
 .done:
         RESTORE_INTERRUPTS d1
@@ -73,10 +73,9 @@ _atomic_int_fetch_add:
     cargs aifa_ptr.l, aifa_op.l
         move.l  aifa_ptr(sp), a0
         DISABLE_INTERRUPTS d1
-        move.l  (a0), d0
-        move.l  d0, a1
-        add.l   aifa_op(sp), d0
-        move.l  d0, (a0)
+        move.l  (a0), a1
+        move.l  aifa_op(sp), d0
+        add.l   d0, (a0)
         RESTORE_INTERRUPTS d1
         move.l  a1, d0
         rts
@@ -91,10 +90,9 @@ _atomic_int_fetch_sub:
     cargs aifs_ptr.l, aifs_op.l
         move.l  aifs_ptr(sp), a0
         DISABLE_INTERRUPTS d1
-        move.l  (a0), d0
-        move.l  d0, a1
-        sub.l   aifs_op(sp), d0
-        move.l  d0, (a0)
+        move.l  (a0), a1
+        move.l  aifs_op(sp), d0
+        sub.l   d0, (a0)
         RESTORE_INTERRUPTS d1
         move.l  a1, d0
         rts
@@ -109,10 +107,9 @@ _atomic_int_fetch_or:
     cargs aifo_ptr.l, aifo_op.l
         move.l  aifo_ptr(sp), a0
         DISABLE_INTERRUPTS d1
-        move.l  (a0), d0
-        move.l  d0, a1
-        or.l   aifo_op(sp), d0
-        move.l  d0, (a0)
+        move.l  (a0), a1
+        move.l  aifo_op(sp), d0
+        or.l   d0, (a0)
         RESTORE_INTERRUPTS d1
         move.l  a1, d0
         rts
@@ -144,10 +141,9 @@ _atomic_int_fetch_and:
     cargs aifan_ptr.l, aifan_op.l
         move.l  aifan_ptr(sp), a0
         DISABLE_INTERRUPTS d1
-        move.l  (a0), d0
-        move.l  d0, a1
-        and.l   aifan_op(sp), d0
-        move.l  d0, (a0)
+        move.l  (a0), a1
+        move.l  aifan_op(sp), d0
+        and.l   d0, (a0)
         RESTORE_INTERRUPTS d1
         move.l  a1, d0
         rts
