@@ -244,6 +244,18 @@ vp_SIZEOF                       so
     move.w  \1, sr
     endm
 
+; Disable interrupt handling and saves the previous SR on the stack.
+    macro DISABLE_INTERRUPTS_SP
+    move.w  sr, -(sp)
+    or.w    #$0700, sr
+    endm
+
+; Sets the current interrupt handling state based on the saved SR from the stack
+    macro RESTORE_INTERRUPTS_SP
+    move.w  (sp)+, sr
+    endm
+
+
 
 ; Macro to store a pointer to the currently running virtual processor in the
 ; provided register
