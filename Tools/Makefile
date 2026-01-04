@@ -111,7 +111,6 @@ SERENAFS_TOOLS_C_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/filesystem/serenafs
 
 DISKIMAGE_C_SOURCES := $(wildcard diskimage/*.c)
 DISKIMAGE_SCHED_C_SOURCES := $(wildcard diskimage/sched/*.c)
-DISKIMAGE_KLIB_C_SOURCES := $(wildcard diskimage/klib/*.c)
 DISKIMAGE_MACHINE_C_SOURCES := $(wildcard diskimage/machine/*.c)
 
 ALL_DISKIMAGE_C_SOURCES := $(LIBC_C_SOURCES) \
@@ -121,7 +120,6 @@ ALL_DISKIMAGE_C_SOURCES := $(LIBC_C_SOURCES) \
 						   $(SERENAFS_TOOLS_C_SOURCES) \
 						   $(DISKIMAGE_C_SOURCES) \
 						   $(DISKIMAGE_SCHED_C_SOURCES) \
-						   $(DISKIMAGE_KLIB_C_SOURCES) \
 						   $(DISKIMAGE_MACHINE_C_SOURCES)
 
 $(TOOLS_DIR)/diskimage: $(ALL_DISKIMAGE_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(TOOLS_DIR)

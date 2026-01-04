@@ -1,5 +1,5 @@
 //
-//  klib.c
+//  kernlib.c
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 3/12/24.
