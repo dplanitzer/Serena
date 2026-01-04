@@ -125,7 +125,7 @@ ALL_DISKIMAGE_C_SOURCES := $(LIBC_C_SOURCES) \
 						   $(DISKIMAGE_MACHINE_C_SOURCES)
 
 $(TOOLS_DIR)/diskimage: $(ALL_DISKIMAGE_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(TOOLS_DIR)
-	cl /I diskimage /I $(LIBCLAP_HEADERS_DIR) /I $(KERNEL_SOURCES_DIR) /D__KERNEL__=1 /D__DISKIMAGE__=1 $(DEBUG_FLAGS) /std:c11 /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
+	cl /I diskimage /I $(LIBCLAP_HEADERS_DIR) /I $(KERNEL_SOURCES_DIR) /D__KERNEL__=1 /D__DISKIMAGE__=1 $(DEBUG_FLAGS) /std:c11 /experimental:c11atomics /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
 
 
 # --------------------------------------------------------------------------

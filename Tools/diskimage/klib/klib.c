@@ -48,9 +48,9 @@ void kfree(void* _Nullable ptr)
 
 
 ////////////////////////////////////////////////////////////////////////////////
-
-//XXX not actually atomic for now. Note that the winnt.h InterlockedAdd() & co
-// functions return the NEW value and not the old value as needed here.
+#if 0
+//XXX this is just a reference and not suitable for production use since its not
+// actually atomic.
 void atomic_int_store(volatile atomic_int* _Nonnull p, int val)
 {
     *p = val;
@@ -121,3 +121,4 @@ int atomic_int_fetch_and(volatile atomic_int* _Nonnull p, int op)
     *p &= op;
     return old_val;
 }
+#endif
