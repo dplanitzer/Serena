@@ -26,6 +26,7 @@ _atomic_flag_test_and_set:
     move.l  aftas_flag_ptr(sp), a0
     bset    #0, (a0)
     sne     d0
+    and.b   #1, d0      ; make sure we return 0 (false) or 1 (true)
     rts
 
     einline
