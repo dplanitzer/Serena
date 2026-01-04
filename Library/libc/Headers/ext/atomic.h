@@ -23,8 +23,8 @@ extern bool atomic_flag_test_and_set(volatile atomic_flag* _Nonnull flag);
 extern void atomic_flag_clear(volatile atomic_flag* _Nonnull flag);
 
 
-typedef bool            atomic_bool;
-typedef int             atomic_int;
+typedef bool    atomic_bool;
+typedef int     atomic_int;
 
 // This is actually not atomic. It's purely used to initialize an atomic value
 // before any other thread-of-execution can access it.

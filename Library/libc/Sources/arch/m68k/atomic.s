@@ -13,7 +13,7 @@
     xdef _atomic_int_load
 
 
-; bit #7 == 1 -> lock is in acquired state; bset#7 == 0 -> lock is available for acquisition
+; bit #0 == 1 -> lock is in acquired state; bset#0 == 0 -> lock is available for acquisition
 
 
 ;-------------------------------------------------------------------------------
@@ -22,14 +22,10 @@ _atomic_flag_test_and_set:
     inline
     cargs aftas_flag_ptr.l
 
-    move.l  aftas_flag_ptr(sp), a0
-    bset    #7, (a0)
-    bne.s   .L1
     moveq.l #0, d0
-    rts
-
-.L1:
-    moveq.l #1, d0
+    move.l  aftas_flag_ptr(sp), a0
+    bset    #0, (a0)
+    sne     d0
     rts
 
     einline
@@ -42,7 +38,7 @@ _atomic_flag_clear:
     cargs afc_flag_ptr.l
 
     move.l  afc_flag_ptr(sp), a0
-    bclr    #7, (a0)
+    bclr    #0, (a0)
     rts
 
     einline
