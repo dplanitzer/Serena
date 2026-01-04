@@ -9,6 +9,9 @@
     xdef _atomic_flag_test_and_set
     xdef _atomic_flag_clear
 
+    xdef _atomic_int_store
+    xdef _atomic_int_load
+
 
 ; bit #7 == 1 -> lock is in acquired state; bset#7 == 0 -> lock is available for acquisition
 
@@ -40,6 +43,33 @@ _atomic_flag_clear:
 
     move.l  afc_flag_ptr(sp), a0
     bclr    #7, (a0)
+    rts
+
+    einline
+
+
+;-------------------------------------------------------------------------------
+; void atomic_int_set(volatile atomic_int* _Nonnull p, int val)
+_atomic_int_store:
+    inline
+    cargs ais_ptr.l, ais_val.l
+
+    move.l  ais_ptr(sp), a0
+    move.l  ais_val(sp), d0
+    move.l  d0, (a0)
+    rts
+
+    einline
+
+
+;-------------------------------------------------------------------------------
+; int atomic_int_load(volatile atomic_int* _Nonnull p)
+_atomic_int_load:
+    inline
+    cargs ail_ptr.l
+
+    move.l  ais_ptr(sp), a0
+    move.l  (a0), d0
     rts
 
     einline

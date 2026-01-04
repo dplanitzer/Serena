@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <_time.h>
+#include <ext/atomic.h>
 
 
 const struct timespec TIMESPEC_ZERO = {0l, 0l};
@@ -43,4 +44,35 @@ errno_t kalloc_options(ssize_t nbytes, unsigned int options, void* _Nullable * _
 void kfree(void* _Nullable ptr)
 {
     free(ptr);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+//XXX not actually atomic for now. Note that the winnt.h InterlockedAdd() & co
+// functions return the NEW value and not the old value as needed here.
+void atomic_int_store(volatile atomic_int* _Nonnull p, int val)
+{
+    *p = val;
+}
+
+int atomic_int_load(volatile atomic_int* _Nonnull p)
+{
+    return *p;
+}
+
+int atomic_int_fetch_add(volatile atomic_int* _Nonnull p, int op)
+{
+    int old_val = *p;
+
+    *p += op;
+    return old_val;
+}
+
+int atomic_int_fetch_sub(volatile atomic_int* _Nonnull p, int op)
+{
+    int old_val = *p;
+
+    *p -= op;
+    return old_val;
 }

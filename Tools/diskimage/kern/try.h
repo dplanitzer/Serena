@@ -12,7 +12,8 @@
 #include <errno.h>
 #include <kern/assert.h>
 
-#define _EOK            0
+#define _EOK    0
+#define EOK     _EOK
 
 #ifndef EACCESS
 #define EACCESS EACCES

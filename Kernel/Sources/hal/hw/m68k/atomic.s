@@ -2,16 +2,15 @@
 ;  atomic.s
 ;  kernel
 ;
-;  Created by Dietmar Planitzer on 3/15/21.
-;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
+;  Created by Dietmar Planitzer on 1/3/26.
+;  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 ;
 
     include <hal/hw/m68k/lowmem.i>
 
 
-    xdef _AtomicBool_Set
-    xdef _AtomicInt_Add
-    xdef _AtomicInt_Subtract
+    xdef _atomic_int_fetch_add
+    xdef _atomic_int_fetch_sub
 
 
 ; Note that read-modify-write instructions are not supported by the Amiga hardware.
@@ -19,61 +18,36 @@
 
 
 ;-------------------------------------------------------------------------------
-; AtomicBool AtomicBool_Set(volatile AtomicBool* _Nonnull pValue, bool newValue)
-; Atomically assign 'newValue' to the atomic bool stored in the given memory
-; location and returns the previous value.
+; int atomic_int_fetch_add(volatile atomic_int* _Nonnull p, int op)
 ; IRQ safe
-_AtomicBool_Set:
+_atomic_int_fetch_add:
     inline
-    cargs bas_value_ptr.l, bas_new_value.l
-        move.l  bas_value_ptr(sp), a0
-        tst.l   bas_new_value(sp)
-        bne.s   .L1
-        bclr.b  #0, (a0)    ; atomically tests and clears
-        bra.s   .L2
-.L1:
-        bset.b  #0, (a0)    ; atomically tests and sets
-.L2:
-        bne.s   .L3
-        moveq.l #0, d0
-        rts
-.L3:
-        moveq.l #1, d0
+    cargs aifa_ptr.l, aifa_op.l
+        move.l  aifa_ptr(sp), a0
+        DISABLE_INTERRUPTS d1
+        move.l  (a0), d0
+        move.l  d0, a1
+        add.l   aifa_op(sp), d0
+        move.l  d0, (a0)
+        RESTORE_INTERRUPTS d1
+        move.l  a1, d0
         rts
     einline
 
 
 ;-------------------------------------------------------------------------------
-; AtomicInt AtomicInt_Add(volatile AtomicInt* _Nonnull pValue, int increment)
-; Atomically adds the 'increment' value to the integer stored in the given
-; memory location and returns the new value.
+; int atomic_int_fetch_sub(volatile atomic_int* _Nonnull p, int op)
 ; IRQ safe
-_AtomicInt_Add:
+_atomic_int_fetch_sub:
     inline
-    cargs iaa_value_ptr.l, iaa_increment.l
-        move.l  iaa_value_ptr(sp), a0
+    cargs aifs_ptr.l, aifs_op.l
+        move.l  aifs_ptr(sp), a0
         DISABLE_INTERRUPTS d1
         move.l  (a0), d0
-        add.l   iaa_increment(sp), d0
+        move.l  d0, a1
+        sub.l   aifs_op(sp), d0
         move.l  d0, (a0)
         RESTORE_INTERRUPTS d1
-        rts
-    einline
-
-
-;-------------------------------------------------------------------------------
-; AtomicInt AtomicInt_Subtract(volatile AtomicInt* _Nonnull pValue, int decrement)
-; Atomically subtracts the 'decrement' value from the integer stored in the given
-; memory location and returns the new value.
-; IRQ safe
-_AtomicInt_Subtract:
-    inline
-    cargs ias_value_ptr.l, ias_decrement.l
-        move.l  ias_value_ptr(sp), a0
-        DISABLE_INTERRUPTS d1
-        move.l  (a0), d0
-        sub.l   ias_decrement(sp), d0
-        move.l  d0, (a0)
-        RESTORE_INTERRUPTS d1
+        move.l  a1, d0
         rts
     einline

@@ -11,6 +11,7 @@
 #include "vcpu_pool.h"
 #include <limits.h>
 #include <string.h>
+#include <ext/atomic.h>
 #include <ext/math.h>
 #include <ext/timespec.h>
 #include <hal/clock.h>
@@ -434,7 +435,7 @@ errno_t vcpu_rw_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx, bool is
 
 vcpuid_t new_vcpu_groupid(void)
 {
-    static vcpuid_t id = VCPUID_MAIN_GROUP;
+    static atomic_int id = VCPUID_MAIN_GROUP;
 
-    return AtomicInt_Increment((volatile AtomicInt*)&id);
+    return (vcpuid_t)atomic_int_fetch_add(&id, 1);
 }

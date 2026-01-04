@@ -10,9 +10,9 @@
 #include "FSUtilities.h"
 #include "InodeChannel.h"
 #include "FSChannel.h"
+#include <ext/atomic.h>
 #include <ext/hash.h>
 #include <ext/timespec.h>
-#include <klib/Atomic.h>
 #include <kpi/fcntl.h>
 
 
@@ -45,10 +45,9 @@ typedef struct RDnode {
 static fsid_t Filesystem_GetNextAvailableId(void)
 {
     // XXX want to:
-    // XXX handle overflow (wrap around)
     // XXX make sure the generated id isn't actually in use by someone else
-    static volatile AtomicInt gNextAvailableId = 0;
-    return (fsid_t) AtomicInt_Increment(&gNextAvailableId);
+    static volatile atomic_int gNextAvailableId = 1;
+    return (fsid_t) atomic_int_fetch_add(&gNextAvailableId, 1);
 }
 
 errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOutSelf)
