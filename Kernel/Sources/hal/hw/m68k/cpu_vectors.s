@@ -12,6 +12,7 @@
 ;
 
     include "lowmem.i"
+    include <hal/errno.i>
 
     xref _Reset
     xref _OnReset
@@ -32,9 +33,15 @@
     xref __irq_spurious
     xref __irq_level_7
 
+    xref _g_sched
+    xref __syscall_handler
+
 
     xdef _cpu_vector_table
     xdef _excpt_return
+
+    xdef _sigurgent
+    xdef _sigurgent_end
 
 
 
@@ -160,3 +167,75 @@ __cpu_exception_return:
 _excpt_return:
     trap    #1
     ; NOT REACHED
+
+
+;-------------------------------------------------------------------------------
+; System call entry point.
+;
+; NOTE: you are expected to use the _syscall() function to invoke a system call.
+; You should not use a trap instruction.
+;
+; Layout of the user stack when using _syscall():
+;
+; Arguments are pushed from right to left on the stack. The left-most argument
+; is the system call number. The system call result is returned in d0.
+;
+;
+; INTERNAL
+;
+; Layout of the user stack when using trap #0:
+;
+; Arguments are pushed from right to left on the stack. The left-most argument
+; is a 32bit dummy word. The dummy word is the return address of the _syscall()
+; function.
+;
+; argN
+; ...
+; arg0
+; system call number
+; dummy long word / _syscall() return address
+; ##### <--- usp
+;
+__sys_entry:
+    inline
+        SAVE_CPU_STATE
+
+        GET_CURRENT_VP a1
+        move.l  sp, vp_syscall_sa(a1)
+
+        ; Invoke the system call handler. This function writes its function
+        ; result to the system call save area
+        move.l  usp, a0
+        move.l  a0, -(sp)
+        move.l  a1, -(sp)
+        jsr     __syscall_handler
+        addq.l  #8, sp
+
+        RESTORE_CPU_STATE
+
+        rte
+    einline
+
+
+__sys_no_entry:
+    inline
+        move.l  a1, -(sp)
+        GET_CURRENT_VP a1
+        move.l  #ENOSYS, vp_uerrno(a1)
+        moveq.l #-1, d0
+        move.l  (sp)+, a1
+        rte
+    einline
+
+
+;-------------------------------------------------------------------------------
+; void sigurgent(void)
+; void sigurgent_end(void)
+_sigurgent:
+    move.l  #63, -(sp)   ; SC_sigurgent
+    subq.l  #4, sp
+    trap    #0
+    addq.l  #8, sp
+    rts
+_sigurgent_end:
+    nop
