@@ -10,6 +10,7 @@
 
 
     xdef _atomic_int_exchange
+    xdef _atomic_int_compare_exchange_strong
     xdef _atomic_int_fetch_add
     xdef _atomic_int_fetch_sub
     xdef _atomic_int_fetch_or
@@ -17,6 +18,7 @@
     xdef _atomic_int_fetch_and
 
     xdef __atomic_int_exchange_reg
+    xdef __atomic_int_compare_exchange_strong_reg
     xdef __atomic_int_fetch_add_reg
     xdef __atomic_int_fetch_sub_reg
     xdef __atomic_int_fetch_or_reg
