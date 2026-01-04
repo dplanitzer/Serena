@@ -14,22 +14,26 @@
 
 __CPP_BEGIN
 
-typedef unsigned char atomic_flag;
+typedef struct atomic_flag {
+    unsigned char   value;
+} atomic_flag;
 
-#define ATOMIC_FLAG_INIT    0
+#define ATOMIC_FLAG_INIT    (atomic_flag){0}
 
 
 extern bool atomic_flag_test_and_set(volatile atomic_flag* _Nonnull flag);
 extern void atomic_flag_clear(volatile atomic_flag* _Nonnull flag);
 
 
-typedef bool    atomic_bool;
-typedef int     atomic_int;
+typedef struct atomic_int {
+    int value;
+} atomic_int;
+
 
 // This is actually not atomic. It's purely used to initialize an atomic value
 // before any other thread-of-execution can access it.
 #define atomic_init(__ptr_to_atomic_typ, __val) \
-*(__ptr_to_atomic_typ) = (__val)
+(__ptr_to_atomic_typ)->value = (__val)
 
 // Atomically set the value of 'p' to 'val'.
 extern void atomic_int_store(volatile atomic_int* _Nonnull p, int val);
