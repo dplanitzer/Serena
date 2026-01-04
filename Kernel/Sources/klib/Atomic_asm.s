@@ -52,11 +52,11 @@ _AtomicInt_Add:
     inline
     cargs iaa_value_ptr.l, iaa_increment.l
         move.l  iaa_value_ptr(sp), a0
-        DISABLE_PREEMPTION d1
+        DISABLE_INTERRUPTS d1
         move.l  (a0), d0
         add.l   iaa_increment(sp), d0
         move.l  d0, (a0)
-        RESTORE_PREEMPTION d1
+        RESTORE_INTERRUPTS d1
         rts
     einline
 
@@ -70,10 +70,10 @@ _AtomicInt_Subtract:
     inline
     cargs ias_value_ptr.l, ias_decrement.l
         move.l  ias_value_ptr(sp), a0
-        DISABLE_PREEMPTION d1
+        DISABLE_INTERRUPTS d1
         move.l  (a0), d0
         sub.l   ias_decrement(sp), d0
         move.l  d0, (a0)
-        RESTORE_PREEMPTION d1
+        RESTORE_INTERRUPTS d1
         rts
     einline

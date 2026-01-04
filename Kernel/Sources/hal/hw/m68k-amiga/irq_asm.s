@@ -222,7 +222,7 @@ cdi_done:
 ; re-enabled when we do the RTE. Note that the CPU has already saved the original
 ; status register contents on the stack
     macro DISABLE_ALL_IRQS
-    or.w    #$0700, sr      ; equal to DISABLE_PREEMPTION
+    or.w    #$0700, sr      ; equal to DISABLE_INTERRUPTS
     endm
 
 
