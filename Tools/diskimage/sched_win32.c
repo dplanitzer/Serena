@@ -6,7 +6,7 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "mtx.h"
+#include <sched/mtx.h>
 
 void mtx_init(mtx_t* self)
 {
@@ -30,7 +30,7 @@ void mtx_unlock(mtx_t* self)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "cnd.h"
+#include <sched/cnd.h>
 
 void cnd_init(cnd_t* pCondVar)
 {
@@ -64,7 +64,7 @@ errno_t cnd_timedwait(cnd_t* pCondVar, mtx_t* mtx, const struct timespec* _Nonnu
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "rwmtx.h"
+#include <sched/rwmtx.h>
 
 void rwmtx_init(rwmtx_t* self)
 {
