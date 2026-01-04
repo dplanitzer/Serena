@@ -1,5 +1,5 @@
 ;
-;  Atomic_asm.s
+;  atomic.s
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 3/15/21.
