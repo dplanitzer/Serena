@@ -53,72 +53,72 @@ void kfree(void* _Nullable ptr)
 // actually atomic.
 void atomic_int_store(volatile atomic_int* _Nonnull p, int val)
 {
-    *p = val;
+    p->value = val;
 }
 
 int atomic_int_load(volatile atomic_int* _Nonnull p)
 {
-    return *p;
+    return p->value;
 }
 
 
 int atomic_int_exchange(volatile atomic_int* _Nonnull p, int op)
 {
-    int old_val = *p;
+    const int old_val = p->value;
 
-    *p = op;
+    p->value = op;
     return old_val;
 }
 
 bool atomic_int_compare_exchange_strong(volatile atomic_int* _Nonnull p, volatile atomic_int* _Nonnull expected, int desired)
 {
-    if (*p == *expected) {
-        *p = desired;
+    if (p->value == expected->value) {
+        p->value = desired;
         return true;
     }
     else {
-        *expected = *p;
+        expected->value = p->value;
         return false;
     }
 }
 
 int atomic_int_fetch_add(volatile atomic_int* _Nonnull p, int op)
 {
-    int old_val = *p;
+    const int old_val = p->value;
 
-    *p += op;
+    p->value += op;
     return old_val;
 }
 
 int atomic_int_fetch_sub(volatile atomic_int* _Nonnull p, int op)
 {
-    int old_val = *p;
+    const int old_val = p->value;
 
-    *p -= op;
+    p->value -= op;
     return old_val;
 }
 
 int atomic_int_fetch_or(volatile atomic_int* _Nonnull p, int op)
 {
-    int old_val = *p;
+    const int old_val = p->value;
 
-    *p |= op;
+    p->value |= op;
     return old_val;
 }
 
 int atomic_int_fetch_xor(volatile atomic_int* _Nonnull p, int op)
 {
-    int old_val = *p;
+    const int old_val = p->value;
 
-    *p ^= op;
+    p->value ^= op;
     return old_val;
 }
 
 int atomic_int_fetch_and(volatile atomic_int* _Nonnull p, int op)
 {
-    int old_val = *p;
+    const int old_val = p->value;
 
-    *p &= op;
+    p->value &= op;
     return old_val;
 }
 #endif
