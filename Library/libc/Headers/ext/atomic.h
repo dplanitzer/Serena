@@ -41,9 +41,8 @@ typedef struct atomic_int {
 // before any other thread-of-execution can access it.
 #if ___STDC_HOSTED__ == 1
 #define atomic_init(__ptr_to_atomic_typ, __val) \
-(__ptr_to_atomic_typ)->value = (__val) \
-(__ptr_to_atomic_typ)->lock = 0
-
+(__ptr_to_atomic_typ)->value = (__val); \
+(__ptr_to_atomic_typ)->lock.value = 0
 #else
 #define atomic_init(__ptr_to_atomic_typ, __val) \
 (__ptr_to_atomic_typ)->value = (__val)

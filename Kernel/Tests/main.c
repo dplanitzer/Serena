@@ -14,6 +14,9 @@
 #include <ext/timespec.h>
 
 
+// Atomic
+extern void atomic_test(int argc, char *argv[]);
+
 // Console
 extern void interactive_console_test(int argc, char *argv[]);
 
@@ -81,6 +84,8 @@ typedef struct test {
 
 
 static const test_t gTests[] = {
+    {"atomic", atomic_test, false},
+
     {"console", interactive_console_test, false},
 
     {"dq_after", dq_after_test, true},
