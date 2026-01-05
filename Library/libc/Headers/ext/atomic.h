@@ -27,26 +27,14 @@ extern void atomic_flag_clear(volatile atomic_flag* _Nonnull flag);
 
 typedef struct atomic_int {
     int value;
-#if ___STDC_HOSTED__ == 1
-    // XXX Find a better way to check for when we need a spin lock.
-    // Use a spin lock on platforms where the CPU doesn't offer userspace
-    // accessible atomic arithmetic and boolean instructions 
-    atomic_flag lock;
-    char        reserved[3];
-#endif
 } atomic_int;
 
 
 // This is actually not atomic. It's purely used to initialize an atomic value
 // before any other thread-of-execution can access it.
-#if ___STDC_HOSTED__ == 1
-#define atomic_init(__ptr_to_atomic_typ, __val) \
-(__ptr_to_atomic_typ)->value = (__val); \
-(__ptr_to_atomic_typ)->lock.value = 0
-#else
 #define atomic_init(__ptr_to_atomic_typ, __val) \
 (__ptr_to_atomic_typ)->value = (__val)
-#endif
+
 
 // Atomically set the value of 'p' to 'val'.
 extern void atomic_int_store(volatile atomic_int* _Nonnull p, int val);

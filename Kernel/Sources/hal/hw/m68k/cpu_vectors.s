@@ -13,6 +13,7 @@
 
     include "lowmem.i"
     include <hal/errno.i>
+    include <machine/amiga/kei.i>
 
     xref _Reset
     xref _OnReset
@@ -36,6 +37,14 @@
     xref _g_sched
     xref __syscall_handler
 
+    xref __atomic_int_exchange_reg
+    xref __atomic_int_compare_exchange_strong_reg
+    xref __atomic_int_fetch_add_reg
+    xref __atomic_int_fetch_sub_reg
+    xref __atomic_int_fetch_or_reg
+    xref __atomic_int_fetch_xor_reg
+    xref __atomic_int_fetch_and_reg
+
 
     xdef _cpu_vector_table
     xdef _excpt_return
@@ -57,7 +66,7 @@ _cpu_vector_table:
     dc.l __cpu_exception                ; 07, cpTRAPcc, TRAPcc, TRAPV Instructions
     dc.l __cpu_exception                ; 08, Privilege Violation
     dc.l __cpu_exception                ; 09, Trace
-    dc.l __cpu_exception                ; 10, Line 1010 Emulator (Unimplemented A-Line Opcode)
+    dc.l __line_a_exception             ; 10, Line 1010 Emulator (Unimplemented A-Line Opcode)
     dc.l __cpu_exception                ; 11, Line 1111 Emulator (Unimplemented F-Line Opcode) / Floating-Point Unimplemented Instruction / Floating-Point Disabled
     dc.l __cpu_exception                ; 12, Emulator Interrupt (68060)
     dc.l __cpu_exception                ; 13, Coprocessor Protocol Violation (68020 / 68030)
@@ -112,6 +121,34 @@ _cpu_vector_table:
     dc.l __cpu_exception                ; 62, Reserved
     dc.l __cpu_exception                ; 63, Reserved
     dcb.l 192, __cpu_exception          ; 64, User-Defined Vectors (192)
+
+
+;-------------------------------------------------------------------------------
+; Line A exception handler
+__line_a_exception:
+    movem.l d2/a2, -(sp)
+    move.w  ([10, sp]), d2          ; load PC pointing to the $Axxx instruction
+    and.w   #$0fff, d2
+    cmp.w   #ATOMIC_INSTR_LAST, d2
+    bgt.s   .not_a_line_a_exception
+    lea     __aline_table(pc, d2.w*4), a2
+    jsr     ([a2])
+    addq.l  #2, 10(sp)
+    movem.l (sp)+, d2/a2
+    rte
+
+.not_a_line_a_exception:
+    movem.l (sp)+, d2/a2
+    bra.s   __cpu_exception
+
+__aline_table:
+    dc.l    __atomic_int_exchange_reg
+    dc.l    __atomic_int_compare_exchange_strong_reg
+    dc.l    __atomic_int_fetch_add_reg
+    dc.l    __atomic_int_fetch_sub_reg
+    dc.l    __atomic_int_fetch_or_reg
+    dc.l    __atomic_int_fetch_xor_reg
+    dc.l    __atomic_int_fetch_and_reg
 
 
 ;-------------------------------------------------------------------------------
