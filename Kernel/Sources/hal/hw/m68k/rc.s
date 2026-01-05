@@ -40,7 +40,7 @@ _rc_retain:
 _rc_release:
     inline
     cargs release_rc_ptr.l
-        DISABLE_PREEMPTION d1
+        DISABLE_INTERRUPTS d1
         move.l  release_rc_ptr(sp), a0
         move.l  (a0), d0
         subq.l  #1, d0
@@ -49,12 +49,12 @@ _rc_release:
         beq.s   .ret_true
 
 .ret_false:
-        RESTORE_PREEMPTION d1
+        RESTORE_INTERRUPTS d1
         moveq.l #0, d0
         rts
 
 .ret_true:
-        RESTORE_PREEMPTION d1
+        RESTORE_INTERRUPTS d1
         moveq.l #1, d0
         rts
     einline
