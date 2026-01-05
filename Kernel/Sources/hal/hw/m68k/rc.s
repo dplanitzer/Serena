@@ -40,22 +40,14 @@ _rc_retain:
 _rc_release:
     inline
     cargs release_rc_ptr.l
-        DISABLE_INTERRUPTS d1
         move.l  release_rc_ptr(sp), a0
-        move.l  (a0), d0
-        subq.l  #1, d0
-        bmi.s   .ret_false
-        move.l  d0, (a0)
-        beq.s   .ret_true
 
-.ret_false:
-        RESTORE_INTERRUPTS d1
         moveq.l #0, d0
-        rts
-
-.ret_true:
-        RESTORE_INTERRUPTS d1
-        moveq.l #1, d0
+        DISABLE_INTERRUPTS_SP
+        subq.l  #1, (a0)
+        seq     d0
+        RESTORE_INTERRUPTS_SP
+        and.b   #1, d0      ; make sure we return proper false and true values
         rts
     einline
 

@@ -33,6 +33,7 @@
 ;-------------------------------------------------------------------------------
 ; int atomic_int_exchange(volatile atomic_int* _Nonnull p{a0}, int val{d1})
 ; IRQ safe
+; Line A handler safe
 _atomic_int_exchange:
     inline
     cargs aiex_ptr.l, aiex_op.l
@@ -51,6 +52,7 @@ __atomic_int_exchange_reg:
 ;-------------------------------------------------------------------------------
 ; bool atomic_int_compare_exchange_strong(volatile atomic_int* _Nonnull p{a0}, volatile atomic_int* _Nonnull expected{a1}, int desired{d1})
 ; IRQ safe
+; Line A handler safe
 _atomic_int_compare_exchange_strong:
     inline
     cargs aices_ptr.l, aices_expected.l, aices_desired.l
@@ -78,6 +80,7 @@ __atomic_int_compare_exchange_strong_reg:
 ;-------------------------------------------------------------------------------
 ; int atomic_int_fetch_add(volatile atomic_int* _Nonnull p{a0}, int op{d1})
 ; IRQ safe
+; Line A handler safe
 _atomic_int_fetch_add:
     inline
     cargs aifa_ptr.l, aifa_op.l
@@ -96,6 +99,7 @@ __atomic_int_fetch_add_reg:
 ;-------------------------------------------------------------------------------
 ; int atomic_int_fetch_sub(volatile atomic_int* _Nonnull p{a0}, int op{d1})
 ; IRQ safe
+; Line A handler safe
 _atomic_int_fetch_sub:
     inline
     cargs aifs_ptr.l, aifs_op.l
@@ -114,6 +118,7 @@ __atomic_int_fetch_sub_reg:
 ;-------------------------------------------------------------------------------
 ; int atomic_int_fetch_or(volatile atomic_int* _Nonnull p{a0}, int op{d1})
 ; IRQ safe
+; Line A handler safe
 _atomic_int_fetch_or:
     inline
     cargs aifo_ptr.l, aifo_op.l
@@ -132,6 +137,7 @@ __atomic_int_fetch_or_reg:
 ;-------------------------------------------------------------------------------
 ; int atomic_int_fetch_xor(volatile atomic_int* _Nonnull p{a0}, int op{d1})
 ; IRQ safe
+; Line A handler safe
 _atomic_int_fetch_xor:
     inline
     cargs aifx_ptr.l, aifx_op.l
@@ -150,6 +156,7 @@ __atomic_int_fetch_xor_reg:
 ;-------------------------------------------------------------------------------
 ; int atomic_int_fetch_and(volatile atomic_int* _Nonnull p{a0}, int op{d1})
 ; IRQ safe
+; Line A handler safe
 _atomic_int_fetch_and:
     inline
     cargs aifan_ptr.l, aifan_op.l
