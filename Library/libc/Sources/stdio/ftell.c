@@ -12,37 +12,50 @@
 
 off_t ftello(FILE * _Nonnull s)
 {
-    __fensure_seekable(s, EOF);
+    off_t r = (off_t)EOF;
 
-    const off_t r = __fgetlogicalpos(s);
-    if (r >= 0) {
-        return r;
+    __flock(s);
+    __fensure_seekable(s);
+
+    const off_t lp = __fgetlogicalpos(s);
+    if (lp >= 0) {
+        r = lp;
     }
     else {
         s->flags.hasError = 1;
-        return (off_t)EOF;
     }
+
+catch:
+    __funlock(s);
+    return r;
 }
 
 long ftell(FILE * _Nonnull s)
 {
-    __fensure_seekable(s, EOF);
+    long r = (long)EOF;
 
-    const off_t r = __fgetlogicalpos(s);
-    if (r < 0ll) {
-        s->flags.hasError = 1;
-        return (long)EOF;
-    }
+    __flock(s);
+    __fensure_seekable(s);
 
+    const off_t lp = __fgetlogicalpos(s);
+    if (lp >= 0ll) {
 #if __LONG_WIDTH == 64
-    return (long)r;
+        r = (long)r;
 #else
-    if (r > (off_t)LONG_MAX) {
-        errno = ERANGE;
-        s->flags.hasError = 1;
-        return EOF;
-    } else {
-        return (long)r;
-    }
+        if (lp <= (off_t)LONG_MAX) {
+            r = (long)lp;
+        }
+        else {
+            errno = ERANGE;
+            s->flags.hasError = 1;
+        }
 #endif
+    }
+    else {
+        s->flags.hasError = 1;
+    }
+
+catch:
+    __funlock(s);
+    return r;
 }

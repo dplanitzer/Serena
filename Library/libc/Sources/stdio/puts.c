@@ -13,20 +13,25 @@
 
 int puts(const char * _Nonnull str)
 {
-    __fensure_no_err(stdout, EOF);
-    __fensure_writeable(stdout, EOF);
-    __fensure_byte_oriented(stdout, EOF);
-    __fensure_direction(stdout, __kStreamDirection_Out, EOF);
+    int r = EOF;
+
+    __flock(stdout);
+    __fensure_no_err(stdout);
+    __fensure_writeable(stdout);
+    __fensure_byte_oriented(stdout);
+    __fensure_direction(stdout, __kStreamDirection_Out);
 
     const size_t len = __min(strlen(str), INT_MAX - 1);
     const ssize_t nCharsWritten = __fwrite(stdout, str, len);
 
-    if (nCharsWritten >= 0) {
-        if (__fputc('\n', stdout) == 1) {
-            return (int)(nCharsWritten + 1);
-        }
+    if (nCharsWritten >= 0 && __fputc('\n', stdout) == 1) {
+        r = (int)(nCharsWritten + 1);
+    }
+    else {
+        stdout->flags.hasError = 1;
     }
 
-    stdout->flags.hasError = 1;
-    return EOF;
+catch:
+    __funlock(stdout);
+    return r;
 }

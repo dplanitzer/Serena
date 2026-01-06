@@ -27,21 +27,26 @@ int fprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format,
 int vfprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, va_list ap)
 {
     fmt_t fmt;
+    int r = EOF;
 
-    __fensure_no_err(s, EOF);
-    __fensure_writeable(s, EOF);
-    __fensure_byte_oriented(s, EOF);
-    __fensure_direction(s, __kStreamDirection_Out, EOF);
+    __flock(s);
+    __fensure_no_err(s);
+    __fensure_writeable(s);
+    __fensure_byte_oriented(s);
+    __fensure_direction(s, __kStreamDirection_Out);
 
     __fmt_init(&fmt, s, (fmt_putc_func_t)__fputc, (fmt_write_func_t)__fwrite, false);
-    const int r = __fmt_format(&fmt, format, ap);
+    const int res = __fmt_format(&fmt, format, ap);
     __fmt_deinit(&fmt);
 
-    if (r >= 0) {
-        return r;
+    if (res >= 0) {
+        r = res;
     }
     else {
         s->flags.hasError = 1;
-        return EOF;
     }
+
+catch:
+    __funlock(s);
+    return r;
 }

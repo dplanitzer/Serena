@@ -41,23 +41,28 @@ ssize_t __fgetc(char* _Nonnull _Restrict pch, FILE * _Nonnull _Restrict s)
 
 int fgetc(FILE * _Nonnull s)
 {
-    __fensure_no_eof_err(s, EOF);
-    __fensure_readable(s, EOF);
-    __fensure_byte_oriented(s, EOF);
-    __fensure_direction(s, __kStreamDirection_In, EOF);
+    int r = EOF;
+
+    __flock(s);
+    __fensure_no_eof_err(s);
+    __fensure_readable(s);
+    __fensure_byte_oriented(s);
+    __fensure_direction(s, __kStreamDirection_In);
 
     char ch;
-    const ssize_t r = __fgetc(&ch, s);
+    const ssize_t nBytesRead = __fgetc(&ch, s);
 
-    if (r == 1) {
-        return (int)ch;
+    if (nBytesRead == 1) {
+        r = (int)ch;
     }
-    else if (r == 0) {
+    else if (nBytesRead == 0) {
         s->flags.hasEof = 1;
-        return EOF;
     }
     else {
         s->flags.hasError = 1;
-        return EOF;
     }
+
+catch:
+    __funlock(s);
+    return r;
 }

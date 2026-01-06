@@ -48,16 +48,22 @@ off_t __fgetlogicalpos(FILE * _Nonnull s)
 
 int fgetpos(FILE * _Nonnull _Restrict s, fpos_t * _Nonnull _Restrict pos)
 {
-    __fensure_seekable(s, EOF);
+    int r = EOF;
 
-    const off_t r = __fgetlogicalpos(s);
-    if (r >= 0ll) {
-        pos->offset = r;
+    __flock(s);
+    __fensure_seekable(s);
+
+    const off_t lp = __fgetlogicalpos(s);
+    if (lp >= 0ll) {
+        pos->offset = lp;
         pos->mbstate = s->mbstate;
-        return 0;
+        r = 0;
     }
     else {
         s->flags.hasError = 1;
-        return EOF;
     }
+
+catch:
+    __funlock(s);
+    return r;
 }

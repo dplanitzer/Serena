@@ -58,7 +58,7 @@ int vasprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list ap
     const int r1 = __fmt_format(&fmt, format, ap);
     const int r2 = __fputc('\0', &file.super);
     __fmt_deinit(&fmt);
-    filemem(&file.super, &mq);
+    __filemem(&file.super, &mq);
     __fclose(&file.super);
 
     if (r1 >= 0 && r2 >= 0) {

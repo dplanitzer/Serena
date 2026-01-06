@@ -15,11 +15,13 @@ int fclose(FILE * _Nonnull s)
     int r = 0;
 
     if (s) {
+        __flock(s);
         r = __fclose(s);
 
         if (s->flags.shouldFreeOnClose) {
             free(s);
         }
+        __funlock(s);
     }
     return r;
 }

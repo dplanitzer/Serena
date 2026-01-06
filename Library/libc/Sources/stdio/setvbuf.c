@@ -63,14 +63,9 @@ int __setvbuf(FILE * _Nonnull _Restrict s, char * _Nullable _Restrict buffer, in
 
 int setvbuf(FILE * _Nonnull _Restrict s, char * _Nullable _Restrict buffer, int mode, size_t size)
 {
-    return __setvbuf(s, buffer, mode, size);
-}
+    __flock(s);
+    const int r = __setvbuf(s, buffer, mode, size);
+    __funlock(s);
 
-void setbuf(FILE * _Nonnull _Restrict s, char * _Nullable _Restrict buffer)
-{
-    if (buffer) {
-        (void) setvbuf(s, buffer, _IOFBF, BUFSIZ);
-    } else {
-        (void) setvbuf(s, NULL, _IONBF, 0);
-    }
+    return r;
 }

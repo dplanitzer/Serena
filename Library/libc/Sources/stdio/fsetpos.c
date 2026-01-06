@@ -11,17 +11,24 @@
 
 int fsetpos(FILE * _Nonnull _Restrict s, const fpos_t * _Nonnull _Restrict pos)
 {
-    __fensure_seekable(s, EOF);
-    __fensure_direction(s, __kStreamDirection_Unknown, EOF);
+    int r = EOF;
 
-    const long long r = s->cb.seek((void*)s->context, pos->offset, SEEK_SET);
-    if (r < 0ll) {
-        s->flags.hasError = 1;
-        return EOF;
+    __flock(s);
+    __fensure_seekable(s);
+    __fensure_direction(s, __kStreamDirection_Unknown);
+
+    const long long res = s->cb.seek((void*)s->context, pos->offset, SEEK_SET);
+    if (res >= 0ll) {
+        __fdiscard_ugb(s);
+        s->flags.hasEof = 0;
+        s->mbstate = pos->mbstate;
+        r = 0;
     }
-    __fdiscard_ugb(s);
-    s->flags.hasEof = 0;
-    s->mbstate = pos->mbstate;
+    else {
+        s->flags.hasError = 1;
+    }
 
-    return 0;
+catch:
+    __funlock(s);
+    return r;
 }

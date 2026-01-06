@@ -88,42 +88,47 @@ static ssize_t __fread(FILE* _Nonnull _Restrict s, void * _Nonnull _Restrict buf
 
 size_t fread(void * _Nonnull _Restrict buffer, size_t size, size_t count, FILE * _Nonnull _Restrict s)
 {
-    __fensure_no_eof_err(s, 0);
-    __fensure_readable(s, 0);
-    __fensure_byte_oriented(s, 0);
-    __fensure_direction(s, __kStreamDirection_In, 0);
+    size_t r = 0;
+
+    __flock(s);
+    __fensure_no_eof_err(s);
+    __fensure_readable(s);
+    __fensure_byte_oriented(s);
+    __fensure_direction(s, __kStreamDirection_In);
 
     if (size == 0 || count == 0) {
-        return 0;
+        goto catch;
     }
 
 
     char* dst = buffer;
     uint64_t nBytesToRead = (uint64_t)size * count;
     uint64_t nBytesRead = 0;
-    ssize_t r;
+    ssize_t res;
 
     while (nBytesToRead > 0) {
-        r = __fread(s, dst, (ssize_t)__min(nBytesToRead, (uint64_t)SSIZE_MAX));
-        if (r <= 0) {
+        res = __fread(s, dst, (ssize_t)__min(nBytesToRead, (uint64_t)SSIZE_MAX));
+        if (res <= 0) {
             break;
         }
 
-        nBytesToRead -= (uint64_t)r;
-        nBytesRead += (uint64_t)r;
-        dst += r;
+        nBytesToRead -= (uint64_t)res;
+        nBytesRead += (uint64_t)res;
+        dst += res;
     }
 
 
     if (nBytesRead > 0ull) {
-        return nBytesRead / size;
+        r = nBytesRead / size;
     }
-    else if (r == 0) {
+    else if (res == 0) {
         s->flags.hasEof = 1;
-        return 0;
     }
     else {
         s->flags.hasError = 1;
-        return 0;
     }
+
+catch:
+    __funlock(s);
+    return r;
 }

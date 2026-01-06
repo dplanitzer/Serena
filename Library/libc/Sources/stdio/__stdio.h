@@ -119,52 +119,60 @@ extern FILE * _Nullable __fopen_null(const char* mode);
 
 
 extern int __iterate_open_files(__file_func_t _Nonnull f);
+extern int __filemem(FILE * _Nonnull _Restrict s, FILE_MemoryQuery * _Nonnull _Restrict query);
 
 
 extern ssize_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* buf, ssize_t nbytes);
 extern ssize_t __mem_read(__Memory_FILE_Vars* _Nonnull mp, void* pBuffer, ssize_t nBytesToRead);
 
 
-#define __fensure_byte_oriented(__self, __ret) \
+#define __flock(__self) \
+mtx_lock(&(__self)->lock)
+
+#define __funlock(__self) \
+mtx_unlock(&(__self)->lock)
+
+
+#define __fensure_byte_oriented(__self) \
 if ((__self)->flags.orientation == __kStreamOrientation_Wide) { \
     (__self)->flags.hasError = 1; \
-    return __ret; \
+    goto catch; \
 } \
 (__self)->flags.orientation = __kStreamOrientation_Byte;
 
-#define __fensure_direction(__self, dir, __ret) \
+#define __fensure_direction(__self, dir) \
 if ((__self)->flags.direction != (dir)) { \
     if (__fsetdir(__self, dir) == EOF) { \
-        return __ret; \
+        goto catch; \
     } \
 }
 
-#define __fensure_writeable(__self, __ret) \
+#define __fensure_writeable(__self) \
 if (((__self)->flags.mode & __kStreamMode_Write) == 0) { \
     (__self)->flags.hasError = 1; \
-    return __ret; \
+    goto catch; \
 }
 
-#define __fensure_readable(__self, __ret) \
+#define __fensure_readable(__self) \
 if (((__self)->flags.mode & __kStreamMode_Read) == 0) { \
     (__self)->flags.hasError = 1; \
-    return __ret; \
+    goto catch; \
 }
 
-#define __fensure_no_eof_err(__self, __ret) \
+#define __fensure_no_eof_err(__self) \
 if ((__self)->flags.hasEof || (__self)->flags.hasError) { \
-    return __ret; \
+    goto catch; \
 }
 
-#define __fensure_no_err(__self, __ret) \
+#define __fensure_no_err(__self) \
 if ((__self)->flags.hasError) { \
-    return __ret; \
+    goto catch; \
 }
 
-#define __fensure_seekable(__self, __ret) \
+#define __fensure_seekable(__self) \
 if ((__self)->cb.seek == NULL) { \
     errno = ESPIPE; \
-    return __ret; \
+    goto catch; \
 }
 
 
@@ -177,6 +185,7 @@ extern ssize_t __fwrite(FILE * _Nonnull _Restrict s, const void * _Restrict buff
 extern ssize_t __fgetc(char* _Nonnull _Restrict pch, FILE * _Nonnull _Restrict sm);
 extern ssize_t __fputc(char ch, FILE * _Nonnull s);
 extern off_t __fgetlogicalpos(FILE * _Nonnull s);
+extern int __fseeko(FILE * _Nonnull s, off_t offset, int whence);
 extern int __fsetdir(FILE * _Nonnull s, int dir);
 extern void __fdiscard(FILE * _Nonnull s);
 extern int __ffill(FILE * _Nonnull s);

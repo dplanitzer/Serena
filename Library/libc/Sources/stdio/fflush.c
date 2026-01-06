@@ -34,12 +34,21 @@ int __iterate_open_files(__file_func_t _Nonnull f)
 }
 
 
+static int __fflush_locked(FILE* _Nonnull s)
+{
+    __flock(s);
+    const int r = __fflush(s);
+    __funlock(s);
+
+    return r;
+}
+
 int fflush(FILE * _Nonnull s)
 {
     if (s) {
-        return __fflush(s);
+        return __fflush_locked(s);
     }
     else {
-        return __iterate_open_files(__fflush);
+        return __iterate_open_files(__fflush_locked);
     }
 }

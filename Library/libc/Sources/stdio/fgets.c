@@ -11,25 +11,27 @@
 
 char * _Nonnull fgets(char * _Nonnull _Restrict str, int count, FILE * _Nonnull _Restrict s)
 {
+    char* r = NULL;
     int nBytesToRead = count - 1;
     int nBytesRead = 0;
-    ssize_t r;
+    ssize_t res;
     char ch;
 
-    __fensure_no_eof_err(s, NULL);
-    __fensure_readable(s, NULL);
-    __fensure_byte_oriented(s, NULL);
-    __fensure_direction(s, __kStreamDirection_In, NULL);
+    __flock(s);
+    __fensure_no_eof_err(s);
+    __fensure_readable(s);
+    __fensure_byte_oriented(s);
+    __fensure_direction(s, __kStreamDirection_In);
 
     if (count < 1) {
         errno = EINVAL;
-        return NULL;
+        goto catch;
     }
 
 
     while (nBytesToRead-- > 0) {
-        r = __fgetc(&ch, s);
-        if (r <= 0) {
+        res = __fgetc(&ch, s);
+        if (res <= 0) {
             break;
         }
 
@@ -43,14 +45,16 @@ char * _Nonnull fgets(char * _Nonnull _Restrict str, int count, FILE * _Nonnull 
 
 
     if (nBytesRead > 0 || nBytesToRead == 0) {
-        return str;
+        r = str;
     }
-    else if (r == 0) {
+    else if (res == 0) {
         s->flags.hasEof = 1;
-        return NULL;
     }
     else {
         s->flags.hasError = 1;
-        return NULL;
     }
+
+catch:
+    __funlock(s);
+    return r;
 }

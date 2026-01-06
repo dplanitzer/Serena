@@ -11,5 +11,9 @@
 
 int fileno(FILE * _Nonnull s)
 {
-    return (s->cb.read == (FILE_Read)__fd_read) ? ((__IOChannel_FILE*)s)->v.fd : EOF;
+    __flock(s);
+    const int r = (s->cb.read == (FILE_Read)__fd_read) ? ((__IOChannel_FILE*)s)->v.fd : EOF;
+    __funlock(s);
+
+    return r;
 }

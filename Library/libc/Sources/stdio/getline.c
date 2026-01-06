@@ -20,26 +20,28 @@ ssize_t getline(char **line, size_t * _Nonnull _Restrict n, FILE * _Nonnull _Res
 
 ssize_t getdelim(char **line, size_t * _Nonnull _Restrict n, int delimiter, FILE * _Nonnull _Restrict s)
 {
+    ssize_t r = -1;
     char* buf = *line;
     ssize_t bufSize = __min(*n, SSIZE_MAX);
-    ssize_t i = 0, r;
+    ssize_t i = 0, res;
     char ch;
 
-    __fensure_no_eof_err(s, -1);
-    __fensure_readable(s, -1);
-    __fensure_byte_oriented(s, -1);
-    __fensure_direction(s, __kStreamDirection_In, -1);
+    __flock(s);
+    __fensure_no_eof_err(s);
+    __fensure_readable(s);
+    __fensure_byte_oriented(s);
+    __fensure_direction(s, __kStreamDirection_In);
 
     for (;;) {
-        r = __fgetc(&ch, s);
+        res = __fgetc(&ch, s);
 
-        if (r == 1) {
+        if (res == 1) {
             if ((i == bufSize - 1) || (buf == NULL)) {
                 const size_t newBufSize = (bufSize > 0) ? bufSize * 2 : 160;
                 char* newBuf = realloc(buf, newBufSize);
 
                 if (newBuf == NULL) {
-                    r = -1;
+                    res = -1;
                     break;
                 }
 
@@ -50,7 +52,7 @@ ssize_t getdelim(char **line, size_t * _Nonnull _Restrict n, int delimiter, FILE
             buf[i++] = (char)ch;
         }
 
-        if (ch == delimiter || r <= 0) {
+        if (ch == delimiter || res <= 0) {
             // Stashing the 0 in at the last buffer index is safe because (above)
             // we expand the buffer already when i == bufSize-1
             buf[i] = '\0';
@@ -58,7 +60,7 @@ ssize_t getdelim(char **line, size_t * _Nonnull _Restrict n, int delimiter, FILE
         }
     }
 
-    if (r < 0 && buf) {
+    if (res < 0 && buf) {
         *buf = '\0';
     }
 
@@ -67,14 +69,16 @@ ssize_t getdelim(char **line, size_t * _Nonnull _Restrict n, int delimiter, FILE
 
     
     if (i > 0) {
-        return i;
+        r = i;
     }
-    else if (r == 0) {
+    else if (res == 0) {
         s->flags.hasEof = 1;
-        return -1;
     }
     else {
         s->flags.hasError = 1;
-        return -1;
     }
+
+catch:
+    __funlock(s);
+    return r;
 }

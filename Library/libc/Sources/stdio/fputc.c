@@ -52,19 +52,24 @@ ssize_t __fputc(char ch, FILE * _Nonnull s)
 int fputc(int ch, FILE * _Nonnull s)
 {
     const char ch8 = (const unsigned char)ch;
+    int r = EOF;
 
-    __fensure_no_err(s, EOF);
-    __fensure_writeable(s, EOF);
-    __fensure_byte_oriented(s, EOF);
-    __fensure_direction(s, __kStreamDirection_Out, EOF);
+    __flock(s);
+    __fensure_no_err(s);
+    __fensure_writeable(s);
+    __fensure_byte_oriented(s);
+    __fensure_direction(s, __kStreamDirection_Out);
 
-    const ssize_t r = __fputc(ch8, s);
+    const ssize_t nBytesWritten = __fputc(ch8, s);
 
-    if (r == 1) {
-        return (int)ch8;
+    if (nBytesWritten == 1) {
+        r = (int)ch8;
     }
     else {
         s->flags.hasError = 1;
-        return EOF;
     }
+
+catch:
+    __funlock(s);
+    return r;
 }

@@ -51,6 +51,9 @@ int __fopen_init(FILE* _Nonnull _Restrict self, bool bFreeOnClose, void* _Nullab
     }
 
     memset(self, 0, sizeof(FILE));
+    if (mtx_init(&self->lock) != 0) {
+        return EOF;
+    }
     self->cb = *callbacks;
     self->context = context;
     self->mbstate = (mbstate_t){0};

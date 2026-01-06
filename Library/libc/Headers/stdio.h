@@ -21,6 +21,7 @@
 #include <arch/_ssize.h>
 #include <kpi/_seek.h>
 #include <kpi/syslimits.h>
+#include <sys/mtx.h>
 #include <stdarg.h>
 
 __CPP_BEGIN
@@ -83,6 +84,7 @@ typedef struct FILE {
     struct FILE* _Nullable      next;
     FILE_Callbacks              cb;
     void* _Nullable             context;
+    mtx_t                       lock;
     unsigned char* _Nullable    buffer;
     ssize_t                     bufferCapacity;
     ssize_t                     bufferCount;

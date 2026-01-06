@@ -26,20 +26,23 @@ int __fget_ugb(char* _Nonnull _Restrict pch, FILE * _Nonnull _Restrict s)
 
 int ungetc(int ch, FILE * _Nonnull s)
 {
-    __fensure_no_eof_err(s, EOF);
-    __fensure_readable(s, EOF);
-    __fensure_byte_oriented(s, EOF);
-    __fensure_direction(s, __kStreamDirection_In, EOF);
+    int r = EOF;
+
+    __flock(s);
+    __fensure_no_eof_err(s);
+    __fensure_readable(s);
+    __fensure_byte_oriented(s);
+    __fensure_direction(s, __kStreamDirection_In);
     
     if (ch == EOF) {
-        return EOF;
+        goto catch;
     }
 
     const unsigned char ch8 = (const unsigned char)ch;
 
     if (s->flags.bufferMode > _IONBF) {
         if (s->bufferIndex == 0) {
-            return EOF;
+            goto catch;
         }
 
         s->bufferIndex--;
@@ -47,17 +50,21 @@ int ungetc(int ch, FILE * _Nonnull s)
     }
     else {
         if (s->ugbCount > 0) {
-            return EOF;
+            goto catch;
         }
 
         if (s->cb.seek(s->context, -1ll, SEEK_CUR) < 0ll) {
-            return EOF;
+            goto catch;
         }
 
         s->ugb = ch8;
         s->ugbCount = 1;
     }
+    
     s->flags.hasEof = 0;
+    r = (int)ch8;
 
-    return (int)ch8;
+catch:
+    __funlock(s);
+    return r;
 }

@@ -138,37 +138,43 @@ ssize_t __fwrite(FILE * _Nonnull _Restrict s, const void * _Restrict buffer, ssi
 
 size_t fwrite(const void * _Nonnull _Restrict buffer, size_t size, size_t count, FILE * _Nonnull _Restrict s)
 {
-    __fensure_no_err(s, 0);
-    __fensure_writeable(s, 0);
-    __fensure_byte_oriented(s, 0);
-    __fensure_direction(s, __kStreamDirection_Out, 0);
+    size_t r = 0;
+
+    __flock(s);
+    __fensure_no_err(s);
+    __fensure_writeable(s);
+    __fensure_byte_oriented(s);
+    __fensure_direction(s, __kStreamDirection_Out);
 
     if (size == 0 || count == 0) {
-        return 0;
+        goto catch;
     }
 
 
     const char* src = buffer;
     uint64_t nBytesToWrite = (uint64_t)size * count;
     uint64_t nBytesWritten = 0;
-    ssize_t r;
+    ssize_t res;
 
     while (nBytesToWrite > 0) {
-        r = __fwrite(s, src, (ssize_t)__min(nBytesToWrite, (uint64_t)SSIZE_MAX));
-        if (r <= 0) {
+        res = __fwrite(s, src, (ssize_t)__min(nBytesToWrite, (uint64_t)SSIZE_MAX));
+        if (res <= 0) {
             break;
         }
 
-        nBytesToWrite -= (uint64_t)r;
-        nBytesWritten += (uint64_t)r;
-        src += r;
+        nBytesToWrite -= (uint64_t)res;
+        nBytesWritten += (uint64_t)res;
+        src += res;
     }
 
     if (nBytesWritten >= 0ull) {
-        return nBytesWritten / size;
+        r = nBytesWritten / size;
     }
     else {
         s->flags.hasError = 1;
-        return 0;
     }
+
+catch:
+    __funlock(s);
+    return r;
 }

@@ -11,6 +11,8 @@
 
 void rewind(FILE * _Nonnull s)
 {
-    (void) fseek(s, 0, SEEK_SET);
+    __flock(s);
+    (void) __fseeko(s, 0ll, SEEK_SET);
     s->flags.hasError = 0;
+    __funlock(s);
 }
