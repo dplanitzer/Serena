@@ -36,7 +36,7 @@ void fopen_memory_fixed_size_test(int argc, char *argv[])
 
     assertNotEOF(fputs(" World 1234", fp));
     assertNotEOF(filemem(fp, &q));
-    printf("base: %#p, eof: %zu, capacity: %zu\nok\n", q.base, q.eof, q.capacity);
+    printf("base: %#p, eof: %zu, capacity: %zu\n", q.base, q.eof, q.capacity);
 }
 
 void fopen_memory_variable_size_test(int argc, char *argv[])
@@ -61,5 +61,5 @@ void fopen_memory_variable_size_test(int argc, char *argv[])
 
     assertNotEOF(fputs(" World 1234", fp));
     assertNotEOF(filemem(fp, &q));
-    printf("base: %#p, eof: %zu, capacity: %zu\nok\n", q.base, q.eof, q.capacity);
+    printf("base: %#p, eof: %zu, capacity: %zu\n", q.base, q.eof, q.capacity);
 }

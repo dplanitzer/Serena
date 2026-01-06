@@ -28,30 +28,34 @@ char * _Nonnull fgets(char * _Nonnull _Restrict str, int count, FILE * _Nonnull 
         goto catch;
     }
 
+    if (nBytesToRead > 0) {
+        while (nBytesToRead-- > 0) {
+            res = __fgetc(&ch, s);
+            if (res <= 0) {
+                break;
+            }
 
-    while (nBytesToRead-- > 0) {
-        res = __fgetc(&ch, s);
-        if (res <= 0) {
-            break;
+            *str++ = ch;
+            nBytesRead++;
+            if (ch == '\n') {
+                break;
+            }
         }
 
-        *str++ = ch;
-        nBytesRead++;
-        if (ch == '\n') {
-            break;
+        if (nBytesRead > 0) {
+            *str = '\0';
+            r = str;
         }
-    }
-    *str = '\0';
-
-
-    if (nBytesRead > 0 || nBytesToRead == 0) {
-        r = str;
-    }
-    else if (res == 0) {
-        s->flags.hasEof = 1;
+        else if (res == 0) {
+            s->flags.hasEof = 1;
+        }
+        else {
+            s->flags.hasError = 1;
+        }
     }
     else {
-        s->flags.hasError = 1;
+        *str = '\0';
+        r = str;
     }
 
 catch:
