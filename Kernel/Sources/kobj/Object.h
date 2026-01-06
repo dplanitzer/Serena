@@ -9,9 +9,9 @@
 #ifndef Object_h
 #define Object_h
 
+#include <ext/rc.h>
 #include <kern/try.h>
 #include <kobj/Any.h>
-#include <hal/rc.h>
 
 
 // The Object class is the top type of all reference objects which use a

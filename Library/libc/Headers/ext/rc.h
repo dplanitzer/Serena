@@ -1,13 +1,13 @@
 //
 //  rc.h
-//  kernel
+//  libc, libsc
 //
 //  Created by Dietmar Planitzer on 7/30/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _RC_H
-#define _RC_H
+#ifndef _EXT_RC_H
+#define _EXT_RC_H
 
 #include <_cmndef.h>
 #include <stdbool.h>
@@ -32,4 +32,4 @@ extern bool rc_release(volatile ref_count_t* _Nonnull rc);
 // purposes only.
 extern int rc_getcount(volatile ref_count_t* _Nonnull rc);
 
-#endif /* _RC_H */
+#endif /* _EXT_RC_H */

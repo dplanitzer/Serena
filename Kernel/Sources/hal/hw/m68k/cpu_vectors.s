@@ -45,6 +45,8 @@
     xref __atomic_int_fetch_xor_reg
     xref __atomic_int_fetch_and_reg
 
+    xref __rc_release_reg
+
 
     xdef _cpu_vector_table
     xdef _excpt_return
@@ -149,6 +151,7 @@ __aline_table:
     dc.l    __atomic_int_fetch_or_reg
     dc.l    __atomic_int_fetch_xor_reg
     dc.l    __atomic_int_fetch_and_reg
+    dc.l    __rc_release_reg
 
 
 ;-------------------------------------------------------------------------------

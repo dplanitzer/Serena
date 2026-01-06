@@ -12,8 +12,8 @@
 #include "Process.h"
 #include "IOChannelTable.h"
 #include <Catalog.h>
+#include <ext/rc.h>
 #include <filemanager/FileManager.h>
-#include <hal/rc.h>
 #include <kpi/signal.h>
 #include <sched/mtx.h>
 #include <sched/waitqueue.h>

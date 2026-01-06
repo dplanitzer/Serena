@@ -16,8 +16,9 @@ ATOMIC_INT_FETCH_SUB                equ $a003   ; int atomic_int_fetch_sub(volat
 ATOMIC_INT_FETCH_OR                 equ $a004   ; int atomic_int_fetch_or(volatile atomic_int* _Nonnull p{a0}, int op{d1})
 ATOMIC_INT_FETCH_XOR                equ $a005   ; int atomic_int_fetch_xor(volatile atomic_int* _Nonnull p{a0}, int op{d1})
 ATOMIC_INT_FETCH_AND                equ $a006   ; int atomic_int_fetch_and(volatile atomic_int* _Nonnull p{a0}, int op{d1})
+RC_RELEASE                          equ $a007   ; bool rc_release(volatile ref_count_t* _Nonnull rc{a0})
 
 ATOMIC_INSTR_FIRST                  equ 0
-ATOMIC_INSTR_LAST                   equ ATOMIC_INT_FETCH_AND - $a000
+ATOMIC_INSTR_LAST                   equ RC_RELEASE - $a000
 
         endif
