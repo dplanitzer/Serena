@@ -54,6 +54,9 @@ extern void proc_excpt_return_test(int argc, char *argv[]);
 extern void proc_exec_test(int argc, char *argv[]);
 extern void proc_exit_test(int argc, char *argv[]);
 
+// RC
+extern void rc_test(int argc, char *argv[]);
+
 // Sema
 extern void sem_test(int argc, char *argv[]);
 
@@ -113,6 +116,8 @@ static const test_t gTests[] = {
     {"proc_excpt_ret", proc_excpt_return_test, false},
     {"proc_exec", proc_exec_test, false},
     {"proc_exit", proc_exit_test, true},
+
+    {"rc", rc_test, false},
 
     {"sem", sem_test, true},
 
