@@ -7,16 +7,22 @@
 //
 
 #include <errno.h>
-#include <stdio.h>
+#include <__stdio.h>
 #include <string.h>
 
 
 void perror(const char * _Nullable str)
 {
-    if (str && *str != '\0') {
-        fputs(str, stdout);
-        fputs(": ", stdout);
+    const size_t slen = (str) ? __min(strlen(str), SSIZE_MAX) : 0;
+    const char* es = strerror(errno);
+    const size_t elen = strlen(es);
+
+    __flock(stdout);
+    if (slen > 0) {
+        __fwrite(stdout, str, slen);
+        __fwrite(stdout, ": ", 2);
     }
 
-    puts(strerror(errno));
+    __fwrite(stdout, es, elen);
+    __funlock(stdout);
 }
