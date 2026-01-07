@@ -11,10 +11,12 @@
 
 #include <_cmndef.h>
 #include <inttypes.h>   // imaxabs(), imaxdiv()
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h> // abs(), div(), qsort(), bsearch(), itoa(), ltoa(), strtol()
+#include <stdlib.h> // abort(), abs(), div(), qsort(), bsearch(), itoa(), ltoa(), strtol()
+#include <stdnoreturn.h>
 #include <ext/limits.h>
 #include <ext/math.h>
 #include <../../../Kernel/Headers/kpi/_access.h>
@@ -55,6 +57,10 @@
 // Required minimum size is (string length byte + sign byte + longest digit sequence + 1 NUL byte) -> 1 + 64 (binary 64bit) + 1 + 1 = 25 bytes
 // A digit string is generated in a canonical representation: string length, sign, digits ..., NUL
 #define DIGIT_BUFFER_CAPACITY 67
+
+// defined in diskimage.c
+extern _Noreturn fatal(const char* _Nonnull format, ...);
+extern _Noreturn vfatal(const char* _Nonnull format, va_list ap);
 
 __CPP_END
 

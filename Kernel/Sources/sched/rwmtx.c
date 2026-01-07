@@ -10,6 +10,7 @@
 #include "vcpu.h"
 #include <ext/timespec.h>
 #include <kern/assert.h>
+#include <kern/kernlib.h>
 
 
 // Initializes a new shared-exclusive lock.

@@ -10,6 +10,7 @@
 #include "ColorTable.h"
 #include "Surface.h"
 #include <kern/assert.h>
+#include <kern/kernlib.h>
 
 
 void GObject_DelRef(void* _Nullable self0)

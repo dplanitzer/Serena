@@ -8,7 +8,7 @@
 
 #include <hal/cpu.h>
 #include <string.h>
-#include <kern/assert.h>
+#include <kern/kernlib.h>
 #include <kpi/exception.h>
 #include <process/Process.h>
 

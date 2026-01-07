@@ -15,9 +15,11 @@
 #include <_absdiv.h>
 #include <_imaxabsdiv.h>
 #include <_sortsearch.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdnoreturn.h>
 #include <ext/limits.h>
 #include <ext/math.h>
 #include <kpi/_access.h>
@@ -45,6 +47,15 @@ __CPP_BEGIN
 #define SIZE_GB(x)  ((unsigned long)(x) * 1024ul * 1024ul * 1024ul)
 #define SIZE_MB(x)  ((long)(x) * 1024 * 1024)
 #define SIZE_KB(x)  ((long)(x) * 1024)
+
+
+extern _Noreturn fatal(const char* _Nonnull format, ...);
+extern _Noreturn vfatal(const char* _Nonnull format, va_list ap);
+extern _Noreturn fatalError(const char* _Nonnull filename, int line, int err);
+extern _Noreturn fatalAbort(const char* _Nonnull filename, int line);
+extern _Noreturn _fatalException(void* _Nonnull ksp);
+
+#define abort() fatalAbort(__func__, __LINE__)
 
 
 extern char * _Nullable itoa(int val, char * _Nonnull buf, int radix);

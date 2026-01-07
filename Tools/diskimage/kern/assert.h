@@ -6,13 +6,4 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KERN_ASSERT_H
-#define _KERN_ASSERT_H 1
-
 #include <assert.h>
-#include <_cmndef.h>
-
-// defined in diskimage.c
-extern void fatal(const char* _Nonnull format, ...);
-
-#endif /* _KERN_ASSERT_H */

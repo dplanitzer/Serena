@@ -17,6 +17,7 @@
 #include <hal/clock.h>
 #include <hal/sched.h>
 #include <kern/assert.h>
+#include <kern/kernlib.h>
 #include <kern/kalloc.h>
 
 static void _vcpu_yield(vcpu_t _Nonnull self);
