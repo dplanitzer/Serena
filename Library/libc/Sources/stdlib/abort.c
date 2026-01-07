@@ -6,10 +6,9 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <assert.h>
 #include <stdlib.h>
 #include <signal.h>
-
+#include <errno.h>
 
 _Noreturn abort(void)
 {

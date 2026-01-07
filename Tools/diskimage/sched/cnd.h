@@ -9,8 +9,8 @@
 #ifndef di_ConditionVariable_h
 #define di_ConditionVariable_h
 
+#include <ext/try.h>
 #include <sched/mtx.h>
-#include <kern/try.h>
 #include <time.h>
 
 

@@ -10,10 +10,10 @@
 #define __LSTA_H 1
 
 #include <_cmndef.h>
-#define __STDC_WANT_LIB_EXT1__ 1
-#include <_errno.h>
 #include <stdbool.h>
 #include <stddef.h>
+#define __ERRNO_T_WANTED 1
+#include <kpi/_errno.h>
 
 __CPP_BEGIN
 

@@ -23,7 +23,6 @@ extern _Noreturn fatalAbort(const char* _Nonnull filename, int line);
 extern _Noreturn fatalAssert(const char* _Nonnull filename, int line);
 extern _Noreturn _fatalException(void* _Nonnull ksp);
 
-
 #define abort() fatalAbort(__func__, __LINE__)
 
 

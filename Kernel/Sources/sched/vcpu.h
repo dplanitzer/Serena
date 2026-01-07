@@ -10,10 +10,10 @@
 #define _VCPU_H 1
 
 #include <ext/queue.h>
+#include <ext/try.h>
 #include <hal/clock.h>
 #include <hal/cpu.h>
 #include <hal/sys_desc.h>
-#include <kern/try.h>
 #include <kern/types.h>
 #include <kpi/exception.h>
 #include <kpi/signal.h>

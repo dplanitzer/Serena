@@ -10,12 +10,11 @@
 #define sefs_format_h
 
 #include <stdint.h>
+#include <ext/try.h>
 #ifdef __KERNEL__
-#include <kern/try.h>
 #include <kern/types.h>
 #include <kpi/stat.h>
 #else
-#include <ext/try.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #endif

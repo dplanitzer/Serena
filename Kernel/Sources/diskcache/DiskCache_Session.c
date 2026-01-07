@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sched/delay.h>
 #include <sched/vcpu.h>
+#include <kern/assert.h>
 
 
 // Define to force all writes to be synchronous

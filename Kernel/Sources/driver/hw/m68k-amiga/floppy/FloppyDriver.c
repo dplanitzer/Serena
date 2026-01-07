@@ -11,6 +11,7 @@
 #include <ext/timespec.h>
 #include <hal/clock.h>
 #include <log/Log.h>
+#include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <sched/delay.h>
 #include <sched/vcpu.h>

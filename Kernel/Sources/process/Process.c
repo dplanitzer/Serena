@@ -9,6 +9,7 @@
 #include "ProcessPriv.h"
 #include <string.h>
 #include <filemanager/FileHierarchy.h>
+#include <kern/assert.h>
 #include <kern/kalloc.h>
 
 

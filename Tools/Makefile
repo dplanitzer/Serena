@@ -27,8 +27,8 @@ LIBCLAP_SOURCES_DIR := $(LIBCLAP_DIR)/Sources
 # Common Settings
 #
 
-#DEBUG_FLAGS := /Od /Zi
-DEBUG_FLAGS :=
+DEBUG_FLAGS := /Od /Zi
+#DEBUG_FLAGS :=
 
 
 # --------------------------------------------------------------------------
@@ -88,6 +88,7 @@ LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/hash.c
 LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/ilog2.c
 LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/ipow2.c
 LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/queue.c
+LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/_Try_bang_failed.c
 
 KERNEL_SOURCES_DIR := ../Kernel/Sources
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filemanager/FileHierarchy.c
@@ -119,7 +120,7 @@ ALL_DISKIMAGE_C_SOURCES := $(LIBC_C_SOURCES) \
 						   $(DISKIMAGE_C_SOURCES)
 
 $(TOOLS_DIR)/diskimage: $(ALL_DISKIMAGE_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(TOOLS_DIR)
-	cl /I diskimage /I $(LIBCLAP_HEADERS_DIR) /I $(KERNEL_SOURCES_DIR) /D__KERNEL__=1 /D__DISKIMAGE__=1 $(DEBUG_FLAGS) /std:c11 /experimental:c11atomics /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
+	cl /I diskimage /I $(LIBCLAP_HEADERS_DIR) /I $(KERNEL_SOURCES_DIR) /D__KERNEL__=1 /D__DISKIMAGE__=1 /D__TRY_BANG_BEHAVIOR=2 $(DEBUG_FLAGS) /std:c11 /experimental:c11atomics /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
 
 
 # --------------------------------------------------------------------------

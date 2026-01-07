@@ -9,6 +9,7 @@
 #include "GObject.h"
 #include "ColorTable.h"
 #include "Surface.h"
+#include <kern/assert.h>
 
 
 void GObject_DelRef(void* _Nullable self0)

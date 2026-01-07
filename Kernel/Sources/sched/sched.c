@@ -11,6 +11,7 @@
 #include "waitqueue.h"
 #include <string.h>
 #include <hal/sched.h>
+#include <kern/assert.h>
 #include <kern/signal.h>
 
 
@@ -277,6 +278,7 @@ static void sched_dump_rdyq_locked(sched_t _Nonnull self)
 // \param closure the closure that should be invoked by the virtual processor
 static vcpu_t _Nonnull boot_vcpu_create(BootAllocator* _Nonnull bap, VoidFunc_1 _Nonnull fn, void* _Nullable _Weak arg)
 {
+    decl_try_err();
     vcpu_t self = BootAllocator_Allocate(bap, sizeof(struct vcpu));
     memset(self, 0, sizeof(struct vcpu));
 
@@ -318,6 +320,7 @@ static void idle_vcpu_run(void* _Nullable ctx);
 // one is in state ready.
 static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
 {
+    decl_try_err();
     vcpu_t self = BootAllocator_Allocate(bap, sizeof(struct vcpu));
     memset(self, 0, sizeof(struct vcpu));
 

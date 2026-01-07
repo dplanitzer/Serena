@@ -10,6 +10,7 @@
 #include "proc_img_gemdos.h"
 #include <ext/string.h>
 #include <kei/kei.h>
+#include <kern/assert.h>
 #include <sched/vcpu.h>
 
 

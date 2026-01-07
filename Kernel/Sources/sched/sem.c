@@ -7,6 +7,7 @@
 //
 
 #include "sem.h"
+#include <kern/assert.h>
 
 
 // Initializes a new semaphore with 'value' permits

@@ -12,10 +12,10 @@
 #include <limits.h>
 #include <boot/BootAllocator.h>
 #include <ext/queue.h>
+#include <ext/try.h>
 #include <hal/cpu.h>
 #include <hal/sys_desc.h>
 #include <kern/types.h>
-#include <kern/try.h>
 #include <kpi/vcpu.h>
 
 

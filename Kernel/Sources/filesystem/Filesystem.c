@@ -13,6 +13,7 @@
 #include <ext/atomic.h>
 #include <ext/hash.h>
 #include <ext/timespec.h>
+#include <kern/assert.h>
 #include <kpi/fcntl.h>
 
 

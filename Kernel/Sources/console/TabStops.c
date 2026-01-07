@@ -8,6 +8,7 @@
 
 #include "ConsolePriv.h"
 #include <string.h>
+#include <kern/assert.h>
 #include <kern/kalloc.h>
 
 

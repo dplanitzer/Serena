@@ -10,6 +10,7 @@
 #include "vcpu.h"
 #include <hal/clock.h>
 #include <hal/sched.h>
+#include <kern/assert.h>
 
 
 void wq_init(waitqueue_t _Nonnull self)

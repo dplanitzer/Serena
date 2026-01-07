@@ -7,7 +7,7 @@
 //
 
 #include <_cmndef.h>
-#include <_errno.h>
+#include <kpi/_errno.h>
 
 #ifndef _ERRNO_H
 #define _ERRNO_H 1

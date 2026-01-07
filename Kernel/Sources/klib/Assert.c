@@ -54,6 +54,21 @@ _Noreturn fatalAssert(const char* _Nonnull filename, int line)
     fatal("Assert: %s:%d", filename, line);
 }
 
+_Noreturn _Try_bang_failed1(int lineno, const char* _Nonnull funcname, errno_t err)
+{
+    fatal("Fatal Error: %d at %s:%d", err, funcname, lineno);
+}
+
+_Noreturn _Try_bang_failed2(const char* _Nonnull filename, int lineno, const char* _Nonnull funcname, errno_t err)
+{
+    fatal("Fatal Error: %d at %s:%s:%d", err, filename, funcname, lineno);
+}
+
+_Noreturn _Try_bang_failed0(void)
+{
+    abort();
+}
+
 _Noreturn _fatalException(void* _Nonnull ksp)
 {
     vcpu_t vp = vcpu_current();

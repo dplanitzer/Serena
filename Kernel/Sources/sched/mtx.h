@@ -9,7 +9,7 @@
 #ifndef _MTX_H
 #define _MTX_H 1
 
-#include <kern/try.h>
+#include <ext/try.h>
 #include <kern/types.h>
 #include <sched/waitqueue.h>
 

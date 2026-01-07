@@ -9,6 +9,7 @@
 #include "Pipe.h"
 #include <ext/math.h>
 #include <ext/timespec.h>
+#include <kern/assert.h>
 #include <klib/RingBuffer.h>
 #include <kpi/stat.h>
 #include <sched/cnd.h>

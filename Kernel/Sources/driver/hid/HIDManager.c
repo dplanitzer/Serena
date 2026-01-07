@@ -10,6 +10,7 @@
 #include <limits.h>
 #include <driver/DriverManager.h>
 #include <filesystem/IOChannel.h>
+#include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kpi/fcntl.h>
 #include <process/Process.h>

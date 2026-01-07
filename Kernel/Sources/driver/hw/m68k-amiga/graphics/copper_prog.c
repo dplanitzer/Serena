@@ -8,6 +8,7 @@
 
 #include "copper.h"
 #include "ColorTable.h"
+#include <kern/assert.h>
 #include <kern/kalloc.h>
 
 

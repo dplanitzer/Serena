@@ -9,6 +9,7 @@
 #include "IORequest.h"
 #include <ext/math.h>
 #include <ext/queue.h>
+#include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <sched/mtx.h>
 

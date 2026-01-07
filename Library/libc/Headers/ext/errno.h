@@ -9,7 +9,7 @@
 #ifndef _EXT_ERRNO_H
 #define _EXT_ERRNO_H 1
 
-#define __STDC_WANT_LIB_EXT1__ 1
+#define __ERRNO_T_WANTED 1
 #include <errno.h>
 
 #endif /* _EXT_ERRNO_H */

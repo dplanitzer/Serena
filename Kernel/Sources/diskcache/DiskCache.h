@@ -9,7 +9,7 @@
 #ifndef DiskCache_h
 #define DiskCache_h
 
-#include <kern/try.h>
+#include <ext/try.h>
 #include <kobj/AnyRefs.h>
 #include <filesystem/FSBlock.h>
 #include <filesystem/IOChannel.h>

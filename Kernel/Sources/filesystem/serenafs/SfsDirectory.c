@@ -13,6 +13,7 @@
 #include <ext/limits.h>
 #include <filesystem/InodeChannel.h>
 #include <filesystem/FSUtilities.h>
+#include <kern/assert.h>
 
 
 // Reads the next set of directory entries. The first entry read is the one

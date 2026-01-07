@@ -9,7 +9,7 @@
 #ifndef _KPI_ERRNO_H
 #define _KPI_ERRNO_H 1
 
-#define _EOK            0
+#define EOK             0
 
 #define ENOMEM          1
 #define ENOMEDIUM       2
@@ -59,3 +59,9 @@
 #define __ELAST     43
 
 #endif /* _KPI_ERRNO_H */
+
+
+#if __ERRNO_T_WANTED == 1 && __ERRNO_T_DEFINED != 1
+#define __ERRNO_T_DEFINED 1
+typedef int errno_t;
+#endif

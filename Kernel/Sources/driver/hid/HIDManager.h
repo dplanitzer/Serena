@@ -9,8 +9,8 @@
 #ifndef HIDManager_h
 #define HIDManager_h
 
+#include <ext/try.h>
 #include <kobj/Object.h>
-#include <kern/try.h>
 #include <kpi/fb.h>
 #include <kpi/hid.h>
 #include <kpi/hidevent.h>
