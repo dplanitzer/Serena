@@ -1,6 +1,6 @@
 //
 //  kpi/mount.h
-//  libc
+//  kpi
 //
 //  Created by Dietmar Planitzer on 12/15/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

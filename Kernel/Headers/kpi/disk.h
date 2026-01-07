@@ -1,6 +1,6 @@
 //
 //  kpi/disk.h
-//  libc
+//  kpi
 //
 //  Created by Dietmar Planitzer on 10/10/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

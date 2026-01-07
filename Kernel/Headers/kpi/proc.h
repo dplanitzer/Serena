@@ -1,6 +1,6 @@
 //
 //  kpi/proc.h
-//  libc
+//  kpi
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

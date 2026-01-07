@@ -1,6 +1,6 @@
 //
 //  kpi/fb.h
-//  libc
+//  kpi
 //
 //  Created by Dietmar Planitzer on 2/2/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.

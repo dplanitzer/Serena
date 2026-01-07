@@ -1,6 +1,6 @@
 //
 //  machine/amiga/zorro.h
-//  libc
+//  kpi
 //
 //  Created by Dietmar Planitzer on 1/18/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.

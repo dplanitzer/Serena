@@ -1,6 +1,6 @@
 //
 //  kpi/console.h
-//  libc
+//  kpi
 //
 //  Created by Dietmar Planitzer on 6/2/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.

@@ -1,6 +1,6 @@
 //
 //  kpi/perm.h
-//  libc
+//  kpi
 //
 //  Created by Dietmar Planitzer on 5/17/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.

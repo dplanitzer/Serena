@@ -1,6 +1,6 @@
 //
 //  kpi/exception.h
-//  libc
+//  kpi
 //
 //  Created by Dietmar Planitzer on 7/24/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.

@@ -11,7 +11,7 @@
 
 #include "FloppyDriver.h"
 #include "FloppyController.h"
-#include "adf.h"
+#include <machine/amiga/adf.h>
 
 
 // Floppy motor state

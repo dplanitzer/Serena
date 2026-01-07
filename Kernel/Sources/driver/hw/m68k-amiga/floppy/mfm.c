@@ -7,7 +7,7 @@
 //
 
 #include "mfm.h"
-#include "adf.h"
+#include <machine/amiga/adf.h>
 
 
 #define MASK 0x55555555

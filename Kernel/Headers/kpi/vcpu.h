@@ -1,6 +1,6 @@
 //
 //  kpi/vcpu.h
-//  libc
+//  kpi
 //
 //  Created by Dietmar Planitzer on 6/29/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.

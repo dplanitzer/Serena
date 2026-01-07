@@ -1,6 +1,6 @@
 //
 //  kpi/hid.h
-//  libc
+//  kpi
 //
 //  Created by Dietmar Planitzer on 1/12/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.

@@ -1,6 +1,6 @@
 //
 //  kpi/ioctl.h
-//  libc
+//  kpi
 //
 //  Created by Dietmar Planitzer on 4/14/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.

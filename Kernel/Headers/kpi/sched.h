@@ -1,6 +1,6 @@
 //
 //  kpi/sched.h
-//  libc
+//  kpi
 //
 //  Created by Dietmar Planitzer on 10/26/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.

@@ -8,11 +8,11 @@
 
 #include "FloppyController.h"
 #include "FloppyDriverPriv.h"
-#include "adf.h"
 #include <ext/timespec.h>
 #include <hal/clock.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <hal/irq.h>
+#include <machine/amiga/adf.h>
 #include <sched/cnd.h>
 #include <sched/delay.h>
 #include <sched/mtx.h>
