@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ext/perm.h>
 #include <kpi/fcntl.h>
-#include <kpi/perm.h>
 
 
 static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnull path, mode_t perms, uid_t uid, gid_t gid)

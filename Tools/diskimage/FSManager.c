@@ -7,12 +7,12 @@
 //
 
 #include "FSManager.h"
+#include <ext/perm.h>
 #include <filemanager/FileHierarchy.h>
 #include <filesystem/FSUtilities.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <assert.h>
 #include <stdlib.h>
-#include <kpi/perm.h>
 #include <kpi/stat.h>
 
 

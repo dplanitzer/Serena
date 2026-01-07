@@ -10,8 +10,8 @@
 #define Catalog_h
 
 #include <kobj/Object.h>
+#include <ext/perm.h>
 #include <filemanager/ResolvedPath.h>
-#include <kpi/perm.h>
 
 
 // The non-persistent, globally unique ID of a published catalog entry.

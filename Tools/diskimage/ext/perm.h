@@ -1,9 +1,9 @@
 //
-//  kpi/perm.h
+//  ext/perm.h
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 5/17/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <../../Kernel/Headers/kpi/perm.h>
+#include <../../Library/libc/Headers/ext/perm.h>

@@ -10,12 +10,12 @@
 #include <string.h>
 #include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
+#include <ext/perm.h>
 #include <ext/timespec.h>
 #include <kern/assert.h>
 #include <kpi/console.h>
 #include <kpi/fcntl.h>
 #include <kpi/hid.h>
-#include <kpi/perm.h>
 
 
 // Creates a new console object. This console will display its output on the
