@@ -10,7 +10,6 @@
 #define _MACHINE_SCHED_H 1
 
 #include <stdnoreturn.h>
-#include <kern/types.h>
 
 //
 // CPU Context Switcher API (used by the scheduler)

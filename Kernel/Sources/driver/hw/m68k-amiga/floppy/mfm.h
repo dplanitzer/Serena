@@ -9,7 +9,8 @@
 #ifndef mfm_h
 #define mfm_h
 
-#include <kern/types.h>
+#include <stdint.h>
+#include <stddef.h>
 
 struct ADF_MFMPhysicalSector;
 

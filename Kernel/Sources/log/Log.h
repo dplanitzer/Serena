@@ -10,7 +10,8 @@
 #define Log_h
 
 #include <stdarg.h>
-#include <kern/types.h>
+#include <stdbool.h>
+#include <kpi/types.h>
 
 
 // Initialize the log package. It's save to call this before kalloc is initialized.

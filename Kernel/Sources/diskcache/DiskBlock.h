@@ -10,8 +10,9 @@
 #define DiskBlock_h
 
 #include <ext/queue.h>
-#include <kobj/Object.h>
 #include <filesystem/FSBlock.h>
+#include <kobj/Object.h>
+#include <kpi/types.h>
 
 
 typedef enum DiskBlockOp {

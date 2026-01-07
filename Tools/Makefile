@@ -27,8 +27,8 @@ LIBCLAP_SOURCES_DIR := $(LIBCLAP_DIR)/Sources
 # Common Settings
 #
 
-DEBUG_FLAGS := /Od /Zi
-#DEBUG_FLAGS :=
+#DEBUG_FLAGS := /Od /Zi
+DEBUG_FLAGS :=
 
 
 # --------------------------------------------------------------------------

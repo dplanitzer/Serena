@@ -9,8 +9,9 @@
 #ifndef IORequest_h
 #define IORequest_h
 
+#include <stdint.h>
+#include <stddef.h>
 #include <ext/try.h>
-#include <kern/types.h>
 #include <kdispatch/kdispatch.h>
 
 struct IORequest;

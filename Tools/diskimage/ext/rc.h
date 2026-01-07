@@ -9,7 +9,6 @@
 #ifndef _DI_RC_H
 #define _DI_RC_H
 
-#include <kern/types.h>
 #include <stdbool.h>
 #include <Windows.h>
 

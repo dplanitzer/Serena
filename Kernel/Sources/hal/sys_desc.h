@@ -9,7 +9,8 @@
 #ifndef _SYS_DESC_H
 #define _SYS_DESC_H
 
-#include <kern/types.h>
+#include <stdint.h>
+#include <stddef.h>
 
 
 // Supported max number of memory descriptors

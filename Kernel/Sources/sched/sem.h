@@ -9,8 +9,8 @@
 #ifndef _SEM_H
 #define _SEM_H 1
 
+#include <stdbool.h>
 #include <ext/try.h>
-#include <kern/types.h>
 #include <sched/waitqueue.h>
 
 

@@ -12,6 +12,7 @@
 #include <ext/queue.h>
 #include <ext/try.h>
 #include <kobj/AnyRefs.h>
+#include <kpi/types.h>
 #include <sched/mtx.h>
 
 

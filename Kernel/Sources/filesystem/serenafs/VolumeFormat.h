@@ -9,7 +9,7 @@
 #ifndef VolumeFormat_h
 #define VolumeFormat_h
 
-#include <kern/types.h>
+#include <stdint.h>
 
 
 //

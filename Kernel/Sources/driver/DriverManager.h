@@ -9,12 +9,14 @@
 #ifndef DriverManager_h
 #define DriverManager_h
 
+#include <stdbool.h>
+#include <stddef.h>
 #include <Catalog.h>
 #include <driver/Driver.h>
 #include <ext/try.h>
 #include <filemanager/ResolvedPath.h>
-#include <kern/types.h>
 #include <kobj/AnyRefs.h>
+#include <kpi/types.h>
 
 
 typedef errno_t (*DriverManager_Iterator)(void* _Nullable arg, DriverRef _Nonnull driver, bool* _Nonnull pDone);

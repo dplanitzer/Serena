@@ -9,7 +9,9 @@
 #ifndef Class_h
 #define Class_h
 
-#include <kern/types.h>
+#include <_cmndef.h>
+#include <stdint.h>
+#include <stddef.h>
 
 
 // This section stores all class data structures. The class data structures are

@@ -16,7 +16,6 @@
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <kern/signal.h>
-#include <kern/types.h>
 #include <sched/cnd.h>
 #include <sched/mtx.h>
 #include <sched/vcpu.h>

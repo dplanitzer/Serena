@@ -9,8 +9,8 @@
 #ifndef _KERN_SIGNAL_H
 #define _KERN_SIGNAL_H 1
 
+#include <stdbool.h>
 #include <ext/try.h>
-#include <kern/types.h>
 #include <kpi/signal.h>
 
 extern const sigset_t SIGSET_IGNORE_ALL;

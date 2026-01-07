@@ -9,8 +9,8 @@
 #ifndef RingBuffer_h
 #define RingBuffer_h
 
+#include <stddef.h>
 #include <ext/try.h>
-#include <kern/types.h>
 
 
 // Ring buffer primitives. The ring buffer size must be a multiple of a power-of-2.

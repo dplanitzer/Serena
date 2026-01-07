@@ -9,7 +9,7 @@
 #ifndef FSBlock_h
 #define FSBlock_h
 
-#include <kern/types.h>
+#include <stdint.h>
 
 
 typedef enum {

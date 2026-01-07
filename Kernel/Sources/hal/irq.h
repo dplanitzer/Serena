@@ -9,7 +9,7 @@
 #ifndef _IRQ_H
 #define _IRQ_H
 
-#include <kern/types.h>
+#include <stdint.h>
 #ifdef MACHINE_AMIGA
 #include <hal/hw/m68k-amiga/irq.h>
 #else

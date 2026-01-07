@@ -11,13 +11,8 @@
 
 #include <stdint.h>
 #include <ext/try.h>
-#ifdef __KERNEL__
-#include <kern/types.h>
 #include <kpi/stat.h>
-#else
-#include <sys/types.h>
-#include <sys/stat.h>
-#endif
+#include <kpi/types.h>
 
 
 typedef errno_t (*sefs_block_write_t)(intptr_t fd, const void* _Nonnull buf, blkno_t blockAddr, size_t blockSize);

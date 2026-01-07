@@ -9,7 +9,7 @@
 #ifndef SerenaDiskImage_h
 #define SerenaDiskImage_h
 
-#include <kern/types.h>
+#include <stdint.h>
 
 #define SMG_EXTENSION   "smg"
 #define SMG_SIGNATURE   0x534d4720ul

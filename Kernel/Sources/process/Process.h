@@ -10,11 +10,12 @@
 #define Process_h
 
 #include <stdarg.h>
-#include <kern/types.h>
+#include <stddef.h>
 #include <kobj/Any.h>
 #include <kpi/exception.h>
 #include <kpi/proc.h>
 #include <kpi/spawn.h>
+#include <kpi/types.h>
 #include <kpi/vcpu.h>
 #include <kpi/wait.h>
 #include <sched/vcpu.h>

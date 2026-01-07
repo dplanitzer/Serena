@@ -10,12 +10,13 @@
 #define _SCHED_H 1
 
 #include <limits.h>
+#include <stdint.h>
+#include <stdnoreturn.h>
 #include <boot/BootAllocator.h>
 #include <ext/queue.h>
 #include <ext/try.h>
 #include <hal/cpu.h>
 #include <hal/sys_desc.h>
-#include <kern/types.h>
 #include <kpi/vcpu.h>
 
 

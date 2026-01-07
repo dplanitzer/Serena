@@ -9,7 +9,8 @@
 #ifndef _CHIPSET_H
 #define _CHIPSET_H
 
-#include <kern/types.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 
 #define CIAA_BASE           0xbfe001

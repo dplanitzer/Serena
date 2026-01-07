@@ -9,7 +9,9 @@
 #ifndef _CLOCK_H
 #define _CLOCK_H 1
 
-#include <kern/types.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <kpi/types.h>
 
 #define kTicks_Infinity     UINT32_MAX
 #define kTicks_Epoch        0

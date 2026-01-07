@@ -10,10 +10,11 @@
 #define _KIO_H
 
 #include <stdarg.h>
+#include <stddef.h>
 #include <ext/try.h>
-#include <kern/types.h>
 #include <kobj/AnyRefs.h>
 #include <kpi/stat.h>
+#include <kpi/types.h>
 
 
 extern errno_t _kopen(ProcessRef _Nonnull pp, const char* _Nonnull path, int oflags, int* _Nonnull pOutIoc);

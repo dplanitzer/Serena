@@ -9,12 +9,12 @@
 #ifndef _KDISPATCH_H
 #define _KDISPATCH_H 1
 
-#include <_cmndef.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdnoreturn.h>
 #include <ext/queue.h>
 #include <ext/timespec.h>
 #include <ext/try.h>
-#include <kern/types.h>
 #include <kpi/vcpu.h>
 
 __CPP_BEGIN

@@ -10,7 +10,7 @@
 #define TabStops_h
 
 #include <ext/try.h>
-#include <kern/types.h>
+#include <stdint.h>
 
 
 // Stores up to 255 tab stop positions.

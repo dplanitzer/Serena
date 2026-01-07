@@ -9,6 +9,7 @@
 #ifndef Any_h
 #define Any_h
 
+#include <stdbool.h>
 #include <kobj/Class.h>
 #include <kobj/AnyRefs.h>
 

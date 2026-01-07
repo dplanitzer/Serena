@@ -10,7 +10,7 @@
 #define _KERN_KALLOC_H 1
 
 #include <ext/try.h>
-#include <kern/types.h>
+#include <kpi/types.h>
 
 // kalloc_options options
 // Allocate from unified memory (accessible to CPU and the chipset)

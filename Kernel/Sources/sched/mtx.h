@@ -9,8 +9,8 @@
 #ifndef _MTX_H
 #define _MTX_H 1
 
+#include <stdint.h>
 #include <ext/try.h>
-#include <kern/types.h>
 #include <sched/waitqueue.h>
 
 struct vcpu;

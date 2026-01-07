@@ -9,7 +9,7 @@
 #ifndef Font_h
 #define Font_h
 
-#include <kern/types.h>
+#include <stdint.h>
 
 
 typedef struct Font {

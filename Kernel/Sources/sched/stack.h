@@ -9,8 +9,8 @@
 #ifndef _STACK_H
 #define _STACK_H 1
 
+#include <stddef.h>
 #include <ext/try.h>
-#include <kern/types.h>
 
 
 // A kernel or user execution stack

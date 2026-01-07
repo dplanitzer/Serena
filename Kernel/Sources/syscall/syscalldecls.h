@@ -9,7 +9,7 @@
 #ifndef _SYSCALLDECLS_H_
 #define _SYSCALLDECLS_H_
 
-#include <kern/types.h>
+#include <stdint.h>
 #include <process/ProcessPriv.h>
 #include <sched/vcpu.h>
 

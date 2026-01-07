@@ -9,7 +9,8 @@
 #ifndef boot_screen_h
 #define boot_screen_h
 
-#include <kern/types.h>
+#include <stdint.h>
+#include <stddef.h>
 #include <kpi/fb.h>
 #include <kobj/AnyRefs.h>
 

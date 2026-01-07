@@ -9,7 +9,7 @@
 #ifndef Geometry_h
 #define Geometry_h
 
-#include <kern/types.h>
+#include <stdbool.h>
 
 
 typedef struct Point {

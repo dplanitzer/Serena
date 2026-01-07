@@ -9,8 +9,8 @@
 #ifndef GObject_h
 #define GObject_h
 
+#include <stdint.h>
 #include <ext/queue.h>
-#include <kern/types.h>
 
 enum {
     kGObject_Surface = 1,

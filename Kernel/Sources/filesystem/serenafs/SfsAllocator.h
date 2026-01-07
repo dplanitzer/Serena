@@ -10,6 +10,7 @@
 #define SfsAllocator_h
 
 #include <kobj/Any.h>
+#include <kpi/types.h>
 #include <sched/mtx.h>
 #include "VolumeFormat.h"
 

@@ -9,7 +9,9 @@
 #ifndef Pipe_h
 #define Pipe_h
 
+#include <ext/try.h>
 #include <kobj/Object.h>
+#include <kpi/types.h>
 
 
 // Recommended pipe buffer size

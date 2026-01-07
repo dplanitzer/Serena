@@ -9,8 +9,10 @@
 #ifndef _CPU_H
 #define _CPU_H 1
 
-#include <kpi/exception.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdnoreturn.h>
+#include <kpi/exception.h>
 
 #ifdef __M68K__
 #include <hal/hw/m68k/cpu.h>

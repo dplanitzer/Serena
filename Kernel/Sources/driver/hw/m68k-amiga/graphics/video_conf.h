@@ -9,7 +9,8 @@
 #ifndef _VIDEO_CONF_H
 #define _VIDEO_CONF_H
 
-#include <kern/types.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <kpi/fb.h>
 
 

@@ -9,14 +9,17 @@
 #ifndef _VCPU_H
 #define _VCPU_H 1
 
+#include <stdint.h>
+#include <stddef.h>
+#include <stdnoreturn.h>
 #include <ext/queue.h>
 #include <ext/try.h>
 #include <hal/clock.h>
 #include <hal/cpu.h>
 #include <hal/sys_desc.h>
-#include <kern/types.h>
 #include <kpi/exception.h>
 #include <kpi/signal.h>
+#include <kpi/types.h>
 #include <kpi/vcpu.h>
 #include <sched/stack.h>
 #include <sched/waitqueue.h>
