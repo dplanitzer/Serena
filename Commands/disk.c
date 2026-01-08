@@ -74,11 +74,6 @@ void FSGetCurrentTime(struct timespec* _Nonnull ts)
     ts->tv_nsec = 0;
 }
 
-bool FSIsPowerOf2(size_t n)
-{
-    return (n && (n & (n - 1)) == 0) ? true : false;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -

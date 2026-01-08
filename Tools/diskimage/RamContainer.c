@@ -10,6 +10,7 @@
 #include "diskimage.h"
 #include <errno.h>
 #include <ext/limits.h>
+#include <ext/math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,7 +28,7 @@ errno_t RamContainer_Create(const DiskImageFormat* _Nonnull format, RamContainer
     try(FSContainer_Create(class(RamContainer), format->blocksPerDisk, format->blockSize, 0, (FSContainerRef*)&self));
     try(FSAllocateCleared(format->blocksPerDisk * format->blockSize, (void**)&self->diskImage));
     try(FSAllocateCleared(format->blocksPerDisk, (void**)&self->mappedFlags));
-    self->blockShift = FSLog2(format->blockSize);
+    self->blockShift = siz_log2(format->blockSize);
     self->blockMask = format->blockSize - 1;
     self->lowestWrittenToLba = ~0;
     self->highestWrittenToLba = 0;

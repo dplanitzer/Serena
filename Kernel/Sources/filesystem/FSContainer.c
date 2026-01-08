@@ -10,6 +10,7 @@
 #include "FSUtilities.h"
 #include <assert.h>
 #include <stddef.h>
+#include <ext/math.h>
 
 
 errno_t FSContainer_Create(Class* _Nonnull pClass, blkcnt_t blockCount, size_t blockSize, uint32_t properties, FSContainerRef _Nullable * _Nonnull pOutSelf)
@@ -17,7 +18,7 @@ errno_t FSContainer_Create(Class* _Nonnull pClass, blkcnt_t blockCount, size_t b
     decl_try_err();
     FSContainerRef self;
 
-    assert(FSIsPowerOf2(blockSize));
+    assert(siz_ispow2(blockSize));
 
     if ((err = Object_Create(pClass, 0, (void**)&self)) == EOK) {
         self->blockCount = blockCount;

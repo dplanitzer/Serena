@@ -38,22 +38,3 @@ void FSDeallocate(void* ptr)
 {
     free(ptr);
 }
-
-
-// Returns true if the argument is a power-of-2 value; false otherwise
-bool FSIsPowerOf2(size_t n)
-{
-    return siz_ispow2(n);
-}
-
-// Calculates the power-of-2 value greater equal the given size_t value
-size_t FSPowerOf2Ceil(size_t n)
-{
-    return siz_pow2_ceil(n);
-}
-
-// Calculates the log-2 of the given value
-unsigned int FSLog2(size_t n)
-{
-    return siz_log2(n);
-}

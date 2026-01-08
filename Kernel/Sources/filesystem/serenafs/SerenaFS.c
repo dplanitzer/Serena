@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <string.h>
 #include <ext/endian.h>
+#include <ext/math.h>
 
 
 // Creates an instance of SerenaFS.
@@ -95,7 +96,7 @@ errno_t SerenaFS_onStart(SerenaFSRef _Nonnull self, const char* _Nonnull params,
 
     // Calculate various parameters that depend on the concrete disk block size
     self->blockSize = blockSize;
-    self->blockShift = FSLog2(blockSize);
+    self->blockShift = siz_log2(blockSize);
     self->blockMask = blockSize - 1;
     self->indirectBlockEntryCount = blockSize / sizeof(sfs_bno_t);
 

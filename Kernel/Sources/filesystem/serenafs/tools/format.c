@@ -38,7 +38,7 @@ errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt
     FSGetCurrentTime(&now);
 
     // Make sure that the disk is compatible with our FS
-    if (!FSIsPowerOf2(blockSize)) {
+    if (!siz_ispow2(blockSize)) {
         return EINVAL;
     }
     if (blockSize < kSFSVolume_MinBlockSize) {
