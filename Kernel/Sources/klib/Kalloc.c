@@ -7,10 +7,10 @@
 //
 
 #define _LSTA_MEM_DESC_DEFINED 1
+#include <assert.h>
 #include <hal/sys_desc.h>
 #include <__lsta.h>
 #include <string.h>
-#include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #include <log/Log.h>

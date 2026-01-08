@@ -18,9 +18,9 @@
 
 __CPP_BEGIN
 
-#if __TRY_BANG_BEHAVIOR == 1
+#if __TRY_BANG_LOD == 1
 extern _Noreturn _Try_bang_failed1(int lineno, const char* _Nonnull funcname, errno_t err);
-#elif __TRY_BANG_BEHAVIOR == 2
+#elif __TRY_BANG_LOD == 2
 extern _Noreturn _Try_bang_failed2(const char* _Nonnull filename, int lineno, const char* _Nonnull funcname, errno_t err);
 #else
 extern _Noreturn _Try_bang_failed0(void);
@@ -49,9 +49,9 @@ extern _Noreturn _Try_bang_failed0(void);
 // Halt the machine if the function 'f' does not return EOK. Use this instead of
 // 'try' if you are calling a failable function but based on the design of the
 // code the function you call should never fail in actual reality.
-#if __TRY_BANG_BEHAVIOR == 1
+#if __TRY_BANG_LOD == 1
 #define _Try_bang(f)         { const errno_t _err_ = (f);  if (_err_ != EOK) { _Try_bang_failed1(__LINE__, __func__, _err_); }}
-#elif __TRY_BANG_BEHAVIOR == 2
+#elif __TRY_BANG_LOD == 2
 #define _Try_bang(f)         { const errno_t _err_ = (f);  if (_err_ != EOK) { _Try_bang_failed2(__FILE__, __LINE__, __func__, _err_); }}
 #else
 #define _Try_bang(f)         { const errno_t _err_ = (f);  if (_err_ != EOK) { _Try_bang_failed0(); }}

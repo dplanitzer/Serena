@@ -11,8 +11,25 @@
 #include <stdlib.h>
 
 
-void _Assert(const char* _Nonnull _Restrict filename, int lineNum, const char* _Nonnull _Restrict funcName, const char* _Nonnull _Restrict expr)
+void _Assert_failed0(void)
 {
-    printf("%s:%d: Assertion '%s' failed at %s().\n", filename, lineNum, expr, funcName);
+    abort();
+}
+
+void _Assert_failed1(int lineno, const char* _Nonnull _Restrict funcname)
+{
+    printf("%s:%d: assertion failed.\n", funcname, lineno);
+    abort();
+}
+
+void _Assert_failed2(int lineno, const char* _Nonnull _Restrict funcname, const char* _Nonnull _Restrict expr)
+{
+    printf("%s:%d: assertion '%s' failed.\n", funcname, lineno, expr);
+    abort();
+}
+
+void _Assert_failed3(const char* _Nonnull _Restrict filename, int lineno, const char* _Nonnull _Restrict funcname, const char* _Nonnull _Restrict expr)
+{
+    printf("%s:%s:%d: assertion '%s' failed.\n", filename, funcname, lineno, expr);
     abort();
 }

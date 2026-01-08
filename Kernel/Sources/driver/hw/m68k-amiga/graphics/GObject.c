@@ -9,7 +9,7 @@
 #include "GObject.h"
 #include "ColorTable.h"
 #include "Surface.h"
-#include <kern/assert.h>
+#include <assert.h>
 #include <kern/kernlib.h>
 
 

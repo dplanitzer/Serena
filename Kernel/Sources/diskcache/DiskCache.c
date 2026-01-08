@@ -7,11 +7,11 @@
 //
 
 #include "DiskCachePriv.h"
+#include <assert.h>
 #include <limits.h>
 #include <string.h>
 #include <log/Log.h>
 #include <ext/timespec.h>
-#include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <sched/vcpu.h>
 

@@ -7,11 +7,11 @@
 //
 
 #include "zorro_bus.h"
+#include <assert.h>
 #include <string.h>
 #include <hal/cpu.h>
 #include <hal/sys_desc.h>
 #include <hal/hw/m68k-amiga/chipset.h>
-#include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 

@@ -7,8 +7,8 @@
 //
 
 #include "Object.h"
+#include <assert.h>
 #include <string.h>
-#include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #ifndef __DISKIMAGE__

@@ -7,7 +7,7 @@
 //
 
 #include "Any.h"
-#include <kern/assert.h>
+#include <assert.h>
 #include <kern/kernlib.h>
 
 any_class_def(Any);

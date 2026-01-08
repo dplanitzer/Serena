@@ -8,7 +8,7 @@
 
 #include "mtx.h"
 #include "vcpu.h"
-#include <kern/assert.h>
+#include <assert.h>
 #include <kern/kernlib.h>
 #include <kern/signal.h>
 

@@ -8,9 +8,9 @@
 
 #include "ProcessManager.h"
 #include "ProcessPriv.h"
+#include <assert.h>
 #include <Catalog.h>
 #include <ext/hash.h>
-#include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <sched/mtx.h>
 

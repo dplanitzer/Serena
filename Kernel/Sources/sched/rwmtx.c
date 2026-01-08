@@ -9,7 +9,7 @@
 #include "rwmtx.h"
 #include "vcpu.h"
 #include <ext/timespec.h>
-#include <kern/assert.h>
+#include <assert.h>
 #include <kern/kernlib.h>
 
 

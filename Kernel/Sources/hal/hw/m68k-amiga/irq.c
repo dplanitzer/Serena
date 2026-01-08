@@ -6,9 +6,9 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#include <assert.h>
 #include <hal/irq.h>
 #include <hal/hw/m68k-amiga/chipset.h>
-#include <kern/assert.h>
 #include <kern/kernlib.h>
 
 

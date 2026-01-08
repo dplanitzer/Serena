@@ -6,8 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#include <assert.h>
 #include <hal/cpu.h>
-#include <kern/assert.h>
 #include <kern/kernlib.h>
 #include <kdispatch/kdispatch.h>
 #include <log/Log.h>
@@ -49,9 +49,27 @@ _Noreturn fatalAbort(const char* _Nonnull filename, int line)
     fatal("Abort: %s:%d", filename, line);
 }
 
-_Noreturn fatalAssert(const char* _Nonnull filename, int line)
+void _Assert_failed0(void)
 {
-    fatal("Assert: %s:%d", filename, line);
+    abort();
+}
+
+void _Assert_failed1(int lineno, const char* _Nonnull _Restrict funcname)
+{
+    fatal("%s:%d: assertion failed.\n", funcname, lineno);
+    abort();
+}
+
+void _Assert_failed2(int lineno, const char* _Nonnull _Restrict funcname, const char* _Nonnull _Restrict expr)
+{
+    fatal("%s:%d: assertion '%s' failed.\n", funcname, lineno, expr);
+    abort();
+}
+
+void _Assert_failed3(const char* _Nonnull _Restrict filename, int lineno, const char* _Nonnull _Restrict funcname, const char* _Nonnull _Restrict expr)
+{
+    fatal("%s:%s:%d: assertion '%s' failed.\n", filename, funcname, lineno, expr);
+    abort();
 }
 
 _Noreturn _Try_bang_failed1(int lineno, const char* _Nonnull funcname, errno_t err)

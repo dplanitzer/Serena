@@ -8,9 +8,9 @@
 
 #include "ProcessPriv.h"
 #include "proc_img_gemdos.h"
+#include <assert.h>
 #include <ext/string.h>
 #include <kei/kei.h>
-#include <kern/assert.h>
 #include <sched/vcpu.h>
 
 

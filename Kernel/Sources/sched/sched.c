@@ -9,9 +9,9 @@
 #include "sched.h"
 #include "vcpu.h"
 #include "waitqueue.h"
+#include <assert.h>
 #include <string.h>
 #include <hal/sched.h>
-#include <kern/assert.h>
 #include <kern/kernlib.h>
 #include <kern/signal.h>
 

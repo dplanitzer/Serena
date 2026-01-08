@@ -10,10 +10,10 @@
 #include "FSUtilities.h"
 #include "InodeChannel.h"
 #include "FSChannel.h"
+#include <assert.h>
 #include <ext/atomic.h>
 #include <ext/hash.h>
 #include <ext/timespec.h>
-#include <kern/assert.h>
 #include <kpi/fcntl.h>
 
 

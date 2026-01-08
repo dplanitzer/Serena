@@ -8,8 +8,8 @@
 
 #include "Driver.h"
 #include "DriverManager.h"
+#include <assert.h>
 #include <driver/DriverChannel.h>
-#include <kern/assert.h>
 #include <kern/kalloc.h>
 #include <kpi/fcntl.h>
 

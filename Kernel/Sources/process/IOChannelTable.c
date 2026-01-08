@@ -7,9 +7,9 @@
 //
 
 #include "IOChannelTable.h"
+#include <assert.h>
 #include <limits.h>
 #include <string.h>
-#include <kern/assert.h>
 #include <kern/kalloc.h>
 
 

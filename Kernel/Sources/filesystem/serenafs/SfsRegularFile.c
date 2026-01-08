@@ -8,10 +8,10 @@
 
 #include "SfsRegularFile.h"
 #include "SerenaFSPriv.h"
+#include <assert.h>
 #include <string.h>
 #include <ext/limits.h>
 #include <filesystem/InodeChannel.h>
-#include <kern/assert.h>
 #include <kpi/fcntl.h>
 
 

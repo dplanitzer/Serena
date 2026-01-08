@@ -7,7 +7,7 @@
 //
 
 #include "BootAllocator.h"
-#include <kern/assert.h>
+#include <assert.h>
 #include <kern/kernlib.h>
 #include <hal/cpu.h>
 
