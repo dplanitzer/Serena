@@ -19,11 +19,11 @@
 #include <filemanager/FileHierarchy.h>
 #include <filesystem/InodeChannel.h>
 #include <filesystem/FSChannel.h>
-#include <filesystem/SerenaDiskImage.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <filesystem/serenafs/SfsDirectory.h>
 #include <filesystem/serenafs/SfsRegularFile.h>
 #include <kern/kernlib.h>
+#include <kpi/smg.h>
 #include <machine/amiga/adf.h>
 #include <clap.h>
 

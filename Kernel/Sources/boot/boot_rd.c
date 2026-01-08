@@ -14,8 +14,8 @@
 #include <driver/pseudo/VDMDriver.h>
 #include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
-#include <filesystem/SerenaDiskImage.h>
 #include <kpi/fcntl.h>
+#include <kpi/smg.h>
 
 
 // Checks whether the platform controller is able to provide a bootable disk image

@@ -1,13 +1,13 @@
 //
-//  SerenaDiskImage.h
-//  kernel
+//  smg.h
+//  kpi
 //
 //  Created by Dietmar Planitzer on 6/29/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef SerenaDiskImage_h
-#define SerenaDiskImage_h
+#ifndef _KPI_SMG_H
+#define _KPI_SMG_H 1
 
 #include <stdint.h>
 
@@ -37,4 +37,4 @@ typedef struct SMG_Header {
     uint32_t    options;
 } SMG_Header;
 
-#endif /* SerenaDiskImage_h */
+#endif /* _KPI_SMG_H */
