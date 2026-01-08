@@ -9,6 +9,7 @@
 #include <ext/bit.h>
 
 
+#if !defined(__M68K__)
 unsigned int leading_zeros_ull(unsigned long long val)
 {
     unsigned int n = leading_zeros_ul(val >> 32);
@@ -22,3 +23,4 @@ unsigned int leading_ones_ull(unsigned long long val)
 {
     return leading_zeros_ull(~val);
 }
+#endif

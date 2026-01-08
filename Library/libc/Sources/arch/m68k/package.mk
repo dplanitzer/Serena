@@ -45,6 +45,7 @@ $(ARCH_M68K_OBJS_DIR)/%.o : $(ARCH_M68K_SOURCES_DIR)/%.s
 
 ARCH_M68K_SC_ASM_SOURCES := $(ARCH_M68K_SOURCES_DIR)/abs.s \
 							$(ARCH_M68K_SOURCES_DIR)/atomic.s \
+							$(ARCH_M68K_SOURCES_DIR)/bit.s \
 							$(ARCH_M68K_SOURCES_DIR)/div.s \
 							$(ARCH_M68K_SOURCES_DIR)/llabs.s \
 							$(ARCH_M68K_SOURCES_DIR)/rc.s \

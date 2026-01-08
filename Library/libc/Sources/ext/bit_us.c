@@ -9,6 +9,7 @@
 #include <ext/bit.h>
 
 
+#if !defined(__M68K__)
 // Based on the book Hacker's Delight, 2nd Edition by Henry S Warren, Jr.
 unsigned int leading_zeros_us(unsigned short val)
 {
@@ -28,3 +29,4 @@ unsigned int leading_ones_us(unsigned short val)
 {
     return leading_zeros_us(~val);
 }
+#endif
