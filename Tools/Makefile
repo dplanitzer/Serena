@@ -85,8 +85,10 @@ $(OBJS_DIR)/clap.lib: $(LIBCLAP_C_SOURCES) $(LIBCLAP_H_SOURCES) | $(OBJS_DIR)
 
 LIBC_SOURCES_DIR := ../Library/libc/Sources
 LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/hash.c
-LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/ilog2.c
-LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/ipow2.c
+LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/log2_ul.c
+LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/log2_ull.c
+LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/pow2_ul.c
+LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/pow2_ull.c
 LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/queue.c
 LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/_Try_bang_failed.c
 

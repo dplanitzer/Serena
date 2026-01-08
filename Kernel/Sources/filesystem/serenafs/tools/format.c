@@ -9,6 +9,7 @@
 #include "format.h"
 #include <stdlib.h>
 #include <string.h>
+#include <ext/bit.h>
 #include <ext/endian.h>
 #include <ext/math.h>
 #include <filesystem/FSUtilities.h>
@@ -38,7 +39,7 @@ errno_t sefs_format(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt
     FSGetCurrentTime(&now);
 
     // Make sure that the disk is compatible with our FS
-    if (!siz_ispow2(blockSize)) {
+    if (!ispow2_sz(blockSize)) {
         return EINVAL;
     }
     if (blockSize < kSFSVolume_MinBlockSize) {

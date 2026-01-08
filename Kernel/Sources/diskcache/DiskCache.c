@@ -11,6 +11,7 @@
 #include <limits.h>
 #include <string.h>
 #include <log/Log.h>
+#include <ext/bit.h>
 #include <ext/timespec.h>
 #include <kern/kalloc.h>
 #include <sched/vcpu.h>
@@ -24,7 +25,7 @@ errno_t DiskCache_Create(size_t blockSize, size_t maxBlockCount, DiskCacheRef _N
     DiskCache* self;
     
     assert(__ELAST <= UCHAR_MAX);
-    assert(blockSize > 0 && siz_ispow2(blockSize));
+    assert(blockSize > 0 && ispow2_sz(blockSize));
     assert(maxBlockCount > 0);
     
     try(kalloc_cleared(sizeof(DiskCache), (void**) &self));

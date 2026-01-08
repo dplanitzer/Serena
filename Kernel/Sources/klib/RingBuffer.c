@@ -7,6 +7,7 @@
 //
 
 #include "RingBuffer.h"
+#include <ext/bit.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 
@@ -18,7 +19,7 @@
 
 errno_t RingBuffer_Init(RingBuffer* _Nonnull self, size_t capacity)
 {
-    self->capacity = siz_pow2_ceil(capacity);
+    self->capacity = pow2_ceil_sz(capacity);
     self->readIdx = 0;
     self->writeIdx = 0;
     self->flags = kFlag_OwnsBuffer;

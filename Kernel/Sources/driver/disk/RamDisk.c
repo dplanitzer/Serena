@@ -8,6 +8,7 @@
 
 #include "RamDisk.h"
 #include <string.h>
+#include <ext/bit.h>
 #include <kern/kalloc.h>
 
 
@@ -39,7 +40,7 @@ errno_t RamDisk_Create(const char* _Nonnull name, size_t sectorSize, scnt_t sect
     decl_try_err();
     RamDiskRef self = NULL;
 
-    if (!siz_ispow2(sectorSize)) {
+    if (!ispow2_sz(sectorSize)) {
         throw(EINVAL);
     }
 
@@ -50,7 +51,7 @@ errno_t RamDisk_Create(const char* _Nonnull name, size_t sectorSize, scnt_t sect
     try(DiskDriver_Create(class(RamDisk), 0, g_cats, &drvi, (DriverRef*)&self));
     self->extentSectorCount = __min(extentSectorCount, sectorCount);
     self->sectorCount = sectorCount;
-    self->sectorShift = siz_log2(sectorSize);
+    self->sectorShift = log2_sz(sectorSize);
     self->sectorSize = sectorSize;
     self->fillByte = 0;
     strncpy(self->name, name, MAX_NAME_LENGTH);

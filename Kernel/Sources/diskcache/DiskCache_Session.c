@@ -9,6 +9,7 @@
 #include "DiskCachePriv.h"
 #include <assert.h>
 #include <string.h>
+#include <ext/bit.h>
 #include <sched/delay.h>
 #include <sched/vcpu.h>
 
@@ -29,7 +30,7 @@ void DiskCache_OpenSession(DiskCacheRef _Nonnull self, IOChannelRef _Nonnull cha
     s->activeMappingsCount = 0;
     s->isOpen = true;
 
-    if (info->sectorSize > 0 && u_ispow2(info->sectorSize)) {
+    if (info->sectorSize > 0 && ispow2_ui(info->sectorSize)) {
         s->s2bFactor = self->blockSize / info->sectorSize;
         s->trailPadSize = 0;
     }

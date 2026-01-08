@@ -41,8 +41,10 @@ $(EXT_OBJS_DIR)/%.o : $(EXT_SOURCES_DIR)/%.c
 
 EXT_SC_SOURCES := $(EXT_SOURCES_DIR)/_divmod64.c \
 				  $(EXT_SOURCES_DIR)/hash.c \
-				  $(EXT_SOURCES_DIR)/ilog2.c \
-				  $(EXT_SOURCES_DIR)/ipow2.c \
+				  $(EXT_SOURCES_DIR)/log2_ul.c \
+				  $(EXT_SOURCES_DIR)/log2_ull.c \
+				  $(EXT_SOURCES_DIR)/pow2_ul.c \
+				  $(EXT_SOURCES_DIR)/pow2_ull.c \
 				  $(EXT_SOURCES_DIR)/timespec.c \
 				  $(EXT_SOURCES_DIR)/queue.c \
 				  $(EXT_SOURCES_DIR)/__fmt.c

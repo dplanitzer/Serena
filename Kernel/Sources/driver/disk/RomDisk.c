@@ -8,6 +8,7 @@
 
 #include "RomDisk.h"
 #include <string.h>
+#include <ext/bit.h>
 #include <kern/kalloc.h>
 
 
@@ -30,7 +31,7 @@ errno_t RomDisk_Create(const char* _Nonnull name, const void* _Nonnull pImage, s
     decl_try_err();
     RomDiskRef self = NULL;
 
-    if (pImage == NULL || !siz_ispow2(sectorSize)) {
+    if (pImage == NULL || !ispow2_sz(sectorSize)) {
         throw(EINVAL);
     }
 
@@ -41,7 +42,7 @@ errno_t RomDisk_Create(const char* _Nonnull name, const void* _Nonnull pImage, s
     try(DiskDriver_Create(class(RomDisk), 0, g_cats, &drvi, (DriverRef*)&self));
     self->diskImage = pImage;
     self->sectorCount = sectorCount;
-    self->sectorShift = siz_log2(sectorSize);
+    self->sectorShift = log2_sz(sectorSize);
     self->sectorSize = sectorSize;
     self->freeDiskImageOnClose = freeOnClose;
     strncpy(self->name, name, MAX_NAME_LENGTH);

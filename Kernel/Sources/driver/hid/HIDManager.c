@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <driver/DriverManager.h>
+#include <ext/bit.h>
 #include <filesystem/IOChannel.h>
 #include <kern/kalloc.h>
 #include <kpi/fcntl.h>
@@ -49,7 +50,7 @@ errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
 
 
     // Create the HID event queue
-    const size_t powOf2Capacity = siz_pow2_ceil(REPORT_QUEUE_MAX_EVENTS);
+    const size_t powOf2Capacity = pow2_ceil_sz(REPORT_QUEUE_MAX_EVENTS);
     
     try(kalloc_cleared(powOf2Capacity * sizeof(HIDEvent), (void**)&self->evqQueue));
     self->evqCapacity = powOf2Capacity;
