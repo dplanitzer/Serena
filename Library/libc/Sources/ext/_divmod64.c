@@ -6,8 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 //
-// nlz() and divmnu() are taken from the book Hacker's Delight,
-// 2nd Edition by Henry S Warren, Jr.
+// divmnu() are taken from the book Hacker's Delight, 2nd Edition by Henry S Warren, Jr.
 //
 // The reference code from the book can be found at:
 // https://github.com/hcs0/Hackers-Delight/blob/master/divmnu.c.txt
@@ -17,22 +16,9 @@
 #include <__crt.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <ext/bit.h>
 #include <ext/math.h>
 
-
-static int __nlz(unsigned int x)
-{
-    int n;
-
-    if (x == 0) return(32);
-    n = 0;
-    if (x <= 0x0000FFFF) {n = n +16; x = x <<16;}
-    if (x <= 0x00FFFFFF) {n = n + 8; x = x << 8;}
-    if (x <= 0x0FFFFFFF) {n = n + 4; x = x << 4;}
-    if (x <= 0x3FFFFFFF) {n = n + 2; x = x << 2;}
-    if (x <= 0x7FFFFFFF) {n = n + 1;}
-    return n;
-}
 
 /* q[0], r[0], u[0], and v[0] contain the LEAST significant halfwords.
  (The sequence is in little-endian order).
@@ -89,7 +75,7 @@ static int __divmnu(
     // same amount.  We may have to append a high-order
     // digit on the dividend; we do that unconditionally.
 
-    s = __nlz(v[n-1]) - 16;        // 0 <= s <= 15.
+    s = leading_zeros_us(v[n-1]);        // 0 <= s <= 15.
     for (i = n - 1; i > 0; i--) {
         vn[i] = (v[i] << s) | (v[i-1] >> (16-s));
     }

@@ -12,6 +12,20 @@
 #include <ext/limits.h>
 #include <stdbool.h>
 
+unsigned int leading_zeros_uc(unsigned char val);
+unsigned int leading_zeros_us(unsigned short val);
+#define leading_zeros_ui(__n) leading_zeros_ul((unsigned long)__n)
+unsigned int leading_zeros_ul(unsigned long val);
+unsigned int leading_zeros_ull(unsigned long long val);
+
+
+unsigned int leading_ones_uc(unsigned char val);
+unsigned int leading_ones_us(unsigned short val);
+#define leading_ones_ui(__n) leading_ones_ul((unsigned long)__n)
+unsigned int leading_ones_ul(unsigned long val);
+unsigned int leading_ones_ull(unsigned long long val);
+
+
 extern bool ispow2_ul(unsigned long n);
 extern bool ispow2_ull(unsigned long long n);
 
