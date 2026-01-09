@@ -13,7 +13,7 @@
 
 
 typedef struct DiskExtent {
-    SListNode   node;
+    queue_node_t   node;
     blkno_t     firstSectorIndex;
     char        data[1];
 } DiskExtent;
@@ -23,7 +23,7 @@ typedef struct DiskExtent {
 
 // All ivars are protected by the dispatch queue
 final_class_ivars(RamDisk, DiskDriver,
-    SList       extents;            // Sorted ascending by 'firstSectorIndex'
+    queue_t       extents;            // Sorted ascending by 'firstSectorIndex'
     blkcnt_t    extentSectorCount;  // How many blocks an extent stores
     scnt_t      sectorCount;
     size_t      sectorShift;
@@ -63,7 +63,7 @@ catch:
 
 void RamDisk_deinit(RamDiskRef _Nonnull self)
 {
-    SList_ForEach(&self->extents, DiskExtent, {
+    queue_for_each(&self->extents, DiskExtent, {
         kfree(pCurNode);
     });
 }
@@ -100,7 +100,7 @@ static DiskExtent* _Nullable RamDisk_GetDiskExtentForSectorIndex_Locked(RamDiskR
     DiskExtent* pExtent = NULL;
     const blkcnt_t extentSectorCount = self->extentSectorCount;
 
-    SList_ForEach(&self->extents, DiskExtent, {
+    queue_for_each(&self->extents, DiskExtent, {
         const blkno_t firstSectorIndex = pCurNode->firstSectorIndex;
 
         if (lba >= firstSectorIndex && lba < (firstSectorIndex + extentSectorCount)) {
@@ -147,7 +147,7 @@ static errno_t RamDisk_AddExtentAfter_Locked(RamDiskRef _Nonnull self, blkno_t f
     DiskExtent* pExtent = NULL;
 
     try(kalloc_cleared(sizeof(DiskExtent) - 1 + (self->extentSectorCount << self->sectorShift), (void**)&pExtent));
-    SList_InsertAfter(&self->extents, &pExtent->node, (pPrevExtent) ? &pPrevExtent->node : NULL);
+    queue_insert(&self->extents, &pExtent->node, (pPrevExtent) ? &pPrevExtent->node : NULL);
     pExtent->firstSectorIndex = firstSectorIndex;
 
 catch:
@@ -178,11 +178,11 @@ errno_t RamDisk_putSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, c
 
 errno_t RamDisk_doFormatDisk(RamDiskRef _Nonnull self, char fillByte)
 {
-    SList_ForEach(&self->extents, DiskExtent, {
+    queue_for_each(&self->extents, DiskExtent, {
         kfree(pCurNode);
     });
 
-    self->extents = SLIST_INIT;
+    self->extents = QUEUE_INIT;
     self->fillByte = fillByte;
 
     return EOK;

@@ -85,22 +85,22 @@ dispatch_t _Nullable dispatch_create(const dispatch_attr_t* _Nonnull attr)
 int dispatch_destroy(dispatch_t _Nullable self)
 {
     if (self && self != g_main_dispatcher) {
-        if (self->state < _DISPATCHER_STATE_TERMINATED || !SList_IsEmpty(&self->zombie_items)) {
+        if (self->state < _DISPATCHER_STATE_TERMINATED || !queue_empty(&self->zombie_items)) {
             errno = EBUSY;
             return -1;
         }
 
 
-        SList_ForEach(&self->timer_cache, SListNode, {
+        queue_for_each(&self->timer_cache, queue_node_t, {
             free(pCurNode);
         });
-        self->timer_cache = SLIST_INIT;
+        self->timer_cache = QUEUE_INIT;
 
 
-        SList_ForEach(&self->item_cache, SListNode, {
+        queue_for_each(&self->item_cache, queue_node_t, {
             free(pCurNode);
         });
-        self->item_cache = SLIST_INIT;
+        self->item_cache = QUEUE_INIT;
 
 
         if (self->sigtraps) {
@@ -109,8 +109,8 @@ int dispatch_destroy(dispatch_t _Nullable self)
         }
 
         self->workers = DEQUE_INIT;
-        self->zombie_items = SLIST_INIT;
-        self->timers = SLIST_INIT;
+        self->zombie_items = QUEUE_INIT;
+        self->timers = QUEUE_INIT;
 
         cnd_deinit(&self->cond);
         mtx_deinit(&self->mutex);
@@ -207,7 +207,7 @@ dispatch_item_t _Nullable _dispatch_steal_work_item(dispatch_t _Nonnull self)
     });
 
     if (most_busy_wp) {
-        item = (dispatch_item_t) SList_RemoveFirst(&most_busy_wp->work_queue);
+        item = (dispatch_item_t) queue_remove_first(&most_busy_wp->work_queue);
         most_busy_wp->work_count--;
     }
 
@@ -249,7 +249,7 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
 
 
     // Enqueue the work item at the worker that we found and notify it
-    item->qe = SLISTNODE_INIT;
+    item->qe = QUEUE_NODE_INIT;
     item->state = DISPATCH_STATE_SCHEDULED;
     item->flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
 
@@ -292,7 +292,7 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
 
     bool foundIt = false;
     dispatch_item_t pip = NULL;
-    SList_ForEach(&self->zombie_items, SListNode, {
+    queue_for_each(&self->zombie_items, queue_node_t, {
         dispatch_item_t cip = (dispatch_item_t)pCurNode;
 
         if (cip == item) {
@@ -305,10 +305,10 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
     
     if (foundIt) {
         if (pip) {
-            SList_Remove(&self->zombie_items, &pip->qe, &item->qe);
+            queue_remove(&self->zombie_items, &pip->qe, &item->qe);
         }
         else {
-            SList_RemoveFirst(&self->zombie_items);
+            queue_remove_first(&self->zombie_items);
         }
     }
 
@@ -317,8 +317,8 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
 
 void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
-    item->qe = SLISTNODE_INIT;
-    SList_InsertAfterLast(&self->zombie_items, &item->qe);
+    item->qe = QUEUE_NODE_INIT;
+    queue_add_last(&self->zombie_items, &item->qe);
     cnd_broadcast(&self->cond);
 }
 
@@ -373,7 +373,7 @@ dispatch_item_t _Nullable _dispatch_acquire_cached_conv_item(dispatch_t _Nonnull
     dispatch_item_t ip;
 
     if (self->item_cache.first) {
-        ip = (dispatch_item_t)SList_RemoveFirst(&self->item_cache);
+        ip = (dispatch_item_t)queue_remove_first(&self->item_cache);
         self->item_cache_count--;
     }
     else {
@@ -381,7 +381,7 @@ dispatch_item_t _Nullable _dispatch_acquire_cached_conv_item(dispatch_t _Nonnull
     }
 
     if (ip) {
-        ip->qe = SLISTNODE_INIT;
+        ip->qe = QUEUE_NODE_INIT;
         ip->func = func;
         ip->retireFunc = NULL;
         ip->type = 0;
@@ -396,8 +396,8 @@ dispatch_item_t _Nullable _dispatch_acquire_cached_conv_item(dispatch_t _Nonnull
 void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
     if (self->item_cache_count < _DISPATCH_MAX_CONV_ITEM_CACHE_COUNT) {
-        item->qe = SLISTNODE_INIT;
-        SList_InsertBeforeFirst(&self->item_cache, &item->qe);
+        item->qe = QUEUE_NODE_INIT;
+        queue_add_first(&self->item_cache, &item->qe);
         self->item_cache_count++;
     }
     else {

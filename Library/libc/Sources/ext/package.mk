@@ -40,6 +40,7 @@ $(EXT_OBJS_DIR)/%.o : $(EXT_SOURCES_DIR)/%.c
 #
 
 EXT_SC_SOURCES := $(EXT_SOURCES_DIR)/_divmod64.c \
+				  $(EXT_SOURCES_DIR)/deque.c \
 				  $(EXT_SOURCES_DIR)/hash.c \
 				  $(EXT_SOURCES_DIR)/log2_ul.c \
 				  $(EXT_SOURCES_DIR)/log2_ull.c \

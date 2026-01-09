@@ -17,8 +17,8 @@ static locale_t* _Nullable __get_locale_by_name(const char* _Nonnull locale)
         locale = "C";
     }
 
-    SList* table = (*locale == '%') ? &__FIRST_USER_LC : &__FIRST_LIBC_LC;
-    SList_ForEach(table, locale_t, {
+    queue_t* table = (*locale == '%') ? &__FIRST_USER_LC : &__FIRST_LIBC_LC;
+    queue_for_each(table, locale_t, {
         if (!strcmp(locale, pCurNode->name)) {
             return pCurNode;
         }
@@ -107,7 +107,7 @@ static int __lconvcmp(const struct lconv* _Nonnull ll, const struct lconv* _Nonn
 
 static locale_t* _Nullable __get_locale_by_lconv(const struct lconv* _Nonnull lconv)
 {
-    SList_ForEach(&__FIRST_USER_LC, locale_t, {
+    queue_for_each(&__FIRST_USER_LC, locale_t, {
         const struct lconv* cl = &pCurNode->lc;
 
         if (!__lconvcmp(cl, lconv)) {
@@ -207,14 +207,14 @@ static locale_t* _Nullable __makelocale(int category, const locale_t* _Nonnull b
         return NULL;
     }
 
-    newLocale->qe = SLISTNODE_INIT;
+    newLocale->qe = QUEUE_NODE_INIT;
     memcpy(&newLocale->lc, dl, sizeof(struct lconv));
 
     newLocale->name[0] = '%';
     itoa(__UNIQUE_ID_LC, &newLocale->name[1], 16);
     newLocale->name[__MAX_LOCALE_NAME_LENGTH - 1] = '\0';
 
-    SList_InsertBeforeFirst(&__FIRST_USER_LC, &newLocale->qe);
+    queue_add_first(&__FIRST_USER_LC, &newLocale->qe);
 
     return newLocale;
 }

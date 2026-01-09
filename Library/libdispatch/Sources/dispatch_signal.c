@@ -42,11 +42,11 @@ void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, dispatch_item_t _N
     if (self->sigtraps) {
         stp = &self->sigtraps[signo - 1];
 
-        SList_ForEach(&stp->monitors, SListNode, {
+        queue_for_each(&stp->monitors, queue_node_t, {
             dispatch_item_t cip = (dispatch_item_t)pCurNode;
 
             if (cip == item) {
-                SList_Remove(&stp->monitors, &pip->qe, &cip->qe);
+                queue_remove(&stp->monitors, &pip->qe, &cip->qe);
                 hasIt = true;
                 break;
             }
@@ -90,9 +90,9 @@ bool _dispatch_rearm_signal_item(dispatch_t _Nonnull _Locked self, dispatch_item
         dispatch_sigtrap_t stp = &self->sigtraps[item->subtype - 1];
 
         item->state = DISPATCH_STATE_IDLE;
-        item->qe = SLISTNODE_INIT;
+        item->qe = QUEUE_NODE_INIT;
 
-        SList_InsertAfterLast(&stp->monitors, &item->qe);
+        queue_add_last(&stp->monitors, &item->qe);
         return true;
     }
     else {
@@ -118,14 +118,14 @@ static int _dispatch_item_on_signal(dispatch_t _Nonnull _Locked self, int signo,
         }
     }
 
-    item->qe = SLISTNODE_INIT;
+    item->qe = QUEUE_NODE_INIT;
     item->type = _DISPATCH_TYPE_USER_SIGNAL_ITEM;
     item->subtype = (uint8_t)signo;
     item->flags = _DISPATCH_ITEM_FLAG_REPEATING;
     item->state = DISPATCH_STATE_IDLE;
 
     dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
-    SList_InsertAfterLast(&stp->monitors, &item->qe);
+    queue_add_last(&stp->monitors, &item->qe);
     stp->count++;
 
     if (stp->count == 1) {
@@ -141,9 +141,9 @@ void _dispatch_submit_items_for_signal(dispatch_t _Nonnull _Locked self, int sig
         dispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
 
         while (stp->monitors.first) {
-            dispatch_item_t item = (dispatch_item_t)SList_RemoveFirst(&stp->monitors);
+            dispatch_item_t item = (dispatch_item_t)queue_remove_first(&stp->monitors);
 
-            item->qe = SLISTNODE_INIT;
+            item->qe = QUEUE_NODE_INIT;
             item->state = DISPATCH_STATE_SCHEDULED;
             item->flags &= ~_DISPATCH_ITEM_FLAG_CANCELLED;
 

@@ -136,7 +136,7 @@ typedef void (*kdispatch_retire_func_t)(kdispatch_item_t _Nonnull item);
 // concurrent queue: items have state and having two or more vcpus execute the
 //                   same item at the same time would make the state inconsistent.
 struct kdispatch_item {
-    SListNode                           qe;
+    queue_node_t                        qe;
     kdispatch_item_func_t _Nonnull      func;
     kdispatch_retire_func_t _Nullable   retireFunc;
     uint8_t                             type;

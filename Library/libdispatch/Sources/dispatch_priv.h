@@ -46,7 +46,7 @@ typedef struct dispatch_conv_item* dispatch_conv_item_t;
 
 
 struct dispatch_timer {
-    SListNode                   timer_qe;
+    queue_node_t                timer_qe;
     dispatch_item_t _Nonnull    item;
     struct timespec             deadline;   // Time when the timer fires next
     struct timespec             interval;   // Time interval until next time the timer should fire (if repeating) 
@@ -55,7 +55,7 @@ typedef struct dispatch_timer* dispatch_timer_t;
 
 
 struct dispatch_sigtrap {
-    SList   monitors;
+    queue_t monitors;
     int     count;
 };
 typedef struct dispatch_sigtrap* dispatch_sigtrap_t;
@@ -69,7 +69,7 @@ typedef struct dispatch_sigtrap* dispatch_sigtrap_t;
 struct dispatch_worker {
     deque_node_t                worker_qe;
 
-    SList                       work_queue;
+    queue_t                     work_queue;
     size_t                      work_count;
 
     dispatch_item_t _Nullable   current_item;   // currently executing item
@@ -151,13 +151,13 @@ struct dispatch {
     deque_t                         workers;        // Each worker has its own work item queue
     size_t                          worker_count;
 
-    SList                           zombie_items;   // Items that are done and joinable
+    queue_t                         zombie_items;   // Items that are done and joinable
 
-    SList                           item_cache;
+    queue_t                         item_cache;
     size_t                          item_cache_count;
 
-    SList                           timers;         // The timer queue is shared by all workers
-    SList                           timer_cache;
+    queue_t                         timers;         // The timer queue is shared by all workers
+    queue_t                         timer_cache;
     size_t                          timer_cache_count;
 
     dispatch_sigtrap_t _Nullable    sigtraps;

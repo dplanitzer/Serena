@@ -137,7 +137,7 @@ typedef void (*dispatch_retire_func_t)(dispatch_item_t _Nonnull item);
 // concurrent queue: items have state and having two or more vcpus execute the
 //                   same item at the same time would make the state inconsistent.
 struct dispatch_item {
-    SListNode                           qe;
+    queue_node_t                        qe;
     dispatch_item_func_t _Nonnull       func;
     dispatch_retire_func_t _Nullable    retireFunc;
     uint8_t                             type;

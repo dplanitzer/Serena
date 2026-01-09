@@ -18,7 +18,7 @@
 
 typedef struct AddressSpace {
     mtx_t                   mtx;
-    SList/*<MemBlocks>*/    mblocks;
+    queue_t/*<MemBlocks>*/  mblocks;
     size_t                  virt_size;
 } AddressSpace;
 

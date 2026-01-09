@@ -29,7 +29,7 @@
 typedef struct ProcessManager {
     mtx_t               mtx;
     pid_t               nextPid;
-    SList/*<Process>*/  pid_table[HASH_CHAIN_COUNT];     // pid_t -> Process
+    queue_t/*<Process>*/  pid_table[HASH_CHAIN_COUNT];     // pid_t -> Process
 } ProcessManager;
 
 
@@ -60,7 +60,7 @@ FilesystemRef _Nonnull ProcessManager_GetCatalog(ProcessManagerRef _Nonnull self
 // does not exist.
 static ProcessRef _Nullable _get_proc_by_pid(ProcessManagerRef _Nonnull _Locked self, pid_t pid)
 {
-    SList_ForEach(&self->pid_table[hash_scalar(pid) & HASH_CHAIN_MASK], deque_node_t,
+    queue_for_each(&self->pid_table[hash_scalar(pid) & HASH_CHAIN_MASK], deque_node_t,
         ProcessRef cp = proc_from_pid_qe(pCurNode);
 
         if (cp->pid == pid) {
@@ -97,10 +97,10 @@ errno_t ProcessManager_Publish(ProcessManagerRef _Nonnull self, ProcessRef _Nonn
         ProcessRef the_parent = _get_proc_by_pid(self, pp->ppid);
         assert(the_parent != NULL);
 
-        SList_InsertAfterLast(&the_parent->rel.children, &pp->rel.child_qe);
+        queue_add_last(&the_parent->rel.children, &pp->rel.child_qe);
     }
 
-    SList_InsertBeforeFirst(&self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->rel.pid_qe);
+    queue_add_first(&self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK], &pp->rel.pid_qe);
     Process_Retain(pp);
 
 catch:
@@ -128,11 +128,11 @@ void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnu
     assert(the_parent != NULL);
 
     ProcessRef prev_child = NULL;
-    SList_ForEach(&the_parent->rel.children, deque_node_t,
+    queue_for_each(&the_parent->rel.children, deque_node_t,
         ProcessRef cp = proc_from_child_qe(pCurNode);
 
         if (cp->pid == pp->pid) {
-            SList_Remove(&the_parent->rel.children, &prev_child->rel.child_qe, &pp->rel.child_qe);
+            queue_remove(&the_parent->rel.children, &prev_child->rel.child_qe, &pp->rel.child_qe);
             break;
         }
         prev_child = cp;
@@ -140,12 +140,12 @@ void ProcessManager_Unpublish(ProcessManagerRef _Nonnull self, ProcessRef _Nonnu
 
     
     ProcessRef prev_p = NULL;
-    SList* pid_chain = &self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK];
-    SList_ForEach(pid_chain, deque_node_t,
+    queue_t* pid_chain = &self->pid_table[hash_scalar(pp->pid) & HASH_CHAIN_MASK];
+    queue_for_each(pid_chain, deque_node_t,
         ProcessRef cp = proc_from_pid_qe(pCurNode);
 
         if (cp->pid == pp->pid) {
-            SList_Remove(pid_chain, &prev_p->rel.pid_qe, &pp->rel.pid_qe);
+            queue_remove(pid_chain, &prev_p->rel.pid_qe, &pp->rel.pid_qe);
             break;
         }
         prev_p = cp;
@@ -198,7 +198,7 @@ static ProcessRef _Nullable _get_any_zombie_of_parent(ProcessManagerRef _Nonnull
 
     *pOutAnyExists = false;
     if (parent_p) {
-        SList_ForEach(&parent_p->rel.children, deque_node_t,
+        queue_for_each(&parent_p->rel.children, deque_node_t,
             ProcessRef child_p = proc_from_child_qe(pCurNode);
 
             if (pgrp == 0 || (pgrp > 0 && child_p->pgrp == pgrp)) {
@@ -273,7 +273,7 @@ static errno_t _send_signal_to_proc_children(ProcessManagerRef _Nonnull _Locked 
         return ESRCH;
     }
 
-    SList_ForEach(&target_p->rel.children, deque_node_t, 
+    queue_for_each(&target_p->rel.children, deque_node_t, 
         ProcessRef child_p = proc_from_child_qe(pCurNode);
 
         hasChildren = true;
@@ -308,7 +308,7 @@ static errno_t _send_signal_to_proc_group(ProcessManagerRef _Nonnull _Locked sel
     errno_t first_err = EOK;
 
     for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
-        SList_ForEach(&self->pid_table[i], deque_node_t, 
+        queue_for_each(&self->pid_table[i], deque_node_t, 
             ProcessRef cp = proc_from_child_qe(pCurNode);
 
             if (cp->pgrp == target_id) {
@@ -347,7 +347,7 @@ static errno_t _send_signal_to_session(ProcessManagerRef _Nonnull _Locked self, 
     errno_t first_err = EOK;
 
     for (size_t i = 0; i < HASH_CHAIN_COUNT; i++) {
-        SList_ForEach(&self->pid_table[i], deque_node_t, 
+        queue_for_each(&self->pid_table[i], deque_node_t, 
             ProcessRef cp = proc_from_child_qe(pCurNode);
 
             if (cp->sid == target_id) {

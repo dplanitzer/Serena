@@ -39,11 +39,11 @@ typedef struct u_wait_queue* u_wait_queue_t;
 
 // Signal routes
 struct sigroute {
-    SListNode   qe;
-    id_t        target_id;
-    int16_t     use_count;
-    int8_t      signo;
-    int8_t      scope;
+    queue_node_t    qe;
+    id_t            target_id;
+    int16_t         use_count;
+    int8_t          signo;
+    int8_t          scope;
 };
 typedef struct sigroute* sigroute_t;
 
@@ -59,10 +59,10 @@ typedef struct proc_img {
 
 // Process relationship information (owned & protected by ProcessManager)
 typedef struct proc_rel {
-    SListNode           pid_qe;     // pid_table chain entry.
-    SList/*<Process>*/  children;
-    SListNode           child_qe;
-    CatalogId           cat_id;     // proc-fs catalog id
+    queue_node_t            pid_qe;     // pid_table chain entry.
+    queue_t/*<Process>*/    children;
+    queue_node_t            child_qe;
+    CatalogId               cat_id;     // proc-fs catalog id
 } proc_rel_t;
 
 
@@ -107,7 +107,7 @@ typedef struct Process {
     struct waitqueue                siwa_queue;
     
     // Signal routes
-    SList/*struct sigroute>*/       sig_route[SIGMAX];
+    queue_t/*struct sigroute>*/     sig_route[SIGMAX];
 
     // Exceptions support
     excpt_handler_t                 excpt_handler;

@@ -15,7 +15,7 @@
 
 
 struct dentry {
-    SListNode           qe;
+    queue_node_t           qe;
     CatalogId           dirId;
     DriverRef _Nonnull  driver;
     did_t               id;
@@ -23,7 +23,7 @@ struct dentry {
 typedef struct dentry* dentry_t;
 
 struct matcher {
-    SListNode           qe;
+    queue_node_t           qe;
     drv_match_func_t    func;
     void* _Nullable     arg;
     iocat_t             cats[IOCAT_MAX];
@@ -36,8 +36,8 @@ typedef struct matcher* matcher_t;
 
 struct DriverManager {
     mtx_t               mtx;
-    SList/*<dentry_t>*/ id_table[HASH_CHAIN_COUNT];  // did_t -> dentry_t
-    SList/*<matcher_t*/ matchers;
+    queue_t/*<dentry_t>*/ id_table[HASH_CHAIN_COUNT];  // did_t -> dentry_t
+    queue_t/*<matcher_t*/ matchers;
 };
 
 
@@ -81,12 +81,12 @@ errno_t DriverManager_AcquireNodeForPath(DriverManagerRef _Nonnull self, const c
 
 // Returns a reference to the driver entry for driver id 'id'. NULL if such
 // entry exists.
-static dentry_t _Nullable _get_dentry_by_id(DriverManagerRef _Nonnull _Locked self, did_t id, SList* _Nullable * _Nullable pOutChain, dentry_t _Nullable * _Nullable pOutPrevEntry)
+static dentry_t _Nullable _get_dentry_by_id(DriverManagerRef _Nonnull _Locked self, did_t id, queue_t* _Nullable * _Nullable pOutChain, dentry_t _Nullable * _Nullable pOutPrevEntry)
 {
-    SList* the_chain = &self->id_table[hash_scalar(id) & HASH_CHAIN_MASK];
+    queue_t* the_chain = &self->id_table[hash_scalar(id) & HASH_CHAIN_MASK];
     dentry_t prev_ep = NULL;
 
-    SList_ForEach(the_chain, SListNode,
+    queue_for_each(the_chain, queue_node_t,
         dentry_t ep = (dentry_t)pCurNode;
 
         if (ep->id == id) {
@@ -127,7 +127,7 @@ errno_t DriverManager_CreateEntry(DriverManagerRef _Nonnull self, DriverRef _Non
     try(kalloc_cleared(sizeof(struct dentry), (void**)&ep));
     try(Catalog_PublishDriver(gDriverCatalog, parentDirId, de->name, de->uid, de->gid, de->perms, drv, de->arg, &ep->id));
 
-    SList_InsertBeforeFirst(&self->id_table[hash_scalar(ep->id) & HASH_CHAIN_MASK], &ep->qe);
+    queue_add_first(&self->id_table[hash_scalar(ep->id) & HASH_CHAIN_MASK], &ep->qe);
     ep->dirId = parentDirId;
     ep->driver = Object_RetainAs(drv, Driver);
     if (pOutId) {
@@ -148,7 +148,7 @@ catch:
 // Removes the driver instance from the driver catalog.
 void DriverManager_RemoveEntry(DriverManagerRef _Nonnull self, did_t id)
 {
-    SList* the_chain = NULL;
+    queue_t* the_chain = NULL;
     dentry_t the_ep = NULL, prev_ep = NULL;
     DriverRef driver = NULL;
 
@@ -165,7 +165,7 @@ void DriverManager_RemoveEntry(DriverManagerRef _Nonnull self, did_t id)
     }
 
     Catalog_Unpublish(gDriverCatalog, the_ep->dirId, id);
-    SList_Remove(the_chain, &prev_ep->qe, &the_ep->qe);
+    queue_remove(the_chain, &prev_ep->qe, &the_ep->qe);
 
     mtx_unlock(&self->mtx);
     
@@ -201,7 +201,7 @@ errno_t DriverManager_GetMatches(DriverManagerRef _Nonnull self, const iocat_t* 
 
     mtx_lock(&self->mtx);
     for (size_t idx = 0; idx < HASH_CHAIN_COUNT; idx++) {
-        SList_ForEach(&self->id_table[idx], SListNode,
+        queue_for_each(&self->id_table[idx], queue_node_t,
             dentry_t dep = (dentry_t)pCurNode;
             
             if (instanceof(dep->driver, Driver) && Driver_HasSomeCategories((DriverRef)dep->driver, cats)) {
@@ -241,12 +241,12 @@ errno_t DriverManager_StartMatching(DriverManagerRef _Nonnull self, const iocat_
         i++;
     }
     pm->cats[i] = IOCAT_END;
-    SList_InsertAfterLast(&self->matchers, &pm->qe);
+    queue_add_last(&self->matchers, &pm->qe);
 
 
     // Tell the matcher about all existing drivers
     for (size_t idx = 0; idx < HASH_CHAIN_COUNT; idx++) {
-        SList_ForEach(&self->id_table[idx], SListNode,
+        queue_for_each(&self->id_table[idx], queue_node_t,
             dentry_t dep = (dentry_t)pCurNode;
             
             if (instanceof(dep->driver, Driver) && Driver_HasSomeCategories((DriverRef)dep->driver, pm->cats)) {
@@ -263,14 +263,14 @@ catch:
 
 void DriverManager_StopMatching(DriverManagerRef _Nonnull self, drv_match_func_t _Nonnull f, void* _Nullable arg)
 {
-    SListNode* pprev = NULL;
+    queue_node_t* pprev = NULL;
 
     mtx_lock(&self->mtx);
-    SList_ForEach(&self->matchers, SListNode,
+    queue_for_each(&self->matchers, queue_node_t,
         matcher_t p = (matcher_t)pCurNode;
 
         if (p->func == f && p->arg == arg) {
-            SList_Remove(&self->matchers, pprev, &p->qe);
+            queue_remove(&self->matchers, pprev, &p->qe);
             break;
         }
         pprev = pCurNode;
@@ -281,7 +281,7 @@ void DriverManager_StopMatching(DriverManagerRef _Nonnull self, drv_match_func_t
 static void _do_match_callouts(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver, int notify)
 {
     mtx_lock(&self->mtx);
-    SList_ForEach(&self->matchers, SListNode,
+    queue_for_each(&self->matchers, queue_node_t,
         matcher_t pm = (matcher_t)pCurNode;
             
         if (Driver_HasSomeCategories((DriverRef)driver, pm->cats)) {

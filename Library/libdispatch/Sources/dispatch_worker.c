@@ -98,7 +98,7 @@ void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self)
 
 void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item, bool doWakeup)
 {
-    SList_InsertAfterLast(&self->work_queue, &item->qe);
+    queue_add_last(&self->work_queue, &item->qe);
     self->work_count++;
 
     if (doWakeup) {
@@ -109,13 +109,13 @@ void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_i
 // Cancels all items that are still on the worker's work queue
 void _dispatch_worker_drain(dispatch_worker_t _Nonnull _Locked self)
 {
-    while (!SList_IsEmpty(&self->work_queue)) {
-        dispatch_item_t cip = (dispatch_item_t)SList_RemoveFirst(&self->work_queue);
+    while (!queue_empty(&self->work_queue)) {
+        dispatch_item_t cip = (dispatch_item_t)queue_remove_first(&self->work_queue);
 
         _dispatch_retire_item(self->owner, cip);
     }
 
-    self->work_queue = SLIST_INIT;
+    self->work_queue = QUEUE_INIT;
     self->work_count = 0;
 }
 
@@ -125,7 +125,7 @@ bool _dispatch_worker_withdraw_item(dispatch_worker_t _Nonnull self, dispatch_it
     dispatch_item_t pip = NULL;
     bool foundIt = false;
 
-    SList_ForEach(&self->work_queue, SListNode, {
+    queue_for_each(&self->work_queue, queue_node_t, {
         dispatch_item_t cip = (dispatch_item_t)pCurNode;
 
         if (cip == item) {
@@ -139,10 +139,10 @@ bool _dispatch_worker_withdraw_item(dispatch_worker_t _Nonnull self, dispatch_it
 
     if (foundIt) {
         if (pip) {
-            SList_Remove(&self->work_queue, &pip->qe, &item->qe);
+            queue_remove(&self->work_queue, &pip->qe, &item->qe);
         }
         else {
-            SList_RemoveFirst(&self->work_queue);
+            queue_remove_first(&self->work_queue);
         }
         self->work_count--;
 
@@ -153,7 +153,7 @@ bool _dispatch_worker_withdraw_item(dispatch_worker_t _Nonnull self, dispatch_it
 
 dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
-    SList_ForEach(&self->work_queue, deque_node_t, {
+    queue_for_each(&self->work_queue, deque_node_t, {
         dispatch_item_t cip = (dispatch_item_t)pCurNode;
 
         if (_dispatch_item_has_func(cip, func, arg)) {
@@ -227,7 +227,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
             clock_gettime(CLOCK_MONOTONIC, &now);
 
             if (timespec_le(&tp->deadline, &now)) {
-                SList_RemoveFirst(&q->timers);
+                queue_remove_first(&q->timers);
                 self->current_item = tp->item;
                 self->current_timer = tp;
 
@@ -237,7 +237,7 @@ static int _get_next_work(dispatch_worker_t _Nonnull _Locked self)
 
 
         // Next grab a work item if there's one queued
-        dispatch_item_t ip = (dispatch_item_t) SList_RemoveFirst(&self->work_queue);
+        dispatch_item_t ip = (dispatch_item_t) queue_remove_first(&self->work_queue);
         if (ip) {
             self->work_count--;
         }

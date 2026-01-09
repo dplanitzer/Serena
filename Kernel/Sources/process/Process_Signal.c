@@ -22,7 +22,7 @@ static errno_t sigroute_create(int signo, int scope, id_t id, sigroute_t _Nullab
 
     err = kalloc(sizeof(struct sigroute), (void**)&self);
     if (err == EOK) {
-        self->qe = SLISTNODE_INIT;
+        self->qe = QUEUE_NODE_INIT;
         self->signo = signo;
         self->scope = scope;
         self->target_id = id;
@@ -42,15 +42,15 @@ static void sigroute_destroy(sigroute_t _Nullable self)
 void _proc_init_default_sigroutes(ProcessRef _Nonnull _Locked self)
 {
     for (size_t i = 0; i < SIGMAX; i++) {
-        self->sig_route[i] = SLIST_INIT;
+        self->sig_route[i] = QUEUE_INIT;
     }
 }
 
 void _proc_destroy_sigroutes(ProcessRef _Nonnull _Locked self)
 {
     for (size_t i = 0; i < SIGMAX; i++) {
-        while (!SList_IsEmpty(&self->sig_route[i])) {
-            sigroute_t rp = (sigroute_t)SList_RemoveFirst(&self->sig_route[i]);
+        while (!queue_empty(&self->sig_route[i])) {
+            sigroute_t rp = (sigroute_t)queue_remove_first(&self->sig_route[i]);
             sigroute_destroy(rp);
         }
     }
@@ -60,7 +60,7 @@ static sigroute_t _Nullable _find_specific_sigroute(ProcessRef _Nonnull _Locked 
 {
     sigroute_t prp = NULL;
 
-    SList_ForEach(&self->sig_route[signo - 1], deque_node_t,
+    queue_for_each(&self->sig_route[signo - 1], deque_node_t,
         sigroute_t crp = (sigroute_t)pCurNode;
 
         if (crp->scope == scope && crp->target_id == id) {
@@ -85,7 +85,7 @@ static errno_t _add_sigroute(ProcessRef _Nonnull _Locked self, int signo, int sc
 
     if (rp == NULL) {
         try(sigroute_create(signo, scope, id, &rp));
-        SList_InsertAfterLast(&self->sig_route[signo - 1], &rp->qe);
+        queue_add_last(&self->sig_route[signo - 1], &rp->qe);
     }
 
     if (rp->use_count == INT16_MAX) {
@@ -105,7 +105,7 @@ static void _del_sigroute(ProcessRef _Nonnull _Locked self, int signo, int scope
     if (rp) {
         rp->use_count--;
         if (rp->use_count <= 0) {
-            SList_Remove(&self->sig_route[signo - 1], &prp->qe, &rp->qe);
+            queue_remove(&self->sig_route[signo - 1], &prp->qe, &rp->qe);
             sigroute_destroy(rp);
         }
     }
@@ -254,8 +254,8 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
             break;
 
         default:
-            if (!SList_IsEmpty(&self->sig_route[signo - 1])) {
-                SList_ForEach(&self->sig_route[signo - 1], SList, {
+            if (!queue_empty(&self->sig_route[signo - 1])) {
+                queue_for_each(&self->sig_route[signo - 1], queue_t, {
                     sigroute_t crp = (sigroute_t)pCurNode;
 
                     switch (crp->scope) {

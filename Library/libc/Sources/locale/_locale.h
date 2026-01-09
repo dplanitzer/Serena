@@ -20,15 +20,15 @@ __CPP_BEGIN
 // - '%'<unique id> for user defined locales (unique id length is 8 chars)
 #define __MAX_LOCALE_NAME_LENGTH    10
 typedef struct locale {
-    SListNode       qe;
+    queue_node_t    qe;
     struct lconv    lc;
     char            name[__MAX_LOCALE_NAME_LENGTH];
 } locale_t;
 
 
 extern locale_t* _Nonnull   __CUR_LC;           // qe is always NULL
-extern SList                __FIRST_LIBC_LC;    // libc defined locales
-extern SList                __FIRST_USER_LC;    // user defined locales
+extern queue_t              __FIRST_LIBC_LC;    // libc defined locales
+extern queue_t              __FIRST_USER_LC;    // user defined locales
 extern struct lconv         __TMP_LCONV;        // used as a temp buffer
 extern unsigned int         __UNIQUE_ID_LC;        // unique id used as the name of a user defined locale
 extern mtx_t                __MTX_LC;

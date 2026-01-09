@@ -81,7 +81,7 @@ void _kdispatch_worker_wakeup(kdispatch_worker_t _Nonnull _Locked self)
 
 void _kdispatch_worker_submit(kdispatch_worker_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item, bool doWakeup)
 {
-    SList_InsertAfterLast(&self->work_queue, &item->qe);
+    queue_add_last(&self->work_queue, &item->qe);
     self->work_count++;
 
     if (doWakeup) {
@@ -92,13 +92,13 @@ void _kdispatch_worker_submit(kdispatch_worker_t _Nonnull _Locked self, kdispatc
 // Cancels all items that are still on the worker's work queue
 void _kdispatch_worker_drain(kdispatch_worker_t _Nonnull _Locked self)
 {
-    while (!SList_IsEmpty(&self->work_queue)) {
-        kdispatch_item_t cip = (kdispatch_item_t)SList_RemoveFirst(&self->work_queue);
+    while (!queue_empty(&self->work_queue)) {
+        kdispatch_item_t cip = (kdispatch_item_t)queue_remove_first(&self->work_queue);
 
         _kdispatch_retire_item(self->owner, cip);
     }
 
-    self->work_queue = SLIST_INIT;
+    self->work_queue = QUEUE_INIT;
     self->work_count = 0;
 }
 
@@ -108,7 +108,7 @@ bool _kdispatch_worker_withdraw_item(kdispatch_worker_t _Nonnull self, kdispatch
     kdispatch_item_t pip = NULL;
     bool foundIt = false;
 
-    SList_ForEach(&self->work_queue, SListNode, {
+    queue_for_each(&self->work_queue, queue_node_t, {
         kdispatch_item_t cip = (kdispatch_item_t)pCurNode;
 
         if (cip == item) {
@@ -121,10 +121,10 @@ bool _kdispatch_worker_withdraw_item(kdispatch_worker_t _Nonnull self, kdispatch
 
     if (foundIt) {
         if (pip) {
-            SList_Remove(&self->work_queue, &pip->qe, &item->qe);
+            queue_remove(&self->work_queue, &pip->qe, &item->qe);
         }
         else {
-            SList_RemoveFirst(&self->work_queue);
+            queue_remove_first(&self->work_queue);
         }
         self->work_count--;
 
@@ -135,7 +135,7 @@ bool _kdispatch_worker_withdraw_item(kdispatch_worker_t _Nonnull self, kdispatch
 
 kdispatch_item_t _Nullable _kdispatch_worker_find_item(kdispatch_worker_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
-    SList_ForEach(&self->work_queue, deque_node_t, {
+    queue_for_each(&self->work_queue, deque_node_t, {
         kdispatch_item_t cip = (kdispatch_item_t)pCurNode;
 
         if (_kdispatch_item_has_func(cip, func, arg)) {
@@ -209,7 +209,7 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
             clock_gettime(g_mono_clock, &now);
 
             if (timespec_le(&tp->deadline, &now)) {
-                SList_RemoveFirst(&q->timers);
+                queue_remove_first(&q->timers);
                 self->current_item = tp->item;
                 self->current_timer = tp;
 
@@ -219,7 +219,7 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
 
 
         // Next grab a work item if there's one queued
-        kdispatch_item_t ip = (kdispatch_item_t) SList_RemoveFirst(&self->work_queue);
+        kdispatch_item_t ip = (kdispatch_item_t) queue_remove_first(&self->work_queue);
         if (ip) {
             self->work_count--;
         }

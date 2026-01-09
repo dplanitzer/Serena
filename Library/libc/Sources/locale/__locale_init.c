@@ -42,8 +42,8 @@ static locale_t __LOCALE_C = {
 };
 
 locale_t* _Nonnull   __CUR_LC;           // qe is always NULL
-SList                __FIRST_LIBC_LC;    // libc defined locales
-SList                __FIRST_USER_LC;    // user defined locales
+queue_t                __FIRST_LIBC_LC;    // libc defined locales
+queue_t                __FIRST_USER_LC;    // user defined locales
 struct lconv         __TMP_LCONV;        // used as a temp buffer
 unsigned int         __UNIQUE_ID_LC;        // unique id used as the name of a user defined locale
 mtx_t                __MTX_LC;
@@ -55,7 +55,7 @@ void __locale_init(void)
 
     __FIRST_LIBC_LC.first = &__LOCALE_C.qe;
     __FIRST_LIBC_LC.last  = &__LOCALE_C.qe;
-    __FIRST_USER_LC = SLIST_INIT;
+    __FIRST_USER_LC = QUEUE_INIT;
     __CUR_LC = &__LOCALE_C;
 
     mtx_init(&__MTX_LC);

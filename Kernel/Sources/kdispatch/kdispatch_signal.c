@@ -38,11 +38,11 @@ void _kdispatch_withdraw_signal_item(kdispatch_t _Nonnull self, kdispatch_item_t
     if (self->sigtraps) {
         stp = &self->sigtraps[signo - 1];
 
-        SList_ForEach(&stp->monitors, SListNode, {
+        queue_for_each(&stp->monitors, queue_node_t, {
             kdispatch_item_t cip = (kdispatch_item_t)pCurNode;
 
             if (cip == item) {
-                SList_Remove(&stp->monitors, &pip->qe, &cip->qe);
+                queue_remove(&stp->monitors, &pip->qe, &cip->qe);
                 hasIt = true;
                 break;
             }
@@ -86,9 +86,9 @@ bool _kdispatch_rearm_signal_item(kdispatch_t _Nonnull _Locked self, kdispatch_i
         kdispatch_sigtrap_t stp = &self->sigtraps[item->subtype - 1];
 
         item->state = KDISPATCH_STATE_IDLE;
-        item->qe = SLISTNODE_INIT;
+        item->qe = QUEUE_NODE_INIT;
 
-        SList_InsertAfterLast(&stp->monitors, &item->qe);
+        queue_add_last(&stp->monitors, &item->qe);
         return true;
     }
     else {
@@ -115,14 +115,14 @@ static errno_t _kdispatch_item_on_signal(kdispatch_t _Nonnull _Locked self, int 
         }
     }
 
-    item->qe = SLISTNODE_INIT;
+    item->qe = QUEUE_NODE_INIT;
     item->type = _KDISPATCH_TYPE_USER_SIGNAL_ITEM;
     item->subtype = (uint8_t)signo;
     item->flags = _KDISPATCH_ITEM_FLAG_REPEATING;
     item->state = KDISPATCH_STATE_IDLE;
 
     kdispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
-    SList_InsertAfterLast(&stp->monitors, &item->qe);
+    queue_add_last(&stp->monitors, &item->qe);
     stp->count++;
 
     if (stp->count == 1) {
@@ -138,9 +138,9 @@ void _kdispatch_submit_items_for_signal(kdispatch_t _Nonnull _Locked self, int s
         kdispatch_sigtrap_t stp = &self->sigtraps[signo - 1];
 
         while (stp->monitors.first) {
-            kdispatch_item_t item = (kdispatch_item_t)SList_RemoveFirst(&stp->monitors);
+            kdispatch_item_t item = (kdispatch_item_t)queue_remove_first(&stp->monitors);
 
-            item->qe = SLISTNODE_INIT;
+            item->qe = QUEUE_NODE_INIT;
             item->state = KDISPATCH_STATE_SCHEDULED;
             item->flags &= ~_KDISPATCH_ITEM_FLAG_CANCELLED;
 

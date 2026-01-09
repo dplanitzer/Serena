@@ -19,7 +19,7 @@ typedef struct MemEntry {
 
 #define MEM_BLOCKS_CAPACITY 8
 typedef struct MemBlocks {
-    SListNode   node;
+    queue_node_t   node;
     size_t      count;  // Number of entries in use
     MemEntry    blocks[MEM_BLOCKS_CAPACITY];
 } MemBlocks;
@@ -27,7 +27,7 @@ typedef struct MemBlocks {
 
 void AddressSpace_Init(AddressSpaceRef _Nonnull self)
 {
-    self->mblocks = SLIST_INIT;
+    self->mblocks = QUEUE_INIT;
     mtx_init(&self->mtx);
 }
 
@@ -70,11 +70,11 @@ errno_t AddressSpace_Allocate(AddressSpaceRef _Nonnull self, ssize_t nbytes, voi
     // We don't need to free the MemBlocks if the allocation of the memory block
     // below fails because we can always keep it around for the next allocation
     // request
-    if (SList_IsEmpty(&self->mblocks)
+    if (queue_empty(&self->mblocks)
         || ((MemBlocks*)self->mblocks.last)->count == MEM_BLOCKS_CAPACITY) {
         try(kalloc_cleared(sizeof(MemBlocks), (void**) &bp));
-        bp->node = SLISTNODE_INIT;
-        SList_InsertAfterLast(&self->mblocks, &bp->node);
+        bp->node = QUEUE_NODE_INIT;
+        queue_add_last(&self->mblocks, &bp->node);
     } else {
         bp = (MemBlocks*)self->mblocks.last;
     }
@@ -110,13 +110,13 @@ static void _AddressSpace_UnmapAll(AddressSpaceRef _Nonnull _Locked self)
             cp->blocks[i].size = 0;
         }
 
-        cp->node = SLISTNODE_INIT;
+        cp->node = QUEUE_NODE_INIT;
         kfree(cp);
 
         cp = np;
     }
 
-    self->mblocks = SLIST_INIT;
+    self->mblocks = QUEUE_INIT;
     self->virt_size = 0;
 }
 
@@ -134,6 +134,6 @@ void AddressSpace_AdoptMappingsFrom(AddressSpaceRef _Nonnull self, AddressSpaceR
 
     self->mblocks = other->mblocks;
     self->virt_size = other->virt_size;
-    other->mblocks = SLIST_INIT;
+    other->mblocks = QUEUE_INIT;
     mtx_unlock(&self->mtx);
 }

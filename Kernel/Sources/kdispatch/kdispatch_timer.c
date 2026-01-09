@@ -28,10 +28,10 @@ static void _kdispatch_queue_timer(kdispatch_t _Nonnull self, kdispatch_timer_t 
     
 
     if (ptp) {
-        SList_InsertAfter(&self->timers, &timer->timer_qe, &ptp->timer_qe);
+        queue_insert(&self->timers, &timer->timer_qe, &ptp->timer_qe);
     }
     else {
-        SList_InsertBeforeFirst(&self->timers, &timer->timer_qe);
+        queue_add_first(&self->timers, &timer->timer_qe);
     }
 }
 
@@ -40,7 +40,7 @@ static kdispatch_timer_t _Nullable _kdispatch_dequeue_timer_for_item(kdispatch_t
     kdispatch_timer_t ptp = NULL;
     kdispatch_timer_t timer = NULL;
 
-    SList_ForEach(&self->timers, SListNode,{
+    queue_for_each(&self->timers, queue_node_t,{
         kdispatch_timer_t ctp = (kdispatch_timer_t)pCurNode;
 
         if (ctp->item == item) {
@@ -54,10 +54,10 @@ static kdispatch_timer_t _Nullable _kdispatch_dequeue_timer_for_item(kdispatch_t
 
     if (timer) {
         if (ptp) {
-            SList_Remove(&self->timers, &ptp->timer_qe, &timer->timer_qe);
+            queue_remove(&self->timers, &ptp->timer_qe, &timer->timer_qe);
         }
         else {
-            SList_RemoveFirst(&self->timers);
+            queue_remove_first(&self->timers);
         }
     }
 
@@ -66,7 +66,7 @@ static kdispatch_timer_t _Nullable _kdispatch_dequeue_timer_for_item(kdispatch_t
 
 kdispatch_timer_t _Nullable _kdispatch_find_timer(kdispatch_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
-    SList_ForEach(&self->timers, SListNode, {
+    queue_for_each(&self->timers, queue_node_t, {
         kdispatch_timer_t ctp = (kdispatch_timer_t)pCurNode;
 
         if (_kdispatch_item_has_func(ctp->item, func, arg)) {
@@ -82,11 +82,11 @@ void _kdispatch_retire_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_
 {
     kdispatch_item_t item = timer->item;
 
-    timer->timer_qe = SLISTNODE_INIT;
+    timer->timer_qe = QUEUE_NODE_INIT;
     timer->item = NULL;
 
     if (self->timer_cache_count < _KDISPATCH_MAX_TIMER_CACHE_COUNT) {
-        SList_InsertBeforeFirst(&self->timer_cache, &timer->timer_qe);
+        queue_add_first(&self->timer_cache, &timer->timer_qe);
         self->timer_cache_count++;
     }
     else {
@@ -99,8 +99,8 @@ void _kdispatch_retire_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_
 
 void _kdispatch_drain_timers(kdispatch_t _Nonnull _Locked self)
 {
-    while (!SList_IsEmpty(&self->timers)) {
-        kdispatch_timer_t ctp = (kdispatch_timer_t)SList_RemoveFirst(&self->timers);
+    while (!queue_empty(&self->timers)) {
+        kdispatch_timer_t ctp = (kdispatch_timer_t)queue_remove_first(&self->timers);
 
         _kdispatch_retire_timer(self, ctp);
     }
@@ -129,7 +129,7 @@ static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, int flags
 
 
     if (self->timer_cache.first) {
-        timer = (kdispatch_timer_t)SList_RemoveFirst(&self->timer_cache);
+        timer = (kdispatch_timer_t)queue_remove_first(&self->timer_cache);
         self->timer_cache_count--;
     }
     else {
@@ -140,11 +140,11 @@ static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, int flags
     }
 
 
-    item->qe = SLISTNODE_INIT;
+    item->qe = QUEUE_NODE_INIT;
     item->state = KDISPATCH_STATE_SCHEDULED;
     item->flags &= ~_KDISPATCH_ITEM_FLAG_CANCELLED;
 
-    timer->timer_qe = SLISTNODE_INIT;
+    timer->timer_qe = QUEUE_NODE_INIT;
     timer->item = item;
     timer->deadline = *wtp;
     timer->interval = *itp;
@@ -180,7 +180,7 @@ void _kdispatch_rearm_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_t
     } while (timespec_le(&timer->deadline, &now) && timespec_gt(&timer->interval, &TIMESPEC_ZERO));
 
 
-    timer->timer_qe = SLISTNODE_INIT;
+    timer->timer_qe = QUEUE_NODE_INIT;
     timer->item->state = KDISPATCH_STATE_SCHEDULED;
     timer->item->flags &= ~_KDISPATCH_ITEM_FLAG_CANCELLED;
 
