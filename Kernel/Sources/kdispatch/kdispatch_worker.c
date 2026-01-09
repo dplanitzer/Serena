@@ -209,7 +209,7 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
             clock_gettime(g_mono_clock, &now);
 
             if (timespec_le(&tp->deadline, &now)) {
-                queue_remove_first(&q->timers);
+                _queue_remove_first(&q->timers);
                 self->current_item = tp->item;
                 self->current_timer = tp;
 
@@ -219,8 +219,9 @@ static int _get_next_work(kdispatch_worker_t _Nonnull _Locked self)
 
 
         // Next grab a work item if there's one queued
-        kdispatch_item_t ip = (kdispatch_item_t) queue_remove_first(&self->work_queue);
+        kdispatch_item_t ip = (kdispatch_item_t) self->work_queue.first;
         if (ip) {
+            _queue_remove_first(&self->work_queue);
             self->work_count--;
         }
         else if (q->worker_count > 1) {

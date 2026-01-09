@@ -62,7 +62,7 @@ static dispatch_timer_t _Nullable _dispatch_dequeue_timer_for_item(dispatch_t _N
             queue_remove(&self->timers, &ptp->timer_qe, &timer->timer_qe);
         }
         else {
-            queue_remove_first(&self->timers);
+            _queue_remove_first(&self->timers);
         }
     }
 
@@ -133,7 +133,8 @@ static int _dispatch_arm_timer(dispatch_t _Nonnull _Locked self, int flags, cons
 
 
     if (self->timer_cache.first) {
-        timer = (dispatch_timer_t)queue_remove_first(&self->timer_cache);
+        timer = (dispatch_timer_t)self->timer_cache.first;
+        _queue_remove_first(&self->timer_cache);
         self->timer_cache_count--;
     }
     else {

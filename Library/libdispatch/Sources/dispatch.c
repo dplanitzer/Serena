@@ -308,7 +308,7 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
             queue_remove(&self->zombie_items, &pip->qe, &item->qe);
         }
         else {
-            queue_remove_first(&self->zombie_items);
+            _queue_remove_first(&self->zombie_items);
         }
     }
 
@@ -373,7 +373,8 @@ dispatch_item_t _Nullable _dispatch_acquire_cached_conv_item(dispatch_t _Nonnull
     dispatch_item_t ip;
 
     if (self->item_cache.first) {
-        ip = (dispatch_item_t)queue_remove_first(&self->item_cache);
+        ip = (dispatch_item_t)self->item_cache.first;
+        _queue_remove_first(&self->item_cache);
         self->item_cache_count--;
     }
     else {

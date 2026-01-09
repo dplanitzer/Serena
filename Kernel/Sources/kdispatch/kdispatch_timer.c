@@ -129,7 +129,8 @@ static errno_t _kdispatch_arm_timer(kdispatch_t _Nonnull _Locked self, int flags
 
 
     if (self->timer_cache.first) {
-        timer = (kdispatch_timer_t)queue_remove_first(&self->timer_cache);
+        timer = (kdispatch_timer_t)self->timer_cache.first;
+        _queue_remove_first(&self->timer_cache);
         self->timer_cache_count--;
     }
     else {

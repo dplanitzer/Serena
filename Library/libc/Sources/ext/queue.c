@@ -29,22 +29,16 @@ void queue_insert(queue_t* _Nonnull q, queue_node_t* _Nonnull node, queue_node_t
             q->last = node;
         }
     } else {
-        queue_add_first(q, node);
+        _queue_add_first(q, node);
     }
 }
 
 queue_node_t* _Nullable queue_remove_first(queue_t* _Nonnull q)
 {
-    queue_node_t* np = q->first;
+    queue_node_t* fp = q->first;
 
-    if (np) {
-        q->first = np->next;
-        if (q->last == np) {
-            q->last = NULL;
-        }
-        np->next = NULL;
-    }
-    return np;
+    _queue_remove_first(q);
+    return fp;
 }
 
 void queue_remove(queue_t* _Nonnull q, queue_node_t* _Nullable prev, queue_node_t* _Nonnull node)

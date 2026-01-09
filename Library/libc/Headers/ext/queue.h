@@ -48,6 +48,17 @@ if ((q)->first == NULL) { \
     (q)->first = node; \
 }
 
+#define _queue_remove_first(q) \
+if ((q)->first) { \
+    queue_node_t* __fnp = (q)->first; \
+    if ((q)->last == __fnp) { \
+        (q)->last = NULL; \
+    } \
+    (q)->first = __fnp->next; \
+    __fnp->next = NULL; \
+}
+
+
 extern void queue_add_first(queue_t* _Nonnull q, queue_node_t* _Nonnull node);
 extern void queue_add_last(queue_t* _Nonnull q, queue_node_t* _Nonnull node);
 extern void queue_insert(queue_t* _Nonnull q, queue_node_t* _Nonnull node, queue_node_t* _Nullable after);
