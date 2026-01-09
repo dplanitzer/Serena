@@ -31,35 +31,32 @@ typedef struct queue_t {
 #define QUEUE_NODE_INIT (queue_node_t){NULL}
 #define QUEUE_INIT      (queue_t){NULL, NULL}
 
-static inline void queue_add_first(queue_t* _Nonnull q, queue_node_t* _Nonnull node) {
-    node->next = q->first;
-
-    q->first = node;
-    if (q->last == NULL) {
-        q->last = node;
-    }
+#define _queue_add_first(q, node) \
+(node)->next = (q)->first; \
+(q)->first = (node); \
+if ((q)->last == NULL) { \
+    (q)->last = node; \
 }
 
-static inline void queue_add_last(queue_t* _Nonnull q, queue_node_t* _Nonnull node) {
-    node->next = NULL;
-    
-    if (q->last) {
-        q->last->next = node;
-    }
-    
-    q->last = node;
-    if (q->first == NULL) {
-        q->first = node;
-    }
+#define _queue_add_last(q, node) \
+(node)->next = NULL; \
+if ((q)->last) { \
+    (q)->last->next = node; \
+} \
+(q)->last = node; \
+if ((q)->first == NULL) { \
+    (q)->first = node; \
 }
 
+extern void queue_add_first(queue_t* _Nonnull q, queue_node_t* _Nonnull node);
+extern void queue_add_last(queue_t* _Nonnull q, queue_node_t* _Nonnull node);
 extern void queue_insert(queue_t* _Nonnull q, queue_node_t* _Nonnull node, queue_node_t* _Nullable after);
 
 queue_node_t* _Nullable queue_remove_first(queue_t* _Nonnull q);
 
-// Removes 'node' from 'pList'. 'prev' must point to the predecessor node of
-// 'node'. It may only be NULL if 'node' is the first node in the list or
-// 'node' is the last remaining node in the list.
+// Removes 'node' from 'q'. 'prev' must point to the predecessor node of 'node'.
+// It may only be NULL if 'node' is the first node in the queue or 'node' is the
+// last remaining node in the queue.
 void queue_remove(queue_t* _Nonnull q, queue_node_t* _Nullable prev, queue_node_t* _Nonnull node);
 
 
@@ -69,9 +66,9 @@ void queue_remove(queue_t* _Nonnull q, queue_node_t* _Nullable prev, queue_node_
 #define queue_node_as(__qe_ptr, __qe_field_name, __type) \
 (struct __type*) (((char*)__qe_ptr) - offsetof(struct __type, __qe_field_name))
 
-// Iterates all elements of the given list. Guarantees that the closure may call
+// Iterates all elements of the given queue. Guarantees that the closure may call
 // free on 'pCurNode' without ill effect. The iteration will continue until the
-// end of the list is reached or 'closure' executes a break statement. 
+// end of the queue is reached or 'closure' executes a break statement. 
 #define queue_for_each(q, NodeType, closure) \
 {\
     NodeType* pCurNode = (NodeType*)(q)->first; \

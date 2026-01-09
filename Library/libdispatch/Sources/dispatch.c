@@ -318,7 +318,7 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
 void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Nonnull item)
 {
     item->qe = QUEUE_NODE_INIT;
-    queue_add_last(&self->zombie_items, &item->qe);
+    _queue_add_last(&self->zombie_items, &item->qe);
     cnd_broadcast(&self->cond);
 }
 
@@ -397,7 +397,7 @@ void _dispatch_cache_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _Non
 {
     if (self->item_cache_count < _DISPATCH_MAX_CONV_ITEM_CACHE_COUNT) {
         item->qe = QUEUE_NODE_INIT;
-        queue_add_first(&self->item_cache, &item->qe);
+        _queue_add_first(&self->item_cache, &item->qe);
         self->item_cache_count++;
     }
     else {

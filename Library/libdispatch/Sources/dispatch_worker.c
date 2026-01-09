@@ -98,7 +98,7 @@ void _dispatch_worker_wakeup(dispatch_worker_t _Nonnull _Locked self)
 
 void _dispatch_worker_submit(dispatch_worker_t _Nonnull _Locked self, dispatch_item_t _Nonnull item, bool doWakeup)
 {
-    queue_add_last(&self->work_queue, &item->qe);
+    _queue_add_last(&self->work_queue, &item->qe);
     self->work_count++;
 
     if (doWakeup) {

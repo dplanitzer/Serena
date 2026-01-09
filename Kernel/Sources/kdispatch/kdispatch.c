@@ -306,7 +306,7 @@ static errno_t _kdispatch_await(kdispatch_t _Nonnull _Locked self, kdispatch_ite
 void _kdispatch_zombify_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item)
 {
     item->qe = QUEUE_NODE_INIT;
-    queue_add_last(&self->zombie_items, &item->qe);
+    _queue_add_last(&self->zombie_items, &item->qe);
     cnd_broadcast(&self->cond);
 }
 
@@ -385,7 +385,7 @@ void _kdispatch_cache_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t _
 {
     if (self->item_cache_count < _KDISPATCH_MAX_CONV_ITEM_CACHE_COUNT) {
         item->qe = QUEUE_NODE_INIT;
-        queue_add_first(&self->item_cache, &item->qe);
+        _queue_add_first(&self->item_cache, &item->qe);
         self->item_cache_count++;
     }
     else {

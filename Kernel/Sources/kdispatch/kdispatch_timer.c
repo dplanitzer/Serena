@@ -31,7 +31,7 @@ static void _kdispatch_queue_timer(kdispatch_t _Nonnull self, kdispatch_timer_t 
         queue_insert(&self->timers, &timer->timer_qe, &ptp->timer_qe);
     }
     else {
-        queue_add_first(&self->timers, &timer->timer_qe);
+        _queue_add_first(&self->timers, &timer->timer_qe);
     }
 }
 
@@ -86,7 +86,7 @@ void _kdispatch_retire_timer(kdispatch_t _Nonnull _Locked self, kdispatch_timer_
     timer->item = NULL;
 
     if (self->timer_cache_count < _KDISPATCH_MAX_TIMER_CACHE_COUNT) {
-        queue_add_first(&self->timer_cache, &timer->timer_qe);
+        _queue_add_first(&self->timer_cache, &timer->timer_qe);
         self->timer_cache_count++;
     }
     else {

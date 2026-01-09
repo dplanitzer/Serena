@@ -36,7 +36,7 @@ static void _dispatch_queue_timer(dispatch_t _Nonnull self, dispatch_timer_t _No
         queue_insert(&self->timers, &timer->timer_qe, &ptp->timer_qe);
     }
     else {
-        queue_add_first(&self->timers, &timer->timer_qe);
+        _queue_add_first(&self->timers, &timer->timer_qe);
     }
 }
 
@@ -91,7 +91,7 @@ void _dispatch_retire_timer(dispatch_t _Nonnull _Locked self, dispatch_timer_t _
     timer->item = NULL;
 
     if (self->timer_cache_count < _DISPATCH_MAX_TIMER_CACHE_COUNT) {
-        queue_add_first(&self->timer_cache, &timer->timer_qe);
+        _queue_add_first(&self->timer_cache, &timer->timer_qe);
         self->timer_cache_count++;
     }
     else {

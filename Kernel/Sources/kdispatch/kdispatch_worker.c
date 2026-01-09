@@ -81,7 +81,7 @@ void _kdispatch_worker_wakeup(kdispatch_worker_t _Nonnull _Locked self)
 
 void _kdispatch_worker_submit(kdispatch_worker_t _Nonnull _Locked self, kdispatch_item_t _Nonnull item, bool doWakeup)
 {
-    queue_add_last(&self->work_queue, &item->qe);
+    _queue_add_last(&self->work_queue, &item->qe);
     self->work_count++;
 
     if (doWakeup) {

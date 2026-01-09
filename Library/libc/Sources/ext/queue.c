@@ -9,6 +9,16 @@
 #include <ext/queue.h>
 
 
+void queue_add_first(queue_t* _Nonnull q, queue_node_t* _Nonnull node)
+{
+    _queue_add_first(q, node);
+}
+
+void queue_add_last(queue_t* _Nonnull q, queue_node_t* _Nonnull node)
+{
+    _queue_add_last(q, node);
+}
+
 void queue_insert(queue_t* _Nonnull q, queue_node_t* _Nonnull node, queue_node_t* _Nullable after)
 {
     if (after) {
