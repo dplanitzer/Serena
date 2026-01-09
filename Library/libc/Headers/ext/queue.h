@@ -118,6 +118,7 @@ extern void deque_insert(deque_t* _Nonnull dq, deque_node_t* _Nonnull node, dequ
 
 extern void deque_remove(deque_t* _Nonnull dq, deque_node_t* _Nonnull node);
 extern deque_node_t* _Nullable deque_remove_first(deque_t* _Nonnull dq);
+extern deque_node_t* _Nullable deque_remove_last(deque_t* _Nonnull dq);
 
 
 #define deque_empty(__dq) \

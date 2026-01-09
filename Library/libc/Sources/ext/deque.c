@@ -89,7 +89,7 @@ deque_node_t* _Nullable deque_remove_first(deque_t* _Nonnull dq)
 {
     deque_node_t* first = dq->first;
 
-    if (first != NULL) {
+    if (first) {
         if (first != dq->last) {
             deque_node_t* second = first->next;
 
@@ -105,4 +105,25 @@ deque_node_t* _Nullable deque_remove_first(deque_t* _Nonnull dq)
     }
 
     return first;
+}
+
+deque_node_t* _Nullable deque_remove_last(deque_t* _Nonnull dq)
+{
+    deque_node_t* last = dq->last;
+
+    if (last) {
+        if (last != dq->first) {
+            deque_node_t* prev = last->prev;
+
+            prev->next = NULL;
+            dq->last = prev;
+            
+            last->prev = NULL;
+        } else {
+            dq->first = NULL;
+            dq->last = NULL;
+        }
+    }
+
+    return last;
 }
