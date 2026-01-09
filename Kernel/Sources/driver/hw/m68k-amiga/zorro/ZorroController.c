@@ -34,7 +34,7 @@ static void _auto_config_bus(ZorroControllerRef _Nonnull _Locked self)
 
 
     // Create a ZorroDriver instance for each slot and start it
-    List_ForEach(&bus.boards, zorro_board_t,
+    deque_for_each(&bus.boards, zorro_board_t,
         const zorro_conf_t* cfg = &pCurNode->cfg;
         ZorroDriverRef dp;
         

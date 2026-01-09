@@ -16,7 +16,7 @@
 
 struct vcpu_pool {
     mtx_t   mtx;
-    List    reuse_queue;        // VPs available for reuse
+    deque_t reuse_queue;        // VPs available for reuse
     int     reuse_count;        // count of how many VPs are in the reuse queue
     int     reuse_capacity;     // reuse cache will not store more than this. If a VP exits while the cache is at max capacity -> VP will exit for good and get finalized
 };

@@ -37,7 +37,7 @@ enum {
 // See the description of the Filesystem class to learn about how locking for
 // Inodes works.
 open_class(Inode, Any,
-    ListNode                        sibling;        // Protected by Filesystem.inLock
+    deque_node_t                    sibling;        // Protected by Filesystem.inLock
     int                             useCount;       // Number of clients currently using this inode. Incremented on acquisition and decremented on relinquishing (protected by Filesystem.inLock)
     int                             state;
 

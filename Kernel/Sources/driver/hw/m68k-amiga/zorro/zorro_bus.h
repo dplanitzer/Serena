@@ -39,14 +39,14 @@
 
 // An expansion board
 typedef struct zorro_board {
-    ListNode        node;
+    deque_node_t    node;
     zorro_conf_t    cfg;
 } zorro_board_t;
 
 
 typedef struct zorro_bus {
-    List/*<zorro_board_t>*/ boards;
-    size_t                  count;
+    deque_t/*<zorro_board_t>*/  boards;
+    size_t                      count;
 } zorro_bus_t;
 
 

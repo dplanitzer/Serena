@@ -26,8 +26,8 @@ typedef enum DiskBlockOp {
 // Management state is protected by the interlock
 // Block data and error status is protected by the shared/exclusive lock
 typedef struct DiskBlock {
-    ListNode        hashNode;           // Protected by Interlock
-    ListNode        lruNode;            // Protected by Interlock
+    deque_node_t    hashNode;           // Protected by Interlock
+    deque_node_t    lruNode;            // Protected by Interlock
     int             sessionId;          // Protected by Interlock. Address by which a block is identified in the cache
     blkno_t           lba;                // Protected by Interlock. Address by which a block is identified in the cache
     int             shareCount;         // Protected by Interlock

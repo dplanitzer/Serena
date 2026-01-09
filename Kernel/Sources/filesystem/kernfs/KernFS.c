@@ -19,7 +19,7 @@ errno_t KernFS_Create(KernFSRef _Nullable * _Nonnull pOutSelf)
     KernFSRef self;
 
     try(Filesystem_Create(&kKernFSClass, (FilesystemRef*)&self));
-    try(FSAllocateCleared(sizeof(List) * IN_HASH_CHAINS_COUNT, (void**)&self->inOwned));
+    try(FSAllocateCleared(sizeof(deque_t) * IN_HASH_CHAINS_COUNT, (void**)&self->inOwned));
 
     mtx_init(&self->inOwnedLock);
     self->nextAvailableInodeId = 1;
@@ -36,7 +36,7 @@ catch:
 void KernFS_deinit(KernFSRef _Nonnull self)
 {
     for (size_t i = 0; i < IN_HASH_CHAINS_COUNT; i++) {
-        List_ForEach(&self->inOwned[i], struct Inode,
+        deque_for_each(&self->inOwned[i], struct Inode,
             Inode_Destroy((InodeRef)KfsNodeFromHashChainPointer(pCurNode));
         )
     }
@@ -58,7 +58,7 @@ void _KernFS_AddInode(KernFSRef _Nonnull self, KfsNodeRef _Nonnull ip)
     const size_t idx = IN_HASH_INDEX(Inode_GetId(ip));
 
     mtx_lock(&self->inOwnedLock);
-    List_InsertBeforeFirst(&self->inOwned[idx], &ip->inChain);
+    deque_add_first(&self->inOwned[idx], &ip->inChain);
     mtx_unlock(&self->inOwnedLock);
 }
 
@@ -68,11 +68,11 @@ void _KernFS_DestroyInode(KernFSRef _Nonnull self, KfsNodeRef _Nonnull ip)
     const size_t idx = IN_HASH_INDEX(id);
 
     mtx_lock(&self->inOwnedLock);
-    List_ForEach(&self->inOwned[idx], struct KfsNode,
+    deque_for_each(&self->inOwned[idx], struct KfsNode,
         KfsNodeRef curNode = KfsNodeFromHashChainPointer(pCurNode);
 
         if (Inode_GetId(curNode) == id) {
-            List_Remove(&self->inOwned[idx], &ip->inChain);
+            deque_remove(&self->inOwned[idx], &ip->inChain);
             Inode_Destroy((InodeRef)ip);
             break;
         }
@@ -86,7 +86,7 @@ KfsNodeRef _Nullable _KernFS_GetInode(KernFSRef _Nonnull self, ino_t id)
     KfsNodeRef theNode = NULL;
 
     mtx_lock(&self->inOwnedLock);
-    List_ForEach(&self->inOwned[idx], struct KfsNode,
+    deque_for_each(&self->inOwned[idx], struct KfsNode,
         KfsNodeRef curNode = KfsNodeFromHashChainPointer(pCurNode);
 
         if (Inode_GetId(curNode) == id) {

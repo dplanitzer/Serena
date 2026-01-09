@@ -22,7 +22,7 @@ static int _Process_GetExactState(ProcessRef _Nonnull _Locked self)
     if (self->state == PROC_STATE_RUNNING) {
         // Process is waiting if all vcpus are waiting
         // Process is suspended if all vcpus are suspended
-        List_ForEach(&self->vcpu_queue, ListNode,
+        deque_for_each(&self->vcpu_queue, deque_node_t,
             vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
             if (cvp->sched_state == SCHED_STATE_RUNNING) {

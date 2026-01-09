@@ -21,7 +21,7 @@
 
 
 typedef struct fsentry {
-    ListNode                node;
+    deque_node_t            node;
     FilesystemRef _Nonnull  fs;
     InodeRef _Nonnull       driverNode;
 } fsentry_t;
@@ -68,8 +68,8 @@ catch:
 typedef struct FilesystemManager {
     kdispatch_t _Nonnull dq;
     mtx_t               mtx;
-    List                filesystems;    // List<FSEntry>
-    List                reaperQueue;    // List<FSEntry>
+    deque_t                filesystems;    // deque_t<FSEntry>
+    deque_t                reaperQueue;    // deque_t<FSEntry>
     struct timespec     bgInterval;
 } FilesystemManager;
 
@@ -129,7 +129,7 @@ errno_t FilesystemManager_EstablishFilesystem(FilesystemManagerRef _Nonnull self
     IOChannel_Release(chan);
 
     mtx_lock(&self->mtx);
-    List_InsertAfterLast(&self->filesystems, &entry->node);
+    deque_add_last(&self->filesystems, &entry->node);
     mtx_unlock(&self->mtx);
     *pOutFs = fs;
     return EOK;
@@ -177,7 +177,7 @@ errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Fil
 
 static fsentry_t* _Nullable _fsentry_for_fsid(FilesystemManagerRef _Locked _Nonnull self, fsid_t fsid)
 {
-    List_ForEach(&self->filesystems, fsentry_t,
+    deque_for_each(&self->filesystems, fsentry_t,
         if (Filesystem_GetId(pCurNode->fs) == fsid) {
             return pCurNode;
         }
@@ -199,7 +199,7 @@ void FilesystemManager_DisbandFilesystem(FilesystemManagerRef _Nonnull self, Fil
         mtx_lock(&self->mtx);
         fsentry_t* ep = _fsentry_for_fsid(self, Filesystem_GetId(fs));
 
-        List_Remove(&self->filesystems, &ep->node);
+        deque_remove(&self->filesystems, &ep->node);
         mtx_unlock(&self->mtx);
         fsentry_destroy(ep);
     }
@@ -208,8 +208,8 @@ void FilesystemManager_DisbandFilesystem(FilesystemManagerRef _Nonnull self, Fil
         mtx_lock(&self->mtx);
         fsentry_t* ep = _fsentry_for_fsid(self, Filesystem_GetId(fs));
 
-        List_Remove(&self->filesystems, &ep->node);
-        List_InsertAfterLast(&self->reaperQueue, &ep->node);
+        deque_remove(&self->filesystems, &ep->node);
+        deque_add_last(&self->reaperQueue, &ep->node);
         mtx_unlock(&self->mtx);
     }
 }
@@ -238,35 +238,35 @@ void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     // XXX change this to run the syncs outside of the lock
-    List_ForEach(&self->filesystems, fsentry_t,
+    deque_for_each(&self->filesystems, fsentry_t,
         Filesystem_Sync(pCurNode->fs);
     );
     mtx_unlock(&self->mtx);
 }
 
-static void _reap_fs(FilesystemManagerRef _Nonnull self, List* _Nonnull queue, fsentry_t* _Nonnull ep)
+static void _reap_fs(FilesystemManagerRef _Nonnull self, deque_t* _Nonnull queue, fsentry_t* _Nonnull ep)
 {
-    List_Remove(queue, &ep->node);
+    deque_remove(queue, &ep->node);
     fsentry_destroy(ep);
 }
 
 // Tries to stop and destroy filesystems that are on the reaper queue.
 static void _reaper(FilesystemManagerRef _Nonnull self)
 {
-    List queue;
+    deque_t queue;
 
     // Take a snapshot of the reaper queue so that we can do our work without
     // having to hold the lock.
     mtx_lock(&self->mtx);
     queue = self->reaperQueue;
-    self->reaperQueue = LIST_INIT;
+    self->reaperQueue = DEQUE_INIT;
     mtx_unlock(&self->mtx);
 
     
     // Kill as many filesystems as we can
-    if (!List_IsEmpty(&queue)) {
+    if (!deque_empty(&queue)) {
 
-        List_ForEach(&queue, fsentry_t,
+        deque_for_each(&queue, fsentry_t,
             if (Filesystem_CanDestroy(pCurNode->fs)) {
                 _reap_fs(self, &queue, pCurNode);
             }
@@ -275,9 +275,9 @@ static void _reaper(FilesystemManagerRef _Nonnull self)
 
         // Put the rest back on the reaper queue
         mtx_lock(&self->mtx);
-        List_ForEach(&queue, fsentry_t,
-            List_Remove(&queue, &pCurNode->node);
-            List_InsertBeforeFirst(&self->reaperQueue, &pCurNode->node);
+        deque_for_each(&queue, fsentry_t,
+            deque_remove(&queue, &pCurNode->node);
+            deque_add_first(&self->reaperQueue, &pCurNode->node);
         );
         mtx_unlock(&self->mtx);
     }

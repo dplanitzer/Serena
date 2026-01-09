@@ -67,7 +67,7 @@ typedef struct dispatch_sigtrap* dispatch_sigtrap_t;
 
 
 struct dispatch_worker {
-    ListNode                    worker_qe;
+    deque_node_t                worker_qe;
 
     SList                       work_queue;
     size_t                      work_count;
@@ -148,7 +148,7 @@ struct dispatch {
     dispatch_attr_t                 attr;
     vcpuid_t                        groupid;        // Constant over lifetime
 
-    List                            workers;        // Each worker has its own work item queue
+    deque_t                         workers;        // Each worker has its own work item queue
     size_t                          worker_count;
 
     SList                           zombie_items;   // Items that are done and joinable

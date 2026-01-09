@@ -75,10 +75,10 @@ void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doFifo)
     const unsigned int pri = vp->effective_priority;
 
     if (doFifo) {
-        List_InsertAfterLast(&self->ready_queue.priority[pri], &vp->rewa_qe);
+        deque_add_last(&self->ready_queue.priority[pri], &vp->rewa_qe);
     }
     else {
-        List_InsertBeforeFirst(&self->ready_queue.priority[pri], &vp->rewa_qe);
+        deque_add_first(&self->ready_queue.priority[pri], &vp->rewa_qe);
     }
     
     self->ready_queue.populated[pri >> 3] |= (1 << (pri & 7));
@@ -108,9 +108,9 @@ void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyTo
     }
 
 
-    List_Remove(&self->ready_queue.priority[pri], &vp->rewa_qe);
+    deque_remove(&self->ready_queue.priority[pri], &vp->rewa_qe);
     
-    if (List_IsEmpty(&self->ready_queue.priority[pri])) {
+    if (deque_empty(&self->ready_queue.priority[pri])) {
         self->ready_queue.populated[pri >> 3] &= ~(1 << (pri & 7));
     }
 }
@@ -177,7 +177,7 @@ _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 
 
     vp->sched_state = SCHED_STATE_TERMINATING;
-    List_InsertAfterLast(&self->finalizer_queue, &vp->owner_qe);
+    deque_add_last(&self->finalizer_queue, &vp->owner_qe);
     
     
     // Check whether there are too many VPs on the finalizer queue. If so then we
@@ -186,7 +186,7 @@ _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
     vcpu_t newRunning;
     const int FINALIZE_NOW_THRESHOLD = 4;
     int dead_vps_count = 0;
-    ListNode* pCurNode = self->finalizer_queue.first;
+    deque_node_t* pCurNode = self->finalizer_queue.first;
     while (pCurNode != NULL && dead_vps_count < FINALIZE_NOW_THRESHOLD) {
         pCurNode = pCurNode->next;
         dead_vps_count++;
@@ -210,17 +210,17 @@ _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 // processor. This function does not return to the caller. 
 _Noreturn sched_run_chores(sched_t _Nonnull self)
 {
-    List dead_vps;
+    deque_t dead_vps;
     struct timespec now, timeout, deadline;
 
     timespec_from_sec(&timeout, 1);
     
     while (true) {
-        dead_vps = LIST_INIT;
+        dead_vps = DEQUE_INIT;
         const int sps = preempt_disable();
 
         // Continue to wait as long as there's nothing to finalize
-        while (List_IsEmpty(&self->finalizer_queue)) {
+        while (deque_empty(&self->finalizer_queue)) {
             (void)wq_timedwait(&g_sched_wq,
                                 &SIGSET_IGNORE_ALL,
                                 0,
@@ -231,13 +231,13 @@ _Noreturn sched_run_chores(sched_t _Nonnull self)
         // Got some work to do. Save off the needed data in local vars and then
         // reenable preemption before we go and do the actual work.
         dead_vps = self->finalizer_queue;
-        self->finalizer_queue = LIST_INIT;
+        self->finalizer_queue = DEQUE_INIT;
         
         preempt_restore(sps);
         
         
         // Finalize VPs which have exited
-        List_ForEach(&dead_vps, ListNode,
+        deque_for_each(&dead_vps, deque_node_t,
             vcpu_t cp = vcpu_from_owner_qe(pCurNode);
 
             vcpu_destroy(cp);

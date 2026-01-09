@@ -146,7 +146,7 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 // out from the VP list.
 void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self)
 {
-    List_ForEach(&self->vcpu_queue, ListNode, {
+    deque_for_each(&self->vcpu_queue, deque_node_t, {
         vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
         vcpu_sigsend(cvp, SIGKILL);
@@ -214,7 +214,7 @@ _Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code)
         // termination/exit coordinator.
         // Take myself out from the vcpu list and send all other vcpus in the
         // process an abort signal.
-        List_Remove(&self->vcpu_queue, &vcpu_current()->owner_qe);
+        deque_remove(&self->vcpu_queue, &vcpu_current()->owner_qe);
         self->vcpu_count--;
         _proc_abort_other_vcpus(self);
     }

@@ -238,7 +238,7 @@ int _GraphicsDriver_GetNewGObjId(GraphicsDriverRef _Nonnull _Locked self)
         hasCollision = false;
         id = self->nextGObjId++;
 
-        List_ForEach(&self->gobjs, GObject,
+        deque_for_each(&self->gobjs, GObject,
             if (GObject_GetId(pCurNode) == id) {
                 hasCollision = true;
                 break;
@@ -250,7 +250,7 @@ int _GraphicsDriver_GetNewGObjId(GraphicsDriverRef _Nonnull _Locked self)
 
 void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull _Locked self, int id, int type)
 {
-    List_ForEach(&self->gobjs, GObject,
+    deque_for_each(&self->gobjs, GObject,
         if (GObject_GetId(pCurNode) == id) {
             return (GObject_GetType(pCurNode) == type) ? pCurNode : NULL;
         }
@@ -260,7 +260,7 @@ void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull _Locked 
 
 void _GraphicsDriver_DestroyGObj(GraphicsDriverRef _Nonnull _Locked self, void* gobj)
 {
-    List_Remove(&self->gobjs, GObject_GetChainPtr(gobj));
+    deque_remove(&self->gobjs, GObject_GetChainPtr(gobj));
     GObject_DelRef(gobj);
 }
 

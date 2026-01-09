@@ -36,7 +36,7 @@
 // The ready queue holds references to all VPs which are ready to run. The queue
 // is sorted from highest to lowest priority.
 typedef struct ready_queue {
-    List    priority[SCHED_PRI_COUNT];
+    deque_t priority[SCHED_PRI_COUNT];
     uint8_t populated[SCHED_PRI_POP_BYTE_COUNT];
 } ready_queue_t;
 
@@ -50,7 +50,7 @@ struct sched {
     int8_t                      reserved[2];
     vcpu_t _Nonnull             idle_vp;                        // This VP is scheduled if there is no other VP to schedule
     vcpu_t _Nonnull             boot_vp;                        // This is the first VP that was created at boot time for a CPU. It takes care of scheduler chores like destroying terminated VPs
-    List                        finalizer_queue;
+    deque_t                     finalizer_queue;
     ready_queue_t               ready_queue;
 };
 typedef struct sched* sched_t;

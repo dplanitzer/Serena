@@ -15,7 +15,7 @@
 
 static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo, bool enable)
 {
-    List_ForEach(&self->workers, ListNode, {
+    deque_for_each(&self->workers, deque_node_t, {
         dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
 
         if (enable) {

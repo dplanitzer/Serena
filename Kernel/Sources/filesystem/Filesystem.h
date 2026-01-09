@@ -180,12 +180,12 @@ open_class(Filesystem, Object,
     fsid_t              fsid;
     cnd_t               inCondVar;
     mtx_t               inLock;
-    List* _Nonnull      inCached;   // List<Inode>
+    deque_t* _Nonnull   inCached;   // deque_t<Inode>
     size_t              inCachedCount;
-    List* _Nonnull      inReading;  // List<RDnode>
+    deque_t* _Nonnull   inReading;  // deque_t<RDnode>
     size_t              inReadingCount;
     size_t              inReadingWaiterCount;
-    List                inReadingCache;
+    deque_t             inReadingCache;
     size_t              inReadingCacheCount;
     ino_t               rootDirectoryId;
     int8_t              state;

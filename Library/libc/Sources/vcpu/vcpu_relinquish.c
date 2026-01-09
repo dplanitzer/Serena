@@ -17,7 +17,7 @@ static vcpu_destructor_t _Nullable __vcpu_key_destructor(vcpu_key_t _Nonnull key
     vcpu_destructor_t dstr = NULL;
 
     spin_lock(&__g_lock);
-    List_ForEach(&__g_vcpu_keys, ListNode, {
+    deque_for_each(&__g_vcpu_keys, deque_node_t, {
         vcpu_key_t cep = (vcpu_key_t)pCurNode;
 
         if (cep == key) {
@@ -61,7 +61,7 @@ static void __vcpu_destroy_specific(vcpu_t _Nonnull self)
 _Noreturn __vcpu_relinquish(vcpu_t _Nonnull self)
 {
     spin_lock(&__g_lock);
-    List_Remove(&__g_all_vcpus, &self->qe);
+    deque_remove(&__g_all_vcpus, &self->qe);
     spin_unlock(&__g_lock);
 
     if (self != &__g_main_vcpu) {

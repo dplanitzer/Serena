@@ -135,7 +135,7 @@ bool _kdispatch_worker_withdraw_item(kdispatch_worker_t _Nonnull self, kdispatch
 
 kdispatch_item_t _Nullable _kdispatch_worker_find_item(kdispatch_worker_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
-    SList_ForEach(&self->work_queue, ListNode, {
+    SList_ForEach(&self->work_queue, deque_node_t, {
         kdispatch_item_t cip = (kdispatch_item_t)pCurNode;
 
         if (_kdispatch_item_has_func(cip, func, arg)) {

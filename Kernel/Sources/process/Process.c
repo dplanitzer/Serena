@@ -36,7 +36,7 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     self->pgrp = pgrp;
     self->sid = sid;
 
-    self->vcpu_queue = LIST_INIT;
+    self->vcpu_queue = DEQUE_INIT;
     self->next_avail_vcpuid = VCPUID_MAIN + 1;
 
     self->exit_reason = 0;
@@ -44,7 +44,7 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     IOChannelTable_Init(&self->ioChannelTable);
 
     for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
-        self->waitQueueTable[i] = LIST_INIT;
+        self->waitQueueTable[i] = DEQUE_INIT;
     }
     self->nextAvailWaitQueueId = 0;
 
@@ -75,7 +75,7 @@ static void _proc_deinit(ProcessRef _Nonnull self)
     _proc_destroy_sigroutes(self);
 
     for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
-        List_ForEach(&self->waitQueueTable[i], ListNode, {
+        deque_for_each(&self->waitQueueTable[i], deque_node_t, {
             u_wait_queue_t cwp = (u_wait_queue_t)pCurNode;
 
             uwq_destroy(cwp);
@@ -174,7 +174,7 @@ errno_t Process_AcquireVirtualProcessor(ProcessRef _Nonnull self, const _vcpu_ac
 
     vp->proc = self;
     vp->udata = attr->data;
-    List_InsertAfterLast(&self->vcpu_queue, &vp->owner_qe);
+    deque_add_last(&self->vcpu_queue, &vp->owner_qe);
     self->vcpu_count++;
 
 catch:
@@ -203,7 +203,7 @@ void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp
     assert(vp->proc == self);
 
     mtx_lock(&self->mtx);
-    List_Remove(&self->vcpu_queue, &vp->owner_qe);
+    deque_remove(&self->vcpu_queue, &vp->owner_qe);
     vp->proc = NULL;
     self->vcpu_count--;
     mtx_unlock(&self->mtx);
@@ -287,7 +287,7 @@ void KernelProcess_Init(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable 
     main_vp->proc = &g_kernel_proc_storage;
     main_vp->id = VCPUID_MAIN;
     main_vp->groupid = VCPUID_MAIN_GROUP;
-    List_InsertAfterLast(&g_kernel_proc_storage.vcpu_queue, &main_vp->owner_qe);
+    deque_add_last(&g_kernel_proc_storage.vcpu_queue, &main_vp->owner_qe);
     g_kernel_proc_storage.vcpu_count++;
 
     *pOutSelf = &g_kernel_proc_storage;

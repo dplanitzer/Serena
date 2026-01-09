@@ -241,7 +241,7 @@ static uint8_t* _Nullable zorro_calculate_base_address_for_board_in_range(const 
 
     // Find the board with a matching Zorro bus, board type and expansion space
     // address range that has the highest assigned address
-    List_ForEach(&bus->boards, zorro_board_t, 
+    deque_for_each(&bus->boards, zorro_board_t, 
         if (pCurNode->cfg.bus == cfg->bus
             && pCurNode->cfg.type == cfg->type
             && pCurNode->cfg.start >= board_space_base_addr
@@ -370,7 +370,7 @@ void zorro_auto_config(zorro_bus_t* _Nonnull bus)
         board->cfg.start = board_base_addr;
         board->cfg.slot = (int8_t)slot;
 
-        List_InsertAfterLast(&bus->boards, &board->node);
+        deque_add_last(&bus->boards, &board->node);
         bus->count++;
 
 
@@ -393,7 +393,7 @@ void zorro_auto_config(zorro_bus_t* _Nonnull bus)
 void zorro_destroy_bus(zorro_bus_t* _Nullable bus)
 {
     if (bus) {
-        List_ForEach(&bus->boards, zorro_board_t,
+        deque_for_each(&bus->boards, zorro_board_t,
             kfree(pCurNode);
         );
     }

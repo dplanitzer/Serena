@@ -11,7 +11,7 @@
 
 static void _kdispatch_enable_signal(kdispatch_t _Nonnull _Locked self, int signo, bool enable)
 {
-    List_ForEach(&self->workers, ListNode, {
+    deque_for_each(&self->workers, deque_node_t, {
         kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
 
         if (enable) {
@@ -240,7 +240,7 @@ errno_t kdispatch_send_signal(kdispatch_t _Nonnull self, int signo)
         vcpu_sigsend(((kdispatch_worker_t)self->workers.first)->vcpu, signo);
     }
     else {
-        List_ForEach(&self->workers, ListNode, {
+        deque_for_each(&self->workers, deque_node_t, {
             kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
 
             vcpu_sigsend(cwp->vcpu, signo);

@@ -93,7 +93,7 @@ errno_t kdispatch_destroy(kdispatch_t _Nullable self)
             self->sigtraps = NULL;
         }
 
-        self->workers = LIST_INIT;
+        self->workers = DEQUE_INIT;
         self->zombie_items = SLIST_INIT;
         self->timers = SLIST_INIT;
 
@@ -120,7 +120,7 @@ errno_t _kdispatch_acquire_worker(kdispatch_t _Nonnull _Locked self)
         return err;
     }
 
-    List_InsertAfterLast(&self->workers, &worker->worker_qe);
+    deque_add_last(&self->workers, &worker->worker_qe);
     self->worker_count++;
 
     return EOK;
@@ -130,7 +130,7 @@ _Noreturn _kdispatch_relinquish_worker(kdispatch_t _Nonnull _Locked self, kdispa
 {
     vcpu_t vp = vcpu_current();
 
-    List_Remove(&self->workers, &worker->worker_qe);
+    deque_remove(&self->workers, &worker->worker_qe);
     self->worker_count--;
     vp->dispatch_worker = NULL;
 
@@ -145,7 +145,7 @@ _Noreturn _kdispatch_relinquish_worker(kdispatch_t _Nonnull _Locked self, kdispa
 
 void _kdispatch_wakeup_all_workers(kdispatch_t _Nonnull self)
 {
-    List_ForEach(&self->workers, ListNode, {
+    deque_for_each(&self->workers, deque_node_t, {
         kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
 
         _kdispatch_worker_wakeup(cwp);
@@ -184,7 +184,7 @@ kdispatch_item_t _Nullable _kdispatch_steal_work_item(kdispatch_t _Nonnull self)
     kdispatch_worker_t most_busy_wp = NULL;
     size_t most_busy_count = 0;
 
-    List_ForEach(&self->workers, ListNode, {
+    deque_for_each(&self->workers, deque_node_t, {
         kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
 
         if (cwp->work_count > most_busy_count) {
@@ -225,7 +225,7 @@ static errno_t _kdispatch_submit(kdispatch_t _Nonnull _Locked self, kdispatch_it
     kdispatch_worker_t best_wp = NULL;
     size_t best_wc = SIZE_MAX;
 
-    List_ForEach(&self->workers, ListNode, {
+    deque_for_each(&self->workers, deque_node_t, {
         kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
 
         if (cwp->work_count <= best_wc) {
@@ -312,7 +312,7 @@ void _kdispatch_zombify_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t
 
 static kdispatch_item_t _Nullable _kdispatch_find_item(kdispatch_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
-    List_ForEach(&self->workers, ListNode, {
+    deque_for_each(&self->workers, deque_node_t, {
         kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
         kdispatch_item_t ip = _kdispatch_worker_find_item(cwp, func, arg);
 
@@ -544,7 +544,7 @@ static void _kdispatch_do_cancel_item(kdispatch_t _Nonnull self, kdispatch_item_
             switch (item->type) {
                 case _KDISPATCH_TYPE_USER_ITEM:
                 case _KDISPATCH_TYPE_CONV_ITEM:
-                    List_ForEach(&self->workers, ListNode, {
+                    deque_for_each(&self->workers, deque_node_t, {
                         kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
 
                         if (_kdispatch_worker_withdraw_item(cwp, item)) {
@@ -656,7 +656,7 @@ static void _kdispatch_applyschedparams(kdispatch_t _Nonnull _Locked self, int q
     self->attr.qos = qos;
     self->attr.priority = priority;
 
-    List_ForEach(&self->workers, ListNode, 
+    deque_for_each(&self->workers, deque_node_t, 
         kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
 
         vcpu_setschedparams(cwp->vcpu, &params);
@@ -754,7 +754,7 @@ errno_t kdispatch_suspend(kdispatch_t _Nonnull self)
             for (;;) {
                 bool hasStillActiveWorker = false;
 
-                List_ForEach(&self->workers, ListNode, {
+                deque_for_each(&self->workers, deque_node_t, {
                     kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
 
                     if (!cwp->is_suspended) {
@@ -808,7 +808,7 @@ void kdispatch_terminate(kdispatch_t _Nonnull self, int flags)
         isAwaitable = true;
 
         if ((flags & KDISPATCH_TERMINATE_CANCEL_ALL) == KDISPATCH_TERMINATE_CANCEL_ALL) {
-            List_ForEach(&self->workers, ListNode, {
+            deque_for_each(&self->workers, deque_node_t, {
                 kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
 
                 _kdispatch_worker_drain(cwp);

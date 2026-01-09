@@ -153,7 +153,7 @@ bool _dispatch_worker_withdraw_item(dispatch_worker_t _Nonnull self, dispatch_it
 
 dispatch_item_t _Nullable _dispatch_worker_find_item(dispatch_worker_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
-    SList_ForEach(&self->work_queue, ListNode, {
+    SList_ForEach(&self->work_queue, deque_node_t, {
         dispatch_item_t cip = (dispatch_item_t)pCurNode;
 
         if (_dispatch_item_has_func(cip, func, arg)) {

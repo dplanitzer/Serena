@@ -166,12 +166,12 @@ catch:
 
 static void _proc_img_deactivate_current(ProcessRef _Nonnull self)
 {
-    if (List_IsEmpty(&self->vcpu_queue)) {
+    if (deque_empty(&self->vcpu_queue)) {
         return;
     }
 
 
-    List_Remove(&self->vcpu_queue, &(vcpu_current()->owner_qe));
+    deque_remove(&self->vcpu_queue, &(vcpu_current()->owner_qe));
     self->vcpu_count--;
     _proc_abort_other_vcpus(self);
 
@@ -186,7 +186,7 @@ static void _proc_img_deactivate_current(ProcessRef _Nonnull self)
 static void _proc_img_activate(ProcessRef _Nonnull self, const proc_img_t* _Nonnull pimg)
 {
     AddressSpace_AdoptMappingsFrom(&self->addr_space, &pimg->as);
-    List_InsertAfterLast(&self->vcpu_queue, &pimg->main_vp->owner_qe);
+    deque_add_last(&self->vcpu_queue, &pimg->main_vp->owner_qe);
     self->vcpu_count++;
     pimg->main_vp->proc = self;
     self->pargs_base = pimg->pargs;
@@ -204,8 +204,8 @@ errno_t Process_Exec(ProcessRef _Nonnull self, const char* _Nonnull execPath, co
     // We only permit calling Process_Exit() from another process if that other
     // process is building us (thus there's no vcpu assigned to 'self' at this
     // point).
-    assert(List_IsEmpty(&self->vcpu_queue)
-        || (!List_IsEmpty(&self->vcpu_queue) && vcpu_current()->proc == self));
+    assert(deque_empty(&self->vcpu_queue)
+        || (!deque_empty(&self->vcpu_queue) && vcpu_current()->proc == self));
 
     
     // Don't do an exec() if we are in the process of being shut down

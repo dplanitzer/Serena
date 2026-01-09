@@ -17,14 +17,14 @@
 #define MAX_CACHED_REQUESTS 8
 
 typedef struct CachedIORequest {
-    ListNode    node;
-    size_t      size;       // Size of the cached request
+    deque_node_t    node;
+    size_t          size;       // Size of the cached request
 } CachedIORequest;
 
 
 // All 0 by default by virtue of being in the BSS
 static mtx_t    gLock;
-static List     gCache;
+static deque_t     gCache;
 static int      gCacheCount;
 
 
@@ -43,7 +43,7 @@ errno_t IORequest_Get(int type, size_t reqSize, IORequest* _Nullable * _Nonnull 
     if (gCacheCount > 0) {
         CachedIORequest* cr = NULL;
 
-        List_ForEach(&gCache, CachedIORequest, {
+        deque_for_each(&gCache, CachedIORequest, {
             if (pCurNode->size >= targetSize) {
                 cr = pCurNode;
                 break;
@@ -51,7 +51,7 @@ errno_t IORequest_Get(int type, size_t reqSize, IORequest* _Nullable * _Nonnull 
         });
 
         if (cr) {
-            List_Remove(&gCache, &cr->node);
+            deque_remove(&gCache, &cr->node);
             gCacheCount--;
 
             actSize = cr->size;
@@ -99,7 +99,7 @@ void IORequest_Put(IORequest* _Nullable req)
             cr->node.prev = NULL;
             cr->size = actSize;
 
-            List_InsertBeforeFirst(&gCache, &cr->node);
+            deque_add_first(&gCache, &cr->node);
             gCacheCount++;
             didCache = true;
         }

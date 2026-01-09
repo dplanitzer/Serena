@@ -49,7 +49,7 @@ typedef int8_t  wres_t;
 
 
 struct waitqueue {
-    List    q;
+    deque_t q;
 };
 typedef struct waitqueue* waitqueue_t;
 

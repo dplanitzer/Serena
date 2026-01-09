@@ -15,57 +15,58 @@
 __CPP_BEGIN
 
 //
-// A doubly linked list.
+// A de-queue.
 //
 
-typedef struct ListNode {
-    struct ListNode* _Nullable  next;
-    struct ListNode* _Nullable  prev;
-} ListNode;
+typedef struct deque_node {
+    struct deque_node* _Nullable  next;
+    struct deque_node* _Nullable  prev;
+} deque_node_t;
 
-typedef struct List {
-    ListNode* _Nullable first;
-    ListNode* _Nullable last;
-} List;
+typedef struct deque_t {
+    deque_node_t* _Nullable first;
+    deque_node_t* _Nullable last;
+} deque_t;
 
 
-#define LISTNODE_INIT   (ListNode){NULL, NULL}
-#define LIST_INIT       (List){NULL, NULL}
+#define DEQUE_NODE_INIT (deque_node_t){NULL, NULL}
+#define DEQUE_INIT      (deque_t){NULL, NULL}
 
-extern void List_InsertBeforeFirst(List* _Nonnull pList, ListNode* _Nonnull pNode);
-extern void List_InsertAfterLast(List* _Nonnull pList, ListNode* _Nonnull pNode);
-extern void List_InsertAfter(List* _Nonnull pList, ListNode* _Nonnull pNode, ListNode* _Nullable pAfterNode);
+// Adds 'node' before the first node in the dequeue.
+extern void deque_add_first(deque_t* _Nonnull dq, deque_node_t* _Nonnull node);
 
-extern void List_Remove(List* _Nonnull pList, ListNode* _Nonnull pNode);
-extern ListNode* _Nullable List_RemoveFirst(List* _Nonnull pList);
+// Adds 'node' after the last node in the dequeue.
+extern void deque_add_last(deque_t* _Nonnull dq, deque_node_t* _Nonnull node);
+extern void deque_insert(deque_t* _Nonnull dq, deque_node_t* _Nonnull node, deque_node_t* _Nullable after);
 
-extern void List_Split(List* _Nonnull pList, ListNode* _Nullable pFirstNodeOfTail, List* _Nonnull pHeadList, List* _Nonnull pTailList);
+extern void deque_remove(deque_t* _Nonnull dq, deque_node_t* _Nonnull node);
+extern deque_node_t* _Nullable deque_remove_first(deque_t* _Nonnull dq);
 
-#define List_IsEmpty(__lp) \
-((__lp)->first == NULL)
+#define deque_empty(__dq) \
+((__dq)->first == NULL)
 
-// Iterates all elements of the given list. Guarantees that the closure may call
+// Iterates all elements of the given deque. Guarantees that the closure may call
 // free on 'pCurNode' without ill effect. The iteration will continue until the
-// end of the list is reached or 'closure' executes a break statement. 
-#define List_ForEach(pList, NodeType, closure) \
+// end of the deque is reached or 'closure' executes a break statement. 
+#define deque_for_each(dq, NodeType, closure) \
 { \
-    NodeType* pCurNode = (NodeType*)(pList)->first; \
+    NodeType* pCurNode = (NodeType*)(dq)->first; \
     while (pCurNode) { \
-        NodeType* pNextNode = (NodeType*)((ListNode*)pCurNode)->next; \
+        NodeType* pNextNode = (NodeType*)((deque_node_t*)pCurNode)->next; \
         { closure } \
         pCurNode = pNextNode; \
     } \
 }
 
-// Iterates all elements of the given list in reverse order. Guarantees that the
+// Iterates all elements of the given deque in reverse order. Guarantees that the
 // closure may call free on 'pCurNode' without ill effect. The iteration will
-// continue until the end of the list is reached or 'closure' executes a break
+// continue until the end of the deque is reached or 'closure' executes a break
 // statement. 
-#define List_ForEachReversed(pList, NodeType, closure) \
+#define deque_for_each_reversed(dq, NodeType, closure) \
 { \
-    NodeType* pCurNode = (NodeType*)(pList)->last; \
+    NodeType* pCurNode = (NodeType*)(dq)->last; \
     while (pCurNode) { \
-        NodeType* pPrevNode = (NodeType*)((ListNode*)pCurNode)->prev; \
+        NodeType* pPrevNode = (NodeType*)((deque_node_t*)pCurNode)->prev; \
         { closure } \
         pCurNode = pPrevNode; \
     } \

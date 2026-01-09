@@ -21,7 +21,7 @@
 typedef void (*vcpu_destructor_t)(void*);
 
 struct vcpu_key {
-    ListNode                    qe;
+    deque_node_t                qe;
     vcpu_destructor_t _Nullable destructor;
 };
 
@@ -37,7 +37,7 @@ typedef struct vcpu_specific* vcpu_specific_t;
 
 
 struct vcpu {
-    ListNode                qe;
+    deque_node_t            qe;
     vcpuid_t                id;
     vcpuid_t                groupid;
     vcpu_func_t _Nullable  func;
@@ -49,9 +49,9 @@ struct vcpu {
 
 
 extern spinlock_t   __g_lock;
-extern List         __g_all_vcpus;
+extern deque_t      __g_all_vcpus;
 extern struct vcpu  __g_main_vcpu;
-extern List         __g_vcpu_keys;
+extern deque_t      __g_vcpu_keys;
 
 // For libdispatch
 extern vcpu_key_t __os_dispatch_key;

@@ -108,7 +108,7 @@ int dispatch_destroy(dispatch_t _Nullable self)
             self->sigtraps = NULL;
         }
 
-        self->workers = LIST_INIT;
+        self->workers = DEQUE_INIT;
         self->zombie_items = SLIST_INIT;
         self->timers = SLIST_INIT;
 
@@ -130,7 +130,7 @@ static int _dispatch_acquire_worker_with_ownership(dispatch_t _Nonnull _Locked s
     dispatch_worker_t worker = _dispatch_worker_create(self, ownership);
 
     if (worker) {
-        List_InsertAfterLast(&self->workers, &worker->worker_qe);
+        deque_add_last(&self->workers, &worker->worker_qe);
         self->worker_count++;
 
         return 0;
@@ -143,7 +143,7 @@ _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch
 {
     const int adoption = worker->adoption;
 
-    List_Remove(&self->workers, &worker->worker_qe);
+    deque_remove(&self->workers, &worker->worker_qe);
     self->worker_count--;
 
     _dispatch_worker_destroy(worker);
@@ -158,7 +158,7 @@ _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch
 
 void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self)
 {
-    List_ForEach(&self->workers, ListNode, {
+    deque_for_each(&self->workers, deque_node_t, {
         dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
 
         _dispatch_worker_wakeup(cwp);
@@ -197,7 +197,7 @@ dispatch_item_t _Nullable _dispatch_steal_work_item(dispatch_t _Nonnull self)
     dispatch_worker_t most_busy_wp = NULL;
     size_t most_busy_count = 0;
 
-    List_ForEach(&self->workers, ListNode, {
+    deque_for_each(&self->workers, deque_node_t, {
         dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
 
         if (cwp->work_count > most_busy_count) {
@@ -237,7 +237,7 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
     dispatch_worker_t best_wp = NULL;
     size_t best_wc = SIZE_MAX;
 
-    List_ForEach(&self->workers, ListNode, {
+    deque_for_each(&self->workers, deque_node_t, {
         dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
 
         if (cwp->work_count <= best_wc) {
@@ -324,7 +324,7 @@ void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
 
 static dispatch_item_t _Nullable _dispatch_find_item(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
-    List_ForEach(&self->workers, ListNode, {
+    deque_for_each(&self->workers, deque_node_t, {
         dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
         dispatch_item_t ip = _dispatch_worker_find_item(cwp, func, arg);
 
@@ -547,7 +547,7 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, dispatch_item_t _
             switch (item->type) {
                 case _DISPATCH_TYPE_USER_ITEM:
                 case _DISPATCH_TYPE_CONV_ITEM:
-                    List_ForEach(&self->workers, ListNode, {
+                    deque_for_each(&self->workers, deque_node_t, {
                         dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
 
                         if (_dispatch_worker_withdraw_item(cwp, item)) {
@@ -659,7 +659,7 @@ static void _dispatch_applyschedparams(dispatch_t _Nonnull _Locked self, int qos
     self->attr.qos = qos;
     self->attr.priority = priority;
 
-    List_ForEach(&self->workers, ListNode, 
+    deque_for_each(&self->workers, deque_node_t, 
         dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
 
         vcpu_setschedparams(cwp->vcpu, &params);
@@ -807,7 +807,7 @@ int dispatch_suspend(dispatch_t _Nonnull self)
             for (;;) {
                 bool hasStillActiveWorker = false;
 
-                List_ForEach(&self->workers, ListNode, {
+                deque_for_each(&self->workers, deque_node_t, {
                     dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
 
                     if (!cwp->is_suspended) {
@@ -862,7 +862,7 @@ void dispatch_terminate(dispatch_t _Nonnull self, int flags)
         isAwaitable = true;
 
         if ((flags & DISPATCH_TERMINATE_CANCEL_ALL) == DISPATCH_TERMINATE_CANCEL_ALL) {
-            List_ForEach(&self->workers, ListNode, {
+            deque_for_each(&self->workers, deque_node_t, {
                 dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
 
                 _dispatch_worker_drain(cwp);

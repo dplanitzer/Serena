@@ -43,9 +43,9 @@
 // - onWritebackNode: do nothing
 // - onRelinquishNode: delete the node from 'inOwned' if linkCount == 0; do nothing otherwise
 final_class_ivars(KernFS, Filesystem,
-    mtx_t           inOwnedLock;
-    List* _Nonnull  inOwned;            // <KfsNode>
-    ino_t           nextAvailableInodeId;
+    mtx_t               inOwnedLock;
+    deque_t* _Nonnull   inOwned;            // <KfsNode>
+    ino_t               nextAvailableInodeId;
 );
 
 

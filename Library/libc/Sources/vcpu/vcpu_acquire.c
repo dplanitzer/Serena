@@ -50,7 +50,7 @@ vcpu_t _Nullable vcpu_acquire(const vcpu_attr_t* _Nonnull attr)
     }
 
     spin_lock(&__g_lock);
-    List_InsertAfterLast(&__g_all_vcpus, &self->qe);
+    deque_add_last(&__g_all_vcpus, &self->qe);
     spin_unlock(&__g_lock);
 
 

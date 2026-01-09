@@ -376,7 +376,7 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
         while (!done) {
             done = true;
 
-            List_ForEachReversed(&self->lruChain, ListNode, 
+            deque_for_each_reversed(&self->lruChain, deque_node_t, 
                 DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
 
                 if (!DiskBlock_InUse(pb) && (pb->flags.isDirty && !pb->flags.isPinned)) {

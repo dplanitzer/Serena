@@ -17,11 +17,11 @@ vcpu_key_t _Nullable vcpu_key_create(vcpu_destructor_t _Nullable destructor)
     vcpu_key_t key = malloc(sizeof(struct vcpu_key));
 
     if (key) {
-        key->qe = LISTNODE_INIT;
+        key->qe = DEQUE_NODE_INIT;
         key->destructor = destructor;
 
         spin_lock(&__g_lock);
-        List_InsertAfterLast(&__g_vcpu_keys, &key->qe);
+        deque_add_last(&__g_vcpu_keys, &key->qe);
         spin_unlock(&__g_lock);
     }
     return key;
@@ -31,7 +31,7 @@ void vcpu_key_delete(vcpu_key_t _Nullable key)
 {
     if (key && key != __os_dispatch_key) {
         spin_lock(&__g_lock);
-        List_Remove(&__g_vcpu_keys, &key->qe);
+        deque_remove(&__g_vcpu_keys, &key->qe);
         spin_unlock(&__g_lock);
 
         free(key);

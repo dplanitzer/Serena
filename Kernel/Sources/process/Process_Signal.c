@@ -60,7 +60,7 @@ static sigroute_t _Nullable _find_specific_sigroute(ProcessRef _Nonnull _Locked 
 {
     sigroute_t prp = NULL;
 
-    SList_ForEach(&self->sig_route[signo - 1], ListNode,
+    SList_ForEach(&self->sig_route[signo - 1], deque_node_t,
         sigroute_t crp = (sigroute_t)pCurNode;
 
         if (crp->scope == scope && crp->target_id == id) {
@@ -167,7 +167,7 @@ static void _proc_terminate_on_behalf_of(ProcessRef _Nonnull _Locked self, int s
 static void _proc_stop(ProcessRef _Nonnull _Locked self)
 {
     if (self->state == PROC_STATE_RUNNING) {
-        List_ForEach(&self->vcpu_queue, ListNode,
+        deque_for_each(&self->vcpu_queue, deque_node_t,
             vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
             vcpu_suspend(cvp);
@@ -181,7 +181,7 @@ static void _proc_stop(ProcessRef _Nonnull _Locked self)
 static void _proc_cont(ProcessRef _Nonnull _Locked self)
 {
     if (self->state == PROC_STATE_STOPPED) {
-        List_ForEach(&self->vcpu_queue, ListNode,
+        deque_for_each(&self->vcpu_queue, deque_node_t,
             vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
             vcpu_resume(cvp, false);
@@ -199,7 +199,7 @@ static errno_t _proc_send_signal_to_vcpu(ProcessRef _Nonnull _Locked self, id_t 
         target_vp = me_vp;
     }
     else {
-        List_ForEach(&self->vcpu_queue, ListNode,
+        deque_for_each(&self->vcpu_queue, deque_node_t,
             vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
             
             if (cvp->id == id) {
@@ -224,7 +224,7 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self,
 {
     bool hasMatch = false;
 
-    List_ForEach(&self->vcpu_queue, ListNode,
+    deque_for_each(&self->vcpu_queue, deque_node_t,
         vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
 
         if (cvp->groupid == id) {

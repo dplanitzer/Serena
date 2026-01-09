@@ -20,15 +20,15 @@
 
 // A directory entry
 typedef struct KfsDirectoryEntry {
-    ListNode    sibling;
-    ino_t       inid;
-    int8_t      nameLength;
-    char        name[MAX_NAME_LENGTH];
+    deque_node_t    sibling;
+    ino_t           inid;
+    int8_t          nameLength;
+    char            name[MAX_NAME_LENGTH];
 } KfsDirectoryEntry;
 
 
 open_class(KfsDirectory, KfsNode,
-    List/*<KfsDirectoryEntry>*/ entries;
+    deque_t/*<KfsDirectoryEntry>*/  entries;
 );
 open_class_funcs(KfsDirectory, KfsNode,
 );

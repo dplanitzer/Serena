@@ -45,7 +45,7 @@ final_class_ivars(GraphicsDriver, DisplayDriver,
     Surface* _Nonnull       nullSpriteSurface;
     sprite_channel_t        spriteChannel[SPRITE_COUNT];
 
-    List/*<GObject>*/       gobjs;
+    deque_t/*<GObject>*/    gobjs;
     int                     nextGObjId;
 
     struct __GDFlags {

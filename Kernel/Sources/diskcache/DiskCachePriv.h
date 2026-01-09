@@ -163,12 +163,12 @@ typedef struct DiskCache {
     cnd_t                       condition;
     int                         nextAvailSessionId;
     size_t                      lruChainGeneration;     // Incremented every time the LRU chain is modified
-    List/*<DiskBlock>*/         lruChain;               // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used
+    deque_t/*<DiskBlock>*/      lruChain;               // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used
     size_t                      blockSize;
     size_t                      blockCount;             // Number of disk blocks owned and managed by the disk cache (blocks in use + blocks held on the cache lru chain)
     size_t                      blockCapacity;          // Maximum number of disk blocks that may exist at any given time
     size_t                      dirtyBlockCount;        // Number of blocks in the cache that are currently marked dirty
-    List/*<DiskBlock>*/         diskAddrHash[DISK_BLOCK_HASH_CHAIN_COUNT];  // Hash table organizing disk blocks by disk address
+    deque_t/*<DiskBlock>*/      diskAddrHash[DISK_BLOCK_HASH_CHAIN_COUNT];  // Hash table organizing disk blocks by disk address
 } DiskCache;
 
 

@@ -15,7 +15,7 @@ errno_t _GraphicsDriver_CreateSurface2d(GraphicsDriverRef _Nonnull _Locked self,
 
     const errno_t err = Surface_Create(_GraphicsDriver_GetNewGObjId(self), width, height, pixelFormat, &srf);
     if (err == EOK) {
-        List_InsertBeforeFirst(&self->gobjs, GObject_GetChainPtr(srf));
+        deque_add_first(&self->gobjs, GObject_GetChainPtr(srf));
         *pOutSurface = srf;
     }
 

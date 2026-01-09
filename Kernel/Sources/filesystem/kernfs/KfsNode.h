@@ -14,7 +14,7 @@
 
     
 open_class(KfsNode, Inode,
-    ListNode    inChain;
+    deque_node_t    inChain;
 );
 open_class_funcs(KfsNode, Inode,
 );

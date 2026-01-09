@@ -10,142 +10,105 @@
 
 
 //
-// A doubly linked list.
+// A de-queue.
 //
 
-void List_InsertBeforeFirst(List* _Nonnull pList, ListNode* _Nonnull pNode)
+void deque_add_first(deque_t* _Nonnull dq, deque_node_t* _Nonnull node)
 {
-    pNode->prev = NULL;
-    pNode->next = pList->first;
+    node->prev = NULL;
+    node->next = dq->first;
     
-    if (pList->first) {
-        pList->first->prev = pNode;
+    if (dq->first) {
+        dq->first->prev = node;
     }
     
-    pList->first = pNode;
-    if (pList->last == NULL) {
-        pList->last = pNode;
+    dq->first = node;
+    if (dq->last == NULL) {
+        dq->last = node;
     }
 }
 
-void List_InsertAfterLast(List* _Nonnull pList, ListNode* _Nonnull pNode)
+void deque_add_last(deque_t* _Nonnull dq, deque_node_t* _Nonnull node)
 {
-    pNode->prev = pList->last;
-    pNode->next = NULL;
+    node->prev = dq->last;
+    node->next = NULL;
     
-    if (pList->last) {
-        pList->last->next = pNode;
+    if (dq->last) {
+        dq->last->next = node;
     }
     
-    pList->last = pNode;
-    if (pList->first == NULL) {
-        pList->first = pNode;
+    dq->last = node;
+    if (dq->first == NULL) {
+        dq->first = node;
     }
 }
 
 // Inserts the node 'pNode' after 'pAfterNode'. The node 'pNode' is added as the
 // first node in the list if 'pAfterNode' is NULL.
-void List_InsertAfter(List* _Nonnull pList, ListNode* _Nonnull pNode, ListNode* _Nullable pAfterNode)
+void deque_insert(deque_t* _Nonnull dq, deque_node_t* _Nonnull node, deque_node_t* _Nullable after)
 {
-    if (pAfterNode) {
-        pNode->prev = pAfterNode;
-        pNode->next = pAfterNode->next;
+    if (after) {
+        node->prev = after;
+        node->next = after->next;
     
-        if (pAfterNode->next) {
-            pAfterNode->next->prev = pNode;
+        if (after->next) {
+            after->next->prev = node;
         }
-        pAfterNode->next = pNode;
+        after->next = node;
     
-        if (pList->last == pAfterNode) {
-            pList->last = pNode;
+        if (dq->last == after) {
+            dq->last = node;
         }
     } else {
-        List_InsertBeforeFirst(pList, pNode);
+        deque_add_first(dq, node);
     }
 }
 
-void List_Remove(List* _Nonnull pList, ListNode* _Nonnull pNode)
+void deque_remove(deque_t* _Nonnull dq, deque_node_t* _Nonnull node)
 {
-    if (pList->first != pNode || pList->last != pNode) {
-        if (pNode->next) {
-            pNode->next->prev = pNode->prev;
+    if (dq->first != node || dq->last != node) {
+        if (node->next) {
+            node->next->prev = node->prev;
         }
-        if (pNode->prev) {
-            pNode->prev->next = pNode->next;
+        if (node->prev) {
+            node->prev->next = node->next;
         }
         
-        if (pList->first == pNode) {
-            pList->first = pNode->next;
+        if (dq->first == node) {
+            dq->first = node->next;
         }
-        if (pList->last == pNode) {
-            pList->last = pNode->prev;
+        if (dq->last == node) {
+            dq->last = node->prev;
         }
     } else {
-        pList->first = NULL;
-        pList->last = NULL;
+        dq->first = NULL;
+        dq->last = NULL;
     }
     
-    pNode->prev = NULL;
-    pNode->next = NULL;
+    node->prev = NULL;
+    node->next = NULL;
 }
 
-ListNode* _Nullable List_RemoveFirst(List* _Nonnull pList)
+deque_node_t* _Nullable deque_remove_first(deque_t* _Nonnull dq)
 {
-    ListNode* pFirstNode = pList->first;
+    deque_node_t* first = dq->first;
 
-    if (pFirstNode != NULL) {
-        if (pFirstNode != pList->last) {
-            ListNode* pNewFirstNode = pFirstNode->next;
+    if (first != NULL) {
+        if (first != dq->last) {
+            deque_node_t* second = first->next;
 
-            pNewFirstNode->prev = NULL;
-            pList->first = pNewFirstNode;
+            second->prev = NULL;
+            dq->first = second;
             
-            pFirstNode->prev = NULL;
-            pFirstNode->next = NULL;
+            first->prev = NULL;
+            first->next = NULL;
         } else {
-            pList->first = NULL;
-            pList->last = NULL;
+            dq->first = NULL;
+            dq->last = NULL;
         }
     }
 
-    return pFirstNode;
-}
-
-// Splits 'pList' into two separate lists: a head list 'pHeadList' and a tail
-// list 'pTailList'. The node 'pFirstNodeOfTail' will be the first node of the
-// tail list and its predecessor (if any) will be the last node of the head list.
-// if 'pFirstNodeOfTail' is null then all nodes are moved from 'pList' to the
-// head list and 'pTailList' is initialized to an empty list. If 'pFirstNodeOfTail'
-// has no predecessor then all nodes of 'pList' are moved to 'pTailList' and
-// 'pHeadList' is initialized to an empty list.
-// 'pList' is always initialized to an empty list on return.
-void List_Split(List* _Nonnull pList, ListNode* _Nullable pFirstNodeOfTail, List* _Nonnull pHeadList, List* _Nonnull pTailList)
-{
-    ListNode* pOrigListFirst = pList->first;
-    ListNode* pOrigListLast = pList->last;
-    ListNode* pLastNodeOfHead = (pFirstNodeOfTail) ? pFirstNodeOfTail->prev : NULL;
-    
-    if (pLastNodeOfHead) {
-        pHeadList->first = pOrigListFirst;
-        pHeadList->last = pLastNodeOfHead;
-        
-        pLastNodeOfHead->next = NULL;
-    } else {
-        *pHeadList = LIST_INIT;
-    }
-    
-    if (pFirstNodeOfTail) {
-        pTailList->first = pFirstNodeOfTail;
-        pTailList->last = pOrigListLast;
-        
-        pFirstNodeOfTail->prev = NULL;
-    } else {
-        *pTailList = LIST_INIT;
-    }
-    
-    if (pList != pHeadList && pList != pTailList) {
-        *pList = LIST_INIT;
-    }
+    return first;
 }
 
 

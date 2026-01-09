@@ -95,7 +95,7 @@ enum {
 
 // Note: Keep in sync with machine/hw/m68k/lowmem.i
 struct vcpu {
-    ListNode                        rewa_qe;                // A VP is either on the ready (re) queue or a wait (wa) queue
+    deque_node_t                    rewa_qe;                // A VP is either on the ready (re) queue or a wait (wa) queue
 
     cpu_savearea_t* _Nonnull        csw_sa;                 // Points to base of the context switcher CPU state save area 
     syscall_savearea_t* _Nullable   syscall_sa;             // Points to base of the system call CPU state save area
@@ -106,7 +106,7 @@ struct vcpu {
     vcpuid_t                        groupid;                // virtual processor group id. Assigned at acquisition time 
 
     // VP owner
-    ListNode                        owner_qe;               // VP Pool if relinquished; process if acquired
+    deque_node_t                    owner_qe;               // VP Pool if relinquished; process if acquired
 
     // System call support
     errno_t                         uerrno;                 // most recent recorded error for user space

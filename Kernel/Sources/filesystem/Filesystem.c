@@ -37,8 +37,8 @@
 
 
 typedef struct RDnode {
-    ListNode    sibling;
-    ino_t       id;
+    deque_node_t    sibling;
+    ino_t           id;
 } RDnode;
 
 
@@ -57,8 +57,8 @@ errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOut
     FilesystemRef self;
 
     try(Object_Create(pClass, 0, (void**)&self));
-    try(FSAllocateCleared(sizeof(List) * IN_CACHED_HASH_CHAINS_COUNT, (void**)&self->inCached));
-    try(FSAllocateCleared(sizeof(List) * IN_READING_HASH_CHAINS_COUNT, (void**)&self->inReading));
+    try(FSAllocateCleared(sizeof(deque_t) * IN_CACHED_HASH_CHAINS_COUNT, (void**)&self->inCached));
+    try(FSAllocateCleared(sizeof(deque_t) * IN_READING_HASH_CHAINS_COUNT, (void**)&self->inReading));
     
     self->fsid = Filesystem_GetNextAvailableId();
     cnd_init(&self->inCondVar);
@@ -131,7 +131,7 @@ static errno_t _Filesystem_PrepReadingNode(FilesystemRef _Nonnull self, ino_t id
     RDnode* rdp;
 
     if (self->inReadingCacheCount > 0) {
-        rdp = (RDnode*)List_RemoveFirst(&self->inReadingCache);
+        rdp = (RDnode*)deque_remove_first(&self->inReadingCache);
         self->inReadingCacheCount--;
     }
     else {
@@ -140,7 +140,7 @@ static errno_t _Filesystem_PrepReadingNode(FilesystemRef _Nonnull self, ino_t id
 
     if (err == EOK) {
         rdp->id = id;
-        List_InsertBeforeFirst(&self->inReading[IN_READING_HASH_INDEX(id)], &rdp->sibling);
+        deque_add_first(&self->inReading[IN_READING_HASH_INDEX(id)], &rdp->sibling);
         self->inReadingCount++;
     }
 
@@ -150,11 +150,11 @@ static errno_t _Filesystem_PrepReadingNode(FilesystemRef _Nonnull self, ino_t id
 
 static void _Filesystem_FinReadingNode(FilesystemRef _Nonnull self, RDnode* _Nonnull rdp)
 {
-    List_Remove(&self->inReading[IN_READING_HASH_INDEX(rdp->id)], &rdp->sibling);
+    deque_remove(&self->inReading[IN_READING_HASH_INDEX(rdp->id)], &rdp->sibling);
     self->inReadingCount--;
 
     if (self->inReadingCacheCount < MAX_CACHED_RDNODES) {
-        List_InsertBeforeFirst(&self->inReadingCache, &rdp->sibling);
+        deque_add_first(&self->inReadingCache, &rdp->sibling);
         self->inReadingCacheCount++;
     }
     else {
@@ -176,7 +176,7 @@ static errno_t _Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t 
 
 retry:
     // Check whether we already got the inode cached
-    List_ForEach(&self->inCached[IN_CACHED_HASH_INDEX(id)], struct Inode,
+    deque_for_each(&self->inCached[IN_CACHED_HASH_INDEX(id)], struct Inode,
         InodeRef curNode = InodeFromHashChainPointer(pCurNode);
 
         if (Inode_GetId(curNode) == id) {
@@ -191,7 +191,7 @@ retry:
         // the inode off the disk. We'll wait if that's the case.
         bool isReading = false;
 
-        List_ForEach(&self->inReading[IN_READING_HASH_INDEX(id)], struct RDnode,
+        deque_for_each(&self->inReading[IN_READING_HASH_INDEX(id)], struct RDnode,
             if (((RDnode*)pCurNode)->id == id) {
                 isReading = true;
                 break;
@@ -238,7 +238,7 @@ retry:
         }
 
         if (err == EOK) {
-            List_InsertBeforeFirst(&self->inCached[IN_CACHED_HASH_INDEX(id)], &ip->sibling);
+            deque_add_first(&self->inCached[IN_CACHED_HASH_INDEX(id)], &ip->sibling);
             self->inCachedCount++;
             ip->state = kInodeState_Cached;
         }
@@ -331,7 +331,7 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
     bool doDestroy = false;
     pNode->useCount--;
     if (pNode->useCount == 0) {
-        List_Remove(&self->inCached[IN_CACHED_HASH_INDEX(Inode_GetId(pNode))], &pNode->sibling);
+        deque_remove(&self->inCached[IN_CACHED_HASH_INDEX(Inode_GetId(pNode))], &pNode->sibling);
         self->inCachedCount--;
         doDestroy = true;
     }

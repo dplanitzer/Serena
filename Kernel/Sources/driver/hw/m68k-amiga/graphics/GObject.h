@@ -18,10 +18,10 @@ enum {
 };
 
 typedef struct GObject {
-    ListNode    chain;
-    int         id;
-    int32_t     refCount;
-    int16_t     type;
+    deque_node_t    chain;
+    int             id;
+    int32_t         refCount;
+    int16_t         type;
 } GObject;
 
 

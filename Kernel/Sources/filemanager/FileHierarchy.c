@@ -28,13 +28,13 @@ extern void ResolvedPath_Init(ResolvedPath* _Nonnull self);
 // serve as attachments points for other filesystems.
 typedef struct FsNode {
     FilesystemRef _Nonnull  filesystem;
-    List                    attachmentPoints;   // List<AtNode>
+    deque_t                    attachmentPoints;   // deque_t<AtNode>
 } FsNode;
 
 // Represents a single attachment point in a filesystem. Names the directory and
 // its filesystem that are attached at a directory in the parent filesystem.
 typedef struct AtNode {
-    ListNode                sibling;
+    deque_node_t            sibling;
 
     InodeRef _Nonnull       attachingDirectory;     // Owning
     FsNode* _Nonnull _Weak  attachingFsNode;
@@ -52,7 +52,7 @@ typedef enum FHKeyType {
 // corresponding attachment point (AtNode). There is an entry for the attachment
 // and the attaching directory. Both point to the same AtNode.
 typedef struct FHKey {
-    ListNode            sibling;
+    deque_node_t        sibling;
 
     AtNode* _Nonnull    at;
 
@@ -72,7 +72,7 @@ final_class_ivars(FileHierarchy, Object,
     rwmtx_t             lock;
     FsNode* _Nonnull    root;
     InodeRef _Nonnull   rootDirectory;
-    List                hashChain[HASH_CHAINS_COUNT];   // Chains of FHKey
+    deque_t                hashChain[HASH_CHAINS_COUNT];   // Chains of FHKey
 );
 
 
@@ -85,7 +85,7 @@ static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _L
 static void destroy_fsnode(FsNode* _Nullable self)
 {
     if (self) {
-        List_ForEach(&self->attachmentPoints, AtNode,
+        deque_for_each(&self->attachmentPoints, AtNode,
             destroy_atnode(pCurNode);
         );
 
@@ -113,7 +113,7 @@ static void print_fsnode(FsNode* _Nonnull self)
     printf("FsNode {\n");
     printf("fsid: %u, fs: %p\n", Filesystem_GetId(self->filesystem), (void*)self->filesystem);
     printf("attachment points:\n");
-    List_ForEach(&self->attachmentPoints, AtNode,
+    deque_for_each(&self->attachmentPoints, AtNode,
         print_atnode(pCurNode);
     );
     printf("}\n");
@@ -227,7 +227,7 @@ void FileHierarchy_deinit(FileHierarchyRef _Nullable self)
 static void _FileHierarchy_DestroyAllKeys(FileHierarchyRef _Nonnull self)
 {
     for (size_t i = 0; i < HASH_CHAINS_COUNT; i++) {
-        List_ForEach(&self->hashChain[i], FHKey,
+        deque_for_each(&self->hashChain[i], FHKey,
             destroy_key(pCurNode);
         )
     }
@@ -251,7 +251,7 @@ static void _FileHierarchy_InsertKey(FileHierarchyRef _Nonnull _Locked self, FHK
 {
     const size_t hashIdx = HASH_INDEX(key->type, key->fsid, key->inid);
 
-    List_InsertBeforeFirst(&self->hashChain[hashIdx], &key->sibling);
+    deque_add_first(&self->hashChain[hashIdx], &key->sibling);
 }
 
 static void _FileHierarchy_RemoveKey(FileHierarchyRef _Nonnull _Locked self, FHKey* _Nullable key)
@@ -259,7 +259,7 @@ static void _FileHierarchy_RemoveKey(FileHierarchyRef _Nonnull _Locked self, FHK
     if (key) {
         const size_t hashIdx = HASH_INDEX(key->type, key->fsid, key->inid);
 
-        List_Remove(&self->hashChain[hashIdx], &key->sibling);
+        deque_remove(&self->hashChain[hashIdx], &key->sibling);
     }
 }
 
@@ -269,7 +269,7 @@ static FHKey* _Nullable _FileHierarchy_GetKey(FileHierarchyRef _Nonnull _Locked 
     const ino_t inid = Inode_GetId(inode);
     const size_t hashIdx = HASH_INDEX(type, fsid, inid);
 
-    List_ForEach(&self->hashChain[hashIdx], FHKey,
+    deque_for_each(&self->hashChain[hashIdx], FHKey,
         if (pCurNode->type == type && pCurNode->fsid == fsid && pCurNode->inid == inid) {
             return pCurNode;
         }
@@ -291,7 +291,7 @@ static FsNode* _Nullable find_fsnode_rec(FsNode* _Nonnull self, fsid_t fsid)
         return self;
     }
 
-    List_ForEach(&self->attachmentPoints, AtNode, 
+    deque_for_each(&self->attachmentPoints, AtNode, 
         FsNode* foundNode = find_fsnode_rec(pCurNode->attachedFsNode, fsid);
 
         if (foundNode) {
@@ -343,7 +343,7 @@ errno_t FileHierarchy_AttachFilesystem(FileHierarchyRef _Nonnull self, Filesyste
     _FileHierarchy_InsertKey(self, upKey);
     _FileHierarchy_InsertKey(self, downKey);
 
-    List_InsertAfterLast(&atFsNode->attachmentPoints, &atNode->sibling);
+    deque_add_last(&atFsNode->attachmentPoints, &atNode->sibling);
 
     try_bang(rwmtx_unlock(&self->lock));
     return EOK;
@@ -358,19 +358,19 @@ catch:
     return err;
 }
 
-static void _FileHierarchy_CollectKeysForAtNode(FileHierarchyRef _Nonnull _Locked self, AtNode* _Nonnull atNode, List* _Nonnull keys)
+static void _FileHierarchy_CollectKeysForAtNode(FileHierarchyRef _Nonnull _Locked self, AtNode* _Nonnull atNode, deque_t* _Nonnull keys)
 {
     for (size_t i = 0; i < HASH_CHAINS_COUNT; i++) {
-        List_ForEach(&self->hashChain[i], FHKey,
+        deque_for_each(&self->hashChain[i], FHKey,
             if (pCurNode->at == atNode) {
-                List_Remove(&self->hashChain[i], &pCurNode->sibling);
-                List_InsertBeforeFirst(keys, &pCurNode->sibling);
+                deque_remove(&self->hashChain[i], &pCurNode->sibling);
+                deque_add_first(keys, &pCurNode->sibling);
             }
         );
     }
 }
 
-static void destroy_key_collection(List* _Nonnull keys)
+static void destroy_key_collection(deque_t* _Nonnull keys)
 {
     FHKey* curKey = (FHKey*)keys->first;
 
@@ -392,7 +392,7 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
     AtNode* atNode = NULL;
     FsNode* atFsNode = NULL;
     FilesystemRef fs = NULL;
-    List keys = LIST_INIT;
+    deque_t keys = DEQUE_INIT;
 
     try_bang(rwmtx_wrlock(&self->lock));
 
@@ -414,7 +414,7 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
     // attached to it.
     atNode = upKey->at;
     fs = atNode->attachedFsNode->filesystem;
-    if (!forced && !List_IsEmpty(&atNode->attachedFsNode->attachmentPoints)) {
+    if (!forced && !deque_empty(&atNode->attachedFsNode->attachmentPoints)) {
         throw(EBUSY);
     }
 
@@ -429,7 +429,7 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
 
     if (err != EBUSY) {
         atFsNode = atNode->attachingFsNode;
-        List_Remove(&atFsNode->attachmentPoints, &atNode->sibling);
+        deque_remove(&atFsNode->attachmentPoints, &atNode->sibling);
         _FileHierarchy_CollectKeysForAtNode(self, atNode, &keys);
     }
 

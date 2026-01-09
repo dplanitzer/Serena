@@ -150,20 +150,20 @@ void _DiskCache_DowngradeBlockContentLock(DiskCacheRef _Nonnull _Locked self, Di
 static void _DiskCache_RegisterBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
 {
     const size_t idx = DiskBlock_Hash(pBlock) & DISK_BLOCK_HASH_CHAIN_MASK;
-    List* chain = &self->diskAddrHash[idx];
+    deque_t* chain = &self->diskAddrHash[idx];
 
-    List_InsertBeforeFirst(chain, &pBlock->hashNode);
-    List_InsertBeforeFirst(&self->lruChain, &pBlock->lruNode);
+    deque_add_first(chain, &pBlock->hashNode);
+    deque_add_first(&self->lruChain, &pBlock->lruNode);
     self->lruChainGeneration++;
 }
 
 static void _DiskCache_DeregisterBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
 {
     const size_t idx = DiskBlock_Hash(pBlock) & DISK_BLOCK_HASH_CHAIN_MASK;
-    List* chain = &self->diskAddrHash[idx];
+    deque_t* chain = &self->diskAddrHash[idx];
 
-    List_Remove(chain, &pBlock->hashNode);
-    List_Remove(&self->lruChain, &pBlock->lruNode);
+    deque_remove(chain, &pBlock->hashNode);
+    deque_remove(&self->lruChain, &pBlock->lruNode);
     self->lruChainGeneration++;
 }
 #if 0
@@ -171,7 +171,7 @@ void _DiskCache_Print(DiskCacheRef _Nonnull _Locked self)
 {
     printf("{");
     for (size_t i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
-        List_ForEach(&self->diskAddrHash[i], DiskBlock,
+        deque_for_each(&self->diskAddrHash[i], DiskBlock,
             printf("%u [%u], ", pCurNode->lba, i);
         );
     }
@@ -181,7 +181,7 @@ void _DiskCache_Print(DiskCacheRef _Nonnull _Locked self)
 void _DiskCache_PrintLruChain(DiskCacheRef _Nonnull _Locked self)
 {
     printf("{");
-    List_ForEach(&self->lruChain, ListNode,
+    deque_for_each(&self->lruChain, deque_node_t,
         DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
         printf("%u", pb->lba);
         if (pCurNode->next) {
@@ -215,7 +215,7 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
 {
     DiskBlockRef pBlock = NULL;
 
-    List_ForEachReversed(&self->lruChain, ListNode, 
+    deque_for_each_reversed(&self->lruChain, deque_node_t, 
         DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
 
         //XXX we previously allowed the reuse of a dirty block and we would sync out the
@@ -254,10 +254,10 @@ errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, const DiskSessio
     for (;;) {
         // Look up the block based on (sessionId, lba)
         const size_t idx = DiskBlock_HashKey(s->sessionId, lba) & DISK_BLOCK_HASH_CHAIN_MASK;
-        List* chain = &self->diskAddrHash[idx];
+        deque_t* chain = &self->diskAddrHash[idx];
     
         pBlock = NULL;
-        List_ForEach(chain, DiskBlock,
+        deque_for_each(chain, DiskBlock,
             if (DiskBlock_IsEqualKey(pCurNode, s->sessionId, lba)) {
                 pBlock = pCurNode;
                 break;
@@ -298,8 +298,8 @@ errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, const DiskSessio
 
         if (pBlock) {
             if ((options & kGetBlock_RecentUse) == kGetBlock_RecentUse) {
-                List_Remove(&self->lruChain, &pBlock->lruNode);
-                List_InsertBeforeFirst(&self->lruChain, &pBlock->lruNode);
+                deque_remove(&self->lruChain, &pBlock->lruNode);
+                deque_add_first(&self->lruChain, &pBlock->lruNode);
                 self->lruChainGeneration++;
             }
         }

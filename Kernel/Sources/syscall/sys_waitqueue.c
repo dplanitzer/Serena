@@ -27,7 +27,7 @@ static errno_t uwq_create(int policy, u_wait_queue_t _Nullable * _Nonnull pOutSe
 
     err = kalloc(sizeof(struct u_wait_queue), (void**)&self);
     if (err == EOK) {
-        self->qe = LISTNODE_INIT;
+        self->qe = DEQUE_NODE_INIT;
         wq_init(&self->wq);
         self->policy = policy;
         self->id = -1;
@@ -59,7 +59,7 @@ SYSCALL_2(wq_create, int policy, int* _Nonnull pOutQ)
         
         q = pp->nextAvailWaitQueueId++;
         uwp->id = q;
-        List_InsertAfterLast(&pp->waitQueueTable[hash_scalar(q) & UWQ_HASH_CHAIN_MASK], &uwp->qe);
+        deque_add_last(&pp->waitQueueTable[hash_scalar(q) & UWQ_HASH_CHAIN_MASK], &uwp->qe);
         preempt_restore(sps);
     }
     *(pa->pOutQ) = q;
@@ -70,7 +70,7 @@ SYSCALL_2(wq_create, int policy, int* _Nonnull pOutQ)
 // @Entry Condition: preemption disabled
 static u_wait_queue_t _Nullable _find_uwq(ProcessRef _Nonnull pp, int q)
 {
-    List_ForEach(&pp->waitQueueTable[hash_scalar(q) & UWQ_HASH_CHAIN_MASK], ListNode,
+    deque_for_each(&pp->waitQueueTable[hash_scalar(q) & UWQ_HASH_CHAIN_MASK], deque_node_t,
         u_wait_queue_t cwp = (u_wait_queue_t)pCurNode;
 
         if (cwp->id == q) {
@@ -90,8 +90,8 @@ SYSCALL_1(wq_dispose, int q)
     u_wait_queue_t uwp = _find_uwq(pp, pa->q);
     
     if (uwp) {
-        if (List_IsEmpty(&uwp->wq.q)) {
-            List_Remove(&pp->waitQueueTable[hash_scalar(pa->q) & UWQ_HASH_CHAIN_MASK], &uwp->qe);
+        if (deque_empty(&uwp->wq.q)) {
+            deque_remove(&pp->waitQueueTable[hash_scalar(pa->q) & UWQ_HASH_CHAIN_MASK], &uwp->qe);
         }
         else {
             err = EBUSY;

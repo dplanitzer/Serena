@@ -15,7 +15,7 @@
 
 void wq_init(waitqueue_t _Nonnull self)
 {
-    self->q = LIST_INIT;
+    self->q = DEQUE_INIT;
 }
 
 errno_t wq_deinit(waitqueue_t _Nonnull self)
@@ -23,7 +23,7 @@ errno_t wq_deinit(waitqueue_t _Nonnull self)
     decl_try_err();
     const int sps = preempt_disable();
 
-    if (!List_IsEmpty(&self->q)) {
+    if (!deque_empty(&self->q)) {
         err = EBUSY;
     }
 
@@ -54,7 +54,7 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, bo
 
 
     // FIFO order.
-    List_InsertAfterLast(&self->q, &vp->rewa_qe);
+    deque_add_last(&self->q, &vp->rewa_qe);
     
     vp->sched_state = SCHED_STATE_WAITING;
     vp->waiting_on_wait_queue = self;
@@ -193,7 +193,7 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
 
     // Finish the wait. Remove the VP from the wait queue, the timeout queue and
     // store the wake reason.
-    List_Remove(&self->q, &vp->rewa_qe);
+    deque_remove(&self->q, &vp->rewa_qe);
     clock_cancel_deadline(g_mono_clock, &vp->timeout);
     
     vp->waiting_on_wait_queue = NULL;
@@ -227,14 +227,14 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
 // @Entry Condition: preemption disabled
 void wq_wake(waitqueue_t _Nonnull self, int flags, wres_t reason)
 {
-    register ListNode* cp = self->q.first;
+    register deque_node_t* cp = self->q.first;
     register bool isWakeupOne = ((flags & WAKEUP_ONE) == WAKEUP_ONE);
     vcpu_t pRunCandidate = NULL;
 
     
     // Make all waiting VPs ready and find a VP to potentially context switch to.
     while (cp) {
-        register ListNode* np = cp->next;
+        register deque_node_t* np = cp->next;
         register vcpu_t vp = (vcpu_t)cp;
         register const bool isReady = wq_wakeone(self, vp, 0, reason);
 
@@ -261,11 +261,11 @@ void wq_wake(waitqueue_t _Nonnull self, int flags, wres_t reason)
 // @Entry Condition: preemption disabled
 void wq_wake_irq(waitqueue_t _Nonnull self)
 {
-    register ListNode* cp = self->q.first;    
+    register deque_node_t* cp = self->q.first;    
     
     // Make all waiting VPs ready to run but do not trigger a context switch.
     while (cp) {
-        register ListNode* np = cp->next;
+        register deque_node_t* np = cp->next;
         
         wq_wakeone(self, (vcpu_t)cp, WAKEUP_IRQ | WAKEUP_CSW, WRES_WAKEUP);
         cp = np;

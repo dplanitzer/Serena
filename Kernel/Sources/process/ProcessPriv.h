@@ -29,7 +29,7 @@
 #define UWQ_HASH_CHAIN_MASK     (UWQ_HASH_CHAIN_COUNT - 1)
 
 struct u_wait_queue {
-    ListNode            qe;
+    deque_node_t        qe;
     struct waitqueue    wq;
     unsigned int        policy;
     int                 id;
@@ -86,7 +86,7 @@ typedef struct Process {
     char* _Nullable _Weak           pargs_base; // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
 
     // VPs
-    List                            vcpu_queue;     // List of VPs [mtx]
+    deque_t                         vcpu_queue;     // deque_t of VPs [mtx]
     size_t                          vcpu_count;
     vcpuid_t                        next_avail_vcpuid;
 
@@ -97,7 +97,7 @@ typedef struct Process {
     FileManager                     fm;
 
     // User wait queues
-    List/*<struct u_wait_queue>*/   waitQueueTable[UWQ_HASH_CHAIN_COUNT];   // wait queue descriptor -> struct u_wait_queue
+    deque_t/*<struct u_wait_queue>*/waitQueueTable[UWQ_HASH_CHAIN_COUNT];   // wait queue descriptor -> struct u_wait_queue
     int                             nextAvailWaitQueueId;
 
     // All VPs that belong to this process and are currently in sleep()

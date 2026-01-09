@@ -41,8 +41,8 @@ vcpu_t _Nullable vcpu_pool_checkout(vcpu_pool_t _Nonnull self)
     vcpu_t vp;
 
     mtx_lock(&self->mtx);
-    if (!List_IsEmpty(&self->reuse_queue)) {
-        vp = vcpu_from_owner_qe(List_RemoveFirst(&self->reuse_queue));
+    if (!deque_empty(&self->reuse_queue)) {
+        vp = vcpu_from_owner_qe(deque_remove_first(&self->reuse_queue));
         self->reuse_count--;
     }
     else {
@@ -59,7 +59,7 @@ bool vcpu_pool_checkin(vcpu_pool_t _Nonnull self, vcpu_t _Nonnull vp)
 
     mtx_lock(&self->mtx);
     if (self->reuse_count < self->reuse_capacity) {
-        List_InsertAfterLast(&self->reuse_queue, &vp->owner_qe);
+        deque_add_last(&self->reuse_queue, &vp->owner_qe);
         self->reuse_count++;
         reused = true;
     }

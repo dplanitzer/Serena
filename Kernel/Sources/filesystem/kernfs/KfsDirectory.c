@@ -45,14 +45,14 @@ catch:
 
 void KfsDirectory_deinit(KfsDirectoryRef _Nonnull self)
 {
-    List_ForEach(&self->entries, KfsDirectoryEntry,
+    deque_for_each(&self->entries, KfsDirectoryEntry,
         FSDeallocate(pCurNode);
     )
 }
 
 bool KfsDirectory_IsEmpty(KfsDirectoryRef _Nonnull _Locked self)
 {
-    return List_IsEmpty(&self->entries);
+    return deque_empty(&self->entries);
 }
 
 errno_t _Nullable KfsDirectory_GetEntryForName(KfsDirectoryRef _Nonnull _Locked self, const PathComponent* _Nonnull pc, KfsDirectoryEntry* _Nullable * _Nonnull pOutEntry)
@@ -66,7 +66,7 @@ errno_t _Nullable KfsDirectory_GetEntryForName(KfsDirectoryRef _Nonnull _Locked 
         return ENAMETOOLONG;
     }
 
-    List_ForEach(&self->entries, KfsDirectoryEntry,
+    deque_for_each(&self->entries, KfsDirectoryEntry,
         if (PathComponent_EqualsString(pc, pCurNode->name, pCurNode->nameLength)) {
             *pOutEntry = pCurNode;
             return EOK;
@@ -78,7 +78,7 @@ errno_t _Nullable KfsDirectory_GetEntryForName(KfsDirectoryRef _Nonnull _Locked 
 
 errno_t KfsDirectory_GetNameOfEntryWithId(KfsDirectoryRef _Nonnull _Locked self, ino_t inid, MutablePathComponent* _Nonnull mpc)
 {
-    List_ForEach(&self->entries, KfsDirectoryEntry,
+    deque_for_each(&self->entries, KfsDirectoryEntry,
         if (pCurNode->inid == inid) {
             return MutablePathComponent_SetString(mpc, pCurNode->name, pCurNode->nameLength);
         }
@@ -126,7 +126,7 @@ errno_t KfsDirectory_InsertEntry(KfsDirectoryRef _Nonnull _Locked self, ino_t in
     entry->nameLength = pc->count;
     memcpy(entry->name, pc->name, pc->count);
 
-    List_InsertAfterLast(&self->entries, &entry->sibling);
+    deque_add_last(&self->entries, &entry->sibling);
     Inode_IncrementFileSize(self, sizeof(KfsDirectoryEntry));
 
 
@@ -148,7 +148,7 @@ errno_t KfsDirectory_RemoveEntry(KfsDirectoryRef _Nonnull _Locked self, InodeRef
 {
     KfsDirectoryEntry* entry = NULL;
 
-    List_ForEach(&self->entries, KfsDirectoryEntry,
+    deque_for_each(&self->entries, KfsDirectoryEntry,
         if (pCurNode->inid == Inode_GetId(pNodeToRemove)) {
             entry = pCurNode;
             break;
@@ -159,7 +159,7 @@ errno_t KfsDirectory_RemoveEntry(KfsDirectoryRef _Nonnull _Locked self, InodeRef
         return ENOENT;
     }
 
-    List_Remove(&self->entries, &entry->sibling);
+    deque_remove(&self->entries, &entry->sibling);
     FSDeallocate(entry);
     Inode_DecrementFileSize(self, sizeof(KfsDirectoryEntry));
 
