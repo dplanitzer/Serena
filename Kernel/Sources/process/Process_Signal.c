@@ -60,17 +60,15 @@ static sigroute_t _Nullable _find_specific_sigroute(ProcessRef _Nonnull _Locked 
 {
     sigroute_t prp = NULL;
 
-    queue_for_each(&self->sig_route[signo - 1], deque_node_t, it,
-        sigroute_t crp = (sigroute_t)it;
-
-        if (crp->scope == scope && crp->target_id == id) {
+    queue_for_each(&self->sig_route[signo - 1], struct sigroute, it,
+        if (it->scope == scope && it->target_id == id) {
             if (pOutPrevEntry) {
                 *pOutPrevEntry = prp;
             }
-            return crp;
+            return it;
         }
 
-        prp = crp;
+        prp = it;
     )
 
     return NULL;
@@ -255,16 +253,14 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
 
         default:
             if (!queue_empty(&self->sig_route[signo - 1])) {
-                queue_for_each(&self->sig_route[signo - 1], queue_t, it,
-                    sigroute_t crp = (sigroute_t)it;
-
-                    switch (crp->scope) {
+                queue_for_each(&self->sig_route[signo - 1], struct sigroute, it,
+                    switch (it->scope) {
                         case SIG_SCOPE_VCPU:
-                            _proc_send_signal_to_vcpu(self, crp->target_id, signo, false);
+                            _proc_send_signal_to_vcpu(self, it->target_id, signo, false);
                             break;
 
                         case SIG_SCOPE_VCPU_GROUP:
-                            _proc_send_signal_to_vcpu_group(self, crp->target_id, signo);
+                            _proc_send_signal_to_vcpu_group(self, it->target_id, signo);
                             break;
 
                         default:

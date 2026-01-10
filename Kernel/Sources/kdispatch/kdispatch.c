@@ -274,14 +274,12 @@ static errno_t _kdispatch_await(kdispatch_t _Nonnull _Locked self, kdispatch_ite
 
     bool foundIt = false;
     kdispatch_item_t pip = NULL;
-    queue_for_each(&self->zombie_items, queue_node_t, it,
-        kdispatch_item_t cip = (kdispatch_item_t)it;
-
-        if (cip == item) {
+    queue_for_each(&self->zombie_items, struct kdispatch_item, it,
+        if (it == item) {
             foundIt = true;
             break;
         }
-        pip = cip;
+        pip = it;
     )
 
 

@@ -40,16 +40,14 @@ void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, dispatch_item_t _N
     if (self->sigtraps) {
         stp = &self->sigtraps[signo - 1];
 
-        queue_for_each(&stp->monitors, queue_node_t, it,
-            dispatch_item_t cip = (dispatch_item_t)it;
-
-            if (cip == item) {
-                queue_remove(&stp->monitors, &pip->qe, &cip->qe);
+        queue_for_each(&stp->monitors, struct dispatch_item, it,
+            if (it == item) {
+                queue_remove(&stp->monitors, &pip->qe, &it->qe);
                 hasIt = true;
                 break;
             }
 
-            pip = cip;
+            pip = it;
         )
     }
 

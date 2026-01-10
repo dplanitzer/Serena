@@ -15,7 +15,7 @@
 
 
 struct dentry {
-    queue_node_t           qe;
+    queue_node_t        qe;
     CatalogId           dirId;
     DriverRef _Nonnull  driver;
     did_t               id;
@@ -23,7 +23,7 @@ struct dentry {
 typedef struct dentry* dentry_t;
 
 struct matcher {
-    queue_node_t           qe;
+    queue_node_t        qe;
     drv_match_func_t    func;
     void* _Nullable     arg;
     iocat_t             cats[IOCAT_MAX];
@@ -35,9 +35,9 @@ typedef struct matcher* matcher_t;
 #define HASH_CHAIN_MASK  (HASH_CHAIN_COUNT - 1)
 
 struct DriverManager {
-    mtx_t               mtx;
-    queue_t/*<dentry_t>*/ id_table[HASH_CHAIN_COUNT];  // did_t -> dentry_t
-    queue_t/*<matcher_t*/ matchers;
+    mtx_t                   mtx;
+    queue_t/*<dentry_t>*/   id_table[HASH_CHAIN_COUNT];  // did_t -> dentry_t
+    queue_t/*<matcher_t*/   matchers;
 };
 
 
@@ -86,20 +86,18 @@ static dentry_t _Nullable _get_dentry_by_id(DriverManagerRef _Nonnull _Locked se
     queue_t* the_chain = &self->id_table[hash_scalar(id) & HASH_CHAIN_MASK];
     dentry_t prev_ep = NULL;
 
-    queue_for_each(the_chain, queue_node_t, it,
-        dentry_t ep = (dentry_t)it;
-
-        if (ep->id == id) {
+    queue_for_each(the_chain, struct dentry, it,
+        if (it->id == id) {
             if (pOutChain) {
                 *pOutChain = the_chain;
             }
             if (pOutPrevEntry) {
                 *pOutPrevEntry = prev_ep;
             }
-            return ep;
+            return it;
         }
 
-        prev_ep = ep;
+        prev_ep = it;
     )
 
     return NULL;
@@ -201,16 +199,14 @@ errno_t DriverManager_GetMatches(DriverManagerRef _Nonnull self, const iocat_t* 
 
     mtx_lock(&self->mtx);
     for (size_t idx = 0; idx < HASH_CHAIN_COUNT; idx++) {
-        queue_for_each(&self->id_table[idx], queue_node_t, it,
-            dentry_t dep = (dentry_t)it;
-            
-            if (instanceof(dep->driver, Driver) && Driver_HasSomeCategories((DriverRef)dep->driver, cats)) {
+        queue_for_each(&self->id_table[idx], struct dentry, it,
+            if (instanceof(it->driver, Driver) && Driver_HasSomeCategories((DriverRef)it->driver, cats)) {
                 if (idx >= bufsiz-1) {
                     err = ERANGE;
                     break;
                 }
 
-                buf[idx++] = Object_RetainAs(dep->driver, Driver);
+                buf[idx++] = Object_RetainAs(it->driver, Driver);
             }
         )
 
@@ -246,11 +242,9 @@ errno_t DriverManager_StartMatching(DriverManagerRef _Nonnull self, const iocat_
 
     // Tell the matcher about all existing drivers
     for (size_t idx = 0; idx < HASH_CHAIN_COUNT; idx++) {
-        queue_for_each(&self->id_table[idx], queue_node_t, it,
-            dentry_t dep = (dentry_t)it;
-            
-            if (instanceof(dep->driver, Driver) && Driver_HasSomeCategories((DriverRef)dep->driver, pm->cats)) {
-                f(arg, dep->driver, IONOTIFY_STARTED);
+        queue_for_each(&self->id_table[idx], struct dentry, it,
+            if (instanceof(it->driver, Driver) && Driver_HasSomeCategories((DriverRef)it->driver, pm->cats)) {
+                f(arg, it->driver, IONOTIFY_STARTED);
             }
         )
     }
@@ -263,14 +257,12 @@ catch:
 
 void DriverManager_StopMatching(DriverManagerRef _Nonnull self, drv_match_func_t _Nonnull f, void* _Nullable arg)
 {
-    queue_node_t* pprev = NULL;
+    matcher_t pprev = NULL;
 
     mtx_lock(&self->mtx);
-    queue_for_each(&self->matchers, queue_node_t, it,
-        matcher_t p = (matcher_t)it;
-
-        if (p->func == f && p->arg == arg) {
-            queue_remove(&self->matchers, pprev, &p->qe);
+    queue_for_each(&self->matchers, struct matcher, it,
+        if (it->func == f && it->arg == arg) {
+            queue_remove(&self->matchers, &pprev->qe, &it->qe);
             break;
         }
         pprev = it;
@@ -281,11 +273,9 @@ void DriverManager_StopMatching(DriverManagerRef _Nonnull self, drv_match_func_t
 static void _do_match_callouts(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver, int notify)
 {
     mtx_lock(&self->mtx);
-    queue_for_each(&self->matchers, queue_node_t, it,
-        matcher_t pm = (matcher_t)it;
-            
-        if (Driver_HasSomeCategories((DriverRef)driver, pm->cats)) {
-            pm->func(pm->arg, driver, notify);
+    queue_for_each(&self->matchers, struct matcher, it,
+        if (Driver_HasSomeCategories((DriverRef)driver, it->cats)) {
+            it->func(it->arg, driver, notify);
         }
     )
     mtx_unlock(&self->mtx);

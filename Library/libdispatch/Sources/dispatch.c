@@ -286,14 +286,12 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
 
     bool foundIt = false;
     dispatch_item_t pip = NULL;
-    queue_for_each(&self->zombie_items, queue_node_t, it,
-        dispatch_item_t cip = (dispatch_item_t)it;
-
-        if (cip == item) {
+    queue_for_each(&self->zombie_items, struct dispatch_item, it,
+        if (it == item) {
             foundIt = true;
             break;
         }
-        pip = cip;
+        pip = it;
     )
 
     

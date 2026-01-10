@@ -45,15 +45,13 @@ static dispatch_timer_t _Nullable _dispatch_dequeue_timer_for_item(dispatch_t _N
     dispatch_timer_t ptp = NULL;
     dispatch_timer_t timer = NULL;
 
-    queue_for_each(&self->timers, queue_node_t, it,
-        dispatch_timer_t ctp = (dispatch_timer_t)it;
-
-        if (ctp->item == item) {
-            timer = ctp;
+    queue_for_each(&self->timers, struct dispatch_timer, it,
+        if (it->item == item) {
+            timer = it;
             break;
         }
 
-        ptp = ctp;
+        ptp = it;
     )
 
 
@@ -71,11 +69,9 @@ static dispatch_timer_t _Nullable _dispatch_dequeue_timer_for_item(dispatch_t _N
 
 dispatch_timer_t _Nullable _dispatch_find_timer(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
-    queue_for_each(&self->timers, queue_node_t, it,
-        dispatch_timer_t ctp = (dispatch_timer_t)it;
-
-        if (_dispatch_item_has_func(ctp->item, func, arg)) {
-             return ctp;
+    queue_for_each(&self->timers, struct dispatch_timer, it,
+        if (_dispatch_item_has_func(it->item, func, arg)) {
+             return it;
         }
     )
 

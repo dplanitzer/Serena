@@ -36,16 +36,14 @@ void _kdispatch_withdraw_signal_item(kdispatch_t _Nonnull self, kdispatch_item_t
     if (self->sigtraps) {
         stp = &self->sigtraps[signo - 1];
 
-        queue_for_each(&stp->monitors, queue_node_t, it,
-            kdispatch_item_t cip = (kdispatch_item_t)it;
-
-            if (cip == item) {
-                queue_remove(&stp->monitors, &pip->qe, &cip->qe);
+        queue_for_each(&stp->monitors, struct kdispatch_item, it,
+            if (it == item) {
+                queue_remove(&stp->monitors, &pip->qe, &it->qe);
                 hasIt = true;
                 break;
             }
 
-            pip = cip;
+            pip = it;
         )
     }
 
