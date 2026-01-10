@@ -15,14 +15,12 @@
 
 static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo, bool enable)
 {
-    deque_for_each(&self->workers, deque_node_t, it,
-        dispatch_worker_t cwp = (dispatch_worker_t)it;
-
+    deque_for_each(&self->workers, struct dispatch_worker, it,
         if (enable) {
-            cwp->hotsigs |= _SIGBIT(signo);
+            it->hotsigs |= _SIGBIT(signo);
         }
         else {
-            cwp->hotsigs &= ~_SIGBIT(signo);
+            it->hotsigs &= ~_SIGBIT(signo);
         }
     )
 

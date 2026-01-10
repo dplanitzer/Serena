@@ -158,10 +158,8 @@ _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch
 
 void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self)
 {
-    deque_for_each(&self->workers, deque_node_t, it,
-        dispatch_worker_t cwp = (dispatch_worker_t)it;
-
-        _dispatch_worker_wakeup(cwp);
+    deque_for_each(&self->workers, struct dispatch_worker, it,
+        _dispatch_worker_wakeup(it);
     )
 }
 
@@ -197,12 +195,10 @@ dispatch_item_t _Nullable _dispatch_steal_work_item(dispatch_t _Nonnull self)
     dispatch_worker_t most_busy_wp = NULL;
     size_t most_busy_count = 0;
 
-    deque_for_each(&self->workers, deque_node_t, it,
-        dispatch_worker_t cwp = (dispatch_worker_t)it;
-
-        if (cwp->work_count > most_busy_count) {
-            most_busy_count = cwp->work_count;
-            most_busy_wp = cwp;
+    deque_for_each(&self->workers, struct dispatch_worker, it,
+        if (it->work_count > most_busy_count) {
+            most_busy_count = it->work_count;
+            most_busy_wp = it;
         }
     )
 
@@ -237,12 +233,10 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
     dispatch_worker_t best_wp = NULL;
     size_t best_wc = SIZE_MAX;
 
-    deque_for_each(&self->workers, deque_node_t, it,
-        dispatch_worker_t cwp = (dispatch_worker_t)it;
-
-        if (cwp->work_count <= best_wc) {
-            best_wc = cwp->work_count;
-            best_wp = cwp;
+    deque_for_each(&self->workers, struct dispatch_worker, it,
+        if (it->work_count <= best_wc) {
+            best_wc = it->work_count;
+            best_wp = it;
         }
     )
     assert(best_wp != NULL);
@@ -324,9 +318,8 @@ void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
 
 static dispatch_item_t _Nullable _dispatch_find_item(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
-    deque_for_each(&self->workers, deque_node_t, it,
-        dispatch_worker_t cwp = (dispatch_worker_t)it;
-        dispatch_item_t ip = _dispatch_worker_find_item(cwp, func, arg);
+    deque_for_each(&self->workers, struct dispatch_worker, it,
+        dispatch_item_t ip = _dispatch_worker_find_item(it, func, arg);
 
         if (ip) {
             return ip;
@@ -548,10 +541,8 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, dispatch_item_t _
             switch (item->type) {
                 case _DISPATCH_TYPE_USER_ITEM:
                 case _DISPATCH_TYPE_CONV_ITEM:
-                    deque_for_each(&self->workers, deque_node_t, it,
-                        dispatch_worker_t cwp = (dispatch_worker_t)it;
-
-                        if (_dispatch_worker_withdraw_item(cwp, item)) {
+                    deque_for_each(&self->workers, struct dispatch_worker, it,
+                        if (_dispatch_worker_withdraw_item(it, item)) {
                             break;
                         }
                     )
@@ -660,10 +651,8 @@ static void _dispatch_applyschedparams(dispatch_t _Nonnull _Locked self, int qos
     self->attr.qos = qos;
     self->attr.priority = priority;
 
-    deque_for_each(&self->workers, deque_node_t, it,
-        dispatch_worker_t cwp = (dispatch_worker_t)it;
-
-        vcpu_setschedparams(cwp->vcpu, &params);
+    deque_for_each(&self->workers, struct dispatch_worker, it,
+        vcpu_setschedparams(it->vcpu, &params);
     )
 }
 
@@ -808,10 +797,8 @@ int dispatch_suspend(dispatch_t _Nonnull self)
             for (;;) {
                 bool hasStillActiveWorker = false;
 
-                deque_for_each(&self->workers, deque_node_t, it,
-                    dispatch_worker_t cwp = (dispatch_worker_t)it;
-
-                    if (!cwp->is_suspended) {
+                deque_for_each(&self->workers, struct dispatch_worker, it,
+                    if (!it->is_suspended) {
                         hasStillActiveWorker = true;
                         break;
                     }
@@ -863,10 +850,8 @@ void dispatch_terminate(dispatch_t _Nonnull self, int flags)
         isAwaitable = true;
 
         if ((flags & DISPATCH_TERMINATE_CANCEL_ALL) == DISPATCH_TERMINATE_CANCEL_ALL) {
-            deque_for_each(&self->workers, deque_node_t, it,
-                dispatch_worker_t cwp = (dispatch_worker_t)it;
-
-                _dispatch_worker_drain(cwp);
+            deque_for_each(&self->workers, struct dispatch_worker, it,
+                _dispatch_worker_drain(it);
             )
         }
         // Timers are drained no matter what

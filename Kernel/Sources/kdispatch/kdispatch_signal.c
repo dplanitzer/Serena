@@ -11,14 +11,12 @@
 
 static void _kdispatch_enable_signal(kdispatch_t _Nonnull _Locked self, int signo, bool enable)
 {
-    deque_for_each(&self->workers, deque_node_t, it,
-        kdispatch_worker_t cwp = (kdispatch_worker_t)it;
-
+    deque_for_each(&self->workers, struct kdispatch_worker, it,
         if (enable) {
-            cwp->hotsigs |= _SIGBIT(signo);
+            it->hotsigs |= _SIGBIT(signo);
         }
         else {
-            cwp->hotsigs &= ~_SIGBIT(signo);
+            it->hotsigs &= ~_SIGBIT(signo);
         }
     )
 
@@ -240,10 +238,8 @@ errno_t kdispatch_send_signal(kdispatch_t _Nonnull self, int signo)
         vcpu_sigsend(((kdispatch_worker_t)self->workers.first)->vcpu, signo);
     }
     else {
-        deque_for_each(&self->workers, deque_node_t, it,
-            kdispatch_worker_t cwp = (kdispatch_worker_t)it;
-
-            vcpu_sigsend(cwp->vcpu, signo);
+        deque_for_each(&self->workers, struct kdispatch_worker, it,
+            vcpu_sigsend(it->vcpu, signo);
         )
     }
 
