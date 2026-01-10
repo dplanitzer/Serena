@@ -10,9 +10,9 @@
 #include <driver/DriverManager.h>
 #include <ext/__fmt.h>
 #include <filesystem/IOChannel.h>
-#include <klib/RingBuffer.h>
-#include <sched/mtx.h>
+#include <kern/cbuf.h>
 #include <kpi/fcntl.h>
+#include <sched/mtx.h>
 
 
 enum {
@@ -22,12 +22,12 @@ enum {
 
 #define LOG_BUFFER_SIZE 256
 
-static mtx_t            gLock;
-static IOChannelRef     gConsoleChannel;
-static fmt_t            gFormatter;
-static RingBuffer       gRingBuffer;
-static char             gLogBuffer[LOG_BUFFER_SIZE];
-static int              gCurrentSink;
+static mtx_t        gLock;
+static IOChannelRef gConsoleChannel;
+static fmt_t        gFormatter;
+static cbuf_t       gRingBuffer;
+static char         gLogBuffer[LOG_BUFFER_SIZE];
+static int          gCurrentSink;
 
 
 static ssize_t _lwrite(void* _Nullable _Restrict s, const void * _Restrict buffer, ssize_t nbytes)
@@ -40,7 +40,7 @@ static ssize_t _lwrite(void* _Nullable _Restrict s, const void * _Restrict buffe
             break;
 
         default:
-            nBytesWritten = RingBuffer_PutBytes(&gRingBuffer, buffer, nbytes);
+            nBytesWritten = cbuf_puts(&gRingBuffer, buffer, nbytes);
             break;
     }
 
@@ -57,7 +57,7 @@ void log_init(void)
 {
     mtx_init(&gLock);
     gCurrentSink = kSink_RingBuffer;
-    RingBuffer_InitWithBuffer(&gRingBuffer, gLogBuffer, LOG_BUFFER_SIZE);
+    cbuf_init_extbuf(&gRingBuffer, gLogBuffer, LOG_BUFFER_SIZE);
     __fmt_init(&gFormatter, NULL, (fmt_putc_func_t)_lputc, (fmt_write_func_t)_lwrite, false);
 }
 
@@ -110,7 +110,7 @@ ssize_t log_read(void* _Nonnull buf, ssize_t nBytesToRead)
 
     mtx_lock(&gLock);
     if (gCurrentSink == kSink_RingBuffer) {
-        nbytes = RingBuffer_GetBytes(&gRingBuffer, buf, nBytesToRead);
+        nbytes = cbuf_gets(&gRingBuffer, buf, nBytesToRead);
     }
     else {
         nbytes = 0;

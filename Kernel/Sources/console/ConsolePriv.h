@@ -12,7 +12,7 @@
 #include "Console.h"
 #include <kdispatch/kdispatch.h>
 #include <driver/DriverChannel.h>
-#include <klib/RingBuffer.h>
+#include <kern/cbuf.h>
 #include <sched/mtx.h>
 #include "Color.h"
 #include "Font.h"
@@ -160,7 +160,7 @@ final_class_ivars(Console, PseudoDriver,
 
     IOChannelRef _Nonnull       hidChannel;
     const KeyMap* _Nonnull      keyMap;
-    RingBuffer                  reportsQueue;
+    cbuf_t                      reportsQueue;
 
     GraphicsDriverRef _Nonnull  fb;
     IOChannelRef _Nonnull       fbChannel;

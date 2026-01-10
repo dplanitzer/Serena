@@ -9,20 +9,20 @@
 #include "Pipe.h"
 #include <ext/math.h>
 #include <ext/timespec.h>
+#include <kern/cbuf.h>
 #include <kern/kernlib.h>
-#include <klib/RingBuffer.h>
 #include <kpi/stat.h>
 #include <sched/cnd.h>
 #include <sched/mtx.h>
 
 
 final_class_ivars(Pipe, Object,
-    mtx_t               mtx;
-    cnd_t               reader;
-    cnd_t               writer;
-    size_t              readerCount;
-    size_t              writerCount;
-    RingBuffer          buffer;
+    mtx_t   mtx;
+    cnd_t   reader;
+    cnd_t   writer;
+    size_t  readerCount;
+    size_t  writerCount;
+    cbuf_t  buffer;
 );
 
 
@@ -40,7 +40,7 @@ errno_t Pipe_Create(size_t bufferSize, PipeRef _Nullable * _Nonnull pOutPipe)
     cnd_init(&self->writer);
     self->readerCount = 0;
     self->writerCount = 0;
-    try(RingBuffer_Init(&self->buffer, __max(bufferSize, 1)));
+    try(cbuf_init(&self->buffer, __max(bufferSize, 1)));
 
     *pOutPipe = self;
     return EOK;
@@ -53,7 +53,7 @@ catch:
 
 void Pipe_deinit(PipeRef _Nullable self)
 {
-    RingBuffer_Deinit(&self->buffer);
+    cbuf_deinit(&self->buffer);
     cnd_deinit(&self->reader);
     cnd_deinit(&self->writer);
     mtx_deinit(&self->mtx);
@@ -63,7 +63,7 @@ void Pipe_deinit(PipeRef _Nullable self)
 size_t Pipe_GetNonBlockingReadableCount(PipeRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
-    const size_t nbytes = RingBuffer_ReadableCount(&self->buffer);
+    const size_t nbytes = cbuf_readable(&self->buffer);
     mtx_unlock(&self->mtx);
     return nbytes;
 }
@@ -72,7 +72,7 @@ size_t Pipe_GetNonBlockingReadableCount(PipeRef _Nonnull self)
 size_t Pipe_GetNonBlockingWritableCount(PipeRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
-    const size_t nbytes = RingBuffer_WritableCount(&self->buffer);
+    const size_t nbytes = cbuf_writable(&self->buffer);
     mtx_unlock(&self->mtx);
     return nbytes;
 }
@@ -145,7 +145,7 @@ errno_t Pipe_Read(PipeRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesT
         mtx_lock(&self->mtx);
 
         while (nBytesRead < nBytesToRead && self->readerCount > 0) {
-            const int nChunkSize = RingBuffer_GetBytes(&self->buffer, &((char*)pBuffer)[nBytesRead], nBytesToRead - nBytesRead);
+            const int nChunkSize = cbuf_gets(&self->buffer, &((char*)pBuffer)[nBytesRead], nBytesToRead - nBytesRead);
 
             nBytesRead += nChunkSize;
             if (nChunkSize == 0) {
@@ -187,7 +187,7 @@ errno_t Pipe_Write(PipeRef _Nonnull self, const void* _Nonnull pBytes, ssize_t n
         mtx_lock(&self->mtx);
         
         while (nBytesWritten < nBytesToWrite && self->writerCount > 0) {
-            const int nChunkSize = RingBuffer_PutBytes(&self->buffer, &((char*)pBytes)[nBytesWritten], nBytesToWrite - nBytesWritten);
+            const int nChunkSize = cbuf_puts(&self->buffer, &((char*)pBytes)[nBytesWritten], nBytesToWrite - nBytesWritten);
             
             nBytesWritten += nChunkSize;
             if (nChunkSize == 0) {

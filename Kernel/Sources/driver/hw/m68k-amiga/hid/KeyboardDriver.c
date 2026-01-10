@@ -9,7 +9,7 @@
 #include "KeyboardDriver.h"
 #include <hal/irq.h>
 #include <hal/hw/m68k-amiga/chipset.h>
-#include <klib/RingBuffer.h>
+#include <kern/cbuf.h>
 #include <kpi/fcntl.h>
 
 
@@ -29,8 +29,8 @@ static const uint8_t g_usb_code_map[128] = {
 
 
 final_class_ivars(KeyboardDriver, InputDriver,
-    RingBuffer  keyQueue;   // irq state
-    int         dropCount;  // irq state
+    cbuf_t  keyQueue;   // irq state
+    int     dropCount;  // irq state
 );
 
 IOCATS_DEF(g_cats, IOHID_KEYBOARD);
@@ -45,7 +45,7 @@ errno_t KeyboardDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
     KeyboardDriverRef self;
     
     try(Driver_Create(class(KeyboardDriver), kDriver_Exclusive, g_cats, (DriverRef*)&self));
-    try(RingBuffer_Init(&self->keyQueue, 16));
+    try(cbuf_init(&self->keyQueue, 16));
 
     *pOutSelf = (DriverRef)self;
     return EOK;
@@ -58,7 +58,7 @@ catch:
 
 static void KeyboardDriver_deinit(KeyboardDriverRef _Nonnull self)
 {
-    RingBuffer_Deinit(&self->keyQueue);
+    cbuf_deinit(&self->keyQueue);
 }
 
 errno_t KeyboardDriver_onStart(DriverRef _Nonnull _Locked self)
@@ -95,7 +95,7 @@ void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, HIDReport* _Nonnu
     char keyCode;
     
     const unsigned sim = irq_set_mask(IRQ_MASK_KEYBOARD);
-    const size_t r = RingBuffer_GetByte(&self->keyQueue, &keyCode);
+    const size_t r = cbuf_get(&self->keyQueue, &keyCode);
     irq_restore_mask(sim);
 
     if (r > 0) {
@@ -109,7 +109,7 @@ void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, HIDReport* _Nonnu
 
 void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self, int key)
 {
-    if (RingBuffer_PutByte(&self->keyQueue, (char)key) == 0) {
+    if (cbuf_put(&self->keyQueue, (char)key) == 0) {
         self->dropCount++;
     }
 }

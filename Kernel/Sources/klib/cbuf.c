@@ -1,13 +1,13 @@
 //
-//  RingBuffer.c
+//  cbuf.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 5/30/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "RingBuffer.h"
 #include <ext/bit.h>
+#include <kern/cbuf.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 
@@ -17,7 +17,7 @@
 ((__val) & ((__self)->capacity - 1))
 
 
-errno_t RingBuffer_Init(RingBuffer* _Nonnull self, size_t capacity)
+errno_t cbuf_init(cbuf_t* _Nonnull self, size_t capacity)
 {
     self->capacity = pow2_ceil_sz(capacity);
     self->readIdx = 0;
@@ -26,7 +26,7 @@ errno_t RingBuffer_Init(RingBuffer* _Nonnull self, size_t capacity)
     return kalloc(self->capacity, (void**) &self->data);
 }
 
-void RingBuffer_InitWithBuffer(RingBuffer* _Nonnull self, char* _Nonnull buf, size_t capacity)
+void cbuf_init_extbuf(cbuf_t* _Nonnull _Restrict self, char* _Nonnull _Restrict buf, size_t capacity)
 {
     self->data = buf;
     self->capacity = capacity;
@@ -34,7 +34,7 @@ void RingBuffer_InitWithBuffer(RingBuffer* _Nonnull self, char* _Nonnull buf, si
     self->writeIdx = 0;
 }
 
-void RingBuffer_Deinit(RingBuffer* _Nonnull self)
+void cbuf_deinit(cbuf_t* _Nonnull self)
 {
     if ((self->flags & kFlag_OwnsBuffer) == kFlag_OwnsBuffer) {
         kfree(self->data);
@@ -45,9 +45,9 @@ void RingBuffer_Deinit(RingBuffer* _Nonnull self)
     self->writeIdx = 0;
 }
 
-size_t RingBuffer_PutByte(RingBuffer* _Nonnull self, char byte)
+size_t cbuf_put(cbuf_t* _Nonnull self, char byte)
 {
-    if (RingBuffer_WritableCount(self) >= 1) {
+    if (cbuf_writable(self) >= 1) {
         self->data[MASK_INDEX(self, self->writeIdx++)] = byte;
         return 1;
     } else {
@@ -55,9 +55,9 @@ size_t RingBuffer_PutByte(RingBuffer* _Nonnull self, char byte)
     }
 }
 
-size_t RingBuffer_PutBytes(RingBuffer* _Nonnull self, const void* _Nonnull pBytes, size_t count)
+size_t cbuf_puts(cbuf_t* _Nonnull _Restrict self, const void* _Nonnull _Restrict pBytes, size_t count)
 {
-    const int avail = RingBuffer_WritableCount(self);
+    const int avail = cbuf_writable(self);
     
     if (count == 0 || avail == 0) {
         return 0;
@@ -72,9 +72,9 @@ size_t RingBuffer_PutBytes(RingBuffer* _Nonnull self, const void* _Nonnull pByte
     return nBytesToCopy;
 }
 
-size_t RingBuffer_GetByte(RingBuffer* _Nonnull self, char* _Nonnull pByte)
+size_t cbuf_get(cbuf_t* _Nonnull _Restrict self, char* _Nonnull _Restrict pByte)
 {
-    if (RingBuffer_ReadableCount(self) >= 1) {
+    if (cbuf_readable(self) >= 1) {
         *pByte = self->data[MASK_INDEX(self, self->readIdx++)];
         return 1;
     } else {
@@ -82,9 +82,9 @@ size_t RingBuffer_GetByte(RingBuffer* _Nonnull self, char* _Nonnull pByte)
     }
 }
 
-size_t RingBuffer_GetBytes(RingBuffer* _Nonnull self, void* _Nonnull pBytes, size_t count)
+size_t cbuf_gets(cbuf_t* _Nonnull _Restrict self, void* _Nonnull _Restrict pBytes, size_t count)
 {
-    const int avail = RingBuffer_ReadableCount(self);
+    const int avail = cbuf_readable(self);
     
     if (count == 0 || avail == 0) {
         return 0;

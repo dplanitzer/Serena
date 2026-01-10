@@ -35,7 +35,7 @@ errno_t Console_Create(ConsoleRef _Nullable * _Nonnull pOutSelf)
     try(kdispatch_create(&attr, &self->dq));
 
     try(DriverManager_Open(gDriverManager, "/hid", O_RDONLY, &self->hidChannel));
-    try(RingBuffer_Init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
+    try(cbuf_init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     // Open a channel to the framebuffer
     try(DriverManager_Open(gDriverManager, "/hw/fb", O_RDWR, &self->fbChannel));
@@ -79,7 +79,7 @@ void Console_deinit(ConsoleRef _Nonnull self)
     }
 
     Console_DeinitVideo(self);
-    RingBuffer_Deinit(&self->reportsQueue);
+    cbuf_deinit(&self->reportsQueue);
 
     self->keyMap = NULL;
     TabStops_Deinit(&self->hTabStops);
@@ -417,17 +417,17 @@ void Console_PostReport_Locked(ConsoleRef _Nonnull self, const char* msg)
     assert(nBytesToWrite < (MAX_MESSAGE_LENGTH + 1));
 
     // Make space for the new message by removing the oldest (full) message(s)
-    while (RingBuffer_WritableCount(&self->reportsQueue) < nBytesToWrite) {
+    while (cbuf_writable(&self->reportsQueue) < nBytesToWrite) {
         char b;
 
         // Remove a full message
         do {
-            RingBuffer_GetByte(&self->reportsQueue, &b);
+            cbuf_get(&self->reportsQueue, &b);
         } while (b != 0);
     }
 
     // Queue the new terminal report (including the trailing \0)
-    RingBuffer_PutBytes(&self->reportsQueue, msg, nBytesToWrite);
+    cbuf_puts(&self->reportsQueue, msg, nBytesToWrite);
 }
 
 
@@ -533,7 +533,7 @@ static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, IOC
         while (true) {
             char b;
 
-            if (RingBuffer_GetByte(&self->reportsQueue, &b) == 0) {
+            if (cbuf_get(&self->reportsQueue, &b) == 0) {
                 done = true;
                 break;
             }
@@ -639,7 +639,7 @@ errno_t Console_read(ConsoleRef _Nonnull self, IOChannelRef _Nonnull pChannel, v
     }
 
 
-    if (!RingBuffer_IsEmpty(&self->reportsQueue)) {
+    if (!cbuf_empty(&self->reportsQueue)) {
         // Now check whether there are terminal reports pending. Those take
         // priority over input device events.
         Console_ReadReports_NonBlocking_Locked(self, pChannel, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
