@@ -75,10 +75,8 @@ static void _proc_deinit(ProcessRef _Nonnull self)
     _proc_destroy_sigroutes(self);
 
     for (size_t i = 0; i < UWQ_HASH_CHAIN_COUNT; i++) {
-        deque_for_each(&self->waitQueueTable[i], deque_node_t, it,
-            u_wait_queue_t cwp = (u_wait_queue_t)it;
-
-            uwq_destroy(cwp);
+        deque_for_each(&self->waitQueueTable[i], struct u_wait_queue, it,
+            uwq_destroy(it);
         )
     }
 
