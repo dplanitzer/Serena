@@ -11,8 +11,8 @@
 #include <string.h>
 #include <ext/timespec.h>
 #include <hal/clock.h>
-#include <log/Log.h>
 #include <kern/kalloc.h>
+#include <kern/log.h>
 #include <sched/delay.h>
 #include <sched/vcpu.h>
 #include "mfm.h"

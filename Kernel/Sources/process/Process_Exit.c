@@ -12,8 +12,8 @@
 #include <ext/timespec.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
+#include <kern/log.h>
 #include <kpi/wait.h>
-#include <log/Log.h>
 
 // Operations that are mutual exclusive in the context of exiting a process:
 // - exit

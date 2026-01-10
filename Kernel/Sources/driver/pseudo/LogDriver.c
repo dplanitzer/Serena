@@ -7,7 +7,7 @@
 //
 
 #include "LogDriver.h"
-#include <log/Log.h>
+#include <kern/log.h>
 
 
 final_class_ivars(LogDriver, PseudoDriver,

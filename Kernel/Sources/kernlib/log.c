@@ -1,12 +1,12 @@
 //
-//  Log.c
+//  log.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/17/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Log.h"
+#include <kern/log.h>
 #include <driver/DriverManager.h>
 #include <ext/__fmt.h>
 #include <filesystem/IOChannel.h>

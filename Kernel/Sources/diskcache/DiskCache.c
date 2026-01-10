@@ -10,10 +10,10 @@
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
-#include <log/Log.h>
 #include <ext/bit.h>
 #include <ext/timespec.h>
 #include <kern/kalloc.h>
+#include <kern/log.h>
 #include <sched/vcpu.h>
 
 

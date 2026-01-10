@@ -1,5 +1,5 @@
 //
-//  Kalloc.c
+//  kalloc.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/6/23.
@@ -13,7 +13,7 @@
 #include <string.h>
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
-#include <log/Log.h>
+#include <kern/log.h>
 #include <sched/mtx.h>
 
 

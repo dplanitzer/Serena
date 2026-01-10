@@ -1,13 +1,13 @@
 //
-//  Log.h
+//  log.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/2/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef Log_h
-#define Log_h
+#ifndef _LOG_H
+#define _LOG_H
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -41,4 +41,4 @@ extern const char* _Nonnull log_buffer(void);
 extern void printf(const char* _Nonnull format, ...);
 extern void vprintf(const char* _Nonnull format, va_list ap);
 
-#endif /* Log_h */
+#endif /* _LOG_H */

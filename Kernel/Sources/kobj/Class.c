@@ -12,7 +12,7 @@
 #include <kern/kalloc.h>
 #include <kern/kernlib.h>
 #ifndef __DISKIMAGE__
-#include <log/Log.h>
+#include <kern/log.h>
 
 extern char _class;
 extern char _eclass;

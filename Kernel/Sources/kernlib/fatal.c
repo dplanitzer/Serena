@@ -1,5 +1,5 @@
 //
-//  Assert.c
+//  fatal.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 8/16/23.
@@ -9,8 +9,8 @@
 #include <assert.h>
 #include <hal/cpu.h>
 #include <kern/kernlib.h>
+#include <kern/log.h>
 #include <kdispatch/kdispatch.h>
-#include <log/Log.h>
 #include <process/Process.h>
 #include <sched/vcpu.h>
 

@@ -7,8 +7,6 @@
 //
 
 #include <string.h>
-#include <kei/kei.h>
-#include <log/Log.h>
 #include <console/Console.h>
 #include <diskcache/DiskCache.h>
 #include <driver/DriverManager.h>
@@ -19,6 +17,8 @@
 #include <hal/clock.h>
 #include <hal/irq.h>
 #include <hal/sched.h>
+#include <kei/kei.h>
+#include <kern/log.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>
 #include <sched/delay.h>

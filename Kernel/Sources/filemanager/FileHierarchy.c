@@ -20,7 +20,7 @@ extern void ResolvedPath_Init(ResolvedPath* _Nonnull self);
 
 //#define LOG
 #ifdef LOG
-#include <log/Log.h>
+#include <kern/log.h>
 #endif
 
 
