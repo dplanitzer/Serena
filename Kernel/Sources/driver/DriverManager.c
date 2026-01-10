@@ -86,8 +86,8 @@ static dentry_t _Nullable _get_dentry_by_id(DriverManagerRef _Nonnull _Locked se
     queue_t* the_chain = &self->id_table[hash_scalar(id) & HASH_CHAIN_MASK];
     dentry_t prev_ep = NULL;
 
-    queue_for_each(the_chain, queue_node_t,
-        dentry_t ep = (dentry_t)pCurNode;
+    queue_for_each(the_chain, queue_node_t, it,
+        dentry_t ep = (dentry_t)it;
 
         if (ep->id == id) {
             if (pOutChain) {
@@ -100,7 +100,7 @@ static dentry_t _Nullable _get_dentry_by_id(DriverManagerRef _Nonnull _Locked se
         }
 
         prev_ep = ep;
-    );
+    )
 
     return NULL;
 }
@@ -201,8 +201,8 @@ errno_t DriverManager_GetMatches(DriverManagerRef _Nonnull self, const iocat_t* 
 
     mtx_lock(&self->mtx);
     for (size_t idx = 0; idx < HASH_CHAIN_COUNT; idx++) {
-        queue_for_each(&self->id_table[idx], queue_node_t,
-            dentry_t dep = (dentry_t)pCurNode;
+        queue_for_each(&self->id_table[idx], queue_node_t, it,
+            dentry_t dep = (dentry_t)it;
             
             if (instanceof(dep->driver, Driver) && Driver_HasSomeCategories((DriverRef)dep->driver, cats)) {
                 if (idx >= bufsiz-1) {
@@ -212,7 +212,7 @@ errno_t DriverManager_GetMatches(DriverManagerRef _Nonnull self, const iocat_t* 
 
                 buf[idx++] = Object_RetainAs(dep->driver, Driver);
             }
-        );
+        )
 
         if (err != EOK) {
             break;
@@ -246,13 +246,13 @@ errno_t DriverManager_StartMatching(DriverManagerRef _Nonnull self, const iocat_
 
     // Tell the matcher about all existing drivers
     for (size_t idx = 0; idx < HASH_CHAIN_COUNT; idx++) {
-        queue_for_each(&self->id_table[idx], queue_node_t,
-            dentry_t dep = (dentry_t)pCurNode;
+        queue_for_each(&self->id_table[idx], queue_node_t, it,
+            dentry_t dep = (dentry_t)it;
             
             if (instanceof(dep->driver, Driver) && Driver_HasSomeCategories((DriverRef)dep->driver, pm->cats)) {
                 f(arg, dep->driver, IONOTIFY_STARTED);
             }
-        );
+        )
     }
 
 catch:
@@ -266,28 +266,28 @@ void DriverManager_StopMatching(DriverManagerRef _Nonnull self, drv_match_func_t
     queue_node_t* pprev = NULL;
 
     mtx_lock(&self->mtx);
-    queue_for_each(&self->matchers, queue_node_t,
-        matcher_t p = (matcher_t)pCurNode;
+    queue_for_each(&self->matchers, queue_node_t, it,
+        matcher_t p = (matcher_t)it;
 
         if (p->func == f && p->arg == arg) {
             queue_remove(&self->matchers, pprev, &p->qe);
             break;
         }
-        pprev = pCurNode;
-    );
+        pprev = it;
+    )
     mtx_unlock(&self->mtx);
 }
 
 static void _do_match_callouts(DriverManagerRef _Nonnull self, DriverRef _Nonnull driver, int notify)
 {
     mtx_lock(&self->mtx);
-    queue_for_each(&self->matchers, queue_node_t,
-        matcher_t pm = (matcher_t)pCurNode;
+    queue_for_each(&self->matchers, queue_node_t, it,
+        matcher_t pm = (matcher_t)it;
             
         if (Driver_HasSomeCategories((DriverRef)driver, pm->cats)) {
             pm->func(pm->arg, driver, notify);
         }
-    );
+    )
     mtx_unlock(&self->mtx);
 }
 

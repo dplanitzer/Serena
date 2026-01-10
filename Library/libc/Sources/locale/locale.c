@@ -18,11 +18,11 @@ static locale_t* _Nullable __get_locale_by_name(const char* _Nonnull locale)
     }
 
     queue_t* table = (*locale == '%') ? &__FIRST_USER_LC : &__FIRST_LIBC_LC;
-    queue_for_each(table, locale_t, {
-        if (!strcmp(locale, pCurNode->name)) {
-            return pCurNode;
+    queue_for_each(table, locale_t, it,
+        if (!strcmp(locale, it->name)) {
+            return it;
         }
-    })
+    )
 
     return NULL;
 }
@@ -107,13 +107,13 @@ static int __lconvcmp(const struct lconv* _Nonnull ll, const struct lconv* _Nonn
 
 static locale_t* _Nullable __get_locale_by_lconv(const struct lconv* _Nonnull lconv)
 {
-    queue_for_each(&__FIRST_USER_LC, locale_t, {
-        const struct lconv* cl = &pCurNode->lc;
+    queue_for_each(&__FIRST_USER_LC, locale_t, it,
+        const struct lconv* cl = &it->lc;
 
         if (!__lconvcmp(cl, lconv)) {
-            return pCurNode;
+            return it;
         }
-    })
+    )
 
     return NULL;
 }

@@ -45,8 +45,8 @@ catch:
 
 void KfsDirectory_deinit(KfsDirectoryRef _Nonnull self)
 {
-    deque_for_each(&self->entries, KfsDirectoryEntry,
-        FSDeallocate(pCurNode);
+    deque_for_each(&self->entries, KfsDirectoryEntry, it,
+        FSDeallocate(it);
     )
 }
 
@@ -66,9 +66,9 @@ errno_t _Nullable KfsDirectory_GetEntryForName(KfsDirectoryRef _Nonnull _Locked 
         return ENAMETOOLONG;
     }
 
-    deque_for_each(&self->entries, KfsDirectoryEntry,
-        if (PathComponent_EqualsString(pc, pCurNode->name, pCurNode->nameLength)) {
-            *pOutEntry = pCurNode;
+    deque_for_each(&self->entries, KfsDirectoryEntry, it,
+        if (PathComponent_EqualsString(pc, it->name, it->nameLength)) {
+            *pOutEntry = it;
             return EOK;
         }
     )
@@ -78,9 +78,9 @@ errno_t _Nullable KfsDirectory_GetEntryForName(KfsDirectoryRef _Nonnull _Locked 
 
 errno_t KfsDirectory_GetNameOfEntryWithId(KfsDirectoryRef _Nonnull _Locked self, ino_t inid, MutablePathComponent* _Nonnull mpc)
 {
-    deque_for_each(&self->entries, KfsDirectoryEntry,
-        if (pCurNode->inid == inid) {
-            return MutablePathComponent_SetString(mpc, pCurNode->name, pCurNode->nameLength);
+    deque_for_each(&self->entries, KfsDirectoryEntry, it,
+        if (it->inid == inid) {
+            return MutablePathComponent_SetString(mpc, it->name, it->nameLength);
         }
     )
 
@@ -148,9 +148,9 @@ errno_t KfsDirectory_RemoveEntry(KfsDirectoryRef _Nonnull _Locked self, InodeRef
 {
     KfsDirectoryEntry* entry = NULL;
 
-    deque_for_each(&self->entries, KfsDirectoryEntry,
-        if (pCurNode->inid == Inode_GetId(pNodeToRemove)) {
-            entry = pCurNode;
+    deque_for_each(&self->entries, KfsDirectoryEntry, it,
+        if (it->inid == Inode_GetId(pNodeToRemove)) {
+            entry = it;
             break;
         }
     )

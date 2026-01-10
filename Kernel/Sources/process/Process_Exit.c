@@ -146,11 +146,11 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 // out from the VP list.
 void _proc_abort_other_vcpus(ProcessRef _Nonnull _Locked self)
 {
-    deque_for_each(&self->vcpu_queue, deque_node_t, {
-        vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
+    deque_for_each(&self->vcpu_queue, deque_node_t, it,
+        vcpu_t cvp = vcpu_from_owner_qe(it);
 
         vcpu_sigsend(cvp, SIGKILL);
-    });
+    )
 }
 
 // Wait for all vcpus to relinquish themselves from the process. Only return

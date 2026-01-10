@@ -241,17 +241,17 @@ static uint8_t* _Nullable zorro_calculate_base_address_for_board_in_range(const 
 
     // Find the board with a matching Zorro bus, board type and expansion space
     // address range that has the highest assigned address
-    deque_for_each(&bus->boards, zorro_board_t, 
-        if (pCurNode->cfg.bus == cfg->bus
-            && pCurNode->cfg.type == cfg->type
-            && pCurNode->cfg.start >= board_space_base_addr
-            && pCurNode->cfg.start < board_space_top_addr) {
-            if (pCurNode->cfg.start >= highest_occupied_board_addr) {
-                highest_occupied_board_addr = pCurNode->cfg.start;
-                pHighestAllocatedBoard = &pCurNode->cfg;
+    deque_for_each(&bus->boards, zorro_board_t, it,
+        if (it->cfg.bus == cfg->bus
+            && it->cfg.type == cfg->type
+            && it->cfg.start >= board_space_base_addr
+            && it->cfg.start < board_space_top_addr) {
+            if (it->cfg.start >= highest_occupied_board_addr) {
+                highest_occupied_board_addr = it->cfg.start;
+                pHighestAllocatedBoard = &it->cfg;
             }
         }
-    );
+    )
 
 
     // Calculate the address for the new board. It'll occupy the space just above the board we found.
@@ -393,8 +393,8 @@ void zorro_auto_config(zorro_bus_t* _Nonnull bus)
 void zorro_destroy_bus(zorro_bus_t* _Nullable bus)
 {
     if (bus) {
-        deque_for_each(&bus->boards, zorro_board_t,
-            kfree(pCurNode);
-        );
+        deque_for_each(&bus->boards, zorro_board_t, it,
+            kfree(it);
+        )
     }
 }

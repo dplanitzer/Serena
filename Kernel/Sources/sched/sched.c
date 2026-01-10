@@ -237,11 +237,11 @@ _Noreturn sched_run_chores(sched_t _Nonnull self)
         
         
         // Finalize VPs which have exited
-        deque_for_each(&dead_vps, deque_node_t,
-            vcpu_t cp = vcpu_from_owner_qe(pCurNode);
+        deque_for_each(&dead_vps, deque_node_t, it,
+            vcpu_t cp = vcpu_from_owner_qe(it);
 
             vcpu_destroy(cp);
-        );
+        )
     }
 }
 

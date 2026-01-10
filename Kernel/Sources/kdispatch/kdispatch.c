@@ -76,15 +76,15 @@ errno_t kdispatch_destroy(kdispatch_t _Nullable self)
         }
 
 
-        queue_for_each(&self->timer_cache, queue_node_t, {
-            kfree(pCurNode);
-        });
+        queue_for_each(&self->timer_cache, queue_node_t, it,
+            kfree(it);
+        )
         self->timer_cache = QUEUE_INIT;
 
 
-        queue_for_each(&self->item_cache, queue_node_t, {
-            kfree(pCurNode);
-        });
+        queue_for_each(&self->item_cache, queue_node_t, it,
+            kfree(it);
+        )
         self->item_cache = QUEUE_INIT;
 
 
@@ -145,11 +145,11 @@ _Noreturn _kdispatch_relinquish_worker(kdispatch_t _Nonnull _Locked self, kdispa
 
 void _kdispatch_wakeup_all_workers(kdispatch_t _Nonnull self)
 {
-    deque_for_each(&self->workers, deque_node_t, {
-        kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
+    deque_for_each(&self->workers, deque_node_t, it,
+        kdispatch_worker_t cwp = (kdispatch_worker_t)it;
 
         _kdispatch_worker_wakeup(cwp);
-    });
+    )
 }
 
 errno_t _kdispatch_ensure_worker_capacity(kdispatch_t _Nonnull self, int reason)
@@ -184,14 +184,14 @@ kdispatch_item_t _Nullable _kdispatch_steal_work_item(kdispatch_t _Nonnull self)
     kdispatch_worker_t most_busy_wp = NULL;
     size_t most_busy_count = 0;
 
-    deque_for_each(&self->workers, deque_node_t, {
-        kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
+    deque_for_each(&self->workers, deque_node_t, it,
+        kdispatch_worker_t cwp = (kdispatch_worker_t)it;
 
         if (cwp->work_count > most_busy_count) {
             most_busy_count = cwp->work_count;
             most_busy_wp = cwp;
         }
-    });
+    )
 
     if (most_busy_wp) {
         item = (kdispatch_item_t) queue_remove_first(&most_busy_wp->work_queue);
@@ -225,14 +225,14 @@ static errno_t _kdispatch_submit(kdispatch_t _Nonnull _Locked self, kdispatch_it
     kdispatch_worker_t best_wp = NULL;
     size_t best_wc = SIZE_MAX;
 
-    deque_for_each(&self->workers, deque_node_t, {
-        kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
+    deque_for_each(&self->workers, deque_node_t, it,
+        kdispatch_worker_t cwp = (kdispatch_worker_t)it;
 
         if (cwp->work_count <= best_wc) {
             best_wc = cwp->work_count;
             best_wp = cwp;
         }
-    });
+    )
     assert(best_wp != NULL);
 
 
@@ -280,15 +280,15 @@ static errno_t _kdispatch_await(kdispatch_t _Nonnull _Locked self, kdispatch_ite
 
     bool foundIt = false;
     kdispatch_item_t pip = NULL;
-    queue_for_each(&self->zombie_items, queue_node_t, {
-        kdispatch_item_t cip = (kdispatch_item_t)pCurNode;
+    queue_for_each(&self->zombie_items, queue_node_t, it,
+        kdispatch_item_t cip = (kdispatch_item_t)it;
 
         if (cip == item) {
             foundIt = true;
             break;
         }
         pip = cip;
-    });
+    )
 
 
     if (foundIt) {
@@ -312,14 +312,14 @@ void _kdispatch_zombify_item(kdispatch_t _Nonnull _Locked self, kdispatch_item_t
 
 static kdispatch_item_t _Nullable _kdispatch_find_item(kdispatch_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
-    deque_for_each(&self->workers, deque_node_t, {
-        kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
+    deque_for_each(&self->workers, deque_node_t, it,
+        kdispatch_worker_t cwp = (kdispatch_worker_t)it;
         kdispatch_item_t ip = _kdispatch_worker_find_item(cwp, func, arg);
 
         if (ip) {
             return ip;
         }
-    });
+    )
 
     return NULL;
 }
@@ -545,13 +545,13 @@ static void _kdispatch_do_cancel_item(kdispatch_t _Nonnull self, kdispatch_item_
             switch (item->type) {
                 case _KDISPATCH_TYPE_USER_ITEM:
                 case _KDISPATCH_TYPE_CONV_ITEM:
-                    deque_for_each(&self->workers, deque_node_t, {
-                        kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
+                    deque_for_each(&self->workers, deque_node_t, it,
+                        kdispatch_worker_t cwp = (kdispatch_worker_t)it;
 
                         if (_kdispatch_worker_withdraw_item(cwp, item)) {
                             break;
                         }
-                    });
+                    )
                     break;
 
                 case _KDISPATCH_TYPE_USER_TIMER:
@@ -657,11 +657,11 @@ static void _kdispatch_applyschedparams(kdispatch_t _Nonnull _Locked self, int q
     self->attr.qos = qos;
     self->attr.priority = priority;
 
-    deque_for_each(&self->workers, deque_node_t, 
-        kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
+    deque_for_each(&self->workers, deque_node_t, it,
+        kdispatch_worker_t cwp = (kdispatch_worker_t)it;
 
         vcpu_setschedparams(cwp->vcpu, &params);
-    );
+    )
 }
 
 int kdispatch_priority(kdispatch_t _Nonnull self)
@@ -755,14 +755,14 @@ errno_t kdispatch_suspend(kdispatch_t _Nonnull self)
             for (;;) {
                 bool hasStillActiveWorker = false;
 
-                deque_for_each(&self->workers, deque_node_t, {
-                    kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
+                deque_for_each(&self->workers, deque_node_t, it,
+                    kdispatch_worker_t cwp = (kdispatch_worker_t)it;
 
                     if (!cwp->is_suspended) {
                         hasStillActiveWorker = true;
                         break;
                     }
-                });
+                )
 
                 if (!hasStillActiveWorker) {
                     self->state = _DISPATCHER_STATE_SUSPENDED;
@@ -809,11 +809,11 @@ void kdispatch_terminate(kdispatch_t _Nonnull self, int flags)
         isAwaitable = true;
 
         if ((flags & KDISPATCH_TERMINATE_CANCEL_ALL) == KDISPATCH_TERMINATE_CANCEL_ALL) {
-            deque_for_each(&self->workers, deque_node_t, {
-                kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
+            deque_for_each(&self->workers, deque_node_t, it,
+                kdispatch_worker_t cwp = (kdispatch_worker_t)it;
 
                 _kdispatch_worker_drain(cwp);
-            });
+            )
         }
         // Timers are drained no matter what
         _kdispatch_drain_timers(self);

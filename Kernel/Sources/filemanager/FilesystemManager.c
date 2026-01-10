@@ -177,11 +177,11 @@ errno_t FilesystemManager_StopFilesystem(FilesystemManagerRef _Nonnull self, Fil
 
 static fsentry_t* _Nullable _fsentry_for_fsid(FilesystemManagerRef _Locked _Nonnull self, fsid_t fsid)
 {
-    deque_for_each(&self->filesystems, fsentry_t,
-        if (Filesystem_GetId(pCurNode->fs) == fsid) {
-            return pCurNode;
+    deque_for_each(&self->filesystems, fsentry_t, it,
+        if (Filesystem_GetId(it->fs) == fsid) {
+            return it;
         }
-    );
+    )
 
     return NULL;
 }
@@ -238,9 +238,9 @@ void FilesystemManager_Sync(FilesystemManagerRef _Nonnull self)
 {
     mtx_lock(&self->mtx);
     // XXX change this to run the syncs outside of the lock
-    deque_for_each(&self->filesystems, fsentry_t,
-        Filesystem_Sync(pCurNode->fs);
-    );
+    deque_for_each(&self->filesystems, fsentry_t, it,
+        Filesystem_Sync(it->fs);
+    )
     mtx_unlock(&self->mtx);
 }
 
@@ -266,19 +266,19 @@ static void _reaper(FilesystemManagerRef _Nonnull self)
     // Kill as many filesystems as we can
     if (!deque_empty(&queue)) {
 
-        deque_for_each(&queue, fsentry_t,
-            if (Filesystem_CanDestroy(pCurNode->fs)) {
-                _reap_fs(self, &queue, pCurNode);
+        deque_for_each(&queue, fsentry_t, it,
+            if (Filesystem_CanDestroy(it->fs)) {
+                _reap_fs(self, &queue, it);
             }
-        );
+        )
 
 
         // Put the rest back on the reaper queue
         mtx_lock(&self->mtx);
-        deque_for_each(&queue, fsentry_t,
-            deque_remove(&queue, &pCurNode->node);
-            deque_add_first(&self->reaperQueue, &pCurNode->node);
-        );
+        deque_for_each(&queue, fsentry_t, it,
+            deque_remove(&queue, &it->node);
+            deque_add_first(&self->reaperQueue, &it->node);
+        )
         mtx_unlock(&self->mtx);
     }
 }

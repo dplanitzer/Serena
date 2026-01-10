@@ -70,13 +70,13 @@ SYSCALL_2(wq_create, int policy, int* _Nonnull pOutQ)
 // @Entry Condition: preemption disabled
 static u_wait_queue_t _Nullable _find_uwq(ProcessRef _Nonnull pp, int q)
 {
-    deque_for_each(&pp->waitQueueTable[hash_scalar(q) & UWQ_HASH_CHAIN_MASK], deque_node_t,
-        u_wait_queue_t cwp = (u_wait_queue_t)pCurNode;
+    deque_for_each(&pp->waitQueueTable[hash_scalar(q) & UWQ_HASH_CHAIN_MASK], deque_node_t, it,
+        u_wait_queue_t cwp = (u_wait_queue_t)it;
 
         if (cwp->id == q) {
             return cwp;
         }
-    );
+    )
 
     return NULL;
 }

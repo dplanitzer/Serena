@@ -15,8 +15,8 @@
 
 static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo, bool enable)
 {
-    deque_for_each(&self->workers, deque_node_t, {
-        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+    deque_for_each(&self->workers, deque_node_t, it,
+        dispatch_worker_t cwp = (dispatch_worker_t)it;
 
         if (enable) {
             cwp->hotsigs |= _SIGBIT(signo);
@@ -24,7 +24,7 @@ static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo,
         else {
             cwp->hotsigs &= ~_SIGBIT(signo);
         }
-    });
+    )
 
 
     // Notify all workers so that they can pick up the new hotsigs set.
@@ -42,8 +42,8 @@ void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, dispatch_item_t _N
     if (self->sigtraps) {
         stp = &self->sigtraps[signo - 1];
 
-        queue_for_each(&stp->monitors, queue_node_t, {
-            dispatch_item_t cip = (dispatch_item_t)pCurNode;
+        queue_for_each(&stp->monitors, queue_node_t, it,
+            dispatch_item_t cip = (dispatch_item_t)it;
 
             if (cip == item) {
                 queue_remove(&stp->monitors, &pip->qe, &cip->qe);
@@ -52,7 +52,7 @@ void _dispatch_withdraw_signal_item(dispatch_t _Nonnull self, dispatch_item_t _N
             }
 
             pip = cip;
-        });
+        )
     }
 
     if (hasIt) {

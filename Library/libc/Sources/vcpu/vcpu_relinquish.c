@@ -17,14 +17,14 @@ static vcpu_destructor_t _Nullable __vcpu_key_destructor(vcpu_key_t _Nonnull key
     vcpu_destructor_t dstr = NULL;
 
     spin_lock(&__g_lock);
-    deque_for_each(&__g_vcpu_keys, deque_node_t, {
-        vcpu_key_t cep = (vcpu_key_t)pCurNode;
+    deque_for_each(&__g_vcpu_keys, deque_node_t, it,
+        vcpu_key_t cep = (vcpu_key_t)it;
 
         if (cep == key) {
             dstr = cep->destructor;
             break; 
         }
-    });
+    )
 
     spin_unlock(&__g_lock);
 

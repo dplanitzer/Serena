@@ -34,15 +34,15 @@ static void _auto_config_bus(ZorroControllerRef _Nonnull _Locked self)
 
 
     // Create a ZorroDriver instance for each slot and start it
-    deque_for_each(&bus.boards, zorro_board_t,
-        const zorro_conf_t* cfg = &pCurNode->cfg;
+    deque_for_each(&bus.boards, zorro_board_t, it,
+        const zorro_conf_t* cfg = &it->cfg;
         ZorroDriverRef dp;
         
         if (ZorroDriver_Create(cfg, &dp) == EOK) {
             Driver_AttachStartChild((DriverRef)self, (DriverRef)dp, slotId++);
             Object_Release(dp);
         }
-    );
+    )
 
 catch:
     zorro_destroy_bus(&bus);

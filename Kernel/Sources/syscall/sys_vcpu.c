@@ -56,13 +56,13 @@ SYSCALL_0(vcpu_relinquish_self)
 
 static vcpu_t _Nullable _get_vcpu_by_id_locked(ProcessRef _Nonnull self, vcpuid_t id)
 {
-    deque_for_each(&self->vcpu_queue, deque_node_t,
-        vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
+    deque_for_each(&self->vcpu_queue, deque_node_t, it,
+        vcpu_t cvp = vcpu_from_owner_qe(it);
 
         if (cvp->id == id) {
             return cvp;
         }
-    );
+    )
 
     return NULL;
 }

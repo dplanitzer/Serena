@@ -85,9 +85,9 @@ static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _L
 static void destroy_fsnode(FsNode* _Nullable self)
 {
     if (self) {
-        deque_for_each(&self->attachmentPoints, AtNode,
-            destroy_atnode(pCurNode);
-        );
+        deque_for_each(&self->attachmentPoints, AtNode, it,
+            destroy_atnode(it);
+        )
 
         Object_Release(self->filesystem);
         self->filesystem = NULL;
@@ -113,9 +113,9 @@ static void print_fsnode(FsNode* _Nonnull self)
     printf("FsNode {\n");
     printf("fsid: %u, fs: %p\n", Filesystem_GetId(self->filesystem), (void*)self->filesystem);
     printf("attachment points:\n");
-    deque_for_each(&self->attachmentPoints, AtNode,
-        print_atnode(pCurNode);
-    );
+    deque_for_each(&self->attachmentPoints, AtNode, it,
+        print_atnode(it);
+    )
     printf("}\n");
 }
 #endif
@@ -227,8 +227,8 @@ void FileHierarchy_deinit(FileHierarchyRef _Nullable self)
 static void _FileHierarchy_DestroyAllKeys(FileHierarchyRef _Nonnull self)
 {
     for (size_t i = 0; i < HASH_CHAINS_COUNT; i++) {
-        deque_for_each(&self->hashChain[i], FHKey,
-            destroy_key(pCurNode);
+        deque_for_each(&self->hashChain[i], FHKey, it,
+            destroy_key(it);
         )
     }
 }
@@ -269,11 +269,11 @@ static FHKey* _Nullable _FileHierarchy_GetKey(FileHierarchyRef _Nonnull _Locked 
     const ino_t inid = Inode_GetId(inode);
     const size_t hashIdx = HASH_INDEX(type, fsid, inid);
 
-    deque_for_each(&self->hashChain[hashIdx], FHKey,
-        if (pCurNode->type == type && pCurNode->fsid == fsid && pCurNode->inid == inid) {
-            return pCurNode;
+    deque_for_each(&self->hashChain[hashIdx], FHKey, it,
+        if (it->type == type && it->fsid == fsid && it->inid == inid) {
+            return it;
         }
-    );
+    )
 
     return NULL;
 }
@@ -291,13 +291,13 @@ static FsNode* _Nullable find_fsnode_rec(FsNode* _Nonnull self, fsid_t fsid)
         return self;
     }
 
-    deque_for_each(&self->attachmentPoints, AtNode, 
-        FsNode* foundNode = find_fsnode_rec(pCurNode->attachedFsNode, fsid);
+    deque_for_each(&self->attachmentPoints, AtNode, it,
+        FsNode* foundNode = find_fsnode_rec(it->attachedFsNode, fsid);
 
         if (foundNode) {
             return foundNode;
         }
-    );
+    )
 
     return NULL;
 }
@@ -361,12 +361,12 @@ catch:
 static void _FileHierarchy_CollectKeysForAtNode(FileHierarchyRef _Nonnull _Locked self, AtNode* _Nonnull atNode, deque_t* _Nonnull keys)
 {
     for (size_t i = 0; i < HASH_CHAINS_COUNT; i++) {
-        deque_for_each(&self->hashChain[i], FHKey,
-            if (pCurNode->at == atNode) {
-                deque_remove(&self->hashChain[i], &pCurNode->sibling);
-                deque_add_first(keys, &pCurNode->sibling);
+        deque_for_each(&self->hashChain[i], FHKey, it,
+            if (it->at == atNode) {
+                deque_remove(&self->hashChain[i], &it->sibling);
+                deque_add_first(keys, &it->sibling);
             }
-        );
+        )
     }
 }
 

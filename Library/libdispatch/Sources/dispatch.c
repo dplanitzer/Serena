@@ -91,15 +91,15 @@ int dispatch_destroy(dispatch_t _Nullable self)
         }
 
 
-        queue_for_each(&self->timer_cache, queue_node_t, {
-            free(pCurNode);
-        });
+        queue_for_each(&self->timer_cache, queue_node_t, it,
+            free(it);
+        )
         self->timer_cache = QUEUE_INIT;
 
 
-        queue_for_each(&self->item_cache, queue_node_t, {
-            free(pCurNode);
-        });
+        queue_for_each(&self->item_cache, queue_node_t, it,
+            free(it);
+        )
         self->item_cache = QUEUE_INIT;
 
 
@@ -158,11 +158,11 @@ _Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch
 
 void _dispatch_wakeup_all_workers(dispatch_t _Nonnull self)
 {
-    deque_for_each(&self->workers, deque_node_t, {
-        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+    deque_for_each(&self->workers, deque_node_t, it,
+        dispatch_worker_t cwp = (dispatch_worker_t)it;
 
         _dispatch_worker_wakeup(cwp);
-    });
+    )
 }
 
 int _dispatch_ensure_worker_capacity(dispatch_t _Nonnull self, int reason)
@@ -197,14 +197,14 @@ dispatch_item_t _Nullable _dispatch_steal_work_item(dispatch_t _Nonnull self)
     dispatch_worker_t most_busy_wp = NULL;
     size_t most_busy_count = 0;
 
-    deque_for_each(&self->workers, deque_node_t, {
-        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+    deque_for_each(&self->workers, deque_node_t, it,
+        dispatch_worker_t cwp = (dispatch_worker_t)it;
 
         if (cwp->work_count > most_busy_count) {
             most_busy_count = cwp->work_count;
             most_busy_wp = cwp;
         }
-    });
+    )
 
     if (most_busy_wp) {
         item = (dispatch_item_t) queue_remove_first(&most_busy_wp->work_queue);
@@ -237,14 +237,14 @@ static int _dispatch_submit(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
     dispatch_worker_t best_wp = NULL;
     size_t best_wc = SIZE_MAX;
 
-    deque_for_each(&self->workers, deque_node_t, {
-        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+    deque_for_each(&self->workers, deque_node_t, it,
+        dispatch_worker_t cwp = (dispatch_worker_t)it;
 
         if (cwp->work_count <= best_wc) {
             best_wc = cwp->work_count;
             best_wp = cwp;
         }
-    });
+    )
     assert(best_wp != NULL);
 
 
@@ -292,15 +292,15 @@ static int _dispatch_await(dispatch_t _Nonnull _Locked self, dispatch_item_t _No
 
     bool foundIt = false;
     dispatch_item_t pip = NULL;
-    queue_for_each(&self->zombie_items, queue_node_t, {
-        dispatch_item_t cip = (dispatch_item_t)pCurNode;
+    queue_for_each(&self->zombie_items, queue_node_t, it,
+        dispatch_item_t cip = (dispatch_item_t)it;
 
         if (cip == item) {
             foundIt = true;
             break;
         }
         pip = cip;
-    });
+    )
 
     
     if (foundIt) {
@@ -324,14 +324,14 @@ void _dispatch_zombify_item(dispatch_t _Nonnull _Locked self, dispatch_item_t _N
 
 static dispatch_item_t _Nullable _dispatch_find_item(dispatch_t _Nonnull self, dispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
-    deque_for_each(&self->workers, deque_node_t, {
-        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+    deque_for_each(&self->workers, deque_node_t, it,
+        dispatch_worker_t cwp = (dispatch_worker_t)it;
         dispatch_item_t ip = _dispatch_worker_find_item(cwp, func, arg);
 
         if (ip) {
             return ip;
         }
-    });
+    )
 
     return NULL;
 }
@@ -548,13 +548,13 @@ static void _dispatch_do_cancel_item(dispatch_t _Nonnull self, dispatch_item_t _
             switch (item->type) {
                 case _DISPATCH_TYPE_USER_ITEM:
                 case _DISPATCH_TYPE_CONV_ITEM:
-                    deque_for_each(&self->workers, deque_node_t, {
-                        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+                    deque_for_each(&self->workers, deque_node_t, it,
+                        dispatch_worker_t cwp = (dispatch_worker_t)it;
 
                         if (_dispatch_worker_withdraw_item(cwp, item)) {
                             break;
                         }
-                    });
+                    )
                     break;
 
                 case _DISPATCH_TYPE_USER_TIMER:
@@ -660,11 +660,11 @@ static void _dispatch_applyschedparams(dispatch_t _Nonnull _Locked self, int qos
     self->attr.qos = qos;
     self->attr.priority = priority;
 
-    deque_for_each(&self->workers, deque_node_t, 
-        dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+    deque_for_each(&self->workers, deque_node_t, it,
+        dispatch_worker_t cwp = (dispatch_worker_t)it;
 
         vcpu_setschedparams(cwp->vcpu, &params);
-    );
+    )
 }
 
 int dispatch_priority(dispatch_t _Nonnull self)
@@ -808,14 +808,14 @@ int dispatch_suspend(dispatch_t _Nonnull self)
             for (;;) {
                 bool hasStillActiveWorker = false;
 
-                deque_for_each(&self->workers, deque_node_t, {
-                    dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+                deque_for_each(&self->workers, deque_node_t, it,
+                    dispatch_worker_t cwp = (dispatch_worker_t)it;
 
                     if (!cwp->is_suspended) {
                         hasStillActiveWorker = true;
                         break;
                     }
-                });
+                )
 
                 if (!hasStillActiveWorker) {
                     self->state = _DISPATCHER_STATE_SUSPENDED;
@@ -863,11 +863,11 @@ void dispatch_terminate(dispatch_t _Nonnull self, int flags)
         isAwaitable = true;
 
         if ((flags & DISPATCH_TERMINATE_CANCEL_ALL) == DISPATCH_TERMINATE_CANCEL_ALL) {
-            deque_for_each(&self->workers, deque_node_t, {
-                dispatch_worker_t cwp = (dispatch_worker_t)pCurNode;
+            deque_for_each(&self->workers, deque_node_t, it,
+                dispatch_worker_t cwp = (dispatch_worker_t)it;
 
                 _dispatch_worker_drain(cwp);
-            });
+            )
         }
         // Timers are drained no matter what
         _dispatch_drain_timers(self);

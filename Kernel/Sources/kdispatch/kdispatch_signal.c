@@ -11,8 +11,8 @@
 
 static void _kdispatch_enable_signal(kdispatch_t _Nonnull _Locked self, int signo, bool enable)
 {
-    deque_for_each(&self->workers, deque_node_t, {
-        kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
+    deque_for_each(&self->workers, deque_node_t, it,
+        kdispatch_worker_t cwp = (kdispatch_worker_t)it;
 
         if (enable) {
             cwp->hotsigs |= _SIGBIT(signo);
@@ -20,7 +20,7 @@ static void _kdispatch_enable_signal(kdispatch_t _Nonnull _Locked self, int sign
         else {
             cwp->hotsigs &= ~_SIGBIT(signo);
         }
-    });
+    )
 
 
     // Notify all workers so that they can pick up the new hotsigs set.
@@ -38,8 +38,8 @@ void _kdispatch_withdraw_signal_item(kdispatch_t _Nonnull self, kdispatch_item_t
     if (self->sigtraps) {
         stp = &self->sigtraps[signo - 1];
 
-        queue_for_each(&stp->monitors, queue_node_t, {
-            kdispatch_item_t cip = (kdispatch_item_t)pCurNode;
+        queue_for_each(&stp->monitors, queue_node_t, it,
+            kdispatch_item_t cip = (kdispatch_item_t)it;
 
             if (cip == item) {
                 queue_remove(&stp->monitors, &pip->qe, &cip->qe);
@@ -48,7 +48,7 @@ void _kdispatch_withdraw_signal_item(kdispatch_t _Nonnull self, kdispatch_item_t
             }
 
             pip = cip;
-        });
+        )
     }
 
     if (hasIt) {
@@ -240,11 +240,11 @@ errno_t kdispatch_send_signal(kdispatch_t _Nonnull self, int signo)
         vcpu_sigsend(((kdispatch_worker_t)self->workers.first)->vcpu, signo);
     }
     else {
-        deque_for_each(&self->workers, deque_node_t, {
-            kdispatch_worker_t cwp = (kdispatch_worker_t)pCurNode;
+        deque_for_each(&self->workers, deque_node_t, it,
+            kdispatch_worker_t cwp = (kdispatch_worker_t)it;
 
             vcpu_sigsend(cwp->vcpu, signo);
-        });
+        )
     }
 
     mtx_unlock(&self->mutex);

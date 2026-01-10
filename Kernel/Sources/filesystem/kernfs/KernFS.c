@@ -36,8 +36,8 @@ catch:
 void KernFS_deinit(KernFSRef _Nonnull self)
 {
     for (size_t i = 0; i < IN_HASH_CHAINS_COUNT; i++) {
-        deque_for_each(&self->inOwned[i], struct Inode,
-            Inode_Destroy((InodeRef)KfsNodeFromHashChainPointer(pCurNode));
+        deque_for_each(&self->inOwned[i], struct Inode, it,
+            Inode_Destroy((InodeRef)KfsNodeFromHashChainPointer(it));
         )
     }
     mtx_deinit(&self->inOwnedLock);
@@ -68,8 +68,8 @@ void _KernFS_DestroyInode(KernFSRef _Nonnull self, KfsNodeRef _Nonnull ip)
     const size_t idx = IN_HASH_INDEX(id);
 
     mtx_lock(&self->inOwnedLock);
-    deque_for_each(&self->inOwned[idx], struct KfsNode,
-        KfsNodeRef curNode = KfsNodeFromHashChainPointer(pCurNode);
+    deque_for_each(&self->inOwned[idx], struct KfsNode, it,
+        KfsNodeRef curNode = KfsNodeFromHashChainPointer(it);
 
         if (Inode_GetId(curNode) == id) {
             deque_remove(&self->inOwned[idx], &ip->inChain);
@@ -86,8 +86,8 @@ KfsNodeRef _Nullable _KernFS_GetInode(KernFSRef _Nonnull self, ino_t id)
     KfsNodeRef theNode = NULL;
 
     mtx_lock(&self->inOwnedLock);
-    deque_for_each(&self->inOwned[idx], struct KfsNode,
-        KfsNodeRef curNode = KfsNodeFromHashChainPointer(pCurNode);
+    deque_for_each(&self->inOwned[idx], struct KfsNode, it,
+        KfsNodeRef curNode = KfsNodeFromHashChainPointer(it);
 
         if (Inode_GetId(curNode) == id) {
             theNode = curNode;

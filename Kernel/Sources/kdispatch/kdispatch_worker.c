@@ -108,15 +108,15 @@ bool _kdispatch_worker_withdraw_item(kdispatch_worker_t _Nonnull self, kdispatch
     kdispatch_item_t pip = NULL;
     bool foundIt = false;
 
-    queue_for_each(&self->work_queue, queue_node_t, {
-        kdispatch_item_t cip = (kdispatch_item_t)pCurNode;
+    queue_for_each(&self->work_queue, queue_node_t, it,
+        kdispatch_item_t cip = (kdispatch_item_t)it;
 
         if (cip == item) {
             foundIt = true;
         }
 
         pip = cip;
-    });
+    )
 
 
     if (foundIt) {
@@ -135,13 +135,13 @@ bool _kdispatch_worker_withdraw_item(kdispatch_worker_t _Nonnull self, kdispatch
 
 kdispatch_item_t _Nullable _kdispatch_worker_find_item(kdispatch_worker_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
-    queue_for_each(&self->work_queue, deque_node_t, {
-        kdispatch_item_t cip = (kdispatch_item_t)pCurNode;
+    queue_for_each(&self->work_queue, deque_node_t, it,
+        kdispatch_item_t cip = (kdispatch_item_t)it;
 
         if (_kdispatch_item_has_func(cip, func, arg)) {
              return cip;
         }
-    });
+    )
 
     return NULL;
 }

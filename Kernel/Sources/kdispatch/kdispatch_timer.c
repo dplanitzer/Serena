@@ -40,8 +40,8 @@ static kdispatch_timer_t _Nullable _kdispatch_dequeue_timer_for_item(kdispatch_t
     kdispatch_timer_t ptp = NULL;
     kdispatch_timer_t timer = NULL;
 
-    queue_for_each(&self->timers, queue_node_t,{
-        kdispatch_timer_t ctp = (kdispatch_timer_t)pCurNode;
+    queue_for_each(&self->timers, queue_node_t, it,
+        kdispatch_timer_t ctp = (kdispatch_timer_t)it;
 
         if (ctp->item == item) {
             timer = ctp;
@@ -49,7 +49,7 @@ static kdispatch_timer_t _Nullable _kdispatch_dequeue_timer_for_item(kdispatch_t
         }
 
         ptp = ctp;
-    })
+    )
 
 
     if (timer) {
@@ -66,13 +66,13 @@ static kdispatch_timer_t _Nullable _kdispatch_dequeue_timer_for_item(kdispatch_t
 
 kdispatch_timer_t _Nullable _kdispatch_find_timer(kdispatch_t _Nonnull self, kdispatch_item_func_t _Nonnull func, void* _Nullable arg)
 {
-    queue_for_each(&self->timers, queue_node_t, {
-        kdispatch_timer_t ctp = (kdispatch_timer_t)pCurNode;
+    queue_for_each(&self->timers, queue_node_t, it,
+        kdispatch_timer_t ctp = (kdispatch_timer_t)it;
 
         if (_kdispatch_item_has_func(ctp->item, func, arg)) {
              return ctp;
         }
-    });
+    )
 
     return NULL;
 }

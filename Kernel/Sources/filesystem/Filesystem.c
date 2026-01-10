@@ -176,14 +176,14 @@ static errno_t _Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, ino_t 
 
 retry:
     // Check whether we already got the inode cached
-    deque_for_each(&self->inCached[IN_CACHED_HASH_INDEX(id)], struct Inode,
-        InodeRef curNode = InodeFromHashChainPointer(pCurNode);
+    deque_for_each(&self->inCached[IN_CACHED_HASH_INDEX(id)], struct Inode, it,
+        InodeRef curNode = InodeFromHashChainPointer(it);
 
         if (Inode_GetId(curNode) == id) {
             ip = curNode;
             break;
         }
-    );
+    )
 
 
     if (ip == NULL) {
@@ -191,12 +191,12 @@ retry:
         // the inode off the disk. We'll wait if that's the case.
         bool isReading = false;
 
-        deque_for_each(&self->inReading[IN_READING_HASH_INDEX(id)], struct RDnode,
-            if (((RDnode*)pCurNode)->id == id) {
+        deque_for_each(&self->inReading[IN_READING_HASH_INDEX(id)], struct RDnode, it,
+            if (it->id == id) {
                 isReading = true;
                 break;
             }
-        );
+        )
 
         if (isReading) {
             self->inReadingWaiterCount++;

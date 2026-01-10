@@ -238,23 +238,23 @@ int _GraphicsDriver_GetNewGObjId(GraphicsDriverRef _Nonnull _Locked self)
         hasCollision = false;
         id = self->nextGObjId++;
 
-        deque_for_each(&self->gobjs, GObject,
-            if (GObject_GetId(pCurNode) == id) {
+        deque_for_each(&self->gobjs, GObject, it,
+            if (GObject_GetId(it) == id) {
                 hasCollision = true;
                 break;
             }
-        );
+        )
     }
     return id;
 }
 
 void* _Nullable _GraphicsDriver_GetGObjForId(GraphicsDriverRef _Nonnull _Locked self, int id, int type)
 {
-    deque_for_each(&self->gobjs, GObject,
-        if (GObject_GetId(pCurNode) == id) {
-            return (GObject_GetType(pCurNode) == type) ? pCurNode : NULL;
+    deque_for_each(&self->gobjs, GObject, it,
+        if (GObject_GetId(it) == id) {
+            return (GObject_GetType(it) == type) ? it : NULL;
         }
-    );
+    )
     return NULL;
 }
 

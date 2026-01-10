@@ -63,9 +63,9 @@ catch:
 
 void RamDisk_deinit(RamDiskRef _Nonnull self)
 {
-    queue_for_each(&self->extents, DiskExtent, {
-        kfree(pCurNode);
-    });
+    queue_for_each(&self->extents, DiskExtent, it,
+        kfree(it);
+    )
 }
 
 errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
@@ -100,19 +100,19 @@ static DiskExtent* _Nullable RamDisk_GetDiskExtentForSectorIndex_Locked(RamDiskR
     DiskExtent* pExtent = NULL;
     const blkcnt_t extentSectorCount = self->extentSectorCount;
 
-    queue_for_each(&self->extents, DiskExtent, {
-        const blkno_t firstSectorIndex = pCurNode->firstSectorIndex;
+    queue_for_each(&self->extents, DiskExtent, it,
+        const blkno_t firstSectorIndex = it->firstSectorIndex;
 
         if (lba >= firstSectorIndex && lba < (firstSectorIndex + extentSectorCount)) {
-            pExtent = pCurNode;
+            pExtent = it;
             break;
         }
         else if (lba < firstSectorIndex) {
             break;
         }
 
-        pPrevExtent = pCurNode;
-    });
+        pPrevExtent = it;
+    )
 
     if (pOutDiskExtentBeforeSectorIndex) {
         *pOutDiskExtentBeforeSectorIndex = pPrevExtent;
@@ -178,9 +178,9 @@ errno_t RamDisk_putSector(RamDiskRef _Nonnull self, const chs_t* _Nonnull chs, c
 
 errno_t RamDisk_doFormatDisk(RamDiskRef _Nonnull self, char fillByte)
 {
-    queue_for_each(&self->extents, DiskExtent, {
-        kfree(pCurNode);
-    });
+    queue_for_each(&self->extents, DiskExtent, it,
+        kfree(it);
+    )
 
     self->extents = QUEUE_INIT;
     self->fillByte = fillByte;

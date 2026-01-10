@@ -78,15 +78,15 @@ void queue_remove(queue_t* _Nonnull q, queue_node_t* _Nullable prev, queue_node_
 (struct __type*) (((char*)__qe_ptr) - offsetof(struct __type, __qe_field_name))
 
 // Iterates all elements of the given queue. Guarantees that the closure may call
-// free on 'pCurNode' without ill effect. The iteration will continue until the
-// end of the queue is reached or 'closure' executes a break statement. 
-#define queue_for_each(q, NodeType, closure) \
+// free on 'it' without ill effect. The iteration will continue until the end of
+// the queue is reached or 'closure' executes a break statement. 
+#define queue_for_each(q, NodeType, it, closure) \
 {\
-    NodeType* pCurNode = (NodeType*)(q)->first; \
-    while (pCurNode) { \
-        NodeType* pNextNode = (NodeType*)((queue_node_t*)pCurNode)->next; \
+    NodeType* (it) = (NodeType*)(q)->first; \
+    while (it) { \
+        NodeType* __pn = (NodeType*)((queue_node_t*)(it))->next; \
         { closure } \
-        pCurNode = pNextNode; \
+        (it) = __pn; \
     } \
 }
 
@@ -129,29 +129,28 @@ extern deque_node_t* _Nullable deque_remove_last(deque_t* _Nonnull dq);
 
 
 // Iterates all elements of the given deque. Guarantees that the closure may call
-// free on 'pCurNode' without ill effect. The iteration will continue until the
-// end of the deque is reached or 'closure' executes a break statement. 
-#define deque_for_each(dq, NodeType, closure) \
+// free on 'it' without ill effect. The iteration will continue until the end of
+// the deque is reached or 'closure' executes a break statement. 
+#define deque_for_each(dq, NodeType, it, closure) \
 { \
-    NodeType* pCurNode = (NodeType*)(dq)->first; \
-    while (pCurNode) { \
-        NodeType* pNextNode = (NodeType*)((deque_node_t*)pCurNode)->next; \
+    NodeType* (it) = (NodeType*)(dq)->first; \
+    while (it) { \
+        NodeType* __np = (NodeType*)((deque_node_t*)(it))->next; \
         { closure } \
-        pCurNode = pNextNode; \
+        (it) = __np; \
     } \
 }
 
 // Iterates all elements of the given deque in reverse order. Guarantees that the
-// closure may call free on 'pCurNode' without ill effect. The iteration will
-// continue until the end of the deque is reached or 'closure' executes a break
-// statement. 
-#define deque_for_each_reversed(dq, NodeType, closure) \
+// closure may call free on 'it' without ill effect. The iteration will continue
+// until the end of the deque is reached or 'closure' executes a break statement. 
+#define deque_for_each_reversed(dq, NodeType, it, closure) \
 { \
-    NodeType* pCurNode = (NodeType*)(dq)->last; \
-    while (pCurNode) { \
-        NodeType* pPrevNode = (NodeType*)((deque_node_t*)pCurNode)->prev; \
+    NodeType* (it) = (NodeType*)(dq)->last; \
+    while (it) { \
+        NodeType* __pp = (NodeType*)((deque_node_t*)(it))->prev; \
         { closure } \
-        pCurNode = pPrevNode; \
+        (it) = __pp; \
     } \
 }
 

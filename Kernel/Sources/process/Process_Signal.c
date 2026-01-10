@@ -60,8 +60,8 @@ static sigroute_t _Nullable _find_specific_sigroute(ProcessRef _Nonnull _Locked 
 {
     sigroute_t prp = NULL;
 
-    queue_for_each(&self->sig_route[signo - 1], deque_node_t,
-        sigroute_t crp = (sigroute_t)pCurNode;
+    queue_for_each(&self->sig_route[signo - 1], deque_node_t, it,
+        sigroute_t crp = (sigroute_t)it;
 
         if (crp->scope == scope && crp->target_id == id) {
             if (pOutPrevEntry) {
@@ -71,7 +71,7 @@ static sigroute_t _Nullable _find_specific_sigroute(ProcessRef _Nonnull _Locked 
         }
 
         prp = crp;
-    );
+    )
 
     return NULL;
 }
@@ -167,11 +167,11 @@ static void _proc_terminate_on_behalf_of(ProcessRef _Nonnull _Locked self, int s
 static void _proc_stop(ProcessRef _Nonnull _Locked self)
 {
     if (self->state == PROC_STATE_RUNNING) {
-        deque_for_each(&self->vcpu_queue, deque_node_t,
-            vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
+        deque_for_each(&self->vcpu_queue, deque_node_t, it,
+            vcpu_t cvp = vcpu_from_owner_qe(it);
 
             vcpu_suspend(cvp);
-        );
+        )
         self->state = PROC_STATE_STOPPED;
     }
 }
@@ -181,11 +181,11 @@ static void _proc_stop(ProcessRef _Nonnull _Locked self)
 static void _proc_cont(ProcessRef _Nonnull _Locked self)
 {
     if (self->state == PROC_STATE_STOPPED) {
-        deque_for_each(&self->vcpu_queue, deque_node_t,
-            vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
+        deque_for_each(&self->vcpu_queue, deque_node_t, it,
+            vcpu_t cvp = vcpu_from_owner_qe(it);
 
             vcpu_resume(cvp, false);
-        );
+        )
         self->state = PROC_STATE_RUNNING;
     }
 }
@@ -199,14 +199,14 @@ static errno_t _proc_send_signal_to_vcpu(ProcessRef _Nonnull _Locked self, id_t 
         target_vp = me_vp;
     }
     else {
-        deque_for_each(&self->vcpu_queue, deque_node_t,
-            vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
+        deque_for_each(&self->vcpu_queue, deque_node_t, it,
+            vcpu_t cvp = vcpu_from_owner_qe(it);
             
             if (cvp->id == id) {
                 target_vp = cvp;
                 break;
             }
-        );
+        )
     }
 
     if (target_vp) {
@@ -224,8 +224,8 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self,
 {
     bool hasMatch = false;
 
-    deque_for_each(&self->vcpu_queue, deque_node_t,
-        vcpu_t cvp = vcpu_from_owner_qe(pCurNode);
+    deque_for_each(&self->vcpu_queue, deque_node_t, it,
+        vcpu_t cvp = vcpu_from_owner_qe(it);
 
         if (cvp->groupid == id) {
             // This sigsend() will auto-force-resume the receiving vcpu if we're
@@ -233,7 +233,7 @@ static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self,
             vcpu_sigsend(cvp, signo);
             hasMatch = true;
         }
-    );
+    )
 
     return (hasMatch) ? EOK : ESRCH;
 }
@@ -255,8 +255,8 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
 
         default:
             if (!queue_empty(&self->sig_route[signo - 1])) {
-                queue_for_each(&self->sig_route[signo - 1], queue_t, {
-                    sigroute_t crp = (sigroute_t)pCurNode;
+                queue_for_each(&self->sig_route[signo - 1], queue_t, it,
+                    sigroute_t crp = (sigroute_t)it;
 
                     switch (crp->scope) {
                         case SIG_SCOPE_VCPU:
@@ -270,7 +270,7 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
                         default:
                             abort();
                     }
-                })
+                )
             }
             else {
                 switch (signo) {

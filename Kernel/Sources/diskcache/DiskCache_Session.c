@@ -376,8 +376,8 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
         while (!done) {
             done = true;
 
-            deque_for_each_reversed(&self->lruChain, deque_node_t, 
-                DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
+            deque_for_each_reversed(&self->lruChain, deque_node_t, it,
+                DiskBlockRef pb = DiskBlockFromLruChainPointer(it);
 
                 if (!DiskBlock_InUse(pb) && (pb->flags.isDirty && !pb->flags.isPinned)) {
                     if (pb->sessionId == s->sessionId) {
@@ -396,7 +396,7 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskSession* _Nonnull s)
                     done = false;
                     break;
                 }
-            );
+            )
         }
     }
 

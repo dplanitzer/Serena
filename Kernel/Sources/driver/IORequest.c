@@ -43,12 +43,12 @@ errno_t IORequest_Get(int type, size_t reqSize, IORequest* _Nullable * _Nonnull 
     if (gCacheCount > 0) {
         CachedIORequest* cr = NULL;
 
-        deque_for_each(&gCache, CachedIORequest, {
-            if (pCurNode->size >= targetSize) {
-                cr = pCurNode;
+        deque_for_each(&gCache, CachedIORequest, it,
+            if (it->size >= targetSize) {
+                cr = it;
                 break;
             }
-        });
+        )
 
         if (cr) {
             deque_remove(&gCache, &cr->node);

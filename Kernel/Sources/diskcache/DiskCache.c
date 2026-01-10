@@ -171,9 +171,9 @@ void _DiskCache_Print(DiskCacheRef _Nonnull _Locked self)
 {
     printf("{");
     for (size_t i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
-        deque_for_each(&self->diskAddrHash[i], DiskBlock,
-            printf("%u [%u], ", pCurNode->lba, i);
-        );
+        deque_for_each(&self->diskAddrHash[i], DiskBlock, it,
+            printf("%u [%u], ", it->lba, i);
+        )
     }
     printf("}");
 }
@@ -181,13 +181,13 @@ void _DiskCache_Print(DiskCacheRef _Nonnull _Locked self)
 void _DiskCache_PrintLruChain(DiskCacheRef _Nonnull _Locked self)
 {
     printf("{");
-    deque_for_each(&self->lruChain, deque_node_t,
-        DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
+    deque_for_each(&self->lruChain, deque_node_t, it,
+        DiskBlockRef pb = DiskBlockFromLruChainPointer(it);
         printf("%u", pb->lba);
-        if (pCurNode->next) {
+        if (it->next) {
             printf(", ");
         }
-    );
+    )
     printf("}");
 }
 #endif
@@ -215,8 +215,8 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
 {
     DiskBlockRef pBlock = NULL;
 
-    deque_for_each_reversed(&self->lruChain, deque_node_t, 
-        DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
+    deque_for_each_reversed(&self->lruChain, deque_node_t, it,
+        DiskBlockRef pb = DiskBlockFromLruChainPointer(it);
 
         //XXX we previously allowed the reuse of a dirty block and we would sync out the
         // dirty block before reuse. However we currently don't have access to the session
@@ -226,7 +226,7 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
             pBlock = pb;
             break;
         }
-    );
+    )
 
     if (pBlock) {
         // Sync the block to disk if necessary
@@ -257,12 +257,12 @@ errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, const DiskSessio
         deque_t* chain = &self->diskAddrHash[idx];
     
         pBlock = NULL;
-        deque_for_each(chain, DiskBlock,
-            if (DiskBlock_IsEqualKey(pCurNode, s->sessionId, lba)) {
-                pBlock = pCurNode;
+        deque_for_each(chain, DiskBlock, it,
+            if (DiskBlock_IsEqualKey(it, s->sessionId, lba)) {
+                pBlock = it;
                 break;
             }
-        );
+        )
 
 
         if (pBlock || (pBlock == NULL && (options & kGetBlock_Allocate) == 0)) {
