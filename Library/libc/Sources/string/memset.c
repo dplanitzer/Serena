@@ -28,6 +28,12 @@ void* _Nonnull memset(void* _Nonnull dst, int c, size_t count)
 
 
     // Align to the next natural word size boundary
+#if defined(__SIMPLE_ALIGNMENT_MODEL)
+    if (((uintptr_t)p) & 1) {
+        *p++ = b;
+        count--;
+    }
+#else
     const size_t n_mod_bytes = ((uintptr_t)p & WORD_SIZMASK);
     if (n_mod_bytes > 0) {
         do {
@@ -36,11 +42,12 @@ void* _Nonnull memset(void* _Nonnull dst, int c, size_t count)
 
         count -= (WORD_SIZE - n_mod_bytes);
     }
-    const uint8_t* const pe = p + count;
+#endif
 
 
     // We know that we can do at least one natural word size op at this point.
     // Unroll by a factor of 4 whenever possible
+    const uint8_t* const pe = p + count;
     uword_t* pw = (uword_t*)p;
     const uword_t bw = WORD_FROM_BYTE(b);
     const uword_t* const pew = pw + (count >> WORD_SHIFT);
