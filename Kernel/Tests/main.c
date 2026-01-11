@@ -40,6 +40,9 @@ extern void int32_test(int argc, char *argv[]);
 // Int64
 extern void int64_test(int argc, char *argv[]);
 
+// Mem
+extern void mem_test(int argc, char *argv[]);
+
 // Mutex
 extern void mtx_test(int argc, char *argv[]);
 
@@ -105,6 +108,8 @@ static const test_t gTests[] = {
     {"int32", int32_test, false},
 
     {"int64", int64_test, false},
+
+    {"mem", mem_test, false},
 
     {"mtx", mtx_test, true},
 
