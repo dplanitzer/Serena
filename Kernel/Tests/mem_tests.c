@@ -76,5 +76,53 @@ void mem_test(int argc, char *argv[])
     assertTrue(has_value(p + 15 + 64, 0, 15));
     memset(p, 0, MEMBLK_SIZE);
 
+
+    // memcpy, aligned p, 1 byte
+    memcpy(p + 16, "1", 1);
+    assertTrue(has_value(p, 0, 16));
+    assertEquals(0, memcmp(p + 16, "1", 1));
+    assertTrue(has_value(p + 16 + 1, 0, 16));
+    memset(p, 0, MEMBLK_SIZE);
+
+
+    // memcpy, aligned p, 33 byte
+    memcpy(p + 16, "123456789012345678901234567890123", 33);
+    assertTrue(has_value(p, 0, 16));
+    assertEquals(0, memcmp(p + 16, "123456789012345678901234567890123", 33));
+    assertTrue(has_value(p + 16 + 33, 0, 16));
+    memset(p, 0, MEMBLK_SIZE);
+
+
+    // memcpy, aligned p, 32 byte
+    memcpy(p + 16, "12345678901234567890123456789012", 32);
+    assertTrue(has_value(p, 0, 16));
+    assertEquals(0, memcmp(p + 16, "12345678901234567890123456789012", 32));
+    assertTrue(has_value(p + 16 + 32, 0, 16));
+    memset(p, 0, MEMBLK_SIZE);
+
+
+    // memcpy, UNaligned p, 1 byte
+    memcpy(p + 15, "1", 1);
+    assertTrue(has_value(p, 0, 15));
+    assertEquals(0, memcmp(p + 15, "1", 1));
+    assertTrue(has_value(p + 15 + 1, 0, 15));
+    memset(p, 0, MEMBLK_SIZE);
+
+
+    // memcpy, UNaligned p, 33 byte
+    memcpy(p + 15, "123456789012345678901234567890123", 33);
+    assertTrue(has_value(p, 0, 15));
+    assertEquals(0, memcmp(p + 15, "123456789012345678901234567890123", 33));
+    assertTrue(has_value(p + 15 + 33, 0, 15));
+    memset(p, 0, MEMBLK_SIZE);
+
+
+    // memcpy, UNaligned p, 32 byte
+    memcpy(p + 15, "12345678901234567890123456789012", 32);
+    assertTrue(has_value(p, 0, 15));
+    assertEquals(0, memcmp(p + 15, "12345678901234567890123456789012", 32));
+    assertTrue(has_value(p + 15 + 32, 0, 15));
+    memset(p, 0, MEMBLK_SIZE);
+
     free(p);
 }
