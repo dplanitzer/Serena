@@ -24,3 +24,8 @@ SYSCALL_4(excpt_sethandler, int scope, int flags, const excpt_handler_t* _Nullab
 
     return Process_SetExceptionHandler(vp->proc, vp, pa->scope, pa->handler, pa->old_handler);
 }
+
+SYSCALL_0(test)
+{
+    return 0;
+}

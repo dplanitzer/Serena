@@ -15,20 +15,20 @@
 
 #if defined(__ILP32__)
 typedef int32_t word_t;
-#define WORD_SIZE       4
+#define WORD_SIZE   4
 #define WORD_MAX    INT_MAX
 // 'bhdr'
 #define HEADER_PATTERN  ((word_t)0x62686472)
 // 'btrl'
-#define TRAILER_PATTERN  ((word_t)0x6274726c)
+#define TRAILER_PATTERN ((word_t)0x6274726c)
 #elif defined(__LLP64__) || defined(__LP64__)
 typedef int64_t word_t;
-#define WORD_SIZE       8
+#define WORD_SIZE   8
 #define WORD_MAX    LLONG_MAX
 // 'bhdr'
 #define HEADER_PATTERN  ((word_t)0x6268647272646862)
 // 'btrl'
-#define TRAILER_PATTERN  ((word_t)0x6274726c6c727462)
+#define TRAILER_PATTERN ((word_t)0x6274726c6c727462)
 #else
 #error "unknown data model"
 #endif
