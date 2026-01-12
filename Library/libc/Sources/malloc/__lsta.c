@@ -60,7 +60,6 @@ typedef struct mem_region {
     struct mem_region* _Nullable    next;
     char* _Nonnull                  lower;  // Lowest address from which to allocate (word aligned)
     char* _Nonnull                  upper;  // Address just beyond the last allocatable address (word aligned)
-    char* _Nonnull                  alloc_hint; // Start looking for an allocatable block here
     lsta_error_func_t _Nonnull      error_func;
 } mem_region_t;
 
@@ -73,6 +72,8 @@ struct lsta {
     lsta_error_func_t _Nonnull  error_func;
 };
 
+
+unsigned int    __g_lsta_debug;
 
 
 // Initializes a new mem region structure in the given memory region. Assumes
@@ -99,7 +100,6 @@ static mem_region_t* mem_region_create(const mem_desc_t* _Nonnull md, lsta_error
     mr->next = NULL;
     mr->lower = __Ceil_Ptr_PowerOf2(bptr + sizeof(mem_region_t), WORD_SIZE);
     mr->upper = tptr;
-    mr->alloc_hint = mr->lower;
     mr->error_func = errFunc;
 
     if ((mr->upper - mr->lower) < MIN_GROSS_BLOCK_SIZE) {
@@ -161,31 +161,23 @@ static void* _Nullable mem_region_alloc(mem_region_t* _Nonnull mr, size_t nbytes
         return NULL;
     }
 
-    // Find a suitable free block. Note that we do up to two scans:
-    // - first one starts at the alloc_hint which is somewhere inside the memory
-    //   region
-    // - second one starts at the memory region bottom and scans the portion that
-    //   we didn't in the first run. Second scan run only comes into play if the
-    //   first one didn't find a suitable free block
+    // Find a suitable free block.
     const word_t gross_nbytes = sizeof(block_header_t) + __Ceil_PowerOf2(nbytes, WORD_SIZE) + sizeof(block_trailer_t);
-    char* p = mr->alloc_hint;
+    char* p = mr->lower;
+    bool success = false;
 
-    for (int i = 0; i < 2; i++) {
-        while (p < mr->upper) {
-            if (((block_header_t*)p)->size >= gross_nbytes) {
-                goto done;
-            }
-
-            p += __abs(((block_header_t*)p)->size);
+    while (p < mr->upper) {
+        if (((block_header_t*)p)->size >= gross_nbytes) {
+            success = true;
+            break;
         }
 
-        p = mr->lower;
+        p += __abs(((block_header_t*)p)->size);
     }
-done:
-    if (p >= mr->upper) {
+    if (!success) {
         return NULL;
     }
-
+    
 
     // We found a suitable free block. Split the front portion off for our new
     // allocated block. However, the remainder of the free block might not be
@@ -209,8 +201,6 @@ done:
         ftrl->size = gross_fsize;
         ftrl->pat = TRAILER_PATTERN;
 
-        mr->alloc_hint = (char*)bhdr;
-
         return ((char*)bhdr) + sizeof(block_header_t);
     }
     else {
@@ -222,8 +212,6 @@ done:
         bhdr->pat = HEADER_PATTERN;
         btrl->size = -btrl->size;
         btrl->pat = TRAILER_PATTERN;
-
-        mr->alloc_hint = (char*)bhdr;
 
         return ((char*)bhdr) + sizeof(block_header_t);
     }
@@ -388,7 +376,6 @@ static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
             // Pred & succ are allocated. Just mark the block as free
             bhdr->size = -bhdr->size;
             btrl->size = -btrl->size;
-            mr->alloc_hint = (char*)bhdr;
             break;
 
         case 0x01:
@@ -397,7 +384,6 @@ static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
             btrl->pat = 0;
             succ_hdr->pat = 0;
             succ_trl->size = bhdr->size;
-            mr->alloc_hint = (char*)bhdr;
             break;
 
         case 0x10:
@@ -406,7 +392,6 @@ static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
             pred_trl->pat = 0;
             bhdr->pat = 0;
             btrl->size = pred_hdr->size;
-            mr->alloc_hint = (char*)pred_hdr;
             break;
 
         case 0x11:
@@ -417,7 +402,6 @@ static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
             btrl->pat = 0;
             succ_hdr->pat = 0;
             succ_trl->size = pred_hdr->size;
-            mr->alloc_hint = (char*)pred_hdr;
             break;
     }
 

@@ -46,6 +46,9 @@ typedef bool (*lsta_grow_func_t)(lsta_t _Nonnull allocator, size_t minByteCount)
 typedef void (*lsta_error_func_t)(int err, const char* _Nonnull funcName, void* _Nullable ptr);
 
 
+extern unsigned int    __g_lsta_debug;
+
+
 extern lsta_t _Nullable __lsta_create(const mem_desc_t* _Nonnull md, lsta_grow_func_t _Nullable growFunc, lsta_error_func_t _Nonnull errFunc);
 
 // Adds the given memory region to the allocator's available memory pool.
