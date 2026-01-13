@@ -38,7 +38,6 @@ int __fclose(FILE * _Nonnull s)
     const int r2 = (s->cb.close) ? s->cb.close((void*)s->context) : 0;
 
     __setvbuf(s, NULL, _IONBF, 0);
-    mtx_deinit(&s->lock);
     __deregister_open_file(s);
     
     return (r1 == 0 && r2 == 0) ? 0 : EOF;

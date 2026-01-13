@@ -17,11 +17,12 @@ int fclose(FILE * _Nonnull s)
     if (s) {
         __flock(s);
         r = __fclose(s);
+        __funlock(s);
+        mtx_deinit(&s->lock);
 
         if (s->flags.shouldFreeOnClose) {
             free(s);
         }
-        __funlock(s);
     }
     return r;
 }
