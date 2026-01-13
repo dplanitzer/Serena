@@ -39,6 +39,7 @@ extern void IORequest_Put(IORequest* _Nullable req);
 
 // Initializes an IORequest suitable for a sync I/O call
 #define IORequest_Init(__req, __type) \
+((IORequest*)__req)->item = KDISPATCH_ITEM_INIT(NULL, NULL); \
 ((IORequest*)__req)->type = (__type); \
 ((IORequest*)__req)->size = 0; \
 ((IORequest*)__req)->status = EOK; \
