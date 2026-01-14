@@ -22,6 +22,7 @@ FILE *fdopen(int ioc, const char * _Nonnull mode)
         }
 
         if (__fdopen_init(self, true, ioc, sm) == 0) {
+            __register_open_file((FILE*)self);
             return (FILE*)self;
         }
 

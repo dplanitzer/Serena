@@ -22,6 +22,7 @@ FILE *fopen_memory(FILE_Memory * _Nonnull _Restrict mem, const char * _Nonnull _
         }
 
         if (__fopen_memory_init(self, true, mem, sm) == 0) {
+            __register_open_file((FILE*)self);
             return (FILE*)self;
         }
 

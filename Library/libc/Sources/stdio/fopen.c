@@ -22,6 +22,7 @@ FILE *fopen(const char * _Nonnull _Restrict filename, const char * _Nonnull _Res
         }
 
         if (__fopen_filename_init(self, true, filename, sm) == 0) {
+            __register_open_file((FILE*)self);
             return (FILE*)self;
         }
 

@@ -22,6 +22,7 @@ FILE *fopen_callbacks(void* _Nullable _Restrict context, const FILE_Callbacks* _
         }
 
         if (__fopen_init(self, true, context, callbacks, sm) == 0) {
+            __register_open_file((FILE*)self);
             return self;
         }
 

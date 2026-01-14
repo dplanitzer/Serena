@@ -11,7 +11,7 @@
 #include <string.h>
 
 
-static void __register_open_file(FILE* _Nonnull s)
+void __register_open_file(FILE* _Nonnull s)
 {
     __open_files_lock();
 
@@ -62,8 +62,6 @@ int __fopen_init(FILE* _Nonnull _Restrict self, bool bFreeOnClose, void* _Nullab
     self->flags.direction = __kStreamDirection_Unknown;
     self->flags.orientation = __kStreamOrientation_Unknown;
     self->flags.shouldFreeOnClose = bFreeOnClose ? 1 : 0;
-
-    __register_open_file(self);
 
     return 0;
 }
