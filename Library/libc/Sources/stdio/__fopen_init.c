@@ -35,8 +35,11 @@ int __fopen_init(FILE* _Nonnull _Restrict self, void* _Nullable context, const F
         // Init
 
         memset(self, 0, sizeof(FILE));
-        if (mtx_init(&self->lock) != 0) {
-            return EOF;
+
+        if ((sm & __kStreamMode_NoLocking) == 0) {
+            if (mtx_init(&self->lock) != 0) {
+                return EOF;
+            }
         }
 
         self->cb = *callbacks;

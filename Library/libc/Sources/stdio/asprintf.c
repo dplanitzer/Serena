@@ -44,7 +44,7 @@ int vasprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list ap
         mem.initialEof = 0;
         mem.options = 0;
 
-        r = __fopen_memory_init(&file, &mem, sm);
+        r = __fopen_memory_init(&file, &mem, sm | __kStreamMode_NoLocking);
     }
     else {
         // Use a null stream to calculate the length of the formatted string

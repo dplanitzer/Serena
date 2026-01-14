@@ -41,7 +41,7 @@ int vsnprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _No
         mem.initialEof = 0;
         mem.options = 0;
 
-        r = __fopen_memory_init(&file, &mem, sm);
+        r = __fopen_memory_init(&file, &mem, sm | __kStreamMode_NoLocking);
     }
     else {
         // Use a null stream to calculate the length of the formatted string

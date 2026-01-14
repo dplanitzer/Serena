@@ -35,6 +35,7 @@ enum {
     // Internal flags
     __kStreamMode_FreeOnClose   = 0x1000,   // Call free() on the FILE object when closing with fclose()
     __kStreamMode_Reinit        = 0x2000,   // Re-initialize the provided stream object instead of initializing it from scratch
+    __kStreamMode_NoLocking     = 0x4000,   // Stream operations will not lock the FILE object (does the stream is not concurrency safe)
 };
 
 enum {
