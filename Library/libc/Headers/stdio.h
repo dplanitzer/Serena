@@ -121,7 +121,13 @@ extern FILE *freopen(const char * _Nonnull _Restrict filename, const char * _Non
 extern FILE *fdopen(int ioc, const char * _Nonnull mode);
 extern FILE *fdreopen(int ioc, const char * _Nonnull _Restrict mode, FILE * _Nonnull _Restrict s);
 
+// Creates a stream which uses the provided callbacks to implement the read,
+// write, seek and close operations. This function does not associate a buffer
+// with the stream.
 extern FILE *fopen_callbacks(void* _Nullable _Restrict context, const FILE_Callbacks * _Nonnull _Restrict callbacks, const char* _Nonnull _Restrict mode);
+
+// Creates a stream which is backed by a memory region/block. This function does
+// not associate a buffer with the stream.
 extern FILE *fopen_memory(FILE_Memory * _Nonnull _Restrict mem, const char * _Nonnull _Restrict mode);
 
 extern int fclose(FILE * _Nonnull s);

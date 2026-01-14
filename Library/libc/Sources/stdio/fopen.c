@@ -22,6 +22,10 @@ FILE *fopen(const char * _Nonnull _Restrict filename, const char * _Nonnull _Res
         }
 
         if (__fopen_filename_init(self, filename, sm | __kStreamMode_FreeOnClose) == 0) {
+            if (__setvbuf((FILE*)self, NULL, _IOFBF, BUFSIZ) == EOF) {
+                // ignore memory alloc error - just return the stream unbuffered
+                errno = 0;
+            }
             __freg_file((FILE*)self);
             return (FILE*)self;
         }
