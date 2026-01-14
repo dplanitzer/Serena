@@ -25,7 +25,7 @@ static ssize_t __null_write(void* _Nonnull self, const void* pBytes, ssize_t nBy
     return nBytesToWrite;
 }
 
-static const FILE_Callbacks __FILE_null_callbacks = {
+const FILE_Callbacks __FILE_null_callbacks = {
     (FILE_Read)__null_read,
     (FILE_Write)__null_write,
     (FILE_Seek)NULL,

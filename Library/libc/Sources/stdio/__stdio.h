@@ -94,6 +94,7 @@ typedef int (*__file_func_t)(FILE* _Nonnull s);
 
 
 extern const FILE_Callbacks __FILE_fd_callbacks;
+extern const FILE_Callbacks __FILE_null_callbacks;
 extern FILE*    __gOpenFiles;
 extern mtx_t    __gOpenFilesLock;
 
