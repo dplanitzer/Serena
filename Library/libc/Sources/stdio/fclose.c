@@ -17,6 +17,7 @@ int fclose(FILE * _Nonnull s)
     if (s) {
         __flock(s);
         r = __fclose(s);
+        __deregister_open_file(s);
         __funlock(s);
         mtx_deinit(&s->lock);
 

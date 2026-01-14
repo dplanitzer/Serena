@@ -119,6 +119,7 @@ extern FILE * _Nullable __fopen_null(const char* mode);
 
 
 extern void __register_open_file(FILE* _Nonnull s);
+extern void __deregister_open_file(FILE* _Nonnull s);
 extern int __iterate_open_files(__file_func_t _Nonnull f);
 extern int __filemem(FILE * _Nonnull _Restrict s, FILE_MemoryQuery * _Nonnull _Restrict query);
 
