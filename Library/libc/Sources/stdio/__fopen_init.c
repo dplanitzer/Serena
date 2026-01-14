@@ -51,6 +51,9 @@ int __fopen_init(FILE* _Nonnull _Restrict self, void* _Nullable context, const F
     else {
         // Reinit
 
+        __fdiscard_buf(self);
+        __fdiscard_ugb(self);
+
         self->cb = *callbacks;
         self->context = context;
         self->mbstate = (mbstate_t){0};

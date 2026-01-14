@@ -7,22 +7,26 @@
 //
 
 #include "__stdio.h"
-#include <stdlib.h>
 
 
 FILE *freopen(const char * _Nonnull _Restrict filename, const char * _Nonnull _Restrict mode, FILE * _Nonnull _Restrict s)
 {
     __FILE_Mode sm;
+    int r = EOF;
 
-    if (__fopen_parse_mode(mode, &sm) != 0) {
+    if (__fopen_parse_mode(mode, &sm) == 0) {
+        __flock(s);
+        __fclose(s);
+
+        r = __fopen_filename_init((__IOChannel_FILE*)s, filename, sm | __kStreamMode_Reinit);
+        __funlock(s);
+    }
+    
+    if (r == 0) {
+        return s;
+    }
+    else {
+        fclose(s);
         return NULL;
     }
-
-    __flock(s);
-    __fclose(s);
-
-    const int r = __fopen_filename_init((__IOChannel_FILE*)s, filename, sm | __kStreamMode_Reinit);
-    __funlock(s);
-    
-    return (r == 0) ? s : NULL;
 }

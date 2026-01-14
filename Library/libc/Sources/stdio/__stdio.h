@@ -186,6 +186,10 @@ if ((__self)->cb.seek == NULL) { \
 #define __fdiscard_ugb(__self) \
 (__self)->ugbCount = 0
 
+#define __fdiscard_buf(__self) \
+(__self)->bufferCount = 0; \
+(__self)->bufferIndex = 0
+
 extern int __fget_ugb(char* _Nonnull _Restrict pch, FILE * _Nonnull _Restrict s);
 
 extern ssize_t __fwrite(FILE * _Nonnull _Restrict s, const void * _Restrict buffer, ssize_t nbytes);
