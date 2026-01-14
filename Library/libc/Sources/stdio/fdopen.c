@@ -8,6 +8,7 @@
 
 #include "__stdio.h"
 #include <stdlib.h>
+#include <fcntl.h>
 
 
 FILE *fdopen(int ioc, const char * _Nonnull mode)
@@ -22,6 +23,23 @@ FILE *fdopen(int ioc, const char * _Nonnull mode)
         }
 
         if (__fdopen_init(self, ioc, sm | __kStreamMode_FreeOnClose) == 0) {
+            int bufmod;
+            size_t bufsiz;
+
+            if (fcntl(fileno((FILE*)self), F_GETTYPE) == SEO_FT_TERMINAL) {
+                bufmod = _IOLBF;
+                bufsiz = 256;
+            }
+            else {
+                bufmod = _IOFBF;
+                bufsiz = BUFSIZ;
+            }
+
+            if (__setvbuf((FILE*)self, NULL, bufmod, bufsiz) == EOF) {
+                // ignore memory alloc failure - just return an unbuffered stream
+                errno = 0;
+            }
+
             __freg_file((FILE*)self);
             return (FILE*)self;
         }
