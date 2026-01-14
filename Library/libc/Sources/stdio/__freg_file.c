@@ -12,17 +12,6 @@
 void __freg_file(FILE* _Nonnull s)
 {
     __open_files_lock();
-
-    if (__gOpenFiles) {
-        s->prev = NULL;
-        s->next = __gOpenFiles;
-        __gOpenFiles->prev = s;
-        __gOpenFiles = s;
-    } else {
-        __gOpenFiles = s;
-        s->prev = NULL;
-        s->next = NULL;
-    }
-
+    deque_add_last(&__gOpenFiles, &s->qe);
     __open_files_unlock();
 }

@@ -19,6 +19,7 @@
 #include <arch/_off.h>
 #include <arch/_size.h>
 #include <arch/_ssize.h>
+#include <ext/queue.h>
 #include <kpi/_seek.h>
 #include <kpi/syslimits.h>
 #include <sys/mtx.h>
@@ -80,8 +81,7 @@ typedef struct FILE_MemoryQuery {
 
 
 typedef struct FILE {
-    struct FILE* _Nullable      prev;
-    struct FILE* _Nullable      next;
+    deque_node_t                qe;
     FILE_Callbacks              cb;
     void* _Nullable             context;
     mtx_t                       lock;

@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <errno.h>
 #include <__stdlib.h>
+#include <ext/queue.h>
 #include <sys/mtx.h>
 
 
@@ -99,7 +100,7 @@ typedef int (*__file_func_t)(FILE* _Nonnull s);
 
 extern const FILE_Callbacks __FILE_fd_callbacks;
 extern const FILE_Callbacks __FILE_null_callbacks;
-extern FILE*    __gOpenFiles;
+extern deque_t  __gOpenFiles;
 extern mtx_t    __gOpenFilesLock;
 
 #define __init_open_files_lock() \

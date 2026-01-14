@@ -12,20 +12,6 @@
 void __fdreg_file(FILE* _Nonnull s)
 {
     __open_files_lock();
-
-    if (__gOpenFiles == s) {
-        __gOpenFiles = s->next;
-    }
-
-    if (s->next) {
-        (s->next)->prev = s->prev;
-    }
-    if (s->prev) {
-        (s->prev)->next = s->next;
-    }
-
-    s->prev = NULL;
-    s->next = NULL;
-
+    deque_remove(&__gOpenFiles, &s->qe);
     __open_files_unlock();
 }

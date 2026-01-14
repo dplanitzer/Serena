@@ -19,7 +19,7 @@ FILE* _Stdin;
 FILE* _Stdout;
 FILE* _Stderr;
 
-FILE*   __gOpenFiles;
+deque_t __gOpenFiles;
 mtx_t   __gOpenFilesLock;
 
 
@@ -37,6 +37,7 @@ void __stdio_init(void)
     size_t bufsiz;
 
     __init_open_files_lock();
+    __gOpenFiles = DEQUE_INIT;
     
     _Stdin = (FILE*)&_StdinObj;
     _Stdout = (FILE*)&_StdoutObj;

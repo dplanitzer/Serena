@@ -14,20 +14,15 @@
 int __iterate_open_files(__file_func_t _Nonnull f)
 {
     int r = 0;
-    FILE* pCurFile;
     
     __open_files_lock();
-
-    pCurFile = __gOpenFiles;
-    while (pCurFile) {
-        const int rx = f(pCurFile);
+    queue_for_each(&__gOpenFiles, FILE, it,
+        const int rx = f(it);
 
         if (r == 0) {
             r = rx;
         }
-        pCurFile = pCurFile->next;
-    }
-
+    );
     __open_files_unlock();
 
     return r;
