@@ -15,9 +15,13 @@ int fclose(FILE * _Nonnull s)
     int r = 0;
 
     if (s) {
+        // First remove the stream from the global stream list
+        __deregister_open_file(s);
+
+        // Now it's safe to destroy the stream
         __flock(s);
         r = __fclose(s);
-        __deregister_open_file(s);
+        __setvbuf(s, NULL, _IONBF, 0);
         __funlock(s);
         mtx_deinit(&s->lock);
 
