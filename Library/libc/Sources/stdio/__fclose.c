@@ -9,28 +9,6 @@
 #include "__stdio.h"
 
 
-void __deregister_open_file(FILE* _Nonnull s)
-{
-    __open_files_lock();
-
-    if (__gOpenFiles == s) {
-        __gOpenFiles = s->next;
-    }
-
-    if (s->next) {
-        (s->next)->prev = s->prev;
-    }
-    if (s->prev) {
-        (s->prev)->next = s->next;
-    }
-
-    s->prev = NULL;
-    s->next = NULL;
-
-    __open_files_unlock();
-}
-
-
 // Flushes any buffered data to the underlying I/O channel and the closes that
 // channel. Also discards the unget buffer and switches the stream to a null
 // stream to ensure that it is safe to call fclose() or __fclose() on the stream

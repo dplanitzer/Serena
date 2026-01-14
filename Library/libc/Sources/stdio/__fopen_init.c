@@ -11,25 +11,6 @@
 #include <string.h>
 
 
-void __register_open_file(FILE* _Nonnull s)
-{
-    __open_files_lock();
-
-    if (__gOpenFiles) {
-        s->prev = NULL;
-        s->next = __gOpenFiles;
-        __gOpenFiles->prev = s;
-        __gOpenFiles = s;
-    } else {
-        __gOpenFiles = s;
-        s->prev = NULL;
-        s->next = NULL;
-    }
-
-    __open_files_unlock();
-}
-
-
 int __fopen_init(FILE* _Nonnull _Restrict self, void* _Nullable context, const FILE_Callbacks* _Nonnull _Restrict callbacks, __FILE_Mode sm)
 {
     int ok = 1;

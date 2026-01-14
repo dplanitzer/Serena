@@ -22,7 +22,7 @@ FILE *fdopen(int ioc, const char * _Nonnull mode)
         }
 
         if (__fdopen_init(self, ioc, sm | __kStreamMode_FreeOnClose) == 0) {
-            __register_open_file((FILE*)self);
+            __freg_file((FILE*)self);
             return (FILE*)self;
         }
 

@@ -16,7 +16,7 @@ int fclose(FILE * _Nonnull s)
 
     if (s) {
         // First remove the stream from the global stream list
-        __deregister_open_file(s);
+        __fdreg_file(s);
 
         // Now it's safe to destroy the stream
         __flock(s);

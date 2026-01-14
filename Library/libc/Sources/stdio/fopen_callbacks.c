@@ -22,7 +22,7 @@ FILE *fopen_callbacks(void* _Nullable _Restrict context, const FILE_Callbacks* _
         }
 
         if (__fopen_init(self, context, callbacks, sm | __kStreamMode_FreeOnClose) == 0) {
-            __register_open_file((FILE*)self);
+            __freg_file((FILE*)self);
             return self;
         }
 

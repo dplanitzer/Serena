@@ -22,7 +22,7 @@ FILE *fopen(const char * _Nonnull _Restrict filename, const char * _Nonnull _Res
         }
 
         if (__fopen_filename_init(self, filename, sm | __kStreamMode_FreeOnClose) == 0) {
-            __register_open_file((FILE*)self);
+            __freg_file((FILE*)self);
             return (FILE*)self;
         }
 
