@@ -153,7 +153,7 @@ static const FILE_Callbacks __FILE_mem_callbacks = {
 
 
 
-int __fopen_memory_init(__Memory_FILE* _Nonnull _Restrict self, bool bFreeOnClose, FILE_Memory * _Nonnull _Restrict mem, __FILE_Mode sm)
+int __fopen_memory_init(__Memory_FILE* _Nonnull _Restrict self, FILE_Memory * _Nonnull _Restrict mem, __FILE_Mode sm)
 {
     __Memory_FILE_Vars* mp = &self->v;
 
@@ -176,5 +176,5 @@ int __fopen_memory_init(__Memory_FILE* _Nonnull _Restrict self, bool bFreeOnClos
 
     mp->flags.freeOnClose = ((mem->options & _IOM_FREE_ON_CLOSE) != 0) ? 1 : 0;
 
-    return __fopen_init((FILE*)self, bFreeOnClose, mp, &__FILE_mem_callbacks, sm);
+    return __fopen_init((FILE*)self, mp, &__FILE_mem_callbacks, sm);
 }

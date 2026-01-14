@@ -21,7 +21,7 @@ FILE *fdopen(int ioc, const char * _Nonnull mode)
             return NULL;
         }
 
-        if (__fdopen_init(self, true, ioc, sm) == 0) {
+        if (__fdopen_init(self, ioc, sm | __kStreamMode_FreeOnClose) == 0) {
             __register_open_file((FILE*)self);
             return (FILE*)self;
         }

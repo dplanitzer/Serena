@@ -44,11 +44,11 @@ int vasprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list ap
         mem.initialEof = 0;
         mem.options = 0;
 
-        r = __fopen_memory_init(&file, false, &mem, sm);
+        r = __fopen_memory_init(&file, &mem, sm);
     }
     else {
         // Use a null stream to calculate the length of the formatted string
-        r = __fopen_null_init(&file.super, false, sm);
+        r = __fopen_null_init(&file.super, sm);
     }
     if (r != 0) {
         return EOF;

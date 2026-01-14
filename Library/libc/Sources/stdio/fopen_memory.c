@@ -21,7 +21,7 @@ FILE *fopen_memory(FILE_Memory * _Nonnull _Restrict mem, const char * _Nonnull _
             return NULL;
         }
 
-        if (__fopen_memory_init(self, true, mem, sm) == 0) {
+        if (__fopen_memory_init(self, mem, sm | __kStreamMode_FreeOnClose) == 0) {
             __register_open_file((FILE*)self);
             return (FILE*)self;
         }

@@ -19,10 +19,9 @@ FILE *fdreopen(int ioc, const char * _Nonnull _Restrict mode, FILE * _Nonnull _R
     }
 
     __flock(s);
-    const bool isFreeOnClose = s->flags.shouldFreeOnClose;
     __fclose(s);
 
-    const int r = __fdopen_init((__IOChannel_FILE*)s, isFreeOnClose, ioc, sm);
+    const int r = __fdopen_init((__IOChannel_FILE*)s, ioc, sm | __kStreamMode_Reinit);
     __funlock(s);
     
     return (r == 0) ? s : NULL;

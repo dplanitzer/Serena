@@ -45,7 +45,7 @@ const FILE_Callbacks __FILE_fd_callbacks = {
 
 
 
-int __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int fd, __FILE_Mode sm)
+int __fdopen_init(__IOChannel_FILE* _Nonnull self, int fd, __FILE_Mode sm)
 {
     // The descriptor must be valid and open
     const int fl = fcntl(fd, F_GETFL);
@@ -76,5 +76,5 @@ int __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int fd, __
 
 
     self->v.fd = fd;
-    return __fopen_init((FILE*)self, bFreeOnClose, &self->v, &__FILE_fd_callbacks, sm);
+    return __fopen_init((FILE*)self, &self->v, &__FILE_fd_callbacks, sm);
 }

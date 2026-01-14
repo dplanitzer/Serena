@@ -34,7 +34,7 @@ const FILE_Callbacks __FILE_null_callbacks = {
 
 
 
-int __fopen_null_init(FILE* _Nonnull self, bool bFreeOnClose, __FILE_Mode sm)
+int __fopen_null_init(FILE* _Nonnull self, __FILE_Mode sm)
 {
-    return __fopen_init(self, bFreeOnClose, NULL, &__FILE_null_callbacks, sm);
+    return __fopen_init(self, NULL, &__FILE_null_callbacks, sm);
 }

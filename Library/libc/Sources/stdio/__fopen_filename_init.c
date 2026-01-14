@@ -11,7 +11,7 @@
 #include <stdlib.h>
 
 
-int __fopen_filename_init(__IOChannel_FILE* _Nonnull _Restrict self, bool bFreeOnClose, const char * _Nonnull _Restrict filename, __FILE_Mode sm)
+int __fopen_filename_init(__IOChannel_FILE* _Nonnull _Restrict self, const char * _Nonnull _Restrict filename, __FILE_Mode sm)
 {
     int oflags = 0;
 
@@ -42,7 +42,7 @@ int __fopen_filename_init(__IOChannel_FILE* _Nonnull _Restrict self, bool bFreeO
     }
     
     self->v.fd = fd;
-    if (__fopen_init((FILE*)self, bFreeOnClose, &self->v, &__FILE_fd_callbacks, sm) != 0) {
+    if (__fopen_init((FILE*)self, &self->v, &__FILE_fd_callbacks, sm) != 0) {
         close(fd);
         return EOF;
     }

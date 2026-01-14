@@ -30,6 +30,10 @@ enum {
     __kStreamMode_Create    = 0x20,     // Create the file if it doesn't exist
     __kStreamMode_Binary    =  0x0,     // Indicates that the data in the stream should be treated as binary (always active on Serena OS)
     __kStreamMode_Text      = 0x40,     // Indicates that the data in the stream should be treated as text
+
+    // Internal flags
+    __kStreamMode_FreeOnClose   = 0x1000,   // Call free() on the FILE object when closing with fclose()
+    __kStreamMode_Reinit        = 0x2000,   // Re-initialize the provided stream object instead of initializing it from scratch
 };
 
 enum {
@@ -110,11 +114,11 @@ mtx_unlock(&__gOpenFilesLock)
 
 extern int __fopen_parse_mode(const char* _Nonnull _Restrict mode, __FILE_Mode* _Nonnull _Restrict pOutMode);
 
-extern int __fopen_init(FILE* _Nonnull _Restrict self, bool bFreeOnClose, void* _Nullable context, const FILE_Callbacks* _Nonnull _Restrict callbacks, __FILE_Mode sm);
-extern int __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int ioc, __FILE_Mode sm);
-extern int __fopen_filename_init(__IOChannel_FILE* _Nonnull _Restrict self, bool bFreeOnClose, const char * _Nonnull _Restrict filename, __FILE_Mode sm);
-extern int __fopen_memory_init(__Memory_FILE* _Nonnull _Restrict self, bool bFreeOnClose, FILE_Memory * _Nonnull _Restrict mem, __FILE_Mode sm);
-extern int __fopen_null_init(FILE* _Nonnull self, bool bFreeOnClose, __FILE_Mode sm);
+extern int __fopen_init(FILE* _Nonnull _Restrict self, void* _Nullable context, const FILE_Callbacks* _Nonnull _Restrict callbacks, __FILE_Mode sm);
+extern int __fdopen_init(__IOChannel_FILE* _Nonnull self, int ioc, __FILE_Mode sm);
+extern int __fopen_filename_init(__IOChannel_FILE* _Nonnull _Restrict self, const char * _Nonnull _Restrict filename, __FILE_Mode sm);
+extern int __fopen_memory_init(__Memory_FILE* _Nonnull _Restrict self, FILE_Memory * _Nonnull _Restrict mem, __FILE_Mode sm);
+extern int __fopen_null_init(FILE* _Nonnull self, __FILE_Mode sm);
 
 extern FILE * _Nullable __fopen_null(const char* mode);
 

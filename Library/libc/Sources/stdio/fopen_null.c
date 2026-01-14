@@ -21,7 +21,7 @@ FILE * _Nullable __fopen_null(const char *mode)
             return NULL;
         }
 
-        if (__fopen_null_init(self, true, sm) == 0) {
+        if (__fopen_null_init(self, sm | __kStreamMode_FreeOnClose) == 0) {
             return self;
         }
 

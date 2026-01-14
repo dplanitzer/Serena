@@ -19,10 +19,9 @@ FILE *freopen(const char * _Nonnull _Restrict filename, const char * _Nonnull _R
     }
 
     __flock(s);
-    const bool isFreeOnClose = s->flags.shouldFreeOnClose;
     __fclose(s);
 
-    const int r = __fopen_filename_init((__IOChannel_FILE*)s, isFreeOnClose, filename, sm);
+    const int r = __fopen_filename_init((__IOChannel_FILE*)s, filename, sm | __kStreamMode_Reinit);
     __funlock(s);
     
     return (r == 0) ? s : NULL;
