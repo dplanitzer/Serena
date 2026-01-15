@@ -25,10 +25,8 @@
 #define SIGSCR  SIGUSR2
 
 
-// XXX 16 is confirmed to work without overflows on a A2000. Still want to keep
-// 48 for now for mouse move. Though once we support coalescing we may want to
-// revisit this.
-#define REPORT_QUEUE_MAX_EVENTS 48
+// Should be somewhere between 16 and 20.
+#define REPORT_QUEUE_MAX_EVENTS 16
 #define MAX_GAME_PADS           2
 #define MAX_POINTING_DEVICES    2
 #define KEY_MAP_INTS_COUNT      (256/32)
