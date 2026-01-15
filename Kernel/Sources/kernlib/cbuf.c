@@ -13,9 +13,6 @@
 
 #define kFlag_OwnsBuffer    1
 
-#define MASK_INDEX(__self, __val) \
-((__val) & ((__self)->capacity - 1))
-
 
 errno_t cbuf_init(cbuf_t* _Nonnull self, size_t capacity)
 {
@@ -47,12 +44,7 @@ void cbuf_deinit(cbuf_t* _Nonnull self)
 
 size_t cbuf_put(cbuf_t* _Nonnull self, char byte)
 {
-    if (cbuf_writable(self) >= 1) {
-        self->data[MASK_INDEX(self, self->writeIdx++)] = byte;
-        return 1;
-    } else {
-        return 0;
-    }
+    return _cbuf_put(self, byte);
 }
 
 size_t cbuf_puts(cbuf_t* _Nonnull _Restrict self, const void* _Nonnull _Restrict pBytes, size_t count)
@@ -65,7 +57,7 @@ size_t cbuf_puts(cbuf_t* _Nonnull _Restrict self, const void* _Nonnull _Restrict
     
     const int nBytesToCopy = __min(avail, count);
     for (int i = 0; i < nBytesToCopy; i++) {
-        self->data[MASK_INDEX(self, self->writeIdx + i)] = ((const char*)pBytes)[i];
+        self->data[__cbuf_mask_index(self, self->writeIdx + i)] = ((const char*)pBytes)[i];
     }
     self->writeIdx += nBytesToCopy;
     
@@ -74,12 +66,7 @@ size_t cbuf_puts(cbuf_t* _Nonnull _Restrict self, const void* _Nonnull _Restrict
 
 size_t cbuf_get(cbuf_t* _Nonnull _Restrict self, char* _Nonnull _Restrict pByte)
 {
-    if (cbuf_readable(self) >= 1) {
-        *pByte = self->data[MASK_INDEX(self, self->readIdx++)];
-        return 1;
-    } else {
-        return 0;
-    }
+    return _cbuf_get(self, pByte);
 }
 
 size_t cbuf_gets(cbuf_t* _Nonnull _Restrict self, void* _Nonnull _Restrict pBytes, size_t count)
@@ -92,7 +79,7 @@ size_t cbuf_gets(cbuf_t* _Nonnull _Restrict self, void* _Nonnull _Restrict pByte
     
     const int nBytesToCopy = __min(avail, count);
     for (int i = 0; i < nBytesToCopy; i++) {
-        ((char*)pBytes)[i] = self->data[MASK_INDEX(self, self->readIdx + i)];
+        ((char*)pBytes)[i] = self->data[__cbuf_mask_index(self, self->readIdx + i)];
     }
     self->readIdx += nBytesToCopy;
     

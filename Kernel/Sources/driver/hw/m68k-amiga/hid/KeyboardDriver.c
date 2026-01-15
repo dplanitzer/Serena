@@ -95,7 +95,7 @@ void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, HIDReport* _Nonnu
     char keyCode;
     
     const unsigned sim = irq_set_mask(IRQ_MASK_KEYBOARD);
-    const size_t r = cbuf_get(&self->keyQueue, &keyCode);
+    const size_t r = _cbuf_get(&self->keyQueue, &keyCode);
     irq_restore_mask(sim);
 
     if (r > 0) {
@@ -109,7 +109,7 @@ void KeyboardDriver_getReport(KeyboardDriverRef _Nonnull self, HIDReport* _Nonnu
 
 void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self, int key)
 {
-    if (cbuf_put(&self->keyQueue, (char)key) == 0) {
+    if (_cbuf_put(&self->keyQueue, (char)key) == 0) {
         self->dropCount++;
     }
 }

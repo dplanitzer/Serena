@@ -58,6 +58,15 @@ extern void cbuf_deinit(cbuf_t* _Nonnull self);
 (__self)->writeIdx = 0
 
 
+#define __cbuf_mask_index(__self, __val) \
+((__val) & ((__self)->capacity - 1))
+
+
+// Puts a single byte into the ring buffer. Returns 1 if the byte has been
+// copied to the buffer and 0 if the ring buffer is full.
+#define _cbuf_put(__self, __byte) \
+((cbuf_writable(__self) >= 1) ? (__self)->data[__cbuf_mask_index((__self), (__self)->writeIdx++)] = __byte, 1 : 0)
+
 // Puts a single byte into the ring buffer. Returns 1 if the byte has been
 // copied to the buffer and 0 if the ring buffer is full.
 extern size_t cbuf_put(cbuf_t* _Nonnull self, char byte);
@@ -65,6 +74,12 @@ extern size_t cbuf_put(cbuf_t* _Nonnull self, char byte);
 // Puts a sequence of bytes into the ring buffer by copying them. Returns the
 // number of bytes that have been successfully copied into the buffer.
 extern size_t cbuf_puts(cbuf_t* _Nonnull _Restrict self, const void* _Nonnull _Restrict pBytes, size_t count);
+
+
+// Gets a single byte from the ring buffer. Returns 0 if the buffer is empty and
+// no byte has been copied out.
+#define _cbuf_get(__self, __pByte) \
+((cbuf_readable(__self) >= 1) ? *(__pByte) = (__self)->data[__cbuf_mask_index(__self, (__self)->readIdx++)], 1 : 0)
 
 // Gets a single byte from the ring buffer. Returns 0 if the buffer is empty and
 // no byte has been copied out.
