@@ -11,16 +11,14 @@
 
 int atexit(void (*func)(void))
 {
-    int r = 0;
+    int r = -1;
 
-    mtx_lock(&__gAtExitLock);
-    if (__gAtExitEnabled && __gAtExitFuncsCount < AT_EXIT_FUNCS_CAPACITY) {
+    spin_lock(&__gAtExitLock);
+    if (!__gIsExiting && func && __gAtExitFuncsCount < ATEXIT_MAX) {
         __gAtExitFuncs[__gAtExitFuncsCount++] = func;
+        r = 0;
     }
-    else {
-        r = -1;
-    }
-    mtx_unlock(&__gAtExitLock);
+    spin_unlock(&__gAtExitLock);
 
     return r;
 }

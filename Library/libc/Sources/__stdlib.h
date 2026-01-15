@@ -9,6 +9,7 @@
 #ifndef ___STDLIB_H
 #define ___STDLIB_H 1
 
+#include <limits.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -16,19 +17,19 @@
 #include <ext/math.h>
 #include <sys/mtx.h>
 #include <sys/proc.h>
+#include <sys/spinlock.h>
 
 __CPP_BEGIN
 
-#define AT_EXIT_FUNCS_CAPACITY   32
 typedef void (*at_exit_func_t)(void);
 
 
 extern pargs_t* __gProcessArguments;
 
-extern mtx_t                    __gAtExitLock;
-extern at_exit_func_t _Nullable __gAtExitFuncs[AT_EXIT_FUNCS_CAPACITY];
+extern spinlock_t               __gAtExitLock;
+extern at_exit_func_t _Nullable __gAtExitFuncs[ATEXIT_MAX];
 extern int                      __gAtExitFuncsCount;
-extern volatile bool            __gAtExitEnabled;
+extern volatile bool            __gIsExiting;
 
 
 

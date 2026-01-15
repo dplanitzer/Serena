@@ -16,18 +16,11 @@ pargs_t*    __gProcessArguments;
 kei_func_t* __gKeiTab;
 char **     environ;
 
-mtx_t                    __gAtExitLock;
-at_exit_func_t _Nullable __gAtExitFuncs[AT_EXIT_FUNCS_CAPACITY];
+spinlock_t               __gAtExitLock;
+at_exit_func_t _Nullable __gAtExitFuncs[ATEXIT_MAX];
 int                      __gAtExitFuncsCount;
-volatile bool            __gAtExitEnabled;
+volatile bool            __gIsExiting;
 
-
-static void __exit_init(void)
-{
-    __gAtExitFuncsCount = 0;
-    __gAtExitEnabled = true;
-    mtx_init(&__gAtExitLock);
-}
 
 void __stdlibc_init(pargs_t* _Nonnull argsp)
 {
@@ -35,9 +28,12 @@ void __stdlibc_init(pargs_t* _Nonnull argsp)
     __gKeiTab = argsp->urt_funcs;
     environ = argsp->envp;
 
+    __gAtExitFuncsCount = 0;
+    __gIsExiting = false;
+    __gAtExitLock = SPINLOCK_INIT;
+
     __vcpu_init();
     __malloc_init();
-    __exit_init();
     __locale_init();
     __stdio_init();
 }

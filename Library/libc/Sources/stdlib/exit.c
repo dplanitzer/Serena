@@ -9,14 +9,25 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <__stdlib.h>
+#include <time.h>
+#include <ext/timespec.h>
 
 
 _Noreturn exit(int status)
 {
     // Disable the registration of any new atexit handlers.
-    mtx_lock(&__gAtExitLock);
-    __gAtExitEnabled = false;
-    mtx_unlock(&__gAtExitLock);
+    spin_lock(&__gAtExitLock);
+    const bool isAlreadyExiting = __gIsExiting;
+    __gIsExiting = true;
+    spin_unlock(&__gAtExitLock);
+
+
+    if (isAlreadyExiting) {
+        // Some other vcpu has already started the exit() process. Wait until
+        // the process is shot down by the kernel.
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &TIMESPEC_INF, NULL);
+        /* NOT REACHED */
+    }
 
 
     // It's safe now to access the atexit table without holding the lock

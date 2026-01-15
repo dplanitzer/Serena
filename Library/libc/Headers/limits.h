@@ -77,4 +77,6 @@
 #define WCHAR_MIN   0
 #define WCHAR_MAX   USHRT_MAX
 
+#define ATEXIT_MAX 32
+
 #endif /* _LIMITS_H */
