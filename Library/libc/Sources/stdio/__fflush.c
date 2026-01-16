@@ -51,20 +51,16 @@ void __fdiscard(FILE * _Nonnull s)
 // - 's' direction is in
 // - buffer mode is _IOLBF or _IONBF (both modes are treated as _IOFBF for input purposes)
 // - buffer is empty
-// Returns 1 on success; 0 on EOF; -1 on error
-int __ffill(FILE * _Nonnull s)
+// Returns the number of bytes read into the buffer on success; 0 on EOF; -1 on error
+ssize_t __ffill(FILE * _Nonnull s)
 {
     assert(s->bufferIndex == s->bufferCount);
 
     const ssize_t r = s->cb.read(s->context, s->buffer, s->bufferCapacity);
-    if (r <= 0) {
-        return r;
-    }
-
-    s->bufferCount = r;
+    s->bufferCount = __max(r, 0);
     s->bufferIndex = 0;
 
-    return 1;
+    return r;
 }
 
 // Flushes the buffered data in stream 's'.

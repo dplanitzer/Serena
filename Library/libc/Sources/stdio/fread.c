@@ -79,6 +79,7 @@ static ssize_t __fread(FILE* _Nonnull _Restrict s, void * _Nonnull _Restrict buf
             return (nread > 0) ? nread : r;
         }
 
+        nbytes = __min(nbytes, r);
         memcpy(dst, s->buffer, nbytes);
         s->bufferIndex += nbytes;
 
