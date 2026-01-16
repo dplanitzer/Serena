@@ -141,6 +141,9 @@ static int type_text(const char* _Nonnull path)
         return EOF;
     }
 
+    // Turn off buffering because we're doing our own buffering anyway
+    (void)setvbuf(s, NULL, _IONBF, 0);
+
     for (;;) {
         const size_t nread = fread(text_buf, 1, sizeof(text_buf), s);
         if (nread == 0) {
