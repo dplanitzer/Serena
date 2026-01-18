@@ -10,6 +10,6 @@
 #define _DI_TRY_H 1
 
 #include <ext/errno.h>
-#include <../../Library/libc/Headers/ext/try.h>
+#include <../../user/lib/libc/h/ext/try.h>
 
 #endif /* _DI_TRY_H */

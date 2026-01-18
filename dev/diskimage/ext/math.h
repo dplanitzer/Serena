@@ -9,4 +9,4 @@
 #if defined(_WIN32) || defined(_WIN64)
 #define __MIN_MAX_DEFINED 1
 #endif
-#include <../../Library/libc/Headers/ext/math.h>
+#include <../../user/lib/libc/h/ext/math.h>

@@ -6,11 +6,11 @@
                 "${workspaceFolder}/kern/h/**",
                 "${workspaceFolder}/kern/src/**",
                 "${workspaceFolder}/kern/test/**",
-                "${workspaceFolder}/Library/libc/**",
+                "${workspaceFolder}/user/cmd/shell/**",
+                "${workspaceFolder}/user/lib/libc/**",
                 "${workspaceFolder}/user/lib/libm/**",
                 "${workspaceFolder}/user/lib/libclap/h/**",
-                "${workspaceFolder}/user/lib/libdispatch/h/**",
-                "${workspaceFolder}/user/cmd/shell/**"
+                "${workspaceFolder}/user/lib/libdispatch/h/**"
             ],
             "defines": [
                 "DEBUG=1",

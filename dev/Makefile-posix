@@ -17,10 +17,10 @@
 BUILD_DIR := ../build
 TOOLS_DIR := $(BUILD_DIR)/tools
 OBJS_DIR := $(BUILD_DIR)/tools-objs
-LIBS_DIR := ../Library
+LIBS_DIR := ../user/lib
 LIBCLAP_DIR := $(LIBS_DIR)/libclap
-LIBCLAP_HEADERS_DIR := $(LIBCLAP_DIR)/Headers
-LIBCLAP_SOURCES_DIR := $(LIBCLAP_DIR)/Sources
+LIBCLAP_HEADERS_DIR := $(LIBCLAP_DIR)/h
+LIBCLAP_SOURCES_DIR := $(LIBCLAP_DIR)/src
 
 
 # --------------------------------------------------------------------------

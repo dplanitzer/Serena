@@ -17,10 +17,10 @@
 BUILD_DIR := ../build
 TOOLS_DIR := $(BUILD_DIR)/tools
 OBJS_DIR := $(BUILD_DIR)/tools-objs
-LIBS_DIR := ../Library
+LIBS_DIR := ../user/lib
 LIBCLAP_DIR := $(LIBS_DIR)/libclap
-LIBCLAP_HEADERS_DIR := $(LIBCLAP_DIR)/Headers
-LIBCLAP_SOURCES_DIR := $(LIBCLAP_DIR)/Sources
+LIBCLAP_HEADERS_DIR := $(LIBCLAP_DIR)/h
+LIBCLAP_SOURCES_DIR := $(LIBCLAP_DIR)/src
 
 
 # --------------------------------------------------------------------------
@@ -83,7 +83,7 @@ $(OBJS_DIR)/clap.lib: $(LIBCLAP_C_SOURCES) $(LIBCLAP_H_SOURCES) | $(OBJS_DIR)
 # diskimage
 #
 
-LIBC_SOURCES_DIR := ../Library/libc/Sources
+LIBC_SOURCES_DIR := ../user/lib/libc/src
 LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/deque.c
 LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/hash.c
 LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/log2_ul.c
