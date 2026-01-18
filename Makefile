@@ -13,12 +13,16 @@ WORKSPACE_DIR := $(CURDIR)
 SCRIPTS_DIR := $(WORKSPACE_DIR)/dev/etc
 BUILD_DIR := $(WORKSPACE_DIR)/build
 TOOLS_DIR := $(BUILD_DIR)/tools
-USER_DIR := $(WORKSPACE_DIR)/user
-DEMOS_DIR := $(USER_DIR)/demo
 OBJS_DIR := $(BUILD_DIR)/objs
 PRODUCT_DIR := $(BUILD_DIR)/product
 SDK_DIR := $(PRODUCT_DIR)/serena-sdk
 SDK_LIB_DIR := $(SDK_DIR)/lib
+
+USER_DIR := $(WORKSPACE_DIR)/user
+CMD_DIR := $(USER_DIR)/cmd
+CMD_OBJS_DIR := $(OBJS_DIR)/cmd
+DEMOS_DIR := $(USER_DIR)/demo
+DEMOS_OBJS_DIR := $(OBJS_DIR)/demo
 
 
 # --------------------------------------------------------------------------
@@ -66,32 +70,31 @@ BOOT_DMG_FILE_FOR_ROM :=
 endif
 
 
-SH_PROJECT_DIR := $(WORKSPACE_DIR)/Commands/shell
-SH_OBJS_DIR := $(OBJS_DIR)/Commands/shell
+SH_PROJECT_DIR := $(CMD_DIR)/shell
+SH_OBJS_DIR := $(CMD_OBJS_DIR)/shell
 SH_FILE := $(SH_OBJS_DIR)/shell
 
 
-SYSTEMD_PROJECT_DIR := $(WORKSPACE_DIR)/Commands/systemd
-SYSTEMD_OBJS_DIR := $(OBJS_DIR)/Commands/systemd
+SYSTEMD_PROJECT_DIR := $(CMD_DIR)/systemd
+SYSTEMD_OBJS_DIR := $(CMD_OBJS_DIR)/systemd
 SYSTEMD_FILE := $(SYSTEMD_OBJS_DIR)/systemd
 
 
-CMDS_PROJECT_DIR := $(WORKSPACE_DIR)/Commands
-CMDS_OBJS_DIR := $(OBJS_DIR)/Commands
-COPY_FILE := $(CMDS_OBJS_DIR)/copy
-DELETE_FILE := $(CMDS_OBJS_DIR)/delete
-DISK_FILE := $(CMDS_OBJS_DIR)/disk
-ID_FILE := $(CMDS_OBJS_DIR)/id
-LIST_FILE := $(CMDS_OBJS_DIR)/list
-LOGIN_FILE := $(CMDS_OBJS_DIR)/login
-MAKEDIR_FILE := $(CMDS_OBJS_DIR)/makedir
-RENAME_FILE := $(CMDS_OBJS_DIR)/rename
-SHUTDOWN_FILE := $(CMDS_OBJS_DIR)/shutdown
-STATUS_FILE := $(CMDS_OBJS_DIR)/status
-TOUCH_FILE := $(CMDS_OBJS_DIR)/touch
-TYPE_FILE := $(CMDS_OBJS_DIR)/type
-UPTIME_FILE := $(CMDS_OBJS_DIR)/uptime
-WAIT_FILE := $(CMDS_OBJS_DIR)/wait
+CMD_BIN_PROJECT_DIR := $(CMD_DIR)/bin
+COPY_FILE := $(CMD_OBJS_DIR)/copy
+DELETE_FILE := $(CMD_OBJS_DIR)/delete
+DISK_FILE := $(CMD_OBJS_DIR)/disk
+ID_FILE := $(CMD_OBJS_DIR)/id
+LIST_FILE := $(CMD_OBJS_DIR)/list
+LOGIN_FILE := $(CMD_OBJS_DIR)/login
+MAKEDIR_FILE := $(CMD_OBJS_DIR)/makedir
+RENAME_FILE := $(CMD_OBJS_DIR)/rename
+SHUTDOWN_FILE := $(CMD_OBJS_DIR)/shutdown
+STATUS_FILE := $(CMD_OBJS_DIR)/status
+TOUCH_FILE := $(CMD_OBJS_DIR)/touch
+TYPE_FILE := $(CMD_OBJS_DIR)/type
+UPTIME_FILE := $(CMD_OBJS_DIR)/uptime
+WAIT_FILE := $(CMD_OBJS_DIR)/wait
 
 
 LIBC_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libc
@@ -127,7 +130,7 @@ LIBDISPATCH_FILE := $(SDK_LIB_DIR)/libdispatch.a
 #
 
 SNAKE_PROJECT_DIR := $(DEMOS_DIR)/snake
-SNAKE_OBJS_DIR := $(OBJS_DIR)/demo/snake
+SNAKE_OBJS_DIR := $(DEMOS_OBJS_DIR)/snake
 SNAKE_FILE := $(SNAKE_OBJS_DIR)/snake
 
 
@@ -193,7 +196,7 @@ include $(KERNEL_TESTS_PROJECT_DIR)/project.mk
 
 include $(SH_PROJECT_DIR)/project.mk
 include $(SYSTEMD_PROJECT_DIR)/project.mk
-include $(CMDS_PROJECT_DIR)/project.mk
+include $(CMD_BIN_PROJECT_DIR)/project.mk
 
 include $(SNAKE_PROJECT_DIR)/project.mk
 
