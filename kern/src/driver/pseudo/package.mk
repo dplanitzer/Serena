@@ -1,0 +1,29 @@
+# --------------------------------------------------------------------------
+# Build variables
+#
+
+DRIVER_PSEUDO_C_SOURCES := $(wildcard $(DRIVER_PSEUDO_SOURCES_DIR)/*.c)
+
+DRIVER_PSEUDO_OBJS := $(patsubst $(DRIVER_PSEUDO_SOURCES_DIR)/%.c,$(DRIVER_PSEUDO_OBJS_DIR)/%.o,$(DRIVER_PSEUDO_C_SOURCES))
+DRIVER_PSEUDO_DEPS := $(DRIVER_PSEUDO_OBJS:.o=.d)
+
+DRIVER_PSEUDO_C_INCLUDES := $(KERNEL_C_INCLUDES) -I$(DRIVER_PSEUDO_SOURCES_DIR)
+
+#DRIVER_PSEUDO_GENERATE_DEPS = -deps -depfile=$(patsubst $(DRIVER_PSEUDO_OBJS_DIR)/%.o,$(DRIVER_PSEUDO_OBJS_DIR)/%.d,$@)
+DRIVER_PSEUDO_GENERATE_DEPS := 
+
+
+# --------------------------------------------------------------------------
+# Build rules
+#
+
+$(DRIVER_PSEUDO_OBJS): | $(DRIVER_PSEUDO_OBJS_DIR)
+
+$(DRIVER_PSEUDO_OBJS_DIR):
+	$(call mkdir_if_needed,$(DRIVER_PSEUDO_OBJS_DIR))
+
+-include $(DRIVER_PSEUDO_DEPS)
+
+$(DRIVER_PSEUDO_OBJS_DIR)/%.o : $(DRIVER_PSEUDO_SOURCES_DIR)/%.c
+	@echo $<
+	@$(CC) $(KERNEL_CC_CONFIG) $(CC_KOPT_SETTING) $(CC_GEN_DEBUG_INFO) $(KERNEL_CC_PREPROC_DEFS) $(DRIVER_PSEUDO_C_INCLUDES) $(KERNEL_CC_DONTWARN) $(DRIVER_PSEUDO_GENERATE_DEPS) -o $@ $<

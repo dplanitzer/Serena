@@ -1,0 +1,66 @@
+//
+//  kpi/fcntl.h
+//  kpi
+//
+//  Created by Dietmar Planitzer on 5/14/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
+//
+
+#ifndef _KPI_FCNTL_H
+#define _KPI_FCNTL_H 1
+
+// File access modes and status bits
+#define O_RDONLY    0x0001
+#define O_WRONLY    0x0002
+#define O_RDWR      (O_RDONLY | O_WRONLY)
+#define O_CREAT     0x0004
+#define O_EXCL      0x0008
+#define O_TRUNC     0x0010
+#define O_APPEND    0x0020
+#define O_NONBLOCK  0x0040
+#define _O_EXONLY   0x0080
+
+// File access mode and status masks
+#define O_ACCMODE       (O_RDONLY | O_WRONLY | O_RDWR)
+#define O_FILESTATUS    (O_APPEND | O_NONBLOCK)
+
+
+// Descriptor types.
+#define SEO_FT_TERMINAL     0
+#define SEO_FT_INODE        1
+#define SEO_FT_DRIVER       2
+#define SEO_FT_FILESYSTEM   3
+#define SEO_FT_PROCESS      4
+
+
+// Returns the descriptor flags (int)
+// int fcntl(int fd, F_GETFD)
+#define F_GETFD     0
+
+
+// Returns file status and access modes
+// int fcntl(int fd, F_GETFL)
+#define F_GETFL     1
+
+// Sets the file status to the given bits, ignoring any bits outside O_FILESTATUS
+// int fcntl(int fd, F_SETFL, int fsbits)
+#define F_SETFL     2
+
+// Updates the file status to the given bits, ignoring any bits outside O_FILESTATUS.
+// If 'setOrClear' is 0 then the specified bits are cleared; otherwise the specified
+// bits are set in the descriptor
+// int fcntl(int fd, F_SETFL, int setOrClear, int fsbits)
+#define F_UPDTFL    3
+
+
+// Returns the descriptor type
+// int fcntl(int fd, F_GETTYPE)
+#define F_GETTYPE   4
+
+
+// __unlink() mode
+#define __ULNK_ANY      0
+#define __ULNK_FIL_ONLY 1
+#define __ULNK_DIR_ONLY 2
+
+#endif /* _KPI_FCNTL_H */

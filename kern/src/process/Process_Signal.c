@@ -1,0 +1,340 @@
+//
+//  Process_Signal.c
+//  kernel
+//
+//  Created by Dietmar Planitzer on 7/12/23.
+//  Copyright © 2023 Dietmar Planitzer. All rights reserved.
+//
+
+#include "ProcessPriv.h"
+#include <assert.h>
+#include <kern/kalloc.h>
+#include <kern/signal.h>
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Signal Routing
+
+static errno_t sigroute_create(int signo, int scope, id_t id, sigroute_t _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    sigroute_t self = NULL;
+
+    err = kalloc(sizeof(struct sigroute), (void**)&self);
+    if (err == EOK) {
+        self->qe = QUEUE_NODE_INIT;
+        self->signo = signo;
+        self->scope = scope;
+        self->target_id = id;
+        self->use_count = 0;
+    }
+
+    *pOutSelf = self;
+    return err;
+}
+
+static void sigroute_destroy(sigroute_t _Nullable self)
+{
+    kfree(self);
+}
+
+
+void _proc_init_default_sigroutes(ProcessRef _Nonnull _Locked self)
+{
+    for (size_t i = 0; i < SIGMAX; i++) {
+        self->sig_route[i] = QUEUE_INIT;
+    }
+}
+
+void _proc_destroy_sigroutes(ProcessRef _Nonnull _Locked self)
+{
+    for (size_t i = 0; i < SIGMAX; i++) {
+        while (!queue_empty(&self->sig_route[i])) {
+            sigroute_t rp = (sigroute_t)queue_remove_first(&self->sig_route[i]);
+            sigroute_destroy(rp);
+        }
+    }
+}
+
+static sigroute_t _Nullable _find_specific_sigroute(ProcessRef _Nonnull _Locked self, int signo, int scope, id_t id, sigroute_t* _Nullable pOutPrevEntry)
+{
+    sigroute_t prp = NULL;
+
+    queue_for_each(&self->sig_route[signo - 1], struct sigroute, it,
+        if (it->scope == scope && it->target_id == id) {
+            if (pOutPrevEntry) {
+                *pOutPrevEntry = prp;
+            }
+            return it;
+        }
+
+        prp = it;
+    )
+
+    return NULL;
+}
+
+
+static errno_t _add_sigroute(ProcessRef _Nonnull _Locked self, int signo, int scope, id_t id)
+{
+    decl_try_err();
+    sigroute_t prp;
+    sigroute_t rp = _find_specific_sigroute(self, signo, scope, id, &prp);
+
+    if (rp == NULL) {
+        try(sigroute_create(signo, scope, id, &rp));
+        queue_add_last(&self->sig_route[signo - 1], &rp->qe);
+    }
+
+    if (rp->use_count == INT16_MAX) {
+        throw(EOVERFLOW);
+    }
+    rp->use_count++;
+
+catch:
+    return err;
+}
+
+static void _del_sigroute(ProcessRef _Nonnull _Locked self, int signo, int scope, id_t id)
+{
+    sigroute_t prp;
+    sigroute_t rp = _find_specific_sigroute(self, signo, scope, id, &prp);
+
+    if (rp) {
+        rp->use_count--;
+        if (rp->use_count <= 0) {
+            queue_remove(&self->sig_route[signo - 1], &prp->qe, &rp->qe);
+            sigroute_destroy(rp);
+        }
+    }
+}
+
+errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope, id_t id)
+{
+    decl_try_err();
+
+    if (signo < SIGMIN || signo > SIGMAX || (scope != SIG_SCOPE_VCPU && scope != SIG_SCOPE_VCPU_GROUP)) {
+        return EINVAL;
+    }
+    if ((SIGSET_NON_ROUTABLE & _SIGBIT(signo)) != 0) {
+        return EPERM;
+    }
+    if (self == gKernelProcess) {
+        return EPERM;
+    }
+
+
+    mtx_lock(&self->mtx);
+    switch (op) {
+        case SIG_ROUTE_ADD:
+            if (self->state < PROC_STATE_EXITING) {
+                err = _add_sigroute(self, signo, scope, id);
+            }
+            else {
+                // Don't add new routes if we're exiting
+                // XXX Should probably return a different error code here
+                err = EOK;
+            }
+            break;
+
+        case SIG_ROUTE_DEL:
+            _del_sigroute(self, signo, scope, id);
+            break;
+
+        default:
+            err = EINVAL;
+            break;
+    }
+    mtx_unlock(&self->mtx);
+
+    return err;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Signal Reception
+
+static void _proc_terminate_on_behalf_of(ProcessRef _Nonnull _Locked self, int signo)
+{
+    _proc_set_exit_reason(self, JREASON_SIGNAL, signo)
+    vcpu_sigsend(vcpu_from_owner_qe(self->vcpu_queue.first), SIGKILL);
+}
+
+// Suspend all vcpus in the process if the process is currently in running state.
+// Otherwise does nothing. Nesting is not supported.
+static void _proc_stop(ProcessRef _Nonnull _Locked self)
+{
+    if (self->state == PROC_STATE_RUNNING) {
+        deque_for_each(&self->vcpu_queue, deque_node_t, it,
+            vcpu_t cvp = vcpu_from_owner_qe(it);
+
+            vcpu_suspend(cvp);
+        )
+        self->state = PROC_STATE_STOPPED;
+    }
+}
+
+// Resume all vcpus in the process if the process is currently in stopped state.
+// Otherwise does nothing.
+static void _proc_cont(ProcessRef _Nonnull _Locked self)
+{
+    if (self->state == PROC_STATE_STOPPED) {
+        deque_for_each(&self->vcpu_queue, deque_node_t, it,
+            vcpu_t cvp = vcpu_from_owner_qe(it);
+
+            vcpu_resume(cvp, false);
+        )
+        self->state = PROC_STATE_RUNNING;
+    }
+}
+
+static errno_t _proc_send_signal_to_vcpu(ProcessRef _Nonnull _Locked self, id_t id, int signo, bool doSelfOpt)
+{
+    vcpu_t me_vp = vcpu_current();
+    vcpu_t target_vp = NULL;
+
+    if (doSelfOpt && (id == VCPUID_SELF || me_vp->id == id)) {
+        target_vp = me_vp;
+    }
+    else {
+        deque_for_each(&self->vcpu_queue, deque_node_t, it,
+            vcpu_t cvp = vcpu_from_owner_qe(it);
+            
+            if (cvp->id == id) {
+                target_vp = cvp;
+                break;
+            }
+        )
+    }
+
+    if (target_vp) {
+        // This sigsend() will auto-force-resume the receiving vcpu if we're
+        // sending SIGKILL
+        vcpu_sigsend(target_vp, signo);
+        return EOK;
+    }
+    else {
+        return ESRCH;
+    }
+}
+
+static errno_t _proc_send_signal_to_vcpu_group(ProcessRef _Nonnull _Locked self, id_t id, int signo)
+{
+    bool hasMatch = false;
+
+    deque_for_each(&self->vcpu_queue, deque_node_t, it,
+        vcpu_t cvp = vcpu_from_owner_qe(it);
+
+        if (cvp->groupid == id) {
+            // This sigsend() will auto-force-resume the receiving vcpu if we're
+            // sending SIGKILL
+            vcpu_sigsend(cvp, signo);
+            hasMatch = true;
+        }
+    )
+
+    return (hasMatch) ? EOK : ESRCH;
+}
+
+static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t id, int signo)
+{
+    switch (signo) {
+        case SIGKILL:
+            _proc_terminate_on_behalf_of(self, signo);
+            break;
+
+        case SIGSTOP:
+            _proc_stop(self);
+            break;
+
+        case SIGCONT:
+            _proc_cont(self);
+            break;
+
+        default:
+            if (!queue_empty(&self->sig_route[signo - 1])) {
+                queue_for_each(&self->sig_route[signo - 1], struct sigroute, it,
+                    switch (it->scope) {
+                        case SIG_SCOPE_VCPU:
+                            _proc_send_signal_to_vcpu(self, it->target_id, signo, false);
+                            break;
+
+                        case SIG_SCOPE_VCPU_GROUP:
+                            _proc_send_signal_to_vcpu_group(self, it->target_id, signo);
+                            break;
+
+                        default:
+                            abort();
+                    }
+                )
+            }
+            else {
+                switch (signo) {
+                    case SIGABRT:
+                    case SIGXCPU:
+                    case SIGHUP:
+                    case SIGQUIT:
+                        _proc_terminate_on_behalf_of(self, signo);
+                        break;
+
+                    case SIGTTIN:
+                    case SIGTTOUT:
+                    case SIGTSTP:
+                        _proc_stop(self);
+                        break;
+
+                    default:
+                        // Ignore the signal
+                        break;
+                }
+            }
+            break;
+    }
+
+    return EOK;
+}
+
+errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, int signo)
+{
+    decl_try_err();
+
+    if (signo < SIGMIN || signo > SIGMAX) {
+        return EINVAL;
+    }
+    if ((SIGSET_PRIV_SYS & _SIGBIT(signo)) != 0) {
+        return EPERM;
+    }
+
+    mtx_lock(&self->mtx);
+    if (self->state < PROC_STATE_EXITING) {
+        switch (scope) {
+            case SIG_SCOPE_VCPU:
+                err = _proc_send_signal_to_vcpu(self, id, signo, true);
+                break;
+
+            case SIG_SCOPE_VCPU_GROUP:
+                err = _proc_send_signal_to_vcpu_group(self, id, signo);
+                break;
+
+            case SIG_SCOPE_PROC:
+                if (self != gKernelProcess) {
+                    err = _proc_send_signal_to_proc(self, id, signo);
+                }
+                else {
+                    err = EPERM;
+                }
+                break;
+
+            default:
+                err = EINVAL;
+                break;
+        }
+    }
+    else if (self->state == PROC_STATE_EXITING && signo == SIGCHILD && self->exit_coordinator) {
+        // Auto-route SIGCHILD to the exit coordinator because we're in EXIT state
+        vcpu_sigsend(self->exit_coordinator, signo);
+    }
+    mtx_unlock(&self->mtx);
+
+    return err;
+}
