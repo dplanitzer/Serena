@@ -10,7 +10,7 @@
                 "${workspaceFolder}/Library/libm/**",
                 "${workspaceFolder}/Library/libclap/Headers/**",
                 "${workspaceFolder}/Library/libdispatch/Headers/**",
-                "${workspaceFolder}/Commands/shell/**"
+                "${workspaceFolder}/user/cmd/shell/**"
             ],
             "defines": [
                 "DEBUG=1",

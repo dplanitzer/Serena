@@ -6,7 +6,7 @@ Check out the [Wiki](https://github.com/dplanitzer/Serena/wiki) for more details
 
 https://github.com/user-attachments/assets/02517372-fa72-4ec9-8cda-aeeb92a4547b
 
-Serena OS comes with a powerful shell which implements a formally defined shell language. You can find the shell documentation [here](Commands/shell/README.md).
+Serena OS comes with a powerful shell which implements a formally defined shell language. You can find the shell documentation [here](user/cmd/shell/README.md).
 
 ## Features
 
@@ -40,7 +40,7 @@ The following user space services are available:
 
 The following user space programs are available at this time:
 
-* An [interactive shell](Commands/shell/README.md) with command line editing and history support
+* An [interactive shell](user/cmd/shell/README.md) with command line editing and history support
 * Many tools to work with files, filesystems, disks, processes, etc
 
 The level of completeness and correctness of the various modules varies quite a bit at this time. Things are generically planned to improve over time :)
