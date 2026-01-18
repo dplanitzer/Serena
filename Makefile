@@ -23,6 +23,8 @@ CMD_DIR := $(USER_DIR)/cmd
 CMD_OBJS_DIR := $(OBJS_DIR)/cmd
 DEMOS_DIR := $(USER_DIR)/demo
 DEMOS_OBJS_DIR := $(OBJS_DIR)/demo
+LIB_DIR := $(USER_DIR)/lib
+LIB_OBJS_DIR := $(OBJS_DIR)/lib
 
 
 # --------------------------------------------------------------------------
@@ -103,13 +105,13 @@ LIBC_OBJS_DIR := $(OBJS_DIR)/Library/libc
 LIBC_FILE := $(SDK_LIB_DIR)/libc.a
 CSTART_FILE := $(SDK_LIB_DIR)/_cstart.o
 
-LIBSC_OBJS_DIR := $(OBJS_DIR)/Library/libsc
+LIBSC_OBJS_DIR := $(LIB_OBJS_DIR)/libsc
 LIBSC_FILE := $(SDK_LIB_DIR)/libsc.a
 
 
-LIBM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libm
-LIBM_HEADERS_DIR := $(LIBM_PROJECT_DIR)/Headers
-LIBM_OBJS_DIR := $(OBJS_DIR)/Library/libm
+LIBM_PROJECT_DIR := $(LIB_DIR)/libm
+LIBM_HEADERS_DIR := $(LIBM_PROJECT_DIR)/h
+LIBM_OBJS_DIR := $(LIB_OBJS_DIR)/libm
 LIBM_FILE := $(SDK_LIB_DIR)/libm.a
 
 
