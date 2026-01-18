@@ -109,22 +109,22 @@ LIBSC_OBJS_DIR := $(LIB_OBJS_DIR)/libsc
 LIBSC_FILE := $(SDK_LIB_DIR)/libsc.a
 
 
+LIBCLAP_PROJECT_DIR := $(LIB_DIR)/libclap
+LIBCLAP_HEADERS_DIR := $(LIBCLAP_PROJECT_DIR)/h
+LIBCLAP_OBJS_DIR := $(LIB_OBJS_DIR)/libclap
+LIBCLAP_FILE := $(SDK_LIB_DIR)/libclap.a
+
+
+LIBDISPATCH_PROJECT_DIR := $(LIB_DIR)/libdispatch
+LIBDISPATCH_HEADERS_DIR := $(LIBDISPATCH_PROJECT_DIR)/h
+LIBDISPATCH_OBJS_DIR := $(LIB_OBJS_DIR)/libdispatch
+LIBDISPATCH_FILE := $(SDK_LIB_DIR)/libdispatch.a
+
+
 LIBM_PROJECT_DIR := $(LIB_DIR)/libm
 LIBM_HEADERS_DIR := $(LIBM_PROJECT_DIR)/h
 LIBM_OBJS_DIR := $(LIB_OBJS_DIR)/libm
 LIBM_FILE := $(SDK_LIB_DIR)/libm.a
-
-
-LIBCLAP_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libclap
-LIBCLAP_HEADERS_DIR := $(LIBCLAP_PROJECT_DIR)/Headers
-LIBCLAP_OBJS_DIR := $(OBJS_DIR)/Library/libclap
-LIBCLAP_FILE := $(SDK_LIB_DIR)/libclap.a
-
-
-LIBDISPATCH_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libdispatch
-LIBDISPATCH_HEADERS_DIR := $(LIBDISPATCH_PROJECT_DIR)/Headers
-LIBDISPATCH_OBJS_DIR := $(OBJS_DIR)/Library/libdispatch
-LIBDISPATCH_FILE := $(SDK_LIB_DIR)/libdispatch.a
 
 
 #---------------------------------------------------------------------------
