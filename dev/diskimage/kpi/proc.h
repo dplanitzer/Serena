@@ -6,4 +6,4 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <../../Kernel/Headers/kpi/proc.h>
+#include <../../kern/h/kpi/proc.h>

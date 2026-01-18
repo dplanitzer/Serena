@@ -6,4 +6,4 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <../../Kernel/Headers/kpi/_stat.h>
+#include <../../kern/h/kpi/_stat.h>

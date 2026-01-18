@@ -6,4 +6,4 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <../../Kernel/Headers/kpi/signal.h>
+#include <../../kern/h/kpi/signal.h>

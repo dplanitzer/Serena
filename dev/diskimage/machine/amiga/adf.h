@@ -6,4 +6,4 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include <../../Kernel/Headers/machine/amiga/adf.h>
+#include <../../kern/h/machine/amiga/adf.h>

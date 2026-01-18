@@ -6,4 +6,4 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include <../../Kernel/Headers/kpi/smg.h>
+#include <../../kern/h/kpi/smg.h>

@@ -3,9 +3,9 @@
         {
             "name": "Serena",
             "includePath": [
-                "${workspaceFolder}/Kernel/Headers/**",
-                "${workspaceFolder}/Kernel/Sources/**",
-                "${workspaceFolder}/Kernel/Tests/**",
+                "${workspaceFolder}/kern/h/**",
+                "${workspaceFolder}/kern/src/**",
+                "${workspaceFolder}/kern/test/**",
                 "${workspaceFolder}/Library/libc/**",
                 "${workspaceFolder}/Library/libm/**",
                 "${workspaceFolder}/Library/libclap/Headers/**",

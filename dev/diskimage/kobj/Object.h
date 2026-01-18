@@ -9,6 +9,6 @@
 #ifndef kobj_Object_h
 #define kobj_Object_h
 
-#include <../../Kernel/Sources/kobj/Object.h>
+#include <../../kern/src/kobj/Object.h>
 
 #endif /* kobj_Object_h */

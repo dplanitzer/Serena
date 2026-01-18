@@ -93,7 +93,7 @@ LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/pow2_ull.c
 LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/queue.c
 LIBC_C_SOURCES += $(LIBC_SOURCES_DIR)/ext/_Try_bang_failed.c
 
-KERNEL_SOURCES_DIR := ../Kernel/Sources
+KERNEL_SOURCES_DIR := ../kern/src
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filemanager/FileHierarchy.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filemanager/FileManager_Directory.c
 KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/filemanager/FileManager_File.c
