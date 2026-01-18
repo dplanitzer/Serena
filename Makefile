@@ -13,7 +13,8 @@ WORKSPACE_DIR := $(CURDIR)
 SCRIPTS_DIR := $(WORKSPACE_DIR)/dev/etc
 BUILD_DIR := $(WORKSPACE_DIR)/build
 TOOLS_DIR := $(BUILD_DIR)/tools
-DEMOS_DIR := $(WORKSPACE_DIR)/Demos
+USER_DIR := $(WORKSPACE_DIR)/user
+DEMOS_DIR := $(USER_DIR)/demo
 OBJS_DIR := $(BUILD_DIR)/objs
 PRODUCT_DIR := $(BUILD_DIR)/product
 SDK_DIR := $(PRODUCT_DIR)/serena-sdk
@@ -125,8 +126,8 @@ LIBDISPATCH_FILE := $(SDK_LIB_DIR)/libdispatch.a
 # Demos
 #
 
-SNAKE_PROJECT_DIR := $(WORKSPACE_DIR)/Demos/snake
-SNAKE_OBJS_DIR := $(OBJS_DIR)/Demos/snake
+SNAKE_PROJECT_DIR := $(DEMOS_DIR)/snake
+SNAKE_OBJS_DIR := $(OBJS_DIR)/demo/snake
 SNAKE_FILE := $(SNAKE_OBJS_DIR)/snake
 
 
