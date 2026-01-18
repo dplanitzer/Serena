@@ -19,8 +19,8 @@
 #include <stdnoreturn.h>
 #include <ext/limits.h>
 #include <ext/math.h>
-#include <../../../Kernel/Headers/kpi/_access.h>
-#include <../../../Kernel/Headers/kpi/_seek.h>
+#include <../../Kernel/Headers/kpi/_access.h>
+#include <../../Kernel/Headers/kpi/_seek.h>
 
 
 //

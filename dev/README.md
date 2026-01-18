@@ -1,6 +1,6 @@
 # Build Tools
 
-This folder contains the sources for the build tools that are needed to build Serena OS on a host system. All build tools except diskimage can be built on either Windows or POSIX compatible hosts. Note however that the diskimage tool currently builds on Windows only.
+This folder contains the sources for the build tools that are needed to build Serena OS from scratch on a host system like Windows, macOS or Linux. All build tools except diskimage can be built on either Windows or POSIX compatible hosts. Note however that the diskimage tool currently builds on Windows only.
 
 Invoke the make file in this directory to build all tools. You will then be able to find the compiled executables in the `build/tools` folder.
 

@@ -130,7 +130,7 @@ $(TOOLS_DIR)/diskimage: $(ALL_DISKIMAGE_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS
 # keymap
 #
 
-KEYMAP_C_SOURCES := keymap.c
+KEYMAP_C_SOURCES := bin/keymap.c
 
 $(TOOLS_DIR)/keymap: $(KEYMAP_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(TOOLS_DIR)
 	cl /I $(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
@@ -140,7 +140,7 @@ $(TOOLS_DIR)/keymap: $(KEYMAP_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(TO
 # libtool
 #
 
-LIBTOOL_C_SOURCES := libtool.c
+LIBTOOL_C_SOURCES := bin/libtool.c
 
 $(TOOLS_DIR)/libtool: $(LIBTOOL_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(TOOLS_DIR)
 	cl "/D_CRT_SECURE_NO_WARNINGS" "/D_CRT_NONSTDC_NO_WARNINGS" /I $(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
@@ -150,7 +150,7 @@ $(TOOLS_DIR)/libtool: $(LIBTOOL_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(
 # makerom
 #
 
-MAKEROM_C_SOURCES := makerom.c
+MAKEROM_C_SOURCES := bin/makerom.c
 
 $(TOOLS_DIR)/makerom: $(MAKEROM_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(TOOLS_DIR)
 	cl /I $(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^

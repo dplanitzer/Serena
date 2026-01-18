@@ -93,7 +93,7 @@ $(OBJS_DIR)/libclap.ar: $(LIBCLAP_OBJS)
 # keymap
 #
 
-KEYMAP_C_SOURCES := keymap.c
+KEYMAP_C_SOURCES := bin/keymap.c
 
 $(OBJS_DIR)/keymap.o: $(KEYMAP_C_SOURCES) | $(OBJS_DIR) $(TOOLS_DIR)
 	gcc -c -I$(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
@@ -106,7 +106,7 @@ $(TOOLS_DIR)/keymap: $(OBJS_DIR)/keymap.o $(OBJS_DIR)/libclap.ar
 # libtool
 #
 
-LIBTOOL_C_SOURCES := libtool.c
+LIBTOOL_C_SOURCES := bin/libtool.c
 
 $(OBJS_DIR)/libtool.o: $(LIBTOOL_C_SOURCES) | $(OBJS_DIR) $(TOOLS_DIR)
 	gcc -c -I$(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
@@ -119,7 +119,7 @@ $(TOOLS_DIR)/libtool: $(OBJS_DIR)/libtool.o $(OBJS_DIR)/libclap.ar
 # makerom
 #
 
-MAKEROM_C_SOURCES := makerom.c
+MAKEROM_C_SOURCES := bin/makerom.c
 
 $(OBJS_DIR)/makerom.o: $(MAKEROM_C_SOURCES) | $(OBJS_DIR) $(TOOLS_DIR)
 	gcc -c -I$(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
