@@ -1,0 +1,32 @@
+{
+    "configurations": [
+        {
+            "name": "demo",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/../lib/libc/h/**",
+                "${workspaceFolder}/../lib/libclap/h/**",
+                "${workspaceFolder}/../lib/libdispatch/h/**",
+                "${workspaceFolder}/../lib/libm/h/**",
+                "${workspaceFolder}/../../kern/h/**"
+            ],
+            "defines": [
+                "DEBUG=1",
+                "__ILP32__=1",
+                "__M68K__",
+                "__M68882",
+                "TARGET_CPU_68020=1",
+                "MACHINE_AMIGA",
+                "__SERENA__",
+                "_OPEN_SYS_ITOA_EXT=1",
+                "_POSIX_SOURCE=1",
+                "___STDC_HOSTED__=1",
+                "__STDC_WANT_LIB_EXT1__=1"
+            ],        
+            "compilerPath": "",
+            "cStandard": "c99",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}

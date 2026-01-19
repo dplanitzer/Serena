@@ -1,0 +1,8 @@
+{
+    "cmake.configureOnOpen": false,
+    "files.exclude": {
+    },
+    "files.associations": {
+    },
+    "C_Cpp.autoAddFileAssociations": false
+}
