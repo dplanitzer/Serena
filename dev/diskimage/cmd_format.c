@@ -8,8 +8,9 @@
 
 #include "diskimage.h"
 #include "RamContainer.h"
+#include "sefs_init.h"
 #include <string.h>
-#include <filesystem/serenafs/tools/format.h>
+#include <filesystem/FSUtilities.h>
 
 
 static errno_t block_write(intptr_t fd, const void* _Nonnull buf, blkno_t blockAddr, size_t blockSize)
@@ -25,6 +26,7 @@ errno_t cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t roo
 {
     decl_try_err();
     RamContainerRef fsContainer = NULL;
+    struct timespec now;
 
     if (strcmp(fsType, "sefs")) {
         throw(EINVAL);
@@ -36,7 +38,8 @@ errno_t cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t roo
         RamContainer_WipeDisk(fsContainer);
     }
 
-    try(sefs_format((intptr_t)fsContainer, block_write, FSContainer_GetBlockCount(fsContainer), FSContainer_GetBlockSize(fsContainer), rootDirUid, rootDirGid, rootDirPerms, label));
+    FSGetCurrentTime(&now);
+    try(sefs_init((intptr_t)fsContainer, block_write, FSContainer_GetBlockCount(fsContainer), FSContainer_GetBlockSize(fsContainer), &now, rootDirUid, rootDirGid, rootDirPerms, label));
     err = RamContainer_WriteToPath(fsContainer, dmgPath);
 
 catch:

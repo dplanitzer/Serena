@@ -8,8 +8,7 @@
                 "${workspaceFolder}/../lib/libclap/h/**",
                 "${workspaceFolder}/../lib/libdispatch/h/**",
                 "${workspaceFolder}/../lib/libm/h/**",
-                "${workspaceFolder}/../../kern/h/**",
-                "${workspaceFolder}/../../kern/src/**"
+                "${workspaceFolder}/../../kern/h/**"
             ],
             "defines": [
                 "DEBUG=1",

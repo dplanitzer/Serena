@@ -72,6 +72,10 @@ BOOT_DMG_FILE_FOR_ROM :=
 endif
 
 
+DISKTOOL_PROJECT_DIR := $(CMD_DIR)/disk
+DISKTOOL_OBJS_DIR := $(CMD_OBJS_DIR)/disk
+DISKTOOL_FILE := $(DISKTOOL_OBJS_DIR)/disk
+
 SH_PROJECT_DIR := $(CMD_DIR)/shell
 SH_OBJS_DIR := $(CMD_OBJS_DIR)/shell
 SH_FILE := $(SH_OBJS_DIR)/shell
@@ -196,6 +200,7 @@ include $(LIBDISPATCH_PROJECT_DIR)/project.mk
 include $(KERNEL_PROJECT_DIR)/project.mk
 include $(KERNEL_TESTS_PROJECT_DIR)/project.mk
 
+include $(DISKTOOL_PROJECT_DIR)/project.mk
 include $(SH_PROJECT_DIR)/project.mk
 include $(SYSTEMD_PROJECT_DIR)/project.mk
 include $(CMD_BIN_PROJECT_DIR)/project.mk
@@ -224,10 +229,11 @@ $(SDK_LIB_DIR):
 	$(call mkdir_if_needed,$(SDK_LIB_DIR))
 
 
-$(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(COPY_FILE) $(DELETE_FILE) \
- 				  $(DISK_FILE) $(ID_FILE) $(LIST_FILE) $(LOGIN_FILE) $(MAKEDIR_FILE) \
-				  $(RENAME_FILE) $(SHUTDOWN_FILE) $(STATUS_FILE) $(TOUCH_FILE) \
-				  $(TYPE_FILE) $(UPTIME_FILE) $(WAIT_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
+$(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
+				  $(COPY_FILE) $(DELETE_FILE) $(ID_FILE) $(LIST_FILE) \
+				  $(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) \
+				  $(SHUTDOWN_FILE) $(STATUS_FILE) $(TOUCH_FILE) $(TYPE_FILE) \
+				  $(UPTIME_FILE) $(WAIT_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
 	@echo Making boot_disk.adf
 	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DMG_FILE)
 	$(DISKIMAGE) format sefs --label "Serena FD" $(BOOT_DMG_FILE)
@@ -247,7 +253,7 @@ $(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(COPY_FILE) $(DELETE
 	$(DISKIMAGE) push -m=rwxr-xr-x $(SH_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(COPY_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(DELETE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-x $(DISK_FILE) /System/Commands/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(DISKTOOL_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(ID_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(LIST_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(MAKEDIR_FILE) /System/Commands/ $(BOOT_DMG_FILE)

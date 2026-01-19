@@ -111,15 +111,12 @@ KERNEL_C_SOURCES += $(KERNEL_SOURCES_DIR)/security/SecurityManager.c
 
 KOBJ_C_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/kobj/*.c)
 SERENAFS_C_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/filesystem/serenafs/*.c)
-SERENAFS_TOOLS_C_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/filesystem/serenafs/tools/*.c)
-
 DISKIMAGE_C_SOURCES := $(wildcard diskimage/*.c)
 
 ALL_DISKIMAGE_C_SOURCES := $(LIBC_C_SOURCES) \
 						   $(KERNEL_C_SOURCES) \
 						   $(KOBJ_C_SOURCES) \
 						   $(SERENAFS_C_SOURCES) \
-						   $(SERENAFS_TOOLS_C_SOURCES) \
 						   $(DISKIMAGE_C_SOURCES)
 
 $(TOOLS_DIR)/diskimage: $(ALL_DISKIMAGE_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(TOOLS_DIR)

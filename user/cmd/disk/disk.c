@@ -1,6 +1,6 @@
 //
 //  disk.c
-//  cmds
+//  cmd/disk
 //
 //  Created by Dietmar Planitzer on 4/16/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
@@ -25,7 +25,7 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/uid.h>
-#include <filesystem/serenafs/tools/format.h>
+#include "sefs_init.h"
 
 typedef struct di_permissions_spec {
     mode_t  p;
@@ -57,21 +57,6 @@ void fatal(const char* _Nonnull fmt, ...)
     va_start(ap, fmt);
     vfatal(fmt, ap);
     va_end(ap);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: FSUtilities
-////////////////////////////////////////////////////////////////////////////////
-
-// Returns the current time. This time value is suitable for use as a timestamp
-// for filesystem objects.
-void FSGetCurrentTime(struct timespec* _Nonnull ts)
-{
-    // XXX consider switching to the clock API for more precision
-    ts->tv_sec = time(NULL);
-    ts->tv_nsec = 0;
 }
 
 
@@ -149,8 +134,14 @@ void cmd_format(bool bQuick, mode_t rootDirPerms, uid_t rootDirUid, gid_t rootDi
                 }
             }
             if (ok) {
+                struct timespec now;
+
+                // XXX consider switching to the clock API for more precision
+                now.tv_sec = time(NULL);
+                now.tv_nsec = 0;
+
                 puts("Initializing filesystem...");
-                const errno_t err = sefs_format((intptr_t)fp, block_write, info.sectorsPerTrack * info.heads * info.cylinders, info.sectorSize, rootDirUid, rootDirGid, rootDirPerms, label);
+                const errno_t err = sefs_init((intptr_t)fp, block_write, info.sectorsPerTrack * info.heads * info.cylinders, info.sectorSize, &now, rootDirUid, rootDirGid, rootDirPerms, label);
                 if (err != EOK) {
                     ok = 0;
                     errno = err;
