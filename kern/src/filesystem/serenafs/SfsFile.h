@@ -12,7 +12,7 @@
 #include <ext/try.h>
 #include <filesystem/FSBlock.h>
 #include <filesystem/Inode.h>
-#include "VolumeFormat.h"
+#include <kpi/sefs_format.h>
 
 typedef struct SfsFileBlock {
     FSBlock     b;

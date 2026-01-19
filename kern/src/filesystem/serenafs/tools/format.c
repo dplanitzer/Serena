@@ -13,7 +13,7 @@
 #include <ext/endian.h>
 #include <ext/math.h>
 #include <filesystem/FSUtilities.h>
-#include <filesystem/serenafs/VolumeFormat.h>
+#include <kpi/sefs_format.h>
 
 
 // Sets the in-use bit corresponding to the logical block address 'lba' as in-use or not

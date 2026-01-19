@@ -13,8 +13,8 @@
 #include "SfsAllocator.h"
 #include "SfsDirectory.h"
 #include "SfsFile.h"
-#include "VolumeFormat.h"
 #include <filesystem/FSUtilities.h>
+#include <kpi/sefs_format.h>
 #include <sched/mtx.h>
 
 

@@ -1,13 +1,13 @@
 //
-//  VolumeFormat.h
+//  sefs_format.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 12/7/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef VolumeFormat_h
-#define VolumeFormat_h
+#ifndef _KPI_SEFS_FORMAT_H
+#define _KPI_SEFS_FORMAT_H
 
 #include <stdint.h>
 
@@ -182,4 +182,4 @@ typedef struct sfs_dirent {
     char        filename[kSFSMaxFilenameLength];    // if strlen(filename) < kSFSMaxFilenameLength
 } sfs_dirent_t;
 
-#endif /* VolumeFormat_h */
+#endif /* _KPI_SEFS_FORMAT_H */

@@ -10,9 +10,9 @@
 #define SfsAllocator_h
 
 #include <kobj/Any.h>
+#include <kpi/sefs_format.h>
 #include <kpi/types.h>
 #include <sched/mtx.h>
-#include "VolumeFormat.h"
 
 
 typedef struct SfsAllocator {
