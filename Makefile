@@ -16,6 +16,7 @@ TOOLS_DIR := $(BUILD_DIR)/host
 OBJS_DIR := $(BUILD_DIR)/objs
 PRODUCT_DIR := $(BUILD_DIR)/product
 PRODUCT_CMD_DIR := $(PRODUCT_DIR)/cmd
+PRODUCT_DEMO_DIR := $(PRODUCT_DIR)/demo
 PRODUCT_LIB_DIR := $(PRODUCT_DIR)/lib
 
 USER_DIR := $(WORKSPACE_DIR)/user
@@ -137,7 +138,7 @@ LIBM_FILE := $(PRODUCT_LIB_DIR)/libm.a
 
 SNAKE_PROJECT_DIR := $(DEMOS_DIR)/snake
 SNAKE_OBJS_DIR := $(DEMOS_OBJS_DIR)/snake
-SNAKE_FILE := $(SNAKE_OBJS_DIR)/snake
+SNAKE_FILE := $(PRODUCT_DEMO_DIR)/snake
 
 
 # --------------------------------------------------------------------------
@@ -220,13 +221,16 @@ all: build-rom build-boot-dmg
 	@echo Done (Configuration: $(BUILD_CONFIGURATION))
 
 
-build-rom: $(PRODUCT_CMD_DIR) $(PRODUCT_LIB_DIR) $(ROM_FILE)
+build-rom: $(PRODUCT_CMD_DIR) $(PRODUCT_DEMO_DIR) $(PRODUCT_LIB_DIR) $(ROM_FILE)
 
 
-build-boot-dmg: $(PRODUCT_CMD_DIR) $(PRODUCT_LIB_DIR) $(BOOT_DMG_FILE)
+build-boot-dmg: $(PRODUCT_CMD_DIR) $(PRODUCT_DEMO_DIR) $(PRODUCT_LIB_DIR) $(BOOT_DMG_FILE)
 
 $(PRODUCT_CMD_DIR):
 	$(call mkdir_if_needed,$(PRODUCT_CMD_DIR))
+
+$(PRODUCT_DEMO_DIR):
+	$(call mkdir_if_needed,$(PRODUCT_DEMO_DIR))
 
 $(PRODUCT_LIB_DIR):
 	$(call mkdir_if_needed,$(PRODUCT_LIB_DIR))
