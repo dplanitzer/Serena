@@ -15,8 +15,8 @@ BUILD_DIR := $(WORKSPACE_DIR)/build
 TOOLS_DIR := $(BUILD_DIR)/host
 OBJS_DIR := $(BUILD_DIR)/objs
 PRODUCT_DIR := $(BUILD_DIR)/product
-SDK_DIR := $(PRODUCT_DIR)/serena-sdk
-SDK_LIB_DIR := $(SDK_DIR)/lib
+PRODUCT_CMD_DIR := $(PRODUCT_DIR)/cmd
+PRODUCT_LIB_DIR := $(PRODUCT_DIR)/lib
 
 USER_DIR := $(WORKSPACE_DIR)/user
 CMD_DIR := $(USER_DIR)/cmd
@@ -74,61 +74,61 @@ endif
 
 DISKTOOL_PROJECT_DIR := $(CMD_DIR)/disk
 DISKTOOL_OBJS_DIR := $(CMD_OBJS_DIR)/disk
-DISKTOOL_FILE := $(DISKTOOL_OBJS_DIR)/disk
+DISKTOOL_FILE := $(PRODUCT_CMD_DIR)/disk
 
 SH_PROJECT_DIR := $(CMD_DIR)/shell
 SH_OBJS_DIR := $(CMD_OBJS_DIR)/shell
-SH_FILE := $(SH_OBJS_DIR)/shell
+SH_FILE := $(PRODUCT_CMD_DIR)/shell
 
 
 SYSTEMD_PROJECT_DIR := $(CMD_DIR)/systemd
 SYSTEMD_OBJS_DIR := $(CMD_OBJS_DIR)/systemd
-SYSTEMD_FILE := $(SYSTEMD_OBJS_DIR)/systemd
+SYSTEMD_FILE := $(PRODUCT_CMD_DIR)/systemd
 
 
 CMD_BIN_PROJECT_DIR := $(CMD_DIR)/bin
-COPY_FILE := $(CMD_OBJS_DIR)/copy
-DELETE_FILE := $(CMD_OBJS_DIR)/delete
-DISK_FILE := $(CMD_OBJS_DIR)/disk
-ID_FILE := $(CMD_OBJS_DIR)/id
-LIST_FILE := $(CMD_OBJS_DIR)/list
-LOGIN_FILE := $(CMD_OBJS_DIR)/login
-MAKEDIR_FILE := $(CMD_OBJS_DIR)/makedir
-RENAME_FILE := $(CMD_OBJS_DIR)/rename
-SHUTDOWN_FILE := $(CMD_OBJS_DIR)/shutdown
-STATUS_FILE := $(CMD_OBJS_DIR)/status
-TOUCH_FILE := $(CMD_OBJS_DIR)/touch
-TYPE_FILE := $(CMD_OBJS_DIR)/type
-UPTIME_FILE := $(CMD_OBJS_DIR)/uptime
-WAIT_FILE := $(CMD_OBJS_DIR)/wait
+COPY_FILE := $(PRODUCT_CMD_DIR)/copy
+DELETE_FILE := $(PRODUCT_CMD_DIR)/delete
+DISK_FILE := $(PRODUCT_CMD_DIR)/disk
+ID_FILE := $(PRODUCT_CMD_DIR)/id
+LIST_FILE := $(PRODUCT_CMD_DIR)/list
+LOGIN_FILE := $(PRODUCT_CMD_DIR)/login
+MAKEDIR_FILE := $(PRODUCT_CMD_DIR)/makedir
+RENAME_FILE := $(PRODUCT_CMD_DIR)/rename
+SHUTDOWN_FILE := $(PRODUCT_CMD_DIR)/shutdown
+STATUS_FILE := $(PRODUCT_CMD_DIR)/status
+TOUCH_FILE := $(PRODUCT_CMD_DIR)/touch
+TYPE_FILE := $(PRODUCT_CMD_DIR)/type
+UPTIME_FILE := $(PRODUCT_CMD_DIR)/uptime
+WAIT_FILE := $(PRODUCT_CMD_DIR)/wait
 
 
 LIBC_PROJECT_DIR := $(LIB_DIR)/libc
 LIBC_HEADERS_DIR := $(LIBC_PROJECT_DIR)/h
 LIBC_OBJS_DIR := $(LIB_OBJS_DIR)/libc
-LIBC_FILE := $(SDK_LIB_DIR)/libc.a
-CSTART_FILE := $(SDK_LIB_DIR)/_cstart.o
+LIBC_FILE := $(PRODUCT_LIB_DIR)/libc.a
+CSTART_FILE := $(PRODUCT_LIB_DIR)/_cstart.o
 
 LIBSC_OBJS_DIR := $(LIB_OBJS_DIR)/libsc
-LIBSC_FILE := $(SDK_LIB_DIR)/libsc.a
+LIBSC_FILE := $(PRODUCT_LIB_DIR)/libsc.a
 
 
 LIBCLAP_PROJECT_DIR := $(LIB_DIR)/libclap
 LIBCLAP_HEADERS_DIR := $(LIBCLAP_PROJECT_DIR)/h
 LIBCLAP_OBJS_DIR := $(LIB_OBJS_DIR)/libclap
-LIBCLAP_FILE := $(SDK_LIB_DIR)/libclap.a
+LIBCLAP_FILE := $(PRODUCT_LIB_DIR)/libclap.a
 
 
 LIBDISPATCH_PROJECT_DIR := $(LIB_DIR)/libdispatch
 LIBDISPATCH_HEADERS_DIR := $(LIBDISPATCH_PROJECT_DIR)/h
 LIBDISPATCH_OBJS_DIR := $(LIB_OBJS_DIR)/libdispatch
-LIBDISPATCH_FILE := $(SDK_LIB_DIR)/libdispatch.a
+LIBDISPATCH_FILE := $(PRODUCT_LIB_DIR)/libdispatch.a
 
 
 LIBM_PROJECT_DIR := $(LIB_DIR)/libm
 LIBM_HEADERS_DIR := $(LIBM_PROJECT_DIR)/h
 LIBM_OBJS_DIR := $(LIB_OBJS_DIR)/libm
-LIBM_FILE := $(SDK_LIB_DIR)/libm.a
+LIBM_FILE := $(PRODUCT_LIB_DIR)/libm.a
 
 
 #---------------------------------------------------------------------------
@@ -220,20 +220,23 @@ all: build-rom build-boot-dmg
 	@echo Done (Configuration: $(BUILD_CONFIGURATION))
 
 
-build-rom: $(SDK_LIB_DIR) $(ROM_FILE)
+build-rom: $(PRODUCT_CMD_DIR) $(PRODUCT_LIB_DIR) $(ROM_FILE)
 
 
-build-boot-dmg: $(SDK_LIB_DIR) $(BOOT_DMG_FILE)
+build-boot-dmg: $(PRODUCT_CMD_DIR) $(PRODUCT_LIB_DIR) $(BOOT_DMG_FILE)
 
-$(SDK_LIB_DIR):
-	$(call mkdir_if_needed,$(SDK_LIB_DIR))
+$(PRODUCT_CMD_DIR):
+	$(call mkdir_if_needed,$(PRODUCT_CMD_DIR))
+
+$(PRODUCT_LIB_DIR):
+	$(call mkdir_if_needed,$(PRODUCT_LIB_DIR))
 
 
 $(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
 				  $(COPY_FILE) $(DELETE_FILE) $(ID_FILE) $(LIST_FILE) \
 				  $(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) \
 				  $(SHUTDOWN_FILE) $(STATUS_FILE) $(TOUCH_FILE) $(TYPE_FILE) \
-				  $(UPTIME_FILE) $(WAIT_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
+				  $(UPTIME_FILE) $(WAIT_FILE) $(KERNEL_TESTS_FILE)
 	@echo Making boot_disk.adf
 	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DMG_FILE)
 	$(DISKIMAGE) format sefs --label "Serena FD" $(BOOT_DMG_FILE)
@@ -273,13 +276,9 @@ $(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
 	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(SNAKE_FILE) /Users/admin/ $(BOOT_DMG_FILE)
 
 
-$(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE_FOR_ROM) | $(PRODUCT_DIR)
+$(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE_FOR_ROM)
 	@echo Making ROM
 	$(MAKEROM) $(ROM_FILE) $(KERNEL_FILE) $(BOOT_DMG_FILE_FOR_ROM)
-
-
-$(PRODUCT_DIR):
-	$(call mkdir_if_needed,$(PRODUCT_DIR))
 
 	
 clean:
