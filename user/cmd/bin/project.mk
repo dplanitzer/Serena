@@ -5,6 +5,14 @@
 CMDS_SOURCES_DIR := $(CMD_BIN_PROJECT_DIR)
 CMDS_C_INCLUDES := -I$(LIBC_HEADERS_DIR) -I$(KERNEL_HEADERS_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(CMDS_SOURCES_DIR)
 
+CMDS_C_SOURCES := $(wildcard $(CMDS_SOURCES_DIR)/*.c)
+
+CMDS_OBJS := $(patsubst $(CMDS_SOURCES_DIR)/%.c,$(CMDS_OBJS_DIR)/%.o,$(CMDS_C_SOURCES))
+CMDS_DEPS := $(CMDS_OBJS:.o=.d)
+
+#CMDS_GENERATE_DEPS = -deps -depfile=$(patsubst $(CMDS_OBJS_DIR)/%.o,$(CMDS_OBJS_DIR)/%.d,$@)
+CMDS_GENERATE_DEPS := 
+
 
 # --------------------------------------------------------------------------
 # Build rules
@@ -74,9 +82,13 @@ $(WAIT_FILE): $(CSTART_FILE) $(CMD_OBJS_DIR)/wait.o $(LIBC_FILE) $(LIBCLAP_FILE)
 	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
 
 
-$(CMD_OBJS_DIR)/%.o : $(CMDS_SOURCES_DIR)/%.c | $(CMD_OBJS_DIR)
+$(CMDS_OBJS): | $(CMDS_OBJS_DIR)
+
+-include $(CMDS_DEPS)
+
+$(CMD_OBJS_DIR)/%.o : $(CMDS_SOURCES_DIR)/%.c
 	@echo $<
-	@$(CC) $(USER_CC_CONFIG) $(CC_OPT_SETTING) $(CC_GEN_DEBUG_INFO) $(CC_PREPROC_DEFS) $(CMDS_C_INCLUDES) -o $@ $<
+	@$(CC) $(USER_CC_CONFIG) $(CC_OPT_SETTING) $(CC_GEN_DEBUG_INFO) $(CC_PREPROC_DEFS) $(CMDS_C_INCLUDES) $(CMDS_GENERATE_DEPS) -o $@ $<
 
 
 clean-cmds:
