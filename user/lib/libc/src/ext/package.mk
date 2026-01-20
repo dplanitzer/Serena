@@ -20,7 +20,7 @@ EXT_GENERATE_DEPS :=
 # Build rules
 #
 
-$(EXT_OBJS): | $(EXT_OBJS_DIR)
+$(EXT_OBJS): | $(EXT_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(EXT_OBJS_DIR):
 	$(call mkdir_if_needed,$(EXT_OBJS_DIR))
@@ -61,7 +61,7 @@ EXT_SC_GENERATE_DEPS :=
 # Build rules
 #
 
-$(EXT_SC_OBJS): | $(EXT_SC_OBJS_DIR)
+$(EXT_SC_OBJS): | $(EXT_SC_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(EXT_SC_OBJS_DIR):
 	$(call mkdir_if_needed,$(EXT_SC_OBJS_DIR))

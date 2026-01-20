@@ -38,7 +38,7 @@ STRING_GENERATE_DEPS :=
 # Build rules
 #
 
-$(STRING_OBJS): | $(STRING_OBJS_DIR)
+$(STRING_OBJS): | $(STRING_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(STRING_OBJS_DIR):
 	$(call mkdir_if_needed,$(STRING_OBJS_DIR))
@@ -86,7 +86,7 @@ STRING_SC_GENERATE_DEPS :=
 # Build rules
 #
 
-$(STRING_SC_OBJS): | $(STRING_SC_OBJS_DIR)
+$(STRING_SC_OBJS): | $(STRING_SC_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(STRING_SC_OBJS_DIR):
 	$(call mkdir_if_needed,$(STRING_SC_OBJS_DIR))

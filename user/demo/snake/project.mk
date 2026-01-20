@@ -17,7 +17,7 @@ SNAKE_OBJS := $(patsubst $(SNAKE_SOURCES_DIR)/%.c, $(SNAKE_OBJS_DIR)/%.o, $(SNAK
 
 build-snake: $(SNAKE_FILE)
 
-$(SNAKE_OBJS): | $(SNAKE_OBJS_DIR)
+$(SNAKE_OBJS): | $(SNAKE_OBJS_DIR) $(PRODUCT_DEMO_DIR)
 
 $(SNAKE_OBJS_DIR):
 	$(call mkdir_if_needed,$(SNAKE_OBJS_DIR))

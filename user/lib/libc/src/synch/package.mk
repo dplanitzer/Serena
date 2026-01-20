@@ -20,7 +20,7 @@ SYNCH_GENERATE_DEPS :=
 # Build rules
 #
 
-$(SYNCH_OBJS): | $(SYNCH_OBJS_DIR)
+$(SYNCH_OBJS): | $(SYNCH_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(SYNCH_OBJS_DIR):
 	$(call mkdir_if_needed,$(SYNCH_OBJS_DIR))

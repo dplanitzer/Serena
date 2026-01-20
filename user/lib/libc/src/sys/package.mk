@@ -20,7 +20,7 @@ SYS_GENERATE_DEPS :=
 # Build rules
 #
 
-$(SYS_OBJS): | $(SYS_OBJS_DIR)
+$(SYS_OBJS): | $(SYS_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(SYS_OBJS_DIR):
 	$(call mkdir_if_needed,$(SYS_OBJS_DIR))

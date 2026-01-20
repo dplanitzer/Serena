@@ -20,7 +20,7 @@ BUILTINS_OBJS_DIR := $(SH_OBJS_DIR)/builtins
 
 build-sh: $(SH_FILE)
 
-$(SH_OBJS): | $(SH_OBJS_DIR)
+$(SH_OBJS): | $(SH_OBJS_DIR) $(PRODUCT_CMD_DIR)
 
 $(SH_OBJS_DIR):
 	$(call mkdir_if_needed,$(SH_OBJS_DIR))

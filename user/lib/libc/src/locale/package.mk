@@ -17,7 +17,7 @@ LOCALE_GENERATE_DEPS :=
 # Build rules
 #
 
-$(LOCALE_OBJS): | $(LOCALE_OBJS_DIR)
+$(LOCALE_OBJS): | $(LOCALE_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(LOCALE_OBJS_DIR):
 	$(call mkdir_if_needed,$(LOCALE_OBJS_DIR))

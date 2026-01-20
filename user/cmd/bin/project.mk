@@ -82,7 +82,7 @@ $(WAIT_FILE): $(CSTART_FILE) $(CMD_OBJS_DIR)/wait.o $(LIBC_FILE) $(LIBCLAP_FILE)
 	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
 
 
-$(CMDS_OBJS): | $(CMDS_OBJS_DIR)
+$(CMDS_OBJS): | $(CMDS_OBJS_DIR) $(PRODUCT_CMD_DIR)
 
 -include $(CMDS_DEPS)
 

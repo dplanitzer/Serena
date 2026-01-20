@@ -20,7 +20,7 @@ STDLIB_GENERATE_DEPS :=
 # Build rules
 #
 
-$(STDLIB_OBJS): | $(STDLIB_OBJS_DIR)
+$(STDLIB_OBJS): | $(STDLIB_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(STDLIB_OBJS_DIR):
 	$(call mkdir_if_needed,$(STDLIB_OBJS_DIR))
@@ -66,7 +66,7 @@ STDLIB_SC_GENERATE_DEPS :=
 # Build rules
 #
 
-$(STDLIB_SC_OBJS): | $(STDLIB_SC_OBJS_DIR)
+$(STDLIB_SC_OBJS): | $(STDLIB_SC_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(STDLIB_SC_OBJS_DIR):
 	$(call mkdir_if_needed,$(STDLIB_SC_OBJS_DIR))

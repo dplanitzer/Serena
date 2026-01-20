@@ -17,7 +17,7 @@ TIME_GENERATE_DEPS :=
 # Build rules
 #
 
-$(TIME_OBJS): | $(TIME_OBJS_DIR)
+$(TIME_OBJS): | $(TIME_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(TIME_OBJS_DIR):
 	$(call mkdir_if_needed,$(TIME_OBJS_DIR))

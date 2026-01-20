@@ -200,9 +200,9 @@ USER_LD_CONFIG := -bataritos -T $(SCRIPTS_DIR)/user_linker.script
 all: build-rom build-boot-dmg
 	@echo Done (Configuration: $(BUILD_CONFIGURATION))
 
-build-rom: $(PRODUCT_LIB_DIR) $(ROM_FILE)
+build-rom: $(ROM_FILE)
 
-build-boot-dmg: $(PRODUCT_CMD_DIR) $(PRODUCT_DEMO_DIR) $(PRODUCT_LIB_DIR) $(BOOT_DMG_FILE)
+build-boot-dmg: $(BOOT_DMG_FILE)
 
 
 $(PRODUCT_CMD_DIR):

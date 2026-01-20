@@ -20,7 +20,7 @@ VCPU_GENERATE_DEPS :=
 # Build rules
 #
 
-$(VCPU_OBJS): | $(VCPU_OBJS_DIR)
+$(VCPU_OBJS): | $(VCPU_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(VCPU_OBJS_DIR):
 	$(call mkdir_if_needed,$(VCPU_OBJS_DIR))

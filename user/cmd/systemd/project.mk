@@ -17,7 +17,7 @@ SYSTEMD_OBJS := $(patsubst $(SYSTEMD_SOURCES_DIR)/%.c, $(SYSTEMD_OBJS_DIR)/%.o, 
 
 build-systemd: $(SYSTEMD_FILE)
 
-$(SYSTEMD_OBJS): | $(SYSTEMD_OBJS_DIR)
+$(SYSTEMD_OBJS): | $(SYSTEMD_OBJS_DIR) $(PRODUCT_CMD_DIR)
 
 $(SYSTEMD_OBJS_DIR):
 	$(call mkdir_if_needed,$(SYSTEMD_OBJS_DIR))

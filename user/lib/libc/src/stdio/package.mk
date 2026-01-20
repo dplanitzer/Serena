@@ -17,7 +17,7 @@ STDIO_GENERATE_DEPS :=
 # Build rules
 #
 
-$(STDIO_OBJS): | $(STDIO_OBJS_DIR)
+$(STDIO_OBJS): | $(STDIO_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(STDIO_OBJS_DIR):
 	$(call mkdir_if_needed,$(STDIO_OBJS_DIR))

@@ -32,7 +32,7 @@ LIBM_AS_DONTWARN :=
 
 build-libm: $(LIBM_FILE)
 
-$(LIBM_OBJS): | $(LIBM_OBJS_DIR)
+$(LIBM_OBJS): | $(LIBM_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(LIBM_OBJS_DIR):
 	$(call mkdir_if_needed,$(LIBM_OBJS_DIR))

@@ -20,7 +20,7 @@ MALLOC_GENERATE_DEPS :=
 # Build rules
 #
 
-$(MALLOC_OBJS): | $(MALLOC_OBJS_DIR)
+$(MALLOC_OBJS): | $(MALLOC_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(MALLOC_OBJS_DIR):
 	$(call mkdir_if_needed,$(MALLOC_OBJS_DIR))
@@ -52,7 +52,7 @@ MALLOC_SC_GENERATE_DEPS :=
 # Build rules
 #
 
-$(MALLOC_SC_OBJS): | $(MALLOC_SC_OBJS_DIR)
+$(MALLOC_SC_OBJS): | $(MALLOC_SC_OBJS_DIR) $(PRODUCT_LIB_DIR)
 
 $(MALLOC_SC_OBJS_DIR):
 	$(call mkdir_if_needed,$(MALLOC_SC_OBJS_DIR))
