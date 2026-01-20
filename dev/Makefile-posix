@@ -6,7 +6,7 @@
 #   makerom
 #   libclap
 #
-# and puts them inside the build/tools folder.
+# and puts them inside the build/host folder.
 #
 
 
@@ -15,8 +15,8 @@
 #
 
 BUILD_DIR := ../build
-TOOLS_DIR := $(BUILD_DIR)/tools
-OBJS_DIR := $(BUILD_DIR)/tools-objs
+TOOLS_DIR := $(BUILD_DIR)/host
+OBJS_DIR := $(TOOLS_DIR)/objs
 LIBS_DIR := ../user/lib
 LIBCLAP_DIR := $(LIBS_DIR)/libclap
 LIBCLAP_HEADERS_DIR := $(LIBCLAP_DIR)/h

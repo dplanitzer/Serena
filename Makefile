@@ -12,7 +12,7 @@
 WORKSPACE_DIR := $(CURDIR)
 SCRIPTS_DIR := $(WORKSPACE_DIR)/dev/etc
 BUILD_DIR := $(WORKSPACE_DIR)/build
-TOOLS_DIR := $(BUILD_DIR)/tools
+TOOLS_DIR := $(BUILD_DIR)/host
 OBJS_DIR := $(BUILD_DIR)/objs
 PRODUCT_DIR := $(BUILD_DIR)/product
 SDK_DIR := $(PRODUCT_DIR)/serena-sdk
