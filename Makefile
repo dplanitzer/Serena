@@ -48,7 +48,7 @@ include $(WORKSPACE_DIR)/common.mk
 
 
 # --------------------------------------------------------------------------
-# OS
+# Kernel
 #
 
 KERNEL_PROJECT_DIR := $(WORKSPACE_DIR)/kern
@@ -73,17 +73,45 @@ BOOT_DMG_FILE_FOR_ROM :=
 endif
 
 
+#---------------------------------------------------------------------------
+# Libraries
+#
+
+LIBC_PROJECT_DIR := $(LIB_DIR)/libc
+LIBC_HEADERS_DIR := $(LIBC_PROJECT_DIR)/h
+LIBC_FILE := $(PRODUCT_LIB_DIR)/libc.a
+CSTART_FILE := $(PRODUCT_LIB_DIR)/_cstart.o
+
+LIBSC_FILE := $(PRODUCT_LIB_DIR)/libsc.a
+
+
+LIBCLAP_PROJECT_DIR := $(LIB_DIR)/libclap
+LIBCLAP_HEADERS_DIR := $(LIBCLAP_PROJECT_DIR)/h
+LIBCLAP_FILE := $(PRODUCT_LIB_DIR)/libclap.a
+
+
+LIBDISPATCH_PROJECT_DIR := $(LIB_DIR)/libdispatch
+LIBDISPATCH_HEADERS_DIR := $(LIBDISPATCH_PROJECT_DIR)/h
+LIBDISPATCH_FILE := $(PRODUCT_LIB_DIR)/libdispatch.a
+
+
+LIBM_PROJECT_DIR := $(LIB_DIR)/libm
+LIBM_HEADERS_DIR := $(LIBM_PROJECT_DIR)/h
+LIBM_FILE := $(PRODUCT_LIB_DIR)/libm.a
+
+
+#---------------------------------------------------------------------------
+# Commands
+#
+
 DISKTOOL_PROJECT_DIR := $(CMD_DIR)/disk
-DISKTOOL_OBJS_DIR := $(CMD_OBJS_DIR)/disk
 DISKTOOL_FILE := $(PRODUCT_CMD_DIR)/disk
 
 SH_PROJECT_DIR := $(CMD_DIR)/shell
-SH_OBJS_DIR := $(CMD_OBJS_DIR)/shell
 SH_FILE := $(PRODUCT_CMD_DIR)/shell
 
 
 SYSTEMD_PROJECT_DIR := $(CMD_DIR)/systemd
-SYSTEMD_OBJS_DIR := $(CMD_OBJS_DIR)/systemd
 SYSTEMD_FILE := $(PRODUCT_CMD_DIR)/systemd
 
 
@@ -104,40 +132,11 @@ UPTIME_FILE := $(PRODUCT_CMD_DIR)/uptime
 WAIT_FILE := $(PRODUCT_CMD_DIR)/wait
 
 
-LIBC_PROJECT_DIR := $(LIB_DIR)/libc
-LIBC_HEADERS_DIR := $(LIBC_PROJECT_DIR)/h
-LIBC_OBJS_DIR := $(LIB_OBJS_DIR)/libc
-LIBC_FILE := $(PRODUCT_LIB_DIR)/libc.a
-CSTART_FILE := $(PRODUCT_LIB_DIR)/_cstart.o
-
-LIBSC_OBJS_DIR := $(LIB_OBJS_DIR)/libsc
-LIBSC_FILE := $(PRODUCT_LIB_DIR)/libsc.a
-
-
-LIBCLAP_PROJECT_DIR := $(LIB_DIR)/libclap
-LIBCLAP_HEADERS_DIR := $(LIBCLAP_PROJECT_DIR)/h
-LIBCLAP_OBJS_DIR := $(LIB_OBJS_DIR)/libclap
-LIBCLAP_FILE := $(PRODUCT_LIB_DIR)/libclap.a
-
-
-LIBDISPATCH_PROJECT_DIR := $(LIB_DIR)/libdispatch
-LIBDISPATCH_HEADERS_DIR := $(LIBDISPATCH_PROJECT_DIR)/h
-LIBDISPATCH_OBJS_DIR := $(LIB_OBJS_DIR)/libdispatch
-LIBDISPATCH_FILE := $(PRODUCT_LIB_DIR)/libdispatch.a
-
-
-LIBM_PROJECT_DIR := $(LIB_DIR)/libm
-LIBM_HEADERS_DIR := $(LIBM_PROJECT_DIR)/h
-LIBM_OBJS_DIR := $(LIB_OBJS_DIR)/libm
-LIBM_FILE := $(PRODUCT_LIB_DIR)/libm.a
-
-
 #---------------------------------------------------------------------------
 # Demos
 #
 
 SNAKE_PROJECT_DIR := $(DEMOS_DIR)/snake
-SNAKE_OBJS_DIR := $(DEMOS_OBJS_DIR)/snake
 SNAKE_FILE := $(PRODUCT_DEMO_DIR)/snake
 
 
