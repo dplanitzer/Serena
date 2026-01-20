@@ -190,8 +190,30 @@ USER_LD_CONFIG := -bataritos -T $(SCRIPTS_DIR)/user_linker.script
 
 
 # --------------------------------------------------------------------------
-# Project includes
+# Build rules
 #
+
+.SUFFIXES:
+.PHONY: clean $(PRODUCT_CMD_DIR) $(PRODUCT_DEMO_DIR) $(PRODUCT_LIB_DIR)
+
+
+all: build-rom build-boot-dmg
+	@echo Done (Configuration: $(BUILD_CONFIGURATION))
+
+build-rom: $(PRODUCT_LIB_DIR) $(ROM_FILE)
+
+build-boot-dmg: $(PRODUCT_CMD_DIR) $(PRODUCT_DEMO_DIR) $(PRODUCT_LIB_DIR) $(BOOT_DMG_FILE)
+
+
+$(PRODUCT_CMD_DIR):
+	$(call mkdir_if_needed,$(PRODUCT_CMD_DIR))
+
+$(PRODUCT_DEMO_DIR):
+	$(call mkdir_if_needed,$(PRODUCT_DEMO_DIR))
+
+$(PRODUCT_LIB_DIR):
+	$(call mkdir_if_needed,$(PRODUCT_LIB_DIR))
+
 
 include $(LIBC_PROJECT_DIR)/project.mk
 include $(LIBM_PROJECT_DIR)/project.mk
@@ -207,33 +229,6 @@ include $(SYSTEMD_PROJECT_DIR)/project.mk
 include $(CMD_BIN_PROJECT_DIR)/project.mk
 
 include $(SNAKE_PROJECT_DIR)/project.mk
-
-
-# --------------------------------------------------------------------------
-# Build rules
-#
-
-.SUFFIXES:
-.PHONY: clean
-
-
-all: build-rom build-boot-dmg
-	@echo Done (Configuration: $(BUILD_CONFIGURATION))
-
-
-build-rom: $(PRODUCT_LIB_DIR) $(ROM_FILE)
-
-
-build-boot-dmg: $(PRODUCT_CMD_DIR) $(PRODUCT_DEMO_DIR) $(PRODUCT_LIB_DIR) $(BOOT_DMG_FILE)
-
-$(PRODUCT_CMD_DIR):
-	$(call mkdir_if_needed,$(PRODUCT_CMD_DIR))
-
-$(PRODUCT_DEMO_DIR):
-	$(call mkdir_if_needed,$(PRODUCT_DEMO_DIR))
-
-$(PRODUCT_LIB_DIR):
-	$(call mkdir_if_needed,$(PRODUCT_LIB_DIR))
 
 
 $(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
@@ -278,7 +273,6 @@ $(BOOT_DMG_FILE): $(SNAKE_FILE) $(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
 	$(DISKIMAGE) push -m=rw-r----- -o=1000:1000 $(DEMOS_DIR)/prime.sh /Users/admin/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rw-r----- -o=1000:1000 $(DEMOS_DIR)/while.sh /Users/admin/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(SNAKE_FILE) /Users/admin/ $(BOOT_DMG_FILE)
-
 
 $(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE_FOR_ROM)
 	@echo Making ROM

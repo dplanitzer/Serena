@@ -48,7 +48,6 @@ VCPU_OBJS_DIR := $(LIBC_OBJS_DIR)/vcpu
 
 
 CSTART_C_SOURCE := $(LIBC_SOURCES_DIR)/_cstart.c
-
 LIBC_C_INCLUDES := -I$(LIBC_HEADERS_DIR) -I$(KERNEL_HEADERS_DIR) -I$(LIBC_SOURCES_DIR)
 
 
@@ -59,13 +58,12 @@ LIBC_C_INCLUDES := -I$(LIBC_HEADERS_DIR) -I$(KERNEL_HEADERS_DIR) -I$(LIBC_SOURCE
 .PHONY: clean-libc clean-libsc $(LIBC_OBJS_DIR) $(LIBSC_OBJS_DIR)
 
 
-build-libc: $(LIBC_FILE) $(CSTART_FILE) | $(LIBC_OBJS_DIR)
+build-libc: $(LIBC_FILE) $(CSTART_FILE)
+
+build-libsc: $(LIBSC_FILE)
 
 $(LIBC_OBJS_DIR):
 	$(call mkdir_if_needed,$(LIBC_OBJS_DIR))
-
-
-build-libsc: $(LIBSC_FILE) | $(LIBSC_OBJS_DIR)
 
 $(LIBSC_OBJS_DIR):
 	$(call mkdir_if_needed,$(LIBSC_OBJS_DIR))
@@ -95,7 +93,7 @@ $(LIBC_FILE): $(ARCH_M68K_OBJS) $(ARCH_M68K_VBCC_OBJS) $(EXT_OBJS) \
 
 
 # _start() function
-$(CSTART_FILE) : $(CSTART_C_SOURCE) | $(LIBC_OBJS_DIR)
+$(CSTART_FILE) : $(CSTART_C_SOURCE)
 	@echo $<
 	@$(CC) $(USER_CC_CONFIG) $(CC_OPT_SETTING) $(CC_PREPROC_DEFS) $(LIBC_C_INCLUDES) -o $@ $<
 
