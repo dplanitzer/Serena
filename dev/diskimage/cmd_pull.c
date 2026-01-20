@@ -8,8 +8,8 @@
 
 #include "diskimage.h"
 #include "FSManager.h"
-#include <errno.h>
 #include <stdio.h>
+#include <ext/errno.h>
 #include <kpi/fcntl.h>
 #include <filesystem/IOChannel.h>
 

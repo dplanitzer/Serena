@@ -7,6 +7,7 @@
 //
 
 #include <stdlib.h>
+#include <time.h>
 #include <ext/math.h>
 #include <filesystem/FSUtilities.h>
 

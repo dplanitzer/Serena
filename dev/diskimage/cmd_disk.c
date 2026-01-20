@@ -7,12 +7,12 @@
 //
 
 #include "diskimage.h"
-#include <errno.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ext/errno.h>
 #include <machine/amiga/adf.h>
 
 
