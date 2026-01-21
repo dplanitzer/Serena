@@ -17,7 +17,7 @@ CONSOLE_GENERATE_DEPS :=
 # Build rules
 #
 
-$(CONSOLE_OBJS): | $(CONSOLE_OBJS_DIR)
+$(CONSOLE_OBJS): | $(CONSOLE_OBJS_DIR) $(PRODUCT_DIR)
 
 $(CONSOLE_OBJS_DIR):
 	$(call mkdir_if_needed,$(CONSOLE_OBJS_DIR))

@@ -17,7 +17,7 @@ DRIVER_GENERATE_DEPS :=
 # Build rules
 #
 
-$(DRIVER_OBJS): | $(DRIVER_OBJS_DIR)
+$(DRIVER_OBJS): | $(DRIVER_OBJS_DIR) $(PRODUCT_DIR)
 
 $(DRIVER_OBJS_DIR):
 	$(call mkdir_if_needed,$(DRIVER_OBJS_DIR))

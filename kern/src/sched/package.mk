@@ -20,7 +20,7 @@ SCHED_GENERATE_DEPS :=
 # Build rules
 #
 
-$(SCHED_OBJS): | $(SCHED_OBJS_DIR)
+$(SCHED_OBJS): | $(SCHED_OBJS_DIR) $(PRODUCT_DIR)
 
 $(SCHED_OBJS_DIR):
 	$(call mkdir_if_needed,$(SCHED_OBJS_DIR))

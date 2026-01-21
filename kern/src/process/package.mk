@@ -17,7 +17,7 @@ PROCESS_GENERATE_DEPS :=
 # Build rules
 #
 
-$(PROCESS_OBJS): | $(PROCESS_OBJS_DIR)
+$(PROCESS_OBJS): | $(PROCESS_OBJS_DIR) $(PRODUCT_DIR)
 
 $(PROCESS_OBJS_DIR):
 	$(call mkdir_if_needed,$(PROCESS_OBJS_DIR))

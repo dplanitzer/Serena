@@ -17,7 +17,7 @@ KOBJ_GENERATE_DEPS :=
 # Build rules
 #
 
-$(KOBJ_OBJS): | $(KOBJ_OBJS_DIR)
+$(KOBJ_OBJS): | $(KOBJ_OBJS_DIR) $(PRODUCT_DIR)
 
 $(KOBJ_OBJS_DIR):
 	$(call mkdir_if_needed,$(KOBJ_OBJS_DIR))

@@ -53,11 +53,7 @@ include $(WORKSPACE_DIR)/common.mk
 
 KERNEL_PROJECT_DIR := $(WORKSPACE_DIR)/kern
 KERNEL_HEADERS_DIR := $(KERNEL_PROJECT_DIR)/h
-KERNEL_TESTS_PROJECT_DIR := $(WORKSPACE_DIR)/kern/test
-KERNEL_OBJS_DIR := $(OBJS_DIR)/kern
-KERNEL_TESTS_OBJS_DIR := $(OBJS_DIR)/kern-test
-KERNEL_FILE := $(KERNEL_OBJS_DIR)/Kernel.bin
-KERNEL_TESTS_FILE := $(KERNEL_TESTS_OBJS_DIR)/test
+KERNEL_FILE := $(PRODUCT_DIR)/kernel.bin
 
 
 ROM_FILE := $(PRODUCT_DIR)/Serena.rom
@@ -139,6 +135,9 @@ WAIT_FILE := $(PRODUCT_CMD_DIR)/wait
 SNAKE_PROJECT_DIR := $(DEMOS_DIR)/snake
 SNAKE_FILE := $(PRODUCT_DEMO_DIR)/snake
 
+KERNEL_TESTS_PROJECT_DIR := $(WORKSPACE_DIR)/kern/test
+KERNEL_TESTS_FILE := $(PRODUCT_DEMO_DIR)/test
+
 
 # --------------------------------------------------------------------------
 # Build Configuration
@@ -184,7 +183,7 @@ KERNEL_CC_CONFIG := +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68020 -D_POSIX_SOUR
 USER_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68020
 USER_CC_CONFIG := +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68020 -D_POSIX_SOURCE=1 -D_OPEN_SYS_ITOA_EXT=1 $(USER_STDC_PREPROC_DEFS)
 
-KERNEL_LD_CONFIG := -brawbin1 -T $(SCRIPTS_DIR)/kernel_linker.script -M$(KERNEL_OBJS_DIR)/kernel_mappings.txt
+KERNEL_LD_CONFIG := -brawbin1 -T $(SCRIPTS_DIR)/kernel_linker.script -M$(PRODUCT_DIR)/kernel_mappings.txt
 USER_LD_CONFIG := -bataritos -T $(SCRIPTS_DIR)/user_linker.script
 
 
@@ -193,7 +192,7 @@ USER_LD_CONFIG := -bataritos -T $(SCRIPTS_DIR)/user_linker.script
 #
 
 .SUFFIXES:
-.PHONY: clean $(PRODUCT_CMD_DIR) $(PRODUCT_DEMO_DIR) $(PRODUCT_LIB_DIR)
+.PHONY: clean $(PRODUCT_DIR) $(PRODUCT_CMD_DIR) $(PRODUCT_DEMO_DIR) $(PRODUCT_LIB_DIR)
 
 
 all: build-rom build-boot-dmg
@@ -203,6 +202,8 @@ build-rom: $(ROM_FILE)
 
 build-boot-dmg: $(BOOT_DMG_FILE)
 
+$(PRODUCT_DIR):
+	$(call mkdir_if_needed,$(PRODUCT_DIR))
 
 $(PRODUCT_CMD_DIR):
 	$(call mkdir_if_needed,$(PRODUCT_CMD_DIR))

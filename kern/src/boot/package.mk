@@ -20,7 +20,7 @@ BOOT_GENERATE_DEPS :=
 # Build rules
 #
 
-$(BOOT_OBJS): | $(BOOT_OBJS_DIR)
+$(BOOT_OBJS): | $(BOOT_OBJS_DIR) $(PRODUCT_DIR)
 
 $(BOOT_OBJS_DIR):
 	$(call mkdir_if_needed,$(BOOT_OBJS_DIR))

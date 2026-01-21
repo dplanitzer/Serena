@@ -17,7 +17,7 @@ IPC_GENERATE_DEPS :=
 # Build rules
 #
 
-$(IPC_OBJS): | $(IPC_OBJS_DIR)
+$(IPC_OBJS): | $(IPC_OBJS_DIR) $(PRODUCT_DIR)
 
 $(IPC_OBJS_DIR):
 	$(call mkdir_if_needed,$(IPC_OBJS_DIR))

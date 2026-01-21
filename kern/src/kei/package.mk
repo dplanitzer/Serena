@@ -17,7 +17,7 @@ KEI_GENERATE_DEPS :=
 # Build rules
 #
 
-$(KEI_OBJS): | $(KEI_OBJS_DIR)
+$(KEI_OBJS): | $(KEI_OBJS_DIR) $(PRODUCT_DIR)
 
 $(KEI_OBJS_DIR):
 	$(call mkdir_if_needed,$(KEI_OBJS_DIR))

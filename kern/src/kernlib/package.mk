@@ -17,7 +17,7 @@ KERNLIB_GENERATE_DEPS :=
 # Build rules
 #
 
-$(KERNLIB_OBJS): | $(KERNLIB_OBJS_DIR)
+$(KERNLIB_OBJS): | $(KERNLIB_OBJS_DIR) $(PRODUCT_DIR)
 
 $(KERNLIB_OBJS_DIR):
 	$(call mkdir_if_needed,$(KERNLIB_OBJS_DIR))

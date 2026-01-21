@@ -17,7 +17,7 @@ VM_GENERATE_DEPS :=
 # Build rules
 #
 
-$(VM_OBJS): | $(VM_OBJS_DIR)
+$(VM_OBJS): | $(VM_OBJS_DIR) $(PRODUCT_DIR)
 
 $(VM_OBJS_DIR):
 	$(call mkdir_if_needed,$(VM_OBJS_DIR))

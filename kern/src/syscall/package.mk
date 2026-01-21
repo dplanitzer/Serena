@@ -17,7 +17,7 @@ SYSCALL_GENERATE_DEPS :=
 # Build rules
 #
 
-$(SYSCALL_OBJS): | $(SYSCALL_OBJS_DIR)
+$(SYSCALL_OBJS): | $(SYSCALL_OBJS_DIR) $(PRODUCT_DIR)
 
 $(SYSCALL_OBJS_DIR):
 	$(call mkdir_if_needed,$(SYSCALL_OBJS_DIR))

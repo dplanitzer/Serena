@@ -20,7 +20,7 @@ HAL_M68K_GENERATE_DEPS :=
 # Build rules
 #
 
-$(HAL_M68K_OBJS): | $(HAL_M68K_OBJS_DIR)
+$(HAL_M68K_OBJS): | $(HAL_M68K_OBJS_DIR) $(PRODUCT_DIR)
 
 $(HAL_M68K_OBJS_DIR):
 	$(call mkdir_if_needed,$(HAL_M68K_OBJS_DIR))
