@@ -230,14 +230,17 @@ include $(CMD_BIN_PROJECT_DIR)/project.mk
 include $(SNAKE_PROJECT_DIR)/project.mk
 
 
-$(BOOT_DMG_FILE): $(LIBC_FILE) $(LIBM_FILE) $(LIBCLAP_FILE) $(LIBDISPATCH_FILE) \
-				  $(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
-				  $(COPY_FILE) $(DELETE_FILE) $(ID_FILE) $(LIST_FILE) \
-				  $(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) \
-				  $(SHUTDOWN_FILE) $(STATUS_FILE) $(TOUCH_FILE) $(TYPE_FILE) \
-				  $(UPTIME_FILE) $(WAIT_FILE) \
-				  $(SNAKE_FILE) \
-				  $(KERNEL_TESTS_FILE)
+build-all-libs: $(LIBC_FILE) $(LIBM_FILE) $(LIBCLAP_FILE) $(LIBDISPATCH_FILE)
+
+build-all-cmds:	$(SH_FILE) $(SYSTEMD_FILE) $(DISKTOOL_FILE) \
+				$(COPY_FILE) $(DELETE_FILE) $(ID_FILE) $(LIST_FILE) \
+				$(LOGIN_FILE) $(MAKEDIR_FILE) $(RENAME_FILE) \
+				$(SHUTDOWN_FILE) $(STATUS_FILE) $(TOUCH_FILE) $(TYPE_FILE) \
+				$(UPTIME_FILE) $(WAIT_FILE)
+
+build-all-demos: $(SNAKE_FILE) $(KERNEL_TESTS_FILE)
+
+$(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 	@echo Making boot_disk.adf
 	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DMG_FILE)
 	$(DISKIMAGE) format sefs --label "Serena FD" $(BOOT_DMG_FILE)
