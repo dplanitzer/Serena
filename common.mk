@@ -36,3 +36,27 @@ define copy
 	cp -Rp '$(1)' '$(2)'
 endef
 endif
+
+
+# Copy the content of a directory (all files and folders inside of it) to another folder (recursively)
+ifeq ($(OS),Windows_NT)
+define copy_contents_of_dir
+	powershell Copy-Item -Path '$(1)\*' -Destination '$(2)' -Recurse
+endef
+else
+define copy
+	cp -Rp '$(1)/.' '$(2)'
+endef
+endif
+
+
+# Copy an executable file to a folder
+ifeq ($(OS),Windows_NT)
+define copy_executable
+	powershell Copy-Item -Path '$(1).exe' -Destination '$(2)'
+endef
+else
+define copy
+	cp -p '$(1)' '$(2)'
+endef
+endif

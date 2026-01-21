@@ -140,6 +140,22 @@ KERNEL_TESTS_FILE := $(PRODUCT_DEMO_DIR)/test
 
 
 # --------------------------------------------------------------------------
+# SDK
+#
+
+ifeq ($(OS),Windows_NT)
+HOST_TARGET_NAME := x86_64-windows
+else
+HOST_TARGET_NAME := arm64-macos
+endif
+
+SDK_DIR := $(PRODUCT_DIR)/serena-sdk
+SDK_BIN_HOST_DIR := $(SDK_DIR)/bin/$(HOST_TARGET_NAME)
+SDK_INCLUDE_DIR := $(SDK_DIR)/include
+SDK_LIB_DIR := $(SDK_DIR)/lib
+
+
+# --------------------------------------------------------------------------
 # Build Configuration
 #
 
@@ -283,6 +299,29 @@ $(BOOT_DMG_FILE): build-all-libs build-all-cmds build-all-demos
 $(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE_FOR_ROM)
 	@echo Making ROM
 	$(MAKEROM) $(ROM_FILE) $(KERNEL_FILE) $(BOOT_DMG_FILE_FOR_ROM)
+
+
+build-sdk: build-all-libs
+	@echo Making SDK
+	$(call mkdir_if_needed,$(SDK_BIN_HOST_DIR))
+	$(call copy_executable,$(TOOLS_DIR)/diskimage,$(SDK_BIN_HOST_DIR)/)
+	$(call copy_executable,$(TOOLS_DIR)/libtool,$(SDK_BIN_HOST_DIR)/)
+	$(call copy_executable,$(TOOLS_DIR)/keymap,$(SDK_BIN_HOST_DIR)/)
+	$(call copy_executable,$(TOOLS_DIR)/makerom,$(SDK_BIN_HOST_DIR)/)
+
+	$(call mkdir_if_needed,$(SDK_INCLUDE_DIR))
+	$(call copy_contents_of_dir,$(LIBC_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
+	$(call copy_contents_of_dir,$(LIBCLAP_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
+	$(call copy_contents_of_dir,$(LIBDISPATCH_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
+	$(call copy_contents_of_dir,$(LIBM_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
+	$(call copy,$(KERNEL_HEADERS_DIR)/kpi,$(SDK_INCLUDE_DIR)/)
+	$(call copy,$(KERNEL_HEADERS_DIR)/machine,$(SDK_INCLUDE_DIR)/)
+
+	$(call copy,$(PRODUCT_LIB_DIR),$(SDK_LIB_DIR))
+
+clean-sdk:
+	$(call rm_if_exists,$(SDK_DIR))
+	@echo Done
 
 	
 clean:

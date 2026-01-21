@@ -93,6 +93,27 @@
 	        },
 
     	    {
+        	    "label": "Build SDK",
+	            "type": "shell",
+    	        "command": "",
+        	    "args": [
+            	    "make",
+                	"build-sdk",
+	                "-s",
+    	            "-R",
+        	        "--directory=${workspaceFolder}/../"
+	            ],
+    	        "group":  {
+        	        "kind": "build",
+            	    "isDefault": false
+	            },
+    	        "presentation": {
+        	        "reveal":"always"
+	            },
+    	        "problemMatcher": []
+	        },
+
+    	    {
         	    "label": "Clean All",
 	            "type": "shell",
     	        "command": "",
@@ -204,6 +225,27 @@
 	            "args": [
     	            "make",
         	        "clean-sh",
+	                "-s",
+    	            "-R",
+	                "--directory=${workspaceFolder}/../"
+	            ],
+    	        "group":  {
+        	        "kind": "build",
+            	    "isDefault": false
+	            },
+    	        "presentation": {
+        	        "reveal":"always"
+	            },
+    	        "problemMatcher": []
+	        },
+			
+	        {
+    	        "label": "Clean SDK",
+        	    "type": "shell",
+            	"command": "",
+	            "args": [
+    	            "make",
+        	        "clean-sdk",
 	                "-s",
     	            "-R",
 	                "--directory=${workspaceFolder}/../"
