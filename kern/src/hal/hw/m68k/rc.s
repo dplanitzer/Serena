@@ -6,7 +6,7 @@
 ;  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 ;
 
-    include <hal/hw/m68k/lowmem.i>
+    include "lowmem.i"
 
 
     xdef _rc_release

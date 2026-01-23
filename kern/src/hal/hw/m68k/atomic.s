@@ -6,7 +6,7 @@
 ;  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 ;
 
-    include <hal/hw/m68k/lowmem.i>
+    include "lowmem.i"
 
 
     xdef _atomic_int_exchange
