@@ -193,10 +193,10 @@ endif
 
 
 KERNEL_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68020 -DMACHINE_AMIGA
-KERNEL_CC_CONFIG := +$(VC_CFG_KERN) -c -c99 -cpp-comments -cpu=68020 -DMACHINE_AMIGA -D_POSIX_SOURCE=1 -D__TRY_BANG_LOD=1 -D__ASSERT_LOD=1
+KERNEL_CC_CONFIG := +$(VC_CFG_KERN) -c -c99 -cpp-comments -DMACHINE_AMIGA -D_POSIX_SOURCE=1 -D__TRY_BANG_LOD=1 -D__ASSERT_LOD=1
 
 USER_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68020
-USER_CC_CONFIG := +$(VC_CFG) -c -c99 -cpp-comments -cpu=68020 -D_POSIX_SOURCE=1 -D_OPEN_SYS_ITOA_EXT=1
+USER_CC_CONFIG := +$(VC_CFG) -c -c99 -cpp-comments -D_POSIX_SOURCE=1 -D_OPEN_SYS_ITOA_EXT=1
 
 KERNEL_LD_CONFIG := -brawbin1 -T $(SCRIPTS_DIR)/m68k-amiga-kern.ld -M$(PRODUCT_DIR)/kernel_mappings.txt
 USER_LD_CONFIG := -bataritos -T $(SCRIPTS_DIR)/app.ld
