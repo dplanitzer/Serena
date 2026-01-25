@@ -322,7 +322,10 @@ build-sdk: build-all-libs
 
 	$(call mkdir_if_needed,$(SDK_EXAMPLE_DIR))
 	$(call copy,$(HELLODISPATCH_PROJECT_DIR)/,$(SDK_EXAMPLE_DIR)/)
+# XXX not great. The copy above should really filter out the 'project.mk' file
+	$(call rm_if_exists,$(SDK_EXAMPLE_DIR)/hellodispatch/project.mk)
 
+# XXX all these copy functions should filter out files of the form '__*.h'
 	$(call mkdir_if_needed,$(SDK_INCLUDE_DIR))
 	$(call copy_contents_of_dir,$(LIBC_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
 	$(call copy_contents_of_dir,$(LIBCLAP_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
