@@ -155,6 +155,7 @@ endif
 SDK_DIR := $(PRODUCT_DIR)/serena-sdk
 SDK_BIN_HOST_DIR := $(SDK_DIR)/bin/$(HOST_TARGET_NAME)
 SDK_CONF_DIR := $(SDK_DIR)/conf
+SDK_EXAMPLE_DIR := $(SDK_DIR)/example
 SDK_INCLUDE_DIR := $(SDK_DIR)/include
 SDK_LIB_DIR := $(SDK_DIR)/lib
 
@@ -318,6 +319,9 @@ build-sdk: build-all-libs
 	$(call copy,$(SCRIPTS_DIR)/app.ld,$(SDK_CONF_DIR)/)
 	$(call copy,$(SCRIPTS_DIR)/m68k-app-posix.vcfg,$(SDK_CONF_DIR)/)
 	$(call copy,$(SCRIPTS_DIR)/m68k-app-windows.vcfg,$(SDK_CONF_DIR)/)
+
+	$(call mkdir_if_needed,$(SDK_EXAMPLE_DIR))
+	$(call copy,$(HELLODISPATCH_PROJECT_DIR)/,$(SDK_EXAMPLE_DIR)/)
 
 	$(call mkdir_if_needed,$(SDK_INCLUDE_DIR))
 	$(call copy_contents_of_dir,$(LIBC_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
