@@ -335,6 +335,8 @@ build-sdk: build-all-libs
 	$(call copy,$(KERNEL_HEADERS_DIR)/machine,$(SDK_INCLUDE_DIR)/)
 
 	$(call copy,$(PRODUCT_LIB_DIR),$(SDK_LIB_DIR))
+# XXX not great. The copy above should really filter out the 'libsc.a' file
+	$(call rm_if_exists,$(SDK_LIB_DIR)/libsc.a)
 
 clean-sdk:
 	$(call rm_if_exists,$(SDK_DIR))
