@@ -13,26 +13,35 @@ endif
 CC = $(VBCC)/bin/vc
 LD = $(VBCC)/bin/vlink
 
+ifeq ($(OS),Windows_NT)
+	SDK_BIN_DIR := $(SERENA_SDK)/bin/x86_64-windows
+else
+	SDK_BIN_DIR := $(SERENA_SDK)/bin/arm64-macos
+endif
 SDK_CONFIG_DIR := $(SERENA_SDK)/conf
 SDK_INCLUDE_DIR := $(SERENA_SDK)/include
 SDK_LIB_DIR := $(SERENA_SDK)/lib
 
+
 ifeq ($(OS),Windows_NT)
 	VC_CFG := $(SDK_CONFIG_DIR)/m68k-app-windows.vcfg
+	DISKIMAGE := $(SDK_BIN_DIR)/diskimage.exe
 	RM = del /Q /F
 else
 	VC_CFG := $(SDK_CONFIG_DIR)/m68k-app-posix.vcfg
+	DISKIMAGE := $(SDK_BIN_DIR)/diskimage
 	RM = rm -f
 endif
 
 
 TARGET := hellodispatch
+ADF_NAME := hello_disk.adf
 
 SRCS := $(wildcard *.c)
 OBJS := $(patsubst %.c,%.o,$(SRCS))
 
 
-.PHONY: clean
+.PHONY: adf clean
 
 all: $(TARGET)
 
@@ -41,6 +50,11 @@ $(TARGET): $(OBJS)
 
 %.o : %.c
 	@$(CC) +$(VC_CFG) -c -c99 -cpp-comments -O3 -size -I$(SDK_INCLUDE_DIR) -o $@ $<
+
+adf:
+	$(DISKIMAGE) create adf-dd $(ADF_NAME)
+	$(DISKIMAGE) format sefs --label "Hello FD" $(ADF_NAME)
+	$(DISKIMAGE) push -m=rwxr-xr-x -o=1000:1000 ./$(TARGET) / $(ADF_NAME)
 
 clean:
 	-$(RM) $(OBJS) $(TARGET)
