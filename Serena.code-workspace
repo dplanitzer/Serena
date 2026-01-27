@@ -25,6 +25,11 @@
 			"path": "dev"
 		}
 	],
+	"settings": {
+    		"files.exclude": {
+      			"build": true
+    		}
+  	},
 	// Note that the ${workspaceFolder} variable points to the kern folder because it is the first project inside this multi-root workspace
 	"tasks": {
 		"version": "2.0.0",
