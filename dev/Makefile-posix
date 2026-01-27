@@ -18,6 +18,7 @@ BUILD_DIR := ../build
 TOOLS_DIR := $(BUILD_DIR)/host
 OBJS_DIR := $(TOOLS_DIR)/objs
 LIBS_DIR := ../user/lib
+TOOLS_SOURCES_DIR := bin
 LIBCLAP_DIR := $(LIBS_DIR)/libclap
 LIBCLAP_HEADERS_DIR := $(LIBCLAP_DIR)/h
 LIBCLAP_SOURCES_DIR := $(LIBCLAP_DIR)/src
@@ -75,11 +76,11 @@ LIBCLAP_H_SOURCES := $(wildcard $(LIBCLAP_SOURCES_DIR)/*.h)
 LIBCLAP_C_SOURCES := $(wildcard $(LIBCLAP_SOURCES_DIR)/*.c)
 LIBCLAP_OBJS := $(patsubst $(LIBCLAP_SOURCES_DIR)/%.c, $(OBJS_DIR)/%.o, $(LIBCLAP_C_SOURCES))
 
-$(OBJS_DIR)%.o: $(LIBCLAP_SOURCES_DIR)%.c $(LIBCLAP_H_SOURCES) | $(OBJS_DIR)
-	gcc -c -I$(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
-
 $(OBJS_DIR)/libclap.ar: $(LIBCLAP_OBJS)
 	ar rvs $@ $^
+
+$(OBJS_DIR)%.o: $(LIBCLAP_SOURCES_DIR)%.c $(LIBCLAP_H_SOURCES) | $(OBJS_DIR)
+	gcc -c -I$(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
 
 
 # --------------------------------------------------------------------------
@@ -94,12 +95,13 @@ $(OBJS_DIR)/libclap.ar: $(LIBCLAP_OBJS)
 #
 
 KEYMAP_C_SOURCES := bin/keymap.c
+KEYMAP_OBJS := $(patsubst $(TOOLS_SOURCES_DIR)/%.c, $(OBJS_DIR)/%.o, $(KEYMAP_C_SOURCES))
 
-$(OBJS_DIR)/keymap.o: $(KEYMAP_C_SOURCES) | $(OBJS_DIR) $(TOOLS_DIR)
-	gcc -c -I$(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
-
-$(TOOLS_DIR)/keymap: $(OBJS_DIR)/keymap.o $(OBJS_DIR)/libclap.ar
+$(TOOLS_DIR)/keymap: $(KEYMAP_OBJS) $(OBJS_DIR)/libclap.ar
 	gcc -o $@ $^
+
+$(OBJS_DIR)/%.o: $(TOOLS_SOURCES_DIR)/%.c | $(OBJS_DIR) $(TOOLS_DIR)
+	gcc -c -I$(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
 
 
 # --------------------------------------------------------------------------
@@ -107,12 +109,13 @@ $(TOOLS_DIR)/keymap: $(OBJS_DIR)/keymap.o $(OBJS_DIR)/libclap.ar
 #
 
 LIBTOOL_C_SOURCES := bin/libtool.c
+LIBTOOL_OBJS := $(patsubst $(TOOLS_SOURCES_DIR)/%.c, $(OBJS_DIR)/%.o, $(LIBTOOL_C_SOURCES))
 
-$(OBJS_DIR)/libtool.o: $(LIBTOOL_C_SOURCES) | $(OBJS_DIR) $(TOOLS_DIR)
-	gcc -c -I$(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
-
-$(TOOLS_DIR)/libtool: $(OBJS_DIR)/libtool.o $(OBJS_DIR)/libclap.ar
+$(TOOLS_DIR)/libtool: $(LIBTOOL_OBJS) $(OBJS_DIR)/libclap.ar
 	gcc -o $@ $^
+
+$(OBJS_DIR)/%.o: $(TOOLS_SOURCES_DIR)/%.c | $(OBJS_DIR) $(TOOLS_DIR)
+	gcc -c -I$(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
 
 
 # --------------------------------------------------------------------------
@@ -120,9 +123,10 @@ $(TOOLS_DIR)/libtool: $(OBJS_DIR)/libtool.o $(OBJS_DIR)/libclap.ar
 #
 
 MAKEROM_C_SOURCES := bin/makerom.c
+MAKEROM_OBJS := $(patsubst $(TOOLS_SOURCES_DIR)/%.c, $(OBJS_DIR)/%.o, $(MAKEROM_C_SOURCES))
 
-$(OBJS_DIR)/makerom.o: $(MAKEROM_C_SOURCES) | $(OBJS_DIR) $(TOOLS_DIR)
-	gcc -c -I$(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
-
-$(TOOLS_DIR)/makerom: $(OBJS_DIR)/makerom.o $(OBJS_DIR)/libclap.ar
+$(TOOLS_DIR)/makerom: $(MAKEROM_OBJS) $(OBJS_DIR)/libclap.ar
 	gcc -o $@ $^
+
+$(OBJS_DIR)/%.o: $(MAKEROM_C_SOURCES)/.%c | $(OBJS_DIR) $(TOOLS_DIR)
+	gcc -c -I$(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
