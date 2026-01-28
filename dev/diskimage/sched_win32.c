@@ -6,6 +6,8 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
+#ifdef _WIN32
+
 #include <sched/mtx.h>
 
 void mtx_init(mtx_t* self)
@@ -111,3 +113,5 @@ errno_t rwmtx_unlock(rwmtx_t* self)
 
     return EOK;
 }
+
+#endif /* _WIN32 */

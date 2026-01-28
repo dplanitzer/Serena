@@ -10,6 +10,9 @@
 #define _DI_RC_H
 
 #include <stdbool.h>
+
+#ifdef _WIN32
+
 #include <Windows.h>
 
 // The rc_xxx functions below implement a preemption and interrupt safe retain
@@ -33,5 +36,33 @@ InterlockedIncrement(__rcp)
 // purposes only.
 #define rc_getcount(__rcp) \
 (*(__rcp))
+
+#else
+
+#include <stdatomic.h>
+
+// The rc_xxx functions below implement a preemption and interrupt safe retain
+// count mechanism.
+typedef atomic_int ref_count_t;
+
+
+#define RC_INIT 1
+
+// Atomically increments the retain count 'rc'.
+#define rc_retain(__rcp) \
+atomic_fetch_add(__rcp, 1)
+
+// Atomically releases a single strong reference and adjusts the retain count
+// accordingly. Returns true if the retain count has reached zero and the caller
+// should destroy the associated resources.
+#define rc_release(__rcp) \
+((atomic_fetch_sub(__rcp, 1) == 1) ? true : false)
+
+// Returns a copy of the current retain count. This should be used for debugging
+// purposes only.
+#define rc_getcount(__rcp) \
+(*(__rcp))
+
+#endif /* _WIN32 */
 
 #endif /* _DI_RC_H */
