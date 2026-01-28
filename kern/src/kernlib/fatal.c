@@ -15,7 +15,7 @@
 #include <sched/vcpu.h>
 
 
-_Noreturn vfatal(const char* _Nonnull format, va_list ap)
+_Noreturn void vfatal(const char* _Nonnull format, va_list ap)
 {
     vprintf(format, ap);
     
@@ -31,7 +31,7 @@ _Noreturn vfatal(const char* _Nonnull format, va_list ap)
     /* NOT REACHED */
 }
 
-_Noreturn fatal(const char* _Nonnull format, ...)
+_Noreturn void fatal(const char* _Nonnull format, ...)
 {
     va_list ap;
     
@@ -39,12 +39,12 @@ _Noreturn fatal(const char* _Nonnull format, ...)
     vfatal(format, ap);
     va_end(ap);
 }
-_Noreturn fatalError(const char* _Nonnull filename, int line, int err)
+_Noreturn void fatalError(const char* _Nonnull filename, int line, int err)
 {
     fatal("Fatal Error: %d at %s:%d", err, filename, line);
 }
 
-_Noreturn fatalAbort(const char* _Nonnull filename, int line)
+_Noreturn void fatalAbort(const char* _Nonnull filename, int line)
 {
     fatal("Abort: %s:%d", filename, line);
 }
@@ -72,22 +72,22 @@ void _Assert_failed3(const char* _Nonnull _Restrict filename, int lineno, const 
     abort();
 }
 
-_Noreturn _Try_bang_failed1(int lineno, const char* _Nonnull funcname, errno_t err)
+_Noreturn void _Try_bang_failed1(int lineno, const char* _Nonnull funcname, errno_t err)
 {
     fatal("Fatal Error: %d at %s:%d", err, funcname, lineno);
 }
 
-_Noreturn _Try_bang_failed2(const char* _Nonnull filename, int lineno, const char* _Nonnull funcname, errno_t err)
+_Noreturn void _Try_bang_failed2(const char* _Nonnull filename, int lineno, const char* _Nonnull funcname, errno_t err)
 {
     fatal("Fatal Error: %d at %s:%s:%d", err, filename, funcname, lineno);
 }
 
-_Noreturn _Try_bang_failed0(void)
+_Noreturn void _Try_bang_failed0(void)
 {
     abort();
 }
 
-_Noreturn _fatalException(void* _Nonnull ksp)
+_Noreturn void _fatalException(void* _Nonnull ksp)
 {
     vcpu_t vp = vcpu_current();
     const cpu_savearea_t* sa = vp->excpt_sa;

@@ -55,7 +55,7 @@ extern int Process_GetInexactState(ProcessRef _Nonnull self);
 // reason and code respectively. Note that this function never returns. It turns
 // the calling process into a zombie and notifies the parent process so that it
 // will eventually reap the zombie and free the it for good.
-extern _Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code);
+extern _Noreturn void Process_Exit(ProcessRef _Nonnull self, int reason, int code);
 
 // Waits for the child process with the given PID to terminate and returns the
 // termination status. Returns ECHILD if the function was told to wait for a

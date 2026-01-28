@@ -19,11 +19,11 @@
 __CPP_BEGIN
 
 #if __TRY_BANG_LOD == 1
-extern _Noreturn _Try_bang_failed1(int lineno, const char* _Nonnull funcname, errno_t err);
+extern _Noreturn void _Try_bang_failed1(int lineno, const char* _Nonnull funcname, errno_t err);
 #elif __TRY_BANG_LOD == 2
-extern _Noreturn _Try_bang_failed2(const char* _Nonnull filename, int lineno, const char* _Nonnull funcname, errno_t err);
+extern _Noreturn void _Try_bang_failed2(const char* _Nonnull filename, int lineno, const char* _Nonnull funcname, errno_t err);
 #else
-extern _Noreturn _Try_bang_failed0(void);
+extern _Noreturn void _Try_bang_failed0(void);
 #endif
 
 

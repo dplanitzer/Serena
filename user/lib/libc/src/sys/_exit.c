@@ -10,7 +10,7 @@
 #include <kpi/syscall.h>
 
 
-_Noreturn _exit(int status)
+_Noreturn void _exit(int status)
 {
     (void)_syscall(SC_exit, status);
 }

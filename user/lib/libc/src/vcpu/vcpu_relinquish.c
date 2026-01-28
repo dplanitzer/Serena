@@ -56,7 +56,7 @@ static void __vcpu_destroy_specific(vcpu_t _Nonnull self)
     }
 }
 
-_Noreturn __vcpu_relinquish(vcpu_t _Nonnull self)
+_Noreturn void __vcpu_relinquish(vcpu_t _Nonnull self)
 {
     spin_lock(&__g_lock);
     deque_remove(&__g_all_vcpus, &self->qe);
@@ -67,11 +67,11 @@ _Noreturn __vcpu_relinquish(vcpu_t _Nonnull self)
         free(self);
     }
 
-    (_Noreturn)_syscall(SC_vcpu_relinquish_self);
+    (void)_syscall(SC_vcpu_relinquish_self);
     /* NOT REACHED */
 }
 
-_Noreturn vcpu_relinquish_self(void)
+_Noreturn void vcpu_relinquish_self(void)
 {
     __vcpu_relinquish(vcpu_self());
     /* NOT REACHED */

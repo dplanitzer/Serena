@@ -13,7 +13,7 @@
 #include <ext/timespec.h>
 
 
-_Noreturn exit(int status)
+_Noreturn void exit(int status)
 {
     // Disable the registration of any new atexit handlers.
     spin_lock(&__gAtExitLock);

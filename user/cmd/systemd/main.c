@@ -17,7 +17,7 @@
 #include <sys/spawn.h>
 
 
-static _Noreturn halt_machine(void)
+static _Noreturn void halt_machine(void)
 {
     puts("Halting...");
     while (1);

@@ -57,7 +57,7 @@ extern void excpt_return(void);
 // vcpu is still executing inside an earlier sigurgent injection.
 extern bool cpu_inject_sigurgent(excpt_frame_t* _Nonnull efp);
 
-extern _Noreturn cpu_non_recoverable_error(uint32_t rgb4);
+extern _Noreturn void cpu_non_recoverable_error(uint32_t rgb4);
 
 
 extern uintptr_t usp_get(void);

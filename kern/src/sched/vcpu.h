@@ -168,7 +168,7 @@ extern errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnu
 // Relinquishes a virtual processor which means that it is finished executing
 // code and that it should be moved back to the virtual processor pool. This
 // function does not return to the caller.
-extern _Noreturn vcpu_relinquish(vcpu_t _Nonnull self);
+extern _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self);
 
 
 // Returns a reference to the currently running virtual processor. This is the

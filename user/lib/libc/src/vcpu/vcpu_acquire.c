@@ -12,7 +12,7 @@
 #include <kpi/syscall.h>
 
 
-static _Noreturn __vcpu_start(vcpu_t self)
+static _Noreturn void __vcpu_start(vcpu_t self)
 {
     self->func(self->arg);
 

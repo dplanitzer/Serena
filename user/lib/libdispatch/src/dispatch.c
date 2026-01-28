@@ -139,7 +139,7 @@ static int _dispatch_acquire_worker_with_ownership(dispatch_t _Nonnull _Locked s
     return -1;
 }
 
-_Noreturn _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker)
+_Noreturn void _dispatch_relinquish_worker(dispatch_t _Nonnull _Locked self, dispatch_worker_t _Nonnull worker)
 {
     const int adoption = worker->adoption;
 
@@ -766,7 +766,7 @@ dispatch_t _Nonnull dispatch_main_queue(void)
     return p;
 }
 
-_Noreturn dispatch_run_main_queue(void)
+_Noreturn void dispatch_run_main_queue(void)
 {
     if (vcpu_self() != vcpu_main()) {
         abort();

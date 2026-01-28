@@ -10,7 +10,7 @@
 #include <signal.h>
 #include <errno.h>
 
-_Noreturn abort(void)
+_Noreturn void abort(void)
 {
     sigsend(SIG_SCOPE_PROC, 0, SIGABRT);
     for (;;);

@@ -58,7 +58,7 @@ extern vcpu_key_t __os_dispatch_key;
 
 
 extern void __vcpu_init(void);
-extern _Noreturn __vcpu_relinquish(vcpu_t _Nonnull self);
+extern _Noreturn void __vcpu_relinquish(vcpu_t _Nonnull self);
 
 //#define vcpu_from_wq_node(__ptr) \
 //(vcpu_t*) (((uint8_t*)__ptr) - offsetof(struct vcpu, wq_node))

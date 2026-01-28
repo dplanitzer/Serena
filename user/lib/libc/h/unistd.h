@@ -49,7 +49,7 @@ extern int chown(const char* _Nonnull path, uid_t uid, gid_t gid);
 // @Concurrency: Safe
 extern int close(int fd);
 
-extern _Noreturn _exit(int status);
+extern _Noreturn void _exit(int status);
 
 extern uid_t getuid(void);
 extern gid_t getgid(void);

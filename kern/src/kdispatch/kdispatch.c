@@ -126,7 +126,7 @@ errno_t _kdispatch_acquire_worker(kdispatch_t _Nonnull _Locked self)
     return EOK;
 }
 
-_Noreturn _kdispatch_relinquish_worker(kdispatch_t _Nonnull _Locked self, kdispatch_worker_t _Nonnull worker)
+_Noreturn void _kdispatch_relinquish_worker(kdispatch_t _Nonnull _Locked self, kdispatch_worker_t _Nonnull worker)
 {
     vcpu_t vp = vcpu_current();
 

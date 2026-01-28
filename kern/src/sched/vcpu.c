@@ -108,7 +108,7 @@ catch:
 // Relinquishes a virtual processor which means that it is finished executing
 // code and that it should be moved back to the virtual processor pool. This
 // function does not return to the caller.
-_Noreturn vcpu_relinquish(vcpu_t _Nonnull self)
+_Noreturn void vcpu_relinquish(vcpu_t _Nonnull self)
 {
     decl_try_err();
     assert(vcpu_current() == self);

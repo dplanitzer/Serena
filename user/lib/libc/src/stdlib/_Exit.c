@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 
-_Noreturn _Exit(int status)
+_Noreturn void _Exit(int status)
 {
     _exit(status);
 }

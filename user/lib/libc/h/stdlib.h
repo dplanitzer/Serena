@@ -23,15 +23,15 @@
 
 __CPP_BEGIN
 
-extern _Noreturn abort(void);
+extern _Noreturn void abort(void);
 
 
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1
 
 extern int atexit(void (*func)(void));
-extern _Noreturn exit(int status);
-extern _Noreturn _Exit(int status);
+extern _Noreturn void exit(int status);
+extern _Noreturn void _Exit(int status);
 
 
 extern int atoi(const char *str);

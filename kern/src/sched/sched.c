@@ -168,7 +168,7 @@ void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 
 // Terminates the given virtual processor that is executing the caller. Does not
 // return to the caller. The VP must already have been marked as terminating.
-_Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
+_Noreturn void sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 {
     // NOTE: We don't need to save the old preemption state because this VP is
     // going away and we will never context switch back to it. The context switch
@@ -208,7 +208,7 @@ _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp)
 // Gives the virtual processor scheduler opportunities to run tasks that take
 // care of internal duties. This function must be called from the boot virtual
 // processor. This function does not return to the caller. 
-_Noreturn sched_run_chores(sched_t _Nonnull self)
+_Noreturn void sched_run_chores(sched_t _Nonnull self)
 {
     deque_t dead_vps;
     struct timespec now, timeout, deadline;

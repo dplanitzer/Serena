@@ -59,8 +59,8 @@
 #define DIGIT_BUFFER_CAPACITY 67
 
 // defined in diskimage.c
-extern _Noreturn fatal(const char* _Nonnull format, ...);
-extern _Noreturn vfatal(const char* _Nonnull format, va_list ap);
+extern _Noreturn void fatal(const char* _Nonnull format, ...);
+extern _Noreturn void vfatal(const char* _Nonnull format, va_list ap);
 
 __CPP_END
 

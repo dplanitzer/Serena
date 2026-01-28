@@ -27,6 +27,6 @@ extern void sched_switch_context(void);
 
 // Restores the state of the boot vp into the currently active CPU context. This
 // effectively switches the CPU to the running state.
-extern _Noreturn sched_switch_to_boot_vcpu(void);
+extern _Noreturn void sched_switch_to_boot_vcpu(void);
 
 #endif /* _MACHINE_SCHED_H */

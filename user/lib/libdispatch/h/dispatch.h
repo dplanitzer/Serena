@@ -376,7 +376,7 @@ extern int dispatch_name(dispatch_t _Nonnull self, char* _Nonnull buf, size_t bu
 // work items to the main dispatcher. See dispatch_main_queue() for how to do
 // this. Note that this function will never return. Call exit() from a work
 // item to terminate the process.
-extern _Noreturn dispatch_run_main_queue(void);
+extern _Noreturn void dispatch_run_main_queue(void);
 
 
 // Suspends the given dispatcher. Blocks the caller until all workers of the

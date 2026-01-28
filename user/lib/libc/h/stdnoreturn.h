@@ -10,7 +10,11 @@
 #define _STDNORETURN_H 1
 
 #ifndef _Noreturn
-#define _Noreturn void
+#define _Noreturn
+#endif
+
+#ifndef noreturn
+#define noreturn _Noreturn
 #endif
 
 #endif /* _STDNORETURN_H */

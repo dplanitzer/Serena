@@ -49,11 +49,11 @@ __CPP_BEGIN
 #define SIZE_KB(x)  ((long)(x) * 1024)
 
 
-extern _Noreturn fatal(const char* _Nonnull format, ...);
-extern _Noreturn vfatal(const char* _Nonnull format, va_list ap);
-extern _Noreturn fatalError(const char* _Nonnull filename, int line, int err);
-extern _Noreturn fatalAbort(const char* _Nonnull filename, int line);
-extern _Noreturn _fatalException(void* _Nonnull ksp);
+extern _Noreturn void fatal(const char* _Nonnull format, ...);
+extern _Noreturn void vfatal(const char* _Nonnull format, va_list ap);
+extern _Noreturn void fatalError(const char* _Nonnull filename, int line, int err);
+extern _Noreturn void fatalAbort(const char* _Nonnull filename, int line);
+extern _Noreturn void _fatalException(void* _Nonnull ksp);
 
 #define abort() fatalAbort(__func__, __LINE__)
 

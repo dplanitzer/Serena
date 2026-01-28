@@ -19,7 +19,7 @@ enum {
     SC_write,               // errno_t write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
     SC_clock_nanosleep,     // errno_t clock_nanosleep(clockid_t clock, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp)
     SC_vmalloc,             // errno_t vmalloc(int nbytes, void **pOutMem)
-    SC_exit,                // _Noreturn exit(int status)
+    SC_exit,                // _Noreturn void exit(int status)
     SC_spawn,               // errno_t spawn(cost char* _Nonnull path, const char* _Nullable argv[], spawn_opts_t * _Nullable options, pid_t * _Nullable rpid)
     SC_getpid,              // pid_t getpid(void)
     SC_getppid,             // pid_t getppid(void)

@@ -29,14 +29,14 @@
 
 static const char* gArgv_Zero = "";
 
-_Noreturn vfatal(const char* _Nonnull fmt, va_list ap)
+_Noreturn void vfatal(const char* _Nonnull fmt, va_list ap)
 {
     clap_verror(gArgv_Zero, fmt, ap);
     exit(EXIT_FAILURE);
     // NOT REACHED
 }
 
-_Noreturn fatal(const char* _Nonnull fmt, ...)
+_Noreturn void fatal(const char* _Nonnull fmt, ...)
 {
     va_list ap;
 

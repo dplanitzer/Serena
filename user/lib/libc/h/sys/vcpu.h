@@ -61,7 +61,7 @@ extern vcpu_t _Nullable vcpu_acquire(const vcpu_attr_t* _Nonnull attr);
 // Relinquishes the vcpu on which this call is executed back to the system and
 // makes it available for reuse. This is teh same as returning from the vcpu
 // top-level function invocation.
-extern _Noreturn vcpu_relinquish_self(void);
+extern _Noreturn void vcpu_relinquish_self(void);
 
 extern int vcpu_suspend(vcpu_t _Nullable vcpu);
 extern void vcpu_resume(vcpu_t _Nonnull vcpu);

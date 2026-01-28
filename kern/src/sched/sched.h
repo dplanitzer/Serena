@@ -73,7 +73,7 @@ extern void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, 
 // Gives the virtual processor scheduler opportunities to run tasks that take
 // care of internal duties. This function must be called from the boot virtual
 // processor. This function does not return to the caller. 
-extern _Noreturn sched_run_chores(sched_t _Nonnull self);
+extern _Noreturn void sched_run_chores(sched_t _Nonnull self);
 
 // Disable and restore preemptive context switches. Scheduling and cooperative
 // context switches will continue to function as expected. Also note that if a
@@ -89,7 +89,7 @@ extern void preempt_restore(int sps);
 
 // Terminates the given virtual processor that is executing the caller. Does not
 // return to the caller. The VP must already have been marked as terminating.
-extern _Noreturn sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp);
+extern _Noreturn void sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 
 // @Entry Condition: preemption disabled
 extern void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doFifo);

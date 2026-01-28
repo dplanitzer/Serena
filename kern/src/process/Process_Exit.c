@@ -193,7 +193,7 @@ void _proc_zombify(ProcessRef _Nonnull self)
     self->state = PROC_STATE_ZOMBIE;
 }
 
-_Noreturn Process_Exit(ProcessRef _Nonnull self, int reason, int code)
+_Noreturn void Process_Exit(ProcessRef _Nonnull self, int reason, int code)
 {
     // We do not allow exiting the root process
     if (Process_IsRoot(self)) {

@@ -36,7 +36,7 @@ extern char _text, _etext, _data, _edata, _bss, _ebss;
 extern errno_t kerneld_init(void);
 extern errno_t drivers_init(void);
 extern FileHierarchyRef _Nonnull create_root_file_hierarchy(bt_screen_t* _Nonnull bscr);
-static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc);
+static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc);
 static void OnMain(void);
 
 
@@ -53,7 +53,7 @@ static ConsoleRef gConsole;
 // kernel initialization by primarily setting up the kernel data and bss segments,
 // basic memory management and the virtual boot processor. Note that this
 // function is expected to never return.
-_Noreturn OnBoot(sys_desc_t* _Nonnull pSysDesc)
+_Noreturn void OnBoot(sys_desc_t* _Nonnull pSysDesc)
 {
     const size_t data_size = &_edata - &_data;
     const size_t bss_size = &_ebss - &_bss;
@@ -103,7 +103,7 @@ _Noreturn OnBoot(sys_desc_t* _Nonnull pSysDesc)
 //
 // Phase 1 initialization is responsible for bringing up the interrupt handling,
 // basic memory management, monotonic clock and the kernel main dispatch queue.
-static _Noreturn OnStartup(const sys_desc_t* _Nonnull pSysDesc)
+static _Noreturn void OnStartup(const sys_desc_t* _Nonnull pSysDesc)
 {
     decl_try_err();
 

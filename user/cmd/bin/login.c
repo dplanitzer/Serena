@@ -29,7 +29,7 @@ static void on_shell_termination(void* _Nullable ignore);
 static int gFailedCounter;
 
 
-static _Noreturn halt_machine(void)
+static _Noreturn void halt_machine(void)
 {
     puts("Halting...");
     while (1);
