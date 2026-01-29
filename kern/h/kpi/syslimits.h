@@ -21,4 +21,7 @@
 // Max length of a path component (file or directory name) without the terminating NUL character
 #define NAME_MAX 255
 
+// Max number of times an inode can be linked into a file hierarchy
+#define NLINK_MAX ((int)0x7fffffff)
+
 #endif /* _KPI_SYSLIMITS_H */

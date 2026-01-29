@@ -10,6 +10,7 @@
 #define _KPI_SEFS_FORMAT_H
 
 #include <stdint.h>
+#include <kpi/syslimits.h>
 
 
 //
@@ -53,7 +54,7 @@ enum {
     kSFSVolume_MinBlockCount = 4,   // Need space for at least 1 volume header block + 1 allocation bitmap block + 1 root dir inode + 1 root dir content block
 };
 
-#define kSFSLimit_LinkMax INT32_MAX         /* Max number of hard links to a directory/file */
+#define kSFSLimit_LinkMax NLINK_MAX         /* Max number of hard links to a directory/file */
 #define kSFSLimit_FileSizeMax INT64_MAX     /* Permissible max size of a file in terms of bytes */
 
 
