@@ -15,4 +15,6 @@
 
 #if defined(__APPLE__)
 #include <sys/syslimits.h>
+
+#define NLINK_MAX 65535
 #endif
