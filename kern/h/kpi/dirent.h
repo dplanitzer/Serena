@@ -14,7 +14,7 @@
 
 struct dirent {
     ino_t   inid;
-    char    name[__PATH_COMPONENT_MAX];
+    char    name[NAME_MAX];
 };
 
 #endif /* _KPI_DIRENT_H */

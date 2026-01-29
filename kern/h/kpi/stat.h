@@ -14,9 +14,6 @@
 #include <kpi/_time.h>
 #include <kpi/types.h>
 
-#define PATH_MAX __PATH_MAX
-#define NAME_MAX __PATH_COMPONENT_MAX
-
 
 struct stat {
     struct timespec st_atim;    // Last data access time

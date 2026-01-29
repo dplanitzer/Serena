@@ -13,8 +13,8 @@
 #include <filemanager/ResolvedPath.h>
 #include <filesystem/Filesystem.h>
 
-#define kMaxPathLength          (__PATH_MAX-1)
-#define kMaxPathComponentLength __PATH_COMPONENT_MAX
+#define kMaxPathLength          (PATH_MAX-1)
+#define kMaxPathComponentLength NAME_MAX
 
 
 // Represents and manages the file(system) hierarchy for a process. A process

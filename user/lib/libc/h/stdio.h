@@ -29,7 +29,7 @@ __CPP_BEGIN
 
 #define EOF -1
 #define FOPEN_MAX 16
-#define FILENAME_MAX __PATH_MAX
+#define FILENAME_MAX PATH_MAX
 #define BUFSIZ  1024
 
 #define P_tmpdir "/tmp"
