@@ -26,9 +26,10 @@ typedef unsigned int    id_t;
 
 // Represents a logical block address, count and block size
 typedef size_t  blkno_t;
+#if !defined(__APPLE__)
 typedef size_t  blkcnt_t;
 typedef ssize_t blksize_t;
-
+#endif
 
 // Represents a logical sector address and count
 typedef size_t  sno_t;
@@ -42,7 +43,7 @@ typedef unsigned int    fsid_t;
 
 // The persistent, filesystem unique ID of a filesystem inode. This ID is only
 // unique with respect to the filesystem to which it belongs.
-#if !defined(_WIN32) && !defined(_WIN64)
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(__APPLE__)
 typedef size_t          ino_t;
 #endif
 
