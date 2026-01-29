@@ -6,4 +6,10 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#if defined(_WIN32) || defined(_WIN64)
 #include <../../kern/h/kpi/syslimits.h>
+#endif
+
+#if defined(__APPLE__)
+#include <sys/syslimits.h>
+#endif

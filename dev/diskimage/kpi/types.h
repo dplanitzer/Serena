@@ -48,8 +48,10 @@ typedef size_t          ino_t;
 #endif
 
 
+#if !defined(__APPLE__)
 typedef int             nlink_t;
 typedef unsigned int    mode_t;
+#endif
 
 
 // Disk sector address based in cylinder, head, sector notation 

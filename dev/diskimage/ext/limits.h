@@ -25,11 +25,21 @@
 // SIZE_MAX is defined in <limits.h>
 #define SIZE_WIDTH  64
 
-#elif defined (__APPLE__)
+#elif defined(__APPLE__)
 
 // OFF_MIN, OFF_MAX, SSIZE_MIN, SSIZE_MAX are defined in <limits.h>
 // SIZE_MAX is defined in <stdint.h>
 #include <stdint.h>
+
+#if defined(__LP64__)
+#define OFF_WIDTH   64
+#define SSIZE_WIDTH 64
+#define SIZE_WIDTH  64
+#else
+#define OFF_WIDTH   32
+#define SSIZE_WIDTH 32
+#define SIZE_WIDTH  32
+#endif /* __LP64__ */
 
 #endif
 
