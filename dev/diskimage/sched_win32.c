@@ -6,7 +6,7 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
 
 #include <sched/mtx.h>
 

@@ -6,7 +6,7 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _WIN32
+#if defined(__APPLE__)
 
 #include <sched/mtx.h>
 
@@ -130,4 +130,4 @@ errno_t rwmtx_unlock(rwmtx_t* self)
     }
 }
 
-#endif /* !_WIN32 */
+#endif /* __APPLE__ */
