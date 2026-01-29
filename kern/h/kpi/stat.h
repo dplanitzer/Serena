@@ -9,9 +9,9 @@
 #ifndef _KPI_STAT_H
 #define _KPI_STAT_H 1
 
-#include <_time.h>
 #include <kpi/_stat.h>
 #include <kpi/syslimits.h>
+#include <kpi/_time.h>
 #include <kpi/types.h>
 
 #define PATH_MAX __PATH_MAX

@@ -10,7 +10,7 @@
 #define _KPI_TYPES_H 1
 
 #include <stddef.h>
-#include <_time.h>
+#include <kpi/_time.h>
 #include <sys/types.h>
 #ifdef _WIN32
 #include <BaseTsd.h>

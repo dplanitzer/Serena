@@ -16,7 +16,7 @@
 #include <_cmndef.h>
 #include <arch/_null.h>
 #include <arch/_size.h>
-#include <_time.h>
+#include <kpi/_time.h>
 
 __CPP_BEGIN
 

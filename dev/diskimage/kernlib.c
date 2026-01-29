@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
-#include <_time.h>
 #include <ext/atomic.h>
+#include <kpi/_time.h>
 
 
 const struct timespec TIMESPEC_ZERO = {0l, 0l};

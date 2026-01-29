@@ -10,8 +10,8 @@
 #define _EXT_TIMESPEC_H
 
 #include <_cmndef.h>
-#include <_time.h>
 #include <stdint.h>
+#include <kpi/_time.h>
 
 
 // 'struct timespec' represents time as measured in seconds and nanoseconds.

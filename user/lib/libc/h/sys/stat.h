@@ -10,8 +10,8 @@
 #define _SYS_STAT_H 1
 
 #include <_cmndef.h>
-#include <_time.h>
 #include <kpi/stat.h>
+#include <kpi/_time.h>
 
 __CPP_BEGIN
 

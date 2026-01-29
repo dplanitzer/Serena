@@ -6,8 +6,8 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __TIME_H
-#define __TIME_H 1
+#ifndef _KPI_TIME_H
+#define _KPI_TIME_H 1
 
 #ifdef _POSIX_SOURCE
 // Type to identify a clock
@@ -48,4 +48,4 @@ typedef long mseconds_t;
 // Microseconds
 typedef long useconds_t;
 
-#endif /* __TIME_H */
+#endif /* _KPI_TIME_H */
