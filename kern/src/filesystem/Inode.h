@@ -317,7 +317,7 @@ extern errno_t Inode_Create(Class* _Nonnull pClass,
     const struct timespec* _Nonnull statusChangeTime,
     ino_t pnid,
     InodeRef _Nullable * _Nonnull pOutNode);
-extern void Inode_Destroy(InodeRef _Nonnull self);
+extern void Inode_Destroy(InodeRef _Nullable self);
 
 // Unconditionally writes the inode's metadata to disk. Does not write the file
 // content.

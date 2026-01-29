@@ -7,6 +7,7 @@
 //
 
 #include "diskimage.h"
+#include <ctype.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -136,7 +137,7 @@ catch:
 
 #define ADDR_FMT "%.8zx"
 
-static void print_hex_line(size_t addr, const uint8_t* buf, size_t nbytes, size_t ncolumns)
+static void print_hex_line(size_t addr, const char* buf, size_t nbytes, size_t ncolumns)
 {
     static const char* digits = "0123456789abcdef";
     char tmp[3] = "00 ";

@@ -17,3 +17,7 @@
 typedef long mseconds_t;
 typedef long useconds_t;
 #endif
+
+#if defined(__APPLE__)
+typedef long mseconds_t;
+#endif
