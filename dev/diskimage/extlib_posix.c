@@ -1,10 +1,12 @@
 //
-//  extlib.c
+//  extlib_posix.c
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 1/29/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
+
+#if defined(__APPLE__)
 
 #include <errno.h>
 #include <stdbool.h>
@@ -114,3 +116,5 @@ char * _Nullable ulltoa(unsigned long long val, char * _Nullable buf, int radix)
     }
     return buf;
 }
+
+#endif /* __APPLE__ */
