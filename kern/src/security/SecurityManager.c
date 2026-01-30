@@ -106,7 +106,7 @@ bool SecurityManager_CanSendSignal(SecurityManagerRef _Nonnull self, const sigcr
     if (sndr->uid == rcv->uid) {
         return true;
     }
-    if (signo == SIGCHILD && sndr->ppid == rcv->pid) {
+    if (signo == SIGCHLD && sndr->ppid == rcv->pid) {
         return true;
     }
 

@@ -11,5 +11,6 @@
 #endif
 
 #if defined(__APPLE__)
+#include <_cmndef.h>
 #include <../../user/lib/libc/h/ext/stdlib.h>
 #endif

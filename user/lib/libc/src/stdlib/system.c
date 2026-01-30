@@ -46,8 +46,8 @@ static int __system(const char *string)
     argv[2] = string;
     argv[3] = NULL;
 
-    // Enable SIGCHILD reception
-    sigroute(SIG_ROUTE_ADD, SIGCHILD, SIG_SCOPE_VCPU, vp_id);
+    // Enable SIGCHLD reception
+    sigroute(SIG_ROUTE_ADD, SIGCHLD, SIG_SCOPE_VCPU, vp_id);
 
     if (os_spawn(__shellPath, argv, &opts, &sh_pid) != 0) {
         r = -1;
@@ -60,7 +60,7 @@ static int __system(const char *string)
     }
 
 out:
-    sigroute(SIG_ROUTE_DEL, SIGCHILD, SIG_SCOPE_VCPU, vp_id);
+    sigroute(SIG_ROUTE_DEL, SIGCHLD, SIG_SCOPE_VCPU, vp_id);
 
     return (r == 0) ? (ps.reason == JREASON_EXIT) ? ps.u.status : EXIT_FAILURE : -1;
 }

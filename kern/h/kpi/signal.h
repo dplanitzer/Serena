@@ -49,10 +49,10 @@ typedef volatile int sig_atomic_t;
 #define SIGCONT     7   // TTY, default: continue/resume process, non-routable
 #define SIGXCPU     8   // kernel, process exceeded CPU time limit, default: terminate
 #define SIGHUP      9   // XXX logind, user logged out, default: terminate
-#define SIGQUIT     10   // TTY, process quit, default: terminate
+#define SIGQUIT     10  // TTY, process quit, default: terminate
 #define SIGINT      11  // TTY, process interrupt, default: ignore
 #define SIGALRM     12  // XXX clock_alarm(), default: ignore
-#define SIGCHILD    13  // kernel, child process terminated, default: ignore
+#define SIGCHLD   13    // kernel, child process terminated, default: ignore
 #define SIGWINCH    14  // TTY, console window size changed, default: ignore
 #define SIGTTIN     15  // TTY, background process attempt to read from terminal input, default: stop/suspend process
 #define SIGTTOUT    16  // TTY, background process attempt to write to terminal output, default: stop/suspend process

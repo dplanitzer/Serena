@@ -52,7 +52,7 @@ errno_t Process_TimedJoin(ProcessRef _Nonnull self, int scope, pid_t id, int fla
     ProcessRef zp = NULL;
     struct timespec deadline;
     bool exists = false;
-    sigset_t hot_sigs = _SIGBIT(SIGCHILD);
+    sigset_t hot_sigs = _SIGBIT(SIGCHLD);
     int signo;
 
     switch (scope) {
@@ -126,7 +126,7 @@ static void _proc_terminate_and_reap_children(ProcessRef _Nonnull self)
 
     Process_GetSigcred(self, &sc);
 
-    // Note that SIGCHILD is getting auto-routed to us (exit coordinator) because
+    // Note that SIGCHLD is getting auto-routed to us (exit coordinator) because
     // the process is in exit state.
     ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC_CHILDREN, self->pid, SIGKILL);
 
@@ -178,7 +178,7 @@ static void _proc_notify_parent(ProcessRef _Nonnull self)
         sigcred_t sc;
 
         Process_GetSigcred(self, &sc);
-        ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC, self->ppid, SIGCHILD);
+        ProcessManager_SendSignal(gProcessManager, &sc, SIG_SCOPE_PROC, self->ppid, SIGCHLD);
     }
 }
 
