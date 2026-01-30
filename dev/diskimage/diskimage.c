@@ -541,7 +541,7 @@ static void init(void)
     _RegisterClass(class(FileHierarchy));
 }
 
-int main(int argc, char* argv[])
+int main(int argc, const char* argv[])
 {
     decl_try_err();
 

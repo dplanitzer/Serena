@@ -9,3 +9,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <stdlib.h> // itoa(), ltoa()
 #endif
+
+#if defined(__APPLE__)
+#include <../../user/lib/libc/h/ext/stdlib.h>
+#endif

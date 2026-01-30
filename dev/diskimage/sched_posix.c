@@ -12,7 +12,7 @@
 
 void mtx_init(mtx_t* self)
 {
-    *self = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_init(self, NULL);
 }   
 
 void mtx_deinit(mtx_t* self)
@@ -37,7 +37,7 @@ void mtx_unlock(mtx_t* self)
 
 void cnd_init(cnd_t* pCondVar)
 {
-    *pCondVar = PTHREAD_COND_INITIALIZER;
+    pthread_cond_init(pCondVar, NULL);
 }
 
 void cnd_deinit(cnd_t* pCondVar)
@@ -47,7 +47,7 @@ void cnd_deinit(cnd_t* pCondVar)
 
 void cnd_signal(cnd_t* pCondVar)
 {
-    pthread_signal_cond(pCondVar);
+    pthread_cond_signal(pCondVar);
 }
 
 void cnd_broadcast(cnd_t* pCondVar)
@@ -86,7 +86,7 @@ errno_t cnd_timedwait(cnd_t* pCondVar, mtx_t* mtx, const struct timespec* _Nonnu
 
 void rwmtx_init(rwmtx_t* self)
 {
-    *self = PTHREAD_RWLOCK_INITIALIZER;
+    pthread_rwlock_init(self, NULL);
 }
 
 void rwmtx_deinit(rwmtx_t* self)

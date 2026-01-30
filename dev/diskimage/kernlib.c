@@ -6,7 +6,6 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Assert.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ext/endian.h>
+#include <ext/math.h>
 #include <filesystem/FSUtilities.h>
 #include <kpi/disk.h>
 #include <kpi/smg.h>

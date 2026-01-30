@@ -88,14 +88,14 @@ $(OBJS_DIR)%.o: $(LIBCLAP_SOURCES_DIR)%.c $(LIBCLAP_H_SOURCES) | $(OBJS_DIR)
 #
 
 EXT_SOURCES_DIR := ../user/lib/libc/src/ext
-EXT_C_SOURCES += $(LIBC_SOURCES_DIR)/deque.c
-EXT_C_SOURCES += $(LIBC_SOURCES_DIR)/hash.c
-EXT_C_SOURCES += $(LIBC_SOURCES_DIR)/log2_ul.c
-EXT_C_SOURCES += $(LIBC_SOURCES_DIR)/log2_ull.c
-EXT_C_SOURCES += $(LIBC_SOURCES_DIR)/pow2_ul.c
-EXT_C_SOURCES += $(LIBC_SOURCES_DIR)/pow2_ull.c
-EXT_C_SOURCES += $(LIBC_SOURCES_DIR)/queue.c
-EXT_C_SOURCES += $(LIBC_SOURCES_DIR)/_Try_bang_failed.c
+EXT_C_SOURCES += $(EXT_SOURCES_DIR)/deque.c
+EXT_C_SOURCES += $(EXT_SOURCES_DIR)/hash.c
+EXT_C_SOURCES += $(EXT_SOURCES_DIR)/log2_ul.c
+EXT_C_SOURCES += $(EXT_SOURCES_DIR)/log2_ull.c
+EXT_C_SOURCES += $(EXT_SOURCES_DIR)/pow2_ul.c
+EXT_C_SOURCES += $(EXT_SOURCES_DIR)/pow2_ull.c
+EXT_C_SOURCES += $(EXT_SOURCES_DIR)/queue.c
+EXT_C_SOURCES += $(EXT_SOURCES_DIR)/_Try_bang_failed.c
 EXT_OBJS_DIR := $(OBJS_DIR)/ext
 EXT_OBJS := $(patsubst $(EXT_SOURCES_DIR)/%.c, $(EXT_OBJS_DIR)/%.o, $(EXT_C_SOURCES))
 
@@ -123,7 +123,7 @@ FS_OBJS_DIR := $(OBJS_DIR)/filesystem
 FS_OBJS := $(patsubst $(FS_SOURCES_DIR)/%.c, $(FS_OBJS_DIR)/%.o, $(FS_C_SOURCES))
 
 SEC_SOURCES_DIR := $(KERN_SOURCES_DIR)/security
-SEC_C_SOURCES += $(KERNEL_SOURCES_DIR)/SecurityManager.c
+SEC_C_SOURCES += $(SEC_SOURCES_DIR)/SecurityManager.c
 SEC_OBJS_DIR := $(OBJS_DIR)/security
 SEC_OBJS := $(patsubst $(SEC_SOURCES_DIR)/%.c, $(SEC_OBJS_DIR)/%.o, $(SEC_C_SOURCES))
 
@@ -142,6 +142,7 @@ DISKIMAGE_C_SOURCES := $(wildcard $(DISKIMAGE_SOURCES_DIR)/*.c)
 DISKIMAGE_OBJS_DIR := $(OBJS_DIR)/diskimage
 DISKIMAGE_OBJS := $(patsubst $(DISKIMAGE_SOURCES_DIR)/%.c, $(DISKIMAGE_OBJS_DIR)/%.o, $(DISKIMAGE_C_SOURCES))
 
+DISKIMAGE_C_DEFINES := -D___STDC_HOSTED__=1 -D__KERNEL__=1 -D__DISKIMAGE__=1 -D__TRY_BANG_LOD=2
 
 $(EXT_OBJS_DIR):
 	$(call mkdir_if_needed,$(EXT_OBJS_DIR))
@@ -183,25 +184,25 @@ $(SEFS_OBJS): | $(SEFS_OBJS_DIR) $(TOOLS_DIR)
 $(DISKIMAGE_OBJS): | $(DISKIMAGE_OBJS_DIR) $(TOOLS_DIR)
 
 $(EXT_OBJS_DIR)/%.o: $(EXT_SOURCES_DIR)/%.c
-	gcc -c -I$(DISKIMAGE_SOURCES_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(KERN_SOURCES_DIR) -D__KERNEL__=1 -D__DISKIMAGE__=1 -D__TRY_BANG_LOD=2 $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
+	gcc -c -I$(DISKIMAGE_SOURCES_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(KERN_SOURCES_DIR) $(DISKIMAGE_C_DEFINES) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
 
 $(FM_OBJS_DIR)/%.o: $(FM_SOURCES_DIR)/%.c
-	gcc -c -I$(DISKIMAGE_SOURCES_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(KERN_SOURCES_DIR) -D__KERNEL__=1 -D__DISKIMAGE__=1 -D__TRY_BANG_LOD=2 $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
+	gcc -c -I$(DISKIMAGE_SOURCES_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(KERN_SOURCES_DIR) $(DISKIMAGE_C_DEFINES) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
 
 $(FS_OBJS_DIR)/%.o: $(FS_SOURCES_DIR)/%.c
-	gcc -c -I$(DISKIMAGE_SOURCES_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(KERN_SOURCES_DIR) -D__KERNEL__=1 -D__DISKIMAGE__=1 -D__TRY_BANG_LOD=2 $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
+	gcc -c -I$(DISKIMAGE_SOURCES_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(KERN_SOURCES_DIR) $(DISKIMAGE_C_DEFINES) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
 
 $(SEC_OBJS_DIR)/%.o: $(SEC_SOURCES_DIR)/%.c
-	gcc -c -I$(DISKIMAGE_SOURCES_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(KERN_SOURCES_DIR) -D__KERNEL__=1 -D__DISKIMAGE__=1 -D__TRY_BANG_LOD=2 $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
+	gcc -c -I$(DISKIMAGE_SOURCES_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(KERN_SOURCES_DIR) $(DISKIMAGE_C_DEFINES) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
 
 $(KOBJ_OBJS_DIR)/%.o: $(KOBJ_SOURCES_DIR)/%.c
-	gcc -c -I$(DISKIMAGE_SOURCES_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(KERN_SOURCES_DIR) -D__KERNEL__=1 -D__DISKIMAGE__=1 -D__TRY_BANG_LOD=2 $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
+	gcc -c -I$(DISKIMAGE_SOURCES_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(KERN_SOURCES_DIR) $(DISKIMAGE_C_DEFINES) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
 
 $(SEFS_OBJS_DIR)/%.o: $(SEFS_SOURCES_DIR)/%.c
-	gcc -c -I$(DISKIMAGE_SOURCES_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(KERN_SOURCES_DIR) -D__KERNEL__=1 -D__DISKIMAGE__=1 -D__TRY_BANG_LOD=2 $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
+	gcc -c -I$(DISKIMAGE_SOURCES_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(KERN_SOURCES_DIR) $(DISKIMAGE_C_DEFINES) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
 
 $(DISKIMAGE_OBJS_DIR)/%.o: $(DISKIMAGE_SOURCES_DIR)/%.c
-	gcc -c -I$(DISKIMAGE_SOURCES_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(KERN_SOURCES_DIR) -D__KERNEL__=1 -D__DISKIMAGE__=1 -D__TRY_BANG_LOD=2 $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
+	gcc -c -I$(DISKIMAGE_SOURCES_DIR) -I$(LIBCLAP_HEADERS_DIR) -I$(KERN_SOURCES_DIR) $(DISKIMAGE_C_DEFINES) $(DEBUG_FLAGS) -Wno-nullability-completeness -o $@ $<
 
 
 # --------------------------------------------------------------------------

@@ -18,13 +18,13 @@
 __CPP_BEGIN
 
 // Valid values for 'radix' are: 2, 8, 10, 16
-extern char *itoa(int val, char *buf, int radix);
-extern char *ltoa(long val, char *buf, int radix);
-extern char *lltoa(long long val, char *buf, int radix);
+extern char * _Nullable itoa(int val, char * _Nullable buf, int radix);
+extern char * _Nullable ltoa(long val, char * _Nullable buf, int radix);
+extern char * _Nullable lltoa(long long val, char * _Nullable buf, int radix);
 
-extern char *utoa(unsigned int val, char *buf, int radix);
-extern char *ultoa(unsigned long val, char *buf, int radix);
-extern char *ulltoa(unsigned long long val, char *buf, int radix);
+extern char * _Nullable utoa(unsigned int val, char * _Nullable buf, int radix);
+extern char * _Nullable ultoa(unsigned long val, char * _Nullable buf, int radix);
+extern char * _Nullable ulltoa(unsigned long long val, char * _Nullable buf, int radix);
 
 __CPP_END
 
