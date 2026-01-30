@@ -7,7 +7,7 @@
 //
 
 #include <errno.h>
-#include <stdlib.h>
+#include <ext/stdlib.h>
 #include <string.h>
 #include <__itoa.h>
 

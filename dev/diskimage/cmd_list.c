@@ -13,6 +13,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <ext/perm.h>
+#include <ext/stdlib.h>
 #include <filesystem/IOChannel.h>
 #include <kpi/dirent.h>
 

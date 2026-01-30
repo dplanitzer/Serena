@@ -7,7 +7,7 @@
 //
 
 #include <limits.h>
-#include <stdlib.h>
+#include <ext/stdlib.h>
 #include <string.h>
 #include <ext/bit.h>
 #include "Asserts.h"

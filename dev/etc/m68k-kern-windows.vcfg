@@ -1,5 +1,5 @@
--cc=vbccm68k -quiet -cpu=68020 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1 -D__STDC_WANT_LIB_EXT1__=1 -D_OPEN_SYS_ITOA_EXT=1 -D__SERENA__ %s -o=%s %s -O=%ld
--ccv=vbccm68k -cpu=68020 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1 -D__STDC_WANT_LIB_EXT1__=1 -D_OPEN_SYS_ITOA_EXT=1 -D__SERENA__ %s -o=%s %s -O=%ld
+-cc=vbccm68k -quiet -cpu=68020 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1 -D__STDC_WANT_LIB_EXT1__=1 -D__SERENA__ %s -o=%s %s -O=%ld
+-ccv=vbccm68k -cpu=68020 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1 -D__STDC_WANT_LIB_EXT1__=1 -D__SERENA__ %s -o=%s %s -O=%ld
 -as=vasmm68k_mot -Felf -quiet -spaces -m68060 -D__SERENA__ %s -o %s
 -asv=vasmm68k_mot -Felf -spaces -m68060 -D__SERENA__ %s -o %s
 -rm=del %s

@@ -12,8 +12,8 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <ext/stdlib.h>
 #include <sys/proc.h>
 #include <sys/spawn.h>
 #include <sys/wait.h>

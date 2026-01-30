@@ -8,7 +8,7 @@
 
 #include <ctype.h>
 #include <stdbool.h>
-#include <stdlib.h>
+#include <ext/stdlib.h>
 #include <stdio.h>
 
 

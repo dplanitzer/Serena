@@ -67,22 +67,3 @@ extern int system(const char *string);
 __CPP_END
 
 #endif /* _STDLIB_H */
-
-
-// The following definitions depend on a switch that the includer sets before
-// including this file.
-
-__CPP_BEGIN
-
-#if defined(_OPEN_SYS_ITOA_EXT)
-// Valid values for 'radix' are: 2, 8, 10, 16
-extern char *itoa(int val, char *buf, int radix);
-extern char *ltoa(long val, char *buf, int radix);
-extern char *lltoa(long long val, char *buf, int radix);
-
-extern char *utoa(unsigned int val, char *buf, int radix);
-extern char *ultoa(unsigned long val, char *buf, int radix);
-extern char *ulltoa(unsigned long long val, char *buf, int radix);
-#endif
-
-__CPP_END

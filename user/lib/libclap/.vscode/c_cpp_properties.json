@@ -15,7 +15,6 @@
                 "__M68882",
                 "TARGET_CPU_68020=1",
                 "__SERENA__",
-                "_OPEN_SYS_ITOA_EXT=1",
                 "_POSIX_SOURCE=1",
                 "___STDC_HOSTED__=1",
                 "__STDC_WANT_LIB_EXT1__=1"

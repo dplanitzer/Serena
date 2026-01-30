@@ -11,11 +11,11 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
 #include <ext/math.h>
 #include <ext/perm.h>
+#include <ext/stdlib.h>
 #include <ext/string.h>
 #include <sys/stat.h>
 

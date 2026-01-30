@@ -13,11 +13,11 @@
 #include <ctype.h>
 #include <dispatch.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdio.h>
 #include <ext/string.h>
 #include <fcntl.h>
 #include <time.h>
+#include <ext/stdlib.h>
 #include <ext/timespec.h>
 #include "utils.h"
 

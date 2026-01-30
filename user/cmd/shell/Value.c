@@ -12,6 +12,7 @@
 #include <string.h>
 #include <ext/limits.h>
 #include <ext/math.h>
+#include <ext/stdlib.h>
 
 #define TUPLE_2(__1, __2) ((__2) << 8) | (__1)
 #define TUPLE_3(__1, __2, __3) ((__3) << 16) | ((__2) << 8) | (__1)
