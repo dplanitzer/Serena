@@ -250,19 +250,19 @@ errno_t SfsDirectory_Query(InodeRef _Nonnull _Locked self, sfs_query_t* _Nonnull
     return (done) ? err : ENOENT;
 }
 
-// Validates that adding an entry with name 'name' and file type 'type' to this
+// Validates that adding an entry with name 'name' and inode type 'itype' to this
 // directory is possible. This checks things like the length of the filename and
 // the link count of this directory. Returns EOK if adding the entry is possible.
 // The expectation is that 'self' is locked before this function is called and
 // that 'self' remains locked until after the directory entry has been added to
 // self.
-errno_t SfsDirectory_CanAcceptEntry(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull name, mode_t fileType)
+errno_t SfsDirectory_CanAcceptEntry(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull name, sfs_itype_t itype)
 {
     if (name->count > kSFSMaxFilenameLength) {
         return ENAMETOOLONG;
     }
 
-    if (S_ISDIR(fileType)) {
+    if (itype == kSFSInode_Directory) {
         // Adding a subdirectory increments our link count by 1
         if (Inode_GetLinkCount(self) >= kSFSLimit_LinkMax) {
             return EMLINK;
@@ -319,7 +319,7 @@ errno_t SfsDirectory_InsertEntry(InodeRef _Nonnull _Locked self, const PathCompo
 
     // Increment the link count of the directory if the child node is itself a
     // directory (accounting for its '..' entry)
-    if (S_ISDIR(Inode_GetMode(pChildNode))) {
+    if (SfsFile_IsDirectory(pChildNode)) {
         Inode_Link(self);
     }
 
@@ -360,7 +360,7 @@ errno_t SfsDirectory_RemoveEntry(InodeRef _Nonnull _Locked self, InodeRef _Nonnu
 
 
     // Reduce our link count by one if we removed a subdirectory
-    if (S_ISDIR(Inode_GetMode(pNodeToRemove))) {
+    if (SfsFile_IsDirectory(pNodeToRemove)) {
         Inode_Unlink(self);
     }
 

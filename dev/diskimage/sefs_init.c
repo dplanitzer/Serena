@@ -129,7 +129,8 @@ errno_t sefs_init(intptr_t fd, sefs_block_write_t _Nonnull block_write, blkcnt_t
     ip->linkCount = Int32_HostToBig(1);
     ip->uid = UInt32_HostToBig(uid);
     ip->gid = UInt32_HostToBig(gid);
-    ip->mode = UInt32_HostToBig(__S_MKMODE(S_IFDIR, permissions));
+    ip->type = UInt16_HostToBig(kSFSInode_Directory);
+    ip->permissions = UInt16_HostToBig(permissions);
     ip->bmap.direct[0] = UInt32_HostToBig(rootDirContLba);
     try(block_write(fd, bp, rootDirLba, blockSize));
 

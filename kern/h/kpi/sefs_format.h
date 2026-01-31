@@ -23,8 +23,24 @@
 // * Do not modify on write (preserve whatever values the reserved bytes have)
 
 typedef uint32_t sfs_bno_t;     // logical block number
-typedef uint32_t sfs_mode_t;    // file type and permissions. Keep aligned with mode_t
+typedef uint16_t sfs_itype_t;   // inode (file) type
+typedef uint16_t sfs_perm_t;    // inode (file) permissions
 
+
+// sfs_itype_t inode types
+enum {
+    kSFSInode_RegularFile = 'R',
+    kSFSInode_Directory = 'D'
+};
+
+// sfs_perm_t fields:
+// 0..2: OTHER
+// 3..5: GROUP
+// 6..8: SUPERUSER
+// Per field meaning of bits:
+// 0: X
+// 1: W
+// 2: R
 
 enum {
     kSFSMaxFilenameLength = 27,
@@ -140,7 +156,8 @@ typedef struct sfs_inode {
     sfs_bno_t       pnid;                   // Id (lba) of the parent inode (directory)
     uint32_t        signature;              // kSFSSignature_Inode
     int32_t         linkCount;
-    sfs_mode_t      mode;
+    sfs_itype_t     type;
+    sfs_perm_t      permissions;
     uint32_t        uid;
     uint32_t        gid;
     sfs_bmap_t      bmap;

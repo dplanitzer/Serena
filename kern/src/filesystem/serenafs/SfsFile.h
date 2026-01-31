@@ -14,9 +14,20 @@
 #include <filesystem/Inode.h>
 #include <kpi/sefs_format.h>
 
+
+extern sfs_itype_t SfsITypeFromMode(mode_t mode);
+extern mode_t SfsModeFromIType(sfs_itype_t itype);
+
+#define SfsPermissionsFromMode(__mode) \
+((__mode) & 0777)
+
+#define SfsModeFromPermissions(__perm) \
+(__perm)
+
+
 typedef struct SfsFileBlock {
     FSBlock     b;
-    blkno_t       lba;
+    blkno_t     lba;
     bool        wasAlloced;
     bool        isZeroFill;
 } SfsFileBlock;
@@ -38,5 +49,14 @@ extern errno_t SfsFile_MapBlock(SfsFileRef _Nonnull _Locked self, sfs_bno_t fba,
 extern errno_t SfsFile_UnmapBlock(SfsFileRef _Nonnull _Locked self, SfsFileBlock* _Nonnull blk, WriteBlock mode);
 
 extern bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength);
+
+#define SfsFile_GetIType(__self) \
+(SfsITypeFromMode(Inode_GetMode(__self)))
+
+#define SfsFile_GetPermissions(__self) \
+(SfsPermissionsFromMode(Inode_GetMode(__self)))
+
+#define SfsFile_IsDirectory(__self) \
+(S_ISDIR(Inode_GetMode(__self)))
 
 #endif /* SfsFile_h */

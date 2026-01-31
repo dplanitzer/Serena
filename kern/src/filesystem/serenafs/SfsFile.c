@@ -19,6 +19,10 @@ errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, ino_t in
     decl_try_err();
     SfsFileRef self;
     struct timespec at, mt, st;
+    mode_t mode = 0;
+
+    mode |= SfsModeFromIType(UInt16_BigToHost(ip->type));
+    mode |= SfsModeFromPermissions(UInt16_BigToHost(ip->permissions));
 
     timespec_from(&at, UInt32_BigToHost(ip->accessTime.tv_sec), UInt32_BigToHost(ip->accessTime.tv_nsec));
     timespec_from(&mt, UInt32_BigToHost(ip->modificationTime.tv_sec), UInt32_BigToHost(ip->modificationTime.tv_nsec));
@@ -28,7 +32,7 @@ errno_t SfsFile_Create(Class* _Nonnull pClass, SerenaFSRef _Nonnull fs, ino_t in
         pClass,
         (FilesystemRef)fs,
         inid,
-        UInt32_BigToHost(ip->mode),
+        mode,
         UInt32_BigToHost(ip->uid),
         UInt32_BigToHost(ip->gid),
         Int32_BigToHost(ip->linkCount),
@@ -60,6 +64,9 @@ void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, sfs_inode_t* _Nonnull ip
     const struct timespec* mtp = (Inode_IsUpdated(self)) ? &now : Inode_GetModificationTime(self);
     const struct timespec* ctp = (Inode_IsStatusChanged(self)) ? &now : Inode_GetStatusChangeTime(self);
 
+    const sfs_itype_t itype = SfsFile_GetIType(self);
+    const sfs_perm_t iperms = SfsFile_GetPermissions(self);
+
     ip->size = Int64_HostToBig(Inode_GetFileSize(self));
     ip->accessTime.tv_sec = UInt32_HostToBig(atp->tv_sec);
     ip->accessTime.tv_nsec = UInt32_HostToBig(atp->tv_nsec);
@@ -73,7 +80,8 @@ void SfsFile_Serialize(InodeRef _Nonnull _Locked pNode, sfs_inode_t* _Nonnull ip
     ip->linkCount = Int32_HostToBig(Inode_GetLinkCount(self));
     ip->uid = UInt32_HostToBig(Inode_GetUserId(self));
     ip->gid = UInt32_HostToBig(Inode_GetGroupId(self));
-    ip->mode = UInt32_HostToBig(Inode_GetMode(self));
+    ip->type = UInt16_HostToBig(itype);
+    ip->permissions = UInt16_HostToBig(iperms);
 
     ip->bmap.indirect = self->bmap.indirect;
     for (size_t i = 0; i < kSFSDirectBlockPointersCount; i++) {
@@ -265,6 +273,28 @@ bool SfsFile_Trim(SfsFileRef _Nonnull _Locked self, off_t newLength)
     Inode_SetFileSize(self, newLength);
 
     return didTrim;
+}
+
+sfs_itype_t SfsITypeFromMode(mode_t mode)
+{
+    if (S_ISDIR(mode)) {
+        return kSFSInode_Directory;
+    }
+    else if (S_ISREG(mode)) {
+        return kSFSInode_RegularFile;
+    }
+    else {
+        return 0;
+    }
+}
+
+mode_t SfsModeFromIType(sfs_itype_t itype)
+{
+    switch (itype) {
+        case kSFSInode_Directory:   return S_IFDIR;
+        case kSFSInode_RegularFile: return S_IFREG;
+        default:                    abort();
+    }
 }
 
 

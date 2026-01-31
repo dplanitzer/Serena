@@ -23,13 +23,21 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
     off_t fileSize = 0ll;
     InodeRef pNode = NULL;
     FSBlock blk = {0};
+    const sfs_itype_t itype = SfsITypeFromMode(mode);
+    const sfs_perm_t iperms = SfsPermissionsFromMode(mode);
+
+    if (itype == 0) {
+        *pOutNode = NULL;
+        return EINVAL;
+    }
+
 
     FSGetCurrentTime(&now);
 
-    try(SfsDirectory_CanAcceptEntry(dir, name, mode & S_IFMT));
+    try(SfsDirectory_CanAcceptEntry(dir, name, itype));
     try(SfsAllocator_Allocate(&self->blockAllocator, &inodeLba));
     
-    if (S_ISDIR(mode)) {
+    if (itype == kSFSInode_Directory) {
         // Write the initial directory content. These are just the '.' and '..'
         // entries
         try(SfsAllocator_Allocate(&self->blockAllocator, &dirContLba));
@@ -65,7 +73,8 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
     ip->linkCount = Int32_HostToBig(1);
     ip->uid = UInt32_HostToBig(uid);
     ip->gid = UInt32_HostToBig(gid);
-    ip->mode = UInt32_HostToBig(mode);
+    ip->type = UInt16_HostToBig(itype);
+    ip->permissions = UInt16_HostToBig(iperms);
     ip->bmap.direct[0] = UInt32_HostToBig(dirContLba);
     FSContainer_UnmapBlock(fsContainer, blk.token, kWriteBlock_Deferred);
     blk.token = 0;
@@ -119,12 +128,12 @@ errno_t SerenaFS_onAcquireNode(SerenaFSRef _Nonnull self, ino_t id, InodeRef _Nu
         throw(EIO);
     }
 
-    switch (S_FTYPE(UInt32_BigToHost(ip->mode))) {
-        case S_IFDIR:
+    switch (UInt16_BigToHost(ip->type)) {
+        case kSFSInode_Directory:
             pClass = class(SfsDirectory);
             break;
 
-        case S_IFREG:
+        case kSFSInode_RegularFile:
             pClass = class(SfsRegularFile);
             break;
 

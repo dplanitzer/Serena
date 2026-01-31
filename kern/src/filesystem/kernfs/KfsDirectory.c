@@ -114,7 +114,7 @@ errno_t KfsDirectory_CanAcceptEntry(KfsDirectoryRef _Nonnull _Locked self, const
 // 'self'.
 // NOTE: this function does not verify that the new entry is unique. The caller
 // has to ensure that it doesn't try to add a duplicate entry to the directory.
-// NOTE: expects that you called SfsDirectory_CanAcceptEntry() before calling
+// NOTE: expects that you called KfsDirectory_CanAcceptEntry() before calling
 // this function and that it returned EOK.
 errno_t KfsDirectory_InsertEntry(KfsDirectoryRef _Nonnull _Locked self, ino_t inid, bool isChildDir, const PathComponent* _Nonnull pc)
 {

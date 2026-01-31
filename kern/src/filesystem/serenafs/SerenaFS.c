@@ -18,8 +18,6 @@ errno_t SerenaFS_Create(FSContainerRef _Nonnull pContainer, SerenaFSRef _Nullabl
 {
     decl_try_err();
     SerenaFSRef self;
-
-    assert(sizeof(sfs_mode_t) == sizeof(mode_t));
     
     try(ContainerFilesystem_Create(&kSerenaFSClass, pContainer, (FilesystemRef*)&self));
     mtx_init(&self->moveLock);
@@ -210,7 +208,7 @@ errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked tar
     decl_try_err();
 
     // A directory must be empty in order to be allowed to unlink its
-    if (S_ISDIR(Inode_GetMode(target)) && Inode_GetLinkCount(target) > 1 && SfsDirectory_IsNotEmpty(target)) {
+    if (SfsFile_IsDirectory(target) && Inode_GetLinkCount(target) > 1 && SfsDirectory_IsNotEmpty(target)) {
         throw(EBUSY);
     }
 
@@ -225,7 +223,7 @@ errno_t SerenaFS_link(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
 {
     decl_try_err();
 
-    try(SfsDirectory_CanAcceptEntry(pDstDir, name, Inode_GetMode(pSrcNode) & S_IFMT));
+    try(SfsDirectory_CanAcceptEntry(pDstDir, name, SfsFile_GetIType(pSrcNode)));
     try(SfsDirectory_InsertEntry(pDstDir, name, pSrcNode, (sfs_insertion_hint_t*)pDirInstHint->data));
     Inode_Writeback(pDstDir);
 
@@ -240,7 +238,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    const bool isMovingDir = S_ISDIR(Inode_GetMode(pNode));
+    const bool isMovingDir = SfsFile_IsDirectory(pNode);
 
     // The 'moveLock' ensures that there can be only one operation active at any
     // given time that might move directories around in the filesystem. This ie
