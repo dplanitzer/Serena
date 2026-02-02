@@ -32,6 +32,20 @@ FPU_USER_STATE_SIZE equ 108
 FPU_MAX_FSAVE_SIZE  equ 216
 
 
+; 68060 CACR
+CACR_EDC_BIT        equ 31
+CACR_NAD_BIT        equ 30
+CACR_ESP_BIT        equ 29
+CACR_DPI_BIT        equ 28
+CACR_FOC_BIT        equ 27
+CACR_EBC_BIT        equ 23
+CACR_CABC_BIT       equ 22
+CACR_CUBC_BIT       equ 21
+CACR_EIC_BIT        equ 15
+CACR_NAI_BIT        equ 14
+CACR_FIC_BIT        equ 13
+
+
 ; RGB color
 RGB_RED             equ $0f00
 RGB_GREEN           equ $00f0
@@ -145,6 +159,7 @@ SCHED_STATE_TERMINATING     equ 5   ; VP is in the process of terminating and be
 
 
 VP_FLAG_HAS_FPU_BIT     equ 0   ; Save/restore the FPU state (keep in sync with vcpu.h)
+VP_FLAG_HAS_BC_BIT      equ 1   ; Clear branch cache on context switch
 
     clrso
 vp_rewa_qe_next                         so.l    1           ; 4

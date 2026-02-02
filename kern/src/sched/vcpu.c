@@ -40,7 +40,9 @@ void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params
     self->timeout = CLOCK_DEADLINE_INIT;    
     self->sched_state = SCHED_STATE_INITIATED;
 
-    self->flags = (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_HAS_FPU : 0;
+    self->flags = 0;
+    self->flags |= (g_sys_desc->fpu_model > FPU_MODEL_NONE) ? VP_FLAG_HAS_FPU : 0;
+    self->flags |= (g_sys_desc->cpu_model == CPU_MODEL_68060) ? VP_FLAG_HAS_BC : 0;
     self->qos = sched_params->u.qos.category;
     self->qos_priority = sched_params->u.qos.priority;
 

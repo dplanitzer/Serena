@@ -11,5 +11,6 @@
 
 #define __ERRNO_T_WANTED 1
 #include <errno.h>
+#undef __ERRNO_T_WANTED
 
 #endif /* _EXT_ERRNO_H */

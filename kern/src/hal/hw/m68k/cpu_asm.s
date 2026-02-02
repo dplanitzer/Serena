@@ -19,6 +19,7 @@
     xdef _cpu68k_as_write_byte
     xdef _cpu_sleep
     xdef _cpu_halt
+    xdef _cpu_enable_branch_cache
     xdef _cpu060_set_pcr_bits
     xdef _usp_get
     xdef _usp_set
@@ -384,6 +385,31 @@ _cpu_halt:
     inline
         stop    #$2700
         bra.s   _cpu_halt
+    einline
+
+
+;-------------------------------------------------------------------------------
+; void cpu_enable_branch_cache(int flag)
+; Enables/disables the branch cache on the 68060.
+; NOTE: assumes IRQs are off on call
+_cpu_enable_branch_cache:
+    inline
+    cargs cebc_flag.l
+        move.l  cebc_flag(sp), d0
+        beq.s   .disable_branch_cache
+        movec   cacr, d0
+        bset    #CACR_CABC_BIT, d0
+        movec   d0, cacr        ; clear all cache entries
+        movec   cacr, d0
+        bset    #CACR_EBC_BIT, d0
+        movec   d0, cacr        ; enable branch cache
+        rts
+
+.disable_branch_cache:
+        movec   cacr, d0
+        bclr    #CACR_EBC_BIT, d0
+        movec   d0, cacr
+        rts
     einline
 
 

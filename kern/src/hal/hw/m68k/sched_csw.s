@@ -120,8 +120,18 @@ __csw_restore:
     move.l  sched_scheduled(a2), a3
     move.l  vp_csw_sa(a3), sp
 
+    ; clear the branch cache if necessary
+    btst    #VP_FLAG_HAS_BC_BIT, vp_flags(a3)
+    beq.s   .1
+    ; XXX this code is written for a future where we'll got virtual memory fully implemented. Don't remove 
+    movec   cacr, d0
+    bset    #CACR_CUBC_BIT, d0
+    movec   d0, cacr        ; clear all user cache entries (all user processes share teh same superuser space)
+
+
     ; it's safe to trash all registers here 'cause we'll override them anyway
     ; make the scheduled VP the running VP and clear out sched_scheduled
+.1:
     moveq.l #-1, d0
     move.l  d0, -(sp)
     move.l  a3, -(sp)

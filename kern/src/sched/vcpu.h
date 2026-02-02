@@ -85,8 +85,10 @@ enum {
 
 // VP flags
 #define VP_FLAG_HAS_FPU             0x01    // Save/restore the FPU state (keep in sync with machine/hw/m68k/lowmem.i)
-#define VP_FLAG_USER_OWNED          0x02    // This VP is owned by a user process
-#define VP_FLAG_ACQUIRED            0x04    // vcpu_activate() was called on the VP
+#define VP_FLAG_HAS_BC              0x02    // Clear branch cache on context switch
+// bits 0..3 are reserved for flags that are accessible to C and asm code
+#define VP_FLAG_USER_OWNED          0x10    // This VP is owned by a user process
+#define VP_FLAG_ACQUIRED            0x20    // vcpu_activate() was called on the VP
 
 
 #define SCHED_PRIORITY_BIAS_HIGHEST INT8_MAX 

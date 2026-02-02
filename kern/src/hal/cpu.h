@@ -34,6 +34,8 @@ extern int cpu_guarded_write(void* _Nonnull dst, const void* _Nonnull buffer, in
 extern void cpu_sleep(int cpu_type);
 extern void cpu_halt(void);
 
+extern void cpu_enable_branch_cache(int flag);
+
 // Called by the HAL when a CPU exception is triggered. 'vp' is the vcpu in
 // question. Its 'excpt_sa' field points to a cpu_savearea_t that has the saved
 // CPU state and the exception frame set up appropriately.

@@ -10,11 +10,9 @@
 #define _EXT_TRY_H
 
 #include <_cmndef.h>
-#if !defined(_WIN32) && !defined(_WIN64)
 #define __ERRNO_T_WANTED 1
 #include <kpi/_errno.h>
 #undef __ERRNO_T_WANTED
-#endif
 #include <stdnoreturn.h>
 
 __CPP_BEGIN
