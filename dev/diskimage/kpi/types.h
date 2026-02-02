@@ -51,12 +51,8 @@ typedef unsigned int    fsid_t;
 typedef unsigned int    ino_t;
 typedef int             nlink_t;
 typedef unsigned int    mode_t;
-typedef int dev_t;
-#if defined(_WIN32) || defined(_WIN64)
-typedef long off_t;
-#else
-typedef long long off_t;
-#endif
+typedef int             dev_t;
+typedef long long       off_t;
 
 
 // Disk sector address based in cylinder, head, sector notation 

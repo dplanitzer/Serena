@@ -17,17 +17,13 @@
 #include <filesystem/IOChannel.h>
 #include <kpi/dirent.h>
 
-
 #if defined(__APPLE__)
 #define PINID   PRIu32
-#define PSIZE   "lld"
 #elif defined(_WIN32)
 #define PINID   PRIu32
-#define PSIZE   "ld"
 #else
 //#define PINID   PRIu64
 #define PINID   PRIu32
-#define PSIZE   "lld"
 #endif
 
 
@@ -126,7 +122,7 @@ static errno_t print_inode(list_ctx_t* _Nonnull self, const char* _Nonnull path,
         file_permissions_to_text(perm_get(info.st_mode, S_ICOTH), &self->buf[7]);
         self->buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
-        printf("%s %*d  %*u %*u  %*" PSIZE " %*" PINID " %s\n",
+        printf("%s %*d  %*u %*u  %*lld %*" PINID " %s\n",
             self->buf,
             self->linkCountWidth, info.st_nlink,
             self->uidWidth, info.st_uid,
