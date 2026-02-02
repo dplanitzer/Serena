@@ -41,3 +41,16 @@ char* _Nullable create_dst_path(const char* _Nonnull srcPath, const char* _Nonnu
 
     return strdup(path);
 }
+
+#if defined(__APPLE__)
+char * _Nullable strdup(const char * _Nonnull src)
+{
+    const size_t lenWithNul = strlen(src) + 1;
+    char* dst = malloc(lenWithNul);
+
+    if (dst) {
+        memcpy(dst, src, lenWithNul);
+    }
+    return dst;
+}
+#endif

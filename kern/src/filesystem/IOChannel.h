@@ -10,6 +10,7 @@
 #define IOChannel_h
 
 #include <stdarg.h>
+#include <ext/try.h>
 #include <kobj/Any.h>
 #include <kern/kernlib.h>
 #include <kpi/fcntl.h>

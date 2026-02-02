@@ -81,4 +81,8 @@ extern errno_t di_describe_diskimage(const char* _Nonnull dmgPath, DiskImage* _N
 extern errno_t di_lba_from_disk_addr(size_t* _Nonnull pOutLba, const DiskImage* _Nonnull info, const di_addr_t* _Nonnull addr);
 extern void di_chs_from_lba(size_t* _Nonnull pOutCylinder, size_t* _Nonnull pOutHead, size_t* _Nonnull pOutSector, const DiskImage* _Nonnull info, size_t lba);
 
+#if defined(__APPLE__)
+extern char * _Nullable strdup(const char * _Nonnull src);
+#endif
+
 #endif /* diskimage_h */

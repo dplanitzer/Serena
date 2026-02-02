@@ -6,18 +6,11 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _DI_ERRNO_H
-#define _DI_ERRNO_H 1
+#ifndef _DI_EXT_ERRNO_H
+#define _DI_EXT_ERRNO_H 1
 
-#include <errno.h>
+#define __ERRNO_T_WANTED 1
+#include <kpi/_errno.h>
+#undef __ERRNO_T_WANTED
 
-#define EOK 0
-
-#ifndef EACCESS
-#define EACCESS EACCES
-#endif
-#ifndef ENOTIOCTLCMD
-#define ENOTIOCTLCMD EINVAL
-#endif
-
-#endif /* _DI_ERRNO_H */
+#endif /*_DI_EXT_ERRNO_H */

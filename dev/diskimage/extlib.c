@@ -1,19 +1,18 @@
 //
-//  extlib_posix.c
+//  extlib.c
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 1/29/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#if defined(__APPLE__)
 
 #include <errno.h>
 #include <stdbool.h>
 #include <ext/stdlib.h>
 #include <stdio.h>
 
-
+#if defined(__APPLE__)
 // Valid values for 'radix' are: 2, 8, 10, 16
 char * _Nullable itoa(int val, char * _Nullable buf, int radix)
 {
@@ -48,6 +47,7 @@ char * _Nullable ltoa(long val, char * _Nullable buf, int radix)
     }
     return buf;
 }
+#endif /* __APPLE__ */
 
 char * _Nullable lltoa(long long val, char * _Nullable buf, int radix)
 {
@@ -66,6 +66,7 @@ char * _Nullable lltoa(long long val, char * _Nullable buf, int radix)
     return buf;
 }
 
+#if defined(__APPLE__)
 char * _Nullable utoa(unsigned int val, char * _Nullable buf, int radix)
 {
     const char* r;
@@ -99,6 +100,7 @@ char * _Nullable ultoa(unsigned long val, char * _Nullable buf, int radix)
     }
     return buf;
 }
+#endif /* __APPLE__ */
 
 char * _Nullable ulltoa(unsigned long long val, char * _Nullable buf, int radix)
 {
@@ -116,5 +118,3 @@ char * _Nullable ulltoa(unsigned long long val, char * _Nullable buf, int radix)
     }
     return buf;
 }
-
-#endif /* __APPLE__ */

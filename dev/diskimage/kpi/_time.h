@@ -6,6 +6,9 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
+#ifndef _DI_PRIV_TIME_H
+#define _DI_PRIV_TIME_H 1
+
 #include <time.h>
 
 // Time conversion factors
@@ -13,11 +16,7 @@
 #define USEC_PER_SEC    1000000l
 #define MSEC_PER_SEC    1000l
 
-#if defined(_WIN32) || defined(_WIN64)
 typedef long mseconds_t;
 typedef long useconds_t;
-#endif
 
-#if defined(__APPLE__)
-typedef long mseconds_t;
-#endif
+#endif /* _DI_PRIV_TIME_H */

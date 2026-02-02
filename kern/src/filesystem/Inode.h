@@ -10,6 +10,7 @@
 #define Inode_h
 
 #include <ext/queue.h>
+#include <ext/try.h>
 #include <kobj/Any.h>
 #include <kpi/dirent.h>
 #include <kpi/stat.h>

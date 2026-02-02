@@ -9,6 +9,7 @@
 #ifndef SfsAllocator_h
 #define SfsAllocator_h
 
+#include <ext/try.h>
 #include <kobj/Any.h>
 #include <kpi/sefs_format.h>
 #include <kpi/types.h>

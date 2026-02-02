@@ -1,5 +1,5 @@
 //
-//  FSUtilities_win32.c
+//  FSUtilities.c
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 10/17/24.
@@ -16,7 +16,12 @@
 // for filesystem objects.
 void FSGetCurrentTime(struct timespec* _Nonnull ts)
 {
+#if defined(__APPLE__)
+    ts->tv_sec = time(NULL);
+    ts->tv_nsec = 0;
+#else
     timespec_get(ts, TIME_UTC);
+#endif
 }
 
 

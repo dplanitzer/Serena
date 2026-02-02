@@ -6,15 +6,22 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KPI_TYPES_H
-#define _KPI_TYPES_H 1
+#ifndef _DI_TYPES_H
+#define _DI_TYPES_H 1
 
 #include <stddef.h>
 #include <kpi/_time.h>
-#include <sys/types.h>
 #ifdef _WIN32
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
+#endif
+
+#if defined(__APPLE__)
+#if defined(__LP64__)
+typedef signed long long ssize_t;
+#else
+typedef signed long ssize_t;
+#endif
 #endif
 
 // Process and user related ids
@@ -26,10 +33,8 @@ typedef unsigned int    id_t;
 
 // Represents a logical block address, count and block size
 typedef size_t  blkno_t;
-#if !defined(__APPLE__)
 typedef size_t  blkcnt_t;
 typedef ssize_t blksize_t;
-#endif
 
 // Represents a logical sector address and count
 typedef size_t  sno_t;
@@ -43,14 +48,14 @@ typedef unsigned int    fsid_t;
 
 // The persistent, filesystem unique ID of a filesystem inode. This ID is only
 // unique with respect to the filesystem to which it belongs.
-#if !defined(_WIN32) && !defined(_WIN64) && !defined(__APPLE__)
-typedef size_t          ino_t;
-#endif
-
-
-#if !defined(__APPLE__)
+typedef unsigned int    ino_t;
 typedef int             nlink_t;
 typedef unsigned int    mode_t;
+typedef int dev_t;
+#if defined(_WIN32) || defined(_WIN64)
+typedef long off_t;
+#else
+typedef long long off_t;
 #endif
 
 
@@ -74,4 +79,4 @@ typedef long    tick_t;
 typedef void (*VoidFunc_1)(void*);
 typedef void (*VoidFunc_2)(void*, void*);
 
-#endif /* _KPI_TYPES_H */
+#endif /* _DI_TYPES_H */

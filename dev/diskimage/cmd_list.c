@@ -18,12 +18,15 @@
 #include <kpi/dirent.h>
 
 
-#ifdef _WIN32
+#if defined(__APPLE__)
+#define PINID   PRIu32
+#define PSIZE   "lld"
+#elif defined(_WIN32)
 #define PINID   PRIu32
 #define PSIZE   "ld"
-#define lltoa _i64toa
 #else
-#define PINID   PRIu64
+//#define PINID   PRIu64
+#define PINID   PRIu32
 #define PSIZE   "lld"
 #endif
 
