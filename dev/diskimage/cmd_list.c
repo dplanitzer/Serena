@@ -17,14 +17,8 @@
 #include <filesystem/IOChannel.h>
 #include <kpi/dirent.h>
 
-#if defined(__APPLE__)
 #define PINID   PRIu32
-#elif defined(_WIN32)
-#define PINID   PRIu32
-#else
 //#define PINID   PRIu64
-#define PINID   PRIu32
-#endif
 
 
 // Buffer holding directory entries
