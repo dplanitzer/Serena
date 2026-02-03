@@ -6,7 +6,7 @@
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 ;
 
-    include "lowmem.i"
+    include "cpu.i"
 
     xdef _fpu_get_model
     xdef _fpu_idle_fsave

@@ -11,6 +11,7 @@
 ; Trap, exception and interrupt handlers.
 ;
 
+    include "cpu.i"
     include "lowmem.i"
     include <hal/errno.i>
     include <machine/amiga/kei.i>

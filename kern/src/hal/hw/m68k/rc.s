@@ -6,7 +6,7 @@
 ;  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 ;
 
-    include "lowmem.i"
+    include "cpu.i"
 
 
     xdef _rc_release

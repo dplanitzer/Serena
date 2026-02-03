@@ -41,8 +41,8 @@
 #define FPU_68040_BUSY_FSAVE_SIZE   96
 #define FPU_68881_BUSY_FSAVE_SIZE   184
 #define FPU_68882_BUSY_FSAVE_SIZE   216
-#define FPU_MAX_FSAVE_SIZE          216     // Keep in sync with machine/hw/m68k/lowmem.i
-#define FPU_USER_STATE_SIZE         108     // Keep in sync with machine/hw/m68k/lowmem.i
+#define FPU_MAX_FSAVE_SIZE          216     // Keep in sync with machine/hw/m68k/cpu.i
+#define FPU_USER_STATE_SIZE         108     // Keep in sync with machine/hw/m68k/cpu.i
 
 
 // CPU (68k) address space selector (Alternate function codes)

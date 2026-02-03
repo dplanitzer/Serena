@@ -7,6 +7,7 @@
 ;
 
     include <hal/hw/m68k-amiga/chipset.i>
+    include <hal/hw/m68k/cpu.i>
     include <hal/hw/m68k/lowmem.i>
 
     xref _cpu_non_recoverable_error

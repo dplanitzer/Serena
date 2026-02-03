@@ -6,7 +6,7 @@
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 ;
 
-    include "lowmem.i"
+    include "cpu.i"
 
     xdef _preempt_disable
     xdef _preempt_restore

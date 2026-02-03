@@ -6,7 +6,7 @@
 ;  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 ;
 
-    include "lowmem.i"
+    include "cpu.i"
 
 
     xdef _atomic_int_exchange

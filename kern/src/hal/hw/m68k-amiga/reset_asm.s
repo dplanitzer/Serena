@@ -8,6 +8,7 @@
 
 
     include "chipset.i"
+    include <hal/hw/m68k/cpu.i>
     include <hal/hw/m68k/lowmem.i>
 
     xref _OnReset

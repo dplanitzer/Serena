@@ -6,6 +6,7 @@
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 ;
 
+    include "cpu.i"
     include "lowmem.i"
 
     xref _g_sched
