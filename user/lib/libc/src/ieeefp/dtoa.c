@@ -73,7 +73,7 @@ rv_alloc(int i MTd)
 		sizeof(Bigint) - sizeof(ULong) - sizeof(int) + j <= i;
 		j <<= 1)
 			k++;
-	r = (int*)Balloc(k MTa);
+	r = (int*)__Balloc(k MTa);
 	*r = k;
 	return
 #ifndef MULTIPLE_THREADS
@@ -117,7 +117,7 @@ freedtoa(char *s)
 #endif
 	Bigint *b = (Bigint *)((int *)s - 1);
 	b->maxwds = 1 << (b->k = *(int*)b);
-	Bfree(b MTb);
+	__Bfree(b MTb);
 #ifndef MULTIPLE_THREADS
 	if (s == dtoa_result)
 		dtoa_result = 0;
@@ -351,7 +351,7 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 
 #else /*}{*/
 
-	b = d2b(&u, &be, &bbits MTb);
+	b = __d2b(&u, &be, &bbits MTb);
 #ifdef Sudden_Underflow
 	i = (int)(word0(&u) >> Exp_shift1 & (Exp_mask>>Exp_shift1));
 #else
@@ -361,7 +361,7 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 		word0(&d2) &= Frac_mask1;
 		word0(&d2) |= Exp_11;
 #ifdef IBM
-		if (j = 11 - hi0bits(word0(&d2) & Frac_mask))
+		if (j = 11 - __hi0bits(word0(&d2) & Frac_mask))
 			dval(&d2) /= 1 << j;
 #endif
 
@@ -561,7 +561,7 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 	if (k <= dtoa_divmax && j + k >= 0) {
 		/* Another "yes" case -- we will use exact integer arithmetic. */
  use_exact:
-		Debug(++dtoa_stats[3]);
+		Debug(++__dtoa_stats[3]);
 		res = dbits >> 11;	/* residual */
 		ulp = 1;
 		if (k <= 0)
@@ -689,7 +689,7 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 #if !defined(SET_INEXACT) && !defined(NO_DTOA_64) /*{*/
 	if (ilim > 19)
 		goto Fast_failed;
-	Debug(++dtoa_stats[4]);
+	Debug(++__dtoa_stats[4]);
 	assert(be >= 0 && be <= 4); /* be = 0 is rare, but possible, e.g., for 1e20 */
 	res >>= 4 - be;
 	ulp = p10->b0;	/* ulp */
@@ -799,7 +799,7 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 #ifndef NO_BF96
  Fast_failed:
 #endif
-	Debug(++dtoa_stats[5]);
+	Debug(++__dtoa_stats[5]);
 	s = buf;
 	i = 4 - be;
 	res = res0 >> i;
@@ -924,10 +924,10 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 			}
 		}
  Fast_failed1:
-	Debug(++dtoa_stats[6]);
+	Debug(++__dtoa_stats[6]);
 	S = mhi = mlo = 0;
 #ifdef USE_BF96
-	b = d2b(&u, &be, &bbits MTb);
+	b = __d2b(&u, &be, &bbits MTb);
 #endif
 	s = buf;
 	i = (int)(word0(&u) >> Exp_shift1 & (Exp_mask>>Exp_shift1));
@@ -1152,7 +1152,7 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 #endif
 		b2 += i;
 		s2 += i;
-		mhi = i2b(1 MTb);
+		mhi = __i2b(1 MTb);
 		}
 	if (m2 > 0 && s2 > 0) {
 		i = m2 < s2 ? m2 : s2;
@@ -1163,20 +1163,20 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 	if (b5 > 0) {
 		if (leftright) {
 			if (m5 > 0) {
-				mhi = pow5mult(mhi, m5 MTb);
-				b1 = mult(mhi, b MTb);
-				Bfree(b MTb);
+				mhi = __pow5mult(mhi, m5 MTb);
+				b1 = __mult(mhi, b MTb);
+				__Bfree(b MTb);
 				b = b1;
 				}
 			if ((j = b5 - m5))
-				b = pow5mult(b, j MTb);
+				b = __pow5mult(b, j MTb);
 			}
 		else
-			b = pow5mult(b, b5 MTb);
+			b = __pow5mult(b, b5 MTb);
 		}
-	S = i2b(1 MTb);
+	S = __i2b(1 MTb);
 	if (s5 > 0)
-		S = pow5mult(S, s5 MTb);
+		S = __pow5mult(S, s5 MTb);
 
 	if (spec_case) {
 		b2 += Log2P;
@@ -1187,30 +1187,30 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 	 * shift left if necessary so divisor has 4 leading 0 bits.
 	 *
 	 * Perhaps we should just compute leading 28 bits of S once
-	 * and for all and pass them and a shift to quorem, so it
+	 * and for all and pass them and a shift to __quorem, so it
 	 * can do shifts and ors to compute the numerator for q.
 	 */
-	i = dshift(S, s2);
+	i = __dshift(S, s2);
 	b2 += i;
 	m2 += i;
 	s2 += i;
 	if (b2 > 0)
-		b = lshift(b, b2 MTb);
+		b = __lshift(b, b2 MTb);
 	if (s2 > 0)
-		S = lshift(S, s2 MTb);
+		S = __lshift(S, s2 MTb);
 #ifndef USE_BF96
 	if (k_check) {
-		if (cmp(b,S) < 0) {
+		if (__cmp(b,S) < 0) {
 			k--;
-			b = multadd(b, 10, 0 MTb);	/* we botched the k estimate */
+			b = __multadd(b, 10, 0 MTb);	/* we botched the k estimate */
 			if (leftright)
-				mhi = multadd(mhi, 10, 0 MTb);
+				mhi = __multadd(mhi, 10, 0 MTb);
 			ilim = ilim1;
 			}
 		}
 #endif
 	if (ilim <= 0 && (mode == 3 || mode == 5)) {
-		if (ilim < 0 || cmp(b,S = multadd(S,5,0 MTb)) <= 0) {
+		if (ilim < 0 || __cmp(b,S = __multadd(S,5,0 MTb)) <= 0) {
 			/* no digits, fcvt style */
  no_digits:
 			k = -1 - ndigits;
@@ -1223,7 +1223,7 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 		}
 	if (leftright) {
 		if (m2 > 0)
-			mhi = lshift(mhi, m2 MTb);
+			mhi = __lshift(mhi, m2 MTb);
 
 		/* Compute mlo -- check for special case
 		 * that d is a normalized power of 2.
@@ -1231,20 +1231,20 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 
 		mlo = mhi;
 		if (spec_case) {
-			mhi = Balloc(mhi->k MTb);
+			mhi = __Balloc(mhi->k MTb);
 			Bcopy(mhi, mlo);
-			mhi = lshift(mhi, Log2P MTb);
+			mhi = __lshift(mhi, Log2P MTb);
 			}
 
 		for(i = 1;;i++) {
-			dig = quorem(b,S) + '0';
+			dig = __quorem(b,S) + '0';
 			/* Do we yet have the shortest decimal string
 			 * that will round to d?
 			 */
-			j = cmp(b, mlo);
-			delta = diff(S, mhi MTb);
-			j1 = delta->sign ? 1 : cmp(b, delta);
-			Bfree(delta MTb);
+			j = __cmp(b, mlo);
+			delta = __diff(S, mhi MTb);
+			j1 = delta->sign ? 1 : __cmp(b, delta);
+			__Bfree(delta MTb);
 #ifndef ROUND_BIASED
 			if (j1 == 0 && mode != 1 && !(word1(&u) & 1)
 #ifdef Honor_FLT_ROUNDS
@@ -1282,8 +1282,8 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 				  }
 #endif /*Honor_FLT_ROUNDS*/
 				if (j1 > 0) {
-					b = lshift(b, 1 MTb);
-					j1 = cmp(b, S);
+					b = __lshift(b, 1 MTb);
+					j1 = __cmp(b, S);
 #ifdef ROUND_BIASED
 					if (j1 >= 0 /*)*/
 #else
@@ -1315,18 +1315,18 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 			*s++ = dig;
 			if (i == ilim)
 				break;
-			b = multadd(b, 10, 0 MTb);
+			b = __multadd(b, 10, 0 MTb);
 			if (mlo == mhi)
-				mlo = mhi = multadd(mhi, 10, 0 MTb);
+				mlo = mhi = __multadd(mhi, 10, 0 MTb);
 			else {
-				mlo = multadd(mlo, 10, 0 MTb);
-				mhi = multadd(mhi, 10, 0 MTb);
+				mlo = __multadd(mlo, 10, 0 MTb);
+				mhi = __multadd(mhi, 10, 0 MTb);
 				}
 			}
 		}
 	else
 		for(i = 1;; i++) {
-			dig = quorem(b,S) + '0';
+			dig = __quorem(b,S) + '0';
 			*s++ = dig;
 			if (!b->x[0] && b->wds <= 1) {
 #ifdef SET_INEXACT
@@ -1336,7 +1336,7 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 				}
 			if (i >= ilim)
 				break;
-			b = multadd(b, 10, 0 MTb);
+			b = __multadd(b, 10, 0 MTb);
 			}
 
 	/* Round off last digit */
@@ -1348,8 +1348,8 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 		  case 2: goto roundoff;
 		  }
 #endif
-	b = lshift(b, 1 MTb);
-	j = cmp(b, S);
+	b = __lshift(b, 1 MTb);
+	j = __cmp(b, S);
 #ifdef ROUND_BIASED
 	if (j >= 0)
 #else
@@ -1366,18 +1366,18 @@ dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char
 		++*s++;
 		}
  ret:
-	Bfree(S MTb);
+	__Bfree(S MTb);
 	if (mhi) {
 		if (mlo && mlo != mhi)
-			Bfree(mlo MTb);
-		Bfree(mhi MTb);
+			__Bfree(mlo MTb);
+		__Bfree(mhi MTb);
 		}
  retc:
 	while(s > buf && s[-1] == '0')
 		--s;
  ret1:
 	if (b)
-		Bfree(b MTb);
+		__Bfree(b MTb);
 	*s = 0;
 	*decpt = k + 1;
 	if (rve)

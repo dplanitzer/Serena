@@ -32,11 +32,11 @@ s2b(const char *s, int nd0, int nd, ULong y9, int dplen MTd)
 	x = (nd + 8) / 9;
 	for(k = 0, y = 1; x > y; y <<= 1, k++) ;
 #ifdef Pack_32
-	b = Balloc(k MTa);
+	b = __Balloc(k MTa);
 	b->x[0] = y9;
 	b->wds = 1;
 #else
-	b = Balloc(k+1 MTa);
+	b = __Balloc(k+1 MTa);
 	b->x[0] = y9 & 0xffff;
 	b->wds = (b->x[1] = y9 >> 16) ? 2 : 1;
 #endif
@@ -44,14 +44,14 @@ s2b(const char *s, int nd0, int nd, ULong y9, int dplen MTd)
 	i = 9;
 	if (9 < nd0) {
 		s += 9;
-		do b = multadd(b, 10, *s++ - '0' MTa);
+		do b = __multadd(b, 10, *s++ - '0' MTa);
 			while(++i < nd0);
 		s += dplen;
 		}
 	else
 		s += dplen + 9;
 	for(; i < nd; i++)
-		b = multadd(b, 10, *s++ - '0' MTa);
+		b = __multadd(b, 10, *s++ - '0' MTa);
 	return b;
 	}
 
@@ -108,10 +108,10 @@ b2d(Bigint *a, int *e)
 	xa0 = a->x;
 	xa = xa0 + a->wds;
 	y = *--xa;
-#ifdef DEBUG
+#ifdef DTOA_DEBUG
 	if (!y) Bug("zero y in b2d");
 #endif
-	k = hi0bits(y);
+	k = __hi0bits(y);
 	*e = 32 - k;
 #ifdef Pack_32
 	if (k < Ebits) {
@@ -404,9 +404,9 @@ increment(Bigint *b MTd)
 		} while(x < xe);
 	{
 		if (b->wds >= b->maxwds) {
-			b1 = Balloc(b->k+1 MTa);
+			b1 = __Balloc(b->k+1 MTa);
 			Bcopy(b1,b);
-			Bfree(b MTa);
+			__Bfree(b MTa);
 			b = b1;
 			}
 		b->x[b->wds++] = 1;
@@ -630,7 +630,7 @@ gethex(const char **sp, U *rvp, int rounding, int sign MTd)
 			goto retz;
 #ifdef IEEE_Arith
  ret_tinyf:
-			Bfree(b MTa);
+			__Bfree(b MTa);
  ret_tiny:
 			Set_errno(ERANGE);
 			word0(rvp) = 0;
@@ -658,7 +658,7 @@ gethex(const char **sp, U *rvp, int rounding, int sign MTd)
 	n = s1 - s0 - 1;
 	for(k = 0; n > (1 << (kshift-2)) - 1; n >>= 1)
 		k++;
-	b = Balloc(k MTa);
+	b = __Balloc(k MTa);
 	x = b->x;
 	havedig = n = nz = 0;
 	L = 0;
@@ -691,7 +691,7 @@ gethex(const char **sp, U *rvp, int rounding, int sign MTd)
 		}
 	*x++ = L;
 	b->wds = n = x - b->x;
-	nb = ULbits*n - hi0bits(L);
+	nb = ULbits*n - __hi0bits(L);
 	nbits = Nbits;
 	lostbits = 0;
 	x = b->x;
@@ -711,13 +711,13 @@ gethex(const char **sp, U *rvp, int rounding, int sign MTd)
 		}
 	else if (nb < nbits) {
 		n = nbits - nb;
-		b = lshift(b, n MTa);
+		b = __lshift(b, n MTa);
 		e -= n;
 		x = b->x;
 		}
 	if (e > emax) {
  ovfl:
-		Bfree(b MTa);
+		__Bfree(b MTa);
  ovfl1:
 		Set_errno(ERANGE);
 #ifdef Honor_FLT_ROUNDS
@@ -757,7 +757,7 @@ gethex(const char **sp, U *rvp, int rounding, int sign MTd)
 					goto ret_tinyf;
 			  }
 #endif /* } IEEE_Arith */
-			Bfree(b MTa);
+			__Bfree(b MTa);
  retz:
 			Set_errno(ERANGE);
  retz1:
@@ -770,7 +770,7 @@ gethex(const char **sp, U *rvp, int rounding, int sign MTd)
 			switch(rounding) {
 			  case Round_near:
 				if (((b->x[0] & 3) == 3) || (lostbits && (b->x[0] & 1))) {
-					multadd(b, 1, 1 MTa);
+					__multadd(b, 1, 1 MTa);
  emin_check:
 					if (b->x[1] == (1 << (Exp_shift + 1))) {
 						rshift(b,1);
@@ -782,7 +782,7 @@ gethex(const char **sp, U *rvp, int rounding, int sign MTd)
 			  case Round_up:
 				if (!sign && (lostbits || (b->x[0] & 1))) {
  incr_denorm:
-					multadd(b, 1, 2 MTa);
+					__multadd(b, 1, 2 MTa);
 					check_denorm = 1;
 					lostbits = 0;
 					goto emin_check;
@@ -834,7 +834,7 @@ gethex(const char **sp, U *rvp, int rounding, int sign MTd)
 			x = b->x;
 			if (!denorm && (b->wds > k
 			 || ((n = nbits & kmask) !=0
-			     && hi0bits(x[k-1]) < 32-n))) {
+			     && __hi0bits(x[k-1]) < 32-n))) {
 				rshift(b,1);
 				if (++e > Emax)
 					goto ovfl;
@@ -882,7 +882,7 @@ gethex(const char **sp, U *rvp, int rounding, int sign MTd)
 	word0(rvp) = ((b->x[1] & ~0x800000) >> 16) | ((e + 129 + 55) << 7) | (b->x[1] << 16);
 	word1(rvp) = (b->x[0] >> 16) | (b->x[0] << 16);
 #endif
-	Bfree(b MTa);
+	__Bfree(b MTa);
 	}
 #endif /*!NO_HEX_FP}*/
 
@@ -918,7 +918,7 @@ bigcomp(U *rv, const char *s0, BCinfo *bc MTd)
 #ifndef Sudden_Underflow
 	if (rv->d == 0.) {	/* special case: value near underflow-to-zero */
 				/* threshold was rounded to zero */
-		b = i2b(1 MTa);
+		b = __i2b(1 MTa);
 		p2 = Emin - P + 1;
 		bbits = 1;
 #ifdef Avoid_Underflow
@@ -939,7 +939,7 @@ bigcomp(U *rv, const char *s0, BCinfo *bc MTd)
 		}
 	else
 #endif
-		b = d2b(rv, &p2, &bbits MTa);
+		b = __d2b(rv, &p2, &bbits MTa);
 #ifdef Avoid_Underflow
 	p2 -= bc->scale;
 #endif
@@ -948,8 +948,8 @@ bigcomp(U *rv, const char *s0, BCinfo *bc MTd)
 	i = P - bbits;
 	if (i > (j = P - Emin - 1 + p2)) {
 #ifdef Sudden_Underflow
-		Bfree(b MTa);
-		b = i2b(1 MTa);
+		__Bfree(b MTa);
+		b = __i2b(1 MTa);
 		p2 = Emin;
 		i = P - 1;
 #ifdef Avoid_Underflow
@@ -965,28 +965,28 @@ bigcomp(U *rv, const char *s0, BCinfo *bc MTd)
 #ifdef Honor_FLT_ROUNDS
 	if (bc->rounding != 1) {
 		if (i > 0)
-			b = lshift(b, i MTa);
+			b = __lshift(b, i MTa);
 		if (dsign)
 			b = increment(b MTa);
 		}
 	else
 #endif
 		{
-		b = lshift(b, ++i MTa);
+		b = __lshift(b, ++i MTa);
 		b->x[0] |= 1;
 		}
 #ifndef Sudden_Underflow
  have_i:
 #endif
 	p2 -= p5 + i;
-	d = i2b(1 MTa);
+	d = __i2b(1 MTa);
 	/* Arrange for convenient computation of quotients:
 	 * shift left if necessary so divisor has 4 leading 0 bits.
 	 */
 	if (p5 > 0)
-		d = pow5mult(d, p5 MTa);
+		d = __pow5mult(d, p5 MTa);
 	else if (p5 < 0)
-		b = pow5mult(b, -p5 MTa);
+		b = __pow5mult(b, -p5 MTa);
 	if (p2 > 0) {
 		b2 = p2;
 		d2 = 0;
@@ -995,18 +995,18 @@ bigcomp(U *rv, const char *s0, BCinfo *bc MTd)
 		b2 = 0;
 		d2 = -p2;
 		}
-	i = dshift(d, d2);
+	i = __dshift(d, d2);
 	if ((b2 += i) > 0)
-		b = lshift(b, b2 MTa);
+		b = __lshift(b, b2 MTa);
 	if ((d2 += i) > 0)
-		d = lshift(d, d2 MTa);
+		d = __lshift(d, d2 MTa);
 
 	/* Now b/d = exactly half-way between the two floating-point values */
 	/* on either side of the input string.  Compute first digit of b/d. */
 
-	if (!(dig = quorem(b,d))) {
-		b = multadd(b, 10, 0 MTa);	/* very unlikely */
-		dig = quorem(b,d);
+	if (!(dig = __quorem(b,d))) {
+		b = __multadd(b, 10, 0 MTa);	/* very unlikely */
+		dig = __quorem(b,d);
 		}
 
 	/* Compare b/d with s0 */
@@ -1019,8 +1019,8 @@ bigcomp(U *rv, const char *s0, BCinfo *bc MTd)
 				dd = 1;
 			goto ret;
 			}
-		b = multadd(b, 10, 0 MTa);
-		dig = quorem(b,d);
+		b = __multadd(b, 10, 0 MTa);
+		dig = __quorem(b,d);
 		}
 	for(j = bc->dp1; i++ < nd;) {
 		if ((dd = s0[j++] - '0' - dig))
@@ -1030,14 +1030,14 @@ bigcomp(U *rv, const char *s0, BCinfo *bc MTd)
 				dd = 1;
 			goto ret;
 			}
-		b = multadd(b, 10, 0 MTa);
-		dig = quorem(b,d);
+		b = __multadd(b, 10, 0 MTa);
+		dig = __quorem(b,d);
 		}
 	if (dig > 0 || b->x[0] || b->wds > 1)
 		dd = -1;
  ret:
-	Bfree(b MTa);
-	Bfree(d MTa);
+	__Bfree(b MTa);
+	__Bfree(d MTa);
 #ifdef Honor_FLT_ROUNDS
 	if (bc->rounding != 1) {
 		if (dd < 0) {
@@ -1486,7 +1486,7 @@ strtod(const char * _Restrict s00, char ** _Restrict se)
 #endif /*IEEE_Arith*/
 
 #ifdef USE_BF96 /*{*/
-	Debug(++dtoa_stats[0]);
+	Debug(++__dtoa_stats[0]);
 	i = e1 + 342;
 	if (i < 0)
 		goto undfl;
@@ -1568,7 +1568,7 @@ strtod(const char * _Restrict s00, char ** _Restrict se)
 			}
 		}
 	/* 3 multiplies did not suffice; try a 96-bit approximation */
-	Debug(++dtoa_stats[1]);
+	Debug(++__dtoa_stats[1]);
 	t02 = bhi * p10->b2;
 	t11 = blo * p10->b1 + (t02 & 0xffffffffull);
 	bexact = 1;
@@ -1767,7 +1767,7 @@ strtod(const char * _Restrict s00, char ** _Restrict se)
 			}
 		}
  many_digits:
-	Debug(++dtoa_stats[2]);
+	Debug(++__dtoa_stats[2]);
 	if (nd > 17) {
 		if (nd > 18) {
 			yz /= 100;
@@ -1830,11 +1830,11 @@ strtod(const char * _Restrict s00, char ** _Restrict se)
 #endif /*IEEE_Arith*/
  range_err:
 				if (bd0) {
-					Bfree(bb MTb);
-					Bfree(bd MTb);
-					Bfree(bs MTb);
-					Bfree(bd0 MTb);
-					Bfree(delta MTb);
+					__Bfree(bb MTb);
+					__Bfree(bd MTb);
+					__Bfree(bs MTb);
+					__Bfree(bd0 MTb);
+					__Bfree(delta MTb);
 					}
 				Set_errno(ERANGE);
 				goto ret;
@@ -1924,11 +1924,11 @@ strtod(const char * _Restrict s00, char ** _Restrict se)
 
 	bc.nd = nd - nz1;
 #ifndef NO_STRTOD_BIGCOMP
-	bc.nd0 = nd0;	/* Only needed if nd > strtod_diglim, but done here */
+	bc.nd0 = nd0;	/* Only needed if nd > __strtod_diglim, but done here */
 			/* to silence an erroneous warning about bc.nd0 */
 			/* possibly not being initialized. */
-	if (nd > strtod_diglim) {
-		/* ASSERT(strtod_diglim >= 18); 18 == one more than the */
+	if (nd > __strtod_diglim) {
+		/* ASSERT(__strtod_diglim >= 18); 18 == one more than the */
 		/* minimum number of decimal digits to distinguish double values */
 		/* in IEEE arithmetic. */
 		i = j = 18;
@@ -1957,10 +1957,10 @@ strtod(const char * _Restrict s00, char ** _Restrict se)
 	bd0 = s2b(s0, nd0, nd, y, bc.dplen MTb);
 
 	for(;;) {
-		bd = Balloc(bd0->k MTb);
+		bd = __Balloc(bd0->k MTb);
 		Bcopy(bd, bd0);
-		bb = d2b(&rv, &bbe, &bbbits MTb);	/* rv = bb * 2^bbe */
-		bs = i2b(1 MTb);
+		bb = __d2b(&rv, &bbe, &bbbits MTb);	/* rv = bb * 2^bbe */
+		bs = __i2b(1 MTb);
 
 		if (e >= 0) {
 			bb2 = bb5 = 0;
@@ -2025,23 +2025,23 @@ strtod(const char * _Restrict s00, char ** _Restrict se)
 			bs2 -= i;
 			}
 		if (bb5 > 0) {
-			bs = pow5mult(bs, bb5 MTb);
-			bb1 = mult(bs, bb MTb);
-			Bfree(bb MTb);
+			bs = __pow5mult(bs, bb5 MTb);
+			bb1 = __mult(bs, bb MTb);
+			__Bfree(bb MTb);
 			bb = bb1;
 			}
 		if (bb2 > 0)
-			bb = lshift(bb, bb2 MTb);
+			bb = __lshift(bb, bb2 MTb);
 		if (bd5 > 0)
-			bd = pow5mult(bd, bd5 MTb);
+			bd = __pow5mult(bd, bd5 MTb);
 		if (bd2 > 0)
-			bd = lshift(bd, bd2 MTb);
+			bd = __lshift(bd, bd2 MTb);
 		if (bs2 > 0)
-			bs = lshift(bs, bs2 MTb);
-		delta = diff(bb, bd MTb);
+			bs = __lshift(bs, bs2 MTb);
+		delta = __diff(bb, bd MTb);
 		bc.dsign = delta->sign;
 		delta->sign = 0;
-		i = cmp(delta, bs);
+		i = __cmp(delta, bs);
 #ifndef NO_STRTOD_BIGCOMP /*{*/
 		if (bc.nd > nd && i <= 0) {
 			if (bc.dsign) {
@@ -2089,8 +2089,8 @@ strtod(const char * _Restrict s00, char ** _Restrict se)
 						if (y)
 #endif
 						  {
-						  delta = lshift(delta,Log2P MTb);
-						  if (cmp(delta, bs) <= 0)
+						  delta = __lshift(delta,Log2P MTb);
+						  if (__cmp(delta, bs) <= 0)
 							adj.d = -0.5;
 						  }
 						}
@@ -2181,8 +2181,8 @@ strtod(const char * _Restrict s00, char ** _Restrict se)
 #endif
 				break;
 				}
-			delta = lshift(delta,Log2P MTb);
-			if (cmp(delta, bs) > 0)
+			delta = __lshift(delta,Log2P MTb);
+			if (__cmp(delta, bs) > 0)
 				goto drop_down;
 			break;
 			}
@@ -2471,16 +2471,16 @@ strtod(const char * _Restrict s00, char ** _Restrict se)
 		}
 #endif
  cont:
-		Bfree(bb MTb);
-		Bfree(bd MTb);
-		Bfree(bs MTb);
-		Bfree(delta MTb);
+		__Bfree(bb MTb);
+		__Bfree(bd MTb);
+		__Bfree(bs MTb);
+		__Bfree(delta MTb);
 		}
-	Bfree(bb MTb);
-	Bfree(bd MTb);
-	Bfree(bs MTb);
-	Bfree(bd0 MTb);
-	Bfree(delta MTb);
+	__Bfree(bb MTb);
+	__Bfree(bd MTb);
+	__Bfree(bs MTb);
+	__Bfree(bd0 MTb);
+	__Bfree(delta MTb);
 #ifndef NO_STRTOD_BIGCOMP
 	if (req_bigcomp) {
 		bd0 = 0;

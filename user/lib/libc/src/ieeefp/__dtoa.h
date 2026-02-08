@@ -236,12 +236,12 @@ extern mtx_t __g_dtoa_mtx[2];
 typedef unsigned Long ULong;
 #endif
 
-#ifdef DEBUG
+#ifdef DTOA_DEBUG
 #include <assert.h>
 #include <stdio.h>
 #define Bug(x) {fprintf(stderr, "%s\n", x); exit(1);}
 #define Debug(x) x
-extern int dtoa_stats[7]; /* strtod_{64,96,bigcomp},dtoa_{exact,64,96,bigcomp} */
+extern int __dtoa_stats[7]; /* strtod_{64,96,bigcomp},dtoa_{exact,64,96,bigcomp} */
 #else
 #define assert(x) /*nothing*/
 #define Debug(x) /*nothing*/
@@ -410,9 +410,9 @@ typedef union { double d; ULong L[2];
 #endif
 
 #ifdef DIGLIM_DEBUG
-extern int strtod_diglim;
+extern int __strtod_diglim;
 #else
-#define strtod_diglim STRTOD_DIGLIM
+#define __strtod_diglim STRTOD_DIGLIM
 #endif
 
 /* The following definition of Storeinc is appropriate for MIPS processors.
@@ -608,27 +608,26 @@ ThInfo {
 
 
 __CPP_BEGIN
-extern Bigint *Balloc(int k MTd);
-extern void Bfree(Bigint *v MTd);
+extern Bigint *__Balloc(int k MTd);
+extern void __Bfree(Bigint *v MTd);
 
 #define Bcopy(x,y) memcpy((char *)&x->sign, (char *)&y->sign, \
 y->wds*sizeof(Long) + 2*sizeof(int))
 
-extern Bigint *d2b(U *d, int *e, int *bits MTd);
-extern Bigint *i2b(int i MTd);
-extern Bigint *pow5mult(Bigint *b, int k MTd);
-extern Bigint *mult(Bigint *a, Bigint *b MTd);
-extern Bigint *multadd(Bigint *b, int m, int a MTd);
-extern int quorem(Bigint *b, Bigint *S);
-extern Bigint *diff(Bigint *a, Bigint *b MTd);
+extern Bigint *__d2b(U *d, int *e, int *bits MTd);
+extern Bigint *__i2b(int i MTd);
+extern Bigint *__pow5mult(Bigint *b, int k MTd);
+extern Bigint *__mult(Bigint *a, Bigint *b MTd);
+extern Bigint *__multadd(Bigint *b, int m, int a MTd);
+extern int __quorem(Bigint *b, Bigint *S);
+extern Bigint *__diff(Bigint *a, Bigint *b MTd);
 
-extern int dshift(Bigint *b, int p2);
-extern Bigint *lshift(Bigint *b, int k MTd);
+extern int __dshift(Bigint *b, int p2);
+extern Bigint *__lshift(Bigint *b, int k MTd);
 
-extern int hi0bits(ULong x);
-extern int lo0bits(ULong *y);
+extern int __hi0bits(ULong x);
 
-extern int cmp(Bigint *a, Bigint *b);
+extern int __cmp(Bigint *a, Bigint *b);
 
 __CPP_END
 

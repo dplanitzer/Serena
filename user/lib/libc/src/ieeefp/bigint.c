@@ -27,8 +27,8 @@
 static double private_mem[PRIVATE_mem], *pmem_next = private_mem;
 #endif
 
-#ifdef DEBUG
-int dtoa_stats[7]; /* strtod_{64,96,bigcomp},dtoa_{exact,64,96,bigcomp} */
+#ifdef DTOA_DEBUG
+int __dtoa_stats[7]; /* strtod_{64,96,bigcomp},dtoa_{exact,64,96,bigcomp} */
 #endif
 
 #ifdef NO_LONG_LONG /*{{*/
@@ -1012,7 +1012,7 @@ get_TI(void)
 #endif
 
  Bigint *
-Balloc(int k MTd)
+__Balloc(int k MTd)
 {
 	int x;
 	Bigint *rv;
@@ -1061,7 +1061,7 @@ Balloc(int k MTd)
 	}
 
  void
-Bfree(Bigint *v MTd)
+__Bfree(Bigint *v MTd)
 {
 #ifdef MULTIPLE_THREADS
 	ThInfo *TI;
@@ -1087,7 +1087,7 @@ Bfree(Bigint *v MTd)
 	}
 
  Bigint *
-multadd(Bigint *b, int m, int a MTd)	/* multiply by m and add a */
+__multadd(Bigint *b, int m, int a MTd)	/* multiply by m and add a */
 {
 	int i, wds;
 #ifdef ULLong
@@ -1127,9 +1127,9 @@ multadd(Bigint *b, int m, int a MTd)	/* multiply by m and add a */
 		while(++i < wds);
 	if (carry) {
 		if (wds >= b->maxwds) {
-			b1 = Balloc(b->k+1 MTa);
+			b1 = __Balloc(b->k+1 MTa);
 			Bcopy(b1, b);
-			Bfree(b MTa);
+			__Bfree(b MTa);
 			b = b1;
 			}
 		b->x[wds++] = carry;
@@ -1139,7 +1139,7 @@ multadd(Bigint *b, int m, int a MTd)	/* multiply by m and add a */
 	}
 
  int
-hi0bits(ULong x)
+__hi0bits(ULong x)
 {
 	int k = 0;
 
@@ -1167,7 +1167,7 @@ hi0bits(ULong x)
 	return k;
 	}
 
- int
+ static int
 lo0bits(ULong *y)
 {
 	int k;
@@ -1211,18 +1211,18 @@ lo0bits(ULong *y)
 	}
 
  Bigint *
-i2b(int i MTd)
+__i2b(int i MTd)
 {
 	Bigint *b;
 
-	b = Balloc(1 MTa);
+	b = __Balloc(1 MTa);
 	b->x[0] = i;
 	b->wds = 1;
 	return b;
 	}
 
  Bigint *
-mult(Bigint *a, Bigint *b MTd)
+__mult(Bigint *a, Bigint *b MTd)
 {
 	Bigint *c;
 	int k, wa, wb, wc;
@@ -1248,7 +1248,7 @@ mult(Bigint *a, Bigint *b MTd)
 	wc = wa + wb;
 	if (wc > a->maxwds)
 		k++;
-	c = Balloc(k MTa);
+	c = __Balloc(k MTa);
 	for(x = c->x, xa = x + wc; x < xa; x++)
 		*x = 0;
 	xa = a->x;
@@ -1327,7 +1327,7 @@ mult(Bigint *a, Bigint *b MTd)
 	}
 
  Bigint *
-pow5mult(Bigint *b, int k MTd)
+__pow5mult(Bigint *b, int k MTd)
 {
 	Bigint *b1, *p5, *p51;
 #ifdef MULTIPLE_THREADS
@@ -1337,7 +1337,7 @@ pow5mult(Bigint *b, int k MTd)
 	static int p05[3] = { 5, 25, 125 };
 
 	if ((i = k & 3))
-		b = multadd(b, p05[i-1], 0 MTa);
+		b = __multadd(b, p05[i-1], 0 MTa);
 
 	if (!(k >>= 2))
 		return b;
@@ -1353,20 +1353,20 @@ pow5mult(Bigint *b, int k MTd)
 		if (TI == &TI0)
 			ACQUIRE_DTOA_LOCK(1);
 		if (!(p5 = p5s)) {
-			p5 = p5s = i2b(625 MTa);
+			p5 = p5s = __i2b(625 MTa);
 			p5->next = 0;
 			}
 		if (TI == &TI0)
 			FREE_DTOA_LOCK(1);
 #else
-		p5 = p5s = i2b(625 MTa);
+		p5 = p5s = __i2b(625 MTa);
 		p5->next = 0;
 #endif
 		}
 	for(;;) {
 		if (k & 1) {
-			b1 = mult(b, p5 MTa);
-			Bfree(b MTa);
+			b1 = __mult(b, p5 MTa);
+			__Bfree(b MTa);
 			b = b1;
 			}
 		if (!(k >>= 1))
@@ -1378,13 +1378,13 @@ pow5mult(Bigint *b, int k MTd)
 			if (TI == &TI0)
 				ACQUIRE_DTOA_LOCK(1);
 			if (!(p51 = p5->next)) {
-				p51 = p5->next = mult(p5,p5 MTa);
+				p51 = p5->next = __mult(p5,p5 MTa);
 				p51->next = 0;
 				}
 			if (TI == &TI0)
 				FREE_DTOA_LOCK(1);
 #else
-			p51 = p5->next = mult(p5,p5);
+			p51 = p5->next = __mult(p5,p5);
 			p51->next = 0;
 #endif
 			}
@@ -1394,7 +1394,7 @@ pow5mult(Bigint *b, int k MTd)
 	}
 
  Bigint *
-lshift(Bigint *b, int k MTd)
+__lshift(Bigint *b, int k MTd)
 {
 	int i, k1, n, n1;
 	Bigint *b1;
@@ -1409,7 +1409,7 @@ lshift(Bigint *b, int k MTd)
 	n1 = n + b->wds + 1;
 	for(i = b->maxwds; n1 > i; i <<= 1)
 		k1++;
-	b1 = Balloc(k1 MTa);
+	b1 = __Balloc(k1 MTa);
 	x1 = b1->x;
 	for(i = 0; i < n; i++)
 		*x1++ = 0;
@@ -1444,19 +1444,19 @@ lshift(Bigint *b, int k MTd)
 		*x1++ = *x++;
 		while(x < xe);
 	b1->wds = n1 - 1;
-	Bfree(b MTa);
+	__Bfree(b MTa);
 	return b1;
 	}
 
  int
-cmp(Bigint *a, Bigint *b)
+__cmp(Bigint *a, Bigint *b)
 {
 	ULong *xa, *xa0, *xb, *xb0;
 	int i, j;
 
 	i = a->wds;
 	j = b->wds;
-#ifdef DEBUG
+#ifdef DTOA_DEBUG
 	if (i > 1 && !a->x[i-1])
 		Bug("cmp called with a->x[a->wds-1] == 0");
 	if (j > 1 && !b->x[j-1])
@@ -1478,7 +1478,7 @@ cmp(Bigint *a, Bigint *b)
 	}
 
  Bigint *
-diff(Bigint *a, Bigint *b MTd)
+__diff(Bigint *a, Bigint *b MTd)
 {
 	Bigint *c;
 	int i, wa, wb;
@@ -1492,9 +1492,9 @@ diff(Bigint *a, Bigint *b MTd)
 #endif
 #endif
 
-	i = cmp(a,b);
+	i = __cmp(a,b);
 	if (!i) {
-		c = Balloc(0 MTa);
+		c = __Balloc(0 MTa);
 		c->wds = 1;
 		c->x[0] = 0;
 		return c;
@@ -1507,7 +1507,7 @@ diff(Bigint *a, Bigint *b MTd)
 		}
 	else
 		i = 0;
-	c = Balloc(a->k MTa);
+	c = __Balloc(a->k MTa);
 	c->sign = i;
 	wa = a->wds;
 	xa = a->x;
@@ -1567,7 +1567,7 @@ diff(Bigint *a, Bigint *b MTd)
 	}
 
  Bigint *
-d2b(U *d, int *e, int *bits MTd)
+__d2b(U *d, int *e, int *bits MTd)
 {
 	Bigint *b;
 	int de, k;
@@ -1585,9 +1585,9 @@ d2b(U *d, int *e, int *bits MTd)
 #endif
 
 #ifdef Pack_32
-	b = Balloc(1 MTa);
+	b = __Balloc(1 MTa);
 #else
-	b = Balloc(2 MTa);
+	b = __Balloc(2 MTa);
 #endif
 	x = b->x;
 
@@ -1649,9 +1649,9 @@ d2b(U *d, int *e, int *bits MTd)
 			}
 		}
 	else {
-#ifdef DEBUG
+#ifdef DTOA_DEBUG
 		if (!z)
-			Bug("Zero passed to d2b");
+			Bug("Zero passed to __d2b");
 #endif
 		k = lo0bits(&z);
 		if (k >= 16) {
@@ -1674,7 +1674,7 @@ d2b(U *d, int *e, int *bits MTd)
 #endif
 #ifdef IBM
 		*e = (de - Bias - (P-1) << 2) + k;
-		*bits = 4*P + 8 - k - hi0bits(word0(d) & Frac_mask);
+		*bits = 4*P + 8 - k - __hi0bits(word0(d) & Frac_mask);
 #else
 		*e = de - Bias - (P-1) + k;
 		*bits = P - k;
@@ -1684,9 +1684,9 @@ d2b(U *d, int *e, int *bits MTd)
 	else {
 		*e = de - Bias - (P-1) + 1 + k;
 #ifdef Pack_32
-		*bits = 32*i - hi0bits(x[i-1]);
+		*bits = 32*i - __hi0bits(x[i-1]);
 #else
-		*bits = (i+2)*16 - hi0bits(x[i]);
+		*bits = (i+2)*16 - __hi0bits(x[i]);
 #endif
 		}
 #endif
@@ -1706,16 +1706,16 @@ d2b(U *d, int *e, int *bits MTd)
 #endif
 
  int
-dshift(Bigint *b, int p2)
+__dshift(Bigint *b, int p2)
 {
-	int rv = hi0bits(b->x[b->wds-1]) - 4;
+	int rv = __hi0bits(b->x[b->wds-1]) - 4;
 	if (p2 > 0)
 		rv -= p2;
 	return rv & kmask;
 	}
 
  int
-quorem(Bigint *b, Bigint *S)
+__quorem(Bigint *b, Bigint *S)
 {
 	int n;
 	ULong *bx, *bxe, q, *sx, *sxe;
@@ -1729,9 +1729,9 @@ quorem(Bigint *b, Bigint *S)
 #endif
 
 	n = S->wds;
-#ifdef DEBUG
+#ifdef DTOA_DEBUG
 	/*debug*/ if (b->wds > n)
-	/*debug*/	Bug("oversize b in quorem");
+	/*debug*/	Bug("oversize b in __quorem");
 #endif
 	if (b->wds < n)
 		return 0;
@@ -1740,15 +1740,15 @@ quorem(Bigint *b, Bigint *S)
 	bx = b->x;
 	bxe = bx + n;
 	q = *bxe / (*sxe + 1);	/* ensure q <= true quotient */
-#ifdef DEBUG
+#ifdef DTOA_DEBUG
 #ifdef NO_STRTOD_BIGCOMP
 	/*debug*/ if (q > 9)
 #else
-	/* An oversized q is possible when quorem is called from bigcomp and */
+	/* An oversized q is possible when __quorem is called from bigcomp and */
 	/* the input is near, e.g., twice the smallest denormalized number. */
 	/*debug*/ if (q > 15)
 #endif
-	/*debug*/	Bug("oversized quotient in quorem");
+	/*debug*/	Bug("oversized quotient in __quorem");
 #endif
 	if (q) {
 		borrow = 0;
@@ -1788,7 +1788,7 @@ quorem(Bigint *b, Bigint *S)
 			b->wds = n;
 			}
 		}
-	if (cmp(b, S) >= 0) {
+	if (__cmp(b, S) >= 0) {
 		q++;
 		borrow = 0;
 		carry = 0;
