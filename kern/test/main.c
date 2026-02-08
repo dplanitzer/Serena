@@ -28,6 +28,9 @@ extern void dq_signal_test(int argc, char* argv[]);
 extern void dq_sync_test(int argc, char *argv[]);
 extern void dq_terminate_test(int argc, char *argv[]);
 
+// float, double
+extern void fp_test(int argc, char *argv[]);
+
 // File
 extern void overwrite_file_test(int argc, char *argv[]);
 
@@ -105,6 +108,8 @@ static const test_t gTests[] = {
     {"dq_term", dq_terminate_test, true},
 
     {"file", overwrite_file_test, false},
+
+    {"fp", fp_test, false},
 
     {"hid", hid_test, false},
 

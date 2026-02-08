@@ -6,6 +6,7 @@
                 "${workspaceFolder}/h/**",
                 "${workspaceFolder}/src/**",
                 "${workspaceFolder}/../libc/h/**",
+                "${workspaceFolder}/../libm/h/**",
                 "${workspaceFolder}/../../../kern/h/**"
             ],
             "defines": [

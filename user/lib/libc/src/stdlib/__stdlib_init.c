@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <kpi/kei.h>
+#include <sys/mtx.h>
 #include <vcpu/__vcpu.h>
 
 pargs_t*    __gProcessArguments;
@@ -21,6 +22,8 @@ at_exit_func_t _Nullable __gAtExitFuncs[ATEXIT_MAX];
 int                      __gAtExitFuncsCount;
 volatile bool            __gIsExiting;
 
+mtx_t __g_dtoa_mtx[2];
+
 
 void __stdlibc_init(pargs_t* _Nonnull argsp)
 {
@@ -31,6 +34,9 @@ void __stdlibc_init(pargs_t* _Nonnull argsp)
     __gAtExitFuncsCount = 0;
     __gIsExiting = false;
     __gAtExitLock = SPINLOCK_INIT;
+
+    mtx_init(&__g_dtoa_mtx[0]);
+    mtx_init(&__g_dtoa_mtx[1]);
 
     __vcpu_init();
     __malloc_init();

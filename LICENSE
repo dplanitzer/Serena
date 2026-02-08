@@ -1,6 +1,15 @@
+# Serena
+
+The Serena project contains code that is covered by various licenses and which are listed below.
+
+## Serena Project (MIT License)
+
+This license covers all code (irrespective of the implementation language), resource and documentation files that together constitute the Serena project and that are not covered by any of the specific license sections mentioned below.
+
+```
 MIT License
 
-Copyright (c) 2022 Dietmar Planitzer
+Copyright (c) 2022 - 2026 Dietmar Planitzer
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +28,25 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
+
+## Libc strtod() and dtoa() Functions (Permissive License)
+
+Theses are all code files that contain this specific license at the top of the file and are used to  implement the conversion of a double precision IEEE binary floating point value to a string and from a string back to a floating point value.
+
+```
+The author of this software is David M. Gay.
+
+Copyright (c) 1991, 2000, 2001 by Lucent Technologies.
+
+Permission to use, copy, modify, and distribute this software for any
+purpose without fee is hereby granted, provided that this entire notice
+is included in all copies of any software which is or includes a copy
+or modification of this software and in all copies of the supporting
+documentation for such software.
+
+THIS SOFTWARE IS BEING PROVIDED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
+WARRANTY.  IN PARTICULAR, NEITHER THE AUTHOR NOR LUCENT MAKES ANY
+REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
+OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
+```
