@@ -44,6 +44,7 @@ extern long long strtoll(const char * _Restrict str, char ** _Restrict str_end, 
 extern unsigned long strtoul(const char * _Restrict str, char ** _Restrict str_end, int base);
 extern unsigned long long strtoull(const char * _Restrict str, char ** _Restrict str_end, int base);
 
+extern float strtof(const char * _Restrict str, char ** _Restrict str_end);
 extern double strtod(const char * _Restrict str, char ** _Restrict str_end);
 extern char *dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve);  // XXX tmp
 
