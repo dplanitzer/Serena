@@ -6,6 +6,7 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
+#include <float.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,11 +21,11 @@ void fp_test(int argc, char *argv[])
     char* r = buf;
     int decpt; 
     int sign;
-    double pi = 1e23; //3.1415926535;
+    double pi = FLT_MAX; //3.1415926535;
 
 
     // strtod()
-    pi = strtod("-3.1415926535", NULL);
+    //pi = strtod("-3.1415926535", NULL);
 
     // dtoa()
     char* fr = dtoa(pi, 1, 8, &decpt, &sign, &r);

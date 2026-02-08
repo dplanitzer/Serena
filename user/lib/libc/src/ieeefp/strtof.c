@@ -1,6 +1,6 @@
 //
 //  strtof.c
-//  lib
+//  libc
 //
 //  Created by Dietmar Planitzer on 2/7/26.
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.

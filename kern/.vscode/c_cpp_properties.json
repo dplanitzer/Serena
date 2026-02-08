@@ -6,7 +6,8 @@
                 "${workspaceFolder}/h/**",
                 "${workspaceFolder}/src/**",
                 "${workspaceFolder}/test/**",
-                "${workspaceFolder}/../user/lib/libc/h/**"
+                "${workspaceFolder}/../user/lib/libc/h/**",
+                "${workspaceFolder}/../user/lib/libm/h/**"
             ],
             "defines": [
                 "DEBUG=1",
