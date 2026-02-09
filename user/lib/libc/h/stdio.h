@@ -192,6 +192,23 @@ extern int vsnprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const cha
 extern int asprintf(char **str_ptr, const char * _Nonnull _Restrict format, ...);
 extern int vasprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list ap);
 
+#ifdef __VBCC__
+extern int __v0printf(const char * _Nonnull _Restrict format, ...);
+extern int __v2printf(const char * _Nonnull _Restrict format, ...);
+#pragma printflike printf
+
+extern int __v0fprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, ...);
+extern int __v2fprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, ...);
+#pragma printflike fprintf
+
+extern int __v2sprintf(char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, ...);
+#pragma printflike sprintf
+
+extern int __v2snprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, ...);
+#pragma printflike snprintf
+#pragma printflike asprintf
+#endif
+
 extern int scanf(const char * _Nonnull _Restrict format, ...);
 extern int vscanf(const char * _Nonnull _Restrict format, va_list ap);
 

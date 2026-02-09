@@ -1,9 +1,9 @@
 //
-//  snprintf.c
+//  snprintf_intonly.c
 //  libc
 //
-//  Created by Dietmar Planitzer on 8/23/23.
-//  Copyright © 2023 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 2/8/26.
+//  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
 #include <stdlib.h>
@@ -13,17 +13,18 @@
 #include "__stdio.h"
 
 
-int snprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, ...)
+// VBCC only
+int __v2snprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, ...)
 {
     va_list ap;
     
     va_start(ap, format);
-    const int r = vsnprintf(buffer, bufsiz, format, ap);
+    const int r = __vsnprintf_i(buffer, bufsiz, format, ap);
     va_end(ap);
     return r;
 }
 
-int vsnprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, va_list ap)
+int __vsnprintf_i(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, va_list ap)
 {
     const bool hasBuffer = (buffer && bufsiz > 0) ? true : false;
     const __FILE_Mode sm = __kStreamMode_Write | __kStreamMode_Truncate | __kStreamMode_Create;
@@ -51,7 +52,7 @@ int vsnprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _No
         return EOF;
     }
 
-    __fmt_init_fp(&fmt, &file.super, (fmt_putc_func_t)__fputc, (fmt_write_func_t)__fwrite, true);
+    __fmt_init_i(&fmt, &file.super, (fmt_putc_func_t)__fputc, (fmt_write_func_t)__fwrite, true);
     r = __fmt_format(&fmt, format, ap);
     __fmt_deinit(&fmt);
     __fclose(&file.super);

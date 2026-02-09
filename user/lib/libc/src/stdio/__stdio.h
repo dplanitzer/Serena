@@ -208,6 +208,9 @@ extern int __fclose(FILE* _Nonnull s);
 
 extern char * _Nullable __tmpnam_r(char * _Nullable _Restrict filename, int* _Nonnull _Restrict pOutIoc);
 
+extern int __vfprintf_i(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, va_list ap);
+extern int __vsnprintf_i(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, va_list ap);
+
 __CPP_END
 
 #endif /* __STDIO_H */
