@@ -13,7 +13,8 @@
 #include "__stdio.h"
 
 
-// VBCC only
+#ifdef __VBCC__
+
 int __v2snprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, ...)
 {
     va_list ap;
@@ -67,3 +68,5 @@ int __vsnprintf_i(char * _Nullable _Restrict buffer, size_t bufsiz, const char *
         return EOF;
     }
 }
+
+#endif

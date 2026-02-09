@@ -11,7 +11,8 @@
 #include <limits.h>
 
 
-// VBCC only
+#ifdef __VBCC__
+
 int __v2sprintf(char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, ...)
 {
     va_list ap;
@@ -21,3 +22,5 @@ int __v2sprintf(char * _Nullable _Restrict buffer, const char * _Nonnull _Restri
     va_end(ap);
     return r;
 }
+
+#endif

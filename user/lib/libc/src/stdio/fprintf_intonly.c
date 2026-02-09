@@ -13,7 +13,8 @@
 #include "__stdio.h"
 
 
-// VBCC only
+#ifdef __VBCC__
+
 int __v2fprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, ...)
 {
     va_list ap;
@@ -51,3 +52,5 @@ catch:
     __funlock(s);
     return r;
 }
+
+#endif

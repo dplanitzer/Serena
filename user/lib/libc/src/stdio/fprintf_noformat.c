@@ -9,8 +9,11 @@
 #include <stdio.h>
 
 
-// VBCC only
+#ifdef __VBCC__
+
 int __v0fprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, ...)
 {
     return fputs(format, s);
 }
+
+#endif
