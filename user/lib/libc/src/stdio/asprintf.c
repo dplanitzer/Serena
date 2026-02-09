@@ -54,7 +54,7 @@ int vasprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list ap
         return EOF;
     }
 
-    __fmt_init(&fmt, &file.super, (fmt_putc_func_t)__fputc, (fmt_write_func_t)__fwrite, false);
+    __fmt_init_fp(&fmt, &file.super, (fmt_putc_func_t)__fputc, (fmt_write_func_t)__fwrite, false);
     const int r1 = __fmt_format(&fmt, format, ap);
     const int r2 = __fputc('\0', &file.super);
     __fmt_deinit(&fmt);

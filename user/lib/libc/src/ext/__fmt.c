@@ -22,7 +22,7 @@
 #define FMT_CONT_COUNTING_ON_ERROR(x)   (((x) & __FMT_CONTCNTONERR) == __FMT_CONTCNTONERR)
 
 
-static void _write_char(fmt_t* _Nonnull self, char ch)
+void __fmt_write_char(fmt_t* _Nonnull self, char ch)
 {
     if ((!FMT_HAS_ERROR(self->flags) && self->putc_cb(ch, self->stream) == 1)
         || (FMT_HAS_ERROR(self->flags) && FMT_CONT_COUNTING_ON_ERROR(self->flags))) {
@@ -33,7 +33,7 @@ static void _write_char(fmt_t* _Nonnull self, char ch)
     }
 }
 
-static void _write_string(fmt_t *_Nonnull _Restrict self, const char* _Nonnull _Restrict str, ssize_t len)
+void __fmt_write_string(fmt_t *_Nonnull _Restrict self, const char* _Nonnull _Restrict str, ssize_t len)
 {
     if ((!FMT_HAS_ERROR(self->flags) && self->write_cb(self->stream, str, len) == len)
         || (FMT_HAS_ERROR(self->flags) && FMT_CONT_COUNTING_ON_ERROR(self->flags))) {
@@ -44,7 +44,7 @@ static void _write_string(fmt_t *_Nonnull _Restrict self, const char* _Nonnull _
     }
 }
 
-static void _write_char_rep(fmt_t* _Nonnull self, char ch, int count)
+void __fmt_write_char_rep(fmt_t* _Nonnull self, char ch, int count)
 {
     int i = 0;
 
@@ -156,7 +156,7 @@ static const char* _Nonnull _parse_conv_spec(fmt_t* _Nonnull _Restrict self, con
     // Minimum field width
     ch = *format;
     if (ch == '*') {
-        spec->minFieldWidth = va_arg(*ap, int);
+        spec->minFieldWidth = fmt_arg(ap, int);
         format++;
     }
     else if (ch >= '1' && ch <= '9') {
@@ -169,7 +169,7 @@ static const char* _Nonnull _parse_conv_spec(fmt_t* _Nonnull _Restrict self, con
         ch = *format;
 
         if (ch == '*') {
-            spec->prec = va_arg(*ap, int);
+            spec->prec = fmt_arg(ap, int);
             format++;
         }
         else if (ch >= '0' && ch <= '9') {
@@ -210,21 +210,21 @@ static void _format_int_field(fmt_t* _Nonnull _Restrict self, const char* _Nonnu
     }
 
     if (nspaces > 0 && !FMT_IS_LEFTJUST(spec->flags)) {
-        _write_char_rep(self, ' ', nspaces);
+        __fmt_write_char_rep(self, ' ', nspaces);
     }
 
     if (nSign > 0) {
-        _write_char(self, *sign);
+        __fmt_write_char(self, *sign);
     }
     if (!isEmpty) {
         if (nLeadingZeros > 0) {
-            _write_char_rep(self, '0', nLeadingZeros);
+            __fmt_write_char_rep(self, '0', nLeadingZeros);
         }
-        _write_string(self, digits, nDigits);
+        __fmt_write_string(self, digits, nDigits);
     }
 
     if (nspaces > 0 && FMT_IS_LEFTJUST(spec->flags)) {
-        _write_char_rep(self, ' ', nspaces);
+        __fmt_write_char_rep(self, ' ', nspaces);
     }
 }
 
@@ -253,61 +253,61 @@ static void _format_uint_field(fmt_t* _Nonnull _Restrict self, int radix, bool i
     }
 
     if (nspaces > 0 && !FMT_IS_LEFTJUST(spec->flags)) {
-        _write_char_rep(self, ' ', nspaces);
+        __fmt_write_char_rep(self, ' ', nspaces);
     }
 
     if (!isEmpty) {
         while (nRadixChars-- > 0) {
-            _write_char(self, *radixChars++);
+            __fmt_write_char(self, *radixChars++);
         }
         if (nLeadingZeros > 0) {
-            _write_char_rep(self, '0', nLeadingZeros);
+            __fmt_write_char_rep(self, '0', nLeadingZeros);
         }
-        _write_string(self, buf, len);
+        __fmt_write_string(self, buf, len);
     }
     else if (radix == 8) {
-        _write_char(self, '0');
+        __fmt_write_char(self, '0');
     }
 
     if (nspaces > 0 && FMT_IS_LEFTJUST(spec->flags)) {
-        _write_char_rep(self, ' ', nspaces);
+        __fmt_write_char_rep(self, ' ', nspaces);
     }
 }
 
 static void _format_char(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
 {
     const fmt_cspec_t* spec = &self->spec;
-    const char ch = (unsigned char) va_arg(*ap, int);
+    const char ch = (unsigned char) fmt_arg(ap, int);
     const size_t nspaces = (spec->minFieldWidth > 1) ? spec->minFieldWidth - 1 : 0;
 
     if (nspaces > 0 && FMT_IS_LEFTJUST(spec->flags)) {
-        _write_char_rep(self, ' ', nspaces);
+        __fmt_write_char_rep(self, ' ', nspaces);
     }
 
-    _write_char(self, ch);
+    __fmt_write_char(self, ch);
 
     if (nspaces > 0 && !FMT_IS_LEFTJUST(spec->flags)) {
-        _write_char_rep(self, ' ', nspaces);
+        __fmt_write_char_rep(self, ' ', nspaces);
     }
 }
 
 static void _format_string(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
 {
     const fmt_cspec_t* spec = &self->spec;
-    const char* str = va_arg(*ap, const char*);
+    const char* str = fmt_arg(ap, const char*);
     const size_t slen = strlen(str);
     const size_t flen = (FMT_IS_HASPREC(spec->flags) || spec->minFieldWidth > 0) ? slen : 0;
     const size_t adj_flen = FMT_IS_HASPREC(spec->flags) ? __min(flen, spec->prec) : flen;
     const size_t nspaces = (spec->minFieldWidth > adj_flen) ? spec->minFieldWidth - adj_flen : 0;
 
     if (nspaces > 0 && FMT_IS_LEFTJUST(spec->flags)) {
-        _write_char_rep(self, ' ', nspaces);
+        __fmt_write_char_rep(self, ' ', nspaces);
     }
 
-    _write_string(self, str, FMT_IS_HASPREC(spec->flags) ? __min(slen, adj_flen) : slen);
+    __fmt_write_string(self, str, FMT_IS_HASPREC(spec->flags) ? __min(slen, adj_flen) : slen);
 
     if (nspaces > 0 && !FMT_IS_LEFTJUST(spec->flags)) {
-        _write_char_rep(self, ' ', nspaces);
+        __fmt_write_char_rep(self, ' ', nspaces);
     }
 }
 
@@ -319,30 +319,30 @@ static void _format_int(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restr
     char * cd;
 
     switch (self->spec.lenMod) {
-        case FMT_LENMOD_hh:    v32 = (int32_t)(signed char)va_arg(*ap, int); nbits = INT32_WIDTH;   break;
-        case FMT_LENMOD_h:     v32 = (int32_t)(short)va_arg(*ap, int); nbits = INT32_WIDTH;         break;
-        case FMT_LENMOD_none:  v32 = (int32_t)va_arg(*ap, int); nbits = INT32_WIDTH;                break;
+        case FMT_LENMOD_hh:    v32 = (int32_t)(signed char)fmt_arg(ap, int); nbits = INT32_WIDTH;   break;
+        case FMT_LENMOD_h:     v32 = (int32_t)(short)fmt_arg(ap, int); nbits = INT32_WIDTH;         break;
+        case FMT_LENMOD_none:  v32 = (int32_t)fmt_arg(ap, int); nbits = INT32_WIDTH;                break;
 #if __LONG_WIDTH == 64
-        case FMT_LENMOD_l:     v64 = (int64_t)va_arg(*ap, long); nbits = INT64_WIDTH;               break;
+        case FMT_LENMOD_l:     v64 = (int64_t)fmt_arg(ap, long); nbits = INT64_WIDTH;               break;
 #else
-        case FMT_LENMOD_l:     v32 = (int32_t)va_arg(*ap, long); nbits = INT32_WIDTH;               break;
+        case FMT_LENMOD_l:     v32 = (int32_t)fmt_arg(ap, long); nbits = INT32_WIDTH;               break;
 #endif
         case FMT_LENMOD_L:
-        case FMT_LENMOD_ll:    v64 = (int64_t)va_arg(*ap, long long); nbits = INT64_WIDTH;          break;
+        case FMT_LENMOD_ll:    v64 = (int64_t)fmt_arg(ap, long long); nbits = INT64_WIDTH;          break;
 #if INTMAX_WIDTH == 64
-        case FMT_LENMOD_j:     v64 = (int64_t)va_arg(*ap, intmax_t); nbits = INTMAX_WIDTH; break;
+        case FMT_LENMOD_j:     v64 = (int64_t)fmt_arg(ap, intmax_t); nbits = INTMAX_WIDTH; break;
 #else
-        case FMT_LENMOD_j:     v32 = (int32_t)va_arg(*ap, intmax_t); nbits = INTMAX_WIDTH; break;
+        case FMT_LENMOD_j:     v32 = (int32_t)fmt_arg(ap, intmax_t); nbits = INTMAX_WIDTH; break;
 #endif
 #if SSIZE_WIDTH == 64
-        case FMT_LENMOD_z:     v64 = (int64_t)va_arg(*ap, ssize_t); nbits = SSIZE_WIDTH; break;
+        case FMT_LENMOD_z:     v64 = (int64_t)fmt_arg(ap, ssize_t); nbits = SSIZE_WIDTH; break;
 #else
-        case FMT_LENMOD_z:     v32 = (int32_t)va_arg(*ap, ssize_t); nbits = SSIZE_WIDTH; break;
+        case FMT_LENMOD_z:     v32 = (int32_t)fmt_arg(ap, ssize_t); nbits = SSIZE_WIDTH; break;
 #endif
 #if PTRDIFF_WIDTH == 64
-        case FMT_LENMOD_t:     v64 = (int64_t)va_arg(*ap, ptrdiff_t); nbits = PTRDIFF_WIDTH; break;
+        case FMT_LENMOD_t:     v64 = (int64_t)fmt_arg(ap, ptrdiff_t); nbits = PTRDIFF_WIDTH; break;
 #else
-        case FMT_LENMOD_t:     v32 = (int32_t)va_arg(*ap, ptrdiff_t); nbits = PTRDIFF_WIDTH; break;
+        case FMT_LENMOD_t:     v32 = (int32_t)fmt_arg(ap, ptrdiff_t); nbits = PTRDIFF_WIDTH; break;
 #endif
     }
 
@@ -363,30 +363,30 @@ static void _format_uint(fmt_t* _Nonnull _Restrict self, int radix, bool isUpper
     char * cd;
 
     switch (self->spec.lenMod) {
-        case FMT_LENMOD_hh:    v32 = (uint32_t)(unsigned char)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;     break;
-        case FMT_LENMOD_h:     v32 = (uint32_t)(unsigned short)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;    break;
-        case FMT_LENMOD_none:  v32 = (uint32_t)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;                    break;
+        case FMT_LENMOD_hh:    v32 = (uint32_t)(unsigned char)fmt_arg(ap, unsigned int); nbits = UINT32_WIDTH;     break;
+        case FMT_LENMOD_h:     v32 = (uint32_t)(unsigned short)fmt_arg(ap, unsigned int); nbits = UINT32_WIDTH;    break;
+        case FMT_LENMOD_none:  v32 = (uint32_t)fmt_arg(ap, unsigned int); nbits = UINT32_WIDTH;                    break;
 #if ULONG_WIDTH == 64
-        case FMT_LENMOD_l:     v64 = (uint64_t)va_arg(*ap, unsigned long); nbits = UINT64_WIDTH;                   break;
+        case FMT_LENMOD_l:     v64 = (uint64_t)fmt_arg(ap, unsigned long); nbits = UINT64_WIDTH;                   break;
 #else
-        case FMT_LENMOD_l:     v32 = (uint32_t)va_arg(*ap, unsigned long); nbits = UINT32_WIDTH;                   break;
+        case FMT_LENMOD_l:     v32 = (uint32_t)fmt_arg(ap, unsigned long); nbits = UINT32_WIDTH;                   break;
 #endif
         case FMT_LENMOD_L:
-        case FMT_LENMOD_ll:    v64 = (uint64_t)va_arg(*ap, unsigned long long); nbits = UINT64_WIDTH;              break;
+        case FMT_LENMOD_ll:    v64 = (uint64_t)fmt_arg(ap, unsigned long long); nbits = UINT64_WIDTH;              break;
 #if UINTMAX_WIDTH == 64
-        case FMT_LENMOD_j:     v64 = (uint64_t)va_arg(*ap, uintmax_t); nbits = UINTMAX_WIDTH;  break;
+        case FMT_LENMOD_j:     v64 = (uint64_t)fmt_arg(ap, uintmax_t); nbits = UINTMAX_WIDTH;  break;
 #else
-        case FMT_LENMOD_j:     v32 = (uint32_t)va_arg(*ap, uintmax_t); nbits = UINTMAX_WIDTH;  break;
+        case FMT_LENMOD_j:     v32 = (uint32_t)fmt_arg(ap, uintmax_t); nbits = UINTMAX_WIDTH;  break;
 #endif
 #if SIZE_WIDTH == 64
-        case FMT_LENMOD_z:     v64 = (uint64_t)va_arg(*ap, size_t); nbits = SIZE_WIDTH;  break;
+        case FMT_LENMOD_z:     v64 = (uint64_t)fmt_arg(ap, size_t); nbits = SIZE_WIDTH;  break;
 #else
-        case FMT_LENMOD_z:     v32 = (uint32_t)va_arg(*ap, size_t); nbits = SIZE_WIDTH;  break;
+        case FMT_LENMOD_z:     v32 = (uint32_t)fmt_arg(ap, size_t); nbits = SIZE_WIDTH;  break;
 #endif
 #if PTRDIFF_WIDTH == 64
-        case FMT_LENMOD_t:     v64 = (uint64_t)va_arg(*ap, ptrdiff_t); nbits = PTRDIFF_WIDTH;    break;
+        case FMT_LENMOD_t:     v64 = (uint64_t)fmt_arg(ap, ptrdiff_t); nbits = PTRDIFF_WIDTH;    break;
 #else
-        case FMT_LENMOD_t:     v32 = (uint32_t)va_arg(*ap, ptrdiff_t); nbits = PTRDIFF_WIDTH;    break;
+        case FMT_LENMOD_t:     v32 = (uint32_t)fmt_arg(ap, ptrdiff_t); nbits = PTRDIFF_WIDTH;    break;
 #endif
     }
 
@@ -406,10 +406,10 @@ static void _format_ptr(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restr
     self->spec.flags |= (__FMT_ALTFORM | __FMT_PADZEROS | __FMT_HASPREC);
 
 #if __INTPTR_WIDTH == 64
-    char* cd = __u64toa((uint64_t)va_arg(*ap, void*), 16, false, &self->i64a);
+    char* cd = __u64toa((uint64_t)fmt_arg(ap, void*), 16, false, &self->i64a);
     self->spec.prec = 16;
 #else
-    char* cd = __u32toa((uint32_t)va_arg(*ap, void*), 16, false, (i32a_t*)&self->i64a);
+    char* cd = __u32toa((uint32_t)fmt_arg(ap, void*), 16, false, (i32a_t*)&self->i64a);
     self->spec.prec = 8;
 #endif
 
@@ -419,7 +419,7 @@ static void _format_ptr(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restr
 
 static void _format_out_nchars(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
 {
-    char* p = va_arg(*ap, char*);
+    char* p = fmt_arg(ap, char*);
     const size_t n = self->charactersWritten;
 
     switch (self->spec.lenMod) {
@@ -437,7 +437,7 @@ static void _format_out_nchars(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull
 static void _format_arg(fmt_t* _Nonnull _Restrict self, char conversion, va_list* _Nonnull _Restrict ap)
 {
     switch (conversion) {
-        case '%':   _write_char(self, '%'); break;
+        case '%':   __fmt_write_char(self, '%'); break;
         case 'c':   _format_char(self, ap); break;
         case 's':   _format_string(self, ap); break;
         case 'd':   // fall through
@@ -446,33 +446,22 @@ static void _format_arg(fmt_t* _Nonnull _Restrict self, char conversion, va_list
         case 'x':   _format_uint(self, 16, false, ap); break;
         case 'X':   _format_uint(self, 16, true, ap); break;
         case 'u':   _format_uint(self, 10, false, ap); break;
-#if ___STDC_HOSTED__ == 1
-        case 'f':   break; // XXX
-        case 'F':   break; // XXX
-        case 'e':   break; // XXX
-        case 'E':   break; // XXX
-        case 'a':   break; // XXX
-        case 'A':   break; // XXX
-        case 'g':   break; // XXX
-        case 'G':   break; // XXX
-#endif
         case 'n':   _format_out_nchars(self, ap); break;
         case 'p':   _format_ptr(self, ap); break;
-        default:    break;
+        
+        default:
+            if (self->format_cb) {
+                self->format_cb(self, conversion, ap);
+            }
+            break;
     }
 }
 
 
-void __fmt_init(fmt_t* _Nonnull _Restrict self, void* _Nullable _Restrict s, fmt_putc_func_t _Nonnull putc_f, fmt_write_func_t _Nonnull write_f, bool doContCountingOnError)
+void __fmt_init_i(fmt_t* _Nonnull _Restrict self, void* _Nullable _Restrict s, fmt_putc_func_t _Nonnull putc_f, fmt_write_func_t _Nonnull write_f, bool doContCountingOnError)
 {
-    self->stream = s;
-    self->putc_cb = putc_f;
-    self->write_cb = write_f;
-    self->charactersWritten = 0;
-    self->flags = 0;
-    if (doContCountingOnError) {
-        self->flags |= __FMT_CONTCNTONERR;
-    }
+    __fmt_common_init(self, s, putc_f, write_f, doContCountingOnError);
+    self->format_cb = NULL;
 }
 
 void __fmt_deinit(fmt_t* _Nullable self)
@@ -495,13 +484,13 @@ int __fmt_format(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict 
         switch (*format) {
             case '\0':
                 if (format != pformat) {
-                    _write_string(self, pformat, format - pformat);
+                    __fmt_write_string(self, pformat, format - pformat);
                 }
                 return (int)__min(self->charactersWritten, INT_MAX);
 
             case '%':
                 if (format != pformat) {
-                    _write_string(self, pformat, format - pformat);
+                    __fmt_write_string(self, pformat, format - pformat);
                 }
                 format = _parse_conv_spec(self, ++format, &ap);
                 _format_arg(self, *format++, &ap);

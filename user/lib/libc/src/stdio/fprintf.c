@@ -35,7 +35,7 @@ int vfprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format
     __fensure_byte_oriented(s);
     __fensure_direction(s, __kStreamDirection_Out);
 
-    __fmt_init(&fmt, s, (fmt_putc_func_t)__fputc, (fmt_write_func_t)__fwrite, false);
+    __fmt_init_i(&fmt, s, (fmt_putc_func_t)__fputc, (fmt_write_func_t)__fwrite, false);
     const int res = __fmt_format(&fmt, format, ap);
     __fmt_deinit(&fmt);
 

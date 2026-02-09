@@ -58,7 +58,7 @@ void log_init(void)
     mtx_init(&gLock);
     gCurrentSink = kSink_RingBuffer;
     cbuf_init_extbuf(&gRingBuffer, gLogBuffer, LOG_BUFFER_SIZE);
-    __fmt_init(&gFormatter, NULL, (fmt_putc_func_t)_lputc, (fmt_write_func_t)_lwrite, false);
+    __fmt_init_i(&gFormatter, NULL, (fmt_putc_func_t)_lputc, (fmt_write_func_t)_lwrite, false);
 }
 
 static errno_t log_open_console(void)
