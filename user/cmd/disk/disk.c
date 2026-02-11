@@ -546,7 +546,7 @@ int main(int argc, char* argv[])
         return EXIT_SUCCESS;
     }
     else {
-        fatal(strerror(errno));
+        fatal("%s", strerror(errno));
         return EXIT_FAILURE;
     }
 }
