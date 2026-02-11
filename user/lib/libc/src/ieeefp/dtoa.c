@@ -159,7 +159,7 @@ freedtoa(char *s)
  */
 
  char *
-dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char *buf, size_t blen)
+__dtoa_r(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve, char *buf, size_t blen)
 {
  /*	Arguments ndigits, decpt, sign are similar to those
 	of ecvt and fcvt; trailing zeros are suppressed from
@@ -1401,11 +1401,11 @@ dtoa(double dd, int mode, int ndigits, int *decpt, int *sign, char **rve)
 {
 	/*	Sufficient space is allocated to the return value
 		to hold the suppressed trailing zeros.
-		See dtoa_r() above for details on the other arguments.
+		See __dtoa_r() above for details on the other arguments.
 	*/
 #ifndef MULTIPLE_THREADS
 	if (dtoa_result)
 		freedtoa(dtoa_result);
 #endif
-	return dtoa_r(dd, mode, ndigits, decpt, sign, rve, 0, 0);
+	return __dtoa_r(dd, mode, ndigits, decpt, sign, rve, 0, 0);
 	}

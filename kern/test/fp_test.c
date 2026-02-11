@@ -7,29 +7,18 @@
 //
 
 #include <float.h>
-#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include "Asserts.h"
 
 
 // This test requires an FPU
 void fp_test(int argc, char *argv[])
 {
-    static char buf[128];
-    char* r = buf;
-    int decpt; 
-    int sign;
-    double pi = FLT_MAX; //3.1415926535;
-
+    double pi = 3.1415926535;
 
     // strtod()
-    //pi = strtod("-3.1415926535", NULL);
+    double pi_neg = strtod("-3.1415926535", NULL);
 
-    // dtoa()
-    char* fr = dtoa(pi, 1, 8, &decpt, &sign, &r);
-    printf("%s, decpt: %d, sign: %d\n", fr, decpt, sign);
-
-    //assertEquals(0, abs(0));
+    printf("pi: %.3f, pi_neg: %f\n", pi, pi_neg);
+    printf("pi: %e, FLT_MAX: %E\n", pi, FLT_MAX);
 }

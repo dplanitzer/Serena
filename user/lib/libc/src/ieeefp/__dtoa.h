@@ -218,16 +218,22 @@
 #include <sys/mtx.h>
 #include <sys/vcpu.h>
 
+#ifdef __IEEE_LITTLE_ENDIAN
+#define IEEE_8087
+#endif
+
+#ifdef __IEEE_BIG_ENDIAN
+#define IEEE_MC68k
+#endif
+
+
 extern mtx_t __g_dtoa_mtx[2];
 
-#define IEEE_MC68k 1
-#define NO_BF96 1
-
-#define MULTIPLE_THREADS 1
+#if defined(MULTIPLE_THREADS)
 #define dtoa_get_threadno() ((unsigned int)vcpu_id(vcpu_self()))
 #define ACQUIRE_DTOA_LOCK(x) mtx_lock(&__g_dtoa_mtx[x])
 #define FREE_DTOA_LOCK(x) mtx_unlock(&__g_dtoa_mtx[x])
-
+#endif
 
 #ifndef Long
 #define Long int

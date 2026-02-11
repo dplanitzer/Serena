@@ -11,13 +11,6 @@
 #include <ext/math.h>
 #include <string.h>
 
-#define FMT_IS_LEFTJUST(x)      (((x) & __FMT_LEFTJUST) == __FMT_LEFTJUST)
-#define FMT_IS_FORCESIGN(x)     (((x) & __FMT_FORCESIGN) == __FMT_FORCESIGN)
-#define FMT_IS_SPACEIFPOS(x)    (((x) & __FMT_SPACEIFPOS) == __FMT_SPACEIFPOS)
-#define FMT_IS_ALTFORM(x)       (((x) & __FMT_ALTFORM) == __FMT_ALTFORM)
-#define FMT_IS_PADZEROS(x)      (((x) & __FMT_PADZEROS) == __FMT_PADZEROS)
-#define FMT_IS_HASPREC(x)       (((x) & __FMT_HASPREC) == __FMT_HASPREC)
-
 #define FMT_HAS_ERROR(x)                (((x) & __FMT_HASERR) == __FMT_HASERR)
 #define FMT_CONT_COUNTING_ON_ERROR(x)   (((x) & __FMT_CONTCNTONERR) == __FMT_CONTCNTONERR)
 

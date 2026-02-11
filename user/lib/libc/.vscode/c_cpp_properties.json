@@ -19,7 +19,11 @@
                 "_POSIX_SOURCE=1",
                 "___STDC_HOSTED__=1",
                 "__STDC_WANT_LIB_EXT1__=1",
-                "__VBCC__=1"
+                "__VBCC__=1",
+                "__IEEE_BIG_ENDIAN=1",
+                "NO_BF96=1",
+                "MULTIPLE_THREADS=1",
+                "_NO_LONGDBL=1"
             ],        
             "compilerPath": "",
             "cStandard": "c99",

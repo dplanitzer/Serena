@@ -46,7 +46,6 @@ extern unsigned long long strtoull(const char * _Restrict str, char ** _Restrict
 
 extern float strtof(const char * _Restrict str, char ** _Restrict str_end);
 extern double strtod(const char * _Restrict str, char ** _Restrict str_end);
-extern char *dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve);  // XXX tmp
 
 
 #define RAND_MAX 0x7fffffff
