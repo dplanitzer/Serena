@@ -68,7 +68,7 @@
 }
 
 
-static int __isinf(double x)
+static int __fmt_isinf(double x)
 {
     union { uint64_t u; double f; } fp;
     
@@ -77,7 +77,7 @@ static int __isinf(double x)
            ((unsigned)fp.u == 0);
 }
 
-static int __isnan(double x)
+static int __fmt_isnan(double x)
 {
     union { uint64_t u; double f; } fp;
 
@@ -86,13 +86,14 @@ static int __isnan(double x)
            ((unsigned)fp.u != 0) > 0x7ff00000;
 }
 
-static int __signbit(double x)
+static int __fmt_signbit(double x)
 {
     union double_union tmp;
 
     tmp.d = x;
     return (word0 (tmp) & Sign_bit) ? 1 : 0;
 }
+
 
 /* Using reentrant DATA, convert finite VALUE into a string of digits
    with no decimal point, using NDIGITS precision and FLAGS as guides
@@ -289,7 +290,7 @@ static void __fmt_format_fp(fmt_t* _Nonnull _Restrict self, char ch, va_list* _N
                zeros are not permitted.  Otherwise, scanf
                could not read what printf wrote.
             */
-            if (__isinf (_fpvalue)) {
+            if (__fmt_isinf (_fpvalue)) {
                 if (_fpvalue < 0)
                     sign = '-';
                 if (ch <= 'G') /* 'A', 'E', 'F', or 'G' */
@@ -300,8 +301,8 @@ static void __fmt_format_fp(fmt_t* _Nonnull _Restrict self, char ch, va_list* _N
                 self->spec.flags &= ~__FMT_PADZEROS;
                 break;
             }
-            if (__isnan (_fpvalue)) {
-                if (__signbit (_fpvalue))
+            if (__fmt_isnan (_fpvalue)) {
+                if (__fmt_signbit (_fpvalue))
                     sign = '-';
                 if (ch <= 'G') /* 'A', 'E', 'F', or 'G' */
                     cp = "NAN";

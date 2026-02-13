@@ -17,7 +17,8 @@
                 "__SERENA__",
                 "_POSIX_SOURCE=1",
                 "___STDC_HOSTED__=1",
-                "__STDC_WANT_LIB_EXT1__=1"
+                "__STDC_WANT_LIB_EXT1__=1",
+                "__VBCC__=1"
             ],        
             "compilerPath": "",
             "cStandard": "c99",

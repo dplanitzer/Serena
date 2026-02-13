@@ -202,6 +202,27 @@
     	        "problemMatcher": []
 	        },
 
+    	    {
+	            "label": "Clean libm",
+    	        "type": "shell",
+        	    "command": "",
+            	"args": [
+	                "make",
+    	            "clean-libm",
+        	        "-s",
+            	    "-R",
+	                "--directory=${workspaceFolder}/../"
+    	        ],
+        	    "group":  {
+            	    "kind": "build",
+                	"isDefault": false
+	            },
+    	        "presentation": {
+        	        "reveal":"always"
+	            },
+    	        "problemMatcher": []
+	        },
+
 	        {
     	        "label": "Clean libdispatch",
         	    "type": "shell",

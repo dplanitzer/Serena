@@ -7,6 +7,7 @@
 //
 
 #include <float.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -19,6 +20,14 @@ void fp_test(int argc, char *argv[])
     // strtod()
     double pi_neg = strtod("-3.1415926535", NULL);
 
+    // printf(%f, %e, %g)
     printf("pi: %.3f, pi_neg: %f\n", pi, pi_neg);
     printf("pi: %e, FLT_MAX: %E\n", pi, FLT_MAX);
+
+
+    // sqrt()
+    printf("sqrt(%g) -> %g\n", 64.0, sqrt(64.0));
+//    printf("sqrt(%g) -> %g\n", -64.0, sqrt(-64.0));
+//    printf("sqrt(+0.0) -> %g, sqrt(-0.0) -> %g\n", sqrt(0.0), sqrt(-0.0));
+//    printf("sqrt(nan) -> %g, sqrt(-inf) -> %g\n", sqrt(NAN), sqrt(-INFINITY));
 }
