@@ -55,11 +55,14 @@
 
 #if defined(__M68K__) || defined(__i386__)
 #define FLT_EVAL_METHOD 2
-#else
+#elif defined(__x86_64__) || defined(__arm__)
 #define FLT_EVAL_METHOD 0
+#else
+#define FLT_EVAL_METHOD -1
 #endif
 
-#if defined(__M68K__) || defined(__i386__) || defined(__x86_64__)
+
+#if defined(__M68K__) || defined(__i386__) || defined(__x86_64__) || defined(__arm__)
 #define FLT_ROUNDS 1
 #else
 #define FLT_ROUNDS -1
