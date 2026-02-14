@@ -32,7 +32,7 @@ SOFTWARE.
 
 ## Libc - strtod(), dtoa() and Bigint Functions (Permissive License)
 
-Theses are all code files that contain this specific license at the top of the file and are used to  implement the conversion of a double precision IEEE binary floating point value to a string and from a string back to a floating point value.
+These are all the code files that contain this specific license at the top of the file and are used to  implement the conversion of a double precision IEEE binary floating point value to a string and from a string back to a floating point value. The code is derived from the code available on the newlib/fp website.
 
 ```
 The author of this software is David M. Gay.
@@ -53,7 +53,7 @@ OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
 
 ## Libc - __fmt_fp.c Code File (BSD License)
 
-This code file implements the floating point related format options for the `printf()` formatter.
+This code file implements the floating point related format options for the `printf()` formatter. The code is derived from the newlib/libc/stdio/vfprintf.c file.
 
 ```
 Copyright (c) 1990 The Regents of the University of California.
@@ -100,7 +100,9 @@ library also includes work placed under the public domain, which is
 noted in the individual files. Further work on making a standalone
 OpenLibm library from msun, as part of the Julia project is covered
 under the MIT license. The test files, test-double.c and test-float.c
-are under the LGPL.
+are under the LGPL (*).
+
+(*) Please note that the test files are not part of the Serena OS repository.
 
 ## Parts copyrighted by the Julia project (MIT License)
 
