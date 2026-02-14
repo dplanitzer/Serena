@@ -57,6 +57,10 @@ typedef struct clap {
 
 extern void _clap_help(clap_t* _Nonnull self, const clap_param_t* _Nonnull param);
 
+#ifndef __SERENA__
+#define vfiprintf vfprintf
+#endif
+
 __CPP_END
 
 #endif /* _CLAP_PRIV_H */

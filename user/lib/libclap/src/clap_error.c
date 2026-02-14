@@ -53,14 +53,14 @@ static void _clap_print_app_name(const char* _Nonnull proc_name)
 #endif
 
     if (app_name_len > 0) {
-        fprintf(stderr, "%.*s: ", app_name_len, app_name);
+        fwrite(app_name, app_name_len, 1, stderr);
     }
 }
 
 void clap_verror(const char* _Nonnull proc_name, const char* format, va_list ap)
 {
     _clap_print_app_name(proc_name);
-    vfprintf(stderr, format, ap);
+    vfiprintf(stderr, format, ap);
     fputc('\n', stderr);
 }
 
@@ -88,7 +88,7 @@ void clap_vparam_error(const char* _Nonnull proc_name, const clap_param_t* _Nonn
         }
     }
 
-    vfprintf(stderr, format, ap);
+    vfiprintf(stderr, format, ap);
     fputc('\n', stderr);
 }
 
