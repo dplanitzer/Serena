@@ -1,5 +1,5 @@
 //
-//  snprintf_intonly.c
+//  sniprintf.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 2/8/26.
@@ -14,18 +14,28 @@
 
 
 #ifdef __VBCC__
-
 int __v2snprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, ...)
 {
     va_list ap;
     
     va_start(ap, format);
-    const int r = __vsnprintf_i(buffer, bufsiz, format, ap);
+    const int r = vsniprintf(buffer, bufsiz, format, ap);
+    va_end(ap);
+    return r;
+}
+#endif
+
+int sniprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, ...)
+{
+    va_list ap;
+    
+    va_start(ap, format);
+    const int r = vsniprintf(buffer, bufsiz, format, ap);
     va_end(ap);
     return r;
 }
 
-int __vsnprintf_i(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, va_list ap)
+int vsniprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, va_list ap)
 {
     const bool hasBuffer = (buffer && bufsiz > 0) ? true : false;
     const __FILE_Mode sm = __kStreamMode_Write | __kStreamMode_Truncate | __kStreamMode_Create;
@@ -68,5 +78,3 @@ int __vsnprintf_i(char * _Nullable _Restrict buffer, size_t bufsiz, const char *
         return EOF;
     }
 }
-
-#endif

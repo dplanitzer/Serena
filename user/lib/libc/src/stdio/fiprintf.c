@@ -1,5 +1,5 @@
 //
-//  fprintf_intonly.c
+//  fiprintf.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
@@ -14,19 +14,30 @@
 
 
 #ifdef __VBCC__
-
 int __v2fprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, ...)
 {
     va_list ap;
     
     va_start(ap, format);
-    const int r = __vfprintf_i(s, format, ap);
+    const int r = vfiprintf(s, format, ap);
+    va_end(ap);
+
+    return r;
+}
+#endif
+
+int fiprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, ...)
+{
+    va_list ap;
+    
+    va_start(ap, format);
+    const int r = vfiprintf(s, format, ap);
     va_end(ap);
 
     return r;
 }
 
-int __vfprintf_i(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, va_list ap)
+int vfiprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, va_list ap)
 {
     fmt_t fmt;
     int r = EOF;
@@ -52,5 +63,3 @@ catch:
     __funlock(s);
     return r;
 }
-
-#endif

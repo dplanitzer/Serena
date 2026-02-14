@@ -178,6 +178,8 @@ extern char * _Nullable gets(char * _Nonnull str);
 extern int putchar(int ch);
 extern int puts(const char * _Nonnull str);
 
+
+// Integer and IEEE FP versions of printf()
 extern int printf(const char * _Nonnull _Restrict format, ...);
 extern int vprintf(const char * _Nonnull _Restrict format, va_list ap);
 
@@ -191,6 +193,21 @@ extern int vsnprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const cha
 
 extern int asprintf(char **str_ptr, const char * _Nonnull _Restrict format, ...);
 extern int vasprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list ap);
+
+// Integer only versions of printf()
+extern int iprintf(const char * _Nonnull _Restrict format, ...);
+extern int viprintf(const char * _Nonnull _Restrict format, va_list ap);
+
+extern int fiprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, ...);
+extern int vfiprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, va_list ap);
+
+extern int siprintf(char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, ...);
+extern int vsiprintf(char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, va_list ap);
+extern int sniprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, ...);
+extern int vsniprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, va_list ap);
+
+extern int asiprintf(char **str_ptr, const char * _Nonnull _Restrict format, ...);
+extern int vasiprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list ap);
 
 #ifdef __VBCC__
 extern int __v0printf(const char * _Nonnull _Restrict format, ...);
@@ -206,8 +223,11 @@ extern int __v2sprintf(char * _Nullable _Restrict buffer, const char * _Nonnull 
 
 extern int __v2snprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, ...);
 #pragma printflike snprintf
+
+extern int __v2asprintf(char **str_ptr, const char * _Nonnull _Restrict format, ...);
 #pragma printflike asprintf
 #endif
+
 
 extern int scanf(const char * _Nonnull _Restrict format, ...);
 extern int vscanf(const char * _Nonnull _Restrict format, va_list ap);
@@ -217,6 +237,7 @@ extern int vfscanf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict 
 
 extern int sscanf(const char * _Nonnull _Restrict buffer, const char * _Nonnull _Restrict format, ...);
 extern int vsscanf(const char * _Nonnull _Restrict buffer, const char * _Nonnull _Restrict format, va_list ap);
+
 
 extern void perror(const char * _Nullable str);
 
