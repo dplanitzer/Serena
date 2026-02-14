@@ -17,7 +17,12 @@ static bool clap_print_usage(const clap_param_t* _Nonnull p)
 
     while (p->type != clap_type_end && p->type != clap_type_command) {
         if (p->type == clap_type_usage && *p->u.text != '\0') {
-            printf((c == 0) ? "usage: %s\n" : "       %s\n", p->u.text);
+            if (c == 0) {
+                printf("usage: %s\n", p->u.text);
+            }
+            else {
+                printf("       %s\n", p->u.text);
+            }
             c++;
         }
         p++;
