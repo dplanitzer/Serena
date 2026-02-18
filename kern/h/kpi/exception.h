@@ -15,7 +15,7 @@
 typedef struct excpt_info {
     int             code;       // EXCPT_XXX
     int             cpu_code;   // corresponding CPU code. Usually more detailed
-    void* _Nullable addr;
+    void* _Nullable addr;       // fault address
 } excpt_info_t;
 
 
@@ -28,12 +28,16 @@ typedef struct excpt_handler {
 } excpt_handler_t;
 
 
-#define EXCPT_ILLEGAL   1   /* illegal/undefined/privileged instruction */
-#define EXCPT_TRAP      2   /* (software) interrupt, trap */
-#define EXCPT_DIV_ZERO  3   /* integer division by zero */
-#define EXCPT_FPE       4   /* floating-point exception */
-#define EXCPT_BUS       5   /* bus error (accessed unmapped memory) */
-#define EXCPT_SEGV      6   /* segmentation violation */
+#define EXCPT_ILLEGAL       1   /* illegal/undefined instruction */
+#define EXCPT_PRIVILEGED    2   /* privileged instruction */
+#define EXCPT_TRAP          3   /* (software) interrupt, trap */
+#define EXCPT_INT           4   /* integer exceptions (division-by-zero, overflow, range check failed, etc) */
+#define EXCPT_FP            5   /* floating-point exceptions (division-by-zero, overflow, inexact, etc) */
+#define EXCPT_TRACE         6   /* trace/single step instruction */
+
+#define EXCPT_UNALIGNED     7   /* unaligned memory access */
+#define EXCPT_BUS           8   /* bus error (accessed unmapped memory, misaligned r/w) */
+#define EXCPT_ACCESS        9   /* memory access violation */
 
 
 #define EXCPT_SCOPE_VCPU    0

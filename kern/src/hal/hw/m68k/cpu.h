@@ -68,10 +68,10 @@
 #define EXCPT_NUM_RESET_PC   1
 #define EXCPT_NUM_BUS_ERR    2
 #define EXCPT_NUM_ADR_ERR    3
-#define EXCPT_NUM_ILL_INSTR  4
+#define EXCPT_NUM_ILLEGAL    4
 #define EXCPT_NUM_ZERO_DIV   5
 #define EXCPT_NUM_CHK        6
-#define EXCPT_NUM_TRAPX      7
+#define EXCPT_NUM_TRAPcc     7
 #define EXCPT_NUM_PRIV_VIO   8
 #define EXCPT_NUM_TRACE      9
 #define EXCPT_NUM_LINE_A     10
@@ -88,7 +88,7 @@
 #define EXCPT_NUM_RESV_21    21
 #define EXCPT_NUM_RESV_22    22
 #define EXCPT_NUM_RESV_23    23
-#define EXCPT_SPURIOUS_IRQ   24
+#define EXCPT_NNUM_SPUR_IRQ  24
 #define EXCPT_NUM_IRQ_1      25
 #define EXCPT_NUM_IRQ_2      26
 #define EXCPT_NUM_IRQ_3      27
@@ -112,17 +112,17 @@
 #define EXCPT_NUM_TRAP_13    45
 #define EXCPT_NUM_TRAP_14    46
 #define EXCPT_NUM_TRAP_15    47
-#define EXCPT_NUM_FPU_BRANCH_UO  48
-#define EXCPT_NUM_FPU_INEXACT    49
-#define EXCPT_NUM_FPU_DIV_ZERO   50
-#define EXCPT_NUM_FPU_UNDERFLOW  51
-#define EXCPT_NUM_FPU_OP_ERR     52
-#define EXCPT_NUM_FPU_OVERFLOW   53
-#define EXCPT_NUM_FPU_SNAN       54
-#define EXCPT_NUM_FPU_UNIMPL_TY  55
-#define EXCPT_NUM_MMU_CONF_ERR   56
-#define EXCPT_NUM_MMU_ILL_OP     57
-#define EXCPT_NUM_MMU_ACCESS_VIO 58
+#define EXCPT_NUM_FPU_BRANCH_UO 48
+#define EXCPT_NUM_FPU_INEXACT   49
+#define EXCPT_NUM_FPU_DIV_ZERO  50
+#define EXCPT_NUM_FPU_UNDERFLOW 51
+#define EXCPT_NUM_FPU_OP_ERR    52
+#define EXCPT_NUM_FPU_OVERFLOW  53
+#define EXCPT_NUM_FPU_SNAN      54
+#define EXCPT_NUM_FPU_UNIMPL_TY 55
+#define EXCPT_NUM_PMMU_CONFIG   56
+#define EXCPT_NUM_PMMU_ILLEGAL  57
+#define EXCPT_NUM_PMMU_ACCESS   58
 #define EXCPT_NUM_RESV_59    59
 #define EXCPT_NUM_UNIMPL_EA  60
 #define EXCPT_NUM_UNIMPL_INT 61
@@ -369,6 +369,18 @@ extern bool cpu_is_null_fsave(const char* _Nonnull sfp);
 #define BIU_PENDING_INSTR_TYPE  (1 << 29)
 #define BIU_INSTR_PENDING       (1 << 30)
 #define BIU_PROTO_VIO_PENDING   (1 << 31)
+
+
+// Exception frame type $A and $B SSW flags
+#define SSW_FC  (1 << 15)
+#define SSW_FB  (1 << 14)
+#define SSW_RC  (1 << 13)
+#define SSW_RB  (1 << 12)
+#define SSW_DF  (1 << 8)
+#define SSW_RM  (1 << 7)
+#define SSW_RW  (1 << 6)
+#define SSW_SIZE_MASK   0x30
+#define SSW_FCx_MASK    0x7
 
 
 // Describes the CPU register set that is saved on a context switch and when

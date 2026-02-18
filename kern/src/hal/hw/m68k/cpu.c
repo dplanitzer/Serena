@@ -65,29 +65,47 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
 }
 
 
-static bool map_exception(int cpu_code, excpt_frame_t* _Nonnull efp, excpt_info_t* _Nonnull ei)
+// MC68020UM, p6-1 (126)ff
+static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excpt_info_t* _Nonnull ei)
 {
+    int ecode;
+    uintptr_t faddr;
+
+    // Any exception triggered in kernel mode
+    if (!excpt_frame_isuser(efp)) {
+        return false;
+    }
+
+
+    // get the exception code
     switch (cpu_code) {
-        case EXCPT_NUM_ZERO_DIV:
-            ei->code = EXCPT_DIV_ZERO;
-            ei->addr = (void*)efp->u.f2.addr;
+        case EXCPT_NUM_BUS_ERR:
+            ecode = EXCPT_BUS;
             break;
 
-        case EXCPT_NUM_ILL_INSTR:
+        case EXCPT_NUM_ADR_ERR:
+            ecode = EXCPT_UNALIGNED;
+            break;
+
+        case EXCPT_NUM_ILLEGAL:
         case EXCPT_NUM_LINE_A:
         case EXCPT_NUM_LINE_F:
-        case EXCPT_NUM_FORMAT:
-        case EXCPT_NUM_EMU:
-        case EXCPT_NUM_TRACE:
-        case EXCPT_NUM_PRIV_VIO:
-            ei->code = EXCPT_ILLEGAL;
-            ei->addr = (void*)efp->pc;
+        case EXCPT_NUM_PMMU_ACCESS: // PMMU is turned off and user space tries ot execute a PVALID instruction
+            ecode = EXCPT_ILLEGAL;
             break;
 
+        case EXCPT_NUM_ZERO_DIV:
         case EXCPT_NUM_CHK:
-        case EXCPT_NUM_TRAPX:
-            ei->code = EXCPT_TRAP;
-            ei->addr = (void*)efp->u.f2.addr;
+        case EXCPT_NUM_TRAPcc:
+            ecode = EXCPT_INT;
+            break;
+
+        case EXCPT_NUM_PRIV_VIO:
+            ecode = EXCPT_PRIVILEGED;
+            break;
+
+        case EXCPT_NUM_TRACE:
+            ecode = EXCPT_TRACE;
             break;
 
         case EXCPT_NUM_TRAP_0:
@@ -106,8 +124,7 @@ static bool map_exception(int cpu_code, excpt_frame_t* _Nonnull efp, excpt_info_
         case EXCPT_NUM_TRAP_13:
         case EXCPT_NUM_TRAP_14:
         case EXCPT_NUM_TRAP_15:
-            ei->code = EXCPT_TRAP;
-            ei->addr = (void*)efp->pc;
+            ecode = EXCPT_TRAP;
             break;
 
         case EXCPT_NUM_FPU_BRANCH_UO:
@@ -118,33 +135,70 @@ static bool map_exception(int cpu_code, excpt_frame_t* _Nonnull efp, excpt_info_
         case EXCPT_NUM_FPU_OVERFLOW:
         case EXCPT_NUM_FPU_SNAN:
         case EXCPT_NUM_FPU_UNIMPL_TY:
-            ei->code = EXCPT_FPE;
-            ei->addr = (void*)efp->pc;
+            ecode = EXCPT_FP;
             break;
 
-
-        case EXCPT_NUM_BUS_ERR:
-            ei->code = EXCPT_BUS;
-            ei->addr = (void*)efp->pc;
-            break;
-
-        case EXCPT_NUM_ADR_ERR:
-        case EXCPT_NUM_MMU_CONF_ERR:
-        case EXCPT_NUM_MMU_ILL_OP:
-        case EXCPT_NUM_MMU_ACCESS_VIO:
+        case EXCPT_NUM_EMU:
         case EXCPT_NUM_UNIMPL_EA:
         case EXCPT_NUM_UNIMPL_INT:
-            ei->code = EXCPT_SEGV;
-            ei->addr = (void*)efp->pc;  //XXX find real fault address
-            break;
+            //XXX to be done
+            // fall through
 
         case EXCPT_NUM_COPROC:
-            // coprocessor protocol violations are fatal
+        case EXCPT_NUM_FORMAT:
+        case EXCPT_NUM_PMMU_CONFIG:
+        case EXCPT_NUM_PMMU_ILLEGAL:
+            // these are exceptions that imply corrupted kernel memory or
+            // failing hardware -> halt the system
+            // fall through
+
         default:
-            return false;
+            // all other exceptions should halt the system
+            ecode = -1;
+            break;
     }
 
+    if (ecode < 0) {
+        return false;
+    }
+
+
+    // get the fault address
+    // MC68020UM, p6-27 (152)ff
+    switch (excpt_frame_getformat(efp)) {
+        case 0x0:
+        case 0x1:
+            faddr = efp->pc;
+            break;
+
+        case 0x2:
+            faddr = efp->u.f2.addr;
+            break;
+
+        case 0x9:
+            faddr = efp->u.f9.ia;
+            break;
+
+        case 0xA:
+        case 0xB:
+            // format $A is a subset of format $B
+            if ((efp->u.fa.ssw & SSW_DF) == SSW_DF) {
+                faddr = efp->u.fa.dataCycleFaultAddress;
+            }
+            else {
+                faddr = efp->pc;
+            }
+            break;
+
+        default:
+            faddr = 0;
+            break;
+    }
+
+
+    ei->code = ecode;
     ei->cpu_code = cpu_code;
+    ei->addr = (void*)faddr;
 
     return true;
 }
@@ -182,14 +236,7 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     excpt_info_t ei;
     excpt_handler_t eh;
 
-    // Any exception triggered in kernel mode
-    if (!excpt_frame_isuser(efp)) {
-        _fatalException(ksp);
-        /* NOT REACHED */
-    }
-
-
-    if (!map_exception(cpu_code, efp, &ei)) {
+    if (!excpt_frame_get_info(cpu_code, efp, &ei)) {
         _fatalException(ksp);
         /* NOT REACHED */
     }
@@ -197,7 +244,7 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
     // MC68881/MC68882 User's Manual, page 5-10
     // 68060UM, page 6-37
-    if (ei.code == EXCPT_FPE) {
+    if (ei.code == EXCPT_FP) {
         switch (g_sys_desc->fpu_model) {
             case FPU_MODEL_68882: {
                 struct m68882_idle_frame* idle_p = (struct m68882_idle_frame*)vp->excpt_sa->fsave;
