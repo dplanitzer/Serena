@@ -65,7 +65,17 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
 }
 
 
+// General exception information
+// ------------------------------
 // MC68020UM, p6-1 (126)ff
+// MC68030UM, p9-1 (268)ff
+// MC68851UM, pC-1 (311)ff
+// MC68881/MC68882 UM, p6-1 (218)ff
+//
+// VM/paging related information
+// ------------------------------
+// MC68020UM, p6-4 (129)ff, p6-22 (147); MC68851UM, pC-6 (316)ff, pC-21 (331) [context switch -> PSAVE/PRESTORE, bus error -> PTEST]
+// MC68030UM, p8-27 (294)ff, p9-1 (302)ff, p9-82 (383)ff [bus error -> PTEST]
 static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excpt_info_t* _Nonnull ei)
 {
     int ecode;
@@ -90,7 +100,7 @@ static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excp
         case EXCPT_NUM_ILLEGAL:
         case EXCPT_NUM_LINE_A:
         case EXCPT_NUM_LINE_F:
-        case EXCPT_NUM_PMMU_ACCESS: // PMMU is turned off and user space tries ot execute a PVALID instruction
+        case EXCPT_NUM_PMMU_ACCESS: // MC68851 PMMU is turned off and user space tries ot execute a PVALID instruction
             ecode = EXCPT_ILLEGAL;
             break;
 
@@ -146,10 +156,13 @@ static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excp
 
         case EXCPT_NUM_COPROC:
         case EXCPT_NUM_FORMAT:
-        case EXCPT_NUM_PMMU_CONFIG:
-        case EXCPT_NUM_PMMU_ILLEGAL:
-            // these are exceptions that imply corrupted kernel memory or
-            // failing hardware -> halt the system
+        case EXCPT_NUM_MMU_CONFIG:      // MC68030 MMU, MC68851 PMMU
+        case EXCPT_NUM_PMMU_ILLEGAL:    // MC68851 PMMU
+            // any of these are exceptions implies that:
+            // - buggy kernel code (e.g. bug in MMU config code)
+            // - corrupted kernel memory
+            // - failing hardware
+            // we'll halt the system
             // fall through
 
         default:
@@ -242,7 +255,7 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     }
 
 
-    // MC68881/MC68882 User's Manual, page 5-10
+    // MC68881/MC68882 User's Manual, page 5-10 (211)
     // 68060UM, page 6-37
     if (ei.code == EXCPT_FP) {
         switch (g_sys_desc->fpu_model) {
