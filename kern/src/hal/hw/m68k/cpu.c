@@ -65,71 +65,31 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
 }
 
 
-// General exception information
-// ------------------------------
-// MC68020UM, p6-1 (126)ff
-// MC68030UM, p9-1 (268)ff
-// MC68040UM, p8-1 (220)ff, p9-20 (271)ff
-// MC68851UM, pC-1 (311)ff
-// MC68881/MC68882 UM, p6-1 (218)ff
-//
-// VM/paging related information
-// ------------------------------
-// MC68020UM, p6-4 (129)ff, p6-22 (147); MC68851UM, pC-6 (316)ff, pC-21 (331) [context switch -> PSAVE/PRESTORE, bus error -> PTEST, 68851 style PTEs, 5 level PT, 0 TTRs]
-// MC68030UM, p8-27 (294)ff, p9-1 (302)ff, p9-82 (383)ff [bus error -> PTEST, 68851 style PTEs, 5 level PT, 2 TTRs]
-// MC68040UM, p8-24 (243)ff, p3-33 (84) [bus error -> PTEST, 68040 style PTEs, 3 level PT, 4 TTRs]
-//
-// NOTES:
-// - BUS ERROR: we do not attempt to repair bus errors in software for the following causes:
-//  - unaligned data access
-//  - physical RAM or I/O device does not exists
-//  - I/O device does not allow access with certain data sizes
-//
-// - ADDRESS ERROR: we do not attempt to repair address errors in general (instructions have to be properly aligned)
-// 
-// - TRACE: currently nor supported. Keep in mind that:
-//  - 68040 bus error handler has to invoke the trace handler in software in some cases. See MC68040UM, p8-25 (244)
-static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excpt_info_t* _Nonnull ei)
+static int get_ecode(int cpu_code)
 {
-    int ecode;
-    uintptr_t faddr;
-
-    // Any exception triggered in kernel mode
-    if (!excpt_frame_isuser(efp)) {
-        return false;
-    }
-
-
-    // get the exception code
     switch (cpu_code) {
         case EXCPT_NUM_BUS_ERR:     // MC68040: Access Fault
-            ecode = EXCPT_BUS;
-            break;
+            return EXCPT_BUS;
 
         case EXCPT_NUM_ADR_ERR:
-            ecode = EXCPT_UNALIGNED;
-            break;
+            return EXCPT_UNALIGNED;
 
         case EXCPT_NUM_ILLEGAL:
         case EXCPT_NUM_LINE_A:
         case EXCPT_NUM_LINE_F:
         case EXCPT_NUM_PMMU_ACCESS: // MC68851 PMMU is turned off and user space tries ot execute a PVALID instruction
-            ecode = EXCPT_ILLEGAL;
-            break;
+            return EXCPT_ILLEGAL;
 
         case EXCPT_NUM_ZERO_DIV:
         case EXCPT_NUM_CHK:
         case EXCPT_NUM_TRAPcc:      // MC68881, MC68882, MC68851
-            ecode = EXCPT_INT;
-            break;
+            return EXCPT_INT;
 
         case EXCPT_NUM_PRIV_VIO:
-            ecode = EXCPT_PRIVILEGED;
-            break;
+            return EXCPT_PRIVILEGED;
 
         case EXCPT_NUM_TRACE:
-            ecode = EXCPT_TRACE;
-            break;
+            return EXCPT_TRACE;
 
         case EXCPT_NUM_TRAP_0:
         case EXCPT_NUM_TRAP_1:
@@ -147,8 +107,7 @@ static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excp
         case EXCPT_NUM_TRAP_13:
         case EXCPT_NUM_TRAP_14:
         case EXCPT_NUM_TRAP_15:
-            ecode = EXCPT_TRAP;
-            break;
+            return EXCPT_TRAP;
 
         case EXCPT_NUM_FPU_BRANCH_UO:
         case EXCPT_NUM_FPU_INEXACT:
@@ -158,8 +117,7 @@ static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excp
         case EXCPT_NUM_FPU_OVERFLOW:
         case EXCPT_NUM_FPU_SNAN:
         case EXCPT_NUM_FPU_UNIMPL_TY:   // MC68040
-            ecode = EXCPT_FP;
-            break;
+            return EXCPT_FP;
 
         case EXCPT_NUM_EMU:
         case EXCPT_NUM_UNIMPL_EA:
@@ -171,7 +129,7 @@ static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excp
         case EXCPT_NUM_FORMAT:
         case EXCPT_NUM_MMU_CONFIG:      // MC68030 MMU, MC68851 PMMU
         case EXCPT_NUM_PMMU_ILLEGAL:    // MC68851 PMMU
-            // any of these are exceptions implies that:
+            // any of these are exceptions implies:
             // - buggy kernel code (e.g. bug in MMU config code)
             // - corrupted kernel memory
             // - failing hardware
@@ -180,73 +138,74 @@ static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excp
 
         default:
             // all other exceptions should halt the system
-            ecode = -1;
-            break;
+            return -1;
     }
+}
 
-    if (ecode < 0) {
-        return false;
-    }
-
-
-    // get the fault address
+static uintptr_t get_fault_address(const excpt_frame_t* _Nonnull efp)
+{
     // MC68020UM, p6-27 (152)ff
     switch (excpt_frame_getformat(efp)) {
         case 0x0:
         case 0x1:
-            faddr = efp->pc;
-            break;
+            return efp->pc;
 
         case 0x2:
-            faddr = efp->u.f2.addr;
-            break;
+            return efp->u.f2.addr;
 
         case 0x3:
-            faddr = efp->u.f3.ea;
-            break;
+            return efp->u.f3.ea;
 
         case 0x4:
             // MC68LC040 (no FPU)
             // MC68EC040 (no FPU, no MMU)
             // We return the PC of the faulted FP instruction to align us with
             // the standard illegal instruction exception type
-            faddr = efp->u.f4.pcFaultedInstr;
-            break;
+            return efp->u.f4.pcFaultedInstr;
 
         case 0x7:
-            // We treat cache push physical bus errors as fatal (see MC68040, p8-29 (248))
-            if (ssw7_is_cache_push_phys_error(efp->u.f7.ssw)) {
-                return false;
-            }
-            faddr = efp->u.f7.fa;
-            break;
+            return efp->u.f7.fa;
 
         case 0x9:
-            faddr = efp->u.f9.ia;
-            break;
+            return efp->u.f9.ia;
 
         case 0xA:
         case 0xB:
             // format $A is a subset of format $B
             if (sswab_is_datafault(efp->u.fa.ssw)) {
-                faddr = efp->u.fa.dataCycleFaultAddress;
+                return efp->u.fa.dataCycleFaultAddress;
             }
             else {
-                faddr = efp->pc;
+                return efp->pc;
             }
             break;
 
         default:
-            faddr = 0;
-            break;
+            return 0;
+    }
+}
+
+static void fp_fsave_fixup(struct vcpu* _Nonnull vp)
+{
+    if (g_sys_desc->fpu_model == FPU_MODEL_68882) {
+        // MC68881/MC68882 User's Manual, page 5-10 (211)
+        struct m68882_idle_frame* idle_p = (struct m68882_idle_frame*)vp->excpt_sa->fsave;
+
+        if (idle_p->format == FSAVE_FORMAT_882_IDLE) {
+            idle_p->biu_flags |= BIU_FP_EXCPT_PENDING;
+        }
+        return;
     }
 
+    if (g_sys_desc->fpu_model == FPU_MODEL_68060) {
+        // 68060UM, page 6-37
+        struct m68060_fsave_frame* fsave_p = (struct m68060_fsave_frame*)vp->excpt_sa->fsave;
 
-    ei->code = ecode;
-    ei->cpu_code = cpu_code;
-    ei->addr = (void*)faddr;
-
-    return true;
+        if (fsave_p->format == FSAVE_FORMAT_68060_EXCP) {
+            fsave_p->format = FSAVE_FORMAT_68060_IDLE;
+        }
+        return;
+    }
 }
 
 // User exception frame layout before entering the user exception handler
@@ -274,6 +233,30 @@ struct u_excpt_frame_ret {
 extern void _vcpu_write_excpt_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx);
 extern void _vcpu_read_excpt_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx);
 
+// General exception information
+// ------------------------------
+// MC68020UM, p6-1 (126)ff
+// MC68030UM, p9-1 (268)ff
+// MC68040UM, p8-1 (220)ff, p9-20 (271)ff
+// MC68851UM, pC-1 (311)ff
+// MC68881/MC68882 UM, p6-1 (218)ff
+//
+// VM/paging related information
+// ------------------------------
+// MC68020UM, p6-4 (129)ff, p6-22 (147); MC68851UM, pC-6 (316)ff, pC-21 (331) [context switch -> PSAVE/PRESTORE, bus error -> PTEST, 68851 style PTEs, 5 level PT, 0 TTRs]
+// MC68030UM, p8-27 (294)ff, p9-1 (302)ff, p9-82 (383)ff [bus error -> PTEST, 68851 style PTEs, 5 level PT, 2 TTRs]
+// MC68040UM, p8-24 (243)ff, p3-33 (84) [bus error -> PTEST, 68040 style PTEs, 3 level PT, 4 TTRs]
+//
+// NOTES:
+// - BUS ERROR: we do not attempt to repair bus errors in software for the following causes:
+//  - unaligned data access
+//  - physical RAM or I/O device does not exists
+//  - I/O device does not allow access with certain data sizes
+//
+// - ADDRESS ERROR: we do not attempt to repair address errors in general (instructions have to be properly aligned)
+// 
+// - TRACE: currently nor supported. Keep in mind that:
+//  - 68040 bus error handler has to invoke the trace handler in software in some cases. See MC68040UM, p8-25 (244)
 void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 {
     void* ksp = ((char*)utp) + sizeof(excpt_0_frame_t);
@@ -282,34 +265,27 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     excpt_info_t ei;
     excpt_handler_t eh;
 
-    if (!excpt_frame_get_info(cpu_code, efp, &ei)) {
+    // get the exception code
+    ei.code = get_ecode(cpu_code);
+    ei.cpu_code = cpu_code;
+
+    // get the fault address
+    ei.addr = (void*)get_fault_address(efp);
+
+
+    // Exceptions triggered in superuser mode or ecode == -1 (which means this is a fatal error) -> halt the system
+    // We treat cache push physical bus errors as fatal (see MC68040, p8-29 (248))
+    if (!excpt_frame_isuser(efp)
+        || ei.code < 0
+        || (cpu_code == EXCPT_NUM_BUS_ERR && ssw7_is_cache_push_phys_error(efp->u.f7.ssw))) {
         _fatalException(ksp);
         /* NOT REACHED */
     }
 
 
-    // MC68881/MC68882 User's Manual, page 5-10 (211)
-    // 68060UM, page 6-37
+    // FP fsave frame may require some fix up
     if (ei.code == EXCPT_FP) {
-        switch (g_sys_desc->fpu_model) {
-            case FPU_MODEL_68882: {
-                struct m68882_idle_frame* idle_p = (struct m68882_idle_frame*)vp->excpt_sa->fsave;
-
-                if (idle_p->format == FSAVE_FORMAT_882_IDLE) {
-                    idle_p->biu_flags |= BIU_FP_EXCPT_PENDING;
-                }
-                break;
-            }
-
-            case FPU_MODEL_68060: {
-                struct m68060_fsave_frame* fsave_p = (struct m68060_fsave_frame*)vp->excpt_sa->fsave;
-
-                if (fsave_p->format == FSAVE_FORMAT_68060_EXCP) {
-                    fsave_p->format = FSAVE_FORMAT_68060_IDLE;
-                }
-                break;
-            }
-        }
+        fp_fsave_fixup(vp);
     }
 
 
