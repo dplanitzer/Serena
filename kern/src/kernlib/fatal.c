@@ -87,7 +87,7 @@ _Noreturn void _Try_bang_failed0(void)
     abort();
 }
 
-_Noreturn void _fatalException(void* _Nonnull ksp)
+_Noreturn void _fatalException(void* _Nonnull ksp, void* _Nullable fa)
 {
     vcpu_t vp = vcpu_current();
     const cpu_savearea_t* sa = vp->excpt_sa;
@@ -115,7 +115,8 @@ _Noreturn void _fatalException(void* _Nonnull ksp)
         "PC %08lx SR %04hx  \n"
         "\n"
         "%s %08lx - %08lx  \n"
-        "EXCP %08lx  \n"
+        "EXCPT @ %08lx  \n"
+        "FAULT @ %08lx  \n"
         "\n"
         "VCPU %08lx id=%d grp=%d  \n"
         "PROC %08lx id=%d name=\"%s\"  \n"
@@ -131,6 +132,7 @@ _Noreturn void _fatalException(void* _Nonnull ksp)
         excpt_frame_getpc(efp), excpt_frame_getsr(efp),
         (excpt_frame_isuser(efp)) ? "USTK" : "KSTK", stk->base, stk_getinitialsp(stk),
         efp,
+        fa,
         vp, vp->id, vp->groupid,
         vp->proc, Process_GetId(vp->proc), proc_name,
         dq, (dq) ? dq_nam : ""

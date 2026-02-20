@@ -278,7 +278,7 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     if (!excpt_frame_isuser(efp)
         || ei.code < 0
         || (cpu_code == EXCPT_NUM_BUS_ERR && ssw7_is_cache_push_phys_error(efp->u.f7.ssw))) {
-        _fatalException(ksp);
+        _fatalException(ksp, ei.addr);
         /* NOT REACHED */
     }
 
