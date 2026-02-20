@@ -54,6 +54,7 @@ static void _clap_print_app_name(const char* _Nonnull proc_name)
 
     if (app_name_len > 0) {
         fwrite(app_name, app_name_len, 1, stderr);
+        fwrite(": ", 2, 1, stderr);
     }
 }
 
