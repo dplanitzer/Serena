@@ -69,13 +69,26 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
 // ------------------------------
 // MC68020UM, p6-1 (126)ff
 // MC68030UM, p9-1 (268)ff
+// MC68040UM, p8-1 (220)ff, p9-20 (271)ff
 // MC68851UM, pC-1 (311)ff
 // MC68881/MC68882 UM, p6-1 (218)ff
 //
 // VM/paging related information
 // ------------------------------
-// MC68020UM, p6-4 (129)ff, p6-22 (147); MC68851UM, pC-6 (316)ff, pC-21 (331) [context switch -> PSAVE/PRESTORE, bus error -> PTEST]
-// MC68030UM, p8-27 (294)ff, p9-1 (302)ff, p9-82 (383)ff [bus error -> PTEST]
+// MC68020UM, p6-4 (129)ff, p6-22 (147); MC68851UM, pC-6 (316)ff, pC-21 (331) [context switch -> PSAVE/PRESTORE, bus error -> PTEST, 68851 style PTEs, 5 level PT, 0 TTRs]
+// MC68030UM, p8-27 (294)ff, p9-1 (302)ff, p9-82 (383)ff [bus error -> PTEST, 68851 style PTEs, 5 level PT, 2 TTRs]
+// MC68040UM, p8-24 (243)ff, p3-33 (84) [bus error -> PTEST, 68040 style PTEs, 3 level PT, 4 TTRs]
+//
+// NOTES:
+// - BUS ERROR: we do not attempt to repair bus errors in software for the following causes:
+//  - unaligned data access
+//  - physical RAM or I/O device does not exists
+//  - I/O device does not allow access with certain data sizes
+//
+// - ADDRESS ERROR: we do not attempt to repair address errors in general (instructions have to be properly aligned)
+// 
+// - TRACE: currently nor supported. Keep in mind that:
+//  - 68040 bus error handler has to invoke the trace handler in software in some cases. See MC68040UM, p8-25 (244)
 static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excpt_info_t* _Nonnull ei)
 {
     int ecode;
@@ -89,7 +102,7 @@ static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excp
 
     // get the exception code
     switch (cpu_code) {
-        case EXCPT_NUM_BUS_ERR:
+        case EXCPT_NUM_BUS_ERR:     // MC68040: Access Fault
             ecode = EXCPT_BUS;
             break;
 
@@ -106,7 +119,7 @@ static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excp
 
         case EXCPT_NUM_ZERO_DIV:
         case EXCPT_NUM_CHK:
-        case EXCPT_NUM_TRAPcc:
+        case EXCPT_NUM_TRAPcc:      // MC68881, MC68882, MC68851
             ecode = EXCPT_INT;
             break;
 
@@ -144,7 +157,7 @@ static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excp
         case EXCPT_NUM_FPU_OP_ERR:
         case EXCPT_NUM_FPU_OVERFLOW:
         case EXCPT_NUM_FPU_SNAN:
-        case EXCPT_NUM_FPU_UNIMPL_TY:
+        case EXCPT_NUM_FPU_UNIMPL_TY:   // MC68040
             ecode = EXCPT_FP;
             break;
 
@@ -154,7 +167,7 @@ static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excp
             //XXX to be done
             // fall through
 
-        case EXCPT_NUM_COPROC:
+        case EXCPT_NUM_COPROC:          // MC68881, MC68882, MC68851
         case EXCPT_NUM_FORMAT:
         case EXCPT_NUM_MMU_CONFIG:      // MC68030 MMU, MC68851 PMMU
         case EXCPT_NUM_PMMU_ILLEGAL:    // MC68851 PMMU
@@ -188,6 +201,26 @@ static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excp
             faddr = efp->u.f2.addr;
             break;
 
+        case 0x3:
+            faddr = efp->u.f3.ea;
+            break;
+
+        case 0x4:
+            // MC68LC040 (no FPU)
+            // MC68EC040 (no FPU, no MMU)
+            // We return the PC of the faulted FP instruction to align us with
+            // the standard illegal instruction exception type
+            faddr = efp->u.f4.pcFaultedInstr;
+            break;
+
+        case 0x7:
+            // We treat cache push physical bus errors as fatal (see MC68040, p8-29 (248))
+            if (ssw7_is_cache_push_phys_error(efp->u.f7.ssw)) {
+                return false;
+            }
+            faddr = efp->u.f7.fa;
+            break;
+
         case 0x9:
             faddr = efp->u.f9.ia;
             break;
@@ -195,7 +228,7 @@ static bool excpt_frame_get_info(int cpu_code, excpt_frame_t* _Nonnull efp, excp
         case 0xA:
         case 0xB:
             // format $A is a subset of format $B
-            if ((efp->u.fa.ssw & SSW_DF) == SSW_DF) {
+            if (sswab_is_datafault(efp->u.fa.ssw)) {
                 faddr = efp->u.fa.dataCycleFaultAddress;
             }
             else {

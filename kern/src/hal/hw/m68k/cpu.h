@@ -153,37 +153,46 @@ typedef struct excpt_frame {
     
     union {
         struct Format2 {
+            // MC68020, MC68030, MC68040
             uintptr_t   addr;
         }   f2;
         struct Format3 {
+            // MC68040
             uintptr_t   ea;
         }   f3;
         struct Format4 {
+            // MC68LC040, MC68EC040
             uintptr_t   ea;
             uintptr_t   pcFaultedInstr;
         }   f4;
         struct Format7 {
+            // MC68040
             uintptr_t   ea;
             uint16_t    ssw;
-            uint16_t    wb3s;
-            uint16_t    wb2s;
-            uint16_t    wb1s;
-            uint32_t    fa;
-            uint32_t    wb3a;
+            uint8_t     zero3;
+            uint8_t     wb3s;
+            uint8_t     zero2;
+            uint8_t     wb2s;
+            uint8_t     zero1;
+            uint8_t     wb1s;
+            uintptr_t   fa;
+            uintptr_t   wb3a;
             uint32_t    wb3d;
-            uint32_t    wb2a;
+            uintptr_t   wb2a;
             uint32_t    wb2d;
-            uint32_t    wb1a;
-            uint32_t    wb1d;
+            uintptr_t   wb1a;
+            uint32_t    wb1d_pd0;
             uint32_t    pd1;
             uint32_t    pd2;
             uint32_t    pd3;
         }   f7;
         struct Format9 {
+            // MC68020, MC68030
             uintptr_t   ia;
             uint16_t    ir[4];
         }   f9;
         struct FormatA {
+            // MC68020, MC68030
             uint16_t    ir0;
             uint16_t    ssw;
             uint16_t    ipsc;
@@ -196,6 +205,7 @@ typedef struct excpt_frame {
             uint16_t    ir4;
         }   fa;
         struct FormatB {
+            // MC68020, MC68030
             uint16_t    ir0;
             uint16_t    ssw;
             uint16_t    ipsc;
@@ -242,6 +252,96 @@ typedef struct excpt_frame {
 
 #define excpt_frame_getvecnum(__ef) \
 (excpt_frame_getvecoff(__ef) >> 2)
+
+
+// MC68020, MC68030
+// Exception frame type $A and $B
+#define SSWAB_FC    (1 << 15)
+#define SSWAB_FB    (1 << 14)
+#define SSWAB_RC    (1 << 13)
+#define SSWAB_RB    (1 << 12)
+#define SSWAB_DF    (1 << 8)
+#define SSWAB_RM    (1 << 7)
+#define SSWAB_RW    (1 << 6)
+#define SSWAB_SIZE_MASK     0x30
+#define SSWAB_SIZE_SHIFT    4
+#define SSWAB_FCx_MASK      0x7
+
+#define sswab_get_size(__ssw) \
+(((__ssw) & SSWAB_SIZE_MASK) >> SSWAB_SIZE_SHIFT)
+
+#define sswab_get_fc(__ef) \
+((__ssw) & SSWAB_FCx_MASK)
+
+#define sswab_is_datafault(__ssw) \
+(((__ssw) & SSWAB_DF) == SSWAB_DF)
+
+
+// MC68040, MC68LC040, MC68EC040
+// Exception frame type $7
+#define SSW7_CP     (1 << 15)
+#define SSW7_CU     (1 << 14)
+#define SSW7_CT     (1 << 13)
+#define SSW7_CM     (1 << 12)
+#define SSW7_MA     (1 << 11)
+#define SSW7_ATC    (1 << 10)
+#define SSW7_LK     (1 << 9)
+#define SSW7_RW     (1 << 8)
+#define SSW7_X      (1 << 7)
+#define SSW7_SIZE_MASK  0x60
+#define SSW7_SIZE_SHIFT 5
+#define SSW7_TT_MASK    0x18
+#define SSW7_TT_SHIFT   3
+#define SSW7_TM_MASK    0x7
+
+#define ssw7_get_size(__ssw) \
+(((__ssw) & SSW7_SIZE_MASK) >> SSW7_SIZE_SHIFT)
+
+#define ssw7_get_tt(__ssw) \
+(((__ssw) & SSW7_TT_MASK) >> SSW7_TT_SHIFT)
+
+#define ssw7_get_tm(__ssw) \
+((__ssw) & SSW7_TT_MASK)
+
+// MC68040, p8-29 (248)
+#define ssw7_is_read_access_error(__ssw) \
+((((__ssw) & SSW7_RW) == SSW7_RW) && (ssw7_get_tt(__ssw) == 0) && ((ssw7_get_tm(__ssw) == 1) || (ssw7_get_tm(__ssw) == 5)))
+
+#define ssw7_is_cache_push_phys_error(__ssw) \
+((((__ssw) & SSW7_RW) == 0) && (ssw7_get_tt(__ssw) == 0) && (ssw7_get_tm(__ssw) == 0))
+
+#define ssw7_is_write_phys_error(__ssw) \
+((((__ssw) & SSW7_RW) == 0) && (ssw7_get_tt(__ssw) == 0) && ((ssw7_get_tm(__ssw) == 1) || (ssw7_get_tm(__ssw) == 5)))
+
+#define ssw7_is_move16_write_phys_error(__ssw) \
+((((__ssw) & SSW7_RW) == 0) && (ssw7_get_tt(__ssw) == 1))
+
+#define excpt_frame7_is_page_fault(__efp) \
+((((__efp)->u.f7.ssw & SSW7_RW) == 0) && (((__efp)->u.f7.wb1s & WBS7_V) == 0) && (((__efp)->u.f7.wb2s & WBS7_V) == WBS7_V))
+
+
+// MC68040
+// Exception frame type $7
+#define WBS7_V      (1 << 7)
+#define WBS7_SIZE_MASK  0x60
+#define WBS7_SIZE_SHIFT 5
+#define WBS7_TT_MASK    0x18
+#define WBS7_TT_SHIFT   3
+#define WBS7_TM_MASK    0x7
+
+#define wbs7_is_valid(__wbs) \
+(((__wbs) & WBS7_V) == WBS7_V)
+
+#define wbs7_get_size(__wbs) \
+(((__wbs) & WBS7_SIZE_MASK) >> WBS7_SIZE_SHIFT)
+
+#define wbs7_get_tt(__ef) \
+(((__wbs) & WBS7_TT_MASK) >> WBS7_TT_SHIFT)
+
+#define wbs7_get_tm(__ef) \
+((__wbs) & WBS7_TT_MASK)
+
+
 
 
 // FPU exception stack frame
@@ -370,17 +470,6 @@ extern bool cpu_is_null_fsave(const char* _Nonnull sfp);
 #define BIU_INSTR_PENDING       (1 << 30)
 #define BIU_PROTO_VIO_PENDING   (1 << 31)
 
-
-// Exception frame type $A and $B SSW flags
-#define SSW_FC  (1 << 15)
-#define SSW_FB  (1 << 14)
-#define SSW_RC  (1 << 13)
-#define SSW_RB  (1 << 12)
-#define SSW_DF  (1 << 8)
-#define SSW_RM  (1 << 7)
-#define SSW_RW  (1 << 6)
-#define SSW_SIZE_MASK   0x30
-#define SSW_FCx_MASK    0x7
 
 
 // Describes the CPU register set that is saved on a context switch and when
