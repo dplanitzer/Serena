@@ -270,20 +270,23 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 {
     void* ksp = ((char*)utp) + sizeof(excpt_0_frame_t);
     excpt_frame_t* efp = (excpt_frame_t*)&vp->excpt_sa->ef;
+    const int ef_format = excpt_frame_getformat(efp);
     const int cpu_model = g_sys_desc->cpu_model;
     const int cpu_code = excpt_frame_getvecnum(efp);
+    const bool is_f7_access_err = (cpu_model == CPU_MODEL_68040 && cpu_code == EXCPT_NUM_BUS_ERR && ef_format == 7);
+    const bool is_f4_access_err = (cpu_model == CPU_MODEL_68060 && cpu_code == EXCPT_NUM_BUS_ERR && ef_format == 4);
     excpt_info_t ei;
     excpt_handler_t eh;
 
 
     // Clear branch cache, in case of a branch prediction error
-    if (cpu_model == CPU_MODEL_68060 && cpu_code == EXCPT_NUM_BUS_ERR && fslw_is_branch_pred_error(efp->u.f4_access_error.fslw)) {
+    if (is_f4_access_err && fslw_is_branch_pred_error(efp->u.f4_access_error.fslw)) {
         cpu_clear_branch_cache();
     }
 
 
     // get the exception code
-    ei.code = get_ecode(cpu_model, cpu_code, excpt_frame_getformat(efp));
+    ei.code = get_ecode(cpu_model, cpu_code, ef_format);
     ei.cpu_code = cpu_code;
 
     // get the fault address
@@ -298,9 +301,9 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     // - 68060, store buffer bus error [MC68060UM, p8-25 (257)]
     if (!excpt_frame_isuser(efp)
         || ei.code < 0
-        || (cpu_model == CPU_MODEL_68040 && cpu_code == EXCPT_NUM_BUS_ERR && ssw7_is_cache_push_phys_error(efp->u.f7.ssw))
-        || (cpu_model == CPU_MODEL_68060 && cpu_code == EXCPT_NUM_BUS_ERR && fslw_is_push_buffer_error(efp->u.f4_access_error.fslw))
-        || (cpu_model == CPU_MODEL_68060 && cpu_code == EXCPT_NUM_BUS_ERR && fslw_is_store_buffer_error(efp->u.f4_access_error.fslw))) {
+        || (is_f7_access_err && ssw7_is_cache_push_phys_error(efp->u.f7.ssw))
+        || (is_f4_access_err && fslw_is_push_buffer_error(efp->u.f4_access_error.fslw))
+        || (is_f4_access_err && fslw_is_store_buffer_error(efp->u.f4_access_error.fslw))) {
         _fatalException(ksp, ei.addr);
         /* NOT REACHED */
     }
@@ -311,8 +314,8 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     // - 68060, an misaligned read-modify-write instruction [MC68060UM, p8-25 (257)]
     // - 68060, a move in which the destination op writes over its source op [MC68060UM, p8-25 (257)]
     if (vp->excpt_id > 0
-        || (cpu_model == CPU_MODEL_68060 && cpu_code == EXCPT_NUM_BUS_ERR && fslw_is_misaligned_rmw(efp->u.f4_access_error.fslw))
-        || (cpu_model == CPU_MODEL_68060 && cpu_code == EXCPT_NUM_BUS_ERR && fslw_is_self_overwriting_move(efp->u.f4_access_error.fslw))
+        || (is_f4_access_err && fslw_is_misaligned_rmw(efp->u.f4_access_error.fslw))
+        || (is_f4_access_err && fslw_is_self_overwriting_move(efp->u.f4_access_error.fslw))
         || !Process_ResolveExceptionHandler(vp->proc, vp, &eh)) {
         // double fault or no exception handler -> exit
         Process_Exit(vp->proc, JREASON_EXCEPTION, ei.code);
@@ -326,7 +329,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     }
 
 
-    if (cpu_code == EXCPT_NUM_BUS_ERR && cpu_model == CPU_MODEL_68060) {
+    if (is_f4_access_err) {
         if (!recov_access_error_060(efp)) {
             return 0;
         }
