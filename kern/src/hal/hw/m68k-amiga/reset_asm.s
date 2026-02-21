@@ -36,26 +36,35 @@ _Reset:
         lea     _cpu_vector_table(pc), a0
         move.w  #(CPU_VECTORS_SIZEOF/4)-1, d0
         lea     CPU_VECTORS_BASE, a1
-.L1:    move.l  (a0)+, (a1)+
-        dbra    d0, .L1
+.1:
+        move.l  (a0)+, (a1)+
+        dbra    d0, .1
 
         ; clear the system description
         lea     SYS_DESC_BASE, a0
         move.w  #(SYS_DESC_SIZEOF/4)-1, d0
         moveq.l #0, d1
-.L2:    move.l  d1, (a0)+
-        dbra    d0, .L2
+.2:
+        move.l  d1, (a0)+
+        dbra    d0, .2
 
         ; figure out which type of CPU this is. The required minimum is:
         ; CPU: MC68020
         ; FPU: none
         jsr     _cpu_get_model
         cmp.b   #CPU_MODEL_68020, d0
-        bge     .L3
+        bge     .3
         move.l  #RGB_YELLOW, -(sp)
         jmp     _cpu_non_recoverable_error
-.L3:
 
+.3:
+        ; Adjust the CPU vector table for the 68060 if needed
+        cmp.b   #CPU_MODEL_68060, d0
+        blt.s   .4
+        lea     CPU_VECTORS_BASE, a0
+        lea     __cpu_access_error_060(pc), a1
+        move.l  a1, 8(a0)   ; replace bus/access error entry
+.4:
         ; Initialize the system description
         move.l  d0, -(sp)
         move.l  #BOOT_SERVICES_MEM_TOP, -(sp)

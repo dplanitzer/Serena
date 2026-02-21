@@ -76,7 +76,7 @@
 #define EXCPT_NUM_TRACE      9
 #define EXCPT_NUM_LINE_A     10
 #define EXCPT_NUM_LINE_F     11
-#define EXCPT_NUM_EMU        12
+#define EXCPT_NUM_EMU_INT    12
 #define EXCPT_NUM_COPROC     13
 #define EXCPT_NUM_FORMAT     14
 #define EXCPT_NUM_UNINIT_IRQ 15
@@ -123,9 +123,9 @@
 #define EXCPT_NUM_MMU_CONFIG    56
 #define EXCPT_NUM_PMMU_ILLEGAL  57
 #define EXCPT_NUM_PMMU_ACCESS   58
-#define EXCPT_NUM_RESV_59    59
-#define EXCPT_NUM_UNIMPL_EA  60
-#define EXCPT_NUM_UNIMPL_INT 61
+#define EXCPT_NUM_RESV_59       59
+#define EXCPT_NUM_UNIMPL_EA     60
+#define EXCPT_NUM_UNIMPL_INST   61
 #define EXCPT_NUM_RESV_62    62
 #define EXCPT_NUM_RESV_63    63
 #define EXCPT_NUM_USER_VEC   64
@@ -160,11 +160,16 @@ typedef struct excpt_frame {
             // MC68040
             uintptr_t   ea;
         }   f3;
-        struct Format4 {
-            // MC68LC040, MC68EC040
+        struct Format4_LineF {
+            // MC68LC040, MC68EC040 and MC68060, MC68LC060, MC68EC060 for line F exceptions
             uintptr_t   ea;
             uintptr_t   pcFaultedInstr;
-        }   f4;
+        }   f4_line_f;
+        struct Format4_AccessError {
+            // MC68060 for access (bus) error
+            uintptr_t   faddr;
+            uint32_t    fslw;
+        }   f4_access_error;
         struct Format7 {
             // MC68040
             uintptr_t   ea;
@@ -263,12 +268,12 @@ typedef struct excpt_frame {
 #define SSWAB_DF    (1 << 8)
 #define SSWAB_RM    (1 << 7)
 #define SSWAB_RW    (1 << 6)
-#define SSWAB_SIZE_MASK     0x30
+#define SSWAB_SIZE_MASK     0x3
 #define SSWAB_SIZE_SHIFT    4
 #define SSWAB_FCx_MASK      0x7
 
 #define sswab_get_size(__ssw) \
-(((__ssw) & SSWAB_SIZE_MASK) >> SSWAB_SIZE_SHIFT)
+(((__ssw) >> SSWAB_SIZE_SHIFT) & SSWAB_SIZE_MASK)
 
 #define sswab_get_fc(__ef) \
 ((__ssw) & SSWAB_FCx_MASK)
@@ -288,20 +293,20 @@ typedef struct excpt_frame {
 #define SSW7_LK     (1 << 9)
 #define SSW7_RW     (1 << 8)
 #define SSW7_X      (1 << 7)
-#define SSW7_SIZE_MASK  0x60
+#define SSW7_SIZE_MASK  0x3
 #define SSW7_SIZE_SHIFT 5
-#define SSW7_TT_MASK    0x18
+#define SSW7_TT_MASK    0x3
 #define SSW7_TT_SHIFT   3
 #define SSW7_TM_MASK    0x7
 
 #define ssw7_get_size(__ssw) \
-(((__ssw) & SSW7_SIZE_MASK) >> SSW7_SIZE_SHIFT)
+(((__ssw) >> SSW7_SIZE_SHIFT) & SSW7_SIZE_MASK)
 
 #define ssw7_get_tt(__ssw) \
-(((__ssw) & SSW7_TT_MASK) >> SSW7_TT_SHIFT)
+(((__ssw) >> SSW7_TT_SHIFT) & SSW7_TT_MASK)
 
 #define ssw7_get_tm(__ssw) \
-((__ssw) & SSW7_TT_MASK)
+((__ssw) & SSW7_TM_MASK)
 
 // MC68040, p8-29 (248)
 #define ssw7_is_read_access_error(__ssw) \
@@ -323,9 +328,9 @@ typedef struct excpt_frame {
 // MC68040
 // Exception frame type $7
 #define WBS7_V      (1 << 7)
-#define WBS7_SIZE_MASK  0x60
+#define WBS7_SIZE_MASK  0x3
 #define WBS7_SIZE_SHIFT 5
-#define WBS7_TT_MASK    0x18
+#define WBS7_TT_MASK    0x3
 #define WBS7_TT_SHIFT   3
 #define WBS7_TM_MASK    0x7
 
@@ -333,14 +338,66 @@ typedef struct excpt_frame {
 (((__wbs) & WBS7_V) == WBS7_V)
 
 #define wbs7_get_size(__wbs) \
-(((__wbs) & WBS7_SIZE_MASK) >> WBS7_SIZE_SHIFT)
+(((__wbs) >> WBS7_SIZE_SHIFT) & WBS7_SIZE_MASK)
 
 #define wbs7_get_tt(__ef) \
-(((__wbs) & WBS7_TT_MASK) >> WBS7_TT_SHIFT)
+(((__wbs) >> WBS7_TT_SHIFT) & WBS7_TT_MASK)
 
 #define wbs7_get_tm(__ef) \
-((__wbs) & WBS7_TT_MASK)
+((__wbs) & WBS7_TM_MASK)
 
+
+// MC68060
+// Exception frame type $4 [Access Error]
+#define FSLW_MA     (1 << 27)
+#define FSLW_LK     (1 << 25)
+#define FSLW_RW_MASK    0x3
+#define FSLW_RW_SHIFT   23
+#define FSLW_SIZE_MASK  0x3
+#define FSLW_SIZE_SHIFT 21
+#define FSLW_TT_MASK    0x3
+#define FSLW_TT_SHIFT   19
+#define FSLW_TM_MASK    0x7
+#define FSLW_TM_SHIFT   16
+#define FSLW_IO     (1 << 15)
+#define FSLW_PBE    (1 << 14)
+#define FSLW_SBE    (1 << 13)
+#define FSLW_PTA    (1 << 12)
+#define FSLW_PTB    (1 << 11)
+#define FSLW_IL     (1 << 10)
+#define FSLW_PF     (1 << 9)
+#define FSLW_SP     (1 << 8)
+#define FSLW_WP     (1 << 7)
+#define FSLW_TWE    (1 << 6)
+#define FSLW_RE     (1 << 5)
+#define FSLW_WE     (1 << 4)
+#define FSLW_TTR    (1 << 3)
+#define FSLW_BPE    (1 << 2)
+#define FSLW_SEE    (1 << 0)
+
+#define fslw_get_rw(__fslw) \
+(((__fslw) >> FSLW_RW_SHIFT) & FSLW_RW_MASK)
+
+#define fslw_get_size(__fslw) \
+(((__fslw) >> FSLW_SIZE_SHIFT) & FSLW_SIZE_MASK)
+
+#define fslw_get_tt(__fslw) \
+(((__fslw) >> FSLW_TT_SHIFT) & FSLW_TT_MASK)
+
+#define fslw_get_tm(__fslw) \
+(((__fslw) >> FSLW_TM_SHIFT) & FSLW_TM_MASK)
+
+#define fslw_is_push_buffer_error(__fslw) \
+(((__fslw) & FSLW_BPE) == FSLW_BPE)
+
+#define fslw_is_store_buffer_error(__fslw) \
+(((__fslw) & FSLW_SBE) == FSLW_SBE)
+
+#define fslw_is_misaligned_rmw(__fslw) \
+((fslw_get_rw(__fslw) == 3) && (((__fslw) & FSLW_IO) == 0) && (((__fslw) & FSLW_MA) == 1))
+
+#define fslw_is_self_overwriting_move(__fslw) \
+(fslw_get_rw(__fslw) == 1)
 
 
 

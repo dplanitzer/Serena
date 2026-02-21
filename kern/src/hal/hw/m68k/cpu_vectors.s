@@ -50,6 +50,7 @@
 
 
     xdef _cpu_vector_table
+    xdef __cpu_access_error_060
     xdef _excpt_return
 
     xdef _sigurgent
@@ -61,7 +62,7 @@
 _cpu_vector_table:
     dc.l RESET_STACK_BASE               ; 00, Reset SSP
     dc.l _Reset                         ; 01, Reset PC
-    dc.l __cpu_exception                ; 02, Bus error / Access fault
+    dc.l __cpu_exception                ; 02, Bus error / Access fault; (will be set to __cpu_access_error_060 on 68060 systems)
     dc.l __cpu_exception                ; 03, Address error
     dc.l __cpu_exception                ; 04, Illegal Instruction
     dc.l __cpu_exception                ; 05, Zero Divide
@@ -174,6 +175,20 @@ __cpu_exception:
     addq.l  #8, sp
 
     rte
+
+__cpu_access_error_060:
+    ; MC68060UM, p8-25 (257): first step of recovering from an access error is
+    ; to clear the branch cache if there is a branch cache error
+    btst.b  #2, 12+3(sp)    ; check BPE bit in FSLW
+    beq.s   .1
+    move.l  d0, -(sp)
+    movec   cacr, d0
+    bset    #CACR_CABC_BIT, d0
+    movec   d0, cacr        ; clear all branch cache entries
+    move.l  (sp)+, d0
+
+.1:
+    bra.s   __cpu_exception
 
 
 ;-------------------------------------------------------------------------------

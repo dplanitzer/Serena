@@ -65,10 +65,10 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
 }
 
 
-static int get_ecode(int cpu_code)
+static int get_ecode(int cpu_model, int cpu_code, int excpt_frame_fmt)
 {
     switch (cpu_code) {
-        case EXCPT_NUM_BUS_ERR:     // MC68040: Access Fault
+        case EXCPT_NUM_BUS_ERR:     // MC68040, MC68060: Access Fault
             return EXCPT_BUS;
 
         case EXCPT_NUM_ADR_ERR:
@@ -76,9 +76,21 @@ static int get_ecode(int cpu_code)
 
         case EXCPT_NUM_ILLEGAL:
         case EXCPT_NUM_LINE_A:
-        case EXCPT_NUM_LINE_F:
-        case EXCPT_NUM_PMMU_ACCESS: // MC68851 PMMU is turned off and user space tries ot execute a PVALID instruction
+        case EXCPT_NUM_PMMU_ACCESS:     // MC68851 PMMU is turned off and user space tries ot execute a PVALID instruction
+        case EXCPT_NUM_UNIMPL_EA:       // MC68060  (TBD) -> 68060SP
+        case EXCPT_NUM_UNIMPL_INST:     // MC68060  (TBD) -> 68060SP
             return EXCPT_ILLEGAL;
+
+        case EXCPT_NUM_LINE_F:
+            if (cpu_model < 68060 || (cpu_model >= CPU_MODEL_68060 && excpt_frame_fmt == 4)) {
+                // Either a < 68060 CPU with no FPU present (e.g. 68LC040 or 68030 with no 68881/68882 co-proc)
+                // or a MC68060 class CPU with FPU disabled or a MC68LC060/MC68EC060 (no FPU)
+                return EXCPT_ILLEGAL;
+            }
+            else {
+                // (TBD) if MC68040 then -> 68040FPSP; if MC68060 then -> 68060SP
+                return EXCPT_ILLEGAL;
+            }
 
         case EXCPT_NUM_ZERO_DIV:
         case EXCPT_NUM_CHK:
@@ -119,9 +131,7 @@ static int get_ecode(int cpu_code)
         case EXCPT_NUM_FPU_UNIMPL_TY:   // MC68040
             return EXCPT_FP;
 
-        case EXCPT_NUM_EMU:
-        case EXCPT_NUM_UNIMPL_EA:
-        case EXCPT_NUM_UNIMPL_INT:
+        case EXCPT_NUM_EMU_INT:
             //XXX to be done
             // fall through
 
@@ -142,7 +152,7 @@ static int get_ecode(int cpu_code)
     }
 }
 
-static uintptr_t get_fault_address(const excpt_frame_t* _Nonnull efp)
+static uintptr_t get_faddr(int cpu_model, const excpt_frame_t* _Nonnull efp)
 {
     // MC68020UM, p6-27 (152)ff
     switch (excpt_frame_getformat(efp)) {
@@ -157,11 +167,19 @@ static uintptr_t get_fault_address(const excpt_frame_t* _Nonnull efp)
             return efp->u.f3.ea;
 
         case 0x4:
-            // MC68LC040 (no FPU)
-            // MC68EC040 (no FPU, no MMU)
-            // We return the PC of the faulted FP instruction to align us with
-            // the standard illegal instruction exception type
-            return efp->u.f4.pcFaultedInstr;
+            if (cpu_model == CPU_MODEL_68040) {
+                // MC68LC040 (no FPU)
+                // MC68EC040 (no FPU, no MMU)
+                // We return the PC of the faulted FP instruction to align us with
+                // the standard illegal instruction exception type
+                return efp->u.f4_line_f.pcFaultedInstr;
+            }
+            else if (cpu_model >= CPU_MODEL_68060) {
+                return efp->u.f4_access_error.faddr;
+            }
+            else {
+                return 0;
+            }
 
         case 0x7:
             return efp->u.f7.fa;
@@ -238,6 +256,7 @@ extern void _vcpu_read_excpt_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull
 // MC68020UM, p6-1 (126)ff
 // MC68030UM, p9-1 (268)ff
 // MC68040UM, p8-1 (220)ff, p9-20 (271)ff
+// MC68060UM, p8-1 (233)ff
 // MC68851UM, pC-1 (311)ff
 // MC68881/MC68882 UM, p6-1 (218)ff
 //
@@ -246,6 +265,7 @@ extern void _vcpu_read_excpt_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull
 // MC68020UM, p6-4 (129)ff, p6-22 (147); MC68851UM, pC-6 (316)ff, pC-21 (331) [context switch -> PSAVE/PRESTORE, bus error -> PTEST, 68851 style PTEs, 5 level PT, 0 TTRs]
 // MC68030UM, p8-27 (294)ff, p9-1 (302)ff, p9-82 (383)ff [bus error -> PTEST, 68851 style PTEs, 5 level PT, 2 TTRs]
 // MC68040UM, p8-24 (243)ff, p3-33 (84) [bus error -> PTEST, 68040 style PTEs, 3 level PT, 4 TTRs]
+// MC68060UM, p8-5 (237), p8-21 (253)ff, p8-25 (257)ff, p4-1 (70)ff [bus error -> frame type $4, FSLW, 68040 style PTEs, 3 level PT, 4 TTRs]
 //
 // NOTES:
 // - BUS ERROR: we do not attempt to repair bus errors in software for the following causes:
@@ -261,24 +281,45 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 {
     void* ksp = ((char*)utp) + sizeof(excpt_0_frame_t);
     excpt_frame_t* efp = (excpt_frame_t*)&vp->excpt_sa->ef;
+    const int cpu_model = g_sys_desc->cpu_model;
     const int cpu_code = excpt_frame_getvecnum(efp);
     excpt_info_t ei;
     excpt_handler_t eh;
 
     // get the exception code
-    ei.code = get_ecode(cpu_code);
+    ei.code = get_ecode(cpu_model, cpu_code, excpt_frame_getformat(efp));
     ei.cpu_code = cpu_code;
 
     // get the fault address
-    ei.addr = (void*)get_fault_address(efp);
+    ei.addr = (void*)get_faddr(cpu_model, efp);
 
 
-    // Exceptions triggered in superuser mode or ecode == -1 (which means this is a fatal error) -> halt the system
-    // We treat cache push physical bus errors as fatal (see MC68040, p8-29 (248))
+    // Halt system, if:
+    // - exception triggered by supervisor (kernel)
+    // - ecode == -1 which means that this is a fatal exception (e.g. faulty hardware)
+    // - 68040, cache push physical bus error [MC68040UM, p8-31 (250)]
+    // - 68060, push buffer bus error [MC68060UM, p8-25 (257)]
+    // - 68060, store buffer bus error [MC68060UM, p8-25 (257)]
     if (!excpt_frame_isuser(efp)
         || ei.code < 0
-        || (cpu_code == EXCPT_NUM_BUS_ERR && ssw7_is_cache_push_phys_error(efp->u.f7.ssw))) {
+        || (cpu_model == CPU_MODEL_68040 && cpu_code == EXCPT_NUM_BUS_ERR && ssw7_is_cache_push_phys_error(efp->u.f7.ssw))
+        || (cpu_model == CPU_MODEL_68060 && cpu_code == EXCPT_NUM_BUS_ERR && fslw_is_push_buffer_error(efp->u.f4_access_error.fslw))
+        || (cpu_model == CPU_MODEL_68060 && cpu_code == EXCPT_NUM_BUS_ERR && fslw_is_store_buffer_error(efp->u.f4_access_error.fslw))) {
         _fatalException(ksp, ei.addr);
+        /* NOT REACHED */
+    }
+
+    // Terminate user process, if:
+    // - nested exception
+    // - no exception handler provided by user space
+    // - 68060, an misaligned read-modify-write instruction [MC68060UM, p8-25 (257)]
+    // - 68060, a move in which the destination op writes over its source op [MC68060UM, p8-25 (257)]
+    if (vp->excpt_id > 0
+        || (cpu_model == CPU_MODEL_68060 && cpu_code == EXCPT_NUM_BUS_ERR && fslw_is_misaligned_rmw(efp->u.f4_access_error.fslw))
+        || (cpu_model == CPU_MODEL_68060 && cpu_code == EXCPT_NUM_BUS_ERR && fslw_is_self_overwriting_move(efp->u.f4_access_error.fslw))
+        || !Process_ResolveExceptionHandler(vp->proc, vp, &eh)) {
+        // double fault or no exception handler -> exit
+        Process_Exit(vp->proc, JREASON_EXCEPTION, ei.code);
         /* NOT REACHED */
     }
 
@@ -286,13 +327,6 @@ void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     // FP fsave frame may require some fix up
     if (ei.code == EXCPT_FP) {
         fp_fsave_fixup(vp);
-    }
-
-
-    if (vp->excpt_id > 0 || !Process_ResolveExceptionHandler(vp->proc, vp, &eh)) {
-        // double fault or no exception handler -> exit
-        Process_Exit(vp->proc, JREASON_EXCEPTION, ei.code);
-        /* NOT REACHED */
     }
 
 
