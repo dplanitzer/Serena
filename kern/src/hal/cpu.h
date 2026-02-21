@@ -39,7 +39,7 @@ extern void cpu_enable_branch_cache(int flag);
 // Called by the HAL when a CPU exception is triggered. 'vp' is the vcpu in
 // question. Its 'excpt_sa' field points to a cpu_savearea_t that has the saved
 // CPU state and the exception frame set up appropriately.
-extern void cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp);
+extern int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp);
 extern void cpu_exception_return(struct vcpu* _Nonnull vp);
 
 // User space function to trigger the return from an exception handler

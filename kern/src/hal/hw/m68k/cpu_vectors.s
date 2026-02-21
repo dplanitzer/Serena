@@ -174,9 +174,19 @@ __cpu_exception:
     jsr     _cpu_exception
     addq.l  #8, sp
 
-    rte
+    ; Check whether we should return immediately without invoking the user space
+    ; exception handler or not
+    tst.b   d0
+    beq.s   .1
+    rte         ; invokes the user space exception handler
+
+.1:
+    GET_CURRENT_VP a0
+    bra.s   __cpu_exception_return_imm  ; unwinds and just RTEs to the original code
+
 
 __cpu_access_error_060:
+    ; MC68060UM, p8-4 (236): this handler is always invoked with a stack frame of type $4
     ; MC68060UM, p8-25 (257): first step of recovering from an access error is
     ; to clear the branch cache if there is a branch cache error
     btst.b  #2, 12+3(sp)    ; check BPE bit in FSLW
@@ -206,11 +216,12 @@ __cpu_exception_return:
     move.l  a0, -(sp)
     jsr     _cpu_exception_return
     move.l  (sp)+, a0
-    move.l  #0, vp_excpt_sa(a0)
 
     ; Pop the __cpu_exception_return RTE frame
     addq.l  #8, sp
 
+__cpu_exception_return_imm:     ; expects the current vp pointer in a0
+    move.l  #0, vp_excpt_sa(a0)
     RESTORE_FPU_STATE a0
     RESTORE_CPU_STATE
 
