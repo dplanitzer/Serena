@@ -50,7 +50,6 @@
 
 
     xdef _cpu_vector_table
-    xdef __cpu_access_error_060
     xdef _excpt_return
 
     xdef _sigurgent
@@ -183,22 +182,6 @@ __cpu_exception:
 .1:
     GET_CURRENT_VP a0
     bra.s   __cpu_exception_return_imm  ; unwinds and just RTEs to the original code
-
-
-__cpu_access_error_060:
-    ; MC68060UM, p8-4 (236): this handler is always invoked with a stack frame of type $4
-    ; MC68060UM, p8-25 (257): first step of recovering from an access error is
-    ; to clear the branch cache if there is a branch cache error
-    btst.b  #2, 12+3(sp)    ; check BPE bit in FSLW
-    beq.s   .1
-    move.l  d0, -(sp)
-    movec   cacr, d0
-    bset    #CACR_CABC_BIT, d0
-    movec   d0, cacr        ; clear all branch cache entries
-    move.l  (sp)+, d0
-
-.1:
-    bra.s   __cpu_exception
 
 
 ;-------------------------------------------------------------------------------

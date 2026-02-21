@@ -275,6 +275,13 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     excpt_info_t ei;
     excpt_handler_t eh;
 
+
+    // Clear branch cache, in case of a branch prediction error
+    if (cpu_model == CPU_MODEL_68060 && cpu_code == EXCPT_NUM_BUS_ERR && fslw_is_branch_pred_error(efp->u.f4_access_error.fslw)) {
+        cpu_clear_branch_cache();
+    }
+
+
     // get the exception code
     ei.code = get_ecode(cpu_model, cpu_code, excpt_frame_getformat(efp));
     ei.cpu_code = cpu_code;

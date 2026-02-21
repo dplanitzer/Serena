@@ -387,8 +387,13 @@ typedef struct excpt_frame {
 #define fslw_get_tm(__fslw) \
 (((__fslw) >> FSLW_TM_SHIFT) & FSLW_TM_MASK)
 
-#define fslw_is_push_buffer_error(__fslw) \
+
+// MC68060UM, p8-25 (257)
+#define fslw_is_branch_pred_error(__fslw) \
 (((__fslw) & FSLW_BPE) == FSLW_BPE)
+
+#define fslw_is_push_buffer_error(__fslw) \
+(((__fslw) & FSLW_PBE) == FSLW_PBE)
 
 #define fslw_is_store_buffer_error(__fslw) \
 (((__fslw) & FSLW_SBE) == FSLW_SBE)

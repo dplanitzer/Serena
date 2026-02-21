@@ -21,6 +21,7 @@
     xdef _cpu_sleep
     xdef _cpu_halt
     xdef _cpu_enable_branch_cache
+    xdef _cpu_clear_branch_cache
     xdef _cpu060_set_pcr_bits
     xdef _usp_get
     xdef _usp_set
@@ -410,6 +411,20 @@ _cpu_enable_branch_cache:
         movec   cacr, d0
         bclr    #CACR_EBC_BIT, d0
         movec   d0, cacr
+        rts
+    einline
+
+
+;-------------------------------------------------------------------------------
+; void cpu_clear_branch_cache(void)
+; Clears all branch cache entries.
+_cpu_clear_branch_cache:
+    inline
+        move.l  d0, -(sp)
+        movec   cacr, d0
+        bset    #CACR_CABC_BIT, d0
+        movec   d0, cacr        ; clear all cache entries
+        move.l  (sp)+, d0
         rts
     einline
 

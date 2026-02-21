@@ -58,13 +58,6 @@ _Reset:
         jmp     _cpu_non_recoverable_error
 
 .3:
-        ; Adjust the CPU vector table for the 68060 if needed
-        cmp.b   #CPU_MODEL_68060, d0
-        blt.s   .4
-        lea     CPU_VECTORS_BASE, a0
-        lea     __cpu_access_error_060(pc), a1
-        move.l  a1, 8(a0)   ; replace bus/access error entry
-.4:
         ; Initialize the system description
         move.l  d0, -(sp)
         move.l  #BOOT_SERVICES_MEM_TOP, -(sp)
