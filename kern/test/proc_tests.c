@@ -106,13 +106,17 @@ void proc_excpt_crash_test(int argc, char *argv[])
 
 static void ex_handler(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nonnull mc)
 {
-    printf("arg: %s\n", arg);
-    printf("code: %d\n", ei->code);
-    printf("cpu_code: %d\n", ei->cpu_code);
-    printf("addr: %p\n", ei->addr);
-    printf("PC: %p\n", mc->pc);
+    if (ei->code == EXCPT_PRIVILEGED) {
+        printf("arg: %s\n", arg);
+        printf("code: %d\n", ei->code);
+        printf("cpu_code: %d\n", ei->cpu_code);
+        printf("addr: %p\n", ei->addr);
+        printf("PC: %p\n", mc->pc);
 
-    exit(0);
+        exit(EXIT_SUCCESS);
+    }
+
+    exit(EXIT_FAILURE);
 }
 
 void proc_excpt_handler_test(int argc, char *argv[])
@@ -135,14 +139,20 @@ void proc_excpt_handler_test(int argc, char *argv[])
 
 static void ex_handler2(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nonnull mc)
 {
-    printf("arg: %s\n", arg);
-    printf("code: %d\n", ei->code);
-    printf("cpu_code: %d\n", ei->cpu_code);
-    printf("addr: %p\n", ei->addr);
-    printf("PC: %p\n", mc->pc);
+    if (ei->code == EXCPT_PRIVILEGED) {
+        printf("arg: %s\n", arg);
+        printf("code: %d\n", ei->code);
+        printf("cpu_code: %d\n", ei->cpu_code);
+        printf("addr: %p\n", ei->addr);
+        printf("PC: %p\n", mc->pc);
 
-    mc->pc += 2;        // Skip the 'move sr, d0'
-    mc->d[0] = 1234;    // Return a faked result
+        mc->pc += 2;        // Skip the 'move sr, d0'
+        mc->d[0] = 1234;    // Return a faked result
+
+        return;
+    }
+
+    exit(EXIT_FAILURE);
 }
 
 void proc_excpt_return_test(int argc, char *argv[])

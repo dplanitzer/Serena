@@ -123,6 +123,7 @@ _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self)
     self->groupid = 0;
     self->uerrno = 0;
     self->pending_sigs = 0;
+    self->excpt_handler = (excpt_handler_t){0};
     self->excpt_id = 0;
     self->excpt_sa = NULL;
     self->syscall_sa = NULL;
