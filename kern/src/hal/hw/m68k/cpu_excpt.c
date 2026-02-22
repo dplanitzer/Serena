@@ -274,8 +274,8 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     const int cpu_code = excpt_frame_getvecnum(efp);
     const bool is_f7_access_err = (cpu_model == CPU_MODEL_68040 && cpu_code == EXCPT_NUM_BUS_ERR && ef_format == 7);
     const bool is_f4_access_err = (cpu_model == CPU_MODEL_68060 && cpu_code == EXCPT_NUM_BUS_ERR && ef_format == 4);
+    const excpt_handler_t* ehp = vcpu_get_excpt_handler_ref(vp);
     excpt_info_t ei;
-    excpt_handler_t eh;
 
 
     // Clear branch cache, in case of a branch prediction error
@@ -315,7 +315,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     if (vp->excpt_id > 0
         || (is_f4_access_err && fslw_is_misaligned_rmw(efp->u.f4_access_error.fslw))
         || (is_f4_access_err && fslw_is_self_overwriting_move(efp->u.f4_access_error.fslw))
-        || !Process_GetExceptionHandler(vp->proc, vp, &eh)) {
+        || ehp == NULL) {
         // double fault or no exception handler -> exit
         Process_Exit(vp->proc, JREASON_EXCEPTION, ei.code);
         /* NOT REACHED */
@@ -345,12 +345,12 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     uep->ei = ei;
     uep->ei_ptr = &uep->ei;
     uep->mc_ptr = &uep->mc;
-    uep->arg = eh.arg;
+    uep->arg = ehp->arg;
     uep->ret_addr = (void*)excpt_return;
 
 
     // Update the u-trampoline with the exception function entry point
-    utp->pc = (uintptr_t)eh.func;
+    utp->pc = (uintptr_t)ehp->func;
 
     return 1;
 }

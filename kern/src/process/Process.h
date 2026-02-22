@@ -87,12 +87,6 @@ extern errno_t Process_SendSignal(ProcessRef _Nonnull self, int scope, id_t id, 
 extern errno_t Process_Sigroute(ProcessRef _Nonnull self, int op, int signo, int scope, id_t id);
 
 
-// Finds out which exception handler should be used to handle a CPU exception
-// and returns true if such a handler exists; otherwise false.
-extern bool Process_GetExceptionHandler(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, excpt_handler_t* _Nonnull handler);
-extern errno_t Process_SetExceptionHandler(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler);
-
-
 //
 // Introspection
 //

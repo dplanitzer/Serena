@@ -22,7 +22,7 @@ SYSCALL_3(excpt_sethandler, int flags, const excpt_handler_t* _Nullable handler,
     decl_try_err();
     ProcessRef pp = vp->proc;
 
-    return Process_SetExceptionHandler(vp->proc, vp, pa->handler, pa->old_handler);
+    return vcpu_set_excpt_handler(vp, pa->handler, pa->old_handler);
 }
 
 SYSCALL_0(test)

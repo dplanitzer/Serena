@@ -207,32 +207,6 @@ void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp
     mtx_unlock(&self->mtx);
 }
 
-bool Process_GetExceptionHandler(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, excpt_handler_t* _Nonnull handler)
-{
-    bool r = false;
-
-    mtx_lock(&self->mtx);
-    if (vp->excpt_handler.func) {
-        *handler = vp->excpt_handler;
-        r = true;
-    }
-    mtx_unlock(&self->mtx);
-
-    return r;
-}
-
-errno_t Process_SetExceptionHandler(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
-{
-    mtx_lock(&self->mtx);
-    if (old_handler) {
-        *old_handler = vp->excpt_handler;
-    }
-    vp->excpt_handler = *handler;
-    mtx_unlock(&self->mtx);
-
-    return EOK;
-}
-
 void Process_GetSigcred(ProcessRef _Nonnull self, sigcred_t* _Nonnull cred)
 {
     cred->pid = self->pid;

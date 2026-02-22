@@ -223,6 +223,17 @@ extern errno_t vcpu_sigwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull se
 extern errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnull set, int flags, const struct timespec* _Nonnull wtp, int* _Nonnull signo);
 
 
+// Returns a reference to the vcpu's exception handler info if an exception handler
+// is assigned to the vcpu. Returns NULL otherwise. Assumes that execution of this
+// macro will never overlap with vcpu_set_excpt_handler(). E.g. it is safe to call
+// this from cpu_exception() since the vcpu can either process an exception or
+// execute vcpu_set_excpt_handler(), but never both at the same time.
+#define vcpu_get_excpt_handler_ref(__self) \
+(((__self)->excpt_handler.func) ? &(__self)->excpt_handler : NULL)
+
+extern errno_t vcpu_set_excpt_handler(vcpu_t _Nonnull self, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler);
+
+
 // Yields the remainder of the current quantum to other VPs.
 extern void vcpu_yield(void);
 

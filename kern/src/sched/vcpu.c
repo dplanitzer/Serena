@@ -437,6 +437,16 @@ errno_t vcpu_rw_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx, bool is
     return err;
 }
 
+errno_t vcpu_set_excpt_handler(vcpu_t _Nonnull self, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
+{
+    if (old_handler) {
+        *old_handler = self->excpt_handler;
+    }
+    self->excpt_handler = *handler;
+
+    return EOK;
+}
+
 vcpuid_t new_vcpu_groupid(void)
 {
     static atomic_int id = VCPUID_MAIN_GROUP;
