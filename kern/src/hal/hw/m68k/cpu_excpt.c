@@ -355,17 +355,26 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     return 1;
 }
 
-void cpu_exception_return(struct vcpu* _Nonnull vp)
+void cpu_exception_return(struct vcpu* _Nonnull vp, int excpt_hand_ret)
 {
-    struct u_excpt_frame_ret* usp = (struct u_excpt_frame_ret*)usp_get();
+    if (excpt_hand_ret == EXCPT_RES_HANDLED) {
+        struct u_excpt_frame_ret* usp = (struct u_excpt_frame_ret*)usp_get();
 
-    // Write back the (possibly) updated machine context
-    _vcpu_write_excpt_mcontext(vp, usp->mc_ptr);
+        // Write back the (possibly) updated machine context
+        _vcpu_write_excpt_mcontext(vp, usp->mc_ptr);
 
-    // Pop the exception info off the user stack. Note that the return address
-    // was already taken off by the CPU before we came here
-    usp_shrink(sizeof(struct u_excpt_frame_ret));
+        // Pop the exception info off the user stack. Note that the return address
+        // was already taken off by the CPU before we came here
+        usp_shrink(sizeof(struct u_excpt_frame_ret));
 
-    // This vcpu is no longer processing an exception
-    vp->excpt_id = 0;
+        // This vcpu is no longer processing an exception
+        vp->excpt_id = 0;
+    }
+    else {
+        const int ecode = vp->excpt_id;
+        
+        vp->excpt_id = 0;
+        Process_Exit(vp->proc, JREASON_EXCEPTION, ecode);
+        /* NOT REACHED */
+    }
 }

@@ -104,7 +104,7 @@ void proc_excpt_crash_test(int argc, char *argv[])
 ////////////////////////////////////////////////////////////////////////////////
 // proc_excpt_handler_test
 
-static void ex_handler(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nonnull mc)
+static int ex_handler(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nonnull mc)
 {
     if (ei->code == EXCPT_PRIVILEGED) {
         printf("arg: %s\n", arg);
@@ -114,9 +114,10 @@ static void ex_handler(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _
         printf("PC: %p\n", mc->pc);
 
         exit(EXIT_SUCCESS);
+        /* NOT REACHED */
     }
 
-    exit(EXIT_FAILURE);
+    return EXCPT_RES_UNHANDLED;
 }
 
 void proc_excpt_handler_test(int argc, char *argv[])
@@ -137,7 +138,7 @@ void proc_excpt_handler_test(int argc, char *argv[])
 ////////////////////////////////////////////////////////////////////////////////
 // proc_excpt_return_test
 
-static void ex_handler2(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nonnull mc)
+static int ex_handler2(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nonnull mc)
 {
     if (ei->code == EXCPT_PRIVILEGED) {
         printf("arg: %s\n", arg);
@@ -149,10 +150,10 @@ static void ex_handler2(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* 
         mc->pc += 2;        // Skip the 'move sr, d0'
         mc->d[0] = 1234;    // Return a faked result
 
-        return;
+        return EXCPT_RES_HANDLED;
     }
 
-    exit(EXIT_FAILURE);
+    return EXCPT_RES_UNHANDLED;
 }
 
 void proc_excpt_return_test(int argc, char *argv[])

@@ -41,7 +41,7 @@ extern void cpu_clear_branch_cache(void);
 // question. Its 'excpt_sa' field points to a cpu_savearea_t that has the saved
 // CPU state and the exception frame set up appropriately.
 extern int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp);
-extern void cpu_exception_return(struct vcpu* _Nonnull vp);
+extern void cpu_exception_return(struct vcpu* _Nonnull vp, int excpt_hand_ret);
 
 // User space function to trigger the return from an exception handler
 extern void excpt_return(void);

@@ -177,7 +177,6 @@ __cpu_exception:
     rte         ; invokes the user space exception handler
 
 .1:
-    GET_CURRENT_VP a0
     bra.s   __cpu_exception_return_imm  ; unwinds and just RTEs to the original code
 
 
@@ -191,16 +190,24 @@ __cpu_exception:
 ; cpu_savearea_t
 ; original __cpu_exception RTE frame
 ;
+; Registers at this point:
+; d0 -> 0 if exception was handled; -1 if we should terminate the user process
+;
+; Note that it is safe here to trash the CPU registers because we're going to
+; restore the original register set anyway before we use RTE to go back to the
+; point where we were running before we hit the CPU exception.
 __cpu_exception_return:
     GET_CURRENT_VP a0
+    move.l  d0, -(sp)
     move.l  a0, -(sp)
     jsr     _cpu_exception_return
-    move.l  (sp)+, a0
 
-    ; Pop the __cpu_exception_return RTE frame
-    addq.l  #8, sp
+    ; pop 8 bytes of args + 8 bytes of the __cpu_exception_return RTE frame 
+    add.l  #(8 + 8), sp
+    ; fall through
 
 __cpu_exception_return_imm:     ; expects the current vp pointer in a0
+    GET_CURRENT_VP a0
     move.l  #0, vp_excpt_sa(a0)
     RESTORE_FPU_STATE a0
     RESTORE_CPU_STATE
@@ -211,6 +218,7 @@ __cpu_exception_return_imm:     ; expects the current vp pointer in a0
 
 ;-------------------------------------------------------------------------------
 ; void excpt_return(void)
+; NOTE: must preserve d0
 _excpt_return:
     trap    #1
     ; NOT REACHED
