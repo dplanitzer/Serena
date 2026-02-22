@@ -31,9 +31,6 @@
     xref __irq_level_4
     xref __irq_level_5
     xref __irq_level_6
-    xref __irq_uninitialized
-    xref __irq_spurious
-    xref __irq_level_7
 
     xref _g_sched
     xref __syscall_handler
@@ -74,7 +71,7 @@ _cpu_vector_table:
     dc.l __cpu_exception                ; 12, Emulator Interrupt (68060)
     dc.l __cpu_exception                ; 13, Coprocessor Protocol Violation (68020 / 68030)
     dc.l __cpu_exception                ; 14, Format Error
-    dc.l __irq_uninitialized            ; 15, Uninitialized Interrupt Vector
+    dc.l __cpu_exception                ; 15, Uninitialized Interrupt Vector
     dc.l __cpu_exception                ; 16, Reserved
     dc.l __cpu_exception                ; 17, Reserved
     dc.l __cpu_exception                ; 18, Reserved
@@ -83,14 +80,14 @@ _cpu_vector_table:
     dc.l __cpu_exception                ; 21, Reserved
     dc.l __cpu_exception                ; 22, Reserved
     dc.l __cpu_exception                ; 23, Reserved
-    dc.l __irq_spurious                 ; 24, Spurious Interrupt
+    dc.l __cpu_exception                ; 24, Spurious Interrupt
     dc.l __irq_level_1                  ; 25, Level 1 (Soft-IRQ, Disk, Serial port)
     dc.l __irq_level_2                  ; 26, Level 2 (External INT2, CIAA)
     dc.l __irq_level_3                  ; 27, Level 3 (Blitter, VBL, Copper)
     dc.l __irq_level_4                  ; 28, Level 4 (Audio)
     dc.l __irq_level_5                  ; 29, Level 5 (Disk, Serial port)
     dc.l __irq_level_6                  ; 30, Level 6 (External INT6, CIAB)
-    dc.l __irq_level_7                  ; 31, Level 7 (NMI - Unused)
+    dc.l __cpu_exception                ; 31, Level 7 (NMI - Unused)
     dc.l __sys_entry                    ; 32, Trap #0
     dc.l __cpu_exception_return         ; 33, Trap #1
     dc.l __sys_no_entry                 ; 34, Trap #2

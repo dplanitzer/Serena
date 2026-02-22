@@ -21,10 +21,6 @@
     xref _g_int6_handlers;
     xref __irq_run_handlers
 
-    xref _g_irq_stat_uninit
-    xref _g_irq_stat_spurious
-    xref _g_irq_stat_nmi
-
     xref _g_sched
     xref __sched_switch_context
 
@@ -471,25 +467,4 @@ irq_handler_done:
     btst    #CSWB_SIGNAL_SWITCH, sched_csw_signals(a0)
     movem.l (sp)+, d0 - d1 / d7 / a0 - a1
     bne.l   __sched_switch_context
-    rte
-
-
-;-------------------------------------------------------------------------------
-; Uninitialized IRQ handler
-__irq_uninitialized:
-    addq.l  #1, _g_irq_stat_uninit
-    rte
-
-
-;-------------------------------------------------------------------------------
-; Spurious IRQ handler
-__irq_spurious:
-    addq.l  #1, _g_irq_stat_spurious
-    rte
-
-
-;-------------------------------------------------------------------------------
-; NMI handler
-__irq_level_7:
-    addq.l  #1, _g_irq_stat_nmi
     rte

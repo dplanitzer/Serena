@@ -27,28 +27,6 @@ void* _Nullable     g_irq_key_arg;
 irq_direct_func_t   g_irq_disk_block_func = (irq_direct_func_t)_nop_irq_handler;
 void* _Nullable     g_irq_disk_block_arg;
 
-size_t  g_irq_stat_uninit;
-size_t  g_irq_stat_spurious;
-size_t  g_irq_stat_nmi;
-
-
-size_t irq_get_stat(int stat_id)
-{
-    switch (stat_id) {
-        case IRQ_STAT_UNINITIALIZED_COUNT:
-            return g_irq_stat_uninit;
-
-        case IRQ_STAT_SPURIOUS_COUNT:
-            return g_irq_stat_spurious;
-
-        case IRQ_STAT_NON_MASKABLE_COUNT:
-            return g_irq_stat_nmi;
-
-        default:
-            return 0;
-    }
-}
-
 
 // irq_handlers_for_id() is defined in the platform specific irq.c file
 void irq_add_handler(irq_handler_t* _Nonnull h)

@@ -52,6 +52,7 @@ static int get_ecode(int cpu_model, int cpu_code, int excpt_frame_fmt)
         case EXCPT_NUM_PMMU_ACCESS:     // MC68851 PMMU is turned off and user space tries ot execute a PVALID instruction
         case EXCPT_NUM_UNIMPL_EA:       // MC68060  (TBD) -> 68060SP
         case EXCPT_NUM_UNIMPL_INST:     // MC68060  (TBD) -> 68060SP
+        case EXCPT_NUM_EMU_INT:         // MC68060  (TBD) -> 68060SP
             return EXCPT_ILLEGAL;
 
         case EXCPT_NUM_LINE_F:
@@ -104,23 +105,21 @@ static int get_ecode(int cpu_model, int cpu_code, int excpt_frame_fmt)
         case EXCPT_NUM_FPU_UNIMPL_TY:   // MC68040
             return EXCPT_FP;
 
-        case EXCPT_NUM_EMU_INT:
-            //XXX to be done
-            // fall through
-
+        case EXCPT_NUM_UNINIT_IRQ:
+        case EXCPT_NNUM_SPUR_IRQ:
+        case EXCPT_NUM_IRQ_7:           // NMI
         case EXCPT_NUM_COPROC:          // MC68881, MC68882, MC68851
         case EXCPT_NUM_FORMAT:
         case EXCPT_NUM_MMU_CONFIG:      // MC68030 MMU, MC68851 PMMU
         case EXCPT_NUM_PMMU_ILLEGAL:    // MC68851 PMMU
-            // any of these are exceptions implies:
+        default:
+            // any of these exceptions imply:
             // - buggy kernel code (e.g. bug in MMU config code)
             // - corrupted kernel memory
-            // - failing hardware
+            // - hardware fault
+            // - unknow exception type
             // we'll halt the system
             // fall through
-
-        default:
-            // all other exceptions should halt the system
             return -1;
     }
 }

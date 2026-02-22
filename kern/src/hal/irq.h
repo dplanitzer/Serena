@@ -72,14 +72,6 @@ extern void irq_remove_handler(irq_handler_t* _Nullable h);
 extern void irq_set_handler_enabled(irq_handler_t* _Nonnull h, bool enabled);
 
 
-// Returns the requested irq related statistics.
-#define IRQ_STAT_UNINITIALIZED_COUNT    0
-#define IRQ_STAT_SPURIOUS_COUNT         1
-#define IRQ_STAT_NON_MASKABLE_COUNT     2
-
-extern size_t irq_get_stat(int stat_id);
-
-
 //
 // HAL Internals
 //
