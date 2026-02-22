@@ -108,9 +108,6 @@ typedef struct Process {
     
     // Signal routes
     queue_t/*struct sigroute>*/     sig_route[SIGMAX];
-
-    // Exceptions support
-    excpt_handler_t                 excpt_handler;
     
     // Process termination
     int16_t                         exit_reason;    // Exit code of the first exit() call that initiated the termination of this process

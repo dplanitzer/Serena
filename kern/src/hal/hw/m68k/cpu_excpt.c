@@ -315,7 +315,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     if (vp->excpt_id > 0
         || (is_f4_access_err && fslw_is_misaligned_rmw(efp->u.f4_access_error.fslw))
         || (is_f4_access_err && fslw_is_self_overwriting_move(efp->u.f4_access_error.fslw))
-        || !Process_ResolveExceptionHandler(vp->proc, vp, &eh)) {
+        || !Process_GetExceptionHandler(vp->proc, vp, &eh)) {
         // double fault or no exception handler -> exit
         Process_Exit(vp->proc, JREASON_EXCEPTION, ei.code);
         /* NOT REACHED */

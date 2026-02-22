@@ -121,7 +121,7 @@ void proc_excpt_handler_test(int argc, char *argv[])
 
     h.func = ex_handler;
     h.arg = "exiting from handler";
-    excpt_sethandler(EXCPT_SCOPE_PROC, 0, &h, NULL);
+    excpt_sethandler(0, &h, NULL);
     
     const int r = movesr();
     // -> process should have exited with (regular) status 0
@@ -151,7 +151,7 @@ void proc_excpt_return_test(int argc, char *argv[])
 
     h.func = ex_handler2;
     h.arg = "returning from handler";
-    excpt_sethandler(EXCPT_SCOPE_PROC, 0, &h, NULL);
+    excpt_sethandler(0, &h, NULL);
     
     const int r = movesr();
     // -> process should have returned from ex_handler2

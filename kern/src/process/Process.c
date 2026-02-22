@@ -207,53 +207,30 @@ void Process_DetachVirtualProcessor(ProcessRef _Nonnull self, vcpu_t _Nonnull vp
     mtx_unlock(&self->mtx);
 }
 
-bool Process_ResolveExceptionHandler(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, excpt_handler_t* _Nonnull handler)
+bool Process_GetExceptionHandler(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, excpt_handler_t* _Nonnull handler)
 {
-    const excpt_handler_t* eh = NULL;
+    bool r = false;
 
     mtx_lock(&self->mtx);
     if (vp->excpt_handler.func) {
-        eh = &vp->excpt_handler;
-    }
-    else {
-        eh = &self->excpt_handler;
-    }
-
-    if (eh) {
-        *handler = *eh;
+        *handler = vp->excpt_handler;
+        r = true;
     }
     mtx_unlock(&self->mtx);
 
-    return (eh) ? true : false;
+    return r;
 }
 
-errno_t Process_SetExceptionHandler(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, int scope, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
+errno_t Process_SetExceptionHandler(ProcessRef _Nonnull self, vcpu_t _Nonnull vp, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler)
 {
-    decl_try_err();
-
     mtx_lock(&self->mtx);
-    switch (scope) {
-        case EXCPT_SCOPE_VCPU:
-            if (old_handler) {
-                *old_handler = vp->excpt_handler;
-            }
-            vp->excpt_handler = *handler;
-            break;
-
-        case EXCPT_SCOPE_PROC:
-            if (old_handler) {
-                *old_handler = self->excpt_handler;
-            }
-            self->excpt_handler = *handler;
-            break;
-
-        default:
-            err = EINVAL;
-            break;
+    if (old_handler) {
+        *old_handler = vp->excpt_handler;
     }
+    vp->excpt_handler = *handler;
     mtx_unlock(&self->mtx);
 
-    return err;
+    return EOK;
 }
 
 void Process_GetSigcred(ProcessRef _Nonnull self, sigcred_t* _Nonnull cred)

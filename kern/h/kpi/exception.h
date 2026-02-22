@@ -39,8 +39,4 @@ typedef struct excpt_handler {
 #define EXCPT_BUS           8   /* bus error (accessed unmapped memory, misaligned r/w) */
 #define EXCPT_ACCESS        9   /* memory access violation */
 
-
-#define EXCPT_SCOPE_VCPU    0
-#define EXCPT_SCOPE_PROC    1
-
 #endif /* _KERN_EXCEPTION_H */
