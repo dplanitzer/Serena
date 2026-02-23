@@ -369,7 +369,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
 void cpu_exception_return(struct vcpu* _Nonnull vp, int excpt_hand_ret)
 {
-    if (excpt_hand_ret == EXCPT_RES_HANDLED) {
+    if (excpt_hand_ret == EXCPT_CONTINUE_EXECUTION) {
         struct u_excpt_frame_ret* usp = (struct u_excpt_frame_ret*)usp_get();
 
         // Write back the (possibly) updated machine context

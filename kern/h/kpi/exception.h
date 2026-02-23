@@ -23,11 +23,12 @@ typedef struct excpt_info {
 // at registration time. 'ei' is the exception information and 'mc' is the
 // machine context (contents of CPU registers) at the time of the exception.
 //
-// An exception handler should return EXCPT_RES_HANDLED is it has fixed the
-// problem that led to the exception and the vcpu should continue from the PC as
-// stored in the machine context. It should return EXCPT_RES_UNHANDELED if the
-// exception handler did not handled the exception and the process should exit
-// and inform its parent process that the exit was due to an unhandled exception.
+// An exception handler should return EXCPT_CONTINUE_EXECUTION is it has fixed
+// the problem that led to the exception and the vcpu should continue from the
+// PC as stored in the machine context. It should return EXCPT_ABORT_EXECUTION
+// if the exception handler did not handled the exception and the process should
+// exit and inform its parent process that the exit was due to an unhandled
+// exception.
 //
 // Calling exit() or exec() from inside an exception handler clears the exception
 // condition and marks the vcpu as "clean". For exit() this means that the
@@ -67,7 +68,7 @@ typedef struct excpt_handler {
 
 
 // Exception handler return value
-#define EXCPT_RES_HANDLED   0   /* exception was handled; continue the original execution context */
-#define EXCPT_RES_UNHANDLED -1  /* exception was NOT handled; execution exception default action (terminate process due to unhandled exception) */
+#define EXCPT_CONTINUE_EXECUTION    0   /* continue execution in the original execution context */
+#define EXCPT_ABORT_EXECUTION      -1   /* the exception was not handled and execution should be aborted and the process terminated */
 
 #endif /* _KERN_EXCEPTION_H */

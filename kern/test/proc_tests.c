@@ -117,7 +117,7 @@ static int ex_handler(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _N
         /* NOT REACHED */
     }
 
-    return EXCPT_RES_UNHANDLED;
+    return EXCPT_ABORT_EXECUTION;
 }
 
 void proc_excpt_handler_test(int argc, char *argv[])
@@ -150,10 +150,10 @@ static int ex_handler2(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _
         mc->pc += 2;        // Skip the 'move sr, d0'
         mc->d[0] = 1234;    // Return a faked result
 
-        return EXCPT_RES_HANDLED;
+        return EXCPT_CONTINUE_EXECUTION;
     }
 
-    return EXCPT_RES_UNHANDLED;
+    return EXCPT_ABORT_EXECUTION;
 }
 
 void proc_excpt_return_test(int argc, char *argv[])
