@@ -38,7 +38,7 @@ extern void _vcpu_write_excpt_mcontext(vcpu_t _Nonnull self, const mcontext_t* _
 extern void _vcpu_read_excpt_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx);
 
 
-static int get_ecode(int cpu_model, int cpu_code, int excpt_frame_fmt)
+static int get_ecode(int cpu_model, int cpu_code, excpt_frame_t* _Nonnull efp)
 {
     switch (cpu_code) {
         case EXCPT_NUM_BUS_ERR:     // MC68040, MC68060: Access Fault
@@ -56,7 +56,7 @@ static int get_ecode(int cpu_model, int cpu_code, int excpt_frame_fmt)
             return EXCPT_ILLEGAL_INSTRUCTION;
 
         case EXCPT_NUM_LINE_F:
-            if (cpu_model < 68060 || (cpu_model >= CPU_MODEL_68060 && excpt_frame_fmt == 4)) {
+            if (cpu_model < 68060 || (cpu_model >= CPU_MODEL_68060 && excpt_frame_getformat(efp) == 4)) {
                 // Either a < 68060 CPU with no FPU present (e.g. 68LC040 or 68030 with no 68881/68882 co-proc)
                 // or a MC68060 class CPU with FPU disabled or a MC68LC060/MC68EC060 (no FPU)
                 return EXCPT_ILLEGAL_INSTRUCTION;
@@ -94,8 +94,15 @@ static int get_ecode(int cpu_model, int cpu_code, int excpt_frame_fmt)
         case EXCPT_NUM_TRAP_13:
         case EXCPT_NUM_TRAP_14:
         case EXCPT_NUM_TRAP_15:
-        case EXCPT_NUM_TRAPcc:      // MC68881, MC68882, MC68851
             return EXCPT_SOFT_INTERRUPT;
+
+        case EXCPT_NUM_TRAPcc:      // MC68881, MC68882, MC68851
+            if (excpt_frame_getformat(efp) == 2 && *((uint16_t*)efp->u.f2.addr) == 0xCE76 /*TRAPV*/) {
+                return EXCPT_INT_OVERFLOW;
+            }
+            else {
+                return EXCPT_SOFT_INTERRUPT;
+            }
 
         case EXCPT_NUM_FPU_BRANCH_UO:
         case EXCPT_NUM_FPU_SNAN:
@@ -297,7 +304,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
 
     // get the exception code
-    ei.code = get_ecode(cpu_model, cpu_code, ef_format);
+    ei.code = get_ecode(cpu_model, cpu_code, efp);
     ei.cpu_code = cpu_code;
 
     // get the PC and fault address

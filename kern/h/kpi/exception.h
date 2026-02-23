@@ -73,6 +73,14 @@ typedef struct excpt_handler {
 #define EXCPT_ACCESS_VIOLATION          18  /* process lacks the rights to access this memory region */
 
 
+//
+// CPU specific exception code mapping information
+//
+// MC68000
+// TRAPV -> EXCPT_INT_OVERFLOW
+//
+
+
 // Exception handler return value
 #define EXCPT_CONTINUE_EXECUTION    0   /* continue execution in the original execution context */
 #define EXCPT_ABORT_EXECUTION       1   /* the exception was not handled and execution should be aborted and the process terminated */
