@@ -75,7 +75,7 @@ typedef struct excpt_handler {
 
 // Exception handler return value
 #define EXCPT_CONTINUE_EXECUTION    0   /* continue execution in the original execution context */
-#define EXCPT_ABORT_EXECUTION      -1   /* the exception was not handled and execution should be aborted and the process terminated */
+#define EXCPT_ABORT_EXECUTION       1   /* the exception was not handled and execution should be aborted and the process terminated */
 
 // Optional flags that may be or'ed with EXCPT_CONTINUE_EXECUTION
 #define EXCPT_MODIFIED_MCTX         0x100   /* exception handler updated the machine context and the original thread of execution should continue with the new machine context */     
