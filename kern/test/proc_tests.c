@@ -104,7 +104,7 @@ void proc_excpt_crash_test(int argc, char *argv[])
 ////////////////////////////////////////////////////////////////////////////////
 // proc_excpt_handler_test
 
-static int ex_handler(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nonnull mc)
+static int ex_handler(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nullable mc)
 {
     if (ei->code == EXCPT_PRIV_INSTRUCTION) {
         printf("arg: %s\n", arg);
@@ -162,7 +162,7 @@ void proc_excpt_return_test(int argc, char *argv[])
 
     h.func = ex_handler2;
     h.arg = "returning from handler";
-    excpt_sethandler(0, &h, NULL);
+    excpt_sethandler(EXCPT_MCTX, &h, NULL);
     
     const int r = movesr();
     // -> process should have returned from ex_handler2

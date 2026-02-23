@@ -36,7 +36,7 @@ typedef struct excpt_info {
 // parent process will be informed about a non-exceptional exit() and for exec()
 // this means that the exec() call will replace the executable image and start
 // executing the new image as if no exception would have happened.
-typedef int (*excpt_func_t)(void* _Nullable arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nonnull mc);
+typedef int (*excpt_func_t)(void* _Nullable arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nullable mc);
 
 
 typedef struct excpt_handler {
@@ -71,5 +71,9 @@ typedef struct excpt_handler {
 // Exception handler return value
 #define EXCPT_CONTINUE_EXECUTION    0   /* continue execution in the original execution context */
 #define EXCPT_ABORT_EXECUTION      -1   /* the exception was not handled and execution should be aborted and the process terminated */
+
+
+// excpt_sethandler() flags
+#define EXCPT_MCTX      1       /* call the exception handler with the machine context (state of the CPU registers at the time of the exception)*/
 
 #endif /* _KERN_EXCEPTION_H */

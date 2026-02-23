@@ -115,7 +115,8 @@ struct vcpu {
     intptr_t                        udata;                  // user space data associated with this VP
     
     // Exceptions support
-    excpt_handler_t                 excpt_handler;
+    excpt_handler_t                 excpt_handler;          // exception handler and argument
+    uint32_t                        excpt_handler_flags;    // exception handler flags
     cpu_savearea_t* _Nullable       excpt_sa;               // Exception save area
     int32_t                         excpt_id;               // 0 -> no exception active; > 0 -> exception EXCPT_XXX active
 
@@ -231,7 +232,7 @@ extern errno_t vcpu_sigtimedwait(waitqueue_t _Nonnull wq, const sigset_t* _Nonnu
 #define vcpu_get_excpt_handler_ref(__self) \
 (((__self)->excpt_handler.func) ? &(__self)->excpt_handler : NULL)
 
-extern errno_t vcpu_set_excpt_handler(vcpu_t _Nonnull self, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler);
+extern errno_t vcpu_set_excpt_handler(vcpu_t _Nonnull self, int flags, const excpt_handler_t* _Nullable handler, excpt_handler_t* _Nullable old_handler);
 
 
 // Yields the remainder of the current quantum to other VPs.

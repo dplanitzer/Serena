@@ -19,7 +19,7 @@ struct u_excpt_frame {
     excpt_info_t*   ei_ptr;
     mcontext_t*     mc_ptr;
 
-    mcontext_t      mc;
+    mcontext_t      mc;     // only filled in if EXCPT_MCTX set
     excpt_info_t    ei;
 };
 
@@ -29,7 +29,7 @@ struct u_excpt_frame_ret {
     excpt_info_t*   ei_ptr;
     mcontext_t*     mc_ptr;
 
-    mcontext_t      mc;
+    mcontext_t      mc;     // only filled in if EXCPT_MCTX set
     excpt_info_t    ei;
 };
 
@@ -354,7 +354,9 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
     // Push the exception info on the user stack
     struct u_excpt_frame* uep = (struct u_excpt_frame*)usp_grow(sizeof(struct u_excpt_frame));
-    _vcpu_read_excpt_mcontext(vp, &uep->mc);
+    if ((vp->excpt_handler_flags & EXCPT_MCTX) == EXCPT_MCTX) {
+        _vcpu_read_excpt_mcontext(vp, &uep->mc);
+    }
     uep->ei = ei;
     uep->ei_ptr = &uep->ei;
     uep->mc_ptr = &uep->mc;
@@ -374,7 +376,9 @@ void cpu_exception_return(struct vcpu* _Nonnull vp, int excpt_hand_ret)
         struct u_excpt_frame_ret* usp = (struct u_excpt_frame_ret*)usp_get();
 
         // Write back the (possibly) updated machine context
-        _vcpu_write_excpt_mcontext(vp, usp->mc_ptr);
+        if ((vp->excpt_handler_flags & EXCPT_MCTX) == EXCPT_MCTX) {
+            _vcpu_write_excpt_mcontext(vp, usp->mc_ptr);
+        }
 
         // Pop the exception info off the user stack. Note that the return address
         // was already taken off by the CPU before we came here
