@@ -31,6 +31,11 @@ typedef struct excpt_info {
 // exit and inform its parent process that the exit was due to an unhandled
 // exception.
 //
+// An exception handler that modifies the machine context and wants to indicate
+// that execution should continue at the original exception point with the new
+// machine context active, should return the value 
+// EXCPT_CONTINUE_EXECUTION|EXCPT_MODIFIED_MCTX.
+//
 // Calling exit() or exec() from inside an exception handler clears the exception
 // condition and marks the vcpu as "clean". For exit() this means that the
 // parent process will be informed about a non-exceptional exit() and for exec()
@@ -72,8 +77,15 @@ typedef struct excpt_handler {
 #define EXCPT_CONTINUE_EXECUTION    0   /* continue execution in the original execution context */
 #define EXCPT_ABORT_EXECUTION      -1   /* the exception was not handled and execution should be aborted and the process terminated */
 
+// Optional flags that may be or'ed with EXCPT_CONTINUE_EXECUTION
+#define EXCPT_MODIFIED_MCTX         0x100   /* exception handler updated the machine context and the original thread of execution should continue with the new machine context */     
+
 
 // excpt_sethandler() flags
 #define EXCPT_MCTX      1       /* call the exception handler with the machine context (state of the CPU registers at the time of the exception)*/
+
+
+#define _EXCPT_CACT(__r) ((__r) & 0xff)
+#define _EXCPT_CFLAGS(__r) ((__r) & 0xff00)
 
 #endif /* _KERN_EXCEPTION_H */

@@ -372,11 +372,12 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
 void cpu_exception_return(struct vcpu* _Nonnull vp, int excpt_hand_ret)
 {
-    if (excpt_hand_ret == EXCPT_CONTINUE_EXECUTION) {
+    if (_EXCPT_CACT(excpt_hand_ret) == EXCPT_CONTINUE_EXECUTION) {
         struct u_excpt_frame_ret* usp = (struct u_excpt_frame_ret*)usp_get();
 
         // Write back the (possibly) updated machine context
-        if ((vp->excpt_handler_flags & EXCPT_MCTX) == EXCPT_MCTX) {
+        if ((vp->excpt_handler_flags & EXCPT_MCTX) == EXCPT_MCTX
+            && (_EXCPT_CFLAGS(excpt_hand_ret) & EXCPT_MODIFIED_MCTX) == EXCPT_MODIFIED_MCTX) {
             _vcpu_write_excpt_mcontext(vp, usp->mc_ptr);
         }
 
