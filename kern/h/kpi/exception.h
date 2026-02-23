@@ -43,16 +43,28 @@ typedef struct excpt_handler {
 } excpt_handler_t;
 
 
-#define EXCPT_ILLEGAL       1   /* illegal/undefined instruction */
-#define EXCPT_PRIVILEGED    2   /* privileged instruction */
-#define EXCPT_TRAP          3   /* (software) interrupt, trap */
-#define EXCPT_INT           4   /* integer exceptions (division-by-zero, overflow, range check failed, etc) */
-#define EXCPT_FP            5   /* floating-point exceptions (division-by-zero, overflow, inexact, etc) */
-#define EXCPT_TRACE         6   /* trace/single step instruction */
+#define EXCPT_ILLEGAL_INSTRUCTION       1   /* illegal/undefined instruction */
+#define EXCPT_PRIV_INSTRUCTION          2   /* privileged instruction */
+#define EXCPT_SOFT_INTERRUPT            3   /* (software) interrupt, trap */
+#define EXCPT_BOUNDS_EXCEEDED           4   /* check instruction detected a out-of-bounds condition (if supported by CPU) */
+#define EXCPT_INT_DIVIDE_BY_ZERO        5   /* integer exceptions (division-by-zero, overflow, range check failed, etc) */
+#define EXCPT_INT_OVERFLOW              6   /* integer overflow (if supported by CPU) */
 
-#define EXCPT_UNALIGNED     7   /* unaligned memory access */
-#define EXCPT_BUS           8   /* bus error (accessed unmapped memory, misaligned r/w) */
-#define EXCPT_ACCESS        9   /* memory access violation */
+#define EXCPT_BREAKPOINT                7   /* breakpoint instruction encountered (if supported by CPU) */
+#define EXCPT_SINGLE_STEP               8   /* trace/single step instruction */
+
+#define EXCPT_FLT_NAN                   9   /* fp instruction unexpectedly received a nan as input or a signalling nan was detected */
+#define EXCPT_FLT_OPERAND               10  /* catch all for all other kinds of floating point exceptions */
+#define EXCPT_FLT_OVERFLOW              11  /* fp overflow */
+#define EXCPT_FLT_UNDERFLOW             12  /* fp underflow */
+#define EXCPT_FLT_DIVIDE_BY_ZERO        13  /* fp division by zero */
+#define EXCPT_FLT_INEXACT               14  /* fp result can not be exactly represented by a decimal fraction */
+
+#define EXCPT_INSTRUCTION_MISALIGNED    15  /* instruction starts on a misaligned address */
+#define EXCPT_DATA_MISALIGNED           16  /* instruction tries to r/w data that starts on a misaligned address */
+#define EXCPT_PAGE_ERROR                17  /* attempted to access a page that does not exists or that couldn't be loaded into core */
+#define EXCPT_ACCESS_VIOLATION          18  /* process lacks the rights to access this memory region */
+
 
 // Exception handler return value
 #define EXCPT_RES_HANDLED   0   /* exception was handled; continue the original execution context */

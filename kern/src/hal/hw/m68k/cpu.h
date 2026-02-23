@@ -88,7 +88,7 @@
 #define EXCPT_NUM_RESV_21    21
 #define EXCPT_NUM_RESV_22    22
 #define EXCPT_NUM_RESV_23    23
-#define EXCPT_NNUM_SPUR_IRQ  24
+#define EXCPT_NUM_SPUR_IRQ   24
 #define EXCPT_NUM_IRQ_1      25
 #define EXCPT_NUM_IRQ_2      26
 #define EXCPT_NUM_IRQ_3      27

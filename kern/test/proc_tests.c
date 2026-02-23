@@ -106,7 +106,7 @@ void proc_excpt_crash_test(int argc, char *argv[])
 
 static int ex_handler(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nonnull mc)
 {
-    if (ei->code == EXCPT_PRIVILEGED) {
+    if (ei->code == EXCPT_PRIV_INSTRUCTION) {
         printf("arg: %s\n", arg);
         printf("code: %d\n", ei->code);
         printf("cpu_code: %d\n", ei->cpu_code);
@@ -140,7 +140,7 @@ void proc_excpt_handler_test(int argc, char *argv[])
 
 static int ex_handler2(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nonnull mc)
 {
-    if (ei->code == EXCPT_PRIVILEGED) {
+    if (ei->code == EXCPT_PRIV_INSTRUCTION) {
         printf("arg: %s\n", arg);
         printf("code: %d\n", ei->code);
         printf("cpu_code: %d\n", ei->cpu_code);

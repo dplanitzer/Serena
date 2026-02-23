@@ -42,10 +42,10 @@ static int get_ecode(int cpu_model, int cpu_code, int excpt_frame_fmt)
 {
     switch (cpu_code) {
         case EXCPT_NUM_BUS_ERR:     // MC68040, MC68060: Access Fault
-            return EXCPT_BUS;
+            return EXCPT_PAGE_ERROR;
 
         case EXCPT_NUM_ADR_ERR:
-            return EXCPT_UNALIGNED;
+            return EXCPT_INSTRUCTION_MISALIGNED;
 
         case EXCPT_NUM_ILLEGAL:
         case EXCPT_NUM_LINE_A:
@@ -53,29 +53,30 @@ static int get_ecode(int cpu_model, int cpu_code, int excpt_frame_fmt)
         case EXCPT_NUM_UNIMPL_EA:       // MC68060  (TBD) -> 68060SP
         case EXCPT_NUM_UNIMPL_INST:     // MC68060  (TBD) -> 68060SP
         case EXCPT_NUM_EMU_INT:         // MC68060  (TBD) -> 68060SP
-            return EXCPT_ILLEGAL;
+            return EXCPT_ILLEGAL_INSTRUCTION;
 
         case EXCPT_NUM_LINE_F:
             if (cpu_model < 68060 || (cpu_model >= CPU_MODEL_68060 && excpt_frame_fmt == 4)) {
                 // Either a < 68060 CPU with no FPU present (e.g. 68LC040 or 68030 with no 68881/68882 co-proc)
                 // or a MC68060 class CPU with FPU disabled or a MC68LC060/MC68EC060 (no FPU)
-                return EXCPT_ILLEGAL;
+                return EXCPT_ILLEGAL_INSTRUCTION;
             }
             else {
                 // (TBD) if MC68040 then -> 68040FPSP; if MC68060 then -> 68060SP
-                return EXCPT_ILLEGAL;
+                return EXCPT_ILLEGAL_INSTRUCTION;
             }
 
         case EXCPT_NUM_ZERO_DIV:
-        case EXCPT_NUM_CHK:
-        case EXCPT_NUM_TRAPcc:      // MC68881, MC68882, MC68851
-            return EXCPT_INT;
+            return EXCPT_INT_DIVIDE_BY_ZERO;
 
         case EXCPT_NUM_PRIV_VIO:
-            return EXCPT_PRIVILEGED;
+            return EXCPT_PRIV_INSTRUCTION;
 
         case EXCPT_NUM_TRACE:
-            return EXCPT_TRACE;
+            return EXCPT_SINGLE_STEP;
+
+        case EXCPT_NUM_CHK:
+            return EXCPT_BOUNDS_EXCEEDED;
 
         case EXCPT_NUM_TRAP_0:
         case EXCPT_NUM_TRAP_1:
@@ -93,20 +94,31 @@ static int get_ecode(int cpu_model, int cpu_code, int excpt_frame_fmt)
         case EXCPT_NUM_TRAP_13:
         case EXCPT_NUM_TRAP_14:
         case EXCPT_NUM_TRAP_15:
-            return EXCPT_TRAP;
+        case EXCPT_NUM_TRAPcc:      // MC68881, MC68882, MC68851
+            return EXCPT_SOFT_INTERRUPT;
 
         case EXCPT_NUM_FPU_BRANCH_UO:
-        case EXCPT_NUM_FPU_INEXACT:
-        case EXCPT_NUM_FPU_DIV_ZERO:
-        case EXCPT_NUM_FPU_UNDERFLOW:
-        case EXCPT_NUM_FPU_OP_ERR:
-        case EXCPT_NUM_FPU_OVERFLOW:
         case EXCPT_NUM_FPU_SNAN:
+            return EXCPT_FLT_NAN;
+
+        case EXCPT_NUM_FPU_INEXACT:
+            return EXCPT_FLT_INEXACT;
+
+        case EXCPT_NUM_FPU_DIV_ZERO:
+            return EXCPT_FLT_DIVIDE_BY_ZERO;
+
+        case EXCPT_NUM_FPU_UNDERFLOW:
+            return EXCPT_FLT_UNDERFLOW;
+
+        case EXCPT_NUM_FPU_OP_ERR:
         case EXCPT_NUM_FPU_UNIMPL_TY:   // MC68040
-            return EXCPT_FP;
+            return EXCPT_FLT_OPERAND;
+
+        case EXCPT_NUM_FPU_OVERFLOW:
+            return EXCPT_FLT_OVERFLOW;
 
         case EXCPT_NUM_UNINIT_IRQ:
-        case EXCPT_NNUM_SPUR_IRQ:
+        case EXCPT_NUM_SPUR_IRQ:
         case EXCPT_NUM_IRQ_7:           // NMI
         case EXCPT_NUM_COPROC:          // MC68881, MC68882, MC68851
         case EXCPT_NUM_FORMAT:
@@ -323,7 +335,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
 
     // FP fsave frame may require some fix up
-    if (ei.code == EXCPT_FP) {
+    if (ei.code >= EXCPT_FLT_NAN && ei.code <= EXCPT_FLT_INEXACT) {
         fp_fsave_fixup(vp);
     }
 
