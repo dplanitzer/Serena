@@ -13,8 +13,9 @@
 #include <kpi/types.h>
 
 typedef struct excpt_info {
-    int             code;       // EXCPT_XXX
-    int             cpu_code;   // corresponding CPU code. Usually more detailed
+    int             code;       // platform independent EXCPT_XXX code
+    int             cpu_code;   // corresponding CPU specific code. Usually more detailed
+    void* _Nullable pc;         // program counter at the time of the exception (this is not always the instruction that caused the exception though)
     void* _Nullable addr;       // fault address
 } excpt_info_t;
 
