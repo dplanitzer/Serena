@@ -42,7 +42,13 @@ static int get_ecode(int cpu_model, int cpu_code, excpt_frame_t* _Nonnull efp)
 {
     switch (cpu_code) {
         case EXCPT_NUM_BUS_ERR:     // MC68040, MC68060: Access Fault
-            return EXCPT_PAGE_ERROR;
+            if ((cpu_code == CPU_MODEL_68040 && excpt_frame_getformat(efp) == 7 && (efp->u.f7.ssw & SSW7_MA) == SSW7_MA)
+                || (cpu_code == CPU_MODEL_68060 && excpt_frame_getformat(efp) == 4) && fslw_is_misaligned_rmw(efp->u.f4_access_error.fslw)) {
+                return EXCPT_DATA_MISALIGNED;
+            }
+            else {
+                return EXCPT_PAGE_ERROR;
+            }
 
         case EXCPT_NUM_ADR_ERR:
             return EXCPT_INSTRUCTION_MISALIGNED;
