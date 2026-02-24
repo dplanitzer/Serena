@@ -11,7 +11,8 @@
     include <hal/hw/m68k/lowmem.i>
 
     xref _cpu_non_recoverable_error
-
+    xref _g_excpt_frame_size
+    
     xdef _cpu_get_model
     xdef _cpu_verify_ram_4b
     xdef _cpu_guarded_read
@@ -114,66 +115,22 @@ _cpu_get_model:
 ; Pops the bus error stack frame that is sitting at sp from the stack. Call this
 ; function as a subroutine with ssp pointing to the bottom of the exception
 ; stack frame right before you call this function.
-; Trashes: d0, a0
+; Trashes: d0, a0, a1
 _pop_exception_stack_frame:
     inline
         ; pop off the return address and save it in a0
         move.l  (sp)+, a0
 
         ; get the exception stack frame format id
-        ;moveq.l #0, d0
-        move.b  6(sp), d0
-        lsr.b   #4, d0
-
-        ; pop off the right number of bytes based on the exception stack frame id
-        cmp.b   #$0, d0
-        bne.s   .dismiss_non_format_0_exception_stack_frame
-        addq.l  #8, sp
-        jmp     (a0)
-
-.dismiss_non_format_0_exception_stack_frame:
-        cmp.b   #$2, d0
-        bne.s   .dismiss_non_format_2_exception_stack_frame
-        add.l   #12, sp
-        jmp     (a0)
-
-.dismiss_non_format_2_exception_stack_frame:
-        cmp.b   #$3, d0
-        bne.s   .dismiss_non_format_3_exception_stack_frame
-        add.l   #12, sp
-        jmp     (a0)
-
-.dismiss_non_format_3_exception_stack_frame:
-        cmp.b   #$4, d0
-        bne.s   .dismiss_non_format_4_exception_stack_frame
-        add.l   #12, sp
-        jmp     (a0)
-
-.dismiss_non_format_4_exception_stack_frame:
-        cmp.b   #$7, d0
-        bne.s   .dismiss_non_format_7_exception_stack_frame
-        add.l   #60, sp
-        jmp     (a0)
-
-.dismiss_non_format_7_exception_stack_frame:
-        cmp.b   #$9, d0
-        bne.s   .dismiss_non_format_9_exception_stack_frame
-        add.l   #20, sp
-        jmp     (a0)
-
-.dismiss_non_format_9_exception_stack_frame:
-        cmp.b   #$a, d0
-        bne.s   .dismiss_non_format_a_exception_stack_frame
-        add.l   #32, sp
-        jmp     (a0)
-
-.dismiss_non_format_a_exception_stack_frame:
+        move.w  6(sp), d0
+        lsr.w   #8, d0
+        lsr.w   #4, d0
         cmp.b   #$b, d0
-        bne.s   .dismiss_non_format_b_exception_stack_frame
-        add.l   #92, sp
+        bgt.s   .1
+        lea     _g_excpt_frame_size, a1
+        add.l   (a1, d0.w), sp
         jmp     (a0)
-
-.dismiss_non_format_b_exception_stack_frame:
+.1:
         move.l  #RGB_YELLOW, -(sp)
         jmp     _cpu_non_recoverable_error
         ; NOT REACHED

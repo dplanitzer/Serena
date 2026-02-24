@@ -37,6 +37,9 @@ struct u_excpt_frame_ret {
 extern void _vcpu_write_excpt_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnull ctx);
 extern void _vcpu_read_excpt_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx);
 
+// Used by cpu_asm.s
+int8_t g_excpt_frame_size[16] = {8, 8, 12, 12, 12, 0, 0, 60, 0, 20, 32, 92, 0, 0, 0, 0};
+
 
 static int get_ecode(int cpu_model, int cpu_code, excpt_frame_t* _Nonnull efp)
 {
