@@ -158,7 +158,7 @@ static void __vcpu_write_mcontext(vcpu_t _Nonnull self, const mcontext_t* _Nonnu
 
     is_sa->ef.pc = ctx->pc;
     is_sa->ef.sr &= 0xff00;
-    is_sa->ef.sr |= ctx->sr & 0xff;
+    is_sa->ef.sr |= ctx->sr & 0xff;     // update CCR only
 
 
     // Set the FPU state
@@ -213,7 +213,7 @@ static void __vcpu_read_mcontext(vcpu_t _Nonnull self, mcontext_t* _Nonnull ctx,
     ctx->d[7] = is_sa->d[7];
 
     ctx->pc = is_sa->ef.pc;
-    ctx->sr = is_sa->ef.sr & 0xff;
+    ctx->sr = is_sa->ef.sr & 0x00ff;      // read CCR only
 
 
     // Get the FPU state

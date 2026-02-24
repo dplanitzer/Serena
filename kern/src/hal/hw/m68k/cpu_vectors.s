@@ -212,6 +212,10 @@ __cpu_exception_return_imm:     ; expects the current vp pointer in a0
     RESTORE_FPU_STATE a0
     RESTORE_CPU_STATE
 
+    btst.b  #0, 7(sp)           ; check whether we need to dismiss the original excpt frame because it got replaced by a type $0 frame
+    beq.s   .1
+    add.l   2(sp), sp           ; pop the number of bytes stored in excpt_frame_$0.pc
+.1:
     ; Return through the __cpu_exception RTE frame
     rte
 

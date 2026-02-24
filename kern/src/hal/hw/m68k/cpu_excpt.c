@@ -388,27 +388,55 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 
 void cpu_exception_return(struct vcpu* _Nonnull vp, int excpt_hand_ret)
 {
-    if (_EXCPT_CACT(excpt_hand_ret) == EXCPT_CONTINUE_EXECUTION) {
-        struct u_excpt_frame_ret* usp = (struct u_excpt_frame_ret*)usp_get();
-
-        // Write back the (possibly) updated machine context
-        if ((vp->excpt_handler_flags & EXCPT_MCTX) == EXCPT_MCTX
-            && (_EXCPT_CFLAGS(excpt_hand_ret) & EXCPT_MODIFIED_MCTX) == EXCPT_MODIFIED_MCTX) {
-            _vcpu_write_excpt_mcontext(vp, usp->mc_ptr);
-        }
-
-        // Pop the exception info off the user stack. Note that the return address
-        // was already taken off by the CPU before we came here
-        usp_shrink(sizeof(struct u_excpt_frame_ret));
-
-        // This vcpu is no longer processing an exception
-        vp->excpt_id = 0;
-    }
-    else {
+    if (_EXCPT_CACT(excpt_hand_ret) != EXCPT_CONTINUE_EXECUTION) {
         const int ecode = vp->excpt_id;
         
         vp->excpt_id = 0;
         Process_Exit(vp->proc, JREASON_EXCEPTION, ecode);
         /* NOT REACHED */
     }
+
+
+    uintptr_t orig_excpt_pc = vp->excpt_sa->ef.pc;
+    struct u_excpt_frame_ret* usp = (struct u_excpt_frame_ret*)usp_get();
+
+    // Write back the (possibly) updated machine context
+    if ((vp->excpt_handler_flags & EXCPT_MCTX) == EXCPT_MCTX
+        && (_EXCPT_CFLAGS(excpt_hand_ret) & EXCPT_MODIFIED_MCTX) == EXCPT_MODIFIED_MCTX) {
+        _vcpu_write_excpt_mcontext(vp, usp->mc_ptr);
+    }
+
+    // Pop the exception info off the user stack. Note that the return address
+    // was already taken off by the CPU before we came here
+    usp_shrink(sizeof(struct u_excpt_frame_ret));
+
+
+    // Check whether the user program has changed the PC at which we should continue.
+    // If it has then we need to replace the original exception frame with a type
+    // $0 frame to ensure that the CPU won't restart the originally interrupted
+    // instruction. E.g. page faults generate a type $4 or $7 frame which, if we
+    // would RTE that frame type, would cause the CPU to restart the interrupted
+    // instruction. We don't want that so we dismiss the existing exception frame
+    // and we replace it with a simple $0 frame.
+    if (vp->excpt_sa->ef.pc != orig_excpt_pc && excpt_frame_getformat(&vp->excpt_sa->ef) > 1) {
+        const int8_t frm_siz = g_excpt_frame_size[excpt_frame_getformat(&vp->excpt_sa->ef)];
+        const uint32_t* src_p = (const uint32_t*)&vp->excpt_sa->ef;
+        uint32_t* dst_p = (uint32_t*)((char*)src_p - frm_siz + 8);
+
+        // We want to dismiss the original exception frame and replace it with a
+        // type $0 frame:
+        // - copy the type $0 portion of the original frame up to size(original frame) - 8 bytes
+        // - replace the pc field in the original exception frame $0 portion with the number of bytes to pop from the stack
+        // - set the lsb in the original frame version word to 1 to mark this frame as special
+        // Note that a M68K CPU will never set the lsb in the frame version word.
+        dst_p[0] = src_p[0];
+        dst_p[1] = src_p[1];
+
+        vp->excpt_sa->ef.pc = frm_siz - 8;
+        vp->excpt_sa->ef.fv |= 0x01;
+    }
+
+
+    // This vcpu is no longer processing an exception
+    vp->excpt_id = 0;
 }
