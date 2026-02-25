@@ -44,7 +44,7 @@ extern int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp
 extern void cpu_exception_return(struct vcpu* _Nonnull vp, int excpt_hand_ret);
 
 // User space function to trigger the return from an exception handler
-extern void excpt_return(void);
+extern void _excpt_return(void);
 
 // Injects a call to sigurgent() into user space of the currently active vcpu.
 // This is done if we detect that the currently running vcpu is running in user

@@ -46,7 +46,7 @@
 
 
     xdef _cpu_vector_table
-    xdef _excpt_return
+    xdef __excpt_return
 
     xdef _sigurgent
     xdef _sigurgent_end
@@ -87,10 +87,10 @@ _cpu_vector_table:
     dc.l __irq_level_5                  ; 29, Level 5 (Disk, Serial port)
     dc.l __irq_level_6                  ; 30, Level 6 (External INT6, CIAB)
     dc.l __cpu_exception                ; 31, Level 7 (NMI - Unused)
-    dc.l __sys_entry                    ; 32, Trap #0
-    dc.l __cpu_exception_return         ; 33, Trap #1
-    dc.l __cpu_exception_raise          ; 34, Trap #2
-    dc.l __cpu_exception                ; 35, Trap #3
+    dc.l __sys_entry                    ; 32, Trap #0 <- _syscall()
+    dc.l __cpu_exception_return         ; 33, Trap #1 <- _excpt_return()
+    dc.l __cpu_exception_raise          ; 34, Trap #2 <- _excpt_raise()
+    dc.l __cpu_exception                ; 35, Trap #3 -> breakpoint trigger
     dc.l __cpu_exception                ; 36, Trap #4
     dc.l __cpu_exception                ; 37, Trap #5
     dc.l __cpu_exception                ; 38, Trap #6
@@ -222,7 +222,7 @@ __cpu_exception_return_imm:     ; expects the current vp pointer in a0
 ;-------------------------------------------------------------------------------
 ; void excpt_return(void)
 ; NOTE: must preserve d0
-_excpt_return:
+__excpt_return:
     trap    #1
     ; NOT REACHED
 
@@ -237,10 +237,10 @@ _excpt_return:
 ; stack at this point:
 ; fault_addr
 ; cpu_code
-; __cpu_excpt_raise return address
+; __excpt_raise return address
 ; $0 exception frame (8 bytes)
 __cpu_exception_raise:
-    move.l  12(sp), d0      ; $0 frame + __cpu_excpt_raise_return_addr -> &cpu_code
+    move.l  12(sp), d0      ; $0 frame + __excpt_raise_return_addr -> &cpu_code
     cmp.l   #2, d0
     blt.s   .1
     cmp.l   #63, d0

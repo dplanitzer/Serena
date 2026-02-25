@@ -81,6 +81,7 @@ typedef struct excpt_handler {
 // EXCPT_INSTRUCTION_MISALIGNED <- triggered when the CPU attempts to execute an instruction that start at an odd address
 // EXCPT_DATA_MISALIGNED        <- triggered by a misaligned RMW or MOVE16 instruction on a 68040 or newer
 // EXCPT_INT_OVERFLOW           <- triggered by a TRAPV instruction
+// EXCPT_BREAKPOINT             <- triggered by a TRAP #3 instruction
 //
 
 

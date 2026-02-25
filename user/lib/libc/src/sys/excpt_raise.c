@@ -9,7 +9,7 @@
 #include <sys/exception.h>
 #include <kpi/syscall.h>
 
-extern int __cpu_excpt_raise(int cpu_code, void* _Nullable fault_addr);
+extern int _excpt_raise(int cpu_code, void* _Nullable fault_addr);
 
 
 int excpt_raise(int code, void* _Nullable fault_addr)
@@ -24,6 +24,7 @@ int excpt_raise(int code, void* _Nullable fault_addr)
         case EXCPT_BOUNDS_EXCEEDED:         cpu_code = 6; break;
         case EXCPT_INT_DIVIDE_BY_ZERO:      cpu_code = 5; break;
         case EXCPT_INT_OVERFLOW:            cpu_code = 7; break;
+        case EXCPT_BREAKPOINT:              cpu_code = 35; break;
         case EXCPT_SINGLE_STEP:             cpu_code = 9; break;
         case EXCPT_FLT_NAN:                 cpu_code = 54; break;
         case EXCPT_FLT_OPERAND:             cpu_code = 52; break;
@@ -37,9 +38,9 @@ int excpt_raise(int code, void* _Nullable fault_addr)
         case EXCPT_ACCESS_VIOLATION:        cpu_code = 2; break;
 #endif
         default:
-            // leave error handling to __cpu_excpt_raise()
+            // leave error handling to _excpt_raise()
             cpu_code = 1;
             break;
     }
-    return __cpu_excpt_raise(cpu_code, fault_addr);
+    return _excpt_raise(cpu_code, fault_addr);
 }

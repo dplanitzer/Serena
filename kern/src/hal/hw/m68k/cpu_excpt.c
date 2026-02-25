@@ -90,7 +90,6 @@ static int get_ecode(int cpu_model, int cpu_code, excpt_frame_t* _Nonnull efp)
         case EXCPT_NUM_TRAP_0:
         case EXCPT_NUM_TRAP_1:
         case EXCPT_NUM_TRAP_2:
-        case EXCPT_NUM_TRAP_3:
         case EXCPT_NUM_TRAP_4:
         case EXCPT_NUM_TRAP_5:
         case EXCPT_NUM_TRAP_6:
@@ -104,6 +103,9 @@ static int get_ecode(int cpu_model, int cpu_code, excpt_frame_t* _Nonnull efp)
         case EXCPT_NUM_TRAP_14:
         case EXCPT_NUM_TRAP_15:
             return EXCPT_SOFT_INTERRUPT;
+
+        case EXCPT_NUM_TRAP_3:
+            return EXCPT_BREAKPOINT;
 
         case EXCPT_NUM_TRAPcc:      // MC68881, MC68882, MC68851
             if (excpt_frame_getformat(efp) == 2 && *((uint16_t*)efp->u.f2.addr) == 0xCE76 /*TRAPV*/) {
@@ -378,7 +380,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     uep->ei_ptr = &uep->ei;
     uep->mc_ptr = &uep->mc;
     uep->arg = ehp->arg;
-    uep->ret_addr = (void*)excpt_return;
+    uep->ret_addr = (void*)_excpt_return;
 
 
     // Update the u-trampoline with the exception function entry point
