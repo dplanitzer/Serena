@@ -20,7 +20,6 @@
     xref _OnReset
     xref _OnBoot
     xref __sys_entry
-    xref __sys_no_entry
     xref _cpu_exception
     xref _cpu_exception_return
     xref _cpu_halt
@@ -90,8 +89,8 @@ _cpu_vector_table:
     dc.l __cpu_exception                ; 31, Level 7 (NMI - Unused)
     dc.l __sys_entry                    ; 32, Trap #0
     dc.l __cpu_exception_return         ; 33, Trap #1
-    dc.l __sys_no_entry                 ; 34, Trap #2
-    dc.l __sys_no_entry                 ; 35, Trap #3
+    dc.l __cpu_exception_raise          ; 34, Trap #2
+    dc.l __cpu_exception                ; 35, Trap #3
     dc.l __cpu_exception                ; 36, Trap #4
     dc.l __cpu_exception                ; 37, Trap #5
     dc.l __cpu_exception                ; 38, Trap #6
@@ -229,6 +228,37 @@ _excpt_return:
 
 
 ;-------------------------------------------------------------------------------
+; int excpt_raise(int cpu_code, void* _Nullable fault_addr) [trap]
+; Synchronously raise a CPU exception. This function is invoked with an 8 byte
+; type $0 frame on the stack. It currently ignores 'fault_addr' and it simply
+; rewrites the vector offset in the $0 frame so that it corresponds to 'cpu_code'
+; before it branches to __cpu_exception to do the actual exception processing.
+;
+; stack at this point:
+; fault_addr
+; cpu_code
+; __cpu_excpt_raise return address
+; $0 exception frame (8 bytes)
+__cpu_exception_raise:
+    move.l  12(sp), d0      ; $0 frame + __cpu_excpt_raise_return_addr -> &cpu_code
+    cmp.l   #2, d0
+    blt.s   .1
+    cmp.l   #63, d0
+    bgt.s   .1
+
+    lsl.w   #2, d0
+    move.w  d0, 6(sp)       ; replace $0.format_offset
+
+    bra     __cpu_exception
+
+.1:
+    GET_CURRENT_VP a1
+    move.l  #EINVAL, vp_uerrno(a1)
+    moveq.l #-1, d0
+    rte
+
+
+;-------------------------------------------------------------------------------
 ; System call entry point.
 ;
 ; NOTE: you are expected to use the _syscall() function to invoke a system call.
@@ -272,17 +302,6 @@ __sys_entry:
 
         RESTORE_CPU_STATE
 
-        rte
-    einline
-
-
-__sys_no_entry:
-    inline
-        move.l  a1, -(sp)
-        GET_CURRENT_VP a1
-        move.l  #ENOSYS, vp_uerrno(a1)
-        moveq.l #-1, d0
-        move.l  (sp)+, a1
         rte
     einline
 

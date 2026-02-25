@@ -7,6 +7,7 @@
 ;
 
     xdef __syscall
+    xdef ___cpu_excpt_raise
 
 
 ; System call.
@@ -41,4 +42,11 @@
 ; intptr_t _syscall(int scno, ...)
 __syscall:
     trap    #0
+    rts
+
+
+;-------------------------------------------------------------------------------
+; int __cpu_excpt_raise(int cpu_code, void* _Nullable fault_addr)
+___cpu_excpt_raise:
+    trap    #2
     rts
