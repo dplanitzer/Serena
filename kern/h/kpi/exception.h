@@ -15,6 +15,7 @@
 typedef struct excpt_info {
     int             code;       // platform independent EXCPT_XXX code
     int             cpu_code;   // corresponding CPU specific code. Usually more detailed
+    void* _Nonnull  sp;         // user stack pointer at the time of the exception
     void* _Nullable pc;         // program counter at the time of the exception (this is not always the instruction that caused the exception though)
     void* _Nullable addr;       // fault address
 } excpt_info_t;

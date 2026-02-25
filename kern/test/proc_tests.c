@@ -111,7 +111,7 @@ static int ex_handler(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _N
         printf("code: %d\n", ei->code);
         printf("cpu_code: %d\n", ei->cpu_code);
         printf("addr: %p\n", ei->addr);
-        printf("PC: %p\n", ei->pc);
+        printf("PC: %p, SP: %p\n", ei->pc, ei->sp);
 
         exit(EXIT_SUCCESS);
         /* NOT REACHED */
@@ -145,7 +145,7 @@ static int ex_handler2(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _
         printf("code: %d\n", ei->code);
         printf("cpu_code: %d\n", ei->cpu_code);
         printf("addr: %p\n", ei->addr);
-        printf("PC: %p\n", ei->pc);
+        printf("PC: %p, SP: %p\n", ei->pc, ei->sp);
 
         mc->pc += 2;        // Skip the 'move sr, d0'
         mc->d[0] = 1234;    // Return a faked result

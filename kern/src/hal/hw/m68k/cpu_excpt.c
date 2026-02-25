@@ -317,6 +317,7 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     ei.cpu_code = cpu_code;
 
     // get the PC and fault address
+    ei.sp = (void*)vp->excpt_sa->usp;
     ei.pc = (void*)efp->pc;
     ei.addr = (void*)get_faddr(cpu_model, efp);
 
