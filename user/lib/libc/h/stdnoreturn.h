@@ -10,7 +10,11 @@
 #define _STDNORETURN_H 1
 
 #ifndef _Noreturn
+#ifdef __VBCC__
+#define _Noreturn __noreturn
+#else
 #define _Noreturn
+#endif
 #endif
 
 #ifndef noreturn
