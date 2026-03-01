@@ -11,32 +11,29 @@
 
 
     clrso
-; d0 is used for the setjmp() return value, so no need to save it
-; note that we do not save the PC in the jmp_buf because the PC is on the
-; stack from the setjmp() call anyway. Setjmp() saves the SP as it points to
-; the return address and longjmp() restores this SP. It can then simply return
-; with a rts. The rts picks up the original PC and the caller code for the
-; setjmp then pops the jmp_buf pointer argument off the stack.
-cpu_d1              so.l    1       ; 4
+; d0 is used for the setjmp() return value, so no need to save it.
+; Note that we do not save volatile registers because the caller is required to
+; save them anyway before doing a function call, if it depends on their values.
+;
+; XXX should obfuscate the values in this by XORing them with a per vcpu value.
+; XXX E.g. a value provided by the kernel and stored in a reserved register or so 
 cpu_d2              so.l    1       ; 4
 cpu_d3              so.l    1       ; 4
 cpu_d4              so.l    1       ; 4
 cpu_d5              so.l    1       ; 4
 cpu_d6              so.l    1       ; 4
 cpu_d7              so.l    1       ; 4
-cpu_a0              so.l    1       ; 4
-cpu_a1              so.l    1       ; 4
 cpu_a2              so.l    1       ; 4
 cpu_a3              so.l    1       ; 4
 cpu_a4              so.l    1       ; 4
 cpu_a5              so.l    1       ; 4
 cpu_a6              so.l    1       ; 4
 cpu_a7              so.l    1       ; 4
-; XXX add support for saving the FPU user state
+cpu_pc              so.l    1       ; 4
 
 cpu_SIZEOF         so
-    ifeq (cpu_SIZEOF == 15*4)
-        fail "jmp_buf structure size is incorrect."
+    ifeq (cpu_SIZEOF == 13*4)
+        fail "jmp_buf struct size is incorrect."
     endif
 
 
@@ -44,16 +41,15 @@ cpu_SIZEOF         so
 ; int setjmp(jmp_buf env)
 _setjmp:
     cargs sj_env_ptr.l
-    move.l  a0, d0
+
     move.l  sj_env_ptr(sp), a0
 
     ; save the integer state
-    movem.l d1-d7 / a0-a7, (a0)
+    movem.l d2-d7 / a2-a7, (a0)
 
-    ; save a0
-    move.l  d0, cpu_a0(a0)
-
-    ; XXX save the FPU state if there's a FPU
+    ; save PC
+    move.l      0(sp), a1
+    move.l      a1, cpu_pc(a0)
 
     ; return 0
     moveq.l #0, d0
@@ -61,21 +57,21 @@ _setjmp:
 
 
 ;-------------------------------------------------------------------------------
-; void longjmp(jmp_buf env, int status)
+; void longjmp(jmp_buf env, int val)
 _longjmp:
-    cargs lj_env_ptr.l, lj_status.l
+    cargs lj_env_ptr.l, lj_val.l
 
     move.l  lj_env_ptr(sp), a0
 
     ; get the return value and force it to 1 if 0 was passed
-    move.l  lj_status(sp), d0
-    bne.s   .L1
+    move.l  lj_val(sp), d0
+    bne.s   .1
     moveq.l #1, d0
-.L1:
-
-    ; XXX restore the FPU state if there's a FPU
+.1:
 
     ; restore the integer state
-    movem.l (a0), d1-d7 / a0-a7
+    movem.l (a0), d2-d7 / a2-a7
 
-    rts
+    ; jump to the save PC
+    move.l  cpu_pc(a0), a1
+    jmp     (a1)
