@@ -18,8 +18,10 @@
 __CPP_BEGIN
 
 // Like strcpy()/strncpy() except that these functions here return a pointer
-// that points to the trailing '\0' in the destination buffer  
+// that points to the trailing '\0' in the destination buffer.
 extern char* _Nonnull strcpy_x(char* _Nonnull _Restrict dst, const char* _Nonnull _Restrict src);
+
+// Returns a pointer to the trailing '\0' of 'dst'. Even if 'src' is an empty string.
 extern char * _Nonnull strcat_x(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src);
 
 __CPP_END

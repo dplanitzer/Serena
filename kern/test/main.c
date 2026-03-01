@@ -73,6 +73,9 @@ extern void sem_test(int argc, char *argv[]);
 extern void fopen_memory_fixed_size_test(int argc, char *argv[]);
 extern void fopen_memory_variable_size_test(int argc, char *argv[]);
 
+// String
+extern void str_test(int argc, char *argv[]);
+
 // UInt32
 extern void uint32_test(int argc, char *argv[]);
 
@@ -138,6 +141,8 @@ static const test_t gTests[] = {
 
     {"stdio", fopen_memory_fixed_size_test, false},
     {"stdio2", fopen_memory_variable_size_test, false},
+
+    {"str", str_test, false},
 
     {"uint32", uint32_test, false},
     {"uint64", uint64_test, false},

@@ -5,7 +5,7 @@
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
-
+#if !defined(__M68K__)
 #include <string.h>
 
 
@@ -17,3 +17,4 @@ size_t strlen(const char * _Nonnull str)
 
     return p - str - 1;
 }
+#endif

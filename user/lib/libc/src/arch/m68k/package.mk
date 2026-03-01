@@ -49,6 +49,13 @@ ARCH_M68K_SC_ASM_SOURCES := $(ARCH_M68K_SOURCES_DIR)/abs.s \
 							$(ARCH_M68K_SOURCES_DIR)/div.s \
 							$(ARCH_M68K_SOURCES_DIR)/llabs.s \
 							$(ARCH_M68K_SOURCES_DIR)/rc.s \
+							$(ARCH_M68K_SOURCES_DIR)/strcat.s \
+							$(ARCH_M68K_SOURCES_DIR)/strcat_x.s \
+							$(ARCH_M68K_SOURCES_DIR)/strchr.s \
+							$(ARCH_M68K_SOURCES_DIR)/strcmp.s \
+							$(ARCH_M68K_SOURCES_DIR)/strcpy.s \
+							$(ARCH_M68K_SOURCES_DIR)/strcpy_x.s \
+							$(ARCH_M68K_SOURCES_DIR)/strlen.s \
 							$(ARCH_M68K_SOURCES_DIR)/syscall.s \
 							$(ARCH_M68K_SOURCES_DIR)/udiv.s
 

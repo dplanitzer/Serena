@@ -1,22 +1,18 @@
 //
-//  strcat.c
+//  strcat_x.c
 //  libc, libsc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 #if !defined(__M68K__)
-#include <string.h>
+#include <ext/string.h>
 
 
-char * _Nonnull strcat(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src)
+// See strcpy_x()
+// Returns a pointer to the trailing '\0' of 'dst'. Even if 'src' is an empty string
+char * _Nonnull strcat_x(char * _Nonnull _Restrict dst, const char * _Nonnull _Restrict src)
 {
-    char* r = dst;
-
-    if (*src == '\0') {
-        return r;
-    }
-
     // 'dst' may point to a string - skip it
     while (*dst != '\0') {
         dst++;
@@ -28,6 +24,6 @@ char * _Nonnull strcat(char * _Nonnull _Restrict dst, const char * _Nonnull _Res
     }
     *dst = '\0';
 
-    return r;
+    return dst;
 }
 #endif

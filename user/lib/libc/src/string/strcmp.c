@@ -5,7 +5,7 @@
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
-
+#if !defined(__M68K__)
 #include <string.h>
 
 
@@ -20,3 +20,4 @@ int strcmp(const char * _Nonnull lhs, const char * _Nonnull rhs)
 
     return (*((unsigned char*)lhs) < *((unsigned char*)rhs)) ? -1 : 1;
 }
+#endif
