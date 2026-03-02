@@ -44,7 +44,7 @@ int8_t g_excpt_frame_size[16] = {8, 8, 12, 12, 12, 0, 0, 60, 0, 20, 32, 92, 0, 0
 static int get_ecode(int cpu_model, int cpu_code, excpt_frame_t* _Nonnull efp)
 {
     switch (cpu_code) {
-        case EXCPT_NUM_BUS_ERR:     // MC68040, MC68060: Access Fault
+        case CPU_VEC_BUS_ERR:     // MC68040, MC68060: Access Fault
             if ((cpu_code == CPU_MODEL_68040 && excpt_frame_getformat(efp) == 7 && (efp->u.f7.ssw & SSW7_MA) == SSW7_MA)
                 || (cpu_code == CPU_MODEL_68060 && excpt_frame_getformat(efp) == 4) && fslw_is_misaligned_rmw(efp->u.f4_access_error.fslw)) {
                 return EXCPT_DATA_MISALIGNED;
@@ -53,18 +53,18 @@ static int get_ecode(int cpu_model, int cpu_code, excpt_frame_t* _Nonnull efp)
                 return EXCPT_PAGE_ERROR;
             }
 
-        case EXCPT_NUM_ADR_ERR:
+        case CPU_VEC_ADR_ERR:
             return EXCPT_INSTRUCTION_MISALIGNED;
 
-        case EXCPT_NUM_ILLEGAL:
-        case EXCPT_NUM_LINE_A:
-        case EXCPT_NUM_PMMU_ACCESS:     // MC68851 PMMU is turned off and user space tries ot execute a PVALID instruction
-        case EXCPT_NUM_UNIMPL_EA:       // MC68060  (TBD) -> 68060SP
-        case EXCPT_NUM_UNIMPL_INST:     // MC68060  (TBD) -> 68060SP
-        case EXCPT_NUM_EMU_INT:         // MC68060  (TBD) -> 68060SP
+        case CPU_VEC_ILLEGAL:
+        case CPU_VEC_LINE_A:
+        case CPU_VEC_PMMU_ACCESS:     // MC68851 PMMU is turned off and user space tries ot execute a PVALID instruction
+        case CPU_VEC_UNIMPL_EA:       // MC68060  (TBD) -> 68060SP
+        case CPU_VEC_UNIMPL_INST:     // MC68060  (TBD) -> 68060SP
+        case CPU_VEC_EMU_INT:         // MC68060  (TBD) -> 68060SP
             return EXCPT_ILLEGAL_INSTRUCTION;
 
-        case EXCPT_NUM_LINE_F:
+        case CPU_VEC_LINE_F:
             if (cpu_model < 68060 || (cpu_model >= CPU_MODEL_68060 && excpt_frame_getformat(efp) == 4)) {
                 // Either a < 68060 CPU with no FPU present (e.g. 68LC040 or 68030 with no 68881/68882 co-proc)
                 // or a MC68060 class CPU with FPU disabled or a MC68LC060/MC68EC060 (no FPU)
@@ -75,39 +75,39 @@ static int get_ecode(int cpu_model, int cpu_code, excpt_frame_t* _Nonnull efp)
                 return EXCPT_ILLEGAL_INSTRUCTION;
             }
 
-        case EXCPT_NUM_ZERO_DIV:
+        case CPU_VEC_ZERO_DIV:
             return EXCPT_INT_DIVIDE_BY_ZERO;
 
-        case EXCPT_NUM_PRIV_VIO:
+        case CPU_VEC_PRIV_VIO:
             return EXCPT_PRIV_INSTRUCTION;
 
-        case EXCPT_NUM_TRACE:
+        case CPU_VEC_TRACE:
             return EXCPT_SINGLE_STEP;
 
-        case EXCPT_NUM_CHK:
+        case CPU_VEC_CHK:
             return EXCPT_BOUNDS_EXCEEDED;
 
-        case EXCPT_NUM_TRAP_0:
-        case EXCPT_NUM_TRAP_1:
-        case EXCPT_NUM_TRAP_2:
-        case EXCPT_NUM_TRAP_4:
-        case EXCPT_NUM_TRAP_5:
-        case EXCPT_NUM_TRAP_6:
-        case EXCPT_NUM_TRAP_7:
-        case EXCPT_NUM_TRAP_8:
-        case EXCPT_NUM_TRAP_9:
-        case EXCPT_NUM_TRAP_10:
-        case EXCPT_NUM_TRAP_11:
-        case EXCPT_NUM_TRAP_12:
-        case EXCPT_NUM_TRAP_13:
-        case EXCPT_NUM_TRAP_14:
-        case EXCPT_NUM_TRAP_15:
+        case CPU_VEC_TRAP_0:
+        case CPU_VEC_TRAP_1:
+        case CPU_VEC_TRAP_2:
+        case CPU_VEC_TRAP_4:
+        case CPU_VEC_TRAP_5:
+        case CPU_VEC_TRAP_6:
+        case CPU_VEC_TRAP_7:
+        case CPU_VEC_TRAP_8:
+        case CPU_VEC_TRAP_9:
+        case CPU_VEC_TRAP_10:
+        case CPU_VEC_TRAP_11:
+        case CPU_VEC_TRAP_12:
+        case CPU_VEC_TRAP_13:
+        case CPU_VEC_TRAP_14:
+        case CPU_VEC_TRAP_15:
             return EXCPT_SOFT_INTERRUPT;
 
-        case EXCPT_NUM_TRAP_3:
+        case CPU_VEC_TRAP_3:
             return EXCPT_BREAKPOINT;
 
-        case EXCPT_NUM_TRAPcc:      // MC68881, MC68882, MC68851
+        case CPU_VEC_TRAPcc:      // MC68881, MC68882, MC68851
             if (excpt_frame_getformat(efp) == 2 && *((uint16_t*)efp->u.f2.addr) == 0xCE76 /*TRAPV*/) {
                 return EXCPT_INT_OVERFLOW;
             }
@@ -115,33 +115,33 @@ static int get_ecode(int cpu_model, int cpu_code, excpt_frame_t* _Nonnull efp)
                 return EXCPT_SOFT_INTERRUPT;
             }
 
-        case EXCPT_NUM_FPU_BRANCH_UO:
-        case EXCPT_NUM_FPU_SNAN:
+        case CPU_VEC_FPU_BRANCH_UO:
+        case CPU_VEC_FPU_SNAN:
             return EXCPT_FLT_NAN;
 
-        case EXCPT_NUM_FPU_INEXACT:
+        case CPU_VEC_FPU_INEXACT:
             return EXCPT_FLT_INEXACT;
 
-        case EXCPT_NUM_FPU_DIV_ZERO:
+        case CPU_VEC_FPU_DIV_ZERO:
             return EXCPT_FLT_DIVIDE_BY_ZERO;
 
-        case EXCPT_NUM_FPU_UNDERFLOW:
+        case CPU_VEC_FPU_UNDERFLOW:
             return EXCPT_FLT_UNDERFLOW;
 
-        case EXCPT_NUM_FPU_OP_ERR:
-        case EXCPT_NUM_FPU_UNIMPL_TY:   // MC68040
+        case CPU_VEC_FPU_OP_ERR:
+        case CPU_VEC_FPU_UNIMPL_TY:   // MC68040
             return EXCPT_FLT_OPERAND;
 
-        case EXCPT_NUM_FPU_OVERFLOW:
+        case CPU_VEC_FPU_OVERFLOW:
             return EXCPT_FLT_OVERFLOW;
 
-        case EXCPT_NUM_UNINIT_IRQ:
-        case EXCPT_NUM_SPUR_IRQ:
-        case EXCPT_NUM_IRQ_7:           // NMI
-        case EXCPT_NUM_COPROC:          // MC68881, MC68882, MC68851
-        case EXCPT_NUM_FORMAT:
-        case EXCPT_NUM_MMU_CONFIG:      // MC68030 MMU, MC68851 PMMU
-        case EXCPT_NUM_PMMU_ILLEGAL:    // MC68851 PMMU
+        case CPU_VEC_UNINIT_IRQ:
+        case CPU_VEC_SPUR_IRQ:
+        case CPU_VEC_IRQ_7:           // NMI
+        case CPU_VEC_COPROC:          // MC68881, MC68882, MC68851
+        case CPU_VEC_FORMAT:
+        case CPU_VEC_MMU_CONFIG:      // MC68030 MMU, MC68851 PMMU
+        case CPU_VEC_PMMU_ILLEGAL:    // MC68851 PMMU
         default:
             // any of these exceptions imply:
             // - buggy kernel code (e.g. bug in MMU config code)
@@ -198,7 +198,6 @@ static uintptr_t get_faddr(int cpu_model, const excpt_frame_t* _Nonnull efp)
             else {
                 return efp->pc;
             }
-            break;
 
         default:
             return 0;
@@ -299,11 +298,12 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
 {
     void* ksp = ((char*)utp) + sizeof(excpt_0_frame_t);
     excpt_frame_t* efp = (excpt_frame_t*)&vp->excpt_sa->ef;
+    const bool is_hw_excpt = excpt_frame_ishw(efp);
     const int ef_format = excpt_frame_getformat(efp);
     const int cpu_model = g_sys_desc->cpu_model;
-    const int cpu_code = excpt_frame_getvecnum(efp);
-    const bool is_f7_access_err = (cpu_model == CPU_MODEL_68040 && cpu_code == EXCPT_NUM_BUS_ERR && ef_format == 7);
-    const bool is_f4_access_err = (cpu_model == CPU_MODEL_68060 && cpu_code == EXCPT_NUM_BUS_ERR && ef_format == 4);
+    const int cpu_code = (is_hw_excpt) ? excpt_frame_getvecnum(efp) : excpt_frame_getvecnum(efp) - CPU_VEC_SOFT_EXCPT;
+    const bool is_f7_access_err = (cpu_model == CPU_MODEL_68040 && cpu_code == CPU_VEC_BUS_ERR && ef_format == 7);
+    const bool is_f4_access_err = (cpu_model == CPU_MODEL_68060 && cpu_code == CPU_VEC_BUS_ERR && ef_format == 4);
     const excpt_handler_t* ehp = vcpu_get_excpt_handler_ref(vp);
     excpt_info_t ei;
 
@@ -354,15 +354,17 @@ int cpu_exception(struct vcpu* _Nonnull vp, excpt_0_frame_t* _Nonnull utp)
     }
 
 
-    // FP fsave frame may require some fix up
-    if (ei.code >= EXCPT_FLT_NAN && ei.code <= EXCPT_FLT_INEXACT) {
-        fp_fsave_fixup(vp);
-    }
+    if (is_hw_excpt) {
+        // FP fsave frame may require some fix up
+        if (ei.code >= EXCPT_FLT_NAN && ei.code <= EXCPT_FLT_INEXACT) {
+            fp_fsave_fixup(vp);
+        }
 
 
-    if (is_f4_access_err) {
-        if (!recov_access_error_060(efp)) {
-            return 0;
+        if (is_f4_access_err) {
+            if (!recov_access_error_060(efp)) {
+                return 0;
+            }
         }
     }
 

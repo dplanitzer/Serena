@@ -182,3 +182,38 @@ void proc_exec_test(int argc, char *argv[])
 
     assertOK(proc_exec("test", argv2, NULL));
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// proc_excpt_raise_test
+
+static int ex_handler_raised(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _Nullable mc)
+{
+    if (ei->code == EXCPT_PAGE_ERROR) {
+        printf("arg: %s\n", arg);
+        printf("code: %d\n", ei->code);
+        printf("cpu_code: %d\n", ei->cpu_code);
+        printf("addr: %p\n", ei->addr);
+        printf("PC: %p, SP: %p\n", ei->pc, ei->sp);
+
+        exit(EXIT_SUCCESS);
+        /* NOT REACHED */
+    }
+
+    return EXCPT_ABORT_EXECUTION;
+}
+
+void proc_excpt_raise_test(int argc, char *argv[])
+{
+    excpt_handler_t h;
+
+    h.func = ex_handler_raised;
+    h.arg = "raised PAGE_ERROR";
+    excpt_sethandler(0, &h, NULL);
+    
+    excpt_raise(EXCPT_PAGE_ERROR, 0x1234);
+    
+    // -> process should have exited with (regular) status 0
+    // -> should not print
+    printf("bad\n");
+}

@@ -230,24 +230,34 @@ __excpt_return:
 ;-------------------------------------------------------------------------------
 ; int excpt_raise(int cpu_code, void* _Nullable fault_addr) [trap]
 ; Synchronously raise a CPU exception. This function is invoked with an 8 byte
-; type $0 frame on the stack. It currently ignores 'fault_addr' and it simply
-; rewrites the vector offset in the $0 frame so that it corresponds to 'cpu_code'
-; before it branches to __cpu_exception to do the actual exception processing.
+; type $0 frame on the stack. It converts the $0 frame to a $2 frame so that we
+; can store the fault address in the frame. Additionally it changes the vector
+; number from trap#2 to 256 + cpu_code.
 ;
-; stack at this point:
-; fault_addr
-; cpu_code
-; __excpt_raise return address
-; $0 exception frame (8 bytes)
 __cpu_exception_raise:
-    move.l  12(sp), d0      ; $0 frame + __excpt_raise_return_addr -> &cpu_code
+    cargs   cer_cpu_code.l, cer_faddr.l
+
+    movec   usp, a1
+    move.l  cer_cpu_code(a1), d0
     cmp.l   #2, d0
     blt.s   .1
     cmp.l   #63, d0
     bgt.s   .1
 
+    add.l   #256, d0        ; mark the exception as triggered by _cpu_exception_raise()
     lsl.w   #2, d0
-    move.w  d0, 6(sp)       ; replace $0.format_offset
+    or.w    #$2000, d0      ; changed format from $0 to $2
+    move.w  d0, 6(sp)       ; replace $2.format_offset with (256 + cpu_code) << 2
+
+    move.l  0(sp), d0       ; save the two $0 frame long words
+    move.l  4(sp), d1
+
+    subq.l  #4, sp          ; make room for a $2 frame based on the already existing $0 frame
+
+    move.l  cer_faddr(a1), a0
+    move.l  a0, 8(sp)       ; copy the fault addr into the $2 addr slot
+    move.l  d1, 4(sp)       ; copy the two $0 frame words back into the $2 frame
+    move.l  d0, 0(sp)
 
     bra     __cpu_exception
 

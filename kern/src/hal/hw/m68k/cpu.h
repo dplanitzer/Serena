@@ -64,73 +64,75 @@
 #define CPU_SR_C            0x01
 
 
-#define EXCPT_NUM_RESET_SSP  0
-#define EXCPT_NUM_RESET_PC   1
-#define EXCPT_NUM_BUS_ERR    2
-#define EXCPT_NUM_ADR_ERR    3
-#define EXCPT_NUM_ILLEGAL    4
-#define EXCPT_NUM_ZERO_DIV   5
-#define EXCPT_NUM_CHK        6
-#define EXCPT_NUM_TRAPcc     7
-#define EXCPT_NUM_PRIV_VIO   8
-#define EXCPT_NUM_TRACE      9
-#define EXCPT_NUM_LINE_A     10
-#define EXCPT_NUM_LINE_F     11
-#define EXCPT_NUM_EMU_INT    12
-#define EXCPT_NUM_COPROC     13
-#define EXCPT_NUM_FORMAT     14
-#define EXCPT_NUM_UNINIT_IRQ 15
-#define EXCPT_NUM_RESV_16    16
-#define EXCPT_NUM_RESV_17    17
-#define EXCPT_NUM_RESV_18    18
-#define EXCPT_NUM_RESV_19    19
-#define EXCPT_NUM_RESV_20    20
-#define EXCPT_NUM_RESV_21    21
-#define EXCPT_NUM_RESV_22    22
-#define EXCPT_NUM_RESV_23    23
-#define EXCPT_NUM_SPUR_IRQ   24
-#define EXCPT_NUM_IRQ_1      25
-#define EXCPT_NUM_IRQ_2      26
-#define EXCPT_NUM_IRQ_3      27
-#define EXCPT_NUM_IRQ_4      28
-#define EXCPT_NUM_IRQ_5      29
-#define EXCPT_NUM_IRQ_6      30
-#define EXCPT_NUM_IRQ_7      31
-#define EXCPT_NUM_TRAP_0     32
-#define EXCPT_NUM_TRAP_1     33
-#define EXCPT_NUM_TRAP_2     34
-#define EXCPT_NUM_TRAP_3     35
-#define EXCPT_NUM_TRAP_4     36
-#define EXCPT_NUM_TRAP_5     37
-#define EXCPT_NUM_TRAP_6     38
-#define EXCPT_NUM_TRAP_7     39
-#define EXCPT_NUM_TRAP_8     40
-#define EXCPT_NUM_TRAP_9     41
-#define EXCPT_NUM_TRAP_10    42
-#define EXCPT_NUM_TRAP_11    43
-#define EXCPT_NUM_TRAP_12    44
-#define EXCPT_NUM_TRAP_13    45
-#define EXCPT_NUM_TRAP_14    46
-#define EXCPT_NUM_TRAP_15    47
-#define EXCPT_NUM_FPU_BRANCH_UO 48
-#define EXCPT_NUM_FPU_INEXACT   49
-#define EXCPT_NUM_FPU_DIV_ZERO  50
-#define EXCPT_NUM_FPU_UNDERFLOW 51
-#define EXCPT_NUM_FPU_OP_ERR    52
-#define EXCPT_NUM_FPU_OVERFLOW  53
-#define EXCPT_NUM_FPU_SNAN      54
-#define EXCPT_NUM_FPU_UNIMPL_TY 55
-#define EXCPT_NUM_MMU_CONFIG    56
-#define EXCPT_NUM_PMMU_ILLEGAL  57
-#define EXCPT_NUM_PMMU_ACCESS   58
-#define EXCPT_NUM_RESV_59       59
-#define EXCPT_NUM_UNIMPL_EA     60
-#define EXCPT_NUM_UNIMPL_INST   61
-#define EXCPT_NUM_RESV_62    62
-#define EXCPT_NUM_RESV_63    63
-#define EXCPT_NUM_USER_VEC   64
+#define CPU_VEC_RESET_SSP  0
+#define CPU_VEC_RESET_PC   1
+#define CPU_VEC_BUS_ERR    2
+#define CPU_VEC_ADR_ERR    3
+#define CPU_VEC_ILLEGAL    4
+#define CPU_VEC_ZERO_DIV   5
+#define CPU_VEC_CHK        6
+#define CPU_VEC_TRAPcc     7
+#define CPU_VEC_PRIV_VIO   8
+#define CPU_VEC_TRACE      9
+#define CPU_VEC_LINE_A     10
+#define CPU_VEC_LINE_F     11
+#define CPU_VEC_EMU_INT    12
+#define CPU_VEC_COPROC     13
+#define CPU_VEC_FORMAT     14
+#define CPU_VEC_UNINIT_IRQ 15
+#define CPU_VEC_RESV_16    16
+#define CPU_VEC_RESV_17    17
+#define CPU_VEC_RESV_18    18
+#define CPU_VEC_RESV_19    19
+#define CPU_VEC_RESV_20    20
+#define CPU_VEC_RESV_21    21
+#define CPU_VEC_RESV_22    22
+#define CPU_VEC_RESV_23    23
+#define CPU_VEC_SPUR_IRQ   24
+#define CPU_VEC_IRQ_1      25
+#define CPU_VEC_IRQ_2      26
+#define CPU_VEC_IRQ_3      27
+#define CPU_VEC_IRQ_4      28
+#define CPU_VEC_IRQ_5      29
+#define CPU_VEC_IRQ_6      30
+#define CPU_VEC_IRQ_7      31
+#define CPU_VEC_TRAP_0     32
+#define CPU_VEC_TRAP_1     33
+#define CPU_VEC_TRAP_2     34
+#define CPU_VEC_TRAP_3     35
+#define CPU_VEC_TRAP_4     36
+#define CPU_VEC_TRAP_5     37
+#define CPU_VEC_TRAP_6     38
+#define CPU_VEC_TRAP_7     39
+#define CPU_VEC_TRAP_8     40
+#define CPU_VEC_TRAP_9     41
+#define CPU_VEC_TRAP_10    42
+#define CPU_VEC_TRAP_11    43
+#define CPU_VEC_TRAP_12    44
+#define CPU_VEC_TRAP_13    45
+#define CPU_VEC_TRAP_14    46
+#define CPU_VEC_TRAP_15    47
+#define CPU_VEC_FPU_BRANCH_UO 48
+#define CPU_VEC_FPU_INEXACT   49
+#define CPU_VEC_FPU_DIV_ZERO  50
+#define CPU_VEC_FPU_UNDERFLOW 51
+#define CPU_VEC_FPU_OP_ERR    52
+#define CPU_VEC_FPU_OVERFLOW  53
+#define CPU_VEC_FPU_SNAN      54
+#define CPU_VEC_FPU_UNIMPL_TY 55
+#define CPU_VEC_MMU_CONFIG    56
+#define CPU_VEC_PMMU_ILLEGAL  57
+#define CPU_VEC_PMMU_ACCESS   58
+#define CPU_VEC_RESV_59       59
+#define CPU_VEC_UNIMPL_EA     60
+#define CPU_VEC_UNIMPL_INST   61
+#define CPU_VEC_RESV_62    62
+#define CPU_VEC_RESV_63    63
+#define CPU_VEC_USER_VEC   64
 
-#define EXCPT_NUM_USER_VECS     192
+#define CPU_VEC_USER_VECS     192
+
+#define CPU_VEC_SOFT_EXCPT  256 /* Exception triggered from user space with excpt_raise() */
 
 
 // Format #0 CPU exception stack frame
@@ -257,6 +259,10 @@ typedef struct excpt_frame {
 
 #define excpt_frame_getvecnum(__ef) \
 (excpt_frame_getvecoff(__ef) >> 2)
+
+// Exception triggered by hardware or excpt_raise()?
+#define excpt_frame_ishw(__ef) \
+(excpt_frame_getvecoff(__ef) < 1024)
 
 
 // MC68020, MC68030
