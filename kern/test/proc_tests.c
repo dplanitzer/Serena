@@ -113,7 +113,7 @@ static int ex_handler(void* arg, const excpt_info_t* _Nonnull ei, mcontext_t* _N
         printf("addr: %p\n", ei->addr);
         printf("PC: %p, SP: %p\n", ei->pc, ei->sp);
 
-        exit(EXIT_SUCCESS);
+        _Exit(EXIT_SUCCESS);
         /* NOT REACHED */
     }
 
@@ -196,7 +196,7 @@ static int ex_handler_raised(void* arg, const excpt_info_t* _Nonnull ei, mcontex
         printf("addr: %p\n", ei->addr);
         printf("PC: %p, SP: %p\n", ei->pc, ei->sp);
 
-        exit(EXIT_SUCCESS);
+        _Exit(EXIT_SUCCESS);
         /* NOT REACHED */
     }
 
