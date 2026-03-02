@@ -188,6 +188,7 @@ extern int vfprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict
 
 extern int sprintf(char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, ...);
 extern int vsprintf(char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, va_list ap);
+
 extern int snprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, ...);
 extern int vsnprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, va_list ap);
 
@@ -203,6 +204,7 @@ extern int vfiprintf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restric
 
 extern int siprintf(char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, ...);
 extern int vsiprintf(char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, va_list ap);
+
 extern int sniprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, ...);
 extern int vsniprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _Nonnull _Restrict format, va_list ap);
 
@@ -237,6 +239,27 @@ extern int vfscanf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict 
 
 extern int sscanf(const char * _Nonnull _Restrict buffer, const char * _Nonnull _Restrict format, ...);
 extern int vsscanf(const char * _Nonnull _Restrict buffer, const char * _Nonnull _Restrict format, va_list ap);
+
+// Integer only versions of scanf()
+extern int iscanf(const char * _Nonnull _Restrict format, ...);
+extern int viscanf(const char * _Nonnull _Restrict format, va_list ap);
+
+extern int fiscanf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, ...);
+extern int vfiscanf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, va_list ap);
+
+extern int siscanf(const char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, ...);
+extern int vsiscanf(const char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, va_list ap);
+
+#ifdef __VBCC__
+extern int __v2scanf(const char * _Nonnull _Restrict format, ...);
+#pragma scanflike scanf
+
+extern int __v2fscanf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format, ...);
+#pragma scanflike fscanf
+
+extern int __v2sscanf(char * _Nullable _Restrict buffer, const char * _Nonnull _Restrict format, ...);
+#pragma scanflike sscanf
+#endif
 
 
 extern void perror(const char * _Nullable str);

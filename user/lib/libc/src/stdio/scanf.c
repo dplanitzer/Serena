@@ -6,7 +6,7 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <stdio.h>
+#include "__stdio.h"
 
 
 int scanf(const char * _Nonnull _Restrict format, ...)

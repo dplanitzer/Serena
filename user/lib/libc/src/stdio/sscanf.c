@@ -6,7 +6,7 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <stdio.h>
+#include "__stdio.h"
 
 
 int sscanf(const char * _Nonnull _Restrict buffer, const char * _Nonnull _Restrict format, ...)
