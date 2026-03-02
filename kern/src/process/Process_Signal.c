@@ -270,7 +270,6 @@ static errno_t _proc_send_signal_to_proc(ProcessRef _Nonnull _Locked self, id_t 
             }
             else {
                 switch (signo) {
-                    case SIGABRT:
                     case SIGXCPU:
                     case SIGHUP:
                     case SIGQUIT:

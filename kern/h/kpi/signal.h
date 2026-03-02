@@ -43,40 +43,40 @@ typedef volatile int sig_atomic_t;
 #define SIGKILL     1   // Forced process termination, non-routable
 #define SIGVPRQ     2   // Privileged signal
 #define SIGVPDS     3   // Privileged signal
-#define SIGABRT     4   // abort(), default: terminate
-#define SIGSTOP     5   // Forced process suspend, non-routable
-#define SIGTSTP     6   // TTY, stop/suspend process, default: stop/suspend process
-#define SIGCONT     7   // TTY, default: continue/resume process, non-routable
-#define SIGXCPU     8   // kernel, process exceeded CPU time limit, default: terminate
-#define SIGHUP      9   // XXX logind, user logged out, default: terminate
-#define SIGQUIT     10  // TTY, process quit, default: terminate
-#define SIGINT      11  // TTY, process interrupt, default: ignore
-#define SIGALRM     12  // XXX clock_alarm(), default: ignore
-#define SIGCHLD   13    // kernel, child process terminated, default: ignore
-#define SIGWINCH    14  // TTY, console window size changed, default: ignore
-#define SIGTTIN     15  // TTY, background process attempt to read from terminal input, default: stop/suspend process
-#define SIGTTOUT    16  // TTY, background process attempt to write to terminal output, default: stop/suspend process
-#define SIGUSR1     17  // User defined signals, default: ignore
-#define SIGUSR2     18
-#define SIGUSR3     19
-#define SIGUSR4     20
-#define SIGUSR5     21
-#define SIGUSR6     22
-#define SIGUSR7     23
-#define SIGUSR8     24
-#define SIGUSR9     25
-#define SIGUSR10    26
-#define SIGUSR11    27
-#define SIGUSR12    28
-#define SIGUSR13    29
-#define SIGUSR14    30
-#define SIGUSR15    31
+#define SIGSTOP     4   // Forced process suspend, non-routable
+#define SIGTSTP     5   // TTY, stop/suspend process, default: stop/suspend process
+#define SIGCONT     6   // TTY, default: continue/resume process, non-routable
+#define SIGXCPU     7   // kernel, process exceeded CPU time limit, default: terminate
+#define SIGHUP      8   // XXX logind, user logged out, default: terminate
+#define SIGQUIT     9  // TTY, process quit, default: terminate
+#define SIGINT      10  // TTY, process interrupt, default: ignore
+#define SIGALRM     11  // XXX clock_alarm(), default: ignore
+#define SIGCHLD     12    // kernel, child process terminated, default: ignore
+#define SIGWINCH    13  // TTY, console window size changed, default: ignore
+#define SIGTTIN     14  // TTY, background process attempt to read from terminal input, default: stop/suspend process
+#define SIGTTOUT    15  // TTY, background process attempt to write to terminal output, default: stop/suspend process
+#define SIGUSR1     16  // User defined signals, default: ignore
+#define SIGUSR2     17
+#define SIGUSR3     18
+#define SIGUSR4     19
+#define SIGUSR5     20
+#define SIGUSR6     21
+#define SIGUSR7     22
+#define SIGUSR8     23
+#define SIGUSR9     24
+#define SIGUSR10    25
+#define SIGUSR11    26
+#define SIGUSR12    27
+#define SIGUSR13    28
+#define SIGUSR14    29
+#define SIGUSR15    30
+#define SIGUSR16    31
 #define SIGDISP     32  // libdispatch, default: ignore
 
 #define SIGUSR      SIGUSR1
 
 #define SIGUSRMIN   SIGUSR1
-#define SIGUSRMAX   SIGUSR15
+#define SIGUSRMAX   SIGUSR16
 
 
 #define _SIGBIT(__signo) (1 << ((__signo) - 1))
