@@ -142,6 +142,17 @@ static int get_ecode(int cpu_model, int cpu_code, excpt_frame_t* _Nonnull efp)
         case CPU_VEC_FORMAT:
         case CPU_VEC_MMU_CONFIG:      // MC68030 MMU, MC68851 PMMU
         case CPU_VEC_PMMU_ILLEGAL:    // MC68851 PMMU
+            return -1;
+
+        case CPU_VEC_USER_VEC + 0:
+            return (!excpt_frame_ishw(efp)) ? EXCPT_FORCED_ABORT : -1;
+
+        case CPU_VEC_USER_VEC + 1:
+            return (!excpt_frame_ishw(efp)) ? EXCPT_USER : -1;
+
+        case CPU_VEC_USER_VEC + 2:
+            return (!excpt_frame_ishw(efp)) ? EXCPT_USER_2 : -1;
+
         default:
             // any of these exceptions imply:
             // - buggy kernel code (e.g. bug in MMU config code)

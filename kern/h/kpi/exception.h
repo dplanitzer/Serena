@@ -73,6 +73,10 @@ typedef struct excpt_handler {
 #define EXCPT_PAGE_ERROR                17  /* attempted to access a page that does not exists or that couldn't be loaded into core */
 #define EXCPT_ACCESS_VIOLATION          18  /* process lacks the rights to access this memory region */
 
+#define EXCPT_FORCED_ABORT              19  /* execution was forcibly aborted by excpt_raise(EXCPT_FORCED_ABORT, NULL)/abort() */
+#define EXCPT_USER                      20  /* user-defined exception triggered by excpt_raise(EXCPT_USER, ...) */
+#define EXCPT_USER_2                    21  /* user-defined exception triggered by excpt_raise(EXCPT_USER_2, ...) */
+
 
 //
 // CPU specific exception code mapping information

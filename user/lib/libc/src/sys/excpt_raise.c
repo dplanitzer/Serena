@@ -36,6 +36,9 @@ int excpt_raise(int code, void* _Nullable fault_addr)
         case EXCPT_DATA_MISALIGNED:         cpu_code = 2; break;
         case EXCPT_PAGE_ERROR:              cpu_code = 2; break;
         case EXCPT_ACCESS_VIOLATION:        cpu_code = 2; break;
+        case EXCPT_FORCED_ABORT:            cpu_code = 64; break;
+        case EXCPT_USER:                    cpu_code = 65; break;
+        case EXCPT_USER_2:                  cpu_code = 66; break;
 #endif
         default:
             // leave error handling to _excpt_raise()

@@ -241,10 +241,10 @@ __cpu_exception_raise:
     move.l  cer_cpu_code(a1), d0
     cmp.l   #2, d0
     blt.s   .1
-    cmp.l   #63, d0
+    cmp.l   #66, d0
     bgt.s   .1
 
-    add.l   #256, d0        ; mark the exception as triggered by _cpu_exception_raise()
+    add.l   #256, d0      ; mark the exception as triggered by _cpu_exception_raise()
     lsl.w   #2, d0
     or.w    #$2000, d0      ; changed format from $0 to $2
     move.w  d0, 6(sp)       ; replace $2.format_offset with (256 + cpu_code) << 2

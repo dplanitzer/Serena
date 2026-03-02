@@ -7,11 +7,10 @@
 //
 
 #include <stdlib.h>
-#include <signal.h>
-#include <errno.h>
+#include <sys/exception.h>
 
 _Noreturn void abort(void)
 {
-    sigsend(SIG_SCOPE_PROC, 0, SIGABRT);
-    for (;;);
+    excpt_raise(EXCPT_FORCED_ABORT, NULL);
+    /* NOT REACHED */
 }

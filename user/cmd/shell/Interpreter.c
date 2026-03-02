@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ext/stdlib.h>
+#include <sys/exception.h>
 #include <sys/proc.h>
 #include <sys/spawn.h>
 #include <sys/wait.h>
@@ -247,7 +248,12 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
     struct proc_status ps;
     proc_join(JOIN_PROC, childPid, &ps);
     if (ps.reason == JREASON_EXCEPTION) {
-        fprintf(stderr, "%s crashed: %d\n", argv[0], ps.u.excptno);
+        if (ps.u.excptno == EXCPT_FORCED_ABORT) {
+            fprintf(stderr, "%s aborted.\n", argv[0]);
+        }
+        else {
+            fprintf(stderr, "%s crashed: %d\n", argv[0], ps.u.excptno);
+        }
     }
 
 
