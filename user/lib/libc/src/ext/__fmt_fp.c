@@ -279,7 +279,7 @@ static void __fmt_format_fp(fmt_t* _Nonnull _Restrict self, char ch, va_list* _N
         case 'g':
         case 'G':
 #ifdef _NO_LONGDBL
-            if (self->spec.lenMod == FMT_LENMOD_L) {
+            if (self->spec.lm == FMT_LM_L) {
                 _fpvalue = (double) fmt_arg(ap, _LONG_DOUBLE);
             } else {
                 _fpvalue = fmt_arg(ap, double);
@@ -315,7 +315,7 @@ static void __fmt_format_fp(fmt_t* _Nonnull _Restrict self, char ch, va_list* _N
 
 #else /* !_NO_LONGDBL */
 
-            if (self->spec.lenMod == FMT_LENMOD_L) {
+            if (self->spec.lm == FMT_LM_L) {
                 _fpvalue = fmt_arg(ap, _LONG_DOUBLE);
             } else {
                 _fpvalue = (_LONG_DOUBLE)fmt_arg(ap, double);
@@ -473,7 +473,7 @@ static void __fmt_format_fp(fmt_t* _Nonnull _Restrict self, char ch, va_list* _N
 
     /* right-adjusting blank padding */
     if (!FMT_IS_LEFTJUST(self->spec.flags)) {
-        __fmt_write_char_rep (self, ' ', self->spec.minFieldWidth - realsz);
+        __fmt_write_char_rep (self, ' ', self->spec.min_field_width - realsz);
     }
 
     /* prefix */
@@ -486,7 +486,7 @@ static void __fmt_format_fp(fmt_t* _Nonnull _Restrict self, char ch, va_list* _N
 
     /* right-adjusting zero padding */
     if (FMT_IS_PADZEROS(self->spec.flags)) {
-        __fmt_write_char_rep (self, '0', self->spec.minFieldWidth - realsz);
+        __fmt_write_char_rep (self, '0', self->spec.min_field_width - realsz);
     }
 
     /* leading zeroes from decimal precision */
@@ -554,7 +554,7 @@ static void __fmt_format_fp(fmt_t* _Nonnull _Restrict self, char ch, va_list* _N
     }
 }
 
-void __fmt_init_fp(fmt_t* _Nonnull _Restrict self, void* _Nullable _Restrict s, fmt_putc_func_t _Nonnull putc_f, fmt_write_func_t _Nonnull write_f, bool doContCountingOnError)
+void __fmt_init_fp(fmt_t* _Nonnull _Restrict self, void* _Nullable _Restrict s, fmt_putc_t _Nonnull putc_f, fmt_write_t _Nonnull write_f, bool doContCountingOnError)
 {
     __fmt_common_init(self, s, putc_f, write_f, doContCountingOnError);
     self->format_cb = __fmt_format_fp;

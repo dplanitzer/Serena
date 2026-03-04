@@ -28,6 +28,23 @@
 
 ssize_t __mem_read(__Memory_FILE_Vars* _Nonnull mp, void* pBuffer, ssize_t nBytesToRead)
 {
+    // single-byte reads
+    if (nBytesToRead == 1) {
+        if (mp->currentCapacity > mp->currentPosition) {
+            *((char*)pBuffer) = mp->store[mp->currentPosition++];
+            return 1;
+        }
+        if (mp->eofPosition > mp->currentPosition) {
+            *((char*)pBuffer) = 0;
+            mp->currentPosition++;
+            return 1;
+        }
+
+        return 0;
+    }
+
+
+    // multi-byte reads
     const ssize_t nBytesRead = (ssize_t)__min((size_t)nBytesToRead, mp->eofPosition - mp->currentPosition);
     const ssize_t nBytesToCopy = (ssize_t)__min((size_t)nBytesRead, mp->currentCapacity - mp->currentPosition);
     const ssize_t nBytesToZero = nBytesRead - nBytesToCopy;

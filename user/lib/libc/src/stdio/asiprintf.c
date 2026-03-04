@@ -37,7 +37,7 @@ int asiprintf(char **str_ptr, const char * _Nonnull _Restrict format, ...)
 
 int vasiprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list ap)
 {
-    const __FILE_Mode sm = __kStreamMode_Write | __kStreamMode_Truncate | __kStreamMode_Create;
+    const __FILE_Mode sm = __kStreamMode_Write | __kStreamMode_Truncate | __kStreamMode_Create | __kStreamMode_NoLocking;
     __Memory_FILE file;
     FILE_Memory mem;
     FILE_MemoryQuery mq;
@@ -56,7 +56,7 @@ int vasiprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list a
         mem.initialEof = 0;
         mem.options = 0;
 
-        r = __fopen_memory_init(&file, &mem, sm | __kStreamMode_NoLocking);
+        r = __fopen_memory_init(&file, &mem, sm);
     }
     else {
         // Use a null stream to calculate the length of the formatted string
@@ -66,7 +66,7 @@ int vasiprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list a
         return EOF;
     }
 
-    __fmt_init_i(&fmt, &file.super, (fmt_putc_func_t)__fputc, (fmt_write_func_t)__fwrite, false);
+    __fmt_init_i(&fmt, &file.super, (fmt_putc_t)__fputc, (fmt_write_t)__fwrite, false);
     const int r1 = __fmt_format(&fmt, format, ap);
     const int r2 = __fputc('\0', &file.super);
     __fmt_deinit(&fmt);

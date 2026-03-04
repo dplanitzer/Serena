@@ -26,27 +26,27 @@ typedef struct fmt_cspec fmt_cspec_t;
 
 
 // Writes character 'ch' to stream 's'. Returns 1 on success and <= 0 otherwise.
-typedef ssize_t (*fmt_putc_func_t)(char ch, void* _Nullable s);
+typedef ssize_t (*fmt_putc_t)(char ch, void* _Nonnull s);
 
 // Writes the first 'nbytes' bytes from 'buffer' to stream 's'. Returns 'nbytes'
 // on success; <= 0 otherwise.
-typedef ssize_t (*fmt_write_func_t)(void* _Nullable _Restrict s, const void * _Restrict buffer, ssize_t nbytes);
+typedef ssize_t (*fmt_write_t)(void* _Nonnull _Restrict s, const void * _Restrict buffer, ssize_t nbytes);
 
 
 // Callback to format the next vararg from 'ap' and write it to the stream
 // associated with formatter 'self'.
-typedef void (*fmt_format_func_t)(fmt_t* _Nonnull _Restrict self, char conversion, va_list* _Nonnull _Restrict ap);
+typedef void (*fmt_format_t)(fmt_t* _Nonnull _Restrict self, char conversion, va_list* _Nonnull _Restrict ap);
 
 
-#define FMT_LENMOD_hh   0
-#define FMT_LENMOD_h    1
-#define FMT_LENMOD_none 2
-#define FMT_LENMOD_l    3
-#define FMT_LENMOD_ll   4
-#define FMT_LENMOD_j    5
-#define FMT_LENMOD_z    6
-#define FMT_LENMOD_t    7
-#define FMT_LENMOD_L    8
+#define FMT_LM_hh   0
+#define FMT_LM_h    1
+#define FMT_LM_none 2
+#define FMT_LM_l    3
+#define FMT_LM_ll   4
+#define FMT_LM_j    5
+#define FMT_LM_z    6
+#define FMT_LM_t    7
+#define FMT_LM_L    8
 
 #define __FMT_LEFTJUST      1
 #define __FMT_FORCESIGN     2
@@ -65,9 +65,9 @@ typedef void (*fmt_format_func_t)(fmt_t* _Nonnull _Restrict self, char conversio
 
 // <https://en.cppreference.com/w/c/io/fprintf>
 struct fmt_cspec {
-    int             minFieldWidth;
-    int             prec;
-    char            lenMod;
+    int             min_field_width;
+    int             prec;   // precision
+    char            lm;     // length modifier
     unsigned char   flags;
 };
 
@@ -76,23 +76,23 @@ struct fmt_cspec {
 #define __FMT_CONTCNTONERR  2
 
 struct fmt {
-    void* _Nonnull              stream;
-    fmt_putc_func_t _Nonnull    putc_cb;
-    fmt_write_func_t _Nonnull   write_cb;
-    fmt_format_func_t _Nullable format_cb;
-    size_t                      charactersWritten;
-    i64a_t                      i64a;
-    fmt_cspec_t                 spec;
-    unsigned char               flags;
+    void* _Nonnull          stream;
+    fmt_putc_t _Nonnull     putc_cb;
+    fmt_write_t _Nonnull    write_cb;
+    fmt_format_t _Nullable  format_cb;
+    size_t                  chars_written;
+    i64a_t                  i64a;
+    fmt_cspec_t             spec;
+    unsigned char           flags;
 };
 
 
 // Initialize a formatter for int and pointer support only.
-extern void __fmt_init_i(fmt_t* _Nonnull _Restrict self, void* _Nullable _Restrict s, fmt_putc_func_t _Nonnull putc_f, fmt_write_func_t _Nonnull write_f, bool doContCountingOnError);
+extern void __fmt_init_i(fmt_t* _Nonnull _Restrict self, void* _Nullable _Restrict s, fmt_putc_t _Nonnull putc_f, fmt_write_t _Nonnull write_f, bool doContCountingOnError);
 
 #if ___STDC_HOSTED__ == 1
 // Initialize a formatter for int, pointer and floating point support.
-extern void __fmt_init_fp(fmt_t* _Nonnull _Restrict self, void* _Nullable _Restrict s, fmt_putc_func_t _Nonnull putc_f, fmt_write_func_t _Nonnull write_f, bool doContCountingOnError);
+extern void __fmt_init_fp(fmt_t* _Nonnull _Restrict self, void* _Nullable _Restrict s, fmt_putc_t _Nonnull putc_f, fmt_write_t _Nonnull write_f, bool doContCountingOnError);
 #endif
 
 // Deinitialize the given formatter.
@@ -120,7 +120,7 @@ extern void __fmt_write_char_rep(fmt_t* _Nonnull self, char ch, int count);
 (self)->stream = s; \
 (self)->putc_cb = putc_f; \
 (self)->write_cb = write_f; \
-(self)->charactersWritten = 0; \
+(self)->chars_written = 0; \
 (self)->flags = 0; \
 if (doContCountingOnError) { \
     (self)->flags |= __FMT_CONTCNTONERR; \

@@ -67,6 +67,9 @@ extern void proc_exit_test(int argc, char *argv[]);
 // RC
 extern void rc_test(int argc, char *argv[]);
 
+// Scanf
+extern void scanf_test(int argc, char *argv[]);
+
 // Sema
 extern void sem_test(int argc, char *argv[]);
 
@@ -139,6 +142,8 @@ static const test_t gTests[] = {
 
     {"rc", rc_test, false},
 
+    {"scanf", scanf_test, false},
+    
     {"sem", sem_test, true},
 
     {"stdio", fopen_memory_fixed_size_test, false},

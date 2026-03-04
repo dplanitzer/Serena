@@ -193,6 +193,7 @@ if ((__self)->cb.seek == NULL) { \
 (__self)->bufferIndex = 0
 
 extern int __fget_ugb(char* _Nonnull _Restrict pch, FILE * _Nonnull _Restrict s);
+extern int __ungetc(int ch, FILE * _Nonnull s);
 
 extern ssize_t __fwrite(FILE * _Nonnull _Restrict s, const void * _Restrict buffer, ssize_t nbytes);
 extern ssize_t __fgetc(char* _Nonnull _Restrict pch, FILE * _Nonnull _Restrict sm);
