@@ -71,7 +71,7 @@ struct scn {
     scn_ungetc_t _Nonnull   ungetc_cb;
     scn_scan_t _Nullable    scan_cb;
     size_t                  chars_read;
-    int                     fieldsAssigned;
+    int                     fields_assigned;
     i64a_t                  i64a;
     scn_cspec_t             spec;
     unsigned char           flags;
@@ -122,7 +122,7 @@ extern int __scn_scan(scn_t* _Nonnull _Restrict self, const char* _Nonnull _Rest
 (self)->ungetc_cb = ungetc_f; \
 (self)->scan_cb = NULL; \
 (self)->chars_read = 0; \
-(self)->fieldsAssigned = 0; \
+(self)->fields_assigned = 0; \
 (self)->flags = 0;
 
 __CPP_END

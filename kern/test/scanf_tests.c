@@ -14,6 +14,8 @@
 
 void scanf_test(int argc, char *argv[])
 {
+    char ch[8];
+
     assertEquals(0, sscanf("hello", "hello"));
     assertEquals(0, sscanf("hello", ""));
     assertEquals(EOF, sscanf("", "hello"));
@@ -21,4 +23,21 @@ void scanf_test(int argc, char *argv[])
     assertEquals(0, sscanf("hello world", "hello world"));
     assertEquals(0, sscanf("hello   \t\n\r\v world", "hello world"));
     assertEquals(0, sscanf("hello   \t\n world", "hello \t\n\r\v world"));
+
+    assertEquals(1, sscanf("\t world", " %c", &ch[0]));
+    assertEquals('w', ch[0]);
+
+    assertEquals(1, sscanf("\t world", " %2c", ch));
+    assertEquals('w', ch[0]);
+    assertEquals('o', ch[1]);
+
+    assertEquals(1, sscanf("\t world", "%2s", ch));
+    assertEquals('w', ch[0]);
+    assertEquals('o', ch[1]);
+    assertEquals('\0', ch[2]);
+
+    assertEquals(1, sscanf("\t wo  ", "%s", ch));
+    assertEquals('w', ch[0]);
+    assertEquals('o', ch[1]);
+    assertEquals('\0', ch[2]);
 }

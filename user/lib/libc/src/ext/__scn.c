@@ -11,6 +11,7 @@
 #include <ext/limits.h>
 #include <ext/math.h>
 #include <string.h>
+#include <stdio.h>
 #ifndef EOF
 #define EOF -1
 #endif
@@ -53,9 +54,8 @@ static const char* _Nonnull _parse_length_mod(scn_t* _Nonnull _Restrict self, co
 {
     scn_cspec_t* spec = &self->spec;
 
-    switch (*format) {
+    switch (*format++) {
         case 'l':
-            format++;
             if (*format == 'l') {
                 format++;
                 spec->lm = SCN_LM_ll;
@@ -65,7 +65,6 @@ static const char* _Nonnull _parse_length_mod(scn_t* _Nonnull _Restrict self, co
             break;
 
         case 'h':
-            format++;
             if (*format == 'h') {
                 format++;
                 spec->lm = SCN_LM_hh;
@@ -75,26 +74,23 @@ static const char* _Nonnull _parse_length_mod(scn_t* _Nonnull _Restrict self, co
             break;
 
         case 'j':
-            format++;
             spec->lm = SCN_LM_j;
             break;
 
         case 'z':
-            format++;
             spec->lm = SCN_LM_z;
             break;
 
         case 't':
-            format++;
             spec->lm = SCN_LM_t;
             break;
 
         case 'L':   // long double
-            format++;
             spec->lm = SCN_LM_L;
             break;
 
         default:
+            format--;
             break;
     }
     
@@ -119,7 +115,7 @@ static const char* _Nonnull _parse_conv_spec(scn_t* _Nonnull _Restrict self, con
     scn_cspec_t* spec = &self->spec;
     char ch;
 
-    spec->max_field_width = 0;
+    spec->max_field_width = -1;
     spec->lm = SCN_LM_none;
     spec->flags = 0;
 
@@ -137,6 +133,73 @@ static const char* _Nonnull _parse_conv_spec(scn_t* _Nonnull _Restrict self, con
     
     // Length modifier
     return _parse_length_mod(self, format);
+}
+
+
+static void _skip_ws(scn_t* _Nonnull self)
+{
+    for (;;) {
+        const int ch = __scn_getc(self);
+
+        if (ch == EOF || !isspace(ch)) {
+            __scn_ungetc(self, ch);
+            break;
+        }
+    }
+}
+
+static void _scan_chars(scn_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
+{
+    char* p = scn_arg(ap, char*);
+    size_t nchars = (self->spec.max_field_width < 0) ? 1 : self->spec.max_field_width;
+    const bool suppressed = SCN_SUPPRESSED(self->spec.flags);
+    bool assigned = false;
+
+    while (nchars-- > 0) {
+        const int ch = __scn_getc(self);
+
+        if (ch == EOF) {
+            break;
+        }
+        
+        if (!suppressed) {
+            *p++ = (unsigned char)ch;
+            assigned = true;
+        }
+    }
+
+    if (assigned) {
+        self->fields_assigned++;
+    }
+}
+
+static void _scan_string(scn_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
+{
+    char* p = scn_arg(ap, char*);
+    size_t nchars = (self->spec.max_field_width < 0) ? INT_MAX : self->spec.max_field_width;
+    const bool suppressed = SCN_SUPPRESSED(self->spec.flags);
+    bool assigned = false;
+
+    _skip_ws(self);
+
+    for (;;) {
+        const int ch = __scn_getc(self);
+
+        if (ch == EOF || isspace(ch) || nchars == 0) {
+            break;
+        }
+
+        nchars--;
+        if (!suppressed) {
+            *p++ = (unsigned char)ch;
+            assigned = true;
+        }
+    }
+
+    if (assigned) {
+        *p = '\0';
+        self->fields_assigned++;
+    }
 }
 
 static void _scan_out_nchars(scn_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
@@ -169,8 +232,8 @@ static const char* _Nonnull _scan_arg(scn_t* _Nonnull _Restrict self, const char
             }
             break;
 
-        case 'c':   break;
-        case 's':   break;
+        case 'c':   _scan_chars(self, ap); break;
+        case 's':   _scan_string(self, ap); break;
         case '[':   break;
         case 'd':   // fall through
         case 'i':   break;
@@ -210,13 +273,13 @@ void __scn_deinit(scn_t* _Nullable self)
 int __scn_scan(scn_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, va_list ap)
 {
     self->chars_read = 0;
-    self->fieldsAssigned = 0;
+    self->fields_assigned = 0;
     self->flags = 0;
 
     while (self->flags == 0) {
         switch (*format) {
             case '\0':
-                return self->fieldsAssigned;
+                return self->fields_assigned;
 
             case '%':
                 format = _scan_arg(self, _parse_conv_spec(self, ++format, &ap), &ap);
@@ -247,5 +310,5 @@ int __scn_scan(scn_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict fo
     }
     // Parsing failed syntactically or because of a read error
 
-    return (self->fieldsAssigned == 0) ? -1 : self->fieldsAssigned;
+    return (self->fields_assigned == 0) ? -1 : self->fields_assigned;
 }
