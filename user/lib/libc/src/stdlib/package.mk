@@ -46,6 +46,7 @@ STDLIB_SC_SOURCES := $(STDLIB_SOURCES_DIR)/abs.c \
 					 $(STDLIB_SOURCES_DIR)/udiv.c \
 					 $(STDLIB_SOURCES_DIR)/qsort.c \
 					 $(STDLIB_SOURCES_DIR)/ulldiv.c \
+					 $(STDLIB_SOURCES_DIR)/__digits.c \
 					 $(STDLIB_SOURCES_DIR)/__i32toa.c \
 					 $(STDLIB_SOURCES_DIR)/__i64toa.c \
 					 $(STDLIB_SOURCES_DIR)/__strtoi32.c \

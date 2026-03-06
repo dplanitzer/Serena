@@ -15,26 +15,21 @@
 long strtol(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
     long r;
-    int err;
+    const int err = __strtoi32(str, str_end, base, LONG_MIN, LONG_MAX, &r);
 
-    if ((err = __strtoi32(str, str_end, base, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r)) == 0) {
-        return r;
-    }
-    else {
+    if (err != 0) {
         errno = err;
-        return 0;
     }
+    return r;
 }
 
 long atol(const char *str)
 {
     long r;
-    int err;
+    const int err = __strtoi32(str, NULL, 10, LONG_MIN, LONG_MAX, &r);
 
-    if ((err = __strtoi32(str, NULL, 10, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r)) == 0) {
-        return (long) r;
-    } else {
+    if (err != 0) {
         errno = err;
-        return 0;
     }
+    return r;
 }

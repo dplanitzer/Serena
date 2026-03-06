@@ -14,7 +14,7 @@
 // 'radix' must be 2, 8, 10 or 16
 char* _Nonnull __u32toa(uint32_t val, int radix, bool isUppercase, i32a_t* _Nonnull out)
 {
-    const char* const ds = (isUppercase) ? "0123456789ABCDEF" : "0123456789abcdef";
+    const char* const ds = (isUppercase) ? __g_digits_16_uc : __g_digits_16_lc;
     char *ep = &out->buffer[I32A_BUFFER_SIZE - 1];
     char *p = ep;
 

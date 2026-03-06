@@ -14,7 +14,7 @@
 // 'radix' must be 2, 8, 10 or 16
 char* _Nonnull __u64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Nonnull out)
 {
-    const char* const ds = (isUppercase) ? "0123456789ABCDEF" : "0123456789abcdef";
+    const char* const ds = (isUppercase) ? __g_digits_16_uc : __g_digits_16_lc;
     char *ep = &out->buffer[I64A_BUFFER_SIZE - 1];
     char *p = ep;
     iu64_t xy[2], q, r;

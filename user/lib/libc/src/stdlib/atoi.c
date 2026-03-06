@@ -14,13 +14,11 @@
 
 int atoi(const char *str)
 {
-    long long r;
-    int err;
+    long r;
+    const int err = __strtoi32(str, NULL, 10, INT_MIN, INT_MAX, &r);
 
-    if ((err = __strtoi64(str, NULL, 10, INT_MIN, INT_MAX, __INT_MAX_BASE_10_DIGITS, &r)) == 0) {
-        return (int) r;
-    } else {
+    if (err != 0) {
         errno = err;
-        return 0;
     }
+    return (int) r;
 }

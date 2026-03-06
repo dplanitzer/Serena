@@ -15,10 +15,6 @@ long strtol(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
     long r;
 
-    if (__strtoi32(str, str_end, base, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r) == 0) {
-        return r;
-    }
-    else {
-        return 0;
-    }
+    __strtoi32(str, str_end, base, LONG_MIN, LONG_MAX, &r);
+    return r;   // LONG_MAX in case of overflow
 }
