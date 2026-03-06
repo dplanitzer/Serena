@@ -40,4 +40,21 @@ void scanf_test(int argc, char *argv[])
     assertEquals('w', ch[0]);
     assertEquals('o', ch[1]);
     assertEquals('\0', ch[2]);
+
+    assertEquals(1, sscanf(" 12hello", "%[0-9 ]hello", ch));
+    assertEquals(' ', ch[0]);
+    assertEquals('1', ch[1]);
+    assertEquals('2', ch[2]);
+    assertEquals('\0', ch[3]);
+
+    assertEquals(1, sscanf("a1 ", "%[a1 ]hello", ch));
+    assertEquals('a', ch[0]);
+    assertEquals('1', ch[1]);
+    assertEquals(' ', ch[2]);
+    assertEquals('\0', ch[3]);
+
+    assertEquals(1, sscanf("bc", "%[^a]hello", ch));
+    assertEquals('b', ch[0]);
+    assertEquals('c', ch[1]);
+    assertEquals('\0', ch[2]);
 }

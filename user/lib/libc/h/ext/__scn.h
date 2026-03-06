@@ -65,6 +65,8 @@ struct scn_cspec {
 #define __SCN_HASERR    1   /* Syntax or I/O error */
 #define __SCN_HASEOF    2
 
+#define __SCN_SCANSET_SIZE  32  /* Number of bytes needed to store a scanset of 256 characters */
+
 struct scn {
     void* _Nonnull          stream;
     scn_getc_t _Nonnull     getc_cb;
@@ -72,7 +74,10 @@ struct scn {
     scn_scan_t _Nullable    scan_cb;
     size_t                  chars_read;
     int                     fields_assigned;
-    i64a_t                  i64a;
+    union {
+        i64a_t              i64a;
+        unsigned char       scanset[__SCN_SCANSET_SIZE];
+    }                       u;
     scn_cspec_t             spec;
     unsigned char           flags;
 };
@@ -112,6 +117,15 @@ extern int __scn_scan(scn_t* _Nonnull _Restrict self, const char* _Nonnull _Rest
 // Returns true if the scanner is in eof state.
 #define scn_eof(self) \
 ((((self)->flags & __SCN_HASEOF) == __SCN_HASEOF) ? true : false)
+
+
+// Marks the given character as a member of the scanset
+#define scn_addchar(self, ch) \
+(self)->u.scanset[(ch) >> 3] |= 1 << ((ch) & 0x7)
+
+// Returns true if the given character is a member of the scanset
+#define scn_haschar(self, ch) \
+(((self)->u.scanset[(ch) >> 3] & (1 << ((ch) & 0x7))) != 0)
 
 
 // Internal

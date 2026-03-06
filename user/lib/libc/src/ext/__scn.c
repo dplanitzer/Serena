@@ -202,6 +202,103 @@ static void _scan_string(scn_t* _Nonnull _Restrict self, va_list* _Nonnull _Rest
     }
 }
 
+// original call: scanf("%[0-9]hello")
+// 'format' at entry: "0-9]hello"
+// 'format' at return: "hello"
+// See C23 draft, p336
+static const char* _Nonnull _parse_scanset(scn_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, bool * _Nonnull _Restrict pNegated)
+{
+    memset(&self->u.scanset, 0, __SCN_SCANSET_SIZE);
+
+
+    // look for '^' -> negated
+    if (*format == '^') {
+        format++;
+        *pNegated = true;
+    }
+    
+    // look for ']' -> scan for closing bracket too
+    if (*format == ']') {
+        format++;
+        scn_addchar(self, ']');
+    }
+
+    // pick up all remaining characters while handling range specifiers properly:
+    // [-x] -> not a range; '-' and 'x' are set members
+    // [x-] -> not a range; 'x' and '-' are set members
+    // [0-9] -> range '0', '1', ... '9' are set members
+    // [a-zA-Z] -> two ranges
+    for (;;) {
+        const unsigned char ch = *format;
+
+        if (ch == '\0') {
+            break;
+        }
+        if (ch == ']') {
+            // consume ']'
+            format++;
+            break;
+        }
+        
+
+        // check whether this is a range
+        if (format[1] == '-' && format[2] != '\0' && format[2] != ']') {
+            // range
+            const unsigned char lo = ch;
+            const unsigned char up = format[2];
+
+            for (unsigned char c = lo; c <= up; c++) {
+                scn_addchar(self, c);
+            }
+
+            format += 2;
+        }
+        else {
+            // individual character
+            scn_addchar(self, ch);
+            format++;
+        }
+    }
+
+    return format;
+}
+
+static const char* _scan_set(scn_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap, const char* _Nonnull _Restrict format)
+{
+    char* p = scn_arg(ap, char*);
+    size_t nchars = (self->spec.max_field_width < 0) ? INT_MAX : self->spec.max_field_width;
+    const bool suppressed = SCN_SUPPRESSED(self->spec.flags);
+    bool assigned = false, negated = false;
+
+    format = _parse_scanset(self, format, &negated);
+
+    while (nchars-- > 0) {
+        const int ch = __scn_getc(self);
+
+        if (ch == EOF) {
+            break;
+        }
+        
+        const int is = scn_haschar(self, ch);
+        if ((!negated && !is) || (negated && is)) {
+            __scn_ungetc(self, ch);
+            break;
+        }
+
+        if (!suppressed) {
+            *p++ = (unsigned char)ch;
+            assigned = true;
+        }
+    }
+
+    if (assigned) {
+        *p = '\0';
+        self->fields_assigned++;
+    }
+
+    return format;
+}
+
 static void _scan_out_nchars(scn_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
 {
     char* p = scn_arg(ap, char*);
@@ -234,7 +331,7 @@ static const char* _Nonnull _scan_arg(scn_t* _Nonnull _Restrict self, const char
 
         case 'c':   _scan_chars(self, ap); break;
         case 's':   _scan_string(self, ap); break;
-        case '[':   break;
+        case '[':   format = _scan_set(self, ap, format); break;
         case 'd':   // fall through
         case 'i':   break;
         case 'o':   break;
