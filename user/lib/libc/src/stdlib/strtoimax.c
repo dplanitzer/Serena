@@ -15,13 +15,11 @@
 intmax_t strtoimax(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
     long long r;
-    int err;
+    const int err = __strtoi64(str, str_end, base, INTMAX_MIN, INTMAX_MAX, &r);
 
-    if ((err = __strtoi64(str, str_end, base, INTMAX_MIN, INTMAX_MAX, __INTMAX_MAX_BASE_10_DIGITS, &r)) == 0) {
-        return (intmax_t) r;
-    }
-    else {
+    if (err != 0) {
         errno = err;
-        return 0;
     }
+
+    return (intmax_t) r;
 }

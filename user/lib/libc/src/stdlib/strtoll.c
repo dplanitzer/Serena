@@ -15,27 +15,23 @@
 long long strtoll(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
     long long r;
-    int err;
+    const int err = __strtoi64(str, str_end, base, LLONG_MIN, LLONG_MAX, &r);
 
-    if ((err = __strtoi64(str, str_end, base, LLONG_MIN, LLONG_MAX, __LLONG_MAX_BASE_10_DIGITS, &r)) == 0) {
-        return r;
-    }
-    else {
+    if (err != 0) {
         errno = err;
-        return 0;
     }
+
+    return r;
 }
 
 long long atoll(const char *str)
 {
     long long r;
-    int err;
+    const int err = __strtoi64(str, NULL, 10, LLONG_MIN, LLONG_MAX, &r);
 
-    if ((err = __strtoi64(str, NULL, 10, LLONG_MIN, LLONG_MAX, __LLONG_MAX_BASE_10_DIGITS, &r)) == 0) {
-        return r;
-    }
-    else {
+    if (err != 0) {
         errno = err;
-        return 0;
     }
+
+    return r;
 }

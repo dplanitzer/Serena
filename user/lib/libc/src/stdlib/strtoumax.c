@@ -15,13 +15,11 @@
 uintmax_t strtoumax(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
     unsigned long long r;
-    int err;
+    const int err = __strtou64(str, str_end, base, UINTMAX_MAX, &r);
 
-    if ((err = __strtou64(str, str_end, base, UINTMAX_MAX, __UINTMAX_MAX_BASE_10_DIGITS, &r)) == 0) {
-        return r;
-    }
-    else {
+    if (err != 0) {
         errno = err;
-        return 0;
     }
+
+    return r;
 }
