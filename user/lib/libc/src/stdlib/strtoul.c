@@ -15,13 +15,11 @@
 unsigned long strtoul(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
     unsigned long r;
-    int err;
+    const int err = __strtou32(str, str_end, base, ULONG_MAX, &r);
 
-    if ((err = __strtou32(str, str_end, base, ULONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r)) == 0) {
-        return r;
-    }
-    else {
+    if (err != 0) {
         errno = err;
-        return 0;
     }
+
+    return r;
 }
