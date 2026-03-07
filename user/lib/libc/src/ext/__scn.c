@@ -564,7 +564,9 @@ static const char* _Nonnull _scan_arg(scn_t* _Nonnull _Restrict self, const char
         case 'n':   _scan_out_nchars(self, ap); break;
         case 'p':
 #if defined(__LP64__) || defined(__LLP64__)
-            self->spec.lm = SCN_LM_ll;
+            if (self->spec.lm == SCN_LM_none) {
+                self->spec.lm = SCN_LM_ll;
+            }
 #endif
             _scan_uint(self, 16, ap);
             break;
