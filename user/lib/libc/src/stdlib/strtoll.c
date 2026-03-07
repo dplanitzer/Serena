@@ -8,14 +8,13 @@
 
 #include <errno.h>
 #include <stdlib.h>
-#include <limits.h>
 #include <__itoa.h>
 
 
 long long strtoll(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
     long long r;
-    const int err = __strtoi64(str, str_end, base, LLONG_MIN, LLONG_MAX, &r);
+    const int err = __strtoi64(str, str_end, base, &r);
 
     if (err != 0) {
         errno = err;
@@ -27,7 +26,7 @@ long long strtoll(const char * _Restrict str, char ** _Restrict str_end, int bas
 long long atoll(const char *str)
 {
     long long r;
-    const int err = __strtoi64(str, NULL, 10, LLONG_MIN, LLONG_MAX, &r);
+    const int err = __strtoi64(str, NULL, 10, &r);
 
     if (err != 0) {
         errno = err;

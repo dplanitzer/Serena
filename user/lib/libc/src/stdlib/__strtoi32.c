@@ -8,11 +8,15 @@
 
 #include <__itoa.h>
 #include <ctype.h>
+#include <limits.h>
 #include <kpi/_errno.h>
 
 
-int __strtoi32(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * _Nonnull _Restrict str_end, int base, long min_val, long max_val, long * _Nonnull _Restrict result)
+int __strtoi32(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * _Nonnull _Restrict str_end, int base, long * _Nonnull _Restrict result)
 {
+    const char* orig_str = str;
+    int r = 0;
+
     if ((base < 2 && base != 0) || base > 36) {
         *result = 0l;
         return EINVAL;
@@ -47,35 +51,54 @@ int __strtoi32(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * 
 
 
     // Convert digits
-    const bool is_neg = (sig_ch == '-');
-    unsigned long val = 0;
-    const unsigned long ulbase = (unsigned long) base;
-    const unsigned long upper_bound = (is_neg) ? -min_val : max_val;
-    int i = 0;
+    unsigned long num = 0;
+    const unsigned long b = (unsigned long) base;
+    const unsigned long up_bound = (sig_ch == '-') ? -(unsigned long)LONG_MIN : LONG_MAX;
+    const unsigned long ovf_num = up_bound / b;
+    const unsigned long ovf_d = up_bound % b;
+    bool overflowed = false, has_some_digits = false;
 
     for (;;) {
-        const char ch = tolower(str[i]);
+        const char ch = *str++;
+        unsigned long d;
 
-        if (ch < '0' || ch > __g_digits_36_lc[base - 1]) {
+        if (isdigit(ch)) {
+            d = ch - '0';
+        }
+        else if (isupper(ch)) {
+            d = ch - 'A' + 10;
+        }
+        else if (islower(ch)) {
+            d = ch - 'a' + 10;
+        }
+        else {
             break;
         }
 
-        const unsigned long digit = (ch <= '9') ? ch - '0' : ch - 'a' + 10;
-        const unsigned long new_val = (val * ulbase) + digit;
-        if (new_val < val || new_val > upper_bound) {
-            if (str_end) *str_end = (char*)&str[i + 1];
-            *result = (is_neg) ? min_val : max_val;
-            return ERANGE;
+        if (d >= b) {
+            break;
         }
 
-        val = new_val;
-        i++;
+        if (num > ovf_num || (num == ovf_num && d > ovf_d)) {
+            overflowed = true;
+        }
+        else if (!overflowed) {
+            num = num * b + d;
+            has_some_digits = true;
+        }
     }
 
     if (str_end) {
-        *str_end = (char*)&str[i];
+        *str_end = (has_some_digits) ? (char*)(str - 1) : orig_str;
     }
 
-    *result = (is_neg) ? -((long)val) : (long)val;
-    return 0;
+    if (overflowed) {
+        *result = (sig_ch == '-') ? LONG_MIN : LONG_MAX;
+        r = ERANGE;
+    }
+    else {
+        *result = (sig_ch == '-') ? -num : num;
+    }
+
+    return r;
 }

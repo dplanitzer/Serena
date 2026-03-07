@@ -14,8 +14,12 @@
 
 int atoi(const char *str)
 {
+#if INT_WIDTH == LONG_WIDTH
     long r;
-    const int err = __strtoi32(str, NULL, 10, INT_MIN, INT_MAX, &r);
+    const int err = __strtoi32(str, NULL, 10, &r);
+#else
+#error "atoi(): int bit width not supported"
+#endif
 
     if (err != 0) {
         errno = err;

@@ -16,7 +16,7 @@
 unsigned long long strtoull(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
     unsigned long long r;
-    const int err = __strtou64(str, str_end, base, ULLONG_MAX, &r);
+    const int err = __strtou64(str, str_end, base, &r);
 
     if (err != 0) {
         errno = err;

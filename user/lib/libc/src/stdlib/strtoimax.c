@@ -14,8 +14,15 @@
 
 intmax_t strtoimax(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
+#if INTMAX_WIDTH == LLONG_WIDTH
     long long r;
-    const int err = __strtoi64(str, str_end, base, INTMAX_MIN, INTMAX_MAX, &r);
+    const int err = __strtoi64(str, str_end, base, &r);
+#elif INTMAX_WIDTH == LONG_WIDTH
+    long r;
+    const int err = __strtoi32(str, str_end, base, &r);
+#else
+#error "strtoimax(): intmax_t bit width not supported"
+#endif
 
     if (err != 0) {
         errno = err;
