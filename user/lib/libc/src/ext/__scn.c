@@ -16,6 +16,16 @@
 #define EOF -1
 #endif
 
+union s32_64 {
+    long long   l64;
+    long        l32;
+};
+
+union u32_64 {
+    unsigned long long  u64;
+    unsigned long       u32;
+};
+
 
 int __scn_getc(scn_t* _Nonnull self)
 {
@@ -27,10 +37,10 @@ int __scn_getc(scn_t* _Nonnull self)
         return (int)ch;
     }
     else if (r == 0) {
-        scn_setfailed(self);
+        scn_seteof(self);
     }
     else {
-        scn_seteof(self);
+        scn_setfailed(self);
     }
 
     return EOF;
@@ -147,6 +157,91 @@ static void _skip_ws(scn_t* _Nonnull self)
         }
     }
 }
+
+static bool _check_and_consume_0x_prefix(scn_t* _Nonnull self, char ch)
+{
+    if (ch == '0') {
+        ch = __scn_getc(self);
+
+        if (ch == 'x' || ch == 'X') {
+            return true;
+        }
+        __scn_ungetc(self, ch);
+    }
+
+    return false;
+}
+
+// Scans an integer of the form:
+// [-][0x|0X|0](0-9)+
+static void _lex_int(scn_t* _Nonnull self, int base)
+{
+    char* p = self->u.digits;
+    char ch = __scn_getc(self);
+    int i = 0;
+
+    // Sign
+    if (ch == '-' || ch == '+') {
+        p[i++] = ch;
+        ch = __scn_getc(self);
+    }
+
+    
+    // Handle optional octal/hex prefix and base == 0
+    if ((base == 0 || base == 16) && _check_and_consume_0x_prefix(self, ch)) {
+        p[i++] = '0';
+        p[i++] = 'x';
+        base = 16;
+        ch = __scn_getc(self);
+    }
+    else if ((base == 0 || base == 8) && ch == '0') {
+        p[i++] = '0';
+        base = 8;
+        ch = __scn_getc(self);
+    }
+    else if (base == 0) {
+        base = 10;
+    }
+
+    
+    // Read digits
+    for (;;) {
+        int d;
+
+        if (ch == EOF) {
+            break;
+        }
+
+        if (isdigit(ch)) {
+            d = ch - '0';
+        }
+        else if (isupper(ch)) {
+            d = ch - 'A' + 10;
+        }
+        else if (islower(ch)) {
+            d = ch - 'a' + 10;
+        }
+        else {
+            break;
+        }
+
+        if (d >= base) {
+            break;
+        }
+
+        // Stores at most __SCN_MAX_DIGITS digits in the buffer. This number
+        // includes the sign, prefix and one carry digit to enable the caller to
+        // detect overflow. We continue to consume consecutive digits once we
+        // hit overflow until there is no more valid digit.
+        if (i < __SCN_MAX_DIGITS) {
+            p[i++] = ch;
+        }
+        ch = __scn_getc(self);
+    }
+
+    p[i] = '\0';
+}
+
 
 static void _scan_chars(scn_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
 {
@@ -299,6 +394,99 @@ static const char* _scan_set(scn_t* _Nonnull _Restrict self, va_list* _Nonnull _
     return format;
 }
 
+static int _lm_conv_nbits(char lm)
+{
+    switch (lm) {
+        case SCN_LM_hh:    return INT32_WIDTH;
+        case SCN_LM_h:     return INT32_WIDTH;
+        case SCN_LM_none:  return INT32_WIDTH;
+#if __LONG_WIDTH == 64
+        case SCN_LM_l:     return INT64_WIDTH;
+#else
+        case SCN_LM_l:     return INT32_WIDTH;
+#endif
+        case SCN_LM_L:
+        case SCN_LM_ll:    return INT64_WIDTH;
+#if INTMAX_WIDTH == 64
+        case SCN_LM_j:     return INTMAX_WIDTH;
+#else
+        case SCN_LM_j:     return INTMAX_WIDTH;
+#endif
+#if SSIZE_WIDTH == 64
+        case SCN_LM_z:     return SSIZE_WIDTH;
+#else
+        case SCN_LM_z:     return SSIZE_WIDTH;
+#endif
+#if PTRDIFF_WIDTH == 64
+        case SCN_LM_t:     return PTRDIFF_WIDTH;
+#else
+        case SCN_LM_t:     return PTRDIFF_WIDTH;
+#endif
+    }
+}
+
+// Maps 'lm' to hh, h, none, ll, L to make handling architecture specific LMs
+// easier.
+static char _lm_norm(char lm)
+{
+    switch (lm) {
+#if __LONG_WIDTH == 64
+        case SCN_LM_l:      return SCN_LM_ll;
+#else
+        case SCN_LM_l:     return SCN_LM_none;
+#endif
+#if INTMAX_WIDTH == 64
+        case SCN_LM_j:     return SCN_LM_ll;
+#else
+        case SCN_LM_j:     return SCN_LM_none;
+#endif
+#if SSIZE_WIDTH == 64
+        case SCN_LM_z:     return SCN_LM_ll;
+#else
+        case SCN_LM_z:     return SCN_LM_none;
+#endif
+#if PTRDIFF_WIDTH == 64
+        case SCN_LM_t:     return SCN_LM_ll;
+#else
+        case SCN_LM_t:     return SCN_LM_none;
+#endif
+    }
+
+    return lm;
+}
+
+static void _scan_int(scn_t* _Nonnull _Restrict self, int base, va_list* _Nonnull _Restrict ap)
+{
+    union s32_64 val;
+
+    _skip_ws(self);
+    _lex_int(self, base);
+
+    if (scn_failed(self) || self->u.digits[0] == '\0') {
+        return;
+    }
+
+
+    if (_lm_conv_nbits(self->spec.lm) == 64) {
+        __strtoi64(self->u.digits, NULL, base, &val.l64);
+    }
+    else {
+        __strtoi32(self->u.digits, NULL, base, &val.l32);
+    }
+
+    
+    void* p = scn_arg(ap, void*);
+    switch (_lm_norm(self->spec.lm)) {
+        case SCN_LM_hh:    *(signed char*)p = __clamp(val.l32, SCHAR_MIN, SCHAR_MAX); break;
+        case SCN_LM_h:     *(signed short*)p = __clamp(val.l32, SHRT_MIN, SHRT_MAX); break;
+        case SCN_LM_none:  *(signed int*)p = val.l32; break;
+        case SCN_LM_L:
+        case SCN_LM_ll:    *(signed long long*)p = val.l64; break;
+    }
+
+    self->fields_assigned++;
+}
+
 static void _scan_out_nchars(scn_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
 {
     char* p = scn_arg(ap, char*);
@@ -309,14 +497,14 @@ static void _scan_out_nchars(scn_t* _Nonnull _Restrict self, va_list* _Nonnull _
     }
 
     switch (self->spec.lm) {
-        case SCN_LM_hh:     *((signed char*)p) = __min(n, SCHAR_MAX);   break;
-        case SCN_LM_h:      *((short*)p) = __min(n, SHRT_MAX);          break;
-        case SCN_LM_none:   *((int*)p) = __min(n, INT_MAX);             break;
-        case SCN_LM_l:      *((long*)p) = __min(n, LONG_MAX);           break;
-        case SCN_LM_ll:     *((long long*)p) = __min(n, LLONG_MAX);     break;
-        case SCN_LM_j:      *((intmax_t*)p) = __min(n, INTMAX_MAX);     break;
-        case SCN_LM_z:      *((ssize_t*)p) = __min(n, SSIZE_MAX);       break;
-        case SCN_LM_t:      *((ptrdiff_t*)p) = __min(n, PTRDIFF_MAX);   break;
+        case SCN_LM_hh:     *(signed char*)p = __min(n, SCHAR_MAX);   break;
+        case SCN_LM_h:      *(short*)p = __min(n, SHRT_MAX);          break;
+        case SCN_LM_none:   *(int*)p = __min(n, INT_MAX);             break;
+        case SCN_LM_l:      *(long*)p = __min(n, LONG_MAX);           break;
+        case SCN_LM_ll:     *(long long*)p = __min(n, LLONG_MAX);     break;
+        case SCN_LM_j:      *(intmax_t*)p = __min(n, INTMAX_MAX);     break;
+        case SCN_LM_z:      *(ssize_t*)p = __min(n, SSIZE_MAX);       break;
+        case SCN_LM_t:      *(ptrdiff_t*)p = __min(n, PTRDIFF_MAX);   break;
     }
 }
 
@@ -332,8 +520,8 @@ static const char* _Nonnull _scan_arg(scn_t* _Nonnull _Restrict self, const char
         case 'c':   _scan_chars(self, ap); break;
         case 's':   _scan_string(self, ap); break;
         case '[':   format = _scan_set(self, ap, format); break;
-        case 'd':   // fall through
-        case 'i':   break;
+        case 'd':   _scan_int(self, 10, ap); break;
+        case 'i':   _scan_int(self, 0, ap); break;
         case 'o':   break;
         case 'x':   break;
         case 'X':   break;

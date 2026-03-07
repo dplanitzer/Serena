@@ -20,7 +20,7 @@
 #define __MIN_MAX_DEFINED 1
 #endif
 
-#define __clamped(v, lw, up) ((v) < (lw) ? (lw) : ((v) > (up) ? (up) : (v)))
+#define __clamp(v, lw, up) ((v) < (lw) ? (lw) : ((v) > (up) ? (up) : (v)))
 
 
 #define __Ceil_PowerOf2(x, __align)   (((x) + ((__align)-1)) & ~((__align)-1))

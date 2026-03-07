@@ -66,6 +66,8 @@ struct scn_cspec {
 #define __SCN_HASEOF    2
 
 #define __SCN_SCANSET_SIZE  32  /* Number of bytes needed to store a scanset of 256 characters */
+#define __SCN_MAX_DIGITS   (64 + 1 + 3 + 1)    /* Max digits for a base-2 integer plus one digit to preserve overflow information; plus sign, '0b'|'0x' prefix and trailing NUL */
+
 
 struct scn {
     void* _Nonnull          stream;
@@ -75,8 +77,8 @@ struct scn {
     size_t                  chars_read;
     int                     fields_assigned;
     union {
-        i64a_t              i64a;
-        unsigned char       scanset[__SCN_SCANSET_SIZE];
+        unsigned char   digits[__SCN_MAX_DIGITS];     
+        unsigned char   scanset[__SCN_SCANSET_SIZE];
     }                       u;
     scn_cspec_t             spec;
     unsigned char           flags;
