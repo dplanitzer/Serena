@@ -178,7 +178,8 @@ static void _lex_int(scn_t* _Nonnull self, int base)
 {
     char* p = self->u.digits;
     char ch = __scn_getc(self);
-    int i = 0;
+    size_t dig_lim = (self->spec.max_field_width < 0) ? INT_MAX : self->spec.max_field_width;
+    int i = 0, j = 1;
 
     // Sign
     if (ch == '-' || ch == '+') {
@@ -208,7 +209,7 @@ static void _lex_int(scn_t* _Nonnull self, int base)
     for (;;) {
         int d;
 
-        if (ch == EOF) {
+        if (ch == EOF || j > dig_lim) {
             break;
         }
 
@@ -237,9 +238,11 @@ static void _lex_int(scn_t* _Nonnull self, int base)
             p[i++] = ch;
         }
         ch = __scn_getc(self);
+        j++;
     }
 
     p[i] = '\0';
+    __scn_ungetc(self, ch);
 }
 
 
@@ -462,7 +465,7 @@ static void _scan_int(scn_t* _Nonnull _Restrict self, int base, va_list* _Nonnul
     _skip_ws(self);
     _lex_int(self, base);
 
-    if (scn_failed(self) || self->u.digits[0] == '\0') {
+    if (scn_failed(self) || self->u.digits[0] == '\0' || SCN_SUPPRESSED(self->spec.flags)) {
         return;
     }
 
@@ -482,6 +485,38 @@ static void _scan_int(scn_t* _Nonnull _Restrict self, int base, va_list* _Nonnul
         case SCN_LM_none:  *(signed int*)p = val.l32; break;
         case SCN_LM_L:
         case SCN_LM_ll:    *(signed long long*)p = val.l64; break;
+    }
+
+    self->fields_assigned++;
+}
+
+static void _scan_uint(scn_t* _Nonnull _Restrict self, int base, va_list* _Nonnull _Restrict ap)
+{
+    union u32_64 val;
+
+    _skip_ws(self);
+    _lex_int(self, base);
+
+    if (scn_failed(self) || self->u.digits[0] == '\0' || SCN_SUPPRESSED(self->spec.flags)) {
+        return;
+    }
+
+
+    if (_lm_conv_nbits(self->spec.lm) == 64) {
+        __strtou64(self->u.digits, NULL, base, &val.u64);
+    }
+    else {
+        __strtou32(self->u.digits, NULL, base, &val.u32);
+    }
+
+    
+    void* p = scn_arg(ap, void*);
+    switch (_lm_norm(self->spec.lm)) {
+        case SCN_LM_hh:    *(unsigned char*)p = __min(val.u32, UCHAR_MAX); break;
+        case SCN_LM_h:     *(unsigned short*)p = __min(val.u32, USHRT_MAX); break;
+        case SCN_LM_none:  *(unsigned int*)p = val.u32; break;
+        case SCN_LM_L:
+        case SCN_LM_ll:    *(unsigned long long*)p = val.u64; break;
     }
 
     self->fields_assigned++;
@@ -522,12 +557,17 @@ static const char* _Nonnull _scan_arg(scn_t* _Nonnull _Restrict self, const char
         case '[':   format = _scan_set(self, ap, format); break;
         case 'd':   _scan_int(self, 10, ap); break;
         case 'i':   _scan_int(self, 0, ap); break;
-        case 'o':   break;
-        case 'x':   break;
-        case 'X':   break;
-        case 'u':   break;
+        case 'o':   _scan_uint(self, 8, ap); break;
+        case 'x':   // fall through
+        case 'X':   _scan_uint(self, 16, ap); break;
+        case 'u':   _scan_uint(self, 10, ap); break;
         case 'n':   _scan_out_nchars(self, ap); break;
-        case 'p':   break;
+        case 'p':
+#if defined(__LP64__) || defined(__LLP64__)
+            self->spec.lm = SCN_LM_ll;
+#endif
+            _scan_uint(self, 16, ap);
+            break;
         
         default:
             if (self->scan_cb) {
