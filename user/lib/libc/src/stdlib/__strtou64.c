@@ -41,6 +41,10 @@ int __strtou64(const char * _Nonnull _Restrict str, char * _Nonnull _Restrict * 
         str += 2;
         base = 16;
     }
+    else if ((base == 0 || base == 2) && (str[0] == '0' && (str[1] == 'b' || str[1] == 'B'))) {
+        str += 2;
+        base = 2;
+    }
     else if ((base == 0 || base == 8) && *str == '0') {
         str++;
         base = 8;
