@@ -243,17 +243,18 @@ static void _format_int_field(fmt_t* _Nonnull _Restrict self, const char* _Nonnu
     }
 }
 
-static void _format_uint_field(fmt_t* _Nonnull _Restrict self, int radix, bool isUppercase, const char* _Nonnull _Restrict buf, size_t len)
+static void _format_uint_field(fmt_t* _Nonnull _Restrict self, int base, bool isUppercase, const char* _Nonnull _Restrict buf, size_t len)
 {
     const fmt_cspec_t* spec = &self->spec;
-    int nRadixChars = 0;
     int nLeadingZeros = FMT_IS_HASPREC(spec->flags) ? __max(spec->prec - len, 0) : 0;
+    int nRadixChars = 0;
     const char* radixChars = "";
     const bool isEmpty = FMT_IS_HASPREC(spec->flags) && spec->prec == 0 && buf[0] == '0' && len == 1;
 
     if (FMT_IS_ALTFORM(spec->flags)) {
-        switch (radix) {
-            case 8: nRadixChars = 1; radixChars = "0"; break;
+        switch (base) {
+            case 2:  nRadixChars = 2; radixChars = (isUppercase) ? "0B" : "0b";
+            case 8:  nRadixChars = 1; radixChars = "0"; break;
             case 16: nRadixChars = 2; radixChars = (isUppercase) ? "0X" : "0x";
             default: break;
         }
@@ -280,7 +281,7 @@ static void _format_uint_field(fmt_t* _Nonnull _Restrict self, int radix, bool i
         }
         __fmt_write_string(self, buf, len);
     }
-    else if (radix == 8) {
+    else if (base == 8) {
         __fmt_write_char(self, '0');
     }
 
@@ -358,7 +359,7 @@ static void _format_int(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restr
     _format_int_field(self, p, self->i64a.length);
 }
 
-static void _format_uint(fmt_t* _Nonnull _Restrict self, int radix, bool isUppercase, va_list* _Nonnull _Restrict ap)
+static void _format_uint(fmt_t* _Nonnull _Restrict self, int base, bool isUppercase, va_list* _Nonnull _Restrict ap)
 {
     union u32_64 val;
     char * p;
@@ -381,13 +382,13 @@ static void _format_uint(fmt_t* _Nonnull _Restrict self, int radix, bool isUpper
         || self->spec.lm == FMT_LM_l
 #endif
     ) {
-        p = __u64toa(val.u64, radix, isUppercase, &self->i64a);
+        p = __u64toa(val.u64, base, isUppercase, &self->i64a);
     }
     else {
-        p = __u32toa(val.u32, radix, isUppercase, (i32a_t*)&self->i64a);
+        p = __u32toa(val.u32, base, isUppercase, (i32a_t*)&self->i64a);
     }
 
-    _format_uint_field(self, radix, isUppercase, p, self->i64a.length);
+    _format_uint_field(self, base, isUppercase, p, self->i64a.length);
 }
 
 static void _format_ptr(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
@@ -431,6 +432,8 @@ static const char* _Nonnull _format_arg(fmt_t* _Nonnull _Restrict self, const ch
         case 'd':   // fall through
         case 'i':   _format_int(self, ap); break;
         case 'o':   _format_uint(self, 8, false, ap); break;
+        case 'b':   _format_uint(self, 2, false, ap); break;
+        case 'B':   _format_uint(self, 2, true, ap); break;
         case 'x':   _format_uint(self, 16, false, ap); break;
         case 'X':   _format_uint(self, 16, true, ap); break;
         case 'u':   _format_uint(self, 10, false, ap); break;

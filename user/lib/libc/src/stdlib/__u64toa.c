@@ -11,8 +11,8 @@
 #include <string.h>
 
 
-// 'radix' must be 2, 8, 10 or 16
-char* _Nonnull __u64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Nonnull out)
+// 'base' must be 2, 8, 10 or 16
+char* _Nonnull __u64toa(uint64_t val, int base, bool isUppercase, i64a_t* _Nonnull out)
 {
     const char* const ds = (isUppercase) ? __g_digits_16_uc : __g_digits_16_lc;
     char *ep = &out->buffer[I64A_BUFFER_SIZE - 1];
@@ -20,7 +20,7 @@ char* _Nonnull __u64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Nonn
     iu64_t xy[2], q, r;
 
     *p-- = '\0';
-    switch (radix) {
+    switch (base) {
         case 2:
             do {
                 *p-- = ds[(uint8_t)val & 0x1u];
@@ -37,7 +37,7 @@ char* _Nonnull __u64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Nonn
 
         default:
             xy[0].u64 = val;
-            xy[1].u64 = radix;
+            xy[1].u64 = base;
 
             do {
                 _divmodu64(xy, &q, &r);
