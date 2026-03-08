@@ -189,7 +189,8 @@ static void _scan_ieeefp(scn_t* _Nonnull _Restrict self, int base, va_list* _Non
     __scn_skip_ws(self);
     _lex_ieeefp(self, base);
 
-    if (scn_failed(self) || self->u.digits[0] == '\0' || SCN_SUPPRESSED(self->spec.flags)) {
+    if (scn_failed(self) || self->u.digits[0] == '\0' || SCN_SUPPRESSED(self->spec.flags)
+        || self->spec.lm == SCN_LM_h || self->spec.lm == SCN_LM_hh || self->spec.lm == SCN_LM_ll) {
         return;
     }
 

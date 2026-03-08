@@ -26,6 +26,8 @@
 #define FLT_MAX         3.40282347e+38f
 #define FLT_MAX_10_EXP  38
 
+#define FLT_WIDTH       32
+
 
 #define DBL_MANT_DIG    53
 #define DBL_EPSILON     2.2204460492503131e-16
@@ -39,6 +41,8 @@
 #define DBL_MAX         1.7976931348623157e+308
 #define DBL_MAX_10_EXP  308
 
+#define DBL_WIDTH       64
+
 
 #define LDBL_MANT_DIG   64
 #define LDBL_EPSILON    1.0842021724855044340e-19L
@@ -51,6 +55,8 @@
 #define LDBL_MAX_EXP    16384
 #define LDBL_MAX        1.1897314953572317650e+4932L
 #define LDBL_MAX_10_EXP 4932
+
+#define LDBL_WIDTH      96
 
 
 #if defined(__M68K__) || defined(__i386__)

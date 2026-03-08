@@ -39,15 +39,16 @@ typedef int (*scn_ungetc_t)(int ch, void * _Nonnull s);
 typedef const char* _Nonnull (*scn_scan_t)(scn_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, va_list* _Nonnull _Restrict ap);
 
 
+// These are the canonical length modifiers. All others are translated into one
+// of these.
+// Integer: hh (char), h (short), none (int), l (long), ll (long long)
+// Floating Point: none (float), l (double), L (long double)
 #define SCN_LM_hh   0
 #define SCN_LM_h    1
 #define SCN_LM_none 2
 #define SCN_LM_l    3
 #define SCN_LM_ll   4
-#define SCN_LM_j    5
-#define SCN_LM_z    6
-#define SCN_LM_t    7
-#define SCN_LM_L    8
+#define SCN_LM_L    5
 
 #define __SCN_SUPPRESSED    1
 

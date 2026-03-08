@@ -10,6 +10,7 @@
 #include <ext/__scn.h>
 #include <ext/limits.h>
 #include <ext/math.h>
+#include <float.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -81,15 +82,27 @@ static const char* _Nonnull _parse_length_mod(scn_t* _Nonnull _Restrict self, co
             break;
 
         case 'j':
-            spec->lm = SCN_LM_j;
+#if INTMAX_WIDTH == 64
+            spec->lm = SCN_LM_ll;
+#else
+            spec->lm = SCN_LM_none;
+#endif
             break;
 
         case 'z':
-            spec->lm = SCN_LM_z;
+#if SSIZE_WIDTH == 64
+            spec->lm = SCN_LM_ll;
+#else
+            spec->lm = SCN_LM_none;
+#endif
             break;
 
         case 't':
-            spec->lm = SCN_LM_t;
+#if PTRDIFF_WIDTH == 64
+            spec->lm = SCN_LM_ll;
+#else
+            spec->lm = SCN_LM_none;
+#endif
             break;
 
         case 'L':   // long double
@@ -411,62 +424,13 @@ static const char* _scan_set(scn_t* _Nonnull _Restrict self, va_list* _Nonnull _
 static int _lm_conv_nbits(char lm)
 {
     switch (lm) {
-        case SCN_LM_hh:    return INT32_WIDTH;
-        case SCN_LM_h:     return INT32_WIDTH;
-        case SCN_LM_none:  return INT32_WIDTH;
-#if __LONG_WIDTH == 64
-        case SCN_LM_l:     return INT64_WIDTH;
-#else
-        case SCN_LM_l:     return INT32_WIDTH;
-#endif
-        case SCN_LM_L:
-        case SCN_LM_ll:    return INT64_WIDTH;
-#if INTMAX_WIDTH == 64
-        case SCN_LM_j:     return INTMAX_WIDTH;
-#else
-        case SCN_LM_j:     return INTMAX_WIDTH;
-#endif
-#if SSIZE_WIDTH == 64
-        case SCN_LM_z:     return SSIZE_WIDTH;
-#else
-        case SCN_LM_z:     return SSIZE_WIDTH;
-#endif
-#if PTRDIFF_WIDTH == 64
-        case SCN_LM_t:     return PTRDIFF_WIDTH;
-#else
-        case SCN_LM_t:     return PTRDIFF_WIDTH;
-#endif
+        case SCN_LM_hh:     return INT32_WIDTH;
+        case SCN_LM_h:      return INT32_WIDTH;
+        case SCN_LM_none:   return INT32_WIDTH;
+        case SCN_LM_l:      return LONG_WIDTH;
+        case SCN_LM_ll:     return LLONG_WIDTH;
+        case SCN_LM_L:      return LDBL_WIDTH;
     }
-}
-
-// Maps 'lm' to hh, h, none, ll, L to make handling architecture specific LMs
-// easier.
-static char _lm_norm(char lm)
-{
-    switch (lm) {
-#if __LONG_WIDTH == 64
-        case SCN_LM_l:      return SCN_LM_ll;
-#else
-        case SCN_LM_l:     return SCN_LM_none;
-#endif
-#if INTMAX_WIDTH == 64
-        case SCN_LM_j:     return SCN_LM_ll;
-#else
-        case SCN_LM_j:     return SCN_LM_none;
-#endif
-#if SSIZE_WIDTH == 64
-        case SCN_LM_z:     return SCN_LM_ll;
-#else
-        case SCN_LM_z:     return SCN_LM_none;
-#endif
-#if PTRDIFF_WIDTH == 64
-        case SCN_LM_t:     return SCN_LM_ll;
-#else
-        case SCN_LM_t:     return SCN_LM_none;
-#endif
-    }
-
-    return lm;
 }
 
 static void _scan_int(scn_t* _Nonnull _Restrict self, int base, va_list* _Nonnull _Restrict ap)
@@ -476,7 +440,7 @@ static void _scan_int(scn_t* _Nonnull _Restrict self, int base, va_list* _Nonnul
     __scn_skip_ws(self);
     _lex_int(self, base);
 
-    if (scn_failed(self) || self->u.digits[0] == '\0' || SCN_SUPPRESSED(self->spec.flags)) {
+    if (scn_failed(self) || self->u.digits[0] == '\0' || SCN_SUPPRESSED(self->spec.flags) || self->spec.lm == SCN_LM_L) {
         return;
     }
 
@@ -490,11 +454,10 @@ static void _scan_int(scn_t* _Nonnull _Restrict self, int base, va_list* _Nonnul
 
     
     void* p = scn_arg(ap, void*);
-    switch (_lm_norm(self->spec.lm)) {
+    switch (self->spec.lm) {
         case SCN_LM_hh:    *(signed char*)p = __clamp(val.l32, SCHAR_MIN, SCHAR_MAX); break;
         case SCN_LM_h:     *(signed short*)p = __clamp(val.l32, SHRT_MIN, SHRT_MAX); break;
         case SCN_LM_none:  *(signed int*)p = val.l32; break;
-        case SCN_LM_L:
         case SCN_LM_ll:    *(signed long long*)p = val.l64; break;
     }
 
@@ -508,7 +471,7 @@ static void _scan_uint(scn_t* _Nonnull _Restrict self, int base, va_list* _Nonnu
     __scn_skip_ws(self);
     _lex_int(self, base);
 
-    if (scn_failed(self) || self->u.digits[0] == '\0' || SCN_SUPPRESSED(self->spec.flags)) {
+    if (scn_failed(self) || self->u.digits[0] == '\0' || SCN_SUPPRESSED(self->spec.flags) || self->spec.lm == SCN_LM_L) {
         return;
     }
 
@@ -522,11 +485,10 @@ static void _scan_uint(scn_t* _Nonnull _Restrict self, int base, va_list* _Nonnu
 
     
     void* p = scn_arg(ap, void*);
-    switch (_lm_norm(self->spec.lm)) {
+    switch (self->spec.lm) {
         case SCN_LM_hh:    *(unsigned char*)p = __min(val.u32, UCHAR_MAX); break;
         case SCN_LM_h:     *(unsigned short*)p = __min(val.u32, USHRT_MAX); break;
         case SCN_LM_none:  *(unsigned int*)p = val.u32; break;
-        case SCN_LM_L:
         case SCN_LM_ll:    *(unsigned long long*)p = val.u64; break;
     }
 
@@ -538,7 +500,7 @@ static void _scan_out_nchars(scn_t* _Nonnull _Restrict self, va_list* _Nonnull _
     char* p = scn_arg(ap, char*);
     const size_t n = self->chars_read;
 
-    if (SCN_SUPPRESSED(self->spec.flags)) {
+    if (SCN_SUPPRESSED(self->spec.flags) || self->spec.lm == SCN_LM_L) {
         return;
     }
 
@@ -548,9 +510,6 @@ static void _scan_out_nchars(scn_t* _Nonnull _Restrict self, va_list* _Nonnull _
         case SCN_LM_none:   *(int*)p = __min(n, INT_MAX);             break;
         case SCN_LM_l:      *(long*)p = __min(n, LONG_MAX);           break;
         case SCN_LM_ll:     *(long long*)p = __min(n, LLONG_MAX);     break;
-        case SCN_LM_j:      *(intmax_t*)p = __min(n, INTMAX_MAX);     break;
-        case SCN_LM_z:      *(ssize_t*)p = __min(n, SSIZE_MAX);       break;
-        case SCN_LM_t:      *(ptrdiff_t*)p = __min(n, PTRDIFF_MAX);   break;
     }
 }
 
