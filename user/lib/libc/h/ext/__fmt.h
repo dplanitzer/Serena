@@ -38,15 +38,17 @@ typedef ssize_t (*fmt_write_t)(void* _Nonnull _Restrict s, const void * _Restric
 typedef void (*fmt_format_t)(fmt_t* _Nonnull _Restrict self, char conversion, va_list* _Nonnull _Restrict ap);
 
 
+// These are the canonical length modifiers. All others are translated into one
+// of these.
+// Integer: hh (char), h (short), none (int), l (long), ll (long long)
+// Floating Point: none (float), l (double), L (long double)
 #define FMT_LM_hh   0
 #define FMT_LM_h    1
 #define FMT_LM_none 2
 #define FMT_LM_l    3
 #define FMT_LM_ll   4
-#define FMT_LM_j    5
-#define FMT_LM_z    6
-#define FMT_LM_t    7
-#define FMT_LM_L    8
+#define FMT_LM_L    5
+
 
 #define __FMT_LEFTJUST      1
 #define __FMT_FORCESIGN     2
