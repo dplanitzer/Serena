@@ -73,11 +73,9 @@ static void _lex_ieeefp(scn_t* _Nonnull self, int base)
 
             case __ST_MANT_CHECK:
                 if (ch == 'n' || ch == 'N') {
-                    ch = 'n';
                     state = __ST_NAN;
                 }
                 else if (ch == 'i' || ch == 'I') {
-                    ch = 'i';
                     state = __ST_INF;
                 }
                 else {
@@ -131,12 +129,13 @@ static void _lex_ieeefp(scn_t* _Nonnull self, int base)
                 const char* str = (state == __ST_NAN) ? "nan" : "inf";
 
                 while (*str != '\0' && i < dig_lim) {
-                    if (ch != *str) {
+                    const char lch = tolower(ch);
+
+                    if (lch != *str) {
                         break;
                     }
                 
-                    str++;
-                    p[i++] = ch;
+                    p[i++] = lch; str++;
                     ch = __scn_getc(self);
                 }
 
