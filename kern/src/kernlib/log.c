@@ -136,6 +136,6 @@ void printf(const char* _Nonnull format, ...)
 void vprintf(const char* _Nonnull format, va_list ap)
 {
     mtx_lock(&gLock);
-    __fmt_format(&gFormatter, format, ap);
+    __fmt_print(&gFormatter, format, ap);
     mtx_unlock(&gLock);
 }

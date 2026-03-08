@@ -67,7 +67,7 @@ int vasiprintf(char **str_ptr, const char * _Nonnull _Restrict format, va_list a
     }
 
     __fmt_init_i(&fmt, &file.super, (fmt_putc_t)__fputc, (fmt_write_t)__fwrite, false);
-    const int r1 = __fmt_format(&fmt, format, ap);
+    const int r1 = __fmt_print(&fmt, format, ap);
     const int r2 = __fputc('\0', &file.super);
     __fmt_deinit(&fmt);
     __filemem(&file.super, &mq);

@@ -242,7 +242,7 @@ exponent(char *p0, int exp, int fmtch)
     return p - p0;
 }
 
-static void __fmt_format_fp(fmt_t* _Nonnull _Restrict self, char ch, va_list* _Nonnull _Restrict ap)
+static const char* _Nonnull __fmt_format_fp(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, va_list* _Nonnull _Restrict ap)
 {
     register char *cp;      /* handy char pointer (short term usage) */ //XXX needs to be defined
     _PRINTF_FLOAT_TYPE _fpvalue = 0;
@@ -268,6 +268,7 @@ static void __fmt_format_fp(fmt_t* _Nonnull _Restrict self, char ch, va_list* _N
     int nseps;              /* number of group separators with ' */
     int nrepeats;           /* number of repeats of the last group */
 #endif
+    char ch = *format++;
 
     switch (ch) {
         case 'f':
@@ -445,7 +446,7 @@ static void __fmt_format_fp(fmt_t* _Nonnull _Restrict self, char ch, va_list* _N
             break;
 
         default:
-            return;
+            return format;
     }
 
     /*
@@ -552,6 +553,8 @@ static void __fmt_format_fp(fmt_t* _Nonnull _Restrict self, char ch, va_list* _N
         }
         __fmt_write_string (self, expstr, expsize);
     }
+
+    return format;
 }
 
 void __fmt_init_fp(fmt_t* _Nonnull _Restrict self, void* _Nullable _Restrict s, fmt_putc_t _Nonnull putc_f, fmt_write_t _Nonnull write_f, bool doContCountingOnError)

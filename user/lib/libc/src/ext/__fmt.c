@@ -422,9 +422,9 @@ static void _format_out_nchars(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull
     }
 }
 
-static void _format_arg(fmt_t* _Nonnull _Restrict self, char conversion, va_list* _Nonnull _Restrict ap)
+static const char* _Nonnull _format_arg(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, va_list* _Nonnull _Restrict ap)
 {
-    switch (conversion) {
+    switch (*format++) {
         case '%':   __fmt_write_char(self, '%'); break;
         case 'c':   _format_char(self, ap); break;
         case 's':   _format_string(self, ap); break;
@@ -439,10 +439,12 @@ static void _format_arg(fmt_t* _Nonnull _Restrict self, char conversion, va_list
         
         default:
             if (self->format_cb) {
-                self->format_cb(self, conversion, ap);
+                format = self->format_cb(self, --format, ap);
             }
             break;
     }
+
+    return format;
 }
 
 
@@ -462,7 +464,7 @@ void __fmt_deinit(fmt_t* _Nullable self)
     }
 }
 
-int __fmt_format(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, va_list ap)
+int __fmt_print(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, va_list ap)
 {
     const char* pformat = format;
 
@@ -481,8 +483,8 @@ int __fmt_format(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict 
                 if (format != pformat) {
                     __fmt_write_string(self, pformat, format - pformat);
                 }
-                format = _parse_conv_spec(self, ++format, &ap);
-                _format_arg(self, *format++, &ap);
+
+                format = _format_arg(self, _parse_conv_spec(self, ++format, &ap), &ap);
                 pformat = format;
                 break;
 

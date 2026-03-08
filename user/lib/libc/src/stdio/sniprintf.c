@@ -64,7 +64,7 @@ int vsniprintf(char * _Nullable _Restrict buffer, size_t bufsiz, const char * _N
     }
 
     __fmt_init_i(&fmt, &file.super, (fmt_putc_t)__fputc, (fmt_write_t)__fwrite, true);
-    r = __fmt_format(&fmt, format, ap);
+    r = __fmt_print(&fmt, format, ap);
     __fmt_deinit(&fmt);
     __fclose(&file.super);
 

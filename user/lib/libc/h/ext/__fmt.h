@@ -35,7 +35,7 @@ typedef ssize_t (*fmt_write_t)(void* _Nonnull _Restrict s, const void * _Restric
 
 // Callback to format the next vararg from 'ap' and write it to the stream
 // associated with formatter 'self'.
-typedef void (*fmt_format_t)(fmt_t* _Nonnull _Restrict self, char conversion, va_list* _Nonnull _Restrict ap);
+typedef const char* _Nonnull (*fmt_format_t)(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, va_list* _Nonnull _Restrict ap);
 
 
 // These are the canonical length modifiers. All others are translated into one
@@ -102,7 +102,7 @@ extern void __fmt_deinit(fmt_t* _Nullable self);
 
 
 // Returns the number of characters written on success; -1 otherwise
-extern int __fmt_format(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, va_list ap);
+extern int __fmt_print(fmt_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, va_list ap);
 
 
 // Returns the next value of type 'ty' from the vararg list 'ap' and updates the
