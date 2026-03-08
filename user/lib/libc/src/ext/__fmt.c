@@ -11,6 +11,16 @@
 #include <ext/math.h>
 #include <string.h>
 
+union s32_64 {
+    long long   l64;
+    long        l32;
+};
+
+union u32_64 {
+    unsigned long long  u64;
+    unsigned long       u32;
+};
+
 #define FMT_HAS_ERROR(x)                (((x) & __FMT_HASERR) == __FMT_HASERR)
 #define FMT_CONT_COUNTING_ON_ERROR(x)   (((x) & __FMT_CONTCNTONERR) == __FMT_CONTCNTONERR)
 
@@ -318,21 +328,20 @@ static void _format_string(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Re
 
 static void _format_int(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restrict ap)
 {
-    int64_t v64;
-    int32_t v32;
+    union s32_64 val;
     char * p;
 
     switch (self->spec.lm) {
-        case FMT_LM_hh:     v32 = (int32_t)(signed char)fmt_arg(ap, int); break;
-        case FMT_LM_h:      v32 = (int32_t)(short)fmt_arg(ap, int); break;
-        case FMT_LM_none:   v32 = (int32_t)fmt_arg(ap, int); break;
+        case FMT_LM_hh:     val.l32 = (int32_t)(signed char)fmt_arg(ap, int); break;
+        case FMT_LM_h:      val.l32 = (int32_t)(short)fmt_arg(ap, int); break;
+        case FMT_LM_none:   val.l32 = (int32_t)fmt_arg(ap, int); break;
 #if ULONG_WIDTH == 64
-        case FMT_LM_l:     v64 = (int64_t)fmt_arg(ap, long long); break;
+        case FMT_LM_l:      val.l64 = (int64_t)fmt_arg(ap, long long); break;
 #else
-        case FMT_LM_l:     v32 = (int32_t)fmt_arg(ap, long); break;
+        case FMT_LM_l:      val.l32 = (int32_t)fmt_arg(ap, long); break;
 #endif
-        case FMT_LM_ll:     v64 = (int64_t)fmt_arg(ap, long long); break;
-        case FMT_LM_L:      v32 = 0; break;
+        case FMT_LM_ll:     val.l64 = (int64_t)fmt_arg(ap, long long); break;
+        case FMT_LM_L:      val.l32 = 0; break;
     }
 
     if (self->spec.lm == FMT_LM_ll
@@ -340,10 +349,10 @@ static void _format_int(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restr
         || self->spec.lm == FMT_LM_l
 #endif
     ) {
-        p = __i64toa(v64, ia_sign_plus_minus, &self->i64a);
+        p = __i64toa(val.l64, ia_sign_plus_minus, &self->i64a);
     }
     else {
-        p = __i32toa(v32, ia_sign_plus_minus, (i32a_t*)&self->i64a);
+        p = __i32toa(val.l32, ia_sign_plus_minus, (i32a_t*)&self->i64a);
     }
 
     _format_int_field(self, p, self->i64a.length);
@@ -351,21 +360,20 @@ static void _format_int(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull _Restr
 
 static void _format_uint(fmt_t* _Nonnull _Restrict self, int radix, bool isUppercase, va_list* _Nonnull _Restrict ap)
 {
-    uint64_t v64;
-    uint32_t v32;
+    union u32_64 val;
     char * p;
 
     switch (self->spec.lm) {
-        case FMT_LM_hh:     v32 = (uint32_t)(unsigned char)fmt_arg(ap, unsigned int); break;
-        case FMT_LM_h:      v32 = (uint32_t)(unsigned short)fmt_arg(ap, unsigned int); break;
-        case FMT_LM_none:   v32 = (uint32_t)fmt_arg(ap, unsigned int); break;
+        case FMT_LM_hh:     val.u32 = (uint32_t)(unsigned char)fmt_arg(ap, unsigned int); break;
+        case FMT_LM_h:      val.u32 = (uint32_t)(unsigned short)fmt_arg(ap, unsigned int); break;
+        case FMT_LM_none:   val.u32 = (uint32_t)fmt_arg(ap, unsigned int); break;
 #if ULONG_WIDTH == 64
-        case FMT_LM_l:      v64 = (uint64_t)fmt_arg(ap, unsigned long long); break;
+        case FMT_LM_l:      val.u64 = (uint64_t)fmt_arg(ap, unsigned long long); break;
 #else
-        case FMT_LM_l:      v32 = (uint32_t)fmt_arg(ap, unsigned long); break;
+        case FMT_LM_l:      val.u32 = (uint32_t)fmt_arg(ap, unsigned long); break;
 #endif
-        case FMT_LM_ll:     v64 = (uint64_t)fmt_arg(ap, unsigned long long); break;
-        case FMT_LM_L:      v32 = 0; break;
+        case FMT_LM_ll:     val.u64 = (uint64_t)fmt_arg(ap, unsigned long long); break;
+        case FMT_LM_L:      val.u32 = 0; break;
     }
 
     if (self->spec.lm == FMT_LM_ll
@@ -373,10 +381,10 @@ static void _format_uint(fmt_t* _Nonnull _Restrict self, int radix, bool isUpper
         || self->spec.lm == FMT_LM_l
 #endif
     ) {
-        p = __u64toa(v64, radix, isUppercase, &self->i64a);
+        p = __u64toa(val.u64, radix, isUppercase, &self->i64a);
     }
     else {
-        p = __u32toa(v32, radix, isUppercase, (i32a_t*)&self->i64a);
+        p = __u32toa(val.u32, radix, isUppercase, (i32a_t*)&self->i64a);
     }
 
     _format_uint_field(self, radix, isUppercase, p, self->i64a.length);
@@ -405,11 +413,11 @@ static void _format_out_nchars(fmt_t* _Nonnull _Restrict self, va_list* _Nonnull
     const size_t n = self->chars_written;
 
     switch (self->spec.lm) {
-        case FMT_LM_hh:     *((signed char*)p) = __min(n, SCHAR_MAX);   break;
-        case FMT_LM_h:      *((short*)p) = __min(n, SHRT_MAX);          break;
-        case FMT_LM_none:   *((int*)p) = __min(n, INT_MAX);             break;
-        case FMT_LM_l:      *((long*)p) = __min(n, LONG_MAX);           break;
-        case FMT_LM_ll:     *((long long*)p) = __min(n, LLONG_MAX);     break;
+        case FMT_LM_hh:     *(signed char*)p = __min(n, SCHAR_MAX);   break;
+        case FMT_LM_h:      *(short*)p = __min(n, SHRT_MAX);          break;
+        case FMT_LM_none:   *(int*)p = __min(n, INT_MAX);             break;
+        case FMT_LM_l:      *(long*)p = __min(n, LONG_MAX);           break;
+        case FMT_LM_ll:     *(long long*)p = __min(n, LLONG_MAX);     break;
         case FMT_LM_L:      /* ignore */ break;
     }
 }
