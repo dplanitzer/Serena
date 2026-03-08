@@ -20,16 +20,19 @@
 #define __ST_MANT_SIGN  0
 #define __ST_HEX_BASE   1
 #define __ST_HEX_BASE_X 2
-#define __ST_MANT       3
-#define __ST_EXP_SIGN   4
-#define __ST_EXP        5
-#define __ST_END        6
+#define __ST_MANT_CHECK 3
+#define __ST_MANT       4
+#define __ST_NAN        5
+#define __ST_INF        6
+#define __ST_EXP_SIGN   7
+#define __ST_EXP        8
+#define __ST_END        9
 
 // Scans a floating point number of the form:
 // [+|-](0x|0X)hhhh[(p|P)(+|-)pddd]
 // [+|-]fff.ffff[(e|E)(+|-)ddd]
 // [+|-](inf|Inf|infinity|Infinity)
-// (nan|Nan)
+// [+|-](nan|Nan)
 static void _lex_ieeefp(scn_t* _Nonnull self, int base)
 {
     char* p = self->u.digits;
@@ -45,7 +48,7 @@ static void _lex_ieeefp(scn_t* _Nonnull self, int base)
                     ch = __scn_getc(self);
                 }
 
-                state = (base == 16) ? __ST_HEX_BASE : __ST_MANT;
+                state = (base == 16) ? __ST_HEX_BASE : __ST_MANT_CHECK;
                 break;
 
             case __ST_HEX_BASE:
@@ -61,10 +64,24 @@ static void _lex_ieeefp(scn_t* _Nonnull self, int base)
             case __ST_HEX_BASE_X:
                 if (ch == 'x' || ch == 'X') {
                     ch = __scn_getc(self);
-                    state = __ST_MANT;
+                    state = __ST_MANT_CHECK;
                 }
                 else {
                     state = __ST_END;
+                }
+                break;
+
+            case __ST_MANT_CHECK:
+                if (ch == 'n' || ch == 'N') {
+                    ch = 'n';
+                    state = __ST_NAN;
+                }
+                else if (ch == 'i' || ch == 'I') {
+                    ch = 'i';
+                    state = __ST_INF;
+                }
+                else {
+                    state = __ST_MANT;
                 }
                 break;
 
@@ -108,6 +125,24 @@ static void _lex_ieeefp(scn_t* _Nonnull self, int base)
                 if (i < __SCN_MAX_DIGITS) p[i++] = ch;
                 ch = __scn_getc(self);
                 break;
+
+            case __ST_NAN:
+            case __ST_INF: {
+                const char* str = (state == __ST_NAN) ? "nan" : "inf";
+
+                while (*str != '\0' && i < dig_lim) {
+                    if (ch != *str) {
+                        break;
+                    }
+                
+                    str++;
+                    p[i++] = ch;
+                    ch = __scn_getc(self);
+                }
+
+                state = __ST_END;
+                break;
+            }
 
             case __ST_EXP_SIGN:
                 if (ch == '-' || ch == '+') {
