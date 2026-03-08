@@ -12,9 +12,6 @@
 #include <ext/math.h>
 #include <string.h>
 #include <stdio.h>
-#ifndef EOF
-#define EOF -1
-#endif
 
 union s32_64 {
     long long   l64;
@@ -146,7 +143,7 @@ static const char* _Nonnull _parse_conv_spec(scn_t* _Nonnull _Restrict self, con
 }
 
 
-static void _skip_ws(scn_t* _Nonnull self)
+void __scn_skip_ws(scn_t* _Nonnull self)
 {
     for (;;) {
         const int ch = __scn_getc(self);
@@ -158,87 +155,101 @@ static void _skip_ws(scn_t* _Nonnull self)
     }
 }
 
-static bool _check_and_consume_0x_prefix(scn_t* _Nonnull self, char ch)
-{
-    if (ch == '0') {
-        ch = __scn_getc(self);
-
-        if (ch == 'x' || ch == 'X') {
-            return true;
-        }
-        __scn_ungetc(self, ch);
-    }
-
-    return false;
-}
+#define __ST_SIGN   0
+#define __ST_BASE   1
+#define __ST_NUM    2
+#define __ST_END    3
 
 // Scans an integer of the form:
-// [-][0x|0X|0](0-9)+
+// [+|-][0x|0X|0](0-9)+
 static void _lex_int(scn_t* _Nonnull self, int base)
 {
     char* p = self->u.digits;
-    char ch = __scn_getc(self);
     size_t dig_lim = (self->spec.max_field_width < 0) ? INT_MAX : self->spec.max_field_width;
-    int i = 0, j = 1;
+    int state = __ST_SIGN, i = 0, d;
+    char ch = __scn_getc(self);
 
-    // Sign
-    if (ch == '-' || ch == '+') {
-        p[i++] = ch;
-        ch = __scn_getc(self);
-    }
+    while (state < __ST_END && i < dig_lim) {
+        switch (state) {
+            case __ST_SIGN:
+                if (ch == '-' || ch == '+') {
+                    p[i++] = ch;
+                    ch = __scn_getc(self);
+                }
+                state = __ST_BASE;
+                break;
 
-    
-    // Handle optional octal/hex prefix and base == 0
-    if ((base == 0 || base == 16) && _check_and_consume_0x_prefix(self, ch)) {
-        p[i++] = '0';
-        p[i++] = 'x';
-        base = 16;
-        ch = __scn_getc(self);
-    }
-    else if ((base == 0 || base == 8) && ch == '0') {
-        p[i++] = '0';
-        base = 8;
-        ch = __scn_getc(self);
-    }
-    else if (base == 0) {
-        base = 10;
-    }
+            case __ST_BASE:
+                if ((base == 0 || base == 8 || base == 16) && ch == '0') {
+                    if (i == dig_lim) {
+                        state = __ST_END;
+                        break;
+                    }
 
-    
-    // Read digits
-    for (;;) {
-        int d;
+                    ch = __scn_getc(self);
 
-        if (ch == EOF || j > dig_lim) {
-            break;
-        }
+                    if ((base == 0 || base == 8) && (ch >= '0' && ch <= '7')) {
+                        p[i++] = '0';
+                        base = 8;
+                        state = __ST_NUM;
+                    }
+                    else if ((base == 0 || base == 16) && (ch == 'x' || ch == 'X')) {
+                        p[i++] = '0';
+                        p[i++] = 'x';
+                        base = 16;
+                        state = __ST_NUM;
+                        ch = __scn_getc(self);
+                    }
+                    else if (ch == EOF) {
+                        p[i++] = '0';
+                        base = 10;
+                        state = __ST_END;
+                    }
+                    else {
+                        base = 10;
+                        state = __ST_NUM;
+                    }
+                }
+                else {
+                    state = __ST_NUM;
+                }
+                break;
 
-        if (isdigit(ch)) {
-            d = ch - '0';
-        }
-        else if (isupper(ch)) {
-            d = ch - 'A' + 10;
-        }
-        else if (islower(ch)) {
-            d = ch - 'a' + 10;
-        }
-        else {
-            break;
-        }
+            case __ST_NUM:
+                if (ch == EOF) {
+                    state = __ST_END;
+                    break;
+                }
 
-        if (d >= base) {
-            break;
-        }
+                if (isdigit(ch)) {
+                    d = ch - '0';
+                }
+                else if (isupper(ch)) {
+                    d = ch - 'A' + 10;
+                }
+                else if (islower(ch)) {
+                    d = ch - 'a' + 10;
+                }
+                else {
+                    state = __ST_END;
+                    break;
+                }
 
-        // Stores at most __SCN_MAX_DIGITS digits in the buffer. This number
-        // includes the sign, prefix and one carry digit to enable the caller to
-        // detect overflow. We continue to consume consecutive digits once we
-        // hit overflow until there is no more valid digit.
-        if (i < __SCN_MAX_DIGITS) {
-            p[i++] = ch;
+                if (d >= base) {
+                    state = __ST_END;
+                    break;
+                }
+
+                // Stores at most __SCN_MAX_DIGITS digits in the buffer. This number
+                // includes the sign, prefix and one carry digit to enable the caller to
+                // detect overflow. We continue to consume consecutive digits once we
+                // hit overflow until there is no more valid digit.
+                if (i < __SCN_MAX_DIGITS) {
+                    p[i++] = ch;
+                }
+                ch = __scn_getc(self);
+                break;
         }
-        ch = __scn_getc(self);
-        j++;
     }
 
     p[i] = '\0';
@@ -278,7 +289,7 @@ static void _scan_string(scn_t* _Nonnull _Restrict self, va_list* _Nonnull _Rest
     const bool suppressed = SCN_SUPPRESSED(self->spec.flags);
     bool assigned = false;
 
-    _skip_ws(self);
+    __scn_skip_ws(self);
 
     for (;;) {
         const int ch = __scn_getc(self);
@@ -462,7 +473,7 @@ static void _scan_int(scn_t* _Nonnull _Restrict self, int base, va_list* _Nonnul
 {
     union s32_64 val;
 
-    _skip_ws(self);
+    __scn_skip_ws(self);
     _lex_int(self, base);
 
     if (scn_failed(self) || self->u.digits[0] == '\0' || SCN_SUPPRESSED(self->spec.flags)) {
@@ -494,7 +505,7 @@ static void _scan_uint(scn_t* _Nonnull _Restrict self, int base, va_list* _Nonnu
 {
     union u32_64 val;
 
-    _skip_ws(self);
+    __scn_skip_ws(self);
     _lex_int(self, base);
 
     if (scn_failed(self) || self->u.digits[0] == '\0' || SCN_SUPPRESSED(self->spec.flags)) {

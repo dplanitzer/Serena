@@ -16,6 +16,7 @@ void scanf_test(int argc, char *argv[])
 {
     char ch[8];
     int ival, ival2;
+    double dval;
 
     assertEquals(0, sscanf("hello", "hello"));
     assertEquals(0, sscanf("hello", ""));
@@ -65,4 +66,10 @@ void scanf_test(int argc, char *argv[])
 
     assertEquals(1, sscanf("0xabc", "%i", &ival));
     assertEquals(0xabc, ival);
+
+    assertEquals(1, sscanf("3.1415", "%lf", &dval));
+    assertEquals(3.1415, dval);
+
+    assertEquals(1, sscanf("1e3", "%lf", &dval));
+    assertEquals(1000.0, dval);
 }

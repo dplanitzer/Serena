@@ -66,7 +66,15 @@ struct scn_cspec {
 #define __SCN_HASEOF    2
 
 #define __SCN_SCANSET_SIZE  32  /* Number of bytes needed to store a scanset of 256 characters */
-#define __SCN_MAX_DIGITS   (64 + 1 + 3 + 1)    /* Max digits for a base-2 integer plus one digit to preserve overflow information; plus sign, '0b'|'0x' prefix and trailing NUL */
+
+// Integer: Max digits for a base-2 integer plus one digit to preserve overflow
+// information; plus sign, '0b'|'0x' prefix and trailing NUL
+// -> 64 + 1 + 3 + 1 = 69
+// FP: Max digits for a long double plus one digit to preserve overflow
+// information; plus '0x' prefix, mantissa sign, exponent sign, exponent character, decimal
+// point, exponent value and trailing NUL
+// -> 64 + 1 + 2 + 1 + 1 + 1 + 1 + 4 + 1 = 76
+#define __SCN_MAX_DIGITS   76
 
 
 struct scn {
@@ -89,7 +97,7 @@ struct scn {
 extern void __scn_init_i(scn_t* _Nonnull _Restrict self, void* _Nullable _Restrict s, scn_getc_t _Nonnull getc_f, scn_ungetc_t _Nonnull ungetc_f);
 
 // Initialize a scanner for int, pointer and floating point support.
-//extern void __scn_init_fp(scn_t* _Nonnull _Restrict self, void* _Nullable _Restrict s, scn_getc_func_t _Nonnull getc_f);
+extern void __scn_init_fp(scn_t* _Nonnull _Restrict self, void* _Nullable _Restrict s, scn_getc_t _Nonnull getc_f, scn_ungetc_t _Nonnull ungetc_f);
 
 // Deinitialize the given scanner.
 extern void __scn_deinit(scn_t* _Nullable self);
@@ -97,6 +105,17 @@ extern void __scn_deinit(scn_t* _Nullable self);
 
 // Returns the number of fields assigned on success; -1 otherwise
 extern int __scn_scan(scn_t* _Nonnull _Restrict self, const char* _Nonnull _Restrict format, va_list ap);
+
+
+// Get the next character from the stream. Returns EOF in case of an error or EOF
+extern int __scn_getc(scn_t* _Nonnull self);
+
+// Pushes the given character back into the stream. Does nothing if the character
+// is EOF.
+extern int __scn_ungetc(scn_t* _Nonnull self, int ch);
+
+// Skip white space
+extern void __scn_skip_ws(scn_t* _Nonnull self);
 
 
 // Returns the next value of type 'ty' from the vararg list 'ap' and updates the

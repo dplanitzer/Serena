@@ -39,7 +39,7 @@ int vsscanf(const char * _Nonnull _Restrict buffer, const char * _Nonnull _Restr
         return EOF;
     }
 
-    __scn_init_i /*__scn_init_fp*/(&scn, &file.super, (scn_getc_t)__fgetc, (scn_ungetc_t)__ungetc);
+    __scn_init_fp(&scn, &file.super, (scn_getc_t)__fgetc, (scn_ungetc_t)__ungetc);
     r = __scn_scan(&scn, format, ap);
     __scn_deinit(&scn);
     __fclose(&file.super);

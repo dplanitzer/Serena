@@ -31,7 +31,7 @@ int vfscanf(FILE * _Nonnull _Restrict s, const char * _Nonnull _Restrict format,
     __fensure_byte_oriented(s);
     __fensure_direction(s, __kStreamDirection_Out);
 
-    __scn_init_i /*__scn_init_fp*/(&scn, s, (scn_getc_t)__fgetc, (scn_ungetc_t)__ungetc);
+    __scn_init_fp(&scn, s, (scn_getc_t)__fgetc, (scn_ungetc_t)__ungetc);
     const int res = __scn_scan(&scn, format, ap);
     __scn_deinit(&scn);
 
