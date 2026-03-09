@@ -35,6 +35,7 @@ void strtol_test(int argc, char *argv[])
     // strtoul
     assertEquals(0xabcd, strtoul("0xabcd", NULL, 0));
     assertEquals(0177, strtoul("0177", NULL, 0));
+    assertEquals(0, strtoul("0877", NULL, 0));      // must detect that 8 is not a valid octal digit and thus parsing needs to stop right after 0
     assertEquals(123, strtoul("123", NULL, 0));
 
     assertEquals(0xffffffff, strtoul("ffffffff", NULL, 16));

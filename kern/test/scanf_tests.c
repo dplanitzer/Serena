@@ -64,8 +64,14 @@ void scanf_test(int argc, char *argv[])
     assertEquals(-123, ival);
     assertEquals(243, ival2);
 
+    assertEquals(1, sscanf("0b111", "%i", &ival));
+    assertEquals(7, ival);
     assertEquals(1, sscanf("0xabc", "%i", &ival));
     assertEquals(0xabc, ival);
+    assertEquals(1, sscanf("0777", "%i", &ival));
+    assertEquals(0777, ival);
+    assertEquals(1, sscanf("0877", "%i", &ival));   // parsing needs to stop after 0
+    assertEquals(0, ival);
 
     assertEquals(1, sscanf("3.1415", "%lf", &dval));
     assertEquals(3.1415, dval);

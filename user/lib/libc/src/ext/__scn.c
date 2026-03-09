@@ -193,7 +193,7 @@ static void _lex_int(scn_t* _Nonnull self, int base)
                 break;
 
             case __ST_BASE:
-                if ((base == 0 || base == 8 || base == 16) && ch == '0') {
+                if ((base == 0 || base == 2 || base == 8 || base == 16) && ch == '0') {
                     if (i == dig_lim) {
                         state = __ST_END;
                         break;
@@ -201,12 +201,7 @@ static void _lex_int(scn_t* _Nonnull self, int base)
 
                     ch = __scn_getc(self);
 
-                    if ((base == 0 || base == 8) && (ch >= '0' && ch <= '7')) {
-                        p[i++] = '0';
-                        base = 8;
-                        state = __ST_NUM;
-                    }
-                    else if ((base == 0 || base == 2) && (ch == 'b' || ch == 'B')) {
+                    if ((base == 0 || base == 2) && (ch == 'b' || ch == 'B')) {
                         p[i++] = '0';
                         p[i++] = 'b';
                         base = 2;
@@ -219,6 +214,12 @@ static void _lex_int(scn_t* _Nonnull self, int base)
                         base = 16;
                         state = __ST_NUM;
                         ch = __scn_getc(self);
+                    }
+                    else if (base == 0 || base == 8) {
+                        p[i++] = '0';
+                        base = 8;
+                        state = __ST_NUM;
+                        // 'ch' is already the next digit 
                     }
                     else if (ch == EOF) {
                         p[i++] = '0';
