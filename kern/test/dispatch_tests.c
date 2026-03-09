@@ -32,7 +32,7 @@ static void OnAsync(void* _Nonnull ign)
     //struct timespec dur;
     // timespec_from_sec(&dur, 2);
     //clock_nanosleep(clock_uptime, 0, &dur, NULL);
-    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync, NULL));
+    assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync, NULL));
 }
 
 void dq_async_test(int argc, char *argv[])
@@ -40,9 +40,9 @@ void dq_async_test(int argc, char *argv[])
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
     
     gDispatcher = dispatch_create(&attr);
-    assertNotNULL(gDispatcher);
+    assert_not_null(gDispatcher);
 
-    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync, NULL));
+    assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync, NULL));
 }
 
 
@@ -63,12 +63,12 @@ void dq_sync_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
     gDispatcher = dispatch_create(&attr);
-    assertNotNULL(gDispatcher);
+    assert_not_null(gDispatcher);
 
     while (true) {
         const int r = dispatch_sync(gDispatcher, (dispatch_sync_func_t)OnSync, NULL);
 
-        assertEquals(1234, r);
+        assert_int_eq(1234, r);
         puts("--------");
     }
 }
@@ -80,17 +80,17 @@ void dq_sync_test(int argc, char *argv[])
 static void OnAfter(void* _Nonnull ign)
 {
     printf("%d\n", gCounter++);
-    assertOK(dispatch_after(gDispatcher, 0, &DELAY_500MS, (dispatch_async_func_t)OnAfter, NULL));
+    assert_ok(dispatch_after(gDispatcher, 0, &DELAY_500MS, (dispatch_async_func_t)OnAfter, NULL));
 }
 
 void dq_after_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
     gDispatcher = dispatch_create(&attr);
-    assertNotNULL(gDispatcher);
+    assert_not_null(gDispatcher);
 
     timespec_from_ms(&DELAY_500MS, 500);
-    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAfter, NULL));
+    assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAfter, NULL));
 }
 
 
@@ -108,10 +108,10 @@ void dq_repeating_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
     gDispatcher = dispatch_create(&attr);
-    assertNotNULL(gDispatcher);
+    assert_not_null(gDispatcher);
 
     timespec_from_ms(&DELAY_250MS, 250);
-    assertOK(dispatch_repeating(gDispatcher, 0, &DELAY_250MS, &DELAY_250MS, (dispatch_async_func_t)OnRepeating, NULL));
+    assert_ok(dispatch_repeating(gDispatcher, 0, &DELAY_250MS, &DELAY_250MS, (dispatch_async_func_t)OnRepeating, NULL));
 }
 
 
@@ -133,19 +133,19 @@ void dq_terminate_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
     gDispatcher = dispatch_create(&attr);
-    assertNotNULL(gDispatcher);
+    assert_not_null(gDispatcher);
 
     timespec_from_ms(&DELAY_500MS, 500);
-    assertOK(dispatch_repeating(gDispatcher, 0, &DELAY_500MS, &DELAY_500MS, (dispatch_async_func_t)OnRepeating2, (void*)1));
-    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync2, (void*)1));
-    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync2, (void*)2));
-    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync2, (void*)3));
+    assert_ok(dispatch_repeating(gDispatcher, 0, &DELAY_500MS, &DELAY_500MS, (dispatch_async_func_t)OnRepeating2, (void*)1));
+    assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync2, (void*)1));
+    assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync2, (void*)2));
+    assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnAsync2, (void*)3));
 
     printf("Terminating...\n");
     dispatch_terminate(gDispatcher, 0);
-    assertOK(dispatch_await_termination(gDispatcher));
+    assert_ok(dispatch_await_termination(gDispatcher));
     printf("Terminated.\n");
-    assertOK(dispatch_destroy(gDispatcher));
+    assert_ok(dispatch_destroy(gDispatcher));
     printf("Success!\n");
 }
 
@@ -169,11 +169,11 @@ static void OnSendSignal(struct siginfo* _Nonnull si)
 
     if (sig_send_toggle) {
         printf("Sending signal #%d   [sigsend]\n", si->signo);
-        assertOK(sigsend(SIG_SCOPE_VCPU_GROUP, si->group_id, si->signo));
+        assert_ok(sigsend(SIG_SCOPE_VCPU_GROUP, si->group_id, si->signo));
     }
     else {
         printf("Sending signal #%d   [dispatch_send_signal]\n", si->signo);
-        assertOK(dispatch_send_signal(gDispatcher, si->signo));
+        assert_ok(dispatch_send_signal(gDispatcher, si->signo));
     }
 
     sig_send_toggle = !sig_send_toggle;
@@ -184,25 +184,25 @@ void dq_signal_test(int argc, char *argv[])
 {
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_SERIAL_INTERACTIVE;
     gDispatcher = dispatch_create(&attr);
-    assertNotNULL(gDispatcher);
+    assert_not_null(gDispatcher);
 
     struct siginfo si;
     si.group_id = dispatch_signal_target(gDispatcher);
     si.signo = dispatch_alloc_signal(gDispatcher, 0);
-    assertTrue(si.signo >= SIGMIN && si.signo <= SIGMAX);
+    assert_true(si.signo >= SIGMIN && si.signo <= SIGMAX);
 
     printf("vcpu-group-id: %u, signo: %d\n\n", si.group_id, si.signo);
 
 
     dispatch_item_t item = calloc(1, sizeof(struct dispatch_item));
-    assertNotNULL(item);
+    assert_not_null(item);
 
     item->func = (dispatch_item_func_t)OnReceivedSignal;
     item->retireFunc = (dispatch_retire_func_t)free;
 
-    assertOK(dispatch_item_on_signal(gDispatcher, si.signo, item));
+    assert_ok(dispatch_item_on_signal(gDispatcher, si.signo, item));
 
 
     timespec_from_ms(&DELAY_1000MS, 1000);
-    assertOK(dispatch_repeating(gDispatcher, 0, &TIMESPEC_ZERO, &DELAY_1000MS, (dispatch_async_func_t)OnSendSignal, &si));
+    assert_ok(dispatch_repeating(gDispatcher, 0, &TIMESPEC_ZERO, &DELAY_1000MS, (dispatch_async_func_t)OnSendSignal, &si));
 }

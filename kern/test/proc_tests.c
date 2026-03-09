@@ -31,7 +31,7 @@ static void spin_loop(const char* _Nonnull str)
 static void just_suspend(const char* _Nonnull str)
 {
     puts(str);
-    assertOK(vcpu_suspend(vcpu_self()));
+    assert_ok(vcpu_suspend(vcpu_self()));
 }
 
 static void just_wait(const char* _Nonnull str)
@@ -60,7 +60,7 @@ void proc_exit_test(int argc, char *argv[])
         attr.groupid = 0;
         attr.flags = VCPU_ACQUIRE_RESUMED;
         gId[i] = vcpu_acquire(&attr);
-        assertNotNULL(gId[i]);
+        assert_not_null(gId[i]);
     }
 
     vcpu_attr_t attr = VCPU_ATTR_INIT;
@@ -74,7 +74,7 @@ void proc_exit_test(int argc, char *argv[])
     attr.groupid = 0;
     attr.flags = VCPU_ACQUIRE_RESUMED;
     gId[CONCURRENCY] = vcpu_acquire(&attr);
-    assertNotNULL(gId[CONCURRENCY]);
+    assert_not_null(gId[CONCURRENCY]);
 
     
     puts("Waiting...");
@@ -180,7 +180,7 @@ void proc_exec_test(int argc, char *argv[])
     argv2[1] = "list";
     argv2[2] = NULL;
 
-    assertOK(proc_exec("test", argv2, NULL));
+    assert_ok(proc_exec("test", argv2, NULL));
 }
 
 

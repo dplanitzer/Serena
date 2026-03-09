@@ -18,64 +18,64 @@ void scanf_test(int argc, char *argv[])
     int ival, ival2;
     double dval;
 
-    assertEquals(0, sscanf("hello", "hello"));
-    assertEquals(0, sscanf("hello", ""));
-    assertEquals(EOF, sscanf("", "hello"));
+    assert_int_eq(0, sscanf("hello", "hello"));
+    assert_int_eq(0, sscanf("hello", ""));
+    assert_int_eq(EOF, sscanf("", "hello"));
 
-    assertEquals(0, sscanf("hello world", "hello world"));
-    assertEquals(0, sscanf("hello   \t\n\r\v world", "hello world"));
-    assertEquals(0, sscanf("hello   \t\n world", "hello \t\n\r\v world"));
+    assert_int_eq(0, sscanf("hello world", "hello world"));
+    assert_int_eq(0, sscanf("hello   \t\n\r\v world", "hello world"));
+    assert_int_eq(0, sscanf("hello   \t\n world", "hello \t\n\r\v world"));
 
-    assertEquals(1, sscanf("\t world", " %c", &ch[0]));
-    assertEquals('w', ch[0]);
+    assert_int_eq(1, sscanf("\t world", " %c", &ch[0]));
+    assert_char_eq('w', ch[0]);
 
-    assertEquals(1, sscanf("\t world", " %2c", ch));
-    assertEquals('w', ch[0]);
-    assertEquals('o', ch[1]);
+    assert_int_eq(1, sscanf("\t world", " %2c", ch));
+    assert_char_eq('w', ch[0]);
+    assert_char_eq('o', ch[1]);
 
-    assertEquals(1, sscanf("\t world", "%2s", ch));
-    assertEquals('w', ch[0]);
-    assertEquals('o', ch[1]);
-    assertEquals('\0', ch[2]);
+    assert_int_eq(1, sscanf("\t world", "%2s", ch));
+    assert_char_eq('w', ch[0]);
+    assert_char_eq('o', ch[1]);
+    assert_char_eq('\0', ch[2]);
 
-    assertEquals(1, sscanf("\t wo  ", "%s", ch));
-    assertEquals('w', ch[0]);
-    assertEquals('o', ch[1]);
-    assertEquals('\0', ch[2]);
+    assert_int_eq(1, sscanf("\t wo  ", "%s", ch));
+    assert_char_eq('w', ch[0]);
+    assert_char_eq('o', ch[1]);
+    assert_char_eq('\0', ch[2]);
 
-    assertEquals(1, sscanf(" 12hello", "%[0-9 ]hello", ch));
-    assertEquals(' ', ch[0]);
-    assertEquals('1', ch[1]);
-    assertEquals('2', ch[2]);
-    assertEquals('\0', ch[3]);
+    assert_int_eq(1, sscanf(" 12hello", "%[0-9 ]hello", ch));
+    assert_char_eq(' ', ch[0]);
+    assert_char_eq('1', ch[1]);
+    assert_char_eq('2', ch[2]);
+    assert_char_eq('\0', ch[3]);
 
-    assertEquals(1, sscanf("a1 ", "%[a1 ]hello", ch));
-    assertEquals('a', ch[0]);
-    assertEquals('1', ch[1]);
-    assertEquals(' ', ch[2]);
-    assertEquals('\0', ch[3]);
+    assert_int_eq(1, sscanf("a1 ", "%[a1 ]hello", ch));
+    assert_char_eq('a', ch[0]);
+    assert_char_eq('1', ch[1]);
+    assert_char_eq(' ', ch[2]);
+    assert_char_eq('\0', ch[3]);
 
-    assertEquals(1, sscanf("bc", "%[^a]hello", ch));
-    assertEquals('b', ch[0]);
-    assertEquals('c', ch[1]);
-    assertEquals('\0', ch[2]);
+    assert_int_eq(1, sscanf("bc", "%[^a]hello", ch));
+    assert_char_eq('b', ch[0]);
+    assert_char_eq('c', ch[1]);
+    assert_char_eq('\0', ch[2]);
 
-    assertEquals(2, sscanf("-123:  243", "%d:%d", &ival, &ival2));
-    assertEquals(-123, ival);
-    assertEquals(243, ival2);
+    assert_int_eq(2, sscanf("-123:  243", "%d:%d", &ival, &ival2));
+    assert_int_eq(-123, ival);
+    assert_int_eq(243, ival2);
 
-    assertEquals(1, sscanf("0b111", "%i", &ival));
-    assertEquals(7, ival);
-    assertEquals(1, sscanf("0xabc", "%i", &ival));
-    assertEquals(0xabc, ival);
-    assertEquals(1, sscanf("0777", "%i", &ival));
-    assertEquals(0777, ival);
-    assertEquals(1, sscanf("0877", "%i", &ival));   // parsing needs to stop after 0
-    assertEquals(0, ival);
+    assert_int_eq(1, sscanf("0b111", "%i", &ival));
+    assert_int_eq(7, ival);
+    assert_int_eq(1, sscanf("0xabc", "%i", &ival));
+    assert_int_eq(0xabc, ival);
+    assert_int_eq(1, sscanf("0777", "%i", &ival));
+    assert_int_eq(0777, ival);
+    assert_int_eq(1, sscanf("0877", "%i", &ival));   // parsing needs to stop after 0
+    assert_int_eq(0, ival);
 
-    assertEquals(1, sscanf("3.1415", "%lf", &dval));
-    assertEquals(3.1415, dval);
+    assert_int_eq(1, sscanf("3.1415", "%lf", &dval));
+    assert_double_eq(3.1415, dval);
 
-    assertEquals(1, sscanf("1e3", "%lf", &dval));
-    assertEquals(1000.0, dval);
+    assert_int_eq(1, sscanf("1e3", "%lf", &dval));
+    assert_double_eq(1000.0, dval);
 }

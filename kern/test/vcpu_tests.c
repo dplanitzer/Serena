@@ -45,7 +45,7 @@ void vcpu_acquire_test(int argc, char *argv[])
         attr.groupid = 0;
         attr.flags = VCPU_ACQUIRE_RESUMED;
         gId[i] = vcpu_acquire(&attr);
-        assertNotNULL(gId[i]);
+        assert_not_null(gId[i]);
     }
 }
 
@@ -87,7 +87,7 @@ void vcpu_scheduling_test(int argc, char *argv[])
     attr.groupid = 0;
     attr.flags = VCPU_ACQUIRE_RESUMED;
     vcpu_a = vcpu_acquire(&attr);
-    assertNotNULL(vcpu_a);
+    assert_not_null(vcpu_a);
 
     vcpu_attr_t attr2 = VCPU_ATTR_INIT;
     attr2.func = (vcpu_func_t)test_scheduling_print_loop;
@@ -99,7 +99,7 @@ void vcpu_scheduling_test(int argc, char *argv[])
     attr2.groupid = 0;
     attr2.flags = VCPU_ACQUIRE_RESUMED;
     vcpu_b = vcpu_acquire(&attr2);
-    assertNotNULL(vcpu_b);
+    assert_not_null(vcpu_b);
 }
 
 
@@ -127,7 +127,7 @@ static void test_sigkill_terminator(void)
     clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
     puts("- terminating A -");
     
-    assertOK(sigsend(SIG_SCOPE_VCPU, vcpu_id(test_sigkill_vcpu_a), SIGKILL));
+    assert_ok(sigsend(SIG_SCOPE_VCPU, vcpu_id(test_sigkill_vcpu_a), SIGKILL));
     puts("done");
 }
 
@@ -149,7 +149,7 @@ void vcpu_sigkill_test(int argc, char *argv[])
     attr.groupid = 0;
     attr.flags = VCPU_ACQUIRE_RESUMED;
     test_sigkill_vcpu_a = vcpu_acquire(&attr);
-    assertNotNULL(test_sigkill_vcpu_a);
+    assert_not_null(test_sigkill_vcpu_a);
 
     vcpu_attr_t attr2 = VCPU_ATTR_INIT;
     attr2.func = (vcpu_func_t)test_sigkill_terminator;
@@ -161,7 +161,7 @@ void vcpu_sigkill_test(int argc, char *argv[])
     attr2.groupid = 0;
     attr2.flags = VCPU_ACQUIRE_RESUMED;
     vcpu_b = vcpu_acquire(&attr2);
-    assertNotNULL(vcpu_b);
+    assert_not_null(vcpu_b);
 }
 
 
@@ -191,7 +191,7 @@ static void test_suspend_A_loop(void)
         clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_1sec, NULL);
         puts("- suspending A -");
         
-        assertOK(vcpu_suspend(test_suspend_vcpu_a));
+        assert_ok(vcpu_suspend(test_suspend_vcpu_a));
         clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_2sec, NULL);
         
         puts("- resuming A -");
@@ -216,7 +216,7 @@ void vcpu_suspend_test(int argc, char *argv[])
     attr.groupid = 0;
     attr.flags = VCPU_ACQUIRE_RESUMED;
     test_suspend_vcpu_a = vcpu_acquire(&attr);
-    assertNotNULL(test_suspend_vcpu_a);
+    assert_not_null(test_suspend_vcpu_a);
 
     vcpu_attr_t attr2 = VCPU_ATTR_INIT;
     attr2.func = (vcpu_func_t)test_suspend_A_loop;
@@ -228,5 +228,5 @@ void vcpu_suspend_test(int argc, char *argv[])
     attr2.groupid = 0;
     attr2.flags = VCPU_ACQUIRE_RESUMED;
     vcpu_b = vcpu_acquire(&attr2);
-    assertNotNULL(vcpu_b);
+    assert_not_null(vcpu_b);
 }

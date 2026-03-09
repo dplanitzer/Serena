@@ -21,13 +21,13 @@ void overwrite_file_test(int argc, char *argv[])
     printf("overwrite: /Users/admin/while.sh\n");
 
     fp = fopen("/Users/admin/while.sh", "rb+");
-    assertNotNULL(fp);
+    assert_not_null(fp);
     
     setvbuf(fp, NULL, _IONBF, 0);
 
     const char* str = "HELLO";
     const size_t r = fwrite(str, strlen(str), 1, fp);
-    assertEquals(1, r);
+    assert_size_eq(1, r);
 
     fclose(fp);
 }

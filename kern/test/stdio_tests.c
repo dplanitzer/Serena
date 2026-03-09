@@ -27,15 +27,15 @@ void fopen_memory_fixed_size_test(int argc, char *argv[])
     mem.options = 0;
 
     FILE* fp = fopen_memory(&mem, "r+");
-    assertNotNULL(fp);
-    assertNotEOF(fputs("Hello", fp));
-    assertEOF(fgetc(fp));
-    assertNotEOF(fseek(fp, 0, SEEK_SET));
-    assertNotNULL(fgets(buf, sizeof(buf), fp));
+    assert_not_null(fp);
+    assert_not_eof(fputs("Hello", fp));
+    assert_eof(fgetc(fp));
+    assert_not_eof(fseek(fp, 0, SEEK_SET));
+    assert_not_null(fgets(buf, sizeof(buf), fp));
     puts(buf);
 
-    assertNotEOF(fputs(" World 1234", fp));
-    assertNotEOF(filemem(fp, &q));
+    assert_not_eof(fputs(" World 1234", fp));
+    assert_not_eof(filemem(fp, &q));
     printf("base: %#p, eof: %zu, capacity: %zu\n", q.base, q.eof, q.capacity);
 }
 
@@ -52,14 +52,14 @@ void fopen_memory_variable_size_test(int argc, char *argv[])
     mem.options = 0;
 
     FILE* fp = fopen_memory(&mem, "r+");
-    assertNotNULL(fp);
-    assertNotEOF(fputs("Hello", fp));
-    assertEOF(fgetc(fp));
-    assertNotEOF(fseek(fp, 0, SEEK_SET));
-    assertNotNULL(fgets(buf, sizeof(buf), fp));
+    assert_not_null(fp);
+    assert_not_eof(fputs("Hello", fp));
+    assert_eof(fgetc(fp));
+    assert_not_eof(fseek(fp, 0, SEEK_SET));
+    assert_not_null(fgets(buf, sizeof(buf), fp));
     puts(buf);
 
-    assertNotEOF(fputs(" World 1234", fp));
-    assertNotEOF(filemem(fp, &q));
+    assert_not_eof(fputs(" World 1234", fp));
+    assert_not_eof(filemem(fp, &q));
     printf("base: %#p, eof: %zu, capacity: %zu\n", q.base, q.eof, q.capacity);
 }

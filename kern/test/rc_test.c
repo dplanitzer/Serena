@@ -15,25 +15,25 @@ void rc_test(int argc, char *argv[])
     ref_count_t rc = RC_INIT;
 
     rc_retain(&rc);
-    assertEquals(2, rc);
+    assert_int_eq(2, rc);
 
     rc_retain(&rc);
-    assertEquals(3, rc);
+    assert_int_eq(3, rc);
 
 
-    assertEquals(false, rc_release(&rc));
-    assertEquals(2, rc);
+    assert_bool_eq(false, rc_release(&rc));
+    assert_int_eq(2, rc);
 
-    assertEquals(false, rc_release(&rc));
-    assertEquals(1, rc);
+    assert_bool_eq(false, rc_release(&rc));
+    assert_int_eq(1, rc);
 
-    assertEquals(true, rc_release(&rc));
-    assertEquals(0, rc);
+    assert_bool_eq(true, rc_release(&rc));
+    assert_int_eq(0, rc);
 
     // A real app should never do this because this means that it's trying to
     // release a reference it doesn't own. However we still want to make sure
     // that such a scenario doesn't trigger a spurious duplicate deallocation
     // of already deallocated data.
-    assertEquals(false, rc_release(&rc));
-    assertEquals(-1, rc);
+    assert_bool_eq(false, rc_release(&rc));
+    assert_int_eq(-1, rc);
 }

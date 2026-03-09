@@ -16,10 +16,10 @@ void atomic_test(int argc, char *argv[])
 
     atomic_init(&val, 0);
 
-    assertEquals(0, atomic_int_fetch_add(&val, 1));
-    assertEquals(1, atomic_int_fetch_add(&val, 1));
+    assert_int_eq(0, atomic_int_fetch_add(&val, 1));
+    assert_int_eq(1, atomic_int_fetch_add(&val, 1));
 
-    assertEquals(2, atomic_int_fetch_sub(&val, 1));
-    assertEquals(1, atomic_int_fetch_sub(&val, 1));
-    assertEquals(0, atomic_int_load(&val));
+    assert_int_eq(2, atomic_int_fetch_sub(&val, 1));
+    assert_int_eq(1, atomic_int_fetch_sub(&val, 1));
+    assert_int_eq(0, atomic_int_load(&val));
 }

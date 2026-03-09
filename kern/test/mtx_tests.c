@@ -58,7 +58,7 @@ static void select_and_write_pattern(void)
         dst += nBytesToCopy;
         len -= nBytesToCopy;
 
-       //assertOK(clock_nanosleep(CLOCK_MONOTONIC, 0, &dl, NULL));
+       //assert_ok(clock_nanosleep(CLOCK_MONOTONIC, 0, &dl, NULL));
     }
 
     printf("W: '%s'\n", gCurrentPattern);
@@ -66,19 +66,19 @@ static void select_and_write_pattern(void)
 
 static void OnWork(void* _Nonnull pValue)
 {
-    assertOK(mtx_lock(&gMutex));
+    assert_ok(mtx_lock(&gMutex));
     printf("R: %d\n", gCurrentPatternIndex);
 
     // Make sure that we find the expected pattern in the pattern buffer
-    assertTrue(gCurrentPatternIndex >= 0 && gCurrentPatternIndex < NUM_PATTERNS);
-    assertEquals(0, strcmp(gCurrentPattern, gAvailablePattern[gCurrentPatternIndex]));
+    assert_true(gCurrentPatternIndex >= 0 && gCurrentPatternIndex < NUM_PATTERNS);
+    assert_int_eq(0, strcmp(gCurrentPattern, gAvailablePattern[gCurrentPatternIndex]));
 
     // Select a new pattern and write it to the pattern buffer
     select_and_write_pattern();
 
-    assertOK(mtx_unlock(&gMutex));
+    assert_ok(mtx_unlock(&gMutex));
 
-    assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnWork, NULL));
+    assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnWork, NULL));
 }
 
 
@@ -87,14 +87,14 @@ void mtx_test(int argc, char *argv[])
     dispatch_attr_t attr = DISPATCH_ATTR_INIT_FIXED_CONCURRENT_UTILITY(NUM_VPS);
 
     gDispatcher = dispatch_create(&attr);
-    assertNotNULL(gDispatcher);
+    assert_not_null(gDispatcher);
 
-    assertOK(mtx_init(&gMutex));
+    assert_ok(mtx_init(&gMutex));
     
     gCurrentPatternIndex = 0;
     select_and_write_pattern();
 
     for (size_t i = 0; i < NUM_WORKERS; i++) {
-        assertOK(dispatch_async(gDispatcher, (dispatch_async_func_t)OnWork, NULL));
+        assert_ok(dispatch_async(gDispatcher, (dispatch_async_func_t)OnWork, NULL));
     }
 }

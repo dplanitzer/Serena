@@ -15,5 +15,5 @@
 
 void kern_test(int argc, char *argv[])
 {
-    assertEquals(0, _syscall(SC_test));
+    assert_int_eq(0, _syscall(SC_test));
 }

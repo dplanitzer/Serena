@@ -86,16 +86,16 @@ void hid_test(int argc, char *argv[])
     bool done = false;
 
     const int fd = open("/dev/hid", O_RDONLY);
-    assertGreaterEqual(0, fd);
+    assert_int_ge(0, fd);
     printf("Press '1' to toggle mouse cursor visibility.\n");
     printf("Press '2' to hide mouse cursor until move.\n");
     printf("Press 'q' to quit.\n");
 
-    assertGreaterEqual(0, ioctl(fd, kHIDCommand_ObtainCursor));
-    assertGreaterEqual(0, ioctl(fd, kHIDCommand_SetCursor, gArrow_Planes, sizeof(uint16_t), kCursor_Width, kCursor_Height, kCursor_PixelFormat, 1, 1));
+    assert_int_ge(0, ioctl(fd, kHIDCommand_ObtainCursor));
+    assert_int_ge(0, ioctl(fd, kHIDCommand_SetCursor, gArrow_Planes, sizeof(uint16_t), kCursor_Width, kCursor_Height, kCursor_PixelFormat, 1, 1));
 
     while (!done) {
-        assertGreaterEqual(0, ioctl(fd, kHIDCommand_GetNextEvent, &TIMESPEC_INF, &evt));
+        assert_int_ge(0, ioctl(fd, kHIDCommand_GetNextEvent, &TIMESPEC_INF, &evt));
 
         switch (evt.type) {
             case kHIDEventType_KeyDown:
@@ -113,17 +113,17 @@ void hid_test(int argc, char *argv[])
 
                         case KEY_1:
                             if (mc_vis) {
-                                assertGreaterEqual(0, ioctl(fd, kHIDCommand_HideCursor));
+                                assert_int_ge(0, ioctl(fd, kHIDCommand_HideCursor));
                                 mc_vis = false;
                             }
                             else {
-                                assertGreaterEqual(0, ioctl(fd, kHIDCommand_ShowCursor));
+                                assert_int_ge(0, ioctl(fd, kHIDCommand_ShowCursor));
                                 mc_vis = true;
                             }
                             break;
 
                         case KEY_2:
-                            assertGreaterEqual(0, ioctl(fd, kHIDCommand_ObscureCursor));
+                            assert_int_ge(0, ioctl(fd, kHIDCommand_ObscureCursor));
                             break;
 
                         default:
@@ -173,7 +173,7 @@ void hid_test(int argc, char *argv[])
         }
     }
 
-    assertGreaterEqual(0, ioctl(fd, kHIDCommand_FlushEvents));
-    assertGreaterEqual(0, ioctl(fd, kHIDCommand_ReleaseCursor));
+    assert_int_ge(0, ioctl(fd, kHIDCommand_FlushEvents));
+    assert_int_ge(0, ioctl(fd, kHIDCommand_ReleaseCursor));
     close(fd);
 }
