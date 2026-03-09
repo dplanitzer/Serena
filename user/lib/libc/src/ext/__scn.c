@@ -174,7 +174,7 @@ void __scn_skip_ws(scn_t* _Nonnull self)
 #define __ST_END    3
 
 // Scans an integer of the form:
-// [+|-][0x|0X|0](0-9)+
+// [+|-][0b|0B|0x|0X|0](0-9)+
 static void _lex_int(scn_t* _Nonnull self, int base)
 {
     char* p = self->u.digits;
@@ -205,6 +205,13 @@ static void _lex_int(scn_t* _Nonnull self, int base)
                         p[i++] = '0';
                         base = 8;
                         state = __ST_NUM;
+                    }
+                    else if ((base == 0 || base == 2) && (ch == 'b' || ch == 'B')) {
+                        p[i++] = '0';
+                        p[i++] = 'b';
+                        base = 2;
+                        state = __ST_NUM;
+                        ch = __scn_getc(self);
                     }
                     else if ((base == 0 || base == 16) && (ch == 'x' || ch == 'X')) {
                         p[i++] = '0';
@@ -528,6 +535,8 @@ static const char* _Nonnull _scan_arg(scn_t* _Nonnull _Restrict self, const char
         case 'd':   _scan_int(self, 10, ap); break;
         case 'i':   _scan_int(self, 0, ap); break;
         case 'o':   _scan_uint(self, 8, ap); break;
+        case 'b':   // fall through
+        case 'B':   _scan_uint(self, 2, ap); break;
         case 'x':   // fall through
         case 'X':   _scan_uint(self, 16, ap); break;
         case 'u':   _scan_uint(self, 10, ap); break;
