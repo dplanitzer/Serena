@@ -9,9 +9,9 @@
 #ifndef _SYS_CND_H
 #define _SYS_CND_H 1
 
-#include <signal.h>
 #include <time.h>
 #include <sys/mtx.h>
+#include <sys/signal.h>
 #include <sys/spinlock.h>
 
 __CPP_BEGIN

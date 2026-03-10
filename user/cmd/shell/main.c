@@ -7,11 +7,11 @@
 //
 
 #include <assert.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <clap.h>
+#include <sys/signal.h>
 #include <sys/vcpu.h>
 #include "Utilities.h"
 #include "Shell.h"

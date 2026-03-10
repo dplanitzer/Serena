@@ -8,9 +8,9 @@
 
 #include "dispatch_priv.h"
 #include <errno.h>
-#include <signal.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/signal.h>
 
 
 static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo, bool enable)

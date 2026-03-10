@@ -7,9 +7,9 @@
 //
 
 #include <errno.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <sys/signal.h>
 #include <sys/spawn.h>
 #include <sys/stat.h>
 #include <sys/wait.h>

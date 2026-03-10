@@ -7,13 +7,13 @@
 //
 
 #include <dispatch.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <ext/timespec.h>
+#include <sys/signal.h>
 #include "Asserts.h"
 
 static dispatch_t gDispatcher;

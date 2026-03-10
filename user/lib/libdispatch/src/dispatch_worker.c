@@ -8,9 +8,9 @@
 
 #include "dispatch_priv.h"
 #include <errno.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/signal.h>
 
 
 static bool _dispatch_worker_acquire_vcpu(dispatch_worker_t _Nonnull self)

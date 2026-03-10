@@ -7,12 +7,12 @@
 //
 
 #include <errno.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/signal.h>
 #include <sys/spawn.h>
 #include <sys/wait.h>
 #include <sys/vcpu.h>

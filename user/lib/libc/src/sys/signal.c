@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <signal.h>
 #include <kpi/syscall.h>
+#include <sys/signal.h>
 
 
 int sigroute(int op, int signo, int scope, id_t id)

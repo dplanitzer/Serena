@@ -6,12 +6,12 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <ext/timespec.h>
+#include <sys/signal.h>
 #include <sys/vcpu.h>
 #include "Asserts.h"
 

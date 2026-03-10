@@ -9,11 +9,11 @@
 #include "dispatch_priv.h"
 #include <errno.h>
 #include <limits.h>
-#include <signal.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/signal.h>
 #include <sys/spinlock.h>
 
 
