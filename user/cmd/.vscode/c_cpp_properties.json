@@ -4,11 +4,11 @@
             "name": "cmd",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/../lib/libc/h/**",
-                "${workspaceFolder}/../lib/libclap/h/**",
-                "${workspaceFolder}/../lib/libdispatch/h/**",
+                "${workspaceFolder}/../lib/libc/h/*",
+                "${workspaceFolder}/../lib/libclap/h/*",
+                "${workspaceFolder}/../lib/libdispatch/h/*",
                 "${workspaceFolder}/../lib/libm/h/**",
-                "${workspaceFolder}/../../kern/h/**"
+                "${workspaceFolder}/../../kern/h/*"
             ],
             "defines": [
                 "DEBUG=1",

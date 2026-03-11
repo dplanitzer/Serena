@@ -1,20 +1,16 @@
 //
-//  dirent.h
+//  directory.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _DIRENT_H
-#define _DIRENT_H 1
-
-#if ___STDC_HOSTED__ != 1
-#error "not supported in freestanding mode"
-#endif
+#ifndef _SYS_DIRECTORY_H
+#define _SYS_DIRECTORY_H 1
 
 #include <_cmndef.h>
-#include <kpi/dirent.h>
+#include <kpi/directory.h>
 #include <serena/types.h>
 
 __CPP_BEGIN
@@ -73,4 +69,4 @@ extern void rewinddir(DIR* _Nonnull dir);
 
 __CPP_END
 
-#endif /* _DIRENT_H */
+#endif /* _SYS_DIRECTORY_H */

@@ -6,12 +6,12 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <dirent.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <ext/errno.h>
 #include <kpi/syscall.h>
+#include <serena/directory.h>
 
 // 2kb
 #define DIRENT_COUNT 8

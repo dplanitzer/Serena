@@ -12,7 +12,7 @@
 #include <ext/queue.h>
 #include <ext/try.h>
 #include <kobj/Any.h>
-#include <kpi/dirent.h>
+#include <kpi/directory.h>
 #include <kpi/stat.h>
 #include <sched/mtx.h>
 

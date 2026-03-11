@@ -1,13 +1,13 @@
 //
-//  kpi/dirent.h
+//  kpi/directory.h
 //  kpi
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KPI_DIRENT_H
-#define _KPI_DIRENT_H 1
+#ifndef _KPI_DIRECTORY_H
+#define _KPI_DIRECTORY_H 1
 
 #include <kpi/syslimits.h>
 #include <kpi/types.h>
@@ -17,4 +17,4 @@ struct dirent {
     char    name[NAME_MAX];
 };
 
-#endif /* _KPI_DIRENT_H */
+#endif /* _KPI_DIRECTORY_H */

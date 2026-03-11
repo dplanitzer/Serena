@@ -7,7 +7,6 @@
 //
 
 #include <clap.h>
-#include <dirent.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -17,6 +16,7 @@
 #include <ext/perm.h>
 #include <ext/stdlib.h>
 #include <ext/string.h>
+#include <serena/directory.h>
 #include <serena/stat.h>
 
 extern const char* __gc_abbrev_ymon(unsigned m);

@@ -7,11 +7,11 @@
 //
 
 #include <clap.h>
-#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <string.h>
+#include <serena/directory.h>
 #include <serena/stat.h>
 
 

@@ -7,13 +7,13 @@
 //
 
 #include <clap.h>
-#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <ext/stdlib.h>
+#include <serena/directory.h>
 #include <serena/ioctl.h>
 #include <serena/proc.h>
 #include <serena/stat.h>

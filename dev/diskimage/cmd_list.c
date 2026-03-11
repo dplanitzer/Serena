@@ -15,7 +15,7 @@
 #include <ext/perm.h>
 #include <ext/stdlib.h>
 #include <filesystem/IOChannel.h>
-#include <kpi/dirent.h>
+#include <kpi/directory.h>
 
 #define PINID   PRIu32
 //#define PINID   PRIu64

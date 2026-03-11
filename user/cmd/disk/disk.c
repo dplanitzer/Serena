@@ -8,7 +8,6 @@
 
 #include <clap.h>
 #include <ctype.h>
-#include <dirent.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -18,6 +17,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <ext/perm.h>
+#include <serena/directory.h>
 #include <serena/disk.h>
 #include <serena/fs.h>
 #include <serena/mount.h>
