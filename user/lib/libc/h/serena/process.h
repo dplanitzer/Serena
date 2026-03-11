@@ -9,24 +9,15 @@
 #ifndef _SYS_PROCESS_H
 #define _SYS_PROCESS_H 1
 
-#include <inttypes.h>
 #include <stdnoreturn.h>
-#include <kpi/_access.h>
 #include <kpi/_time.h>
 #include <kpi/process.h>
 #include <serena/types.h>
 
 __CPP_BEGIN
 
-// Checks whether the file at the filesystem location 'path' exists and whether
-// it is accessible according to 'mode'. A suitable error is returned otherwise.
-// @Concurrency: Safe
-extern int access(const char* _Nonnull path, int mode);
-
 extern int chdir(const char* _Nonnull path);
 extern int getcwd(char* _Nonnull buffer, size_t bufferSize);
-
-extern int chown(const char* _Nonnull path, uid_t uid, gid_t gid);
 
 extern _Noreturn void _exit(int status);
 
@@ -46,23 +37,12 @@ extern int proc_exec(const char* _Nonnull path, const char* _Nullable argv[], co
 extern pargs_t* _Nonnull getpargs(void);
 
 
-// Truncates the file at the filesystem location 'path'. If the new length is
-// greater than the size of the existing file, then the file is expanded and the
-// newly added data range is zero-filled. If the new length is less than the
-// size of the existing file, then the excess data is removed and the size of
-// the file is set to the new length.
+// Sets the process' umask. Bits set in this mask are cleared in the permissions
+// that are used to create a file. Returns the old umask. Note that calling this
+// function with SEO_UMASK_NO_CHANGE as the argument causes umask() to simply
+// return the current umask without chaning it as a side-effect.
 // @Concurrency: Safe
-extern int truncate(const char* _Nonnull path, off_t length);
-
-
-// Deletes the file located at the filesystem location 'path'.
-// @Concurrency: Safe
-extern int unlink(const char* _Nonnull path);
-
-// Deletes the empty directory located at the filesystem location 'path'.
-// Note that this function deletes empty directories only.
-// @Concurrency: Safe
-extern int rmdir(const char* _Nonnull path);
+extern mode_t umask(mode_t mask);
 
 
 // Synchronously writes all dirty disk blocks back to disk.

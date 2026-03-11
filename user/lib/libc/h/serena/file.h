@@ -9,6 +9,7 @@
 #ifndef _SYS_FCNTL_H
 #define _SYS_FCNTL_H 1
 
+#include <kpi/_access.h>
 #include <kpi/file.h>
 #include <serena/fd.h>
 
@@ -33,12 +34,6 @@ extern int open(const char* _Nonnull path, int oflags, ...);
 // @Concurrency: Safe
 extern int fcntl(int fd, int cmd, ...);
 
-// Creates an empty directory with the name and at the filesystem location specified
-// by 'path'. 'mode' specifies the permissions that should be assigned to the
-// directory.
-// @Concurrency: Safe
-extern int mkdir(const char* _Nonnull path, mode_t mode);
-
 
 // Returns meta-information about the file located at the filesystem location 'path'.
 // @Concurrency: Safe
@@ -49,23 +44,36 @@ extern int stat(const char* _Nonnull path, struct stat* _Nonnull info);
 extern int fstat(int ioc, struct stat* _Nonnull info);
 
 
+// Checks whether the file at the filesystem location 'path' exists and whether
+// it is accessible according to 'mode'. A suitable error is returned otherwise.
+// @Concurrency: Safe
+extern int access(const char* _Nonnull path, int mode);
+
+// Truncates the file at the filesystem location 'path'. If the new length is
+// greater than the size of the existing file, then the file is expanded and the
+// newly added data range is zero-filled. If the new length is less than the
+// size of the existing file, then the excess data is removed and the size of
+// the file is set to the new length.
+// @Concurrency: Safe
+extern int truncate(const char* _Nonnull path, off_t length);
+
+
+// Deletes the file located at the filesystem location 'path'.
+// @Concurrency: Safe
+extern int unlink(const char* _Nonnull path);
+
+
 // Changes the file permission bits of the file or directory at 'path' to the
 // file permissions encoded in 'mode'.
 // @Concurrency: Safe
 extern int chmod(const char* _Nonnull path, mode_t mode);
 
+extern int chown(const char* _Nonnull path, uid_t uid, gid_t gid);
+
 // Sets the access and modification date of the file at 'path'. The dates are
 // set to the current time if 'times' is NULL.
 // @Concurrency: Safe
 extern int utimens(const char* _Nonnull path, const struct timespec times[_Nullable 2]);
-
-
-// Sets the process' umask. Bits set in this mask are cleared in the permissions
-// that are used to create a file. Returns the old umask. Note that calling this
-// function with SEO_UMASK_NO_CHANGE as the argument causes umask() to simply
-// return the current umask without chaning it as a side-effect.
-// @Concurrency: Safe
-extern mode_t umask(mode_t mask);
 
 __CPP_END
 

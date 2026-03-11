@@ -67,6 +67,18 @@ extern struct dirent* _Nullable readdir(DIR* _Nonnull dir);
 // @Concurrency: Not Safe
 extern void rewinddir(DIR* _Nonnull dir);
 
+
+// Creates an empty directory with the name and at the filesystem location specified
+// by 'path'. 'mode' specifies the permissions that should be assigned to the
+// directory.
+// @Concurrency: Safe
+extern int mkdir(const char* _Nonnull path, mode_t mode);
+
+// Deletes the empty directory located at the filesystem location 'path'.
+// Note that this function deletes empty directories only.
+// @Concurrency: Safe
+extern int rmdir(const char* _Nonnull path);
+
 __CPP_END
 
 #endif /* _SYS_DIRECTORY_H */
