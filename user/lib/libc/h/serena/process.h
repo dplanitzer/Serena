@@ -76,17 +76,6 @@ extern int isatty(int fd);
 extern off_t lseek(int fd, off_t offset, int whence);
 
 
-#define SEO_PIPE_READ 0
-#define SEO_PIPE_WRITE 1
-
-// Creates an anonymous pipe and returns a read and write I/O channel to the pipe.
-// Data which is written to the pipe using the write I/O channel can be read using
-// the read I/O channel. The data is made available in first-in-first-out order.
-// Note that both I/O channels must be closed to free all pipe resources.
-// The write channel is returned in fds[1] and the read channel in fds[0].
-extern int pipe(int fds[2]);
-
-
 // Reads up to 'nbytes' bytes from the I/O channel 'fd' and writes them to the
 // buffer 'buf'. The buffer must be big enough to hold 'nbytes' bytes. If at
 // least one byte could be read successfully then the actual number of bytes

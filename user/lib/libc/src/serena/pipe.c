@@ -7,7 +7,7 @@
 //
 
 #include <kpi/syscall.h>
-#include <serena/process.h>
+#include <serena/pipe.h>
 
 
 int pipe(int fds[2])

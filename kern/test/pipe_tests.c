@@ -13,6 +13,7 @@
 #include <string.h>
 #include <time.h>
 #include <ext/timespec.h>
+#include <serena/pipe.h>
 #include <serena/process.h>
 #include "Asserts.h"
 
