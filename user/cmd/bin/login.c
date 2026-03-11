@@ -12,10 +12,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <serena/file.h>
+#include <serena/process.h>
 #include <serena/signal.h>
 #include <serena/spawn.h>
 #include <serena/wait.h>
 #include <serena/vcpu.h>
+
 
 // Shut down the boot screen and initialize the kerne VT100 console
 // XXX for now. Don't use outside of login.

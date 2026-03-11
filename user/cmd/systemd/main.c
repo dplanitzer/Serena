@@ -13,6 +13,7 @@
 #include <string.h>
 #include <time.h>
 #include <ext/timespec.h>
+#include <serena/clock.h>
 #include <serena/mount.h>
 #include <serena/spawn.h>
 

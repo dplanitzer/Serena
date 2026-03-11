@@ -11,7 +11,7 @@
 #include <ext/errno.h>
 #include <kpi/syscall.h>
 #include <serena/directory.h>
-#include <serena/process.h>
+#include <serena/fd.h>
 
 // 2kb
 #define DIRENT_COUNT 8

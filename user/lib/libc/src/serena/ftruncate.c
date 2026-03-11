@@ -7,8 +7,7 @@
 //
 
 #include <kpi/syscall.h>
-#include <serena/process.h>
-
+#include <serena/fd.h>
 
 int ftruncate(int fd, off_t length)
 {

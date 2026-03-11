@@ -23,6 +23,7 @@
 #include <serena/mount.h>
 #include <serena/fs.h>
 #include <serena/ioctl.h>
+#include <serena/process.h>
 #include <serena/uid.h>
 #include "sefs_init.h"
 

@@ -7,7 +7,7 @@
 //
 
 #include <kpi/syscall.h>
-#include <serena/process.h>
+#include <serena/fd.h>
 
 
 off_t lseek(int fd, off_t offset, int whence)

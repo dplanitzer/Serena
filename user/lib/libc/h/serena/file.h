@@ -10,9 +10,7 @@
 #define _SYS_FCNTL_H 1
 
 #include <kpi/file.h>
-#include <kpi/_time.h>
-#include <serena/process.h>
-#include <serena/types.h>
+#include <serena/fd.h>
 
 __CPP_BEGIN
 

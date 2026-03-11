@@ -14,6 +14,7 @@
 #include <time.h>
 #include <ext/perm.h>
 #include <serena/file.h>
+#include <serena/process.h>
 
 #define NUM_RND_CHARS   16
 

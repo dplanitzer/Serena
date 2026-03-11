@@ -7,7 +7,7 @@
 //
 
 #include <kpi/syscall.h>
-#include <serena/process.h>
+#include <serena/fd.h>
 
 ssize_t write(int fd, const void* _Nonnull buf, size_t nbytes)
 {

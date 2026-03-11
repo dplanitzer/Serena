@@ -15,8 +15,8 @@
 #include <string.h>
 #include <ext/math.h>
 #include <serena/console.h>
+#include <serena/fd.h>
 #include <serena/ioctl.h>
-#include <serena/process.h>
 
 enum {
     kChar_CursorUp = 0x01000000,

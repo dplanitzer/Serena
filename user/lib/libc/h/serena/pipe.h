@@ -9,7 +9,7 @@
 #ifndef _SYS_PIPE_H
 #define _SYS_PIPE_H 1
 
-#include <_cmndef.h>
+#include <serena/fd.h>
 
 __CPP_BEGIN
 
