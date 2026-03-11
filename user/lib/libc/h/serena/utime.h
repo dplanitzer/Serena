@@ -6,12 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _UTIME_H
-#define _UTIME_H 1
-
-#if ___STDC_HOSTED__ != 1
-#error "not supported in freestanding mode"
-#endif
+#ifndef _SYS_UTIME_H
+#define _SYS_UTIME_H 1
 
 #include <_cmndef.h>
 #include <serena/types.h>
@@ -27,4 +23,4 @@ extern int utime(const char* _Nonnull path, const struct utimbuf* _Nullable time
 
 __CPP_END
 
-#endif /* _UTIME_H */
+#endif /* _SYS_UTIME_H */

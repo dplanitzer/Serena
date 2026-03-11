@@ -6,9 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <utime.h>
 #include <serena/stat.h>
-
+#include <serena/utime.h>
 
 int utime(const char* _Nonnull path, const struct utimbuf* _Nullable times)
 {
