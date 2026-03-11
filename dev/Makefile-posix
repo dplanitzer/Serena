@@ -49,8 +49,7 @@ include ../common.mk
 
 default: all
 
-all: libclap makerom libtool keymap
-#all: libclap makerom libtool keymap diskimage
+all: libclap makerom libtool keymap diskimage
 diskimage: $(TOOLS_DIR)/diskimage
 keymap: $(TOOLS_DIR)/keymap
 libtool: $(TOOLS_DIR)/libtool
