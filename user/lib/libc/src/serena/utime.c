@@ -7,7 +7,6 @@
 //
 
 #include <serena/file.h>
-#include <serena/utime.h>
 
 int utime(const char* _Nonnull path, const struct utimbuf* _Nullable times)
 {

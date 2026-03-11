@@ -65,11 +65,6 @@ extern ssize_t read(int fd, void* _Nonnull buf, size_t nbytes);
 // @Concurrency: Safe
 extern ssize_t write(int fd, const void* _Nonnull buf, size_t nbytes);
 
-
-// Similar to truncate() but operates on the open file identified by 'ioc'.
-// @Concurrency: Safe
-extern int ftruncate(int fd, off_t length);
-
 __CPP_END
 
 #endif /* _SYS_FD_H */
