@@ -48,7 +48,7 @@ void Process_Init(ProcessRef _Nonnull self, pid_t ppid, pid_t pgrp, pid_t sid, F
     }
     self->nextAvailWaitQueueId = 0;
 
-    wq_init(&self->sleep_queue);
+    wq_init(&self->clk_wait_queue);
     wq_init(&self->siwa_queue);
     _proc_init_default_sigroutes(self);
     FileManager_Init(&self->fm, fh, uid, gid, pRootDir, pWorkingDir, umask);
@@ -81,7 +81,7 @@ static void _proc_deinit(ProcessRef _Nonnull self)
     }
 
     wq_deinit(&self->siwa_queue);
-    wq_deinit(&self->sleep_queue);
+    wq_deinit(&self->clk_wait_queue);
     AddressSpace_Deinit(&self->addr_space);
     self->pargs_base = NULL;
 

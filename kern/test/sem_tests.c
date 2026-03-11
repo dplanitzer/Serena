@@ -32,7 +32,9 @@ static dispatch_t gDispatcher;
 static void philosopher(int* num)
 {
     const int p = *num;
+    struct timespec wt;
 
+    timespec_from_sec(&wt, 2);
     while (true) {
         assert_ok(sem_wait(&room, 1));
         printf("Philosopher %d has entered room\n", p);
@@ -41,7 +43,7 @@ static void philosopher(int* num)
         assert_ok(sem_wait(&chopstick[RIGHT(p)], 1));
 
         printf("Philosopher %d is eating...\n", p);
-        sleep(2);
+        clock_nanosleep(CLOCK_MONOTONIC, 0, &wt, NULL);
         printf("Philosopher %d has finished eating\n", p);
 
         assert_ok(sem_post(&chopstick[RIGHT(p)], 1));

@@ -100,8 +100,8 @@ typedef struct Process {
     deque_t/*<struct u_wait_queue>*/waitQueueTable[UWQ_HASH_CHAIN_COUNT];   // wait queue descriptor -> struct u_wait_queue
     int                             nextAvailWaitQueueId;
 
-    // All VPs that belong to this process and are currently in sleep()
-    struct waitqueue                sleep_queue;
+    // All VPs that belong to this process and are currently in a clock_wait()
+    struct waitqueue                clk_wait_queue;
     
     // All VPs blocking on a sigwait() or sigtimedwait()
     struct waitqueue                siwa_queue;
