@@ -32,13 +32,6 @@ extern int clock_getres(clockid_t clockid, struct timespec* _Nonnull res);
 // @Concurrency: Safe
 extern int clock_nanosleep(clockid_t clockid, int flags, const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp);
 
-
-// Suspends the calling execution context for the specified time. The time may
-// be specified with a resolution of nanoseconds. Returns the amount of unslept
-// time if the function is interrupted for some reason. Returns 0 on success and
-// -1 on failure or if woken up early.
-extern int nanosleep(const struct timespec* _Nonnull wtp, struct timespec* _Nullable rmtp);
-
 __CPP_END
 
 #endif /* _SYS_CLOCK_H */
