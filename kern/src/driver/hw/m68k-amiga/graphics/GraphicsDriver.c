@@ -10,7 +10,7 @@
 #include "copper.h"
 #include <hal/irq.h>
 #include <kern/kalloc.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 #include <kpi/hid.h>
 
 IOCATS_DEF(g_cats, IOVID_FB);

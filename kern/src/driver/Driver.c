@@ -11,7 +11,7 @@
 #include <assert.h>
 #include <driver/DriverChannel.h>
 #include <kern/kalloc.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 
 typedef struct drv_child {
     DriverRef _Nullable driver;

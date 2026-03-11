@@ -10,7 +10,7 @@
 #include <string.h>
 #include <driver/DriverChannel.h>
 #include <driver/DriverManager.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 
 

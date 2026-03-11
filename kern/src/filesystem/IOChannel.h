@@ -13,7 +13,7 @@
 #include <ext/try.h>
 #include <kobj/Any.h>
 #include <kern/kernlib.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 #include <kpi/stat.h>
 #include <sched/mtx.h>
 

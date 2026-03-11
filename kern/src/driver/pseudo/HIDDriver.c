@@ -10,7 +10,7 @@
 #include <driver/hid/HIDManager.h>
 #include <ext/timespec.h>
 #include <filesystem/IOChannel.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 #include <kpi/hid.h>
 
 

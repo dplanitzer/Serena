@@ -6,13 +6,13 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <fcntl.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ext/timespec.h>
 #include <serena/fb.h>
+#include <serena/file.h>
 #include <serena/hid.h>
 #include <serena/hidevent.h>
 #include <serena/hidkeycodes.h>

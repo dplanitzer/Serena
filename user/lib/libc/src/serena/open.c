@@ -6,10 +6,9 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <fcntl.h>
 #include <stdarg.h>
 #include <kpi/syscall.h>
-
+#include <serena/file.h>
 
 int open(const char* _Nonnull path, int oflags, ...)
 {

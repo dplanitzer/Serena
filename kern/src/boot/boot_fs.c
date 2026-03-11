@@ -13,7 +13,7 @@
 #include <filesystem/IOChannel.h>
 #include <kei/kei.h>
 #include <kern/log.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 #include <sched/delay.h>
 #include <sched/vcpu.h>
 #include <Catalog.h>

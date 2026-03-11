@@ -7,9 +7,8 @@
 //
 
 #include <stdio.h>
-#include <kpi/fcntl.h>
 #include <kpi/syscall.h>
-
+#include <serena/file.h>
 
 int remove(const char* _Nonnull path)
 {

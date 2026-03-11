@@ -1,13 +1,13 @@
 //
-//  kpi/fcntl.h
+//  kpi/file.h
 //  kpi
 //
 //  Created by Dietmar Planitzer on 5/14/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KPI_FCNTL_H
-#define _KPI_FCNTL_H 1
+#ifndef _KPI_FILE_H
+#define _KPI_FILE_H 1
 
 // File access modes and status bits
 #define O_RDONLY    0x0001
@@ -63,4 +63,4 @@
 #define __ULNK_FIL_ONLY 1
 #define __ULNK_DIR_ONLY 2
 
-#endif /* _KPI_FCNTL_H */
+#endif /* _KPI_FILE_H */

@@ -7,8 +7,7 @@
 //
 
 #include "__stdio.h"
-#include <fcntl.h>
-
+#include <serena/file.h>
 
 ssize_t __fd_read(__IOChannel_FILE_Vars* _Nonnull self, void* buf, ssize_t nbytes)
 {

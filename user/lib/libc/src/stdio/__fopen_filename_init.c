@@ -7,9 +7,8 @@
 //
 
 #include "__stdio.h"
-#include <fcntl.h>
 #include <stdlib.h>
-
+#include <serena/file.h>
 
 int __fopen_filename_init(__IOChannel_FILE* _Nonnull _Restrict self, const char * _Nonnull _Restrict filename, __FILE_Mode sm)
 {

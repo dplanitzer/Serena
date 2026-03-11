@@ -8,10 +8,10 @@
 
 #include <clap.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <stdbool.h>
 #include <string.h>
 #include <serena/directory.h>
+#include <serena/file.h>
 #include <serena/stat.h>
 
 

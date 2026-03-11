@@ -7,9 +7,8 @@
 //
 
 #include <unistd.h>
-#include <kpi/fcntl.h>
 #include <kpi/syscall.h>
-
+#include <serena/file.h>
 
 int unlink(const char* _Nonnull path)
 {

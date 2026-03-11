@@ -12,7 +12,7 @@
 #include <string.h>
 #include <ext/limits.h>
 #include <filesystem/InodeChannel.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 
 
 errno_t SfsRegularFile_read(SfsRegularFileRef _Nonnull _Locked self, InodeChannelRef _Nonnull _Locked ch, void* _Nonnull buf, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)

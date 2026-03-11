@@ -7,9 +7,8 @@
 //
 
 #include "__stdio.h"
-#include <fcntl.h>
 #include <stdlib.h>
-
+#include <serena/file.h>
 
 static __IOChannel_FILE _StdinObj;
 static __IOChannel_FILE _StdoutObj;

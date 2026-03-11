@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <fcntl.h>
+#include <serena/file.h>
 #include <serena/signal.h>
 #include <serena/spawn.h>
 #include <serena/wait.h>

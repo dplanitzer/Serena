@@ -14,10 +14,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include <time.h>
 #include <ext/perm.h>
 #include <serena/directory.h>
+#include <serena/file.h>
 #include <serena/disk.h>
 #include <serena/fs.h>
 #include <serena/mount.h>

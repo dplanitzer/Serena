@@ -8,7 +8,7 @@
 
 #include "syscalldecls.h"
 #include <ipc/PipeChannel.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 
 
 SYSCALL_2(mkpipe, int* _Nonnull pOutReadChannel, int* _Nonnull pOutWriteChannel)

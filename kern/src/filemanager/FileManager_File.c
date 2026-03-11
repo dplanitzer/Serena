@@ -11,7 +11,7 @@
 #include <ext/perm.h>
 #include <filesystem/InodeChannel.h>
 #include <security/SecurityManager.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 
 
 errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _Locked pFile, int oflags)

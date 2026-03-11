@@ -8,8 +8,7 @@
 
 #include "__stdio.h"
 #include <stdlib.h>
-#include <fcntl.h>
-
+#include <serena/file.h>
 
 FILE *fdopen(int ioc, const char * _Nonnull mode)
 {

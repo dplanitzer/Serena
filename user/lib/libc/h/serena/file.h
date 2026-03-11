@@ -1,22 +1,18 @@
 //
-//  fcntl.h
+//  file.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/14/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _FCNTL_H
-#define _FCNTL_H 1
-
-#if ___STDC_HOSTED__ != 1
-#error "not supported in freestanding mode"
-#endif
+#ifndef _SYS_FCNTL_H
+#define _SYS_FCNTL_H 1
 
 #include <unistd.h>
+#include <kpi/file.h>
 #include <serena/types.h>
 #include <serena/stat.h>
-#include <kpi/fcntl.h>
 
 __CPP_BEGIN
 
@@ -41,4 +37,4 @@ extern int fcntl(int fd, int cmd, ...);
 
 __CPP_END
 
-#endif /* _FCNTL_H */
+#endif /* _SYS_FCNTL_H */

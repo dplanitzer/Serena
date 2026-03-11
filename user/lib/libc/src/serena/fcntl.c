@@ -6,11 +6,10 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <fcntl.h>
 #include <stdarg.h>
 #include <ext/errno.h>
 #include <kpi/syscall.h>
-
+#include <serena/file.h>
 
 int fcntl(int fd, int cmd, ...)
 {

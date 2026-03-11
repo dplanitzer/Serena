@@ -14,7 +14,7 @@
 #include <driver/pseudo/VDMDriver.h>
 #include <filesystem/DiskContainer.h>
 #include <filesystem/IOChannel.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 #include <kpi/smg.h>
 
 

@@ -14,7 +14,7 @@
 #include <ext/perm.h>
 #include <ext/timespec.h>
 #include <kpi/console.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 #include <kpi/hid.h>
 
 

@@ -12,7 +12,7 @@
 #include <ext/errno.h>
 #include <ext/perm.h>
 #include <filesystem/IOChannel.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 
 #define BLOCK_SIZE  4096
 

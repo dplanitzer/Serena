@@ -15,10 +15,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <ext/string.h>
-#include <fcntl.h>
 #include <time.h>
 #include <ext/stdlib.h>
 #include <ext/timespec.h>
+#include <serena/file.h>
 #include "utils.h"
 
 

@@ -11,7 +11,7 @@
 #include <ext/__fmt.h>
 #include <filesystem/IOChannel.h>
 #include <kern/cbuf.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 #include <sched/mtx.h>
 
 

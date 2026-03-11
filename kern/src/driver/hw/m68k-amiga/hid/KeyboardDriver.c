@@ -10,7 +10,7 @@
 #include <hal/irq.h>
 #include <hal/hw/m68k-amiga/chipset.h>
 #include <kern/cbuf.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 
 
 // Keycode -> USB HID keyscan codes

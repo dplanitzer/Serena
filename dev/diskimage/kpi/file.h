@@ -1,9 +1,9 @@
 //
-//  kpi/fcntl.h
+//  kpi/file.h
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 5/15/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <../../kern/h/kpi/fcntl.h>
+#include <../../kern/h/kpi/file.h>

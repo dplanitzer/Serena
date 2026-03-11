@@ -8,7 +8,7 @@
 
 #include "diskimage.h"
 #include "FSManager.h"
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 
 
 errno_t cmd_delete(const char* _Nonnull path, const char* _Nonnull dmgPath)

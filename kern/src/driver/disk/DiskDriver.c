@@ -7,7 +7,7 @@
 //
 
 #include "DiskDriver.h"
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 
 
 errno_t DiskDriver_Create(Class* _Nonnull pClass, unsigned options, const iocat_t* _Nonnull cats, const drive_info_t* _Nonnull driveInfo, DriverRef _Nullable * _Nonnull pOutSelf)

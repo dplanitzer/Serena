@@ -14,7 +14,7 @@
 #include <ext/atomic.h>
 #include <ext/hash.h>
 #include <ext/timespec.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 
 
 #define IN_CACHED_HASH_CHAINS_COUNT 16

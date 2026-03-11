@@ -9,7 +9,7 @@
 #include "ProcessPriv.h"
 #include "ProcChannel.h"
 #include <string.h>
-#include <kpi/fcntl.h>
+#include <kpi/file.h>
 
 
 errno_t Process_Open(ProcessRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)

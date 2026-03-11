@@ -12,8 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <fcntl.h>
 #include <ext/perm.h>
+#include <serena/file.h>
 #include <serena/stat.h>
 
 #define NUM_RND_CHARS   16
