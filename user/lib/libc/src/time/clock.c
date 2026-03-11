@@ -7,7 +7,7 @@
 //
 
 #include <time.h>
-
+#include <serena/clock.h>
 
 clock_t clock(void)
 {

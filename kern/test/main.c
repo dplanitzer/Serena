@@ -12,6 +12,7 @@
 #include <string.h>
 #include <time.h>
 #include <ext/timespec.h>
+#include <serena/clock.h>
 
 
 // Atomic

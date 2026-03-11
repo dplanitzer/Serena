@@ -7,7 +7,7 @@
 //
 
 #include <time.h>
-
+#include <serena/clock.h>
 
 time_t time(time_t *timer)
 {

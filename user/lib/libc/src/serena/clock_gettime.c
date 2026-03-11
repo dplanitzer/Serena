@@ -6,9 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <time.h>
 #include <kpi/syscall.h>
-
+#include <serena/clock.h>
 
 int clock_gettime(clockid_t clockid, struct timespec* _Nonnull ts)
 {

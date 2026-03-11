@@ -11,6 +11,7 @@
 #include <string.h>
 #include <time.h>
 #include <ext/timespec.h>
+#include <serena/clock.h>
 #include <serena/signal.h>
 #include <serena/vcpu.h>
 #include "Asserts.h"

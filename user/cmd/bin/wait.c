@@ -13,6 +13,8 @@
 #include <string.h>
 #include <time.h>
 #include <ext/timespec.h>
+#include <serena/clock.h>
+
 
 typedef struct tim_conv {
     const char*     unit;

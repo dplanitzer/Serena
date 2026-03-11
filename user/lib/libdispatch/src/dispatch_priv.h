@@ -12,6 +12,7 @@
 #include <dispatch.h>
 #include <assert.h>
 #include <ext/timespec.h>
+#include <serena/clock.h>
 #include <serena/cnd.h>
 #include <serena/signal.h>
 #include <serena/vcpu.h>

@@ -14,6 +14,7 @@
 #include <time.h>
 #include <ext/math.h>
 #include <ext/timespec.h>
+#include <serena/clock.h>
 #include <serena/process.h>
 #include <serena/sem.h>
 #include "Asserts.h"

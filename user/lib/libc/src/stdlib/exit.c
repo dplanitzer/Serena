@@ -10,6 +10,7 @@
 #include <__stdlib.h>
 #include <time.h>
 #include <ext/timespec.h>
+#include <serena/clock.h>
 #include <serena/process.h>
 
 _Noreturn void exit(int status)

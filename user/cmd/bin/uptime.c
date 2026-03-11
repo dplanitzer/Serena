@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <serena/clock.h>
 
 
 CLAP_DECL(params,
