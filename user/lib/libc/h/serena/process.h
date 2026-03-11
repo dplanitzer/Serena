@@ -14,6 +14,7 @@
 #include <kpi/_access.h>
 #include <kpi/_seek.h>
 #include <kpi/_time.h>
+#include <kpi/process.h>
 #include <serena/types.h>
 
 __CPP_BEGIN
@@ -59,6 +60,8 @@ extern pid_t getsid(void);
 // Replaces the currently executing process image with the executable image stored
 // at 'path'. All open I/O channels except channels 0, 1 and 2 are closed.
 extern int proc_exec(const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable * _Nullable envp);
+
+extern pargs_t* _Nonnull getpargs(void);
 
 
 // Returns 1 if the I/O channel is connected to a terminal and 0 otherwise.

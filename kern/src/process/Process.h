@@ -13,7 +13,7 @@
 #include <stddef.h>
 #include <kobj/Any.h>
 #include <kpi/exception.h>
-#include <kpi/proc.h>
+#include <kpi/process.h>
 #include <kpi/spawn.h>
 #include <kpi/types.h>
 #include <kpi/vcpu.h>

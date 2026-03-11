@@ -3,11 +3,11 @@
         {
             "name": "libc",
             "includePath": [
-                "${workspaceFolder}/h/**",
-                "${workspaceFolder}/src/**",
-                "${workspaceFolder}/../libc/h/**",
-                "${workspaceFolder}/../libm/h/**",
-                "${workspaceFolder}/../../../kern/h/**"
+                "${workspaceFolder}/h/*",
+                "${workspaceFolder}/src/*",
+                "${workspaceFolder}/../libc/h/*",
+                "${workspaceFolder}/../libm/h/*",
+                "${workspaceFolder}/../../../kern/h/*"
             ],
             "defines": [
                 "DEBUG=1",

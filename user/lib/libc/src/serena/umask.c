@@ -6,9 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <serena/proc.h>
+#include <serena/process.h>
 #include <kpi/syscall.h>
-
 
 mode_t umask(mode_t mask)
 {

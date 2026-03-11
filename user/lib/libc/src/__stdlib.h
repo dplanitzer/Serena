@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <ext/math.h>
 #include <serena/mtx.h>
-#include <serena/proc.h>
+#include <serena/process.h>
 #include <serena/spinlock.h>
 
 __CPP_BEGIN

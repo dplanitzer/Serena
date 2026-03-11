@@ -1,13 +1,13 @@
 //
-//  kpi/proc.h
+//  kpi/process.h
 //  kpi
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _KPI_PROC_H
-#define _KPI_PROC_H 1
+#ifndef _KPI_PROCESS_H
+#define _KPI_PROCESS_H 1
 
 #include <_cmndef.h>
 #include <kpi/kei.h>
@@ -59,4 +59,4 @@ typedef struct proc_info {
 // get_procname(char* _Nonnull buf, size_t bufSize)
 #define kProcCommand_GetName    IOResourceCommand(1)
 
-#endif /* _KPI_PROC_H */
+#endif /* _KPI_PROCESS_H */
