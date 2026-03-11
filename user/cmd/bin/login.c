@@ -16,7 +16,6 @@
 #include <serena/spawn.h>
 #include <serena/wait.h>
 #include <serena/vcpu.h>
-#include <serena/stat.h>
 
 // Shut down the boot screen and initialize the kerne VT100 console
 // XXX for now. Don't use outside of login.

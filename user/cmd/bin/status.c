@@ -16,7 +16,6 @@
 #include <serena/file.h>
 #include <serena/ioctl.h>
 #include <serena/proc.h>
-#include <serena/stat.h>
 
 
 static char path_buf[PATH_MAX];

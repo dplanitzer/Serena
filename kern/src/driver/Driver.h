@@ -12,8 +12,8 @@
 #include <stdarg.h>
 #include <ext/queue.h>
 #include <kobj/Object.h>
+#include <kpi/file.h>
 #include <kpi/ioctl.h>
-#include <kpi/stat.h>
 #include <kpi/uid.h>
 #include <sched/mtx.h>
 #include <Catalog.h>

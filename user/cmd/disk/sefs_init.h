@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 #include <ext/try.h>
-#include <kpi/stat.h>
+#include <kpi/file.h>
 #include <kpi/types.h>
 
 

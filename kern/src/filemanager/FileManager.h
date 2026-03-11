@@ -10,11 +10,11 @@
 #define FileManager_h
 
 #include <kobj/Object.h>
+#include <kpi/file.h>
 #include <kpi/fs.h>
 #ifndef __DISKIMAGE__
 #include <kpi/mount.h>
 #endif
-#include <kpi/stat.h>
 #include <kpi/uid.h>
 
 

@@ -11,7 +11,7 @@
 #include <ext/timespec.h>
 #include <kern/cbuf.h>
 #include <kern/kernlib.h>
-#include <kpi/stat.h>
+#include <kpi/file.h>
 #include <sched/cnd.h>
 #include <sched/mtx.h>
 

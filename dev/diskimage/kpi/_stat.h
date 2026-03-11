@@ -1,9 +1,0 @@
-//
-//  kpi/_stat.h
-//  diskimage
-//
-//  Created by Dietmar Planitzer on 5/17/25.
-//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
-//
-
-#include <../../kern/h/kpi/_stat.h>

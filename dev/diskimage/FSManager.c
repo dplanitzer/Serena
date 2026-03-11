@@ -13,7 +13,7 @@
 #include <filemanager/FileHierarchy.h>
 #include <filesystem/FSUtilities.h>
 #include <filesystem/serenafs/SerenaFS.h>
-#include <kpi/stat.h>
+#include <kpi/file.h>
 
 
 errno_t FSManager_Create(RamContainerRef _Nonnull fsContainer, FSManagerRef _Nullable * _Nonnull pOutSelf)

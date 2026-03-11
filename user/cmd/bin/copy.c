@@ -14,7 +14,6 @@
 #include <ext/perm.h>
 #include <serena/file.h>
 #include <serena/process.h>
-#include <serena/stat.h>
 
 
 #define COPY_BUF_SIZE   8192

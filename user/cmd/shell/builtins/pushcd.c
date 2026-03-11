@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <serena/file.h>
 #include <serena/process.h>
-#include <serena/stat.h>
 #include <clap.h>
 
 static const char* path;

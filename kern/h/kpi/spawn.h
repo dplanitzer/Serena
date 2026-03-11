@@ -10,7 +10,7 @@
 #define _KPI_SPAWN_H 1
 
 #include <_cmndef.h>
-#include <kpi/stat.h>
+#include <kpi/file.h>
 #include <kpi/types.h>
 
 // Instructs the os_spawn() call to set the umask of the newly spawned

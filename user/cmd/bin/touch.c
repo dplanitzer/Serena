@@ -12,7 +12,6 @@
 #include <string.h>
 #include <serena/directory.h>
 #include <serena/file.h>
-#include <serena/stat.h>
 
 
 static bool touch_atim = false;

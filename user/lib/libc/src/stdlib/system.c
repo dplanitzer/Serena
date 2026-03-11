@@ -9,9 +9,9 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <serena/file.h>
 #include <serena/signal.h>
 #include <serena/spawn.h>
-#include <serena/stat.h>
 #include <serena/wait.h>
 #include <serena/vcpu.h>
 

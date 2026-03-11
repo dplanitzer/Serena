@@ -14,7 +14,6 @@
 #include <kobj/Any.h>
 #include <kern/kernlib.h>
 #include <kpi/file.h>
-#include <kpi/stat.h>
 #include <sched/mtx.h>
 
 

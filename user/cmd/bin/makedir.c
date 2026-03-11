@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ext/perm.h>
-#include <serena/stat.h>
+#include <serena/file.h>
 
 
 static int _create_directory_recursively(char* _Nonnull path, mode_t permissions)

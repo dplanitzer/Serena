@@ -15,7 +15,6 @@
 #include <ext/limits.h>
 #include <serena/file.h>
 #include <serena/process.h>
-#include <serena/stat.h>
 
 
 void print_error(const char* _Nonnull proc_name, const char* _Nullable path, errno_t err)

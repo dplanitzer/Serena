@@ -11,8 +11,8 @@
 
 #include <_cmndef.h>
 #include <kpi/kei.h>
+#include <kpi/file.h>
 #include <kpi/ioctl.h>
-#include <kpi/stat.h>
 #include <kpi/types.h>
 
 // The process arguments descriptor is stored in the process address space and
