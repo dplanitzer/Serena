@@ -14,7 +14,7 @@
 
 __CPP_BEGIN
 
-extern int vm_alloc(size_t nbytes, void* _Nullable * _Nonnull ptr);
+extern int vm_allocate(size_t nbytes, void* _Nullable * _Nonnull ptr);
 
 __CPP_END
 

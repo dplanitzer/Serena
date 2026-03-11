@@ -49,7 +49,7 @@ static bool __malloc_expand_backing_store(lsta_t _Nonnull pAllocator, size_t min
     const size_t nbytes = __min(ceiledSize, EXPANSION_HEAP_SIZE);
     char* ptr;
     
-    if (vm_alloc(nbytes, (void**)&ptr) == 0) {
+    if (vm_allocate(nbytes, (void**)&ptr) == 0) {
         mem_desc_t md;
 
         md.lower = ptr;
@@ -79,7 +79,7 @@ void __malloc_init(void)
     char* ptr;
 
     // Get backing store for our initial memory region
-    if (vm_alloc(INITIAL_HEAP_SIZE, (void**)&ptr) != 0) {
+    if (vm_allocate(INITIAL_HEAP_SIZE, (void**)&ptr) != 0) {
         abort();
     }
 

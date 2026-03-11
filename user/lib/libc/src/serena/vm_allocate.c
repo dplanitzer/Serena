@@ -1,5 +1,5 @@
 //
-//  vm_alloc.c
+//  vm_allocate.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/15/25.
@@ -10,7 +10,7 @@
 #include <kpi/syscall.h>
 
 
-int vm_alloc(size_t nbytes, void* _Nullable * _Nonnull ptr)
+int vm_allocate(size_t nbytes, void* _Nullable * _Nonnull ptr)
 {
     return (int)_syscall(SC_vmalloc, nbytes, ptr);
 }
