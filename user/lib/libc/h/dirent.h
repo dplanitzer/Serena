@@ -15,7 +15,7 @@
 
 #include <_cmndef.h>
 #include <kpi/dirent.h>
-#include <sys/types.h>
+#include <serena/types.h>
 
 __CPP_BEGIN
 

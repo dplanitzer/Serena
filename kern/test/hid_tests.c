@@ -12,11 +12,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <ext/timespec.h>
-#include <sys/fb.h>
-#include <sys/hid.h>
-#include <sys/hidevent.h>
-#include <sys/hidkeycodes.h>
-#include <sys/ioctl.h>
+#include <serena/fb.h>
+#include <serena/hid.h>
+#include <serena/hidevent.h>
+#include <serena/hidkeycodes.h>
+#include <serena/ioctl.h>
 #include "Asserts.h"
 
 #define PACK_U16(_15, _14, _13, _12, _11, _10, _9, _8, _7, _6, _5, _4, _3, _2, _1, _0) \

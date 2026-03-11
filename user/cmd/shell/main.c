@@ -11,8 +11,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <clap.h>
-#include <sys/signal.h>
-#include <sys/vcpu.h>
+#include <serena/signal.h>
+#include <serena/vcpu.h>
 #include "Utilities.h"
 #include "Shell.h"
 

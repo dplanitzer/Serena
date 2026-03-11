@@ -6,7 +6,7 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <sys/exception.h>
+#include <serena/exception.h>
 #include <kpi/syscall.h>
 
 

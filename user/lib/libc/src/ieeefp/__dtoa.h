@@ -215,8 +215,8 @@
 
 #include "dtoa.h"
 
-#include <sys/mtx.h>
-#include <sys/vcpu.h>
+#include <serena/mtx.h>
+#include <serena/vcpu.h>
 
 #ifdef __IEEE_LITTLE_ENDIAN
 #define IEEE_8087

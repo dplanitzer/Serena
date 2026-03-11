@@ -13,7 +13,7 @@
 #include <string.h>
 #include <time.h>
 #include <ext/timespec.h>
-#include <sys/signal.h>
+#include <serena/signal.h>
 #include "Asserts.h"
 
 static dispatch_t gDispatcher;

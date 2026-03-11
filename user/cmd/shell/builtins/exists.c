@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <clap.h>
-#include <sys/stat.h>
+#include <serena/stat.h>
 
 
 static const char* path;

@@ -14,8 +14,8 @@
 #endif
 
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <serena/types.h>
+#include <serena/stat.h>
 #include <kpi/fcntl.h>
 
 __CPP_BEGIN

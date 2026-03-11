@@ -11,11 +11,11 @@
 
 #include <kobj/Object.h>
 #include <kpi/fs.h>
+#ifndef __DISKIMAGE__
+#include <kpi/mount.h>
+#endif
 #include <kpi/stat.h>
 #include <kpi/uid.h>
-#ifndef __DISKIMAGE__
-#include <sys/mount.h>
-#endif
 
 
 typedef struct FileManager {

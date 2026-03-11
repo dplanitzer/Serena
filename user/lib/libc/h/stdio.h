@@ -22,7 +22,7 @@
 #include <ext/queue.h>
 #include <kpi/_seek.h>
 #include <kpi/syslimits.h>
-#include <sys/mtx.h>
+#include <serena/mtx.h>
 #include <stdarg.h>
 
 __CPP_BEGIN

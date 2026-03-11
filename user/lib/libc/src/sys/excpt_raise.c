@@ -6,7 +6,7 @@
 //  Copyright © 2026 Dietmar Planitzer. All rights reserved.
 //
 
-#include <sys/exception.h>
+#include <serena/exception.h>
 #include <kpi/syscall.h>
 
 extern int _excpt_raise(int cpu_code, void* _Nullable fault_addr);

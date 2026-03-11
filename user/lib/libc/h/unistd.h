@@ -18,7 +18,7 @@
 #include <kpi/_access.h>
 #include <kpi/_seek.h>
 #include <kpi/_time.h>
-#include <sys/types.h>
+#include <serena/types.h>
 
 __CPP_BEGIN
 

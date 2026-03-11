@@ -18,13 +18,13 @@
 #include <fcntl.h>
 #include <time.h>
 #include <ext/perm.h>
-#include <sys/disk.h>
-#include <sys/fs.h>
-#include <sys/mount.h>
-#include <sys/fs.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/uid.h>
+#include <serena/disk.h>
+#include <serena/fs.h>
+#include <serena/mount.h>
+#include <serena/fs.h>
+#include <serena/ioctl.h>
+#include <serena/stat.h>
+#include <serena/uid.h>
 #include "sefs_init.h"
 
 typedef struct di_permissions_spec {

@@ -6,7 +6,7 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <sys/stat.h>
+#include <serena/stat.h>
 #include <kpi/syscall.h>
 
 

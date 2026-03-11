@@ -13,9 +13,9 @@
 #include <arch/_null.h>
 #include <arch/_offsetof.h>
 #include <ext/queue.h>
-#include <sys/spinlock.h>
-#include <sys/types.h>
-#include <sys/vcpu.h>
+#include <serena/spinlock.h>
+#include <serena/types.h>
+#include <serena/vcpu.h>
 
 
 typedef void (*vcpu_destructor_t)(void*);

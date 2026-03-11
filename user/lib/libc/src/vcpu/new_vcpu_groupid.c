@@ -7,7 +7,7 @@
 //
 
 #include "__vcpu.h"
-#include <sys/spinlock.h>
+#include <serena/spinlock.h>
 
 
 vcpuid_t new_vcpu_groupid(void)

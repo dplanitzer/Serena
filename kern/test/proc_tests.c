@@ -12,8 +12,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <ext/timespec.h>
-#include <sys/exception.h>
-#include <sys/vcpu.h>
+#include <serena/exception.h>
+#include <serena/vcpu.h>
 #include "Asserts.h"
 
 

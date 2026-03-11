@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/stat.h>
+#include <serena/stat.h>
 #include <clap.h>
 
 static const char* path;

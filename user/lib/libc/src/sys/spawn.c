@@ -6,7 +6,7 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <sys/spawn.h>
+#include <serena/spawn.h>
 #include <kpi/syscall.h>
 
 

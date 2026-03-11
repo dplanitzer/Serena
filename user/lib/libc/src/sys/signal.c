@@ -7,7 +7,7 @@
 //
 
 #include <kpi/syscall.h>
-#include <sys/signal.h>
+#include <serena/signal.h>
 
 
 int sigroute(int op, int signo, int scope, id_t id)

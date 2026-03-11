@@ -13,8 +13,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <sys/signal.h>
-#include <sys/spinlock.h>
+#include <serena/signal.h>
+#include <serena/spinlock.h>
 
 
 static volatile dispatch_t _Nullable    g_main_dispatcher;

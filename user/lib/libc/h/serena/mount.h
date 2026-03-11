@@ -10,7 +10,7 @@
 #define _SYS_MOUNT_H 1
 
 #include <_cmndef.h>
-#include <sys/types.h>
+#include <serena/types.h>
 #include <kpi/mount.h>
 
 __CPP_BEGIN

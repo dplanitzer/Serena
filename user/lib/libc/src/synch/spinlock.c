@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <sys/spinlock.h>
-#include <sys/vcpu.h>
+#include <serena/spinlock.h>
+#include <serena/vcpu.h>
 
 
 void spin_lock(volatile spinlock_t* _Nonnull l)

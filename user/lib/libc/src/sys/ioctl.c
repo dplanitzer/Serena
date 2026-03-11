@@ -7,7 +7,7 @@
 //
 
 #include <stdarg.h>
-#include <sys/ioctl.h>
+#include <serena/ioctl.h>
 #include <kpi/syscall.h>
 
 

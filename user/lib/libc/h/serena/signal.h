@@ -12,7 +12,7 @@
 #include <_cmndef.h>
 #include <arch/_null.h>
 #include <kpi/signal.h>
-#include <sys/types.h>
+#include <serena/types.h>
 
 __CPP_BEGIN
 

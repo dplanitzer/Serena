@@ -12,9 +12,9 @@
 #include <dispatch.h>
 #include <assert.h>
 #include <ext/timespec.h>
-#include <sys/cnd.h>
-#include <sys/signal.h>
-#include <sys/vcpu.h>
+#include <serena/cnd.h>
+#include <serena/signal.h>
+#include <serena/vcpu.h>
 
 __CPP_BEGIN
 

@@ -14,10 +14,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <ext/stdlib.h>
-#include <sys/exception.h>
-#include <sys/proc.h>
-#include <sys/spawn.h>
-#include <sys/wait.h>
+#include <serena/exception.h>
+#include <serena/proc.h>
+#include <serena/spawn.h>
+#include <serena/wait.h>
 
 //
 // Notes:

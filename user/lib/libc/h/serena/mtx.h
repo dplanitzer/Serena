@@ -10,7 +10,7 @@
 #define _SYS_MTX_H 1
 
 #include <_cmndef.h>
-#include <sys/spinlock.h>
+#include <serena/spinlock.h>
 
 __CPP_BEGIN
 

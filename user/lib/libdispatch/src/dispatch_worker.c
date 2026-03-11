@@ -10,7 +10,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <time.h>
-#include <sys/signal.h>
+#include <serena/signal.h>
 
 
 static bool _dispatch_worker_acquire_vcpu(dispatch_worker_t _Nonnull self)

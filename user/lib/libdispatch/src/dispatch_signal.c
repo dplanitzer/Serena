@@ -10,7 +10,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/signal.h>
+#include <serena/signal.h>
 
 
 static void _dispatch_enable_signal(dispatch_t _Nonnull _Locked self, int signo, bool enable)

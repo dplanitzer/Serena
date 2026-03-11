@@ -12,7 +12,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <string.h>
-#include <sys/stat.h>
+#include <serena/stat.h>
 
 
 static bool touch_atim = false;

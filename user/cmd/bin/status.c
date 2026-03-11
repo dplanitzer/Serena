@@ -14,9 +14,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <ext/stdlib.h>
-#include <sys/ioctl.h>
-#include <sys/proc.h>
-#include <sys/stat.h>
+#include <serena/ioctl.h>
+#include <serena/proc.h>
+#include <serena/stat.h>
 
 
 static char path_buf[PATH_MAX];

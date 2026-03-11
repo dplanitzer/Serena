@@ -12,7 +12,7 @@
 #include <_cmndef.h>
 #include <ext/timespec.h>
 #include <kpi/wait.h>
-#include <sys/types.h>
+#include <serena/types.h>
 
 __CPP_BEGIN
 

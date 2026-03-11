@@ -6,10 +6,10 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <sys/sem.h>
+#include <serena/sem.h>
 #include <errno.h>
 #include <kpi/syscall.h>
-#include <sys/waitqueue.h>
+#include <serena/waitqueue.h>
 
 #define SEM_SIGNATURE 0x53454d41
 

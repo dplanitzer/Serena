@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <kpi/kei.h>
-#include <sys/mtx.h>
+#include <serena/mtx.h>
 #include <vcpu/__vcpu.h>
 
 pargs_t*    __gProcessArguments;

@@ -14,7 +14,7 @@
 #endif
 
 #include <_cmndef.h>
-#include <sys/types.h>
+#include <serena/types.h>
 
 __CPP_BEGIN
 

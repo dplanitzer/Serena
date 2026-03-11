@@ -6,7 +6,7 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <sys/waitqueue.h>
+#include <serena/waitqueue.h>
 #include <kpi/syscall.h>
 
 

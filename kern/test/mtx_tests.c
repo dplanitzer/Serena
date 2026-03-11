@@ -14,7 +14,7 @@
 #include <time.h>
 #include <ext/math.h>
 #include <ext/timespec.h>
-#include <sys/mtx.h>
+#include <serena/mtx.h>
 #include "Asserts.h"
 
 

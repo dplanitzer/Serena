@@ -15,9 +15,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <ext/math.h>
-#include <sys/mtx.h>
-#include <sys/proc.h>
-#include <sys/spinlock.h>
+#include <serena/mtx.h>
+#include <serena/proc.h>
+#include <serena/spinlock.h>
 
 __CPP_BEGIN
 

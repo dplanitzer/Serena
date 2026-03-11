@@ -11,9 +11,9 @@
 
 #include <errno.h>
 #include <ext/timespec.h>
-#include <sys/cnd.h>
-#include <sys/mtx.h>
-#include <sys/waitqueue.h>
+#include <serena/cnd.h>
+#include <serena/mtx.h>
+#include <serena/waitqueue.h>
 
 __CPP_BEGIN
 

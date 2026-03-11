@@ -10,9 +10,9 @@
 #define _SYS_CND_H 1
 
 #include <time.h>
-#include <sys/mtx.h>
-#include <sys/signal.h>
-#include <sys/spinlock.h>
+#include <serena/mtx.h>
+#include <serena/signal.h>
+#include <serena/spinlock.h>
 
 __CPP_BEGIN
 

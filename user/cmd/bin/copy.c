@@ -14,7 +14,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <ext/perm.h>
-#include <sys/stat.h>
+#include <serena/stat.h>
 
 
 #define COPY_BUF_SIZE   8192

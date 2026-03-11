@@ -10,7 +10,7 @@
 #define __MALLOC_H 1
 
 #include <__lsta.h>
-#include <sys/mtx.h>
+#include <serena/mtx.h>
 
 
 // The allocator that represents the application heap

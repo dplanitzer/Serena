@@ -15,7 +15,7 @@
 #include <errno.h>
 #include <__stdlib.h>
 #include <ext/queue.h>
-#include <sys/mtx.h>
+#include <serena/mtx.h>
 
 
 __CPP_BEGIN

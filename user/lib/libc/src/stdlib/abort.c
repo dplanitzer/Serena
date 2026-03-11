@@ -7,7 +7,7 @@
 //
 
 #include <stdlib.h>
-#include <sys/exception.h>
+#include <serena/exception.h>
 
 _Noreturn void abort(void)
 {

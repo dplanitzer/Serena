@@ -11,7 +11,7 @@
 
 #include <_cmndef.h>
 #include <time.h>
-#include <sys/spinlock.h>
+#include <serena/spinlock.h>
 
 __CPP_BEGIN
 

@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <__stdlib.h>
 #include <ext/math.h>
-#include <sys/vm.h>
+#include <serena/vm.h>
 #include "__malloc.h"
 
 #define INITIAL_HEAP_SIZE   __Ceil_PowerOf2(64*1024, CPU_PAGE_SIZE)

@@ -9,11 +9,11 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stddef.h>
-#include <sys/signal.h>
-#include <sys/spawn.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <sys/vcpu.h>
+#include <serena/signal.h>
+#include <serena/spawn.h>
+#include <serena/stat.h>
+#include <serena/wait.h>
+#include <serena/vcpu.h>
 
 
 static const char* __shellPath = "/System/Commands/shell";

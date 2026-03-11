@@ -8,7 +8,7 @@
 
 #include "__vcpu.h"
 #include <stdlib.h>
-#include <sys/spinlock.h>
+#include <serena/spinlock.h>
 #include <kpi/syscall.h>
 
 

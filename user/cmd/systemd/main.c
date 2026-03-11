@@ -13,8 +13,8 @@
 #include <string.h>
 #include <time.h>
 #include <ext/timespec.h>
-#include <sys/mount.h>
-#include <sys/spawn.h>
+#include <serena/mount.h>
+#include <serena/spawn.h>
 
 
 static _Noreturn void halt_machine(void)

@@ -14,7 +14,7 @@
 #include <string.h>
 #include <ext/limits.h>
 #include <ext/stdlib.h>
-#include <sys/types.h>
+#include <serena/types.h>
 
 #if SIZE_WIDTH == 32
 #define ADDR_WIDTH  8

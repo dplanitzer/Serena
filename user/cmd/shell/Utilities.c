@@ -15,7 +15,7 @@
 #include <clap.h>
 #include <unistd.h>
 #include <ext/limits.h>
-#include <sys/stat.h>
+#include <serena/stat.h>
 
 
 void print_error(const char* _Nonnull proc_name, const char* _Nullable path, errno_t err)
