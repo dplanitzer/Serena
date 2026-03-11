@@ -9,10 +9,10 @@
 #ifndef _SYS_FCNTL_H
 #define _SYS_FCNTL_H 1
 
-#include <unistd.h>
 #include <kpi/file.h>
-#include <serena/types.h>
+#include <serena/process.h>
 #include <serena/stat.h>
+#include <serena/types.h>
 
 __CPP_BEGIN
 

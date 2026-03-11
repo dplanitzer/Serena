@@ -12,9 +12,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 #include <ext/math.h>
 #include <ext/timespec.h>
+#include <serena/process.h>
 #include <serena/sem.h>
 #include "Asserts.h"
 

@@ -9,8 +9,8 @@
 #include "Interpreter.h"
 #include "Utilities.h"
 #include <stdlib.h>
-#include <unistd.h>
 #include <clap.h>
+#include <serena/process.h>
 #include <serena/stat.h>
 
 

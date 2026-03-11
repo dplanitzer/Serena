@@ -8,7 +8,7 @@
 
 #include <clap.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <serena/process.h>
 
 
 CLAP_DECL(params,

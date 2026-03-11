@@ -7,8 +7,7 @@
 //
 
 #include <stdlib.h>
-#include <unistd.h>
-
+#include <serena/process.h>
 
 _Noreturn void _Exit(int status)
 {

@@ -6,8 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <unistd.h>
 #include <kpi/syscall.h>
+#include <serena/process.h>
 
 
 int getcwd(char* _Nonnull buffer, size_t bufferSize)

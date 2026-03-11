@@ -9,7 +9,7 @@
 #include <clap.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <serena/process.h>
 
 
 CLAP_DECL(params,

@@ -6,9 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <unistd.h>
 #include <kpi/syscall.h>
-
+#include <serena/process.h>
 
 ssize_t write(int fd, const void* _Nonnull buf, size_t nbytes)
 {

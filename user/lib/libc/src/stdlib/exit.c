@@ -7,11 +7,10 @@
 //
 
 #include <stdbool.h>
-#include <unistd.h>
 #include <__stdlib.h>
 #include <time.h>
 #include <ext/timespec.h>
-
+#include <serena/process.h>
 
 _Noreturn void exit(int status)
 {

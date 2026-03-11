@@ -8,10 +8,10 @@
 
 #include <stddef.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <ext/errno.h>
 #include <kpi/syscall.h>
 #include <serena/directory.h>
+#include <serena/process.h>
 
 // 2kb
 #define DIRENT_COUNT 8

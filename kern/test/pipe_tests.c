@@ -12,8 +12,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 #include <ext/timespec.h>
+#include <serena/process.h>
 #include "Asserts.h"
 
 static int fds[2];

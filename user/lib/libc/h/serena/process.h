@@ -1,17 +1,13 @@
 //
-//  unistd.h
+//  process.h
 //  libc
 //
 //  Created by Dietmar Planitzer on 5/13/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _UNISTD_H
-#define _UNISTD_H 1
-
-#if ___STDC_HOSTED__ != 1
-#error "not supported in freestanding mode"
-#endif
+#ifndef _SYS_PROCESS_H
+#define _SYS_PROCESS_H 1
 
 #include <inttypes.h>
 #include <stdnoreturn.h>
@@ -147,4 +143,4 @@ extern int usleep(useconds_t us);
 
 __CPP_END
 
-#endif /* _UNISTD_H */
+#endif /* _SYS_PROCESS_H */

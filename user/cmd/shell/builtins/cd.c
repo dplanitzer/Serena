@@ -10,8 +10,8 @@
 #include "Utilities.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <clap.h>
+#include <serena/process.h>
 
 
 static const char* path;

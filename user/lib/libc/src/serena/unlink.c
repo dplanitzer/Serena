@@ -6,9 +6,9 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <unistd.h>
 #include <kpi/syscall.h>
 #include <serena/file.h>
+#include <serena/process.h>
 
 int unlink(const char* _Nonnull path)
 {

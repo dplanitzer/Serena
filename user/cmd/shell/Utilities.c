@@ -12,9 +12,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <clap.h>
-#include <unistd.h>
 #include <ext/limits.h>
 #include <serena/file.h>
+#include <serena/process.h>
 #include <serena/stat.h>
 
 
