@@ -17,7 +17,6 @@
 #include <serena/exception.h>
 #include <serena/process.h>
 #include <serena/spawn.h>
-#include <serena/wait.h>
 
 //
 // Notes:

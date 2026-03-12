@@ -1,9 +1,9 @@
 //
-//  kpi/mount.h
+//  kpi/fd.h
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 5/15/25.
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <../../kern/h/kpi/mount.h>
+#include <../../kern/h/kpi/fd.h>

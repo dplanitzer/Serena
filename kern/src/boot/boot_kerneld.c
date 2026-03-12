@@ -9,7 +9,7 @@
 #include <filemanager/FileManager.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/kernfs/KernFS.h>
-#include <kpi/mount.h>
+#include <kpi/fs.h>
 #include <process/ProcessPriv.h>
 #include <process/ProcessManager.h>
 #include <Catalog.h>

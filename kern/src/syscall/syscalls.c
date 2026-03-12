@@ -7,7 +7,7 @@
 //
 
 #include "syscalldecls.h"
-#include <kpi/wait.h>
+#include <kpi/process.h>
 
 
 SYSCALL_REF(coninit);

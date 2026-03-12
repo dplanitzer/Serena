@@ -6,9 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <serena/mount.h>
+#include <serena/fs.h>
 #include <kpi/syscall.h>
-
 
 int fs_getdisk(fsid_t fsid, char* _Nonnull buf, size_t bufSize)
 {

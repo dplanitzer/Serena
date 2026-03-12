@@ -9,6 +9,7 @@
 #ifndef _SYS_FD_H
 #define _SYS_FD_H 1
 
+#include <kpi/fd.h>
 #include <kpi/_seek.h>
 #include <kpi/_time.h>
 #include <serena/types.h>
@@ -22,6 +23,16 @@ __CPP_BEGIN
 #define STDERR_FILENO   2
 
 
+// Opens an already existing file located at the filesystem location 'path'.
+// Returns an error if the file does not exist or the caller lacks the necessary
+// permissions to successfully open the file. 'mode' specifies whether the file
+// should be opened for reading and/or writing. 'O_APPEND' may be passed in
+// addition to 'O_WRONLY' to force the system to always append any newly written
+// data to the file. The file position is disregarded by the write function(s) in
+// this case.
+// @Concurrency: Safe
+extern int open(const char* _Nonnull path, int oflags, ...);
+
 // Closes the given I/O channel. All still pending data is written to the
 // underlying device and then all resources allocated to the I/O channel are
 // freed. If this function encounters an error while flushing pending data to
@@ -31,6 +42,12 @@ __CPP_BEGIN
 // function returns. The error returned here is in this sense purely advisory.
 // @Concurrency: Safe
 extern int close(int fd);
+
+
+// Performs an operation on the given descriptor. The operation is performed on
+// the descriptor itself rather than the underlying resource.
+// @Concurrency: Safe
+extern int fcntl(int fd, int cmd, ...);
 
 // Returns 1 if the I/O channel is connected to a terminal and 0 otherwise.
 extern int isatty(int fd);

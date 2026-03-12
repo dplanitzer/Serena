@@ -6,9 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <serena/wait.h>
+#include <serena/process.h>
 #include <kpi/syscall.h>
-
 
 int proc_join(int scope, pid_t id, struct proc_status* _Nonnull ps)
 {

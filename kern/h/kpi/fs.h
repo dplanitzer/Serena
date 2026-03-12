@@ -12,6 +12,24 @@
 #include <kpi/types.h>
 #include <kpi/ioctl.h>
 
+// Types of mountable objects
+#define kMount_Catalog  ".catalog"
+#define kMount_SeFS     "sefs"
+
+
+// Mountable catalogs
+#define kCatalogName_Drivers        "dev"
+#define kCatalogName_Filesystems    "fs"
+#define kCatalogName_Processes      "proc"
+
+
+enum {
+    kUnmount_Forced = 0x0001,   // Force the unmount even if there are still files open
+};
+typedef unsigned int UnmountOptions;
+
+
+
 // Filesystem properties
 enum {
     kFSProperty_IsCatalog = 0x0001,     // Filesystem is a kernel managed catalog

@@ -8,6 +8,7 @@
 
 #include "InodeChannel.h"
 #include "Filesystem.h"
+#include <kpi/fd.h>
 
 #define _get_inode() \
 IOChannel_GetResourceAs(self, Inode)

@@ -20,8 +20,6 @@
 #include <serena/file.h>
 #include <serena/disk.h>
 #include <serena/fs.h>
-#include <serena/mount.h>
-#include <serena/fs.h>
 #include <serena/ioctl.h>
 #include <serena/process.h>
 #include <serena/uid.h>

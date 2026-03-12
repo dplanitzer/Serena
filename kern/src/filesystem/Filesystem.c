@@ -14,6 +14,7 @@
 #include <ext/atomic.h>
 #include <ext/hash.h>
 #include <ext/timespec.h>
+#include <kpi/fd.h>
 #include <kpi/file.h>
 
 

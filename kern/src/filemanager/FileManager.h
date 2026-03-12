@@ -12,9 +12,6 @@
 #include <kobj/Object.h>
 #include <kpi/file.h>
 #include <kpi/fs.h>
-#ifndef __DISKIMAGE__
-#include <kpi/mount.h>
-#endif
 #include <kpi/uid.h>
 
 

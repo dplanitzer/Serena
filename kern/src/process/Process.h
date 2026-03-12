@@ -17,7 +17,6 @@
 #include <kpi/spawn.h>
 #include <kpi/types.h>
 #include <kpi/vcpu.h>
-#include <kpi/wait.h>
 #include <sched/vcpu.h>
 #include <security/SecurityManager.h>
 

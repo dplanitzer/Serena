@@ -12,6 +12,7 @@
 #include <stdnoreturn.h>
 #include <kpi/_time.h>
 #include <kpi/process.h>
+#include <ext/timespec.h>
 #include <serena/types.h>
 
 __CPP_BEGIN
@@ -37,16 +38,32 @@ extern int proc_exec(const char* _Nonnull path, const char* _Nullable argv[], co
 extern pargs_t* _Nonnull getpargs(void);
 
 
+// Checks whether the specified child process or a member of the specified child
+// process group has terminated and is available for joining/reaping. If so,
+// then this function fills out the process status record 'ps' and returns 0.
+// Otherwise it blocks until the specified process has terminated or a member of
+// the specified child process group has terminated. A 'scope' of JOIN_PROC
+// indicates that the function should wait until the process with PID 'id' has
+// terminated. A 'scope' of JOIN_PROC_GROUP indicates that the function should
+// wait until a member of the child process group with id 'id' has terminated
+// and a 'scope' of JOIN_ANY indicates that this function should wait until any
+// child process terminates. You should pass 0 for 'id' if the scope is JOIN_ANY.  
+extern int proc_join(int scope, pid_t id, struct proc_status* _Nonnull ps);
+
+// Similar to proc_join() but imposes a timeout of 'wtp' on the wait. If 'wtp'
+// is 0 and (or a absolute time in the past) then this function simply checks
+// whether the indicated process has terminated without ever waiting. This
+// function returns ETIMEDOUT in this case or if the timeout has been reached
+// without the indicated process terminating. 
+extern int proc_timedjoin(int scope, pid_t id, int flags, const struct timespec* _Nonnull wtp, struct proc_status* _Nonnull ps);
+
+
 // Sets the process' umask. Bits set in this mask are cleared in the permissions
 // that are used to create a file. Returns the old umask. Note that calling this
 // function with SEO_UMASK_NO_CHANGE as the argument causes umask() to simply
 // return the current umask without chaning it as a side-effect.
 // @Concurrency: Safe
 extern mode_t umask(mode_t mask);
-
-
-// Synchronously writes all dirty disk blocks back to disk.
-extern void sync(void);
 
 __CPP_END
 

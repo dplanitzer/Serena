@@ -6,9 +6,8 @@
 //  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include <serena/mount.h>
+#include <serena/fs.h>
 #include <kpi/syscall.h>
-
 
 int unmount(const char* _Nonnull atDirPath, UnmountOptions options)
 {

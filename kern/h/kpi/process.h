@@ -11,8 +11,6 @@
 
 #include <_cmndef.h>
 #include <kpi/kei.h>
-#include <kpi/file.h>
-#include <kpi/ioctl.h>
 #include <kpi/types.h>
 
 // The process arguments descriptor is stored in the process address space and
@@ -58,5 +56,31 @@ typedef struct proc_info {
 // Returns the name of the process.
 // get_procname(char* _Nonnull buf, size_t bufSize)
 #define kProcCommand_GetName    IOResourceCommand(1)
+
+
+#define JOIN_PROC       0   /* Join child process with pid */
+#define JOIN_PROC_GROUP 1   /* Join any member of the child process group */
+#define JOIN_ANY        2   /* Join any child process */
+
+
+#define JREASON_EXIT        1
+#define JREASON_SIGNAL      2
+#define JREASON_EXCEPTION   3
+
+
+// The result of a waitpid() system call.
+struct proc_status {
+    pid_t   pid;        // pid of the child process
+    int     reason;     // termination reason
+    union {
+        int status;     // child process exit status
+        int signo;      // signal that caused the process to terminate
+        int excptno;    // exception that caused the process to terminate
+    }       u;
+};
+
+
+// Tell umask() to just return the current umask without changing it
+#define SEO_UMASK_NO_CHANGE -1
 
 #endif /* _KPI_PROCESS_H */
