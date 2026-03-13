@@ -333,6 +333,10 @@ build-sdk: build-all-libs
 	$(call copy_contents_of_dir,$(LIBM_HEADERS_DIR),$(SDK_INCLUDE_DIR)/)
 	$(call copy,$(KERNEL_HEADERS_DIR)/kpi,$(SDK_INCLUDE_DIR)/)
 	$(call copy,$(KERNEL_HEADERS_DIR)/machine,$(SDK_INCLUDE_DIR)/)
+#XXX remove '__*.h' header files since they are OS private header files
+	$(call rm_if_exists,"$(SDK_INCLUDE_DIR)/__*.h")
+	$(call rm_if_exists,"$(SDK_INCLUDE_DIR)/ext/__*.h")
+
 
 	$(call copy,$(PRODUCT_LIB_DIR),$(SDK_LIB_DIR))
 # XXX not great. The copy above should really filter out the 'libsc.a' file
