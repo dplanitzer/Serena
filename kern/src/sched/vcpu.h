@@ -205,10 +205,8 @@ extern int vcpu_getcurrentpriority(vcpu_t _Nonnull self);
 // Sends the signal 'signo' to 'self'. The signal is added to the pending signal
 // list and the vcpu is woken up if it is currently waiting and the signal
 // 'signo' is in the active wake set.
+// @IRQ Context Safe
 extern errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo);
-
-// Same as vcpu_sigsend(), but safe to use from a direct interrupt handler.
-extern errno_t vcpu_sigsend_irq(vcpu_t _Nonnull self, int signo);
 
 // Returns a copy of the pending signals
 extern sigset_t vcpu_sigpending(vcpu_t _Nonnull self);

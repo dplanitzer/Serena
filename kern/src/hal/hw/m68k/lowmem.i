@@ -99,7 +99,7 @@ sched_running                       so.l    1       ; 4
 sched_scheduled                     so.l    1       ; 4
 sched_csw_signals                   so.b    1       ; 1
 sched_flags                         so.b    1       ; 1
-sched_reserved1                     so.b    1       ; 1
+sched_irq_nest_count                so.b    1       ; 1
 sched_reserved2                     so.b    1       ; 1
 sched_idle_virtual_processor        so.l    1       ; 4
 sched_boot_virtual_processor        so.l    1       ; 4

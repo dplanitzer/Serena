@@ -27,6 +27,6 @@ The line editor supports a number of editing functions which are described in th
 | Delete       | Delete the character under the cursor                          |
 | Insert       | Toggles insert (default) and override mode                     |
 
-Not all key combinations are support on all platforms. Eg the Home and End keys are not available on standard Amiga keyboards.
+Not all key combinations are supported on all platforms. Eg the Home and End keys are not available on standard Amiga keyboards.
 
 

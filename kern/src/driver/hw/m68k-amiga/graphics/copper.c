@@ -180,9 +180,9 @@ static void copper_csw(void)
 
 
     if (g_retire_vcpu) {
-        vcpu_sigsend_irq(g_retire_vcpu, g_retire_signo);
+        vcpu_sigsend(g_retire_vcpu, g_retire_signo);
     }
-    sem_relinquish_irq(&g_copper_notify_sem);
+    sem_relinquish(&g_copper_notify_sem);
 }
 
 // Called at the vertical blank interrupt. Triggers the execution of the correct

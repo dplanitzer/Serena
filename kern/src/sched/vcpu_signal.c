@@ -15,7 +15,7 @@
 #include <kpi/signal.h>
 
 
-static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo)
+errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo)
 {
     decl_try_err();
 
@@ -34,22 +34,11 @@ static errno_t _vcpu_sigsend(vcpu_t _Nonnull self, int flags, int signo)
     }
         
     if ((self->wait_sigs & sigbit) != 0) {
-        wq_wakeone(self->waiting_on_wait_queue, self, flags, WRES_SIGNAL);
+        wq_wakeone(self->waiting_on_wait_queue, self, WAKEUP_CSW, WRES_SIGNAL);
     }
     preempt_restore(sps);
 
     return err;
-}
-
-errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo)
-{
-    return _vcpu_sigsend(self, WAKEUP_CSW, signo);
-}
-
-errno_t vcpu_sigsend_irq(vcpu_t _Nonnull self, int signo)
-{
-    //XXX enabling this breaks the proc_exit and vcpu_sched tests (they get stuck)
-    return _vcpu_sigsend(self, /*WAKEUP_CSW | WAKEUP_IRQ*/ 0, signo);
 }
 
 sigset_t vcpu_sigpending(vcpu_t _Nonnull self)

@@ -29,13 +29,12 @@ extern void sem_init(sem_t* _Nonnull self, int value);
 extern void sem_deinit(sem_t* _Nonnull self);
 
 
+// @IRQ Context Safe
 #define sem_relinquish(__self) \
 sem_relinquish_multiple(__self, 1)
 
+// @IRQ Context Safe
 extern void sem_relinquish_multiple(sem_t* _Nonnull self, int npermits);
-
-// Releases one permit to the semaphore from an interrupt context.
-extern void sem_relinquish_irq(sem_t* _Nonnull self);
 
 
 // Blocks the caller until the semaphore has at least one permit available or

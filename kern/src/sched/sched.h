@@ -47,7 +47,8 @@ struct sched {
     volatile vcpu_t _Nullable   scheduled;                      // The VP that should be moved to the running state by the context switcher
     volatile uint8_t            csw_signals;                    // Signals to the context switcher
     uint8_t                     flags;                          // Scheduler flags
-    int8_t                      reserved[2];
+    int8_t                      irq_nest_count;                 // IRQ (routine) nesting count
+    int8_t                      reserved;
     vcpu_t _Nonnull             idle_vp;                        // This VP is scheduled if there is no other VP to schedule
     vcpu_t _Nonnull             boot_vp;                        // This is the first VP that was created at boot time for a CPU. It takes care of scheduler chores like destroying terminated VPs
     deque_t                     finalizer_queue;
@@ -128,6 +129,11 @@ extern void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp);
     (__self)->scheduled = (__vp); \
     (__self)->csw_signals |= CSW_SIGNAL_SWITCH; \
 }
+
+// Returns true if the scheduler is currently executing in the interrupt
+// context.
+#define sched_is_irq_ctx(__self) \
+((__self)->irq_nest_count > 0)
 
 
 #endif /* _SCHED_H */

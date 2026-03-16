@@ -310,7 +310,7 @@ void FloppyController_StepHead(FloppyControllerRef _Nonnull self, DriveState cb,
 
 static void _disk_block_irq(FloppyControllerRef _Nonnull self)
 {
-    sem_relinquish_irq(&self->done_sem);
+    sem_relinquish(&self->done_sem);
 }
 
 // Synchronously reads/writes 'nWords' 16bit words from/to the given word buffer.

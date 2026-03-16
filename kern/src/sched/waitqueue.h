@@ -101,20 +101,14 @@ extern errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable
 // Wakes up 'vp' if it is currently in waiting state. The wakeup reason is
 // specified by 'reason'. 'flags' controls whether context switching to 'vp'
 // is allowed or should not be done. 
-// @Interrupt Context: Safe
+// @IRQ Context Safe
 // @Entry Condition: preemption disabled
 extern bool wq_wakeone(waitqueue_t _Nonnull self, struct vcpu* _Nonnull vp, int flags, wres_t reason);
 
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue.
+// @IRQ Context Safe
 // @Entry Condition: preemption disabled
 extern void wq_wake(waitqueue_t _Nonnull self, int flags, wres_t reason);
-
-// Wakes up all VPs on the wait queue. Expects to be called from an interrupt
-// context and thus defers context switches until the return from the interrupt
-// context.
-// @Entry Condition: preemption disabled
-// @Interrupt Context: Safe
-extern void wq_wake_irq(waitqueue_t _Nonnull self);
 
 #endif /* _WAITQUEUE_H */

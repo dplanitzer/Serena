@@ -15,7 +15,6 @@
     xdef _sem_acquire_multiple
     xdef _sem_acquireall
     xdef _sem_relinquish_multiple
-    xdef _sem_relinquish_irq
     xdef _sem_tryacquire_multiple
     xdef _sem_tryacquireall
 
@@ -51,36 +50,6 @@ _sem_relinquish_multiple:
         move.l  (sp)+, d0
 
 .sr_done:
-        RESTORE_PREEMPTION d0
-        rts
-    einline
-
-
-;-------------------------------------------------------------------------------
-; void sem_relinquish_irq(sem_t* _Nonnull sema)
-; Releases one permit to the semaphore. This function expects to be called from
-; the interrupt context and thus it does not trigger an immediate context switch
-; since context switches are deferred until we return from the interrupt.
-_sem_relinquish_irq:
-    inline
-    cargs srfic_sema_ptr.l
-        move.l  srfic_sema_ptr(sp), a0
-
-        DISABLE_PREEMPTION d0
-
-        ; update the semaphore value. NO need to wake anyone up if the sema value
-        ; is still <= 0
-        addq.l  #1, sema_value(a0)
-        ble.s   .srfic_done
-
-        ; move all the waiters back to the ready queue
-        move.l  d0, -(sp)
-        pea     sema_wait_queue_first(a0)
-        jsr     _wq_wake_irq
-        addq.l  #4, sp
-        move.l  (sp)+, d0
-
-.srfic_done:
         RESTORE_PREEMPTION d0
         rts
     einline

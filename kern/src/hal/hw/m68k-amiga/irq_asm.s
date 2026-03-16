@@ -213,12 +213,18 @@ cdi_done:
 
 
 ;-------------------------------------------------------------------------------
-; We disable IRQs altogether inside of IRQ handlers because we do not supported
-; nested IRQ handling. This is the same as disabling preemption. Preemption is
-; re-enabled when we do the RTE. Note that the CPU has already saved the original
-; status register contents on the stack
-    macro DISABLE_ALL_IRQS
-    or.w    #$0700, sr      ; equal to DISABLE_INTERRUPTS
+; Marks the start of interrupt context. First disables all IRQs levels altogether
+; because we do not supported nested IRQ handling at this time. This is the same
+; as disabling preemption. Preemption is re-enabled when we do the RTE. Note that
+; the CPU has already saved the original status register contents on the stack.
+; Then saves registers d0, d1, d7, a0 and a1.
+; Finally increments the IRQ nesting count in the scheduler data structure to
+; indicate that we are executing in the interrupt context.
+    macro ENTER_IRQ_CTX
+    or.w    #$0700, sr      ; equivalent to DISABLE_INTERRUPTS
+    movem.l d0 - d1 / d7 / a0 - a1, -(sp)
+    move.l  _g_sched, a0
+    addq.b  #1, sched_irq_nest_count(a0)
     endm
 
 
@@ -226,8 +232,7 @@ cdi_done:
 ; Level 1 IRQ handler
     align 4
 __irq_level_1:
-    DISABLE_ALL_IRQS
-    movem.l d0 - d1 / d7 / a0 - a1, -(sp)
+    ENTER_IRQ_CTX
 
     lea     CUSTOM_BASE, a0
     move.w  INTREQR(a0), d7
@@ -257,8 +262,7 @@ irq_handler_soft:
 ; Level 2 IRQ handler (CIA A)
     align 4
 __irq_level_2:
-    DISABLE_ALL_IRQS
-    movem.l d0 - d1 / d7 / a0 - a1, -(sp)
+    ENTER_IRQ_CTX
 
     move.b  CIAAICR, d7     ; implicitly acknowledges CIA A IRQs
 
@@ -323,8 +327,7 @@ irq_handler_ports:
 ; Level 3 IRQ handler
     align 4
 __irq_level_3:
-    DISABLE_ALL_IRQS
-    movem.l d0 - d1 / d7 / a0 - a1, -(sp)
+    ENTER_IRQ_CTX
 
     lea     CUSTOM_BASE, a0
     move.w  INTREQR(a0), d7
@@ -353,8 +356,7 @@ irq_handler_copper:
 ; Level 4 IRQ handler
     align 4
 __irq_level_4:
-    DISABLE_ALL_IRQS
-    movem.l d0 - d1 / d7 / a0 - a1, -(sp)
+    ENTER_IRQ_CTX
 
     lea     CUSTOM_BASE, a0
     move.w  INTREQR(a0), d7
@@ -388,8 +390,7 @@ irq_handler_audio1:
 ; Level 5 IRQ handler
     align 4
 __irq_level_5:
-    DISABLE_ALL_IRQS
-    movem.l d0 - d1 / d7 / a0 - a1, -(sp)
+    ENTER_IRQ_CTX
 
     lea     CUSTOM_BASE, a0
     move.w  INTREQR(a0), d7
@@ -411,8 +412,7 @@ irq_handler_dsksync:
 ; Level 6 IRQ handler (CIA B)
     align 4
 __irq_level_6:
-    DISABLE_ALL_IRQS
-    movem.l d0 - d1 / d7 / a0 - a1, -(sp)
+    ENTER_IRQ_CTX
 
     move.b  CIABICR, d7     ; implicitly acknowledges CIA B IRQs
 
@@ -464,6 +464,8 @@ irq_handler_exter:
 ; Otherwise do the context switch which will implicitly do the rte.
 irq_handler_done:
     move.l  _g_sched, a0
+    subq.b  #1, sched_irq_nest_count(a0)
+
     btst    #CSWB_SIGNAL_SWITCH, sched_csw_signals(a0)
     movem.l (sp)+, d0 - d1 / d7 / a0 - a1
     bne.l   __sched_switch_context

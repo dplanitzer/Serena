@@ -159,7 +159,7 @@ errno_t wq_timedwait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, i
 
 static void wq_maybe_switch_to(waitqueue_t _Nonnull self, int flags, vcpu_t _Nonnull vp)
 {
-    if ((flags & WAKEUP_CSW) == 0) {
+    if ((flags & WAKEUP_CSW) == 0 || sched_is_irq_ctx(g_sched)) {
         return;
     }
 
@@ -252,22 +252,5 @@ void wq_wake(waitqueue_t _Nonnull self, int flags, wres_t reason)
     // Set the VP that we found running if context switches are allowed.
     if (pRunCandidate) {
         wq_maybe_switch_to(self, flags, pRunCandidate);
-    }
-}
-
-// Adds all VPs on the given list to the ready queue. The VPs are removed from
-// the wait queue. Expects to be called from an interrupt context and thus defers
-// context switches until the return from the interrupt context.
-// @Entry Condition: preemption disabled
-void wq_wake_irq(waitqueue_t _Nonnull self)
-{
-    register deque_node_t* cp = self->q.first;    
-    
-    // Make all waiting VPs ready to run but do not trigger a context switch.
-    while (cp) {
-        register deque_node_t* np = cp->next;
-        
-        wq_wakeone(self, (vcpu_t)cp, WAKEUP_IRQ | WAKEUP_CSW, WRES_WAKEUP);
-        cp = np;
     }
 }
