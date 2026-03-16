@@ -181,6 +181,7 @@ void vcpu_sched_params_changed(vcpu_t _Nonnull self)
     }
     else {
         // SCHED_QOS_IDLE has only one priority level
+        sched_pri = SCHED_PRI_LOWEST;
         eff_pri = SCHED_PRI_LOWEST;
     }
 

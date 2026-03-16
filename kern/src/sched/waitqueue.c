@@ -168,12 +168,7 @@ static void wq_maybe_switch_to(waitqueue_t _Nonnull self, int flags, vcpu_t _Non
         vcpu_t pBestReadyVP = sched_highest_priority_ready(g_sched);
     
         if (pBestReadyVP == vp && vp->effective_priority >= g_sched->running->effective_priority) {
-            if ((flags & WAKEUP_IRQ) == WAKEUP_IRQ) {
-                sched_set_running(g_sched, vp);
-            }
-            else {
-                sched_switch_to(g_sched, vp);
-            }
+            sched_switch_to(g_sched, vp);
         }
     }
 }

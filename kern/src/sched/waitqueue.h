@@ -31,13 +31,8 @@ struct vcpu;
 // Requests that wakeup() wakes up at most one vcpu instead of all.
 #define WAKEUP_ONE  1
 
-// Allow wakeup() to do a context switch. Note that if this flag is combined
-// with WAKEUP_IRQ that the actual context switch is deferred until the
-// caller returns from the interrupt context 
+// Allow wakeup() to do a context switch. 
 #define WAKEUP_CSW  2
-
-// Wakeup triggered from interrupt context
-#define WAKEUP_IRQ  4
 
 
 // Wait result/wakeup reason

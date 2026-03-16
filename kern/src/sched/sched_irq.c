@@ -1,5 +1,5 @@
 //
-//  sched_quantum.c
+//  sched_irq.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/23/21.
@@ -25,6 +25,17 @@ void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 {
     register vcpu_t run = (vcpu_t)self->running;
 
+    if (run->quantum_countdown > 0) {
+        run->quantum_countdown--;
+    }
+}
+
+
+// Invoked at the end of every clock tick.
+void sched_select_runnable_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
+{
+    register vcpu_t run = (vcpu_t)self->running;
+
     // Redirect the currently running VP to sigurgent() if it is running in user
     // mode, has an urgent signal pending and we haven't already triggered a
     // redirect previously.
@@ -35,8 +46,7 @@ void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
     }
 
 
-    // Update the time slice info for the currently running VP
-    run->quantum_countdown--;
+    // Nothing to do if the currently running VP hasn't finished its quantum yet
     if (run->quantum_countdown > 0) {
         return;
     }
