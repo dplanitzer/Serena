@@ -20,8 +20,9 @@ void sched_wait_timeout_irq(vcpu_t _Nonnull vp)
 }
 
 
-// Invoked at the end of every clock tick.
-void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
+// Invoked at every clock tick and before sched_on_any_irq() is invoked. Runs in
+// the interrupt context.
+void sched_on_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 {
     register vcpu_t run = (vcpu_t)self->running;
 
@@ -31,8 +32,8 @@ void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 }
 
 
-// Invoked at the end of every clock tick.
-void sched_select_runnable_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
+// Invoked at the end of any and all interrupts. Runs in the interrupt context.
+void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 {
     register vcpu_t run = (vcpu_t)self->running;
 
@@ -40,9 +41,7 @@ void sched_select_runnable_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull ef
     // mode, has an urgent signal pending and we haven't already triggered a
     // redirect previously.
     if (excpt_frame_isuser(efp) && (run->pending_sigs & SIGSET_URGENTS) != 0) {
-        if (cpu_inject_sigurgent(efp)) {
-            return;
-        }
+        cpu_inject_sigurgent(efp);
     }
 
 

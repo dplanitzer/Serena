@@ -111,11 +111,14 @@ extern void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 // @HAL Requirement: Must be called from the monotonic clock IRQ handler
 extern void sched_wait_timeout_irq(vcpu_t _Nonnull vp);
 
+// Invoked at every clock tick and before sched_on_any_irq() is invoked. Runs in
+// the interrupt context.
 // @HAL Requirement: Must be called from interrupt context
-extern void sched_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp);
+extern void sched_on_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp);
 
+// Invoked at the end of any and all interrupts. Runs in the interrupt context.
 // @HAL Requirement: Must be called from interrupt context
-extern void sched_select_runnable_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp);
+extern void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp);
 
 
 //

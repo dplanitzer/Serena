@@ -61,7 +61,7 @@ const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
     }
 }
 
-bool cpu_inject_sigurgent(excpt_frame_t* _Nonnull efp)
+void cpu_inject_sigurgent(excpt_frame_t* _Nonnull efp)
 {
     struct sigurgent_frame {
         void* ret_addr;
@@ -72,7 +72,7 @@ bool cpu_inject_sigurgent(excpt_frame_t* _Nonnull efp)
     const uintptr_t upc = excpt_frame_getpc(efp);
 
     if (upc >= (uintptr_t)sigurgent && upc < (uintptr_t)sigurgent_end) {
-        return false;
+        return;
     }
 
     // This return address will be popped off the stack by the sigurgent()
@@ -80,8 +80,6 @@ bool cpu_inject_sigurgent(excpt_frame_t* _Nonnull efp)
     struct sigurgent_frame* fp = (struct sigurgent_frame*)usp_grow(sizeof(struct sigurgent_frame));
     fp->ret_addr = (void*)excpt_frame_getpc(efp);
     excpt_frame_setpc(efp, sigurgent);
-    
-    return true;
 }
 
 

@@ -58,7 +58,7 @@ extern void _excpt_return(void);
 // interruption.
 // Also note that we ensure that we do not try to inject a sigurgent while the
 // vcpu is still executing inside an earlier sigurgent injection.
-extern bool cpu_inject_sigurgent(excpt_frame_t* _Nonnull efp);
+extern void cpu_inject_sigurgent(excpt_frame_t* _Nonnull efp);
 
 extern _Noreturn void cpu_non_recoverable_error(uint32_t rgb4);
 

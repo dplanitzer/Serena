@@ -97,7 +97,7 @@ void clock_irq(clock_ref_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 
 
     // run the scheduler
-    sched_tick_irq(g_sched, efp);
+    sched_on_tick_irq(g_sched, efp);
 }
 
 void clock_deadline(clock_ref_t _Nonnull self, clock_deadline_t* _Nonnull deadline)

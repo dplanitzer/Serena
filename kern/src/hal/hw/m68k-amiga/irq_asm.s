@@ -22,7 +22,7 @@
     xref __irq_run_handlers
 
     xref _g_sched
-    xref _sched_select_runnable_irq
+    xref _sched_on_any_irq
     xref __sched_switch_context
 
 
@@ -469,7 +469,7 @@ irq_handler_done:
 
     pea     20(sp)              ; d0 - d1 / d7 / a0 - a1
     move.l  a0, -(sp)
-    jsr     _sched_select_runnable_irq
+    jsr     _sched_on_any_irq
     addq.l  #8, sp
 
     move.l  _g_sched, a0
