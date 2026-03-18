@@ -35,7 +35,11 @@
 
 // Set if the context switcher should activate the VP set in 'scheduled' and
 // deactivate the VP set in 'running'.
-#define CSW_SIGNAL_SWITCH   0x01
+#define CSW_SIGNAL_SWITCH       0x01
+
+// Set if the currently running vp has been preempted instead of it finishing its
+// quantum or voluntarily blocking
+#define CSW_SIGNAL_PREEMPTED    0x02
 
 
 // The ready queue holds references to all VPs which are ready to run. The queue
@@ -142,6 +146,14 @@ extern void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 { \
     (__self)->scheduled = (__vp); \
     (__self)->csw_signals |= CSW_SIGNAL_SWITCH; \
+}
+
+// Same as sched_set_running() but marks '__vp' is a preemptor.
+// @Entry Condition: preemption disabled
+#define sched_set_running_as_preemptor(__self, __vp) \
+{ \
+    (__self)->scheduled = (__vp); \
+    (__self)->csw_signals |= (CSW_SIGNAL_SWITCH|CSW_SIGNAL_PREEMPTED); \
 }
 
 // Returns true if the scheduler is currently executing in the interrupt

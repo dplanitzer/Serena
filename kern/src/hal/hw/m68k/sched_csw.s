@@ -106,7 +106,13 @@ __sched_switch_context:
     bne.s   __csw_restore
 
     move.l  _g_sched, a1
-    moveq.l #-1, d0
+
+    ; Pass -1 (true) to sched_set_ready() if the preempt signal is cleared; 0
+    ; (false) if the preempt signal is set.
+    btst.b  #CSWB_SIGNAL_PREEMPTED, sched_csw_signals(a1)
+    seq     d0
+    extb.l  d0
+
     move.l  d0, -(sp)
     move.l  a0, -(sp)
     move.l  a1, -(sp)
@@ -142,7 +148,7 @@ __csw_restore:
 
     move.l  a3, sched_running(a2)
     clr.l   sched_scheduled(a2)
-    bclr    #CSWB_SIGNAL_SWITCH, sched_csw_signals(a2)
+    move.b  #0, sched_csw_signals(a2)
 
     RESTORE_FPU_STATE a3
 

@@ -50,7 +50,7 @@ void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
         register vcpu_t rdy = sched_highest_priority_ready(self);
 
         if (rdy && rdy->effective_priority > run->effective_priority) {
-            sched_set_running(self, rdy);
+            sched_set_running_as_preemptor(self, rdy);
         }
     }
     else {

@@ -91,6 +91,7 @@ mtc_SIZEOF                      so              ; 12
 
 ; The vcpu scheduler
 CSWB_SIGNAL_SWITCH                  equ     0
+CSWB_SIGNAL_PREEMPTED               equ     1
 
 SCHED_PRI_COUNT                     equ     64
 
