@@ -45,30 +45,32 @@ void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
     }
 
 
-    // Nothing to do if the currently running VP hasn't finished its quantum yet
     if (run->quantum_countdown > 0) {
-        return;
-    }
+        // Quantum isn't done yet. Check for preemption
+        register vcpu_t rdy = sched_highest_priority_ready(self);
 
-    
-    // The time slice has expired. Check whether there's another VP on the ready
-    // queue which is more important. If so we context switch to that guy.
-    // Otherwise we'll continue to run for another time slice.
-    register vcpu_t rdy = sched_highest_priority_ready(self);
-    if (rdy == NULL) {
-        return;
-    }
-
-    if (rdy->effective_priority >= run->effective_priority) {
-        if (run->sched_priority > (SCHED_PRI_LOWEST + 1) && run->qos < SCHED_QOS_REALTIME && run->priority_bias >= SCHED_PRIORITY_BIAS_LOWEST) {
-            run->priority_bias--;
-            vcpu_sched_params_changed(run);
+        if (rdy && rdy->effective_priority > run->effective_priority) {
+            sched_set_running(self, rdy);
         }
-        sched_set_running(self, rdy);
     }
-    else if (rdy->qos > SCHED_QOS_IDLE && run->sched_priority > (SCHED_PRI_LOWEST + 1) && run->qos < SCHED_QOS_REALTIME) {
-        run->priority_bias = -(run->effective_priority - rdy->effective_priority);
-        vcpu_sched_params_changed(run);
-        sched_set_running(self, rdy);
+    else {
+        // Quantum finished. Figure out who should run next or whether we should
+        // run another quantum
+        register vcpu_t rdy = sched_highest_priority_ready(self);
+
+        if (rdy && rdy->effective_priority >= run->effective_priority) {
+            sched_set_running(self, rdy);
+        }
+
+
+        // Reset the quantum
+        run->quantum_countdown = qos_quantum(run->qos);
+
+
+        // Apply a penalty to the vcpu if it has never blocked
+        if (run->qos != SCHED_QOS_IDLE && (run->flags & VP_FLAG_DID_WAIT) == 0) {
+            vcpu_apply_priority_penalty(run, 1);
+        }
+        run->flags &= ~VP_FLAG_DID_WAIT;
     }
 }

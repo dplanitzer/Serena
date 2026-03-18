@@ -89,6 +89,7 @@ enum {
 // bits 0..3 are reserved for flags that are accessible to C and asm code
 #define VP_FLAG_USER_OWNED          0x10    // This VP is owned by a user process
 #define VP_FLAG_ACQUIRED            0x20    // vcpu_activate() was called on the VP
+#define VP_FLAG_DID_WAIT            0x40    // cleared by default; set when teh vcpu has called wait() at one point while executing the current quantum
 
 
 #define SCHED_PRIORITY_BIAS_HIGHEST INT8_MAX 
@@ -132,10 +133,10 @@ struct vcpu {
     // Scheduling related state
     int8_t                          qos;                    // call vcpu_sched_params_changed() on change
     int8_t                          qos_priority;
-    uint8_t                         reserved2;
-    int8_t                          priority_bias;          // used to depress or boost the effective priority (call vcpu_sched_params_changed() on change)
-    uint8_t                         sched_priority;         // cached (static) schedule derived from the QoS parameters. Computed by vcpu_sched_params_changed() 
-    uint8_t                         effective_priority;     // computed priority used for scheduling. Computed by vcpu_sched_params_changed()
+    int8_t                          priority_penalty;       // penalty that should be subtracted from the base priority (call vcpu_sched_params_changed() on change)
+    int8_t                          priority_boost;         // boost that should be added to the base priority (call vcpu_sched_params_changed() on change)
+    int8_t                          base_priority;          // cached (static) base priority derived from the QoS parameters. Computed by vcpu_sched_params_changed() 
+    int8_t                          effective_priority;     // computed priority used for scheduling. Computed by vcpu_sched_params_changed()
     int8_t                          sched_state;
     uint8_t                         flags;
     int8_t                          quantum_countdown;      // for how many contiguous clock ticks this VP may run for before the scheduler will consider scheduling some other same or lower priority VP
@@ -289,7 +290,13 @@ extern void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched
 extern void vcpu_destroy(vcpu_t _Nullable self);
 
 // @Entry Condition: preemption disabled
-extern void vcpu_reduce_sched_penalty(vcpu_t _Nonnull self, int weight);
+extern void vcpu_apply_priority_boost(vcpu_t _Nonnull self, int boost);
+
+// @Entry Condition: preemption disabled
+extern void vcpu_apply_priority_penalty(vcpu_t _Nonnull self, int penalty);
+
+// @Entry Condition: preemption disabled
+extern void vcpu_reset_priority_penalty(vcpu_t _Nonnull self);
 
 // @Entry Condition: preemption disabled
 extern void vcpu_sched_params_changed(vcpu_t _Nonnull self);

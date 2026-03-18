@@ -60,6 +60,7 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, bo
     vp->waiting_on_wait_queue = self;
     vp->wait_sigs = hot_sigs;
     vp->wakeup_reason = 0;
+    vp->flags |= VP_FLAG_DID_WAIT;
 
     
 
@@ -196,11 +197,9 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
     
 
     if (vp->sched_state == SCHED_STATE_WAITING) {
-        // Reduce a scheduling penalty if one exists
-        if (vp->priority_bias < 0) {
-            vcpu_reduce_sched_penalty(vp, -vp->priority_bias);
-        }
-
+        // Reset the scheduling penalty if one exists
+        vcpu_reset_priority_penalty(vp);
+        
         // Make the VP ready and move it to the front of its ready queue if it
         // didn't use all of its quantum before blocking
         sched_set_ready(g_sched, vp, (vp->quantum_countdown >= 1) ? false : true);

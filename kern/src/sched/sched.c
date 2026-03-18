@@ -104,7 +104,6 @@ void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyTo
         }
 
         vp->sched_state = SCHED_STATE_RUNNING;
-        vp->quantum_countdown = qos_quantum(vp->qos);
     }
 
 

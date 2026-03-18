@@ -62,8 +62,10 @@ static void test_scheduling_infinite_loop(void)
 
 static void test_scheduling_print_loop(void)
 {
+    static int counter = 0;
+
     for (;;) {
-        puts("B");
+        printf("B: %d\n", counter++);
         vcpu_yield();
     }
 }

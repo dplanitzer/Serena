@@ -158,9 +158,9 @@ vp_wait_sigs                            so.l    1           ; 4
 vp_wakeup_reason                        so.b    1           ; 1
 vp_qos                                  so.b    1           ; 1
 vp_qos_priority                         so.b    1           ; 1
-vp_reserved2                            so.b    1           ; 1
-vp_priority_bias                        so.b    1           ; 1
-vp_sched_priority                       so.b    1           ; 1
+vp_priority_penalty                     so.b    1           ; 1
+vp_priority_boost                       so.b    1           ; 1
+vp_base_priority                        so.b    1           ; 1
 vp_effective_priority                   so.b    1           ; 1
 vp_sched_state                          so.b    1           ; 1
 vp_flags                                so.b    1           ; 1

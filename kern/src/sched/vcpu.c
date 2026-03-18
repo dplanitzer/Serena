@@ -83,6 +83,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     // Configure the vcpu
     try(_vcpu_reset_mcontext(vp, ac, true));
     vcpu_setschedparams(vp, &ac->schedParams);
+    vp->quantum_countdown = qos_quantum(vp->qos);
     
     if (ac->isUser) {
         vp->flags |= VP_FLAG_USER_OWNED;
@@ -92,6 +93,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     }
     vp->id = ac->id;
     vp->groupid = ac->groupid;
+    vp->flags &= ~VP_FLAG_DID_WAIT;
     vp->flags |= VP_FLAG_ACQUIRED;
 
     *pOutVP = vp;
@@ -115,6 +117,14 @@ _Noreturn void vcpu_relinquish(vcpu_t _Nonnull self)
     decl_try_err();
     assert(vcpu_current() == self);
     
+    // Reset priority penalty and boost
+    const int sps = preempt_disable();
+    self->priority_boost = 0;
+    self->priority_penalty = 0;
+    vcpu_sched_params_changed(self);
+    preempt_restore(sps);
+
+
     // Cleanup
     self->dispatch_worker = NULL;
     self->proc = NULL;
@@ -154,40 +164,52 @@ void vcpu_destroy(vcpu_t _Nullable self)
     }
 }
 
-void vcpu_reduce_sched_penalty(vcpu_t _Nonnull self, int prop)
+void vcpu_apply_priority_boost(vcpu_t _Nonnull self, int boost)
 {
-    if (self->priority_bias < 0) {
-        const int bias = self->priority_bias + prop;
+    const int new_boost = __max(__min(self->priority_boost + boost, SCHED_PRI_HIGHEST), SCHED_PRI_LOWEST + 1);
 
-        if (bias < 0) {
-            self->priority_bias = bias;
-        }
-        else {
-            self->priority_bias = 0;
-        }
+    if (new_boost != self->priority_boost) {
+        self->priority_boost = new_boost;
+        vcpu_sched_params_changed(self);
+    }
+}
 
+void vcpu_apply_priority_penalty(vcpu_t _Nonnull self, int penalty)
+{
+    const int new_penalty = __max(__min(self->priority_penalty + penalty, SCHED_PRI_HIGHEST), SCHED_PRI_LOWEST + 1);
+
+    if (new_penalty != self->priority_penalty) {
+        self->priority_penalty = new_penalty;
+        vcpu_sched_params_changed(self);
+    }
+}
+
+void vcpu_reset_priority_penalty(vcpu_t _Nonnull self)
+{
+    if (self->priority_penalty > 0) {
+        self->priority_penalty = 0;
         vcpu_sched_params_changed(self);
     }
 }
 
 void vcpu_sched_params_changed(vcpu_t _Nonnull self)
 {
-    int sched_pri, eff_pri;
+    int base_pri, eff_pri;
 
     if (self->qos > SCHED_QOS_IDLE) {
-        sched_pri = ((self->qos - 1) << QOS_PRI_SHIFT) + (self->qos_priority - QOS_PRI_LOWEST) + 1;
-        eff_pri = sched_pri + self->priority_bias;
+        base_pri = ((self->qos - 1) << QOS_PRI_SHIFT) + (self->qos_priority - QOS_PRI_LOWEST) + 1;
+        eff_pri = base_pri + self->priority_boost - self->priority_penalty;
         eff_pri = __max(__min(eff_pri, SCHED_PRI_HIGHEST), SCHED_PRI_LOWEST + 1);
     }
     else {
         // SCHED_QOS_IDLE has only one priority level
-        sched_pri = SCHED_PRI_LOWEST;
+        base_pri = SCHED_PRI_LOWEST;
         eff_pri = SCHED_PRI_LOWEST;
     }
 
     assert(eff_pri >= SCHED_PRI_LOWEST && eff_pri <= SCHED_PRI_HIGHEST);
 
-    self->sched_priority = (uint8_t)sched_pri;
+    self->base_priority = (uint8_t)base_pri;
     self->effective_priority = (uint8_t)eff_pri;
 }
 
@@ -282,9 +304,8 @@ int vcpu_getcurrentpriority(vcpu_t _Nonnull self)
 static void _vcpu_yield(vcpu_t _Nonnull self)
 {
     if (self->sched_state == SCHED_STATE_RUNNING) {
-        if (self->priority_bias < 0) {
-            vcpu_reduce_sched_penalty(self, -self->priority_bias / 2);
-        }
+        vcpu_apply_priority_penalty(self, -self->priority_penalty / 2);
+        self->flags |= VP_FLAG_DID_WAIT;
 
         sched_switch_to(g_sched, sched_highest_priority_ready(g_sched));
     }
@@ -379,9 +400,6 @@ static void _vcpu_resume(vcpu_t _Nonnull self, bool force)
 
 
     if (self->suspension_count == 0) {
-        if (self->priority_bias < 0) {
-            vcpu_reduce_sched_penalty(self, -self->priority_bias);
-        }
         sched_set_ready(g_sched, self, true);
     }
 }
