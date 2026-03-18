@@ -83,7 +83,7 @@ errno_t vcpu_acquire(const vcpu_acquisition_t* _Nonnull ac, vcpu_t _Nonnull * _N
     // Configure the vcpu
     try(_vcpu_reset_mcontext(vp, ac, true));
     vcpu_setschedparams(vp, &ac->schedParams);
-    vp->quantum_countdown = qos_quantum(vp->qos);
+    vcpu_reset_quantum(vp);
     
     if (ac->isUser) {
         vp->flags |= VP_FLAG_USER_OWNED;
@@ -246,7 +246,7 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull
                 self->qos = params->u.qos.category;
                 self->qos_priority = params->u.qos.priority;
                 if (self->sched_state == SCHED_STATE_RUNNING) {
-                    self->quantum_countdown = qos_quantum(self->qos);
+                    vcpu_reset_quantum(self);
                 }
                 vcpu_sched_params_changed(self);
                 break;

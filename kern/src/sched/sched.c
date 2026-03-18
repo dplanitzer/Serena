@@ -64,7 +64,7 @@ void sched_create(BootAllocator* _Nonnull bap, sys_desc_t* _Nonnull sdp, VoidFun
 
 // Marks 'vp' as ready and inserts it in the proper ready queue.
 // Called from: _sched_switch_context()
-void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doFifo)
+void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doAddToTail)
 {
     assert(vp != NULL);
     assert(vp->rewa_qe.prev == NULL);
@@ -74,7 +74,7 @@ void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doFifo)
     vp->sched_state = SCHED_STATE_READY;
     const unsigned int pri = vp->effective_priority;
 
-    if (doFifo) {
+    if (doAddToTail) {
         deque_add_last(&self->ready_queue.priority[pri], &vp->rewa_qe);
     }
     else {

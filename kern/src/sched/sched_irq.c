@@ -65,7 +65,7 @@ void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 
 
         // Reset the quantum
-        run->quantum_countdown = qos_quantum(run->qos);
+        vcpu_reset_quantum(run);
 
 
         // Apply a penalty to the vcpu if it has never blocked

@@ -92,8 +92,11 @@ extern void preempt_restore(int sps);
 // return to the caller. The VP must already have been marked as terminating.
 extern _Noreturn void sched_terminate_vcpu(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 
+// Adds 'vp' to the ready queue that corresponds to its effective priority. The
+// VP is added to the tail end of the ready queue if 'doAddToTail' is true; to
+// the head end if it is false.
 // @Entry Condition: preemption disabled
-extern void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doFifo);
+extern void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doAddToTail);
 
 // @Entry Condition: preemption disabled
 extern void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyToRun);

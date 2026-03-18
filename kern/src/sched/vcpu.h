@@ -206,7 +206,7 @@ extern int vcpu_getcurrentpriority(vcpu_t _Nonnull self);
 // Sends the signal 'signo' to 'self'. The signal is added to the pending signal
 // list and the vcpu is woken up if it is currently waiting and the signal
 // 'signo' is in the active wake set. 'pri_boost' is the QoS priority boost that
-// should be granted to 'self'. This should be in the range [0...QOS_PRI_HIGHEST].
+// should be granted to 'self'. This should be in the range [0...QOS_PRI_COUNT-1].
 // @IRQ Context Safe
 extern errno_t vcpu_sigsend_with_boost(vcpu_t _Nonnull self, int signo, int pri_boost);
 
@@ -294,8 +294,17 @@ extern void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched
 
 extern void vcpu_destroy(vcpu_t _Nullable self);
 
+// Indicates that at least one of the receiver's scheduling parameters (QoS,
+// priority, boost, penalty, etc) has changed and that the effective priority
+// should be recomputed.
 // @Entry Condition: preemption disabled
 extern void vcpu_sched_params_changed(vcpu_t _Nonnull self);
+
+// Resets the receiver's quantum tick count back to the full count for another
+// quantum
+// @Entry Condition: preemption disabled
+#define vcpu_reset_quantum(__self) \
+(__self)->quantum_countdown = qos_quantum((__self)->qos)
 
 
 //

@@ -216,10 +216,17 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
     }
 
 
+
+    // Restore the quantum for some QoS classes
+    if (vp->qos == SCHED_QOS_REALTIME) {
+        vcpu_reset_quantum(vp);
+    }
+
+
     if (vp->sched_state == SCHED_STATE_WAITING) {
         // Make the VP ready and move it to the front of its ready queue if it
         // didn't use all of its quantum before blocking
-        sched_set_ready(g_sched, vp, (vp->quantum_countdown >= 1) ? false : true);
+        sched_set_ready(g_sched, vp, true);
         
         wq_maybe_switch_to(self, flags, vp);
         isReady = true;
