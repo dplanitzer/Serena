@@ -25,13 +25,24 @@ extern void cnd_init(cnd_t* _Nonnull self);
 // Deinitializes the condition variables.
 extern void cnd_deinit(cnd_t* _Nonnull self);
 
+
 // Signals the condition variable. This will wake up one waiter.
 #define cnd_signal(__self) \
-_cnd_wake(__self, false)
+_cnd_wake(__self, false, 0)
+
+// Signals the condition variable. This will wake up one waiter.
+#define cnd_signal_with_boost(__self, __boost) \
+_cnd_wake(__self, false, __boost)
+
 
 // Broadcasts the condition variable. This will wake up all waiters.
 #define cnd_broadcast(__self) \
-_cnd_wake(__self, true)
+_cnd_wake(__self, true, 0)
+
+// Broadcasts the condition variable. This will wake up all waiters.
+#define cnd_broadcast_with_boost(__self, __boost) \
+_cnd_wake(__self, true, __boost)
+
 
 // Blocks the caller until the condition variable has received a signal or the
 // wait has timed out. Note that this function may return EINTR which means that
@@ -43,7 +54,9 @@ extern errno_t cnd_wait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx);
 extern errno_t cnd_timedwait(cnd_t* _Nonnull self, mtx_t* _Nonnull mtx, const struct timespec* _Nonnull deadline);
 
 
-// Wakes up one or all waiters on the condition variable.
-extern void _cnd_wake(cnd_t* _Nonnull self, bool broadcast);
+// Wakes up one or all waiters on the condition variable. 'pri_boost' is the QoS
+// priority boost that should be applied to the vps that are waiting on the
+// condition variable. This should be in the range [0...QOS_PRI_HIGHEST].
+extern void _cnd_wake(cnd_t* _Nonnull self, bool broadcast, int pri_boost);
 
 #endif /* _CND_H */

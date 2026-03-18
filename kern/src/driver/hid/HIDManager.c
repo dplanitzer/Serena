@@ -431,7 +431,7 @@ void HIDManager_PostEvent(HIDManagerRef _Nonnull self, HIDEventType type, did_t 
     mtx_lock(&self->mtx);
     clock_gettime(g_mono_clock, &self->now);
     _queue_event(self, type, driverId, pEventData);
-    cnd_broadcast(&self->evqCnd);
+    cnd_broadcast_with_boost(&self->evqCnd, QOS_PRI_HIGHEST);
     mtx_unlock(&self->mtx);
 }
 

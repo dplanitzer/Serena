@@ -135,7 +135,7 @@ struct vcpu {
     int8_t                          qos_priority;
     int8_t                          priority_penalty;       // penalty that should be subtracted from the base priority (call vcpu_sched_params_changed() on change)
     int8_t                          priority_boost;         // boost that should be added to the base priority (call vcpu_sched_params_changed() on change)
-    int8_t                          base_priority;          // cached (static) base priority derived from the QoS parameters. Computed by vcpu_sched_params_changed() 
+    int8_t                          reserved;
     int8_t                          effective_priority;     // computed priority used for scheduling. Computed by vcpu_sched_params_changed()
     int8_t                          sched_state;
     uint8_t                         flags;
@@ -205,9 +205,14 @@ extern int vcpu_getcurrentpriority(vcpu_t _Nonnull self);
 
 // Sends the signal 'signo' to 'self'. The signal is added to the pending signal
 // list and the vcpu is woken up if it is currently waiting and the signal
-// 'signo' is in the active wake set.
+// 'signo' is in the active wake set. 'pri_boost' is the QoS priority boost that
+// should be granted to 'self'. This should be in the range [0...QOS_PRI_HIGHEST].
 // @IRQ Context Safe
-extern errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo);
+extern errno_t vcpu_sigsend_with_boost(vcpu_t _Nonnull self, int signo, int pri_boost);
+
+// Same as vcpu_sigsend_with_boost() without a priority boost.
+#define vcpu_sigsend(__self, __signo) \
+vcpu_sigsend_with_boost(__self, __signo, 0)
 
 // Returns a copy of the pending signals
 extern sigset_t vcpu_sigpending(vcpu_t _Nonnull self);
@@ -288,15 +293,6 @@ extern void vcpu_uret_exit(void);
 extern void vcpu_init(vcpu_t _Nonnull self, const sched_params_t* _Nonnull sched_params);
 
 extern void vcpu_destroy(vcpu_t _Nullable self);
-
-// @Entry Condition: preemption disabled
-extern void vcpu_apply_priority_boost(vcpu_t _Nonnull self, int boost);
-
-// @Entry Condition: preemption disabled
-extern void vcpu_apply_priority_penalty(vcpu_t _Nonnull self, int penalty);
-
-// @Entry Condition: preemption disabled
-extern void vcpu_reset_priority_penalty(vcpu_t _Nonnull self);
 
 // @Entry Condition: preemption disabled
 extern void vcpu_sched_params_changed(vcpu_t _Nonnull self);

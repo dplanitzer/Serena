@@ -15,7 +15,7 @@
 #include <kpi/signal.h>
 
 
-errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo)
+errno_t vcpu_sigsend_with_boost(vcpu_t _Nonnull self, int signo, int pri_boost)
 {
     decl_try_err();
 
@@ -34,7 +34,7 @@ errno_t vcpu_sigsend(vcpu_t _Nonnull self, int signo)
     }
         
     if ((self->wait_sigs & sigbit) != 0) {
-        wq_wakeone(self->waiting_on_wait_queue, self, WAKEUP_CSW, WRES_SIGNAL);
+        wq_wakeone(self->waiting_on_wait_queue, self, WAKEUP_CSW, WRES_SIGNAL, pri_boost);
     }
     preempt_restore(sps);
 

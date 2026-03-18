@@ -68,13 +68,13 @@ void mtx_onwait(mtx_t* _Nonnull self)
 // @Entry Condition: preemption disabled
 void mtx_wake(mtx_t* _Nullable self)
 {
-    wq_wake(&self->wq, WAKEUP_ALL | WAKEUP_CSW, WRES_WAKEUP);
+    wq_wake(&self->wq, WAKEUP_ALL | WAKEUP_CSW, WRES_WAKEUP, 0);
 }
 
 // Invoked by mtx_unlock_then_wait().
 // @Entry Condition: preemption disabled
 errno_t mtx_wake_then_wait(mtx_t* _Nullable self, struct waitqueue* _Nonnull wq)
 {
-    wq_wake(&self->wq, WAKEUP_ALL, WRES_WAKEUP);
+    wq_wake(&self->wq, WAKEUP_ALL, WRES_WAKEUP, 0);
     return wq_wait(wq, NULL);
 }

@@ -25,7 +25,7 @@ void cnd_deinit(cnd_t* _Nonnull self)
 }
 
 // Signals the given condition variable.
-void _cnd_wake(cnd_t* _Nonnull self, bool broadcast)
+void _cnd_wake(cnd_t* _Nonnull self, bool broadcast, int pri_boost)
 {
     const int flags = (broadcast) ? WAKEUP_ALL : WAKEUP_ONE;
     const int sps = preempt_disable();
@@ -35,7 +35,7 @@ void _cnd_wake(cnd_t* _Nonnull self, bool broadcast)
     // end up doing is a useless CSW from us to the other guy and the other guy
     // then has to CSW back to us when it tries to take the mutex that we are
     // still holding. 
-    wq_wake(&self->wq, flags, WRES_WAKEUP);
+    wq_wake(&self->wq, flags, WRES_WAKEUP, pri_boost);
     preempt_restore(sps);
 }
 

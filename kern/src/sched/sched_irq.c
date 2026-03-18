@@ -16,7 +16,7 @@
 // Invoked by the clock when a wait timeout expires
 void sched_wait_timeout_irq(vcpu_t _Nonnull vp)
 {
-    wq_wakeone(vp->waiting_on_wait_queue, vp, 0, WRES_TIMEOUT);
+    wq_wakeone(vp->waiting_on_wait_queue, vp, 0, WRES_TIMEOUT, 0);
 }
 
 
@@ -57,6 +57,7 @@ void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
         // Quantum finished. Figure out who should run next or whether we should
         // run another quantum
         register vcpu_t rdy = sched_highest_priority_ready(self);
+        bool do_sched_params_changed = false;
 
         if (rdy && rdy->effective_priority >= run->effective_priority) {
             sched_set_running(self, rdy);
@@ -68,9 +69,23 @@ void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
 
 
         // Apply a penalty to the vcpu if it has never blocked
-        if (run->qos != SCHED_QOS_IDLE && (run->flags & VP_FLAG_DID_WAIT) == 0) {
-            vcpu_apply_priority_penalty(run, 1);
+        if ((run->flags & VP_FLAG_DID_WAIT) == 0 && run->qos > SCHED_QOS_IDLE && run->qos < SCHED_QOS_REALTIME) {
+            run->priority_boost = 0;
+            if (run->priority_penalty < SCHED_PRI_HIGHEST) run->priority_penalty++;
+            do_sched_params_changed = true;
         }
         run->flags &= ~VP_FLAG_DID_WAIT;
+
+
+        // Decay any boost value that may exist
+        if (run->priority_boost > 0) {
+            run->priority_boost--;
+            do_sched_params_changed = true;
+        }
+
+
+        if (do_sched_params_changed) {
+            vcpu_sched_params_changed(run);
+        }
     }
 }

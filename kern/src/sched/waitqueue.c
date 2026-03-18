@@ -9,6 +9,7 @@
 #include "waitqueue.h"
 #include "vcpu.h"
 #include <assert.h>
+#include <ext/math.h>
 #include <hal/clock.h>
 #include <hal/sched.h>
 
@@ -176,11 +177,8 @@ static void wq_maybe_switch_to(waitqueue_t _Nonnull self, int flags, vcpu_t _Non
 
 // @Interrupt Context: Safe
 // @Entry Condition: preemption disabled
-bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t reason)
+bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t reason, int pri_boost)
 {
-    bool isReady;
-
-
     // Nothing to do if we are not waiting
     if (vp->sched_state != SCHED_STATE_WAITING) {
         return false;
@@ -196,10 +194,29 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
     vp->wakeup_reason = reason;
     
 
+    // Adjust the vp priority, if desired
+    bool do_sched_params_changed = false;
+    bool isReady;
+
+    // Reset the scheduling penalty if one exists
+    if (vp->priority_penalty > 0) {
+        vp->priority_penalty = 0;
+        do_sched_params_changed = true;
+    }
+
+    // Apply the priority boost. Note that the new boost replaces an already
+    // existing boost. Boost values do not stack.
+    if (pri_boost > 0) {
+        vp->priority_boost = __min(pri_boost, QOS_PRI_COUNT-1);
+        do_sched_params_changed = true;
+    }
+
+    if (do_sched_params_changed) {
+        vcpu_sched_params_changed(vp);
+    }
+
+
     if (vp->sched_state == SCHED_STATE_WAITING) {
-        // Reset the scheduling penalty if one exists
-        vcpu_reset_priority_penalty(vp);
-        
         // Make the VP ready and move it to the front of its ready queue if it
         // didn't use all of its quantum before blocking
         sched_set_ready(g_sched, vp, (vp->quantum_countdown >= 1) ? false : true);
@@ -219,7 +236,7 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
 // Wakes up either one or all waiters on the wait queue. The woken up VPs are
 // removed from the wait queue. Expects to be called with preemption disabled.
 // @Entry Condition: preemption disabled
-void wq_wake(waitqueue_t _Nonnull self, int flags, wres_t reason)
+void wq_wake(waitqueue_t _Nonnull self, int flags, wres_t reason, int pri_boost)
 {
     register deque_node_t* cp = self->q.first;
     register bool isWakeupOne = ((flags & WAKEUP_ONE) == WAKEUP_ONE);
@@ -230,7 +247,7 @@ void wq_wake(waitqueue_t _Nonnull self, int flags, wres_t reason)
     while (cp) {
         register deque_node_t* np = cp->next;
         register vcpu_t vp = (vcpu_t)cp;
-        register const bool isReady = wq_wakeone(self, vp, 0, reason);
+        register const bool isReady = wq_wakeone(self, vp, 0, reason, pri_boost);
 
         if (pRunCandidate == NULL && isReady) {
             pRunCandidate = vp;
