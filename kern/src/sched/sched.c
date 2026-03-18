@@ -25,12 +25,12 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap);
 sched_t                 g_sched;
 static struct waitqueue g_sched_wq;     // The scheduler VP waits on this queue
 const int8_t g_quantum_length[SCHED_QOS_COUNT] = {
-    1,      /* Realtime */
-    2,      /* Urgent */
-    4,      /* Interactive */
-    6,      /* Utility */
-    10,     /* Background */
-    1,      /* Idle */
+    SCHED_QUANTUM(1),       /* Realtime */
+    SCHED_QUANTUM(2),       /* Urgent */
+    SCHED_QUANTUM(4),       /* Interactive */
+    SCHED_QUANTUM(6),       /* Utility */
+    SCHED_QUANTUM(10),      /* Background */
+    SCHED_QUANTUM(1),       /* Idle */
 };
 
 

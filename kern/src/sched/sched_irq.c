@@ -27,7 +27,7 @@ void sched_on_tick_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
     register vcpu_t run = (vcpu_t)self->running;
 
     if (run->quantum_countdown > 0) {
-        run->quantum_countdown--;
+        run->quantum_countdown -= SCHED_QUANTUM_SCALE;
     }
 }
 

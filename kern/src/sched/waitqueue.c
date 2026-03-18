@@ -62,6 +62,13 @@ wres_t wq_prim_wait(waitqueue_t _Nonnull self, const sigset_t* _Nullable set, bo
     vp->wait_sigs = hot_sigs;
     vp->wakeup_reason = 0;
     vp->flags |= VP_FLAG_DID_WAIT;
+    if (vp->quantum_countdown > 0) {
+        // Reduce the remaining quantum size a bit to ensure that this vcpu
+        // doesn't end up monopolizing the CPU after wakeup just because it
+        // frequently enters the wait state and thus the quantum doesn't get
+        // much of a chance to "run down" the natural way.
+        vp->quantum_countdown -= SCHED_QUANTUM_NUDGE;
+    }
 
     
 

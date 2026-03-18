@@ -28,6 +28,11 @@
 #define SCHED_PRI_POP_BYTE_COUNT    ((SCHED_PRI_COUNT + 7) / 8)
 
 
+#define SCHED_QUANTUM_SCALE 3
+#define SCHED_QUANTUM(__q) (SCHED_QUANTUM_SCALE * (__q))
+#define SCHED_QUANTUM_NUDGE 1
+
+
 // Set if the context switcher should activate the VP set in 'scheduled' and
 // deactivate the VP set in 'running'.
 #define CSW_SIGNAL_SWITCH   0x01
