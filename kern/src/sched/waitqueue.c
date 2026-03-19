@@ -213,7 +213,7 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
 
     // Apply the priority boost. Note that the new boost replaces an already
     // existing boost. Boost values do not stack.
-    if (pri_boost > 0) {
+    if (pri_boost > 0 && vp->qos >= SCHED_QOS_BACKGROUND && vp->qos <= SCHED_QOS_URGENT) {
         vp->priority_boost = __min(pri_boost, QOS_PRI_COUNT-1);
         do_sched_params_changed = true;
     }
