@@ -23,7 +23,7 @@
 
 
 #define PLAYFIELD_WIDTH 40
-#define PLAYFIELD_HEIGHT 20
+#define PLAYFIELD_HEIGHT 18
 
 static struct timespec game_loop_delay;
 
