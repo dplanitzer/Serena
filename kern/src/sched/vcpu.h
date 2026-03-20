@@ -90,6 +90,7 @@ enum {
 #define VP_FLAG_USER_OWNED          0x10    // This VP is owned by a user process
 #define VP_FLAG_ACQUIRED            0x20    // vcpu_activate() was called on the VP
 #define VP_FLAG_DID_WAIT            0x40    // cleared by default; set when teh vcpu has called wait() at one point while executing the current quantum
+#define VP_FLAG_FIXED_PRI           0x80    // set if the vcpu should be scheduled using a fixed priority policy. Derived from the QoS scheduling parameters
 
 
 #define SCHED_PRIORITY_BIAS_HIGHEST INT8_MAX 
@@ -305,6 +306,11 @@ extern void vcpu_sched_params_changed(vcpu_t _Nonnull self);
 // @Entry Condition: preemption disabled
 #define vcpu_reset_quantum(__self) \
 (__self)->quantum_countdown = qos_quantum((__self)->qos)
+
+// Returns true if the vcpu should be scheduled using a fixed priority policy.
+// Only valid after vcpu_sched_params_changed() has been called
+#define vcpu_is_fixed_pri(__self) \
+(((__self)->flags & VP_FLAG_FIXED_PRI) == VP_FLAG_FIXED_PRI)
 
 
 //

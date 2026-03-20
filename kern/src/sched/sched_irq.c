@@ -57,37 +57,42 @@ void sched_on_any_irq(sched_t _Nonnull self, excpt_frame_t* _Nonnull efp)
         // Quantum finished. Figure out who should run next or whether we should
         // run another quantum
         register vcpu_t rdy = sched_highest_priority_ready(self);
-        bool do_sched_params_changed = false;
 
         if (rdy && rdy->effective_priority >= run->effective_priority) {
             sched_set_running(self, rdy);
         }
 
 
-        // Reset the quantum
-        vcpu_reset_quantum(run);
-
-
-        // Apply a penalty to the vcpu if it has never blocked
-        if ((run->flags & VP_FLAG_DID_WAIT) == 0 && run->effective_priority > 0 && run->qos < SCHED_QOS_REALTIME) {
-            run->priority_boost = 0;
-            if (run->priority_penalty < SCHED_PRI_HIGHEST) {
-                run->priority_penalty++;
+        // Is this a dynamic priority vcpu?
+        if (!vcpu_is_fixed_pri(run)) {
+            bool do_sched_params_changed = false;
+            
+            // Apply a penalty to the vcpu if it has never blocked
+            if ((run->flags & VP_FLAG_DID_WAIT) == 0) {
+                run->priority_boost = 0;
+                if (run->priority_penalty < SCHED_PRI_HIGHEST) {
+                    run->priority_penalty++;
+                }
+                do_sched_params_changed = true;
             }
-            do_sched_params_changed = true;
+
+
+            // Decay any boost value that may exist
+            if (run->priority_boost > 0) {
+                run->priority_boost--;
+                do_sched_params_changed = true;
+            }
+
+
+            if (do_sched_params_changed) {
+                vcpu_sched_params_changed(run);
+            }
         }
+
         run->flags &= ~VP_FLAG_DID_WAIT;
 
 
-        // Decay any boost value that may exist
-        if (run->priority_boost > 0) {
-            run->priority_boost--;
-            do_sched_params_changed = true;
-        }
-
-
-        if (do_sched_params_changed) {
-            vcpu_sched_params_changed(run);
-        }
+        // Reset the quantum
+        vcpu_reset_quantum(run);
     }
 }

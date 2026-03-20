@@ -201,27 +201,26 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
     vp->wakeup_reason = reason;
     
 
-    // Adjust the vp priority, if desired
-    bool do_sched_params_changed = false;
-    bool isReady;
+    if (!vcpu_is_fixed_pri(vp)) {
+        bool do_sched_params_changed = false;
 
-    // Reset the scheduling penalty if one exists
-    if (vp->priority_penalty > 0) {
-        vp->priority_penalty = 0;
-        do_sched_params_changed = true;
+        // Reset the scheduling penalty if one exists
+        if (vp->priority_penalty > 0) {
+            vp->priority_penalty = 0;
+            do_sched_params_changed = true;
+        }
+
+        // Apply the priority boost. Note that the new boost replaces an already
+        // existing boost. Boost values do not stack.
+        if (pri_boost > 0) {
+            vp->priority_boost = __min(pri_boost, QOS_PRI_COUNT-1);
+            do_sched_params_changed = true;
+        }
+
+        if (do_sched_params_changed) {
+            vcpu_sched_params_changed(vp);
+        }
     }
-
-    // Apply the priority boost. Note that the new boost replaces an already
-    // existing boost. Boost values do not stack.
-    if (pri_boost > 0 && vp->qos >= SCHED_QOS_BACKGROUND && vp->qos <= SCHED_QOS_URGENT) {
-        vp->priority_boost = __min(pri_boost, QOS_PRI_COUNT-1);
-        do_sched_params_changed = true;
-    }
-
-    if (do_sched_params_changed) {
-        vcpu_sched_params_changed(vp);
-    }
-
 
 
     // Restore the quantum for some QoS classes
@@ -229,6 +228,8 @@ bool wq_wakeone(waitqueue_t _Nonnull self, vcpu_t _Nonnull vp, int flags, wres_t
         vcpu_reset_quantum(vp);
     }
 
+
+    bool isReady;
 
     if (vp->sched_state == SCHED_STATE_WAITING) {
         // Make the VP ready and move it to the front of its ready queue if it

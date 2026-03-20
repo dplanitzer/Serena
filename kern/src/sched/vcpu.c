@@ -168,7 +168,13 @@ void vcpu_sched_params_changed(vcpu_t _Nonnull self)
 {
     int eff_pri;
 
+    self->flags &= ~VP_FLAG_FIXED_PRI;
     if ((self->qos == SCHED_QOS_BACKGROUND && self->qos_priority == QOS_PRI_LOWEST) || (self->qos == SCHED_QOS_REALTIME)) {
+        self->flags |= VP_FLAG_FIXED_PRI;
+    }
+
+
+    if (vcpu_is_fixed_pri(self)) {
         // Fixed priority
         eff_pri = ((self->qos - 1) << QOS_PRI_SHIFT) + self->qos_priority - QOS_PRI_LOWEST;
     }
@@ -177,11 +183,11 @@ void vcpu_sched_params_changed(vcpu_t _Nonnull self)
         const int pri_boost = (self->priority_penalty <= 0) ? self->priority_boost : 0;
         const int qos_pri = __min(self->qos_priority + pri_boost, QOS_PRI_HIGHEST);
         const int boosted_pri = ((self->qos - 1) << QOS_PRI_SHIFT) + qos_pri - QOS_PRI_LOWEST;
-        const int top_pri = SCHED_QOS_URGENT * QOS_PRI_COUNT - 1;
-        const int bot_pri = SCHED_PRI_LOWEST + 1;
+        const int dyn_top_pri = SCHED_QOS_URGENT * QOS_PRI_COUNT - 1;
+        const int dyn_bot_pri = SCHED_PRI_LOWEST + 1;
 
         eff_pri = boosted_pri - self->priority_penalty;
-        eff_pri = __max(__min(eff_pri, top_pri), bot_pri);
+        eff_pri = __max(__min(eff_pri, dyn_top_pri), dyn_bot_pri);
     }
 
 //    assert(eff_pri >= SCHED_PRI_LOWEST && eff_pri <= SCHED_PRI_HIGHEST);
@@ -288,7 +294,7 @@ int vcpu_getcurrentpriority(vcpu_t _Nonnull self)
 static void _vcpu_yield(vcpu_t _Nonnull self)
 {
     if (self->sched_state == SCHED_STATE_RUNNING) {
-        if (self->priority_penalty > 0) {
+        if (!vcpu_is_fixed_pri(self) && self->priority_penalty > 0) {
             // Half the priority penalty, if any
             self->priority_penalty /= 2;
             vcpu_sched_params_changed(self);
