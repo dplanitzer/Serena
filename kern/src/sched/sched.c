@@ -31,8 +31,7 @@ const int8_t g_quantum_length[SCHED_QOS_COUNT] = {
     SCHED_QUANTUM(2),       /* Urgent */
     SCHED_QUANTUM(4),       /* Interactive */
     SCHED_QUANTUM(8),       /* Utility */
-    SCHED_QUANTUM(12),      /* Background */
-    SCHED_QUANTUM(1),       /* Idle */
+    SCHED_QUANTUM(12)       /* Background */
 };
 
 
@@ -335,8 +334,8 @@ static vcpu_t _Nonnull idle_vcpu_create(BootAllocator* _Nonnull bap)
     // Create the VP
     sched_params_t sp;
     sp.type = SCHED_PARAM_QOS;
-    sp.u.qos.category = SCHED_QOS_IDLE;
-    sp.u.qos.priority = 0;
+    sp.u.qos.category = SCHED_QOS_BACKGROUND;
+    sp.u.qos.priority = QOS_PRI_LOWEST;
     vcpu_init(self, &sp);
 
     vcpu_acquisition_t ac = VCPU_ACQUISITION_INIT;

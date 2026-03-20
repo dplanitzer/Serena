@@ -21,9 +21,9 @@
 
 
 // Absolute scheduler priorities
-#define SCHED_PRI_COUNT     ((SCHED_QOS_COUNT-1) * QOS_PRI_COUNT + 1/*SCHED_QOS_IDLE*/)
-#define SCHED_PRI_HIGHEST   (SCHED_PRI_COUNT-1)
-#define SCHED_PRI_LOWEST    0
+#define SCHED_PRI_COUNT     (SCHED_QOS_COUNT * QOS_PRI_COUNT)   /* 80 */
+#define SCHED_PRI_HIGHEST   (SCHED_PRI_COUNT-1)                 /* 79 */
+#define SCHED_PRI_LOWEST    0                                   /*  0 */
 
 #define SCHED_PRI_POP_BYTE_COUNT    ((SCHED_PRI_COUNT + 7) / 8)
 

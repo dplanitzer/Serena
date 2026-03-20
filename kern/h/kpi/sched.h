@@ -12,6 +12,9 @@
 #include <kpi/types.h>
 
 // Quality of Service level. From highest to lowest.
+// Note that the highest priority of Realtime and the lowest priority of
+// Background are privileged priority bands that owned by the scheduler.
+// 
 // SCHED_QOS_REALTIME:
 //  - fixed priority
 //  - smallest quantum
@@ -41,20 +44,13 @@
 //  - longest quantum of all QoS
 //  - higher latency on wakeup
 //  -- eg used for system wide or user specific cpu-bound jobs that should run on the background
-//
-// SCHED_QOS_IDLE:
-//  - fixed priority
-//  - shortest quantum of all QoS
-//  - may put CPU temporarily to sleep
-//  - used by the scheduler to consume unused CPU cycles
 #define SCHED_QOS_REALTIME      5
 #define SCHED_QOS_URGENT        4
 #define SCHED_QOS_INTERACTIVE   3
 #define SCHED_QOS_UTILITY       2
 #define SCHED_QOS_BACKGROUND    1
-#define SCHED_QOS_IDLE          0
 
-#define SCHED_QOS_COUNT         6
+#define SCHED_QOS_COUNT         5
 
 
 // Priorities per QoS level

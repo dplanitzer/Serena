@@ -168,17 +168,20 @@ void vcpu_sched_params_changed(vcpu_t _Nonnull self)
 {
     int eff_pri;
 
-    if (self->qos > SCHED_QOS_IDLE) {
-        const int pri_boost = (self->priority_penalty <= 0) ? self->priority_boost : 0;
-        const int qos_pri = __min(self->qos_priority + pri_boost, QOS_PRI_HIGHEST);
-        const int boosted_pri = ((self->qos - 1) << QOS_PRI_SHIFT) + (qos_pri - QOS_PRI_LOWEST) + 1;
-
-        eff_pri = boosted_pri - self->priority_penalty;
-        eff_pri = __max(__min(eff_pri, SCHED_PRI_HIGHEST), SCHED_PRI_LOWEST + 1);
+    if ((self->qos == SCHED_QOS_BACKGROUND && self->qos_priority == QOS_PRI_LOWEST) || (self->qos == SCHED_QOS_REALTIME)) {
+        // Fixed priority
+        eff_pri = ((self->qos - 1) << QOS_PRI_SHIFT) + self->qos_priority - QOS_PRI_LOWEST;
     }
     else {
-        // SCHED_QOS_IDLE has only one priority level
-        eff_pri = SCHED_PRI_LOWEST;
+        // Dynamic priority
+        const int pri_boost = (self->priority_penalty <= 0) ? self->priority_boost : 0;
+        const int qos_pri = __min(self->qos_priority + pri_boost, QOS_PRI_HIGHEST);
+        const int boosted_pri = ((self->qos - 1) << QOS_PRI_SHIFT) + qos_pri - QOS_PRI_LOWEST;
+        const int top_pri = SCHED_QOS_URGENT * QOS_PRI_COUNT - 1;
+        const int bot_pri = SCHED_PRI_LOWEST + 1;
+
+        eff_pri = boosted_pri - self->priority_penalty;
+        eff_pri = __max(__min(eff_pri, top_pri), bot_pri);
     }
 
 //    assert(eff_pri >= SCHED_PRI_LOWEST && eff_pri <= SCHED_PRI_HIGHEST);
@@ -219,6 +222,14 @@ errno_t vcpu_setschedparams(vcpu_t _Nonnull self, const sched_params_t* _Nonnull
     }
     if (params->u.qos.priority < QOS_PRI_LOWEST || params->u.qos.priority > QOS_PRI_HIGHEST) {
         return EINVAL;
+    }
+    if (params->u.qos.category == SCHED_QOS_BACKGROUND && params->u.qos.priority == QOS_PRI_LOWEST) {
+        // Reserved for scheduler 
+        return EPERM;
+    }
+    if (params->u.qos.category == SCHED_QOS_REALTIME && params->u.qos.priority == QOS_PRI_HIGHEST) {
+        // Reserved for scheduler 
+        return EPERM;
     }
 
 
