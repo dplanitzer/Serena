@@ -25,7 +25,18 @@
 #define SCHED_PRI_HIGHEST   (SCHED_PRI_COUNT-1)                 /* 79 */
 #define SCHED_PRI_LOWEST    0                                   /*  0 */
 
-#define SCHED_PRI_POP_BYTE_COUNT    ((SCHED_PRI_COUNT + 7) / 8)
+#if defined(__LLP64__)
+typedef uint64_t    pop_word_t;
+#define SCHED_POP_WORD_WIDTH    64
+#define SCHED_POP_SHIFT         6
+#define SCHED_POP_MASK          63
+#else
+typedef uint32_t    pop_word_t;
+#define SCHED_POP_WORD_WIDTH    32
+#define SCHED_POP_SHIFT         5
+#define SCHED_POP_MASK          31
+#endif
+#define SCHED_POP_WORD_COUNT    ((SCHED_PRI_COUNT + (SCHED_POP_WORD_WIDTH-1)) / SCHED_POP_WORD_WIDTH)
 
 
 #define SCHED_QUANTUM_SCALE 3
@@ -42,12 +53,20 @@
 #define CSW_SIGNAL_PREEMPTED    0x02
 
 
+
 // The ready queue holds references to all VPs which are ready to run. The queue
 // is sorted from highest to lowest priority.
 typedef struct ready_queue {
-    deque_t priority[SCHED_PRI_COUNT];
-    uint8_t populated[SCHED_PRI_POP_BYTE_COUNT];
+    deque_t     priority[SCHED_PRI_COUNT];
+    pop_word_t  populated[SCHED_POP_WORD_COUNT];
 } ready_queue_t;
+
+#define sched_rq_mark_populated(__rq, __pri) \
+(__rq)->populated[(__pri) >> SCHED_POP_SHIFT] |= (1 << ((__pri) & SCHED_POP_MASK))
+
+#define sched_rq_clear_populated(__rq, __pri) \
+(__rq)->populated[(__pri) >> SCHED_POP_SHIFT] &= ~(1 << ((__pri) & SCHED_POP_MASK))
+
 
 
 // Note: Keep in sync with machine/hw/m68k/lowmem.i
@@ -110,12 +129,10 @@ extern void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doAd
 // @Entry Condition: preemption disabled
 extern void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyToRun);
 
+// Returns the highest priority vcpu ready for running. NULL if no vcpu is ready
+// to run.
 // @Entry Condition: preemption disabled
-#define sched_highest_priority_ready(__self) \
-sched_highest_priority_ready_starting_at(__self, SCHED_PRI_HIGHEST)
-
-// @Entry Condition: preemption disabled
-extern vcpu_t _Nullable sched_highest_priority_ready_starting_at(sched_t _Nonnull self, int pri);
+extern vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self);
 
 extern void sched_switch_to(sched_t _Nonnull self, vcpu_t _Nonnull vp);
 

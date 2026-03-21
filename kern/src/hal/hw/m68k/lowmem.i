@@ -93,7 +93,7 @@ mtc_SIZEOF                      so              ; 12
 CSWB_SIGNAL_SWITCH                  equ     0
 CSWB_SIGNAL_PREEMPTED               equ     1
 
-SCHED_PRI_COUNT                     equ     64
+SCHED_PRI_COUNT                     equ     80
 
     clrso
 sched_running                       so.l    1       ; 4
@@ -106,10 +106,10 @@ sched_idle_virtual_processor        so.l    1       ; 4
 sched_boot_virtual_processor        so.l    1       ; 4
 sched_finalizer_queue_first         so.l    1       ; 4
 sched_finalizer_queue_last          so.l    1       ; 4
-sched_ready_queue                   so.l    SCHED_PRI_COUNT * 2 ; 512
-sched_ready_queue_populated         so.b    8       ; 8
+sched_ready_queue                   so.l    SCHED_PRI_COUNT * 2 ; 640
+sched_ready_queue_populated         so.l    3       ; 3
 sched_SIZEOF                        so
-    ifeq (sched_SIZEOF == 548)
+    ifeq (sched_SIZEOF == 680)
         fail "sched_t structure size is incorrect."
     endif
 

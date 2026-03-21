@@ -11,6 +11,7 @@
 #include "waitqueue.h"
 #include <assert.h>
 #include <string.h>
+#include <ext/bit.h>
 #include <hal/sched.h>
 #include <kern/kernlib.h>
 #include <kern/signal.h>
@@ -82,7 +83,7 @@ void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doAddToTail
         deque_add_first(&self->ready_queue.priority[pri], &vp->rewa_qe);
     }
     
-    self->ready_queue.populated[pri >> 3] |= (1 << (pri & 7));
+    sched_rq_mark_populated(&self->ready_queue, pri);
 }
 
 // Takes the given virtual processor off the ready queue and marks it as running
@@ -111,48 +112,48 @@ void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyTo
     deque_remove(&self->ready_queue.priority[pri], &vp->rewa_qe);
     
     if (deque_empty(&self->ready_queue.priority[pri])) {
-        self->ready_queue.populated[pri >> 3] &= ~(1 << (pri & 7));
+        sched_rq_clear_populated(&self->ready_queue, pri);
     }
 }
 
-vcpu_t _Nullable sched_highest_priority_ready_starting_at(sched_t _Nonnull self, int pri)
+vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self)
 {
-    int by = pri >> 3;
-    int bit = pri & 7;
+    unsigned int lzc;
 
-    if (bit < 7) {
-        register const uint8_t pop = self->ready_queue.populated[by];
-
-        while (bit >= 0) {
-            if ((pop & (1 << bit)) != 0) {
-                return (vcpu_t)self->ready_queue.priority[(by << 3) + bit].first;
-            }
-
-            bit--;
-        }
-
-        by--;
-        bit = 7;
+#if (SCHED_POP_WORD_COUNT == 3 && SCHED_POP_WORD_WIDTH == 32)
+    lzc = leading_zeros_ui(self->ready_queue.populated[2]);
+    if (lzc < 32) {
+        return (vcpu_t)self->ready_queue.priority[(31 - lzc) + 64].first;
     }
 
-    while (by >= 0) {
-        register const uint8_t pop = self->ready_queue.populated[by];
-        
-        if (pop) {
-            if (pop & 0x80) { return (vcpu_t) self->ready_queue.priority[(by << 3) + 7].first; }
-            if (pop & 0x40) { return (vcpu_t) self->ready_queue.priority[(by << 3) + 6].first; }
-            if (pop & 0x20) { return (vcpu_t) self->ready_queue.priority[(by << 3) + 5].first; }
-            if (pop & 0x10) { return (vcpu_t) self->ready_queue.priority[(by << 3) + 4].first; }
-            if (pop & 0x8)  { return (vcpu_t) self->ready_queue.priority[(by << 3) + 3].first; }
-            if (pop & 0x4)  { return (vcpu_t) self->ready_queue.priority[(by << 3) + 2].first; }
-            if (pop & 0x2)  { return (vcpu_t) self->ready_queue.priority[(by << 3) + 1].first; }
-            if (pop & 0x1)  { return (vcpu_t) self->ready_queue.priority[(by << 3) + 0].first; }
-        }
-
-        by--;
+    lzc = leading_zeros_ui(self->ready_queue.populated[1]);
+    if (lzc < 32) {
+        return (vcpu_t)self->ready_queue.priority[(31 - lzc) + 32].first;
     }
 
+    lzc = leading_zeros_ui(self->ready_queue.populated[0]);
+    if (lzc < 32) {
+        return (vcpu_t)self->ready_queue.priority[31 - lzc].first;
+    }
     return NULL;
+
+#elif (SCHED_POP_WORD_COUNT == 2 && SCHED_POP_WORD_WIDTH == 64)
+    lzc = leading_zeros_ull(self->ready_queue.populated[1]);
+    if (lzc < 64) {
+        return (vcpu_t)self->ready_queue.priority[(63 - lzc) + 64].first;
+    }
+
+    // This always returns a value < 32 since the idle priority always
+    // has a vcpu that's always ready to run
+    lzc = leading_zeros_ull(self->ready_queue.populated[0]);
+    if (lzc < 64) {
+        return (vcpu_t)self->ready_queue.priority[63 - lzc].first;
+    }
+    return NULL;
+
+#else
+#error "unknown pop_word_t size"
+#endif
 }
 
 // Context switch to the given virtual processor. 'vp' must be in ready state
@@ -244,25 +245,6 @@ _Noreturn void sched_run_chores(sched_t _Nonnull self)
         )
     }
 }
-
-#if 0
-static void sched_dump_rdyq_locked(sched_t _Nonnull self)
-{
-    for (int i = 0; i < SCHED_PRI_COUNT; i++) {
-        vcpu_t pCurVP = (vcpu_t)self->ready_queue.priority[i].first;
-        
-        while (pCurVP) {
-            printf("{pri: %d}, ", pCurVP->priority);
-            pCurVP = (vcpu_t)pCurVP->rewa_qe.next;
-        }
-    }
-    printf("\n");
-    for (int i = 0; i < SCHED_PRI_POP_BYTE_COUNT; i++) {
-        printf("%hhx, ", self->ready_queue.populated[i]);
-    }
-    printf("\n");
-}
-#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
