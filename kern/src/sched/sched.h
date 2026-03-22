@@ -130,7 +130,8 @@ extern void sched_set_ready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doAd
 extern void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyToRun);
 
 // Returns the highest priority vcpu ready for running. NULL if no vcpu is ready
-// to run.
+// to run. Note that this happens if the machine is idle, teh idle vcpu is already
+// scheduled and all higher priority vcpus are waiting for something. 
 // @Entry Condition: preemption disabled
 extern vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self);
 

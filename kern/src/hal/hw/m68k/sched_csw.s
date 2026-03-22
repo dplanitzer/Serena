@@ -14,9 +14,63 @@
     xref _sched_set_unready
     xref _cpu_non_recoverable_error
 
+    xdef _sched_highest_priority_ready
     xdef _sched_switch_context
     xdef _sched_switch_to_boot_vcpu
     xdef __sched_switch_context
+
+
+;-------------------------------------------------------------------------------
+; vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self)
+; Returns the highest priority vcpu ready for running. NULL if no vcpu is ready
+; to run. Note that this happens if the machine is idle, teh idle vcpu is already
+; scheduled and all higher priority vcpus are waiting for something. 
+; @Entry Condition: preemption disabled
+_sched_highest_priority_ready:
+    movem.l d2 / a2-a3, -(sp)
+
+    moveq   #31,d2
+    move.l  (12 + 4)(sp), a3                                 ; a3 := self
+    lea.l   sched_ready_queue(a3), a2                   ; a2 := &self->ready_queue.priority[0]
+    move.l  (sched_ready_queue_populated + 2*4)(a3), d0 ; d0 := self->ready_queue.populated[2]
+    bfffo   d0{0:32}, d1
+    beq.s   .1
+    move.l  d1, d0
+    move.l  d2, d0
+    sub.l   d1, d0
+    add.l   #64, d0
+    move.l  (a2, d0.l*8), d0
+    bra.s   .done
+
+.1:
+    move.l  (sched_ready_queue_populated + 1*4)(a3), d0 ; d0 := self->ready_queue.populated[1]
+    bfffo   d0{0:32}, d1
+    beq.s   .2
+    move.l  d1, d0
+    move.l  d2, d0
+    sub.l   d1, d0
+    add.l   #32, d0
+    move.l  (a2, d0.l*8), d0
+    bra.s   .done
+
+.2:
+    move.l  (sched_ready_queue_populated + 0*4)(a3), d0 ; d0 := self->ready_queue.populated[0]
+    bfffo   d0{0:32}, d1
+    beq.s   .3
+    move.l  d1, d0
+    move.l  d2, d0
+    sub.l   d1, d0
+    move.l  (a2, d0.l*8), d0
+    bra.s   .done
+
+.3:
+    moveq   #0, d0
+
+.done:
+    movem.l (sp)+, d2 / a2-a3
+    rts
+
+
 
 
 ;-------------------------------------------------------------------------------

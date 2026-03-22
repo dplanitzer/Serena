@@ -116,6 +116,8 @@ void sched_set_unready(sched_t _Nonnull self, vcpu_t _Nonnull vp, bool doReadyTo
     }
 }
 
+#if !defined(__M68K__)
+//m68k: sched_csw.s
 vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self)
 {
     unsigned int lzc;
@@ -155,6 +157,7 @@ vcpu_t _Nullable sched_highest_priority_ready(sched_t _Nonnull self)
 #error "unknown pop_word_t size"
 #endif
 }
+#endif
 
 // Context switch to the given virtual processor. 'vp' must be in ready state
 // and on the ready queue. Immediately triggers a context switch to 'vp'.
